@@ -28,6 +28,43 @@ public class Av1ScanOrderTests
         }
     }
 
+    [Theory]
+    [MemberData(nameof(GetCombinations))]
+    internal void AllIndicesScannedAreWithinRange(int s, int t)
+    {
+        // Assign
+        Av1TransformSize transformSize = (Av1TransformSize)s;
+        Av1TransformType transformType = (Av1TransformType)t;
+        int lowValue = 0;
+
+        // Act
+        Av1ScanOrder scanOrder = Av1ScanOrderConstants.GetScanOrder(transformSize, transformType);
+        int highValue = scanOrder.Scan.Length - 1;
+
+        // Assert
+        foreach (short scan in scanOrder.Scan)
+        {
+            Assert.InRange(scan, lowValue, highValue);
+        }
+    }
+
+    [Theory]
+    [MemberData(nameof(GetCombinations))]
+    internal void CorrectNumberOfIndicesScanned(int s, int t)
+    {
+        // Assign
+        Av1TransformSize transformSize = (Av1TransformSize)s;
+        Av1TransformType transformType = (Av1TransformType)t;
+        int width = Math.Min(transformSize.GetWidth(), 32);
+        int height = Math.Min(transformSize.GetHeight(), 32);
+
+        // Act
+        Av1ScanOrder scanOrder = Av1ScanOrderConstants.GetScanOrder(transformSize, transformType);
+
+        // Assert
+        Assert.Equal(width * height, scanOrder.Scan.Length);
+    }
+
     public static TheoryData<int, int> GetCombinations()
     {
         TheoryData<int, int> combinations = [];

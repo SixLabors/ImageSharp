@@ -211,60 +211,6 @@ internal static class Av1ScanOrderConstants
         205, 221, 237, 253, 14,  30,  46,  62,  78,  94,  110, 126, 142, 158, 174, 190, 206, 222, 238, 254, 15,  31,
         47,  63,  79,  95,  111, 127, 143, 159, 175, 191, 207, 223, 239, 255,];
 
-    private static readonly short[] MatrixColumnScan32x32 = [
-        0,   32,  64,  96,   128, 160, 192, 224,  256, 288, 320, 352,  384, 416, 448, 480,  512, 544, 576, 608,
-        640, 672, 704, 736,  768, 800, 832, 864,  896, 928, 960, 992,  1,   33,  65,  97,   129, 161, 193, 225,
-        257, 289, 321, 353,  385, 417, 449, 481,  513, 545, 577, 609,  641, 673, 705, 737,  769, 801, 833, 865,
-        897, 929, 961, 993,  2,   34,  66,  98,   130, 162, 194, 226,  258, 290, 322, 354,  386, 418, 450, 482,
-        514, 546, 578, 610,  642, 674, 706, 738,  770, 802, 834, 866,  898, 930, 962, 994,  3,   35,  67,  99,
-        131, 163, 195, 227,  259, 291, 323, 355,  387, 419, 451, 483,  515, 547, 579, 611,  643, 675, 707, 739,
-        771, 803, 835, 867,  899, 931, 963, 995,  4,   36,  68,  100,  132, 164, 196, 228,  260, 292, 324, 356,
-        388, 420, 452, 484,  516, 548, 580, 612,  644, 676, 708, 740,  772, 804, 836, 868,  900, 932, 964, 996,
-        5,   37,  69,  101,  133, 165, 197, 229,  261, 293, 325, 357,  389, 421, 453, 485,  517, 549, 581, 613,
-        645, 677, 709, 741,  773, 805, 837, 869,  901, 933, 965, 997,  6,   38,  70,  102,  134, 166, 198, 230,
-        262, 294, 326, 358,  390, 422, 454, 486,  518, 550, 582, 614,  646, 678, 710, 742,  774, 806, 838, 870,
-        902, 934, 966, 998,  7,   39,  71,  103,  135, 167, 199, 231,  263, 295, 327, 359,  391, 423, 455, 487,
-        519, 551, 583, 615,  647, 679, 711, 743,  775, 807, 839, 871,  903, 935, 967, 999,  8,   40,  72,  104,
-        136, 168, 200, 232,  264, 296, 328, 360,  392, 424, 456, 488,  520, 552, 584, 616,  648, 680, 712, 744,
-        776, 808, 840, 872,  904, 936, 968, 1000, 9,   41,  73,  105,  137, 169, 201, 233,  265, 297, 329, 361,
-        393, 425, 457, 489,  521, 553, 585, 617,  649, 681, 713, 745,  777, 809, 841, 873,  905, 937, 969, 1001,
-        10,  42,  74,  106,  138, 170, 202, 234,  266, 298, 330, 362,  394, 426, 458, 490,  522, 554, 586, 618,
-        650, 682, 714, 746,  778, 810, 842, 874,  906, 938, 970, 1002, 11,  43,  75,  107,  139, 171, 203, 235,
-        267, 299, 331, 363,  395, 427, 459, 491,  523, 555, 587, 619,  651, 683, 715, 747,  779, 811, 843, 875,
-        907, 939, 971, 1003, 12,  44,  76,  108,  140, 172, 204, 236,  268, 300, 332, 364,  396, 428, 460, 492,
-        524, 556, 588, 620,  652, 684, 716, 748,  780, 812, 844, 876,  908, 940, 972, 1004, 13,  45,  77,  109,
-        141, 173, 205, 237,  269, 301, 333, 365,  397, 429, 461, 493,  525, 557, 589, 621,  653, 685, 717, 749,
-        781, 813, 845, 877,  909, 941, 973, 1005, 14,  46,  78,  110,  142, 174, 206, 238,  270, 302, 334, 366,
-        398, 430, 462, 494,  526, 558, 590, 622,  654, 686, 718, 750,  782, 814, 846, 878,  910, 942, 974, 1006,
-        15,  47,  79,  111,  143, 175, 207, 239,  271, 303, 335, 367,  399, 431, 463, 495,  527, 559, 591, 623,
-        655, 687, 719, 751,  783, 815, 847, 879,  911, 943, 975, 1007, 16,  48,  80,  112,  144, 176, 208, 240,
-        272, 304, 336, 368,  400, 432, 464, 496,  528, 560, 592, 624,  656, 688, 720, 752,  784, 816, 848, 880,
-        912, 944, 976, 1008, 17,  49,  81,  113,  145, 177, 209, 241,  273, 305, 337, 369,  401, 433, 465, 497,
-        529, 561, 593, 625,  657, 689, 721, 753,  785, 817, 849, 881,  913, 945, 977, 1009, 18,  50,  82,  114,
-        146, 178, 210, 242,  274, 306, 338, 370,  402, 434, 466, 498,  530, 562, 594, 626,  658, 690, 722, 754,
-        786, 818, 850, 882,  914, 946, 978, 1010, 19,  51,  83,  115,  147, 179, 211, 243,  275, 307, 339, 371,
-        403, 435, 467, 499,  531, 563, 595, 627,  659, 691, 723, 755,  787, 819, 851, 883,  915, 947, 979, 1011,
-        20,  52,  84,  116,  148, 180, 212, 244,  276, 308, 340, 372,  404, 436, 468, 500,  532, 564, 596, 628,
-        660, 692, 724, 756,  788, 820, 852, 884,  916, 948, 980, 1012, 21,  53,  85,  117,  149, 181, 213, 245,
-        277, 309, 341, 373,  405, 437, 469, 501,  533, 565, 597, 629,  661, 693, 725, 757,  789, 821, 853, 885,
-        917, 949, 981, 1013, 22,  54,  86,  118,  150, 182, 214, 246,  278, 310, 342, 374,  406, 438, 470, 502,
-        534, 566, 598, 630,  662, 694, 726, 758,  790, 822, 854, 886,  918, 950, 982, 1014, 23,  55,  87,  119,
-        151, 183, 215, 247,  279, 311, 343, 375,  407, 439, 471, 503,  535, 567, 599, 631,  663, 695, 727, 759,
-        791, 823, 855, 887,  919, 951, 983, 1015, 24,  56,  88,  120,  152, 184, 216, 248,  280, 312, 344, 376,
-        408, 440, 472, 504,  536, 568, 600, 632,  664, 696, 728, 760,  792, 824, 856, 888,  920, 952, 984, 1016,
-        25,  57,  89,  121,  153, 185, 217, 249,  281, 313, 345, 377,  409, 441, 473, 505,  537, 569, 601, 633,
-        665, 697, 729, 761,  793, 825, 857, 889,  921, 953, 985, 1017, 26,  58,  90,  122,  154, 186, 218, 250,
-        282, 314, 346, 378,  410, 442, 474, 506,  538, 570, 602, 634,  666, 698, 730, 762,  794, 826, 858, 890,
-        922, 954, 986, 1018, 27,  59,  91,  123,  155, 187, 219, 251,  283, 315, 347, 379,  411, 443, 475, 507,
-        539, 571, 603, 635,  667, 699, 731, 763,  795, 827, 859, 891,  923, 955, 987, 1019, 28,  60,  92,  124,
-        156, 188, 220, 252,  284, 316, 348, 380,  412, 444, 476, 508,  540, 572, 604, 636,  668, 700, 732, 764,
-        796, 828, 860, 892,  924, 956, 988, 1020, 29,  61,  93,  125,  157, 189, 221, 253,  285, 317, 349, 381,
-        413, 445, 477, 509,  541, 573, 605, 637,  669, 701, 733, 765,  797, 829, 861, 893,  925, 957, 989, 1021,
-        30,  62,  94,  126,  158, 190, 222, 254,  286, 318, 350, 382,  414, 446, 478, 510,  542, 574, 606, 638,
-        670, 702, 734, 766,  798, 830, 862, 894,  926, 958, 990, 1022, 31,  63,  95,  127,  159, 191, 223, 255,
-        287, 319, 351, 383,  415, 447, 479, 511,  543, 575, 607, 639,  671, 703, 735, 767,  799, 831, 863, 895,
-        927, 959, 991, 1023,];
-
     private static readonly short[] MatrixColumnScan4x8 = [
          0, 4, 8,  12, 16, 20, 24, 28, 1, 5, 9,  13, 17, 21, 25, 29,
         2, 6, 10, 14, 18, 22, 26, 30, 3, 7, 11, 15, 19, 23, 27, 31,];
@@ -288,55 +234,6 @@ internal static class Av1ScanOrderConstants
         40,  56,  72,  88,  104, 120, 9,   25,  41,  57,  73,  89,  105, 121, 10,  26,  42,  58,  74,  90,  106, 122,
         11,  27,  43,  59,  75,  91,  107, 123, 12,  28,  44,  60,  76,  92,  108, 124, 13,  29,  45,  61,  77,  93,
         109, 125, 14,  30,  46,  62,  78,  94,  110, 126, 15,  31,  47,  63,  79,  95,  111, 127,];
-
-    private static readonly short[] MatrixColumnScan16x32 = [
-        0,   16,  32,  48,  64,  80,  96,  112, 128, 144, 160, 176, 192, 208, 224, 240, 256, 272, 288, 304, 320, 336, 352,
-        368, 384, 400, 416, 432, 448, 464, 480, 496, 1,   17,  33,  49,  65,  81,  97,  113, 129, 145, 161, 177, 193, 209,
-        225, 241, 257, 273, 289, 305, 321, 337, 353, 369, 385, 401, 417, 433, 449, 465, 481, 497, 2,   18,  34,  50,  66,
-        82,  98,  114, 130, 146, 162, 178, 194, 210, 226, 242, 258, 274, 290, 306, 322, 338, 354, 370, 386, 402, 418, 434,
-        450, 466, 482, 498, 3,   19,  35,  51,  67,  83,  99,  115, 131, 147, 163, 179, 195, 211, 227, 243, 259, 275, 291,
-        307, 323, 339, 355, 371, 387, 403, 419, 435, 451, 467, 483, 499, 4,   20,  36,  52,  68,  84,  100, 116, 132, 148,
-        164, 180, 196, 212, 228, 244, 260, 276, 292, 308, 324, 340, 356, 372, 388, 404, 420, 436, 452, 468, 484, 500, 5,
-        21,  37,  53,  69,  85,  101, 117, 133, 149, 165, 181, 197, 213, 229, 245, 261, 277, 293, 309, 325, 341, 357, 373,
-        389, 405, 421, 437, 453, 469, 485, 501, 6,   22,  38,  54,  70,  86,  102, 118, 134, 150, 166, 182, 198, 214, 230,
-        246, 262, 278, 294, 310, 326, 342, 358, 374, 390, 406, 422, 438, 454, 470, 486, 502, 7,   23,  39,  55,  71,  87,
-        103, 119, 135, 151, 167, 183, 199, 215, 231, 247, 263, 279, 295, 311, 327, 343, 359, 375, 391, 407, 423, 439, 455,
-        471, 487, 503, 8,   24,  40,  56,  72,  88,  104, 120, 136, 152, 168, 184, 200, 216, 232, 248, 264, 280, 296, 312,
-        328, 344, 360, 376, 392, 408, 424, 440, 456, 472, 488, 504, 9,   25,  41,  57,  73,  89,  105, 121, 137, 153, 169,
-        185, 201, 217, 233, 249, 265, 281, 297, 313, 329, 345, 361, 377, 393, 409, 425, 441, 457, 473, 489, 505, 10,  26,
-        42,  58,  74,  90,  106, 122, 138, 154, 170, 186, 202, 218, 234, 250, 266, 282, 298, 314, 330, 346, 362, 378, 394,
-        410, 426, 442, 458, 474, 490, 506, 11,  27,  43,  59,  75,  91,  107, 123, 139, 155, 171, 187, 203, 219, 235, 251,
-        267, 283, 299, 315, 331, 347, 363, 379, 395, 411, 427, 443, 459, 475, 491, 507, 12,  28,  44,  60,  76,  92,  108,
-        124, 140, 156, 172, 188, 204, 220, 236, 252, 268, 284, 300, 316, 332, 348, 364, 380, 396, 412, 428, 444, 460, 476,
-        492, 508, 13,  29,  45,  61,  77,  93,  109, 125, 141, 157, 173, 189, 205, 221, 237, 253, 269, 285, 301, 317, 333,
-        349, 365, 381, 397, 413, 429, 445, 461, 477, 493, 509, 14,  30,  46,  62,  78,  94,  110, 126, 142, 158, 174, 190,
-        206, 222, 238, 254, 270, 286, 302, 318, 334, 350, 366, 382, 398, 414, 430, 446, 462, 478, 494, 510, 15,  31,  47,
-        63,  79,  95,  111, 127, 143, 159,];
-
-    private static readonly short[] MatrixColumnScan32x16 = [
-        0,   32,  64,  96,  128, 160, 192, 224, 256, 288, 320, 352, 384, 416, 448, 480, 1,   33,  65,  97,  129, 161, 193,
-        225, 257, 289, 321, 353, 385, 417, 449, 481, 2,   34,  66,  98,  130, 162, 194, 226, 258, 290, 322, 354, 386, 418,
-        450, 482, 3,   35,  67,  99,  131, 163, 195, 227, 259, 291, 323, 355, 387, 419, 451, 483, 4,   36,  68,  100, 132,
-        164, 196, 228, 260, 292, 324, 356, 388, 420, 452, 484, 5,   37,  69,  101, 133, 165, 197, 229, 261, 293, 325, 357,
-        389, 421, 453, 485, 6,   38,  70,  102, 134, 166, 198, 230, 262, 294, 326, 358, 390, 422, 454, 486, 7,   39,  71,
-        103, 135, 167, 199, 231, 263, 295, 327, 359, 391, 423, 455, 487, 8,   40,  72,  104, 136, 168, 200, 232, 264, 296,
-        328, 360, 392, 424, 456, 488, 9,   41,  73,  105, 137, 169, 201, 233, 265, 297, 329, 361, 393, 425, 457, 489, 10,
-        42,  74,  106, 138, 170, 202, 234, 266, 298, 330, 362, 394, 426, 458, 490, 11,  43,  75,  107, 139, 171, 203, 235,
-        267, 299, 331, 363, 395, 427, 459, 491, 12,  44,  76,  108, 140, 172, 204, 236, 268, 300, 332, 364, 396, 428, 460,
-        492, 13,  45,  77,  109, 141, 173, 205, 237, 269, 301, 333, 365, 397, 429, 461, 493, 14,  46,  78,  110, 142, 174,
-        206, 238, 270, 302, 334, 366, 398, 430, 462, 494, 15,  47,  79,  111, 143, 175, 207, 239, 271, 303, 335, 367, 399,
-        431, 463, 495, 16,  48,  80,  112, 144, 176, 208, 240, 272, 304, 336, 368, 400, 432, 464, 496, 17,  49,  81,  113,
-        145, 177, 209, 241, 273, 305, 337, 369, 401, 433, 465, 497, 18,  50,  82,  114, 146, 178, 210, 242, 274, 306, 338,
-        370, 402, 434, 466, 498, 19,  51,  83,  115, 147, 179, 211, 243, 275, 307, 339, 371, 403, 435, 467, 499, 20,  52,
-        84,  116, 148, 180, 212, 244, 276, 308, 340, 372, 404, 436, 468, 500, 21,  53,  85,  117, 149, 181, 213, 245, 277,
-        309, 341, 373, 405, 437, 469, 501, 22,  54,  86,  118, 150, 182, 214, 246, 278, 310, 342, 374, 406, 438, 470, 502,
-        23,  55,  87,  119, 151, 183, 215, 247, 279, 311, 343, 375, 407, 439, 471, 503, 24,  56,  88,  120, 152, 184, 216,
-        248, 280, 312, 344, 376, 408, 440, 472, 504, 25,  57,  89,  121, 153, 185, 217, 249, 281, 313, 345, 377, 409, 441,
-        473, 505, 26,  58,  90,  122, 154, 186, 218, 250, 282, 314, 346, 378, 410, 442, 474, 506, 27,  59,  91,  123, 155,
-        187, 219, 251, 283, 315, 347, 379, 411, 443, 475, 507, 28,  60,  92,  124, 156, 188, 220, 252, 284, 316, 348, 380,
-        412, 444, 476, 508, 29,  61,  93,  125, 157, 189, 221, 253, 285, 317, 349, 381, 413, 445, 477, 509, 30,  62,  94,
-        126, 158, 190, 222, 254, 286, 318, 350, 382, 414, 446, 478, 510, 31,  63,  95,  127, 159, 191, 223, 255, 287, 319,
-        351, 383, 415, 447, 479, 511,];
 
     private static readonly short[] MatrixColumnScan4x16 = [
         0,  4,  8,  12, 16, 20, 24, 28, 32, 36, 40, 44, 48, 52, 56, 60, 1,  5,  9,  13, 17, 21,
@@ -395,62 +292,6 @@ internal static class Av1ScanOrderConstants
         220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241,
         242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255,];
 
-    private static readonly short[] MatrixRowScan32x32 = [
-        0,    1,    2,    3,    4,    5,    6,    7,    8,    9,    10,   11,   12,   13,   14,   15,   16,   17,   18,
-        19,   20,   21,   22,   23,   24,   25,   26,   27,   28,   29,   30,   31,   32,   33,   34,   35,   36,   37,
-        38,   39,   40,   41,   42,   43,   44,   45,   46,   47,   48,   49,   50,   51,   52,   53,   54,   55,   56,
-        57,   58,   59,   60,   61,   62,   63,   64,   65,   66,   67,   68,   69,   70,   71,   72,   73,   74,   75,
-        76,   77,   78,   79,   80,   81,   82,   83,   84,   85,   86,   87,   88,   89,   90,   91,   92,   93,   94,
-        95,   96,   97,   98,   99,   100,  101,  102,  103,  104,  105,  106,  107,  108,  109,  110,  111,  112,  113,
-        114,  115,  116,  117,  118,  119,  120,  121,  122,  123,  124,  125,  126,  127,  128,  129,  130,  131,  132,
-        133,  134,  135,  136,  137,  138,  139,  140,  141,  142,  143,  144,  145,  146,  147,  148,  149,  150,  151,
-        152,  153,  154,  155,  156,  157,  158,  159,  160,  161,  162,  163,  164,  165,  166,  167,  168,  169,  170,
-        171,  172,  173,  174,  175,  176,  177,  178,  179,  180,  181,  182,  183,  184,  185,  186,  187,  188,  189,
-        190,  191,  192,  193,  194,  195,  196,  197,  198,  199,  200,  201,  202,  203,  204,  205,  206,  207,  208,
-        209,  210,  211,  212,  213,  214,  215,  216,  217,  218,  219,  220,  221,  222,  223,  224,  225,  226,  227,
-        228,  229,  230,  231,  232,  233,  234,  235,  236,  237,  238,  239,  240,  241,  242,  243,  244,  245,  246,
-        247,  248,  249,  250,  251,  252,  253,  254,  255,  256,  257,  258,  259,  260,  261,  262,  263,  264,  265,
-        266,  267,  268,  269,  270,  271,  272,  273,  274,  275,  276,  277,  278,  279,  280,  281,  282,  283,  284,
-        285,  286,  287,  288,  289,  290,  291,  292,  293,  294,  295,  296,  297,  298,  299,  300,  301,  302,  303,
-        304,  305,  306,  307,  308,  309,  310,  311,  312,  313,  314,  315,  316,  317,  318,  319,  320,  321,  322,
-        323,  324,  325,  326,  327,  328,  329,  330,  331,  332,  333,  334,  335,  336,  337,  338,  339,  340,  341,
-        342,  343,  344,  345,  346,  347,  348,  349,  350,  351,  352,  353,  354,  355,  356,  357,  358,  359,  360,
-        361,  362,  363,  364,  365,  366,  367,  368,  369,  370,  371,  372,  373,  374,  375,  376,  377,  378,  379,
-        380,  381,  382,  383,  384,  385,  386,  387,  388,  389,  390,  391,  392,  393,  394,  395,  396,  397,  398,
-        399,  400,  401,  402,  403,  404,  405,  406,  407,  408,  409,  410,  411,  412,  413,  414,  415,  416,  417,
-        418,  419,  420,  421,  422,  423,  424,  425,  426,  427,  428,  429,  430,  431,  432,  433,  434,  435,  436,
-        437,  438,  439,  440,  441,  442,  443,  444,  445,  446,  447,  448,  449,  450,  451,  452,  453,  454,  455,
-        456,  457,  458,  459,  460,  461,  462,  463,  464,  465,  466,  467,  468,  469,  470,  471,  472,  473,  474,
-        475,  476,  477,  478,  479,  480,  481,  482,  483,  484,  485,  486,  487,  488,  489,  490,  491,  492,  493,
-        494,  495,  496,  497,  498,  499,  500,  501,  502,  503,  504,  505,  506,  507,  508,  509,  510,  511,  512,
-        513,  514,  515,  516,  517,  518,  519,  520,  521,  522,  523,  524,  525,  526,  527,  528,  529,  530,  531,
-        532,  533,  534,  535,  536,  537,  538,  539,  540,  541,  542,  543,  544,  545,  546,  547,  548,  549,  550,
-        551,  552,  553,  554,  555,  556,  557,  558,  559,  560,  561,  562,  563,  564,  565,  566,  567,  568,  569,
-        570,  571,  572,  573,  574,  575,  576,  577,  578,  579,  580,  581,  582,  583,  584,  585,  586,  587,  588,
-        589,  590,  591,  592,  593,  594,  595,  596,  597,  598,  599,  600,  601,  602,  603,  604,  605,  606,  607,
-        608,  609,  610,  611,  612,  613,  614,  615,  616,  617,  618,  619,  620,  621,  622,  623,  624,  625,  626,
-        627,  628,  629,  630,  631,  632,  633,  634,  635,  636,  637,  638,  639,  640,  641,  642,  643,  644,  645,
-        646,  647,  648,  649,  650,  651,  652,  653,  654,  655,  656,  657,  658,  659,  660,  661,  662,  663,  664,
-        665,  666,  667,  668,  669,  670,  671,  672,  673,  674,  675,  676,  677,  678,  679,  680,  681,  682,  683,
-        684,  685,  686,  687,  688,  689,  690,  691,  692,  693,  694,  695,  696,  697,  698,  699,  700,  701,  702,
-        703,  704,  705,  706,  707,  708,  709,  710,  711,  712,  713,  714,  715,  716,  717,  718,  719,  720,  721,
-        722,  723,  724,  725,  726,  727,  728,  729,  730,  731,  732,  733,  734,  735,  736,  737,  738,  739,  740,
-        741,  742,  743,  744,  745,  746,  747,  748,  749,  750,  751,  752,  753,  754,  755,  756,  757,  758,  759,
-        760,  761,  762,  763,  764,  765,  766,  767,  768,  769,  770,  771,  772,  773,  774,  775,  776,  777,  778,
-        779,  780,  781,  782,  783,  784,  785,  786,  787,  788,  789,  790,  791,  792,  793,  794,  795,  796,  797,
-        798,  799,  800,  801,  802,  803,  804,  805,  806,  807,  808,  809,  810,  811,  812,  813,  814,  815,  816,
-        817,  818,  819,  820,  821,  822,  823,  824,  825,  826,  827,  828,  829,  830,  831,  832,  833,  834,  835,
-        836,  837,  838,  839,  840,  841,  842,  843,  844,  845,  846,  847,  848,  849,  850,  851,  852,  853,  854,
-        855,  856,  857,  858,  859,  860,  861,  862,  863,  864,  865,  866,  867,  868,  869,  870,  871,  872,  873,
-        874,  875,  876,  877,  878,  879,  880,  881,  882,  883,  884,  885,  886,  887,  888,  889,  890,  891,  892,
-        893,  894,  895,  896,  897,  898,  899,  900,  901,  902,  903,  904,  905,  906,  907,  908,  909,  910,  911,
-        912,  913,  914,  915,  916,  917,  918,  919,  920,  921,  922,  923,  924,  925,  926,  927,  928,  929,  930,
-        931,  932,  933,  934,  935,  936,  937,  938,  939,  940,  941,  942,  943,  944,  945,  946,  947,  948,  949,
-        950,  951,  952,  953,  954,  955,  956,  957,  958,  959,  960,  961,  962,  963,  964,  965,  966,  967,  968,
-        969,  970,  971,  972,  973,  974,  975,  976,  977,  978,  979,  980,  981,  982,  983,  984,  985,  986,  987,
-        988,  989,  990,  991,  992,  993,  994,  995,  996,  997,  998,  999,  1000, 1001, 1002, 1003, 1004, 1005, 1006,
-        1007, 1008, 1009, 1010, 1011, 1012, 1013, 1014, 1015, 1016, 1017, 1018, 1019, 1020, 1021, 1022, 1023,];
-
     private static readonly short[] MatrixRowScan4x8 = [
         0,  1,  2,  3,  4,  5,  6,  7,  8,  9,  10, 11, 12, 13, 14, 15,
         16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31,];
@@ -474,56 +315,6 @@ internal static class Av1ScanOrderConstants
         66,  67,  68,  69,  70,  71,  72,  73,  74,  75,  76,  77,  78,  79,  80,  81,  82,  83,  84,  85,  86,  87,
         88,  89,  90,  91,  92,  93,  94,  95,  96,  97,  98,  99,  100, 101, 102, 103, 104, 105, 106, 107, 108, 109,
         110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127,];
-
-    private static readonly short[] MatrixRowScan16x32 = [
-        0,   1,   2,   3,   4,   5,   6,   7,   8,   9,   10,  11,  12,  13,  14,  15,  16,  17,  18,  19,  20,  21,  22,
-        23,  24,  25,  26,  27,  28,  29,  30,  31,  32,  33,  34,  35,  36,  37,  38,  39,  40,  41,  42,  43,  44,  45,
-        46,  47,  48,  49,  50,  51,  52,  53,  54,  55,  56,  57,  58,  59,  60,  61,  62,  63,  64,  65,  66,  67,  68,
-        69,  70,  71,  72,  73,  74,  75,  76,  77,  78,  79,  80,  81,  82,  83,  84,  85,  86,  87,  88,  89,  90,  91,
-        92,  93,  94,  95,  96,  97,  98,  99,  100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114,
-        115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134, 135, 136, 137,
-        138, 139, 140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154, 155, 156, 157, 158, 159, 160,
-        161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 180, 181, 182, 183,
-        184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206,
-        207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229,
-        230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252,
-        253, 254, 255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266, 267, 268, 269, 270, 271, 272, 273, 274, 275,
-        276, 277, 278, 279, 280, 281, 282, 283, 284, 285, 286, 287, 288, 289, 290, 291, 292, 293, 294, 295, 296, 297, 298,
-        299, 300, 301, 302, 303, 304, 305, 306, 307, 308, 309, 310, 311, 312, 313, 314, 315, 316, 317, 318, 319, 320, 321,
-        322, 323, 324, 325, 326, 327, 328, 329, 330, 331, 332, 333, 334, 335, 336, 337, 338, 339, 340, 341, 342, 343, 344,
-        345, 346, 347, 348, 349, 350, 351, 352, 353, 354, 355, 356, 357, 358, 359, 360, 361, 362, 363, 364, 365, 366, 367,
-        368, 369, 370, 371, 372, 373, 374, 375, 376, 377, 378, 379, 380, 381, 382, 383, 384, 385, 386, 387, 388, 389, 390,
-        391, 392, 393, 394, 395, 396, 397, 398, 399, 400, 401, 402, 403, 404, 405, 406, 407, 408, 409, 410, 411, 412, 413,
-        414, 415, 416, 417, 418, 419, 420, 421, 422, 423, 424, 425, 426, 427, 428, 429, 430, 431, 432, 433, 434, 435, 436,
-        437, 438, 439, 440, 441, 442, 443, 444, 445, 446, 447, 448, 449, 450, 451, 452, 453, 454, 455, 456, 457, 458, 459,
-        460, 461, 462, 463, 464, 465, 466, 467, 468, 469, 470, 471, 472, 473, 474, 475, 476, 477, 478, 479, 480, 481, 482,
-        483, 484, 485, 486, 487, 488, 489, 490, 491, 492, 493, 494, 495, 496, 497, 498, 499, 500, 501, 502, 503, 504, 505,
-        506, 507, 508, 509, 510, 511,];
-
-    private static readonly short[] MatrixRowScan32x16 = [
-        0,   1,   2,   3,   4,   5,   6,   7,   8,   9,   10,  11,  12,  13,  14,  15,  16,  17,  18,  19,  20,  21,  22,
-        23,  24,  25,  26,  27,  28,  29,  30,  31,  32,  33,  34,  35,  36,  37,  38,  39,  40,  41,  42,  43,  44,  45,
-        46,  47,  48,  49,  50,  51,  52,  53,  54,  55,  56,  57,  58,  59,  60,  61,  62,  63,  64,  65,  66,  67,  68,
-        69,  70,  71,  72,  73,  74,  75,  76,  77,  78,  79,  80,  81,  82,  83,  84,  85,  86,  87,  88,  89,  90,  91,
-        92,  93,  94,  95,  96,  97,  98,  99,  100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114,
-        115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134, 135, 136, 137,
-        138, 139, 140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154, 155, 156, 157, 158, 159, 160,
-        161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 180, 181, 182, 183,
-        184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206,
-        207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229,
-        230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252,
-        253, 254, 255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266, 267, 268, 269, 270, 271, 272, 273, 274, 275,
-        276, 277, 278, 279, 280, 281, 282, 283, 284, 285, 286, 287, 288, 289, 290, 291, 292, 293, 294, 295, 296, 297, 298,
-        299, 300, 301, 302, 303, 304, 305, 306, 307, 308, 309, 310, 311, 312, 313, 314, 315, 316, 317, 318, 319, 320, 321,
-        322, 323, 324, 325, 326, 327, 328, 329, 330, 331, 332, 333, 334, 335, 336, 337, 338, 339, 340, 341, 342, 343, 344,
-        345, 346, 347, 348, 349, 350, 351, 352, 353, 354, 355, 356, 357, 358, 359, 360, 361, 362, 363, 364, 365, 366, 367,
-        368, 369, 370, 371, 372, 373, 374, 375, 376, 377, 378, 379, 380, 381, 382, 383, 384, 385, 386, 387, 388, 389, 390,
-        391, 392, 393, 394, 395, 396, 397, 398, 399, 400, 401, 402, 403, 404, 405, 406, 407, 408, 409, 410, 411, 412, 413,
-        414, 415, 416, 417, 418, 419, 420, 421, 422, 423, 424, 425, 426, 427, 428, 429, 430, 431, 432, 433, 434, 435, 436,
-        437, 438, 439, 440, 441, 442, 443, 444, 445, 446, 447, 448, 449, 450, 451, 452, 453, 454, 455, 456, 457, 458, 459,
-        460, 461, 462, 463, 464, 465, 466, 467, 468, 469, 470, 471, 472, 473, 474, 475, 476, 477, 478, 479, 480, 481, 482,
-        483, 484, 485, 486, 487, 488, 489, 490, 491, 492, 493, 494, 495, 496, 497, 498, 499, 500, 501, 502, 503, 504, 505,
-        506, 507, 508, 509, 510, 511,];
 
     private static readonly short[] MatrixRowScan4x16 = [
         0,  1,  2,  3,  4,  5,  6,  7,  8,  9,  10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21,
@@ -563,54 +354,54 @@ internal static class Av1ScanOrderConstants
         220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241,
         242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255,];
 
-    // IScan is not used (yet) for AVIF coding, leave these arrays empty for now.
-    private static readonly short[] DefaultIScan4x4 = [];
-    private static readonly short[] DefaultIScan8x8 = [];
-    private static readonly short[] DefaultIScan16x16 = [];
-    private static readonly short[] DefaultIScan32x32 = [];
-    private static readonly short[] DefaultIScan64x64 = [];
-    private static readonly short[] DefaultIScan4x8 = [];
-    private static readonly short[] DefaultIScan8x4 = [];
-    private static readonly short[] DefaultIScan8x16 = [];
-    private static readonly short[] DefaultIScan16x8 = [];
-    private static readonly short[] DefaultIScan16x32 = [];
-    private static readonly short[] DefaultIScan32x16 = [];
-    private static readonly short[] DefaultIScan4x16 = [];
-    private static readonly short[] DefaultIScan16x4 = [];
-    private static readonly short[] DefaultIScan8x32 = [];
-    private static readonly short[] DefaultIScan32x8 = [];
+    // InverseScan is not used (yet) for AVIF coding, leave these arrays empty for now.
+    private static readonly short[] DefaultInverseScan4x4 = [];
+    private static readonly short[] DefaultInverseScan8x8 = [];
+    private static readonly short[] DefaultInverseScan16x16 = [];
+    private static readonly short[] DefaultInverseScan32x32 = [];
+    private static readonly short[] DefaultInverseScan64x64 = [];
+    private static readonly short[] DefaultInverseScan4x8 = [];
+    private static readonly short[] DefaultInverseScan8x4 = [];
+    private static readonly short[] DefaultInverseScan8x16 = [];
+    private static readonly short[] DefaultInverseScan16x8 = [];
+    private static readonly short[] DefaultInverseScan16x32 = [];
+    private static readonly short[] DefaultInverseScan32x16 = [];
+    private static readonly short[] DefaultInverseScan4x16 = [];
+    private static readonly short[] DefaultInverseScan16x4 = [];
+    private static readonly short[] DefaultInverseScan8x32 = [];
+    private static readonly short[] DefaultInverseScan32x8 = [];
 
-    private static readonly short[] MatrixColumnIScan4x4 = [];
-    private static readonly short[] MatrixColumnIScan8x8 = [];
-    private static readonly short[] MatrixColumnIScan16x16 = [];
-    private static readonly short[] MatrixColumnIScan32x32 = [];
-    private static readonly short[] MatrixColumnIScan64x64 = [];
-    private static readonly short[] MatrixColumnIScan4x8 = [];
-    private static readonly short[] MatrixColumnIScan8x4 = [];
-    private static readonly short[] MatrixColumnIScan8x16 = [];
-    private static readonly short[] MatrixColumnIScan16x8 = [];
-    private static readonly short[] MatrixColumnIScan16x32 = [];
-    private static readonly short[] MatrixColumnIScan32x16 = [];
-    private static readonly short[] MatrixColumnIScan4x16 = [];
-    private static readonly short[] MatrixColumnIScan16x4 = [];
-    private static readonly short[] MatrixColumnIScan8x32 = [];
-    private static readonly short[] MatrixColumnIScan32x8 = [];
+    private static readonly short[] MatrixColumnInverseScan4x4 = [];
+    private static readonly short[] MatrixColumnInverseScan8x8 = [];
+    private static readonly short[] MatrixColumnInverseScan16x16 = [];
+    private static readonly short[] MatrixColumnInverseScan32x32 = [];
+    private static readonly short[] MatrixColumnInverseScan64x64 = [];
+    private static readonly short[] MatrixColumnInverseScan4x8 = [];
+    private static readonly short[] MatrixColumnInverseScan8x4 = [];
+    private static readonly short[] MatrixColumnInverseScan8x16 = [];
+    private static readonly short[] MatrixColumnInverseScan16x8 = [];
+    private static readonly short[] MatrixColumnInverseScan16x32 = [];
+    private static readonly short[] MatrixColumnInverseScan32x16 = [];
+    private static readonly short[] MatrixColumnInverseScan4x16 = [];
+    private static readonly short[] MatrixColumnInverseScan16x4 = [];
+    private static readonly short[] MatrixColumnInverseScan8x32 = [];
+    private static readonly short[] MatrixColumnInverseScan32x8 = [];
 
-    private static readonly short[] MatrixRowIScan4x4 = [];
-    private static readonly short[] MatrixRowIScan8x8 = [];
-    private static readonly short[] MatrixRowIScan16x16 = [];
-    private static readonly short[] MatrixRowIScan32x32 = [];
-    private static readonly short[] MatrixRowIScan64x64 = [];
-    private static readonly short[] MatrixRowIScan4x8 = [];
-    private static readonly short[] MatrixRowIScan8x4 = [];
-    private static readonly short[] MatrixRowIScan8x16 = [];
-    private static readonly short[] MatrixRowIScan16x8 = [];
-    private static readonly short[] MatrixRowIScan16x32 = [];
-    private static readonly short[] MatrixRowIScan32x16 = [];
-    private static readonly short[] MatrixRowIScan4x16 = [];
-    private static readonly short[] MatrixRowIScan16x4 = [];
-    private static readonly short[] MatrixRowIScan8x32 = [];
-    private static readonly short[] MatrixRowIScan32x8 = [];
+    private static readonly short[] MatrixRowInverseScan4x4 = [];
+    private static readonly short[] MatrixRowInverseScan8x8 = [];
+    private static readonly short[] MatrixRowInverseScan16x16 = [];
+    private static readonly short[] MatrixRowInverseScan32x32 = [];
+    private static readonly short[] MatrixRowInverseScan64x64 = [];
+    private static readonly short[] MatrixRowInverseScan4x8 = [];
+    private static readonly short[] MatrixRowInverseScan8x4 = [];
+    private static readonly short[] MatrixRowInverseScan8x16 = [];
+    private static readonly short[] MatrixRowInverseScan16x8 = [];
+    private static readonly short[] MatrixRowInverseScan16x32 = [];
+    private static readonly short[] MatrixRowInverseScan32x16 = [];
+    private static readonly short[] MatrixRowInverseScan4x16 = [];
+    private static readonly short[] MatrixRowInverseScan16x4 = [];
+    private static readonly short[] MatrixRowInverseScan8x32 = [];
+    private static readonly short[] MatrixRowInverseScan32x8 = [];
 
     // Neighborss are not used (yet) for AVIF coding, leave these arrays empty for now.
     private static readonly short[] DefaultScan4x4Neighbors = [];
@@ -666,392 +457,392 @@ internal static class Av1ScanOrderConstants
 
            // Transform size 4x4
            [
-            new(DefaultScan4x4, DefaultIScan4x4, DefaultScan4x4Neighbors),
-            new(DefaultScan4x4, DefaultIScan4x4, DefaultScan4x4Neighbors),
-            new(DefaultScan4x4, DefaultIScan4x4, DefaultScan4x4Neighbors),
-            new(DefaultScan4x4, DefaultIScan4x4, DefaultScan4x4Neighbors),
-            new(DefaultScan4x4, DefaultIScan4x4, DefaultScan4x4Neighbors),
-            new(DefaultScan4x4, DefaultIScan4x4, DefaultScan4x4Neighbors),
-            new(DefaultScan4x4, DefaultIScan4x4, DefaultScan4x4Neighbors),
-            new(DefaultScan4x4, DefaultIScan4x4, DefaultScan4x4Neighbors),
-            new(DefaultScan4x4, DefaultIScan4x4, DefaultScan4x4Neighbors),
-            new(DefaultScan4x4, DefaultIScan4x4, DefaultScan4x4Neighbors),
-            new(MatrixRowScan4x4, MatrixRowIScan4x4, MatrixRowScan4x4Neighbors),
-            new(MatrixColumnScan4x4, MatrixColumnIScan4x4, MatrixColumnScan4x4Neighbors),
-            new(MatrixRowScan4x4, MatrixRowIScan4x4, MatrixRowScan4x4Neighbors),
-            new(MatrixColumnScan4x4, MatrixColumnIScan4x4, MatrixColumnScan4x4Neighbors),
-            new(MatrixRowScan4x4, MatrixRowIScan4x4, MatrixRowScan4x4Neighbors),
-            new(MatrixColumnScan4x4, MatrixColumnIScan4x4, MatrixColumnScan4x4Neighbors),
+            new(DefaultScan4x4, DefaultInverseScan4x4, DefaultScan4x4Neighbors),
+            new(DefaultScan4x4, DefaultInverseScan4x4, DefaultScan4x4Neighbors),
+            new(DefaultScan4x4, DefaultInverseScan4x4, DefaultScan4x4Neighbors),
+            new(DefaultScan4x4, DefaultInverseScan4x4, DefaultScan4x4Neighbors),
+            new(DefaultScan4x4, DefaultInverseScan4x4, DefaultScan4x4Neighbors),
+            new(DefaultScan4x4, DefaultInverseScan4x4, DefaultScan4x4Neighbors),
+            new(DefaultScan4x4, DefaultInverseScan4x4, DefaultScan4x4Neighbors),
+            new(DefaultScan4x4, DefaultInverseScan4x4, DefaultScan4x4Neighbors),
+            new(DefaultScan4x4, DefaultInverseScan4x4, DefaultScan4x4Neighbors),
+            new(DefaultScan4x4, DefaultInverseScan4x4, DefaultScan4x4Neighbors),
+            new(MatrixRowScan4x4, MatrixRowInverseScan4x4, MatrixRowScan4x4Neighbors),
+            new(MatrixColumnScan4x4, MatrixColumnInverseScan4x4, MatrixColumnScan4x4Neighbors),
+            new(MatrixRowScan4x4, MatrixRowInverseScan4x4, MatrixRowScan4x4Neighbors),
+            new(MatrixColumnScan4x4, MatrixColumnInverseScan4x4, MatrixColumnScan4x4Neighbors),
+            new(MatrixRowScan4x4, MatrixRowInverseScan4x4, MatrixRowScan4x4Neighbors),
+            new(MatrixColumnScan4x4, MatrixColumnInverseScan4x4, MatrixColumnScan4x4Neighbors),
         ],
 
         // Transform size 8x8
         [
-            new(DefaultScan8x8, DefaultIScan8x8, DefaultScan8x8Neighbors),
-            new(DefaultScan8x8, DefaultIScan8x8, DefaultScan8x8Neighbors),
-            new(DefaultScan8x8, DefaultIScan8x8, DefaultScan8x8Neighbors),
-            new(DefaultScan8x8, DefaultIScan8x8, DefaultScan8x8Neighbors),
-            new(DefaultScan8x8, DefaultIScan8x8, DefaultScan8x8Neighbors),
-            new(DefaultScan8x8, DefaultIScan8x8, DefaultScan8x8Neighbors),
-            new(DefaultScan8x8, DefaultIScan8x8, DefaultScan8x8Neighbors),
-            new(DefaultScan8x8, DefaultIScan8x8, DefaultScan8x8Neighbors),
-            new(DefaultScan8x8, DefaultIScan8x8, DefaultScan8x8Neighbors),
-            new(DefaultScan8x8, DefaultIScan8x8, DefaultScan8x8Neighbors),
-            new(MatrixRowScan8x8, MatrixRowIScan8x8, MatrixRowScan8x8Neighbors),
-            new(MatrixColumnScan8x8, MatrixColumnIScan8x8, MatrixColumnScan8x8Neighbors),
-            new(MatrixRowScan8x8, MatrixRowIScan8x8, MatrixRowScan8x8Neighbors),
-            new(MatrixColumnScan8x8, MatrixColumnIScan8x8, MatrixColumnScan8x8Neighbors),
-            new(MatrixRowScan8x8, MatrixRowIScan8x8, MatrixRowScan8x8Neighbors),
-            new(MatrixColumnScan8x8, MatrixColumnIScan8x8, MatrixColumnScan8x8Neighbors),
+            new(DefaultScan8x8, DefaultInverseScan8x8, DefaultScan8x8Neighbors),
+            new(DefaultScan8x8, DefaultInverseScan8x8, DefaultScan8x8Neighbors),
+            new(DefaultScan8x8, DefaultInverseScan8x8, DefaultScan8x8Neighbors),
+            new(DefaultScan8x8, DefaultInverseScan8x8, DefaultScan8x8Neighbors),
+            new(DefaultScan8x8, DefaultInverseScan8x8, DefaultScan8x8Neighbors),
+            new(DefaultScan8x8, DefaultInverseScan8x8, DefaultScan8x8Neighbors),
+            new(DefaultScan8x8, DefaultInverseScan8x8, DefaultScan8x8Neighbors),
+            new(DefaultScan8x8, DefaultInverseScan8x8, DefaultScan8x8Neighbors),
+            new(DefaultScan8x8, DefaultInverseScan8x8, DefaultScan8x8Neighbors),
+            new(DefaultScan8x8, DefaultInverseScan8x8, DefaultScan8x8Neighbors),
+            new(MatrixRowScan8x8, MatrixRowInverseScan8x8, MatrixRowScan8x8Neighbors),
+            new(MatrixColumnScan8x8, MatrixColumnInverseScan8x8, MatrixColumnScan8x8Neighbors),
+            new(MatrixRowScan8x8, MatrixRowInverseScan8x8, MatrixRowScan8x8Neighbors),
+            new(MatrixColumnScan8x8, MatrixColumnInverseScan8x8, MatrixColumnScan8x8Neighbors),
+            new(MatrixRowScan8x8, MatrixRowInverseScan8x8, MatrixRowScan8x8Neighbors),
+            new(MatrixColumnScan8x8, MatrixColumnInverseScan8x8, MatrixColumnScan8x8Neighbors),
         ],
 
         // Transform size 16x16
         [
-            new(DefaultScan16x16, DefaultIScan16x16, DefaultScan16x16Neighbors),
-            new(DefaultScan16x16, DefaultIScan16x16, DefaultScan16x16Neighbors),
-            new(DefaultScan16x16, DefaultIScan16x16, DefaultScan16x16Neighbors),
-            new(DefaultScan16x16, DefaultIScan16x16, DefaultScan16x16Neighbors),
-            new(DefaultScan16x16, DefaultIScan16x16, DefaultScan16x16Neighbors),
-            new(DefaultScan16x16, DefaultIScan16x16, DefaultScan16x16Neighbors),
-            new(DefaultScan16x16, DefaultIScan16x16, DefaultScan16x16Neighbors),
-            new(DefaultScan16x16, DefaultIScan16x16, DefaultScan16x16Neighbors),
-            new(DefaultScan16x16, DefaultIScan16x16, DefaultScan16x16Neighbors),
-            new(DefaultScan16x16, DefaultIScan16x16, DefaultScan16x16Neighbors),
-            new(MatrixRowScan16x16, MatrixRowIScan16x16, MatrixRowScan16x16Neighbors),
-            new(MatrixColumnScan16x16, MatrixColumnIScan16x16, MatrixColumnScan16x16Neighbors),
-            new(MatrixRowScan16x16, MatrixRowIScan16x16, MatrixRowScan16x16Neighbors),
-            new(MatrixColumnScan16x16, MatrixColumnIScan16x16, MatrixColumnScan16x16Neighbors),
-            new(MatrixRowScan16x16, MatrixRowIScan16x16, MatrixRowScan16x16Neighbors),
-            new(MatrixColumnScan16x16, MatrixColumnIScan16x16, MatrixColumnScan16x16Neighbors),
+            new(DefaultScan16x16, DefaultInverseScan16x16, DefaultScan16x16Neighbors),
+            new(DefaultScan16x16, DefaultInverseScan16x16, DefaultScan16x16Neighbors),
+            new(DefaultScan16x16, DefaultInverseScan16x16, DefaultScan16x16Neighbors),
+            new(DefaultScan16x16, DefaultInverseScan16x16, DefaultScan16x16Neighbors),
+            new(DefaultScan16x16, DefaultInverseScan16x16, DefaultScan16x16Neighbors),
+            new(DefaultScan16x16, DefaultInverseScan16x16, DefaultScan16x16Neighbors),
+            new(DefaultScan16x16, DefaultInverseScan16x16, DefaultScan16x16Neighbors),
+            new(DefaultScan16x16, DefaultInverseScan16x16, DefaultScan16x16Neighbors),
+            new(DefaultScan16x16, DefaultInverseScan16x16, DefaultScan16x16Neighbors),
+            new(DefaultScan16x16, DefaultInverseScan16x16, DefaultScan16x16Neighbors),
+            new(MatrixRowScan16x16, MatrixRowInverseScan16x16, MatrixRowScan16x16Neighbors),
+            new(MatrixColumnScan16x16, MatrixColumnInverseScan16x16, MatrixColumnScan16x16Neighbors),
+            new(MatrixRowScan16x16, MatrixRowInverseScan16x16, MatrixRowScan16x16Neighbors),
+            new(MatrixColumnScan16x16, MatrixColumnInverseScan16x16, MatrixColumnScan16x16Neighbors),
+            new(MatrixRowScan16x16, MatrixRowInverseScan16x16, MatrixRowScan16x16Neighbors),
+            new(MatrixColumnScan16x16, MatrixColumnInverseScan16x16, MatrixColumnScan16x16Neighbors),
         ],
 
         // Transform size 32x32
         [
-            new(DefaultScan32x32, DefaultIScan32x32, DefaultScan32x32Neighbors),
-            new(DefaultScan32x32, DefaultIScan32x32, DefaultScan32x32Neighbors),
-            new(DefaultScan32x32, DefaultIScan32x32, DefaultScan32x32Neighbors),
-            new(DefaultScan32x32, DefaultIScan32x32, DefaultScan32x32Neighbors),
-            new(DefaultScan32x32, DefaultIScan32x32, DefaultScan32x32Neighbors),
-            new(DefaultScan32x32, DefaultIScan32x32, DefaultScan32x32Neighbors),
-            new(DefaultScan32x32, DefaultIScan32x32, DefaultScan32x32Neighbors),
-            new(DefaultScan32x32, DefaultIScan32x32, DefaultScan32x32Neighbors),
-            new(DefaultScan32x32, DefaultIScan32x32, DefaultScan32x32Neighbors),
-            new(DefaultScan32x32, DefaultIScan32x32, DefaultScan32x32Neighbors),
-            new(MatrixRowScan32x32, MatrixRowIScan32x32, MatrixRowScan32x32Neighbors),
-            new(MatrixColumnScan32x32, MatrixColumnIScan32x32, MatrixColumnScan32x32Neighbors),
-            new(MatrixRowScan32x32, MatrixRowIScan32x32, MatrixRowScan32x32Neighbors),
-            new(MatrixColumnScan32x32, MatrixColumnIScan32x32, MatrixColumnScan32x32Neighbors),
-            new(MatrixRowScan32x32, MatrixRowIScan32x32, MatrixRowScan32x32Neighbors),
-            new(MatrixColumnScan32x32, MatrixColumnIScan32x32, MatrixColumnScan32x32Neighbors),
+            new(DefaultScan32x32, DefaultInverseScan32x32, DefaultScan32x32Neighbors),
+            new(DefaultScan32x32, DefaultInverseScan32x32, DefaultScan32x32Neighbors),
+            new(DefaultScan32x32, DefaultInverseScan32x32, DefaultScan32x32Neighbors),
+            new(DefaultScan32x32, DefaultInverseScan32x32, DefaultScan32x32Neighbors),
+            new(DefaultScan32x32, DefaultInverseScan32x32, DefaultScan32x32Neighbors),
+            new(DefaultScan32x32, DefaultInverseScan32x32, DefaultScan32x32Neighbors),
+            new(DefaultScan32x32, DefaultInverseScan32x32, DefaultScan32x32Neighbors),
+            new(DefaultScan32x32, DefaultInverseScan32x32, DefaultScan32x32Neighbors),
+            new(DefaultScan32x32, DefaultInverseScan32x32, DefaultScan32x32Neighbors),
+            new(DefaultScan32x32, DefaultInverseScan32x32, DefaultScan32x32Neighbors),
+            new(DefaultScan32x32, MatrixRowInverseScan32x32, MatrixRowScan32x32Neighbors),
+            new(DefaultScan32x32, MatrixColumnInverseScan32x32, MatrixColumnScan32x32Neighbors),
+            new(DefaultScan32x32, MatrixRowInverseScan32x32, MatrixRowScan32x32Neighbors),
+            new(DefaultScan32x32, MatrixColumnInverseScan32x32, MatrixColumnScan32x32Neighbors),
+            new(DefaultScan32x32, MatrixRowInverseScan32x32, MatrixRowScan32x32Neighbors),
+            new(DefaultScan32x32, MatrixColumnInverseScan32x32, MatrixColumnScan32x32Neighbors),
         ],
         [
 
             // Transform size 64X64
             // Half of the coefficients of tx64 at higher frequencies are set to
             // zeros. So tx32's scan order is used.
-            new(DefaultScan32x32, DefaultIScan32x32, DefaultScan32x32Neighbors),
-            new(DefaultScan32x32, DefaultIScan32x32, DefaultScan32x32Neighbors),
-            new(DefaultScan32x32, DefaultIScan32x32, DefaultScan32x32Neighbors),
-            new(DefaultScan32x32, DefaultIScan32x32, DefaultScan32x32Neighbors),
-            new(DefaultScan32x32, DefaultIScan32x32, DefaultScan32x32Neighbors),
-            new(DefaultScan32x32, DefaultIScan32x32, DefaultScan32x32Neighbors),
-            new(DefaultScan32x32, DefaultIScan32x32, DefaultScan32x32Neighbors),
-            new(DefaultScan32x32, DefaultIScan32x32, DefaultScan32x32Neighbors),
-            new(DefaultScan32x32, DefaultIScan32x32, DefaultScan32x32Neighbors),
-            new(DefaultScan32x32, DefaultIScan32x32, DefaultScan32x32Neighbors),
-            new(MatrixRowScan32x32, MatrixRowIScan32x32, MatrixRowScan32x32Neighbors),
-            new(MatrixColumnScan32x32, MatrixColumnIScan32x32, MatrixColumnScan32x32Neighbors),
-            new(MatrixRowScan32x32, MatrixRowIScan32x32, MatrixRowScan32x32Neighbors),
-            new(MatrixColumnScan32x32, MatrixColumnIScan32x32, MatrixColumnScan32x32Neighbors),
-            new(MatrixRowScan32x32, MatrixRowIScan32x32, MatrixRowScan32x32Neighbors),
-            new(MatrixColumnScan32x32, MatrixColumnIScan32x32, MatrixColumnScan32x32Neighbors),
+            new(DefaultScan32x32, DefaultInverseScan32x32, DefaultScan32x32Neighbors),
+            new(DefaultScan32x32, DefaultInverseScan32x32, DefaultScan32x32Neighbors),
+            new(DefaultScan32x32, DefaultInverseScan32x32, DefaultScan32x32Neighbors),
+            new(DefaultScan32x32, DefaultInverseScan32x32, DefaultScan32x32Neighbors),
+            new(DefaultScan32x32, DefaultInverseScan32x32, DefaultScan32x32Neighbors),
+            new(DefaultScan32x32, DefaultInverseScan32x32, DefaultScan32x32Neighbors),
+            new(DefaultScan32x32, DefaultInverseScan32x32, DefaultScan32x32Neighbors),
+            new(DefaultScan32x32, DefaultInverseScan32x32, DefaultScan32x32Neighbors),
+            new(DefaultScan32x32, DefaultInverseScan32x32, DefaultScan32x32Neighbors),
+            new(DefaultScan32x32, DefaultInverseScan32x32, DefaultScan32x32Neighbors),
+            new(DefaultScan32x32, MatrixRowInverseScan32x32, MatrixRowScan32x32Neighbors),
+            new(DefaultScan32x32, MatrixColumnInverseScan32x32, MatrixColumnScan32x32Neighbors),
+            new(DefaultScan32x32, MatrixRowInverseScan32x32, MatrixRowScan32x32Neighbors),
+            new(DefaultScan32x32, MatrixColumnInverseScan32x32, MatrixColumnScan32x32Neighbors),
+            new(DefaultScan32x32, MatrixRowInverseScan32x32, MatrixRowScan32x32Neighbors),
+            new(DefaultScan32x32, MatrixColumnInverseScan32x32, MatrixColumnScan32x32Neighbors),
         ],
         [
 
             // Transform size 4X8
-            new(DefaultScan4x8, DefaultIScan4x8, DefaultScan4x8Neighbors),
-            new(DefaultScan4x8, DefaultIScan4x8, DefaultScan4x8Neighbors),
-            new(DefaultScan4x8, DefaultIScan4x8, DefaultScan4x8Neighbors),
-            new(DefaultScan4x8, DefaultIScan4x8, DefaultScan4x8Neighbors),
-            new(DefaultScan4x8, DefaultIScan4x8, DefaultScan4x8Neighbors),
-            new(DefaultScan4x8, DefaultIScan4x8, DefaultScan4x8Neighbors),
-            new(DefaultScan4x8, DefaultIScan4x8, DefaultScan4x8Neighbors),
-            new(DefaultScan4x8, DefaultIScan4x8, DefaultScan4x8Neighbors),
-            new(DefaultScan4x8, DefaultIScan4x8, DefaultScan4x8Neighbors),
-            new(DefaultScan4x8, DefaultIScan4x8, DefaultScan4x8Neighbors),
-            new(MatrixRowScan4x8, MatrixRowIScan4x8, MatrixRowScan4x8Neighbors),
-            new(MatrixColumnScan4x8, MatrixColumnIScan4x8, MatrixColumnScan4x8Neighbors),
-            new(MatrixRowScan4x8, MatrixRowIScan4x8, MatrixRowScan4x8Neighbors),
-            new(MatrixColumnScan4x8, MatrixColumnIScan4x8, MatrixColumnScan4x8Neighbors),
-            new(MatrixRowScan4x8, MatrixRowIScan4x8, MatrixRowScan4x8Neighbors),
-            new(MatrixColumnScan4x8, MatrixColumnIScan4x8, MatrixColumnScan4x8Neighbors),
+            new(DefaultScan4x8, DefaultInverseScan4x8, DefaultScan4x8Neighbors),
+            new(DefaultScan4x8, DefaultInverseScan4x8, DefaultScan4x8Neighbors),
+            new(DefaultScan4x8, DefaultInverseScan4x8, DefaultScan4x8Neighbors),
+            new(DefaultScan4x8, DefaultInverseScan4x8, DefaultScan4x8Neighbors),
+            new(DefaultScan4x8, DefaultInverseScan4x8, DefaultScan4x8Neighbors),
+            new(DefaultScan4x8, DefaultInverseScan4x8, DefaultScan4x8Neighbors),
+            new(DefaultScan4x8, DefaultInverseScan4x8, DefaultScan4x8Neighbors),
+            new(DefaultScan4x8, DefaultInverseScan4x8, DefaultScan4x8Neighbors),
+            new(DefaultScan4x8, DefaultInverseScan4x8, DefaultScan4x8Neighbors),
+            new(DefaultScan4x8, DefaultInverseScan4x8, DefaultScan4x8Neighbors),
+            new(MatrixRowScan4x8, MatrixRowInverseScan4x8, MatrixRowScan4x8Neighbors),
+            new(MatrixColumnScan4x8, MatrixColumnInverseScan4x8, MatrixColumnScan4x8Neighbors),
+            new(MatrixRowScan4x8, MatrixRowInverseScan4x8, MatrixRowScan4x8Neighbors),
+            new(MatrixColumnScan4x8, MatrixColumnInverseScan4x8, MatrixColumnScan4x8Neighbors),
+            new(MatrixRowScan4x8, MatrixRowInverseScan4x8, MatrixRowScan4x8Neighbors),
+            new(MatrixColumnScan4x8, MatrixColumnInverseScan4x8, MatrixColumnScan4x8Neighbors),
         ],
         [
 
             // Transform size 8X4
-            new(DefaultScan8x4, DefaultIScan8x4, DefaultScan8x4Neighbors),
-            new(DefaultScan8x4, DefaultIScan8x4, DefaultScan8x4Neighbors),
-            new(DefaultScan8x4, DefaultIScan8x4, DefaultScan8x4Neighbors),
-            new(DefaultScan8x4, DefaultIScan8x4, DefaultScan8x4Neighbors),
-            new(DefaultScan8x4, DefaultIScan8x4, DefaultScan8x4Neighbors),
-            new(DefaultScan8x4, DefaultIScan8x4, DefaultScan8x4Neighbors),
-            new(DefaultScan8x4, DefaultIScan8x4, DefaultScan8x4Neighbors),
-            new(DefaultScan8x4, DefaultIScan8x4, DefaultScan8x4Neighbors),
-            new(DefaultScan8x4, DefaultIScan8x4, DefaultScan8x4Neighbors),
-            new(DefaultScan8x4, DefaultIScan8x4, DefaultScan8x4Neighbors),
-            new(MatrixRowScan8x4, MatrixRowIScan8x4, MatrixRowScan8x4Neighbors),
-            new(MatrixColumnScan8x4, MatrixColumnIScan8x4, MatrixColumnScan8x4Neighbors),
-            new(MatrixRowScan8x4, MatrixRowIScan8x4, MatrixRowScan8x4Neighbors),
-            new(MatrixColumnScan8x4, MatrixColumnIScan8x4, MatrixColumnScan8x4Neighbors),
-            new(MatrixRowScan8x4, MatrixRowIScan8x4, MatrixRowScan8x4Neighbors),
-            new(MatrixColumnScan8x4, MatrixColumnIScan8x4, MatrixColumnScan8x4Neighbors),
+            new(DefaultScan8x4, DefaultInverseScan8x4, DefaultScan8x4Neighbors),
+            new(DefaultScan8x4, DefaultInverseScan8x4, DefaultScan8x4Neighbors),
+            new(DefaultScan8x4, DefaultInverseScan8x4, DefaultScan8x4Neighbors),
+            new(DefaultScan8x4, DefaultInverseScan8x4, DefaultScan8x4Neighbors),
+            new(DefaultScan8x4, DefaultInverseScan8x4, DefaultScan8x4Neighbors),
+            new(DefaultScan8x4, DefaultInverseScan8x4, DefaultScan8x4Neighbors),
+            new(DefaultScan8x4, DefaultInverseScan8x4, DefaultScan8x4Neighbors),
+            new(DefaultScan8x4, DefaultInverseScan8x4, DefaultScan8x4Neighbors),
+            new(DefaultScan8x4, DefaultInverseScan8x4, DefaultScan8x4Neighbors),
+            new(DefaultScan8x4, DefaultInverseScan8x4, DefaultScan8x4Neighbors),
+            new(MatrixRowScan8x4, MatrixRowInverseScan8x4, MatrixRowScan8x4Neighbors),
+            new(MatrixColumnScan8x4, MatrixColumnInverseScan8x4, MatrixColumnScan8x4Neighbors),
+            new(MatrixRowScan8x4, MatrixRowInverseScan8x4, MatrixRowScan8x4Neighbors),
+            new(MatrixColumnScan8x4, MatrixColumnInverseScan8x4, MatrixColumnScan8x4Neighbors),
+            new(MatrixRowScan8x4, MatrixRowInverseScan8x4, MatrixRowScan8x4Neighbors),
+            new(MatrixColumnScan8x4, MatrixColumnInverseScan8x4, MatrixColumnScan8x4Neighbors),
         ],
         [
 
             // Transform size 8X16
-            new(DefaultScan8x16, DefaultIScan8x16, DefaultScan8x16Neighbors),
-            new(DefaultScan8x16, DefaultIScan8x16, DefaultScan8x16Neighbors),
-            new(DefaultScan8x16, DefaultIScan8x16, DefaultScan8x16Neighbors),
-            new(DefaultScan8x16, DefaultIScan8x16, DefaultScan8x16Neighbors),
-            new(DefaultScan8x16, DefaultIScan8x16, DefaultScan8x16Neighbors),
-            new(DefaultScan8x16, DefaultIScan8x16, DefaultScan8x16Neighbors),
-            new(DefaultScan8x16, DefaultIScan8x16, DefaultScan8x16Neighbors),
-            new(DefaultScan8x16, DefaultIScan8x16, DefaultScan8x16Neighbors),
-            new(DefaultScan8x16, DefaultIScan8x16, DefaultScan8x16Neighbors),
-            new(DefaultScan8x16, DefaultIScan8x16, DefaultScan8x16Neighbors),
-            new(MatrixRowScan8x16, MatrixRowIScan8x16, MatrixRowScan8x16Neighbors),
-            new(MatrixColumnScan8x16, MatrixColumnIScan8x16, MatrixColumnScan8x16Neighbors),
-            new(MatrixRowScan8x16, MatrixRowIScan8x16, MatrixRowScan8x16Neighbors),
-            new(MatrixColumnScan8x16, MatrixColumnIScan8x16, MatrixColumnScan8x16Neighbors),
-            new(MatrixRowScan8x16, MatrixRowIScan8x16, MatrixRowScan8x16Neighbors),
-            new(MatrixColumnScan8x16, MatrixColumnIScan8x16, MatrixColumnScan8x16Neighbors),
+            new(DefaultScan8x16, DefaultInverseScan8x16, DefaultScan8x16Neighbors),
+            new(DefaultScan8x16, DefaultInverseScan8x16, DefaultScan8x16Neighbors),
+            new(DefaultScan8x16, DefaultInverseScan8x16, DefaultScan8x16Neighbors),
+            new(DefaultScan8x16, DefaultInverseScan8x16, DefaultScan8x16Neighbors),
+            new(DefaultScan8x16, DefaultInverseScan8x16, DefaultScan8x16Neighbors),
+            new(DefaultScan8x16, DefaultInverseScan8x16, DefaultScan8x16Neighbors),
+            new(DefaultScan8x16, DefaultInverseScan8x16, DefaultScan8x16Neighbors),
+            new(DefaultScan8x16, DefaultInverseScan8x16, DefaultScan8x16Neighbors),
+            new(DefaultScan8x16, DefaultInverseScan8x16, DefaultScan8x16Neighbors),
+            new(DefaultScan8x16, DefaultInverseScan8x16, DefaultScan8x16Neighbors),
+            new(MatrixRowScan8x16, MatrixRowInverseScan8x16, MatrixRowScan8x16Neighbors),
+            new(MatrixColumnScan8x16, MatrixColumnInverseScan8x16, MatrixColumnScan8x16Neighbors),
+            new(MatrixRowScan8x16, MatrixRowInverseScan8x16, MatrixRowScan8x16Neighbors),
+            new(MatrixColumnScan8x16, MatrixColumnInverseScan8x16, MatrixColumnScan8x16Neighbors),
+            new(MatrixRowScan8x16, MatrixRowInverseScan8x16, MatrixRowScan8x16Neighbors),
+            new(MatrixColumnScan8x16, MatrixColumnInverseScan8x16, MatrixColumnScan8x16Neighbors),
         ],
         [
 
             // Transform size 16X8
-            new(DefaultScan16x8, DefaultIScan16x8, DefaultScan16x8Neighbors),
-            new(DefaultScan16x8, DefaultIScan16x8, DefaultScan16x8Neighbors),
-            new(DefaultScan16x8, DefaultIScan16x8, DefaultScan16x8Neighbors),
-            new(DefaultScan16x8, DefaultIScan16x8, DefaultScan16x8Neighbors),
-            new(DefaultScan16x8, DefaultIScan16x8, DefaultScan16x8Neighbors),
-            new(DefaultScan16x8, DefaultIScan16x8, DefaultScan16x8Neighbors),
-            new(DefaultScan16x8, DefaultIScan16x8, DefaultScan16x8Neighbors),
-            new(DefaultScan16x8, DefaultIScan16x8, DefaultScan16x8Neighbors),
-            new(DefaultScan16x8, DefaultIScan16x8, DefaultScan16x8Neighbors),
-            new(DefaultScan16x8, DefaultIScan16x8, DefaultScan16x8Neighbors),
-            new(MatrixRowScan16x8, MatrixRowIScan16x8, MatrixRowScan16x8Neighbors),
-            new(MatrixColumnScan16x8, MatrixColumnIScan16x8, MatrixColumnScan16x8Neighbors),
-            new(MatrixRowScan16x8, MatrixRowIScan16x8, MatrixRowScan16x8Neighbors),
-            new(MatrixColumnScan16x8, MatrixColumnIScan16x8, MatrixColumnScan16x8Neighbors),
-            new(MatrixRowScan16x8, MatrixRowIScan16x8, MatrixRowScan16x8Neighbors),
-            new(MatrixColumnScan16x8, MatrixColumnIScan16x8, MatrixColumnScan16x8Neighbors),
+            new(DefaultScan16x8, DefaultInverseScan16x8, DefaultScan16x8Neighbors),
+            new(DefaultScan16x8, DefaultInverseScan16x8, DefaultScan16x8Neighbors),
+            new(DefaultScan16x8, DefaultInverseScan16x8, DefaultScan16x8Neighbors),
+            new(DefaultScan16x8, DefaultInverseScan16x8, DefaultScan16x8Neighbors),
+            new(DefaultScan16x8, DefaultInverseScan16x8, DefaultScan16x8Neighbors),
+            new(DefaultScan16x8, DefaultInverseScan16x8, DefaultScan16x8Neighbors),
+            new(DefaultScan16x8, DefaultInverseScan16x8, DefaultScan16x8Neighbors),
+            new(DefaultScan16x8, DefaultInverseScan16x8, DefaultScan16x8Neighbors),
+            new(DefaultScan16x8, DefaultInverseScan16x8, DefaultScan16x8Neighbors),
+            new(DefaultScan16x8, DefaultInverseScan16x8, DefaultScan16x8Neighbors),
+            new(MatrixRowScan16x8, MatrixRowInverseScan16x8, MatrixRowScan16x8Neighbors),
+            new(MatrixColumnScan16x8, MatrixColumnInverseScan16x8, MatrixColumnScan16x8Neighbors),
+            new(MatrixRowScan16x8, MatrixRowInverseScan16x8, MatrixRowScan16x8Neighbors),
+            new(MatrixColumnScan16x8, MatrixColumnInverseScan16x8, MatrixColumnScan16x8Neighbors),
+            new(MatrixRowScan16x8, MatrixRowInverseScan16x8, MatrixRowScan16x8Neighbors),
+            new(MatrixColumnScan16x8, MatrixColumnInverseScan16x8, MatrixColumnScan16x8Neighbors),
         ],
         [
 
             // Transform size 16X32
-            new(DefaultScan16x32, DefaultIScan16x32, DefaultScan16x32Neighbors),
-            new(DefaultScan16x32, DefaultIScan16x32, DefaultScan16x32Neighbors),
-            new(DefaultScan16x32, DefaultIScan16x32, DefaultScan16x32Neighbors),
-            new(DefaultScan16x32, DefaultIScan16x32, DefaultScan16x32Neighbors),
-            new(DefaultScan16x32, DefaultIScan16x32, DefaultScan16x32Neighbors),
-            new(DefaultScan16x32, DefaultIScan16x32, DefaultScan16x32Neighbors),
-            new(DefaultScan16x32, DefaultIScan16x32, DefaultScan16x32Neighbors),
-            new(DefaultScan16x32, DefaultIScan16x32, DefaultScan16x32Neighbors),
-            new(DefaultScan16x32, DefaultIScan16x32, DefaultScan16x32Neighbors),
-            new(DefaultScan16x32, DefaultIScan16x32, DefaultScan16x32Neighbors),
-            new(MatrixRowScan16x32, MatrixRowIScan16x32, MatrixRowScan16x32Neighbors),
-            new(MatrixColumnScan16x32, MatrixColumnIScan16x32, MatrixColumnScan16x32Neighbors),
-            new(MatrixRowScan16x32, MatrixRowIScan16x32, MatrixRowScan16x32Neighbors),
-            new(MatrixColumnScan16x32, MatrixColumnIScan16x32, MatrixColumnScan16x32Neighbors),
-            new(MatrixRowScan16x32, MatrixRowIScan16x32, MatrixRowScan16x32Neighbors),
-            new(MatrixColumnScan16x32, MatrixColumnIScan16x32, MatrixColumnScan16x32Neighbors),
+            new(DefaultScan16x32, DefaultInverseScan16x32, DefaultScan16x32Neighbors),
+            new(DefaultScan16x32, DefaultInverseScan16x32, DefaultScan16x32Neighbors),
+            new(DefaultScan16x32, DefaultInverseScan16x32, DefaultScan16x32Neighbors),
+            new(DefaultScan16x32, DefaultInverseScan16x32, DefaultScan16x32Neighbors),
+            new(DefaultScan16x32, DefaultInverseScan16x32, DefaultScan16x32Neighbors),
+            new(DefaultScan16x32, DefaultInverseScan16x32, DefaultScan16x32Neighbors),
+            new(DefaultScan16x32, DefaultInverseScan16x32, DefaultScan16x32Neighbors),
+            new(DefaultScan16x32, DefaultInverseScan16x32, DefaultScan16x32Neighbors),
+            new(DefaultScan16x32, DefaultInverseScan16x32, DefaultScan16x32Neighbors),
+            new(DefaultScan16x32, DefaultInverseScan16x32, DefaultScan16x32Neighbors),
+            new(DefaultScan16x32, MatrixRowInverseScan16x32, MatrixRowScan16x32Neighbors),
+            new(DefaultScan16x32, MatrixColumnInverseScan16x32, MatrixColumnScan16x32Neighbors),
+            new(DefaultScan16x32, MatrixRowInverseScan16x32, MatrixRowScan16x32Neighbors),
+            new(DefaultScan16x32, MatrixColumnInverseScan16x32, MatrixColumnScan16x32Neighbors),
+            new(DefaultScan16x32, MatrixRowInverseScan16x32, MatrixRowScan16x32Neighbors),
+            new(DefaultScan16x32, MatrixColumnInverseScan16x32, MatrixColumnScan16x32Neighbors),
         ],
         [
 
             // Transform size 32X16
-            new(DefaultScan32x16, DefaultIScan32x16, DefaultScan32x16Neighbors),
-            new(DefaultScan32x16, DefaultIScan32x16, DefaultScan32x16Neighbors),
-            new(DefaultScan32x16, DefaultIScan32x16, DefaultScan32x16Neighbors),
-            new(DefaultScan32x16, DefaultIScan32x16, DefaultScan32x16Neighbors),
-            new(DefaultScan32x16, DefaultIScan32x16, DefaultScan32x16Neighbors),
-            new(DefaultScan32x16, DefaultIScan32x16, DefaultScan32x16Neighbors),
-            new(DefaultScan32x16, DefaultIScan32x16, DefaultScan32x16Neighbors),
-            new(DefaultScan32x16, DefaultIScan32x16, DefaultScan32x16Neighbors),
-            new(DefaultScan32x16, DefaultIScan32x16, DefaultScan32x16Neighbors),
-            new(DefaultScan32x16, DefaultIScan32x16, DefaultScan32x16Neighbors),
-            new(MatrixRowScan32x16, MatrixRowIScan32x16, MatrixRowScan32x16Neighbors),
-            new(MatrixColumnScan32x16, MatrixColumnIScan32x16, MatrixColumnScan32x16Neighbors),
-            new(MatrixRowScan32x16, MatrixRowIScan32x16, MatrixRowScan32x16Neighbors),
-            new(MatrixColumnScan32x16, MatrixColumnIScan32x16, MatrixColumnScan32x16Neighbors),
-            new(MatrixRowScan32x16, MatrixRowIScan32x16, MatrixRowScan32x16Neighbors),
-            new(MatrixColumnScan32x16, MatrixColumnIScan32x16, MatrixColumnScan32x16Neighbors),
+            new(DefaultScan32x16, DefaultInverseScan32x16, DefaultScan32x16Neighbors),
+            new(DefaultScan32x16, DefaultInverseScan32x16, DefaultScan32x16Neighbors),
+            new(DefaultScan32x16, DefaultInverseScan32x16, DefaultScan32x16Neighbors),
+            new(DefaultScan32x16, DefaultInverseScan32x16, DefaultScan32x16Neighbors),
+            new(DefaultScan32x16, DefaultInverseScan32x16, DefaultScan32x16Neighbors),
+            new(DefaultScan32x16, DefaultInverseScan32x16, DefaultScan32x16Neighbors),
+            new(DefaultScan32x16, DefaultInverseScan32x16, DefaultScan32x16Neighbors),
+            new(DefaultScan32x16, DefaultInverseScan32x16, DefaultScan32x16Neighbors),
+            new(DefaultScan32x16, DefaultInverseScan32x16, DefaultScan32x16Neighbors),
+            new(DefaultScan32x16, DefaultInverseScan32x16, DefaultScan32x16Neighbors),
+            new(DefaultScan32x16, MatrixRowInverseScan32x16, MatrixRowScan32x16Neighbors),
+            new(DefaultScan32x16, MatrixColumnInverseScan32x16, MatrixColumnScan32x16Neighbors),
+            new(DefaultScan32x16, MatrixRowInverseScan32x16, MatrixRowScan32x16Neighbors),
+            new(DefaultScan32x16, MatrixColumnInverseScan32x16, MatrixColumnScan32x16Neighbors),
+            new(DefaultScan32x16, MatrixRowInverseScan32x16, MatrixRowScan32x16Neighbors),
+            new(DefaultScan32x16, MatrixColumnInverseScan32x16, MatrixColumnScan32x16Neighbors),
         ],
         [
 
             // Transform size 32X64
             // Half of the coefficients of tx64 at higher frequencies are set to
             // zeros. So tx32's scan order is used.
-            new(DefaultScan32x32, DefaultIScan32x32, DefaultScan32x32Neighbors),
-            new(DefaultScan32x32, DefaultIScan32x32, DefaultScan32x32Neighbors),
-            new(DefaultScan32x32, DefaultIScan32x32, DefaultScan32x32Neighbors),
-            new(DefaultScan32x32, DefaultIScan32x32, DefaultScan32x32Neighbors),
-            new(DefaultScan32x32, DefaultIScan32x32, DefaultScan32x32Neighbors),
-            new(DefaultScan32x32, DefaultIScan32x32, DefaultScan32x32Neighbors),
-            new(DefaultScan32x32, DefaultIScan32x32, DefaultScan32x32Neighbors),
-            new(DefaultScan32x32, DefaultIScan32x32, DefaultScan32x32Neighbors),
-            new(DefaultScan32x32, DefaultIScan32x32, DefaultScan32x32Neighbors),
-            new(DefaultScan32x32, DefaultIScan32x32, DefaultScan32x32Neighbors),
-            new(MatrixRowScan32x32, MatrixRowIScan32x32, MatrixRowScan32x32Neighbors),
-            new(MatrixColumnScan32x32, MatrixColumnIScan32x32, MatrixColumnScan32x32Neighbors),
-            new(MatrixRowScan32x32, MatrixRowIScan32x32, MatrixRowScan32x32Neighbors),
-            new(MatrixColumnScan32x32, MatrixColumnIScan32x32, MatrixColumnScan32x32Neighbors),
-            new(MatrixRowScan32x32, MatrixRowIScan32x32, MatrixRowScan32x32Neighbors),
-            new(MatrixColumnScan32x32, MatrixColumnIScan32x32, MatrixColumnScan32x32Neighbors),
+            new(DefaultScan32x32, DefaultInverseScan32x32, DefaultScan32x32Neighbors),
+            new(DefaultScan32x32, DefaultInverseScan32x32, DefaultScan32x32Neighbors),
+            new(DefaultScan32x32, DefaultInverseScan32x32, DefaultScan32x32Neighbors),
+            new(DefaultScan32x32, DefaultInverseScan32x32, DefaultScan32x32Neighbors),
+            new(DefaultScan32x32, DefaultInverseScan32x32, DefaultScan32x32Neighbors),
+            new(DefaultScan32x32, DefaultInverseScan32x32, DefaultScan32x32Neighbors),
+            new(DefaultScan32x32, DefaultInverseScan32x32, DefaultScan32x32Neighbors),
+            new(DefaultScan32x32, DefaultInverseScan32x32, DefaultScan32x32Neighbors),
+            new(DefaultScan32x32, DefaultInverseScan32x32, DefaultScan32x32Neighbors),
+            new(DefaultScan32x32, DefaultInverseScan32x32, DefaultScan32x32Neighbors),
+            new(DefaultScan32x32, MatrixRowInverseScan32x32, MatrixRowScan32x32Neighbors),
+            new(DefaultScan32x32, MatrixColumnInverseScan32x32, MatrixColumnScan32x32Neighbors),
+            new(DefaultScan32x32, MatrixRowInverseScan32x32, MatrixRowScan32x32Neighbors),
+            new(DefaultScan32x32, MatrixColumnInverseScan32x32, MatrixColumnScan32x32Neighbors),
+            new(DefaultScan32x32, MatrixRowInverseScan32x32, MatrixRowScan32x32Neighbors),
+            new(DefaultScan32x32, MatrixColumnInverseScan32x32, MatrixColumnScan32x32Neighbors),
         ],
         [
 
             // Transform size 64X32
             // Half of the coefficients of tx64 at higher frequencies are set to
             // zeros. So tx32's scan order is used.
-            new(DefaultScan32x32, DefaultIScan32x32, DefaultScan32x32Neighbors),
-            new(DefaultScan32x32, DefaultIScan32x32, DefaultScan32x32Neighbors),
-            new(DefaultScan32x32, DefaultIScan32x32, DefaultScan32x32Neighbors),
-            new(DefaultScan32x32, DefaultIScan32x32, DefaultScan32x32Neighbors),
-            new(DefaultScan32x32, DefaultIScan32x32, DefaultScan32x32Neighbors),
-            new(DefaultScan32x32, DefaultIScan32x32, DefaultScan32x32Neighbors),
-            new(DefaultScan32x32, DefaultIScan32x32, DefaultScan32x32Neighbors),
-            new(DefaultScan32x32, DefaultIScan32x32, DefaultScan32x32Neighbors),
-            new(DefaultScan32x32, DefaultIScan32x32, DefaultScan32x32Neighbors),
-            new(DefaultScan32x32, DefaultIScan32x32, DefaultScan32x32Neighbors),
-            new(MatrixRowScan32x32, MatrixRowIScan32x32, MatrixRowScan32x32Neighbors),
-            new(MatrixColumnScan32x32, MatrixColumnIScan32x32, MatrixColumnScan32x32Neighbors),
-            new(MatrixRowScan32x32, MatrixRowIScan32x32, MatrixRowScan32x32Neighbors),
-            new(MatrixColumnScan32x32, MatrixColumnIScan32x32, MatrixColumnScan32x32Neighbors),
-            new(MatrixRowScan32x32, MatrixRowIScan32x32, MatrixRowScan32x32Neighbors),
-            new(MatrixColumnScan32x32, MatrixColumnIScan32x32, MatrixColumnScan32x32Neighbors),
+            new(DefaultScan32x32, DefaultInverseScan32x32, DefaultScan32x32Neighbors),
+            new(DefaultScan32x32, DefaultInverseScan32x32, DefaultScan32x32Neighbors),
+            new(DefaultScan32x32, DefaultInverseScan32x32, DefaultScan32x32Neighbors),
+            new(DefaultScan32x32, DefaultInverseScan32x32, DefaultScan32x32Neighbors),
+            new(DefaultScan32x32, DefaultInverseScan32x32, DefaultScan32x32Neighbors),
+            new(DefaultScan32x32, DefaultInverseScan32x32, DefaultScan32x32Neighbors),
+            new(DefaultScan32x32, DefaultInverseScan32x32, DefaultScan32x32Neighbors),
+            new(DefaultScan32x32, DefaultInverseScan32x32, DefaultScan32x32Neighbors),
+            new(DefaultScan32x32, DefaultInverseScan32x32, DefaultScan32x32Neighbors),
+            new(DefaultScan32x32, DefaultInverseScan32x32, DefaultScan32x32Neighbors),
+            new(DefaultScan32x32, MatrixRowInverseScan32x32, MatrixRowScan32x32Neighbors),
+            new(DefaultScan32x32, MatrixColumnInverseScan32x32, MatrixColumnScan32x32Neighbors),
+            new(DefaultScan32x32, MatrixRowInverseScan32x32, MatrixRowScan32x32Neighbors),
+            new(DefaultScan32x32, MatrixColumnInverseScan32x32, MatrixColumnScan32x32Neighbors),
+            new(DefaultScan32x32, MatrixRowInverseScan32x32, MatrixRowScan32x32Neighbors),
+            new(DefaultScan32x32, MatrixColumnInverseScan32x32, MatrixColumnScan32x32Neighbors),
         ],
         [
 
             // Transform size 4X16
-            new(DefaultScan4x16, DefaultIScan4x16, DefaultScan4x16Neighbors),
-            new(DefaultScan4x16, DefaultIScan4x16, DefaultScan4x16Neighbors),
-            new(DefaultScan4x16, DefaultIScan4x16, DefaultScan4x16Neighbors),
-            new(DefaultScan4x16, DefaultIScan4x16, DefaultScan4x16Neighbors),
-            new(DefaultScan4x16, DefaultIScan4x16, DefaultScan4x16Neighbors),
-            new(DefaultScan4x16, DefaultIScan4x16, DefaultScan4x16Neighbors),
-            new(DefaultScan4x16, DefaultIScan4x16, DefaultScan4x16Neighbors),
-            new(DefaultScan4x16, DefaultIScan4x16, DefaultScan4x16Neighbors),
-            new(DefaultScan4x16, DefaultIScan4x16, DefaultScan4x16Neighbors),
-            new(DefaultScan4x16, DefaultIScan4x16, DefaultScan4x16Neighbors),
-            new(MatrixRowScan4x16, MatrixRowIScan4x16, MatrixRowScan4x16Neighbors),
-            new(MatrixColumnScan4x16, MatrixColumnIScan4x16, MatrixColumnScan4x16Neighbors),
-            new(MatrixRowScan4x16, MatrixRowIScan4x16, MatrixRowScan4x16Neighbors),
-            new(MatrixColumnScan4x16, MatrixColumnIScan4x16, MatrixColumnScan4x16Neighbors),
-            new(MatrixRowScan4x16, MatrixRowIScan4x16, MatrixRowScan4x16Neighbors),
-            new(MatrixColumnScan4x16, MatrixColumnIScan4x16, MatrixColumnScan4x16Neighbors),
+            new(DefaultScan4x16, DefaultInverseScan4x16, DefaultScan4x16Neighbors),
+            new(DefaultScan4x16, DefaultInverseScan4x16, DefaultScan4x16Neighbors),
+            new(DefaultScan4x16, DefaultInverseScan4x16, DefaultScan4x16Neighbors),
+            new(DefaultScan4x16, DefaultInverseScan4x16, DefaultScan4x16Neighbors),
+            new(DefaultScan4x16, DefaultInverseScan4x16, DefaultScan4x16Neighbors),
+            new(DefaultScan4x16, DefaultInverseScan4x16, DefaultScan4x16Neighbors),
+            new(DefaultScan4x16, DefaultInverseScan4x16, DefaultScan4x16Neighbors),
+            new(DefaultScan4x16, DefaultInverseScan4x16, DefaultScan4x16Neighbors),
+            new(DefaultScan4x16, DefaultInverseScan4x16, DefaultScan4x16Neighbors),
+            new(DefaultScan4x16, DefaultInverseScan4x16, DefaultScan4x16Neighbors),
+            new(MatrixRowScan4x16, MatrixRowInverseScan4x16, MatrixRowScan4x16Neighbors),
+            new(MatrixColumnScan4x16, MatrixColumnInverseScan4x16, MatrixColumnScan4x16Neighbors),
+            new(MatrixRowScan4x16, MatrixRowInverseScan4x16, MatrixRowScan4x16Neighbors),
+            new(MatrixColumnScan4x16, MatrixColumnInverseScan4x16, MatrixColumnScan4x16Neighbors),
+            new(MatrixRowScan4x16, MatrixRowInverseScan4x16, MatrixRowScan4x16Neighbors),
+            new(MatrixColumnScan4x16, MatrixColumnInverseScan4x16, MatrixColumnScan4x16Neighbors),
         ],
         [
 
             // Transform size 16X4
-            new(DefaultScan16x4, DefaultIScan16x4, DefaultScan16x4Neighbors),
-            new(DefaultScan16x4, DefaultIScan16x4, DefaultScan16x4Neighbors),
-            new(DefaultScan16x4, DefaultIScan16x4, DefaultScan16x4Neighbors),
-            new(DefaultScan16x4, DefaultIScan16x4, DefaultScan16x4Neighbors),
-            new(DefaultScan16x4, DefaultIScan16x4, DefaultScan16x4Neighbors),
-            new(DefaultScan16x4, DefaultIScan16x4, DefaultScan16x4Neighbors),
-            new(DefaultScan16x4, DefaultIScan16x4, DefaultScan16x4Neighbors),
-            new(DefaultScan16x4, DefaultIScan16x4, DefaultScan16x4Neighbors),
-            new(DefaultScan16x4, DefaultIScan16x4, DefaultScan16x4Neighbors),
-            new(DefaultScan16x4, DefaultIScan16x4, DefaultScan16x4Neighbors),
-            new(MatrixRowScan16x4, MatrixRowIScan16x4, MatrixRowScan16x4Neighbors),
-            new(MatrixColumnScan16x4, MatrixColumnIScan16x4, MatrixColumnScan16x4Neighbors),
-            new(MatrixRowScan16x4, MatrixRowIScan16x4, MatrixRowScan16x4Neighbors),
-            new(MatrixColumnScan16x4, MatrixColumnIScan16x4, MatrixColumnScan16x4Neighbors),
-            new(MatrixRowScan16x4, MatrixRowIScan16x4, MatrixRowScan16x4Neighbors),
-            new(MatrixColumnScan16x4, MatrixColumnIScan16x4, MatrixColumnScan16x4Neighbors),
+            new(DefaultScan16x4, DefaultInverseScan16x4, DefaultScan16x4Neighbors),
+            new(DefaultScan16x4, DefaultInverseScan16x4, DefaultScan16x4Neighbors),
+            new(DefaultScan16x4, DefaultInverseScan16x4, DefaultScan16x4Neighbors),
+            new(DefaultScan16x4, DefaultInverseScan16x4, DefaultScan16x4Neighbors),
+            new(DefaultScan16x4, DefaultInverseScan16x4, DefaultScan16x4Neighbors),
+            new(DefaultScan16x4, DefaultInverseScan16x4, DefaultScan16x4Neighbors),
+            new(DefaultScan16x4, DefaultInverseScan16x4, DefaultScan16x4Neighbors),
+            new(DefaultScan16x4, DefaultInverseScan16x4, DefaultScan16x4Neighbors),
+            new(DefaultScan16x4, DefaultInverseScan16x4, DefaultScan16x4Neighbors),
+            new(DefaultScan16x4, DefaultInverseScan16x4, DefaultScan16x4Neighbors),
+            new(MatrixRowScan16x4, MatrixRowInverseScan16x4, MatrixRowScan16x4Neighbors),
+            new(MatrixColumnScan16x4, MatrixColumnInverseScan16x4, MatrixColumnScan16x4Neighbors),
+            new(MatrixRowScan16x4, MatrixRowInverseScan16x4, MatrixRowScan16x4Neighbors),
+            new(MatrixColumnScan16x4, MatrixColumnInverseScan16x4, MatrixColumnScan16x4Neighbors),
+            new(MatrixRowScan16x4, MatrixRowInverseScan16x4, MatrixRowScan16x4Neighbors),
+            new(MatrixColumnScan16x4, MatrixColumnInverseScan16x4, MatrixColumnScan16x4Neighbors),
         ],
         [
 
             // Transform size 8X32
-            new(DefaultScan8x32, DefaultIScan8x32, DefaultScan8x32Neighbors),
-            new(DefaultScan8x32, DefaultIScan8x32, DefaultScan8x32Neighbors),
-            new(DefaultScan8x32, DefaultIScan8x32, DefaultScan8x32Neighbors),
-            new(DefaultScan8x32, DefaultIScan8x32, DefaultScan8x32Neighbors),
-            new(DefaultScan8x32, DefaultIScan8x32, DefaultScan8x32Neighbors),
-            new(DefaultScan8x32, DefaultIScan8x32, DefaultScan8x32Neighbors),
-            new(DefaultScan8x32, DefaultIScan8x32, DefaultScan8x32Neighbors),
-            new(DefaultScan8x32, DefaultIScan8x32, DefaultScan8x32Neighbors),
-            new(DefaultScan8x32, DefaultIScan8x32, DefaultScan8x32Neighbors),
-            new(DefaultScan8x32, DefaultIScan8x32, DefaultScan8x32Neighbors),
-            new(MatrixRowScan8x32, MatrixRowIScan8x32, MatrixRowScan8x32Neighbors),
-            new(MatrixColumnScan8x32, MatrixColumnIScan8x32, MatrixColumnScan8x32Neighbors),
-            new(MatrixRowScan8x32, MatrixRowIScan8x32, MatrixRowScan8x32Neighbors),
-            new(MatrixColumnScan8x32, MatrixColumnIScan8x32, MatrixColumnScan8x32Neighbors),
-            new(MatrixRowScan8x32, MatrixRowIScan8x32, MatrixRowScan8x32Neighbors),
-            new(MatrixColumnScan8x32, MatrixColumnIScan8x32, MatrixColumnScan8x32Neighbors),
+            new(DefaultScan8x32, DefaultInverseScan8x32, DefaultScan8x32Neighbors),
+            new(DefaultScan8x32, DefaultInverseScan8x32, DefaultScan8x32Neighbors),
+            new(DefaultScan8x32, DefaultInverseScan8x32, DefaultScan8x32Neighbors),
+            new(DefaultScan8x32, DefaultInverseScan8x32, DefaultScan8x32Neighbors),
+            new(DefaultScan8x32, DefaultInverseScan8x32, DefaultScan8x32Neighbors),
+            new(DefaultScan8x32, DefaultInverseScan8x32, DefaultScan8x32Neighbors),
+            new(DefaultScan8x32, DefaultInverseScan8x32, DefaultScan8x32Neighbors),
+            new(DefaultScan8x32, DefaultInverseScan8x32, DefaultScan8x32Neighbors),
+            new(DefaultScan8x32, DefaultInverseScan8x32, DefaultScan8x32Neighbors),
+            new(DefaultScan8x32, DefaultInverseScan8x32, DefaultScan8x32Neighbors),
+            new(MatrixRowScan8x32, MatrixRowInverseScan8x32, MatrixRowScan8x32Neighbors),
+            new(MatrixColumnScan8x32, MatrixColumnInverseScan8x32, MatrixColumnScan8x32Neighbors),
+            new(MatrixRowScan8x32, MatrixRowInverseScan8x32, MatrixRowScan8x32Neighbors),
+            new(MatrixColumnScan8x32, MatrixColumnInverseScan8x32, MatrixColumnScan8x32Neighbors),
+            new(MatrixRowScan8x32, MatrixRowInverseScan8x32, MatrixRowScan8x32Neighbors),
+            new(MatrixColumnScan8x32, MatrixColumnInverseScan8x32, MatrixColumnScan8x32Neighbors),
         ],
         [
 
             // Transform size 32X8
-            new(DefaultScan32x8, DefaultIScan32x8, DefaultScan32x8Neighbors),
-            new(DefaultScan32x8, DefaultIScan32x8, DefaultScan32x8Neighbors),
-            new(DefaultScan32x8, DefaultIScan32x8, DefaultScan32x8Neighbors),
-            new(DefaultScan32x8, DefaultIScan32x8, DefaultScan32x8Neighbors),
-            new(DefaultScan32x8, DefaultIScan32x8, DefaultScan32x8Neighbors),
-            new(DefaultScan32x8, DefaultIScan32x8, DefaultScan32x8Neighbors),
-            new(DefaultScan32x8, DefaultIScan32x8, DefaultScan32x8Neighbors),
-            new(DefaultScan32x8, DefaultIScan32x8, DefaultScan32x8Neighbors),
-            new(DefaultScan32x8, DefaultIScan32x8, DefaultScan32x8Neighbors),
-            new(DefaultScan32x8, DefaultIScan32x8, DefaultScan32x8Neighbors),
-            new(MatrixRowScan32x8, MatrixRowIScan32x8, MatrixRowScan32x8Neighbors),
-            new(MatrixColumnScan32x8, MatrixColumnIScan32x8, MatrixColumnScan32x8Neighbors),
-            new(MatrixRowScan32x8, MatrixRowIScan32x8, MatrixRowScan32x8Neighbors),
-            new(MatrixColumnScan32x8, MatrixColumnIScan32x8, MatrixColumnScan32x8Neighbors),
-            new(MatrixRowScan32x8, MatrixRowIScan32x8, MatrixRowScan32x8Neighbors),
-            new(MatrixColumnScan32x8, MatrixColumnIScan32x8, MatrixColumnScan32x8Neighbors),
+            new(DefaultScan32x8, DefaultInverseScan32x8, DefaultScan32x8Neighbors),
+            new(DefaultScan32x8, DefaultInverseScan32x8, DefaultScan32x8Neighbors),
+            new(DefaultScan32x8, DefaultInverseScan32x8, DefaultScan32x8Neighbors),
+            new(DefaultScan32x8, DefaultInverseScan32x8, DefaultScan32x8Neighbors),
+            new(DefaultScan32x8, DefaultInverseScan32x8, DefaultScan32x8Neighbors),
+            new(DefaultScan32x8, DefaultInverseScan32x8, DefaultScan32x8Neighbors),
+            new(DefaultScan32x8, DefaultInverseScan32x8, DefaultScan32x8Neighbors),
+            new(DefaultScan32x8, DefaultInverseScan32x8, DefaultScan32x8Neighbors),
+            new(DefaultScan32x8, DefaultInverseScan32x8, DefaultScan32x8Neighbors),
+            new(DefaultScan32x8, DefaultInverseScan32x8, DefaultScan32x8Neighbors),
+            new(MatrixRowScan32x8, MatrixRowInverseScan32x8, MatrixRowScan32x8Neighbors),
+            new(MatrixColumnScan32x8, MatrixColumnInverseScan32x8, MatrixColumnScan32x8Neighbors),
+            new(MatrixRowScan32x8, MatrixRowInverseScan32x8, MatrixRowScan32x8Neighbors),
+            new(MatrixColumnScan32x8, MatrixColumnInverseScan32x8, MatrixColumnScan32x8Neighbors),
+            new(MatrixRowScan32x8, MatrixRowInverseScan32x8, MatrixRowScan32x8Neighbors),
+            new(MatrixColumnScan32x8, MatrixColumnInverseScan32x8, MatrixColumnScan32x8Neighbors),
         ],
         [
 
             // Transform size 16X64
             // Half of the coefficients of tx64 at higher frequencies are set to
             // zeros. So tx32's scan order is used.
-            new(DefaultScan16x32, DefaultIScan16x32, DefaultScan16x32Neighbors),
-            new(DefaultScan16x32, DefaultIScan16x32, DefaultScan16x32Neighbors),
-            new(DefaultScan16x32, DefaultIScan16x32, DefaultScan16x32Neighbors),
-            new(DefaultScan16x32, DefaultIScan16x32, DefaultScan16x32Neighbors),
-            new(DefaultScan16x32, DefaultIScan16x32, DefaultScan16x32Neighbors),
-            new(DefaultScan16x32, DefaultIScan16x32, DefaultScan16x32Neighbors),
-            new(DefaultScan16x32, DefaultIScan16x32, DefaultScan16x32Neighbors),
-            new(DefaultScan16x32, DefaultIScan16x32, DefaultScan16x32Neighbors),
-            new(DefaultScan16x32, DefaultIScan16x32, DefaultScan16x32Neighbors),
-            new(DefaultScan16x32, DefaultIScan16x32, DefaultScan16x32Neighbors),
-            new(MatrixRowScan16x32, MatrixRowIScan16x32, MatrixRowScan16x32Neighbors),
-            new(MatrixColumnScan16x32, MatrixColumnIScan16x32, MatrixColumnScan16x32Neighbors),
-            new(MatrixRowScan16x32, MatrixRowIScan16x32, MatrixRowScan16x32Neighbors),
-            new(MatrixColumnScan16x32, MatrixColumnIScan16x32, MatrixColumnScan16x32Neighbors),
-            new(MatrixRowScan16x32, MatrixRowIScan16x32, MatrixRowScan16x32Neighbors),
-            new(MatrixColumnScan16x32, MatrixColumnIScan16x32, MatrixColumnScan16x32Neighbors),
+            new(DefaultScan16x32, DefaultInverseScan16x32, DefaultScan16x32Neighbors),
+            new(DefaultScan16x32, DefaultInverseScan16x32, DefaultScan16x32Neighbors),
+            new(DefaultScan16x32, DefaultInverseScan16x32, DefaultScan16x32Neighbors),
+            new(DefaultScan16x32, DefaultInverseScan16x32, DefaultScan16x32Neighbors),
+            new(DefaultScan16x32, DefaultInverseScan16x32, DefaultScan16x32Neighbors),
+            new(DefaultScan16x32, DefaultInverseScan16x32, DefaultScan16x32Neighbors),
+            new(DefaultScan16x32, DefaultInverseScan16x32, DefaultScan16x32Neighbors),
+            new(DefaultScan16x32, DefaultInverseScan16x32, DefaultScan16x32Neighbors),
+            new(DefaultScan16x32, DefaultInverseScan16x32, DefaultScan16x32Neighbors),
+            new(DefaultScan16x32, DefaultInverseScan16x32, DefaultScan16x32Neighbors),
+            new(DefaultScan16x32, MatrixRowInverseScan16x32, MatrixRowScan16x32Neighbors),
+            new(DefaultScan16x32, MatrixColumnInverseScan16x32, MatrixColumnScan16x32Neighbors),
+            new(DefaultScan16x32, MatrixRowInverseScan16x32, MatrixRowScan16x32Neighbors),
+            new(DefaultScan16x32, MatrixColumnInverseScan16x32, MatrixColumnScan16x32Neighbors),
+            new(DefaultScan16x32, MatrixRowInverseScan16x32, MatrixRowScan16x32Neighbors),
+            new(DefaultScan16x32, MatrixColumnInverseScan16x32, MatrixColumnScan16x32Neighbors),
         ],
         [
 
             // Transform size 64X16
             // Half of the coefficients of tx64 at higher frequencies are set to
             // zeros. So tx32's scan order is used.
-            new(DefaultScan32x16, DefaultIScan32x16, DefaultScan32x16Neighbors),
-            new(DefaultScan32x16, DefaultIScan32x16, DefaultScan32x16Neighbors),
-            new(DefaultScan32x16, DefaultIScan32x16, DefaultScan32x16Neighbors),
-            new(DefaultScan32x16, DefaultIScan32x16, DefaultScan32x16Neighbors),
-            new(DefaultScan32x16, DefaultIScan32x16, DefaultScan32x16Neighbors),
-            new(DefaultScan32x16, DefaultIScan32x16, DefaultScan32x16Neighbors),
-            new(DefaultScan32x16, DefaultIScan32x16, DefaultScan32x16Neighbors),
-            new(DefaultScan32x16, DefaultIScan32x16, DefaultScan32x16Neighbors),
-            new(DefaultScan32x16, DefaultIScan32x16, DefaultScan32x16Neighbors),
-            new(DefaultScan32x16, DefaultIScan32x16, DefaultScan32x16Neighbors),
-            new(MatrixRowScan32x16, MatrixRowIScan32x16, MatrixRowScan32x16Neighbors),
-            new(MatrixColumnScan32x16, MatrixColumnIScan32x16, MatrixColumnScan32x16Neighbors),
-            new(MatrixRowScan32x16, MatrixRowIScan32x16, MatrixRowScan32x16Neighbors),
-            new(MatrixColumnScan32x16, MatrixColumnIScan32x16, MatrixColumnScan32x16Neighbors),
-            new(MatrixRowScan32x16, MatrixRowIScan32x16, MatrixRowScan32x16Neighbors),
-            new(MatrixColumnScan32x16, MatrixColumnIScan32x16, MatrixColumnScan32x16Neighbors),
+            new(DefaultScan32x16, DefaultInverseScan32x16, DefaultScan32x16Neighbors),
+            new(DefaultScan32x16, DefaultInverseScan32x16, DefaultScan32x16Neighbors),
+            new(DefaultScan32x16, DefaultInverseScan32x16, DefaultScan32x16Neighbors),
+            new(DefaultScan32x16, DefaultInverseScan32x16, DefaultScan32x16Neighbors),
+            new(DefaultScan32x16, DefaultInverseScan32x16, DefaultScan32x16Neighbors),
+            new(DefaultScan32x16, DefaultInverseScan32x16, DefaultScan32x16Neighbors),
+            new(DefaultScan32x16, DefaultInverseScan32x16, DefaultScan32x16Neighbors),
+            new(DefaultScan32x16, DefaultInverseScan32x16, DefaultScan32x16Neighbors),
+            new(DefaultScan32x16, DefaultInverseScan32x16, DefaultScan32x16Neighbors),
+            new(DefaultScan32x16, DefaultInverseScan32x16, DefaultScan32x16Neighbors),
+            new(DefaultScan32x16, MatrixRowInverseScan32x16, MatrixRowScan32x16Neighbors),
+            new(DefaultScan32x16, MatrixColumnInverseScan32x16, MatrixColumnScan32x16Neighbors),
+            new(DefaultScan32x16, MatrixRowInverseScan32x16, MatrixRowScan32x16Neighbors),
+            new(DefaultScan32x16, MatrixColumnInverseScan32x16, MatrixColumnScan32x16Neighbors),
+            new(DefaultScan32x16, MatrixRowInverseScan32x16, MatrixRowScan32x16Neighbors),
+            new(DefaultScan32x16, MatrixColumnInverseScan32x16, MatrixColumnScan32x16Neighbors),
         ]
        ];
 

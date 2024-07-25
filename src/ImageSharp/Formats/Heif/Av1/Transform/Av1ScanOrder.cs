@@ -8,20 +8,20 @@ internal readonly struct Av1ScanOrder
     public Av1ScanOrder(short[] scan)
     {
         this.Scan = scan;
-        this.IScan = [];
+        this.InverseScan = [];
         this.Neighbors = [];
     }
 
-    public Av1ScanOrder(short[] scan, short[] iscan, short[] neighbors)
+    public Av1ScanOrder(short[] scan, short[] inverseScan, short[] neighbors)
     {
         this.Scan = scan;
-        this.IScan = iscan;
+        this.InverseScan = inverseScan;
         this.Neighbors = neighbors;
     }
 
     public short[] Scan { get; }
 
-    public short[] IScan { get; }
+    public short[] InverseScan { get; }
 
     public short[] Neighbors { get; }
 }

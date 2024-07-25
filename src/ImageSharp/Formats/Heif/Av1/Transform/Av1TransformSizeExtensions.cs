@@ -141,13 +141,9 @@ internal static class Av1TransformSizeExtensions
         return (pels > 1024) ? 2 : (pels > 256) ? 1 : 0;
     }
 
-    public static int GetWidth(this Av1TransformSize size) => (int)size;
+    public static int GetWidth(this Av1TransformSize size) => WideUnit[(int)size] << 2;
 
-    public static int GetHeight(this Av1TransformSize size) => (int)size;
-
-    public static int GetWidthLog2(this Av1TransformSize size) => (int)size;
-
-    public static int GetHeightLog2(this Av1TransformSize size) => (int)size;
+    public static int GetHeight(this Av1TransformSize size) => HighUnit[(int)size] << 2;
 
     public static int Get4x4WideCount(this Av1TransformSize size) => WideUnit[(int)size];
 

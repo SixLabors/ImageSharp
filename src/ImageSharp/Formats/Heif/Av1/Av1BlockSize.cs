@@ -72,7 +72,7 @@ internal enum Av1BlockSize : byte
 
     /// <summary>A block of samples, 64 samples wide and 16 samples high.</summary>
     Block64x16 = 21,
-    SizesAll = 22,
+    AllSizes = 22,
     SizeS = Block4x16,
     Invalid = 255,
     Largest = SizeS - 1,

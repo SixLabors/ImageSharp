@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using SixLabors.ImageSharp.Formats.Heif.Av1.Quantization;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1;
@@ -104,7 +103,7 @@ internal static class Av1BlockSizeExtensions
     {
         Av1BlockSize planeBlockSize = blockSize.GetSubsampled(subX, subY);
         Av1TransformSize uvTransformSize = Av1TransformSize.Invalid;
-        if (planeBlockSize < Av1BlockSize.SizesAll)
+        if (planeBlockSize < Av1BlockSize.AllSizes)
         {
             uvTransformSize = planeBlockSize.GetMaximumTransformSize();
         }

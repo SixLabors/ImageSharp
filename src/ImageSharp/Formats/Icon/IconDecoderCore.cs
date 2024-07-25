@@ -170,7 +170,7 @@ internal abstract class IconDecoderCore : IImageDecoderInternals
             bool isPng = flag.SequenceEqual(PngConstants.HeaderBytes);
 
             // Decode the frame into a temp image buffer. This is disposed after the frame is copied to the result.
-            ImageInfo temp = this.GetDecoder(isPng).Identify(stream, cancellationToken);
+            ImageInfo frameInfo = this.GetDecoder(isPng).Identify(stream, cancellationToken);
 
             ImageFrameMetadata frameMetadata = new();
 
@@ -178,14 +178,14 @@ internal abstract class IconDecoderCore : IImageDecoderInternals
             {
                 if (i == 0)
                 {
-                    pngMetadata = temp.Metadata.GetPngMetadata();
+                    pngMetadata = frameInfo.Metadata.GetPngMetadata();
                 }
 
-                frameMetadata.SetFormatMetadata(PngFormat.Instance, temp.FrameMetadataCollection[0].GetPngMetadata());
+                frameMetadata.SetFormatMetadata(PngFormat.Instance, frameInfo.FrameMetadataCollection[0].GetPngMetadata());
             }
             else
             {
-                BmpMetadata meta = temp.Metadata.GetBmpMetadata();
+                BmpMetadata meta = frameInfo.Metadata.GetBmpMetadata();
                 bitsPerPixel = meta.BitsPerPixel;
                 colorTable = meta.ColorTable;
 
@@ -210,7 +210,7 @@ internal abstract class IconDecoderCore : IImageDecoderInternals
 
             // Since Windows Vista, the size of an image is determined from the BITMAPINFOHEADER structure or PNG image data
             // which technically allows storing icons with larger than 256 pixels, but such larger sizes are not recommended by Microsoft.
-            this.Dimensions = new(Math.Max(this.Dimensions.Width, temp.Size.Width), Math.Max(this.Dimensions.Height, temp.Size.Height));
+            this.Dimensions = new(Math.Max(this.Dimensions.Width, frameInfo.Size.Width), Math.Max(this.Dimensions.Height, frameInfo.Size.Height));
         }
 
         // Copy the format specific metadata to the image.

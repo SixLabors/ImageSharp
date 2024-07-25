@@ -63,6 +63,11 @@ public class ImageInfo
     public int Height => this.Size.Height;
 
     /// <summary>
+    /// Gets the number of frames in the image.
+    /// </summary>
+    public int FrameCount => this.FrameMetadataCollection.Count;
+
+    /// <summary>
     /// Gets any metadata associated with the image.
     /// </summary>
     public ImageMetadata Metadata { get; }
@@ -75,10 +80,10 @@ public class ImageInfo
     /// <summary>
     /// Gets the size of the image in px units.
     /// </summary>
-    public Size Size { get; internal set; }
+    public Size Size { get; }
 
     /// <summary>
     /// Gets the bounds of the image.
     /// </summary>
-    public Rectangle Bounds => new(0, 0, this.Width, this.Height);
+    public Rectangle Bounds => new(Point.Empty, this.Size);
 }

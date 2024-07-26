@@ -71,6 +71,8 @@ public class Av1BlockSizeTests
         Av1BlockSize blockSize = (Av1BlockSize)s;
         int originalWidth = blockSize.GetWidth();
         int originalHeight = blockSize.GetHeight();
+        int halfWidth = originalWidth / 2;
+        int halfHeight = originalHeight / 2;
 
         // Act
         Av1BlockSize actualNoNo = blockSize.GetSubsampled(false, false);
@@ -84,18 +86,18 @@ public class Av1BlockSizeTests
 
         if (actualYesNo != Av1BlockSize.Invalid)
         {
-            Assert.Equal(originalWidth, actualYesNo.GetWidth() * 2);
+            Assert.Equal(halfWidth, actualYesNo.GetWidth());
             Assert.Equal(originalHeight, actualYesNo.GetHeight());
         }
 
         if (actualNoYes != Av1BlockSize.Invalid)
         {
             Assert.Equal(originalWidth, actualNoYes.GetWidth());
-            Assert.Equal(originalHeight, actualNoYes.GetHeight() * 2);
+            Assert.Equal(halfHeight, actualNoYes.GetHeight());
         }
 
-        Assert.Equal(originalWidth, actualYesYes.GetWidth() * 2);
-        Assert.Equal(originalHeight, actualYesYes.GetHeight() * 2);
+        Assert.Equal(halfWidth, actualYesYes.GetWidth());
+        Assert.Equal(halfHeight, actualYesYes.GetHeight());
     }
 
     public static TheoryData<int> GetAllSizes()
@@ -113,7 +115,7 @@ public class Av1BlockSizeTests
     {
         int width = blockSize.GetWidth();
         int height = blockSize.GetHeight();
-        int ratio = width > height ? width / height : height / width;
+        int ratio = width >= height ? width / height : -height / width;
         return ratio;
     }
 }

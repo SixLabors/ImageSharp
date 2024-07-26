@@ -336,13 +336,14 @@ internal class Av1TileDecoder : IAv1TileDecoder
         int planesCount = this.SequenceHeader.ColorConfig.PlaneCount;
         for (int i = 0; i < planesCount; i++)
         {
-            bool subX = i > 0 && this.SequenceHeader.ColorConfig.SubSamplingX;
-            bool subY = i > 0 && this.SequenceHeader.ColorConfig.SubSamplingY;
+            int subX = (i > 0 && this.SequenceHeader.ColorConfig.SubSamplingX) ? 1 : 0;
+            int subY = (i > 0 && this.SequenceHeader.ColorConfig.SubSamplingY) ? 1 : 0;
             Av1BlockSize planeBlockSize = partitionInfo.ModeInfo.BlockSize.GetSubsampled(subX, subY);
+            DebugGuard.IsTrue(planeBlockSize != Av1BlockSize.Invalid, nameof(planeBlockSize));
             int txsWide = planeBlockSize.GetWidth() >> 2;
             int txsHigh = planeBlockSize.GetHeight() >> 2;
-            int aboveOffset = (partitionInfo.ColumnIndex - this.FrameInfo.TilesInfo.TileColumnStartModeInfo[partitionInfo.ColumnIndex]) >> (subX ? 1 : 0);
-            int leftOffset = (partitionInfo.RowIndex - this.FrameInfo.TilesInfo.TileRowStartModeInfo[partitionInfo.RowIndex]) >> (subY ? 1 : 0);
+            int aboveOffset = (partitionInfo.ColumnIndex - this.FrameInfo.TilesInfo.TileColumnStartModeInfo[partitionInfo.ColumnIndex]) >> subX;
+            int leftOffset = (partitionInfo.RowIndex - this.FrameInfo.TilesInfo.TileRowStartModeInfo[partitionInfo.RowIndex]) >> subY;
             this.aboveNeighborContext.ClearContext(i, aboveOffset, txsWide);
             this.leftNeighborContext.ClearContext(i, leftOffset, txsHigh);
         }

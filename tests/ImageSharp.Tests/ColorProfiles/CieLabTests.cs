@@ -9,6 +9,7 @@ namespace SixLabors.ImageSharp.Tests.ColorProfiles;
 /// <summary>
 /// Tests the <see cref="CieLab"/> struct.
 /// </summary>
+[Trait("Color", "Conversion")]
 public class CieLabTests
 {
     [Fact]

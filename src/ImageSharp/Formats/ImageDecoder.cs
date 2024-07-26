@@ -1,7 +1,10 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.ColorProfiles.Icc;
+using SixLabors.ImageSharp.ColorSpaces.Conversion.Icc;
 using SixLabors.ImageSharp.IO;
+using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 
@@ -22,6 +25,7 @@ public abstract class ImageDecoder : IImageDecoder
             stream,
             s => this.Decode<TPixel>(options, s, default));
 
+        TransformColorProfile(options, image);
         this.SetDecoderFormat(options.Configuration, image);
 
         return image;
@@ -35,6 +39,7 @@ public abstract class ImageDecoder : IImageDecoder
             stream,
             s => this.Decode(options, s, default));
 
+        TransformColorProfile(options, image);
         this.SetDecoderFormat(options.Configuration, image);
 
         return image;
@@ -45,11 +50,12 @@ public abstract class ImageDecoder : IImageDecoder
         where TPixel : unmanaged, IPixel<TPixel>
     {
         Image<TPixel> image = await WithSeekableMemoryStreamAsync(
-                options,
-                stream,
-                (s, ct) => this.Decode<TPixel>(options, s, ct),
-                cancellationToken).ConfigureAwait(false);
+            options,
+            stream,
+            (s, ct) => this.Decode<TPixel>(options, s, ct),
+            cancellationToken).ConfigureAwait(false);
 
+        TransformColorProfile(options, image);
         this.SetDecoderFormat(options.Configuration, image);
 
         return image;
@@ -64,6 +70,7 @@ public abstract class ImageDecoder : IImageDecoder
             (s, ct) => this.Decode(options, s, ct),
             cancellationToken).ConfigureAwait(false);
 
+        TransformColorProfile(options, image);
         this.SetDecoderFormat(options.Configuration, image);
 
         return image;
@@ -155,6 +162,25 @@ public abstract class ImageDecoder : IImageDecoder
             };
 
             image.Mutate(x => x.Resize(resizeOptions));
+        }
+    }
+
+    /// <summary>
+    /// Converts the decoded image color profile if present to a V4 sRGB profile.
+    /// </summary>
+    /// <param name="options">The decoder options.</param>
+    /// <param name="image">The image.</param>
+    protected static void TransformColorProfile(DecoderOptions options, Image image)
+    {
+        if (options.ColorProfileHandling == ColorProfileHandling.Preserve)
+        {
+            return;
+        }
+
+        IccProfile? profile = image.Metadata?.IccProfile;
+        if (profile is not null)
+        {
+            IccProfileConverter.Convert(image, profile, SrgbV4Profile.GetProfile());
         }
     }
 

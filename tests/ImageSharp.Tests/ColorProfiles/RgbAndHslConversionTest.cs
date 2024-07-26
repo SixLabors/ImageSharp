@@ -13,6 +13,7 @@ namespace SixLabors.ImageSharp.Tests.ColorProfiles;
 /// <see href="http://www.colorhexa.com"/>
 /// <see href="http://www.rapidtables.com/convert/color/hsl-to-rgb"/>
 /// </remarks>
+[Trait("Color", "Conversion")]
 public class RgbAndHslConversionTest
 {
     private static readonly ApproximateColorProfileComparer Comparer = new(.0001f);

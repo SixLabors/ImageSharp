@@ -55,5 +55,10 @@ public sealed class DecoderOptions
     /// </summary>
     public uint MaxFrames { get => this.maxFrames; init => this.maxFrames = Math.Clamp(value, 1, int.MaxValue); }
 
+    /// <summary>
+    /// Gets a value that controls how ICC profiles are handled during decode.
+    /// </summary>
+    public ColorProfileHandling ColorProfileHandling { get; init; }
+
     internal void SetConfiguration(Configuration configuration) => this.configuration = configuration;
 }

@@ -25,6 +25,7 @@ public class ObuFrameHeaderTests
     // [InlineData(TestImages.Heif.IrvineAvif, 0x0102, 0x000D)]
     // [InlineData(TestImages.Heif.IrvineAvif, 0x0198, 0x6BD1)]
     [InlineData(TestImages.Heif.XnConvert, 0x010E, 0x03CC)]
+    [InlineData(TestImages.Heif.Orange4x4, 0x010E, 0x001d)]
     public void ReadFrameHeader(string filename, int fileOffset, int blockSize)
     {
         // Assign

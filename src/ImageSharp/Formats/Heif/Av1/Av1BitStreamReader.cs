@@ -150,8 +150,7 @@ internal ref struct Av1BitStreamReader
     {
         DebugGuard.IsTrue(Av1Math.Modulus8(this.BitPosition) == 0, "Symbol reading needs to start on byte boundary.");
         int bytesRead = Av1Math.DivideBy8Floor(this.BitPosition);
-        int spanLength = tileDataSize - bytesRead;
-        Span<byte> span = this.data.Slice(bytesRead, spanLength);
+        Span<byte> span = this.data.Slice(bytesRead, tileDataSize);
         this.Skip(tileDataSize << 3);
         return span;
     }

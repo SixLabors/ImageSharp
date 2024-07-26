@@ -1144,6 +1144,9 @@ public static class TestImages
         public const string IrvineAvif = "Heif/Irvine_CA.avif";
 
         public const string XnConvert = "Heif/jpeg444_xnconvert.avif";
+
+        // Extremely small image, 4x4 pixels with a single solid color.
+        public const string Orange4x4 = "Heif/Orange4x4.avif";
     }
 
     public static class Ico

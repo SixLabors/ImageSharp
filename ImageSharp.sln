@@ -671,6 +671,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Heif", "Heif", "{BA5D603A-C
 		tests\Images\Input\Heif\IMG-20230508-0053.hif = tests\Images\Input\Heif\IMG-20230508-0053.hif
 		tests\Images\Input\Heif\Irvine_CA.avif = tests\Images\Input\Heif\Irvine_CA.avif
 		tests\Images\Input\Heif\jpeg444_xnconvert.avif = tests\Images\Input\Heif\jpeg444_xnconvert.avif
+		tests\Images\Input\Heif\Orange4x4.avif = tests\Images\Input\Heif\Orange4x4.avif
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Icon", "Icon", "{95E45DDE-A67D-48AD-BBA8-5FAA151B860D}"

@@ -10,24 +10,26 @@ namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 [Trait("Format", "Avif")]
 public class Av1TilingTests
 {
-    // [Theory]
-    [InlineData(TestImages.Heif.XnConvert, 0x010E, 0x03CC, 18, 0x03CC - 18)]
-    public void ReadFirstTile(string filename, int headerOffset, int headerSize, int tileOffset, int tileSize)
+    [Theory]
+    /*[InlineData(TestImages.Heif.XnConvert, 0x010E, 0x03CC, 18)]*/
+    [InlineData(TestImages.Heif.Orange4x4, 0x010E, 0x001d, 21)]
+    public void ReadFirstTile(string filename, int dataOffset, int dataSize, int tileOffset)
     {
         // Assign
         string filePath = Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, filename);
         byte[] content = File.ReadAllBytes(filePath);
-        Span<byte> headerSpan = content.AsSpan(headerOffset, headerSize);
-        Span<byte> tileSpan = content.AsSpan(tileOffset, tileSize);
+        Span<byte> headerSpan = content.AsSpan(dataOffset, dataSize);
+        Span<byte> tileSpan = content.AsSpan(tileOffset, dataSize - tileOffset);
         Av1BitStreamReader reader = new(headerSpan);
         IAv1TileDecoder stub = new Av1TileDecoderStub();
         ObuReader obuReader = new();
-        obuReader.ReadAll(ref reader, headerSize, stub);
+        obuReader.ReadAll(ref reader, dataSize, stub);
         Av1TileDecoder decoder = new(obuReader.SequenceHeader, obuReader.FrameHeader);
 
         // Act
         decoder.DecodeTile(tileSpan, 0);
 
         // Assert
+        Assert.Equal(dataSize * 8, reader.BitPosition);
     }
 }

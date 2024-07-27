@@ -1,7 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-namespace SixLabors.ImageSharp.Formats.Heif.Av1.Symbol;
+namespace SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 
 // Generates 5 bit field in which each bit set to 1 represents
 // a BlockSize partition  11111 means we split 128x128, 64x64, 32x32, 16x16

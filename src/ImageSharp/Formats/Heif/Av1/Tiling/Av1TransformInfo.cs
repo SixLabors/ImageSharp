@@ -3,7 +3,7 @@
 
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 
-namespace SixLabors.ImageSharp.Formats.Heif.Av1.Symbol;
+namespace SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 
 /// <summary>
 /// Information of a single Transform Block.

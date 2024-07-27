@@ -4,7 +4,7 @@
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 
-namespace SixLabors.ImageSharp.Formats.Heif.Av1.Symbol;
+namespace SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 
 internal class Av1ParseLeftNeighbor4x4Context
 {

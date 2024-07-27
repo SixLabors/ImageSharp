@@ -3,7 +3,7 @@
 
 using System;
 
-namespace SixLabors.ImageSharp.Formats.Heif.Av1.Symbol;
+namespace SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 
 internal static class Av1DefaultDistributions
 {

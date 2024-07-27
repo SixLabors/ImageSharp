@@ -3,7 +3,7 @@
 
 using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
-using SixLabors.ImageSharp.Formats.Heif.Av1.Symbol;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 

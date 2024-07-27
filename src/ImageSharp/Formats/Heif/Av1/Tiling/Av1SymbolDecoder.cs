@@ -4,7 +4,7 @@
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 
-namespace SixLabors.ImageSharp.Formats.Heif.Av1.Symbol;
+namespace SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 
 internal ref struct Av1SymbolDecoder
 {

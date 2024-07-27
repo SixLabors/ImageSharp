@@ -3,7 +3,7 @@
 
 using System.Buffers;
 using SixLabors.ImageSharp.Formats.Heif.Av1;
-using SixLabors.ImageSharp.Formats.Heif.Av1.Symbol;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;

@@ -4,7 +4,7 @@
 using System.Buffers;
 using SixLabors.ImageSharp.Memory;
 
-namespace SixLabors.ImageSharp.Formats.Heif.Av1.Symbol;
+namespace SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 
 internal class Av1SymbolWriter : IDisposable
 {

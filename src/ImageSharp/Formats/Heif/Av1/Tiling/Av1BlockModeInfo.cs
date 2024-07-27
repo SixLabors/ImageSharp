@@ -3,7 +3,7 @@
 
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 
-namespace SixLabors.ImageSharp.Formats.Heif.Av1.Symbol;
+namespace SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 
 internal class Av1BlockModeInfo
 {

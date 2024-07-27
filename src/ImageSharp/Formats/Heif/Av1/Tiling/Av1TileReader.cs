@@ -8,7 +8,7 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Symbol;
 
-internal class Av1TileDecoder : IAv1TileDecoder
+internal class Av1TileReader : IAv1TileReader
 {
     private static readonly int[] SgrprojXqdMid = [-32, 31];
     private static readonly int[] WienerTapsMid = [3, -7, 15];
@@ -34,7 +34,7 @@ internal class Av1TileDecoder : IAv1TileDecoder
     private readonly int[] firstTransformOffset = new int[2];
     private readonly int[] coefficientIndex = [];
 
-    public Av1TileDecoder(ObuSequenceHeader sequenceHeader, ObuFrameHeader frameInfo)
+    public Av1TileReader(ObuSequenceHeader sequenceHeader, ObuFrameHeader frameInfo)
     {
         this.FrameInfo = frameInfo;
         this.SequenceHeader = sequenceHeader;
@@ -69,7 +69,7 @@ internal class Av1TileDecoder : IAv1TileDecoder
 
     public Av1FrameBuffer FrameBuffer { get; }
 
-    public void DecodeTile(Span<byte> tileData, int tileNum)
+    public void ReadTile(Span<byte> tileData, int tileNum)
     {
         Av1SymbolDecoder reader = new(tileData, this.FrameInfo.QuantizationParameters.BaseQIndex);
         int tileColumnIndex = tileNum % this.FrameInfo.TilesInfo.TileColumnCount;
@@ -740,8 +740,8 @@ internal class Av1TileDecoder : IAv1TileDecoder
         for (int c = endSi; c >= startSi; --c)
         {
             int pos = scan[c];
-            int coeff_ctx = GetLowerLevelsContext(levels, pos, bwl, transformSize, transformClass);
-            int level = reader.ReadCoefficientsBase(coeff_ctx, transformSizeContext, planeType);
+            int coefficientContext = GetLowerLevelsContext(levels, pos, bwl, transformSize, transformClass);
+            int level = reader.ReadCoefficientsBase(coefficientContext, transformSizeContext, planeType);
             if (level > Av1Constants.BaseLevelsCount)
             {
                 int baseRangeContext = GetBaseRangeContext(levels, pos, bwl, transformClass);

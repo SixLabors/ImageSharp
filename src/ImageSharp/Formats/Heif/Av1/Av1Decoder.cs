@@ -6,11 +6,10 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.Symbol;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1;
 
-internal class Av1Decoder : IAv1TileDecoder
+internal class Av1Decoder : IAv1TileReader
 {
     private readonly ObuReader obuReader;
-    private Av1TileDecoder? tileDecoder;
-    private Av1FrameBuffer? frameBuffer;
+    private Av1TileReader? tileReader;
 
     public Av1Decoder() => this.obuReader = new();
 
@@ -18,22 +17,26 @@ internal class Av1Decoder : IAv1TileDecoder
 
     public ObuSequenceHeader? SequenceHeader { get; private set; }
 
+    public Av1FrameBuffer? FrameBuffer { get; private set; }
+
     public void Decode(Span<byte> buffer)
     {
         Av1BitStreamReader reader = new(buffer);
         this.obuReader.ReadAll(ref reader, buffer.Length, this, false);
-        this.frameBuffer = this.tileDecoder?.FrameBuffer;
+        this.FrameBuffer = this.tileReader?.FrameBuffer;
+
+        // TODO: Decode the FrameBuffer
     }
 
-    public void DecodeTile(Span<byte> tileData, int tileNum)
+    public void ReadTile(Span<byte> tileData, int tileNum)
     {
-        if (this.tileDecoder == null)
+        if (this.tileReader == null)
         {
             this.SequenceHeader = this.obuReader.SequenceHeader;
             this.FrameHeader = this.obuReader.FrameHeader;
-            this.tileDecoder = new Av1TileDecoder(this.SequenceHeader!, this.FrameHeader!);
+            this.tileReader = new Av1TileReader(this.SequenceHeader!, this.FrameHeader!);
         }
 
-        this.tileDecoder.DecodeTile(tileData, tileNum);
+        this.tileReader.ReadTile(tileData, tileNum);
     }
 }

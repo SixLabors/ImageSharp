@@ -20,16 +20,16 @@ public class Av1TilingTests
         byte[] content = File.ReadAllBytes(filePath);
         Span<byte> headerSpan = content.AsSpan(dataOffset, dataSize);
         Span<byte> tileSpan = content.AsSpan(tileOffset, dataSize - tileOffset);
-        Av1BitStreamReader reader = new(headerSpan);
-        IAv1TileDecoder stub = new Av1TileDecoderStub();
+        Av1BitStreamReader bitStreamReader = new(headerSpan);
+        IAv1TileReader stub = new Av1TileDecoderStub();
         ObuReader obuReader = new();
-        obuReader.ReadAll(ref reader, dataSize, stub);
-        Av1TileDecoder decoder = new(obuReader.SequenceHeader, obuReader.FrameHeader);
+        obuReader.ReadAll(ref bitStreamReader, dataSize, stub);
+        Av1TileReader tileReader = new(obuReader.SequenceHeader, obuReader.FrameHeader);
 
         // Act
-        decoder.DecodeTile(tileSpan, 0);
+        tileReader.ReadTile(tileSpan, 0);
 
         // Assert
-        Assert.Equal(dataSize * 8, reader.BitPosition);
+        Assert.Equal(dataSize * 8, bitStreamReader.BitPosition);
     }
 }

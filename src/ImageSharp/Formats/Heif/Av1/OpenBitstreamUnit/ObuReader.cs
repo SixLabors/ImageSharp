@@ -45,7 +45,7 @@ internal class ObuReader
     /// <summary>
     /// Decode all OBU's in a frame.
     /// </summary>
-    public void ReadAll(ref Av1BitStreamReader reader, int dataSize, IAv1TileDecoder decoder, bool isAnnexB = false)
+    public void ReadAll(ref Av1BitStreamReader reader, int dataSize, IAv1TileReader decoder, bool isAnnexB = false)
     {
         bool seenFrameHeader = false;
         bool frameDecodingFinished = false;
@@ -1232,7 +1232,7 @@ internal class ObuReader
     /// <summary>
     /// 5.11.1. General tile group OBU syntax.
     /// </summary>
-    private void ReadTileGroup(ref Av1BitStreamReader reader, IAv1TileDecoder decoder, ObuHeader header, out bool isLastTileGroup)
+    private void ReadTileGroup(ref Av1BitStreamReader reader, IAv1TileReader decoder, ObuHeader header, out bool isLastTileGroup)
     {
         ObuSequenceHeader sequenceHeader = this.SequenceHeader!;
         ObuFrameHeader frameInfo = this.FrameHeader!;
@@ -1287,7 +1287,7 @@ internal class ObuReader
             }
 
             Span<byte> tileData = reader.GetSymbolReader(tileDataSize);
-            decoder.DecodeTile(tileData, tileNum);
+            decoder.ReadTile(tileData, tileNum);
         }
 
         if (tileGroupEnd != tileCount - 1)

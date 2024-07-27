@@ -5,17 +5,10 @@ using SixLabors.ImageSharp.Formats.Heif.Av1;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 
-internal class Av1TileDecoderStub : IAv1TileDecoder
+internal class Av1TileDecoderStub : IAv1TileReader
 {
-    public void StartDecodeTiles()
+    public void ReadTile(Span<byte> tileData, int tileNum)
     {
-    }
-
-    public void DecodeTile(Span<byte> tileData, int tileNum)
-    {
-    }
-
-    public void FinishDecodeTiles(bool doCdef, bool doLoopRestoration)
-    {
+        // Intentionally left blank.
     }
 }

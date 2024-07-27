@@ -33,7 +33,7 @@ public class ObuFrameHeaderTests
         byte[] content = File.ReadAllBytes(filePath);
         Span<byte> span = content.AsSpan(fileOffset, blockSize);
         Av1BitStreamReader reader = new(span);
-        IAv1TileDecoder decoder = new Av1TileDecoderStub();
+        IAv1TileReader decoder = new Av1TileDecoderStub();
         ObuReader obuReader = new();
 
         // Act
@@ -83,7 +83,7 @@ public class ObuFrameHeaderTests
         string filePath = Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, filename);
         byte[] content = File.ReadAllBytes(filePath);
         Span<byte> span = content.AsSpan(fileOffset, blockSize);
-        IAv1TileDecoder tileDecoder = new Av1TileDecoderStub();
+        IAv1TileReader tileDecoder = new Av1TileDecoderStub();
         Av1BitStreamReader reader = new(span);
         ObuReader obuReader1 = new();
 
@@ -98,7 +98,7 @@ public class ObuFrameHeaderTests
 
         // Assign 2
         Span<byte> encodedBuffer = encoded.ToArray();
-        IAv1TileDecoder tileDecoder2 = new Av1TileDecoderStub();
+        IAv1TileReader tileDecoder2 = new Av1TileDecoderStub();
         Av1BitStreamReader reader2 = new(span);
         ObuReader obuReader2 = new();
 
@@ -118,7 +118,7 @@ public class ObuFrameHeaderTests
         // Arrange
         Av1BitStreamReader reader = new(DefaultTemporalDelimiterBitStream);
         ObuReader obuReader = new();
-        IAv1TileDecoder tileDecoder = new Av1TileDecoderStub();
+        IAv1TileReader tileDecoder = new Av1TileDecoderStub();
 
         // Act
         obuReader.ReadAll(ref reader, DefaultTemporalDelimiterBitStream.Length, tileDecoder);
@@ -135,7 +135,7 @@ public class ObuFrameHeaderTests
         byte[] bitStream = [0x10];
         Av1BitStreamReader reader = new(bitStream);
         ObuReader obuReader = new();
-        IAv1TileDecoder tileDecoder = new Av1TileDecoderStub();
+        IAv1TileReader tileDecoder = new Av1TileDecoderStub();
 
         // Act
         obuReader.ReadAll(ref reader, bitStream.Length, tileDecoder);
@@ -152,7 +152,7 @@ public class ObuFrameHeaderTests
         byte[] bitStream = DefaultSequenceHeaderBitStream;
         Av1BitStreamReader reader = new(bitStream);
         ObuReader obuReader = new();
-        IAv1TileDecoder tileDecoder = new Av1TileDecoderStub();
+        IAv1TileReader tileDecoder = new Av1TileDecoderStub();
         ObuSequenceHeader expected = GetDefaultSequenceHeader();
 
         // Act

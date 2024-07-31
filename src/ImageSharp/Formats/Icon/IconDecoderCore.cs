@@ -6,24 +6,21 @@ using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Metadata;
-using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Icon;
 
-internal abstract class IconDecoderCore : IImageDecoderInternals
+internal abstract class IconDecoderCore : ImageDecoderCore
 {
     private IconDir fileHeader;
     private IconDirEntry[]? entries;
 
     protected IconDecoderCore(DecoderOptions options)
-        => this.Options = options;
+        : base(options)
+    {
+    }
 
-    public DecoderOptions Options { get; }
-
-    public Size Dimensions { get; private set; }
-
-    public Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
-        where TPixel : unmanaged, IPixel<TPixel>
+    /// <inheritdoc />
+    protected override Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
     {
         // Stream may not at 0.
         long basePosition = stream.Position;
@@ -61,7 +58,7 @@ internal abstract class IconDecoderCore : IImageDecoderInternals
             bool isPng = flag.SequenceEqual(PngConstants.HeaderBytes);
 
             // Decode the frame into a temp image buffer. This is disposed after the frame is copied to the result.
-            Image<TPixel> temp = this.GetDecoder(isPng).Decode<TPixel>(stream, cancellationToken);
+            Image<TPixel> temp = this.GetDecoder(isPng).Decode<TPixel>(this.Options.Configuration, stream, cancellationToken);
             decodedEntries.Add((temp, isPng ? IconFrameCompression.Png : IconFrameCompression.Bmp, i));
 
             // Since Windows Vista, the size of an image is determined from the BITMAPINFOHEADER structure or PNG image data
@@ -133,7 +130,8 @@ internal abstract class IconDecoderCore : IImageDecoderInternals
         return result;
     }
 
-    public ImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken)
+    /// <inheritdoc />
+    protected override ImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken)
     {
         // Stream may not at 0.
         long basePosition = stream.Position;
@@ -170,7 +168,7 @@ internal abstract class IconDecoderCore : IImageDecoderInternals
             bool isPng = flag.SequenceEqual(PngConstants.HeaderBytes);
 
             // Decode the frame into a temp image buffer. This is disposed after the frame is copied to the result.
-            ImageInfo frameInfo = this.GetDecoder(isPng).Identify(stream, cancellationToken);
+            ImageInfo frameInfo = this.GetDecoder(isPng).Identify(this.Options.Configuration, stream, cancellationToken);
 
             ImageFrameMetadata frameMetadata = new();
 
@@ -281,7 +279,7 @@ internal abstract class IconDecoderCore : IImageDecoderInternals
         this.Dimensions = new(width, height);
     }
 
-    private IImageDecoderInternals GetDecoder(bool isPng)
+    private ImageDecoderCore GetDecoder(bool isPng)
     {
         if (isPng)
         {

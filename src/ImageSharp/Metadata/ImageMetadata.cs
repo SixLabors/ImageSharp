@@ -166,7 +166,7 @@ public sealed class ImageMetadata : IDeepCloneable<ImageMetadata>
     public CicpProfile? CicpProfile { get; set; }
 
     /// <summary>
-    /// Gets the original format, if any, the image was decode from.
+    /// Gets the original format, if any, from which the image was decoded.
     /// </summary>
     public IImageFormat? DecodedImageFormat { get; internal set; }
 

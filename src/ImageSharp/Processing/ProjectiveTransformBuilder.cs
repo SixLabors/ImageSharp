@@ -280,7 +280,9 @@ public class ProjectiveTransformBuilder
     /// <param name="bottomLeft">The bottom-left corner point of the distorted quad.</param>
     /// <returns>The <see cref="ProjectiveTransformBuilder"/>.</returns>
     public ProjectiveTransformBuilder PrependQuadDistortion(PointF topLeft, PointF topRight, PointF bottomRight, PointF bottomLeft)
-        => this.Prepend(size => QuadDistortionHelper.ComputeQuadDistortMatrix(new Rectangle(Point.Empty, size), topLeft, topRight, bottomRight, bottomLeft));
+        => this.Prepend(
+            size => QuadDistortionHelper.ComputeQuadDistortMatrix(new Rectangle(Point.Empty, size), topLeft, topRight, bottomRight, bottomLeft),
+            size => QuadDistortionHelper.ComputeQuadDistortMatrix(new Rectangle(Point.Empty, size), topLeft, topRight, bottomRight, bottomLeft));
 
     /// <summary>
     /// Appends a quad distortion matrix using the specified corner points.
@@ -291,7 +293,10 @@ public class ProjectiveTransformBuilder
     /// <param name="bottomLeft">The bottom-left corner point of the distorted quad.</param>
     /// <returns>The <see cref="ProjectiveTransformBuilder"/>.</returns>
     public ProjectiveTransformBuilder AppendQuadDistortion(PointF topLeft, PointF topRight, PointF bottomRight, PointF bottomLeft)
-        => this.Append(size => QuadDistortionHelper.ComputeQuadDistortMatrix(new Rectangle(Point.Empty, size), topLeft, topRight, bottomRight, bottomLeft));
+        => this.Append(
+            size => QuadDistortionHelper.ComputeQuadDistortMatrix(new Rectangle(Point.Empty, size), topLeft, topRight, bottomRight, bottomLeft),
+            size => QuadDistortionHelper.ComputeQuadDistortMatrix(new Rectangle(Point.Empty, size), topLeft, topRight, bottomRight, bottomLeft)
+        );
 
     /// <summary>
     /// Prepends a raw matrix.

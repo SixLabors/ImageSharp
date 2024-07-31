@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.Formats.Qoi;
 /// <summary>
 /// Image encoder for writing an image to a stream as a QOi image
 /// </summary>
-internal class QoiEncoderCore : IImageEncoderInternals
+internal class QoiEncoderCore
 {
     /// <summary>
     /// The encoder with options
@@ -41,7 +41,13 @@ internal class QoiEncoderCore : IImageEncoderInternals
         this.memoryAllocator = configuration.MemoryAllocator;
     }
 
-    /// <inheritdoc />
+    /// <summary>
+    /// Encodes the image to the specified stream from the <see cref="ImageFrame{TPixel}"/>.
+    /// </summary>
+    /// <typeparam name="TPixel">The pixel format.</typeparam>
+    /// <param name="image">The <see cref="ImageFrame{TPixel}"/> to encode from.</param>
+    /// <param name="stream">The <see cref="Stream"/> to encode the image data to.</param>
+    /// <param name="cancellationToken">The token to request cancellation.</param>
     public void Encode<TPixel>(Image<TPixel> image, Stream stream, CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {

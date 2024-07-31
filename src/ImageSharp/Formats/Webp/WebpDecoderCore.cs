@@ -19,7 +19,7 @@ namespace SixLabors.ImageSharp.Formats.Webp;
 /// <summary>
 /// Performs the webp decoding operation.
 /// </summary>
-internal sealed class WebpDecoderCore : IImageDecoderInternals, IDisposable
+internal sealed class WebpDecoderCore : ImageDecoderCore, IDisposable
 {
     /// <summary>
     /// General configuration options.
@@ -61,8 +61,8 @@ internal sealed class WebpDecoderCore : IImageDecoderInternals, IDisposable
     /// </summary>
     /// <param name="options">The decoder options.</param>
     public WebpDecoderCore(WebpDecoderOptions options)
+        : base(options.GeneralOptions)
     {
-        this.Options = options.GeneralOptions;
         this.backgroundColorHandling = options.BackgroundColorHandling;
         this.configuration = options.GeneralOptions.Configuration;
         this.skipMetadata = options.GeneralOptions.SkipMetadata;
@@ -70,15 +70,8 @@ internal sealed class WebpDecoderCore : IImageDecoderInternals, IDisposable
         this.memoryAllocator = this.configuration.MemoryAllocator;
     }
 
-    /// <inheritdoc/>
-    public DecoderOptions Options { get; }
-
-    /// <inheritdoc/>
-    public Size Dimensions => new((int)this.webImageInfo!.Width, (int)this.webImageInfo.Height);
-
     /// <inheritdoc />
-    public Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
-        where TPixel : unmanaged, IPixel<TPixel>
+    protected override Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
     {
         Image<TPixel>? image = null;
         try
@@ -136,7 +129,7 @@ internal sealed class WebpDecoderCore : IImageDecoderInternals, IDisposable
     }
 
     /// <inheritdoc />
-    public ImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken)
+    protected override ImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken)
     {
         ReadImageHeader(stream, stackalloc byte[4]);
 

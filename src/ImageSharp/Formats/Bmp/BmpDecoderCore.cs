@@ -22,7 +22,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp;
 /// <remarks>
 /// A useful decoding source example can be found at <see href="https://dxr.mozilla.org/mozilla-central/source/image/decoders/nsBMPDecoder.cpp"/>
 /// </remarks>
-internal sealed class BmpDecoderCore : IImageDecoderInternals
+internal sealed class BmpDecoderCore : ImageDecoderCore
 {
     /// <summary>
     /// The default mask for the red part of the color for 16 bit rgb bitmaps.
@@ -114,8 +114,8 @@ internal sealed class BmpDecoderCore : IImageDecoderInternals
     /// </summary>
     /// <param name="options">The options.</param>
     public BmpDecoderCore(BmpDecoderOptions options)
+        : base(options.GeneralOptions)
     {
-        this.Options = options.GeneralOptions;
         this.rleSkippedPixelHandling = options.RleSkippedPixelHandling;
         this.configuration = options.GeneralOptions.Configuration;
         this.memoryAllocator = this.configuration.MemoryAllocator;
@@ -125,14 +125,7 @@ internal sealed class BmpDecoderCore : IImageDecoderInternals
     }
 
     /// <inheritdoc />
-    public DecoderOptions Options { get; }
-
-    /// <inheritdoc />
-    public Size Dimensions => new(this.infoHeader.Width, this.infoHeader.Height);
-
-    /// <inheritdoc />
-    public Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
-        where TPixel : unmanaged, IPixel<TPixel>
+    protected override Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
     {
         Image<TPixel>? image = null;
         try
@@ -224,7 +217,7 @@ internal sealed class BmpDecoderCore : IImageDecoderInternals
     }
 
     /// <inheritdoc />
-    public ImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken)
+    protected override ImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken)
     {
         this.ReadImageHeaders(stream, out _, out _);
         return new ImageInfo(new(this.infoHeader.Width, this.infoHeader.Height), this.metadata);
@@ -1463,6 +1456,8 @@ internal sealed class BmpDecoderCore : IImageDecoderInternals
         this.bmpMetadata = this.metadata.GetBmpMetadata();
         this.bmpMetadata.InfoHeaderType = infoHeaderType;
         this.bmpMetadata.BitsPerPixel = (BmpBitsPerPixel)bitsPerPixel;
+
+        this.Dimensions = new(this.infoHeader.Width, this.infoHeader.Height);
     }
 
     /// <summary>

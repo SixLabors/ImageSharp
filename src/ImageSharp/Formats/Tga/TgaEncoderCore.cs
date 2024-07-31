@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.Formats.Tga;
 /// <summary>
 /// Image encoder for writing an image to a stream as a truevision targa image.
 /// </summary>
-internal sealed class TgaEncoderCore : IImageEncoderInternals
+internal sealed class TgaEncoderCore
 {
     /// <summary>
     /// Used for allocating memory during processing operations.
@@ -105,11 +105,11 @@ internal sealed class TgaEncoderCore : IImageEncoderInternals
         stream.Write(buffer, 0, TgaFileHeader.Size);
         if (this.compression is TgaCompression.RunLength)
         {
-            this.WriteRunLengthEncodedImage(stream, image.Frames.RootFrame);
+            this.WriteRunLengthEncodedImage(stream, image.Frames.RootFrame, cancellationToken);
         }
         else
         {
-            this.WriteImage(image.Configuration, stream, image.Frames.RootFrame);
+            this.WriteImage(image.Configuration, stream, image.Frames.RootFrame, cancellationToken);
         }
 
         stream.Flush();
@@ -121,29 +121,28 @@ internal sealed class TgaEncoderCore : IImageEncoderInternals
     /// <typeparam name="TPixel">The pixel format.</typeparam>
     /// <param name="configuration">The global configuration.</param>
     /// <param name="stream">The <see cref="Stream"/> to write to.</param>
-    /// <param name="image">
-    /// The <see cref="ImageFrame{TPixel}"/> containing pixel data.
-    /// </param>
-    private void WriteImage<TPixel>(Configuration configuration, Stream stream, ImageFrame<TPixel> image)
+    /// <param name="image">    /// The <see cref="ImageFrame{TPixel}"/> containing pixel data.</param>
+    /// <param name="cancellationToken">The token to request cancellation.</param>
+    private void WriteImage<TPixel>(Configuration configuration, Stream stream, ImageFrame<TPixel> image, CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         Buffer2D<TPixel> pixels = image.PixelBuffer;
         switch (this.bitsPerPixel)
         {
             case TgaBitsPerPixel.Bit8:
-                this.Write8Bit(configuration, stream, pixels);
+                this.Write8Bit(configuration, stream, pixels, cancellationToken);
                 break;
 
             case TgaBitsPerPixel.Bit16:
-                this.Write16Bit(configuration, stream, pixels);
+                this.Write16Bit(configuration, stream, pixels, cancellationToken);
                 break;
 
             case TgaBitsPerPixel.Bit24:
-                this.Write24Bit(configuration, stream, pixels);
+                this.Write24Bit(configuration, stream, pixels, cancellationToken);
                 break;
 
             case TgaBitsPerPixel.Bit32:
-                this.Write32Bit(configuration, stream, pixels);
+                this.Write32Bit(configuration, stream, pixels, cancellationToken);
                 break;
         }
     }
@@ -154,7 +153,8 @@ internal sealed class TgaEncoderCore : IImageEncoderInternals
     /// <typeparam name="TPixel">The pixel type.</typeparam>
     /// <param name="stream">The stream to write the image to.</param>
     /// <param name="image">The image to encode.</param>
-    private void WriteRunLengthEncodedImage<TPixel>(Stream stream, ImageFrame<TPixel> image)
+    /// <param name="cancellationToken">The token to request cancellation.</param>
+    private void WriteRunLengthEncodedImage<TPixel>(Stream stream, ImageFrame<TPixel> image, CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         Buffer2D<TPixel> pixels = image.PixelBuffer;
@@ -164,6 +164,8 @@ internal sealed class TgaEncoderCore : IImageEncoderInternals
 
         for (int y = 0; y < image.Height; y++)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             Span<TPixel> pixelRow = pixels.DangerousGetRowSpan(y);
             PixelOperations<TPixel>.Instance.ToRgba32(image.Configuration, pixelRow, rgbaRow);
 
@@ -313,7 +315,8 @@ internal sealed class TgaEncoderCore : IImageEncoderInternals
     /// <param name="configuration">The global configuration.</param>
     /// <param name="stream">The <see cref="Stream"/> to write to.</param>
     /// <param name="pixels">The <see cref="Buffer2D{TPixel}"/> containing pixel data.</param>
-    private void Write8Bit<TPixel>(Configuration configuration, Stream stream, Buffer2D<TPixel> pixels)
+    /// <param name="cancellationToken">The token to request cancellation.</param>
+    private void Write8Bit<TPixel>(Configuration configuration, Stream stream, Buffer2D<TPixel> pixels, CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         using IMemoryOwner<byte> row = this.AllocateRow(pixels.Width, 1);
@@ -321,6 +324,8 @@ internal sealed class TgaEncoderCore : IImageEncoderInternals
 
         for (int y = pixels.Height - 1; y >= 0; y--)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             Span<TPixel> pixelSpan = pixels.DangerousGetRowSpan(y);
             PixelOperations<TPixel>.Instance.ToL8Bytes(
                 configuration,
@@ -338,7 +343,8 @@ internal sealed class TgaEncoderCore : IImageEncoderInternals
     /// <param name="configuration">The global configuration.</param>
     /// <param name="stream">The <see cref="Stream"/> to write to.</param>
     /// <param name="pixels">The <see cref="Buffer2D{TPixel}"/> containing pixel data.</param>
-    private void Write16Bit<TPixel>(Configuration configuration, Stream stream, Buffer2D<TPixel> pixels)
+    /// <param name="cancellationToken">The token to request cancellation.</param>
+    private void Write16Bit<TPixel>(Configuration configuration, Stream stream, Buffer2D<TPixel> pixels, CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         using IMemoryOwner<byte> row = this.AllocateRow(pixels.Width, 2);
@@ -346,6 +352,8 @@ internal sealed class TgaEncoderCore : IImageEncoderInternals
 
         for (int y = pixels.Height - 1; y >= 0; y--)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             Span<TPixel> pixelSpan = pixels.DangerousGetRowSpan(y);
             PixelOperations<TPixel>.Instance.ToBgra5551Bytes(
                 configuration,
@@ -363,7 +371,8 @@ internal sealed class TgaEncoderCore : IImageEncoderInternals
     /// <param name="configuration">The global configuration.</param>
     /// <param name="stream">The <see cref="Stream"/> to write to.</param>
     /// <param name="pixels">The <see cref="Buffer2D{TPixel}"/> containing pixel data.</param>
-    private void Write24Bit<TPixel>(Configuration configuration, Stream stream, Buffer2D<TPixel> pixels)
+    /// <param name="cancellationToken">The token to request cancellation.</param>
+    private void Write24Bit<TPixel>(Configuration configuration, Stream stream, Buffer2D<TPixel> pixels, CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         using IMemoryOwner<byte> row = this.AllocateRow(pixels.Width, 3);
@@ -371,6 +380,8 @@ internal sealed class TgaEncoderCore : IImageEncoderInternals
 
         for (int y = pixels.Height - 1; y >= 0; y--)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             Span<TPixel> pixelSpan = pixels.DangerousGetRowSpan(y);
             PixelOperations<TPixel>.Instance.ToBgr24Bytes(
                 configuration,
@@ -388,7 +399,8 @@ internal sealed class TgaEncoderCore : IImageEncoderInternals
     /// <param name="configuration">The global configuration.</param>
     /// <param name="stream">The <see cref="Stream"/> to write to.</param>
     /// <param name="pixels">The <see cref="Buffer2D{TPixel}"/> containing pixel data.</param>
-    private void Write32Bit<TPixel>(Configuration configuration, Stream stream, Buffer2D<TPixel> pixels)
+    /// <param name="cancellationToken">The token to request cancellation.</param>
+    private void Write32Bit<TPixel>(Configuration configuration, Stream stream, Buffer2D<TPixel> pixels, CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         using IMemoryOwner<byte> row = this.AllocateRow(pixels.Width, 4);
@@ -396,6 +408,8 @@ internal sealed class TgaEncoderCore : IImageEncoderInternals
 
         for (int y = pixels.Height - 1; y >= 0; y--)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             Span<TPixel> pixelSpan = pixels.DangerousGetRowSpan(y);
             PixelOperations<TPixel>.Instance.ToBgra32Bytes(
                 configuration,

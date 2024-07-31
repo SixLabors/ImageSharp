@@ -19,7 +19,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg;
 /// <summary>
 /// Image encoder for writing an image to a stream as a jpeg.
 /// </summary>
-internal sealed unsafe partial class JpegEncoderCore : IImageEncoderInternals
+internal sealed unsafe partial class JpegEncoderCore
 {
     /// <summary>
     /// The available encodable frame configs.

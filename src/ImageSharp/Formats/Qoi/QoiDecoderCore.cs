@@ -13,7 +13,7 @@ using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Qoi;
 
-internal class QoiDecoderCore : IImageDecoderInternals
+internal class QoiDecoderCore : ImageDecoderCore
 {
     /// <summary>
     ///     The global configuration.
@@ -31,19 +31,14 @@ internal class QoiDecoderCore : IImageDecoderInternals
     private QoiHeader header;
 
     public QoiDecoderCore(DecoderOptions options)
+        : base(options)
     {
-        this.Options = options;
         this.configuration = options.Configuration;
         this.memoryAllocator = this.configuration.MemoryAllocator;
     }
 
-    public DecoderOptions Options { get; }
-
-    public Size Dimensions { get; }
-
     /// <inheritdoc />
-    public Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
-        where TPixel : unmanaged, IPixel<TPixel>
+    protected override Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
     {
         // Process the header to get metadata
         this.ProcessHeader(stream);
@@ -62,7 +57,7 @@ internal class QoiDecoderCore : IImageDecoderInternals
     }
 
     /// <inheritdoc />
-    public ImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken)
+    protected override ImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken)
     {
         this.ProcessHeader(stream);
         PixelTypeInfo pixelType = new(8 * (int)this.header.Channels);

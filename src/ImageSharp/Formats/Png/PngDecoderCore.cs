@@ -29,7 +29,7 @@ namespace SixLabors.ImageSharp.Formats.Png;
 /// <summary>
 /// Performs the png decoding operation.
 /// </summary>
-internal sealed class PngDecoderCore : IImageDecoderInternals
+internal sealed class PngDecoderCore : ImageDecoderCore
 {
     /// <summary>
     /// The general decoder options.
@@ -136,8 +136,8 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
     /// </summary>
     /// <param name="options">The decoder options.</param>
     public PngDecoderCore(PngDecoderOptions options)
+        : base(options.GeneralOptions)
     {
-        this.Options = options.GeneralOptions;
         this.configuration = options.GeneralOptions.Configuration;
         this.maxFrames = options.GeneralOptions.MaxFrames;
         this.skipMetadata = options.GeneralOptions.SkipMetadata;
@@ -147,8 +147,8 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
     }
 
     internal PngDecoderCore(PngDecoderOptions options, bool colorMetadataOnly)
+        : base(options.GeneralOptions)
     {
-        this.Options = options.GeneralOptions;
         this.colorMetadataOnly = colorMetadataOnly;
         this.maxFrames = options.GeneralOptions.MaxFrames;
         this.skipMetadata = true;
@@ -159,14 +159,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
     }
 
     /// <inheritdoc/>
-    public DecoderOptions Options { get; }
-
-    /// <inheritdoc/>
-    public Size Dimensions => new(this.header.Width, this.header.Height);
-
-    /// <inheritdoc/>
-    public Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
-        where TPixel : unmanaged, IPixel<TPixel>
+    protected override Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
     {
         uint frameCount = 0;
         ImageMetadata metadata = new();
@@ -341,7 +334,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
     }
 
     /// <inheritdoc/>
-    public ImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken)
+    protected override ImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken)
     {
         uint frameCount = 0;
         ImageMetadata metadata = new();
@@ -1339,6 +1332,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
         pngMetadata.InterlaceMethod = this.header.InterlaceMethod;
 
         this.pngColorType = this.header.ColorType;
+        this.Dimensions = new(this.header.Width, this.header.Height);
     }
 
     /// <summary>

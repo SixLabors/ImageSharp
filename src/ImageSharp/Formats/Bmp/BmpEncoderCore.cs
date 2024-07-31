@@ -16,7 +16,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp;
 /// <summary>
 /// Image encoder for writing an image to a stream as a Windows bitmap.
 /// </summary>
-internal sealed class BmpEncoderCore : IImageEncoderInternals
+internal sealed class BmpEncoderCore
 {
     /// <summary>
     /// The amount to pad each row by.

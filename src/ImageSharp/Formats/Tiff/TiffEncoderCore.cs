@@ -18,7 +18,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff;
 /// <summary>
 /// Performs the TIFF encoding operation.
 /// </summary>
-internal sealed class TiffEncoderCore : IImageEncoderInternals
+internal sealed class TiffEncoderCore
 {
     private static readonly ushort ByteOrderMarker = BitConverter.IsLittleEndian
             ? TiffConstants.ByteOrderLittleEndianShort

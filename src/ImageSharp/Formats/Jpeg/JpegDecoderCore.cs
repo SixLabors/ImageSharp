@@ -25,7 +25,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg;
 /// Originally ported from <see href="https://github.com/mozilla/pdf.js/blob/master/src/core/jpg.js"/>
 /// with additional fixes for both performance and common encoding errors.
 /// </summary>
-internal sealed class JpegDecoderCore : IRawJpegData, IImageDecoderInternals
+internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
 {
     /// <summary>
     /// Whether the image has an EXIF marker.
@@ -117,8 +117,8 @@ internal sealed class JpegDecoderCore : IRawJpegData, IImageDecoderInternals
     /// </summary>
     /// <param name="options">The decoder options.</param>
     public JpegDecoderCore(JpegDecoderOptions options)
+        : base(options.GeneralOptions)
     {
-        this.Options = options.GeneralOptions;
         this.resizeMode = options.ResizeMode;
         this.configuration = options.GeneralOptions.Configuration;
         this.skipMetadata = options.GeneralOptions.SkipMetadata;
@@ -129,12 +129,6 @@ internal sealed class JpegDecoderCore : IRawJpegData, IImageDecoderInternals
     /// </summary>
     // Refers to assembly's static data segment, no allocation occurs.
     private static ReadOnlySpan<byte> SupportedPrecisions => new byte[] { 8, 12 };
-
-    /// <inheritdoc />
-    public DecoderOptions Options { get; }
-
-    /// <inheritdoc/>
-    public Size Dimensions => this.Frame.PixelSize;
 
     /// <summary>
     /// Gets the frame
@@ -198,8 +192,7 @@ internal sealed class JpegDecoderCore : IRawJpegData, IImageDecoderInternals
     }
 
     /// <inheritdoc/>
-    public Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
-        where TPixel : unmanaged, IPixel<TPixel>
+    protected override Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
     {
         using SpectralConverter<TPixel> spectralConverter = new(this.configuration, this.resizeMode == JpegDecoderResizeMode.ScaleOnly ? null : this.Options.TargetSize);
         this.ParseStream(stream, spectralConverter, cancellationToken);
@@ -216,7 +209,7 @@ internal sealed class JpegDecoderCore : IRawJpegData, IImageDecoderInternals
     }
 
     /// <inheritdoc/>
-    public ImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken)
+    protected override ImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken)
     {
         this.ParseStream(stream, spectralConverter: null, cancellationToken);
         this.InitExifProfile();
@@ -1237,6 +1230,7 @@ internal sealed class JpegDecoderCore : IRawJpegData, IImageDecoderInternals
         }
 
         this.Frame = new JpegFrame(frameMarker, precision, frameWidth, frameHeight, componentCount);
+        this.Dimensions = new(frameWidth, frameHeight);
         this.Metadata.GetJpegMetadata().Progressive = this.Frame.Progressive;
 
         remaining -= length;

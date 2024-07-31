@@ -190,7 +190,7 @@ public abstract class ImageDecoder : IImageDecoder
             throw new NotSupportedException("Cannot read from the stream.");
         }
 
-        T PeformActionAndResetPosition(Stream s, long position)
+        T PerformActionAndResetPosition(Stream s, long position)
         {
             T result = action(s);
 
@@ -207,7 +207,7 @@ public abstract class ImageDecoder : IImageDecoder
 
         if (stream.CanSeek)
         {
-            return PeformActionAndResetPosition(stream, stream.Position);
+            return PerformActionAndResetPosition(stream, stream.Position);
         }
 
         Configuration configuration = options.Configuration;

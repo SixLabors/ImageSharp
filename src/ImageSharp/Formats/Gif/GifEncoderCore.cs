@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.Formats.Gif;
 /// <summary>
 /// Implements the GIF encoding protocol.
 /// </summary>
-internal sealed class GifEncoderCore : IImageEncoderInternals
+internal sealed class GifEncoderCore
 {
     /// <summary>
     /// Used for allocating memory during processing operations.

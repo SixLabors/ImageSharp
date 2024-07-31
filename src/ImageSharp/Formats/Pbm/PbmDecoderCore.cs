@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.Formats.Pbm;
 /// <summary>
 /// Performs the PBM decoding operation.
 /// </summary>
-internal sealed class PbmDecoderCore : IImageDecoderInternals
+internal sealed class PbmDecoderCore : ImageDecoderCore
 {
     private int maxPixelValue;
 
@@ -52,20 +52,13 @@ internal sealed class PbmDecoderCore : IImageDecoderInternals
     /// </summary>
     /// <param name="options">The decoder options.</param>
     public PbmDecoderCore(DecoderOptions options)
+        : base(options)
     {
-        this.Options = options;
         this.configuration = options.Configuration;
     }
 
     /// <inheritdoc/>
-    public DecoderOptions Options { get; }
-
-    /// <inheritdoc/>
-    public Size Dimensions => this.pixelSize;
-
-    /// <inheritdoc/>
-    public Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
-        where TPixel : unmanaged, IPixel<TPixel>
+    protected override Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
     {
         this.ProcessHeader(stream);
 
@@ -83,7 +76,7 @@ internal sealed class PbmDecoderCore : IImageDecoderInternals
     }
 
     /// <inheritdoc/>
-    public ImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken)
+    protected override ImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken)
     {
         this.ProcessHeader(stream);
         return new ImageInfo(
@@ -179,6 +172,7 @@ internal sealed class PbmDecoderCore : IImageDecoderInternals
         }
 
         this.pixelSize = new Size(width, height);
+        this.Dimensions = this.pixelSize;
         this.metadata = new ImageMetadata();
         PbmMetadata meta = this.metadata.GetPbmMetadata();
         meta.Encoding = this.encoding;

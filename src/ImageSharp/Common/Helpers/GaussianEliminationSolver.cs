@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-using System.Numerics;
 
 namespace SixLabors.ImageSharp.Common.Helpers;
 
@@ -9,9 +8,7 @@ namespace SixLabors.ImageSharp.Common.Helpers;
 /// This class applies Gaussian Elimination to transform the matrix into row echelon form and then performs back substitution to find the solution vector.
 /// This implementation is based on: https://www.algorithm-archive.org/contents/gaussian_elimination/gaussian_elimination.html
 /// </summary>
-/// <typeparam name="TNumber">The type of numbers used in the matrix and solution vector. Must implement the <see cref="INumber{TNumber}"/> interface.</typeparam>
-internal static class GaussianEliminationSolver<TNumber>
-    where TNumber : INumber<TNumber>
+internal static class GaussianEliminationSolver
 {
     /// <summary>
     /// Solves the system of linear equations represented by the given matrix and result vector using Gaussian Elimination.
@@ -23,24 +20,24 @@ internal static class GaussianEliminationSolver<TNumber>
     /// The matrix passed to this method must be a square matrix.
     /// If the matrix is singular (i.e., has no unique solution), an <see cref="NotSupportedException"/> will be thrown.
     /// </remarks>
-    public static void Solve(TNumber[][] matrix, TNumber[] result)
+    public static void Solve(float[][] matrix, float[] result)
     {
         TransformToRowEchelonForm(matrix, result);
         ApplyBackSubstitution(matrix, result);
     }
 
-    private static void TransformToRowEchelonForm(TNumber[][] matrix, TNumber[] result)
+    private static void TransformToRowEchelonForm(float[][] matrix, float[] result)
     {
         int colCount = matrix.Length;
         int rowCount = matrix[0].Length;
         int pivotRow = 0;
         for (int pivotCol = 0; pivotCol < colCount; pivotCol++)
         {
-            TNumber maxValue = TNumber.Abs(matrix[pivotRow][pivotCol]);
+            float maxValue = float.Abs(matrix[pivotRow][pivotCol]);
             int maxIndex = pivotRow;
             for (int r = pivotRow + 1; r < rowCount; r++)
             {
-                TNumber value = TNumber.Abs(matrix[r][pivotCol]);
+                float value = float.Abs(matrix[r][pivotCol]);
                 if (value > maxValue)
                 {
                     maxIndex = r;
@@ -48,7 +45,7 @@ internal static class GaussianEliminationSolver<TNumber>
                 }
             }
 
-            if (matrix[maxIndex][pivotCol] == TNumber.Zero)
+            if (matrix[maxIndex][pivotCol] == 0)
             {
                 throw new NotSupportedException("Matrix is singular and cannot be solve");
             }
@@ -58,21 +55,21 @@ internal static class GaussianEliminationSolver<TNumber>
 
             for (int r = pivotRow + 1; r < rowCount; r++)
             {
-                TNumber fraction = matrix[r][pivotCol] / matrix[pivotRow][pivotCol];
+                float fraction = matrix[r][pivotCol] / matrix[pivotRow][pivotCol];
                 for (int c = pivotCol + 1; c < colCount; c++)
                 {
                     matrix[r][c] -= matrix[pivotRow][c] * fraction;
                 }
 
                 result[r] -= result[pivotRow] * fraction;
-                matrix[r][pivotCol] = TNumber.Zero;
+                matrix[r][pivotCol] = 0;
             }
 
             pivotRow++;
         }
     }
 
-    private static void ApplyBackSubstitution(TNumber[][] matrix, TNumber[] result)
+    private static void ApplyBackSubstitution(float[][] matrix, float[] result)
     {
         int rowCount = matrix[0].Length;
 

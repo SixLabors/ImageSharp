@@ -60,7 +60,7 @@ internal static class QuadDistortionHelper
             q4.Y,
         ];
 
-        GaussianEliminationSolver<float>.Solve(matrixData, b);
+        GaussianEliminationSolver.Solve(matrixData, b);
 
  #pragma warning disable SA1117
         Matrix4x4 projectionMatrix = new(

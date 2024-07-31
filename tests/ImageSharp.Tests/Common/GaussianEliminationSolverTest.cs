@@ -11,7 +11,7 @@ public class GaussianEliminationSolverTest
     [MemberData(nameof(MatrixTestData))]
     public void CanSolve(float[][] matrix, float[] result, float[] expected)
     {
-        GaussianEliminationSolver<float>.Solve(matrix, result);
+        GaussianEliminationSolver.Solve(matrix, result);
 
         for (int i = 0; i < expected.Length; i++)
         {

@@ -7,6 +7,7 @@ using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.TestUtilities;
+using SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs;
 
 namespace SixLabors.ImageSharp.Tests;
 
@@ -89,7 +90,7 @@ public class TestFormat : IImageFormatConfigurationModule, IImageFormat
         {
             if (!this.sampleImages.ContainsKey(typeof(TPixel)))
             {
-                this.sampleImages.Add(typeof(TPixel), new Image<TPixel>(1, 1));
+                this.sampleImages.Add(typeof(TPixel), ReferenceCodecUtilities.EnsureDecodedMetadata(new Image<TPixel>(1, 1), this));
             }
 
             return (Image<TPixel>)this.sampleImages[typeof(TPixel)];
@@ -202,11 +203,12 @@ public class TestFormat : IImageFormatConfigurationModule, IImageFormat
 
         protected override ImageInfo Identify(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
         {
-            Image<TestPixelForAgnosticDecode> image =
-                this.Decode<TestPixelForAgnosticDecode>(this.CreateDefaultSpecializedOptions(options), stream, cancellationToken);
-            ImageFrameCollection<TestPixelForAgnosticDecode> m = image.Frames;
-
-            return new(image.PixelType, image.Size, image.Metadata, new List<ImageFrameMetadata>(image.Frames.Select(x => x.Metadata)));
+            using Image<TestPixelForAgnosticDecode> image = this.Decode<TestPixelForAgnosticDecode>(this.CreateDefaultSpecializedOptions(options), stream, cancellationToken);
+            ImageMetadata metadata = image.Metadata;
+            return new(image.Size, metadata, new List<ImageFrameMetadata>(image.Frames.Select(x => x.Metadata)))
+            {
+                PixelType = metadata.GetDecodedPixelTypeInfo()
+            };
         }
 
         protected override TestDecoderOptions CreateDefaultSpecializedOptions(DecoderOptions options)

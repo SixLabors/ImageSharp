@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp.Formats.Cur;
 /// <summary>
 /// IcoFrameMetadata.
 /// </summary>
-public class CurFrameMetadata : IDeepCloneable<CurFrameMetadata>, IDeepCloneable
+public class CurFrameMetadata : IFormatFrameMetadata<CurFrameMetadata>
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="CurFrameMetadata"/> class.
@@ -60,7 +60,7 @@ public class CurFrameMetadata : IDeepCloneable<CurFrameMetadata>, IDeepCloneable
     /// Gets or sets the number of bits per pixel.<br/>
     /// Used when <see cref="Compression"/> is <see cref="IconFrameCompression.Bmp"/>
     /// </summary>
-    public BmpBitsPerPixel BmpBitsPerPixel { get; set; } = BmpBitsPerPixel.Pixel32;
+    public BmpBitsPerPixel BmpBitsPerPixel { get; set; } = BmpBitsPerPixel.Bit32;
 
     /// <summary>
     /// Gets or sets the color table, if any.
@@ -69,10 +69,74 @@ public class CurFrameMetadata : IDeepCloneable<CurFrameMetadata>, IDeepCloneable
     public ReadOnlyMemory<Color>? ColorTable { get; set; }
 
     /// <inheritdoc/>
-    public CurFrameMetadata DeepClone() => new(this);
+    public static CurFrameMetadata FromFormatConnectingFrameMetadata(FormatConnectingFrameMetadata metadata)
+    {
+        if (!metadata.PixelTypeInfo.HasValue)
+        {
+            return new CurFrameMetadata
+            {
+                BmpBitsPerPixel = BmpBitsPerPixel.Bit32,
+                Compression = IconFrameCompression.Png
+            };
+        }
+
+        byte encodingWidth = metadata.EncodingWidth switch
+        {
+            > 255 => 0,
+            <= 255 and >= 1 => (byte)metadata.EncodingWidth,
+            _ => 0
+        };
+
+        byte encodingHeight = metadata.EncodingHeight switch
+        {
+            > 255 => 0,
+            <= 255 and >= 1 => (byte)metadata.EncodingHeight,
+            _ => 0
+        };
+
+        int bpp = metadata.PixelTypeInfo.Value.BitsPerPixel;
+        BmpBitsPerPixel bbpp = bpp switch
+        {
+            1 => BmpBitsPerPixel.Bit1,
+            2 => BmpBitsPerPixel.Bit2,
+            <= 4 => BmpBitsPerPixel.Bit4,
+            <= 8 => BmpBitsPerPixel.Bit8,
+            <= 16 => BmpBitsPerPixel.Bit16,
+            <= 24 => BmpBitsPerPixel.Bit24,
+            _ => BmpBitsPerPixel.Bit32
+        };
+
+        IconFrameCompression compression = IconFrameCompression.Bmp;
+        if (bbpp is BmpBitsPerPixel.Bit32)
+        {
+            compression = IconFrameCompression.Png;
+        }
+
+        return new CurFrameMetadata
+        {
+            BmpBitsPerPixel = bbpp,
+            Compression = compression,
+            EncodingWidth = encodingWidth,
+            EncodingHeight = encodingHeight,
+            ColorTable = compression == IconFrameCompression.Bmp ? metadata.ColorTable : null
+        };
+    }
+
+    /// <inheritdoc/>
+    public FormatConnectingFrameMetadata ToFormatConnectingFrameMetadata()
+        => new()
+        {
+            PixelTypeInfo = this.GetPixelTypeInfo(),
+            ColorTable = this.ColorTable,
+            EncodingWidth = this.EncodingWidth,
+            EncodingHeight = this.EncodingHeight
+        };
 
     /// <inheritdoc/>
     IDeepCloneable IDeepCloneable.DeepClone() => this.DeepClone();
+
+    /// <inheritdoc/>
+    public CurFrameMetadata DeepClone() => new(this);
 
     internal void FromIconDirEntry(IconDirEntry entry)
     {
@@ -84,7 +148,7 @@ public class CurFrameMetadata : IDeepCloneable<CurFrameMetadata>, IDeepCloneable
 
     internal IconDirEntry ToIconDirEntry()
     {
-        byte colorCount = this.Compression == IconFrameCompression.Png || this.BmpBitsPerPixel > BmpBitsPerPixel.Pixel8
+        byte colorCount = this.Compression == IconFrameCompression.Png || this.BmpBitsPerPixel > BmpBitsPerPixel.Bit8
             ? (byte)0
             : (byte)ColorNumerics.GetColorCountForBitDepth((int)this.BmpBitsPerPixel);
 
@@ -95,6 +159,67 @@ public class CurFrameMetadata : IDeepCloneable<CurFrameMetadata>, IDeepCloneable
             Planes = this.HotspotX,
             BitCount = this.HotspotY,
             ColorCount = colorCount
+        };
+    }
+
+    private PixelTypeInfo GetPixelTypeInfo()
+    {
+        int bpp = (int)this.BmpBitsPerPixel;
+        PixelComponentInfo info;
+        PixelColorType color;
+        PixelAlphaRepresentation alpha = PixelAlphaRepresentation.None;
+
+        if (this.Compression is IconFrameCompression.Png)
+        {
+            bpp = 32;
+            info = PixelComponentInfo.Create(4, bpp, 8, 8, 8, 8);
+            color = PixelColorType.RGB | PixelColorType.Alpha;
+            alpha = PixelAlphaRepresentation.Unassociated;
+        }
+        else
+        {
+            switch (this.BmpBitsPerPixel)
+            {
+                case BmpBitsPerPixel.Bit1:
+                    info = PixelComponentInfo.Create(1, bpp, 1);
+                    color = PixelColorType.Binary;
+                    break;
+                case BmpBitsPerPixel.Bit2:
+                    info = PixelComponentInfo.Create(1, bpp, 2);
+                    color = PixelColorType.Indexed;
+                    break;
+                case BmpBitsPerPixel.Bit4:
+                    info = PixelComponentInfo.Create(1, bpp, 4);
+                    color = PixelColorType.Indexed;
+                    break;
+                case BmpBitsPerPixel.Bit8:
+                    info = PixelComponentInfo.Create(1, bpp, 8);
+                    color = PixelColorType.Indexed;
+                    break;
+
+                // Could be 555 with padding but 565 is more common in newer bitmaps and offers
+                // greater accuracy due to extra green precision.
+                case BmpBitsPerPixel.Bit16:
+                    info = PixelComponentInfo.Create(3, bpp, 5, 6, 5);
+                    color = PixelColorType.RGB;
+                    break;
+                case BmpBitsPerPixel.Bit24:
+                    info = PixelComponentInfo.Create(3, bpp, 8, 8, 8);
+                    color = PixelColorType.RGB;
+                    break;
+                case BmpBitsPerPixel.Bit32 or _:
+                    info = PixelComponentInfo.Create(4, bpp, 8, 8, 8, 8);
+                    color = PixelColorType.RGB | PixelColorType.Alpha;
+                    alpha = PixelAlphaRepresentation.Unassociated;
+                    break;
+            }
+        }
+
+        return new PixelTypeInfo(bpp)
+        {
+            AlphaRepresentation = alpha,
+            ComponentInfo = info,
+            ColorType = color
         };
     }
 }

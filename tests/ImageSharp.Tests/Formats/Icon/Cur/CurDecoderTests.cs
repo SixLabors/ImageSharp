@@ -23,7 +23,7 @@ public class CurDecoderTests
         Assert.Equal(image.Width, meta.EncodingWidth);
         Assert.Equal(image.Height, meta.EncodingHeight);
         Assert.Equal(IconFrameCompression.Bmp, meta.Compression);
-        Assert.Equal(BmpBitsPerPixel.Pixel32, meta.BmpBitsPerPixel);
+        Assert.Equal(BmpBitsPerPixel.Bit32, meta.BmpBitsPerPixel);
     }
 
     [Theory]
@@ -36,6 +36,6 @@ public class CurDecoderTests
         Assert.Equal(image.Width, meta.EncodingWidth);
         Assert.Equal(image.Height, meta.EncodingHeight);
         Assert.Equal(IconFrameCompression.Bmp, meta.Compression);
-        Assert.Equal(BmpBitsPerPixel.Pixel32, meta.BmpBitsPerPixel);
+        Assert.Equal(BmpBitsPerPixel.Bit32, meta.BmpBitsPerPixel);
     }
 }

@@ -33,7 +33,7 @@ internal class TiffJpegCompressor : TiffBaseCompressor
         var image = Image.LoadPixelData<Rgb24>(rows, width, height);
         image.Save(memoryStream, new JpegEncoder()
         {
-            ColorType = JpegEncodingColor.Rgb
+            ColorType = JpegColorType.Rgb
         });
         memoryStream.Position = 0;
         memoryStream.WriteTo(this.Output);

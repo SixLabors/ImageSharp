@@ -100,7 +100,7 @@ public partial struct La16 : IPixel<La16>, IPackedVector<ushort>
     public static PixelTypeInfo GetPixelTypeInfo()
         => PixelTypeInfo.Create<La16>(
             PixelComponentInfo.Create<La16>(2, 8, 8),
-            PixelColorType.Grayscale | PixelColorType.Alpha,
+            PixelColorType.Luminance | PixelColorType.Alpha,
             PixelAlphaRepresentation.Unassociated);
 
     /// <inheritdoc/>

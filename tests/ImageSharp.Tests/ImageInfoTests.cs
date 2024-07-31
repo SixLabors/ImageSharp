@@ -1,8 +1,8 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Metadata;
-using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Tests;
 
@@ -15,12 +15,14 @@ public class ImageInfoTests
         const int height = 60;
         Size size = new(width, height);
         Rectangle rectangle = new(0, 0, width, height);
-        PixelTypeInfo pixelType = new(8);
-        ImageMetadata meta = new();
 
-        ImageInfo info = new(pixelType, size, meta);
+        // Initialize the metadata to match standard decoding behavior.
+        ImageMetadata meta = new() { DecodedImageFormat = PngFormat.Instance };
+        meta.GetPngMetadata();
 
-        Assert.Equal(pixelType, info.PixelType);
+        ImageInfo info = new(size, meta);
+
+        Assert.NotEqual(default, info.PixelType);
         Assert.Equal(width, info.Width);
         Assert.Equal(height, info.Height);
         Assert.Equal(size, info.Size);
@@ -35,13 +37,16 @@ public class ImageInfoTests
         const int height = 60;
         Size size = new(width, height);
         Rectangle rectangle = new(0, 0, width, height);
-        PixelTypeInfo pixelType = new(8);
-        ImageMetadata meta = new();
-        IReadOnlyList<ImageFrameMetadata> frameMetadata = new List<ImageFrameMetadata>() { new() };
 
-        ImageInfo info = new(pixelType, size, meta, frameMetadata);
+        // Initialize the metadata to match standard decoding behavior.
+        ImageMetadata meta = new() { DecodedImageFormat = PngFormat.Instance };
+        meta.GetPngMetadata();
 
-        Assert.Equal(pixelType, info.PixelType);
+        IReadOnlyList<ImageFrameMetadata> frameMetadata = [new()];
+
+        ImageInfo info = new(size, meta, frameMetadata);
+
+        Assert.NotEqual(default, info.PixelType);
         Assert.Equal(width, info.Width);
         Assert.Equal(height, info.Height);
         Assert.Equal(size, info.Size);

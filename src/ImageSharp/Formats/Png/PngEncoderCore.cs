@@ -22,7 +22,7 @@ namespace SixLabors.ImageSharp.Formats.Png;
 /// <summary>
 /// Performs the png encoding operation.
 /// </summary>
-internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
+internal sealed class PngEncoderCore : IDisposable
 {
     /// <summary>
     /// The maximum block size, defaults at 64k for uncompressed blocks.

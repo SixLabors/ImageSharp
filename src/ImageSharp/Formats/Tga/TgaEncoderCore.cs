@@ -5,7 +5,6 @@ using System.Buffers;
 using System.Buffers.Binary;
 using System.Numerics;
 using System.Runtime.CompilerServices;
-using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
@@ -15,7 +14,7 @@ namespace SixLabors.ImageSharp.Formats.Tga;
 /// <summary>
 /// Image encoder for writing an image to a stream as a truevision targa image.
 /// </summary>
-internal sealed class TgaEncoderCore : IImageEncoderInternals
+internal sealed class TgaEncoderCore
 {
     /// <summary>
     /// Used for allocating memory during processing operations.

@@ -4,7 +4,6 @@
 using System.Buffers;
 using System.Buffers.Binary;
 using System.Runtime.InteropServices;
-using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
@@ -17,7 +16,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp;
 /// <summary>
 /// Image encoder for writing an image to a stream as a Windows bitmap.
 /// </summary>
-internal sealed class BmpEncoderCore : IImageEncoderInternals
+internal sealed class BmpEncoderCore
 {
     /// <summary>
     /// The amount to pad each row by.

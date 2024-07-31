@@ -18,7 +18,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff;
 /// <summary>
 /// Performs the tiff decoding operation.
 /// </summary>
-internal class TiffDecoderCore : IImageDecoderInternals
+internal class TiffDecoderCore : ImageDecoderCore
 {
     /// <summary>
     /// General configuration options.
@@ -60,8 +60,8 @@ internal class TiffDecoderCore : IImageDecoderInternals
     /// </summary>
     /// <param name="options">The decoder options.</param>
     public TiffDecoderCore(DecoderOptions options)
+        : base(options)
     {
-        this.Options = options;
         this.configuration = options.Configuration;
         this.skipMetadata = options.SkipMetadata;
         this.maxFrames = options.MaxFrames;
@@ -154,14 +154,7 @@ internal class TiffDecoderCore : IImageDecoderInternals
     public TiffPredictor Predictor { get; set; }
 
     /// <inheritdoc/>
-    public DecoderOptions Options { get; }
-
-    /// <inheritdoc/>
-    public Size Dimensions { get; private set; }
-
-    /// <inheritdoc/>
-    public Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
-        where TPixel : unmanaged, IPixel<TPixel>
+    protected override Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
     {
         List<ImageFrame<TPixel>> frames = new();
         List<ImageFrameMetadata> framesMetadata = new();
@@ -215,7 +208,7 @@ internal class TiffDecoderCore : IImageDecoderInternals
     }
 
     /// <inheritdoc/>
-    public ImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken)
+    protected override ImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken)
     {
         this.inputStream = stream;
         DirectoryReader reader = new(stream, this.configuration.MemoryAllocator);

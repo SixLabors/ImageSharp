@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.Formats.Gif;
 /// <summary>
 /// Performs the gif decoding operation.
 /// </summary>
-internal sealed class GifDecoderCore : IImageDecoderInternals
+internal sealed class GifDecoderCore : ImageDecoderCore
 {
     /// <summary>
     /// The temp buffer used to reduce allocations.
@@ -94,8 +94,8 @@ internal sealed class GifDecoderCore : IImageDecoderInternals
     /// </summary>
     /// <param name="options">The decoder options.</param>
     public GifDecoderCore(DecoderOptions options)
+        : base(options)
     {
-        this.Options = options;
         this.configuration = options.Configuration;
         this.skipMetadata = options.SkipMetadata;
         this.maxFrames = options.MaxFrames;
@@ -103,14 +103,7 @@ internal sealed class GifDecoderCore : IImageDecoderInternals
     }
 
     /// <inheritdoc />
-    public DecoderOptions Options { get; }
-
-    /// <inheritdoc />
-    public Size Dimensions => new(this.imageDescriptor.Width, this.imageDescriptor.Height);
-
-    /// <inheritdoc />
-    public Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
-        where TPixel : unmanaged, IPixel<TPixel>
+    protected override Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
     {
         uint frameCount = 0;
         Image<TPixel>? image = null;
@@ -181,7 +174,7 @@ internal sealed class GifDecoderCore : IImageDecoderInternals
     }
 
     /// <inheritdoc />
-    public ImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken)
+    protected override ImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken)
     {
         uint frameCount = 0;
         ImageFrameMetadata? previousFrame = null;
@@ -287,6 +280,8 @@ internal sealed class GifDecoderCore : IImageDecoderInternals
         {
             GifThrowHelper.ThrowInvalidImageContentException("Width or height should not be 0");
         }
+
+        this.Dimensions = new(this.imageDescriptor.Width, this.imageDescriptor.Height);
     }
 
     /// <summary>

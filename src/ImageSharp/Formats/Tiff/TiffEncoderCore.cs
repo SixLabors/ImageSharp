@@ -2,7 +2,6 @@
 // Licensed under the Six Labors Split License.
 #nullable disable
 
-using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Compression.Zlib;
 using SixLabors.ImageSharp.Formats.Tiff.Compression;
 using SixLabors.ImageSharp.Formats.Tiff.Constants;
@@ -19,7 +18,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff;
 /// <summary>
 /// Performs the TIFF encoding operation.
 /// </summary>
-internal sealed class TiffEncoderCore : IImageEncoderInternals
+internal sealed class TiffEncoderCore
 {
     private static readonly ushort ByteOrderMarker = BitConverter.IsLittleEndian
             ? TiffConstants.ByteOrderLittleEndianShort

@@ -6,7 +6,7 @@ namespace SixLabors.ImageSharp.Formats;
 /// <summary>
 /// Specifies how to handle validation of errors in different segments of encoded image files.
 /// </summary>
-public enum SegmentErrorHandling
+public enum SegmentIntegrityHandling
 {
     /// <summary>
     /// Do not ignore any errors.

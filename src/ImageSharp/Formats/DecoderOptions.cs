@@ -58,7 +58,7 @@ public sealed class DecoderOptions
     /// <summary>
     /// Gets the segment error handling strategy to use during decoding.
     /// </summary>
-    public SegmentErrorHandling SegmentErrorHandling { get; init; } = SegmentErrorHandling.IgnoreNonCritical;
+    public SegmentIntegrityHandling SegmentIntegrityHandling { get; init; } = SegmentIntegrityHandling.IgnoreNonCritical;
 
     internal void SetConfiguration(Configuration configuration) => this.configuration = configuration;
 }

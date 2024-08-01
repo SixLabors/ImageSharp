@@ -41,13 +41,13 @@ internal readonly struct PngChunk
     /// <summary>
     /// Gets a value indicating whether the given chunk is critical to decoding
     /// </summary>
-    /// <param name="handling">The chunk CRC handling behavior.</param>
-    public bool IsCritical(PngCrcChunkHandling handling)
+    /// <param name="handling">The segment handling behavior.</param>
+    public bool IsCritical(SegmentErrorHandling handling)
         => handling switch
         {
-            PngCrcChunkHandling.IgnoreNone => true,
-            PngCrcChunkHandling.IgnoreNonCritical => this.Type is PngChunkType.Header or PngChunkType.Palette or PngChunkType.Data or PngChunkType.FrameData,
-            PngCrcChunkHandling.IgnoreData => this.Type is PngChunkType.Header or PngChunkType.Palette,
+            SegmentErrorHandling.IgnoreNone => true,
+            SegmentErrorHandling.IgnoreNonCritical => this.Type is PngChunkType.Header or PngChunkType.Palette or PngChunkType.Data or PngChunkType.FrameData,
+            SegmentErrorHandling.IgnoreData => this.Type is PngChunkType.Header or PngChunkType.Palette,
             _ => false,
         };
 }

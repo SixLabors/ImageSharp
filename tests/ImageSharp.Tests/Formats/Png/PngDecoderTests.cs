@@ -382,6 +382,20 @@ public partial class PngDecoderTests
     }
 
     [Theory]
+    [InlineData(TestImages.Png.Bad.WrongCrcDataChunk, 1)]
+    [InlineData(TestImages.Png.Bad.Issue2589, 24)]
+    public void Identify_IgnoreCrcErrors(string imagePath, int expectedPixelSize)
+    {
+        TestFile testFile = TestFile.Create(imagePath);
+        using MemoryStream stream = new(testFile.Bytes, false);
+
+        ImageInfo imageInfo = Image.Identify(new DecoderOptions() { SegmentErrorHandling = SegmentErrorHandling.IgnoreData }, stream);
+
+        Assert.NotNull(imageInfo);
+        Assert.Equal(expectedPixelSize, imageInfo.PixelType.BitsPerPixel);
+    }
+
+    [Theory]
     [WithFile(TestImages.Png.Bad.MissingDataChunk, PixelTypes.Rgba32)]
     public void Decode_MissingDataChunk_ThrowsException<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
@@ -479,7 +493,7 @@ public partial class PngDecoderTests
     public void Decode_InvalidDataChunkCrc_IgnoreCrcErrors<TPixel>(TestImageProvider<TPixel> provider, bool compare)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> image = provider.GetImage(PngDecoder.Instance, new PngDecoderOptions() { PngCrcChunkHandling = PngCrcChunkHandling.IgnoreData });
+        using Image<TPixel> image = provider.GetImage(PngDecoder.Instance, new DecoderOptions() { SegmentErrorHandling = SegmentErrorHandling.IgnoreData });
 
         image.DebugSave(provider);
         if (compare)
@@ -660,7 +674,7 @@ public partial class PngDecoderTests
     public void Binary_PrematureEof()
     {
         PngDecoder decoder = PngDecoder.Instance;
-        PngDecoderOptions options = new() { PngCrcChunkHandling = PngCrcChunkHandling.IgnoreData };
+        PngDecoderOptions options = new() { GeneralOptions = new() { SegmentErrorHandling = SegmentErrorHandling.IgnoreData } };
         using EofHitCounter eofHitCounter = EofHitCounter.RunDecoder(TestImages.Png.Bad.FlagOfGermany0000016446, decoder, options);
 
         // TODO: Try to reduce this to 1.

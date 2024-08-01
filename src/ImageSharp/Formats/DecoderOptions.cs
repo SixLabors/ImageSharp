@@ -55,5 +55,10 @@ public sealed class DecoderOptions
     /// </summary>
     public uint MaxFrames { get => this.maxFrames; init => this.maxFrames = Math.Clamp(value, 1, int.MaxValue); }
 
+    /// <summary>
+    /// Gets the segment error handling strategy to use during decoding.
+    /// </summary>
+    public SegmentErrorHandling SegmentErrorHandling { get; init; } = SegmentErrorHandling.IgnoreNonCritical;
+
     internal void SetConfiguration(Configuration configuration) => this.configuration = configuration;
 }

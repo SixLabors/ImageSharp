@@ -25,20 +25,19 @@ public abstract partial class ImageFrame : IConfigurationProvider, IDisposable
     protected ImageFrame(Configuration configuration, int width, int height, ImageFrameMetadata metadata)
     {
         this.Configuration = configuration;
-        this.Width = width;
-        this.Height = height;
+        this.Size = new(width, height);
         this.Metadata = metadata;
     }
 
     /// <summary>
-    /// Gets the width.
+    /// Gets the frame width in px units.
     /// </summary>
-    public int Width { get; private set; }
+    public int Width => this.Size.Width;
 
     /// <summary>
-    /// Gets the height.
+    /// Gets the frame height in px units.
     /// </summary>
-    public int Height { get; private set; }
+    public int Height => this.Size.Height;
 
     /// <summary>
     /// Gets the metadata of the frame.
@@ -51,8 +50,7 @@ public abstract partial class ImageFrame : IConfigurationProvider, IDisposable
     /// <summary>
     /// Gets the size of the frame.
     /// </summary>
-    /// <returns>The <see cref="Size"/></returns>
-    public Size Size() => new(this.Width, this.Height);
+    public Size Size { get; private set; }
 
     /// <summary>
     /// Gets the bounds of the frame.
@@ -80,9 +78,5 @@ public abstract partial class ImageFrame : IConfigurationProvider, IDisposable
     /// Updates the size of the image frame.
     /// </summary>
     /// <param name="size">The size.</param>
-    internal void UpdateSize(Size size)
-    {
-        this.Width = size.Width;
-        this.Height = size.Height;
-    }
+    protected void UpdateSize(Size size) => this.Size = size;
 }

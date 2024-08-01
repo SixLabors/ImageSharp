@@ -419,9 +419,9 @@ public sealed class Image<TPixel> : Image
 
         ImageFrame<TPixel>? rootFrame = frames.FirstOrDefault() ?? throw new ArgumentException("Must not be empty.", nameof(frames));
 
-        Size rootSize = rootFrame.Size();
+        Size rootSize = rootFrame.Size;
 
-        if (frames.Any(f => f.Size() != rootSize))
+        if (frames.Any(f => f.Size != rootSize))
         {
             throw new ArgumentException("The provided frames must be of the same size.", nameof(frames));
         }

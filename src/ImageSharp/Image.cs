@@ -77,7 +77,7 @@ public abstract partial class Image : IDisposable, IConfigurationProvider
     /// <summary>
     /// Gets the size of the image in px units.
     /// </summary>
-    public Size Size { get; internal set; }
+    public Size Size { get; private set; }
 
     /// <summary>
     /// Gets the bounds of the image.

@@ -322,7 +322,7 @@ public sealed class ImageFrame<TPixel> : ImageFrame, IPixelSource<TPixel>
     /// <exception cref="ArgumentException">ImageFrame{TPixel}.CopyTo(): target must be of the same size!</exception>
     internal void CopyTo(Buffer2D<TPixel> target)
     {
-        if (this.Size() != target.Size())
+        if (this.Size != target.Size())
         {
             throw new ArgumentException("ImageFrame<TPixel>.CopyTo(): target must be of the same size!", nameof(target));
         }

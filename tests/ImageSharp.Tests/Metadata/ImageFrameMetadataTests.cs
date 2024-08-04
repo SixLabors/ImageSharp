@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
@@ -21,20 +22,20 @@ public class ImageFrameMetadataTests
     {
         const int frameDelay = 42;
         const int colorTableLength = 128;
-        const GifDisposalMethod disposalMethod = GifDisposalMethod.RestoreToBackground;
+        const FrameDisposalMode disposalMethod = FrameDisposalMode.RestoreToBackground;
 
         ImageFrameMetadata metaData = new();
         GifFrameMetadata gifFrameMetadata = metaData.GetGifMetadata();
         gifFrameMetadata.FrameDelay = frameDelay;
         gifFrameMetadata.LocalColorTable = Enumerable.Repeat(Color.HotPink, colorTableLength).ToArray();
-        gifFrameMetadata.DisposalMethod = disposalMethod;
+        gifFrameMetadata.DisposalMode = disposalMethod;
 
         ImageFrameMetadata clone = new(metaData);
         GifFrameMetadata cloneGifFrameMetadata = clone.GetGifMetadata();
 
         Assert.Equal(frameDelay, cloneGifFrameMetadata.FrameDelay);
         Assert.Equal(colorTableLength, cloneGifFrameMetadata.LocalColorTable.Value.Length);
-        Assert.Equal(disposalMethod, cloneGifFrameMetadata.DisposalMethod);
+        Assert.Equal(disposalMethod, cloneGifFrameMetadata.DisposalMode);
     }
 
     [Fact]

@@ -298,6 +298,17 @@ public sealed class ExifProfile : IDeepCloneable<ExifProfile>
         this.SyncResolution(ExifTag.YResolution, metadata.VerticalResolution);
     }
 
+    /// <summary>
+    /// Synchronizes the profiles with the specified metadata.
+    /// </summary>
+    /// <param name="metadata">The metadata.</param>
+#pragma warning disable CA1822, RCS1163, IDE0060
+    internal void Sync(ImageFrameMetadata metadata)
+#pragma warning restore IDE0060, RCS1163, CA1822
+    {
+        // Nothing to do ....YET.
+    }
+
     private void SyncResolution(ExifTag<Rational> tag, double resolution)
     {
         if (!this.TryGetValue(tag, out IExifValue<Rational>? value))

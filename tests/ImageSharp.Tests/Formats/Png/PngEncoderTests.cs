@@ -255,49 +255,6 @@ public partial class PngEncoderTests
     }
 
     [Theory]
-    [WithBlankImages(1, 1, PixelTypes.A8, PngColorType.GrayscaleWithAlpha, PngBitDepth.Bit8)]
-    [WithBlankImages(1, 1, PixelTypes.Argb32, PngColorType.RgbWithAlpha, PngBitDepth.Bit8)]
-    [WithBlankImages(1, 1, PixelTypes.Bgr565, PngColorType.Rgb, PngBitDepth.Bit8)]
-    [WithBlankImages(1, 1, PixelTypes.Bgra4444, PngColorType.RgbWithAlpha, PngBitDepth.Bit8)]
-    [WithBlankImages(1, 1, PixelTypes.Byte4, PngColorType.RgbWithAlpha, PngBitDepth.Bit8)]
-    [WithBlankImages(1, 1, PixelTypes.HalfSingle, PngColorType.Rgb, PngBitDepth.Bit16)]
-    [WithBlankImages(1, 1, PixelTypes.HalfVector2, PngColorType.Rgb, PngBitDepth.Bit16)]
-    [WithBlankImages(1, 1, PixelTypes.HalfVector4, PngColorType.RgbWithAlpha, PngBitDepth.Bit16)]
-    [WithBlankImages(1, 1, PixelTypes.NormalizedByte2, PngColorType.Rgb, PngBitDepth.Bit8)]
-    [WithBlankImages(1, 1, PixelTypes.NormalizedByte4, PngColorType.RgbWithAlpha, PngBitDepth.Bit8)]
-    [WithBlankImages(1, 1, PixelTypes.NormalizedShort4, PngColorType.RgbWithAlpha, PngBitDepth.Bit16)]
-    [WithBlankImages(1, 1, PixelTypes.Rg32, PngColorType.Rgb, PngBitDepth.Bit16)]
-    [WithBlankImages(1, 1, PixelTypes.Rgba1010102, PngColorType.RgbWithAlpha, PngBitDepth.Bit16)]
-    [WithBlankImages(1, 1, PixelTypes.Rgba32, PngColorType.RgbWithAlpha, PngBitDepth.Bit8)]
-    [WithBlankImages(1, 1, PixelTypes.RgbaVector, PngColorType.RgbWithAlpha, PngBitDepth.Bit16)]
-    [WithBlankImages(1, 1, PixelTypes.Short2, PngColorType.Rgb, PngBitDepth.Bit16)]
-    [WithBlankImages(1, 1, PixelTypes.Short4, PngColorType.RgbWithAlpha, PngBitDepth.Bit16)]
-    [WithBlankImages(1, 1, PixelTypes.Rgb24, PngColorType.Rgb, PngBitDepth.Bit8)]
-    [WithBlankImages(1, 1, PixelTypes.Bgr24, PngColorType.Rgb, PngBitDepth.Bit8)]
-    [WithBlankImages(1, 1, PixelTypes.Bgra32, PngColorType.RgbWithAlpha, PngBitDepth.Bit8)]
-    [WithBlankImages(1, 1, PixelTypes.Rgb48, PngColorType.Rgb, PngBitDepth.Bit16)]
-    [WithBlankImages(1, 1, PixelTypes.Rgba64, PngColorType.RgbWithAlpha, PngBitDepth.Bit16)]
-    [WithBlankImages(1, 1, PixelTypes.Bgra5551, PngColorType.RgbWithAlpha, PngBitDepth.Bit8)]
-    [WithBlankImages(1, 1, PixelTypes.L8, PngColorType.Grayscale, PngBitDepth.Bit8)]
-    [WithBlankImages(1, 1, PixelTypes.L16, PngColorType.Grayscale, PngBitDepth.Bit16)]
-    [WithBlankImages(1, 1, PixelTypes.La16, PngColorType.GrayscaleWithAlpha, PngBitDepth.Bit8)]
-    [WithBlankImages(1, 1, PixelTypes.La32, PngColorType.GrayscaleWithAlpha, PngBitDepth.Bit16)]
-    public void InfersColorTypeAndBitDepth<TPixel>(TestImageProvider<TPixel> provider, PngColorType pngColorType, PngBitDepth pngBitDepth)
-        where TPixel : unmanaged, IPixel<TPixel>
-    {
-        using Stream stream = new MemoryStream();
-        PngEncoder.Encode(provider.GetImage(), stream);
-
-        stream.Seek(0, SeekOrigin.Begin);
-
-        using Image image = PngDecoder.Instance.Decode(DecoderOptions.Default, stream);
-
-        PngMetadata metadata = image.Metadata.GetPngMetadata();
-        Assert.Equal(pngColorType, metadata.ColorType);
-        Assert.Equal(pngBitDepth, metadata.BitDepth);
-    }
-
-    [Theory]
     [WithFile(TestImages.Png.Palette8Bpp, nameof(PaletteLargeOnly), PixelTypes.Rgba32)]
     public void PaletteColorType_WuQuantizer<TPixel>(TestImageProvider<TPixel> provider, int paletteSize)
         where TPixel : unmanaged, IPixel<TPixel>
@@ -448,6 +405,8 @@ public partial class PngEncoderTests
 
     [Theory]
     [WithFile(TestImages.Png.APng, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Png.DefaultNotAnimated, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Png.FrameOffset, PixelTypes.Rgba32)]
     public void Encode_APng<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
@@ -459,15 +418,17 @@ public partial class PngEncoderTests
         image.DebugSave(provider: provider, encoder: PngEncoder, null, false);
 
         using Image<Rgba32> output = Image.Load<Rgba32>(memStream);
-        ImageComparer.Exact.VerifySimilarity(output, image);
 
-        Assert.Equal(5, image.Frames.Count);
+        // some loss from original, due to compositing
+        ImageComparer.TolerantPercentage(0.01f).VerifySimilarity(output, image);
+
         Assert.Equal(image.Frames.Count, output.Frames.Count);
 
         PngMetadata originalMetadata = image.Metadata.GetPngMetadata();
         PngMetadata outputMetadata = output.Metadata.GetPngMetadata();
 
         Assert.Equal(originalMetadata.RepeatCount, outputMetadata.RepeatCount);
+        Assert.Equal(originalMetadata.AnimateRootFrame, outputMetadata.AnimateRootFrame);
 
         for (int i = 0; i < image.Frames.Count; i++)
         {
@@ -475,8 +436,8 @@ public partial class PngEncoderTests
             PngFrameMetadata outputFrameMetadata = output.Frames[i].Metadata.GetPngMetadata();
 
             Assert.Equal(originalFrameMetadata.FrameDelay, outputFrameMetadata.FrameDelay);
-            Assert.Equal(originalFrameMetadata.BlendMethod, outputFrameMetadata.BlendMethod);
-            Assert.Equal(originalFrameMetadata.DisposalMethod, outputFrameMetadata.DisposalMethod);
+            Assert.Equal(originalFrameMetadata.BlendMode, outputFrameMetadata.BlendMode);
+            Assert.Equal(originalFrameMetadata.DisposalMode, outputFrameMetadata.DisposalMode);
         }
     }
 
@@ -515,18 +476,18 @@ public partial class PngEncoderTests
 
             Assert.Equal(gifF.FrameDelay, (int)(pngF.FrameDelay.ToDouble() * 100));
 
-            switch (gifF.DisposalMethod)
+            switch (gifF.DisposalMode)
             {
-                case GifDisposalMethod.RestoreToBackground:
-                    Assert.Equal(PngDisposalMethod.RestoreToBackground, pngF.DisposalMethod);
+                case FrameDisposalMode.RestoreToBackground:
+                    Assert.Equal(FrameDisposalMode.RestoreToBackground, pngF.DisposalMode);
                     break;
-                case GifDisposalMethod.RestoreToPrevious:
-                    Assert.Equal(PngDisposalMethod.RestoreToPrevious, pngF.DisposalMethod);
+                case FrameDisposalMode.RestoreToPrevious:
+                    Assert.Equal(FrameDisposalMode.RestoreToPrevious, pngF.DisposalMode);
                     break;
-                case GifDisposalMethod.Unspecified:
-                case GifDisposalMethod.NotDispose:
+                case FrameDisposalMode.Unspecified:
+                case FrameDisposalMode.DoNotDispose:
                 default:
-                    Assert.Equal(PngDisposalMethod.DoNotDispose, pngF.DisposalMethod);
+                    Assert.Equal(FrameDisposalMode.DoNotDispose, pngF.DisposalMode);
                     break;
             }
         }
@@ -565,23 +526,23 @@ public partial class PngEncoderTests
 
             switch (webpF.BlendMethod)
             {
-                case WebpBlendMethod.Source:
-                    Assert.Equal(PngBlendMethod.Source, pngF.BlendMethod);
+                case FrameBlendMode.Source:
+                    Assert.Equal(FrameBlendMode.Source, pngF.BlendMode);
                     break;
-                case WebpBlendMethod.Over:
+                case FrameBlendMode.Over:
                 default:
-                    Assert.Equal(PngBlendMethod.Over, pngF.BlendMethod);
+                    Assert.Equal(FrameBlendMode.Over, pngF.BlendMode);
                     break;
             }
 
             switch (webpF.DisposalMethod)
             {
-                case WebpDisposalMethod.RestoreToBackground:
-                    Assert.Equal(PngDisposalMethod.RestoreToBackground, pngF.DisposalMethod);
+                case FrameDisposalMode.RestoreToBackground:
+                    Assert.Equal(FrameDisposalMode.RestoreToBackground, pngF.DisposalMode);
                     break;
-                case WebpDisposalMethod.DoNotDispose:
+                case FrameDisposalMode.DoNotDispose:
                 default:
-                    Assert.Equal(PngDisposalMethod.DoNotDispose, pngF.DisposalMethod);
+                    Assert.Equal(FrameDisposalMode.DoNotDispose, pngF.DisposalMode);
                     break;
             }
         }

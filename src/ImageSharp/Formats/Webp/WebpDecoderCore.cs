@@ -19,7 +19,7 @@ namespace SixLabors.ImageSharp.Formats.Webp;
 /// <summary>
 /// Performs the webp decoding operation.
 /// </summary>
-internal sealed class WebpDecoderCore : IImageDecoderInternals, IDisposable
+internal sealed class WebpDecoderCore : ImageDecoderCore, IDisposable
 {
     /// <summary>
     /// General configuration options.
@@ -54,15 +54,15 @@ internal sealed class WebpDecoderCore : IImageDecoderInternals, IDisposable
     /// <summary>
     /// The flag to decide how to handle the background color in the Animation Chunk.
     /// </summary>
-    private BackgroundColorHandling backgroundColorHandling;
+    private readonly BackgroundColorHandling backgroundColorHandling;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="WebpDecoderCore"/> class.
     /// </summary>
     /// <param name="options">The decoder options.</param>
     public WebpDecoderCore(WebpDecoderOptions options)
+        : base(options.GeneralOptions)
     {
-        this.Options = options.GeneralOptions;
         this.backgroundColorHandling = options.BackgroundColorHandling;
         this.configuration = options.GeneralOptions.Configuration;
         this.skipMetadata = options.GeneralOptions.SkipMetadata;
@@ -70,15 +70,8 @@ internal sealed class WebpDecoderCore : IImageDecoderInternals, IDisposable
         this.memoryAllocator = this.configuration.MemoryAllocator;
     }
 
-    /// <inheritdoc/>
-    public DecoderOptions Options { get; }
-
-    /// <inheritdoc/>
-    public Size Dimensions => new((int)this.webImageInfo!.Width, (int)this.webImageInfo.Height);
-
     /// <inheritdoc />
-    public Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
-        where TPixel : unmanaged, IPixel<TPixel>
+    protected override Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
     {
         Image<TPixel>? image = null;
         try
@@ -136,7 +129,7 @@ internal sealed class WebpDecoderCore : IImageDecoderInternals, IDisposable
     }
 
     /// <inheritdoc />
-    public ImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken)
+    protected override ImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken)
     {
         ReadImageHeader(stream, stackalloc byte[4]);
 
@@ -144,7 +137,6 @@ internal sealed class WebpDecoderCore : IImageDecoderInternals, IDisposable
         using (this.webImageInfo = this.ReadVp8Info(stream, metadata, true))
         {
             return new ImageInfo(
-                new PixelTypeInfo((int)this.webImageInfo.BitsPerPixel),
                 new Size((int)this.webImageInfo.Width, (int)this.webImageInfo.Height),
                 metadata);
         }
@@ -186,36 +178,43 @@ internal sealed class WebpDecoderCore : IImageDecoderInternals, IDisposable
         Span<byte> buffer = stackalloc byte[4];
         WebpChunkType chunkType = WebpChunkParsingUtils.ReadChunkType(stream, buffer);
 
+        WebpImageInfo? info = null;
         WebpFeatures features = new();
         switch (chunkType)
         {
             case WebpChunkType.Vp8:
+                info = WebpChunkParsingUtils.ReadVp8Header(this.memoryAllocator, stream, buffer, features);
                 webpMetadata.FileFormat = WebpFileFormatType.Lossy;
-                return WebpChunkParsingUtils.ReadVp8Header(this.memoryAllocator, stream, buffer, features);
+                webpMetadata.ColorType = WebpColorType.Yuv;
+                return info;
             case WebpChunkType.Vp8L:
+                info = WebpChunkParsingUtils.ReadVp8LHeader(this.memoryAllocator, stream, buffer, features);
                 webpMetadata.FileFormat = WebpFileFormatType.Lossless;
-                return WebpChunkParsingUtils.ReadVp8LHeader(this.memoryAllocator, stream, buffer, features);
+                webpMetadata.ColorType = info.Features?.Alpha == true ? WebpColorType.Rgba : WebpColorType.Rgb;
+                return info;
             case WebpChunkType.Vp8X:
-                WebpImageInfo webpInfos = WebpChunkParsingUtils.ReadVp8XHeader(stream, buffer, features);
+                info = WebpChunkParsingUtils.ReadVp8XHeader(stream, buffer, features);
                 while (stream.Position < stream.Length)
                 {
                     chunkType = WebpChunkParsingUtils.ReadChunkType(stream, buffer);
                     if (chunkType == WebpChunkType.Vp8)
                     {
+                        info = WebpChunkParsingUtils.ReadVp8Header(this.memoryAllocator, stream, buffer, features);
                         webpMetadata.FileFormat = WebpFileFormatType.Lossy;
-                        webpInfos = WebpChunkParsingUtils.ReadVp8Header(this.memoryAllocator, stream, buffer, features);
+                        webpMetadata.ColorType = info.Features?.Alpha == true ? WebpColorType.Rgba : WebpColorType.Rgb;
                     }
                     else if (chunkType == WebpChunkType.Vp8L)
                     {
+                        info = WebpChunkParsingUtils.ReadVp8LHeader(this.memoryAllocator, stream, buffer, features);
                         webpMetadata.FileFormat = WebpFileFormatType.Lossless;
-                        webpInfos = WebpChunkParsingUtils.ReadVp8LHeader(this.memoryAllocator, stream, buffer, features);
+                        webpMetadata.ColorType = info.Features?.Alpha == true ? WebpColorType.Rgba : WebpColorType.Rgb;
                     }
                     else if (WebpChunkParsingUtils.IsOptionalVp8XChunk(chunkType))
                     {
                         bool isAnimationChunk = this.ParseOptionalExtendedChunks(stream, metadata, chunkType, features, ignoreAlpha, buffer);
                         if (isAnimationChunk)
                         {
-                            return webpInfos;
+                            return info;
                         }
                     }
                     else
@@ -226,7 +225,7 @@ internal sealed class WebpDecoderCore : IImageDecoderInternals, IDisposable
                     }
                 }
 
-                return webpInfos;
+                return info;
             default:
                 WebpThrowHelper.ThrowImageFormatException("Unrecognized VP8 header");
                 return

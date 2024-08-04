@@ -310,17 +310,15 @@ internal class Vp8Encoder : IDisposable
     /// </summary>
     private int MbHeaderLimit { get; }
 
-    public void EncodeHeader<TPixel>(Image<TPixel> image, Stream stream, bool hasAlpha, bool hasAnimation)
+    public WebpVp8X EncodeHeader<TPixel>(Image<TPixel> image, Stream stream, bool hasAlpha, bool hasAnimation)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         // Write bytes from the bitwriter buffer to the stream.
         ImageMetadata metadata = image.Metadata;
-        metadata.SyncProfiles();
-
         ExifProfile exifProfile = this.skipMetadata ? null : metadata.ExifProfile;
         XmpProfile xmpProfile = this.skipMetadata ? null : metadata.XmpProfile;
 
-        BitWriterBase.WriteTrunksBeforeData(
+        WebpVp8X vp8x = BitWriterBase.WriteTrunksBeforeData(
             stream,
             (uint)image.Width,
             (uint)image.Height,
@@ -332,12 +330,14 @@ internal class Vp8Encoder : IDisposable
 
         if (hasAnimation)
         {
-            WebpMetadata webpMetadata = WebpCommonUtils.GetWebpMetadata(image);
+            WebpMetadata webpMetadata = image.Metadata.GetWebpMetadata();
             BitWriterBase.WriteAnimationParameter(stream, webpMetadata.BackgroundColor, webpMetadata.RepeatCount);
         }
+
+        return vp8x;
     }
 
-    public void EncodeFooter<TPixel>(Image<TPixel> image, Stream stream)
+    public void EncodeFooter<TPixel>(Image<TPixel> image, in WebpVp8X vp8x, bool hasAlpha, Stream stream, long initialPosition)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         // Write bytes from the bitwriter buffer to the stream.
@@ -346,7 +346,9 @@ internal class Vp8Encoder : IDisposable
         ExifProfile exifProfile = this.skipMetadata ? null : metadata.ExifProfile;
         XmpProfile xmpProfile = this.skipMetadata ? null : metadata.XmpProfile;
 
-        BitWriterBase.WriteTrunksAfterData(stream, exifProfile, xmpProfile);
+        bool updateVp8x = hasAlpha && vp8x != default;
+        WebpVp8X updated = updateVp8x ? vp8x.WithAlpha(true) : vp8x;
+        BitWriterBase.WriteTrunksAfterData(stream, in updated, updateVp8x, initialPosition, exifProfile, xmpProfile);
     }
 
     /// <summary>
@@ -357,9 +359,10 @@ internal class Vp8Encoder : IDisposable
     /// <param name="stream">The stream to encode the image data to.</param>
     /// <param name="bounds">The region of interest within the frame to encode.</param>
     /// <param name="frameMetadata">The frame metadata.</param>
-    public void EncodeAnimation<TPixel>(ImageFrame<TPixel> frame, Stream stream, Rectangle bounds, WebpFrameMetadata frameMetadata)
-        where TPixel : unmanaged, IPixel<TPixel> =>
-        this.Encode(stream, frame, bounds, frameMetadata, true, null);
+    /// <returns>A <see cref="bool"/> indicating whether the frame contains an alpha channel.</returns>
+    public bool EncodeAnimation<TPixel>(ImageFrame<TPixel> frame, Stream stream, Rectangle bounds, WebpFrameMetadata frameMetadata)
+        where TPixel : unmanaged, IPixel<TPixel>
+        => this.Encode(stream, frame, bounds, frameMetadata, true, null);
 
     /// <summary>
     /// Encodes the static image frame to the specified stream.
@@ -371,7 +374,7 @@ internal class Vp8Encoder : IDisposable
         where TPixel : unmanaged, IPixel<TPixel>
     {
         ImageFrame<TPixel> frame = image.Frames.RootFrame;
-        this.Encode(stream, frame, image.Bounds, WebpCommonUtils.GetWebpFrameMetadata(frame), false, image);
+        this.Encode(stream, frame, image.Bounds, frame.Metadata.GetWebpMetadata(), false, image);
     }
 
     /// <summary>
@@ -384,7 +387,8 @@ internal class Vp8Encoder : IDisposable
     /// <param name="frameMetadata">The frame metadata.</param>
     /// <param name="hasAnimation">Flag indicating, if an animation parameter is present.</param>
     /// <param name="image">The image to encode from.</param>
-    private void Encode<TPixel>(Stream stream, ImageFrame<TPixel> frame, Rectangle bounds, WebpFrameMetadata frameMetadata, bool hasAnimation, Image<TPixel> image)
+    /// <returns>A <see cref="bool"/> indicating whether the frame contains an alpha channel.</returns>
+    private bool Encode<TPixel>(Stream stream, ImageFrame<TPixel> frame, Rectangle bounds, WebpFrameMetadata frameMetadata, bool hasAnimation, Image<TPixel> image)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         int width = bounds.Width;
@@ -456,7 +460,7 @@ internal class Vp8Encoder : IDisposable
         // Extract and encode alpha channel data, if present.
         int alphaDataSize = 0;
         bool alphaCompressionSucceeded = false;
-        Span<byte> alphaData = Span<byte>.Empty;
+        Span<byte> alphaData = [];
         IMemoryOwner<byte> encodedAlphaData = null;
         try
         {
@@ -514,6 +518,8 @@ internal class Vp8Encoder : IDisposable
         {
             encodedAlphaData?.Dispose();
         }
+
+        return hasAlpha;
     }
 
     /// <inheritdoc/>

@@ -73,6 +73,8 @@ public static class TestImages
         public const string DisposeBackgroundRegion = "Png/animated/15-dispose-background-region.png";
         public const string DisposePreviousFirst = "Png/animated/12-dispose-prev-first.png";
         public const string BlendOverMultiple = "Png/animated/21-blend-over-multiple.png";
+        public const string FrameOffset = "Png/animated/frame-offset.png";
+        public const string DefaultNotAnimated = "Png/animated/default-not-animated.png";
         public const string Issue2666 = "Png/issues/Issue_2666.png";
 
         // Filtered test images from http://www.schaik.com/pngsuite/pngsuite_fil_png.html
@@ -154,6 +156,9 @@ public static class TestImages
         // Issue 2668: https://github.com/SixLabors/ImageSharp/issues/2668
         public const string Issue2668 = "Png/issues/Issue_2668.png";
 
+        // Issue 2752: https://github.com/SixLabors/ImageSharp/issues/2752
+        public const string Issue2752 = "Png/issues/Issue_2752.png";
+
         public static class Bad
         {
             public const string MissingDataChunk = "Png/xdtn0g01.png";
@@ -190,6 +195,8 @@ public static class TestImages
 
             public const string BadZTXT = "Png/issues/bad-ztxt.png";
             public const string BadZTXT2 = "Png/issues/bad-ztxt2.png";
+
+            public const string Issue2714BadPalette = "Png/issues/Issue_2714.png";
         }
     }
 
@@ -315,6 +322,9 @@ public static class TestImages
             public const string Issue2564 = "Jpg/issues/issue-2564.jpg";
             public const string HangBadScan = "Jpg/issues/Hang_C438A851.jpg";
             public const string Issue2517 = "Jpg/issues/issue2517-bad-d7.jpg";
+            public const string Issue2067_CommentMarker = "Jpg/issues/issue-2067-comment.jpg";
+            public const string Issue2638 = "Jpg/issues/Issue2638.jpg";
+            public const string Issue2758 = "Jpg/issues/issue-2758.jpg";
 
             public static class Fuzz
             {
@@ -438,6 +448,8 @@ public static class TestImages
         public const string Rgba321010102 = "Bmp/rgba32-1010102.bmp";
         public const string RgbaAlphaBitfields = "Bmp/rgba32abf.bmp";
 
+        public const string Issue2696 = "Bmp/issue-2696.bmp";
+
         public const string BlackWhitePalletDataMatrix = "Bmp/bit1datamatrix.bmp";
 
         public static readonly string[] BitFields =
@@ -508,6 +520,7 @@ public static class TestImages
             public const string BadAppExtLength = "Gif/issues/issue405_badappextlength252.gif";
             public const string BadAppExtLength_2 = "Gif/issues/issue405_badappextlength252-2.gif";
             public const string BadDescriptorWidth = "Gif/issues/issue403_baddescriptorwidth.gif";
+            public const string BadMaxLzwBits = "Gif/issues/issue_2743.gif";
             public const string DeferredClearCode = "Gif/issues/bugzilla-55918.gif";
             public const string Issue1505 = "Gif/issues/issue1505_argumentoutofrange.png";
             public const string Issue1530 = "Gif/issues/issue1530.gif";
@@ -522,6 +535,7 @@ public static class TestImages
             public const string Issue2450_A = "Gif/issues/issue_2450.gif";
             public const string Issue2450_B = "Gif/issues/issue_2450_2.gif";
             public const string Issue2198 = "Gif/issues/issue_2198.gif";
+            public const string Issue2758 = "Gif/issues/issue_2758.gif";
         }
 
         public static readonly string[] Animated =
@@ -812,6 +826,7 @@ public static class TestImages
             public const string Issue2243 = "Webp/issues/Issue2243.webp";
             public const string Issue2257 = "Webp/issues/Issue2257.webp";
             public const string Issue2670 = "Webp/issues/Issue2670.webp";
+            public const string Issue2763 = "Webp/issues/Issue2763.png";
         }
     }
 
@@ -1113,5 +1128,129 @@ public static class TestImages
         public const string TestCard = "Qoi/testcard.qoi";
         public const string TestCardRGBA = "Qoi/testcard_rgba.qoi";
         public const string Wikipedia008 = "Qoi/wikipedia_008.qoi";
+    }
+
+    public static class Ico
+    {
+        public const string Flutter = "Icon/flutter.ico";
+        public const string Bpp1Size15x15 = "Icon/1bpp_size_15x15.ico";
+        public const string Bpp1Size16x16 = "Icon/1bpp_size_16x16.ico";
+        public const string Bpp1Size17x17 = "Icon/1bpp_size_17x17.ico";
+        public const string Bpp1Size1x1 = "Icon/1bpp_size_1x1.ico";
+        public const string Bpp1Size256x256 = "Icon/1bpp_size_256x256.ico";
+        public const string Bpp1Size2x2 = "Icon/1bpp_size_2x2.ico";
+        public const string Bpp1Size31x31 = "Icon/1bpp_size_31x31.ico";
+        public const string Bpp1Size32x32 = "Icon/1bpp_size_32x32.ico";
+        public const string Bpp1Size33x33 = "Icon/1bpp_size_33x33.ico";
+        public const string Bpp1Size3x3 = "Icon/1bpp_size_3x3.ico";
+        public const string Bpp1Size4x4 = "Icon/1bpp_size_4x4.ico";
+        public const string Bpp1Size5x5 = "Icon/1bpp_size_5x5.ico";
+        public const string Bpp1Size6x6 = "Icon/1bpp_size_6x6.ico";
+        public const string Bpp1Size7x7 = "Icon/1bpp_size_7x7.ico";
+        public const string Bpp1Size8x8 = "Icon/1bpp_size_8x8.ico";
+        public const string Bpp1Size9x9 = "Icon/1bpp_size_9x9.ico";
+        public const string Bpp1TranspNotSquare = "Icon/1bpp_transp_not_square.ico";
+        public const string Bpp1TranspPartial = "Icon/1bpp_transp_partial.ico";
+        public const string Bpp24Size15x15 = "Icon/24bpp_size_15x15.ico";
+        public const string Bpp24Size16x16 = "Icon/24bpp_size_16x16.ico";
+        public const string Bpp24Size17x17 = "Icon/24bpp_size_17x17.ico";
+        public const string Bpp24Size1x1 = "Icon/24bpp_size_1x1.ico";
+        public const string Bpp24Size256x256 = "Icon/24bpp_size_256x256.ico";
+        public const string Bpp24Size2x2 = "Icon/24bpp_size_2x2.ico";
+        public const string Bpp24Size31x31 = "Icon/24bpp_size_31x31.ico";
+        public const string Bpp24Size32x32 = "Icon/24bpp_size_32x32.ico";
+        public const string Bpp24Size33x33 = "Icon/24bpp_size_33x33.ico";
+        public const string Bpp24Size3x3 = "Icon/24bpp_size_3x3.ico";
+        public const string Bpp24Size4x4 = "Icon/24bpp_size_4x4.ico";
+        public const string Bpp24Size5x5 = "Icon/24bpp_size_5x5.ico";
+        public const string Bpp24Size6x6 = "Icon/24bpp_size_6x6.ico";
+        public const string Bpp24Size7x7 = "Icon/24bpp_size_7x7.ico";
+        public const string Bpp24Size8x8 = "Icon/24bpp_size_8x8.ico";
+        public const string Bpp24Size9x9 = "Icon/24bpp_size_9x9.ico";
+        public const string Bpp24TranspNotSquare = "Icon/24bpp_transp_not_square.ico";
+        public const string Bpp24TranspPartial = "Icon/24bpp_transp_partial.ico";
+        public const string Bpp24Transp = "Icon/24bpp_transp.ico";
+        public const string Bpp32Size15x15 = "Icon/32bpp_size_15x15.ico";
+        public const string Bpp32Size16x16 = "Icon/32bpp_size_16x16.ico";
+        public const string Bpp32Size17x17 = "Icon/32bpp_size_17x17.ico";
+        public const string Bpp32Size1x1 = "Icon/32bpp_size_1x1.ico";
+        public const string Bpp32Size256x256 = "Icon/32bpp_size_256x256.ico";
+        public const string Bpp32Size2x2 = "Icon/32bpp_size_2x2.ico";
+        public const string Bpp32Size31x31 = "Icon/32bpp_size_31x31.ico";
+        public const string Bpp32Size32x32 = "Icon/32bpp_size_32x32.ico";
+        public const string Bpp32Size33x33 = "Icon/32bpp_size_33x33.ico";
+        public const string Bpp32Size3x3 = "Icon/32bpp_size_3x3.ico";
+        public const string Bpp32Size4x4 = "Icon/32bpp_size_4x4.ico";
+        public const string Bpp32Size5x5 = "Icon/32bpp_size_5x5.ico";
+        public const string Bpp32Size6x6 = "Icon/32bpp_size_6x6.ico";
+        public const string Bpp32Size7x7 = "Icon/32bpp_size_7x7.ico";
+        public const string Bpp32Size8x8 = "Icon/32bpp_size_8x8.ico";
+        public const string Bpp32Size9x9 = "Icon/32bpp_size_9x9.ico";
+        public const string Bpp32TranspNotSquare = "Icon/32bpp_transp_not_square.ico";
+        public const string Bpp32TranspPartial = "Icon/32bpp_transp_partial.ico";
+        public const string Bpp32Transp = "Icon/32bpp_transp.ico";
+        public const string Bpp4Size15x15 = "Icon/4bpp_size_15x15.ico";
+        public const string Bpp4Size16x16 = "Icon/4bpp_size_16x16.ico";
+        public const string Bpp4Size17x17 = "Icon/4bpp_size_17x17.ico";
+        public const string Bpp4Size1x1 = "Icon/4bpp_size_1x1.ico";
+        public const string Bpp4Size256x256 = "Icon/4bpp_size_256x256.ico";
+        public const string Bpp4Size2x2 = "Icon/4bpp_size_2x2.ico";
+        public const string Bpp4Size31x31 = "Icon/4bpp_size_31x31.ico";
+        public const string Bpp4Size32x32 = "Icon/4bpp_size_32x32.ico";
+        public const string Bpp4Size33x33 = "Icon/4bpp_size_33x33.ico";
+        public const string Bpp4Size3x3 = "Icon/4bpp_size_3x3.ico";
+        public const string Bpp4Size4x4 = "Icon/4bpp_size_4x4.ico";
+        public const string Bpp4Size5x5 = "Icon/4bpp_size_5x5.ico";
+        public const string Bpp4Size6x6 = "Icon/4bpp_size_6x6.ico";
+        public const string Bpp4Size7x7 = "Icon/4bpp_size_7x7.ico";
+        public const string Bpp4Size8x8 = "Icon/4bpp_size_8x8.ico";
+        public const string Bpp4Size9x9 = "Icon/4bpp_size_9x9.ico";
+        public const string Bpp4TranspNotSquare = "Icon/4bpp_transp_not_square.ico";
+        public const string Bpp4TranspPartial = "Icon/4bpp_transp_partial.ico";
+        public const string Bpp8Size15x15 = "Icon/8bpp_size_15x15.ico";
+        public const string Bpp8Size16x16 = "Icon/8bpp_size_16x16.ico";
+        public const string Bpp8Size17x17 = "Icon/8bpp_size_17x17.ico";
+        public const string Bpp8Size1x1 = "Icon/8bpp_size_1x1.ico";
+        public const string Bpp8Size256x256 = "Icon/8bpp_size_256x256.ico";
+        public const string Bpp8Size2x2 = "Icon/8bpp_size_2x2.ico";
+        public const string Bpp8Size31x31 = "Icon/8bpp_size_31x31.ico";
+        public const string Bpp8Size32x32 = "Icon/8bpp_size_32x32.ico";
+        public const string Bpp8Size33x33 = "Icon/8bpp_size_33x33.ico";
+        public const string Bpp8Size3x3 = "Icon/8bpp_size_3x3.ico";
+        public const string Bpp8Size4x4 = "Icon/8bpp_size_4x4.ico";
+        public const string Bpp8Size5x5 = "Icon/8bpp_size_5x5.ico";
+        public const string Bpp8Size6x6 = "Icon/8bpp_size_6x6.ico";
+        public const string Bpp8Size7x7 = "Icon/8bpp_size_7x7.ico";
+        public const string Bpp8Size8x8 = "Icon/8bpp_size_8x8.ico";
+        public const string Bpp8Size9x9 = "Icon/8bpp_size_9x9.ico";
+        public const string Bpp8TranspNotSquare = "Icon/8bpp_transp_not_square.ico";
+        public const string Bpp8TranspPartial = "Icon/8bpp_transp_partial.ico";
+        public const string InvalidAll = "Icon/invalid_all.ico";
+        public const string InvalidBpp = "Icon/invalid_bpp.ico";
+        public const string InvalidCompression = "Icon/invalid_compression.ico";
+        public const string InvalidPng = "Icon/invalid_png.ico";
+        public const string InvalidRLE4 = "Icon/invalid_RLE4.ico";
+        public const string InvalidRLE8 = "Icon/invalid_RLE8.ico";
+        public const string MixedBmpPngA = "Icon/mixed_bmp_png_a.ico";
+        public const string MixedBmpPngB = "Icon/mixed_bmp_png_b.ico";
+        public const string MixedBmpPngC = "Icon/mixed_bmp_png_c.ico";
+        public const string MultiSizeA = "Icon/multi_size_a.ico";
+        public const string MultiSizeB = "Icon/multi_size_b.ico";
+        public const string MultiSizeC = "Icon/multi_size_c.ico";
+        public const string MultiSizeD = "Icon/multi_size_d.ico";
+        public const string MultiSizeE = "Icon/multi_size_e.ico";
+        public const string MultiSizeF = "Icon/multi_size_f.ico";
+        public const string MultiSizeMultiBitsA = "Icon/multi_size_multi_bits_a.ico";
+        public const string MultiSizeMultiBitsB = "Icon/multi_size_multi_bits_b.ico";
+        public const string MultiSizeMultiBitsC = "Icon/multi_size_multi_bits_c.ico";
+        public const string MultiSizeMultiBitsD = "Icon/multi_size_multi_bits_d.ico";
+        public const string IcoFake = "Icon/ico_fake.cur";
+    }
+
+    public static class Cur
+    {
+        public const string WindowsMouse = "Icon/aero_arrow.cur";
+        public const string CurReal = "Icon/cur_real.cur";
+        public const string CurFake = "Icon/cur_fake.ico";
     }
 }

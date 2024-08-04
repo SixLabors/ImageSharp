@@ -24,7 +24,7 @@ public class QoiEncoderTests
     public static void Encode<TPixel>(TestImageProvider<TPixel> provider, QoiChannels channels, QoiColorSpace colorSpace)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> image = provider.GetImage(new MagickReferenceDecoder());
+        using Image<TPixel> image = provider.GetImage(new MagickReferenceDecoder(QoiFormat.Instance));
         using MemoryStream stream = new();
         QoiEncoder encoder = new()
         {
@@ -34,7 +34,7 @@ public class QoiEncoderTests
         image.Save(stream, encoder);
         stream.Position = 0;
 
-        using Image<TPixel> encodedImage = (Image<TPixel>)Image.Load(stream);
+        using Image<TPixel> encodedImage = Image.Load<TPixel>(stream);
         QoiMetadata qoiMetadata = encodedImage.Metadata.GetQoiMetadata();
 
         ImageComparer.Exact.CompareImages(image, encodedImage);

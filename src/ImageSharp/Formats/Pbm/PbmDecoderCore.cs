@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.Formats.Pbm;
 /// <summary>
 /// Performs the PBM decoding operation.
 /// </summary>
-internal sealed class PbmDecoderCore : IImageDecoderInternals
+internal sealed class PbmDecoderCore : ImageDecoderCore
 {
     private int maxPixelValue;
 
@@ -52,24 +52,17 @@ internal sealed class PbmDecoderCore : IImageDecoderInternals
     /// </summary>
     /// <param name="options">The decoder options.</param>
     public PbmDecoderCore(DecoderOptions options)
+        : base(options)
     {
-        this.Options = options;
         this.configuration = options.Configuration;
     }
 
     /// <inheritdoc/>
-    public DecoderOptions Options { get; }
-
-    /// <inheritdoc/>
-    public Size Dimensions => this.pixelSize;
-
-    /// <inheritdoc/>
-    public Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
-        where TPixel : unmanaged, IPixel<TPixel>
+    protected override Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
     {
         this.ProcessHeader(stream);
 
-        var image = new Image<TPixel>(this.configuration, this.pixelSize.Width, this.pixelSize.Height, this.metadata);
+        Image<TPixel> image = new(this.configuration, this.pixelSize.Width, this.pixelSize.Height, this.metadata);
 
         Buffer2D<TPixel> pixels = image.GetRootFramePixelBuffer();
 
@@ -83,13 +76,12 @@ internal sealed class PbmDecoderCore : IImageDecoderInternals
     }
 
     /// <inheritdoc/>
-    public ImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken)
+    protected override ImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken)
     {
         this.ProcessHeader(stream);
-
-        // BlackAndWhite pixels are encoded into a byte.
-        int bitsPerPixel = this.componentType == PbmComponentType.Short ? 16 : 8;
-        return new ImageInfo(new PixelTypeInfo(bitsPerPixel), new(this.pixelSize.Width, this.pixelSize.Height), this.metadata);
+        return new ImageInfo(
+            new(this.pixelSize.Width, this.pixelSize.Height),
+            this.metadata);
     }
 
     /// <summary>
@@ -97,6 +89,7 @@ internal sealed class PbmDecoderCore : IImageDecoderInternals
     /// </summary>
     /// <param name="stream">The input stream.</param>
     /// <exception cref="InvalidImageContentException">An EOF marker has been read before the image has been decoded.</exception>
+    [MemberNotNull(nameof(metadata))]
     private void ProcessHeader(BufferedReadStream stream)
     {
         Span<byte> buffer = stackalloc byte[2];
@@ -179,6 +172,7 @@ internal sealed class PbmDecoderCore : IImageDecoderInternals
         }
 
         this.pixelSize = new Size(width, height);
+        this.Dimensions = this.pixelSize;
         this.metadata = new ImageMetadata();
         PbmMetadata meta = this.metadata.GetPbmMetadata();
         meta.Encoding = this.encoding;

@@ -29,7 +29,7 @@ namespace SixLabors.ImageSharp.Formats.Png;
 /// <summary>
 /// Performs the png decoding operation.
 /// </summary>
-internal sealed class PngDecoderCore : IImageDecoderInternals
+internal sealed class PngDecoderCore : ImageDecoderCore
 {
     /// <summary>
     /// The general decoder options.
@@ -136,8 +136,8 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
     /// </summary>
     /// <param name="options">The decoder options.</param>
     public PngDecoderCore(PngDecoderOptions options)
+        : base(options.GeneralOptions)
     {
-        this.Options = options.GeneralOptions;
         this.configuration = options.GeneralOptions.Configuration;
         this.maxFrames = options.GeneralOptions.MaxFrames;
         this.skipMetadata = options.GeneralOptions.SkipMetadata;
@@ -147,8 +147,8 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
     }
 
     internal PngDecoderCore(PngDecoderOptions options, bool colorMetadataOnly)
+        : base(options.GeneralOptions)
     {
-        this.Options = options.GeneralOptions;
         this.colorMetadataOnly = colorMetadataOnly;
         this.maxFrames = options.GeneralOptions.MaxFrames;
         this.skipMetadata = true;
@@ -159,14 +159,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
     }
 
     /// <inheritdoc/>
-    public DecoderOptions Options { get; }
-
-    /// <inheritdoc/>
-    public Size Dimensions => new(this.header.Width, this.header.Height);
-
-    /// <inheritdoc/>
-    public Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
-        where TPixel : unmanaged, IPixel<TPixel>
+    protected override Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
     {
         uint frameCount = 0;
         ImageMetadata metadata = new();
@@ -210,18 +203,13 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
                             break;
                         case PngChunkType.FrameControl:
                             frameCount++;
-                            if (frameCount == this.maxFrames)
-                            {
-                                break;
-                            }
-
                             currentFrame = null;
                             currentFrameControl = this.ReadFrameControlChunk(chunk.Data.GetSpan());
                             break;
                         case PngChunkType.FrameData:
-                            if (frameCount == this.maxFrames)
+                            if (frameCount >= this.maxFrames)
                             {
-                                break;
+                                goto EOF;
                             }
 
                             if (image is null)
@@ -234,8 +222,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
                                 PngThrowHelper.ThrowMissingFrameControl();
                             }
 
-                            previousFrameControl ??= new((uint)this.header.Width, (uint)this.header.Height);
-                            this.InitializeFrame(previousFrameControl.Value, currentFrameControl.Value, image, previousFrame, out currentFrame);
+                            this.InitializeFrame(previousFrameControl, currentFrameControl.Value, image, previousFrame, out currentFrame);
 
                             this.currentStream.Position += 4;
                             this.ReadScanlines(
@@ -246,11 +233,16 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
                                 currentFrameControl.Value,
                                 cancellationToken);
 
-                            previousFrame = currentFrame;
-                            previousFrameControl = currentFrameControl;
+                            // if current frame dispose is restore to previous, then from future frame's perspective, it never happened
+                            if (currentFrameControl.Value.DisposalMode != FrameDisposalMode.RestoreToPrevious)
+                            {
+                                previousFrame = currentFrame;
+                                previousFrameControl = currentFrameControl;
+                            }
+
                             break;
                         case PngChunkType.Data:
-
+                            pngMetadata.AnimateRootFrame = currentFrameControl != null;
                             currentFrameControl ??= new((uint)this.header.Width, (uint)this.header.Height);
                             if (image is null)
                             {
@@ -267,9 +259,17 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
                                 this.ReadNextDataChunk,
                                 currentFrameControl.Value,
                                 cancellationToken);
+                            if (pngMetadata.AnimateRootFrame)
+                            {
+                                previousFrame = currentFrame;
+                                previousFrameControl = currentFrameControl;
+                            }
 
-                            previousFrame = currentFrame;
-                            previousFrameControl = currentFrameControl;
+                            if (frameCount >= this.maxFrames)
+                            {
+                                goto EOF;
+                            }
+
                             break;
                         case PngChunkType.Palette:
                             this.palette = chunk.Data.GetSpan().ToArray();
@@ -334,13 +334,14 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
     }
 
     /// <inheritdoc/>
-    public ImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken)
+    protected override ImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken)
     {
         uint frameCount = 0;
         ImageMetadata metadata = new();
+        List<ImageFrameMetadata> framesMetadata = [];
         PngMetadata pngMetadata = metadata.GetPngMetadata();
         this.currentStream = stream;
-        FrameControl? lastFrameControl = null;
+        FrameControl? currentFrameControl = null;
         Span<byte> buffer = stackalloc byte[20];
 
         this.currentStream.Skip(8);
@@ -388,15 +389,16 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
                             break;
                         case PngChunkType.FrameControl:
                             ++frameCount;
-                            if (frameCount == this.maxFrames)
+                            if (frameCount >= this.maxFrames)
                             {
                                 break;
                             }
 
-                            lastFrameControl = this.ReadFrameControlChunk(chunk.Data.GetSpan());
+                            currentFrameControl = this.ReadFrameControlChunk(chunk.Data.GetSpan());
+
                             break;
                         case PngChunkType.FrameData:
-                            if (frameCount == this.maxFrames)
+                            if (frameCount >= this.maxFrames)
                             {
                                 break;
                             }
@@ -406,20 +408,33 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
                                 goto EOF;
                             }
 
-                            if (lastFrameControl is null)
+                            if (currentFrameControl is null)
                             {
                                 PngThrowHelper.ThrowMissingFrameControl();
                             }
+
+                            InitializeFrameMetadata(framesMetadata, currentFrameControl.Value);
 
                             // Skip sequence number
                             this.currentStream.Skip(4);
                             this.SkipChunkDataAndCrc(chunk);
                             break;
                         case PngChunkType.Data:
+
                             // Spec says tRNS must be before IDAT so safe to exit.
                             if (this.colorMetadataOnly)
                             {
                                 goto EOF;
+                            }
+
+                            pngMetadata.AnimateRootFrame = currentFrameControl != null;
+                            currentFrameControl ??= new((uint)this.header.Width, (uint)this.header.Height);
+                            if (framesMetadata.Count == 0)
+                            {
+                                InitializeFrameMetadata(framesMetadata, currentFrameControl.Value);
+
+                                // Both PLTE and tRNS chunks, if present, have been read at this point as per spec.
+                                AssignColorPalette(this.palette, this.paletteAlpha, pngMetadata);
                             }
 
                             this.SkipChunkDataAndCrc(chunk);
@@ -505,10 +520,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
                 PngThrowHelper.ThrowInvalidHeader();
             }
 
-            // Both PLTE and tRNS chunks, if present, have been read at this point as per spec.
-            AssignColorPalette(this.palette, this.paletteAlpha, pngMetadata);
-
-            return new ImageInfo(new PixelTypeInfo(this.CalculateBitsPerPixel()), new(this.header.Width, this.header.Height), metadata);
+            return new ImageInfo(new(this.header.Width, this.header.Height), metadata, framesMetadata);
         }
         finally
         {
@@ -638,7 +650,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
     /// <param name="previousFrame">The previous frame.</param>
     /// <param name="frame">The created frame</param>
     private void InitializeFrame<TPixel>(
-        FrameControl previousFrameControl,
+        FrameControl? previousFrameControl,
         FrameControl currentFrameControl,
         Image<TPixel> image,
         ImageFrame<TPixel>? previousFrame,
@@ -651,12 +663,16 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
         frame = image.Frames.AddFrame(previousFrame ?? image.Frames.RootFrame);
 
         // If the first `fcTL` chunk uses a `dispose_op` of APNG_DISPOSE_OP_PREVIOUS it should be treated as APNG_DISPOSE_OP_BACKGROUND.
-        if (previousFrameControl.DisposeOperation == PngDisposalMethod.RestoreToBackground
-            || (previousFrame is null && previousFrameControl.DisposeOperation == PngDisposalMethod.RestoreToPrevious))
+        // So, if restoring to before first frame, clear entire area. Same if first frame (previousFrameControl null).
+        if (previousFrameControl == null || (previousFrame is null && previousFrameControl.Value.DisposalMode == FrameDisposalMode.RestoreToPrevious))
         {
-            Rectangle restoreArea = previousFrameControl.Bounds;
-            Rectangle interest = Rectangle.Intersect(frame.Bounds(), restoreArea);
-            Buffer2DRegion<TPixel> pixelRegion = frame.PixelBuffer.GetRegion(interest);
+            Buffer2DRegion<TPixel> pixelRegion = frame.PixelBuffer.GetRegion();
+            pixelRegion.Clear();
+        }
+        else if (previousFrameControl.Value.DisposalMode == FrameDisposalMode.RestoreToBackground)
+        {
+            Rectangle restoreArea = previousFrameControl.Value.Bounds;
+            Buffer2DRegion<TPixel> pixelRegion = frame.PixelBuffer.GetRegion(restoreArea);
             pixelRegion.Clear();
         }
 
@@ -669,27 +685,12 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
         this.scanline = this.configuration.MemoryAllocator.Allocate<byte>(this.bytesPerScanline, AllocationOptions.Clean);
     }
 
-    /// <summary>
-    /// Calculates the correct number of bits per pixel for the given color type.
-    /// </summary>
-    /// <returns>The <see cref="int"/></returns>
-    private int CalculateBitsPerPixel()
+    private static void InitializeFrameMetadata(List<ImageFrameMetadata> imageFrameMetadata, FrameControl currentFrameControl)
     {
-        switch (this.pngColorType)
-        {
-            case PngColorType.Grayscale:
-            case PngColorType.Palette:
-                return this.header.BitDepth;
-            case PngColorType.GrayscaleWithAlpha:
-                return this.header.BitDepth * 2;
-            case PngColorType.Rgb:
-                return this.header.BitDepth * 3;
-            case PngColorType.RgbWithAlpha:
-                return this.header.BitDepth * 4;
-            default:
-                PngThrowHelper.ThrowNotSupportedColor();
-                return -1;
-        }
+        ImageFrameMetadata meta = new();
+        PngFrameMetadata frameMetadata = meta.GetPngMetadata();
+        frameMetadata.FromChunk(currentFrameControl);
+        imageFrameMetadata.Add(meta);
     }
 
     /// <summary>
@@ -783,8 +784,8 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
         int height = (int)frameControl.YMax;
 
         IMemoryOwner<TPixel>? blendMemory = null;
-        Span<TPixel> blendRowBuffer = Span<TPixel>.Empty;
-        if (frameControl.BlendOperation == PngBlendMethod.Over)
+        Span<TPixel> blendRowBuffer = [];
+        if (frameControl.BlendMode == FrameBlendMode.Over)
         {
             blendMemory = this.memoryAllocator.Allocate<TPixel>(imageFrame.Width, AllocationOptions.Clean);
             blendRowBuffer = blendMemory.Memory.Span;
@@ -876,8 +877,8 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
         Buffer2D<TPixel> imageBuffer = imageFrame.PixelBuffer;
 
         IMemoryOwner<TPixel>? blendMemory = null;
-        Span<TPixel> blendRowBuffer = Span<TPixel>.Empty;
-        if (frameControl.BlendOperation == PngBlendMethod.Over)
+        Span<TPixel> blendRowBuffer = [];
+        if (frameControl.BlendMode == FrameBlendMode.Over)
         {
             blendMemory = this.memoryAllocator.Allocate<TPixel>(imageFrame.Width, AllocationOptions.Clean);
             blendRowBuffer = blendMemory.Memory.Span;
@@ -1002,7 +1003,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
     {
         Span<TPixel> destination = pixels.PixelBuffer.DangerousGetRowSpan(currentRow);
 
-        bool blend = frameControl.BlendOperation == PngBlendMethod.Over;
+        bool blend = frameControl.BlendMode == FrameBlendMode.Over;
         Span<TPixel> rowSpan = blend
             ? blendRowBuffer
             : destination;
@@ -1115,7 +1116,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
         int increment = 1)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        bool blend = frameControl.BlendOperation == PngBlendMethod.Over;
+        bool blend = frameControl.BlendMode == FrameBlendMode.Over;
         Span<TPixel> rowSpan = blend
             ? blendRowBuffer
             : destination;
@@ -1331,6 +1332,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
         pngMetadata.InterlaceMethod = this.header.InterlaceMethod;
 
         this.pngColorType = this.header.ColorType;
+        this.Dimensions = new(this.header.Width, this.header.Height);
     }
 
     /// <summary>
@@ -1449,7 +1451,20 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
         byte colorPrimaries = data[0];
         byte transferFunction = data[1];
         byte matrixCoefficients = data[2];
-        bool? fullRange = data[3] == 1 ? true : data[3] == 0 ? false : null;
+        bool? fullRange;
+        if (data[3] == 1)
+        {
+            fullRange = true;
+        }
+        else if (data[3] == 0)
+        {
+            fullRange = false;
+        }
+        else
+        {
+            fullRange = null;
+        }
+
         metadata.CicpProfile = new CicpProfile(colorPrimaries, transferFunction, matrixCoefficients, fullRange);
     }
 
@@ -1481,7 +1496,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
 
         // Sequence of bytes for the exif header ("Exif" ASCII and two zero bytes).
         // This doesn't actually allocate.
-        ReadOnlySpan<byte> exifHeader = new byte[] { 0x45, 0x78, 0x69, 0x66, 0x00, 0x00 };
+        ReadOnlySpan<byte> exifHeader = [0x45, 0x78, 0x69, 0x66, 0x00, 0x00];
 
         if (dataLength < exifHeader.Length)
         {
@@ -1592,7 +1607,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
             Span<byte> destUncompressedData = destBuffer.GetSpan();
             if (!inflateStream.AllocateNewBytes(compressedData.Length, false))
             {
-                uncompressedBytesArray = Array.Empty<byte>();
+                uncompressedBytesArray = [];
                 return false;
             }
 
@@ -1601,7 +1616,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
             {
                 if (memoryStreamOutput.Length > maxLength)
                 {
-                    uncompressedBytesArray = Array.Empty<byte>();
+                    uncompressedBytesArray = [];
                     return false;
                 }
 
@@ -1968,10 +1983,13 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
     {
         if (length == 0)
         {
-            return new BasicArrayBuffer<byte>(Array.Empty<byte>());
+            return new BasicArrayBuffer<byte>([]);
         }
 
         // We rent the buffer here to return it afterwards in Decode()
+        // We don't want to throw a degenerated memory exception here as we want to allow partial decoding
+        // so limit the length.
+        length = (int)Math.Min(length, this.currentStream.Length - this.currentStream.Position);
         IMemoryOwner<byte> buffer = this.configuration.MemoryAllocator.Allocate<byte>(length, AllocationOptions.Clean);
 
         this.currentStream.Read(buffer.GetSpan(), 0, length);

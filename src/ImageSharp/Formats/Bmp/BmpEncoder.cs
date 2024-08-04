@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Processing;
 
 namespace SixLabors.ImageSharp.Formats.Bmp;
@@ -28,6 +27,15 @@ public sealed class BmpEncoder : QuantizingImageEncoder
     /// Instead a bitmap version 4 info header will be written with the BITFIELDS compression.
     /// </summary>
     public bool SupportTransparency { get; init; }
+
+    /// <inheritdoc cref="BmpDecoderOptions.ProcessedAlphaMask"/>
+    internal bool ProcessedAlphaMask { get; init; }
+
+    /// <inheritdoc cref="BmpDecoderOptions.SkipFileHeader"/>
+    internal bool SkipFileHeader { get; init; }
+
+    /// <inheritdoc cref="BmpDecoderOptions.UseDoubleHeight"/>
+    internal bool UseDoubleHeight { get; init; }
 
     /// <inheritdoc/>
     protected override void Encode<TPixel>(Image<TPixel> image, Stream stream, CancellationToken cancellationToken)

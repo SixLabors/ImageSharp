@@ -1,0 +1,28 @@
+<#@ template debug="false" hostspecific="false" language="C#" #>
+<#@ assembly name="System.Core" #>
+// Copyright (c) Six Labors.
+// Licensed under the Six Labors Split License.
+<#+
+    private static readonly string[] formats = new []{
+        "Bmp",
+        "Cur",
+        "Gif",
+        "Ico",
+        "Jpeg",
+        "Pbm",
+        "Png",
+        "Qoi",
+        "Tga",
+        "Tiff",
+        "Webp",
+    };
+
+    private static readonly string[] frameFormats = new []{
+        "Cur",
+        "Ico",
+        "Gif",
+        "Png",
+        "Tiff",
+        "Webp",
+    };
+#>

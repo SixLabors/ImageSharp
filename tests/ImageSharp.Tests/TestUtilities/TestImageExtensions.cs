@@ -697,23 +697,6 @@ public static class TestImageExtensions
         return new AllocatorBufferCapacityConfigurator(allocator, Unsafe.SizeOf<TPixel>());
     }
 
-    internal static Image<Rgba32> ToGrayscaleImage(this Buffer2D<float> buffer, float scale)
-    {
-        Image<Rgba32> image = new(buffer.Width, buffer.Height);
-
-        Assert.True(image.Frames.RootFrame.DangerousTryGetSinglePixelMemory(out Memory<Rgba32> pixelMem));
-        Span<Rgba32> pixels = pixelMem.Span;
-        Span<float> bufferSpan = buffer.DangerousGetSingleSpan();
-
-        for (int i = 0; i < bufferSpan.Length; i++)
-        {
-            float value = bufferSpan[i] * scale;
-            pixels[i] = Rgba32.FromVector4(new Vector4(value, value, value, 1f));
-        }
-
-        return image;
-    }
-
     private class MakeOpaqueProcessor : IImageProcessor
     {
         public IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>(Configuration configuration, Image<TPixel> source, Rectangle sourceRectangle)

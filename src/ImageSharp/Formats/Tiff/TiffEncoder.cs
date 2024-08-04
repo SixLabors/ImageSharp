@@ -47,7 +47,7 @@ public class TiffEncoder : QuantizingImageEncoder
     /// <inheritdoc/>
     protected override void Encode<TPixel>(Image<TPixel> image, Stream stream, CancellationToken cancellationToken)
     {
-        TiffEncoderCore encode = new(this, image.Configuration.MemoryAllocator);
+        TiffEncoderCore encode = new(this, image.Configuration);
         encode.Encode(image, stream, cancellationToken);
     }
 }

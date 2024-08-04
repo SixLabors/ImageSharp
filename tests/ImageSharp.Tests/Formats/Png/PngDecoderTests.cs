@@ -87,7 +87,9 @@ public partial class PngDecoderTests
         TestImages.Png.DisposeBackgroundRegion,
         TestImages.Png.DisposePreviousFirst,
         TestImages.Png.DisposeBackgroundBeforeRegion,
-        TestImages.Png.BlendOverMultiple
+        TestImages.Png.BlendOverMultiple,
+        TestImages.Png.FrameOffset,
+        TestImages.Png.DefaultNotAnimated
     };
 
     [Theory]
@@ -483,7 +485,7 @@ public partial class PngDecoderTests
         if (compare)
         {
             // Magick cannot actually decode this image to compare.
-            image.CompareToOriginal(provider, new MagickReferenceDecoder(false));
+            image.CompareToOriginal(provider, new MagickReferenceDecoder(PngFormat.Instance, false));
         }
     }
 
@@ -550,7 +552,7 @@ public partial class PngDecoderTests
                 // We don't have another x-plat reference decoder that can be compared for this image.
                 if (TestEnvironment.IsWindows)
                 {
-                    image.CompareToOriginal(provider, ImageComparer.Exact, SystemDrawingReferenceDecoder.Instance);
+                    image.CompareToOriginal(provider, ImageComparer.Exact, SystemDrawingReferenceDecoder.Png);
                 }
             });
         Assert.Null(ex);
@@ -612,7 +614,7 @@ public partial class PngDecoderTests
                 // We don't have another x-plat reference decoder that can be compared for this image.
                 if (TestEnvironment.IsWindows)
                 {
-                    image.CompareToOriginal(provider, ImageComparer.Exact, SystemDrawingReferenceDecoder.Instance);
+                    image.CompareToOriginal(provider, ImageComparer.Exact, SystemDrawingReferenceDecoder.Png);
                 }
             });
         Assert.NotNull(ex);
@@ -690,5 +692,23 @@ public partial class PngDecoderTests
     {
         string path = Path.GetFullPath(Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, file));
         _ = Image.Identify(path);
+    }
+
+    [Theory]
+    [InlineData(TestImages.Png.Bad.Issue2714BadPalette)]
+    public void Decode_BadPalette(string file)
+    {
+        string path = Path.GetFullPath(Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, file));
+        using Image image = Image.Load(path);
+    }
+
+    [Theory]
+    [WithFile(TestImages.Png.Issue2752, PixelTypes.Rgba32)]
+    public void CanDecodeJustOneFrame<TPixel>(TestImageProvider<TPixel> provider)
+    where TPixel : unmanaged, IPixel<TPixel>
+    {
+        DecoderOptions options = new() { MaxFrames = 1 };
+        using Image<TPixel> image = provider.GetImage(PngDecoder.Instance, options);
+        Assert.Equal(1, image.Frames.Count);
     }
 }

@@ -236,17 +236,16 @@ internal class Vp8LEncoder : IDisposable
     /// </summary>
     public Vp8LHashChain HashChain { get; }
 
-    public void EncodeHeader<TPixel>(Image<TPixel> image, Stream stream, bool hasAnimation)
+    public WebpVp8X EncodeHeader<TPixel>(Image<TPixel> image, Stream stream, bool hasAnimation)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         // Write bytes from the bit-writer buffer to the stream.
         ImageMetadata metadata = image.Metadata;
-        metadata.SyncProfiles();
-
         ExifProfile exifProfile = this.skipMetadata ? null : metadata.ExifProfile;
         XmpProfile xmpProfile = this.skipMetadata ? null : metadata.XmpProfile;
 
-        BitWriterBase.WriteTrunksBeforeData(
+        // The alpha flag is updated following encoding.
+        WebpVp8X vp8x = BitWriterBase.WriteTrunksBeforeData(
             stream,
             (uint)image.Width,
             (uint)image.Height,
@@ -258,12 +257,14 @@ internal class Vp8LEncoder : IDisposable
 
         if (hasAnimation)
         {
-            WebpMetadata webpMetadata = WebpCommonUtils.GetWebpMetadata(image);
+            WebpMetadata webpMetadata = image.Metadata.GetWebpMetadata();
             BitWriterBase.WriteAnimationParameter(stream, webpMetadata.BackgroundColor, webpMetadata.RepeatCount);
         }
+
+        return vp8x;
     }
 
-    public void EncodeFooter<TPixel>(Image<TPixel> image, Stream stream)
+    public void EncodeFooter<TPixel>(Image<TPixel> image, in WebpVp8X vp8x, bool hasAlpha, Stream stream, long initialPosition)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         // Write bytes from the bit-writer buffer to the stream.
@@ -272,7 +273,9 @@ internal class Vp8LEncoder : IDisposable
         ExifProfile exifProfile = this.skipMetadata ? null : metadata.ExifProfile;
         XmpProfile xmpProfile = this.skipMetadata ? null : metadata.XmpProfile;
 
-        BitWriterBase.WriteTrunksAfterData(stream, exifProfile, xmpProfile);
+        bool updateVp8x = hasAlpha && vp8x != default;
+        WebpVp8X updated = updateVp8x ? vp8x.WithAlpha(true) : vp8x;
+        BitWriterBase.WriteTrunksAfterData(stream, in updated, updateVp8x, initialPosition, exifProfile, xmpProfile);
     }
 
     /// <summary>
@@ -284,7 +287,8 @@ internal class Vp8LEncoder : IDisposable
     /// <param name="frameMetadata">The frame metadata.</param>
     /// <param name="stream">The <see cref="Stream"/> to encode the image data to.</param>
     /// <param name="hasAnimation">Flag indicating, if an animation parameter is present.</param>
-    public void Encode<TPixel>(ImageFrame<TPixel> frame, Rectangle bounds, WebpFrameMetadata frameMetadata, Stream stream, bool hasAnimation)
+    /// <returns>A <see cref="bool"/> indicating whether the frame contains an alpha channel.</returns>
+    public bool Encode<TPixel>(ImageFrame<TPixel> frame, Rectangle bounds, WebpFrameMetadata frameMetadata, Stream stream, bool hasAnimation)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         // Convert image pixels to bgra array.
@@ -323,6 +327,8 @@ internal class Vp8LEncoder : IDisposable
         {
             RiffHelper.EndWriteChunk(stream, prevPosition);
         }
+
+        return hasAlpha;
     }
 
     /// <summary>
@@ -501,7 +507,7 @@ internal class Vp8LEncoder : IDisposable
     /// <typeparam name="TPixel">The type of the pixels.</typeparam>
     /// <param name="pixels">The frame pixel buffer to convert.</param>
     /// <returns>true, if the image is non opaque.</returns>
-    private bool ConvertPixelsToBgra<TPixel>(Buffer2DRegion<TPixel> pixels)
+    public bool ConvertPixelsToBgra<TPixel>(Buffer2DRegion<TPixel> pixels)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         bool nonOpaque = false;
@@ -690,6 +696,8 @@ internal class Vp8LEncoder : IDisposable
                     }
                 }
 
+                histogramImageSize = maxIndex;
+
                 this.bitWriter.PutBits((uint)(this.HistoBits - 2), 3);
                 this.EncodeImageNoHuffman(
                     histogramBgra,
@@ -705,7 +713,7 @@ internal class Vp8LEncoder : IDisposable
             // Store Huffman codes.
             // Find maximum number of symbols for the huffman tree-set.
             int maxTokens = 0;
-            for (int i = 0; i < 5 * histogramImage.Count; i++)
+            for (int i = 0; i < 5 * histogramImageSize; i++)
             {
                 HuffmanTreeCode codes = huffmanCodes[i];
                 if (maxTokens < codes.NumSymbols)
@@ -720,7 +728,7 @@ internal class Vp8LEncoder : IDisposable
                 tokens[i] = new HuffmanTreeToken();
             }
 
-            for (int i = 0; i < 5 * histogramImage.Count; i++)
+            for (int i = 0; i < 5 * histogramImageSize; i++)
             {
                 HuffmanTreeCode codes = huffmanCodes[i];
                 this.StoreHuffmanCode(huffTree, tokens, codes);

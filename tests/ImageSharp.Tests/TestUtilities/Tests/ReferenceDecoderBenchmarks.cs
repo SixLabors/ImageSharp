@@ -47,7 +47,7 @@ public class ReferenceDecoderBenchmarks
     public void BenchmarkMagickPngDecoder<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        this.BenchmarkDecoderImpl(PngBenchmarkFiles, new MagickReferenceDecoder(), "Magick Decode Png");
+        this.BenchmarkDecoderImpl(PngBenchmarkFiles, MagickReferenceDecoder.Png, "Magick Decode Png");
     }
 
     [Theory(Skip = SkipBenchmarks)]
@@ -55,7 +55,7 @@ public class ReferenceDecoderBenchmarks
     public void BenchmarkSystemDrawingPngDecoder<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        this.BenchmarkDecoderImpl(PngBenchmarkFiles, new SystemDrawingReferenceDecoder(), "System.Drawing Decode Png");
+        this.BenchmarkDecoderImpl(PngBenchmarkFiles, SystemDrawingReferenceDecoder.Png, "System.Drawing Decode Png");
     }
 
     [Theory(Skip = SkipBenchmarks)]
@@ -63,7 +63,7 @@ public class ReferenceDecoderBenchmarks
     public void BenchmarkMagickBmpDecoder<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        this.BenchmarkDecoderImpl(BmpBenchmarkFiles, new MagickReferenceDecoder(), "Magick Decode Bmp");
+        this.BenchmarkDecoderImpl(BmpBenchmarkFiles, MagickReferenceDecoder.Bmp, "Magick Decode Bmp");
     }
 
     [Theory(Skip = SkipBenchmarks)]
@@ -71,7 +71,7 @@ public class ReferenceDecoderBenchmarks
     public void BenchmarkSystemDrawingBmpDecoder<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        this.BenchmarkDecoderImpl(BmpBenchmarkFiles, new SystemDrawingReferenceDecoder(), "System.Drawing Decode Bmp");
+        this.BenchmarkDecoderImpl(BmpBenchmarkFiles, SystemDrawingReferenceDecoder.Bmp, "System.Drawing Decode Bmp");
     }
 
     private void BenchmarkDecoderImpl(IEnumerable<string> testFiles, IImageDecoder decoder, string info, int times = DefaultExecutionCount)

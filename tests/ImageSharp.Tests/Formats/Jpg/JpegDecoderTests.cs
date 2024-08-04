@@ -20,7 +20,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg;
 [ValidateDisposedMemoryAllocations]
 public partial class JpegDecoderTests
 {
-    private static MagickReferenceDecoder ReferenceDecoder => new();
+    private static MagickReferenceDecoder ReferenceDecoder => MagickReferenceDecoder.Jpeg;
 
     public const PixelTypes CommonNonDefaultPixelTypes = PixelTypes.Rgba32 | PixelTypes.Argb32 | PixelTypes.Bgr24 | PixelTypes.RgbaVector;
 
@@ -67,11 +67,11 @@ public partial class JpegDecoderTests
     public void ParseStream_BasicPropertiesAreCorrect()
     {
         JpegDecoderOptions options = new();
+        Configuration configuration = options.GeneralOptions.Configuration;
         byte[] bytes = TestFile.Create(TestImages.Jpeg.Progressive.Progress).Bytes;
         using MemoryStream ms = new(bytes);
-        using BufferedReadStream bufferedStream = new(Configuration.Default, ms);
         using JpegDecoderCore decoder = new(options);
-        using Image<Rgba32> image = decoder.Decode<Rgba32>(bufferedStream, cancellationToken: default);
+        using Image<Rgba32> image = decoder.Decode<Rgba32>(configuration, ms, cancellationToken: default);
 
         // I don't know why these numbers are different. All I know is that the decoder works
         // and spectral data is exactly correct also.
@@ -338,26 +338,27 @@ public partial class JpegDecoderTests
     }
 
     [Theory]
-    [WithFile(TestImages.Jpeg.Issues.HangBadScan, PixelTypes.L8)]
-    public void DecodeHang<TPixel>(TestImageProvider<TPixel> provider)
+    [WithFile(TestImages.Jpeg.Issues.HangBadScan, PixelTypes.Rgb24)]
+    public void DecodeHang_ThrowsException<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
-    {
-        if (TestEnvironment.IsWindows &&
-            TestEnvironment.RunsOnCI)
-        {
-            // Windows CI runs consistently fail with OOM.
-            return;
-        }
-
-        using Image<TPixel> image = provider.GetImage(JpegDecoder.Instance);
-        Assert.Equal(65503, image.Width);
-        Assert.Equal(65503, image.Height);
-    }
+        => Assert.Throws<InvalidImageContentException>(
+            () => { using Image<TPixel> image = provider.GetImage(JpegDecoder.Instance); });
 
     // https://github.com/SixLabors/ImageSharp/issues/2517
     [Theory]
     [WithFile(TestImages.Jpeg.Issues.Issue2517, PixelTypes.Rgba32)]
     public void Issue2517_DecodeWorks<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage(JpegDecoder.Instance);
+        image.DebugSave(provider);
+        image.CompareToOriginal(provider);
+    }
+
+    // https://github.com/SixLabors/ImageSharp/issues/2638
+    [Theory]
+    [WithFile(TestImages.Jpeg.Issues.Issue2638, PixelTypes.Rgba32)]
+    public void Issue2638_DecodeWorks<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         using Image<TPixel> image = provider.GetImage(JpegDecoder.Instance);

@@ -18,7 +18,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp;
 [ValidateDisposedMemoryAllocations]
 public class WebpDecoderTests
 {
-    private static MagickReferenceDecoder ReferenceDecoder => new();
+    private static MagickReferenceDecoder ReferenceDecoder => MagickReferenceDecoder.WebP;
 
     private static string TestImageLossyHorizontalFilterPath => Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, Lossy.AlphaCompressedHorizontalFilter);
 
@@ -30,8 +30,8 @@ public class WebpDecoderTests
 
     [Theory]
     [InlineData(Lossless.GreenTransform1, 1000, 307, 32)]
-    [InlineData(Lossless.BikeThreeTransforms, 250, 195, 32)]
-    [InlineData(Lossless.NoTransform2, 128, 128, 32)]
+    [InlineData(Lossless.BikeThreeTransforms, 250, 195, 24)]
+    [InlineData(Lossless.NoTransform2, 128, 128, 24)]
     [InlineData(Lossy.Alpha1, 1000, 307, 32)]
     [InlineData(Lossy.Alpha2, 1000, 307, 32)]
     [InlineData(Lossy.BikeWithExif, 250, 195, 24)]

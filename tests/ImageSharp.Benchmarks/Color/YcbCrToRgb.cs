@@ -11,9 +11,9 @@ public class YcbCrToRgb
     [Benchmark(Baseline = true, Description = "Floating Point Conversion")]
     public Vector3 YcbCrToRgba()
     {
-        int y = 255;
-        int cb = 128;
-        int cr = 128;
+        const int y = 255;
+        const int cb = 128;
+        const int cr = 128;
 
         int ccb = cb - 128;
         int ccr = cr - 128;
@@ -28,9 +28,9 @@ public class YcbCrToRgb
     [Benchmark(Description = "Scaled Integer Conversion")]
     public Vector3 YcbCrToRgbaScaled()
     {
-        int y = 255;
-        int cb = 128;
-        int cr = 128;
+        const int y = 255;
+        const int cb = 128;
+        const int cr = 128;
 
         int ccb = cb - 128;
         int ccr = cr - 128;

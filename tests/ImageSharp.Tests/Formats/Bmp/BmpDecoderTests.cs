@@ -4,6 +4,7 @@
 using Microsoft.DotNet.RemoteExecutor;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Bmp;
+using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
@@ -112,7 +113,7 @@ public class BmpDecoderTests
     {
         using Image<TPixel> image = provider.GetImage(BmpDecoder.Instance);
         image.DebugSave(provider);
-        image.CompareToOriginal(provider, new SystemDrawingReferenceDecoder());
+        image.CompareToOriginal(provider, new SystemDrawingReferenceDecoder(BmpFormat.Instance));
     }
 
     [Theory]
@@ -219,7 +220,7 @@ public class BmpDecoderTests
         image.DebugSave(provider);
         if (TestEnvironment.IsWindows)
         {
-            image.CompareToOriginal(provider, new SystemDrawingReferenceDecoder());
+            image.CompareToOriginal(provider, new SystemDrawingReferenceDecoder(BmpFormat.Instance));
         }
     }
 
@@ -232,7 +233,7 @@ public class BmpDecoderTests
         BmpDecoderOptions options = new() { RleSkippedPixelHandling = RleSkippedPixelHandling.FirstColorOfPalette };
         using Image<TPixel> image = provider.GetImage(BmpDecoder.Instance, options);
         image.DebugSave(provider);
-        image.CompareToOriginal(provider, new MagickReferenceDecoder());
+        image.CompareToOriginal(provider, MagickReferenceDecoder.Png);
     }
 
     [Theory]
@@ -251,7 +252,7 @@ public class BmpDecoderTests
         BmpDecoderOptions options = new() { RleSkippedPixelHandling = RleSkippedPixelHandling.FirstColorOfPalette };
         using Image<TPixel> image = provider.GetImage(BmpDecoder.Instance, options);
         image.DebugSave(provider);
-        image.CompareToOriginal(provider, new MagickReferenceDecoder());
+        image.CompareToOriginal(provider, MagickReferenceDecoder.Png);
     }
 
     [Theory]
@@ -298,7 +299,7 @@ public class BmpDecoderTests
     {
         using Image<TPixel> image = provider.GetImage(BmpDecoder.Instance);
         image.DebugSave(provider);
-        image.CompareToOriginal(provider, new MagickReferenceDecoder());
+        image.CompareToOriginal(provider, MagickReferenceDecoder.Png);
     }
 
     [Theory]
@@ -314,7 +315,7 @@ public class BmpDecoderTests
         // which should be remapped to 255 for RGBA32, but the magick decoder has a value of 191 set.
         // The total difference without the alpha channel is still: 0.0204%
         // Exporting the image as PNG with GIMP yields to the same result as the ImageSharp implementation.
-        image.CompareToOriginal(provider, ImageComparer.TolerantPercentage(6.1f), new MagickReferenceDecoder());
+        image.CompareToOriginal(provider, ImageComparer.TolerantPercentage(6.1f), MagickReferenceDecoder.Png);
     }
 
     [Theory]
@@ -327,7 +328,7 @@ public class BmpDecoderTests
         image.DebugSave(provider);
 
         // Do not validate. Reference files will fail validation.
-        image.CompareToOriginal(provider, new MagickReferenceDecoder(false));
+        image.CompareToOriginal(provider, new MagickReferenceDecoder(PngFormat.Instance, false));
     }
 
     [Theory]
@@ -347,7 +348,7 @@ public class BmpDecoderTests
     {
         using Image<TPixel> image = provider.GetImage(BmpDecoder.Instance);
         image.DebugSave(provider);
-        image.CompareToOriginal(provider, new MagickReferenceDecoder());
+        image.CompareToOriginal(provider, MagickReferenceDecoder.Png);
     }
 
     [Theory]
@@ -394,7 +395,7 @@ public class BmpDecoderTests
     {
         using Image<TPixel> image = provider.GetImage(BmpDecoder.Instance);
         image.DebugSave(provider);
-        image.CompareToOriginal(provider, new MagickReferenceDecoder());
+        image.CompareToOriginal(provider, MagickReferenceDecoder.Png);
     }
 
     [Theory]
@@ -404,7 +405,7 @@ public class BmpDecoderTests
     {
         using Image<TPixel> image = provider.GetImage(BmpDecoder.Instance);
         image.DebugSave(provider);
-        image.CompareToOriginal(provider, new MagickReferenceDecoder());
+        image.CompareToOriginal(provider, MagickReferenceDecoder.Png);
     }
 
     [Theory]
@@ -557,5 +558,17 @@ public class BmpDecoderTests
         // Neither System.Drawing or MagickReferenceDecoder can correctly decode this file.
         // Compare to reference output instead.
         image.CompareToReferenceOutput(provider, extension: "png");
+    }
+
+    [Theory]
+    [WithFile(Issue2696, PixelTypes.Rgba32)]
+    public void BmpDecoder_ThrowsException_Issue2696<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        InvalidImageContentException ex = Assert.Throws<InvalidImageContentException>(() =>
+            {
+                using Image<TPixel> image = provider.GetImage(BmpDecoder.Instance);
+            });
+        Assert.IsType<InvalidMemoryOperationException>(ex.InnerException);
     }
 }

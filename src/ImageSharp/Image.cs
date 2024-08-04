@@ -158,6 +158,28 @@ public abstract partial class Image : IDisposable, IConfigurationProvider
         where TPixel2 : unmanaged, IPixel<TPixel2>;
 
     /// <summary>
+    /// Synchronizes any embedded metadata profiles with the current image properties.
+    /// </summary>
+    public void SynchronizeMetadata()
+    {
+        this.Metadata.SynchronizeProfiles();
+        foreach (ImageFrame frame in this.Frames)
+        {
+            frame.Metadata.SynchronizeProfiles();
+        }
+    }
+
+    /// <summary>
+    /// Synchronizes any embedded metadata profiles with the current image properties.
+    /// </summary>
+    /// <param name="action">A synchronization action to run in addition to the default process.</param>
+    public void SynchronizeMetadata(Action<Image> action)
+    {
+        this.SynchronizeMetadata();
+        action(this);
+    }
+
+    /// <summary>
     /// Update the size of the image after mutation.
     /// </summary>
     /// <param name="size">The <see cref="Size"/>.</param>

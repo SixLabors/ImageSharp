@@ -12,6 +12,11 @@ public class ObuFrameHeaderTests
     private static readonly byte[] DefaultSequenceHeaderBitStream =
         [0x0a, 0x06, 0b001_1_1_000, 0b00_1000_01, 0b11_110101, 0b001_11101, 0b111_1_1_1_0_1, 0b1_0_0_1_1_1_10];
 
+    // TODO: Check with libgav1 test code.
+    private static readonly byte[] KeyFrameHeaderBitStream =
+        // libgav1 expects this: [0x32, 0x05, 0x10, 0x00];
+        [0x32, 0x05, 0x20, 0x04];
+
     // Bits  Syntax element                  Value
     // 1     obu_forbidden_bit               0
     // 4     obu_type                        2 (OBU_TEMPORAL_DELIMITER)
@@ -22,10 +27,10 @@ public class ObuFrameHeaderTests
     private static readonly byte[] DefaultTemporalDelimiterBitStream = [0x12, 0x00];
 
     [Theory]
-    // [InlineData(TestImages.Heif.IrvineAvif, 0x0102, 0x000D)]
-    // [InlineData(TestImages.Heif.IrvineAvif, 0x0198, 0x6BD1)]
-    [InlineData(TestImages.Heif.XnConvert, 0x010E, 0x03CC)]
-    [InlineData(TestImages.Heif.Orange4x4, 0x010E, 0x001d)]
+    // [InlineData(TestImages.Heif.IrvineAvif, 0x0102, 0x000d)]
+    // [InlineData(TestImages.Heif.IrvineAvif, 0x0198, 0x6bd1)]
+    [InlineData(TestImages.Heif.XnConvert, 0x010e, 0x03cc)]
+    [InlineData(TestImages.Heif.Orange4x4, 0x010e, 0x001d)]
     public void ReadFrameHeader(string filename, int fileOffset, int blockSize)
     {
         // Assign
@@ -49,26 +54,27 @@ public class ObuFrameHeaderTests
 
     /*
     [Theory]
-    [InlineData(TestImages.Heif.XnConvert, 0x010E, 0x03CC)]
-    public void BinaryIdenticalRoundTripFrameHeader(string filename, int fileOffset, int blockSize)
+    [InlineData(TestImages.Heif.Orange4x4, 0x010e, 0x001d, 0x0128)]
+    [InlineData(TestImages.Heif.XnConvert, 0x010e, 0x03cc, 0x0114)]
+    public void BinaryIdenticalRoundTripFrameHeader(string filename, int fileOffset, int blockSize, int tileOffset)
     {
         // Assign
         string filePath = Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, filename);
         byte[] content = File.ReadAllBytes(filePath);
         Span<byte> span = content.AsSpan(fileOffset, blockSize);
-        Av1TileDecoderStub tileDecoder = new();
+        Av1TileDecoderStub tileStub = new();
         Av1BitStreamReader reader = new(span);
         ObuReader obuReader = new();
 
         // Act 1
-        obuReader.ReadAll(ref reader, blockSize, tileDecoder);
+        obuReader.ReadAll(ref reader, blockSize, tileStub);
 
         // Assign 2
         MemoryStream encoded = new();
 
         // Act 2
         ObuWriter obuWriter = new();
-        ObuWriter.Write(encoded, obuReader.SequenceHeader, obuReader.FrameHeader);
+        obuWriter.WriteAll(encoded, obuReader.SequenceHeader, obuReader.FrameHeader, tileStub);
 
         // Assert
         Assert.Equal(span, encoded.ToArray());
@@ -76,25 +82,27 @@ public class ObuFrameHeaderTests
     */
 
     [Theory]
-    [InlineData(TestImages.Heif.XnConvert, 0x010E, 0x03CC)]
+    [InlineData(TestImages.Heif.Orange4x4, 0x010e, 0x001d)]
+    [InlineData(TestImages.Heif.XnConvert, 0x010e, 0x03cc)]
     public void ThreeTimeRoundTripFrameHeader(string filename, int fileOffset, int blockSize)
     {
         // Assign
         string filePath = Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, filename);
         byte[] content = File.ReadAllBytes(filePath);
         Span<byte> span = content.AsSpan(fileOffset, blockSize);
-        IAv1TileReader tileDecoder = new Av1TileDecoderStub();
+        Av1TileDecoderStub tileStub = new();
         Av1BitStreamReader reader = new(span);
         ObuReader obuReader1 = new();
 
         // Act 1
-        obuReader1.ReadAll(ref reader, blockSize, tileDecoder);
+        obuReader1.ReadAll(ref reader, blockSize, tileStub);
 
         // Assign 2
         MemoryStream encoded = new();
 
         // Act 2
-        ObuWriter.WriteAll(encoded, obuReader1.SequenceHeader, obuReader1.FrameHeader);
+        ObuWriter obuWriter = new();
+        obuWriter.WriteAll(encoded, obuReader1.SequenceHeader, obuReader1.FrameHeader, tileStub);
 
         // Assign 2
         Span<byte> encodedBuffer = encoded.ToArray();
@@ -169,9 +177,10 @@ public class ObuFrameHeaderTests
     {
         // Arrange
         using MemoryStream stream = new(2);
+        ObuWriter obuWriter = new();
 
         // Act
-        ObuWriter.WriteAll(stream, null, null);
+        obuWriter.WriteAll(stream, null, null, null);
         byte[] actual = stream.GetBuffer();
 
         // Assert
@@ -184,15 +193,38 @@ public class ObuFrameHeaderTests
         // Arrange
         using MemoryStream stream = new(10);
         ObuSequenceHeader input = GetDefaultSequenceHeader();
+        ObuWriter obuWriter = new();
 
         // Act
-        ObuWriter.WriteAll(stream, input, null);
+        obuWriter.WriteAll(stream, input, null, null);
         byte[] buffer = stream.GetBuffer();
 
         // Assert
         // Skip over Temporal Delimiter header.
         byte[] actual = buffer.AsSpan()[DefaultTemporalDelimiterBitStream.Length..].ToArray();
         Assert.Equal(DefaultSequenceHeaderBitStream, actual);
+    }
+
+    [Fact]
+    public void WriteFrameHeader()
+    {
+        // Arrange
+        using MemoryStream stream = new(10);
+        ObuSequenceHeader sequenceInput = GetDefaultSequenceHeader();
+        ObuFrameHeader frameInput = GetKeyFrameHeader();
+        Av1TileDecoderStub tileStub = new();
+        byte[] empty = [];
+        tileStub.ReadTile(empty, 0);
+        ObuWriter obuWriter = new();
+
+        // Act
+        obuWriter.WriteAll(stream, sequenceInput, frameInput, tileStub);
+        byte[] buffer = stream.GetBuffer();
+
+        // Assert
+        // Skip over Temporal Delimiter and Sequence header.
+        byte[] actual = buffer.AsSpan().Slice(DefaultTemporalDelimiterBitStream.Length + DefaultSequenceHeaderBitStream.Length, KeyFrameHeaderBitStream.Length).ToArray();
+        Assert.Equal(KeyFrameHeaderBitStream, actual);
     }
 
     private static ObuSequenceHeader GetDefaultSequenceHeader()
@@ -261,4 +293,34 @@ public class ObuFrameHeaderTests
                 },
                 AreFilmGrainingParametersPresent = true,
             };
+
+    private static ObuFrameHeader GetKeyFrameHeader()
+        => new()
+        {
+            FrameType = ObuFrameType.KeyFrame,
+            ShowFrame = true,
+            ShowableFrame = false,
+            DisableFrameEndUpdateCdf = false,
+            FrameSize = new()
+            {
+                FrameWidth = 426,
+                FrameHeight = 240,
+                RenderWidth = 426,
+                RenderHeight = 240,
+                SuperResolutionUpscaledWidth = 426,
+            },
+            PrimaryReferenceFrame = 7,
+            ModeInfoRowCount = 60,
+            ModeInfoColumnCount = 108,
+            RefreshFrameFlags = 0xff,
+            ErrorResilientMode = true,
+            ForceIntegerMotionVector = true,
+            TilesInfo = new ObuTileGroupHeader()
+            {
+                HasUniformTileSpacing = true,
+                TileColumnCount = 1,
+                TileRowCount = 1,
+            }
+        };
+
 }

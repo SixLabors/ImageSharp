@@ -113,4 +113,25 @@ internal ref struct Av1BitStreamWriter(Stream stream)
             this.bitOffset = 0;
         }
     }
+
+    public void WriteLittleEndian(uint value, int n)
+    {
+        // See section 4.10.4 of the AV1-Specification
+        DebugGuard.IsTrue(Av1Math.Modulus8(this.BitPosition) == 0, "Writing of Little Endian value only allowed on byte alignment");
+
+        uint t = value;
+        for (int i = 0; i < n; i++)
+        {
+            this.WriteLiteral(t & 0xff, 8);
+            t >>= 8;
+        }
+    }
+
+    internal void WriteBlob(Span<byte> tileData)
+    {
+        DebugGuard.IsTrue(Av1Math.Modulus8(this.BitPosition) == 0, "Writing of Tile Data only allowed on byte alignment");
+
+        this.stream.Write(tileData);
+        this.bitOffset += tileData.Length << 3;
+    }
 }

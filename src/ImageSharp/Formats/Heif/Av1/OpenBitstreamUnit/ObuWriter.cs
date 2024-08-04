@@ -1,16 +1,20 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 
 internal class ObuWriter
 {
+    private int[] previousQIndex = [];
+    private int[] previousDeltaLoopFilter = [];
+
     /// <summary>
     /// Encode a single frame into OBU's.
     /// </summary>
-    public static void WriteAll(Stream stream, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameInfo)
+    public void WriteAll(Stream stream, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameInfo, IAv1TileWriter tileWriter)
     {
         MemoryStream bufferStream = new(100);
         Av1BitStreamWriter writer = new(bufferStream);
@@ -27,19 +31,15 @@ internal class ObuWriter
         if (frameInfo != null && sequenceHeader != null)
         {
             bufferStream.Position = 0;
-            WriteFrameHeader(ref writer, sequenceHeader, frameInfo, true);
-            int bytesWritten = (writer.BitPosition + 7) >> 3;
-            writer.Flush();
-            WriteObuHeaderAndSize(stream, ObuType.FrameHeader, bufferStream.GetBuffer(), bytesWritten);
-        }
+            this.WriteFrameHeader(ref writer, sequenceHeader, frameInfo, true);
+            if (frameInfo.TilesInfo != null)
+            {
+                WriteTileGroup(ref writer, frameInfo.TilesInfo, tileWriter);
+            }
 
-        if (frameInfo?.TilesInfo != null)
-        {
-            bufferStream.Position = 0;
-            WriteTileGroup(ref writer, frameInfo.TilesInfo);
-            int bytesWritten = (writer.BitPosition + 7) >> 3;
+            int bytesWritten = 5; // (writer.BitPosition + 7) >> 3;
             writer.Flush();
-            WriteObuHeaderAndSize(stream, ObuType.TileGroup, bufferStream.GetBuffer(), bytesWritten);
+            WriteObuHeaderAndSize(stream, ObuType.Frame, bufferStream.GetBuffer(), bytesWritten);
         }
     }
 
@@ -234,53 +234,53 @@ internal class ObuWriter
         WriteSuperResolutionParameters(ref writer, sequenceHeader, frameInfo);
     }
 
-    private static void WriteTileInfo(ref Av1BitStreamWriter writer, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameInfo, ObuTileGroupHeader tileInfo)
+    private static void WriteTileInfo(ref Av1BitStreamWriter writer, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameInfo)
     {
-        int superBlockColumnCount;
-        int superBlockRowCount;
-        int superBlockShift;
-        if (sequenceHeader.Use128x128Superblock)
-        {
-            superBlockColumnCount = (frameInfo.ModeInfoColumnCount + 31) >> 5;
-            superBlockRowCount = (frameInfo.ModeInfoRowCount + 31) >> 5;
-            superBlockShift = 5;
-        }
-        else
-        {
-            superBlockColumnCount = (frameInfo.ModeInfoColumnCount + 15) >> 4;
-            superBlockRowCount = (frameInfo.ModeInfoRowCount + 15) >> 4;
-            superBlockShift = 4;
-        }
-
-        int superBlockSize = superBlockShift + 2;
+        ObuTileGroupHeader tileInfo = frameInfo.TilesInfo;
+        int superblockColumnCount;
+        int superblockRowCount;
+        int superblockSizeLog2 = sequenceHeader.SuperblockSizeLog2;
+        int superblockShift = superblockSizeLog2 - Av1Constants.ModeInfoSizeLog2;
+        superblockColumnCount = (frameInfo.ModeInfoColumnCount + sequenceHeader.SuperblockModeInfoSize - 1) >> superblockShift;
+        superblockRowCount = (frameInfo.ModeInfoRowCount + sequenceHeader.SuperblockModeInfoSize - 1) >> superblockShift;
+        int superBlockSize = superblockShift + 2;
         int maxTileAreaOfSuperBlock = Av1Constants.MaxTileArea >> (2 * superBlockSize);
 
         tileInfo.MaxTileWidthSuperblock = Av1Constants.MaxTileWidth >> superBlockSize;
         tileInfo.MaxTileHeightSuperblock = (Av1Constants.MaxTileArea / Av1Constants.MaxTileWidth) >> superBlockSize;
-        tileInfo.MinLog2TileColumnCount = ObuReader.TileLog2(tileInfo.MaxTileWidthSuperblock, superBlockColumnCount);
-        tileInfo.MaxLog2TileColumnCount = ObuReader.TileLog2(1, Math.Min(superBlockColumnCount, Av1Constants.MaxTileColumnCount));
-        tileInfo.MaxLog2TileRowCount = ObuReader.TileLog2(1, Math.Min(superBlockRowCount, Av1Constants.MaxTileRowCount));
-        tileInfo.MinLog2TileCount = Math.Max(tileInfo.MinLog2TileColumnCount, ObuReader.TileLog2(maxTileAreaOfSuperBlock, superBlockColumnCount * superBlockRowCount));
+        tileInfo.MinLog2TileColumnCount = ObuReader.TileLog2(tileInfo.MaxTileWidthSuperblock, superblockColumnCount);
+        tileInfo.MaxLog2TileColumnCount = ObuReader.TileLog2(1, Math.Min(superblockColumnCount, Av1Constants.MaxTileColumnCount));
+        tileInfo.MaxLog2TileRowCount = ObuReader.TileLog2(1, Math.Min(superblockRowCount, Av1Constants.MaxTileRowCount));
+        tileInfo.MinLog2TileCount = Math.Max(tileInfo.MinLog2TileColumnCount, ObuReader.TileLog2(maxTileAreaOfSuperBlock, superblockColumnCount * superblockRowCount));
+
+        int log2TileColumnCount = Av1Math.Log2(tileInfo.TileColumnCount);
+        int log2TileRowCount = Av1Math.Log2(tileInfo.TileRowCount);
 
         writer.WriteBoolean(tileInfo.HasUniformTileSpacing);
         if (tileInfo.HasUniformTileSpacing)
         {
-            for (int i = 0; i < tileInfo.TileColumnCountLog2; i++)
+            // Uniform spaced tiles with power-of-two number of rows and columns
+            // tile columns
+            int ones = log2TileColumnCount - tileInfo.MinLog2TileColumnCount;
+            while (ones-- > 0)
             {
                 writer.WriteBoolean(true);
             }
 
-            if (tileInfo.TileColumnCountLog2 < tileInfo.MaxLog2TileColumnCount)
+            if (log2TileColumnCount < tileInfo.MaxLog2TileColumnCount)
             {
                 writer.WriteBoolean(false);
             }
 
-            for (int i = 0; i < tileInfo.TileRowCountLog2; i++)
+            // rows
+            tileInfo.MinLog2TileRowCount = Math.Min(tileInfo.MinLog2TileCount - log2TileColumnCount, 0);
+            ones = log2TileRowCount - tileInfo.MinLog2TileRowCount;
+            while (ones-- > 0)
             {
                 writer.WriteBoolean(true);
             }
 
-            if (tileInfo.TileRowCountLog2 < tileInfo.MaxLog2TileRowCount)
+            if (log2TileRowCount < tileInfo.MaxLog2TileRowCount)
             {
                 writer.WriteBoolean(false);
             }
@@ -289,29 +289,29 @@ internal class ObuWriter
         {
             int startSuperBlock = 0;
             int i = 0;
-            for (; startSuperBlock < superBlockColumnCount; i++)
+            for (; startSuperBlock < superblockColumnCount; i++)
             {
-                uint widthInSuperBlocks = (uint)((tileInfo.TileColumnStartModeInfo[i] >> superBlockShift) - startSuperBlock);
-                uint maxWidth = (uint)Math.Min(superBlockColumnCount - startSuperBlock, tileInfo.MaxTileWidthSuperblock);
+                uint widthInSuperBlocks = (uint)((tileInfo.TileColumnStartModeInfo[i] >> superblockShift) - startSuperBlock);
+                uint maxWidth = (uint)Math.Min(superblockColumnCount - startSuperBlock, tileInfo.MaxTileWidthSuperblock);
                 writer.WriteNonSymmetric(widthInSuperBlocks - 1, maxWidth);
                 startSuperBlock += (int)widthInSuperBlocks;
             }
 
-            if (startSuperBlock != superBlockColumnCount)
+            if (startSuperBlock != superblockColumnCount)
             {
                 throw new ImageFormatException("Super block tiles width does not add up to total width.");
             }
 
             startSuperBlock = 0;
-            for (i = 0; startSuperBlock < superBlockRowCount; i++)
+            for (i = 0; startSuperBlock < superblockRowCount; i++)
             {
-                uint heightInSuperBlocks = (uint)((tileInfo.TileRowStartModeInfo[i] >> superBlockShift) - startSuperBlock);
-                uint maxHeight = (uint)Math.Min(superBlockRowCount - startSuperBlock, tileInfo.MaxTileHeightSuperblock);
+                uint heightInSuperBlocks = (uint)((tileInfo.TileRowStartModeInfo[i] >> superblockShift) - startSuperBlock);
+                uint maxHeight = (uint)Math.Min(superblockRowCount - startSuperBlock, tileInfo.MaxTileHeightSuperblock);
                 writer.WriteNonSymmetric(heightInSuperBlocks - 1, maxHeight);
                 startSuperBlock += (int)heightInSuperBlocks;
             }
 
-            if (startSuperBlock != superBlockRowCount)
+            if (startSuperBlock != superblockRowCount)
             {
                 throw new ImageFormatException("Super block tiles height does not add up to total height.");
             }
@@ -322,121 +322,162 @@ internal class ObuWriter
             writer.WriteLiteral(tileInfo.ContextUpdateTileId, tileInfo.TileRowCountLog2 + tileInfo.TileColumnCountLog2);
             writer.WriteLiteral((uint)tileInfo.TileSizeBytes - 1, 2);
         }
+
+        frameInfo.TilesInfo = tileInfo;
     }
 
-    private static void WriteUncompressedFrameHeader(ref Av1BitStreamWriter writer, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameInfo, int planesCount)
+    private void WriteUncompressedFrameHeader(ref Av1BitStreamWriter writer, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameHeader)
     {
-        uint previousFrameId = 0;
-        bool isIntraFrame = true;
-        int idLength = sequenceHeader.FrameIdLength - 1 + sequenceHeader.DeltaFrameIdLength - 2 + 3;
-        writer.WriteBoolean(frameInfo.DisableCdfUpdate);
-        if (frameInfo.AllowScreenContentTools)
+        // TODO: Make tile count configurable.
+        int tileCount = 1;
+        int planesCount = sequenceHeader.ColorConfig.PlaneCount;
+        writer.WriteBoolean(frameHeader.DisableCdfUpdate);
+        if (sequenceHeader.ForceScreenContentTools == 2)
         {
-            writer.WriteBoolean(frameInfo.AllowScreenContentTools);
+            writer.WriteBoolean(frameHeader.AllowScreenContentTools);
+        }
+        else
+        {
+            // Guard.IsTrue(frameInfo.AllowScreenContentTools == sequenceHeader.ForceScreenContentTools);
         }
 
-        if (frameInfo.AllowScreenContentTools)
+        if (frameHeader.AllowScreenContentTools)
         {
-            if (sequenceHeader.ForceIntegerMotionVector == 1)
+            if (sequenceHeader.ForceIntegerMotionVector == 2)
             {
-                writer.WriteBoolean(frameInfo.ForceIntegerMotionVector);
+                writer.WriteBoolean(frameHeader.ForceIntegerMotionVector);
+            }
+            else
+            {
+                // Guard.IsTrue(frameInfo.ForceIntegerMotionVector == sequenceHeader.ForceIntegerMotionVector, nameof(frameInfo.ForceIntegerMotionVector), "Frame and sequence must be in sync");
             }
         }
 
-        bool havePreviousFrameId = !(frameInfo.FrameType == ObuFrameType.KeyFrame && frameInfo.ShowFrame);
-        if (havePreviousFrameId)
+        if (frameHeader.FrameType == ObuFrameType.KeyFrame)
         {
-            previousFrameId = frameInfo.CurrentFrameId;
+            if (!frameHeader.ShowFrame)
+            {
+                throw new NotImplementedException("No support for hidden frames.");
+            }
+        }
+        else if (frameHeader.FrameType == ObuFrameType.IntraOnlyFrame)
+        {
+            throw new NotImplementedException("No IntraOnly frames supported.");
         }
 
-        if (sequenceHeader.IsFrameIdNumbersPresent)
+        if (frameHeader.FrameType == ObuFrameType.KeyFrame)
         {
-            writer.WriteLiteral(frameInfo.CurrentFrameId, idLength);
-            if (havePreviousFrameId)
+            WriteFrameSize(ref writer, sequenceHeader, frameHeader, false);
+            if (frameHeader.AllowScreenContentTools)
             {
-                uint diffFrameId = (frameInfo.CurrentFrameId > previousFrameId) ?
-                    frameInfo.CurrentFrameId - previousFrameId :
-                    (uint)((1 << idLength) + (int)frameInfo.CurrentFrameId - previousFrameId);
-                if (frameInfo.CurrentFrameId == previousFrameId || diffFrameId >= 1 << (idLength - 1))
+                writer.WriteBoolean(frameHeader.AllowIntraBlockCopy);
+            }
+        }
+        else if (frameHeader.FrameType == ObuFrameType.IntraOnlyFrame)
+        {
+            WriteFrameSize(ref writer, sequenceHeader, frameHeader, false);
+            if (frameHeader.AllowScreenContentTools)
+            {
+                writer.WriteBoolean(frameHeader.AllowIntraBlockCopy);
+            }
+        }
+        else
+        {
+            throw new NotImplementedException("Inter frames not applicable for AVIF.");
+        }
+
+        WriteTileInfo(ref writer, sequenceHeader, frameHeader);
+        WriteQuantizationParameters(ref writer, frameHeader.QuantizationParameters, sequenceHeader.ColorConfig, planesCount);
+        WriteSegmentationParameters(ref writer, sequenceHeader, frameHeader, planesCount);
+
+        if (frameHeader.QuantizationParameters.BaseQIndex > 0)
+        {
+            writer.WriteBoolean(frameHeader.DeltaQParameters.IsPresent);
+            if (frameHeader.DeltaQParameters.IsPresent)
+            {
+                writer.WriteLiteral((uint)frameHeader.DeltaQParameters.Resolution - 1, 2);
+                for (int tileIndex = 0; tileIndex < tileCount; tileIndex++)
                 {
-                    throw new ImageFormatException("Current frame ID cannot be same as previous Frame ID");
+                    this.previousQIndex[tileIndex] = frameHeader.QuantizationParameters.BaseQIndex;
                 }
-            }
 
-            int diffLength = sequenceHeader.DeltaFrameIdLength;
-            for (int i = 0; i < Av1Constants.ReferenceFrameCount; i++)
-            {
-                if (frameInfo.CurrentFrameId > (1U << diffLength))
+                if (frameHeader.AllowIntraBlockCopy)
                 {
-                    if ((frameInfo.ReferenceFrameIndex[i] > frameInfo.CurrentFrameId) ||
-                        frameInfo.ReferenceFrameIndex[i] > (frameInfo.CurrentFrameId - (1 - diffLength)))
+                    Guard.IsFalse(
+                        frameHeader.DeltaLoopFilterParameters.IsPresent,
+                        nameof(frameHeader.DeltaLoopFilterParameters.IsPresent),
+                        "Allow INTRA block copy required Loop Filter.");
+                }
+                else
+                {
+                    writer.WriteBoolean(frameHeader.DeltaLoopFilterParameters.IsPresent);
+                }
+
+                if (frameHeader.DeltaLoopFilterParameters.IsPresent)
+                {
+                    writer.WriteLiteral((uint)(1 + Av1Math.MostSignificantBit((uint)frameHeader.DeltaLoopFilterParameters.Resolution) - 1), 2);
+                    writer.WriteBoolean(frameHeader.DeltaLoopFilterParameters.IsMulti);
+                    int frameLoopFilterCount = sequenceHeader.ColorConfig.IsMonochrome ? Av1Constants.FrameLoopFilterCount - 2 : Av1Constants.FrameLoopFilterCount;
+                    for (int loopFilterId = 0; loopFilterId < frameLoopFilterCount; loopFilterId++)
                     {
-                        frameInfo.ReferenceValid[i] = false;
+                        this.previousDeltaLoopFilter[loopFilterId] = 0;
                     }
                 }
-                else if (frameInfo.ReferenceFrameIndex[i] > frameInfo.CurrentFrameId &&
-                    frameInfo.ReferenceFrameIndex[i] < ((1 << idLength) + (frameInfo.CurrentFrameId - (1 << diffLength))))
-                {
-                    frameInfo.ReferenceValid[i] = false;
-                }
             }
         }
 
-        writer.WriteLiteral(frameInfo.OrderHint, sequenceHeader.OrderHintInfo.OrderHintBits);
-
-        if (!isIntraFrame && !frameInfo.ErrorResilientMode)
+        if (frameHeader.AllLossless)
         {
-            writer.WriteLiteral(frameInfo.PrimaryReferenceFrame, Av1Constants.PimaryReferenceBits);
+            throw new NotImplementedException("No entire lossless supported.");
         }
-
-        // Skipping, as no decoder info model present
-        frameInfo.AllowHighPrecisionMotionVector = false;
-        frameInfo.UseReferenceFrameMotionVectors = false;
-        frameInfo.AllowIntraBlockCopy = false;
-        if (frameInfo.FrameType != ObuFrameType.SwitchFrame && !(frameInfo.FrameType == ObuFrameType.KeyFrame && frameInfo.ShowFrame))
+        else
         {
-            writer.WriteLiteral(frameInfo.RefreshFrameFlags, 8);
-        }
-
-        if (isIntraFrame)
-        {
-            WriteFrameSize(ref writer, sequenceHeader, frameInfo, false);
-            WriteRenderSize(ref writer, frameInfo);
-            if (frameInfo.AllowScreenContentTools && frameInfo.FrameSize.RenderWidth != 0)
+            if (!frameHeader.CodedLossless)
             {
-                if (frameInfo.FrameSize.FrameWidth == frameInfo.FrameSize.SuperResolutionUpscaledWidth)
+                WriteLoopFilterParameters(ref writer, sequenceHeader, frameHeader, planesCount);
+                if (sequenceHeader.CdefLevel > 0)
                 {
-                    writer.WriteBoolean(frameInfo.AllowIntraBlockCopy);
+                    WriteCdefParameters(ref writer, sequenceHeader, frameHeader, planesCount);
                 }
+            }
+
+            if (sequenceHeader.EnableRestoration)
+            {
+                WriteLoopRestorationParameters(ref writer, sequenceHeader, frameHeader, planesCount);
             }
         }
 
-        if (frameInfo.PrimaryReferenceFrame == Av1Constants.PrimaryReferenceFrameNone)
+        writer.WriteBoolean(frameHeader.TransformMode == Av1TransformMode.Select);
+
+        // No compound INTER-INTER for AVIF.
+        if (frameHeader.SkipModeParameters.SkipModeAllowed)
         {
-            SetupPastIndependence(frameInfo);
+            writer.WriteBoolean(frameHeader.SkipModeParameters.SkipModeFlag);
         }
 
-        // GenerateNextReferenceFrameMap(sequenceHeader, frameInfo);
-        WriteTileInfo(ref writer, sequenceHeader, frameInfo, frameInfo.TilesInfo);
-        WriteQuantizationParameters(ref writer, frameInfo.QuantizationParameters, sequenceHeader.ColorConfig, planesCount);
-        WriteSegmentationParameters(ref writer, sequenceHeader, frameInfo, planesCount);
-        WriteFrameDeltaQParameters(ref writer, frameInfo);
-        WriteFrameDeltaLoopFilterParameters(ref writer, frameInfo);
+        if (FrameMightAllowWarpedMotion(sequenceHeader, frameHeader))
+        {
+            writer.WriteBoolean(frameHeader.AllowWarpedMotion);
+        }
+        else
+        {
+            Guard.IsFalse(frameHeader.AllowWarpedMotion, nameof(frameHeader.AllowWarpedMotion), "No warped motion allowed.");
+        }
 
-        WriteLoopFilterParameters(ref writer, sequenceHeader, frameInfo, planesCount);
-        WriteCdefParameters(ref writer, sequenceHeader, frameInfo, planesCount);
-        WriteLoopRestorationParameters(ref writer, sequenceHeader, frameInfo, planesCount);
-        WriteTransformMode(ref writer, frameInfo);
+        writer.WriteBoolean(frameHeader.UseReducedTransformSet);
 
-        // Not applicable for INTRA frames.
-        // WriteFrameReferenceMode(ref writer, frameInfo.ReferenceMode, isIntraFrame);
-        // WriteSkipModeParameters(ref writer, sequenceHeader, frameInfo, isIntraFrame, frameInfo.ReferenceMode);
-        writer.WriteBoolean(frameInfo.UseReducedTransformSet);
-
-        // Not applicable for INTRA frames.
-        // WriteGlobalMotionParameters(ref writer, sequenceHeader, frameInfo, isIntraFrame);
-        WriteFilmGrainFilterParameters(ref writer, frameInfo.FilmGrainParameters);
+        // No global motion for AVIF.
+        if (sequenceHeader.AreFilmGrainingParametersPresent && (frameHeader.ShowFrame || frameHeader.ShowableFrame))
+        {
+            WriteFilmGrainFilterParameters(ref writer, frameHeader.FilmGrainParameters);
+        }
     }
+
+    private static bool IsSuperResolutionUnscaled(ObuFrameSize frameSize)
+        => frameSize.FrameWidth == frameSize.SuperResolutionUpscaledWidth;
+
+    private static bool FrameMightAllowWarpedMotion(ObuSequenceHeader sequenceHeader, ObuFrameHeader frameHeader)
+        => false; // !frameHeader.ErrorResilientMode && !FrameIsIntraOnly(sequenceHeader) && scs->enable_warped_motion;
 
     private static void SetupPastIndependence(ObuFrameHeader frameInfo)
     {
@@ -460,24 +501,21 @@ internal class ObuWriter
         }
     }
 
-    private static int WriteFrameHeader(ref Av1BitStreamWriter writer, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameInfo, bool writeTrailingBits)
+    private int WriteFrameHeader(ref Av1BitStreamWriter writer, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameInfo, bool writeTrailingBits)
     {
-        int planeCount = sequenceHeader.ColorConfig.IsMonochrome ? 1 : 3;
         int startBitPosition = writer.BitPosition;
-        WriteUncompressedFrameHeader(ref writer, sequenceHeader, frameInfo, planeCount);
+        this.WriteUncompressedFrameHeader(ref writer, sequenceHeader, frameInfo);
         if (writeTrailingBits)
         {
             WriteTrailingBits(ref writer);
         }
-
-        AlignToByteBoundary(ref writer);
 
         int endPosition = writer.BitPosition;
         int headerBytes = (endPosition - startBitPosition) / 8;
         return headerBytes;
     }
 
-    private static int WriteTileGroup(ref Av1BitStreamWriter writer, ObuTileGroupHeader tileInfo)
+    private static int WriteTileGroup(ref Av1BitStreamWriter writer, ObuTileGroupHeader tileInfo, IAv1TileWriter tileWriter)
     {
         int tileCount = tileInfo.TileColumnCount * tileInfo.TileRowCount;
         int startBitPosition = writer.BitPosition;
@@ -494,9 +532,27 @@ internal class ObuWriter
         }
 
         AlignToByteBoundary(ref writer);
+
+        WriteTileData(ref writer, tileInfo, tileWriter);
+
         int endBitPosition = writer.BitPosition;
         int headerBytes = (endBitPosition - startBitPosition) / 8;
         return headerBytes;
+    }
+
+    private static void WriteTileData(ref Av1BitStreamWriter writer, ObuTileGroupHeader tileInfo, IAv1TileWriter tileWriter)
+    {
+        int tileCount = tileInfo.TileColumnCount * tileInfo.TileRowCount;
+        for (int tileNum = 0; tileNum < tileCount; tileNum++)
+        {
+            Span<byte> tileData = tileWriter.WriteTile(tileNum);
+            if (tileNum != tileCount - 1 && tileCount > 1)
+            {
+                writer.WriteLittleEndian((uint)tileData.Length - 1U, tileInfo.TileSizeBytes);
+            }
+
+            writer.WriteBlob(tileData);
+        }
     }
 
     private static int WriteDeltaQ(ref Av1BitStreamWriter writer, int deltaQ)

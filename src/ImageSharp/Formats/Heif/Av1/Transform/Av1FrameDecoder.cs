@@ -8,9 +8,9 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 
 internal class Av1FrameDecoder
 {
-    private ObuSequenceHeader sequenceHeader;
-    private ObuFrameHeader frameHeader;
-    private Av1FrameBuffer frameBuffer;
+    private readonly ObuSequenceHeader sequenceHeader;
+    private readonly ObuFrameHeader frameHeader;
+    private readonly Av1FrameBuffer frameBuffer;
 
     public Av1FrameDecoder(ObuSequenceHeader sequenceHeader, ObuFrameHeader frameHeader, Av1FrameBuffer frameBuffer)
     {
@@ -22,6 +22,8 @@ internal class Av1FrameDecoder
     public void DecodeFrame()
     {
         Guard.NotNull(this.sequenceHeader);
+        Guard.NotNull(this.frameHeader);
+        Guard.NotNull(this.frameBuffer);
 
         // TODO: Implement.
     }

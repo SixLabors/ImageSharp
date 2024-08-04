@@ -1,7 +1,8 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System;
+using System.Buffers;
+using System.Reflection.PortableExecutable;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
@@ -16,7 +17,7 @@ internal class ObuWriter
     /// </summary>
     public void WriteAll(Stream stream, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameInfo, IAv1TileWriter tileWriter)
     {
-        MemoryStream bufferStream = new(100);
+        MemoryStream bufferStream = new(2000);
         Av1BitStreamWriter writer = new(bufferStream);
         WriteObuHeaderAndSize(stream, ObuType.TemporalDelimiter, [], 0);
 
@@ -37,7 +38,7 @@ internal class ObuWriter
                 WriteTileGroup(ref writer, frameInfo.TilesInfo, tileWriter);
             }
 
-            int bytesWritten = 5; // (writer.BitPosition + 7) >> 3;
+            int bytesWritten = (writer.BitPosition + 7) >> 3;
             writer.Flush();
             WriteObuHeaderAndSize(stream, ObuType.Frame, bufferStream.GetBuffer(), bytesWritten);
         }
@@ -128,7 +129,14 @@ internal class ObuWriter
             writer.WriteBoolean(colorConfig.IsMonochrome);
         }
 
-        writer.WriteBoolean(false); // colorConfig.IsColorDescriptionPresent
+        writer.WriteBoolean(colorConfig.IsColorDescriptionPresent);
+        if (colorConfig.IsColorDescriptionPresent)
+        {
+            writer.WriteLiteral((uint)colorConfig.ColorPrimaries, 8);
+            writer.WriteLiteral((uint)colorConfig.TransferCharacteristics, 8);
+            writer.WriteLiteral((uint)colorConfig.MatrixCoefficients, 8);
+        }
+
         if (colorConfig.IsMonochrome)
         {
             writer.WriteBoolean(colorConfig.ColorRange);
@@ -368,6 +376,7 @@ internal class ObuWriter
         if (frameHeader.FrameType == ObuFrameType.KeyFrame)
         {
             WriteFrameSize(ref writer, sequenceHeader, frameHeader, false);
+            WriteRenderSize(ref writer, frameHeader);
             if (frameHeader.AllowScreenContentTools)
             {
                 writer.WriteBoolean(frameHeader.AllowIntraBlockCopy);
@@ -376,6 +385,7 @@ internal class ObuWriter
         else if (frameHeader.FrameType == ObuFrameType.IntraOnlyFrame)
         {
             WriteFrameSize(ref writer, sequenceHeader, frameHeader, false);
+            WriteRenderSize(ref writer, frameHeader);
             if (frameHeader.AllowScreenContentTools)
             {
                 writer.WriteBoolean(frameHeader.AllowIntraBlockCopy);
@@ -447,7 +457,8 @@ internal class ObuWriter
             }
         }
 
-        writer.WriteBoolean(frameHeader.TransformMode == Av1TransformMode.Select);
+        // No Frame Reference mode selection for AVIF
+        WriteTransformMode(ref writer, frameHeader);
 
         // No compound INTER-INTER for AVIF.
         if (frameHeader.SkipModeParameters.SkipModeAllowed)
@@ -455,51 +466,15 @@ internal class ObuWriter
             writer.WriteBoolean(frameHeader.SkipModeParameters.SkipModeFlag);
         }
 
-        if (FrameMightAllowWarpedMotion(sequenceHeader, frameHeader))
-        {
-            writer.WriteBoolean(frameHeader.AllowWarpedMotion);
-        }
-        else
-        {
-            Guard.IsFalse(frameHeader.AllowWarpedMotion, nameof(frameHeader.AllowWarpedMotion), "No warped motion allowed.");
-        }
-
+        // No warp motion for AVIF.
         writer.WriteBoolean(frameHeader.UseReducedTransformSet);
 
         // No global motion for AVIF.
-        if (sequenceHeader.AreFilmGrainingParametersPresent && (frameHeader.ShowFrame || frameHeader.ShowableFrame))
-        {
-            WriteFilmGrainFilterParameters(ref writer, frameHeader.FilmGrainParameters);
-        }
-    }
-
-    private static bool IsSuperResolutionUnscaled(ObuFrameSize frameSize)
-        => frameSize.FrameWidth == frameSize.SuperResolutionUpscaledWidth;
-
-    private static bool FrameMightAllowWarpedMotion(ObuSequenceHeader sequenceHeader, ObuFrameHeader frameHeader)
-        => false; // !frameHeader.ErrorResilientMode && !FrameIsIntraOnly(sequenceHeader) && scs->enable_warped_motion;
-
-    private static void SetupPastIndependence(ObuFrameHeader frameInfo)
-    {
-        // TODO: Initialize the loop filter parameters.
+        WriteFilmGrainFilterParameters(ref writer, sequenceHeader, frameHeader);
     }
 
     private static bool IsSegmentationFeatureActive(ObuSegmentationParameters segmentationParameters, int segmentId, ObuSegmentationLevelFeature feature)
         => segmentationParameters.Enabled && segmentationParameters.FeatureEnabled[segmentId, (int)feature];
-
-    private static int GetQIndex(ObuSegmentationParameters segmentationParameters, int segmentId, int baseQIndex)
-    {
-        if (IsSegmentationFeatureActive(segmentationParameters, segmentId, ObuSegmentationLevelFeature.AlternativeQuantizer))
-        {
-            int data = segmentationParameters.FeatureData[segmentId, (int)ObuSegmentationLevelFeature.AlternativeQuantizer];
-            int qIndex = baseQIndex + data;
-            return Av1Math.Clamp(qIndex, 0, Av1Constants.MaxQ);
-        }
-        else
-        {
-            return baseQIndex;
-        }
-    }
 
     private int WriteFrameHeader(ref Av1BitStreamWriter writer, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameInfo, bool writeTrailingBits)
     {
@@ -557,7 +532,7 @@ internal class ObuWriter
 
     private static int WriteDeltaQ(ref Av1BitStreamWriter writer, int deltaQ)
     {
-        bool isCoded = deltaQ == 0;
+        bool isCoded = deltaQ != 0;
         writer.WriteBoolean(isCoded);
         if (isCoded)
         {
@@ -606,15 +581,14 @@ internal class ObuWriter
         WriteDeltaQ(ref writer, quantParams.DeltaQDc[(int)Av1Plane.Y]);
         if (planesCount > 1)
         {
-            bool areUvDeltaDifferent = false;
             if (colorInfo.HasSeparateUvDelta)
             {
-                writer.WriteBoolean(colorInfo.HasSeparateUvDelta);
+                writer.WriteBoolean(quantParams.HasSeparateUvDelta);
             }
 
             WriteDeltaQ(ref writer, quantParams.DeltaQDc[(int)Av1Plane.U]);
             WriteDeltaQ(ref writer, quantParams.DeltaQAc[(int)Av1Plane.U]);
-            if (areUvDeltaDifferent)
+            if (quantParams.HasSeparateUvDelta)
             {
                 WriteDeltaQ(ref writer, quantParams.DeltaQDc[(int)Av1Plane.V]);
                 WriteDeltaQ(ref writer, quantParams.DeltaQAc[(int)Av1Plane.V]);
@@ -641,14 +615,37 @@ internal class ObuWriter
 
     private static void WriteLoopFilterParameters(ref Av1BitStreamWriter writer, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameInfo, int planesCount)
     {
-        _ = writer;
-        _ = sequenceHeader;
-        _ = frameInfo;
-        _ = planesCount;
+        if (frameInfo.CodedLossless || frameInfo.AllowIntraBlockCopy)
+        {
+            return;
+        }
 
-        // TODO: Parse more stuff.
+        writer.WriteLiteral((uint)frameInfo.LoopFilterParameters.FilterLevel[0], 6);
+        writer.WriteLiteral((uint)frameInfo.LoopFilterParameters.FilterLevel[1], 6);
+        if (sequenceHeader.ColorConfig.PlaneCount > 1)
+        {
+            if (frameInfo.LoopFilterParameters.FilterLevel[0] > 0 || frameInfo.LoopFilterParameters.FilterLevel[1] > 0)
+            {
+                writer.WriteLiteral((uint)frameInfo.LoopFilterParameters.FilterLevelU, 6);
+                writer.WriteLiteral((uint)frameInfo.LoopFilterParameters.FilterLevelV, 6);
+            }
+        }
+
+        writer.WriteLiteral((uint)frameInfo.LoopFilterParameters.SharpnessLevel, 3);
+        writer.WriteBoolean(frameInfo.LoopFilterParameters.ReferenceDeltaModeEnabled);
+        if (frameInfo.LoopFilterParameters.ReferenceDeltaModeEnabled)
+        {
+            writer.WriteBoolean(frameInfo.LoopFilterParameters.ReferenceDeltaModeUpdate);
+            if (frameInfo.LoopFilterParameters.ReferenceDeltaModeUpdate)
+            {
+                throw new NotImplementedException("Reference update of loop filter not supported yet.");
+            }
+        }
     }
 
+    /// <summary>
+    /// 5.9.21. TX mode syntax.
+    /// </summary>
     private static void WriteTransformMode(ref Av1BitStreamWriter writer, ObuFrameHeader frameInfo)
     {
         if (!frameInfo.CodedLossless)
@@ -659,12 +656,37 @@ internal class ObuWriter
 
     private static void WriteLoopRestorationParameters(ref Av1BitStreamWriter writer, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameInfo, int planesCount)
     {
-        _ = writer;
-        _ = sequenceHeader;
-        _ = frameInfo;
-        _ = planesCount;
+        if (frameInfo.CodedLossless || frameInfo.AllowIntraBlockCopy || !sequenceHeader.EnableRestoration)
+        {
+            return;
+        }
 
-        // TODO: Parse more stuff.
+        for (int i = 0; i < planesCount; i++)
+        {
+            writer.WriteLiteral((uint)frameInfo.LoopRestorationParameters.Items[i].Type, 2);
+        }
+
+        if (frameInfo.LoopRestorationParameters.UsesLoopRestoration)
+        {
+            uint unitShift = (uint)frameInfo.LoopRestorationParameters.UnitShift;
+            if (sequenceHeader.Use128x128Superblock)
+            {
+                writer.WriteLiteral(unitShift - 1, 1);
+            }
+            else
+            {
+                writer.WriteLiteral(unitShift & 0x01, 1);
+                if (unitShift > 0)
+                {
+                    writer.WriteLiteral(unitShift - 1, 1);
+                }
+            }
+
+            if (sequenceHeader.ColorConfig.SubSamplingX && sequenceHeader.ColorConfig.SubSamplingY && frameInfo.LoopRestorationParameters.UsesChromaLoopRestoration)
+            {
+                writer.WriteLiteral((uint)frameInfo.LoopRestorationParameters.UVShift, 1);
+            }
+        }
     }
 
     private static void WriteCdefParameters(ref Av1BitStreamWriter writer, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameInfo, int planesCount)
@@ -674,7 +696,10 @@ internal class ObuWriter
         _ = frameInfo;
         _ = planesCount;
 
-        // TODO: Parse more stuff.
+        if (!frameInfo.CodedLossless && !frameInfo.AllowIntraBlockCopy && sequenceHeader.EnableCdef)
+        {
+            throw new NotImplementedException("Didn't implment writing CDF yet.");
+        }
     }
 
     private static void WriteGlobalMotionParameters(ref Av1BitStreamWriter writer, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameInfo, bool isIntraFrame)
@@ -703,11 +728,108 @@ internal class ObuWriter
         Guard.IsTrue(isIntraFrame, nameof(isIntraFrame), "Still picture contains only INTRA frames.");
     }
 
-    private static void WriteFilmGrainFilterParameters(ref Av1BitStreamWriter writer, ObuFilmGrainParameters filmGrainInfo)
+    private static void WriteFilmGrainFilterParameters(ref Av1BitStreamWriter writer, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameHeader)
     {
-        _ = writer;
-        _ = filmGrainInfo;
+        ObuFilmGrainParameters grainParams = frameHeader.FilmGrainParameters;
+        if (!sequenceHeader.AreFilmGrainingParametersPresent && (!frameHeader.ShowFrame && !frameHeader.ShowableFrame))
+        {
+            return;
+        }
 
-        // Film grain filter not supported yet
+        writer.WriteBoolean(grainParams.ApplyGrain);
+        if (!grainParams.ApplyGrain)
+        {
+            return;
+        }
+
+        writer.WriteLiteral(grainParams.GrainSeed, 16);
+        writer.WriteLiteral(grainParams.NumYPoints, 4);
+        Guard.NotNull(grainParams.PointYValue);
+        Guard.NotNull(grainParams.PointYScaling);
+        for (int i = 0; i < grainParams.NumYPoints; i++)
+        {
+            writer.WriteLiteral(grainParams.PointYValue[i], 8);
+            writer.WriteLiteral(grainParams.PointYScaling[i], 8);
+        }
+
+        if (!sequenceHeader.ColorConfig.IsMonochrome)
+        {
+            writer.WriteBoolean(grainParams.ChromaScalingFromLuma);
+        }
+
+        if (!sequenceHeader.ColorConfig.IsMonochrome &&
+            !grainParams.ChromaScalingFromLuma &&
+            (!sequenceHeader.ColorConfig.SubSamplingX || !sequenceHeader.ColorConfig.SubSamplingY || grainParams.NumYPoints != 0))
+        {
+            writer.WriteLiteral(grainParams.NumCbPoints, 4);
+            Guard.NotNull(grainParams.PointCbValue);
+            Guard.NotNull(grainParams.PointCbScaling);
+            for (int i = 0; i < grainParams.NumCbPoints; i++)
+            {
+                writer.WriteLiteral(grainParams.PointCbValue[i], 8);
+                writer.WriteLiteral(grainParams.PointCbScaling[i], 8);
+            }
+
+            writer.WriteLiteral(grainParams.NumCrPoints, 4);
+            Guard.NotNull(grainParams.PointCrValue);
+            Guard.NotNull(grainParams.PointCrScaling);
+            for (int i = 0; i < grainParams.NumCbPoints; i++)
+            {
+                writer.WriteLiteral(grainParams.PointCrValue[i], 8);
+                writer.WriteLiteral(grainParams.PointCrScaling[i], 8);
+            }
+        }
+
+        writer.WriteLiteral(grainParams.GrainScalingMinus8, 2);
+        writer.WriteLiteral(grainParams.ArCoeffLag, 2);
+        uint numPosLuma = 2 * grainParams.ArCoeffLag * (grainParams.ArCoeffLag + 1);
+
+        uint numPosChroma = 0;
+        if (grainParams.NumYPoints != 0)
+        {
+            numPosChroma = numPosLuma + 1;
+            Guard.NotNull(grainParams.ArCoeffsYPlus128);
+            for (int i = 0; i < numPosLuma; i++)
+            {
+                writer.WriteLiteral(grainParams.ArCoeffsYPlus128[i], 8);
+            }
+        }
+
+        if (grainParams.ChromaScalingFromLuma || grainParams.NumCbPoints != 0)
+        {
+            Guard.NotNull(grainParams.ArCoeffsCbPlus128);
+            for (int i = 0; i < numPosChroma; i++)
+            {
+                writer.WriteLiteral(grainParams.ArCoeffsCbPlus128[i], 8);
+            }
+        }
+
+        if (grainParams.ChromaScalingFromLuma || grainParams.NumCrPoints != 0)
+        {
+            Guard.NotNull(grainParams.ArCoeffsCrPlus128);
+            for (int i = 0; i < numPosChroma; i++)
+            {
+                writer.WriteLiteral(grainParams.ArCoeffsCrPlus128[i], 8);
+            }
+        }
+
+        writer.WriteLiteral(grainParams.ArCoeffShiftMinus6, 2);
+        writer.WriteLiteral(grainParams.GrainScaleShift, 2);
+        if (grainParams.NumCbPoints != 0)
+        {
+            writer.WriteLiteral(grainParams.CbMult, 8);
+            writer.WriteLiteral(grainParams.CbLumaMult, 8);
+            writer.WriteLiteral(grainParams.CbOffset, 9);
+        }
+
+        if (grainParams.NumCrPoints != 0)
+        {
+            writer.WriteLiteral(grainParams.CrMult, 8);
+            writer.WriteLiteral(grainParams.CrLumaMult, 8);
+            writer.WriteLiteral(grainParams.CrOffset, 9);
+        }
+
+        writer.WriteBoolean(grainParams.OverlapFlag);
+        writer.WriteBoolean(grainParams.ClipToRestrictedRange);
     }
 }

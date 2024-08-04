@@ -129,7 +129,7 @@ internal class Av1TileReader : IAv1TileReader
         int planesCount = this.SequenceHeader.ColorConfig.PlaneCount;
         for (int plane = 0; plane < planesCount; plane++)
         {
-            if (this.FrameInfo.LoopRestorationParameters[plane].Type != ObuRestorationType.None)
+            if (this.FrameInfo.LoopRestorationParameters.Items[plane].Type != ObuRestorationType.None)
             {
                 // TODO: Implement.
                 throw new NotImplementedException("No loop restoration filter support.");

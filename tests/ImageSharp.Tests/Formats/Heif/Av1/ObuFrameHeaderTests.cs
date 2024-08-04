@@ -14,8 +14,7 @@ public class ObuFrameHeaderTests
 
     // TODO: Check with libgav1 test code.
     private static readonly byte[] KeyFrameHeaderBitStream =
-        // libgav1 expects this: [0x32, 0x05, 0x10, 0x00];
-        [0x32, 0x05, 0x20, 0x04];
+        [0x32, 0x07, 0x10, 0x00];
 
     // Bits  Syntax element                  Value
     // 1     obu_forbidden_bit               0
@@ -55,6 +54,7 @@ public class ObuFrameHeaderTests
     /*
     [Theory]
     [InlineData(TestImages.Heif.Orange4x4, 0x010e, 0x001d, 0x0128)]
+
     [InlineData(TestImages.Heif.XnConvert, 0x010e, 0x03cc, 0x0114)]
     public void BinaryIdenticalRoundTripFrameHeader(string filename, int fileOffset, int blockSize, int tileOffset)
     {
@@ -77,7 +77,8 @@ public class ObuFrameHeaderTests
         obuWriter.WriteAll(encoded, obuReader.SequenceHeader, obuReader.FrameHeader, tileStub);
 
         // Assert
-        Assert.Equal(span, encoded.ToArray());
+        byte[] encodedArray = encoded.ToArray();
+        Assert.Equal(span, encodedArray);
     }
     */
 

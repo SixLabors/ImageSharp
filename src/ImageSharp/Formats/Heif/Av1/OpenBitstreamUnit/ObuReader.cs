@@ -1272,9 +1272,9 @@ internal class ObuReader
             frameInfo.CdefParameters.YStrength[0] != 0 ||
             frameInfo.CdefParameters.UvStrength[0] != 0));
         bool doLoopRestoration = noIbc &&
-            (frameInfo.LoopRestorationParameters[(int)Av1Plane.Y].Type != ObuRestorationType.None ||
-            frameInfo.LoopRestorationParameters[(int)Av1Plane.U].Type != ObuRestorationType.None ||
-            frameInfo.LoopRestorationParameters[(int)Av1Plane.V].Type != ObuRestorationType.None);
+            (frameInfo.LoopRestorationParameters.Items[(int)Av1Plane.Y].Type != ObuRestorationType.None ||
+            frameInfo.LoopRestorationParameters.Items[(int)Av1Plane.U].Type != ObuRestorationType.None ||
+            frameInfo.LoopRestorationParameters.Items[(int)Av1Plane.V].Type != ObuRestorationType.None);
 
         for (int tileNum = tileGroupStart; tileNum <= tileGroupEnd; tileNum++)
         {
@@ -1363,15 +1363,15 @@ internal class ObuReader
         quantParams.DeltaQAc[(int)Av1Plane.Y] = 0;
         if (planesCount > 1)
         {
-            bool areUvDeltaDifferent = false;
+            quantParams.HasSeparateUvDelta = false;
             if (colorInfo.HasSeparateUvDelta)
             {
-                areUvDeltaDifferent = reader.ReadBoolean();
+                quantParams.HasSeparateUvDelta = reader.ReadBoolean();
             }
 
             quantParams.DeltaQDc[(int)Av1Plane.U] = ReadDeltaQ(ref reader);
             quantParams.DeltaQAc[(int)Av1Plane.U] = ReadDeltaQ(ref reader);
-            if (areUvDeltaDifferent)
+            if (quantParams.HasSeparateUvDelta)
             {
                 quantParams.DeltaQDc[(int)Av1Plane.V] = ReadDeltaQ(ref reader);
                 quantParams.DeltaQAc[(int)Av1Plane.V] = ReadDeltaQ(ref reader);
@@ -1504,7 +1504,6 @@ internal class ObuReader
     private void ReadLoopFilterParameters(ref Av1BitStreamReader reader, int planesCount)
     {
         ObuFrameHeader frameInfo = this.FrameHeader!;
-        frameInfo.LoopFilterParameters.FilterLevel = new int[2];
         if (frameInfo.CodedLossless || frameInfo.AllowIntraBlockCopy)
         {
             return;
@@ -1575,58 +1574,51 @@ internal class ObuReader
     /// </summary>
     private static void ReadLoopRestorationParameters(ref Av1BitStreamReader reader, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameInfo, int planesCount)
     {
-        _ = planesCount;
         if (frameInfo.CodedLossless || frameInfo.AllowIntraBlockCopy || !sequenceHeader.EnableRestoration)
         {
-            frameInfo.LoopRestorationParameters[0] = new ObuLoopRestorationParameters();
-            frameInfo.LoopRestorationParameters[1] = new ObuLoopRestorationParameters();
-            frameInfo.LoopRestorationParameters[2] = new ObuLoopRestorationParameters();
             return;
         }
 
-        bool usesLoopRestoration = false;
-        bool usesChromaLoopRestoration = false;
+        frameInfo.LoopRestorationParameters.UsesLoopRestoration = false;
+        frameInfo.LoopRestorationParameters.UsesChromaLoopRestoration = false;
         for (int i = 0; i < planesCount; i++)
         {
-            frameInfo.LoopRestorationParameters[i] = new ObuLoopRestorationParameters
-            {
-                Type = (ObuRestorationType)reader.ReadLiteral(2)
-            };
+            frameInfo.LoopRestorationParameters.Items[i].Type = (ObuRestorationType)reader.ReadLiteral(2);
 
-            if (frameInfo.LoopRestorationParameters[i].Type != ObuRestorationType.None)
+            if (frameInfo.LoopRestorationParameters.Items[i].Type != ObuRestorationType.None)
             {
-                usesLoopRestoration = true;
+                frameInfo.LoopRestorationParameters.UsesLoopRestoration = true;
                 if (i > 0)
                 {
-                    usesChromaLoopRestoration = true;
+                    frameInfo.LoopRestorationParameters.UsesChromaLoopRestoration = true;
                 }
             }
         }
 
-        if (usesLoopRestoration)
+        if (frameInfo.LoopRestorationParameters.UsesLoopRestoration)
         {
-            uint loopRestorationShift = reader.ReadLiteral(1);
+            frameInfo.LoopRestorationParameters.UnitShift = (int)reader.ReadLiteral(1);
             if (sequenceHeader.Use128x128Superblock)
             {
-                loopRestorationShift++;
+                frameInfo.LoopRestorationParameters.UnitShift++;
             }
             else
             {
                 if (reader.ReadBoolean())
                 {
-                    loopRestorationShift += reader.ReadLiteral(1);
+                    frameInfo.LoopRestorationParameters.UnitShift += (int)reader.ReadLiteral(1);
                 }
             }
 
-            frameInfo.LoopRestorationParameters[0].Size = Av1Constants.RestorationMaxTileSize >> (int)(2 - loopRestorationShift);
-            int uvShift = 0;
-            if (sequenceHeader.ColorConfig.SubSamplingX && sequenceHeader.ColorConfig.SubSamplingY && usesChromaLoopRestoration)
+            frameInfo.LoopRestorationParameters.Items[0].Size = Av1Constants.RestorationMaxTileSize >> (2 - frameInfo.LoopRestorationParameters.UnitShift);
+            frameInfo.LoopRestorationParameters.UVShift = 0;
+            if (sequenceHeader.ColorConfig.SubSamplingX && sequenceHeader.ColorConfig.SubSamplingY && frameInfo.LoopRestorationParameters.UsesChromaLoopRestoration)
             {
-                uvShift = (int)reader.ReadLiteral(1);
+                frameInfo.LoopRestorationParameters.UVShift = (int)reader.ReadLiteral(1);
             }
 
-            frameInfo.LoopRestorationParameters[1].Size = frameInfo.LoopRestorationParameters[0].Size >> uvShift;
-            frameInfo.LoopRestorationParameters[2].Size = frameInfo.LoopRestorationParameters[0].Size >> uvShift;
+            frameInfo.LoopRestorationParameters.Items[1].Size = frameInfo.LoopRestorationParameters.Items[0].Size >> frameInfo.LoopRestorationParameters.UVShift;
+            frameInfo.LoopRestorationParameters.Items[2].Size = frameInfo.LoopRestorationParameters.Items[0].Size >> frameInfo.LoopRestorationParameters.UVShift;
         }
     }
 
@@ -1839,14 +1831,14 @@ internal class ObuReader
         {
             grainParams.CbMult = reader.ReadLiteral(8);
             grainParams.CbLumaMult = reader.ReadLiteral(8);
-            grainParams.CbOffset = reader.ReadLiteral(8);
+            grainParams.CbOffset = reader.ReadLiteral(9);
         }
 
         if (grainParams.NumCrPoints != 0)
         {
             grainParams.CrMult = reader.ReadLiteral(8);
             grainParams.CrLumaMult = reader.ReadLiteral(8);
-            grainParams.CrOffset = reader.ReadLiteral(8);
+            grainParams.CrOffset = reader.ReadLiteral(9);
         }
 
         grainParams.OverlapFlag = reader.ReadBoolean();

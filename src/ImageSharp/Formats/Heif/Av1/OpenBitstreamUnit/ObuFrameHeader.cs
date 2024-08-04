@@ -37,7 +37,7 @@ internal class ObuFrameHeader
 
     public ObuLoopFilterParameters LoopFilterParameters { get; set; } = new ObuLoopFilterParameters();
 
-    public ObuLoopRestorationParameters[] LoopRestorationParameters { get; set; } = new ObuLoopRestorationParameters[3];
+    public ObuLoopRestorationParameters LoopRestorationParameters { get; set; } = new ObuLoopRestorationParameters();
 
     public ObuConstraintDirectionalEnhancementFilterParameters CdefParameters { get; set; } = new ObuConstraintDirectionalEnhancementFilterParameters();
 

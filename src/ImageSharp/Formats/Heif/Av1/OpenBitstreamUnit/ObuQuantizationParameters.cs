@@ -16,4 +16,6 @@ internal class ObuQuantizationParameters
     public int[] DeltaQAc { get; internal set; } = new int[3];
 
     public int[] QMatrix { get; internal set; } = new int[3];
+
+    public bool HasSeparateUvDelta { get; internal set; }
 }

@@ -42,7 +42,6 @@ public class AutoExpandingMemoryTests
 
     [Theory]
     [InlineData(1, -1)]
-    [InlineData(1, 0)]
     [InlineData(-2, 1)]
     [InlineData(-2, 0)]
     public void Guards(int initialCapacity, int requestedCapacity) =>

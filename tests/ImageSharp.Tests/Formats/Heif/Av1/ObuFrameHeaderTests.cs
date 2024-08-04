@@ -103,7 +103,7 @@ public class ObuFrameHeaderTests
 
         // Act 2
         ObuWriter obuWriter = new();
-        obuWriter.WriteAll(encoded, obuReader1.SequenceHeader, obuReader1.FrameHeader, tileStub);
+        obuWriter.WriteAll(Configuration.Default, encoded, obuReader1.SequenceHeader, obuReader1.FrameHeader, tileStub);
 
         // Assign 2
         Span<byte> encodedBuffer = encoded.ToArray();
@@ -181,7 +181,7 @@ public class ObuFrameHeaderTests
         ObuWriter obuWriter = new();
 
         // Act
-        obuWriter.WriteAll(stream, null, null, null);
+        obuWriter.WriteAll(Configuration.Default, stream, null, null, null);
         byte[] actual = stream.GetBuffer();
 
         // Assert
@@ -197,7 +197,7 @@ public class ObuFrameHeaderTests
         ObuWriter obuWriter = new();
 
         // Act
-        obuWriter.WriteAll(stream, input, null, null);
+        obuWriter.WriteAll(Configuration.Default, stream, input, null, null);
         byte[] buffer = stream.GetBuffer();
 
         // Assert
@@ -219,7 +219,7 @@ public class ObuFrameHeaderTests
         ObuWriter obuWriter = new();
 
         // Act
-        obuWriter.WriteAll(stream, sequenceInput, frameInput, tileStub);
+        obuWriter.WriteAll(Configuration.Default, stream, sequenceInput, frameInput, tileStub);
         byte[] buffer = stream.GetBuffer();
 
         // Assert

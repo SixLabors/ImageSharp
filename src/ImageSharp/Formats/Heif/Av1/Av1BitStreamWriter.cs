@@ -1,39 +1,67 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.Memory;
+
 namespace SixLabors.ImageSharp.Formats.Heif.Av1;
 
-internal ref struct Av1BitStreamWriter(Stream stream)
+internal ref struct Av1BitStreamWriter
 {
     private const int WordSize = 8;
-    private readonly Stream stream = stream;
+    private readonly AutoExpandingMemory<byte> memory;
+    private Span<byte> span;
+    private int capacityTrigger;
     private byte buffer = 0;
-    private int bitOffset = 0;
 
-    public readonly int BitPosition => (int)(this.stream.Position * WordSize) + this.bitOffset;
+    public Av1BitStreamWriter(AutoExpandingMemory<byte> memory)
+    {
+        this.memory = memory;
+        this.span = memory.GetEntireSpan();
+        this.capacityTrigger = memory.Capacity - 1;
+    }
 
-    public readonly int Length => (int)this.stream.Length;
+    public int BitPosition { get; private set; } = 0;
+
+    public readonly int Capacity => this.memory.Capacity;
+
+    public static int GetLittleEndianBytes128(uint value, Span<byte> span)
+    {
+        if (value < 0x80U)
+        {
+            span[0] = (byte)value;
+            return 1;
+        }
+        else if (value < 0x8000U)
+        {
+            span[0] = (byte)((value & 0x7fU) | 0x80U);
+            span[1] = (byte)((value >> 7) & 0xff);
+            return 2;
+        }
+        else
+        {
+            throw new NotImplementedException("No such large values yet.");
+        }
+    }
 
     public void Skip(int bitCount)
     {
-        this.bitOffset += bitCount;
-        while (this.bitOffset >= WordSize)
+        this.BitPosition += bitCount;
+        while (this.BitPosition >= WordSize)
         {
-            this.bitOffset -= WordSize;
-            this.stream.WriteByte(this.buffer);
-            this.buffer = 0;
+            this.BitPosition -= WordSize;
+            this.WriteBuffer();
         }
     }
 
     public void Flush()
     {
-        if (Av1Math.Modulus8(this.bitOffset) != 0)
+        if (Av1Math.Modulus8(this.BitPosition) != 0)
         {
             // Flush a partial byte also.
-            this.stream.WriteByte(this.buffer);
+            this.WriteBuffer();
         }
 
-        this.bitOffset = 0;
+        this.BitPosition = 0;
     }
 
     public void WriteLiteral(uint value, int bitCount)
@@ -64,19 +92,8 @@ internal ref struct Av1BitStreamWriter(Stream stream)
 
     public void WriteLittleEndianBytes128(uint value)
     {
-        if (value < 128)
-        {
-            this.WriteLiteral(value, 8);
-        }
-        else if (value < 0x8000U)
-        {
-            this.WriteLiteral((value & 0x7FU) | 0x80U, 8);
-            this.WriteLiteral(value >> 7, 8);
-        }
-        else
-        {
-            throw new NotImplementedException("No such large values yet.");
-        }
+        int bytesWritten = GetLittleEndianBytes128(value, this.span.Slice(this.BitPosition >> 3));
+        this.BitPosition += bytesWritten << 3;
     }
 
     internal void WriteNonSymmetric(uint value, uint numberOfSymbols)
@@ -104,14 +121,14 @@ internal ref struct Av1BitStreamWriter(Stream stream)
 
     private void WriteBit(byte value)
     {
-        this.buffer = (byte)(((value << (7 - this.bitOffset)) & 0xff) | this.buffer);
-        this.bitOffset++;
-        if (this.bitOffset == WordSize)
+        int bit = this.BitPosition & 0x07;
+        this.buffer = (byte)(((value << (7 - bit)) & 0xff) | this.buffer);
+        if (bit == 7)
         {
-            this.stream.WriteByte(this.buffer);
-            this.buffer = 0;
-            this.bitOffset = 0;
+            this.WriteBuffer();
         }
+
+        this.BitPosition++;
     }
 
     public void WriteLittleEndian(uint value, int n)
@@ -131,7 +148,29 @@ internal ref struct Av1BitStreamWriter(Stream stream)
     {
         DebugGuard.IsTrue(Av1Math.Modulus8(this.BitPosition) == 0, "Writing of Tile Data only allowed on byte alignment");
 
-        this.stream.Write(tileData);
-        this.bitOffset += tileData.Length << 3;
+        int wordPosition = this.BitPosition >> 3;
+        if (this.span.Length <= wordPosition + tileData.Length)
+        {
+            this.memory.GetSpan(wordPosition + tileData.Length);
+            this.span = this.memory.GetEntireSpan();
+        }
+
+        tileData.CopyTo(this.span[wordPosition..]);
+        this.BitPosition += tileData.Length << 3;
+    }
+
+    private void WriteBuffer()
+    {
+        int wordPosition = Av1Math.DivideBy8Floor(this.BitPosition);
+        if (wordPosition > this.capacityTrigger)
+        {
+            // Expand the memory allocation.
+            this.memory.GetSpan(wordPosition + 1);
+            this.span = this.memory.GetEntireSpan();
+            this.capacityTrigger = this.span.Length - 1;
+        }
+
+        this.span[wordPosition] = this.buffer;
+        this.buffer = 0;
     }
 }

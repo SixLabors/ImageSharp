@@ -1,9 +1,8 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Buffers;
-using System.Reflection.PortableExecutable;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
+using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 
@@ -15,23 +14,24 @@ internal class ObuWriter
     /// <summary>
     /// Encode a single frame into OBU's.
     /// </summary>
-    public void WriteAll(Stream stream, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameInfo, IAv1TileWriter tileWriter)
+    public void WriteAll(Configuration configuration, Stream stream, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameInfo, IAv1TileWriter tileWriter)
     {
-        MemoryStream bufferStream = new(2000);
-        Av1BitStreamWriter writer = new(bufferStream);
-        WriteObuHeaderAndSize(stream, ObuType.TemporalDelimiter, [], 0);
+        // TODO: Determine inital size dynamically
+        int initialBufferSize = 2000;
+        AutoExpandingMemory<byte> buffer = new(configuration, initialBufferSize);
+        Av1BitStreamWriter writer = new(buffer);
+        WriteObuHeaderAndSize(stream, ObuType.TemporalDelimiter, []);
 
         if (sequenceHeader != null)
         {
             WriteSequenceHeader(ref writer, sequenceHeader);
             int bytesWritten = (writer.BitPosition + 7) >> 3;
             writer.Flush();
-            WriteObuHeaderAndSize(stream, ObuType.SequenceHeader, bufferStream.GetBuffer(), bytesWritten);
+            WriteObuHeaderAndSize(stream, ObuType.SequenceHeader, buffer.GetSpan(bytesWritten));
         }
 
         if (frameInfo != null && sequenceHeader != null)
         {
-            bufferStream.Position = 0;
             this.WriteFrameHeader(ref writer, sequenceHeader, frameInfo, true);
             if (frameInfo.TilesInfo != null)
             {
@@ -40,7 +40,7 @@ internal class ObuWriter
 
             int bytesWritten = (writer.BitPosition + 7) >> 3;
             writer.Flush();
-            WriteObuHeaderAndSize(stream, ObuType.Frame, bufferStream.GetBuffer(), bytesWritten);
+            WriteObuHeaderAndSize(stream, ObuType.Frame, buffer.GetSpan(bytesWritten));
         }
     }
 
@@ -53,15 +53,25 @@ internal class ObuWriter
         writer.WriteBoolean(false); // Reserved
     }
 
+    private static byte WriteObuHeader(ObuType type) =>
+
+        // 0: Forbidden bit
+        // 1: Type, 4
+        // 5: Extension (false)
+        // 6: HasSize (true)
+        // 7: Reserved (false)
+        (byte)(((byte)type << 3) | 0x02);
+
     /// <summary>
     /// Read OBU header and size.
     /// </summary>
-    private static void WriteObuHeaderAndSize(Stream stream, ObuType type, Span<byte> payload, int length)
+    private static void WriteObuHeaderAndSize(Stream stream, ObuType type, Span<byte> payload)
     {
-        Av1BitStreamWriter writer = new(stream);
-        WriteObuHeader(ref writer, type);
-        writer.WriteLittleEndianBytes128((uint)length);
-        stream.Write(payload, 0, length);
+        stream.WriteByte(WriteObuHeader(type));
+        Span<byte> lengthBytes = stackalloc byte[2];
+        int lengthLength = Av1BitStreamWriter.GetLittleEndianBytes128((uint)payload.Length, lengthBytes);
+        stream.Write(lengthBytes, 0, lengthLength);
+        stream.Write(payload);
     }
 
     /// <summary>

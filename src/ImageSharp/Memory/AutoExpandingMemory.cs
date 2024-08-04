@@ -23,9 +23,11 @@ internal sealed class AutoExpandingMemory<T> : IDisposable
         this.allocation = this.configuration.MemoryAllocator.Allocate<T>(initialSize);
     }
 
+    public int Capacity => this.allocation.Memory.Length;
+
     public Span<T> GetSpan(int requestedSize)
     {
-        Guard.MustBeGreaterThan(requestedSize, 0, nameof(requestedSize));
+        Guard.MustBeGreaterThanOrEqualTo(requestedSize, 0, nameof(requestedSize));
         this.EnsureCapacity(requestedSize);
 
         return this.allocation.Memory.Span[..requestedSize];
@@ -34,11 +36,14 @@ internal sealed class AutoExpandingMemory<T> : IDisposable
     public Span<T> GetSpan(int offset, int requestedSize)
     {
         Guard.MustBeGreaterThanOrEqualTo(offset, 0, nameof(offset));
-        Guard.MustBeGreaterThan(requestedSize, 0, nameof(requestedSize));
+        Guard.MustBeGreaterThanOrEqualTo(requestedSize, 0, nameof(requestedSize));
         this.EnsureCapacity(offset + requestedSize);
 
         return this.allocation.Memory.Span.Slice(offset, requestedSize);
     }
+
+    public Span<T> GetEntireSpan()
+        => this.GetSpan(this.Capacity);
 
     public void Dispose() => this.allocation.Dispose();
 

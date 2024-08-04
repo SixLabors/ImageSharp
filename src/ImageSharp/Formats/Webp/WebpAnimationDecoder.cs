@@ -195,14 +195,14 @@ internal class WebpAnimationDecoder : IDisposable
 
         Rectangle regionRectangle = frameData.Bounds;
 
-        if (frameData.DisposalMethod is WebpDisposalMethod.RestoreToBackground)
+        if (frameData.DisposalMethod is FrameDisposalMode.RestoreToBackground)
         {
             this.RestoreToBackground(imageFrame, backgroundColor);
         }
 
         using Buffer2D<TPixel> decodedImageFrame = this.DecodeImageFrameData<TPixel>(frameData, webpInfo);
 
-        bool blend = previousFrame != null && frameData.BlendingMethod == WebpBlendMethod.Over;
+        bool blend = previousFrame != null && frameData.BlendingMethod == FrameBlendMode.Over;
         DrawDecodedImageFrameOnCanvas(decodedImageFrame, imageFrame, regionRectangle, blend);
 
         previousFrame = currentFrame ?? image.Frames.RootFrame;

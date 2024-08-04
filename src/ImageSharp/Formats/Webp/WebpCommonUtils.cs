@@ -4,8 +4,6 @@
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
-using SixLabors.ImageSharp.Formats.Gif;
-using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Webp;
@@ -15,54 +13,6 @@ namespace SixLabors.ImageSharp.Formats.Webp;
 /// </summary>
 internal static class WebpCommonUtils
 {
-    public static WebpMetadata GetWebpMetadata<TPixel>(Image<TPixel> image)
-        where TPixel : unmanaged, IPixel<TPixel>
-    {
-        if (image.Metadata.TryGetWebpMetadata(out WebpMetadata? webp))
-        {
-            return (WebpMetadata)webp.DeepClone();
-        }
-
-        if (image.Metadata.TryGetGifMetadata(out GifMetadata? gif))
-        {
-            AnimatedImageMetadata ani = gif.ToAnimatedImageMetadata();
-            return WebpMetadata.FromAnimatedMetadata(ani);
-        }
-
-        if (image.Metadata.TryGetPngMetadata(out PngMetadata? png))
-        {
-            AnimatedImageMetadata ani = png.ToAnimatedImageMetadata();
-            return WebpMetadata.FromAnimatedMetadata(ani);
-        }
-
-        // Return explicit new instance so we do not mutate the original metadata.
-        return new();
-    }
-
-    public static WebpFrameMetadata GetWebpFrameMetadata<TPixel>(ImageFrame<TPixel> frame)
-        where TPixel : unmanaged, IPixel<TPixel>
-    {
-        if (frame.Metadata.TryGetWebpFrameMetadata(out WebpFrameMetadata? webp))
-        {
-            return (WebpFrameMetadata)webp.DeepClone();
-        }
-
-        if (frame.Metadata.TryGetGifMetadata(out GifFrameMetadata? gif))
-        {
-            AnimatedImageFrameMetadata ani = gif.ToAnimatedImageFrameMetadata();
-            return WebpFrameMetadata.FromAnimatedMetadata(ani);
-        }
-
-        if (frame.Metadata.TryGetPngMetadata(out PngFrameMetadata? png))
-        {
-            AnimatedImageFrameMetadata ani = png.ToAnimatedImageFrameMetadata();
-            return WebpFrameMetadata.FromAnimatedMetadata(ani);
-        }
-
-        // Return explicit new instance so we do not mutate the original metadata.
-        return new();
-    }
-
     /// <summary>
     /// Checks if the pixel row is not opaque.
     /// </summary>

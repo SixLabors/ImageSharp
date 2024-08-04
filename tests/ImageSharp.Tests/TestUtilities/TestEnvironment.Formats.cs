@@ -73,13 +73,13 @@ public static partial class TestEnvironment
         // Magick codecs should work on all platforms
         cfg.ConfigureCodecs(
             PngFormat.Instance,
-            MagickReferenceDecoder.Instance,
+            MagickReferenceDecoder.Png,
             pngEncoder,
             new PngImageFormatDetector());
 
         cfg.ConfigureCodecs(
             BmpFormat.Instance,
-            IsWindows ? SystemDrawingReferenceDecoder.Instance : MagickReferenceDecoder.Instance,
+            IsWindows ? SystemDrawingReferenceDecoder.Bmp : MagickReferenceDecoder.Bmp,
             bmpEncoder,
             new BmpImageFormatDetector());
 

@@ -19,7 +19,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg;
 /// <summary>
 /// Image encoder for writing an image to a stream as a jpeg.
 /// </summary>
-internal sealed unsafe partial class JpegEncoderCore : IImageEncoderInternals
+internal sealed unsafe partial class JpegEncoderCore
 {
     /// <summary>
     /// The available encodable frame configs.
@@ -72,7 +72,7 @@ internal sealed unsafe partial class JpegEncoderCore : IImageEncoderInternals
         JpegMetadata jpegMetadata = metadata.GetJpegMetadata();
         JpegFrameConfig frameConfig = this.GetFrameConfig(jpegMetadata);
 
-        bool interleaved = this.encoder.Interleaved ?? jpegMetadata.Interleaved ?? true;
+        bool interleaved = this.encoder.Interleaved ?? jpegMetadata.Interleaved;
         using JpegFrame frame = new(image, frameConfig, interleaved);
 
         // Write the Start Of Image marker.
@@ -539,17 +539,11 @@ internal sealed unsafe partial class JpegEncoderCore : IImageEncoderInternals
     /// <param name="buffer">Temporary buffer.</param>
     private void WriteProfiles(ImageMetadata metadata, Span<byte> buffer)
     {
-        if (metadata is null)
-        {
-            return;
-        }
-
         // For compatibility, place the profiles in the following order:
         // - APP1 EXIF
         // - APP1 XMP
         // - APP2 ICC
         // - APP13 IPTC
-        metadata.SyncProfiles();
         this.WriteExifProfile(metadata.ExifProfile, buffer);
         this.WriteXmpProfile(metadata.XmpProfile, buffer);
         this.WriteIccProfile(metadata.IccProfile, buffer);
@@ -780,7 +774,7 @@ internal sealed unsafe partial class JpegEncoderCore : IImageEncoderInternals
 
     private JpegFrameConfig GetFrameConfig(JpegMetadata metadata)
     {
-        JpegEncodingColor color = this.encoder.ColorType ?? metadata.ColorType ?? JpegEncodingColor.YCbCrRatio420;
+        JpegColorType color = this.encoder.ColorType ?? metadata.ColorType;
         JpegFrameConfig frameConfig = Array.Find(
             FrameConfigs,
             cfg => cfg.EncodingColor == color);

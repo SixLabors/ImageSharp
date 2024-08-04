@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.Formats.Gif;
 /// <summary>
 /// Performs the gif decoding operation.
 /// </summary>
-internal sealed class GifDecoderCore : IImageDecoderInternals
+internal sealed class GifDecoderCore : ImageDecoderCore
 {
     /// <summary>
     /// The temp buffer used to reduce allocations.
@@ -94,8 +94,8 @@ internal sealed class GifDecoderCore : IImageDecoderInternals
     /// </summary>
     /// <param name="options">The decoder options.</param>
     public GifDecoderCore(DecoderOptions options)
+        : base(options)
     {
-        this.Options = options;
         this.configuration = options.Configuration;
         this.skipMetadata = options.SkipMetadata;
         this.maxFrames = options.MaxFrames;
@@ -103,14 +103,7 @@ internal sealed class GifDecoderCore : IImageDecoderInternals
     }
 
     /// <inheritdoc />
-    public DecoderOptions Options { get; }
-
-    /// <inheritdoc />
-    public Size Dimensions => new(this.imageDescriptor.Width, this.imageDescriptor.Height);
-
-    /// <inheritdoc />
-    public Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
-        where TPixel : unmanaged, IPixel<TPixel>
+    protected override Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
     {
         uint frameCount = 0;
         Image<TPixel>? image = null;
@@ -181,7 +174,7 @@ internal sealed class GifDecoderCore : IImageDecoderInternals
     }
 
     /// <inheritdoc />
-    public ImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken)
+    protected override ImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken)
     {
         uint frameCount = 0;
         ImageFrameMetadata? previousFrame = null;
@@ -249,7 +242,6 @@ internal sealed class GifDecoderCore : IImageDecoderInternals
         }
 
         return new ImageInfo(
-            new PixelTypeInfo(this.logicalScreenDescriptor.BitsPerPixel),
             new(this.logicalScreenDescriptor.Width, this.logicalScreenDescriptor.Height),
             this.metadata,
             framesMetadata);
@@ -287,6 +279,8 @@ internal sealed class GifDecoderCore : IImageDecoderInternals
         {
             GifThrowHelper.ThrowInvalidImageContentException("Width or height should not be 0");
         }
+
+        this.Dimensions = new(this.imageDescriptor.Width, this.imageDescriptor.Height);
     }
 
     /// <summary>
@@ -498,7 +492,7 @@ internal sealed class GifDecoderCore : IImageDecoderInternals
         }
         else
         {
-            if (this.graphicsControlExtension.DisposalMethod == GifDisposalMethod.RestoreToPrevious)
+            if (this.graphicsControlExtension.DisposalMethod == FrameDisposalMode.RestoreToPrevious)
             {
                 prevFrame = previousFrame;
             }
@@ -615,7 +609,7 @@ internal sealed class GifDecoderCore : IImageDecoderInternals
 
         previousFrame = currentFrame ?? image.Frames.RootFrame;
 
-        if (this.graphicsControlExtension.DisposalMethod == GifDisposalMethod.RestoreToBackground)
+        if (this.graphicsControlExtension.DisposalMethod == FrameDisposalMode.RestoreToBackground)
         {
             this.restoreArea = new Rectangle(descriptor.Left, descriptor.Top, descriptor.Width, descriptor.Height);
         }
@@ -690,14 +684,14 @@ internal sealed class GifDecoderCore : IImageDecoderInternals
             && this.logicalScreenDescriptor.GlobalColorTableSize > 0)
         {
             GifFrameMetadata gifMeta = metadata.GetGifMetadata();
-            gifMeta.ColorTableMode = GifColorTableMode.Global;
+            gifMeta.ColorTableMode = FrameColorTableMode.Global;
         }
 
         if (this.imageDescriptor.LocalColorTableFlag
             && this.imageDescriptor.LocalColorTableSize > 0)
         {
             GifFrameMetadata gifMeta = metadata.GetGifMetadata();
-            gifMeta.ColorTableMode = GifColorTableMode.Local;
+            gifMeta.ColorTableMode = FrameColorTableMode.Local;
 
             Color[] colorTable = new Color[this.imageDescriptor.LocalColorTableSize];
             ReadOnlySpan<Rgb24> rgbTable = MemoryMarshal.Cast<byte, Rgb24>(this.currentLocalColorTable!.GetSpan()[..this.currentLocalColorTableSize]);
@@ -713,7 +707,7 @@ internal sealed class GifDecoderCore : IImageDecoderInternals
             gifMeta.HasTransparency = this.graphicsControlExtension.TransparencyFlag;
             gifMeta.TransparencyIndex = this.graphicsControlExtension.TransparencyIndex;
             gifMeta.FrameDelay = this.graphicsControlExtension.DelayTime;
-            gifMeta.DisposalMethod = this.graphicsControlExtension.DisposalMethod;
+            gifMeta.DisposalMode = this.graphicsControlExtension.DisposalMethod;
         }
     }
 
@@ -760,8 +754,8 @@ internal sealed class GifDecoderCore : IImageDecoderInternals
         this.metadata = meta;
         this.gifMetadata = meta.GetGifMetadata();
         this.gifMetadata.ColorTableMode = this.logicalScreenDescriptor.GlobalColorTableFlag
-        ? GifColorTableMode.Global
-        : GifColorTableMode.Local;
+            ? FrameColorTableMode.Global
+            : FrameColorTableMode.Local;
 
         if (this.logicalScreenDescriptor.GlobalColorTableFlag)
         {

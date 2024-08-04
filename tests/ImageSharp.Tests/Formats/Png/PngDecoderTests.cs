@@ -485,7 +485,7 @@ public partial class PngDecoderTests
         if (compare)
         {
             // Magick cannot actually decode this image to compare.
-            image.CompareToOriginal(provider, new MagickReferenceDecoder(false));
+            image.CompareToOriginal(provider, new MagickReferenceDecoder(PngFormat.Instance, false));
         }
     }
 
@@ -552,7 +552,7 @@ public partial class PngDecoderTests
                 // We don't have another x-plat reference decoder that can be compared for this image.
                 if (TestEnvironment.IsWindows)
                 {
-                    image.CompareToOriginal(provider, ImageComparer.Exact, SystemDrawingReferenceDecoder.Instance);
+                    image.CompareToOriginal(provider, ImageComparer.Exact, SystemDrawingReferenceDecoder.Png);
                 }
             });
         Assert.Null(ex);
@@ -614,7 +614,7 @@ public partial class PngDecoderTests
                 // We don't have another x-plat reference decoder that can be compared for this image.
                 if (TestEnvironment.IsWindows)
                 {
-                    image.CompareToOriginal(provider, ImageComparer.Exact, SystemDrawingReferenceDecoder.Instance);
+                    image.CompareToOriginal(provider, ImageComparer.Exact, SystemDrawingReferenceDecoder.Png);
                 }
             });
         Assert.NotNull(ex);

@@ -56,6 +56,10 @@
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>Heif4CharCode.tt</DependentUpon>
+    <Compile Update="Formats\_Generated\ImageMetadataExtensions.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>ImageMetadataExtensions.tt</DependentUpon>
     </Compile>
     <Compile Update="Formats\Jpeg\Components\Block8x8F.Generated.cs">
       <DesignTime>True</DesignTime>
@@ -147,7 +151,7 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>PorterDuffFunctions.Generated.tt</DependentUpon>
     </Compile>
-    <Compile Update="Formats\ImageExtensions.Save.cs">
+    <Compile Update="Formats\_Generated\ImageExtensions.Save.cs">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
       <DependentUpon>ImageExtensions.Save.tt</DependentUpon>
@@ -158,6 +162,9 @@
     <None Update="Formats\Heif\Heif4CharCode.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>Heif4CharCode.cs</LastGenOutput>
+    <None Update="Formats\_Generated\ImageMetadataExtensions.tt">
+      <LastGenOutput>ImageMetadataExtensions.cs</LastGenOutput>
+      <Generator>TextTemplatingFileGenerator</Generator>
     </None>
     <None Update="Formats\Jpeg\Components\Block8x8F.Generated.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
@@ -231,7 +238,7 @@
       <LastGenOutput>DefaultPixelBlenders.Generated.cs</LastGenOutput>
       <Generator>TextTemplatingFileGenerator</Generator>
     </None>
-    <None Update="Formats\ImageExtensions.Save.tt">
+    <None Update="Formats\_Generated\ImageExtensions.Save.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>ImageExtensions.Save.cs</LastGenOutput>
     </None>

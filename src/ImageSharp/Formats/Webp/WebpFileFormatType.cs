@@ -9,12 +9,12 @@ namespace SixLabors.ImageSharp.Formats.Webp;
 public enum WebpFileFormatType
 {
     /// <summary>
-    /// The lossless webp format.
+    /// The lossless Webp format, which compresses data without any loss of information.
     /// </summary>
     Lossless,
 
     /// <summary>
-    /// The lossy webp format.
+    /// The lossy Webp format, which compresses data by discarding some of it.
     /// </summary>
     Lossy,
 }

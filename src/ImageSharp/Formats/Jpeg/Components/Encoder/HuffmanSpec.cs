@@ -6,7 +6,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder;
 /// <summary>
 ///     The Huffman encoding specifications.
 /// </summary>
-public readonly struct HuffmanSpec
+internal readonly struct HuffmanSpec
 {
     /// <summary>
     /// Huffman talbe specification for luminance DC.

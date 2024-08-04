@@ -10,7 +10,7 @@ internal readonly struct WebpFrameData
     /// </summary>
     public const uint HeaderSize = 16;
 
-    public WebpFrameData(uint dataSize, uint x, uint y, uint width, uint height, uint duration, WebpBlendMethod blendingMethod, WebpDisposalMethod disposalMethod)
+    public WebpFrameData(uint dataSize, uint x, uint y, uint width, uint height, uint duration, FrameBlendMode blendingMethod, FrameDisposalMode disposalMethod)
     {
         this.DataSize = dataSize;
         this.X = x;
@@ -30,12 +30,12 @@ internal readonly struct WebpFrameData
             width,
             height,
             duration,
-            (flags & 2) == 0 ? WebpBlendMethod.Over : WebpBlendMethod.Source,
-            (flags & 1) == 1 ? WebpDisposalMethod.RestoreToBackground : WebpDisposalMethod.DoNotDispose)
+            (flags & 2) == 0 ? FrameBlendMode.Over : FrameBlendMode.Source,
+            (flags & 1) == 1 ? FrameDisposalMode.RestoreToBackground : FrameDisposalMode.DoNotDispose)
     {
     }
 
-    public WebpFrameData(uint x, uint y, uint width, uint height, uint duration, WebpBlendMethod blendingMethod, WebpDisposalMethod disposalMethod)
+    public WebpFrameData(uint x, uint y, uint width, uint height, uint duration, FrameBlendMode blendingMethod, FrameDisposalMode disposalMethod)
         : this(0, x, y, width, height, duration, blendingMethod, disposalMethod)
     {
     }
@@ -74,12 +74,12 @@ internal readonly struct WebpFrameData
     /// <summary>
     /// Gets how transparent pixels of the current frame are to be blended with corresponding pixels of the previous canvas.
     /// </summary>
-    public WebpBlendMethod BlendingMethod { get; }
+    public FrameBlendMode BlendingMethod { get; }
 
     /// <summary>
     /// Gets how the current frame is to be treated after it has been displayed (before rendering the next frame) on the canvas.
     /// </summary>
-    public WebpDisposalMethod DisposalMethod { get; }
+    public FrameDisposalMode DisposalMethod { get; }
 
     public Rectangle Bounds => new((int)this.X, (int)this.Y, (int)this.Width, (int)this.Height);
 
@@ -91,13 +91,13 @@ internal readonly struct WebpFrameData
     {
         byte flags = 0;
 
-        if (this.BlendingMethod is WebpBlendMethod.Source)
+        if (this.BlendingMethod is FrameBlendMode.Source)
         {
             // Set blending flag.
             flags |= 2;
         }
 
-        if (this.DisposalMethod is WebpDisposalMethod.RestoreToBackground)
+        if (this.DisposalMethod is FrameDisposalMode.RestoreToBackground)
         {
             // Set disposal flag.
             flags |= 1;
@@ -124,7 +124,7 @@ internal readonly struct WebpFrameData
     {
         Span<byte> buffer = stackalloc byte[4];
 
-        WebpFrameData data = new(
+        return new(
             dataSize: WebpChunkParsingUtils.ReadChunkSize(stream, buffer),
             x: WebpChunkParsingUtils.ReadUInt24LittleEndian(stream, buffer) * 2,
             y: WebpChunkParsingUtils.ReadUInt24LittleEndian(stream, buffer) * 2,
@@ -132,7 +132,5 @@ internal readonly struct WebpFrameData
             height: WebpChunkParsingUtils.ReadUInt24LittleEndian(stream, buffer) + 1,
             duration: WebpChunkParsingUtils.ReadUInt24LittleEndian(stream, buffer),
             flags: stream.ReadByte());
-
-        return data;
     }
 }

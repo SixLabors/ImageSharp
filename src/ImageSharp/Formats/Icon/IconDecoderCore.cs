@@ -6,24 +6,21 @@ using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Metadata;
-using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Icon;
 
-internal abstract class IconDecoderCore : IImageDecoderInternals
+internal abstract class IconDecoderCore : ImageDecoderCore
 {
     private IconDir fileHeader;
     private IconDirEntry[]? entries;
 
     protected IconDecoderCore(DecoderOptions options)
-        => this.Options = options;
+        : base(options)
+    {
+    }
 
-    public DecoderOptions Options { get; }
-
-    public Size Dimensions { get; private set; }
-
-    public Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
-        where TPixel : unmanaged, IPixel<TPixel>
+    /// <inheritdoc />
+    protected override Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
     {
         // Stream may not at 0.
         long basePosition = stream.Position;
@@ -61,7 +58,7 @@ internal abstract class IconDecoderCore : IImageDecoderInternals
             bool isPng = flag.SequenceEqual(PngConstants.HeaderBytes);
 
             // Decode the frame into a temp image buffer. This is disposed after the frame is copied to the result.
-            Image<TPixel> temp = this.GetDecoder(isPng).Decode<TPixel>(stream, cancellationToken);
+            Image<TPixel> temp = this.GetDecoder(isPng).Decode<TPixel>(this.Options.Configuration, stream, cancellationToken);
             decodedEntries.Add((temp, isPng ? IconFrameCompression.Png : IconFrameCompression.Bmp, i));
 
             // Since Windows Vista, the size of an image is determined from the BITMAPINFOHEADER structure or PNG image data
@@ -74,7 +71,7 @@ internal abstract class IconDecoderCore : IImageDecoderInternals
         PngMetadata? pngMetadata = null;
         Image<TPixel> result = new(this.Options.Configuration, metadata, decodedEntries.Select(x =>
         {
-            BmpBitsPerPixel bitsPerPixel = BmpBitsPerPixel.Pixel32;
+            BmpBitsPerPixel bitsPerPixel = BmpBitsPerPixel.Bit32;
             ReadOnlyMemory<Color>? colorTable = null;
             ImageFrame<TPixel> target = new(this.Options.Configuration, this.Dimensions);
             ImageFrame<TPixel> source = x.Image.Frames.RootFrameUnsafe;
@@ -106,7 +103,9 @@ internal abstract class IconDecoderCore : IImageDecoderInternals
             }
 
             this.SetFrameMetadata(
+                metadata,
                 target.Metadata,
+                x.Index,
                 this.entries[x.Index],
                 x.Compression,
                 bitsPerPixel,
@@ -131,7 +130,8 @@ internal abstract class IconDecoderCore : IImageDecoderInternals
         return result;
     }
 
-    public ImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken)
+    /// <inheritdoc />
+    protected override ImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken)
     {
         // Stream may not at 0.
         long basePosition = stream.Position;
@@ -146,7 +146,7 @@ internal abstract class IconDecoderCore : IImageDecoderInternals
         int bpp = 0;
         for (int i = 0; i < frames.Length; i++)
         {
-            BmpBitsPerPixel bitsPerPixel = BmpBitsPerPixel.Pixel32;
+            BmpBitsPerPixel bitsPerPixel = BmpBitsPerPixel.Bit32;
             ReadOnlyMemory<Color>? colorTable = null;
             ref IconDirEntry entry = ref this.entries[i];
 
@@ -168,7 +168,7 @@ internal abstract class IconDecoderCore : IImageDecoderInternals
             bool isPng = flag.SequenceEqual(PngConstants.HeaderBytes);
 
             // Decode the frame into a temp image buffer. This is disposed after the frame is copied to the result.
-            ImageInfo temp = this.GetDecoder(isPng).Identify(stream, cancellationToken);
+            ImageInfo frameInfo = this.GetDecoder(isPng).Identify(this.Options.Configuration, stream, cancellationToken);
 
             ImageFrameMetadata frameMetadata = new();
 
@@ -176,14 +176,14 @@ internal abstract class IconDecoderCore : IImageDecoderInternals
             {
                 if (i == 0)
                 {
-                    pngMetadata = temp.Metadata.GetPngMetadata();
+                    pngMetadata = frameInfo.Metadata.GetPngMetadata();
                 }
 
-                frameMetadata.SetFormatMetadata(PngFormat.Instance, temp.FrameMetadataCollection[0].GetPngMetadata());
+                frameMetadata.SetFormatMetadata(PngFormat.Instance, frameInfo.FrameMetadataCollection[0].GetPngMetadata());
             }
             else
             {
-                BmpMetadata meta = temp.Metadata.GetBmpMetadata();
+                BmpMetadata meta = frameInfo.Metadata.GetBmpMetadata();
                 bitsPerPixel = meta.BitsPerPixel;
                 colorTable = meta.ColorTable;
 
@@ -198,7 +198,9 @@ internal abstract class IconDecoderCore : IImageDecoderInternals
             frames[i] = frameMetadata;
 
             this.SetFrameMetadata(
+                metadata,
                 frames[i],
+                i,
                 this.entries[i],
                 isPng ? IconFrameCompression.Png : IconFrameCompression.Bmp,
                 bitsPerPixel,
@@ -206,7 +208,7 @@ internal abstract class IconDecoderCore : IImageDecoderInternals
 
             // Since Windows Vista, the size of an image is determined from the BITMAPINFOHEADER structure or PNG image data
             // which technically allows storing icons with larger than 256 pixels, but such larger sizes are not recommended by Microsoft.
-            this.Dimensions = new(Math.Max(this.Dimensions.Width, temp.Size.Width), Math.Max(this.Dimensions.Height, temp.Size.Height));
+            this.Dimensions = new(Math.Max(this.Dimensions.Width, frameInfo.Size.Width), Math.Max(this.Dimensions.Height, frameInfo.Size.Height));
         }
 
         // Copy the format specific metadata to the image.
@@ -220,11 +222,13 @@ internal abstract class IconDecoderCore : IImageDecoderInternals
             metadata.SetFormatMetadata(PngFormat.Instance, pngMetadata);
         }
 
-        return new(new(bpp), this.Dimensions, metadata, frames);
+        return new(this.Dimensions, metadata, frames);
     }
 
     protected abstract void SetFrameMetadata(
-        ImageFrameMetadata metadata,
+        ImageMetadata imageMetadata,
+        ImageFrameMetadata frameMetadata,
+        int index,
         in IconDirEntry entry,
         IconFrameCompression compression,
         BmpBitsPerPixel bitsPerPixel,
@@ -275,7 +279,7 @@ internal abstract class IconDecoderCore : IImageDecoderInternals
         this.Dimensions = new(width, height);
     }
 
-    private IImageDecoderInternals GetDecoder(bool isPng)
+    private ImageDecoderCore GetDecoder(bool isPng)
     {
         if (isPng)
         {

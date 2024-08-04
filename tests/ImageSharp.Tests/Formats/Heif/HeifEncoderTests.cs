@@ -17,7 +17,7 @@ public class HeifEncoderTests
     public static void Encode<TPixel>(TestImageProvider<TPixel> provider, HeifCompressionMethod compressionMethod)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> image = provider.GetImage(new MagickReferenceDecoder());
+        using Image<TPixel> image = provider.GetImage(new MagickReferenceDecoder(HeifFormat.Instance));
         using MemoryStream stream = new();
         HeifEncoder encoder = new();
         image.Save(stream, encoder);

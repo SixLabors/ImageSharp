@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.Formats.Heif;
 /// <summary>
 /// Performs the HEIF decoding operation.
 /// </summary>
-internal sealed class HeifDecoderCore : IImageDecoderInternals
+internal sealed class HeifDecoderCore : ImageDecoderCore
 {
     /// <summary>
     /// The general configuration.
@@ -42,8 +42,8 @@ internal sealed class HeifDecoderCore : IImageDecoderInternals
     /// </summary>
     /// <param name="options">The decoder options.</param>
     public HeifDecoderCore(DecoderOptions options)
+        : base(options)
     {
-        this.Options = options;
         this.configuration = options.Configuration;
         this.metadata = new ImageMetadata();
         this.items = new List<HeifItem>();
@@ -51,14 +51,7 @@ internal sealed class HeifDecoderCore : IImageDecoderInternals
     }
 
     /// <inheritdoc/>
-    public DecoderOptions Options { get; }
-
-    /// <inheritdoc/>
-    public Size Dimensions { get; }
-
-    /// <inheritdoc/>
-    public Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
-        where TPixel : unmanaged, IPixel<TPixel>
+    protected override Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
     {
         if (!this.CheckFileTypeBox(stream))
         {
@@ -106,7 +99,7 @@ internal sealed class HeifDecoderCore : IImageDecoderInternals
     }
 
     /// <inheritdoc/>
-    public ImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken)
+    protected override ImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken)
     {
         this.CheckFileTypeBox(stream);
 
@@ -134,7 +127,7 @@ internal sealed class HeifDecoderCore : IImageDecoderInternals
 
         this.UpdateMetadata(this.metadata, item);
 
-        return new ImageInfo(new PixelTypeInfo(item.BitsPerPixel), new(item.Extent.Width, item.Extent.Height), this.metadata);
+        return new ImageInfo(new(item.Extent.Width, item.Extent.Height), this.metadata);
     }
 
     private bool CheckFileTypeBox(BufferedReadStream stream)

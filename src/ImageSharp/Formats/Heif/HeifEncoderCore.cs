@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.Formats.Heif;
 /// <summary>
 /// Image encoder for writing an image to a stream as a HEIF image.
 /// </summary>
-internal sealed class HeifEncoderCore : IImageEncoderInternals
+internal sealed class HeifEncoderCore
 {
     /// <summary>
     /// The global configuration.
@@ -326,7 +326,7 @@ internal sealed class HeifEncoderCore : IImageEncoderInternals
         using MemoryStream stream = new();
         JpegEncoder encoder = new()
         {
-            ColorType = JpegEncodingColor.YCbCrRatio420
+            ColorType = JpegColorType.YCbCrRatio420
         };
         await image.SaveAsJpegAsync(stream, encoder, cancellationToken);
         return stream.ToArray();

@@ -56,6 +56,7 @@
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>Heif4CharCode.tt</DependentUpon>
+    </Compile>
     <Compile Update="Formats\_Generated\ImageMetadataExtensions.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
@@ -162,6 +163,7 @@
     <None Update="Formats\Heif\Heif4CharCode.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>Heif4CharCode.cs</LastGenOutput>
+    </None>
     <None Update="Formats\_Generated\ImageMetadataExtensions.tt">
       <LastGenOutput>ImageMetadataExtensions.cs</LastGenOutput>
       <Generator>TextTemplatingFileGenerator</Generator>

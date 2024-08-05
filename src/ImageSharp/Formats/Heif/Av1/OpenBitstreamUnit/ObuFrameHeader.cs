@@ -53,6 +53,8 @@ internal class ObuFrameHeader
 
     public ObuDeltaParameters DeltaQParameters { get; set; } = new ObuDeltaParameters();
 
+    public bool IsIntra => this.FrameType is ObuFrameType.IntraOnlyFrame or ObuFrameType.KeyFrame;
+
     internal ObuFrameSize FrameSize { get; set; } = new ObuFrameSize();
 
     internal int ModeInfoColumnCount { get; set; }

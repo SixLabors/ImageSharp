@@ -247,14 +247,6 @@ internal class ObuReader
         frameInfo.ModeInfoStride = Av1Math.AlignPowerOf2(sequenceHeader.MaxFrameWidth, Av1Constants.MaxSuperBlockSizeLog2) >> Av1Constants.ModeInfoSizeLog2;
     }
 
-    private static bool IsValidObuType(ObuType type) => type switch
-    {
-        ObuType.SequenceHeader or ObuType.TemporalDelimiter or ObuType.FrameHeader or
-        ObuType.TileGroup or ObuType.Metadata or ObuType.Frame or ObuType.RedundantFrameHeader or
-        ObuType.TileList or ObuType.Padding => true,
-        _ => false,
-    };
-
     /// <summary>
     /// 5.5.1. General sequence header OBU syntax.
     /// </summary>
@@ -292,7 +284,7 @@ internal class ObuReader
             sequenceHeader.TimingInfoPresentFlag = reader.ReadBoolean();
             if (sequenceHeader.TimingInfoPresentFlag)
             {
-                ReadTimingInfo(ref reader,  sequenceHeader);
+                ReadTimingInfo(ref reader, sequenceHeader);
                 sequenceHeader.DecoderModelInfoPresentFlag = reader.ReadBoolean();
                 if (sequenceHeader.DecoderModelInfoPresentFlag)
                 {
@@ -309,9 +301,11 @@ internal class ObuReader
             sequenceHeader.OperatingPoint = new ObuOperatingPoint[operatingPointsCnt];
             for (int i = 0; i < operatingPointsCnt; i++)
             {
-                sequenceHeader.OperatingPoint[i] = new ObuOperatingPoint();
-                sequenceHeader.OperatingPoint[i].Idc = reader.ReadLiteral(12);
-                sequenceHeader.OperatingPoint[i].SequenceLevelIndex = (int)reader.ReadLiteral(5);
+                sequenceHeader.OperatingPoint[i] = new ObuOperatingPoint
+                {
+                    Idc = reader.ReadLiteral(12),
+                    SequenceLevelIndex = (int)reader.ReadLiteral(5)
+                };
                 if (sequenceHeader.OperatingPoint[i].SequenceLevelIndex > 7)
                 {
                     sequenceHeader.OperatingPoint[i].SequenceTier = (int)reader.ReadLiteral(1);
@@ -635,36 +629,6 @@ internal class ObuReader
         {
             frameInfo.FrameSize.RenderWidth = frameInfo.FrameSize.SuperResolutionUpscaledWidth;
             frameInfo.FrameSize.RenderHeight = frameInfo.FrameSize.FrameHeight;
-        }
-    }
-
-    /// <summary>
-    /// 5.9.7. Frame size with refs syntax.
-    /// </summary>
-    private void ReadFrameSizeWithReferences(ref Av1BitStreamReader reader, bool frameSizeOverrideFlag)
-    {
-        ObuSequenceHeader sequenceHeader = this.SequenceHeader!;
-        ObuFrameHeader frameInfo = this.FrameHeader!;
-        bool foundReference = false;
-        for (int i = 0; i < Av1Constants.ReferencesPerFrame; i++)
-        {
-            foundReference = reader.ReadBoolean();
-            if (foundReference)
-            {
-                // Take values over from reference frame
-                break;
-            }
-        }
-
-        if (!foundReference)
-        {
-            this.ReadFrameSize(ref reader, frameSizeOverrideFlag);
-            this.ReadRenderSize(ref reader);
-        }
-        else
-        {
-            this.ReadSuperResolutionParameters(ref reader);
-            this.ComputeImageSize(sequenceHeader);
         }
     }
 
@@ -1087,7 +1051,7 @@ internal class ObuReader
         if (frameHeader.PrimaryReferenceFrame == Av1Constants.PrimaryReferenceFrameNone)
         {
             // InitConCoefficientCdfs();
-            SetupPastIndependence(frameHeader);
+            // SetupPastIndependence(frameHeader);
         }
         else
         {
@@ -1182,14 +1146,6 @@ internal class ObuReader
         frameHeader.UseReducedTransformSet = reader.ReadBoolean();
         ReadGlobalMotionParameters(ref reader, sequenceHeader, frameHeader);
         frameHeader.FilmGrainParameters = ReadFilmGrainFilterParameters(ref reader, sequenceHeader, frameHeader);
-    }
-
-    private static void SetupPastIndependence(ObuFrameHeader frameInfo)
-    {
-        _ = frameInfo;
-
-        // TODO: Implement.
-        // The current frame can be decoded without dependencies on previous coded frame.
     }
 
     private static bool IsSegmentationFeatureActive(ObuSegmentationParameters segmentationParameters, int segmentId, ObuSegmentationLevelFeature feature)

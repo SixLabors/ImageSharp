@@ -37,6 +37,13 @@ internal ref struct Av1BitStreamWriter
             span[1] = (byte)((value >> 7) & 0xff);
             return 2;
         }
+        else if (value < 0x800000U)
+        {
+            span[0] = (byte)((value & 0x7fU) | 0x80U);
+            span[1] = (byte)((value >> 7) & 0xff);
+            span[2] = (byte)((value >> 14) & 0xff);
+            return 3;
+        }
         else
         {
             throw new NotImplementedException("No such large values yet.");

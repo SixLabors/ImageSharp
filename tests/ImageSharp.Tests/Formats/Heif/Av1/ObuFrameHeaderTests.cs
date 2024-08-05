@@ -12,9 +12,7 @@ public class ObuFrameHeaderTests
     private static readonly byte[] DefaultSequenceHeaderBitStream =
         [0x0a, 0x06, 0b001_1_1_000, 0b00_1000_01, 0b11_110101, 0b001_11101, 0b111_1_1_1_0_1, 0b1_0_0_1_1_1_10];
 
-    // TODO: Check with libgav1 test code.
-    private static readonly byte[] KeyFrameHeaderBitStream =
-        [0x32, 0x07, 0x10, 0x00];
+    private static readonly byte[] KeyFrameHeaderBitStream = [0x32, 0x06, 0x10, 0x00];
 
     // Bits  Syntax element                  Value
     // 1     obu_forbidden_bit               0
@@ -26,7 +24,7 @@ public class ObuFrameHeaderTests
     private static readonly byte[] DefaultTemporalDelimiterBitStream = [0x12, 0x00];
 
     [Theory]
-    // [InlineData(TestImages.Heif.IrvineAvif, 0x0102, 0x000d)]
+
     // [InlineData(TestImages.Heif.IrvineAvif, 0x0198, 0x6bd1)]
     [InlineData(TestImages.Heif.XnConvert, 0x010e, 0x03cc)]
     [InlineData(TestImages.Heif.Orange4x4, 0x010e, 0x001d)]
@@ -51,12 +49,10 @@ public class ObuFrameHeaderTests
         Assert.Equal(reader.Length, blockSize);
     }
 
-    /*
     [Theory]
-    [InlineData(TestImages.Heif.Orange4x4, 0x010e, 0x001d, 0x0128)]
-
-    [InlineData(TestImages.Heif.XnConvert, 0x010e, 0x03cc, 0x0114)]
-    public void BinaryIdenticalRoundTripFrameHeader(string filename, int fileOffset, int blockSize, int tileOffset)
+    [InlineData(TestImages.Heif.Orange4x4, 0x010e, 0x001d)]
+    [InlineData(TestImages.Heif.XnConvert, 0x010e, 0x03cc)]
+    public void BinaryIdenticalRoundTripFrameHeader(string filename, int fileOffset, int blockSize)
     {
         // Assign
         string filePath = Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, filename);
@@ -74,13 +70,12 @@ public class ObuFrameHeaderTests
 
         // Act 2
         ObuWriter obuWriter = new();
-        obuWriter.WriteAll(encoded, obuReader.SequenceHeader, obuReader.FrameHeader, tileStub);
+        obuWriter.WriteAll(Configuration.Default, encoded, obuReader.SequenceHeader, obuReader.FrameHeader, tileStub);
 
         // Assert
         byte[] encodedArray = encoded.ToArray();
         Assert.Equal(span, encodedArray);
     }
-    */
 
     [Theory]
     [InlineData(TestImages.Heif.Orange4x4, 0x010e, 0x001d)]
@@ -323,5 +318,4 @@ public class ObuFrameHeaderTests
                 TileRowCount = 1,
             }
         };
-
 }

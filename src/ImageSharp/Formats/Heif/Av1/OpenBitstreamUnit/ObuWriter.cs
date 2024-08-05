@@ -32,7 +32,7 @@ internal class ObuWriter
 
         if (frameInfo != null && sequenceHeader != null)
         {
-            this.WriteFrameHeader(ref writer, sequenceHeader, frameInfo, true);
+            this.WriteFrameHeader(ref writer, sequenceHeader, frameInfo, false);
             if (frameInfo.TilesInfo != null)
             {
                 WriteTileGroup(ref writer, frameInfo.TilesInfo, tileWriter);
@@ -68,7 +68,7 @@ internal class ObuWriter
     private static void WriteObuHeaderAndSize(Stream stream, ObuType type, Span<byte> payload)
     {
         stream.WriteByte(WriteObuHeader(type));
-        Span<byte> lengthBytes = stackalloc byte[2];
+        Span<byte> lengthBytes = stackalloc byte[3];
         int lengthLength = Av1BitStreamWriter.GetLittleEndianBytes128((uint)payload.Length, lengthBytes);
         stream.Write(lengthBytes, 0, lengthLength);
         stream.Write(payload);
@@ -416,6 +416,7 @@ internal class ObuWriter
             if (frameHeader.DeltaQParameters.IsPresent)
             {
                 writer.WriteLiteral((uint)frameHeader.DeltaQParameters.Resolution - 1, 2);
+                this.previousQIndex = new int[tileCount];
                 for (int tileIndex = 0; tileIndex < tileCount; tileIndex++)
                 {
                     this.previousQIndex[tileIndex] = frameHeader.QuantizationParameters.BaseQIndex;
@@ -438,6 +439,7 @@ internal class ObuWriter
                     writer.WriteLiteral((uint)(1 + Av1Math.MostSignificantBit((uint)frameHeader.DeltaLoopFilterParameters.Resolution) - 1), 2);
                     writer.WriteBoolean(frameHeader.DeltaLoopFilterParameters.IsMulti);
                     int frameLoopFilterCount = sequenceHeader.ColorConfig.IsMonochrome ? Av1Constants.FrameLoopFilterCount - 2 : Av1Constants.FrameLoopFilterCount;
+                    this.previousDeltaLoopFilter = new int[frameLoopFilterCount];
                     for (int loopFilterId = 0; loopFilterId < frameLoopFilterCount; loopFilterId++)
                     {
                         this.previousDeltaLoopFilter[loopFilterId] = 0;
@@ -498,11 +500,14 @@ internal class ObuWriter
         return headerBytes;
     }
 
+    /// <summary>
+    /// 5.11.1. General tile group OBU syntax.
+    /// </summary>
     private static int WriteTileGroup(ref Av1BitStreamWriter writer, ObuTileGroupHeader tileInfo, IAv1TileWriter tileWriter)
     {
         int tileCount = tileInfo.TileColumnCount * tileInfo.TileRowCount;
         int startBitPosition = writer.BitPosition;
-        bool tileStartAndEndPresentFlag = tileCount != 0;
+        bool tileStartAndEndPresentFlag = tileCount > 1;
         writer.WriteBoolean(tileStartAndEndPresentFlag);
 
         uint tileGroupStart = 0U;
@@ -623,6 +628,9 @@ internal class ObuWriter
         writer.WriteBoolean(false);
     }
 
+    /// <summary>
+    /// 5.9.11. Loop filter params syntax
+    /// </summary>
     private static void WriteLoopFilterParameters(ref Av1BitStreamWriter writer, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameHeader)
     {
         if (frameHeader.CodedLossless || frameHeader.AllowIntraBlockCopy)
@@ -750,7 +758,7 @@ internal class ObuWriter
     private static void WriteFilmGrainFilterParameters(ref Av1BitStreamWriter writer, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameHeader)
     {
         ObuFilmGrainParameters grainParams = frameHeader.FilmGrainParameters;
-        if (!sequenceHeader.AreFilmGrainingParametersPresent && (!frameHeader.ShowFrame && !frameHeader.ShowableFrame))
+        if (!sequenceHeader.AreFilmGrainingParametersPresent || (!frameHeader.ShowFrame && !frameHeader.ShowableFrame))
         {
             return;
         }

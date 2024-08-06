@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Diagnostics;
 using System.Text;
 
 namespace SixLabors.ImageSharp.Metadata.Profiles.Iptc;
@@ -8,6 +9,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Iptc;
 /// <summary>
 /// Represents a single value of the IPTC profile.
 /// </summary>
+[DebuggerDisplay("{Tag} = {ToString(),nq} ({GetType().Name,nq})")]
 public sealed class IptcValue : IDeepCloneable<IptcValue>
 {
     private byte[] data = Array.Empty<byte>();

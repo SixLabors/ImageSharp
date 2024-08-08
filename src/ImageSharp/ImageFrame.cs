@@ -42,7 +42,7 @@ public abstract partial class ImageFrame : IConfigurationProvider, IDisposable
     /// <summary>
     /// Gets the metadata of the frame.
     /// </summary>
-    public ImageFrameMetadata Metadata { get; }
+    public ImageFrameMetadata Metadata { get; private set; }
 
     /// <inheritdoc/>
     public Configuration Configuration { get; }
@@ -75,8 +75,14 @@ public abstract partial class ImageFrame : IConfigurationProvider, IDisposable
         where TDestinationPixel : unmanaged, IPixel<TDestinationPixel>;
 
     /// <summary>
-    /// Updates the size of the image frame.
+    /// Updates the size of the image frame after mutation.
     /// </summary>
-    /// <param name="size">The size.</param>
+    /// <param name="size">The <see cref="Size"/>.</param>
     protected void UpdateSize(Size size) => this.Size = size;
+
+    /// <summary>
+    /// Updates the metadata of the image frame after mutation.
+    /// </summary>
+    /// <param name="metadata">The <see cref="Metadata"/>.</param>
+    protected void UpdateMetadata(ImageFrameMetadata metadata) => this.Metadata = metadata;
 }

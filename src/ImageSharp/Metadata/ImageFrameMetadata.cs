@@ -7,6 +7,7 @@ using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.Metadata.Profiles.Iptc;
 using SixLabors.ImageSharp.Metadata.Profiles.Xmp;
+using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Metadata;
 
@@ -110,16 +111,23 @@ public sealed class ImageFrameMetadata : IDeepCloneable<ImageFrameMetadata>
             && this.formatMetadata.TryGetValue(this.DecodedImageFormat, out IFormatFrameMetadata? decodedMetadata))
         {
             TFormatFrameMetadata derivedMeta = TFormatFrameMetadata.FromFormatConnectingFrameMetadata(decodedMetadata.ToFormatConnectingFrameMetadata());
-            this.formatMetadata[key] = derivedMeta;
+            this.SetFormatMetadata(key, derivedMeta);
             return derivedMeta;
         }
 
         TFormatFrameMetadata newMeta = key.CreateDefaultFormatFrameMetadata();
-        this.formatMetadata[key] = newMeta;
+        this.SetFormatMetadata(key, newMeta);
         return newMeta;
     }
 
-    internal void SetFormatMetadata<TFormatMetadata, TFormatFrameMetadata>(IImageFormat<TFormatMetadata, TFormatFrameMetadata> key, TFormatFrameMetadata value)
+    /// <summary>
+    /// Sets the metadata value associated with the specified key.
+    /// </summary>
+    /// <typeparam name="TFormatMetadata">The type of format metadata.</typeparam>
+    /// <typeparam name="TFormatFrameMetadata">The type of format frame metadata.</typeparam>
+    /// <param name="key">The key of the value to set.</param>
+    /// <param name="value">The value to set.</param>
+    public void SetFormatMetadata<TFormatMetadata, TFormatFrameMetadata>(IImageFormat<TFormatMetadata, TFormatFrameMetadata> key, TFormatFrameMetadata value)
         where TFormatMetadata : class
         where TFormatFrameMetadata : class, IFormatFrameMetadata<TFormatFrameMetadata>
         => this.formatMetadata[key] = value;
@@ -143,4 +151,23 @@ public sealed class ImageFrameMetadata : IDeepCloneable<ImageFrameMetadata>
     /// Synchronizes the profiles with the current metadata.
     /// </summary>
     internal void SynchronizeProfiles() => this.ExifProfile?.Sync(this);
+
+    /// <summary>
+    /// This method is called after a process has been applied to the image frame.
+    /// </summary>
+    /// <typeparam name="TPixel">The type of pixel format.</typeparam>
+    /// <param name="source">The source image frame.</param>
+    /// <param name="destination">The destination image frame.</param>
+    internal void AfterFrameApply<TPixel>(ImageFrame<TPixel> source, ImageFrame<TPixel> destination)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        // Always updated using the full frame dimensions.
+        // Individual format frame metadata will update with sub region dimensions if appropriate.
+        this.ExifProfile?.SyncDimensions(destination.Width, destination.Height);
+
+        foreach (KeyValuePair<IImageFormat, IFormatFrameMetadata> meta in this.formatMetadata)
+        {
+            meta.Value.AfterFrameApply(source, destination);
+        }
+    }
 }

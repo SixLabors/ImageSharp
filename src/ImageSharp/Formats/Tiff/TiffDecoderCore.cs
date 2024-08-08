@@ -211,17 +211,21 @@ internal class TiffDecoderCore : ImageDecoderCore
         IList<ExifProfile> directories = reader.Read();
 
         List<ImageFrameMetadata> framesMetadata = [];
-        foreach (ExifProfile dir in directories)
+        int width = 0;
+        int height = 0;
+
+        for (int i = 0; i < directories.Count; i++)
         {
-            framesMetadata.Add(this.CreateFrameMetadata(dir));
+            (ImageFrameMetadata FrameMetadata, TiffFrameMetadata TiffMetadata) meta
+                = this.CreateFrameMetadata(directories[i]);
+
+            framesMetadata.Add(meta.FrameMetadata);
+
+            width = Math.Max(width, meta.TiffMetadata.EncodingWidth);
+            height = Math.Max(height, meta.TiffMetadata.EncodingHeight);
         }
 
-        ExifProfile rootFrameExifProfile = directories[0];
-
         ImageMetadata metadata = TiffDecoderMetadataCreator.Create(framesMetadata, this.skipMetadata, reader.ByteOrder, reader.IsBigTiff);
-
-        int width = GetImageWidth(rootFrameExifProfile);
-        int height = GetImageHeight(rootFrameExifProfile);
 
         return new ImageInfo(new(width, height), metadata, framesMetadata);
     }
@@ -237,11 +241,11 @@ internal class TiffDecoderCore : ImageDecoderCore
     private ImageFrame<TPixel> DecodeFrame<TPixel>(ExifProfile tags, Size? size, CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        ImageFrameMetadata imageFrameMetaData = this.CreateFrameMetadata(tags);
-        bool isTiled = this.VerifyAndParse(tags, imageFrameMetaData.GetTiffMetadata());
+        (ImageFrameMetadata FrameMetadata, TiffFrameMetadata TiffFrameMetadata) metadata = this.CreateFrameMetadata(tags);
+        bool isTiled = this.VerifyAndParse(tags, metadata.TiffFrameMetadata);
 
-        int width = GetImageWidth(tags);
-        int height = GetImageHeight(tags);
+        int width = metadata.TiffFrameMetadata.EncodingWidth;
+        int height = metadata.TiffFrameMetadata.EncodingHeight;
 
         // If size has a value and the width/height off the tiff is smaller we much capture the delta.
         if (size.HasValue)
@@ -256,7 +260,7 @@ internal class TiffDecoderCore : ImageDecoderCore
             size = new Size(width, height);
         }
 
-        ImageFrame<TPixel> frame = new(this.configuration, size.Value.Width, size.Value.Height, imageFrameMetaData);
+        ImageFrame<TPixel> frame = new(this.configuration, size.Value.Width, size.Value.Height, metadata.FrameMetadata);
 
         if (isTiled)
         {
@@ -270,7 +274,7 @@ internal class TiffDecoderCore : ImageDecoderCore
         return frame;
     }
 
-    private ImageFrameMetadata CreateFrameMetadata(ExifProfile tags)
+    private (ImageFrameMetadata FrameMetadata, TiffFrameMetadata TiffMetadata) CreateFrameMetadata(ExifProfile tags)
     {
         ImageFrameMetadata imageFrameMetaData = new();
         if (!this.skipMetadata)
@@ -278,9 +282,10 @@ internal class TiffDecoderCore : ImageDecoderCore
             imageFrameMetaData.ExifProfile = tags;
         }
 
-        TiffFrameMetadata.Parse(imageFrameMetaData.GetTiffMetadata(), tags);
+        TiffFrameMetadata tiffMetadata = TiffFrameMetadata.Parse(tags);
+        imageFrameMetaData.SetFormatMetadata(TiffFormat.Instance, tiffMetadata);
 
-        return imageFrameMetaData;
+        return (imageFrameMetaData, tiffMetadata);
     }
 
     /// <summary>
@@ -823,38 +828,6 @@ internal class TiffDecoderCore : ImageDecoderCore
 
         int bytesPerRow = ((width * bitsPerPixel) + 7) / 8;
         return bytesPerRow * height;
-    }
-
-    /// <summary>
-    /// Gets the width of the image frame.
-    /// </summary>
-    /// <param name="exifProfile">The image frame exif profile.</param>
-    /// <returns>The image width.</returns>
-    private static int GetImageWidth(ExifProfile exifProfile)
-    {
-        if (!exifProfile.TryGetValue(ExifTag.ImageWidth, out IExifValue<Number> width))
-        {
-            TiffThrowHelper.ThrowInvalidImageContentException("The TIFF image frame is missing the ImageWidth");
-        }
-
-        DebugGuard.MustBeLessThanOrEqualTo((ulong)width.Value, (ulong)int.MaxValue, nameof(ExifTag.ImageWidth));
-
-        return (int)width.Value;
-    }
-
-    /// <summary>
-    /// Gets the height of the image frame.
-    /// </summary>
-    /// <param name="exifProfile">The image frame exif profile.</param>
-    /// <returns>The image height.</returns>
-    private static int GetImageHeight(ExifProfile exifProfile)
-    {
-        if (!exifProfile.TryGetValue(ExifTag.ImageLength, out IExifValue<Number> height))
-        {
-            TiffThrowHelper.ThrowImageFormatException("The TIFF image frame is missing the ImageLength");
-        }
-
-        return (int)height.Value;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

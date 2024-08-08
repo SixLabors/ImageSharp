@@ -1,6 +1,8 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.PixelFormats;
+
 namespace SixLabors.ImageSharp.Formats;
 
 /// <summary>
@@ -13,6 +15,15 @@ public interface IFormatFrameMetadata : IDeepCloneable
     /// </summary>
     /// <returns>The <see cref="FormatConnectingFrameMetadata"/>.</returns>
     FormatConnectingFrameMetadata ToFormatConnectingFrameMetadata();
+
+    /// <summary>
+    /// This method is called after a process has been applied to the image frame.
+    /// </summary>
+    /// <typeparam name="TPixel">The type of pixel format.</typeparam>
+    /// <param name="source">The source image frame.</param>
+    /// <param name="destination">The destination image frame.</param>
+    void AfterFrameApply<TPixel>(ImageFrame<TPixel> source, ImageFrame<TPixel> destination)
+        where TPixel : unmanaged, IPixel<TPixel>;
 }
 
 /// <summary>

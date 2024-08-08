@@ -2,7 +2,6 @@
 // Licensed under the Six Labors Split License.
 
 using System.Runtime.CompilerServices;
-using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -58,7 +57,7 @@ public class TolerantImageComparer : ImageComparer
 
     public override ImageSimilarityReport<TPixelA, TPixelB> CompareImagesOrFrames<TPixelA, TPixelB>(int index, ImageFrame<TPixelA> expected, ImageFrame<TPixelB> actual)
     {
-        if (expected.Size() != actual.Size())
+        if (expected.Size != actual.Size)
         {
             throw new InvalidOperationException("Calling ImageComparer is invalid when dimensions mismatch!");
         }

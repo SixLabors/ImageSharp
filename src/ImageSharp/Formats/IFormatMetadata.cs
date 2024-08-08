@@ -21,6 +21,14 @@ public interface IFormatMetadata : IDeepCloneable
     /// </summary>
     /// <returns>The <see cref="FormatConnectingMetadata"/>.</returns>
     FormatConnectingMetadata ToFormatConnectingMetadata();
+
+    /// <summary>
+    /// This method is called after a process has been applied to the image.
+    /// </summary>
+    /// <typeparam name="TPixel">The type of pixel format.</typeparam>
+    /// <param name="destination">The destination image .</param>
+    void AfterImageApply<TPixel>(Image<TPixel> destination)
+        where TPixel : unmanaged, IPixel<TPixel>;
 }
 
 /// <summary>

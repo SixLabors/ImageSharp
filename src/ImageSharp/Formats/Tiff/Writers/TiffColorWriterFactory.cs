@@ -13,6 +13,7 @@ internal static class TiffColorWriterFactory
     public static TiffBaseColorWriter<TPixel> Create<TPixel>(
         TiffPhotometricInterpretation? photometricInterpretation,
         ImageFrame<TPixel> image,
+        Size encodingSize,
         IQuantizer quantizer,
         IPixelSamplingStrategy pixelSamplingStrategy,
         MemoryAllocator memoryAllocator,
@@ -20,22 +21,15 @@ internal static class TiffColorWriterFactory
         TiffEncoderEntriesCollector entriesCollector,
         int bitsPerPixel)
         where TPixel : unmanaged, IPixel<TPixel>
-    {
-        switch (photometricInterpretation)
+        => photometricInterpretation switch
         {
-            case TiffPhotometricInterpretation.PaletteColor:
-                return new TiffPaletteWriter<TPixel>(image, quantizer, pixelSamplingStrategy, memoryAllocator, configuration, entriesCollector, bitsPerPixel);
-            case TiffPhotometricInterpretation.BlackIsZero:
-            case TiffPhotometricInterpretation.WhiteIsZero:
-                return bitsPerPixel switch
-                {
-                    1 => new TiffBiColorWriter<TPixel>(image, memoryAllocator, configuration, entriesCollector),
-                    16 => new TiffGrayL16Writer<TPixel>(image, memoryAllocator, configuration, entriesCollector),
-                    _ => new TiffGrayWriter<TPixel>(image, memoryAllocator, configuration, entriesCollector)
-                };
-
-            default:
-                return new TiffRgbWriter<TPixel>(image, memoryAllocator, configuration, entriesCollector);
-        }
-    }
+            TiffPhotometricInterpretation.PaletteColor => new TiffPaletteWriter<TPixel>(image, encodingSize, quantizer, pixelSamplingStrategy, memoryAllocator, configuration, entriesCollector, bitsPerPixel),
+            TiffPhotometricInterpretation.BlackIsZero or TiffPhotometricInterpretation.WhiteIsZero => bitsPerPixel switch
+            {
+                1 => new TiffBiColorWriter<TPixel>(image, encodingSize, memoryAllocator, configuration, entriesCollector),
+                16 => new TiffGrayL16Writer<TPixel>(image, encodingSize, memoryAllocator, configuration, entriesCollector),
+                _ => new TiffGrayWriter<TPixel>(image, encodingSize, memoryAllocator, configuration, entriesCollector)
+            },
+            _ => new TiffRgbWriter<TPixel>(image, encodingSize, memoryAllocator, configuration, entriesCollector),
+        };
 }

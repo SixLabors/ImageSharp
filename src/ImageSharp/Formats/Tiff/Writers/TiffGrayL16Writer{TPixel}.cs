@@ -9,8 +9,13 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Writers;
 internal sealed class TiffGrayL16Writer<TPixel> : TiffCompositeColorWriter<TPixel>
     where TPixel : unmanaged, IPixel<TPixel>
 {
-    public TiffGrayL16Writer(ImageFrame<TPixel> image, MemoryAllocator memoryAllocator, Configuration configuration, TiffEncoderEntriesCollector entriesCollector)
-        : base(image, memoryAllocator, configuration, entriesCollector)
+    public TiffGrayL16Writer(
+        ImageFrame<TPixel> image,
+        Size encodingSize,
+        MemoryAllocator memoryAllocator,
+        Configuration configuration,
+        TiffEncoderEntriesCollector entriesCollector)
+        : base(image, encodingSize, memoryAllocator, configuration, entriesCollector)
     {
     }
 
@@ -18,5 +23,6 @@ internal sealed class TiffGrayL16Writer<TPixel> : TiffCompositeColorWriter<TPixe
     public override int BitsPerPixel => 16;
 
     /// <inheritdoc />
-    protected override void EncodePixels(Span<TPixel> pixels, Span<byte> buffer) => PixelOperations<TPixel>.Instance.ToL16Bytes(this.Configuration, pixels, buffer, pixels.Length);
+    protected override void EncodePixels(Span<TPixel> pixels, Span<byte> buffer)
+        => PixelOperations<TPixel>.Instance.ToL16Bytes(this.Configuration, pixels, buffer, pixels.Length);
 }

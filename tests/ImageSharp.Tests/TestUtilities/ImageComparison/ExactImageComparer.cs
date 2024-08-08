@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -16,7 +15,7 @@ public class ExactImageComparer : ImageComparer
         ImageFrame<TPixelA> expected,
         ImageFrame<TPixelB> actual)
     {
-        if (expected.Size() != actual.Size())
+        if (expected.Size != actual.Size)
         {
             throw new InvalidOperationException("Calling ImageComparer is invalid when dimensions mismatch!");
         }

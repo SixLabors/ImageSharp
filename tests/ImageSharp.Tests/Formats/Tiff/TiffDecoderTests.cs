@@ -23,7 +23,6 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     public static readonly string[] MultiframeTestImages = Multiframes;
 
     [Theory]
-    [WithFile(MultiframeDifferentSize, PixelTypes.Rgba32)]
     [WithFile(MultiframeDifferentVariants, PixelTypes.Rgba32)]
     [WithFile(Cmyk64BitDeflate, PixelTypes.Rgba32)]
     public void ThrowsNotSupported<TPixel>(TestImageProvider<TPixel> provider)
@@ -594,6 +593,16 @@ public class TiffDecoderTests : TiffDecoderBaseTester
         DecoderOptions options = new() { MaxFrames = 1 };
         using Image<TPixel> image = provider.GetImage(TiffDecoder.Instance, options);
         Assert.Equal(1, image.Frames.Count);
+    }
+
+    [Theory]
+    [WithFile(MultiFrameMipMap, PixelTypes.Rgba32)]
+    public void CanDecode_MultiFrameMipMap<TPixel>(TestImageProvider<TPixel> provider)
+    where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage(TiffDecoder.Instance);
+        Assert.Equal(7, image.Frames.Count);
+        image.DebugSaveMultiFrame(provider);
     }
 
     [Theory]

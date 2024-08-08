@@ -24,9 +24,16 @@ internal abstract class TransformProcessor<TPixel> : CloningImageProcessor<TPixe
     }
 
     /// <inheritdoc/>
+    protected override void AfterFrameApply(ImageFrame<TPixel> source, ImageFrame<TPixel> destination)
+    {
+        base.AfterFrameApply(source, destination);
+        destination.Metadata.AfterFrameApply(source, destination);
+    }
+
+    /// <inheritdoc/>
     protected override void AfterImageApply(Image<TPixel> destination)
     {
-        TransformProcessorHelpers.UpdateDimensionalMetadata(destination);
         base.AfterImageApply(destination);
+        destination.Metadata.AfterImageApply(destination);
     }
 }

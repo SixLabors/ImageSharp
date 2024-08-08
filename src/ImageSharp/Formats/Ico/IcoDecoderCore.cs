@@ -35,8 +35,6 @@ internal sealed class IcoDecoderCore : IconDecoderCore
             curMetadata.Compression = compression;
             curMetadata.BmpBitsPerPixel = bitsPerPixel;
             curMetadata.ColorTable = colorTable;
-            curMetadata.EncodingWidth = icoFrameMetadata.EncodingWidth;
-            curMetadata.EncodingHeight = icoFrameMetadata.EncodingHeight;
         }
     }
 }

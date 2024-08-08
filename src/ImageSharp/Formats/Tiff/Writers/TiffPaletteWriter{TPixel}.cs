@@ -23,13 +23,14 @@ internal sealed class TiffPaletteWriter<TPixel> : TiffBaseColorWriter<TPixel>
 
     public TiffPaletteWriter(
         ImageFrame<TPixel> frame,
+        Size encodingSize,
         IQuantizer quantizer,
         IPixelSamplingStrategy pixelSamplingStrategy,
         MemoryAllocator memoryAllocator,
         Configuration configuration,
         TiffEncoderEntriesCollector entriesCollector,
         int bitsPerPixel)
-         : base(frame, memoryAllocator, configuration, entriesCollector)
+         : base(frame, encodingSize, memoryAllocator, configuration, entriesCollector)
     {
         DebugGuard.NotNull(quantizer, nameof(quantizer));
         DebugGuard.NotNull(quantizer, nameof(pixelSamplingStrategy));
@@ -49,7 +50,7 @@ internal sealed class TiffPaletteWriter<TPixel> : TiffBaseColorWriter<TPixel>
             });
 
         frameQuantizer.BuildPalette(pixelSamplingStrategy, frame);
-        this.quantizedFrame = frameQuantizer.QuantizeFrame(frame, frame.Bounds());
+        this.quantizedFrame = frameQuantizer.QuantizeFrame(frame, new Rectangle(Point.Empty, encodingSize));
 
         this.AddColorMapTag();
     }
@@ -60,7 +61,7 @@ internal sealed class TiffPaletteWriter<TPixel> : TiffBaseColorWriter<TPixel>
     /// <inheritdoc />
     protected override void EncodeStrip(int y, int height, TiffBaseCompressor compressor)
     {
-        int width = this.Image.Width;
+        int width = this.quantizedFrame.Width;
 
         if (this.BitsPerPixel == 4)
         {

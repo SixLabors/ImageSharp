@@ -231,7 +231,7 @@ internal sealed class PngEncoderCore : IDisposable
             ImageFrame<TPixel> previousFrame = image.Frames.RootFrame;
 
             // This frame is reused to store de-duplicated pixel buffers.
-            using ImageFrame<TPixel> encodingFrame = new(image.Configuration, previousFrame.Size());
+            using ImageFrame<TPixel> encodingFrame = new(image.Configuration, previousFrame.Size);
 
             for (; currentFrameIndex < image.Frames.Count; currentFrameIndex++)
             {

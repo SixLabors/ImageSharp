@@ -35,10 +35,6 @@ internal sealed class CurDecoderCore : IconDecoderCore
             curMetadata.Compression = compression;
             curMetadata.BmpBitsPerPixel = bitsPerPixel;
             curMetadata.ColorTable = colorTable;
-            curMetadata.EncodingWidth = curFrameMetadata.EncodingWidth;
-            curMetadata.EncodingHeight = curFrameMetadata.EncodingHeight;
-            curMetadata.HotspotX = curFrameMetadata.HotspotX;
-            curMetadata.HotspotY = curFrameMetadata.HotspotY;
         }
     }
 }

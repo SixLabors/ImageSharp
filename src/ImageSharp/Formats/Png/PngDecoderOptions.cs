@@ -12,11 +12,6 @@ public sealed class PngDecoderOptions : ISpecializedDecoderOptions
     public DecoderOptions GeneralOptions { get; init; } = new DecoderOptions();
 
     /// <summary>
-    /// Gets a value indicating how to handle validation of any CRC (Cyclic Redundancy Check) data within the encoded PNG.
-    /// </summary>
-    public PngCrcChunkHandling PngCrcChunkHandling { get; init; } = PngCrcChunkHandling.IgnoreNonCritical;
-
-    /// <summary>
     /// Gets the maximum memory in bytes that a zTXt, sPLT, iTXt, iCCP, or unknown chunk can occupy when decompressed.
     /// Defaults to 8MB
     /// </summary>

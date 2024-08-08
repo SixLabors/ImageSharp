@@ -119,7 +119,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
     /// <summary>
     /// How to handle CRC errors.
     /// </summary>
-    private readonly PngCrcChunkHandling pngCrcChunkHandling;
+    private readonly SegmentIntegrityHandling segmentIntegrityHandling;
 
     /// <summary>
     /// A reusable Crc32 hashing instance.
@@ -142,7 +142,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
         this.maxFrames = options.GeneralOptions.MaxFrames;
         this.skipMetadata = options.GeneralOptions.SkipMetadata;
         this.memoryAllocator = this.configuration.MemoryAllocator;
-        this.pngCrcChunkHandling = options.PngCrcChunkHandling;
+        this.segmentIntegrityHandling = options.GeneralOptions.SegmentIntegrityHandling;
         this.maxUncompressedLength = options.MaxUncompressedAncillaryChunkSizeBytes;
     }
 
@@ -154,7 +154,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
         this.skipMetadata = true;
         this.configuration = options.GeneralOptions.Configuration;
         this.memoryAllocator = this.configuration.MemoryAllocator;
-        this.pngCrcChunkHandling = options.PngCrcChunkHandling;
+        this.segmentIntegrityHandling = options.GeneralOptions.SegmentIntegrityHandling;
         this.maxUncompressedLength = options.MaxUncompressedAncillaryChunkSizeBytes;
     }
 
@@ -833,7 +833,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                     break;
 
                 default:
-                    if (this.pngCrcChunkHandling is PngCrcChunkHandling.IgnoreData or PngCrcChunkHandling.IgnoreAll)
+                    if (this.segmentIntegrityHandling is SegmentIntegrityHandling.IgnoreData or SegmentIntegrityHandling.IgnoreAll)
                     {
                         goto EXIT;
                     }
@@ -939,7 +939,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                         break;
 
                     default:
-                        if (this.pngCrcChunkHandling is PngCrcChunkHandling.IgnoreData or PngCrcChunkHandling.IgnoreAll)
+                        if (this.segmentIntegrityHandling is SegmentIntegrityHandling.IgnoreData or SegmentIntegrityHandling.IgnoreAll)
                         {
                             goto EXIT;
                         }
@@ -1927,7 +1927,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
     private void ValidateChunk(in PngChunk chunk, Span<byte> buffer)
     {
         uint inputCrc = this.ReadChunkCrc(buffer);
-        if (chunk.IsCritical(this.pngCrcChunkHandling))
+        if (chunk.IsCritical(this.segmentIntegrityHandling))
         {
             Span<byte> chunkType = stackalloc byte[4];
             BinaryPrimitives.WriteUInt32BigEndian(chunkType, (uint)chunk.Type);

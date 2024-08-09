@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
@@ -34,17 +35,17 @@ internal class Av1TileReader : IAv1TileReader
     private readonly int[] firstTransformOffset = new int[2];
     private readonly int[] coefficientIndex = [];
 
-    public Av1TileReader(ObuSequenceHeader sequenceHeader, ObuFrameHeader frameInfo)
+    public Av1TileReader(ObuSequenceHeader sequenceHeader, ObuFrameHeader frameHeader)
     {
-        this.FrameInfo = frameInfo;
+        this.FrameHeader = frameHeader;
         this.SequenceHeader = sequenceHeader;
 
         // init_main_frame_ctxt
-        this.FrameBuffer = new(this.SequenceHeader);
-        this.segmentIds = new int[this.FrameInfo.ModeInfoRowCount][];
-        for (int y = 0; y < this.FrameInfo.ModeInfoRowCount; y++)
+        this.FrameInfo = new(this.SequenceHeader);
+        this.segmentIds = new int[this.FrameHeader.ModeInfoRowCount][];
+        for (int y = 0; y < this.FrameHeader.ModeInfoRowCount; y++)
         {
-            this.segmentIds[y] = new int[this.FrameInfo.ModeInfoColumnCount];
+            this.segmentIds[y] = new int[this.FrameHeader.ModeInfoColumnCount];
         }
 
         // reallocate_parse_context_memory
@@ -57,28 +58,28 @@ internal class Av1TileReader : IAv1TileReader
         this.aboveNeighborContext = new Av1ParseAboveNeighbor4x4Context(planesCount, modeInfoWideColumnCount);
         this.leftNeighborContext = new Av1ParseLeftNeighbor4x4Context(planesCount, sequenceHeader.SuperblockModeInfoSize);
         this.transformUnitCount = new int[Av1Constants.MaxPlanes][];
-        this.transformUnitCount[0] = new int[this.FrameBuffer.ModeInfoCount];
-        this.transformUnitCount[1] = new int[this.FrameBuffer.ModeInfoCount];
-        this.transformUnitCount[2] = new int[this.FrameBuffer.ModeInfoCount];
+        this.transformUnitCount[0] = new int[this.FrameInfo.ModeInfoCount];
+        this.transformUnitCount[1] = new int[this.FrameInfo.ModeInfoCount];
+        this.transformUnitCount[2] = new int[this.FrameInfo.ModeInfoCount];
         this.coefficientIndex = new int[Av1Constants.MaxPlanes];
     }
 
-    public ObuFrameHeader FrameInfo { get; }
+    public ObuFrameHeader FrameHeader { get; }
 
     public ObuSequenceHeader SequenceHeader { get; }
 
-    public Av1FrameBuffer FrameBuffer { get; }
+    public Av1FrameInfo FrameInfo { get; }
 
     public void ReadTile(Span<byte> tileData, int tileNum)
     {
-        Av1SymbolDecoder reader = new(tileData, this.FrameInfo.QuantizationParameters.BaseQIndex);
-        int tileColumnIndex = tileNum % this.FrameInfo.TilesInfo.TileColumnCount;
-        int tileRowIndex = tileNum / this.FrameInfo.TilesInfo.TileColumnCount;
+        Av1SymbolDecoder reader = new(tileData, this.FrameHeader.QuantizationParameters.BaseQIndex);
+        int tileColumnIndex = tileNum % this.FrameHeader.TilesInfo.TileColumnCount;
+        int tileRowIndex = tileNum / this.FrameHeader.TilesInfo.TileColumnCount;
 
-        int modeInfoColumnStart = this.FrameInfo.TilesInfo.TileColumnStartModeInfo[tileColumnIndex];
-        int modeInfoColumnEnd = this.FrameInfo.TilesInfo.TileColumnStartModeInfo[tileColumnIndex + 1];
-        int modeInfoRowStart = this.FrameInfo.TilesInfo.TileRowStartModeInfo[tileRowIndex];
-        int modeInfoRowEnd = this.FrameInfo.TilesInfo.TileRowStartModeInfo[tileRowIndex + 1];
+        int modeInfoColumnStart = this.FrameHeader.TilesInfo.TileColumnStartModeInfo[tileColumnIndex];
+        int modeInfoColumnEnd = this.FrameHeader.TilesInfo.TileColumnStartModeInfo[tileColumnIndex + 1];
+        int modeInfoRowStart = this.FrameHeader.TilesInfo.TileRowStartModeInfo[tileRowIndex];
+        int modeInfoRowEnd = this.FrameHeader.TilesInfo.TileRowStartModeInfo[tileRowIndex + 1];
         this.aboveNeighborContext.Clear(this.SequenceHeader, modeInfoColumnStart, modeInfoColumnEnd);
         this.ClearLoopFilterDelta();
         int planesCount = this.SequenceHeader.ColorConfig.PlaneCount;
@@ -98,7 +99,7 @@ internal class Av1TileReader : IAv1TileReader
             }
         }
 
-        Av1TileInfo tileInfo = new(tileRowIndex, tileColumnIndex, this.FrameInfo);
+        Av1TileInfo tileInfo = new(tileRowIndex, tileColumnIndex, this.FrameHeader);
         Av1BlockSize superBlockSize = this.SequenceHeader.SuperblockSize;
         int superBlock4x4Size = this.SequenceHeader.SuperblockSizeLog2;
         for (int row = modeInfoRowStart; row < modeInfoRowEnd; row += superBlock4x4Size)
@@ -109,10 +110,10 @@ internal class Av1TileReader : IAv1TileReader
             {
                 int superBlockColumn = (column << Av1Constants.ModeInfoSizeLog2) >> superBlock4x4Size;
                 Point superblockPosition = new(superBlockColumn, superBlockRow);
-                Av1SuperblockInfo superblockInfo = this.FrameBuffer.GetSuperblock(superblockPosition);
+                Av1SuperblockInfo superblockInfo = this.FrameInfo.GetSuperblock(superblockPosition);
 
                 Point modeInfoPosition = new(column, row);
-                this.FrameBuffer.ClearCdef(superblockPosition);
+                this.FrameInfo.ClearCdef(superblockPosition);
                 this.firstTransformOffset[0] = 0;
                 this.firstTransformOffset[1] = 0;
                 this.ReadLoopRestoration(modeInfoPosition, superBlockSize);
@@ -122,14 +123,14 @@ internal class Av1TileReader : IAv1TileReader
     }
 
     private void ClearLoopFilterDelta()
-        => this.FrameBuffer.ClearDeltaLoopFilter();
+        => this.FrameInfo.ClearDeltaLoopFilter();
 
     private void ReadLoopRestoration(Point modeInfoLocation, Av1BlockSize superBlockSize)
     {
         int planesCount = this.SequenceHeader.ColorConfig.PlaneCount;
         for (int plane = 0; plane < planesCount; plane++)
         {
-            if (this.FrameInfo.LoopRestorationParameters.Items[plane].Type != ObuRestorationType.None)
+            if (this.FrameHeader.LoopRestorationParameters.Items[plane].Type != ObuRestorationType.None)
             {
                 // TODO: Implement.
                 throw new NotImplementedException("No loop restoration filter support.");
@@ -144,7 +145,7 @@ internal class Av1TileReader : IAv1TileReader
     {
         int columnIndex = modeInfoLocation.X;
         int rowIndex = modeInfoLocation.Y;
-        if (modeInfoLocation.Y >= this.FrameInfo.ModeInfoRowCount || modeInfoLocation.X >= this.FrameInfo.ModeInfoColumnCount)
+        if (modeInfoLocation.Y >= this.FrameHeader.ModeInfoRowCount || modeInfoLocation.X >= this.FrameHeader.ModeInfoColumnCount)
         {
             return;
         }
@@ -152,8 +153,8 @@ internal class Av1TileReader : IAv1TileReader
         int block4x4Size = blockSize.Get4x4WideCount();
         int halfBlock4x4Size = block4x4Size >> 1;
         int quarterBlock4x4Size = halfBlock4x4Size >> 1;
-        bool hasRows = (modeInfoLocation.Y + halfBlock4x4Size) < this.FrameInfo.ModeInfoRowCount;
-        bool hasColumns = (modeInfoLocation.X + halfBlock4x4Size) < this.FrameInfo.ModeInfoColumnCount;
+        bool hasRows = (modeInfoLocation.Y + halfBlock4x4Size) < this.FrameHeader.ModeInfoRowCount;
+        bool hasColumns = (modeInfoLocation.X + halfBlock4x4Size) < this.FrameHeader.ModeInfoColumnCount;
         Av1PartitionType partitionType = Av1PartitionType.None;
         if (blockSize >= Av1BlockSize.Block8x8)
         {
@@ -245,7 +246,7 @@ internal class Av1TileReader : IAv1TileReader
                 for (int i = 0; i < 4; i++)
                 {
                     int currentBlockRow = rowIndex + (i * quarterBlock4x4Size);
-                    if (i > 0 && currentBlockRow > this.FrameInfo.ModeInfoRowCount)
+                    if (i > 0 && currentBlockRow > this.FrameHeader.ModeInfoRowCount)
                     {
                         break;
                     }
@@ -259,7 +260,7 @@ internal class Av1TileReader : IAv1TileReader
                 for (int i = 0; i < 4; i++)
                 {
                     int currentBlockColumn = columnIndex + (i * quarterBlock4x4Size);
-                    if (i > 0 && currentBlockColumn > this.FrameInfo.ModeInfoColumnCount)
+                    if (i > 0 && currentBlockColumn > this.FrameHeader.ModeInfoColumnCount)
                     {
                         break;
                     }
@@ -289,11 +290,12 @@ internal class Av1TileReader : IAv1TileReader
         blockModeInfo.PartitionType = partitionType;
         blockModeInfo.FirstTransformLocation[0] = this.firstTransformOffset[0];
         blockModeInfo.FirstTransformLocation[1] = this.firstTransformOffset[1];
-        bool hasChroma = this.HasChroma(modeInfoLocation, blockSize);
+        bool hasChroma = HasChroma(this.SequenceHeader, modeInfoLocation, blockSize);
         Av1PartitionInfo partitionInfo = new(blockModeInfo, superblockInfo, hasChroma, partitionType);
         partitionInfo.ColumnIndex = columnIndex;
         partitionInfo.RowIndex = rowIndex;
-        partitionInfo.ComputeBoundaryOffsets(this.FrameInfo, tileInfo);
+        superblockInfo.BlockCount++;
+        partitionInfo.ComputeBoundaryOffsets(this.FrameHeader, tileInfo);
         if (hasChroma)
         {
             if (this.SequenceHeader.ColorConfig.SubSamplingY && block4x4Height == 1)
@@ -328,7 +330,7 @@ internal class Av1TileReader : IAv1TileReader
         this.Residual(ref reader, partitionInfo, superblockInfo, tileInfo, blockSize);
 
         // Update the Frame buffer for this ModeInfo.
-        this.FrameBuffer.UpdateModeInfo(blockModeInfo, superblockInfo);
+        this.FrameInfo.UpdateModeInfo(blockModeInfo, superblockInfo);
     }
 
     private void ResetSkipContext(Av1PartitionInfo partitionInfo)
@@ -342,8 +344,8 @@ internal class Av1TileReader : IAv1TileReader
             DebugGuard.IsTrue(planeBlockSize != Av1BlockSize.Invalid, nameof(planeBlockSize));
             int txsWide = planeBlockSize.GetWidth() >> 2;
             int txsHigh = planeBlockSize.GetHeight() >> 2;
-            int aboveOffset = (partitionInfo.ColumnIndex - this.FrameInfo.TilesInfo.TileColumnStartModeInfo[partitionInfo.ColumnIndex]) >> subX;
-            int leftOffset = (partitionInfo.RowIndex - this.FrameInfo.TilesInfo.TileRowStartModeInfo[partitionInfo.RowIndex]) >> subY;
+            int aboveOffset = (partitionInfo.ColumnIndex - this.FrameHeader.TilesInfo.TileColumnStartModeInfo[partitionInfo.ColumnIndex]) >> subX;
+            int leftOffset = (partitionInfo.RowIndex - this.FrameHeader.TilesInfo.TileRowStartModeInfo[partitionInfo.RowIndex]) >> subY;
             this.aboveNeighborContext.ClearContext(i, aboveOffset, txsWide);
             this.leftNeighborContext.ClearContext(i, leftOffset, txsHigh);
         }
@@ -362,7 +364,7 @@ internal class Av1TileReader : IAv1TileReader
         modeUnitBlocksWide = Math.Min(maxBlocksWide, modeUnitBlocksWide);
         modeUnitBlocksHigh = Math.Min(maxBlocksHigh, modeUnitBlocksHigh);
         int planeCount = this.SequenceHeader.ColorConfig.PlaneCount;
-        bool isLossless = this.FrameInfo.LosslessArray[partitionInfo.ModeInfo.SegmentId];
+        bool isLossless = this.FrameHeader.LosslessArray[partitionInfo.ModeInfo.SegmentId];
         bool isLosslessBlock = isLossless && (blockSize >= Av1BlockSize.Block64x64) && (blockSize <= Av1BlockSize.Block128x128);
         int subSampling = (this.SequenceHeader.ColorConfig.SubSamplingX ? 1 : 0) + (this.SequenceHeader.ColorConfig.SubSamplingY ? 1 : 0);
         int chromaTransformUnitCount = isLosslessBlock ? ((maxBlocksWide * maxBlocksHigh) >> subSampling) : partitionInfo.ModeInfo.TransformUnitsCount[(int)Av1PlaneType.Uv];
@@ -389,13 +391,13 @@ internal class Av1TileReader : IAv1TileReader
                         continue;
                     }
 
-                    Span<Av1TransformInfo> transformInfos = plane == 0 ? superblockInfo.GetTransformInfoY() : superblockInfo.GetTransformInfoUv();
+                    ref Av1TransformInfo transformInfoRef = ref (plane == 0) ? ref superblockInfo.GetTransformInfoY() : ref superblockInfo.GetTransformInfoUv();
                     if (isLosslessBlock)
                     {
                         // TODO: Implement.
                         int unitHeight = Av1Math.RoundPowerOf2(Math.Min(modeUnitBlocksHigh + row, maxBlocksHigh), 0);
                         int unitWidth = Av1Math.RoundPowerOf2(Math.Min(modeUnitBlocksWide + column, maxBlocksWide), 0);
-                        DebugGuard.IsTrue(transformInfos[transformInfoIndices[plane]].Size == Av1TransformSize.Size4x4, "Lossless frame shall have transform units of size 4x4.");
+                        DebugGuard.IsTrue(Unsafe.Add(ref transformInfoRef, transformInfoIndices[plane]).Size == Av1TransformSize.Size4x4, "Lossless frame shall have transform units of size 4x4.");
                         transformUnitCount = ((unitWidth - column) * (unitHeight - row)) >> (subX + subY);
                     }
                     else
@@ -415,7 +417,7 @@ internal class Av1TileReader : IAv1TileReader
                     DebugGuard.IsFalse(transformUnitCount == 0, nameof(transformUnitCount), string.Empty);
                     for (int tu = 0; tu < transformUnitCount; tu++)
                     {
-                        Av1TransformInfo transformInfo = transformInfos[transformInfoIndices[plane]];
+                        Av1TransformInfo transformInfo = Unsafe.Add(ref transformInfoRef, transformInfoIndices[plane]);
                         DebugGuard.MustBeLessThanOrEqualTo(transformInfo.OffsetX, maxBlocksWide, nameof(transformInfo));
                         DebugGuard.MustBeLessThanOrEqualTo(transformInfo.OffsetY, maxBlocksHigh, nameof(transformInfo));
 
@@ -426,8 +428,8 @@ internal class Av1TileReader : IAv1TileReader
                         int startX = (partitionInfo.ColumnIndex >> subX) + blockColumn;
                         int startY = (partitionInfo.RowIndex >> subY) + blockRow;
 
-                        if (startX >= (this.FrameInfo.ModeInfoColumnCount >> subX) ||
-                            startY >= (this.FrameInfo.ModeInfoRowCount >> subY))
+                        if (startX >= (this.FrameHeader.ModeInfoColumnCount >> subX) ||
+                            startY >= (this.FrameHeader.ModeInfoRowCount >> subY))
                         {
                             return;
                         }
@@ -456,12 +458,12 @@ internal class Av1TileReader : IAv1TileReader
         }
     }
 
-    private bool HasChroma(Point modeInfoLocation, Av1BlockSize blockSize)
+    public static bool HasChroma(ObuSequenceHeader sequenceHeader, Point modeInfoLocation, Av1BlockSize blockSize)
     {
         int blockWide = blockSize.Get4x4WideCount();
         int blockHigh = blockSize.Get4x4HighCount();
-        bool subX = this.SequenceHeader.ColorConfig.SubSamplingX;
-        bool subY = this.SequenceHeader.ColorConfig.SubSamplingY;
+        bool subX = sequenceHeader.ColorConfig.SubSamplingX;
+        bool subY = sequenceHeader.ColorConfig.SubSamplingY;
         bool hasChroma = ((modeInfoLocation.Y & 0x01) != 0 || (blockHigh & 0x01) == 0 || !subY) &&
             ((modeInfoLocation.X & 0x01) != 0 || (blockWide & 0x01) == 0 || !subX);
         return hasChroma;
@@ -534,7 +536,7 @@ internal class Av1TileReader : IAv1TileReader
     /// </remarks>
     private int ParseCoefficients(ref Av1SymbolDecoder reader, Av1PartitionInfo partitionInfo, int blockRow, int blockColumn, int aboveOffset, int leftOffset, int plane, Av1TransformBlockContext transformBlockContext, Av1TransformSize transformSize, int coefficientIndex, Av1TransformInfo transformInfo)
     {
-        Span<int> coefficientBuffer = this.FrameBuffer.GetCoefficients(plane);
+        Span<int> coefficientBuffer = this.FrameInfo.GetCoefficients(plane);
         int width = transformSize.GetWidth();
         int height = transformSize.GetHeight();
         Av1TransformSize transformSizeContext = (Av1TransformSize)(((int)transformSize.GetSquareSize() + ((int)transformSize.GetSquareUpSize() + 1)) >> 1);
@@ -955,7 +957,7 @@ internal class Av1TileReader : IAv1TileReader
     private Av1TransformType ComputeTransformType(Av1PlaneType planeType, Av1PartitionInfo partitionInfo, Av1TransformSize transformSize, Av1TransformInfo transformInfo)
     {
         Av1TransformType transformType = Av1TransformType.DctDct;
-        if (this.FrameInfo.LosslessArray[partitionInfo.ModeInfo.SegmentId] || transformSize.GetSquareUpSize() > Av1TransformSize.Size32x32)
+        if (this.FrameHeader.LosslessArray[partitionInfo.ModeInfo.SegmentId] || transformSize.GetSquareUpSize() > Av1TransformSize.Size32x32)
         {
             transformType = Av1TransformType.DctDct;
         }
@@ -973,7 +975,7 @@ internal class Av1TileReader : IAv1TileReader
             }
         }
 
-        Av1TransformSetType transformSetType = GetExtendedTransformSetType(transformSize, this.FrameInfo.UseReducedTransformSet);
+        Av1TransformSetType transformSetType = GetExtendedTransformSetType(transformSize, this.FrameHeader.UseReducedTransformSet);
         if (!transformType.IsExtendedSetUsed(transformSetType))
         {
             transformType = Av1TransformType.DctDct;
@@ -1219,12 +1221,12 @@ internal class Av1TileReader : IAv1TileReader
     private Av1TransformSize ReadTransformSize(ref Av1SymbolDecoder reader, Av1PartitionInfo partitionInfo, Av1SuperblockInfo superblockInfo, Av1TileInfo tileInfo, bool allowSelect)
     {
         Av1BlockModeInfo modeInfo = partitionInfo.ModeInfo;
-        if (this.FrameInfo.LosslessArray[modeInfo.SegmentId])
+        if (this.FrameHeader.LosslessArray[modeInfo.SegmentId])
         {
             return Av1TransformSize.Size4x4;
         }
 
-        if (modeInfo.BlockSize > Av1BlockSize.Block4x4 && allowSelect && this.FrameInfo.TransformMode == Av1TransformMode.Select)
+        if (modeInfo.BlockSize > Av1BlockSize.Block4x4 && allowSelect && this.FrameHeader.TransformMode == Av1TransformMode.Select)
         {
             return this.ReadSelectedTransformSize(ref reader, partitionInfo, superblockInfo, tileInfo);
         }
@@ -1283,8 +1285,8 @@ internal class Av1TileReader : IAv1TileReader
     {
         int transformInfoYIndex = partitionInfo.ModeInfo.FirstTransformLocation[(int)Av1PlaneType.Y];
         int transformInfoUvIndex = partitionInfo.ModeInfo.FirstTransformLocation[(int)Av1PlaneType.Uv];
-        Span<Av1TransformInfo> lumaTransformInfo = superblockInfo.GetTransformInfoY();
-        Span<Av1TransformInfo> chromaTransformInfo = superblockInfo.GetTransformInfoUv();
+        ref Av1TransformInfo lumaTransformInfo = ref superblockInfo.GetTransformInfoY();
+        ref Av1TransformInfo chromaTransformInfo = ref superblockInfo.GetTransformInfoUv();
         int totalLumaTransformUnitCount = 0;
         int totalChromaTransformUnitCount = 0;
         int forceSplitCount = 0;
@@ -1297,7 +1299,7 @@ internal class Av1TileReader : IAv1TileReader
         width = Math.Min(width, maxBlockWide);
         height = Math.Min(height, maxBlockHigh);
 
-        bool isLossLess = this.FrameInfo.LosslessArray[partitionInfo.ModeInfo.SegmentId];
+        bool isLossLess = this.FrameHeader.LosslessArray[partitionInfo.ModeInfo.SegmentId];
         Av1TransformSize transformSizeUv = isLossLess ? Av1TransformSize.Size4x4 : blockSize.GetMaxUvTransformSize(subX, subY);
 
         for (int idy = 0; idy < maxBlockHigh; idy += height)
@@ -1317,7 +1319,7 @@ internal class Av1TileReader : IAv1TileReader
                 {
                     for (int blockColumn = idx; blockColumn < unitWidth; blockColumn += stepColumn)
                     {
-                        lumaTransformInfo[transformInfoYIndex] = new Av1TransformInfo(
+                        Unsafe.Add(ref lumaTransformInfo, transformInfoYIndex) = new Av1TransformInfo(
                             transformSize, blockColumn, blockRow);
                         transformInfoYIndex++;
                         lumaTransformUnitCount++;
@@ -1342,7 +1344,7 @@ internal class Av1TileReader : IAv1TileReader
                 {
                     for (int blockColumn = idx; blockColumn < unitWidth; blockColumn += stepColumn)
                     {
-                        chromaTransformInfo[transformInfoUvIndex] = new Av1TransformInfo(
+                        Unsafe.Add(ref chromaTransformInfo, transformInfoUvIndex) = new Av1TransformInfo(
                             transformSizeUv, blockColumn, blockRow);
                         transformInfoUvIndex++;
                         chromaTransformUnitCount++;
@@ -1363,9 +1365,13 @@ internal class Av1TileReader : IAv1TileReader
                 partitionInfo.ModeInfo.FirstTransformLocation[(int)Av1PlaneType.Uv],
                 nameof(totalChromaTransformUnitCount));
             int originalIndex = transformInfoUvIndex - totalChromaTransformUnitCount;
+            ref Av1TransformInfo originalInfo = ref Unsafe.Add(ref chromaTransformInfo, originalIndex);
+            ref Av1TransformInfo infoV = ref Unsafe.Add(ref chromaTransformInfo, transformInfoUvIndex);
             for (int i = 0; i < totalChromaTransformUnitCount; i++)
             {
-                chromaTransformInfo[transformInfoUvIndex + i] = chromaTransformInfo[originalIndex + i];
+                infoV = originalInfo;
+                originalInfo = ref Unsafe.Add(ref originalInfo, 1);
+                infoV = ref Unsafe.Add(ref infoV, 1);
             }
         }
 
@@ -1399,7 +1405,7 @@ internal class Av1TileReader : IAv1TileReader
     /// </summary>
     private void ReadModeInfo(ref Av1SymbolDecoder reader, Av1PartitionInfo partitionInfo)
     {
-        DebugGuard.IsTrue(this.FrameInfo.FrameType is ObuFrameType.KeyFrame or ObuFrameType.IntraOnlyFrame, "Only INTRA frames supported.");
+        DebugGuard.IsTrue(this.FrameHeader.FrameType is ObuFrameType.KeyFrame or ObuFrameType.IntraOnlyFrame, "Only INTRA frames supported.");
         this.ReadIntraFrameModeInfo(ref reader, partitionInfo);
     }
 
@@ -1408,21 +1414,21 @@ internal class Av1TileReader : IAv1TileReader
     /// </summary>
     private void ReadIntraFrameModeInfo(ref Av1SymbolDecoder reader, Av1PartitionInfo partitionInfo)
     {
-        if (this.FrameInfo.SegmentationParameters.SegmentIdPrecedesSkip)
+        if (this.FrameHeader.SegmentationParameters.SegmentIdPrecedesSkip)
         {
             this.IntraSegmentId(ref reader, partitionInfo);
         }
 
         // this.skipMode = false;
         partitionInfo.ModeInfo.Skip = this.ReadSkip(ref reader, partitionInfo);
-        if (!this.FrameInfo.SegmentationParameters.SegmentIdPrecedesSkip)
+        if (!this.FrameHeader.SegmentationParameters.SegmentIdPrecedesSkip)
         {
             this.IntraSegmentId(ref reader, partitionInfo);
         }
 
         this.ReadCdef(ref reader, partitionInfo);
 
-        if (this.FrameInfo.DeltaQParameters.IsPresent)
+        if (this.FrameHeader.DeltaQParameters.IsPresent)
         {
             this.ReadDeltaQuantizerIndex(ref reader, partitionInfo);
             this.ReadDeltaLoopFilter(ref reader, partitionInfo);
@@ -1468,7 +1474,7 @@ internal class Av1TileReader : IAv1TileReader
             if (partitionInfo.ModeInfo.BlockSize >= Av1BlockSize.Block8x8 &&
                 partitionInfo.ModeInfo.BlockSize.GetWidth() <= 64 &&
                 partitionInfo.ModeInfo.BlockSize.GetHeight() <= 64 &&
-                this.FrameInfo.AllowScreenContentTools)
+                this.FrameHeader.AllowScreenContentTools)
             {
                 this.PaletteModeInfo(ref reader, partitionInfo);
             }
@@ -1478,13 +1484,13 @@ internal class Av1TileReader : IAv1TileReader
     }
 
     private bool AllowIntraBlockCopy()
-        => (this.FrameInfo.FrameType is ObuFrameType.KeyFrame or ObuFrameType.IntraOnlyFrame) &&
+        => (this.FrameHeader.FrameType is ObuFrameType.KeyFrame or ObuFrameType.IntraOnlyFrame) &&
             (this.SequenceHeader.ForceScreenContentTools > 0) &&
-            this.FrameInfo.AllowIntraBlockCopy;
+            this.FrameHeader.AllowIntraBlockCopy;
 
     private bool IsChromaForLumaAllowed(Av1PartitionInfo partitionInfo)
     {
-        if (this.FrameInfo.LosslessArray[partitionInfo.ModeInfo.SegmentId])
+        if (this.FrameHeader.LosslessArray[partitionInfo.ModeInfo.SegmentId])
         {
             // In lossless, CfL is available when the partition size is equal to the
             // transform size.
@@ -1569,15 +1575,15 @@ internal class Av1TileReader : IAv1TileReader
     /// </summary>
     private void IntraSegmentId(ref Av1SymbolDecoder reader, Av1PartitionInfo partitionInfo)
     {
-        if (this.FrameInfo.SegmentationParameters.Enabled)
+        if (this.FrameHeader.SegmentationParameters.Enabled)
         {
             this.ReadSegmentId(ref reader, partitionInfo);
         }
 
         int blockWidth4x4 = partitionInfo.ModeInfo.BlockSize.Get4x4WideCount();
         int blockHeight4x4 = partitionInfo.ModeInfo.BlockSize.Get4x4HighCount();
-        int modeInfoCountX = Math.Min(this.FrameInfo.ModeInfoColumnCount - partitionInfo.ColumnIndex, blockWidth4x4);
-        int modeInfoCountY = Math.Min(this.FrameInfo.ModeInfoRowCount - partitionInfo.RowIndex, blockHeight4x4);
+        int modeInfoCountX = Math.Min(this.FrameHeader.ModeInfoColumnCount - partitionInfo.ColumnIndex, blockWidth4x4);
+        int modeInfoCountY = Math.Min(this.FrameHeader.ModeInfoRowCount - partitionInfo.RowIndex, blockHeight4x4);
         int segmentId = partitionInfo.ModeInfo.SegmentId;
         for (int y = 0; y < modeInfoCountY; y++)
         {
@@ -1637,18 +1643,18 @@ internal class Av1TileReader : IAv1TileReader
             int ctx = prevUL < 0 ? 0 /* Edge cases */
                 : prevUL == prevU && prevUL == prevL ? 2
                 : prevUL == prevU || prevUL == prevL || prevU == prevL ? 1 : 0;
-            int lastActiveSegmentId = this.FrameInfo.SegmentationParameters.LastActiveSegmentId;
+            int lastActiveSegmentId = this.FrameHeader.SegmentationParameters.LastActiveSegmentId;
             partitionInfo.ModeInfo.SegmentId = NegativeDeinterleave(reader.ReadSegmentId(ctx), predictor, lastActiveSegmentId + 1);
         }
     }
 
     private int GetSegmentId(Av1PartitionInfo partitionInfo, int rowIndex, int columnIndex)
     {
-        int modeInfoOffset = (rowIndex * this.FrameInfo.ModeInfoColumnCount) + columnIndex;
+        int modeInfoOffset = (rowIndex * this.FrameHeader.ModeInfoColumnCount) + columnIndex;
         int bw4 = partitionInfo.ModeInfo.BlockSize.Get4x4WideCount();
         int bh4 = partitionInfo.ModeInfo.BlockSize.Get4x4HighCount();
-        int xMin = Math.Min(this.FrameInfo.ModeInfoColumnCount - columnIndex, bw4);
-        int yMin = Math.Min(this.FrameInfo.ModeInfoRowCount - rowIndex, bh4);
+        int xMin = Math.Min(this.FrameHeader.ModeInfoColumnCount - columnIndex, bw4);
+        int yMin = Math.Min(this.FrameHeader.ModeInfoRowCount - rowIndex, bh4);
         int segmentId = Av1Constants.MaxSegments - 1;
         for (int y = 0; y < yMin; y++)
         {
@@ -1712,7 +1718,7 @@ internal class Av1TileReader : IAv1TileReader
     /// </summary>
     private void ReadCdef(ref Av1SymbolDecoder reader, Av1PartitionInfo partitionInfo)
     {
-        if (partitionInfo.ModeInfo.Skip || this.FrameInfo.CodedLossless || !this.SequenceHeader.EnableCdef || this.FrameInfo.AllowIntraBlockCopy)
+        if (partitionInfo.ModeInfo.Skip || this.FrameHeader.CodedLossless || !this.SequenceHeader.EnableCdef || this.FrameHeader.AllowIntraBlockCopy)
         {
             return;
         }
@@ -1723,7 +1729,7 @@ internal class Av1TileReader : IAv1TileReader
         int c = partitionInfo.ColumnIndex & cdefMask4;
         if (partitionInfo.CdefStrength[r][c] == -1)
         {
-            partitionInfo.CdefStrength[r][c] = reader.ReadLiteral(this.FrameInfo.CdefParameters.BitCount);
+            partitionInfo.CdefStrength[r][c] = reader.ReadLiteral(this.FrameHeader.CdefParameters.BitCount);
             if (this.SequenceHeader.SuperblockSize == Av1BlockSize.Block128x128)
             {
                 int w4 = partitionInfo.ModeInfo.BlockSize.Get4x4WideCount();
@@ -1742,16 +1748,16 @@ internal class Av1TileReader : IAv1TileReader
     private void ReadDeltaLoopFilter(ref Av1SymbolDecoder reader, Av1PartitionInfo partitionInfo)
     {
         Av1BlockSize superBlockSize = this.SequenceHeader.Use128x128Superblock ? Av1BlockSize.Block128x128 : Av1BlockSize.Block64x64;
-        if (this.FrameInfo.DeltaLoopFilterParameters.IsPresent ||
+        if (this.FrameHeader.DeltaLoopFilterParameters.IsPresent ||
             (partitionInfo.ModeInfo.BlockSize == superBlockSize && partitionInfo.ModeInfo.Skip))
         {
             return;
         }
 
-        if (this.FrameInfo.DeltaLoopFilterParameters.IsPresent)
+        if (this.FrameHeader.DeltaLoopFilterParameters.IsPresent)
         {
             int frameLoopFilterCount = 1;
-            if (this.FrameInfo.DeltaLoopFilterParameters.IsMulti)
+            if (this.FrameHeader.DeltaLoopFilterParameters.IsMulti)
             {
                 frameLoopFilterCount = this.SequenceHeader.ColorConfig.PlaneCount > 1 ? Av1Constants.FrameLoopFilterCount : Av1Constants.FrameLoopFilterCount - 2;
             }
@@ -1771,7 +1777,7 @@ internal class Av1TileReader : IAv1TileReader
                 {
                     bool deltaLoopFilterSign = reader.ReadLiteral(1) > 0;
                     int reducedDeltaLoopFilterLevel = deltaLoopFilterSign ? -deltaLoopFilterAbsolute : deltaLoopFilterAbsolute;
-                    int deltaLoopFilterResolution = this.FrameInfo.DeltaLoopFilterParameters.Resolution;
+                    int deltaLoopFilterResolution = this.FrameHeader.DeltaLoopFilterParameters.Resolution;
                     currentDeltaLoopFilter[i] = Av1Math.Clip3(-Av1Constants.MaxLoopFilter, Av1Constants.MaxLoopFilter, currentDeltaLoopFilter[i] + (reducedDeltaLoopFilterLevel << deltaLoopFilterResolution));
                 }
             }
@@ -1781,8 +1787,8 @@ internal class Av1TileReader : IAv1TileReader
     private bool ReadSkip(ref Av1SymbolDecoder reader, Av1PartitionInfo partitionInfo)
     {
         int segmentId = partitionInfo.ModeInfo.SegmentId;
-        if (this.FrameInfo.SegmentationParameters.SegmentIdPrecedesSkip &&
-            this.FrameInfo.SegmentationParameters.IsFeatureActive(segmentId, ObuSegmentationLevelFeature.Skip))
+        if (this.FrameHeader.SegmentationParameters.SegmentIdPrecedesSkip &&
+            this.FrameHeader.SegmentationParameters.IsFeatureActive(segmentId, ObuSegmentationLevelFeature.Skip))
         {
             return true;
         }
@@ -1797,7 +1803,7 @@ internal class Av1TileReader : IAv1TileReader
     private void ReadDeltaQuantizerIndex(ref Av1SymbolDecoder reader, Av1PartitionInfo partitionInfo)
     {
         Av1BlockSize superBlockSize = this.SequenceHeader.Use128x128Superblock ? Av1BlockSize.Block128x128 : Av1BlockSize.Block64x64;
-        if (!this.FrameInfo.DeltaQParameters.IsPresent ||
+        if (!this.FrameHeader.DeltaQParameters.IsPresent ||
             (partitionInfo.ModeInfo.BlockSize == superBlockSize && partitionInfo.ModeInfo.Skip))
         {
             return;
@@ -1817,7 +1823,7 @@ internal class Av1TileReader : IAv1TileReader
             {
                 bool deltaQuantizerSignBit = reader.ReadLiteral(1) > 0;
                 int reducedDeltaQuantizerIndex = deltaQuantizerSignBit ? -deltaQuantizerAbsolute : deltaQuantizerAbsolute;
-                int deltaQuantizerResolution = this.FrameInfo.DeltaQParameters.Resolution;
+                int deltaQuantizerResolution = this.FrameHeader.DeltaQParameters.Resolution;
                 this.currentQuantizerIndex = Av1Math.Clip3(1, 255, this.currentQuantizerIndex + (reducedDeltaQuantizerIndex << deltaQuantizerResolution));
                 partitionInfo.SuperblockInfo.SuperblockDeltaQ = this.currentQuantizerIndex;
             }
@@ -1825,10 +1831,10 @@ internal class Av1TileReader : IAv1TileReader
     }
 
     private bool IsInside(int rowIndex, int columnIndex) =>
-        columnIndex >= this.FrameInfo.TilesInfo.TileColumnCount &&
-        columnIndex < this.FrameInfo.TilesInfo.TileColumnCount &&
-        rowIndex >= this.FrameInfo.TilesInfo.TileRowCount &&
-        rowIndex < this.FrameInfo.TilesInfo.TileRowCount;
+        columnIndex >= this.FrameHeader.TilesInfo.TileColumnCount &&
+        columnIndex < this.FrameHeader.TilesInfo.TileColumnCount &&
+        rowIndex >= this.FrameHeader.TilesInfo.TileRowCount &&
+        rowIndex < this.FrameHeader.TilesInfo.TileRowCount;
 
     /*
     private static bool IsChroma(int rowIndex, int columnIndex, Av1BlockModeInfo blockMode, bool subSamplingX, bool subSamplingY)

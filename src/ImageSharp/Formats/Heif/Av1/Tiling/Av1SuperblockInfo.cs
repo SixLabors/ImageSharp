@@ -5,12 +5,12 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 
 internal class Av1SuperblockInfo
 {
-    private readonly Av1FrameBuffer frameBuffer;
+    private readonly Av1FrameInfo frameInfo;
 
-    public Av1SuperblockInfo(Av1FrameBuffer frameBuffer, Point position)
+    public Av1SuperblockInfo(Av1FrameInfo frameInfo, Point position)
     {
         this.Position = position;
-        this.frameBuffer = frameBuffer;
+        this.frameInfo = frameInfo;
     }
 
     /// <summary>
@@ -18,27 +18,29 @@ internal class Av1SuperblockInfo
     /// </summary>
     public Point Position { get; }
 
-    public ref int SuperblockDeltaQ => ref this.frameBuffer.GetDeltaQuantizationIndex(this.Position);
+    public ref int SuperblockDeltaQ => ref this.frameInfo.GetDeltaQuantizationIndex(this.Position);
 
     public Av1BlockModeInfo SuperblockModeInfo => this.GetModeInfo(new Point(0, 0));
 
-    public Span<int> CoefficientsY => this.frameBuffer.GetCoefficientsY(this.Position);
+    public Span<int> CoefficientsY => this.frameInfo.GetCoefficientsY(this.Position);
 
-    public Span<int> CoefficientsU => this.frameBuffer.GetCoefficientsU(this.Position);
+    public Span<int> CoefficientsU => this.frameInfo.GetCoefficientsU(this.Position);
 
-    public Span<int> CoefficientsV => this.frameBuffer.GetCoefficientsV(this.Position);
+    public Span<int> CoefficientsV => this.frameInfo.GetCoefficientsV(this.Position);
 
-    public Span<int> CdefStrength => this.frameBuffer.GetCdefStrength(this.Position);
+    public Span<int> CdefStrength => this.frameInfo.GetCdefStrength(this.Position);
 
-    public Span<int> SuperblockDeltaLoopFilter => this.frameBuffer.GetDeltaLoopFilter(this.Position);
+    public Span<int> SuperblockDeltaLoopFilter => this.frameInfo.GetDeltaLoopFilter(this.Position);
 
     public int TransformInfoIndexY { get; internal set; }
 
     public int TransformInfoIndexUv { get; internal set; }
 
-    public Span<Av1TransformInfo> GetTransformInfoY() => this.frameBuffer.GetSuperblockTransformY(this.Position);
+    public int BlockCount { get; internal set; }
 
-    public Span<Av1TransformInfo> GetTransformInfoUv() => this.frameBuffer.GetSuperblockTransformUv(this.Position);
+    public ref Av1TransformInfo GetTransformInfoY() => ref this.frameInfo.GetSuperblockTransformY(this.Position);
 
-    public Av1BlockModeInfo GetModeInfo(Point index) => this.frameBuffer.GetModeInfo(this.Position, index);
+    public ref Av1TransformInfo GetTransformInfoUv() => ref this.frameInfo.GetSuperblockTransformUv(this.Position);
+
+    public Av1BlockModeInfo GetModeInfo(Point index) => this.frameInfo.GetModeInfo(this.Position, index);
 }

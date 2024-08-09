@@ -56,7 +56,7 @@ internal class Av1BlockModeInfo
     public Av1IntraFilterModeInfo FilterIntraModeInfo { get; internal set; }
 
     /// <summary>
-    /// Gets the index of the first <see cref="Av1TransformInfo"/> of this Mode Info in the <see cref="Av1FrameBuffer"/>.
+    /// Gets the index of the first <see cref="Av1TransformInfo"/> of this Mode Info in the <see cref="Av1FrameInfo"/>.
     /// </summary>
     public int[] FirstTransformLocation { get; }
 

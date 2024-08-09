@@ -5,7 +5,10 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 
-internal partial class Av1FrameBuffer
+/// <summary>
+/// Collection of all information for a single frame.
+/// </summary>
+internal partial class Av1FrameInfo
 {
     // Number of Coefficients in a single ModeInfo 4x4 block of pixels (1 length + 4 x 4).
     public const int CoefficientCountPerModeInfo = 1 + 16;
@@ -29,7 +32,7 @@ internal partial class Av1FrameBuffer
     private readonly int deltaLoopFactorLog2 = 2;
     private readonly int[] deltaLoopFilter;
 
-    public Av1FrameBuffer(ObuSequenceHeader sequenceHeader)
+    public Av1FrameInfo(ObuSequenceHeader sequenceHeader)
     {
         // init_main_frame_ctxt
         int superblockSizeLog2 = sequenceHeader.SuperblockSizeLog2;
@@ -102,20 +105,28 @@ internal partial class Av1FrameBuffer
         return this.modeInfos[index];
     }
 
-    public Span<Av1TransformInfo> GetSuperblockTransformY(Point index)
+    public ref Av1TransformInfo GetSuperblockTransform(int plane, Point index)
+    {
+        if (plane == 0)
+        {
+            return ref this.GetSuperblockTransformY(index);
+        }
+
+        return ref this.GetSuperblockTransformUv(index);
+    }
+
+    public ref Av1TransformInfo GetSuperblockTransformY(Point index)
     {
         Span<Av1TransformInfo> span = this.transformInfosY;
         int offset = ((index.Y * this.superblockColumnCount) + index.X) * this.modeInfoCountPerSuperblock;
-        int length = this.modeInfoCountPerSuperblock;
-        return span.Slice(offset, length);
+        return ref span[offset];
     }
 
-    public Span<Av1TransformInfo> GetSuperblockTransformUv(Point index)
+    public ref Av1TransformInfo GetSuperblockTransformUv(Point index)
     {
         Span<Av1TransformInfo> span = this.transformInfosUv;
         int offset = (((index.Y * this.superblockColumnCount) + index.X) * this.modeInfoCountPerSuperblock) << 1;
-        int length = this.modeInfoCountPerSuperblock << 1;
-        return span.Slice(offset, length);
+        return ref span[offset];
     }
 
     public Span<int> GetCoefficients(int plane) =>

@@ -7,10 +7,10 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 
 internal class Av1TileInfo
 {
-    public Av1TileInfo(int row, int column, ObuFrameHeader frameInfo)
+    public Av1TileInfo(int row, int column, ObuFrameHeader frameHeader)
     {
-        this.SetTileRow(frameInfo.TilesInfo, frameInfo.ModeInfoRowCount, row);
-        this.SetTileColumn(frameInfo.TilesInfo, frameInfo.ModeInfoColumnCount, column);
+        this.SetTileRow(frameHeader.TilesInfo, frameHeader.ModeInfoRowCount, row);
+        this.SetTileColumn(frameHeader.TilesInfo, frameHeader.ModeInfoColumnCount, column);
     }
 
     public int ModeInfoRowStart { get; private set; }

@@ -10,20 +10,20 @@ internal class Av1FrameDecoder
 {
     private readonly ObuSequenceHeader sequenceHeader;
     private readonly ObuFrameHeader frameHeader;
-    private readonly Av1FrameBuffer frameBuffer;
+    private readonly Av1FrameInfo frameInfo;
 
-    public Av1FrameDecoder(ObuSequenceHeader sequenceHeader, ObuFrameHeader frameHeader, Av1FrameBuffer frameBuffer)
+    public Av1FrameDecoder(ObuSequenceHeader sequenceHeader, ObuFrameHeader frameHeader, Av1FrameInfo frameInfo)
     {
         this.sequenceHeader = sequenceHeader;
         this.frameHeader = frameHeader;
-        this.frameBuffer = frameBuffer;
+        this.frameInfo = frameInfo;
     }
 
     public void DecodeFrame()
     {
         Guard.NotNull(this.sequenceHeader);
         Guard.NotNull(this.frameHeader);
-        Guard.NotNull(this.frameBuffer);
+        Guard.NotNull(this.frameInfo);
 
         // TODO: Implement.
     }

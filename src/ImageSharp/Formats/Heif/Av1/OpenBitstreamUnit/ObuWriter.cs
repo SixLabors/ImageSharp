@@ -14,7 +14,7 @@ internal class ObuWriter
     /// <summary>
     /// Encode a single frame into OBU's.
     /// </summary>
-    public void WriteAll(Configuration configuration, Stream stream, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameInfo, IAv1TileWriter tileWriter)
+    public void WriteAll(Configuration configuration, Stream stream, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameHeader, IAv1TileWriter tileWriter)
     {
         // TODO: Determine inital size dynamically
         int initialBufferSize = 2000;
@@ -30,12 +30,12 @@ internal class ObuWriter
             WriteObuHeaderAndSize(stream, ObuType.SequenceHeader, buffer.GetSpan(bytesWritten));
         }
 
-        if (frameInfo != null && sequenceHeader != null)
+        if (frameHeader != null && sequenceHeader != null)
         {
-            this.WriteFrameHeader(ref writer, sequenceHeader, frameInfo, false);
-            if (frameInfo.TilesInfo != null)
+            this.WriteFrameHeader(ref writer, sequenceHeader, frameHeader, false);
+            if (frameHeader.TilesInfo != null)
             {
-                WriteTileGroup(ref writer, frameInfo.TilesInfo, tileWriter);
+                WriteTileGroup(ref writer, frameHeader.TilesInfo, tileWriter);
             }
 
             int bytesWritten = (writer.BitPosition + 7) >> 3;
@@ -192,7 +192,7 @@ internal class ObuWriter
         }
     }
 
-    private static void WriteSuperResolutionParameters(ref Av1BitStreamWriter writer, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameInfo)
+    private static void WriteSuperResolutionParameters(ref Av1BitStreamWriter writer, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameHeader)
     {
         bool useSuperResolution = false;
         if (sequenceHeader.EnableSuperResolution)
@@ -202,22 +202,22 @@ internal class ObuWriter
 
         if (useSuperResolution)
         {
-            writer.WriteLiteral((uint)frameInfo.FrameSize.SuperResolutionDenominator - Av1Constants.SuperResolutionScaleDenominatorMinimum, Av1Constants.SuperResolutionScaleBits);
+            writer.WriteLiteral((uint)frameHeader.FrameSize.SuperResolutionDenominator - Av1Constants.SuperResolutionScaleDenominatorMinimum, Av1Constants.SuperResolutionScaleBits);
         }
     }
 
-    private static void WriteRenderSize(ref Av1BitStreamWriter writer, ObuFrameHeader frameInfo)
+    private static void WriteRenderSize(ref Av1BitStreamWriter writer, ObuFrameHeader frameHeader)
     {
         bool renderSizeAndFrameSizeDifferent = false;
         writer.WriteBoolean(false);
         if (renderSizeAndFrameSizeDifferent)
         {
-            writer.WriteLiteral((uint)frameInfo.FrameSize.RenderWidth - 1, 16);
-            writer.WriteLiteral((uint)frameInfo.FrameSize.RenderHeight - 1, 16);
+            writer.WriteLiteral((uint)frameHeader.FrameSize.RenderWidth - 1, 16);
+            writer.WriteLiteral((uint)frameHeader.FrameSize.RenderHeight - 1, 16);
         }
     }
 
-    private static void WriteFrameSizeWithReferences(ref Av1BitStreamWriter writer, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameInfo, bool frameSizeOverrideFlag)
+    private static void WriteFrameSizeWithReferences(ref Av1BitStreamWriter writer, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameHeader, bool frameSizeOverrideFlag)
     {
         bool foundReference = false;
         for (int i = 0; i < Av1Constants.ReferencesPerFrame; i++)
@@ -232,35 +232,35 @@ internal class ObuWriter
 
         if (!foundReference)
         {
-            WriteFrameSize(ref writer, sequenceHeader, frameInfo, frameSizeOverrideFlag);
-            WriteRenderSize(ref writer, frameInfo);
+            WriteFrameSize(ref writer, sequenceHeader, frameHeader, frameSizeOverrideFlag);
+            WriteRenderSize(ref writer, frameHeader);
         }
         else
         {
-            WriteSuperResolutionParameters(ref writer, sequenceHeader, frameInfo);
+            WriteSuperResolutionParameters(ref writer, sequenceHeader, frameHeader);
         }
     }
 
-    private static void WriteFrameSize(ref Av1BitStreamWriter writer, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameInfo, bool frameSizeOverrideFlag)
+    private static void WriteFrameSize(ref Av1BitStreamWriter writer, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameHeader, bool frameSizeOverrideFlag)
     {
         if (frameSizeOverrideFlag)
         {
-            writer.WriteLiteral((uint)frameInfo.FrameSize.FrameWidth - 1, sequenceHeader.FrameWidthBits + 1);
-            writer.WriteLiteral((uint)frameInfo.FrameSize.FrameHeight - 1, sequenceHeader.FrameHeightBits + 1);
+            writer.WriteLiteral((uint)frameHeader.FrameSize.FrameWidth - 1, sequenceHeader.FrameWidthBits + 1);
+            writer.WriteLiteral((uint)frameHeader.FrameSize.FrameHeight - 1, sequenceHeader.FrameHeightBits + 1);
         }
 
-        WriteSuperResolutionParameters(ref writer, sequenceHeader, frameInfo);
+        WriteSuperResolutionParameters(ref writer, sequenceHeader, frameHeader);
     }
 
-    private static void WriteTileInfo(ref Av1BitStreamWriter writer, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameInfo)
+    private static void WriteTileInfo(ref Av1BitStreamWriter writer, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameHeader)
     {
-        ObuTileGroupHeader tileInfo = frameInfo.TilesInfo;
+        ObuTileGroupHeader tileInfo = frameHeader.TilesInfo;
         int superblockColumnCount;
         int superblockRowCount;
         int superblockSizeLog2 = sequenceHeader.SuperblockSizeLog2;
         int superblockShift = superblockSizeLog2 - Av1Constants.ModeInfoSizeLog2;
-        superblockColumnCount = (frameInfo.ModeInfoColumnCount + sequenceHeader.SuperblockModeInfoSize - 1) >> superblockShift;
-        superblockRowCount = (frameInfo.ModeInfoRowCount + sequenceHeader.SuperblockModeInfoSize - 1) >> superblockShift;
+        superblockColumnCount = (frameHeader.ModeInfoColumnCount + sequenceHeader.SuperblockModeInfoSize - 1) >> superblockShift;
+        superblockRowCount = (frameHeader.ModeInfoRowCount + sequenceHeader.SuperblockModeInfoSize - 1) >> superblockShift;
         int superBlockSize = superblockShift + 2;
         int maxTileAreaOfSuperBlock = Av1Constants.MaxTileArea >> (2 * superBlockSize);
 
@@ -341,7 +341,7 @@ internal class ObuWriter
             writer.WriteLiteral((uint)tileInfo.TileSizeBytes - 1, 2);
         }
 
-        frameInfo.TilesInfo = tileInfo;
+        frameHeader.TilesInfo = tileInfo;
     }
 
     private void WriteUncompressedFrameHeader(ref Av1BitStreamWriter writer, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameHeader)
@@ -356,7 +356,7 @@ internal class ObuWriter
         }
         else
         {
-            // Guard.IsTrue(frameInfo.AllowScreenContentTools == sequenceHeader.ForceScreenContentTools);
+            // Guard.IsTrue(frameHeader.AllowScreenContentTools == sequenceHeader.ForceScreenContentTools);
         }
 
         if (frameHeader.AllowScreenContentTools)
@@ -367,7 +367,7 @@ internal class ObuWriter
             }
             else
             {
-                // Guard.IsTrue(frameInfo.ForceIntegerMotionVector == sequenceHeader.ForceIntegerMotionVector, nameof(frameInfo.ForceIntegerMotionVector), "Frame and sequence must be in sync");
+                // Guard.IsTrue(frameHeader.ForceIntegerMotionVector == sequenceHeader.ForceIntegerMotionVector, nameof(frameHeader.ForceIntegerMotionVector), "Frame and sequence must be in sync");
             }
         }
 
@@ -486,10 +486,10 @@ internal class ObuWriter
     private static bool IsSegmentationFeatureActive(ObuSegmentationParameters segmentationParameters, int segmentId, ObuSegmentationLevelFeature feature)
         => segmentationParameters.Enabled && segmentationParameters.FeatureEnabled[segmentId, (int)feature];
 
-    private int WriteFrameHeader(ref Av1BitStreamWriter writer, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameInfo, bool writeTrailingBits)
+    private int WriteFrameHeader(ref Av1BitStreamWriter writer, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameHeader, bool writeTrailingBits)
     {
         int startBitPosition = writer.BitPosition;
-        this.WriteUncompressedFrameHeader(ref writer, sequenceHeader, frameInfo);
+        this.WriteUncompressedFrameHeader(ref writer, sequenceHeader, frameHeader);
         if (writeTrailingBits)
         {
             WriteTrailingBits(ref writer);
@@ -555,32 +555,32 @@ internal class ObuWriter
         return deltaQ;
     }
 
-    private static void WriteFrameDeltaQParameters(ref Av1BitStreamWriter writer, ObuFrameHeader frameInfo)
+    private static void WriteFrameDeltaQParameters(ref Av1BitStreamWriter writer, ObuFrameHeader frameHeader)
     {
-        if (frameInfo.QuantizationParameters.BaseQIndex > 0)
+        if (frameHeader.QuantizationParameters.BaseQIndex > 0)
         {
-            writer.WriteBoolean(frameInfo.DeltaQParameters.IsPresent);
+            writer.WriteBoolean(frameHeader.DeltaQParameters.IsPresent);
         }
 
-        if (frameInfo.DeltaQParameters.IsPresent)
+        if (frameHeader.DeltaQParameters.IsPresent)
         {
-            writer.WriteLiteral((uint)frameInfo.DeltaQParameters.Resolution, 2);
+            writer.WriteLiteral((uint)frameHeader.DeltaQParameters.Resolution, 2);
         }
     }
 
-    private static void WriteFrameDeltaLoopFilterParameters(ref Av1BitStreamWriter writer, ObuFrameHeader frameInfo)
+    private static void WriteFrameDeltaLoopFilterParameters(ref Av1BitStreamWriter writer, ObuFrameHeader frameHeader)
     {
-        if (frameInfo.DeltaQParameters.IsPresent)
+        if (frameHeader.DeltaQParameters.IsPresent)
         {
-            if (!frameInfo.AllowIntraBlockCopy)
+            if (!frameHeader.AllowIntraBlockCopy)
             {
-                writer.WriteBoolean(frameInfo.DeltaLoopFilterParameters.IsPresent);
+                writer.WriteBoolean(frameHeader.DeltaLoopFilterParameters.IsPresent);
             }
 
-            if (frameInfo.DeltaLoopFilterParameters.IsPresent)
+            if (frameHeader.DeltaLoopFilterParameters.IsPresent)
             {
-                writer.WriteLiteral((uint)frameInfo.DeltaLoopFilterParameters.Resolution, 2);
-                writer.WriteBoolean(frameInfo.DeltaLoopFilterParameters.IsMulti);
+                writer.WriteLiteral((uint)frameHeader.DeltaLoopFilterParameters.Resolution, 2);
+                writer.WriteBoolean(frameHeader.DeltaLoopFilterParameters.IsMulti);
             }
         }
     }
@@ -621,10 +621,10 @@ internal class ObuWriter
         }
     }
 
-    private static void WriteSegmentationParameters(ref Av1BitStreamWriter writer, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameInfo)
+    private static void WriteSegmentationParameters(ref Av1BitStreamWriter writer, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameHeader)
     {
         _ = sequenceHeader;
-        Guard.IsFalse(frameInfo.SegmentationParameters.Enabled, nameof(frameInfo.SegmentationParameters.Enabled), "Segmentation not supported yet.");
+        Guard.IsFalse(frameHeader.SegmentationParameters.Enabled, nameof(frameHeader.SegmentationParameters.Enabled), "Segmentation not supported yet.");
         writer.WriteBoolean(false);
     }
 
@@ -664,11 +664,11 @@ internal class ObuWriter
     /// <summary>
     /// 5.9.21. TX mode syntax.
     /// </summary>
-    private static void WriteTransformMode(ref Av1BitStreamWriter writer, ObuFrameHeader frameInfo)
+    private static void WriteTransformMode(ref Av1BitStreamWriter writer, ObuFrameHeader frameHeader)
     {
-        if (!frameInfo.CodedLossless)
+        if (!frameHeader.CodedLossless)
         {
-            writer.WriteBoolean(frameInfo.TransformMode == Av1TransformMode.Select);
+            writer.WriteBoolean(frameHeader.TransformMode == Av1TransformMode.Select);
         }
     }
 

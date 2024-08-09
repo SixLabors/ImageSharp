@@ -19,7 +19,7 @@ internal class Av1Decoder : IAv1TileReader
 
     public ObuSequenceHeader? SequenceHeader { get; private set; }
 
-    public Av1FrameBuffer? FrameBuffer { get; private set; }
+    public Av1FrameInfo? FrameInfo { get; private set; }
 
     public void Decode(Span<byte> buffer)
     {
@@ -29,8 +29,8 @@ internal class Av1Decoder : IAv1TileReader
         Guard.NotNull(this.SequenceHeader, nameof(this.SequenceHeader));
         Guard.NotNull(this.FrameHeader, nameof(this.FrameHeader));
 
-        this.FrameBuffer = this.tileReader.FrameBuffer;
-        this.frameDecoder = new(this.SequenceHeader, this.FrameHeader, this.FrameBuffer);
+        this.FrameInfo = this.tileReader.FrameInfo;
+        this.frameDecoder = new(this.SequenceHeader, this.FrameHeader, this.FrameInfo);
         this.frameDecoder.DecodeFrame();
     }
 

@@ -75,7 +75,7 @@ internal class Av1PartitionInfo
 
     public int ModeBlockToBottomEdge => this.modeBlockToBottomEdge;
 
-    public void ComputeBoundaryOffsets(ObuFrameHeader frameInfo, Av1TileInfo tileInfo)
+    public void ComputeBoundaryOffsets(ObuFrameHeader frameHeader, Av1TileInfo tileInfo)
     {
         Av1BlockSize blockSize = this.ModeInfo.BlockSize;
         int bw4 = blockSize.Get4x4WideCount();
@@ -86,9 +86,9 @@ internal class Av1PartitionInfo
         this.AvailableLeftForChroma = this.AvailableLeft;
         int shift = Av1Constants.ModeInfoSizeLog2 + 3;
         this.modeBlockToLeftEdge = -this.ColumnIndex << shift;
-        this.modeBlockToRightEdge = (frameInfo.ModeInfoColumnCount - bw4 - this.ColumnIndex) << shift;
+        this.modeBlockToRightEdge = (frameHeader.ModeInfoColumnCount - bw4 - this.ColumnIndex) << shift;
         this.modeBlockToTopEdge = -this.RowIndex << shift;
-        this.modeBlockToBottomEdge = (frameInfo.ModeInfoRowCount - bh4 - this.RowIndex) << shift;
+        this.modeBlockToBottomEdge = (frameHeader.ModeInfoRowCount - bh4 - this.RowIndex) << shift;
     }
 
     public int GetMaxBlockWide(Av1BlockSize blockSize, bool subX)

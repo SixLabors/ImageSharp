@@ -40,7 +40,7 @@ internal sealed unsafe partial class JpegEncoderCore
             // YCbCr 4:4:4
             new JpegFrameConfig(
                 JpegColorSpace.YCbCr,
-                JpegEncodingColor.YCbCrRatio444,
+                JpegColorType.YCbCrRatio444,
                 new JpegComponentConfig[]
                 {
                     new JpegComponentConfig(id: 1, hsf: 1, vsf: 1, quantIndex: 0, dcIndex: 0, acIndex: 0),
@@ -53,7 +53,7 @@ internal sealed unsafe partial class JpegEncoderCore
             // YCbCr 4:2:2
             new JpegFrameConfig(
                 JpegColorSpace.YCbCr,
-                JpegEncodingColor.YCbCrRatio422,
+                JpegColorType.YCbCrRatio422,
                 new JpegComponentConfig[]
                 {
                     new JpegComponentConfig(id: 1, hsf: 2, vsf: 1, quantIndex: 0, dcIndex: 0, acIndex: 0),
@@ -66,7 +66,7 @@ internal sealed unsafe partial class JpegEncoderCore
             // YCbCr 4:2:0
             new JpegFrameConfig(
                 JpegColorSpace.YCbCr,
-                JpegEncodingColor.YCbCrRatio420,
+                JpegColorType.YCbCrRatio420,
                 new JpegComponentConfig[]
                 {
                     new JpegComponentConfig(id: 1, hsf: 2, vsf: 2, quantIndex: 0, dcIndex: 0, acIndex: 0),
@@ -79,7 +79,7 @@ internal sealed unsafe partial class JpegEncoderCore
             // YCbCr 4:1:1
             new JpegFrameConfig(
                 JpegColorSpace.YCbCr,
-                JpegEncodingColor.YCbCrRatio411,
+                JpegColorType.YCbCrRatio411,
                 new JpegComponentConfig[]
                 {
                     new JpegComponentConfig(id: 1, hsf: 4, vsf: 1, quantIndex: 0, dcIndex: 0, acIndex: 0),
@@ -92,7 +92,7 @@ internal sealed unsafe partial class JpegEncoderCore
             // YCbCr 4:1:0
             new JpegFrameConfig(
                 JpegColorSpace.YCbCr,
-                JpegEncodingColor.YCbCrRatio410,
+                JpegColorType.YCbCrRatio410,
                 new JpegComponentConfig[]
                 {
                     new JpegComponentConfig(id: 1, hsf: 4, vsf: 2, quantIndex: 0, dcIndex: 0, acIndex: 0),
@@ -105,7 +105,7 @@ internal sealed unsafe partial class JpegEncoderCore
             // Luminance
             new JpegFrameConfig(
                 JpegColorSpace.Grayscale,
-                JpegEncodingColor.Luminance,
+                JpegColorType.Luminance,
                 new JpegComponentConfig[]
                 {
                     new JpegComponentConfig(id: 0, hsf: 1, vsf: 1, quantIndex: 0, dcIndex: 0, acIndex: 0),
@@ -123,7 +123,7 @@ internal sealed unsafe partial class JpegEncoderCore
             // Rgb
             new JpegFrameConfig(
                 JpegColorSpace.RGB,
-                JpegEncodingColor.Rgb,
+                JpegColorType.Rgb,
                 new JpegComponentConfig[]
                 {
                     new JpegComponentConfig(id: 82, hsf: 1, vsf: 1, quantIndex: 0, dcIndex: 0, acIndex: 0),
@@ -146,7 +146,7 @@ internal sealed unsafe partial class JpegEncoderCore
             // Cmyk
             new JpegFrameConfig(
                 JpegColorSpace.Cmyk,
-                JpegEncodingColor.Cmyk,
+                JpegColorType.Cmyk,
                 new JpegComponentConfig[]
                 {
                     new JpegComponentConfig(id: 1, hsf: 1, vsf: 1, quantIndex: 0, dcIndex: 0, acIndex: 0),
@@ -170,7 +170,7 @@ internal sealed unsafe partial class JpegEncoderCore
             // YccK
             new JpegFrameConfig(
                 JpegColorSpace.Ycck,
-                JpegEncodingColor.Ycck,
+                JpegColorType.Ycck,
                 new JpegComponentConfig[]
                 {
                     new JpegComponentConfig(id: 1, hsf: 1, vsf: 1, quantIndex: 0, dcIndex: 0, acIndex: 0),

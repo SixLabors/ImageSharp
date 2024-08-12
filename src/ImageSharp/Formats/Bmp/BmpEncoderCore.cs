@@ -16,7 +16,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp;
 /// <summary>
 /// Image encoder for writing an image to a stream as a Windows bitmap.
 /// </summary>
-internal sealed class BmpEncoderCore : IImageEncoderInternals
+internal sealed class BmpEncoderCore
 {
     /// <summary>
     /// The amount to pad each row by.
@@ -146,10 +146,10 @@ internal sealed class BmpEncoderCore : IImageEncoderInternals
 
         int colorPaletteSize = this.bitsPerPixel switch
         {
-            BmpBitsPerPixel.Pixel8 => ColorPaletteSize8Bit,
-            BmpBitsPerPixel.Pixel4 => ColorPaletteSize4Bit,
-            BmpBitsPerPixel.Pixel2 => ColorPaletteSize2Bit,
-            BmpBitsPerPixel.Pixel1 => ColorPaletteSize1Bit,
+            BmpBitsPerPixel.Bit8 => ColorPaletteSize8Bit,
+            BmpBitsPerPixel.Bit4 => ColorPaletteSize4Bit,
+            BmpBitsPerPixel.Bit2 => ColorPaletteSize2Bit,
+            BmpBitsPerPixel.Bit1 => ColorPaletteSize1Bit,
             _ => 0
         };
 
@@ -248,7 +248,7 @@ internal sealed class BmpEncoderCore : IImageEncoderInternals
             clrUsed: 0,
             clrImportant: 0);
 
-        if ((this.infoHeaderType is BmpInfoHeaderType.WinVersion4 or BmpInfoHeaderType.WinVersion5) && this.bitsPerPixel == BmpBitsPerPixel.Pixel32)
+        if ((this.infoHeaderType is BmpInfoHeaderType.WinVersion4 or BmpInfoHeaderType.WinVersion5) && this.bitsPerPixel == BmpBitsPerPixel.Bit32)
         {
             infoHeader.AlphaMask = Rgba32AlphaMask;
             infoHeader.RedMask = Rgba32RedMask;
@@ -351,31 +351,31 @@ internal sealed class BmpEncoderCore : IImageEncoderInternals
         Buffer2D<TPixel> pixels = image.Frames.RootFrame.PixelBuffer;
         switch (this.bitsPerPixel)
         {
-            case BmpBitsPerPixel.Pixel32:
+            case BmpBitsPerPixel.Bit32:
                 this.Write32BitPixelData(configuration, stream, pixels);
                 break;
 
-            case BmpBitsPerPixel.Pixel24:
+            case BmpBitsPerPixel.Bit24:
                 this.Write24BitPixelData(configuration, stream, pixels);
                 break;
 
-            case BmpBitsPerPixel.Pixel16:
+            case BmpBitsPerPixel.Bit16:
                 this.Write16BitPixelData(configuration, stream, pixels);
                 break;
 
-            case BmpBitsPerPixel.Pixel8:
+            case BmpBitsPerPixel.Bit8:
                 this.Write8BitPixelData(configuration, stream, image);
                 break;
 
-            case BmpBitsPerPixel.Pixel4:
+            case BmpBitsPerPixel.Bit4:
                 this.Write4BitPixelData(configuration, stream, image);
                 break;
 
-            case BmpBitsPerPixel.Pixel2:
+            case BmpBitsPerPixel.Bit2:
                 this.Write2BitPixelData(configuration, stream, image);
                 break;
 
-            case BmpBitsPerPixel.Pixel1:
+            case BmpBitsPerPixel.Bit1:
                 this.Write1BitPixelData(configuration, stream, image);
                 break;
         }

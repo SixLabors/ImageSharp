@@ -382,6 +382,20 @@ public partial class PngDecoderTests
     }
 
     [Theory]
+    [InlineData(TestImages.Png.Bad.WrongCrcDataChunk, 1)]
+    [InlineData(TestImages.Png.Bad.Issue2589, 24)]
+    public void Identify_IgnoreCrcErrors(string imagePath, int expectedPixelSize)
+    {
+        TestFile testFile = TestFile.Create(imagePath);
+        using MemoryStream stream = new(testFile.Bytes, false);
+
+        ImageInfo imageInfo = Image.Identify(new DecoderOptions() { SegmentIntegrityHandling = SegmentIntegrityHandling.IgnoreData }, stream);
+
+        Assert.NotNull(imageInfo);
+        Assert.Equal(expectedPixelSize, imageInfo.PixelType.BitsPerPixel);
+    }
+
+    [Theory]
     [WithFile(TestImages.Png.Bad.MissingDataChunk, PixelTypes.Rgba32)]
     public void Decode_MissingDataChunk_ThrowsException<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
@@ -479,13 +493,13 @@ public partial class PngDecoderTests
     public void Decode_InvalidDataChunkCrc_IgnoreCrcErrors<TPixel>(TestImageProvider<TPixel> provider, bool compare)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> image = provider.GetImage(PngDecoder.Instance, new PngDecoderOptions() { PngCrcChunkHandling = PngCrcChunkHandling.IgnoreData });
+        using Image<TPixel> image = provider.GetImage(PngDecoder.Instance, new DecoderOptions() { SegmentIntegrityHandling = SegmentIntegrityHandling.IgnoreData });
 
         image.DebugSave(provider);
         if (compare)
         {
             // Magick cannot actually decode this image to compare.
-            image.CompareToOriginal(provider, new MagickReferenceDecoder(false));
+            image.CompareToOriginal(provider, new MagickReferenceDecoder(PngFormat.Instance, false));
         }
     }
 
@@ -552,7 +566,7 @@ public partial class PngDecoderTests
                 // We don't have another x-plat reference decoder that can be compared for this image.
                 if (TestEnvironment.IsWindows)
                 {
-                    image.CompareToOriginal(provider, ImageComparer.Exact, SystemDrawingReferenceDecoder.Instance);
+                    image.CompareToOriginal(provider, ImageComparer.Exact, SystemDrawingReferenceDecoder.Png);
                 }
             });
         Assert.Null(ex);
@@ -614,7 +628,7 @@ public partial class PngDecoderTests
                 // We don't have another x-plat reference decoder that can be compared for this image.
                 if (TestEnvironment.IsWindows)
                 {
-                    image.CompareToOriginal(provider, ImageComparer.Exact, SystemDrawingReferenceDecoder.Instance);
+                    image.CompareToOriginal(provider, ImageComparer.Exact, SystemDrawingReferenceDecoder.Png);
                 }
             });
         Assert.NotNull(ex);
@@ -660,7 +674,7 @@ public partial class PngDecoderTests
     public void Binary_PrematureEof()
     {
         PngDecoder decoder = PngDecoder.Instance;
-        PngDecoderOptions options = new() { PngCrcChunkHandling = PngCrcChunkHandling.IgnoreData };
+        PngDecoderOptions options = new() { GeneralOptions = new() { SegmentIntegrityHandling = SegmentIntegrityHandling.IgnoreData } };
         using EofHitCounter eofHitCounter = EofHitCounter.RunDecoder(TestImages.Png.Bad.FlagOfGermany0000016446, decoder, options);
 
         // TODO: Try to reduce this to 1.
@@ -700,5 +714,15 @@ public partial class PngDecoderTests
     {
         string path = Path.GetFullPath(Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, file));
         using Image image = Image.Load(path);
+    }
+
+    [Theory]
+    [WithFile(TestImages.Png.Issue2752, PixelTypes.Rgba32)]
+    public void CanDecodeJustOneFrame<TPixel>(TestImageProvider<TPixel> provider)
+    where TPixel : unmanaged, IPixel<TPixel>
+    {
+        DecoderOptions options = new() { MaxFrames = 1 };
+        using Image<TPixel> image = provider.GetImage(PngDecoder.Instance, options);
+        Assert.Equal(1, image.Frames.Count);
     }
 }

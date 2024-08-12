@@ -9,10 +9,8 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Compression.Zlib;
-using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.Formats.Png.Chunks;
 using SixLabors.ImageSharp.Formats.Png.Filters;
-using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
@@ -23,7 +21,7 @@ namespace SixLabors.ImageSharp.Formats.Png;
 /// <summary>
 /// Performs the png encoding operation.
 /// </summary>
-internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
+internal sealed class PngEncoderCore : IDisposable
 {
     /// <summary>
     /// The maximum block size, defaults at 64k for uncompressed blocks.
@@ -160,7 +158,7 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
         this.height = image.Height;
 
         ImageMetadata metadata = image.Metadata;
-        PngMetadata pngMetadata = GetPngMetadata(image);
+        PngMetadata pngMetadata = metadata.ClonePngMetadata();
         this.SanitizeAndSetEncoderOptions<TPixel>(this.encoder, pngMetadata, out this.use16Bit, out this.bytesPerPixel);
 
         stream.Write(PngConstants.HeaderBytes);
@@ -211,8 +209,8 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
         {
             // Write the first animated frame.
             currentFrame = image.Frames[currentFrameIndex];
-            PngFrameMetadata frameMetadata = GetPngFrameMetadata(currentFrame);
-            PngDisposalMethod previousDisposal = frameMetadata.DisposalMethod;
+            PngFrameMetadata frameMetadata = currentFrame.Metadata.GetPngMetadata();
+            FrameDisposalMode previousDisposal = frameMetadata.DisposalMode;
             FrameControl frameControl = this.WriteFrameControlChunk(stream, frameMetadata, currentFrame.Bounds(), 0);
             uint sequenceNumber = 1;
             if (pngMetadata.AnimateRootFrame)
@@ -237,12 +235,12 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
 
             for (; currentFrameIndex < image.Frames.Count; currentFrameIndex++)
             {
-                ImageFrame<TPixel>? prev = previousDisposal == PngDisposalMethod.RestoreToBackground ? null : previousFrame;
+                ImageFrame<TPixel>? prev = previousDisposal == FrameDisposalMode.RestoreToBackground ? null : previousFrame;
                 currentFrame = image.Frames[currentFrameIndex];
                 ImageFrame<TPixel>? nextFrame = currentFrameIndex < image.Frames.Count - 1 ? image.Frames[currentFrameIndex + 1] : null;
 
-                frameMetadata = GetPngFrameMetadata(currentFrame);
-                bool blend = frameMetadata.BlendMethod == PngBlendMethod.Over;
+                frameMetadata = currentFrame.Metadata.GetPngMetadata();
+                bool blend = frameMetadata.BlendMode == FrameBlendMode.Over;
 
                 (bool difference, Rectangle bounds) =
                     AnimationUtilities.DeDuplicatePixels(
@@ -268,7 +266,7 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
                 sequenceNumber += this.WriteDataChunks(frameControl, encodingFrame.PixelBuffer.GetRegion(bounds), quantized, stream, true) + 1;
 
                 previousFrame = currentFrame;
-                previousDisposal = frameMetadata.DisposalMethod;
+                previousDisposal = frameMetadata.DisposalMode;
             }
         }
 
@@ -286,54 +284,6 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
     {
         this.previousScanline?.Dispose();
         this.currentScanline?.Dispose();
-    }
-
-    private static PngMetadata GetPngMetadata<TPixel>(Image<TPixel> image)
-        where TPixel : unmanaged, IPixel<TPixel>
-    {
-        if (image.Metadata.TryGetPngMetadata(out PngMetadata? png))
-        {
-            return (PngMetadata)png.DeepClone();
-        }
-
-        if (image.Metadata.TryGetGifMetadata(out GifMetadata? gif))
-        {
-            AnimatedImageMetadata ani = gif.ToAnimatedImageMetadata();
-            return PngMetadata.FromAnimatedMetadata(ani);
-        }
-
-        if (image.Metadata.TryGetWebpMetadata(out WebpMetadata? webp))
-        {
-            AnimatedImageMetadata ani = webp.ToAnimatedImageMetadata();
-            return PngMetadata.FromAnimatedMetadata(ani);
-        }
-
-        // Return explicit new instance so we do not mutate the original metadata.
-        return new();
-    }
-
-    private static PngFrameMetadata GetPngFrameMetadata<TPixel>(ImageFrame<TPixel> frame)
-        where TPixel : unmanaged, IPixel<TPixel>
-    {
-        if (frame.Metadata.TryGetPngMetadata(out PngFrameMetadata? png))
-        {
-            return (PngFrameMetadata)png.DeepClone();
-        }
-
-        if (frame.Metadata.TryGetGifMetadata(out GifFrameMetadata? gif))
-        {
-            AnimatedImageFrameMetadata ani = gif.ToAnimatedImageFrameMetadata();
-            return PngFrameMetadata.FromAnimatedMetadata(ani);
-        }
-
-        if (frame.Metadata.TryGetWebpFrameMetadata(out WebpFrameMetadata? webp))
-        {
-            AnimatedImageFrameMetadata ani = webp.ToAnimatedImageFrameMetadata();
-            return PngFrameMetadata.FromAnimatedMetadata(ani);
-        }
-
-        // Return explicit new instance so we do not mutate the original metadata.
-        return new();
     }
 
     /// <summary>
@@ -826,7 +776,6 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
             return;
         }
 
-        meta.SyncProfiles();
         this.WriteChunk(stream, PngChunkType.Exif, meta.ExifProfile.ToByteArray());
     }
 
@@ -881,6 +830,7 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
     /// </summary>
     /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
     /// <param name="metaData">The image meta data.</param>
+    /// <exception cref="NotSupportedException">CICP matrix coefficients other than Identity are not supported in PNG.</exception>
     private void WriteCicpChunk(Stream stream, ImageMetadata metaData)
     {
         if (metaData.CicpProfile is null)
@@ -1125,8 +1075,8 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
             yOffset: (uint)bounds.Top,
             delayNumerator: (ushort)frameMetadata.FrameDelay.Numerator,
             delayDenominator: (ushort)frameMetadata.FrameDelay.Denominator,
-            disposeOperation: frameMetadata.DisposalMethod,
-            blendOperation: frameMetadata.BlendMethod);
+            disposalMode: frameMetadata.DisposalMode,
+            blendMode: frameMetadata.BlendMode);
 
         fcTL.WriteTo(this.chunkDataBuffer.Span);
 
@@ -1483,43 +1433,25 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
 
         // Use options, then check metadata, if nothing set there then we suggest
         // a sensible default based upon the pixel format.
-        PngColorType? colorType = encoder.ColorType ?? pngMetadata.ColorType;
-        byte? bits = (byte?)(encoder.BitDepth ?? pngMetadata.BitDepth);
+        PngColorType color = encoder.ColorType ?? pngMetadata.ColorType;
+        byte bits = (byte)(encoder.BitDepth ?? pngMetadata.BitDepth);
 
-        if (colorType is null || bits is null)
-        {
-            PixelTypeInfo info = TPixel.GetPixelTypeInfo();
-            PixelComponentInfo? componentInfo = info.ComponentInfo;
-
-            colorType ??= SuggestColorType<TPixel>(in info);
-
-            if (bits is null)
-            {
-                // TODO: Update once we stop abusing PixelTypeInfo in decoders.
-                if (componentInfo.HasValue)
-                {
-                    PixelComponentInfo c = componentInfo.Value;
-                    bits = (byte)SuggestBitDepth<TPixel>(in c);
-                }
-                else
-                {
-                    bits = (byte)PngBitDepth.Bit8;
-                }
-            }
-        }
-
-        // Ensure bit depth and color type are a supported combination.
+        // Ensure the bit depth and color type are a supported combination.
         // Bit8 is the only bit depth supported by all color types.
-        byte[] validBitDepths = PngConstants.ColorTypes[colorType.Value];
+        byte[] validBitDepths = PngConstants.ColorTypes[color];
         if (Array.IndexOf(validBitDepths, bits) == -1)
         {
             bits = (byte)PngBitDepth.Bit8;
         }
 
-        this.colorType = colorType.Value;
-        this.bitDepth = bits.Value;
+        this.colorType = color;
+        this.bitDepth = bits;
 
-        if (!encoder.FilterMethod.HasValue)
+        if (encoder.FilterMethod.HasValue)
+        {
+            this.filterMethod = encoder.FilterMethod.Value;
+        }
+        else
         {
             // Specification recommends default filter method None for paletted images and Paeth for others.
             this.filterMethod = this.colorType is PngColorType.Palette ? PngFilterMethod.None : PngFilterMethod.Paeth;
@@ -1528,7 +1460,7 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
         use16Bit = bits == (byte)PngBitDepth.Bit16;
         bytesPerPixel = CalculateBytesPerPixel(this.colorType, use16Bit);
 
-        this.interlaceMode = (encoder.InterlaceMethod ?? pngMetadata.InterlaceMethod)!.Value;
+        this.interlaceMode = encoder.InterlaceMethod ?? pngMetadata.InterlaceMethod;
         this.chunkFilter = encoder.SkipMetadata ? PngChunkFilter.ExcludeAll : encoder.ChunkFilter ?? PngChunkFilter.None;
     }
 
@@ -1667,47 +1599,6 @@ internal sealed class PngEncoderCore : IImageEncoderInternals, IDisposable
             // PngColorType.RgbWithAlpha
             _ => use16Bit ? 8 : 4,
         };
-
-    /// <summary>
-    /// Returns a suggested <see cref="PngColorType"/> for the given <typeparamref name="TPixel"/>
-    /// </summary>
-    /// <param name="info">The pixel type info.</param>
-    /// <typeparam name="TPixel">The type of pixel format.</typeparam>
-    private static PngColorType SuggestColorType<TPixel>(in PixelTypeInfo info)
-        where TPixel : unmanaged, IPixel<TPixel>
-    {
-        if (info.AlphaRepresentation == PixelAlphaRepresentation.None)
-        {
-            return info.ColorType switch
-            {
-                PixelColorType.Grayscale => PngColorType.Grayscale,
-                _ => PngColorType.Rgb,
-            };
-        }
-
-        return info.ColorType switch
-        {
-            PixelColorType.Grayscale | PixelColorType.Alpha or PixelColorType.Alpha => PngColorType.GrayscaleWithAlpha,
-            _ => PngColorType.RgbWithAlpha,
-        };
-    }
-
-    /// <summary>
-    /// Returns a suggested <see cref="PngBitDepth"/> for the given <typeparamref name="TPixel"/>
-    /// </summary>
-    /// <param name="info">The pixel type info.</param>
-    /// <typeparam name="TPixel">The type of pixel format.</typeparam>
-    private static PngBitDepth SuggestBitDepth<TPixel>(in PixelComponentInfo info)
-        where TPixel : unmanaged, IPixel<TPixel>
-    {
-        int bits = info.GetMaximumComponentPrecision();
-        if (bits > (int)PixelComponentBitDepth.Bit8)
-        {
-            return PngBitDepth.Bit16;
-        }
-
-        return PngBitDepth.Bit8;
-    }
 
     private unsafe struct ScratchBuffer
     {

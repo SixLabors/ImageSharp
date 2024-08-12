@@ -241,8 +241,6 @@ internal class Vp8LEncoder : IDisposable
     {
         // Write bytes from the bit-writer buffer to the stream.
         ImageMetadata metadata = image.Metadata;
-        metadata.SyncProfiles();
-
         ExifProfile exifProfile = this.skipMetadata ? null : metadata.ExifProfile;
         XmpProfile xmpProfile = this.skipMetadata ? null : metadata.XmpProfile;
 
@@ -259,7 +257,7 @@ internal class Vp8LEncoder : IDisposable
 
         if (hasAnimation)
         {
-            WebpMetadata webpMetadata = WebpCommonUtils.GetWebpMetadata(image);
+            WebpMetadata webpMetadata = image.Metadata.GetWebpMetadata();
             BitWriterBase.WriteAnimationParameter(stream, webpMetadata.BackgroundColor, webpMetadata.RepeatCount);
         }
 

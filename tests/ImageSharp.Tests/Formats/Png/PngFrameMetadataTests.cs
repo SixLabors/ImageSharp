@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Png;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Png;
@@ -14,22 +15,22 @@ public class PngFrameMetadataTests
         PngFrameMetadata meta = new()
         {
             FrameDelay = new(1, 0),
-            DisposalMethod = PngDisposalMethod.RestoreToBackground,
-            BlendMethod = PngBlendMethod.Over,
+            DisposalMode = FrameDisposalMode.RestoreToBackground,
+            BlendMode = FrameBlendMode.Over,
         };
 
-        PngFrameMetadata clone = (PngFrameMetadata)meta.DeepClone();
+        PngFrameMetadata clone = meta.DeepClone();
 
         Assert.True(meta.FrameDelay.Equals(clone.FrameDelay));
-        Assert.True(meta.DisposalMethod.Equals(clone.DisposalMethod));
-        Assert.True(meta.BlendMethod.Equals(clone.BlendMethod));
+        Assert.True(meta.DisposalMode.Equals(clone.DisposalMode));
+        Assert.True(meta.BlendMode.Equals(clone.BlendMode));
 
         clone.FrameDelay = new(2, 1);
-        clone.DisposalMethod = PngDisposalMethod.RestoreToPrevious;
-        clone.BlendMethod = PngBlendMethod.Source;
+        clone.DisposalMode = FrameDisposalMode.RestoreToPrevious;
+        clone.BlendMode = FrameBlendMode.Source;
 
         Assert.False(meta.FrameDelay.Equals(clone.FrameDelay));
-        Assert.False(meta.DisposalMethod.Equals(clone.DisposalMethod));
-        Assert.False(meta.BlendMethod.Equals(clone.BlendMethod));
+        Assert.False(meta.DisposalMode.Equals(clone.DisposalMode));
+        Assert.False(meta.BlendMode.Equals(clone.BlendMode));
     }
 }

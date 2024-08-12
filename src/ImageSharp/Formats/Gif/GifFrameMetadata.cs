@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.Formats.Gif;
 /// <summary>
 /// Provides Gif specific metadata information for the image frame.
 /// </summary>
-public class GifFrameMetadata : IDeepCloneable
+public class GifFrameMetadata : IFormatFrameMetadata<GifFrameMetadata>
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="GifFrameMetadata"/> class.
@@ -26,7 +26,7 @@ public class GifFrameMetadata : IDeepCloneable
     {
         this.ColorTableMode = other.ColorTableMode;
         this.FrameDelay = other.FrameDelay;
-        this.DisposalMethod = other.DisposalMethod;
+        this.DisposalMode = other.DisposalMode;
 
         if (other.LocalColorTable?.Length > 0)
         {
@@ -40,7 +40,7 @@ public class GifFrameMetadata : IDeepCloneable
     /// <summary>
     /// Gets or sets the color table mode.
     /// </summary>
-    public GifColorTableMode ColorTableMode { get; set; }
+    public FrameColorTableMode ColorTableMode { get; set; }
 
     /// <summary>
     /// Gets or sets the local color table, if any.
@@ -73,10 +73,64 @@ public class GifFrameMetadata : IDeepCloneable
     /// Primarily used in Gif animation, this field indicates the way in which the graphic is to
     /// be treated after being displayed.
     /// </summary>
-    public GifDisposalMethod DisposalMethod { get; set; }
+    public FrameDisposalMode DisposalMode { get; set; }
+
+    /// <inheritdoc />
+    public static GifFrameMetadata FromFormatConnectingFrameMetadata(FormatConnectingFrameMetadata metadata)
+    {
+        int index = -1;
+        const float background = 1f;
+        if (metadata.ColorTable.HasValue)
+        {
+            ReadOnlySpan<Color> colorTable = metadata.ColorTable.Value.Span;
+            for (int i = 0; i < colorTable.Length; i++)
+            {
+                Vector4 vector = colorTable[i].ToScaledVector4();
+                if (vector.W < background)
+                {
+                    index = i;
+                }
+            }
+        }
+
+        bool hasTransparency = index >= 0;
+
+        return new()
+        {
+            LocalColorTable = metadata.ColorTable,
+            ColorTableMode = metadata.ColorTableMode,
+            FrameDelay = (int)Math.Round(metadata.Duration.TotalMilliseconds / 10),
+            DisposalMode = metadata.DisposalMode,
+            HasTransparency = hasTransparency,
+            TransparencyIndex = hasTransparency ? unchecked((byte)index) : byte.MinValue,
+        };
+    }
+
+    /// <inheritdoc />
+    public FormatConnectingFrameMetadata ToFormatConnectingFrameMetadata()
+    {
+        // For most scenarios we would consider the blend method to be 'Over' however if a frame has a disposal method of 'RestoreToBackground' or
+        // has a local palette with 256 colors and is not transparent we should use 'Source'.
+        bool blendSource = this.DisposalMode == FrameDisposalMode.RestoreToBackground || (this.LocalColorTable?.Length == 256 && !this.HasTransparency);
+
+        // If the color table is global and frame has no transparency. Consider it 'Source' also.
+        blendSource |= this.ColorTableMode == FrameColorTableMode.Global && !this.HasTransparency;
+
+        return new()
+        {
+            ColorTable = this.LocalColorTable,
+            ColorTableMode = this.ColorTableMode,
+            Duration = TimeSpan.FromMilliseconds(this.FrameDelay * 10),
+            DisposalMode = this.DisposalMode,
+            BlendMode = blendSource ? FrameBlendMode.Source : FrameBlendMode.Over,
+        };
+    }
 
     /// <inheritdoc/>
-    public IDeepCloneable DeepClone() => new GifFrameMetadata(this);
+    IDeepCloneable IDeepCloneable.DeepClone() => this.DeepClone();
+
+    /// <inheritdoc/>
+    public GifFrameMetadata DeepClone() => new(this);
 
     internal static GifFrameMetadata FromAnimatedMetadata(AnimatedImageFrameMetadata metadata)
     {
@@ -101,19 +155,11 @@ public class GifFrameMetadata : IDeepCloneable
         return new()
         {
             LocalColorTable = metadata.ColorTable,
-            ColorTableMode = metadata.ColorTableMode == FrameColorTableMode.Global ? GifColorTableMode.Global : GifColorTableMode.Local,
+            ColorTableMode = metadata.ColorTableMode,
             FrameDelay = (int)Math.Round(metadata.Duration.TotalMilliseconds / 10),
-            DisposalMethod = GetMode(metadata.DisposalMode),
+            DisposalMode = metadata.DisposalMode,
             HasTransparency = hasTransparency,
             TransparencyIndex = hasTransparency ? unchecked((byte)index) : byte.MinValue,
         };
     }
-
-    private static GifDisposalMethod GetMode(FrameDisposalMode mode) => mode switch
-    {
-        FrameDisposalMode.DoNotDispose => GifDisposalMethod.NotDispose,
-        FrameDisposalMode.RestoreToBackground => GifDisposalMethod.RestoreToBackground,
-        FrameDisposalMode.RestoreToPrevious => GifDisposalMethod.RestoreToPrevious,
-        _ => GifDisposalMethod.Unspecified,
-    };
 }

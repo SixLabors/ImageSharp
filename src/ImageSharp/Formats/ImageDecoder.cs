@@ -4,6 +4,7 @@
 using SixLabors.ImageSharp.ColorProfiles.Icc;
 using SixLabors.ImageSharp.ColorSpaces.Conversion.Icc;
 using SixLabors.ImageSharp.IO;
+using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
@@ -215,7 +216,7 @@ public abstract class ImageDecoder : IImageDecoder
             throw new NotSupportedException("Cannot read from the stream.");
         }
 
-        T PeformActionAndResetPosition(Stream s, long position)
+        T PerformActionAndResetPosition(Stream s, long position)
         {
             T result = action(s);
 
@@ -232,7 +233,7 @@ public abstract class ImageDecoder : IImageDecoder
 
         if (stream.CanSeek)
         {
-            return PeformActionAndResetPosition(stream, stream.Position);
+            return PerformActionAndResetPosition(stream, stream.Position);
         }
 
         Configuration configuration = options.Configuration;
@@ -257,7 +258,7 @@ public abstract class ImageDecoder : IImageDecoder
             throw new NotSupportedException("Cannot read from the stream.");
         }
 
-        Task<T> PeformActionAndResetPosition(Stream s, long position, CancellationToken ct)
+        Task<T> PerformActionAndResetPosition(Stream s, long position, CancellationToken ct)
         {
             try
             {
@@ -289,15 +290,15 @@ public abstract class ImageDecoder : IImageDecoder
         // code below to copy the stream to an in-memory buffer before invoking the action.
         if (stream is MemoryStream ms)
         {
-            return PeformActionAndResetPosition(ms, ms.Position, cancellationToken);
+            return PerformActionAndResetPosition(ms, ms.Position, cancellationToken);
         }
 
         if (stream is ChunkedMemoryStream cms)
         {
-            return PeformActionAndResetPosition(cms, cms.Position, cancellationToken);
+            return PerformActionAndResetPosition(cms, cms.Position, cancellationToken);
         }
 
-        return CopyToMemoryStreamAndActionAsync(options, stream, PeformActionAndResetPosition, cancellationToken);
+        return CopyToMemoryStreamAndActionAsync(options, stream, PerformActionAndResetPosition, cancellationToken);
     }
 
     private static async Task<T> CopyToMemoryStreamAndActionAsync<T>(
@@ -308,7 +309,7 @@ public abstract class ImageDecoder : IImageDecoder
     {
         long position = stream.CanSeek ? stream.Position : 0;
         Configuration configuration = options.Configuration;
-        using ChunkedMemoryStream memoryStream = new(configuration.MemoryAllocator);
+        await using ChunkedMemoryStream memoryStream = new(configuration.MemoryAllocator);
         await stream.CopyToAsync(memoryStream, configuration.StreamProcessingBufferSize, cancellationToken).ConfigureAwait(false);
         memoryStream.Position = 0;
         return await action(memoryStream, position, cancellationToken).ConfigureAwait(false);
@@ -319,6 +320,11 @@ public abstract class ImageDecoder : IImageDecoder
         if (configuration.ImageFormatsManager.TryFindFormatByDecoder(this, out IImageFormat? format))
         {
             image.Metadata.DecodedImageFormat = format;
+
+            foreach (ImageFrame frame in image.Frames)
+            {
+                frame.Metadata.DecodedImageFormat = format;
+            }
         }
     }
 
@@ -327,6 +333,12 @@ public abstract class ImageDecoder : IImageDecoder
         if (configuration.ImageFormatsManager.TryFindFormatByDecoder(this, out IImageFormat? format))
         {
             info.Metadata.DecodedImageFormat = format;
+            info.PixelType = info.Metadata.GetDecodedPixelTypeInfo();
+
+            foreach (ImageFrameMetadata frame in info.FrameMetadataCollection)
+            {
+                frame.DecodedImageFormat = format;
+            }
         }
     }
 }

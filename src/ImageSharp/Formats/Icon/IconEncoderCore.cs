@@ -11,7 +11,7 @@ using SixLabors.ImageSharp.Processing.Processors.Quantization;
 
 namespace SixLabors.ImageSharp.Formats.Icon;
 
-internal abstract class IconEncoderCore : IImageEncoderInternals
+internal abstract class IconEncoderCore
 {
     private readonly QuantizingImageEncoder encoder;
     private readonly IconFileType iconFileType;
@@ -43,6 +43,8 @@ internal abstract class IconEncoderCore : IImageEncoderInternals
 
         for (int i = 0; i < image.Frames.Count; i++)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             // Since Windows Vista, the size of an image is determined from the BITMAPINFOHEADER structure or PNG image data
             // which technically allows storing icons with larger than 256 pixels, but such larger sizes are not recommended by Microsoft.
             ImageFrame<TPixel> frame = image.Frames[i];
@@ -167,7 +169,7 @@ internal abstract class IconEncoderCore : IImageEncoderInternals
         {
             this.Compression = compression;
             this.BmpBitsPerPixel = compression == IconFrameCompression.Png
-                ? BmpBitsPerPixel.Pixel32
+                ? BmpBitsPerPixel.Bit32
                 : bmpBitsPerPixel;
             this.ColorTable = colorTable;
             this.iconDirEntry = iconDirEntry;

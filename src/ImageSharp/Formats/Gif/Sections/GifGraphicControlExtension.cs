@@ -52,7 +52,7 @@ internal readonly struct GifGraphicControlExtension : IGifExtension, IEquatable<
     /// Gets the disposal method which indicates the way in which the
     /// graphic is to be treated after being displayed.
     /// </summary>
-    public GifDisposalMethod DisposalMethod => (GifDisposalMethod)((this.Packed & 0x1C) >> 2);
+    public FrameDisposalMode DisposalMethod => (FrameDisposalMode)((this.Packed & 0x1C) >> 2);
 
     /// <summary>
     /// Gets a value indicating whether transparency flag is to be set.
@@ -80,7 +80,7 @@ internal readonly struct GifGraphicControlExtension : IGifExtension, IEquatable<
     public static GifGraphicControlExtension Parse(ReadOnlySpan<byte> buffer)
         => MemoryMarshal.Cast<byte, GifGraphicControlExtension>(buffer)[0];
 
-    public static byte GetPackedValue(GifDisposalMethod disposalMethod, bool userInputFlag = false, bool transparencyFlag = false)
+    public static byte GetPackedValue(FrameDisposalMode disposalMode, bool userInputFlag = false, bool transparencyFlag = false)
     {
         /*
         Reserved               | 3 Bits
@@ -91,7 +91,7 @@ internal readonly struct GifGraphicControlExtension : IGifExtension, IEquatable<
 
         byte value = 0;
 
-        value |= (byte)((int)disposalMethod << 2);
+        value |= (byte)((int)disposalMode << 2);
 
         if (userInputFlag)
         {

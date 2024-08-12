@@ -15,16 +15,28 @@ internal sealed class IcoDecoderCore : IconDecoderCore
     }
 
     protected override void SetFrameMetadata(
-        ImageFrameMetadata metadata,
+        ImageMetadata imageMetadata,
+        ImageFrameMetadata frameMetadata,
+        int index,
         in IconDirEntry entry,
         IconFrameCompression compression,
         BmpBitsPerPixel bitsPerPixel,
         ReadOnlyMemory<Color>? colorTable)
     {
-        IcoFrameMetadata icoFrameMetadata = metadata.GetIcoMetadata();
+        IcoFrameMetadata icoFrameMetadata = frameMetadata.GetIcoMetadata();
         icoFrameMetadata.FromIconDirEntry(entry);
         icoFrameMetadata.Compression = compression;
         icoFrameMetadata.BmpBitsPerPixel = bitsPerPixel;
         icoFrameMetadata.ColorTable = colorTable;
+
+        if (index == 0)
+        {
+            IcoMetadata curMetadata = imageMetadata.GetIcoMetadata();
+            curMetadata.Compression = compression;
+            curMetadata.BmpBitsPerPixel = bitsPerPixel;
+            curMetadata.ColorTable = colorTable;
+            curMetadata.EncodingWidth = icoFrameMetadata.EncodingWidth;
+            curMetadata.EncodingHeight = icoFrameMetadata.EncodingHeight;
+        }
     }
 }

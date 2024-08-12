@@ -12,10 +12,10 @@ public class JpegMetadataTests
     [Fact]
     public void CloneIsDeep()
     {
-        var meta = new JpegMetadata { ColorType = JpegEncodingColor.Luminance };
+        var meta = new JpegMetadata { ColorType = JpegColorType.Luminance };
         var clone = (JpegMetadata)meta.DeepClone();
 
-        clone.ColorType = JpegEncodingColor.YCbCrRatio420;
+        clone.ColorType = JpegColorType.YCbCrRatio420;
 
         Assert.False(meta.ColorType.Equals(clone.ColorType));
     }

@@ -14,6 +14,28 @@ public class ProjectiveTransformBuilder
     private readonly List<Func<Size, Matrix4x4>> transformMatrixFactories = new();
 
     /// <summary>
+    /// Initializes a new instance of the <see cref="ProjectiveTransformBuilder"/> class.
+    /// </summary>
+    public ProjectiveTransformBuilder()
+        : this(TransformSpace.Pixel)
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ProjectiveTransformBuilder"/> class.
+    /// </summary>
+    /// <param name="transformSpace">
+    /// The <see cref="TransformSpace"/> to use when applying the projective transform.
+    /// </param>
+    public ProjectiveTransformBuilder(TransformSpace transformSpace)
+        => this.TransformSpace = transformSpace;
+
+    /// <summary>
+    /// Gets the <see cref="TransformSpace"/> to use when applying the projective transform.
+    /// </summary>
+    public TransformSpace TransformSpace { get; }
+
+    /// <summary>
     /// Prepends a matrix that performs a tapering projective transform.
     /// </summary>
     /// <param name="side">An enumeration that indicates the side of the rectangle that tapers.</param>
@@ -47,7 +69,7 @@ public class ProjectiveTransformBuilder
     /// <param name="radians">The amount of rotation, in radians.</param>
     /// <returns>The <see cref="ProjectiveTransformBuilder"/>.</returns>
     public ProjectiveTransformBuilder PrependRotationRadians(float radians)
-        => this.Prepend(size => new Matrix4x4(TransformUtils.CreateRotationTransformMatrixRadians(radians, size)));
+        => this.Prepend(size => new Matrix4x4(TransformUtils.CreateRotationTransformMatrixRadians(radians, size, this.TransformSpace)));
 
     /// <summary>
     /// Prepends a centered rotation matrix using the given rotation in degrees at the given origin.
@@ -81,7 +103,7 @@ public class ProjectiveTransformBuilder
     /// <param name="radians">The amount of rotation, in radians.</param>
     /// <returns>The <see cref="ProjectiveTransformBuilder"/>.</returns>
     public ProjectiveTransformBuilder AppendRotationRadians(float radians)
-        => this.Append(size => new Matrix4x4(TransformUtils.CreateRotationTransformMatrixRadians(radians, size)));
+        => this.Append(size => new Matrix4x4(TransformUtils.CreateRotationTransformMatrixRadians(radians, size, this.TransformSpace)));
 
     /// <summary>
     /// Appends a centered rotation matrix using the given rotation in degrees at the given origin.
@@ -165,7 +187,7 @@ public class ProjectiveTransformBuilder
     /// <param name="radiansY">The Y angle, in radians.</param>
     /// <returns>The <see cref="ProjectiveTransformBuilder"/>.</returns>
     public ProjectiveTransformBuilder PrependSkewRadians(float radiansX, float radiansY)
-        => this.Prepend(size => new Matrix4x4(TransformUtils.CreateSkewTransformMatrixRadians(radiansX, radiansY, size)));
+        => this.Prepend(size => new Matrix4x4(TransformUtils.CreateSkewTransformMatrixRadians(radiansX, radiansY, size, this.TransformSpace)));
 
     /// <summary>
     /// Prepends a skew matrix using the given angles in degrees at the given origin.
@@ -203,7 +225,7 @@ public class ProjectiveTransformBuilder
     /// <param name="radiansY">The Y angle, in radians.</param>
     /// <returns>The <see cref="ProjectiveTransformBuilder"/>.</returns>
     public ProjectiveTransformBuilder AppendSkewRadians(float radiansX, float radiansY)
-        => this.Append(size => new Matrix4x4(TransformUtils.CreateSkewTransformMatrixRadians(radiansX, radiansY, size)));
+        => this.Append(size => new Matrix4x4(TransformUtils.CreateSkewTransformMatrixRadians(radiansX, radiansY, size, this.TransformSpace)));
 
     /// <summary>
     /// Appends a skew matrix using the given angles in degrees at the given origin.

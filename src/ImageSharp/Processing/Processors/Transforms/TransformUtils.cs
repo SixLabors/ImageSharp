@@ -83,20 +83,22 @@ internal static class TransformUtils
     /// </summary>
     /// <param name="degrees">The amount of rotation, in degrees.</param>
     /// <param name="size">The source image size.</param>
+    /// <param name="transformSpace">The <see cref="TransformSpace"/> to use when creating the centered matrix.</param>
     /// <returns>The <see cref="Matrix3x2"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Matrix3x2 CreateRotationTransformMatrixDegrees(float degrees, Size size)
-        => CreateCenteredTransformMatrix(Matrix3x2Extensions.CreateRotationDegrees(degrees, PointF.Empty), size);
+    public static Matrix3x2 CreateRotationTransformMatrixDegrees(float degrees, Size size, TransformSpace transformSpace)
+        => CreateRotationTransformMatrixRadians(GeometryUtilities.DegreeToRadian(degrees), size, transformSpace);
 
     /// <summary>
     /// Creates a centered rotation transform matrix using the given rotation in radians and the source size.
     /// </summary>
     /// <param name="radians">The amount of rotation, in radians.</param>
     /// <param name="size">The source image size.</param>
+    /// <param name="transformSpace">The <see cref="TransformSpace"/> to use when creating the centered matrix.</param>
     /// <returns>The <see cref="Matrix3x2"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Matrix3x2 CreateRotationTransformMatrixRadians(float radians, Size size)
-        => CreateCenteredTransformMatrix(Matrix3x2Extensions.CreateRotation(radians, PointF.Empty), size);
+    public static Matrix3x2 CreateRotationTransformMatrixRadians(float radians, Size size, TransformSpace transformSpace)
+        => CreateCenteredTransformMatrix(Matrix3x2Extensions.CreateRotation(radians, PointF.Empty), size, transformSpace);
 
     /// <summary>
     /// Creates a centered skew transform matrix from the give angles in degrees and the source size.
@@ -104,10 +106,11 @@ internal static class TransformUtils
     /// <param name="degreesX">The X angle, in degrees.</param>
     /// <param name="degreesY">The Y angle, in degrees.</param>
     /// <param name="size">The source image size.</param>
+    /// <param name="transformSpace">The <see cref="TransformSpace"/> to use when creating the centered matrix.</param>
     /// <returns>The <see cref="Matrix3x2"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Matrix3x2 CreateSkewTransformMatrixDegrees(float degreesX, float degreesY, Size size)
-        => CreateCenteredTransformMatrix(Matrix3x2Extensions.CreateSkewDegrees(degreesX, degreesY, PointF.Empty), size);
+    public static Matrix3x2 CreateSkewTransformMatrixDegrees(float degreesX, float degreesY, Size size, TransformSpace transformSpace)
+        => CreateSkewTransformMatrixRadians(GeometryUtilities.DegreeToRadian(degreesX), GeometryUtilities.DegreeToRadian(degreesY), size, transformSpace);
 
     /// <summary>
     /// Creates a centered skew transform matrix from the give angles in radians and the source size.
@@ -115,21 +118,25 @@ internal static class TransformUtils
     /// <param name="radiansX">The X angle, in radians.</param>
     /// <param name="radiansY">The Y angle, in radians.</param>
     /// <param name="size">The source image size.</param>
+    /// <param name="transformSpace">The <see cref="TransformSpace"/> to use when creating the centered matrix.</param>
     /// <returns>The <see cref="Matrix3x2"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Matrix3x2 CreateSkewTransformMatrixRadians(float radiansX, float radiansY, Size size)
-        => CreateCenteredTransformMatrix(Matrix3x2Extensions.CreateSkew(radiansX, radiansY, PointF.Empty), size);
+    public static Matrix3x2 CreateSkewTransformMatrixRadians(float radiansX, float radiansY, Size size, TransformSpace transformSpace)
+        => CreateCenteredTransformMatrix(Matrix3x2Extensions.CreateSkew(radiansX, radiansY, PointF.Empty), size, transformSpace);
 
     /// <summary>
     /// Gets the centered transform matrix based upon the source rectangle.
     /// </summary>
     /// <param name="matrix">The transformation matrix.</param>
     /// <param name="size">The source image size.</param>
+    /// <param name="transformSpace">
+    /// The <see cref="TransformSpace"/> to use when creating the centered matrix.
+    /// </param>
     /// <returns>The <see cref="Matrix3x2"/></returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Matrix3x2 CreateCenteredTransformMatrix(Matrix3x2 matrix, Size size)
+    public static Matrix3x2 CreateCenteredTransformMatrix(Matrix3x2 matrix, Size size, TransformSpace transformSpace)
     {
-        Size destinationSize = GetUnboundedTransformedSize(matrix, size);
+        Size transformSize = GetUnboundedTransformedSize(matrix, size, transformSpace);
 
         // We invert the matrix to handle the transformation from screen to world space.
         // This ensures scaling matrices are correct.
@@ -138,8 +145,10 @@ internal static class TransformUtils
         // The source size is provided using the coordinate space of the source image.
         // however the transform should always be applied in the pixel space.
         // To account for this we offset by the size - 1 to translate to the pixel space.
-        Matrix3x2 translationToTargetCenter = Matrix3x2.CreateTranslation(new Vector2(-(destinationSize.Width - 1), -(destinationSize.Height - 1)) * .5F);
-        Matrix3x2 translateToSourceCenter = Matrix3x2.CreateTranslation(new Vector2(size.Width - 1, size.Height - 1) * .5F);
+        float offset = transformSpace == TransformSpace.Pixel ? 1F : 0F;
+
+        Matrix3x2 translationToTargetCenter = Matrix3x2.CreateTranslation(new Vector2(-(transformSize.Width - offset), -(transformSize.Height - offset)) * .5F);
+        Matrix3x2 translateToSourceCenter = Matrix3x2.CreateTranslation(new Vector2(size.Width - offset, size.Height - offset) * .5F);
 
         // Translate back to world space.
         Matrix3x2.Invert(translationToTargetCenter * inverted * translateToSourceCenter, out Matrix3x2 centered);
@@ -160,12 +169,6 @@ internal static class TransformUtils
     public static Matrix4x4 CreateTaperMatrix(Size size, TaperSide side, TaperCorner corner, float fraction)
     {
         Matrix4x4 matrix = Matrix4x4.Identity;
-
-        // The source size is provided using the Coordinate/Geometric space of the source image.
-        // However, the transform should always be applied in the Discrete/Pixel space to ensure
-        // that the transformation fully encompasses all pixels without clipping at the edges.
-        // To account for this, we subtract [1,1] from the size to translate to the Discrete/Pixel space.
-        // size -= new Size(1, 1);
 
         /*
          * SkMatrix is laid out in the following manner:
@@ -280,11 +283,10 @@ internal static class TransformUtils
     /// </summary>
     /// <param name="matrix">The transformation matrix.</param>
     /// <param name="size">The source size.</param>
-    /// <returns>
-    /// The <see cref="Size"/>.
-    /// </returns>
-    public static Size GetTransformedSize(Matrix3x2 matrix, Size size)
-        => GetTransformedSize(matrix, size, true);
+    /// <param name="transformSpace">The <see cref="TransformSpace"/> to use when calculating the size.</param>
+    /// <returns>The <see cref="Size"/>.</returns>
+    public static Size GetTransformedSize(Matrix3x2 matrix, Size size, TransformSpace transformSpace)
+        => GetTransformedSize(matrix, size, transformSpace, true);
 
     /// <summary>
     /// Returns the size relative to the source for the given transformation matrix.
@@ -355,22 +357,22 @@ internal static class TransformUtils
     /// </summary>
     /// <param name="matrix">The transformation matrix.</param>
     /// <param name="size">The source size.</param>
-    /// <returns>
-    /// The <see cref="Size"/>.
-    /// </returns>
-    private static Size GetUnboundedTransformedSize(Matrix3x2 matrix, Size size)
-        => GetTransformedSize(matrix, size, false);
+    /// <param name="transformSpace">The <see cref="TransformSpace"/> to use when calculating the size.</param>
+    /// <returns>The <see cref="Size"/>.</returns>
+    private static Size GetUnboundedTransformedSize(Matrix3x2 matrix, Size size, TransformSpace transformSpace)
+        => GetTransformedSize(matrix, size, transformSpace, false);
 
     /// <summary>
     /// Returns the size relative to the source for the given transformation matrix.
     /// </summary>
     /// <param name="matrix">The transformation matrix.</param>
     /// <param name="size">The source size.</param>
+    /// <param name="transformSpace">The <see cref="TransformSpace"/> to use when calculating the size.</param>
     /// <param name="constrain">Whether to constrain the size to ensure that the dimensions are positive.</param>
     /// <returns>
     /// The <see cref="Size"/>.
     /// </returns>
-    private static Size GetTransformedSize(Matrix3x2 matrix, Size size, bool constrain)
+    private static Size GetTransformedSize(Matrix3x2 matrix, Size size, TransformSpace transformSpace, bool constrain)
     {
         Guard.IsTrue(size.Width > 0 && size.Height > 0, nameof(size), "Source size dimensions cannot be 0!");
 
@@ -381,9 +383,13 @@ internal static class TransformUtils
 
         // Define an offset size to translate between coordinate space and pixel space.
         // Compute scaling factors from the matrix
-        float scaleX = 1F / new Vector2(matrix.M11, matrix.M21).Length(); // sqrt(M11^2 + M21^2)
-        float scaleY = 1F / new Vector2(matrix.M12, matrix.M22).Length(); // sqrt(M12^2 + M22^2)
-        SizeF offsetSize = new(scaleX, scaleY);
+        SizeF offsetSize = SizeF.Empty;
+        if (transformSpace == TransformSpace.Pixel)
+        {
+            float scaleX = 1F / new Vector2(matrix.M11, matrix.M21).Length(); // sqrt(M11^2 + M21^2)
+            float scaleY = 1F / new Vector2(matrix.M12, matrix.M22).Length(); // sqrt(M12^2 + M22^2)
+            offsetSize = new(scaleX, scaleY);
+        }
 
         // Subtract the offset size to translate to the pixel space.
         if (TryGetTransformedRectangle(new RectangleF(Point.Empty, size - offsetSize), matrix, out Rectangle bounds))

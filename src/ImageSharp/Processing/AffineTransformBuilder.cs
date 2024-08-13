@@ -14,6 +14,28 @@ public class AffineTransformBuilder
     private readonly List<Func<Size, Matrix3x2>> transformMatrixFactories = new();
 
     /// <summary>
+    /// Initializes a new instance of the <see cref="AffineTransformBuilder"/> class.
+    /// </summary>
+    public AffineTransformBuilder()
+        : this(TransformSpace.Pixel)
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="AffineTransformBuilder"/> class.
+    /// </summary>
+    /// <param name="transformSpace">
+    /// The <see cref="TransformSpace"/> to use when applying the affine transform.
+    /// </param>
+    public AffineTransformBuilder(TransformSpace transformSpace)
+        => this.TransformSpace = transformSpace;
+
+    /// <summary>
+    /// Gets the <see cref="TransformSpace"/> to use when applying the affine transform.
+    /// </summary>
+    public TransformSpace TransformSpace { get; }
+
+    /// <summary>
     /// Prepends a rotation matrix using the given rotation angle in degrees
     /// and the image center point as rotation center.
     /// </summary>
@@ -30,7 +52,7 @@ public class AffineTransformBuilder
     /// <returns>The <see cref="AffineTransformBuilder"/>.</returns>
     public AffineTransformBuilder PrependRotationRadians(float radians)
         => this.Prepend(
-            size => TransformUtils.CreateRotationTransformMatrixRadians(radians, size));
+            size => TransformUtils.CreateRotationTransformMatrixRadians(radians, size, this.TransformSpace));
 
     /// <summary>
     /// Prepends a rotation matrix using the given rotation in degrees at the given origin.
@@ -66,7 +88,7 @@ public class AffineTransformBuilder
     /// <param name="radians">The amount of rotation, in radians.</param>
     /// <returns>The <see cref="AffineTransformBuilder"/>.</returns>
     public AffineTransformBuilder AppendRotationRadians(float radians)
-        => this.Append(size => TransformUtils.CreateRotationTransformMatrixRadians(radians, size));
+        => this.Append(size => TransformUtils.CreateRotationTransformMatrixRadians(radians, size, this.TransformSpace));
 
     /// <summary>
     /// Appends a rotation matrix using the given rotation in degrees at the given origin.
@@ -141,7 +163,7 @@ public class AffineTransformBuilder
     /// <param name="degreesY">The Y angle, in degrees.</param>
     /// <returns>The <see cref="AffineTransformBuilder"/>.</returns>
     public AffineTransformBuilder PrependSkewDegrees(float degreesX, float degreesY)
-        => this.Prepend(size => TransformUtils.CreateSkewTransformMatrixDegrees(degreesX, degreesY, size));
+        => this.PrependSkewRadians(GeometryUtilities.DegreeToRadian(degreesX), GeometryUtilities.DegreeToRadian(degreesY));
 
     /// <summary>
     /// Prepends a centered skew matrix from the give angles in radians.
@@ -150,7 +172,7 @@ public class AffineTransformBuilder
     /// <param name="radiansY">The Y angle, in radians.</param>
     /// <returns>The <see cref="AffineTransformBuilder"/>.</returns>
     public AffineTransformBuilder PrependSkewRadians(float radiansX, float radiansY)
-        => this.Prepend(size => TransformUtils.CreateSkewTransformMatrixRadians(radiansX, radiansY, size));
+        => this.Prepend(size => TransformUtils.CreateSkewTransformMatrixRadians(radiansX, radiansY, size, this.TransformSpace));
 
     /// <summary>
     /// Prepends a skew matrix using the given angles in degrees at the given origin.
@@ -179,7 +201,7 @@ public class AffineTransformBuilder
     /// <param name="degreesY">The Y angle, in degrees.</param>
     /// <returns>The <see cref="AffineTransformBuilder"/>.</returns>
     public AffineTransformBuilder AppendSkewDegrees(float degreesX, float degreesY)
-        => this.Append(size => TransformUtils.CreateSkewTransformMatrixDegrees(degreesX, degreesY, size));
+        => this.AppendSkewRadians(GeometryUtilities.DegreeToRadian(degreesX), GeometryUtilities.DegreeToRadian(degreesY));
 
     /// <summary>
     /// Appends a centered skew matrix from the give angles in radians.
@@ -188,7 +210,7 @@ public class AffineTransformBuilder
     /// <param name="radiansY">The Y angle, in radians.</param>
     /// <returns>The <see cref="AffineTransformBuilder"/>.</returns>
     public AffineTransformBuilder AppendSkewRadians(float radiansX, float radiansY)
-        => this.Append(size => TransformUtils.CreateSkewTransformMatrixRadians(radiansX, radiansY, size));
+        => this.Append(size => TransformUtils.CreateSkewTransformMatrixRadians(radiansX, radiansY, size, this.TransformSpace));
 
     /// <summary>
     /// Appends a skew matrix using the given angles in degrees at the given origin.
@@ -334,7 +356,7 @@ public class AffineTransformBuilder
             CheckDegenerate(matrix);
         }
 
-        return TransformUtils.GetTransformedSize(matrix, size);
+        return TransformUtils.GetTransformedSize(matrix, size, this.TransformSpace);
     }
 
     private static void CheckDegenerate(Matrix3x2 matrix)

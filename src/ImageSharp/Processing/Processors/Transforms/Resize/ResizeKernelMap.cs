@@ -5,6 +5,7 @@ using System.Buffers;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
 using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Transforms;
@@ -33,7 +34,7 @@ internal partial class ResizeKernelMap : IDisposable
     private bool isDisposed;
 
     // To avoid both GC allocations, and MemoryAllocator ceremony:
-    private readonly double[] tempValues;
+    private readonly float[] tempValues;
 
     private ResizeKernelMap(
         MemoryAllocator memoryAllocator,
@@ -50,10 +51,19 @@ internal partial class ResizeKernelMap : IDisposable
         this.sourceLength = sourceLength;
         this.DestinationLength = destinationLength;
         this.MaxDiameter = (radius * 2) + 1;
-        this.data = memoryAllocator.Allocate2D<float>(this.MaxDiameter, bufferHeight, preferContiguosImageBuffers: true, AllocationOptions.Clean);
+
+        if (Vector256.IsHardwareAccelerated)
+        {
+            this.data = memoryAllocator.Allocate2D<float>(this.MaxDiameter * 4, bufferHeight, preferContiguosImageBuffers: true);
+        }
+        else
+        {
+            this.data = memoryAllocator.Allocate2D<float>(this.MaxDiameter, bufferHeight, preferContiguosImageBuffers: true);
+        }
+
         this.pinHandle = this.data.DangerousGetSingleMemory().Pin();
         this.kernels = new ResizeKernel[destinationLength];
-        this.tempValues = new double[this.MaxDiameter];
+        this.tempValues = new float[this.MaxDiameter];
     }
 
     /// <summary>
@@ -155,23 +165,23 @@ internal partial class ResizeKernelMap : IDisposable
         bool hasAtLeast2Periods = 2 * (cornerInterval + period) < destinationSize;
 
         ResizeKernelMap result = hasAtLeast2Periods
-                                     ? new PeriodicKernelMap(
-                                         memoryAllocator,
-                                         sourceSize,
-                                         destinationSize,
-                                         ratio,
-                                         scale,
-                                         radius,
-                                         period,
-                                         cornerInterval)
-                                     : new ResizeKernelMap(
-                                         memoryAllocator,
-                                         sourceSize,
-                                         destinationSize,
-                                         destinationSize,
-                                         ratio,
-                                         scale,
-                                         radius);
+        ? new PeriodicKernelMap(
+            memoryAllocator,
+            sourceSize,
+            destinationSize,
+            ratio,
+            scale,
+            radius,
+            period,
+            cornerInterval)
+        : new ResizeKernelMap(
+            memoryAllocator,
+            sourceSize,
+            destinationSize,
+            destinationSize,
+            ratio,
+            scale,
+            radius);
 
         result.Initialize(in sampler);
 
@@ -198,7 +208,8 @@ internal partial class ResizeKernelMap : IDisposable
     private ResizeKernel BuildKernel<TResampler>(in TResampler sampler, int destRowIndex, int dataRowIndex)
         where TResampler : struct, IResampler
     {
-        double center = ((destRowIndex + .5) * this.ratio) - .5;
+        float center = (float)(((destRowIndex + .5) * this.ratio) - .5);
+        float scale = (float)this.scale;
 
         // Keep inside bounds.
         int left = (int)TolerantMath.Ceiling(center - this.radius);
@@ -214,30 +225,25 @@ internal partial class ResizeKernelMap : IDisposable
         }
 
         ResizeKernel kernel = this.CreateKernel(dataRowIndex, left, right);
-
-        Span<double> kernelValues = this.tempValues.AsSpan(0, kernel.Length);
-        double sum = 0;
+        Span<float> kernelValues = this.tempValues.AsSpan(0, kernel.Length);
+        ref float kernelStart = ref MemoryMarshal.GetReference(kernelValues);
+        float sum = 0;
 
         for (int j = left; j <= right; j++)
         {
-            double value = sampler.GetValue((float)((j - center) / this.scale));
+            float value = sampler.GetValue((j - center) / scale);
             sum += value;
-
-            kernelValues[j - left] = value;
+            kernelStart = value;
+            kernelStart = ref Unsafe.Add(ref kernelStart, 1);
         }
 
         // Normalize, best to do it here rather than in the pixel loop later on.
         if (sum > 0)
         {
-            for (int j = 0; j < kernel.Length; j++)
-            {
-                // weights[w] = weights[w] / sum:
-                ref double kRef = ref kernelValues[j];
-                kRef /= sum;
-            }
+            Numerics.Normalize(kernelValues, sum);
         }
 
-        kernel.Fill(kernelValues);
+        kernel.FillOrCopyAndExpand(kernelValues);
 
         return kernel;
     }

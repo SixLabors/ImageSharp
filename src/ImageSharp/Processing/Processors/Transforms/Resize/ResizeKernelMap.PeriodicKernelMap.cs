@@ -54,7 +54,7 @@ internal partial class ResizeKernelMap
             int bottomStartDest = this.DestinationLength - this.cornerInterval;
             for (int i = startOfFirstRepeatedMosaic; i < bottomStartDest; i++)
             {
-                double center = ((i + .5) * this.ratio) - .5;
+                float center = (float)(((i + .5) * this.ratio) - .5);
                 int left = (int)TolerantMath.Ceiling(center - this.radius);
                 ResizeKernel kernel = this.kernels[i - this.period];
                 this.kernels[i] = kernel.AlterLeftValue(left);

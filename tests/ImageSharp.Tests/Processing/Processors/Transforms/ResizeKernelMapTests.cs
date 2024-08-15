@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Runtime.Intrinsics;
 using System.Text;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Transforms;
@@ -142,7 +141,7 @@ public partial class ResizeKernelMapTests
             Span<float> actualValues;
 
             ApproximateFloatComparer comparer;
-            if (Vector256.IsHardwareAccelerated)
+            if (ResizeKernel.SupportsVectorization)
             {
                 comparer = new ApproximateFloatComparer(1e-4f);
 

@@ -138,9 +138,10 @@ internal static class Vector512Utilities
     /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector512<float> MultiplyAddEstimate(Vector512<float> a, Vector512<float> b, Vector512<float> c)
-        => Vector512.Create(
-            Vector256Utilities.MultiplyAddEstimate(a.GetLower(), b.GetLower(), c.GetLower()),
-            Vector256Utilities.MultiplyAddEstimate(a.GetUpper(), b.GetUpper(), c.GetUpper()));
+
+        // Don't actually use FMA as it requires many more instruction to extract the
+        // upper and lower parts of the vector and then recombine them.
+        => (a + b) * c;
 
     [DoesNotReturn]
     private static void ThrowUnreachableException() => throw new UnreachableException();

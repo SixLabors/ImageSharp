@@ -5,7 +5,6 @@ using System.Buffers;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Runtime.Intrinsics;
 using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Transforms;
@@ -52,7 +51,7 @@ internal partial class ResizeKernelMap : IDisposable
         this.DestinationLength = destinationLength;
         this.MaxDiameter = (radius * 2) + 1;
 
-        if (Vector256.IsHardwareAccelerated)
+        if (ResizeKernel.SupportsVectorization)
         {
             this.data = memoryAllocator.Allocate2D<float>(this.MaxDiameter * 4, bufferHeight, preferContiguosImageBuffers: true);
         }

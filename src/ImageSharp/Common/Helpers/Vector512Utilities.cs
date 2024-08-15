@@ -110,6 +110,38 @@ internal static class Vector512Utilities
         return Vector512.ConvertToInt32(val_2p23_f32 | sign);
     }
 
+    /// <summary>
+    /// Performs a multiply-add operation on three vectors, where each element of the resulting vector is the
+    /// product of corresponding elements in <paramref name="a"/> and <paramref name="b"/> added to the
+    /// corresponding element in <paramref name="c"/>.
+    /// If the CPU supports FMA (Fused Multiply-Add) instructions, the operation is performed as a single
+    /// fused operation for better performance and precision.
+    /// </summary>
+    /// <param name="a">The first vector of single-precision floating-point numbers to be multiplied.</param>
+    /// <param name="b">The second vector of single-precision floating-point numbers to be multiplied.</param>
+    /// <param name="c">The vector of single-precision floating-point numbers to be added to the product of
+    /// <paramref name="a"/> and <paramref name="b"/>.</param>
+    /// <returns>
+    /// A <see cref="Vector512{Single}"/> where each element is the result of multiplying the corresponding elements
+    /// of <paramref name="a"/> and <paramref name="b"/>, and then adding the corresponding element from <paramref name="c"/>.
+    /// </returns>
+    /// <remarks>
+    /// If the FMA (Fused Multiply-Add) instruction set is supported by the CPU, the operation is performed using
+    /// <see cref="Fma.MultiplyAdd(Vector256{float}, Vector256{float}, Vector256{float})"/> against the upper and lower
+    /// buts. This approach can result in slightly different results compared to performing the multiplication and
+    /// addition separately due to differences in how floating-point rounding is handled.
+    /// <para>
+    /// If FMA is not supported, the operation is performed as a separate multiplication and addition. This might lead
+    /// to a minor difference in precision compared to the fused operation, particularly in cases where numerical accuracy
+    /// is critical.
+    /// </para>
+    /// </remarks>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<float> MultiplyAddEstimate(Vector512<float> a, Vector512<float> b, Vector512<float> c)
+        => Vector512.Create(
+            Vector256Utilities.MultiplyAddEstimate(a.GetLower(), b.GetLower(), c.GetLower()),
+            Vector256Utilities.MultiplyAddEstimate(a.GetUpper(), b.GetUpper(), c.GetUpper()));
+
     [DoesNotReturn]
     private static void ThrowUnreachableException() => throw new UnreachableException();
 }

@@ -138,7 +138,7 @@ internal static class Vector256Utilities
     /// </para>
     /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector256<float> MultiplyAdd(Vector256<float> a, Vector256<float> b, Vector256<float> c)
+    public static Vector256<float> MultiplyAddEstimate(Vector256<float> a, Vector256<float> b, Vector256<float> c)
     {
         if (Fma.IsSupported)
         {

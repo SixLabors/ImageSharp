@@ -273,7 +273,7 @@ internal static class Vector128Utilities
     /// </para>
     /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector128<float> MultiplyAdd(Vector128<float> a, Vector128<float> b, Vector128<float> c)
+    public static Vector128<float> MultiplyAddEstimate(Vector128<float> a, Vector128<float> b, Vector128<float> c)
     {
         if (Fma.IsSupported)
         {

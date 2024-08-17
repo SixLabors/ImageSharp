@@ -220,6 +220,24 @@ public class AffineTransformTests
     }
 
     [Theory]
+    [WithSolidFilledImages(4, 4, nameof(Color.Red), PixelTypes.Rgba32)]
+    public void Issue2753<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage();
+
+        AffineTransformBuilder builder =
+            new AffineTransformBuilder().AppendRotationDegrees(270, new Vector2(3.5f, 3.5f));
+        image.Mutate(x => x.BackgroundColor(Color.Red));
+        image.Mutate(x => x = x.Transform(builder));
+
+        image.DebugSave(provider);
+
+        Assert.Equal(4, image.Width);
+        Assert.Equal(8, image.Height);
+    }
+
+    [Theory]
     [WithTestPatternImages(100, 100, PixelTypes.Rgba32)]
     public void Identity<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>

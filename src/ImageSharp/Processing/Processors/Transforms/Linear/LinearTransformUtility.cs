@@ -43,7 +43,7 @@ internal static class LinearTransformUtility
     /// <returns>The <see cref="int"/>.</returns>
     [MethodImpl(InliningOptions.ShortMethod)]
     public static int GetRangeStart(float radius, float center, int min, int max)
-        => Numerics.Clamp((int)MathF.Ceiling(center - radius), min, max);
+        => Numerics.Clamp((int)MathF.Floor(center - radius), min, max);
 
     /// <summary>
     /// Gets the end position (inclusive) for a sampling range given
@@ -56,5 +56,5 @@ internal static class LinearTransformUtility
     /// <returns>The <see cref="int"/>.</returns>
     [MethodImpl(InliningOptions.ShortMethod)]
     public static int GetRangeEnd(float radius, float center, int min, int max)
-        => Numerics.Clamp((int)MathF.Floor(center + radius), min, max);
+        => Numerics.Clamp((int)MathF.Ceiling(center + radius), min, max);
 }

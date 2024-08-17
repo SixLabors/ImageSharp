@@ -7,13 +7,13 @@ using SixLabors.ImageSharp.Processing;
 
 namespace SixLabors.ImageSharp.Benchmarks.Samplers;
 
-[Config(typeof(Config.MultiFramework))]
+[Config(typeof(Config.Standard))]
 public class GaussianBlur
 {
     [Benchmark]
     public void Blur()
     {
-        using var image = new Image<Rgba32>(Configuration.Default, 400, 400, Color.White);
+        using Image<Rgba32> image = new(Configuration.Default, 400, 400, Color.White.ToPixel<Rgba32>());
         image.Mutate(c => c.GaussianBlur());
     }
 }

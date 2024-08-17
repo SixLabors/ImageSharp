@@ -178,7 +178,7 @@ internal sealed class GifDecoderCore : ImageDecoderCore
     {
         uint frameCount = 0;
         ImageFrameMetadata? previousFrame = null;
-        List<ImageFrameMetadata> framesMetadata = new();
+        List<ImageFrameMetadata> framesMetadata = [];
         try
         {
             this.ReadLogicalScreenDescriptorAndGlobalColorTable(stream);
@@ -242,7 +242,6 @@ internal sealed class GifDecoderCore : ImageDecoderCore
         }
 
         return new ImageInfo(
-            new PixelTypeInfo(this.logicalScreenDescriptor.BitsPerPixel),
             new(this.logicalScreenDescriptor.Width, this.logicalScreenDescriptor.Height),
             this.metadata,
             framesMetadata);
@@ -493,7 +492,7 @@ internal sealed class GifDecoderCore : ImageDecoderCore
         }
         else
         {
-            if (this.graphicsControlExtension.DisposalMethod == GifDisposalMethod.RestoreToPrevious)
+            if (this.graphicsControlExtension.DisposalMethod == FrameDisposalMode.RestoreToPrevious)
             {
                 prevFrame = previousFrame;
             }
@@ -581,9 +580,7 @@ internal sealed class GifDecoderCore : ImageDecoderCore
                     for (int x = descriptorLeft; x < descriptorRight && x < imageWidth; x++)
                     {
                         int index = Numerics.Clamp(Unsafe.Add(ref indicesRowRef, (uint)(x - descriptorLeft)), 0, colorTableMaxIdx);
-                        ref TPixel pixel = ref Unsafe.Add(ref rowRef, (uint)x);
-                        Rgb24 rgb = colorTable[index];
-                        pixel.FromRgb24(rgb);
+                        Unsafe.Add(ref rowRef, (uint)x) = TPixel.FromRgb24(colorTable[index]);
                     }
                 }
                 else
@@ -598,9 +595,7 @@ internal sealed class GifDecoderCore : ImageDecoderCore
                             continue;
                         }
 
-                        ref TPixel pixel = ref Unsafe.Add(ref rowRef, (uint)x);
-                        Rgb24 rgb = colorTable[index];
-                        pixel.FromRgb24(rgb);
+                        Unsafe.Add(ref rowRef, (uint)x) = TPixel.FromRgb24(colorTable[index]);
                     }
                 }
             }
@@ -614,7 +609,7 @@ internal sealed class GifDecoderCore : ImageDecoderCore
 
         previousFrame = currentFrame ?? image.Frames.RootFrame;
 
-        if (this.graphicsControlExtension.DisposalMethod == GifDisposalMethod.RestoreToBackground)
+        if (this.graphicsControlExtension.DisposalMethod == FrameDisposalMode.RestoreToBackground)
         {
             this.restoreArea = new Rectangle(descriptor.Left, descriptor.Top, descriptor.Width, descriptor.Height);
         }
@@ -689,21 +684,18 @@ internal sealed class GifDecoderCore : ImageDecoderCore
             && this.logicalScreenDescriptor.GlobalColorTableSize > 0)
         {
             GifFrameMetadata gifMeta = metadata.GetGifMetadata();
-            gifMeta.ColorTableMode = GifColorTableMode.Global;
+            gifMeta.ColorTableMode = FrameColorTableMode.Global;
         }
 
         if (this.imageDescriptor.LocalColorTableFlag
             && this.imageDescriptor.LocalColorTableSize > 0)
         {
             GifFrameMetadata gifMeta = metadata.GetGifMetadata();
-            gifMeta.ColorTableMode = GifColorTableMode.Local;
+            gifMeta.ColorTableMode = FrameColorTableMode.Local;
 
             Color[] colorTable = new Color[this.imageDescriptor.LocalColorTableSize];
             ReadOnlySpan<Rgb24> rgbTable = MemoryMarshal.Cast<byte, Rgb24>(this.currentLocalColorTable!.GetSpan()[..this.currentLocalColorTableSize]);
-            for (int i = 0; i < colorTable.Length; i++)
-            {
-                colorTable[i] = new Color(rgbTable[i]);
-            }
+            Color.FromPixel(rgbTable, colorTable);
 
             gifMeta.LocalColorTable = colorTable;
         }
@@ -715,7 +707,7 @@ internal sealed class GifDecoderCore : ImageDecoderCore
             gifMeta.HasTransparency = this.graphicsControlExtension.TransparencyFlag;
             gifMeta.TransparencyIndex = this.graphicsControlExtension.TransparencyIndex;
             gifMeta.FrameDelay = this.graphicsControlExtension.DelayTime;
-            gifMeta.DisposalMethod = this.graphicsControlExtension.DisposalMethod;
+            gifMeta.DisposalMode = this.graphicsControlExtension.DisposalMethod;
         }
     }
 
@@ -762,8 +754,8 @@ internal sealed class GifDecoderCore : ImageDecoderCore
         this.metadata = meta;
         this.gifMetadata = meta.GetGifMetadata();
         this.gifMetadata.ColorTableMode = this.logicalScreenDescriptor.GlobalColorTableFlag
-        ? GifColorTableMode.Global
-        : GifColorTableMode.Local;
+            ? FrameColorTableMode.Global
+            : FrameColorTableMode.Local;
 
         if (this.logicalScreenDescriptor.GlobalColorTableFlag)
         {
@@ -778,10 +770,7 @@ internal sealed class GifDecoderCore : ImageDecoderCore
 
                 Color[] colorTable = new Color[this.logicalScreenDescriptor.GlobalColorTableSize];
                 ReadOnlySpan<Rgb24> rgbTable = MemoryMarshal.Cast<byte, Rgb24>(globalColorTableSpan);
-                for (int i = 0; i < colorTable.Length; i++)
-                {
-                    colorTable[i] = new Color(rgbTable[i]);
-                }
+                Color.FromPixel(rgbTable, colorTable);
 
                 this.gifMetadata.GlobalColorTable = colorTable;
             }

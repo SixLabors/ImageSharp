@@ -22,8 +22,8 @@ internal readonly struct FrameControl
         uint yOffset,
         ushort delayNumerator,
         ushort delayDenominator,
-        PngDisposalMethod disposeOperation,
-        PngBlendMethod blendOperation)
+        FrameDisposalMode disposalMode,
+        FrameBlendMode blendMode)
     {
         this.SequenceNumber = sequenceNumber;
         this.Width = width;
@@ -32,8 +32,8 @@ internal readonly struct FrameControl
         this.YOffset = yOffset;
         this.DelayNumerator = delayNumerator;
         this.DelayDenominator = delayDenominator;
-        this.DisposeOperation = disposeOperation;
-        this.BlendOperation = blendOperation;
+        this.DisposalMode = disposalMode;
+        this.BlendMode = blendMode;
     }
 
     /// <summary>
@@ -84,12 +84,12 @@ internal readonly struct FrameControl
     /// <summary>
     /// Gets the type of frame area disposal to be done after rendering this frame
     /// </summary>
-    public PngDisposalMethod DisposeOperation { get; }
+    public FrameDisposalMode DisposalMode { get; }
 
     /// <summary>
     /// Gets the type of frame area rendering for this frame
     /// </summary>
-    public PngBlendMethod BlendOperation { get; }
+    public FrameBlendMode BlendMode { get; }
 
     public Rectangle Bounds => new((int)this.XOffset, (int)this.YOffset, (int)this.Width, (int)this.Height);
 
@@ -137,8 +137,8 @@ internal readonly struct FrameControl
         BinaryPrimitives.WriteUInt16BigEndian(buffer[20..22], this.DelayNumerator);
         BinaryPrimitives.WriteUInt16BigEndian(buffer[22..24], this.DelayDenominator);
 
-        buffer[24] = (byte)this.DisposeOperation;
-        buffer[25] = (byte)this.BlendOperation;
+        buffer[24] = (byte)(this.DisposalMode - 1);
+        buffer[25] = (byte)this.BlendMode;
     }
 
     /// <summary>
@@ -155,6 +155,6 @@ internal readonly struct FrameControl
             yOffset: BinaryPrimitives.ReadUInt32BigEndian(data[16..20]),
             delayNumerator: BinaryPrimitives.ReadUInt16BigEndian(data[20..22]),
             delayDenominator: BinaryPrimitives.ReadUInt16BigEndian(data[22..24]),
-            disposeOperation: (PngDisposalMethod)data[24],
-            blendOperation: (PngBlendMethod)data[25]);
+            disposalMode: (FrameDisposalMode)(data[24] + 1),
+            blendMode: (FrameBlendMode)data[25]);
 }

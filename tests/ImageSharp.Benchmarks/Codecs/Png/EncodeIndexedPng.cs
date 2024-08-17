@@ -14,7 +14,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs;
 /// Benchmarks saving png files using different quantizers.
 /// System.Drawing cannot save indexed png files so we cannot compare.
 /// </summary>
-[Config(typeof(Config.ShortMultiFramework))]
+[Config(typeof(Config.Short))]
 public class EncodeIndexedPng
 {
     // System.Drawing needs this.

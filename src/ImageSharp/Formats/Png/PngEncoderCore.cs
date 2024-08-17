@@ -3,15 +3,14 @@
 
 using System.Buffers;
 using System.Buffers.Binary;
+using System.IO.Hashing;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Compression.Zlib;
-using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.Formats.Png.Chunks;
 using SixLabors.ImageSharp.Formats.Png.Filters;
-using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
@@ -125,6 +124,11 @@ internal sealed class PngEncoderCore : IDisposable
     private int derivedTransparencyIndex = -1;
 
     /// <summary>
+    /// A reusable Crc32 hashing instance.
+    /// </summary>
+    private readonly Crc32 crc32 = new();
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="PngEncoderCore" /> class.
     /// </summary>
     /// <param name="configuration">The configuration.</param>
@@ -154,7 +158,7 @@ internal sealed class PngEncoderCore : IDisposable
         this.height = image.Height;
 
         ImageMetadata metadata = image.Metadata;
-        PngMetadata pngMetadata = GetPngMetadata(image);
+        PngMetadata pngMetadata = metadata.ClonePngMetadata();
         this.SanitizeAndSetEncoderOptions<TPixel>(this.encoder, pngMetadata, out this.use16Bit, out this.bytesPerPixel);
 
         stream.Write(PngConstants.HeaderBytes);
@@ -205,8 +209,8 @@ internal sealed class PngEncoderCore : IDisposable
         {
             // Write the first animated frame.
             currentFrame = image.Frames[currentFrameIndex];
-            PngFrameMetadata frameMetadata = GetPngFrameMetadata(currentFrame);
-            PngDisposalMethod previousDisposal = frameMetadata.DisposalMethod;
+            PngFrameMetadata frameMetadata = currentFrame.Metadata.GetPngMetadata();
+            FrameDisposalMode previousDisposal = frameMetadata.DisposalMode;
             FrameControl frameControl = this.WriteFrameControlChunk(stream, frameMetadata, currentFrame.Bounds(), 0);
             uint sequenceNumber = 1;
             if (pngMetadata.AnimateRootFrame)
@@ -231,12 +235,12 @@ internal sealed class PngEncoderCore : IDisposable
 
             for (; currentFrameIndex < image.Frames.Count; currentFrameIndex++)
             {
-                ImageFrame<TPixel>? prev = previousDisposal == PngDisposalMethod.RestoreToBackground ? null : previousFrame;
+                ImageFrame<TPixel>? prev = previousDisposal == FrameDisposalMode.RestoreToBackground ? null : previousFrame;
                 currentFrame = image.Frames[currentFrameIndex];
                 ImageFrame<TPixel>? nextFrame = currentFrameIndex < image.Frames.Count - 1 ? image.Frames[currentFrameIndex + 1] : null;
 
-                frameMetadata = GetPngFrameMetadata(currentFrame);
-                bool blend = frameMetadata.BlendMethod == PngBlendMethod.Over;
+                frameMetadata = currentFrame.Metadata.GetPngMetadata();
+                bool blend = frameMetadata.BlendMode == FrameBlendMode.Over;
 
                 (bool difference, Rectangle bounds) =
                     AnimationUtilities.DeDuplicatePixels(
@@ -262,7 +266,7 @@ internal sealed class PngEncoderCore : IDisposable
                 sequenceNumber += this.WriteDataChunks(frameControl, encodingFrame.PixelBuffer.GetRegion(bounds), quantized, stream, true) + 1;
 
                 previousFrame = currentFrame;
-                previousDisposal = frameMetadata.DisposalMethod;
+                previousDisposal = frameMetadata.DisposalMode;
             }
         }
 
@@ -282,54 +286,6 @@ internal sealed class PngEncoderCore : IDisposable
         this.currentScanline?.Dispose();
     }
 
-    private static PngMetadata GetPngMetadata<TPixel>(Image<TPixel> image)
-        where TPixel : unmanaged, IPixel<TPixel>
-    {
-        if (image.Metadata.TryGetPngMetadata(out PngMetadata? png))
-        {
-            return (PngMetadata)png.DeepClone();
-        }
-
-        if (image.Metadata.TryGetGifMetadata(out GifMetadata? gif))
-        {
-            AnimatedImageMetadata ani = gif.ToAnimatedImageMetadata();
-            return PngMetadata.FromAnimatedMetadata(ani);
-        }
-
-        if (image.Metadata.TryGetWebpMetadata(out WebpMetadata? webp))
-        {
-            AnimatedImageMetadata ani = webp.ToAnimatedImageMetadata();
-            return PngMetadata.FromAnimatedMetadata(ani);
-        }
-
-        // Return explicit new instance so we do not mutate the original metadata.
-        return new();
-    }
-
-    private static PngFrameMetadata GetPngFrameMetadata<TPixel>(ImageFrame<TPixel> frame)
-        where TPixel : unmanaged, IPixel<TPixel>
-    {
-        if (frame.Metadata.TryGetPngMetadata(out PngFrameMetadata? png))
-        {
-            return (PngFrameMetadata)png.DeepClone();
-        }
-
-        if (frame.Metadata.TryGetGifMetadata(out GifFrameMetadata? gif))
-        {
-            AnimatedImageFrameMetadata ani = gif.ToAnimatedImageFrameMetadata();
-            return PngFrameMetadata.FromAnimatedMetadata(ani);
-        }
-
-        if (frame.Metadata.TryGetWebpFrameMetadata(out WebpFrameMetadata? webp))
-        {
-            AnimatedImageFrameMetadata ani = webp.ToAnimatedImageFrameMetadata();
-            return PngFrameMetadata.FromAnimatedMetadata(ani);
-        }
-
-        // Return explicit new instance so we do not mutate the original metadata.
-        return new();
-    }
-
     /// <summary>
     /// Convert transparent pixels, to transparent black pixels, which can yield to better compression in some cases.
     /// </summary>
@@ -340,18 +296,17 @@ internal sealed class PngEncoderCore : IDisposable
         => clone.ProcessPixelRows(accessor =>
         {
             // TODO: We should be able to speed this up with SIMD and masking.
-            Rgba32 rgba32 = default;
-            Rgba32 transparent = Color.Transparent;
+            Rgba32 transparent = Color.Transparent.ToPixel<Rgba32>();
             for (int y = 0; y < accessor.Height; y++)
             {
                 Span<TPixel> span = accessor.GetRowSpan(y);
                 for (int x = 0; x < accessor.Width; x++)
                 {
-                    span[x].ToRgba32(ref rgba32);
-
-                    if (rgba32.A is 0)
+                    ref TPixel pixel = ref span[x];
+                    Rgba32 rgba = pixel.ToRgba32();
+                    if (rgba.A is 0)
                     {
-                        span[x].FromRgba32(transparent);
+                        pixel = TPixel.FromRgba32(transparent);
                     }
                 }
             }
@@ -821,7 +776,6 @@ internal sealed class PngEncoderCore : IDisposable
             return;
         }
 
-        meta.SyncProfiles();
         this.WriteChunk(stream, PngChunkType.Exif, meta.ExifProfile.ToByteArray());
     }
 
@@ -876,6 +830,7 @@ internal sealed class PngEncoderCore : IDisposable
     /// </summary>
     /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
     /// <param name="metaData">The image meta data.</param>
+    /// <exception cref="NotSupportedException">CICP matrix coefficients other than Identity are not supported in PNG.</exception>
     private void WriteCicpChunk(Stream stream, ImageMetadata metaData)
     {
         if (metaData.CicpProfile is null)
@@ -1078,7 +1033,7 @@ internal sealed class PngEncoderCore : IDisposable
             else
             {
                 alpha.Clear();
-                Rgb24 rgb = pngMetadata.TransparentColor.Value.ToRgb24();
+                Rgb24 rgb = pngMetadata.TransparentColor.Value.ToPixel<Rgb24>();
                 alpha[1] = rgb.R;
                 alpha[3] = rgb.G;
                 alpha[5] = rgb.B;
@@ -1120,8 +1075,8 @@ internal sealed class PngEncoderCore : IDisposable
             yOffset: (uint)bounds.Top,
             delayNumerator: (ushort)frameMetadata.FrameDelay.Numerator,
             delayDenominator: (ushort)frameMetadata.FrameDelay.Denominator,
-            disposeOperation: frameMetadata.DisposalMethod,
-            blendOperation: frameMetadata.BlendMethod);
+            disposalMode: frameMetadata.DisposalMode,
+            blendMode: frameMetadata.BlendMode);
 
         fcTL.WriteTo(this.chunkDataBuffer.Span);
 
@@ -1381,16 +1336,17 @@ internal sealed class PngEncoderCore : IDisposable
 
         stream.Write(buffer);
 
-        uint crc = Crc32.Calculate(buffer[4..]); // Write the type buffer
+        this.crc32.Reset();
+        this.crc32.Append(buffer[4..]); // Write the type buffer
 
         if (data.Length > 0 && length > 0)
         {
             stream.Write(data, offset, length);
 
-            crc = Crc32.Calculate(crc, data.Slice(offset, length));
+            this.crc32.Append(data.Slice(offset, length));
         }
 
-        BinaryPrimitives.WriteUInt32BigEndian(buffer, crc);
+        BinaryPrimitives.WriteUInt32BigEndian(buffer, this.crc32.GetCurrentHashAsUInt32());
 
         stream.Write(buffer, 0, 4); // write the crc
     }
@@ -1413,16 +1369,17 @@ internal sealed class PngEncoderCore : IDisposable
 
         stream.Write(buffer);
 
-        uint crc = Crc32.Calculate(buffer[4..]); // Write the type buffer
+        this.crc32.Reset();
+        this.crc32.Append(buffer[4..]); // Write the type buffer
 
         if (data.Length > 0 && length > 0)
         {
             stream.Write(data, offset, length);
 
-            crc = Crc32.Calculate(crc, data.Slice(offset, length));
+            this.crc32.Append(data.Slice(offset, length));
         }
 
-        BinaryPrimitives.WriteUInt32BigEndian(buffer, crc);
+        BinaryPrimitives.WriteUInt32BigEndian(buffer, this.crc32.GetCurrentHashAsUInt32());
 
         stream.Write(buffer, 0, 4); // write the crc
     }
@@ -1476,7 +1433,20 @@ internal sealed class PngEncoderCore : IDisposable
 
         // Use options, then check metadata, if nothing set there then we suggest
         // a sensible default based upon the pixel format.
-        this.colorType = encoder.ColorType ?? pngMetadata.ColorType ?? SuggestColorType<TPixel>();
+        PngColorType color = encoder.ColorType ?? pngMetadata.ColorType;
+        byte bits = (byte)(encoder.BitDepth ?? pngMetadata.BitDepth);
+
+        // Ensure the bit depth and color type are a supported combination.
+        // Bit8 is the only bit depth supported by all color types.
+        byte[] validBitDepths = PngConstants.ColorTypes[color];
+        if (Array.IndexOf(validBitDepths, bits) == -1)
+        {
+            bits = (byte)PngBitDepth.Bit8;
+        }
+
+        this.colorType = color;
+        this.bitDepth = bits;
+
         if (encoder.FilterMethod.HasValue)
         {
             this.filterMethod = encoder.FilterMethod.Value;
@@ -1487,20 +1457,10 @@ internal sealed class PngEncoderCore : IDisposable
             this.filterMethod = this.colorType is PngColorType.Palette ? PngFilterMethod.None : PngFilterMethod.Paeth;
         }
 
-        // Ensure bit depth and color type are a supported combination.
-        // Bit8 is the only bit depth supported by all color types.
-        byte bits = (byte)(encoder.BitDepth ?? pngMetadata.BitDepth ?? SuggestBitDepth<TPixel>());
-        byte[] validBitDepths = PngConstants.ColorTypes[this.colorType];
-        if (Array.IndexOf(validBitDepths, bits) == -1)
-        {
-            bits = (byte)PngBitDepth.Bit8;
-        }
-
-        this.bitDepth = bits;
         use16Bit = bits == (byte)PngBitDepth.Bit16;
         bytesPerPixel = CalculateBytesPerPixel(this.colorType, use16Bit);
 
-        this.interlaceMode = (encoder.InterlaceMethod ?? pngMetadata.InterlaceMethod)!.Value;
+        this.interlaceMode = encoder.InterlaceMethod ?? pngMetadata.InterlaceMethod;
         this.chunkFilter = encoder.SkipMetadata ? PngChunkFilter.ExcludeAll : encoder.ChunkFilter ?? PngChunkFilter.None;
     }
 
@@ -1638,56 +1598,6 @@ internal sealed class PngEncoderCore : IDisposable
 
             // PngColorType.RgbWithAlpha
             _ => use16Bit ? 8 : 4,
-        };
-
-    /// <summary>
-    /// Returns a suggested <see cref="PngColorType"/> for the given <typeparamref name="TPixel"/>
-    /// This is not exhaustive but covers many common pixel formats.
-    /// </summary>
-    /// <typeparam name="TPixel">The type of pixel format.</typeparam>
-    private static PngColorType SuggestColorType<TPixel>()
-        where TPixel : unmanaged, IPixel<TPixel>
-        => default(TPixel) switch
-        {
-            A8 => PngColorType.GrayscaleWithAlpha,
-            Argb32 => PngColorType.RgbWithAlpha,
-            Bgr24 => PngColorType.Rgb,
-            Bgra32 => PngColorType.RgbWithAlpha,
-            L8 => PngColorType.Grayscale,
-            L16 => PngColorType.Grayscale,
-            La16 => PngColorType.GrayscaleWithAlpha,
-            La32 => PngColorType.GrayscaleWithAlpha,
-            Rgb24 => PngColorType.Rgb,
-            Rgba32 => PngColorType.RgbWithAlpha,
-            Rgb48 => PngColorType.Rgb,
-            Rgba64 => PngColorType.RgbWithAlpha,
-            RgbaVector => PngColorType.RgbWithAlpha,
-            _ => PngColorType.RgbWithAlpha
-        };
-
-    /// <summary>
-    /// Returns a suggested <see cref="PngBitDepth"/> for the given <typeparamref name="TPixel"/>
-    /// This is not exhaustive but covers many common pixel formats.
-    /// </summary>
-    /// <typeparam name="TPixel">The type of pixel format.</typeparam>
-    private static PngBitDepth SuggestBitDepth<TPixel>()
-        where TPixel : unmanaged, IPixel<TPixel>
-        => default(TPixel) switch
-        {
-            A8 => PngBitDepth.Bit8,
-            Argb32 => PngBitDepth.Bit8,
-            Bgr24 => PngBitDepth.Bit8,
-            Bgra32 => PngBitDepth.Bit8,
-            L8 => PngBitDepth.Bit8,
-            L16 => PngBitDepth.Bit16,
-            La16 => PngBitDepth.Bit8,
-            La32 => PngBitDepth.Bit16,
-            Rgb24 => PngBitDepth.Bit8,
-            Rgba32 => PngBitDepth.Bit8,
-            Rgb48 => PngBitDepth.Bit16,
-            Rgba64 => PngBitDepth.Bit16,
-            RgbaVector => PngBitDepth.Bit16,
-            _ => PngBitDepth.Bit8
         };
 
     private unsafe struct ScratchBuffer

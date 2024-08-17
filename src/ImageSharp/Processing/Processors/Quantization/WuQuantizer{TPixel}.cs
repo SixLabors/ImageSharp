@@ -142,8 +142,7 @@ internal struct WuQuantizer<TPixel> : IQuantizer<TPixel>
 
             if (moment.Weight > 0)
             {
-                ref TPixel color = ref paletteSpan[k];
-                color.FromScaledVector4(moment.Normalize());
+                paletteSpan[k] = TPixel.FromScaledVector4(moment.Normalize());
             }
         }
 
@@ -168,7 +167,7 @@ internal struct WuQuantizer<TPixel> : IQuantizer<TPixel>
     /// <inheritdoc/>
     [MethodImpl(InliningOptions.ShortMethod)]
     public readonly IndexedImageFrame<TPixel> QuantizeFrame(ImageFrame<TPixel> source, Rectangle bounds)
-        => QuantizerUtilities.QuantizeFrame(ref Unsafe.AsRef(this), source, bounds);
+        => QuantizerUtilities.QuantizeFrame(ref Unsafe.AsRef(in this), source, bounds);
 
     /// <inheritdoc/>
     public readonly byte GetQuantizedColor(TPixel color, out TPixel match)
@@ -178,8 +177,7 @@ internal struct WuQuantizer<TPixel> : IQuantizer<TPixel>
             return (byte)this.pixelMap!.GetClosestColor(color, out match);
         }
 
-        Rgba32 rgba = default;
-        color.ToRgba32(ref rgba);
+        Rgba32 rgba = color.ToRgba32();
 
         const int shift = 8 - IndexBits;
         int r = rgba.R >> shift;
@@ -549,7 +547,7 @@ internal struct WuQuantizer<TPixel> : IQuantizer<TPixel>
     /// <param name="set1">The first set.</param>
     /// <param name="set2">The second set.</param>
     /// <returns>Returns a value indicating whether the box has been split.</returns>
-    private bool Cut(ref Box set1, ref Box set2)
+    private readonly bool Cut(ref Box set1, ref Box set2)
     {
         ReadOnlySpan<Moment> momentSpan = this.momentsOwner.GetSpan();
         Moment whole = Volume(ref set1, momentSpan);

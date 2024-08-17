@@ -58,7 +58,7 @@ public static partial class ParallelRowIterator
         {
             for (int y = top; y < bottom; y++)
             {
-                Unsafe.AsRef(operation).Invoke(y);
+                Unsafe.AsRef(in operation).Invoke(y);
             }
 
             return;
@@ -118,7 +118,7 @@ public static partial class ParallelRowIterator
         int maxSteps = DivideCeil(width * (long)height, parallelSettings.MinimumPixelsProcessedPerTask);
         int numOfSteps = Math.Min(parallelSettings.MaxDegreeOfParallelism, maxSteps);
         MemoryAllocator allocator = parallelSettings.MemoryAllocator;
-        int bufferLength = Unsafe.AsRef(operation).GetRequiredBufferLength(rectangle);
+        int bufferLength = Unsafe.AsRef(in operation).GetRequiredBufferLength(rectangle);
 
         // Avoid TPL overhead in this trivial case:
         if (numOfSteps == 1)
@@ -128,7 +128,7 @@ public static partial class ParallelRowIterator
 
             for (int y = top; y < bottom; y++)
             {
-                Unsafe.AsRef(operation).Invoke(y, span);
+                Unsafe.AsRef(in operation).Invoke(y, span);
             }
 
             return;
@@ -245,7 +245,7 @@ public static partial class ParallelRowIterator
         int maxSteps = DivideCeil(width * (long)height, parallelSettings.MinimumPixelsProcessedPerTask);
         int numOfSteps = Math.Min(parallelSettings.MaxDegreeOfParallelism, maxSteps);
         MemoryAllocator allocator = parallelSettings.MemoryAllocator;
-        int bufferLength = Unsafe.AsRef(operation).GetRequiredBufferLength(rectangle);
+        int bufferLength = Unsafe.AsRef(in operation).GetRequiredBufferLength(rectangle);
 
         // Avoid TPL overhead in this trivial case:
         if (numOfSteps == 1)
@@ -253,7 +253,7 @@ public static partial class ParallelRowIterator
             var rows = new RowInterval(top, bottom);
             using IMemoryOwner<TBuffer> buffer = allocator.Allocate<TBuffer>(bufferLength);
 
-            Unsafe.AsRef(operation).Invoke(in rows, buffer.Memory.Span);
+            Unsafe.AsRef(in operation).Invoke(in rows, buffer.Memory.Span);
 
             return;
         }

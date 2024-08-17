@@ -20,19 +20,19 @@ public class EncodeJpegFeatures
     // No metadata
     private const string TestImage = TestImages.Jpeg.Baseline.Calliphora;
 
-    public static IEnumerable<JpegEncodingColor> ColorSpaceValues => new[]
+    public static IEnumerable<JpegColorType> ColorSpaceValues => new[]
     {
-        JpegEncodingColor.Luminance,
-        JpegEncodingColor.Rgb,
-        JpegEncodingColor.YCbCrRatio420,
-        JpegEncodingColor.YCbCrRatio444,
+        JpegColorType.Luminance,
+        JpegColorType.Rgb,
+        JpegColorType.YCbCrRatio420,
+        JpegColorType.YCbCrRatio444,
     };
 
     [Params(75, 90, 100)]
     public int Quality;
 
     [ParamsSource(nameof(ColorSpaceValues), Priority = -100)]
-    public JpegEncodingColor TargetColorSpace;
+    public JpegColorType TargetColorSpace;
 
     private Image<Rgb24> bmpCore;
     private JpegEncoder encoder;

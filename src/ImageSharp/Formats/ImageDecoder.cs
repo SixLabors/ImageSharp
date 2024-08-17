@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.IO;
+using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 
@@ -293,6 +294,11 @@ public abstract class ImageDecoder : IImageDecoder
         if (configuration.ImageFormatsManager.TryFindFormatByDecoder(this, out IImageFormat? format))
         {
             image.Metadata.DecodedImageFormat = format;
+
+            foreach (ImageFrame frame in image.Frames)
+            {
+                frame.Metadata.DecodedImageFormat = format;
+            }
         }
     }
 
@@ -301,6 +307,12 @@ public abstract class ImageDecoder : IImageDecoder
         if (configuration.ImageFormatsManager.TryFindFormatByDecoder(this, out IImageFormat? format))
         {
             info.Metadata.DecodedImageFormat = format;
+            info.PixelType = info.Metadata.GetDecodedPixelTypeInfo();
+
+            foreach (ImageFrameMetadata frame in info.FrameMetadataCollection)
+            {
+                frame.DecodedImageFormat = format;
+            }
         }
     }
 }

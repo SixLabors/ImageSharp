@@ -7,6 +7,7 @@ using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.TestUtilities;
+using SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs;
 
 namespace SixLabors.ImageSharp.Tests;
 
@@ -89,7 +90,7 @@ public class TestFormat : IImageFormatConfigurationModule, IImageFormat
         {
             if (!this.sampleImages.ContainsKey(typeof(TPixel)))
             {
-                this.sampleImages.Add(typeof(TPixel), new Image<TPixel>(1, 1));
+                this.sampleImages.Add(typeof(TPixel), ReferenceCodecUtilities.EnsureDecodedMetadata(new Image<TPixel>(1, 1), this));
             }
 
             return (Image<TPixel>)this.sampleImages[typeof(TPixel)];
@@ -202,11 +203,12 @@ public class TestFormat : IImageFormatConfigurationModule, IImageFormat
 
         protected override ImageInfo Identify(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
         {
-            Image<TestPixelForAgnosticDecode> image =
-                this.Decode<TestPixelForAgnosticDecode>(this.CreateDefaultSpecializedOptions(options), stream, cancellationToken);
-            ImageFrameCollection<TestPixelForAgnosticDecode> m = image.Frames;
-
-            return new(image.PixelType, image.Size, image.Metadata, new List<ImageFrameMetadata>(image.Frames.Select(x => x.Metadata)));
+            using Image<TestPixelForAgnosticDecode> image = this.Decode<TestPixelForAgnosticDecode>(this.CreateDefaultSpecializedOptions(options), stream, cancellationToken);
+            ImageMetadata metadata = image.Metadata;
+            return new(image.Size, metadata, new List<ImageFrameMetadata>(image.Frames.Select(x => x.Metadata)))
+            {
+                PixelType = metadata.GetDecodedPixelTypeInfo()
+            };
         }
 
         protected override TestDecoderOptions CreateDefaultSpecializedOptions(DecoderOptions options)
@@ -263,75 +265,49 @@ public class TestFormat : IImageFormatConfigurationModule, IImageFormat
 
     public struct TestPixelForAgnosticDecode : IPixel<TestPixelForAgnosticDecode>
     {
-        public PixelOperations<TestPixelForAgnosticDecode> CreatePixelOperations() => new();
+        public readonly Rgba32 ToRgba32() => default;
 
-        public void FromScaledVector4(Vector4 vector)
-        {
-        }
+        public readonly Vector4 ToScaledVector4() => default;
 
-        public Vector4 ToScaledVector4() => default;
+        public readonly Vector4 ToVector4() => default;
 
-        public void FromVector4(Vector4 vector)
-        {
-        }
+        public static PixelTypeInfo GetPixelTypeInfo()
+            => PixelTypeInfo.Create<TestPixelForAgnosticDecode>(
+                PixelComponentInfo.Create<TestPixelForAgnosticDecode>(2, 8, 8),
+                PixelColorType.Red | PixelColorType.Green,
+                PixelAlphaRepresentation.None);
 
-        public Vector4 ToVector4() => default;
+        public static PixelOperations<TestPixelForAgnosticDecode> CreatePixelOperations() => new();
 
-        public void FromArgb32(Argb32 source)
-        {
-        }
+        public static TestPixelForAgnosticDecode FromScaledVector4(Vector4 vector) => default;
 
-        public void FromBgra5551(Bgra5551 source)
-        {
-        }
+        public static TestPixelForAgnosticDecode FromVector4(Vector4 vector) => default;
 
-        public void FromBgr24(Bgr24 source)
-        {
-        }
+        public static TestPixelForAgnosticDecode FromAbgr32(Abgr32 source) => default;
 
-        public void FromBgra32(Bgra32 source)
-        {
-        }
+        public static TestPixelForAgnosticDecode FromArgb32(Argb32 source) => default;
 
-        public void FromAbgr32(Abgr32 source)
-        {
-        }
+        public static TestPixelForAgnosticDecode FromBgra5551(Bgra5551 source) => default;
 
-        public void FromL8(L8 source)
-        {
-        }
+        public static TestPixelForAgnosticDecode FromBgr24(Bgr24 source) => default;
 
-        public void FromL16(L16 source)
-        {
-        }
+        public static TestPixelForAgnosticDecode FromBgra32(Bgra32 source) => default;
 
-        public void FromLa16(La16 source)
-        {
-        }
+        public static TestPixelForAgnosticDecode FromL8(L8 source) => default;
 
-        public void FromLa32(La32 source)
-        {
-        }
+        public static TestPixelForAgnosticDecode FromL16(L16 source) => default;
 
-        public void FromRgb24(Rgb24 source)
-        {
-        }
+        public static TestPixelForAgnosticDecode FromLa16(La16 source) => default;
 
-        public void FromRgba32(Rgba32 source)
-        {
-        }
+        public static TestPixelForAgnosticDecode FromLa32(La32 source) => default;
 
-        public void ToRgba32(ref Rgba32 dest)
-        {
-        }
+        public static TestPixelForAgnosticDecode FromRgb24(Rgb24 source) => default;
 
-        public void FromRgb48(Rgb48 source)
-        {
-        }
+        public static TestPixelForAgnosticDecode FromRgba32(Rgba32 source) => default;
 
-        public void FromRgba64(Rgba64 source)
-        {
-        }
+        public static TestPixelForAgnosticDecode FromRgb48(Rgb48 source) => default;
+
+        public static TestPixelForAgnosticDecode FromRgba64(Rgba64 source) => default;
 
         public bool Equals(TestPixelForAgnosticDecode other) => false;
     }

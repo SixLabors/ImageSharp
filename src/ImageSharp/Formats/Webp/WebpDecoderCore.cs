@@ -137,7 +137,6 @@ internal sealed class WebpDecoderCore : ImageDecoderCore, IDisposable
         using (this.webImageInfo = this.ReadVp8Info(stream, metadata, true))
         {
             return new ImageInfo(
-                new PixelTypeInfo((int)this.webImageInfo.BitsPerPixel),
                 new Size((int)this.webImageInfo.Width, (int)this.webImageInfo.Height),
                 metadata);
         }
@@ -179,39 +178,43 @@ internal sealed class WebpDecoderCore : ImageDecoderCore, IDisposable
         Span<byte> buffer = stackalloc byte[4];
         WebpChunkType chunkType = WebpChunkParsingUtils.ReadChunkType(stream, buffer);
 
-        WebpImageInfo webpImageInfo;
+        WebpImageInfo? info = null;
         WebpFeatures features = new();
         switch (chunkType)
         {
             case WebpChunkType.Vp8:
+                info = WebpChunkParsingUtils.ReadVp8Header(this.memoryAllocator, stream, buffer, features);
                 webpMetadata.FileFormat = WebpFileFormatType.Lossy;
-                webpImageInfo = WebpChunkParsingUtils.ReadVp8Header(this.memoryAllocator, stream, buffer, features);
-                break;
+                webpMetadata.ColorType = WebpColorType.Yuv;
+                return info;
             case WebpChunkType.Vp8L:
+                info = WebpChunkParsingUtils.ReadVp8LHeader(this.memoryAllocator, stream, buffer, features);
                 webpMetadata.FileFormat = WebpFileFormatType.Lossless;
-                webpImageInfo = WebpChunkParsingUtils.ReadVp8LHeader(this.memoryAllocator, stream, buffer, features);
-                break;
+                webpMetadata.ColorType = info.Features?.Alpha == true ? WebpColorType.Rgba : WebpColorType.Rgb;
+                return info;
             case WebpChunkType.Vp8X:
-                webpImageInfo = WebpChunkParsingUtils.ReadVp8XHeader(stream, buffer, features);
+                info = WebpChunkParsingUtils.ReadVp8XHeader(stream, buffer, features);
                 while (stream.Position < stream.Length)
                 {
                     chunkType = WebpChunkParsingUtils.ReadChunkType(stream, buffer);
                     if (chunkType == WebpChunkType.Vp8)
                     {
+                        info = WebpChunkParsingUtils.ReadVp8Header(this.memoryAllocator, stream, buffer, features);
                         webpMetadata.FileFormat = WebpFileFormatType.Lossy;
-                        webpImageInfo = WebpChunkParsingUtils.ReadVp8Header(this.memoryAllocator, stream, buffer, features);
+                        webpMetadata.ColorType = info.Features?.Alpha == true ? WebpColorType.Rgba : WebpColorType.Rgb;
                     }
                     else if (chunkType == WebpChunkType.Vp8L)
                     {
+                        info = WebpChunkParsingUtils.ReadVp8LHeader(this.memoryAllocator, stream, buffer, features);
                         webpMetadata.FileFormat = WebpFileFormatType.Lossless;
-                        webpImageInfo = WebpChunkParsingUtils.ReadVp8LHeader(this.memoryAllocator, stream, buffer, features);
+                        webpMetadata.ColorType = info.Features?.Alpha == true ? WebpColorType.Rgba : WebpColorType.Rgb;
                     }
                     else if (WebpChunkParsingUtils.IsOptionalVp8XChunk(chunkType))
                     {
                         bool isAnimationChunk = this.ParseOptionalExtendedChunks(stream, metadata, chunkType, features, ignoreAlpha, buffer);
                         if (isAnimationChunk)
                         {
-                            break;
+                            return info;
                         }
                     }
                     else
@@ -222,17 +225,12 @@ internal sealed class WebpDecoderCore : ImageDecoderCore, IDisposable
                     }
                 }
 
-                break;
+                return info;
             default:
                 WebpThrowHelper.ThrowImageFormatException("Unrecognized VP8 header");
-
-                // This return will never be reached, because throw helper will throw an exception.
-                webpImageInfo = new();
-                break;
+                return
+                    new WebpImageInfo(); // this return will never be reached, because throw helper will throw an exception.
         }
-
-        this.Dimensions = new Size((int)webpImageInfo.Width, (int)webpImageInfo.Height);
-        return webpImageInfo;
     }
 
     /// <summary>
@@ -439,7 +437,7 @@ internal sealed class WebpDecoderCore : ImageDecoderCore, IDisposable
         byte green = (byte)stream.ReadByte();
         byte red = (byte)stream.ReadByte();
         byte alpha = (byte)stream.ReadByte();
-        features.AnimationBackgroundColor = new Color(new Rgba32(red, green, blue, alpha));
+        features.AnimationBackgroundColor = Color.FromPixel(new Rgba32(red, green, blue, alpha));
         int bytesRead = stream.Read(buffer, 0, 2);
         if (bytesRead != 2)
         {

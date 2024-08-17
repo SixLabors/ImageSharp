@@ -156,8 +156,8 @@ internal class TiffDecoderCore : ImageDecoderCore
     /// <inheritdoc/>
     protected override Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
     {
-        List<ImageFrame<TPixel>> frames = new();
-        List<ImageFrameMetadata> framesMetadata = new();
+        List<ImageFrame<TPixel>> frames = [];
+        List<ImageFrameMetadata> framesMetadata = [];
         try
         {
             this.inputStream = stream;
@@ -214,7 +214,7 @@ internal class TiffDecoderCore : ImageDecoderCore
         DirectoryReader reader = new(stream, this.configuration.MemoryAllocator);
         IList<ExifProfile> directories = reader.Read();
 
-        List<ImageFrameMetadata> framesMetadata = new();
+        List<ImageFrameMetadata> framesMetadata = [];
         foreach (ExifProfile dir in directories)
         {
             framesMetadata.Add(this.CreateFrameMetadata(dir));
@@ -227,7 +227,7 @@ internal class TiffDecoderCore : ImageDecoderCore
         int width = GetImageWidth(rootFrameExifProfile);
         int height = GetImageHeight(rootFrameExifProfile);
 
-        return new ImageInfo(new PixelTypeInfo((int)framesMetadata[0].GetTiffMetadata().BitsPerPixel), new(width, height), metadata, framesMetadata);
+        return new ImageInfo(new(width, height), metadata, framesMetadata);
     }
 
     /// <summary>

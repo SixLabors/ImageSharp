@@ -10,7 +10,7 @@ using SDSize = System.Drawing.Size;
 
 namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg;
 
-[Config(typeof(Config.ShortMultiFramework))]
+[Config(typeof(Config.Short))]
 public class DecodeJpegParseStreamOnly
 {
     [Params(TestImages.Jpeg.BenchmarkSuite.Lake_Small444YCbCr)]

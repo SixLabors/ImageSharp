@@ -1,15 +1,15 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using SixLabors.ImageSharp.ColorSpaces.Companding;
+using SixLabors.ImageSharp.ColorProfiles.Companding;
 
 namespace SixLabors.ImageSharp.PixelFormats;
 
 /// <summary>
 /// Flags responsible to select additional operations which could be efficiently applied in
-/// <see cref="PixelOperations{TPixel}.ToVector4(SixLabors.ImageSharp.Configuration,System.ReadOnlySpan{TPixel},System.Span{System.Numerics.Vector4},SixLabors.ImageSharp.PixelFormats.PixelConversionModifiers)"/>
+/// <see cref="PixelOperations{TPixel}.ToVector4(Configuration,ReadOnlySpan{TPixel},Span{System.Numerics.Vector4},PixelConversionModifiers)"/>
 /// or
-/// <see cref="PixelOperations{TPixel}.FromVector4Destructive(SixLabors.ImageSharp.Configuration,System.Span{System.Numerics.Vector4},System.Span{TPixel},SixLabors.ImageSharp.PixelFormats.PixelConversionModifiers)"/>
+/// <see cref="PixelOperations{TPixel}.FromVector4Destructive(Configuration,Span{System.Numerics.Vector4},Span{TPixel},PixelConversionModifiers)"/>
 /// knowing the pixel type.
 /// </summary>
 [Flags]
@@ -21,7 +21,7 @@ public enum PixelConversionModifiers
     None = 0,
 
     /// <summary>
-    /// Select <see cref="IPixel.ToScaledVector4"/> and <see cref="IPixel.FromScaledVector4"/> instead the standard (non scaled) variants.
+    /// Select <see cref="IPixel.ToScaledVector4"/> and <see cref="IPixel{T}.FromScaledVector4"/> instead the standard (non scaled) variants.
     /// </summary>
     Scale = 1 << 0,
 

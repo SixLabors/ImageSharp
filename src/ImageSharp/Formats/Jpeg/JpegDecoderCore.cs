@@ -219,7 +219,7 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
         this.InitDerivedMetadataProperties();
 
         Size pixelSize = this.Frame.PixelSize;
-        return new ImageInfo(new PixelTypeInfo(this.Frame.BitsPerPixel), new(pixelSize.Width, pixelSize.Height), this.Metadata);
+        return new ImageInfo(new(pixelSize.Width, pixelSize.Height), this.Metadata);
     }
 
     /// <summary>
@@ -473,8 +473,10 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
                         break;
 
                     case JpegConstants.Markers.APP15:
-                    case JpegConstants.Markers.COM:
                         stream.Skip(markerContentByteSize);
+                        break;
+                    case JpegConstants.Markers.COM:
+                        this.ProcessComMarker(stream, markerContentByteSize);
                         break;
 
                     case JpegConstants.Markers.DAC:
@@ -506,6 +508,25 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
         // Set large fields to null.
         this.Frame = null;
         this.scanDecoder = null;
+    }
+
+    /// <summary>
+    /// Assigns COM marker bytes to comment property
+    /// </summary>
+    /// <param name="stream">The input stream.</param>
+    /// <param name="markerContentByteSize">The remaining bytes in the segment block.</param>
+    private void ProcessComMarker(BufferedReadStream stream, int markerContentByteSize)
+    {
+        char[] chars = new char[markerContentByteSize];
+        JpegMetadata metadata = this.Metadata.GetFormatMetadata(JpegFormat.Instance);
+
+        for (int i = 0; i < markerContentByteSize; i++)
+        {
+            int read = stream.ReadByte();
+            chars[i] = (char)read;
+        }
+
+        metadata.Comments.Add(new JpegComData(chars));
     }
 
     /// <summary>
@@ -575,58 +596,58 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
     /// Returns the jpeg color type based on the colorspace and subsampling used.
     /// </summary>
     /// <returns>Jpeg color type.</returns>
-    private JpegEncodingColor DeduceJpegColorType()
+    private JpegColorType DeduceJpegColorType()
     {
         switch (this.ColorSpace)
         {
             case JpegColorSpace.Grayscale:
-                return JpegEncodingColor.Luminance;
+                return JpegColorType.Luminance;
 
             case JpegColorSpace.RGB:
-                return JpegEncodingColor.Rgb;
+                return JpegColorType.Rgb;
 
             case JpegColorSpace.YCbCr:
                 if (this.Frame.Components[0].HorizontalSamplingFactor == 1 && this.Frame.Components[0].VerticalSamplingFactor == 1 &&
                     this.Frame.Components[1].HorizontalSamplingFactor == 1 && this.Frame.Components[1].VerticalSamplingFactor == 1 &&
                     this.Frame.Components[2].HorizontalSamplingFactor == 1 && this.Frame.Components[2].VerticalSamplingFactor == 1)
                 {
-                    return JpegEncodingColor.YCbCrRatio444;
+                    return JpegColorType.YCbCrRatio444;
                 }
                 else if (this.Frame.Components[0].HorizontalSamplingFactor == 2 && this.Frame.Components[0].VerticalSamplingFactor == 1 &&
                     this.Frame.Components[1].HorizontalSamplingFactor == 1 && this.Frame.Components[1].VerticalSamplingFactor == 1 &&
                     this.Frame.Components[2].HorizontalSamplingFactor == 1 && this.Frame.Components[2].VerticalSamplingFactor == 1)
                 {
-                    return JpegEncodingColor.YCbCrRatio422;
+                    return JpegColorType.YCbCrRatio422;
                 }
                 else if (this.Frame.Components[0].HorizontalSamplingFactor == 2 && this.Frame.Components[0].VerticalSamplingFactor == 2 &&
                     this.Frame.Components[1].HorizontalSamplingFactor == 1 && this.Frame.Components[1].VerticalSamplingFactor == 1 &&
                     this.Frame.Components[2].HorizontalSamplingFactor == 1 && this.Frame.Components[2].VerticalSamplingFactor == 1)
                 {
-                    return JpegEncodingColor.YCbCrRatio420;
+                    return JpegColorType.YCbCrRatio420;
                 }
                 else if (this.Frame.Components[0].HorizontalSamplingFactor == 4 && this.Frame.Components[0].VerticalSamplingFactor == 1 &&
                          this.Frame.Components[1].HorizontalSamplingFactor == 1 && this.Frame.Components[1].VerticalSamplingFactor == 1 &&
                          this.Frame.Components[2].HorizontalSamplingFactor == 1 && this.Frame.Components[2].VerticalSamplingFactor == 1)
                 {
-                    return JpegEncodingColor.YCbCrRatio411;
+                    return JpegColorType.YCbCrRatio411;
                 }
                 else if (this.Frame.Components[0].HorizontalSamplingFactor == 4 && this.Frame.Components[0].VerticalSamplingFactor == 2 &&
                          this.Frame.Components[1].HorizontalSamplingFactor == 1 && this.Frame.Components[1].VerticalSamplingFactor == 1 &&
                          this.Frame.Components[2].HorizontalSamplingFactor == 1 && this.Frame.Components[2].VerticalSamplingFactor == 1)
                 {
-                    return JpegEncodingColor.YCbCrRatio410;
+                    return JpegColorType.YCbCrRatio410;
                 }
                 else
                 {
-                    return JpegEncodingColor.YCbCrRatio420;
+                    return JpegColorType.YCbCrRatio420;
                 }
 
             case JpegColorSpace.Cmyk:
-                return JpegEncodingColor.Cmyk;
+                return JpegColorType.Cmyk;
             case JpegColorSpace.Ycck:
-                return JpegEncodingColor.Ycck;
+                return JpegColorType.Ycck;
             default:
-                return JpegEncodingColor.YCbCrRatio420;
+                return JpegColorType.YCbCrRatio420;
         }
     }
 

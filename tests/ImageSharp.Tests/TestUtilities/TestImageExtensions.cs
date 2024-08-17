@@ -692,27 +692,9 @@ public static class TestImageExtensions
         this TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        var allocator = new TestMemoryAllocator();
+        TestMemoryAllocator allocator = new();
         provider.Configuration.MemoryAllocator = allocator;
         return new AllocatorBufferCapacityConfigurator(allocator, Unsafe.SizeOf<TPixel>());
-    }
-
-    internal static Image<Rgba32> ToGrayscaleImage(this Buffer2D<float> buffer, float scale)
-    {
-        var image = new Image<Rgba32>(buffer.Width, buffer.Height);
-
-        Assert.True(image.Frames.RootFrame.DangerousTryGetSinglePixelMemory(out Memory<Rgba32> pixelMem));
-        Span<Rgba32> pixels = pixelMem.Span;
-        Span<float> bufferSpan = buffer.DangerousGetSingleSpan();
-
-        for (int i = 0; i < bufferSpan.Length; i++)
-        {
-            float value = bufferSpan[i] * scale;
-            var v = new Vector4(value, value, value, 1f);
-            pixels[i].FromVector4(v);
-        }
-
-        return image;
     }
 
     private class MakeOpaqueProcessor : IImageProcessor
@@ -735,7 +717,7 @@ public static class TestImageExtensions
             Rectangle sourceRectangle = this.SourceRectangle;
             Configuration configuration = this.Configuration;
 
-            var operation = new RowOperation(configuration, sourceRectangle, source.PixelBuffer);
+            RowOperation operation = new(configuration, sourceRectangle, source.PixelBuffer);
 
             ParallelRowIterator.IterateRowIntervals<RowOperation, Vector4>(
                 configuration,

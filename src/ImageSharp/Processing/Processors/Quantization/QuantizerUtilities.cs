@@ -161,7 +161,7 @@ public static class QuantizerUtilities
 
                 for (int x = 0; x < destinationRow.Length; x++)
                 {
-                    destinationRow[x] = Unsafe.AsRef(quantizer).GetQuantizedColor(sourceRow[x + offsetX], out TPixel _);
+                    destinationRow[x] = Unsafe.AsRef(in quantizer).GetQuantizedColor(sourceRow[x + offsetX], out TPixel _);
                 }
             }
 

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 using System.Numerics;
@@ -61,15 +61,21 @@ internal sealed partial class IccDataWriter
     public int WriteMatrix(in DenseMatrix<float> value, bool isSingle)
     {
         int count = 0;
-        for (int y = 0; y < value.Rows; y++)
+        if (isSingle)
         {
-            for (int x = 0; x < value.Columns; x++)
+            for (int y = 0; y < value.Rows; y++)
             {
-                if (isSingle)
+                for (int x = 0; x < value.Columns; x++)
                 {
                     count += this.WriteSingle(value[x, y]);
                 }
-                else
+            }
+        }
+        else
+        {
+            for (int y = 0; y < value.Rows; y++)
+            {
+                for (int x = 0; x < value.Columns; x++)
                 {
                     count += this.WriteFix16(value[x, y]);
                 }
@@ -88,15 +94,22 @@ internal sealed partial class IccDataWriter
     public int WriteMatrix(float[,] value, bool isSingle)
     {
         int count = 0;
-        for (int y = 0; y < value.GetLength(1); y++)
+
+        if (isSingle)
         {
-            for (int x = 0; x < value.GetLength(0); x++)
+            for (int y = 0; y < value.GetLength(1); y++)
             {
-                if (isSingle)
+                for (int x = 0; x < value.GetLength(0); x++)
                 {
                     count += this.WriteSingle(value[x, y]);
                 }
-                else
+            }
+        }
+        else
+        {
+            for (int y = 0; y < value.GetLength(1); y++)
+            {
+                for (int x = 0; x < value.GetLength(0); x++)
                 {
                     count += this.WriteFix16(value[x, y]);
                 }

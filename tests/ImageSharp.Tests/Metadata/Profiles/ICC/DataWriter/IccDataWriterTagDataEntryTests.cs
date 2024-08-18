@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
+using SixLabors.ImageSharp.Tests.TestDataIcc;
 
 namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.ICC.DataWriter;
 
@@ -153,7 +154,7 @@ public class IccDataWriterTagDataEntryTests
     }
 
     [Theory]
-    [MemberData(nameof(IccTestDataTagDataEntry.MultiLocalizedUnicodeTagDataEntryTestData_Write), MemberType = typeof(IccTestDataTagDataEntry))]
+    [MemberData(nameof(IccTestDataTagDataEntry.MultiLocalizedUnicodeTagDataEntryTestDataWrite), MemberType = typeof(IccTestDataTagDataEntry))]
     internal void WriteMultiLocalizedUnicodeTagDataEntry(byte[] expected, IccMultiLocalizedUnicodeTagDataEntry data)
     {
         using IccDataWriter writer = CreateWriter();
@@ -404,8 +405,5 @@ public class IccDataWriterTagDataEntryTests
         Assert.Equal(expected, output);
     }
 
-    private static IccDataWriter CreateWriter()
-    {
-        return new IccDataWriter();
-    }
+    private static IccDataWriter CreateWriter() => new();
 }

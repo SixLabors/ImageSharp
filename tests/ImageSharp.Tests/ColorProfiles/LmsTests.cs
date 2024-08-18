@@ -9,6 +9,7 @@ namespace SixLabors.ImageSharp.Tests.ColorProfiles;
 /// <summary>
 /// Tests the <see cref="Lms"/> struct.
 /// </summary>
+[Trait("Color", "Conversion")]
 public class LmsTests
 {
     [Fact]

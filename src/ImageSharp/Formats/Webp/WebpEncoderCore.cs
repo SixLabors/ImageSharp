@@ -160,7 +160,7 @@ internal sealed class WebpEncoderCore
 
                 // Encode additional frames
                 // This frame is reused to store de-duplicated pixel buffers.
-                using ImageFrame<TPixel> encodingFrame = new(image.Configuration, previousFrame.Size());
+                using ImageFrame<TPixel> encodingFrame = new(image.Configuration, previousFrame.Size);
 
                 for (int i = 1; i < image.Frames.Count; i++)
                 {
@@ -235,7 +235,7 @@ internal sealed class WebpEncoderCore
 
                 // Encode additional frames
                 // This frame is reused to store de-duplicated pixel buffers.
-                using ImageFrame<TPixel> encodingFrame = new(image.Configuration, previousFrame.Size());
+                using ImageFrame<TPixel> encodingFrame = new(image.Configuration, previousFrame.Size);
 
                 for (int i = 1; i < image.Frames.Count; i++)
                 {

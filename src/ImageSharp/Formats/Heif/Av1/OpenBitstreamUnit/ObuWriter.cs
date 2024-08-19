@@ -164,7 +164,7 @@ internal class ObuWriter
         else
         {
             writer.WriteBoolean(colorConfig.ColorRange);
-            if (sequenceHeader.SequenceProfile == ObuSequenceProfile.Professional && colorConfig.BitDepth == 12)
+            if (sequenceHeader.SequenceProfile == ObuSequenceProfile.Professional && colorConfig.BitDepth == Av1BitDepth.TwelveBit)
             {
                 writer.WriteBoolean(colorConfig.SubSamplingX);
                 if (colorConfig.SubSamplingX)
@@ -184,11 +184,11 @@ internal class ObuWriter
 
     private static void WriteBitDepth(ref Av1BitStreamWriter writer, ObuColorConfig colorConfig, ObuSequenceHeader sequenceHeader)
     {
-        bool hasHighBitDepth = colorConfig.BitDepth > 8;
+        bool hasHighBitDepth = colorConfig.BitDepth > Av1BitDepth.EightBit;
         writer.WriteBoolean(hasHighBitDepth);
         if (sequenceHeader.SequenceProfile == ObuSequenceProfile.Professional && hasHighBitDepth)
         {
-            writer.WriteBoolean(colorConfig.BitDepth == 12);
+            writer.WriteBoolean(colorConfig.BitDepth == Av1BitDepth.TwelveBit);
         }
     }
 

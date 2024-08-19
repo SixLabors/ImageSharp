@@ -135,6 +135,8 @@ internal static class Av1TransformSizeExtensions
         2, 3, 4, 5, 6, 3, 2, 4, 3, 5, 4, 6, 5, 4, 2, 5, 3, 6, 4,
     ];
 
+    public static int GetSize2d(this Av1TransformSize size) => Size2d[(int)size];
+
     public static int GetScale(this Av1TransformSize size)
     {
         int pels = Size2d[(int)size];

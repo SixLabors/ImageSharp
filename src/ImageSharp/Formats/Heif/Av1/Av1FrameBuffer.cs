@@ -23,7 +23,7 @@ internal class Av1FrameBuffer : IDisposable
         Av1ColorFormat colorFormat = sequenceHeader.ColorConfig.IsMonochrome ? Av1ColorFormat.Yuv400 : maxColorFormat;
         this.MaxWidth = sequenceHeader.MaxFrameWidth;
         this.MaxHeight = sequenceHeader.MaxFrameHeight;
-        this.BitDepth = (Av1BitDepth)sequenceHeader.ColorConfig.BitDepth;
+        this.BitDepth = sequenceHeader.ColorConfig.BitDepth;
         int bitsPerPixel = this.BitDepth > Av1BitDepth.EightBit || is16BitPipeline ? 2 : 1;
         this.ColorFormat = colorFormat;
         this.BufferEnableMask = sequenceHeader.ColorConfig.IsMonochrome ? PictureBufferLumaMask : PictureBufferFullMask;

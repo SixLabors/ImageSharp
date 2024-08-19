@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Quantification;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
@@ -78,7 +79,7 @@ internal class ObuReader
                 case ObuType.SequenceHeader:
                     this.SequenceHeader = new();
                     ReadSequenceHeader(ref reader, this.SequenceHeader);
-                    if (this.SequenceHeader.ColorConfig.BitDepth == 12)
+                    if (this.SequenceHeader.ColorConfig.BitDepth == Av1BitDepth.TwelveBit)
                     {
                         // TODO: Initialize 12 bit predictors
                     }
@@ -503,7 +504,7 @@ internal class ObuReader
                     break;
                 case ObuSequenceProfile.Professional:
                 default:
-                    if (colorConfig.BitDepth == 12)
+                    if (colorConfig.BitDepth == Av1BitDepth.TwelveBit)
                     {
                         colorConfig.SubSamplingX = reader.ReadBoolean();
                         if (colorConfig.SubSamplingX)
@@ -564,15 +565,15 @@ internal class ObuReader
         bool hasHighBitDepth = reader.ReadBoolean();
         if (sequenceHeader.SequenceProfile == ObuSequenceProfile.Professional && hasHighBitDepth)
         {
-            colorConfig.BitDepth = reader.ReadBoolean() ? 12 : 10;
+            colorConfig.BitDepth = reader.ReadBoolean() ? Av1BitDepth.TwelveBit : Av1BitDepth.TenBit;
         }
         else if (sequenceHeader.SequenceProfile <= ObuSequenceProfile.Professional)
         {
-            colorConfig.BitDepth = hasHighBitDepth ? 10 : 8;
+            colorConfig.BitDepth = hasHighBitDepth ? Av1BitDepth.TenBit : Av1BitDepth.EightBit;
         }
         else
         {
-            colorConfig.BitDepth = 8;
+            colorConfig.BitDepth = Av1BitDepth.EightBit;
         }
     }
 
@@ -1091,7 +1092,7 @@ internal class ObuReader
         frameHeader.SegmentationParameters.QMLevel[2] = new int[Av1Constants.MaxSegmentCount];
         for (int segmentId = 0; segmentId < Av1Constants.MaxSegmentCount; segmentId++)
         {
-            int qIndex = GetQIndex(frameHeader.SegmentationParameters, segmentId, frameHeader.QuantizationParameters.BaseQIndex);
+            int qIndex = QuantizationLookup.GetQIndex(frameHeader.SegmentationParameters, segmentId, frameHeader.QuantizationParameters.BaseQIndex);
             frameHeader.QuantizationParameters.QIndex[segmentId] = qIndex;
             frameHeader.LosslessArray[segmentId] = qIndex == 0 &&
                 frameHeader.QuantizationParameters.DeltaQDc[(int)Av1Plane.Y] == 0 &&
@@ -1150,20 +1151,6 @@ internal class ObuReader
 
     private static bool IsSegmentationFeatureActive(ObuSegmentationParameters segmentationParameters, int segmentId, ObuSegmentationLevelFeature feature)
         => segmentationParameters.Enabled && segmentationParameters.IsFeatureActive(segmentId, feature);
-
-    private static int GetQIndex(ObuSegmentationParameters segmentationParameters, int segmentId, int baseQIndex)
-    {
-        if (IsSegmentationFeatureActive(segmentationParameters, segmentId, ObuSegmentationLevelFeature.AlternativeQuantizer))
-        {
-            int data = segmentationParameters.FeatureData[segmentId, (int)ObuSegmentationLevelFeature.AlternativeQuantizer];
-            int qIndex = baseQIndex + data;
-            return Av1Math.Clamp(qIndex, 0, Av1Constants.MaxQ);
-        }
-        else
-        {
-            return baseQIndex;
-        }
-    }
 
     /// <summary>
     /// 5.9.1. General frame header OBU syntax.

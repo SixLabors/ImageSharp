@@ -115,11 +115,6 @@ internal static class Av1Constants
     public const int MaxAngleDelta = 3;
 
     /// <summary>
-    /// Number of segments allowed in segmentation map.
-    /// </summary>
-    public const int MaxSegments = 8;
-
-    /// <summary>
     /// Maximum number of color planes.
     /// </summary>
     public const int MaxPlanes = 3;
@@ -173,4 +168,9 @@ internal static class Av1Constants
     /// Log2 of number of values for ChromaFromLuma Alpha U and ChromaFromLuma Alpha V.
     /// </summary>
     public const int ChromaFromLumaAlphabetSizeLog2 = 4;
+
+    /// <summary>
+    /// Total number of Quantification Matrices sets stored.
+    /// </summary>
+    public const int QuantificationMatrixLevelCount = 4;
 }

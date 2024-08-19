@@ -44,7 +44,7 @@ internal class ObuColorConfig
 
     public ObuChromoSamplePosition ChromaSamplePosition { get; set; }
 
-    public int BitDepth { get; set; }
+    public Av1BitDepth BitDepth { get; set; }
 
     public Av1ColorFormat GetColorFormat()
     {

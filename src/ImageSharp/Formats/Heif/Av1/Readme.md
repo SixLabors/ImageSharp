@@ -63,6 +63,8 @@ The smallest unit in the frame. It determines the parameters for an area of 4 by
 
 [AOM's original development implementation](https://github.com/AOMediaCodec/libavif)
 
+[Paper describing the techniques used in AV1](https://arxiv.org/pdf/2008.06091)
+
 # Test images
 
 [Netflix image repository](http://download.opencontent.netflix.com/?prefix=AV1/)

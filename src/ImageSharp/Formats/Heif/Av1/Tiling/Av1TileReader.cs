@@ -1655,7 +1655,7 @@ internal class Av1TileReader : IAv1TileReader
         int bh4 = partitionInfo.ModeInfo.BlockSize.Get4x4HighCount();
         int xMin = Math.Min(this.FrameHeader.ModeInfoColumnCount - columnIndex, bw4);
         int yMin = Math.Min(this.FrameHeader.ModeInfoRowCount - rowIndex, bh4);
-        int segmentId = Av1Constants.MaxSegments - 1;
+        int segmentId = Av1Constants.MaxSegmentCount - 1;
         for (int y = 0; y < yMin; y++)
         {
             for (int x = 0; x < xMin; x++)

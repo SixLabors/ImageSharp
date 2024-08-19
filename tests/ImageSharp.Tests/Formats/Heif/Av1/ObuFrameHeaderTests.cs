@@ -283,7 +283,7 @@ public class ObuFrameHeaderTests
                     MatrixCoefficients = ObuMatrixCoefficients.Unspecified,
                     SubSamplingX = false,
                     SubSamplingY = false,
-                    BitDepth = 8,
+                    BitDepth = Av1BitDepth.EightBit,
                     HasSeparateUvDelta = true,
                     ColorRange = true,
                 },

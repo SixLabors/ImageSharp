@@ -189,11 +189,22 @@ internal sealed class TiffEncoderCore
         long ifdOffset)
         where TPixel : unmanaged, IPixel<TPixel>
     {
+        // Get the width and height of the frame.
+        // This can differ from the frame bounds in-memory if the image represents only
+        // a subregion.
+        TiffFrameMetadata frameMetaData = frame.Metadata.GetTiffMetadata();
+        int width = frameMetaData.EncodingWidth > 0 ? frameMetaData.EncodingWidth : frame.Width;
+        int height = frameMetaData.EncodingHeight > 0 ? frameMetaData.EncodingHeight : frame.Height;
+
+        width = Math.Min(width, frame.Width);
+        height = Math.Min(height, frame.Height);
+        Size encodingSize = new(width, height);
+
         using TiffBaseCompressor compressor = TiffCompressorFactory.Create(
             compression,
             writer.BaseStream,
             this.memoryAllocator,
-            frame.Width,
+            width,
             (int)bitsPerPixel,
             this.compressionLevel,
             this.HorizontalPredictor == TiffPredictor.Horizontal ? this.HorizontalPredictor.Value : TiffPredictor.None);
@@ -202,6 +213,7 @@ internal sealed class TiffEncoderCore
         using TiffBaseColorWriter<TPixel> colorWriter = TiffColorWriterFactory.Create(
             this.PhotometricInterpretation,
             frame,
+            encodingSize,
             this.quantizer,
             this.pixelSamplingStrategy,
             this.memoryAllocator,
@@ -209,7 +221,7 @@ internal sealed class TiffEncoderCore
             entriesCollector,
             (int)bitsPerPixel);
 
-        int rowsPerStrip = CalcRowsPerStrip(frame.Height, colorWriter.BytesPerRow, this.CompressionType);
+        int rowsPerStrip = CalcRowsPerStrip(height, colorWriter.BytesPerRow, this.CompressionType);
 
         colorWriter.Write(compressor, rowsPerStrip);
 
@@ -222,7 +234,7 @@ internal sealed class TiffEncoderCore
         // Write the metadata for the frame
         entriesCollector.ProcessMetadata(frame, this.skipMetadata);
 
-        entriesCollector.ProcessFrameInfo(frame, imageMetadata);
+        entriesCollector.ProcessFrameInfo(frame, encodingSize, imageMetadata);
         entriesCollector.ProcessImageFormat(this);
 
         if (writer.Position % 2 != 0)

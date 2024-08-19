@@ -1,6 +1,8 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.PixelFormats;
+
 namespace SixLabors.ImageSharp.Formats.Webp;
 
 /// <summary>
@@ -60,6 +62,12 @@ public class WebpFrameMetadata : IFormatFrameMetadata<WebpFrameMetadata>
             DisposalMode = this.DisposalMethod,
             BlendMode = this.BlendMethod,
         };
+
+    /// <inheritdoc/>
+    public void AfterFrameApply<TPixel>(ImageFrame<TPixel> source, ImageFrame<TPixel> destination)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+    }
 
     /// <inheritdoc/>
     IDeepCloneable IDeepCloneable.DeepClone() => this.DeepClone();

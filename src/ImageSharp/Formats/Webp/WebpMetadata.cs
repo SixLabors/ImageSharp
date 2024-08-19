@@ -146,6 +146,12 @@ public class WebpMetadata : IFormatMetadata<WebpMetadata>
         };
 
     /// <inheritdoc/>
+    public void AfterImageApply<TPixel>(Image<TPixel> destination)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+    }
+
+    /// <inheritdoc/>
     IDeepCloneable IDeepCloneable.DeepClone() => this.DeepClone();
 
     /// <inheritdoc/>

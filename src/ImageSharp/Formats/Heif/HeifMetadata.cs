@@ -65,4 +65,10 @@ public class HeifMetadata : IFormatMetadata<HeifMetadata>
 
     /// <inheritdoc/>
     public HeifMetadata DeepClone() => new(this);
+
+    /// <inheritdoc/>
+    public void AfterImageApply<TPixel>(Image<TPixel> destination)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+    }
 }

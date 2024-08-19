@@ -3,12 +3,12 @@
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Quantification;
 
-internal class DeQuant
+internal class Av1DeQuantizationContext
 {
     private readonly short[][] dcContent;
     private readonly short[][] acContent;
 
-    public DeQuant()
+    public Av1DeQuantizationContext()
     {
         this.dcContent = new short[Av1Constants.MaxSegmentCount][];
         this.acContent = new short[Av1Constants.MaxSegmentCount][];

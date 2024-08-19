@@ -15,7 +15,7 @@ internal class Av1InverseQuantizer
     private readonly ObuSequenceHeader sequenceHeader;
     private readonly ObuFrameHeader frameHeader;
     private readonly int[][][] inverseQuantizationMatrix;
-    private DeQuant? deQuantsDeltaQ;
+    private Av1DeQuantizationContext? deQuantsDeltaQ;
 
     public Av1InverseQuantizer(ObuSequenceHeader sequenceHeader, ObuFrameHeader frameHeader)
     {
@@ -55,7 +55,7 @@ internal class Av1InverseQuantizer
         }
     }
 
-    public void UpdateDequant(DeQuant deQuants, Av1SuperblockInfo superblockInfo)
+    public void UpdateDequant(Av1DeQuantizationContext deQuants, Av1SuperblockInfo superblockInfo)
     {
         Av1BitDepth bitDepth = this.sequenceHeader.ColorConfig.BitDepth;
         Guard.NotNull(deQuants, nameof(deQuants));

@@ -14,7 +14,7 @@ internal class Av1FrameDecoder
     private readonly ObuFrameHeader frameHeader;
     private readonly Av1FrameInfo frameInfo;
     private readonly Av1InverseQuantizer inverseQuantizer;
-    private readonly DeQuant deQuants;
+    private readonly Av1DeQuantizationContext deQuants;
 
     public Av1FrameDecoder(ObuSequenceHeader sequenceHeader, ObuFrameHeader frameHeader, Av1FrameInfo frameInfo)
     {

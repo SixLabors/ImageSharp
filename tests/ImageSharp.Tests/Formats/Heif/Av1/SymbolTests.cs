@@ -9,7 +9,7 @@ using SixLabors.ImageSharp.Memory;
 namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 
 [Trait("Format", "Avif")]
-public class SymbolTest
+public class SymbolTests
 {
     [Fact]
     public void ReadRandomLiteral()

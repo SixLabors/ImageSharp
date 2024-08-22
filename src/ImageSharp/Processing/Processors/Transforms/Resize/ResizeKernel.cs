@@ -235,10 +235,7 @@ internal readonly unsafe struct ResizeKernel
         }
         else
         {
-            for (int i = 0; i < this.Length; i++)
-            {
-                this.Values[i] = values[i];
-            }
+            values.CopyTo(this.Values);
         }
     }
 }

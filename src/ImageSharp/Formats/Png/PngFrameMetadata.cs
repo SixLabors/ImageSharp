@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.Formats.Png.Chunks;
+using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Png;
 
@@ -82,6 +83,12 @@ public class PngFrameMetadata : IFormatFrameMetadata<PngFrameMetadata>
             DisposalMode = this.DisposalMode,
             BlendMode = this.BlendMode,
         };
+    }
+
+    /// <inheritdoc/>
+    public void AfterFrameApply<TPixel>(ImageFrame<TPixel> source, ImageFrame<TPixel> destination)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
     }
 
     /// <inheritdoc/>

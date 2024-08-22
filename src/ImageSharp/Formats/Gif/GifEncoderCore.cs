@@ -209,7 +209,7 @@ internal sealed class GifEncoderCore
         ImageFrame<TPixel> previousFrame = image.Frames.RootFrame;
 
         // This frame is reused to store de-duplicated pixel buffers.
-        using ImageFrame<TPixel> encodingFrame = new(previousFrame.Configuration, previousFrame.Size());
+        using ImageFrame<TPixel> encodingFrame = new(previousFrame.Configuration, previousFrame.Size);
 
         for (int i = 1; i < image.Frames.Count; i++)
         {

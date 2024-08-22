@@ -31,10 +31,34 @@ internal class ConvolutionProcessor<TPixel> : ImageProcessor<TPixel>
         bool preserveAlpha,
         Image<TPixel> source,
         Rectangle sourceRectangle)
+        : this(configuration, kernelXY, preserveAlpha, source, sourceRectangle, BorderWrappingMode.Repeat, BorderWrappingMode.Repeat)
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ConvolutionProcessor{TPixel}"/> class.
+    /// </summary>
+    /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
+    /// <param name="kernelXY">The 2d gradient operator.</param>
+    /// <param name="preserveAlpha">Whether the convolution filter is applied to alpha as well as the color channels.</param>
+    /// <param name="source">The source <see cref="Image{TPixel}"/> for the current processor instance.</param>
+    /// <param name="sourceRectangle">The source area to process for the current processor instance.</param>
+    /// <param name="borderWrapModeX">The <see cref="BorderWrappingMode"/> to use when mapping the pixels outside of the border, in X direction.</param>
+    /// <param name="borderWrapModeY">The <see cref="BorderWrappingMode"/> to use when mapping the pixels outside of the border, in Y direction.</param>
+    public ConvolutionProcessor(
+        Configuration configuration,
+        in DenseMatrix<float> kernelXY,
+        bool preserveAlpha,
+        Image<TPixel> source,
+        Rectangle sourceRectangle,
+        BorderWrappingMode borderWrapModeX,
+        BorderWrappingMode borderWrapModeY)
         : base(configuration, source, sourceRectangle)
     {
         this.KernelXY = kernelXY;
         this.PreserveAlpha = preserveAlpha;
+        this.BorderWrapModeX = borderWrapModeX;
+        this.BorderWrapModeY = borderWrapModeY;
     }
 
     /// <summary>
@@ -47,6 +71,16 @@ internal class ConvolutionProcessor<TPixel> : ImageProcessor<TPixel>
     /// </summary>
     public bool PreserveAlpha { get; }
 
+    /// <summary>
+    /// Gets the <see cref="BorderWrappingMode"/> to use when mapping the pixels outside of the border, in X direction.
+    /// </summary>
+    public BorderWrappingMode BorderWrapModeX { get; }
+
+    /// <summary>
+    /// Gets the <see cref="BorderWrappingMode"/> to use when mapping the pixels outside of the border, in Y direction.
+    /// </summary>
+    public BorderWrappingMode BorderWrapModeY { get; }
+
     /// <inheritdoc/>
     protected override void OnFrameApply(ImageFrame<TPixel> source)
     {
@@ -55,13 +89,13 @@ internal class ConvolutionProcessor<TPixel> : ImageProcessor<TPixel>
 
         source.CopyTo(targetPixels);
 
-        var interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds());
+        Rectangle interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds());
 
-        using (var map = new KernelSamplingMap(allocator))
+        using (KernelSamplingMap map = new(allocator))
         {
-            map.BuildSamplingOffsetMap(this.KernelXY, interest);
+            map.BuildSamplingOffsetMap(this.KernelXY.Rows, this.KernelXY.Columns, interest, this.BorderWrapModeX, this.BorderWrapModeY);
 
-            var operation = new RowOperation(interest, targetPixels, source.PixelBuffer, map, this.KernelXY, this.Configuration, this.PreserveAlpha);
+            RowOperation operation = new(interest, targetPixels, source.PixelBuffer, map, this.KernelXY, this.Configuration, this.PreserveAlpha);
             ParallelRowIterator.IterateRows<RowOperation, Vector4>(
                this.Configuration,
                interest,
@@ -121,7 +155,7 @@ internal class ConvolutionProcessor<TPixel> : ImageProcessor<TPixel>
             ref Vector4 targetRowRef = ref MemoryMarshal.GetReference(span);
             Span<TPixel> targetRowSpan = this.targetPixels.DangerousGetRowSpan(y).Slice(boundsX, boundsWidth);
 
-            var state = new ConvolutionState(in this.kernel, this.map);
+            ConvolutionState state = new(in this.kernel, this.map);
             int row = y - this.bounds.Y;
             ref int sampleRowBase = ref state.GetSampleRow((uint)row);
 

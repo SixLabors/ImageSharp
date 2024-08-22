@@ -19,24 +19,6 @@ internal class GaussianBlurProcessor<TPixel> : ImageProcessor<TPixel>
     /// <param name="definition">The <see cref="GaussianBlurProcessor"/> defining the processor parameters.</param>
     /// <param name="source">The source <see cref="Image{TPixel}"/> for the current processor instance.</param>
     /// <param name="sourceRectangle">The source area to process for the current processor instance.</param>
-    public GaussianBlurProcessor(
-        Configuration configuration,
-        GaussianBlurProcessor definition,
-        Image<TPixel> source,
-        Rectangle sourceRectangle)
-        : base(configuration, source, sourceRectangle)
-    {
-        int kernelSize = (definition.Radius * 2) + 1;
-        this.Kernel = ConvolutionProcessorHelpers.CreateGaussianBlurKernel(kernelSize, definition.Sigma);
-    }
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="GaussianBlurProcessor{TPixel}"/> class.
-    /// </summary>
-    /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
-    /// <param name="definition">The <see cref="GaussianBlurProcessor"/> defining the processor parameters.</param>
-    /// <param name="source">The source <see cref="Image{TPixel}"/> for the current processor instance.</param>
-    /// <param name="sourceRectangle">The source area to process for the current processor instance.</param>
     /// <param name="borderWrapModeX">The <see cref="BorderWrappingMode"/> to use when mapping the pixels outside of the border, in X direction.</param>
     /// <param name="borderWrapModeY">The <see cref="BorderWrappingMode"/> to use when mapping the pixels outside of the border, in Y direction.</param>
     public GaussianBlurProcessor(
@@ -72,7 +54,7 @@ internal class GaussianBlurProcessor<TPixel> : ImageProcessor<TPixel>
     /// <inheritdoc/>
     protected override void OnFrameApply(ImageFrame<TPixel> source)
     {
-        using var processor = new Convolution2PassProcessor<TPixel>(this.Configuration, this.Kernel, false, this.Source, this.SourceRectangle, this.BorderWrapModeX, this.BorderWrapModeY);
+        using Convolution2PassProcessor<TPixel> processor = new(this.Configuration, this.Kernel, false, this.Source, this.SourceRectangle, this.BorderWrapModeX, this.BorderWrapModeY);
 
         processor.Apply(source);
     }

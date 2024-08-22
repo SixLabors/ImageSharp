@@ -1166,13 +1166,9 @@ internal static class Numerics
         }
         else
         {
-            ref float startRef = ref MemoryMarshal.GetReference(span);
-            ref float endRef = ref Unsafe.Add(ref startRef, span.Length);
-
-            while (Unsafe.IsAddressLessThan(ref startRef, ref endRef))
+            for (int i = 0; i < span.Length; i++)
             {
-                startRef /= sum;
-                startRef = ref Unsafe.Add(ref startRef, (nuint)1);
+                span[i] /= sum;
             }
         }
     }

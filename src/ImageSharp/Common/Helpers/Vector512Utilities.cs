@@ -3,6 +3,7 @@
 
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
@@ -138,10 +139,14 @@ internal static class Vector512Utilities
     /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector512<float> MultiplyAddEstimate(Vector512<float> a, Vector512<float> b, Vector512<float> c)
+    {
+        if (Avx512F.IsSupported)
+        {
+            return Avx512F.FusedMultiplyAdd(a, b, c);
+        }
 
-        // Don't actually use FMA as it requires many more instruction to extract the
-        // upper and lower parts of the vector and then recombine them.
-        => (a + b) * c;
+        return (a + b) * c;
+    }
 
     [DoesNotReturn]
     private static void ThrowUnreachableException() => throw new UnreachableException();

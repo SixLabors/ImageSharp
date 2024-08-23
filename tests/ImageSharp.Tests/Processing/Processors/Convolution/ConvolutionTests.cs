@@ -7,6 +7,7 @@ using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Processors.Convolution;
 
+[GroupOutput("Convolution")]
 public class ConvolutionTests
 {
     private static readonly ImageComparer ValidatorComparer = ImageComparer.TolerantPercentage(0.05F);

@@ -58,12 +58,12 @@ internal class EdgeDetectorCompassProcessor<TPixel> : ImageProcessor<TPixel>
     /// <inheritdoc />
     protected override void OnFrameApply(ImageFrame<TPixel> source)
     {
-        var interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds());
+        Rectangle interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds());
 
         // We need a clean copy for each pass to start from
         using ImageFrame<TPixel> cleanCopy = source.Clone();
 
-        using (var processor = new ConvolutionProcessor<TPixel>(this.Configuration, in this.kernels[0], true, this.Source, interest))
+        using (ConvolutionProcessor<TPixel> processor = new(this.Configuration, in this.kernels[0], true, this.Source, interest))
         {
             processor.Apply(source);
         }
@@ -78,12 +78,12 @@ internal class EdgeDetectorCompassProcessor<TPixel> : ImageProcessor<TPixel>
         {
             using ImageFrame<TPixel> pass = cleanCopy.Clone();
 
-            using (var processor = new ConvolutionProcessor<TPixel>(this.Configuration, in this.kernels[i], true, this.Source, interest))
+            using (ConvolutionProcessor<TPixel> processor = new(this.Configuration, in this.kernels[i], true, this.Source, interest))
             {
                 processor.Apply(pass);
             }
 
-            var operation = new RowOperation(source.PixelBuffer, pass.PixelBuffer, interest);
+            RowOperation operation = new(source.PixelBuffer, pass.PixelBuffer, interest);
             ParallelRowIterator.IterateRows(
                 this.Configuration,
                 interest,

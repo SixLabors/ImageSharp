@@ -62,6 +62,8 @@ internal class Av1BlockModeInfo
 
     public int[] TransformUnitsCount { get; internal set; }
 
+    public int GetPaletteSize(Av1Plane plane) => this.paletteSize[Math.Min(1, (int)plane)];
+
     public int GetPaletteSize(Av1PlaneType planeType) => this.paletteSize[(int)planeType];
 
     public void SetPaletteSizes(int ySize, int uvSize) => this.paletteSize = [ySize, uvSize];

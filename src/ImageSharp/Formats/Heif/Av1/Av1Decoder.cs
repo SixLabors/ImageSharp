@@ -10,10 +10,15 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1;
 internal class Av1Decoder : IAv1TileReader
 {
     private readonly ObuReader obuReader;
+    private readonly Configuration configuration;
     private Av1TileReader? tileReader;
     private Av1FrameDecoder? frameDecoder;
 
-    public Av1Decoder() => this.obuReader = new();
+    public Av1Decoder(Configuration configuration)
+    {
+        this.configuration = configuration;
+        this.obuReader = new();
+    }
 
     public ObuFrameHeader? FrameHeader { get; private set; }
 
@@ -40,7 +45,7 @@ internal class Av1Decoder : IAv1TileReader
         {
             this.SequenceHeader = this.obuReader.SequenceHeader;
             this.FrameHeader = this.obuReader.FrameHeader;
-            this.tileReader = new Av1TileReader(this.SequenceHeader!, this.FrameHeader!);
+            this.tileReader = new Av1TileReader(this.configuration, this.SequenceHeader!, this.FrameHeader!);
         }
 
         this.tileReader.ReadTile(tileData, tileNum);

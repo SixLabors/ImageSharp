@@ -24,7 +24,7 @@ public class Av1TilingTests
         IAv1TileReader stub = new Av1TileDecoderStub();
         ObuReader obuReader = new();
         obuReader.ReadAll(ref bitStreamReader, dataSize, stub);
-        Av1TileReader tileReader = new(obuReader.SequenceHeader, obuReader.FrameHeader);
+        Av1TileReader tileReader = new(Configuration.Default, obuReader.SequenceHeader, obuReader.FrameHeader);
 
         // Act
         tileReader.ReadTile(tileSpan, 0);

@@ -9,5 +9,6 @@ internal enum Av1FilterIntraMode
     Vertical,
     Horizontal,
     Directional157,
-    Paeth
+    Paeth,
+    FilterIntraModes,
 }

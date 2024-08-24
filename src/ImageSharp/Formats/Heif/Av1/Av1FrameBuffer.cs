@@ -33,6 +33,8 @@ internal class Av1FrameBuffer : IDisposable
         int topPadding = DecoderPaddingValue;
         int bottomPadding = DecoderPaddingValue;
 
+        this.StartPosition = new Point(leftPadding, topPadding);
+
         this.Width = this.MaxWidth;
         this.Height = this.MaxHeight;
         int strideY = this.MaxWidth + leftPadding + rightPadding;
@@ -85,6 +87,8 @@ internal class Av1FrameBuffer : IDisposable
         this.BitIncrementCb = null;
         this.BitIncrementCr = null;
     }
+
+    public Point StartPosition { get; private set; }
 
     /// <summary>
     /// Gets the Y luma buffer.

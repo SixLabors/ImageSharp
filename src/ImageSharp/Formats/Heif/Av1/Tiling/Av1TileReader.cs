@@ -34,10 +34,12 @@ internal class Av1TileReader : IAv1TileReader
     private readonly int[][] transformUnitCount;
     private readonly int[] firstTransformOffset = new int[2];
     private readonly int[] coefficientIndex = [];
+    private readonly Configuration configuration;
 
-    public Av1TileReader(ObuSequenceHeader sequenceHeader, ObuFrameHeader frameHeader)
+    public Av1TileReader(Configuration configuration, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameHeader)
     {
         this.FrameHeader = frameHeader;
+        this.configuration = configuration;
         this.SequenceHeader = sequenceHeader;
 
         // init_main_frame_ctxt
@@ -284,6 +286,8 @@ internal class Av1TileReader : IAv1TileReader
         int block4x4Width = blockSize.Get4x4WideCount();
         int block4x4Height = blockSize.Get4x4HighCount();
         int planesCount = this.SequenceHeader.ColorConfig.PlaneCount;
+        int subX = this.SequenceHeader.ColorConfig.SubSamplingX ? 1 : 0;
+        int subY = this.SequenceHeader.ColorConfig.SubSamplingY ? 1 : 0;
         Point superblockLocation = superblockInfo.Position * this.SequenceHeader.SuperblockModeInfoSize;
         Point locationInSuperblock = new Point(modeInfoLocation.X - superblockLocation.X, modeInfoLocation.Y - superblockLocation.Y);
         Av1BlockModeInfo blockModeInfo = new(planesCount, blockSize, locationInSuperblock);
@@ -295,7 +299,7 @@ internal class Av1TileReader : IAv1TileReader
         partitionInfo.ColumnIndex = columnIndex;
         partitionInfo.RowIndex = rowIndex;
         superblockInfo.BlockCount++;
-        partitionInfo.ComputeBoundaryOffsets(this.FrameHeader, tileInfo);
+        partitionInfo.ComputeBoundaryOffsets(this.configuration, this.SequenceHeader, this.FrameHeader, tileInfo);
         if (hasChroma)
         {
             if (this.SequenceHeader.ColorConfig.SubSamplingY && block4x4Height == 1)
@@ -317,6 +321,16 @@ internal class Av1TileReader : IAv1TileReader
         if (partitionInfo.AvailableLeft)
         {
             partitionInfo.LeftModeInfo = superblockInfo.GetModeInfo(new Point(rowIndex, columnIndex - 1));
+        }
+
+        if (partitionInfo.AvailableAboveForChroma)
+        {
+            partitionInfo.AboveModeInfoForChroma = superblockInfo.GetModeInfo(new Point(rowIndex & ~subY, columnIndex | subX));
+        }
+
+        if (partitionInfo.AvailableLeftForChroma)
+        {
+            partitionInfo.LeftModeInfoForChroma = superblockInfo.GetModeInfo(new Point(rowIndex | subY, columnIndex & ~subX));
         }
 
         this.ReadModeInfo(ref reader, partitionInfo);

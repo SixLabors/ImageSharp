@@ -152,4 +152,7 @@ internal static class Av1Math
     internal static int Modulus8(int value) => value & 0x07;
 
     internal static int DivideBy8Floor(int value) => value >> 3;
+
+    internal static int RoundPowerOf2Signed(int value, int n)
+        => (value < 0) ? -RoundPowerOf2(-value, n) : RoundPowerOf2(value, n);
 }

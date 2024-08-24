@@ -43,4 +43,12 @@ internal class Av1SuperblockInfo
     public ref Av1TransformInfo GetTransformInfoUv() => ref this.frameInfo.GetSuperblockTransformUv(this.Position);
 
     public Av1BlockModeInfo GetModeInfo(Point index) => this.frameInfo.GetModeInfo(this.Position, index);
+
+    public Span<int> GetCoefficients(Av1Plane plane) => plane switch
+    {
+        Av1Plane.Y => this.CoefficientsY,
+        Av1Plane.U => this.CoefficientsU,
+        Av1Plane.V => this.CoefficientsV,
+        _ => []
+    };
 }

@@ -1092,7 +1092,7 @@ internal class ObuReader
         frameHeader.SegmentationParameters.QMLevel[2] = new int[Av1Constants.MaxSegmentCount];
         for (int segmentId = 0; segmentId < Av1Constants.MaxSegmentCount; segmentId++)
         {
-            int qIndex = QuantizationLookup.GetQIndex(frameHeader.SegmentationParameters, segmentId, frameHeader.QuantizationParameters.BaseQIndex);
+            int qIndex = Av1QuantizationLookup.GetQIndex(frameHeader.SegmentationParameters, segmentId, frameHeader.QuantizationParameters.BaseQIndex);
             frameHeader.QuantizationParameters.QIndex[segmentId] = qIndex;
             frameHeader.LosslessArray[segmentId] = qIndex == 0 &&
                 frameHeader.QuantizationParameters.DeltaQDc[(int)Av1Plane.Y] == 0 &&

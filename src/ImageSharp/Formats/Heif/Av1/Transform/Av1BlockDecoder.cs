@@ -3,6 +3,8 @@
 
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Quantification;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
@@ -17,20 +19,41 @@ internal class Av1BlockDecoder
 
     private readonly Av1FrameBuffer frameBuffer;
 
+    private readonly bool isLoopFilterEnabled;
+
+    private readonly int[] currentCoefficientIndex;
+
     public Av1BlockDecoder(ObuSequenceHeader sequenceHeader, ObuFrameHeader frameHeader, Av1FrameInfo frameInfo, Av1FrameBuffer frameBuffer)
     {
         this.sequenceHeader = sequenceHeader;
         this.frameHeader = frameHeader;
         this.frameInfo = frameInfo;
         this.frameBuffer = frameBuffer;
+        int ySize = (1 << this.sequenceHeader.SuperblockSizeLog2) * (1 << this.sequenceHeader.SuperblockSizeLog2);
+        int inverseQuantizationSize = ySize +
+            (this.sequenceHeader.ColorConfig.SubSamplingX ? ySize >> 2 : ySize) +
+            (this.sequenceHeader.ColorConfig.SubSamplingY ? ySize >> 2 : ySize);
+        this.CurrentInverseQuantizationCoefficients = new int[inverseQuantizationSize];
+        this.isLoopFilterEnabled = false;
+        this.currentCoefficientIndex = new int[3];
     }
 
-    public static void DecodeBlock(Av1BlockModeInfo modeInfo, Point modeInfoPosition, Av1BlockSize blockSize, Av1SuperblockInfo superblockInfo)
+    public int[] CurrentInverseQuantizationCoefficients { get; private set; }
+
+    public void UpdateSuperblock(Av1SuperblockInfo superblockInfo)
     {
-        /*
+        this.currentCoefficientIndex[0] = 0;
+        this.currentCoefficientIndex[1] = 0;
+        this.currentCoefficientIndex[2] = 0;
+    }
+
+    /// <summary>
+    /// SVT: svt_aom_decode_block
+    /// </summary>
+    public void DecodeBlock(Av1BlockModeInfo modeInfo, Point modeInfoPosition, Av1BlockSize blockSize, Av1SuperblockInfo superblockInfo, Av1TileInfo tileInfo)
+    {
         ObuColorConfig colorConfig = this.sequenceHeader.ColorConfig;
         Av1TransformType transformType;
-        Span<int> coefficients;
         Av1TransformSize transformSize;
         int transformUnitCount;
         bool hasChroma = Av1TileReader.HasChroma(this.sequenceHeader, modeInfoPosition, blockSize);
@@ -47,6 +70,8 @@ internal class Av1BlockDecoder
         bool highBitDepth = false;
         bool is16BitsPipeline = false;
         int loopFilterStride = this.frameHeader.ModeInfoStride;
+        Av1PredictionDecoder predictionDecoder = new(this.sequenceHeader, this.frameHeader, false);
+        Av1InverseQuantizer inverseQuantizer = new(this.sequenceHeader, this.frameHeader);
 
         for (int plane = 0; plane < colorConfig.PlaneCount; plane++)
         {
@@ -79,8 +104,9 @@ internal class Av1BlockDecoder
 
             Guard.IsFalse(transformUnitCount == 0, nameof(transformUnitCount), "Must have at least a single transform unit to decode.");
 
-            this.DeriveBlockPointers(
-                this.reconstructionFrameBuffer,
+            // SVT: svt_aom_derive_blk_pointers
+            DeriveBlockPointers(
+                this.frameBuffer,
                 plane,
                 (modeInfoPosition.X >> subX) << Av1Constants.ModeInfoSizeLog2,
                 (modeInfoPosition.Y >> subY) << Av1Constants.ModeInfoSizeLog2,
@@ -95,15 +121,17 @@ internal class Av1BlockDecoder
                 int transformBlockOffset;
 
                 transformSize = transformInfo.Size;
-                coefficients = this.currentCoefficients[plane];
+                Span<int> coefficients = superblockInfo.GetCoefficients((Av1Plane)plane)[this.currentCoefficientIndex[plane]..];
 
                 transformBlockOffset = ((transformInfo.OffsetY * reconstructionStride) + transformInfo.OffsetX) << Av1Constants.ModeInfoSizeLog2;
                 transformBlockReconstructionBuffer = blockReconstructionBuffer.Slice(transformBlockOffset << (highBitDepth ? 1 : 0));
 
                 if (this.isLoopFilterEnabled)
                 {
+                    /*
                     if (plane != 2)
                     {
+                        // SVT: svt_aom_fill_4x4_lf_param
                         Fill4x4LoopFilterParameters(
                             this.loopFilterContext,
                             (modeInfoPosition.X & (~subX)) + (transformInfo.OffsetX << subX),
@@ -113,20 +141,21 @@ internal class Av1BlockDecoder
                             subX,
                             subY,
                             plane);
-                    }
+                    }*/
                 }
 
                 // if (!inter_block)
                 if (true)
                 {
-                    PredictIntra(
+                    // SVT: svt_av1_predict_intra
+                    predictionDecoder.Decode(
                         partitionInfo,
-                        plane,
+                        (Av1Plane)plane,
                         transformSize,
-                        tile,
+                        tileInfo,
                         transformBlockReconstructionBuffer,
                         reconstructionStride,
-                        this.reconstructionFrameBuffer.BitDepth,
+                        this.frameBuffer.BitDepth,
                         transformInfo.OffsetX,
                         transformInfo.OffsetY);
                 }
@@ -138,22 +167,23 @@ internal class Av1BlockDecoder
                     Span<int> quantizationCoefficients = this.CurrentInverseQuantizationCoefficients;
                     int inverseQuantizationSize = transformSize.GetWidth() * transformSize.GetHeight();
                     quantizationCoefficients[..inverseQuantizationSize].Clear();
-                    this.CurrentInverseQuantizationCoefficients = quantizationCoefficients[inverseQuantizationSize..];
                     transformType = transformInfo.Type;
 
-                    numberOfCoefficients = InverseQuantize(
-                        partitionInfo, modeInfo, coefficients, quantizationCoefficients, transformType, transformSize, plane);
+                    // SVT: svt_aom_inverse_quantize
+                    numberOfCoefficients = inverseQuantizer.InverseQuantize(
+                        modeInfo, coefficients, quantizationCoefficients, transformType, transformSize, (Av1Plane)plane);
                     if (numberOfCoefficients != 0)
                     {
-                        this.CurrentCoefficients[plane] += numberOfCoefficients + 1;
+                        this.currentCoefficientIndex[plane] += numberOfCoefficients + 1;
 
-                        if (this.reconstructionFrameBuffer.BitDepth == Av1BitDepth.EightBit && !is16BitsPipeline)
+                        if (this.frameBuffer.BitDepth == Av1BitDepth.EightBit && !is16BitsPipeline)
                         {
-                            InverseTransformReconstruction8Bit(
+                            // SVT: svt_aom_inv_transform_recon8bit
+                            Av1InverseTransformer.Reconstruct8Bit(
                                 quantizationCoefficients,
-                                (Span<byte>)transformBlockReconstructionBuffer,
+                                transformBlockReconstructionBuffer,
                                 reconstructionStride,
-                                (Span<byte>)transformBlockReconstructionBuffer,
+                                transformBlockReconstructionBuffer,
                                 reconstructionStride,
                                 transformSize,
                                 transformType,
@@ -169,8 +199,10 @@ internal class Av1BlockDecoder
                 }
 
                 // Store Luma for CFL if required!
-                if (plane == (int)Av1Plane.Y && StoreChromeFromLumeRequired(colorConfig, partitionInfo, this.frameHeader.IsChroma))
+                if (plane == (int)Av1Plane.Y && StoreChromeFromLumeRequired(colorConfig, partitionInfo, hasChroma))
                 {
+                    /*
+                    // SVT: svt_cfl_store_tx
                     ChromaFromLumaStoreTransform(
                         partitionInfo,
                         this.chromaFromLumaContext,
@@ -182,11 +214,71 @@ internal class Av1BlockDecoder
                         transformBlockReconstructionBuffer,
                         reconstructionStride,
                         is16BitsPipeline);
+                    */
                 }
 
                 // increment transform pointer
                 transformInfo = ref Unsafe.Add(ref transformInfo, 1);
             }
-        }*/
+        }
     }
+
+    private static void DeriveBlockPointers(Av1FrameBuffer frameBuffer, int plane, int blockColumnInPixels, int blockRowInPixels, out Span<byte> blockReconstructionBuffer, out int reconstructionStride, int subX, int subY)
+    {
+        int blockOffset;
+
+        if (plane == 0)
+        {
+            blockOffset = ((frameBuffer.OriginY + blockRowInPixels) * frameBuffer.BufferY!.Width) +
+                (frameBuffer.OriginX + blockColumnInPixels);
+            reconstructionStride = frameBuffer.BufferY!.Width;
+        }
+        else if (plane == 1)
+        {
+            blockOffset = (((frameBuffer.OriginY >> subY) + blockRowInPixels) * frameBuffer.BufferCb!.Width) +
+                ((frameBuffer.OriginX >> subX) + blockColumnInPixels);
+            reconstructionStride = frameBuffer.BufferCb!.Width;
+        }
+        else
+        {
+            blockOffset = (((frameBuffer.OriginY >> subY) + blockRowInPixels) * frameBuffer.BufferCr!.Width) +
+                ((frameBuffer.OriginX >> subX) + blockColumnInPixels);
+            reconstructionStride = frameBuffer.BufferCr!.Width;
+        }
+
+        if (frameBuffer.BitDepth != Av1BitDepth.EightBit || frameBuffer.Is16BitPipeline)
+        {
+            // 16bit pipeline
+            blockOffset *= 2;
+            if (plane == 0)
+            {
+                blockReconstructionBuffer = frameBuffer.BufferY!.DangerousGetSingleSpan()[blockOffset..];
+            }
+            else if (plane == 1)
+            {
+                blockReconstructionBuffer = frameBuffer.BufferCb!.DangerousGetSingleSpan()[blockOffset..];
+            }
+            else
+            {
+                blockReconstructionBuffer = frameBuffer.BufferCr!.DangerousGetSingleSpan()[blockOffset..];
+            }
+        }
+        else
+        {
+            if (plane == 0)
+            {
+                blockReconstructionBuffer = frameBuffer.BufferY!.DangerousGetSingleSpan()[blockOffset..];
+            }
+            else if (plane == 1)
+            {
+                blockReconstructionBuffer = frameBuffer.BufferCb!.DangerousGetSingleSpan()[blockOffset..];
+            }
+            else
+            {
+                blockReconstructionBuffer = frameBuffer.BufferCr!.DangerousGetSingleSpan()[blockOffset..];
+            }
+        }
+    }
+
+    private static bool StoreChromeFromLumeRequired(ObuColorConfig colorConfig, Av1PartitionInfo partitionInfo, bool hasChroma) => false;
 }

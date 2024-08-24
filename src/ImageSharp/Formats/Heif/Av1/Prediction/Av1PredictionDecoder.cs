@@ -10,7 +10,7 @@ using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 
-internal class PredictionDecoder
+internal class Av1PredictionDecoder
 {
     private const int MaxUpsampleSize = 16;
 
@@ -18,49 +18,29 @@ internal class PredictionDecoder
     private readonly ObuFrameHeader frameHeader;
     private readonly bool is16BitPipeline;
 
-    public PredictionDecoder(ObuSequenceHeader sequenceHeader, ObuFrameHeader frameHeader, bool is16BitPipeline)
+    public Av1PredictionDecoder(ObuSequenceHeader sequenceHeader, ObuFrameHeader frameHeader, bool is16BitPipeline)
     {
         this.sequenceHeader = sequenceHeader;
         this.frameHeader = frameHeader;
         this.is16BitPipeline = is16BitPipeline;
     }
 
-    public void DecodeFrame(
+    public void Decode(
         Av1PartitionInfo partitionInfo,
         Av1Plane plane,
         Av1TransformSize transformSize,
         Av1TileInfo tileInfo,
-        Av1FrameBuffer frameBuffer,
+        Span<byte> pixelBuffer,
+        int pixelStride,
         Av1BitDepth bitDepth,
         int blockModeInfoColumnOffset,
         int blockModeInfoRowOffset)
     {
-        Buffer2D<byte>? pixelBuffer = null;
-        switch (plane)
-        {
-            case Av1Plane.Y:
-                pixelBuffer = frameBuffer.BufferY;
-                break;
-            case Av1Plane.U:
-                pixelBuffer = frameBuffer.BufferCb;
-                break;
-            case Av1Plane.V:
-                pixelBuffer = frameBuffer.BufferCr;
-                break;
-            default:
-                break;
-        }
-
-        if (pixelBuffer == null)
-        {
-            return;
-        }
-
         int bytesPerPixel = (bitDepth == Av1BitDepth.EightBit && !this.is16BitPipeline) ? 2 : 1;
-        ref byte pixelRef = ref pixelBuffer[frameBuffer.StartPosition.X, frameBuffer.StartPosition.Y];
+        ref byte pixelRef = ref pixelBuffer[0];
         ref byte topNeighbor = ref pixelRef;
         ref byte leftNeighbor = ref pixelRef;
-        int stride = frameBuffer.BufferY!.Width * bytesPerPixel;
+        int stride = pixelStride * bytesPerPixel;
         topNeighbor = Unsafe.Subtract(ref topNeighbor, stride);
         leftNeighbor = Unsafe.Subtract(ref leftNeighbor, 1);
 
@@ -111,7 +91,7 @@ internal class PredictionDecoder
             bitDepth);
     }
 
-    private void PredictChromaFromLumaBlock(Av1PartitionInfo partitionInfo, Av1ChromaFromLumaContext? chromaFromLumaContext, ref Buffer2D<byte> pixelBuffer, int stride, Av1TransformSize transformSize, Av1Plane plane)
+    private void PredictChromaFromLumaBlock(Av1PartitionInfo partitionInfo, Av1ChromaFromLumaContext? chromaFromLumaContext, ref Span<byte> pixelBuffer, int stride, Av1TransformSize transformSize, Av1Plane plane)
     {
         Av1BlockModeInfo modeInfo = partitionInfo.ModeInfo;
         bool isChromaFromLumaAllowedFlag = IsChromaFromLumaAllowedWithFrameHeader(partitionInfo, this.sequenceHeader.ColorConfig, this.frameHeader);
@@ -148,7 +128,7 @@ internal class PredictionDecoder
         }
 
         ChromaFromLumaPredict(
-            chromaFromLumaContext.Q3Buffer!,
+            chromaFromLumaContext.Q3Buffer!.DangerousGetSingleSpan(),
             pixelBuffer,
             stride,
             pixelBuffer,
@@ -196,7 +176,7 @@ internal class PredictionDecoder
         return Av1Math.RoundPowerOf2Signed(scaledLumaQ6, 6);
     }
 
-    private static void ChromaFromLumaPredict(Buffer2D<short> predictedBufferQ3, Buffer2D<byte> predictedBuffer, int predictedStride, Buffer2D<byte> destinationBuffer, int destinationStride, int alphaQ3, Av1BitDepth bitDepth, int width, int height)
+    private static void ChromaFromLumaPredict(Span<short> predictedBufferQ3, Span<byte> predictedBuffer, int predictedStride, Span<byte> destinationBuffer, int destinationStride, int alphaQ3, Av1BitDepth bitDepth, int width, int height)
     {
         // TODO: Make SIMD variant of this method.
         int maxPixelValue = (1 << bitDepth.GetBitCount()) - 1;
@@ -204,9 +184,13 @@ internal class PredictionDecoder
         {
             for (int i = 0; i < width; i++)
             {
-                int alphaQ0 = GetScaledLumaQ0(alphaQ3, predictedBufferQ3[i, j]);
-                destinationBuffer[i, j] = (byte)Av1Math.Clamp(alphaQ0 + predictedBuffer[i, j], 0, maxPixelValue);
+                int alphaQ0 = GetScaledLumaQ0(alphaQ3, predictedBufferQ3[i]);
+                destinationBuffer[i] = (byte)Av1Math.Clamp(alphaQ0 + predictedBuffer[i], 0, maxPixelValue);
             }
+
+            destinationBuffer = destinationBuffer[width..];
+            predictedBuffer = predictedBuffer[width..];
+            predictedBufferQ3 = predictedBufferQ3[width..];
         }
     }
 

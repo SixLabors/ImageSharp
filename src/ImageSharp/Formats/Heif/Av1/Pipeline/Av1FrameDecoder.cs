@@ -13,16 +13,20 @@ internal class Av1FrameDecoder
     private readonly ObuSequenceHeader sequenceHeader;
     private readonly ObuFrameHeader frameHeader;
     private readonly Av1FrameInfo frameInfo;
+    private readonly Av1FrameBuffer frameBuffer;
     private readonly Av1InverseQuantizer inverseQuantizer;
     private readonly Av1DeQuantizationContext deQuants;
+    private readonly Av1BlockDecoder blockDecoder;
 
-    public Av1FrameDecoder(ObuSequenceHeader sequenceHeader, ObuFrameHeader frameHeader, Av1FrameInfo frameInfo)
+    public Av1FrameDecoder(ObuSequenceHeader sequenceHeader, ObuFrameHeader frameHeader, Av1FrameInfo frameInfo, Av1FrameBuffer frameBuffer)
     {
         this.sequenceHeader = sequenceHeader;
         this.frameHeader = frameHeader;
         this.frameInfo = frameInfo;
+        this.frameBuffer = frameBuffer;
         this.inverseQuantizer = new(sequenceHeader, frameHeader);
         this.deQuants = new();
+        this.blockDecoder = new(this.sequenceHeader, this.frameHeader, this.frameInfo, this.frameBuffer);
     }
 
     public void DecodeFrame()
@@ -86,18 +90,19 @@ internal class Av1FrameDecoder
 
             Av1SuperblockInfo superblockInfo = this.frameInfo.GetSuperblock(new Point(superblockColumn, superblockRow));
 
-            Point modeInfoPosition = new Point(modeInfoColumn, modeInfoRow);
-            this.DecodeSuperblock(modeInfoPosition, superblockInfo);
+            Point modeInfoPosition = new(modeInfoColumn, modeInfoRow);
+            this.DecodeSuperblock(modeInfoPosition, superblockInfo, new Av1TileInfo(tileRow, tileColumn, this.frameHeader));
         }
     }
 
-    private void DecodeSuperblock(Point modeInfoPosition, Av1SuperblockInfo superblockInfo)
+    private void DecodeSuperblock(Point modeInfoPosition, Av1SuperblockInfo superblockInfo, Av1TileInfo tileInfo)
     {
+        this.blockDecoder.UpdateSuperblock(superblockInfo);
         this.inverseQuantizer.UpdateDequant(this.deQuants, superblockInfo);
-        DecodePartition(modeInfoPosition, superblockInfo);
+        this.DecodePartition(modeInfoPosition, superblockInfo, tileInfo);
     }
 
-    private static void DecodePartition(Point modeInfoPosition, Av1SuperblockInfo superblockInfo)
+    private void DecodePartition(Point modeInfoPosition, Av1SuperblockInfo superblockInfo, Av1TileInfo tileInfo)
     {
         Av1BlockModeInfo modeInfo = superblockInfo.GetModeInfo(modeInfoPosition);
 
@@ -107,7 +112,7 @@ internal class Av1FrameDecoder
             Av1BlockSize subSize = modeInfo.BlockSize;
             Point globalPosition = new(modeInfoPosition.X, modeInfoPosition.Y);
             globalPosition.Offset(subPosition);
-            Av1BlockDecoder.DecodeBlock(modeInfo, globalPosition, subSize, superblockInfo);
+            this.blockDecoder.DecodeBlock(modeInfo, globalPosition, subSize, superblockInfo, tileInfo);
         }
     }
 

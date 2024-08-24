@@ -3,7 +3,7 @@
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Quantization;
 
-internal static class Av1InverseTransform
+internal static class Av1InverseTransformMath
 {
     public static readonly int[,] AcQLookup = new int[3, 256]
     {

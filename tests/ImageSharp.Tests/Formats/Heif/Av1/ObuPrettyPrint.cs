@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 
 internal class ObuPrettyPrint
 {
-    private static readonly char[] spaces = "                                                             ".ToCharArray();
+    private static readonly char[] Spaces = "                                                             ".ToCharArray();
 
     public static string PrettyPrintProperties(object obj, int indent = 0)
     {
@@ -20,7 +20,7 @@ internal class ObuPrettyPrint
         MemberInfo[] properties = obj.GetType().FindMembers(MemberTypes.Property, BindingFlags.Instance | BindingFlags.Public, null, null);
         foreach (MemberInfo member in properties)
         {
-            builder.Append(spaces, 0, indent);
+            builder.Append(Spaces, 0, indent);
             if (member is PropertyInfo property)
             {
                 builder.Append(property.Name);
@@ -31,7 +31,7 @@ internal class ObuPrettyPrint
         }
 
         indent -= 2;
-        builder.Append(spaces, 0, indent);
+        builder.Append(Spaces, 0, indent);
         builder.AppendLine("}");
         return builder.ToString();
     }
@@ -46,7 +46,7 @@ internal class ObuPrettyPrint
         {
             builder.AppendLine("[");
             indent += 2;
-            builder.Append(spaces, 0, indent);
+            builder.Append(Spaces, 0, indent);
             Type elementType = value.GetType().GetElementType();
             IList list = value as IList;
             foreach (object item in list)
@@ -55,7 +55,7 @@ internal class ObuPrettyPrint
             }
 
             indent -= 2;
-            builder.Append(spaces, 0, indent);
+            builder.Append(Spaces, 0, indent);
             builder.AppendLine("]");
         }
         else if (value.GetType().IsClass)

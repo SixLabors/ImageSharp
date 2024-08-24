@@ -5,7 +5,7 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Quantification;
 
-internal class QuantizationLookup
+internal class Av1QuantizationLookup
 {
     // Coefficient scaling and quantization with AV1 TX are tailored to
     // the AV1 TX transforms.  Regardless of the bit-depth of the input,

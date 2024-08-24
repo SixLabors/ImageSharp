@@ -26,6 +26,8 @@ internal class Av1Decoder : IAv1TileReader
 
     public Av1FrameInfo? FrameInfo { get; private set; }
 
+    public Av1FrameBuffer? FrameBuffer { get; private set; }
+
     public void Decode(Span<byte> buffer)
     {
         Av1BitStreamReader reader = new(buffer);
@@ -35,7 +37,8 @@ internal class Av1Decoder : IAv1TileReader
         Guard.NotNull(this.FrameHeader, nameof(this.FrameHeader));
 
         this.FrameInfo = this.tileReader.FrameInfo;
-        this.frameDecoder = new(this.SequenceHeader, this.FrameHeader, this.FrameInfo);
+        this.FrameBuffer = new(this.configuration, this.SequenceHeader, this.SequenceHeader.ColorConfig.GetColorFormat(), false);
+        this.frameDecoder = new(this.SequenceHeader, this.FrameHeader, this.FrameInfo, this.FrameBuffer);
         this.frameDecoder.DecodeFrame();
     }
 

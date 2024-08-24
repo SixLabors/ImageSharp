@@ -64,15 +64,15 @@ internal class Av1InverseQuantizer
         {
             for (int i = 0; i < Av1Constants.MaxSegmentCount; i++)
             {
-                int currentQIndex = QuantizationLookup.GetQIndex(this.frameHeader.SegmentationParameters, i, superblockInfo.SuperblockDeltaQ);
+                int currentQIndex = Av1QuantizationLookup.GetQIndex(this.frameHeader.SegmentationParameters, i, superblockInfo.SuperblockDeltaQ);
 
                 for (Av1Plane plane = 0; (int)plane < Av1Constants.MaxPlanes; plane++)
                 {
                     int dcDeltaQ = this.frameHeader.QuantizationParameters.DeltaQDc[(int)plane];
                     int acDeltaQ = this.frameHeader.QuantizationParameters.DeltaQAc[(int)plane];
 
-                    this.deQuantsDeltaQ.SetDc(i, plane, QuantizationLookup.GetDcQuant(currentQIndex, dcDeltaQ, bitDepth));
-                    this.deQuantsDeltaQ.SetAc(i, plane, QuantizationLookup.GetAcQuant(currentQIndex, acDeltaQ, bitDepth));
+                    this.deQuantsDeltaQ.SetDc(i, plane, Av1QuantizationLookup.GetDcQuant(currentQIndex, dcDeltaQ, bitDepth));
+                    this.deQuantsDeltaQ.SetAc(i, plane, Av1QuantizationLookup.GetAcQuant(currentQIndex, acDeltaQ, bitDepth));
                 }
             }
         }

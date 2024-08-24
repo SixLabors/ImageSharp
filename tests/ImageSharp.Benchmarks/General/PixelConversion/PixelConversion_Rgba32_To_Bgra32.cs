@@ -55,7 +55,7 @@ public class PixelConversion_Rgba32_To_Bgra32
         for (nuint i = 0; i < (uint)this.Count; i++)
         {
             ref Rgba32 s = ref Unsafe.Add(ref sBase, i);
-            Unsafe.Add(ref dBase, i).FromRgba32(s);
+            Unsafe.Add(ref dBase, i) = Bgra32.FromRgba32(s);
         }
     }
 
@@ -69,15 +69,12 @@ public class PixelConversion_Rgba32_To_Bgra32
         for (nuint i = 0; i < (uint)source.Length; i++)
         {
             ref Rgba32 s = ref Unsafe.Add(ref sBase, i);
-            Unsafe.Add(ref dBase, i).FromRgba32(s);
+            Unsafe.Add(ref dBase, i) = TPixel.FromRgba32(s);
         }
     }
 
     [Benchmark]
-    public void Default_Generic()
-    {
-        Default_GenericImpl(this.source.AsSpan(), this.dest.AsSpan());
-    }
+    public void Default_Generic() => Default_GenericImpl(this.source.AsSpan(), this.dest.AsSpan());
 
     [Benchmark]
     public void Default_Group2()
@@ -91,8 +88,8 @@ public class PixelConversion_Rgba32_To_Bgra32
             Rgba32 s1 = Unsafe.Add(ref s0, 1);
 
             ref Bgra32 d0 = ref Unsafe.Add(ref dBase, i);
-            d0.FromRgba32(s0);
-            Unsafe.Add(ref d0, 1).FromRgba32(s1);
+            d0 = Bgra32.FromRgba32(s0);
+            Unsafe.Add(ref d0, 1) = Bgra32.FromRgba32(s1);
         }
     }
 
@@ -113,10 +110,10 @@ public class PixelConversion_Rgba32_To_Bgra32
             ref Bgra32 d1 = ref Unsafe.Add(ref d0, 1);
             ref Bgra32 d2 = ref Unsafe.Add(ref d1, 1);
 
-            d0.FromRgba32(s0);
-            d1.FromRgba32(s1);
-            d2.FromRgba32(s2);
-            Unsafe.Add(ref d2, 1).FromRgba32(s3);
+            d0 = Bgra32.FromRgba32(s0);
+            d1 = Bgra32.FromRgba32(s1);
+            d2 = Bgra32.FromRgba32(s2);
+            Unsafe.Add(ref d2, 1) = Bgra32.FromRgba32(s3);
         }
     }
 
@@ -138,18 +135,15 @@ public class PixelConversion_Rgba32_To_Bgra32
             ref TPixel d1 = ref Unsafe.Add(ref d0, 1);
             ref TPixel d2 = ref Unsafe.Add(ref d1, 1);
 
-            d0.FromRgba32(s0);
-            d1.FromRgba32(s1);
-            d2.FromRgba32(s2);
-            Unsafe.Add(ref d2, 1).FromRgba32(s3);
+            d0 = TPixel.FromRgba32(s0);
+            d1 = TPixel.FromRgba32(s1);
+            d2 = TPixel.FromRgba32(s2);
+            Unsafe.Add(ref d2, 1) = TPixel.FromRgba32(s3);
         }
     }
 
     // [Benchmark]
-    public void Default_Group4_Generic()
-    {
-        Group4GenericImpl(this.source.AsSpan(), this.dest.AsSpan());
-    }
+    public void Default_Group4_Generic() => Group4GenericImpl(this.source.AsSpan(), this.dest.AsSpan());
 
     // [Benchmark]
     public void Default_Group8()
@@ -178,15 +172,15 @@ public class PixelConversion_Rgba32_To_Bgra32
             ref Bgra32 d5 = ref Unsafe.Add(ref d4, 1);
             ref Bgra32 d6 = ref Unsafe.Add(ref d5, 1);
 
-            d0.FromRgba32(s0);
-            d1.FromRgba32(s1);
-            d2.FromRgba32(s2);
-            d3.FromRgba32(s3);
+            d0 = Bgra32.FromRgba32(s0);
+            d1 = Bgra32.FromRgba32(s1);
+            d2 = Bgra32.FromRgba32(s2);
+            d3 = Bgra32.FromRgba32(s3);
 
-            d4.FromRgba32(s4);
-            d5.FromRgba32(s5);
-            d6.FromRgba32(s6);
-            Unsafe.Add(ref d6, 1).FromRgba32(s7);
+            d4 = Bgra32.FromRgba32(s4);
+            d5 = Bgra32.FromRgba32(s5);
+            d6 = Bgra32.FromRgba32(s6);
+            Unsafe.Add(ref d6, 1) = Bgra32.FromRgba32(s7);
         }
     }
 
@@ -352,10 +346,6 @@ public class PixelConversion_Rgba32_To_Bgra32
 
     public static class FromRgba32
     {
-        /// <summary>
-        /// Converts a packed <see cref="Rgba32"/> to <see cref="Argb32"/>.
-        /// </summary>
-        /// <returns>The argb value.</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
         public static uint ToArgb32(uint packedRgba)
         {
@@ -364,10 +354,6 @@ public class PixelConversion_Rgba32_To_Bgra32
             return (packedRgba << 8) | (packedRgba >> 24);
         }
 
-        /// <summary>
-        /// Converts a packed <see cref="Rgba32"/> to <see cref="Bgra32"/>.
-        /// </summary>
-        /// <returns>The bgra value.</returns>
         [MethodImpl(InliningOptions.ShortMethod)]
         public static uint ToBgra32(uint packedRgba)
         {

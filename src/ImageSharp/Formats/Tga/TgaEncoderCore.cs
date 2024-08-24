@@ -3,9 +3,6 @@
 
 using System.Buffers;
 using System.Buffers.Binary;
-using System.Numerics;
-using System.Runtime.CompilerServices;
-using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
@@ -15,7 +12,7 @@ namespace SixLabors.ImageSharp.Formats.Tga;
 /// <summary>
 /// Image encoder for writing an image to a stream as a truevision targa image.
 /// </summary>
-internal sealed class TgaEncoderCore : IImageEncoderInternals
+internal sealed class TgaEncoderCore
 {
     /// <summary>
     /// Used for allocating memory during processing operations.
@@ -62,7 +59,7 @@ internal sealed class TgaEncoderCore : IImageEncoderInternals
         this.bitsPerPixel ??= tgaMetadata.BitsPerPixel;
 
         TgaImageType imageType = this.compression is TgaCompression.RunLength ? TgaImageType.RleTrueColor : TgaImageType.TrueColor;
-        if (this.bitsPerPixel == TgaBitsPerPixel.Pixel8)
+        if (this.bitsPerPixel == TgaBitsPerPixel.Bit8)
         {
             imageType = this.compression is TgaCompression.RunLength ? TgaImageType.RleBlackAndWhite : TgaImageType.BlackAndWhite;
         }
@@ -74,13 +71,13 @@ internal sealed class TgaEncoderCore : IImageEncoderInternals
             imageDescriptor |= 0x20;
         }
 
-        if (this.bitsPerPixel is TgaBitsPerPixel.Pixel32)
+        if (this.bitsPerPixel is TgaBitsPerPixel.Bit32)
         {
             // Indicate, that 8 bit are used for the alpha channel.
             imageDescriptor |= 0x8;
         }
 
-        if (this.bitsPerPixel is TgaBitsPerPixel.Pixel16)
+        if (this.bitsPerPixel is TgaBitsPerPixel.Bit16)
         {
             // Indicate, that 1 bit is used for the alpha channel.
             imageDescriptor |= 0x1;
@@ -108,11 +105,11 @@ internal sealed class TgaEncoderCore : IImageEncoderInternals
         stream.Write(buffer, 0, TgaFileHeader.Size);
         if (this.compression is TgaCompression.RunLength)
         {
-            this.WriteRunLengthEncodedImage(stream, image.Frames.RootFrame);
+            this.WriteRunLengthEncodedImage(stream, image.Frames.RootFrame, cancellationToken);
         }
         else
         {
-            this.WriteImage(image.GetConfiguration(), stream, image.Frames.RootFrame);
+            this.WriteImage(image.Configuration, stream, image.Frames.RootFrame, cancellationToken);
         }
 
         stream.Flush();
@@ -124,29 +121,28 @@ internal sealed class TgaEncoderCore : IImageEncoderInternals
     /// <typeparam name="TPixel">The pixel format.</typeparam>
     /// <param name="configuration">The global configuration.</param>
     /// <param name="stream">The <see cref="Stream"/> to write to.</param>
-    /// <param name="image">
-    /// The <see cref="ImageFrame{TPixel}"/> containing pixel data.
-    /// </param>
-    private void WriteImage<TPixel>(Configuration configuration, Stream stream, ImageFrame<TPixel> image)
+    /// <param name="image">    /// The <see cref="ImageFrame{TPixel}"/> containing pixel data.</param>
+    /// <param name="cancellationToken">The token to request cancellation.</param>
+    private void WriteImage<TPixel>(Configuration configuration, Stream stream, ImageFrame<TPixel> image, CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         Buffer2D<TPixel> pixels = image.PixelBuffer;
         switch (this.bitsPerPixel)
         {
-            case TgaBitsPerPixel.Pixel8:
-                this.Write8Bit(configuration, stream, pixels);
+            case TgaBitsPerPixel.Bit8:
+                this.Write8Bit(configuration, stream, pixels, cancellationToken);
                 break;
 
-            case TgaBitsPerPixel.Pixel16:
-                this.Write16Bit(configuration, stream, pixels);
+            case TgaBitsPerPixel.Bit16:
+                this.Write16Bit(configuration, stream, pixels, cancellationToken);
                 break;
 
-            case TgaBitsPerPixel.Pixel24:
-                this.Write24Bit(configuration, stream, pixels);
+            case TgaBitsPerPixel.Bit24:
+                this.Write24Bit(configuration, stream, pixels, cancellationToken);
                 break;
 
-            case TgaBitsPerPixel.Pixel32:
-                this.Write32Bit(configuration, stream, pixels);
+            case TgaBitsPerPixel.Bit32:
+                this.Write32Bit(configuration, stream, pixels, cancellationToken);
                 break;
         }
     }
@@ -157,25 +153,33 @@ internal sealed class TgaEncoderCore : IImageEncoderInternals
     /// <typeparam name="TPixel">The pixel type.</typeparam>
     /// <param name="stream">The stream to write the image to.</param>
     /// <param name="image">The image to encode.</param>
-    private void WriteRunLengthEncodedImage<TPixel>(Stream stream, ImageFrame<TPixel> image)
+    /// <param name="cancellationToken">The token to request cancellation.</param>
+    private void WriteRunLengthEncodedImage<TPixel>(Stream stream, ImageFrame<TPixel> image, CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        Rgba32 color = default;
         Buffer2D<TPixel> pixels = image.PixelBuffer;
+
+        using IMemoryOwner<Rgba32> rgbaOwner = this.memoryAllocator.Allocate<Rgba32>(image.Width);
+        Span<Rgba32> rgbaRow = rgbaOwner.GetSpan();
+
         for (int y = 0; y < image.Height; y++)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             Span<TPixel> pixelRow = pixels.DangerousGetRowSpan(y);
+            PixelOperations<TPixel>.Instance.ToRgba32(image.Configuration, pixelRow, rgbaRow);
+
             for (int x = 0; x < image.Width;)
             {
                 TPixel currentPixel = pixelRow[x];
-                currentPixel.ToRgba32(ref color);
+                Rgba32 rgba = rgbaRow[x];
                 byte equalPixelCount = FindEqualPixels(pixelRow, x);
 
                 if (equalPixelCount > 0)
                 {
-                    // Write the number of equal pixels, with the high bit set, indicating ist a compressed pixel run.
+                    // Write the number of equal pixels, with the high bit set, indicating it's a compressed pixel run.
                     stream.WriteByte((byte)(equalPixelCount | 128));
-                    this.WritePixel(stream, currentPixel, color);
+                    this.WritePixel(stream, rgba);
                     x += equalPixelCount + 1;
                 }
                 else
@@ -183,13 +187,13 @@ internal sealed class TgaEncoderCore : IImageEncoderInternals
                     // Write Raw Packet (i.e., Non-Run-Length Encoded):
                     byte unEqualPixelCount = FindUnEqualPixels(pixelRow, x);
                     stream.WriteByte(unEqualPixelCount);
-                    this.WritePixel(stream, currentPixel, color);
+                    this.WritePixel(stream, rgba);
                     x++;
                     for (int i = 0; i < unEqualPixelCount; i++)
                     {
                         currentPixel = pixelRow[x];
-                        currentPixel.ToRgba32(ref color);
-                        this.WritePixel(stream, currentPixel, color);
+                        rgba = rgbaRow[x];
+                        this.WritePixel(stream, rgba);
                         x++;
                     }
                 }
@@ -200,22 +204,19 @@ internal sealed class TgaEncoderCore : IImageEncoderInternals
     /// <summary>
     /// Writes a the pixel to the stream.
     /// </summary>
-    /// <typeparam name="TPixel">The type of the pixel.</typeparam>
     /// <param name="stream">The stream to write to.</param>
-    /// <param name="currentPixel">The current pixel.</param>
     /// <param name="color">The color of the pixel to write.</param>
-    private void WritePixel<TPixel>(Stream stream, TPixel currentPixel, Rgba32 color)
-        where TPixel : unmanaged, IPixel<TPixel>
+    private void WritePixel(Stream stream, Rgba32 color)
     {
         switch (this.bitsPerPixel)
         {
-            case TgaBitsPerPixel.Pixel8:
-                int luminance = GetLuminance(currentPixel);
-                stream.WriteByte((byte)luminance);
+            case TgaBitsPerPixel.Bit8:
+                L8 l8 = L8.FromRgba32(color);
+                stream.WriteByte(l8.PackedValue);
                 break;
 
-            case TgaBitsPerPixel.Pixel16:
-                Bgra5551 bgra5551 = new(color.ToVector4());
+            case TgaBitsPerPixel.Bit16:
+                Bgra5551 bgra5551 = Bgra5551.FromRgba32(color);
                 Span<byte> buffer = stackalloc byte[2];
                 BinaryPrimitives.WriteInt16LittleEndian(buffer, (short)bgra5551.PackedValue);
                 stream.WriteByte(buffer[0]);
@@ -223,13 +224,13 @@ internal sealed class TgaEncoderCore : IImageEncoderInternals
 
                 break;
 
-            case TgaBitsPerPixel.Pixel24:
+            case TgaBitsPerPixel.Bit24:
                 stream.WriteByte(color.B);
                 stream.WriteByte(color.G);
                 stream.WriteByte(color.R);
                 break;
 
-            case TgaBitsPerPixel.Pixel32:
+            case TgaBitsPerPixel.Bit32:
                 stream.WriteByte(color.B);
                 stream.WriteByte(color.G);
                 stream.WriteByte(color.R);
@@ -314,7 +315,8 @@ internal sealed class TgaEncoderCore : IImageEncoderInternals
     /// <param name="configuration">The global configuration.</param>
     /// <param name="stream">The <see cref="Stream"/> to write to.</param>
     /// <param name="pixels">The <see cref="Buffer2D{TPixel}"/> containing pixel data.</param>
-    private void Write8Bit<TPixel>(Configuration configuration, Stream stream, Buffer2D<TPixel> pixels)
+    /// <param name="cancellationToken">The token to request cancellation.</param>
+    private void Write8Bit<TPixel>(Configuration configuration, Stream stream, Buffer2D<TPixel> pixels, CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         using IMemoryOwner<byte> row = this.AllocateRow(pixels.Width, 1);
@@ -322,6 +324,8 @@ internal sealed class TgaEncoderCore : IImageEncoderInternals
 
         for (int y = pixels.Height - 1; y >= 0; y--)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             Span<TPixel> pixelSpan = pixels.DangerousGetRowSpan(y);
             PixelOperations<TPixel>.Instance.ToL8Bytes(
                 configuration,
@@ -339,7 +343,8 @@ internal sealed class TgaEncoderCore : IImageEncoderInternals
     /// <param name="configuration">The global configuration.</param>
     /// <param name="stream">The <see cref="Stream"/> to write to.</param>
     /// <param name="pixels">The <see cref="Buffer2D{TPixel}"/> containing pixel data.</param>
-    private void Write16Bit<TPixel>(Configuration configuration, Stream stream, Buffer2D<TPixel> pixels)
+    /// <param name="cancellationToken">The token to request cancellation.</param>
+    private void Write16Bit<TPixel>(Configuration configuration, Stream stream, Buffer2D<TPixel> pixels, CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         using IMemoryOwner<byte> row = this.AllocateRow(pixels.Width, 2);
@@ -347,6 +352,8 @@ internal sealed class TgaEncoderCore : IImageEncoderInternals
 
         for (int y = pixels.Height - 1; y >= 0; y--)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             Span<TPixel> pixelSpan = pixels.DangerousGetRowSpan(y);
             PixelOperations<TPixel>.Instance.ToBgra5551Bytes(
                 configuration,
@@ -364,7 +371,8 @@ internal sealed class TgaEncoderCore : IImageEncoderInternals
     /// <param name="configuration">The global configuration.</param>
     /// <param name="stream">The <see cref="Stream"/> to write to.</param>
     /// <param name="pixels">The <see cref="Buffer2D{TPixel}"/> containing pixel data.</param>
-    private void Write24Bit<TPixel>(Configuration configuration, Stream stream, Buffer2D<TPixel> pixels)
+    /// <param name="cancellationToken">The token to request cancellation.</param>
+    private void Write24Bit<TPixel>(Configuration configuration, Stream stream, Buffer2D<TPixel> pixels, CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         using IMemoryOwner<byte> row = this.AllocateRow(pixels.Width, 3);
@@ -372,6 +380,8 @@ internal sealed class TgaEncoderCore : IImageEncoderInternals
 
         for (int y = pixels.Height - 1; y >= 0; y--)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             Span<TPixel> pixelSpan = pixels.DangerousGetRowSpan(y);
             PixelOperations<TPixel>.Instance.ToBgr24Bytes(
                 configuration,
@@ -389,7 +399,8 @@ internal sealed class TgaEncoderCore : IImageEncoderInternals
     /// <param name="configuration">The global configuration.</param>
     /// <param name="stream">The <see cref="Stream"/> to write to.</param>
     /// <param name="pixels">The <see cref="Buffer2D{TPixel}"/> containing pixel data.</param>
-    private void Write32Bit<TPixel>(Configuration configuration, Stream stream, Buffer2D<TPixel> pixels)
+    /// <param name="cancellationToken">The token to request cancellation.</param>
+    private void Write32Bit<TPixel>(Configuration configuration, Stream stream, Buffer2D<TPixel> pixels, CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         using IMemoryOwner<byte> row = this.AllocateRow(pixels.Width, 4);
@@ -397,6 +408,8 @@ internal sealed class TgaEncoderCore : IImageEncoderInternals
 
         for (int y = pixels.Height - 1; y >= 0; y--)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             Span<TPixel> pixelSpan = pixels.DangerousGetRowSpan(y);
             PixelOperations<TPixel>.Instance.ToBgra32Bytes(
                 configuration,
@@ -405,18 +418,5 @@ internal sealed class TgaEncoderCore : IImageEncoderInternals
                 pixelSpan.Length);
             stream.Write(rowSpan);
         }
-    }
-
-    /// <summary>
-    /// Convert the pixel values to grayscale using ITU-R Recommendation BT.709.
-    /// </summary>
-    /// <typeparam name="TPixel">The type of pixel format.</typeparam>
-    /// <param name="sourcePixel">The pixel to get the luminance from.</param>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public static int GetLuminance<TPixel>(TPixel sourcePixel)
-        where TPixel : unmanaged, IPixel<TPixel>
-    {
-        Vector4 vector = sourcePixel.ToVector4();
-        return ColorNumerics.GetBT709Luminance(ref vector, 256);
     }
 }

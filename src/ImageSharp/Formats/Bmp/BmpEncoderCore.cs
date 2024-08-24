@@ -4,7 +4,6 @@
 using System.Buffers;
 using System.Buffers.Binary;
 using System.Runtime.InteropServices;
-using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
@@ -17,7 +16,7 @@ namespace SixLabors.ImageSharp.Formats.Bmp;
 /// <summary>
 /// Image encoder for writing an image to a stream as a Windows bitmap.
 /// </summary>
-internal sealed class BmpEncoderCore : IImageEncoderInternals
+internal sealed class BmpEncoderCore
 {
     /// <summary>
     /// The amount to pad each row by.
@@ -92,6 +91,15 @@ internal sealed class BmpEncoderCore : IImageEncoderInternals
     /// </summary>
     private readonly IPixelSamplingStrategy pixelSamplingStrategy;
 
+    /// <inheritdoc cref="BmpDecoderOptions.ProcessedAlphaMask"/>
+    private readonly bool processedAlphaMask;
+
+    /// <inheritdoc cref="BmpDecoderOptions.SkipFileHeader"/>
+    private readonly bool skipFileHeader;
+
+    /// <inheritdoc cref="BmpDecoderOptions.UseDoubleHeight"/>
+    private readonly bool isDoubleHeight;
+
     /// <summary>
     /// Initializes a new instance of the <see cref="BmpEncoderCore"/> class.
     /// </summary>
@@ -101,9 +109,14 @@ internal sealed class BmpEncoderCore : IImageEncoderInternals
     {
         this.memoryAllocator = memoryAllocator;
         this.bitsPerPixel = encoder.BitsPerPixel;
+
+        // TODO: Use a palette quantizer if supplied.
         this.quantizer = encoder.Quantizer ?? KnownQuantizers.Octree;
         this.pixelSamplingStrategy = encoder.PixelSamplingStrategy;
         this.infoHeaderType = encoder.SupportTransparency ? BmpInfoHeaderType.WinVersion4 : BmpInfoHeaderType.WinVersion3;
+        this.processedAlphaMask = encoder.ProcessedAlphaMask;
+        this.skipFileHeader = encoder.SkipFileHeader;
+        this.isDoubleHeight = encoder.UseDoubleHeight;
     }
 
     /// <summary>
@@ -119,7 +132,10 @@ internal sealed class BmpEncoderCore : IImageEncoderInternals
         Guard.NotNull(image, nameof(image));
         Guard.NotNull(stream, nameof(stream));
 
-        Configuration configuration = image.GetConfiguration();
+        // Stream may not at 0.
+        long basePosition = stream.Position;
+
+        Configuration configuration = image.Configuration;
         ImageMetadata metadata = image.Metadata;
         BmpMetadata bmpMetadata = metadata.GetBmpMetadata();
         this.bitsPerPixel ??= bmpMetadata.BitsPerPixel;
@@ -130,10 +146,10 @@ internal sealed class BmpEncoderCore : IImageEncoderInternals
 
         int colorPaletteSize = this.bitsPerPixel switch
         {
-            BmpBitsPerPixel.Pixel8 => ColorPaletteSize8Bit,
-            BmpBitsPerPixel.Pixel4 => ColorPaletteSize4Bit,
-            BmpBitsPerPixel.Pixel2 => ColorPaletteSize2Bit,
-            BmpBitsPerPixel.Pixel1 => ColorPaletteSize1Bit,
+            BmpBitsPerPixel.Bit8 => ColorPaletteSize8Bit,
+            BmpBitsPerPixel.Bit4 => ColorPaletteSize4Bit,
+            BmpBitsPerPixel.Bit2 => ColorPaletteSize2Bit,
+            BmpBitsPerPixel.Bit1 => ColorPaletteSize1Bit,
             _ => 0
         };
 
@@ -154,14 +170,26 @@ internal sealed class BmpEncoderCore : IImageEncoderInternals
             _ => BmpInfoHeader.SizeV3
         };
 
-        BmpInfoHeader infoHeader = this.CreateBmpInfoHeader(image.Width, image.Height, infoHeaderSize, bpp, bytesPerLine, metadata, iccProfileData);
+        // for ico/cur encoder.
+        int height = image.Height;
+        if (this.isDoubleHeight)
+        {
+            height <<= 1;
+        }
+
+        BmpInfoHeader infoHeader = this.CreateBmpInfoHeader(image.Width, height, infoHeaderSize, bpp, bytesPerLine, metadata, iccProfileData);
 
         Span<byte> buffer = stackalloc byte[infoHeaderSize];
 
-        WriteBitmapFileHeader(stream, infoHeaderSize, colorPaletteSize, iccProfileSize, infoHeader, buffer);
+        // for ico/cur encoder.
+        if (!this.skipFileHeader)
+        {
+            WriteBitmapFileHeader(stream, infoHeaderSize, colorPaletteSize, iccProfileSize, infoHeader, buffer);
+        }
+
         this.WriteBitmapInfoHeader(stream, infoHeader, buffer, infoHeaderSize);
         this.WriteImage(configuration, stream, image);
-        WriteColorProfile(stream, iccProfileData, buffer);
+        WriteColorProfile(stream, iccProfileData, buffer, basePosition);
 
         stream.Flush();
     }
@@ -220,7 +248,7 @@ internal sealed class BmpEncoderCore : IImageEncoderInternals
             clrUsed: 0,
             clrImportant: 0);
 
-        if ((this.infoHeaderType is BmpInfoHeaderType.WinVersion4 or BmpInfoHeaderType.WinVersion5) && this.bitsPerPixel == BmpBitsPerPixel.Pixel32)
+        if ((this.infoHeaderType is BmpInfoHeaderType.WinVersion4 or BmpInfoHeaderType.WinVersion5) && this.bitsPerPixel == BmpBitsPerPixel.Bit32)
         {
             infoHeader.AlphaMask = Rgba32AlphaMask;
             infoHeader.RedMask = Rgba32RedMask;
@@ -245,16 +273,20 @@ internal sealed class BmpEncoderCore : IImageEncoderInternals
     /// <param name="stream">The stream to write to.</param>
     /// <param name="iccProfileData">The color profile data.</param>
     /// <param name="buffer">The buffer.</param>
-    private static void WriteColorProfile(Stream stream, byte[]? iccProfileData, Span<byte> buffer)
+    /// <param name="basePosition">The Stream may not be start with 0.</param>
+    private static void WriteColorProfile(Stream stream, byte[]? iccProfileData, Span<byte> buffer, long basePosition)
     {
         if (iccProfileData != null)
         {
             // The offset, in bytes, from the beginning of the BITMAPV5HEADER structure to the start of the profile data.
             int streamPositionAfterImageData = (int)stream.Position - BmpFileHeader.Size;
             stream.Write(iccProfileData);
+            long position = stream.Position; // Storage Position
             BinaryPrimitives.WriteInt32LittleEndian(buffer, streamPositionAfterImageData);
-            stream.Position = BmpFileHeader.Size + 112;
+            _ = stream.Seek(basePosition, SeekOrigin.Begin);
+            _ = stream.Seek(BmpFileHeader.Size + 112, SeekOrigin.Current);
             stream.Write(buffer[..4]);
+            _ = stream.Seek(position, SeekOrigin.Begin); // Reset Position
         }
     }
 
@@ -319,33 +351,38 @@ internal sealed class BmpEncoderCore : IImageEncoderInternals
         Buffer2D<TPixel> pixels = image.Frames.RootFrame.PixelBuffer;
         switch (this.bitsPerPixel)
         {
-            case BmpBitsPerPixel.Pixel32:
+            case BmpBitsPerPixel.Bit32:
                 this.Write32BitPixelData(configuration, stream, pixels);
                 break;
 
-            case BmpBitsPerPixel.Pixel24:
+            case BmpBitsPerPixel.Bit24:
                 this.Write24BitPixelData(configuration, stream, pixels);
                 break;
 
-            case BmpBitsPerPixel.Pixel16:
+            case BmpBitsPerPixel.Bit16:
                 this.Write16BitPixelData(configuration, stream, pixels);
                 break;
 
-            case BmpBitsPerPixel.Pixel8:
+            case BmpBitsPerPixel.Bit8:
                 this.Write8BitPixelData(configuration, stream, image);
                 break;
 
-            case BmpBitsPerPixel.Pixel4:
+            case BmpBitsPerPixel.Bit4:
                 this.Write4BitPixelData(configuration, stream, image);
                 break;
 
-            case BmpBitsPerPixel.Pixel2:
+            case BmpBitsPerPixel.Bit2:
                 this.Write2BitPixelData(configuration, stream, image);
                 break;
 
-            case BmpBitsPerPixel.Pixel1:
+            case BmpBitsPerPixel.Bit1:
                 this.Write1BitPixelData(configuration, stream, image);
                 break;
+        }
+
+        if (this.processedAlphaMask)
+        {
+            ProcessedAlphaMask(stream, image);
         }
     }
 
@@ -721,5 +758,46 @@ internal sealed class BmpEncoderCore : IImageEncoderInternals
         }
 
         stream.WriteByte(indices);
+    }
+
+    private static void ProcessedAlphaMask<TPixel>(Stream stream, Image<TPixel> image)
+         where TPixel : unmanaged, IPixel<TPixel>
+    {
+        int arrayWidth = image.Width / 8;
+        int padding = arrayWidth % 4;
+        if (padding is not 0)
+        {
+            padding = 4 - padding;
+        }
+
+        Span<byte> mask = stackalloc byte[arrayWidth];
+        for (int y = image.Height - 1; y >= 0; y--)
+        {
+            mask.Clear();
+            Span<TPixel> row = image.GetRootFramePixelBuffer().DangerousGetRowSpan(y);
+
+            for (int i = 0; i < arrayWidth; i++)
+            {
+                int x = i * 8;
+
+                for (int j = 0; j < 8; j++)
+                {
+                    WriteAlphaMask(row[x + j], ref mask[i], j);
+                }
+            }
+
+            stream.Write(mask);
+            stream.Skip(padding);
+        }
+    }
+
+    private static void WriteAlphaMask<TPixel>(in TPixel pixel, ref byte mask, in int index)
+         where TPixel : unmanaged, IPixel<TPixel>
+    {
+        Rgba32 rgba = pixel.ToRgba32();
+        if (rgba.A is 0)
+        {
+            mask |= unchecked((byte)(0b10000000 >> index));
+        }
     }
 }

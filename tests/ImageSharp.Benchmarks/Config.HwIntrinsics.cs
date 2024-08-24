@@ -56,7 +56,7 @@ public partial class Config
     {
         public HwIntrinsics_SSE_AVX()
         {
-            this.AddJob(Job.Default.WithRuntime(CoreRuntime.Core60)
+            this.AddJob(Job.Default.WithRuntime(CoreRuntime.Core80)
                 .WithEnvironmentVariables(
                     new EnvironmentVariable(EnableHWIntrinsic, Off),
                     new EnvironmentVariable(FeatureSIMD, Off))
@@ -64,14 +64,14 @@ public partial class Config
 
             if (Sse.IsSupported)
             {
-                this.AddJob(Job.Default.WithRuntime(CoreRuntime.Core60)
+                this.AddJob(Job.Default.WithRuntime(CoreRuntime.Core80)
                     .WithEnvironmentVariables(new EnvironmentVariable(EnableAVX, Off))
                     .WithId("2. SSE"));
             }
 
             if (Avx.IsSupported)
             {
-                this.AddJob(Job.Default.WithRuntime(CoreRuntime.Core60)
+                this.AddJob(Job.Default.WithRuntime(CoreRuntime.Core80)
                     .WithId("3. AVX"));
             }
         }

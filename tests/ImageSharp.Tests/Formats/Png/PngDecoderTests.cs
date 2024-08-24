@@ -7,7 +7,6 @@ using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing.Processors.Quantization;
 using SixLabors.ImageSharp.Tests.TestUtilities;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs;
@@ -79,6 +78,20 @@ public partial class PngDecoderTests
         { TestImages.Png.Rgba64Bpp, typeof(Image<Rgba64>) },
     };
 
+    public static readonly string[] MultiFrameTestFiles =
+    {
+        TestImages.Png.APng,
+        TestImages.Png.SplitIDatZeroLength,
+        TestImages.Png.DisposeNone,
+        TestImages.Png.DisposeBackground,
+        TestImages.Png.DisposeBackgroundRegion,
+        TestImages.Png.DisposePreviousFirst,
+        TestImages.Png.DisposeBackgroundBeforeRegion,
+        TestImages.Png.BlendOverMultiple,
+        TestImages.Png.FrameOffset,
+        TestImages.Png.DefaultNotAnimated
+    };
+
     [Theory]
     [MemberData(nameof(PixelFormatRange))]
     public void Decode_NonGeneric_CreatesCorrectImageType(string path, Type type)
@@ -105,6 +118,19 @@ public partial class PngDecoderTests
         using Image<TPixel> image = provider.GetImage(PngDecoder.Instance);
         image.DebugSave(provider);
         image.CompareToOriginal(provider, ImageComparer.Exact);
+    }
+
+    [Theory]
+    [WithFileCollection(nameof(MultiFrameTestFiles), PixelTypes.Rgba32)]
+    public void Decode_VerifyAllFrames<TPixel>(TestImageProvider<TPixel> provider)
+    where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage(PngDecoder.Instance);
+
+        // Some images have many frames, only compare a selection of them.
+        static bool Predicate(int i, int _) => i <= 8 || i % 8 == 0;
+        image.DebugSaveMultiFrame(provider, predicate: Predicate);
+        image.CompareToReferenceOutputMultiFrame(provider, ImageComparer.Exact, predicate: Predicate);
     }
 
     [Theory]
@@ -356,6 +382,20 @@ public partial class PngDecoderTests
     }
 
     [Theory]
+    [InlineData(TestImages.Png.Bad.WrongCrcDataChunk, 1)]
+    [InlineData(TestImages.Png.Bad.Issue2589, 24)]
+    public void Identify_IgnoreCrcErrors(string imagePath, int expectedPixelSize)
+    {
+        TestFile testFile = TestFile.Create(imagePath);
+        using MemoryStream stream = new(testFile.Bytes, false);
+
+        ImageInfo imageInfo = Image.Identify(new DecoderOptions() { SegmentIntegrityHandling = SegmentIntegrityHandling.IgnoreData }, stream);
+
+        Assert.NotNull(imageInfo);
+        Assert.Equal(expectedPixelSize, imageInfo.PixelType.BitsPerPixel);
+    }
+
+    [Theory]
     [WithFile(TestImages.Png.Bad.MissingDataChunk, PixelTypes.Rgba32)]
     public void Decode_MissingDataChunk_ThrowsException<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
@@ -446,6 +486,23 @@ public partial class PngDecoderTests
         Assert.Contains("CRC Error. PNG IDAT chunk is corrupt!", ex.Message);
     }
 
+    // https://github.com/SixLabors/ImageSharp/pull/2589
+    [Theory]
+    [WithFile(TestImages.Png.Bad.WrongCrcDataChunk, PixelTypes.Rgba32, true)]
+    [WithFile(TestImages.Png.Bad.Issue2589, PixelTypes.Rgba32, false)]
+    public void Decode_InvalidDataChunkCrc_IgnoreCrcErrors<TPixel>(TestImageProvider<TPixel> provider, bool compare)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage(PngDecoder.Instance, new DecoderOptions() { SegmentIntegrityHandling = SegmentIntegrityHandling.IgnoreData });
+
+        image.DebugSave(provider);
+        if (compare)
+        {
+            // Magick cannot actually decode this image to compare.
+            image.CompareToOriginal(provider, new MagickReferenceDecoder(PngFormat.Instance, false));
+        }
+    }
+
     // https://github.com/SixLabors/ImageSharp/issues/1014
     [Theory]
     [WithFileCollection(nameof(TestImagesIssue1014), PixelTypes.Rgba32)]
@@ -509,7 +566,7 @@ public partial class PngDecoderTests
                 // We don't have another x-plat reference decoder that can be compared for this image.
                 if (TestEnvironment.IsWindows)
                 {
-                    image.CompareToOriginal(provider, ImageComparer.Exact, SystemDrawingReferenceDecoder.Instance);
+                    image.CompareToOriginal(provider, ImageComparer.Exact, SystemDrawingReferenceDecoder.Png);
                 }
             });
         Assert.Null(ex);
@@ -539,7 +596,8 @@ public partial class PngDecoderTests
     {
         using Image<TPixel> image = provider.GetImage(PngDecoder.Instance);
         PngMetadata metadata = image.Metadata.GetPngMetadata();
-        Assert.True(metadata.HasTransparency);
+        Assert.NotNull(metadata.ColorTable);
+        Assert.Contains(metadata.ColorTable.Value.ToArray(), x => x.ToPixel<Rgba32>().A < 255);
     }
 
     // https://github.com/SixLabors/ImageSharp/issues/2209
@@ -551,7 +609,8 @@ public partial class PngDecoderTests
         using MemoryStream stream = new(testFile.Bytes, false);
         ImageInfo imageInfo = Image.Identify(stream);
         PngMetadata metadata = imageInfo.Metadata.GetPngMetadata();
-        Assert.True(metadata.HasTransparency);
+        Assert.NotNull(metadata.ColorTable);
+        Assert.Contains(metadata.ColorTable.Value.ToArray(), x => x.ToPixel<Rgba32>().A < 255);
     }
 
     // https://github.com/SixLabors/ImageSharp/issues/410
@@ -569,7 +628,7 @@ public partial class PngDecoderTests
                 // We don't have another x-plat reference decoder that can be compared for this image.
                 if (TestEnvironment.IsWindows)
                 {
-                    image.CompareToOriginal(provider, ImageComparer.Exact, SystemDrawingReferenceDecoder.Instance);
+                    image.CompareToOriginal(provider, ImageComparer.Exact, SystemDrawingReferenceDecoder.Png);
                 }
             });
         Assert.NotNull(ex);
@@ -609,5 +668,61 @@ public partial class PngDecoderTests
                 providerDump,
                 "Disco")
             .Dispose();
+    }
+
+    [Fact]
+    public void Binary_PrematureEof()
+    {
+        PngDecoder decoder = PngDecoder.Instance;
+        PngDecoderOptions options = new() { GeneralOptions = new() { SegmentIntegrityHandling = SegmentIntegrityHandling.IgnoreData } };
+        using EofHitCounter eofHitCounter = EofHitCounter.RunDecoder(TestImages.Png.Bad.FlagOfGermany0000016446, decoder, options);
+
+        // TODO: Try to reduce this to 1.
+        Assert.True(eofHitCounter.EofHitCount <= 3);
+        Assert.Equal(new Size(200, 120), eofHitCounter.Image.Size);
+    }
+
+    [Fact]
+    public void Decode_Issue2666()
+    {
+        string path = Path.GetFullPath(Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, TestImages.Png.Issue2666));
+        using Image image = Image.Load(path);
+    }
+
+    [Theory]
+
+    [InlineData(TestImages.Png.Bad.BadZTXT)]
+    [InlineData(TestImages.Png.Bad.BadZTXT2)]
+    public void Decode_BadZTXT(string file)
+    {
+        string path = Path.GetFullPath(Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, file));
+        using Image image = Image.Load(path);
+    }
+
+    [Theory]
+    [InlineData(TestImages.Png.Bad.BadZTXT)]
+    [InlineData(TestImages.Png.Bad.BadZTXT2)]
+    public void Info_BadZTXT(string file)
+    {
+        string path = Path.GetFullPath(Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, file));
+        _ = Image.Identify(path);
+    }
+
+    [Theory]
+    [InlineData(TestImages.Png.Bad.Issue2714BadPalette)]
+    public void Decode_BadPalette(string file)
+    {
+        string path = Path.GetFullPath(Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, file));
+        using Image image = Image.Load(path);
+    }
+
+    [Theory]
+    [WithFile(TestImages.Png.Issue2752, PixelTypes.Rgba32)]
+    public void CanDecodeJustOneFrame<TPixel>(TestImageProvider<TPixel> provider)
+    where TPixel : unmanaged, IPixel<TPixel>
+    {
+        DecoderOptions options = new() { MaxFrames = 1 };
+        using Image<TPixel> image = provider.GetImage(PngDecoder.Instance, options);
+        Assert.Equal(1, image.Frames.Count);
     }
 }

@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Numerics;
 using SixLabors.ImageSharp.Formats.Tiff.Utils;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
@@ -11,6 +10,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation;
 /// <summary>
 /// Implements the 'RGB' photometric interpretation with 24 bits for each channel.
 /// </summary>
+/// <typeparam name="TPixel">The type of pixel format.</typeparam>
 internal class Rgb242424TiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
     where TPixel : unmanaged, IPixel<TPixel>
 {
@@ -25,8 +25,6 @@ internal class Rgb242424TiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
     /// <inheritdoc/>
     public override void Decode(ReadOnlySpan<byte> data, Buffer2D<TPixel> pixels, int left, int top, int width, int height)
     {
-        var color = default(TPixel);
-        color.FromScaledVector4(Vector4.Zero);
         int offset = 0;
         Span<byte> buffer = stackalloc byte[4];
         int bufferStartIdx = this.isBigEndian ? 1 : 0;
@@ -41,18 +39,18 @@ internal class Rgb242424TiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
                 for (int x = 0; x < pixelRow.Length; x++)
                 {
                     data.Slice(offset, 3).CopyTo(bufferSpan);
-                    ulong r = TiffUtils.ConvertToUIntBigEndian(buffer);
+                    uint r = TiffUtilities.ConvertToUIntBigEndian(buffer);
                     offset += 3;
 
                     data.Slice(offset, 3).CopyTo(bufferSpan);
-                    ulong g = TiffUtils.ConvertToUIntBigEndian(buffer);
+                    uint g = TiffUtilities.ConvertToUIntBigEndian(buffer);
                     offset += 3;
 
                     data.Slice(offset, 3).CopyTo(bufferSpan);
-                    ulong b = TiffUtils.ConvertToUIntBigEndian(buffer);
+                    uint b = TiffUtilities.ConvertToUIntBigEndian(buffer);
                     offset += 3;
 
-                    pixelRow[x] = TiffUtils.ColorScaleTo24Bit(r, g, b, color);
+                    pixelRow[x] = TiffUtilities.ColorScaleTo24Bit<TPixel>(r, g, b);
                 }
             }
             else
@@ -60,18 +58,18 @@ internal class Rgb242424TiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
                 for (int x = 0; x < pixelRow.Length; x++)
                 {
                     data.Slice(offset, 3).CopyTo(bufferSpan);
-                    ulong r = TiffUtils.ConvertToUIntLittleEndian(buffer);
+                    uint r = TiffUtilities.ConvertToUIntLittleEndian(buffer);
                     offset += 3;
 
                     data.Slice(offset, 3).CopyTo(bufferSpan);
-                    ulong g = TiffUtils.ConvertToUIntLittleEndian(buffer);
+                    uint g = TiffUtilities.ConvertToUIntLittleEndian(buffer);
                     offset += 3;
 
                     data.Slice(offset, 3).CopyTo(bufferSpan);
-                    ulong b = TiffUtils.ConvertToUIntLittleEndian(buffer);
+                    uint b = TiffUtilities.ConvertToUIntLittleEndian(buffer);
                     offset += 3;
 
-                    pixelRow[x] = TiffUtils.ColorScaleTo24Bit(r, g, b, color);
+                    pixelRow[x] = TiffUtilities.ColorScaleTo24Bit<TPixel>(r, g, b);
                 }
             }
         }

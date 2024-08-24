@@ -38,7 +38,7 @@ internal class EntropyCropProcessor<TPixel> : ImageProcessor<TPixel>
         // All frames have be the same size so we only need to calculate the correct dimensions for the first frame
         using (Image<TPixel> temp = new(this.Configuration, this.Source.Metadata.DeepClone(), new[] { this.Source.Frames.RootFrame.Clone() }))
         {
-            Configuration configuration = this.Source.GetConfiguration();
+            Configuration configuration = this.Source.Configuration;
 
             // Detect the edges.
             new EdgeDetector2DProcessor(KnownEdgeDetectorKernels.Sobel, false).Execute(this.Configuration, temp, this.SourceRectangle);

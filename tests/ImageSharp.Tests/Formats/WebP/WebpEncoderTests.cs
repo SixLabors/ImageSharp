@@ -2,6 +2,9 @@
 // Licensed under the Six Labors Split License.
 
 using System.Runtime.InteropServices;
+using SixLabors.ImageSharp.Formats;
+using SixLabors.ImageSharp.Formats.Gif;
+using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
@@ -18,10 +21,159 @@ public class WebpEncoderTests
     private static string TestImageLossyFullPath => Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, Lossy.NoFilter06);
 
     [Theory]
-    [WithFile(Flag, PixelTypes.Rgba32, WebpFileFormatType.Lossy)] // If its not a webp input image, it should default to lossy.
+    [WithFile(Lossless.Animated, PixelTypes.Rgba32)]
+    public void Encode_AnimatedLossless<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage();
+        WebpEncoder encoder = new()
+        {
+            FileFormat = WebpFileFormatType.Lossless,
+            Quality = 100
+        };
+
+        // Always save as we need to compare the encoded output.
+        provider.Utility.SaveTestOutputFile(image, "webp", encoder);
+
+        // Compare encoded result
+        image.VerifyEncoder(provider, "webp", string.Empty, encoder);
+    }
+
+    [Theory]
+    [WithFile(Lossy.Animated, PixelTypes.Rgba32)]
+    [WithFile(Lossy.AnimatedLandscape, PixelTypes.Rgba32)]
+    public void Encode_AnimatedLossy<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage();
+        WebpEncoder encoder = new()
+        {
+            FileFormat = WebpFileFormatType.Lossy,
+            Quality = 100
+        };
+
+        // Always save as we need to compare the encoded output.
+        provider.Utility.SaveTestOutputFile(image, "webp", encoder);
+
+        // Compare encoded result
+        // The reference decoder seems to produce differences up to 0.1% but the input/output have been
+        // checked to be correct.
+        string path = provider.Utility.GetTestOutputFileName("webp", null, true);
+        using Image<Rgba32> encoded = Image.Load<Rgba32>(path);
+        encoded.CompareToReferenceOutput(ImageComparer.Tolerant(0.01f), provider, null, "webp");
+    }
+
+    [Theory]
+    [WithFile(TestImages.Gif.Leo, PixelTypes.Rgba32)]
+    public void Encode_AnimatedFormatTransform_FromGif<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        if (TestEnvironment.RunsOnCI && !TestEnvironment.IsWindows)
+        {
+            return;
+        }
+
+        using Image<TPixel> image = provider.GetImage(GifDecoder.Instance);
+        using MemoryStream memStream = new();
+
+        image.Save(memStream, new WebpEncoder());
+        memStream.Position = 0;
+
+        using Image<TPixel> output = Image.Load<TPixel>(memStream);
+
+        ImageComparer.Exact.VerifySimilarity(output, image);
+
+        GifMetadata gif = image.Metadata.GetGifMetadata();
+        WebpMetadata webp = output.Metadata.GetWebpMetadata();
+
+        Assert.Equal(gif.RepeatCount, webp.RepeatCount);
+
+        for (int i = 0; i < image.Frames.Count; i++)
+        {
+            GifFrameMetadata gifF = image.Frames[i].Metadata.GetGifMetadata();
+            WebpFrameMetadata webpF = output.Frames[i].Metadata.GetWebpMetadata();
+
+            Assert.Equal(gifF.FrameDelay, (int)(webpF.FrameDelay / 10));
+
+            switch (gifF.DisposalMode)
+            {
+                case FrameDisposalMode.RestoreToBackground:
+                    Assert.Equal(FrameDisposalMode.RestoreToBackground, webpF.DisposalMethod);
+                    break;
+                case FrameDisposalMode.RestoreToPrevious:
+                case FrameDisposalMode.Unspecified:
+                case FrameDisposalMode.DoNotDispose:
+                default:
+                    Assert.Equal(FrameDisposalMode.DoNotDispose, webpF.DisposalMethod);
+                    break;
+            }
+        }
+    }
+
+    [Theory]
+    [WithFile(TestImages.Png.APng, PixelTypes.Rgba32)]
+    public void Encode_AnimatedFormatTransform_FromPng<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        if (TestEnvironment.RunsOnCI && !TestEnvironment.IsWindows)
+        {
+            return;
+        }
+
+        using Image<TPixel> image = provider.GetImage(PngDecoder.Instance);
+
+        using MemoryStream memStream = new();
+        image.Save(memStream, new WebpEncoder());
+        memStream.Position = 0;
+
+        provider.Utility.SaveTestOutputFile(image, "gif", new GifEncoder());
+        provider.Utility.SaveTestOutputFile(image, "png", new PngEncoder());
+        provider.Utility.SaveTestOutputFile(image, "webp", new WebpEncoder());
+
+        using Image<TPixel> output = Image.Load<TPixel>(memStream);
+        ImageComparer.Exact.VerifySimilarity(output, image);
+        PngMetadata png = image.Metadata.GetPngMetadata();
+        WebpMetadata webp = output.Metadata.GetWebpMetadata();
+
+        Assert.Equal(png.RepeatCount, webp.RepeatCount);
+
+        for (int i = 0; i < image.Frames.Count; i++)
+        {
+            PngFrameMetadata pngF = image.Frames[i].Metadata.GetPngMetadata();
+            WebpFrameMetadata webpF = output.Frames[i].Metadata.GetWebpMetadata();
+
+            Assert.Equal((uint)(pngF.FrameDelay.ToDouble() * 1000), webpF.FrameDelay);
+
+            switch (pngF.BlendMode)
+            {
+                case FrameBlendMode.Source:
+                    Assert.Equal(FrameBlendMode.Source, webpF.BlendMethod);
+                    break;
+                case FrameBlendMode.Over:
+                default:
+                    Assert.Equal(FrameBlendMode.Over, webpF.BlendMethod);
+                    break;
+            }
+
+            switch (pngF.DisposalMode)
+            {
+                case FrameDisposalMode.RestoreToBackground:
+                    Assert.Equal(FrameDisposalMode.RestoreToBackground, webpF.DisposalMethod);
+                    break;
+                case FrameDisposalMode.DoNotDispose:
+                default:
+                    Assert.Equal(FrameDisposalMode.DoNotDispose, webpF.DisposalMethod);
+                    break;
+            }
+        }
+    }
+
+    [Theory]
+    [WithFile(TestImages.Jpeg.Baseline.Jpeg410, PixelTypes.Rgba32, WebpFileFormatType.Lossy)] // Input is lossy jpeg.
+    [WithFile(Flag, PixelTypes.Rgba32, WebpFileFormatType.Lossless)] // Input is lossless png.
     [WithFile(Lossless.NoTransform1, PixelTypes.Rgba32, WebpFileFormatType.Lossless)]
     [WithFile(Lossy.BikeWithExif, PixelTypes.Rgba32, WebpFileFormatType.Lossy)]
-    public void Encode_PreserveRatio<TPixel>(TestImageProvider<TPixel> provider, WebpFileFormatType expectedFormat)
+    public void Encode_PreserveEncodingType<TPixel>(TestImageProvider<TPixel> provider, WebpFileFormatType expectedFormat)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         WebpEncoder options = new();
@@ -69,7 +221,7 @@ public class WebpEncoderTests
         };
 
         using Image<TPixel> image = provider.GetImage();
-        string testOutputDetails = string.Concat("lossless", "_q", quality);
+        string testOutputDetails = $"lossless_q{quality}";
         image.VerifyEncoder(provider, "webp", testOutputDetails, encoder);
     }
 
@@ -99,7 +251,7 @@ public class WebpEncoderTests
         };
 
         using Image<TPixel> image = provider.GetImage();
-        string testOutputDetails = string.Concat("lossless", "_m", method, "_q", quality);
+        string testOutputDetails = $"lossless_m{method}_q{quality}";
         image.VerifyEncoder(provider, "webp", testOutputDetails, encoder);
     }
 
@@ -139,7 +291,7 @@ public class WebpEncoderTests
         };
 
         using Image<TPixel> image = provider.GetImage();
-        string testOutputDetails = string.Concat("nearlossless", "_q", nearLosslessQuality);
+        string testOutputDetails = $"nearlossless_q{nearLosslessQuality}";
         image.VerifyEncoder(provider, "webp", testOutputDetails, encoder, customComparer: GetComparer(nearLosslessQuality));
     }
 
@@ -163,7 +315,7 @@ public class WebpEncoderTests
         };
 
         using Image<TPixel> image = provider.GetImage();
-        string testOutputDetails = string.Concat("lossless", "_m", method);
+        string testOutputDetails = $"lossless_m{method}";
         image.VerifyEncoder(provider, "webp", testOutputDetails, encoder);
     }
 
@@ -193,7 +345,7 @@ public class WebpEncoderTests
         };
 
         using Image<TPixel> image = provider.GetImage();
-        string testOutputDetails = string.Concat("lossy", "_q", quality);
+        string testOutputDetails = $"lossy_q{quality}";
         image.VerifyEncoder(provider, "webp", testOutputDetails, encoder, customComparer: GetComparer(quality));
     }
 
@@ -213,7 +365,7 @@ public class WebpEncoderTests
         };
 
         using Image<TPixel> image = provider.GetImage();
-        string testOutputDetails = string.Concat("lossy", "_f", filterStrength);
+        string testOutputDetails = $"lossy_f{filterStrength}";
         image.VerifyEncoder(provider, "webp", testOutputDetails, encoder, customComparer: GetComparer(75));
     }
 
@@ -233,7 +385,7 @@ public class WebpEncoderTests
         };
 
         using Image<TPixel> image = provider.GetImage();
-        string testOutputDetails = string.Concat("lossy", "_sns", snsStrength);
+        string testOutputDetails = $"lossy_sns{snsStrength}";
         image.VerifyEncoder(provider, "webp", testOutputDetails, encoder, customComparer: GetComparer(75));
     }
 
@@ -263,7 +415,7 @@ public class WebpEncoderTests
         };
 
         using Image<TPixel> image = provider.GetImage();
-        string testOutputDetails = string.Concat("lossy", "_m", method, "_q", quality);
+        string testOutputDetails = $"lossy_m{method}_q{quality}";
         image.VerifyEncoder(provider, "webp", testOutputDetails, encoder, customComparer: GetComparer(quality));
     }
 
@@ -289,7 +441,7 @@ public class WebpEncoderTests
             "with_alpha",
             encoder,
             ImageComparer.Tolerant(0.04f),
-            referenceDecoder: new MagickReferenceDecoder());
+            referenceDecoder: MagickReferenceDecoder.WebP);
 
         int encodedBytes = File.ReadAllBytes(encodedFile).Length;
         Assert.True(encodedBytes <= expectedFileSize, $"encoded bytes are {encodedBytes} and should be smaller then expected file size of {expectedFileSize}");
@@ -317,7 +469,7 @@ public class WebpEncoderTests
             "with_alpha_compressed",
             encoder,
             ImageComparer.Tolerant(0.04f),
-            referenceDecoder: new MagickReferenceDecoder());
+            referenceDecoder: MagickReferenceDecoder.WebP);
 
         int encodedBytes = File.ReadAllBytes(encodedFile).Length;
         Assert.True(encodedBytes <= expectedFileSize, $"encoded bytes are {encodedBytes} and should be smaller then expected file size of {expectedFileSize}");
@@ -345,6 +497,23 @@ public class WebpEncoderTests
 
         WebpEncoder encoder = new() { FileFormat = WebpFileFormatType.Lossy };
         image.VerifyEncoder(provider, "webp", string.Empty, encoder, ImageComparer.Tolerant(0.04f));
+    }
+
+    // https://github.com/SixLabors/ImageSharp/issues/2763
+    [Theory]
+    [WithFile(Lossy.Issue2763, PixelTypes.Rgba32)]
+    public void WebpDecoder_CanDecode_Issue2763<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        WebpEncoder encoder = new()
+        {
+            Quality = 84,
+            FileFormat = WebpFileFormatType.Lossless
+        };
+
+        using Image<TPixel> image = provider.GetImage(PngDecoder.Instance);
+        image.DebugSave(provider);
+        image.VerifyEncoder(provider, "webp", string.Empty, encoder);
     }
 
     public static void RunEncodeLossy_WithPeakImage()

@@ -6,7 +6,7 @@ using SixLabors.ImageSharp.IO;
 
 namespace SixLabors.ImageSharp.Benchmarks.IO;
 
-[Config(typeof(Config.ShortMultiFramework))]
+[Config(typeof(Config.Short))]
 public class BufferedStreams
 {
     private readonly byte[] buffer = CreateTestBytes();

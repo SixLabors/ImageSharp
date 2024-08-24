@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 namespace SixLabors.ImageSharp.Formats;
@@ -14,12 +14,12 @@ public interface IImageFormat
     string Name { get; }
 
     /// <summary>
-    /// Gets the default mimetype that the image format uses
+    /// Gets the default mime type that the image format uses
     /// </summary>
     string DefaultMimeType { get; }
 
     /// <summary>
-    /// Gets all the mimetypes that have been used by this image format.
+    /// Gets all the mime types that have been used by this image format.
     /// </summary>
     IEnumerable<string> MimeTypes { get; }
 

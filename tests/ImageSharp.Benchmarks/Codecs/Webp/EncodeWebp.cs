@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs;
 
 [MarkdownExporter]
 [HtmlExporter]
-[Config(typeof(Config.ShortMultiFramework))]
+[Config(typeof(Config.Short))]
 public class EncodeWebp
 {
     private MagickImage webpMagick;
@@ -43,9 +43,9 @@ public class EncodeWebp
     [Benchmark(Description = "Magick Webp Lossy")]
     public void MagickWebpLossy()
     {
-        using var memoryStream = new MemoryStream();
+        using MemoryStream memoryStream = new();
 
-        var defines = new WebPWriteDefines
+        WebPWriteDefines defines = new()
         {
             Lossless = false,
             Method = 4,
@@ -65,7 +65,7 @@ public class EncodeWebp
     [Benchmark(Description = "ImageSharp Webp Lossy")]
     public void ImageSharpWebpLossy()
     {
-        using var memoryStream = new MemoryStream();
+        using MemoryStream memoryStream = new();
         this.webp.Save(memoryStream, new WebpEncoder()
         {
             FileFormat = WebpFileFormatType.Lossy,
@@ -80,8 +80,8 @@ public class EncodeWebp
     [Benchmark(Baseline = true, Description = "Magick Webp Lossless")]
     public void MagickWebpLossless()
     {
-        using var memoryStream = new MemoryStream();
-        var defines = new WebPWriteDefines
+        using MemoryStream memoryStream = new();
+        WebPWriteDefines defines = new()
         {
             Lossless = true,
             Method = 4,
@@ -97,12 +97,13 @@ public class EncodeWebp
     [Benchmark(Description = "ImageSharp Webp Lossless")]
     public void ImageSharpWebpLossless()
     {
-        using var memoryStream = new MemoryStream();
+        using MemoryStream memoryStream = new();
         this.webp.Save(memoryStream, new WebpEncoder()
         {
             FileFormat = WebpFileFormatType.Lossless,
             Method = WebpEncodingMethod.Level4,
             NearLossless = false,
+            Quality = 75,
 
             // This is equal to exact = false in libwebp, which is the default.
             TransparentColorMode = WebpTransparentColorMode.Clear

@@ -1,10 +1,10 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics.X86;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Webp;
+using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.TestUtilities;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
@@ -18,7 +18,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp;
 [ValidateDisposedMemoryAllocations]
 public class WebpDecoderTests
 {
-    private static MagickReferenceDecoder ReferenceDecoder => new();
+    private static MagickReferenceDecoder ReferenceDecoder => MagickReferenceDecoder.WebP;
 
     private static string TestImageLossyHorizontalFilterPath => Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, Lossy.AlphaCompressedHorizontalFilter);
 
@@ -30,8 +30,8 @@ public class WebpDecoderTests
 
     [Theory]
     [InlineData(Lossless.GreenTransform1, 1000, 307, 32)]
-    [InlineData(Lossless.BikeThreeTransforms, 250, 195, 32)]
-    [InlineData(Lossless.NoTransform2, 128, 128, 32)]
+    [InlineData(Lossless.BikeThreeTransforms, 250, 195, 24)]
+    [InlineData(Lossless.NoTransform2, 128, 128, 24)]
     [InlineData(Lossy.Alpha1, 1000, 307, 32)]
     [InlineData(Lossy.Alpha2, 1000, 307, 32)]
     [InlineData(Lossy.BikeWithExif, 250, 195, 24)]
@@ -308,8 +308,8 @@ public class WebpDecoderTests
         image.DebugSaveMultiFrame(provider);
         image.CompareToReferenceOutputMultiFrame(provider, ImageComparer.Exact);
 
-        Assert.Equal(0, webpMetaData.AnimationLoopCount);
-        Assert.Equal(150U, frameMetaData.FrameDuration);
+        Assert.Equal(0, webpMetaData.RepeatCount);
+        Assert.Equal(150U, frameMetaData.FrameDelay);
         Assert.Equal(12, image.Frames.Count);
     }
 
@@ -325,8 +325,8 @@ public class WebpDecoderTests
         image.DebugSaveMultiFrame(provider);
         image.CompareToReferenceOutputMultiFrame(provider, ImageComparer.Tolerant(0.04f));
 
-        Assert.Equal(0, webpMetaData.AnimationLoopCount);
-        Assert.Equal(150U, frameMetaData.FrameDuration);
+        Assert.Equal(0, webpMetaData.RepeatCount);
+        Assert.Equal(150U, frameMetaData.FrameDelay);
         Assert.Equal(12, image.Frames.Count);
     }
 
@@ -338,6 +338,34 @@ public class WebpDecoderTests
         DecoderOptions options = new() { MaxFrames = 1 };
         using Image<TPixel> image = provider.GetImage(WebpDecoder.Instance, options);
         Assert.Equal(1, image.Frames.Count);
+    }
+
+    [Theory]
+    [WithFile(Lossy.AnimatedIssue2528, PixelTypes.Rgba32)]
+    public void Decode_AnimatedLossy_IgnoreBackgroundColor_Works<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        WebpDecoderOptions options = new()
+        {
+            BackgroundColorHandling = BackgroundColorHandling.Ignore,
+            GeneralOptions = new DecoderOptions()
+            {
+                MaxFrames = 1
+            }
+        };
+        using Image<TPixel> image = provider.GetImage(WebpDecoder.Instance, options);
+        image.DebugSave(provider);
+        image.CompareToOriginal(provider, ReferenceDecoder);
+    }
+
+    [Theory]
+    [WithFile(Lossy.AnimatedLandscape, PixelTypes.Rgba32)]
+    public void Decode_AnimatedLossy_AlphaBlending_Works<TPixel>(TestImageProvider<TPixel> provider)
+    where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage(WebpDecoder.Instance);
+        image.DebugSaveMultiFrame(provider);
+        image.CompareToOriginalMultiFrame(provider, ImageComparer.Exact);
     }
 
     [Theory]
@@ -411,6 +439,17 @@ public class WebpDecoderTests
         image.CompareToOriginal(provider, ReferenceDecoder);
     }
 
+    // https://github.com/SixLabors/ImageSharp/issues/2670
+    [Theory]
+    [WithFile(Lossy.Issue2670, PixelTypes.Rgba32)]
+    public void WebpDecoder_CanDecode_Issue2670<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage(WebpDecoder.Instance);
+        image.DebugSave(provider);
+        image.CompareToOriginal(provider, ReferenceDecoder);
+    }
+
     [Theory]
     [WithFile(Lossless.LossLessCorruptImage3, PixelTypes.Rgba32)]
     public void WebpDecoder_ThrowImageFormatException_OnInvalidImages<TPixel>(TestImageProvider<TPixel> provider)
@@ -466,4 +505,32 @@ public class WebpDecoderTests
 
     [Fact]
     public void DecodeLossyWithComplexFilterTest_WithoutHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunDecodeLossyWithComplexFilterTest, HwIntrinsics.DisableHWIntrinsic);
+
+    [Theory]
+    [InlineData(Lossy.BikeWithExif)]
+    public void Decode_VerifyRatio(string imagePath)
+    {
+        TestFile testFile = TestFile.Create(imagePath);
+        using MemoryStream stream = new(testFile.Bytes, false);
+        using Image image = WebpDecoder.Instance.Decode(DecoderOptions.Default, stream);
+        ImageMetadata meta = image.Metadata;
+
+        Assert.Equal(37.8, meta.HorizontalResolution);
+        Assert.Equal(37.8, meta.VerticalResolution);
+        Assert.Equal(PixelResolutionUnit.PixelsPerCentimeter, meta.ResolutionUnits);
+    }
+
+    [Theory]
+    [InlineData(Lossy.BikeWithExif)]
+    public void Identify_VerifyRatio(string imagePath)
+    {
+        TestFile testFile = TestFile.Create(imagePath);
+        using MemoryStream stream = new(testFile.Bytes, false);
+        ImageInfo image = WebpDecoder.Instance.Identify(DecoderOptions.Default, stream);
+        ImageMetadata meta = image.Metadata;
+
+        Assert.Equal(37.8, meta.HorizontalResolution);
+        Assert.Equal(37.8, meta.VerticalResolution);
+        Assert.Equal(PixelResolutionUnit.PixelsPerCentimeter, meta.ResolutionUnits);
+    }
 }

@@ -33,7 +33,7 @@ public partial struct L16 : IPixel<L16>, IPackedVector<ushort>
     /// <returns>
     /// True if the <paramref name="left"/> parameter is equal to the <paramref name="right"/> parameter; otherwise, false.
     /// </returns>
-    [MethodImpl(InliningOptions.ShortMethod)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool operator ==(L16 left, L16 right) => left.Equals(right);
 
     /// <summary>
@@ -44,134 +44,115 @@ public partial struct L16 : IPixel<L16>, IPackedVector<ushort>
     /// <returns>
     /// True if the <paramref name="left"/> parameter is not equal to the <paramref name="right"/> parameter; otherwise, false.
     /// </returns>
-    [MethodImpl(InliningOptions.ShortMethod)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool operator !=(L16 left, L16 right) => !left.Equals(right);
 
     /// <inheritdoc />
-    public readonly PixelOperations<L16> CreatePixelOperations() => new PixelOperations();
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly Rgba32 ToRgba32()
+    {
+        byte rgb = ColorNumerics.From16BitTo8Bit(this.PackedValue);
+        return new(rgb, rgb, rgb);
+    }
 
     /// <inheritdoc/>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromScaledVector4(Vector4 vector) => this.ConvertFromRgbaScaledVector4(vector);
-
-    /// <inheritdoc/>
-    [MethodImpl(InliningOptions.ShortMethod)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly Vector4 ToScaledVector4() => this.ToVector4();
 
     /// <inheritdoc />
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromVector4(Vector4 vector) => this.ConvertFromRgbaScaledVector4(vector);
-
-    /// <inheritdoc />
-    [MethodImpl(InliningOptions.ShortMethod)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly Vector4 ToVector4()
     {
         float scaled = this.PackedValue / Max;
-        return new Vector4(scaled, scaled, scaled, 1F);
+        return new Vector4(scaled, scaled, scaled, 1f);
     }
 
-    /// <inheritdoc/>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromArgb32(Argb32 source) => this.PackedValue = ColorNumerics.Get16BitBT709Luminance(
-            ColorNumerics.UpscaleFrom8BitTo16Bit(source.R),
-            ColorNumerics.UpscaleFrom8BitTo16Bit(source.G),
-            ColorNumerics.UpscaleFrom8BitTo16Bit(source.B));
-
-    /// <inheritdoc/>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromBgr24(Bgr24 source) => this.PackedValue = ColorNumerics.Get16BitBT709Luminance(
-            ColorNumerics.UpscaleFrom8BitTo16Bit(source.R),
-            ColorNumerics.UpscaleFrom8BitTo16Bit(source.G),
-            ColorNumerics.UpscaleFrom8BitTo16Bit(source.B));
-
-    /// <inheritdoc/>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromBgra32(Bgra32 source) => this.PackedValue = ColorNumerics.Get16BitBT709Luminance(
-            ColorNumerics.UpscaleFrom8BitTo16Bit(source.R),
-            ColorNumerics.UpscaleFrom8BitTo16Bit(source.G),
-            ColorNumerics.UpscaleFrom8BitTo16Bit(source.B));
-
-    /// <inheritdoc/>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromAbgr32(Abgr32 source) => this.PackedValue = ColorNumerics.Get16BitBT709Luminance(
-            ColorNumerics.UpscaleFrom8BitTo16Bit(source.R),
-            ColorNumerics.UpscaleFrom8BitTo16Bit(source.G),
-            ColorNumerics.UpscaleFrom8BitTo16Bit(source.B));
-
-    /// <inheritdoc/>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromBgra5551(Bgra5551 source) => this.FromScaledVector4(source.ToScaledVector4());
+    /// <inheritdoc />
+    public static PixelTypeInfo GetPixelTypeInfo()
+        => PixelTypeInfo.Create<L16>(
+            PixelComponentInfo.Create<L16>(1, 16),
+            PixelColorType.Luminance,
+            PixelAlphaRepresentation.None);
 
     /// <inheritdoc />
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromL8(L8 source) => this.PackedValue = ColorNumerics.UpscaleFrom8BitTo16Bit(source.PackedValue);
-
-    /// <inheritdoc />
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromL16(L16 source) => this = source;
+    public static PixelOperations<L16> CreatePixelOperations() => new PixelOperations();
 
     /// <inheritdoc/>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromLa16(La16 source) => this.PackedValue = ColorNumerics.UpscaleFrom8BitTo16Bit(source.L);
-
-    /// <inheritdoc/>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromLa32(La32 source) => this.PackedValue = source.L;
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static L16 FromScaledVector4(Vector4 source) => FromVector4(source);
 
     /// <inheritdoc />
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromRgb24(Rgb24 source) => this.PackedValue = ColorNumerics.Get16BitBT709Luminance(
-            ColorNumerics.UpscaleFrom8BitTo16Bit(source.R),
-            ColorNumerics.UpscaleFrom8BitTo16Bit(source.G),
-            ColorNumerics.UpscaleFrom8BitTo16Bit(source.B));
-
-    /// <inheritdoc />
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromRgba32(Rgba32 source) => this.PackedValue = ColorNumerics.Get16BitBT709Luminance(
-            ColorNumerics.UpscaleFrom8BitTo16Bit(source.R),
-            ColorNumerics.UpscaleFrom8BitTo16Bit(source.G),
-            ColorNumerics.UpscaleFrom8BitTo16Bit(source.B));
-
-    /// <inheritdoc />
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void ToRgba32(ref Rgba32 dest)
-    {
-        byte rgb = ColorNumerics.DownScaleFrom16BitTo8Bit(this.PackedValue);
-        dest.R = rgb;
-        dest.G = rgb;
-        dest.B = rgb;
-        dest.A = byte.MaxValue;
-    }
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static L16 FromVector4(Vector4 source) => new() { PackedValue = Pack(source) };
 
     /// <inheritdoc/>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromRgb48(Rgb48 source) => this.PackedValue = ColorNumerics.Get16BitBT709Luminance(source.R, source.G, source.B);
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static L16 FromAbgr32(Abgr32 source) => new(ColorNumerics.Get16BitBT709Luminance(source.R, source.G, source.B));
 
     /// <inheritdoc/>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void FromRgba64(Rgba64 source) => this.PackedValue = ColorNumerics.Get16BitBT709Luminance(source.R, source.G, source.B);
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static L16 FromArgb32(Argb32 source) => new(ColorNumerics.Get16BitBT709Luminance(source.R, source.G, source.B));
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static L16 FromBgra5551(Bgra5551 source) => FromScaledVector4(source.ToScaledVector4());
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static L16 FromBgr24(Bgr24 source) => new(ColorNumerics.Get16BitBT709Luminance(source.R, source.G, source.B));
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static L16 FromBgra32(Bgra32 source) => new(ColorNumerics.Get16BitBT709Luminance(source.R, source.G, source.B));
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static L16 FromL8(L8 source) => new(ColorNumerics.From8BitTo16Bit(source.PackedValue));
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static L16 FromL16(L16 source) => new(source.PackedValue);
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static L16 FromLa16(La16 source) => new(ColorNumerics.From8BitTo16Bit(source.L));
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static L16 FromLa32(La32 source) => new(source.L);
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static L16 FromRgb24(Rgb24 source) => new(ColorNumerics.Get16BitBT709Luminance(source.R, source.G, source.B));
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static L16 FromRgba32(Rgba32 source) => new(ColorNumerics.Get16BitBT709Luminance(source.R, source.G, source.B));
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static L16 FromRgb48(Rgb48 source) => new(ColorNumerics.Get16BitBT709Luminance(source.R, source.G, source.B));
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static L16 FromRgba64(Rgba64 source) => new(ColorNumerics.Get16BitBT709Luminance(source.R, source.G, source.B));
 
     /// <inheritdoc />
     public override readonly bool Equals(object? obj) => obj is L16 other && this.Equals(other);
 
     /// <inheritdoc />
-    [MethodImpl(InliningOptions.ShortMethod)]
     public readonly bool Equals(L16 other) => this.PackedValue.Equals(other.PackedValue);
 
     /// <inheritdoc />
     public override readonly string ToString() => $"L16({this.PackedValue})";
 
     /// <inheritdoc />
-    [MethodImpl(InliningOptions.ShortMethod)]
     public override readonly int GetHashCode() => this.PackedValue.GetHashCode();
 
-    [MethodImpl(InliningOptions.ShortMethod)]
-    internal void ConvertFromRgbaScaledVector4(Vector4 vector)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static ushort Pack(Vector4 vector)
     {
         vector = Numerics.Clamp(vector, Vector4.Zero, Vector4.One) * Max;
-        this.PackedValue = ColorNumerics.Get16BitBT709Luminance(
-            vector.X,
-            vector.Y,
-            vector.Z);
+        return ColorNumerics.Get16BitBT709Luminance(vector.X, vector.Y, vector.Z);
     }
 }

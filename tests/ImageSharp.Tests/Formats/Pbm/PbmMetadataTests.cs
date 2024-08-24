@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Pbm;
 using static SixLabors.ImageSharp.Tests.TestImages.Pbm;
 
@@ -83,12 +82,9 @@ public class PbmMetadataTests
     }
 
     [Fact]
-    public void Identify_HandlesCraftedDenialOfServiceString()
+    public void Identify_EofInHeader_ThrowsInvalidImageContentException()
     {
         byte[] bytes = Convert.FromBase64String("UDEjWAAACQAAAAA=");
-        ImageInfo info = Image.Identify(bytes);
-        Assert.Equal(default, info.Size);
-        Configuration.Default.ImageFormatsManager.TryFindFormatByFileExtension("pbm", out IImageFormat format);
-        Assert.Equal(format!, info.Metadata.DecodedImageFormat);
+        Assert.Throws<InvalidImageContentException>(() => Image.Identify(bytes));
     }
 }

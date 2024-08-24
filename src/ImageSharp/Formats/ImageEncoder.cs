@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -42,7 +41,9 @@ public abstract class ImageEncoder : IImageEncoder
     private void EncodeWithSeekableStream<TPixel>(Image<TPixel> image, Stream stream, CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        Configuration configuration = image.GetConfiguration();
+        image.SynchronizeMetadata();
+
+        Configuration configuration = image.Configuration;
         if (stream.CanSeek)
         {
             this.Encode(image, stream, cancellationToken);
@@ -59,14 +60,16 @@ public abstract class ImageEncoder : IImageEncoder
     private async Task EncodeWithSeekableStreamAsync<TPixel>(Image<TPixel> image, Stream stream, CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        Configuration configuration = image.GetConfiguration();
+        image.SynchronizeMetadata();
+
+        Configuration configuration = image.Configuration;
         if (stream.CanSeek)
         {
             await DoEncodeAsync(stream).ConfigureAwait(false);
         }
         else
         {
-            using ChunkedMemoryStream ms = new(configuration.MemoryAllocator);
+            await using ChunkedMemoryStream ms = new(configuration.MemoryAllocator);
             await DoEncodeAsync(ms);
             ms.Position = 0;
             await ms.CopyToAsync(stream, configuration.StreamProcessingBufferSize, cancellationToken)

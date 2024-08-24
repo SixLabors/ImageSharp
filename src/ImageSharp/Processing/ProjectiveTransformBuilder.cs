@@ -11,7 +11,29 @@ namespace SixLabors.ImageSharp.Processing;
 /// </summary>
 public class ProjectiveTransformBuilder
 {
-    private readonly List<Func<Size, Matrix4x4>> matrixFactories = new();
+    private readonly List<Func<Size, Matrix4x4>> transformMatrixFactories = new();
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ProjectiveTransformBuilder"/> class.
+    /// </summary>
+    public ProjectiveTransformBuilder()
+        : this(TransformSpace.Pixel)
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ProjectiveTransformBuilder"/> class.
+    /// </summary>
+    /// <param name="transformSpace">
+    /// The <see cref="TransformSpace"/> to use when applying the projective transform.
+    /// </param>
+    public ProjectiveTransformBuilder(TransformSpace transformSpace)
+        => this.TransformSpace = transformSpace;
+
+    /// <summary>
+    /// Gets the <see cref="TransformSpace"/> to use when applying the projective transform.
+    /// </summary>
+    public TransformSpace TransformSpace { get; }
 
     /// <summary>
     /// Prepends a matrix that performs a tapering projective transform.
@@ -47,7 +69,7 @@ public class ProjectiveTransformBuilder
     /// <param name="radians">The amount of rotation, in radians.</param>
     /// <returns>The <see cref="ProjectiveTransformBuilder"/>.</returns>
     public ProjectiveTransformBuilder PrependRotationRadians(float radians)
-        => this.Prepend(size => new Matrix4x4(TransformUtils.CreateRotationMatrixRadians(radians, size)));
+        => this.Prepend(size => new Matrix4x4(TransformUtils.CreateRotationTransformMatrixRadians(radians, size, this.TransformSpace)));
 
     /// <summary>
     /// Prepends a centered rotation matrix using the given rotation in degrees at the given origin.
@@ -81,7 +103,7 @@ public class ProjectiveTransformBuilder
     /// <param name="radians">The amount of rotation, in radians.</param>
     /// <returns>The <see cref="ProjectiveTransformBuilder"/>.</returns>
     public ProjectiveTransformBuilder AppendRotationRadians(float radians)
-        => this.Append(size => new Matrix4x4(TransformUtils.CreateRotationMatrixRadians(radians, size)));
+        => this.Append(size => new Matrix4x4(TransformUtils.CreateRotationTransformMatrixRadians(radians, size, this.TransformSpace)));
 
     /// <summary>
     /// Appends a centered rotation matrix using the given rotation in degrees at the given origin.
@@ -165,7 +187,7 @@ public class ProjectiveTransformBuilder
     /// <param name="radiansY">The Y angle, in radians.</param>
     /// <returns>The <see cref="ProjectiveTransformBuilder"/>.</returns>
     public ProjectiveTransformBuilder PrependSkewRadians(float radiansX, float radiansY)
-        => this.Prepend(size => new Matrix4x4(TransformUtils.CreateSkewMatrixRadians(radiansX, radiansY, size)));
+        => this.Prepend(size => new Matrix4x4(TransformUtils.CreateSkewTransformMatrixRadians(radiansX, radiansY, size, this.TransformSpace)));
 
     /// <summary>
     /// Prepends a skew matrix using the given angles in degrees at the given origin.
@@ -203,7 +225,7 @@ public class ProjectiveTransformBuilder
     /// <param name="radiansY">The Y angle, in radians.</param>
     /// <returns>The <see cref="ProjectiveTransformBuilder"/>.</returns>
     public ProjectiveTransformBuilder AppendSkewRadians(float radiansX, float radiansY)
-        => this.Append(size => new Matrix4x4(TransformUtils.CreateSkewMatrixRadians(radiansX, radiansY, size)));
+        => this.Append(size => new Matrix4x4(TransformUtils.CreateSkewTransformMatrixRadians(radiansX, radiansY, size, this.TransformSpace)));
 
     /// <summary>
     /// Appends a skew matrix using the given angles in degrees at the given origin.
@@ -317,7 +339,7 @@ public class ProjectiveTransformBuilder
 
         Size size = sourceRectangle.Size;
 
-        foreach (Func<Size, Matrix4x4> factory in this.matrixFactories)
+        foreach (Func<Size, Matrix4x4> factory in this.transformMatrixFactories)
         {
             matrix *= factory(size);
         }
@@ -325,6 +347,32 @@ public class ProjectiveTransformBuilder
         CheckDegenerate(matrix);
 
         return matrix;
+    }
+
+    /// <summary>
+    /// Returns the size of a rectangle large enough to contain the transformed source rectangle.
+    /// </summary>
+    /// <param name="sourceRectangle">The rectangle in the source image.</param>
+    /// <exception cref="DegenerateTransformException">
+    /// The resultant matrix is degenerate containing one or more values equivalent
+    /// to <see cref="float.NaN"/> or a zero determinant and therefore cannot be used
+    /// for linear transforms.
+    /// </exception>
+    /// <returns>The <see cref="Size"/>.</returns>
+    public Size GetTransformedSize(Rectangle sourceRectangle)
+    {
+        Size size = sourceRectangle.Size;
+
+        // Translate the origin matrix to cater for source rectangle offsets.
+        Matrix4x4 matrix = Matrix4x4.CreateTranslation(new Vector3(-sourceRectangle.Location, 0));
+
+        foreach (Func<Size, Matrix4x4> factory in this.transformMatrixFactories)
+        {
+            matrix *= factory(size);
+            CheckDegenerate(matrix);
+        }
+
+        return TransformUtils.GetTransformedSize(matrix, size);
     }
 
     private static void CheckDegenerate(Matrix4x4 matrix)
@@ -335,15 +383,15 @@ public class ProjectiveTransformBuilder
         }
     }
 
-    private ProjectiveTransformBuilder Prepend(Func<Size, Matrix4x4> factory)
+    private ProjectiveTransformBuilder Prepend(Func<Size, Matrix4x4> transformFactory)
     {
-        this.matrixFactories.Insert(0, factory);
+        this.transformMatrixFactories.Insert(0, transformFactory);
         return this;
     }
 
-    private ProjectiveTransformBuilder Append(Func<Size, Matrix4x4> factory)
+    private ProjectiveTransformBuilder Append(Func<Size, Matrix4x4> transformFactory)
     {
-        this.matrixFactories.Add(factory);
+        this.transformMatrixFactories.Add(transformFactory);
         return this;
     }
 }

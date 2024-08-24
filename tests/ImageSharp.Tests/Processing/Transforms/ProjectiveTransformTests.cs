@@ -128,11 +128,11 @@ public class ProjectiveTransformTests
         using (Image<TPixel> image = provider.GetImage())
         {
 #pragma warning disable SA1117 // Parameters should be on same line or separate lines
-            var matrix = new Matrix4x4(
-               0.260987f, -0.434909f, 0, -0.0022184f,
-               0.373196f, 0.949882f, 0, -0.000312129f,
-               0, 0, 1, 0,
-               52, 165, 0, 1);
+        Matrix4x4 matrix = new(
+            0.260987f, -0.434909f, 0, -0.0022184f,
+            0.373196f, 0.949882f, 0, -0.000312129f,
+            0, 0, 1, 0,
+            52, 165, 0, 1);
 #pragma warning restore SA1117 // Parameters should be on same line or separate lines
 
             ProjectiveTransformBuilder builder = new ProjectiveTransformBuilder()
@@ -183,6 +183,35 @@ public class ProjectiveTransformTests
         image.Mutate(x => x.Transform(r, m, new Size(100, 100), KnownResamplers.Bicubic));
         image.DebugSave(provider, testOutputDetails: radians);
         image.CompareToReferenceOutput(ValidatorComparer, provider, testOutputDetails: radians);
+    }
+
+    [Fact]
+    public void TransformRotationDoesNotOffset()
+    {
+        Rgba32 background = Color.DimGray.ToPixel<Rgba32>();
+        Rgba32 marker = Color.Aqua.ToPixel<Rgba32>();
+
+        using Image<Rgba32> img = new(100, 100, background);
+        img[0, 0] = marker;
+
+        img.Mutate(c => c.Rotate(180));
+
+        Assert.Equal(marker, img[99, 99]);
+
+        using Image<Rgba32> img2 = new(100, 100, background);
+        img2[0, 0] = marker;
+
+        img2.Mutate(
+            c =>
+            c.Transform(new ProjectiveTransformBuilder().AppendRotationDegrees(180), KnownResamplers.NearestNeighbor));
+
+        using Image<Rgba32> img3 = new(100, 100, background);
+        img3[0, 0] = marker;
+
+        img3.Mutate(c => c.Transform(new AffineTransformBuilder().AppendRotationDegrees(180)));
+
+        ImageComparer.Exact.VerifySimilarity(img, img2);
+        ImageComparer.Exact.VerifySimilarity(img, img3);
     }
 
     private static IResampler GetResampler(string name)

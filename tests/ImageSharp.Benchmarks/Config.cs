@@ -29,25 +29,25 @@ public partial class Config : ManualConfig
         this.SummaryStyle = SummaryStyle.Default.WithMaxParameterColumnWidth(50);
     }
 
-    public class MultiFramework : Config
+    public class Standard : Config
     {
-        public MultiFramework() => this.AddJob(
-                Job.Default.WithRuntime(CoreRuntime.Core60).WithArguments(new Argument[] { new MsBuildArgument("/p:DebugType=portable") }));
+        public Standard() => this.AddJob(
+                Job.Default.WithRuntime(CoreRuntime.Core80).WithArguments(new Argument[] { new MsBuildArgument("/p:DebugType=portable") }));
     }
 
-    public class ShortMultiFramework : Config
+    public class Short : Config
     {
-        public ShortMultiFramework() => this.AddJob(
-                Job.Default.WithRuntime(CoreRuntime.Core60).WithLaunchCount(1).WithWarmupCount(3).WithIterationCount(3).WithArguments(new Argument[] { new MsBuildArgument("/p:DebugType=portable") }));
-    }
-
-    public class ShortCore31 : Config
-    {
-        public ShortCore31()
-            => this.AddJob(Job.Default.WithRuntime(CoreRuntime.Core31).WithLaunchCount(1).WithWarmupCount(3).WithIterationCount(3));
+        public Short() => this.AddJob(
+                Job.Default.WithRuntime(CoreRuntime.Core80)
+                           .WithLaunchCount(1)
+                           .WithWarmupCount(3)
+                           .WithIterationCount(3)
+                           .WithArguments(new Argument[] { new MsBuildArgument("/p:DebugType=portable") }));
     }
 
 #if OS_WINDOWS
+#pragma warning disable CA1416 // Validate platform compatibility
     private bool IsElevated => new WindowsPrincipal(WindowsIdentity.GetCurrent()).IsInRole(WindowsBuiltInRole.Administrator);
+#pragma warning restore CA1416 // Validate platform compatibility
 #endif
 }

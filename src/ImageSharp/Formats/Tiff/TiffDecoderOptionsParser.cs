@@ -63,7 +63,7 @@ internal static class TiffDecoderOptionsParser
         }
 
         TiffSampleFormat? sampleFormat = null;
-        if (exifProfile.TryGetValue(ExifTag.SampleFormat, out var formatValue))
+        if (exifProfile.TryGetValue(ExifTag.SampleFormat, out IExifValue<ushort[]> formatValue))
         {
             TiffSampleFormat[] sampleFormats = formatValue.Value.Select(a => (TiffSampleFormat)a).ToArray();
             sampleFormat = sampleFormats[0];
@@ -106,11 +106,11 @@ internal static class TiffDecoderOptionsParser
             options.PlanarConfiguration = DefaultPlanarConfiguration;
         }
 
-        options.Predictor = frameMetadata.Predictor ?? TiffPredictor.None;
-        options.PhotometricInterpretation = frameMetadata.PhotometricInterpretation ?? TiffPhotometricInterpretation.Rgb;
+        options.Predictor = frameMetadata.Predictor;
+        options.PhotometricInterpretation = frameMetadata.PhotometricInterpretation;
         options.SampleFormat = sampleFormat ?? TiffSampleFormat.UnsignedInteger;
-        options.BitsPerPixel = frameMetadata.BitsPerPixel != null ? (int)frameMetadata.BitsPerPixel.Value : (int)TiffBitsPerPixel.Bit24;
-        options.BitsPerSample = frameMetadata.BitsPerSample ?? new TiffBitsPerSample(0, 0, 0);
+        options.BitsPerPixel = (int)frameMetadata.BitsPerPixel;
+        options.BitsPerSample = frameMetadata.BitsPerSample;
 
         if (exifProfile.TryGetValue(ExifTag.ReferenceBlackWhite, out IExifValue<Rational[]> blackWhiteValue))
         {
@@ -139,12 +139,10 @@ internal static class TiffDecoderOptionsParser
             options.OldJpegCompressionStartOfImageMarker = jpegInterchangeFormatValue.Value;
         }
 
-        options.ParseColorType(exifProfile);
         options.ParseCompression(frameMetadata.Compression, exifProfile);
+        options.ParseColorType(exifProfile);
 
-        bool isTiled = VerifyRequiredFieldsArePresent(exifProfile, frameMetadata, options.PlanarConfiguration);
-
-        return isTiled;
+        return VerifyRequiredFieldsArePresent(exifProfile, frameMetadata, options.PlanarConfiguration);
     }
 
     /// <summary>
@@ -194,11 +192,6 @@ internal static class TiffDecoderOptionsParser
             }
         }
 
-        if (frameMetadata.BitsPerPixel == null)
-        {
-            TiffThrowHelper.ThrowNotSupported("The TIFF BitsPerSample entry is missing which is required to decode the image!");
-        }
-
         return isTiled;
     }
 
@@ -222,7 +215,6 @@ internal static class TiffDecoderOptionsParser
                 switch (bitsPerChannel)
                 {
                     case 32:
-                    {
                         if (options.SampleFormat == TiffSampleFormat.Float)
                         {
                             options.ColorType = TiffColorType.WhiteIsZero32Float;
@@ -231,43 +223,30 @@ internal static class TiffDecoderOptionsParser
 
                         options.ColorType = TiffColorType.WhiteIsZero32;
                         break;
-                    }
 
                     case 24:
-                    {
                         options.ColorType = TiffColorType.WhiteIsZero24;
                         break;
-                    }
 
                     case 16:
-                    {
                         options.ColorType = TiffColorType.WhiteIsZero16;
                         break;
-                    }
 
                     case 8:
-                    {
                         options.ColorType = TiffColorType.WhiteIsZero8;
                         break;
-                    }
 
                     case 4:
-                    {
                         options.ColorType = TiffColorType.WhiteIsZero4;
                         break;
-                    }
 
                     case 1:
-                    {
                         options.ColorType = TiffColorType.WhiteIsZero1;
                         break;
-                    }
 
                     default:
-                    {
                         options.ColorType = TiffColorType.WhiteIsZero;
                         break;
-                    }
                 }
 
                 break;
@@ -289,7 +268,6 @@ internal static class TiffDecoderOptionsParser
                 switch (bitsPerChannel)
                 {
                     case 32:
-                    {
                         if (options.SampleFormat == TiffSampleFormat.Float)
                         {
                             options.ColorType = TiffColorType.BlackIsZero32Float;
@@ -298,43 +276,30 @@ internal static class TiffDecoderOptionsParser
 
                         options.ColorType = TiffColorType.BlackIsZero32;
                         break;
-                    }
 
                     case 24:
-                    {
                         options.ColorType = TiffColorType.BlackIsZero24;
                         break;
-                    }
 
                     case 16:
-                    {
                         options.ColorType = TiffColorType.BlackIsZero16;
                         break;
-                    }
 
                     case 8:
-                    {
                         options.ColorType = TiffColorType.BlackIsZero8;
                         break;
-                    }
 
                     case 4:
-                    {
                         options.ColorType = TiffColorType.BlackIsZero4;
                         break;
-                    }
 
                     case 1:
-                    {
                         options.ColorType = TiffColorType.BlackIsZero1;
                         break;
-                    }
 
                     default:
-                    {
                         options.ColorType = TiffColorType.BlackIsZero;
                         break;
-                    }
                 }
 
                 break;
@@ -533,29 +498,21 @@ internal static class TiffDecoderOptionsParser
         switch (compression ?? TiffCompression.None)
         {
             case TiffCompression.None:
-            {
                 options.CompressionType = TiffDecoderCompressionType.None;
                 break;
-            }
 
             case TiffCompression.PackBits:
-            {
                 options.CompressionType = TiffDecoderCompressionType.PackBits;
                 break;
-            }
 
             case TiffCompression.Deflate:
             case TiffCompression.OldDeflate:
-            {
                 options.CompressionType = TiffDecoderCompressionType.Deflate;
                 break;
-            }
 
             case TiffCompression.Lzw:
-            {
                 options.CompressionType = TiffDecoderCompressionType.Lzw;
                 break;
-            }
 
             case TiffCompression.CcittGroup3Fax:
             {
@@ -569,6 +526,11 @@ internal static class TiffDecoderOptionsParser
                 {
                     options.FaxCompressionOptions = FaxCompressionOptions.None;
                 }
+
+                // Some encoders do not set the BitsPerSample correctly, so we set those values here to the required values:
+                // https://github.com/SixLabors/ImageSharp/issues/2587
+                options.BitsPerSample = new TiffBitsPerSample(1, 0, 0);
+                options.BitsPerPixel = 1;
 
                 break;
             }
@@ -585,17 +547,20 @@ internal static class TiffDecoderOptionsParser
                     options.FaxCompressionOptions = FaxCompressionOptions.None;
                 }
 
+                options.BitsPerSample = new TiffBitsPerSample(1, 0, 0);
+                options.BitsPerPixel = 1;
+
                 break;
             }
 
             case TiffCompression.Ccitt1D:
-            {
                 options.CompressionType = TiffDecoderCompressionType.HuffmanRle;
+                options.BitsPerSample = new TiffBitsPerSample(1, 0, 0);
+                options.BitsPerPixel = 1;
+
                 break;
-            }
 
             case TiffCompression.OldJpeg:
-            {
                 if (!options.OldJpegCompressionStartOfImageMarker.HasValue)
                 {
                     TiffThrowHelper.ThrowNotSupported("Missing SOI marker offset for tiff with old jpeg compression");
@@ -607,7 +572,6 @@ internal static class TiffDecoderOptionsParser
                 }
 
                 options.CompressionType = TiffDecoderCompressionType.OldJpeg;
-
                 if (options.PhotometricInterpretation is TiffPhotometricInterpretation.YCbCr)
                 {
                     // Note: Setting PhotometricInterpretation and color type to RGB here, since the jpeg decoder will handle the conversion of the pixel data.
@@ -616,11 +580,17 @@ internal static class TiffDecoderOptionsParser
                 }
 
                 break;
-            }
 
             case TiffCompression.Jpeg:
-            {
                 options.CompressionType = TiffDecoderCompressionType.Jpeg;
+
+                // Some tiff encoder set this to values different from [1, 1]. The jpeg decoder already handles this,
+                // so we set this always to [1, 1], see: https://github.com/SixLabors/ImageSharp/issues/2679
+                if (options.PhotometricInterpretation is TiffPhotometricInterpretation.YCbCr && options.YcbcrSubSampling != null)
+                {
+                    options.YcbcrSubSampling[0] = 1;
+                    options.YcbcrSubSampling[1] = 1;
+                }
 
                 if (options.PhotometricInterpretation is TiffPhotometricInterpretation.YCbCr && options.JpegTables is null)
                 {
@@ -630,19 +600,14 @@ internal static class TiffDecoderOptionsParser
                 }
 
                 break;
-            }
 
             case TiffCompression.Webp:
-            {
                 options.CompressionType = TiffDecoderCompressionType.Webp;
                 break;
-            }
 
             default:
-            {
                 TiffThrowHelper.ThrowNotSupported($"The specified TIFF compression format '{compression}' is not supported");
                 break;
-            }
         }
     }
 }

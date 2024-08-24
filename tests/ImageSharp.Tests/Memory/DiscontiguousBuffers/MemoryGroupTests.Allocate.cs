@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 using System.Runtime.CompilerServices;
@@ -219,11 +219,17 @@ public partial class MemoryGroupTests
 [StructLayout(LayoutKind.Sequential, Size = 5)]
 internal struct S5
 {
-    public override string ToString() => "S5";
+    public override readonly string ToString() => nameof(S5);
 }
 
 [StructLayout(LayoutKind.Sequential, Size = 4)]
 internal struct S4
 {
-    public override string ToString() => "S4";
+    public override readonly string ToString() => nameof(S4);
+}
+
+[StructLayout(LayoutKind.Explicit, Size = 512)]
+internal struct S512
+{
+    public override readonly string ToString() => nameof(S512);
 }

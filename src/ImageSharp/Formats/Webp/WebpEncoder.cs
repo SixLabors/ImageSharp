@@ -1,8 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using SixLabors.ImageSharp.Advanced;
-
 namespace SixLabors.ImageSharp.Formats.Webp;
 
 /// <summary>
@@ -82,7 +80,7 @@ public sealed class WebpEncoder : ImageEncoder
     /// <inheritdoc/>
     protected override void Encode<TPixel>(Image<TPixel> image, Stream stream, CancellationToken cancellationToken)
     {
-        WebpEncoderCore encoder = new(this, image.GetConfiguration());
+        WebpEncoderCore encoder = new(this, image.Configuration);
         encoder.Encode(image, stream, cancellationToken);
     }
 }

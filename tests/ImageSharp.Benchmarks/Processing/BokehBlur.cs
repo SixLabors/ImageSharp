@@ -7,13 +7,13 @@ using SixLabors.ImageSharp.Processing;
 
 namespace SixLabors.ImageSharp.Benchmarks.Processing;
 
-[Config(typeof(Config.MultiFramework))]
+[Config(typeof(Config.Standard))]
 public class BokehBlur
 {
     [Benchmark]
     public void Blur()
     {
-        using Image<Rgba32> image = new(Configuration.Default, 400, 400, Color.White);
+        using Image<Rgba32> image = new(Configuration.Default, 400, 400, Color.White.ToPixel<Rgba32>());
         image.Mutate(c => c.BokehBlur());
     }
 }

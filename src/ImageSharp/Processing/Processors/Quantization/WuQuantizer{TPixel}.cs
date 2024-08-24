@@ -111,7 +111,7 @@ internal struct WuQuantizer<TPixel> : IQuantizer<TPixel>
     public QuantizerOptions Options { get; }
 
     /// <inheritdoc/>
-    public ReadOnlyMemory<TPixel> Palette
+    public readonly ReadOnlyMemory<TPixel> Palette
     {
         get
         {
@@ -123,10 +123,11 @@ internal struct WuQuantizer<TPixel> : IQuantizer<TPixel>
     /// <inheritdoc/>
     public void AddPaletteColors(Buffer2DRegion<TPixel> pixelRegion)
     {
-        Rectangle bounds = pixelRegion.Rectangle;
-        Buffer2D<TPixel> source = pixelRegion.Buffer;
-
-        this.Build3DHistogram(source, bounds);
+        // TODO: Something is destroying the existing palette when adding new colors.
+        // When the QuantizingImageEncoder.PixelSamplingStrategy is DefaultPixelSamplingStrategy
+        // this leads to performance issues + the palette is not preserved.
+        // https://github.com/SixLabors/ImageSharp/issues/2498
+        this.Build3DHistogram(pixelRegion);
         this.Get3DMoments(this.memoryAllocator);
         this.BuildCube();
 
@@ -141,8 +142,7 @@ internal struct WuQuantizer<TPixel> : IQuantizer<TPixel>
 
             if (moment.Weight > 0)
             {
-                ref TPixel color = ref paletteSpan[k];
-                color.FromScaledVector4(moment.Normalize());
+                paletteSpan[k] = TPixel.FromScaledVector4(moment.Normalize());
             }
         }
 
@@ -167,7 +167,7 @@ internal struct WuQuantizer<TPixel> : IQuantizer<TPixel>
     /// <inheritdoc/>
     [MethodImpl(InliningOptions.ShortMethod)]
     public readonly IndexedImageFrame<TPixel> QuantizeFrame(ImageFrame<TPixel> source, Rectangle bounds)
-        => QuantizerUtilities.QuantizeFrame(ref Unsafe.AsRef(this), source, bounds);
+        => QuantizerUtilities.QuantizeFrame(ref Unsafe.AsRef(in this), source, bounds);
 
     /// <inheritdoc/>
     public readonly byte GetQuantizedColor(TPixel color, out TPixel match)
@@ -177,8 +177,7 @@ internal struct WuQuantizer<TPixel> : IQuantizer<TPixel>
             return (byte)this.pixelMap!.GetClosestColor(color, out match);
         }
 
-        Rgba32 rgba = default;
-        color.ToRgba32(ref rgba);
+        Rgba32 rgba = color.ToRgba32();
 
         const int shift = 8 - IndexBits;
         int r = rgba.R >> shift;
@@ -360,19 +359,18 @@ internal struct WuQuantizer<TPixel> : IQuantizer<TPixel>
     /// <summary>
     /// Builds a 3-D color histogram of <c>counts, r/g/b, c^2</c>.
     /// </summary>
-    /// <param name="source">The source data.</param>
-    /// <param name="bounds">The bounds within the source image to quantize.</param>
-    private void Build3DHistogram(Buffer2D<TPixel> source, Rectangle bounds)
+    /// <param name="source">The source pixel data.</param>
+    private readonly void Build3DHistogram(Buffer2DRegion<TPixel> source)
     {
         Span<Moment> momentSpan = this.momentsOwner.GetSpan();
 
         // Build up the 3-D color histogram
-        using IMemoryOwner<Rgba32> buffer = this.memoryAllocator.Allocate<Rgba32>(bounds.Width);
+        using IMemoryOwner<Rgba32> buffer = this.memoryAllocator.Allocate<Rgba32>(source.Width);
         Span<Rgba32> bufferSpan = buffer.GetSpan();
 
-        for (int y = bounds.Top; y < bounds.Bottom; y++)
+        for (int y = 0; y < source.Height; y++)
         {
-            Span<TPixel> row = source.DangerousGetRowSpan(y).Slice(bounds.Left, bounds.Width);
+            Span<TPixel> row = source.DangerousGetRowSpan(y);
             PixelOperations<TPixel>.Instance.ToRgba32(this.Configuration, row, bufferSpan);
 
             for (int x = 0; x < bufferSpan.Length; x++)
@@ -393,7 +391,7 @@ internal struct WuQuantizer<TPixel> : IQuantizer<TPixel>
     /// Converts the histogram into moments so that we can rapidly calculate the sums of the above quantities over any desired box.
     /// </summary>
     /// <param name="allocator">The memory allocator used for allocating buffers.</param>
-    private void Get3DMoments(MemoryAllocator allocator)
+    private readonly void Get3DMoments(MemoryAllocator allocator)
     {
         using IMemoryOwner<Moment> volume = allocator.Allocate<Moment>(IndexCount * IndexAlphaCount);
         using IMemoryOwner<Moment> area = allocator.Allocate<Moment>(IndexAlphaCount);
@@ -462,7 +460,7 @@ internal struct WuQuantizer<TPixel> : IQuantizer<TPixel>
     /// </summary>
     /// <param name="cube">The cube.</param>
     /// <returns>The <see cref="float"/>.</returns>
-    private double Variance(ref Box cube)
+    private readonly double Variance(ref Box cube)
     {
         ReadOnlySpan<Moment> momentSpan = this.momentsOwner.GetSpan();
 
@@ -503,7 +501,7 @@ internal struct WuQuantizer<TPixel> : IQuantizer<TPixel>
     /// <param name="cut">The cutting point.</param>
     /// <param name="whole">The whole moment.</param>
     /// <returns>The <see cref="float"/>.</returns>
-    private float Maximize(ref Box cube, int direction, int first, int last, out int cut, Moment whole)
+    private readonly float Maximize(ref Box cube, int direction, int first, int last, out int cut, Moment whole)
     {
         ReadOnlySpan<Moment> momentSpan = this.momentsOwner.GetSpan();
         Moment bottom = Bottom(ref cube, direction, momentSpan);
@@ -549,7 +547,7 @@ internal struct WuQuantizer<TPixel> : IQuantizer<TPixel>
     /// <param name="set1">The first set.</param>
     /// <param name="set2">The second set.</param>
     /// <returns>Returns a value indicating whether the box has been split.</returns>
-    private bool Cut(ref Box set1, ref Box set2)
+    private readonly bool Cut(ref Box set1, ref Box set2)
     {
         ReadOnlySpan<Moment> momentSpan = this.momentsOwner.GetSpan();
         Moment whole = Volume(ref set1, momentSpan);
@@ -634,7 +632,7 @@ internal struct WuQuantizer<TPixel> : IQuantizer<TPixel>
     /// </summary>
     /// <param name="cube">The cube.</param>
     /// <param name="label">A label.</param>
-    private void Mark(ref Box cube, byte label)
+    private readonly void Mark(ref Box cube, byte label)
     {
         Span<byte> tagSpan = this.tagsOwner.GetSpan();
 

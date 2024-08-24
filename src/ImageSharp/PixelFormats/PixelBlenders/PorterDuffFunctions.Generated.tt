@@ -368,9 +368,7 @@ internal static partial class PorterDuffFunctions
         where TPixel : unmanaged, IPixel<TPixel>
     {
         opacity = Numerics.Clamp(opacity, 0, 1);
-        TPixel dest = default;
-        dest.FromScaledVector4(<#=blender#><#=composer#>(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
-        return dest;
+        return TPixel.FromScaledVector4(<#=blender#><#=composer#>(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
     }
 <# } #>
 <#

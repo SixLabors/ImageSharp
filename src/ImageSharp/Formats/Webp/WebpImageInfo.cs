@@ -18,8 +18,14 @@ internal class WebpImageInfo : IDisposable
     /// </summary>
     public uint Height { get; set; }
 
+    /// <summary>
+    /// Gets or sets the horizontal scale.
+    /// </summary>
     public sbyte XScale { get; set; }
 
+    /// <summary>
+    /// Gets or sets the vertical scale.
+    /// </summary>
     public sbyte YScale { get; set; }
 
     /// <summary>

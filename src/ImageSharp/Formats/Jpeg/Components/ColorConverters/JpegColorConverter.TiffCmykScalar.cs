@@ -1,8 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using SixLabors.ImageSharp.ColorSpaces;
-using SixLabors.ImageSharp.ColorSpaces.Conversion;
+using SixLabors.ImageSharp.ColorProfiles;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components;
 
@@ -26,11 +25,12 @@ internal abstract partial class JpegColorConverterBase
 
         internal static void ConvertToRgbInplace(ComponentValues values, float maxValue)
         {
+            ColorProfileConverter converter = new();
             float invMax = 1 / maxValue;
             for (int i = 0; i < values.Component0.Length; i++)
             {
                 Cmyk cmyk = new(values.Component0[i] * invMax, values.Component1[i] * invMax, values.Component2[i] * invMax, values.Component3[i] * invMax);
-                Rgb rgb = ColorSpaceConverter.ToRgb(in cmyk);
+                Rgb rgb = converter.Convert<Cmyk, Rgb>(cmyk);
                 values.Component0[i] = rgb.R;
                 values.Component1[i] = rgb.G;
                 values.Component2[i] = rgb.B;

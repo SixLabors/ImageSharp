@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Diagnostics.CodeAnalysis;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.Formats.Gif;
@@ -72,13 +71,13 @@ public static partial class TestEnvironment
         // Magick codecs should work on all platforms
         cfg.ConfigureCodecs(
             PngFormat.Instance,
-            MagickReferenceDecoder.Instance,
+            MagickReferenceDecoder.Png,
             pngEncoder,
             new PngImageFormatDetector());
 
         cfg.ConfigureCodecs(
             BmpFormat.Instance,
-            IsWindows ? SystemDrawingReferenceDecoder.Instance : MagickReferenceDecoder.Instance,
+            IsWindows ? SystemDrawingReferenceDecoder.Bmp : MagickReferenceDecoder.Bmp,
             bmpEncoder,
             new BmpImageFormatDetector());
 

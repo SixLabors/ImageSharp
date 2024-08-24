@@ -87,14 +87,21 @@ internal class DrawImageProcessor<TPixelBg, TPixelFg> : ImageProcessor<TPixelBg>
         if (this.BackgroundLocation.X < 0)
         {
             foregroundRectangle.Width += this.BackgroundLocation.X;
+            foregroundRectangle.X -= this.BackgroundLocation.X;
             left = 0;
         }
 
         if (this.BackgroundLocation.Y < 0)
         {
             foregroundRectangle.Height += this.BackgroundLocation.Y;
+            foregroundRectangle.Y -= this.BackgroundLocation.Y;
             top = 0;
         }
+
+        // Clamp the height/width to the available space left to prevent overflowing
+        foregroundRectangle.Width = Math.Min(source.Width - left, foregroundRectangle.Width);
+        foregroundRectangle.Height = Math.Min(source.Height - top, foregroundRectangle.Height);
+        foregroundRectangle = Rectangle.Intersect(foregroundRectangle, this.ForegroundImage.Bounds);
 
         int width = foregroundRectangle.Width;
         int height = foregroundRectangle.Height;
@@ -105,7 +112,6 @@ internal class DrawImageProcessor<TPixelBg, TPixelFg> : ImageProcessor<TPixelBg>
         }
 
         // Sanitize the dimensions so that we don't try and sample outside the image.
-        foregroundRectangle = Rectangle.Intersect(foregroundRectangle, this.ForegroundImage.Bounds);
         Rectangle backgroundRectangle = Rectangle.Intersect(new(left, top, width, height), this.SourceRectangle);
         Configuration configuration = this.Configuration;
 

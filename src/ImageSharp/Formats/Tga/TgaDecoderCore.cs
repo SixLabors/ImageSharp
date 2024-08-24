@@ -15,7 +15,7 @@ namespace SixLabors.ImageSharp.Formats.Tga;
 /// <summary>
 /// Performs the tga decoding operation.
 /// </summary>
-internal sealed class TgaDecoderCore : IImageDecoderInternals
+internal sealed class TgaDecoderCore : ImageDecoderCore
 {
     /// <summary>
     /// General configuration options.
@@ -52,21 +52,14 @@ internal sealed class TgaDecoderCore : IImageDecoderInternals
     /// </summary>
     /// <param name="options">The options.</param>
     public TgaDecoderCore(DecoderOptions options)
+        : base(options)
     {
-        this.Options = options;
         this.configuration = options.Configuration;
         this.memoryAllocator = this.configuration.MemoryAllocator;
     }
 
     /// <inheritdoc />
-    public DecoderOptions Options { get; }
-
-    /// <inheritdoc />
-    public Size Dimensions => new(this.fileHeader.Width, this.fileHeader.Height);
-
-    /// <inheritdoc />
-    public Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
-        where TPixel : unmanaged, IPixel<TPixel>
+    protected override Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
     {
         try
         {
@@ -84,7 +77,7 @@ internal sealed class TgaDecoderCore : IImageDecoderInternals
                 throw new UnknownImageFormatException("Width or height cannot be 0");
             }
 
-            Image<TPixel> image = Image.CreateUninitialized<TPixel>(this.configuration, this.fileHeader.Width, this.fileHeader.Height, this.metadata);
+            Image<TPixel> image = new(this.configuration, this.fileHeader.Width, this.fileHeader.Height, this.metadata);
             Buffer2D<TPixel> pixels = image.GetRootFramePixelBuffer();
 
             if (this.fileHeader.ColorMapType == 1)
@@ -222,7 +215,6 @@ internal sealed class TgaDecoderCore : IImageDecoderInternals
     private void ReadPaletted<TPixel>(BufferedReadStream stream, int width, int height, Buffer2D<TPixel> pixels, Span<byte> palette, int colorMapPixelSizeInBytes, TgaImageOrigin origin)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        TPixel color = default;
         bool invertX = InvertX(origin);
 
         for (int y = 0; y < height; y++)
@@ -237,14 +229,14 @@ internal sealed class TgaDecoderCore : IImageDecoderInternals
                     {
                         for (int x = width - 1; x >= 0; x--)
                         {
-                            this.ReadPalettedBgra16Pixel(stream, palette, colorMapPixelSizeInBytes, x, color, pixelRow);
+                            this.ReadPalettedBgra16Pixel(stream, palette, colorMapPixelSizeInBytes, x, pixelRow);
                         }
                     }
                     else
                     {
                         for (int x = 0; x < width; x++)
                         {
-                            this.ReadPalettedBgra16Pixel(stream, palette, colorMapPixelSizeInBytes, x, color, pixelRow);
+                            this.ReadPalettedBgra16Pixel(stream, palette, colorMapPixelSizeInBytes, x, pixelRow);
                         }
                     }
 
@@ -255,14 +247,14 @@ internal sealed class TgaDecoderCore : IImageDecoderInternals
                     {
                         for (int x = width - 1; x >= 0; x--)
                         {
-                            ReadPalettedBgr24Pixel(stream, palette, colorMapPixelSizeInBytes, x, color, pixelRow);
+                            ReadPalettedBgr24Pixel(stream, palette, colorMapPixelSizeInBytes, x, pixelRow);
                         }
                     }
                     else
                     {
                         for (int x = 0; x < width; x++)
                         {
-                            ReadPalettedBgr24Pixel(stream, palette, colorMapPixelSizeInBytes, x, color, pixelRow);
+                            ReadPalettedBgr24Pixel(stream, palette, colorMapPixelSizeInBytes, x, pixelRow);
                         }
                     }
 
@@ -273,14 +265,14 @@ internal sealed class TgaDecoderCore : IImageDecoderInternals
                     {
                         for (int x = width - 1; x >= 0; x--)
                         {
-                            ReadPalettedBgra32Pixel(stream, palette, colorMapPixelSizeInBytes, x, color, pixelRow);
+                            ReadPalettedBgra32Pixel(stream, palette, colorMapPixelSizeInBytes, x, pixelRow);
                         }
                     }
                     else
                     {
                         for (int x = 0; x < width; x++)
                         {
-                            ReadPalettedBgra32Pixel(stream, palette, colorMapPixelSizeInBytes, x, color, pixelRow);
+                            ReadPalettedBgra32Pixel(stream, palette, colorMapPixelSizeInBytes, x, pixelRow);
                         }
                     }
 
@@ -319,16 +311,16 @@ internal sealed class TgaDecoderCore : IImageDecoderInternals
                 switch (colorMapPixelSizeInBytes)
                 {
                     case 1:
-                        color.FromL8(Unsafe.As<byte, L8>(ref palette[bufferSpan[idx] * colorMapPixelSizeInBytes]));
+                        color = TPixel.FromL8(Unsafe.As<byte, L8>(ref palette[bufferSpan[idx] * colorMapPixelSizeInBytes]));
                         break;
                     case 2:
-                        this.ReadPalettedBgra16Pixel(palette, bufferSpan[idx], colorMapPixelSizeInBytes, ref color);
+                        color = this.ReadPalettedBgra16Pixel<TPixel>(palette, bufferSpan[idx], colorMapPixelSizeInBytes);
                         break;
                     case 3:
-                        color.FromBgr24(Unsafe.As<byte, Bgr24>(ref palette[bufferSpan[idx] * colorMapPixelSizeInBytes]));
+                        color = TPixel.FromBgr24(Unsafe.As<byte, Bgr24>(ref palette[bufferSpan[idx] * colorMapPixelSizeInBytes]));
                         break;
                     case 4:
-                        color.FromBgra32(Unsafe.As<byte, Bgra32>(ref palette[bufferSpan[idx] * colorMapPixelSizeInBytes]));
+                        color = TPixel.FromBgra32(Unsafe.As<byte, Bgra32>(ref palette[bufferSpan[idx] * colorMapPixelSizeInBytes]));
                         break;
                 }
 
@@ -350,17 +342,15 @@ internal sealed class TgaDecoderCore : IImageDecoderInternals
     private void ReadMonoChrome<TPixel>(BufferedReadStream stream, int width, int height, Buffer2D<TPixel> pixels, TgaImageOrigin origin)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        bool invertX = InvertX(origin);
-        if (invertX)
+        if (InvertX(origin))
         {
-            TPixel color = default;
             for (int y = 0; y < height; y++)
             {
                 int newY = InvertY(y, height, origin);
                 Span<TPixel> pixelSpan = pixels.DangerousGetRowSpan(newY);
                 for (int x = width - 1; x >= 0; x--)
                 {
-                    ReadL8Pixel(stream, color, x, pixelSpan);
+                    ReadL8Pixel(stream, x, pixelSpan);
                 }
             }
 
@@ -369,8 +359,7 @@ internal sealed class TgaDecoderCore : IImageDecoderInternals
 
         using IMemoryOwner<byte> row = this.memoryAllocator.AllocatePaddedPixelRowBuffer(width, 1, 0);
         Span<byte> rowSpan = row.GetSpan();
-        bool invertY = InvertY(origin);
-        if (invertY)
+        if (InvertY(origin))
         {
             for (int y = height - 1; y >= 0; y--)
             {
@@ -398,7 +387,6 @@ internal sealed class TgaDecoderCore : IImageDecoderInternals
     private void ReadBgra16<TPixel>(BufferedReadStream stream, int width, int height, Buffer2D<TPixel> pixels, TgaImageOrigin origin)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        TPixel color = default;
         bool invertX = InvertX(origin);
         using IMemoryOwner<byte> row = this.memoryAllocator.AllocatePaddedPixelRowBuffer(width, 2, 0);
         Span<byte> rowSpan = row.GetSpan();
@@ -426,14 +414,12 @@ internal sealed class TgaDecoderCore : IImageDecoderInternals
 
                     if (this.fileHeader.ImageType == TgaImageType.BlackAndWhite)
                     {
-                        color.FromLa16(Unsafe.As<byte, La16>(ref MemoryMarshal.GetReference(scratchBuffer)));
+                        pixelSpan[x] = TPixel.FromLa16(Unsafe.As<byte, La16>(ref MemoryMarshal.GetReference(scratchBuffer)));
                     }
                     else
                     {
-                        color.FromBgra5551(Unsafe.As<byte, Bgra5551>(ref MemoryMarshal.GetReference(scratchBuffer)));
+                        pixelSpan[x] = TPixel.FromBgra5551(Unsafe.As<byte, Bgra5551>(ref MemoryMarshal.GetReference(scratchBuffer)));
                     }
-
-                    pixelSpan[x] = color;
                 }
             }
             else
@@ -477,18 +463,16 @@ internal sealed class TgaDecoderCore : IImageDecoderInternals
     private void ReadBgr24<TPixel>(BufferedReadStream stream, int width, int height, Buffer2D<TPixel> pixels, TgaImageOrigin origin)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        bool invertX = InvertX(origin);
-        if (invertX)
+        if (InvertX(origin))
         {
             Span<byte> scratchBuffer = stackalloc byte[4];
-            TPixel color = default;
             for (int y = 0; y < height; y++)
             {
                 int newY = InvertY(y, height, origin);
                 Span<TPixel> pixelSpan = pixels.DangerousGetRowSpan(newY);
                 for (int x = width - 1; x >= 0; x--)
                 {
-                    ReadBgr24Pixel(stream, color, x, pixelSpan, scratchBuffer);
+                    ReadBgr24Pixel(stream, x, pixelSpan, scratchBuffer);
                 }
             }
 
@@ -497,9 +481,8 @@ internal sealed class TgaDecoderCore : IImageDecoderInternals
 
         using IMemoryOwner<byte> row = this.memoryAllocator.AllocatePaddedPixelRowBuffer(width, 3, 0);
         Span<byte> rowSpan = row.GetSpan();
-        bool invertY = InvertY(origin);
 
-        if (invertY)
+        if (InvertY(origin))
         {
             for (int y = height - 1; y >= 0; y--)
             {
@@ -527,7 +510,6 @@ internal sealed class TgaDecoderCore : IImageDecoderInternals
     private void ReadBgra32<TPixel>(BufferedReadStream stream, int width, int height, Buffer2D<TPixel> pixels, TgaImageOrigin origin)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        TPixel color = default;
         bool invertX = InvertX(origin);
 
         Guard.NotNull(this.tgaMetadata);
@@ -565,14 +547,14 @@ internal sealed class TgaDecoderCore : IImageDecoderInternals
             {
                 for (int x = width - 1; x >= 0; x--)
                 {
-                    this.ReadBgra32Pixel(stream, x, color, pixelRow, scratchBuffer);
+                    this.ReadBgra32Pixel(stream, x, pixelRow, scratchBuffer);
                 }
             }
             else
             {
                 for (int x = 0; x < width; x++)
                 {
-                    this.ReadBgra32Pixel(stream, x, color, pixelRow, scratchBuffer);
+                    this.ReadBgra32Pixel(stream, x, pixelRow, scratchBuffer);
                 }
             }
         }
@@ -610,7 +592,7 @@ internal sealed class TgaDecoderCore : IImageDecoderInternals
                 switch (bytesPerPixel)
                 {
                     case 1:
-                        color.FromL8(Unsafe.As<byte, L8>(ref bufferSpan[idx]));
+                        color = TPixel.FromL8(Unsafe.As<byte, L8>(ref bufferSpan[idx]));
                         break;
                     case 2:
                         if (!this.hasAlpha)
@@ -621,26 +603,26 @@ internal sealed class TgaDecoderCore : IImageDecoderInternals
 
                         if (this.fileHeader.ImageType == TgaImageType.RleBlackAndWhite)
                         {
-                            color.FromLa16(Unsafe.As<byte, La16>(ref bufferSpan[idx]));
+                            color = TPixel.FromLa16(Unsafe.As<byte, La16>(ref bufferSpan[idx]));
                         }
                         else
                         {
-                            color.FromBgra5551(Unsafe.As<byte, Bgra5551>(ref bufferSpan[idx]));
+                            color = TPixel.FromBgra5551(Unsafe.As<byte, Bgra5551>(ref bufferSpan[idx]));
                         }
 
                         break;
                     case 3:
-                        color.FromBgr24(Unsafe.As<byte, Bgr24>(ref bufferSpan[idx]));
+                        color = TPixel.FromBgr24(Unsafe.As<byte, Bgr24>(ref bufferSpan[idx]));
                         break;
                     case 4:
                         if (this.hasAlpha)
                         {
-                            color.FromBgra32(Unsafe.As<byte, Bgra32>(ref bufferSpan[idx]));
+                            color = TPixel.FromBgra32(Unsafe.As<byte, Bgra32>(ref bufferSpan[idx]));
                         }
                         else
                         {
                             byte alpha = alphaBits == 0 ? byte.MaxValue : bufferSpan[idx + 3];
-                            color.FromBgra32(new Bgra32(bufferSpan[idx + 2], bufferSpan[idx + 1], bufferSpan[idx], alpha));
+                            color = TPixel.FromBgra32(new Bgra32(bufferSpan[idx + 2], bufferSpan[idx + 1], bufferSpan[idx], alpha));
                         }
 
                         break;
@@ -653,11 +635,10 @@ internal sealed class TgaDecoderCore : IImageDecoderInternals
     }
 
     /// <inheritdoc />
-    public ImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken)
+    protected override ImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken)
     {
         this.ReadFileHeader(stream);
         return new ImageInfo(
-            new PixelTypeInfo(this.fileHeader.PixelDepth),
             new(this.fileHeader.Width, this.fileHeader.Height),
             this.metadata);
     }
@@ -677,16 +658,15 @@ internal sealed class TgaDecoderCore : IImageDecoderInternals
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void ReadL8Pixel<TPixel>(BufferedReadStream stream, TPixel color, int x, Span<TPixel> pixelSpan)
+    private static void ReadL8Pixel<TPixel>(BufferedReadStream stream, int x, Span<TPixel> pixelSpan)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         byte pixelValue = (byte)stream.ReadByte();
-        color.FromL8(Unsafe.As<byte, L8>(ref pixelValue));
-        pixelSpan[x] = color;
+        pixelSpan[x] = TPixel.FromL8(Unsafe.As<byte, L8>(ref pixelValue));
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void ReadBgr24Pixel<TPixel>(BufferedReadStream stream, TPixel color, int x, Span<TPixel> pixelSpan, Span<byte> scratchBuffer)
+    private static void ReadBgr24Pixel<TPixel>(BufferedReadStream stream, int x, Span<TPixel> pixelSpan, Span<byte> scratchBuffer)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         int bytesRead = stream.Read(scratchBuffer, 0, 3);
@@ -695,8 +675,7 @@ internal sealed class TgaDecoderCore : IImageDecoderInternals
             TgaThrowHelper.ThrowInvalidImageContentException("Not enough data to read a bgr pixel");
         }
 
-        color.FromBgr24(Unsafe.As<byte, Bgr24>(ref MemoryMarshal.GetReference(scratchBuffer)));
-        pixelSpan[x] = color;
+        pixelSpan[x] = TPixel.FromBgr24(Unsafe.As<byte, Bgr24>(ref MemoryMarshal.GetReference(scratchBuffer)));
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -714,7 +693,7 @@ internal sealed class TgaDecoderCore : IImageDecoderInternals
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void ReadBgra32Pixel<TPixel>(BufferedReadStream stream, int x, TPixel color, Span<TPixel> pixelRow, Span<byte> scratchBuffer)
+    private void ReadBgra32Pixel<TPixel>(BufferedReadStream stream, int x, Span<TPixel> pixelRow, Span<byte> scratchBuffer)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         int bytesRead = stream.Read(scratchBuffer, 0, 4);
@@ -726,8 +705,7 @@ internal sealed class TgaDecoderCore : IImageDecoderInternals
         Guard.NotNull(this.tgaMetadata);
 
         byte alpha = this.tgaMetadata.AlphaChannelBits == 0 ? byte.MaxValue : scratchBuffer[3];
-        color.FromBgra32(new Bgra32(scratchBuffer[2], scratchBuffer[1], scratchBuffer[0], alpha));
-        pixelRow[x] = color;
+        pixelRow[x] = TPixel.FromBgra32(new Bgra32(scratchBuffer[2], scratchBuffer[1], scratchBuffer[0], alpha));
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -745,7 +723,7 @@ internal sealed class TgaDecoderCore : IImageDecoderInternals
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void ReadPalettedBgra16Pixel<TPixel>(BufferedReadStream stream, Span<byte> palette, int colorMapPixelSizeInBytes, int x, TPixel color, Span<TPixel> pixelRow)
+    private void ReadPalettedBgra16Pixel<TPixel>(BufferedReadStream stream, Span<byte> palette, int colorMapPixelSizeInBytes, int x, Span<TPixel> pixelRow)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         int colorIndex = stream.ReadByte();
@@ -754,16 +732,14 @@ internal sealed class TgaDecoderCore : IImageDecoderInternals
             TgaThrowHelper.ThrowInvalidImageContentException("Not enough data to read color index");
         }
 
-        this.ReadPalettedBgra16Pixel(palette, colorIndex, colorMapPixelSizeInBytes, ref color);
-        pixelRow[x] = color;
+        pixelRow[x] = this.ReadPalettedBgra16Pixel<TPixel>(palette, colorIndex, colorMapPixelSizeInBytes);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void ReadPalettedBgra16Pixel<TPixel>(Span<byte> palette, int index, int colorMapPixelSizeInBytes, ref TPixel color)
+    private TPixel ReadPalettedBgra16Pixel<TPixel>(Span<byte> palette, int index, int colorMapPixelSizeInBytes)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        Bgra5551 bgra = default;
-        bgra.FromBgra5551(Unsafe.As<byte, Bgra5551>(ref palette[index * colorMapPixelSizeInBytes]));
+        Bgra5551 bgra = Unsafe.As<byte, Bgra5551>(ref palette[index * colorMapPixelSizeInBytes]);
 
         if (!this.hasAlpha)
         {
@@ -771,11 +747,11 @@ internal sealed class TgaDecoderCore : IImageDecoderInternals
             bgra.PackedValue = (ushort)(bgra.PackedValue | 0x8000);
         }
 
-        color.FromBgra5551(bgra);
+        return TPixel.FromBgra5551(bgra);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void ReadPalettedBgr24Pixel<TPixel>(BufferedReadStream stream, Span<byte> palette, int colorMapPixelSizeInBytes, int x, TPixel color, Span<TPixel> pixelRow)
+    private static void ReadPalettedBgr24Pixel<TPixel>(BufferedReadStream stream, Span<byte> palette, int colorMapPixelSizeInBytes, int x, Span<TPixel> pixelRow)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         int colorIndex = stream.ReadByte();
@@ -784,12 +760,11 @@ internal sealed class TgaDecoderCore : IImageDecoderInternals
             TgaThrowHelper.ThrowInvalidImageContentException("Not enough data to read color index");
         }
 
-        color.FromBgr24(Unsafe.As<byte, Bgr24>(ref palette[colorIndex * colorMapPixelSizeInBytes]));
-        pixelRow[x] = color;
+        pixelRow[x] = TPixel.FromBgr24(Unsafe.As<byte, Bgr24>(ref palette[colorIndex * colorMapPixelSizeInBytes]));
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void ReadPalettedBgra32Pixel<TPixel>(BufferedReadStream stream, Span<byte> palette, int colorMapPixelSizeInBytes, int x, TPixel color, Span<TPixel> pixelRow)
+    private static void ReadPalettedBgra32Pixel<TPixel>(BufferedReadStream stream, Span<byte> palette, int colorMapPixelSizeInBytes, int x, Span<TPixel> pixelRow)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         int colorIndex = stream.ReadByte();
@@ -798,8 +773,7 @@ internal sealed class TgaDecoderCore : IImageDecoderInternals
             TgaThrowHelper.ThrowInvalidImageContentException("Not enough data to read color index");
         }
 
-        color.FromBgra32(Unsafe.As<byte, Bgra32>(ref palette[colorIndex * colorMapPixelSizeInBytes]));
-        pixelRow[x] = color;
+        pixelRow[x] = TPixel.FromBgra32(Unsafe.As<byte, Bgra32>(ref palette[colorIndex * colorMapPixelSizeInBytes]));
     }
 
     /// <summary>
@@ -933,11 +907,15 @@ internal sealed class TgaDecoderCore : IImageDecoderInternals
 
         stream.Read(buffer, 0, TgaFileHeader.Size);
         this.fileHeader = TgaFileHeader.Parse(buffer);
+        this.Dimensions = new Size(this.fileHeader.Width, this.fileHeader.Height);
+
         this.metadata = new ImageMetadata();
         this.tgaMetadata = this.metadata.GetTgaMetadata();
         this.tgaMetadata.BitsPerPixel = (TgaBitsPerPixel)this.fileHeader.PixelDepth;
 
-        int alphaBits = this.fileHeader.ImageDescriptor & 0xf;
+        // TrueColor images with 32 bits per pixel are assumed to always have 8 bit alpha channel,
+        // because some encoders do not set correctly the alpha bits in the image descriptor.
+        int alphaBits = this.IsTrueColor32BitPerPixel(this.tgaMetadata.BitsPerPixel) ? 8 : this.fileHeader.ImageDescriptor & 0xf;
         if (alphaBits is not 0 and not 1 and not 8)
         {
             TgaThrowHelper.ThrowInvalidImageContentException("Invalid alpha channel bits");
@@ -949,4 +927,8 @@ internal sealed class TgaDecoderCore : IImageDecoderInternals
         // Bits 4 and 5 describe the image origin.
         return (TgaImageOrigin)((this.fileHeader.ImageDescriptor & 0x30) >> 4);
     }
+
+    private bool IsTrueColor32BitPerPixel(TgaBitsPerPixel bitsPerPixel) => bitsPerPixel == TgaBitsPerPixel.Bit32 &&
+                                                                           (this.fileHeader.ImageType == TgaImageType.TrueColor ||
+                                                                            this.fileHeader.ImageType == TgaImageType.RleTrueColor);
 }

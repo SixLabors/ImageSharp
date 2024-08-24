@@ -9,7 +9,7 @@ using SixLabors.ImageSharp.Tests;
 
 namespace SixLabors.ImageSharp.Benchmarks.Processing;
 
-[Config(typeof(Config.MultiFramework))]
+[Config(typeof(Config.Standard))]
 public class HistogramEqualization
 {
     private Image<Rgba32> image;

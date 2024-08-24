@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Tests.PixelFormats;
@@ -12,8 +13,8 @@ public class La32Tests
     [Fact]
     public void AreEqual()
     {
-        var color1 = new La32(3000, 100);
-        var color2 = new La32(3000, 100);
+        La32 color1 = new(3000, 100);
+        La32 color2 = new(3000, 100);
 
         Assert.Equal(color1, color2);
     }
@@ -21,8 +22,8 @@ public class La32Tests
     [Fact]
     public void AreNotEqual()
     {
-        var color1 = new La32(12345, 100);
-        var color2 = new La32(54321, 100);
+        La32 color1 = new(12345, 100);
+        La32 color2 = new(54321, 100);
 
         Assert.NotEqual(color1, color2);
     }
@@ -39,14 +40,13 @@ public class La32Tests
     public void La32_FromScaledVector4()
     {
         // Arrange
-        La32 gray = default;
         const ushort expected = 32767;
         Vector4 scaled = new La32(expected, expected).ToScaledVector4();
 
         // Act
-        gray.FromScaledVector4(scaled);
-        ushort actual = gray.L;
-        ushort actualA = gray.A;
+        La32 pixel = La32.FromScaledVector4(scaled);
+        ushort actual = pixel.L;
+        ushort actualA = pixel.A;
 
         // Assert
         Assert.Equal(expected, actual);
@@ -60,10 +60,10 @@ public class La32Tests
     public void La32_ToScaledVector4(ushort input)
     {
         // Arrange
-        var gray = new La32(input, input);
+        La32 pixel = new(input, input);
 
         // Act
-        Vector4 actual = gray.ToScaledVector4();
+        Vector4 actual = pixel.ToScaledVector4();
 
         // Assert
         float vectorInput = input / 65535F;
@@ -77,14 +77,13 @@ public class La32Tests
     public void La32_FromVector4()
     {
         // Arrange
-        La32 gray = default;
         const ushort expected = 32767;
-        var vector = new La32(expected, expected).ToVector4();
+        Vector4 vector = new La32(expected, expected).ToVector4();
 
         // Act
-        gray.FromVector4(vector);
-        ushort actual = gray.L;
-        ushort actualA = gray.A;
+        La32 pixel = La32.FromVector4(vector);
+        ushort actual = pixel.L;
+        ushort actualA = pixel.A;
 
         // Assert
         Assert.Equal(expected, actual);
@@ -98,10 +97,10 @@ public class La32Tests
     public void La32_ToVector4(ushort input)
     {
         // Arrange
-        var gray = new La32(input, input);
+        La32 pixel = new(input, input);
 
         // Act
-        var actual = gray.ToVector4();
+        Vector4 actual = pixel.ToVector4();
 
         // Assert
         float vectorInput = input / 65535F;
@@ -115,18 +114,17 @@ public class La32Tests
     public void La32_FromRgba32()
     {
         // Arrange
-        La32 gray = default;
         const byte rgb = 128;
-        ushort scaledRgb = ColorNumerics.UpscaleFrom8BitTo16Bit(rgb);
+        ushort scaledRgb = ColorNumerics.From8BitTo16Bit(rgb);
         ushort expected = ColorNumerics.Get16BitBT709Luminance(scaledRgb, scaledRgb, scaledRgb);
 
         // Act
-        gray.FromRgba32(new Rgba32(rgb, rgb, rgb));
-        ushort actual = gray.L;
+        La32 pixel = La32.FromRgba32(new Rgba32(rgb, rgb, rgb));
+        ushort actual = pixel.L;
 
         // Assert
         Assert.Equal(expected, actual);
-        Assert.Equal(ushort.MaxValue, gray.A);
+        Assert.Equal(ushort.MaxValue, pixel.A);
     }
 
     [Theory]
@@ -136,12 +134,11 @@ public class La32Tests
     public void La32_ToRgba32(ushort input)
     {
         // Arrange
-        ushort expected = ColorNumerics.DownScaleFrom16BitTo8Bit(input);
-        var gray = new La32(input, ushort.MaxValue);
+        ushort expected = ColorNumerics.From16BitTo8Bit(input);
+        La32 pixel = new(input, ushort.MaxValue);
 
         // Act
-        Rgba32 actual = default;
-        gray.ToRgba32(ref actual);
+        Rgba32 actual = pixel.ToRgba32();
 
         // Assert
         Assert.Equal(expected, actual.R);
@@ -154,14 +151,29 @@ public class La32Tests
     public void La32_FromBgra5551()
     {
         // arrange
-        var gray = default(La32);
-        ushort expected = ushort.MaxValue;
+        const ushort expected = ushort.MaxValue;
 
         // act
-        gray.FromBgra5551(new Bgra5551(1.0f, 1.0f, 1.0f, 1.0f));
+        La32 pixel = La32.FromBgra5551(new Bgra5551(1f, 1f, 1f, 1f));
 
         // assert
-        Assert.Equal(expected, gray.L);
-        Assert.Equal(expected, gray.A);
+        Assert.Equal(expected, pixel.L);
+        Assert.Equal(expected, pixel.A);
+    }
+
+    [Fact]
+    public void La32_PixelInformation()
+    {
+        PixelTypeInfo info = La32.GetPixelTypeInfo();
+        Assert.Equal(Unsafe.SizeOf<La32>() * 8, info.BitsPerPixel);
+        Assert.Equal(PixelAlphaRepresentation.Unassociated, info.AlphaRepresentation);
+        Assert.Equal(PixelColorType.Luminance | PixelColorType.Alpha, info.ColorType);
+
+        PixelComponentInfo componentInfo = info.ComponentInfo.Value;
+        Assert.Equal(2, componentInfo.ComponentCount);
+        Assert.Equal(0, componentInfo.Padding);
+        Assert.Equal(16, componentInfo.GetComponentPrecision(0));
+        Assert.Equal(16, componentInfo.GetComponentPrecision(1));
+        Assert.Equal(16, componentInfo.GetMaximumComponentPrecision());
     }
 }

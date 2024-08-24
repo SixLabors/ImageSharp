@@ -2,11 +2,12 @@
 // Licensed under the Six Labors Split License.
 
 using System.Collections.Concurrent;
-using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Formats;
+using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs;
 using Xunit.Abstractions;
 
 // ReSharper disable InconsistentNaming
@@ -26,7 +27,7 @@ public class TestImageProviderTests
         TestImageProvider<HalfVector4>.File(TestImages.Bmp.F)
     };
 
-    public static string[] AllBmpFiles = { TestImages.Bmp.F, TestImages.Bmp.Bit8 };
+    public static string[] AllBmpFiles = [TestImages.Bmp.F, TestImages.Bmp.Bit8];
 
     public TestImageProviderTests(ITestOutputHelper output) => this.Output = output;
 
@@ -81,9 +82,9 @@ public class TestImageProviderTests
         TestDecoder.DoTestThreadSafe(
             () =>
                 {
-                    string testName = nameof(this.GetImage_WithCustomParameterlessDecoder_ShouldUtilizeCache);
+                    const string testName = nameof(this.GetImage_WithCustomParameterlessDecoder_ShouldUtilizeCache);
 
-                    var decoder = new TestDecoder();
+                    TestDecoder decoder = new();
                     decoder.InitCaller(testName);
 
                     provider.GetImage(decoder);
@@ -200,13 +201,13 @@ public class TestImageProviderTests
         where TPixel : unmanaged, IPixel<TPixel>
     {
         using Image<TPixel> image = provider.GetImage();
-        string[] files = provider.Utility.SaveTestOutputFileMultiFrame(image);
+        (int Index, string FileName)[] files = provider.Utility.SaveTestOutputFileMultiFrame(image);
 
         Assert.True(files.Length > 2);
-        foreach (string path in files)
+        foreach ((int Index, string FileName) file in files)
         {
-            this.Output.WriteLine(path);
-            Assert.True(File.Exists(path));
+            this.Output.WriteLine(file.FileName);
+            Assert.True(File.Exists(file.FileName));
         }
     }
 
@@ -302,12 +303,11 @@ public class TestImageProviderTests
         Assert.Equal(20, img.Height);
 
         Buffer2D<TPixel> pixels = img.GetRootFramePixelBuffer();
-        Rgba32 rgba = default;
         for (int y = 0; y < pixels.Height; y++)
         {
             for (int x = 0; x < pixels.Width; x++)
             {
-                pixels[x, y].ToRgba32(ref rgba);
+                Rgba32 rgba = pixels[x, y].ToRgba32();
 
                 Assert.Equal(255, rgba.R);
                 Assert.Equal(100, rgba.G);
@@ -337,13 +337,13 @@ public class TestImageProviderTests
     {
         using (provider.GetImage())
         {
-            var customConfiguration = Configuration.CreateDefaultInstance();
+            Configuration customConfiguration = Configuration.CreateDefaultInstance();
             provider.Configuration = customConfiguration;
 
             using Image<TPixel> image2 = provider.GetImage();
             using Image<TPixel> image3 = provider.GetImage();
-            Assert.Same(customConfiguration, image2.GetConfiguration());
-            Assert.Same(customConfiguration, image3.GetConfiguration());
+            Assert.Same(customConfiguration, image2.Configuration);
+            Assert.Same(customConfiguration, image3.Configuration);
         }
     }
 
@@ -367,13 +367,17 @@ public class TestImageProviderTests
         protected override ImageInfo Identify(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
         {
             using Image<Rgba32> image = this.Decode<Rgba32>(this.CreateDefaultSpecializedOptions(options), stream, cancellationToken);
-            return new(image.PixelType, image.Size, image.Metadata, new List<ImageFrameMetadata>(image.Frames.Select(x => x.Metadata)));
+            ImageMetadata metadata = image.Metadata;
+            return new(image.Size, metadata, new List<ImageFrameMetadata>(image.Frames.Select(x => x.Metadata)))
+            {
+                PixelType = metadata.GetDecodedPixelTypeInfo()
+            };
         }
 
         protected override Image<TPixel> Decode<TPixel>(TestDecoderOptions options, Stream stream, CancellationToken cancellationToken)
         {
             InvocationCounts[this.callerName]++;
-            return new Image<TPixel>(42, 42);
+            return ReferenceCodecUtilities.EnsureDecodedMetadata(new Image<TPixel>(42, 42), PngFormat.Instance);
         }
 
         protected override Image Decode(TestDecoderOptions options, Stream stream, CancellationToken cancellationToken)
@@ -410,13 +414,17 @@ public class TestImageProviderTests
         protected override ImageInfo Identify(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
         {
             using Image<Rgba32> image = this.Decode<Rgba32>(this.CreateDefaultSpecializedOptions(options), stream, cancellationToken);
-            return new(image.PixelType, image.Size, image.Metadata, new List<ImageFrameMetadata>(image.Frames.Select(x => x.Metadata)));
+            ImageMetadata metadata = image.Metadata;
+            return new(image.Size, metadata, new List<ImageFrameMetadata>(image.Frames.Select(x => x.Metadata)))
+            {
+                PixelType = metadata.GetDecodedPixelTypeInfo()
+            };
         }
 
         protected override Image<TPixel> Decode<TPixel>(TestDecoderWithParametersOptions options, Stream stream, CancellationToken cancellationToken)
         {
             InvocationCounts[this.callerName]++;
-            return new Image<TPixel>(42, 42);
+            return ReferenceCodecUtilities.EnsureDecodedMetadata(new Image<TPixel>(42, 42), PngFormat.Instance);
         }
 
         protected override Image Decode(TestDecoderWithParametersOptions options, Stream stream, CancellationToken cancellationToken)

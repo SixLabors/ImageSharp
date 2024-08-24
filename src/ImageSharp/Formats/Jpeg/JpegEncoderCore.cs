@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 #nullable disable
 
+using System.Buffers;
 using System.Buffers.Binary;
 using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
@@ -18,13 +19,16 @@ namespace SixLabors.ImageSharp.Formats.Jpeg;
 /// <summary>
 /// Image encoder for writing an image to a stream as a jpeg.
 /// </summary>
-internal sealed unsafe partial class JpegEncoderCore : IImageEncoderInternals
+internal sealed unsafe partial class JpegEncoderCore
 {
     /// <summary>
     /// The available encodable frame configs.
     /// </summary>
     private static readonly JpegFrameConfig[] FrameConfigs = CreateFrameConfigs();
 
+    /// <summary>
+    /// The current calling encoder.
+    /// </summary>
     private readonly JpegEncoder encoder;
 
     /// <summary>
@@ -68,7 +72,7 @@ internal sealed unsafe partial class JpegEncoderCore : IImageEncoderInternals
         JpegMetadata jpegMetadata = metadata.GetJpegMetadata();
         JpegFrameConfig frameConfig = this.GetFrameConfig(jpegMetadata);
 
-        bool interleaved = this.encoder.Interleaved ?? jpegMetadata.Interleaved ?? true;
+        bool interleaved = this.encoder.Interleaved ?? jpegMetadata.Interleaved;
         using JpegFrame frame = new(image, frameConfig, interleaved);
 
         // Write the Start Of Image marker.
@@ -88,6 +92,9 @@ internal sealed unsafe partial class JpegEncoderCore : IImageEncoderInternals
 
         // Write Exif, XMP, ICC and IPTC profiles
         this.WriteProfiles(metadata, buffer);
+
+        // Write comments
+        this.WriteComments(image.Configuration, jpegMetadata);
 
         // Write the image dimensions.
         this.WriteStartOfFrame(image.Width, image.Height, frameConfig, buffer);
@@ -168,6 +175,51 @@ internal sealed unsafe partial class JpegEncoderCore : IImageEncoderInternals
     }
 
     /// <summary>
+    /// Writes the COM tags.
+    /// </summary>
+    /// <param name="configuration">The configuration.</param>
+    /// <param name="metadata">The image metadata.</param>
+    private void WriteComments(Configuration configuration, JpegMetadata metadata)
+    {
+        if (metadata.Comments.Count == 0)
+        {
+            return;
+        }
+
+        const int maxCommentLength = 65533;
+        using IMemoryOwner<byte> bufferOwner = configuration.MemoryAllocator.Allocate<byte>(maxCommentLength);
+        Span<byte> buffer = bufferOwner.Memory.Span;
+        foreach (JpegComData comment in metadata.Comments)
+        {
+            int totalLength = comment.Value.Length;
+            if (totalLength == 0)
+            {
+                continue;
+            }
+
+            // Loop through and split the comment into multiple comments if the comment length
+            // is greater than the maximum allowed length.
+            while (totalLength > 0)
+            {
+                int currentLength = Math.Min(totalLength, maxCommentLength);
+
+                // Write the marker header.
+                this.WriteMarkerHeader(JpegConstants.Markers.COM, currentLength + 2, buffer);
+
+                ReadOnlySpan<char> commentValue = comment.Value.Span.Slice(comment.Value.Length - totalLength, currentLength);
+                for (int i = 0; i < commentValue.Length; i++)
+                {
+                    buffer[i] = (byte)commentValue[i];
+                }
+
+                // Write the comment.
+                this.outputStream.Write(buffer, 0, currentLength);
+                totalLength -= currentLength;
+            }
+        }
+    }
+
+    /// <summary>
     /// Writes the Define Huffman Table marker and tables.
     /// </summary>
     /// <param name="tableConfigs">The table configuration.</param>
@@ -176,10 +228,7 @@ internal sealed unsafe partial class JpegEncoderCore : IImageEncoderInternals
     /// <exception cref="ArgumentNullException"><paramref name="tableConfigs"/> is <see langword="null"/>.</exception>
     private void WriteDefineHuffmanTables(JpegHuffmanTableConfig[] tableConfigs, HuffmanScanEncoder scanEncoder, Span<byte> buffer)
     {
-        if (tableConfigs is null)
-        {
-            throw new ArgumentNullException(nameof(tableConfigs));
-        }
+        ArgumentNullException.ThrowIfNull(tableConfigs);
 
         int markerlen = 2;
 
@@ -490,17 +539,11 @@ internal sealed unsafe partial class JpegEncoderCore : IImageEncoderInternals
     /// <param name="buffer">Temporary buffer.</param>
     private void WriteProfiles(ImageMetadata metadata, Span<byte> buffer)
     {
-        if (metadata is null)
-        {
-            return;
-        }
-
         // For compatibility, place the profiles in the following order:
         // - APP1 EXIF
         // - APP1 XMP
         // - APP2 ICC
         // - APP13 IPTC
-        metadata.SyncProfiles();
         this.WriteExifProfile(metadata.ExifProfile, buffer);
         this.WriteXmpProfile(metadata.XmpProfile, buffer);
         this.WriteIccProfile(metadata.IccProfile, buffer);
@@ -731,7 +774,7 @@ internal sealed unsafe partial class JpegEncoderCore : IImageEncoderInternals
 
     private JpegFrameConfig GetFrameConfig(JpegMetadata metadata)
     {
-        JpegEncodingColor color = this.encoder.ColorType ?? metadata.ColorType ?? JpegEncodingColor.YCbCrRatio420;
+        JpegColorType color = this.encoder.ColorType ?? metadata.ColorType;
         JpegFrameConfig frameConfig = Array.Find(
             FrameConfigs,
             cfg => cfg.EncodingColor == color);

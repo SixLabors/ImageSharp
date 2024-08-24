@@ -107,15 +107,15 @@ public readonly partial struct ErrorDither : IDither, IEquatable<ErrorDither>, I
         float scale = quantizer.Options.DitherScale;
         Buffer2D<TPixel> sourceBuffer = source.PixelBuffer;
 
-        for (int y = bounds.Top; y < bounds.Bottom; y++)
+        for (int y = 0; y < destination.Height; y++)
         {
-            ref TPixel sourceRowRef = ref MemoryMarshal.GetReference(sourceBuffer.DangerousGetRowSpan(y));
-            ref byte destinationRowRef = ref MemoryMarshal.GetReference(destination.GetWritablePixelRowSpanUnsafe(y - offsetY));
+            ReadOnlySpan<TPixel> sourceRow = sourceBuffer.DangerousGetRowSpan(y + offsetY);
+            Span<byte> destinationRow = destination.GetWritablePixelRowSpanUnsafe(y);
 
-            for (int x = bounds.Left; x < bounds.Right; x++)
+            for (int x = 0; x < destinationRow.Length; x++)
             {
-                TPixel sourcePixel = Unsafe.Add(ref sourceRowRef, (uint)x);
-                Unsafe.Add(ref destinationRowRef, (uint)(x - offsetX)) = quantizer.GetQuantizedColor(sourcePixel, out TPixel transformed);
+                TPixel sourcePixel = sourceRow[x + offsetX];
+                destinationRow[x] = quantizer.GetQuantizedColor(sourcePixel, out TPixel transformed);
                 this.Dither(source, bounds, sourcePixel, transformed, x, y, scale);
             }
         }
@@ -143,7 +143,7 @@ public readonly partial struct ErrorDither : IDither, IEquatable<ErrorDither>, I
             for (int x = bounds.Left; x < bounds.Right; x++)
             {
                 ref TPixel sourcePixel = ref Unsafe.Add(ref sourceRowRef, (uint)x);
-                TPixel transformed = Unsafe.AsRef(processor).GetPaletteColor(sourcePixel);
+                TPixel transformed = Unsafe.AsRef(in processor).GetPaletteColor(sourcePixel);
                 this.Dither(source, bounds, sourcePixel, transformed, x, y, scale);
                 sourcePixel = transformed;
             }
@@ -200,10 +200,10 @@ public readonly partial struct ErrorDither : IDither, IEquatable<ErrorDither>, I
                 }
 
                 ref TPixel pixel = ref rowSpan[targetX];
-                var result = pixel.ToVector4();
+                Vector4 result = pixel.ToVector4();
 
                 result += error * coefficient;
-                pixel.FromVector4(result);
+                pixel = TPixel.FromVector4(result);
             }
         }
 

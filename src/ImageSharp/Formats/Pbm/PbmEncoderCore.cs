@@ -2,7 +2,6 @@
 // Licensed under the Six Labors Split License.
 
 using System.Buffers.Text;
-using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Pbm;
@@ -10,7 +9,7 @@ namespace SixLabors.ImageSharp.Formats.Pbm;
 /// <summary>
 /// Image encoder for writing an image to a stream as a PGM, PBM, PPM or PAM bitmap.
 /// </summary>
-internal sealed class PbmEncoderCore : IImageEncoderInternals
+internal sealed class PbmEncoderCore
 {
     private const byte NewLine = (byte)'\n';
     private const byte Space = (byte)' ';
@@ -78,7 +77,7 @@ internal sealed class PbmEncoderCore : IImageEncoderInternals
     private void SanitizeAndSetEncoderOptions<TPixel>(Image<TPixel> image)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        this.configuration = image.GetConfiguration();
+        this.configuration = image.Configuration;
         PbmMetadata metadata = image.Metadata.GetPbmMetadata();
         this.encoding = this.encoder.Encoding ?? metadata.Encoding;
         this.colorType = this.encoder.ColorType ?? metadata.ColorType;

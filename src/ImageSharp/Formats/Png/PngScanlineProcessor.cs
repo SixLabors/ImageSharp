@@ -4,6 +4,7 @@
 using System.Buffers.Binary;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using SixLabors.ImageSharp.Formats.Png.Chunks;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Png;
@@ -15,187 +16,103 @@ namespace SixLabors.ImageSharp.Formats.Png;
 internal static class PngScanlineProcessor
 {
     public static void ProcessGrayscaleScanline<TPixel>(
-        in PngHeader header,
+        int bitDepth,
+        in FrameControl frameControl,
         ReadOnlySpan<byte> scanlineSpan,
         Span<TPixel> rowSpan,
-        bool hasTrans,
-        L16 luminance16Trans,
-        L8 luminanceTrans)
-        where TPixel : unmanaged, IPixel<TPixel>
-    {
-        TPixel pixel = default;
-        ref byte scanlineSpanRef = ref MemoryMarshal.GetReference(scanlineSpan);
-        ref TPixel rowSpanRef = ref MemoryMarshal.GetReference(rowSpan);
-        int scaleFactor = 255 / (ColorNumerics.GetColorCountForBitDepth(header.BitDepth) - 1);
-
-        if (!hasTrans)
-        {
-            if (header.BitDepth == 16)
-            {
-                int o = 0;
-                for (nuint x = 0; x < (uint)header.Width; x++, o += 2)
-                {
-                    ushort luminance = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o, 2));
-                    pixel.FromL16(Unsafe.As<ushort, L16>(ref luminance));
-                    Unsafe.Add(ref rowSpanRef, x) = pixel;
-                }
-            }
-            else
-            {
-                for (nuint x = 0; x < (uint)header.Width; x++)
-                {
-                    byte luminance = (byte)(Unsafe.Add(ref scanlineSpanRef, x) * scaleFactor);
-                    pixel.FromL8(Unsafe.As<byte, L8>(ref luminance));
-                    Unsafe.Add(ref rowSpanRef, x) = pixel;
-                }
-            }
-
-            return;
-        }
-
-        if (header.BitDepth == 16)
-        {
-            La32 source = default;
-            int o = 0;
-            for (nuint x = 0; x < (uint)header.Width; x++, o += 2)
-            {
-                ushort luminance = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o, 2));
-                source.L = luminance;
-                source.A = luminance.Equals(luminance16Trans.PackedValue) ? ushort.MinValue : ushort.MaxValue;
-
-                pixel.FromLa32(source);
-                Unsafe.Add(ref rowSpanRef, x) = pixel;
-            }
-        }
-        else
-        {
-            La16 source = default;
-            byte scaledLuminanceTrans = (byte)(luminanceTrans.PackedValue * scaleFactor);
-            for (nuint x = 0; x < (uint)header.Width; x++)
-            {
-                byte luminance = (byte)(Unsafe.Add(ref scanlineSpanRef, x) * scaleFactor);
-                source.L = luminance;
-                source.A = luminance.Equals(scaledLuminanceTrans) ? byte.MinValue : byte.MaxValue;
-
-                pixel.FromLa16(source);
-                Unsafe.Add(ref rowSpanRef, x) = pixel;
-            }
-        }
-    }
+        Color? transparentColor)
+        where TPixel : unmanaged, IPixel<TPixel> =>
+        ProcessInterlacedGrayscaleScanline(
+            bitDepth,
+            frameControl,
+            scanlineSpan,
+            rowSpan,
+            0,
+            1,
+            transparentColor);
 
     public static void ProcessInterlacedGrayscaleScanline<TPixel>(
-        in PngHeader header,
+        int bitDepth,
+        in FrameControl frameControl,
         ReadOnlySpan<byte> scanlineSpan,
         Span<TPixel> rowSpan,
         uint pixelOffset,
         uint increment,
-        bool hasTrans,
-        L16 luminance16Trans,
-        L8 luminanceTrans)
+        Color? transparentColor)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        TPixel pixel = default;
+        uint offset = pixelOffset + frameControl.XOffset;
         ref byte scanlineSpanRef = ref MemoryMarshal.GetReference(scanlineSpan);
         ref TPixel rowSpanRef = ref MemoryMarshal.GetReference(rowSpan);
-        int scaleFactor = 255 / (ColorNumerics.GetColorCountForBitDepth(header.BitDepth) - 1);
+        int scaleFactor = 255 / (ColorNumerics.GetColorCountForBitDepth(bitDepth) - 1);
 
-        if (!hasTrans)
+        if (transparentColor is null)
         {
-            if (header.BitDepth == 16)
+            if (bitDepth == 16)
             {
                 int o = 0;
-                for (nuint x = pixelOffset; x < (uint)header.Width; x += increment, o += 2)
+                for (nuint x = offset; x < frameControl.XMax; x += increment, o += 2)
                 {
                     ushort luminance = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o, 2));
-                    pixel.FromL16(Unsafe.As<ushort, L16>(ref luminance));
-                    Unsafe.Add(ref rowSpanRef, x) = pixel;
+                    Unsafe.Add(ref rowSpanRef, x) = TPixel.FromL16(Unsafe.As<ushort, L16>(ref luminance));
                 }
             }
             else
             {
-                for (nuint x = pixelOffset, o = 0; x < (uint)header.Width; x += increment, o++)
+                for (nuint x = offset, o = 0; x < frameControl.XMax; x += increment, o++)
                 {
                     byte luminance = (byte)(Unsafe.Add(ref scanlineSpanRef, o) * scaleFactor);
-                    pixel.FromL8(Unsafe.As<byte, L8>(ref luminance));
-                    Unsafe.Add(ref rowSpanRef, x) = pixel;
+                    Unsafe.Add(ref rowSpanRef, x) = TPixel.FromL8(Unsafe.As<byte, L8>(ref luminance));
                 }
             }
 
             return;
         }
 
-        if (header.BitDepth == 16)
+        if (bitDepth == 16)
         {
-            La32 source = default;
+            L16 transparent = transparentColor.Value.ToPixel<L16>();
             int o = 0;
-            for (nuint x = pixelOffset; x < (uint)header.Width; x += increment, o += 2)
+            for (nuint x = offset; x < frameControl.XMax; x += increment, o += 2)
             {
                 ushort luminance = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o, 2));
-                source.L = luminance;
-                source.A = luminance.Equals(luminance16Trans.PackedValue) ? ushort.MinValue : ushort.MaxValue;
-
-                pixel.FromLa32(source);
-                Unsafe.Add(ref rowSpanRef, x) = pixel;
+                La32 source = new(luminance, luminance.Equals(transparent.PackedValue) ? ushort.MinValue : ushort.MaxValue);
+                Unsafe.Add(ref rowSpanRef, x) = TPixel.FromLa32(source);
             }
         }
         else
         {
-            La16 source = default;
-            byte scaledLuminanceTrans = (byte)(luminanceTrans.PackedValue * scaleFactor);
-            for (nuint x = pixelOffset, o = 0; x < (uint)header.Width; x += increment, o++)
+            byte transparent = (byte)(transparentColor.Value.ToPixel<L8>().PackedValue * scaleFactor);
+            for (nuint x = offset, o = 0; x < frameControl.XMax; x += increment, o++)
             {
                 byte luminance = (byte)(Unsafe.Add(ref scanlineSpanRef, o) * scaleFactor);
-                source.L = luminance;
-                source.A = luminance.Equals(scaledLuminanceTrans) ? byte.MinValue : byte.MaxValue;
-
-                pixel.FromLa16(source);
-                Unsafe.Add(ref rowSpanRef, x) = pixel;
+                La16 source = new(luminance, luminance.Equals(transparent) ? byte.MinValue : byte.MaxValue);
+                Unsafe.Add(ref rowSpanRef, x) = TPixel.FromLa16(source);
             }
         }
     }
 
     public static void ProcessGrayscaleWithAlphaScanline<TPixel>(
-        in PngHeader header,
+        int bitDepth,
+        in FrameControl frameControl,
         ReadOnlySpan<byte> scanlineSpan,
         Span<TPixel> rowSpan,
         uint bytesPerPixel,
         uint bytesPerSample)
-        where TPixel : unmanaged, IPixel<TPixel>
-    {
-        TPixel pixel = default;
-        ref byte scanlineSpanRef = ref MemoryMarshal.GetReference(scanlineSpan);
-        ref TPixel rowSpanRef = ref MemoryMarshal.GetReference(rowSpan);
-
-        if (header.BitDepth == 16)
-        {
-            La32 source = default;
-            int o = 0;
-            for (nuint x = 0; x < (uint)header.Width; x++, o += 4)
-            {
-                source.L = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o, 2));
-                source.A = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o + 2, 2));
-
-                pixel.FromLa32(source);
-                Unsafe.Add(ref rowSpanRef, x) = pixel;
-            }
-        }
-        else
-        {
-            La16 source = default;
-            for (nuint x = 0; x < (uint)header.Width; x++)
-            {
-                nuint offset = x * bytesPerPixel;
-                source.L = Unsafe.Add(ref scanlineSpanRef, offset);
-                source.A = Unsafe.Add(ref scanlineSpanRef, offset + bytesPerSample);
-
-                pixel.FromLa16(source);
-                Unsafe.Add(ref rowSpanRef, x) = pixel;
-            }
-        }
-    }
+        where TPixel : unmanaged, IPixel<TPixel> =>
+        ProcessInterlacedGrayscaleWithAlphaScanline(
+            bitDepth,
+            frameControl,
+            scanlineSpan,
+            rowSpan,
+            0,
+            1,
+            bytesPerPixel,
+            bytesPerSample);
 
     public static void ProcessInterlacedGrayscaleWithAlphaScanline<TPixel>(
-        in PngHeader header,
+        int bitDepth,
+        in FrameControl frameControl,
         ReadOnlySpan<byte> scanlineSpan,
         Span<TPixel> rowSpan,
         uint pixelOffset,
@@ -204,328 +121,204 @@ internal static class PngScanlineProcessor
         uint bytesPerSample)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        TPixel pixel = default;
+        uint offset = pixelOffset + frameControl.XOffset;
         ref byte scanlineSpanRef = ref MemoryMarshal.GetReference(scanlineSpan);
         ref TPixel rowSpanRef = ref MemoryMarshal.GetReference(rowSpan);
 
-        if (header.BitDepth == 16)
+        if (bitDepth == 16)
         {
-            La32 source = default;
             int o = 0;
-            for (nuint x = pixelOffset; x < (uint)header.Width; x += increment, o += 4)
+            for (nuint x = offset; x < frameControl.XMax; x += increment, o += 4)
             {
-                source.L = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o, 2));
-                source.A = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o + 2, 2));
+                ushort l = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o, 2));
+                ushort a = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o + 2, 2));
 
-                pixel.FromLa32(source);
-                Unsafe.Add(ref rowSpanRef, (uint)x) = pixel;
+                Unsafe.Add(ref rowSpanRef, (uint)x) = TPixel.FromLa32(new(l, a));
             }
         }
         else
         {
-            La16 source = default;
-            nuint offset = 0;
-            for (nuint x = pixelOffset; x < (uint)header.Width; x += increment)
+            nuint offset2 = 0;
+            for (nuint x = offset; x < frameControl.XMax; x += increment)
             {
-                source.L = Unsafe.Add(ref scanlineSpanRef, offset);
-                source.A = Unsafe.Add(ref scanlineSpanRef, offset + bytesPerSample);
-
-                pixel.FromLa16(source);
-                Unsafe.Add(ref rowSpanRef, x) = pixel;
-                offset += bytesPerPixel;
+                byte l = Unsafe.Add(ref scanlineSpanRef, offset2);
+                byte a = Unsafe.Add(ref scanlineSpanRef, offset2 + bytesPerSample);
+                Unsafe.Add(ref rowSpanRef, x) = TPixel.FromLa16(new(l, a));
+                offset2 += bytesPerPixel;
             }
         }
     }
 
     public static void ProcessPaletteScanline<TPixel>(
-        in PngHeader header,
+        in FrameControl frameControl,
         ReadOnlySpan<byte> scanlineSpan,
         Span<TPixel> rowSpan,
-        ReadOnlySpan<byte> palette,
-        byte[] paletteAlpha)
-        where TPixel : unmanaged, IPixel<TPixel>
-    {
-        if (palette.IsEmpty)
-        {
-            PngThrowHelper.ThrowMissingPalette();
-        }
-
-        TPixel pixel = default;
-        ref byte scanlineSpanRef = ref MemoryMarshal.GetReference(scanlineSpan);
-        ref TPixel rowSpanRef = ref MemoryMarshal.GetReference(rowSpan);
-        ReadOnlySpan<Rgb24> palettePixels = MemoryMarshal.Cast<byte, Rgb24>(palette);
-        ref Rgb24 palettePixelsRef = ref MemoryMarshal.GetReference(palettePixels);
-
-        if (paletteAlpha?.Length > 0)
-        {
-            // If the alpha palette is not null and has one or more entries, this means, that the image contains an alpha
-            // channel and we should try to read it.
-            Rgba32 rgba = default;
-            ref byte paletteAlphaRef = ref MemoryMarshal.GetArrayDataReference(paletteAlpha);
-
-            for (nuint x = 0; x < (uint)header.Width; x++)
-            {
-                uint index = Unsafe.Add(ref scanlineSpanRef, x);
-                rgba.Rgb = Unsafe.Add(ref palettePixelsRef, index);
-                rgba.A = paletteAlpha.Length > index ? Unsafe.Add(ref paletteAlphaRef, index) : byte.MaxValue;
-
-                pixel.FromRgba32(rgba);
-                Unsafe.Add(ref rowSpanRef, x) = pixel;
-            }
-        }
-        else
-        {
-            for (nuint x = 0; x < (uint)header.Width; x++)
-            {
-                int index = Unsafe.Add(ref scanlineSpanRef, x);
-                Rgb24 rgb = Unsafe.Add(ref palettePixelsRef, index);
-
-                pixel.FromRgb24(rgb);
-                Unsafe.Add(ref rowSpanRef, x) = pixel;
-            }
-        }
-    }
+        ReadOnlyMemory<Color>? palette)
+        where TPixel : unmanaged, IPixel<TPixel> =>
+        ProcessInterlacedPaletteScanline(
+            frameControl,
+            scanlineSpan,
+            rowSpan,
+            0,
+            1,
+            palette);
 
     public static void ProcessInterlacedPaletteScanline<TPixel>(
-        in PngHeader header,
+        in FrameControl frameControl,
         ReadOnlySpan<byte> scanlineSpan,
         Span<TPixel> rowSpan,
         uint pixelOffset,
         uint increment,
-        ReadOnlySpan<byte> palette,
-        byte[] paletteAlpha)
+        ReadOnlyMemory<Color>? palette)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        TPixel pixel = default;
+        if (palette is null)
+        {
+            PngThrowHelper.ThrowMissingPalette();
+        }
+
         ref byte scanlineSpanRef = ref MemoryMarshal.GetReference(scanlineSpan);
         ref TPixel rowSpanRef = ref MemoryMarshal.GetReference(rowSpan);
-        ReadOnlySpan<Rgb24> palettePixels = MemoryMarshal.Cast<byte, Rgb24>(palette);
-        ref Rgb24 palettePixelsRef = ref MemoryMarshal.GetReference(palettePixels);
+        ref Color paletteBase = ref MemoryMarshal.GetReference(palette.Value.Span);
+        uint offset = pixelOffset + frameControl.XOffset;
+        int maxIndex = palette.Value.Length - 1;
 
-        if (paletteAlpha?.Length > 0)
+        for (nuint x = offset, o = 0; x < frameControl.XMax; x += increment, o++)
         {
-            // If the alpha palette is not null and has one or more entries, this means, that the image contains an alpha
-            // channel and we should try to read it.
-            Rgba32 rgba = default;
-            ref byte paletteAlphaRef = ref MemoryMarshal.GetArrayDataReference(paletteAlpha);
-            for (nuint x = pixelOffset, o = 0; x < (uint)header.Width; x += increment, o++)
-            {
-                uint index = Unsafe.Add(ref scanlineSpanRef, o);
-                rgba.A = paletteAlpha.Length > index ? Unsafe.Add(ref paletteAlphaRef, index) : byte.MaxValue;
-                rgba.Rgb = Unsafe.Add(ref palettePixelsRef, index);
-
-                pixel.FromRgba32(rgba);
-                Unsafe.Add(ref rowSpanRef, x) = pixel;
-            }
-        }
-        else
-        {
-            for (nuint x = pixelOffset, o = 0; x < (uint)header.Width; x += increment, o++)
-            {
-                int index = Unsafe.Add(ref scanlineSpanRef, o);
-                Rgb24 rgb = Unsafe.Add(ref palettePixelsRef, index);
-
-                pixel.FromRgb24(rgb);
-                Unsafe.Add(ref rowSpanRef, x) = pixel;
-            }
+            uint index = Unsafe.Add(ref scanlineSpanRef, o);
+            Unsafe.Add(ref rowSpanRef, x) = TPixel.FromRgba32(Unsafe.Add(ref paletteBase, (int)Math.Min(index, maxIndex)).ToPixel<Rgba32>());
         }
     }
 
     public static void ProcessRgbScanline<TPixel>(
         Configuration configuration,
-        in PngHeader header,
+        int bitDepth,
+        in FrameControl frameControl,
         ReadOnlySpan<byte> scanlineSpan,
         Span<TPixel> rowSpan,
         int bytesPerPixel,
         int bytesPerSample,
-        bool hasTrans,
-        Rgb48 rgb48Trans,
-        Rgb24 rgb24Trans)
-        where TPixel : unmanaged, IPixel<TPixel>
-    {
-        TPixel pixel = default;
-        ref TPixel rowSpanRef = ref MemoryMarshal.GetReference(rowSpan);
-
-        if (!hasTrans)
-        {
-            if (header.BitDepth == 16)
-            {
-                Rgb48 rgb48 = default;
-                int o = 0;
-                for (nuint x = 0; x < (uint)header.Width; x++, o += bytesPerPixel)
-                {
-                    rgb48.R = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o, bytesPerSample));
-                    rgb48.G = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o + bytesPerSample, bytesPerSample));
-                    rgb48.B = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o + (2 * bytesPerSample), bytesPerSample));
-
-                    pixel.FromRgb48(rgb48);
-                    Unsafe.Add(ref rowSpanRef, x) = pixel;
-                }
-            }
-            else
-            {
-                PixelOperations<TPixel>.Instance.FromRgb24Bytes(configuration, scanlineSpan, rowSpan, header.Width);
-            }
-
-            return;
-        }
-
-        if (header.BitDepth == 16)
-        {
-            Rgb48 rgb48 = default;
-            Rgba64 rgba64 = default;
-            int o = 0;
-            for (nuint x = 0; x < (uint)header.Width; x++, o += bytesPerPixel)
-            {
-                rgb48.R = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o, bytesPerSample));
-                rgb48.G = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o + bytesPerSample, bytesPerSample));
-                rgb48.B = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o + (2 * bytesPerSample), bytesPerSample));
-
-                rgba64.Rgb = rgb48;
-                rgba64.A = rgb48.Equals(rgb48Trans) ? ushort.MinValue : ushort.MaxValue;
-
-                pixel.FromRgba64(rgba64);
-                Unsafe.Add(ref rowSpanRef, x) = pixel;
-            }
-        }
-        else
-        {
-            Rgba32 rgba32 = default;
-            ReadOnlySpan<Rgb24> rgb24Span = MemoryMarshal.Cast<byte, Rgb24>(scanlineSpan);
-            ref Rgb24 rgb24SpanRef = ref MemoryMarshal.GetReference(rgb24Span);
-            for (nuint x = 0; x < (uint)header.Width; x++)
-            {
-                ref readonly Rgb24 rgb24 = ref Unsafe.Add(ref rgb24SpanRef, x);
-                rgba32.Rgb = rgb24;
-                rgba32.A = rgb24.Equals(rgb24Trans) ? byte.MinValue : byte.MaxValue;
-
-                pixel.FromRgba32(rgba32);
-                Unsafe.Add(ref rowSpanRef, x) = pixel;
-            }
-        }
-    }
+        Color? transparentColor)
+       where TPixel : unmanaged, IPixel<TPixel> =>
+       ProcessInterlacedRgbScanline(
+           configuration,
+           bitDepth,
+           frameControl,
+           scanlineSpan,
+           rowSpan,
+           0,
+           1,
+           bytesPerPixel,
+           bytesPerSample,
+           transparentColor);
 
     public static void ProcessInterlacedRgbScanline<TPixel>(
-        in PngHeader header,
+        Configuration configuration,
+        int bitDepth,
+        in FrameControl frameControl,
         ReadOnlySpan<byte> scanlineSpan,
         Span<TPixel> rowSpan,
         uint pixelOffset,
         uint increment,
         int bytesPerPixel,
         int bytesPerSample,
-        bool hasTrans,
-        Rgb48 rgb48Trans,
-        Rgb24 rgb24Trans)
+        Color? transparentColor)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        TPixel pixel = default;
+        uint offset = pixelOffset + frameControl.XOffset;
         ref byte scanlineSpanRef = ref MemoryMarshal.GetReference(scanlineSpan);
         ref TPixel rowSpanRef = ref MemoryMarshal.GetReference(rowSpan);
 
-        if (header.BitDepth == 16)
+        if (transparentColor is null)
         {
-            if (hasTrans)
+            if (bitDepth == 16)
             {
-                Rgb48 rgb48 = default;
-                Rgba64 rgba64 = default;
                 int o = 0;
-                for (nuint x = pixelOffset; x < (uint)header.Width; x += increment, o += bytesPerPixel)
+                for (nuint x = offset; x < frameControl.XMax; x += increment, o += bytesPerPixel)
                 {
-                    rgb48.R = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o, bytesPerSample));
-                    rgb48.G = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o + bytesPerSample, bytesPerSample));
-                    rgb48.B = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o + (2 * bytesPerSample), bytesPerSample));
-
-                    rgba64.Rgb = rgb48;
-                    rgba64.A = rgb48.Equals(rgb48Trans) ? ushort.MinValue : ushort.MaxValue;
-
-                    pixel.FromRgba64(rgba64);
-                    Unsafe.Add(ref rowSpanRef, x) = pixel;
+                    ushort r = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o, bytesPerSample));
+                    ushort g = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o + bytesPerSample, bytesPerSample));
+                    ushort b = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o + (2 * bytesPerSample), bytesPerSample));
+                    Unsafe.Add(ref rowSpanRef, x) = TPixel.FromRgb48(new(r, g, b));
                 }
+            }
+            else if (pixelOffset == 0 && increment == 1)
+            {
+                PixelOperations<TPixel>.Instance.FromRgb24Bytes(
+                    configuration,
+                    scanlineSpan[..(int)(frameControl.Width * bytesPerPixel)],
+                    rowSpan.Slice((int)frameControl.XOffset, (int)frameControl.Width),
+                    (int)frameControl.Width);
             }
             else
             {
-                Rgb48 rgb48 = default;
                 int o = 0;
-                for (nuint x = pixelOffset; x < (uint)header.Width; x += increment, o += bytesPerPixel)
+                for (nuint x = offset; x < frameControl.XMax; x += increment, o += bytesPerPixel)
                 {
-                    rgb48.R = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o, bytesPerSample));
-                    rgb48.G = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o + bytesPerSample, bytesPerSample));
-                    rgb48.B = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o + (2 * bytesPerSample), bytesPerSample));
-
-                    pixel.FromRgb48(rgb48);
-                    Unsafe.Add(ref rowSpanRef, x) = pixel;
+                    byte r = Unsafe.Add(ref scanlineSpanRef, (uint)o);
+                    byte g = Unsafe.Add(ref scanlineSpanRef, (uint)(o + bytesPerSample));
+                    byte b = Unsafe.Add(ref scanlineSpanRef, (uint)(o + (2 * bytesPerSample)));
+                    Unsafe.Add(ref rowSpanRef, x) = TPixel.FromRgb24(new(r, g, b));
                 }
             }
 
             return;
         }
 
-        if (hasTrans)
+        if (bitDepth == 16)
         {
-            Rgba32 rgba = default;
+            Rgb48 transparent = transparentColor.Value.ToPixel<Rgb48>();
+            Rgba64 rgba = default;
             int o = 0;
-            for (nuint x = pixelOffset; x < (uint)header.Width; x += increment, o += bytesPerPixel)
+            for (nuint x = offset; x < frameControl.XMax; x += increment, o += bytesPerPixel)
             {
-                rgba.R = Unsafe.Add(ref scanlineSpanRef, (uint)o);
-                rgba.G = Unsafe.Add(ref scanlineSpanRef, (uint)(o + bytesPerSample));
-                rgba.B = Unsafe.Add(ref scanlineSpanRef, (uint)(o + (2 * bytesPerSample)));
-                rgba.A = rgb24Trans.Equals(rgba.Rgb) ? byte.MinValue : byte.MaxValue;
-
-                pixel.FromRgba32(rgba);
-                Unsafe.Add(ref rowSpanRef, x) = pixel;
+                rgba.R = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o, bytesPerSample));
+                rgba.G = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o + bytesPerSample, bytesPerSample));
+                rgba.B = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o + (2 * bytesPerSample), bytesPerSample));
+                rgba.A = rgba.Rgb.Equals(transparent) ? ushort.MinValue : ushort.MaxValue;
+                Unsafe.Add(ref rowSpanRef, x) = TPixel.FromRgba64(rgba);
             }
         }
         else
         {
-            Rgb24 rgb = default;
+            Rgb24 transparent = transparentColor.Value.ToPixel<Rgb24>();
+            Rgba32 rgba = default;
             int o = 0;
-            for (nuint x = pixelOffset; x < (uint)header.Width; x += increment, o += bytesPerPixel)
+            for (nuint x = offset; x < frameControl.XMax; x += increment, o += bytesPerPixel)
             {
-                rgb.R = Unsafe.Add(ref scanlineSpanRef, (uint)o);
-                rgb.G = Unsafe.Add(ref scanlineSpanRef, (uint)(o + bytesPerSample));
-                rgb.B = Unsafe.Add(ref scanlineSpanRef, (uint)(o + (2 * bytesPerSample)));
-
-                pixel.FromRgb24(rgb);
-                Unsafe.Add(ref rowSpanRef, x) = pixel;
+                rgba.R = Unsafe.Add(ref scanlineSpanRef, (uint)o);
+                rgba.G = Unsafe.Add(ref scanlineSpanRef, (uint)(o + bytesPerSample));
+                rgba.B = Unsafe.Add(ref scanlineSpanRef, (uint)(o + (2 * bytesPerSample)));
+                rgba.A = transparent.Equals(rgba.Rgb) ? byte.MinValue : byte.MaxValue;
+                Unsafe.Add(ref rowSpanRef, x) = TPixel.FromRgba32(rgba);
             }
         }
     }
 
     public static void ProcessRgbaScanline<TPixel>(
         Configuration configuration,
-        in PngHeader header,
+        int bitDepth,
+        in FrameControl frameControl,
         ReadOnlySpan<byte> scanlineSpan,
         Span<TPixel> rowSpan,
         int bytesPerPixel,
         int bytesPerSample)
-        where TPixel : unmanaged, IPixel<TPixel>
-    {
-        TPixel pixel = default;
-        ref TPixel rowSpanRef = ref MemoryMarshal.GetReference(rowSpan);
-
-        if (header.BitDepth == 16)
-        {
-            Rgba64 rgba64 = default;
-            int o = 0;
-            for (nuint x = 0; x < (uint)header.Width; x++, o += bytesPerPixel)
-            {
-                rgba64.R = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o, bytesPerSample));
-                rgba64.G = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o + bytesPerSample, bytesPerSample));
-                rgba64.B = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o + (2 * bytesPerSample), bytesPerSample));
-                rgba64.A = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o + (3 * bytesPerSample), bytesPerSample));
-
-                pixel.FromRgba64(rgba64);
-                Unsafe.Add(ref rowSpanRef, x) = pixel;
-            }
-        }
-        else
-        {
-            PixelOperations<TPixel>.Instance.FromRgba32Bytes(configuration, scanlineSpan, rowSpan, header.Width);
-        }
-    }
+       where TPixel : unmanaged, IPixel<TPixel> =>
+       ProcessInterlacedRgbaScanline(
+           configuration,
+           bitDepth,
+           frameControl,
+           scanlineSpan,
+           rowSpan,
+           0,
+           1,
+           bytesPerPixel,
+           bytesPerSample);
 
     public static void ProcessInterlacedRgbaScanline<TPixel>(
-        in PngHeader header,
+        Configuration configuration,
+        int bitDepth,
+        in FrameControl frameControl,
         ReadOnlySpan<byte> scanlineSpan,
         Span<TPixel> rowSpan,
         uint pixelOffset,
@@ -534,38 +327,40 @@ internal static class PngScanlineProcessor
         int bytesPerSample)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        TPixel pixel = default;
-        ref byte scanlineSpanRef = ref MemoryMarshal.GetReference(scanlineSpan);
+        uint offset = pixelOffset + frameControl.XOffset;
         ref TPixel rowSpanRef = ref MemoryMarshal.GetReference(rowSpan);
 
-        if (header.BitDepth == 16)
+        if (bitDepth == 16)
         {
-            Rgba64 rgba64 = default;
             int o = 0;
-            for (nuint x = pixelOffset; x < (uint)header.Width; x += increment, o += bytesPerPixel)
+            for (nuint x = offset; x < frameControl.XMax; x += increment, o += bytesPerPixel)
             {
-                rgba64.R = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o, bytesPerSample));
-                rgba64.G = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o + bytesPerSample, bytesPerSample));
-                rgba64.B = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o + (2 * bytesPerSample), bytesPerSample));
-                rgba64.A = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o + (3 * bytesPerSample), bytesPerSample));
-
-                pixel.FromRgba64(rgba64);
-                Unsafe.Add(ref rowSpanRef, x) = pixel;
+                ushort r = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o, bytesPerSample));
+                ushort g = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o + bytesPerSample, bytesPerSample));
+                ushort b = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o + (2 * bytesPerSample), bytesPerSample));
+                ushort a = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o + (3 * bytesPerSample), bytesPerSample));
+                Unsafe.Add(ref rowSpanRef, x) = TPixel.FromRgba64(new(r, g, b, a));
             }
+        }
+        else if (pixelOffset == 0 && increment == 1)
+        {
+            PixelOperations<TPixel>.Instance.FromRgba32Bytes(
+                configuration,
+                scanlineSpan[..(int)(frameControl.Width * bytesPerPixel)],
+                rowSpan.Slice((int)frameControl.XOffset, (int)frameControl.Width),
+                (int)frameControl.Width);
         }
         else
         {
-            Rgba32 rgba = default;
+            ref byte scanlineSpanRef = ref MemoryMarshal.GetReference(scanlineSpan);
             int o = 0;
-            for (nuint x = pixelOffset; x < (uint)header.Width; x += increment, o += bytesPerPixel)
+            for (nuint x = offset; x < frameControl.XMax; x += increment, o += bytesPerPixel)
             {
-                rgba.R = Unsafe.Add(ref scanlineSpanRef, (uint)o);
-                rgba.G = Unsafe.Add(ref scanlineSpanRef, (uint)(o + bytesPerSample));
-                rgba.B = Unsafe.Add(ref scanlineSpanRef, (uint)(o + (2 * bytesPerSample)));
-                rgba.A = Unsafe.Add(ref scanlineSpanRef, (uint)(o + (3 * bytesPerSample)));
-
-                pixel.FromRgba32(rgba);
-                Unsafe.Add(ref rowSpanRef, x) = pixel;
+                byte r = Unsafe.Add(ref scanlineSpanRef, (uint)o);
+                byte g = Unsafe.Add(ref scanlineSpanRef, (uint)(o + bytesPerSample));
+                byte b = Unsafe.Add(ref scanlineSpanRef, (uint)(o + (2 * bytesPerSample)));
+                byte a = Unsafe.Add(ref scanlineSpanRef, (uint)(o + (3 * bytesPerSample)));
+                Unsafe.Add(ref rowSpanRef, x) = TPixel.FromRgba32(new(r, g, b, a));
             }
         }
     }

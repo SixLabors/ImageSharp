@@ -5,6 +5,11 @@ using System.Runtime.InteropServices;
 using ImageMagick;
 using ImageMagick.Formats;
 using SixLabors.ImageSharp.Formats;
+using SixLabors.ImageSharp.Formats.Bmp;
+using SixLabors.ImageSharp.Formats.Jpeg;
+using SixLabors.ImageSharp.Formats.Png;
+using SixLabors.ImageSharp.Formats.Tiff;
+using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
@@ -13,23 +18,42 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs;
 
 public class MagickReferenceDecoder : ImageDecoder
 {
+    private readonly IImageFormat imageFormat;
     private readonly bool validate;
 
-    public MagickReferenceDecoder()
-        : this(true)
+    public MagickReferenceDecoder(IImageFormat imageFormat)
+        : this(imageFormat, true)
     {
     }
 
-    public MagickReferenceDecoder(bool validate) => this.validate = validate;
+    public MagickReferenceDecoder(IImageFormat imageFormat, bool validate)
+    {
+        this.imageFormat = imageFormat;
+        this.validate = validate;
+    }
 
-    public static MagickReferenceDecoder Instance { get; } = new();
+    public static MagickReferenceDecoder Png { get; } = new MagickReferenceDecoder(PngFormat.Instance);
+
+    public static MagickReferenceDecoder Bmp { get; } = new MagickReferenceDecoder(BmpFormat.Instance);
+
+    public static MagickReferenceDecoder Jpeg { get; } = new MagickReferenceDecoder(JpegFormat.Instance);
+
+    public static MagickReferenceDecoder Tiff { get; } = new MagickReferenceDecoder(TiffFormat.Instance);
+
+    public static MagickReferenceDecoder WebP { get; } = new MagickReferenceDecoder(WebpFormat.Instance);
 
     protected override Image<TPixel> Decode<TPixel>(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
     {
+        ImageMetadata metadata = new();
+
         Configuration configuration = options.Configuration;
         BmpReadDefines bmpReadDefines = new()
         {
             IgnoreFileSize = !this.validate
+        };
+        PngReadDefines pngReadDefines = new()
+        {
+            IgnoreCrc = !this.validate
         };
 
         MagickReadSettings settings = new()
@@ -37,9 +61,10 @@ public class MagickReferenceDecoder : ImageDecoder
             FrameCount = (int)options.MaxFrames
         };
         settings.SetDefines(bmpReadDefines);
+        settings.SetDefines(pngReadDefines);
 
         using MagickImageCollection magickImageCollection = new(stream, settings);
-        List<ImageFrame<TPixel>> framesList = new();
+        List<ImageFrame<TPixel>> framesList = [];
         foreach (IMagickImage<ushort> magicFrame in magickImageCollection)
         {
             ImageFrame<TPixel> frame = new(configuration, magicFrame.Width, magicFrame.Height);
@@ -56,6 +81,11 @@ public class MagickReferenceDecoder : ImageDecoder
             }
             else if (magicFrame.Depth is 16 or 14)
             {
+                if (this.imageFormat is PngFormat png)
+                {
+                    metadata.GetPngMetadata().BitDepth = PngBitDepth.Bit16;
+                }
+
                 ushort[] data = pixels.ToShortArray(PixelMapping.RGBA);
                 Span<byte> bytes = MemoryMarshal.Cast<ushort, byte>(data.AsSpan());
                 FromRgba64Bytes(configuration, bytes, framePixels);
@@ -66,7 +96,7 @@ public class MagickReferenceDecoder : ImageDecoder
             }
         }
 
-        return new Image<TPixel>(configuration, new ImageMetadata(), framesList);
+        return ReferenceCodecUtilities.EnsureDecodedMetadata<TPixel>(new(configuration, metadata, framesList), this.imageFormat);
     }
 
     protected override Image Decode(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
@@ -75,7 +105,11 @@ public class MagickReferenceDecoder : ImageDecoder
     protected override ImageInfo Identify(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
     {
         using Image<Rgba32> image = this.Decode<Rgba32>(options, stream, cancellationToken);
-        return new(image.PixelType, image.Size, image.Metadata, new List<ImageFrameMetadata>(image.Frames.Select(x => x.Metadata)));
+        ImageMetadata metadata = image.Metadata;
+        return new(image.Size, metadata, new List<ImageFrameMetadata>(image.Frames.Select(x => x.Metadata)))
+        {
+            PixelType = metadata.GetDecodedPixelTypeInfo()
+        };
     }
 
     private static void FromRgba32Bytes<TPixel>(Configuration configuration, Span<byte> rgbaBytes, IMemoryGroup<TPixel> destinationGroup)

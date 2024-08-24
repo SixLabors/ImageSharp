@@ -7,7 +7,7 @@
     <OutputType>Exe</OutputType>
     <Prefer32Bit>false</Prefer32Bit>
     <RootNamespace>SixLabors.ImageSharp.Tests.ProfilingSandbox</RootNamespace>
-    <RuntimeIdentifier>win7-x64</RuntimeIdentifier>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <StartupObject>SixLabors.ImageSharp.Tests.ProfilingSandbox.Program</StartupObject>
     <!--Used to hide test project from dotnet test-->
     <IsTestProject>false</IsTestProject>
@@ -19,12 +19,12 @@
   <Choose>
     <When Condition="$(SIXLABORS_TESTING_PREVIEW) == true">
       <PropertyGroup>
-        <TargetFrameworks>net7.0;net6.0</TargetFrameworks>
+        <TargetFrameworks>net8.0</TargetFrameworks>
       </PropertyGroup>
     </When>
     <Otherwise>
       <PropertyGroup>
-        <TargetFrameworks>net6.0</TargetFrameworks>
+        <TargetFrameworks>net8.0</TargetFrameworks>
       </PropertyGroup>
     </Otherwise>
   </Choose>
@@ -43,7 +43,7 @@
     <PackageReference Include="runtime.osx.10.10-x64.CoreCompat.System.Drawing" Condition="'$(IsOSX)'=='true'" />
     <PackageReference Include="SkiaSharp" />
     <PackageReference Include="System.Drawing.Common" />
-    <PackageReference Include="CommandLineParser" Version="2.8.0" />
+    <PackageReference Include="CommandLineParser" Version="2.9.1" />
   </ItemGroup>
 
   <ItemGroup>

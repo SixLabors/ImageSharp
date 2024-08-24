@@ -64,7 +64,7 @@ internal class HeaderReader : BaseExifReader
 
             ushort bytesize = this.ReadUInt16();
             ushort reserve = this.ReadUInt16();
-            if (bytesize == TiffConstants.BigTiffBytesize && reserve == 0)
+            if (bytesize == TiffConstants.BigTiffByteSize && reserve == 0)
             {
                 this.FirstIfdOffset = this.ReadUInt64();
                 return;

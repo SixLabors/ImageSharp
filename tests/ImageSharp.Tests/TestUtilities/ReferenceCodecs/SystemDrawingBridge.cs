@@ -45,7 +45,7 @@ public static class SystemDrawingBridge
             long sourceRowByteCount = data.Stride;
             long destRowByteCount = w * sizeof(Bgra32);
 
-            Configuration configuration = image.GetConfiguration();
+            Configuration configuration = image.Configuration;
             image.ProcessPixelRows(accessor =>
             {
                 using IMemoryOwner<Bgra32> workBuffer = Configuration.Default.MemoryAllocator.Allocate<Bgra32>(w);
@@ -104,7 +104,7 @@ public static class SystemDrawingBridge
             long sourceRowByteCount = data.Stride;
             long destRowByteCount = w * sizeof(Bgr24);
 
-            Configuration configuration = image.GetConfiguration();
+            Configuration configuration = image.Configuration;
             Buffer2D<TPixel> imageBuffer = image.Frames.RootFrame.PixelBuffer;
 
             using (IMemoryOwner<Bgr24> workBuffer = Configuration.Default.MemoryAllocator.Allocate<Bgr24>(w))
@@ -134,7 +134,7 @@ public static class SystemDrawingBridge
     internal static unsafe Bitmap To32bppArgbSystemDrawingBitmap<TPixel>(Image<TPixel> image)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        Configuration configuration = image.GetConfiguration();
+        Configuration configuration = image.Configuration;
         int w = image.Width;
         int h = image.Height;
 
@@ -148,7 +148,7 @@ public static class SystemDrawingBridge
             long sourceRowByteCount = w * sizeof(Bgra32);
             image.ProcessPixelRows(accessor =>
             {
-                using IMemoryOwner<Bgra32> workBuffer = image.GetConfiguration().MemoryAllocator.Allocate<Bgra32>(w);
+                using IMemoryOwner<Bgra32> workBuffer = image.Configuration.MemoryAllocator.Allocate<Bgra32>(w);
                 fixed (Bgra32* sourcePtr = &workBuffer.GetReference())
                 {
                     for (int y = 0; y < h; y++)

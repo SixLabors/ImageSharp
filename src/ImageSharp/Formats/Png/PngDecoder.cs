@@ -8,7 +8,7 @@ namespace SixLabors.ImageSharp.Formats.Png;
 /// <summary>
 /// Decoder for generating an image out of a png encoded stream.
 /// </summary>
-public sealed class PngDecoder : ImageDecoder
+public sealed class PngDecoder : SpecializedImageDecoder<PngDecoderOptions>
 {
     private PngDecoder()
     {
@@ -25,60 +25,60 @@ public sealed class PngDecoder : ImageDecoder
         Guard.NotNull(options, nameof(options));
         Guard.NotNull(stream, nameof(stream));
 
-        return new PngDecoderCore(options).Identify(options.Configuration, stream, cancellationToken);
+        return new PngDecoderCore(new PngDecoderOptions() { GeneralOptions = options }).Identify(options.Configuration, stream, cancellationToken);
     }
 
     /// <inheritdoc/>
-    protected override Image<TPixel> Decode<TPixel>(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
+    protected override Image<TPixel> Decode<TPixel>(PngDecoderOptions options, Stream stream, CancellationToken cancellationToken)
     {
         Guard.NotNull(options, nameof(options));
         Guard.NotNull(stream, nameof(stream));
 
         PngDecoderCore decoder = new(options);
-        Image<TPixel> image = decoder.Decode<TPixel>(options.Configuration, stream, cancellationToken);
+        Image<TPixel> image = decoder.Decode<TPixel>(options.GeneralOptions.Configuration, stream, cancellationToken);
 
-        ScaleToTargetSize(options, image);
+        ScaleToTargetSize(options.GeneralOptions, image);
 
         return image;
     }
 
     /// <inheritdoc/>
-    protected override Image Decode(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
+    protected override Image Decode(PngDecoderOptions options, Stream stream, CancellationToken cancellationToken)
     {
         Guard.NotNull(options, nameof(options));
         Guard.NotNull(stream, nameof(stream));
 
         PngDecoderCore decoder = new(options, true);
-        ImageInfo info = decoder.Identify(options.Configuration, stream, cancellationToken);
+        ImageInfo info = decoder.Identify(options.GeneralOptions.Configuration, stream, cancellationToken);
         stream.Position = 0;
 
         PngMetadata meta = info.Metadata.GetPngMetadata();
-        PngColorType color = meta.ColorType.GetValueOrDefault();
-        PngBitDepth bits = meta.BitDepth.GetValueOrDefault();
+        PngColorType color = meta.ColorType;
+        PngBitDepth bits = meta.BitDepth;
 
         switch (color)
         {
             case PngColorType.Grayscale:
                 if (bits == PngBitDepth.Bit16)
                 {
-                    return !meta.HasTransparency
+                    return !meta.TransparentColor.HasValue
                         ? this.Decode<L16>(options, stream, cancellationToken)
                         : this.Decode<La32>(options, stream, cancellationToken);
                 }
 
-                return !meta.HasTransparency
+                return !meta.TransparentColor.HasValue
                     ? this.Decode<L8>(options, stream, cancellationToken)
                     : this.Decode<La16>(options, stream, cancellationToken);
 
             case PngColorType.Rgb:
                 if (bits == PngBitDepth.Bit16)
                 {
-                    return !meta.HasTransparency
+                    return !meta.TransparentColor.HasValue
                         ? this.Decode<Rgb48>(options, stream, cancellationToken)
                         : this.Decode<Rgba64>(options, stream, cancellationToken);
                 }
 
-                return !meta.HasTransparency
+                return !meta.TransparentColor.HasValue
                     ? this.Decode<Rgb24>(options, stream, cancellationToken)
                     : this.Decode<Rgba32>(options, stream, cancellationToken);
 
@@ -99,4 +99,7 @@ public sealed class PngDecoder : ImageDecoder
                 return this.Decode<Rgba32>(options, stream, cancellationToken);
         }
     }
+
+    /// <inheritdoc/>
+    protected override PngDecoderOptions CreateDefaultSpecializedOptions(DecoderOptions options) => new() { GeneralOptions = options };
 }

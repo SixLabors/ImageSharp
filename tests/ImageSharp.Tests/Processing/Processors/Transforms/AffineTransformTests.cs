@@ -21,8 +21,8 @@ public class AffineTransformTests
     /// angleDeg, sx, sy, tx, ty
     /// </summary>
     public static readonly TheoryData<float, float, float, float, float> TransformValues
-        = new TheoryData<float, float, float, float, float>
-              {
+        = new()
+        {
                   { 0, 1, 1, 0, 0 },
                   { 50, 1, 1, 0, 0 },
                   { 0, 1, 1, 20, 10 },
@@ -35,7 +35,7 @@ public class AffineTransformTests
                   { 0, 1f, 2f, 0, 0 },
               };
 
-    public static readonly TheoryData<string> ResamplerNames = new TheoryData<string>
+    public static readonly TheoryData<string> ResamplerNames = new()
     {
         nameof(KnownResamplers.Bicubic),
         nameof(KnownResamplers.Box),
@@ -55,8 +55,8 @@ public class AffineTransformTests
     };
 
     public static readonly TheoryData<string> Transform_DoesNotCreateEdgeArtifacts_ResamplerNames =
-        new TheoryData<string>
-            {
+        new()
+        {
                 nameof(KnownResamplers.NearestNeighbor),
                 nameof(KnownResamplers.Triangle),
                 nameof(KnownResamplers.Bicubic),
@@ -75,16 +75,14 @@ public class AffineTransformTests
         where TPixel : unmanaged, IPixel<TPixel>
     {
         IResampler resampler = GetResampler(resamplerName);
-        using (Image<TPixel> image = provider.GetImage())
-        {
-            AffineTransformBuilder builder = new AffineTransformBuilder()
-                .AppendRotationDegrees(30);
+        using Image<TPixel> image = provider.GetImage();
+        AffineTransformBuilder builder = new AffineTransformBuilder()
+            .AppendRotationDegrees(30);
 
-            image.Mutate(c => c.Transform(builder, resampler));
-            image.DebugSave(provider, resamplerName);
+        image.Mutate(c => c.Transform(builder, resampler));
+        image.DebugSave(provider, resamplerName);
 
-            VerifyAllPixelsAreWhiteOrTransparent(image);
-        }
+        VerifyAllPixelsAreWhiteOrTransparent(image);
     }
 
     [Theory]
@@ -98,22 +96,20 @@ public class AffineTransformTests
         float ty)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using (Image<TPixel> image = provider.GetImage())
-        {
-            image.DebugSave(provider, $"_original");
-            AffineTransformBuilder builder = new AffineTransformBuilder()
-                .AppendRotationDegrees(angleDeg)
-                .AppendScale(new SizeF(sx, sy))
-                .AppendTranslation(new PointF(tx, ty));
+        using Image<TPixel> image = provider.GetImage();
+        image.DebugSave(provider, $"_original");
+        AffineTransformBuilder builder = new AffineTransformBuilder()
+            .AppendRotationDegrees(angleDeg)
+            .AppendScale(new SizeF(sx, sy))
+            .AppendTranslation(new PointF(tx, ty));
 
-            this.PrintMatrix(builder.BuildMatrix(image.Size));
+        this.PrintMatrix(builder.BuildMatrix(image.Size));
 
-            image.Mutate(i => i.Transform(builder, KnownResamplers.Bicubic));
+        image.Mutate(i => i.Transform(builder, KnownResamplers.Bicubic));
 
-            FormattableString testOutputDetails = $"R({angleDeg})_S({sx},{sy})_T({tx},{ty})";
-            image.DebugSave(provider, testOutputDetails);
-            image.CompareToReferenceOutput(ValidatorComparer, provider, testOutputDetails);
-        }
+        FormattableString testOutputDetails = $"R({angleDeg})_S({sx},{sy})_T({tx},{ty})";
+        image.DebugSave(provider, testOutputDetails);
+        image.CompareToReferenceOutput(ValidatorComparer, provider, testOutputDetails);
     }
 
     [Theory]
@@ -121,23 +117,21 @@ public class AffineTransformTests
     public void Transform_RotateScale_ManuallyCentered<TPixel>(TestImageProvider<TPixel> provider, float angleDeg, float s)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using (Image<TPixel> image = provider.GetImage())
-        {
-            AffineTransformBuilder builder = new AffineTransformBuilder()
-                .AppendRotationDegrees(angleDeg)
-                .AppendScale(new SizeF(s, s));
+        using Image<TPixel> image = provider.GetImage();
+        AffineTransformBuilder builder = new AffineTransformBuilder()
+            .AppendRotationDegrees(angleDeg)
+            .AppendScale(new SizeF(s, s));
 
-            image.Mutate(i => i.Transform(builder, KnownResamplers.Bicubic));
+        image.Mutate(i => i.Transform(builder, KnownResamplers.Bicubic));
 
-            FormattableString testOutputDetails = $"R({angleDeg})_S({s})";
-            image.DebugSave(provider, testOutputDetails);
-            image.CompareToReferenceOutput(ValidatorComparer, provider, testOutputDetails);
-        }
+        FormattableString testOutputDetails = $"R({angleDeg})_S({s})";
+        image.DebugSave(provider, testOutputDetails);
+        image.CompareToReferenceOutput(ValidatorComparer, provider, testOutputDetails);
     }
 
     public static readonly TheoryData<int, int, int, int> Transform_IntoRectangle_Data =
-        new TheoryData<int, int, int, int>
-            {
+        new()
+        {
                 { 0, 0, 10, 10 },
                 { 0, 0, 5, 10 },
                 { 0, 0, 10, 5 },
@@ -155,19 +149,17 @@ public class AffineTransformTests
     public void Transform_FromSourceRectangle1<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        var rectangle = new Rectangle(48, 0, 48, 24);
+        Rectangle rectangle = new(48, 0, 48, 24);
 
-        using (Image<TPixel> image = provider.GetImage())
-        {
-            image.DebugSave(provider, $"_original");
-            AffineTransformBuilder builder = new AffineTransformBuilder()
-                .AppendScale(new SizeF(2, 1.5F));
+        using Image<TPixel> image = provider.GetImage();
+        image.DebugSave(provider, $"_original");
+        AffineTransformBuilder builder = new AffineTransformBuilder()
+            .AppendScale(new SizeF(2, 1.5F));
 
-            image.Mutate(i => i.Transform(rectangle, builder, KnownResamplers.Spline));
+        image.Mutate(i => i.Transform(rectangle, builder, KnownResamplers.Spline));
 
-            image.DebugSave(provider);
-            image.CompareToReferenceOutput(ValidatorComparer, provider);
-        }
+        image.DebugSave(provider);
+        image.CompareToReferenceOutput(ValidatorComparer, provider);
     }
 
     [Theory]
@@ -175,18 +167,16 @@ public class AffineTransformTests
     public void Transform_FromSourceRectangle2<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        var rectangle = new Rectangle(0, 24, 48, 24);
+        Rectangle rectangle = new(0, 24, 48, 24);
 
-        using (Image<TPixel> image = provider.GetImage())
-        {
-            AffineTransformBuilder builder = new AffineTransformBuilder()
-                .AppendScale(new SizeF(1F, 2F));
+        using Image<TPixel> image = provider.GetImage();
+        AffineTransformBuilder builder = new AffineTransformBuilder()
+            .AppendScale(new SizeF(1F, 2F));
 
-            image.Mutate(i => i.Transform(rectangle, builder, KnownResamplers.Spline));
+        image.Mutate(i => i.Transform(rectangle, builder, KnownResamplers.Spline));
 
-            image.DebugSave(provider);
-            image.CompareToReferenceOutput(ValidatorComparer, provider);
-        }
+        image.DebugSave(provider);
+        image.CompareToReferenceOutput(ValidatorComparer, provider);
     }
 
     [Theory]
@@ -195,17 +185,15 @@ public class AffineTransformTests
         where TPixel : unmanaged, IPixel<TPixel>
     {
         IResampler sampler = GetResampler(resamplerName);
-        using (Image<TPixel> image = provider.GetImage())
-        {
-            AffineTransformBuilder builder = new AffineTransformBuilder()
-                .AppendRotationDegrees(50)
-                .AppendScale(new SizeF(.6F, .6F));
+        using Image<TPixel> image = provider.GetImage();
+        AffineTransformBuilder builder = new AffineTransformBuilder()
+            .AppendRotationDegrees(50)
+            .AppendScale(new SizeF(.6F, .6F));
 
-            image.Mutate(i => i.Transform(builder, sampler));
+        image.Mutate(i => i.Transform(builder, sampler));
 
-            image.DebugSave(provider, resamplerName);
-            image.CompareToReferenceOutput(ValidatorComparer, provider, resamplerName);
-        }
+        image.DebugSave(provider, resamplerName);
+        image.CompareToReferenceOutput(ValidatorComparer, provider, resamplerName);
     }
 
     [Theory]
@@ -224,11 +212,29 @@ public class AffineTransformTests
     [Fact]
     public void Issue1911()
     {
-        using var image = new Image<Rgba32>(100, 100);
+        using Image<Rgba32> image = new(100, 100);
         image.Mutate(x => x = x.Transform(new Rectangle(0, 0, 99, 100), Matrix3x2.Identity, new Size(99, 100), KnownResamplers.Lanczos2));
 
         Assert.Equal(99, image.Width);
         Assert.Equal(100, image.Height);
+    }
+
+    [Theory]
+    [WithSolidFilledImages(4, 4, nameof(Color.Red), PixelTypes.Rgba32)]
+    public void Issue2753<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage();
+
+        AffineTransformBuilder builder =
+            new AffineTransformBuilder().AppendRotationDegrees(270, new Vector2(3.5f, 3.5f));
+        image.Mutate(x => x.BackgroundColor(Color.Red));
+        image.Mutate(x => x = x.Transform(builder));
+
+        image.DebugSave(provider);
+
+        Assert.Equal(4, image.Width);
+        Assert.Equal(8, image.Height);
     }
 
     [Theory]
@@ -254,21 +260,46 @@ public class AffineTransformTests
     {
         using Image<TPixel> image = provider.GetImage();
 
-        var m = Matrix3x2.CreateRotation(radians, new Vector2(50, 50));
+        Matrix3x2 m = Matrix3x2.CreateRotation(radians, new Vector2(50, 50));
         Rectangle r = new(25, 25, 50, 50);
         image.Mutate(x => x.Transform(r, m, new Size(100, 100), KnownResamplers.Bicubic));
         image.DebugSave(provider, testOutputDetails: radians);
         image.CompareToReferenceOutput(ValidatorComparer, provider, testOutputDetails: radians);
     }
 
+    [Fact]
+    public void TransformRotationDoesNotOffset()
+    {
+        Rgba32 background = Color.DimGray.ToPixel<Rgba32>();
+        Rgba32 marker = Color.Aqua.ToPixel<Rgba32>();
+
+        using Image<Rgba32> img = new(100, 100, background);
+        img[0, 0] = marker;
+
+        img.Mutate(c => c.Rotate(180));
+
+        Assert.Equal(marker, img[99, 99]);
+
+        using Image<Rgba32> img2 = new(100, 100, background);
+        img2[0, 0] = marker;
+
+        img2.Mutate(
+            c =>
+            c.Transform(new AffineTransformBuilder().AppendRotationDegrees(180), KnownResamplers.NearestNeighbor));
+
+        using Image<Rgba32> img3 = new(100, 100, background);
+        img3[0, 0] = marker;
+
+        img3.Mutate(c => c.Transform(new AffineTransformBuilder().AppendRotationDegrees(180)));
+
+        ImageComparer.Exact.VerifySimilarity(img, img2);
+        ImageComparer.Exact.VerifySimilarity(img, img3);
+    }
+
     private static IResampler GetResampler(string name)
     {
-        PropertyInfo property = typeof(KnownResamplers).GetTypeInfo().GetProperty(name);
-
-        if (property is null)
-        {
-            throw new Exception($"No resampler named {name}");
-        }
+        PropertyInfo property = typeof(KnownResamplers).GetTypeInfo().GetProperty(name)
+                                ?? throw new InvalidOperationException($"No resampler named {name}");
 
         return (IResampler)property.GetValue(null);
     }
@@ -277,11 +308,10 @@ public class AffineTransformTests
         where TPixel : unmanaged, IPixel<TPixel>
     {
         Assert.True(image.Frames.RootFrame.DangerousTryGetSinglePixelMemory(out Memory<TPixel> data));
-        var white = new Rgb24(255, 255, 255);
+        Rgb24 white = new(255, 255, 255);
         foreach (TPixel pixel in data.Span)
         {
-            Rgba32 rgba = default;
-            pixel.ToRgba32(ref rgba);
+            Rgba32 rgba = pixel.ToRgba32();
             if (rgba.A == 0)
             {
                 continue;

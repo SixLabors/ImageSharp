@@ -336,7 +336,7 @@ public static class TestImageExtensions
         Func<int, int, bool> predicate = null)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        string[] frameFiles = provider.Utility.GetReferenceOutputFileNamesMultiFrame(
+        (int Index, string FileName)[] frameFiles = provider.Utility.GetReferenceOutputFileNamesMultiFrame(
             frameCount,
             extension,
             testOutputDetails,
@@ -345,10 +345,11 @@ public static class TestImageExtensions
 
         List<Image<TPixel>> temporaryFrameImages = new();
 
-        IImageDecoder decoder = TestEnvironment.GetReferenceDecoder(frameFiles[0]);
+        IImageDecoder decoder = TestEnvironment.GetReferenceDecoder(frameFiles[0].FileName);
 
-        foreach (string path in frameFiles)
+        for (int i = 0; i < frameFiles.Length; i++)
         {
+            string path = frameFiles[i].FileName;
             if (!File.Exists(path))
             {
                 throw new FileNotFoundException("Reference output file missing: " + path);
@@ -536,10 +537,8 @@ public static class TestImageExtensions
         referenceDecoder ??= TestEnvironment.GetReferenceDecoder(path);
 
         using MemoryStream stream = new(testFile.Bytes);
-        using (Image<TPixel> original = referenceDecoder.Decode<TPixel>(referenceDecoderOptions ?? DecoderOptions.Default, stream))
-        {
-            comparer.VerifySimilarity(original, image);
-        }
+        using Image<TPixel> original = referenceDecoder.Decode<TPixel>(referenceDecoderOptions ?? DecoderOptions.Default, stream);
+        comparer.VerifySimilarity(original, image);
 
         return image;
     }
@@ -562,10 +561,8 @@ public static class TestImageExtensions
         referenceDecoder ??= TestEnvironment.GetReferenceDecoder(path);
 
         using MemoryStream stream = new(testFile.Bytes);
-        using (Image<TPixel> original = referenceDecoder.Decode<TPixel>(DecoderOptions.Default, stream))
-        {
-            comparer.VerifySimilarity(original, image);
-        }
+        using Image<TPixel> original = referenceDecoder.Decode<TPixel>(DecoderOptions.Default, stream);
+        comparer.VerifySimilarity(original, image);
 
         return image;
     }
@@ -695,27 +692,9 @@ public static class TestImageExtensions
         this TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        var allocator = new TestMemoryAllocator();
+        TestMemoryAllocator allocator = new();
         provider.Configuration.MemoryAllocator = allocator;
         return new AllocatorBufferCapacityConfigurator(allocator, Unsafe.SizeOf<TPixel>());
-    }
-
-    internal static Image<Rgba32> ToGrayscaleImage(this Buffer2D<float> buffer, float scale)
-    {
-        var image = new Image<Rgba32>(buffer.Width, buffer.Height);
-
-        Assert.True(image.Frames.RootFrame.DangerousTryGetSinglePixelMemory(out Memory<Rgba32> pixelMem));
-        Span<Rgba32> pixels = pixelMem.Span;
-        Span<float> bufferSpan = buffer.DangerousGetSingleSpan();
-
-        for (int i = 0; i < bufferSpan.Length; i++)
-        {
-            float value = bufferSpan[i] * scale;
-            var v = new Vector4(value, value, value, 1f);
-            pixels[i].FromVector4(v);
-        }
-
-        return image;
     }
 
     private class MakeOpaqueProcessor : IImageProcessor
@@ -738,7 +717,7 @@ public static class TestImageExtensions
             Rectangle sourceRectangle = this.SourceRectangle;
             Configuration configuration = this.Configuration;
 
-            var operation = new RowOperation(configuration, sourceRectangle, source.PixelBuffer);
+            RowOperation operation = new(configuration, sourceRectangle, source.PixelBuffer);
 
             ParallelRowIterator.IterateRowIntervals<RowOperation, Vector4>(
                 configuration,

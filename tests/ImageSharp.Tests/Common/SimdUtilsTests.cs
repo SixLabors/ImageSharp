@@ -3,6 +3,7 @@
 
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.Intrinsics.Arm;
 using System.Runtime.Intrinsics.X86;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.TestUtilities;
@@ -26,7 +27,7 @@ public partial class SimdUtilsTests
     [InlineData(5.3, 536.4, 4.5, 8.1)]
     public void PseudoRound(float x, float y, float z, float w)
     {
-        var v = new Vector4(x, y, z, w);
+        Vector4 v = new(x, y, z, w);
 
         Vector4 actual = v.PseudoRound();
 
@@ -57,7 +58,7 @@ public partial class SimdUtilsTests
     {
         float[] data = new float[Vector<float>.Count];
 
-        var rnd = new Random(seed);
+        Random rnd = new(seed);
 
         for (int i = 0; i < Vector<float>.Count; i++)
         {
@@ -112,26 +113,15 @@ public partial class SimdUtilsTests
     public static readonly TheoryData<int> ArraySizesDivisibleBy4 = new() { 0, 4, 8, 28, 1020 };
     public static readonly TheoryData<int> ArraySizesDivisibleBy3 = new() { 0, 3, 9, 36, 957 };
     public static readonly TheoryData<int> ArraySizesDivisibleBy32 = new() { 0, 32, 512 };
+    public static readonly TheoryData<int> ArraySizesDivisibleBy64 = new() { 0, 64, 512 };
 
     public static readonly TheoryData<int> ArbitraryArraySizes = new() { 0, 1, 2, 3, 4, 7, 8, 9, 15, 16, 17, 63, 64, 255, 511, 512, 513, 514, 515, 516, 517, 518, 519, 520 };
 
     [Theory]
-    [MemberData(nameof(ArraySizesDivisibleBy4))]
-    public void FallbackIntrinsics128_BulkConvertByteToNormalizedFloat(int count) => TestImpl_BulkConvertByteToNormalizedFloat(
-            count,
-            (s, d) => SimdUtils.FallbackIntrinsics128.ByteToNormalizedFloat(s.Span, d.Span));
-
-    [Theory]
-    [MemberData(nameof(ArraySizesDivisibleBy32))]
-    public void ExtendedIntrinsics_BulkConvertByteToNormalizedFloat(int count) => TestImpl_BulkConvertByteToNormalizedFloat(
-            count,
-            (s, d) => SimdUtils.ExtendedIntrinsics.ByteToNormalizedFloat(s.Span, d.Span));
-
-    [Theory]
-    [MemberData(nameof(ArraySizesDivisibleBy32))]
+    [MemberData(nameof(ArraySizesDivisibleBy64))]
     public void HwIntrinsics_BulkConvertByteToNormalizedFloat(int count)
     {
-        if (!Sse2.IsSupported)
+        if (!Sse2.IsSupported && !AdvSimd.IsSupported)
         {
             return;
         }
@@ -143,7 +133,7 @@ public partial class SimdUtilsTests
         FeatureTestRunner.RunWithHwIntrinsicsFeature(
             RunTest,
             count,
-            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX2 | HwIntrinsics.DisableSSE41);
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX2 | HwIntrinsics.DisableSSE41);
     }
 
     [Theory]
@@ -166,43 +156,10 @@ public partial class SimdUtilsTests
     }
 
     [Theory]
-    [MemberData(nameof(ArraySizesDivisibleBy4))]
-    public void FallbackIntrinsics128_BulkConvertNormalizedFloatToByteClampOverflows(int count) => TestImpl_BulkConvertNormalizedFloatToByteClampOverflows(
-            count,
-            (s, d) => SimdUtils.FallbackIntrinsics128.NormalizedFloatToByteSaturate(s.Span, d.Span));
-
-    [Theory]
-    [MemberData(nameof(ArraySizesDivisibleBy32))]
-    public void ExtendedIntrinsics_BulkConvertNormalizedFloatToByteClampOverflows(int count) => TestImpl_BulkConvertNormalizedFloatToByteClampOverflows(
-            count,
-            (s, d) => SimdUtils.ExtendedIntrinsics.NormalizedFloatToByteSaturate(s.Span, d.Span));
-
-    [Theory]
-    [InlineData(1234)]
-    public void ExtendedIntrinsics_ConvertToSingle(short scale)
-    {
-        int n = Vector<float>.Count;
-        short[] sData = new Random(scale).GenerateRandomInt16Array(2 * n, (short)-scale, scale);
-        float[] fData = sData.Select(u => (float)u).ToArray();
-
-        var source = new Vector<short>(sData);
-
-        var expected1 = new Vector<float>(fData, 0);
-        var expected2 = new Vector<float>(fData, n);
-
-        // Act:
-        SimdUtils.ExtendedIntrinsics.ConvertToSingle(source, out Vector<float> actual1, out Vector<float> actual2);
-
-        // Assert:
-        Assert.Equal(expected1, actual1);
-        Assert.Equal(expected2, actual2);
-    }
-
-    [Theory]
-    [MemberData(nameof(ArraySizesDivisibleBy32))]
+    [MemberData(nameof(ArraySizesDivisibleBy64))]
     public void HwIntrinsics_BulkConvertNormalizedFloatToByteClampOverflows(int count)
     {
-        if (!Sse2.IsSupported)
+        if (!Sse2.IsSupported && !AdvSimd.IsSupported)
         {
             return;
         }
@@ -214,7 +171,7 @@ public partial class SimdUtilsTests
         FeatureTestRunner.RunWithHwIntrinsicsFeature(
             RunTest,
             count,
-            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX2);
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512BW | HwIntrinsics.DisableAVX2);
     }
 
     [Theory]
@@ -262,7 +219,7 @@ public partial class SimdUtilsTests
         byte[] g = Enumerable.Range(100, 32).Select(x => (byte)x).ToArray();
         byte[] b = Enumerable.Range(200, 32).Select(x => (byte)x).ToArray();
         const int padding = 4;
-        var d = new Rgb24[32 + padding];
+        Rgb24[] d = new Rgb24[32 + padding];
 
         ReadOnlySpan<byte> rr = r.AsSpan();
         ReadOnlySpan<byte> gg = g.AsSpan();
@@ -296,7 +253,7 @@ public partial class SimdUtilsTests
         byte[] g = Enumerable.Range(100, 32).Select(x => (byte)x).ToArray();
         byte[] b = Enumerable.Range(200, 32).Select(x => (byte)x).ToArray();
 
-        var d = new Rgba32[32];
+        Rgba32[] d = new Rgba32[32];
 
         ReadOnlySpan<byte> rr = r.AsSpan();
         ReadOnlySpan<byte> gg = g.AsSpan();
@@ -322,18 +279,18 @@ public partial class SimdUtilsTests
     internal static void TestPackFromRgbPlanes<TPixel>(int count, Action<byte[], byte[], byte[], TPixel[]> packMethod)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        var rnd = new Random(42);
+        Random rnd = new(42);
         byte[] r = rnd.GenerateRandomByteArray(count);
         byte[] g = rnd.GenerateRandomByteArray(count);
         byte[] b = rnd.GenerateRandomByteArray(count);
 
-        var expected = new TPixel[count];
+        TPixel[] expected = new TPixel[count];
         for (int i = 0; i < count; i++)
         {
-            expected[i].FromRgb24(new Rgb24(r[i], g[i], b[i]));
+            expected[i] = TPixel.FromRgb24(new Rgb24(r[i], g[i], b[i]));
         }
 
-        var actual = new TPixel[count + 3]; // padding for Rgb24 AVX2
+        TPixel[] actual = new TPixel[count + 3]; // padding for Rgb24 AVX2
         packMethod(r, g, b, actual);
 
         Assert.True(expected.AsSpan().SequenceEqual(actual.AsSpan()[..count]));

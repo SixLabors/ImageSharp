@@ -66,7 +66,7 @@ public sealed class ImageFrame<TPixel> : ImageFrame, IPixelSource<TPixel>
         Guard.MustBeGreaterThan(width, 0, nameof(width));
         Guard.MustBeGreaterThan(height, 0, nameof(height));
 
-        this.PixelBuffer = this.GetConfiguration().MemoryAllocator.Allocate2D<TPixel>(
+        this.PixelBuffer = this.Configuration.MemoryAllocator.Allocate2D<TPixel>(
             width,
             height,
             configuration.PreferContiguousImageBuffers,
@@ -99,7 +99,7 @@ public sealed class ImageFrame<TPixel> : ImageFrame, IPixelSource<TPixel>
         Guard.MustBeGreaterThan(width, 0, nameof(width));
         Guard.MustBeGreaterThan(height, 0, nameof(height));
 
-        this.PixelBuffer = this.GetConfiguration().MemoryAllocator.Allocate2D<TPixel>(
+        this.PixelBuffer = this.Configuration.MemoryAllocator.Allocate2D<TPixel>(
             width,
             height,
             configuration.PreferContiguousImageBuffers);
@@ -146,7 +146,7 @@ public sealed class ImageFrame<TPixel> : ImageFrame, IPixelSource<TPixel>
         Guard.NotNull(configuration, nameof(configuration));
         Guard.NotNull(source, nameof(source));
 
-        this.PixelBuffer = this.GetConfiguration().MemoryAllocator.Allocate2D<TPixel>(
+        this.PixelBuffer = this.Configuration.MemoryAllocator.Allocate2D<TPixel>(
             source.PixelBuffer.Width,
             source.PixelBuffer.Height,
             configuration.PreferContiguousImageBuffers);
@@ -322,7 +322,7 @@ public sealed class ImageFrame<TPixel> : ImageFrame, IPixelSource<TPixel>
     /// <exception cref="ArgumentException">ImageFrame{TPixel}.CopyTo(): target must be of the same size!</exception>
     internal void CopyTo(Buffer2D<TPixel> target)
     {
-        if (this.Size() != target.Size())
+        if (this.Size != target.Size())
         {
             throw new ArgumentException("ImageFrame<TPixel>.CopyTo(): target must be of the same size!", nameof(target));
         }
@@ -331,15 +331,27 @@ public sealed class ImageFrame<TPixel> : ImageFrame, IPixelSource<TPixel>
     }
 
     /// <summary>
-    /// Switches the buffers used by the image and the pixelSource meaning that the Image will "own" the buffer from the pixelSource and the pixelSource will now own the Images buffer.
+    /// Switches the buffers used by the image and the pixel source meaning that the Image will "own" the buffer
+    /// from the pixelSource and the pixel source will now own the Image buffer.
     /// </summary>
-    /// <param name="pixelSource">The pixel source.</param>
-    internal void SwapOrCopyPixelsBufferFrom(ImageFrame<TPixel> pixelSource)
+    /// <param name="source">The pixel source.</param>
+    internal void SwapOrCopyPixelsBufferFrom(ImageFrame<TPixel> source)
     {
-        Guard.NotNull(pixelSource, nameof(pixelSource));
+        Guard.NotNull(source, nameof(source));
 
-        Buffer2D<TPixel>.SwapOrCopyContent(this.PixelBuffer, pixelSource.PixelBuffer);
+        Buffer2D<TPixel>.SwapOrCopyContent(this.PixelBuffer, source.PixelBuffer);
         this.UpdateSize(this.PixelBuffer.Size());
+    }
+
+    /// <summary>
+    /// Copies the metadata from the source image.
+    /// </summary>
+    /// <param name="source">The metadata source.</param>
+    internal void CopyMetadataFrom(ImageFrame<TPixel> source)
+    {
+        Guard.NotNull(source, nameof(source));
+
+        this.UpdateMetadata(source.Metadata);
     }
 
     /// <inheritdoc/>
@@ -371,7 +383,7 @@ public sealed class ImageFrame<TPixel> : ImageFrame, IPixelSource<TPixel>
         }
 
         this.PixelBuffer.FastMemoryGroup.TransformTo(destination, (s, d)
-            => PixelOperations<TPixel>.Instance.To(this.GetConfiguration(), s, d));
+            => PixelOperations<TPixel>.Instance.To(this.Configuration, s, d));
     }
 
     /// <inheritdoc/>
@@ -381,7 +393,7 @@ public sealed class ImageFrame<TPixel> : ImageFrame, IPixelSource<TPixel>
     /// Clones the current instance.
     /// </summary>
     /// <returns>The <see cref="ImageFrame{TPixel}"/></returns>
-    internal ImageFrame<TPixel> Clone() => this.Clone(this.GetConfiguration());
+    internal ImageFrame<TPixel> Clone() => this.Clone(this.Configuration);
 
     /// <summary>
     /// Clones the current instance.
@@ -396,7 +408,7 @@ public sealed class ImageFrame<TPixel> : ImageFrame, IPixelSource<TPixel>
     /// <typeparam name="TPixel2">The pixel format.</typeparam>
     /// <returns>The <see cref="ImageFrame{TPixel2}"/></returns>
     internal ImageFrame<TPixel2>? CloneAs<TPixel2>()
-        where TPixel2 : unmanaged, IPixel<TPixel2> => this.CloneAs<TPixel2>(this.GetConfiguration());
+        where TPixel2 : unmanaged, IPixel<TPixel2> => this.CloneAs<TPixel2>(this.Configuration);
 
     /// <summary>
     /// Returns a copy of the image frame in the given pixel format.

@@ -1,8 +1,8 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Metadata;
+using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp;
 
@@ -14,40 +14,43 @@ public class ImageInfo
     /// <summary>
     /// Initializes a new instance of the <see cref="ImageInfo"/> class.
     /// </summary>
-    /// <param name="pixelType">The pixel type information.</param>
     /// <param name="size">The size of the image in px units.</param>
     /// <param name="metadata">The image metadata.</param>
     public ImageInfo(
-        PixelTypeInfo pixelType,
         Size size,
-        ImageMetadata? metadata)
-        : this(pixelType, size, metadata, null)
+        ImageMetadata metadata)
+        : this(size, metadata, null)
     {
     }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ImageInfo"/> class.
     /// </summary>
-    /// <param name="pixelType">The pixel type information.</param>
     /// <param name="size">The size of the image in px units.</param>
     /// <param name="metadata">The image metadata.</param>
     /// <param name="frameMetadataCollection">The collection of image frame metadata.</param>
     public ImageInfo(
-        PixelTypeInfo pixelType,
         Size size,
-        ImageMetadata? metadata,
+        ImageMetadata metadata,
         IReadOnlyList<ImageFrameMetadata>? frameMetadataCollection)
     {
-        this.PixelType = pixelType;
         this.Size = size;
-        this.Metadata = metadata ?? new ImageMetadata();
-        this.FrameMetadataCollection = frameMetadataCollection ?? Array.Empty<ImageFrameMetadata>();
+        this.Metadata = metadata;
+
+        // PixelTpe is normally set following decoding
+        // See ImageDecoder.SetDecoderFormat(Configuration configuration, ImageInfo info).
+        if (metadata.DecodedImageFormat is not null)
+        {
+            this.PixelType = metadata.GetDecodedPixelTypeInfo();
+        }
+
+        this.FrameMetadataCollection = frameMetadataCollection ?? [];
     }
 
     /// <summary>
     /// Gets information about the image pixels.
     /// </summary>
-    public PixelTypeInfo PixelType { get; }
+    public PixelTypeInfo PixelType { get; internal set; }
 
     /// <summary>
     /// Gets the image width in px units.
@@ -58,6 +61,11 @@ public class ImageInfo
     /// Gets the image height in px units.
     /// </summary>
     public int Height => this.Size.Height;
+
+    /// <summary>
+    /// Gets the number of frames in the image.
+    /// </summary>
+    public int FrameCount => this.FrameMetadataCollection.Count;
 
     /// <summary>
     /// Gets any metadata associated with the image.
@@ -72,10 +80,10 @@ public class ImageInfo
     /// <summary>
     /// Gets the size of the image in px units.
     /// </summary>
-    public Size Size { get; internal set; }
+    public Size Size { get; }
 
     /// <summary>
     /// Gets the bounds of the image.
     /// </summary>
-    public Rectangle Bounds => new(0, 0, this.Width, this.Height);
+    public Rectangle Bounds => new(Point.Empty, this.Size);
 }

@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.Formats.Webp.Lossy;
 using SixLabors.ImageSharp.Memory;
@@ -14,7 +13,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp;
 [Trait("Format", "Webp")]
 public class YuvConversionTests
 {
-    private static MagickReferenceDecoder ReferenceDecoder => new();
+    private static MagickReferenceDecoder ReferenceDecoder => MagickReferenceDecoder.WebP;
 
     private static string TestImageLossyFullPath => Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, TestImages.Webp.Lossy.NoFilter06);
 
@@ -42,7 +41,7 @@ public class YuvConversionTests
     {
         // arrange
         using Image<TPixel> image = provider.GetImage();
-        Configuration config = image.GetConfiguration();
+        Configuration config = image.Configuration;
         MemoryAllocator memoryAllocator = config.MemoryAllocator;
         int pixels = image.Width * image.Height;
         int uvWidth = (image.Width + 1) >> 1;
@@ -143,7 +142,7 @@ public class YuvConversionTests
         };
 
         // act
-        YuvConversion.ConvertRgbToYuv(image, config, memoryAllocator, y, u, v);
+        YuvConversion.ConvertRgbToYuv(image.Frames.RootFrame.PixelBuffer.GetRegion(), config, memoryAllocator, y, u, v);
 
         // assert
         Assert.True(expectedY.AsSpan().SequenceEqual(y));
@@ -158,7 +157,7 @@ public class YuvConversionTests
     {
         // arrange
         using Image<TPixel> image = provider.GetImage();
-        Configuration config = image.GetConfiguration();
+        Configuration config = image.Configuration;
         MemoryAllocator memoryAllocator = config.MemoryAllocator;
         int pixels = image.Width * image.Height;
         int uvWidth = (image.Width + 1) >> 1;
@@ -249,7 +248,7 @@ public class YuvConversionTests
         };
 
         // act
-        YuvConversion.ConvertRgbToYuv(image, config, memoryAllocator, y, u, v);
+        YuvConversion.ConvertRgbToYuv(image.Frames.RootFrame.PixelBuffer.GetRegion(), config, memoryAllocator, y, u, v);
 
         // assert
         Assert.True(expectedY.AsSpan().SequenceEqual(y));

@@ -2,10 +2,12 @@
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.Formats;
+using SixLabors.ImageSharp.Metadata.Profiles.Cicp;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.Metadata.Profiles.Iptc;
 using SixLabors.ImageSharp.Metadata.Profiles.Xmp;
+using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Metadata;
 
@@ -32,7 +34,7 @@ public sealed class ImageMetadata : IDeepCloneable<ImageMetadata>
     /// </summary>
     public const PixelResolutionUnit DefaultPixelResolutionUnits = PixelResolutionUnit.PixelsPerInch;
 
-    private readonly Dictionary<IImageFormat, IDeepCloneable> formatMetadata = new();
+    private readonly Dictionary<IImageFormat, IFormatMetadata> formatMetadata = [];
     private double horizontalResolution;
     private double verticalResolution;
 
@@ -59,15 +61,16 @@ public sealed class ImageMetadata : IDeepCloneable<ImageMetadata>
         this.VerticalResolution = other.VerticalResolution;
         this.ResolutionUnits = other.ResolutionUnits;
 
-        foreach (KeyValuePair<IImageFormat, IDeepCloneable> meta in other.formatMetadata)
+        foreach (KeyValuePair<IImageFormat, IFormatMetadata> meta in other.formatMetadata)
         {
-            this.formatMetadata.Add(meta.Key, meta.Value.DeepClone());
+            this.formatMetadata.Add(meta.Key, (IFormatMetadata)meta.Value.DeepClone());
         }
 
         this.ExifProfile = other.ExifProfile?.DeepClone();
         this.IccProfile = other.IccProfile?.DeepClone();
         this.IptcProfile = other.IptcProfile?.DeepClone();
         this.XmpProfile = other.XmpProfile?.DeepClone();
+        this.CicpProfile = other.CicpProfile?.DeepClone();
 
         // NOTE: This clone is actually shallow but we share the same format
         // instances for all images in the configuration.
@@ -158,12 +161,20 @@ public sealed class ImageMetadata : IDeepCloneable<ImageMetadata>
     public IptcProfile? IptcProfile { get; set; }
 
     /// <summary>
-    /// Gets the original format, if any, the image was decode from.
+    /// Gets or sets the CICP profile.
+    /// </summary>
+    public CicpProfile? CicpProfile { get; set; }
+
+    /// <summary>
+    /// Gets the original format, if any, from which the image was decoded.
     /// </summary>
     public IImageFormat? DecodedImageFormat { get; internal set; }
 
     /// <summary>
-    /// Gets the metadata value associated with the specified key.
+    /// Gets the metadata value associated with the specified key.<br/>
+    /// If none is found, an instance is created either by conversion from the decoded image format metadata
+    /// or the requested format default constructor.
+    /// This instance will be added to the metadata for future requests.
     /// </summary>
     /// <typeparam name="TFormatMetadata">The type of metadata.</typeparam>
     /// <param name="key">The key of the value to get.</param>
@@ -171,17 +182,45 @@ public sealed class ImageMetadata : IDeepCloneable<ImageMetadata>
     /// The <typeparamref name="TFormatMetadata"/>.
     /// </returns>
     public TFormatMetadata GetFormatMetadata<TFormatMetadata>(IImageFormat<TFormatMetadata> key)
-         where TFormatMetadata : class, IDeepCloneable
+         where TFormatMetadata : class, IFormatMetadata<TFormatMetadata>
     {
-        if (this.formatMetadata.TryGetValue(key, out IDeepCloneable? meta))
+        // Check for existing metadata.
+        if (this.formatMetadata.TryGetValue(key, out IFormatMetadata? meta))
         {
             return (TFormatMetadata)meta;
         }
 
+        // None found. Check if we have a decoded format to convert from.
+        if (this.DecodedImageFormat is not null
+            && this.formatMetadata.TryGetValue(this.DecodedImageFormat, out IFormatMetadata? decodedMetadata))
+        {
+            TFormatMetadata derivedMeta = TFormatMetadata.FromFormatConnectingMetadata(decodedMetadata.ToFormatConnectingMetadata());
+            this.formatMetadata[key] = derivedMeta;
+            return derivedMeta;
+        }
+
+        // Fall back to a default instance.
         TFormatMetadata newMeta = key.CreateDefaultFormatMetadata();
         this.formatMetadata[key] = newMeta;
         return newMeta;
     }
+
+    /// <summary>
+    /// Creates a new instance the metadata value associated with the specified key.
+    /// The instance is created from a clone generated via <see cref="GetFormatMetadata{TFormatMetadata}(IImageFormat{TFormatMetadata})"/>.
+    /// </summary>
+    /// <typeparam name="TFormatMetadata">The type of metadata.</typeparam>
+    /// <param name="key">The key of the value to get.</param>
+    /// <returns>
+    /// The <typeparamref name="TFormatMetadata"/>.
+    /// </returns>
+    public TFormatMetadata CloneFormatMetadata<TFormatMetadata>(IImageFormat<TFormatMetadata> key)
+        where TFormatMetadata : class, IFormatMetadata<TFormatMetadata>
+        => ((IDeepCloneable<TFormatMetadata>)this.GetFormatMetadata(key)).DeepClone();
+
+    internal void SetFormatMetadata<TFormatMetadata>(IImageFormat<TFormatMetadata> key, TFormatMetadata value)
+        where TFormatMetadata : class, IFormatMetadata<TFormatMetadata>
+        => this.formatMetadata[key] = value;
 
     /// <inheritdoc/>
     public ImageMetadata DeepClone() => new(this);
@@ -189,5 +228,34 @@ public sealed class ImageMetadata : IDeepCloneable<ImageMetadata>
     /// <summary>
     /// Synchronizes the profiles with the current metadata.
     /// </summary>
-    internal void SyncProfiles() => this.ExifProfile?.Sync(this);
+    internal void SynchronizeProfiles() => this.ExifProfile?.Sync(this);
+
+    /// <summary>
+    /// This method is called after a process has been applied to the image.
+    /// </summary>
+    /// <typeparam name="TPixel">The type of pixel format.</typeparam>
+    /// <param name="destination">The destination image.</param>
+    internal void AfterImageApply<TPixel>(Image<TPixel> destination)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        this.ExifProfile?.SyncDimensions(destination.Width, destination.Height);
+
+        foreach (KeyValuePair<IImageFormat, IFormatMetadata> meta in this.formatMetadata)
+        {
+            meta.Value.AfterImageApply(destination);
+        }
+    }
+
+    internal PixelTypeInfo GetDecodedPixelTypeInfo()
+    {
+        // None found. Check if we have a decoded format to convert from.
+        if (this.DecodedImageFormat is not null
+            && this.formatMetadata.TryGetValue(this.DecodedImageFormat, out IFormatMetadata? decodedMetadata))
+        {
+            return decodedMetadata.GetPixelTypeInfo();
+        }
+
+        // This should never happen.
+        return default;
+    }
 }

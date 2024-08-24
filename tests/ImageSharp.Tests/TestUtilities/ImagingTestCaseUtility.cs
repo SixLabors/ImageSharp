@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Globalization;
 using System.Reflection;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.PixelFormats;
@@ -62,7 +63,7 @@ public class ImagingTestCaseUtility
             extension = ".bmp";
         }
 
-        extension = extension.ToLower();
+        extension = extension.ToLower(CultureInfo.InvariantCulture);
 
         if (extension[0] != '.')
         {
@@ -86,7 +87,7 @@ public class ImagingTestCaseUtility
             }
         }
 
-        details = details ?? string.Empty;
+        details ??= string.Empty;
         if (details != string.Empty)
         {
             details = '_' + details;
@@ -171,7 +172,7 @@ public class ImagingTestCaseUtility
 
         encoder ??= TestEnvironment.GetReferenceEncoder(path);
 
-        using (FileStream stream = File.OpenWrite(path))
+        using (FileStream stream = File.Create(path))
         {
             image.Save(stream, encoder);
         }
@@ -179,7 +180,7 @@ public class ImagingTestCaseUtility
         return path;
     }
 
-    public IEnumerable<string> GetTestOutputFileNamesMultiFrame(
+    public IEnumerable<(int Index, string FileName)> GetTestOutputFileNamesMultiFrame(
         int frameCount,
         string extension = null,
         object testOutputDetails = null,
@@ -201,11 +202,11 @@ public class ImagingTestCaseUtility
                 continue;
             }
 
-            yield return $"{baseDir}/{i:D2}.{extension}";
+            yield return (i, $"{baseDir}/{i:D2}.{extension}");
         }
     }
 
-    public string[] SaveTestOutputFileMultiFrame<TPixel>(
+    public (int Index, string FileName)[] SaveTestOutputFileMultiFrame<TPixel>(
         Image<TPixel> image,
         string extension = "png",
         IImageEncoder encoder = null,
@@ -216,28 +217,18 @@ public class ImagingTestCaseUtility
     {
         encoder ??= TestEnvironment.GetReferenceEncoder($"foo.{extension}");
 
-        string[] files = this.GetTestOutputFileNamesMultiFrame(
+        (int Index, string FileName)[] files = this.GetTestOutputFileNamesMultiFrame(
             image.Frames.Count,
             extension,
             testOutputDetails,
             appendPixelTypeToFileName,
             predicate: predicate).ToArray();
 
-        for (int i = 0; i < image.Frames.Count; i++)
+        foreach ((int Index, string FileName) file in files)
         {
-            if (predicate != null && !predicate(i, image.Frames.Count))
-            {
-                continue;
-            }
-
-            if (i >= files.Length)
-            {
-                break;
-            }
-
-            using Image<TPixel> frameImage = image.Frames.CloneFrame(i);
-            string filePath = files[i];
-            using FileStream stream = File.OpenWrite(filePath);
+            using Image<TPixel> frameImage = image.Frames.CloneFrame(file.Index);
+            string filePath = file.FileName;
+            using FileStream stream = File.Create(filePath);
             frameImage.Save(stream, encoder);
         }
 
@@ -252,14 +243,14 @@ public class ImagingTestCaseUtility
         => TestEnvironment.GetReferenceOutputFileName(
             this.GetTestOutputFileName(extension, testOutputDetails, appendPixelTypeToFileName, appendSourceFileOrDescription));
 
-    public string[] GetReferenceOutputFileNamesMultiFrame(
+    public (int Index, string FileName)[] GetReferenceOutputFileNamesMultiFrame(
         int frameCount,
         string extension,
         object testOutputDetails,
         bool appendPixelTypeToFileName = true,
         Func<int, int, bool> predicate = null)
         => this.GetTestOutputFileNamesMultiFrame(frameCount, extension, testOutputDetails, appendPixelTypeToFileName, predicate: predicate)
-        .Select(TestEnvironment.GetReferenceOutputFileName).ToArray();
+        .Select(x => (x.Index, TestEnvironment.GetReferenceOutputFileName(x.FileName))).ToArray();
 
     internal void Init(string typeName, string methodName, string outputSubfolderName)
     {
@@ -287,8 +278,7 @@ public class ImagingTestCaseUtility
     where TPixel : unmanaged, IPixel<TPixel>
     {
         TPixel pixel = img[x, y];
-        Rgba64 rgbaPixel = default;
-        rgbaPixel.FromScaledVector4(pixel.ToScaledVector4());
+        Rgba64 rgbaPixel = Rgba64.FromScaledVector4(pixel.ToScaledVector4());
         ushort change = (ushort)Math.Round((perChannelChange / 255F) * 65535F);
 
         if (rgbaPixel.R + perChannelChange <= 255)
@@ -327,7 +317,6 @@ public class ImagingTestCaseUtility
             rgbaPixel.A -= perChannelChange;
         }
 
-        pixel.FromRgba64(rgbaPixel);
-        img[x, y] = pixel;
+        img[x, y] = TPixel.FromRgba64(rgbaPixel);
     }
 }

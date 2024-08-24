@@ -17,6 +17,10 @@ internal static class WebpChunkParsingUtils
     /// <summary>
     /// Reads the header of a lossy webp image.
     /// </summary>
+    /// <param name="memoryAllocator">The memory allocator.</param>
+    /// <param name="stream">The buffered read stream.</param>
+    /// <param name="buffer">The scratch buffer to use while reading.</param>
+    /// <param name="features">The webp features to parse.</param>
     /// <returns>Information about this webp image.</returns>
     public static WebpImageInfo ReadVp8Header(MemoryAllocator memoryAllocator, BufferedReadStream stream, Span<byte> buffer, WebpFeatures features)
     {
@@ -77,7 +81,7 @@ internal static class WebpChunkParsingUtils
             WebpThrowHelper.ThrowInvalidImageContentException("Not enough data to read the VP8 magic bytes");
         }
 
-        if (!buffer.Slice(0, 3).SequenceEqual(WebpConstants.Vp8HeaderMagicBytes))
+        if (!buffer[..3].SequenceEqual(WebpConstants.Vp8HeaderMagicBytes))
         {
             WebpThrowHelper.ThrowImageFormatException("VP8 magic bytes not found");
         }
@@ -91,7 +95,7 @@ internal static class WebpChunkParsingUtils
         uint tmp = BinaryPrimitives.ReadUInt16LittleEndian(buffer);
         uint width = tmp & 0x3fff;
         sbyte xScale = (sbyte)(tmp >> 6);
-        tmp = BinaryPrimitives.ReadUInt16LittleEndian(buffer.Slice(2));
+        tmp = BinaryPrimitives.ReadUInt16LittleEndian(buffer[2..]);
         uint height = tmp & 0x3fff;
         sbyte yScale = (sbyte)(tmp >> 6);
         remaining -= 7;
@@ -105,29 +109,24 @@ internal static class WebpChunkParsingUtils
             WebpThrowHelper.ThrowImageFormatException("bad partition length");
         }
 
-        var vp8FrameHeader = new Vp8FrameHeader()
+        Vp8FrameHeader vp8FrameHeader = new()
         {
             KeyFrame = true,
             Profile = (sbyte)version,
             PartitionLength = partitionLength
         };
 
-        var bitReader = new Vp8BitReader(
-            stream,
-            remaining,
-            memoryAllocator,
-            partitionLength)
-        {
-            Remaining = remaining
-        };
+        Vp8BitReader bitReader = new(stream, remaining, memoryAllocator, partitionLength) { Remaining = remaining };
 
-        return new WebpImageInfo()
+        return new()
         {
             Width = width,
             Height = height,
             XScale = xScale,
             YScale = yScale,
-            BitsPerPixel = features?.Alpha == true ? WebpBitsPerPixel.Pixel32 : WebpBitsPerPixel.Pixel24,
+
+            // Vp8 header can be parsed during the processing of the Vp8X header.
+            BitsPerPixel = features?.Alpha == true ? WebpBitsPerPixel.Bit32 : WebpBitsPerPixel.Bit24,
             IsLossless = false,
             Features = features,
             Vp8Profile = (sbyte)version,
@@ -139,13 +138,16 @@ internal static class WebpChunkParsingUtils
     /// <summary>
     /// Reads the header of a lossless webp image.
     /// </summary>
-    /// <returns>Information about this image.</returns>
+    /// <param name="memoryAllocator">The memory allocator.</param>
+    /// <param name="stream">The buffered read stream.</param>
+    /// <param name="buffer">The scratch buffer to use while reading.</param>
+    /// <param name="features">The webp features to parse.</param>
     public static WebpImageInfo ReadVp8LHeader(MemoryAllocator memoryAllocator, BufferedReadStream stream, Span<byte> buffer, WebpFeatures features)
     {
         // VP8 data size.
         uint imageDataSize = ReadChunkSize(stream, buffer);
 
-        var bitReader = new Vp8LBitReader(stream, imageDataSize, memoryAllocator);
+        Vp8LBitReader bitReader = new(stream, imageDataSize, memoryAllocator);
 
         // One byte signature, should be 0x2f.
         uint signature = bitReader.ReadValue(8);
@@ -163,8 +165,8 @@ internal static class WebpChunkParsingUtils
         }
 
         // The alphaIsUsed flag should be set to 0 when all alpha values are 255 in the picture, and 1 otherwise.
-        // TODO: this flag value is not used yet
-        bool alphaIsUsed = bitReader.ReadBit();
+        // Alpha may have already been set by the VP8X chunk.
+        features.Alpha |= bitReader.ReadBit();
 
         // The next 3 bits are the version. The version number is a 3 bit code that must be set to 0.
         // Any other value should be treated as an error.
@@ -174,11 +176,11 @@ internal static class WebpChunkParsingUtils
             WebpThrowHelper.ThrowNotSupportedException($"Unexpected version number {version} found in VP8L header");
         }
 
-        return new WebpImageInfo()
+        return new()
         {
             Width = width,
             Height = height,
-            BitsPerPixel = WebpBitsPerPixel.Pixel32,
+            BitsPerPixel = features.Alpha ? WebpBitsPerPixel.Bit32 : WebpBitsPerPixel.Bit24,
             IsLossless = true,
             Features = features,
             Vp8LBitReader = bitReader
@@ -194,6 +196,9 @@ internal static class WebpChunkParsingUtils
     /// - An optional 'ALPH' chunk with alpha channel data.
     /// After the image header, image data will follow. After that optional image metadata chunks (EXIF and XMP) can follow.
     /// </summary>
+    /// <param name="stream">The buffered read stream.</param>
+    /// <param name="buffer">The scratch buffer to use while reading.</param>
+    /// <param name="features">The webp features to parse.</param>
     /// <returns>Information about this webp image.</returns>
     public static WebpImageInfo ReadVp8XHeader(BufferedReadStream stream, Span<byte> buffer, WebpFeatures features)
     {
@@ -224,27 +229,24 @@ internal static class WebpChunkParsingUtils
         features.Animation = (imageFeatures & (1 << 1)) != 0;
 
         // 3 reserved bytes should follow which are supposed to be zero.
+        // No other decoder actually checks this though.
         stream.Read(buffer, 0, 3);
-        if (buffer[0] != 0 || buffer[1] != 0 || buffer[2] != 0)
-        {
-            WebpThrowHelper.ThrowImageFormatException("reserved bytes should be zero");
-        }
 
         // 3 bytes for the width.
-        uint width = ReadUnsignedInt24Bit(stream, buffer) + 1;
+        uint width = ReadUInt24LittleEndian(stream, buffer) + 1;
 
         // 3 bytes for the height.
-        uint height = ReadUnsignedInt24Bit(stream, buffer) + 1;
+        uint height = ReadUInt24LittleEndian(stream, buffer) + 1;
 
         // Read all the chunks in the order they occur.
-        var info = new WebpImageInfo()
+        return new()
         {
             Width = width,
             Height = height,
             Features = features
-        };
 
-        return info;
+            // Additional properties are set during the parsing of the VP8 or VP8L headers.
+        };
     }
 
     /// <summary>
@@ -253,7 +255,7 @@ internal static class WebpChunkParsingUtils
     /// <param name="stream">The stream to read from.</param>
     /// <param name="buffer">The buffer to store the read data into.</param>
     /// <returns>A unsigned 24 bit integer.</returns>
-    public static uint ReadUnsignedInt24Bit(BufferedReadStream stream, Span<byte> buffer)
+    public static uint ReadUInt24LittleEndian(Stream stream, Span<byte> buffer)
     {
         if (stream.Read(buffer, 0, 3) == 3)
         {
@@ -261,7 +263,28 @@ internal static class WebpChunkParsingUtils
             return BinaryPrimitives.ReadUInt32LittleEndian(buffer);
         }
 
-        throw new ImageFormatException("Invalid Webp data, could not read unsigned integer.");
+        throw new ImageFormatException("Invalid Webp data, could not read unsigned 24 bit integer.");
+    }
+
+    /// <summary>
+    /// Writes a unsigned 24 bit integer.
+    /// </summary>
+    /// <param name="stream">The stream to read from.</param>
+    /// <param name="data">The uint24 data to write.</param>
+    public static unsafe void WriteUInt24LittleEndian(Stream stream, uint data)
+    {
+        if (data >= 1 << 24)
+        {
+            throw new InvalidDataException($"Invalid data, {data} is not a unsigned 24 bit integer.");
+        }
+
+        uint* ptr = &data;
+        byte* b = (byte*)ptr;
+
+        // Write the data in little endian.
+        stream.WriteByte(b[0]);
+        stream.WriteByte(b[1]);
+        stream.WriteByte(b[2]);
     }
 
     /// <summary>
@@ -271,14 +294,14 @@ internal static class WebpChunkParsingUtils
     /// <param name="stream">The stream to read the data from.</param>
     /// <param name="buffer">Buffer to store the data read from the stream.</param>
     /// <returns>The chunk size in bytes.</returns>
-    public static uint ReadChunkSize(BufferedReadStream stream, Span<byte> buffer)
+    public static uint ReadChunkSize(Stream stream, Span<byte> buffer)
     {
-        DebugGuard.IsTrue(buffer.Length == 4, "buffer has wrong length");
+        DebugGuard.IsTrue(buffer.Length is 4, "buffer has wrong length");
 
-        if (stream.Read(buffer) == 4)
+        if (stream.Read(buffer) is 4)
         {
             uint chunkSize = BinaryPrimitives.ReadUInt32LittleEndian(buffer);
-            return (chunkSize % 2 == 0) ? chunkSize : chunkSize + 1;
+            return chunkSize % 2 is 0 ? chunkSize : chunkSize + 1;
         }
 
         throw new ImageFormatException("Invalid Webp data, could not read chunk size.");
@@ -298,7 +321,7 @@ internal static class WebpChunkParsingUtils
 
         if (stream.Read(buffer) == 4)
         {
-            var chunkType = (WebpChunkType)BinaryPrimitives.ReadUInt32BigEndian(buffer);
+            WebpChunkType chunkType = (WebpChunkType)BinaryPrimitives.ReadUInt32BigEndian(buffer);
             return chunkType;
         }
 

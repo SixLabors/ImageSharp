@@ -17,7 +17,6 @@ namespace SixLabors.ImageSharp;
 public abstract partial class Image : IDisposable, IConfigurationProvider
 {
     private bool isDisposed;
-    private readonly Configuration configuration;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Image"/> class.
@@ -26,12 +25,12 @@ public abstract partial class Image : IDisposable, IConfigurationProvider
     /// <param name="pixelType">The pixel type information.</param>
     /// <param name="metadata">The image metadata.</param>
     /// <param name="size">The size in px units.</param>
-    protected Image(Configuration configuration, PixelTypeInfo pixelType, ImageMetadata? metadata, Size size)
+    protected Image(Configuration configuration, PixelTypeInfo pixelType, ImageMetadata metadata, Size size)
     {
-        this.configuration = configuration;
+        this.Configuration = configuration;
         this.PixelType = pixelType;
         this.Size = size;
-        this.Metadata = metadata ?? new ImageMetadata();
+        this.Metadata = metadata;
     }
 
     /// <summary>
@@ -45,7 +44,7 @@ public abstract partial class Image : IDisposable, IConfigurationProvider
     internal Image(
         Configuration configuration,
         PixelTypeInfo pixelType,
-        ImageMetadata? metadata,
+        ImageMetadata metadata,
         int width,
         int height)
         : this(configuration, pixelType, metadata, new Size(width, height))
@@ -53,7 +52,7 @@ public abstract partial class Image : IDisposable, IConfigurationProvider
     }
 
     /// <inheritdoc/>
-    Configuration IConfigurationProvider.Configuration => this.configuration;
+    public Configuration Configuration { get; }
 
     /// <summary>
     /// Gets information about the image pixels.
@@ -73,12 +72,12 @@ public abstract partial class Image : IDisposable, IConfigurationProvider
     /// <summary>
     /// Gets any metadata associated with the image.
     /// </summary>
-    public ImageMetadata Metadata { get; }
+    public ImageMetadata Metadata { get; private set; }
 
     /// <summary>
     /// Gets the size of the image in px units.
     /// </summary>
-    public Size Size { get; internal set; }
+    public Size Size { get; private set; }
 
     /// <summary>
     /// Gets the bounds of the image.
@@ -147,7 +146,7 @@ public abstract partial class Image : IDisposable, IConfigurationProvider
     /// <typeparam name="TPixel2">The pixel format.</typeparam>
     /// <returns>The <see cref="Image{TPixel2}"/></returns>
     public Image<TPixel2> CloneAs<TPixel2>()
-        where TPixel2 : unmanaged, IPixel<TPixel2> => this.CloneAs<TPixel2>(this.GetConfiguration());
+        where TPixel2 : unmanaged, IPixel<TPixel2> => this.CloneAs<TPixel2>(this.Configuration);
 
     /// <summary>
     /// Returns a copy of the image in the given pixel format.
@@ -159,10 +158,38 @@ public abstract partial class Image : IDisposable, IConfigurationProvider
         where TPixel2 : unmanaged, IPixel<TPixel2>;
 
     /// <summary>
+    /// Synchronizes any embedded metadata profiles with the current image properties.
+    /// </summary>
+    public void SynchronizeMetadata()
+    {
+        this.Metadata.SynchronizeProfiles();
+        foreach (ImageFrame frame in this.Frames)
+        {
+            frame.Metadata.SynchronizeProfiles();
+        }
+    }
+
+    /// <summary>
+    /// Synchronizes any embedded metadata profiles with the current image properties.
+    /// </summary>
+    /// <param name="action">A synchronization action to run in addition to the default process.</param>
+    public void SynchronizeMetadata(Action<Image> action)
+    {
+        this.SynchronizeMetadata();
+        action(this);
+    }
+
+    /// <summary>
     /// Update the size of the image after mutation.
     /// </summary>
     /// <param name="size">The <see cref="Size"/>.</param>
     protected void UpdateSize(Size size) => this.Size = size;
+
+    /// <summary>
+    /// Updates the metadata of the image after mutation.
+    /// </summary>
+    /// <param name="metadata">The <see cref="Metadata"/>.</param>
+    protected void UpdateMetadata(ImageMetadata metadata) => this.Metadata = metadata;
 
     /// <summary>
     /// Disposes the object and frees resources for the Garbage Collector.

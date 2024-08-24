@@ -13,7 +13,7 @@ using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Qoi;
 
-internal class QoiDecoderCore : IImageDecoderInternals
+internal class QoiDecoderCore : ImageDecoderCore
 {
     /// <summary>
     ///     The global configuration.
@@ -31,31 +31,20 @@ internal class QoiDecoderCore : IImageDecoderInternals
     private QoiHeader header;
 
     public QoiDecoderCore(DecoderOptions options)
+        : base(options)
     {
-        this.Options = options;
         this.configuration = options.Configuration;
         this.memoryAllocator = this.configuration.MemoryAllocator;
     }
 
-    public DecoderOptions Options { get; }
-
-    public Size Dimensions { get; }
-
     /// <inheritdoc />
-    public Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
-        where TPixel : unmanaged, IPixel<TPixel>
+    protected override Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
     {
         // Process the header to get metadata
         this.ProcessHeader(stream);
 
         // Create Image object
-        ImageMetadata metadata = new()
-        {
-            DecodedImageFormat = QoiFormat.Instance,
-            HorizontalResolution = this.header.Width,
-            VerticalResolution = this.header.Height,
-            ResolutionUnits = PixelResolutionUnit.AspectRatio
-        };
+        ImageMetadata metadata = new();
         QoiMetadata qoiMetadata = metadata.GetQoiMetadata();
         qoiMetadata.Channels = this.header.Channels;
         qoiMetadata.ColorSpace = this.header.ColorSpace;
@@ -68,7 +57,7 @@ internal class QoiDecoderCore : IImageDecoderInternals
     }
 
     /// <inheritdoc />
-    public ImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken)
+    protected override ImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken)
     {
         this.ProcessHeader(stream);
         PixelTypeInfo pixelType = new(8 * (int)this.header.Channels);
@@ -79,7 +68,7 @@ internal class QoiDecoderCore : IImageDecoderInternals
         qoiMetadata.Channels = this.header.Channels;
         qoiMetadata.ColorSpace = this.header.ColorSpace;
 
-        return new ImageInfo(pixelType, size, metadata);
+        return new ImageInfo(size, metadata);
     }
 
     /// <summary>
@@ -149,7 +138,7 @@ internal class QoiDecoderCore : IImageDecoderInternals
         Span<Rgba32> previouslySeenPixels = previouslySeenPixelsBuffer.GetSpan();
         Rgba32 previousPixel = new(0, 0, 0, 255);
 
-        // We save the pixel to avoid loosing the fully opaque black pixel
+        // We save the pixel to avoid losing the fully opaque black pixel
         // See https://github.com/phoboslab/qoi/issues/258
         int pixelArrayPosition = GetArrayPosition(previousPixel);
         previouslySeenPixels[pixelArrayPosition] = previousPixel;
@@ -174,7 +163,7 @@ internal class QoiDecoderCore : IImageDecoderInternals
                         }
 
                         readPixel.A = previousPixel.A;
-                        pixel.FromRgba32(readPixel);
+                        pixel = TPixel.FromRgba32(readPixel);
                         pixelArrayPosition = GetArrayPosition(readPixel);
                         previouslySeenPixels[pixelArrayPosition] = readPixel;
                         break;
@@ -186,7 +175,7 @@ internal class QoiDecoderCore : IImageDecoderInternals
                             ThrowInvalidImageContentException();
                         }
 
-                        pixel.FromRgba32(readPixel);
+                        pixel = TPixel.FromRgba32(readPixel);
                         pixelArrayPosition = GetArrayPosition(readPixel);
                         previouslySeenPixels[pixelArrayPosition] = readPixel;
                         break;
@@ -197,7 +186,7 @@ internal class QoiDecoderCore : IImageDecoderInternals
                             // Getting one pixel from previously seen pixels
                             case QoiChunk.QoiOpIndex:
                                 readPixel = previouslySeenPixels[operationByte];
-                                pixel.FromRgba32(readPixel);
+                                pixel = TPixel.FromRgba32(readPixel);
                                 break;
 
                             // Get one pixel from the difference (-2..1) of the previous pixel
@@ -211,7 +200,7 @@ internal class QoiDecoderCore : IImageDecoderInternals
                                     G = (byte)Numerics.Modulo256(previousPixel.G + (greenDifference - 2)),
                                     B = (byte)Numerics.Modulo256(previousPixel.B + (blueDifference - 2))
                                 };
-                                pixel.FromRgba32(readPixel);
+                                pixel = TPixel.FromRgba32(readPixel);
                                 pixelArrayPosition = GetArrayPosition(readPixel);
                                 previouslySeenPixels[pixelArrayPosition] = readPixel;
                                 break;
@@ -227,7 +216,7 @@ internal class QoiDecoderCore : IImageDecoderInternals
                                 int currentRed = Numerics.Modulo256(diffRedDG - 8 + (diffGreen - 32) + previousPixel.R);
                                 int currentBlue = Numerics.Modulo256(diffBlueDG - 8 + (diffGreen - 32) + previousPixel.B);
                                 readPixel = previousPixel with { R = (byte)currentRed, B = (byte)currentBlue, G = (byte)currentGreen };
-                                pixel.FromRgba32(readPixel);
+                                pixel = TPixel.FromRgba32(readPixel);
                                 pixelArrayPosition = GetArrayPosition(readPixel);
                                 previouslySeenPixels[pixelArrayPosition] = readPixel;
                                 break;
@@ -241,7 +230,7 @@ internal class QoiDecoderCore : IImageDecoderInternals
                                 }
 
                                 readPixel = previousPixel;
-                                pixel.FromRgba32(readPixel);
+                                pixel = TPixel.FromRgba32(readPixel);
                                 for (int k = -1; k < repetitions; k++, j++)
                                 {
                                     if (j == row.Length)

@@ -1,9 +1,11 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.Formats.Webp.Chunks;
 using SixLabors.ImageSharp.Formats.Webp.Lossless;
 using SixLabors.ImageSharp.Formats.Webp.Lossy;
 using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Webp;
@@ -11,7 +13,7 @@ namespace SixLabors.ImageSharp.Formats.Webp;
 /// <summary>
 /// Image encoder for writing an image to a stream in the Webp format.
 /// </summary>
-internal sealed class WebpEncoderCore : IImageEncoderInternals
+internal sealed class WebpEncoderCore
 {
     /// <summary>
     /// Used for allocating memory during processing operations.
@@ -129,7 +131,9 @@ internal sealed class WebpEncoderCore : IImageEncoderInternals
 
         if (lossless)
         {
-            using Vp8LEncoder enc = new(
+            bool hasAnimation = image.Frames.Count > 1;
+
+            using Vp8LEncoder encoder = new(
                 this.memoryAllocator,
                 this.configuration,
                 image.Width,
@@ -140,11 +144,68 @@ internal sealed class WebpEncoderCore : IImageEncoderInternals
                 this.transparentColorMode,
                 this.nearLossless,
                 this.nearLosslessQuality);
-            enc.Encode(image, stream);
+
+            long initialPosition = stream.Position;
+            bool hasAlpha = false;
+            WebpVp8X vp8x = encoder.EncodeHeader(image, stream, hasAnimation);
+
+            // Encode the first frame.
+            ImageFrame<TPixel> previousFrame = image.Frames.RootFrame;
+            WebpFrameMetadata frameMetadata = previousFrame.Metadata.GetWebpMetadata();
+            hasAlpha |= encoder.Encode(previousFrame, previousFrame.Bounds(), frameMetadata, stream, hasAnimation);
+
+            if (hasAnimation)
+            {
+                FrameDisposalMode previousDisposal = frameMetadata.DisposalMethod;
+
+                // Encode additional frames
+                // This frame is reused to store de-duplicated pixel buffers.
+                using ImageFrame<TPixel> encodingFrame = new(image.Configuration, previousFrame.Size);
+
+                for (int i = 1; i < image.Frames.Count; i++)
+                {
+                    ImageFrame<TPixel>? prev = previousDisposal == FrameDisposalMode.RestoreToBackground ? null : previousFrame;
+                    ImageFrame<TPixel> currentFrame = image.Frames[i];
+                    ImageFrame<TPixel>? nextFrame = i < image.Frames.Count - 1 ? image.Frames[i + 1] : null;
+
+                    frameMetadata = currentFrame.Metadata.GetWebpMetadata();
+                    bool blend = frameMetadata.BlendMethod == FrameBlendMode.Over;
+
+                    (bool difference, Rectangle bounds) =
+                        AnimationUtilities.DeDuplicatePixels(
+                            image.Configuration,
+                            prev,
+                            currentFrame,
+                            nextFrame,
+                            encodingFrame,
+                            Color.Transparent,
+                            blend,
+                            ClampingMode.Even);
+
+                    using Vp8LEncoder animatedEncoder = new(
+                        this.memoryAllocator,
+                        this.configuration,
+                        bounds.Width,
+                        bounds.Height,
+                        this.quality,
+                        this.skipMetadata,
+                        this.method,
+                        this.transparentColorMode,
+                        this.nearLossless,
+                        this.nearLosslessQuality);
+
+                    hasAlpha |= animatedEncoder.Encode(encodingFrame, bounds, frameMetadata, stream, hasAnimation);
+
+                    previousFrame = currentFrame;
+                    previousDisposal = frameMetadata.DisposalMethod;
+                }
+            }
+
+            encoder.EncodeFooter(image, in vp8x, hasAlpha, stream, initialPosition);
         }
         else
         {
-            using Vp8Encoder enc = new(
+            using Vp8Encoder encoder = new(
                 this.memoryAllocator,
                 this.configuration,
                 image.Width,
@@ -156,7 +217,72 @@ internal sealed class WebpEncoderCore : IImageEncoderInternals
                 this.filterStrength,
                 this.spatialNoiseShaping,
                 this.alphaCompression);
-            enc.Encode(image, stream);
+
+            long initialPosition = stream.Position;
+            bool hasAlpha = false;
+            WebpVp8X vp8x = default;
+            if (image.Frames.Count > 1)
+            {
+                // The alpha flag is updated following encoding.
+                vp8x = encoder.EncodeHeader(image, stream, false, true);
+
+                // Encode the first frame.
+                ImageFrame<TPixel> previousFrame = image.Frames.RootFrame;
+                WebpFrameMetadata frameMetadata = previousFrame.Metadata.GetWebpMetadata();
+                FrameDisposalMode previousDisposal = frameMetadata.DisposalMethod;
+
+                hasAlpha |= encoder.EncodeAnimation(previousFrame, stream, previousFrame.Bounds(), frameMetadata);
+
+                // Encode additional frames
+                // This frame is reused to store de-duplicated pixel buffers.
+                using ImageFrame<TPixel> encodingFrame = new(image.Configuration, previousFrame.Size);
+
+                for (int i = 1; i < image.Frames.Count; i++)
+                {
+                    ImageFrame<TPixel>? prev = previousDisposal == FrameDisposalMode.RestoreToBackground ? null : previousFrame;
+                    ImageFrame<TPixel> currentFrame = image.Frames[i];
+                    ImageFrame<TPixel>? nextFrame = i < image.Frames.Count - 1 ? image.Frames[i + 1] : null;
+
+                    frameMetadata = currentFrame.Metadata.GetWebpMetadata();
+                    bool blend = frameMetadata.BlendMethod == FrameBlendMode.Over;
+
+                    (bool difference, Rectangle bounds) =
+                        AnimationUtilities.DeDuplicatePixels(
+                            image.Configuration,
+                            prev,
+                            currentFrame,
+                            nextFrame,
+                            encodingFrame,
+                            Color.Transparent,
+                            blend,
+                            ClampingMode.Even);
+
+                    using Vp8Encoder animatedEncoder = new(
+                        this.memoryAllocator,
+                        this.configuration,
+                        bounds.Width,
+                        bounds.Height,
+                        this.quality,
+                        this.skipMetadata,
+                        this.method,
+                        this.entropyPasses,
+                        this.filterStrength,
+                        this.spatialNoiseShaping,
+                        this.alphaCompression);
+
+                    hasAlpha |= animatedEncoder.EncodeAnimation(encodingFrame, stream, bounds, frameMetadata);
+
+                    previousFrame = currentFrame;
+                    previousDisposal = frameMetadata.DisposalMethod;
+                }
+
+                encoder.EncodeFooter(image, in vp8x, hasAlpha, stream, initialPosition);
+            }
+            else
+            {
+                encoder.EncodeStatic(stream, image);
+                encoder.EncodeFooter(image, in vp8x, hasAlpha, stream, initialPosition);
+            }
         }
     }
 }

@@ -55,6 +55,14 @@ public class ProjectiveTransformTests
         { TaperSide.Right, TaperCorner.RightOrBottom },
     };
 
+    public static readonly TheoryData<PointF, PointF, PointF, PointF> QuadDistortionData = new()
+    {
+        { new PointF(0, 0), new PointF(150, 0), new PointF(150, 150), new PointF(0, 150) }, // source == destination
+        { new PointF(25, 50), new PointF(210, 25), new PointF(140, 210), new PointF(15, 125) }, // Distortion
+        { new PointF(-50, -50), new PointF(200, -50), new PointF(200, 200), new PointF(-50, 200) }, // Scaling
+        { new PointF(150, 0), new PointF(150, 150), new PointF(0, 150), new PointF(0, 0) }, // Rotation
+    };
+
     public ProjectiveTransformTests(ITestOutputHelper output) => this.Output = output;
 
     [Theory]
@@ -88,6 +96,24 @@ public class ProjectiveTransformTests
             image.Mutate(i => i.Transform(builder));
 
             FormattableString testOutputDetails = $"{taperSide}-{taperCorner}";
+            image.DebugSave(provider, testOutputDetails);
+            image.CompareFirstFrameToReferenceOutput(TolerantComparer, provider, testOutputDetails);
+        }
+    }
+
+    [Theory]
+    [WithTestPatternImages(nameof(QuadDistortionData), 150, 150, PixelTypes.Rgba32)]
+    public void Transform_WithQuadDistortion<TPixel>(TestImageProvider<TPixel> provider, PointF topLeft, PointF topRight, PointF bottomRight, PointF bottomLeft)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using (Image<TPixel> image = provider.GetImage())
+        {
+            ProjectiveTransformBuilder builder = new ProjectiveTransformBuilder()
+                .AppendQuadDistortion(topLeft, topRight, bottomRight, bottomLeft);
+
+            image.Mutate(i => i.Transform(builder));
+
+            FormattableString testOutputDetails = $"{topLeft}-{topRight}-{bottomRight}-{bottomLeft}";
             image.DebugSave(provider, testOutputDetails);
             image.CompareFirstFrameToReferenceOutput(TolerantComparer, provider, testOutputDetails);
         }

@@ -13,7 +13,28 @@ namespace SixLabors.ImageSharp.Processing;
 public class ProjectiveTransformBuilder
 {
     private readonly List<Func<Size, Matrix4x4>> transformMatrixFactories = new();
-    private readonly List<Func<Size, Matrix4x4>> boundsMatrixFactories = new();
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ProjectiveTransformBuilder"/> class.
+    /// </summary>
+    public ProjectiveTransformBuilder()
+        : this(TransformSpace.Pixel)
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ProjectiveTransformBuilder"/> class.
+    /// </summary>
+    /// <param name="transformSpace">
+    /// The <see cref="TransformSpace"/> to use when applying the projective transform.
+    /// </param>
+    public ProjectiveTransformBuilder(TransformSpace transformSpace)
+        => this.TransformSpace = transformSpace;
+
+    /// <summary>
+    /// Gets the <see cref="TransformSpace"/> to use when applying the projective transform.
+    /// </summary>
+    public TransformSpace TransformSpace { get; }
 
     /// <summary>
     /// Prepends a matrix that performs a tapering projective transform.
@@ -23,9 +44,7 @@ public class ProjectiveTransformBuilder
     /// <param name="fraction">The amount to taper.</param>
     /// <returns>The <see cref="ProjectiveTransformBuilder"/>.</returns>
     public ProjectiveTransformBuilder PrependTaper(TaperSide side, TaperCorner corner, float fraction)
-        => this.Prepend(
-            size => TransformUtils.CreateTaperMatrix(size, side, corner, fraction),
-            size => TransformUtils.CreateTaperMatrix(size, side, corner, fraction));
+        => this.Prepend(size => TransformUtils.CreateTaperMatrix(size, side, corner, fraction));
 
     /// <summary>
     /// Appends a matrix that performs a tapering projective transform.
@@ -35,9 +54,7 @@ public class ProjectiveTransformBuilder
     /// <param name="fraction">The amount to taper.</param>
     /// <returns>The <see cref="ProjectiveTransformBuilder"/>.</returns>
     public ProjectiveTransformBuilder AppendTaper(TaperSide side, TaperCorner corner, float fraction)
-        => this.Append(
-            size => TransformUtils.CreateTaperMatrix(size, side, corner, fraction),
-            size => TransformUtils.CreateTaperMatrix(size, side, corner, fraction));
+        => this.Append(size => TransformUtils.CreateTaperMatrix(size, side, corner, fraction));
 
     /// <summary>
     /// Prepends a centered rotation matrix using the given rotation in degrees.
@@ -53,9 +70,7 @@ public class ProjectiveTransformBuilder
     /// <param name="radians">The amount of rotation, in radians.</param>
     /// <returns>The <see cref="ProjectiveTransformBuilder"/>.</returns>
     public ProjectiveTransformBuilder PrependRotationRadians(float radians)
-        => this.Prepend(
-            size => new Matrix4x4(TransformUtils.CreateRotationTransformMatrixRadians(radians, size)),
-            size => new Matrix4x4(TransformUtils.CreateRotationBoundsMatrixRadians(radians, size)));
+        => this.Prepend(size => new Matrix4x4(TransformUtils.CreateRotationTransformMatrixRadians(radians, size, this.TransformSpace)));
 
     /// <summary>
     /// Prepends a centered rotation matrix using the given rotation in degrees at the given origin.
@@ -89,9 +104,7 @@ public class ProjectiveTransformBuilder
     /// <param name="radians">The amount of rotation, in radians.</param>
     /// <returns>The <see cref="ProjectiveTransformBuilder"/>.</returns>
     public ProjectiveTransformBuilder AppendRotationRadians(float radians)
-        => this.Append(
-            size => new Matrix4x4(TransformUtils.CreateRotationTransformMatrixRadians(radians, size)),
-            size => new Matrix4x4(TransformUtils.CreateRotationBoundsMatrixRadians(radians, size)));
+        => this.Append(size => new Matrix4x4(TransformUtils.CreateRotationTransformMatrixRadians(radians, size, this.TransformSpace)));
 
     /// <summary>
     /// Appends a centered rotation matrix using the given rotation in degrees at the given origin.
@@ -175,9 +188,7 @@ public class ProjectiveTransformBuilder
     /// <param name="radiansY">The Y angle, in radians.</param>
     /// <returns>The <see cref="ProjectiveTransformBuilder"/>.</returns>
     public ProjectiveTransformBuilder PrependSkewRadians(float radiansX, float radiansY)
-        => this.Prepend(
-            size => new Matrix4x4(TransformUtils.CreateSkewTransformMatrixRadians(radiansX, radiansY, size)),
-            size => new Matrix4x4(TransformUtils.CreateSkewBoundsMatrixRadians(radiansX, radiansY, size)));
+        => this.Prepend(size => new Matrix4x4(TransformUtils.CreateSkewTransformMatrixRadians(radiansX, radiansY, size, this.TransformSpace)));
 
     /// <summary>
     /// Prepends a skew matrix using the given angles in degrees at the given origin.
@@ -215,9 +226,7 @@ public class ProjectiveTransformBuilder
     /// <param name="radiansY">The Y angle, in radians.</param>
     /// <returns>The <see cref="ProjectiveTransformBuilder"/>.</returns>
     public ProjectiveTransformBuilder AppendSkewRadians(float radiansX, float radiansY)
-        => this.Append(
-            size => new Matrix4x4(TransformUtils.CreateSkewTransformMatrixRadians(radiansX, radiansY, size)),
-            size => new Matrix4x4(TransformUtils.CreateSkewBoundsMatrixRadians(radiansX, radiansY, size)));
+        => this.Append(size => new Matrix4x4(TransformUtils.CreateSkewTransformMatrixRadians(radiansX, radiansY, size, this.TransformSpace)));
 
     /// <summary>
     /// Appends a skew matrix using the given angles in degrees at the given origin.
@@ -311,7 +320,7 @@ public class ProjectiveTransformBuilder
     public ProjectiveTransformBuilder PrependMatrix(Matrix4x4 matrix)
     {
         CheckDegenerate(matrix);
-        return this.Prepend(_ => matrix, _ => matrix);
+        return this.Prepend(_ => matrix);
     }
 
     /// <summary>
@@ -327,7 +336,7 @@ public class ProjectiveTransformBuilder
     public ProjectiveTransformBuilder AppendMatrix(Matrix4x4 matrix)
     {
         CheckDegenerate(matrix);
-        return this.Append(_ => matrix, _ => matrix);
+        return this.Append(_ => matrix);
     }
 
     /// <summary>
@@ -385,13 +394,13 @@ public class ProjectiveTransformBuilder
         // Translate the origin matrix to cater for source rectangle offsets.
         Matrix4x4 matrix = Matrix4x4.CreateTranslation(new Vector3(-sourceRectangle.Location, 0));
 
-        foreach (Func<Size, Matrix4x4> factory in this.boundsMatrixFactories)
+        foreach (Func<Size, Matrix4x4> factory in this.transformMatrixFactories)
         {
             matrix *= factory(size);
             CheckDegenerate(matrix);
         }
 
-        return TransformUtils.GetTransformedSize(size, matrix);
+        return TransformUtils.GetTransformedSize(matrix, size);
     }
 
     private static void CheckDegenerate(Matrix4x4 matrix)
@@ -402,17 +411,15 @@ public class ProjectiveTransformBuilder
         }
     }
 
-    private ProjectiveTransformBuilder Prepend(Func<Size, Matrix4x4> transformFactory, Func<Size, Matrix4x4> boundsFactory)
+    private ProjectiveTransformBuilder Prepend(Func<Size, Matrix4x4> transformFactory)
     {
         this.transformMatrixFactories.Insert(0, transformFactory);
-        this.boundsMatrixFactories.Insert(0, boundsFactory);
         return this;
     }
 
-    private ProjectiveTransformBuilder Append(Func<Size, Matrix4x4> transformFactory, Func<Size, Matrix4x4> boundsFactory)
+    private ProjectiveTransformBuilder Append(Func<Size, Matrix4x4> transformFactory)
     {
         this.transformMatrixFactories.Add(transformFactory);
-        this.boundsMatrixFactories.Add(boundsFactory);
         return this;
     }
 }

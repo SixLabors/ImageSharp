@@ -322,7 +322,7 @@ public sealed class ImageFrame<TPixel> : ImageFrame, IPixelSource<TPixel>
     /// <exception cref="ArgumentException">ImageFrame{TPixel}.CopyTo(): target must be of the same size!</exception>
     internal void CopyTo(Buffer2D<TPixel> target)
     {
-        if (this.Size() != target.Size())
+        if (this.Size != target.Size())
         {
             throw new ArgumentException("ImageFrame<TPixel>.CopyTo(): target must be of the same size!", nameof(target));
         }
@@ -331,15 +331,27 @@ public sealed class ImageFrame<TPixel> : ImageFrame, IPixelSource<TPixel>
     }
 
     /// <summary>
-    /// Switches the buffers used by the image and the pixelSource meaning that the Image will "own" the buffer from the pixelSource and the pixelSource will now own the Images buffer.
+    /// Switches the buffers used by the image and the pixel source meaning that the Image will "own" the buffer
+    /// from the pixelSource and the pixel source will now own the Image buffer.
     /// </summary>
-    /// <param name="pixelSource">The pixel source.</param>
-    internal void SwapOrCopyPixelsBufferFrom(ImageFrame<TPixel> pixelSource)
+    /// <param name="source">The pixel source.</param>
+    internal void SwapOrCopyPixelsBufferFrom(ImageFrame<TPixel> source)
     {
-        Guard.NotNull(pixelSource, nameof(pixelSource));
+        Guard.NotNull(source, nameof(source));
 
-        Buffer2D<TPixel>.SwapOrCopyContent(this.PixelBuffer, pixelSource.PixelBuffer);
+        Buffer2D<TPixel>.SwapOrCopyContent(this.PixelBuffer, source.PixelBuffer);
         this.UpdateSize(this.PixelBuffer.Size());
+    }
+
+    /// <summary>
+    /// Copies the metadata from the source image.
+    /// </summary>
+    /// <param name="source">The metadata source.</param>
+    internal void CopyMetadataFrom(ImageFrame<TPixel> source)
+    {
+        Guard.NotNull(source, nameof(source));
+
+        this.UpdateMetadata(source.Metadata);
     }
 
     /// <inheritdoc/>

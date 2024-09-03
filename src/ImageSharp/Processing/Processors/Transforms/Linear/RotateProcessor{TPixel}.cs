@@ -130,7 +130,7 @@ internal class RotateProcessor<TPixel> : AffineTransformProcessor<TPixel>
     /// <param name="configuration">The configuration.</param>
     private static void Rotate180(ImageFrame<TPixel> source, ImageFrame<TPixel> destination, Configuration configuration)
     {
-        var operation = new Rotate180RowOperation(source.Width, source.Height, source.PixelBuffer, destination.PixelBuffer);
+        Rotate180RowOperation operation = new Rotate180RowOperation(source.Width, source.Height, source.PixelBuffer, destination.PixelBuffer);
         ParallelRowIterator.IterateRows(
             configuration,
             source.Bounds(),
@@ -145,7 +145,7 @@ internal class RotateProcessor<TPixel> : AffineTransformProcessor<TPixel>
     /// <param name="configuration">The configuration.</param>
     private static void Rotate270(ImageFrame<TPixel> source, ImageFrame<TPixel> destination, Configuration configuration)
     {
-        var operation = new Rotate270RowIntervalOperation(destination.Bounds(), source.Width, source.Height, source.PixelBuffer, destination.PixelBuffer);
+        Rotate270RowIntervalOperation operation = new Rotate270RowIntervalOperation(destination.Bounds(), source.Width, source.Height, source.PixelBuffer, destination.PixelBuffer);
         ParallelRowIterator.IterateRowIntervals(
             configuration,
             source.Bounds(),
@@ -160,7 +160,7 @@ internal class RotateProcessor<TPixel> : AffineTransformProcessor<TPixel>
     /// <param name="configuration">The configuration.</param>
     private static void Rotate90(ImageFrame<TPixel> source, ImageFrame<TPixel> destination, Configuration configuration)
     {
-        var operation = new Rotate90RowOperation(destination.Bounds(), source.Width, source.Height, source.PixelBuffer, destination.PixelBuffer);
+        Rotate90RowOperation operation = new Rotate90RowOperation(destination.Bounds(), source.Width, source.Height, source.PixelBuffer, destination.PixelBuffer);
         ParallelRowIterator.IterateRows(
             configuration,
             source.Bounds(),

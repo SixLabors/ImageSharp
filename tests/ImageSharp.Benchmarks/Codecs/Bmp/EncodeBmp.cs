@@ -40,14 +40,14 @@ public class EncodeBmp
     [Benchmark(Baseline = true, Description = "System.Drawing Bmp")]
     public void BmpSystemDrawing()
     {
-        using var memoryStream = new MemoryStream();
+        using MemoryStream memoryStream = new MemoryStream();
         this.bmpDrawing.Save(memoryStream, ImageFormat.Bmp);
     }
 
     [Benchmark(Description = "ImageSharp Bmp")]
     public void BmpImageSharp()
     {
-        using var memoryStream = new MemoryStream();
+        using MemoryStream memoryStream = new MemoryStream();
         this.bmpCore.SaveAsBmp(memoryStream);
     }
 }

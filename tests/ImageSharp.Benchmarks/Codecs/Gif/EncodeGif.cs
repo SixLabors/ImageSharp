@@ -53,14 +53,14 @@ public class EncodeGif
     [Benchmark(Baseline = true, Description = "System.Drawing Gif")]
     public void GifSystemDrawing()
     {
-        using var memoryStream = new MemoryStream();
+        using MemoryStream memoryStream = new MemoryStream();
         this.bmpDrawing.Save(memoryStream, ImageFormat.Gif);
     }
 
     [Benchmark(Description = "ImageSharp Gif")]
     public void GifImageSharp()
     {
-        using var memoryStream = new MemoryStream();
+        using MemoryStream memoryStream = new MemoryStream();
         this.bmpCore.SaveAsGif(memoryStream, this.encoder);
     }
 }

@@ -30,12 +30,12 @@ internal abstract partial class JpegColorConverterBase
                 ref Unsafe.As<float, Vector256<float>>(ref MemoryMarshal.GetReference(values.Component2));
 
             // Used for the color conversion
-            var chromaOffset = Vector256.Create(-this.HalfValue);
-            var scale = Vector256.Create(1 / this.MaximumValue);
-            var rCrMult = Vector256.Create(YCbCrScalar.RCrMult);
-            var gCbMult = Vector256.Create(-YCbCrScalar.GCbMult);
-            var gCrMult = Vector256.Create(-YCbCrScalar.GCrMult);
-            var bCbMult = Vector256.Create(YCbCrScalar.BCbMult);
+            Vector256<float> chromaOffset = Vector256.Create(-this.HalfValue);
+            Vector256<float> scale = Vector256.Create(1 / this.MaximumValue);
+            Vector256<float> rCrMult = Vector256.Create(YCbCrScalar.RCrMult);
+            Vector256<float> gCbMult = Vector256.Create(-YCbCrScalar.GCbMult);
+            Vector256<float> gCrMult = Vector256.Create(-YCbCrScalar.GCrMult);
+            Vector256<float> bCbMult = Vector256.Create(YCbCrScalar.BCbMult);
 
             // Walking 8 elements at one step:
             nuint n = values.Component0.Vector256Count<float>();
@@ -87,16 +87,16 @@ internal abstract partial class JpegColorConverterBase
                 ref Unsafe.As<float, Vector256<float>>(ref MemoryMarshal.GetReference(bLane));
 
             // Used for the color conversion
-            var chromaOffset = Vector256.Create(this.HalfValue);
+            Vector256<float> chromaOffset = Vector256.Create(this.HalfValue);
 
-            var f0299 = Vector256.Create(0.299f);
-            var f0587 = Vector256.Create(0.587f);
-            var f0114 = Vector256.Create(0.114f);
-            var fn0168736 = Vector256.Create(-0.168736f);
-            var fn0331264 = Vector256.Create(-0.331264f);
-            var fn0418688 = Vector256.Create(-0.418688f);
-            var fn0081312F = Vector256.Create(-0.081312F);
-            var f05 = Vector256.Create(0.5f);
+            Vector256<float> f0299 = Vector256.Create(0.299f);
+            Vector256<float> f0587 = Vector256.Create(0.587f);
+            Vector256<float> f0114 = Vector256.Create(0.114f);
+            Vector256<float> fn0168736 = Vector256.Create(-0.168736f);
+            Vector256<float> fn0331264 = Vector256.Create(-0.331264f);
+            Vector256<float> fn0418688 = Vector256.Create(-0.418688f);
+            Vector256<float> fn0081312F = Vector256.Create(-0.081312F);
+            Vector256<float> f05 = Vector256.Create(0.5f);
 
             nuint n = values.Component0.Vector256Count<float>();
             for (nuint i = 0; i < n; i++)

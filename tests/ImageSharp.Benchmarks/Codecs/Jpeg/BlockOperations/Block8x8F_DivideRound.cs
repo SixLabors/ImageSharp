@@ -140,7 +140,7 @@ public unsafe class Block8x8F_DivideRound
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Vector4 DivideRound(Vector4 dividend, Vector4 divisor)
     {
-        var sign = Vector4.Min(dividend, Vector4.One);
+        Vector4 sign = Vector4.Min(dividend, Vector4.One);
         sign = Vector4.Max(sign, MinusOne);
 
         return (dividend / divisor) + (sign * Half);

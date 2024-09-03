@@ -35,7 +35,7 @@ internal class FakeImageOperationsProvider : IImageProcessingContextFactory
     public IInternalImageProcessingContext<TPixel> CreateImageProcessingContext<TPixel>(Configuration configuration, Image<TPixel> source, bool mutate)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        var op = new FakeImageOperations<TPixel>(configuration, source, mutate);
+        FakeImageOperations<TPixel> op = new FakeImageOperations<TPixel>(configuration, source, mutate);
         this.imageOperators.Add(op);
         return op;
     }

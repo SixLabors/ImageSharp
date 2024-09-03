@@ -10,7 +10,7 @@ public class EncoderExtensionsTests
     [Fact]
     public void GetString_EmptyBuffer_ReturnsEmptyString()
     {
-        var buffer = default(ReadOnlySpan<byte>);
+        ReadOnlySpan<byte> buffer = default(ReadOnlySpan<byte>);
 
         string result = Encoding.UTF8.GetString(buffer);
 
@@ -20,7 +20,7 @@ public class EncoderExtensionsTests
     [Fact]
     public void GetString_Buffer_ReturnsString()
     {
-        var buffer = new ReadOnlySpan<byte>(new byte[] { 73, 109, 97, 103, 101, 83, 104, 97, 114, 112 });
+        ReadOnlySpan<byte> buffer = new ReadOnlySpan<byte>(new byte[] { 73, 109, 97, 103, 101, 83, 104, 97, 114, 112 });
 
         string result = Encoding.UTF8.GetString(buffer);
 

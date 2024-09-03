@@ -22,7 +22,7 @@ public class MagickCompareTests
         Image<TPixel> imageFromMagick;
         using (Stream stream = LoadAsStream(provider))
         {
-            var magickImage = new MagickImage(stream);
+            MagickImage magickImage = new MagickImage(stream);
 
             // Apply Auto Level using the Grey (BT.709) channel.
             magickImage.AutoLevel(Channels.Gray);
@@ -31,7 +31,7 @@ public class MagickCompareTests
 
         using (Image<TPixel> image = provider.GetImage())
         {
-            var options = new HistogramEqualizationOptions
+            HistogramEqualizationOptions options = new HistogramEqualizationOptions
             {
                 Method = HistogramEqualizationMethod.AutoLevel,
                 LuminanceLevels = 256,
@@ -52,7 +52,7 @@ public class MagickCompareTests
             throw new InvalidOperationException("CompareToMagick() works only with file providers!");
         }
 
-        var testFile = TestFile.Create(path);
+        TestFile testFile = TestFile.Create(path);
         return new FileStream(testFile.FullPath, FileMode.Open);
     }
 
@@ -61,7 +61,7 @@ public class MagickCompareTests
     {
         Configuration configuration = Configuration.Default.Clone();
         configuration.PreferContiguousImageBuffers = true;
-        var result = new Image<TPixel>(configuration, magickImage.Width, magickImage.Height);
+        Image<TPixel> result = new Image<TPixel>(configuration, magickImage.Width, magickImage.Height);
 
         Assert.True(result.DangerousTryGetSinglePixelMemory(out Memory<TPixel> resultPixels));
 

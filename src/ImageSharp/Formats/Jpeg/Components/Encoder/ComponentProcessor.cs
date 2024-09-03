@@ -241,7 +241,7 @@ internal class ComponentProcessor : IDisposable
                 ref Vector<float> targetVectorRef = ref Unsafe.As<float, Vector<float>>(ref MemoryMarshal.GetReference(target));
 
                 nuint count = target.VectorCount<float>();
-                var multiplierVector = new Vector<float>(multiplier);
+                Vector<float> multiplierVector = new Vector<float>(multiplier);
                 for (nuint i = 0; i < count; i++)
                 {
                     Unsafe.Add(ref targetVectorRef, i) *= multiplierVector;

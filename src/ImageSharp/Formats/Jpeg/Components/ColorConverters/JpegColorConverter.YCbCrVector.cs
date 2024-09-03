@@ -27,13 +27,13 @@ internal abstract partial class JpegColorConverterBase
             ref Vector<float> c2Base =
                 ref Unsafe.As<float, Vector<float>>(ref MemoryMarshal.GetReference(values.Component2));
 
-            var chromaOffset = new Vector<float>(-this.HalfValue);
+            Vector<float> chromaOffset = new Vector<float>(-this.HalfValue);
 
-            var scale = new Vector<float>(1 / this.MaximumValue);
-            var rCrMult = new Vector<float>(YCbCrScalar.RCrMult);
-            var gCbMult = new Vector<float>(-YCbCrScalar.GCbMult);
-            var gCrMult = new Vector<float>(-YCbCrScalar.GCrMult);
-            var bCbMult = new Vector<float>(YCbCrScalar.BCbMult);
+            Vector<float> scale = new Vector<float>(1 / this.MaximumValue);
+            Vector<float> rCrMult = new Vector<float>(YCbCrScalar.RCrMult);
+            Vector<float> gCbMult = new Vector<float>(-YCbCrScalar.GCbMult);
+            Vector<float> gCrMult = new Vector<float>(-YCbCrScalar.GCrMult);
+            Vector<float> bCbMult = new Vector<float>(YCbCrScalar.BCbMult);
 
             nuint n = values.Component0.VectorCount<float>();
             for (nuint i = 0; i < n; i++)
@@ -89,19 +89,19 @@ internal abstract partial class JpegColorConverterBase
             ref Vector<float> srcB =
                 ref Unsafe.As<float, Vector<float>>(ref MemoryMarshal.GetReference(bLane));
 
-            var chromaOffset = new Vector<float>(this.HalfValue);
+            Vector<float> chromaOffset = new Vector<float>(this.HalfValue);
 
-            var rYMult = new Vector<float>(0.299f);
-            var gYMult = new Vector<float>(0.587f);
-            var bYMult = new Vector<float>(0.114f);
+            Vector<float> rYMult = new Vector<float>(0.299f);
+            Vector<float> gYMult = new Vector<float>(0.587f);
+            Vector<float> bYMult = new Vector<float>(0.114f);
 
-            var rCbMult = new Vector<float>(0.168736f);
-            var gCbMult = new Vector<float>(0.331264f);
-            var bCbMult = new Vector<float>(0.5f);
+            Vector<float> rCbMult = new Vector<float>(0.168736f);
+            Vector<float> gCbMult = new Vector<float>(0.331264f);
+            Vector<float> bCbMult = new Vector<float>(0.5f);
 
-            var rCrMult = new Vector<float>(0.5f);
-            var gCrMult = new Vector<float>(0.418688f);
-            var bCrMult = new Vector<float>(0.081312f);
+            Vector<float> rCrMult = new Vector<float>(0.5f);
+            Vector<float> gCrMult = new Vector<float>(0.418688f);
+            Vector<float> bCrMult = new Vector<float>(0.081312f);
 
             nuint n = values.Component0.VectorCount<float>();
             for (nuint i = 0; i < n; i++)

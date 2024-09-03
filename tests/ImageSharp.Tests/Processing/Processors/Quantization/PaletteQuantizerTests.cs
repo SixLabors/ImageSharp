@@ -15,8 +15,8 @@ public class PaletteQuantizerTests
     [Fact]
     public void PaletteQuantizerConstructor()
     {
-        var expected = new QuantizerOptions { MaxColors = 128 };
-        var quantizer = new PaletteQuantizer(Palette, expected);
+        QuantizerOptions expected = new QuantizerOptions { MaxColors = 128 };
+        PaletteQuantizer quantizer = new PaletteQuantizer(Palette, expected);
 
         Assert.Equal(expected.MaxColors, quantizer.Options.MaxColors);
         Assert.Equal(QuantizerConstants.DefaultDither, quantizer.Options.Dither);
@@ -40,7 +40,7 @@ public class PaletteQuantizerTests
     [Fact]
     public void PaletteQuantizerCanCreateFrameQuantizer()
     {
-        var quantizer = new PaletteQuantizer(Palette);
+        PaletteQuantizer quantizer = new PaletteQuantizer(Palette);
         IQuantizer<Rgba32> frameQuantizer = quantizer.CreatePixelSpecificQuantizer<Rgba32>(Configuration.Default);
 
         Assert.NotNull(frameQuantizer);

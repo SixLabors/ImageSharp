@@ -209,7 +209,7 @@ public unsafe class PixelConversion_PackFromRgbPlanes
 
         Vector256<int> vcontrol = SimdUtils.HwIntrinsics.PermuteMaskEvenOdd8x32().AsInt32();
 
-        var va = Vector256.Create(1F);
+        Vector256<float> va = Vector256.Create(1F);
 
         for (nuint i = 0; i < count; i++)
         {

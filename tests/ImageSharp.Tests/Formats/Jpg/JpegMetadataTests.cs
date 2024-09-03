@@ -12,8 +12,8 @@ public class JpegMetadataTests
     [Fact]
     public void CloneIsDeep()
     {
-        var meta = new JpegMetadata { ColorType = JpegColorType.Luminance };
-        var clone = (JpegMetadata)meta.DeepClone();
+        JpegMetadata meta = new JpegMetadata { ColorType = JpegColorType.Luminance };
+        JpegMetadata clone = (JpegMetadata)meta.DeepClone();
 
         clone.ColorType = JpegColorType.YCbCrRatio420;
 
@@ -23,7 +23,7 @@ public class JpegMetadataTests
     [Fact]
     public void Quality_DefaultQuality()
     {
-        var meta = new JpegMetadata();
+        JpegMetadata meta = new JpegMetadata();
 
         Assert.Equal(meta.Quality, ImageSharp.Formats.Jpeg.Components.Quantization.DefaultQualityFactor);
     }
@@ -33,7 +33,7 @@ public class JpegMetadataTests
     {
         int quality = 50;
 
-        var meta = new JpegMetadata { LuminanceQuality = quality };
+        JpegMetadata meta = new JpegMetadata { LuminanceQuality = quality };
 
         Assert.Equal(meta.Quality, quality);
     }
@@ -43,7 +43,7 @@ public class JpegMetadataTests
     {
         int quality = 50;
 
-        var meta = new JpegMetadata { LuminanceQuality = quality, ChrominanceQuality = quality };
+        JpegMetadata meta = new JpegMetadata { LuminanceQuality = quality, ChrominanceQuality = quality };
 
         Assert.Equal(meta.Quality, quality);
     }
@@ -54,7 +54,7 @@ public class JpegMetadataTests
         int qualityLuma = 50;
         int qualityChroma = 30;
 
-        var meta = new JpegMetadata { LuminanceQuality = qualityLuma, ChrominanceQuality = qualityChroma };
+        JpegMetadata meta = new JpegMetadata { LuminanceQuality = qualityLuma, ChrominanceQuality = qualityChroma };
 
         Assert.Equal(meta.Quality, qualityLuma);
     }
@@ -62,7 +62,7 @@ public class JpegMetadataTests
     [Fact]
     public void Comment_EmptyComment()
     {
-        var meta = new JpegMetadata();
+        JpegMetadata meta = new JpegMetadata();
 
         Assert.True(Array.Empty<JpegComData>().SequenceEqual(meta.Comments));
     }
@@ -71,9 +71,9 @@ public class JpegMetadataTests
     public void Comment_OnlyComment()
     {
         string comment = "test comment";
-        var expectedCollection = new Collection<string> { comment };
+        Collection<string> expectedCollection = new Collection<string> { comment };
 
-        var meta = new JpegMetadata();
+        JpegMetadata meta = new JpegMetadata();
         meta.Comments.Add(JpegComData.FromString(comment));
 
         Assert.Equal(1, meta.Comments.Count);

@@ -15,7 +15,7 @@ public abstract class MemoryGroupTestsBase
     internal MemoryGroup<int> CreateTestGroup(long totalLength, int bufferLength, bool fillSequence = false)
     {
         this.MemoryAllocator.BufferCapacityInBytes = bufferLength * sizeof(int);
-        var g = MemoryGroup<int>.Allocate(this.MemoryAllocator, totalLength, bufferLength);
+        MemoryGroup<int> g = MemoryGroup<int>.Allocate(this.MemoryAllocator, totalLength, bufferLength);
 
         if (!fillSequence)
         {

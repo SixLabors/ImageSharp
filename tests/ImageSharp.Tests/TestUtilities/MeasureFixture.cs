@@ -30,7 +30,7 @@ public class MeasureFixture
             this.Output?.WriteLine($"{operationName} X {times} ...");
         }
 
-        var sw = Stopwatch.StartNew();
+        Stopwatch sw = Stopwatch.StartNew();
 
         for (int i = 0; i < times; i++)
         {

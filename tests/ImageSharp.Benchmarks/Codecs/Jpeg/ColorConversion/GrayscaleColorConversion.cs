@@ -17,7 +17,7 @@ public class GrayscaleColorConversion : ColorConversionBenchmark
     [Benchmark(Baseline = true)]
     public void Scalar()
     {
-        var values = new JpegColorConverterBase.ComponentValues(this.Input, 0);
+        JpegColorConverterBase.ComponentValues values = new JpegColorConverterBase.ComponentValues(this.Input, 0);
 
         new JpegColorConverterBase.GrayscaleScalar(8).ConvertToRgbInplace(values);
     }
@@ -25,7 +25,7 @@ public class GrayscaleColorConversion : ColorConversionBenchmark
     [Benchmark]
     public void SimdVectorAvx()
     {
-        var values = new JpegColorConverterBase.ComponentValues(this.Input, 0);
+        JpegColorConverterBase.ComponentValues values = new JpegColorConverterBase.ComponentValues(this.Input, 0);
 
         new JpegColorConverterBase.GrayscaleAvx(8).ConvertToRgbInplace(values);
     }
@@ -33,7 +33,7 @@ public class GrayscaleColorConversion : ColorConversionBenchmark
     [Benchmark]
     public void SimdVectorArm()
     {
-        var values = new JpegColorConverterBase.ComponentValues(this.Input, 0);
+        JpegColorConverterBase.ComponentValues values = new JpegColorConverterBase.ComponentValues(this.Input, 0);
 
         new JpegColorConverterBase.GrayscaleArm(8).ConvertToRgbInplace(values);
     }

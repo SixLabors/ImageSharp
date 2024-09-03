@@ -251,7 +251,7 @@ public class RgbPlanarTiffColorTests : PhotometricInterpretationTestBase
             expectedResult,
             pixels =>
             {
-                var buffers = new IMemoryOwner<byte>[inputData.Length];
+                IMemoryOwner<byte>[] buffers = new IMemoryOwner<byte>[inputData.Length];
                 for (int i = 0; i < buffers.Length; i++)
                 {
                     buffers[i] = Configuration.Default.MemoryAllocator.Allocate<byte>(inputData[i].Length);

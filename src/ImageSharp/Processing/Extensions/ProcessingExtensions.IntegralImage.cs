@@ -56,7 +56,7 @@ public static partial class ProcessingExtensions
     {
         Configuration configuration = source.Configuration;
 
-        var interest = Rectangle.Intersect(bounds, source.Bounds());
+        Rectangle interest = Rectangle.Intersect(bounds, source.Bounds());
         int startY = interest.Y;
         int startX = interest.X;
         int endY = interest.Height;

@@ -54,12 +54,12 @@ internal class AutoLevelProcessor<TPixel> : HistogramEqualizationProcessor<TPixe
     {
         MemoryAllocator memoryAllocator = this.Configuration.MemoryAllocator;
         int numberOfPixels = source.Width * source.Height;
-        var interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds());
+        Rectangle interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds());
 
         using IMemoryOwner<int> histogramBuffer = memoryAllocator.Allocate<int>(this.LuminanceLevels, AllocationOptions.Clean);
 
         // Build the histogram of the grayscale levels.
-        var grayscaleOperation = new GrayscaleLevelsRowOperation<TPixel>(this.Configuration, interest, histogramBuffer, source.PixelBuffer, this.LuminanceLevels);
+        GrayscaleLevelsRowOperation<TPixel> grayscaleOperation = new GrayscaleLevelsRowOperation<TPixel>(this.Configuration, interest, histogramBuffer, source.PixelBuffer, this.LuminanceLevels);
         ParallelRowIterator.IterateRows<GrayscaleLevelsRowOperation<TPixel>, Vector4>(
             this.Configuration,
             interest,
@@ -83,7 +83,7 @@ internal class AutoLevelProcessor<TPixel> : HistogramEqualizationProcessor<TPixe
 
         if (this.SyncChannels)
         {
-            var cdfOperation = new SynchronizedChannelsRowOperation(this.Configuration, interest, cdfBuffer, source.PixelBuffer, this.LuminanceLevels, numberOfPixelsMinusCdfMin);
+            SynchronizedChannelsRowOperation cdfOperation = new SynchronizedChannelsRowOperation(this.Configuration, interest, cdfBuffer, source.PixelBuffer, this.LuminanceLevels, numberOfPixelsMinusCdfMin);
             ParallelRowIterator.IterateRows<SynchronizedChannelsRowOperation, Vector4>(
                 this.Configuration,
                 interest,
@@ -91,7 +91,7 @@ internal class AutoLevelProcessor<TPixel> : HistogramEqualizationProcessor<TPixe
         }
         else
         {
-            var cdfOperation = new SeperateChannelsRowOperation(this.Configuration, interest, cdfBuffer, source.PixelBuffer, this.LuminanceLevels, numberOfPixelsMinusCdfMin);
+            SeperateChannelsRowOperation cdfOperation = new SeperateChannelsRowOperation(this.Configuration, interest, cdfBuffer, source.PixelBuffer, this.LuminanceLevels, numberOfPixelsMinusCdfMin);
             ParallelRowIterator.IterateRows<SeperateChannelsRowOperation, Vector4>(
                 this.Configuration,
                 interest,
@@ -139,7 +139,7 @@ internal class AutoLevelProcessor<TPixel> : HistogramEqualizationProcessor<TPixe
             Span<Vector4> vectorBuffer = span.Slice(0, this.bounds.Width);
             ref Vector4 vectorRef = ref MemoryMarshal.GetReference(vectorBuffer);
             ref int cdfBase = ref MemoryMarshal.GetReference(this.cdfBuffer.GetSpan());
-            var sourceAccess = new PixelAccessor<TPixel>(this.source);
+            PixelAccessor<TPixel> sourceAccess = new PixelAccessor<TPixel>(this.source);
             int levels = this.luminanceLevels;
             float noOfPixelsMinusCdfMin = this.numberOfPixelsMinusCdfMin;
 
@@ -148,7 +148,7 @@ internal class AutoLevelProcessor<TPixel> : HistogramEqualizationProcessor<TPixe
 
             for (int x = 0; x < this.bounds.Width; x++)
             {
-                var vector = Unsafe.Add(ref vectorRef, (uint)x);
+                Vector4 vector = Unsafe.Add(ref vectorRef, (uint)x);
                 int luminance = ColorNumerics.GetBT709Luminance(ref vector, levels);
                 float scaledLuminance = Unsafe.Add(ref cdfBase, (uint)luminance) / noOfPixelsMinusCdfMin;
                 float scalingFactor = scaledLuminance * levels / luminance;
@@ -200,7 +200,7 @@ internal class AutoLevelProcessor<TPixel> : HistogramEqualizationProcessor<TPixe
             Span<Vector4> vectorBuffer = span.Slice(0, this.bounds.Width);
             ref Vector4 vectorRef = ref MemoryMarshal.GetReference(vectorBuffer);
             ref int cdfBase = ref MemoryMarshal.GetReference(this.cdfBuffer.GetSpan());
-            var sourceAccess = new PixelAccessor<TPixel>(this.source);
+            PixelAccessor<TPixel> sourceAccess = new PixelAccessor<TPixel>(this.source);
             int levelsMinusOne = this.luminanceLevels - 1;
             float noOfPixelsMinusCdfMin = this.numberOfPixelsMinusCdfMin;
 
@@ -209,7 +209,7 @@ internal class AutoLevelProcessor<TPixel> : HistogramEqualizationProcessor<TPixe
 
             for (int x = 0; x < this.bounds.Width; x++)
             {
-                var vector = Unsafe.Add(ref vectorRef, (uint)x) * levelsMinusOne;
+                Vector4 vector = Unsafe.Add(ref vectorRef, (uint)x) * levelsMinusOne;
 
                 uint originalX = (uint)MathF.Round(vector.X);
                 float scaledX = Unsafe.Add(ref cdfBase, originalX) / noOfPixelsMinusCdfMin;

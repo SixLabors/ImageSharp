@@ -708,9 +708,9 @@ internal static class YuvConversion
         // R = (19077 * y             + 26149 * v - 14234) >> 6
         // G = (19077 * y -  6419 * u - 13320 * v +  8708) >> 6
         // B = (19077 * y + 33050 * u             - 17685) >> 6
-        var k19077 = Vector128.Create((ushort)19077);
-        var k26149 = Vector128.Create((ushort)26149);
-        var k14234 = Vector128.Create((ushort)14234);
+        Vector128<ushort> k19077 = Vector128.Create((ushort)19077);
+        Vector128<ushort> k26149 = Vector128.Create((ushort)26149);
+        Vector128<ushort> k14234 = Vector128.Create((ushort)14234);
 
         Vector128<ushort> y1 = Sse2.MultiplyHigh(y0.AsUInt16(), k19077);
         Vector128<ushort> r0 = Sse2.MultiplyHigh(v0.AsUInt16(), k26149);

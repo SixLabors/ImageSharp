@@ -126,7 +126,7 @@ public abstract class MultiImageBenchmarkBase
     {
         foreach (KeyValuePair<string, byte[]> kv in this.FileNames2Bytes)
         {
-            using var memoryStream = new MemoryStream(kv.Value);
+            using MemoryStream memoryStream = new MemoryStream(kv.Value);
             try
             {
                 object obj = operation(memoryStream);
@@ -150,7 +150,7 @@ public abstract class MultiImageBenchmarkBase
                 byte[] bytes = kv.Value;
                 string fn = kv.Key;
 
-                using (var ms1 = new MemoryStream(bytes))
+                using (MemoryStream ms1 = new MemoryStream(bytes))
                 {
                     this.FileNamesToImageSharpImages[fn] = Image.Load<Rgba32>(ms1);
                 }
@@ -191,7 +191,7 @@ public abstract class MultiImageBenchmarkBase
 
         protected void ForEachImageSharpImage(Func<Image<Rgba32>, MemoryStream, object> operation)
         {
-            using var workStream = new MemoryStream();
+            using MemoryStream workStream = new MemoryStream();
             this.ForEachImageSharpImage(
                 img =>
                 {
@@ -222,7 +222,7 @@ public abstract class MultiImageBenchmarkBase
 
         protected void ForEachSystemDrawingImage(Func<Bitmap, MemoryStream, object> operation)
         {
-            using var workStream = new MemoryStream();
+            using MemoryStream workStream = new MemoryStream();
             this.ForEachSystemDrawingImage(
                 img =>
                 {

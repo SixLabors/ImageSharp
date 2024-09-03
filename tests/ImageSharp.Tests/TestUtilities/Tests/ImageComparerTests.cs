@@ -31,7 +31,7 @@ public class ImageComparerTests
         {
             using (Image<TPixel> clone = image.Clone())
             {
-                var comparer = ImageComparer.Tolerant(imageThreshold, pixelThreshold);
+                ImageComparer comparer = ImageComparer.Tolerant(imageThreshold, pixelThreshold);
                 comparer.VerifySimilarity(image, clone);
             }
         }
@@ -48,7 +48,7 @@ public class ImageComparerTests
             {
                 ImagingTestCaseUtility.ModifyPixel(clone, 0, 0, 1);
 
-                var comparer = ImageComparer.Tolerant();
+                ImageComparer comparer = ImageComparer.Tolerant();
                 comparer.VerifySimilarity(image, clone);
             }
         }
@@ -66,7 +66,7 @@ public class ImageComparerTests
                 byte perChannelChange = 20;
                 ImagingTestCaseUtility.ModifyPixel(clone, 3, 1, perChannelChange);
 
-                var comparer = ImageComparer.Tolerant();
+                ImageComparer comparer = ImageComparer.Tolerant();
 
                 ImageDifferenceIsOverThresholdException ex = Assert.ThrowsAny<ImageDifferenceIsOverThresholdException>(
                     () => comparer.VerifySimilarity(image, clone));
@@ -90,7 +90,7 @@ public class ImageComparerTests
                 ImagingTestCaseUtility.ModifyPixel(clone, 1, 0, 1);
                 ImagingTestCaseUtility.ModifyPixel(clone, 2, 0, 1);
 
-                var comparer = ImageComparer.Tolerant(perPixelManhattanThreshold: 257 * 3);
+                ImageComparer comparer = ImageComparer.Tolerant(perPixelManhattanThreshold: 257 * 3);
                 comparer.VerifySimilarity(image, clone);
             }
         }

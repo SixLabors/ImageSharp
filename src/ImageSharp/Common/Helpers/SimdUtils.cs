@@ -53,11 +53,11 @@ internal static partial class SimdUtils
         }
         else
         {
-            var magic0 = new Vector<int>(int.MinValue); // 0x80000000
-            var sgn0 = Vector.AsVectorSingle(magic0);
-            var and0 = Vector.BitwiseAnd(sgn0, v);
-            var or0 = Vector.BitwiseOr(and0, new Vector<float>(8388608.0f));
-            var add0 = Vector.Add(v, or0);
+            Vector<int> magic0 = new Vector<int>(int.MinValue); // 0x80000000
+            Vector<float> sgn0 = Vector.AsVectorSingle(magic0);
+            Vector<float> and0 = Vector.BitwiseAnd(sgn0, v);
+            Vector<float> or0 = Vector.BitwiseOr(and0, new Vector<float>(8388608.0f));
+            Vector<float> add0 = Vector.Add(v, or0);
             return Vector.Subtract(add0, or0);
         }
     }

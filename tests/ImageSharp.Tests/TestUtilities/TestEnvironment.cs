@@ -215,7 +215,7 @@ public static partial class TestEnvironment
 
         string args = $"{remoteExecutorTmpPath} /32Bit+ /Force";
 
-        var si = new ProcessStartInfo()
+        ProcessStartInfo si = new ProcessStartInfo()
         {
             FileName = corFlagsFile.FullName,
             Arguments = args,
@@ -224,7 +224,7 @@ public static partial class TestEnvironment
             RedirectStandardError = true
         };
 
-        using var proc = Process.Start(si);
+        using Process proc = Process.Start(si);
         proc.WaitForExit();
         string standardOutput = proc.StandardOutput.ReadToEnd();
         string standardError = proc.StandardError.ReadToEnd();

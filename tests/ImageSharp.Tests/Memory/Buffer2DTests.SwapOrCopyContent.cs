@@ -40,8 +40,8 @@ public partial class Buffer2DTests
         [Fact]
         public void SwapOrCopyContent_WhenDestinationIsOwned_ShouldNotSwapInDisposedSourceBuffer()
         {
-            using var destData = MemoryGroup<int>.Wrap(new int[100]);
-            using var dest = new Buffer2D<int>(destData, 10, 10);
+            using MemoryGroup<int> destData = MemoryGroup<int>.Wrap(new int[100]);
+            using Buffer2D<int> dest = new Buffer2D<int>(destData, 10, 10);
 
             using (Buffer2D<int> source = this.memoryAllocator.Allocate2D<int>(10, 10, AllocationOptions.Clean))
             {
@@ -112,11 +112,11 @@ public partial class Buffer2DTests
         [InlineData(true)]
         public void WhenDestIsNotAllocated_SameSize_ShouldCopy(bool sourceIsAllocated)
         {
-            var data = new Rgba32[21];
-            var color = new Rgba32(1, 2, 3, 4);
+            Rgba32[] data = new Rgba32[21];
+            Rgba32 color = new Rgba32(1, 2, 3, 4);
 
-            using var destOwner = new TestMemoryManager<Rgba32>(data);
-            using var dest = new Buffer2D<Rgba32>(MemoryGroup<Rgba32>.Wrap(destOwner.Memory), 21, 1);
+            using TestMemoryManager<Rgba32> destOwner = new TestMemoryManager<Rgba32>(data);
+            using Buffer2D<Rgba32> dest = new Buffer2D<Rgba32>(MemoryGroup<Rgba32>.Wrap(destOwner.Memory), 21, 1);
 
             using Buffer2D<Rgba32> source = this.memoryAllocator.Allocate2D<Rgba32>(21, 1);
 
@@ -136,11 +136,11 @@ public partial class Buffer2DTests
         [InlineData(true)]
         public void WhenDestIsNotMemoryOwner_DifferentSize_Throws(bool sourceIsOwner)
         {
-            var data = new Rgba32[21];
-            var color = new Rgba32(1, 2, 3, 4);
+            Rgba32[] data = new Rgba32[21];
+            Rgba32 color = new Rgba32(1, 2, 3, 4);
 
-            using var destOwner = new TestMemoryManager<Rgba32>(data);
-            using var dest = new Buffer2D<Rgba32>(MemoryGroup<Rgba32>.Wrap(destOwner.Memory), 21, 1);
+            using TestMemoryManager<Rgba32> destOwner = new TestMemoryManager<Rgba32>(data);
+            using Buffer2D<Rgba32> dest = new Buffer2D<Rgba32>(MemoryGroup<Rgba32>.Wrap(destOwner.Memory), 21, 1);
 
             using Buffer2D<Rgba32> source = this.memoryAllocator.Allocate2D<Rgba32>(22, 1);
 

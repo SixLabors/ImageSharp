@@ -23,8 +23,8 @@ public class SizeTests
     [InlineData(0, 0)]
     public void NonDefaultConstructorTest(int width, int height)
     {
-        var s1 = new Size(width, height);
-        var s2 = new Size(new Point(width, height));
+        Size s1 = new Size(width, height);
+        Size s2 = new Size(new Point(width, height));
 
         Assert.Equal(s1, s2);
 
@@ -59,7 +59,7 @@ public class SizeTests
     [InlineData(0, 0)]
     public void DimensionsTest(int width, int height)
     {
-        var p = new Size(width, height);
+        Size p = new Size(width, height);
         Assert.Equal(width, p.Width);
         Assert.Equal(height, p.Height);
     }
@@ -82,7 +82,7 @@ public class SizeTests
     [InlineData(0, 0)]
     public void SizeConversionTest(int width, int height)
     {
-        var sz = (Point)new Size(width, height);
+        Point sz = (Point)new Size(width, height);
         Assert.Equal(new Point(width, height), sz);
     }
 
@@ -93,8 +93,8 @@ public class SizeTests
     [InlineData(0, 0)]
     public void ArithmeticTest(int width, int height)
     {
-        var sz1 = new Size(width, height);
-        var sz2 = new Size(height, width);
+        Size sz1 = new Size(width, height);
+        Size sz2 = new Size(height, width);
         Size addExpected, subExpected;
 
         unchecked
@@ -116,7 +116,7 @@ public class SizeTests
     [InlineData(0, 0)]
     public void PointFMathematicalTest(float width, float height)
     {
-        var szF = new SizeF(width, height);
+        SizeF szF = new SizeF(width, height);
         Size pCeiling, pTruncate, pRound;
 
         unchecked
@@ -138,9 +138,9 @@ public class SizeTests
     [InlineData(0, 0)]
     public void EqualityTest(int width, int height)
     {
-        var p1 = new Size(width, height);
-        var p2 = new Size(unchecked(width - 1), unchecked(height - 1));
-        var p3 = new Size(width, height);
+        Size p1 = new Size(width, height);
+        Size p2 = new Size(unchecked(width - 1), unchecked(height - 1));
+        Size p3 = new Size(width, height);
 
         Assert.True(p1 == p3);
         Assert.True(p1 != p2);
@@ -160,7 +160,7 @@ public class SizeTests
     [Fact]
     public void EqualityTest_NotSize()
     {
-        var size = new Size(0, 0);
+        Size size = new Size(0, 0);
         Assert.False(size.Equals(null));
         Assert.False(size.Equals(0));
         Assert.False(size.Equals(new SizeF(0, 0)));
@@ -169,7 +169,7 @@ public class SizeTests
     [Fact]
     public void GetHashCodeTest()
     {
-        var size = new Size(10, 10);
+        Size size = new Size(10, 10);
         Assert.Equal(size.GetHashCode(), new Size(10, 10).GetHashCode());
         Assert.NotEqual(size.GetHashCode(), new Size(20, 10).GetHashCode());
         Assert.NotEqual(size.GetHashCode(), new Size(10, 20).GetHashCode());
@@ -178,7 +178,7 @@ public class SizeTests
     [Fact]
     public void ToStringTest()
     {
-        var sz = new Size(10, 5);
+        Size sz = new Size(10, 5);
         Assert.Equal(string.Format(CultureInfo.CurrentCulture, "Size [ Width={0}, Height={1} ]", sz.Width, sz.Height), sz.ToString());
     }
 

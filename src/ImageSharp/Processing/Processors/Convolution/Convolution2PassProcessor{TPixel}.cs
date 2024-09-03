@@ -68,16 +68,16 @@ internal class Convolution2PassProcessor<TPixel> : ImageProcessor<TPixel>
     {
         using Buffer2D<TPixel> firstPassPixels = this.Configuration.MemoryAllocator.Allocate2D<TPixel>(source.Size);
 
-        var interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds());
+        Rectangle interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds());
 
         // We can create a single sampling map with the size as if we were using the non separated 2D kernel
         // the two 1D kernels represent, and reuse it across both convolution steps, like in the bokeh blur.
-        using var mapXY = new KernelSamplingMap(this.Configuration.MemoryAllocator);
+        using KernelSamplingMap mapXY = new KernelSamplingMap(this.Configuration.MemoryAllocator);
 
         mapXY.BuildSamplingOffsetMap(this.Kernel.Length, this.Kernel.Length, interest, this.BorderWrapModeX, this.BorderWrapModeY);
 
         // Horizontal convolution
-        var horizontalOperation = new HorizontalConvolutionRowOperation(
+        HorizontalConvolutionRowOperation horizontalOperation = new HorizontalConvolutionRowOperation(
             interest,
             firstPassPixels,
             source.PixelBuffer,
@@ -92,7 +92,7 @@ internal class Convolution2PassProcessor<TPixel> : ImageProcessor<TPixel>
             in horizontalOperation);
 
         // Vertical convolution
-        var verticalOperation = new VerticalConvolutionRowOperation(
+        VerticalConvolutionRowOperation verticalOperation = new VerticalConvolutionRowOperation(
             interest,
             source.PixelBuffer,
             firstPassPixels,

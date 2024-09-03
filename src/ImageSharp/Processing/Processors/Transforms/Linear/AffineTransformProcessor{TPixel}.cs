@@ -61,7 +61,7 @@ internal class AffineTransformProcessor<TPixel> : TransformProcessor<TPixel>, IR
         if (matrix.Equals(Matrix3x2.Identity))
         {
             // The clone will be blank here copy all the pixel data over
-            var interest = Rectangle.Intersect(this.SourceRectangle, destination.Bounds());
+            Rectangle interest = Rectangle.Intersect(this.SourceRectangle, destination.Bounds());
             Buffer2DRegion<TPixel> sourceBuffer = source.PixelBuffer.GetRegion(interest);
             Buffer2DRegion<TPixel> destbuffer = destination.PixelBuffer.GetRegion(interest);
             for (int y = 0; y < sourceBuffer.Height; y++)
@@ -77,7 +77,7 @@ internal class AffineTransformProcessor<TPixel> : TransformProcessor<TPixel>, IR
 
         if (sampler is NearestNeighborResampler)
         {
-            var nnOperation = new NNAffineOperation(
+            NNAffineOperation nnOperation = new NNAffineOperation(
                 source.PixelBuffer,
                 Rectangle.Intersect(this.SourceRectangle, source.Bounds()),
                 destination.PixelBuffer,
@@ -91,7 +91,7 @@ internal class AffineTransformProcessor<TPixel> : TransformProcessor<TPixel>, IR
             return;
         }
 
-        var operation = new AffineOperation<TResampler>(
+        AffineOperation<TResampler> operation = new AffineOperation<TResampler>(
             configuration,
             source.PixelBuffer,
             Rectangle.Intersect(this.SourceRectangle, source.Bounds()),
@@ -132,7 +132,7 @@ internal class AffineTransformProcessor<TPixel> : TransformProcessor<TPixel>, IR
 
             for (int x = 0; x < destRow.Length; x++)
             {
-                var point = Vector2.Transform(new Vector2(x, y), this.matrix);
+                Vector2 point = Vector2.Transform(new Vector2(x, y), this.matrix);
                 int px = (int)MathF.Round(point.X);
                 int py = (int)MathF.Round(point.Y);
 
@@ -204,7 +204,7 @@ internal class AffineTransformProcessor<TPixel> : TransformProcessor<TPixel>, IR
 
                 for (int x = 0; x < span.Length; x++)
                 {
-                    var point = Vector2.Transform(new Vector2(x, y), matrix);
+                    Vector2 point = Vector2.Transform(new Vector2(x, y), matrix);
                     float pY = point.Y;
                     float pX = point.X;
 

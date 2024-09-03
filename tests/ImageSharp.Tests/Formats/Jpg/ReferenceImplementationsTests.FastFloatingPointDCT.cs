@@ -53,7 +53,7 @@ public partial class ReferenceImplementationsTests
         {
             float[] sourceArray = Create8x8RandomFloatData(-range, range, seed);
 
-            var source = Block8x8F.Load(sourceArray);
+            Block8x8F source = Block8x8F.Load(sourceArray);
 
             Block8x8F expected = ReferenceImplementations.AccurateDCT.TransformIDCT(ref source);
 

@@ -21,7 +21,7 @@ public static class ImageComparingUtils
             throw new InvalidOperationException("CompareToOriginal() works only with file providers!");
         }
 
-        var testFile = TestFile.Create(path);
+        TestFile testFile = TestFile.Create(path);
         using Image<Rgba32> magickImage = DecodeWithMagick<Rgba32>(new FileInfo(testFile.FullPath));
         if (useExactComparer)
         {
@@ -38,10 +38,10 @@ public static class ImageComparingUtils
     {
         Configuration configuration = Configuration.Default.Clone();
         configuration.PreferContiguousImageBuffers = true;
-        using (var magickImage = new MagickImage(fileInfo))
+        using (MagickImage magickImage = new MagickImage(fileInfo))
         {
             magickImage.AutoOrient();
-            var result = new Image<TPixel>(configuration, magickImage.Width, magickImage.Height);
+            Image<TPixel> result = new Image<TPixel>(configuration, magickImage.Width, magickImage.Height);
 
             Assert.True(result.DangerousTryGetSinglePixelMemory(out Memory<TPixel> resultPixels));
 

@@ -20,7 +20,7 @@ public class Block8x8F_MultiplyInPlaceBlock
 
     private static Block8x8F Create8x8FloatData()
     {
-        var result = new float[64];
+        float[] result = new float[64];
         for (int i = 0; i < 8; i++)
         {
             for (int j = 0; j < 8; j++)

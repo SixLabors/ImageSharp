@@ -30,7 +30,7 @@ internal static partial class ReferenceImplementations
 
         public static void TransformIDCTInplace(Span<int> span)
         {
-            var temp = default(Block8x8);
+            Block8x8 temp = default(Block8x8);
             temp.LoadFrom(span);
             Block8x8 result = TransformIDCT(ref temp);
             result.CopyTo(span);
@@ -45,7 +45,7 @@ internal static partial class ReferenceImplementations
 
         public static void TransformFDCTInplace(Span<int> span)
         {
-            var temp = default(Block8x8);
+            Block8x8 temp = default(Block8x8);
             temp.LoadFrom(span);
             Block8x8 result = TransformFDCT(ref temp);
             result.CopyTo(span);

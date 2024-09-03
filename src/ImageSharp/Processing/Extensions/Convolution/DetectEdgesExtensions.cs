@@ -58,7 +58,7 @@ public static class DetectEdgesExtensions
         EdgeDetector2DKernel kernel,
         bool grayscale)
     {
-        var processor = new EdgeDetector2DProcessor(kernel, grayscale);
+        EdgeDetector2DProcessor processor = new EdgeDetector2DProcessor(kernel, grayscale);
         source.ApplyProcessor(processor);
         return source;
     }
@@ -96,7 +96,7 @@ public static class DetectEdgesExtensions
         bool grayscale,
         Rectangle rectangle)
     {
-        var processor = new EdgeDetector2DProcessor(kernel, grayscale);
+        EdgeDetector2DProcessor processor = new EdgeDetector2DProcessor(kernel, grayscale);
         source.ApplyProcessor(processor, rectangle);
         return source;
     }
@@ -126,7 +126,7 @@ public static class DetectEdgesExtensions
         EdgeDetectorKernel kernel,
         bool grayscale)
     {
-        var processor = new EdgeDetectorProcessor(kernel, grayscale);
+        EdgeDetectorProcessor processor = new EdgeDetectorProcessor(kernel, grayscale);
         source.ApplyProcessor(processor);
         return source;
     }
@@ -164,7 +164,7 @@ public static class DetectEdgesExtensions
         bool grayscale,
         Rectangle rectangle)
     {
-        var processor = new EdgeDetectorProcessor(kernel, grayscale);
+        EdgeDetectorProcessor processor = new EdgeDetectorProcessor(kernel, grayscale);
         source.ApplyProcessor(processor, rectangle);
         return source;
     }
@@ -194,7 +194,7 @@ public static class DetectEdgesExtensions
         EdgeDetectorCompassKernel kernel,
         bool grayscale)
     {
-        var processor = new EdgeDetectorCompassProcessor(kernel, grayscale);
+        EdgeDetectorCompassProcessor processor = new EdgeDetectorCompassProcessor(kernel, grayscale);
         source.ApplyProcessor(processor);
         return source;
     }
@@ -232,7 +232,7 @@ public static class DetectEdgesExtensions
         bool grayscale,
         Rectangle rectangle)
     {
-        var processor = new EdgeDetectorCompassProcessor(kernel, grayscale);
+        EdgeDetectorCompassProcessor processor = new EdgeDetectorCompassProcessor(kernel, grayscale);
         source.ApplyProcessor(processor, rectangle);
         return source;
     }

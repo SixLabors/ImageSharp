@@ -76,7 +76,7 @@ public class ReferenceDecoderBenchmarks
 
     private void BenchmarkDecoderImpl(IEnumerable<string> testFiles, IImageDecoder decoder, string info, int times = DefaultExecutionCount)
     {
-        var measure = new MeasureFixture(this.Output);
+        MeasureFixture measure = new MeasureFixture(this.Output);
         measure.Measure(
             times,
             () =>

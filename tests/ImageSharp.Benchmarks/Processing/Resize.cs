@@ -35,7 +35,7 @@ public abstract class Resize<TPixel>
 
             this.sourceImage = Image.Load<TPixel>(this.bytes);
 
-            var ms1 = new MemoryStream(this.bytes);
+            MemoryStream ms1 = new MemoryStream(this.bytes);
             this.sourceBitmap = SDImage.FromStream(ms1);
             this.DestSize = this.sourceBitmap.Width / 2;
         }
@@ -52,9 +52,9 @@ public abstract class Resize<TPixel>
     [Benchmark(Baseline = true)]
     public int SystemDrawing()
     {
-        using (var destination = new Bitmap(this.DestSize, this.DestSize))
+        using (Bitmap destination = new Bitmap(this.DestSize, this.DestSize))
         {
-            using (var g = Graphics.FromImage(destination))
+            using (Graphics g = Graphics.FromImage(destination))
             {
                 g.CompositingMode = CompositingMode.SourceCopy;
                 g.InterpolationMode = InterpolationMode.HighQualityBicubic;

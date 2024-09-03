@@ -44,7 +44,7 @@ internal static partial class FloatingPointDCT
             block.V0 = Avx.Add(tmp10, tmp11);
             block.V4 = Avx.Subtract(tmp10, tmp11);
 
-            var mm256_F_0_7071 = Vector256.Create(0.707106781f);
+            Vector256<float> mm256_F_0_7071 = Vector256.Create(0.707106781f);
             Vector256<float> z1 = Avx.Multiply(Avx.Add(tmp12, tmp13), mm256_F_0_7071);
             block.V2 = Avx.Add(tmp13, z1);
             block.V6 = Avx.Subtract(tmp13, z1);
@@ -97,7 +97,7 @@ internal static partial class FloatingPointDCT
             Vector256<float> tmp10 = Avx.Add(z5, tmp2);
             Vector256<float> tmp11 = Avx.Subtract(z5, tmp2);
 
-            var mm256_F_1_4142 = Vector256.Create(1.414213562f);
+            Vector256<float> mm256_F_1_4142 = Vector256.Create(1.414213562f);
             Vector256<float> tmp13 = Avx.Add(tmp1, tmp3);
             Vector256<float> tmp12 = SimdUtils.HwIntrinsics.MultiplySubtract(tmp13, Avx.Subtract(tmp1, tmp3), mm256_F_1_4142);
 

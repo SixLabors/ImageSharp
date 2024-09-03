@@ -11,7 +11,7 @@ public class UnmanagedMemoryHandleTests
     [Fact]
     public unsafe void Allocate_AllocatesReadWriteMemory()
     {
-        var h = UnmanagedMemoryHandle.Allocate(128);
+        UnmanagedMemoryHandle h = UnmanagedMemoryHandle.Allocate(128);
         Assert.False(h.IsInvalid);
         Assert.True(h.IsValid);
         byte* ptr = (byte*)h.Handle;
@@ -31,7 +31,7 @@ public class UnmanagedMemoryHandleTests
     [Fact]
     public void Free_ClosesHandle()
     {
-        var h = UnmanagedMemoryHandle.Allocate(128);
+        UnmanagedMemoryHandle h = UnmanagedMemoryHandle.Allocate(128);
         h.Free();
         Assert.True(h.IsInvalid);
         Assert.Equal(IntPtr.Zero, h.Handle);
@@ -47,11 +47,11 @@ public class UnmanagedMemoryHandleTests
         static void RunTest(string countStr)
         {
             int countInner = int.Parse(countStr);
-            var l = new List<UnmanagedMemoryHandle>();
+            List<UnmanagedMemoryHandle> l = new List<UnmanagedMemoryHandle>();
             for (int i = 0; i < countInner; i++)
             {
                 Assert.Equal(i, UnmanagedMemoryHandle.TotalOutstandingHandles);
-                var h = UnmanagedMemoryHandle.Allocate(42);
+                UnmanagedMemoryHandle h = UnmanagedMemoryHandle.Allocate(42);
                 Assert.Equal(i + 1, UnmanagedMemoryHandle.TotalOutstandingHandles);
                 l.Add(h);
             }
@@ -68,7 +68,7 @@ public class UnmanagedMemoryHandleTests
     [Fact]
     public void Equality_WhenTrue()
     {
-        var h1 = UnmanagedMemoryHandle.Allocate(10);
+        UnmanagedMemoryHandle h1 = UnmanagedMemoryHandle.Allocate(10);
         UnmanagedMemoryHandle h2 = h1;
 
         Assert.True(h1.Equals(h2));
@@ -82,8 +82,8 @@ public class UnmanagedMemoryHandleTests
     [Fact]
     public void Equality_WhenFalse()
     {
-        var h1 = UnmanagedMemoryHandle.Allocate(10);
-        var h2 = UnmanagedMemoryHandle.Allocate(10);
+        UnmanagedMemoryHandle h1 = UnmanagedMemoryHandle.Allocate(10);
+        UnmanagedMemoryHandle h2 = UnmanagedMemoryHandle.Allocate(10);
 
         Assert.False(h1.Equals(h2));
         Assert.False(h2.Equals(h1));

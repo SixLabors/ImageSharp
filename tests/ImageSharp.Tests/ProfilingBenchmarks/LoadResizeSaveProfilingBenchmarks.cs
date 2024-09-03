@@ -18,7 +18,7 @@ public class LoadResizeSaveProfilingBenchmarks : MeasureFixture
     [InlineData(TestImages.Jpeg.Baseline.Jpeg420Exif)]
     public void LoadResizeSave(string imagePath)
     {
-        var configuration = Configuration.CreateDefaultInstance();
+        Configuration configuration = Configuration.CreateDefaultInstance();
         configuration.MaxDegreeOfParallelism = 1;
 
         DecoderOptions options = new()
@@ -28,12 +28,12 @@ public class LoadResizeSaveProfilingBenchmarks : MeasureFixture
 
         byte[] imageBytes = TestFile.Create(imagePath).Bytes;
 
-        using var ms = new MemoryStream();
+        using MemoryStream ms = new MemoryStream();
         this.Measure(
             30,
             () =>
                 {
-                    using (var image = Image.Load(options, imageBytes))
+                    using (Image image = Image.Load(options, imageBytes))
                     {
                         image.Mutate(x => x.Resize(image.Size / 4));
                         image.SaveAsJpeg(ms);

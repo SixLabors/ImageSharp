@@ -30,7 +30,7 @@ internal class AdaptiveThresholdProcessor<TPixel> : ImageProcessor<TPixel>
     /// <inheritdoc/>
     protected override void OnFrameApply(ImageFrame<TPixel> source)
     {
-        var interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds());
+        Rectangle interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds());
 
         Configuration configuration = this.Configuration;
         TPixel upper = this.definition.Upper.ToPixel<TPixel>();

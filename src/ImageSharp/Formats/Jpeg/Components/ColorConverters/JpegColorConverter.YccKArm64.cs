@@ -32,13 +32,13 @@ internal abstract partial class JpegColorConverterBase
                 ref Unsafe.As<float, Vector128<float>>(ref MemoryMarshal.GetReference(values.Component3));
 
             // Used for the color conversion
-            var chromaOffset = Vector128.Create(-this.HalfValue);
-            var scale = Vector128.Create(1 / (this.MaximumValue * this.MaximumValue));
-            var max = Vector128.Create(this.MaximumValue);
-            var rCrMult = Vector128.Create(YCbCrScalar.RCrMult);
-            var gCbMult = Vector128.Create(-YCbCrScalar.GCbMult);
-            var gCrMult = Vector128.Create(-YCbCrScalar.GCrMult);
-            var bCbMult = Vector128.Create(YCbCrScalar.BCbMult);
+            Vector128<float> chromaOffset = Vector128.Create(-this.HalfValue);
+            Vector128<float> scale = Vector128.Create(1 / (this.MaximumValue * this.MaximumValue));
+            Vector128<float> max = Vector128.Create(this.MaximumValue);
+            Vector128<float> rCrMult = Vector128.Create(YCbCrScalar.RCrMult);
+            Vector128<float> gCbMult = Vector128.Create(-YCbCrScalar.GCbMult);
+            Vector128<float> gCrMult = Vector128.Create(-YCbCrScalar.GCrMult);
+            Vector128<float> bCbMult = Vector128.Create(YCbCrScalar.BCbMult);
 
             // Walking 8 elements at one step:
             nuint n = (uint)values.Component0.Length / (uint)Vector128<float>.Count;
@@ -97,18 +97,18 @@ internal abstract partial class JpegColorConverterBase
             ref Vector128<float> srcB = ref destCr;
 
             // Used for the color conversion
-            var maxSampleValue = Vector128.Create(this.MaximumValue);
+            Vector128<float> maxSampleValue = Vector128.Create(this.MaximumValue);
 
-            var chromaOffset = Vector128.Create(this.HalfValue);
+            Vector128<float> chromaOffset = Vector128.Create(this.HalfValue);
 
-            var f0299 = Vector128.Create(0.299f);
-            var f0587 = Vector128.Create(0.587f);
-            var f0114 = Vector128.Create(0.114f);
-            var fn0168736 = Vector128.Create(-0.168736f);
-            var fn0331264 = Vector128.Create(-0.331264f);
-            var fn0418688 = Vector128.Create(-0.418688f);
-            var fn0081312F = Vector128.Create(-0.081312F);
-            var f05 = Vector128.Create(0.5f);
+            Vector128<float> f0299 = Vector128.Create(0.299f);
+            Vector128<float> f0587 = Vector128.Create(0.587f);
+            Vector128<float> f0114 = Vector128.Create(0.114f);
+            Vector128<float> fn0168736 = Vector128.Create(-0.168736f);
+            Vector128<float> fn0331264 = Vector128.Create(-0.331264f);
+            Vector128<float> fn0418688 = Vector128.Create(-0.418688f);
+            Vector128<float> fn0081312F = Vector128.Create(-0.081312F);
+            Vector128<float> f05 = Vector128.Create(0.5f);
 
             nuint n = (uint)values.Component0.Length / (uint)Vector128<float>.Count;
             for (nuint i = 0; i < n; i++)

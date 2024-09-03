@@ -32,16 +32,16 @@ public class TgaEncoderTests
     [MemberData(nameof(TgaBitsPerPixelFiles))]
     public void TgaEncoder_PreserveBitsPerPixel(string imagePath, TgaBitsPerPixel bmpBitsPerPixel)
     {
-        var options = new TgaEncoder();
+        TgaEncoder options = new TgaEncoder();
 
-        var testFile = TestFile.Create(imagePath);
+        TestFile testFile = TestFile.Create(imagePath);
         using (Image<Rgba32> input = testFile.CreateRgba32Image())
         {
-            using (var memStream = new MemoryStream())
+            using (MemoryStream memStream = new MemoryStream())
             {
                 input.Save(memStream, options);
                 memStream.Position = 0;
-                using (var output = Image.Load<Rgba32>(memStream))
+                using (Image<Rgba32> output = Image.Load<Rgba32>(memStream))
                 {
                     TgaMetadata meta = output.Metadata.GetTgaMetadata();
                     Assert.Equal(bmpBitsPerPixel, meta.BitsPerPixel);
@@ -54,15 +54,15 @@ public class TgaEncoderTests
     [MemberData(nameof(TgaBitsPerPixelFiles))]
     public void TgaEncoder_WithCompression_PreserveBitsPerPixel(string imagePath, TgaBitsPerPixel bmpBitsPerPixel)
     {
-        var options = new TgaEncoder() { Compression = TgaCompression.RunLength };
-        var testFile = TestFile.Create(imagePath);
+        TgaEncoder options = new TgaEncoder() { Compression = TgaCompression.RunLength };
+        TestFile testFile = TestFile.Create(imagePath);
         using (Image<Rgba32> input = testFile.CreateRgba32Image())
         {
-            using (var memStream = new MemoryStream())
+            using (MemoryStream memStream = new MemoryStream())
             {
                 input.Save(memStream, options);
                 memStream.Position = 0;
-                using (var output = Image.Load<Rgba32>(memStream))
+                using (Image<Rgba32> output = Image.Load<Rgba32>(memStream))
                 {
                     TgaMetadata meta = output.Metadata.GetTgaMetadata();
                     Assert.Equal(bmpBitsPerPixel, meta.BitsPerPixel);
@@ -136,11 +136,11 @@ public class TgaEncoderTests
     [Fact]
     public void TgaEncoder_RunLengthDoesNotCrossRowBoundaries()
     {
-        var options = new TgaEncoder() { Compression = TgaCompression.RunLength };
+        TgaEncoder options = new TgaEncoder() { Compression = TgaCompression.RunLength };
 
-        using (var input = new Image<Rgba32>(30, 30))
+        using (Image<Rgba32> input = new Image<Rgba32>(30, 30))
         {
-            using (var memStream = new MemoryStream())
+            using (MemoryStream memStream = new MemoryStream())
             {
                 input.Save(memStream, options);
                 byte[] imageBytes = memStream.ToArray();
@@ -169,14 +169,14 @@ public class TgaEncoderTests
     {
         using (Image<TPixel> image = provider.GetImage())
         {
-            var encoder = new TgaEncoder { BitsPerPixel = bitsPerPixel, Compression = compression };
+            TgaEncoder encoder = new TgaEncoder { BitsPerPixel = bitsPerPixel, Compression = compression };
 
-            using (var memStream = new MemoryStream())
+            using (MemoryStream memStream = new MemoryStream())
             {
                 image.DebugSave(provider, encoder);
                 image.Save(memStream, encoder);
                 memStream.Position = 0;
-                using (var encodedImage = (Image<TPixel>)Image.Load(memStream))
+                using (Image<TPixel> encodedImage = (Image<TPixel>)Image.Load(memStream))
                 {
                     ImageComparingUtils.CompareWithReferenceDecoder(provider, encodedImage, useExactComparer, compareTolerance);
                 }

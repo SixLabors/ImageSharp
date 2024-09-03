@@ -29,7 +29,7 @@ internal sealed class DeflateCompressor : TiffBaseCompressor
     public override void CompressStrip(Span<byte> rows, int height)
     {
         this.memoryStream.Seek(0, SeekOrigin.Begin);
-        using (var stream = new ZlibDeflateStream(this.Allocator, this.memoryStream, this.compressionLevel))
+        using (ZlibDeflateStream stream = new ZlibDeflateStream(this.Allocator, this.memoryStream, this.compressionLevel))
         {
             if (this.Predictor == TiffPredictor.Horizontal)
             {

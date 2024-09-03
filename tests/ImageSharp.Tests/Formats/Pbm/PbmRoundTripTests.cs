@@ -21,11 +21,11 @@ public class PbmRoundTripTests
     public void PbmGrayscaleImageCanRoundTrip(string imagePath)
     {
         // Arrange
-        var testFile = TestFile.Create(imagePath);
-        using var stream = new MemoryStream(testFile.Bytes, false);
+        TestFile testFile = TestFile.Create(imagePath);
+        using MemoryStream stream = new MemoryStream(testFile.Bytes, false);
 
         // Act
-        using var originalImage = Image.Load(stream);
+        using Image originalImage = Image.Load(stream);
         using Image<Rgb24> colorImage = originalImage.CloneAs<Rgb24>();
         using Image<Rgb24> encodedImage = this.RoundTrip(colorImage);
 
@@ -42,11 +42,11 @@ public class PbmRoundTripTests
     public void PbmColorImageCanRoundTrip(string imagePath)
     {
         // Arrange
-        var testFile = TestFile.Create(imagePath);
-        using var stream = new MemoryStream(testFile.Bytes, false);
+        TestFile testFile = TestFile.Create(imagePath);
+        using MemoryStream stream = new MemoryStream(testFile.Bytes, false);
 
         // Act
-        using var originalImage = Image.Load<Rgb24>(stream);
+        using Image<Rgb24> originalImage = Image.Load<Rgb24>(stream);
         using Image<Rgb24> encodedImage = this.RoundTrip(originalImage);
 
         // Assert
@@ -57,10 +57,10 @@ public class PbmRoundTripTests
     private Image<TPixel> RoundTrip<TPixel>(Image<TPixel> originalImage)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using var decodedStream = new MemoryStream();
+        using MemoryStream decodedStream = new MemoryStream();
         originalImage.SaveAsPbm(decodedStream);
         decodedStream.Seek(0, SeekOrigin.Begin);
-        var encodedImage = Image.Load<TPixel>(decodedStream);
+        Image<TPixel> encodedImage = Image.Load<TPixel>(decodedStream);
         return encodedImage;
     }
 }

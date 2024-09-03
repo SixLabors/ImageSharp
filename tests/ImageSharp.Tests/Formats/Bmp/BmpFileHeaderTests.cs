@@ -11,9 +11,9 @@ public class BmpFileHeaderTests
     [Fact]
     public void TestWrite()
     {
-        var header = new BmpFileHeader(1, 2, 3, 4);
+        BmpFileHeader header = new BmpFileHeader(1, 2, 3, 4);
 
-        var buffer = new byte[14];
+        byte[] buffer = new byte[14];
 
         header.WriteTo(buffer);
 

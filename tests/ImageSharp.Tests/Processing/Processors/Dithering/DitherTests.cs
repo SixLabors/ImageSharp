@@ -101,7 +101,7 @@ public class DitherTests
         }
 
         // Increased tolerance because of compatibility issues on .NET 4.6.2:
-        var comparer = ImageComparer.TolerantPercentage(1f);
+        ImageComparer comparer = ImageComparer.TolerantPercentage(1f);
         provider.RunValidatingProcessorTest(x => x.Dither(DefaultErrorDiffuser), comparer: comparer);
     }
 
@@ -186,7 +186,7 @@ public class DitherTests
     {
         void Command()
         {
-            using var image = new Image<Rgba32>(10, 10);
+            using Image<Rgba32> image = new Image<Rgba32>(10, 10);
             image.Mutate(x => x.Dither(dither));
         }
 

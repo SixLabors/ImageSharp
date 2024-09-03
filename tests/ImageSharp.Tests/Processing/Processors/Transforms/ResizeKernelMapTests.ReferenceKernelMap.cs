@@ -39,7 +39,7 @@ public partial class ResizeKernelMapTests
 
             double radius = tolerantMath.Ceiling(scale * sampler.Radius);
 
-            var result = new List<ReferenceKernel>();
+            List<ReferenceKernel> result = new List<ReferenceKernel>();
 
             for (int i = 0; i < destinationSize; i++)
             {

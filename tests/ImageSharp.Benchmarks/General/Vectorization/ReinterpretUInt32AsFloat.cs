@@ -53,8 +53,8 @@ public class ReinterpretUInt32AsFloat
     {
         for (int i = 0; i < this.input.Length; i += Vector<uint>.Count)
         {
-            var a = new Vector<uint>(this.input, i);
-            var b = Vector.AsVectorSingle(a);
+            Vector<uint> a = new Vector<uint>(this.input, i);
+            Vector<float> b = Vector.AsVectorSingle(a);
             b.CopyTo(this.result, i);
         }
     }

@@ -101,7 +101,7 @@ internal static class PackBitsWriter
 
     private static int FindRunLength(ReadOnlySpan<byte> rowSpan, int startPos, int maxRunLength)
     {
-        var startByte = rowSpan[startPos];
+        byte startByte = rowSpan[startPos];
         int count = 1;
         for (int i = startPos + 1; i < rowSpan.Length; i++)
         {

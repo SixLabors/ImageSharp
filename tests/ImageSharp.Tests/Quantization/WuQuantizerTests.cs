@@ -12,9 +12,9 @@ public class WuQuantizerTests
     public void SinglePixelOpaque()
     {
         Configuration config = Configuration.Default;
-        var quantizer = new WuQuantizer(new QuantizerOptions { Dither = null });
+        WuQuantizer quantizer = new WuQuantizer(new QuantizerOptions { Dither = null });
 
-        using var image = new Image<Rgba32>(config, 1, 1, Color.Black.ToPixel<Rgba32>());
+        using Image<Rgba32> image = new Image<Rgba32>(config, 1, 1, Color.Black.ToPixel<Rgba32>());
         ImageFrame<Rgba32> frame = image.Frames.RootFrame;
 
         using IQuantizer<Rgba32> frameQuantizer = quantizer.CreatePixelSpecificQuantizer<Rgba32>(config);
@@ -32,9 +32,9 @@ public class WuQuantizerTests
     public void SinglePixelTransparent()
     {
         Configuration config = Configuration.Default;
-        var quantizer = new WuQuantizer(new QuantizerOptions { Dither = null });
+        WuQuantizer quantizer = new WuQuantizer(new QuantizerOptions { Dither = null });
 
-        using var image = new Image<Rgba32>(config, 1, 1, default(Rgba32));
+        using Image<Rgba32> image = new Image<Rgba32>(config, 1, 1, default(Rgba32));
         ImageFrame<Rgba32> frame = image.Frames.RootFrame;
 
         using IQuantizer<Rgba32> frameQuantizer = quantizer.CreatePixelSpecificQuantizer<Rgba32>(config);
@@ -66,7 +66,7 @@ public class WuQuantizerTests
     [Fact]
     public void Palette256()
     {
-        using var image = new Image<Rgba32>(1, 256);
+        using Image<Rgba32> image = new Image<Rgba32>(1, 256);
 
         for (int i = 0; i < 256; i++)
         {
@@ -79,7 +79,7 @@ public class WuQuantizerTests
         }
 
         Configuration config = Configuration.Default;
-        var quantizer = new WuQuantizer(new QuantizerOptions { Dither = null });
+        WuQuantizer quantizer = new WuQuantizer(new QuantizerOptions { Dither = null });
 
         ImageFrame<Rgba32> frame = image.Frames.RootFrame;
 
@@ -90,7 +90,7 @@ public class WuQuantizerTests
         Assert.Equal(1, result.Width);
         Assert.Equal(256, result.Height);
 
-        using var actualImage = new Image<Rgba32>(1, 256);
+        using Image<Rgba32> actualImage = new Image<Rgba32>(1, 256);
 
         actualImage.ProcessPixelRows(accessor =>
         {
@@ -126,7 +126,7 @@ public class WuQuantizerTests
         using (Image<TPixel> image = provider.GetImage())
         {
             Configuration config = Configuration.Default;
-            var quantizer = new WuQuantizer(new QuantizerOptions { Dither = null });
+            WuQuantizer quantizer = new WuQuantizer(new QuantizerOptions { Dither = null });
             ImageFrame<TPixel> frame = image.Frames.RootFrame;
 
             using IQuantizer<TPixel> frameQuantizer = quantizer.CreatePixelSpecificQuantizer<TPixel>(config);
@@ -138,9 +138,9 @@ public class WuQuantizerTests
 
     private static void TestScale(Func<byte, Rgba32> pixelBuilder)
     {
-        using (var image = new Image<Rgba32>(1, 256))
-        using (var expectedImage = new Image<Rgba32>(1, 256))
-        using (var actualImage = new Image<Rgba32>(1, 256))
+        using (Image<Rgba32> image = new Image<Rgba32>(1, 256))
+        using (Image<Rgba32> expectedImage = new Image<Rgba32>(1, 256))
+        using (Image<Rgba32> actualImage = new Image<Rgba32>(1, 256))
         {
             for (int i = 0; i < 256; i++)
             {
@@ -155,7 +155,7 @@ public class WuQuantizerTests
             }
 
             Configuration config = Configuration.Default;
-            var quantizer = new WuQuantizer(new QuantizerOptions { Dither = null });
+            WuQuantizer quantizer = new WuQuantizer(new QuantizerOptions { Dither = null });
 
             ImageFrame<Rgba32> frame = image.Frames.RootFrame;
             using (IQuantizer<Rgba32> frameQuantizer = quantizer.CreatePixelSpecificQuantizer<Rgba32>(config))

@@ -208,8 +208,8 @@ internal static partial class ReferenceImplementations
             /*y[0] = c0 + c1;
             y[4] = c0 - c1;*/
 
-            var w0 = new Vector4(0.541196f);
-            var w1 = new Vector4(1.306563f);
+            Vector4 w0 = new Vector4(0.541196f);
+            Vector4 w1 = new Vector4(1.306563f);
 
             _mm_store_ps(d, 16, (w0 * c2) + (w1 * c3));
 
@@ -242,7 +242,7 @@ internal static partial class ReferenceImplementations
             _mm_store_ps(d, 40, c3 - c1);
 
             // y[5] = c3 - c1; y[3] = c0 - c2;
-            var invsqrt2 = new Vector4(0.707107f);
+            Vector4 invsqrt2 = new Vector4(0.707107f);
             c0 = (c0 + c2) * invsqrt2;
             c3 = (c3 + c1) * invsqrt2;
 
@@ -272,7 +272,7 @@ internal static partial class ReferenceImplementations
 
             FDCT2D8x4_32f(temp.Slice(4), d.Slice(4));
 
-            var c = new Vector4(0.1250f);
+            Vector4 c = new Vector4(0.1250f);
 
 #pragma warning disable SA1107 // Code should not contain multiple statements on one line
             _mm_store_ps(d, 0, _mm_load_ps(d, 0) * c); d = d.Slice(4); // 0

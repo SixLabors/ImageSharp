@@ -61,7 +61,7 @@ public class ImageSimilarityReport
 
     private string PrintDifference()
     {
-        var sb = new StringBuilder();
+        StringBuilder sb = new StringBuilder();
         if (this.TotalNormalizedDifference.HasValue)
         {
             sb.AppendLine();

@@ -1,6 +1,8 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System;
+
 namespace SixLabors.ImageSharp.Formats.Heif.Av1;
 
 internal static class Av1Math
@@ -155,4 +157,10 @@ internal static class Av1Math
 
     internal static int RoundPowerOf2Signed(int value, int n)
         => (value < 0) ? -RoundPowerOf2(-value, n) : RoundPowerOf2(value, n);
+
+    internal static int RoundShift(long value, int bit)
+    {
+        DebugGuard.MustBeGreaterThanOrEqualTo(bit, 1, nameof(bit));
+        return (int)((value + (1L << (bit - 1))) >> bit);
+    }
 }

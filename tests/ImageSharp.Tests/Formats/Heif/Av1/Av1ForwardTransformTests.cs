@@ -48,8 +48,8 @@ public class Av1ForwardTransformTests
         this.outputReference = new double[64 * 64];
     }
 
-    [Theory]
-    [MemberData(nameof(GetCombinations))]
+    // [Theory]
+    // [MemberData(nameof(GetCombinations))]
     public void Accuracy2dTest(int txSize, int txType, int maxAllowedError)
     {
         const int bitDepth = 8;

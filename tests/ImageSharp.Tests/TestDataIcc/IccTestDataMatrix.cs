@@ -32,7 +32,7 @@ internal static class IccTestDataMatrix
     /// <summary>
     /// 3x3 Matrix
     /// </summary>
-    public static readonly Matrix4x4 Single_Matrix4x4_ValGrad = new Matrix4x4(1, 2, 3, 0, 4, 5, 6, 0, 7, 8, 9, 0, 0, 0, 0, 1);
+    public static readonly Matrix4x4 Single_Matrix4x4_ValGrad = new(1, 2, 3, 0, 4, 5, 6, 0, 7, 8, 9, 0, 0, 0, 0, 1);
 
     /// <summary>
     /// 3x3 Matrix
@@ -42,12 +42,12 @@ internal static class IccTestDataMatrix
     /// <summary>
     /// 3x3 Matrix
     /// </summary>
-    public static readonly DenseMatrix<float> Single_DenseMatrix_ValGrad = new DenseMatrix<float>(Single_2DArray_ValGrad);
+    public static readonly DenseMatrix<float> Single_DenseMatrix_ValGrad = new(Single_2DArray_ValGrad);
 
     /// <summary>
     /// 3x3 Matrix
     /// </summary>
-    public static readonly DenseMatrix<float> Single_DenseMatrix_ValIdentity = new DenseMatrix<float>(Single_2DArray_ValIdentity);
+    public static readonly DenseMatrix<float> Single_DenseMatrix_ValIdentity = new(Single_2DArray_ValIdentity);
 
     /// <summary>
     /// 3x3 Matrix
@@ -120,7 +120,7 @@ internal static class IccTestDataMatrix
     /// <summary>
     /// 3x1 Matrix
     /// </summary>
-    public static readonly Vector3 Single_Vector3_ValGrad = new Vector3(1, 4, 7);
+    public static readonly Vector3 Single_Vector3_ValGrad = new(1, 4, 7);
 
     /// <summary>
     /// 3x1 Matrix

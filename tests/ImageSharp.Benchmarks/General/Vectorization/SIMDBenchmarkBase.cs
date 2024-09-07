@@ -20,7 +20,7 @@ public abstract class SIMDBenchmarkBase<T>
 
     protected virtual T GetTestValue() => default;
 
-    protected virtual Vector<T> GetTestVector() => new Vector<T>(this.GetTestValue());
+    protected virtual Vector<T> GetTestVector() => new(this.GetTestValue());
 
     [Params(32)]
     public int InputSize { get; set; }

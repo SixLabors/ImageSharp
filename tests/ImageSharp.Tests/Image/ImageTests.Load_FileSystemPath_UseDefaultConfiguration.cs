@@ -12,7 +12,7 @@ public partial class ImageTests
     {
         private string Path { get; } = TestFile.GetInputFileFullPath(TestImages.Bmp.Bit8);
 
-        private static void VerifyDecodedImage(Image img) => Assert.Equal(new Size(127, 64), img.Size);
+        private static void VerifyDecodedImage(Image img) => Assert.Equal(new(127, 64), img.Size);
 
         [Fact]
         public void Path_Specific()

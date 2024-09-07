@@ -22,7 +22,7 @@ internal sealed class IccReader
         IccProfileHeader header = ReadHeader(reader);
         IccTagDataEntry[] tagData = ReadTagData(reader);
 
-        return new IccProfile(header, tagData);
+        return new(header, tagData);
     }
 
     /// <summary>
@@ -57,7 +57,7 @@ internal sealed class IccReader
     {
         reader.SetIndex(0);
 
-        return new IccProfileHeader
+        return new()
         {
             Size = reader.ReadUInt32(),
             CmmType = reader.ReadAsciiString(4),
@@ -137,7 +137,7 @@ internal sealed class IccReader
             // Exclude entries that have nonsense values and could cause exceptions further on
             if (tagOffset < reader.DataLength && tagSize < reader.DataLength - 128)
             {
-                table.Add(new IccTagTableEntry((IccProfileTag)tagSignature, tagOffset, tagSize));
+                table.Add(new((IccProfileTag)tagSignature, tagOffset, tagSize));
             }
         }
 

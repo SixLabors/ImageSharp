@@ -14,7 +14,7 @@ public class ColorBlindnessTest
     private readonly ImageComparer imageComparer = ImageComparer.Tolerant(0.03F);
 
     public static readonly TheoryData<ColorBlindnessMode> ColorBlindnessFilters
-    = new TheoryData<ColorBlindnessMode>
+    = new()
     {
         ColorBlindnessMode.Achromatomaly,
         ColorBlindnessMode.Achromatopsia,

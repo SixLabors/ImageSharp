@@ -64,7 +64,7 @@ internal static class ExifEncodedStringHelpers
         if (TryDetect(buffer, out CharacterCode code))
         {
             string text = GetEncoding(code).GetString(buffer[CharacterCodeBytesLength..]);
-            encodedString = new EncodedString(code, text);
+            encodedString = new(code, text);
             return true;
         }
 

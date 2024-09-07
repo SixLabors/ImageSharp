@@ -8,7 +8,7 @@ using System.Collections.Generic;
 
 public class ByteBuffer
 {
-    private readonly List<byte> bytes = new List<byte>();
+    private readonly List<byte> bytes = new();
     private readonly bool isLittleEndian;
 
     public ByteBuffer(bool isLittleEndian)

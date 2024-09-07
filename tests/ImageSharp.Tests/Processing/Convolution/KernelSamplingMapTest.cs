@@ -11,8 +11,8 @@ public class KernelSamplingMapTest
     [Fact]
     public void KernalSamplingMap_Kernel5Image7x7RepeatBorder()
     {
-        Size kernelSize = new Size(5, 5);
-        Rectangle bounds = new Rectangle(0, 0, 7, 7);
+        Size kernelSize = new(5, 5);
+        Rectangle bounds = new(0, 0, 7, 7);
         BorderWrappingMode mode = BorderWrappingMode.Repeat;
         int[] expected =
         {
@@ -30,8 +30,8 @@ public class KernelSamplingMapTest
     [Fact]
     public void KernalSamplingMap_Kernel5Image7x7BounceBorder()
     {
-        Size kernelSize = new Size(5, 5);
-        Rectangle bounds = new Rectangle(0, 0, 7, 7);
+        Size kernelSize = new(5, 5);
+        Rectangle bounds = new(0, 0, 7, 7);
         BorderWrappingMode mode = BorderWrappingMode.Bounce;
         int[] expected =
         {
@@ -49,8 +49,8 @@ public class KernelSamplingMapTest
     [Fact]
     public void KernalSamplingMap_Kernel5Image7x7MirrorBorder()
     {
-        Size kernelSize = new Size(5, 5);
-        Rectangle bounds = new Rectangle(0, 0, 7, 7);
+        Size kernelSize = new(5, 5);
+        Rectangle bounds = new(0, 0, 7, 7);
         BorderWrappingMode mode = BorderWrappingMode.Mirror;
         int[] expected =
         {
@@ -68,8 +68,8 @@ public class KernelSamplingMapTest
     [Fact]
     public void KernalSamplingMap_Kernel5Image7x7WrapBorder()
     {
-        Size kernelSize = new Size(5, 5);
-        Rectangle bounds = new Rectangle(0, 0, 7, 7);
+        Size kernelSize = new(5, 5);
+        Rectangle bounds = new(0, 0, 7, 7);
         BorderWrappingMode mode = BorderWrappingMode.Wrap;
         int[] expected =
         {
@@ -87,8 +87,8 @@ public class KernelSamplingMapTest
     [Fact]
     public void KernalSamplingMap_Kernel5Image9x9BounceBorder()
     {
-        Size kernelSize = new Size(5, 5);
-        Rectangle bounds = new Rectangle(1, 1, 9, 9);
+        Size kernelSize = new(5, 5);
+        Rectangle bounds = new(1, 1, 9, 9);
         BorderWrappingMode mode = BorderWrappingMode.Bounce;
         int[] expected =
         {
@@ -108,8 +108,8 @@ public class KernelSamplingMapTest
     [Fact]
     public void KernalSamplingMap_Kernel5Image9x9MirrorBorder()
     {
-        Size kernelSize = new Size(5, 5);
-        Rectangle bounds = new Rectangle(1, 1, 9, 9);
+        Size kernelSize = new(5, 5);
+        Rectangle bounds = new(1, 1, 9, 9);
         BorderWrappingMode mode = BorderWrappingMode.Mirror;
         int[] expected =
         {
@@ -129,8 +129,8 @@ public class KernelSamplingMapTest
     [Fact]
     public void KernalSamplingMap_Kernel5Image9x9WrapBorder()
     {
-        Size kernelSize = new Size(5, 5);
-        Rectangle bounds = new Rectangle(1, 1, 9, 9);
+        Size kernelSize = new(5, 5);
+        Rectangle bounds = new(1, 1, 9, 9);
         BorderWrappingMode mode = BorderWrappingMode.Wrap;
         int[] expected =
         {
@@ -150,8 +150,8 @@ public class KernelSamplingMapTest
     [Fact]
     public void KernalSamplingMap_Kernel5Image7x7RepeatBorderTile()
     {
-        Size kernelSize = new Size(5, 5);
-        Rectangle bounds = new Rectangle(2, 2, 7, 7);
+        Size kernelSize = new(5, 5);
+        Rectangle bounds = new(2, 2, 7, 7);
         BorderWrappingMode mode = BorderWrappingMode.Repeat;
         int[] expected =
         {
@@ -169,8 +169,8 @@ public class KernelSamplingMapTest
     [Fact]
     public void KernalSamplingMap_Kernel5Image7x7BounceBorderTile()
     {
-        Size kernelSize = new Size(5, 5);
-        Rectangle bounds = new Rectangle(2, 2, 7, 7);
+        Size kernelSize = new(5, 5);
+        Rectangle bounds = new(2, 2, 7, 7);
         BorderWrappingMode mode = BorderWrappingMode.Bounce;
         int[] expected =
         {
@@ -188,8 +188,8 @@ public class KernelSamplingMapTest
     [Fact]
     public void KernalSamplingMap_Kernel5Image7x7MirrorBorderTile()
     {
-        Size kernelSize = new Size(5, 5);
-        Rectangle bounds = new Rectangle(2, 2, 7, 7);
+        Size kernelSize = new(5, 5);
+        Rectangle bounds = new(2, 2, 7, 7);
         BorderWrappingMode mode = BorderWrappingMode.Mirror;
         int[] expected =
         {
@@ -207,8 +207,8 @@ public class KernelSamplingMapTest
     [Fact]
     public void KernalSamplingMap_Kernel5Image7x7WrapBorderTile()
     {
-        Size kernelSize = new Size(5, 5);
-        Rectangle bounds = new Rectangle(2, 2, 7, 7);
+        Size kernelSize = new(5, 5);
+        Rectangle bounds = new(2, 2, 7, 7);
         BorderWrappingMode mode = BorderWrappingMode.Wrap;
         int[] expected =
         {
@@ -226,8 +226,8 @@ public class KernelSamplingMapTest
     [Fact]
     public void KernalSamplingMap_Kernel3Image7x7RepeatBorder()
     {
-        Size kernelSize = new Size(3, 3);
-        Rectangle bounds = new Rectangle(0, 0, 7, 7);
+        Size kernelSize = new(3, 3);
+        Rectangle bounds = new(0, 0, 7, 7);
         BorderWrappingMode mode = BorderWrappingMode.Repeat;
         int[] expected =
         {
@@ -245,8 +245,8 @@ public class KernelSamplingMapTest
     [Fact]
     public void KernalSamplingMap_Kernel3Image7x7BounceBorder()
     {
-        Size kernelSize = new Size(3, 3);
-        Rectangle bounds = new Rectangle(0, 0, 7, 7);
+        Size kernelSize = new(3, 3);
+        Rectangle bounds = new(0, 0, 7, 7);
         BorderWrappingMode mode = BorderWrappingMode.Bounce;
         int[] expected =
         {
@@ -264,8 +264,8 @@ public class KernelSamplingMapTest
     [Fact]
     public void KernalSamplingMap_Kernel3Image7x7MirrorBorder()
     {
-        Size kernelSize = new Size(3, 3);
-        Rectangle bounds = new Rectangle(0, 0, 7, 7);
+        Size kernelSize = new(3, 3);
+        Rectangle bounds = new(0, 0, 7, 7);
         BorderWrappingMode mode = BorderWrappingMode.Mirror;
         int[] expected =
         {
@@ -283,8 +283,8 @@ public class KernelSamplingMapTest
     [Fact]
     public void KernalSamplingMap_Kernel3Image7x7WrapBorder()
     {
-        Size kernelSize = new Size(3, 3);
-        Rectangle bounds = new Rectangle(0, 0, 7, 7);
+        Size kernelSize = new(3, 3);
+        Rectangle bounds = new(0, 0, 7, 7);
         BorderWrappingMode mode = BorderWrappingMode.Wrap;
         int[] expected =
         {
@@ -302,8 +302,8 @@ public class KernelSamplingMapTest
     [Fact]
     public void KernalSamplingMap_Kernel3Image7x7RepeatBorderTile()
     {
-        Size kernelSize = new Size(3, 3);
-        Rectangle bounds = new Rectangle(2, 2, 7, 7);
+        Size kernelSize = new(3, 3);
+        Rectangle bounds = new(2, 2, 7, 7);
         BorderWrappingMode mode = BorderWrappingMode.Repeat;
         int[] expected =
         {
@@ -321,8 +321,8 @@ public class KernelSamplingMapTest
     [Fact]
     public void KernalSamplingMap_Kernel3Image7BounceBorderTile()
     {
-        Size kernelSize = new Size(3, 3);
-        Rectangle bounds = new Rectangle(2, 2, 7, 7);
+        Size kernelSize = new(3, 3);
+        Rectangle bounds = new(2, 2, 7, 7);
         BorderWrappingMode mode = BorderWrappingMode.Bounce;
         int[] expected =
         {
@@ -340,8 +340,8 @@ public class KernelSamplingMapTest
     [Fact]
     public void KernalSamplingMap_Kernel3Image7MirrorBorderTile()
     {
-        Size kernelSize = new Size(3, 3);
-        Rectangle bounds = new Rectangle(2, 2, 7, 7);
+        Size kernelSize = new(3, 3);
+        Rectangle bounds = new(2, 2, 7, 7);
         BorderWrappingMode mode = BorderWrappingMode.Mirror;
         int[] expected =
         {
@@ -359,8 +359,8 @@ public class KernelSamplingMapTest
     [Fact]
     public void KernalSamplingMap_Kernel3Image7x7WrapBorderTile()
     {
-        Size kernelSize = new Size(3, 3);
-        Rectangle bounds = new Rectangle(2, 2, 7, 7);
+        Size kernelSize = new(3, 3);
+        Rectangle bounds = new(2, 2, 7, 7);
         BorderWrappingMode mode = BorderWrappingMode.Wrap;
         int[] expected =
         {
@@ -378,8 +378,8 @@ public class KernelSamplingMapTest
     [Fact]
     public void KernalSamplingMap_Kernel3Image7x5WrapBorderTile()
     {
-        Size kernelSize = new Size(3, 3);
-        Rectangle bounds = new Rectangle(2, 2, 7, 5);
+        Size kernelSize = new(3, 3);
+        Rectangle bounds = new(2, 2, 7, 5);
         BorderWrappingMode mode = BorderWrappingMode.Wrap;
         int[] xExpected =
         {
@@ -405,7 +405,7 @@ public class KernelSamplingMapTest
     private void AssertOffsets(Size kernelSize, Rectangle bounds, BorderWrappingMode xBorderMode, BorderWrappingMode yBorderMode, int[] xExpected, int[] yExpected)
     {
         // Arrange
-        KernelSamplingMap map = new KernelSamplingMap(Configuration.Default.MemoryAllocator);
+        KernelSamplingMap map = new(Configuration.Default.MemoryAllocator);
 
         // Act
         map.BuildSamplingOffsetMap(kernelSize.Height, kernelSize.Width, bounds, xBorderMode, yBorderMode);

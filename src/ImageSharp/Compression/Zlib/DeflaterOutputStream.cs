@@ -30,7 +30,7 @@ internal sealed class DeflaterOutputStream : Stream
         this.rawStream = rawStream;
         this.memoryOwner = memoryAllocator.Allocate<byte>(BufferLength);
         this.buffer = this.memoryOwner.Memory;
-        this.deflater = new Deflater(memoryAllocator, compressionLevel);
+        this.deflater = new(memoryAllocator, compressionLevel);
     }
 
     /// <inheritdoc/>

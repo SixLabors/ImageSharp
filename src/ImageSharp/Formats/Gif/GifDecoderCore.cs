@@ -241,7 +241,7 @@ internal sealed class GifDecoderCore : ImageDecoderCore
             GifThrowHelper.ThrowNoHeader();
         }
 
-        return new ImageInfo(
+        return new(
             new(this.logicalScreenDescriptor.Width, this.logicalScreenDescriptor.Height),
             this.metadata,
             framesMetadata);
@@ -319,7 +319,7 @@ internal sealed class GifDecoderCore : ImageDecoderCore
                 GifXmpApplicationExtension extension = GifXmpApplicationExtension.Read(stream, this.memoryAllocator);
                 if (extension.Data.Length > 0)
                 {
-                    this.metadata!.XmpProfile = new XmpProfile(extension.Data);
+                    this.metadata!.XmpProfile = new(extension.Data);
                 }
                 else
                 {
@@ -478,12 +478,12 @@ internal sealed class GifDecoderCore : ImageDecoderCore
         {
             if (!transFlag)
             {
-                image = new Image<TPixel>(this.configuration, imageWidth, imageHeight, Color.Black.ToPixel<TPixel>(), this.metadata);
+                image = new(this.configuration, imageWidth, imageHeight, Color.Black.ToPixel<TPixel>(), this.metadata);
             }
             else
             {
                 // This initializes the image to become fully transparent because the alpha channel is zero.
-                image = new Image<TPixel>(this.configuration, imageWidth, imageHeight, this.metadata);
+                image = new(this.configuration, imageWidth, imageHeight, this.metadata);
             }
 
             this.SetFrameMetadata(image.Frames.RootFrame.Metadata);

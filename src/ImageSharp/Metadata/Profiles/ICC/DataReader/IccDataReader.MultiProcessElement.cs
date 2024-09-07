@@ -55,7 +55,7 @@ internal sealed partial class IccDataReader
             this.AddPadding();
         }
 
-        return new IccCurveSetProcessElement(curves);
+        return new(curves);
     }
 
     /// <summary>
@@ -66,7 +66,7 @@ internal sealed partial class IccDataReader
     /// <returns>The read <see cref="IccMatrixProcessElement"/></returns>
     public IccMatrixProcessElement ReadMatrixProcessElement(int inChannelCount, int outChannelCount)
     {
-        return new IccMatrixProcessElement(
+        return new(
             this.ReadMatrix(inChannelCount, outChannelCount, true),
             this.ReadMatrix(outChannelCount, true));
     }
@@ -79,6 +79,6 @@ internal sealed partial class IccDataReader
     /// <returns>The read <see cref="IccClutProcessElement"/></returns>
     public IccClutProcessElement ReadClutProcessElement(int inChannelCount, int outChannelCount)
     {
-        return new IccClutProcessElement(this.ReadClut(inChannelCount, outChannelCount, true));
+        return new(this.ReadClut(inChannelCount, outChannelCount, true));
     }
 }

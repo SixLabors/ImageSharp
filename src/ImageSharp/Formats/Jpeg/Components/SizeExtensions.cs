@@ -14,13 +14,13 @@ internal static class SizeExtensions
     /// Multiplies 'a.Width' with 'b.Width' and 'a.Height' with 'b.Height'.
     /// TODO: Shouldn't we expose this as operator in SixLabors.Core?
     /// </summary>
-    public static Size MultiplyBy(this Size a, Size b) => new Size(a.Width * b.Width, a.Height * b.Height);
+    public static Size MultiplyBy(this Size a, Size b) => new(a.Width * b.Width, a.Height * b.Height);
 
     /// <summary>
     /// Divides 'a.Width' with 'b.Width' and 'a.Height' with 'b.Height'.
     /// TODO: Shouldn't we expose this as operator in SixLabors.Core?
     /// </summary>
-    public static Size DivideBy(this Size a, Size b) => new Size(a.Width / b.Width, a.Height / b.Height);
+    public static Size DivideBy(this Size a, Size b) => new(a.Width / b.Width, a.Height / b.Height);
 
     /// <summary>
     /// Divide Width and Height as real numbers and return the Ceiling.
@@ -32,7 +32,7 @@ internal static class SizeExtensions
         sizeVect.X = MathF.Ceiling(sizeVect.X);
         sizeVect.Y = MathF.Ceiling(sizeVect.Y);
 
-        return new Size((int)sizeVect.X, (int)sizeVect.Y);
+        return new((int)sizeVect.X, (int)sizeVect.Y);
     }
 
     /// <summary>

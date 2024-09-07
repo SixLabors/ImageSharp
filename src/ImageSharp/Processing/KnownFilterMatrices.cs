@@ -20,7 +20,7 @@ public static class KnownFilterMatrices
     /// <summary>
     /// Gets a filter recreating Achromatomaly (Color desensitivity) color blindness
     /// </summary>
-    public static ColorMatrix AchromatomalyFilter { get; } = new ColorMatrix
+    public static ColorMatrix AchromatomalyFilter { get; } = new()
     {
         M11 = .618F,
         M12 = .163F,
@@ -37,7 +37,7 @@ public static class KnownFilterMatrices
     /// <summary>
     /// Gets a filter recreating Achromatopsia (Monochrome) color blindness.
     /// </summary>
-    public static ColorMatrix AchromatopsiaFilter { get; } = new ColorMatrix
+    public static ColorMatrix AchromatopsiaFilter { get; } = new()
     {
         M11 = .299F,
         M12 = .299F,
@@ -54,7 +54,7 @@ public static class KnownFilterMatrices
     /// <summary>
     /// Gets a filter recreating Deuteranomaly (Green-Weak) color blindness.
     /// </summary>
-    public static ColorMatrix DeuteranomalyFilter { get; } = new ColorMatrix
+    public static ColorMatrix DeuteranomalyFilter { get; } = new()
     {
         M11 = .8F,
         M12 = .258F,
@@ -68,7 +68,7 @@ public static class KnownFilterMatrices
     /// <summary>
     /// Gets a filter recreating Deuteranopia (Green-Blind) color blindness.
     /// </summary>
-    public static ColorMatrix DeuteranopiaFilter { get; } = new ColorMatrix
+    public static ColorMatrix DeuteranopiaFilter { get; } = new()
     {
         M11 = .625F,
         M12 = .7F,
@@ -82,7 +82,7 @@ public static class KnownFilterMatrices
     /// <summary>
     /// Gets a filter recreating Protanomaly (Red-Weak) color blindness.
     /// </summary>
-    public static ColorMatrix ProtanomalyFilter { get; } = new ColorMatrix
+    public static ColorMatrix ProtanomalyFilter { get; } = new()
     {
         M11 = .817F,
         M12 = .333F,
@@ -96,7 +96,7 @@ public static class KnownFilterMatrices
     /// <summary>
     /// Gets a filter recreating Protanopia (Red-Blind) color blindness.
     /// </summary>
-    public static ColorMatrix ProtanopiaFilter { get; } = new ColorMatrix
+    public static ColorMatrix ProtanopiaFilter { get; } = new()
     {
         M11 = .567F,
         M12 = .558F,
@@ -110,7 +110,7 @@ public static class KnownFilterMatrices
     /// <summary>
     /// Gets a filter recreating Tritanomaly (Blue-Weak) color blindness.
     /// </summary>
-    public static ColorMatrix TritanomalyFilter { get; } = new ColorMatrix
+    public static ColorMatrix TritanomalyFilter { get; } = new()
     {
         M11 = .967F,
         M21 = .33F,
@@ -124,7 +124,7 @@ public static class KnownFilterMatrices
     /// <summary>
     /// Gets a filter recreating Tritanopia (Blue-Blind) color blindness.
     /// </summary>
-    public static ColorMatrix TritanopiaFilter { get; } = new ColorMatrix
+    public static ColorMatrix TritanopiaFilter { get; } = new()
     {
         M11 = .95F,
         M21 = .05F,
@@ -138,7 +138,7 @@ public static class KnownFilterMatrices
     /// <summary>
     /// Gets an approximated black and white filter
     /// </summary>
-    public static ColorMatrix BlackWhiteFilter { get; } = new ColorMatrix
+    public static ColorMatrix BlackWhiteFilter { get; } = new()
     {
         M11 = 1.5F,
         M12 = 1.5F,
@@ -190,7 +190,7 @@ public static class KnownFilterMatrices
     /// <summary>
     /// Gets a filter recreating an old Polaroid camera effect.
     /// </summary>
-    public static ColorMatrix PolaroidFilter { get; } = new ColorMatrix
+    public static ColorMatrix PolaroidFilter { get; } = new()
     {
         M11 = 1.538F,
         M12 = -.062F,
@@ -221,7 +221,7 @@ public static class KnownFilterMatrices
         Guard.MustBeGreaterThanOrEqualTo(amount, 0, nameof(amount));
 
         // See https://cs.chromium.org/chromium/src/cc/paint/render_surface_filters.cc
-        return new ColorMatrix
+        return new()
         {
             M11 = amount,
             M22 = amount,
@@ -246,7 +246,7 @@ public static class KnownFilterMatrices
         // See https://cs.chromium.org/chromium/src/cc/paint/render_surface_filters.cc
         float contrast = (-.5F * amount) + .5F;
 
-        return new ColorMatrix
+        return new()
         {
             M11 = amount,
             M22 = amount,
@@ -338,7 +338,7 @@ public static class KnownFilterMatrices
         // The matrix is set up to preserve the luminance of the image.
         // See http://graficaobscura.com/matrix/index.html
         // Number are taken from https://msdn.microsoft.com/en-us/library/jj192162(v=vs.85).aspx
-        return new ColorMatrix
+        return new()
         {
             M11 = .213F + (cosRadian * .787F) - (sinRadian * .213F),
             M21 = .715F - (cosRadian * .715F) - (sinRadian * .715F),
@@ -367,7 +367,7 @@ public static class KnownFilterMatrices
         // See https://cs.chromium.org/chromium/src/cc/paint/render_surface_filters.cc
         float invert = 1F - (2F * amount);
 
-        return new ColorMatrix
+        return new()
         {
             M11 = invert,
             M22 = invert,
@@ -389,7 +389,7 @@ public static class KnownFilterMatrices
         Guard.MustBeBetweenOrEqualTo(amount, 0, 1, nameof(amount));
 
         // See https://cs.chromium.org/chromium/src/cc/paint/render_surface_filters.cc
-        return new ColorMatrix
+        return new()
         {
             M11 = 1F,
             M22 = 1F,
@@ -443,7 +443,7 @@ public static class KnownFilterMatrices
         Guard.MustBeGreaterThanOrEqualTo(amount, 0, nameof(amount));
         amount--;
 
-        return new ColorMatrix
+        return new()
         {
             M11 = 1F,
             M22 = 1F,
@@ -467,7 +467,7 @@ public static class KnownFilterMatrices
         amount = 1F - amount;
 
         // See https://cs.chromium.org/chromium/src/cc/paint/render_surface_filters.cc
-        return new ColorMatrix
+        return new()
         {
             M11 = .393F + (.607F * amount),
             M21 = .769F - (.769F * amount),

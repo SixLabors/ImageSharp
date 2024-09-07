@@ -77,7 +77,7 @@ internal class ProjectiveTransformProcessor<TPixel> : TransformProcessor<TPixel>
 
         if (sampler is NearestNeighborResampler)
         {
-            NNProjectiveOperation nnOperation = new NNProjectiveOperation(
+            NNProjectiveOperation nnOperation = new(
                 source.PixelBuffer,
                 Rectangle.Intersect(this.SourceRectangle, source.Bounds()),
                 destination.PixelBuffer,
@@ -91,7 +91,7 @@ internal class ProjectiveTransformProcessor<TPixel> : TransformProcessor<TPixel>
             return;
         }
 
-        ProjectiveOperation<TResampler> operation = new ProjectiveOperation<TResampler>(
+        ProjectiveOperation<TResampler> operation = new(
             configuration,
             source.PixelBuffer,
             Rectangle.Intersect(this.SourceRectangle, source.Bounds()),

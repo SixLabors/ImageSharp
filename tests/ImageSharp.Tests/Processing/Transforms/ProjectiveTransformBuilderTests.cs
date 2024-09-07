@@ -9,8 +9,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms;
 [Trait("Category", "Processors")]
 public class ProjectiveTransformBuilderTests : TransformBuilderTestBase<ProjectiveTransformBuilder>
 {
-    protected override ProjectiveTransformBuilder CreateBuilder()
-        => new ProjectiveTransformBuilder();
+    protected override ProjectiveTransformBuilder CreateBuilder() => new();
 
     protected override void AppendRotationDegrees(ProjectiveTransformBuilder builder, float degrees)
         => builder.AppendRotationDegrees(degrees);

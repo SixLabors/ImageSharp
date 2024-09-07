@@ -45,10 +45,10 @@ internal class YCbCrConverter
             TiffThrowHelper.ThrowImageFormatException("luma coefficients array should have 6 entry's");
         }
 
-        this.yExpander = new CodingRangeExpander(referenceBlackAndWhite[0], referenceBlackAndWhite[1], 255);
-        this.cbExpander = new CodingRangeExpander(referenceBlackAndWhite[2], referenceBlackAndWhite[3], 127);
-        this.crExpander = new CodingRangeExpander(referenceBlackAndWhite[4], referenceBlackAndWhite[5], 127);
-        this.converter = new YCbCrToRgbConverter(coefficients[0], coefficients[1], coefficients[2]);
+        this.yExpander = new(referenceBlackAndWhite[0], referenceBlackAndWhite[1], 255);
+        this.cbExpander = new(referenceBlackAndWhite[2], referenceBlackAndWhite[3], 127);
+        this.crExpander = new(referenceBlackAndWhite[4], referenceBlackAndWhite[5], 127);
+        this.converter = new(coefficients[0], coefficients[1], coefficients[2]);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

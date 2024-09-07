@@ -286,7 +286,7 @@ public class Rgba32Tests
         const uint expected = 0xFFFFFFFF;
 
         // act
-        Rgba32 rgb = Rgba32.FromBgra5551(new Bgra5551(1f, 1f, 1f, 1f));
+        Rgba32 rgb = Rgba32.FromBgra5551(new(1f, 1f, 1f, 1f));
 
         // assert
         Assert.Equal(expected, rgb.PackedValue);

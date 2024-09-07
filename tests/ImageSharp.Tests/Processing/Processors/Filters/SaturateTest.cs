@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Filters;
 public class SaturateTest
 {
     public static readonly TheoryData<float> SaturationValues
-    = new TheoryData<float>
+    = new()
     {
         .5F,
         1.5F,

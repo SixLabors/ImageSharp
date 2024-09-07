@@ -33,7 +33,7 @@ public class IccProfileTests
     [MemberData(nameof(IccTestDataProfiles.ProfileValidityTestData), MemberType = typeof(IccTestDataProfiles))]
     public void CheckIsValid_WithProfiles_ReturnsValidity(byte[] data, bool expected)
     {
-        IccProfile profile = new IccProfile(data);
+        IccProfile profile = new(data);
 
         bool result = profile.CheckIsValid();
 

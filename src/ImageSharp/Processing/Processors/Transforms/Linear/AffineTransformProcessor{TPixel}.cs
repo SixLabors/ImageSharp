@@ -77,7 +77,7 @@ internal class AffineTransformProcessor<TPixel> : TransformProcessor<TPixel>, IR
 
         if (sampler is NearestNeighborResampler)
         {
-            NNAffineOperation nnOperation = new NNAffineOperation(
+            NNAffineOperation nnOperation = new(
                 source.PixelBuffer,
                 Rectangle.Intersect(this.SourceRectangle, source.Bounds()),
                 destination.PixelBuffer,
@@ -91,7 +91,7 @@ internal class AffineTransformProcessor<TPixel> : TransformProcessor<TPixel>, IR
             return;
         }
 
-        AffineOperation<TResampler> operation = new AffineOperation<TResampler>(
+        AffineOperation<TResampler> operation = new(
             configuration,
             source.PixelBuffer,
             Rectangle.Intersect(this.SourceRectangle, source.Bounds()),
@@ -132,7 +132,7 @@ internal class AffineTransformProcessor<TPixel> : TransformProcessor<TPixel>, IR
 
             for (int x = 0; x < destRow.Length; x++)
             {
-                Vector2 point = Vector2.Transform(new Vector2(x, y), this.matrix);
+                Vector2 point = Vector2.Transform(new(x, y), this.matrix);
                 int px = (int)MathF.Round(point.X);
                 int py = (int)MathF.Round(point.Y);
 
@@ -204,7 +204,7 @@ internal class AffineTransformProcessor<TPixel> : TransformProcessor<TPixel>, IR
 
                 for (int x = 0; x < span.Length; x++)
                 {
-                    Vector2 point = Vector2.Transform(new Vector2(x, y), matrix);
+                    Vector2 point = Vector2.Transform(new(x, y), matrix);
                     float pY = point.Y;
                     float pX = point.X;
 

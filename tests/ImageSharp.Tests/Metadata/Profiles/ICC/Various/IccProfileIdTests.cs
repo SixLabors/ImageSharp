@@ -19,7 +19,7 @@ public class IccProfileIdTests
     [Fact]
     public void SetIsTrueWhenNonDefaultValue()
     {
-        IccProfileId id = new IccProfileId(1, 2, 3, 4);
+        IccProfileId id = new(1, 2, 3, 4);
 
         Assert.True(id.IsSet);
 

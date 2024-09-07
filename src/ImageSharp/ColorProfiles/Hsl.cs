@@ -24,7 +24,7 @@ public readonly struct Hsl : IColorProfile<Hsl, Rgb>
     /// <param name="l">The l value (lightness) component.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Hsl(float h, float s, float l)
-        : this(new Vector3(h, s, l))
+        : this(new(h, s, l))
     {
     }
 
@@ -99,7 +99,7 @@ public readonly struct Hsl : IColorProfile<Hsl, Rgb>
 
         if (MathF.Abs(chroma) < Constants.Epsilon)
         {
-            return new Hsl(0F, s, l);
+            return new(0F, s, l);
         }
 
         if (MathF.Abs(r - max) < Constants.Epsilon)
@@ -130,7 +130,7 @@ public readonly struct Hsl : IColorProfile<Hsl, Rgb>
             s = chroma / (2F - max - min);
         }
 
-        return new Hsl(h, s, l);
+        return new(h, s, l);
     }
 
     /// <inheritdoc/>
@@ -171,7 +171,7 @@ public readonly struct Hsl : IColorProfile<Hsl, Rgb>
             }
         }
 
-        return new Rgb(r, g, b);
+        return new(r, g, b);
     }
 
     /// <inheritdoc/>

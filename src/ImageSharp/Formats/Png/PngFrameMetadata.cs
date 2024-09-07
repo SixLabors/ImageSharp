@@ -53,7 +53,7 @@ public class PngFrameMetadata : IFormatFrameMetadata<PngFrameMetadata>
     /// <param name="frameControl">The chunk to create an instance from.</param>
     internal void FromChunk(in FrameControl frameControl)
     {
-        this.FrameDelay = new Rational(frameControl.DelayNumerator, frameControl.DelayDenominator);
+        this.FrameDelay = new(frameControl.DelayNumerator, frameControl.DelayDenominator);
         this.DisposalMode = frameControl.DisposalMode;
         this.BlendMode = frameControl.BlendMode;
     }

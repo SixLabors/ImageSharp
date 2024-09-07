@@ -38,7 +38,7 @@ public abstract class ColorConversionBenchmark
         float minVal = 0f,
         float maxVal = 255f)
     {
-        Random rnd = new Random(42);
+        Random rnd = new(42);
         Buffer2D<float>[] buffers = new Buffer2D<float>[componentCount];
         for (int i = 0; i < componentCount; i++)
         {

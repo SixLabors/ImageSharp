@@ -29,8 +29,8 @@ public class DecodeTga
     [Benchmark(Baseline = true, Description = "ImageMagick Tga")]
     public int TgaImageMagick()
     {
-        MagickReadSettings settings = new MagickReadSettings { Format = MagickFormat.Tga };
-        using MagickImage image = new MagickImage(new MemoryStream(this.data), settings);
+        MagickReadSettings settings = new() { Format = MagickFormat.Tga };
+        using MagickImage image = new(new MemoryStream(this.data), settings);
         return image.Width;
     }
 

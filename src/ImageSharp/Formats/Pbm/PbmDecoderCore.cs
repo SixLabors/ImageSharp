@@ -79,7 +79,7 @@ internal sealed class PbmDecoderCore : ImageDecoderCore
     protected override ImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken)
     {
         this.ProcessHeader(stream);
-        return new ImageInfo(
+        return new(
             new(this.pixelSize.Width, this.pixelSize.Height),
             this.metadata);
     }
@@ -171,9 +171,9 @@ internal sealed class PbmDecoderCore : ImageDecoderCore
             this.componentType = PbmComponentType.Bit;
         }
 
-        this.pixelSize = new Size(width, height);
+        this.pixelSize = new(width, height);
         this.Dimensions = this.pixelSize;
-        this.metadata = new ImageMetadata();
+        this.metadata = new();
         PbmMetadata meta = this.metadata.GetPbmMetadata();
         meta.Encoding = this.encoding;
         meta.ColorType = this.colorType;

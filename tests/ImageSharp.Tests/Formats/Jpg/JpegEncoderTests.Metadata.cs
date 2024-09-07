@@ -56,7 +56,7 @@ public partial class JpegEncoderTests
     {
         // arrange
         using Image<Rgba32> input = new(1, 1);
-        input.Metadata.ExifProfile = new ExifProfile();
+        input.Metadata.ExifProfile = new();
         input.Metadata.ExifProfile.SetValue(ExifTag.Software, "unit_test");
 
         // act
@@ -77,7 +77,7 @@ public partial class JpegEncoderTests
     {
         // arrange
         using Image<Rgba32> input = new(1, 1);
-        input.Metadata.IccProfile = new IccProfile(IccTestDataProfiles.Profile_Random_Array);
+        input.Metadata.IccProfile = new(IccTestDataProfiles.Profile_Random_Array);
 
         // act
         using MemoryStream memStream = new();

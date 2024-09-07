@@ -65,7 +65,7 @@ public readonly partial struct ErrorDither
             { 0, 1 / divisor, 0, 0 }
         };
 
-        return new ErrorDither(matrix, offset);
+        return new(matrix, offset);
     }
 
     private static ErrorDither CreateBurks()
@@ -79,7 +79,7 @@ public readonly partial struct ErrorDither
             { 2 / divisor, 4 / divisor, 8 / divisor, 4 / divisor, 2 / divisor }
         };
 
-        return new ErrorDither(matrix, offset);
+        return new(matrix, offset);
     }
 
     private static ErrorDither CreateFloydSteinberg()
@@ -93,7 +93,7 @@ public readonly partial struct ErrorDither
             { 3 / divisor, 5 / divisor, 1 / divisor }
         };
 
-        return new ErrorDither(matrix, offset);
+        return new(matrix, offset);
     }
 
     private static ErrorDither CreateJarvisJudiceNinke()
@@ -108,7 +108,7 @@ public readonly partial struct ErrorDither
             { 1 / divisor, 3 / divisor, 5 / divisor, 3 / divisor, 1 / divisor }
         };
 
-        return new ErrorDither(matrix, offset);
+        return new(matrix, offset);
     }
 
     private static ErrorDither CreateSierra2()
@@ -122,7 +122,7 @@ public readonly partial struct ErrorDither
            { 1 / divisor, 2 / divisor, 3 / divisor, 2 / divisor, 1 / divisor }
         };
 
-        return new ErrorDither(matrix, offset);
+        return new(matrix, offset);
     }
 
     private static ErrorDither CreateSierra3()
@@ -137,7 +137,7 @@ public readonly partial struct ErrorDither
            { 0, 2 / divisor, 3 / divisor, 2 / divisor, 0 }
         };
 
-        return new ErrorDither(matrix, offset);
+        return new(matrix, offset);
     }
 
     private static ErrorDither CreateSierraLite()
@@ -151,7 +151,7 @@ public readonly partial struct ErrorDither
            { 1 / divisor, 1 / divisor, 0 }
         };
 
-        return new ErrorDither(matrix, offset);
+        return new(matrix, offset);
     }
 
     private static ErrorDither CreateStevensonArce()
@@ -167,7 +167,7 @@ public readonly partial struct ErrorDither
            { 5 / divisor,  0, 12 / divisor,  0, 12 / divisor,  0,  5 / divisor }
         };
 
-        return new ErrorDither(matrix, offset);
+        return new(matrix, offset);
     }
 
     private static ErrorDither CreateStucki()
@@ -182,6 +182,6 @@ public readonly partial struct ErrorDither
            { 1 / divisor, 2 / divisor, 4 / divisor, 2 / divisor, 1 / divisor }
         };
 
-        return new ErrorDither(matrix, offset);
+        return new(matrix, offset);
     }
 }

@@ -20,7 +20,7 @@ public class ProjectiveTransformTests
 
     private ITestOutputHelper Output { get; }
 
-    public static readonly TheoryData<string> ResamplerNames = new TheoryData<string>
+    public static readonly TheoryData<string> ResamplerNames = new()
     {
         nameof(KnownResamplers.Bicubic),
         nameof(KnownResamplers.Box),
@@ -39,7 +39,7 @@ public class ProjectiveTransformTests
         nameof(KnownResamplers.Welch),
     };
 
-    public static readonly TheoryData<TaperSide, TaperCorner> TaperMatrixData = new TheoryData<TaperSide, TaperCorner>
+    public static readonly TheoryData<TaperSide, TaperCorner> TaperMatrixData = new()
     {
         { TaperSide.Bottom, TaperCorner.Both },
         { TaperSide.Bottom, TaperCorner.LeftOrTop },
@@ -148,8 +148,8 @@ public class ProjectiveTransformTests
     [Fact]
     public void Issue1911()
     {
-        using Image<Rgba32> image = new Image<Rgba32>(100, 100);
-        image.Mutate(x => x = x.Transform(new Rectangle(0, 0, 99, 100), Matrix4x4.Identity, new Size(99, 100), KnownResamplers.Lanczos2));
+        using Image<Rgba32> image = new(100, 100);
+        image.Mutate(x => x = x.Transform(new(0, 0, 99, 100), Matrix4x4.Identity, new(99, 100), KnownResamplers.Lanczos2));
 
         Assert.Equal(99, image.Width);
         Assert.Equal(100, image.Height);
@@ -164,7 +164,7 @@ public class ProjectiveTransformTests
 
         Matrix4x4 m = Matrix4x4.Identity;
         Rectangle r = new(25, 25, 50, 50);
-        image.Mutate(x => x.Transform(r, m, new Size(100, 100), KnownResamplers.Bicubic));
+        image.Mutate(x => x.Transform(r, m, new(100, 100), KnownResamplers.Bicubic));
         image.DebugSave(provider);
         image.CompareToReferenceOutput(ValidatorComparer, provider);
     }
@@ -178,9 +178,9 @@ public class ProjectiveTransformTests
     {
         using Image<TPixel> image = provider.GetImage();
 
-        Matrix4x4 m = Matrix4x4.CreateRotationX(radians, new Vector3(50, 50, 1F)) * Matrix4x4.CreateRotationY(radians, new Vector3(50, 50, 1F));
+        Matrix4x4 m = Matrix4x4.CreateRotationX(radians, new(50, 50, 1F)) * Matrix4x4.CreateRotationY(radians, new(50, 50, 1F));
         Rectangle r = new(25, 25, 50, 50);
-        image.Mutate(x => x.Transform(r, m, new Size(100, 100), KnownResamplers.Bicubic));
+        image.Mutate(x => x.Transform(r, m, new(100, 100), KnownResamplers.Bicubic));
         image.DebugSave(provider, testOutputDetails: radians);
         image.CompareToReferenceOutput(ValidatorComparer, provider, testOutputDetails: radians);
     }
@@ -220,7 +220,7 @@ public class ProjectiveTransformTests
 
         if (property is null)
         {
-            throw new Exception($"No resampler named {name}");
+            throw new($"No resampler named {name}");
         }
 
         return (IResampler)property.GetValue(null);

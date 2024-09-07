@@ -190,7 +190,7 @@ public class Short4Tests
         Vector4 expected = Vector4.One;
 
         // act
-        Short4 short4 = Short4.FromBgra5551(new Bgra5551(1.0f, 1.0f, 1.0f, 1.0f));
+        Short4 short4 = Short4.FromBgra5551(new(1.0f, 1.0f, 1.0f, 1.0f));
 
         // assert
         Assert.Equal(expected, short4.ToScaledVector4());

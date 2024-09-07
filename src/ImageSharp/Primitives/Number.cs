@@ -47,19 +47,19 @@ public struct Number : IEquatable<Number>, IComparable<Number>
     /// Converts the specified <see cref="int"/> to an instance of this type.
     /// </summary>
     /// <param name="value">The value.</param>
-    public static implicit operator Number(int value) => new Number(value);
+    public static implicit operator Number(int value) => new(value);
 
     /// <summary>
     /// Converts the specified <see cref="uint"/> to an instance of this type.
     /// </summary>
     /// <param name="value">The value.</param>
-    public static implicit operator Number(uint value) => new Number(value);
+    public static implicit operator Number(uint value) => new(value);
 
     /// <summary>
     /// Converts the specified <see cref="ushort"/> to an instance of this type.
     /// </summary>
     /// <param name="value">The value.</param>
-    public static implicit operator Number(ushort value) => new Number((uint)value);
+    public static implicit operator Number(ushort value) => new((uint)value);
 
     /// <summary>
     /// Converts the specified <see cref="Number"/> to a <see cref="int"/>.

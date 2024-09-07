@@ -22,7 +22,7 @@ public abstract class Resize<TPixel>
 
     private SDImage sourceBitmap;
 
-    protected Configuration Configuration { get; } = new Configuration(new JpegConfigurationModule());
+    protected Configuration Configuration { get; } = new(new JpegConfigurationModule());
 
     protected int DestSize { get; private set; }
 
@@ -35,7 +35,7 @@ public abstract class Resize<TPixel>
 
             this.sourceImage = Image.Load<TPixel>(this.bytes);
 
-            MemoryStream ms1 = new MemoryStream(this.bytes);
+            MemoryStream ms1 = new(this.bytes);
             this.sourceBitmap = SDImage.FromStream(ms1);
             this.DestSize = this.sourceBitmap.Width / 2;
         }
@@ -52,7 +52,7 @@ public abstract class Resize<TPixel>
     [Benchmark(Baseline = true)]
     public int SystemDrawing()
     {
-        using (Bitmap destination = new Bitmap(this.DestSize, this.DestSize))
+        using (Bitmap destination = new(this.DestSize, this.DestSize))
         {
             using (Graphics g = Graphics.FromImage(destination))
             {
@@ -222,9 +222,9 @@ public class Resize_Bicubic_Compare_Rgba32_Rgb24
     [GlobalSetup]
     public void Setup()
     {
-        this.rgb24 = new Resize_Bicubic_Rgb24();
+        this.rgb24 = new();
         this.rgb24.Setup();
-        this.rgba32 = new Resize_Bicubic_Rgba32();
+        this.rgba32 = new();
         this.rgba32.Setup();
     }
 

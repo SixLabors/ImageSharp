@@ -425,7 +425,7 @@ internal static class HuffmanUtils
                     tableSize = 1 << tableBits;
                     totalSize += tableSize;
                     low = key & mask;
-                    table[low] = new HuffmanCode
+                    table[low] = new()
                     {
                         BitsUsed = tableBits + rootBits,
                         Value = (uint)(tablePos - low)

@@ -9,25 +9,25 @@ public abstract partial class ExifTag
     /// <summary>
     /// Gets the title tag used by Windows (encoded in UCS2).
     /// </summary>
-    public static ExifTag<string> XPTitle => new ExifTag<string>(ExifTagValue.XPTitle);
+    public static ExifTag<string> XPTitle => new(ExifTagValue.XPTitle);
 
     /// <summary>
     /// Gets the comment tag used by Windows (encoded in UCS2).
     /// </summary>
-    public static ExifTag<string> XPComment => new ExifTag<string>(ExifTagValue.XPComment);
+    public static ExifTag<string> XPComment => new(ExifTagValue.XPComment);
 
     /// <summary>
     /// Gets the author tag used by Windows (encoded in UCS2).
     /// </summary>
-    public static ExifTag<string> XPAuthor => new ExifTag<string>(ExifTagValue.XPAuthor);
+    public static ExifTag<string> XPAuthor => new(ExifTagValue.XPAuthor);
 
     /// <summary>
     /// Gets the keywords tag used by Windows (encoded in UCS2).
     /// </summary>
-    public static ExifTag<string> XPKeywords => new ExifTag<string>(ExifTagValue.XPKeywords);
+    public static ExifTag<string> XPKeywords => new(ExifTagValue.XPKeywords);
 
     /// <summary>
     /// Gets the subject tag used by Windows (encoded in UCS2).
     /// </summary>
-    public static ExifTag<string> XPSubject => new ExifTag<string>(ExifTagValue.XPSubject);
+    public static ExifTag<string> XPSubject => new(ExifTagValue.XPSubject);
 }

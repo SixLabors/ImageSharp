@@ -34,33 +34,33 @@ public class ResizeHelperTests
     [Fact]
     public void CalculateMinRectangleWhenSourceIsSmallerThanTarget()
     {
-        Size sourceSize = new Size(200, 100);
-        Size target = new Size(400, 200);
+        Size sourceSize = new(200, 100);
+        Size target = new(400, 200);
 
         (Size size, Rectangle rectangle) = ResizeHelper.CalculateTargetLocationAndBounds(
             sourceSize,
-            new ResizeOptions
+            new()
             {
                 Mode = ResizeMode.Min,
                 Size = target
             });
 
         Assert.Equal(sourceSize, size);
-        Assert.Equal(new Rectangle(0, 0, sourceSize.Width, sourceSize.Height), rectangle);
+        Assert.Equal(new(0, 0, sourceSize.Width, sourceSize.Height), rectangle);
     }
 
     [Fact]
     public void MaxSizeAndRectangleAreCorrect()
     {
-        Size sourceSize = new Size(5072, 6761);
-        Size target = new Size(0, 450);
+        Size sourceSize = new(5072, 6761);
+        Size target = new(0, 450);
 
-        Size expectedSize = new Size(338, 450);
-        Rectangle expectedRectangle = new Rectangle(Point.Empty, expectedSize);
+        Size expectedSize = new(338, 450);
+        Rectangle expectedRectangle = new(Point.Empty, expectedSize);
 
         (Size size, Rectangle rectangle) = ResizeHelper.CalculateTargetLocationAndBounds(
             sourceSize,
-            new ResizeOptions
+            new()
             {
                 Mode = ResizeMode.Max,
                 Size = target
@@ -73,15 +73,15 @@ public class ResizeHelperTests
     [Fact]
     public void CropSizeAndRectangleAreCorrect()
     {
-        Size sourceSize = new Size(100, 100);
-        Size target = new Size(25, 50);
+        Size sourceSize = new(100, 100);
+        Size target = new(25, 50);
 
-        Size expectedSize = new Size(25, 50);
-        Rectangle expectedRectangle = new Rectangle(-12, 0, 50, 50);
+        Size expectedSize = new(25, 50);
+        Rectangle expectedRectangle = new(-12, 0, 50, 50);
 
         (Size size, Rectangle rectangle) = ResizeHelper.CalculateTargetLocationAndBounds(
             sourceSize,
-            new ResizeOptions
+            new()
             {
                 Mode = ResizeMode.Crop,
                 Size = target
@@ -94,15 +94,15 @@ public class ResizeHelperTests
     [Fact]
     public void BoxPadSizeAndRectangleAreCorrect()
     {
-        Size sourceSize = new Size(100, 100);
-        Size target = new Size(120, 110);
+        Size sourceSize = new(100, 100);
+        Size target = new(120, 110);
 
-        Size expectedSize = new Size(120, 110);
-        Rectangle expectedRectangle = new Rectangle(10, 5, 100, 100);
+        Size expectedSize = new(120, 110);
+        Rectangle expectedRectangle = new(10, 5, 100, 100);
 
         (Size size, Rectangle rectangle) = ResizeHelper.CalculateTargetLocationAndBounds(
             sourceSize,
-            new ResizeOptions
+            new()
             {
                 Mode = ResizeMode.BoxPad,
                 Size = target
@@ -115,15 +115,15 @@ public class ResizeHelperTests
     [Fact]
     public void PadSizeAndRectangleAreCorrect()
     {
-        Size sourceSize = new Size(100, 100);
-        Size target = new Size(120, 110);
+        Size sourceSize = new(100, 100);
+        Size target = new(120, 110);
 
-        Size expectedSize = new Size(120, 110);
-        Rectangle expectedRectangle = new Rectangle(5, 0, 110, 110);
+        Size expectedSize = new(120, 110);
+        Rectangle expectedRectangle = new(5, 0, 110, 110);
 
         (Size size, Rectangle rectangle) = ResizeHelper.CalculateTargetLocationAndBounds(
             sourceSize,
-            new ResizeOptions
+            new()
             {
                 Mode = ResizeMode.Pad,
                 Size = target
@@ -136,15 +136,15 @@ public class ResizeHelperTests
     [Fact]
     public void StretchSizeAndRectangleAreCorrect()
     {
-        Size sourceSize = new Size(100, 100);
-        Size target = new Size(57, 32);
+        Size sourceSize = new(100, 100);
+        Size target = new(57, 32);
 
-        Size expectedSize = new Size(57, 32);
-        Rectangle expectedRectangle = new Rectangle(Point.Empty, expectedSize);
+        Size expectedSize = new(57, 32);
+        Rectangle expectedRectangle = new(Point.Empty, expectedSize);
 
         (Size size, Rectangle rectangle) = ResizeHelper.CalculateTargetLocationAndBounds(
             sourceSize,
-            new ResizeOptions
+            new()
             {
                 Mode = ResizeMode.Stretch,
                 Size = target

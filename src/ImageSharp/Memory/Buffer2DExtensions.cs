@@ -74,7 +74,7 @@ public static class Buffer2DExtensions
     internal static Rectangle FullRectangle<T>(this Buffer2D<T> buffer)
         where T : struct
     {
-        return new Rectangle(0, 0, buffer.Width, buffer.Height);
+        return new(0, 0, buffer.Width, buffer.Height);
     }
 
     /// <summary>
@@ -86,11 +86,11 @@ public static class Buffer2DExtensions
     /// <returns>The <see cref="Buffer2DRegion{T}"/></returns>
     internal static Buffer2DRegion<T> GetRegion<T>(this Buffer2D<T> buffer, Rectangle rectangle)
         where T : unmanaged =>
-        new Buffer2DRegion<T>(buffer, rectangle);
+        new(buffer, rectangle);
 
     internal static Buffer2DRegion<T> GetRegion<T>(this Buffer2D<T> buffer, int x, int y, int width, int height)
         where T : unmanaged =>
-        new Buffer2DRegion<T>(buffer, new Rectangle(x, y, width, height));
+        new(buffer, new(x, y, width, height));
 
     /// <summary>
     /// Return a <see cref="Buffer2DRegion{T}"/> to the whole area of 'buffer'
@@ -100,7 +100,7 @@ public static class Buffer2DExtensions
     /// <returns>The <see cref="Buffer2DRegion{T}"/></returns>
     internal static Buffer2DRegion<T> GetRegion<T>(this Buffer2D<T> buffer)
         where T : unmanaged =>
-        new Buffer2DRegion<T>(buffer);
+        new(buffer);
 
     /// <summary>
     /// Returns the size of the buffer.

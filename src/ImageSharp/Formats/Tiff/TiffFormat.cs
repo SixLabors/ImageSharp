@@ -17,7 +17,7 @@ public sealed class TiffFormat : IImageFormat<TiffMetadata, TiffFrameMetadata>
     /// <summary>
     /// Gets the shared instance.
     /// </summary>
-    public static TiffFormat Instance { get; } = new TiffFormat();
+    public static TiffFormat Instance { get; } = new();
 
     /// <inheritdoc/>
     public string Name => "TIFF";
@@ -32,8 +32,8 @@ public sealed class TiffFormat : IImageFormat<TiffMetadata, TiffFrameMetadata>
     public IEnumerable<string> FileExtensions => TiffConstants.FileExtensions;
 
     /// <inheritdoc/>
-    public TiffMetadata CreateDefaultFormatMetadata() => new TiffMetadata();
+    public TiffMetadata CreateDefaultFormatMetadata() => new();
 
     /// <inheritdoc/>
-    public TiffFrameMetadata CreateDefaultFormatFrameMetadata() => new TiffFrameMetadata();
+    public TiffFrameMetadata CreateDefaultFormatFrameMetadata() => new();
 }

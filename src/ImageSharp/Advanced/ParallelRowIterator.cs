@@ -65,8 +65,8 @@ public static partial class ParallelRowIterator
         }
 
         int verticalStep = DivideCeil(rectangle.Height, numOfSteps);
-        ParallelOptions parallelOptions = new ParallelOptions { MaxDegreeOfParallelism = numOfSteps };
-        RowOperationWrapper<T> wrappingOperation = new RowOperationWrapper<T>(top, bottom, verticalStep, in operation);
+        ParallelOptions parallelOptions = new() { MaxDegreeOfParallelism = numOfSteps };
+        RowOperationWrapper<T> wrappingOperation = new(top, bottom, verticalStep, in operation);
 
         Parallel.For(
             0,
@@ -135,8 +135,8 @@ public static partial class ParallelRowIterator
         }
 
         int verticalStep = DivideCeil(height, numOfSteps);
-        ParallelOptions parallelOptions = new ParallelOptions { MaxDegreeOfParallelism = numOfSteps };
-        RowOperationWrapper<T, TBuffer> wrappingOperation = new RowOperationWrapper<T, TBuffer>(top, bottom, verticalStep, bufferLength, allocator, in operation);
+        ParallelOptions parallelOptions = new() { MaxDegreeOfParallelism = numOfSteps };
+        RowOperationWrapper<T, TBuffer> wrappingOperation = new(top, bottom, verticalStep, bufferLength, allocator, in operation);
 
         Parallel.For(
             0,
@@ -186,14 +186,14 @@ public static partial class ParallelRowIterator
         // Avoid TPL overhead in this trivial case:
         if (numOfSteps == 1)
         {
-            RowInterval rows = new RowInterval(top, bottom);
+            RowInterval rows = new(top, bottom);
             Unsafe.AsRef(in operation).Invoke(in rows);
             return;
         }
 
         int verticalStep = DivideCeil(rectangle.Height, numOfSteps);
-        ParallelOptions parallelOptions = new ParallelOptions { MaxDegreeOfParallelism = numOfSteps };
-        RowIntervalOperationWrapper<T> wrappingOperation = new RowIntervalOperationWrapper<T>(top, bottom, verticalStep, in operation);
+        ParallelOptions parallelOptions = new() { MaxDegreeOfParallelism = numOfSteps };
+        RowIntervalOperationWrapper<T> wrappingOperation = new(top, bottom, verticalStep, in operation);
 
         Parallel.For(
             0,
@@ -250,7 +250,7 @@ public static partial class ParallelRowIterator
         // Avoid TPL overhead in this trivial case:
         if (numOfSteps == 1)
         {
-            RowInterval rows = new RowInterval(top, bottom);
+            RowInterval rows = new(top, bottom);
             using IMemoryOwner<TBuffer> buffer = allocator.Allocate<TBuffer>(bufferLength);
 
             Unsafe.AsRef(in operation).Invoke(in rows, buffer.Memory.Span);
@@ -259,8 +259,8 @@ public static partial class ParallelRowIterator
         }
 
         int verticalStep = DivideCeil(height, numOfSteps);
-        ParallelOptions parallelOptions = new ParallelOptions { MaxDegreeOfParallelism = numOfSteps };
-        RowIntervalOperationWrapper<T, TBuffer> wrappingOperation = new RowIntervalOperationWrapper<T, TBuffer>(top, bottom, verticalStep, bufferLength, allocator, in operation);
+        ParallelOptions parallelOptions = new() { MaxDegreeOfParallelism = numOfSteps };
+        RowIntervalOperationWrapper<T, TBuffer> wrappingOperation = new(top, bottom, verticalStep, bufferLength, allocator, in operation);
 
         Parallel.For(
             0,

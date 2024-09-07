@@ -186,7 +186,7 @@ public sealed class IptcProfile : IDeepCloneable<IptcProfile>
             }
         }
 
-        this.values.Add(new IptcValue(tag, encoding, value, strict));
+        this.values.Add(new(tag, encoding, value, strict));
     }
 
     /// <summary>
@@ -323,7 +323,7 @@ public sealed class IptcProfile : IDeepCloneable<IptcProfile>
             {
                 byte[] iptcData = new byte[byteCount];
                 Buffer.BlockCopy(this.Data, offset, iptcData, 0, (int)byteCount);
-                this.values.Add(new IptcValue(tag, iptcData, false));
+                this.values.Add(new(tag, iptcData, false));
             }
 
             offset += (int)byteCount;

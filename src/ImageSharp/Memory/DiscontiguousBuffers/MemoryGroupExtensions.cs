@@ -72,7 +72,7 @@ internal static class MemoryGroupExtensions
         Guard.NotNull(source, nameof(source));
         Guard.MustBeGreaterThanOrEqualTo(target.Length, source.TotalLength, nameof(target));
 
-        MemoryGroupCursor<T> cur = new MemoryGroupCursor<T>(source);
+        MemoryGroupCursor<T> cur = new(source);
         long position = 0;
         while (position < source.TotalLength)
         {
@@ -95,7 +95,7 @@ internal static class MemoryGroupExtensions
         Guard.NotNull(target, nameof(target));
         Guard.MustBeGreaterThanOrEqualTo(target.TotalLength, source.Length, nameof(target));
 
-        MemoryGroupCursor<T> cur = new MemoryGroupCursor<T>(target);
+        MemoryGroupCursor<T> cur = new(target);
 
         while (!source.IsEmpty)
         {
@@ -121,8 +121,8 @@ internal static class MemoryGroupExtensions
         }
 
         long position = 0;
-        MemoryGroupCursor<T> srcCur = new MemoryGroupCursor<T>(source);
-        MemoryGroupCursor<T> trgCur = new MemoryGroupCursor<T>(target);
+        MemoryGroupCursor<T> srcCur = new(source);
+        MemoryGroupCursor<T> trgCur = new(target);
 
         while (position < source.TotalLength)
         {
@@ -157,8 +157,8 @@ internal static class MemoryGroupExtensions
         }
 
         long position = 0;
-        MemoryGroupCursor<TSource> srcCur = new MemoryGroupCursor<TSource>(source);
-        MemoryGroupCursor<TTarget> trgCur = new MemoryGroupCursor<TTarget>(target);
+        MemoryGroupCursor<TSource> srcCur = new(source);
+        MemoryGroupCursor<TTarget> trgCur = new(target);
 
         while (position < source.TotalLength)
         {

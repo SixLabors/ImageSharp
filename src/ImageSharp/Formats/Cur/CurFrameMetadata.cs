@@ -73,7 +73,7 @@ public class CurFrameMetadata : IFormatFrameMetadata<CurFrameMetadata>
     {
         if (!metadata.PixelTypeInfo.HasValue)
         {
-            return new CurFrameMetadata
+            return new()
             {
                 BmpBitsPerPixel = BmpBitsPerPixel.Bit32,
                 Compression = IconFrameCompression.Png
@@ -112,7 +112,7 @@ public class CurFrameMetadata : IFormatFrameMetadata<CurFrameMetadata>
             compression = IconFrameCompression.Png;
         }
 
-        return new CurFrameMetadata
+        return new()
         {
             BmpBitsPerPixel = bbpp,
             Compression = compression,
@@ -225,7 +225,7 @@ public class CurFrameMetadata : IFormatFrameMetadata<CurFrameMetadata>
             }
         }
 
-        return new PixelTypeInfo(bpp)
+        return new(bpp)
         {
             AlphaRepresentation = alpha,
             ComponentInfo = info,

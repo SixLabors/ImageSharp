@@ -9,25 +9,25 @@ public abstract partial class ExifTag
     /// <summary>
     /// Gets the StripOffsets exif tag.
     /// </summary>
-    public static ExifTag<Number[]> StripOffsets { get; } = new ExifTag<Number[]>(ExifTagValue.StripOffsets);
+    public static ExifTag<Number[]> StripOffsets { get; } = new(ExifTagValue.StripOffsets);
 
     /// <summary>
     /// Gets the StripByteCounts exif tag.
     /// </summary>
-    public static ExifTag<Number[]> StripByteCounts { get; } = new ExifTag<Number[]>(ExifTagValue.StripByteCounts);
+    public static ExifTag<Number[]> StripByteCounts { get; } = new(ExifTagValue.StripByteCounts);
 
     /// <summary>
     /// Gets the TileByteCounts exif tag.
     /// </summary>
-    public static ExifTag<Number[]> TileByteCounts { get; } = new ExifTag<Number[]>(ExifTagValue.TileByteCounts);
+    public static ExifTag<Number[]> TileByteCounts { get; } = new(ExifTagValue.TileByteCounts);
 
     /// <summary>
     /// Gets the TileOffsets exif tag.
     /// </summary>
-    public static ExifTag<Number[]> TileOffsets { get; } = new ExifTag<Number[]>(ExifTagValue.TileOffsets);
+    public static ExifTag<Number[]> TileOffsets { get; } = new(ExifTagValue.TileOffsets);
 
     /// <summary>
     /// Gets the ImageLayer exif tag.
     /// </summary>
-    public static ExifTag<Number[]> ImageLayer { get; } = new ExifTag<Number[]>(ExifTagValue.ImageLayer);
+    public static ExifTag<Number[]> ImageLayer { get; } = new(ExifTagValue.ImageLayer);
 }

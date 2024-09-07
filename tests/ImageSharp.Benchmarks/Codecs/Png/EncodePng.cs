@@ -46,15 +46,15 @@ public class EncodePng
     [Benchmark(Baseline = true, Description = "System.Drawing Png")]
     public void PngSystemDrawing()
     {
-        using MemoryStream memoryStream = new MemoryStream();
+        using MemoryStream memoryStream = new();
         this.bmpDrawing.Save(memoryStream, ImageFormat.Png);
     }
 
     [Benchmark(Description = "ImageSharp Png")]
     public void PngCore()
     {
-        using MemoryStream memoryStream = new MemoryStream();
-        PngEncoder encoder = new PngEncoder { FilterMethod = PngFilterMethod.None };
+        using MemoryStream memoryStream = new();
+        PngEncoder encoder = new() { FilterMethod = PngFilterMethod.None };
         this.bmpCore.SaveAsPng(memoryStream, encoder);
     }
 }

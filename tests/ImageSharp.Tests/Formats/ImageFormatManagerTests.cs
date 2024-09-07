@@ -24,7 +24,7 @@ public class ImageFormatManagerTests
     public ImageFormatManagerTests()
     {
         this.DefaultFormatsManager = Configuration.CreateDefaultInstance().ImageFormatsManager;
-        this.FormatsManagerEmpty = new ImageFormatManager();
+        this.FormatsManagerEmpty = new();
     }
 
     [Fact]

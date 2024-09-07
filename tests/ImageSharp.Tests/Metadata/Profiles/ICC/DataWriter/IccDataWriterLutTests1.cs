@@ -82,6 +82,6 @@ public class IccDataWriterLutTests1
 
     private static IccDataWriter CreateWriter()
     {
-        return new IccDataWriter();
+        return new();
     }
 }

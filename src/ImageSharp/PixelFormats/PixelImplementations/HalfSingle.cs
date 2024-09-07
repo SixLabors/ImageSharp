@@ -55,7 +55,7 @@ public partial struct HalfSingle : IPixel<HalfSingle>, IPackedVector<ushort>
     {
         float single = this.ToSingle() + 1F;
         single /= 2F;
-        return new Vector4(single, 0, 0, 1F);
+        return new(single, 0, 0, 1F);
     }
 
     /// <inheritdoc />

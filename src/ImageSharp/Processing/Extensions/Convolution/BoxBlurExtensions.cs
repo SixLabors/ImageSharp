@@ -57,7 +57,7 @@ public static class BoxBlurExtensions
     /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
     public static IImageProcessingContext BoxBlur(this IImageProcessingContext source, int radius, Rectangle rectangle, BorderWrappingMode borderWrapModeX, BorderWrappingMode borderWrapModeY)
     {
-        BoxBlurProcessor processor = new BoxBlurProcessor(radius, borderWrapModeX, borderWrapModeY);
+        BoxBlurProcessor processor = new(radius, borderWrapModeX, borderWrapModeY);
         return source.ApplyProcessor(processor, rectangle);
     }
 }

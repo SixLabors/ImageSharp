@@ -29,7 +29,7 @@ internal static partial class SimdUtils
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static Vector4 PseudoRound(this Vector4 v)
     {
-        Vector4 sign = Numerics.Clamp(v, new Vector4(-1), new Vector4(1));
+        Vector4 sign = Numerics.Clamp(v, new(-1), new(1));
 
         return v + (sign * 0.5f);
     }
@@ -53,10 +53,10 @@ internal static partial class SimdUtils
         }
         else
         {
-            Vector<int> magic0 = new Vector<int>(int.MinValue); // 0x80000000
+            Vector<int> magic0 = new(int.MinValue); // 0x80000000
             Vector<float> sgn0 = Vector.AsVectorSingle(magic0);
             Vector<float> and0 = Vector.BitwiseAnd(sgn0, v);
-            Vector<float> or0 = Vector.BitwiseOr(and0, new Vector<float>(8388608.0f));
+            Vector<float> or0 = Vector.BitwiseOr(and0, new(8388608.0f));
             Vector<float> add0 = Vector.Add(v, or0);
             return Vector.Subtract(add0, or0);
         }

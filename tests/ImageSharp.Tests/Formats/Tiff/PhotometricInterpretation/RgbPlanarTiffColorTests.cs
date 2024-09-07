@@ -12,19 +12,19 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff.PhotometricInterpretation;
 [Trait("Format", "Tiff")]
 public class RgbPlanarTiffColorTests : PhotometricInterpretationTestBase
 {
-    private static readonly Rgba32 Rgb4_000 = new Rgba32(0, 0, 0, 255);
-    private static readonly Rgba32 Rgb4_444 = new Rgba32(68, 68, 68, 255);
-    private static readonly Rgba32 Rgb4_888 = new Rgba32(136, 136, 136, 255);
-    private static readonly Rgba32 Rgb4_CCC = new Rgba32(204, 204, 204, 255);
-    private static readonly Rgba32 Rgb4_FFF = new Rgba32(255, 255, 255, 255);
-    private static readonly Rgba32 Rgb4_F00 = new Rgba32(255, 0, 0, 255);
-    private static readonly Rgba32 Rgb4_0F0 = new Rgba32(0, 255, 0, 255);
-    private static readonly Rgba32 Rgb4_00F = new Rgba32(0, 0, 255, 255);
-    private static readonly Rgba32 Rgb4_F0F = new Rgba32(255, 0, 255, 255);
-    private static readonly Rgba32 Rgb4_400 = new Rgba32(68, 0, 0, 255);
-    private static readonly Rgba32 Rgb4_800 = new Rgba32(136, 0, 0, 255);
-    private static readonly Rgba32 Rgb4_C00 = new Rgba32(204, 0, 0, 255);
-    private static readonly Rgba32 Rgb4_48C = new Rgba32(68, 136, 204, 255);
+    private static readonly Rgba32 Rgb4_000 = new(0, 0, 0, 255);
+    private static readonly Rgba32 Rgb4_444 = new(68, 68, 68, 255);
+    private static readonly Rgba32 Rgb4_888 = new(136, 136, 136, 255);
+    private static readonly Rgba32 Rgb4_CCC = new(204, 204, 204, 255);
+    private static readonly Rgba32 Rgb4_FFF = new(255, 255, 255, 255);
+    private static readonly Rgba32 Rgb4_F00 = new(255, 0, 0, 255);
+    private static readonly Rgba32 Rgb4_0F0 = new(0, 255, 0, 255);
+    private static readonly Rgba32 Rgb4_00F = new(0, 0, 255, 255);
+    private static readonly Rgba32 Rgb4_F0F = new(255, 0, 255, 255);
+    private static readonly Rgba32 Rgb4_400 = new(68, 0, 0, 255);
+    private static readonly Rgba32 Rgb4_800 = new(136, 0, 0, 255);
+    private static readonly Rgba32 Rgb4_C00 = new(204, 0, 0, 255);
+    private static readonly Rgba32 Rgb4_48C = new(68, 136, 204, 255);
 
     private static readonly byte[] Rgb4Bytes4X4R =
     {
@@ -112,19 +112,19 @@ public class RgbPlanarTiffColorTests : PhotometricInterpretationTestBase
         }
     }
 
-    private static readonly Rgba32 Rgb8_000 = new Rgba32(0, 0, 0, 255);
-    private static readonly Rgba32 Rgb8_444 = new Rgba32(64, 64, 64, 255);
-    private static readonly Rgba32 Rgb8_888 = new Rgba32(128, 128, 128, 255);
-    private static readonly Rgba32 Rgb8_CCC = new Rgba32(192, 192, 192, 255);
-    private static readonly Rgba32 Rgb8_FFF = new Rgba32(255, 255, 255, 255);
-    private static readonly Rgba32 Rgb8_F00 = new Rgba32(255, 0, 0, 255);
-    private static readonly Rgba32 Rgb8_0F0 = new Rgba32(0, 255, 0, 255);
-    private static readonly Rgba32 Rgb8_00F = new Rgba32(0, 0, 255, 255);
-    private static readonly Rgba32 Rgb8_F0F = new Rgba32(255, 0, 255, 255);
-    private static readonly Rgba32 Rgb8_400 = new Rgba32(64, 0, 0, 255);
-    private static readonly Rgba32 Rgb8_800 = new Rgba32(128, 0, 0, 255);
-    private static readonly Rgba32 Rgb8_C00 = new Rgba32(192, 0, 0, 255);
-    private static readonly Rgba32 Rgb8_48C = new Rgba32(64, 128, 192, 255);
+    private static readonly Rgba32 Rgb8_000 = new(0, 0, 0, 255);
+    private static readonly Rgba32 Rgb8_444 = new(64, 64, 64, 255);
+    private static readonly Rgba32 Rgb8_888 = new(128, 128, 128, 255);
+    private static readonly Rgba32 Rgb8_CCC = new(192, 192, 192, 255);
+    private static readonly Rgba32 Rgb8_FFF = new(255, 255, 255, 255);
+    private static readonly Rgba32 Rgb8_F00 = new(255, 0, 0, 255);
+    private static readonly Rgba32 Rgb8_0F0 = new(0, 255, 0, 255);
+    private static readonly Rgba32 Rgb8_00F = new(0, 0, 255, 255);
+    private static readonly Rgba32 Rgb8_F0F = new(255, 0, 255, 255);
+    private static readonly Rgba32 Rgb8_400 = new(64, 0, 0, 255);
+    private static readonly Rgba32 Rgb8_800 = new(128, 0, 0, 255);
+    private static readonly Rgba32 Rgb8_C00 = new(192, 0, 0, 255);
+    private static readonly Rgba32 Rgb8_48C = new(64, 128, 192, 255);
 
     private static readonly byte[] Rgb8Bytes4X4R =
     {
@@ -175,19 +175,19 @@ public class RgbPlanarTiffColorTests : PhotometricInterpretationTestBase
         }
     }
 
-    private static readonly Rgba32 Rgb484_000 = new Rgba32(0, 0, 0, 255);
-    private static readonly Rgba32 Rgb484_444 = new Rgba32(68, 64, 68, 255);
-    private static readonly Rgba32 Rgb484_888 = new Rgba32(136, 128, 136, 255);
-    private static readonly Rgba32 Rgb484_CCC = new Rgba32(204, 192, 204, 255);
-    private static readonly Rgba32 Rgb484_FFF = new Rgba32(255, 255, 255, 255);
-    private static readonly Rgba32 Rgb484_F00 = new Rgba32(255, 0, 0, 255);
-    private static readonly Rgba32 Rgb484_0F0 = new Rgba32(0, 255, 0, 255);
-    private static readonly Rgba32 Rgb484_00F = new Rgba32(0, 0, 255, 255);
-    private static readonly Rgba32 Rgb484_F0F = new Rgba32(255, 0, 255, 255);
-    private static readonly Rgba32 Rgb484_400 = new Rgba32(68, 0, 0, 255);
-    private static readonly Rgba32 Rgb484_800 = new Rgba32(136, 0, 0, 255);
-    private static readonly Rgba32 Rgb484_C00 = new Rgba32(204, 0, 0, 255);
-    private static readonly Rgba32 Rgb484_48C = new Rgba32(68, 128, 204, 255);
+    private static readonly Rgba32 Rgb484_000 = new(0, 0, 0, 255);
+    private static readonly Rgba32 Rgb484_444 = new(68, 64, 68, 255);
+    private static readonly Rgba32 Rgb484_888 = new(136, 128, 136, 255);
+    private static readonly Rgba32 Rgb484_CCC = new(204, 192, 204, 255);
+    private static readonly Rgba32 Rgb484_FFF = new(255, 255, 255, 255);
+    private static readonly Rgba32 Rgb484_F00 = new(255, 0, 0, 255);
+    private static readonly Rgba32 Rgb484_0F0 = new(0, 255, 0, 255);
+    private static readonly Rgba32 Rgb484_00F = new(0, 0, 255, 255);
+    private static readonly Rgba32 Rgb484_F0F = new(255, 0, 255, 255);
+    private static readonly Rgba32 Rgb484_400 = new(68, 0, 0, 255);
+    private static readonly Rgba32 Rgb484_800 = new(136, 0, 0, 255);
+    private static readonly Rgba32 Rgb484_C00 = new(204, 0, 0, 255);
+    private static readonly Rgba32 Rgb484_48C = new(68, 128, 204, 255);
 
     private static readonly byte[] Rgb484Bytes4X4R =
     {

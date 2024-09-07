@@ -39,7 +39,7 @@ public partial class ResizeKernelMapTests
 
             double radius = tolerantMath.Ceiling(scale * sampler.Radius);
 
-            List<ReferenceKernel> result = new List<ReferenceKernel>();
+            List<ReferenceKernel> result = new();
 
             for (int i = 0; i < destinationSize; i++)
             {
@@ -80,10 +80,10 @@ public partial class ResizeKernelMapTests
 
                 float[] floatVals = values.Select(v => (float)v).ToArray();
 
-                result.Add(new ReferenceKernel(left, floatVals));
+                result.Add(new(left, floatVals));
             }
 
-            return new ReferenceKernelMap(result.ToArray());
+            return new(result.ToArray());
         }
     }
 
@@ -103,7 +103,7 @@ public partial class ResizeKernelMapTests
 
         public static implicit operator ReferenceKernel(ResizeKernel orig)
         {
-            return new ReferenceKernel(orig.StartIndex, orig.Values.ToArray());
+            return new(orig.StartIndex, orig.Values.ToArray());
         }
     }
 }

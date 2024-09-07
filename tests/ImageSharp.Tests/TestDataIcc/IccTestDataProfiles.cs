@@ -8,8 +8,8 @@ namespace SixLabors.ImageSharp.Tests;
 
 internal static class IccTestDataProfiles
 {
-    public static readonly IccProfileId Header_Random_Id_Value = new IccProfileId(0x84A8D460, 0xC716B6F3, 0x9B0E4C3D, 0xAB95F838);
-    public static readonly IccProfileId Profile_Random_Id_Value = new IccProfileId(0x917D6DE6, 0x84C958D1, 0x3BB0F5BB, 0xADD1134F);
+    public static readonly IccProfileId Header_Random_Id_Value = new(0x84A8D460, 0xC716B6F3, 0x9B0E4C3D, 0xAB95F838);
+    public static readonly IccProfileId Profile_Random_Id_Value = new(0x917D6DE6, 0x84C958D1, 0x3BB0F5BB, 0xADD1134F);
 
     public static readonly byte[] Header_Random_Id_Array =
     {
@@ -23,7 +23,7 @@ internal static class IccTestDataProfiles
 
     public static readonly IccProfileHeader Header_Random_Write = CreateHeaderRandomValue(
         562,        // should be overwritten
-        new IccProfileId(1, 2, 3, 4),   // should be overwritten
+        new(1, 2, 3, 4),   // should be overwritten
         "ijkl");    // should be overwritten to "acsp"
 
     public static readonly IccProfileHeader Header_Random_Read = CreateHeaderRandomValue(132, Header_Random_Id_Value, "acsp");
@@ -32,11 +32,11 @@ internal static class IccTestDataProfiles
 
     public static IccProfileHeader CreateHeaderRandomValue(uint size, IccProfileId id, string fileSignature)
     {
-        return new IccProfileHeader
+        return new()
         {
             Class = IccProfileClass.DisplayDevice,
             CmmType = "abcd",
-            CreationDate = new DateTime(1990, 11, 26, 7, 21, 42),
+            CreationDate = new(1990, 11, 26, 7, 21, 42),
             CreatorSignature = "dcba",
             DataColorSpace = IccColorSpaceType.Rgb,
             DeviceAttributes = IccDeviceAttribute.ChromaBlackWhite | IccDeviceAttribute.OpacityTransparent,
@@ -45,12 +45,12 @@ internal static class IccTestDataProfiles
             FileSignature = "acsp",
             Flags = IccProfileFlag.Embedded | IccProfileFlag.Independent,
             Id = id,
-            PcsIlluminant = new Vector3(4, 5, 6),
+            PcsIlluminant = new(4, 5, 6),
             PrimaryPlatformSignature = IccPrimaryPlatformType.MicrosoftCorporation,
             ProfileConnectionSpace = IccColorSpaceType.CieXyz,
             RenderingIntent = IccRenderingIntent.AbsoluteColorimetric,
             Size = size,
-            Version = new IccVersion(4, 3, 0),
+            Version = new(4, 3, 0),
         };
     }
 
@@ -107,7 +107,7 @@ internal static class IccTestDataProfiles
         IccTestDataTagDataEntry.TagDataEntryHeader_UnknownArr,
         IccTestDataTagDataEntry.Unknown_Arr);
 
-    public static readonly IccProfile Profile_Random_Val = new IccProfile(
+    public static readonly IccProfile Profile_Random_Val = new(
         CreateHeaderRandomValue(
             168,
             Profile_Random_Id_Value,

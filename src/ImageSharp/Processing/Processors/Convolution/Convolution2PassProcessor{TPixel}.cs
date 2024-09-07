@@ -72,12 +72,12 @@ internal class Convolution2PassProcessor<TPixel> : ImageProcessor<TPixel>
 
         // We can create a single sampling map with the size as if we were using the non separated 2D kernel
         // the two 1D kernels represent, and reuse it across both convolution steps, like in the bokeh blur.
-        using KernelSamplingMap mapXY = new KernelSamplingMap(this.Configuration.MemoryAllocator);
+        using KernelSamplingMap mapXY = new(this.Configuration.MemoryAllocator);
 
         mapXY.BuildSamplingOffsetMap(this.Kernel.Length, this.Kernel.Length, interest, this.BorderWrapModeX, this.BorderWrapModeY);
 
         // Horizontal convolution
-        HorizontalConvolutionRowOperation horizontalOperation = new HorizontalConvolutionRowOperation(
+        HorizontalConvolutionRowOperation horizontalOperation = new(
             interest,
             firstPassPixels,
             source.PixelBuffer,
@@ -92,7 +92,7 @@ internal class Convolution2PassProcessor<TPixel> : ImageProcessor<TPixel>
             in horizontalOperation);
 
         // Vertical convolution
-        VerticalConvolutionRowOperation verticalOperation = new VerticalConvolutionRowOperation(
+        VerticalConvolutionRowOperation verticalOperation = new(
             interest,
             source.PixelBuffer,
             firstPassPixels,

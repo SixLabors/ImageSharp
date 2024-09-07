@@ -37,7 +37,7 @@ internal sealed class PaletteDitherProcessor<TPixel> : ImageProcessor<TPixel>
         this.paletteOwner = this.Configuration.MemoryAllocator.Allocate<TPixel>(sourcePalette.Length);
         Color.ToPixel(sourcePalette, this.paletteOwner.Memory.Span);
 
-        this.ditherProcessor = new DitherProcessor(
+        this.ditherProcessor = new(
             this.Configuration,
             this.paletteOwner.Memory,
             definition.DitherScale);
@@ -89,7 +89,7 @@ internal sealed class PaletteDitherProcessor<TPixel> : ImageProcessor<TPixel>
             float ditherScale)
         {
             this.Configuration = configuration;
-            this.pixelMap = new EuclideanPixelMap<TPixel>(configuration, palette);
+            this.pixelMap = new(configuration, palette);
             this.Palette = palette;
             this.DitherScale = ditherScale;
         }

@@ -12,10 +12,10 @@ namespace SixLabors.ImageSharp.Benchmarks.General;
 /// </summary>
 public class Vector4Constants
 {
-    private static readonly Vector4 A = new Vector4(1.2f);
-    private static readonly Vector4 B = new Vector4(3.4f);
-    private static readonly Vector4 C = new Vector4(5.6f);
-    private static readonly Vector4 D = new Vector4(7.8f);
+    private static readonly Vector4 A = new(1.2f);
+    private static readonly Vector4 B = new(3.4f);
+    private static readonly Vector4 C = new(5.6f);
+    private static readonly Vector4 D = new(7.8f);
 
     private Random random;
 
@@ -24,8 +24,8 @@ public class Vector4Constants
     [GlobalSetup]
     public void Setup()
     {
-        this.random = new Random(42);
-        this.parameter = new Vector4(
+        this.random = new(42);
+        this.parameter = new(
             this.GetRandomFloat(),
             this.GetRandomFloat(),
             this.GetRandomFloat(),
@@ -51,8 +51,8 @@ public class Vector4Constants
 
         Vector4 x = (p * new Vector4(1.2f) / new Vector4(2.3f)) + (p * new Vector4(4.5f) / new Vector4(6.7f));
         Vector4 y = (p / new Vector4(1.2f) * new Vector4(2.3f)) + (p / new Vector4(4.5f) * new Vector4(6.7f));
-        Vector4 z = Vector4.Min(p, new Vector4(1.2f));
-        Vector4 w = Vector4.Max(p, new Vector4(2.3f));
+        Vector4 z = Vector4.Min(p, new(1.2f));
+        Vector4 w = Vector4.Max(p, new(2.3f));
         return x + y + z + w;
     }
 

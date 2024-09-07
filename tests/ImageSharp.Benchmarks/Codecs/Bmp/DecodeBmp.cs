@@ -32,7 +32,7 @@ public class DecodeBmp
     [Benchmark(Baseline = true, Description = "System.Drawing Bmp")]
     public SDSize BmpSystemDrawing()
     {
-        using MemoryStream memoryStream = new MemoryStream(this.bmpBytes);
+        using MemoryStream memoryStream = new(this.bmpBytes);
         using SDImage image = SDImage.FromStream(memoryStream);
         return image.Size;
     }
@@ -40,8 +40,8 @@ public class DecodeBmp
     [Benchmark(Description = "ImageSharp Bmp")]
     public Size BmpImageSharp()
     {
-        using MemoryStream memoryStream = new MemoryStream(this.bmpBytes);
+        using MemoryStream memoryStream = new(this.bmpBytes);
         using Image<Rgba32> image = Image.Load<Rgba32>(memoryStream);
-        return new Size(image.Width, image.Height);
+        return new(image.Width, image.Height);
     }
 }

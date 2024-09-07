@@ -11,11 +11,11 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs;
 
 public abstract class MultiImageBenchmarkBase
 {
-    protected Dictionary<string, byte[]> FileNamesToBytes { get; set; } = new Dictionary<string, byte[]>();
+    protected Dictionary<string, byte[]> FileNamesToBytes { get; set; } = new();
 
-    protected Dictionary<string, Image<Rgba32>> FileNamesToImageSharpImages { get; set; } = new Dictionary<string, Image<Rgba32>>();
+    protected Dictionary<string, Image<Rgba32>> FileNamesToImageSharpImages { get; set; } = new();
 
-    protected Dictionary<string, Bitmap> FileNamesToSystemDrawingImages { get; set; } = new Dictionary<string, Bitmap>();
+    protected Dictionary<string, Bitmap> FileNamesToSystemDrawingImages { get; set; } = new();
 
     /// <summary>
     /// The values of this enum separate input files into categories.
@@ -86,7 +86,7 @@ public abstract class MultiImageBenchmarkBase
     {
         if (!Vector.IsHardwareAccelerated)
         {
-            throw new Exception("Vector.IsHardwareAccelerated == false! Check your build settings!");
+            throw new("Vector.IsHardwareAccelerated == false! Check your build settings!");
         }
 
         // Console.WriteLine("Vector.IsHardwareAccelerated: " + Vector.IsHardwareAccelerated);
@@ -126,7 +126,7 @@ public abstract class MultiImageBenchmarkBase
     {
         foreach (KeyValuePair<string, byte[]> kv in this.FileNames2Bytes)
         {
-            using MemoryStream memoryStream = new MemoryStream(kv.Value);
+            using MemoryStream memoryStream = new(kv.Value);
             try
             {
                 object obj = operation(memoryStream);
@@ -150,12 +150,12 @@ public abstract class MultiImageBenchmarkBase
                 byte[] bytes = kv.Value;
                 string fn = kv.Key;
 
-                using (MemoryStream ms1 = new MemoryStream(bytes))
+                using (MemoryStream ms1 = new(bytes))
                 {
                     this.FileNamesToImageSharpImages[fn] = Image.Load<Rgba32>(ms1);
                 }
 
-                this.FileNamesToSystemDrawingImages[fn] = new Bitmap(new MemoryStream(bytes));
+                this.FileNamesToSystemDrawingImages[fn] = new(new MemoryStream(bytes));
             }
         }
 
@@ -191,7 +191,7 @@ public abstract class MultiImageBenchmarkBase
 
         protected void ForEachImageSharpImage(Func<Image<Rgba32>, MemoryStream, object> operation)
         {
-            using MemoryStream workStream = new MemoryStream();
+            using MemoryStream workStream = new();
             this.ForEachImageSharpImage(
                 img =>
                 {
@@ -222,7 +222,7 @@ public abstract class MultiImageBenchmarkBase
 
         protected void ForEachSystemDrawingImage(Func<Bitmap, MemoryStream, object> operation)
         {
-            using MemoryStream workStream = new MemoryStream();
+            using MemoryStream workStream = new();
             this.ForEachSystemDrawingImage(
                 img =>
                 {

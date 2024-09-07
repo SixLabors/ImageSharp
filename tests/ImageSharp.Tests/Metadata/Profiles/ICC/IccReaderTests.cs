@@ -52,6 +52,6 @@ public class IccReaderTests
 
     private IccReader CreateReader()
     {
-        return new IccReader();
+        return new();
     }
 }

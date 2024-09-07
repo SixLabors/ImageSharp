@@ -32,12 +32,12 @@ public class TgaEncoderTests
     [MemberData(nameof(TgaBitsPerPixelFiles))]
     public void TgaEncoder_PreserveBitsPerPixel(string imagePath, TgaBitsPerPixel bmpBitsPerPixel)
     {
-        TgaEncoder options = new TgaEncoder();
+        TgaEncoder options = new();
 
         TestFile testFile = TestFile.Create(imagePath);
         using (Image<Rgba32> input = testFile.CreateRgba32Image())
         {
-            using (MemoryStream memStream = new MemoryStream())
+            using (MemoryStream memStream = new())
             {
                 input.Save(memStream, options);
                 memStream.Position = 0;
@@ -54,11 +54,11 @@ public class TgaEncoderTests
     [MemberData(nameof(TgaBitsPerPixelFiles))]
     public void TgaEncoder_WithCompression_PreserveBitsPerPixel(string imagePath, TgaBitsPerPixel bmpBitsPerPixel)
     {
-        TgaEncoder options = new TgaEncoder() { Compression = TgaCompression.RunLength };
+        TgaEncoder options = new() { Compression = TgaCompression.RunLength };
         TestFile testFile = TestFile.Create(imagePath);
         using (Image<Rgba32> input = testFile.CreateRgba32Image())
         {
-            using (MemoryStream memStream = new MemoryStream())
+            using (MemoryStream memStream = new())
             {
                 input.Save(memStream, options);
                 memStream.Position = 0;
@@ -136,11 +136,11 @@ public class TgaEncoderTests
     [Fact]
     public void TgaEncoder_RunLengthDoesNotCrossRowBoundaries()
     {
-        TgaEncoder options = new TgaEncoder() { Compression = TgaCompression.RunLength };
+        TgaEncoder options = new() { Compression = TgaCompression.RunLength };
 
-        using (Image<Rgba32> input = new Image<Rgba32>(30, 30))
+        using (Image<Rgba32> input = new(30, 30))
         {
-            using (MemoryStream memStream = new MemoryStream())
+            using (MemoryStream memStream = new())
             {
                 input.Save(memStream, options);
                 byte[] imageBytes = memStream.ToArray();
@@ -169,9 +169,9 @@ public class TgaEncoderTests
     {
         using (Image<TPixel> image = provider.GetImage())
         {
-            TgaEncoder encoder = new TgaEncoder { BitsPerPixel = bitsPerPixel, Compression = compression };
+            TgaEncoder encoder = new() { BitsPerPixel = bitsPerPixel, Compression = compression };
 
-            using (MemoryStream memStream = new MemoryStream())
+            using (MemoryStream memStream = new())
             {
                 image.DebugSave(provider, encoder);
                 image.Save(memStream, encoder);

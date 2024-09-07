@@ -12,7 +12,7 @@ public class ExifTagDescriptionAttributeTests
     [Fact]
     public void TestExifTag()
     {
-        ExifProfile exifProfile = new ExifProfile();
+        ExifProfile exifProfile = new();
 
         exifProfile.SetValue(ExifTag.ResolutionUnit, (ushort)1);
         IExifValue value = exifProfile.GetValue(ExifTag.ResolutionUnit);

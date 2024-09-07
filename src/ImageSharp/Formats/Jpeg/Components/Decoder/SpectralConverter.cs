@@ -114,7 +114,7 @@ internal abstract class SpectralConverter
                 if (scaledWidth >= tSize.Width && scaledHeight >= tSize.Height)
                 {
                     blockPixelSize = blockSize;
-                    return new Size(scaledWidth, scaledHeight);
+                    return new(scaledWidth, scaledHeight);
                 }
             }
         }

@@ -29,7 +29,7 @@ internal class CropProcessor<TPixel> : TransformProcessor<TPixel>
         => this.cropRectangle = definition.CropRectangle;
 
     /// <inheritdoc/>
-    protected override Size GetDestinationSize() => new Size(this.cropRectangle.Width, this.cropRectangle.Height);
+    protected override Size GetDestinationSize() => new(this.cropRectangle.Width, this.cropRectangle.Height);
 
     /// <inheritdoc/>
     protected override void OnFrameApply(ImageFrame<TPixel> source, ImageFrame<TPixel> destination)
@@ -50,7 +50,7 @@ internal class CropProcessor<TPixel> : TransformProcessor<TPixel>
         ParallelExecutionSettings parallelSettings =
             ParallelExecutionSettings.FromConfiguration(this.Configuration).MultiplyMinimumPixelsPerTask(4);
 
-        RowOperation operation = new RowOperation(bounds, source.PixelBuffer, destination.PixelBuffer);
+        RowOperation operation = new(bounds, source.PixelBuffer, destination.PixelBuffer);
 
         ParallelRowIterator.IterateRows(
             bounds,

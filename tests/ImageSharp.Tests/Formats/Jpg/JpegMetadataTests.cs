@@ -12,7 +12,7 @@ public class JpegMetadataTests
     [Fact]
     public void CloneIsDeep()
     {
-        JpegMetadata meta = new JpegMetadata { ColorType = JpegColorType.Luminance };
+        JpegMetadata meta = new() { ColorType = JpegColorType.Luminance };
         JpegMetadata clone = (JpegMetadata)meta.DeepClone();
 
         clone.ColorType = JpegColorType.YCbCrRatio420;
@@ -23,7 +23,7 @@ public class JpegMetadataTests
     [Fact]
     public void Quality_DefaultQuality()
     {
-        JpegMetadata meta = new JpegMetadata();
+        JpegMetadata meta = new();
 
         Assert.Equal(meta.Quality, ImageSharp.Formats.Jpeg.Components.Quantization.DefaultQualityFactor);
     }
@@ -33,7 +33,7 @@ public class JpegMetadataTests
     {
         int quality = 50;
 
-        JpegMetadata meta = new JpegMetadata { LuminanceQuality = quality };
+        JpegMetadata meta = new() { LuminanceQuality = quality };
 
         Assert.Equal(meta.Quality, quality);
     }
@@ -43,7 +43,7 @@ public class JpegMetadataTests
     {
         int quality = 50;
 
-        JpegMetadata meta = new JpegMetadata { LuminanceQuality = quality, ChrominanceQuality = quality };
+        JpegMetadata meta = new() { LuminanceQuality = quality, ChrominanceQuality = quality };
 
         Assert.Equal(meta.Quality, quality);
     }
@@ -54,7 +54,7 @@ public class JpegMetadataTests
         int qualityLuma = 50;
         int qualityChroma = 30;
 
-        JpegMetadata meta = new JpegMetadata { LuminanceQuality = qualityLuma, ChrominanceQuality = qualityChroma };
+        JpegMetadata meta = new() { LuminanceQuality = qualityLuma, ChrominanceQuality = qualityChroma };
 
         Assert.Equal(meta.Quality, qualityLuma);
     }
@@ -62,7 +62,7 @@ public class JpegMetadataTests
     [Fact]
     public void Comment_EmptyComment()
     {
-        JpegMetadata meta = new JpegMetadata();
+        JpegMetadata meta = new();
 
         Assert.True(Array.Empty<JpegComData>().SequenceEqual(meta.Comments));
     }
@@ -71,9 +71,9 @@ public class JpegMetadataTests
     public void Comment_OnlyComment()
     {
         string comment = "test comment";
-        Collection<string> expectedCollection = new Collection<string> { comment };
+        Collection<string> expectedCollection = new() { comment };
 
-        JpegMetadata meta = new JpegMetadata();
+        JpegMetadata meta = new();
         meta.Comments.Add(JpegComData.FromString(comment));
 
         Assert.Equal(1, meta.Comments.Count);

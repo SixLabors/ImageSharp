@@ -93,7 +93,7 @@ public readonly struct Lms : IColorProfile<Lms, CieXyz>
     public static Lms FromProfileConnectingSpace(ColorConversionOptions options, in CieXyz source)
     {
         Vector3 vector = Vector3.Transform(source.ToVector3(), options.AdaptationMatrix);
-        return new Lms(vector);
+        return new(vector);
     }
 
     /// <inheritdoc/>
@@ -112,7 +112,7 @@ public readonly struct Lms : IColorProfile<Lms, CieXyz>
     public CieXyz ToProfileConnectingSpace(ColorConversionOptions options)
     {
         Vector3 vector = Vector3.Transform(this.ToVector3(), options.InverseAdaptationMatrix);
-        return new CieXyz(vector);
+        return new(vector);
     }
 
     /// <inheritdoc/>

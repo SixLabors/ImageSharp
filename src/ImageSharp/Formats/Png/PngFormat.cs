@@ -15,7 +15,7 @@ public sealed class PngFormat : IImageFormat<PngMetadata, PngFrameMetadata>
     /// <summary>
     /// Gets the shared instance.
     /// </summary>
-    public static PngFormat Instance { get; } = new PngFormat();
+    public static PngFormat Instance { get; } = new();
 
     /// <inheritdoc/>
     public string Name => "PNG";

@@ -694,7 +694,7 @@ public static class TestImageExtensions
     {
         TestMemoryAllocator allocator = new();
         provider.Configuration.MemoryAllocator = allocator;
-        return new AllocatorBufferCapacityConfigurator(allocator, Unsafe.SizeOf<TPixel>());
+        return new(allocator, Unsafe.SizeOf<TPixel>());
     }
 
     private class MakeOpaqueProcessor : IImageProcessor

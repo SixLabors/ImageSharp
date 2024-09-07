@@ -51,7 +51,7 @@ internal sealed class EuclideanPixelMap<TPixel> : IDisposable
         this.configuration = configuration;
         this.Palette = palette;
         this.rgbaPalette = new Rgba32[palette.Length];
-        this.cache = new ColorDistanceCache(configuration.MemoryAllocator);
+        this.cache = new(configuration.MemoryAllocator);
         PixelOperations<TPixel>.Instance.ToRgba32(configuration, this.Palette.Span, this.rgbaPalette);
 
         this.transparentIndex = transparentIndex;

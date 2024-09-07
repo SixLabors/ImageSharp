@@ -72,7 +72,7 @@ public class ImageComparerTests
                     () => comparer.VerifySimilarity(image, clone));
 
                 PixelDifference diff = ex.Reports.Single().Differences.Single();
-                Assert.Equal(new Point(3, 1), diff.Position);
+                Assert.Equal(new(3, 1), diff.Position);
             }
         }
     }
@@ -131,7 +131,7 @@ public class ImageComparerTests
                 IEnumerable<ImageSimilarityReport> reports = ImageComparer.Exact.CompareImages(image, clone);
 
                 PixelDifference difference = reports.Single().Differences.Single();
-                Assert.Equal(new Point(42, 43), difference.Position);
+                Assert.Equal(new(42, 43), difference.Position);
             }
         }
     }

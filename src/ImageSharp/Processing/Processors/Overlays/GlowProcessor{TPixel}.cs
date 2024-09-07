@@ -54,7 +54,7 @@ internal class GlowProcessor<TPixel> : ImageProcessor<TPixel>
         using IMemoryOwner<TPixel> rowColors = allocator.Allocate<TPixel>(interest.Width);
         rowColors.GetSpan().Fill(glowColor);
 
-        RowOperation operation = new RowOperation(configuration, interest, rowColors, this.blender, center, maxDistance, blendPercent, source.PixelBuffer);
+        RowOperation operation = new(configuration, interest, rowColors, this.blender, center, maxDistance, blendPercent, source.PixelBuffer);
         ParallelRowIterator.IterateRows<RowOperation, float>(
             configuration,
             interest,
@@ -105,7 +105,7 @@ internal class GlowProcessor<TPixel> : ImageProcessor<TPixel>
 
             for (int i = 0; i < this.bounds.Width; i++)
             {
-                float distance = Vector2.Distance(this.center, new Vector2(i + this.bounds.X, y));
+                float distance = Vector2.Distance(this.center, new(i + this.bounds.X, y));
                 span[i] = Numerics.Clamp(this.blendPercent * (1 - (.95F * (distance / this.maxDistance))), 0, 1F);
             }
 

@@ -54,21 +54,21 @@ public class BmpMetadata : IFormatMetadata<BmpMetadata>
         int bpp = metadata.PixelTypeInfo.BitsPerPixel;
         return bpp switch
         {
-            1 => new BmpMetadata { BitsPerPixel = BmpBitsPerPixel.Bit1 },
-            2 => new BmpMetadata { BitsPerPixel = BmpBitsPerPixel.Bit2 },
-            <= 4 => new BmpMetadata { BitsPerPixel = BmpBitsPerPixel.Bit4 },
-            <= 8 => new BmpMetadata { BitsPerPixel = BmpBitsPerPixel.Bit8 },
-            <= 16 => new BmpMetadata
+            1 => new() { BitsPerPixel = BmpBitsPerPixel.Bit1 },
+            2 => new() { BitsPerPixel = BmpBitsPerPixel.Bit2 },
+            <= 4 => new() { BitsPerPixel = BmpBitsPerPixel.Bit4 },
+            <= 8 => new() { BitsPerPixel = BmpBitsPerPixel.Bit8 },
+            <= 16 => new()
             {
                 BitsPerPixel = BmpBitsPerPixel.Bit16,
                 InfoHeaderType = BmpInfoHeaderType.WinVersion3
             },
-            <= 24 => new BmpMetadata
+            <= 24 => new()
             {
                 BitsPerPixel = BmpBitsPerPixel.Bit24,
                 InfoHeaderType = BmpInfoHeaderType.WinVersion4
             },
-            _ => new BmpMetadata
+            _ => new()
             {
                 BitsPerPixel = BmpBitsPerPixel.Bit32,
                 InfoHeaderType = BmpInfoHeaderType.WinVersion5
@@ -131,7 +131,7 @@ public class BmpMetadata : IFormatMetadata<BmpMetadata>
                 break;
         }
 
-        return new PixelTypeInfo(bpp)
+        return new(bpp)
         {
             AlphaRepresentation = alpha,
             ComponentInfo = info,

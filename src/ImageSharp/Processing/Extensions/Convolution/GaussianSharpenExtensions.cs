@@ -60,7 +60,7 @@ public static class GaussianSharpenExtensions
     /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
     public static IImageProcessingContext GaussianSharpen(this IImageProcessingContext source, float sigma, Rectangle rectangle, BorderWrappingMode borderWrapModeX, BorderWrappingMode borderWrapModeY)
     {
-        GaussianSharpenProcessor processor = new GaussianSharpenProcessor(sigma, borderWrapModeX, borderWrapModeY);
+        GaussianSharpenProcessor processor = new(sigma, borderWrapModeX, borderWrapModeY);
         return source.ApplyProcessor(processor, rectangle);
     }
 }

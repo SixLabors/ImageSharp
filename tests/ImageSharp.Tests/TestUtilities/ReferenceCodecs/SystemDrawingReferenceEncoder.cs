@@ -15,9 +15,9 @@ public class SystemDrawingReferenceEncoder : IImageEncoder
     public SystemDrawingReferenceEncoder(ImageFormat imageFormat)
         => this.imageFormat = imageFormat;
 
-    public static SystemDrawingReferenceEncoder Png { get; } = new SystemDrawingReferenceEncoder(ImageFormat.Png);
+    public static SystemDrawingReferenceEncoder Png { get; } = new(ImageFormat.Png);
 
-    public static SystemDrawingReferenceEncoder Bmp { get; } = new SystemDrawingReferenceEncoder(ImageFormat.Bmp);
+    public static SystemDrawingReferenceEncoder Bmp { get; } = new(ImageFormat.Bmp);
 
     public bool SkipMetadata { get; init; }
 

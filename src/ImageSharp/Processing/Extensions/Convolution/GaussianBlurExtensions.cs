@@ -57,7 +57,7 @@ public static class GaussianBlurExtensions
     /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
     public static IImageProcessingContext GaussianBlur(this IImageProcessingContext source, float sigma, Rectangle rectangle, BorderWrappingMode borderWrapModeX, BorderWrappingMode borderWrapModeY)
     {
-        GaussianBlurProcessor processor = new GaussianBlurProcessor(sigma, borderWrapModeX, borderWrapModeY);
+        GaussianBlurProcessor processor = new(sigma, borderWrapModeX, borderWrapModeY);
         return source.ApplyProcessor(processor, rectangle);
     }
 }

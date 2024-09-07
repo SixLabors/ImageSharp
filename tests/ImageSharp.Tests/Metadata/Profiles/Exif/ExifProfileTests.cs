@@ -63,7 +63,7 @@ public class ExifProfileTests
         Assert.Null(image.Metadata.ExifProfile);
 
         const string expected = "Dirk Lemstra";
-        image.Metadata.ExifProfile = new ExifProfile();
+        image.Metadata.ExifProfile = new();
         image.Metadata.ExifProfile.SetValue(ExifTag.Copyright, expected);
 
         image = WriteAndRead(image, imageFormat);
@@ -88,7 +88,7 @@ public class ExifProfileTests
     [Fact]
     public void EmptyWriter()
     {
-        ExifProfile profile = new ExifProfile() { Parts = ExifParts.GpsTags };
+        ExifProfile profile = new() { Parts = ExifParts.GpsTags };
         profile.SetValue(ExifTag.Copyright, "Copyright text");
 
         byte[] bytes = profile.ToByteArray();
@@ -120,14 +120,14 @@ public class ExifProfileTests
     [InlineData(TestImageWriteFormat.WebpLossy)]
     public void WriteFraction(TestImageWriteFormat imageFormat)
     {
-        using MemoryStream memStream = new MemoryStream();
+        using MemoryStream memStream = new();
         double exposureTime = 1.0 / 1600;
 
         ExifProfile profile = GetExifProfile();
 
-        profile.SetValue(ExifTag.ExposureTime, new Rational(exposureTime));
+        profile.SetValue(ExifTag.ExposureTime, new(exposureTime));
 
-        Image<Rgba32> image = new Image<Rgba32>(1, 1);
+        Image<Rgba32> image = new(1, 1);
         image.Metadata.ExifProfile = profile;
 
         image = WriteAndRead(image, imageFormat);
@@ -142,7 +142,7 @@ public class ExifProfileTests
         memStream.Position = 0;
         profile = GetExifProfile();
 
-        profile.SetValue(ExifTag.ExposureTime, new Rational(exposureTime, true));
+        profile.SetValue(ExifTag.ExposureTime, new(exposureTime, true));
         image.Metadata.ExifProfile = profile;
 
         image = WriteAndRead(image, imageFormat);
@@ -164,26 +164,26 @@ public class ExifProfileTests
     public void ReadWriteInfinity(TestImageWriteFormat imageFormat)
     {
         Image<Rgba32> image = TestFile.Create(TestImages.Jpeg.Baseline.Floorplan).CreateRgba32Image();
-        image.Metadata.ExifProfile.SetValue(ExifTag.ExposureBiasValue, new SignedRational(double.PositiveInfinity));
+        image.Metadata.ExifProfile.SetValue(ExifTag.ExposureBiasValue, new(double.PositiveInfinity));
 
         image = WriteAndReadJpeg(image);
         IExifValue<SignedRational> value = image.Metadata.ExifProfile.GetValue(ExifTag.ExposureBiasValue);
         Assert.NotNull(value);
-        Assert.Equal(new SignedRational(double.PositiveInfinity), value.Value);
+        Assert.Equal(new(double.PositiveInfinity), value.Value);
 
-        image.Metadata.ExifProfile.SetValue(ExifTag.ExposureBiasValue, new SignedRational(double.NegativeInfinity));
+        image.Metadata.ExifProfile.SetValue(ExifTag.ExposureBiasValue, new(double.NegativeInfinity));
 
         image = WriteAndRead(image, imageFormat);
         value = image.Metadata.ExifProfile.GetValue(ExifTag.ExposureBiasValue);
         Assert.NotNull(value);
-        Assert.Equal(new SignedRational(double.NegativeInfinity), value.Value);
+        Assert.Equal(new(double.NegativeInfinity), value.Value);
 
-        image.Metadata.ExifProfile.SetValue(ExifTag.FlashEnergy, new Rational(double.NegativeInfinity));
+        image.Metadata.ExifProfile.SetValue(ExifTag.FlashEnergy, new(double.NegativeInfinity));
 
         image = WriteAndRead(image, imageFormat);
         IExifValue<Rational> value2 = image.Metadata.ExifProfile.GetValue(ExifTag.FlashEnergy);
         Assert.NotNull(value2);
-        Assert.Equal(new Rational(double.PositiveInfinity), value2.Value);
+        Assert.Equal(new(double.PositiveInfinity), value2.Value);
 
         image.Dispose();
     }
@@ -209,20 +209,20 @@ public class ExifProfileTests
         Assert.True(software.TrySetValue(15));
         Assert.False(software.TrySetValue(15F));
 
-        image.Metadata.ExifProfile.SetValue(ExifTag.ShutterSpeedValue, new SignedRational(75.55));
+        image.Metadata.ExifProfile.SetValue(ExifTag.ShutterSpeedValue, new(75.55));
 
         IExifValue<SignedRational> shutterSpeed = image.Metadata.ExifProfile.GetValue(ExifTag.ShutterSpeedValue);
 
-        Assert.Equal(new SignedRational(7555, 100), shutterSpeed.Value);
+        Assert.Equal(new(7555, 100), shutterSpeed.Value);
         Assert.False(shutterSpeed.TrySetValue(75));
 
-        image.Metadata.ExifProfile.SetValue(ExifTag.XResolution, new Rational(150.0));
+        image.Metadata.ExifProfile.SetValue(ExifTag.XResolution, new(150.0));
 
         // We also need to change this value because this overrides XResolution when the image is written.
         image.Metadata.HorizontalResolution = 150.0;
 
         IExifValue<Rational> xResolution = image.Metadata.ExifProfile.GetValue(ExifTag.XResolution);
-        Assert.Equal(new Rational(150, 1), xResolution.Value);
+        Assert.Equal(new(150, 1), xResolution.Value);
 
         Assert.False(xResolution.TrySetValue("ImageSharp"));
 
@@ -231,7 +231,7 @@ public class ExifProfileTests
         IExifValue<Rational[]> referenceBlackWhite = image.Metadata.ExifProfile.GetValue(ExifTag.ReferenceBlackWhite);
         Assert.Null(referenceBlackWhite.Value);
 
-        Rational[] expectedLatitude = new Rational[] { new Rational(12.3), new Rational(4.56), new Rational(789.0) };
+        Rational[] expectedLatitude = new Rational[] { new(12.3), new(4.56), new(789.0) };
         image.Metadata.ExifProfile.SetValue(ExifTag.GPSLatitude, expectedLatitude);
 
         IExifValue<Rational[]> latitude = image.Metadata.ExifProfile.GetValue(ExifTag.GPSLatitude);
@@ -251,10 +251,10 @@ public class ExifProfileTests
         Assert.Equal("15", software.Value);
 
         shutterSpeed = image.Metadata.ExifProfile.GetValue(ExifTag.ShutterSpeedValue);
-        Assert.Equal(new SignedRational(75.55), shutterSpeed.Value);
+        Assert.Equal(new(75.55), shutterSpeed.Value);
 
         xResolution = image.Metadata.ExifProfile.GetValue(ExifTag.XResolution);
-        Assert.Equal(new Rational(150.0), xResolution.Value);
+        Assert.Equal(new(150.0), xResolution.Value);
 
         referenceBlackWhite = image.Metadata.ExifProfile.GetValue(ExifTag.ReferenceBlackWhite, false);
         Assert.Null(referenceBlackWhite);
@@ -308,11 +308,11 @@ public class ExifProfileTests
     [Fact]
     public void Syncs()
     {
-        ExifProfile exifProfile = new ExifProfile();
-        exifProfile.SetValue(ExifTag.XResolution, new Rational(200));
-        exifProfile.SetValue(ExifTag.YResolution, new Rational(300));
+        ExifProfile exifProfile = new();
+        exifProfile.SetValue(ExifTag.XResolution, new(200));
+        exifProfile.SetValue(ExifTag.YResolution, new(300));
 
-        ImageMetadata metaData = new ImageMetadata
+        ImageMetadata metaData = new()
         {
             ExifProfile = exifProfile,
             HorizontalResolution = 200,
@@ -366,13 +366,13 @@ public class ExifProfileTests
         foreach (ExifTag<string> tag in tags)
         {
             // Arrange
-            StringBuilder junk = new StringBuilder();
+            StringBuilder junk = new();
             for (int i = 0; i < 65600; i++)
             {
                 junk.Append('a');
             }
 
-            Image<Rgba32> image = new Image<Rgba32>(100, 100);
+            Image<Rgba32> image = new(100, 100);
             ExifProfile expectedProfile = CreateExifProfile();
             List<ExifTag> expectedProfileTags = expectedProfile.Values.Select(x => x.Tag).ToList();
             expectedProfile.SetValue(tag, junk.ToString());
@@ -437,7 +437,7 @@ public class ExifProfileTests
         byte[] bytes = profile.ToByteArray();
         Assert.Equal(531, bytes.Length);
 
-        ExifProfile profile2 = new ExifProfile(bytes);
+        ExifProfile profile2 = new(bytes);
         Assert.Equal(25, profile2.Values.Count);
     }
 
@@ -449,7 +449,7 @@ public class ExifProfileTests
     public void WritingImagePreservesExifProfile(TestImageWriteFormat imageFormat)
     {
         // Arrange
-        Image<Rgba32> image = new Image<Rgba32>(1, 1);
+        Image<Rgba32> image = new(1, 1);
         image.Metadata.ExifProfile = CreateExifProfile();
 
         // Act
@@ -476,7 +476,7 @@ public class ExifProfileTests
 
         // Act
         byte[] actualBytes = expectedProfile.ToByteArray();
-        ExifProfile actualProfile = new ExifProfile(actualBytes);
+        ExifProfile actualProfile = new(actualBytes);
 
         // Assert
         Assert.NotNull(actualBytes);
@@ -492,7 +492,7 @@ public class ExifProfileTests
 
     private static ExifProfile CreateExifProfile()
     {
-        ExifProfile profile = new ExifProfile();
+        ExifProfile profile = new();
 
         foreach (KeyValuePair<ExifTag, object> exifProfileValue in TestProfileValues)
         {
@@ -505,7 +505,7 @@ public class ExifProfileTests
     [Fact]
     public void IfdStructure()
     {
-        ExifProfile exif = new ExifProfile();
+        ExifProfile exif = new();
         exif.SetValue(ExifTag.XPAuthor, "Dan Petitt");
 
         Span<byte> actualBytes = exif.ToByteArray();
@@ -547,7 +547,7 @@ public class ExifProfileTests
 
     private static Image<Rgba32> WriteAndReadJpeg(Image<Rgba32> image)
     {
-        using MemoryStream memStream = new MemoryStream();
+        using MemoryStream memStream = new();
         image.SaveAsJpeg(memStream);
         image.Dispose();
 
@@ -557,7 +557,7 @@ public class ExifProfileTests
 
     private static Image<Rgba32> WriteAndReadPng(Image<Rgba32> image)
     {
-        using MemoryStream memStream = new MemoryStream();
+        using MemoryStream memStream = new();
         image.SaveAsPng(memStream);
         image.Dispose();
 
@@ -567,8 +567,8 @@ public class ExifProfileTests
 
     private static Image<Rgba32> WriteAndReadWebp(Image<Rgba32> image, WebpFileFormatType fileFormat)
     {
-        using MemoryStream memStream = new MemoryStream();
-        image.SaveAsWebp(memStream, new WebpEncoder() { FileFormat = fileFormat });
+        using MemoryStream memStream = new();
+        image.SaveAsWebp(memStream, new() { FileFormat = fileFormat });
         image.Dispose();
 
         memStream.Position = 0;
@@ -593,7 +593,7 @@ public class ExifProfileTests
         Assert.Equal("Windows Photo Editor 10.0.10011.16384", software.Value);
 
         IExifValue<Rational> xResolution = profile.GetValue(ExifTag.XResolution);
-        Assert.Equal(new Rational(300.0), xResolution.Value);
+        Assert.Equal(new(300.0), xResolution.Value);
 
         IExifValue<Number> xDimension = profile.GetValue(ExifTag.PixelXDimension);
         Assert.Equal(2338U, xDimension.Value);

@@ -24,7 +24,7 @@ public static class KnownChromaticAdaptationMatrices
     /// von Kries chromatic adaptation transform matrix (Hunt-Pointer-Estevez adjusted for D65)
     /// </summary>
     public static readonly Matrix4x4 VonKriesHPEAdjusted
-        = Matrix4x4.Transpose(new Matrix4x4
+        = Matrix4x4.Transpose(new()
         {
             M11 = 0.40024F,
             M12 = 0.7076F,
@@ -42,7 +42,7 @@ public static class KnownChromaticAdaptationMatrices
     /// von Kries chromatic adaptation transform matrix (Hunt-Pointer-Estevez for equal energy)
     /// </summary>
     public static readonly Matrix4x4 VonKriesHPE
-        = Matrix4x4.Transpose(new Matrix4x4
+        = Matrix4x4.Transpose(new()
         {
             M11 = 0.3897F,
             M12 = 0.6890F,
@@ -65,7 +65,7 @@ public static class KnownChromaticAdaptationMatrices
     /// Bradford chromatic adaptation transform matrix (used in CMCCAT97)
     /// </summary>
     public static readonly Matrix4x4 Bradford
-        = Matrix4x4.Transpose(new Matrix4x4
+        = Matrix4x4.Transpose(new()
         {
             M11 = 0.8951F,
             M12 = 0.2664F,
@@ -83,7 +83,7 @@ public static class KnownChromaticAdaptationMatrices
     /// Spectral sharpening and the Bradford transform
     /// </summary>
     public static readonly Matrix4x4 BradfordSharp
-        = Matrix4x4.Transpose(new Matrix4x4
+        = Matrix4x4.Transpose(new()
         {
             M11 = 1.2694F,
             M12 = -0.0988F,
@@ -101,7 +101,7 @@ public static class KnownChromaticAdaptationMatrices
     /// CMCCAT2000 (fitted from all available color data sets)
     /// </summary>
     public static readonly Matrix4x4 CMCCAT2000
-        = Matrix4x4.Transpose(new Matrix4x4
+        = Matrix4x4.Transpose(new()
         {
             M11 = 0.7982F,
             M12 = 0.3389F,
@@ -119,7 +119,7 @@ public static class KnownChromaticAdaptationMatrices
     /// CAT02 (optimized for minimizing CIELAB differences)
     /// </summary>
     public static readonly Matrix4x4 CAT02
-        = Matrix4x4.Transpose(new Matrix4x4
+        = Matrix4x4.Transpose(new()
         {
             M11 = 0.7328F,
             M12 = 0.4296F,

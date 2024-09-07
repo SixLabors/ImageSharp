@@ -17,7 +17,7 @@ public class CropTest
     public void Crop<TPixel>(TestImageProvider<TPixel> provider, int x, int y, int w, int h)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        Rectangle rect = new Rectangle(x, y, w, h);
+        Rectangle rect = new(x, y, w, h);
         FormattableString info = $"X{x}Y{y}.W{w}H{h}";
         provider.RunValidatingProcessorTest(
             ctx => ctx.Crop(rect),

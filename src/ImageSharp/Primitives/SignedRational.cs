@@ -117,7 +117,7 @@ public readonly struct SignedRational : IEquatable<SignedRational>
     /// </returns>
     public static SignedRational FromDouble(double value)
     {
-        return new SignedRational(value, false);
+        return new(value, false);
     }
 
     /// <summary>
@@ -130,7 +130,7 @@ public readonly struct SignedRational : IEquatable<SignedRational>
     /// </returns>
     public static SignedRational FromDouble(double value, bool bestPrecision)
     {
-        return new SignedRational(value, bestPrecision);
+        return new(value, bestPrecision);
     }
 
     /// <inheritdoc/>
@@ -142,8 +142,8 @@ public readonly struct SignedRational : IEquatable<SignedRational>
     /// <inheritdoc/>
     public bool Equals(SignedRational other)
     {
-        LongRational left = new LongRational(this.Numerator, this.Denominator);
-        LongRational right = new LongRational(other.Numerator, other.Denominator);
+        LongRational left = new(this.Numerator, this.Denominator);
+        LongRational right = new(other.Numerator, other.Denominator);
 
         return left.Equals(right);
     }
@@ -151,7 +151,7 @@ public readonly struct SignedRational : IEquatable<SignedRational>
     /// <inheritdoc/>
     public override int GetHashCode()
     {
-        LongRational self = new LongRational(this.Numerator, this.Denominator);
+        LongRational self = new(this.Numerator, this.Denominator);
         return self.GetHashCode();
     }
 
@@ -182,7 +182,7 @@ public readonly struct SignedRational : IEquatable<SignedRational>
     /// <returns>The <see cref="string"/></returns>
     public string ToString(IFormatProvider provider)
     {
-        LongRational rational = new LongRational(this.Numerator, this.Denominator);
+        LongRational rational = new(this.Numerator, this.Denominator);
         return rational.ToString(provider);
     }
 }

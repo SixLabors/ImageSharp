@@ -28,7 +28,7 @@ public partial class MemoryGroupTests : MemoryGroupTestsBase
 
 #pragma warning disable SA1509
     private static readonly TheoryData<int, int, int, int> CopyAndTransformData =
-        new TheoryData<int, int, int, int>()
+        new()
         {
             { 20, 10, 20, 10 },
             { 20, 5, 20, 4 },
@@ -102,8 +102,8 @@ public partial class MemoryGroupTests : MemoryGroupTestsBase
         int[] data0 = { 1, 2, 3, 4 };
         int[] data1 = { 5, 6, 7, 8 };
         int[] data2 = { 9, 10 };
-        using TestMemoryManager<int> mgr0 = new TestMemoryManager<int>(data0);
-        using TestMemoryManager<int> mgr1 = new TestMemoryManager<int>(data1);
+        using TestMemoryManager<int> mgr0 = new(data0);
+        using TestMemoryManager<int> mgr1 = new(data1);
 
         using MemoryGroup<int> group = MemoryGroup<int>.Wrap(mgr0.Memory, mgr1.Memory, data2);
 
@@ -124,7 +124,7 @@ public partial class MemoryGroupTests : MemoryGroupTestsBase
         }
     }
 
-    public static TheoryData<long, int, long, int> GetBoundedSlice_SuccessData = new TheoryData<long, int, long, int>()
+    public static TheoryData<long, int, long, int> GetBoundedSlice_SuccessData = new()
     {
         { 300, 100, 110, 80 },
         { 300, 100, 100, 100 },
@@ -153,7 +153,7 @@ public partial class MemoryGroupTests : MemoryGroupTestsBase
         }
     }
 
-    public static TheoryData<long, int, long, int> GetBoundedSlice_ErrorData = new TheoryData<long, int, long, int>()
+    public static TheoryData<long, int, long, int> GetBoundedSlice_ErrorData = new()
     {
         { 300, 100, -1, 91 },
         { 300, 100, 110, 91 },

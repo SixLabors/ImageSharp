@@ -126,7 +126,7 @@ public class WebpMetadata : IFormatMetadata<WebpMetadata>
                 break;
         }
 
-        return new PixelTypeInfo(bpp)
+        return new(bpp)
         {
             AlphaRepresentation = alpha,
             ColorType = colorType,

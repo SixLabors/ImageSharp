@@ -36,7 +36,7 @@ public unsafe class Block8x8F_Round
 
         if (ptr % 16 != 0)
         {
-            throw new Exception("ptr is unaligned");
+            throw new("ptr is unaligned");
         }
 
         this.alignedPtr = (float*)ptr;

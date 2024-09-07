@@ -91,10 +91,10 @@ public readonly struct CieXyy : IColorProfile<CieXyy, CieXyz>
 
         if (float.IsNaN(x) || float.IsNaN(y))
         {
-            return new CieXyy(0, 0, source.Y);
+            return new(0, 0, source.Y);
         }
 
-        return new CieXyy(x, y, source.Y);
+        return new(x, y, source.Y);
     }
 
     /// <inheritdoc/>
@@ -113,14 +113,14 @@ public readonly struct CieXyy : IColorProfile<CieXyy, CieXyz>
     {
         if (MathF.Abs(this.Y) < Constants.Epsilon)
         {
-            return new CieXyz(0, 0, this.Yl);
+            return new(0, 0, this.Yl);
         }
 
         float x = (this.X * this.Yl) / this.Y;
         float y = this.Yl;
         float z = ((1 - this.X - this.Y) * y) / this.Y;
 
-        return new CieXyz(x, y, z);
+        return new(x, y, z);
     }
 
     /// <inheritdoc/>

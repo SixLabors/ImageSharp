@@ -31,7 +31,7 @@ public class LargeImageIntegrationTests
             Configuration configuration = Configuration.Default.Clone();
             configuration.PreferContiguousImageBuffers = true;
 
-            using Image<Rgba32> image = new Image<Rgba32>(configuration, 2048, 2048);
+            using Image<Rgba32> image = new(configuration, 2048, 2048);
             Assert.True(image.DangerousTryGetSinglePixelMemory(out Memory<Rgba32> mem));
             Assert.Equal(2048 * 2048, mem.Length);
         }

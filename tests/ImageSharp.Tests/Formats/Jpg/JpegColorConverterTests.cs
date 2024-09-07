@@ -637,10 +637,10 @@ public class JpegColorConverterTests
             // no need to dispose when buffer is not array owner
             Memory<float> memory = new(values);
             MemoryGroup<float> source = MemoryGroup<float>.Wrap(memory);
-            buffers[i] = new Buffer2D<float>(source, values.Length, 1);
+            buffers[i] = new(source, values.Length, 1);
         }
 
-        return new JpegColorConverterBase.ComponentValues(buffers, 0);
+        return new(buffers, 0);
     }
 
     private static float[] CreateRandomValues(int length, Random rnd)
@@ -791,7 +791,7 @@ public class JpegColorConverterTests
         float y = values.Component0[i];
         float cb = values.Component1[i];
         float cr = values.Component2[i];
-        Rgb expected = ColorSpaceConverter.Convert<YCbCr, Rgb>(new YCbCr(y, cb, cr));
+        Rgb expected = ColorSpaceConverter.Convert<YCbCr, Rgb>(new(y, cb, cr));
 
         Rgb actual = Rgb.Clamp(new(result.Component0[i], result.Component1[i], result.Component2[i]));
 

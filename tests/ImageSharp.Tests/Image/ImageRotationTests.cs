@@ -12,14 +12,14 @@ public class ImageRotationTests
     public void RotateImageByMinus90Degrees()
     {
         (Size original, Size rotated) = Rotate(-90);
-        Assert.Equal(new Size(original.Height, original.Width), rotated);
+        Assert.Equal(new(original.Height, original.Width), rotated);
     }
 
     [Fact]
     public void RotateImageBy90Degrees()
     {
         (Size original, Size rotated) = Rotate(90);
-        Assert.Equal(new Size(original.Height, original.Width), rotated);
+        Assert.Equal(new(original.Height, original.Width), rotated);
     }
 
     [Fact]
@@ -33,7 +33,7 @@ public class ImageRotationTests
     public void RotateImageBy270Degrees()
     {
         (Size original, Size rotated) = Rotate(270);
-        Assert.Equal(new Size(original.Height, original.Width), rotated);
+        Assert.Equal(new(original.Height, original.Width), rotated);
     }
 
     [Fact]

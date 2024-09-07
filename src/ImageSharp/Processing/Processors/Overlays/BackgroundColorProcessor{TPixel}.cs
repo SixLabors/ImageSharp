@@ -48,7 +48,7 @@ internal class BackgroundColorProcessor<TPixel> : ImageProcessor<TPixel>
 
         PixelBlender<TPixel> blender = PixelOperations<TPixel>.Instance.GetPixelBlender(graphicsOptions);
 
-        RowOperation operation = new RowOperation(configuration, interest, blender, amount, colors, source.PixelBuffer);
+        RowOperation operation = new(configuration, interest, blender, amount, colors, source.PixelBuffer);
         ParallelRowIterator.IterateRows(
             configuration,
             interest,

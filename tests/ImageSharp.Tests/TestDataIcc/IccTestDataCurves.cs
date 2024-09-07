@@ -10,7 +10,7 @@ internal static class IccTestDataCurves
     /// <summary>
     /// Channels: 3
     /// </summary>
-    public static readonly IccResponseCurve Response_ValGrad = new IccResponseCurve(
+    public static readonly IccResponseCurve Response_ValGrad = new(
         IccCurveMeasurementEncodings.StatusA,
         new[]
         {
@@ -48,11 +48,11 @@ internal static class IccTestDataCurves
         new object[] { Response_Grad, Response_ValGrad, 3 },
     };
 
-    public static readonly IccParametricCurve Parametric_ValVar1 = new IccParametricCurve(1);
-    public static readonly IccParametricCurve Parametric_ValVar2 = new IccParametricCurve(1, 2, 3);
-    public static readonly IccParametricCurve Parametric_ValVar3 = new IccParametricCurve(1, 2, 3, 4);
-    public static readonly IccParametricCurve Parametric_ValVar4 = new IccParametricCurve(1, 2, 3, 4, 5);
-    public static readonly IccParametricCurve Parametric_ValVar5 = new IccParametricCurve(1, 2, 3, 4, 5, 6, 7);
+    public static readonly IccParametricCurve Parametric_ValVar1 = new(1);
+    public static readonly IccParametricCurve Parametric_ValVar2 = new(1, 2, 3);
+    public static readonly IccParametricCurve Parametric_ValVar3 = new(1, 2, 3, 4);
+    public static readonly IccParametricCurve Parametric_ValVar4 = new(1, 2, 3, 4, 5);
+    public static readonly IccParametricCurve Parametric_ValVar5 = new(1, 2, 3, 4, 5, 6, 7);
 
     public static readonly byte[] Parametric_Var1 = ArrayHelper.Concat(
         new byte[]
@@ -119,9 +119,9 @@ internal static class IccTestDataCurves
     };
 
     // Formula Segment
-    public static readonly IccFormulaCurveElement Formula_ValVar1 = new IccFormulaCurveElement(IccFormulaCurveType.Type1, 1, 2, 3, 4, 0, 0);
-    public static readonly IccFormulaCurveElement Formula_ValVar2 = new IccFormulaCurveElement(IccFormulaCurveType.Type2, 1, 2, 3, 4, 5, 0);
-    public static readonly IccFormulaCurveElement Formula_ValVar3 = new IccFormulaCurveElement(IccFormulaCurveType.Type3, 0, 2, 3, 4, 5, 6);
+    public static readonly IccFormulaCurveElement Formula_ValVar1 = new(IccFormulaCurveType.Type1, 1, 2, 3, 4, 0, 0);
+    public static readonly IccFormulaCurveElement Formula_ValVar2 = new(IccFormulaCurveType.Type2, 1, 2, 3, 4, 5, 0);
+    public static readonly IccFormulaCurveElement Formula_ValVar3 = new(IccFormulaCurveType.Type3, 0, 2, 3, 4, 5, 6);
 
     public static readonly byte[] Formula_Var1 = ArrayHelper.Concat(
         new byte[]
@@ -166,8 +166,8 @@ internal static class IccTestDataCurves
     };
 
     // Sampled Segment
-    public static readonly IccSampledCurveElement Sampled_ValGrad1 = new IccSampledCurveElement(new float[] { 1, 2, 3, 4, 5, 6, 7, 8, 9 });
-    public static readonly IccSampledCurveElement Sampled_ValGrad2 = new IccSampledCurveElement(new float[] { 9, 8, 7, 6, 5, 4, 3, 2, 1 });
+    public static readonly IccSampledCurveElement Sampled_ValGrad1 = new(new float[] { 1, 2, 3, 4, 5, 6, 7, 8, 9 });
+    public static readonly IccSampledCurveElement Sampled_ValGrad2 = new(new float[] { 9, 8, 7, 6, 5, 4, 3, 2, 1 });
 
     public static readonly byte[] Sampled_Grad1 = ArrayHelper.Concat(
         IccTestDataPrimitives.UInt32_9,
@@ -254,15 +254,15 @@ internal static class IccTestDataCurves
         new object[] { Segment_Sampled2, Segment_ValSampled2 },
     };
 
-    public static readonly IccOneDimensionalCurve OneDimensional_ValFormula1 = new IccOneDimensionalCurve(
+    public static readonly IccOneDimensionalCurve OneDimensional_ValFormula1 = new(
         new float[] { 0, 1 },
         new IccCurveSegment[] { Segment_ValFormula1, Segment_ValFormula2, Segment_ValFormula3 });
 
-    public static readonly IccOneDimensionalCurve OneDimensional_ValFormula2 = new IccOneDimensionalCurve(
+    public static readonly IccOneDimensionalCurve OneDimensional_ValFormula2 = new(
         new float[] { 0, 1 },
         new IccCurveSegment[] { Segment_ValFormula3, Segment_ValFormula2, Segment_ValFormula1 });
 
-    public static readonly IccOneDimensionalCurve OneDimensional_ValSampled = new IccOneDimensionalCurve(
+    public static readonly IccOneDimensionalCurve OneDimensional_ValSampled = new(
         new float[] { 0, 1 },
         new IccCurveSegment[] { Segment_ValSampled1, Segment_ValSampled2, Segment_ValSampled1 });
 

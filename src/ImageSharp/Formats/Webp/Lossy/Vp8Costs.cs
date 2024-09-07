@@ -13,7 +13,7 @@ internal class Vp8Costs
         this.Costs = new Vp8CostArray[WebpConstants.NumCtx];
         for (int i = 0; i < WebpConstants.NumCtx; i++)
         {
-            this.Costs[i] = new Vp8CostArray();
+            this.Costs[i] = new();
         }
     }
 

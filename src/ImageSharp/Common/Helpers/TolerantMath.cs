@@ -20,7 +20,7 @@ internal readonly struct TolerantMath
     /// It is a field so it can be passed as an 'in' parameter.
     /// Does not necessarily fit all use cases!
     /// </summary>
-    public static readonly TolerantMath Default = new TolerantMath(1e-8);
+    public static readonly TolerantMath Default = new(1e-8);
 
     public TolerantMath(double epsilon)
     {

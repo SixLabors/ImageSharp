@@ -470,8 +470,8 @@ internal static class Numerics
         where T : unmanaged
     {
         ref T sRef = ref MemoryMarshal.GetReference(span);
-        Vector<T> vmin = new Vector<T>(min);
-        Vector<T> vmax = new Vector<T>(max);
+        Vector<T> vmin = new(min);
+        Vector<T> vmax = new(max);
 
         nint n = (nint)(uint)span.Length / Vector<T>.Count;
         nint m = Modulo4(n);

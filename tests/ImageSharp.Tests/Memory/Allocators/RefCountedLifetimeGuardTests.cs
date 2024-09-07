@@ -14,7 +14,7 @@ public class RefCountedLifetimeGuardTests
     [InlineData(3)]
     public void Dispose_ResultsInSingleRelease(int disposeCount)
     {
-        MockLifetimeGuard guard = new MockLifetimeGuard();
+        MockLifetimeGuard guard = new();
         Assert.Equal(0, guard.ReleaseInvocationCount);
 
         for (int i = 0; i < disposeCount; i++)
@@ -45,7 +45,7 @@ public class RefCountedLifetimeGuardTests
     [InlineData(3)]
     public void AddRef_PreventsReleaseOnDispose(int addRefCount)
     {
-        MockLifetimeGuard guard = new MockLifetimeGuard();
+        MockLifetimeGuard guard = new();
 
         for (int i = 0; i < addRefCount; i++)
         {
@@ -80,7 +80,7 @@ public class RefCountedLifetimeGuardTests
     [Fact]
     public void AddRefReleaseRefMisuse_DoesntLeadToMultipleReleases()
     {
-        MockLifetimeGuard guard = new MockLifetimeGuard();
+        MockLifetimeGuard guard = new();
         guard.Dispose();
         guard.AddRef();
         guard.ReleaseRef();
@@ -92,7 +92,7 @@ public class RefCountedLifetimeGuardTests
     public void UnmanagedBufferLifetimeGuard_Handle_IsReturnedByRef()
     {
         UnmanagedMemoryHandle h = UnmanagedMemoryHandle.Allocate(10);
-        using UnmanagedBufferLifetimeGuard.FreeHandle guard = new UnmanagedBufferLifetimeGuard.FreeHandle(h);
+        using UnmanagedBufferLifetimeGuard.FreeHandle guard = new(h);
         Assert.True(guard.Handle.IsValid);
         guard.Handle.Free();
         Assert.False(guard.Handle.IsValid);
@@ -101,7 +101,7 @@ public class RefCountedLifetimeGuardTests
     [MethodImpl(MethodImplOptions.NoInlining)]
     private static void LeakGuard(bool addRef)
     {
-        MockLifetimeGuard guard = new MockLifetimeGuard();
+        MockLifetimeGuard guard = new();
         if (addRef)
         {
             guard.AddRef();

@@ -57,11 +57,11 @@ internal class ConvolutionProcessor<TPixel> : ImageProcessor<TPixel>
 
         Rectangle interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds());
 
-        using (KernelSamplingMap map = new KernelSamplingMap(allocator))
+        using (KernelSamplingMap map = new(allocator))
         {
             map.BuildSamplingOffsetMap(this.KernelXY, interest);
 
-            RowOperation operation = new RowOperation(interest, targetPixels, source.PixelBuffer, map, this.KernelXY, this.Configuration, this.PreserveAlpha);
+            RowOperation operation = new(interest, targetPixels, source.PixelBuffer, map, this.KernelXY, this.Configuration, this.PreserveAlpha);
             ParallelRowIterator.IterateRows<RowOperation, Vector4>(
                this.Configuration,
                interest,
@@ -121,7 +121,7 @@ internal class ConvolutionProcessor<TPixel> : ImageProcessor<TPixel>
             ref Vector4 targetRowRef = ref MemoryMarshal.GetReference(span);
             Span<TPixel> targetRowSpan = this.targetPixels.DangerousGetRowSpan(y).Slice(boundsX, boundsWidth);
 
-            ConvolutionState state = new ConvolutionState(in this.kernel, this.map);
+            ConvolutionState state = new(in this.kernel, this.map);
             int row = y - this.bounds.Y;
             ref int sampleRowBase = ref state.GetSampleRow((uint)row);
 

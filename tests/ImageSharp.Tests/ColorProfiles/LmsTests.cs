@@ -34,8 +34,8 @@ public class LmsTests
         Assert.True(new Lms(1, 0, 1) != default);
         Assert.False(new Lms(1, 0, 1) == default);
         Assert.Equal(default, default(Lms));
-        Assert.Equal(new Lms(1, 0, 1), new Lms(1, 0, 1));
-        Assert.Equal(new Lms(Vector3.One), new Lms(Vector3.One));
+        Assert.Equal(new(1, 0, 1), new Lms(1, 0, 1));
+        Assert.Equal(new(Vector3.One), new Lms(Vector3.One));
         Assert.False(x.Equals(y));
         Assert.False(x.Equals((object)y));
         Assert.False(x.GetHashCode().Equals(y.GetHashCode()));

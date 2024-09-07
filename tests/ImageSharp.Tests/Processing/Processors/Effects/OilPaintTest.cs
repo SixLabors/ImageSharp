@@ -11,8 +11,8 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Effects;
 [GroupOutput("Effects")]
 public class OilPaintTest
 {
-    public static readonly TheoryData<int, int> OilPaintValues = new TheoryData<int, int>
-                                                                     {
+    public static readonly TheoryData<int, int> OilPaintValues = new()
+    {
                                                                          { 15, 10 },
                                                                          { 6, 5 }
                                                                      };
@@ -49,7 +49,7 @@ public class OilPaintTest
     [Fact]
     public void Issue2518_PixelComponentOutsideOfRange_ThrowsImageProcessingException()
     {
-        using Image<RgbaVector> image = new(10, 10, new RgbaVector(1, 1, 100));
+        using Image<RgbaVector> image = new(10, 10, new(1, 1, 100));
         Assert.Throws<ImageProcessingException>(() => image.Mutate(ctx => ctx.OilPaint()));
     }
 }

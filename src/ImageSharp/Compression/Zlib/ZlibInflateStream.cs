@@ -270,7 +270,7 @@ internal sealed class ZlibInflateStream : Stream
         }
 
         // Initialize the deflate BufferedReadStream.
-        this.CompressedStream = new DeflateStream(this, CompressionMode.Decompress, true);
+        this.CompressedStream = new(this, CompressionMode.Decompress, true);
 
         return true;
     }

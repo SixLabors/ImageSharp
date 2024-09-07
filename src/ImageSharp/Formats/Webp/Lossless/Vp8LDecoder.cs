@@ -22,7 +22,7 @@ internal class Vp8LDecoder : IDisposable
     {
         this.Width = width;
         this.Height = height;
-        this.Metadata = new Vp8LMetadata();
+        this.Metadata = new();
         this.Pixels = memoryAllocator.Allocate<uint>(width * height, AllocationOptions.Clean);
     }
 

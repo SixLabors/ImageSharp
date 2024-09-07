@@ -153,7 +153,7 @@ internal readonly struct MedianRowOperation<TPixel> : IRowOperation<Vector4>
 
         // Taking the W value from the source pixels, where the middle index in the kernelSpan is by definition the resulting pixel.
         // This will preserve the alpha value.
-        return new Vector4(xChannel[halfLength], yChannel[halfLength], zChannel[halfLength], kernelSpan[halfLength].W);
+        return new(xChannel[halfLength], yChannel[halfLength], zChannel[halfLength], kernelSpan[halfLength].W);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -176,6 +176,6 @@ internal readonly struct MedianRowOperation<TPixel> : IRowOperation<Vector4>
         zChannel.Sort();
         wChannel.Sort();
 
-        return new Vector4(xChannel[halfLength], yChannel[halfLength], zChannel[halfLength], wChannel[halfLength]);
+        return new(xChannel[halfLength], yChannel[halfLength], zChannel[halfLength], wChannel[halfLength]);
     }
 }

@@ -9,9 +9,9 @@ namespace SixLabors.ImageSharp.Tests;
 
 internal static class IccTestDataNonPrimitives
 {
-    public static readonly DateTime DateTime_ValMin = new DateTime(1, 1, 1, 0, 0, 0, DateTimeKind.Utc);
-    public static readonly DateTime DateTime_ValMax = new DateTime(9999, 12, 31, 23, 59, 59, DateTimeKind.Utc);
-    public static readonly DateTime DateTime_ValRand1 = new DateTime(1990, 11, 26, 3, 19, 47, DateTimeKind.Utc);
+    public static readonly DateTime DateTime_ValMin = new(1, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+    public static readonly DateTime DateTime_ValMax = new(9999, 12, 31, 23, 59, 59, DateTimeKind.Utc);
+    public static readonly DateTime DateTime_ValRand1 = new(1990, 11, 26, 3, 19, 47, DateTimeKind.Utc);
 
     public static readonly byte[] DateTime_Min =
     {
@@ -60,10 +60,10 @@ internal static class IccTestDataNonPrimitives
         new object[] { DateTime_Rand1, DateTime_ValRand1 },
     };
 
-    public static readonly IccVersion VersionNumber_ValMin = new IccVersion(0, 0, 0);
-    public static readonly IccVersion VersionNumber_Val211 = new IccVersion(2, 1, 1);
-    public static readonly IccVersion VersionNumber_Val430 = new IccVersion(4, 3, 0);
-    public static readonly IccVersion VersionNumber_ValMax = new IccVersion(255, 15, 15);
+    public static readonly IccVersion VersionNumber_ValMin = new(0, 0, 0);
+    public static readonly IccVersion VersionNumber_Val211 = new(2, 1, 1);
+    public static readonly IccVersion VersionNumber_Val430 = new(4, 3, 0);
+    public static readonly IccVersion VersionNumber_ValMax = new(255, 15, 15);
 
     public static readonly byte[] VersionNumber_Min = { 0x00, 0x00, 0x00, 0x00 };
     public static readonly byte[] VersionNumber_211 = { 0x02, 0x11, 0x00, 0x00 };
@@ -78,13 +78,13 @@ internal static class IccTestDataNonPrimitives
         new object[] { VersionNumber_Max, VersionNumber_ValMax },
     };
 
-    public static readonly Vector3 XyzNumber_ValMin = new Vector3(IccTestDataPrimitives.Fix16_ValMin, IccTestDataPrimitives.Fix16_ValMin, IccTestDataPrimitives.Fix16_ValMin);
-    public static readonly Vector3 XyzNumber_Val0 = new Vector3(0, 0, 0);
-    public static readonly Vector3 XyzNumber_Val1 = new Vector3(1, 1, 1);
-    public static readonly Vector3 XyzNumber_ValVar1 = new Vector3(1, 2, 3);
-    public static readonly Vector3 XyzNumber_ValVar2 = new Vector3(4, 5, 6);
-    public static readonly Vector3 XyzNumber_ValVar3 = new Vector3(7, 8, 9);
-    public static readonly Vector3 XyzNumber_ValMax = new Vector3(IccTestDataPrimitives.Fix16_ValMax, IccTestDataPrimitives.Fix16_ValMax, IccTestDataPrimitives.Fix16_ValMax);
+    public static readonly Vector3 XyzNumber_ValMin = new(IccTestDataPrimitives.Fix16_ValMin, IccTestDataPrimitives.Fix16_ValMin, IccTestDataPrimitives.Fix16_ValMin);
+    public static readonly Vector3 XyzNumber_Val0 = new(0, 0, 0);
+    public static readonly Vector3 XyzNumber_Val1 = new(1, 1, 1);
+    public static readonly Vector3 XyzNumber_ValVar1 = new(1, 2, 3);
+    public static readonly Vector3 XyzNumber_ValVar2 = new(4, 5, 6);
+    public static readonly Vector3 XyzNumber_ValVar3 = new(7, 8, 9);
+    public static readonly Vector3 XyzNumber_ValMax = new(IccTestDataPrimitives.Fix16_ValMax, IccTestDataPrimitives.Fix16_ValMax, IccTestDataPrimitives.Fix16_ValMax);
 
     public static readonly byte[] XyzNumber_Min = ArrayHelper.Concat(IccTestDataPrimitives.Fix16_Min, IccTestDataPrimitives.Fix16_Min, IccTestDataPrimitives.Fix16_Min);
     public static readonly byte[] XyzNumber_0 = ArrayHelper.Concat(IccTestDataPrimitives.Fix16_0, IccTestDataPrimitives.Fix16_0, IccTestDataPrimitives.Fix16_0);
@@ -102,9 +102,9 @@ internal static class IccTestDataNonPrimitives
         new object[] { XyzNumber_Max, XyzNumber_ValMax },
     };
 
-    public static readonly IccProfileId ProfileId_ValMin = new IccProfileId(0, 0, 0, 0);
-    public static readonly IccProfileId ProfileId_ValRand = new IccProfileId(IccTestDataPrimitives.UInt32_ValRand1, IccTestDataPrimitives.UInt32_ValRand2, IccTestDataPrimitives.UInt32_ValRand3, IccTestDataPrimitives.UInt32_ValRand4);
-    public static readonly IccProfileId ProfileId_ValMax = new IccProfileId(uint.MaxValue, uint.MaxValue, uint.MaxValue, uint.MaxValue);
+    public static readonly IccProfileId ProfileId_ValMin = new(0, 0, 0, 0);
+    public static readonly IccProfileId ProfileId_ValRand = new(IccTestDataPrimitives.UInt32_ValRand1, IccTestDataPrimitives.UInt32_ValRand2, IccTestDataPrimitives.UInt32_ValRand3, IccTestDataPrimitives.UInt32_ValRand4);
+    public static readonly IccProfileId ProfileId_ValMax = new(uint.MaxValue, uint.MaxValue, uint.MaxValue, uint.MaxValue);
 
     public static readonly byte[] ProfileId_Min = ArrayHelper.Concat(IccTestDataPrimitives.UInt32_0, IccTestDataPrimitives.UInt32_0, IccTestDataPrimitives.UInt32_0, IccTestDataPrimitives.UInt32_0);
     public static readonly byte[] ProfileId_Rand = ArrayHelper.Concat(IccTestDataPrimitives.UInt32_Rand1, IccTestDataPrimitives.UInt32_Rand2, IccTestDataPrimitives.UInt32_Rand3, IccTestDataPrimitives.UInt32_Rand4);
@@ -117,9 +117,9 @@ internal static class IccTestDataNonPrimitives
         new object[] { ProfileId_Max, ProfileId_ValMax },
     };
 
-    public static readonly IccPositionNumber PositionNumber_ValMin = new IccPositionNumber(0, 0);
-    public static readonly IccPositionNumber PositionNumber_ValRand = new IccPositionNumber(IccTestDataPrimitives.UInt32_ValRand1, IccTestDataPrimitives.UInt32_ValRand2);
-    public static readonly IccPositionNumber PositionNumber_ValMax = new IccPositionNumber(uint.MaxValue, uint.MaxValue);
+    public static readonly IccPositionNumber PositionNumber_ValMin = new(0, 0);
+    public static readonly IccPositionNumber PositionNumber_ValRand = new(IccTestDataPrimitives.UInt32_ValRand1, IccTestDataPrimitives.UInt32_ValRand2);
+    public static readonly IccPositionNumber PositionNumber_ValMax = new(uint.MaxValue, uint.MaxValue);
 
     public static readonly byte[] PositionNumber_Min = ArrayHelper.Concat(IccTestDataPrimitives.UInt32_0, IccTestDataPrimitives.UInt32_0);
     public static readonly byte[] PositionNumber_Rand = ArrayHelper.Concat(IccTestDataPrimitives.UInt32_Rand1, IccTestDataPrimitives.UInt32_Rand2);
@@ -132,17 +132,17 @@ internal static class IccTestDataNonPrimitives
         new object[] { PositionNumber_Max, PositionNumber_ValMax },
     };
 
-    public static readonly IccResponseNumber ResponseNumber_ValMin = new IccResponseNumber(0, IccTestDataPrimitives.Fix16_ValMin);
-    public static readonly IccResponseNumber ResponseNumber_Val1 = new IccResponseNumber(1, 1);
-    public static readonly IccResponseNumber ResponseNumber_Val2 = new IccResponseNumber(2, 2);
-    public static readonly IccResponseNumber ResponseNumber_Val3 = new IccResponseNumber(3, 3);
-    public static readonly IccResponseNumber ResponseNumber_Val4 = new IccResponseNumber(4, 4);
-    public static readonly IccResponseNumber ResponseNumber_Val5 = new IccResponseNumber(5, 5);
-    public static readonly IccResponseNumber ResponseNumber_Val6 = new IccResponseNumber(6, 6);
-    public static readonly IccResponseNumber ResponseNumber_Val7 = new IccResponseNumber(7, 7);
-    public static readonly IccResponseNumber ResponseNumber_Val8 = new IccResponseNumber(8, 8);
-    public static readonly IccResponseNumber ResponseNumber_Val9 = new IccResponseNumber(9, 9);
-    public static readonly IccResponseNumber ResponseNumber_ValMax = new IccResponseNumber(ushort.MaxValue, IccTestDataPrimitives.Fix16_ValMax);
+    public static readonly IccResponseNumber ResponseNumber_ValMin = new(0, IccTestDataPrimitives.Fix16_ValMin);
+    public static readonly IccResponseNumber ResponseNumber_Val1 = new(1, 1);
+    public static readonly IccResponseNumber ResponseNumber_Val2 = new(2, 2);
+    public static readonly IccResponseNumber ResponseNumber_Val3 = new(3, 3);
+    public static readonly IccResponseNumber ResponseNumber_Val4 = new(4, 4);
+    public static readonly IccResponseNumber ResponseNumber_Val5 = new(5, 5);
+    public static readonly IccResponseNumber ResponseNumber_Val6 = new(6, 6);
+    public static readonly IccResponseNumber ResponseNumber_Val7 = new(7, 7);
+    public static readonly IccResponseNumber ResponseNumber_Val8 = new(8, 8);
+    public static readonly IccResponseNumber ResponseNumber_Val9 = new(9, 9);
+    public static readonly IccResponseNumber ResponseNumber_ValMax = new(ushort.MaxValue, IccTestDataPrimitives.Fix16_ValMax);
 
     public static readonly byte[] ResponseNumber_Min = ArrayHelper.Concat(IccTestDataPrimitives.UInt16_0, IccTestDataPrimitives.Fix16_Min);
     public static readonly byte[] ResponseNumber_1 = ArrayHelper.Concat(IccTestDataPrimitives.UInt16_1, IccTestDataPrimitives.Fix16_1);
@@ -164,17 +164,17 @@ internal static class IccTestDataNonPrimitives
         new object[] { ResponseNumber_Max, ResponseNumber_ValMax },
     };
 
-    public static readonly IccNamedColor NamedColor_ValMin = new IccNamedColor(
+    public static readonly IccNamedColor NamedColor_ValMin = new(
         ArrayHelper.Fill('A', 31),
         new ushort[] { 0, 0, 0 },
         new ushort[] { 0, 0, 0 });
 
-    public static readonly IccNamedColor NamedColor_ValRand = new IccNamedColor(
+    public static readonly IccNamedColor NamedColor_ValRand = new(
         ArrayHelper.Fill('5', 31),
         new ushort[] { 10794, 10794, 10794 },
         new ushort[] { 17219, 17219, 17219, 17219, 17219 });
 
-    public static readonly IccNamedColor NamedColor_ValMax = new IccNamedColor(
+    public static readonly IccNamedColor NamedColor_ValMax = new(
         ArrayHelper.Fill('4', 31),
         new ushort[] { ushort.MaxValue, ushort.MaxValue, ushort.MaxValue },
         new ushort[] { ushort.MaxValue, ushort.MaxValue, ushort.MaxValue, ushort.MaxValue });
@@ -216,11 +216,11 @@ internal static class IccTestDataNonPrimitives
         new object[] { NamedColor_Max, NamedColor_ValMax, 4u },
     };
 
-    private static readonly CultureInfo CultureEnUs = new CultureInfo("en-US");
-    private static readonly CultureInfo CultureDeAT = new CultureInfo("de-AT");
+    private static readonly CultureInfo CultureEnUs = new("en-US");
+    private static readonly CultureInfo CultureDeAT = new("de-AT");
 
-    private static readonly IccLocalizedString LocalizedString_Rand1 = new IccLocalizedString(CultureEnUs, IccTestDataPrimitives.Unicode_ValRand2);
-    private static readonly IccLocalizedString LocalizedString_Rand2 = new IccLocalizedString(CultureDeAT, IccTestDataPrimitives.Unicode_ValRand3);
+    private static readonly IccLocalizedString LocalizedString_Rand1 = new(CultureEnUs, IccTestDataPrimitives.Unicode_ValRand2);
+    private static readonly IccLocalizedString LocalizedString_Rand2 = new(CultureDeAT, IccTestDataPrimitives.Unicode_ValRand3);
 
     private static readonly IccLocalizedString[] LocalizedString_RandArr1 = new IccLocalizedString[]
     {
@@ -228,7 +228,7 @@ internal static class IccTestDataNonPrimitives
         LocalizedString_Rand2,
     };
 
-    private static readonly IccMultiLocalizedUnicodeTagDataEntry MultiLocalizedUnicode_Val = new IccMultiLocalizedUnicodeTagDataEntry(LocalizedString_RandArr1);
+    private static readonly IccMultiLocalizedUnicodeTagDataEntry MultiLocalizedUnicode_Val = new(LocalizedString_RandArr1);
     private static readonly byte[] MultiLocalizedUnicode_Arr = ArrayHelper.Concat(
         IccTestDataPrimitives.UInt32_2,
         new byte[] { 0x00, 0x00, 0x00, 0x0C }, // 12
@@ -241,7 +241,7 @@ internal static class IccTestDataNonPrimitives
         IccTestDataPrimitives.Unicode_Rand2,
         IccTestDataPrimitives.Unicode_Rand3);
 
-    public static readonly IccTextDescriptionTagDataEntry TextDescription_Val1 = new IccTextDescriptionTagDataEntry(
+    public static readonly IccTextDescriptionTagDataEntry TextDescription_Val1 = new(
         IccTestDataPrimitives.Ascii_ValRand,
         IccTestDataPrimitives.Unicode_ValRand1,
         ArrayHelper.Fill('A', 66),
@@ -260,7 +260,7 @@ internal static class IccTestDataNonPrimitives
         ArrayHelper.Fill((byte)0x41, 66),
         new byte[] { 0x00 }); // Null terminator
 
-    public static readonly IccProfileDescription ProfileDescription_ValRand1 = new IccProfileDescription(
+    public static readonly IccProfileDescription ProfileDescription_ValRand1 = new(
         1,
         2,
         IccDeviceAttribute.ChromaBlackWhite | IccDeviceAttribute.ReflectivityMatte,
@@ -268,7 +268,7 @@ internal static class IccTestDataNonPrimitives
         MultiLocalizedUnicode_Val.Texts,
         MultiLocalizedUnicode_Val.Texts);
 
-    public static readonly IccProfileDescription ProfileDescription_ValRand2 = new IccProfileDescription(
+    public static readonly IccProfileDescription ProfileDescription_ValRand2 = new(
         1,
         2,
         IccDeviceAttribute.ChromaBlackWhite | IccDeviceAttribute.ReflectivityMatte,
@@ -311,8 +311,8 @@ internal static class IccTestDataNonPrimitives
         new object[] { ProfileDescription_Rand1, ProfileDescription_ValRand1 },
     };
 
-    public static readonly IccColorantTableEntry ColorantTableEntry_ValRand1 = new IccColorantTableEntry(ArrayHelper.Fill('A', 31), 1, 2, 3);
-    public static readonly IccColorantTableEntry ColorantTableEntry_ValRand2 = new IccColorantTableEntry(ArrayHelper.Fill('4', 31), 4, 5, 6);
+    public static readonly IccColorantTableEntry ColorantTableEntry_ValRand1 = new(ArrayHelper.Fill('A', 31), 1, 2, 3);
+    public static readonly IccColorantTableEntry ColorantTableEntry_ValRand2 = new(ArrayHelper.Fill('4', 31), 4, 5, 6);
 
     public static readonly byte[] ColorantTableEntry_Rand1 = ArrayHelper.Concat(
         ArrayHelper.Fill((byte)0x41, 31),
@@ -334,8 +334,8 @@ internal static class IccTestDataNonPrimitives
         new object[] { ColorantTableEntry_Rand2, ColorantTableEntry_ValRand2 },
     };
 
-    public static readonly IccScreeningChannel ScreeningChannel_ValRand1 = new IccScreeningChannel(4, 6, IccScreeningSpotType.Cross);
-    public static readonly IccScreeningChannel ScreeningChannel_ValRand2 = new IccScreeningChannel(8, 5, IccScreeningSpotType.Diamond);
+    public static readonly IccScreeningChannel ScreeningChannel_ValRand1 = new(4, 6, IccScreeningSpotType.Cross);
+    public static readonly IccScreeningChannel ScreeningChannel_ValRand2 = new(8, 5, IccScreeningSpotType.Diamond);
 
     public static readonly byte[] ScreeningChannel_Rand1 = ArrayHelper.Concat(
         IccTestDataPrimitives.Fix16_4,

@@ -57,19 +57,19 @@ internal partial struct Block8x8F
             ref Vector4 dTopLeft = ref Unsafe.As<Vector2, Vector4>(ref Unsafe.Add(ref destBase, offset));
             ref Vector4 dBottomLeft = ref Unsafe.As<Vector2, Vector4>(ref Unsafe.Add(ref destBase, offset + destStride));
 
-            Vector4 xyLeft = new Vector4(sLeft.X);
+            Vector4 xyLeft = new(sLeft.X);
             xyLeft.Z = sLeft.Y;
             xyLeft.W = sLeft.Y;
 
-            Vector4 zwLeft = new Vector4(sLeft.Z);
+            Vector4 zwLeft = new(sLeft.Z);
             zwLeft.Z = sLeft.W;
             zwLeft.W = sLeft.W;
 
-            Vector4 xyRight = new Vector4(sRight.X);
+            Vector4 xyRight = new(sRight.X);
             xyRight.Z = sRight.Y;
             xyRight.W = sRight.Y;
 
-            Vector4 zwRight = new Vector4(sRight.Z);
+            Vector4 zwRight = new(sRight.Z);
             zwRight.Z = sRight.W;
             zwRight.W = sRight.W;
 

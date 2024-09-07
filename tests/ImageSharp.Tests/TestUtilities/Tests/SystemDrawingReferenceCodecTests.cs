@@ -36,7 +36,7 @@ public class SystemDrawingReferenceCodecTests
     {
         string path = TestFile.GetInputFileFullPath(TestImages.Png.Splash);
 
-        using Bitmap sdBitmap = new System.Drawing.Bitmap(path);
+        using Bitmap sdBitmap = new(path);
         using Image<TPixel> image = SystemDrawingBridge.From32bppArgbSystemDrawingBitmap<TPixel>(sdBitmap);
         image.DebugSave(dummyProvider);
     }
@@ -50,7 +50,7 @@ public class SystemDrawingReferenceCodecTests
             sourceImage.Mutate(c => c.MakeOpaque());
         }
 
-        PngEncoder encoder = new PngEncoder { ColorType = pngColorType };
+        PngEncoder encoder = new() { ColorType = pngColorType };
         return provider.Utility.SaveTestOutputFile(sourceImage, "png", encoder);
     }
 
@@ -66,7 +66,7 @@ public class SystemDrawingReferenceCodecTests
 
         string path = SavePng(provider, PngColorType.RgbWithAlpha);
 
-        using Bitmap sdBitmap = new System.Drawing.Bitmap(path);
+        using Bitmap sdBitmap = new(path);
         using Image<TPixel> original = provider.GetImage();
         using Image<TPixel> resaved = SystemDrawingBridge.From32bppArgbSystemDrawingBitmap<TPixel>(sdBitmap);
         ImageComparer comparer = ImageComparer.Exact;
@@ -81,7 +81,7 @@ public class SystemDrawingReferenceCodecTests
         string path = SavePng(provider, PngColorType.Rgb);
 
         using Image<TPixel> original = provider.GetImage();
-        using Bitmap sdBitmap = new System.Drawing.Bitmap(path);
+        using Bitmap sdBitmap = new(path);
         using Image<TPixel> resaved = SystemDrawingBridge.From24bppRgbSystemDrawingBitmap<TPixel>(sdBitmap);
         ImageComparer comparer = ImageComparer.Exact;
         comparer.VerifySimilarity(original, resaved);

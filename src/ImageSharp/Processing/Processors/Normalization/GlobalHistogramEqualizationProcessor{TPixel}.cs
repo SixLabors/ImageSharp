@@ -51,7 +51,7 @@ internal class GlobalHistogramEqualizationProcessor<TPixel> : HistogramEqualizat
         using IMemoryOwner<int> histogramBuffer = memoryAllocator.Allocate<int>(this.LuminanceLevels, AllocationOptions.Clean);
 
         // Build the histogram of the grayscale levels.
-        GrayscaleLevelsRowOperation<TPixel> grayscaleOperation = new GrayscaleLevelsRowOperation<TPixel>(this.Configuration, interest, histogramBuffer, source.PixelBuffer, this.LuminanceLevels);
+        GrayscaleLevelsRowOperation<TPixel> grayscaleOperation = new(this.Configuration, interest, histogramBuffer, source.PixelBuffer, this.LuminanceLevels);
         ParallelRowIterator.IterateRows<GrayscaleLevelsRowOperation<TPixel>, Vector4>(
             this.Configuration,
             interest,
@@ -74,7 +74,7 @@ internal class GlobalHistogramEqualizationProcessor<TPixel> : HistogramEqualizat
         float numberOfPixelsMinusCdfMin = numberOfPixels - cdfMin;
 
         // Apply the cdf to each pixel of the image
-        CdfApplicationRowOperation cdfOperation = new CdfApplicationRowOperation(this.Configuration, interest, cdfBuffer, source.PixelBuffer, this.LuminanceLevels, numberOfPixelsMinusCdfMin);
+        CdfApplicationRowOperation cdfOperation = new(this.Configuration, interest, cdfBuffer, source.PixelBuffer, this.LuminanceLevels, numberOfPixelsMinusCdfMin);
         ParallelRowIterator.IterateRows<CdfApplicationRowOperation, Vector4>(
             this.Configuration,
             interest,
@@ -132,7 +132,7 @@ internal class GlobalHistogramEqualizationProcessor<TPixel> : HistogramEqualizat
                 Vector4 vector = Unsafe.Add(ref vectorRef, (uint)x);
                 int luminance = ColorNumerics.GetBT709Luminance(ref vector, levels);
                 float luminanceEqualized = Unsafe.Add(ref cdfBase, (uint)luminance) / noOfPixelsMinusCdfMin;
-                Unsafe.Add(ref vectorRef, (uint)x) = new Vector4(luminanceEqualized, luminanceEqualized, luminanceEqualized, vector.W);
+                Unsafe.Add(ref vectorRef, (uint)x) = new(luminanceEqualized, luminanceEqualized, luminanceEqualized, vector.W);
             }
 
             PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, vectorBuffer, pixelRow);

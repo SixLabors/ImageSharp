@@ -55,7 +55,7 @@ public partial class UniformUnmanagedMemoryPoolTests
     [InlineData(7, 4)]
     public void Constructor_InitializesProperties(int arrayLength, int capacity)
     {
-        UniformUnmanagedMemoryPool pool = new UniformUnmanagedMemoryPool(arrayLength, capacity);
+        UniformUnmanagedMemoryPool pool = new(arrayLength, capacity);
         Assert.Equal(arrayLength, pool.BufferLength);
         Assert.Equal(capacity, pool.Capacity);
     }
@@ -65,8 +65,8 @@ public partial class UniformUnmanagedMemoryPoolTests
     [InlineData(8, 10)]
     public void Rent_SingleBuffer_ReturnsCorrectBuffer(int length, int capacity)
     {
-        UniformUnmanagedMemoryPool pool = new UniformUnmanagedMemoryPool(length, capacity);
-        using CleanupUtil cleanup = new CleanupUtil(pool);
+        UniformUnmanagedMemoryPool pool = new(length, capacity);
+        using CleanupUtil cleanup = new(pool);
 
         for (int i = 0; i < capacity; i++)
         {
@@ -83,7 +83,7 @@ public partial class UniformUnmanagedMemoryPoolTests
 
         static void RunTest()
         {
-            UniformUnmanagedMemoryPool pool = new UniformUnmanagedMemoryPool(16, 16);
+            UniformUnmanagedMemoryPool pool = new(16, 16);
             UnmanagedMemoryHandle a = pool.Rent();
             UnmanagedMemoryHandle[] b = pool.Rent(2);
 
@@ -105,7 +105,7 @@ public partial class UniformUnmanagedMemoryPoolTests
         Assert.True(span.SequenceEqual(expected));
     }
 
-    private static unsafe Span<byte> GetSpan(UnmanagedMemoryHandle h, int length) => new Span<byte>(h.Pointer, length);
+    private static unsafe Span<byte> GetSpan(UnmanagedMemoryHandle h, int length) => new(h.Pointer, length);
 
     [Theory]
     [InlineData(1, 1)]
@@ -114,8 +114,8 @@ public partial class UniformUnmanagedMemoryPoolTests
     [InlineData(5, 10)]
     public void Rent_MultiBuffer_ReturnsCorrectBuffers(int length, int bufferCount)
     {
-        UniformUnmanagedMemoryPool pool = new UniformUnmanagedMemoryPool(length, 10);
-        using CleanupUtil cleanup = new CleanupUtil(pool);
+        UniformUnmanagedMemoryPool pool = new(length, 10);
+        using CleanupUtil cleanup = new(pool);
         UnmanagedMemoryHandle[] handles = pool.Rent(bufferCount);
         cleanup.Register(handles);
 
@@ -131,8 +131,8 @@ public partial class UniformUnmanagedMemoryPoolTests
     [Fact]
     public void Rent_MultipleTimesWithoutReturn_ReturnsDifferentHandles()
     {
-        UniformUnmanagedMemoryPool pool = new UniformUnmanagedMemoryPool(128, 10);
-        using CleanupUtil cleanup = new CleanupUtil(pool);
+        UniformUnmanagedMemoryPool pool = new(128, 10);
+        using CleanupUtil cleanup = new(pool);
         UnmanagedMemoryHandle[] a = pool.Rent(2);
         cleanup.Register(a);
         UnmanagedMemoryHandle b = pool.Rent();
@@ -149,10 +149,10 @@ public partial class UniformUnmanagedMemoryPoolTests
     [InlineData(12, 4, 12)]
     public void RentReturnRent_SameBuffers(int totalCount, int rentUnit, int capacity)
     {
-        UniformUnmanagedMemoryPool pool = new UniformUnmanagedMemoryPool(128, capacity);
-        using CleanupUtil cleanup = new CleanupUtil(pool);
-        HashSet<UnmanagedMemoryHandle> allHandles = new HashSet<UnmanagedMemoryHandle>();
-        List<UnmanagedMemoryHandle[]> handleUnits = new List<UnmanagedMemoryHandle[]>();
+        UniformUnmanagedMemoryPool pool = new(128, capacity);
+        using CleanupUtil cleanup = new(pool);
+        HashSet<UnmanagedMemoryHandle> allHandles = new();
+        List<UnmanagedMemoryHandle[]> handleUnits = new();
 
         UnmanagedMemoryHandle[] handles;
         for (int i = 0; i < totalCount; i += rentUnit)
@@ -197,8 +197,8 @@ public partial class UniformUnmanagedMemoryPoolTests
     [Fact]
     public void Rent_SingleBuffer_OverCapacity_ReturnsInvalidBuffer()
     {
-        UniformUnmanagedMemoryPool pool = new UniformUnmanagedMemoryPool(7, 1000);
-        using CleanupUtil cleanup = new CleanupUtil(pool);
+        UniformUnmanagedMemoryPool pool = new(7, 1000);
+        using CleanupUtil cleanup = new(pool);
         UnmanagedMemoryHandle[] initial = pool.Rent(1000);
         Assert.NotNull(initial);
         cleanup.Register(initial);
@@ -212,8 +212,8 @@ public partial class UniformUnmanagedMemoryPoolTests
     [InlineData(4, 7, 10)]
     public void Rent_MultiBuffer_OverCapacity_ReturnsNull(int initialRent, int attempt, int capacity)
     {
-        UniformUnmanagedMemoryPool pool = new UniformUnmanagedMemoryPool(128, capacity);
-        using CleanupUtil cleanup = new CleanupUtil(pool);
+        UniformUnmanagedMemoryPool pool = new(128, capacity);
+        using CleanupUtil cleanup = new(pool);
         UnmanagedMemoryHandle[] initial = pool.Rent(initialRent);
         Assert.NotNull(initial);
         cleanup.Register(initial);
@@ -228,8 +228,8 @@ public partial class UniformUnmanagedMemoryPoolTests
     [InlineData(3, 3, 7)]
     public void Rent_MultiBuff_BelowCapacity_Succeeds(int initialRent, int attempt, int capacity)
     {
-        UniformUnmanagedMemoryPool pool = new UniformUnmanagedMemoryPool(128, capacity);
-        using CleanupUtil cleanup = new CleanupUtil(pool);
+        UniformUnmanagedMemoryPool pool = new(128, capacity);
+        using CleanupUtil cleanup = new(pool);
         UnmanagedMemoryHandle[] b0 = pool.Rent(initialRent);
         Assert.NotNull(b0);
         cleanup.Register(b0);
@@ -250,8 +250,8 @@ public partial class UniformUnmanagedMemoryPoolTests
 
         static void RunTest(string multipleInner)
         {
-            UniformUnmanagedMemoryPool pool = new UniformUnmanagedMemoryPool(16, 16);
-            using CleanupUtil cleanup = new CleanupUtil(pool);
+            UniformUnmanagedMemoryPool pool = new(16, 16);
+            using CleanupUtil cleanup = new(pool);
             UnmanagedMemoryHandle b0 = pool.Rent();
             IntPtr h0 = b0.Handle;
             UnmanagedMemoryHandle b1 = pool.Rent();
@@ -290,7 +290,7 @@ public partial class UniformUnmanagedMemoryPoolTests
 
         static void RunTest()
         {
-            UniformUnmanagedMemoryPool pool = new UniformUnmanagedMemoryPool(16, 16);
+            UniformUnmanagedMemoryPool pool = new(16, 16);
             UnmanagedMemoryHandle a = pool.Rent();
             UnmanagedMemoryHandle[] b = pool.Rent(2);
             pool.Return(a);
@@ -306,13 +306,13 @@ public partial class UniformUnmanagedMemoryPoolTests
     public void RentReturn_IsThreadSafe()
     {
         int count = Environment.ProcessorCount * 200;
-        UniformUnmanagedMemoryPool pool = new UniformUnmanagedMemoryPool(8, count);
-        using CleanupUtil cleanup = new CleanupUtil(pool);
-        Random rnd = new Random(0);
+        UniformUnmanagedMemoryPool pool = new(8, count);
+        using CleanupUtil cleanup = new(pool);
+        Random rnd = new(0);
 
         Parallel.For(0, Environment.ProcessorCount, (int i) =>
         {
-            List<UnmanagedMemoryHandle> allHandles = new List<UnmanagedMemoryHandle>();
+            List<UnmanagedMemoryHandle> allHandles = new();
             int pauseAt = rnd.Next(100);
             for (int j = 0; j < 100; j++)
             {
@@ -359,7 +359,7 @@ public partial class UniformUnmanagedMemoryPoolTests
         [MethodImpl(MethodImplOptions.NoInlining)]
         static void LeakPoolInstance(bool withGuardedBuffers)
         {
-            UniformUnmanagedMemoryPool pool = new UniformUnmanagedMemoryPool(16, 128);
+            UniformUnmanagedMemoryPool pool = new(16, 128);
             if (withGuardedBuffers)
             {
                 UnmanagedMemoryHandle h = pool.Rent();

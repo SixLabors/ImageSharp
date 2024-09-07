@@ -523,7 +523,7 @@ internal sealed class ChunkedMemoryStream : Stream
         // available contiguous buffer size.
         IMemoryOwner<byte> buffer = this.allocator.Allocate<byte>(Math.Min(this.allocatorCapacity, GetChunkSize(this.chunkCount++)));
 
-        return new MemoryChunk(buffer)
+        return new(buffer)
         {
             Next = null,
             Length = buffer.Length()

@@ -132,7 +132,7 @@ internal sealed partial class IccDataReader
     public IccUnknownTagDataEntry ReadUnknownTagDataEntry(uint size)
     {
         int count = (int)size - 8;  // 8 is the tag header size
-        return new IccUnknownTagDataEntry(this.ReadBytes(count));
+        return new(this.ReadBytes(count));
     }
 
     /// <summary>
@@ -148,7 +148,7 @@ internal sealed partial class IccDataReader
         {
             // The type is known and so are the values (they are constant)
             // channelCount should always be 3 but it doesn't really matter if it's not
-            return new IccChromaticityTagDataEntry(colorant);
+            return new(colorant);
         }
         else
         {
@@ -159,7 +159,7 @@ internal sealed partial class IccDataReader
                 values[i] = new double[] { this.ReadUFix16(), this.ReadUFix16() };
             }
 
-            return new IccChromaticityTagDataEntry(values);
+            return new(values);
         }
     }
 
@@ -171,7 +171,7 @@ internal sealed partial class IccDataReader
     {
         uint colorantCount = this.ReadUInt32();
         byte[] number = this.ReadBytes((int)colorantCount);
-        return new IccColorantOrderTagDataEntry(number);
+        return new(number);
     }
 
     /// <summary>
@@ -187,7 +187,7 @@ internal sealed partial class IccDataReader
             cdata[i] = this.ReadColorantTableEntry();
         }
 
-        return new IccColorantTableTagDataEntry(cdata);
+        return new(cdata);
     }
 
     /// <summary>
@@ -200,12 +200,12 @@ internal sealed partial class IccDataReader
 
         if (pointCount == 0)
         {
-            return new IccCurveTagDataEntry();
+            return new();
         }
 
         if (pointCount == 1)
         {
-            return new IccCurveTagDataEntry(this.ReadUFix8());
+            return new(this.ReadUFix8());
         }
 
         float[] cdata = new float[pointCount];
@@ -214,7 +214,7 @@ internal sealed partial class IccDataReader
             cdata[i] = this.ReadUInt16() / 65535f;
         }
 
-        return new IccCurveTagDataEntry(cdata);
+        return new(cdata);
 
         // TODO: If the input is PCSXYZ, 1+(32 767/32 768) shall be mapped to the value 1,0. If the output is PCSXYZ, the value 1,0 shall be mapped to 1+(32 767/32 768).
     }
@@ -234,7 +234,7 @@ internal sealed partial class IccDataReader
         int length = (int)size - 12;
         byte[] cdata = this.ReadBytes(length);
 
-        return new IccDataTagDataEntry(cdata, ascii);
+        return new(cdata, ascii);
     }
 
     /// <summary>
@@ -243,7 +243,7 @@ internal sealed partial class IccDataReader
     /// <returns>The read entry</returns>
     public IccDateTimeTagDataEntry ReadDateTimeTagDataEntry()
     {
-        return new IccDateTimeTagDataEntry(this.ReadDateTime());
+        return new(this.ReadDateTime());
     }
 
     /// <summary>
@@ -281,7 +281,7 @@ internal sealed partial class IccDataReader
             outValues[i] = this.ReadLut16(outTableCount);
         }
 
-        return new IccLut16TagDataEntry(matrix, inValues, clut, outValues);
+        return new(matrix, inValues, clut, outValues);
     }
 
     /// <summary>
@@ -316,7 +316,7 @@ internal sealed partial class IccDataReader
             outValues[i] = this.ReadLut8();
         }
 
-        return new IccLut8TagDataEntry(matrix, inValues, clut, outValues);
+        return new(matrix, inValues, clut, outValues);
     }
 
     /// <summary>
@@ -375,7 +375,7 @@ internal sealed partial class IccDataReader
             matrix3x1 = this.ReadMatrix(3, false);
         }
 
-        return new IccLutAToBTagDataEntry(bCurve, matrix3x3, matrix3x1, mCurve, clut, aCurve);
+        return new(bCurve, matrix3x3, matrix3x1, mCurve, clut, aCurve);
     }
 
     /// <summary>
@@ -434,7 +434,7 @@ internal sealed partial class IccDataReader
             matrix3x1 = this.ReadMatrix(3, false);
         }
 
-        return new IccLutBToATagDataEntry(bCurve, matrix3x3, matrix3x1, mCurve, clut, aCurve);
+        return new(bCurve, matrix3x3, matrix3x1, mCurve, clut, aCurve);
     }
 
     /// <summary>
@@ -443,7 +443,7 @@ internal sealed partial class IccDataReader
     /// <returns>The read entry</returns>
     public IccMeasurementTagDataEntry ReadMeasurementTagDataEntry()
     {
-        return new IccMeasurementTagDataEntry(
+        return new(
             observer: (IccStandardObserver)this.ReadUInt32(),
             xyzBacking: this.ReadXyzNumber(),
             geometry: (IccMeasurementGeometry)this.ReadUInt32(),
@@ -480,10 +480,10 @@ internal sealed partial class IccDataReader
         for (int i = 0; i < recordCount; i++)
         {
             this.currentIndex = (int)(start + offset[i]);
-            text[i] = new IccLocalizedString(culture[i], this.ReadUnicodeString((int)length[i]));
+            text[i] = new(culture[i], this.ReadUnicodeString((int)length[i]));
         }
 
-        return new IccMultiLocalizedUnicodeTagDataEntry(text);
+        return new(text);
 
         CultureInfo ReadCulture(string language, string country)
         {
@@ -495,7 +495,7 @@ internal sealed partial class IccDataReader
             {
                 try
                 {
-                    return new CultureInfo(language);
+                    return new(language);
                 }
                 catch (CultureNotFoundException)
                 {
@@ -506,7 +506,7 @@ internal sealed partial class IccDataReader
             {
                 try
                 {
-                    return new CultureInfo($"{language}-{country}");
+                    return new($"{language}-{country}");
                 }
                 catch (CultureNotFoundException)
                 {
@@ -541,7 +541,7 @@ internal sealed partial class IccDataReader
             elements[i] = this.ReadMultiProcessElement();
         }
 
-        return new IccMultiProcessElementsTagDataEntry(elements);
+        return new(elements);
     }
 
     /// <summary>
@@ -562,7 +562,7 @@ internal sealed partial class IccDataReader
             colors[i] = this.ReadNamedColor(coordCount);
         }
 
-        return new IccNamedColor2TagDataEntry(vendorFlag, prefix, suffix, colors);
+        return new(vendorFlag, prefix, suffix, colors);
     }
 
     /// <summary>
@@ -571,7 +571,7 @@ internal sealed partial class IccDataReader
     /// <returns>The read entry</returns>
     public IccParametricCurveTagDataEntry ReadParametricCurveTagDataEntry()
     {
-        return new IccParametricCurveTagDataEntry(this.ReadParametricCurve());
+        return new(this.ReadParametricCurve());
     }
 
     /// <summary>
@@ -587,7 +587,7 @@ internal sealed partial class IccDataReader
             description[i] = this.ReadProfileDescription();
         }
 
-        return new IccProfileSequenceDescTagDataEntry(description);
+        return new(description);
     }
 
     /// <summary>
@@ -611,10 +611,10 @@ internal sealed partial class IccDataReader
             IccProfileId id = this.ReadProfileId();
             this.ReadCheckTagDataEntryHeader(IccTypeSignature.MultiLocalizedUnicode);
             IccMultiLocalizedUnicodeTagDataEntry description = this.ReadMultiLocalizedUnicodeTagDataEntry();
-            entries[i] = new IccProfileSequenceIdentifier(id, description.Texts);
+            entries[i] = new(id, description.Texts);
         }
 
-        return new IccProfileSequenceIdentifierTagDataEntry(entries);
+        return new(entries);
     }
 
     /// <summary>
@@ -640,7 +640,7 @@ internal sealed partial class IccDataReader
             curves[i] = this.ReadResponseCurve(channelCount);
         }
 
-        return new IccResponseCurveSet16TagDataEntry(curves);
+        return new(curves);
     }
 
     /// <summary>
@@ -657,7 +657,7 @@ internal sealed partial class IccDataReader
             arrayData[i] = this.ReadFix16() / 256f;
         }
 
-        return new IccFix16ArrayTagDataEntry(arrayData);
+        return new(arrayData);
     }
 
     /// <summary>
@@ -666,7 +666,7 @@ internal sealed partial class IccDataReader
     /// <returns>The read entry</returns>
     public IccSignatureTagDataEntry ReadSignatureTagDataEntry()
     {
-        return new IccSignatureTagDataEntry(this.ReadAsciiString(4));
+        return new(this.ReadAsciiString(4));
     }
 
     /// <summary>
@@ -676,7 +676,7 @@ internal sealed partial class IccDataReader
     /// <returns>The read entry</returns>
     public IccTextTagDataEntry ReadTextTagDataEntry(uint size)
     {
-        return new IccTextTagDataEntry(this.ReadAsciiString((int)size - 8)); // 8 is the tag header size
+        return new(this.ReadAsciiString((int)size - 8)); // 8 is the tag header size
     }
 
     /// <summary>
@@ -693,7 +693,7 @@ internal sealed partial class IccDataReader
             arrayData[i] = this.ReadUFix16();
         }
 
-        return new IccUFix16ArrayTagDataEntry(arrayData);
+        return new(arrayData);
     }
 
     /// <summary>
@@ -710,7 +710,7 @@ internal sealed partial class IccDataReader
             arrayData[i] = this.ReadUInt16();
         }
 
-        return new IccUInt16ArrayTagDataEntry(arrayData);
+        return new(arrayData);
     }
 
     /// <summary>
@@ -727,7 +727,7 @@ internal sealed partial class IccDataReader
             arrayData[i] = this.ReadUInt32();
         }
 
-        return new IccUInt32ArrayTagDataEntry(arrayData);
+        return new(arrayData);
     }
 
     /// <summary>
@@ -744,7 +744,7 @@ internal sealed partial class IccDataReader
             arrayData[i] = this.ReadUInt64();
         }
 
-        return new IccUInt64ArrayTagDataEntry(arrayData);
+        return new(arrayData);
     }
 
     /// <summary>
@@ -757,7 +757,7 @@ internal sealed partial class IccDataReader
         int count = (int)size - 8; // 8 is the tag header size
         byte[] adata = this.ReadBytes(count);
 
-        return new IccUInt8ArrayTagDataEntry(adata);
+        return new(adata);
     }
 
     /// <summary>
@@ -766,7 +766,7 @@ internal sealed partial class IccDataReader
     /// <returns>The read entry</returns>
     public IccViewingConditionsTagDataEntry ReadViewingConditionsTagDataEntry()
     {
-        return new IccViewingConditionsTagDataEntry(
+        return new(
             illuminantXyz: this.ReadXyzNumber(),
             surroundXyz: this.ReadXyzNumber(),
             illuminant: (IccStandardIlluminant)this.ReadUInt32());
@@ -786,7 +786,7 @@ internal sealed partial class IccDataReader
             arrayData[i] = this.ReadXyzNumber();
         }
 
-        return new IccXyzTagDataEntry(arrayData);
+        return new(arrayData);
     }
 
     /// <summary>
@@ -821,7 +821,7 @@ internal sealed partial class IccDataReader
             this.AddIndex(1);  // Null terminator
         }
 
-        return new IccTextDescriptionTagDataEntry(
+        return new(
             asciiValue,
             unicodeValue,
             scriptcodeValue,
@@ -850,7 +850,7 @@ internal sealed partial class IccDataReader
         uint crd3Count = this.ReadUInt32();
         string crd3Name = this.ReadAsciiString((int)crd3Count);
 
-        return new IccCrdInfoTagDataEntry(productName, crd0Name, crd1Name, crd2Name, crd3Name);
+        return new(productName, crd0Name, crd1Name, crd2Name, crd3Name);
     }
 
     /// <summary>
@@ -867,7 +867,7 @@ internal sealed partial class IccDataReader
             channels[i] = this.ReadScreeningChannel();
         }
 
-        return new IccScreeningTagDataEntry(flags, channels);
+        return new(flags, channels);
     }
 
     /// <summary>
@@ -896,6 +896,6 @@ internal sealed partial class IccDataReader
         int descriptionLength = (int)(size - 8 - dataSize);   // 8 is the tag header size
         string description = this.ReadAsciiString(descriptionLength);
 
-        return new IccUcrBgTagDataEntry(ucrCurve, bgCurve, description);
+        return new(ucrCurve, bgCurve, description);
     }
 }

@@ -13,10 +13,10 @@ public class QuantizedImageTests
     [Fact]
     public void QuantizersDitherByDefault()
     {
-        WernerPaletteQuantizer werner = new WernerPaletteQuantizer();
-        WebSafePaletteQuantizer webSafe = new WebSafePaletteQuantizer();
-        OctreeQuantizer octree = new OctreeQuantizer();
-        WuQuantizer wu = new WuQuantizer();
+        WernerPaletteQuantizer werner = new();
+        WebSafePaletteQuantizer webSafe = new();
+        OctreeQuantizer octree = new();
+        WuQuantizer wu = new();
 
         Assert.NotNull(werner.Options.Dither);
         Assert.NotNull(webSafe.Options.Dither);
@@ -56,13 +56,13 @@ public class QuantizedImageTests
         {
             Assert.True(image[0, 0].Equals(default));
 
-            QuantizerOptions options = new QuantizerOptions();
+            QuantizerOptions options = new();
             if (!dither)
             {
                 options.Dither = null;
             }
 
-            OctreeQuantizer quantizer = new OctreeQuantizer(options);
+            OctreeQuantizer quantizer = new(options);
 
             foreach (ImageFrame<TPixel> frame in image.Frames)
             {
@@ -86,13 +86,13 @@ public class QuantizedImageTests
         {
             Assert.True(image[0, 0].Equals(default));
 
-            QuantizerOptions options = new QuantizerOptions();
+            QuantizerOptions options = new();
             if (!dither)
             {
                 options.Dither = null;
             }
 
-            WuQuantizer quantizer = new WuQuantizer(options);
+            WuQuantizer quantizer = new(options);
 
             foreach (ImageFrame<TPixel> frame in image.Frames)
             {
@@ -114,8 +114,8 @@ public class QuantizedImageTests
     {
         using (Image<TPixel> image = provider.GetImage())
         {
-            OctreeQuantizer octreeQuantizer = new OctreeQuantizer();
-            IQuantizer<TPixel> quantizer = octreeQuantizer.CreatePixelSpecificQuantizer<TPixel>(Configuration.Default, new QuantizerOptions() { MaxColors = 128 });
+            OctreeQuantizer octreeQuantizer = new();
+            IQuantizer<TPixel> quantizer = octreeQuantizer.CreatePixelSpecificQuantizer<TPixel>(Configuration.Default, new() { MaxColors = 128 });
             ImageFrame<TPixel> frame = image.Frames[0];
             quantizer.BuildPaletteAndQuantizeFrame(frame, frame.Bounds());
         }

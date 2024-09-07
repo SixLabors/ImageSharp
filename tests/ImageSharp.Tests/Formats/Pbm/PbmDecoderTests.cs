@@ -30,7 +30,7 @@ public class PbmDecoderTests
     {
         // Arrange
         TestFile testFile = TestFile.Create(imagePath);
-        using MemoryStream stream = new MemoryStream(testFile.Bytes, false);
+        using MemoryStream stream = new(testFile.Bytes, false);
 
         // Act
         using Image image = Image.Load(stream);
@@ -54,7 +54,7 @@ public class PbmDecoderTests
     {
         // Arrange
         TestFile testFile = TestFile.Create(imagePath);
-        using MemoryStream stream = new MemoryStream(testFile.Bytes, false);
+        using MemoryStream stream = new(testFile.Bytes, false);
 
         // Act
         using Image<L8> image = Image.Load<L8>(stream);
@@ -71,7 +71,7 @@ public class PbmDecoderTests
     {
         // Arrange
         TestFile testFile = TestFile.Create(imagePath);
-        using MemoryStream stream = new MemoryStream(testFile.Bytes, false);
+        using MemoryStream stream = new(testFile.Bytes, false);
 
         // Act
         using Image<Rgb24> image = Image.Load<Rgb24>(stream);
@@ -130,7 +130,7 @@ public class PbmDecoderTests
         using EofHitCounter eofHitCounter = EofHitCounter.RunDecoder(bytes);
 
         Assert.True(eofHitCounter.EofHitCount <= 2);
-        Assert.Equal(new Size(100, 100), eofHitCounter.Image.Size);
+        Assert.Equal(new(100, 100), eofHitCounter.Image.Size);
     }
 
     [Fact]
@@ -139,6 +139,6 @@ public class PbmDecoderTests
         using EofHitCounter eofHitCounter = EofHitCounter.RunDecoder(RgbBinaryPrematureEof);
 
         Assert.True(eofHitCounter.EofHitCount <= 2);
-        Assert.Equal(new Size(29, 30), eofHitCounter.Image.Size);
+        Assert.Equal(new(29, 30), eofHitCounter.Image.Size);
     }
 }

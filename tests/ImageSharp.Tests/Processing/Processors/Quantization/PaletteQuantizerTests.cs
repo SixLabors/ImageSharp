@@ -15,24 +15,24 @@ public class PaletteQuantizerTests
     [Fact]
     public void PaletteQuantizerConstructor()
     {
-        QuantizerOptions expected = new QuantizerOptions { MaxColors = 128 };
-        PaletteQuantizer quantizer = new PaletteQuantizer(Palette, expected);
+        QuantizerOptions expected = new() { MaxColors = 128 };
+        PaletteQuantizer quantizer = new(Palette, expected);
 
         Assert.Equal(expected.MaxColors, quantizer.Options.MaxColors);
         Assert.Equal(QuantizerConstants.DefaultDither, quantizer.Options.Dither);
 
-        expected = new QuantizerOptions { Dither = null };
-        quantizer = new PaletteQuantizer(Palette, expected);
+        expected = new() { Dither = null };
+        quantizer = new(Palette, expected);
         Assert.Equal(QuantizerConstants.MaxColors, quantizer.Options.MaxColors);
         Assert.Null(quantizer.Options.Dither);
 
-        expected = new QuantizerOptions { Dither = KnownDitherings.Atkinson };
-        quantizer = new PaletteQuantizer(Palette, expected);
+        expected = new() { Dither = KnownDitherings.Atkinson };
+        quantizer = new(Palette, expected);
         Assert.Equal(QuantizerConstants.MaxColors, quantizer.Options.MaxColors);
         Assert.Equal(KnownDitherings.Atkinson, quantizer.Options.Dither);
 
-        expected = new QuantizerOptions { Dither = KnownDitherings.Atkinson, MaxColors = 0 };
-        quantizer = new PaletteQuantizer(Palette, expected);
+        expected = new() { Dither = KnownDitherings.Atkinson, MaxColors = 0 };
+        quantizer = new(Palette, expected);
         Assert.Equal(QuantizerConstants.MinColors, quantizer.Options.MaxColors);
         Assert.Equal(KnownDitherings.Atkinson, quantizer.Options.Dither);
     }
@@ -40,7 +40,7 @@ public class PaletteQuantizerTests
     [Fact]
     public void PaletteQuantizerCanCreateFrameQuantizer()
     {
-        PaletteQuantizer quantizer = new PaletteQuantizer(Palette);
+        PaletteQuantizer quantizer = new(Palette);
         IQuantizer<Rgba32> frameQuantizer = quantizer.CreatePixelSpecificQuantizer<Rgba32>(Configuration.Default);
 
         Assert.NotNull(frameQuantizer);
@@ -48,14 +48,14 @@ public class PaletteQuantizerTests
         Assert.Equal(QuantizerConstants.DefaultDither, frameQuantizer.Options.Dither);
         frameQuantizer.Dispose();
 
-        quantizer = new PaletteQuantizer(Palette, new QuantizerOptions { Dither = null });
+        quantizer = new(Palette, new() { Dither = null });
         frameQuantizer = quantizer.CreatePixelSpecificQuantizer<Rgba32>(Configuration.Default);
 
         Assert.NotNull(frameQuantizer);
         Assert.Null(frameQuantizer.Options.Dither);
         frameQuantizer.Dispose();
 
-        quantizer = new PaletteQuantizer(Palette, new QuantizerOptions { Dither = KnownDitherings.Atkinson });
+        quantizer = new(Palette, new() { Dither = KnownDitherings.Atkinson });
         frameQuantizer = quantizer.CreatePixelSpecificQuantizer<Rgba32>(Configuration.Default);
         Assert.NotNull(frameQuantizer);
         Assert.Equal(KnownDitherings.Atkinson, frameQuantizer.Options.Dither);

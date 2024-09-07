@@ -44,16 +44,16 @@ public class DecodeWebp
     [Benchmark(Description = "Magick Lossy Webp")]
     public int WebpLossyMagick()
     {
-        MagickReadSettings settings = new MagickReadSettings { Format = MagickFormat.WebP };
-        using MemoryStream memoryStream = new MemoryStream(this.webpLossyBytes);
-        using MagickImage image = new MagickImage(memoryStream, settings);
+        MagickReadSettings settings = new() { Format = MagickFormat.WebP };
+        using MemoryStream memoryStream = new(this.webpLossyBytes);
+        using MagickImage image = new(memoryStream, settings);
         return image.Width;
     }
 
     [Benchmark(Description = "ImageSharp Lossy Webp")]
     public int WebpLossy()
     {
-        using MemoryStream memoryStream = new MemoryStream(this.webpLossyBytes);
+        using MemoryStream memoryStream = new(this.webpLossyBytes);
         using Image<Rgba32> image = Image.Load<Rgba32>(memoryStream);
         return image.Height;
     }
@@ -61,16 +61,16 @@ public class DecodeWebp
     [Benchmark(Description = "Magick Lossless Webp")]
     public int WebpLosslessMagick()
     {
-        MagickReadSettings settings = new MagickReadSettings { Format = MagickFormat.WebP };
-        using MemoryStream memoryStream = new MemoryStream(this.webpLossyBytes);
-        using MagickImage image = new MagickImage(memoryStream, settings);
+        MagickReadSettings settings = new() { Format = MagickFormat.WebP };
+        using MemoryStream memoryStream = new(this.webpLossyBytes);
+        using MagickImage image = new(memoryStream, settings);
         return image.Width;
     }
 
     [Benchmark(Description = "ImageSharp Lossless Webp")]
     public int WebpLossless()
     {
-        using MemoryStream memoryStream = new MemoryStream(this.webpLosslessBytes);
+        using MemoryStream memoryStream = new(this.webpLosslessBytes);
         using Image<Rgba32> image = Image.Load<Rgba32>(memoryStream);
         return image.Height;
     }

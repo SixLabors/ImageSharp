@@ -18,7 +18,7 @@ internal static class IccTestDataLut
             result[i] = i / 255f;
         }
 
-        return new IccLut(result);
+        return new(result);
     }
 
     private static byte[] CreateLUT8()
@@ -37,7 +37,7 @@ internal static class IccTestDataLut
         new object[] { LUT8_Grad, LUT8_ValGrad },
     };
 
-    public static readonly IccLut LUT16_ValGrad = new IccLut(new float[]
+    public static readonly IccLut LUT16_ValGrad = new(new float[]
     {
         1f / ushort.MaxValue,
         2f / ushort.MaxValue,
@@ -70,7 +70,7 @@ internal static class IccTestDataLut
         new object[] { LUT16_Grad, LUT16_ValGrad, 11 },
     };
 
-    public static readonly IccClut CLUT8_ValGrad = new IccClut(
+    public static readonly IccClut CLUT8_ValGrad = new(
         new float[][]
         {
             new float[] { 1f / byte.MaxValue, 2f / byte.MaxValue, 3f / byte.MaxValue },
@@ -113,7 +113,7 @@ internal static class IccTestDataLut
         new object[] { CLUT8_Grad, CLUT8_ValGrad, 2, 3, new byte[] { 3, 3 } },
     };
 
-    public static readonly IccClut CLUT16_ValGrad = new IccClut(
+    public static readonly IccClut CLUT16_ValGrad = new(
         new float[][]
         {
             new float[] { 1f / ushort.MaxValue, 2f / ushort.MaxValue, 3f / ushort.MaxValue },
@@ -156,7 +156,7 @@ internal static class IccTestDataLut
         new object[] { CLUT16_Grad, CLUT16_ValGrad, 2, 3, new byte[] { 3, 3 } },
     };
 
-    public static readonly IccClut CLUTf32_ValGrad = new IccClut(
+    public static readonly IccClut CLUTf32_ValGrad = new(
         new float[][]
         {
             new float[] { 1f, 2f, 3f },

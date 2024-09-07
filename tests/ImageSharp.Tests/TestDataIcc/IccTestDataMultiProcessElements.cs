@@ -11,7 +11,7 @@ internal static class IccTestDataMultiProcessElements
     /// <para>Input Channel Count: 3</para>
     /// <para>Output Channel Count: 3</para>
     /// </summary>
-    public static readonly IccCurveSetProcessElement CurvePE_ValGrad = new IccCurveSetProcessElement(new IccOneDimensionalCurve[]
+    public static readonly IccCurveSetProcessElement CurvePE_ValGrad = new(new IccOneDimensionalCurve[]
     {
         IccTestDataCurves.OneDimensional_ValFormula1,
         IccTestDataCurves.OneDimensional_ValFormula2,
@@ -36,7 +36,7 @@ internal static class IccTestDataMultiProcessElements
     /// <para>Input Channel Count: 3</para>
     /// <para>Output Channel Count: 3</para>
     /// </summary>
-    public static readonly IccMatrixProcessElement MatrixPE_ValGrad = new IccMatrixProcessElement(
+    public static readonly IccMatrixProcessElement MatrixPE_ValGrad = new(
         IccTestDataMatrix.Single_2DArray_ValGrad,
         IccTestDataMatrix.Single_1DArray_ValGrad);
 
@@ -57,7 +57,7 @@ internal static class IccTestDataMultiProcessElements
     /// <para>Input Channel Count: 2</para>
     /// <para>Output Channel Count: 3</para>
     /// </summary>
-    public static readonly IccClutProcessElement CLUTPE_ValGrad = new IccClutProcessElement(IccTestDataLut.CLUT_Valf32);
+    public static readonly IccClutProcessElement CLUTPE_ValGrad = new(IccTestDataLut.CLUT_Valf32);
 
     /// <summary>
     /// <para>Input Channel Count: 2</para>

@@ -52,7 +52,7 @@ internal class RgbTiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
                 float g = bitReader.ReadBits(this.bitsPerSampleG) / this.gFactor;
                 float b = bitReader.ReadBits(this.bitsPerSampleB) / this.bFactor;
 
-                pixelRow[x] = TPixel.FromScaledVector4(new Vector4(r, g, b, 1f));
+                pixelRow[x] = TPixel.FromScaledVector4(new(r, g, b, 1f));
             }
 
             bitReader.NextRow();

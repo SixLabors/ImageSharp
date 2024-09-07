@@ -18,9 +18,9 @@ public class SystemDrawingReferenceDecoder : ImageDecoder
     public SystemDrawingReferenceDecoder(IImageFormat imageFormat)
         => this.imageFormat = imageFormat;
 
-    public static SystemDrawingReferenceDecoder Png { get; } = new SystemDrawingReferenceDecoder(PngFormat.Instance);
+    public static SystemDrawingReferenceDecoder Png { get; } = new(PngFormat.Instance);
 
-    public static SystemDrawingReferenceDecoder Bmp { get; } = new SystemDrawingReferenceDecoder(BmpFormat.Instance);
+    public static SystemDrawingReferenceDecoder Bmp { get; } = new(BmpFormat.Instance);
 
     protected override ImageInfo Identify(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
     {

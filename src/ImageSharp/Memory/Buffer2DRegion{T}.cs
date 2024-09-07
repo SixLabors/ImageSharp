@@ -107,7 +107,7 @@ public readonly struct Buffer2DRegion<T>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Buffer2DRegion<T> GetSubRegion(int x, int y, int width, int height)
     {
-        Rectangle rectangle = new Rectangle(x, y, width, height);
+        Rectangle rectangle = new(x, y, width, height);
         return this.GetSubRegion(rectangle);
     }
 
@@ -124,8 +124,8 @@ public readonly struct Buffer2DRegion<T>
 
         int x = this.Rectangle.X + rectangle.X;
         int y = this.Rectangle.Y + rectangle.Y;
-        rectangle = new Rectangle(x, y, rectangle.Width, rectangle.Height);
-        return new Buffer2DRegion<T>(this.Buffer, rectangle);
+        rectangle = new(x, y, rectangle.Width, rectangle.Height);
+        return new(this.Buffer, rectangle);
     }
 
     /// <summary>

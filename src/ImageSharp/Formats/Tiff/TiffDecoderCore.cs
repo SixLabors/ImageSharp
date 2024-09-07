@@ -190,7 +190,7 @@ internal class TiffDecoderCore : ImageDecoderCore
 
             this.Dimensions = frames[0].Size;
             ImageMetadata metadata = TiffDecoderMetadataCreator.Create(framesMetadata, this.skipMetadata, reader.ByteOrder, reader.IsBigTiff);
-            return new Image<TPixel>(this.configuration, metadata, frames);
+            return new(this.configuration, metadata, frames);
         }
         catch
         {
@@ -227,7 +227,7 @@ internal class TiffDecoderCore : ImageDecoderCore
 
         ImageMetadata metadata = TiffDecoderMetadataCreator.Create(framesMetadata, this.skipMetadata, reader.ByteOrder, reader.IsBigTiff);
 
-        return new ImageInfo(new(width, height), metadata, framesMetadata);
+        return new(new(width, height), metadata, framesMetadata);
     }
 
     /// <summary>

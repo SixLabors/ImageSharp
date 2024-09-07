@@ -122,7 +122,7 @@ public class BigTiffMetadataTests
         };
 
         // arrange
-        List<IExifValue> values = new();
+        List<IExifValue> values = [];
         foreach (KeyValuePair<ExifTag, (ExifDataType DataType, object Value)> tag in testTags)
         {
             ExifValue newExifValue = ExifValues.Create((ExifTagValue)(ushort)tag.Key, tag.Value.DataType, tag.Value.Value is Array);
@@ -167,7 +167,7 @@ public class BigTiffMetadataTests
             ////{ new ExifTag<long[]>((ExifTagValue)0xdd14), (ExifDataType.SignedLong8, new long[] { -1234, 56789L, long.MaxValue }) },
         };
 
-        List<IExifValue> values = new();
+        List<IExifValue> values = [];
         foreach (KeyValuePair<ExifTag, (ExifDataType DataType, object Value)> tag in testTags)
         {
             ExifValue newExifValue = ExifValues.Create((ExifTagValue)(ushort)tag.Key, tag.Value.DataType, tag.Value.Value is Array);

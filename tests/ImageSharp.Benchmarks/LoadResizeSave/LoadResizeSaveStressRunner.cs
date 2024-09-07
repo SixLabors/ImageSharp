@@ -52,7 +52,7 @@ public class LoadResizeSaveStressRunner
     public int ThumbnailSize { get; set; } = 150;
 
     private static readonly string[] ProgressiveFiles =
-    {
+    [
         "ancyloscelis-apiformis-m-paraguay-face_2014-08-08-095255-zs-pmax_15046500892_o.jpg",
         "acanthopus-excellens-f-face-brasil_2014-08-06-132105-zs-pmax_14792513890_o.jpg",
         "bee-ceratina-monster-f-ukraine-face_2014-08-09-123342-zs-pmax_15068816101_o.jpg",
@@ -83,8 +83,8 @@ public class LoadResizeSaveStressRunner
         "triepeolus-simplex-m-face-md-kent-county_2014-07-22-100937-zs-pmax_14805405233_o.jpg",
         "washed-megachile-f-face-chile_2014-08-06-103414-zs-pmax_14977843152_o.jpg",
         "xylocopa-balck-violetwing-f-kyrgystan-angle_2014-08-09-182433-zs-pmax_15123416061_o.jpg",
-        "xylocopa-india-yellow-m-india-face_2014-08-10-111701-zs-pmax_15166559172_o.jpg",
-    };
+        "xylocopa-india-yellow-m-india-face_2014-08-10-111701-zs-pmax_15166559172_o.jpg"
+    ];
 
     public void Init()
     {
@@ -126,7 +126,7 @@ public class LoadResizeSaveStressRunner
             : Environment.ProcessorCount;
         int partitionSize = (int)Math.Ceiling((double)this.Images.Length / maxDegreeOfParallelism);
 
-        List<Task> tasks = new();
+        List<Task> tasks = [];
         for (int i = 0; i < this.Images.Length; i += partitionSize)
         {
             int end = Math.Min(i + partitionSize, this.Images.Length);

@@ -14,9 +14,9 @@ public class FeatureTestRunnerTests
     public static TheoryData<HwIntrinsics, string[]> Intrinsics =>
         new()
         {
-            { HwIntrinsics.DisableAES | HwIntrinsics.AllowAll, new[] { "EnableAES", "AllowAll" } },
-            { HwIntrinsics.DisableHWIntrinsic, new[] { "EnableHWIntrinsic" } },
-            { HwIntrinsics.DisableSSE42 | HwIntrinsics.DisableAVX, new[] { "EnableSSE42", "EnableAVX" } }
+            { HwIntrinsics.DisableAES | HwIntrinsics.AllowAll, ["EnableAES", "AllowAll"] },
+            { HwIntrinsics.DisableHWIntrinsic, ["EnableHWIntrinsic"] },
+            { HwIntrinsics.DisableSSE42 | HwIntrinsics.DisableAVX, ["EnableSSE42", "EnableAVX"] }
         };
 
     [Theory]

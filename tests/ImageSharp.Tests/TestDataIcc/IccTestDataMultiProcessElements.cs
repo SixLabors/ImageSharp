@@ -11,12 +11,11 @@ internal static class IccTestDataMultiProcessElements
     /// <para>Input Channel Count: 3</para>
     /// <para>Output Channel Count: 3</para>
     /// </summary>
-    public static readonly IccCurveSetProcessElement CurvePE_ValGrad = new(new IccOneDimensionalCurve[]
-    {
+    public static readonly IccCurveSetProcessElement CurvePE_ValGrad = new([
         IccTestDataCurves.OneDimensional_ValFormula1,
         IccTestDataCurves.OneDimensional_ValFormula2,
         IccTestDataCurves.OneDimensional_ValFormula1
-    });
+    ]);
 
     /// <summary>
     /// <para>Input Channel Count: 3</para>
@@ -28,9 +27,9 @@ internal static class IccTestDataMultiProcessElements
         IccTestDataCurves.OneDimensional_Formula1);
 
     public static readonly object[][] CurveSetTestData =
-    {
-        new object[] { CurvePE_Grad, CurvePE_ValGrad, 3, 3 },
-    };
+    [
+        [CurvePE_Grad, CurvePE_ValGrad, 3, 3]
+    ];
 
     /// <summary>
     /// <para>Input Channel Count: 3</para>
@@ -49,9 +48,9 @@ internal static class IccTestDataMultiProcessElements
         IccTestDataMatrix.Single_1D_Grad);
 
     public static readonly object[][] MatrixTestData =
-    {
-        new object[] { MatrixPE_Grad, MatrixPE_ValGrad, 3, 3 },
-    };
+    [
+        [MatrixPE_Grad, MatrixPE_ValGrad, 3, 3]
+    ];
 
     /// <summary>
     /// <para>Input Channel Count: 2</para>
@@ -66,9 +65,9 @@ internal static class IccTestDataMultiProcessElements
     public static readonly byte[] CLUTPE_Grad = IccTestDataLut.CLUT_f32;
 
     public static readonly object[][] ClutTestData =
-    {
-        new object[] { CLUTPE_Grad, CLUTPE_ValGrad, 2, 3 },
-    };
+    [
+        [CLUTPE_Grad, CLUTPE_ValGrad, 2, 3]
+    ];
 
     public static readonly IccMultiProcessElement MPE_ValMatrix = MatrixPE_ValGrad;
     public static readonly IccMultiProcessElement MPE_ValCLUT = CLUTPE_ValGrad;
@@ -104,27 +103,27 @@ internal static class IccTestDataMultiProcessElements
         CurvePE_Grad);
 
     public static readonly byte[] MPE_bACS =
-    {
+    [
         0x62, 0x41, 0x43, 0x53,
         0x00, 0x03,
         0x00, 0x03,
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    };
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+    ];
 
     public static readonly byte[] MPE_eACS =
-    {
+    [
         0x65, 0x41, 0x43, 0x53,
         0x00, 0x03,
         0x00, 0x03,
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    };
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+    ];
 
     public static readonly object[][] MultiProcessElementTestData =
-    {
-        new object[] { MPE_Matrix, MPE_ValMatrix },
-        new object[] { MPE_CLUT, MPE_ValCLUT },
-        new object[] { MPE_Curve, MPE_ValCurve },
-        new object[] { MPE_bACS, MPE_ValbACS },
-        new object[] { MPE_eACS, MPE_ValeACS },
-    };
+    [
+        [MPE_Matrix, MPE_ValMatrix],
+        [MPE_CLUT, MPE_ValCLUT],
+        [MPE_Curve, MPE_ValCurve],
+        [MPE_bACS, MPE_ValbACS],
+        [MPE_eACS, MPE_ValeACS]
+    ];
 }

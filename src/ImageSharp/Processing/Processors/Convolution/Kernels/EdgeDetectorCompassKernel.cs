@@ -152,9 +152,8 @@ public readonly struct EdgeDetectorCompassKernel : IEquatable<EdgeDetectorCompas
             this.NorthEast);
 
     internal DenseMatrix<float>[] Flatten() =>
-         new[]
-             {
-                this.North, this.NorthWest, this.West, this.SouthWest,
+    [
+        this.North, this.NorthWest, this.West, this.SouthWest,
                 this.South, this.SouthEast, this.East, this.NorthEast
-             };
+    ];
 }

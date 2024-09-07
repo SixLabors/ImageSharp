@@ -70,7 +70,7 @@ public abstract class ImageDataAttributeBase : DataAttribute
 
         if (!addedRows.Any())
         {
-            addedRows = new[] { Array.Empty<object>() };
+            addedRows = [[]];
         }
 
         bool firstIsProvider = this.FirstIsProvider(testMethod);

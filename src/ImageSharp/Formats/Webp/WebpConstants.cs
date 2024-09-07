@@ -11,22 +11,22 @@ internal static class WebpConstants
     /// <summary>
     /// The list of file extensions that equate to Webp.
     /// </summary>
-    public static readonly IEnumerable<string> FileExtensions = new[] { "webp" };
+    public static readonly IEnumerable<string> FileExtensions = ["webp"];
 
     /// <summary>
     /// The list of mimetypes that equate to a jpeg.
     /// </summary>
-    public static readonly IEnumerable<string> MimeTypes = new[] { "image/webp", };
+    public static readonly IEnumerable<string> MimeTypes = ["image/webp"];
 
     /// <summary>
     /// Signature which identifies a VP8 header.
     /// </summary>
     public static readonly byte[] Vp8HeaderMagicBytes =
-    {
+    [
         0x9D,
         0x01,
         0x2A
-    };
+    ];
 
     /// <summary>
     /// Signature byte which identifies a VP8L header.
@@ -37,23 +37,23 @@ internal static class WebpConstants
     /// The header bytes identifying RIFF file.
     /// </summary>
     public static readonly byte[] RiffFourCc =
-    {
+    [
         0x52, // R
         0x49, // I
         0x46, // F
         0x46 // F
-    };
+    ];
 
     /// <summary>
     /// The header bytes identifying a Webp.
     /// </summary>
     public static readonly byte[] WebpHeader =
-    {
+    [
         0x57, // W
         0x45, // E
         0x42, // B
         0x50 // P
-    };
+    ];
 
     /// <summary>
     /// The header bytes identifying a Webp.
@@ -164,16 +164,16 @@ internal static class WebpConstants
 
     public const int CodeLengthRepeatCode = 16;
 
-    public static readonly int[] CodeLengthExtraBits = { 2, 3, 7 };
+    public static readonly int[] CodeLengthExtraBits = [2, 3, 7];
 
-    public static readonly int[] CodeLengthRepeatOffsets = { 3, 3, 11 };
+    public static readonly int[] CodeLengthRepeatOffsets = [3, 3, 11];
 
     public static readonly int[] AlphabetSize =
-    {
+    [
         NumLiteralCodes + NumLengthCodes,
         NumLiteralCodes, NumLiteralCodes, NumLiteralCodes,
         NumDistanceCodes
-    };
+    ];
 
     public const int NumMbSegments = 4;
 
@@ -270,9 +270,9 @@ internal static class WebpConstants
     /// </summary>
     public const int Vp8MaxPartition0Size = 1 << 19;
 
-    public static readonly short[] Vp8FixedCostsUv = { 302, 984, 439, 642 };
+    public static readonly short[] Vp8FixedCostsUv = [302, 984, 439, 642];
 
-    public static readonly short[] Vp8FixedCostsI16 = { 663, 919, 872, 919 };
+    public static readonly short[] Vp8FixedCostsI16 = [663, 919, 872, 919];
 
     /// <summary>
     /// Distortion multiplier (equivalent of lambda).
@@ -284,31 +284,31 @@ internal static class WebpConstants
     /// Simple filter(1):  up to 2 luma samples are read and 1 is written.
     /// Complex filter(2): up to 4 luma samples are read and 3 are written. Same for U/V, so it's 8 samples total (because of the 2x upsampling).
     /// </summary>
-    public static readonly byte[] FilterExtraRows = { 0, 2, 8 };
+    public static readonly byte[] FilterExtraRows = [0, 2, 8];
 
     // Paragraph 9.9
     public static readonly int[] Vp8EncBands =
-    {
+    [
         0, 1, 2, 3, 6, 4, 5, 6, 6, 6, 6, 6, 6, 6, 6, 7, 0
-    };
+    ];
 
     public static readonly short[] Scan =
-    {
+    [
         0 + (0 * Bps), 4 + (0 * Bps), 8 + (0 * Bps), 12 + (0 * Bps),
         0 + (4 * Bps), 4 + (4 * Bps), 8 + (4 * Bps), 12 + (4 * Bps),
         0 + (8 * Bps), 4 + (8 * Bps), 8 + (8 * Bps), 12 + (8 * Bps),
         0 + (12 * Bps), 4 + (12 * Bps), 8 + (12 * Bps), 12 + (12 * Bps)
-    };
+    ];
 
     // Residual decoding (Paragraph 13.2 / 13.3)
-    public static readonly byte[] Cat3 = { 173, 148, 140 };
-    public static readonly byte[] Cat4 = { 176, 155, 140, 135 };
-    public static readonly byte[] Cat5 = { 180, 157, 141, 134, 130 };
-    public static readonly byte[] Cat6 = { 254, 254, 243, 230, 196, 177, 153, 140, 133, 130, 129 };
-    public static readonly byte[] Zigzag = { 0, 1, 4, 8, 5, 2, 3, 6, 9, 12, 13, 10, 7, 11, 14, 15 };
+    public static readonly byte[] Cat3 = [173, 148, 140];
+    public static readonly byte[] Cat4 = [176, 155, 140, 135];
+    public static readonly byte[] Cat5 = [180, 157, 141, 134, 130];
+    public static readonly byte[] Cat6 = [254, 254, 243, 230, 196, 177, 153, 140, 133, 130, 129];
+    public static readonly byte[] Zigzag = [0, 1, 4, 8, 5, 2, 3, 6, 9, 12, 13, 10, 7, 11, 14, 15];
 
     public static readonly sbyte[] YModesIntra4 =
-    {
+    [
         -0, 1,
         -1, 2,
         -2, 3,
@@ -318,5 +318,5 @@ internal static class WebpConstants
         -6, 7,
         -7, 8,
         -8, -9
-    };
+    ];
 }

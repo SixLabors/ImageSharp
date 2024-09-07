@@ -15,8 +15,8 @@ public partial struct Color
     /// </summary>
     public static ReadOnlyMemory<Color> WebSafePalette => WebSafePaletteLazy.Value;
 
-    private static Color[] CreateWebSafePalette() => new[]
-    {
+    private static Color[] CreateWebSafePalette() =>
+    [
         AliceBlue,
         AntiqueWhite,
         Aqua,
@@ -159,5 +159,5 @@ public partial struct Color
         WhiteSmoke,
         Yellow,
         YellowGreen
-    };
+    ];
 }

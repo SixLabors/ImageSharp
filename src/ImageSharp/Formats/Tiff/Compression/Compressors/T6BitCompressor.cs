@@ -17,7 +17,7 @@ internal sealed class T6BitCompressor : TiffCcittCompressor
     /// Vertical codes from -3 to +3.
     /// </summary>
     private static readonly (uint Length, uint Code)[] VerticalCodes =
-    {
+    [
         (7u, 3u),
         (6u, 3u),
         (3u, 3u),
@@ -25,7 +25,7 @@ internal sealed class T6BitCompressor : TiffCcittCompressor
         (3u, 2u),
         (6u, 2u),
         (7u, 2u)
-    };
+    ];
 
     private IMemoryOwner<byte> referenceLineBuffer;
 

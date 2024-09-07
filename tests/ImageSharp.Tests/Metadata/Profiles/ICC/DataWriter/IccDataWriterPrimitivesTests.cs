@@ -41,7 +41,7 @@ public class IccDataWriterPrimitivesTests
         byte[] output = writer.GetData();
 
         Assert.Equal(0, count);
-        Assert.Equal(Array.Empty<byte>(), output);
+        Assert.Equal([], output);
     }
 
     [Fact]
@@ -61,7 +61,7 @@ public class IccDataWriterPrimitivesTests
         byte[] output = writer.GetData();
 
         Assert.Equal(0, count);
-        Assert.Equal(Array.Empty<byte>(), output);
+        Assert.Equal([], output);
     }
 
     [Theory]

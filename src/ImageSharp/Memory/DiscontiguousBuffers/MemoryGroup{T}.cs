@@ -97,7 +97,7 @@ internal abstract partial class MemoryGroup<T> : IMemoryGroup<T>, IDisposable
 
         if (totalLengthInElements == 0)
         {
-            IMemoryOwner<T>[] buffers0 = new IMemoryOwner<T>[1] { allocator.Allocate<T>(0, options) };
+            IMemoryOwner<T>[] buffers0 = [allocator.Allocate<T>(0, options)];
             return new Owned(buffers0, 0, 0, true);
         }
 
@@ -142,7 +142,7 @@ internal abstract partial class MemoryGroup<T> : IMemoryGroup<T>, IDisposable
         }
 
         int length = buffer.Memory.Length;
-        IMemoryOwner<T>[] buffers = new IMemoryOwner<T>[1] { buffer };
+        IMemoryOwner<T>[] buffers = [buffer];
         return new Owned(buffers, length, length, true);
     }
 

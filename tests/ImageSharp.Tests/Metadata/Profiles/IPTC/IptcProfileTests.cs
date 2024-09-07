@@ -14,7 +14,7 @@ public class IptcProfileTests
     {
         foreach (object tag in Enum.GetValues(typeof(IptcTag)))
         {
-            yield return new object[] { tag };
+            yield return [tag];
         }
     }
 
@@ -25,7 +25,7 @@ public class IptcProfileTests
         IptcProfile profile = new();
         profile.SetValue(IptcTag.City, "ESPAÑA");
         profile.UpdateData();
-        byte[] expectedEnvelopeData = { 28, 1, 90, 0, 3, 27, 37, 71 };
+        byte[] expectedEnvelopeData = [28, 1, 90, 0, 3, 27, 37, 71];
 
         // act
         byte[] profileBytes = profile.Data;

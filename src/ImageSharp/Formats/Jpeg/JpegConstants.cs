@@ -18,12 +18,12 @@ internal static class JpegConstants
     /// <summary>
     /// The list of mimetypes that equate to a jpeg.
     /// </summary>
-    public static readonly IEnumerable<string> MimeTypes = new[] { "image/jpeg", "image/pjpeg" };
+    public static readonly IEnumerable<string> MimeTypes = ["image/jpeg", "image/pjpeg"];
 
     /// <summary>
     /// The list of file extensions that equate to a jpeg.
     /// </summary>
-    public static readonly IEnumerable<string> FileExtensions = new[] { "jpg", "jpeg", "jfif" };
+    public static readonly IEnumerable<string> FileExtensions = ["jpg", "jpeg", "jfif"];
 
     /// <summary>
     /// Contains marker specific constants.

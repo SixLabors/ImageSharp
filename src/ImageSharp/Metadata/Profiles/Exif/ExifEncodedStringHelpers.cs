@@ -16,13 +16,13 @@ internal static class ExifEncodedStringHelpers
     private const ulong UnicodeCode = 0x_45_44_4F_43_49_4E_55;
     private const ulong UndefinedCode = 0x_00_00_00_00_00_00_00_00;
 
-    private static ReadOnlySpan<byte> AsciiCodeBytes => new byte[] { 0x41, 0x53, 0x43, 0x49, 0x49, 0, 0, 0 };
+    private static ReadOnlySpan<byte> AsciiCodeBytes => [0x41, 0x53, 0x43, 0x49, 0x49, 0, 0, 0];
 
-    private static ReadOnlySpan<byte> JISCodeBytes => new byte[] { 0x4A, 0x49, 0x53, 0, 0, 0, 0, 0 };
+    private static ReadOnlySpan<byte> JISCodeBytes => [0x4A, 0x49, 0x53, 0, 0, 0, 0, 0];
 
-    private static ReadOnlySpan<byte> UnicodeCodeBytes => new byte[] { 0x55, 0x4E, 0x49, 0x43, 0x4F, 0x44, 0x45, 0 };
+    private static ReadOnlySpan<byte> UnicodeCodeBytes => [0x55, 0x4E, 0x49, 0x43, 0x4F, 0x44, 0x45, 0];
 
-    private static ReadOnlySpan<byte> UndefinedCodeBytes => new byte[] { 0, 0, 0, 0, 0, 0, 0, 0 };
+    private static ReadOnlySpan<byte> UndefinedCodeBytes => [0, 0, 0, 0, 0, 0, 0, 0];
 
     // 20932 EUC-JP Japanese (JIS 0208-1990 and 0212-1990)
     // https://docs.microsoft.com/en-us/dotnet/api/system.text.encoding?view=net-6.0

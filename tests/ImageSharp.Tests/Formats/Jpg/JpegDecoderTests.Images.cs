@@ -7,7 +7,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg;
 public partial class JpegDecoderTests
 {
     public static string[] BaselineTestJpegs =
-    {
+    [
         TestImages.Jpeg.Baseline.Calliphora,
         TestImages.Jpeg.Baseline.Cmyk,
         TestImages.Jpeg.Baseline.Ycck,
@@ -41,11 +41,11 @@ public partial class JpegDecoderTests
         TestImages.Jpeg.Baseline.Testorig12bit,
 
         // Grayscale jpeg with 2x2 sampling factors (not a usual thing to encounter in the wild)
-        TestImages.Jpeg.Baseline.GrayscaleSampling2x2,
-    };
+        TestImages.Jpeg.Baseline.GrayscaleSampling2x2
+    ];
 
     public static string[] ProgressiveTestJpegs =
-    {
+    [
         TestImages.Jpeg.Progressive.Fb,
         TestImages.Jpeg.Progressive.Progress,
         TestImages.Jpeg.Progressive.Festzug,
@@ -61,20 +61,20 @@ public partial class JpegDecoderTests
         TestImages.Jpeg.Issues.OrderedInterleavedProgressive723A,
         TestImages.Jpeg.Issues.OrderedInterleavedProgressive723B,
         TestImages.Jpeg.Issues.OrderedInterleavedProgressive723C
-    };
+    ];
 
     public static string[] UnsupportedTestJpegs =
-    {
+    [
         // Invalid componentCount value (2 or > 4)
         TestImages.Jpeg.Issues.Fuzz.NullReferenceException823,
         TestImages.Jpeg.Issues.MalformedUnsupportedComponentCount,
 
         // Lossless jpeg
         TestImages.Jpeg.Baseline.Lossless
-    };
+    ];
 
     public static string[] UnrecoverableTestJpegs =
-    {
+    [
         TestImages.Jpeg.Issues.CriticalEOF214,
         TestImages.Jpeg.Issues.Fuzz.NullReferenceException797,
         TestImages.Jpeg.Issues.Fuzz.AccessViolationException798,
@@ -98,8 +98,8 @@ public partial class JpegDecoderTests
         TestImages.Jpeg.Issues.Fuzz.IndexOutOfRangeException1693A,
         TestImages.Jpeg.Issues.Fuzz.IndexOutOfRangeException1693B,
         TestImages.Jpeg.Issues.Fuzz.IndexOutOfRangeException824C,
-        TestImages.Jpeg.Issues.Fuzz.NullReferenceException2085,
-    };
+        TestImages.Jpeg.Issues.Fuzz.NullReferenceException2085
+    ];
 
     private static readonly Dictionary<string, float> CustomToleranceValues = new()
     {

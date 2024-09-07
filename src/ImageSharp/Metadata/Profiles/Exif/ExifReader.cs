@@ -33,7 +33,7 @@ internal class ExifReader : BaseExifReader
     /// </returns>
     public List<IExifValue> ReadValues()
     {
-        List<IExifValue> values = new();
+        List<IExifValue> values = [];
 
         // II == 0x4949
         this.IsBigEndian = this.ReadUInt16() != 0x4949;
@@ -63,7 +63,7 @@ internal class ExifReader : BaseExifReader
             return;
         }
 
-        List<IExifValue> values = new();
+        List<IExifValue> values = [];
         this.ReadValues(values, offset);
 
         for (int i = 0; i < values.Count; i++)
@@ -117,7 +117,8 @@ internal abstract class BaseExifReader
 
     public bool IsBigEndian { get; protected set; }
 
-    public List<(ulong Offset, ExifDataType DataType, ulong NumberOfComponents, ExifValue Exif)> BigValues { get; } = new();
+    public List<(ulong Offset, ExifDataType DataType, ulong NumberOfComponents, ExifValue Exif)> BigValues { get; } =
+        [];
 
     protected void ReadBigValues(List<IExifValue> values)
     {
@@ -504,10 +505,10 @@ internal abstract class BaseExifReader
     }
 
     private void AddInvalidTag(ExifTag tag)
-        => (this.invalidTags ??= new()).Add(tag);
+        => (this.invalidTags ??= []).Add(tag);
 
     private void AddSubIfd(object? val)
-        => (this.subIfds ??= new()).Add(Convert.ToUInt64(val, CultureInfo.InvariantCulture));
+        => (this.subIfds ??= []).Add(Convert.ToUInt64(val, CultureInfo.InvariantCulture));
 
     private void Seek(ulong pos)
         => this.data.Seek((long)pos, SeekOrigin.Begin);

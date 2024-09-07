@@ -24,7 +24,7 @@ public class ImageSaveTests : IDisposable
     public ImageSaveTests()
     {
         this.localImageFormat = new();
-        this.localImageFormat.Setup(x => x.FileExtensions).Returns(new[] { "png" });
+        this.localImageFormat.Setup(x => x.FileExtensions).Returns(["png"]);
         this.localMimeTypeDetector = new MockImageFormatDetector(this.localImageFormat.Object);
 
         this.encoder = new();

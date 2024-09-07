@@ -9,7 +9,7 @@ internal static class ReferencePalette
     /// Gets a collection of named, web safe, colors as defined in the CSS Color Module Level 4.
     /// </summary>
     public static readonly Color[] WebSafeColors =
-    {
+    [
         Color.AliceBlue,
         Color.AntiqueWhite,
         Color.Aqua,
@@ -152,14 +152,14 @@ internal static class ReferencePalette
         Color.WhiteSmoke,
         Color.Yellow,
         Color.YellowGreen
-    };
+    ];
 
     /// <summary>
     /// Gets a collection of colors as defined in the original second edition of Werner’s Nomenclature of Colours 1821.
     /// The hex codes were collected and defined by Nicholas Rougeux <see href="https://www.c82.net/werner"/>
     /// </summary>
     public static readonly Color[] WernerColors =
-    {
+    [
         Color.ParseHex("#f1e9cd"),
         Color.ParseHex("#f2e7cf"),
         Color.ParseHex("#ece6d0"),
@@ -270,7 +270,7 @@ internal static class ReferencePalette
         Color.ParseHex("#9b856b"),
         Color.ParseHex("#766051"),
         Color.ParseHex("#453b32")
-    };
+    ];
 
     public static readonly Dictionary<string, Color> ColorNames =
         new(StringComparer.OrdinalIgnoreCase)

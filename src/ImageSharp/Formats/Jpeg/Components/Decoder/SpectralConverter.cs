@@ -11,8 +11,8 @@ internal abstract class SpectralConverter
     /// <summary>
     /// Supported scaled spectral block sizes for scaled IDCT decoding.
     /// </summary>
-    private static readonly int[] ScaledBlockSizes = new int[]
-    {
+    private static readonly int[] ScaledBlockSizes =
+    [
         // 8 => 1, 1/8 of the original size
         1,
 
@@ -20,8 +20,8 @@ internal abstract class SpectralConverter
         2,
 
         // 8 => 4, 1/2 of the original size
-        4,
-    };
+        4
+    ];
 
     /// <summary>
     /// Gets a value indicating whether this converter has converted spectral

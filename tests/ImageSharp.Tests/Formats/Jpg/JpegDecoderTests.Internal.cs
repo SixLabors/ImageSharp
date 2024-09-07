@@ -19,7 +19,7 @@ public partial class JpegDecoderTests
     [InlineData(4, JpegConstants.Adobe.ColorTransformYcck, JpegColorSpace.Ycck)]
     internal void DeduceJpegColorSpaceAdobeMarker_ShouldReturnValidColorSpace(byte componentCount, byte adobeFlag, JpegColorSpace expectedColorSpace)
     {
-        byte[] adobeMarkerPayload = new byte[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, adobeFlag };
+        byte[] adobeMarkerPayload = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, adobeFlag];
         ProfileResolver.AdobeMarker.CopyTo(adobeMarkerPayload);
         _ = AdobeMarker.TryParse(adobeMarkerPayload, out AdobeMarker adobeMarker);
 

@@ -156,7 +156,7 @@ internal sealed partial class IccDataReader
             double[][] values = new double[channelCount][];
             for (int i = 0; i < channelCount; i++)
             {
-                values[i] = new double[] { this.ReadUFix16(), this.ReadUFix16() };
+                values[i] = [this.ReadUFix16(), this.ReadUFix16()];
             }
 
             return new(values);

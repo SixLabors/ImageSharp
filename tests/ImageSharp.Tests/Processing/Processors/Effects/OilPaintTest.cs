@@ -18,10 +18,10 @@ public class OilPaintTest
                                                                      };
 
     public static readonly string[] InputImages =
-        {
-            TestImages.Png.CalliphoraPartial,
+    [
+        TestImages.Png.CalliphoraPartial,
             TestImages.Bmp.Car
-        };
+    ];
 
     [Theory]
     [WithFileCollection(nameof(InputImages), nameof(OilPaintValues), PixelTypes.Rgba32)]

@@ -234,7 +234,7 @@ public sealed class ExifProfile : IDeepCloneable<ExifProfile>
 
         if (this.values.Count == 0)
         {
-            return Array.Empty<byte>();
+            return [];
         }
 
         ExifWriter writer = new(this.values, this.Parts);
@@ -349,7 +349,7 @@ public sealed class ExifProfile : IDeepCloneable<ExifProfile>
 
         if (this.data is null)
         {
-            this.values = new();
+            this.values = [];
             return;
         }
 

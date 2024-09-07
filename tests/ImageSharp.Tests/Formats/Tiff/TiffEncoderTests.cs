@@ -256,7 +256,7 @@ public class TiffEncoderTests : TiffEncoderBaseTester
         TiffEncoder tiffEncoder = new();
         using MemoryStream memStream = new();
         using Image<Rgba32> image = new(1, 1);
-        byte[] expectedIfdOffsetBytes = { 12, 0 };
+        byte[] expectedIfdOffsetBytes = [12, 0];
 
         // act
         image.Save(memStream, tiffEncoder);

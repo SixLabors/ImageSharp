@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.Memory.Internals;
 internal partial class UniformUnmanagedMemoryPool : System.Runtime.ConstrainedExecution.CriticalFinalizerObject
 {
     private static int minTrimPeriodMilliseconds = int.MaxValue;
-    private static readonly List<WeakReference<UniformUnmanagedMemoryPool>> AllPools = new();
+    private static readonly List<WeakReference<UniformUnmanagedMemoryPool>> AllPools = [];
     private static Timer? trimTimer;
 
     private static readonly Stopwatch Stopwatch = Stopwatch.StartNew();

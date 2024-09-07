@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.Processing;
 /// </summary>
 public class ProjectiveTransformBuilder
 {
-    private readonly List<Func<Size, Matrix4x4>> transformMatrixFactories = new();
+    private readonly List<Func<Size, Matrix4x4>> transformMatrixFactories = [];
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ProjectiveTransformBuilder"/> class.

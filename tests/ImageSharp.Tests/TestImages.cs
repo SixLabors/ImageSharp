@@ -215,7 +215,7 @@ public static class TestImages
                 public const string ExifUndefType = "Jpg/progressive/ExifUndefType.jpg";
             }
 
-            public static readonly string[] All = { Fb, Progress, Festzug };
+            public static readonly string[] All = [Fb, Progress, Festzug];
         }
 
         public static class Baseline
@@ -271,12 +271,12 @@ public static class TestImages
             public const string ArithmeticCodingWithRestart = "Jpg/baseline/Calliphora-arithmetic-restart.jpg";
 
             public static readonly string[] All =
-            {
+            [
                 Cmyk, Ycck, Exif, Floorplan,
                 Calliphora, Turtle420, GammaDalaiLamaGray,
                 Hiyamugi, Jpeg400, Jpeg420Exif, Jpeg444,
                 Ratio1x1, Testorig12bit, YcckSubsample1222
-            };
+            ];
         }
 
         public static class Issues
@@ -453,24 +453,24 @@ public static class TestImages
         public const string BlackWhitePalletDataMatrix = "Bmp/bit1datamatrix.bmp";
 
         public static readonly string[] BitFields =
-        {
-              Rgb32bfdef,
+        [
+            Rgb32bfdef,
               Rgb32bf,
               Rgb16565,
               Rgb16bfdef,
               Rgb16565pal,
-              Issue735,
-        };
+              Issue735
+        ];
 
         public static readonly string[] Miscellaneous =
-        {
+        [
             Car,
             F,
             NegHeight
-        };
+        ];
 
         public static readonly string[] Benchmark =
-        {
+        [
             Car,
             F,
             NegHeight,
@@ -487,7 +487,7 @@ public static class TestImages
             Bit16,
             Bit16Inverted,
             Bit32Rgb
-        };
+        ];
     }
 
     public static class Gif
@@ -539,7 +539,7 @@ public static class TestImages
         }
 
         public static readonly string[] Animated =
-        {
+        [
             M4nb,
             Giphy,
             Cheers,
@@ -558,7 +558,7 @@ public static class TestImages
             Issues.Issue1530,
             Bit18RGBCube,
             Global256NoTrans
-        };
+        ];
     }
 
     public static class Tga
@@ -1073,9 +1073,10 @@ public static class TestImages
         public const string InvalidIptcData = "Tiff/7324fcaff3aad96f27899da51c1bb5d9.tiff";
         public const string IptcData = "Tiff/iptc.tiff";
 
-        public static readonly string[] Multiframes = { MultiframeDeflateWithPreview, MultiframeLzwPredictor /*, MultiFrameDifferentSize, MultiframeDifferentSizeTiled, MultiFrameDifferentVariants,*/ };
+        public static readonly string[] Multiframes = [MultiframeDeflateWithPreview, MultiframeLzwPredictor /*, MultiFrameDifferentSize, MultiframeDifferentSizeTiled, MultiFrameDifferentVariants,*/
+        ];
 
-        public static readonly string[] Metadata = { SampleMetadata };
+        public static readonly string[] Metadata = [SampleMetadata];
     }
 
     public static class BigTiff

@@ -43,12 +43,12 @@ public abstract class MultiImageBenchmarkBase
 
     protected virtual string BaseFolder => TestEnvironment.InputImagesDirectoryFullPath;
 
-    protected virtual IEnumerable<string> SearchPatterns => new[] { "*.*" };
+    protected virtual IEnumerable<string> SearchPatterns => ["*.*"];
 
     /// <summary>
     /// Gets the file names containing these strings are substrings are not processed by the benchmark.
     /// </summary>
-    protected virtual IEnumerable<string> ExcludeSubstringsInFileNames => new[] { "badeof", "BadEof", "CriticalEOF" };
+    protected virtual IEnumerable<string> ExcludeSubstringsInFileNames => ["badeof", "BadEof", "CriticalEOF"];
 
     /// <summary>
     /// Gets folders containing files OR files to be processed by the benchmark.

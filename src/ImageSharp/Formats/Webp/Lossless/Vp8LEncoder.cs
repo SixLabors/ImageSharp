@@ -26,9 +26,9 @@ internal class Vp8LEncoder : IDisposable
     /// </summary>
     private ScratchBuffer scratch;  // mutable struct, don't make readonly
 
-    private readonly int[][] histoArgb = { new int[256], new int[256], new int[256], new int[256] };
+    private readonly int[][] histoArgb = [new int[256], new int[256], new int[256], new int[256]];
 
-    private readonly int[][] bestHisto = { new int[256], new int[256], new int[256], new int[256] };
+    private readonly int[][] bestHisto = [new int[256], new int[256], new int[256], new int[256]];
 
     /// <summary>
     /// The <see cref="MemoryAllocator"/> to use for buffer allocations.
@@ -151,10 +151,11 @@ internal class Vp8LEncoder : IDisposable
     // This sequence is tuned from that, but more weighted for lower symbol count,
     // and more spiking histograms.
     // This uses C#'s compiler optimization to refer to assembly's static data directly.
-    private static ReadOnlySpan<byte> StorageOrder => new byte[] { 17, 18, 0, 1, 2, 3, 4, 5, 16, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 };
+    private static ReadOnlySpan<byte> StorageOrder => [17, 18, 0, 1, 2, 3, 4, 5, 16, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15
+    ];
 
     // This uses C#'s compiler optimization to refer to assembly's static data directly.
-    private static ReadOnlySpan<byte> Order => new byte[] { 1, 2, 0, 3 };
+    private static ReadOnlySpan<byte> Order => [1, 2, 0, 3];
 
     /// <summary>
     /// Gets the memory for the image data as packed bgra values.
@@ -550,7 +551,7 @@ internal class Vp8LEncoder : IDisposable
         EntropyIx entropyIdx = this.AnalyzeEntropy(bgra, width, height, usePalette, this.PaletteSize, this.TransformBits, out redAndBlueAlwaysZero);
 
         bool doNotCache = false;
-        List<CrunchConfig> crunchConfigs = new();
+        List<CrunchConfig> crunchConfigs = [];
 
         if (this.method == WebpEncodingMethod.BestQuality && this.quality == 100)
         {
@@ -1268,13 +1269,13 @@ internal class Vp8LEncoder : IDisposable
         // non-zero red and blue values. If all are zero, we can later skip
         // the cross color optimization.
         byte[][] histoPairs =
-        {
-            new[] { (byte)HistoIx.HistoRed, (byte)HistoIx.HistoBlue },
-            new[] { (byte)HistoIx.HistoRedPred, (byte)HistoIx.HistoBluePred },
-            new[] { (byte)HistoIx.HistoRedSubGreen, (byte)HistoIx.HistoBlueSubGreen },
-            new[] { (byte)HistoIx.HistoRedPredSubGreen, (byte)HistoIx.HistoBluePredSubGreen },
-            new[] { (byte)HistoIx.HistoRed, (byte)HistoIx.HistoBlue }
-        };
+        [
+            [(byte)HistoIx.HistoRed, (byte)HistoIx.HistoBlue],
+            [(byte)HistoIx.HistoRedPred, (byte)HistoIx.HistoBluePred],
+            [(byte)HistoIx.HistoRedSubGreen, (byte)HistoIx.HistoBlueSubGreen],
+            [(byte)HistoIx.HistoRedPredSubGreen, (byte)HistoIx.HistoBluePredSubGreen],
+            [(byte)HistoIx.HistoRed, (byte)HistoIx.HistoBlue]
+        ];
         Span<uint> redHisto = histo[(256 * histoPairs[(int)minEntropyIx][0])..];
         Span<uint> blueHisto = histo[(256 * histoPairs[(int)minEntropyIx][1])..];
         for (int i = 1; i < 256; i++)
@@ -1328,7 +1329,7 @@ internal class Vp8LEncoder : IDisposable
     /// <returns>The number of palette entries.</returns>
     private static int GetColorPalette(ReadOnlySpan<uint> bgra, int width, int height, Span<uint> palette)
     {
-        HashSet<uint> colors = new();
+        HashSet<uint> colors = [];
         for (int y = 0; y < height; y++)
         {
             ReadOnlySpan<uint> bgraRow = bgra.Slice(y * width, width);

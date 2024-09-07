@@ -26,7 +26,7 @@ public static class TestUtils
     private static readonly Dictionary<PixelTypes, Type> PixelTypes2ClrTypes = new();
 
     private static readonly PixelTypes[] AllConcretePixelTypes = GetAllPixelTypes()
-        .Except(new[] { PixelTypes.Undefined, PixelTypes.All })
+        .Except([PixelTypes.Undefined, PixelTypes.All])
         .ToArray();
 
     static TestUtils()
@@ -133,7 +133,7 @@ public static class TestUtils
     {
         if (pixelTypes == PixelTypes.Undefined)
         {
-            return Enumerable.Empty<KeyValuePair<PixelTypes, Type>>();
+            return [];
         }
         else if (pixelTypes == PixelTypes.All)
         {

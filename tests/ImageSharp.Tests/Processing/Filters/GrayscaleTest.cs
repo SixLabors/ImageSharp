@@ -11,10 +11,10 @@ namespace SixLabors.ImageSharp.Tests.Processing.Filters;
 [Trait("Category", "Processors")]
 public class GrayscaleTest : BaseImageOperationsExtensionTest
 {
-    public static IEnumerable<object[]> ModeTheoryData = new[]
-    {
-        new object[] { new TestType<GrayscaleBt709Processor>(), GrayscaleMode.Bt709 }
-    };
+    public static IEnumerable<object[]> ModeTheoryData =
+    [
+        [new TestType<GrayscaleBt709Processor>(), GrayscaleMode.Bt709]
+    ];
 
     [Theory]
     [MemberData(nameof(ModeTheoryData))]

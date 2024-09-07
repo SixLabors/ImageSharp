@@ -96,7 +96,7 @@ internal sealed class ExifLong8Array : ExifArrayValue<ulong>
 
     private bool SetSingle(ulong value)
     {
-        this.Value = new[] { value };
+        this.Value = [value];
         return true;
     }
 

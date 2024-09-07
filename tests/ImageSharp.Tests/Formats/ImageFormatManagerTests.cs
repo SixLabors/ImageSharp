@@ -123,7 +123,7 @@ public class ImageFormatManagerTests
         IImageFormat format = Image.DetectFormat(jpegImage);
         Assert.IsType<JpegFormat>(format);
 
-        byte[] invalidImage = { 1, 2, 3 };
+        byte[] invalidImage = [1, 2, 3];
         Assert.Throws<UnknownImageFormatException>(() => Image.DetectFormat(invalidImage));
     }
 }

@@ -49,7 +49,7 @@ internal sealed class WebpLosslessDecoder
     private const int FixedTableSize = (630 * 3) + 410;
 
     private static readonly int[] TableSize =
-    {
+    [
         FixedTableSize + 654,
         FixedTableSize + 656,
         FixedTableSize + 658,
@@ -62,7 +62,7 @@ internal sealed class WebpLosslessDecoder
         FixedTableSize + 1168,
         FixedTableSize + 1680,
         FixedTableSize + 2704
-    };
+    ];
 
     private static readonly int NumCodeLengthCodes = CodeLengthCodeOrder.Length;
 
@@ -80,10 +80,11 @@ internal sealed class WebpLosslessDecoder
     }
 
     // This uses C#'s compiler optimization to refer to assembly's static data directly.
-    private static ReadOnlySpan<byte> CodeLengthCodeOrder => new byte[] { 17, 18, 0, 1, 2, 3, 4, 5, 16, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 };
+    private static ReadOnlySpan<byte> CodeLengthCodeOrder => [17, 18, 0, 1, 2, 3, 4, 5, 16, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15
+    ];
 
     // This uses C#'s compiler optimization to refer to assembly's static data directly.
-    private static ReadOnlySpan<byte> LiteralMap => new byte[] { 0, 1, 1, 1, 0 };
+    private static ReadOnlySpan<byte> LiteralMap => [0, 1, 1, 1, 0];
 
     /// <summary>
     /// Decodes the lossless webp image from the stream.

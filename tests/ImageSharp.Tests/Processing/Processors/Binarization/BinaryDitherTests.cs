@@ -13,9 +13,9 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization;
 public class BinaryDitherTests
 {
     public static readonly string[] CommonTestImages =
-        {
-            TestImages.Png.CalliphoraPartial, TestImages.Png.Bike
-        };
+    [
+        TestImages.Png.CalliphoraPartial, TestImages.Png.Bike
+    ];
 
     public static readonly TheoryData<string, IDither> OrderedDitherers = new()
     {

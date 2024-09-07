@@ -12,14 +12,14 @@ internal static class IccTestDataProfiles
     public static readonly IccProfileId Profile_Random_Id_Value = new(0x917D6DE6, 0x84C958D1, 0x3BB0F5BB, 0xADD1134F);
 
     public static readonly byte[] Header_Random_Id_Array =
-    {
-        0x84, 0xA8, 0xD4, 0x60, 0xC7, 0x16, 0xB6, 0xF3, 0x9B, 0x0E, 0x4C, 0x3D, 0xAB, 0x95, 0xF8, 0x38,
-    };
+    [
+        0x84, 0xA8, 0xD4, 0x60, 0xC7, 0x16, 0xB6, 0xF3, 0x9B, 0x0E, 0x4C, 0x3D, 0xAB, 0x95, 0xF8, 0x38
+    ];
 
     public static readonly byte[] Profile_Random_Id_Array =
-    {
-        0x91, 0x7D, 0x6D, 0xE6, 0x84, 0xC9, 0x58, 0xD1, 0x3B, 0xB0, 0xF5, 0xBB, 0xAD, 0xD1, 0x13, 0x4F,
-    };
+    [
+        0x91, 0x7D, 0x6D, 0xE6, 0x84, 0xC9, 0x58, 0xD1, 0x3B, 0xB0, 0xF5, 0xBB, 0xAD, 0xD1, 0x13, 0x4F
+    ];
 
     public static readonly IccProfileHeader Header_Random_Write = CreateHeaderRandomValue(
         562,        // should be overwritten
@@ -112,10 +112,10 @@ internal static class IccTestDataProfiles
             168,
             Profile_Random_Id_Value,
             "acsp"),
-        new IccTagDataEntry[] { IccTestDataTagDataEntry.Unknown_Val, IccTestDataTagDataEntry.Unknown_Val });
+        [IccTestDataTagDataEntry.Unknown_Val, IccTestDataTagDataEntry.Unknown_Val]);
 
     public static readonly byte[] Header_CorruptDataColorSpace_Array =
-    {
+    [
         0x00, 0x00, 0x00, 0x80,     // Size
         0x61, 0x62, 0x63, 0x64,     // CmmType
         0x04, 0x30, 0x00, 0x00,     // Version
@@ -140,11 +140,11 @@ internal static class IccTestDataProfiles
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00,
-    };
+        0x00, 0x00, 0x00, 0x00
+    ];
 
     public static readonly byte[] Header_CorruptProfileConnectionSpace_Array =
-    {
+    [
         0x00, 0x00, 0x00, 0x80,     // Size
         0x62, 0x63, 0x64, 0x65,     // CmmType
         0x04, 0x30, 0x00, 0x00,     // Version
@@ -169,11 +169,11 @@ internal static class IccTestDataProfiles
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00,
-    };
+        0x00, 0x00, 0x00, 0x00
+    ];
 
     public static readonly byte[] Header_CorruptRenderingIntent_Array =
-    {
+    [
         0x00, 0x00, 0x00, 0x80,     // Size
         0x63, 0x64, 0x65, 0x66,     // CmmType
         0x04, 0x30, 0x00, 0x00,     // Version
@@ -198,8 +198,8 @@ internal static class IccTestDataProfiles
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00,
-    };
+        0x00, 0x00, 0x00, 0x00
+    ];
 
     public static readonly byte[] Header_DataTooSmall_Array = new byte[127];
 
@@ -210,20 +210,20 @@ internal static class IccTestDataProfiles
     public static readonly byte[] Header_SizeBiggerThanData_Array = CreateHeaderRandomArray(160, 0, Header_Random_Id_Array);
 
     public static readonly object[][] ProfileIdTestData =
-    {
-        new object[] { Header_Random_Array, Header_Random_Id_Value },
-        new object[] { Profile_Random_Array, Profile_Random_Id_Value },
-    };
+    [
+        [Header_Random_Array, Header_Random_Id_Value],
+        [Profile_Random_Array, Profile_Random_Id_Value]
+    ];
 
     public static readonly object[][] ProfileValidityTestData =
-    {
-        new object[] { Header_CorruptDataColorSpace_Array, false },
-        new object[] { Header_CorruptProfileConnectionSpace_Array, false },
-        new object[] { Header_CorruptRenderingIntent_Array, false },
-        new object[] { Header_DataTooSmall_Array, false },
-        new object[] { Header_InvalidSizeSmall_Array, false },
-        new object[] { Header_InvalidSizeBig_Array, false },
-        new object[] { Header_SizeBiggerThanData_Array, false },
-        new object[] { Header_Random_Array, true },
-    };
+    [
+        [Header_CorruptDataColorSpace_Array, false],
+        [Header_CorruptProfileConnectionSpace_Array, false],
+        [Header_CorruptRenderingIntent_Array, false],
+        [Header_DataTooSmall_Array, false],
+        [Header_InvalidSizeSmall_Array, false],
+        [Header_InvalidSizeBig_Array, false],
+        [Header_SizeBiggerThanData_Array, false],
+        [Header_Random_Array, true]
+    ];
 }

@@ -15,7 +15,8 @@ public partial class ImageTests
         [ValidateDisposedMemoryAllocations]
         public void FromPixels(bool useSpan)
         {
-            Rgba32[] data = { Color.Black.ToPixel<Rgba32>(), Color.White.ToPixel<Rgba32>(), Color.White.ToPixel<Rgba32>(), Color.Black.ToPixel<Rgba32>(), };
+            Rgba32[] data = [Color.Black.ToPixel<Rgba32>(), Color.White.ToPixel<Rgba32>(), Color.White.ToPixel<Rgba32>(), Color.Black.ToPixel<Rgba32>()
+            ];
 
             using Image<Rgba32> img = useSpan
                 ? Image.LoadPixelData<Rgba32>(data.AsSpan(), 2, 2)
@@ -34,12 +35,12 @@ public partial class ImageTests
         public void FromBytes(bool useSpan)
         {
             byte[] data =
-            {
+            [
                 0, 0, 0, 255, // 0,0
                 255, 255, 255, 255, // 0,1
                 255, 255, 255, 255, // 1,0
-                0, 0, 0, 255, // 1,1
-            };
+                0, 0, 0, 255 // 1,1
+            ];
 
             using Image<Rgba32> img = useSpan
                 ? Image.LoadPixelData<Rgba32>(data.AsSpan(), 2, 2)

@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms;
 [Trait("Category", "Processors")]
 public class RotateFlipTests
 {
-    public static readonly string[] FlipFiles = { TestImages.Bmp.F };
+    public static readonly string[] FlipFiles = [TestImages.Bmp.F];
 
     public static readonly TheoryData<RotateMode, FlipMode> RotateFlipValues
         = new()

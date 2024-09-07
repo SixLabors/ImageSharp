@@ -28,7 +28,7 @@ internal class Vp8LBitReader : BitReaderBase
     private const int Wbits = 32;
 
     private static readonly uint[] BitMask =
-    {
+    [
         0,
         0x000001, 0x000003, 0x000007, 0x00000f,
         0x00001f, 0x00003f, 0x00007f, 0x0000ff,
@@ -36,7 +36,7 @@ internal class Vp8LBitReader : BitReaderBase
         0x001fff, 0x003fff, 0x007fff, 0x00ffff,
         0x01ffff, 0x03ffff, 0x07ffff, 0x0fffff,
         0x1fffff, 0x3fffff, 0x7fffff, 0xffffff
-    };
+    ];
 
     /// <summary>
     /// Pre-fetched bits.

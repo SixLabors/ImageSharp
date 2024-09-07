@@ -11,17 +11,17 @@ namespace SixLabors.ImageSharp.Tests.Processing.Filters;
 [Trait("Category", "Processors")]
 public class ColorBlindnessTest : BaseImageOperationsExtensionTest
 {
-    public static IEnumerable<object[]> TheoryData = new[]
-    {
-        new object[] { new TestType<AchromatomalyProcessor>(), ColorBlindnessMode.Achromatomaly },
-        new object[] { new TestType<AchromatopsiaProcessor>(), ColorBlindnessMode.Achromatopsia },
-        new object[] { new TestType<DeuteranomalyProcessor>(), ColorBlindnessMode.Deuteranomaly },
-        new object[] { new TestType<DeuteranopiaProcessor>(), ColorBlindnessMode.Deuteranopia },
-        new object[] { new TestType<ProtanomalyProcessor>(), ColorBlindnessMode.Protanomaly },
-        new object[] { new TestType<ProtanopiaProcessor>(), ColorBlindnessMode.Protanopia },
-        new object[] { new TestType<TritanomalyProcessor>(), ColorBlindnessMode.Tritanomaly },
-        new object[] { new TestType<TritanopiaProcessor>(), ColorBlindnessMode.Tritanopia }
-    };
+    public static IEnumerable<object[]> TheoryData =
+    [
+        [new TestType<AchromatomalyProcessor>(), ColorBlindnessMode.Achromatomaly],
+        [new TestType<AchromatopsiaProcessor>(), ColorBlindnessMode.Achromatopsia],
+        [new TestType<DeuteranomalyProcessor>(), ColorBlindnessMode.Deuteranomaly],
+        [new TestType<DeuteranopiaProcessor>(), ColorBlindnessMode.Deuteranopia],
+        [new TestType<ProtanomalyProcessor>(), ColorBlindnessMode.Protanomaly],
+        [new TestType<ProtanopiaProcessor>(), ColorBlindnessMode.Protanopia],
+        [new TestType<TritanomalyProcessor>(), ColorBlindnessMode.Tritanomaly],
+        [new TestType<TritanopiaProcessor>(), ColorBlindnessMode.Tritanopia]
+    ];
 
     [Theory]
     [MemberData(nameof(TheoryData))]

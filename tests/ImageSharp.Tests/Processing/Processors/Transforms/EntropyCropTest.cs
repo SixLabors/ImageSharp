@@ -13,11 +13,11 @@ public class EntropyCropTest
     public static readonly TheoryData<float> EntropyCropValues = new() { .25F, .75F };
 
     public static readonly string[] InputImages =
-        {
-            TestImages.Png.Ducky,
+    [
+        TestImages.Png.Ducky,
             TestImages.Jpeg.Baseline.Jpeg400,
             TestImages.Jpeg.Baseline.MultiScanBaselineCMYK
-        };
+    ];
 
     [Theory]
     [WithFileCollection(nameof(InputImages), nameof(EntropyCropValues), PixelTypes.Rgba32)]

@@ -17,8 +17,8 @@ public class AutoOrientTests
     public static readonly TheoryData<ExifDataType, byte[]> InvalidOrientationValues
         = new()
         {
-            { ExifDataType.Byte, new byte[] { 1 } },
-            { ExifDataType.SignedByte, new byte[] { 2 } },
+            { ExifDataType.Byte, [1] },
+            { ExifDataType.SignedByte, [2] },
             { ExifDataType.SignedShort, BitConverter.GetBytes((short)3) },
             { ExifDataType.Long, BitConverter.GetBytes(4U) },
             { ExifDataType.SignedLong, BitConverter.GetBytes(5) }

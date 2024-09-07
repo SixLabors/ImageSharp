@@ -33,12 +33,11 @@ internal static class IccTestDataLut
     }
 
     public static readonly object[][] Lut8TestData =
-    {
-        new object[] { LUT8_Grad, LUT8_ValGrad },
-    };
+    [
+        [LUT8_Grad, LUT8_ValGrad]
+    ];
 
-    public static readonly IccLut LUT16_ValGrad = new(new float[]
-    {
+    public static readonly IccLut LUT16_ValGrad = new([
         1f / ushort.MaxValue,
         2f / ushort.MaxValue,
         3f / ushort.MaxValue,
@@ -50,7 +49,7 @@ internal static class IccTestDataLut
         9f / ushort.MaxValue,
         32768f / ushort.MaxValue,
         1f
-    });
+    ]);
 
     public static readonly byte[] LUT16_Grad = ArrayHelper.Concat(
         IccTestDataPrimitives.UInt16_1,
@@ -66,26 +65,24 @@ internal static class IccTestDataLut
         IccTestDataPrimitives.UInt16_Max);
 
     public static readonly object[][] Lut16TestData =
-    {
-        new object[] { LUT16_Grad, LUT16_ValGrad, 11 },
-    };
+    [
+        [LUT16_Grad, LUT16_ValGrad, 11]
+    ];
 
     public static readonly IccClut CLUT8_ValGrad = new(
         new float[][]
         {
-            new float[] { 1f / byte.MaxValue, 2f / byte.MaxValue, 3f / byte.MaxValue },
-            new float[] { 4f / byte.MaxValue, 5f / byte.MaxValue, 6f / byte.MaxValue },
-            new float[] { 7f / byte.MaxValue, 8f / byte.MaxValue, 9f / byte.MaxValue },
-
-            new float[] { 10f / byte.MaxValue, 11f / byte.MaxValue, 12f / byte.MaxValue },
-            new float[] { 13f / byte.MaxValue, 14f / byte.MaxValue, 15f / byte.MaxValue },
-            new float[] { 16f / byte.MaxValue, 17f / byte.MaxValue, 18f / byte.MaxValue },
-
-            new float[] { 19f / byte.MaxValue, 20f / byte.MaxValue, 21f / byte.MaxValue },
-            new float[] { 22f / byte.MaxValue, 23f / byte.MaxValue, 24f / byte.MaxValue },
-            new float[] { 25f / byte.MaxValue, 26f / byte.MaxValue, 27f / byte.MaxValue },
+            [1f / byte.MaxValue, 2f / byte.MaxValue, 3f / byte.MaxValue], [4f / byte.MaxValue, 5f / byte.MaxValue, 6f / byte.MaxValue
+            ],
+            [7f / byte.MaxValue, 8f / byte.MaxValue, 9f / byte.MaxValue], [10f / byte.MaxValue, 11f / byte.MaxValue, 12f / byte.MaxValue
+            ],
+            [13f / byte.MaxValue, 14f / byte.MaxValue, 15f / byte.MaxValue], [16f / byte.MaxValue, 17f / byte.MaxValue, 18f / byte.MaxValue
+            ],
+            [19f / byte.MaxValue, 20f / byte.MaxValue, 21f / byte.MaxValue], [22f / byte.MaxValue, 23f / byte.MaxValue, 24f / byte.MaxValue
+            ],
+            [25f / byte.MaxValue, 26f / byte.MaxValue, 27f / byte.MaxValue],
         },
-        new byte[] { 3, 3 },
+        [3, 3],
         IccClutDataType.UInt8);
 
     /// <summary>
@@ -94,7 +91,7 @@ internal static class IccTestDataLut
     /// <para>Grid-point Count: { 3, 3 }</para>
     /// </summary>
     public static readonly byte[] CLUT8_Grad =
-    {
+    [
         0x01, 0x02, 0x03,
         0x04, 0x05, 0x06,
         0x07, 0x08, 0x09,
@@ -105,30 +102,28 @@ internal static class IccTestDataLut
 
         0x13, 0x14, 0x15,
         0x16, 0x17, 0x18,
-        0x19, 0x1A, 0x1B,
-    };
+        0x19, 0x1A, 0x1B
+    ];
 
     public static readonly object[][] Clut8TestData =
-    {
-        new object[] { CLUT8_Grad, CLUT8_ValGrad, 2, 3, new byte[] { 3, 3 } },
-    };
+    [
+        [CLUT8_Grad, CLUT8_ValGrad, 2, 3, new byte[] { 3, 3 }]
+    ];
 
     public static readonly IccClut CLUT16_ValGrad = new(
         new float[][]
         {
-            new float[] { 1f / ushort.MaxValue, 2f / ushort.MaxValue, 3f / ushort.MaxValue },
-            new float[] { 4f / ushort.MaxValue, 5f / ushort.MaxValue, 6f / ushort.MaxValue },
-            new float[] { 7f / ushort.MaxValue, 8f / ushort.MaxValue, 9f / ushort.MaxValue },
-
-            new float[] { 10f / ushort.MaxValue, 11f / ushort.MaxValue, 12f / ushort.MaxValue },
-            new float[] { 13f / ushort.MaxValue, 14f / ushort.MaxValue, 15f / ushort.MaxValue },
-            new float[] { 16f / ushort.MaxValue, 17f / ushort.MaxValue, 18f / ushort.MaxValue },
-
-            new float[] { 19f / ushort.MaxValue, 20f / ushort.MaxValue, 21f / ushort.MaxValue },
-            new float[] { 22f / ushort.MaxValue, 23f / ushort.MaxValue, 24f / ushort.MaxValue },
-            new float[] { 25f / ushort.MaxValue, 26f / ushort.MaxValue, 27f / ushort.MaxValue },
+            [1f / ushort.MaxValue, 2f / ushort.MaxValue, 3f / ushort.MaxValue], [4f / ushort.MaxValue, 5f / ushort.MaxValue, 6f / ushort.MaxValue
+            ],
+            [7f / ushort.MaxValue, 8f / ushort.MaxValue, 9f / ushort.MaxValue], [10f / ushort.MaxValue, 11f / ushort.MaxValue, 12f / ushort.MaxValue
+            ],
+            [13f / ushort.MaxValue, 14f / ushort.MaxValue, 15f / ushort.MaxValue], [16f / ushort.MaxValue, 17f / ushort.MaxValue, 18f / ushort.MaxValue
+            ],
+            [19f / ushort.MaxValue, 20f / ushort.MaxValue, 21f / ushort.MaxValue], [22f / ushort.MaxValue, 23f / ushort.MaxValue, 24f / ushort.MaxValue
+            ],
+            [25f / ushort.MaxValue, 26f / ushort.MaxValue, 27f / ushort.MaxValue],
         },
-        new byte[] { 3, 3 },
+        [3, 3],
         IccClutDataType.UInt16);
 
     /// <summary>
@@ -137,7 +132,7 @@ internal static class IccTestDataLut
     /// <para>Grid-point Count: { 3, 3 }</para>
     /// </summary>
     public static readonly byte[] CLUT16_Grad =
-    {
+    [
         0x00, 0x01, 0x00, 0x02, 0x00, 0x03,
         0x00, 0x04, 0x00, 0x05, 0x00, 0x06,
         0x00, 0x07, 0x00, 0x08, 0x00, 0x09,
@@ -148,30 +143,22 @@ internal static class IccTestDataLut
 
         0x00, 0x13, 0x00, 0x14, 0x00, 0x15,
         0x00, 0x16, 0x00, 0x17, 0x00, 0x18,
-        0x00, 0x19, 0x00, 0x1A, 0x00, 0x1B,
-    };
+        0x00, 0x19, 0x00, 0x1A, 0x00, 0x1B
+    ];
 
     public static readonly object[][] Clut16TestData =
-    {
-        new object[] { CLUT16_Grad, CLUT16_ValGrad, 2, 3, new byte[] { 3, 3 } },
-    };
+    [
+        [CLUT16_Grad, CLUT16_ValGrad, 2, 3, new byte[] { 3, 3 }]
+    ];
 
     public static readonly IccClut CLUTf32_ValGrad = new(
         new float[][]
         {
-            new float[] { 1f, 2f, 3f },
-            new float[] { 4f, 5f, 6f },
-            new float[] { 7f, 8f, 9f },
-
-            new float[] { 1f, 2f, 3f },
-            new float[] { 4f, 5f, 6f },
-            new float[] { 7f, 8f, 9f },
-
-            new float[] { 1f, 2f, 3f },
-            new float[] { 4f, 5f, 6f },
-            new float[] { 7f, 8f, 9f },
+            [1f, 2f, 3f], [4f, 5f, 6f], [7f, 8f, 9f], [1f, 2f, 3f], [4f, 5f, 6f], [7f, 8f, 9f], [1f, 2f, 3f], [4f, 5f, 6f
+            ],
+            [7f, 8f, 9f],
         },
-        new byte[] { 3, 3 },
+        [3, 3],
         IccClutDataType.Float);
 
     /// <summary>
@@ -209,9 +196,9 @@ internal static class IccTestDataLut
         IccTestDataPrimitives.Single_9);
 
     public static readonly object[][] ClutF32TestData =
-    {
-        new object[] { CLUTf32_Grad, CLUTf32_ValGrad, 2, 3, new byte[] { 3, 3 } },
-    };
+    [
+        [CLUTf32_Grad, CLUTf32_ValGrad, 2, 3, new byte[] { 3, 3 }]
+    ];
 
     public static readonly IccClut CLUT_Val8 = CLUT8_ValGrad;
     public static readonly IccClut CLUT_Val16 = CLUT16_ValGrad;
@@ -232,9 +219,9 @@ internal static class IccTestDataLut
         CLUTf32_Grad);
 
     public static readonly object[][] ClutTestData =
-    {
-        new object[] { CLUT_8, CLUT_Val8, 2, 3, false },
-        new object[] { CLUT_16, CLUT_Val16, 2, 3, false },
-        new object[] { CLUT_f32, CLUT_Valf32, 2, 3, true },
-    };
+    [
+        [CLUT_8, CLUT_Val8, 2, 3, false],
+        [CLUT_16, CLUT_Val16, 2, 3, false],
+        [CLUT_f32, CLUT_Valf32, 2, 3, true]
+    ];
 }

@@ -39,7 +39,7 @@ public class WithFileAttribute : ImageDataAttributeBase
         this.fileName = fileName;
     }
 
-    protected override object[] GetFactoryMethodArgs(MethodInfo testMethod, Type factoryType) => new object[] { this.fileName };
+    protected override object[] GetFactoryMethodArgs(MethodInfo testMethod, Type factoryType) => [this.fileName];
 
     protected override string GetFactoryMethodName(MethodInfo testMethod) => "File";
 }

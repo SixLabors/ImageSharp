@@ -124,7 +124,7 @@ internal sealed class IccReader
         // A normal profile usually has 5-15 entries
         if (tagCount > 100)
         {
-            return Array.Empty<IccTagTableEntry>();
+            return [];
         }
 
         List<IccTagTableEntry> table = new((int)tagCount);

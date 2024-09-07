@@ -10,9 +10,9 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms;
 public class PadTest
 {
     public static readonly string[] CommonTestImages =
-    {
+    [
         TestImages.Png.CalliphoraPartial, TestImages.Png.Bike
-    };
+    ];
 
     [Theory]
     [WithFileCollection(nameof(CommonTestImages), PixelTypes.Rgba32)]

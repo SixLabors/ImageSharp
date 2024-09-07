@@ -17,7 +17,7 @@ public class DetectEdgesTest
 
     private static readonly ImageComparer TransparentComparer = ImageComparer.TolerantPercentage(0.5F);
 
-    public static readonly string[] TestImages = { Tests.TestImages.Png.Bike };
+    public static readonly string[] TestImages = [Tests.TestImages.Png.Bike];
 
     public const PixelTypes CommonNonDefaultPixelTypes = PixelTypes.Rgba32 | PixelTypes.Bgra32 | PixelTypes.RgbaVector;
 

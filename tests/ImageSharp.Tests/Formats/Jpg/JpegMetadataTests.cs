@@ -71,7 +71,7 @@ public class JpegMetadataTests
     public void Comment_OnlyComment()
     {
         string comment = "test comment";
-        Collection<string> expectedCollection = new() { comment };
+        Collection<string> expectedCollection = [comment];
 
         JpegMetadata meta = new();
         meta.Comments.Add(JpegComData.FromString(comment));

@@ -160,7 +160,7 @@ public class WithSolidFilledImagesAttribute : WithBlankImagesAttribute
     public byte A { get; }
 
     protected override object[] GetFactoryMethodArgs(MethodInfo testMethod, Type factoryType)
-        => new object[] { this.Width, this.Height, this.R, this.G, this.B, this.A };
+        => [this.Width, this.Height, this.R, this.G, this.B, this.A];
 
     protected override string GetFactoryMethodName(MethodInfo testMethod) => "Solid";
 }

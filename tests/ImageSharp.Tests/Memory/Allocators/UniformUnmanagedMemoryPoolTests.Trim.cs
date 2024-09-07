@@ -111,7 +111,7 @@ public partial class UniformUnmanagedMemoryPoolTests
         }
 
         public static readonly bool Is32BitProcess = !Environment.Is64BitProcess;
-        private static readonly List<byte[]> PressureArrays = new();
+        private static readonly List<byte[]> PressureArrays = [];
 
         [Fact]
         public static void GC_Collect_OnHighLoad_TrimsEntirePool()

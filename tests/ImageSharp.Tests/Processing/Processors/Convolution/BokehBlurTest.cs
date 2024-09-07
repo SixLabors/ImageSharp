@@ -48,10 +48,10 @@ public class BokehBlurTest
     public void VerifyComplexComponents()
     {
         // Get the saved components
-        List<Complex64[]> components = new();
+        List<Complex64[]> components = [];
         foreach (Match match in Regex.Matches(Components10x2, @"\[\[(.*?)\]\]", RegexOptions.Singleline))
         {
-            string[] values = match.Groups[1].Value.Trim().Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+            string[] values = match.Groups[1].Value.Trim().Split([' '], StringSplitOptions.RemoveEmptyEntries);
             Complex64[] component = values.Select(
                 value =>
                     {
@@ -107,20 +107,20 @@ public class BokehBlurTest
         public override string ToString() => $"R{this.Radius}_C{this.Components}_G{this.Gamma}";
     }
 
-    public static readonly TheoryData<BokehBlurInfo> BokehBlurValues = new()
-    {
+    public static readonly TheoryData<BokehBlurInfo> BokehBlurValues =
+    [
         new() { Radius = 8, Components = 1, Gamma = 1 },
         new() { Radius = 16, Components = 1, Gamma = 3 },
         new() { Radius = 16, Components = 2, Gamma = 3 }
-    };
+    ];
 
     public static readonly string[] TestFiles =
-        {
-            TestImages.Png.CalliphoraPartial,
+    [
+        TestImages.Png.CalliphoraPartial,
             TestImages.Png.Bike,
             TestImages.Png.BikeGrayscale,
-            TestImages.Png.Cross,
-        };
+            TestImages.Png.Cross
+    ];
 
     [Theory]
     [WithFileCollection(nameof(TestFiles), nameof(BokehBlurValues), PixelTypes.Rgba32)]

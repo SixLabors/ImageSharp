@@ -80,7 +80,7 @@ internal sealed class ExifNumberArray : ExifArrayValue<Number>
 
     private bool SetSingle(Number value)
     {
-        this.Value = new[] { value };
+        this.Value = [value];
         return true;
     }
 

@@ -22,7 +22,7 @@
     </Otherwise>
   </Choose>
 
-<ItemGroup>
+  <ItemGroup>
     <InternalsVisibleTo Include="ImageSharp.Tests.ProfilingSandbox" Key="$(SixLaborsPublicKey)" />
   </ItemGroup>
 

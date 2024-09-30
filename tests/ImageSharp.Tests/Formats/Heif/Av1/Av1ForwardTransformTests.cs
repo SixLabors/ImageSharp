@@ -3,6 +3,7 @@
 
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Transform.Forward;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 
@@ -35,22 +36,49 @@ public class Av1ForwardTransformTests
             36,   // 64x16 transform
         ];
 
-    private readonly short[] inputOfTest;
-    private readonly int[] outputOfTest;
-    private readonly double[] inputReference;
-    private readonly double[] outputReference;
-
-    public Av1ForwardTransformTests()
+    [Theory]
+    [MemberData(nameof(GetSizes))]
+    public void AccuracyDct1dTest(int txSize)
     {
-        this.inputOfTest = new short[64 * 64];
-        this.outputOfTest = new int[64 * 64];
-        this.inputReference = new double[64 * 64];
-        this.outputReference = new double[64 * 64];
+        Random rnd = new(0);
+        const int testBlockCount = 1; // Originally set to: 1000
+        Av1TransformSize transformSize = (Av1TransformSize)txSize;
+        Av1Transform2dFlipConfiguration config = new(Av1TransformType.DctDct, transformSize);
+        int width = config.TransformSize.GetWidth();
+
+        int[] inputOfTest = new int[width];
+        double[] inputReference = new double[width];
+        int[] outputOfTest = new int[width];
+        double[] outputReference = new double[width];
+        for (int ti = 0; ti < testBlockCount; ++ti)
+        {
+            // prepare random test data
+            for (int ni = 0; ni < width; ++ni)
+            {
+                inputOfTest[ni] = (short)rnd.Next((1 << 10) - 1);
+                inputReference[ni] = inputOfTest[ni];
+                outputReference[ni] = 0;
+                outputOfTest[ni] = 255;
+            }
+
+            // calculate in forward transform functions
+            new Av1Dct4ForwardTransformer().Transform(
+                ref inputOfTest[0],
+                ref outputOfTest[0],
+                config.CosBitColumn,
+                config.StageRangeColumn);
+
+            // calculate in reference forward transform functions
+            Av1ReferenceTransform.ReferenceDct1d(inputReference, outputReference, width);
+
+            // Assert
+            Assert.True(CompareWithError(outputReference, outputOfTest, 1));
+        }
     }
 
-    // [Theory]
-    // [MemberData(nameof(GetCombinations))]
-    public void Accuracy2dTest(int txSize, int txType, int maxAllowedError)
+    [Theory]
+    [MemberData(nameof(GetCombinations))]
+    public void Accuracy2dTest(int txSize, int txType, int maxAllowedError = 0)
     {
         const int bitDepth = 8;
         Random rnd = new(0);
@@ -63,53 +91,49 @@ public class Av1ForwardTransformTests
         int blockSize = width * height;
         double scaleFactor = Av1ReferenceTransform.GetScaleFactor(config, width, height);
 
+        short[] inputOfTest = new short[blockSize];
+        double[] inputReference = new double[blockSize];
+        int[] outputOfTest = new int[blockSize];
+        double[] outputReference = new double[blockSize];
         for (int ti = 0; ti < testBlockCount; ++ti)
         {
             // prepare random test data
             for (int ni = 0; ni < blockSize; ++ni)
             {
-                this.inputOfTest[ni] = (short)rnd.Next((1 << 10) - 1);
-                this.inputReference[ni] = this.inputOfTest[ni];
-                this.outputReference[ni] = 0;
-                this.outputOfTest[ni] = 255;
+                inputOfTest[ni] = (short)rnd.Next((1 << 10) - 1);
+                inputReference[ni] = inputOfTest[ni];
+                outputReference[ni] = 0;
+                outputOfTest[ni] = 255;
             }
 
             // calculate in forward transform functions
             Av1ForwardTransformer.Transform2d(
-                this.inputOfTest,
-                this.outputOfTest,
+                inputOfTest,
+                outputOfTest,
                 (uint)transformSize.GetWidth(),
                 transformType,
                 transformSize,
                 bitDepth);
 
             // calculate in reference forward transform functions
-            Av1ReferenceTransform.ReferenceTransformFunction2d(this.inputReference, this.outputReference, transformType, transformSize, scaleFactor);
+            Av1ReferenceTransform.ReferenceTransformFunction2d(inputReference, outputReference, transformType, transformSize, scaleFactor);
 
             // repack the coefficents for some tx_size
-            this.RepackCoefficients(width, height);
+            RepackCoefficients(outputOfTest, outputReference, width, height);
 
-            // compare for the result is in accuracy
-            double maximumErrorInTest = 0;
-            for (int ni = 0; ni < blockSize; ++ni)
-            {
-                maximumErrorInTest = Math.Max(maximumErrorInTest, Math.Abs(this.outputOfTest[ni] - Math.Round(this.outputReference[ni])));
-            }
-
-            maximumErrorInTest /= scaleFactor;
-            Assert.True(maxAllowedError >= maximumErrorInTest, $"Forward transform 2d test with transform type: {transformType}, transform size: {transformSize} and loop: {ti}");
+            Assert.True(CompareWithError(outputReference, outputOfTest, maxAllowedError * scaleFactor), $"Forward transform 2d test with transform type: {transformType}, transform size: {transformSize} and loop: {ti}");
         }
     }
 
     // The max txb_width or txb_height is 32, as specified in spec 7.12.3.
     // Clear the high frequency coefficents and repack it in linear layout.
-    private void RepackCoefficients(int tx_width, int tx_height)
+    private static void RepackCoefficients(Span<int> outputOfTest, Span<double> outputReference, int tx_width, int tx_height)
     {
         for (int i = 0; i < 2; ++i)
         {
             uint e_size = i == 0 ? (uint)sizeof(int) : sizeof(double);
-            ref byte output = ref (i == 0) ? ref Unsafe.As<int, byte>(ref this.outputOfTest[0])
-                                  : ref Unsafe.As<double, byte>(ref this.outputReference[0]);
+            ref byte output = ref (i == 0) ? ref Unsafe.As<int, byte>(ref outputOfTest[0])
+                                  : ref Unsafe.As<double, byte>(ref outputReference[0]);
 
             if (tx_width == 64 && tx_height == 64)
             {
@@ -188,13 +212,34 @@ public class Av1ForwardTransformTests
         }
     }
 
+    private static bool CompareWithError(Span<double> expected, Span<int> actual, double allowedError)
+    {
+        // compare for the result is witghin accuracy
+        double maximumErrorInTest = 0;
+        for (int ni = 0; ni < expected.Length; ++ni)
+        {
+            maximumErrorInTest = Math.Max(maximumErrorInTest, Math.Abs(actual[ni] - Math.Round(expected[ni])));
+        }
+
+        return maximumErrorInTest <= allowedError;
+    }
+
+    public static TheoryData<int> GetSizes()
+    {
+        TheoryData<int> sizes = [];
+
+        // For now test only 4x4.
+        sizes.Add(0);
+        return sizes;
+    }
+
     public static TheoryData<int, int, int> GetCombinations()
     {
         TheoryData<int, int, int> combinations = [];
         for (int s = 0; s < (int)Av1TransformSize.AllSizes; s++)
         {
             double maxError = MaximumAllowedError[s];
-            for (int t = 0; t < (int)Av1TransformType.AllTransformTypes; ++t)
+            for (int t = 0; t < (int)Av1TransformType.AllTransformTypes; t++)
             {
                 Av1TransformType transformType = (Av1TransformType)t;
                 Av1TransformSize transformSize = (Av1TransformSize)s;
@@ -203,7 +248,13 @@ public class Av1ForwardTransformTests
                 {
                     combinations.Add(s, t, (int)maxError);
                 }
+
+                // For now only DCT.
+                break;
             }
+
+            // For now only 4x4.
+            break;
         }
 
         return combinations;

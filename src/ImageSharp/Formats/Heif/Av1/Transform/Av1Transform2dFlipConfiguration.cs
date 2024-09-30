@@ -142,8 +142,8 @@ internal class Av1Transform2dFlipConfiguration
         this.TransformFunctionTypeRow = TransformFunctionTypeMap[txw_idx][(int)tx_type_1d_row];
         this.StageNumberColumn = StageNumberList[(int)this.TransformFunctionTypeColumn];
         this.StageNumberRow = StageNumberList[(int)this.TransformFunctionTypeRow];
-        this.StageRangeColumn = new int[12];
-        this.StageRangeRow = new int[12];
+        this.StageRangeColumn = new byte[12];
+        this.StageRangeRow = new byte[12];
         this.NonScaleRange();
     }
 
@@ -169,9 +169,9 @@ internal class Av1Transform2dFlipConfiguration
 
     public Span<int> Shift => this.shift;
 
-    public int[] StageRangeColumn { get; }
+    public byte[] StageRangeColumn { get; }
 
-    public int[] StageRangeRow { get; }
+    public byte[] StageRangeRow { get; }
 
     /// <summary>
     /// SVT: svt_av1_gen_fwd_stage_range
@@ -184,13 +184,13 @@ internal class Av1Transform2dFlipConfiguration
         // i < MAX_TXFM_STAGE_NUM will mute above array bounds warning
         for (int i = 0; i < this.StageNumberColumn && i < MaxStageNumber; ++i)
         {
-            this.StageRangeColumn[i] = this.StageRangeColumn[i] + shift[0] + bitDepth + 1;
+            this.StageRangeColumn[i] = (byte)(this.StageRangeColumn[i] + shift[0] + bitDepth + 1);
         }
 
         // i < MAX_TXFM_STAGE_NUM will mute above array bounds warning
         for (int i = 0; i < this.StageNumberRow && i < MaxStageNumber; ++i)
         {
-            this.StageRangeRow[i] = this.StageRangeRow[i] + shift[0] + shift[1] + bitDepth + 1;
+            this.StageRangeRow[i] = (byte)(this.StageRangeRow[i] + shift[0] + shift[1] + bitDepth + 1);
         }
     }
 
@@ -296,7 +296,7 @@ internal class Av1Transform2dFlipConfiguration
             int stage_num_col = this.StageNumberColumn;
             for (int i = 0; i < stage_num_col; ++i)
             {
-                this.StageRangeColumn[i] = (range_mult2_col[i] + 1) >> 1;
+                this.StageRangeColumn[i] = (byte)((range_mult2_col[i] + 1) >> 1);
             }
         }
 
@@ -306,7 +306,7 @@ internal class Av1Transform2dFlipConfiguration
             Span<int> range_mult2_row = RangeMulti2List[(int)this.TransformFunctionTypeRow];
             for (int i = 0; i < stage_num_row; ++i)
             {
-                this.StageRangeRow[i] = (range_mult2_col[this.StageNumberColumn - 1] + range_mult2_row[i] + 1) >> 1;
+                this.StageRangeRow[i] = (byte)((range_mult2_col[this.StageNumberColumn - 1] + range_mult2_row[i] + 1) >> 1);
             }
         }
     }

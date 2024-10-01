@@ -575,7 +575,9 @@ internal sealed class BmpEncoderCore
     {
         using IQuantizer<TPixel> frameQuantizer = this.quantizer.CreatePixelSpecificQuantizer<TPixel>(configuration, new QuantizerOptions()
         {
-            MaxColors = 16
+            MaxColors = 16,
+            Dither = this.quantizer.Options.Dither,
+            DitherScale = this.quantizer.Options.DitherScale
         });
 
         frameQuantizer.BuildPalette(this.pixelSamplingStrategy, image);
@@ -623,7 +625,9 @@ internal sealed class BmpEncoderCore
     {
         using IQuantizer<TPixel> frameQuantizer = this.quantizer.CreatePixelSpecificQuantizer<TPixel>(configuration, new QuantizerOptions()
         {
-            MaxColors = 4
+            MaxColors = 4,
+            Dither = this.quantizer.Options.Dither,
+            DitherScale = this.quantizer.Options.DitherScale
         });
 
         frameQuantizer.BuildPalette(this.pixelSamplingStrategy, image);
@@ -680,7 +684,9 @@ internal sealed class BmpEncoderCore
     {
         using IQuantizer<TPixel> frameQuantizer = this.quantizer.CreatePixelSpecificQuantizer<TPixel>(configuration, new QuantizerOptions()
         {
-            MaxColors = 2
+            MaxColors = 2,
+            Dither = this.quantizer.Options.Dither,
+            DitherScale = this.quantizer.Options.DitherScale
         });
 
         frameQuantizer.BuildPalette(this.pixelSamplingStrategy, image);

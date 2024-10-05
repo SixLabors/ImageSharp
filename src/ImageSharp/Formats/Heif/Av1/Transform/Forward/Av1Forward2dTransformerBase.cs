@@ -2,108 +2,18 @@
 // Licensed under the Six Labors Split License.
 
 using System.Runtime.CompilerServices;
-using System.Runtime.Intrinsics;
-using SixLabors.ImageSharp.Formats.Heif.Av1.Transform.Forward;
 
-namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
+namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform.Forward;
 
-internal class Av1ForwardTransformer
+internal abstract class Av1Forward2dTransformerBase
 {
     private const int NewSqrt = 5793;
     private const int NewSqrtBitCount = 12;
 
-    private static readonly IAv1Forward1dTransformer?[] Transformers =
-        [
-            new Av1Dct4Forward1dTransformer(),
-            new Av1Dct8Forward1dTransformer(),
-            new Av1Dct16Forward1dTransformer(),
-            new Av1Dct32Forward1dTransformer(),
-            new Av1Dct64Forward1dTransformer(),
-            new Av1Adst4Forward1dTransformer(),
-            new Av1Adst8Forward1dTransformer(),
-            new Av1Adst16Forward1dTransformer(),
-            new Av1Adst32Forward1dTransformer(),
-            new Av1Identity4Forward1dTransformer(),
-            new Av1Identity8Forward1dTransformer(),
-            new Av1Identity16Forward1dTransformer(),
-            new Av1Identity32Forward1dTransformer(),
-            new Av1Identity64Forward1dTransformer(),
-            null
-        ];
-
-    private static readonly int[] TemporaryCoefficientsBuffer = new int[64 * 64];
-
-    internal static void Transform2d(Span<short> input, Span<int> coefficients, uint stride, Av1TransformType transformType, Av1TransformSize transformSize, int bitDepth)
-    {
-        Av1Transform2dFlipConfiguration config = new(transformType, transformSize);
-        ref int buffer = ref TemporaryCoefficientsBuffer[0];
-        IAv1Forward1dTransformer? columnTransformer = GetTransformer(config.TransformFunctionTypeColumn);
-        IAv1Forward1dTransformer? rowTransformer = GetTransformer(config.TransformFunctionTypeRow);
-        if (columnTransformer != null && rowTransformer != null)
-        {
-            Transform2dCore(columnTransformer, rowTransformer, ref input[0], stride, ref coefficients[0], config, ref buffer, bitDepth);
-        }
-        else
-        {
-            throw new InvalidImageContentException($"Cannot find 1d transformer implementation for {config.TransformFunctionTypeColumn} or {config.TransformFunctionTypeRow}.");
-        }
-    }
-
-    internal static void Transform2dAvx2(Span<short> input, Span<int> coefficients, uint stride, Av1TransformType transformType, Av1TransformSize transformSize, int bitDepth)
-    {
-        switch (transformSize)
-        {
-            case Av1TransformSize.Size4x4:
-                // Too small for intrinsics, use the scalar codepath instead.
-                Transform2d(input, coefficients, stride, transformType, transformSize, bitDepth);
-                break;
-            case Av1TransformSize.Size8x8:
-                Transform8x8Avx2(input, coefficients, stride, transformType, bitDepth);
-                break;
-            default:
-                Transform2d(input, coefficients, stride, transformType, transformSize, bitDepth);
-                break;
-        }
-    }
-
-    /// <summary>
-    /// SVT: svt_av1_fwd_txfm2d_8x8_avx2
-    /// </summary>
-    private static void Transform8x8Avx2(Span<short> input, Span<int> coefficients, uint stride, Av1TransformType transformType, int bitDepth)
-    {
-        Av1Transform2dFlipConfiguration config = new(transformType, Av1TransformSize.Size8x8);
-        Span<int> shift = config.Shift;
-        Span<Vector256<int>> inVector = stackalloc Vector256<int>[8];
-        Span<Vector256<int>> outVector = stackalloc Vector256<int>[8];
-        ref Vector256<int> inRef = ref inVector[0];
-        ref Vector256<int> outRef = ref outVector[0];
-        switch (transformType)
-        {
-            case Av1TransformType.DctDct:
-                /* Pseudo code
-                Av1Dct8ForwardTransformer dct8 = new();
-                LoadBuffer8x8(ref input[0], ref inRef, stride, 0, 0, shift[0]);
-                dct8.TransformAvx2(ref inRef, ref outRef, config.CosBitColumn, 1);
-                Column8x8Rounding(ref outRef, -shift[1]);
-                Transpose8x8Avx2(ref outRef, ref inRef);
-                dct8.TransformAvx2(ref inRef, ref outRef, config.CosBitRow, 1);
-                Transpose8x8Avx2(ref outRef, ref inRef);
-                WriteBuffer8x8(ref inRef, ref coefficients[0]);
-                break;
-                */
-                throw new NotImplementedException();
-            default:
-                throw new NotImplementedException();
-        }
-    }
-
-    private static IAv1Forward1dTransformer? GetTransformer(Av1TransformFunctionType transformerType)
-        => Transformers[(int)transformerType];
-
     /// <summary>
     /// SVT: av1_tranform_two_d_core_c
     /// </summary>
-    private static void Transform2dCore<TColumn, TRow>(TColumn transformFunctionColumn, TRow transformFunctionRow, ref short input, uint inputStride, ref int output, Av1Transform2dFlipConfiguration config, ref int buf, int bitDepth)
+    protected static void Transform2dCore<TColumn, TRow>(TColumn transformFunctionColumn, TRow transformFunctionRow, ref short input, uint inputStride, ref int output, Av1Transform2dFlipConfiguration config, ref int buf, int bitDepth)
             where TColumn : IAv1Forward1dTransformer
             where TRow : IAv1Forward1dTransformer
     {

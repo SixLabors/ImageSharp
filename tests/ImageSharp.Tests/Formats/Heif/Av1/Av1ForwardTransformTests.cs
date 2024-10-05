@@ -46,7 +46,7 @@ public class Av1ForwardTransformTests
         Av1Transform2dFlipConfiguration config = new(Av1TransformType.DctDct, transformSize);
         int width = config.TransformSize.GetWidth();
 
-        short[] inputOfTest = new short[width];
+        int[] inputOfTest = new int[width];
         double[] inputReference = new double[width];
         int[] outputOfTest = new int[width];
         double[] outputReference = new double[width];
@@ -62,11 +62,11 @@ public class Av1ForwardTransformTests
             }
 
             // calculate in forward transform functions
-            new Av1DctDct4Forward2dTransformer().Transform(
+            new Av1Dct4Forward1dTransformer().Transform(
                 ref inputOfTest[0],
                 ref outputOfTest[0],
                 config.CosBitColumn,
-                config.StageNumberColumn);
+                config.StageRangeColumn);
 
             // calculate in reference forward transform functions
             Av1ReferenceTransform.ReferenceDct1d(inputReference, outputReference, width);

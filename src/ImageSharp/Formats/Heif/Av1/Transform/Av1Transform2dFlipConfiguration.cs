@@ -131,15 +131,15 @@ internal class Av1Transform2dFlipConfiguration
         this.TransformSize = transformSize;
         this.TransformType = transformType;
         this.SetFlip(transformType);
-        Av1TransformType1d tx_type_1d_col = VerticalType[(int)transformType];
-        Av1TransformType1d tx_type_1d_row = HorizontalType[(int)transformType];
+        this.TransformTypeColumn = VerticalType[(int)transformType];
+        this.TransformTypeRow = HorizontalType[(int)transformType];
         int txw_idx = transformSize.GetBlockWidthLog2() - SmallestTransformSizeLog2;
         int txh_idx = transformSize.GetBlockHeightLog2() - SmallestTransformSizeLog2;
         this.shift = ShiftMap[(int)transformSize];
         this.CosBitColumn = CosBitColumnMap[txw_idx][txh_idx];
         this.CosBitRow = CosBitRowMap[txw_idx][txh_idx];
-        this.TransformFunctionTypeColumn = TransformFunctionTypeMap[txh_idx][(int)tx_type_1d_col];
-        this.TransformFunctionTypeRow = TransformFunctionTypeMap[txw_idx][(int)tx_type_1d_row];
+        this.TransformFunctionTypeColumn = TransformFunctionTypeMap[txh_idx][(int)this.TransformTypeColumn];
+        this.TransformFunctionTypeRow = TransformFunctionTypeMap[txw_idx][(int)this.TransformTypeRow];
         this.StageNumberColumn = StageNumberList[(int)this.TransformFunctionTypeColumn];
         this.StageNumberRow = StageNumberList[(int)this.TransformFunctionTypeRow];
         this.StageRangeColumn = new byte[12];
@@ -150,6 +150,10 @@ internal class Av1Transform2dFlipConfiguration
     public int CosBitColumn { get; }
 
     public int CosBitRow { get; }
+
+    public Av1TransformType1d TransformTypeColumn { get; }
+
+    public Av1TransformType1d TransformTypeRow { get; }
 
     public Av1TransformFunctionType TransformFunctionTypeColumn { get; }
 

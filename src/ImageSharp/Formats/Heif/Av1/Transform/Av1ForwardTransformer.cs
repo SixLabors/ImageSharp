@@ -31,7 +31,7 @@ internal class Av1ForwardTransformer
             null
         ];
 
-    private static readonly int[] TemporaryCoefficientsBuffer = new int[64 * 64];
+    private static readonly int[] TemporaryCoefficientsBuffer = new int[Av1Constants.MaxTransformSize * Av1Constants.MaxTransformSize];
 
     internal static void Transform2d(Span<short> input, Span<int> coefficients, uint stride, Av1TransformType transformType, Av1TransformSize transformSize, int bitDepth)
     {
@@ -46,54 +46,6 @@ internal class Av1ForwardTransformer
         else
         {
             throw new InvalidImageContentException($"Cannot find 1d transformer implementation for {config.TransformFunctionTypeColumn} or {config.TransformFunctionTypeRow}.");
-        }
-    }
-
-    internal static void Transform2dAvx2(Span<short> input, Span<int> coefficients, uint stride, Av1TransformType transformType, Av1TransformSize transformSize, int bitDepth)
-    {
-        switch (transformSize)
-        {
-            case Av1TransformSize.Size4x4:
-                // Too small for intrinsics, use the scalar codepath instead.
-                Transform2d(input, coefficients, stride, transformType, transformSize, bitDepth);
-                break;
-            case Av1TransformSize.Size8x8:
-                Transform8x8Avx2(input, coefficients, stride, transformType, bitDepth);
-                break;
-            default:
-                Transform2d(input, coefficients, stride, transformType, transformSize, bitDepth);
-                break;
-        }
-    }
-
-    /// <summary>
-    /// SVT: svt_av1_fwd_txfm2d_8x8_avx2
-    /// </summary>
-    private static void Transform8x8Avx2(Span<short> input, Span<int> coefficients, uint stride, Av1TransformType transformType, int bitDepth)
-    {
-        Av1Transform2dFlipConfiguration config = new(transformType, Av1TransformSize.Size8x8);
-        Span<int> shift = config.Shift;
-        Span<Vector256<int>> inVector = stackalloc Vector256<int>[8];
-        Span<Vector256<int>> outVector = stackalloc Vector256<int>[8];
-        ref Vector256<int> inRef = ref inVector[0];
-        ref Vector256<int> outRef = ref outVector[0];
-        switch (transformType)
-        {
-            case Av1TransformType.DctDct:
-                /* Pseudo code
-                Av1Dct8ForwardTransformer dct8 = new();
-                LoadBuffer8x8(ref input[0], ref inRef, stride, 0, 0, shift[0]);
-                dct8.TransformAvx2(ref inRef, ref outRef, config.CosBitColumn, 1);
-                Column8x8Rounding(ref outRef, -shift[1]);
-                Transpose8x8Avx2(ref outRef, ref inRef);
-                dct8.TransformAvx2(ref inRef, ref outRef, config.CosBitRow, 1);
-                Transpose8x8Avx2(ref outRef, ref inRef);
-                WriteBuffer8x8(ref inRef, ref coefficients[0]);
-                break;
-                */
-                throw new NotImplementedException();
-            default:
-                throw new NotImplementedException();
         }
     }
 
@@ -155,7 +107,7 @@ internal class Av1ForwardTransformer
                 uint t = (uint)(c + ((transformRowCount - 1) * (int)inputStride));
                 for (r = 0; r < transformRowCount; ++r)
                 {
-                    // flip upside down
+                    // Flip upside down
                     Unsafe.Add(ref tempIn, r) = Unsafe.Add(ref input, t);
                     t -= inputStride;
                 }
@@ -188,17 +140,23 @@ internal class Av1ForwardTransformer
         // Rows
         for (r = 0; r < transformRowCount; ++r)
         {
-            transformFunctionRow.Transform(ref Unsafe.Add(ref buf, r * transformColumnCount), ref Unsafe.Add(ref output, r * transformColumnCount), cosBitRow, stageRangeRow);
+            transformFunctionRow.Transform(
+                ref Unsafe.Add(ref buf, r * transformColumnCount),
+                ref Unsafe.Add(ref output, r * transformColumnCount),
+                cosBitRow,
+                stageRangeRow);
             RoundShiftArray(ref Unsafe.Add(ref output, r * transformColumnCount), transformColumnCount, -shift[2]);
 
             if (Math.Abs(rectangleType) == 1)
             {
                 // Multiply everything by Sqrt2 if the transform is rectangular and the
                 // size difference is a factor of 2.
+                int t = r * transformColumnCount;
                 for (c = 0; c < transformColumnCount; ++c)
                 {
-                    ref int current = ref Unsafe.Add(ref output, (r * transformColumnCount) + c);
+                    ref int current = ref Unsafe.Add(ref output, t);
                     current = Av1Math.RoundShift((long)current * NewSqrt, NewSqrtBitCount);
+                    t++;
                 }
             }
         }

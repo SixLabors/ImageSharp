@@ -33,10 +33,10 @@ internal class Av1Dct4Forward1dTransformer : IAv1Forward1dTransformer
         output3 = -Unsafe.Add(ref input, 3) + Unsafe.Add(ref input, 0);
 
         // stage 2
-        step0 = HalfBtf(cospi[32], output, cospi[32], output1, cosBit);
-        step1 = HalfBtf(-cospi[32], output1, cospi[32], output, cosBit);
-        step2 = HalfBtf(cospi[48], output2, cospi[16], output3, cosBit);
-        step3 = HalfBtf(cospi[48], output3, -cospi[16], output2, cosBit);
+        step0 = HalfButterfly(cospi[32], output, cospi[32], output1, cosBit);
+        step1 = HalfButterfly(-cospi[32], output1, cospi[32], output, cosBit);
+        step2 = HalfButterfly(cospi[48], output2, cospi[16], output3, cosBit);
+        step3 = HalfButterfly(cospi[48], output3, -cospi[16], output2, cosBit);
 
         // stage 3
         output = step0;
@@ -45,7 +45,7 @@ internal class Av1Dct4Forward1dTransformer : IAv1Forward1dTransformer
         output3 = step3;
     }
 
-    private static int HalfBtf(int w0, int in0, int w1, int in1, int bit)
+    internal static int HalfButterfly(int w0, int in0, int w1, int in1, int bit)
     {
         long result64 = (long)(w0 * in0) + (w1 * in1);
         long intermediate = result64 + (1L << (bit - 1));

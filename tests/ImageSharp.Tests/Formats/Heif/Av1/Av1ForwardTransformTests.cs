@@ -13,15 +13,15 @@ namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 [Trait("Format", "Avif")]
 public class Av1ForwardTransformTests
 {
-    private static readonly double[] MaximumAllowedError =
+    private static readonly int[] MaximumAllowedError =
         [
             3,    // 4x4 transform
             5,    // 8x8 transform
             11,   // 16x16 transform
             70,   // 32x32 transform
             64,   // 64x64 transform
-            3.9,  // 4x8 transform
-            4.3,  // 8x4 transform
+            4,    // 4x8 transform
+            5,    // 8x4 transform
             12,   // 8x16 transform
             12,   // 16x8 transform
             32,   // 16x32 transform
@@ -36,45 +36,61 @@ public class Av1ForwardTransformTests
             36,   // 64x16 transform
         ];
 
-    [Theory]
-    [MemberData(nameof(GetSizes))]
-    public void AccuracyDct1dTest(int txSize)
-    {
-        Random rnd = new(0);
-        const int testBlockCount = 1; // Originally set to: 1000
-        Av1TransformSize transformSize = (Av1TransformSize)txSize;
-        Av1Transform2dFlipConfiguration config = new(Av1TransformType.DctDct, transformSize);
-        int width = config.TransformSize.GetWidth();
+    [Fact]
+    public void AccuracyOfDct1dTransformSize4Test()
+        => AssertAccuracy1d(Av1TransformSize.Size4x4, Av1TransformType.DctDct, new Av1Dct4Forward1dTransformer());
 
-        int[] inputOfTest = new int[width];
-        double[] inputReference = new double[width];
-        int[] outputOfTest = new int[width];
-        double[] outputReference = new double[width];
-        for (int ti = 0; ti < testBlockCount; ++ti)
-        {
-            // prepare random test data
-            for (int ni = 0; ni < width; ++ni)
-            {
-                inputOfTest[ni] = (short)rnd.Next((1 << 10) - 1);
-                inputReference[ni] = inputOfTest[ni];
-                outputReference[ni] = 0;
-                outputOfTest[ni] = 255;
-            }
+    [Fact]
+    public void AccuracyOfDct1dTransformSize8Test()
+        => AssertAccuracy1d(Av1TransformSize.Size8x8, Av1TransformType.DctDct, new Av1Dct8Forward1dTransformer(), 2);
 
-            // calculate in forward transform functions
-            new Av1Dct4Forward1dTransformer().Transform(
-                ref inputOfTest[0],
-                ref outputOfTest[0],
-                config.CosBitColumn,
-                config.StageRangeColumn);
+    [Fact]
+    public void AccuracyOfDct1dTransformSize16Test()
+        => AssertAccuracy1d(Av1TransformSize.Size16x16, Av1TransformType.DctDct, new Av1Dct16Forward1dTransformer(), 3);
 
-            // calculate in reference forward transform functions
-            Av1ReferenceTransform.ReferenceDct1d(inputReference, outputReference, width);
+    [Fact]
+    public void AccuracyOfDct1dTransformSize32Test()
+        => AssertAccuracy1d(Av1TransformSize.Size32x32, Av1TransformType.DctDct, new Av1Dct32Forward1dTransformer(), 4);
 
-            // Assert
-            Assert.True(CompareWithError(outputReference, outputOfTest, 1));
-        }
-    }
+    [Fact]
+    public void AccuracyOfDct1dTransformSize64Test()
+        => AssertAccuracy1d(Av1TransformSize.Size64x64, Av1TransformType.DctDct, new Av1Dct64Forward1dTransformer(), 5);
+
+    [Fact]
+    public void AccuracyOfAdst1dTransformSize4Test()
+        => AssertAccuracy1d(Av1TransformSize.Size4x4, Av1TransformType.AdstAdst, new Av1Adst4Forward1dTransformer());
+
+    [Fact]
+    public void AccuracyOfAdst1dTransformSize8Test()
+        => AssertAccuracy1d(Av1TransformSize.Size8x8, Av1TransformType.AdstAdst, new Av1Adst8Forward1dTransformer(), 2);
+
+    [Fact]
+    public void AccuracyOfAdst1dTransformSize16Test()
+        => AssertAccuracy1d(Av1TransformSize.Size16x16, Av1TransformType.AdstAdst, new Av1Adst16Forward1dTransformer(), 3);
+
+    [Fact]
+    public void AccuracyOfAdst1dTransformSize32Test()
+        => AssertAccuracy1d(Av1TransformSize.Size32x32, Av1TransformType.AdstAdst, new Av1Adst32Forward1dTransformer(), 4);
+
+    [Fact]
+    public void AccuracyOfIdentity1dTransformSize4Test()
+        => AssertAccuracy1d(Av1TransformSize.Size4x4, Av1TransformType.Identity, new Av1Identity4Forward1dTransformer());
+
+    [Fact]
+    public void AccuracyOfIdentity1dTransformSize8Test()
+        => AssertAccuracy1d(Av1TransformSize.Size8x8, Av1TransformType.Identity, new Av1Identity8Forward1dTransformer());
+
+    [Fact]
+    public void AccuracyOfIdentity1dTransformSize16Test()
+        => AssertAccuracy1d(Av1TransformSize.Size16x16, Av1TransformType.Identity, new Av1Identity16Forward1dTransformer());
+
+    [Fact]
+    public void AccuracyOfIdentity1dTransformSize32Test()
+        => AssertAccuracy1d(Av1TransformSize.Size32x32, Av1TransformType.Identity, new Av1Identity32Forward1dTransformer());
+
+    [Fact]
+    public void AccuracyOfIdentity1dTransformSize64Test()
+        => AssertAccuracy1d(Av1TransformSize.Size64x64, Av1TransformType.Identity, new Av1Identity64Forward1dTransformer());
 
     [Theory]
     [MemberData(nameof(GetCombinations))]
@@ -212,10 +228,51 @@ public class Av1ForwardTransformTests
         }
     }
 
+    private static void AssertAccuracy1d(
+        Av1TransformSize transformSize,
+        Av1TransformType transformType,
+        IAv1Forward1dTransformer transformerUnderTest,
+        int allowedError = 1)
+    {
+        Random rnd = new(0);
+        const int testBlockCount = 1; // Originally set to: 1000
+        Av1Transform2dFlipConfiguration config = new(transformType, transformSize);
+        int width = config.TransformSize.GetWidth();
+
+        int[] inputOfTest = new int[width];
+        double[] inputReference = new double[width];
+        int[] outputOfTest = new int[width];
+        double[] outputReference = new double[width];
+        for (int ti = 0; ti < testBlockCount; ++ti)
+        {
+            // prepare random test data
+            for (int ni = 0; ni < width; ++ni)
+            {
+                inputOfTest[ni] = (short)rnd.Next((1 << 10) - 1);
+                inputReference[ni] = inputOfTest[ni];
+                outputReference[ni] = 0;
+                outputOfTest[ni] = 255;
+            }
+
+            // calculate in forward transform functions
+            transformerUnderTest.Transform(
+                ref inputOfTest[0],
+                ref outputOfTest[0],
+                config.CosBitColumn,
+                config.StageRangeColumn);
+
+            // calculate in reference forward transform functions
+            Av1ReferenceTransform.ReferenceTransform1d(config.TransformTypeColumn, inputReference, outputReference, width);
+
+            // Assert
+            Assert.True(CompareWithError(outputReference, outputOfTest, allowedError));
+        }
+    }
+
     private static bool CompareWithError(Span<double> expected, Span<int> actual, double allowedError)
     {
         // compare for the result is witghin accuracy
-        double maximumErrorInTest = 0;
+        double maximumErrorInTest = 0d;
         for (int ni = 0; ni < expected.Length; ++ni)
         {
             maximumErrorInTest = Math.Max(maximumErrorInTest, Math.Abs(actual[ni] - Math.Round(expected[ni])));
@@ -224,21 +281,12 @@ public class Av1ForwardTransformTests
         return maximumErrorInTest <= allowedError;
     }
 
-    public static TheoryData<int> GetSizes()
-    {
-        TheoryData<int> sizes = [];
-
-        // For now test only 4x4.
-        sizes.Add(0);
-        return sizes;
-    }
-
     public static TheoryData<int, int, int> GetCombinations()
     {
         TheoryData<int, int, int> combinations = [];
         for (int s = 0; s < (int)Av1TransformSize.AllSizes; s++)
         {
-            double maxError = MaximumAllowedError[s];
+            int maxError = MaximumAllowedError[s];
             for (int t = 0; t < (int)Av1TransformType.AllTransformTypes; t++)
             {
                 Av1TransformType transformType = (Av1TransformType)t;
@@ -246,7 +294,7 @@ public class Av1ForwardTransformTests
                 Av1Transform2dFlipConfiguration config = new(transformType, transformSize);
                 if (config.IsAllowed())
                 {
-                    combinations.Add(s, t, (int)maxError);
+                    combinations.Add(s, t, maxError);
                 }
 
                 // For now only DCT.

@@ -7,8 +7,8 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform.Forward;
 
 internal abstract class Av1Forward2dTransformerBase
 {
-    private const int NewSqrt = 5793;
-    private const int NewSqrtBitCount = 12;
+    internal const int NewSqrt2 = 5793;
+    internal const int NewSqrt2BitCount = 12;
 
     /// <summary>
     /// SVT: av1_tranform_two_d_core_c
@@ -108,7 +108,7 @@ internal abstract class Av1Forward2dTransformerBase
                 for (c = 0; c < transformColumnCount; ++c)
                 {
                     ref int current = ref Unsafe.Add(ref output, (r * transformColumnCount) + c);
-                    current = Av1Math.RoundShift((long)current * NewSqrt, NewSqrtBitCount);
+                    current = Av1Math.RoundShift((long)current * NewSqrt2, NewSqrt2BitCount);
                 }
             }
         }

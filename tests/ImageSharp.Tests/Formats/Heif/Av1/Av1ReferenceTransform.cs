@@ -174,7 +174,7 @@ internal class Av1ReferenceTransform
         }
     }
 
-    internal static void ReferenceDct1d(Span<double> input, Span<double> output, int size)
+    private static void ReferenceDct1d(Span<double> input, Span<double> output, int size)
     {
         const double kInvSqrt2 = 0.707106781186547524400844362104f;
         for (int k = 0; k < size; ++k)
@@ -223,7 +223,7 @@ internal class Av1ReferenceTransform
         }
     }
 
-    private static void ReferenceTransform1d(Av1TransformType1d type, Span<double> input, Span<double> output, int size)
+    internal static void ReferenceTransform1d(Av1TransformType1d type, Span<double> input, Span<double> output, int size)
     {
         switch (type)
         {

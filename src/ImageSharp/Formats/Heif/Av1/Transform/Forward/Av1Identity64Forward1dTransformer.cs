@@ -9,12 +9,16 @@ internal class Av1Identity64Forward1dTransformer : IAv1Forward1dTransformer
 {
     private const int QuadNewSqrt2 = 4 * 5793;
 
-    public void Transform(ref int input, ref int output, int cosBit, Span<byte> stageRange)
+    public void Transform(Span<int> input, Span<int> output, int cosBit, Span<byte> stageRange)
     {
-        TransformScalar(ref input, ref output);
-        TransformScalar(ref Unsafe.Add(ref input, 16), ref Unsafe.Add(ref output, 16));
-        TransformScalar(ref Unsafe.Add(ref input, 32), ref Unsafe.Add(ref output, 32));
-        TransformScalar(ref Unsafe.Add(ref input, 48), ref Unsafe.Add(ref output, 48));
+        Guard.MustBeSizedAtLeast(input, 64, nameof(input));
+        Guard.MustBeSizedAtLeast(output, 64, nameof(output));
+        ref int inputRef = ref input[0];
+        ref int outputRef = ref output[0];
+        TransformScalar(ref inputRef, ref outputRef);
+        TransformScalar(ref Unsafe.Add(ref inputRef, 16), ref Unsafe.Add(ref outputRef, 16));
+        TransformScalar(ref Unsafe.Add(ref inputRef, 32), ref Unsafe.Add(ref outputRef, 32));
+        TransformScalar(ref Unsafe.Add(ref inputRef, 48), ref Unsafe.Add(ref outputRef, 48));
     }
 
     private static void TransformScalar(ref int input, ref int output)

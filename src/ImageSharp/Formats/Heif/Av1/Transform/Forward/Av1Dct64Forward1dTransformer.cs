@@ -7,10 +7,14 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform.Forward;
 
 internal class Av1Dct64Forward1dTransformer : IAv1Forward1dTransformer
 {
-    public void Transform(ref int input, ref int output, int cosBit, Span<byte> stageRange)
-        => TransforScalar(ref input, ref output, cosBit);
+    public void Transform(Span<int> input, Span<int> output, int cosBit, Span<byte> stageRange)
+    {
+        Guard.MustBeSizedAtLeast(input, 64, nameof(input));
+        Guard.MustBeSizedAtLeast(output, 64, nameof(output));
+        TransformScalar(ref input[0], ref output[0], cosBit);
+    }
 
-    private static void TransforScalar(ref int input, ref int output, int cosBit)
+    private static void TransformScalar(ref int input, ref int output, int cosBit)
     {
         Span<int> temp0 = stackalloc int[64];
         Span<int> temp1 = stackalloc int[64];

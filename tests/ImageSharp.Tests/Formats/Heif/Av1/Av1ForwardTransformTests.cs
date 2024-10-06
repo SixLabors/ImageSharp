@@ -8,7 +8,8 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.Transform.Forward;
 namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 
 /// <summary>
-/// SVY: test/FwdTxfm2dTest.cc
+/// SVY: test/FwdTxfm1dTest.cc
+/// SVY: test/FwdTxfm2dAsmTest.cc
 /// </summary>
 [Trait("Format", "Avif")]
 public class Av1ForwardTransformTests
@@ -256,8 +257,8 @@ public class Av1ForwardTransformTests
 
             // calculate in forward transform functions
             transformerUnderTest.Transform(
-                ref inputOfTest[0],
-                ref outputOfTest[0],
+                inputOfTest,
+                outputOfTest,
                 config.CosBitColumn,
                 config.StageRangeColumn);
 

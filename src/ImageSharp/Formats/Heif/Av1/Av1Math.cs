@@ -144,6 +144,9 @@ internal static class Av1Math
     internal static int Clamp(int value, int low, int high)
         => value < low ? low : (value > high ? high : value);
 
+    internal static long Clamp(long value, long low, long high)
+        => value < low ? low : (value > high ? high : value);
+
     internal static int DivideLog2Floor(int value, int n)
         => value >> n;
 

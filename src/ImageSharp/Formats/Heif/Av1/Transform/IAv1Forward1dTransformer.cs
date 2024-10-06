@@ -15,5 +15,5 @@ internal interface IAv1Forward1dTransformer
     /// <param name="output">Output coefficients.</param>
     /// <param name="cosBit">The cosinus bit.</param>
     /// <param name="stageRange">Stage ranges.</param>
-    void Transform(ref int input, ref int output, int cosBit, Span<byte> stageRange);
+    void Transform(Span<int> input, Span<int> output, int cosBit, Span<byte> stageRange);
 }

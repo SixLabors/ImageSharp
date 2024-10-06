@@ -7,8 +7,12 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform.Forward;
 
 internal class Av1Identity4Forward1dTransformer : IAv1Forward1dTransformer
 {
-    public void Transform(ref int input, ref int output, int cosBit, Span<byte> stageRange)
-        => TransformScalar(ref input, ref output);
+    public void Transform(Span<int> input, Span<int> output, int cosBit, Span<byte> stageRange)
+    {
+        Guard.MustBeSizedAtLeast(input, 4, nameof(input));
+        Guard.MustBeSizedAtLeast(output, 4, nameof(output));
+        TransformScalar(ref input[0], ref output[0]);
+    }
 
     private static void TransformScalar(ref int input, ref int output)
     {

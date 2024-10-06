@@ -12,7 +12,7 @@ internal class Av1DctDct4Forward2dTransformer : Av1Forward2dTransformerBase
     private readonly Av1Dct4Forward1dTransformer transformer = new();
     private readonly int[] temp = new int[Av1Constants.MaxTransformSize * Av1Constants.MaxTransformSize];
 
-    public void Transform(ref short input, ref int output, int cosBit, int columnNumber)
+    public void Transform(Span<short> input, Span<int> output, int cosBit, int columnNumber)
     {
         /*if (Vector256.IsHardwareAccelerated)
         {
@@ -22,7 +22,7 @@ internal class Av1DctDct4Forward2dTransformer : Av1Forward2dTransformerBase
         }
         else*/
         {
-            Transform2dCore(this.transformer, this.transformer, ref input, 4, ref output, this.config, ref this.temp[0], 8);
+            Transform2dCore(this.transformer, this.transformer, input, 4, output, this.config, this.temp, 8);
         }
     }
 

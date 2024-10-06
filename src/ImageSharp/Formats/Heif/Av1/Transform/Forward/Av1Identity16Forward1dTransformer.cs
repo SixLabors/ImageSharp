@@ -9,8 +9,12 @@ internal class Av1Identity16Forward1dTransformer : IAv1Forward1dTransformer
 {
     private const int TwiceNewSqrt2 = 2 * 5793;
 
-    public void Transform(ref int input, ref int output, int cosBit, Span<byte> stageRange)
-        => TransformScalar(ref input, ref output);
+    public void Transform(Span<int> input, Span<int> output, int cosBit, Span<byte> stageRange)
+    {
+        Guard.MustBeSizedAtLeast(input, 16, nameof(input));
+        Guard.MustBeSizedAtLeast(output, 16, nameof(output));
+        TransformScalar(ref input[0], ref output[0]);
+    }
 
     private static void TransformScalar(ref int input, ref int output)
     {

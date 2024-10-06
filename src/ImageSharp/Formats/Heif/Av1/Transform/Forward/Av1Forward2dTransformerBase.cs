@@ -13,7 +13,7 @@ internal abstract class Av1Forward2dTransformerBase
     /// <summary>
     /// SVT: av1_tranform_two_d_core_c
     /// </summary>
-    protected static void Transform2dCore<TColumn, TRow>(TColumn transformFunctionColumn, TRow transformFunctionRow, ref short input, uint inputStride, ref int output, Av1Transform2dFlipConfiguration config, ref int buf, int bitDepth)
+    protected static void Transform2dCore<TColumn, TRow>(TColumn transformFunctionColumn, TRow transformFunctionRow, Span<short> input, uint inputStride, Span<int> output, Av1Transform2dFlipConfiguration config, Span<int> buf, int bitDepth)
             where TColumn : IAv1Forward1dTransformer
             where TRow : IAv1Forward1dTransformer
     {
@@ -45,8 +45,13 @@ internal abstract class Av1Forward2dTransformerBase
         // ASSERT(txfm_func_col != NULL);
         // ASSERT(txfm_func_row != NULL);
         // use output buffer as temp buffer
-        ref int tempIn = ref output;
-        ref int tempOut = ref Unsafe.Add(ref output, transformRowCount);
+        ref short inputRef = ref input[0];
+        ref int outputRef = ref output[0];
+        ref int bufRef = ref buf[0];
+        Span<int> tempInSpan = output.Slice(0, transformRowCount);
+        Span<int> tempOutSpan = output.Slice(transformRowCount, transformRowCount);
+        ref int tempIn = ref tempInSpan[0];
+        ref int tempOut = ref tempOutSpan[0];
 
         // Columns
         for (c = 0; c < transformColumnCount; ++c)
@@ -56,7 +61,7 @@ internal abstract class Av1Forward2dTransformerBase
                 uint t = (uint)c;
                 for (r = 0; r < transformRowCount; ++r)
                 {
-                    Unsafe.Add(ref tempIn, r) = Unsafe.Add(ref input, t);
+                    Unsafe.Add(ref tempIn, r) = Unsafe.Add(ref inputRef, t);
                     t += inputStride;
                 }
             }
@@ -66,20 +71,20 @@ internal abstract class Av1Forward2dTransformerBase
                 for (r = 0; r < transformRowCount; ++r)
                 {
                     // flip upside down
-                    Unsafe.Add(ref tempIn, r) = Unsafe.Add(ref input, t);
+                    Unsafe.Add(ref tempIn, r) = Unsafe.Add(ref inputRef, t);
                     t -= inputStride;
                 }
             }
 
             RoundShiftArray(ref tempIn, transformRowCount, -shift[0]); // NM svt_av1_round_shift_array_c
-            transformFunctionColumn.Transform(ref tempIn, ref tempOut, cosBitColumn, stageRangeColumn);
+            transformFunctionColumn.Transform(tempInSpan, tempOutSpan, cosBitColumn, stageRangeColumn);
             RoundShiftArray(ref tempOut, transformRowCount, -shift[1]); // NM svt_av1_round_shift_array_c
             if (!config.FlipLeftToRight)
             {
                 int t = c;
                 for (r = 0; r < transformRowCount; ++r)
                 {
-                    Unsafe.Add(ref buf, t) = Unsafe.Add(ref tempOut, r);
+                    Unsafe.Add(ref bufRef, t) = Unsafe.Add(ref tempOut, r);
                     t += transformColumnCount;
                 }
             }
@@ -89,7 +94,7 @@ internal abstract class Av1Forward2dTransformerBase
                 for (r = 0; r < transformRowCount; ++r)
                 {
                     // flip from left to right
-                    Unsafe.Add(ref buf, t) = Unsafe.Add(ref tempOut, r);
+                    Unsafe.Add(ref bufRef, t) = Unsafe.Add(ref tempOut, r);
                     t += transformColumnCount;
                 }
             }
@@ -98,8 +103,8 @@ internal abstract class Av1Forward2dTransformerBase
         // Rows
         for (r = 0; r < transformRowCount; ++r)
         {
-            transformFunctionRow.Transform(ref Unsafe.Add(ref buf, r * transformColumnCount), ref Unsafe.Add(ref output, r * transformColumnCount), cosBitRow, stageRangeRow);
-            RoundShiftArray(ref Unsafe.Add(ref output, r * transformColumnCount), transformColumnCount, -shift[2]);
+            transformFunctionRow.Transform(buf.Slice(r * transformColumnCount, transformColumnCount), output.Slice(r * transformColumnCount, transformColumnCount), cosBitRow, stageRangeRow);
+            RoundShiftArray(ref Unsafe.Add(ref outputRef, r * transformColumnCount), transformColumnCount, -shift[2]);
 
             if (Math.Abs(rectangleType) == 1)
             {
@@ -107,7 +112,7 @@ internal abstract class Av1Forward2dTransformerBase
                 // size difference is a factor of 2.
                 for (c = 0; c < transformColumnCount; ++c)
                 {
-                    ref int current = ref Unsafe.Add(ref output, (r * transformColumnCount) + c);
+                    ref int current = ref Unsafe.Add(ref outputRef, (r * transformColumnCount) + c);
                     current = Av1Math.RoundShift((long)current * NewSqrt2, NewSqrt2BitCount);
                 }
             }

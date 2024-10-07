@@ -29,7 +29,7 @@ internal abstract partial class JpegColorConverterBase
                 ref Unsafe.As<float, Vector128<float>>(ref MemoryMarshal.GetReference(values.Component2));
 
             // Used for the color conversion
-            var scale = Vector128.Create(1 / this.MaximumValue);
+            Vector128<float> scale = Vector128.Create(1 / this.MaximumValue);
             nuint n = values.Component0.Vector128Count<float>();
             for (nuint i = 0; i < n; i++)
             {

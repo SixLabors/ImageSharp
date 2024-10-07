@@ -48,7 +48,7 @@ public class ImageExtensionsTests
 
         using (Image<Rgba32> image = new(10, 10))
         {
-            image.SaveAsWebp(file, new WebpEncoder());
+            image.SaveAsWebp(file, new());
         }
 
         IImageFormat format = Image.DetectFormat(file);
@@ -109,7 +109,7 @@ public class ImageExtensionsTests
 
         using (Image<Rgba32> image = new(10, 10))
         {
-            image.SaveAsWebp(memoryStream, new WebpEncoder());
+            image.SaveAsWebp(memoryStream, new());
         }
 
         memoryStream.Position = 0;

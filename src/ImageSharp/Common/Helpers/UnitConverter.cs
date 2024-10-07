@@ -131,9 +131,9 @@ internal static class UnitConverter
         ushort exifUnit = (ushort)(unit + 1);
         if (unit == PixelResolutionUnit.AspectRatio)
         {
-            return new ExifResolutionValues(exifUnit, null, null);
+            return new(exifUnit, null, null);
         }
 
-        return new ExifResolutionValues(exifUnit, horizontal, vertical);
+        return new(exifUnit, horizontal, vertical);
     }
 }

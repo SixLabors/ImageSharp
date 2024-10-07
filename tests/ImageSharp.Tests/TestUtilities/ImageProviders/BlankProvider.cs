@@ -33,7 +33,7 @@ public abstract partial class TestImageProvider<TPixel> : IXunitSerializable
 
         protected int Width { get; private set; }
 
-        public override Image<TPixel> GetImage() => new Image<TPixel>(this.Configuration, this.Width, this.Height);
+        public override Image<TPixel> GetImage() => new(this.Configuration, this.Width, this.Height);
 
         public override void Deserialize(IXunitSerializationInfo info)
         {

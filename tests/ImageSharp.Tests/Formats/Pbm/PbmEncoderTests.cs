@@ -38,16 +38,16 @@ public class PbmEncoderTests
     [MemberData(nameof(PbmColorTypeFiles))]
     public void PbmEncoder_PreserveColorType(string imagePath, PbmColorType pbmColorType)
     {
-        var options = new PbmEncoder();
+        PbmEncoder options = new();
 
-        var testFile = TestFile.Create(imagePath);
+        TestFile testFile = TestFile.Create(imagePath);
         using (Image<Rgba32> input = testFile.CreateRgba32Image())
         {
-            using (var memStream = new MemoryStream())
+            using (MemoryStream memStream = new())
             {
                 input.Save(memStream, options);
                 memStream.Position = 0;
-                using (var output = Image.Load<Rgba32>(memStream))
+                using (Image<Rgba32> output = Image.Load<Rgba32>(memStream))
                 {
                     PbmMetadata meta = output.Metadata.GetPbmMetadata();
                     Assert.Equal(pbmColorType, meta.ColorType);
@@ -60,15 +60,15 @@ public class PbmEncoderTests
     [MemberData(nameof(PbmColorTypeFiles))]
     public void PbmEncoder_WithPlainEncoding_PreserveBitsPerPixel(string imagePath, PbmColorType pbmColorType)
     {
-        var options = new PbmEncoder()
+        PbmEncoder options = new()
         {
             Encoding = PbmEncoding.Plain
         };
 
-        var testFile = TestFile.Create(imagePath);
+        TestFile testFile = TestFile.Create(imagePath);
         using (Image<Rgba32> input = testFile.CreateRgba32Image())
         {
-            using (var memStream = new MemoryStream())
+            using (MemoryStream memStream = new())
             {
                 input.Save(memStream, options);
 
@@ -78,7 +78,7 @@ public class PbmEncoderTests
                 Assert.Equal(0x20, lastByte);
 
                 memStream.Seek(0, SeekOrigin.Begin);
-                using (var output = Image.Load<Rgba32>(memStream))
+                using (Image<Rgba32> output = Image.Load<Rgba32>(memStream))
                 {
                     PbmMetadata meta = output.Metadata.GetPbmMetadata();
                     Assert.Equal(pbmColorType, meta.ColorType);
@@ -132,13 +132,13 @@ public class PbmEncoderTests
     {
         using (Image<TPixel> image = provider.GetImage())
         {
-            var encoder = new PbmEncoder { ColorType = colorType, Encoding = encoding };
+            PbmEncoder encoder = new() { ColorType = colorType, Encoding = encoding };
 
-            using (var memStream = new MemoryStream())
+            using (MemoryStream memStream = new())
             {
                 image.Save(memStream, encoder);
                 memStream.Position = 0;
-                using (var encodedImage = (Image<TPixel>)Image.Load(memStream))
+                using (Image<TPixel> encodedImage = (Image<TPixel>)Image.Load(memStream))
                 {
                     ImageComparingUtils.CompareWithReferenceDecoder(provider, encodedImage, useExactComparer, compareTolerance);
                 }

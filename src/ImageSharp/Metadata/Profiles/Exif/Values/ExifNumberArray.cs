@@ -80,13 +80,13 @@ internal sealed class ExifNumberArray : ExifArrayValue<Number>
 
     private bool SetSingle(Number value)
     {
-        this.Value = new[] { value };
+        this.Value = [value];
         return true;
     }
 
     private bool SetArray(int[] values)
     {
-        var numbers = new Number[values.Length];
+        Number[] numbers = new Number[values.Length];
         for (int i = 0; i < values.Length; i++)
         {
             numbers[i] = values[i];
@@ -98,7 +98,7 @@ internal sealed class ExifNumberArray : ExifArrayValue<Number>
 
     private bool SetArray(uint[] values)
     {
-        var numbers = new Number[values.Length];
+        Number[] numbers = new Number[values.Length];
         for (int i = 0; i < values.Length; i++)
         {
             numbers[i] = values[i];
@@ -110,7 +110,7 @@ internal sealed class ExifNumberArray : ExifArrayValue<Number>
 
     private bool SetArray(short[] values)
     {
-        var numbers = new Number[values.Length];
+        Number[] numbers = new Number[values.Length];
         for (int i = 0; i < values.Length; i++)
         {
             numbers[i] = values[i];
@@ -122,7 +122,7 @@ internal sealed class ExifNumberArray : ExifArrayValue<Number>
 
     private bool SetArray(ushort[] values)
     {
-        var numbers = new Number[values.Length];
+        Number[] numbers = new Number[values.Length];
         for (int i = 0; i < values.Length; i++)
         {
             numbers[i] = values[i];

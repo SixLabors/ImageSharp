@@ -8,8 +8,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms;
 
 public class AffineTransformBuilderTests : TransformBuilderTestBase<AffineTransformBuilder>
 {
-    protected override AffineTransformBuilder CreateBuilder()
-        => new AffineTransformBuilder();
+    protected override AffineTransformBuilder CreateBuilder() => new();
 
     protected override void AppendRotationDegrees(AffineTransformBuilder builder, float degrees)
         => builder.AppendRotationDegrees(degrees);

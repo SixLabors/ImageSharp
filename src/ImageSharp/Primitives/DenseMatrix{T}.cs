@@ -36,7 +36,7 @@ public readonly struct DenseMatrix<T> : IEquatable<DenseMatrix<T>>
 
         this.Rows = rows;
         this.Columns = columns;
-        this.Size = new Size(columns, rows);
+        this.Size = new(columns, rows);
         this.Count = columns * rows;
         this.Data = new T[this.Columns * this.Rows];
     }
@@ -56,7 +56,7 @@ public readonly struct DenseMatrix<T> : IEquatable<DenseMatrix<T>>
 
         this.Rows = rows;
         this.Columns = columns;
-        this.Size = new Size(columns, rows);
+        this.Size = new(columns, rows);
         this.Count = this.Columns * this.Rows;
         this.Data = new T[this.Columns * this.Rows];
 
@@ -84,7 +84,7 @@ public readonly struct DenseMatrix<T> : IEquatable<DenseMatrix<T>>
 
         this.Rows = rows;
         this.Columns = columns;
-        this.Size = new Size(columns, rows);
+        this.Size = new(columns, rows);
         this.Count = this.Columns * this.Rows;
         this.Data = new T[this.Columns * this.Rows];
 
@@ -198,7 +198,7 @@ public readonly struct DenseMatrix<T> : IEquatable<DenseMatrix<T>>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public DenseMatrix<T> Transpose()
     {
-        DenseMatrix<T> result = new DenseMatrix<T>(this.Rows, this.Columns);
+        DenseMatrix<T> result = new(this.Rows, this.Columns);
 
         for (int y = 0; y < this.Rows; y++)
         {

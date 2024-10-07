@@ -96,9 +96,9 @@ public abstract class PixelConversion_ConvertFromRgba32
     [GlobalSetup]
     public void Setup()
     {
-        this.CompatibleMemLayoutRunner = new ConversionRunner<TestRgba>(this.Count);
-        this.PermutedRunnerRgbaToArgb = new ConversionRunner<TestArgb>(this.Count);
-        this.RunnerRgbaToRgbaVector = new ConversionRunner<TestRgbaVector>(this.Count);
+        this.CompatibleMemLayoutRunner = new(this.Count);
+        this.PermutedRunnerRgbaToArgb = new(this.Count);
+        this.RunnerRgbaToRgbaVector = new(this.Count);
     }
 }
 

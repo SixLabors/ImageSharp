@@ -9,5 +9,5 @@ public abstract partial class ExifTag
     /// <summary>
     /// Gets the Decode exif tag.
     /// </summary>
-    public static ExifTag<SignedRational[]> Decode { get; } = new ExifTag<SignedRational[]>(ExifTagValue.Decode);
+    public static ExifTag<SignedRational[]> Decode { get; } = new(ExifTagValue.Decode);
 }

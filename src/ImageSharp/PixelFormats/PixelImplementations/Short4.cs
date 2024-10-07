@@ -31,7 +31,7 @@ public partial struct Short4 : IPixel<Short4>, IPackedVector<ulong>
     /// <param name="z">The z-component.</param>
     /// <param name="w">The w-component.</param>
     public Short4(float x, float y, float z, float w)
-        : this(new Vector4(x, y, z, w))
+        : this(new(x, y, z, w))
     {
     }
 

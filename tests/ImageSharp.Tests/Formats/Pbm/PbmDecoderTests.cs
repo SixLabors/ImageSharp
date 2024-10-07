@@ -29,11 +29,11 @@ public class PbmDecoderTests
     public void ImageLoadCanDecode(string imagePath, PbmColorType expectedColorType, PbmComponentType expectedComponentType)
     {
         // Arrange
-        var testFile = TestFile.Create(imagePath);
-        using var stream = new MemoryStream(testFile.Bytes, false);
+        TestFile testFile = TestFile.Create(imagePath);
+        using MemoryStream stream = new(testFile.Bytes, false);
 
         // Act
-        using var image = Image.Load(stream);
+        using Image image = Image.Load(stream);
 
         // Assert
         Assert.NotNull(image);
@@ -53,11 +53,11 @@ public class PbmDecoderTests
     public void ImageLoadL8CanDecode(string imagePath)
     {
         // Arrange
-        var testFile = TestFile.Create(imagePath);
-        using var stream = new MemoryStream(testFile.Bytes, false);
+        TestFile testFile = TestFile.Create(imagePath);
+        using MemoryStream stream = new(testFile.Bytes, false);
 
         // Act
-        using var image = Image.Load<L8>(stream);
+        using Image<L8> image = Image.Load<L8>(stream);
 
         // Assert
         Assert.NotNull(image);
@@ -70,11 +70,11 @@ public class PbmDecoderTests
     public void ImageLoadRgb24CanDecode(string imagePath)
     {
         // Arrange
-        var testFile = TestFile.Create(imagePath);
-        using var stream = new MemoryStream(testFile.Bytes, false);
+        TestFile testFile = TestFile.Create(imagePath);
+        using MemoryStream stream = new(testFile.Bytes, false);
 
         // Act
-        using var image = Image.Load<Rgb24>(stream);
+        using Image<Rgb24> image = Image.Load<Rgb24>(stream);
 
         // Assert
         Assert.NotNull(image);
@@ -130,7 +130,7 @@ public class PbmDecoderTests
         using EofHitCounter eofHitCounter = EofHitCounter.RunDecoder(bytes);
 
         Assert.True(eofHitCounter.EofHitCount <= 2);
-        Assert.Equal(new Size(100, 100), eofHitCounter.Image.Size);
+        Assert.Equal(new(100, 100), eofHitCounter.Image.Size);
     }
 
     [Fact]
@@ -139,6 +139,6 @@ public class PbmDecoderTests
         using EofHitCounter eofHitCounter = EofHitCounter.RunDecoder(RgbBinaryPrematureEof);
 
         Assert.True(eofHitCounter.EofHitCount <= 2);
-        Assert.Equal(new Size(29, 30), eofHitCounter.Image.Size);
+        Assert.Equal(new(29, 30), eofHitCounter.Image.Size);
     }
 }

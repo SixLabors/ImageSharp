@@ -43,7 +43,7 @@ internal abstract class ExifArrayValue<TValueType> : ExifValue, IExifValue<TValu
 
         if (type == typeof(TValueType))
         {
-            this.Value = new TValueType[] { (TValueType)value };
+            this.Value = [(TValueType)value];
             return true;
         }
 

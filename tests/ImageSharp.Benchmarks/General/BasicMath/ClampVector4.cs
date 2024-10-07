@@ -11,7 +11,7 @@ public class ClampVector4
 {
     private readonly float min = -1.5f;
     private readonly float max = 2.5f;
-    private static readonly float[] Values = { -10, -5, -3, -1.5f, -0.5f, 0f, 1f, 1.5f, 2.5f, 3, 10 };
+    private static readonly float[] Values = [-10, -5, -3, -1.5f, -0.5f, 0f, 1f, 1.5f, 2.5f, 3, 10];
 
     [Benchmark(Baseline = true)]
     public Vector4 UsingVectorClamp()
@@ -42,13 +42,13 @@ public class ClampVector4
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Vector4 ClampUsingVectorClamp(float x, float min, float max)
     {
-        return Vector4.Clamp(new Vector4(x), new Vector4(min), new Vector4(max));
+        return Vector4.Clamp(new(x), new(min), new(max));
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Vector4 ClampUsingVectorMinMax(float x, float min, float max)
     {
-        return Vector4.Min(new Vector4(max), Vector4.Max(new Vector4(min), new Vector4(x)));
+        return Vector4.Min(new(max), Vector4.Max(new(min), new(x)));
     }
 
     // RESULTS

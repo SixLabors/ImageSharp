@@ -22,13 +22,13 @@ public class ImageOperationTests : IDisposable
 
     public ImageOperationTests()
     {
-        this.provider = new FakeImageOperationsProvider();
+        this.provider = new();
 
-        var processorMock = new Mock<IImageProcessor>();
+        Mock<IImageProcessor> processorMock = new();
         this.processorDefinition = processorMock.Object;
 
-        this.image = new Image<Rgba32>(
-            new Configuration
+        this.image = new(
+            new()
             {
                 ImageOperationsProvider = this.provider
             },
@@ -103,7 +103,7 @@ public class ImageOperationTests : IDisposable
     [Fact]
     public void ApplyProcessors_ListOfProcessors_AppliesAllProcessorsToOperation()
     {
-        var operations = new FakeImageOperationsProvider.FakeImageOperations<Rgba32>(Configuration.Default, null, false);
+        FakeImageOperationsProvider.FakeImageOperations<Rgba32> operations = new(Configuration.Default, null, false);
         operations.ApplyProcessors(this.processorDefinition);
         Assert.Contains(this.processorDefinition, operations.Applied.Select(x => x.NonGenericProcessor));
     }
@@ -152,7 +152,7 @@ public class ImageOperationTests : IDisposable
     {
         try
         {
-            var img = new Image<Rgba32>(1, 1);
+            Image<Rgba32> img = new(1, 1);
             img.Dispose();
             img.EnsureNotDisposed();
         }

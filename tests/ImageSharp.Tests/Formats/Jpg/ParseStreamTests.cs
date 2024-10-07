@@ -27,7 +27,7 @@ public class ParseStreamTests
     [InlineData(TestImages.Jpeg.Baseline.Cmyk, JpegColorSpace.Cmyk)]
     public void ColorSpace_IsDeducedCorrectly(string imageFile, object expectedColorSpaceValue)
     {
-        var expectedColorSpace = (JpegColorSpace)expectedColorSpaceValue;
+        JpegColorSpace expectedColorSpace = (JpegColorSpace)expectedColorSpaceValue;
 
         using (JpegDecoderCore decoder = JpegFixture.ParseJpegStream(imageFile, metaDataOnly: true))
         {
@@ -47,7 +47,7 @@ public class ParseStreamTests
 
             Assert.Equal(expectedSizeInBlocks, decoder.Frame.McuSize);
 
-            var uniform1 = new Size(1, 1);
+            Size uniform1 = new(1, 1);
             IJpegComponent c0 = decoder.Components[0];
             VerifyJpeg.VerifyComponent(c0, expectedSizeInBlocks, uniform1, uniform1);
         }
@@ -62,7 +62,7 @@ public class ParseStreamTests
     [InlineData(TestImages.Jpeg.Baseline.Cmyk)]
     public void PrintComponentData(string imageFile)
     {
-        var sb = new StringBuilder();
+        StringBuilder sb = new();
 
         using (JpegDecoderCore decoder = JpegFixture.ParseJpegStream(imageFile))
         {
@@ -98,8 +98,8 @@ public class ParseStreamTests
         object expectedLumaFactors,
         object expectedChromaFactors)
     {
-        var fLuma = (Size)expectedLumaFactors;
-        var fChroma = (Size)expectedChromaFactors;
+        Size fLuma = (Size)expectedLumaFactors;
+        Size fChroma = (Size)expectedChromaFactors;
 
         using (JpegDecoderCore decoder = JpegFixture.ParseJpegStream(imageFile))
         {
@@ -110,7 +110,7 @@ public class ParseStreamTests
             IJpegComponent c1 = decoder.Components[1];
             IJpegComponent c2 = decoder.Components[2];
 
-            var uniform1 = new Size(1, 1);
+            Size uniform1 = new(1, 1);
 
             Size expectedLumaSizeInBlocks = decoder.Frame.McuSize.MultiplyBy(fLuma);
 

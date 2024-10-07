@@ -73,7 +73,7 @@ public class PixelConversion_ConvertToVector4_AsPartOfCompositeOperation
     [GlobalSetup]
     public void Setup()
     {
-        this.runner = new ConversionRunner<TestRgba>(this.Count);
+        this.runner = new(this.Count);
     }
 
     [Benchmark(Baseline = true)]

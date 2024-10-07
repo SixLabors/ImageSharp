@@ -71,10 +71,10 @@ internal static partial class ReferenceImplementations
 
         public static Block8x8 Subtract128_TransformFDCT_Upscale8(ref Block8x8 block)
         {
-            var temp = new int[Block8x8.Size];
+            int[] temp = new int[Block8x8.Size];
             block.CopyTo(temp);
             Subtract128_TransformFDCT_Upscale8_Inplace(temp);
-            var result = default(Block8x8);
+            Block8x8 result = default(Block8x8);
             result.LoadFrom(temp);
             return result;
         }
@@ -82,10 +82,10 @@ internal static partial class ReferenceImplementations
         // [Obsolete("Looks like this method produces really bad results for bigger values!")]
         public static Block8x8 TransformIDCT(ref Block8x8 block)
         {
-            var temp = new int[Block8x8.Size];
+            int[] temp = new int[Block8x8.Size];
             block.CopyTo(temp);
             TransformIDCTInplace(temp);
-            var result = default(Block8x8);
+            Block8x8 result = default(Block8x8);
             result.LoadFrom(temp);
             return result;
         }

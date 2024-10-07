@@ -20,7 +20,7 @@ internal class YCbCrPlanarTiffColor<TPixel> : TiffBasePlanarColorDecoder<TPixel>
 
     public YCbCrPlanarTiffColor(Rational[] referenceBlackAndWhite, Rational[] coefficients, ushort[] ycbcrSubSampling)
     {
-        this.converter = new YCbCrConverter(referenceBlackAndWhite, coefficients);
+        this.converter = new(referenceBlackAndWhite, coefficients);
         this.ycbcrSubSampling = ycbcrSubSampling;
     }
 

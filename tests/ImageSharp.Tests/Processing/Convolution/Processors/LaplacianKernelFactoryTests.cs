@@ -7,9 +7,9 @@ namespace SixLabors.ImageSharp.Tests.Processing.Convolution.Processors;
 
 public class LaplacianKernelFactoryTests
 {
-    private static readonly ApproximateFloatComparer ApproximateComparer = new ApproximateFloatComparer(0.0001F);
+    private static readonly ApproximateFloatComparer ApproximateComparer = new(0.0001F);
 
-    private static readonly DenseMatrix<float> Expected3x3Matrix = new DenseMatrix<float>(
+    private static readonly DenseMatrix<float> Expected3x3Matrix = new(
         new float[,]
             {
                 { -1, -1, -1 },
@@ -17,7 +17,7 @@ public class LaplacianKernelFactoryTests
                 { -1, -1, -1 }
             });
 
-    private static readonly DenseMatrix<float> Expected5x5Matrix = new DenseMatrix<float>(
+    private static readonly DenseMatrix<float> Expected5x5Matrix = new(
         new float[,]
             {
                 { -1, -1, -1, -1, -1 },

@@ -24,7 +24,7 @@ public class ImageFormatManagerTests
     public ImageFormatManagerTests()
     {
         this.DefaultFormatsManager = Configuration.CreateDefaultInstance().ImageFormatsManager;
-        this.FormatsManagerEmpty = new ImageFormatManager();
+        this.FormatsManagerEmpty = new();
     }
 
     [Fact]
@@ -123,7 +123,7 @@ public class ImageFormatManagerTests
         IImageFormat format = Image.DetectFormat(jpegImage);
         Assert.IsType<JpegFormat>(format);
 
-        byte[] invalidImage = { 1, 2, 3 };
+        byte[] invalidImage = [1, 2, 3];
         Assert.Throws<UnknownImageFormatException>(() => Image.DetectFormat(invalidImage));
     }
 }

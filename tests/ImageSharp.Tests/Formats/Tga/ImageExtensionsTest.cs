@@ -47,7 +47,7 @@ public class ImageExtensionsTest
 
         using (Image<Rgba32> image = new(10, 10))
         {
-            image.SaveAsTga(file, new TgaEncoder());
+            image.SaveAsTga(file, new());
         }
 
         IImageFormat format = Image.DetectFormat(file);
@@ -108,7 +108,7 @@ public class ImageExtensionsTest
 
         using (Image<Rgba32> image = new(10, 10))
         {
-            image.SaveAsTga(memoryStream, new TgaEncoder());
+            image.SaveAsTga(memoryStream, new());
         }
 
         memoryStream.Position = 0;

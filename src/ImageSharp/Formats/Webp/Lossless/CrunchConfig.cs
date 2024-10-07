@@ -7,5 +7,5 @@ internal class CrunchConfig
 {
     public EntropyIx EntropyIdx { get; set; }
 
-    public List<CrunchSubConfig> SubConfigs { get; } = new List<CrunchSubConfig>();
+    public List<CrunchSubConfig> SubConfigs { get; } = new();
 }

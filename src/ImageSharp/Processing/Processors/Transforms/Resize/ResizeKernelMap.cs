@@ -255,7 +255,7 @@ internal partial class ResizeKernelMap : IDisposable
 
         ref float rowReference = ref MemoryMarshal.GetReference(rowSpan);
         float* rowPtr = (float*)Unsafe.AsPointer(ref rowReference);
-        return new ResizeKernel(left, rowPtr, length);
+        return new(left, rowPtr, length);
     }
 
     [Conditional("DEBUG")]

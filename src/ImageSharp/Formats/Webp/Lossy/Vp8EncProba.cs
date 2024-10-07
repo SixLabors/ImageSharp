@@ -29,7 +29,7 @@ internal class Vp8EncProba
             this.Coeffs[i] = new Vp8BandProbas[WebpConstants.NumBands];
             for (int j = 0; j < this.Coeffs[i].Length; j++)
             {
-                this.Coeffs[i][j] = new Vp8BandProbas();
+                this.Coeffs[i][j] = new();
             }
         }
 
@@ -39,7 +39,7 @@ internal class Vp8EncProba
             this.Stats[i] = new Vp8Stats[WebpConstants.NumBands];
             for (int j = 0; j < this.Stats[i].Length; j++)
             {
-                this.Stats[i][j] = new Vp8Stats();
+                this.Stats[i][j] = new();
             }
         }
 
@@ -49,7 +49,7 @@ internal class Vp8EncProba
             this.LevelCost[i] = new Vp8Costs[WebpConstants.NumBands];
             for (int j = 0; j < this.LevelCost[i].Length; j++)
             {
-                this.LevelCost[i][j] = new Vp8Costs();
+                this.LevelCost[i][j] = new();
             }
         }
 
@@ -59,7 +59,7 @@ internal class Vp8EncProba
             this.RemappedCosts[i] = new Vp8Costs[16];
             for (int j = 0; j < this.RemappedCosts[i].Length; j++)
             {
-                this.RemappedCosts[i][j] = new Vp8Costs();
+                this.RemappedCosts[i][j] = new();
             }
         }
 

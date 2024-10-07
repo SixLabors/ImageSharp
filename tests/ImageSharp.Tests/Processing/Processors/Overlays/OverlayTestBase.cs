@@ -11,9 +11,9 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Overlays;
 [GroupOutput("Overlays")]
 public abstract class OverlayTestBase
 {
-    public static string[] ColorNames = { "Blue", "White" };
+    public static string[] ColorNames = ["Blue", "White"];
 
-    public static string[] InputImages = { TestImages.Png.Ducky, TestImages.Png.Splash };
+    public static string[] InputImages = [TestImages.Png.Ducky, TestImages.Png.Splash];
 
     private static readonly ImageComparer ValidatorComparer = ImageComparer.TolerantPercentage(0.05f);
 

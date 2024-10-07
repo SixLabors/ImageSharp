@@ -46,7 +46,7 @@ public class TiffEncoderMultiframeTests : TiffEncoderBaseTester
         image.Frames.RemoveFrame(0);
 
         TiffBitsPerPixel bitsPerPixel = TiffBitsPerPixel.Bit24;
-        var encoder = new TiffEncoder
+        TiffEncoder encoder = new()
         {
             PhotometricInterpretation = TiffPhotometricInterpretation.Rgb,
             BitsPerPixel = bitsPerPixel,
@@ -69,27 +69,27 @@ public class TiffEncoderMultiframeTests : TiffEncoderBaseTester
         using Image<TPixel> image = provider.GetImage();
         Assert.Equal(1, image.Frames.Count);
 
-        using var image1 = new Image<Rgba32>(image.Width, image.Height, Color.Green.ToPixel<Rgba32>());
+        using Image<Rgba32> image1 = new(image.Width, image.Height, Color.Green.ToPixel<Rgba32>());
 
-        using var image2 = new Image<Rgba32>(image.Width, image.Height, Color.Yellow.ToPixel<Rgba32>());
+        using Image<Rgba32> image2 = new(image.Width, image.Height, Color.Yellow.ToPixel<Rgba32>());
 
         image.Frames.AddFrame(image1.Frames.RootFrame);
         image.Frames.AddFrame(image2.Frames.RootFrame);
 
         TiffBitsPerPixel bitsPerPixel = TiffBitsPerPixel.Bit24;
-        var encoder = new TiffEncoder
+        TiffEncoder encoder = new()
         {
             PhotometricInterpretation = TiffPhotometricInterpretation.Rgb,
             BitsPerPixel = bitsPerPixel,
             Compression = TiffCompression.Deflate
         };
 
-        using (var ms = new System.IO.MemoryStream())
+        using (MemoryStream ms = new())
         {
             image.Save(ms, encoder);
 
             ms.Position = 0;
-            using var output = Image.Load<Rgba32>(ms);
+            using Image<Rgba32> output = Image.Load<Rgba32>(ms);
 
             Assert.Equal(3, output.Frames.Count);
 
@@ -121,11 +121,11 @@ public class TiffEncoderMultiframeTests : TiffEncoderBaseTester
     {
         using Image<TPixel> image = provider.GetImage();
 
-        using var image0 = new Image<Rgba32>(image.Width, image.Height, Color.Red.ToPixel<Rgba32>());
+        using Image<Rgba32> image0 = new(image.Width, image.Height, Color.Red.ToPixel<Rgba32>());
 
-        using var image1 = new Image<Rgba32>(image.Width, image.Height, Color.Green.ToPixel<Rgba32>());
+        using Image<Rgba32> image1 = new(image.Width, image.Height, Color.Green.ToPixel<Rgba32>());
 
-        using var image2 = new Image<Rgba32>(image.Width, image.Height, Color.Yellow.ToPixel<Rgba32>());
+        using Image<Rgba32> image2 = new(image.Width, image.Height, Color.Yellow.ToPixel<Rgba32>());
 
         image.Frames.AddFrame(image0.Frames.RootFrame);
         image.Frames.AddFrame(image1.Frames.RootFrame);
@@ -133,19 +133,19 @@ public class TiffEncoderMultiframeTests : TiffEncoderBaseTester
         image.Frames.RemoveFrame(0);
 
         TiffBitsPerPixel bitsPerPixel = TiffBitsPerPixel.Bit8;
-        var encoder = new TiffEncoder
+        TiffEncoder encoder = new()
         {
             PhotometricInterpretation = TiffPhotometricInterpretation.PaletteColor,
             BitsPerPixel = bitsPerPixel,
             Compression = TiffCompression.Lzw
         };
 
-        using (var ms = new System.IO.MemoryStream())
+        using (MemoryStream ms = new())
         {
             image.Save(ms, encoder);
 
             ms.Position = 0;
-            using var output = Image.Load<Rgba32>(ms);
+            using Image<Rgba32> output = Image.Load<Rgba32>(ms);
 
             Assert.Equal(3, output.Frames.Count);
 

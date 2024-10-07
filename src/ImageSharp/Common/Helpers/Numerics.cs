@@ -470,8 +470,8 @@ internal static class Numerics
         where T : unmanaged
     {
         ref T sRef = ref MemoryMarshal.GetReference(span);
-        var vmin = new Vector<T>(min);
-        var vmax = new Vector<T>(max);
+        Vector<T> vmin = new(min);
+        Vector<T> vmax = new(max);
 
         nint n = (nint)(uint)span.Length / Vector<T>.Count;
         nint m = Modulo4(n);
@@ -726,12 +726,12 @@ internal static class Numerics
             ref Vector128<float> vectors128Ref = ref Unsafe.As<Vector4, Vector128<float>>(ref MemoryMarshal.GetReference(vectors));
             ref Vector128<float> vectors128End = ref Unsafe.Add(ref vectors128Ref, (uint)vectors.Length);
 
-            var v128_341 = Vector128.Create(341);
+            Vector128<int> v128_341 = Vector128.Create(341);
             Vector128<int> v128_negativeZero = Vector128.Create(-0.0f).AsInt32();
             Vector128<int> v128_one = Vector128.Create(1.0f).AsInt32();
 
-            var v128_13rd = Vector128.Create(1 / 3f);
-            var v128_23rds = Vector128.Create(2 / 3f);
+            Vector128<float> v128_13rd = Vector128.Create(1 / 3f);
+            Vector128<float> v128_23rds = Vector128.Create(2 / 3f);
 
             while (Unsafe.IsAddressLessThan(ref vectors128Ref, ref vectors128End))
             {

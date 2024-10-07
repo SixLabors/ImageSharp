@@ -41,7 +41,7 @@ internal readonly struct PaletteQuantizer<TPixel> : IQuantizer<TPixel>
 
         this.Configuration = configuration;
         this.Options = options;
-        this.pixelMap = new EuclideanPixelMap<TPixel>(configuration, palette, transparentIndex);
+        this.pixelMap = new(configuration, palette, transparentIndex);
     }
 
     /// <inheritdoc/>

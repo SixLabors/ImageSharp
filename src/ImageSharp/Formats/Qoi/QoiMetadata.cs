@@ -44,10 +44,10 @@ public class QoiMetadata : IFormatMetadata<QoiMetadata>
 
         if (color.HasFlag(PixelColorType.Alpha))
         {
-            return new QoiMetadata { Channels = QoiChannels.Rgba };
+            return new() { Channels = QoiChannels.Rgba };
         }
 
-        return new QoiMetadata { Channels = QoiChannels.Rgb };
+        return new() { Channels = QoiChannels.Rgb };
     }
 
     /// <inheritdoc/>
@@ -73,7 +73,7 @@ public class QoiMetadata : IFormatMetadata<QoiMetadata>
                 break;
         }
 
-        return new PixelTypeInfo(bpp)
+        return new(bpp)
         {
             AlphaRepresentation = alpha,
             ColorType = colorType,

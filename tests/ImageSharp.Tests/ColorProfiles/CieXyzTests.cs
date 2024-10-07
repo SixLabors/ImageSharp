@@ -33,8 +33,8 @@ public class CieXyzTests
         Assert.True(default == default(CieXyz));
         Assert.False(default != default(CieXyz));
         Assert.Equal(default, default(CieXyz));
-        Assert.Equal(new CieXyz(1, 0, 1), new CieXyz(1, 0, 1));
-        Assert.Equal(new CieXyz(Vector3.One), new CieXyz(Vector3.One));
+        Assert.Equal(new(1, 0, 1), new CieXyz(1, 0, 1));
+        Assert.Equal(new(Vector3.One), new CieXyz(Vector3.One));
         Assert.False(x.Equals(y));
         Assert.False(x.Equals((object)y));
         Assert.False(x.GetHashCode().Equals(y.GetHashCode()));

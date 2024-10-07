@@ -77,7 +77,7 @@ public class PbmMetadata : IFormatMetadata<PbmMetadata>
             _ => PbmComponentType.Short
         };
 
-        return new PbmMetadata
+        return new()
         {
             ColorType = color,
             ComponentType = componentType
@@ -114,7 +114,7 @@ public class PbmMetadata : IFormatMetadata<PbmMetadata>
                 break;
         }
 
-        return new PixelTypeInfo(bpp)
+        return new(bpp)
         {
             AlphaRepresentation = PixelAlphaRepresentation.None,
             ColorType = colorType,

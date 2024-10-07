@@ -24,7 +24,7 @@ internal class YCbCrTiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
     public YCbCrTiffColor(MemoryAllocator memoryAllocator, Rational[] referenceBlackAndWhite, Rational[] coefficients, ushort[] ycbcrSubSampling)
     {
         this.memoryAllocator = memoryAllocator;
-        this.converter = new YCbCrConverter(referenceBlackAndWhite, coefficients);
+        this.converter = new(referenceBlackAndWhite, coefficients);
         this.ycbcrSubSampling = ycbcrSubSampling;
     }
 

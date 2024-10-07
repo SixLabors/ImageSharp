@@ -88,11 +88,11 @@ public partial class PngEncoderTests
         80, 100, 120, 230
     };
 
-    public static readonly PngInterlaceMode[] InterlaceMode = new[]
-    {
+    public static readonly PngInterlaceMode[] InterlaceMode =
+    [
         PngInterlaceMode.None,
         PngInterlaceMode.Adam7
-    };
+    ];
 
     public static readonly TheoryData<string, int, int, PixelResolutionUnit> RatioFiles =
     new()
@@ -289,8 +289,8 @@ public partial class PngEncoderTests
 
         byte[] data = ms.ToArray().Take(8).ToArray();
         byte[] expected =
-        {
-                0x89, // Set the high bit.
+        [
+            0x89, // Set the high bit.
                 0x50, // P
                 0x4E, // N
                 0x47, // G
@@ -298,7 +298,7 @@ public partial class PngEncoderTests
                 0x0A, // Line ending CRLF
                 0x1A, // EOF
                 0x0A // LF
-        };
+        ];
 
         Assert.Equal(expected, data);
     }
@@ -380,7 +380,7 @@ public partial class PngEncoderTests
         if (colorType is PngColorType.Grayscale or PngColorType.GrayscaleWithAlpha)
         {
             byte luminance = ColorNumerics.Get8BitBT709Luminance(expectedColor.R, expectedColor.G, expectedColor.B);
-            expectedColor = new Rgba32(luminance, luminance, luminance);
+            expectedColor = new(luminance, luminance, luminance);
         }
 
         actual.ProcessPixelRows(accessor =>
@@ -681,7 +681,7 @@ public partial class PngEncoderTests
             FilterMethod = pngFilterMethod,
             CompressionLevel = compressionLevel,
             BitDepth = bitDepth,
-            Quantizer = new WuQuantizer(new QuantizerOptions { MaxColors = paletteSize }),
+            Quantizer = new WuQuantizer(new() { MaxColors = paletteSize }),
             InterlaceMethod = interlaceMode,
             ChunkFilter = optimizeMethod,
         };

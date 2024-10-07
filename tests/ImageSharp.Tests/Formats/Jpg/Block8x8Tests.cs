@@ -21,7 +21,7 @@ public class Block8x8Tests : JpegFixture
     {
         short[] data = Create8x8ShortData();
 
-        var block = Block8x8.Load(data);
+        Block8x8 block = Block8x8.Load(data);
 
         for (int i = 0; i < Block8x8.Size; i++)
         {
@@ -47,7 +47,7 @@ public class Block8x8Tests : JpegFixture
     {
         short[] data = Create8x8ShortData();
 
-        var source = Block8x8.Load(data);
+        Block8x8 source = Block8x8.Load(data);
 
         Block8x8F dest = source.AsFloatBlock();
 
@@ -61,7 +61,7 @@ public class Block8x8Tests : JpegFixture
     public void ToArray()
     {
         short[] data = Create8x8ShortData();
-        var block = Block8x8.Load(data);
+        Block8x8 block = Block8x8.Load(data);
 
         short[] result = block.ToArray();
 
@@ -72,8 +72,8 @@ public class Block8x8Tests : JpegFixture
     public void Equality_WhenFalse()
     {
         short[] data = Create8x8ShortData();
-        var block1 = Block8x8.Load(data);
-        var block2 = Block8x8.Load(data);
+        Block8x8 block1 = Block8x8.Load(data);
+        Block8x8 block2 = Block8x8.Load(data);
 
         block1[0] = 42;
         block2[0] = 666;
@@ -96,8 +96,8 @@ public class Block8x8Tests : JpegFixture
     public void TotalDifference()
     {
         short[] data = Create8x8ShortData();
-        var block1 = Block8x8.Load(data);
-        var block2 = Block8x8.Load(data);
+        Block8x8 block1 = Block8x8.Load(data);
+        Block8x8 block2 = Block8x8.Load(data);
 
         block2[10] += 7;
         block2[63] += 8;
@@ -157,7 +157,7 @@ public class Block8x8Tests : JpegFixture
         static void RunTest(string seedSerialized)
         {
             int seed = FeatureTestRunner.Deserialize<int>(seedSerialized);
-            var rng = new Random(seed);
+            Random rng = new(seed);
 
             for (int i = 0; i < 1000; i++)
             {
@@ -188,7 +188,7 @@ public class Block8x8Tests : JpegFixture
         static void RunTest(string seedSerialized)
         {
             int seed = FeatureTestRunner.Deserialize<int>(seedSerialized);
-            var rng = new Random(seed);
+            Random rng = new(seed);
 
             for (int i = 0; i < 1000; i++)
             {
@@ -223,7 +223,7 @@ public class Block8x8Tests : JpegFixture
         static void RunTest(string seedSerialized)
         {
             int seed = FeatureTestRunner.Deserialize<int>(seedSerialized);
-            var rng = new Random(seed);
+            Random rng = new(seed);
 
             for (int i = 0; i < 1000; i++)
             {

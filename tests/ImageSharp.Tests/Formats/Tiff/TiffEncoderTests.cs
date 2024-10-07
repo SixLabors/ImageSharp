@@ -256,7 +256,7 @@ public class TiffEncoderTests : TiffEncoderBaseTester
         TiffEncoder tiffEncoder = new();
         using MemoryStream memStream = new();
         using Image<Rgba32> image = new(1, 1);
-        byte[] expectedIfdOffsetBytes = { 12, 0 };
+        byte[] expectedIfdOffsetBytes = [12, 0];
 
         // act
         image.Save(memStream, tiffEncoder);
@@ -334,7 +334,7 @@ public class TiffEncoderTests : TiffEncoderBaseTester
         foreach (ImageFrame<TPixel> frame in image.Frames)
         {
             TiffFrameMetadata metadata = frame.Metadata.GetTiffMetadata();
-            encodedDimensions.Add(new Size(metadata.EncodingWidth, metadata.EncodingHeight));
+            encodedDimensions.Add(new(metadata.EncodingWidth, metadata.EncodingHeight));
         }
 
         const int scale = 2;

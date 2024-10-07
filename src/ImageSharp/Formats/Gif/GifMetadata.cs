@@ -105,7 +105,7 @@ public class GifMetadata : IFormatMetadata<GifMetadata>
             ? Numerics.Clamp(ColorNumerics.GetBitsNeededForColorDepth(this.GlobalColorTable.Value.Length), 1, 8)
             : 8;
 
-        return new PixelTypeInfo(bpp)
+        return new(bpp)
         {
             ColorType = PixelColorType.Indexed,
             ComponentInfo = PixelComponentInfo.Create(1, bpp, bpp),

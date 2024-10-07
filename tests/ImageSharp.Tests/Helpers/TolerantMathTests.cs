@@ -7,7 +7,7 @@ namespace SixLabors.ImageSharp.Tests.Helpers;
 
 public class TolerantMathTests
 {
-    private readonly TolerantMath tolerantMath = new TolerantMath(0.1);
+    private readonly TolerantMath tolerantMath = new(0.1);
 
     [Theory]
     [InlineData(0)]

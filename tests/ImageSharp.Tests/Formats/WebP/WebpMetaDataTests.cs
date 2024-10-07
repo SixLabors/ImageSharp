@@ -103,9 +103,9 @@ public class WebpMetaDataTests
     public void Encode_WritesExifWithPadding(WebpFileFormatType fileFormatType)
     {
         // arrange
-        using var input = new Image<Rgba32>(25, 25);
-        using var memoryStream = new MemoryStream();
-        var expectedExif = new ExifProfile();
+        using Image<Rgba32> input = new(25, 25);
+        using MemoryStream memoryStream = new();
+        ExifProfile expectedExif = new();
         string expectedSoftware = "ImageSharp";
         expectedExif.SetValue(ExifTag.Software, expectedSoftware);
         input.Metadata.ExifProfile = expectedExif;
@@ -115,7 +115,7 @@ public class WebpMetaDataTests
         memoryStream.Position = 0;
 
         // assert
-        using var image = Image.Load<Rgba32>(memoryStream);
+        using Image<Rgba32> image = Image.Load<Rgba32>(memoryStream);
         ExifProfile actualExif = image.Metadata.ExifProfile;
         Assert.NotNull(actualExif);
         Assert.Equal(expectedExif.Values.Count, actualExif.Values.Count);
@@ -129,7 +129,7 @@ public class WebpMetaDataTests
     {
         // arrange
         using Image<TPixel> input = provider.GetImage(WebpDecoder.Instance);
-        using var memoryStream = new MemoryStream();
+        using MemoryStream memoryStream = new();
         ExifProfile expectedExif = input.Metadata.ExifProfile;
 
         // act
@@ -137,7 +137,7 @@ public class WebpMetaDataTests
         memoryStream.Position = 0;
 
         // assert
-        using var image = Image.Load<Rgba32>(memoryStream);
+        using Image<Rgba32> image = Image.Load<Rgba32>(memoryStream);
         ExifProfile actualExif = image.Metadata.ExifProfile;
         Assert.NotNull(actualExif);
         Assert.Equal(expectedExif.Values.Count, actualExif.Values.Count);
@@ -150,7 +150,7 @@ public class WebpMetaDataTests
     {
         // arrange
         using Image<TPixel> input = provider.GetImage(WebpDecoder.Instance);
-        using var memoryStream = new MemoryStream();
+        using MemoryStream memoryStream = new();
         ExifProfile expectedExif = input.Metadata.ExifProfile;
 
         // act
@@ -158,7 +158,7 @@ public class WebpMetaDataTests
         memoryStream.Position = 0;
 
         // assert
-        using var image = Image.Load<Rgba32>(memoryStream);
+        using Image<Rgba32> image = Image.Load<Rgba32>(memoryStream);
         ExifProfile actualExif = image.Metadata.ExifProfile;
         Assert.NotNull(actualExif);
         Assert.Equal(expectedExif.Values.Count, actualExif.Values.Count);
@@ -174,14 +174,14 @@ public class WebpMetaDataTests
         ImageSharp.Metadata.Profiles.Icc.IccProfile expectedProfile = input.Metadata.IccProfile;
         byte[] expectedProfileBytes = expectedProfile.ToByteArray();
 
-        using var memStream = new MemoryStream();
+        using MemoryStream memStream = new();
         input.Save(memStream, new WebpEncoder()
         {
             FileFormat = fileFormat
         });
 
         memStream.Position = 0;
-        using var output = Image.Load<Rgba32>(memStream);
+        using Image<Rgba32> output = Image.Load<Rgba32>(memStream);
         ImageSharp.Metadata.Profiles.Icc.IccProfile actualProfile = output.Metadata.IccProfile;
         byte[] actualProfileBytes = actualProfile.ToByteArray();
 

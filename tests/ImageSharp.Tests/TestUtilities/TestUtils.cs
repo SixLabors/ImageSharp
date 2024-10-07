@@ -26,7 +26,7 @@ public static class TestUtils
     private static readonly Dictionary<PixelTypes, Type> PixelTypes2ClrTypes = new();
 
     private static readonly PixelTypes[] AllConcretePixelTypes = GetAllPixelTypes()
-        .Except(new[] { PixelTypes.Undefined, PixelTypes.All })
+        .Except([PixelTypes.Undefined, PixelTypes.All])
         .ToArray();
 
     static TestUtils()
@@ -69,7 +69,7 @@ public static class TestUtils
                 Span<La16> row = accessor.GetRowSpan(y);
                 for (int x = 0; x < row.Length; x++)
                 {
-                    row[x] = new La16(expected[cnt++], expected[cnt++]);
+                    row[x] = new(expected[cnt++], expected[cnt++]);
                 }
             }
         });
@@ -133,7 +133,7 @@ public static class TestUtils
     {
         if (pixelTypes == PixelTypes.Undefined)
         {
-            return Enumerable.Empty<KeyValuePair<PixelTypes, Type>>();
+            return [];
         }
         else if (pixelTypes == PixelTypes.All)
         {
@@ -393,7 +393,7 @@ public static class TestUtils
 
         if (property is null)
         {
-            throw new Exception($"No dither named '{name}");
+            throw new($"No dither named '{name}");
         }
 
         return (IDither)property.GetValue(null);

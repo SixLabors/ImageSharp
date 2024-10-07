@@ -13,22 +13,22 @@ internal static class Adam7
     /// <summary>
     /// The amount to increment when processing each column per scanline for each interlaced pass.
     /// </summary>
-    public static readonly int[] ColumnIncrement = { 8, 8, 4, 4, 2, 2, 1 };
+    public static readonly int[] ColumnIncrement = [8, 8, 4, 4, 2, 2, 1];
 
     /// <summary>
     /// The index to start at when processing each column per scanline for each interlaced pass.
     /// </summary>
-    public static readonly int[] FirstColumn = { 0, 4, 0, 2, 0, 1, 0 };
+    public static readonly int[] FirstColumn = [0, 4, 0, 2, 0, 1, 0];
 
     /// <summary>
     /// The index to start at when processing each row per scanline for each interlaced pass.
     /// </summary>
-    public static readonly int[] FirstRow = { 0, 0, 4, 0, 2, 0, 1 };
+    public static readonly int[] FirstRow = [0, 0, 4, 0, 2, 0, 1];
 
     /// <summary>
     /// The amount to increment when processing each row per scanline for each interlaced pass.
     /// </summary>
-    public static readonly int[] RowIncrement = { 8, 8, 8, 4, 4, 2, 2 };
+    public static readonly int[] RowIncrement = [8, 8, 8, 4, 4, 2, 2];
 
     /// <summary>
     /// Gets the width of the block.

@@ -69,7 +69,7 @@ public class HuffmanScanEncoderTests
     {
         int maxNumber = 1 << 16;
 
-        var rng = new Random(seed);
+        Random rng = new(seed);
         for (int i = 0; i < 1000; i++)
         {
             uint number = (uint)rng.Next(0, maxNumber);

@@ -10,7 +10,7 @@ public class ImageCloneTests
     [Fact]
     public void CloneAs_WhenDisposed_Throws()
     {
-        var image = new Image<Rgba32>(5, 5);
+        Image<Rgba32> image = new(5, 5);
         image.Dispose();
 
         Assert.Throws<ObjectDisposedException>(() => image.CloneAs<Bgra32>());
@@ -19,7 +19,7 @@ public class ImageCloneTests
     [Fact]
     public void Clone_WhenDisposed_Throws()
     {
-        var image = new Image<Rgba32>(5, 5);
+        Image<Rgba32> image = new(5, 5);
         image.Dispose();
 
         Assert.Throws<ObjectDisposedException>(() => image.Clone());

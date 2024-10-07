@@ -45,7 +45,7 @@ public struct OctreeQuantizer<TPixel> : IQuantizer<TPixel>
 
         this.maxColors = this.Options.MaxColors;
         this.bitDepth = Numerics.Clamp(ColorNumerics.GetBitsNeededForColorDepth(this.maxColors), 1, 8);
-        this.octree = new Octree(this.bitDepth);
+        this.octree = new(this.bitDepth);
         this.paletteOwner = configuration.MemoryAllocator.Allocate<TPixel>(this.maxColors, AllocationOptions.Clean);
         this.pixelMap = default;
         this.palette = default;
@@ -113,7 +113,7 @@ public struct OctreeQuantizer<TPixel> : IQuantizer<TPixel>
         // this prevents memory churn caused by reallocation.
         if (this.pixelMap is null)
         {
-            this.pixelMap = new EuclideanPixelMap<TPixel>(this.Configuration, result);
+            this.pixelMap = new(this.Configuration, result);
         }
         else
         {
@@ -194,7 +194,7 @@ public struct OctreeQuantizer<TPixel> : IQuantizer<TPixel>
             this.maxColorBits = maxColorBits;
             this.Leaves = 0;
             this.ReducibleNodes = new OctreeNode[9];
-            this.root = new OctreeNode(0, this.maxColorBits, this);
+            this.root = new(0, this.maxColorBits, this);
             this.previousColor = default;
             this.previousNode = null;
         }
@@ -419,7 +419,7 @@ public struct OctreeQuantizer<TPixel> : IQuantizer<TPixel>
                     if (child is null)
                     {
                         // Create a new child node and store it in the array
-                        child = new OctreeNode(level + 1, colorBits, octree);
+                        child = new(level + 1, colorBits, octree);
                         this.children[index] = child;
                     }
 
@@ -473,9 +473,9 @@ public struct OctreeQuantizer<TPixel> : IQuantizer<TPixel>
                     Vector3 vector = Vector3.Clamp(
                         new Vector3(this.red, this.green, this.blue) / this.pixelCount,
                         Vector3.Zero,
-                        new Vector3(255));
+                        new(255));
 
-                    palette[index] = TPixel.FromRgba32(new Rgba32((byte)vector.X, (byte)vector.Y, (byte)vector.Z));
+                    palette[index] = TPixel.FromRgba32(new((byte)vector.X, (byte)vector.Y, (byte)vector.Z));
 
                     // Consume the next palette index
                     this.paletteIndex = index++;

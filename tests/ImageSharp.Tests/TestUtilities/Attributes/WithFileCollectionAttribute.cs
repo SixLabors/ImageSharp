@@ -58,7 +58,7 @@ public class WithFileCollectionAttribute : ImageDataAttributeBase
         Func<object> accessor = this.GetPropertyAccessor(testMethod.DeclaringType, this.fileEnumeratorMemberName);
         accessor = accessor ?? this.GetFieldAccessor(testMethod.DeclaringType, this.fileEnumeratorMemberName);
 
-        var files = (IEnumerable<string>)accessor();
+        IEnumerable<string> files = (IEnumerable<string>)accessor();
         return files.Select(f => new object[] { f });
     }
 

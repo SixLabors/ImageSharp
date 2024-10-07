@@ -93,41 +93,41 @@ internal static class GifConstants
     /// <summary>
     /// The collection of mimetypes that equate to a Gif.
     /// </summary>
-    public static readonly IEnumerable<string> MimeTypes = new[] { "image/gif" };
+    public static readonly IEnumerable<string> MimeTypes = ["image/gif"];
 
     /// <summary>
     /// The collection of file extensions that equate to a Gif.
     /// </summary>
-    public static readonly IEnumerable<string> FileExtensions = new[] { "gif" };
+    public static readonly IEnumerable<string> FileExtensions = ["gif"];
 
     /// <summary>
     /// Gets the ASCII encoded bytes used to identify the GIF file (combining <see cref="FileType"/> and <see cref="FileVersion"/>).
     /// </summary>
-    internal static ReadOnlySpan<byte> MagicNumber => new[]
-    {
+    internal static ReadOnlySpan<byte> MagicNumber =>
+    [
         (byte)'G', (byte)'I', (byte)'F',
         (byte)'8', (byte)'9', (byte)'a'
-    };
+    ];
 
     /// <summary>
     /// Gets the ASCII encoded application identification bytes (representing <see cref="NetscapeApplicationIdentification"/>).
     /// </summary>
-    internal static ReadOnlySpan<byte> NetscapeApplicationIdentificationBytes => new[]
-    {
+    internal static ReadOnlySpan<byte> NetscapeApplicationIdentificationBytes =>
+    [
         (byte)'N', (byte)'E', (byte)'T',
         (byte)'S', (byte)'C', (byte)'A',
         (byte)'P', (byte)'E',
         (byte)'2', (byte)'.', (byte)'0'
-    };
+    ];
 
     /// <summary>
     /// Gets the ASCII encoded application identification bytes.
     /// </summary>
-    internal static ReadOnlySpan<byte> XmpApplicationIdentificationBytes => new[]
-    {
+    internal static ReadOnlySpan<byte> XmpApplicationIdentificationBytes =>
+    [
         (byte)'X', (byte)'M', (byte)'P',
         (byte)' ', (byte)'D', (byte)'a',
         (byte)'t', (byte)'a',
         (byte)'X', (byte)'M', (byte)'P'
-    };
+    ];
 }

@@ -13,7 +13,7 @@ public class PixelateTest : BaseImageOperationsExtensionTest
     public void Pixelate_PixelateProcessorDefaultsSet()
     {
         this.operations.Pixelate();
-        var processor = this.Verify<PixelateProcessor>();
+        PixelateProcessor processor = this.Verify<PixelateProcessor>();
 
         Assert.Equal(4, processor.Size);
     }
@@ -22,7 +22,7 @@ public class PixelateTest : BaseImageOperationsExtensionTest
     public void Pixelate_Size_PixelateProcessorDefaultsSet()
     {
         this.operations.Pixelate(12);
-        var processor = this.Verify<PixelateProcessor>();
+        PixelateProcessor processor = this.Verify<PixelateProcessor>();
 
         Assert.Equal(12, processor.Size);
     }
@@ -31,7 +31,7 @@ public class PixelateTest : BaseImageOperationsExtensionTest
     public void Pixelate_Size_rect_PixelateProcessorDefaultsSet()
     {
         this.operations.Pixelate(23, this.rect);
-        var processor = this.Verify<PixelateProcessor>(this.rect);
+        PixelateProcessor processor = this.Verify<PixelateProcessor>(this.rect);
 
         Assert.Equal(23, processor.Size);
     }

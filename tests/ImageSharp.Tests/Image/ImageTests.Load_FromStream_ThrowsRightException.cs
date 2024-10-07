@@ -10,9 +10,9 @@ public partial class ImageTests
 {
     public class Load_FromStream_Throws : IDisposable
     {
-        private static readonly byte[] Data = new byte[] { 0x01 };
+        private static readonly byte[] Data = [0x01];
 
-        private MemoryStream Stream { get; } = new MemoryStream(Data);
+        private MemoryStream Stream { get; } = new(Data);
 
         [Fact]
         public void Image_Load_Throws_UnknownImageFormatException()

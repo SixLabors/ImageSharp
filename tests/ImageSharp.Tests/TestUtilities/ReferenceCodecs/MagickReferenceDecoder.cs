@@ -32,15 +32,15 @@ public class MagickReferenceDecoder : ImageDecoder
         this.validate = validate;
     }
 
-    public static MagickReferenceDecoder Png { get; } = new MagickReferenceDecoder(PngFormat.Instance);
+    public static MagickReferenceDecoder Png { get; } = new(PngFormat.Instance);
 
-    public static MagickReferenceDecoder Bmp { get; } = new MagickReferenceDecoder(BmpFormat.Instance);
+    public static MagickReferenceDecoder Bmp { get; } = new(BmpFormat.Instance);
 
-    public static MagickReferenceDecoder Jpeg { get; } = new MagickReferenceDecoder(JpegFormat.Instance);
+    public static MagickReferenceDecoder Jpeg { get; } = new(JpegFormat.Instance);
 
-    public static MagickReferenceDecoder Tiff { get; } = new MagickReferenceDecoder(TiffFormat.Instance);
+    public static MagickReferenceDecoder Tiff { get; } = new(TiffFormat.Instance);
 
-    public static MagickReferenceDecoder WebP { get; } = new MagickReferenceDecoder(WebpFormat.Instance);
+    public static MagickReferenceDecoder WebP { get; } = new(WebpFormat.Instance);
 
     protected override Image<TPixel> Decode<TPixel>(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
     {

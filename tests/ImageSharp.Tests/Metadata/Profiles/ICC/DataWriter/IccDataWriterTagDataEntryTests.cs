@@ -406,6 +406,6 @@ public class IccDataWriterTagDataEntryTests
 
     private static IccDataWriter CreateWriter()
     {
-        return new IccDataWriter();
+        return new();
     }
 }

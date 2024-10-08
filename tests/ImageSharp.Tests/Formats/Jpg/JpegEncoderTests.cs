@@ -14,7 +14,6 @@ public partial class JpegEncoderTests
 {
     private static JpegEncoder JpegEncoder => new();
 
-    public static readonly TheoryData<JpegEncodingColor, int, float> NonSubsampledEncodingSetups = new()
     private static readonly TheoryData<int> TestQualities = new()
     {
         40,
@@ -167,7 +166,7 @@ public partial class JpegEncoderTests
     [WithFile(TestImages.Png.BikeGrayscale, nameof(LuminanceEncodingSetups), PixelTypes.L8)]
     [WithFile(TestImages.Jpeg.Baseline.Cmyk, nameof(CmykEncodingSetups), PixelTypes.Rgb24)]
     [WithFile(TestImages.Jpeg.Baseline.Ycck, nameof(YcckEncodingSetups), PixelTypes.Rgb24)]
-    public void EncodeProgressive_DefaultNumberOfScans<TPixel>(TestImageProvider<TPixel> provider, JpegEncodingColor colorType, int quality, float tolerance)
+    public void EncodeProgressive_DefaultNumberOfScans<TPixel>(TestImageProvider<TPixel> provider, JpegColorType colorType, int quality, float tolerance)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         using Image<TPixel> image = provider.GetImage();
@@ -192,7 +191,7 @@ public partial class JpegEncoderTests
     [WithFile(TestImages.Png.BikeGrayscale, nameof(LuminanceEncodingSetups), PixelTypes.L8)]
     [WithFile(TestImages.Jpeg.Baseline.Cmyk, nameof(CmykEncodingSetups), PixelTypes.Rgb24)]
     [WithFile(TestImages.Jpeg.Baseline.Ycck, nameof(YcckEncodingSetups), PixelTypes.Rgb24)]
-    public void EncodeProgressive_CustomNumberOfScans<TPixel>(TestImageProvider<TPixel> provider, JpegEncodingColor colorType, int quality, float tolerance)
+    public void EncodeProgressive_CustomNumberOfScans<TPixel>(TestImageProvider<TPixel> provider, JpegColorType colorType, int quality, float tolerance)
 where TPixel : unmanaged, IPixel<TPixel>
     {
         using Image<TPixel> image = provider.GetImage();
@@ -220,9 +219,9 @@ where TPixel : unmanaged, IPixel<TPixel>
     }
 
     [Theory]
-    [InlineData(JpegEncodingColor.YCbCrRatio420)]
-    [InlineData(JpegEncodingColor.YCbCrRatio444)]
-    public async Task Encode_IsCancellable(JpegEncodingColor colorType)
+    [InlineData(JpegColorType.YCbCrRatio420)]
+    [InlineData(JpegColorType.YCbCrRatio444)]
+    public async Task Encode_IsCancellable(JpegColorType colorType)
     {
         CancellationTokenSource cts = new();
         using PausedStream pausedStream = new(new MemoryStream());

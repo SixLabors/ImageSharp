@@ -15,50 +15,58 @@ public partial class JpegEncoderTests
     private static JpegEncoder JpegEncoder => new();
 
     public static readonly TheoryData<JpegEncodingColor, int, float> NonSubsampledEncodingSetups = new()
+    private static readonly TheoryData<int> TestQualities = new()
     {
-        { JpegEncodingColor.Rgb, 100, 0.0238f / 100 },
-        { JpegEncodingColor.Rgb, 80,  1.3044f / 100 },
-        { JpegEncodingColor.Rgb, 40,  2.9879f / 100 },
-        { JpegEncodingColor.YCbCrRatio444, 100, 0.0780f / 100 },
-        { JpegEncodingColor.YCbCrRatio444, 80,  1.4585f / 100 },
-        { JpegEncodingColor.YCbCrRatio444, 40,  3.1413f / 100 },
+        40,
+        80,
+        100,
     };
 
-    public static readonly TheoryData<JpegEncodingColor, int, float> SubsampledEncodingSetups = new()
+    public static readonly TheoryData<JpegColorType, int, float> NonSubsampledEncodingSetups = new()
     {
-        { JpegEncodingColor.YCbCrRatio422, 100, 0.4895f / 100 },
-        { JpegEncodingColor.YCbCrRatio422, 80,  1.6043f / 100 },
-        { JpegEncodingColor.YCbCrRatio422, 40,  3.1996f / 100 },
-        { JpegEncodingColor.YCbCrRatio420, 100, 0.5790f / 100 },
-        { JpegEncodingColor.YCbCrRatio420, 80,  1.6692f / 100 },
-        { JpegEncodingColor.YCbCrRatio420, 40,  3.2324f / 100 },
-        { JpegEncodingColor.YCbCrRatio411, 100, 0.6868f / 100 },
-        { JpegEncodingColor.YCbCrRatio411, 80,  1.7139f / 100 },
-        { JpegEncodingColor.YCbCrRatio411, 40,  3.2634f / 100 },
-        { JpegEncodingColor.YCbCrRatio410, 100, 0.7357f / 100 },
-        { JpegEncodingColor.YCbCrRatio410, 80,  1.7495f / 100 },
-        { JpegEncodingColor.YCbCrRatio410, 40,  3.2911f / 100 },
+        { JpegColorType.Rgb, 100, 0.0238f / 100 },
+        { JpegColorType.Rgb, 80,  1.3044f / 100 },
+        { JpegColorType.Rgb, 40,  2.9879f / 100 },
+        { JpegColorType.YCbCrRatio444, 100, 0.0780f / 100 },
+        { JpegColorType.YCbCrRatio444, 80,  1.4585f / 100 },
+        { JpegColorType.YCbCrRatio444, 40,  3.1413f / 100 },
     };
 
-    public static readonly TheoryData<JpegEncodingColor, int, float> CmykEncodingSetups = new()
+    public static readonly TheoryData<JpegColorType, int, float> SubsampledEncodingSetups = new()
     {
-        { JpegEncodingColor.Cmyk, 100, 0.0159f / 100 },
-        { JpegEncodingColor.Cmyk, 80,  0.3922f / 100 },
-        { JpegEncodingColor.Cmyk, 40,  0.6488f / 100 },
+        { JpegColorType.YCbCrRatio422, 100, 0.4895f / 100 },
+        { JpegColorType.YCbCrRatio422, 80,  1.6043f / 100 },
+        { JpegColorType.YCbCrRatio422, 40,  3.1996f / 100 },
+        { JpegColorType.YCbCrRatio420, 100, 0.5790f / 100 },
+        { JpegColorType.YCbCrRatio420, 80,  1.6692f / 100 },
+        { JpegColorType.YCbCrRatio420, 40,  3.2324f / 100 },
+        { JpegColorType.YCbCrRatio411, 100, 0.6868f / 100 },
+        { JpegColorType.YCbCrRatio411, 80,  1.7139f / 100 },
+        { JpegColorType.YCbCrRatio411, 40,  3.2634f / 100 },
+        { JpegColorType.YCbCrRatio410, 100, 0.7357f / 100 },
+        { JpegColorType.YCbCrRatio410, 80,  1.7495f / 100 },
+        { JpegColorType.YCbCrRatio410, 40,  3.2911f / 100 },
     };
 
-    public static readonly TheoryData<JpegEncodingColor, int, float> YcckEncodingSetups = new()
+    public static readonly TheoryData<JpegColorType, int, float> CmykEncodingSetups = new()
     {
-        { JpegEncodingColor.Ycck, 100, 0.0356f / 100 },
-        { JpegEncodingColor.Ycck, 80,  0.1245f / 100 },
-        { JpegEncodingColor.Ycck, 40,  0.2663f / 100 },
+        { JpegColorType.Cmyk, 100, 0.0159f / 100 },
+        { JpegColorType.Cmyk, 80,  0.3922f / 100 },
+        { JpegColorType.Cmyk, 40,  0.6488f / 100 },
     };
 
-    public static readonly TheoryData<JpegEncodingColor, int, float> LuminanceEncodingSetups = new()
+    public static readonly TheoryData<JpegColorType, int, float> YcckEncodingSetups = new()
     {
-        { JpegEncodingColor.Luminance, 100, 0.0175f / 100 },
-        { JpegEncodingColor.Luminance, 80,  0.6730f / 100 },
-        { JpegEncodingColor.Luminance, 40, 0.9943f / 100 },
+        { JpegColorType.Ycck, 100, 0.0356f / 100 },
+        { JpegColorType.Ycck, 80,  0.1245f / 100 },
+        { JpegColorType.Ycck, 40,  0.2663f / 100 },
+    };
+
+    public static readonly TheoryData<JpegColorType, int, float> LuminanceEncodingSetups = new()
+    {
+        { JpegColorType.Luminance, 100, 0.0175f / 100 },
+        { JpegColorType.Luminance, 80,  0.6730f / 100 },
+        { JpegColorType.Luminance, 40, 0.9943f / 100 },
     };
 
     [Theory]
@@ -67,7 +75,7 @@ public partial class JpegEncoderTests
     [WithFile(TestImages.Png.BikeGrayscale, nameof(LuminanceEncodingSetups), PixelTypes.L8)]
     [WithFile(TestImages.Jpeg.Baseline.Cmyk, nameof(CmykEncodingSetups), PixelTypes.Rgb24)]
     [WithFile(TestImages.Jpeg.Baseline.Ycck, nameof(YcckEncodingSetups), PixelTypes.Rgb24)]
-    public void EncodeBaseline_Interleaved<TPixel>(TestImageProvider<TPixel> provider, JpegEncodingColor colorType, int quality, float tolerance)
+    public void EncodeBaseline_Interleaved<TPixel>(TestImageProvider<TPixel> provider, JpegColorType colorType, int quality, float tolerance)
         where TPixel : unmanaged, IPixel<TPixel> => TestJpegEncoderCore(provider, colorType, quality, tolerance);
 
     [Theory]
@@ -76,7 +84,7 @@ public partial class JpegEncoderTests
     [WithFile(TestImages.Png.BikeGrayscale, nameof(LuminanceEncodingSetups), PixelTypes.L8)]
     [WithFile(TestImages.Jpeg.Baseline.Cmyk, nameof(CmykEncodingSetups), PixelTypes.Rgb24)]
     [WithFile(TestImages.Jpeg.Baseline.Ycck, nameof(YcckEncodingSetups), PixelTypes.Rgb24)]
-    public void EncodeBaseline_NonInterleavedMode<TPixel>(TestImageProvider<TPixel> provider, JpegEncodingColor colorType, int quality, float tolerance)
+    public void EncodeBaseline_NonInterleavedMode<TPixel>(TestImageProvider<TPixel> provider, JpegColorType colorType, int quality, float tolerance)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         using Image<TPixel> image = provider.GetImage();
@@ -101,7 +109,7 @@ public partial class JpegEncoderTests
     [WithTestPatternImages(nameof(NonSubsampledEncodingSetups), 153, 21, PixelTypes.Rgb24)]
     [WithTestPatternImages(nameof(NonSubsampledEncodingSetups), 143, 81, PixelTypes.Rgb24)]
     [WithTestPatternImages(nameof(NonSubsampledEncodingSetups), 138, 24, PixelTypes.Rgb24)]
-    public void EncodeBaseline_WorksWithDifferentSizes<TPixel>(TestImageProvider<TPixel> provider, JpegEncodingColor colorType, int quality, float tolerance)
+    public void EncodeBaseline_WorksWithDifferentSizes<TPixel>(TestImageProvider<TPixel> provider, JpegColorType colorType, int quality, float tolerance)
         where TPixel : unmanaged, IPixel<TPixel> => TestJpegEncoderCore(provider, colorType, quality);
 
     [Theory]
@@ -114,7 +122,7 @@ public partial class JpegEncoderTests
     [WithTestPatternImages(nameof(NonSubsampledEncodingSetups), 48, 24, PixelTypes.Rgb24)]
     [WithTestPatternImages(nameof(NonSubsampledEncodingSetups), 46, 8, PixelTypes.Rgb24)]
     [WithTestPatternImages(nameof(NonSubsampledEncodingSetups), 51, 7, PixelTypes.Rgb24)]
-    public void EncodeBaseline_WithSmallImages_WorksWithDifferentSizes<TPixel>(TestImageProvider<TPixel> provider, JpegEncodingColor colorType, int quality, float tolerance)
+    public void EncodeBaseline_WithSmallImages_WorksWithDifferentSizes<TPixel>(TestImageProvider<TPixel> provider, JpegColorType colorType, int quality, float tolerance)
         where TPixel : unmanaged, IPixel<TPixel> => TestJpegEncoderCore(provider, colorType, quality, ImageComparer.Tolerant(0.12f));
 
     [Theory]
@@ -124,28 +132,28 @@ public partial class JpegEncoderTests
     [WithSolidFilledImages(1, 1, 100, 100, 100, 255, PixelTypes.La16, 100)]
     [WithSolidFilledImages(1, 1, 100, 100, 100, 255, PixelTypes.La32, 100)]
     public void EncodeBaseline_Grayscale<TPixel>(TestImageProvider<TPixel> provider, int quality)
-        where TPixel : unmanaged, IPixel<TPixel> => TestJpegEncoderCore(provider, JpegEncodingColor.Luminance, quality);
+        where TPixel : unmanaged, IPixel<TPixel> => TestJpegEncoderCore(provider, JpegColorType.Luminance, quality);
 
     [Theory]
     [WithTestPatternImages(nameof(NonSubsampledEncodingSetups), 96, 96, PixelTypes.Rgb24 | PixelTypes.Bgr24)]
     [WithTestPatternImages(nameof(NonSubsampledEncodingSetups), 48, 48, PixelTypes.Rgb24 | PixelTypes.Bgr24)]
-    public void EncodeBaseline_IsNotBoundToSinglePixelType<TPixel>(TestImageProvider<TPixel> provider, JpegEncodingColor colorType, int quality, float tolerance)
+    public void EncodeBaseline_IsNotBoundToSinglePixelType<TPixel>(TestImageProvider<TPixel> provider, JpegColorType colorType, int quality, float tolerance)
         where TPixel : unmanaged, IPixel<TPixel> => TestJpegEncoderCore(provider, colorType, quality);
 
     [Theory]
     [WithTestPatternImages(nameof(NonSubsampledEncodingSetups), 48, 48, PixelTypes.Rgb24 | PixelTypes.Bgr24)]
-    public void EncodeBaseline_WithSmallImages_IsNotBoundToSinglePixelType<TPixel>(TestImageProvider<TPixel> provider, JpegEncodingColor colorType, int quality, float tolerance)
+    public void EncodeBaseline_WithSmallImages_IsNotBoundToSinglePixelType<TPixel>(TestImageProvider<TPixel> provider, JpegColorType colorType, int quality, float tolerance)
         where TPixel : unmanaged, IPixel<TPixel> => TestJpegEncoderCore(provider, colorType, quality, comparer: ImageComparer.Tolerant(0.06f));
 
     [Theory]
-    [WithFile(TestImages.Png.CalliphoraPartial, PixelTypes.Rgb24, JpegEncodingColor.YCbCrRatio444)]
-    [WithTestPatternImages(587, 821, PixelTypes.Rgb24, JpegEncodingColor.YCbCrRatio444)]
-    [WithTestPatternImages(677, 683, PixelTypes.Rgb24, JpegEncodingColor.YCbCrRatio420)]
-    [WithSolidFilledImages(400, 400, nameof(Color.Red), PixelTypes.Rgb24, JpegEncodingColor.YCbCrRatio420)]
-    public void EncodeBaseline_WorksWithDiscontiguousBuffers<TPixel>(TestImageProvider<TPixel> provider, JpegEncodingColor colorType)
+    [WithFile(TestImages.Png.CalliphoraPartial, PixelTypes.Rgb24, JpegColorType.YCbCrRatio444)]
+    [WithTestPatternImages(587, 821, PixelTypes.Rgb24, JpegColorType.YCbCrRatio444)]
+    [WithTestPatternImages(677, 683, PixelTypes.Rgb24, JpegColorType.YCbCrRatio420)]
+    [WithSolidFilledImages(400, 400, nameof(Color.Red), PixelTypes.Rgb24, JpegColorType.YCbCrRatio420)]
+    public void EncodeBaseline_WorksWithDiscontiguousBuffers<TPixel>(TestImageProvider<TPixel> provider, JpegColorType colorType)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        ImageComparer comparer = colorType == JpegEncodingColor.YCbCrRatio444
+        ImageComparer comparer = colorType == JpegColorType.YCbCrRatio444
             ? ImageComparer.TolerantPercentage(0.1f)
             : ImageComparer.TolerantPercentage(5f);
 
@@ -252,13 +260,13 @@ where TPixel : unmanaged, IPixel<TPixel>
         image.Mutate(x => x.Crop(132, 1606));
 
         int[] quality = new int[] { 100, 50 };
-        JpegEncodingColor[] colors = new[] { JpegEncodingColor.YCbCrRatio444, JpegEncodingColor.YCbCrRatio420 };
+        JpegColorType[] colors = new[] { JpegColorType.YCbCrRatio444, JpegColorType.YCbCrRatio420 };
         for (int i = 0; i < quality.Length; i++)
         {
             int q = quality[i];
             for (int j = 0; j < colors.Length; j++)
             {
-                JpegEncodingColor c = colors[j];
+                JpegColorType c = colors[j];
                 image.VerifyEncoder(provider, "jpeg", $"{q}-{c}", new JpegEncoder() { Quality = q, ColorType = c }, GetComparer(q, c));
             }
         }
@@ -267,7 +275,7 @@ where TPixel : unmanaged, IPixel<TPixel>
     /// <summary>
     /// Anton's SUPER-SCIENTIFIC tolerance threshold calculation
     /// </summary>
-    private static ImageComparer GetComparer(int quality, JpegEncodingColor? colorType)
+    private static ImageComparer GetComparer(int quality, JpegColorType? colorType)
     {
         float tolerance = 0.015f; // ~1.5%
 
@@ -275,10 +283,10 @@ where TPixel : unmanaged, IPixel<TPixel>
         {
             tolerance *= 4.5f;
         }
-        else if (quality < 75 || colorType == JpegEncodingColor.YCbCrRatio420)
+        else if (quality < 75 || colorType == JpegColorType.YCbCrRatio420)
         {
             tolerance *= 2.0f;
-            if (colorType == JpegEncodingColor.YCbCrRatio420)
+            if (colorType == JpegColorType.YCbCrRatio420)
             {
                 tolerance *= 2.0f;
             }
@@ -287,15 +295,15 @@ where TPixel : unmanaged, IPixel<TPixel>
         return ImageComparer.Tolerant(tolerance);
     }
 
-    private static void TestJpegEncoderCore<TPixel>(TestImageProvider<TPixel> provider, JpegEncodingColor colorType, int quality)
+    private static void TestJpegEncoderCore<TPixel>(TestImageProvider<TPixel> provider, JpegColorType colorType, int quality)
         where TPixel : unmanaged, IPixel<TPixel>
         => TestJpegEncoderCore(provider, colorType, quality, GetComparer(quality, colorType));
 
-    private static void TestJpegEncoderCore<TPixel>(TestImageProvider<TPixel> provider, JpegEncodingColor colorType, int quality, float tolerance)
+    private static void TestJpegEncoderCore<TPixel>(TestImageProvider<TPixel> provider, JpegColorType colorType, int quality, float tolerance)
         where TPixel : unmanaged, IPixel<TPixel>
         => TestJpegEncoderCore(provider, colorType, quality, new TolerantImageComparer(tolerance));
 
-    private static void TestJpegEncoderCore<TPixel>(TestImageProvider<TPixel> provider, JpegEncodingColor colorType, int quality, ImageComparer comparer)
+    private static void TestJpegEncoderCore<TPixel>(TestImageProvider<TPixel> provider, JpegColorType colorType, int quality, ImageComparer comparer)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         using Image<TPixel> image = provider.GetImage();

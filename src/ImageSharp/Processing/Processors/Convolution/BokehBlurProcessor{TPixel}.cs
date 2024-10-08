@@ -96,7 +96,7 @@ internal class BokehBlurProcessor<TPixel> : ImageProcessor<TPixel>
         }
 
         // Create a 0-filled buffer to use to store the result of the component convolutions
-        using Buffer2D<Vector4> processingBuffer = this.Configuration.MemoryAllocator.Allocate2D<Vector4>(source.Size(), AllocationOptions.Clean);
+        using Buffer2D<Vector4> processingBuffer = this.Configuration.MemoryAllocator.Allocate2D<Vector4>(source.Size, AllocationOptions.Clean);
 
         // Perform the 1D convolutions on all the kernel components and accumulate the results
         this.OnFrameApplyCore(source, sourceRectangle, this.Configuration, processingBuffer);
@@ -134,7 +134,7 @@ internal class BokehBlurProcessor<TPixel> : ImageProcessor<TPixel>
         Buffer2D<Vector4> processingBuffer)
     {
         // Allocate the buffer with the intermediate convolution results
-        using Buffer2D<ComplexVector4> firstPassBuffer = configuration.MemoryAllocator.Allocate2D<ComplexVector4>(source.Size());
+        using Buffer2D<ComplexVector4> firstPassBuffer = configuration.MemoryAllocator.Allocate2D<ComplexVector4>(source.Size);
 
         // Unlike in the standard 2 pass convolution processor, we use a rectangle of 1x the interest width
         // to speedup the actual convolution, by applying bulk pixel conversion and clamping calculation.

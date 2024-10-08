@@ -29,7 +29,7 @@ namespace SixLabors.ImageSharp.Formats.Png;
 /// <summary>
 /// Performs the png decoding operation.
 /// </summary>
-internal sealed class PngDecoderCore : IImageDecoderInternals
+internal sealed class PngDecoderCore : ImageDecoderCore
 {
     /// <summary>
     /// The general decoder options.
@@ -119,7 +119,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
     /// <summary>
     /// How to handle CRC errors.
     /// </summary>
-    private readonly PngCrcChunkHandling pngCrcChunkHandling;
+    private readonly SegmentIntegrityHandling segmentIntegrityHandling;
 
     /// <summary>
     /// A reusable Crc32 hashing instance.
@@ -136,37 +136,30 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
     /// </summary>
     /// <param name="options">The decoder options.</param>
     public PngDecoderCore(PngDecoderOptions options)
+        : base(options.GeneralOptions)
     {
-        this.Options = options.GeneralOptions;
         this.configuration = options.GeneralOptions.Configuration;
         this.maxFrames = options.GeneralOptions.MaxFrames;
         this.skipMetadata = options.GeneralOptions.SkipMetadata;
         this.memoryAllocator = this.configuration.MemoryAllocator;
-        this.pngCrcChunkHandling = options.PngCrcChunkHandling;
+        this.segmentIntegrityHandling = options.GeneralOptions.SegmentIntegrityHandling;
         this.maxUncompressedLength = options.MaxUncompressedAncillaryChunkSizeBytes;
     }
 
     internal PngDecoderCore(PngDecoderOptions options, bool colorMetadataOnly)
+        : base(options.GeneralOptions)
     {
-        this.Options = options.GeneralOptions;
         this.colorMetadataOnly = colorMetadataOnly;
         this.maxFrames = options.GeneralOptions.MaxFrames;
         this.skipMetadata = true;
         this.configuration = options.GeneralOptions.Configuration;
         this.memoryAllocator = this.configuration.MemoryAllocator;
-        this.pngCrcChunkHandling = options.PngCrcChunkHandling;
+        this.segmentIntegrityHandling = options.GeneralOptions.SegmentIntegrityHandling;
         this.maxUncompressedLength = options.MaxUncompressedAncillaryChunkSizeBytes;
     }
 
     /// <inheritdoc/>
-    public DecoderOptions Options { get; }
-
-    /// <inheritdoc/>
-    public Size Dimensions => new(this.header.Width, this.header.Height);
-
-    /// <inheritdoc/>
-    public Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
-        where TPixel : unmanaged, IPixel<TPixel>
+    protected override Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
     {
         uint frameCount = 0;
         ImageMetadata metadata = new();
@@ -241,7 +234,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
                                 cancellationToken);
 
                             // if current frame dispose is restore to previous, then from future frame's perspective, it never happened
-                            if (currentFrameControl.Value.DisposeOperation != PngDisposalMethod.RestoreToPrevious)
+                            if (currentFrameControl.Value.DisposalMode != FrameDisposalMode.RestoreToPrevious)
                             {
                                 previousFrame = currentFrame;
                                 previousFrameControl = currentFrameControl;
@@ -341,7 +334,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
     }
 
     /// <inheritdoc/>
-    public ImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken)
+    protected override ImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken)
     {
         uint frameCount = 0;
         ImageMetadata metadata = new();
@@ -527,10 +520,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
                 PngThrowHelper.ThrowInvalidHeader();
             }
 
-            // Both PLTE and tRNS chunks, if present, have been read at this point as per spec.
-            AssignColorPalette(this.palette, this.paletteAlpha, pngMetadata);
-
-            return new ImageInfo(new PixelTypeInfo(this.CalculateBitsPerPixel()), new(this.header.Width, this.header.Height), metadata, framesMetadata);
+            return new ImageInfo(new(this.header.Width, this.header.Height), metadata, framesMetadata);
         }
         finally
         {
@@ -674,12 +664,12 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
 
         // If the first `fcTL` chunk uses a `dispose_op` of APNG_DISPOSE_OP_PREVIOUS it should be treated as APNG_DISPOSE_OP_BACKGROUND.
         // So, if restoring to before first frame, clear entire area. Same if first frame (previousFrameControl null).
-        if (previousFrameControl == null || (previousFrame is null && previousFrameControl.Value.DisposeOperation == PngDisposalMethod.RestoreToPrevious))
+        if (previousFrameControl == null || (previousFrame is null && previousFrameControl.Value.DisposalMode == FrameDisposalMode.RestoreToPrevious))
         {
             Buffer2DRegion<TPixel> pixelRegion = frame.PixelBuffer.GetRegion();
             pixelRegion.Clear();
         }
-        else if (previousFrameControl.Value.DisposeOperation == PngDisposalMethod.RestoreToBackground)
+        else if (previousFrameControl.Value.DisposalMode == FrameDisposalMode.RestoreToBackground)
         {
             Rectangle restoreArea = previousFrameControl.Value.Bounds;
             Buffer2DRegion<TPixel> pixelRegion = frame.PixelBuffer.GetRegion(restoreArea);
@@ -701,29 +691,6 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
         PngFrameMetadata frameMetadata = meta.GetPngMetadata();
         frameMetadata.FromChunk(currentFrameControl);
         imageFrameMetadata.Add(meta);
-    }
-
-    /// <summary>
-    /// Calculates the correct number of bits per pixel for the given color type.
-    /// </summary>
-    /// <returns>The <see cref="int"/></returns>
-    private int CalculateBitsPerPixel()
-    {
-        switch (this.pngColorType)
-        {
-            case PngColorType.Grayscale:
-            case PngColorType.Palette:
-                return this.header.BitDepth;
-            case PngColorType.GrayscaleWithAlpha:
-                return this.header.BitDepth * 2;
-            case PngColorType.Rgb:
-                return this.header.BitDepth * 3;
-            case PngColorType.RgbWithAlpha:
-                return this.header.BitDepth * 4;
-            default:
-                PngThrowHelper.ThrowNotSupportedColor();
-                return -1;
-        }
     }
 
     /// <summary>
@@ -817,8 +784,8 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
         int height = (int)frameControl.YMax;
 
         IMemoryOwner<TPixel>? blendMemory = null;
-        Span<TPixel> blendRowBuffer = Span<TPixel>.Empty;
-        if (frameControl.BlendOperation == PngBlendMethod.Over)
+        Span<TPixel> blendRowBuffer = [];
+        if (frameControl.BlendMode == FrameBlendMode.Over)
         {
             blendMemory = this.memoryAllocator.Allocate<TPixel>(imageFrame.Width, AllocationOptions.Clean);
             blendRowBuffer = blendMemory.Memory.Span;
@@ -866,7 +833,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
                     break;
 
                 default:
-                    if (this.pngCrcChunkHandling is PngCrcChunkHandling.IgnoreData or PngCrcChunkHandling.IgnoreAll)
+                    if (this.segmentIntegrityHandling is SegmentIntegrityHandling.IgnoreData or SegmentIntegrityHandling.IgnoreAll)
                     {
                         goto EXIT;
                     }
@@ -910,8 +877,8 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
         Buffer2D<TPixel> imageBuffer = imageFrame.PixelBuffer;
 
         IMemoryOwner<TPixel>? blendMemory = null;
-        Span<TPixel> blendRowBuffer = Span<TPixel>.Empty;
-        if (frameControl.BlendOperation == PngBlendMethod.Over)
+        Span<TPixel> blendRowBuffer = [];
+        if (frameControl.BlendMode == FrameBlendMode.Over)
         {
             blendMemory = this.memoryAllocator.Allocate<TPixel>(imageFrame.Width, AllocationOptions.Clean);
             blendRowBuffer = blendMemory.Memory.Span;
@@ -972,7 +939,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
                         break;
 
                     default:
-                        if (this.pngCrcChunkHandling is PngCrcChunkHandling.IgnoreData or PngCrcChunkHandling.IgnoreAll)
+                        if (this.segmentIntegrityHandling is SegmentIntegrityHandling.IgnoreData or SegmentIntegrityHandling.IgnoreAll)
                         {
                             goto EXIT;
                         }
@@ -1036,7 +1003,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
     {
         Span<TPixel> destination = pixels.PixelBuffer.DangerousGetRowSpan(currentRow);
 
-        bool blend = frameControl.BlendOperation == PngBlendMethod.Over;
+        bool blend = frameControl.BlendMode == FrameBlendMode.Over;
         Span<TPixel> rowSpan = blend
             ? blendRowBuffer
             : destination;
@@ -1149,7 +1116,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
         int increment = 1)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        bool blend = frameControl.BlendOperation == PngBlendMethod.Over;
+        bool blend = frameControl.BlendMode == FrameBlendMode.Over;
         Span<TPixel> rowSpan = blend
             ? blendRowBuffer
             : destination;
@@ -1365,6 +1332,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
         pngMetadata.InterlaceMethod = this.header.InterlaceMethod;
 
         this.pngColorType = this.header.ColorType;
+        this.Dimensions = new(this.header.Width, this.header.Height);
     }
 
     /// <summary>
@@ -1483,7 +1451,20 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
         byte colorPrimaries = data[0];
         byte transferFunction = data[1];
         byte matrixCoefficients = data[2];
-        bool? fullRange = data[3] == 1 ? true : data[3] == 0 ? false : null;
+        bool? fullRange;
+        if (data[3] == 1)
+        {
+            fullRange = true;
+        }
+        else if (data[3] == 0)
+        {
+            fullRange = false;
+        }
+        else
+        {
+            fullRange = null;
+        }
+
         metadata.CicpProfile = new CicpProfile(colorPrimaries, transferFunction, matrixCoefficients, fullRange);
     }
 
@@ -1515,7 +1496,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
 
         // Sequence of bytes for the exif header ("Exif" ASCII and two zero bytes).
         // This doesn't actually allocate.
-        ReadOnlySpan<byte> exifHeader = new byte[] { 0x45, 0x78, 0x69, 0x66, 0x00, 0x00 };
+        ReadOnlySpan<byte> exifHeader = [0x45, 0x78, 0x69, 0x66, 0x00, 0x00];
 
         if (dataLength < exifHeader.Length)
         {
@@ -1626,7 +1607,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
             Span<byte> destUncompressedData = destBuffer.GetSpan();
             if (!inflateStream.AllocateNewBytes(compressedData.Length, false))
             {
-                uncompressedBytesArray = Array.Empty<byte>();
+                uncompressedBytesArray = [];
                 return false;
             }
 
@@ -1635,7 +1616,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
             {
                 if (memoryStreamOutput.Length > maxLength)
                 {
-                    uncompressedBytesArray = Array.Empty<byte>();
+                    uncompressedBytesArray = [];
                     return false;
                 }
 
@@ -1946,7 +1927,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
     private void ValidateChunk(in PngChunk chunk, Span<byte> buffer)
     {
         uint inputCrc = this.ReadChunkCrc(buffer);
-        if (chunk.IsCritical(this.pngCrcChunkHandling))
+        if (chunk.IsCritical(this.segmentIntegrityHandling))
         {
             Span<byte> chunkType = stackalloc byte[4];
             BinaryPrimitives.WriteUInt32BigEndian(chunkType, (uint)chunk.Type);
@@ -2002,7 +1983,7 @@ internal sealed class PngDecoderCore : IImageDecoderInternals
     {
         if (length == 0)
         {
-            return new BasicArrayBuffer<byte>(Array.Empty<byte>());
+            return new BasicArrayBuffer<byte>([]);
         }
 
         // We rent the buffer here to return it afterwards in Decode()

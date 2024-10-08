@@ -144,13 +144,13 @@ internal class HuffmanScanEncoder
     /// <param name="frame">Frame to encode.</param>
     /// <param name="converter">Converter from color to spectral.</param>
     /// <param name="cancellationToken">The token to request cancellation.</param>
-    public void EncodeScanBaselineInterleaved<TPixel>(JpegEncodingColor color, JpegFrame frame, SpectralConverter<TPixel> converter, CancellationToken cancellationToken)
+    public void EncodeScanBaselineInterleaved<TPixel>(JpegColorType color, JpegFrame frame, SpectralConverter<TPixel> converter, CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         switch (color)
         {
-            case JpegEncodingColor.YCbCrRatio444:
-            case JpegEncodingColor.Rgb:
+            case JpegColorType.YCbCrRatio444:
+            case JpegColorType.Rgb:
                 this.EncodeThreeComponentBaselineInterleavedScanNoSubsampling(frame, converter, cancellationToken);
                 break;
             default:

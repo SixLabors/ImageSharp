@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp;
 [Trait("Format", "Webp")]
 public class YuvConversionTests
 {
-    private static MagickReferenceDecoder ReferenceDecoder => new();
+    private static MagickReferenceDecoder ReferenceDecoder => MagickReferenceDecoder.WebP;
 
     private static string TestImageLossyFullPath => Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, TestImages.Webp.Lossy.NoFilter06);
 

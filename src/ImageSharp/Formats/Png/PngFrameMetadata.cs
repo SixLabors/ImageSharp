@@ -2,13 +2,14 @@
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.Formats.Png.Chunks;
+using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Png;
 
 /// <summary>
 /// Provides APng specific metadata information for the image frame.
 /// </summary>
-public class PngFrameMetadata : IDeepCloneable
+public class PngFrameMetadata : IFormatFrameMetadata<PngFrameMetadata>
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="PngFrameMetadata"/> class.
@@ -24,8 +25,8 @@ public class PngFrameMetadata : IDeepCloneable
     private PngFrameMetadata(PngFrameMetadata other)
     {
         this.FrameDelay = other.FrameDelay;
-        this.DisposalMethod = other.DisposalMethod;
-        this.BlendMethod = other.BlendMethod;
+        this.DisposalMode = other.DisposalMode;
+        this.BlendMode = other.BlendMode;
     }
 
     /// <summary>
@@ -39,12 +40,12 @@ public class PngFrameMetadata : IDeepCloneable
     /// <summary>
     /// Gets or sets the type of frame area disposal to be done after rendering this frame
     /// </summary>
-    public PngDisposalMethod DisposalMethod { get; set; }
+    public FrameDisposalMode DisposalMode { get; set; }
 
     /// <summary>
     /// Gets or sets the type of frame area rendering for this frame
     /// </summary>
-    public PngBlendMethod BlendMethod { get; set; }
+    public FrameBlendMode BlendMode { get; set; }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="PngFrameMetadata"/> class.
@@ -53,26 +54,54 @@ public class PngFrameMetadata : IDeepCloneable
     internal void FromChunk(in FrameControl frameControl)
     {
         this.FrameDelay = new Rational(frameControl.DelayNumerator, frameControl.DelayDenominator);
-        this.DisposalMethod = frameControl.DisposeOperation;
-        this.BlendMethod = frameControl.BlendOperation;
+        this.DisposalMode = frameControl.DisposalMode;
+        this.BlendMode = frameControl.BlendMode;
     }
 
     /// <inheritdoc/>
-    public IDeepCloneable DeepClone() => new PngFrameMetadata(this);
-
-    internal static PngFrameMetadata FromAnimatedMetadata(AnimatedImageFrameMetadata metadata)
+    public static PngFrameMetadata FromFormatConnectingFrameMetadata(FormatConnectingFrameMetadata metadata)
         => new()
         {
             FrameDelay = new(metadata.Duration.TotalMilliseconds / 1000),
-            DisposalMethod = GetMode(metadata.DisposalMode),
-            BlendMethod = metadata.BlendMode == FrameBlendMode.Source ? PngBlendMethod.Source : PngBlendMethod.Over,
+            DisposalMode = GetMode(metadata.DisposalMode),
+            BlendMode = metadata.BlendMode,
         };
 
-    private static PngDisposalMethod GetMode(FrameDisposalMode mode) => mode switch
+    /// <inheritdoc/>
+    public FormatConnectingFrameMetadata ToFormatConnectingFrameMetadata()
     {
-        FrameDisposalMode.RestoreToBackground => PngDisposalMethod.RestoreToBackground,
-        FrameDisposalMode.RestoreToPrevious => PngDisposalMethod.RestoreToPrevious,
-        FrameDisposalMode.DoNotDispose => PngDisposalMethod.DoNotDispose,
-        _ => PngDisposalMethod.DoNotDispose,
+        double delay = this.FrameDelay.ToDouble();
+        if (double.IsNaN(delay))
+        {
+            delay = 0;
+        }
+
+        return new()
+        {
+            ColorTableMode = FrameColorTableMode.Global,
+            Duration = TimeSpan.FromMilliseconds(delay * 1000),
+            DisposalMode = this.DisposalMode,
+            BlendMode = this.BlendMode,
+        };
+    }
+
+    /// <inheritdoc/>
+    public void AfterFrameApply<TPixel>(ImageFrame<TPixel> source, ImageFrame<TPixel> destination)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+    }
+
+    /// <inheritdoc/>
+    IDeepCloneable IDeepCloneable.DeepClone() => this.DeepClone();
+
+    /// <inheritdoc/>
+    public PngFrameMetadata DeepClone() => new(this);
+
+    private static FrameDisposalMode GetMode(FrameDisposalMode mode) => mode switch
+    {
+        FrameDisposalMode.RestoreToBackground => FrameDisposalMode.RestoreToBackground,
+        FrameDisposalMode.RestoreToPrevious => FrameDisposalMode.RestoreToPrevious,
+        FrameDisposalMode.DoNotDispose => FrameDisposalMode.DoNotDispose,
+        _ => FrameDisposalMode.DoNotDispose,
     };
 }

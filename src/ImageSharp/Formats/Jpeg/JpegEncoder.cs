@@ -105,7 +105,7 @@ public sealed class JpegEncoder : ImageEncoder
     /// <summary>
     /// Gets the jpeg color for encoding.
     /// </summary>
-    public JpegEncodingColor? ColorType { get; init; }
+    public JpegColorType? ColorType { get; init; }
 
     /// <inheritdoc/>
     protected override void Encode<TPixel>(Image<TPixel> image, Stream stream, CancellationToken cancellationToken)

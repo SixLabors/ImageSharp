@@ -5,6 +5,7 @@ using SixLabors.ImageSharp.Formats.Webp.Chunks;
 using SixLabors.ImageSharp.Formats.Webp.Lossless;
 using SixLabors.ImageSharp.Formats.Webp.Lossy;
 using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Webp;
@@ -12,7 +13,7 @@ namespace SixLabors.ImageSharp.Formats.Webp;
 /// <summary>
 /// Image encoder for writing an image to a stream in the Webp format.
 /// </summary>
-internal sealed class WebpEncoderCore : IImageEncoderInternals
+internal sealed class WebpEncoderCore
 {
     /// <summary>
     /// Used for allocating memory during processing operations.
@@ -124,7 +125,7 @@ internal sealed class WebpEncoderCore : IImageEncoderInternals
         }
         else
         {
-            WebpMetadata webpMetadata = WebpCommonUtils.GetWebpMetadata(image);
+            WebpMetadata webpMetadata = image.Metadata.GetWebpMetadata();
             lossless = webpMetadata.FileFormat == WebpFileFormatType.Lossless;
         }
 
@@ -150,25 +151,25 @@ internal sealed class WebpEncoderCore : IImageEncoderInternals
 
             // Encode the first frame.
             ImageFrame<TPixel> previousFrame = image.Frames.RootFrame;
-            WebpFrameMetadata frameMetadata = WebpCommonUtils.GetWebpFrameMetadata(previousFrame);
+            WebpFrameMetadata frameMetadata = previousFrame.Metadata.GetWebpMetadata();
             hasAlpha |= encoder.Encode(previousFrame, previousFrame.Bounds(), frameMetadata, stream, hasAnimation);
 
             if (hasAnimation)
             {
-                WebpDisposalMethod previousDisposal = frameMetadata.DisposalMethod;
+                FrameDisposalMode previousDisposal = frameMetadata.DisposalMethod;
 
                 // Encode additional frames
                 // This frame is reused to store de-duplicated pixel buffers.
-                using ImageFrame<TPixel> encodingFrame = new(image.Configuration, previousFrame.Size());
+                using ImageFrame<TPixel> encodingFrame = new(image.Configuration, previousFrame.Size);
 
                 for (int i = 1; i < image.Frames.Count; i++)
                 {
-                    ImageFrame<TPixel>? prev = previousDisposal == WebpDisposalMethod.RestoreToBackground ? null : previousFrame;
+                    ImageFrame<TPixel>? prev = previousDisposal == FrameDisposalMode.RestoreToBackground ? null : previousFrame;
                     ImageFrame<TPixel> currentFrame = image.Frames[i];
                     ImageFrame<TPixel>? nextFrame = i < image.Frames.Count - 1 ? image.Frames[i + 1] : null;
 
-                    frameMetadata = WebpCommonUtils.GetWebpFrameMetadata(currentFrame);
-                    bool blend = frameMetadata.BlendMethod == WebpBlendMethod.Over;
+                    frameMetadata = currentFrame.Metadata.GetWebpMetadata();
+                    bool blend = frameMetadata.BlendMethod == FrameBlendMode.Over;
 
                     (bool difference, Rectangle bounds) =
                         AnimationUtilities.DeDuplicatePixels(
@@ -227,23 +228,23 @@ internal sealed class WebpEncoderCore : IImageEncoderInternals
 
                 // Encode the first frame.
                 ImageFrame<TPixel> previousFrame = image.Frames.RootFrame;
-                WebpFrameMetadata frameMetadata = WebpCommonUtils.GetWebpFrameMetadata(previousFrame);
-                WebpDisposalMethod previousDisposal = frameMetadata.DisposalMethod;
+                WebpFrameMetadata frameMetadata = previousFrame.Metadata.GetWebpMetadata();
+                FrameDisposalMode previousDisposal = frameMetadata.DisposalMethod;
 
                 hasAlpha |= encoder.EncodeAnimation(previousFrame, stream, previousFrame.Bounds(), frameMetadata);
 
                 // Encode additional frames
                 // This frame is reused to store de-duplicated pixel buffers.
-                using ImageFrame<TPixel> encodingFrame = new(image.Configuration, previousFrame.Size());
+                using ImageFrame<TPixel> encodingFrame = new(image.Configuration, previousFrame.Size);
 
                 for (int i = 1; i < image.Frames.Count; i++)
                 {
-                    ImageFrame<TPixel>? prev = previousDisposal == WebpDisposalMethod.RestoreToBackground ? null : previousFrame;
+                    ImageFrame<TPixel>? prev = previousDisposal == FrameDisposalMode.RestoreToBackground ? null : previousFrame;
                     ImageFrame<TPixel> currentFrame = image.Frames[i];
                     ImageFrame<TPixel>? nextFrame = i < image.Frames.Count - 1 ? image.Frames[i + 1] : null;
 
-                    frameMetadata = WebpCommonUtils.GetWebpFrameMetadata(currentFrame);
-                    bool blend = frameMetadata.BlendMethod == WebpBlendMethod.Over;
+                    frameMetadata = currentFrame.Metadata.GetWebpMetadata();
+                    bool blend = frameMetadata.BlendMethod == FrameBlendMode.Over;
 
                     (bool difference, Rectangle bounds) =
                         AnimationUtilities.DeDuplicatePixels(

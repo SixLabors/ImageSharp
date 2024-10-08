@@ -7,6 +7,7 @@ using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.Metadata.Profiles.Iptc;
 using SixLabors.ImageSharp.Metadata.Profiles.Xmp;
+using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Metadata;
 
@@ -15,7 +16,7 @@ namespace SixLabors.ImageSharp.Metadata;
 /// </summary>
 public sealed class ImageFrameMetadata : IDeepCloneable<ImageFrameMetadata>
 {
-    private readonly Dictionary<IImageFormat, IDeepCloneable> formatMetadata = new();
+    private readonly Dictionary<IImageFormat, IFormatFrameMetadata> formatMetadata = [];
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ImageFrameMetadata"/> class.
@@ -35,9 +36,9 @@ public sealed class ImageFrameMetadata : IDeepCloneable<ImageFrameMetadata>
     {
         DebugGuard.NotNull(other, nameof(other));
 
-        foreach (KeyValuePair<IImageFormat, IDeepCloneable> meta in other.formatMetadata)
+        foreach (KeyValuePair<IImageFormat, IFormatFrameMetadata> meta in other.formatMetadata)
         {
-            this.formatMetadata.Add(meta.Key, meta.Value.DeepClone());
+            this.formatMetadata.Add(meta.Key, (IFormatFrameMetadata)meta.Value.DeepClone());
         }
 
         this.ExifProfile = other.ExifProfile?.DeepClone();
@@ -45,6 +46,10 @@ public sealed class ImageFrameMetadata : IDeepCloneable<ImageFrameMetadata>
         this.IptcProfile = other.IptcProfile?.DeepClone();
         this.XmpProfile = other.XmpProfile?.DeepClone();
         this.CicpProfile = other.CicpProfile?.DeepClone();
+
+        // NOTE: This clone is actually shallow but we share the same format
+        // instances for all images in the configuration.
+        this.DecodedImageFormat = other.DecodedImageFormat;
     }
 
     /// <summary>
@@ -72,12 +77,19 @@ public sealed class ImageFrameMetadata : IDeepCloneable<ImageFrameMetadata>
     /// </summary>
     public CicpProfile? CicpProfile { get; set; }
 
+    /// <summary>
+    /// Gets the original format, if any, the image was decode from.
+    /// </summary>
+    public IImageFormat? DecodedImageFormat { get; internal set; }
+
     /// <inheritdoc/>
     public ImageFrameMetadata DeepClone() => new(this);
 
     /// <summary>
-    /// Gets the metadata value associated with the specified key. This method will always return a result creating
-    /// a new instance and binding it to the frame metadata if none is found.
+    /// Gets the metadata value associated with the specified key.<br/>
+    /// If none is found, an instance is created either by conversion from the decoded image format metadata
+    /// or the requested format default constructor.
+    /// This instance will be added to the metadata for future requests.
     /// </summary>
     /// <typeparam name="TFormatMetadata">The type of format metadata.</typeparam>
     /// <typeparam name="TFormatFrameMetadata">The type of format frame metadata.</typeparam>
@@ -87,48 +99,75 @@ public sealed class ImageFrameMetadata : IDeepCloneable<ImageFrameMetadata>
     /// </returns>
     public TFormatFrameMetadata GetFormatMetadata<TFormatMetadata, TFormatFrameMetadata>(IImageFormat<TFormatMetadata, TFormatFrameMetadata> key)
         where TFormatMetadata : class
-        where TFormatFrameMetadata : class, IDeepCloneable
+        where TFormatFrameMetadata : class, IFormatFrameMetadata<TFormatFrameMetadata>
     {
-        if (this.formatMetadata.TryGetValue(key, out IDeepCloneable? meta))
+        if (this.formatMetadata.TryGetValue(key, out IFormatFrameMetadata? meta))
         {
             return (TFormatFrameMetadata)meta;
         }
 
+        // None found. Check if we have a decoded format to convert from.
+        if (this.DecodedImageFormat is not null
+            && this.formatMetadata.TryGetValue(this.DecodedImageFormat, out IFormatFrameMetadata? decodedMetadata))
+        {
+            TFormatFrameMetadata derivedMeta = TFormatFrameMetadata.FromFormatConnectingFrameMetadata(decodedMetadata.ToFormatConnectingFrameMetadata());
+            this.SetFormatMetadata(key, derivedMeta);
+            return derivedMeta;
+        }
+
         TFormatFrameMetadata newMeta = key.CreateDefaultFormatFrameMetadata();
-        this.formatMetadata[key] = newMeta;
+        this.SetFormatMetadata(key, newMeta);
         return newMeta;
     }
 
-    internal void SetFormatMetadata<TFormatMetadata, TFormatFrameMetadata>(IImageFormat<TFormatMetadata, TFormatFrameMetadata> key, TFormatFrameMetadata value)
-        where TFormatMetadata : class
-        where TFormatFrameMetadata : class, IDeepCloneable
-        => this.formatMetadata[key] = value;
-
     /// <summary>
-    /// Gets the metadata value associated with the specified key.
+    /// Sets the metadata value associated with the specified key.
     /// </summary>
     /// <typeparam name="TFormatMetadata">The type of format metadata.</typeparam>
     /// <typeparam name="TFormatFrameMetadata">The type of format frame metadata.</typeparam>
-    /// <param name="key">The key of the value to get.</param>
-    /// <param name="metadata">
-    /// When this method returns, contains the metadata associated with the specified key,
-    /// if the key is found; otherwise, the default value for the type of the metadata parameter.
-    /// This parameter is passed uninitialized.
-    /// </param>
-    /// <returns>
-    /// <see langword="true"/> if the frame metadata exists for the specified key; otherwise, <see langword="false"/>.
-    /// </returns>
-    public bool TryGetFormatMetadata<TFormatMetadata, TFormatFrameMetadata>(IImageFormat<TFormatMetadata, TFormatFrameMetadata> key, out TFormatFrameMetadata? metadata)
+    /// <param name="key">The key of the value to set.</param>
+    /// <param name="value">The value to set.</param>
+    public void SetFormatMetadata<TFormatMetadata, TFormatFrameMetadata>(IImageFormat<TFormatMetadata, TFormatFrameMetadata> key, TFormatFrameMetadata value)
         where TFormatMetadata : class
-        where TFormatFrameMetadata : class, IDeepCloneable
-    {
-        if (this.formatMetadata.TryGetValue(key, out IDeepCloneable? meta))
-        {
-            metadata = (TFormatFrameMetadata)meta;
-            return true;
-        }
+        where TFormatFrameMetadata : class, IFormatFrameMetadata<TFormatFrameMetadata>
+        => this.formatMetadata[key] = value;
 
-        metadata = default;
-        return false;
+    /// <summary>
+    /// Creates a new instance the metadata value associated with the specified key.
+    /// The instance is created from a clone generated via <see cref="GetFormatMetadata{TFormatMetadata, TFormatFrameMetadata}(IImageFormat{TFormatMetadata, TFormatFrameMetadata})"/>.
+    /// </summary>
+    /// <typeparam name="TFormatMetadata">The type of metadata.</typeparam>
+    /// <typeparam name="TFormatFrameMetadata">The type of format frame metadata.</typeparam>
+    /// <param name="key">The key of the value to get.</param>
+    /// <returns>
+    /// The <typeparamref name="TFormatMetadata"/>.
+    /// </returns>
+    public TFormatFrameMetadata CloneFormatMetadata<TFormatMetadata, TFormatFrameMetadata>(IImageFormat<TFormatMetadata, TFormatFrameMetadata> key)
+        where TFormatMetadata : class
+        where TFormatFrameMetadata : class, IFormatFrameMetadata<TFormatFrameMetadata>
+        => ((IDeepCloneable<TFormatFrameMetadata>)this.GetFormatMetadata(key)).DeepClone();
+
+    /// <summary>
+    /// Synchronizes the profiles with the current metadata.
+    /// </summary>
+    internal void SynchronizeProfiles() => this.ExifProfile?.Sync(this);
+
+    /// <summary>
+    /// This method is called after a process has been applied to the image frame.
+    /// </summary>
+    /// <typeparam name="TPixel">The type of pixel format.</typeparam>
+    /// <param name="source">The source image frame.</param>
+    /// <param name="destination">The destination image frame.</param>
+    internal void AfterFrameApply<TPixel>(ImageFrame<TPixel> source, ImageFrame<TPixel> destination)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        // Always updated using the full frame dimensions.
+        // Individual format frame metadata will update with sub region dimensions if appropriate.
+        this.ExifProfile?.SyncDimensions(destination.Width, destination.Height);
+
+        foreach (KeyValuePair<IImageFormat, IFormatFrameMetadata> meta in this.formatMetadata)
+        {
+            meta.Value.AfterFrameApply(source, destination);
+        }
     }
 }

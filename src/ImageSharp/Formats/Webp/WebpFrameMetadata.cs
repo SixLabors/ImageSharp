@@ -1,12 +1,14 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.PixelFormats;
+
 namespace SixLabors.ImageSharp.Formats.Webp;
 
 /// <summary>
 /// Provides webp specific metadata information for the image frame.
 /// </summary>
-public class WebpFrameMetadata : IDeepCloneable
+public class WebpFrameMetadata : IFormatFrameMetadata<WebpFrameMetadata>
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="WebpFrameMetadata"/> class.
@@ -29,12 +31,12 @@ public class WebpFrameMetadata : IDeepCloneable
     /// <summary>
     /// Gets or sets how transparent pixels of the current frame are to be blended with corresponding pixels of the previous canvas.
     /// </summary>
-    public WebpBlendMethod BlendMethod { get; set; }
+    public FrameBlendMode BlendMethod { get; set; }
 
     /// <summary>
     /// Gets or sets how the current frame is to be treated after it has been displayed (before rendering the next frame) on the canvas.
     /// </summary>
-    public WebpDisposalMethod DisposalMethod { get; set; }
+    public FrameDisposalMode DisposalMethod { get; set; }
 
     /// <summary>
     /// Gets or sets the frame duration. The time to wait before displaying the next frame,
@@ -43,13 +45,40 @@ public class WebpFrameMetadata : IDeepCloneable
     public uint FrameDelay { get; set; }
 
     /// <inheritdoc/>
-    public IDeepCloneable DeepClone() => new WebpFrameMetadata(this);
-
-    internal static WebpFrameMetadata FromAnimatedMetadata(AnimatedImageFrameMetadata metadata)
+    public static WebpFrameMetadata FromFormatConnectingFrameMetadata(FormatConnectingFrameMetadata metadata)
         => new()
         {
             FrameDelay = (uint)metadata.Duration.TotalMilliseconds,
-            BlendMethod = metadata.BlendMode == FrameBlendMode.Source ? WebpBlendMethod.Source : WebpBlendMethod.Over,
-            DisposalMethod = metadata.DisposalMode == FrameDisposalMode.RestoreToBackground ? WebpDisposalMethod.RestoreToBackground : WebpDisposalMethod.DoNotDispose
+            BlendMethod = metadata.BlendMode,
+            DisposalMethod = GetMode(metadata.DisposalMode)
         };
+
+    /// <inheritdoc/>
+    public FormatConnectingFrameMetadata ToFormatConnectingFrameMetadata()
+        => new()
+        {
+            ColorTableMode = FrameColorTableMode.Global,
+            Duration = TimeSpan.FromMilliseconds(this.FrameDelay),
+            DisposalMode = this.DisposalMethod,
+            BlendMode = this.BlendMethod,
+        };
+
+    /// <inheritdoc/>
+    public void AfterFrameApply<TPixel>(ImageFrame<TPixel> source, ImageFrame<TPixel> destination)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+    }
+
+    /// <inheritdoc/>
+    IDeepCloneable IDeepCloneable.DeepClone() => this.DeepClone();
+
+    /// <inheritdoc/>
+    public WebpFrameMetadata DeepClone() => new(this);
+
+    private static FrameDisposalMode GetMode(FrameDisposalMode mode) => mode switch
+    {
+        FrameDisposalMode.RestoreToBackground => FrameDisposalMode.RestoreToBackground,
+        FrameDisposalMode.DoNotDispose => FrameDisposalMode.DoNotDispose,
+        _ => FrameDisposalMode.DoNotDispose,
+    };
 }

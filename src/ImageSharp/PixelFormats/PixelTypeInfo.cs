@@ -31,13 +31,13 @@ public readonly struct PixelTypeInfo(int bitsPerPixel)
     /// <summary>
     /// Gets the pixel color type.
     /// </summary>
-    public PixelColorType? ColorType { get; init; }
+    public PixelColorType ColorType { get; init; }
 
     /// <summary>
     /// Gets the pixel alpha transparency behavior.
     /// <see langword="null"/> means unknown, unspecified.
     /// </summary>
-    public PixelAlphaRepresentation? AlphaRepresentation { get; init; }
+    public PixelAlphaRepresentation AlphaRepresentation { get; init; }
 
     /// <summary>
     /// Creates a new <see cref="PixelTypeInfo"/> instance.

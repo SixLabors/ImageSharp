@@ -72,12 +72,12 @@ public abstract partial class Image : IDisposable, IConfigurationProvider
     /// <summary>
     /// Gets any metadata associated with the image.
     /// </summary>
-    public ImageMetadata Metadata { get; }
+    public ImageMetadata Metadata { get; private set; }
 
     /// <summary>
     /// Gets the size of the image in px units.
     /// </summary>
-    public Size Size { get; internal set; }
+    public Size Size { get; private set; }
 
     /// <summary>
     /// Gets the bounds of the image.
@@ -158,10 +158,38 @@ public abstract partial class Image : IDisposable, IConfigurationProvider
         where TPixel2 : unmanaged, IPixel<TPixel2>;
 
     /// <summary>
+    /// Synchronizes any embedded metadata profiles with the current image properties.
+    /// </summary>
+    public void SynchronizeMetadata()
+    {
+        this.Metadata.SynchronizeProfiles();
+        foreach (ImageFrame frame in this.Frames)
+        {
+            frame.Metadata.SynchronizeProfiles();
+        }
+    }
+
+    /// <summary>
+    /// Synchronizes any embedded metadata profiles with the current image properties.
+    /// </summary>
+    /// <param name="action">A synchronization action to run in addition to the default process.</param>
+    public void SynchronizeMetadata(Action<Image> action)
+    {
+        this.SynchronizeMetadata();
+        action(this);
+    }
+
+    /// <summary>
     /// Update the size of the image after mutation.
     /// </summary>
     /// <param name="size">The <see cref="Size"/>.</param>
     protected void UpdateSize(Size size) => this.Size = size;
+
+    /// <summary>
+    /// Updates the metadata of the image after mutation.
+    /// </summary>
+    /// <param name="metadata">The <see cref="Metadata"/>.</param>
+    protected void UpdateMetadata(ImageMetadata metadata) => this.Metadata = metadata;
 
     /// <summary>
     /// Disposes the object and frees resources for the Garbage Collector.

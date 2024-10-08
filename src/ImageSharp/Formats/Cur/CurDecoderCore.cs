@@ -15,16 +15,26 @@ internal sealed class CurDecoderCore : IconDecoderCore
     }
 
     protected override void SetFrameMetadata(
-        ImageFrameMetadata metadata,
+        ImageMetadata imageMetadata,
+        ImageFrameMetadata frameMetadata,
+        int index,
         in IconDirEntry entry,
         IconFrameCompression compression,
         BmpBitsPerPixel bitsPerPixel,
         ReadOnlyMemory<Color>? colorTable)
     {
-        CurFrameMetadata curFrameMetadata = metadata.GetCurMetadata();
+        CurFrameMetadata curFrameMetadata = frameMetadata.GetCurMetadata();
         curFrameMetadata.FromIconDirEntry(entry);
         curFrameMetadata.Compression = compression;
         curFrameMetadata.BmpBitsPerPixel = bitsPerPixel;
         curFrameMetadata.ColorTable = colorTable;
+
+        if (index == 0)
+        {
+            CurMetadata curMetadata = imageMetadata.GetCurMetadata();
+            curMetadata.Compression = compression;
+            curMetadata.BmpBitsPerPixel = bitsPerPixel;
+            curMetadata.ColorTable = colorTable;
+        }
     }
 }

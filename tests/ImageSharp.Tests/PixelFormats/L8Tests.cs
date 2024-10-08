@@ -245,7 +245,7 @@ public class L8Tests
             PixelTypeInfo info = L8.GetPixelTypeInfo();
             Assert.Equal(Unsafe.SizeOf<L8>() * 8, info.BitsPerPixel);
             Assert.Equal(PixelAlphaRepresentation.None, info.AlphaRepresentation);
-            Assert.Equal(PixelColorType.Grayscale, info.ColorType);
+            Assert.Equal(PixelColorType.Luminance, info.ColorType);
 
             PixelComponentInfo componentInfo = info.ComponentInfo.Value;
             Assert.Equal(1, componentInfo.ComponentCount);

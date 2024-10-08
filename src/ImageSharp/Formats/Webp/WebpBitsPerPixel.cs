@@ -11,10 +11,10 @@ public enum WebpBitsPerPixel : short
     /// <summary>
     /// 24 bits per pixel. Each pixel consists of 3 bytes.
     /// </summary>
-    Pixel24 = 24,
+    Bit24 = 24,
 
     /// <summary>
     /// 32 bits per pixel. Each pixel consists of 4 bytes (an alpha channel is present).
     /// </summary>
-    Pixel32 = 32
+    Bit32 = 32
 }

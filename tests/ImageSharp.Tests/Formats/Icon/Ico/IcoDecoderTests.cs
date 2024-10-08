@@ -56,7 +56,7 @@ public class IcoDecoderTests
         Assert.Equal(expectedWidth, meta.EncodingWidth);
         Assert.Equal(expectedHeight, meta.EncodingHeight);
         Assert.Equal(IconFrameCompression.Bmp, meta.Compression);
-        Assert.Equal(BmpBitsPerPixel.Pixel1, meta.BmpBitsPerPixel);
+        Assert.Equal(BmpBitsPerPixel.Bit1, meta.BmpBitsPerPixel);
     }
 
     [Theory]
@@ -92,7 +92,7 @@ public class IcoDecoderTests
         Assert.Equal(expectedWidth, meta.EncodingWidth);
         Assert.Equal(expectedHeight, meta.EncodingHeight);
         Assert.Equal(IconFrameCompression.Bmp, meta.Compression);
-        Assert.Equal(BmpBitsPerPixel.Pixel24, meta.BmpBitsPerPixel);
+        Assert.Equal(BmpBitsPerPixel.Bit24, meta.BmpBitsPerPixel);
     }
 
     [Theory]
@@ -128,7 +128,7 @@ public class IcoDecoderTests
         Assert.Equal(expectedWidth, meta.EncodingWidth);
         Assert.Equal(expectedHeight, meta.EncodingHeight);
         Assert.Equal(IconFrameCompression.Bmp, meta.Compression);
-        Assert.Equal(BmpBitsPerPixel.Pixel32, meta.BmpBitsPerPixel);
+        Assert.Equal(BmpBitsPerPixel.Bit32, meta.BmpBitsPerPixel);
     }
 
     [Theory]
@@ -163,7 +163,7 @@ public class IcoDecoderTests
         Assert.Equal(expectedWidth, meta.EncodingWidth);
         Assert.Equal(expectedHeight, meta.EncodingHeight);
         Assert.Equal(IconFrameCompression.Bmp, meta.Compression);
-        Assert.Equal(BmpBitsPerPixel.Pixel4, meta.BmpBitsPerPixel);
+        Assert.Equal(BmpBitsPerPixel.Bit4, meta.BmpBitsPerPixel);
     }
 
     [Theory]
@@ -199,7 +199,7 @@ public class IcoDecoderTests
         Assert.Equal(expectedWidth, meta.EncodingWidth);
         Assert.Equal(expectedHeight, meta.EncodingHeight);
         Assert.Equal(IconFrameCompression.Bmp, meta.Compression);
-        Assert.Equal(BmpBitsPerPixel.Pixel8, meta.BmpBitsPerPixel);
+        Assert.Equal(BmpBitsPerPixel.Bit8, meta.BmpBitsPerPixel);
     }
 
     [Theory]
@@ -229,7 +229,7 @@ public class IcoDecoderTests
         Assert.Equal(expectedWidth, meta.EncodingWidth);
         Assert.Equal(expectedHeight, meta.EncodingHeight);
         Assert.Equal(IconFrameCompression.Png, meta.Compression);
-        Assert.Equal(BmpBitsPerPixel.Pixel32, meta.BmpBitsPerPixel);
+        Assert.Equal(BmpBitsPerPixel.Bit32, meta.BmpBitsPerPixel);
     }
 
     [Theory]
@@ -262,7 +262,7 @@ public class IcoDecoderTests
         {
             ImageFrame<Rgba32> frame = image.Frames[i];
             IcoFrameMetadata meta = frame.Metadata.GetIcoMetadata();
-            Assert.Equal(BmpBitsPerPixel.Pixel32, meta.BmpBitsPerPixel);
+            Assert.Equal(BmpBitsPerPixel.Bit32, meta.BmpBitsPerPixel);
         }
 
         image.DebugSaveMultiFrame(provider);
@@ -327,6 +327,6 @@ public class IcoDecoderTests
         Assert.Equal(expectedWidth, meta.EncodingWidth);
         Assert.Equal(expectedHeight, meta.EncodingHeight);
         Assert.Equal(IconFrameCompression.Bmp, meta.Compression);
-        Assert.Equal(BmpBitsPerPixel.Pixel32, meta.BmpBitsPerPixel);
+        Assert.Equal(BmpBitsPerPixel.Bit32, meta.BmpBitsPerPixel);
     }
 }

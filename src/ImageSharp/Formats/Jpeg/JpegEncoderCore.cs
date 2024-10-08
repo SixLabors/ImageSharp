@@ -100,7 +100,7 @@ internal sealed unsafe partial class JpegEncoderCore : IImageEncoderInternals
         this.WriteStartOfFrame(image.Width, image.Height, frameConfig, buffer);
 
         // Write the Huffman tables.
-        HuffmanScanEncoder scanEncoder = new(frame.BlocksPerMcu, stream);
+        HuffmanScanEncoder scanEncoder = new(frame.BlocksPerMcu, this.encoder.RestartInterval, stream);
         this.WriteDefineHuffmanTables(frameConfig.HuffmanTables, scanEncoder, buffer);
 
         // Write the quantization tables.
@@ -445,7 +445,7 @@ internal sealed unsafe partial class JpegEncoderCore : IImageEncoderInternals
 
         buffer[1] = (byte)(restartInterval & 0xff);
         buffer[0] = (byte)(restartInterval >> 8);
-        this.outputStream.Write(buffer);
+        this.outputStream.Write(buffer, 0, 2);
     }
 
     /// <summary>
@@ -764,7 +764,7 @@ internal sealed unsafe partial class JpegEncoderCore : IImageEncoderInternals
         {
             this.WriteStartOfScan(components.Slice(i, 1), buffer, 0x00, 0x00);
 
-            encoder.EncodeDcScan(frame.Components[i], this.encoder.RestartInterval, cancellationToken);
+            encoder.EncodeDcScan(frame.Components[i], cancellationToken);
         }
 
         // Phase 2: AC scans
@@ -779,7 +779,7 @@ internal sealed unsafe partial class JpegEncoderCore : IImageEncoderInternals
             {
                 this.WriteStartOfScan(components.Slice(i, 1), buffer, (byte)start, (byte)(end - 1));
 
-                encoder.EncodeAcScan(frame.Components[i], start, end, this.encoder.RestartInterval, cancellationToken);
+                encoder.EncodeAcScan(frame.Components[i], start, end, cancellationToken);
             }
         }
     }

@@ -87,6 +87,8 @@ internal class HuffmanScanEncoder
     /// </remarks>
     private readonly byte[] streamWriteBuffer;
 
+    private readonly int restartInterval;
+
     /// <summary>
     /// Number of jagged bits stored in <see cref="accumulatedBits"/>
     /// </summary>
@@ -103,12 +105,15 @@ internal class HuffmanScanEncoder
     /// Initializes a new instance of the <see cref="HuffmanScanEncoder"/> class.
     /// </summary>
     /// <param name="blocksPerCodingUnit">Amount of encoded 8x8 blocks per single jpeg macroblock.</param>
+    /// <param name="restartInterval">Numbers of MCUs between restart markers.</param>
     /// <param name="outputStream">Output stream for saving encoded data.</param>
-    public HuffmanScanEncoder(int blocksPerCodingUnit, Stream outputStream)
+    public HuffmanScanEncoder(int blocksPerCodingUnit, int restartInterval, Stream outputStream)
     {
         int emitBufferByteLength = MaxBytesPerBlock * blocksPerCodingUnit;
         this.emitBuffer = new uint[emitBufferByteLength / sizeof(uint)];
         this.emitWriteIndex = this.emitBuffer.Length;
+
+        this.restartInterval = restartInterval;
 
         this.streamWriteBuffer = new byte[emitBufferByteLength * OutputBufferLengthMultiplier];
 
@@ -211,6 +216,9 @@ internal class HuffmanScanEncoder
         ref HuffmanLut dcHuffmanTable = ref this.dcHuffmanTables[component.DcTableId];
         ref HuffmanLut acHuffmanTable = ref this.acHuffmanTables[component.AcTableId];
 
+        int restarts = 0;
+        int restartsToGo = this.restartInterval;
+
         for (int i = 0; i < h; i++)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -221,6 +229,13 @@ internal class HuffmanScanEncoder
 
             for (nuint k = 0; k < (uint)w; k++)
             {
+                if (this.restartInterval > 0 && restartsToGo == 0)
+                {
+                    this.FlushRemainingBytes();
+                    this.WriteRestart(restarts % 8);
+                    component.DcPredictor = 0;
+                }
+
                 this.WriteBlock(
                     component,
                     ref Unsafe.Add(ref blockRef, k),
@@ -230,6 +245,17 @@ internal class HuffmanScanEncoder
                 if (this.IsStreamFlushNeeded)
                 {
                     this.FlushToStream();
+                }
+
+                if (this.restartInterval > 0)
+                {
+                    if (restartsToGo == 0)
+                    {
+                        restartsToGo = this.restartInterval;
+                        restarts++;
+                    }
+
+                    restartsToGo--;
                 }
             }
         }
@@ -241,9 +267,8 @@ internal class HuffmanScanEncoder
     /// Encodes the DC coefficients for a given component's blocks in a scan.
     /// </summary>
     /// <param name="component">The component whose DC coefficients need to be encoded.</param>
-    /// <param name="restartInterval">Numbers of MCUs between restart markers.</param>
     /// <param name="cancellationToken">The token to request cancellation.</param>
-    public void EncodeDcScan(Component component, int restartInterval, CancellationToken cancellationToken)
+    public void EncodeDcScan(Component component, CancellationToken cancellationToken)
     {
         int h = component.HeightInBlocks;
         int w = component.WidthInBlocks;
@@ -251,7 +276,7 @@ internal class HuffmanScanEncoder
         ref HuffmanLut dcHuffmanTable = ref this.dcHuffmanTables[component.DcTableId];
 
         int restarts = 0;
-        int restartsToGo = restartInterval;
+        int restartsToGo = this.restartInterval;
 
         for (int i = 0; i < h; i++)
         {
@@ -262,7 +287,7 @@ internal class HuffmanScanEncoder
 
             for (nuint k = 0; k < (uint)w; k++)
             {
-                if (restartInterval > 0 && restartsToGo == 0)
+                if (this.restartInterval > 0 && restartsToGo == 0)
                 {
                     this.FlushRemainingBytes();
                     this.WriteRestart(restarts % 8);
@@ -279,13 +304,12 @@ internal class HuffmanScanEncoder
                     this.FlushToStream();
                 }
 
-                if (restartInterval > 0)
+                if (this.restartInterval > 0)
                 {
                     if (restartsToGo == 0)
                     {
-                        restartsToGo = restartInterval;
+                        restartsToGo = this.restartInterval;
                         restarts++;
-                        restarts &= 7;
                     }
 
                     restartsToGo--;
@@ -302,15 +326,14 @@ internal class HuffmanScanEncoder
     /// <param name="component">The component whose AC coefficients need to be encoded.</param>
     /// <param name="start">The starting index of the AC coefficient range to encode.</param>
     /// <param name="end">The ending index of the AC coefficient range to encode.</param>
-    /// <param name="restartInterval">Numbers of MCUs between restart markers.</param>
     /// <param name="cancellationToken">The token to request cancellation.</param>
-    public void EncodeAcScan(Component component, nint start, nint end, int restartInterval, CancellationToken cancellationToken)
+    public void EncodeAcScan(Component component, nint start, nint end, CancellationToken cancellationToken)
     {
         int h = component.HeightInBlocks;
         int w = component.WidthInBlocks;
 
         int restarts = 0;
-        int restartsToGo = restartInterval;
+        int restartsToGo = this.restartInterval;
 
         ref HuffmanLut acHuffmanTable = ref this.acHuffmanTables[component.AcTableId];
 
@@ -323,7 +346,7 @@ internal class HuffmanScanEncoder
 
             for (nuint k = 0; k < (uint)w; k++)
             {
-                if (restartInterval > 0 && restartsToGo == 0)
+                if (this.restartInterval > 0 && restartsToGo == 0)
                 {
                     this.FlushRemainingBytes();
                     this.WriteRestart(restarts % 8);
@@ -340,13 +363,12 @@ internal class HuffmanScanEncoder
                     this.FlushToStream();
                 }
 
-                if (restartInterval > 0)
+                if (this.restartInterval > 0)
                 {
                     if (restartsToGo == 0)
                     {
-                        restartsToGo = restartInterval;
+                        restartsToGo = this.restartInterval;
                         restarts++;
-                        restarts &= 7;
                     }
 
                     restartsToGo--;
@@ -370,6 +392,9 @@ internal class HuffmanScanEncoder
         int mcusPerColumn = frame.McusPerColumn;
         int mcusPerLine = frame.McusPerLine;
 
+        int restarts = 0;
+        int restartsToGo = this.restartInterval;
+
         for (int j = 0; j < mcusPerColumn; j++)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -380,6 +405,16 @@ internal class HuffmanScanEncoder
             // Encode spectral to binary
             for (int i = 0; i < mcusPerLine; i++)
             {
+                if (this.restartInterval > 0 && restartsToGo == 0)
+                {
+                    this.FlushRemainingBytes();
+                    this.WriteRestart(restarts % 8);
+                    foreach (var component in frame.Components)
+                    {
+                        component.DcPredictor = 0;
+                    }
+                }
+
                 // Scan an interleaved mcu... process components in order
                 int mcuCol = mcu % mcusPerLine;
                 for (int k = 0; k < frame.Components.Length; k++)
@@ -419,6 +454,17 @@ internal class HuffmanScanEncoder
                 if (this.IsStreamFlushNeeded)
                 {
                     this.FlushToStream();
+                }
+
+                if (this.restartInterval > 0)
+                {
+                    if (restartsToGo == 0)
+                    {
+                        restartsToGo = this.restartInterval;
+                        restarts++;
+                    }
+
+                    restartsToGo--;
                 }
             }
         }
@@ -554,7 +600,7 @@ internal class HuffmanScanEncoder
     }
 
     private void WriteRestart(int restart) =>
-        this.target.Write([0xff, (byte)(JpegConstants.Markers.RST0 + restart)]);
+        this.target.Write([0xff, (byte)(JpegConstants.Markers.RST0 + restart)], 0, 2);
 
     /// <summary>
     /// Emits the most significant count of bits to the buffer.

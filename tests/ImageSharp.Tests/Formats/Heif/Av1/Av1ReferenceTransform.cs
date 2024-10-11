@@ -23,9 +23,11 @@ internal class Av1ReferenceTransform
      *
      ******************************************************************************/
 
-    public static double GetScaleFactor(Av1Transform2dFlipConfiguration config, int transformWidth, int transformHeight)
+    public static double GetScaleFactor(Av1Transform2dFlipConfiguration config)
     {
         Span<int> shift = config.Shift;
+        int transformWidth = config.TransformSize.GetWidth();
+        int transformHeight = config.TransformSize.GetHeight();
         int amplifyBit = shift[0] + shift[1] + shift[2];
         double scaleFactor =
             amplifyBit >= 0 ? (1 << amplifyBit) : (1.0 / (1 << -amplifyBit));
@@ -40,6 +42,9 @@ internal class Av1ReferenceTransform
         return scaleFactor;
     }
 
+    /// <summary>
+    /// SVT: reference_txfm_2d
+    /// </summary>
     public static void ReferenceTransformFunction2d(Span<double> input, Span<double> output, Av1TransformType transformType, Av1TransformSize transformSize, double scaleFactor)
     {
         // Get transform type and size of each dimension.

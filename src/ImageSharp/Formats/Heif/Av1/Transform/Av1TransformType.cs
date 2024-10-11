@@ -16,7 +16,7 @@ internal enum Av1TransformType : byte
     AdstDct,
 
     /// <summary>
-    /// DCT  in vertical, ADST in horizontal.
+    /// DCT in vertical, ADST in horizontal.
     /// </summary>
     DctAdst,
 

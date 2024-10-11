@@ -38,9 +38,16 @@ internal class Av1ForwardTransformer
         Av1Transform2dFlipConfiguration config = new(transformType, transformSize);
         IAv1Forward1dTransformer? columnTransformer = GetTransformer(config.TransformFunctionTypeColumn);
         IAv1Forward1dTransformer? rowTransformer = GetTransformer(config.TransformFunctionTypeRow);
-        if (columnTransformer != null && rowTransformer != null)
+        Transform2d(columnTransformer, rowTransformer, input, coefficients, stride, config, bitDepth);
+    }
+
+    internal static void Transform2d<TColumn, TRow>(TColumn? transformFunctionColumn, TRow? transformFunctionRow, Span<short> input, Span<int> coefficients, uint stride, Av1Transform2dFlipConfiguration config, int bitDepth)
+            where TColumn : IAv1Forward1dTransformer
+            where TRow : IAv1Forward1dTransformer
+    {
+        if (transformFunctionColumn != null && transformFunctionRow != null)
         {
-            Transform2dCore(columnTransformer, rowTransformer, input, stride, coefficients, config, TemporaryCoefficientsBuffer, bitDepth);
+            Transform2dCore(transformFunctionColumn, transformFunctionRow, input, stride, coefficients, config, TemporaryCoefficientsBuffer, bitDepth);
         }
         else
         {
@@ -142,20 +149,20 @@ internal class Av1ForwardTransformer
         }
 
         // Rows
-        for (r = 0; r < transformRowCount; ++r)
+        for (r = 0; r < transformCount; r += transformColumnCount)
         {
             transformFunctionRow.Transform(
-                buf.Slice(r * transformColumnCount, transformColumnCount),
-                output.Slice(r * transformColumnCount, transformColumnCount),
+                buf.Slice(r, transformColumnCount),
+                output.Slice(r, transformColumnCount),
                 cosBitRow,
                 stageRangeRow);
-            RoundShiftArray(ref Unsafe.Add(ref outputRef, r * transformColumnCount), transformColumnCount, -shift[2]);
+            RoundShiftArray(ref Unsafe.Add(ref outputRef, r), transformColumnCount, -shift[2]);
 
             if (Math.Abs(rectangleType) == 1)
             {
                 // Multiply everything by Sqrt2 if the transform is rectangular and the
                 // size difference is a factor of 2.
-                int t = r * transformColumnCount;
+                int t = r;
                 for (c = 0; c < transformColumnCount; ++c)
                 {
                     ref int current = ref Unsafe.Add(ref outputRef, t);

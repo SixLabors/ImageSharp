@@ -1,8 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Drawing;
-
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 
 internal class Av1Transform2dFlipConfiguration
@@ -124,10 +122,12 @@ internal class Av1Transform2dFlipConfiguration
             [5], // fidtx64_range_mult2
         ];
 
-    private readonly int[] shift;
+    private int[] shift;
 
     public Av1Transform2dFlipConfiguration(Av1TransformType transformType, Av1TransformSize transformSize)
     {
+        // SVT: svt_av1_get_inv_txfm_cfg
+        // SVT: svt_aom_transform_config
         this.TransformSize = transformSize;
         this.TransformType = transformType;
         this.SetFlip(transformType);
@@ -246,6 +246,14 @@ internal class Av1Transform2dFlipConfiguration
         }
 
         return supportedTypes.Contains(this.TransformType);
+    }
+
+    internal void SetShift(int shift0, int shift1, int shift2) => this.shift = [shift0, shift1, shift2];
+
+    internal void SetFlip(bool upsideDown, bool leftToRight)
+    {
+        this.FlipUpsideDown = upsideDown;
+        this.FlipLeftToRight = leftToRight;
     }
 
     private void SetFlip(Av1TransformType transformType)

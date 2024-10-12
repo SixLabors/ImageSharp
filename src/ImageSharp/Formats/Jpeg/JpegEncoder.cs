@@ -14,6 +14,16 @@ public sealed class JpegEncoder : ImageEncoder
     private int? quality;
 
     /// <summary>
+    /// Backing field for <see cref="ProgressiveScans"/>
+    /// </summary>
+    private int progressiveScans = 4;
+
+    /// <summary>
+    /// Backing field for <see cref="RestartInterval"/>
+    /// </summary>
+    private int restartInterval;
+
+    /// <summary>
     /// Gets the quality, that will be used to encode the image. Quality
     /// index must be between 1 and 100 (compression from max to min).
     /// Defaults to <value>75</value>.
@@ -30,6 +40,56 @@ public sealed class JpegEncoder : ImageEncoder
             }
 
             this.quality = value;
+        }
+    }
+
+    /// <summary>
+    /// Gets a value indicating whether progressive encoding is used.
+    /// </summary>
+    public bool Progressive { get; init; }
+
+    /// <summary>
+    /// Gets number of scans per component for progressive encoding.
+    /// Defaults to <value>4</value>.
+    /// </summary>
+    /// <remarks>
+    /// Number of scans must be between 2 and 64.
+    /// There is at least one scan for the DC coefficients and one for the remaining 63 AC coefficients.
+    /// </remarks>
+    /// <exception cref="ArgumentException">Progressive scans must be in [2..64] range.</exception>
+    public int ProgressiveScans
+    {
+        get => this.progressiveScans;
+        init
+        {
+            if (value is < 2 or > 64)
+            {
+                throw new ArgumentException("Progressive scans must be in [2..64] range.");
+            }
+
+            this.progressiveScans = value;
+        }
+    }
+
+    /// <summary>
+    /// Gets numbers of MCUs between restart markers.
+    /// Defaults to <value>0</value>.
+    /// </summary>
+    /// <remarks>
+    /// Currently supported in progressive encoding only.
+    /// </remarks>
+    /// <exception cref="ArgumentException">Restart interval must be in [0..65535] range.</exception>
+    public int RestartInterval
+    {
+        get => this.restartInterval;
+        init
+        {
+            if (value is < 0 or > 65535)
+            {
+                throw new ArgumentException("Restart interval must be in [0..65535] range.");
+            }
+
+            this.restartInterval = value;
         }
     }
 

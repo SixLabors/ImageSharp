@@ -56,7 +56,7 @@ public class GifEncoderTests
             {
                 // Use the palette quantizer without dithering to ensure results
                 // are consistent
-                Quantizer = new WebSafePaletteQuantizer(new QuantizerOptions { Dither = null })
+                Quantizer = new WebSafePaletteQuantizer(new() { Dither = null })
             };
 
             // Always save as we need to compare the encoded output.
@@ -115,7 +115,7 @@ public class GifEncoderTests
         GifEncoder encoder = new()
         {
             ColorTableMode = FrameColorTableMode.Global,
-            Quantizer = new OctreeQuantizer(new QuantizerOptions { Dither = null })
+            Quantizer = new OctreeQuantizer(new() { Dither = null })
         };
 
         // Always save as we need to compare the encoded output.
@@ -124,7 +124,7 @@ public class GifEncoderTests
         encoder = new()
         {
             ColorTableMode = FrameColorTableMode.Local,
-            Quantizer = new OctreeQuantizer(new QuantizerOptions { Dither = null }),
+            Quantizer = new OctreeQuantizer(new() { Dither = null }),
         };
 
         provider.Utility.SaveTestOutputFile(image, "gif", encoder, "local");
@@ -191,7 +191,7 @@ public class GifEncoderTests
         GifEncoder encoder = new()
         {
             ColorTableMode = colorMode,
-            Quantizer = new OctreeQuantizer(new QuantizerOptions { MaxColors = maxColors })
+            Quantizer = new OctreeQuantizer(new() { MaxColors = maxColors })
         };
 
         image.Save(outStream, encoder);

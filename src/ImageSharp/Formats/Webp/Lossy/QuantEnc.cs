@@ -14,7 +14,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy;
 /// </summary>
 internal static unsafe class QuantEnc
 {
-    private static readonly ushort[] WeightY = { 38, 32, 20, 9, 32, 28, 17, 7, 20, 17, 10, 4, 9, 7, 4, 2 };
+    private static readonly ushort[] WeightY = [38, 32, 20, 9, 32, 28, 17, 7, 20, 17, 10, 4, 9, 7, 4, 2];
 
     private const int MaxLevel = 2047;
 
@@ -26,7 +26,7 @@ internal static unsafe class QuantEnc
     private const int DSCALE = 1;   // storage descaling, needed to make the error fit byte
 
     // This uses C#'s optimization to refer to the static data segment of the assembly, no allocation occurs.
-    private static ReadOnlySpan<byte> Zigzag => new byte[] { 0, 1, 4, 8, 5, 2, 3, 6, 9, 12, 13, 10, 7, 11, 14, 15 };
+    private static ReadOnlySpan<byte> Zigzag => [0, 1, 4, 8, 5, 2, 3, 6, 9, 12, 13, 10, 7, 11, 14, 15];
 
     public static void PickBestIntra16(Vp8EncIterator it, ref Vp8ModeScore rd, Vp8SegmentInfo[] segmentInfos, Vp8EncProba proba)
     {
@@ -36,8 +36,8 @@ internal static unsafe class QuantEnc
         int tlambda = dqm.TLambda;
         Span<byte> src = it.YuvIn.AsSpan(Vp8EncIterator.YOffEnc);
         Span<int> scratch = it.Scratch3;
-        var rdTmp = new Vp8ModeScore();
-        var res = new Vp8Residual();
+        Vp8ModeScore rdTmp = new();
+        Vp8Residual res = new();
         Vp8ModeScore rdCur = rdTmp;
         Vp8ModeScore rdBest = rd;
         int mode;
@@ -107,7 +107,7 @@ internal static unsafe class QuantEnc
         Span<byte> bestBlocks = it.YuvOut2.AsSpan(Vp8EncIterator.YOffEnc);
         Span<int> scratch = it.Scratch3;
         int totalHeaderBits = 0;
-        var rdBest = new Vp8ModeScore();
+        Vp8ModeScore rdBest = new();
 
         if (maxI4HeaderBits == 0)
         {
@@ -118,9 +118,9 @@ internal static unsafe class QuantEnc
         rdBest.H = 211;  // '211' is the value of VP8BitCost(0, 145)
         rdBest.SetRdScore(dqm.LambdaMode);
         it.StartI4();
-        var rdi4 = new Vp8ModeScore();
-        var rdTmp = new Vp8ModeScore();
-        var res = new Vp8Residual();
+        Vp8ModeScore rdi4 = new();
+        Vp8ModeScore rdTmp = new();
+        Vp8Residual res = new();
         Span<short> tmpLevels = stackalloc short[16];
         do
         {
@@ -220,9 +220,9 @@ internal static unsafe class QuantEnc
         Span<byte> tmpDst = it.YuvOut2.AsSpan(Vp8EncIterator.UOffEnc);
         Span<byte> dst0 = it.YuvOut.AsSpan(Vp8EncIterator.UOffEnc);
         Span<byte> dst = dst0;
-        var rdBest = new Vp8ModeScore();
-        var rdUv = new Vp8ModeScore();
-        var res = new Vp8Residual();
+        Vp8ModeScore rdBest = new();
+        Vp8ModeScore rdUv = new();
+        Vp8Residual res = new();
         int mode;
 
         rd.ModeUv = -1;
@@ -628,7 +628,7 @@ internal static unsafe class QuantEnc
             Vector128<short> out8 = Sse2.PackSignedSaturate(out08.AsInt32(), out12.AsInt32());
 
             // if (coeff > 2047) coeff = 2047
-            var maxCoeff2047 = Vector128.Create((short)MaxLevel);
+            Vector128<short> maxCoeff2047 = Vector128.Create((short)MaxLevel);
             out0 = Sse2.Min(out0, maxCoeff2047);
             out8 = Sse2.Min(out8, maxCoeff2047);
 

@@ -43,7 +43,7 @@ internal sealed class ExifShortArray : ExifArrayValue<ushort>
         {
             if (signedInt >= ushort.MinValue && signedInt <= ushort.MaxValue)
             {
-                this.Value = new ushort[] { (ushort)signedInt };
+                this.Value = [(ushort)signedInt];
             }
 
             return true;
@@ -53,7 +53,7 @@ internal sealed class ExifShortArray : ExifArrayValue<ushort>
         {
             if (signedShort >= ushort.MinValue)
             {
-                this.Value = new ushort[] { (ushort)signedShort };
+                this.Value = [(ushort)signedShort];
             }
 
             return true;
@@ -71,7 +71,7 @@ internal sealed class ExifShortArray : ExifArrayValue<ushort>
             return false;
         }
 
-        var unsigned = new ushort[signed.Length];
+        ushort[] unsigned = new ushort[signed.Length];
         for (int i = 0; i < signed.Length; i++)
         {
             int s = signed[i];
@@ -89,7 +89,7 @@ internal sealed class ExifShortArray : ExifArrayValue<ushort>
             return false;
         }
 
-        var unsigned = new ushort[signed.Length];
+        ushort[] unsigned = new ushort[signed.Length];
         for (int i = 0; i < signed.Length; i++)
         {
             short s = signed[i];

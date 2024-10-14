@@ -52,7 +52,7 @@ public class LoadResizeSaveStressRunner
     public int ThumbnailSize { get; set; } = 150;
 
     private static readonly string[] ProgressiveFiles =
-    {
+    [
         "ancyloscelis-apiformis-m-paraguay-face_2014-08-08-095255-zs-pmax_15046500892_o.jpg",
         "acanthopus-excellens-f-face-brasil_2014-08-06-132105-zs-pmax_14792513890_o.jpg",
         "bee-ceratina-monster-f-ukraine-face_2014-08-09-123342-zs-pmax_15068816101_o.jpg",
@@ -83,8 +83,8 @@ public class LoadResizeSaveStressRunner
         "triepeolus-simplex-m-face-md-kent-county_2014-07-22-100937-zs-pmax_14805405233_o.jpg",
         "washed-megachile-f-face-chile_2014-08-06-103414-zs-pmax_14977843152_o.jpg",
         "xylocopa-balck-violetwing-f-kyrgystan-angle_2014-08-09-182433-zs-pmax_15123416061_o.jpg",
-        "xylocopa-india-yellow-m-india-face_2014-08-10-111701-zs-pmax_15166559172_o.jpg",
-    };
+        "xylocopa-india-yellow-m-india-face_2014-08-10-111701-zs-pmax_15166559172_o.jpg"
+    ];
 
     public void Init()
     {
@@ -116,7 +116,7 @@ public class LoadResizeSaveStressRunner
 
     public void ForEachImageParallel(Action<string> action) => Parallel.ForEach(
         this.Images,
-        new ParallelOptions { MaxDegreeOfParallelism = this.MaxDegreeOfParallelism },
+        new() { MaxDegreeOfParallelism = this.MaxDegreeOfParallelism },
         action);
 
     public Task ForEachImageParallelAsync(Func<string, Task> action)
@@ -126,7 +126,7 @@ public class LoadResizeSaveStressRunner
             : Environment.ProcessorCount;
         int partitionSize = (int)Math.Ceiling((double)this.Images.Length / maxDegreeOfParallelism);
 
-        List<Task> tasks = new();
+        List<Task> tasks = [];
         for (int i = 0; i < this.Images.Length; i += partitionSize)
         {
             int end = Math.Min(i + partitionSize, this.Images.Length);
@@ -147,7 +147,7 @@ public class LoadResizeSaveStressRunner
 
     private void LogImageProcessed(int width, int height)
     {
-        this.LastProcessedImageSize = new Size(width, height);
+        this.LastProcessedImageSize = new(width, height);
         double pixels = width * (double)height;
         this.TotalProcessedMegapixels += pixels / 1_000_000.0;
     }
@@ -176,13 +176,13 @@ public class LoadResizeSaveStressRunner
 
     public void SystemDrawingResize(string input)
     {
-        using var image = SystemDrawingImage.FromFile(input, true);
+        using SystemDrawingImage image = SystemDrawingImage.FromFile(input, true);
         this.LogImageProcessed(image.Width, image.Height);
 
         (int Width, int Height) scaled = this.ScaledSize(image.Width, image.Height, this.ThumbnailSize);
-        var resized = new Bitmap(scaled.Width, scaled.Height);
-        using var graphics = Graphics.FromImage(resized);
-        using var attributes = new ImageAttributes();
+        Bitmap resized = new(scaled.Width, scaled.Height);
+        using Graphics graphics = Graphics.FromImage(resized);
+        using ImageAttributes attributes = new();
         attributes.SetWrapMode(WrapMode.TileFlipXY);
         graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
         graphics.CompositingMode = CompositingMode.SourceCopy;
@@ -191,8 +191,8 @@ public class LoadResizeSaveStressRunner
         graphics.DrawImage(image, System.Drawing.Rectangle.FromLTRB(0, 0, resized.Width, resized.Height), 0, 0, image.Width, image.Height, GraphicsUnit.Pixel, attributes);
 
         // Save the results
-        using var encoderParams = new EncoderParameters(1);
-        using var qualityParam = new EncoderParameter(Encoder.Quality, (long)Quality);
+        using EncoderParameters encoderParams = new(1);
+        using EncoderParameter qualityParam = new(Encoder.Quality, (long)Quality);
         encoderParams.Param[0] = qualityParam;
         resized.Save(this.OutputPath(input), this.systemDrawingJpegCodec, encoderParams);
     }
@@ -246,7 +246,7 @@ public class LoadResizeSaveStressRunner
 
     public void MagickResize(string input)
     {
-        using var image = new MagickImage(input);
+        using MagickImage image = new(input);
         this.LogImageProcessed(image.Width, image.Height);
 
         // Resize it to fit a 150x150 square
@@ -264,7 +264,7 @@ public class LoadResizeSaveStressRunner
 
     public void MagicScalerResize(string input)
     {
-        var settings = new ProcessImageSettings()
+        ProcessImageSettings settings = new()
         {
             Width = this.ThumbnailSize,
             Height = this.ThumbnailSize,
@@ -273,17 +273,17 @@ public class LoadResizeSaveStressRunner
         };
 
         // TODO: Is there a way to capture input dimensions for IncreaseTotalMegapixels?
-        using var output = new FileStream(this.OutputPath(input), FileMode.Create);
+        using FileStream output = new(this.OutputPath(input), FileMode.Create);
         MagicImageProcessor.ProcessImage(input, output, settings);
     }
 
     public void SkiaCanvasResize(string input)
     {
-        using var original = SKBitmap.Decode(input);
+        using SKBitmap original = SKBitmap.Decode(input);
         this.LogImageProcessed(original.Width, original.Height);
         (int Width, int Height) scaled = this.ScaledSize(original.Width, original.Height, this.ThumbnailSize);
-        using var surface = SKSurface.Create(new SKImageInfo(scaled.Width, scaled.Height, original.ColorType, original.AlphaType));
-        using var paint = new SKPaint() { FilterQuality = SKFilterQuality.High };
+        using SKSurface surface = SKSurface.Create(new SKImageInfo(scaled.Width, scaled.Height, original.ColorType, original.AlphaType));
+        using SKPaint paint = new() { FilterQuality = SKFilterQuality.High };
         SKCanvas canvas = surface.Canvas;
         canvas.Scale((float)scaled.Width / original.Width);
         canvas.DrawBitmap(original, 0, 0, paint);
@@ -297,16 +297,16 @@ public class LoadResizeSaveStressRunner
 
     public void SkiaBitmapResize(string input)
     {
-        using var original = SKBitmap.Decode(input);
+        using SKBitmap original = SKBitmap.Decode(input);
         this.LogImageProcessed(original.Width, original.Height);
         (int Width, int Height) scaled = this.ScaledSize(original.Width, original.Height, this.ThumbnailSize);
-        using var resized = original.Resize(new SKImageInfo(scaled.Width, scaled.Height), SKFilterQuality.High);
+        using SKBitmap resized = original.Resize(new SKImageInfo(scaled.Width, scaled.Height), SKFilterQuality.High);
         if (resized == null)
         {
             return;
         }
 
-        using var image = SKImage.FromBitmap(resized);
+        using SKImage image = SKImage.FromBitmap(resized);
         using FileStream output = File.OpenWrite(this.OutputPath(input));
         image.Encode(SKEncodedImageFormat.Jpeg, Quality)
             .SaveTo(output);
@@ -314,21 +314,21 @@ public class LoadResizeSaveStressRunner
 
     public void SkiaBitmapDecodeToTargetSize(string input)
     {
-        using var codec = SKCodec.Create(input);
+        using SKCodec codec = SKCodec.Create(input);
 
         SKImageInfo info = codec.Info;
         this.LogImageProcessed(info.Width, info.Height);
         (int Width, int Height) scaled = this.ScaledSize(info.Width, info.Height, this.ThumbnailSize);
         SKSizeI supportedScale = codec.GetScaledDimensions((float)scaled.Width / info.Width);
 
-        using var original = SKBitmap.Decode(codec, new SKImageInfo(supportedScale.Width, supportedScale.Height));
+        using SKBitmap original = SKBitmap.Decode(codec, new(supportedScale.Width, supportedScale.Height));
         using SKBitmap resized = original.Resize(new SKImageInfo(scaled.Width, scaled.Height), SKFilterQuality.High);
         if (resized == null)
         {
             return;
         }
 
-        using var image = SKImage.FromBitmap(resized);
+        using SKImage image = SKImage.FromBitmap(resized);
 
         using FileStream output = File.OpenWrite(this.OutputPath(input, nameof(this.SkiaBitmapDecodeToTargetSize)));
         image.Encode(SKEncodedImageFormat.Jpeg, Quality)
@@ -338,7 +338,7 @@ public class LoadResizeSaveStressRunner
     public void NetVipsResize(string input)
     {
         // Thumbnail to fit a 150x150 square
-        using var thumb = NetVipsImage.Thumbnail(input, this.ThumbnailSize, this.ThumbnailSize);
+        using NetVipsImage thumb = NetVipsImage.Thumbnail(input, this.ThumbnailSize, this.ThumbnailSize);
 
         // Save the results
         thumb.Jpegsave(this.OutputPath(input), q: Quality, keep: NetVips.Enums.ForeignKeep.None);

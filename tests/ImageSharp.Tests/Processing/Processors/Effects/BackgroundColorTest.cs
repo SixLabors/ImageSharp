@@ -11,10 +11,10 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Effects;
 public class BackgroundColorTest
 {
     public static readonly string[] InputImages =
-        {
-            TestImages.Png.Splash,
+    [
+        TestImages.Png.Splash,
             TestImages.Png.Ducky
-        };
+    ];
 
     [Theory]
     [WithFileCollection(nameof(InputImages), PixelTypes.Rgba32)]

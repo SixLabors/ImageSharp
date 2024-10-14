@@ -13,7 +13,7 @@ public class BoxBlurTest : BaseImageOperationsExtensionTest
     public void BoxBlur_BoxBlurProcessorDefaultsSet()
     {
         this.operations.BoxBlur();
-        var processor = this.Verify<BoxBlurProcessor>();
+        BoxBlurProcessor processor = this.Verify<BoxBlurProcessor>();
 
         Assert.Equal(7, processor.Radius);
     }
@@ -22,7 +22,7 @@ public class BoxBlurTest : BaseImageOperationsExtensionTest
     public void BoxBlur_amount_BoxBlurProcessorDefaultsSet()
     {
         this.operations.BoxBlur(34);
-        var processor = this.Verify<BoxBlurProcessor>();
+        BoxBlurProcessor processor = this.Verify<BoxBlurProcessor>();
 
         Assert.Equal(34, processor.Radius);
     }
@@ -31,7 +31,7 @@ public class BoxBlurTest : BaseImageOperationsExtensionTest
     public void BoxBlur_amount_rect_BoxBlurProcessorDefaultsSet()
     {
         this.operations.BoxBlur(5, this.rect);
-        var processor = this.Verify<BoxBlurProcessor>(this.rect);
+        BoxBlurProcessor processor = this.Verify<BoxBlurProcessor>(this.rect);
 
         Assert.Equal(5, processor.Radius);
     }

@@ -26,9 +26,9 @@ internal class Vp8LEncoder : IDisposable
     /// </summary>
     private ScratchBuffer scratch;  // mutable struct, don't make readonly
 
-    private readonly int[][] histoArgb = { new int[256], new int[256], new int[256], new int[256] };
+    private readonly int[][] histoArgb = [new int[256], new int[256], new int[256], new int[256]];
 
-    private readonly int[][] bestHisto = { new int[256], new int[256], new int[256], new int[256] };
+    private readonly int[][] bestHisto = [new int[256], new int[256], new int[256], new int[256]];
 
     /// <summary>
     /// The <see cref="MemoryAllocator"/> to use for buffer allocations.
@@ -129,18 +129,18 @@ internal class Vp8LEncoder : IDisposable
         this.transparentColorMode = transparentColorMode;
         this.nearLossless = nearLossless;
         this.nearLosslessQuality = Numerics.Clamp(nearLosslessQuality, 0, 100);
-        this.bitWriter = new Vp8LBitWriter(initialSize);
+        this.bitWriter = new(initialSize);
         this.Bgra = memoryAllocator.Allocate<uint>(pixelCount);
         this.EncodedData = memoryAllocator.Allocate<uint>(pixelCount);
         this.Palette = memoryAllocator.Allocate<uint>(WebpConstants.MaxPaletteSize);
         this.Refs = new Vp8LBackwardRefs[3];
-        this.HashChain = new Vp8LHashChain(memoryAllocator, pixelCount);
+        this.HashChain = new(memoryAllocator, pixelCount);
 
         // We round the block size up, so we're guaranteed to have at most MaxRefsBlockPerImage blocks used:
         int refsBlockSize = ((pixelCount - 1) / MaxRefsBlockPerImage) + 1;
         for (int i = 0; i < this.Refs.Length; i++)
         {
-            this.Refs[i] = new Vp8LBackwardRefs(pixelCount)
+            this.Refs[i] = new(pixelCount)
             {
                 BlockSize = refsBlockSize < MinBlockSize ? MinBlockSize : refsBlockSize
             };
@@ -151,10 +151,11 @@ internal class Vp8LEncoder : IDisposable
     // This sequence is tuned from that, but more weighted for lower symbol count,
     // and more spiking histograms.
     // This uses C#'s compiler optimization to refer to assembly's static data directly.
-    private static ReadOnlySpan<byte> StorageOrder => new byte[] { 17, 18, 0, 1, 2, 3, 4, 5, 16, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 };
+    private static ReadOnlySpan<byte> StorageOrder => [17, 18, 0, 1, 2, 3, 4, 5, 16, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15
+    ];
 
     // This uses C#'s compiler optimization to refer to assembly's static data directly.
-    private static ReadOnlySpan<byte> Order => new byte[] { 1, 2, 0, 3 };
+    private static ReadOnlySpan<byte> Order => [1, 2, 0, 3];
 
     /// <summary>
     /// Gets the memory for the image data as packed bgra values.
@@ -550,7 +551,7 @@ internal class Vp8LEncoder : IDisposable
         EntropyIx entropyIdx = this.AnalyzeEntropy(bgra, width, height, usePalette, this.PaletteSize, this.TransformBits, out redAndBlueAlwaysZero);
 
         bool doNotCache = false;
-        List<CrunchConfig> crunchConfigs = new();
+        List<CrunchConfig> crunchConfigs = [];
 
         if (this.method == WebpEncodingMethod.BestQuality && this.quality == 100)
         {
@@ -562,14 +563,14 @@ internal class Vp8LEncoder : IDisposable
                 // We can only apply kPalette or kPaletteAndSpatial if we can indeed use a palette.
                 if ((entropyIx != EntropyIx.Palette && entropyIx != EntropyIx.PaletteAndSpatial) || usePalette)
                 {
-                    crunchConfigs.Add(new CrunchConfig { EntropyIdx = entropyIx });
+                    crunchConfigs.Add(new() { EntropyIdx = entropyIx });
                 }
             }
         }
         else
         {
             // Only choose the guessed best transform.
-            crunchConfigs.Add(new CrunchConfig { EntropyIdx = entropyIdx });
+            crunchConfigs.Add(new() { EntropyIdx = entropyIdx });
             if (this.quality >= 75 && this.method == WebpEncodingMethod.Level5)
             {
                 // Test with and without color cache.
@@ -578,7 +579,7 @@ internal class Vp8LEncoder : IDisposable
                 // If we have a palette, also check in combination with spatial.
                 if (entropyIdx == EntropyIx.Palette)
                 {
-                    crunchConfigs.Add(new CrunchConfig { EntropyIdx = EntropyIx.PaletteAndSpatial });
+                    crunchConfigs.Add(new() { EntropyIdx = EntropyIx.PaletteAndSpatial });
                 }
             }
         }
@@ -588,7 +589,7 @@ internal class Vp8LEncoder : IDisposable
         {
             for (int j = 0; j < nlz77s; j++)
             {
-                crunchConfig.SubConfigs.Add(new CrunchSubConfig
+                crunchConfig.SubConfigs.Add(new()
                 {
                     Lz77 = j == 0 ? (int)Vp8LLz77Type.Lz77Standard | (int)Vp8LLz77Type.Lz77Rle : (int)Vp8LLz77Type.Lz77Box,
                     DoNotCache = doNotCache
@@ -725,7 +726,7 @@ internal class Vp8LEncoder : IDisposable
             HuffmanTreeToken[] tokens = new HuffmanTreeToken[maxTokens];
             for (int i = 0; i < tokens.Length; i++)
             {
-                tokens[i] = new HuffmanTreeToken();
+                tokens[i] = new();
             }
 
             for (int i = 0; i < 5 * histogramImageSize; i++)
@@ -871,7 +872,7 @@ internal class Vp8LEncoder : IDisposable
         HuffmanTreeToken[] tokens = new HuffmanTreeToken[maxTokens];
         for (int i = 0; i < tokens.Length; i++)
         {
-            tokens[i] = new HuffmanTreeToken();
+            tokens[i] = new();
         }
 
         // Store Huffman codes.
@@ -1268,13 +1269,13 @@ internal class Vp8LEncoder : IDisposable
         // non-zero red and blue values. If all are zero, we can later skip
         // the cross color optimization.
         byte[][] histoPairs =
-        {
-            new[] { (byte)HistoIx.HistoRed, (byte)HistoIx.HistoBlue },
-            new[] { (byte)HistoIx.HistoRedPred, (byte)HistoIx.HistoBluePred },
-            new[] { (byte)HistoIx.HistoRedSubGreen, (byte)HistoIx.HistoBlueSubGreen },
-            new[] { (byte)HistoIx.HistoRedPredSubGreen, (byte)HistoIx.HistoBluePredSubGreen },
-            new[] { (byte)HistoIx.HistoRed, (byte)HistoIx.HistoBlue }
-        };
+        [
+            [(byte)HistoIx.HistoRed, (byte)HistoIx.HistoBlue],
+            [(byte)HistoIx.HistoRedPred, (byte)HistoIx.HistoBluePred],
+            [(byte)HistoIx.HistoRedSubGreen, (byte)HistoIx.HistoBlueSubGreen],
+            [(byte)HistoIx.HistoRedPredSubGreen, (byte)HistoIx.HistoBluePredSubGreen],
+            [(byte)HistoIx.HistoRed, (byte)HistoIx.HistoBlue]
+        ];
         Span<uint> redHisto = histo[(256 * histoPairs[(int)minEntropyIx][0])..];
         Span<uint> blueHisto = histo[(256 * histoPairs[(int)minEntropyIx][1])..];
         for (int i = 1; i < 256; i++)
@@ -1328,7 +1329,7 @@ internal class Vp8LEncoder : IDisposable
     /// <returns>The number of palette entries.</returns>
     private static int GetColorPalette(ReadOnlySpan<uint> bgra, int width, int height, Span<uint> palette)
     {
-        HashSet<uint> colors = new();
+        HashSet<uint> colors = [];
         for (int y = 0; y < height; y++)
         {
             ReadOnlySpan<uint> bgraRow = bgra.Slice(y * width, width);

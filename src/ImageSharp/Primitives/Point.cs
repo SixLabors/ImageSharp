@@ -232,7 +232,7 @@ public struct Point : IEquatable<Point>
     /// <param name="matrix">The transformation matrix used.</param>
     /// <returns>The transformed <see cref="PointF"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Point Transform(Point point, Matrix3x2 matrix) => Round(Vector2.Transform(new Vector2(point.X, point.Y), matrix));
+    public static Point Transform(Point point, Matrix3x2 matrix) => Round(Vector2.Transform(new(point.X, point.Y), matrix));
 
     /// <summary>
     /// Deconstructs this point into two integers.

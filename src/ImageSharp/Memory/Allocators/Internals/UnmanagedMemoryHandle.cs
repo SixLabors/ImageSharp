@@ -64,7 +64,7 @@ internal struct UnmanagedMemoryHandle : IEquatable<UnmanagedMemoryHandle>
     public static UnmanagedMemoryHandle Allocate(int lengthInBytes)
     {
         IntPtr handle = AllocateHandle(lengthInBytes);
-        return new UnmanagedMemoryHandle(handle, lengthInBytes);
+        return new(handle, lengthInBytes);
     }
 
     private static IntPtr AllocateHandle(int lengthInBytes)
@@ -84,7 +84,7 @@ internal struct UnmanagedMemoryHandle : IEquatable<UnmanagedMemoryHandle>
                 counter++;
                 Interlocked.Increment(ref totalOomRetries);
 
-                Interlocked.CompareExchange(ref lowMemoryMonitor, new object(), null);
+                Interlocked.CompareExchange(ref lowMemoryMonitor, new(), null);
                 Monitor.Enter(lowMemoryMonitor);
                 Monitor.Wait(lowMemoryMonitor, millisecondsTimeout: 1);
                 Monitor.Exit(lowMemoryMonitor);

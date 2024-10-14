@@ -20,9 +20,9 @@ public class GifDecoderTests
     private const PixelTypes TestPixelTypes = PixelTypes.Rgba32 | PixelTypes.RgbaVector | PixelTypes.Argb32;
 
     public static readonly string[] MultiFrameTestFiles =
-    {
+    [
         TestImages.Gif.Giphy, TestImages.Gif.Kumin
-    };
+    ];
 
     [Theory]
     [WithFileCollection(nameof(MultiFrameTestFiles), PixelTypes.Rgba32)]

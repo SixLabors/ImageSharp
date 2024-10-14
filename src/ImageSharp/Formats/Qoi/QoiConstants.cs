@@ -18,10 +18,10 @@ internal static class QoiConstants
     /// Gets the list of mimetypes that equate to a QOI.
     /// See https://github.com/phoboslab/qoi/issues/167
     /// </summary>
-    public static string[] MimeTypes { get; } = { "image/qoi", "image/x-qoi", "image/vnd.qoi" };
+    public static string[] MimeTypes { get; } = ["image/qoi", "image/x-qoi", "image/vnd.qoi"];
 
     /// <summary>
     /// Gets the list of file extensions that equate to a QOI.
     /// </summary>
-    public static string[] FileExtensions { get; } = { "qoi" };
+    public static string[] FileExtensions { get; } = ["qoi"];
 }

@@ -258,8 +258,8 @@ where TPixel : unmanaged, IPixel<TPixel>
         using Image<TPixel> image = provider.GetImage();
         image.Mutate(x => x.Crop(132, 1606));
 
-        int[] quality = new int[] { 100, 50 };
-        JpegColorType[] colors = new[] { JpegColorType.YCbCrRatio444, JpegColorType.YCbCrRatio420 };
+        int[] quality = [100, 50];
+        JpegColorType[] colors = [JpegColorType.YCbCrRatio444, JpegColorType.YCbCrRatio420];
         for (int i = 0; i < quality.Length; i++)
         {
             int q = quality[i];

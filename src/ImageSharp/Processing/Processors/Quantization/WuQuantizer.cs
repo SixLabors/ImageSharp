@@ -15,7 +15,7 @@ public class WuQuantizer : IQuantizer
     /// using the default <see cref="QuantizerOptions"/>.
     /// </summary>
     public WuQuantizer()
-        : this(new QuantizerOptions())
+        : this(new())
     {
     }
 

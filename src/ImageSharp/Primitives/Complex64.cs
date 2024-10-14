@@ -42,7 +42,7 @@ internal readonly struct Complex64 : IEquatable<Complex64>
     /// <param name="scalar">The <see cref="float"/> scalar to use to multiply the <see cref="Complex64"/> value.</param>
     /// <returns>The <see cref="Complex64"/> result</returns>
     [MethodImpl(InliningOptions.ShortMethod)]
-    public static Complex64 operator *(Complex64 value, float scalar) => new Complex64(value.Real * scalar, value.Imaginary * scalar);
+    public static Complex64 operator *(Complex64 value, float scalar) => new(value.Real * scalar, value.Imaginary * scalar);
 
     /// <summary>
     /// Performs the multiplication operation between a <see cref="Complex64"/> instance and a <see cref="Vector4"/>.
@@ -53,7 +53,7 @@ internal readonly struct Complex64 : IEquatable<Complex64>
     [MethodImpl(InliningOptions.ShortMethod)]
     public static ComplexVector4 operator *(Complex64 value, Vector4 vector)
     {
-        return new ComplexVector4 { Real = vector * value.Real, Imaginary = vector * value.Imaginary };
+        return new() { Real = vector * value.Real, Imaginary = vector * value.Imaginary };
     }
 
     /// <summary>
@@ -67,7 +67,7 @@ internal readonly struct Complex64 : IEquatable<Complex64>
     {
         Vector4 real = (value.Real * vector.Real) - (value.Imaginary * vector.Imaginary);
         Vector4 imaginary = (value.Real * vector.Imaginary) + (value.Imaginary * vector.Real);
-        return new ComplexVector4 { Real = real, Imaginary = imaginary };
+        return new() { Real = real, Imaginary = imaginary };
     }
 
     /// <inheritdoc/>

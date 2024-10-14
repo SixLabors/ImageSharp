@@ -49,7 +49,7 @@ public class ColorMatrixTests
         ColorMatrix value1 = CreateAllTwos();
         ColorMatrix value2 = CreateAllThrees();
 
-        var m = default(ColorMatrix);
+        ColorMatrix m = default(ColorMatrix);
 
         // First row
         m.M11 = (value1.M11 * value2.M11) + (value1.M12 * value2.M21) + (value1.M13 * value2.M31) + (value1.M14 * value2.M41);

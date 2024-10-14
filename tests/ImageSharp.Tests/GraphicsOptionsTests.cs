@@ -8,8 +8,8 @@ namespace SixLabors.ImageSharp.Tests;
 
 public class GraphicsOptionsTests
 {
-    private static readonly GraphicsOptionsComparer GraphicsOptionsComparer = new GraphicsOptionsComparer();
-    private readonly GraphicsOptions newGraphicsOptions = new GraphicsOptions();
+    private static readonly GraphicsOptionsComparer GraphicsOptionsComparer = new();
+    private readonly GraphicsOptions newGraphicsOptions = new();
     private readonly GraphicsOptions cloneGraphicsOptions = new GraphicsOptions().DeepClone();
 
     [Fact]
@@ -57,7 +57,7 @@ public class GraphicsOptionsTests
     [Fact]
     public void NonDefaultClone()
     {
-        var expected = new GraphicsOptions
+        GraphicsOptions expected = new()
         {
             AlphaCompositionMode = PixelAlphaCompositionMode.DestAtop,
             Antialias = false,
@@ -74,7 +74,7 @@ public class GraphicsOptionsTests
     [Fact]
     public void CloneIsDeep()
     {
-        var expected = new GraphicsOptions();
+        GraphicsOptions expected = new();
         GraphicsOptions actual = expected.DeepClone();
 
         actual.AlphaCompositionMode = PixelAlphaCompositionMode.DestAtop;

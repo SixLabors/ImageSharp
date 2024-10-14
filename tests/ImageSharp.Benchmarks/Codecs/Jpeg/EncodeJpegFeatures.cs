@@ -20,13 +20,13 @@ public class EncodeJpegFeatures
     // No metadata
     private const string TestImage = TestImages.Jpeg.Baseline.Calliphora;
 
-    public static IEnumerable<JpegColorType> ColorSpaceValues => new[]
-    {
+    public static IEnumerable<JpegColorType> ColorSpaceValues =>
+    [
         JpegColorType.Luminance,
         JpegColorType.Rgb,
         JpegColorType.YCbCrRatio420,
-        JpegColorType.YCbCrRatio444,
-    };
+        JpegColorType.YCbCrRatio444
+    ];
 
     [Params(75, 90, 100)]
     public int Quality;
@@ -44,13 +44,13 @@ public class EncodeJpegFeatures
     {
         using FileStream imageBinaryStream = File.OpenRead(Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, TestImage));
         this.bmpCore = Image.Load<Rgb24>(imageBinaryStream);
-        this.encoder = new JpegEncoder
+        this.encoder = new()
         {
             Quality = this.Quality,
             ColorType = this.TargetColorSpace,
             Interleaved = true,
         };
-        this.destinationStream = new MemoryStream();
+        this.destinationStream = new();
     }
 
     [GlobalCleanup]

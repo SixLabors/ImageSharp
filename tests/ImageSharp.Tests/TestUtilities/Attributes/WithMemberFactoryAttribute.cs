@@ -29,7 +29,7 @@ public class WithMemberFactoryAttribute : ImageDataAttributeBase
 
     protected override object[] GetFactoryMethodArgs(MethodInfo testMethod, Type factoryType)
     {
-        return new object[] { testMethod.DeclaringType.FullName, this.memberMethodName };
+        return [testMethod.DeclaringType.FullName, this.memberMethodName];
     }
 
     protected override string GetFactoryMethodName(MethodInfo testMethod) => "Lambda";

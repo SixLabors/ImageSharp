@@ -47,7 +47,7 @@ public class ImageExtensionsTest
 
         using (Image<Rgba32> image = new(10, 10))
         {
-            image.SaveAsGif(file, new GifEncoder());
+            image.SaveAsGif(file, new());
         }
 
         IImageFormat format = Image.DetectFormat(file);
@@ -108,7 +108,7 @@ public class ImageExtensionsTest
 
         using (Image<Rgba32> image = new(10, 10))
         {
-            image.SaveAsGif(memoryStream, new GifEncoder());
+            image.SaveAsGif(memoryStream, new());
         }
 
         memoryStream.Position = 0;

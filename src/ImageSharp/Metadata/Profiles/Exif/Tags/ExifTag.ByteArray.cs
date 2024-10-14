@@ -9,40 +9,40 @@ public abstract partial class ExifTag
     /// <summary>
     /// Gets the ClipPath exif tag.
     /// </summary>
-    public static ExifTag<byte[]> ClipPath => new ExifTag<byte[]>(ExifTagValue.ClipPath);
+    public static ExifTag<byte[]> ClipPath => new(ExifTagValue.ClipPath);
 
     /// <summary>
     /// Gets the VersionYear exif tag.
     /// </summary>
-    public static ExifTag<byte[]> VersionYear => new ExifTag<byte[]>(ExifTagValue.VersionYear);
+    public static ExifTag<byte[]> VersionYear => new(ExifTagValue.VersionYear);
 
     /// <summary>
     /// Gets the XMP exif tag.
     /// </summary>
-    public static ExifTag<byte[]> XMP => new ExifTag<byte[]>(ExifTagValue.XMP);
+    public static ExifTag<byte[]> XMP => new(ExifTagValue.XMP);
 
     /// <summary>
     /// Gets the IPTC exif tag.
     /// </summary>
-    public static ExifTag<byte[]> IPTC => new ExifTag<byte[]>(ExifTagValue.IPTC);
+    public static ExifTag<byte[]> IPTC => new(ExifTagValue.IPTC);
 
     /// <summary>
     /// Gets the IccProfile exif tag.
     /// </summary>
-    public static ExifTag<byte[]> IccProfile => new ExifTag<byte[]>(ExifTagValue.IccProfile);
+    public static ExifTag<byte[]> IccProfile => new(ExifTagValue.IccProfile);
 
     /// <summary>
     /// Gets the CFAPattern2 exif tag.
     /// </summary>
-    public static ExifTag<byte[]> CFAPattern2 => new ExifTag<byte[]>(ExifTagValue.CFAPattern2);
+    public static ExifTag<byte[]> CFAPattern2 => new(ExifTagValue.CFAPattern2);
 
     /// <summary>
     /// Gets the TIFFEPStandardID exif tag.
     /// </summary>
-    public static ExifTag<byte[]> TIFFEPStandardID => new ExifTag<byte[]>(ExifTagValue.TIFFEPStandardID);
+    public static ExifTag<byte[]> TIFFEPStandardID => new(ExifTagValue.TIFFEPStandardID);
 
     /// <summary>
     /// Gets the GPSVersionID exif tag.
     /// </summary>
-    public static ExifTag<byte[]> GPSVersionID => new ExifTag<byte[]>(ExifTagValue.GPSVersionID);
+    public static ExifTag<byte[]> GPSVersionID => new(ExifTagValue.GPSVersionID);
 }

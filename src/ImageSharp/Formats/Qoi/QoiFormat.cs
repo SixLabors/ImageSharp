@@ -15,7 +15,7 @@ public sealed class QoiFormat : IImageFormat<QoiMetadata>
     /// <summary>
     /// Gets the shared instance.
     /// </summary>
-    public static QoiFormat Instance { get; } = new QoiFormat();
+    public static QoiFormat Instance { get; } = new();
 
     /// <inheritdoc/>
     public string DefaultMimeType => "image/qoi";

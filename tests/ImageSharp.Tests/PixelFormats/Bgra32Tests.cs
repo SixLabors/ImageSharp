@@ -96,7 +96,7 @@ public class Bgra32Tests
     [Fact]
     public void FromRgba32()
     {
-        Bgra32 bgra = Bgra32.FromRgba32(new Rgba32(1, 2, 3, 4));
+        Bgra32 bgra = Bgra32.FromRgba32(new(1, 2, 3, 4));
 
         Assert.Equal(1, bgra.R);
         Assert.Equal(2, bgra.G);
@@ -136,7 +136,7 @@ public class Bgra32Tests
         const uint expected = uint.MaxValue;
 
         // act
-        Bgra32 bgra = Bgra32.FromBgra5551(new Bgra5551(1.0f, 1.0f, 1.0f, 1.0f));
+        Bgra32 bgra = Bgra32.FromBgra5551(new(1.0f, 1.0f, 1.0f, 1.0f));
 
         // assert
         Assert.Equal(expected, bgra.PackedValue);

@@ -48,7 +48,7 @@ internal sealed unsafe class UnmanagedBuffer<T> : MemoryManager<T>, IRefCounted
         this.lifetimeGuard.AddRef();
 
         void* pbData = Unsafe.Add<T>(this.Pointer, elementIndex);
-        return new MemoryHandle(pbData, pinnable: this);
+        return new(pbData, pinnable: this);
     }
 
     /// <inheritdoc />

@@ -35,7 +35,7 @@ public partial class ImageTests
 
         public Configuration LocalConfiguration { get; }
 
-        public TestFormat TestFormat { get; } = new TestFormat();
+        public TestFormat TestFormat { get; } = new();
 
         /// <summary>
         /// Gets the top-level configuration in the context of this test case.
@@ -56,13 +56,13 @@ public partial class ImageTests
         protected ImageLoadTestBase()
         {
             // TODO: Remove all this mocking. It's too complicated and we can now use fakes.
-            this.localStreamReturnImageRgba32 = new Image<Rgba32>(1, 1);
-            this.localStreamReturnImageAgnostic = new Image<Bgra4444>(1, 1);
-            this.LocalImageInfo = new(new(1, 1), new ImageMetadata() { DecodedImageFormat = PngFormat.Instance });
+            this.localStreamReturnImageRgba32 = new(1, 1);
+            this.localStreamReturnImageAgnostic = new(1, 1);
+            this.LocalImageInfo = new(new(1, 1), new() { DecodedImageFormat = PngFormat.Instance });
 
-            this.localImageFormatMock = new Mock<IImageFormat>();
+            this.localImageFormatMock = new();
 
-            this.localDecoder = new Mock<IImageDecoder>();
+            this.localDecoder = new();
             this.localDecoder.Setup(x => x.Identify(It.IsAny<DecoderOptions>(), It.IsAny<Stream>()))
                 .Returns(this.LocalImageInfo);
 
@@ -111,15 +111,15 @@ public partial class ImageTests
 
             this.localMimeTypeDetector = new MockImageFormatDetector(this.localImageFormatMock.Object);
 
-            this.LocalConfiguration = new Configuration();
+            this.LocalConfiguration = new();
             this.LocalConfiguration.ImageFormatsManager.AddImageFormatDetector(this.localMimeTypeDetector);
             this.LocalConfiguration.ImageFormatsManager.SetDecoder(this.localImageFormatMock.Object, this.localDecoder.Object);
 
-            this.TopLevelConfiguration = new Configuration(this.TestFormat);
+            this.TopLevelConfiguration = new(this.TestFormat);
 
             this.Marker = Guid.NewGuid().ToByteArray();
 
-            this.dataStreamLazy = new Lazy<Stream>(this.CreateStream);
+            this.dataStreamLazy = new(this.CreateStream);
             Stream StreamFactory() => this.DataStream;
 
             this.LocalFileSystemMock.Setup(x => x.OpenRead(this.MockFilePath)).Returns(StreamFactory);

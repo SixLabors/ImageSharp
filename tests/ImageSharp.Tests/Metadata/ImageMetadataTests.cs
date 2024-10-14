@@ -36,7 +36,7 @@ public class ImageMetadataTests
     {
         ImageMetadata metaData = new()
         {
-            ExifProfile = new ExifProfile(),
+            ExifProfile = new(),
             HorizontalResolution = 4,
             VerticalResolution = 2
         };
@@ -86,8 +86,8 @@ public class ImageMetadataTests
     public void SyncProfiles()
     {
         ExifProfile exifProfile = new();
-        exifProfile.SetValue(ExifTag.XResolution, new Rational(200));
-        exifProfile.SetValue(ExifTag.YResolution, new Rational(300));
+        exifProfile.SetValue(ExifTag.XResolution, new(200));
+        exifProfile.SetValue(ExifTag.YResolution, new(300));
 
         using Image<Rgba32> image = new(1, 1);
         image.Metadata.ExifProfile = exifProfile;

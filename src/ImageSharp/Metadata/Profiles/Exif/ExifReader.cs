@@ -33,7 +33,7 @@ internal class ExifReader : BaseExifReader
     /// </returns>
     public List<IExifValue> ReadValues()
     {
-        List<IExifValue> values = new();
+        List<IExifValue> values = [];
 
         // II == 0x4949
         this.IsBigEndian = this.ReadUInt16() != 0x4949;
@@ -63,7 +63,7 @@ internal class ExifReader : BaseExifReader
             return;
         }
 
-        List<IExifValue> values = new();
+        List<IExifValue> values = [];
         this.ReadValues(values, offset);
 
         for (int i = 0; i < values.Count; i++)
@@ -117,7 +117,8 @@ internal abstract class BaseExifReader
 
     public bool IsBigEndian { get; protected set; }
 
-    public List<(ulong Offset, ExifDataType DataType, ulong NumberOfComponents, ExifValue Exif)> BigValues { get; } = new();
+    public List<(ulong Offset, ExifDataType DataType, ulong NumberOfComponents, ExifValue Exif)> BigValues { get; } =
+        [];
 
     protected void ReadBigValues(List<IExifValue> values)
     {
@@ -504,10 +505,10 @@ internal abstract class BaseExifReader
     }
 
     private void AddInvalidTag(ExifTag tag)
-        => (this.invalidTags ??= new List<ExifTag>()).Add(tag);
+        => (this.invalidTags ??= []).Add(tag);
 
     private void AddSubIfd(object? val)
-        => (this.subIfds ??= new List<ulong>()).Add(Convert.ToUInt64(val, CultureInfo.InvariantCulture));
+        => (this.subIfds ??= []).Add(Convert.ToUInt64(val, CultureInfo.InvariantCulture));
 
     private void Seek(ulong pos)
         => this.data.Seek((long)pos, SeekOrigin.Begin);
@@ -639,7 +640,7 @@ internal abstract class BaseExifReader
         uint numerator = this.ConvertToUInt32(buffer[..4]);
         uint denominator = this.ConvertToUInt32(buffer.Slice(4, 4));
 
-        return new Rational(numerator, denominator, false);
+        return new(numerator, denominator, false);
     }
 
     private sbyte ConvertToSignedByte(ReadOnlySpan<byte> buffer) => unchecked((sbyte)buffer[0]);
@@ -666,7 +667,7 @@ internal abstract class BaseExifReader
         int numerator = this.ConvertToInt32(buffer[..4]);
         int denominator = this.ConvertToInt32(buffer.Slice(4, 4));
 
-        return new SignedRational(numerator, denominator, false);
+        return new(numerator, denominator, false);
     }
 
     private short ConvertToSignedShort(ReadOnlySpan<byte> buffer)

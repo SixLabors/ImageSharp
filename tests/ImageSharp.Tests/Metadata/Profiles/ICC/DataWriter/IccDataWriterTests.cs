@@ -107,6 +107,6 @@ public class IccDataWriterTests
 
     private static IccDataWriter CreateWriter()
     {
-        return new IccDataWriter();
+        return new();
     }
 }

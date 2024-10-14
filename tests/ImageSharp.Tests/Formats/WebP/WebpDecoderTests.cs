@@ -348,7 +348,7 @@ public class WebpDecoderTests
         WebpDecoderOptions options = new()
         {
             BackgroundColorHandling = BackgroundColorHandling.Ignore,
-            GeneralOptions = new DecoderOptions()
+            GeneralOptions = new()
             {
                 MaxFrames = 1
             }

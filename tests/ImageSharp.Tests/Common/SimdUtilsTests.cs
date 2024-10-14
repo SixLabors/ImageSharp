@@ -51,7 +51,7 @@ public partial class SimdUtilsTests
             data[i] = data[i - 4] + 100f;
         }
 
-        return new Vector<float>(data);
+        return new(data);
     }
 
     private static Vector<float> CreateRandomTestVector(int seed, float min, float max)
@@ -66,7 +66,7 @@ public partial class SimdUtilsTests
             data[i] = v;
         }
 
-        return new Vector<float>(data);
+        return new(data);
     }
 
     [Fact]
@@ -287,7 +287,7 @@ public partial class SimdUtilsTests
         TPixel[] expected = new TPixel[count];
         for (int i = 0; i < count; i++)
         {
-            expected[i] = TPixel.FromRgb24(new Rgb24(r[i], g[i], b[i]));
+            expected[i] = TPixel.FromRgb24(new(r[i], g[i], b[i]));
         }
 
         TPixel[] actual = new TPixel[count + 3]; // padding for Rgb24 AVX2

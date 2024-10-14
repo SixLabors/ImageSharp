@@ -46,5 +46,6 @@ public class WithBlankImagesAttribute : ImageDataAttributeBase
 
     protected override string GetFactoryMethodName(MethodInfo testMethod) => "Blank";
 
-    protected override object[] GetFactoryMethodArgs(MethodInfo testMethod, Type factoryType) => new object[] { this.Width, this.Height };
+    protected override object[] GetFactoryMethodArgs(MethodInfo testMethod, Type factoryType) => [this.Width, this.Height
+    ];
 }

@@ -106,7 +106,7 @@ public class Rgba64Tests
         const ushort expected = ushort.MaxValue;
 
         // act
-        Rgba64 rgba = Rgba64.FromBgra5551(new Bgra5551(1.0f, 1.0f, 1.0f, 1.0f));
+        Rgba64 rgba = Rgba64.FromBgra5551(new(1.0f, 1.0f, 1.0f, 1.0f));
 
         // assert
         Assert.Equal(expected, rgba.R);

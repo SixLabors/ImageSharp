@@ -11,11 +11,11 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs;
 
 public abstract class MultiImageBenchmarkBase
 {
-    protected Dictionary<string, byte[]> FileNamesToBytes { get; set; } = new Dictionary<string, byte[]>();
+    protected Dictionary<string, byte[]> FileNamesToBytes { get; set; } = new();
 
-    protected Dictionary<string, Image<Rgba32>> FileNamesToImageSharpImages { get; set; } = new Dictionary<string, Image<Rgba32>>();
+    protected Dictionary<string, Image<Rgba32>> FileNamesToImageSharpImages { get; set; } = new();
 
-    protected Dictionary<string, Bitmap> FileNamesToSystemDrawingImages { get; set; } = new Dictionary<string, Bitmap>();
+    protected Dictionary<string, Bitmap> FileNamesToSystemDrawingImages { get; set; } = new();
 
     /// <summary>
     /// The values of this enum separate input files into categories.
@@ -43,12 +43,12 @@ public abstract class MultiImageBenchmarkBase
 
     protected virtual string BaseFolder => TestEnvironment.InputImagesDirectoryFullPath;
 
-    protected virtual IEnumerable<string> SearchPatterns => new[] { "*.*" };
+    protected virtual IEnumerable<string> SearchPatterns => ["*.*"];
 
     /// <summary>
     /// Gets the file names containing these strings are substrings are not processed by the benchmark.
     /// </summary>
-    protected virtual IEnumerable<string> ExcludeSubstringsInFileNames => new[] { "badeof", "BadEof", "CriticalEOF" };
+    protected virtual IEnumerable<string> ExcludeSubstringsInFileNames => ["badeof", "BadEof", "CriticalEOF"];
 
     /// <summary>
     /// Gets folders containing files OR files to be processed by the benchmark.
@@ -86,7 +86,7 @@ public abstract class MultiImageBenchmarkBase
     {
         if (!Vector.IsHardwareAccelerated)
         {
-            throw new Exception("Vector.IsHardwareAccelerated == false! Check your build settings!");
+            throw new("Vector.IsHardwareAccelerated == false! Check your build settings!");
         }
 
         // Console.WriteLine("Vector.IsHardwareAccelerated: " + Vector.IsHardwareAccelerated);
@@ -126,7 +126,7 @@ public abstract class MultiImageBenchmarkBase
     {
         foreach (KeyValuePair<string, byte[]> kv in this.FileNames2Bytes)
         {
-            using var memoryStream = new MemoryStream(kv.Value);
+            using MemoryStream memoryStream = new(kv.Value);
             try
             {
                 object obj = operation(memoryStream);
@@ -150,12 +150,12 @@ public abstract class MultiImageBenchmarkBase
                 byte[] bytes = kv.Value;
                 string fn = kv.Key;
 
-                using (var ms1 = new MemoryStream(bytes))
+                using (MemoryStream ms1 = new(bytes))
                 {
                     this.FileNamesToImageSharpImages[fn] = Image.Load<Rgba32>(ms1);
                 }
 
-                this.FileNamesToSystemDrawingImages[fn] = new Bitmap(new MemoryStream(bytes));
+                this.FileNamesToSystemDrawingImages[fn] = new(new MemoryStream(bytes));
             }
         }
 
@@ -191,7 +191,7 @@ public abstract class MultiImageBenchmarkBase
 
         protected void ForEachImageSharpImage(Func<Image<Rgba32>, MemoryStream, object> operation)
         {
-            using var workStream = new MemoryStream();
+            using MemoryStream workStream = new();
             this.ForEachImageSharpImage(
                 img =>
                 {
@@ -222,7 +222,7 @@ public abstract class MultiImageBenchmarkBase
 
         protected void ForEachSystemDrawingImage(Func<Bitmap, MemoryStream, object> operation)
         {
-            using var workStream = new MemoryStream();
+            using MemoryStream workStream = new();
             this.ForEachSystemDrawingImage(
                 img =>
                 {

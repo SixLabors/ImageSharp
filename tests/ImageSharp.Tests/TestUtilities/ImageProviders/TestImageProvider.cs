@@ -152,7 +152,7 @@ public abstract partial class TestImageProvider<TPixel> : ITestImageProvider, IX
         this.MethodName = methodName;
         this.OutputSubfolderName = outputSubfolderName;
 
-        this.Utility = new ImagingTestCaseUtility
+        this.Utility = new()
         {
             SourceFileOrDescription = this.SourceFileOrDescription,
             PixelTypeName = this.PixelType.ToString()

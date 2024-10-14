@@ -11,8 +11,8 @@ public class TiffWriterTests
     [Fact]
     public void IsLittleEndian_IsTrueOnWindows()
     {
-        using var stream = new MemoryStream();
-        using var writer = new TiffStreamWriter(stream);
+        using MemoryStream stream = new();
+        using TiffStreamWriter writer = new(stream);
         Assert.True(TiffStreamWriter.IsLittleEndian);
     }
 
@@ -22,8 +22,8 @@ public class TiffWriterTests
     [InlineData(new byte[] { 1, 2, 3, 4, 5 }, 5)]
     public void Position_EqualsTheStreamPosition(byte[] data, long expectedResult)
     {
-        using var stream = new MemoryStream();
-        using var writer = new TiffStreamWriter(stream);
+        using MemoryStream stream = new();
+        using TiffStreamWriter writer = new(stream);
         writer.Write(data);
         Assert.Equal(writer.Position, expectedResult);
     }
@@ -31,8 +31,8 @@ public class TiffWriterTests
     [Fact]
     public void Write_WritesByte()
     {
-        using var stream = new MemoryStream();
-        using var writer = new TiffStreamWriter(stream);
+        using MemoryStream stream = new();
+        using TiffStreamWriter writer = new(stream);
         writer.Write(42);
 
         Assert.Equal(new byte[] { 42 }, stream.ToArray());
@@ -41,8 +41,8 @@ public class TiffWriterTests
     [Fact]
     public void Write_WritesByteArray()
     {
-        using var stream = new MemoryStream();
-        using var writer = new TiffStreamWriter(stream);
+        using MemoryStream stream = new();
+        using TiffStreamWriter writer = new(stream);
         writer.Write(new byte[] { 2, 4, 6, 8 });
 
         Assert.Equal(new byte[] { 2, 4, 6, 8 }, stream.ToArray());
@@ -51,8 +51,8 @@ public class TiffWriterTests
     [Fact]
     public void Write_WritesUInt16()
     {
-        using var stream = new MemoryStream();
-        using var writer = new TiffStreamWriter(stream);
+        using MemoryStream stream = new();
+        using TiffStreamWriter writer = new(stream);
         writer.Write(1234, stackalloc byte[2]);
 
         Assert.Equal(new byte[] { 0xD2, 0x04 }, stream.ToArray());
@@ -61,8 +61,8 @@ public class TiffWriterTests
     [Fact]
     public void Write_WritesUInt32()
     {
-        using var stream = new MemoryStream();
-        using var writer = new TiffStreamWriter(stream);
+        using MemoryStream stream = new();
+        using TiffStreamWriter writer = new(stream);
         writer.Write(12345678U, stackalloc byte[4]);
 
         Assert.Equal(new byte[] { 0x4E, 0x61, 0xBC, 0x00 }, stream.ToArray());
@@ -78,8 +78,8 @@ public class TiffWriterTests
 
     public void WritePadded_WritesByteArray(byte[] bytes, byte[] expectedResult)
     {
-        using var stream = new MemoryStream();
-        using var writer = new TiffStreamWriter(stream);
+        using MemoryStream stream = new();
+        using TiffStreamWriter writer = new(stream);
         writer.WritePadded(bytes);
 
         Assert.Equal(expectedResult, stream.ToArray());
@@ -88,10 +88,10 @@ public class TiffWriterTests
     [Fact]
     public void WriteMarker_WritesToPlacedPosition()
     {
-        using var stream = new MemoryStream();
+        using MemoryStream stream = new();
         Span<byte> buffer = stackalloc byte[4];
 
-        using (var writer = new TiffStreamWriter(stream))
+        using (TiffStreamWriter writer = new(stream))
         {
             writer.Write(0x11111111, buffer);
             long marker = writer.PlaceMarker(buffer);

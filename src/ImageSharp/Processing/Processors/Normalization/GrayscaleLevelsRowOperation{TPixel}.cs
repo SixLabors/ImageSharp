@@ -56,7 +56,7 @@ internal readonly struct GrayscaleLevelsRowOperation<TPixel> : IRowOperation<Vec
 
         for (int x = 0; x < this.bounds.Width; x++)
         {
-            var vector = Unsafe.Add(ref vectorRef, (uint)x);
+            Vector4 vector = Unsafe.Add(ref vectorRef, (uint)x);
             int luminance = ColorNumerics.GetBT709Luminance(ref vector, levels);
             Interlocked.Increment(ref Unsafe.Add(ref histogramBase, (uint)luminance));
         }

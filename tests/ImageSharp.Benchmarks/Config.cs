@@ -32,7 +32,8 @@ public partial class Config : ManualConfig
     public class Standard : Config
     {
         public Standard() => this.AddJob(
-                Job.Default.WithRuntime(CoreRuntime.Core80).WithArguments(new Argument[] { new MsBuildArgument("/p:DebugType=portable") }));
+                Job.Default.WithRuntime(CoreRuntime.Core80).WithArguments([new MsBuildArgument("/p:DebugType=portable")
+                ]));
     }
 
     public class Short : Config
@@ -42,7 +43,7 @@ public partial class Config : ManualConfig
                            .WithLaunchCount(1)
                            .WithWarmupCount(3)
                            .WithIterationCount(3)
-                           .WithArguments(new Argument[] { new MsBuildArgument("/p:DebugType=portable") }));
+                           .WithArguments([new MsBuildArgument("/p:DebugType=portable")]));
     }
 
 #if OS_WINDOWS

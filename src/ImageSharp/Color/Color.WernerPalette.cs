@@ -8,7 +8,7 @@ namespace SixLabors.ImageSharp;
 /// </content>
 public partial struct Color
 {
-    private static readonly Lazy<Color[]> WernerPaletteLazy = new Lazy<Color[]>(CreateWernerPalette, true);
+    private static readonly Lazy<Color[]> WernerPaletteLazy = new(CreateWernerPalette, true);
 
     /// <summary>
     /// Gets a collection of colors as defined in the original second edition of Werner’s Nomenclature of Colours 1821.
@@ -16,8 +16,8 @@ public partial struct Color
     /// </summary>
     public static ReadOnlyMemory<Color> WernerPalette => WernerPaletteLazy.Value;
 
-    private static Color[] CreateWernerPalette() => new[]
-    {
+    private static Color[] CreateWernerPalette() =>
+    [
         ParseHex("#f1e9cd"),
         ParseHex("#f2e7cf"),
         ParseHex("#ece6d0"),
@@ -128,5 +128,5 @@ public partial struct Color
         ParseHex("#9b856b"),
         ParseHex("#766051"),
         ParseHex("#453b32")
-    };
+    ];
 }

@@ -111,10 +111,10 @@ public class XmpProfileTests
     public void WritingGif_PreservesXmpProfile()
     {
         // arrange
-        using var image = new Image<Rgba32>(1, 1);
+        using Image<Rgba32> image = new(1, 1);
         XmpProfile original = CreateMinimalXmlProfile();
         image.Metadata.XmpProfile = original;
-        var encoder = new GifEncoder();
+        GifEncoder encoder = new();
 
         // act
         using Image<Rgba32> reloadedImage = WriteAndRead(image, encoder);
@@ -129,10 +129,10 @@ public class XmpProfileTests
     public void WritingJpeg_PreservesXmpProfile()
     {
         // arrange
-        using var image = new Image<Rgba32>(1, 1);
+        using Image<Rgba32> image = new(1, 1);
         XmpProfile original = CreateMinimalXmlProfile();
         image.Metadata.XmpProfile = original;
-        var encoder = new JpegEncoder();
+        JpegEncoder encoder = new();
 
         // act
         using Image<Rgba32> reloadedImage = WriteAndRead(image, encoder);
@@ -147,10 +147,10 @@ public class XmpProfileTests
     public async Task WritingJpeg_PreservesExtendedXmpProfile()
     {
         // arrange
-        var provider = TestImageProvider<Rgba32>.File(TestImages.Jpeg.Baseline.ExtendedXmp);
+        TestImageProvider<Rgba32> provider = TestImageProvider<Rgba32>.File(TestImages.Jpeg.Baseline.ExtendedXmp);
         using Image<Rgba32> image = await provider.GetImageAsync(JpegDecoder.Instance);
         XmpProfile original = image.Metadata.XmpProfile;
-        var encoder = new JpegEncoder();
+        JpegEncoder encoder = new();
 
         // act
         using Image<Rgba32> reloadedImage = WriteAndRead(image, encoder);
@@ -165,10 +165,10 @@ public class XmpProfileTests
     public void WritingPng_PreservesXmpProfile()
     {
         // arrange
-        using var image = new Image<Rgba32>(1, 1);
+        using Image<Rgba32> image = new(1, 1);
         XmpProfile original = CreateMinimalXmlProfile();
         image.Metadata.XmpProfile = original;
-        var encoder = new PngEncoder();
+        PngEncoder encoder = new();
 
         // act
         using Image<Rgba32> reloadedImage = WriteAndRead(image, encoder);
@@ -183,10 +183,10 @@ public class XmpProfileTests
     public void WritingTiff_PreservesXmpProfile()
     {
         // arrange
-        using var image = new Image<Rgba32>(1, 1);
+        using Image<Rgba32> image = new(1, 1);
         XmpProfile original = CreateMinimalXmlProfile();
         image.Frames.RootFrame.Metadata.XmpProfile = original;
-        var encoder = new TiffEncoder();
+        TiffEncoder encoder = new();
 
         // act
         using Image<Rgba32> reloadedImage = WriteAndRead(image, encoder);
@@ -201,10 +201,10 @@ public class XmpProfileTests
     public void WritingWebp_PreservesXmpProfile()
     {
         // arrange
-        using var image = new Image<Rgba32>(1, 1);
+        using Image<Rgba32> image = new(1, 1);
         XmpProfile original = CreateMinimalXmlProfile();
         image.Metadata.XmpProfile = original;
-        var encoder = new WebpEncoder();
+        WebpEncoder encoder = new();
 
         // act
         using Image<Rgba32> reloadedImage = WriteAndRead(image, encoder);
@@ -228,13 +228,13 @@ public class XmpProfileTests
     {
         string content = $"<?xpacket begin='' id='{Guid.NewGuid()}'?><x:xmpmeta xmlns:x='adobe:ns:meta/'></x:xmpmeta><?xpacket end='w'?> ";
         byte[] data = Encoding.UTF8.GetBytes(content);
-        var profile = new XmpProfile(data);
+        XmpProfile profile = new(data);
         return profile;
     }
 
     private static Image<Rgba32> WriteAndRead(Image<Rgba32> image, IImageEncoder encoder)
     {
-        using (var memStream = new MemoryStream())
+        using (MemoryStream memStream = new())
         {
             image.Save(memStream, encoder);
             image.Dispose();

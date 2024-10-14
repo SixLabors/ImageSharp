@@ -27,7 +27,7 @@ public static class SystemDrawingBridge
         int w = bmp.Width;
         int h = bmp.Height;
 
-        var fullRect = new System.Drawing.Rectangle(0, 0, w, h);
+        System.Drawing.Rectangle fullRect = new(0, 0, w, h);
 
         if (bmp.PixelFormat != PixelFormat.Format32bppArgb)
         {
@@ -37,7 +37,7 @@ public static class SystemDrawingBridge
         }
 
         BitmapData data = bmp.LockBits(fullRect, ImageLockMode.ReadWrite, bmp.PixelFormat);
-        var image = new Image<TPixel>(w, h);
+        Image<TPixel> image = new(w, h);
         try
         {
             byte* sourcePtrBase = (byte*)data.Scan0;
@@ -86,7 +86,7 @@ public static class SystemDrawingBridge
         int w = bmp.Width;
         int h = bmp.Height;
 
-        var fullRect = new System.Drawing.Rectangle(0, 0, w, h);
+        System.Drawing.Rectangle fullRect = new(0, 0, w, h);
 
         if (bmp.PixelFormat != PixelFormat.Format24bppRgb)
         {
@@ -96,7 +96,7 @@ public static class SystemDrawingBridge
         }
 
         BitmapData data = bmp.LockBits(fullRect, ImageLockMode.ReadWrite, bmp.PixelFormat);
-        var image = new Image<TPixel>(w, h);
+        Image<TPixel> image = new(w, h);
         try
         {
             byte* sourcePtrBase = (byte*)data.Scan0;
@@ -138,8 +138,8 @@ public static class SystemDrawingBridge
         int w = image.Width;
         int h = image.Height;
 
-        var resultBitmap = new Bitmap(w, h, PixelFormat.Format32bppArgb);
-        var fullRect = new System.Drawing.Rectangle(0, 0, w, h);
+        Bitmap resultBitmap = new(w, h, PixelFormat.Format32bppArgb);
+        System.Drawing.Rectangle fullRect = new(0, 0, w, h);
         BitmapData data = resultBitmap.LockBits(fullRect, ImageLockMode.ReadWrite, resultBitmap.PixelFormat);
         try
         {

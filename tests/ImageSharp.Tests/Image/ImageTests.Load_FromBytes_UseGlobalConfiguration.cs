@@ -14,7 +14,7 @@ public partial class ImageTests
 
         private static Span<byte> ByteSpan => new(ByteArray);
 
-        private static void VerifyDecodedImage(Image img) => Assert.Equal(new Size(127, 64), img.Size);
+        private static void VerifyDecodedImage(Image img) => Assert.Equal(new(127, 64), img.Size);
 
         [Fact]
         public void Bytes_Specific()

@@ -74,13 +74,13 @@ internal readonly unsafe struct ResizeKernel
             float* bufferEnd = bufferStart + (this.Length & ~3);
             Vector256<float> result256_0 = Vector256<float>.Zero;
             Vector256<float> result256_1 = Vector256<float>.Zero;
-            ReadOnlySpan<byte> maskBytes = new byte[]
-            {
+            ReadOnlySpan<byte> maskBytes =
+            [
                 0, 0, 0, 0, 0, 0, 0, 0,
                 0, 0, 0, 0, 0, 0, 0, 0,
                 1, 0, 0, 0, 1, 0, 0, 0,
-                1, 0, 0, 0, 1, 0, 0, 0,
-            };
+                1, 0, 0, 0, 1, 0, 0, 0
+            ];
             Vector256<int> mask = Unsafe.ReadUnaligned<Vector256<int>>(ref MemoryMarshal.GetReference(maskBytes));
 
             while (bufferStart < bufferEnd)

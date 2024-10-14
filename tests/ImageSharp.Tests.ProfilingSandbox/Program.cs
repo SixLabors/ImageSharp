@@ -52,7 +52,7 @@ public class Program
     {
         Assembly assembly = typeof(System.Runtime.GCSettings).GetTypeInfo().Assembly;
         Console.WriteLine(assembly.Location);
-        string[] assemblyPath = assembly.Location.Split(new[] { '/', '\\' }, StringSplitOptions.RemoveEmptyEntries);
+        string[] assemblyPath = assembly.Location.Split(['/', '\\'], StringSplitOptions.RemoveEmptyEntries);
         int netCoreAppIndex = Array.IndexOf(assemblyPath, "Microsoft.NETCore.App");
         if (netCoreAppIndex > 0 && netCoreAppIndex < assemblyPath.Length - 2)
         {
@@ -64,13 +64,13 @@ public class Program
 
     private static void RunResizeProfilingTest()
     {
-        var test = new ResizeProfilingBenchmarks(new ConsoleOutput());
+        ResizeProfilingBenchmarks test = new(new ConsoleOutput());
         test.ResizeBicubic(4000, 4000);
     }
 
     private static void RunToVector4ProfilingTest()
     {
-        var tests = new PixelOperationsTests.Rgba32_OperationsTests(new ConsoleOutput());
+        PixelOperationsTests.Rgba32_OperationsTests tests = new(new ConsoleOutput());
         tests.Benchmark_ToVector4();
     }
 }

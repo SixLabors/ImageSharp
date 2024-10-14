@@ -14,7 +14,7 @@ public class BrightnessTest
     private readonly ImageComparer imageComparer = ImageComparer.Tolerant(0.007F);
 
     public static readonly TheoryData<float> BrightnessValues
-    = new TheoryData<float>
+    = new()
     {
         .5F,
         1.5F

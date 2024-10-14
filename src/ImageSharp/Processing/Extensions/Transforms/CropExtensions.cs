@@ -19,7 +19,7 @@ public static class CropExtensions
     /// <param name="height">The target image height.</param>
     /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
     public static IImageProcessingContext Crop(this IImageProcessingContext source, int width, int height) =>
-        Crop(source, new Rectangle(0, 0, width, height));
+        Crop(source, new(0, 0, width, height));
 
     /// <summary>
     /// Crops an image to the given rectangle.

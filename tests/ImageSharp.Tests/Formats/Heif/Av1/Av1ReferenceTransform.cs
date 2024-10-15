@@ -36,7 +36,7 @@ internal class Av1ReferenceTransform
         int rectType = Av1ForwardTransformer.GetRectangularRatio(transformWidth, transformHeight);
         if (Math.Abs(rectType) == 1)
         {
-            scaleFactor *= Math.Pow(2, 0.5);
+            scaleFactor *= Math.Sqrt(2);
         }
 
         return scaleFactor;

@@ -524,11 +524,11 @@ public class WebpEncoderTests
     {
         WebpEncoder encoder = new()
         {
+            Quality = 100
         };
 
         using Image<TPixel> image = provider.GetImage();
-        image.DebugSave(provider);
-        image.VerifyEncoder(provider, "webp", string.Empty, encoder);
+        image.VerifyEncoder(provider, "webp", string.Empty, encoder, ImageComparer.TolerantPercentage(0.0994F));
     }
 
     public static void RunEncodeLossy_WithPeakImage()

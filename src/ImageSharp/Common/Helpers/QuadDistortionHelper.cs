@@ -40,7 +40,7 @@ internal static class QuadDistortionHelper
         PointF q3 = bottomRight;
         PointF q4 = bottomLeft;
 
-        float[][] matrixData =
+        double[][] matrixData =
         [
             [p1.X, p1.Y, 1, 0, 0, 0, -p1.X * q1.X, -p1.Y * q1.X],
             [0, 0, 0, p1.X, p1.Y, 1, -p1.X * q1.Y, -p1.Y * q1.Y],
@@ -52,7 +52,7 @@ internal static class QuadDistortionHelper
             [0, 0, 0, p4.X, p4.Y, 1, -p4.X * q4.Y, -p4.Y * q4.Y],
         ];
 
-        float[] b =
+        double[] b =
         [
             q1.X,
             q1.Y,
@@ -68,10 +68,10 @@ internal static class QuadDistortionHelper
 
 #pragma warning disable SA1117
         Matrix4x4 projectionMatrix = new(
-            b[0], b[3], 0, b[6],
-            b[1], b[4], 0, b[7],
+            (float)b[0], (float)b[3], 0, (float)b[6],
+            (float)b[1], (float)b[4], 0, (float)b[7],
             0, 0, 1, 0,
-            b[2], b[5], 0, 1);
+            (float)b[2], (float)b[5], 0, 1);
 #pragma warning restore SA1117
 
         return projectionMatrix;

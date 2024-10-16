@@ -9,7 +9,7 @@ public class GaussianEliminationSolverTest
 {
     [Theory]
     [MemberData(nameof(MatrixTestData))]
-    public void CanSolve(float[][] matrix, float[] result, float[] expected)
+    public void CanSolve(double[][] matrix, double[] result, double[] expected)
     {
         GaussianEliminationSolver.Solve(matrix, result);
 
@@ -19,44 +19,44 @@ public class GaussianEliminationSolverTest
         }
     }
 
-    public static TheoryData<float[][], float[], float[]> MatrixTestData
+    public static TheoryData<double[][], double[], double[]> MatrixTestData
     {
         get
         {
-            TheoryData<float[][], float[], float[]> data = [];
+            TheoryData<double[][], double[], double[]> data = [];
             {
-                float[][] matrix =
+                double[][] matrix =
                 [
                     [2, 3, 4],
                     [1, 2, 3],
                     [3, -4, 0],
                 ];
-                float[] result = [6, 4, 10];
-                float[] expected = [18 / 11f, -14 / 11f, 18 / 11f];
+                double[] result = [6, 4, 10];
+                double[] expected = [18 / 11f, -14 / 11f, 18 / 11f];
                 data.Add(matrix, result, expected);
             }
 
             {
-                float[][] matrix =
+                double[][] matrix =
                 [
                     [1, 4, -1],
                     [2, 5, 8],
                     [1, 3, -3],
                 ];
-                float[] result = [4, 15, 1];
-                float[] expected = [1, 1, 1];
+                double[] result = [4, 15, 1];
+                double[] expected = [1, 1, 1];
                 data.Add(matrix, result, expected);
             }
 
             {
-                float[][] matrix =
+                double[][] matrix =
                 [
                     [-1, 0, 0],
                     [0, 1, 0],
                     [0, 0, 1],
                 ];
-                float[] result = [1, 2, 3];
-                float[] expected = [-1, 2, 3];
+                double[] result = [1, 2, 3];
+                double[] expected = [-1, 2, 3];
                 data.Add(matrix, result, expected);
             }
 

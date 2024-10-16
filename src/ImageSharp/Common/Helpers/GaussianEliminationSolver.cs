@@ -20,24 +20,24 @@ internal static class GaussianEliminationSolver
     /// The matrix passed to this method must be a square matrix.
     /// If the matrix is singular (i.e., has no unique solution), an <see cref="NotSupportedException"/> will be thrown.
     /// </remarks>
-    public static void Solve(float[][] matrix, float[] result)
+    public static void Solve(double[][] matrix, double[] result)
     {
         TransformToRowEchelonForm(matrix, result);
         ApplyBackSubstitution(matrix, result);
     }
 
-    private static void TransformToRowEchelonForm(float[][] matrix, float[] result)
+    private static void TransformToRowEchelonForm(double[][] matrix, double[] result)
     {
         int colCount = matrix.Length;
         int rowCount = matrix[0].Length;
         int pivotRow = 0;
         for (int pivotCol = 0; pivotCol < colCount; pivotCol++)
         {
-            float maxValue = float.Abs(matrix[pivotRow][pivotCol]);
+            double maxValue = double.Abs(matrix[pivotRow][pivotCol]);
             int maxIndex = pivotRow;
             for (int r = pivotRow + 1; r < rowCount; r++)
             {
-                float value = float.Abs(matrix[r][pivotCol]);
+                double value = double.Abs(matrix[r][pivotCol]);
                 if (value > maxValue)
                 {
                     maxIndex = r;
@@ -55,7 +55,7 @@ internal static class GaussianEliminationSolver
 
             for (int r = pivotRow + 1; r < rowCount; r++)
             {
-                float fraction = matrix[r][pivotCol] / matrix[pivotRow][pivotCol];
+                double fraction = matrix[r][pivotCol] / matrix[pivotRow][pivotCol];
                 for (int c = pivotCol + 1; c < colCount; c++)
                 {
                     matrix[r][c] -= matrix[pivotRow][c] * fraction;
@@ -69,7 +69,7 @@ internal static class GaussianEliminationSolver
         }
     }
 
-    private static void ApplyBackSubstitution(float[][] matrix, float[] result)
+    private static void ApplyBackSubstitution(double[][] matrix, double[] result)
     {
         int rowCount = matrix[0].Length;
 

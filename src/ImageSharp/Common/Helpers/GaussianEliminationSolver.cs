@@ -6,7 +6,7 @@ namespace SixLabors.ImageSharp.Common.Helpers;
 /// <summary>
 /// Represents a solver for systems of linear equations using the Gaussian Elimination method.
 /// This class applies Gaussian Elimination to transform the matrix into row echelon form and then performs back substitution to find the solution vector.
-/// This implementation is based on: https://www.algorithm-archive.org/contents/gaussian_elimination/gaussian_elimination.html
+/// This implementation is based on: <see href="https://www.algorithm-archive.org/contents/gaussian_elimination/gaussian_elimination.html"/>
 /// </summary>
 internal static class GaussianEliminationSolver
 {

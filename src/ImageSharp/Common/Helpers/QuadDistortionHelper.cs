@@ -21,7 +21,7 @@ internal static class QuadDistortionHelper
     /// <returns>The computed projection matrix for the quad distortion.</returns>
     /// <remarks>
     /// This method is based on the algorithm described in the following article:
-    /// https://blog.mbedded.ninja/mathematics/geometry/projective-transformations/
+    /// <see href="https://blog.mbedded.ninja/mathematics/geometry/projective-transformations/"/>
     /// </remarks>
     public static Matrix4x4 ComputeQuadDistortMatrix(Rectangle rectangle, PointF topLeft, PointF topRight, PointF bottomRight, PointF bottomLeft)
     {
@@ -65,7 +65,7 @@ internal static class QuadDistortionHelper
         Matrix4x4 projectionMatrix = new(
             b[0], b[3], 0, b[6],
             b[1], b[4], 0, b[7],
-            0,    0,    1, 0,
+            0, 0, 1, 0,
             b[2], b[5], 0, 1);
 #pragma warning restore SA1117
 

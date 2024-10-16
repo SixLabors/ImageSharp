@@ -301,7 +301,7 @@ internal static class TransformUtils
     {
         Guard.IsTrue(size.Width > 0 && size.Height > 0, nameof(size), "Source size dimensions cannot be 0!");
 
-        if (matrix.Equals(default) || matrix.Equals(Matrix4x4.Identity))
+        if (matrix.IsIdentity || matrix.Equals(default))
         {
             return size;
         }
@@ -376,7 +376,7 @@ internal static class TransformUtils
     {
         Guard.IsTrue(size.Width > 0 && size.Height > 0, nameof(size), "Source size dimensions cannot be 0!");
 
-        if (matrix.Equals(default) || matrix.Equals(Matrix3x2.Identity))
+        if (matrix.IsIdentity || matrix.Equals(default))
         {
             return size;
         }
@@ -412,7 +412,7 @@ internal static class TransformUtils
     /// </returns>
     private static bool TryGetTransformedRectangle(RectangleF rectangle, Matrix3x2 matrix, out Rectangle bounds)
     {
-        if (rectangle.Equals(default) || Matrix3x2.Identity.Equals(matrix))
+        if (matrix.IsIdentity || rectangle.Equals(default))
         {
             bounds = default;
             return false;
@@ -439,7 +439,7 @@ internal static class TransformUtils
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool TryGetTransformedRectangle(RectangleF rectangle, Matrix4x4 matrix, out Rectangle bounds)
     {
-        if (rectangle.Equals(default) || Matrix4x4.Identity.Equals(matrix))
+        if (matrix.IsIdentity || rectangle.Equals(default))
         {
             bounds = default;
             return false;

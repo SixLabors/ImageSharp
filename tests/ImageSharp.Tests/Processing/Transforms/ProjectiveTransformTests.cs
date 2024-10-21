@@ -154,11 +154,11 @@ public class ProjectiveTransformTests
         using (Image<TPixel> image = provider.GetImage())
         {
 #pragma warning disable SA1117 // Parameters should be on same line or separate lines
-        Matrix4x4 matrix = new(
-            0.260987f, -0.434909f, 0, -0.0022184f,
-            0.373196f, 0.949882f, 0, -0.000312129f,
-            0, 0, 1, 0,
-            52, 165, 0, 1);
+            Matrix4x4 matrix = new(
+                0.260987f, -0.434909f, 0, -0.0022184f,
+                0.373196f, 0.949882f, 0, -0.000312129f,
+                0, 0, 1, 0,
+                52, 165, 0, 1);
 #pragma warning restore SA1117 // Parameters should be on same line or separate lines
 
             ProjectiveTransformBuilder builder = new ProjectiveTransformBuilder()

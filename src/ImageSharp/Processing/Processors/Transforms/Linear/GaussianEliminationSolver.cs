@@ -1,7 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-namespace SixLabors.ImageSharp.Common.Helpers;
+namespace SixLabors.ImageSharp.Processing.Processors.Transforms.Linear;
 
 /// <summary>
 /// Represents a solver for systems of linear equations using the Gaussian Elimination method.

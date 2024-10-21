@@ -2,7 +2,6 @@
 // Licensed under the Six Labors Split License.
 
 using System.Numerics;
-using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Processing.Processors.Transforms;
 
 namespace SixLabors.ImageSharp.Processing;
@@ -12,7 +11,7 @@ namespace SixLabors.ImageSharp.Processing;
 /// </summary>
 public class ProjectiveTransformBuilder
 {
-    private readonly List<Func<Size, Matrix4x4>> transformMatrixFactories = new();
+    private readonly List<Func<Size, Matrix4x4>> transformMatrixFactories = [];
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ProjectiveTransformBuilder"/> class.
@@ -289,7 +288,8 @@ public class ProjectiveTransformBuilder
     /// <param name="bottomLeft">The bottom-left corner point of the distorted quad.</param>
     /// <returns>The <see cref="ProjectiveTransformBuilder"/>.</returns>
     public ProjectiveTransformBuilder PrependQuadDistortion(PointF topLeft, PointF topRight, PointF bottomRight, PointF bottomLeft)
-        => this.Prepend(size => QuadDistortionHelper.ComputeQuadDistortMatrix(new Rectangle(Point.Empty, size), topLeft, topRight, bottomRight, bottomLeft));
+        => this.Prepend(size => TransformUtils.CreateQuadDistortionMatrix(
+            new Rectangle(Point.Empty, size), topLeft, topRight, bottomRight, bottomLeft, this.TransformSpace));
 
     /// <summary>
     /// Appends a quad distortion matrix using the specified corner points.
@@ -300,7 +300,8 @@ public class ProjectiveTransformBuilder
     /// <param name="bottomLeft">The bottom-left corner point of the distorted quad.</param>
     /// <returns>The <see cref="ProjectiveTransformBuilder"/>.</returns>
     public ProjectiveTransformBuilder AppendQuadDistortion(PointF topLeft, PointF topRight, PointF bottomRight, PointF bottomLeft)
-        => this.Append(size => QuadDistortionHelper.ComputeQuadDistortMatrix(new Rectangle(Point.Empty, size), topLeft, topRight, bottomRight, bottomLeft));
+        => this.Append(size => TransformUtils.CreateQuadDistortionMatrix(
+            new Rectangle(Point.Empty, size), topLeft, topRight, bottomRight, bottomLeft, this.TransformSpace));
 
     /// <summary>
     /// Prepends a raw matrix.
@@ -384,18 +385,8 @@ public class ProjectiveTransformBuilder
     /// <returns>The <see cref="Size"/>.</returns>
     public Size GetTransformedSize(Rectangle sourceRectangle)
     {
-        Size size = sourceRectangle.Size;
-
-        // Translate the origin matrix to cater for source rectangle offsets.
-        Matrix4x4 matrix = Matrix4x4.CreateTranslation(new Vector3(-sourceRectangle.Location, 0));
-
-        foreach (Func<Size, Matrix4x4> factory in this.transformMatrixFactories)
-        {
-            matrix *= factory(size);
-            CheckDegenerate(matrix);
-        }
-
-        return TransformUtils.GetTransformedSize(matrix, size);
+        Matrix4x4 matrix = this.BuildMatrix(sourceRectangle);
+        return TransformUtils.GetTransformedSize(matrix, sourceRectangle.Size, this.TransformSpace);
     }
 
     private static void CheckDegenerate(Matrix4x4 matrix)

@@ -1,7 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using SixLabors.ImageSharp.Common.Helpers;
+using SixLabors.ImageSharp.Processing.Processors.Transforms.Linear;
 
 namespace SixLabors.ImageSharp.Tests.Common;
 

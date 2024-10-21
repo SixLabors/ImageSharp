@@ -61,12 +61,12 @@ internal class ProjectiveTransformProcessor<TPixel> : TransformProcessor<TPixel>
         if (matrix.Equals(Matrix4x4.Identity))
         {
             // The clone will be blank here copy all the pixel data over
-            var interest = Rectangle.Intersect(this.SourceRectangle, destination.Bounds());
+            Rectangle interest = Rectangle.Intersect(this.SourceRectangle, destination.Bounds());
             Buffer2DRegion<TPixel> sourceBuffer = source.PixelBuffer.GetRegion(interest);
-            Buffer2DRegion<TPixel> destbuffer = destination.PixelBuffer.GetRegion(interest);
+            Buffer2DRegion<TPixel> destinationBuffer = destination.PixelBuffer.GetRegion(interest);
             for (int y = 0; y < sourceBuffer.Height; y++)
             {
-                sourceBuffer.DangerousGetRowSpan(y).CopyTo(destbuffer.DangerousGetRowSpan(y));
+                sourceBuffer.DangerousGetRowSpan(y).CopyTo(destinationBuffer.DangerousGetRowSpan(y));
             }
 
             return;
@@ -77,7 +77,7 @@ internal class ProjectiveTransformProcessor<TPixel> : TransformProcessor<TPixel>
 
         if (sampler is NearestNeighborResampler)
         {
-            var nnOperation = new NNProjectiveOperation(
+            NNProjectiveOperation nnOperation = new(
                 source.PixelBuffer,
                 Rectangle.Intersect(this.SourceRectangle, source.Bounds()),
                 destination.PixelBuffer,
@@ -91,7 +91,7 @@ internal class ProjectiveTransformProcessor<TPixel> : TransformProcessor<TPixel>
             return;
         }
 
-        var operation = new ProjectiveOperation<TResampler>(
+        ProjectiveOperation<TResampler> operation = new(
             configuration,
             source.PixelBuffer,
             Rectangle.Intersect(this.SourceRectangle, source.Bounds()),
@@ -128,9 +128,9 @@ internal class ProjectiveTransformProcessor<TPixel> : TransformProcessor<TPixel>
         [MethodImpl(InliningOptions.ShortMethod)]
         public void Invoke(int y)
         {
-            Span<TPixel> destRow = this.destination.DangerousGetRowSpan(y);
+            Span<TPixel> destinationRowSpan = this.destination.DangerousGetRowSpan(y);
 
-            for (int x = 0; x < destRow.Length; x++)
+            for (int x = 0; x < destinationRowSpan.Length; x++)
             {
                 Vector2 point = TransformUtils.ProjectiveTransform2D(x, y, this.matrix);
                 int px = (int)MathF.Round(point.X);
@@ -138,7 +138,7 @@ internal class ProjectiveTransformProcessor<TPixel> : TransformProcessor<TPixel>
 
                 if (this.bounds.Contains(px, py))
                 {
-                    destRow[x] = this.source.GetElementUnsafe(px, py);
+                    destinationRowSpan[x] = this.source.GetElementUnsafe(px, py);
                 }
             }
         }
@@ -195,10 +195,10 @@ internal class ProjectiveTransformProcessor<TPixel> : TransformProcessor<TPixel>
 
             for (int y = rows.Min; y < rows.Max; y++)
             {
-                Span<TPixel> rowSpan = this.destination.DangerousGetRowSpan(y);
+                Span<TPixel> destinationRowSpan = this.destination.DangerousGetRowSpan(y);
                 PixelOperations<TPixel>.Instance.ToVector4(
                     this.configuration,
-                    rowSpan,
+                    destinationRowSpan,
                     span,
                     PixelConversionModifiers.Scale);
 
@@ -221,13 +221,14 @@ internal class ProjectiveTransformProcessor<TPixel> : TransformProcessor<TPixel>
                     Vector4 sum = Vector4.Zero;
                     for (int yK = top; yK <= bottom; yK++)
                     {
+                        Span<TPixel> sourceRowSpan = this.source.DangerousGetRowSpan(yK);
                         float yWeight = sampler.GetValue(yK - pY);
 
                         for (int xK = left; xK <= right; xK++)
                         {
                             float xWeight = sampler.GetValue(xK - pX);
 
-                            Vector4 current = this.source.GetElementUnsafe(xK, yK).ToScaledVector4();
+                            Vector4 current = sourceRowSpan[xK].ToScaledVector4();
                             Numerics.Premultiply(ref current);
                             sum += current * xWeight * yWeight;
                         }
@@ -240,7 +241,7 @@ internal class ProjectiveTransformProcessor<TPixel> : TransformProcessor<TPixel>
                 PixelOperations<TPixel>.Instance.FromVector4Destructive(
                     this.configuration,
                     span,
-                    rowSpan,
+                    destinationRowSpan,
                     PixelConversionModifiers.Scale);
             }
         }

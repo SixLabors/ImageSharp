@@ -175,4 +175,9 @@ internal static class Av1Constants
     public const int QuantificationMatrixLevelCount = 4;
 
     public const int AngleStep = 3;
+
+    /// <summary>
+    /// Maximum number of stages in a 1-dimensioanl transform function.
+    /// </summary>
+    public const int MaxTransformStageNumber = 12;
 }

@@ -179,6 +179,7 @@ internal class Av1Transform2dFlipConfiguration
 
     /// <summary>
     /// SVT: svt_av1_gen_fwd_stage_range
+    /// SVT: svt_av1_gen_inv_stage_range
     /// </summary>
     public void GenerateStageRange(int bitDepth)
     {

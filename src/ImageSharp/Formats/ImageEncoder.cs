@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats;
@@ -48,8 +47,8 @@ public abstract class ImageEncoder : IImageEncoder
         }
         else
         {
-            using ChunkedMemoryStream ms = new(configuration.MemoryAllocator);
-            this.Encode(image, stream, cancellationToken);
+            using MemoryStream ms = new();
+            this.Encode(image, ms, cancellationToken);
             ms.Position = 0;
             ms.CopyTo(stream, configuration.StreamProcessingBufferSize);
         }
@@ -65,7 +64,7 @@ public abstract class ImageEncoder : IImageEncoder
         }
         else
         {
-            using ChunkedMemoryStream ms = new(configuration.MemoryAllocator);
+            await using MemoryStream ms = new();
             await DoEncodeAsync(ms);
             ms.Position = 0;
             await ms.CopyToAsync(stream, configuration.StreamProcessingBufferSize, cancellationToken)

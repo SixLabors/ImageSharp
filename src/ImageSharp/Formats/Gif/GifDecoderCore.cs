@@ -317,7 +317,7 @@ internal sealed class GifDecoderCore : ImageDecoderCore
             bool isXmp = this.buffer.Span.StartsWith(GifConstants.XmpApplicationIdentificationBytes);
             if (isXmp && !this.skipMetadata)
             {
-                GifXmpApplicationExtension extension = GifXmpApplicationExtension.Read(stream, this.memoryAllocator);
+                GifXmpApplicationExtension extension = GifXmpApplicationExtension.Read(stream);
                 if (extension.Data.Length > 0)
                 {
                     this.metadata!.XmpProfile = new XmpProfile(extension.Data);

@@ -183,7 +183,7 @@ internal class AlphaDecoder : IDisposable
         else
         {
             this.LosslessDecoder.DecodeImageData(this.Vp8LDec, this.Vp8LDec.Pixels.Memory.Span);
-            this.ExtractAlphaRows(this.Vp8LDec);
+            this.ExtractAlphaRows(this.Vp8LDec, this.Width);
         }
     }
 
@@ -257,14 +257,15 @@ internal class AlphaDecoder : IDisposable
     /// Once the image-stream is decoded into ARGB color values, the transparency information will be extracted from the green channel of the ARGB quadruplet.
     /// </summary>
     /// <param name="dec">The VP8L decoder.</param>
-    private void ExtractAlphaRows(Vp8LDecoder dec)
+    /// <param name="width">The image width.</param>
+    private void ExtractAlphaRows(Vp8LDecoder dec, int width)
     {
         int numRowsToProcess = dec.Height;
-        int width = dec.Width;
         Span<uint> input = dec.Pixels.Memory.Span;
         Span<byte> output = this.Alpha.Memory.Span;
 
         // Extract alpha (which is stored in the green plane).
+        // the final width (!= dec->width_)
         int pixelCount = width * numRowsToProcess;
         WebpLosslessDecoder.ApplyInverseTransforms(dec, input, this.memoryAllocator);
         ExtractGreen(input, output, pixelCount);

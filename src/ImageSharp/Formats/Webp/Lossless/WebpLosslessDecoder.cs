@@ -684,6 +684,7 @@ internal sealed class WebpLosslessDecoder
         List<Vp8LTransform> transforms = decoder.Transforms;
         for (int i = transforms.Count - 1; i >= 0; i--)
         {
+            // TODO: Review these 1D allocations. They could conceivably exceed limits.
             Vp8LTransform transform = transforms[i];
             switch (transform.TransformType)
             {
@@ -701,7 +702,11 @@ internal sealed class WebpLosslessDecoder
                     LosslessUtils.ColorSpaceInverseTransform(transform, pixelData);
                     break;
                 case Vp8LTransformType.ColorIndexingTransform:
-                    LosslessUtils.ColorIndexInverseTransform(transform, pixelData);
+                    using (IMemoryOwner<uint> output = memoryAllocator.Allocate<uint>(transform.XSize * transform.YSize, AllocationOptions.Clean))
+                    {
+                        LosslessUtils.ColorIndexInverseTransform(transform, pixelData, output.GetSpan());
+                    }
+
                     break;
             }
         }

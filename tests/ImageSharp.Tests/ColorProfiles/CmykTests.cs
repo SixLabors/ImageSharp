@@ -9,6 +9,7 @@ namespace SixLabors.ImageSharp.Tests.ColorProfiles;
 /// <summary>
 /// Tests the <see cref="Cmyk"/> struct.
 /// </summary>
+[Trait("Color", "Conversion")]
 public class CmykTests
 {
     [Fact]

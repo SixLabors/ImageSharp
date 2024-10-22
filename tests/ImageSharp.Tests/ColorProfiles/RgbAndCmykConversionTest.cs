@@ -13,6 +13,7 @@ namespace SixLabors.ImageSharp.Tests.ColorProfiles;
 /// <see href="http://www.colorhexa.com"/>
 /// <see href="http://www.rapidtables.com/convert/color/cmyk-to-rgb.htm"/>
 /// </remarks>
+[Trait("Color", "Conversion")]
 public class RgbAndCmykConversionTest
 {
     private static readonly ApproximateColorProfileComparer Comparer = new(.0001F);

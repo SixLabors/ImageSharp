@@ -6,6 +6,7 @@ using SixLabors.ImageSharp.ColorProfiles;
 
 namespace SixLabors.ImageSharp.Tests.ColorProfiles;
 
+[Trait("Color", "Conversion")]
 public class StringRepresentationTests
 {
     private static readonly Vector3 One = new(1);

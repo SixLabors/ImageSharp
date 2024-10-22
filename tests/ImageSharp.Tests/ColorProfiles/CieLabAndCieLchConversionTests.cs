@@ -12,6 +12,7 @@ namespace SixLabors.ImageSharp.Tests.ColorProfiles;
 /// Test data generated using:
 /// <see href="http://www.brucelindbloom.com/index.html?ColorCalculator.html"/>
 /// </remarks>
+[Trait("Color", "Conversion")]
 public class CieLabAndCieLchConversionTests
 {
     private static readonly ApproximateColorProfileComparer Comparer = new(.0001f);

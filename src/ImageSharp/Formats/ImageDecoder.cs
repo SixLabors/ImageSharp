@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 
@@ -209,7 +210,7 @@ public abstract class ImageDecoder : IImageDecoder
         }
 
         Configuration configuration = options.Configuration;
-        using MemoryStream memoryStream = new();
+        using ChunkedMemoryStream memoryStream = new(configuration.MemoryAllocator);
         stream.CopyTo(memoryStream, configuration.StreamProcessingBufferSize);
         memoryStream.Position = 0;
 
@@ -265,6 +266,11 @@ public abstract class ImageDecoder : IImageDecoder
             return PerformActionAndResetPosition(ms, ms.Position, cancellationToken);
         }
 
+        if (stream is ChunkedMemoryStream cms)
+        {
+            return PerformActionAndResetPosition(cms, cms.Position, cancellationToken);
+        }
+
         return CopyToMemoryStreamAndActionAsync(options, stream, PerformActionAndResetPosition, cancellationToken);
     }
 
@@ -276,11 +282,9 @@ public abstract class ImageDecoder : IImageDecoder
     {
         long position = stream.CanSeek ? stream.Position : 0;
         Configuration configuration = options.Configuration;
-
-        await using MemoryStream memoryStream = new();
+        await using ChunkedMemoryStream memoryStream = new(configuration.MemoryAllocator);
         await stream.CopyToAsync(memoryStream, configuration.StreamProcessingBufferSize, cancellationToken).ConfigureAwait(false);
         memoryStream.Position = 0;
-
         return await action(memoryStream, position, cancellationToken).ConfigureAwait(false);
     }
 

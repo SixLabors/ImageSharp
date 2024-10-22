@@ -1,4 +1,4 @@
-// Copyright (c) Six Labors.
+﻿// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 namespace SixLabors.ImageSharp.Tests;
@@ -14,7 +14,7 @@ internal class NonSeekableStream : Stream
 
     public override bool CanSeek => false;
 
-    public override bool CanWrite => this.dataStream.CanWrite;
+    public override bool CanWrite => false;
 
     public override bool CanTimeout => this.dataStream.CanTimeout;
 
@@ -91,5 +91,5 @@ internal class NonSeekableStream : Stream
         => throw new NotSupportedException();
 
     public override void Write(byte[] buffer, int offset, int count)
-        => this.dataStream.Write(buffer, offset, count);
+        => throw new NotImplementedException();
 }

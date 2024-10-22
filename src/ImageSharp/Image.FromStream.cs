@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.Formats;
+using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp;
@@ -300,7 +301,7 @@ public abstract partial class Image
             return action(stream);
         }
 
-        using MemoryStream memoryStream = new();
+        using ChunkedMemoryStream memoryStream = new(configuration.MemoryAllocator);
         stream.CopyTo(memoryStream, configuration.StreamProcessingBufferSize);
         memoryStream.Position = 0;
 
@@ -342,7 +343,7 @@ public abstract partial class Image
             return await action(stream, cancellationToken).ConfigureAwait(false);
         }
 
-        await using MemoryStream memoryStream = new();
+        using ChunkedMemoryStream memoryStream = new(configuration.MemoryAllocator);
         await stream.CopyToAsync(memoryStream, configuration.StreamProcessingBufferSize, cancellationToken).ConfigureAwait(false);
         memoryStream.Position = 0;
 

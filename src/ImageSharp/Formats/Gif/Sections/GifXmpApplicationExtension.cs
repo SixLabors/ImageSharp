@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Gif;
@@ -25,10 +26,11 @@ internal readonly struct GifXmpApplicationExtension : IGifExtension
     /// Reads the XMP metadata from the specified stream.
     /// </summary>
     /// <param name="stream">The stream to read from.</param>
+    /// <param name="allocator">The memory allocator.</param>
     /// <returns>The XMP metadata</returns>
-    public static GifXmpApplicationExtension Read(Stream stream)
+    public static GifXmpApplicationExtension Read(Stream stream, MemoryAllocator allocator)
     {
-        byte[] xmpBytes = ReadXmpData(stream);
+        byte[] xmpBytes = ReadXmpData(stream, allocator);
 
         // Exclude the "magic trailer", see XMP Specification Part 3, 1.1.2 GIF
         int xmpLength = xmpBytes.Length - 256; // 257 - unread 0x0
@@ -69,9 +71,9 @@ internal readonly struct GifXmpApplicationExtension : IGifExtension
         return this.ContentLength;
     }
 
-    private static byte[] ReadXmpData(Stream stream)
+    private static byte[] ReadXmpData(Stream stream, MemoryAllocator allocator)
     {
-        using MemoryStream bytes = new();
+        using ChunkedMemoryStream bytes = new(allocator);
 
         // XMP data doesn't have a fixed length nor is there an indicator of the length.
         // So we simply read one byte at a time until we hit the 0x0 value at the end

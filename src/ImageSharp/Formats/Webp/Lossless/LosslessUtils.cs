@@ -269,7 +269,11 @@ internal static unsafe class LosslessUtils
     /// </summary>
     /// <param name="transform">The transform data contains color table size and the entries in the color table.</param>
     /// <param name="pixelData">The pixel data to apply the reverse transform on.</param>
-    public static void ColorIndexInverseTransform(Vp8LTransform transform, Span<uint> pixelData)
+    /// <param name="outputSpan">The resulting pixel data with the reversed transformation data.</param>
+    public static void ColorIndexInverseTransform(
+        Vp8LTransform transform,
+        Span<uint> pixelData,
+        Span<uint> outputSpan)
     {
         int bitsPerPixel = 8 >> transform.Bits;
         int width = transform.XSize;
@@ -282,7 +286,6 @@ internal static unsafe class LosslessUtils
             int countMask = pixelsPerByte - 1;
             int bitMask = (1 << bitsPerPixel) - 1;
 
-            uint[] decodedPixelData = new uint[width * height];
             int pixelDataPos = 0;
             for (int y = 0; y < height; y++)
             {
@@ -298,12 +301,12 @@ internal static unsafe class LosslessUtils
                         packedPixels = GetArgbIndex(pixelData[pixelDataPos++]);
                     }
 
-                    decodedPixelData[decodedPixels++] = colorMap[(int)(packedPixels & bitMask)];
+                    outputSpan[decodedPixels++] = colorMap[(int)(packedPixels & bitMask)];
                     packedPixels >>= bitsPerPixel;
                 }
             }
 
-            decodedPixelData.AsSpan().CopyTo(pixelData);
+            outputSpan.CopyTo(pixelData);
         }
         else
         {

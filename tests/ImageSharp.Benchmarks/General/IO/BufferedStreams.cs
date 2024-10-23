@@ -19,8 +19,12 @@ public class BufferedStreams
     private MemoryStream stream4;
     private MemoryStream stream5;
     private MemoryStream stream6;
+    private ChunkedMemoryStream chunkedMemoryStream1;
+    private ChunkedMemoryStream chunkedMemoryStream2;
     private BufferedReadStream bufferedStream1;
     private BufferedReadStream bufferedStream2;
+    private BufferedReadStream bufferedStream3;
+    private BufferedReadStream bufferedStream4;
     private BufferedReadStreamWrapper bufferedStreamWrap1;
     private BufferedReadStreamWrapper bufferedStreamWrap2;
 
@@ -35,8 +39,18 @@ public class BufferedStreams
         this.stream6 = new MemoryStream(this.buffer);
         this.stream6 = new MemoryStream(this.buffer);
 
+        this.chunkedMemoryStream1 = new ChunkedMemoryStream(Configuration.Default.MemoryAllocator);
+        this.chunkedMemoryStream1.Write(this.buffer);
+        this.chunkedMemoryStream1.Position = 0;
+
+        this.chunkedMemoryStream2 = new ChunkedMemoryStream(Configuration.Default.MemoryAllocator);
+        this.chunkedMemoryStream2.Write(this.buffer);
+        this.chunkedMemoryStream2.Position = 0;
+
         this.bufferedStream1 = new BufferedReadStream(Configuration.Default, this.stream3);
         this.bufferedStream2 = new BufferedReadStream(Configuration.Default, this.stream4);
+        this.bufferedStream3 = new BufferedReadStream(Configuration.Default, this.chunkedMemoryStream1);
+        this.bufferedStream4 = new BufferedReadStream(Configuration.Default, this.chunkedMemoryStream2);
         this.bufferedStreamWrap1 = new BufferedReadStreamWrapper(this.stream5);
         this.bufferedStreamWrap2 = new BufferedReadStreamWrapper(this.stream6);
     }
@@ -46,8 +60,12 @@ public class BufferedStreams
     {
         this.bufferedStream1?.Dispose();
         this.bufferedStream2?.Dispose();
+        this.bufferedStream3?.Dispose();
+        this.bufferedStream4?.Dispose();
         this.bufferedStreamWrap1?.Dispose();
         this.bufferedStreamWrap2?.Dispose();
+        this.chunkedMemoryStream1?.Dispose();
+        this.chunkedMemoryStream2?.Dispose();
         this.stream1?.Dispose();
         this.stream2?.Dispose();
         this.stream3?.Dispose();
@@ -76,6 +94,21 @@ public class BufferedStreams
     {
         int r = 0;
         BufferedReadStream reader = this.bufferedStream1;
+        byte[] b = this.chunk2;
+
+        for (int i = 0; i < reader.Length / 2; i++)
+        {
+            r += reader.Read(b, 0, 2);
+        }
+
+        return r;
+    }
+
+    [Benchmark]
+    public int BufferedReadStreamChunkedRead()
+    {
+        int r = 0;
+        BufferedReadStream reader = this.bufferedStream3;
         byte[] b = this.chunk2;
 
         for (int i = 0; i < reader.Length / 2; i++)
@@ -120,6 +153,20 @@ public class BufferedStreams
     {
         int r = 0;
         BufferedReadStream reader = this.bufferedStream2;
+
+        for (int i = 0; i < reader.Length; i++)
+        {
+            r += reader.ReadByte();
+        }
+
+        return r;
+    }
+
+    [Benchmark]
+    public int BufferedReadStreamChunkedReadByte()
+    {
+        int r = 0;
+        BufferedReadStream reader = this.bufferedStream4;
 
         for (int i = 0; i < reader.Length; i++)
         {

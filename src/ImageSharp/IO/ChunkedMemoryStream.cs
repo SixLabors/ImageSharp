@@ -127,24 +127,26 @@ public class ChunkedMemoryStream : Stream
 
         int offset = 0;
         int count = buffer.Length;
-        int bytesRead = 0;
-        long bytesToRead = this.length - this.position;
-        if (bytesToRead > count)
+
+        long remaining = this.length - this.position;
+        if (remaining > count)
         {
-            bytesToRead = count;
+            remaining = count;
         }
 
-        if (bytesToRead <= 0)
+        if (remaining <= 0)
         {
             // Already at the end of the stream, nothing to read
             return 0;
         }
 
+        int bytesToRead = (int)remaining;
+        int bytesRead = 0;
         while (bytesToRead != 0 && this.currentChunk != this.memoryChunkBuffer.Length)
         {
             bool moveToNextChunk = false;
             MemoryChunk chunk = this.memoryChunkBuffer[this.currentChunk];
-            int n = (int)Math.Min(bytesToRead, int.MaxValue);
+            int n = bytesToRead;
             int remainingBytesInCurrentChunk = chunk.Length - this.currentChunkIndex;
             if (n >= remainingBytesInCurrentChunk)
             {
@@ -193,26 +195,28 @@ public class ChunkedMemoryStream : Stream
 
         int offset = 0;
         int count = buffer.Length;
-        int bytesWritten = 0;
-        long bytesToWrite = this.memoryChunkBuffer.Length - this.position;
+
+        long remaining = this.memoryChunkBuffer.Length - this.position;
 
         // Ensure we have enough capacity to write the data.
-        while (bytesToWrite < count)
+        while (remaining < count)
         {
             this.memoryChunkBuffer.Expand();
-            bytesToWrite = this.memoryChunkBuffer.Length - this.position;
+            remaining = this.memoryChunkBuffer.Length - this.position;
         }
 
-        if (bytesToWrite > count)
+        if (remaining > count)
         {
-            bytesToWrite = count;
+            remaining = count;
         }
 
+        int bytesToWrite = (int)remaining;
+        int bytesWritten = 0;
         while (bytesToWrite != 0 && this.currentChunk != this.memoryChunkBuffer.Length)
         {
             bool moveToNextChunk = false;
             MemoryChunk chunk = this.memoryChunkBuffer[this.currentChunk];
-            int n = (int)Math.Min(bytesToWrite, int.MaxValue);
+            int n = bytesToWrite;
             int remainingBytesInCurrentChunk = chunk.Length - this.currentChunkIndex;
             if (n >= remainingBytesInCurrentChunk)
             {
@@ -254,19 +258,20 @@ public class ChunkedMemoryStream : Stream
 
         this.Position = 0;
 
-        int bytesRead = 0;
-        long bytesToRead = this.length - this.position;
-        if (bytesToRead <= 0)
+        long remaining = this.length - this.position;
+        if (remaining <= 0)
         {
             // Already at the end of the stream, nothing to read
             return;
         }
 
+        int bytesToRead = (int)remaining;
+        int bytesRead = 0;
         while (bytesToRead != 0 && this.currentChunk != this.memoryChunkBuffer.Length)
         {
             bool moveToNextChunk = false;
             MemoryChunk chunk = this.memoryChunkBuffer[this.currentChunk];
-            int n = (int)Math.Min(bytesToRead, int.MaxValue);
+            int n = bytesToRead;
             int remainingBytesInCurrentChunk = chunk.Length - this.currentChunkIndex;
             if (n >= remainingBytesInCurrentChunk)
             {

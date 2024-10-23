@@ -49,7 +49,7 @@ public abstract class ImageEncoder : IImageEncoder
         else
         {
             using ChunkedMemoryStream ms = new(configuration.MemoryAllocator);
-            this.Encode(image, stream, cancellationToken);
+            this.Encode(image, ms, cancellationToken);
             ms.Position = 0;
             ms.CopyTo(stream, configuration.StreamProcessingBufferSize);
         }
@@ -65,7 +65,7 @@ public abstract class ImageEncoder : IImageEncoder
         }
         else
         {
-            using ChunkedMemoryStream ms = new(configuration.MemoryAllocator);
+            await using ChunkedMemoryStream ms = new(configuration.MemoryAllocator);
             await DoEncodeAsync(ms);
             ms.Position = 0;
             await ms.CopyToAsync(stream, configuration.StreamProcessingBufferSize, cancellationToken)

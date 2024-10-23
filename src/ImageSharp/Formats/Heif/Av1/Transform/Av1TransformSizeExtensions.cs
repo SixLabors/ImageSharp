@@ -172,4 +172,43 @@ internal static class Av1TransformSizeExtensions
     public static int GetBlockWidthLog2(this Av1TransformSize size) => BlockWidthLog2[(int)GetAdjusted(size)];
 
     public static int GetBlockHeightLog2(this Av1TransformSize size) => BlockHeightLog2[(int)GetAdjusted(size)];
+
+    public static int GetRectangleLogRatio(this Av1TransformSize size)
+    {
+        int col = GetWidth(size);
+        int row = GetHeight(size);
+        if (col == row)
+        {
+            return 0;
+        }
+
+        if (col > row)
+        {
+            if (col == row * 2)
+            {
+                return 1;
+            }
+
+            if (col == row * 4)
+            {
+                return 2;
+            }
+
+            throw new InvalidImageContentException("Unsupported transform size");
+        }
+        else
+        {
+            if (row == col * 2)
+            {
+                return -1;
+            }
+
+            if (row == col * 4)
+            {
+                return -2;
+            }
+
+            throw new InvalidImageContentException("Unsupported transform size");
+        }
+    }
 }

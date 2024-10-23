@@ -1,10 +1,15 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-namespace SixLabors.ImageSharp.Formats.Heif.Av1.Quantization;
+using System;
+
+namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 
 internal static class Av1InverseTransformMath
 {
+    public const int NewInverseSqrt2 = 2896;
+    public const int NewSqrt2BitCount = 12;
+
     public static readonly int[,] AcQLookup = new int[3, 256]
     {
         {
@@ -144,5 +149,89 @@ internal static class Av1InverseTransformMath
         m = 1 + ((1 << (16 + l)) / d);
         quantization = m - (1 << 16);
         shift = 1 << (16 - l);
+    }
+
+    public static byte ClipPixelAdd(byte dest, long trans)
+    {
+        trans = CheckRange(trans, 8);
+        return (byte)ClipPixelHighBitDepth(dest + trans, 8);
+    }
+
+    public static ushort ClipPixelAdd(ushort dest, long trans, int bitDepth)
+    {
+        trans = CheckRange(trans, bitDepth);
+        return ClipPixelHighBitDepth(dest + trans, bitDepth);
+    }
+
+    private static ushort ClipPixelHighBitDepth(long val, int bd)
+    {
+        switch (bd)
+        {
+            case 8:
+            default:
+                return (ushort)Av1Math.Clamp(val, 0, 255);
+            case 10:
+                return (ushort)Av1Math.Clamp(val, 0, 1023);
+            case 12:
+                return (ushort)Av1Math.Clamp(val, 0, 4095);
+        }
+    }
+
+    public static void RoundShiftArray(Span<int> arr, int size, int bit)
+    {
+        int i;
+        if (bit == 0)
+        {
+            return;
+        }
+        else
+        {
+            if (bit > 0)
+            {
+                for (i = 0; i < size; i++)
+                {
+                    arr[i] = Av1Math.RoundShift(arr[i], bit);
+                }
+            }
+            else
+            {
+                for (i = 0; i < size; i++)
+                {
+                    arr[i] = arr[i] * (1 << (-bit));
+                }
+            }
+        }
+    }
+
+    internal static void ClampBuffer(Span<int> buffer, int size, byte bit)
+    {
+        for (int i = 0; i < size; i++)
+        {
+            buffer[i] = ClampValue(buffer[i], bit);
+        }
+    }
+
+    private static int ClampValue(int value, byte bit)
+    {
+        if (bit <= 0)
+        {
+            return value; // Do nothing for invalid clamp bit.
+        }
+
+        long max_value = (1L << (bit - 1)) - 1;
+        long min_value = -(1L << (bit - 1));
+        return (int)Av1Math.Clamp(value, min_value, max_value);
+    }
+
+    private static long CheckRange(long input, int bd)
+    {
+        // AV1 TX case
+        // - 8 bit: signed 16 bit integer
+        // - 10 bit: signed 18 bit integer
+        // - 12 bit: signed 20 bit integer
+        // - max quantization error = 1828 << (bd - 8)
+        int int_max = (1 << (7 + bd)) - 1 + (914 << (bd - 7));
+        int int_min = -int_max - 1;
+        return Av1Math.Clamp(input, int_min, int_max);
     }
 }

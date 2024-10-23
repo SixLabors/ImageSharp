@@ -5,7 +5,7 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 
-internal static class ForwardTransformerFactory
+internal static class Av1ForwardTransformerFactory
 {
     internal static void EstimateTransform(
         Span<short> residualBuffer,

@@ -28,8 +28,8 @@ internal class Av1InverseTransformer
             transformFunctionParameters.EndOfBuffer = GetMaxEndOfBuffer(transformSize);
         }
 
-        InverseTransformerFactory.InverseTransformAdd(
-            ref coefficientsBuffer[0], reconstructionBufferRead, reconstructionReadStride, reconstructionBufferWrite, reconstructionWriteStride, transformFunctionParameters);
+        Av1InverseTransformerFactory.InverseTransformAdd(
+            coefficientsBuffer, reconstructionBufferRead, reconstructionReadStride, reconstructionBufferWrite, reconstructionWriteStride, transformFunctionParameters);
     }
 
     /// <summary>

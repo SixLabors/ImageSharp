@@ -55,9 +55,11 @@ public static class BoxBlurExtensions
     /// The <see cref="BorderWrappingMode"/> to use when mapping the pixels outside of the border, in Y direction.
     /// </param>
     /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
-    public static IImageProcessingContext BoxBlur(this IImageProcessingContext source, int radius, Rectangle rectangle, BorderWrappingMode borderWrapModeX, BorderWrappingMode borderWrapModeY)
-    {
-        var processor = new BoxBlurProcessor(radius, borderWrapModeX, borderWrapModeY);
-        return source.ApplyProcessor(processor, rectangle);
-    }
+    public static IImageProcessingContext BoxBlur(
+        this IImageProcessingContext source,
+        int radius,
+        Rectangle rectangle,
+        BorderWrappingMode borderWrapModeX,
+        BorderWrappingMode borderWrapModeY)
+        => source.ApplyProcessor(new BoxBlurProcessor(radius, borderWrapModeX, borderWrapModeY), rectangle);
 }

@@ -4,6 +4,7 @@
 using System.Buffers;
 using System.Collections;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.IO;
@@ -13,11 +14,10 @@ namespace SixLabors.ImageSharp.IO;
 /// Chunks are allocated by the <see cref="MemoryAllocator"/> assigned via the constructor
 /// and is designed to take advantage of buffer pooling when available.
 /// </summary>
-/// <summary>Provides an in-memory stream composed of non-contiguous chunks.</summary>
 public class ChunkedMemoryStream : Stream
 {
     private readonly MemoryChunkBuffer memoryChunkBuffer;
-    private readonly byte[] singleReadBuffer = new byte[1];
+    private readonly byte[] singleByteBuffer = new byte[1];
 
     private long length;
     private long position;
@@ -101,8 +101,8 @@ public class ChunkedMemoryStream : Stream
             return -1;
         }
 
-        _ = this.Read(this.singleReadBuffer, 0, 1);
-        return this.singleReadBuffer[^1];
+        _ = this.Read(this.singleByteBuffer, 0, 1);
+        return MemoryMarshal.GetReference<byte>(this.singleByteBuffer);
     }
 
     /// <inheritdoc/>
@@ -129,15 +129,15 @@ public class ChunkedMemoryStream : Stream
         int count = buffer.Length;
 
         long remaining = this.length - this.position;
-        if (remaining > count)
-        {
-            remaining = count;
-        }
-
         if (remaining <= 0)
         {
             // Already at the end of the stream, nothing to read
             return 0;
+        }
+
+        if (remaining > count)
+        {
+            remaining = count;
         }
 
         int bytesToRead = (int)remaining;
@@ -173,6 +173,14 @@ public class ChunkedMemoryStream : Stream
 
         this.position += bytesRead;
         return bytesRead;
+    }
+
+    /// <inheritdoc/>
+    public override void WriteByte(byte value)
+    {
+        this.EnsureNotDisposed();
+        MemoryMarshal.Write(this.singleByteBuffer, ref value);
+        this.Write(this.singleByteBuffer, 0, 1);
     }
 
     /// <inheritdoc/>
@@ -309,7 +317,7 @@ public class ChunkedMemoryStream : Stream
         byte[] copy = new byte[this.length];
 
         this.Position = 0;
-        this.Read(copy, 0, copy.Length);
+        _ = this.Read(copy, 0, copy.Length);
         this.Position = position;
         return copy;
     }

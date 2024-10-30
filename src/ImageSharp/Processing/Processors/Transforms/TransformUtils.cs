@@ -3,6 +3,7 @@
 
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using SixLabors.ImageSharp.Processing.Processors.Transforms.Linear;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Transforms;
 
@@ -279,6 +280,91 @@ internal static class TransformUtils
     }
 
     /// <summary>
+    /// Computes the projection matrix for a quad distortion transformation.
+    /// </summary>
+    /// <param name="rectangle">The source rectangle.</param>
+    /// <param name="topLeft">The top-left point of the distorted quad.</param>
+    /// <param name="topRight">The top-right point of the distorted quad.</param>
+    /// <param name="bottomRight">The bottom-right point of the distorted quad.</param>
+    /// <param name="bottomLeft">The bottom-left point of the distorted quad.</param>
+    /// <param name="transformSpace">The <see cref="TransformSpace"/> to use when creating the matrix.</param>
+    /// <returns>The computed projection matrix for the quad distortion.</returns>
+    /// <remarks>
+    /// This method is based on the algorithm described in the following article:
+    /// <see href="https://blog.mbedded.ninja/mathematics/geometry/projective-transformations/"/>
+    /// </remarks>
+    public static Matrix4x4 CreateQuadDistortionMatrix(
+        Rectangle rectangle,
+        PointF topLeft,
+        PointF topRight,
+        PointF bottomRight,
+        PointF bottomLeft,
+        TransformSpace transformSpace)
+    {
+        PointF p1 = new(rectangle.X, rectangle.Y);
+        PointF p2 = new(rectangle.X + rectangle.Width, rectangle.Y);
+        PointF p3 = new(rectangle.X + rectangle.Width, rectangle.Y + rectangle.Height);
+        PointF p4 = new(rectangle.X, rectangle.Y + rectangle.Height);
+
+        PointF q1 = topLeft;
+        PointF q2 = topRight;
+        PointF q3 = bottomRight;
+        PointF q4 = bottomLeft;
+
+        double[][] matrixData =
+        [
+            [p1.X, p1.Y, 1, 0, 0, 0, -p1.X * q1.X, -p1.Y * q1.X],
+            [0, 0, 0, p1.X, p1.Y, 1, -p1.X * q1.Y, -p1.Y * q1.Y],
+            [p2.X, p2.Y, 1, 0, 0, 0, -p2.X * q2.X, -p2.Y * q2.X],
+            [0, 0, 0, p2.X, p2.Y, 1, -p2.X * q2.Y, -p2.Y * q2.Y],
+            [p3.X, p3.Y, 1, 0, 0, 0, -p3.X * q3.X, -p3.Y * q3.X],
+            [0, 0, 0, p3.X, p3.Y, 1, -p3.X * q3.Y, -p3.Y * q3.Y],
+            [p4.X, p4.Y, 1, 0, 0, 0, -p4.X * q4.X, -p4.Y * q4.X],
+            [0, 0, 0, p4.X, p4.Y, 1, -p4.X * q4.Y, -p4.Y * q4.Y],
+        ];
+
+        double[] b =
+        [
+            q1.X,
+            q1.Y,
+            q2.X,
+            q2.Y,
+            q3.X,
+            q3.Y,
+            q4.X,
+            q4.Y,
+        ];
+
+        GaussianEliminationSolver.Solve(matrixData, b);
+
+#pragma warning disable SA1117
+        Matrix4x4 projectionMatrix = new(
+            (float)b[0], (float)b[3], 0, (float)b[6],
+            (float)b[1], (float)b[4], 0, (float)b[7],
+            0, 0, 1, 0,
+            (float)b[2], (float)b[5], 0, 1);
+#pragma warning restore SA1117
+
+        // Check if the matrix involves only affine transformations by inspecting the relevant components.
+        // We want to use pixel space for calculations only if the transformation is purely 2D and does not include
+        // any perspective effects, non-standard scaling, or unusual translations that could distort the image.
+        if (transformSpace == TransformSpace.Pixel && IsAffineRotationOrSkew(projectionMatrix))
+        {
+            if (projectionMatrix.M41 != 0)
+            {
+                projectionMatrix.M41--;
+            }
+
+            if (projectionMatrix.M42 != 0)
+            {
+                projectionMatrix.M42--;
+            }
+        }
+
+        return projectionMatrix;
+    }
+
+    /// <summary>
     /// Returns the size relative to the source for the given transformation matrix.
     /// </summary>
     /// <param name="matrix">The transformation matrix.</param>
@@ -293,15 +379,16 @@ internal static class TransformUtils
     /// </summary>
     /// <param name="matrix">The transformation matrix.</param>
     /// <param name="size">The source size.</param>
+    /// <param name="transformSpace">The <see cref="TransformSpace"/> used when generating the matrix.</param>
     /// <returns>
     /// The <see cref="Size"/>.
     /// </returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Size GetTransformedSize(Matrix4x4 matrix, Size size)
+    public static Size GetTransformedSize(Matrix4x4 matrix, Size size, TransformSpace transformSpace)
     {
         Guard.IsTrue(size.Width > 0 && size.Height > 0, nameof(size), "Source size dimensions cannot be 0!");
 
-        if (matrix.Equals(default) || matrix.Equals(Matrix4x4.Identity))
+        if (matrix.IsIdentity || matrix.Equals(default))
         {
             return size;
         }
@@ -309,27 +396,7 @@ internal static class TransformUtils
         // Check if the matrix involves only affine transformations by inspecting the relevant components.
         // We want to use pixel space for calculations only if the transformation is purely 2D and does not include
         // any perspective effects, non-standard scaling, or unusual translations that could distort the image.
-        // The conditions are as follows:
-        bool usePixelSpace =
-
-            // 1. Ensure there's no perspective distortion:
-            // M34 corresponds to the perspective component. For a purely 2D affine transformation, this should be 0.
-            (matrix.M34 == 0) &&
-
-            // 2. Ensure standard affine transformation without any unusual depth or perspective scaling:
-            // M44 should be 1 for a standard affine transformation. If M44 is not 1, it indicates non-standard depth
-            // scaling or perspective, which suggests a more complex transformation.
-            (matrix.M44 == 1) &&
-
-            // 3. Ensure no unusual translation in the x-direction:
-            // M14 represents translation in the x-direction that might be part of a more complex transformation.
-            // For standard affine transformations, M14 should be 0.
-            (matrix.M14 == 0) &&
-
-            // 4. Ensure no unusual translation in the y-direction:
-            // M24 represents translation in the y-direction that might be part of a more complex transformation.
-            // For standard affine transformations, M24 should be 0.
-            (matrix.M24 == 0);
+        bool usePixelSpace = transformSpace == TransformSpace.Pixel && IsAffineRotationOrSkew(matrix);
 
         // Define an offset size to translate between pixel space and coordinate space.
         // When using pixel space, apply a scaling sensitive offset to translate to discrete pixel coordinates.
@@ -376,7 +443,7 @@ internal static class TransformUtils
     {
         Guard.IsTrue(size.Width > 0 && size.Height > 0, nameof(size), "Source size dimensions cannot be 0!");
 
-        if (matrix.Equals(default) || matrix.Equals(Matrix3x2.Identity))
+        if (matrix.IsIdentity || matrix.Equals(default))
         {
             return size;
         }
@@ -412,7 +479,7 @@ internal static class TransformUtils
     /// </returns>
     private static bool TryGetTransformedRectangle(RectangleF rectangle, Matrix3x2 matrix, out Rectangle bounds)
     {
-        if (rectangle.Equals(default) || Matrix3x2.Identity.Equals(matrix))
+        if (matrix.IsIdentity || rectangle.Equals(default))
         {
             bounds = default;
             return false;
@@ -439,7 +506,7 @@ internal static class TransformUtils
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool TryGetTransformedRectangle(RectangleF rectangle, Matrix4x4 matrix, out Rectangle bounds)
     {
-        if (rectangle.Equals(default) || Matrix4x4.Identity.Equals(matrix))
+        if (matrix.IsIdentity || rectangle.Equals(default))
         {
             bounds = default;
             return false;
@@ -491,5 +558,45 @@ internal static class TransformUtils
             (int)Math.Floor(top),
             (int)Math.Ceiling(right),
             (int)Math.Ceiling(bottom));
+    }
+
+    private static bool IsAffineRotationOrSkew(Matrix4x4 matrix)
+    {
+        const float epsilon = 1e-6f;
+
+        // Check if the matrix is affine (last column should be [0, 0, 0, 1])
+        if (Math.Abs(matrix.M14) > epsilon ||
+            Math.Abs(matrix.M24) > epsilon ||
+            Math.Abs(matrix.M34) > epsilon ||
+            Math.Abs(matrix.M44 - 1f) > epsilon)
+        {
+            return false;
+        }
+
+        // Translation component (M41, m42) are allowed, others are not.
+        if (Math.Abs(matrix.M43) > epsilon)
+        {
+            return false;
+        }
+
+        // Extract the linear (rotation and skew) part of the matrix
+        // Upper-left 3x3 matrix
+        float m11 = matrix.M11, m12 = matrix.M12, m13 = matrix.M13;
+        float m21 = matrix.M21, m22 = matrix.M22, m23 = matrix.M23;
+        float m31 = matrix.M31, m32 = matrix.M32, m33 = matrix.M33;
+
+        // Compute the determinant of the linear part
+        float determinant = (m11 * ((m22 * m33) - (m23 * m32))) -
+                            (m12 * ((m21 * m33) - (m23 * m31))) +
+                            (m13 * ((m21 * m32) - (m22 * m31)));
+
+        // Check if the determinant is approximately ±1 (no scaling)
+        if (Math.Abs(Math.Abs(determinant) - 1f) > epsilon)
+        {
+            return false;
+        }
+
+        // All checks passed; the matrix represents rotation and/or skew (with possible translation)
+        return true;
     }
 }

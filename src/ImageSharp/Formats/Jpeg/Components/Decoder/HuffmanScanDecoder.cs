@@ -119,6 +119,8 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
 
         this.frame.AllocateComponents();
 
+        this.todo = this.restartInterval;
+
         if (!this.frame.Progressive)
         {
             this.ParseBaselineData();

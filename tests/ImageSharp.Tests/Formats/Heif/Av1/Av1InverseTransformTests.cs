@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform.Forward;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform.Inverse;
@@ -74,6 +75,151 @@ public class Av1InverseTransformTests
     public void AccuracyOfEchoTransformSize4Test()
         => AssertAccuracy1d(Av1TransformType.Identity, Av1TransformSize.Size4x4, 0, new EchoTestTransformer(), new EchoTestTransformer());
 
+    [Fact]
+    public void FlipNothingTest()
+    {
+        // Arrange
+        int[] input = [
+            1, 2, 3, 4,
+            5, 6, 7, 8,
+            9, 10, 11, 12,
+            13, 14, 15, 16];
+        short[] expected = [
+            2, 4, 6, 8,
+            10, 12, 14, 16,
+            18, 20, 22, 24,
+            26, 28, 30, 32];
+        int[] temp = new int[16 + 8];
+        short[] actual = new short[16];
+        Av1Transform2dFlipConfiguration config = new(Av1TransformType.Identity, Av1TransformSize.Size4x4);
+        config.GenerateStageRange(8);
+        config.SetFlip(false, false);
+        config.SetShift(0, 0, 0);
+        IAv1Forward1dTransformer transformer = new EchoTestTransformer();
+
+        // Act
+        Av1Inverse2dTransformer.Transform2dAdd(
+            input,
+            actual,
+            4,
+            actual,
+            4,
+            config,
+            temp,
+            8);
+
+        // Assert
+        Assert.True(CompareWithError<short>(expected, actual, 1));
+    }
+
+    [Fact]
+    public void FlipHorizontalTest()
+    {
+        // Arrange
+        short[] expected = [
+            8, 6, 4, 2,
+            16, 14, 12, 10,
+            24, 22, 20, 18,
+            32, 30, 28, 26];
+        int[] input = [
+            1, 2, 3, 4,
+            5, 6, 7, 8,
+            9, 10, 11, 12,
+            13, 14, 15, 16];
+        int[] temp = new int[16 + 8];
+        short[] actual = new short[16];
+        Av1Transform2dFlipConfiguration config = new(Av1TransformType.Identity, Av1TransformSize.Size4x4);
+        config.SetFlip(false, true);
+        config.SetShift(0, 0, 0);
+        IAv1Forward1dTransformer transformer = new EchoTestTransformer();
+
+        // Act
+        Av1Inverse2dTransformer.Transform2dAdd(
+            input,
+            actual,
+            4,
+            actual,
+            4,
+            config,
+            temp,
+            8);
+
+        // Assert
+        Assert.True(CompareWithError<short>(expected, actual, 1));
+    }
+
+    [Fact]
+    public void FlipVerticalTest()
+    {
+        // Arrange
+        short[] expected = [
+            26, 28, 30, 32,
+            18, 20, 22, 24,
+            10, 12, 14, 16,
+            2, 4, 6, 8];
+        int[] input = [
+            1, 2, 3, 4,
+            5, 6, 7, 8,
+            9, 10, 11, 12,
+            13, 14, 15, 16];
+        int[] temp = new int[16 + 8];
+        short[] actual = new short[16];
+        Av1Transform2dFlipConfiguration config = new(Av1TransformType.Identity, Av1TransformSize.Size4x4);
+        config.SetFlip(true, false);
+        config.SetShift(0, 0, 0);
+        IAv1Forward1dTransformer transformer = new EchoTestTransformer();
+
+        // Act
+        Av1Inverse2dTransformer.Transform2dAdd(
+            input,
+            actual,
+            4,
+            actual,
+            4,
+            config,
+            temp,
+            8);
+
+        // Assert
+        Assert.True(CompareWithError<short>(expected, actual, 1));
+    }
+
+    [Fact]
+    public void FlipHorizontalAndVerticalTest()
+    {
+        // Arrange
+        short[] expected = [
+            32, 30, 28, 26,
+            24, 22, 20, 18,
+            16, 14, 12, 10,
+            8, 6, 4, 2];
+        int[] input = [
+            1, 2, 3, 4,
+            5, 6, 7, 8,
+            9, 10, 11, 12,
+            13, 14, 15, 16];
+        int[] temp = new int[16 + 8];
+        short[] actual = new short[16];
+        Av1Transform2dFlipConfiguration config = new(Av1TransformType.Identity, Av1TransformSize.Size4x4);
+        config.SetFlip(true, true);
+        config.SetShift(0, 0, 0);
+        IAv1Forward1dTransformer transformer = new EchoTestTransformer();
+
+        // Act
+        Av1Inverse2dTransformer.Transform2dAdd(
+            input,
+            actual,
+            4,
+            actual,
+            4,
+            config,
+            temp,
+            8);
+
+        // Assert
+        Assert.True(CompareWithError<short>(expected, actual, 1));
+    }
+
     private static void AssertAccuracy1d(
         Av1TransformType transformType,
         Av1TransformSize transformSize,
@@ -129,9 +275,159 @@ public class Av1InverseTransformTests
                 config.StageRangeColumn);
 
             // Assert
-            Assert.True(CompareWithError(inputOfTest, outputOfTest.Select(x => x >> scaleLog2).ToArray(), allowedError), $"Error: {GetMaximumError(inputOfTest, outputOfTest)}");
+            Assert.True(CompareWithError<int>(inputOfTest, outputOfTest.Select(x => x >> scaleLog2).ToArray(), allowedError), $"Error: {GetMaximumError<int>(inputOfTest, outputOfTest)}");
         }
     }
+
+    // [Theory]
+    // [MemberData(nameof(Generate2dCombinations))]
+    public void Test2dTransformAdd(int txSize, int txType, bool isLossless)
+    {
+        const int bitDepth = 8;
+        Av1TransformType transformType = (Av1TransformType)txType;
+        Av1TransformSize transformSize = (Av1TransformSize)txSize;
+        Av1TransformFunctionParameters transformFunctionParams = new()
+        {
+            BitDepth = bitDepth,
+            IsLossless = isLossless,
+            TransformSize = transformSize,
+            EndOfBuffer = Av1InverseTransformMath.GetMaxEndOfBuffer(transformSize)
+        };
+
+        if (bitDepth > 8 && !isLossless)
+        {
+            // Not support 10 bit with not lossless
+            return;
+        }
+
+        int width = transformSize.GetWidth();
+        int height = transformSize.GetHeight();
+        uint stride = (uint)width;
+        short[] input = new short[width * height];
+        int[] referenceOutput = new int[width * height];
+        short[] outputOfTest = new short[width * height];
+        int[] transformActual = new int[width * height];
+        int[] tempBuffer = new int[(width * height) + 128];
+
+        transformFunctionParams.TransformType = transformType;
+        Av1Transform2dFlipConfiguration config = new(transformType, transformSize);
+        config.GenerateStageRange(bitDepth);
+
+        const int loops = 1; // Initially: 10;
+        for (int k = 0; k < loops; k++)
+        {
+            PopulateWithRandomValues(input, bitDepth);
+
+            Av1ForwardTransformer.Transform2d(
+                input,
+                referenceOutput,
+                stride,
+                transformType,
+                transformSize,
+                bitDepth);
+            Av1Inverse2dTransformer.Transform2dAdd(
+                referenceOutput.Select(x => x >> 3).ToArray(),
+                outputOfTest,
+                width,
+                outputOfTest,
+                width,
+                config,
+                tempBuffer,
+                bitDepth);
+            Av1ForwardTransformer.Transform2d(
+                outputOfTest.Select(x => (short)(x >> 1)).ToArray(),
+                transformActual,
+                stride,
+                transformType,
+                transformSize,
+                bitDepth);
+
+            Assert.True(CompareWithError<int>(referenceOutput, transformActual, 1), $"Error: {GetMaximumError<int>(referenceOutput, transformActual)}");
+        }
+    }
+
+    private static void DivideArray(Span<int> list, int factor)
+    {
+        for (int i = 0; i < list.Length; i++)
+        {
+            list[i] = list[i] / factor;
+        }
+    }
+
+    private static void DivideArray(Span<short> list, int factor)
+    {
+        for (int i = 0; i < list.Length; i++)
+        {
+            list[i] = (short)(list[i] / factor);
+        }
+    }
+
+    public static TheoryData<int, int, bool> Generate2dCombinations()
+    {
+        int[][] transformFunctionSupportMatrix = [
+
+            // [Size][type]" // O - No; 1 - lossless; 2 - !lossless; 3 - any
+            /*0  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15*/
+            [3, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2], // 0  TX_4X4,
+            [3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3], // 1  TX_8X8,
+            [3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3], // 2  TX_16X16,
+            [3, 0, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0], // 3  TX_32X32,
+            [3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], // 4  TX_64X64,
+            [3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3], // 5  TX_4X8,
+            [3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3], // 6  TX_8X4,
+            [3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3], // 7  TX_8X16,
+            [3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3], // 8  TX_16X8,
+            [3, 1, 3, 1, 1, 3, 1, 1, 1, 3, 3, 3, 1, 3, 1, 3], // 9  TX_16X32,
+            [3, 3, 1, 1, 3, 1, 1, 1, 1, 3, 3, 3, 3, 1, 3, 1], // 10 TX_32X16,
+            [3, 0, 1, 0, 0, 1, 0, 0, 0, 3, 3, 3, 0, 1, 0, 1], // 11 TX_32X64,
+            [3, 1, 0, 0, 1, 0, 0, 0, 0, 3, 3, 3, 1, 0, 1, 0], // 12 TX_64X32,
+            [3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3], // 13 TX_4X16,
+            [3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3], // 14 TX_16X4,
+            [3, 1, 3, 1, 1, 3, 1, 1, 1, 3, 3, 3, 1, 3, 1, 3], // 15 TX_8X32,
+            [3, 3, 1, 1, 3, 1, 1, 1, 1, 3, 3, 3, 3, 1, 3, 1], // 16 TX_32X8,
+            [3, 0, 3, 0, 0, 3, 0, 0, 0, 3, 3, 3, 0, 3, 0, 3], // 17 TX_16X64,
+            [3, 3, 0, 0, 3, 0, 0, 0, 0, 3, 3, 3, 3, 0, 3, 0], // 18 TX_64X16,
+            /*0  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15*/
+        ];
+
+        TheoryData<int, int, bool> data = [];
+        for (int size = 0; size < (int)Av1TransformSize.AllSizes; size++)
+        {
+            for (int type = 0; type < (int)Av1TransformType.AllTransformTypes; type++)
+            {
+                for (int i = 0; i < 2; i++)
+                {
+                    bool isLossless = i == 1;
+                    if ((isLossless && ((transformFunctionSupportMatrix[size][type] & 1) == 0)) ||
+                        (!isLossless && ((transformFunctionSupportMatrix[size][type] & 2) == 0)))
+                    {
+                        continue;
+                    }
+
+                    if (IsTransformTypeImplemented((Av1TransformType)type, (Av1TransformSize)size))
+                    {
+                        data.Add(size, type, isLossless);
+                    }
+                }
+            }
+        }
+
+        return data;
+    }
+
+    private static void PopulateWithRandomValues(Span<short> input, int bitDepth)
+    {
+        Random rnd = new(42);
+        int maxValue = (1 << (bitDepth - 1)) - 1;
+        int minValue = -maxValue;
+        for (int i = 0; i < input.Length; i++)
+        {
+            input[i] = (short)rnd.Next(minValue, maxValue);
+        }
+    }
+
+    private static bool IsTransformTypeImplemented(Av1TransformType transformType, Av1TransformSize transformSize)
+        => transformSize == Av1TransformSize.Size4x4;
 
     private static IAv1Forward1dTransformer GetForwardTransformer(Av1TransformFunctionType func) =>
         func switch
@@ -175,20 +471,21 @@ public class Av1InverseTransformTests
             _ => null,
         };
 
-    private static bool CompareWithError(Span<int> expected, Span<int> actual, int allowedError)
+    private static bool CompareWithError<T>(Span<T> expected, Span<T> actual, int allowedError)
+        where T : unmanaged
     {
         // compare for the result is within accuracy
         int maximumErrorInTest = GetMaximumError(expected, actual);
         return maximumErrorInTest <= allowedError;
     }
 
-    private static int GetMaximumError(Span<int> expected, Span<int> actual)
+    private static int GetMaximumError<T>(Span<T> expected, Span<T> actual)
     {
         int maximumErrorInTest = 0;
         int count = Math.Min(expected.Length, 32);
         for (int ni = 0; ni < count; ++ni)
         {
-            maximumErrorInTest = Math.Max(maximumErrorInTest, Math.Abs(actual[ni] - expected[ni]));
+            maximumErrorInTest = Math.Max(maximumErrorInTest, Math.Abs(Convert.ToInt32(actual[ni]) - Convert.ToInt32(expected[ni])));
         }
 
         return maximumErrorInTest;

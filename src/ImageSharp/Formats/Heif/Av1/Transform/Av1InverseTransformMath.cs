@@ -157,23 +157,23 @@ internal static class Av1InverseTransformMath
         return (byte)ClipPixelHighBitDepth(dest + trans, 8);
     }
 
-    public static ushort ClipPixelAdd(ushort dest, long trans, int bitDepth)
+    public static short ClipPixelAdd(short dest, long trans, int bitDepth)
     {
         trans = CheckRange(trans, bitDepth);
         return ClipPixelHighBitDepth(dest + trans, bitDepth);
     }
 
-    private static ushort ClipPixelHighBitDepth(long val, int bd)
+    private static short ClipPixelHighBitDepth(long val, int bd)
     {
         switch (bd)
         {
             case 8:
             default:
-                return (ushort)Av1Math.Clamp(val, 0, 255);
+                return (short)Av1Math.Clamp(val, 0, 255);
             case 10:
-                return (ushort)Av1Math.Clamp(val, 0, 1023);
+                return (short)Av1Math.Clamp(val, 0, 1023);
             case 12:
-                return (ushort)Av1Math.Clamp(val, 0, 4095);
+                return (short)Av1Math.Clamp(val, 0, 4095);
         }
     }
 
@@ -233,5 +233,20 @@ internal static class Av1InverseTransformMath
         int int_max = (1 << (7 + bd)) - 1 + (914 << (bd - 7));
         int int_min = -int_max - 1;
         return Av1Math.Clamp(input, int_min, int_max);
+    }
+
+    internal static int GetMaxEndOfBuffer(Av1TransformSize transformSize)
+    {
+        if (transformSize is Av1TransformSize.Size64x64 or Av1TransformSize.Size64x32 or Av1TransformSize.Size32x64)
+        {
+            return 1024;
+        }
+
+        if (transformSize is Av1TransformSize.Size16x64 or Av1TransformSize.Size64x16)
+        {
+            return 512;
+        }
+
+        return transformSize.GetSize2d();
     }
 }

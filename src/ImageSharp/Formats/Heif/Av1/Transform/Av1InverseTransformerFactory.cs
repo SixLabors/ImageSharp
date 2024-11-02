@@ -15,17 +15,17 @@ internal static class Av1InverseTransformerFactory
         int height = transformFunctionParameters.TransformSize.GetHeight();
         Span<int> buffer = new int[(width * height) + (2 * Math.Max(width, height))];
         Av1Transform2dFlipConfiguration config = new(transformFunctionParameters.TransformType, transformFunctionParameters.TransformSize);
-        Av1Inverse2dTransformer.InverseTransform2dAdd(coefficients, readBuffer, readStride, writeBuffer, writeStride, config, buffer);
+        Av1Inverse2dTransformer.Transform2dAdd(coefficients, readBuffer, readStride, writeBuffer, writeStride, config, buffer);
     }
 
-    public static unsafe void InverseTransformAdd(Span<int> coefficients, Span<ushort> readBuffer, int readStride, Span<ushort> writeBuffer, int writeStride, Av1TransformFunctionParameters transformFunctionParameters)
+    public static unsafe void InverseTransformAdd(Span<int> coefficients, Span<short> readBuffer, int readStride, Span<short> writeBuffer, int writeStride, Av1TransformFunctionParameters transformFunctionParameters)
     {
         Guard.IsTrue(transformFunctionParameters.Is16BitPipeline, nameof(transformFunctionParameters), "Calling 16-bit pipeline while 8-bit is requested.");
         int width = transformFunctionParameters.TransformSize.GetWidth();
         int height = transformFunctionParameters.TransformSize.GetHeight();
         Span<int> buffer = new int[(width * height) + (2 * Math.Max(width, height))];
         Av1Transform2dFlipConfiguration config = new(transformFunctionParameters.TransformType, transformFunctionParameters.TransformSize);
-        Av1Inverse2dTransformer.InverseTransform2dAdd(coefficients, readBuffer, readStride, writeBuffer, writeStride, config, buffer, transformFunctionParameters.BitDepth);
+        Av1Inverse2dTransformer.Transform2dAdd(coefficients, readBuffer, readStride, writeBuffer, writeStride, config, buffer, transformFunctionParameters.BitDepth);
     }
 
     internal static IAv1Forward1dTransformer? GetTransformer(Av1TransformFunctionType type) => type switch

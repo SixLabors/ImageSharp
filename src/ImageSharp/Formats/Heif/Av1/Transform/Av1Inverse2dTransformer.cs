@@ -1,7 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Runtime.CompilerServices;
+using System.ComponentModel;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 
@@ -12,11 +12,11 @@ internal class Av1Inverse2dTransformer
     /// <summary>
     /// SVT: inv_txfm2d_add_c
     /// </summary>
-    internal static void InverseTransform2dAdd(
+    internal static void Transform2dAdd(
         Span<int> input,
-        Span<ushort> outputForRead,
+        Span<short> outputForRead,
         int strideForRead,
-        Span<ushort> outputForWrite,
+        Span<short> outputForWrite,
         int strideForWrite,
         Av1Transform2dFlipConfiguration config,
         Span<int> transformFunctionBuffer,
@@ -78,8 +78,8 @@ internal class Av1Inverse2dTransformer
             }
 
             Av1InverseTransformMath.RoundShiftArray(bufPtr, transformWidth, -shift[0]);
-            input.Slice(transformWidth);
-            bufPtr.Slice(transformWidth);
+            input = input[transformWidth..];
+            bufPtr = bufPtr.Slice(transformWidth);
         }
 
         // Columns
@@ -87,17 +87,21 @@ internal class Av1Inverse2dTransformer
         {
             if (!config.FlipLeftToRight)
             {
+                int t = c;
                 for (r = 0; r < transformHeight; ++r)
                 {
-                    tempIn[r] = buf[(r * transformWidth) + c];
+                    tempIn[r] = buf[t];
+                    t += transformWidth;
                 }
             }
             else
             {
                 // flip left right
+                int t = transformWidth - c - 1;
                 for (r = 0; r < transformHeight; ++r)
                 {
-                    tempIn[r] = buf[(r * transformWidth) + (transformWidth - c - 1)];
+                    tempIn[r] = buf[t];
+                    t += transformWidth;
                 }
             }
 
@@ -106,19 +110,29 @@ internal class Av1Inverse2dTransformer
             Av1InverseTransformMath.RoundShiftArray(tempOut, transformHeight, -shift[1]);
             if (!config.FlipUpsideDown)
             {
+                int indexForWrite = c;
+                int indexForRead = c;
                 for (r = 0; r < transformHeight; ++r)
                 {
-                    outputForWrite[(r * strideForWrite) + c] =
-                        Av1InverseTransformMath.ClipPixelAdd(outputForRead[(r * strideForRead) + c], tempOut[r], bitDepth);
+                    outputForWrite[indexForWrite] =
+                        Av1InverseTransformMath.ClipPixelAdd(outputForRead[indexForRead], tempOut[r], bitDepth);
+                    indexForWrite += strideForWrite;
+                    indexForRead += strideForRead;
                 }
             }
             else
             {
                 // flip upside down
+                int indexForWrite = c;
+                int indexForRead = c;
+                int indexTemp = transformHeight - 1;
                 for (r = 0; r < transformHeight; ++r)
                 {
-                    outputForWrite[(r * strideForWrite) + c] = Av1InverseTransformMath.ClipPixelAdd(
-                        outputForRead[(r * strideForRead) + c], tempOut[transformHeight - r - 1], bitDepth);
+                    outputForWrite[indexForWrite] = Av1InverseTransformMath.ClipPixelAdd(
+                        outputForRead[indexForRead], tempOut[indexTemp], bitDepth);
+                    indexForWrite += strideForWrite;
+                    indexForRead += strideForRead;
+                    indexTemp--;
                 }
             }
         }
@@ -127,7 +141,7 @@ internal class Av1Inverse2dTransformer
     /// <summary>
     /// SVT: inv_txfm2d_add_c
     /// </summary>
-    internal static void InverseTransform2dAdd(
+    internal static void Transform2dAdd(
         Span<int> input,
         Span<byte> outputForRead,
         int strideForRead,
@@ -240,6 +254,7 @@ internal class Av1Inverse2dTransformer
         }
     }
 
+    /*
     /// <summary>
     /// SVT: highbd_iwht4x4_add
     /// </summary>
@@ -260,8 +275,8 @@ internal class Av1Inverse2dTransformer
     /// </summary>
     private static void InverseWhalshHadamard4x4Add16(ref int input, ref byte destinationForRead, int strideForRead, ref byte destinationForWrite, int strideForWrite, int bitDepth)
     {
-        /* 4-point reversible, orthonormal inverse Walsh-Hadamard in 3.5 adds,
-           0.5 shifts per pixel. */
+        // 4-point reversible, orthonormal inverse Walsh-Hadamard in 3.5 adds,
+        // 0.5 shifts per pixel.
         int i;
         Span<ushort> output = stackalloc ushort[16];
         ushort a1, b1, c1, d1, e1;
@@ -311,7 +326,7 @@ internal class Av1Inverse2dTransformer
             range_check_value(b1, (int8_t)(bd + 1));
             range_check_value(c1, (int8_t)(bd + 1));
             range_check_value(d1, (int8_t)(bd + 1));
-            */
+            //
 
             destForWrite = Av1InverseTransformMath.ClipPixelAdd(destForRead, a1, bitDepth);
             Unsafe.Add(ref destForWrite, strideForWrite) = Av1InverseTransformMath.ClipPixelAdd(Unsafe.Add(ref destForRead, strideForRead), b1, bitDepth);
@@ -360,4 +375,5 @@ internal class Av1Inverse2dTransformer
             destForWrite = ref Unsafe.Add(ref destForWrite, 1);
         }
     }
+    */
 }

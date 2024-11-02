@@ -7,6 +7,9 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 
 internal static class Av1InverseTransformerFactory
 {
+    /// <summary>
+    /// SVT: svt_av1_inv_txfm_add
+    /// </summary>
     public static unsafe void InverseTransformAdd(Span<int> coefficients, Span<byte> readBuffer, int readStride, Span<byte> writeBuffer, int writeStride, Av1TransformFunctionParameters transformFunctionParameters)
     {
         Guard.MustBeLessThanOrEqualTo(transformFunctionParameters.BitDepth, 8, nameof(transformFunctionParameters));

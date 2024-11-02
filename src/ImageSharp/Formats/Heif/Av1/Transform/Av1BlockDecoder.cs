@@ -183,8 +183,6 @@ internal class Av1BlockDecoder
                                 quantizationCoefficients,
                                 transformBlockReconstructionBuffer,
                                 reconstructionStride,
-                                transformBlockReconstructionBuffer,
-                                reconstructionStride,
                                 transformSize,
                                 transformType,
                                 plane,

@@ -95,6 +95,9 @@ internal class Av1FrameDecoder
         }
     }
 
+    /// <summary>
+    /// SVT: svt_aom_decode_super_block
+    /// </summary>
     private void DecodeSuperblock(Point modeInfoPosition, Av1SuperblockInfo superblockInfo, Av1TileInfo tileInfo)
     {
         this.blockDecoder.UpdateSuperblock(superblockInfo);
@@ -102,6 +105,9 @@ internal class Av1FrameDecoder
         this.DecodePartition(modeInfoPosition, superblockInfo, tileInfo);
     }
 
+    /// <summary>
+    /// SVT: decode_partition
+    /// </summary>
     private void DecodePartition(Point modeInfoPosition, Av1SuperblockInfo superblockInfo, Av1TileInfo tileInfo)
     {
         Av1BlockModeInfo modeInfo = superblockInfo.GetModeInfo(modeInfoPosition);

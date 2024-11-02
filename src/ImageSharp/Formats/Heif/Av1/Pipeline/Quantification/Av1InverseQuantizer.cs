@@ -78,6 +78,9 @@ internal class Av1InverseQuantizer
         }
     }
 
+    /// <summary>
+    /// SVT: svt_aom_inverse_quantize
+    /// </summary>
     public int InverseQuantize(Av1BlockModeInfo mode, Span<int> level, Span<int> qCoefficients, Av1TransformType transformType, Av1TransformSize transformSize, Av1Plane plane)
     {
         Guard.NotNull(this.deQuantsDeltaQ);
@@ -135,12 +138,15 @@ internal class Av1InverseQuantizer
         return coefficientCount;
     }
 
+    /// <summary>
+    /// SVT: get_dqv
+    /// </summary>
     private static int GetDeQuantizedValue(short dequant, int coefficientIndex, ref int iqMatrix)
     {
+        const int bias = 1 << (Av1ScanOrderConstants.QuantizationMatrixLevelBitCount - 1);
         int deQuantifiedValue = dequant;
 
-        // TODO: Check order of operators
-        deQuantifiedValue = ((Unsafe.Add(ref iqMatrix, coefficientIndex) * deQuantifiedValue) + (1 << (Av1ScanOrderConstants.QuantizationMatrixLevelBitCount - 1))) >> Av1ScanOrderConstants.QuantizationMatrixLevelBitCount;
+        deQuantifiedValue = ((Unsafe.Add(ref iqMatrix, coefficientIndex) * deQuantifiedValue) + bias) >> Av1ScanOrderConstants.QuantizationMatrixLevelBitCount;
         return deQuantifiedValue;
     }
 }

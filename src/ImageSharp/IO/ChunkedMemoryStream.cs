@@ -2,7 +2,6 @@
 // Licensed under the Six Labors Split License.
 
 using System.Buffers;
-using System.Collections;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Memory;
@@ -14,15 +13,13 @@ namespace SixLabors.ImageSharp.IO;
 /// Chunks are allocated by the <see cref="MemoryAllocator"/> assigned via the constructor
 /// and is designed to take advantage of buffer pooling when available.
 /// </summary>
-public class ChunkedMemoryStream : Stream
+internal sealed class ChunkedMemoryStream : Stream
 {
     private readonly MemoryChunkBuffer memoryChunkBuffer;
-    private readonly byte[] singleByteBuffer = new byte[1];
-
     private long length;
     private long position;
-    private int currentChunk;
-    private int currentChunkIndex;
+    private int bufferIndex;
+    private int chunkIndex;
     private bool isDisposed;
 
     /// <summary>
@@ -95,21 +92,13 @@ public class ChunkedMemoryStream : Stream
     /// <inheritdoc/>
     public override int ReadByte()
     {
-        this.EnsureNotDisposed();
-        if (this.position >= this.length)
-        {
-            return -1;
-        }
-
-        _ = this.Read(this.singleByteBuffer, 0, 1);
-        return MemoryMarshal.GetReference<byte>(this.singleByteBuffer);
+        Unsafe.SkipInit(out byte b);
+        return this.Read(MemoryMarshal.CreateSpan(ref b, 1)) == 1 ? b : -1;
     }
 
     /// <inheritdoc/>
     public override int Read(byte[] buffer, int offset, int count)
     {
-        this.EnsureNotDisposed();
-
         Guard.NotNull(buffer, nameof(buffer));
         Guard.MustBeGreaterThanOrEqualTo(offset, 0, nameof(offset));
         Guard.MustBeGreaterThanOrEqualTo(count, 0, nameof(count));
@@ -135,19 +124,14 @@ public class ChunkedMemoryStream : Stream
             return 0;
         }
 
-        if (remaining > count)
-        {
-            remaining = count;
-        }
-
-        int bytesToRead = (int)remaining;
+        int bytesToRead = count;
         int bytesRead = 0;
-        while (bytesToRead != 0 && this.currentChunk != this.memoryChunkBuffer.Length)
+        while (bytesToRead > 0 && this.bufferIndex != this.memoryChunkBuffer.Length)
         {
             bool moveToNextChunk = false;
-            MemoryChunk chunk = this.memoryChunkBuffer[this.currentChunk];
+            MemoryChunk chunk = this.memoryChunkBuffer[this.bufferIndex];
             int n = bytesToRead;
-            int remainingBytesInCurrentChunk = chunk.Length - this.currentChunkIndex;
+            int remainingBytesInCurrentChunk = chunk.Length - this.chunkIndex;
             if (n >= remainingBytesInCurrentChunk)
             {
                 n = remainingBytesInCurrentChunk;
@@ -155,19 +139,19 @@ public class ChunkedMemoryStream : Stream
             }
 
             // Read n bytes from the current chunk
-            chunk.Buffer.Memory.Span.Slice(this.currentChunkIndex, n).CopyTo(buffer.Slice(offset, n));
+            chunk.Buffer.Memory.Span.Slice(this.chunkIndex, n).CopyTo(buffer.Slice(offset, n));
             bytesToRead -= n;
             offset += n;
             bytesRead += n;
 
             if (moveToNextChunk)
             {
-                this.currentChunkIndex = 0;
-                this.currentChunk++;
+                this.chunkIndex = 0;
+                this.bufferIndex++;
             }
             else
             {
-                this.currentChunkIndex += n;
+                this.chunkIndex += n;
             }
         }
 
@@ -177,11 +161,7 @@ public class ChunkedMemoryStream : Stream
 
     /// <inheritdoc/>
     public override void WriteByte(byte value)
-    {
-        this.EnsureNotDisposed();
-        MemoryMarshal.Write(this.singleByteBuffer, ref value);
-        this.Write(this.singleByteBuffer, 0, 1);
-    }
+        => this.Write(MemoryMarshal.CreateSpan(ref value, 1));
 
     /// <inheritdoc/>
     public override void Write(byte[] buffer, int offset, int count)
@@ -213,19 +193,14 @@ public class ChunkedMemoryStream : Stream
             remaining = this.memoryChunkBuffer.Length - this.position;
         }
 
-        if (remaining > count)
-        {
-            remaining = count;
-        }
-
-        int bytesToWrite = (int)remaining;
+        int bytesToWrite = count;
         int bytesWritten = 0;
-        while (bytesToWrite != 0 && this.currentChunk != this.memoryChunkBuffer.Length)
+        while (bytesToWrite > 0 && this.bufferIndex != this.memoryChunkBuffer.Length)
         {
             bool moveToNextChunk = false;
-            MemoryChunk chunk = this.memoryChunkBuffer[this.currentChunk];
+            MemoryChunk chunk = this.memoryChunkBuffer[this.bufferIndex];
             int n = bytesToWrite;
-            int remainingBytesInCurrentChunk = chunk.Length - this.currentChunkIndex;
+            int remainingBytesInCurrentChunk = chunk.Length - this.chunkIndex;
             if (n >= remainingBytesInCurrentChunk)
             {
                 n = remainingBytesInCurrentChunk;
@@ -233,19 +208,19 @@ public class ChunkedMemoryStream : Stream
             }
 
             // Write n bytes to the current chunk
-            buffer.Slice(offset, n).CopyTo(chunk.Buffer.Slice(this.currentChunkIndex, n));
+            buffer.Slice(offset, n).CopyTo(chunk.Buffer.Slice(this.chunkIndex, n));
             bytesToWrite -= n;
             offset += n;
             bytesWritten += n;
 
             if (moveToNextChunk)
             {
-                this.currentChunkIndex = 0;
-                this.currentChunk++;
+                this.chunkIndex = 0;
+                this.bufferIndex++;
             }
             else
             {
-                this.currentChunkIndex += n;
+                this.chunkIndex += n;
             }
         }
 
@@ -275,12 +250,12 @@ public class ChunkedMemoryStream : Stream
 
         int bytesToRead = (int)remaining;
         int bytesRead = 0;
-        while (bytesToRead != 0 && this.currentChunk != this.memoryChunkBuffer.Length)
+        while (bytesToRead > 0 && this.bufferIndex != this.memoryChunkBuffer.Length)
         {
             bool moveToNextChunk = false;
-            MemoryChunk chunk = this.memoryChunkBuffer[this.currentChunk];
+            MemoryChunk chunk = this.memoryChunkBuffer[this.bufferIndex];
             int n = bytesToRead;
-            int remainingBytesInCurrentChunk = chunk.Length - this.currentChunkIndex;
+            int remainingBytesInCurrentChunk = chunk.Length - this.chunkIndex;
             if (n >= remainingBytesInCurrentChunk)
             {
                 n = remainingBytesInCurrentChunk;
@@ -288,18 +263,18 @@ public class ChunkedMemoryStream : Stream
             }
 
             // Read n bytes from the current chunk
-            stream.Write(chunk.Buffer.Memory.Span.Slice(this.currentChunkIndex, n));
+            stream.Write(chunk.Buffer.Memory.Span.Slice(this.chunkIndex, n));
             bytesToRead -= n;
             bytesRead += n;
 
             if (moveToNextChunk)
             {
-                this.currentChunkIndex = 0;
-                this.currentChunk++;
+                this.chunkIndex = 0;
+                this.bufferIndex++;
             }
             else
             {
-                this.currentChunkIndex += n;
+                this.chunkIndex += n;
             }
         }
 
@@ -338,8 +313,8 @@ public class ChunkedMemoryStream : Stream
                 this.memoryChunkBuffer.Dispose();
             }
 
-            this.currentChunk = 0;
-            this.currentChunkIndex = 0;
+            this.bufferIndex = 0;
+            this.chunkIndex = 0;
             this.position = 0;
             this.length = 0;
         }
@@ -366,8 +341,8 @@ public class ChunkedMemoryStream : Stream
         // If the new position is greater than the length of the stream, set the position to the end of the stream
         if (offset > 0 && offset >= this.memoryChunkBuffer.Length)
         {
-            this.currentChunk = this.memoryChunkBuffer.ChunkCount - 1;
-            this.currentChunkIndex = this.memoryChunkBuffer[this.currentChunk].Length - 1;
+            this.bufferIndex = this.memoryChunkBuffer.ChunkCount - 1;
+            this.chunkIndex = this.memoryChunkBuffer[this.bufferIndex].Length - 1;
             return;
         }
 
@@ -386,10 +361,10 @@ public class ChunkedMemoryStream : Stream
             currentChunkIndex++;
         }
 
-        this.currentChunk = currentChunkIndex;
+        this.bufferIndex = currentChunkIndex;
 
         // Safe to cast here as we know the offset is less than the chunk length.
-        this.currentChunkIndex = (int)offset;
+        this.chunkIndex = (int)offset;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -404,7 +379,7 @@ public class ChunkedMemoryStream : Stream
     [MethodImpl(MethodImplOptions.NoInlining)]
     private static void ThrowDisposed() => throw new ObjectDisposedException(nameof(ChunkedMemoryStream), "The stream is closed.");
 
-    private sealed class MemoryChunkBuffer : IEnumerable<MemoryChunk>, IDisposable
+    private sealed class MemoryChunkBuffer : IDisposable
     {
         private readonly List<MemoryChunk> memoryChunks = new();
         private readonly MemoryAllocator allocator;
@@ -439,15 +414,19 @@ public class ChunkedMemoryStream : Stream
 
         public void Dispose()
         {
-            this.Dispose(true);
-            GC.SuppressFinalize(this);
+            if (!this.isDisposed)
+            {
+                foreach (MemoryChunk chunk in this.memoryChunks)
+                {
+                    chunk.Dispose();
+                }
+
+                this.memoryChunks.Clear();
+
+                this.Length = 0;
+                this.isDisposed = true;
+            }
         }
-
-        public IEnumerator<MemoryChunk> GetEnumerator()
-            => ((IEnumerable<MemoryChunk>)this.memoryChunks).GetEnumerator();
-
-        IEnumerator IEnumerable.GetEnumerator()
-            => ((IEnumerable)this.memoryChunks).GetEnumerator();
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static int GetChunkSize(int i)
@@ -458,25 +437,6 @@ public class ChunkedMemoryStream : Stream
             const int b128K = 1 << 17;
             const int b4M = 1 << 22;
             return i < 16 ? b128K * (1 << (int)((uint)i / 4)) : b4M;
-        }
-
-        private void Dispose(bool disposing)
-        {
-            if (!this.isDisposed)
-            {
-                if (disposing)
-                {
-                    foreach (MemoryChunk chunk in this.memoryChunks)
-                    {
-                        chunk.Dispose();
-                    }
-
-                    this.memoryChunks.Clear();
-                }
-
-                this.Length = 0;
-                this.isDisposed = true;
-            }
         }
     }
 
@@ -490,23 +450,13 @@ public class ChunkedMemoryStream : Stream
 
         public int Length { get; init; }
 
-        private void Dispose(bool disposing)
+        public void Dispose()
         {
             if (!this.isDisposed)
             {
-                if (disposing)
-                {
-                    this.Buffer.Dispose();
-                }
-
+                this.Buffer.Dispose();
                 this.isDisposed = true;
             }
-        }
-
-        public void Dispose()
-        {
-            this.Dispose(disposing: true);
-            GC.SuppressFinalize(this);
         }
     }
 }

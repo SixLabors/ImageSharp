@@ -124,7 +124,13 @@ internal sealed class ChunkedMemoryStream : Stream
             return 0;
         }
 
-        int bytesToRead = count;
+        if (remaining > count)
+        {
+            remaining = count;
+        }
+
+        // 'remaining' can be less than the provided buffer length.
+        int bytesToRead = (int)remaining;
         int bytesRead = 0;
         while (bytesToRead > 0 && this.bufferIndex != this.memoryChunkBuffer.Length)
         {
@@ -422,7 +428,6 @@ internal sealed class ChunkedMemoryStream : Stream
                 }
 
                 this.memoryChunks.Clear();
-
                 this.Length = 0;
                 this.isDisposed = true;
             }

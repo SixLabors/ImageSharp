@@ -187,8 +187,8 @@ internal class Av1TileReader : IAv1TileReader
         switch (partitionType)
         {
             case Av1PartitionType.Split:
-                Point loc1 = new(modeInfoLocation.X, modeInfoLocation.Y + halfBlock4x4Size);
-                Point loc2 = new(modeInfoLocation.X + halfBlock4x4Size, modeInfoLocation.Y);
+                Point loc1 = new(modeInfoLocation.X + halfBlock4x4Size, modeInfoLocation.Y);
+                Point loc2 = new(modeInfoLocation.X, modeInfoLocation.Y + halfBlock4x4Size);
                 Point loc3 = new(modeInfoLocation.X + halfBlock4x4Size, modeInfoLocation.Y + halfBlock4x4Size);
                 this.ParsePartition(ref reader, modeInfoLocation, subSize, superblockInfo, tileInfo);
                 this.ParsePartition(ref reader, loc1, subSize, superblockInfo, tileInfo);
@@ -248,7 +248,7 @@ internal class Av1TileReader : IAv1TileReader
                 for (int i = 0; i < 4; i++)
                 {
                     int currentBlockRow = rowIndex + (i * quarterBlock4x4Size);
-                    if (i > 0 && currentBlockRow > this.FrameHeader.ModeInfoRowCount)
+                    if (i > 0 && currentBlockRow >= this.FrameHeader.ModeInfoRowCount)
                     {
                         break;
                     }
@@ -262,7 +262,7 @@ internal class Av1TileReader : IAv1TileReader
                 for (int i = 0; i < 4; i++)
                 {
                     int currentBlockColumn = columnIndex + (i * quarterBlock4x4Size);
-                    if (i > 0 && currentBlockColumn > this.FrameHeader.ModeInfoColumnCount)
+                    if (i > 0 && currentBlockColumn >= this.FrameHeader.ModeInfoColumnCount)
                     {
                         break;
                     }
@@ -338,7 +338,7 @@ internal class Av1TileReader : IAv1TileReader
         this.ReadBlockTransformSize(ref reader, modeInfoLocation, partitionInfo, superblockInfo, tileInfo);
         if (partitionInfo.ModeInfo.Skip)
         {
-            this.ResetSkipContext(partitionInfo);
+            this.ResetSkipContext(partitionInfo, tileInfo);
         }
 
         this.Residual(ref reader, partitionInfo, superblockInfo, tileInfo, blockSize);
@@ -347,7 +347,10 @@ internal class Av1TileReader : IAv1TileReader
         this.FrameInfo.UpdateModeInfo(blockModeInfo, superblockInfo);
     }
 
-    private void ResetSkipContext(Av1PartitionInfo partitionInfo)
+    /// <summary>
+    /// SVT: reset_skip_context
+    /// </summary>
+    private void ResetSkipContext(Av1PartitionInfo partitionInfo, Av1TileInfo tileInfo)
     {
         int planesCount = this.SequenceHeader.ColorConfig.PlaneCount;
         for (int i = 0; i < planesCount; i++)
@@ -358,8 +361,8 @@ internal class Av1TileReader : IAv1TileReader
             DebugGuard.IsTrue(planeBlockSize != Av1BlockSize.Invalid, nameof(planeBlockSize));
             int txsWide = planeBlockSize.GetWidth() >> 2;
             int txsHigh = planeBlockSize.GetHeight() >> 2;
-            int aboveOffset = (partitionInfo.ColumnIndex - this.FrameHeader.TilesInfo.TileColumnStartModeInfo[partitionInfo.ColumnIndex]) >> subX;
-            int leftOffset = (partitionInfo.RowIndex - this.FrameHeader.TilesInfo.TileRowStartModeInfo[partitionInfo.RowIndex]) >> subY;
+            int aboveOffset = (partitionInfo.ColumnIndex - tileInfo.ModeInfoColumnStart) >> subX;
+            int leftOffset = (partitionInfo.RowIndex - partitionInfo.SuperblockInfo.Position.Y) >> subY;
             this.aboveNeighborContext.ClearContext(i, aboveOffset, txsWide);
             this.leftNeighborContext.ClearContext(i, leftOffset, txsHigh);
         }

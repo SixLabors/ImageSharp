@@ -64,9 +64,9 @@ internal class Av1ParseAboveNeighbor4x4Context
         Array.Fill(this.aboveCompGroupIndex, 0, 0, width);
     }
 
-    public void UpdatePartition(Point modeInfoLocation, Av1TileInfo tileLoc, Av1BlockSize subSize, Av1BlockSize blockSize)
+    public void UpdatePartition(Point modeInfoLocation, Av1TileInfo tileInfo, Av1BlockSize subSize, Av1BlockSize blockSize)
     {
-        int startIndex = modeInfoLocation.X - tileLoc.ModeInfoColumnStart;
+        int startIndex = modeInfoLocation.X - tileInfo.ModeInfoColumnStart;
         int bw = blockSize.Get4x4WideCount();
         int value = Av1PartitionContext.GetAboveContext(subSize);
 

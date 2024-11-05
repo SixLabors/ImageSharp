@@ -48,7 +48,7 @@ internal partial class Av1FrameInfo
         // Allocate the arrays.
         this.superblockInfos = new Av1SuperblockInfo[superblockCount];
         this.modeInfos = new Av1BlockModeInfo[superblockCount * this.modeInfoCountPerSuperblock];
-        this.modeInfoMap = new Av1FrameModeInfoMap(new Size(this.modeInfoCountPerSuperblock * this.superblockColumnCount, this.modeInfoCountPerSuperblock * this.superblockRowCount), superblockSizeLog2);
+        this.modeInfoMap = new Av1FrameModeInfoMap(new Size(this.modeInfoSizePerSuperblock * this.superblockColumnCount, this.modeInfoSizePerSuperblock * this.superblockRowCount), superblockSizeLog2);
         this.transformInfosY = new Av1TransformInfo[superblockCount * this.modeInfoCountPerSuperblock];
         this.transformInfosUv = new Av1TransformInfo[2 * superblockCount * this.modeInfoCountPerSuperblock];
 

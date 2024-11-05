@@ -11,8 +11,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 public class Av1TilingTests
 {
     [Theory]
-    /*[InlineData(TestImages.Heif.XnConvert, 0x010E, 0x03CC, 18)]*/
-    [InlineData(TestImages.Heif.Orange4x4, 0x010E, 0x001d, 21)]
+    [InlineData(TestImages.Heif.XnConvert, 0x010E, 0x03CC, 18)]
+    // [InlineData(TestImages.Heif.Orange4x4, 0x010E, 0x001d, 21)]
     public void ReadFirstTile(string filename, int dataOffset, int dataSize, int tileOffset)
     {
         // Assign

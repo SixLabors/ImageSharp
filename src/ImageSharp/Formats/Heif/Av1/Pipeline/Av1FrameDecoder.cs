@@ -39,7 +39,11 @@ internal class Av1FrameDecoder
         bool doLoopFilterFlag = false;
         bool doLoopRestoration = false;
         bool doUpscale = false;
-        this.DecodeLoopFilterForFrame(doLoopFilterFlag);
+        if (doLoopFilterFlag)
+        {
+            this.DecodeLoopFilterForFrame();
+        }
+
         if (doLoopRestoration)
         {
             // LoopRestorationSaveBoundaryLines(false);
@@ -56,6 +60,9 @@ internal class Av1FrameDecoder
         // PadPicture();
     }
 
+    /// <summary>
+    /// SVT: decode_tile
+    /// </summary>
     private void DecodeFrameTiles(int tileColumn)
     {
         int tileRowCount = this.frameHeader.TilesInfo.TileRowCount;
@@ -74,6 +81,9 @@ internal class Av1FrameDecoder
         }
     }
 
+    /// <summary>
+    /// SVT: decode_tile_row
+    /// </summary>
     private void DecodeTileRow(int tileRow, int tileColumn, int modeInfoRow, int superblockRow)
     {
         int superblockModeInfoSizeLog2 = this.sequenceHeader.SuperblockSizeLog2 - Av1Constants.ModeInfoSizeLog2;
@@ -122,13 +132,8 @@ internal class Av1FrameDecoder
         }
     }
 
-    private void DecodeLoopFilterForFrame(bool doLoopFilterFlag)
+    private void DecodeLoopFilterForFrame()
     {
-        if (!doLoopFilterFlag)
-        {
-            return;
-        }
-
         int superblockSizeLog2 = this.sequenceHeader.SuperblockSizeLog2;
         int pictureWidthInSuperblocks = Av1Math.DivideLog2Ceiling(this.frameHeader.FrameSize.FrameWidth, this.sequenceHeader.SuperblockSizeLog2);
         int pictureHeightInSuperblocks = Av1Math.DivideLog2Ceiling(this.frameHeader.FrameSize.FrameHeight, this.sequenceHeader.SuperblockSizeLog2);

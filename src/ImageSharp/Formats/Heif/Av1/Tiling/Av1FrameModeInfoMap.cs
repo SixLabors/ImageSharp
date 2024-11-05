@@ -13,7 +13,7 @@ internal partial class Av1FrameInfo
     /// </remarks>
     public class Av1FrameModeInfoMap
     {
-        private readonly int[] offsets;
+        private readonly ushort[] offsets;
         private Size alignedModeInfoCount;
 
         public Av1FrameModeInfoMap(Size modeInfoCount, int superblockSizeLog2)
@@ -22,7 +22,7 @@ internal partial class Av1FrameInfo
                 modeInfoCount.Width * (1 << (superblockSizeLog2 - Av1Constants.ModeInfoSizeLog2)),
                 modeInfoCount.Height * (1 << (superblockSizeLog2 - Av1Constants.ModeInfoSizeLog2)));
             this.NextIndex = 0;
-            this.offsets = new int[this.alignedModeInfoCount.Width * this.alignedModeInfoCount.Height];
+            this.offsets = new ushort[this.alignedModeInfoCount.Width * this.alignedModeInfoCount.Height];
         }
 
         /// <summary>
@@ -54,7 +54,7 @@ internal partial class Av1FrameInfo
             /* Update 4x4 nbr offset map */
             for (int i = modeInfoLocation.Y; i < modeInfoLocation.Y + bh4; i++)
             {
-                Array.Fill(this.offsets, this.NextIndex, (i * this.alignedModeInfoCount.Width) + modeInfoLocation.X, bw4);
+                Array.Fill(this.offsets, (ushort)this.NextIndex, (i * this.alignedModeInfoCount.Width) + modeInfoLocation.X, bw4);
             }
 
             this.NextIndex++;

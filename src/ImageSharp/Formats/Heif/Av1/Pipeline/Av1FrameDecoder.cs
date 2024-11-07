@@ -8,7 +8,7 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 
-internal class Av1FrameDecoder
+internal class Av1FrameDecoder : IAv1FrameDecoder
 {
     private readonly ObuSequenceHeader sequenceHeader;
     private readonly ObuFrameHeader frameHeader;
@@ -108,7 +108,7 @@ internal class Av1FrameDecoder
     /// <summary>
     /// SVT: svt_aom_decode_super_block
     /// </summary>
-    private void DecodeSuperblock(Point modeInfoPosition, Av1SuperblockInfo superblockInfo, Av1TileInfo tileInfo)
+    public void DecodeSuperblock(Point modeInfoPosition, Av1SuperblockInfo superblockInfo, Av1TileInfo tileInfo)
     {
         this.blockDecoder.UpdateSuperblock(superblockInfo);
         this.inverseQuantizer.UpdateDequant(this.deQuants, superblockInfo);

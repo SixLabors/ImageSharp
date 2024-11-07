@@ -3,6 +3,7 @@
 
 using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
@@ -24,7 +25,10 @@ public class Av1TilingTests
         IAv1TileReader stub = new Av1TileDecoderStub();
         ObuReader obuReader = new();
         obuReader.ReadAll(ref bitStreamReader, dataSize, stub);
-        Av1TileReader tileReader = new(Configuration.Default, obuReader.SequenceHeader, obuReader.FrameHeader);
+        Av1FrameBuffer frameBuffer = new(Configuration.Default, obuReader.SequenceHeader, Av1ColorFormat.Yuv444, false);
+        Av1FrameInfo frameInfo = new(obuReader.SequenceHeader);
+        Av1FrameDecoder frameDecoder = new(obuReader.SequenceHeader, obuReader.FrameHeader, frameInfo, frameBuffer);
+        Av1TileReader tileReader = new(Configuration.Default, obuReader.SequenceHeader, obuReader.FrameHeader, frameDecoder);
 
         // Act
         tileReader.ReadTile(tileSpan, 0);

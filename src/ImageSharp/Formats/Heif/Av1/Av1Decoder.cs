@@ -48,7 +48,13 @@ internal class Av1Decoder : IAv1TileReader
         {
             this.SequenceHeader = this.obuReader.SequenceHeader;
             this.FrameHeader = this.obuReader.FrameHeader;
-            this.tileReader = new Av1TileReader(this.configuration, this.SequenceHeader!, this.FrameHeader!);
+            Guard.NotNull(this.tileReader, nameof(this.tileReader));
+            Guard.NotNull(this.SequenceHeader, nameof(this.SequenceHeader));
+            Guard.NotNull(this.FrameHeader, nameof(this.FrameHeader));
+            this.FrameInfo = new(this.SequenceHeader);
+            this.FrameBuffer = new(this.configuration, this.SequenceHeader, this.SequenceHeader.ColorConfig.GetColorFormat(), false);
+            this.frameDecoder = new(this.SequenceHeader, this.FrameHeader, this.FrameInfo, this.FrameBuffer);
+            this.tileReader = new Av1TileReader(this.configuration, this.SequenceHeader, this.FrameHeader, this.frameDecoder);
         }
 
         this.tileReader.ReadTile(tileData, tileNum);

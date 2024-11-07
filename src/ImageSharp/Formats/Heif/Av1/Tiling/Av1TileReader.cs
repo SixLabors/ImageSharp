@@ -4,6 +4,7 @@
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 
@@ -35,12 +36,14 @@ internal class Av1TileReader : IAv1TileReader
     private readonly int[] firstTransformOffset = new int[2];
     private readonly int[] coefficientIndex = [];
     private readonly Configuration configuration;
+    private readonly IAv1FrameDecoder frameDecoder;
 
-    public Av1TileReader(Configuration configuration, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameHeader)
+    public Av1TileReader(Configuration configuration, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameHeader, IAv1FrameDecoder frameDecoder)
     {
         this.FrameHeader = frameHeader;
         this.configuration = configuration;
         this.SequenceHeader = sequenceHeader;
+        this.frameDecoder = frameDecoder;
 
         // init_main_frame_ctxt
         this.FrameInfo = new(this.SequenceHeader);
@@ -56,7 +59,7 @@ internal class Av1TileReader : IAv1TileReader
         int superblockColumnCount =
             Av1Math.AlignPowerOf2(sequenceHeader.MaxFrameWidth, sequenceHeader.SuperblockSizeLog2) >> sequenceHeader.SuperblockSizeLog2;
         int modeInfoWideColumnCount = superblockColumnCount * sequenceHeader.SuperblockModeInfoSize;
-        modeInfoWideColumnCount = Av1Math.AlignPowerOf2(modeInfoWideColumnCount, sequenceHeader.SuperblockSizeLog2 - 2);
+        modeInfoWideColumnCount = Av1Math.AlignPowerOf2(modeInfoWideColumnCount, sequenceHeader.SuperblockSizeLog2 - Av1Constants.ModeInfoSizeLog2);
         this.aboveNeighborContext = new Av1ParseAboveNeighbor4x4Context(planesCount, modeInfoWideColumnCount);
         this.leftNeighborContext = new Av1ParseLeftNeighbor4x4Context(planesCount, sequenceHeader.SuperblockModeInfoSize);
         this.transformUnitCount = new int[Av1Constants.MaxPlanes][];
@@ -72,6 +75,9 @@ internal class Av1TileReader : IAv1TileReader
 
     public Av1FrameInfo FrameInfo { get; }
 
+    /// <summary>
+    /// SVT: parse_tile
+    /// </summary>
     public void ReadTile(Span<byte> tileData, int tileNum)
     {
         Av1SymbolDecoder reader = new(tileData, this.FrameHeader.QuantizationParameters.BaseQIndex);
@@ -103,14 +109,15 @@ internal class Av1TileReader : IAv1TileReader
 
         Av1TileInfo tileInfo = new(tileRowIndex, tileColumnIndex, this.FrameHeader);
         Av1BlockSize superBlockSize = this.SequenceHeader.SuperblockSize;
-        int superBlock4x4Size = this.SequenceHeader.SuperblockSizeLog2;
+        int superBlock4x4Size = this.SequenceHeader.SuperblockSize.Get4x4WideCount();
+        int superBlockSizeLog2 = this.SequenceHeader.SuperblockSizeLog2;
         for (int row = modeInfoRowStart; row < modeInfoRowEnd; row += superBlock4x4Size)
         {
-            int superBlockRow = (row << Av1Constants.ModeInfoSizeLog2) >> superBlock4x4Size;
+            int superBlockRow = (row << Av1Constants.ModeInfoSizeLog2) >> superBlockSizeLog2;
             this.leftNeighborContext.Clear(this.SequenceHeader);
             for (int column = modeInfoColumnStart; column < modeInfoColumnEnd; column += superBlock4x4Size)
             {
-                int superBlockColumn = (column << Av1Constants.ModeInfoSizeLog2) >> superBlock4x4Size;
+                int superBlockColumn = (column << Av1Constants.ModeInfoSizeLog2) >> superBlockSizeLog2;
                 Point superblockPosition = new(superBlockColumn, superBlockRow);
                 Av1SuperblockInfo superblockInfo = this.FrameInfo.GetSuperblock(superblockPosition);
 
@@ -120,6 +127,9 @@ internal class Av1TileReader : IAv1TileReader
                 this.firstTransformOffset[1] = 0;
                 this.ReadLoopRestoration(modeInfoPosition, superBlockSize);
                 this.ParsePartition(ref reader, modeInfoPosition, superBlockSize, superblockInfo, tileInfo);
+
+                // decoding of the superblock
+                this.frameDecoder.DecodeSuperblock(modeInfoPosition, superblockInfo, tileInfo);
             }
         }
     }
@@ -1863,6 +1873,9 @@ internal class Av1TileReader : IAv1TileReader
         return xPos && yPos;
     }*/
 
+    /// <summary>
+    /// SVT: partition_plane_context
+    /// </summary>
     private int GetPartitionPlaneContext(Point location, Av1BlockSize blockSize, Av1TileInfo tileInfo, Av1SuperblockInfo superblockInfo)
     {
         // Maximum partition point is 8x8. Offset the log value occordingly.

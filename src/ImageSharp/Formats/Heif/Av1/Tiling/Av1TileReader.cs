@@ -372,7 +372,7 @@ internal class Av1TileReader : IAv1TileReader
             int txsWide = planeBlockSize.GetWidth() >> 2;
             int txsHigh = planeBlockSize.GetHeight() >> 2;
             int aboveOffset = (partitionInfo.ColumnIndex - tileInfo.ModeInfoColumnStart) >> subX;
-            int leftOffset = (partitionInfo.RowIndex - partitionInfo.SuperblockInfo.Position.Y) >> subY;
+            int leftOffset = (partitionInfo.RowIndex - partitionInfo.SuperblockInfo.ModeInfoPosition.Y) >> subY;
             this.aboveNeighborContext.ClearContext(i, aboveOffset, txsWide);
             this.leftNeighborContext.ClearContext(i, leftOffset, txsHigh);
         }
@@ -1267,7 +1267,7 @@ internal class Av1TileReader : IAv1TileReader
         Av1TransformSize maxTransformSize = partitionInfo.ModeInfo.BlockSize.GetMaximumTransformSize();
         int aboveWidth = this.aboveNeighborContext.AboveTransformWidth[partitionInfo.ColumnIndex - tileInfo.ModeInfoColumnStart];
         int above = (aboveWidth >= maxTransformSize.GetWidth()) ? 1 : 0;
-        int leftHeight = this.leftNeighborContext.LeftTransformHeight[partitionInfo.RowIndex - superblockInfo.Position.Y];
+        int leftHeight = this.leftNeighborContext.LeftTransformHeight[partitionInfo.RowIndex - superblockInfo.ModeInfoPosition.Y];
         int left = (leftHeight >= maxTransformSize.GetHeight()) ? 1 : 0;
         bool hasAbove = partitionInfo.AvailableAbove;
         bool hasLeft = partitionInfo.AvailableLeft;
@@ -1880,7 +1880,7 @@ internal class Av1TileReader : IAv1TileReader
     {
         // Maximum partition point is 8x8. Offset the log value occordingly.
         int aboveCtx = this.aboveNeighborContext.AbovePartitionWidth[location.X - tileInfo.ModeInfoColumnStart];
-        int leftCtx = this.leftNeighborContext.LeftPartitionHeight[(location.Y - superblockInfo.Position.Y) & Av1PartitionContext.Mask];
+        int leftCtx = this.leftNeighborContext.LeftPartitionHeight[(location.Y - superblockInfo.ModeInfoPosition.Y) & Av1PartitionContext.Mask];
         int blockSizeLog = blockSize.Get4x4WidthLog2() - Av1BlockSize.Block8x8.Get4x4WidthLog2();
         int above = (aboveCtx >> blockSizeLog) & 0x1;
         int left = (leftCtx >> blockSizeLog) & 0x1;

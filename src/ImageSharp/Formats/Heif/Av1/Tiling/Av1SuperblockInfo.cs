@@ -18,6 +18,11 @@ internal class Av1SuperblockInfo
     /// </summary>
     public Point Position { get; }
 
+    /// <summary>
+    /// Gets the position of this superblock inside the tile, counted in mode info blocks (of 4x4 pixels).
+    /// </summary>
+    public Point ModeInfoPosition => this.Position * this.frameInfo.SuperblockModeInfoSize;
+
     public ref int SuperblockDeltaQ => ref this.frameInfo.GetDeltaQuantizationIndex(this.Position);
 
     public Av1BlockModeInfo SuperblockModeInfo => this.GetModeInfo(new Point(0, 0));

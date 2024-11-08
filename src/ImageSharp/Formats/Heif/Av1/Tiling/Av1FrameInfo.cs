@@ -82,7 +82,15 @@ internal partial class Av1FrameInfo
         this.deltaLoopFilter = new int[superblockCount << this.deltaLoopFactorLog2];
     }
 
+    /// <summary>
+    /// Gets the number of mode info blocks in a single superblock.
+    /// </summary>
     public int ModeInfoCount => this.modeInfos.Length;
+
+    /// <summary>
+    /// Gets the Width or height of a single superblock, counted in mode info blocks.
+    /// </summary>
+    public int SuperblockModeInfoSize => this.modeInfoSizePerSuperblock;
 
     public Av1SuperblockInfo GetSuperblock(Point index)
     {

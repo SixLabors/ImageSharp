@@ -66,7 +66,7 @@ internal class Av1ParseLeftNeighbor4x4Context
 
     public void UpdatePartition(Point modeInfoLocation, Av1SuperblockInfo superblockInfo, Av1BlockSize subSize, Av1BlockSize blockSize)
     {
-        int startIndex = (modeInfoLocation.Y - superblockInfo.Position.Y) & Av1PartitionContext.Mask;
+        int startIndex = (modeInfoLocation.Y - superblockInfo.ModeInfoPosition.Y) & Av1PartitionContext.Mask;
         int bh = blockSize.Get4x4HighCount();
         int value = Av1PartitionContext.GetLeftContext(subSize);
         DebugGuard.MustBeLessThanOrEqualTo(startIndex, this.LeftTransformHeight.Length - bh, nameof(startIndex));
@@ -75,7 +75,7 @@ internal class Av1ParseLeftNeighbor4x4Context
 
     public void UpdateTransformation(Point modeInfoLocation, Av1SuperblockInfo superblockInfo, Av1TransformSize transformSize, Av1BlockSize blockSize, bool skip)
     {
-        int startIndex = modeInfoLocation.Y - superblockInfo.Position.Y;
+        int startIndex = modeInfoLocation.Y - superblockInfo.ModeInfoPosition.Y;
         int transformHeight = transformSize.GetHeight();
         int n4h = blockSize.Get4x4HighCount();
         if (skip)

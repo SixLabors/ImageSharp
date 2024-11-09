@@ -39,7 +39,7 @@ public class ObuFrameHeaderTests
         ObuReader obuReader = new();
 
         // Act
-        obuReader.ReadAll(ref reader, blockSize, decoder);
+        obuReader.ReadAll(ref reader, blockSize, () => decoder);
 
         // Assert
         Assert.NotNull(obuReader.SequenceHeader);
@@ -63,7 +63,7 @@ public class ObuFrameHeaderTests
         ObuReader obuReader = new();
 
         // Act 1
-        obuReader.ReadAll(ref reader, blockSize, tileStub);
+        obuReader.ReadAll(ref reader, blockSize, () => tileStub);
 
         // Assign 2
         MemoryStream encoded = new();
@@ -91,7 +91,7 @@ public class ObuFrameHeaderTests
         ObuReader obuReader1 = new();
 
         // Act 1
-        obuReader1.ReadAll(ref reader, blockSize, tileStub);
+        obuReader1.ReadAll(ref reader, blockSize, () => tileStub);
 
         // Assign 2
         MemoryStream encoded = new();
@@ -107,7 +107,7 @@ public class ObuFrameHeaderTests
         ObuReader obuReader2 = new();
 
         // Act 2
-        obuReader2.ReadAll(ref reader2, encodedBuffer.Length, tileDecoder2);
+        obuReader2.ReadAll(ref reader2, encodedBuffer.Length, () => tileDecoder2);
 
         // Assert
         Assert.Equal(ObuPrettyPrint.PrettyPrintProperties(obuReader1.SequenceHeader.ColorConfig), ObuPrettyPrint.PrettyPrintProperties(obuReader2.SequenceHeader.ColorConfig));
@@ -125,7 +125,7 @@ public class ObuFrameHeaderTests
         IAv1TileReader tileDecoder = new Av1TileDecoderStub();
 
         // Act
-        obuReader.ReadAll(ref reader, DefaultTemporalDelimiterBitStream.Length, tileDecoder);
+        obuReader.ReadAll(ref reader, DefaultTemporalDelimiterBitStream.Length, () => tileDecoder);
 
         // Assert
         Assert.Null(obuReader.SequenceHeader);
@@ -142,7 +142,7 @@ public class ObuFrameHeaderTests
         IAv1TileReader tileDecoder = new Av1TileDecoderStub();
 
         // Act
-        obuReader.ReadAll(ref reader, bitStream.Length, tileDecoder);
+        obuReader.ReadAll(ref reader, bitStream.Length, () => tileDecoder);
 
         // Assert
         Assert.Null(obuReader.SequenceHeader);
@@ -160,7 +160,7 @@ public class ObuFrameHeaderTests
         ObuSequenceHeader expected = GetDefaultSequenceHeader();
 
         // Act
-        obuReader.ReadAll(ref reader, bitStream.Length, tileDecoder);
+        obuReader.ReadAll(ref reader, bitStream.Length, () => tileDecoder);
 
         // Assert
         Assert.NotNull(obuReader.SequenceHeader);

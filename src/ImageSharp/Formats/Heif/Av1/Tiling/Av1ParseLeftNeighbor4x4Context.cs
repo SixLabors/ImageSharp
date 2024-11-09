@@ -69,7 +69,7 @@ internal class Av1ParseLeftNeighbor4x4Context
         int startIndex = (modeInfoLocation.Y - superblockInfo.ModeInfoPosition.Y) & Av1PartitionContext.Mask;
         int bh = blockSize.Get4x4HighCount();
         int value = Av1PartitionContext.GetLeftContext(subSize);
-        DebugGuard.MustBeLessThanOrEqualTo(startIndex, this.LeftTransformHeight.Length - bh, nameof(startIndex));
+        DebugGuard.MustBeLessThanOrEqualTo(startIndex, this.LeftPartitionHeight.Length - bh, nameof(startIndex));
         Array.Fill(this.LeftPartitionHeight, value, startIndex, bh);
     }
 

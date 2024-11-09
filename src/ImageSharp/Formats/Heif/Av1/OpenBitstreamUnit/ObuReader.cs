@@ -39,6 +39,8 @@ internal class ObuReader
 
     private static readonly int[] SegmentationFeatureMax = [255, MaxLoopFilter, MaxLoopFilter, MaxLoopFilter, MaxLoopFilter, 7, 0, 0];
 
+    private IAv1TileReader? decoder;
+
     public ObuSequenceHeader? SequenceHeader { get; set; }
 
     public ObuFrameHeader? FrameHeader { get; set; }
@@ -46,7 +48,7 @@ internal class ObuReader
     /// <summary>
     /// Decode all OBU's in a frame.
     /// </summary>
-    public void ReadAll(ref Av1BitStreamReader reader, int dataSize, IAv1TileReader decoder, bool isAnnexB = false)
+    public void ReadAll(ref Av1BitStreamReader reader, int dataSize, Func<IAv1TileReader> creator, bool isAnnexB = false)
     {
         bool seenFrameHeader = false;
         bool frameDecodingFinished = false;
@@ -121,7 +123,8 @@ internal class ObuReader
                         throw new InvalidImageContentException("Corrupt frame");
                     }
 
-                    this.ReadTileGroup(ref reader, decoder, header, out frameDecodingFinished);
+                    this.decoder ??= creator();
+                    this.ReadTileGroup(ref reader, this.decoder, header, out frameDecodingFinished);
                     if (frameDecodingFinished)
                     {
                         seenFrameHeader = false;

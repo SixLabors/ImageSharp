@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.Tests.IO;
 /// </summary>
 public class ChunkedMemoryStreamTests
 {
-    private readonly Random bufferFiller = new();
+    private readonly Random bufferFiller = new(123);
 
     /// <summary>
     /// The default length in bytes of each buffer chunk when allocating large buffers.

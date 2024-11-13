@@ -544,6 +544,44 @@ public class WebpEncoderTests
     [Fact]
     public void RunEncodeLossy_WithPeakImage_WithoutHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunEncodeLossy_WithPeakImage, HwIntrinsics.DisableHWIntrinsic);
 
+    [Theory]
+    [WithFile(TestPatternOpaque, PixelTypes.Rgba32)]
+    public void CanSave_NonSeekableStream<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage();
+        WebpEncoder encoder = new();
+
+        using MemoryStream seekable = new();
+        image.Save(seekable, encoder);
+
+        using MemoryStream memoryStream = new();
+        using NonSeekableStream nonSeekable = new(memoryStream);
+
+        image.Save(nonSeekable, encoder);
+
+        Assert.True(seekable.ToArray().SequenceEqual(memoryStream.ToArray()));
+    }
+
+    [Theory]
+    [WithFile(TestPatternOpaque, PixelTypes.Rgba32)]
+    public async Task CanSave_NonSeekableStream_Async<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage();
+        WebpEncoder encoder = new();
+
+        await using MemoryStream seekable = new();
+        image.Save(seekable, encoder);
+
+        await using MemoryStream memoryStream = new();
+        await using NonSeekableStream nonSeekable = new(memoryStream);
+
+        await image.SaveAsync(nonSeekable, encoder);
+
+        Assert.True(seekable.ToArray().SequenceEqual(memoryStream.ToArray()));
+    }
+
     private static ImageComparer GetComparer(int quality)
     {
         float tolerance = 0.01f; // ~1.0%

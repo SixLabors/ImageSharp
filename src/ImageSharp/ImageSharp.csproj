@@ -13,6 +13,7 @@
     <PackageTags>Image Resize Crop Gif Jpg Jpeg Bitmap Pbm Png Tga Tiff WebP NetCore</PackageTags>
     <Description>A new, fully featured, fully managed, cross-platform, 2D graphics API for .NET</Description>
     <Configurations>Debug;Release</Configurations>
+    <IsTrimmable>true</IsTrimmable>
   </PropertyGroup>
 
   <!--  This enables the nullable analysis and treats all nullable warnings as error-->
@@ -29,14 +30,12 @@
   <Choose>
     <When Condition="$(SIXLABORS_TESTING_PREVIEW) == true">
       <PropertyGroup>
-        <TargetFrameworks>net8.0</TargetFrameworks>
-        <IsTrimmable>true</IsTrimmable>
+        <TargetFrameworks>net8.0;net9.0</TargetFrameworks>
       </PropertyGroup>
     </When>
     <Otherwise>
       <PropertyGroup>
         <TargetFrameworks>net8.0</TargetFrameworks>
-        <IsTrimmable>true</IsTrimmable>
       </PropertyGroup>
     </Otherwise>
   </Choose>

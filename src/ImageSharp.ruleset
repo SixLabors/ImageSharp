@@ -1,4 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <RuleSet Name="ImageSharp" ToolsVersion="17.0">
   <Include Path="..\shared-infrastructure\sixlabors.ruleset" Action="Default" />
+  <Rules AnalyzerId="Microsoft.CodeAnalysis.CSharp.NetAnalyzers" RuleNamespace="Microsoft.CodeAnalysis.CSharp.NetAnalyzers">
+    <Rule Id="CA2022" Action="Info" />
+  </Rules>
 </RuleSet>

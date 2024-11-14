@@ -128,21 +128,18 @@ public abstract partial class Image
         // Does the given stream contain enough data to fit in the header for the format
         // and does that data match the format specification?
         // Individual formats should still check since they are public.
-        IImageFormat? format = null;
         foreach (IImageFormatDetector formatDetector in configuration.ImageFormatsManager.FormatDetectors)
         {
             if (formatDetector.HeaderSize <= headersBuffer.Length && formatDetector.TryDetectFormat(headersBuffer, out IImageFormat? attemptFormat))
             {
-                format = attemptFormat;
+                return attemptFormat;
             }
         }
 
-        if (format is null)
-        {
-            ImageFormatManager.ThrowInvalidDecoder(configuration.ImageFormatsManager);
-        }
+        ImageFormatManager.ThrowInvalidDecoder(configuration.ImageFormatsManager);
 
-        return format;
+        // Need to write this otherwise compiler is not happy
+        return null;
     }
 
     /// <summary>

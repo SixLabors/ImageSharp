@@ -241,7 +241,7 @@ internal sealed class ExifWriter
         return true;
     }
 
-    private static uint GetLength(IList<IExifValue> values)
+    private static uint GetLength(List<IExifValue> values)
     {
         if (values.Count == 0)
         {

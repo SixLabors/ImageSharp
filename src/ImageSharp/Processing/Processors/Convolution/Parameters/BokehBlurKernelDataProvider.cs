@@ -21,12 +21,12 @@ internal static class BokehBlurKernelDataProvider
     /// <summary>
     /// Gets the kernel scales to adjust the component values in each kernel
     /// </summary>
-    private static IReadOnlyList<float> KernelScales { get; } = new[] { 1.4f, 1.2f, 1.2f, 1.2f, 1.2f, 1.2f };
+    private static float[] KernelScales { get; } = new[] { 1.4f, 1.2f, 1.2f, 1.2f, 1.2f, 1.2f };
 
     /// <summary>
     /// Gets the available bokeh blur kernel parameters
     /// </summary>
-    private static IReadOnlyList<Vector4[]> KernelComponents { get; } = new[]
+    private static Vector4[][] KernelComponents { get; } = new[]
     {
         // 1 component
         new[] { new Vector4(0.862325f, 1.624835f, 0.767583f, 1.862321f) },
@@ -112,7 +112,7 @@ internal static class BokehBlurKernelDataProvider
     private static (Vector4[] Parameters, float Scale) GetParameters(int componentsCount)
     {
         // Prepare the kernel components
-        int index = Math.Max(0, Math.Min(componentsCount - 1, KernelComponents.Count));
+        int index = Math.Max(0, Math.Min(componentsCount - 1, KernelComponents.Length));
 
         return (KernelComponents[index], KernelScales[index]);
     }

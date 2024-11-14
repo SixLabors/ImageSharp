@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.Processing;
 /// </summary>
 public class AffineTransformBuilder
 {
-    private readonly List<Func<Size, Matrix3x2>> transformMatrixFactories = new();
+    private readonly List<Func<Size, Matrix3x2>> transformMatrixFactories = [];
 
     /// <summary>
     /// Initializes a new instance of the <see cref="AffineTransformBuilder"/> class.
@@ -301,7 +301,8 @@ public class AffineTransformBuilder
     /// </summary>
     /// <param name="sourceSize">The source image size.</param>
     /// <returns>The <see cref="Matrix3x2"/>.</returns>
-    public Matrix3x2 BuildMatrix(Size sourceSize) => this.BuildMatrix(new Rectangle(Point.Empty, sourceSize));
+    public Matrix3x2 BuildMatrix(Size sourceSize)
+        => this.BuildMatrix(new Rectangle(Point.Empty, sourceSize));
 
     /// <summary>
     /// Returns the combined transform matrix for a given source rectangle.
@@ -345,18 +346,8 @@ public class AffineTransformBuilder
     /// <returns>The <see cref="Size"/>.</returns>
     public Size GetTransformedSize(Rectangle sourceRectangle)
     {
-        Size size = sourceRectangle.Size;
-
-        // Translate the origin matrix to cater for source rectangle offsets.
-        Matrix3x2 matrix = Matrix3x2.CreateTranslation(-sourceRectangle.Location);
-
-        foreach (Func<Size, Matrix3x2> factory in this.transformMatrixFactories)
-        {
-            matrix *= factory(size);
-            CheckDegenerate(matrix);
-        }
-
-        return TransformUtils.GetTransformedSize(matrix, size, this.TransformSpace);
+        Matrix3x2 matrix = this.BuildMatrix(sourceRectangle);
+        return TransformUtils.GetTransformedSize(matrix, sourceRectangle.Size, this.TransformSpace);
     }
 
     private static void CheckDegenerate(Matrix3x2 matrix)

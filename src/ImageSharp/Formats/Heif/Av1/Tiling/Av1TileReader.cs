@@ -14,7 +14,6 @@ internal class Av1TileReader : IAv1TileReader
 {
     private static readonly int[] SgrprojXqdMid = [-32, 31];
     private static readonly int[] WienerTapsMid = [3, -7, 15];
-    private const int PartitionProbabilitySet = 4;
     private static readonly int[] Signs = [0, -1, 1];
     private static readonly int[] DcSignContexts = [
         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0,
@@ -182,13 +181,11 @@ internal class Av1TileReader : IAv1TileReader
             }
             else if (hasColumns)
             {
-                bool splitOrVertical = reader.ReadSplitOrVertical(blockSize, ctx);
-                partitionType = splitOrVertical ? Av1PartitionType.Split : Av1PartitionType.Horizontal;
+                partitionType = reader.ReadSplitOrHorizontal(blockSize, ctx);
             }
             else if (hasRows)
             {
-                bool splitOrHorizontal = reader.ReadSplitOrHorizontal(blockSize, ctx);
-                partitionType = splitOrHorizontal ? Av1PartitionType.Split : Av1PartitionType.Vertical;
+                partitionType = reader.ReadSplitOrVertical(blockSize, ctx);
             }
         }
 
@@ -1886,7 +1883,7 @@ internal class Av1TileReader : IAv1TileReader
         int left = (leftCtx >> blockSizeLog) & 0x1;
         DebugGuard.IsTrue(blockSize.Get4x4WidthLog2() == blockSize.Get4x4HeightLog2(), "Blocks should be square");
         DebugGuard.MustBeGreaterThanOrEqualTo(blockSizeLog, 0, nameof(blockSizeLog));
-        return ((left << 1) + above) + (blockSizeLog * PartitionProbabilitySet);
+        return ((left << 1) + above) + (blockSizeLog * Av1Constants.PartitionProbabilitySet);
     }
 
     private void UpdatePartitionContext(Point modeInfoLocation, Av1TileInfo tileLoc, Av1SuperblockInfo superblockInfo, Av1BlockSize subSize, Av1BlockSize blockSize, Av1PartitionType partition)

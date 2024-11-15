@@ -166,4 +166,9 @@ internal static class Av1Math
         DebugGuard.MustBeGreaterThanOrEqualTo(bit, 1, nameof(bit));
         return (int)((value + (1L << (bit - 1))) >> bit);
     }
+
+    /// <summary>
+    /// <paramref name="a"/> implies <paramref name="b"/>.
+    /// </summary>
+    internal static bool Implies(bool a, bool b) => !a || b;
 }

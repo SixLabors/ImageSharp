@@ -2,9 +2,11 @@
 // Licensed under the Six Labors Split License.
 
 using System.Buffers;
+using System.Reflection;
 using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 using SixLabors.ImageSharp.Memory;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 
@@ -217,6 +219,80 @@ public class SymbolTests
         Assert.Equal(values, actuals);
     }
 
+    [Theory]
+    [InlineData((int)Av1BlockSize.Block4x4, 7)]
+    [InlineData((int)Av1BlockSize.Block4x4, 5)]
+    [InlineData((int)Av1BlockSize.Block8x4, 7)]
+    [InlineData((int)Av1BlockSize.Block4x8, 7)]
+    [InlineData((int)Av1BlockSize.Block32x64, 7)]
+    [InlineData((int)Av1BlockSize.Block64x32, 7)]
+    [InlineData((int)Av1BlockSize.Block64x64, 7)]
+    public void RoundTripSplitOrHorizontalPartitionType(int blockSize, int context)
+    {
+        // Assign
+        Configuration configuration = Configuration.Default;
+        Av1SymbolEncoder encoder = new(configuration, 100 / 8);
+        Av1PartitionType[] values = [
+            Av1PartitionType.Split, Av1PartitionType.Split, Av1PartitionType.Split, Av1PartitionType.Horizontal,
+            Av1PartitionType.Split, Av1PartitionType.Split, Av1PartitionType.Horizontal, Av1PartitionType.Horizontal];
+        Av1PartitionType[] actuals = new Av1PartitionType[values.Length];
+
+        // Act
+        foreach (Av1PartitionType value in values)
+        {
+            encoder.WriteSplitOrHorizontal(value, (Av1BlockSize)blockSize, context);
+        }
+
+        using IMemoryOwner<byte> encoded = encoder.Exit();
+
+        Av1SymbolDecoder decoder = new(encoded.GetSpan(), 0);
+        Av1SymbolReader reader = new(encoded.GetSpan());
+        for (int i = 0; i < values.Length; i++)
+        {
+            actuals[i] = decoder.ReadSplitOrHorizontal((Av1BlockSize)blockSize, context);
+        }
+
+        // Assert
+        Assert.Equal(values, actuals);
+    }
+
+    [Theory]
+    [InlineData((int)Av1BlockSize.Block4x4, 7)]
+    [InlineData((int)Av1BlockSize.Block4x4, 5)]
+    [InlineData((int)Av1BlockSize.Block8x4, 7)]
+    [InlineData((int)Av1BlockSize.Block4x8, 7)]
+    [InlineData((int)Av1BlockSize.Block32x64, 7)]
+    [InlineData((int)Av1BlockSize.Block64x32, 7)]
+    [InlineData((int)Av1BlockSize.Block64x64, 7)]
+    public void RoundTripSplitOrVerticalPartitionType(int blockSize, int context)
+    {
+        // Assign
+        Configuration configuration = Configuration.Default;
+        Av1SymbolEncoder encoder = new(configuration, 100 / 8);
+        Av1PartitionType[] values = [
+            Av1PartitionType.Split, Av1PartitionType.Split, Av1PartitionType.Split, Av1PartitionType.Vertical,
+            Av1PartitionType.Split, Av1PartitionType.Split, Av1PartitionType.Vertical, Av1PartitionType.Vertical];
+        Av1PartitionType[] actuals = new Av1PartitionType[values.Length];
+
+        // Act
+        foreach (Av1PartitionType value in values)
+        {
+            encoder.WriteSplitOrVertical(value, (Av1BlockSize)blockSize, context);
+        }
+
+        using IMemoryOwner<byte> encoded = encoder.Exit();
+
+        Av1SymbolDecoder decoder = new(encoded.GetSpan(), 0);
+        Av1SymbolReader reader = new(encoded.GetSpan());
+        for (int i = 0; i < values.Length; i++)
+        {
+            actuals[i] = decoder.ReadSplitOrVertical((Av1BlockSize)blockSize, context);
+        }
+
+        // Assert
+        Assert.Equal(values, actuals);
+    }
+
     [Fact]
     public void RoundTripUseIntraBlockCopy()
     {
@@ -235,7 +311,6 @@ public class SymbolTests
         using IMemoryOwner<byte> encoded = encoder.Exit();
 
         Av1SymbolDecoder decoder = new(encoded.GetSpan(), 0);
-        Av1SymbolReader reader = new(encoded.GetSpan());
         for (int i = 0; i < values.Length; i++)
         {
             actuals[i] = decoder.ReadUseIntraBlockCopy();

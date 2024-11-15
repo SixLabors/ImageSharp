@@ -64,42 +64,24 @@ internal ref struct Av1SymbolDecoder
         return (Av1PartitionType)r.ReadSymbol(this.tilePartitionTypes[context]);
     }
 
-    public bool ReadSplitOrHorizontal(Av1BlockSize blockSize, int context)
+    /// <summary>
+    /// SVT: partition_gather_vert_alike
+    /// </summary>
+    public Av1PartitionType ReadSplitOrHorizontal(Av1BlockSize blockSize, int context)
     {
-        Av1Distribution input = this.tilePartitionTypes[context];
-        uint p = Av1Distribution.ProbabilityTop;
-        p -= GetElementProbability(input, Av1PartitionType.Horizontal);
-        p -= GetElementProbability(input, Av1PartitionType.Split);
-        p -= GetElementProbability(input, Av1PartitionType.HorizontalA);
-        p -= GetElementProbability(input, Av1PartitionType.HorizontalB);
-        p -= GetElementProbability(input, Av1PartitionType.VerticalA);
-        if (blockSize != Av1BlockSize.Block128x128)
-        {
-            p -= GetElementProbability(input, Av1PartitionType.Horizontal4);
-        }
-
-        Av1Distribution distribution = new(Av1Distribution.ProbabilityTop - p);
+        Av1Distribution distribution = GetSplitOrHorizontalDistribution(this.tilePartitionTypes, blockSize, context);
         ref Av1SymbolReader r = ref this.reader;
-        return r.ReadSymbol(distribution) > 0;
+        return r.ReadSymbol(distribution) > 0 ? Av1PartitionType.Split : Av1PartitionType.Horizontal;
     }
 
-    public bool ReadSplitOrVertical(Av1BlockSize blockSize, int context)
+    /// <summary>
+    /// SVT: partition_gather_horz_alike
+    /// </summary>
+    public Av1PartitionType ReadSplitOrVertical(Av1BlockSize blockSize, int context)
     {
-        Av1Distribution input = this.tilePartitionTypes[context];
-        uint p = Av1Distribution.ProbabilityTop;
-        p -= GetElementProbability(input, Av1PartitionType.Vertical);
-        p -= GetElementProbability(input, Av1PartitionType.Split);
-        p -= GetElementProbability(input, Av1PartitionType.HorizontalA);
-        p -= GetElementProbability(input, Av1PartitionType.VerticalA);
-        p -= GetElementProbability(input, Av1PartitionType.VerticalB);
-        if (blockSize != Av1BlockSize.Block128x128)
-        {
-            p -= GetElementProbability(input, Av1PartitionType.Vertical4);
-        }
-
-        Av1Distribution distribution = new(Av1Distribution.ProbabilityTop - p);
+        Av1Distribution distribution = GetSplitOrVerticalDistribution(this.tilePartitionTypes, blockSize, context);
         ref Av1SymbolReader r = ref this.reader;
-        return r.ReadSymbol(distribution) > 0;
+        return r.ReadSymbol(distribution) > 0 ? Av1PartitionType.Split : Av1PartitionType.Vertical;
     }
 
     public Av1PredictionMode ReadYMode(Av1BlockModeInfo? aboveModeInfo, Av1BlockModeInfo? leftModeInfo)
@@ -257,6 +239,40 @@ internal ref struct Av1SymbolDecoder
         ref Av1SymbolReader r = ref this.reader;
         int context = AlphaVContexts[jointSignPlus1];
         return r.ReadSymbol(this.chromeForLumaAlpha[context]);
+    }
+
+    internal static Av1Distribution GetSplitOrHorizontalDistribution(Av1Distribution[] inputs, Av1BlockSize blockSize, int context)
+    {
+        Av1Distribution input = inputs[context];
+        uint p = Av1Distribution.ProbabilityTop;
+        p -= GetElementProbability(input, Av1PartitionType.Horizontal);
+        p -= GetElementProbability(input, Av1PartitionType.Split);
+        p -= GetElementProbability(input, Av1PartitionType.HorizontalA);
+        p -= GetElementProbability(input, Av1PartitionType.HorizontalB);
+        p -= GetElementProbability(input, Av1PartitionType.VerticalA);
+        if (blockSize != Av1BlockSize.Block128x128)
+        {
+            p -= GetElementProbability(input, Av1PartitionType.Horizontal4);
+        }
+
+        return new(Av1Distribution.ProbabilityTop - p);
+    }
+
+    internal static Av1Distribution GetSplitOrVerticalDistribution(Av1Distribution[] inputs, Av1BlockSize blockSize, int context)
+    {
+        Av1Distribution input = inputs[context];
+        uint p = Av1Distribution.ProbabilityTop;
+        p -= GetElementProbability(input, Av1PartitionType.Vertical);
+        p -= GetElementProbability(input, Av1PartitionType.Split);
+        p -= GetElementProbability(input, Av1PartitionType.HorizontalA);
+        p -= GetElementProbability(input, Av1PartitionType.VerticalA);
+        p -= GetElementProbability(input, Av1PartitionType.VerticalB);
+        if (blockSize != Av1BlockSize.Block128x128)
+        {
+            p -= GetElementProbability(input, Av1PartitionType.Vertical4);
+        }
+
+        return new(Av1Distribution.ProbabilityTop - p);
     }
 
     private static uint GetElementProbability(Av1Distribution probability, Av1PartitionType element)

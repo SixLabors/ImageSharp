@@ -566,7 +566,6 @@ internal class Av1TileReader : IAv1TileReader
         Av1TransformSize transformSizeContext = (Av1TransformSize)(((int)transformSize.GetSquareSize() + ((int)transformSize.GetSquareUpSize() + 1)) >> 1);
         Av1PlaneType planeType = (Av1PlaneType)Math.Min(plane, 1);
         int culLevel = 0;
-        int dcValue = 0;
 
         int[] levelsBuffer = new int[Av1Constants.TransformPad2d];
         Span<int> levels = levelsBuffer.AsSpan()[(Av1Constants.TransformPadTop * (width + Av1Constants.TransformPadHorizontal))..];
@@ -574,7 +573,6 @@ internal class Av1TileReader : IAv1TileReader
         bool allZero = reader.ReadTransformBlockSkip(transformSizeContext, transformBlockContext.SkipContext);
         int bwl = transformSize.GetBlockWidthLog2();
         int endOfBlock;
-        int maxScanLine = 0;
         if (allZero)
         {
             if (plane == 0)
@@ -623,312 +621,26 @@ internal class Av1TileReader : IAv1TileReader
             Array.Fill(levelsBuffer, 0, 0, ((width + Av1Constants.TransformPadHorizontal) * (height + Av1Constants.TransformPadVertical)) + Av1Constants.TransformPadEnd);
         }
 
-        int i = endOfBlock - 1;
-        int pos = scan[i];
-        int coefficientContext = GetLowerLevelContextEndOfBlock(bwl, height, i);
-        int level = reader.ReadBaseEndOfBlock(transformSizeContext, planeType, coefficientContext);
-        if (level > Av1Constants.BaseLevelsCount)
-        {
-            int baseRangeContext = GetBaseRangeContextEndOfBlock(pos, bwl, transformClass);
-            for (int idx = 0; idx < Av1Constants.CoefficientBaseRange / Av1Constants.BaseRangeSizeMinus1; idx++)
-            {
-                int coefficinetBaseRange = reader.ReadCoefficientsBaseRange(transformSizeContext, planeType, baseRangeContext);
-                level += coefficinetBaseRange;
-                if (coefficinetBaseRange < Av1Constants.BaseRangeSizeMinus1)
-                {
-                    break;
-                }
-            }
-        }
-
-        levels[GetPaddedIndex(pos, bwl)] = level;
-
+        reader.ReadCoefficientsEndOfBlock(transformClass, endOfBlock, height, scan, bwl, levels, transformSizeContext, planeType);
         if (endOfBlock > 1)
         {
             if (transformClass == Av1TransformClass.Class2D)
             {
-                ReadCoefficientsReverse2d(ref reader, transformSize, 1, endOfBlock - 1 - 1, scan, bwl, levels, transformSizeContext, planeType);
-                ReadCoefficientsReverse(ref reader, transformSize, transformInfo.Type, 0, 0, scan, bwl, levels, transformSizeContext, planeType);
+                reader.ReadCoefficientsReverse2d(transformSize, 1, endOfBlock - 1 - 1, scan, bwl, levels, transformSizeContext, planeType);
+                reader.ReadCoefficientsReverse(transformSize, transformClass, 0, 0, scan, bwl, levels, transformSizeContext, planeType);
             }
             else
             {
-                ReadCoefficientsReverse(ref reader, transformSize, transformInfo.Type, 0, endOfBlock - 1 - 1, scan, bwl, levels, transformSizeContext, planeType);
+                reader.ReadCoefficientsReverse(transformSize, transformClass, 0, endOfBlock - 1 - 1, scan, bwl, levels, transformSizeContext, planeType);
             }
         }
 
         DebugGuard.MustBeGreaterThan(scan.Length, 0, nameof(scan));
-        coefficientBuffer[0] = endOfBlock;
-        for (int c = 0; c < endOfBlock; c++)
-        {
-            int sign = 0;
-            level = levels[GetPaddedIndex(scan[c], bwl)];
-            if (level != 0)
-            {
-                maxScanLine = Math.Max(maxScanLine, scan[c]);
-                if (c == 0)
-                {
-                    sign = reader.ReadDcSign(planeType, transformBlockContext.DcSignContext);
-                }
-                else
-                {
-                    sign = reader.ReadLiteral(1);
-                }
-
-                if (level >= Av1Constants.CoefficientBaseRange + Av1Constants.BaseLevelsCount + 1)
-                {
-                    level += ReadGolomb(ref reader);
-                }
-
-                if (c == 0)
-                {
-                    dcValue = sign != 0 ? -level : level;
-                }
-
-                level &= 0xfffff;
-                culLevel += level;
-            }
-
-            coefficientBuffer[c + 1] = sign != 0 ? -level : level;
-        }
-
-        culLevel = Math.Min(Av1Constants.CoefficientContextMask, culLevel);
-        SetDcSign(ref culLevel, dcValue);
-
+        culLevel = reader.ReadCoefficientsDc(coefficientBuffer, endOfBlock, scan, bwl, levels, transformBlockContext.DcSignContext, planeType);
         this.UpdateCoefficientContext(plane, partitionInfo, transformSize, blockRow, blockColumn, aboveOffset, leftOffset, culLevel);
 
         transformInfo.CodeBlockFlag = true;
         return endOfBlock;
-    }
-
-    private static void ReadCoefficientsReverse2d(ref Av1SymbolDecoder reader, Av1TransformSize transformSize, int startSi, int endSi, Span<short> scan, int bwl, Span<int> levels, Av1TransformSize transformSizeContext, Av1PlaneType planeType)
-    {
-        for (int c = endSi; c >= startSi; --c)
-        {
-            int pos = scan[c];
-            int coefficientContext = GetLowerLevelsContext2d(levels, pos, bwl, transformSize);
-            int level = reader.ReadCoefficientsBase(coefficientContext, transformSizeContext, planeType);
-            if (level > Av1Constants.BaseLevelsCount)
-            {
-                int baseRangeContext = GetBaseRangeContext2d(levels, pos, bwl);
-                for (int idx = 0; idx < Av1Constants.CoefficientBaseRange; idx += Av1Constants.BaseRangeSizeMinus1)
-                {
-                    int k = reader.ReadCoefficientsBaseRange(transformSizeContext, planeType, baseRangeContext);
-                    level += k;
-                    if (k < Av1Constants.BaseRangeSizeMinus1)
-                    {
-                        break;
-                    }
-                }
-            }
-
-            levels[GetPaddedIndex(pos, bwl)] = level;
-        }
-    }
-
-    private static int GetBaseRangeContext2d(Span<int> levels, int c, int bwl)
-    {
-        DebugGuard.MustBeGreaterThan(c, 0, nameof(c));
-        int row = c >> bwl;
-        int col = c - (row << bwl);
-        int stride = (1 << bwl) + Av1Constants.TransformPadHorizontal;
-        int pos = (row * stride) + col;
-        int mag =
-            Math.Min(levels[pos + 1], Av1Constants.MaxBaseRange) +
-            Math.Min(levels[pos + stride], Av1Constants.MaxBaseRange) +
-            Math.Min(levels[pos + 1 + stride], Av1Constants.MaxBaseRange);
-        mag = Math.Min((mag + 1) >> 1, 6);
-        if ((row | col) < 2)
-        {
-            return mag + 7;
-        }
-
-        return mag + 14;
-    }
-
-    private static int GetLowerLevelsContext2d(Span<int> levels, int pos, int bwl, Av1TransformSize transformSize)
-    {
-        DebugGuard.MustBeGreaterThan(pos, 0, nameof(pos));
-        int mag;
-        levels = levels[GetPaddedIndex(pos, bwl)..];
-        mag = Math.Min(levels[1], 3); // { 0, 1 }
-        mag += Math.Min(levels[(1 << bwl) + Av1Constants.TransformPadHorizontal], 3); // { 1, 0 }
-        mag += Math.Min(levels[(1 << bwl) + Av1Constants.TransformPadHorizontal + 1], 3); // { 1, 1 }
-        mag += Math.Min(levels[2], 3); // { 0, 2 }
-        mag += Math.Min(levels[(2 << bwl) + (2 << Av1Constants.TransformPadHorizontalLog2)], 3); // { 2, 0 }
-
-        int ctx = Math.Min((mag + 1) >> 1, 4);
-        return ctx + Av1NzMap.GetNzMapContext(transformSize, pos);
-    }
-
-    private static void ReadCoefficientsReverse(ref Av1SymbolDecoder reader, Av1TransformSize transformSize, Av1TransformType transformType, int startSi, int endSi, Span<short> scan, int bwl, Span<int> levels, Av1TransformSize transformSizeContext, Av1PlaneType planeType)
-    {
-        Av1TransformClass transformClass = transformType.ToClass();
-        for (int c = endSi; c >= startSi; --c)
-        {
-            int pos = scan[c];
-            int coefficientContext = GetLowerLevelsContext(levels, pos, bwl, transformSize, transformClass);
-            int level = reader.ReadCoefficientsBase(coefficientContext, transformSizeContext, planeType);
-            if (level > Av1Constants.BaseLevelsCount)
-            {
-                int baseRangeContext = GetBaseRangeContext(levels, pos, bwl, transformClass);
-                for (int idx = 0; idx < Av1Constants.CoefficientBaseRange; idx += Av1Constants.BaseRangeSizeMinus1)
-                {
-                    int k = reader.ReadCoefficientsBaseRange(transformSizeContext, planeType, baseRangeContext);
-                    level += k;
-                    if (k < Av1Constants.BaseRangeSizeMinus1)
-                    {
-                        break;
-                    }
-                }
-            }
-
-            levels[GetPaddedIndex(pos, bwl)] = level;
-        }
-    }
-
-    private static int GetBaseRangeContext(Span<int> levels, int c, int bwl, Av1TransformClass transformClass)
-    {
-        int row = c >> bwl;
-        int col = c - (row << bwl);
-        int stride = (1 << bwl) + Av1Constants.TransformPadHorizontal;
-        int pos = (row * stride) + col;
-        int mag = levels[pos + 1];
-        mag += levels[pos + stride];
-        switch (transformClass)
-        {
-            case Av1TransformClass.Class2D:
-                mag += levels[pos + stride + 1];
-                mag = Math.Min((mag + 1) >> 1, 6);
-                if (c == 0)
-                {
-                    return mag;
-                }
-
-                if ((row < 2) && (col < 2))
-                {
-                    return mag + 7;
-                }
-
-                break;
-            case Av1TransformClass.ClassHorizontal:
-                mag += levels[pos + 2];
-                mag = Math.Min((mag + 1) >> 1, 6);
-                if (c == 0)
-                {
-                    return mag;
-                }
-
-                if (col == 0)
-                {
-                    return mag + 7;
-                }
-
-                break;
-            case Av1TransformClass.ClassVertical:
-                mag += levels[pos + (stride << 1)];
-                mag = Math.Min((mag + 1) >> 1, 6);
-                if (c == 0)
-                {
-                    return mag;
-                }
-
-                if (row == 0)
-                {
-                    return mag + 7;
-                }
-
-                break;
-            default:
-                break;
-        }
-
-        return mag + 14;
-    }
-
-    private static int GetLowerLevelsContext(Span<int> levels, int pos, int bwl, Av1TransformSize transformSize, Av1TransformClass transformClass)
-    {
-        int stats = Av1NzMap.GetNzMagnitude(levels[GetPaddedIndex(pos, bwl)..], bwl, transformClass);
-        return Av1NzMap.GetNzMapContextFromStats(stats, pos, bwl, transformSize, transformClass);
-    }
-
-    private static int ReadGolomb(ref Av1SymbolDecoder reader)
-    {
-        int x = 1;
-        int length = 0;
-        int i = 0;
-
-        while (i == 0)
-        {
-            i = reader.ReadLiteral(1);
-            ++length;
-            if (length > 20)
-            {
-                // SVT_LOG("Invalid length in read_golomb");
-                break;
-            }
-        }
-
-        for (i = 0; i < length - 1; ++i)
-        {
-            x <<= 1;
-            x += reader.ReadLiteral(1);
-        }
-
-        return x - 1;
-    }
-
-    private static void SetDcSign(ref int culLevel, int dcValue)
-    {
-        if (dcValue < 0)
-        {
-            culLevel |= 1 << Av1Constants.CoefficientContextBitCount;
-        }
-        else if (dcValue > 0)
-        {
-            culLevel += 2 << Av1Constants.CoefficientContextBitCount;
-        }
-    }
-
-    private static int GetPaddedIndex(int scanIndex, int bwl)
-        => scanIndex + ((scanIndex >> bwl) << Av1Constants.TransformPadHorizontalLog2);
-
-    private static int GetBaseRangeContextEndOfBlock(int pos, int bwl, Av1TransformClass transformClass)
-    {
-        int row = pos >> bwl;
-        int col = pos - (row << bwl);
-        if (pos == 0)
-        {
-            return 0;
-        }
-
-        if ((transformClass == Av1TransformClass.Class2D && row < 2 && col < 2) ||
-            (transformClass == Av1TransformClass.ClassHorizontal && col == 0) ||
-            (transformClass == Av1TransformClass.ClassVertical && row == 0))
-        {
-            return 7;
-        }
-
-        return 14;
-    }
-
-    private static int GetLowerLevelContextEndOfBlock(int bwl, int height, int scanIndex)
-    {
-        if (scanIndex == 0)
-        {
-            return 0;
-        }
-
-        if (scanIndex <= (height << bwl) >> 3)
-        {
-            return 1;
-        }
-
-        if (scanIndex <= (height << bwl) >> 2)
-        {
-            return 2;
-        }
-
-        return 3;
     }
 
     private void UpdateCoefficientContext(int plane, Av1PartitionInfo partitionInfo, Av1TransformSize transformSize, int blockRow, int blockColumn, int aboveOffset, int leftOffset, int culLevel)

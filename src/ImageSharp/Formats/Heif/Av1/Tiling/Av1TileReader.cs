@@ -22,9 +22,6 @@ internal class Av1TileReader : IAv1TileReader
     private static readonly int[][] SkipContexts = [
         [1, 2, 2, 2, 3], [1, 4, 4, 4, 5], [1, 4, 4, 4, 5], [1, 4, 4, 4, 5], [1, 4, 4, 4, 6]];
 
-    private static readonly int[] EndOfBlockGroupStart = [0, 1, 2, 3, 5, 9, 17, 33, 65, 129, 257, 513];
-    private static readonly int[] EndOfBlockOffsetBits = [0, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
-
     private int[][] referenceSgrXqd = [];
     private int[][][] referenceLrWiener = [];
     private readonly Av1ParseAboveNeighbor4x4Context aboveNeighborContext;
@@ -585,37 +582,12 @@ internal class Av1TileReader : IAv1TileReader
             return 0;
         }
 
-        int endOfBlockExtra = 0;
-        int endOfBlockPoint = 0;
-
         transformInfo.Type = this.ComputeTransformType(planeType, partitionInfo, transformSize, transformInfo);
         Av1TransformClass transformClass = transformInfo.Type.ToClass();
         Av1ScanOrder scanOrder = Av1ScanOrderConstants.GetScanOrder(transformSize, transformInfo.Type);
         ReadOnlySpan<short> scan = scanOrder.Scan;
 
-        endOfBlockPoint = reader.ReadEndOfBlockFlag(planeType, transformClass, transformSize);
-        int endOfBlockShift = EndOfBlockOffsetBits[endOfBlockPoint];
-        if (endOfBlockShift > 0)
-        {
-            int endOfBlockContext = endOfBlockPoint;
-            bool bit = reader.ReadEndOfBlockExtra(transformSizeContext, planeType, endOfBlockContext);
-            if (bit)
-            {
-                endOfBlockExtra += 1 << (endOfBlockShift - 1);
-            }
-            else
-            {
-                for (int j = 1; j < endOfBlockShift; j++)
-                {
-                    if (reader.ReadLiteral(1) != 0)
-                    {
-                        endOfBlockExtra += 1 << (endOfBlockShift - 1 - j);
-                    }
-                }
-            }
-        }
-
-        endOfBlock = RecordEndOfBlockPosition(endOfBlockPoint, endOfBlockExtra);
+        endOfBlock = reader.ReadEndOfBlockPosition(transformSize, transformClass, transformSizeContext, planeType);
         if (endOfBlock > 1)
         {
             Array.Fill(levelsBuffer, 0, 0, ((width + Av1Constants.TransformPadHorizontal) * (height + Av1Constants.TransformPadVertical)) + Av1Constants.TransformPadEnd);
@@ -677,17 +649,6 @@ internal class Av1TileReader : IAv1TileReader
         {
             Array.Fill(leftContexts, culLevel, 0, transformSizeHigh);
         }
-    }
-
-    private static int RecordEndOfBlockPosition(int endOfBlockPoint, int endOfBlockExtra)
-    {
-        int endOfBlock = EndOfBlockGroupStart[endOfBlockPoint];
-        if (endOfBlock > 2)
-        {
-            endOfBlock += endOfBlockExtra;
-        }
-
-        return endOfBlock;
     }
 
     private Av1TransformType ComputeTransformType(Av1PlaneType planeType, Av1PartitionInfo partitionInfo, Av1TransformSize transformSize, Av1TransformInfo transformInfo)

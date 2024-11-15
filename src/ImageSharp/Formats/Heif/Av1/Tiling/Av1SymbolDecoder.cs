@@ -10,6 +10,8 @@ internal ref struct Av1SymbolDecoder
 {
     private static readonly int[] IntraModeContext = [0, 1, 2, 3, 4, 4, 4, 4, 3, 0, 1, 2, 0];
     private static readonly int[] AlphaVContexts = [-1, 0, 3, -1, 1, 4, -1, 2, 5];
+    private static readonly int[] EndOfBlockOffsetBits = [0, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+    private static readonly int[] EndOfBlockGroupStart = [0, 1, 2, 3, 5, 9, 17, 33, 65, 129, 257, 513];
 
     private readonly Av1Distribution tileIntraBlockCopy = Av1DefaultDistributions.IntraBlockCopy;
     private readonly Av1Distribution[] tilePartitionTypes = Av1DefaultDistributions.PartitionTypes;
@@ -177,24 +179,10 @@ internal ref struct Av1SymbolDecoder
         return transformSize;
     }
 
-    public int ReadEndOfBlockFlag(Av1PlaneType planeType, Av1TransformClass transformClass, Av1TransformSize transformSize)
-    {
-        int endOfBlockContext = transformClass == Av1TransformClass.Class2D ? 0 : 1;
-        int endOfBlockMultiSize = transformSize.GetLog2Minus4();
-        ref Av1SymbolReader r = ref this.reader;
-        return r.ReadSymbol(this.endOfBlockFlag[endOfBlockMultiSize][(int)planeType][endOfBlockContext]) + 1;
-    }
-
     public bool ReadTransformBlockSkip(Av1TransformSize transformSizeContext, int skipContext)
     {
         ref Av1SymbolReader r = ref this.reader;
         return r.ReadSymbol(this.transformBlockSkip[(int)transformSizeContext][skipContext]) > 0;
-    }
-
-    public bool ReadEndOfBlockExtra(Av1TransformSize transformSizeContext, Av1PlaneType planeType, int endOfBlockContext)
-    {
-        ref Av1SymbolReader r = ref this.reader;
-        return r.ReadSymbol(this.endOfBlockExtra[(int)transformSizeContext][(int)planeType][endOfBlockContext]) > 0;
     }
 
     public int ReadChromFromLumaSign()
@@ -215,6 +203,34 @@ internal ref struct Av1SymbolDecoder
         ref Av1SymbolReader r = ref this.reader;
         int context = AlphaVContexts[jointSignPlus1];
         return r.ReadSymbol(this.chromeForLumaAlpha[context]);
+    }
+
+    public int ReadEndOfBlockPosition(Av1TransformSize transformSize, Av1TransformClass transformClass, Av1TransformSize transformSizeContext, Av1PlaneType planeType)
+    {
+        int endOfBlockExtra = 0;
+        int endOfBlockPoint = this.ReadEndOfBlockFlag(planeType, transformClass, transformSize);
+        int endOfBlockShift = EndOfBlockOffsetBits[endOfBlockPoint];
+        if (endOfBlockShift > 0)
+        {
+            int endOfBlockContext = endOfBlockPoint;
+            bool bit = this.ReadEndOfBlockExtra(transformSizeContext, planeType, endOfBlockContext);
+            if (bit)
+            {
+                endOfBlockExtra += 1 << (endOfBlockShift - 1);
+            }
+            else
+            {
+                for (int j = 1; j < endOfBlockShift; j++)
+                {
+                    if (this.ReadLiteral(1) != 0)
+                    {
+                        endOfBlockExtra += 1 << (endOfBlockShift - 1 - j);
+                    }
+                }
+            }
+        }
+
+        return RecordEndOfBlockPosition(endOfBlockPoint, endOfBlockExtra);
     }
 
     public void ReadCoefficientsEndOfBlock(Av1TransformClass transformClass, int endOfBlock, int height, ReadOnlySpan<short> scan, int bwl, Span<int> levels, Av1TransformSize transformSizeContext, Av1PlaneType planeType)
@@ -240,9 +256,9 @@ internal ref struct Av1SymbolDecoder
         levels[GetPaddedIndex(pos, bwl)] = level;
     }
 
-    public void ReadCoefficientsReverse2d(Av1TransformSize transformSize, int startSi, int endSi, ReadOnlySpan<short> scan, int bwl, Span<int> levels, Av1TransformSize transformSizeContext, Av1PlaneType planeType)
+    public void ReadCoefficientsReverse2d(Av1TransformSize transformSize, int startScanIndex, int endScanIndex, ReadOnlySpan<short> scan, int bwl, Span<int> levels, Av1TransformSize transformSizeContext, Av1PlaneType planeType)
     {
-        for (int c = endSi; c >= startSi; --c)
+        for (int c = endScanIndex; c >= startScanIndex; --c)
         {
             int pos = scan[c];
             int coefficientContext = GetLowerLevelsContext2d(levels, pos, bwl, transformSize);
@@ -265,9 +281,9 @@ internal ref struct Av1SymbolDecoder
         }
     }
 
-    public void ReadCoefficientsReverse(Av1TransformSize transformSize, Av1TransformClass transformClass, int startSi, int endSi, ReadOnlySpan<short> scan, int bwl, Span<int> levels, Av1TransformSize transformSizeContext, Av1PlaneType planeType)
+    public void ReadCoefficientsReverse(Av1TransformSize transformSize, Av1TransformClass transformClass, int startScanIndex, int endScanIndex, ReadOnlySpan<short> scan, int bwl, Span<int> levels, Av1TransformSize transformSizeContext, Av1PlaneType planeType)
     {
-        for (int c = endSi; c >= startSi; --c)
+        for (int c = endScanIndex; c >= startScanIndex; --c)
         {
             int pos = scan[c];
             int coefficientContext = GetLowerLevelsContext(levels, pos, bwl, transformSize, transformClass);
@@ -335,6 +351,20 @@ internal ref struct Av1SymbolDecoder
         return culLevel;
     }
 
+    private int ReadEndOfBlockFlag(Av1PlaneType planeType, Av1TransformClass transformClass, Av1TransformSize transformSize)
+    {
+        int endOfBlockContext = transformClass == Av1TransformClass.Class2D ? 0 : 1;
+        int endOfBlockMultiSize = transformSize.GetLog2Minus4();
+        ref Av1SymbolReader r = ref this.reader;
+        return r.ReadSymbol(this.endOfBlockFlag[endOfBlockMultiSize][(int)planeType][endOfBlockContext]) + 1;
+    }
+
+    private bool ReadEndOfBlockExtra(Av1TransformSize transformSizeContext, Av1PlaneType planeType, int endOfBlockContext)
+    {
+        ref Av1SymbolReader r = ref this.reader;
+        return r.ReadSymbol(this.endOfBlockExtra[(int)transformSizeContext][(int)planeType][endOfBlockContext]) > 0;
+    }
+
     private int ReadCoefficientsBaseRange(Av1TransformSize transformSizeContext, Av1PlaneType planeType, int baseRangeContext)
     {
         ref Av1SymbolReader r = ref this.reader;
@@ -357,6 +387,17 @@ internal ref struct Av1SymbolDecoder
     {
         ref Av1SymbolReader r = ref this.reader;
         return r.ReadSymbol(this.coefficientsBase[(int)transformSizeContext][(int)planeType][coefficientContext]);
+    }
+
+    private static int RecordEndOfBlockPosition(int endOfBlockPoint, int endOfBlockExtra)
+    {
+        int endOfBlock = EndOfBlockGroupStart[endOfBlockPoint];
+        if (endOfBlock > 2)
+        {
+            endOfBlock += endOfBlockExtra;
+        }
+
+        return endOfBlock;
     }
 
     private static int GetBaseRangeContextEndOfBlock(int pos, int bwl, Av1TransformClass transformClass)

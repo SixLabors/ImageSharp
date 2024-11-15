@@ -85,7 +85,7 @@ internal class Av1InverseQuantizer
     {
         Guard.NotNull(this.deQuantsDeltaQ);
         Av1ScanOrder scanOrder = Av1ScanOrderConstants.GetScanOrder(transformSize, transformType);
-        short[] scanIndices = scanOrder.Scan;
+        ReadOnlySpan<short> scanIndices = scanOrder.Scan;
         int maxValue = (1 << (7 + this.sequenceHeader.ColorConfig.BitDepth.GetBitCount())) - 1;
         int minValue = -(1 << (7 + this.sequenceHeader.ColorConfig.BitDepth.GetBitCount()));
         Av1TransformSize qmTransformSize = transformSize.GetAdjusted();

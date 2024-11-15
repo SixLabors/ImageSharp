@@ -591,7 +591,7 @@ internal class Av1TileReader : IAv1TileReader
         transformInfo.Type = this.ComputeTransformType(planeType, partitionInfo, transformSize, transformInfo);
         Av1TransformClass transformClass = transformInfo.Type.ToClass();
         Av1ScanOrder scanOrder = Av1ScanOrderConstants.GetScanOrder(transformSize, transformInfo.Type);
-        Span<short> scan = scanOrder.Scan;
+        ReadOnlySpan<short> scan = scanOrder.Scan;
 
         endOfBlockPoint = reader.ReadEndOfBlockFlag(planeType, transformClass, transformSize);
         int endOfBlockShift = EndOfBlockOffsetBits[endOfBlockPoint];

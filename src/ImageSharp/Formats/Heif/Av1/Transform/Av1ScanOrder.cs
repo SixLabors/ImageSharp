@@ -5,23 +5,27 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 
 internal readonly struct Av1ScanOrder
 {
+    private readonly short[] scan;
+    private readonly short[] inverseScan;
+    private readonly short[] neighbors;
+
     public Av1ScanOrder(short[] scan)
     {
-        this.Scan = scan;
-        this.InverseScan = [];
-        this.Neighbors = [];
+        this.scan = scan;
+        this.inverseScan = [];
+        this.neighbors = [];
     }
 
     public Av1ScanOrder(short[] scan, short[] inverseScan, short[] neighbors)
     {
-        this.Scan = scan;
-        this.InverseScan = inverseScan;
-        this.Neighbors = neighbors;
+        this.scan = scan;
+        this.inverseScan = inverseScan;
+        this.neighbors = neighbors;
     }
 
-    public short[] Scan { get; }
+    public ReadOnlySpan<short> Scan => this.scan;
 
-    public short[] InverseScan { get; }
+    public ReadOnlySpan<short> InverseScan => this.inverseScan;
 
-    public short[] Neighbors { get; }
+    public ReadOnlySpan<short> Neighbors => this.neighbors;
 }

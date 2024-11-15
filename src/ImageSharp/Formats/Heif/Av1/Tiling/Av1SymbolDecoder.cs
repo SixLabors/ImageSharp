@@ -217,7 +217,7 @@ internal ref struct Av1SymbolDecoder
         return r.ReadSymbol(this.chromeForLumaAlpha[context]);
     }
 
-    public void ReadCoefficientsEndOfBlock(Av1TransformClass transformClass, int endOfBlock, int height, Span<short> scan, int bwl, Span<int> levels, Av1TransformSize transformSizeContext, Av1PlaneType planeType)
+    public void ReadCoefficientsEndOfBlock(Av1TransformClass transformClass, int endOfBlock, int height, ReadOnlySpan<short> scan, int bwl, Span<int> levels, Av1TransformSize transformSizeContext, Av1PlaneType planeType)
     {
         int i = endOfBlock - 1;
         int pos = scan[i];
@@ -240,7 +240,7 @@ internal ref struct Av1SymbolDecoder
         levels[GetPaddedIndex(pos, bwl)] = level;
     }
 
-    public void ReadCoefficientsReverse2d(Av1TransformSize transformSize, int startSi, int endSi, Span<short> scan, int bwl, Span<int> levels, Av1TransformSize transformSizeContext, Av1PlaneType planeType)
+    public void ReadCoefficientsReverse2d(Av1TransformSize transformSize, int startSi, int endSi, ReadOnlySpan<short> scan, int bwl, Span<int> levels, Av1TransformSize transformSizeContext, Av1PlaneType planeType)
     {
         for (int c = endSi; c >= startSi; --c)
         {
@@ -265,7 +265,7 @@ internal ref struct Av1SymbolDecoder
         }
     }
 
-    public void ReadCoefficientsReverse(Av1TransformSize transformSize, Av1TransformClass transformClass, int startSi, int endSi, Span<short> scan, int bwl, Span<int> levels, Av1TransformSize transformSizeContext, Av1PlaneType planeType)
+    public void ReadCoefficientsReverse(Av1TransformSize transformSize, Av1TransformClass transformClass, int startSi, int endSi, ReadOnlySpan<short> scan, int bwl, Span<int> levels, Av1TransformSize transformSizeContext, Av1PlaneType planeType)
     {
         for (int c = endSi; c >= startSi; --c)
         {
@@ -290,7 +290,7 @@ internal ref struct Av1SymbolDecoder
         }
     }
 
-    public int ReadCoefficientsDc(Span<int> coefficientBuffer, int endOfBlock, Span<short> scan, int bwl, Span<int> levels, int dcSignContext, Av1PlaneType planeType)
+    public int ReadCoefficientsDc(Span<int> coefficientBuffer, int endOfBlock, ReadOnlySpan<short> scan, int bwl, Span<int> levels, int dcSignContext, Av1PlaneType planeType)
     {
         int maxScanLine = 0;
         int culLevel = 0;

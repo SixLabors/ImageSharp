@@ -23,28 +23,35 @@ internal class Av1DcPredictor : IAv1Predictor
         this.blockHeight = (uint)transformSize.GetHeight();
     }
 
-    public static void PredictScalar(Av1TransformSize transformSize, ref byte destination, nuint stride, ref byte above, ref byte left)
-        => new Av1DcPredictor(transformSize).PredictScalar(ref destination, stride, ref above, ref left);
+    public static void PredictScalar(Av1TransformSize transformSize, Span<byte> destination, nuint stride, Span<byte> above, Span<byte> left)
+        => new Av1DcPredictor(transformSize).PredictScalar(destination, stride, above, left);
 
-    public void PredictScalar(ref byte destination, nuint stride, ref byte above, ref byte left)
+    public void PredictScalar(Span<byte> destination, nuint stride, Span<byte> above, Span<byte> left)
     {
         int sum = 0;
+        Guard.MustBeGreaterThanOrEqualTo(stride, this.blockWidth, nameof(stride));
+        Guard.MustBeSizedAtLeast(left, (int)this.blockHeight, nameof(left));
+        Guard.MustBeSizedAtLeast(above, (int)this.blockWidth, nameof(above));
+        Guard.MustBeSizedAtLeast(destination, (int)this.blockHeight * (int)stride, nameof(destination));
+        ref byte leftRef = ref left[0];
+        ref byte aboveRef = ref above[0];
+        ref byte destinationRef = ref destination[0];
         uint count = this.blockWidth + this.blockHeight;
         for (uint i = 0; i < this.blockWidth; i++)
         {
-            sum += Unsafe.Add(ref above, i);
+            sum += Unsafe.Add(ref aboveRef, i);
         }
 
         for (uint i = 0; i < this.blockHeight; i++)
         {
-            sum += Unsafe.Add(ref left, i);
+            sum += Unsafe.Add(ref leftRef, i);
         }
 
         byte expectedDc = (byte)((sum + (count >> 1)) / count);
         for (uint r = 0; r < this.blockHeight; r++)
         {
-            Unsafe.InitBlock(ref destination, expectedDc, this.blockWidth);
-            destination = ref Unsafe.Add(ref destination, stride);
+            Unsafe.InitBlock(ref destinationRef, expectedDc, this.blockWidth);
+            destinationRef = ref Unsafe.Add(ref destinationRef, stride);
         }
     }
 }

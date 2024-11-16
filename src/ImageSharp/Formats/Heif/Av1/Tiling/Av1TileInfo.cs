@@ -23,8 +23,6 @@ internal class Av1TileInfo
 
     public Point TileIndex { get; private set; }
 
-    public int TileIndexInRasterOrder { get; }
-
     public void SetTileRow(ObuTileGroupHeader tileGroupHeader, int modeInfoRowCount, int row)
     {
         this.ModeInfoRowStart = tileGroupHeader.TileRowStartModeInfo[row];

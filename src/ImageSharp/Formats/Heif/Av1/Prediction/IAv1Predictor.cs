@@ -15,5 +15,5 @@ internal interface IAv1Predictor
     /// <param name="stride">The stride of the destination buffer.</param>
     /// <param name="above">Pointer to the first element of the block above.</param>
     /// <param name="left">Pointer to the first element of the block to the left.</param>
-    public void PredictScalar(ref byte destination, nuint stride, ref byte above, ref byte left);
+    public void PredictScalar(Span<byte> destination, nuint stride, Span<byte> above, Span<byte> left);
 }

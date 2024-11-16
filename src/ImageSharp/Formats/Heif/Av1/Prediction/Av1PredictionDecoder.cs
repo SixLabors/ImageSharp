@@ -6,7 +6,6 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.ChromaFromLuma;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
-using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 
@@ -37,12 +36,9 @@ internal class Av1PredictionDecoder
         int blockModeInfoRowOffset)
     {
         int bytesPerPixel = (bitDepth == Av1BitDepth.EightBit && !this.is16BitPipeline) ? 2 : 1;
-        ref byte pixelRef = ref pixelBuffer[0];
-        ref byte topNeighbor = ref pixelRef;
-        ref byte leftNeighbor = ref pixelRef;
         int stride = pixelStride * bytesPerPixel;
-        topNeighbor = Unsafe.Subtract(ref topNeighbor, stride);
-        leftNeighbor = Unsafe.Subtract(ref leftNeighbor, 1);
+        Span<byte> topNeighbor = pixelBuffer.Slice(-stride);
+        Span<byte> leftNeighbor = pixelBuffer.Slice(-1);
 
         bool is16BitPipeline = this.is16BitPipeline;
         Av1PredictionMode mode = (plane == Av1Plane.Y) ? partitionInfo.ModeInfo.YMode : partitionInfo.ModeInfo.UvMode;
@@ -54,10 +50,10 @@ internal class Av1PredictionDecoder
                 plane,
                 transformSize,
                 tileInfo,
-                ref pixelRef,
+                pixelBuffer,
                 stride,
-                ref topNeighbor,
-                ref leftNeighbor,
+                topNeighbor,
+                leftNeighbor,
                 stride,
                 mode,
                 blockModeInfoColumnOffset,
@@ -80,10 +76,10 @@ internal class Av1PredictionDecoder
             plane,
             transformSize,
             tileInfo,
-            ref pixelRef,
+            pixelBuffer,
             stride,
-            ref topNeighbor,
-            ref leftNeighbor,
+            topNeighbor,
+            leftNeighbor,
             stride,
             mode,
             blockModeInfoColumnOffset,
@@ -199,10 +195,10 @@ internal class Av1PredictionDecoder
         Av1Plane plane,
         Av1TransformSize transformSize,
         Av1TileInfo tileInfo,
-        ref byte pixelBuffer,
+        Span<byte> pixelBuffer,
         int pixelBufferStride,
-        ref byte topNeighbor,
-        ref byte leftNeighbor,
+        Span<byte> topNeighbor,
+        Span<byte> leftNeighbor,
         int referenceStride,
         Av1PredictionMode mode,
         int blockModeInfoColumnOffset,
@@ -290,10 +286,10 @@ internal class Av1PredictionDecoder
         {
             this.DecodeBuildIntraPredictors(
                 partitionInfo,
-                ref topNeighbor,
-                ref leftNeighbor,
+                topNeighbor,
+                leftNeighbor,
                 (nuint)referenceStride,
-                ref pixelBuffer,
+                pixelBuffer,
                 (nuint)pixelBufferStride,
                 mode,
                 angleDelta,
@@ -560,10 +556,10 @@ internal class Av1PredictionDecoder
 
     private void DecodeBuildIntraPredictors(
         Av1PartitionInfo partitionInfo,
-        ref byte aboveNeighbor,
-        ref byte leftNeighbor,
+        Span<byte> aboveNeighbor,
+        Span<byte> leftNeighbor,
         nuint referenceStride,
-        ref byte destination,
+        Span<byte> destination,
         nuint destinationStride,
         Av1PredictionMode mode,
         int angleDelta,
@@ -630,17 +626,18 @@ internal class Av1PredictionDecoder
             byte val;
             if (needLeft)
             {
-                val = (byte)((topPixelCount > 0) ? aboveNeighbor : 129);
+                val = (byte)((topPixelCount > 0) ? aboveNeighbor[0] : 129);
             }
             else
             {
-                val = (byte)((leftPixelCount > 0) ? leftNeighbor : 127);
+                val = (byte)((leftPixelCount > 0) ? leftNeighbor[0] : 127);
             }
 
+            ref byte destinationRef = ref destination[0];
             for (int i = 0; i < transformHeight; ++i)
             {
-                Unsafe.InitBlock(ref destination, val, (uint)transformWidth);
-                destination = ref Unsafe.Add(ref destination, destinationStride);
+                Unsafe.InitBlock(ref destinationRef, val, (uint)transformWidth);
+                destinationRef = ref Unsafe.Add(ref destinationRef, destinationStride);
             }
 
             return;
@@ -666,7 +663,7 @@ internal class Av1PredictionDecoder
             {
                 for (; i < leftPixelCount; i++)
                 {
-                    leftColumn[i] = Unsafe.Add(ref leftNeighbor, i * (int)referenceStride);
+                    leftColumn[i] = leftNeighbor[i * (int)referenceStride];
                 }
 
                 if (needBottom && bottomLeftPixelCount > 0)
@@ -674,7 +671,7 @@ internal class Av1PredictionDecoder
                     Guard.IsTrue(i == transformHeight, nameof(i), string.Empty);
                     for (; i < transformHeight + bottomLeftPixelCount; i++)
                     {
-                        leftColumn[i] = Unsafe.Add(ref leftNeighbor, i * (int)referenceStride);
+                        leftColumn[i] = leftNeighbor[i * (int)referenceStride];
                     }
                 }
 
@@ -687,7 +684,7 @@ internal class Av1PredictionDecoder
             {
                 if (topPixelCount > 0)
                 {
-                    Unsafe.InitBlock(ref leftColumn[0], aboveNeighbor, numLeftPixelsNeeded);
+                    Unsafe.InitBlock(ref leftColumn[0], aboveNeighbor[0], numLeftPixelsNeeded);
                 }
                 else
                 {
@@ -713,12 +710,12 @@ internal class Av1PredictionDecoder
             uint numTopPixelsNeeded = (uint)(transformWidth + (needRight ? transformHeight : 0));
             if (topPixelCount > 0)
             {
-                Unsafe.CopyBlock(ref aboveRow[0], ref aboveNeighbor, (uint)topPixelCount);
+                Unsafe.CopyBlock(ref aboveRow[0], ref aboveNeighbor[0], (uint)topPixelCount);
                 int i = topPixelCount;
                 if (needRight && topPixelCount > 0)
                 {
                     Guard.IsTrue(topPixelCount == transformWidth, nameof(topPixelCount), string.Empty);
-                    Unsafe.CopyBlock(ref aboveRow[transformWidth], ref Unsafe.Add(ref aboveNeighbor, transformWidth), (uint)topPixelCount);
+                    Unsafe.CopyBlock(ref aboveRow[transformWidth], ref aboveNeighbor[transformWidth], (uint)topPixelCount);
                     i += topPixelCount;
                 }
 
@@ -731,7 +728,7 @@ internal class Av1PredictionDecoder
             {
                 if (leftPixelCount > 0)
                 {
-                    Unsafe.InitBlock(ref aboveRow[0], leftNeighbor, numTopPixelsNeeded);
+                    Unsafe.InitBlock(ref aboveRow[0], leftNeighbor[0], numTopPixelsNeeded);
                 }
                 else
                 {
@@ -744,15 +741,15 @@ internal class Av1PredictionDecoder
         {
             if (topPixelCount > 0 && leftPixelCount > 0)
             {
-                aboveRow[-1] = Unsafe.Subtract(ref aboveNeighbor, 1);
+                aboveRow[-1] = aboveNeighbor[-1];
             }
             else if (topPixelCount > 0)
             {
-                aboveRow[-1] = aboveNeighbor;
+                aboveRow[-1] = aboveNeighbor[0];
             }
             else if (leftPixelCount > 0)
             {
-                aboveRow[-1] = leftNeighbor;
+                aboveRow[-1] = leftNeighbor[0];
             }
             else
             {
@@ -764,7 +761,7 @@ internal class Av1PredictionDecoder
 
         if (useFilterIntra)
         {
-            Av1PredictorFactory.FilterIntraPredictor(ref destination, destinationStride, transformSize, aboveRow, leftColumn, filterIntraMode);
+            Av1PredictorFactory.FilterIntraPredictor(destination, destinationStride, transformSize, aboveRow, leftColumn, filterIntraMode);
             return;
         }
 
@@ -819,18 +816,18 @@ internal class Av1PredictionDecoder
                 }
             }
 
-            Av1PredictorFactory.DirectionalPredictor(ref destination, destinationStride, transformSize, aboveRow, leftColumn, upsampleAbove, upsampleLeft, angle);
+            Av1PredictorFactory.DirectionalPredictor(destination, destinationStride, transformSize, aboveRow, leftColumn, upsampleAbove, upsampleLeft, angle);
             return;
         }
 
         // predict
         if (mode == Av1PredictionMode.DC)
         {
-            Av1PredictorFactory.DcPredictor(leftPixelCount > 0, topPixelCount > 0, transformSize, ref destination, destinationStride, aboveRow, leftColumn);
+            Av1PredictorFactory.DcPredictor(leftPixelCount > 0, topPixelCount > 0, transformSize, destination, destinationStride, aboveRow, leftColumn);
         }
         else
         {
-            Av1PredictorFactory.GeneralPredictor(mode, transformSize, ref destination, destinationStride, aboveRow, leftColumn);
+            Av1PredictorFactory.GeneralPredictor(mode, transformSize, destination, destinationStride, aboveRow, leftColumn);
         }
     }
 

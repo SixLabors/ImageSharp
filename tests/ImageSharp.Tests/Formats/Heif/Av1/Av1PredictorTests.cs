@@ -7,7 +7,7 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 
 [Trait("Format", "Avif")]
-public class PredictorTests
+public class Av1PredictorTests
 {
     [Theory]
     [MemberData(nameof(GetTransformSizes))]
@@ -21,7 +21,7 @@ public class PredictorTests
 
         // Act
         Av1DcFillPredictor predictor = new(new Size(width, height));
-        predictor.PredictScalar(ref destination[0], (nuint)width, ref above[0], ref left[0]);
+        predictor.PredictScalar(destination, (nuint)width, above, left);
 
         // Assert
         Assert.All(destination, (b) => AssertValue(expected, b));
@@ -33,8 +33,8 @@ public class PredictorTests
     {
         // Assign
         byte[] destination = new byte[width * height];
-        byte[] left = new byte[width * height];
-        byte[] above = new byte[width * height];
+        byte[] left = new byte[height];
+        byte[] above = new byte[width];
         Array.Fill(left, (byte)5);
         Array.Fill(above, (byte)28);
         int count = width + height;
@@ -43,7 +43,7 @@ public class PredictorTests
 
         // Act
         Av1DcPredictor predictor = new(new Size(width, height));
-        predictor.PredictScalar(ref destination[0], (nuint)width, ref above[0], ref left[0]);
+        predictor.PredictScalar(destination, (nuint)width, above, left);
 
         // Assert
         Assert.Equal((5 * height) + (28 * width), sum);
@@ -56,15 +56,15 @@ public class PredictorTests
     {
         // Assign
         byte[] destination = new byte[width * height];
-        byte[] left = new byte[width * height];
-        byte[] above = new byte[width * height];
+        byte[] left = new byte[height];
+        byte[] above = new byte[width];
         Array.Fill(left, (byte)5);
         Array.Fill(above, (byte)28);
         byte expected = left[0];
 
         // Act
         Av1DcLeftPredictor predictor = new(new Size(width, height));
-        predictor.PredictScalar(ref destination[0], (nuint)width, ref above[0], ref left[0]);
+        predictor.PredictScalar(destination, (nuint)width, above, left);
 
         // Assert
         Assert.All(destination, (b) => AssertValue(expected, b));
@@ -76,15 +76,15 @@ public class PredictorTests
     {
         // Assign
         byte[] destination = new byte[width * height];
-        byte[] left = new byte[width * height];
-        byte[] above = new byte[width * height];
+        byte[] left = new byte[height];
+        byte[] above = new byte[width];
         Array.Fill(left, (byte)5);
         Array.Fill(above, (byte)28);
         byte expected = above[0];
 
         // Act
         Av1DcTopPredictor predictor = new(new Size(width, height));
-        predictor.PredictScalar(ref destination[0], (nuint)width, ref above[0], ref left[0]);
+        predictor.PredictScalar(destination, (nuint)width, above, left);
 
         // Assert
         Assert.All(destination, (b) => AssertValue(expected, b));

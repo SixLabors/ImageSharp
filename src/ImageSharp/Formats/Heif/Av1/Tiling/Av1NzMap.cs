@@ -282,7 +282,7 @@ internal static class Av1NzMap
         NzMapContextOffset64x32, // TX_64x16
     ];
 
-    public static int GetNzMagnitude(Span<int> levels, int bwl, Av1TransformClass transformClass)
+    public static int GetNzMagnitude(ReadOnlySpan<byte> levels, int bwl, Av1TransformClass transformClass)
     {
         int mag;
 

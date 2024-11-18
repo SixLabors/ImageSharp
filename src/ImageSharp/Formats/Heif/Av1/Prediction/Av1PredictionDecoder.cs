@@ -224,7 +224,7 @@ internal class Av1PredictionDecoder
         }
 
         Av1FilterIntraMode filterIntraMode = (plane == Av1Plane.Y && modeInfo.FilterIntraModeInfo.UseFilterIntra)
-            ? modeInfo.FilterIntraModeInfo.Mode : Av1FilterIntraMode.FilterIntraModes;
+            ? modeInfo.FilterIntraModeInfo.Mode : Av1FilterIntraMode.AllFilterIntraModes;
 
         int angleDelta = modeInfo.AngleDelta[Math.Min(1, (int)plane)];
 
@@ -584,7 +584,7 @@ internal class Av1PredictionDecoder
         bool needAbove = (need & Av1NeighborNeed.Above) == Av1NeighborNeed.Above;
         bool needAboveLeft = (need & Av1NeighborNeed.AboveLeft) == Av1NeighborNeed.AboveLeft;
         int angle = 0;
-        bool useFilterIntra = filterIntraMode != Av1FilterIntraMode.FilterIntraModes;
+        bool useFilterIntra = filterIntraMode != Av1FilterIntraMode.AllFilterIntraModes;
 
         if (isDirectionalMode)
         {

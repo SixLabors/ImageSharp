@@ -564,8 +564,8 @@ internal class Av1TileReader : IAv1TileReader
         Av1PlaneType planeType = (Av1PlaneType)Math.Min(plane, 1);
         int culLevel = 0;
 
-        int[] levelsBuffer = new int[Av1Constants.TransformPad2d];
-        Span<int> levels = levelsBuffer.AsSpan()[(Av1Constants.TransformPadTop * (width + Av1Constants.TransformPadHorizontal))..];
+        byte[] levelsBuffer = new byte[Av1Constants.TransformPad2d];
+        Span<byte> levels = levelsBuffer.AsSpan()[(Av1Constants.TransformPadTop * (width + Av1Constants.TransformPadHorizontal))..];
 
         bool allZero = reader.ReadTransformBlockSkip(transformSizeContext, transformBlockContext.SkipContext);
         int bwl = transformSize.GetBlockWidthLog2();
@@ -590,7 +590,7 @@ internal class Av1TileReader : IAv1TileReader
         endOfBlock = reader.ReadEndOfBlockPosition(transformSize, transformClass, transformSizeContext, planeType);
         if (endOfBlock > 1)
         {
-            Array.Fill(levelsBuffer, 0, 0, ((width + Av1Constants.TransformPadHorizontal) * (height + Av1Constants.TransformPadVertical)) + Av1Constants.TransformPadEnd);
+            Array.Fill(levelsBuffer, (byte)0, 0, ((width + Av1Constants.TransformPadHorizontal) * (height + Av1Constants.TransformPadVertical)) + Av1Constants.TransformPadEnd);
         }
 
         reader.ReadCoefficientsEndOfBlock(transformClass, endOfBlock, height, scan, bwl, levels, transformSizeContext, planeType);

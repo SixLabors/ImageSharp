@@ -3,12 +3,6 @@
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 
-internal enum Av1FilterIntraMode
+internal class Av1BlockStruct
 {
-    DC,
-    Vertical,
-    Horizontal,
-    Directional157,
-    Paeth,
-    AllFilterIntraModes,
 }

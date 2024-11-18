@@ -2,6 +2,8 @@
 // Licensed under the Six Labors Split License.
 
 using System;
+using System.Runtime.InteropServices;
+using System.Security.Cryptography;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1;
 
@@ -48,6 +50,29 @@ internal static class Av1Math
         }
 
         return result;
+    }
+
+    /// <summary>
+    /// Long Log 2
+    /// This is a quick adaptation of a Number
+    /// Leading Zeros(NLZ) algorithm to get the log2f of a 32-bit number
+    /// </summary>
+    internal static uint Log2_32(uint x)
+    {
+        uint log = 0;
+        int i;
+        for (i = 4; i >= 0; --i)
+        {
+            uint shift = 1u << i;
+            uint n = x >> (int)shift;
+            if (n != 0)
+            {
+                x = n;
+                log += shift;
+            }
+        }
+
+        return log;
     }
 
     public static uint FloorLog2(uint value)

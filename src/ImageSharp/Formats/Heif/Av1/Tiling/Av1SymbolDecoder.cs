@@ -10,8 +10,8 @@ internal ref struct Av1SymbolDecoder
 {
     private static readonly int[] IntraModeContext = [0, 1, 2, 3, 4, 4, 4, 4, 3, 0, 1, 2, 0];
     private static readonly int[] AlphaVContexts = [-1, 0, 3, -1, 1, 4, -1, 2, 5];
-    private static readonly int[] EndOfBlockOffsetBits = [0, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
-    private static readonly int[] EndOfBlockGroupStart = [0, 1, 2, 3, 5, 9, 17, 33, 65, 129, 257, 513];
+    public static readonly int[] EndOfBlockOffsetBits = [0, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+    public static readonly int[] EndOfBlockGroupStart = [0, 1, 2, 3, 5, 9, 17, 33, 65, 129, 257, 513];
 
     private readonly Av1Distribution tileIntraBlockCopy = Av1DefaultDistributions.IntraBlockCopy;
     private readonly Av1Distribution[] tilePartitionTypes = Av1DefaultDistributions.PartitionTypes;
@@ -233,7 +233,7 @@ internal ref struct Av1SymbolDecoder
         return RecordEndOfBlockPosition(endOfBlockPoint, endOfBlockExtra);
     }
 
-    public void ReadCoefficientsEndOfBlock(Av1TransformClass transformClass, int endOfBlock, int height, ReadOnlySpan<short> scan, int bwl, Span<int> levels, Av1TransformSize transformSizeContext, Av1PlaneType planeType)
+    public void ReadCoefficientsEndOfBlock(Av1TransformClass transformClass, int endOfBlock, int height, ReadOnlySpan<short> scan, int bwl, Span<byte> levels, Av1TransformSize transformSizeContext, Av1PlaneType planeType)
     {
         int i = endOfBlock - 1;
         int pos = scan[i];
@@ -253,10 +253,10 @@ internal ref struct Av1SymbolDecoder
             }
         }
 
-        levels[GetPaddedIndex(pos, bwl)] = level;
+        levels[GetPaddedIndex(pos, bwl)] = (byte)level;
     }
 
-    public void ReadCoefficientsReverse2d(Av1TransformSize transformSize, int startScanIndex, int endScanIndex, ReadOnlySpan<short> scan, int bwl, Span<int> levels, Av1TransformSize transformSizeContext, Av1PlaneType planeType)
+    public void ReadCoefficientsReverse2d(Av1TransformSize transformSize, int startScanIndex, int endScanIndex, ReadOnlySpan<short> scan, int bwl, Span<byte> levels, Av1TransformSize transformSizeContext, Av1PlaneType planeType)
     {
         for (int c = endScanIndex; c >= startScanIndex; --c)
         {
@@ -277,11 +277,11 @@ internal ref struct Av1SymbolDecoder
                 }
             }
 
-            levels[GetPaddedIndex(pos, bwl)] = level;
+            levels[GetPaddedIndex(pos, bwl)] = (byte)level;
         }
     }
 
-    public void ReadCoefficientsReverse(Av1TransformSize transformSize, Av1TransformClass transformClass, int startScanIndex, int endScanIndex, ReadOnlySpan<short> scan, int bwl, Span<int> levels, Av1TransformSize transformSizeContext, Av1PlaneType planeType)
+    public void ReadCoefficientsReverse(Av1TransformSize transformSize, Av1TransformClass transformClass, int startScanIndex, int endScanIndex, ReadOnlySpan<short> scan, int bwl, Span<byte> levels, Av1TransformSize transformSizeContext, Av1PlaneType planeType)
     {
         for (int c = endScanIndex; c >= startScanIndex; --c)
         {
@@ -302,11 +302,11 @@ internal ref struct Av1SymbolDecoder
                 }
             }
 
-            levels[GetPaddedIndex(pos, bwl)] = level;
+            levels[GetPaddedIndex(pos, bwl)] = (byte)level;
         }
     }
 
-    public int ReadCoefficientsDc(Span<int> coefficientBuffer, int endOfBlock, ReadOnlySpan<short> scan, int bwl, Span<int> levels, int dcSignContext, Av1PlaneType planeType)
+    public int ReadCoefficientsDc(Span<int> coefficientBuffer, int endOfBlock, ReadOnlySpan<short> scan, int bwl, Span<byte> levels, int dcSignContext, Av1PlaneType planeType)
     {
         int maxScanLine = 0;
         int culLevel = 0;
@@ -439,7 +439,7 @@ internal ref struct Av1SymbolDecoder
         return 3;
     }
 
-    private static int GetBaseRangeContext2d(Span<int> levels, int c, int bwl)
+    private static int GetBaseRangeContext2d(Span<byte> levels, int c, int bwl)
     {
         DebugGuard.MustBeGreaterThan(c, 0, nameof(c));
         int row = c >> bwl;
@@ -447,9 +447,9 @@ internal ref struct Av1SymbolDecoder
         int stride = (1 << bwl) + Av1Constants.TransformPadHorizontal;
         int pos = (row * stride) + col;
         int mag =
-            Math.Min(levels[pos + 1], Av1Constants.MaxBaseRange) +
-            Math.Min(levels[pos + stride], Av1Constants.MaxBaseRange) +
-            Math.Min(levels[pos + 1 + stride], Av1Constants.MaxBaseRange);
+            Math.Min((int)levels[pos + 1], Av1Constants.MaxBaseRange) +
+            Math.Min((int)levels[pos + stride], Av1Constants.MaxBaseRange) +
+            Math.Min((int)levels[pos + 1 + stride], Av1Constants.MaxBaseRange);
         mag = Math.Min((mag + 1) >> 1, 6);
         if ((row | col) < 2)
         {
@@ -459,22 +459,22 @@ internal ref struct Av1SymbolDecoder
         return mag + 14;
     }
 
-    private static int GetLowerLevelsContext2d(Span<int> levels, int pos, int bwl, Av1TransformSize transformSize)
+    private static int GetLowerLevelsContext2d(Span<byte> levels, int pos, int bwl, Av1TransformSize transformSize)
     {
         DebugGuard.MustBeGreaterThan(pos, 0, nameof(pos));
         int mag;
         levels = levels[GetPaddedIndex(pos, bwl)..];
-        mag = Math.Min(levels[1], 3); // { 0, 1 }
-        mag += Math.Min(levels[(1 << bwl) + Av1Constants.TransformPadHorizontal], 3); // { 1, 0 }
-        mag += Math.Min(levels[(1 << bwl) + Av1Constants.TransformPadHorizontal + 1], 3); // { 1, 1 }
-        mag += Math.Min(levels[2], 3); // { 0, 2 }
-        mag += Math.Min(levels[(2 << bwl) + (2 << Av1Constants.TransformPadHorizontalLog2)], 3); // { 2, 0 }
+        mag = Math.Min((int)levels[1], 3); // { 0, 1 }
+        mag += Math.Min((int)levels[(1 << bwl) + Av1Constants.TransformPadHorizontal], 3); // { 1, 0 }
+        mag += Math.Min((int)levels[(1 << bwl) + Av1Constants.TransformPadHorizontal + 1], 3); // { 1, 1 }
+        mag += Math.Min((int)levels[2], 3); // { 0, 2 }
+        mag += Math.Min((int)levels[(2 << bwl) + (2 << Av1Constants.TransformPadHorizontalLog2)], 3); // { 2, 0 }
 
         int ctx = Math.Min((mag + 1) >> 1, 4);
         return ctx + Av1NzMap.GetNzMapContext(transformSize, pos);
     }
 
-    private static int GetBaseRangeContext(Span<int> levels, int c, int bwl, Av1TransformClass transformClass)
+    private static int GetBaseRangeContext(Span<byte> levels, int c, int bwl, Av1TransformClass transformClass)
     {
         int row = c >> bwl;
         int col = c - (row << bwl);
@@ -533,13 +533,13 @@ internal ref struct Av1SymbolDecoder
         return mag + 14;
     }
 
-    private static int GetLowerLevelsContext(Span<int> levels, int pos, int bwl, Av1TransformSize transformSize, Av1TransformClass transformClass)
+    private static int GetLowerLevelsContext(ReadOnlySpan<byte> levels, int pos, int bwl, Av1TransformSize transformSize, Av1TransformClass transformClass)
     {
         int stats = Av1NzMap.GetNzMagnitude(levels[GetPaddedIndex(pos, bwl)..], bwl, transformClass);
         return Av1NzMap.GetNzMapContextFromStats(stats, pos, bwl, transformSize, transformClass);
     }
 
-    private static int GetPaddedIndex(int scanIndex, int bwl)
+    public static int GetPaddedIndex(int scanIndex, int bwl)
         => scanIndex + ((scanIndex >> bwl) << Av1Constants.TransformPadHorizontalLog2);
 
     private int ReadGolomb()

@@ -2,17 +2,17 @@
 // Licensed under the Six Labors Split License.
 
 using System.Buffers;
-using System.Reflection;
 using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 using SixLabors.ImageSharp.Memory;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 
 [Trait("Format", "Avif")]
 public class SymbolTests
 {
+    private const int baseQIndex = 23;
+
     [Fact]
     public void ReadRandomLiteral()
     {
@@ -194,7 +194,7 @@ public class SymbolTests
         // Assign
         int ctx = 7;
         Configuration configuration = Configuration.Default;
-        Av1SymbolEncoder encoder = new(configuration, 100 / 8);
+        Av1SymbolEncoder encoder = new(configuration, 100 / 8, baseQIndex);
         Av1PartitionType[] values = [
             Av1PartitionType.Split, Av1PartitionType.Split, Av1PartitionType.Split, Av1PartitionType.None,
             Av1PartitionType.Split, Av1PartitionType.Split, Av1PartitionType.None, Av1PartitionType.None];
@@ -231,7 +231,7 @@ public class SymbolTests
     {
         // Assign
         Configuration configuration = Configuration.Default;
-        Av1SymbolEncoder encoder = new(configuration, 100 / 8);
+        Av1SymbolEncoder encoder = new(configuration, 100 / 8, baseQIndex);
         Av1PartitionType[] values = [
             Av1PartitionType.Split, Av1PartitionType.Split, Av1PartitionType.Split, Av1PartitionType.Horizontal,
             Av1PartitionType.Split, Av1PartitionType.Split, Av1PartitionType.Horizontal, Av1PartitionType.Horizontal];
@@ -268,7 +268,7 @@ public class SymbolTests
     {
         // Assign
         Configuration configuration = Configuration.Default;
-        Av1SymbolEncoder encoder = new(configuration, 100 / 8);
+        Av1SymbolEncoder encoder = new(configuration, 100 / 8, baseQIndex);
         Av1PartitionType[] values = [
             Av1PartitionType.Split, Av1PartitionType.Split, Av1PartitionType.Split, Av1PartitionType.Vertical,
             Av1PartitionType.Split, Av1PartitionType.Split, Av1PartitionType.Vertical, Av1PartitionType.Vertical];
@@ -299,7 +299,7 @@ public class SymbolTests
         // Assign
         bool[] values = [true, true, false, true, false, false, false];
         Configuration configuration = Configuration.Default;
-        Av1SymbolEncoder encoder = new(configuration, 100 / 8);
+        Av1SymbolEncoder encoder = new(configuration, 100 / 8, baseQIndex);
         bool[] actuals = new bool[values.Length];
 
         // Act

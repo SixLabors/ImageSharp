@@ -160,6 +160,8 @@ internal static class Av1Constants
 
     public const int TransformPadTop = 2;
 
+    public const int TransformPadBottom = 4;
+
     public const int BaseRangeSizeMinus1 = 3;
 
     public const int MaxBaseRange = 15;
@@ -182,4 +184,7 @@ internal static class Av1Constants
     public const int MaxTransformStageNumber = 12;
 
     public const int PartitionProbabilitySet = 4;
+
+    // Number of transform sizes that use extended transforms.
+    public const int ExtendedTransformCount = 4;
 }

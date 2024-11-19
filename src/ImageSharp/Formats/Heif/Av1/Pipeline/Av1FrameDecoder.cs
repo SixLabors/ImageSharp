@@ -13,12 +13,12 @@ internal class Av1FrameDecoder : IAv1FrameDecoder
     private readonly ObuSequenceHeader sequenceHeader;
     private readonly ObuFrameHeader frameHeader;
     private readonly Av1FrameInfo frameInfo;
-    private readonly Av1FrameBuffer frameBuffer;
+    private readonly Av1FrameBuffer<byte> frameBuffer;
     private readonly Av1InverseQuantizer inverseQuantizer;
     private readonly Av1DeQuantizationContext deQuants;
     private readonly Av1BlockDecoder blockDecoder;
 
-    public Av1FrameDecoder(ObuSequenceHeader sequenceHeader, ObuFrameHeader frameHeader, Av1FrameInfo frameInfo, Av1FrameBuffer frameBuffer)
+    public Av1FrameDecoder(ObuSequenceHeader sequenceHeader, ObuFrameHeader frameHeader, Av1FrameInfo frameInfo, Av1FrameBuffer<byte> frameBuffer)
     {
         this.sequenceHeader = sequenceHeader;
         this.frameHeader = frameHeader;

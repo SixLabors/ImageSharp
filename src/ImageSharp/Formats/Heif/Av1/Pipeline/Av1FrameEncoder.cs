@@ -7,9 +7,9 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 
 internal class Av1FrameEncoder
 {
-    private readonly Av1FrameBuffer frameBuffer;
+    private readonly Av1FrameBuffer<byte> frameBuffer;
 
-    public Av1FrameEncoder(Av1FrameBuffer frameBuffer)
+    public Av1FrameEncoder(Av1FrameBuffer<byte> frameBuffer)
     {
         this.frameBuffer = frameBuffer;
     }

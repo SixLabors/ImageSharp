@@ -17,13 +17,13 @@ internal class Av1BlockDecoder
 
     private readonly Av1FrameInfo frameInfo;
 
-    private readonly Av1FrameBuffer frameBuffer;
+    private readonly Av1FrameBuffer<byte> frameBuffer;
 
     private readonly bool isLoopFilterEnabled;
 
     private readonly int[] currentCoefficientIndex;
 
-    public Av1BlockDecoder(ObuSequenceHeader sequenceHeader, ObuFrameHeader frameHeader, Av1FrameInfo frameInfo, Av1FrameBuffer frameBuffer)
+    public Av1BlockDecoder(ObuSequenceHeader sequenceHeader, ObuFrameHeader frameHeader, Av1FrameInfo frameInfo, Av1FrameBuffer<byte> frameBuffer)
     {
         this.sequenceHeader = sequenceHeader;
         this.frameHeader = frameHeader;
@@ -221,7 +221,7 @@ internal class Av1BlockDecoder
         }
     }
 
-    private static void DeriveBlockPointers(Av1FrameBuffer frameBuffer, int plane, int blockColumnInPixels, int blockRowInPixels, out Span<byte> blockReconstructionBuffer, out int reconstructionStride, int subX, int subY)
+    private static void DeriveBlockPointers(Av1FrameBuffer<byte> frameBuffer, int plane, int blockColumnInPixels, int blockRowInPixels, out Span<byte> blockReconstructionBuffer, out int reconstructionStride, int subX, int subY)
     {
         int blockOffset;
 

@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Globalization;
 using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform.Forward;
@@ -485,7 +486,7 @@ public class Av1InverseTransformTests
         int count = Math.Min(expected.Length, 32);
         for (int ni = 0; ni < count; ++ni)
         {
-            maximumErrorInTest = Math.Max(maximumErrorInTest, Math.Abs(Convert.ToInt32(actual[ni]) - Convert.ToInt32(expected[ni])));
+            maximumErrorInTest = Math.Max(maximumErrorInTest, Math.Abs(Convert.ToInt32(actual[ni], CultureInfo.InvariantCulture) - Convert.ToInt32(expected[ni], CultureInfo.InvariantCulture)));
         }
 
         return maximumErrorInTest;

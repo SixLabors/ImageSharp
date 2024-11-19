@@ -26,7 +26,7 @@ internal class Av1Decoder : IAv1TileReader
 
     public Av1FrameInfo? FrameInfo { get; private set; }
 
-    public Av1FrameBuffer? FrameBuffer { get; private set; }
+    public Av1FrameBuffer<byte>? FrameBuffer { get; private set; }
 
     public void Decode(Span<byte> buffer)
     {

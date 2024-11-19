@@ -24,7 +24,7 @@ public class Av1TilingTests
         IAv1TileReader stub = new Av1TileDecoderStub();
         ObuReader obuReader = new();
         obuReader.ReadAll(ref bitStreamReader, dataSize, () => stub);
-        Av1FrameBuffer frameBuffer = new(Configuration.Default, obuReader.SequenceHeader, Av1ColorFormat.Yuv444, false);
+        Av1FrameBuffer<byte> frameBuffer = new(Configuration.Default, obuReader.SequenceHeader, Av1ColorFormat.Yuv444, false);
         Av1FrameInfo frameInfo = new(obuReader.SequenceHeader);
         Av1FrameDecoderStub frameDecoder = new();
         Av1TileReader tileReader = new(Configuration.Default, obuReader.SequenceHeader, obuReader.FrameHeader, frameDecoder);

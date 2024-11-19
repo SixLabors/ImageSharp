@@ -67,7 +67,7 @@ public class Av1ForwardTransformTests
 
             if (actual.EndsWith("Identity", StringComparison.InvariantCulture))
             {
-                actual = "Vertical" + actual.Replace("Identity", "");
+                actual = "Vertical" + actual.Replace("Identity", string.Empty);
             }
         }
 

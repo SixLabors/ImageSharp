@@ -9,7 +9,8 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1;
 /// <summary>
 /// Buffer for the pixels of a single frame.
 /// </summary>
-internal class Av1FrameBuffer : IDisposable
+internal class Av1FrameBuffer<T> : IDisposable
+    where T : struct
 {
     private const int DecoderPaddingValue = 72;
     private const int PictureBufferYFlag = 1 << 0;
@@ -67,17 +68,17 @@ internal class Av1FrameBuffer : IDisposable
         this.BufferCr = null;
         if ((this.BufferEnableMask & PictureBufferYFlag) != 0)
         {
-            this.BufferY = configuration.MemoryAllocator.Allocate2D<byte>(strideY * bitsPerPixel, heightY);
+            this.BufferY = configuration.MemoryAllocator.Allocate2D<T>(strideY * bitsPerPixel, heightY);
         }
 
         if ((this.BufferEnableMask & PictureBufferCbFlag) != 0)
         {
-            this.BufferCb = configuration.MemoryAllocator.Allocate2D<byte>(strideChroma * bitsPerPixel, heightChroma);
+            this.BufferCb = configuration.MemoryAllocator.Allocate2D<T>(strideChroma * bitsPerPixel, heightChroma);
         }
 
         if ((this.BufferEnableMask & PictureBufferCrFlag) != 0)
         {
-            this.BufferCr = configuration.MemoryAllocator.Allocate2D<byte>(strideChroma * bitsPerPixel, heightChroma);
+            this.BufferCr = configuration.MemoryAllocator.Allocate2D<T>(strideChroma * bitsPerPixel, heightChroma);
         }
 
         this.BitIncrementY = null;
@@ -93,17 +94,17 @@ internal class Av1FrameBuffer : IDisposable
     /// <summary>
     /// Gets the Y luma buffer.
     /// </summary>
-    public Buffer2D<byte>? BufferY { get; private set; }
+    public Buffer2D<T>? BufferY { get; private set; }
 
     /// <summary>
     /// Gets the U chroma buffer.
     /// </summary>
-    public Buffer2D<byte>? BufferCb { get; private set; }
+    public Buffer2D<T>? BufferCb { get; private set; }
 
     /// <summary>
     /// Gets the V chroma buffer.
     /// </summary>
-    public Buffer2D<byte>? BufferCr { get; private set; }
+    public Buffer2D<T>? BufferCr { get; private set; }
 
     public Buffer2D<byte>? BitIncrementY { get; private set; }
 

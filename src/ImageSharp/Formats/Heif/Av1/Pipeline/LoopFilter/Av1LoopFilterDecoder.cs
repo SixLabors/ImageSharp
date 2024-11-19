@@ -11,10 +11,10 @@ internal class Av1LoopFilterDecoder
     private readonly ObuSequenceHeader sequenceHeader;
     private readonly ObuFrameHeader frameHeader;
     private readonly Av1FrameInfo frameInfo;
-    private readonly Av1FrameBuffer frameBuffer;
+    private readonly Av1FrameBuffer<byte> frameBuffer;
     private readonly Av1LoopFilterContext loopFilterContext;
 
-    public Av1LoopFilterDecoder(ObuSequenceHeader sequenceHeader, ObuFrameHeader frameHeader, Av1FrameInfo frameInfo, Av1FrameBuffer frameBuffer)
+    public Av1LoopFilterDecoder(ObuSequenceHeader sequenceHeader, ObuFrameHeader frameHeader, Av1FrameInfo frameInfo, Av1FrameBuffer<byte> frameBuffer)
     {
         this.sequenceHeader = sequenceHeader;
         this.frameHeader = frameHeader;

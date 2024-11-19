@@ -6,10 +6,12 @@ using System.Buffers;
 using System.Drawing;
 using System.Formats.Asn1;
 using System.Runtime.CompilerServices;
+using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 
-namespace SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
+namespace SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 
 internal class Av1SymbolEncoder : IDisposable
 {
@@ -101,7 +103,7 @@ internal class Av1SymbolEncoder : IDisposable
     public void WriteSplitOrHorizontal(Av1PartitionType partitionType, Av1BlockSize blockSize, int context)
     {
         Av1Distribution distribution = Av1SymbolDecoder.GetSplitOrHorizontalDistribution(this.tilePartitionTypes, blockSize, context);
-        int value = (partitionType == Av1PartitionType.Split) ? 1 : 0;
+        int value = partitionType == Av1PartitionType.Split ? 1 : 0;
         ref Av1SymbolWriter w = ref this.writer;
         w.WriteSymbol(value, distribution);
     }
@@ -109,7 +111,7 @@ internal class Av1SymbolEncoder : IDisposable
     public void WriteSplitOrVertical(Av1PartitionType partitionType, Av1BlockSize blockSize, int context)
     {
         Av1Distribution distribution = Av1SymbolDecoder.GetSplitOrVerticalDistribution(this.tilePartitionTypes, blockSize, context);
-        int value = (partitionType == Av1PartitionType.Split) ? 1 : 0;
+        int value = partitionType == Av1PartitionType.Split ? 1 : 0;
         ref Av1SymbolWriter w = ref this.writer;
         w.WriteSymbol(value, distribution);
     }
@@ -138,7 +140,7 @@ internal class Av1SymbolEncoder : IDisposable
         Av1ScanOrder scanOrder = Av1ScanOrderConstants.GetScanOrder(transformSize, transformType);
         ReadOnlySpan<short> scan = scanOrder.Scan;
         int bwl = transformSize.GetBlockWidthLog2();
-        Av1TransformSize transformSizeContext = (Av1TransformSize)(((int)transformSize.GetSquareSize() + (int)transformSize.GetSquareUpSize() + 1) >> 1);
+        Av1TransformSize transformSizeContext = (Av1TransformSize)((int)transformSize.GetSquareSize() + (int)transformSize.GetSquareUpSize() + 1 >> 1);
 
         ref Av1SymbolWriter w = ref this.writer;
 
@@ -169,12 +171,12 @@ internal class Av1SymbolEncoder : IDisposable
         if (eob_offset_bits > 0)
         {
             int eob_shift = eob_offset_bits - 1;
-            int bit = Math.Max(1, eob_extra & (1 << eob_shift));
+            int bit = Math.Max(1, eob_extra & 1 << eob_shift);
             w.WriteSymbol(bit, this.endOfBlockExtra[(int)transformSizeContext][(int)componentType][endOfBlockPosition]);
             for (int i = 1; i < eob_offset_bits; i++)
             {
                 eob_shift = eob_offset_bits - 1 - i;
-                bit = Math.Max(1, eob_extra & (1 << eob_shift));
+                bit = Math.Max(1, eob_extra & 1 << eob_shift);
                 w.WriteLiteral((uint)bit, 1);
             }
         }
@@ -224,7 +226,7 @@ internal class Av1SymbolEncoder : IDisposable
             int level = Math.Abs(v);
             cul_level += level;
 
-            uint sign = (v < 0) ? 1u : 0u;
+            uint sign = v < 0 ? 1u : 0u;
             if (level > 0)
             {
                 if (c == 0)
@@ -273,20 +275,20 @@ internal class Av1SymbolEncoder : IDisposable
         int row = c >> bwl;
         int col = c - (row << bwl);
         int stride = (1 << bwl) + Av1Constants.TransformPadHorizontal;
-        int pos = (row * stride) + col;
+        int pos = row * stride + col;
         int mag = levels[pos + 1];
         mag += levels[pos + stride];
         switch (transformClass)
         {
             case Av1TransformClass.Class2D:
                 mag += levels[pos + stride + 1];
-                mag = Math.Min((mag + 1) >> 1, 6);
+                mag = Math.Min(mag + 1 >> 1, 6);
                 if (c == 0)
                 {
                     return mag;
                 }
 
-                if ((row < 2) && (col < 2))
+                if (row < 2 && col < 2)
                 {
                     return mag + 7;
                 }
@@ -294,7 +296,7 @@ internal class Av1SymbolEncoder : IDisposable
                 break;
             case Av1TransformClass.ClassHorizontal:
                 mag += levels[pos + 2];
-                mag = Math.Min((mag + 1) >> 1, 6);
+                mag = Math.Min(mag + 1 >> 1, 6);
                 if (c == 0)
                 {
                     return mag;
@@ -308,7 +310,7 @@ internal class Av1SymbolEncoder : IDisposable
                 break;
             case Av1TransformClass.ClassVertical:
                 mag += levels[pos + (stride << 1)];
-                mag = Math.Min((mag + 1) >> 1, 6);
+                mag = Math.Min(mag + 1 >> 1, 6);
                 if (c == 0)
                 {
                     return mag;
@@ -339,7 +341,7 @@ internal class Av1SymbolEncoder : IDisposable
         }
         else
         {
-            int e = Math.Min((endOfBlock - 1) >> 5, 16);
+            int e = Math.Min(endOfBlock - 1 >> 5, 16);
             t = EndOfBlockToPositionLarge[e];
         }
 
@@ -413,13 +415,13 @@ internal class Av1SymbolEncoder : IDisposable
         ref byte ls = ref levels[0];
 
         Unsafe.InitBlock(ref levels[-Av1Constants.TransformPadTop * stride], 0, (uint)(Av1Constants.TransformPadTop * stride));
-        Unsafe.InitBlock(ref levels[stride * height], 0, (uint)((Av1Constants.TransformPadBottom * stride) + Av1Constants.TransformPadEnd));
+        Unsafe.InitBlock(ref levels[stride * height], 0, (uint)(Av1Constants.TransformPadBottom * stride + Av1Constants.TransformPadEnd));
 
         for (int i = 0; i < height; i++)
         {
             for (int j = 0; j < width; j++)
             {
-                ls = (byte)Av1Math.Clamp(Math.Abs(coefficientBuffer[(i * width) + j]), 0, byte.MaxValue);
+                ls = (byte)Av1Math.Clamp(Math.Abs(coefficientBuffer[i * width + j]), 0, byte.MaxValue);
                 ls = ref Unsafe.Add(ref ls, 1);
             }
 
@@ -474,7 +476,7 @@ internal class Av1SymbolEncoder : IDisposable
 
         for (int j = length - 1; j >= 0; --j)
         {
-            w.WriteLiteral((uint)((x >> j) & 0x01), 1);
+            w.WriteLiteral((uint)(x >> j & 0x01), 1);
         }
     }
 
@@ -499,7 +501,7 @@ internal class Av1SymbolEncoder : IDisposable
     {
         ref Av1SymbolWriter w = ref this.writer;
         bool isInter = false; // mbmi->block_mi.use_intrabc || is_inter_mode(mbmi->block_mi.mode);
-        if (GetExtendedTransformTypeCount(transformSize, isInter, useReducedTransformSet) > 1 && (baseQIndex > 0))
+        if (GetExtendedTransformTypeCount(transformSize, isInter, useReducedTransformSet) > 1 && baseQIndex > 0)
         {
             Av1TransformSize square_tx_size = transformSize.GetSquareSize();
             Guard.MustBeLessThanOrEqualTo((int)square_tx_size, Av1Constants.ExtendedTransformCount, nameof(square_tx_size));

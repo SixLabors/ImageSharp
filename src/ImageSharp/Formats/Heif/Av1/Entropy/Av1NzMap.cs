@@ -3,7 +3,7 @@
 
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 
-namespace SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
+namespace SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 
 internal static class Av1NzMap
 {
@@ -321,7 +321,7 @@ internal static class Av1NzMap
             return 0;
         }
 
-        int ctx = (stats + 1) >> 1;
+        int ctx = stats + 1 >> 1;
         ctx = Math.Min(ctx, 4);
         switch (transformClass)
         {

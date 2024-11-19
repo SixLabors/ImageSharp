@@ -1,7 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-namespace SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
+namespace SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 
 /// <summary>
 /// Class representing the probability distribution used for symbol coding.
@@ -111,15 +111,15 @@ internal class Av1Distribution
         // Single loop (faster)
         for (int i = 0; i < this.NumberOfSymbols - 1; i++)
         {
-            tmp = (i == value) ? 0 : tmp;
+            tmp = i == value ? 0 : tmp;
             uint p = this.probabilities[i];
             if (tmp < p)
             {
-                this.probabilities[i] -= (ushort)((p - tmp) >> rate);
+                this.probabilities[i] -= (ushort)(p - tmp >> rate);
             }
             else
             {
-                this.probabilities[i] += (ushort)((tmp - p) >> rate);
+                this.probabilities[i] += (ushort)(tmp - p >> rate);
             }
         }
 

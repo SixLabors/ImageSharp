@@ -3,7 +3,7 @@
 
 using System;
 
-namespace SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
+namespace SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 
 internal static class Av1DefaultDistributions
 {

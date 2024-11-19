@@ -2,9 +2,10 @@
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 
-namespace SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
+namespace SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 
 internal ref struct Av1SymbolDecoder
 {
@@ -140,7 +141,7 @@ internal ref struct Av1SymbolDecoder
     public int ReadAngleDelta(Av1PredictionMode mode)
     {
         ref Av1SymbolReader r = ref this.reader;
-        return r.ReadSymbol(this.angleDelta[((int)mode) - 1]);
+        return r.ReadSymbol(this.angleDelta[(int)mode - 1]);
     }
 
     public bool ReadUseFilterUltra(Av1BlockSize blockSize)
@@ -216,7 +217,7 @@ internal ref struct Av1SymbolDecoder
             bool bit = this.ReadEndOfBlockExtra(transformSizeContext, planeType, endOfBlockContext);
             if (bit)
             {
-                endOfBlockExtra += 1 << (endOfBlockShift - 1);
+                endOfBlockExtra += 1 << endOfBlockShift - 1;
             }
             else
             {
@@ -224,7 +225,7 @@ internal ref struct Av1SymbolDecoder
                 {
                     if (this.ReadLiteral(1) != 0)
                     {
-                        endOfBlockExtra += 1 << (endOfBlockShift - 1 - j);
+                        endOfBlockExtra += 1 << endOfBlockShift - 1 - j;
                     }
                 }
             }
@@ -409,9 +410,9 @@ internal ref struct Av1SymbolDecoder
             return 0;
         }
 
-        if ((transformClass == Av1TransformClass.Class2D && row < 2 && col < 2) ||
-            (transformClass == Av1TransformClass.ClassHorizontal && col == 0) ||
-            (transformClass == Av1TransformClass.ClassVertical && row == 0))
+        if (transformClass == Av1TransformClass.Class2D && row < 2 && col < 2 ||
+            transformClass == Av1TransformClass.ClassHorizontal && col == 0 ||
+            transformClass == Av1TransformClass.ClassVertical && row == 0)
         {
             return 7;
         }
@@ -426,12 +427,12 @@ internal ref struct Av1SymbolDecoder
             return 0;
         }
 
-        if (scanIndex <= (height << bwl) >> 3)
+        if (scanIndex <= height << bwl >> 3)
         {
             return 1;
         }
 
-        if (scanIndex <= (height << bwl) >> 2)
+        if (scanIndex <= height << bwl >> 2)
         {
             return 2;
         }
@@ -445,12 +446,12 @@ internal ref struct Av1SymbolDecoder
         int row = c >> bwl;
         int col = c - (row << bwl);
         int stride = (1 << bwl) + Av1Constants.TransformPadHorizontal;
-        int pos = (row * stride) + col;
+        int pos = row * stride + col;
         int mag =
             Math.Min((int)levels[pos + 1], Av1Constants.MaxBaseRange) +
             Math.Min((int)levels[pos + stride], Av1Constants.MaxBaseRange) +
             Math.Min((int)levels[pos + 1 + stride], Av1Constants.MaxBaseRange);
-        mag = Math.Min((mag + 1) >> 1, 6);
+        mag = Math.Min(mag + 1 >> 1, 6);
         if ((row | col) < 2)
         {
             return mag + 7;
@@ -470,7 +471,7 @@ internal ref struct Av1SymbolDecoder
         mag += Math.Min((int)levels[2], 3); // { 0, 2 }
         mag += Math.Min((int)levels[(2 << bwl) + (2 << Av1Constants.TransformPadHorizontalLog2)], 3); // { 2, 0 }
 
-        int ctx = Math.Min((mag + 1) >> 1, 4);
+        int ctx = Math.Min(mag + 1 >> 1, 4);
         return ctx + Av1NzMap.GetNzMapContext(transformSize, pos);
     }
 
@@ -479,20 +480,20 @@ internal ref struct Av1SymbolDecoder
         int row = c >> bwl;
         int col = c - (row << bwl);
         int stride = (1 << bwl) + Av1Constants.TransformPadHorizontal;
-        int pos = (row * stride) + col;
+        int pos = row * stride + col;
         int mag = levels[pos + 1];
         mag += levels[pos + stride];
         switch (transformClass)
         {
             case Av1TransformClass.Class2D:
                 mag += levels[pos + stride + 1];
-                mag = Math.Min((mag + 1) >> 1, 6);
+                mag = Math.Min(mag + 1 >> 1, 6);
                 if (c == 0)
                 {
                     return mag;
                 }
 
-                if ((row < 2) && (col < 2))
+                if (row < 2 && col < 2)
                 {
                     return mag + 7;
                 }
@@ -500,7 +501,7 @@ internal ref struct Av1SymbolDecoder
                 break;
             case Av1TransformClass.ClassHorizontal:
                 mag += levels[pos + 2];
-                mag = Math.Min((mag + 1) >> 1, 6);
+                mag = Math.Min(mag + 1 >> 1, 6);
                 if (c == 0)
                 {
                     return mag;
@@ -514,7 +515,7 @@ internal ref struct Av1SymbolDecoder
                 break;
             case Av1TransformClass.ClassVertical:
                 mag += levels[pos + (stride << 1)];
-                mag = Math.Min((mag + 1) >> 1, 6);
+                mag = Math.Min(mag + 1 >> 1, 6);
                 if (c == 0)
                 {
                     return mag;
@@ -540,7 +541,7 @@ internal ref struct Av1SymbolDecoder
     }
 
     public static int GetPaddedIndex(int scanIndex, int bwl)
-        => scanIndex + ((scanIndex >> bwl) << Av1Constants.TransformPadHorizontalLog2);
+        => scanIndex + (scanIndex >> bwl << Av1Constants.TransformPadHorizontalLog2);
 
     private int ReadGolomb()
     {

@@ -3,7 +3,6 @@
 
 using System.Globalization;
 using System.Text.RegularExpressions;
-using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Convolution;
@@ -165,7 +164,7 @@ public class BokehBlurTest
             {
                 Size size = x.GetCurrentSize();
                 Rectangle bounds = new(10, 10, size.Width / 2, size.Height / 2);
-                x.BokehBlur(value.Radius, value.Components, value.Gamma, bounds);
+                x.BokehBlur(bounds, value.Radius, value.Components, value.Gamma);
             },
             testOutputDetails: value.ToString(),
             ImageComparer.TolerantPercentage(0.05f),

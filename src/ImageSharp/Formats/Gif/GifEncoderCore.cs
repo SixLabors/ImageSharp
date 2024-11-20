@@ -156,12 +156,7 @@ internal sealed class GifEncoderCore
             frameMetadata.TransparencyIndex = ClampIndex(derivedTransparencyIndex);
         }
 
-        byte backgroundIndex;
-        if (this.backgroundColor.HasValue)
-        {
-            backgroundIndex = GetBackgroundIndex(quantized, this.backgroundColor.Value);
-        }
-        else
+        if (!TryGetBackgroundIndex(quantized, this.backgroundColor, out byte backgroundIndex))
         {
             backgroundIndex = derivedTransparencyIndex >= 0
                ? frameMetadata.TransparencyIndex
@@ -510,15 +505,19 @@ internal sealed class GifEncoderCore
     /// </summary>
     /// <param name="quantized">The current quantized frame.</param>
     /// <param name="background">The background color to match.</param>
+    /// <param name="index">The index in the palette of the background color.</param>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
-    /// <returns>The <see cref="byte"/>.</returns>
-    private static byte GetBackgroundIndex<TPixel>(IndexedImageFrame<TPixel>? quantized, Color background)
+    /// <returns>The <see cref="bool"/>.</returns>
+    private static bool TryGetBackgroundIndex<TPixel>(
+        IndexedImageFrame<TPixel>? quantized,
+        Color? background,
+        out byte index)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        int index = -1;
-        if (quantized != null)
+        int match = -1;
+        if (quantized != null && background.HasValue)
         {
-            TPixel backgroundPixel = background.ToPixel<TPixel>();
+            TPixel backgroundPixel = background.Value.ToPixel<TPixel>();
             ReadOnlySpan<TPixel> palette = quantized.Palette.Span;
             for (int i = 0; i < palette.Length; i++)
             {
@@ -527,12 +526,19 @@ internal sealed class GifEncoderCore
                     continue;
                 }
 
-                index = i;
+                match = i;
                 break;
             }
         }
 
-        return (byte)Numerics.Clamp(index, 0, 255);
+        if (match >= 0)
+        {
+            index = (byte)Numerics.Clamp(match, 0, 255);
+            return true;
+        }
+
+        index = 0;
+        return false;
     }
 
     /// <summary>

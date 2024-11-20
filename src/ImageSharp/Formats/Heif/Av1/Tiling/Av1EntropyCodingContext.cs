@@ -10,5 +10,9 @@ internal partial class Av1TileWriter
         public required Av1MacroBlockModeInfo MacroBlockModeInfo { get; internal set; }
 
         public Point SuperblockOrigin { get; internal set; }
+
+        public int CodedAreaSuperblock { get; internal set; }
+
+        public int CodedAreaSuperblockUv { get; internal set; }
     }
 }

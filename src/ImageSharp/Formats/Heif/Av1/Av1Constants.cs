@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1;
 
@@ -187,4 +188,18 @@ internal static class Av1Constants
 
     // Number of transform sizes that use extended transforms.
     public const int ExtendedTransformCount = 4;
+
+    public const int MaxVarTransform = 2;
+
+    /// <summary>
+    /// Maximum number of transform blocks per depth
+    /// </summary>
+    public const int MaxTransformBlockCount = 16;
+
+    /// <summary>
+    /// Number of items in the <see cref="Av1PlaneType"/> enumeration.
+    /// </summary>
+    public const int PlaneTypeCount = 2;
+
+    public const int MaxTransformUnitCount = 16;
 }

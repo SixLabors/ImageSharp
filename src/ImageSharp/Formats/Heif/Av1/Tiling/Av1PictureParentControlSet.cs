@@ -16,5 +16,7 @@ internal partial class Av1TileWriter
         public required int[] PreviousQIndex { get; internal set; }
 
         public int PaletteLevel { get; internal set; }
+        public int AlignedWidth { get; internal set; }
+        public int AlignedHeight { get; internal set; }
     }
 }

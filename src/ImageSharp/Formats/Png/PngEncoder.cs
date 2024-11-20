@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 using SixLabors.ImageSharp.Processing.Processors.Quantization;
 
@@ -9,7 +8,7 @@ namespace SixLabors.ImageSharp.Formats.Png;
 /// <summary>
 /// Image encoder for writing image data to a stream in png format.
 /// </summary>
-public class PngEncoder : QuantizingImageEncoder
+public class PngEncoder : QuantizingAnimatedImageEncoder
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="PngEncoder"/> class.

@@ -124,6 +124,24 @@ internal sealed class PngEncoderCore : IDisposable
     private int derivedTransparencyIndex = -1;
 
     /// <summary>
+    /// The default background color of the canvas when animating.
+    /// This color may be used to fill the unused space on the canvas around the frames,
+    /// as well as the transparent pixels of the first frame.
+    /// The background color is also used when a frame disposal mode is <see cref="FrameDisposalMode.RestoreToBackground"/>.
+    /// </summary>
+    private readonly Color? backgroundColor;
+
+    /// <summary>
+    /// The number of times any animation is repeated.
+    /// </summary>
+    private readonly ushort? repeatCount;
+
+    /// <summary>
+    /// Whether the root frame is shown as part of the animated sequence.
+    /// </summary>
+    private readonly bool? animateRootFrame;
+
+    /// <summary>
     /// A reusable Crc32 hashing instance.
     /// </summary>
     private readonly Crc32 crc32 = new();
@@ -139,6 +157,9 @@ internal sealed class PngEncoderCore : IDisposable
         this.memoryAllocator = configuration.MemoryAllocator;
         this.encoder = encoder;
         this.quantizer = encoder.Quantizer;
+        this.backgroundColor = encoder.BackgroundColor;
+        this.repeatCount = encoder.RepeatCount;
+        this.animateRootFrame = encoder.AnimateRootFrame;
     }
 
     /// <summary>
@@ -171,7 +192,7 @@ internal sealed class PngEncoderCore : IDisposable
         if (clearTransparency)
         {
             currentFrame = clonedFrame = currentFrame.Clone();
-            ClearTransparentPixels(currentFrame);
+            ClearTransparentPixels(currentFrame, Color.Transparent);
         }
 
         // Do not move this. We require an accurate bit depth for the header chunk.
@@ -194,11 +215,15 @@ internal sealed class PngEncoderCore : IDisposable
 
         if (image.Frames.Count > 1)
         {
-            this.WriteAnimationControlChunk(stream, (uint)(image.Frames.Count - (pngMetadata.AnimateRootFrame ? 0 : 1)), pngMetadata.RepeatCount);
+            this.WriteAnimationControlChunk(
+                stream,
+                (uint)(image.Frames.Count - (pngMetadata.AnimateRootFrame ? 0 : 1)),
+                this.repeatCount ?? pngMetadata.RepeatCount);
         }
 
         // If the first frame isn't animated, write it as usual and skip it when writing animated frames
-        if (!pngMetadata.AnimateRootFrame || image.Frames.Count == 1)
+        bool userAnimateRootFrame = this.animateRootFrame == true;
+        if ((!userAnimateRootFrame && !pngMetadata.AnimateRootFrame) || image.Frames.Count == 1)
         {
             FrameControl frameControl = new((uint)this.width, (uint)this.height);
             this.WriteDataChunks(frameControl, currentFrame.PixelBuffer.GetRegion(), quantized, stream, false);
@@ -235,12 +260,20 @@ internal sealed class PngEncoderCore : IDisposable
 
             for (; currentFrameIndex < image.Frames.Count; currentFrameIndex++)
             {
+                if (cancellationToken.IsCancellationRequested)
+                {
+                    break;
+                }
+
                 ImageFrame<TPixel>? prev = previousDisposal == FrameDisposalMode.RestoreToBackground ? null : previousFrame;
                 currentFrame = image.Frames[currentFrameIndex];
                 ImageFrame<TPixel>? nextFrame = currentFrameIndex < image.Frames.Count - 1 ? image.Frames[currentFrameIndex + 1] : null;
 
                 frameMetadata = currentFrame.Metadata.GetPngMetadata();
                 bool blend = frameMetadata.BlendMode == FrameBlendMode.Over;
+                Color background = frameMetadata.DisposalMode == FrameDisposalMode.RestoreToBackground
+                    ? this.backgroundColor ?? Color.Transparent
+                    : Color.Transparent;
 
                 (bool difference, Rectangle bounds) =
                     AnimationUtilities.DeDuplicatePixels(
@@ -249,12 +282,12 @@ internal sealed class PngEncoderCore : IDisposable
                         currentFrame,
                         nextFrame,
                         encodingFrame,
-                        Color.Transparent,
+                        background,
                         blend);
 
                 if (clearTransparency)
                 {
-                    ClearTransparentPixels(encodingFrame);
+                    ClearTransparentPixels(encodingFrame, background);
                 }
 
                 // Each frame control sequence number must be incremented by the number of frame data chunks that follow.
@@ -291,12 +324,13 @@ internal sealed class PngEncoderCore : IDisposable
     /// </summary>
     /// <typeparam name="TPixel">The type of the pixel.</typeparam>
     /// <param name="clone">The cloned image frame where the transparent pixels will be changed.</param>
-    private static void ClearTransparentPixels<TPixel>(ImageFrame<TPixel> clone)
+    /// <param name="color">The color to replace transparent pixels with.</param>
+    private static void ClearTransparentPixels<TPixel>(ImageFrame<TPixel> clone, Color color)
         where TPixel : unmanaged, IPixel<TPixel>
         => clone.ProcessPixelRows(accessor =>
         {
             // TODO: We should be able to speed this up with SIMD and masking.
-            Rgba32 transparent = Color.Transparent.ToPixel<Rgba32>();
+            Rgba32 transparent = color.ToPixel<Rgba32>();
             for (int y = 0; y < accessor.Height; y++)
             {
                 Span<TPixel> span = accessor.GetRowSpan(y);

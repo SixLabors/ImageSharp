@@ -236,7 +236,7 @@ internal class Vp8LEncoder : IDisposable
     /// </summary>
     public Vp8LHashChain HashChain { get; }
 
-    public WebpVp8X EncodeHeader<TPixel>(Image<TPixel> image, Stream stream, bool hasAnimation)
+    public WebpVp8X EncodeHeader<TPixel>(Image<TPixel> image, Stream stream, bool hasAnimation, ushort? repeatCount)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         // Write bytes from the bit-writer buffer to the stream.
@@ -258,7 +258,7 @@ internal class Vp8LEncoder : IDisposable
         if (hasAnimation)
         {
             WebpMetadata webpMetadata = image.Metadata.GetWebpMetadata();
-            BitWriterBase.WriteAnimationParameter(stream, webpMetadata.BackgroundColor, webpMetadata.RepeatCount);
+            BitWriterBase.WriteAnimationParameter(stream, webpMetadata.BackgroundColor, repeatCount ?? webpMetadata.RepeatCount);
         }
 
         return vp8x;
@@ -315,8 +315,8 @@ internal class Vp8LEncoder : IDisposable
                     (uint)bounds.Width,
                     (uint)bounds.Height,
                     frameMetadata.FrameDelay,
-                    frameMetadata.BlendMethod,
-                    frameMetadata.DisposalMethod)
+                    frameMetadata.BlendMode,
+                    frameMetadata.DisposalMode)
                 .WriteHeaderTo(stream);
         }
 

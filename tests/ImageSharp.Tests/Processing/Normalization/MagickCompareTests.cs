@@ -1,12 +1,11 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using ImageMagick;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Normalization;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
-
-using ImageMagick;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Normalization;
 
@@ -22,46 +21,43 @@ public class MagickCompareTests
         Image<TPixel> imageFromMagick;
         using (Stream stream = LoadAsStream(provider))
         {
-            var magickImage = new MagickImage(stream);
+            using MagickImage magickImage = new(stream);
 
             // Apply Auto Level using the Grey (BT.709) channel.
             magickImage.AutoLevel(Channels.Gray);
             imageFromMagick = ConvertImageFromMagick<TPixel>(magickImage);
         }
 
-        using (Image<TPixel> image = provider.GetImage())
+        using Image<TPixel> image = provider.GetImage();
+        HistogramEqualizationOptions options = new()
         {
-            var options = new HistogramEqualizationOptions
-            {
-                Method = HistogramEqualizationMethod.AutoLevel,
-                LuminanceLevels = 256,
-                SyncChannels = true
-            };
-            image.Mutate(x => x.HistogramEqualization(options));
-            image.DebugSave(provider);
-            ExactImageComparer.Instance.CompareImages(imageFromMagick, image);
-        }
+            Method = HistogramEqualizationMethod.AutoLevel,
+            LuminanceLevels = 256,
+            SyncChannels = true
+        };
+        image.Mutate(x => x.HistogramEqualization(options));
+        image.DebugSave(provider);
+        ExactImageComparer.Instance.CompareImages(imageFromMagick, image);
+
+        imageFromMagick.Dispose();
     }
 
-    private Stream LoadAsStream<TPixel>(TestImageProvider<TPixel> provider)
+    private static FileStream LoadAsStream<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, ImageSharp.PixelFormats.IPixel<TPixel>
     {
-        string path = TestImageProvider<TPixel>.GetFilePathOrNull(provider);
-        if (path == null)
-        {
-            throw new InvalidOperationException("CompareToMagick() works only with file providers!");
-        }
+        string path = TestImageProvider<TPixel>.GetFilePathOrNull(provider)
+            ?? throw new InvalidOperationException("CompareToMagick() works only with file providers!");
 
-        var testFile = TestFile.Create(path);
+        TestFile testFile = TestFile.Create(path);
         return new FileStream(testFile.FullPath, FileMode.Open);
     }
 
-    private Image<TPixel> ConvertImageFromMagick<TPixel>(MagickImage magickImage)
+    private static Image<TPixel> ConvertImageFromMagick<TPixel>(MagickImage magickImage)
         where TPixel : unmanaged, ImageSharp.PixelFormats.IPixel<TPixel>
     {
         Configuration configuration = Configuration.Default.Clone();
         configuration.PreferContiguousImageBuffers = true;
-        var result = new Image<TPixel>(configuration, magickImage.Width, magickImage.Height);
+        Image<TPixel> result = new(configuration, (int)magickImage.Width, (int)magickImage.Height);
 
         Assert.True(result.DangerousTryGetSinglePixelMemory(out Memory<TPixel> resultPixels));
 

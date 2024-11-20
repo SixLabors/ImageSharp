@@ -24,19 +24,21 @@ public class WebpFrameMetadata : IFormatFrameMetadata<WebpFrameMetadata>
     private WebpFrameMetadata(WebpFrameMetadata other)
     {
         this.FrameDelay = other.FrameDelay;
-        this.DisposalMethod = other.DisposalMethod;
-        this.BlendMethod = other.BlendMethod;
+        this.DisposalMode = other.DisposalMode;
+        this.BlendMode = other.BlendMode;
     }
 
     /// <summary>
-    /// Gets or sets how transparent pixels of the current frame are to be blended with corresponding pixels of the previous canvas.
+    /// Gets or sets how transparent pixels of the current frame are to be blended with corresponding pixels
+    /// of the previous canvas.
     /// </summary>
-    public FrameBlendMode BlendMethod { get; set; }
+    public FrameBlendMode BlendMode { get; set; }
 
     /// <summary>
-    /// Gets or sets how the current frame is to be treated after it has been displayed (before rendering the next frame) on the canvas.
+    /// Gets or sets how the current frame is to be treated after it has been displayed
+    /// (before rendering the next frame) on the canvas.
     /// </summary>
-    public FrameDisposalMode DisposalMethod { get; set; }
+    public FrameDisposalMode DisposalMode { get; set; }
 
     /// <summary>
     /// Gets or sets the frame duration. The time to wait before displaying the next frame,
@@ -49,8 +51,8 @@ public class WebpFrameMetadata : IFormatFrameMetadata<WebpFrameMetadata>
         => new()
         {
             FrameDelay = (uint)metadata.Duration.TotalMilliseconds,
-            BlendMethod = metadata.BlendMode,
-            DisposalMethod = GetMode(metadata.DisposalMode)
+            BlendMode = metadata.BlendMode,
+            DisposalMode = GetMode(metadata.DisposalMode)
         };
 
     /// <inheritdoc/>
@@ -59,8 +61,8 @@ public class WebpFrameMetadata : IFormatFrameMetadata<WebpFrameMetadata>
         {
             ColorTableMode = FrameColorTableMode.Global,
             Duration = TimeSpan.FromMilliseconds(this.FrameDelay),
-            DisposalMode = this.DisposalMethod,
-            BlendMode = this.BlendMethod,
+            DisposalMode = this.DisposalMode,
+            BlendMode = this.BlendMode,
         };
 
     /// <inheritdoc/>

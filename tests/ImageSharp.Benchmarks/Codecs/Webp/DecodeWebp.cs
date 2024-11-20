@@ -44,34 +44,35 @@ public class DecodeWebp
     [Benchmark(Description = "Magick Lossy Webp")]
     public int WebpLossyMagick()
     {
-        var settings = new MagickReadSettings { Format = MagickFormat.WebP };
-        using var memoryStream = new MemoryStream(this.webpLossyBytes);
-        using var image = new MagickImage(memoryStream, settings);
-        return image.Width;
+        MagickReadSettings settings = new() { Format = MagickFormat.WebP };
+        using MemoryStream memoryStream = new(this.webpLossyBytes);
+        using MagickImage image = new(memoryStream, settings);
+        return (int)image.Width;
     }
 
     [Benchmark(Description = "ImageSharp Lossy Webp")]
     public int WebpLossy()
     {
-        using var memoryStream = new MemoryStream(this.webpLossyBytes);
-        using var image = Image.Load<Rgba32>(memoryStream);
+        using MemoryStream memoryStream = new(this.webpLossyBytes);
+        using Image<Rgba32> image = Image.Load<Rgba32>(memoryStream);
         return image.Height;
     }
 
     [Benchmark(Description = "Magick Lossless Webp")]
     public int WebpLosslessMagick()
     {
-        var settings = new MagickReadSettings { Format = MagickFormat.WebP };
-        using var memoryStream = new MemoryStream(this.webpLossyBytes);
-        using var image = new MagickImage(memoryStream, settings);
-        return image.Width;
+        MagickReadSettings settings = new()
+        { Format = MagickFormat.WebP };
+        using MemoryStream memoryStream = new(this.webpLossyBytes);
+        using MagickImage image = new(memoryStream, settings);
+        return (int)image.Width;
     }
 
     [Benchmark(Description = "ImageSharp Lossless Webp")]
     public int WebpLossless()
     {
-        using var memoryStream = new MemoryStream(this.webpLosslessBytes);
-        using var image = Image.Load<Rgba32>(memoryStream);
+        using MemoryStream memoryStream = new(this.webpLosslessBytes);
+        using Image<Rgba32> image = Image.Load<Rgba32>(memoryStream);
         return image.Height;
     }
 

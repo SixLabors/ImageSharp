@@ -58,7 +58,7 @@ public class MagickReferenceDecoder : ImageDecoder
 
         MagickReadSettings settings = new()
         {
-            FrameCount = (int)options.MaxFrames
+            FrameCount = options.MaxFrames
         };
         settings.SetDefines(bmpReadDefines);
         settings.SetDefines(pngReadDefines);
@@ -67,7 +67,7 @@ public class MagickReferenceDecoder : ImageDecoder
         List<ImageFrame<TPixel>> framesList = [];
         foreach (IMagickImage<ushort> magicFrame in magickImageCollection)
         {
-            ImageFrame<TPixel> frame = new(configuration, magicFrame.Width, magicFrame.Height);
+            ImageFrame<TPixel> frame = new(configuration, (int)magicFrame.Width, (int)magicFrame.Height);
             framesList.Add(frame);
 
             MemoryGroup<TPixel> framePixels = frame.PixelBuffer.FastMemoryGroup;

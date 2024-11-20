@@ -220,8 +220,8 @@ internal class WebpAnimationDecoder : IDisposable
     {
         WebpFrameMetadata frameMetadata = meta.GetWebpMetadata();
         frameMetadata.FrameDelay = frameData.Duration;
-        frameMetadata.BlendMethod = frameData.BlendingMethod;
-        frameMetadata.DisposalMethod = frameData.DisposalMethod;
+        frameMetadata.BlendMode = frameData.BlendingMethod;
+        frameMetadata.DisposalMode = frameData.DisposalMethod;
     }
 
     /// <summary>

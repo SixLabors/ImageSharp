@@ -9,7 +9,7 @@ using SixLabors.ImageSharp.Memory;
 namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 
 [Trait("Format", "Avif")]
-public class EntropyTests
+public class Av1EntropyTests
 {
     private const int BaseQIndex = 23;
 

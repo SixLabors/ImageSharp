@@ -74,7 +74,7 @@ public class Av1InverseTransformTests
 
     [Fact]
     public void AccuracyOfEchoTransformSize4Test()
-        => AssertAccuracy1d(Av1TransformType.Identity, Av1TransformSize.Size4x4, 0, new EchoTestTransformer(), new EchoTestTransformer());
+        => AssertAccuracy1d(Av1TransformType.Identity, Av1TransformSize.Size4x4, 0, new Av1EchoTestTransformer(), new Av1EchoTestTransformer());
 
     [Fact]
     public void FlipNothingTest()
@@ -96,7 +96,7 @@ public class Av1InverseTransformTests
         config.GenerateStageRange(8);
         config.SetFlip(false, false);
         config.SetShift(0, 0, 0);
-        IAv1Forward1dTransformer transformer = new EchoTestTransformer();
+        IAv1Forward1dTransformer transformer = new Av1EchoTestTransformer();
 
         // Act
         Av1Inverse2dTransformer.Transform2dAdd(
@@ -132,7 +132,7 @@ public class Av1InverseTransformTests
         Av1Transform2dFlipConfiguration config = new(Av1TransformType.Identity, Av1TransformSize.Size4x4);
         config.SetFlip(false, true);
         config.SetShift(0, 0, 0);
-        IAv1Forward1dTransformer transformer = new EchoTestTransformer();
+        IAv1Forward1dTransformer transformer = new Av1EchoTestTransformer();
 
         // Act
         Av1Inverse2dTransformer.Transform2dAdd(
@@ -168,7 +168,7 @@ public class Av1InverseTransformTests
         Av1Transform2dFlipConfiguration config = new(Av1TransformType.Identity, Av1TransformSize.Size4x4);
         config.SetFlip(true, false);
         config.SetShift(0, 0, 0);
-        IAv1Forward1dTransformer transformer = new EchoTestTransformer();
+        IAv1Forward1dTransformer transformer = new Av1EchoTestTransformer();
 
         // Act
         Av1Inverse2dTransformer.Transform2dAdd(
@@ -204,7 +204,7 @@ public class Av1InverseTransformTests
         Av1Transform2dFlipConfiguration config = new(Av1TransformType.Identity, Av1TransformSize.Size4x4);
         config.SetFlip(true, true);
         config.SetShift(0, 0, 0);
-        IAv1Forward1dTransformer transformer = new EchoTestTransformer();
+        IAv1Forward1dTransformer transformer = new Av1EchoTestTransformer();
 
         // Act
         Av1Inverse2dTransformer.Transform2dAdd(

@@ -85,7 +85,7 @@ public class Av1ForwardTransformTests
         Array.Fill<short>(input, 1);
         int[] actual = new int[64 * 64];
         Av1Transform2dFlipConfiguration config = new(transformType, transformSize);
-        IAv1Forward1dTransformer transformer = new EchoTestTransformer();
+        IAv1Forward1dTransformer transformer = new Av1EchoTestTransformer();
         int width = transformSize.GetWidth();
         int height = transformSize.GetHeight();
         int blockSize = width * height;
@@ -123,7 +123,7 @@ public class Av1ForwardTransformTests
         Av1Transform2dFlipConfiguration config = new(Av1TransformType.Identity, Av1TransformSize.Size4x4);
         config.SetFlip(false, false);
         config.SetShift(0, 0, 0);
-        IAv1Forward1dTransformer transformer = new EchoTestTransformer();
+        IAv1Forward1dTransformer transformer = new Av1EchoTestTransformer();
 
         // Act
         Av1ForwardTransformer.Transform2d(
@@ -157,7 +157,7 @@ public class Av1ForwardTransformTests
         Av1Transform2dFlipConfiguration config = new(Av1TransformType.Identity, Av1TransformSize.Size4x4);
         config.SetFlip(false, true);
         config.SetShift(0, 0, 0);
-        IAv1Forward1dTransformer transformer = new EchoTestTransformer();
+        IAv1Forward1dTransformer transformer = new Av1EchoTestTransformer();
 
         // Act
         Av1ForwardTransformer.Transform2d(
@@ -191,7 +191,7 @@ public class Av1ForwardTransformTests
         Av1Transform2dFlipConfiguration config = new(Av1TransformType.Identity, Av1TransformSize.Size4x4);
         config.SetFlip(true, false);
         config.SetShift(0, 0, 0);
-        IAv1Forward1dTransformer transformer = new EchoTestTransformer();
+        IAv1Forward1dTransformer transformer = new Av1EchoTestTransformer();
 
         // Act
         Av1ForwardTransformer.Transform2d(
@@ -225,7 +225,7 @@ public class Av1ForwardTransformTests
         Av1Transform2dFlipConfiguration config = new(Av1TransformType.Identity, Av1TransformSize.Size4x4);
         config.SetFlip(true, true);
         config.SetShift(0, 0, 0);
-        IAv1Forward1dTransformer transformer = new EchoTestTransformer();
+        IAv1Forward1dTransformer transformer = new Av1EchoTestTransformer();
 
         // Act
         Av1ForwardTransformer.Transform2d(
@@ -261,7 +261,7 @@ public class Av1ForwardTransformTests
         Av1Transform2dFlipConfiguration config = new(Av1TransformType.Identity, Av1TransformSize.Size8x4);
         config.SetFlip(true, false);
         config.SetShift(0, 0, 0);
-        IAv1Forward1dTransformer transformer = new EchoTestTransformer();
+        IAv1Forward1dTransformer transformer = new Av1EchoTestTransformer();
 
         // Act
         Av1ForwardTransformer.Transform2d(
@@ -305,7 +305,7 @@ public class Av1ForwardTransformTests
         Av1Transform2dFlipConfiguration config = new(Av1TransformType.Identity, Av1TransformSize.Size4x8);
         config.SetFlip(true, false);
         config.SetShift(0, 0, 0);
-        IAv1Forward1dTransformer transformer = new EchoTestTransformer();
+        IAv1Forward1dTransformer transformer = new Av1EchoTestTransformer();
 
         // Act
         Av1ForwardTransformer.Transform2d(

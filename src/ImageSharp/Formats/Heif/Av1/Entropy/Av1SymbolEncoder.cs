@@ -122,12 +122,12 @@ internal class Av1SymbolEncoder : IDisposable
     public int WriteCoefficients(
         Av1TransformSize transformSize,
         Av1TransformType transformType,
-        uint txb_index, // TODO: Doesn't seem to be used, remove.
-        Av1PredictionMode intraLumaDir,
-        Span<int> coeff_buffer_ptr,
+        int txbIndex, // TODO: Doesn't seem to be used, remove.
+        Av1PredictionMode intraDirection,
+        Span<int> coeffBuffer,
         Av1ComponentType componentType,
-        short txb_skip_ctx,
-        short dc_sign_ctx,
+        short transformBlockSkipContext,
+        short dcSignContext,
         ushort eob,
         bool useReducedTransformSet,
         int baseQIndex,
@@ -151,17 +151,17 @@ internal class Av1SymbolEncoder : IDisposable
         Guard.MustBeLessThan((int)transformSizeContext, (int)Av1TransformSize.AllSizes, nameof(transformSizeContext));
 
         bool hasEndOfBlock = eob != 0;
-        this.WriteSkip(!hasEndOfBlock, txb_skip_ctx);
+        this.WriteSkip(!hasEndOfBlock, transformBlockSkipContext);
 
         if (eob == 0)
         {
             return 0;
         }
 
-        InitializeLevels(coeff_buffer_ptr, width, height, levels);
+        InitializeLevels(coeffBuffer, width, height, levels);
         if (componentType == Av1ComponentType.Luminance)
         {
-            this.WriteTransformType(transformType, transformSize, useReducedTransformSet, baseQIndex, filterIntraMode, intraLumaDir);
+            this.WriteTransformType(transformType, transformSize, useReducedTransformSet, baseQIndex, filterIntraMode, intraDirection);
         }
 
         short endOfBlockPosition = GetEndOfBlockPosition(eob, out int eob_extra);
@@ -186,7 +186,7 @@ internal class Av1SymbolEncoder : IDisposable
         for (c = eob - 1; c >= 0; --c)
         {
             short pos = scan[c];
-            int v = coeff_buffer_ptr[pos];
+            int v = coeffBuffer[pos];
             short coeff_ctx = coeff_contexts[pos];
             int level = Math.Abs(v);
 
@@ -222,7 +222,7 @@ internal class Av1SymbolEncoder : IDisposable
         for (c = 0; c < eob; ++c)
         {
             short pos = scan[c];
-            int v = coeff_buffer_ptr[pos];
+            int v = coeffBuffer[pos];
             int level = Math.Abs(v);
             cul_level += level;
 
@@ -231,7 +231,7 @@ internal class Av1SymbolEncoder : IDisposable
             {
                 if (c == 0)
                 {
-                    w.WriteSymbol((int)sign, this.dcSign[(int)componentType][dc_sign_ctx]);
+                    w.WriteSymbol((int)sign, this.dcSign[(int)componentType][dcSignContext]);
                 }
                 else
                 {
@@ -248,22 +248,22 @@ internal class Av1SymbolEncoder : IDisposable
         cul_level = Math.Min(Av1Constants.CoefficientContextMask, cul_level);
 
         // DC value
-        SetDcSign(ref cul_level, coeff_buffer_ptr[0]);
+        SetDcSign(ref cul_level, coeffBuffer[0]);
         return cul_level;
     }
 
     /// <summary>
     /// SVT: set_dc_sign
     /// </summary>
-    private static void SetDcSign(ref int cul_level, int dc_val)
+    private static void SetDcSign(ref int culLevel, int dcValue)
     {
-        if (dc_val < 0)
+        if (dcValue < 0)
         {
-            cul_level |= 1 << Av1Constants.CoefficientContextBitCount;
+            culLevel |= 1 << Av1Constants.CoefficientContextBitCount;
         }
-        else if (dc_val > 0)
+        else if (dcValue > 0)
         {
-            cul_level += 2 << Av1Constants.CoefficientContextBitCount;
+            culLevel += 2 << Av1Constants.CoefficientContextBitCount;
         }
     }
 
@@ -432,8 +432,8 @@ internal class Av1SymbolEncoder : IDisposable
     /// <summary>
     /// SVT: set_levels from EbCommonUtils.h
     /// </summary>
-    private static Span<byte> SetLevels(Span<byte> levels_buf, int width)
-        => levels_buf.Slice(Av1Constants.TransformPadTop * (width + Av1Constants.TransformPadHorizontal));
+    private static Span<byte> SetLevels(Span<byte> levelsBuffer, int width)
+        => levelsBuffer.Slice(Av1Constants.TransformPadTop * (width + Av1Constants.TransformPadHorizontal));
 
     private void WriteSkip(bool hasEndOfBlock, int context)
     {

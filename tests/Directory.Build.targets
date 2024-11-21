@@ -19,7 +19,12 @@
   <ItemGroup>
     <!-- Test Dependencies -->
     <PackageReference Update="Colourful" Version="3.2.0" />
-    <PackageReference Update="Magick.NET-Q16-AnyCPU" Version="14.2.0" />
+
+    <!--
+    Do not update to 14+ yet. There's differnce in how the BMP decoder handles rounding in 16 bit images.
+    See https://github.com/ImageMagick/ImageMagick/commit/27a0a9c37f18af9c8d823a3ea076f600843b553c
+    -->
+    <PackageReference Update="Magick.NET-Q16-AnyCPU" Version="13.10.0" />
     <PackageReference Update="Microsoft.DotNet.RemoteExecutor" Version="8.0.0-beta.23580.1" />
     <PackageReference Update="Microsoft.DotNet.XUnitExtensions" Version="8.0.0-beta.23580.1" />
     <PackageReference Update="Moq" Version="4.20.72" />

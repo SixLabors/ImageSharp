@@ -58,7 +58,7 @@ public class MagickReferenceDecoder : ImageDecoder
 
         MagickReadSettings settings = new()
         {
-            FrameCount = options.MaxFrames
+            FrameCount = (int)options.MaxFrames
         };
         settings.SetDefines(bmpReadDefines);
         settings.SetDefines(pngReadDefines);

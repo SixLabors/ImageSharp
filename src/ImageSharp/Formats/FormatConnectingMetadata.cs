@@ -45,7 +45,7 @@ public class FormatConnectingMetadata
     /// Gets the default background color of the canvas when animating.
     /// This color may be used to fill the unused space on the canvas around the frames,
     /// as well as the transparent pixels of the first frame.
-    /// The background color is also used when the disposal mode is <see cref="FrameDisposalMode.RestoreToBackground"/>.
+    /// The background color is also used when a frame disposal mode is <see cref="FrameDisposalMode.RestoreToBackground"/>.
     /// </summary>
     /// <remarks>
     /// Defaults to <see cref="Color.Transparent"/>.

@@ -98,13 +98,13 @@ public class WebpEncoderTests
             switch (gifF.DisposalMode)
             {
                 case FrameDisposalMode.RestoreToBackground:
-                    Assert.Equal(FrameDisposalMode.RestoreToBackground, webpF.DisposalMethod);
+                    Assert.Equal(FrameDisposalMode.RestoreToBackground, webpF.DisposalMode);
                     break;
                 case FrameDisposalMode.RestoreToPrevious:
                 case FrameDisposalMode.Unspecified:
                 case FrameDisposalMode.DoNotDispose:
                 default:
-                    Assert.Equal(FrameDisposalMode.DoNotDispose, webpF.DisposalMethod);
+                    Assert.Equal(FrameDisposalMode.DoNotDispose, webpF.DisposalMode);
                     break;
             }
         }
@@ -147,22 +147,22 @@ public class WebpEncoderTests
             switch (pngF.BlendMode)
             {
                 case FrameBlendMode.Source:
-                    Assert.Equal(FrameBlendMode.Source, webpF.BlendMethod);
+                    Assert.Equal(FrameBlendMode.Source, webpF.BlendMode);
                     break;
                 case FrameBlendMode.Over:
                 default:
-                    Assert.Equal(FrameBlendMode.Over, webpF.BlendMethod);
+                    Assert.Equal(FrameBlendMode.Over, webpF.BlendMode);
                     break;
             }
 
             switch (pngF.DisposalMode)
             {
                 case FrameDisposalMode.RestoreToBackground:
-                    Assert.Equal(FrameDisposalMode.RestoreToBackground, webpF.DisposalMethod);
+                    Assert.Equal(FrameDisposalMode.RestoreToBackground, webpF.DisposalMode);
                     break;
                 case FrameDisposalMode.DoNotDispose:
                 default:
-                    Assert.Equal(FrameDisposalMode.DoNotDispose, webpF.DisposalMethod);
+                    Assert.Equal(FrameDisposalMode.DoNotDispose, webpF.DisposalMode);
                     break;
             }
         }

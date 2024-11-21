@@ -334,7 +334,7 @@ public class GifEncoderTests
 
             Assert.Equal(webpF.FrameDelay, (uint)(gifF.FrameDelay * 10));
 
-            switch (webpF.DisposalMethod)
+            switch (webpF.DisposalMode)
             {
                 case FrameDisposalMode.RestoreToBackground:
                     Assert.Equal(FrameDisposalMode.RestoreToBackground, gifF.DisposalMode);

@@ -11,14 +11,6 @@ internal class Av1NeighborArrayUnit<T>
 {
     public static readonly T InvalidNeighborData = T.MaxValue;
 
-    [Flags]
-    public enum UnitMask
-    {
-        Left = 1,
-        Top = 2,
-        TopLeft = 4,
-    }
-
     private readonly T[] left;
     private readonly T[] top;
     private readonly T[] topLeft;
@@ -28,6 +20,14 @@ internal class Av1NeighborArrayUnit<T>
         this.left = new T[leftSize];
         this.top = new T[topSize];
         this.topLeft = new T[topLeftSize];
+    }
+
+    [Flags]
+    public enum UnitMask
+    {
+        Left = 1,
+        Top = 2,
+        TopLeft = 4,
     }
 
     public Span<T> Left => this.left;

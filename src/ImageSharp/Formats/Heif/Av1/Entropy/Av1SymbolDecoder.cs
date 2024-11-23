@@ -206,6 +206,88 @@ internal ref struct Av1SymbolDecoder
         return r.ReadSymbol(this.chromeForLumaAlpha[context]);
     }
 
+    /// <summary>
+    /// 5.11.39. Coefficients syntax.
+    /// </summary>
+    /// <remarks>
+    /// The implementation is taken from SVT-AV1 library, which deviates from the code flow in the specification.
+    /// </remarks>
+    public int ReadCoefficients(
+        Av1BlockModeInfo modeInfo,
+        Point blockPosition,
+        int[] aboveContexts,
+        int[] leftContexts,
+        int aboveOffset,
+        int leftOffset,
+        int plane,
+        int blocksWide,
+        int blocksHigh,
+        Av1TransformBlockContext transformBlockContext,
+        Av1TransformSize transformSize,
+        bool isLossless,
+        bool useReducedTransformSet,
+        Av1TransformInfo transformInfo,
+        int modeBlocksToRightEdge,
+        int modeBlocksToBottomEdge,
+        Span<int> coefficientBuffer)
+    {
+        int width = transformSize.GetWidth();
+        int height = transformSize.GetHeight();
+        Av1TransformSize transformSizeContext = (Av1TransformSize)(((int)transformSize.GetSquareSize() + ((int)transformSize.GetSquareUpSize() + 1)) >> 1);
+        Av1PlaneType planeType = (Av1PlaneType)Math.Min(plane, 1);
+        int culLevel = 0;
+
+        byte[] levelsBuffer = new byte[Av1Constants.TransformPad2d];
+        Span<byte> levels = levelsBuffer.AsSpan()[(Av1Constants.TransformPadTop * (width + Av1Constants.TransformPadHorizontal))..];
+
+        bool allZero = this.ReadTransformBlockSkip(transformSizeContext, transformBlockContext.SkipContext);
+        int bwl = transformSize.GetBlockWidthLog2();
+        int endOfBlock;
+        if (allZero)
+        {
+            if (plane == 0)
+            {
+                transformInfo.Type = Av1TransformType.DctDct;
+                transformInfo.CodeBlockFlag = false;
+            }
+
+            this.UpdateCoefficientContext(modeInfo, aboveContexts, leftContexts, blocksWide, blocksHigh, transformSize, blockPosition, aboveOffset, leftOffset, culLevel, modeBlocksToRightEdge, modeBlocksToBottomEdge);
+            return 0;
+        }
+
+        transformInfo.Type = ComputeTransformType(planeType, modeInfo, isLossless, transformSize, transformInfo, useReducedTransformSet);
+        Av1TransformClass transformClass = transformInfo.Type.ToClass();
+        Av1ScanOrder scanOrder = Av1ScanOrderConstants.GetScanOrder(transformSize, transformInfo.Type);
+        ReadOnlySpan<short> scan = scanOrder.Scan;
+
+        endOfBlock = this.ReadEndOfBlockPosition(transformSize, transformClass, transformSizeContext, planeType);
+        if (endOfBlock > 1)
+        {
+            Array.Fill(levelsBuffer, (byte)0, 0, ((width + Av1Constants.TransformPadHorizontal) * (height + Av1Constants.TransformPadVertical)) + Av1Constants.TransformPadEnd);
+        }
+
+        this.ReadCoefficientsEndOfBlock(transformClass, endOfBlock, height, scan, bwl, levels, transformSizeContext, planeType);
+        if (endOfBlock > 1)
+        {
+            if (transformClass == Av1TransformClass.Class2D)
+            {
+                this.ReadCoefficientsReverse2d(transformSize, 1, endOfBlock - 1 - 1, scan, bwl, levels, transformSizeContext, planeType);
+                this.ReadCoefficientsReverse(transformSize, transformClass, 0, 0, scan, bwl, levels, transformSizeContext, planeType);
+            }
+            else
+            {
+                this.ReadCoefficientsReverse(transformSize, transformClass, 0, endOfBlock - 1 - 1, scan, bwl, levels, transformSizeContext, planeType);
+            }
+        }
+
+        DebugGuard.MustBeGreaterThan(scan.Length, 0, nameof(scan));
+        culLevel = this.ReadCoefficientsDc(coefficientBuffer, endOfBlock, scan, bwl, levels, transformBlockContext.DcSignContext, planeType);
+        this.UpdateCoefficientContext(modeInfo, aboveContexts, leftContexts, blocksWide, blocksHigh, transformSize, blockPosition, aboveOffset, leftOffset, culLevel, modeBlocksToRightEdge, modeBlocksToBottomEdge);
+
+        transformInfo.CodeBlockFlag = true;
+        return endOfBlock;
+    }
+
     public int ReadEndOfBlockPosition(Av1TransformSize transformSize, Av1TransformClass transformClass, Av1TransformSize transformSizeContext, Av1PlaneType planeType)
     {
         int endOfBlockExtra = 0;
@@ -579,6 +661,106 @@ internal ref struct Av1SymbolDecoder
         {
             culLevel += 2 << Av1Constants.CoefficientContextBitCount;
         }
+    }
+
+
+    private void UpdateCoefficientContext(
+        Av1BlockModeInfo modeInfo,
+        int[] aboveContexts,
+        int[] leftContexts,
+        int blocksWide,
+        int blocksHigh,
+        Av1TransformSize transformSize,
+        Point blockPosition,
+        int aboveOffset,
+        int leftOffset,
+        int culLevel,
+        int modeBlockToRightEdge,
+        int modeBlockToBottomEdge)
+    {
+        int transformSizeWide = transformSize.Get4x4WideCount();
+        int transformSizeHigh = transformSize.Get4x4HighCount();
+
+        if (modeBlockToRightEdge < 0)
+        {
+            int aboveContextCount = Math.Min(transformSizeWide, blocksWide - aboveOffset);
+            Array.Fill(aboveContexts, culLevel, 0, aboveContextCount);
+            Array.Fill(aboveContexts, 0, aboveContextCount, transformSizeWide - aboveContextCount);
+        }
+        else
+        {
+            Array.Fill(aboveContexts, culLevel, 0, transformSizeWide);
+        }
+
+        if (modeBlockToBottomEdge < 0)
+        {
+            int leftContextCount = Math.Min(transformSizeHigh, blocksHigh - leftOffset);
+            Array.Fill(leftContexts, culLevel, 0, leftContextCount);
+            Array.Fill(leftContexts, 0, leftContextCount, transformSizeWide - leftContextCount);
+        }
+        else
+        {
+            Array.Fill(leftContexts, culLevel, 0, transformSizeHigh);
+        }
+    }
+
+    private static Av1TransformType ComputeTransformType(Av1PlaneType planeType, Av1BlockModeInfo modeInfo, bool isLossless, Av1TransformSize transformSize, Av1TransformInfo transformInfo, bool useReducedTransformSet)
+    {
+        Av1TransformType transformType = Av1TransformType.DctDct;
+        if (isLossless || transformSize.GetSquareUpSize() > Av1TransformSize.Size32x32)
+        {
+            transformType = Av1TransformType.DctDct;
+        }
+        else
+        {
+            if (planeType == Av1PlaneType.Y)
+            {
+                transformType = transformInfo.Type;
+            }
+            else
+            {
+                // In intra mode, uv planes don't share the same prediction mode as y
+                // plane, so the tx_type should not be shared
+                transformType = ConvertIntraModeToTransformType(modeInfo, Av1PlaneType.Uv);
+            }
+        }
+
+        Av1TransformSetType transformSetType = GetExtendedTransformSetType(transformSize, useReducedTransformSet);
+        if (!transformType.IsExtendedSetUsed(transformSetType))
+        {
+            transformType = Av1TransformType.DctDct;
+        }
+
+        return transformType;
+    }
+
+    private static Av1TransformSetType GetExtendedTransformSetType(Av1TransformSize transformSize, bool useReducedSet)
+    {
+        Av1TransformSize squareUpSize = transformSize.GetSquareUpSize();
+
+        if (squareUpSize >= Av1TransformSize.Size32x32)
+        {
+            return Av1TransformSetType.DctOnly;
+        }
+
+        if (useReducedSet)
+        {
+            return Av1TransformSetType.Dtt4Identity;
+        }
+
+        Av1TransformSize squareSize = transformSize.GetSquareSize();
+        return squareSize == Av1TransformSize.Size16x16 ? Av1TransformSetType.Dtt4Identity : Av1TransformSetType.Dtt4Identity1dDct;
+    }
+
+    private static Av1TransformType ConvertIntraModeToTransformType(Av1BlockModeInfo modeInfo, Av1PlaneType planeType)
+    {
+        Av1PredictionMode mode = (planeType == Av1PlaneType.Y) ? modeInfo.YMode : modeInfo.UvMode;
+        if (mode == Av1PredictionMode.UvChromaFromLuma)
+        {
+            mode = Av1PredictionMode.DC;
+        }
+
+        return mode.ToTransformType();
     }
 
     internal static Av1Distribution GetSplitOrHorizontalDistribution(Av1Distribution[] inputs, Av1BlockSize blockSize, int context)

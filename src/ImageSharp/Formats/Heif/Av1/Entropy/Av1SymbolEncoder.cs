@@ -415,13 +415,13 @@ internal class Av1SymbolEncoder : IDisposable
         ref byte ls = ref levels[0];
 
         Unsafe.InitBlock(ref levels[-Av1Constants.TransformPadTop * stride], 0, (uint)(Av1Constants.TransformPadTop * stride));
-        Unsafe.InitBlock(ref levels[stride * height], 0, (uint)(Av1Constants.TransformPadBottom * stride + Av1Constants.TransformPadEnd));
+        Unsafe.InitBlock(ref levels[stride * height], 0, (uint)((Av1Constants.TransformPadBottom * stride) + Av1Constants.TransformPadEnd));
 
-        for (int i = 0; i < height; i++)
+        for (int y = 0; y < height; y++)
         {
-            for (int j = 0; j < width; j++)
+            for (int x = 0; x < width; x++)
             {
-                ls = (byte)Av1Math.Clamp(Math.Abs(coefficientBuffer[i * width + j]), 0, byte.MaxValue);
+                ls = (byte)Av1Math.Clamp(Math.Abs(coefficientBuffer[(y * width) + x]), 0, byte.MaxValue);
                 ls = ref Unsafe.Add(ref ls, 1);
             }
 
@@ -433,7 +433,10 @@ internal class Av1SymbolEncoder : IDisposable
     /// SVT: set_levels from EbCommonUtils.h
     /// </summary>
     private static Span<byte> SetLevels(Span<byte> levelsBuffer, int width)
-        => levelsBuffer.Slice(Av1Constants.TransformPadTop * (width + Av1Constants.TransformPadHorizontal));
+    {
+        int stride = width + Av1Constants.TransformPadHorizontal;
+        return levelsBuffer[(Av1Constants.TransformPadTop * stride)..];
+    }
 
     private void WriteSkip(bool hasEndOfBlock, int context)
     {

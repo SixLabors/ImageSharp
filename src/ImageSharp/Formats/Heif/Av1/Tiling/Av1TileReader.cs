@@ -491,22 +491,6 @@ internal class Av1TileReader : IAv1TileReader
         return hasChroma;
     }
 
-    private Av1TransformSize GetSize(int plane, object transformSize) => throw new NotImplementedException();
-
-    /// <summary>
-    /// 5.11.38. Get plane residual size function.
-    /// The GetPlaneResidualSize returns the size of a residual block for the specified plane. (The residual block will always
-    /// have width and height at least equal to 4.)
-    /// </summary>
-    private Av1BlockSize GetPlaneResidualSize(Av1BlockSize sizeChunk, int plane)
-    {
-        bool subsamplingX = this.SequenceHeader.ColorConfig.SubSamplingX;
-        bool subsamplingY = this.SequenceHeader.ColorConfig.SubSamplingY;
-        bool subX = plane > 0 && subsamplingX;
-        bool subY = plane > 0 && subsamplingY;
-        return sizeChunk.GetSubsampled(subX, subY);
-    }
-
     /// <summary>
     /// 5.11.35. Transform block syntax.
     /// </summary>
@@ -563,152 +547,15 @@ internal class Av1TileReader : IAv1TileReader
         int height = transformSize.GetHeight();
         Av1TransformSize transformSizeContext = (Av1TransformSize)(((int)transformSize.GetSquareSize() + ((int)transformSize.GetSquareUpSize() + 1)) >> 1);
         Av1PlaneType planeType = (Av1PlaneType)Math.Min(plane, 1);
-        int culLevel = 0;
-
-        byte[] levelsBuffer = new byte[Av1Constants.TransformPad2d];
-        Span<byte> levels = levelsBuffer.AsSpan()[(Av1Constants.TransformPadTop * (width + Av1Constants.TransformPadHorizontal))..];
-
-        bool allZero = reader.ReadTransformBlockSkip(transformSizeContext, transformBlockContext.SkipContext);
-        int bwl = transformSize.GetBlockWidthLog2();
-        int endOfBlock;
-        if (allZero)
-        {
-            if (plane == 0)
-            {
-                transformInfo.Type = Av1TransformType.DctDct;
-                transformInfo.CodeBlockFlag = false;
-            }
-
-            this.UpdateCoefficientContext(plane, partitionInfo, transformSize, blockRow, blockColumn, aboveOffset, leftOffset, culLevel);
-            return 0;
-        }
-
-        transformInfo.Type = this.ComputeTransformType(planeType, partitionInfo, transformSize, transformInfo);
-        Av1TransformClass transformClass = transformInfo.Type.ToClass();
-        Av1ScanOrder scanOrder = Av1ScanOrderConstants.GetScanOrder(transformSize, transformInfo.Type);
-        ReadOnlySpan<short> scan = scanOrder.Scan;
-
-        endOfBlock = reader.ReadEndOfBlockPosition(transformSize, transformClass, transformSizeContext, planeType);
-        if (endOfBlock > 1)
-        {
-            Array.Fill(levelsBuffer, (byte)0, 0, ((width + Av1Constants.TransformPadHorizontal) * (height + Av1Constants.TransformPadVertical)) + Av1Constants.TransformPadEnd);
-        }
-
-        reader.ReadCoefficientsEndOfBlock(transformClass, endOfBlock, height, scan, bwl, levels, transformSizeContext, planeType);
-        if (endOfBlock > 1)
-        {
-            if (transformClass == Av1TransformClass.Class2D)
-            {
-                reader.ReadCoefficientsReverse2d(transformSize, 1, endOfBlock - 1 - 1, scan, bwl, levels, transformSizeContext, planeType);
-                reader.ReadCoefficientsReverse(transformSize, transformClass, 0, 0, scan, bwl, levels, transformSizeContext, planeType);
-            }
-            else
-            {
-                reader.ReadCoefficientsReverse(transformSize, transformClass, 0, endOfBlock - 1 - 1, scan, bwl, levels, transformSizeContext, planeType);
-            }
-        }
-
-        DebugGuard.MustBeGreaterThan(scan.Length, 0, nameof(scan));
-        culLevel = reader.ReadCoefficientsDc(coefficientBuffer, endOfBlock, scan, bwl, levels, transformBlockContext.DcSignContext, planeType);
-        this.UpdateCoefficientContext(plane, partitionInfo, transformSize, blockRow, blockColumn, aboveOffset, leftOffset, culLevel);
-
-        transformInfo.CodeBlockFlag = true;
-        return endOfBlock;
-    }
-
-    private void UpdateCoefficientContext(int plane, Av1PartitionInfo partitionInfo, Av1TransformSize transformSize, int blockRow, int blockColumn, int aboveOffset, int leftOffset, int culLevel)
-    {
+        Point blockPosition = new(blockColumn, blockRow);
+        bool isLossless = this.FrameHeader.LosslessArray[partitionInfo.ModeInfo.SegmentId];
         bool subX = this.SequenceHeader.ColorConfig.SubSamplingX;
         bool subY = this.SequenceHeader.ColorConfig.SubSamplingY;
-        int[] aboveContexts = this.aboveNeighborContext.GetContext(plane);
-        int[] leftContexts = this.leftNeighborContext.GetContext(plane);
-        int transformSizeWide = transformSize.Get4x4WideCount();
-        int transformSizeHigh = transformSize.Get4x4HighCount();
+        Av1BlockSize planeBlockSize = partitionInfo.ModeInfo.BlockSize.GetSubsampled(subX, subY);
+        int blocksWide = partitionInfo.GetMaxBlockWide(planeBlockSize, subX);
+        int blocksHigh = partitionInfo.GetMaxBlockHigh(planeBlockSize, subY);
 
-        if (partitionInfo.ModeBlockToRightEdge < 0)
-        {
-            Av1BlockSize planeBlockSize = partitionInfo.ModeInfo.BlockSize.GetSubsampled(subX, subY);
-            int blocksWide = partitionInfo.GetMaxBlockWide(planeBlockSize, subX);
-            int aboveContextCount = Math.Min(transformSizeWide, blocksWide - aboveOffset);
-            Array.Fill(aboveContexts, culLevel, 0, aboveContextCount);
-            Array.Fill(aboveContexts, 0, aboveContextCount, transformSizeWide - aboveContextCount);
-        }
-        else
-        {
-            Array.Fill(aboveContexts, culLevel, 0, transformSizeWide);
-        }
-
-        if (partitionInfo.ModeBlockToBottomEdge < 0)
-        {
-            Av1BlockSize planeBlockSize = partitionInfo.ModeInfo.BlockSize.GetSubsampled(subX, subY);
-            int blocksHigh = partitionInfo.GetMaxBlockHigh(planeBlockSize, subY);
-            int leftContextCount = Math.Min(transformSizeHigh, blocksHigh - leftOffset);
-            Array.Fill(leftContexts, culLevel, 0, leftContextCount);
-            Array.Fill(leftContexts, 0, leftContextCount, transformSizeWide - leftContextCount);
-        }
-        else
-        {
-            Array.Fill(leftContexts, culLevel, 0, transformSizeHigh);
-        }
-    }
-
-    private Av1TransformType ComputeTransformType(Av1PlaneType planeType, Av1PartitionInfo partitionInfo, Av1TransformSize transformSize, Av1TransformInfo transformInfo)
-    {
-        Av1TransformType transformType = Av1TransformType.DctDct;
-        if (this.FrameHeader.LosslessArray[partitionInfo.ModeInfo.SegmentId] || transformSize.GetSquareUpSize() > Av1TransformSize.Size32x32)
-        {
-            transformType = Av1TransformType.DctDct;
-        }
-        else
-        {
-            if (planeType == Av1PlaneType.Y)
-            {
-                transformType = transformInfo.Type;
-            }
-            else
-            {
-                // In intra mode, uv planes don't share the same prediction mode as y
-                // plane, so the tx_type should not be shared
-                transformType = ConvertIntraModeToTransformType(partitionInfo.ModeInfo, Av1PlaneType.Uv);
-            }
-        }
-
-        Av1TransformSetType transformSetType = GetExtendedTransformSetType(transformSize, this.FrameHeader.UseReducedTransformSet);
-        if (!transformType.IsExtendedSetUsed(transformSetType))
-        {
-            transformType = Av1TransformType.DctDct;
-        }
-
-        return transformType;
-    }
-
-    private static Av1TransformSetType GetExtendedTransformSetType(Av1TransformSize transformSize, bool useReducedSet)
-    {
-        Av1TransformSize squareUpSize = transformSize.GetSquareUpSize();
-
-        if (squareUpSize >= Av1TransformSize.Size32x32)
-        {
-            return Av1TransformSetType.DctOnly;
-        }
-
-        if (useReducedSet)
-        {
-            return Av1TransformSetType.Dtt4Identity;
-        }
-
-        Av1TransformSize squareSize = transformSize.GetSquareSize();
-        return squareSize == Av1TransformSize.Size16x16 ? Av1TransformSetType.Dtt4Identity : Av1TransformSetType.Dtt4Identity1dDct;
-    }
-
-    private static Av1TransformType ConvertIntraModeToTransformType(Av1BlockModeInfo modeInfo, Av1PlaneType planeType)
-    {
-        Av1PredictionMode mode = (planeType == Av1PlaneType.Y) ? modeInfo.YMode : modeInfo.UvMode;
-        if (mode == Av1PredictionMode.UvChromaFromLuma)
-        {
-            mode = Av1PredictionMode.DC;
-        }
-
-        return mode.ToTransformType();
+        return reader.ReadCoefficients(partitionInfo.ModeInfo, blockPosition, this.aboveNeighborContext.GetContext(plane), this.leftNeighborContext.GetContext(plane), aboveOffset, leftOffset, plane, blocksWide, blocksHigh, transformBlockContext, transformSize, isLossless, this.FrameHeader.UseReducedTransformSet, transformInfo, partitionInfo.ModeBlockToRightEdge, partitionInfo.ModeBlockToBottomEdge, coefficientBuffer);
     }
 
     private Av1TransformBlockContext GetTransformBlockContext(Av1TransformSize transformSize, int plane, Av1BlockSize planeBlockSize, int transformBlockUnitHighCount, int transformBlockUnitWideCount, int startY, int startX)

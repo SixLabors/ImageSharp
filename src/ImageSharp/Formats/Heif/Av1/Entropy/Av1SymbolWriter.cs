@@ -20,7 +20,7 @@ internal class Av1SymbolWriter : IDisposable
     public Av1SymbolWriter(Configuration configuration, int initialSize)
     {
         this.configuration = configuration;
-        this.memory = new AutoExpandingMemory<ushort>(configuration, initialSize + 1 >> 1);
+        this.memory = new AutoExpandingMemory<ushort>(configuration, (initialSize + 1) >> 1);
     }
 
     public void Dispose() => this.memory.Dispose();
@@ -40,7 +40,7 @@ internal class Av1SymbolWriter : IDisposable
         const uint p = 0x4000U; // (0x7FFFFFU - (128 << 15) + 128) >> 8;
         for (int bit = bitCount - 1; bit >= 0; bit--)
         {
-            bool bitValue = (value >> bit & 0x1) > 0;
+            bool bitValue = ((value >> bit) & 0x1) > 0;
             this.EncodeBoolQ15(bitValue, p);
         }
     }
@@ -54,15 +54,15 @@ internal class Av1SymbolWriter : IDisposable
         int pos = this.position;
         int s = 10;
         uint m = 0x3FFFU;
-        uint e = l + m & ~m | m + 1;
+        uint e = ((l + m) & ~m) | (m + 1);
         s += c;
-        Span<ushort> buffer = this.memory.GetSpan(this.position + (s + 7 >> 3));
+        Span<ushort> buffer = this.memory.GetSpan(this.position + ((s + 7) >> 3));
         if (s > 0)
         {
-            uint n = (1U << c + 16) - 1;
+            uint n = (1U << (c + 16)) - 1;
             do
             {
-                buffer[pos] = (ushort)(e >> c + 16);
+                buffer[pos] = (ushort)(e >> (c + 16));
                 pos++;
                 e &= n;
                 s -= 8;
@@ -72,7 +72,7 @@ internal class Av1SymbolWriter : IDisposable
             while (s > 0);
         }
 
-        c = Math.Max(s + 7 >> 3, 0);
+        c = Math.Max((s + 7) >> 3, 0);
         IMemoryOwner<byte> output = this.configuration.MemoryAllocator.Allocate<byte>(pos + c);
 
         // Perform carry propagation.
@@ -104,7 +104,7 @@ internal class Av1SymbolWriter : IDisposable
         l = this.low;
         r = this.rng;
         DebugGuard.MustBeGreaterThanOrEqualTo(r, 32768U, nameof(r));
-        v = (r >> 8) * (frequency >> Av1Distribution.ProbabilityShift) >> 7 - Av1Distribution.ProbabilityShift;
+        v = ((r >> 8) * (frequency >> Av1Distribution.ProbabilityShift)) >> (7 - Av1Distribution.ProbabilityShift);
         v += Av1Distribution.ProbabilityMinimum;
         if (val)
         {
@@ -145,17 +145,17 @@ internal class Av1SymbolWriter : IDisposable
         {
             uint u;
             uint v;
-            u = (uint)(((r >> 8) * (lowFrequency >> Av1Distribution.ProbabilityShift) >> totalShift) +
-                Av1Distribution.ProbabilityMinimum * (n - (symbol - 1)));
-            v = (uint)(((r >> 8) * (highFrequency >> Av1Distribution.ProbabilityShift) >> totalShift) +
-                Av1Distribution.ProbabilityMinimum * (n - symbol));
+            u = (uint)((((r >> 8) * (lowFrequency >> Av1Distribution.ProbabilityShift)) >> totalShift) +
+                (Av1Distribution.ProbabilityMinimum * (n - (symbol - 1))));
+            v = (uint)((((r >> 8) * (highFrequency >> Av1Distribution.ProbabilityShift)) >> totalShift) +
+                (Av1Distribution.ProbabilityMinimum * (n - symbol)));
             l += r - u;
             r = u - v;
         }
         else
         {
-            r -= (uint)(((r >> 8) * (highFrequency >> Av1Distribution.ProbabilityShift) >> totalShift) +
-                Av1Distribution.ProbabilityMinimum * (n - symbol));
+            r -= (uint)((((r >> 8) * (highFrequency >> Av1Distribution.ProbabilityShift)) >> totalShift) +
+                (Av1Distribution.ProbabilityMinimum * (n - symbol)));
         }
 
         this.Normalize(l, r);

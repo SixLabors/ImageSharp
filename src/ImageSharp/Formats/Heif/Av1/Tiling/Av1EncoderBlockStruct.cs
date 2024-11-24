@@ -7,7 +7,7 @@ internal partial class Av1TileWriter
 {
     internal class Av1EncoderBlockStruct
     {
-        public required Av1MacroBlockD av1xd { get; internal set; }
+        public required Av1MacroBlockD MacroBlock { get; internal set; }
 
         public required int[] PaletteSize { get; internal set; }
 

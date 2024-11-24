@@ -32,7 +32,7 @@ internal ref struct Av1SymbolReader
     {
         this.buffer = span;
         this.position = 0;
-        this.difference = (1U << DecoderWindowsSize - 1) - 1;
+        this.difference = (1U << (DecoderWindowsSize - 1)) - 1;
         this.range = 0x8000;
         this.count = -15;
         this.Refill();
@@ -49,7 +49,7 @@ internal ref struct Av1SymbolReader
 
     public int ReadLiteral(int bitCount)
     {
-        const uint prob = 0x7FFFFFU - (128 << 15) + 128 >> 8;
+        const uint prob = (0x7FFFFFU - (128 << 15) + 128) >> 8;
         int literal = 0;
         for (int bit = bitCount - 1; bit >= 0; bit--)
         {
@@ -82,9 +82,9 @@ internal ref struct Av1SymbolReader
 
         // assert(dif >> (DecoderWindowsSize - 16) < r);
         // assert(32768U <= r);
-        v = (range >> 8) * (frequency >> Av1Distribution.ProbabilityShift) >> 7 - Av1Distribution.ProbabilityShift;
+        v = ((range >> 8) * (frequency >> Av1Distribution.ProbabilityShift)) >> (7 - Av1Distribution.ProbabilityShift);
         v += Av1Distribution.ProbabilityMinimum;
-        vw = v << DecoderWindowsSize - 16;
+        vw = v << (DecoderWindowsSize - 16);
         ret = true;
         newRange = v;
         if (dif >= vw)
@@ -118,17 +118,17 @@ internal ref struct Av1SymbolReader
         uint r = this.range;
         int n = distribution.NumberOfSymbols - 1;
 
-        DebugGuard.MustBeLessThan(dif >> DecoderWindowsSize - 16, r, nameof(r));
+        DebugGuard.MustBeLessThan(dif >> (DecoderWindowsSize - 16), r, nameof(r));
         DebugGuard.IsTrue(distribution[n] == 0, "Last value in probability array needs to be zero.");
         DebugGuard.MustBeGreaterThanOrEqualTo(r, 32768U, nameof(r));
         DebugGuard.MustBeGreaterThanOrEqualTo(7 - Av1Distribution.ProbabilityShift - Av1Distribution.CdfShift, 0, nameof(Av1Distribution.CdfShift));
-        c = dif >> DecoderWindowsSize - 16;
+        c = dif >> (DecoderWindowsSize - 16);
         v = r;
         ret = -1;
         do
         {
             u = v;
-            v = (r >> 8) * (distribution[++ret] >> Av1Distribution.ProbabilityShift) >> 7 - Av1Distribution.ProbabilityShift - Av1Distribution.CdfShift;
+            v = ((r >> 8) * (distribution[++ret] >> Av1Distribution.ProbabilityShift)) >> (7 - Av1Distribution.ProbabilityShift - Av1Distribution.CdfShift);
             v += (uint)(Av1Distribution.ProbabilityMinimum * (n - ret));
         }
         while (c < v);
@@ -136,7 +136,7 @@ internal ref struct Av1SymbolReader
         DebugGuard.MustBeLessThan(v, u, nameof(v));
         DebugGuard.MustBeLessThanOrEqualTo(u, r, nameof(u));
         r = u - v;
-        dif -= v << DecoderWindowsSize - 16;
+        dif -= v << (DecoderWindowsSize - 16);
         this.Normalize(dif, r);
         return ret;
     }
@@ -156,7 +156,7 @@ internal ref struct Av1SymbolReader
         /*d bits in dec->dif are consumed.*/
         this.count -= d;
         /*This is equivalent to shifting in 1's instead of 0's.*/
-        this.difference = (dif + 1 << d) - 1;
+        this.difference = ((dif + 1) << d) - 1;
         this.range = rng << d;
         if (this.count < 0)
         {

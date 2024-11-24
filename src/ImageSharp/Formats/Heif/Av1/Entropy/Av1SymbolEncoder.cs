@@ -273,8 +273,8 @@ internal class Av1SymbolEncoder : IDisposable
         Av1FilterIntraMode filterIntraMode,
         Av1PredictionMode intraDirection)
     {
-        ref Av1SymbolWriter w = ref this.writer;
         // bool isInter = mbmi->block_mi.use_intrabc || is_inter_mode(mbmi->block_mi.mode);
+        ref Av1SymbolWriter w = ref this.writer;
         if (Av1SymbolContextHelper.GetExtendedTransformTypeCount(transformSize, useReducedTransformSet) > 1 && baseQIndex > 0)
         {
             Av1TransformSize square_tx_size = transformSize.GetSquareSize();

@@ -115,11 +115,11 @@ internal class Av1Distribution
             uint p = this.probabilities[i];
             if (tmp < p)
             {
-                this.probabilities[i] -= (ushort)(p - tmp >> rate);
+                this.probabilities[i] -= (ushort)((p - tmp) >> rate);
             }
             else
             {
-                this.probabilities[i] += (ushort)(tmp - p >> rate);
+                this.probabilities[i] += (ushort)((tmp - p) >> rate);
             }
         }
 

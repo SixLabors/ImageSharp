@@ -250,7 +250,7 @@ internal ref struct Av1SymbolDecoder
                 transformInfo.CodeBlockFlag = false;
             }
 
-            this.UpdateCoefficientContext(modeInfo, aboveContexts, leftContexts, blocksWide, blocksHigh, transformSize, blockPosition, aboveOffset, leftOffset, culLevel, modeBlocksToRightEdge, modeBlocksToBottomEdge);
+            UpdateCoefficientContext(modeInfo, aboveContexts, leftContexts, blocksWide, blocksHigh, transformSize, blockPosition, aboveOffset, leftOffset, culLevel, modeBlocksToRightEdge, modeBlocksToBottomEdge);
             return 0;
         }
 
@@ -281,7 +281,7 @@ internal ref struct Av1SymbolDecoder
 
         DebugGuard.MustBeGreaterThan(scan.Length, 0, nameof(scan));
         culLevel = this.ReadCoefficientsDc(coefficientBuffer, endOfBlock, scan, bwl, levels, transformBlockContext.DcSignContext, planeType);
-        this.UpdateCoefficientContext(modeInfo, aboveContexts, leftContexts, blocksWide, blocksHigh, transformSize, blockPosition, aboveOffset, leftOffset, culLevel, modeBlocksToRightEdge, modeBlocksToBottomEdge);
+        UpdateCoefficientContext(modeInfo, aboveContexts, leftContexts, blocksWide, blocksHigh, transformSize, blockPosition, aboveOffset, leftOffset, culLevel, modeBlocksToRightEdge, modeBlocksToBottomEdge);
 
         transformInfo.CodeBlockFlag = true;
         return endOfBlock;
@@ -298,7 +298,7 @@ internal ref struct Av1SymbolDecoder
             bool bit = this.ReadEndOfBlockExtra(transformSizeContext, planeType, endOfBlockContext);
             if (bit)
             {
-                endOfBlockExtra += 1 << endOfBlockShift - 1;
+                endOfBlockExtra += 1 << (endOfBlockShift - 1);
             }
             else
             {
@@ -306,7 +306,7 @@ internal ref struct Av1SymbolDecoder
                 {
                     if (this.ReadLiteral(1) != 0)
                     {
-                        endOfBlockExtra += 1 << endOfBlockShift - 1 - j;
+                        endOfBlockExtra += 1 << (endOfBlockShift - 1 - j);
                     }
                 }
             }
@@ -497,7 +497,7 @@ internal ref struct Av1SymbolDecoder
         return x - 1;
     }
 
-    private void UpdateCoefficientContext(
+    private static void UpdateCoefficientContext(
         Av1BlockModeInfo modeInfo,
         int[] aboveContexts,
         int[] leftContexts,

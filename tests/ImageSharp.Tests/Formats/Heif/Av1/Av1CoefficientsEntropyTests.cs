@@ -39,6 +39,7 @@ public class Av1CoefficientsEntropyTests
         Configuration configuration = Configuration.Default;
         Av1SymbolEncoder encoder = new(configuration, 100 / 8, BaseQIndex);
         Span<int> coefficientsBuffer = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16];
+        Span<int> expected = new int[16];
         Span<int> actuals = new int[16];
 
         // Act
@@ -51,7 +52,7 @@ public class Av1CoefficientsEntropyTests
         decoder.ReadCoefficients(modeInfo, new Point(0, 0), aboveContexts, leftContexts, 0, 0, 0, 1, 1, transformBlockContext, transformSize, false, true, transformInfo, 0, 0, actuals);
 
         // Assert
-        Assert.Equal(coefficientsBuffer, actuals);
+        Assert.Equal(expected, actuals);
     }
 
 }

@@ -128,12 +128,12 @@ internal class Av1SymbolEncoder : IDisposable
         if (eob_offset_bits > 0)
         {
             int eob_shift = eob_offset_bits - 1;
-            int bit = Math.Max(1, eob_extra & 1 << eob_shift);
+            int bit = (eob_extra & (1 << eob_shift)) != 0 ? 1 : 0;
             w.WriteSymbol(bit, this.endOfBlockExtra[(int)transformSizeContext][(int)componentType][endOfBlockPosition]);
             for (int i = 1; i < eob_offset_bits; i++)
             {
                 eob_shift = eob_offset_bits - 1 - i;
-                bit = Math.Max(1, eob_extra & 1 << eob_shift);
+                bit = (eob_extra & (1 << eob_shift)) != 0 ? 1 : 0;
                 w.WriteLiteral((uint)bit, 1);
             }
         }

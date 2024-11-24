@@ -50,7 +50,7 @@ internal sealed class Av1LevelBuffer : IDisposable
         ObjectDisposedException.ThrowIf(this.memory == null, this);
         ArgumentOutOfRangeException.ThrowIfLessThan(y, -Av1Constants.TransformPadTop);
         int row = y + Av1Constants.TransformPadTop;
-        return this.memory.Memory.Span.Slice(row * this.Stride, this.Size.Width);
+        return this.memory.Memory.Span.Slice(row * this.Stride, this.Size.Width + Av1Constants.TransformPadHorizontal);
     }
 
     public void Dispose()

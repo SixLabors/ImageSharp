@@ -160,7 +160,7 @@ public sealed class Image<TPixel> : Image
     /// <summary>
     /// Gets the root frame.
     /// </summary>
-    private IPixelSource<TPixel> PixelSourceUnsafe => this.frames.RootFrameUnsafe;
+    private ImageFrame<TPixel> PixelSourceUnsafe => this.frames.RootFrameUnsafe;
 
     /// <summary>
     /// Gets or sets the pixel at the specified position.
@@ -324,7 +324,7 @@ public sealed class Image<TPixel> : Image
     }
 
     /// <summary>
-    /// Clones the current image
+    /// Clones the current image.
     /// </summary>
     /// <returns>Returns a new image with all the same metadata as the original.</returns>
     public Image<TPixel> Clone() => this.Clone(this.Configuration);

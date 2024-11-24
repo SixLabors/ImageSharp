@@ -13,7 +13,9 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs;
 [MarkdownExporter]
 [HtmlExporter]
 [Config(typeof(Config.Short))]
+#pragma warning disable CA1001 // Types that own disposable fields should be disposable
 public class EncodeWebp
+#pragma warning restore CA1001 // Types that own disposable fields should be disposable
 {
     private MagickImage webpMagick;
     private Image<Rgba32> webp;
@@ -52,10 +54,7 @@ public class EncodeWebp
             AlphaCompression = WebPAlphaCompression.None,
             FilterStrength = 60,
             SnsStrength = 50,
-            Pass = 1,
-
-            // 100 means off.
-            NearLossless = 100
+            Pass = 1
         };
 
         this.webpMagick.Quality = 75;
@@ -85,9 +84,6 @@ public class EncodeWebp
         {
             Lossless = true,
             Method = 4,
-
-            // 100 means off.
-            NearLossless = 100
         };
 
         this.webpMagick.Quality = 75;

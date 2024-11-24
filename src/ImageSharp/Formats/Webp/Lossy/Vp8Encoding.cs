@@ -667,12 +667,12 @@ internal static unsafe class Vp8Encoding
 
         // V block.
         dst = dst[8..];
-        if (top != default)
+        if (!top.IsEmpty)
         {
             top = top[8..];
         }
 
-        if (left != default)
+        if (!left.IsEmpty)
         {
             left = left[16..];
         }
@@ -701,7 +701,7 @@ internal static unsafe class Vp8Encoding
 
     private static void VerticalPred(Span<byte> dst, Span<byte> top, int size)
     {
-        if (top != default)
+        if (!top.IsEmpty)
         {
             for (int j = 0; j < size; j++)
             {
@@ -716,7 +716,7 @@ internal static unsafe class Vp8Encoding
 
     public static void HorizontalPred(Span<byte> dst, Span<byte> left, int size)
     {
-        if (left != default)
+        if (!left.IsEmpty)
         {
             left = left[1..]; // in the reference implementation, left starts at - 1.
             for (int j = 0; j < size; j++)
@@ -732,9 +732,9 @@ internal static unsafe class Vp8Encoding
 
     public static void TrueMotion(Span<byte> dst, Span<byte> left, Span<byte> top, int size)
     {
-        if (left != default)
+        if (!left.IsEmpty)
         {
-            if (top != default)
+            if (!top.IsEmpty)
             {
                 Span<byte> clip = Clip1.AsSpan(255 - left[0]); // left [0] instead of left[-1], original left starts at -1
                 for (int y = 0; y < size; y++)
@@ -759,7 +759,7 @@ internal static unsafe class Vp8Encoding
             // is equivalent to VE prediction where you just copy the top samples.
             // Note that if top samples are not available, the default value is
             // then 129, and not 127 as in the VerticalPred case.
-            if (top != default)
+            if (!top.IsEmpty)
             {
                 VerticalPred(dst, top, size);
             }
@@ -774,14 +774,14 @@ internal static unsafe class Vp8Encoding
     {
         int dc = 0;
         int j;
-        if (top != default)
+        if (!top.IsEmpty)
         {
             for (j = 0; j < size; j++)
             {
                 dc += top[j];
             }
 
-            if (left != default)
+            if (!left.IsEmpty)
             {
                 // top and left present.
                 left = left[1..]; // in the reference implementation, left starts at -1.
@@ -798,7 +798,7 @@ internal static unsafe class Vp8Encoding
 
             dc = (dc + round) >> shift;
         }
-        else if (left != default)
+        else if (!left.IsEmpty)
         {
             // left but no top.
             left = left[1..]; // in the reference implementation, left starts at -1.

@@ -16,7 +16,6 @@ using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.Metadata.Profiles.Iptc;
 using SixLabors.ImageSharp.Metadata.Profiles.Xmp;
-using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg;
 
@@ -1473,7 +1472,7 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
 
             this.Frame.ComponentOrder[i / 2] = (byte)componentIndex;
 
-            IJpegComponent component = this.Frame.Components[componentIndex];
+            JpegComponent component = this.Frame.Components[componentIndex];
 
             // 1 byte: Huffman table selectors.
             // 4 bits - dc

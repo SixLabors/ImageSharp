@@ -13,7 +13,7 @@ public class GaussianBlurTest : BaseImageOperationsExtensionTest
     public void GaussianBlur_GaussianBlurProcessorDefaultsSet()
     {
         this.operations.GaussianBlur();
-        var processor = this.Verify<GaussianBlurProcessor>();
+        GaussianBlurProcessor processor = this.Verify<GaussianBlurProcessor>();
 
         Assert.Equal(3f, processor.Sigma);
     }
@@ -22,7 +22,7 @@ public class GaussianBlurTest : BaseImageOperationsExtensionTest
     public void GaussianBlur_amount_GaussianBlurProcessorDefaultsSet()
     {
         this.operations.GaussianBlur(0.2f);
-        var processor = this.Verify<GaussianBlurProcessor>();
+        GaussianBlurProcessor processor = this.Verify<GaussianBlurProcessor>();
 
         Assert.Equal(.2f, processor.Sigma);
     }
@@ -30,8 +30,8 @@ public class GaussianBlurTest : BaseImageOperationsExtensionTest
     [Fact]
     public void GaussianBlur_amount_rect_GaussianBlurProcessorDefaultsSet()
     {
-        this.operations.GaussianBlur(0.6f, this.rect);
-        var processor = this.Verify<GaussianBlurProcessor>(this.rect);
+        this.operations.GaussianBlur(this.rect, 0.6f);
+        GaussianBlurProcessor processor = this.Verify<GaussianBlurProcessor>(this.rect);
 
         Assert.Equal(.6f, processor.Sigma);
     }

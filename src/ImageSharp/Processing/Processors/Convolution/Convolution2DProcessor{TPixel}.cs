@@ -62,14 +62,14 @@ internal class Convolution2DProcessor<TPixel> : ImageProcessor<TPixel>
 
         source.CopyTo(targetPixels);
 
-        var interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds());
+        Rectangle interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds());
 
-        using (var map = new KernelSamplingMap(allocator))
+        using (KernelSamplingMap map = new(allocator))
         {
             // Since the kernel sizes are identical we can use a single map.
             map.BuildSamplingOffsetMap(this.KernelY, interest);
 
-            var operation = new Convolution2DRowOperation<TPixel>(
+            Convolution2DRowOperation<TPixel> operation = new(
                 interest,
                 targetPixels,
                 source.PixelBuffer,

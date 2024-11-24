@@ -524,7 +524,7 @@ public partial class PngEncoderTests
 
             Assert.Equal(webpF.FrameDelay, (uint)(pngF.FrameDelay.ToDouble() * 1000));
 
-            switch (webpF.BlendMethod)
+            switch (webpF.BlendMode)
             {
                 case FrameBlendMode.Source:
                     Assert.Equal(FrameBlendMode.Source, pngF.BlendMode);
@@ -535,7 +535,7 @@ public partial class PngEncoderTests
                     break;
             }
 
-            switch (webpF.DisposalMethod)
+            switch (webpF.DisposalMode)
             {
                 case FrameDisposalMode.RestoreToBackground:
                     Assert.Equal(FrameDisposalMode.RestoreToBackground, pngF.DisposalMode);

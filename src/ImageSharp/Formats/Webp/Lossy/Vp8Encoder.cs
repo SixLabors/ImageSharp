@@ -495,8 +495,8 @@ internal class Vp8Encoder : IDisposable
                     (uint)bounds.Width,
                     (uint)bounds.Height,
                     frameMetadata.FrameDelay,
-                    frameMetadata.BlendMethod,
-                    frameMetadata.DisposalMethod)
+                    frameMetadata.BlendMode,
+                    frameMetadata.DisposalMode)
                     .WriteHeaderTo(stream);
             }
 

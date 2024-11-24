@@ -77,7 +77,7 @@ internal class Av1TileReader : IAv1TileReader
     /// </summary>
     public void ReadTile(Span<byte> tileData, int tileNum)
     {
-        Av1SymbolDecoder reader = new(tileData, this.FrameHeader.QuantizationParameters.BaseQIndex);
+        Av1SymbolDecoder reader = new(this.configuration, tileData, this.FrameHeader.QuantizationParameters.BaseQIndex);
         int tileColumnIndex = tileNum % this.FrameHeader.TilesInfo.TileColumnCount;
         int tileRowIndex = tileNum / this.FrameHeader.TilesInfo.TileColumnCount;
 

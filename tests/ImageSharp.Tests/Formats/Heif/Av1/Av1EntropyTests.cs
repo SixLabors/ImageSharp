@@ -208,7 +208,7 @@ public class Av1EntropyTests
 
         using IMemoryOwner<byte> encoded = encoder.Exit();
 
-        Av1SymbolDecoder decoder = new(encoded.GetSpan(), 0);
+        Av1SymbolDecoder decoder = new(Configuration.Default, encoded.GetSpan(), 0);
         Av1SymbolReader reader = new(encoded.GetSpan());
         for (int i = 0; i < values.Length; i++)
         {
@@ -245,7 +245,7 @@ public class Av1EntropyTests
 
         using IMemoryOwner<byte> encoded = encoder.Exit();
 
-        Av1SymbolDecoder decoder = new(encoded.GetSpan(), 0);
+        Av1SymbolDecoder decoder = new(Configuration.Default, encoded.GetSpan(), 0);
         Av1SymbolReader reader = new(encoded.GetSpan());
         for (int i = 0; i < values.Length; i++)
         {
@@ -282,7 +282,7 @@ public class Av1EntropyTests
 
         using IMemoryOwner<byte> encoded = encoder.Exit();
 
-        Av1SymbolDecoder decoder = new(encoded.GetSpan(), 0);
+        Av1SymbolDecoder decoder = new(Configuration.Default, encoded.GetSpan(), 0);
         Av1SymbolReader reader = new(encoded.GetSpan());
         for (int i = 0; i < values.Length; i++)
         {
@@ -310,7 +310,7 @@ public class Av1EntropyTests
 
         using IMemoryOwner<byte> encoded = encoder.Exit();
 
-        Av1SymbolDecoder decoder = new(encoded.GetSpan(), 0);
+        Av1SymbolDecoder decoder = new(Configuration.Default, encoded.GetSpan(), 0);
         for (int i = 0; i < values.Length; i++)
         {
             actuals[i] = decoder.ReadUseIntraBlockCopy();

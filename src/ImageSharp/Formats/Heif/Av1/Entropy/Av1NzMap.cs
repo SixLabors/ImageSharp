@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
@@ -282,31 +283,45 @@ internal static class Av1NzMap
         NzMapContextOffset64x32, // TX_64x16
     ];
 
-    public static int GetNzMagnitude(ReadOnlySpan<byte> levels, int bwl, Av1TransformClass transformClass)
+    /// <summary>
+    /// SVT: get_nz_mag
+    /// </summary>
+    public static int GetNzMagnitude(Av1LevelBuffer levels, int index, int blockWidthLog2, Av1TransformClass transformClass)
+        => GetNzMagnitude(levels, index >> blockWidthLog2, transformClass);
+
+    /// <summary>
+    /// SVT: get_nz_mag
+    /// </summary>
+    public static int GetNzMagnitude(Av1LevelBuffer levels, int y, Av1TransformClass transformClass)
     {
         int mag;
+        Span<byte> row0 = levels.GetRow(y);
+        Span<byte> row1 = levels.GetRow(y + 1);
+        Span<byte> row2 = levels.GetRow(y + 2);
 
         // Note: AOMMIN(level, 3) is useless for decoder since level < 3.
-        mag = ClipMax3[levels[1]]; // { 0, 1 }
-        mag += ClipMax3[levels[(1 << bwl) + Av1Constants.TransformPadHorizontal]]; // { 1, 0 }
+        mag = ClipMax3[row0[1]]; // { 0, 1 }
+        mag += ClipMax3[row1[0]]; // { 1, 0 }
 
         switch (transformClass)
         {
             case Av1TransformClass.Class2D:
-                mag += ClipMax3[levels[(1 << bwl) + Av1Constants.TransformPadHorizontal + 1]]; // { 1, 1 }
-                mag += ClipMax3[levels[2]]; // { 0, 2 }
-                mag += ClipMax3[levels[(2 << bwl) + (2 << Av1Constants.TransformPadHorizontalLog2)]]; // { 2, 0 }
+                mag += ClipMax3[row1[1]]; // { 1, 1 }
+                mag += ClipMax3[row0[2]]; // { 0, 2 }
+                mag += ClipMax3[row2[0]]; // { 2, 0 }
                 break;
 
             case Av1TransformClass.ClassVertical:
-                mag += ClipMax3[levels[(2 << bwl) + (2 << Av1Constants.TransformPadHorizontalLog2)]]; // { 2, 0 }
-                mag += ClipMax3[levels[(3 << bwl) + (3 << Av1Constants.TransformPadHorizontalLog2)]]; // { 3, 0 }
-                mag += ClipMax3[levels[(4 << bwl) + (4 << Av1Constants.TransformPadHorizontalLog2)]]; // { 4, 0 }
+                Span<byte> row3 = levels.GetRow(y + 3);
+                Span<byte> row4 = levels.GetRow(y + 4);
+                mag += ClipMax3[row2[0]]; // { 2, 0 }
+                mag += ClipMax3[row3[0]]; // { 3, 0 }
+                mag += ClipMax3[row4[0]]; // { 4, 0 }
                 break;
             case Av1TransformClass.ClassHorizontal:
-                mag += ClipMax3[levels[2]]; // { 0, 2 }
-                mag += ClipMax3[levels[3]]; // { 0, 3 }
-                mag += ClipMax3[levels[4]]; // { 0, 4 }
+                mag += ClipMax3[row0[2]]; // { 0, 2 }
+                mag += ClipMax3[row0[3]]; // { 0, 3 }
+                mag += ClipMax3[row0[4]]; // { 0, 4 }
                 break;
         }
 

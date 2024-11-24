@@ -46,7 +46,7 @@ public class Av1CoefficientsEntropyTests
 
         using IMemoryOwner<byte> encoded = encoder.Exit();
 
-        Av1SymbolDecoder decoder = new(encoded.GetSpan(), 0);
+        Av1SymbolDecoder decoder = new(Configuration.Default, encoded.GetSpan(), 0);
         Av1SymbolReader reader = new(encoded.GetSpan());
         decoder.ReadCoefficients(modeInfo, new Point(0, 0), aboveContexts, leftContexts, 0, 0, 0, 1, 1, transformBlockContext, transformSize, false, true, transformInfo, 0, 0, actuals);
 

@@ -54,7 +54,7 @@ internal sealed class WebpEncoderCore
     /// Flag indicating whether to preserve the exact RGB values under transparent area. Otherwise, discard this invisible
     /// RGB information for better compression.
     /// </summary>
-    private readonly WebpTransparentColorMode transparentColorMode;
+    private readonly TransparentColorMode transparentColorMode;
 
     /// <summary>
     /// Whether to skip metadata during encoding.
@@ -166,7 +166,7 @@ internal sealed class WebpEncoderCore
             // Encode the first frame.
             ImageFrame<TPixel> previousFrame = image.Frames.RootFrame;
             WebpFrameMetadata frameMetadata = previousFrame.Metadata.GetWebpMetadata();
-            hasAlpha |= encoder.Encode(previousFrame, previousFrame.Bounds(), frameMetadata, stream, hasAnimation);
+            hasAlpha |= encoder.Encode(previousFrame, previousFrame.Bounds, frameMetadata, stream, hasAnimation);
 
             if (hasAnimation)
             {
@@ -178,10 +178,7 @@ internal sealed class WebpEncoderCore
 
                 for (int i = 1; i < image.Frames.Count; i++)
                 {
-                    if (cancellationToken.IsCancellationRequested)
-                    {
-                        break;
-                    }
+                    cancellationToken.ThrowIfCancellationRequested();
 
                     ImageFrame<TPixel>? prev = previousDisposal == FrameDisposalMode.RestoreToBackground ? null : previousFrame;
                     ImageFrame<TPixel> currentFrame = image.Frames[i];
@@ -253,7 +250,7 @@ internal sealed class WebpEncoderCore
                 WebpFrameMetadata frameMetadata = previousFrame.Metadata.GetWebpMetadata();
                 FrameDisposalMode previousDisposal = frameMetadata.DisposalMode;
 
-                hasAlpha |= encoder.EncodeAnimation(previousFrame, stream, previousFrame.Bounds(), frameMetadata);
+                hasAlpha |= encoder.EncodeAnimation(previousFrame, stream, previousFrame.Bounds, frameMetadata);
 
                 // Encode additional frames
                 // This frame is reused to store de-duplicated pixel buffers.
@@ -261,10 +258,7 @@ internal sealed class WebpEncoderCore
 
                 for (int i = 1; i < image.Frames.Count; i++)
                 {
-                    if (cancellationToken.IsCancellationRequested)
-                    {
-                        break;
-                    }
+                    cancellationToken.ThrowIfCancellationRequested();
 
                     ImageFrame<TPixel>? prev = previousDisposal == FrameDisposalMode.RestoreToBackground ? null : previousFrame;
                     ImageFrame<TPixel> currentFrame = image.Frames[i];

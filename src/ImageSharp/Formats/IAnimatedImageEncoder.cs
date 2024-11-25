@@ -30,7 +30,7 @@ public interface IAnimatedImageEncoder
 /// <summary>
 /// Acts as a base class for all image encoders that allow encoding animation sequences.
 /// </summary>
-public abstract class AnimatedImageEncoder : ImageEncoder, IAnimatedImageEncoder
+public abstract class AnimatedImageEncoder : AlphaAwareImageEncoder, IAnimatedImageEncoder
 {
     /// <inheritdoc/>
     public Color? BackgroundColor { get; init; }

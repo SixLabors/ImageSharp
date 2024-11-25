@@ -32,7 +32,7 @@ internal class PixelateProcessor<TPixel> : ImageProcessor<TPixel>
     /// <inheritdoc/>
     protected override void OnFrameApply(ImageFrame<TPixel> source)
     {
-        var interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds());
+        Rectangle interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds);
         int size = this.Size;
 
         Guard.MustBeBetweenOrEqualTo(size, 0, interest.Width, nameof(size));

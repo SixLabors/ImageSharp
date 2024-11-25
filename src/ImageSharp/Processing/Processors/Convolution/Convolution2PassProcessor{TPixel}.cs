@@ -98,7 +98,7 @@ internal class Convolution2PassProcessor<TPixel> : ImageProcessor<TPixel>
     {
         using Buffer2D<TPixel> firstPassPixels = this.Configuration.MemoryAllocator.Allocate2D<TPixel>(source.Size);
 
-        Rectangle interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds());
+        Rectangle interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds);
 
         // We can create a single sampling map with the size as if we were using the non separated 2D kernel
         // the two 1D kernels represent, and reuse it across both convolution steps, like in the bokeh blur.

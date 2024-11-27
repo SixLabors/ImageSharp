@@ -45,11 +45,13 @@ internal ref struct Av1SymbolDecoder
     private readonly Av1Distribution[][][] intraExtendedTransform = Av1DefaultDistributions.IntraExtendedTransform;
     private readonly Configuration configuration;
     private Av1SymbolReader reader;
+    private readonly int baseQIndex;
 
     public Av1SymbolDecoder(Configuration configuration, Span<byte> tileData, int qIndex)
     {
         this.configuration = configuration;
         this.reader = new Av1SymbolReader(tileData);
+        this.baseQIndex = qIndex;
         this.endOfBlockFlag = Av1DefaultDistributions.GetEndOfBlockFlag(qIndex);
         this.coefficientsBase = Av1DefaultDistributions.GetCoefficientsBase(qIndex);
         this.baseEndOfBlock = Av1DefaultDistributions.GetBaseEndOfBlock(qIndex);
@@ -209,7 +211,7 @@ internal ref struct Av1SymbolDecoder
 
         // Ignoring INTER blocks here, as these should not end up here.
         // int inter_block = is_inter_block_dec(mbmi);
-        Av1TransformSetType tx_set_type = Av1SymbolContextHelper.GetExtendedTransformSetType(transformSize, useReducedTransformSet);
+        Av1TransformSetType transformSetType = Av1SymbolContextHelper.GetExtendedTransformSetType(transformSize, useReducedTransformSet);
         if (Av1SymbolContextHelper.GetExtendedTransformTypeCount(transformSize, useReducedTransformSet) > 1 && baseQIndex > 0)
         {
             int extendedSet = Av1SymbolContextHelper.GetExtendedTransformSet(transformSize, useReducedTransformSet);
@@ -224,7 +226,7 @@ internal ref struct Av1SymbolDecoder
                 : intraDirection;
             ref Av1SymbolReader r = ref this.reader;
             int symbol = r.ReadSymbol(this.intraExtendedTransform[extendedSet][(int)squareTransformSize][(int)intraMode]);
-            transformType = (Av1TransformType)ExtendedTransformIndicesInverse[(int)tx_set_type][symbol];
+            transformType = (Av1TransformType)ExtendedTransformIndicesInverse[(int)transformSetType][symbol];
         }
 
         return transformType;
@@ -304,6 +306,11 @@ internal ref struct Av1SymbolDecoder
             return 0;
         }
 
+        if (plane == (int)Av1Plane.Y)
+        {
+            this.ReadTransformType(transformSize, useReducedTransformSet, modeInfo.FilterIntraModeInfo.UseFilterIntra, this.baseQIndex, modeInfo.FilterIntraModeInfo.Mode, modeInfo.YMode);
+        }
+
         transformInfo.Type = ComputeTransformType(planeType, modeInfo, isLossless, transformSize, transformInfo, useReducedTransformSet);
         Av1TransformClass transformClass = transformInfo.Type.ToClass();
         Av1ScanOrder scanOrder = Av1ScanOrderConstants.GetScanOrder(transformSize, transformInfo.Type);
@@ -330,7 +337,7 @@ internal ref struct Av1SymbolDecoder
         }
 
         DebugGuard.MustBeGreaterThan(scan.Length, 0, nameof(scan));
-        culLevel = this.ReadCoefficientsDc(coefficientBuffer, endOfBlock, scan, bwl, levels, transformBlockContext.DcSignContext, planeType);
+        culLevel = this.ReadCoefficientsSign(coefficientBuffer, endOfBlock, scan, bwl, levels, transformBlockContext.DcSignContext, planeType);
         UpdateCoefficientContext(modeInfo, aboveContexts, leftContexts, blocksWide, blocksHigh, transformSize, blockPosition, aboveOffset, leftOffset, culLevel, modeBlocksToRightEdge, modeBlocksToBottomEdge);
 
         transformInfo.CodeBlockFlag = true;
@@ -438,7 +445,7 @@ internal ref struct Av1SymbolDecoder
         }
     }
 
-    public int ReadCoefficientsDc(Span<int> coefficientBuffer, int endOfBlock, ReadOnlySpan<short> scan, int blockWidthLog2, Av1LevelBuffer levels, int dcSignContext, Av1PlaneType planeType)
+    public int ReadCoefficientsSign(Span<int> coefficientBuffer, int endOfBlock, ReadOnlySpan<short> scan, int blockWidthLog2, Av1LevelBuffer levels, int dcSignContext, Av1PlaneType planeType)
     {
         int maxScanLine = 0;
         int culLevel = 0;
@@ -521,7 +528,7 @@ internal ref struct Av1SymbolDecoder
         return r.ReadSymbol(this.coefficientsBase[(int)transformSizeContext][(int)planeType][coefficientContext]);
     }
 
-    private int ReadGolomb()
+    internal int ReadGolomb()
     {
         int x = 1;
         int length = 0;

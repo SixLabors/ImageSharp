@@ -33,6 +33,7 @@ internal class Av1SymbolEncoder : IDisposable
     private bool isDisposed;
     private readonly Configuration configuration;
     private Av1SymbolWriter writer;
+    private readonly int baseQIndex;
 
     public Av1SymbolEncoder(Configuration configuration, int initialSize, int qIndex)
     {
@@ -45,6 +46,7 @@ internal class Av1SymbolEncoder : IDisposable
         this.endOfBlockExtra = Av1DefaultDistributions.GetEndOfBlockExtra(qIndex);
         this.configuration = configuration;
         this.writer = new(configuration, initialSize);
+        this.baseQIndex = qIndex;
     }
 
     public void WriteUseIntraBlockCopy(bool value)
@@ -81,14 +83,12 @@ internal class Av1SymbolEncoder : IDisposable
     public int WriteCoefficients(
         Av1TransformSize transformSize,
         Av1TransformType transformType,
-        int txbIndex, // TODO: Doesn't seem to be used, remove.
         Av1PredictionMode intraDirection,
         Span<int> coefficientBuffer,
         Av1ComponentType componentType,
         Av1TransformBlockContext transformBlockContext,
-        ushort eob,
+        ushort endOfBlock,
         bool useReducedTransformSet,
-        int baseQIndex,
         Av1FilterIntraMode filterIntraMode)
     {
         int c;
@@ -107,9 +107,9 @@ internal class Av1SymbolEncoder : IDisposable
 
         Guard.MustBeLessThan((int)transformSizeContext, (int)Av1TransformSize.AllSizes, nameof(transformSizeContext));
 
-        this.WriteTransformBlockSkip(eob == 0, transformSizeContext, transformBlockContext.SkipContext);
+        this.WriteTransformBlockSkip(endOfBlock == 0, transformSizeContext, transformBlockContext.SkipContext);
 
-        if (eob == 0)
+        if (endOfBlock == 0)
         {
             return 0;
         }
@@ -117,42 +117,27 @@ internal class Av1SymbolEncoder : IDisposable
         levels.Initialize(coefficientBuffer);
         if (componentType == Av1ComponentType.Luminance)
         {
-            this.WriteTransformType(transformType, transformSize, useReducedTransformSet, baseQIndex, filterIntraMode, intraDirection);
+            this.WriteTransformType(transformType, transformSize, useReducedTransformSet, this.baseQIndex, filterIntraMode, intraDirection);
         }
 
-        short endOfBlockPosition = Av1SymbolContextHelper.GetEndOfBlockPosition(eob, out int eobExtra);
-        this.WriteEndOfBlockFlag(componentType, transformClass, transformSize, endOfBlockPosition);
+        this.WriteEndOfBlockPosition(endOfBlock, componentType, transformClass, transformSize, transformSizeContext);
 
-        int eobOffsetBitCount = Av1SymbolContextHelper.EndOfBlockOffsetBits[endOfBlockPosition];
-        if (eobOffsetBitCount > 0)
-        {
-            int eobShift = eobOffsetBitCount - 1;
-            int bit = (eobExtra & (1 << eobShift)) != 0 ? 1 : 0;
-            w.WriteSymbol(bit, this.endOfBlockExtra[(int)transformSizeContext][(int)componentType][endOfBlockPosition]);
-            for (int i = 1; i < eobOffsetBitCount; i++)
-            {
-                eobShift = eobOffsetBitCount - 1 - i;
-                bit = (eobExtra & (1 << eobShift)) != 0 ? 1 : 0;
-                w.WriteLiteral((uint)bit, 1);
-            }
-        }
-
-        Av1SymbolContextHelper.GetNzMapContexts(levels, scan, eob, transformSize, transformClass, coefficientContexts);
+        Av1SymbolContextHelper.GetNzMapContexts(levels, scan, endOfBlock, transformSize, transformClass, coefficientContexts);
         int limitedTransformSizeContext = Math.Min((int)transformSizeContext, (int)Av1TransformSize.Size32x32);
-        for (c = eob - 1; c >= 0; --c)
+        for (c = endOfBlock - 1; c >= 0; --c)
         {
             short pos = scan[c];
             int v = coefficientBuffer[pos];
-            short coeff_ctx = coefficientContexts[pos];
+            short coeffContext = coefficientContexts[pos];
             int level = Math.Abs(v);
 
-            if (c == eob - 1)
+            if (c == endOfBlock - 1)
             {
-                w.WriteSymbol(Math.Min(level, 3) - 1, this.coefficientsBaseEndOfBlock[(int)transformSizeContext][(int)componentType][coeff_ctx]);
+                w.WriteSymbol(Math.Min(level, 3) - 1, this.coefficientsBaseEndOfBlock[(int)transformSizeContext][(int)componentType][coeffContext]);
             }
             else
             {
-                w.WriteSymbol(Math.Min(level, 3), this.coefficientsBase[(int)transformSizeContext][(int)componentType][coeff_ctx]);
+                w.WriteSymbol(Math.Min(level, 3), this.coefficientsBase[(int)transformSizeContext][(int)componentType][coeffContext]);
             }
 
             if (level > Av1Constants.BaseLevelsCount)
@@ -175,7 +160,7 @@ internal class Av1SymbolEncoder : IDisposable
         // Loop to code all signs in the transform block,
         // starting with the sign of DC (if applicable)
         int cul_level = 0;
-        for (c = 0; c < eob; ++c)
+        for (c = 0; c < endOfBlock; ++c)
         {
             short pos = scan[c];
             int v = coefficientBuffer[pos];
@@ -194,7 +179,7 @@ internal class Av1SymbolEncoder : IDisposable
                     w.WriteLiteral(sign, 1);
                 }
 
-                if (level > Av1Constants.CoefficientBaseRange + Av1Constants.BaseLevelsCount)
+                if (level > (Av1Constants.CoefficientBaseRange + Av1Constants.BaseLevelsCount))
                 {
                     this.WriteGolomb(level - Av1Constants.CoefficientBaseRange - 1 - Av1Constants.BaseLevelsCount);
                 }
@@ -206,6 +191,27 @@ internal class Av1SymbolEncoder : IDisposable
         // DC value
         Av1SymbolContextHelper.SetDcSign(ref cul_level, coefficientBuffer[0]);
         return cul_level;
+    }
+
+    internal void WriteEndOfBlockPosition(ushort endOfBlock, Av1ComponentType componentType, Av1TransformClass transformClass, Av1TransformSize transformSize, Av1TransformSize transformSizeContext)
+    {
+        short endOfBlockPosition = Av1SymbolContextHelper.GetEndOfBlockPosition(endOfBlock, out int eobExtra);
+        this.WriteEndOfBlockFlag(componentType, transformClass, transformSize, endOfBlockPosition);
+
+        int eobOffsetBitCount = Av1SymbolContextHelper.EndOfBlockOffsetBits[endOfBlockPosition];
+        if (eobOffsetBitCount > 0)
+        {
+            ref Av1SymbolWriter w = ref this.writer;
+            int eobShift = eobOffsetBitCount - 1;
+            uint bit = (eobExtra & (1 << eobShift)) != 0 ? 1u : 0u;
+            w.WriteSymbol((int)bit, this.endOfBlockExtra[(int)transformSizeContext][(int)componentType][endOfBlockPosition]);
+            for (int i = 1; i < eobOffsetBitCount; i++)
+            {
+                eobShift = eobOffsetBitCount - 1 - i;
+                bit = (eobExtra & (1 << eobShift)) != 0 ? 1u : 0u;
+                w.WriteLiteral(bit, 1);
+            }
+        }
     }
 
     internal void WriteTransformBlockSkip(bool skip, Av1TransformSize transformSizeContext, int skipContext)
@@ -232,23 +238,22 @@ internal class Av1SymbolEncoder : IDisposable
     /// <summary>
     /// SVT: write_golomb
     /// </summary>
-    private void WriteGolomb(int level)
+    internal void WriteGolomb(int level)
     {
-        int x = level + 1;
-        int i = x;
-        int length = (int)Av1Math.Log2_32((uint)x) + 1;
+        uint x = (uint)level + 1u;
+        int length = (int)Av1Math.Log2_32(x) + 1;
 
         Guard.MustBeGreaterThan(length, 0, nameof(length));
 
         ref Av1SymbolWriter w = ref this.writer;
-        for (i = 0; i < length - 1; ++i)
+        for (int i = 0; i < length - 1; ++i)
         {
-            w.WriteLiteral(0, 1);
+            w.WriteLiteral(0u, 1);
         }
 
         for (int j = length - 1; j >= 0; --j)
         {
-            w.WriteLiteral((uint)((x >> j) & 0x01), 1);
+            w.WriteLiteral((x >> j) & 0x01, 1);
         }
     }
 

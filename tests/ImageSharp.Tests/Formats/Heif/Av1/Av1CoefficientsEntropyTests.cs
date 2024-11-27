@@ -2,7 +2,6 @@
 // Licensed under the Six Labors Split License.
 
 using System.Buffers;
-using Microsoft.VisualBasic;
 using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
@@ -21,7 +20,6 @@ public class Av1CoefficientsEntropyTests
     public void RoundTripZeroEndOfBlock()
     {
         // Assign
-        const int txbIndex = 0;
         Av1BlockSize blockSize = Av1BlockSize.Block4x4;
         Av1TransformSize transformSize = Av1TransformSize.Size4x4;
         Av1TransformType transformType = Av1TransformType.Identity;
@@ -36,12 +34,12 @@ public class Av1CoefficientsEntropyTests
         Av1TransformBlockContext transformBlockContext = new();
         Configuration configuration = Configuration.Default;
         Av1SymbolEncoder encoder = new(configuration, 100 / 8, BaseQIndex);
-        Span<int> coefficientsBuffer = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16];
+        Span<int> coefficientsBuffer = [1, 2, 3, 4, 5];
         Span<int> expected = new int[16];
         Span<int> actuals = new int[16];
 
         // Act
-        encoder.WriteCoefficients(transformSize, transformType, txbIndex, intraDirection, coefficientsBuffer, componentType, transformBlockContext, endOfBlock, true, BaseQIndex, filterIntraMode);
+        encoder.WriteCoefficients(transformSize, transformType, intraDirection, coefficientsBuffer, componentType, transformBlockContext, endOfBlock, true, filterIntraMode);
 
         using IMemoryOwner<byte> encoded = encoder.Exit();
 
@@ -53,11 +51,10 @@ public class Av1CoefficientsEntropyTests
         Assert.Equal(expected, actuals);
     }
 
-    // [Fact]
+    [Fact]
     public void RoundTripFullBlock()
     {
         // Assign
-        const int txbIndex = 0;
         const Av1BlockSize blockSize = Av1BlockSize.Block4x4;
         const Av1TransformSize transformSize = Av1TransformSize.Size4x4;
         const Av1TransformType transformType = Av1TransformType.Identity;
@@ -76,13 +73,14 @@ public class Av1CoefficientsEntropyTests
         Span<int> actuals = new int[16];
 
         // Act
-        encoder.WriteCoefficients(transformSize, transformType, txbIndex, intraDirection, coefficientsBuffer, componentType, transformBlockContext, endOfBlock, true, BaseQIndex, filterIntraMode);
+        encoder.WriteCoefficients(transformSize, transformType, intraDirection, coefficientsBuffer, componentType, transformBlockContext, endOfBlock, true, filterIntraMode);
 
         using IMemoryOwner<byte> encoded = encoder.Exit();
 
         Av1SymbolDecoder decoder = new(Configuration.Default, encoded.GetSpan(), BaseQIndex);
         Av1SymbolReader reader = new(encoded.GetSpan());
-        decoder.ReadCoefficients(modeInfo, new Point(0, 0), aboveContexts, leftContexts, 0, 0, (int)componentType, 1, 1, transformBlockContext, transformSize, false, true, transformInfo, 0, 0, actuals);
+        int plane = Math.Min((int)componentType, 1);
+        decoder.ReadCoefficients(modeInfo, new Point(0, 0), aboveContexts, leftContexts, 0, 0, plane, 1, 1, transformBlockContext, transformSize, false, true, transformInfo, 0, 0, actuals);
 
         // Assert
         Assert.Equal(coefficientsBuffer, actuals);

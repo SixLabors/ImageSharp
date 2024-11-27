@@ -358,6 +358,67 @@ public class Av1EntropyTests
     }
 
     [Fact]
+    public void RoundTripEndOfBlockPosition()
+    {
+        // Assign
+        const Av1TransformSize transformSize = Av1TransformSize.Size4x4;
+        const Av1TransformSize transformSizeContext = Av1TransformSize.Size4x4;
+        const Av1ComponentType componentType = Av1ComponentType.Luminance;
+        const Av1PlaneType planeType = Av1PlaneType.Y;
+        const Av1TransformClass transformClass = Av1TransformClass.Class2D;
+        Configuration configuration = Configuration.Default;
+        Av1SymbolEncoder encoder = new(configuration, 100 / 8, BaseQIndex);
+
+        ushort[] values = [1, 2, 3, 4, 5];
+        int[] actuals = new int[values.Length];
+
+        // Act
+        foreach (ushort value in values)
+        {
+            encoder.WriteEndOfBlockPosition(value, componentType, transformClass, transformSize, transformSizeContext);
+        }
+
+        using IMemoryOwner<byte> encoded = encoder.Exit();
+
+        Av1SymbolDecoder decoder = new(Configuration.Default, encoded.GetSpan(), BaseQIndex);
+        for (int i = 0; i < values.Length; i++)
+        {
+            actuals[i] = decoder.ReadEndOfBlockPosition(transformSize, transformClass, transformSizeContext, planeType);
+        }
+
+        // Assert
+        Assert.Equal(values.Select(x => (int)x).ToArray(), actuals);
+    }
+
+    [Fact]
+    public void RoundTripGolomb()
+    {
+        // Assign
+        Configuration configuration = Configuration.Default;
+        Av1SymbolEncoder encoder = new(configuration, 100 / 8, BaseQIndex);
+
+        int[] values = Enumerable.Range(0, 16384).ToArray();
+        int[] actuals = new int[values.Length];
+
+        // Act
+        foreach (int value in values)
+        {
+            encoder.WriteGolomb(value);
+        }
+
+        using IMemoryOwner<byte> encoded = encoder.Exit();
+
+        Av1SymbolDecoder decoder = new(Configuration.Default, encoded.GetSpan(), BaseQIndex);
+        for (int i = 0; i < values.Length; i++)
+        {
+            actuals[i] = decoder.ReadGolomb();
+        }
+
+        // Assert
+        Assert.Equal(values, actuals);
+    }
+
+    [Fact]
     public void RoundTripUseIntraBlockCopy()
     {
         // Assign

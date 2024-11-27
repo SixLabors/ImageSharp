@@ -9,6 +9,15 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 
 internal ref struct Av1SymbolDecoder
 {
+    private static readonly int[][] ExtendedTransformIndicesInverse = [
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [9, 0, 3, 1, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [9, 0, 10, 11, 3, 1, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [9, 10, 11, 0, 1, 2, 4, 5, 3, 6, 7, 8, 0, 0, 0, 0],
+        [9, 10, 11, 12, 13, 14, 15, 0, 1, 2, 4, 5, 3, 6, 7, 8],
+    ];
+
     private static readonly int[] IntraModeContext = [0, 1, 2, 3, 4, 4, 4, 4, 3, 0, 1, 2, 0];
     private static readonly int[] AlphaVContexts = [-1, 0, 3, -1, 1, 4, -1, 2, 5];
 
@@ -33,7 +42,8 @@ internal ref struct Av1SymbolDecoder
     private readonly Av1Distribution[][][] endOfBlockExtra;
     private readonly Av1Distribution chromeForLumaSign = Av1DefaultDistributions.ChromeForLumaSign;
     private readonly Av1Distribution[] chromeForLumaAlpha = Av1DefaultDistributions.ChromeForLumaAlpha;
-    private Configuration configuration;
+    private readonly Av1Distribution[][][] intraExtendedTransform = Av1DefaultDistributions.IntraExtendedTransform;
+    private readonly Configuration configuration;
     private Av1SymbolReader reader;
 
     public Av1SymbolDecoder(Configuration configuration, Span<byte> tileData, int qIndex)
@@ -180,6 +190,46 @@ internal ref struct Av1SymbolDecoder
         return transformSize;
     }
 
+    public Av1TransformType ReadTransformType(
+        Av1TransformSize transformSize,
+        bool useReducedTransformSet,
+        bool useFilterIntra,
+        int baseQIndex,
+        Av1FilterIntraMode filterIntraMode,
+        Av1PredictionMode intraDirection)
+    {
+        Av1TransformType transformType = Av1TransformType.DctDct;
+
+        /*
+        // No need to read transform type if block is skipped.
+        if (mbmi.Skip ||
+            svt_aom_seg_feature_active(&parse_ctxt->frame_header->segmentation_params, mbmi->segment_id, SEG_LVL_SKIP))
+            return;
+        */
+
+        // Ignoring INTER blocks here, as these should not end up here.
+        // int inter_block = is_inter_block_dec(mbmi);
+        Av1TransformSetType tx_set_type = Av1SymbolContextHelper.GetExtendedTransformSetType(transformSize, useReducedTransformSet);
+        if (Av1SymbolContextHelper.GetExtendedTransformTypeCount(transformSize, useReducedTransformSet) > 1 && baseQIndex > 0)
+        {
+            int extendedSet = Av1SymbolContextHelper.GetExtendedTransformSet(transformSize, useReducedTransformSet);
+
+            // eset == 0 should correspond to a set with only DCT_DCT and
+            // there is no need to read the tx_type
+            Guard.IsFalse(extendedSet == 0, nameof(extendedSet), string.Empty);
+
+            Av1TransformSize squareTransformSize = transformSize.GetSquareSize();
+            Av1PredictionMode intraMode = useFilterIntra
+                ? filterIntraMode.ToIntraDirection()
+                : intraDirection;
+            ref Av1SymbolReader r = ref this.reader;
+            int symbol = r.ReadSymbol(this.intraExtendedTransform[extendedSet][(int)squareTransformSize][(int)intraMode]);
+            transformType = (Av1TransformType)ExtendedTransformIndicesInverse[(int)tx_set_type][symbol];
+        }
+
+        return transformType;
+    }
+
     public bool ReadTransformBlockSkip(Av1TransformSize transformSizeContext, int skipContext)
     {
         ref Av1SymbolReader r = ref this.reader;
@@ -233,7 +283,7 @@ internal ref struct Av1SymbolDecoder
     {
         int width = transformSize.GetWidth();
         int height = transformSize.GetHeight();
-        Av1TransformSize transformSizeContext = (Av1TransformSize)(((int)transformSize.GetSquareSize() + ((int)transformSize.GetSquareUpSize() + 1)) >> 1);
+        Av1TransformSize transformSizeContext = (Av1TransformSize)(((int)transformSize.GetSquareSize() + (int)transformSize.GetSquareUpSize() + 1) >> 1);
         Av1PlaneType planeType = (Av1PlaneType)Math.Min(plane, 1);
         int culLevel = 0;
 

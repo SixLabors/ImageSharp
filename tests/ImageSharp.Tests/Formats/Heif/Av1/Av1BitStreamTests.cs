@@ -95,9 +95,9 @@ public class Av1BitStreamTests
     }
 
     [Theory]
-    //[InlineData(6, 4)]
-    //[InlineData(42, 8)]
-    //[InlineData(52, 8)]
+    [InlineData(6, 4)]
+    [InlineData(42, 8)]
+    [InlineData(52, 8)]
     [InlineData(4050, 16)]
     public void WriteAsLiteral(uint value, int bitCount)
     {

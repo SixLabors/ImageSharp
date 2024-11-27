@@ -4,6 +4,9 @@
 using System.Buffers;
 using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
@@ -208,8 +211,7 @@ public class Av1EntropyTests
 
         using IMemoryOwner<byte> encoded = encoder.Exit();
 
-        Av1SymbolDecoder decoder = new(Configuration.Default, encoded.GetSpan(), 0);
-        Av1SymbolReader reader = new(encoded.GetSpan());
+        Av1SymbolDecoder decoder = new(Configuration.Default, encoded.GetSpan(), BaseQIndex);
         for (int i = 0; i < values.Length; i++)
         {
             actuals[i] = decoder.ReadPartitionType(ctx);
@@ -245,8 +247,7 @@ public class Av1EntropyTests
 
         using IMemoryOwner<byte> encoded = encoder.Exit();
 
-        Av1SymbolDecoder decoder = new(Configuration.Default, encoded.GetSpan(), 0);
-        Av1SymbolReader reader = new(encoded.GetSpan());
+        Av1SymbolDecoder decoder = new(Configuration.Default, encoded.GetSpan(), BaseQIndex);
         for (int i = 0; i < values.Length; i++)
         {
             actuals[i] = decoder.ReadSplitOrHorizontal((Av1BlockSize)blockSize, context);
@@ -282,11 +283,74 @@ public class Av1EntropyTests
 
         using IMemoryOwner<byte> encoded = encoder.Exit();
 
-        Av1SymbolDecoder decoder = new(Configuration.Default, encoded.GetSpan(), 0);
-        Av1SymbolReader reader = new(encoded.GetSpan());
+        Av1SymbolDecoder decoder = new(Configuration.Default, encoded.GetSpan(), BaseQIndex);
         for (int i = 0; i < values.Length; i++)
         {
             actuals[i] = decoder.ReadSplitOrVertical((Av1BlockSize)blockSize, context);
+        }
+
+        // Assert
+        Assert.Equal(values, actuals);
+    }
+
+    [Fact]
+    public void RoundTripTransformBlockSkip()
+    {
+        // Assign
+        const Av1TransformSize transformSizeContext = Av1TransformSize.Size4x4;
+        const int skipContext = 0;
+        Configuration configuration = Configuration.Default;
+        Av1SymbolEncoder encoder = new(configuration, 100 / 8, BaseQIndex);
+        bool[] values = [true, true, false, false, false, false, false, false, true];
+        bool[] actuals = new bool[values.Length];
+
+        // Act
+        foreach (bool value in values)
+        {
+            encoder.WriteTransformBlockSkip(value, transformSizeContext, skipContext);
+        }
+
+        using IMemoryOwner<byte> encoded = encoder.Exit();
+
+        Av1SymbolDecoder decoder = new(Configuration.Default, encoded.GetSpan(), BaseQIndex);
+        for (int i = 0; i < values.Length; i++)
+        {
+            actuals[i] = decoder.ReadTransformBlockSkip(transformSizeContext, skipContext);
+        }
+
+        // Assert
+        Assert.Equal(values, actuals);
+    }
+
+    [Fact]
+    public void RoundTripTransformType()
+    {
+        // Assign
+        const Av1TransformSize transformSizeContext = Av1TransformSize.Size4x4;
+        const Av1FilterIntraMode filterIntraMode = Av1FilterIntraMode.DC;
+        const Av1PredictionMode intraDirection = Av1PredictionMode.DC;
+        Configuration configuration = Configuration.Default;
+        Av1SymbolEncoder encoder = new(configuration, 100 / 8, BaseQIndex);
+
+        // TODO: Include AdstFlipAdst, which is currently mapped to Identity.
+        Av1TransformType[] values = [
+            Av1TransformType.DctDct, Av1TransformType.DctDct, Av1TransformType.Identity, Av1TransformType.AdstDct,
+            Av1TransformType.DctDct, Av1TransformType.AdstAdst, Av1TransformType.Identity, Av1TransformType.DctAdst
+            ];
+        Av1TransformType[] actuals = new Av1TransformType[values.Length];
+
+        // Act
+        foreach (Av1TransformType value in values)
+        {
+            encoder.WriteTransformType(value, transformSizeContext, true, BaseQIndex, filterIntraMode, intraDirection);
+        }
+
+        using IMemoryOwner<byte> encoded = encoder.Exit();
+
+        Av1SymbolDecoder decoder = new(Configuration.Default, encoded.GetSpan(), BaseQIndex);
+        for (int i = 0; i < values.Length; i++)
+        {
+            actuals[i] = decoder.ReadTransformType(transformSizeContext, true, false, BaseQIndex, filterIntraMode, intraDirection);
         }
 
         // Assert
@@ -310,7 +374,7 @@ public class Av1EntropyTests
 
         using IMemoryOwner<byte> encoded = encoder.Exit();
 
-        Av1SymbolDecoder decoder = new(Configuration.Default, encoded.GetSpan(), 0);
+        Av1SymbolDecoder decoder = new(Configuration.Default, encoded.GetSpan(), BaseQIndex);
         for (int i = 0; i < values.Length; i++)
         {
             actuals[i] = decoder.ReadUseIntraBlockCopy();

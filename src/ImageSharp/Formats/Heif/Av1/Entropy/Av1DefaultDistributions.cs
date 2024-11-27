@@ -1,8 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System;
-
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 
 internal static class Av1DefaultDistributions
@@ -1610,6 +1608,7 @@ internal static class Av1DefaultDistributions
             ],
         ];
 
+    // SVT: av1_default_txb_skip_cdfs
     private static Av1Distribution[][][] TransformBlockSkip =>
         [
             [

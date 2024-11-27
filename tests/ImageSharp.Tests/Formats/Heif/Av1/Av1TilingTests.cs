@@ -38,7 +38,7 @@ public class Av1TilingTests
     }
 
     [Theory]
-    // [InlineData(TestImages.Heif.XnConvert, 0x010E, 0x03CC, 18, 16)]
+    [InlineData(TestImages.Heif.XnConvert, 0x010E, 0x03CC, 18, 16)]
     [InlineData(TestImages.Heif.Orange4x4, 0x010E, 0x001d, 21, 1)]
     public void DecodeFirstTile(string filename, int dataOffset, int dataSize, int tileOffset, int superblockCount)
     {

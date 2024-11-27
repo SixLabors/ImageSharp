@@ -25,6 +25,9 @@ internal class Av1SymbolWriter : IDisposable
 
     public void Dispose() => this.memory.Dispose();
 
+    public void WriteSymbol(bool symbol, Av1Distribution distribution)
+        => this.WriteSymbol(symbol ? 1 : 0, distribution);
+
     public void WriteSymbol(int symbol, Av1Distribution distribution)
     {
         DebugGuard.MustBeGreaterThanOrEqualTo(symbol, 0, nameof(symbol));

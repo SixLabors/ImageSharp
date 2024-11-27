@@ -166,6 +166,9 @@ internal sealed class WebpEncoderCore
             // Encode the first frame.
             ImageFrame<TPixel> previousFrame = image.Frames.RootFrame;
             WebpFrameMetadata frameMetadata = previousFrame.Metadata.GetWebpMetadata();
+
+            cancellationToken.ThrowIfCancellationRequested();
+
             hasAlpha |= encoder.Encode(previousFrame, previousFrame.Bounds, frameMetadata, stream, hasAnimation);
 
             if (hasAnimation)
@@ -304,6 +307,7 @@ internal sealed class WebpEncoderCore
             }
             else
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 encoder.EncodeStatic(stream, image);
                 encoder.EncodeFooter(image, in vp8x, hasAlpha, stream, initialPosition);
             }

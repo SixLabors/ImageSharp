@@ -226,6 +226,7 @@ internal sealed class PngEncoderCore : IDisposable
         bool userAnimateRootFrame = this.animateRootFrame == true;
         if ((!userAnimateRootFrame && !pngMetadata.AnimateRootFrame) || image.Frames.Count == 1)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             FrameControl frameControl = new((uint)this.width, (uint)this.height);
             this.WriteDataChunks(frameControl, currentFrame.PixelBuffer.GetRegion(), quantized, stream, false);
             currentFrameIndex++;

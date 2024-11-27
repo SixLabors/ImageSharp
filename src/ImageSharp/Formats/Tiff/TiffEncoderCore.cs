@@ -137,7 +137,7 @@ internal sealed class TiffEncoderCore
 
         long ifdMarker = WriteHeader(writer, buffer);
 
-        Image<TPixel>? metadataImage = image;
+        Image<TPixel>? imageMetadata = image;
 
         foreach (ImageFrame<TPixel> frame in image.Frames)
         {
@@ -154,8 +154,8 @@ internal sealed class TiffEncoderCore
 
                 ImageFrame<TPixel> encodingFrame = clonedFrame ?? frame;
 
-                ifdMarker = this.WriteFrame(writer, encodingFrame, image.Metadata, metadataImage, this.BitsPerPixel.Value, this.CompressionType.Value, ifdMarker);
-                metadataImage = null;
+                ifdMarker = this.WriteFrame(writer, encodingFrame, image.Metadata, imageMetadata, this.BitsPerPixel.Value, this.CompressionType.Value, ifdMarker);
+                imageMetadata = null;
             }
             finally
             {

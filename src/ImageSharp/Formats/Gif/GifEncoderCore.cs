@@ -207,22 +207,29 @@ internal sealed class GifEncoderCore
             this.WriteApplicationExtensions(stream, image.Frames.Count, this.repeatCount ?? gifMetadata.RepeatCount, xmpProfile);
         }
 
-        this.EncodeFirstFrame(stream, frameMetadata, quantized);
+        // If the token is cancelled during encoding of frames we must ensure the
+        // quantized frame is disposed.
+        try
+        {
+            this.EncodeFirstFrame(stream, frameMetadata, quantized, cancellationToken);
 
-        // Capture the global palette for reuse on subsequent frames and cleanup the quantized frame.
-        TPixel[] globalPalette = image.Frames.Count == 1 ? [] : quantized.Palette.ToArray();
+            // Capture the global palette for reuse on subsequent frames and cleanup the quantized frame.
+            TPixel[] globalPalette = image.Frames.Count == 1 ? [] : quantized.Palette.ToArray();
 
-        this.EncodeAdditionalFrames(
-            stream,
-            image,
-            globalPalette,
-            derivedTransparencyIndex,
-            frameMetadata.DisposalMode,
-            cancellationToken);
+            this.EncodeAdditionalFrames(
+                stream,
+                image,
+                globalPalette,
+                derivedTransparencyIndex,
+                frameMetadata.DisposalMode,
+                cancellationToken);
+        }
+        finally
+        {
+            stream.WriteByte(GifConstants.EndIntroducer);
 
-        stream.WriteByte(GifConstants.EndIntroducer);
-
-        quantized?.Dispose();
+            quantized?.Dispose();
+        }
     }
 
     private static GifFrameMetadata GetGifFrameMetadata<TPixel>(ImageFrame<TPixel> frame, int transparencyIndex)
@@ -310,9 +317,12 @@ internal sealed class GifEncoderCore
     private void EncodeFirstFrame<TPixel>(
         Stream stream,
         GifFrameMetadata metadata,
-        IndexedImageFrame<TPixel> quantized)
+        IndexedImageFrame<TPixel> quantized,
+        CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
+        cancellationToken.ThrowIfCancellationRequested();
+
         this.WriteGraphicalControlExtension(metadata, stream);
 
         Buffer2D<byte> indices = ((IPixelSource)quantized).PixelBuffer;

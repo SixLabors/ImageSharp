@@ -123,13 +123,13 @@ internal abstract class IconEncoderCore
             image.Frames.Select(i =>
             {
                 IcoFrameMetadata metadata = i.Metadata.GetIcoMetadata();
-                return new EncodingFrameMetadata(metadata.Compression, metadata.BmpBitsPerPixel, metadata.ColorTable, metadata.ToIconDirEntry());
+                return new EncodingFrameMetadata(metadata.Compression, metadata.BmpBitsPerPixel, metadata.ColorTable, metadata.ToIconDirEntry(i.Size));
             }).ToArray(),
             IconFileType.CUR =>
             image.Frames.Select(i =>
             {
                 CurFrameMetadata metadata = i.Metadata.GetCurMetadata();
-                return new EncodingFrameMetadata(metadata.Compression, metadata.BmpBitsPerPixel, metadata.ColorTable, metadata.ToIconDirEntry());
+                return new EncodingFrameMetadata(metadata.Compression, metadata.BmpBitsPerPixel, metadata.ColorTable, metadata.ToIconDirEntry(i.Size));
             }).ToArray(),
             _ => throw new NotSupportedException(),
         };

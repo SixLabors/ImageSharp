@@ -24,7 +24,7 @@ public interface IQuantizingImageEncoder
 /// <summary>
 /// Acts as a base class for all image encoders that allow color palette generation via quantization.
 /// </summary>
-public abstract class QuantizingImageEncoder : ImageEncoder, IQuantizingImageEncoder
+public abstract class QuantizingImageEncoder : AlphaAwareImageEncoder, IQuantizingImageEncoder
 {
     /// <inheritdoc/>
     public IQuantizer? Quantizer { get; init; }

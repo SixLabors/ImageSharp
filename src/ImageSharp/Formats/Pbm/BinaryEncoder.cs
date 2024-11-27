@@ -17,25 +17,32 @@ internal class BinaryEncoder
     /// </summary>
     /// <typeparam name="TPixel">The type of input pixel.</typeparam>
     /// <param name="configuration">The configuration.</param>
-    /// <param name="stream">The bytestream to write to.</param>
+    /// <param name="stream">The byte stream to write to.</param>
     /// <param name="image">The input image.</param>
     /// <param name="colorType">The ColorType to use.</param>
-    /// <param name="componentType">Data type of the pixles components.</param>
-    /// <exception cref="InvalidImageContentException">
+    /// <param name="componentType">Data type of the pixels components.</param>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+    /// <exception cref="ImageFormatException">
     /// Thrown if an invalid combination of setting is requested.
     /// </exception>
-    public static void WritePixels<TPixel>(Configuration configuration, Stream stream, ImageFrame<TPixel> image, PbmColorType colorType, PbmComponentType componentType)
+    public static void WritePixels<TPixel>(
+        Configuration configuration,
+        Stream stream,
+        ImageFrame<TPixel> image,
+        PbmColorType colorType,
+        PbmComponentType componentType,
+        CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         if (colorType == PbmColorType.Grayscale)
         {
             if (componentType == PbmComponentType.Byte)
             {
-                WriteGrayscale(configuration, stream, image);
+                WriteGrayscale(configuration, stream, image, cancellationToken);
             }
             else if (componentType == PbmComponentType.Short)
             {
-                WriteWideGrayscale(configuration, stream, image);
+                WriteWideGrayscale(configuration, stream, image, cancellationToken);
             }
             else
             {
@@ -46,31 +53,28 @@ internal class BinaryEncoder
         {
             if (componentType == PbmComponentType.Byte)
             {
-                WriteRgb(configuration, stream, image);
+                WriteRgb(configuration, stream, image, cancellationToken);
             }
             else if (componentType == PbmComponentType.Short)
             {
-                WriteWideRgb(configuration, stream, image);
+                WriteWideRgb(configuration, stream, image, cancellationToken);
             }
             else
             {
                 throw new ImageFormatException("Component type not supported for Color PBM.");
             }
         }
-        else
+        else if (componentType == PbmComponentType.Bit)
         {
-            if (componentType == PbmComponentType.Bit)
-            {
-                WriteBlackAndWhite(configuration, stream, image);
-            }
-            else
-            {
-                throw new ImageFormatException("Component type not supported for Black & White PBM.");
-            }
+            WriteBlackAndWhite(configuration, stream, image, cancellationToken);
         }
     }
 
-    private static void WriteGrayscale<TPixel>(Configuration configuration, Stream stream, ImageFrame<TPixel> image)
+    private static void WriteGrayscale<TPixel>(
+        Configuration configuration,
+        Stream stream,
+        ImageFrame<TPixel> image,
+        CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         int width = image.Width;
@@ -82,6 +86,8 @@ internal class BinaryEncoder
 
         for (int y = 0; y < height; y++)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             Span<TPixel> pixelSpan = pixelBuffer.DangerousGetRowSpan(y);
 
             PixelOperations<TPixel>.Instance.ToL8Bytes(
@@ -94,7 +100,11 @@ internal class BinaryEncoder
         }
     }
 
-    private static void WriteWideGrayscale<TPixel>(Configuration configuration, Stream stream, ImageFrame<TPixel> image)
+    private static void WriteWideGrayscale<TPixel>(
+        Configuration configuration,
+        Stream stream,
+        ImageFrame<TPixel> image,
+        CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         const int bytesPerPixel = 2;
@@ -107,6 +117,8 @@ internal class BinaryEncoder
 
         for (int y = 0; y < height; y++)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             Span<TPixel> pixelSpan = pixelBuffer.DangerousGetRowSpan(y);
 
             PixelOperations<TPixel>.Instance.ToL16Bytes(
@@ -119,7 +131,11 @@ internal class BinaryEncoder
         }
     }
 
-    private static void WriteRgb<TPixel>(Configuration configuration, Stream stream, ImageFrame<TPixel> image)
+    private static void WriteRgb<TPixel>(
+        Configuration configuration,
+        Stream stream,
+        ImageFrame<TPixel> image,
+        CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         const int bytesPerPixel = 3;
@@ -132,6 +148,8 @@ internal class BinaryEncoder
 
         for (int y = 0; y < height; y++)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             Span<TPixel> pixelSpan = pixelBuffer.DangerousGetRowSpan(y);
 
             PixelOperations<TPixel>.Instance.ToRgb24Bytes(
@@ -144,7 +162,11 @@ internal class BinaryEncoder
         }
     }
 
-    private static void WriteWideRgb<TPixel>(Configuration configuration, Stream stream, ImageFrame<TPixel> image)
+    private static void WriteWideRgb<TPixel>(
+        Configuration configuration,
+        Stream stream,
+        ImageFrame<TPixel> image,
+        CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         const int bytesPerPixel = 6;
@@ -157,6 +179,8 @@ internal class BinaryEncoder
 
         for (int y = 0; y < height; y++)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             Span<TPixel> pixelSpan = pixelBuffer.DangerousGetRowSpan(y);
 
             PixelOperations<TPixel>.Instance.ToRgb48Bytes(
@@ -169,7 +193,12 @@ internal class BinaryEncoder
         }
     }
 
-    private static void WriteBlackAndWhite<TPixel>(Configuration configuration, Stream stream, ImageFrame<TPixel> image)
+    private static void WriteBlackAndWhite<TPixel>(
+        Configuration
+        configuration,
+        Stream stream,
+        ImageFrame<TPixel> image,
+        CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         int width = image.Width;
@@ -181,6 +210,8 @@ internal class BinaryEncoder
 
         for (int y = 0; y < height; y++)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             Span<TPixel> pixelSpan = pixelBuffer.DangerousGetRowSpan(y);
 
             PixelOperations<TPixel>.Instance.ToL8(

@@ -429,7 +429,7 @@ public sealed class ImageFrame<TPixel> : ImageFrame, IPixelSource<TPixel>
 
         ParallelRowIterator.IterateRowIntervals(
             configuration,
-            this.Bounds(),
+            this.Bounds,
             in operation);
 
         return target;

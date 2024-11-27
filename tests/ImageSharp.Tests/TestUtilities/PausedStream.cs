@@ -115,7 +115,7 @@ public class PausedStream : Stream, IPausedStream
 
     public override long Position { get => this.innerStream.Position; set => this.innerStream.Position = value; }
 
-    public override void Flush() => this.Await(() => this.innerStream.Flush());
+    public override void Flush() => this.Await(this.innerStream.Flush);
 
     public override int Read(byte[] buffer, int offset, int count) => this.Await(() => this.innerStream.Read(buffer, offset, count));
 
@@ -131,7 +131,7 @@ public class PausedStream : Stream, IPausedStream
 
     public override void WriteByte(byte value) => this.Await(() => this.innerStream.WriteByte(value));
 
-    public override int ReadByte() => this.Await(() => this.innerStream.ReadByte());
+    public override int ReadByte() => this.Await(this.innerStream.ReadByte);
 
     protected override void Dispose(bool disposing)
     {

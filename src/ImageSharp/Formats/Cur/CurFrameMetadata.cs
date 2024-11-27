@@ -48,13 +48,13 @@ public class CurFrameMetadata : IFormatFrameMetadata<CurFrameMetadata>
     /// Gets or sets the encoding width. <br />
     /// Can be any number between 0 and 255. Value 0 means a frame height of 256 pixels or greater.
     /// </summary>
-    public byte EncodingWidth { get; set; }
+    public byte? EncodingWidth { get; set; }
 
     /// <summary>
     /// Gets or sets the encoding height. <br />
     /// Can be any number between 0 and 255. Value 0 means a frame height of 256 pixels or greater.
     /// </summary>
-    public byte EncodingHeight { get; set; }
+    public byte? EncodingHeight { get; set; }
 
     /// <summary>
     /// Gets or sets the number of bits per pixel.<br/>
@@ -80,20 +80,6 @@ public class CurFrameMetadata : IFormatFrameMetadata<CurFrameMetadata>
             };
         }
 
-        byte encodingWidth = metadata.EncodingWidth switch
-        {
-            > 255 => 0,
-            <= 255 and >= 1 => (byte)metadata.EncodingWidth,
-            _ => 0
-        };
-
-        byte encodingHeight = metadata.EncodingHeight switch
-        {
-            > 255 => 0,
-            <= 255 and >= 1 => (byte)metadata.EncodingHeight,
-            _ => 0
-        };
-
         int bpp = metadata.PixelTypeInfo.Value.BitsPerPixel;
         BmpBitsPerPixel bbpp = bpp switch
         {
@@ -116,8 +102,8 @@ public class CurFrameMetadata : IFormatFrameMetadata<CurFrameMetadata>
         {
             BmpBitsPerPixel = bbpp,
             Compression = compression,
-            EncodingWidth = encodingWidth,
-            EncodingHeight = encodingHeight,
+            EncodingWidth = ClampEncodingDimension(metadata.EncodingWidth),
+            EncodingHeight = ClampEncodingDimension(metadata.EncodingHeight),
             ColorTable = compression == IconFrameCompression.Bmp ? metadata.ColorTable : null
         };
     }
@@ -138,8 +124,8 @@ public class CurFrameMetadata : IFormatFrameMetadata<CurFrameMetadata>
     {
         float ratioX = destination.Width / (float)source.Width;
         float ratioY = destination.Height / (float)source.Height;
-        this.EncodingWidth = Scale(this.EncodingWidth, destination.Width, ratioX);
-        this.EncodingHeight = Scale(this.EncodingHeight, destination.Height, ratioY);
+        this.EncodingWidth = ScaleEncodingDimension(this.EncodingWidth, destination.Width, ratioX);
+        this.EncodingHeight = ScaleEncodingDimension(this.EncodingHeight, destination.Height, ratioY);
     }
 
     /// <inheritdoc/>
@@ -156,7 +142,7 @@ public class CurFrameMetadata : IFormatFrameMetadata<CurFrameMetadata>
         this.HotspotY = entry.BitCount;
     }
 
-    internal IconDirEntry ToIconDirEntry()
+    internal IconDirEntry ToIconDirEntry(Size size)
     {
         byte colorCount = this.Compression == IconFrameCompression.Png || this.BmpBitsPerPixel > BmpBitsPerPixel.Bit8
             ? (byte)0
@@ -164,8 +150,8 @@ public class CurFrameMetadata : IFormatFrameMetadata<CurFrameMetadata>
 
         return new()
         {
-            Width = this.EncodingWidth,
-            Height = this.EncodingHeight,
+            Width = ClampEncodingDimension(this.EncodingWidth ?? size.Width),
+            Height = ClampEncodingDimension(this.EncodingHeight ?? size.Height),
             Planes = this.HotspotX,
             BitCount = this.HotspotY,
             ColorCount = colorCount
@@ -233,13 +219,22 @@ public class CurFrameMetadata : IFormatFrameMetadata<CurFrameMetadata>
         };
     }
 
-    private static byte Scale(byte? value, int destination, float ratio)
+    private static byte ScaleEncodingDimension(byte? value, int destination, float ratio)
     {
         if (value is null)
         {
-            return (byte)Math.Clamp(destination, 0, 255);
+            return ClampEncodingDimension(destination);
         }
 
-        return Math.Min((byte)MathF.Ceiling(value.Value * ratio), (byte)Math.Clamp(destination, 0, 255));
+        return ClampEncodingDimension(MathF.Ceiling(value.Value * ratio));
     }
+
+    private static byte ClampEncodingDimension(float? dimension)
+        => dimension switch
+        {
+            // Encoding dimensions can be between 0-256 where 0 means 256 or greater.
+            > 255 => 0,
+            <= 255 and >= 1 => (byte)dimension,
+            _ => 0
+        };
 }

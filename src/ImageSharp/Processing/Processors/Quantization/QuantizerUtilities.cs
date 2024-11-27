@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Runtime.CompilerServices;
+using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Processors.Dithering;
@@ -50,7 +51,7 @@ public static class QuantizerUtilities
         Guard.NotNull(quantizer, nameof(quantizer));
         Guard.NotNull(source, nameof(source));
 
-        Rectangle interest = Rectangle.Intersect(source.Bounds(), bounds);
+        Rectangle interest = Rectangle.Intersect(source.Bounds, bounds);
         Buffer2DRegion<TPixel> region = source.PixelBuffer.GetRegion(interest);
 
         // Collect the palette. Required before the second pass runs.
@@ -77,7 +78,7 @@ public static class QuantizerUtilities
         where TPixel : unmanaged, IPixel<TPixel>
     {
         Guard.NotNull(source, nameof(source));
-        Rectangle interest = Rectangle.Intersect(source.Bounds(), bounds);
+        Rectangle interest = Rectangle.Intersect(source.Bounds, bounds);
 
         IndexedImageFrame<TPixel> destination = new(
             quantizer.Configuration,
@@ -111,10 +112,39 @@ public static class QuantizerUtilities
         IPixelSamplingStrategy pixelSamplingStrategy,
         Image<TPixel> source)
         where TPixel : unmanaged, IPixel<TPixel>
+        => quantizer.BuildPalette(source.Configuration, TransparentColorMode.Preserve, pixelSamplingStrategy, source);
+
+    /// <summary>
+    /// Adds colors to the quantized palette from the given pixel regions.
+    /// </summary>
+    /// <typeparam name="TPixel">The pixel format.</typeparam>
+    /// <param name="quantizer">The pixel specific quantizer.</param>
+    /// <param name="configuration">The configuration.</param>
+    /// <param name="mode">The transparent color mode.</param>
+    /// <param name="pixelSamplingStrategy">The pixel sampling strategy.</param>
+    /// <param name="source">The source image to sample from.</param>
+    public static void BuildPalette<TPixel>(
+        this IQuantizer<TPixel> quantizer,
+        Configuration configuration,
+        TransparentColorMode mode,
+        IPixelSamplingStrategy pixelSamplingStrategy,
+        Image<TPixel> source)
+        where TPixel : unmanaged, IPixel<TPixel>
     {
-        foreach (Buffer2DRegion<TPixel> region in pixelSamplingStrategy.EnumeratePixelRegions(source))
+        if (EncodingUtilities.ShouldClearTransparentPixels<TPixel>(mode))
         {
-            quantizer.AddPaletteColors(region);
+            foreach (Buffer2DRegion<TPixel> region in pixelSamplingStrategy.EnumeratePixelRegions(source))
+            {
+                using Buffer2D<TPixel> clone = region.Buffer.CloneRegion(configuration, region.Rectangle);
+                quantizer.AddPaletteColors(clone.GetRegion());
+            }
+        }
+        else
+        {
+            foreach (Buffer2DRegion<TPixel> region in pixelSamplingStrategy.EnumeratePixelRegions(source))
+            {
+                quantizer.AddPaletteColors(region);
+            }
         }
     }
 
@@ -130,10 +160,39 @@ public static class QuantizerUtilities
         IPixelSamplingStrategy pixelSamplingStrategy,
         ImageFrame<TPixel> source)
         where TPixel : unmanaged, IPixel<TPixel>
+        => quantizer.BuildPalette(source.Configuration, TransparentColorMode.Preserve, pixelSamplingStrategy, source);
+
+    /// <summary>
+    /// Adds colors to the quantized palette from the given pixel regions.
+    /// </summary>
+    /// <typeparam name="TPixel">The pixel format.</typeparam>
+    /// <param name="quantizer">The pixel specific quantizer.</param>
+    /// <param name="configuration">The configuration.</param>
+    /// <param name="mode">The transparent color mode.</param>
+    /// <param name="pixelSamplingStrategy">The pixel sampling strategy.</param>
+    /// <param name="source">The source image frame to sample from.</param>
+    public static void BuildPalette<TPixel>(
+        this IQuantizer<TPixel> quantizer,
+        Configuration configuration,
+        TransparentColorMode mode,
+        IPixelSamplingStrategy pixelSamplingStrategy,
+        ImageFrame<TPixel> source)
+        where TPixel : unmanaged, IPixel<TPixel>
     {
-        foreach (Buffer2DRegion<TPixel> region in pixelSamplingStrategy.EnumeratePixelRegions(source))
+        if (EncodingUtilities.ShouldClearTransparentPixels<TPixel>(mode))
         {
-            quantizer.AddPaletteColors(region);
+            foreach (Buffer2DRegion<TPixel> region in pixelSamplingStrategy.EnumeratePixelRegions(source))
+            {
+                using Buffer2D<TPixel> clone = region.Buffer.CloneRegion(configuration, region.Rectangle);
+                quantizer.AddPaletteColors(clone.GetRegion());
+            }
+        }
+        else
+        {
+            foreach (Buffer2DRegion<TPixel> region in pixelSamplingStrategy.EnumeratePixelRegions(source))
+            {
+                quantizer.AddPaletteColors(region);
+            }
         }
     }
 

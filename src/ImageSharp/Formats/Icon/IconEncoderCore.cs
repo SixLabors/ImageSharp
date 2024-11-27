@@ -63,7 +63,6 @@ internal abstract class IconEncoderCore
             this.entries[i].Entry.ImageOffset = (uint)stream.Position;
 
             // We crop the frame to the size specified in the metadata.
-            // TODO: we can optimize this by cropping the frame only if the new size is both required and different.
             using Image<TPixel> encodingFrame = new(width, height);
             for (int y = 0; y < height; y++)
             {
@@ -82,6 +81,8 @@ internal abstract class IconEncoderCore
                     UseDoubleHeight = true,
                     SkipFileHeader = true,
                     SupportTransparency = false,
+                    TransparentColorMode = this.encoder.TransparentColorMode,
+                    PixelSamplingStrategy = this.encoder.PixelSamplingStrategy,
                     BitsPerPixel = encodingMetadata.BmpBitsPerPixel
                 },
                 IconFrameCompression.Png => new PngEncoder()
@@ -90,6 +91,7 @@ internal abstract class IconEncoderCore
                     // https://devblogs.microsoft.com/oldnewthing/20101022-00/?p=12473
                     BitDepth = PngBitDepth.Bit8,
                     ColorType = PngColorType.RgbWithAlpha,
+                    TransparentColorMode = this.encoder.TransparentColorMode,
                     CompressionLevel = PngCompressionLevel.BestCompression
                 },
                 _ => throw new NotSupportedException(),
@@ -121,13 +123,13 @@ internal abstract class IconEncoderCore
             image.Frames.Select(i =>
             {
                 IcoFrameMetadata metadata = i.Metadata.GetIcoMetadata();
-                return new EncodingFrameMetadata(metadata.Compression, metadata.BmpBitsPerPixel, metadata.ColorTable, metadata.ToIconDirEntry());
+                return new EncodingFrameMetadata(metadata.Compression, metadata.BmpBitsPerPixel, metadata.ColorTable, metadata.ToIconDirEntry(i.Size));
             }).ToArray(),
             IconFileType.CUR =>
             image.Frames.Select(i =>
             {
                 CurFrameMetadata metadata = i.Metadata.GetCurMetadata();
-                return new EncodingFrameMetadata(metadata.Compression, metadata.BmpBitsPerPixel, metadata.ColorTable, metadata.ToIconDirEntry());
+                return new EncodingFrameMetadata(metadata.Compression, metadata.BmpBitsPerPixel, metadata.ColorTable, metadata.ToIconDirEntry(i.Size));
             }).ToArray(),
             _ => throw new NotSupportedException(),
         };

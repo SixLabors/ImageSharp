@@ -47,7 +47,7 @@ internal static unsafe class PredictorEncoder
         int[][] bestHisto,
         bool nearLossless,
         int nearLosslessQuality,
-        WebpTransparentColorMode transparentColorMode,
+        TransparentColorMode transparentColorMode,
         bool usedSubtractGreen,
         bool lowEffort)
     {
@@ -202,7 +202,7 @@ internal static unsafe class PredictorEncoder
         int[][] histoArgb,
         int[][] bestHisto,
         int maxQuantization,
-        WebpTransparentColorMode transparentColorMode,
+        TransparentColorMode transparentColorMode,
         bool usedSubtractGreen,
         bool nearLossless,
         Span<uint> modes,
@@ -340,19 +340,20 @@ internal static unsafe class PredictorEncoder
         int xEnd,
         int y,
         int maxQuantization,
-        WebpTransparentColorMode transparentColorMode,
+        TransparentColorMode transparentColorMode,
         bool usedSubtractGreen,
         bool nearLossless,
         Span<uint> output,
         Span<short> scratch)
     {
-        if (transparentColorMode == WebpTransparentColorMode.Preserve)
+        if (transparentColorMode == TransparentColorMode.Preserve)
         {
             PredictBatch(mode, xStart, y, xEnd - xStart, currentRowSpan, upperRowSpan, output, scratch);
         }
         else
         {
 #pragma warning disable SA1503 // Braces should not be omitted
+#pragma warning disable RCS1001 // Add braces (when expression spans over multiple lines)
             fixed (uint* currentRow = currentRowSpan)
             fixed (uint* upperRow = upperRowSpan)
             {
@@ -466,6 +467,7 @@ internal static unsafe class PredictorEncoder
             }
         }
     }
+#pragma warning restore RCS1001 // Add braces (when expression spans over multiple lines)
 #pragma warning restore SA1503 // Braces should not be omitted
 
     /// <summary>
@@ -577,7 +579,7 @@ internal static unsafe class PredictorEncoder
         Span<uint> argbScratch,
         Span<uint> argb,
         int maxQuantization,
-        WebpTransparentColorMode transparentColorMode,
+        TransparentColorMode transparentColorMode,
         bool usedSubtractGreen,
         bool nearLossless,
         bool lowEffort)

@@ -68,8 +68,7 @@ internal sealed class PbmEncoderCore
 
         byte signature = this.DeduceSignature();
         this.WriteHeader(stream, signature, image.Size);
-
-        this.WritePixels(stream, image.Frames.RootFrame);
+        this.WritePixels(stream, image.Frames.RootFrame, cancellationToken);
 
         stream.Flush();
     }
@@ -167,16 +166,29 @@ internal sealed class PbmEncoderCore
     /// <param name="image">
     /// The <see cref="ImageFrame{TPixel}"/> containing pixel data.
     /// </param>
-    private void WritePixels<TPixel>(Stream stream, ImageFrame<TPixel> image)
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+    private void WritePixels<TPixel>(Stream stream, ImageFrame<TPixel> image, CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         if (this.encoding == PbmEncoding.Plain)
         {
-            PlainEncoder.WritePixels(this.configuration, stream, image, this.colorType, this.componentType);
+            PlainEncoder.WritePixels(
+                this.configuration,
+                stream,
+                image,
+                this.colorType,
+                this.componentType,
+                cancellationToken);
         }
         else
         {
-            BinaryEncoder.WritePixels(this.configuration, stream, image, this.colorType, this.componentType);
+            BinaryEncoder.WritePixels(
+                this.configuration,
+                stream,
+                image,
+                this.colorType,
+                this.componentType,
+                cancellationToken);
         }
     }
 }

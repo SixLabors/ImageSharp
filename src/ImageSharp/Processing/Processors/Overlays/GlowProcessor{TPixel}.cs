@@ -40,7 +40,7 @@ internal class GlowProcessor<TPixel> : ImageProcessor<TPixel>
         TPixel glowColor = this.definition.GlowColor.ToPixel<TPixel>();
         float blendPercent = this.definition.GraphicsOptions.BlendPercentage;
 
-        var interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds());
+        Rectangle interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds);
 
         Vector2 center = Rectangle.Center(interest);
         float finalRadius = this.definition.Radius.Calculate(interest.Size);
@@ -54,7 +54,7 @@ internal class GlowProcessor<TPixel> : ImageProcessor<TPixel>
         using IMemoryOwner<TPixel> rowColors = allocator.Allocate<TPixel>(interest.Width);
         rowColors.GetSpan().Fill(glowColor);
 
-        var operation = new RowOperation(configuration, interest, rowColors, this.blender, center, maxDistance, blendPercent, source.PixelBuffer);
+        RowOperation operation = new(configuration, interest, rowColors, this.blender, center, maxDistance, blendPercent, source.PixelBuffer);
         ParallelRowIterator.IterateRows<RowOperation, float>(
             configuration,
             interest,

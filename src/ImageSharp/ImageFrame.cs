@@ -56,7 +56,7 @@ public abstract partial class ImageFrame : IConfigurationProvider, IDisposable
     /// Gets the bounds of the frame.
     /// </summary>
     /// <returns>The <see cref="Rectangle"/></returns>
-    public Rectangle Bounds() => new(0, 0, this.Width, this.Height);
+    public Rectangle Bounds => new(0, 0, this.Width, this.Height);
 
     /// <inheritdoc />
     public void Dispose()

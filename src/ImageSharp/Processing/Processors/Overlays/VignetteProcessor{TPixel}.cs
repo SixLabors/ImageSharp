@@ -40,7 +40,7 @@ internal class VignetteProcessor<TPixel> : ImageProcessor<TPixel>
         TPixel vignetteColor = this.definition.VignetteColor.ToPixel<TPixel>();
         float blendPercent = this.definition.GraphicsOptions.BlendPercentage;
 
-        var interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds());
+        Rectangle interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds);
 
         Vector2 center = Rectangle.Center(interest);
         float finalRadiusX = this.definition.RadiusX.Calculate(interest.Size);
@@ -62,7 +62,7 @@ internal class VignetteProcessor<TPixel> : ImageProcessor<TPixel>
         using IMemoryOwner<TPixel> rowColors = allocator.Allocate<TPixel>(interest.Width);
         rowColors.GetSpan().Fill(vignetteColor);
 
-        var operation = new RowOperation(configuration, interest, rowColors, this.blender, center, maxDistance, blendPercent, source.PixelBuffer);
+        RowOperation operation = new(configuration, interest, rowColors, this.blender, center, maxDistance, blendPercent, source.PixelBuffer);
         ParallelRowIterator.IterateRows<RowOperation, float>(
             configuration,
             interest,

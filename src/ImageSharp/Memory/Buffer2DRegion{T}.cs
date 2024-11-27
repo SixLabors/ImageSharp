@@ -107,7 +107,7 @@ public readonly struct Buffer2DRegion<T>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Buffer2DRegion<T> GetSubRegion(int x, int y, int width, int height)
     {
-        var rectangle = new Rectangle(x, y, width, height);
+        Rectangle rectangle = new(x, y, width, height);
         return this.GetSubRegion(rectangle);
     }
 

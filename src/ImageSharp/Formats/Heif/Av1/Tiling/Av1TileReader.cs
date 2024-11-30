@@ -545,7 +545,7 @@ internal class Av1TileReader : IAv1TileReader
         Span<int> coefficientBuffer = this.FrameInfo.GetCoefficients(plane);
         int width = transformSize.GetWidth();
         int height = transformSize.GetHeight();
-        Av1TransformSize transformSizeContext = (Av1TransformSize)(((int)transformSize.GetSquareSize() + ((int)transformSize.GetSquareUpSize() + 1)) >> 1);
+        Av1TransformSize transformSizeContext = Av1SymbolContextHelper.GetTransformSizeContext(transformSize);
         Av1PlaneType planeType = (Av1PlaneType)Math.Min(plane, 1);
         Point blockPosition = new(blockColumn, blockRow);
         bool isLossless = this.FrameHeader.LosslessArray[partitionInfo.ModeInfo.SegmentId];

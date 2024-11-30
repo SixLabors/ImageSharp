@@ -286,18 +286,12 @@ internal static class Av1NzMap
     /// <summary>
     /// SVT: get_nz_mag
     /// </summary>
-    public static int GetNzMagnitude(Av1LevelBuffer levels, int index, int blockWidthLog2, Av1TransformClass transformClass)
-        => GetNzMagnitude(levels, index >> blockWidthLog2, transformClass);
-
-    /// <summary>
-    /// SVT: get_nz_mag
-    /// </summary>
-    public static int GetNzMagnitude(Av1LevelBuffer levels, int y, Av1TransformClass transformClass)
+    public static int GetNzMagnitude(Av1LevelBuffer levels, Point position, Av1TransformClass transformClass)
     {
         int mag;
-        Span<byte> row0 = levels.GetRow(y);
-        Span<byte> row1 = levels.GetRow(y + 1);
-        Span<byte> row2 = levels.GetRow(y + 2);
+        Span<byte> row0 = levels.GetRow(position.Y);
+        Span<byte> row1 = levels.GetRow(position.Y + 1);
+        Span<byte> row2 = levels.GetRow(position.Y + 2);
 
         // Note: AOMMIN(level, 3) is useless for decoder since level < 3.
         mag = ClipMax3[row0[1]]; // { 0, 1 }
@@ -312,8 +306,8 @@ internal static class Av1NzMap
                 break;
 
             case Av1TransformClass.ClassVertical:
-                Span<byte> row3 = levels.GetRow(y + 3);
-                Span<byte> row4 = levels.GetRow(y + 4);
+                Span<byte> row3 = levels.GetRow(position.Y + 3);
+                Span<byte> row4 = levels.GetRow(position.Y + 4);
                 mag += ClipMax3[row2[0]]; // { 2, 0 }
                 mag += ClipMax3[row3[0]]; // { 3, 0 }
                 mag += ClipMax3[row4[0]]; // { 4, 0 }
@@ -328,10 +322,10 @@ internal static class Av1NzMap
         return mag;
     }
 
-    public static int GetNzMapContextFromStats(int stats, int pos, int bwl, Av1TransformSize transformSize, Av1TransformClass transformClass)
+    public static int GetNzMapContextFromStats(int stats, Av1LevelBuffer levels, Point position, Av1TransformSize transformSize, Av1TransformClass transformClass)
     {
         // tx_class == 0(TX_CLASS_2D)
-        if (((int)transformClass | pos) == 0)
+        if (position.Y == 0 && ((int)transformClass | position.X) == 0)
         {
             return 0;
         }
@@ -352,14 +346,12 @@ internal static class Av1NzMap
                 //   if (row + col < 2) return ctx + 1;
                 //   if (row + col < 4) return 5 + ctx + 1;
                 //   return 21 + ctx;
-                return ctx + NzMapContextOffset[(int)transformSize][pos];
+                int index = position.X + (levels.Size.Width * position.Y);
+                return ctx + NzMapContextOffset[(int)transformSize][index];
             case Av1TransformClass.ClassHorizontal:
-                int row = pos >> bwl;
-                int col = pos - (row << bwl);
-                return ctx + NzMapContextOffset1d[col];
+                return ctx + NzMapContextOffset1d[position.X];
             case Av1TransformClass.ClassVertical:
-                int row2 = pos >> bwl;
-                return ctx + NzMapContextOffset1d[row2];
+                return ctx + NzMapContextOffset1d[position.Y];
             default:
                 break;
         }

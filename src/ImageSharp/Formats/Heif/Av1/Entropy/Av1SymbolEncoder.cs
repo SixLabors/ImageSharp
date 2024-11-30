@@ -98,12 +98,12 @@ internal class Av1SymbolEncoder : IDisposable
         Av1ScanOrder scanOrder = Av1ScanOrderConstants.GetScanOrder(transformSize, transformType);
         ReadOnlySpan<short> scan = scanOrder.Scan;
         int blockWidthLog2 = transformSize.GetBlockWidthLog2();
-        Av1TransformSize transformSizeContext = (Av1TransformSize)(((int)transformSize.GetSquareSize() + (int)transformSize.GetSquareUpSize() + 1) >> 1);
+        Av1TransformSize transformSizeContext = Av1SymbolContextHelper.GetTransformSizeContext(transformSize);
 
         ref Av1SymbolWriter w = ref this.writer;
 
         Av1LevelBuffer levels = new(this.configuration, new Size(width, height));
-        Span<sbyte> coefficientContexts = new sbyte[Av1Constants.MaxTransformSize * Av1Constants.MaxTransformSize];
+        Span<sbyte> coefficientContexts = new sbyte[width * height];
 
         Guard.MustBeLessThan((int)transformSizeContext, (int)Av1TransformSize.AllSizes, nameof(transformSizeContext));
 
@@ -129,6 +129,7 @@ internal class Av1SymbolEncoder : IDisposable
             short pos = scan[c];
             int v = coefficientBuffer[pos];
             short coeffContext = coefficientContexts[pos];
+            Point position = levels.GetPosition(pos);
             int level = Math.Abs(v);
 
             if (c == endOfBlock - 1)
@@ -144,7 +145,7 @@ internal class Av1SymbolEncoder : IDisposable
             {
                 // level is above 1.
                 int baseRange = level - 1 - Av1Constants.BaseLevelsCount;
-                int baseRangeContext = Av1SymbolContextHelper.GetBaseRangeContext(levels, pos, blockWidthLog2, transformClass);
+                int baseRangeContext = Av1SymbolContextHelper.GetBaseRangeContext(levels, position, transformClass);
                 for (int idx = 0; idx < Av1Constants.CoefficientBaseRange; idx += Av1Constants.BaseRangeSizeMinus1)
                 {
                     int k = Math.Min(baseRange - idx, Av1Constants.BaseRangeSizeMinus1);

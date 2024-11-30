@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System;
 using System.Buffers;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Memory;
@@ -45,6 +46,16 @@ internal sealed class Av1LevelBuffer : IDisposable
         }
     }
 
+    public Point GetPosition(int index)
+    {
+        int x = index % this.Size.Width;
+        int y = index / this.Size.Width;
+        return new Point(x, y);
+    }
+
+    public Span<byte> GetRow(Point pos)
+        => this.GetRow(pos.Y);
+
     public Span<byte> GetRow(int y)
     {
         ObjectDisposedException.ThrowIf(this.memory == null, this);
@@ -63,11 +74,5 @@ internal sealed class Av1LevelBuffer : IDisposable
     {
         ObjectDisposedException.ThrowIf(this.memory == null, this);
         this.memory.Memory.Span.Clear();
-    }
-
-    internal Span<byte> GetPaddedRow(int index, int blockWidthLog2)
-    {
-        int y = index >> blockWidthLog2;
-        return this.GetRow(y);
     }
 }

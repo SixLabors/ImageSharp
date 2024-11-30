@@ -52,6 +52,9 @@ internal static class Av1SymbolContextHelper
     // Maps tx set types to the indices. INTRA values only
     private static readonly int[] ExtendedTransformSetToIndex = [0, -1, 2, 1, -1, -1];
 
+    internal static Av1TransformSize GetTransformSizeContext(Av1TransformSize originalSize)
+        => (Av1TransformSize)(((int)originalSize.GetSquareSize() + (int)originalSize.GetSquareUpSize() + 1) >> 1);
+
     internal static int RecordEndOfBlockPosition(int endOfBlockPoint, int endOfBlockExtra)
     {
         int endOfBlock = EndOfBlockGroupStart[endOfBlockPoint];
@@ -63,23 +66,46 @@ internal static class Av1SymbolContextHelper
         return endOfBlock;
     }
 
-    internal static int GetBaseRangeContextEndOfBlock(int index, int blockWidthLog2, Av1TransformClass transformClass)
+    internal static int GetBaseRangeContextEndOfBlock(Point pos, Av1TransformClass transformClass)
     {
-        int row = index >> blockWidthLog2;
-        int col = index - (row << blockWidthLog2);
-        if (index == 0)
+        if (pos.X == 0 && pos.Y == 0)
         {
             return 0;
         }
 
-        if ((transformClass == Av1TransformClass.Class2D && row < 2 && col < 2) ||
-            (transformClass == Av1TransformClass.ClassHorizontal && col == 0) ||
-            (transformClass == Av1TransformClass.ClassVertical && row == 0))
+        if ((transformClass == Av1TransformClass.Class2D && pos.Y < 2 && pos.X < 2) ||
+            (transformClass == Av1TransformClass.ClassHorizontal && pos.X == 0) ||
+            (transformClass == Av1TransformClass.ClassVertical && pos.Y == 0))
         {
             return 7;
         }
 
         return 14;
+    }
+
+    /// <summary>
+    /// SVT: get_lower_levels_ctx_eob
+    /// </summary>
+    internal static int GetLowerLevelContextEndOfBlock(Av1LevelBuffer levels, Point position)
+    {
+        if (position.X == 0 && position.Y == 0)
+        {
+            return 0;
+        }
+
+        int total = levels.Size.Height * levels.Size.Width;
+        int index = position.X + (position.Y * levels.Size.Width);
+        if (index <= total >> 3)
+        {
+            return 1;
+        }
+
+        if (index <= total >> 2)
+        {
+            return 2;
+        }
+
+        return 3;
     }
 
     /// <summary>
@@ -108,21 +134,17 @@ internal static class Av1SymbolContextHelper
     /// <summary>
     /// SVT: get_br_ctx_2d
     /// </summary>
-    internal static int GetBaseRangeContext2d(Av1LevelBuffer levels, int index, int blockWidthLog2)
+    internal static int GetBaseRangeContext2d(Av1LevelBuffer levels, Point position)
     {
-        DebugGuard.MustBeGreaterThan(index, 0, nameof(index));
-        int y = index >> blockWidthLog2;
-        int x = index - (y << blockWidthLog2);
-        int stride = (1 << blockWidthLog2) + Av1Constants.TransformPadHorizontal;
-        int pos = (y * stride) + x;
-        Span<byte> row0 = levels.GetRow(y);
-        Span<byte> row1 = levels.GetRow(y + 1);
+        DebugGuard.MustBeGreaterThan(position.X + position.Y, 0, nameof(position));
+        Span<byte> row0 = levels.GetRow(position.Y);
+        Span<byte> row1 = levels.GetRow(position.Y + 1);
         int mag =
             Math.Min((int)row0[1], Av1Constants.MaxBaseRange) +
             Math.Min((int)row1[0], Av1Constants.MaxBaseRange) +
             Math.Min((int)row1[1], Av1Constants.MaxBaseRange);
         mag = Math.Min((mag + 1) >> 1, 6);
-        if ((y | x) < 2)
+        if ((position.Y | position.X) < 2)
         {
             return mag + 7;
         }
@@ -133,15 +155,13 @@ internal static class Av1SymbolContextHelper
     /// <summary>
     /// SVT: get_lower_levels_ctx_2d
     /// </summary>
-    internal static int GetLowerLevelsContext2d(Av1LevelBuffer levelBuffer, int index, int blockWidthLog2, Av1TransformSize transformSize)
+    internal static int GetLowerLevelsContext2d(Av1LevelBuffer levelBuffer, Point pos, Av1TransformSize transformSize)
     {
-        DebugGuard.MustBeGreaterThan(index, 0, nameof(index));
-        int y = index >> blockWidthLog2;
-        int x = index - (y << blockWidthLog2);
+        DebugGuard.MustBeGreaterThan(pos.X + pos.Y, 0, nameof(pos));
         int mag;
-        Span<byte> row0 = levelBuffer.GetRow(y);
-        Span<byte> row1 = levelBuffer.GetRow(y + 1);
-        Span<byte> row2 = levelBuffer.GetRow(y + 2);
+        Span<byte> row0 = levelBuffer.GetRow(pos.Y);
+        Span<byte> row1 = levelBuffer.GetRow(pos.Y + 1);
+        Span<byte> row2 = levelBuffer.GetRow(pos.Y + 2);
         mag = Math.Min((int)row0[1], 3); // { 0, 1 }
         mag += Math.Min((int)row1[0], 3); // { 1, 0 }
         mag += Math.Min((int)row1[1], 3); // { 1, 1 }
@@ -149,31 +169,30 @@ internal static class Av1SymbolContextHelper
         mag += Math.Min((int)row2[0], 3); // { 2, 0 }
 
         int ctx = Math.Min((mag + 1) >> 1, 4);
+        int index = pos.X + (pos.Y * levelBuffer.Size.Width);
         return ctx + Av1NzMap.GetNzMapContext(transformSize, index);
     }
 
     /// <summary>
     /// SVT: get_br_ctx
     /// </summary>
-    internal static int GetBaseRangeContext(Av1LevelBuffer levels, int index, int blockWidthLog2, Av1TransformClass transformClass)
+    internal static int GetBaseRangeContext(Av1LevelBuffer levels, Point position, Av1TransformClass transformClass)
     {
-        int y = index >> blockWidthLog2;
-        int x = index - (y << blockWidthLog2);
-        Span<byte> row0 = levels.GetRow(y);
-        Span<byte> row1 = levels.GetRow(y + 1);
-        int mag = row0[x + 1];
-        mag += row1[x];
+        Span<byte> row0 = levels.GetRow(position.Y);
+        Span<byte> row1 = levels.GetRow(position.Y + 1);
+        int mag = row0[position.X + 1];
+        mag += row1[position.X];
         switch (transformClass)
         {
             case Av1TransformClass.Class2D:
-                mag += row1[x + 1];
+                mag += row1[position.X + 1];
                 mag = Math.Min((mag + 1) >> 1, 6);
-                if (index == 0)
+                if ((position.X + position.Y) == 0)
                 {
                     return mag;
                 }
 
-                if (y < 2 && x < 2)
+                if (position.Y < 2 && position.X < 2)
                 {
                     return mag + 7;
                 }
@@ -182,26 +201,26 @@ internal static class Av1SymbolContextHelper
             case Av1TransformClass.ClassHorizontal:
                 mag += row0[2];
                 mag = Math.Min((mag + 1) >> 1, 6);
-                if (index == 0)
+                if ((position.X + position.Y) == 0)
                 {
                     return mag;
                 }
 
-                if (x == 0)
+                if (position.X == 0)
                 {
                     return mag + 7;
                 }
 
                 break;
             case Av1TransformClass.ClassVertical:
-                mag += levels.GetRow(y + 2)[0];
+                mag += levels.GetRow(position.Y + 2)[0];
                 mag = Math.Min((mag + 1) >> 1, 6);
-                if (index == 0)
+                if ((position.X + position.Y) == 0)
                 {
                     return mag;
                 }
 
-                if (y == 0)
+                if (position.Y == 0)
                 {
                     return mag + 7;
                 }
@@ -214,10 +233,10 @@ internal static class Av1SymbolContextHelper
         return mag + 14;
     }
 
-    internal static int GetLowerLevelsContext(Av1LevelBuffer levels, int pos, int bwl, Av1TransformSize transformSize, Av1TransformClass transformClass)
+    internal static int GetLowerLevelsContext(Av1LevelBuffer levels, Point position, Av1TransformSize transformSize, Av1TransformClass transformClass)
     {
-        int stats = Av1NzMap.GetNzMagnitude(levels, pos >> bwl, transformClass);
-        return Av1NzMap.GetNzMapContextFromStats(stats, pos, bwl, transformSize, transformClass);
+        int stats = Av1NzMap.GetNzMagnitude(levels, position, transformClass);
+        return Av1NzMap.GetNzMapContextFromStats(stats, levels, position, transformSize, transformClass);
     }
 
     internal static Av1TransformSetType GetExtendedTransformSetType(Av1TransformSize transformSize, bool useReducedSet)
@@ -254,9 +273,7 @@ internal static class Av1SymbolContextHelper
     /// </summary>
     internal static sbyte GetNzMapContext(
         Av1LevelBuffer levels,
-        int index,
-        int blockWidthLog2,
-        int height,
+        Point position,
         int scan_idx,
         bool is_eob,
         Av1TransformSize transformSize,
@@ -264,26 +281,11 @@ internal static class Av1SymbolContextHelper
     {
         if (is_eob)
         {
-            if (scan_idx == 0)
-            {
-                return 0;
-            }
-
-            if (scan_idx <= (height << blockWidthLog2) / 8)
-            {
-                return 1;
-            }
-
-            if (scan_idx <= (height << blockWidthLog2) / 4)
-            {
-                return 2;
-            }
-
-            return 3;
+            return (sbyte)GetLowerLevelContextEndOfBlock(levels, position);
         }
 
-        int stats = Av1NzMap.GetNzMagnitude(levels, index, blockWidthLog2, transformClass);
-        return (sbyte)Av1NzMap.GetNzMapContextFromStats(stats, index, blockWidthLog2, transformSize, transformClass);
+        int stats = Av1NzMap.GetNzMagnitude(levels, position, transformClass);
+        return (sbyte)Av1NzMap.GetNzMapContextFromStats(stats, levels, position, transformSize, transformClass);
     }
 
     /// <summary>
@@ -297,12 +299,11 @@ internal static class Av1SymbolContextHelper
         Av1TransformClass transformClass,
         Span<sbyte> coefficientContexts)
     {
-        int blockWidthLog2 = transformSize.GetBlockWidthLog2();
-        int height = transformSize.GetHeight();
         for (int i = 0; i < eob; ++i)
         {
             int pos = scan[i];
-            coefficientContexts[pos] = GetNzMapContext(levels, pos, blockWidthLog2, height, i, i == eob - 1, transformSize, transformClass);
+            Point position = levels.GetPosition(pos);
+            coefficientContexts[pos] = GetNzMapContext(levels, position, i, i == eob - 1, transformSize, transformClass);
         }
     }
 

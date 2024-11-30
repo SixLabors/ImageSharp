@@ -109,29 +109,6 @@ internal static class Av1SymbolContextHelper
     }
 
     /// <summary>
-    /// SVT: get_lower_levels_ctx_eob
-    /// </summary>
-    internal static int GetLowerLevelContextEndOfBlock(int blockWidthLog2, int height, int scanIndex)
-    {
-        if (scanIndex == 0)
-        {
-            return 0;
-        }
-
-        if (scanIndex <= height << blockWidthLog2 >> 3)
-        {
-            return 1;
-        }
-
-        if (scanIndex <= height << blockWidthLog2 >> 2)
-        {
-            return 2;
-        }
-
-        return 3;
-    }
-
-    /// <summary>
     /// SVT: get_br_ctx_2d
     /// </summary>
     internal static int GetBaseRangeContext2d(Av1LevelBuffer levels, Point position)

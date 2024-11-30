@@ -353,7 +353,7 @@ internal ref struct Av1SymbolDecoder
             bool bit = this.ReadEndOfBlockExtra(transformSizeContext, planeType, endOfBlockContext);
             if (bit)
             {
-                endOfBlockExtra += 1 << (endOfBlockShift - 1);
+                Av1Math.SetBit(ref endOfBlockExtra, endOfBlockShift - 1);
             }
             else
             {
@@ -361,7 +361,7 @@ internal ref struct Av1SymbolDecoder
                 {
                     if (this.ReadLiteral(1) != 0)
                     {
-                        endOfBlockExtra += 1 << (endOfBlockShift - 1 - j);
+                        Av1Math.SetBit(ref endOfBlockExtra, endOfBlockShift - 1 - j);
                     }
                 }
             }
@@ -379,11 +379,11 @@ internal ref struct Av1SymbolDecoder
         if (level > Av1Constants.BaseLevelsCount)
         {
             int baseRangeContext = Av1SymbolContextHelper.GetBaseRangeContextEndOfBlock(position, transformClass);
-            for (int idx = 0; idx < Av1Constants.CoefficientBaseRange / Av1Constants.BaseRangeSizeMinus1; idx++)
+            for (int idx = 0; idx < Av1Constants.CoefficientBaseRange; idx += Av1Constants.BaseRangeSizeMinus1)
             {
-                int coefficinetBaseRange = this.ReadCoefficientsBaseRange(transformSizeContext, planeType, baseRangeContext);
-                level += coefficinetBaseRange;
-                if (coefficinetBaseRange < Av1Constants.BaseRangeSizeMinus1)
+                int coefficientBaseRange = this.ReadCoefficientsBaseRange(transformSizeContext, planeType, baseRangeContext);
+                level += coefficientBaseRange;
+                if (coefficientBaseRange < Av1Constants.BaseRangeSizeMinus1)
                 {
                     break;
                 }
@@ -405,9 +405,9 @@ internal ref struct Av1SymbolDecoder
                 int baseRangeContext = Av1SymbolContextHelper.GetBaseRangeContext2d(levels, position);
                 for (int idx = 0; idx < Av1Constants.CoefficientBaseRange; idx += Av1Constants.BaseRangeSizeMinus1)
                 {
-                    int k = this.ReadCoefficientsBaseRange(transformSizeContext, planeType, baseRangeContext);
-                    level += k;
-                    if (k < Av1Constants.BaseRangeSizeMinus1)
+                    int coefficientBaseRange = this.ReadCoefficientsBaseRange(transformSizeContext, planeType, baseRangeContext);
+                    level += coefficientBaseRange;
+                    if (coefficientBaseRange < Av1Constants.BaseRangeSizeMinus1)
                     {
                         break;
                     }

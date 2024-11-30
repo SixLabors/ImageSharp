@@ -196,4 +196,10 @@ internal static class Av1Math
     /// <paramref name="a"/> implies <paramref name="b"/>.
     /// </summary>
     internal static bool Implies(bool a, bool b) => !a || b;
+
+    internal static int GetBit(int value, int n)
+        => (value & (1 << n)) >> n;
+
+    internal static void SetBit(ref int endOfBlockExtra, int n)
+        => endOfBlockExtra |= 1 << n;
 }

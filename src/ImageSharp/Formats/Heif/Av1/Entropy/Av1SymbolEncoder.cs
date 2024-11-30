@@ -204,13 +204,13 @@ internal class Av1SymbolEncoder : IDisposable
         {
             ref Av1SymbolWriter w = ref this.writer;
             int eobShift = eobOffsetBitCount - 1;
-            uint bit = (eobExtra & (1 << eobShift)) != 0 ? 1u : 0u;
-            w.WriteSymbol((int)bit, this.endOfBlockExtra[(int)transformSizeContext][(int)componentType][endOfBlockPosition]);
+            int bit = Av1Math.GetBit(eobExtra, eobShift);
+            w.WriteSymbol(bit, this.endOfBlockExtra[(int)transformSizeContext][(int)componentType][endOfBlockPosition]);
             for (int i = 1; i < eobOffsetBitCount; i++)
             {
                 eobShift = eobOffsetBitCount - 1 - i;
-                bit = (eobExtra & (1 << eobShift)) != 0 ? 1u : 0u;
-                w.WriteLiteral(bit, 1);
+                bit = Av1Math.GetBit(eobExtra, eobShift);
+                w.WriteLiteral((uint)bit, 1);
             }
         }
     }

@@ -22,10 +22,6 @@ public class CurMetadata : IFormatMetadata<CurMetadata>
     private CurMetadata(CurMetadata other)
     {
         this.Compression = other.Compression;
-        this.HotspotX = other.HotspotX;
-        this.HotspotY = other.HotspotY;
-        this.EncodingWidth = other.EncodingWidth;
-        this.EncodingHeight = other.EncodingHeight;
         this.BmpBitsPerPixel = other.BmpBitsPerPixel;
 
         if (other.ColorTable?.Length > 0)
@@ -38,28 +34,6 @@ public class CurMetadata : IFormatMetadata<CurMetadata>
     /// Gets or sets the frame compressions format. Derived from the root frame.
     /// </summary>
     public IconFrameCompression Compression { get; set; }
-
-    /// <summary>
-    /// Gets or sets the horizontal coordinates of the hotspot in number of pixels from the left. Derived from the root frame.
-    /// </summary>
-    public ushort HotspotX { get; set; }
-
-    /// <summary>
-    /// Gets or sets the vertical coordinates of the hotspot in number of pixels from the top. Derived from the root frame.
-    /// </summary>
-    public ushort HotspotY { get; set; }
-
-    /// <summary>
-    /// Gets or sets the encoding width. <br />
-    /// Can be any number between 0 and 255. Value 0 means a frame height of 256 pixels or greater. Derived from the root frame.
-    /// </summary>
-    public byte EncodingWidth { get; set; }
-
-    /// <summary>
-    /// Gets or sets the encoding height. <br />
-    /// Can be any number between 0 and 255. Value 0 means a frame height of 256 pixels or greater. Derived from the root frame.
-    /// </summary>
-    public byte EncodingHeight { get; set; }
 
     /// <summary>
     /// Gets or sets the number of bits per pixel.<br/>
@@ -174,6 +148,12 @@ public class CurMetadata : IFormatMetadata<CurMetadata>
             PixelTypeInfo = this.GetPixelTypeInfo(),
             ColorTable = this.ColorTable
         };
+
+    /// <inheritdoc/>
+    public void AfterImageApply<TPixel>(Image<TPixel> destination)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+    }
 
     /// <inheritdoc/>
     IDeepCloneable IDeepCloneable.DeepClone() => this.DeepClone();

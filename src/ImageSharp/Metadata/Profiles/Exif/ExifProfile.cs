@@ -3,6 +3,7 @@
 
 using System.Diagnostics.CodeAnalysis;
 using SixLabors.ImageSharp.PixelFormats;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace SixLabors.ImageSharp.Metadata.Profiles.Exif;
 
@@ -296,6 +297,19 @@ public sealed class ExifProfile : IDeepCloneable<ExifProfile>
     {
         this.SyncResolution(ExifTag.XResolution, metadata.HorizontalResolution);
         this.SyncResolution(ExifTag.YResolution, metadata.VerticalResolution);
+    }
+
+    internal void SyncDimensions(int width, int height)
+    {
+        if (this.TryGetValue(ExifTag.PixelXDimension, out _))
+        {
+            this.SetValue(ExifTag.PixelXDimension, width);
+        }
+
+        if (this.TryGetValue(ExifTag.PixelYDimension, out _))
+        {
+            this.SetValue(ExifTag.PixelYDimension, height);
+        }
     }
 
     /// <summary>

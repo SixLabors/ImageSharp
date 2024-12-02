@@ -142,7 +142,7 @@ internal sealed partial class IccDataReader
         ushort channelCount = this.ReadUInt16();
         var colorant = (IccColorantEncoding)this.ReadUInt16();
 
-        if (Enum.IsDefined(typeof(IccColorantEncoding), colorant) && colorant != IccColorantEncoding.Unknown)
+        if (Enum.IsDefined(colorant) && colorant != IccColorantEncoding.Unknown)
         {
             // The type is known and so are the values (they are constant)
             // channelCount should always be 3 but it doesn't really matter if it's not

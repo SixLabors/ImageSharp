@@ -133,6 +133,16 @@ public class CurFrameMetadata : IFormatFrameMetadata<CurFrameMetadata>
         };
 
     /// <inheritdoc/>
+    public void AfterFrameApply<TPixel>(ImageFrame<TPixel> source, ImageFrame<TPixel> destination)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        float ratioX = destination.Width / (float)source.Width;
+        float ratioY = destination.Height / (float)source.Height;
+        this.EncodingWidth = Scale(this.EncodingWidth, destination.Width, ratioX);
+        this.EncodingHeight = Scale(this.EncodingHeight, destination.Height, ratioY);
+    }
+
+    /// <inheritdoc/>
     IDeepCloneable IDeepCloneable.DeepClone() => this.DeepClone();
 
     /// <inheritdoc/>
@@ -221,5 +231,15 @@ public class CurFrameMetadata : IFormatFrameMetadata<CurFrameMetadata>
             ComponentInfo = info,
             ColorType = color
         };
+    }
+
+    private static byte Scale(byte? value, int destination, float ratio)
+    {
+        if (value is null)
+        {
+            return (byte)Math.Clamp(destination, 0, 255);
+        }
+
+        return Math.Min((byte)MathF.Ceiling(value.Value * ratio), (byte)Math.Clamp(destination, 0, 255));
     }
 }

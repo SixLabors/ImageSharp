@@ -414,7 +414,7 @@ public sealed class ImageFrameCollection<TPixel> : ImageFrameCollection, IEnumer
     {
         ImageFrame<TPixel> result = new(
             this.parent.Configuration,
-            source.Size(),
+            source.Size,
             source.Metadata.DeepClone());
         source.CopyPixelsTo(result.PixelBuffer.FastMemoryGroup);
         return result;

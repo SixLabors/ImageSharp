@@ -20,21 +20,28 @@ public static class MedianBlurExtensions
     /// Whether the filter is applied to alpha as well as the color channels.
     /// </param>
     /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
-    public static IImageProcessingContext MedianBlur(this IImageProcessingContext source, int radius, bool preserveAlpha)
+    public static IImageProcessingContext MedianBlur(
+        this IImageProcessingContext source,
+        int radius,
+        bool preserveAlpha)
         => source.ApplyProcessor(new MedianBlurProcessor(radius, preserveAlpha));
 
     /// <summary>
     /// Applies a median blur on the image.
     /// </summary>
     /// <param name="source">The current image processing context.</param>
+    /// <param name="rectangle">
+    /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
+    /// </param>
     /// <param name="radius">The radius of the area to find the median for.</param>
     /// <param name="preserveAlpha">
     /// Whether the filter is applied to alpha as well as the color channels.
     /// </param>
-    /// <param name="rectangle">
-    /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
-    /// </param>
     /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
-    public static IImageProcessingContext MedianBlur(this IImageProcessingContext source, int radius, bool preserveAlpha, Rectangle rectangle)
+    public static IImageProcessingContext MedianBlur(
+        this IImageProcessingContext source,
+        Rectangle rectangle,
+        int radius,
+        bool preserveAlpha)
         => source.ApplyProcessor(new MedianBlurProcessor(radius, preserveAlpha), rectangle);
 }

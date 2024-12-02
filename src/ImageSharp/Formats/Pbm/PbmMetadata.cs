@@ -130,6 +130,12 @@ public class PbmMetadata : IFormatMetadata<PbmMetadata>
         };
 
     /// <inheritdoc/>
+    public void AfterImageApply<TPixel>(Image<TPixel> destination)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+    }
+
+    /// <inheritdoc/>
     IDeepCloneable IDeepCloneable.DeepClone() => this.DeepClone();
 
     /// <inheritdoc/>

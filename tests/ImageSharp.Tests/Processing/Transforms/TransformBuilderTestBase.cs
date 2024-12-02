@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Numerics;
+using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Transforms;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Transforms;
@@ -97,7 +98,7 @@ public abstract class TransformBuilderTestBase<TBuilder>
         this.AppendRotationDegrees(builder, degrees);
 
         // TODO: We should also test CreateRotationMatrixDegrees() (and all TransformUtils stuff!) for correctness
-        Matrix3x2 matrix = TransformUtils.CreateRotationTransformMatrixDegrees(degrees, size);
+        Matrix3x2 matrix = TransformUtils.CreateRotationTransformMatrixDegrees(degrees, size, TransformSpace.Pixel);
 
         var position = new Vector2(x, y);
         var expected = Vector2.Transform(position, matrix);
@@ -151,7 +152,7 @@ public abstract class TransformBuilderTestBase<TBuilder>
 
         this.AppendSkewDegrees(builder, degreesX, degreesY);
 
-        Matrix3x2 matrix = TransformUtils.CreateSkewTransformMatrixDegrees(degreesX, degreesY, size);
+        Matrix3x2 matrix = TransformUtils.CreateSkewTransformMatrixDegrees(degreesX, degreesY, size, TransformSpace.Pixel);
 
         var position = new Vector2(x, y);
         var expected = Vector2.Transform(position, matrix);

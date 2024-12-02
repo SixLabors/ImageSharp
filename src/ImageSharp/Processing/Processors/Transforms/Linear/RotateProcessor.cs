@@ -28,15 +28,14 @@ public sealed class RotateProcessor : AffineTransformProcessor
     /// <param name="sourceSize">The source image size</param>
     public RotateProcessor(float degrees, IResampler sampler, Size sourceSize)
         : this(
-            TransformUtils.CreateRotationTransformMatrixDegrees(degrees, sourceSize),
-            TransformUtils.CreateRotationBoundsMatrixDegrees(degrees, sourceSize),
+            TransformUtils.CreateRotationTransformMatrixDegrees(degrees, sourceSize, TransformSpace.Pixel),
             sampler,
             sourceSize)
         => this.Degrees = degrees;
 
     // Helper constructor
-    private RotateProcessor(Matrix3x2 rotationMatrix, Matrix3x2 boundsMatrix, IResampler sampler, Size sourceSize)
-        : base(rotationMatrix, sampler, TransformUtils.GetTransformedSize(sourceSize, boundsMatrix))
+    private RotateProcessor(Matrix3x2 rotationMatrix, IResampler sampler, Size sourceSize)
+        : base(rotationMatrix, sampler, TransformUtils.GetTransformedSize(rotationMatrix, sourceSize, TransformSpace.Pixel))
     {
     }
 

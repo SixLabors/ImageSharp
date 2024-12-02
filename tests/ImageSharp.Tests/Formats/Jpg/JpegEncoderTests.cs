@@ -161,6 +161,64 @@ public partial class JpegEncoderTests
     }
 
     [Theory]
+    [WithFile(TestImages.Png.CalliphoraPartial, nameof(NonSubsampledEncodingSetups), PixelTypes.Rgb24)]
+    [WithFile(TestImages.Png.CalliphoraPartial, nameof(SubsampledEncodingSetups), PixelTypes.Rgb24)]
+    [WithFile(TestImages.Png.BikeGrayscale, nameof(LuminanceEncodingSetups), PixelTypes.L8)]
+    [WithFile(TestImages.Jpeg.Baseline.Cmyk, nameof(CmykEncodingSetups), PixelTypes.Rgb24)]
+    [WithFile(TestImages.Jpeg.Baseline.Ycck, nameof(YcckEncodingSetups), PixelTypes.Rgb24)]
+    public void EncodeProgressive_DefaultNumberOfScans<TPixel>(TestImageProvider<TPixel> provider, JpegColorType colorType, int quality, float tolerance)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage();
+
+        JpegEncoder encoder = new()
+        {
+            Quality = quality,
+            ColorType = colorType,
+            Progressive = true
+        };
+        string info = $"{colorType}-Q{quality}";
+
+        ImageComparer comparer = new TolerantImageComparer(tolerance);
+
+        // Does DebugSave & load reference CompareToReferenceInput():
+        image.VerifyEncoder(provider, "jpeg", info, encoder, comparer, referenceImageExtension: "jpg");
+    }
+
+    [Theory]
+    [WithFile(TestImages.Png.CalliphoraPartial, nameof(NonSubsampledEncodingSetups), PixelTypes.Rgb24)]
+    [WithFile(TestImages.Png.CalliphoraPartial, nameof(SubsampledEncodingSetups), PixelTypes.Rgb24)]
+    [WithFile(TestImages.Png.BikeGrayscale, nameof(LuminanceEncodingSetups), PixelTypes.L8)]
+    [WithFile(TestImages.Jpeg.Baseline.Cmyk, nameof(CmykEncodingSetups), PixelTypes.Rgb24)]
+    [WithFile(TestImages.Jpeg.Baseline.Ycck, nameof(YcckEncodingSetups), PixelTypes.Rgb24)]
+    public void EncodeProgressive_CustomNumberOfScans<TPixel>(TestImageProvider<TPixel> provider, JpegColorType colorType, int quality, float tolerance)
+where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage();
+
+        JpegEncoder encoder = new()
+        {
+            Quality = quality,
+            ColorType = colorType,
+            Progressive = true,
+            ProgressiveScans = 4,
+            RestartInterval = 7
+        };
+        string info = $"{colorType}-Q{quality}";
+
+        using MemoryStream ms = new();
+        image.SaveAsJpeg(ms, encoder);
+        ms.Position = 0;
+
+        // TEMP: Save decoded output as PNG so we can do a pixel compare.
+        using Image<TPixel> image2 = Image.Load<TPixel>(ms);
+        image2.DebugSave(provider, testOutputDetails: info, extension: "png");
+
+        ImageComparer comparer = new TolerantImageComparer(tolerance);
+        image.VerifyEncoder(provider, "jpeg", info, encoder, comparer, referenceImageExtension: "jpg");
+    }
+
+    [Theory]
     [InlineData(JpegColorType.YCbCrRatio420)]
     [InlineData(JpegColorType.YCbCrRatio444)]
     public async Task Encode_IsCancellable(JpegColorType colorType)

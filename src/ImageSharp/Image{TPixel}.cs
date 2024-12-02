@@ -160,7 +160,7 @@ public sealed class Image<TPixel> : Image
     /// <summary>
     /// Gets the root frame.
     /// </summary>
-    private IPixelSource<TPixel> PixelSourceUnsafe => this.frames.RootFrameUnsafe;
+    private ImageFrame<TPixel> PixelSourceUnsafe => this.frames.RootFrameUnsafe;
 
     /// <summary>
     /// Gets or sets the pixel at the specified position.
@@ -324,7 +324,7 @@ public sealed class Image<TPixel> : Image
     }
 
     /// <summary>
-    /// Clones the current image
+    /// Clones the current image.
     /// </summary>
     /// <returns>Returns a new image with all the same metadata as the original.</returns>
     public Image<TPixel> Clone() => this.Clone(this.Configuration);
@@ -395,22 +395,42 @@ public sealed class Image<TPixel> : Image
     }
 
     /// <summary>
-    /// Switches the buffers used by the image and the pixelSource meaning that the Image will "own" the buffer from the pixelSource and the pixelSource will now own the Images buffer.
+    /// Switches the buffers used by the image and the pixel source meaning that the Image will
+    /// "own" the buffer from the pixelSource and the pixel source will now own the Image buffer.
     /// </summary>
-    /// <param name="pixelSource">The pixel source.</param>
-    internal void SwapOrCopyPixelsBuffersFrom(Image<TPixel> pixelSource)
+    /// <param name="source">The pixel source.</param>
+    internal void SwapOrCopyPixelsBuffersFrom(Image<TPixel> source)
     {
-        Guard.NotNull(pixelSource, nameof(pixelSource));
+        Guard.NotNull(source, nameof(source));
 
         this.EnsureNotDisposed();
 
-        ImageFrameCollection<TPixel> sourceFrames = pixelSource.Frames;
+        ImageFrameCollection<TPixel> sourceFrames = source.Frames;
         for (int i = 0; i < this.frames.Count; i++)
         {
             this.frames[i].SwapOrCopyPixelsBufferFrom(sourceFrames[i]);
         }
 
-        this.UpdateSize(pixelSource.Size);
+        this.UpdateSize(source.Size);
+    }
+
+    /// <summary>
+    /// Copies the metadata from the source image.
+    /// </summary>
+    /// <param name="source">The metadata source.</param>
+    internal void CopyMetadataFrom(Image<TPixel> source)
+    {
+        Guard.NotNull(source, nameof(source));
+
+        this.EnsureNotDisposed();
+
+        ImageFrameCollection<TPixel> sourceFrames = source.Frames;
+        for (int i = 0; i < this.frames.Count; i++)
+        {
+            this.frames[i].CopyMetadataFrom(sourceFrames[i]);
+        }
+
+        this.UpdateMetadata(source.Metadata);
     }
 
     private static Size ValidateFramesAndGetSize(IEnumerable<ImageFrame<TPixel>> frames)
@@ -419,9 +439,9 @@ public sealed class Image<TPixel> : Image
 
         ImageFrame<TPixel>? rootFrame = frames.FirstOrDefault() ?? throw new ArgumentException("Must not be empty.", nameof(frames));
 
-        Size rootSize = rootFrame.Size();
+        Size rootSize = rootFrame.Size;
 
-        if (frames.Any(f => f.Size() != rootSize))
+        if (frames.Any(f => f.Size != rootSize))
         {
             throw new ArgumentException("The provided frames must be of the same size.", nameof(frames));
         }

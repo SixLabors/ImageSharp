@@ -230,6 +230,22 @@ public sealed class ImageMetadata : IDeepCloneable<ImageMetadata>
     /// </summary>
     internal void SynchronizeProfiles() => this.ExifProfile?.Sync(this);
 
+    /// <summary>
+    /// This method is called after a process has been applied to the image.
+    /// </summary>
+    /// <typeparam name="TPixel">The type of pixel format.</typeparam>
+    /// <param name="destination">The destination image.</param>
+    internal void AfterImageApply<TPixel>(Image<TPixel> destination)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        this.ExifProfile?.SyncDimensions(destination.Width, destination.Height);
+
+        foreach (KeyValuePair<IImageFormat, IFormatMetadata> meta in this.formatMetadata)
+        {
+            meta.Value.AfterImageApply(destination);
+        }
+    }
+
     internal PixelTypeInfo GetDecodedPixelTypeInfo()
     {
         // None found. Check if we have a decoded format to convert from.

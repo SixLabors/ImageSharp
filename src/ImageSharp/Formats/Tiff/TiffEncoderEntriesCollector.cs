@@ -24,8 +24,8 @@ internal class TiffEncoderEntriesCollector
     public void ProcessMetadata(ImageFrame frame, bool skipMetadata)
         => new MetadataProcessor(this).Process(frame, skipMetadata);
 
-    public void ProcessFrameInfo(ImageFrame frame, ImageMetadata imageMetadata)
-        => new FrameInfoProcessor(this).Process(frame, imageMetadata);
+    public void ProcessFrameInfo(ImageFrame frame, Size encodingSize, ImageMetadata imageMetadata)
+        => new FrameInfoProcessor(this).Process(frame, encodingSize, imageMetadata);
 
     public void ProcessImageFormat(TiffEncoderCore encoder)
         => new ImageFormatProcessor(this).Process(encoder);
@@ -267,16 +267,16 @@ internal class TiffEncoderEntriesCollector
         {
         }
 
-        public void Process(ImageFrame frame, ImageMetadata imageMetadata)
+        public void Process(ImageFrame frame, Size encodingSize, ImageMetadata imageMetadata)
         {
             this.Collector.AddOrReplace(new ExifLong(ExifTagValue.ImageWidth)
             {
-                Value = (uint)frame.Width
+                Value = (uint)encodingSize.Width
             });
 
             this.Collector.AddOrReplace(new ExifLong(ExifTagValue.ImageLength)
             {
-                Value = (uint)frame.Height
+                Value = (uint)encodingSize.Height
             });
 
             this.ProcessResolution(imageMetadata);

@@ -51,7 +51,7 @@ public abstract class ImageEncoder : IImageEncoder
         else
         {
             using ChunkedMemoryStream ms = new(configuration.MemoryAllocator);
-            this.Encode(image, stream, cancellationToken);
+            this.Encode(image, ms, cancellationToken);
             ms.Position = 0;
             ms.CopyTo(stream, configuration.StreamProcessingBufferSize);
         }

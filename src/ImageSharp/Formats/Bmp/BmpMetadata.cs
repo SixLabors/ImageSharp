@@ -154,4 +154,10 @@ public class BmpMetadata : IFormatMetadata<BmpMetadata>
 
     /// <inheritdoc/>
     public BmpMetadata DeepClone() => new(this);
+
+    /// <inheritdoc/>
+    public void AfterImageApply<TPixel>(Image<TPixel> destination)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+    }
 }

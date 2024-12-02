@@ -13,8 +13,15 @@ internal abstract class TiffBaseColorWriter<TPixel> : IDisposable
 {
     private bool isDisposed;
 
-    protected TiffBaseColorWriter(ImageFrame<TPixel> image, MemoryAllocator memoryAllocator, Configuration configuration, TiffEncoderEntriesCollector entriesCollector)
+    protected TiffBaseColorWriter(
+        ImageFrame<TPixel> image,
+        Size encodingSize,
+        MemoryAllocator memoryAllocator,
+        Configuration configuration,
+        TiffEncoderEntriesCollector entriesCollector)
     {
+        this.Width = encodingSize.Width;
+        this.Height = encodingSize.Height;
         this.Image = image;
         this.MemoryAllocator = memoryAllocator;
         this.Configuration = configuration;
@@ -27,9 +34,19 @@ internal abstract class TiffBaseColorWriter<TPixel> : IDisposable
     public abstract int BitsPerPixel { get; }
 
     /// <summary>
+    /// Gets the width of the portion of the image to be encoded.
+    /// </summary>
+    public int Width { get; }
+
+    /// <summary>
+    /// Gets the height of the portion of the image to be encoded.
+    /// </summary>
+    public int Height { get; }
+
+    /// <summary>
     /// Gets the bytes per row.
     /// </summary>
-    public int BytesPerRow => (int)(((uint)(this.Image.Width * this.BitsPerPixel) + 7) / 8);
+    public int BytesPerRow => (int)(((uint)(this.Width * this.BitsPerPixel) + 7) / 8);
 
     protected ImageFrame<TPixel> Image { get; }
 
@@ -42,18 +59,18 @@ internal abstract class TiffBaseColorWriter<TPixel> : IDisposable
     public virtual void Write(TiffBaseCompressor compressor, int rowsPerStrip)
     {
         DebugGuard.IsTrue(this.BytesPerRow == compressor.BytesPerRow, "bytes per row of the compressor does not match tiff color writer");
-        int stripsCount = (this.Image.Height + rowsPerStrip - 1) / rowsPerStrip;
+        int stripsCount = (this.Height + rowsPerStrip - 1) / rowsPerStrip;
 
         uint[] stripOffsets = new uint[stripsCount];
         uint[] stripByteCounts = new uint[stripsCount];
 
         int stripIndex = 0;
         compressor.Initialize(rowsPerStrip);
-        for (int y = 0; y < this.Image.Height; y += rowsPerStrip)
+        for (int y = 0; y < this.Height; y += rowsPerStrip)
         {
             long offset = compressor.Output.Position;
 
-            int height = Math.Min(rowsPerStrip, this.Image.Height - y);
+            int height = Math.Min(rowsPerStrip, this.Height - y);
             this.EncodeStrip(y, height, compressor);
 
             long endOffset = compressor.Output.Position;

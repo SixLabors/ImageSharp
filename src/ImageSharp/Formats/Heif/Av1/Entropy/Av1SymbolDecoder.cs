@@ -355,14 +355,11 @@ internal ref struct Av1SymbolDecoder
             {
                 Av1Math.SetBit(ref endOfBlockExtra, endOfBlockShift - 1);
             }
-            else
+            for (int j = 1; j < endOfBlockShift; j++)
             {
-                for (int j = 1; j < endOfBlockShift; j++)
+                if (this.ReadLiteral(1) != 0)
                 {
-                    if (this.ReadLiteral(1) != 0)
-                    {
-                        Av1Math.SetBit(ref endOfBlockExtra, endOfBlockShift - 1 - j);
-                    }
+                    Av1Math.SetBit(ref endOfBlockExtra, endOfBlockShift - 1 - j);
                 }
             }
         }

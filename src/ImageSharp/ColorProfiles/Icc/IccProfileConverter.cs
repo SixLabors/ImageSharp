@@ -42,7 +42,7 @@ internal static class IccProfileConverter
         {
             ColorProfileConverter converter = new(new ColorConversionOptions()
             {
-                WhitePoint = new CieXyz(inputIccProfile.Header.PcsIlluminant),
+                SourceWhitePoint = new CieXyz(inputIccProfile.Header.PcsIlluminant),
                 TargetWhitePoint = new CieXyz(outputIccProfile.Header.PcsIlluminant),
             });
 

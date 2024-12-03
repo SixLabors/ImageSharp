@@ -4,6 +4,7 @@
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
 using SixLabors.ImageSharp.ColorProfiles.WorkingSpaces;
 
 namespace SixLabors.ImageSharp.ColorProfiles;
@@ -81,6 +82,49 @@ public readonly struct Rgb : IProfileConnectingSpace<Rgb, CieXyz>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool operator !=(Rgb left, Rgb right) => !left.Equals(right);
 
+    /// <summary>
+    /// Initializes the color instance from a generic scaled <see cref="Vector4"/>.
+    /// </summary>
+    /// <param name="source">The vector to load the color from.</param>
+    /// <returns>The <see cref="Rgb"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Rgb FromScaledVector4(Vector4 source)
+        => new(source.AsVector128().AsVector3());
+
+    /// <summary>
+    /// Expands the color into a generic ("scaled") <see cref="Vector4"/> representation
+    /// with values scaled and usually clamped between <value>0</value> and <value>1</value>.
+    /// The vector components are typically expanded in least to greatest significance order.
+    /// </summary>
+    /// <returns>The <see cref="Vector4"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Vector4 ToScaledVector4()
+        => new(this.ToScaledVector3(), 1F);
+
+    /// <inheritdoc/>
+    public static void ToScaledVector4(ReadOnlySpan<Rgb> source, Span<Vector4> destination)
+    {
+        Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
+
+        // TODO: Optimize via SIMD
+        for (int i = 0; i < source.Length; i++)
+        {
+            destination[i] = source[i].ToScaledVector4();
+        }
+    }
+
+    /// <inheritdoc/>
+    public static void FromScaledVector4(ReadOnlySpan<Vector4> source, Span<Rgb> destination)
+    {
+        Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
+
+        // TODO: Optimize via SIMD
+        for (int i = 0; i < source.Length; i++)
+        {
+            destination[i] = FromScaledVector4(source[i]);
+        }
+    }
+
     /// <inheritdoc/>
     public static Rgb FromProfileConnectingSpace(ColorConversionOptions options, in CieXyz source)
     {
@@ -108,10 +152,10 @@ public readonly struct Rgb : IProfileConnectingSpace<Rgb, CieXyz>
     public CieXyz ToProfileConnectingSpace(ColorConversionOptions options)
     {
         // First expand to linear rgb
-        Rgb linear = FromScaledVector4(options.RgbWorkingSpace.Expand(this.ToScaledVector4()));
+        Rgb linear = FromScaledVector4(options.SourceRgbWorkingSpace.Expand(this.ToScaledVector4()));
 
         // Then convert to xyz
-        return new CieXyz(Vector3.Transform(linear.ToScaledVector3(), GetRgbToCieXyzMatrix(options.RgbWorkingSpace)));
+        return new CieXyz(Vector3.Transform(linear.ToScaledVector3(), GetRgbToCieXyzMatrix(options.SourceRgbWorkingSpace)));
     }
 
     /// <inheritdoc/>
@@ -119,13 +163,13 @@ public readonly struct Rgb : IProfileConnectingSpace<Rgb, CieXyz>
     {
         Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
-        Matrix4x4 matrix = GetRgbToCieXyzMatrix(options.RgbWorkingSpace);
+        Matrix4x4 matrix = GetRgbToCieXyzMatrix(options.SourceRgbWorkingSpace);
         for (int i = 0; i < source.Length; i++)
         {
             Rgb rgb = source[i];
 
             // First expand to linear rgb
-            Rgb linear = FromScaledVector4(options.RgbWorkingSpace.Expand(rgb.ToScaledVector4()));
+            Rgb linear = FromScaledVector4(options.SourceRgbWorkingSpace.Expand(rgb.ToScaledVector4()));
 
             // Then convert to xyz
             destination[i] = new CieXyz(Vector3.Transform(linear.ToScaledVector3(), matrix));
@@ -133,7 +177,8 @@ public readonly struct Rgb : IProfileConnectingSpace<Rgb, CieXyz>
     }
 
     /// <inheritdoc/>
-    public static ChromaticAdaptionWhitePointSource GetChromaticAdaptionWhitePointSource() => ChromaticAdaptionWhitePointSource.RgbWorkingSpace;
+    public static ChromaticAdaptionWhitePointSource GetChromaticAdaptionWhitePointSource()
+        => ChromaticAdaptionWhitePointSource.RgbWorkingSpace;
 
     /// <summary>
     /// Initializes the color instance from a generic scaled <see cref="Vector3"/>.
@@ -141,19 +186,8 @@ public readonly struct Rgb : IProfileConnectingSpace<Rgb, CieXyz>
     /// <param name="source">The vector to load the color from.</param>
     /// <returns>The <see cref="Rgb"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Rgb FromScaledVector3(Vector3 source) => new(Vector3.Clamp(source, Vector3.Zero, Vector3.One));
-
-    /// <summary>
-    /// Initializes the color instance from a generic scaled <see cref="Vector4"/>.
-    /// </summary>
-    /// <param name="source">The vector to load the color from.</param>
-    /// <returns>The <see cref="Rgb"/>.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Rgb FromScaledVector4(Vector4 source)
-    {
-        source = Vector4.Clamp(source, Vector4.Zero, Vector4.One);
-        return new(source.X, source.Y, source.Z);
-    }
+    public static Rgb FromScaledVector3(Vector3 source)
+        => new(source);
 
     /// <summary>
     /// Initializes the color instance for a source clamped between <value>0</value> and <value>1</value>
@@ -161,7 +195,8 @@ public readonly struct Rgb : IProfileConnectingSpace<Rgb, CieXyz>
     /// <param name="source">The source to load the color from.</param>
     /// <returns>The <see cref="Rgb"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Rgb Clamp(Rgb source) => new(Vector3.Clamp(new(source.R, source.G, source.B), Vector3.Zero, Vector3.One));
+    public static Rgb Clamp(Rgb source)
+        => new(Vector3.Clamp(source.AsVector3Unsafe(), Vector3.Zero, Vector3.One));
 
     /// <summary>
     /// Expands the color into a generic ("scaled") <see cref="Vector3"/> representation
@@ -170,24 +205,12 @@ public readonly struct Rgb : IProfileConnectingSpace<Rgb, CieXyz>
     /// </summary>
     /// <returns>The <see cref="Vector3"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Vector3 ToScaledVector3() => Clamp(this).ToVector3();
-
-    /// <summary>
-    /// Expands the color into a generic <see cref="Vector3"/> representation.
-    /// The vector components are typically expanded in least to greatest significance order.
-    /// </summary>
-    /// <returns>The <see cref="Vector3"/>.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Vector3 ToVector3() => new(this.R, this.G, this.B);
-
-    /// <summary>
-    /// Expands the color into a generic ("scaled") <see cref="Vector4"/> representation
-    /// with values scaled and usually clamped between <value>0</value> and <value>1</value>.
-    /// The vector components are typically expanded in least to greatest significance order.
-    /// </summary>
-    /// <returns>The <see cref="Vector4"/>.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Vector4 ToScaledVector4() => new(this.ToScaledVector3(), 1f);
+    public Vector3 ToScaledVector3()
+    {
+        Vector3 v3 = default;
+        v3 += this.AsVector3Unsafe();
+        return v3;
+    }
 
     /// <inheritdoc/>
     public override int GetHashCode() => HashCode.Combine(this.R, this.G, this.B);

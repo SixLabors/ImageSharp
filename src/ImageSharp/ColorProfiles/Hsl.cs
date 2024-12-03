@@ -4,6 +4,7 @@
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
 
 namespace SixLabors.ImageSharp.ColorProfiles;
 
@@ -82,6 +83,38 @@ public readonly struct Hsl : IColorProfile<Hsl, Rgb>
     /// </returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool operator !=(Hsl left, Hsl right) => !left.Equals(right);
+
+    /// <inheritdoc/>
+    public Vector4 ToScaledVector4()
+        => new(this.AsVector3Unsafe() / 360F, 1F);
+
+    /// <inheritdoc/>
+    public static Hsl FromScaledVector4(Vector4 source)
+        => new(source.AsVector128().AsVector3() * 360F);
+
+    /// <inheritdoc/>
+    public static void ToScaledVector4(ReadOnlySpan<Hsl> source, Span<Vector4> destination)
+    {
+        Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
+
+        // TODO: Optimize via SIMD
+        for (int i = 0; i < source.Length; i++)
+        {
+            destination[i] = source[i].ToScaledVector4();
+        }
+    }
+
+    /// <inheritdoc/>
+    public static void FromScaledVector4(ReadOnlySpan<Vector4> source, Span<Hsl> destination)
+    {
+        Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
+
+        // TODO: Optimize via SIMD
+        for (int i = 0; i < source.Length; i++)
+        {
+            destination[i] = FromScaledVector4(source[i]);
+        }
+    }
 
     /// <inheritdoc/>
     public static Hsl FromProfileConnectingSpace(ColorConversionOptions options, in Rgb source)

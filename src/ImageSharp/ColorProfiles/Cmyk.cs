@@ -90,6 +90,32 @@ public readonly struct Cmyk : IColorProfile<Cmyk, Rgb>
     public static bool operator !=(Cmyk left, Cmyk right) => !left.Equals(right);
 
     /// <inheritdoc/>
+    public Vector4 ToScaledVector4()
+    {
+        Vector4 v4 = default;
+        v4 += this.AsVector4Unsafe();
+        return v4;
+    }
+
+    /// <inheritdoc/>
+    public static Cmyk FromScaledVector4(Vector4 source)
+        => new(source);
+
+    /// <inheritdoc/>
+    public static void ToScaledVector4(ReadOnlySpan<Cmyk> source, Span<Vector4> destination)
+    {
+        Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
+        MemoryMarshal.Cast<Cmyk, Vector4>(source).CopyTo(destination);
+    }
+
+    /// <inheritdoc/>
+    public static void FromScaledVector4(ReadOnlySpan<Vector4> source, Span<Cmyk> destination)
+    {
+        Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
+        MemoryMarshal.Cast<Vector4, Cmyk>(source).CopyTo(destination);
+    }
+
+    /// <inheritdoc/>
     public static Cmyk FromProfileConnectingSpace(ColorConversionOptions options, in Rgb source)
     {
         // To CMY

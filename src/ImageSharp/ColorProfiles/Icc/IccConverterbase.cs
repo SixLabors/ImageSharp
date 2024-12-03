@@ -31,4 +31,19 @@ internal abstract partial class IccConverterBase
     /// <returns>The converted value</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Vector4 Calculate(Vector4 value) => this.calculator.Calculate(value);
+
+    /// <summary>
+    /// Converts colors with the initially provided ICC profile
+    /// </summary>
+    /// <param name="source">The source colors</param>
+    /// <param name="destination">The destination colors</param>
+    public void Calculate(ReadOnlySpan<Vector4> source, Span<Vector4> destination)
+    {
+        Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
+
+        for (int i = 0; i < source.Length; i++)
+        {
+            destination[i] = this.Calculate(source[i]);
+        }
+    }
 }

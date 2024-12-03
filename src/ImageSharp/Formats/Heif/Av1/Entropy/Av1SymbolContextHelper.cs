@@ -66,23 +66,6 @@ internal static class Av1SymbolContextHelper
         return endOfBlock;
     }
 
-    internal static int GetBaseRangeContextEndOfBlock(Point pos, Av1TransformClass transformClass)
-    {
-        if (pos.X == 0 && pos.Y == 0)
-        {
-            return 0;
-        }
-
-        if ((transformClass == Av1TransformClass.Class2D && pos.Y < 2 && pos.X < 2) ||
-            (transformClass == Av1TransformClass.ClassHorizontal && pos.X == 0) ||
-            (transformClass == Av1TransformClass.ClassVertical && pos.Y == 0))
-        {
-            return 7;
-        }
-
-        return 14;
-    }
-
     /// <summary>
     /// SVT: get_lower_levels_ctx_eob
     /// </summary>
@@ -109,27 +92,6 @@ internal static class Av1SymbolContextHelper
     }
 
     /// <summary>
-    /// SVT: get_br_ctx_2d
-    /// </summary>
-    internal static int GetBaseRangeContext2d(Av1LevelBuffer levels, Point position)
-    {
-        DebugGuard.MustBeGreaterThan(position.X + position.Y, 0, nameof(position));
-        Span<byte> row0 = levels.GetRow(position.Y);
-        Span<byte> row1 = levels.GetRow(position.Y + 1);
-        int mag =
-            Math.Min((int)row0[1], Av1Constants.MaxBaseRange) +
-            Math.Min((int)row1[0], Av1Constants.MaxBaseRange) +
-            Math.Min((int)row1[1], Av1Constants.MaxBaseRange);
-        mag = Math.Min((mag + 1) >> 1, 6);
-        if ((position.Y | position.X) < 2)
-        {
-            return mag + 7;
-        }
-
-        return mag + 14;
-    }
-
-    /// <summary>
     /// SVT: get_lower_levels_ctx_2d
     /// </summary>
     internal static int GetLowerLevelsContext2d(Av1LevelBuffer levelBuffer, Point pos, Av1TransformSize transformSize)
@@ -148,6 +110,23 @@ internal static class Av1SymbolContextHelper
         int ctx = Math.Min((mag + 1) >> 1, 4);
         int index = pos.X + (pos.Y * levelBuffer.Size.Width);
         return ctx + Av1NzMap.GetNzMapContext(transformSize, index);
+    }
+
+    internal static int GetBaseRangeContextEndOfBlock(Point pos, Av1TransformClass transformClass)
+    {
+        if (pos.X == 0 && pos.Y == 0)
+        {
+            return 0;
+        }
+
+        if ((transformClass == Av1TransformClass.Class2D && pos.Y < 2 && pos.X < 2) ||
+            (transformClass == Av1TransformClass.ClassHorizontal && pos.X == 0) ||
+            (transformClass == Av1TransformClass.ClassVertical && pos.Y == 0))
+        {
+            return 7;
+        }
+
+        return 14;
     }
 
     /// <summary>
@@ -205,6 +184,27 @@ internal static class Av1SymbolContextHelper
                 break;
             default:
                 break;
+        }
+
+        return mag + 14;
+    }
+
+    /// <summary>
+    /// SVT: get_br_ctx_2d
+    /// </summary>
+    internal static int GetBaseRangeContext2d(Av1LevelBuffer levels, Point position)
+    {
+        DebugGuard.MustBeGreaterThan(position.X + position.Y, 0, nameof(position));
+        Span<byte> row0 = levels.GetRow(position.Y);
+        Span<byte> row1 = levels.GetRow(position.Y + 1);
+        int mag =
+            Math.Min((int)row0[1], Av1Constants.MaxBaseRange) +
+            Math.Min((int)row1[0], Av1Constants.MaxBaseRange) +
+            Math.Min((int)row1[1], Av1Constants.MaxBaseRange);
+        mag = Math.Min((mag + 1) >> 1, 6);
+        if (position.Y < 2 && position.X < 2)
+        {
+            return mag + 7;
         }
 
         return mag + 14;

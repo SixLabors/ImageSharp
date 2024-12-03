@@ -332,8 +332,6 @@ internal ref struct Av1SymbolDecoder
             }
         }
 
-        coefficientBuffer[0] = endOfBlock;
-
         DebugGuard.MustBeGreaterThan(scan.Length, 0, nameof(scan));
         culLevel = this.ReadCoefficientsSign(coefficientBuffer, endOfBlock, scan, levels, transformBlockContext.DcSignContext, planeType);
         UpdateCoefficientContext(modeInfo, aboveContexts, leftContexts, blocksWide, blocksHigh, transformSize, blockPosition, aboveOffset, leftOffset, culLevel, modeBlocksToRightEdge, modeBlocksToBottomEdge);
@@ -355,6 +353,7 @@ internal ref struct Av1SymbolDecoder
             {
                 Av1Math.SetBit(ref endOfBlockExtra, endOfBlockShift - 1);
             }
+
             for (int j = 1; j < endOfBlockShift; j++)
             {
                 if (this.ReadLiteral(1) != 0)
@@ -373,12 +372,13 @@ internal ref struct Av1SymbolDecoder
         Point position = levels.GetPosition(scan[i]);
         int coefficientContext = Av1SymbolContextHelper.GetLowerLevelContextEndOfBlock(levels, position);
         int level = this.ReadBaseEndOfBlock(transformSizeContext, planeType, coefficientContext);
+        Av1TransformSize limitedTransformSizeContext = (Av1TransformSize)Math.Min((int)transformSizeContext, (int)Av1TransformSize.Size32x32);
         if (level > Av1Constants.BaseLevelsCount)
         {
             int baseRangeContext = Av1SymbolContextHelper.GetBaseRangeContextEndOfBlock(position, transformClass);
             for (int idx = 0; idx < Av1Constants.CoefficientBaseRange; idx += Av1Constants.BaseRangeSizeMinus1)
             {
-                int coefficientBaseRange = this.ReadCoefficientsBaseRange(transformSizeContext, planeType, baseRangeContext);
+                int coefficientBaseRange = this.ReadCoefficientsBaseRange(limitedTransformSizeContext, planeType, baseRangeContext);
                 level += coefficientBaseRange;
                 if (coefficientBaseRange < Av1Constants.BaseRangeSizeMinus1)
                 {
@@ -387,11 +387,12 @@ internal ref struct Av1SymbolDecoder
             }
         }
 
-        levels.GetRow(position)[0] = (byte)level;
+        levels.GetRow(position)[position.X] = (byte)level;
     }
 
     public void ReadCoefficientsReverse2d(Av1TransformSize transformSize, int startScanIndex, int endScanIndex, ReadOnlySpan<short> scan, Av1LevelBuffer levels, Av1TransformSize transformSizeContext, Av1PlaneType planeType)
     {
+        Av1TransformSize limitedTransformSizeContext = (Av1TransformSize)Math.Min((int)transformSizeContext, (int)Av1TransformSize.Size32x32);
         for (int c = endScanIndex; c >= startScanIndex; --c)
         {
             Point position = levels.GetPosition(scan[c]);
@@ -402,7 +403,7 @@ internal ref struct Av1SymbolDecoder
                 int baseRangeContext = Av1SymbolContextHelper.GetBaseRangeContext2d(levels, position);
                 for (int idx = 0; idx < Av1Constants.CoefficientBaseRange; idx += Av1Constants.BaseRangeSizeMinus1)
                 {
-                    int coefficientBaseRange = this.ReadCoefficientsBaseRange(transformSizeContext, planeType, baseRangeContext);
+                    int coefficientBaseRange = this.ReadCoefficientsBaseRange(limitedTransformSizeContext, planeType, baseRangeContext);
                     level += coefficientBaseRange;
                     if (coefficientBaseRange < Av1Constants.BaseRangeSizeMinus1)
                     {
@@ -411,12 +412,13 @@ internal ref struct Av1SymbolDecoder
                 }
             }
 
-            levels.GetRow(position)[0] = (byte)level;
+            levels.GetRow(position)[position.X] = (byte)level;
         }
     }
 
     public void ReadCoefficientsReverse(Av1TransformSize transformSize, Av1TransformClass transformClass, int startScanIndex, int endScanIndex, ReadOnlySpan<short> scan, Av1LevelBuffer levels, Av1TransformSize transformSizeContext, Av1PlaneType planeType)
     {
+        Av1TransformSize limitedTransformSizeContext = (Av1TransformSize)Math.Min((int)transformSizeContext, (int)Av1TransformSize.Size32x32);
         for (int c = endScanIndex; c >= startScanIndex; --c)
         {
             int pos = scan[c];
@@ -428,16 +430,16 @@ internal ref struct Av1SymbolDecoder
                 int baseRangeContext = Av1SymbolContextHelper.GetBaseRangeContext(levels, position, transformClass);
                 for (int idx = 0; idx < Av1Constants.CoefficientBaseRange; idx += Av1Constants.BaseRangeSizeMinus1)
                 {
-                    int k = this.ReadCoefficientsBaseRange(transformSizeContext, planeType, baseRangeContext);
-                    level += k;
-                    if (k < Av1Constants.BaseRangeSizeMinus1)
+                    int coefficientBaseRange = this.ReadCoefficientsBaseRange(limitedTransformSizeContext, planeType, baseRangeContext);
+                    level += coefficientBaseRange;
+                    if (coefficientBaseRange < Av1Constants.BaseRangeSizeMinus1)
                     {
                         break;
                     }
                 }
             }
 
-            levels.GetRow(position)[0] = (byte)level;
+            levels.GetRow(position)[position.X] = (byte)level;
         }
     }
 
@@ -451,7 +453,7 @@ internal ref struct Av1SymbolDecoder
         {
             int sign = 0;
             Point position = levels.GetPosition(scan[c]);
-            int level = levels.GetRow(position)[0];
+            int level = levels.GetRow(position)[position.X];
             if (level != 0)
             {
                 maxScanLine = Math.Max(maxScanLine, scan[c]);
@@ -504,8 +506,7 @@ internal ref struct Av1SymbolDecoder
     private int ReadCoefficientsBaseRange(Av1TransformSize transformSizeContext, Av1PlaneType planeType, int baseRangeContext)
     {
         ref Av1SymbolReader r = ref this.reader;
-        int transformContext = Math.Min((int)transformSizeContext, (int)Av1TransformSize.Size32x32);
-        return r.ReadSymbol(this.coefficientsBaseRange[transformContext][(int)planeType][baseRangeContext]);
+        return r.ReadSymbol(this.coefficientsBaseRange[(int)transformSizeContext][(int)planeType][baseRangeContext]);
     }
 
     private int ReadDcSign(Av1PlaneType planeType, int dcSignContext)

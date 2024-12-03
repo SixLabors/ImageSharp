@@ -32,6 +32,7 @@ public interface IColorProfile<TSelf> : IColorProfile, IEquatable<TSelf>
     /// <returns>The <see cref="Vector4"/>.</returns>
     Vector4 ToScaledVector4();
 
+#pragma warning disable CA1000 // Do not declare static members on generic types
     /// <summary>
     /// Initializes the color instance from a generic a generic ("scaled") <see cref="Vector4"/> representation
     /// with values scaled and clamped between <value>0</value> and <value>1</value>.
@@ -55,6 +56,7 @@ public interface IColorProfile<TSelf> : IColorProfile, IEquatable<TSelf>
     /// <param name="source">The vector span to convert from.</param>
     /// <param name="destination">The color span to write the results to.</param>
     public static abstract void FromScaledVector4(ReadOnlySpan<Vector4> source, Span<TSelf> destination);
+#pragma warning restore CA1000 // Do not declare static members on generic types
 }
 
 /// <summary>

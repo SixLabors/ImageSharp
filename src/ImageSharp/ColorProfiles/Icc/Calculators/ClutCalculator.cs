@@ -40,8 +40,8 @@ internal class ClutCalculator : IVector4Calculator
     public ClutCalculator(IccClut clut)
     {
         Guard.NotNull(clut, nameof(clut));
-        Guard.MustBeGreaterThan(clut.InputChannelCount, 1, nameof(clut.InputChannelCount));
-        Guard.MustBeGreaterThan(clut.OutputChannelCount, 1, nameof(clut.OutputChannelCount));
+        Guard.MustBeGreaterThan(clut.InputChannelCount, 0, nameof(clut.InputChannelCount));
+        Guard.MustBeGreaterThan(clut.OutputChannelCount, 0, nameof(clut.OutputChannelCount));
 
         this.inputCount = clut.InputChannelCount;
         this.outputCount = clut.OutputChannelCount;
@@ -72,7 +72,7 @@ internal class ClutCalculator : IVector4Calculator
 
     public unsafe Vector4 Calculate(Vector4 value)
     {
-        Vector4 result = value;
+        Vector4 result = default;
         switch (this.inputCount)
         {
             case 1:

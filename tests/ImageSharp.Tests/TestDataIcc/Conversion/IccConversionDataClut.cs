@@ -9,8 +9,7 @@ namespace SixLabors.ImageSharp.Tests.TestDataIcc.Conversion;
 public class IccConversionDataClut
 {
     internal static IccClut Clut3x2 = new(
-        new[]
-        {
+        [
             0.1f, 0.1f,
             0.2f, 0.2f,
             0.3f, 0.3f,
@@ -46,14 +45,13 @@ public class IccConversionDataClut
             0.18f, 0.18f,
             0.28f, 0.28f,
             0.38f, 0.38f,
-        },
-        new byte[] { 3, 3, 3 },
+        ],
+        [3, 3, 3],
         IccClutDataType.Float,
-        outputChannelCount: 3);
+        outputChannelCount: 2);
 
     internal static IccClut Clut3x1 = new(
-        new[]
-        {
+        [
              0.10f,
              0.20f,
              0.30f,
@@ -89,14 +87,13 @@ public class IccConversionDataClut
              0.18f,
              0.28f,
              0.38f,
-        },
-        new byte[] { 3, 3, 3 },
+        ],
+        [3, 3, 3],
         IccClutDataType.Float,
-        outputChannelCount: 3);
+        outputChannelCount: 1);
 
     internal static IccClut Clut2x2 = new(
-        new[]
-        {
+        [
             0.1f, 0.9f,
             0.2f, 0.8f,
             0.3f, 0.7f,
@@ -108,14 +105,13 @@ public class IccConversionDataClut
             0.7f, 0.3f,
             0.8f, 0.2f,
             0.9f, 0.1f,
-        },
-        new byte[] { 3, 3 },
+        ],
+        [3, 3],
         IccClutDataType.Float,
-        outputChannelCount: 3);
+        outputChannelCount: 2);
 
     internal static IccClut Clut2x1 = new(
-        new[]
-        {
+        [
             0.1f,
             0.2f,
             0.3f,
@@ -127,42 +123,40 @@ public class IccConversionDataClut
             0.7f,
             0.8f,
             0.9f,
-        },
-        new byte[] { 3, 3 },
+        ],
+        [3, 3],
         IccClutDataType.Float,
-        outputChannelCount: 3);
+        outputChannelCount: 1);
 
     internal static IccClut Clut1x2 = new(
-        new[]
-        {
+        [
             0f, 0.5f,
             0.25f, 0.75f,
             0.5f, 1f,
-        },
-        new byte[] { 3 },
+        ],
+        [3],
         IccClutDataType.Float,
-        outputChannelCount: 3);
+        outputChannelCount: 2);
 
     internal static IccClut Clut1x1 = new(
-        new[]
-        {
+        [
             0f,
             0.5f,
             1f,
-        },
-        new byte[] { 3 },
+        ],
+        [3],
         IccClutDataType.Float,
-        outputChannelCount: 3);
+        outputChannelCount: 1);
 
     public static object[][] ClutConversionTestData =
-    {
-        new object[] { Clut3x2, new Vector4(0.75f, 0.75f, 0.75f, 0), new Vector4(0.31f, 0.31f, 0, 0) },
-        new object[] { Clut3x1, new Vector4(0.2f, 0.6f, 0.8f, 0), new Vector4(0.276f, 0, 0, 0) },
-        new object[] { Clut3x1, new Vector4(0.75f, 0.75f, 0.75f, 0), new Vector4(0.31f, 0, 0, 0) },
-        new object[] { Clut2x2, new Vector4(0.2f, 0.6f, 0, 0), new Vector4(0.46f, 0.54f, 0, 0) },
-        new object[] { Clut2x2, new Vector4(0.25f, 0.75f, 0, 0), new Vector4(0.4f, 0.6f, 0, 0) },
-        new object[] { Clut2x1, new Vector4(0.25f, 0.75f, 0, 0), new Vector4(0.4f, 0, 0, 0) },
-        new object[] { Clut1x2, new Vector4(0.25f, 0, 0, 0), new Vector4(0.125f, 0.625f, 0, 0) },
-        new object[] { Clut1x1, new Vector4(0.25f, 0, 0, 0), new Vector4(0.25f, 0, 0, 0) },
-    };
+    [
+        [Clut3x2, new Vector4(0.75f, 0.75f, 0.75f, 0), new Vector4(0.31f, 0.31f, 0, 0)],
+        [Clut3x1, new Vector4(0.2f, 0.6f, 0.8f, 0), new Vector4(0.276f, 0, 0, 0)],
+        [Clut3x1, new Vector4(0.75f, 0.75f, 0.75f, 0), new Vector4(0.31f, 0, 0, 0)],
+        [Clut2x2, new Vector4(0.2f, 0.6f, 0, 0), new Vector4(0.46f, 0.54f, 0, 0)],
+        [Clut2x2, new Vector4(0.25f, 0.75f, 0, 0), new Vector4(0.4f, 0.6f, 0, 0)],
+        [Clut2x1, new Vector4(0.25f, 0.75f, 0, 0), new Vector4(0.4f, 0, 0, 0)],
+        [Clut1x2, new Vector4(0.25f, 0, 0, 0), new Vector4(0.125f, 0.625f, 0, 0)],
+        [Clut1x1, new Vector4(0.25f, 0, 0, 0), new Vector4(0.25f, 0, 0, 0)],
+    ];
 }

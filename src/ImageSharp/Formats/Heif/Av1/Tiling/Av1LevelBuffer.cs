@@ -29,6 +29,8 @@ internal sealed class Av1LevelBuffer : IDisposable
 
     public int Stride { get; }
 
+    public int this[Point position] => this.GetRow(position.Y)[position.X];
+
     public void Initialize(Span<int> coefficientBuffer)
     {
         ObjectDisposedException.ThrowIf(this.memory == null, this);

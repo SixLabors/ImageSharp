@@ -94,13 +94,13 @@ internal static class Av1SymbolContextHelper
     /// <summary>
     /// SVT: get_lower_levels_ctx_2d
     /// </summary>
-    internal static int GetLowerLevelsContext2d(Av1LevelBuffer levelBuffer, Point pos, Av1TransformSize transformSize)
+    internal static int GetLowerLevelsContext2d(Av1LevelBuffer levelBuffer, Point position, Av1TransformSize transformSize)
     {
-        DebugGuard.MustBeGreaterThan(pos.X + pos.Y, 0, nameof(pos));
+        DebugGuard.MustBeGreaterThan(position.X + position.Y, 0, nameof(position));
         int mag;
-        Span<byte> row0 = levelBuffer.GetRow(pos.Y);
-        Span<byte> row1 = levelBuffer.GetRow(pos.Y + 1);
-        Span<byte> row2 = levelBuffer.GetRow(pos.Y + 2);
+        Span<byte> row0 = levelBuffer.GetRow(position.Y)[position.X..];
+        Span<byte> row1 = levelBuffer.GetRow(position.Y + 1)[position.X..];
+        Span<byte> row2 = levelBuffer.GetRow(position.Y + 2)[position.X..];
         mag = Math.Min((int)row0[1], 3); // { 0, 1 }
         mag += Math.Min((int)row1[0], 3); // { 1, 0 }
         mag += Math.Min((int)row1[1], 3); // { 1, 1 }
@@ -108,8 +108,7 @@ internal static class Av1SymbolContextHelper
         mag += Math.Min((int)row2[0], 3); // { 2, 0 }
 
         int ctx = Math.Min((mag + 1) >> 1, 4);
-        int index = pos.X + (pos.Y * levelBuffer.Size.Width);
-        return ctx + Av1NzMap.GetNzMapContext(transformSize, index);
+        return ctx + Av1NzMap.GetNzMapContext(transformSize, position);
     }
 
     internal static int GetBaseRangeContextEndOfBlock(Point pos, Av1TransformClass transformClass)
@@ -155,7 +154,7 @@ internal static class Av1SymbolContextHelper
 
                 break;
             case Av1TransformClass.ClassHorizontal:
-                mag += row0[2];
+                mag += row0[position.X + 2];
                 mag = Math.Min((mag + 1) >> 1, 6);
                 if ((position.X + position.Y) == 0)
                 {
@@ -169,7 +168,7 @@ internal static class Av1SymbolContextHelper
 
                 break;
             case Av1TransformClass.ClassVertical:
-                mag += levels.GetRow(position.Y + 2)[0];
+                mag += levels.GetRow(position.Y + 2)[position.X];
                 mag = Math.Min((mag + 1) >> 1, 6);
                 if ((position.X + position.Y) == 0)
                 {
@@ -198,11 +197,11 @@ internal static class Av1SymbolContextHelper
         Span<byte> row0 = levels.GetRow(position.Y);
         Span<byte> row1 = levels.GetRow(position.Y + 1);
         int mag =
-            Math.Min((int)row0[1], Av1Constants.MaxBaseRange) +
-            Math.Min((int)row1[0], Av1Constants.MaxBaseRange) +
-            Math.Min((int)row1[1], Av1Constants.MaxBaseRange);
+            Math.Min((int)row0[position.X + 1], Av1Constants.MaxBaseRange) +
+            Math.Min((int)row1[position.X], Av1Constants.MaxBaseRange) +
+            Math.Min((int)row1[position.X + 1], Av1Constants.MaxBaseRange);
         mag = Math.Min((mag + 1) >> 1, 6);
-        if (position.Y < 2 && position.X < 2)
+        if ((position.Y | position.X) < 2)
         {
             return mag + 7;
         }

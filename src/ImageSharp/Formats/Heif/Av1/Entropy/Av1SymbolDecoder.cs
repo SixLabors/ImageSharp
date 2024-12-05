@@ -371,7 +371,7 @@ internal ref struct Av1SymbolDecoder
         int i = endOfBlock - 1;
         Point position = levels.GetPosition(scan[i]);
         int coefficientContext = Av1SymbolContextHelper.GetLowerLevelContextEndOfBlock(levels, position);
-        int level = this.ReadBaseEndOfBlock(transformSizeContext, planeType, coefficientContext);
+        int level = this.ReadBaseEndOfBlock(transformSizeContext, planeType, coefficientContext) + 1;
         Av1TransformSize limitedTransformSizeContext = (Av1TransformSize)Math.Min((int)transformSizeContext, (int)Av1TransformSize.Size32x32);
         if (level > Av1Constants.BaseLevelsCount)
         {
@@ -397,7 +397,7 @@ internal ref struct Av1SymbolDecoder
         {
             Point position = levels.GetPosition(scan[c]);
             int coefficientContext = Av1SymbolContextHelper.GetLowerLevelsContext2d(levels, position, transformSize);
-            int level = this.ReadCoefficientsBase(coefficientContext, transformSizeContext, planeType);
+            int level = this.ReadCoefficientsBase(transformSizeContext, planeType, coefficientContext);
             if (level > Av1Constants.BaseLevelsCount)
             {
                 int baseRangeContext = Av1SymbolContextHelper.GetBaseRangeContext2d(levels, position);
@@ -424,7 +424,7 @@ internal ref struct Av1SymbolDecoder
             int pos = scan[c];
             Point position = levels.GetPosition(pos);
             int coefficientContext = Av1SymbolContextHelper.GetLowerLevelsContext(levels, position, transformSize, transformClass);
-            int level = this.ReadCoefficientsBase(coefficientContext, transformSizeContext, planeType);
+            int level = this.ReadCoefficientsBase(transformSizeContext, planeType, coefficientContext);
             if (level > Av1Constants.BaseLevelsCount)
             {
                 int baseRangeContext = Av1SymbolContextHelper.GetBaseRangeContext(levels, position, transformClass);
@@ -452,8 +452,8 @@ internal ref struct Av1SymbolDecoder
         for (int c = 0; c < endOfBlock; c++)
         {
             int sign = 0;
-            Point position = levels.GetPosition(scan[c]);
-            int level = levels.GetRow(position)[position.X];
+            Point position = levels.GetPosition(c);
+            int level = levels[position];
             if (level != 0)
             {
                 maxScanLine = Math.Max(maxScanLine, scan[c]);
@@ -521,7 +521,7 @@ internal ref struct Av1SymbolDecoder
         return r.ReadSymbol(this.baseEndOfBlock[(int)transformSizeContext][(int)planeType][coefficientContext]);
     }
 
-    private int ReadCoefficientsBase(int coefficientContext, Av1TransformSize transformSizeContext, Av1PlaneType planeType)
+    private int ReadCoefficientsBase(Av1TransformSize transformSizeContext, Av1PlaneType planeType, int coefficientContext)
     {
         ref Av1SymbolReader r = ref this.reader;
         return r.ReadSymbol(this.coefficientsBase[(int)transformSizeContext][(int)planeType][coefficientContext]);

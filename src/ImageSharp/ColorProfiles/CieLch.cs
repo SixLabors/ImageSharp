@@ -4,6 +4,7 @@
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
 
 namespace SixLabors.ImageSharp.ColorProfiles;
 
@@ -50,7 +51,7 @@ public readonly struct CieLch : IColorProfile<CieLch, CieLab>
 
     /// <summary>
     /// Gets the a chroma component.
-    /// <remarks>A value ranging from 0 to 200.</remarks>
+    /// <remarks>A value ranging from -200 to 200.</remarks>
     /// </summary>
     public float C { get; }
 
@@ -81,6 +82,49 @@ public readonly struct CieLch : IColorProfile<CieLch, CieLab>
     /// </returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool operator !=(CieLch left, CieLch right) => !left.Equals(right);
+
+    /// <inheritdoc/>
+    public Vector4 ToScaledVector4()
+    {
+        Vector3 v3 = default;
+        v3 += this.AsVector3Unsafe();
+        v3 += new Vector3(0, 200, 0);
+        v3 /= new Vector3(100, 400, 360);
+        return new Vector4(v3, 1F);
+    }
+
+    /// <inheritdoc/>
+    public static CieLch FromScaledVector4(Vector4 source)
+    {
+        Vector3 v3 = source.AsVector128().AsVector3();
+        v3 *= new Vector3(100, 400, 360);
+        v3 -= new Vector3(0, 200, 0);
+        return new CieLch(v3);
+    }
+
+    /// <inheritdoc/>
+    public static void ToScaledVector4(ReadOnlySpan<CieLch> source, Span<Vector4> destination)
+    {
+        Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
+
+        // TODO: Optimize via SIMD
+        for (int i = 0; i < source.Length; i++)
+        {
+            destination[i] = source[i].ToScaledVector4();
+        }
+    }
+
+    /// <inheritdoc/>
+    public static void FromScaledVector4(ReadOnlySpan<Vector4> source, Span<CieLch> destination)
+    {
+        Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
+
+        // TODO: Optimize via SIMD
+        for (int i = 0; i < source.Length; i++)
+        {
+            destination[i] = FromScaledVector4(source[i]);
+        }
+    }
 
     /// <inheritdoc/>
     public static CieLch FromProfileConnectingSpace(ColorConversionOptions options, in CieLab source)

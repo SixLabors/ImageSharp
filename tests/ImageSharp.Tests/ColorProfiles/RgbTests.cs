@@ -10,6 +10,7 @@ namespace SixLabors.ImageSharp.Tests.ColorProfiles;
 /// <summary>
 /// Tests the <see cref="Rgb"/> struct.
 /// </summary>
+[Trait("Color", "Conversion")]
 public class RgbTests
 {
     [Fact]

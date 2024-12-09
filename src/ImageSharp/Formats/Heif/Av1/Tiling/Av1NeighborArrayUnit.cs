@@ -49,7 +49,7 @@ internal class Av1NeighborArrayUnit<T>
     public int GetTopLeftIndex(Point loc)
         => this.left.Length + (loc.X >> this.GranularityTopLeftLog2) - (loc.Y >> this.GranularityTopLeftLog2);
 
-    public void UnitModeWrite(Span<T> value, Point origin, Size blockSize, UnitMask mask)
+    public void UnitModeWrite(ReadOnlySpan<T> value, Point origin, Size blockSize, UnitMask mask)
     {
         int idx, j;
 

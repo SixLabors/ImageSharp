@@ -27,9 +27,13 @@ internal class Av1SymbolEncoder : IDisposable
     private readonly Av1Distribution[][][] coefficientsBaseRange;
     private readonly Av1Distribution[][][] coefficientsBase;
     private readonly Av1Distribution[][][] coefficientsBaseEndOfBlock;
+    private readonly Av1Distribution filterIntraMode = Av1DefaultDistributions.FilterIntraMode;
     private readonly Av1Distribution[][] dcSign;
     private readonly Av1Distribution[][][] endOfBlockExtra;
     private readonly Av1Distribution[][][] intraExtendedTransform = Av1DefaultDistributions.IntraExtendedTransform;
+    private readonly Av1Distribution[] segmentId = Av1DefaultDistributions.SegmentId;
+    private readonly Av1Distribution[] skip = Av1DefaultDistributions.Skip;
+    private readonly Av1Distribution[] skipMode = Av1DefaultDistributions.SkipMode;
     private bool isDisposed;
     private readonly Configuration configuration;
     private Av1SymbolWriter writer;
@@ -308,5 +312,29 @@ internal class Av1SymbolEncoder : IDisposable
                 ExtendedTransformIndices[(int)transformSetType][(int)transformType],
                 this.intraExtendedTransform[extendedSet][(int)squareTransformSize][(int)intraMode]);
         }
+    }
+
+    internal void WriteSegmentId(int segmentId, int context)
+    {
+        ref Av1SymbolWriter w = ref this.writer;
+        w.WriteSymbol(segmentId, this.segmentId[context]);
+    }
+
+    internal void WriteSkip(bool skip, int context)
+    {
+        ref Av1SymbolWriter w = ref this.writer;
+        w.WriteSymbol(skip, this.skip[context]);
+    }
+
+    internal void WriteSkipMode(bool skip, int context)
+    {
+        ref Av1SymbolWriter w = ref this.writer;
+        w.WriteSymbol(skip, this.skipMode[context]);
+    }
+
+    internal void WriteFilterIntraMode(Av1FilterIntraMode filterIntraMode)
+    {
+        ref Av1SymbolWriter w = ref this.writer;
+        w.WriteSymbol((int)filterIntraMode, this.filterIntraMode);
     }
 }

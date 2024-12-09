@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
@@ -364,5 +365,95 @@ internal static class Av1SymbolContextHelper
 
         extra = endOfBlock - EndOfBlockGroupStart[t];
         return t;
+    }
+
+    public static int GetSegmentId(Av1PartitionInfo partitionInfo, ObuFrameHeader frameHeader, int[][] segmentIds, int rowIndex, int columnIndex)
+    {
+        int modeInfoOffset = (rowIndex * frameHeader.ModeInfoColumnCount) + columnIndex;
+        int bw4 = partitionInfo.ModeInfo.BlockSize.Get4x4WideCount();
+        int bh4 = partitionInfo.ModeInfo.BlockSize.Get4x4HighCount();
+        int xMin = Math.Min(frameHeader.ModeInfoColumnCount - columnIndex, bw4);
+        int yMin = Math.Min(frameHeader.ModeInfoRowCount - rowIndex, bh4);
+        int segmentId = Av1Constants.MaxSegmentCount - 1;
+        for (int y = 0; y < yMin; y++)
+        {
+            for (int x = 0; x < xMin; x++)
+            {
+                segmentId = Math.Min(segmentId, segmentIds[y][x]);
+            }
+        }
+
+        return segmentId;
+    }
+
+    /// <summary>
+    /// SVT: svt_aom_get_segment_id
+    /// </summary>
+    public static int GetSegmentId(Av1Common cm, ReadOnlySpan<byte> segment_ids, Av1BlockSize bsize, Point modeInfoPosition)
+    {
+        int mi_offset = (modeInfoPosition.Y * cm.ModeInfoColumnCount) + modeInfoPosition.X;
+        int bw = bsize.GetWidth();
+        int bh = bsize.GetHeight();
+        int xmis = Math.Min(cm.ModeInfoColumnCount - modeInfoPosition.X, bw);
+        int ymis = Math.Min(cm.ModeInfoRowCount - modeInfoPosition.Y, bh);
+        int segment_id = Av1Constants.MaxSegmentCount;
+
+        for (int y = 0; y < ymis; ++y)
+        {
+            int offset = mi_offset + (y * cm.ModeInfoColumnCount);
+            for (int x = 0; x < xmis; ++x)
+            {
+                segment_id = Math.Min(segment_id, segment_ids[offset + x]);
+            }
+        }
+
+        Guard.IsTrue(segment_id is >= 0 and < Av1Constants.MaxSegmentCount, nameof(segment_id), "Segment ID needs to be in proper range.");
+        return segment_id;
+    }
+
+    public static int NegativeDeinterleave(int diff, int reference, int max)
+    {
+        if (reference == 0)
+        {
+            return diff;
+        }
+
+        if (reference >= max - 1)
+        {
+            return max - diff - 1;
+        }
+
+        if (2 * reference < max)
+        {
+            if (diff <= 2 * reference)
+            {
+                if ((diff & 1) > 0)
+                {
+                    return reference + ((diff + 1) >> 1);
+                }
+                else
+                {
+                    return reference - (diff >> 1);
+                }
+            }
+
+            return diff;
+        }
+        else
+        {
+            if (diff <= 2 * (max - reference - 1))
+            {
+                if ((diff & 1) > 0)
+                {
+                    return reference + ((diff + 1) >> 1);
+                }
+                else
+                {
+                    return reference - (diff >> 1);
+                }
+            }
+
+            return max - (diff + 1);
+        }
     }
 }

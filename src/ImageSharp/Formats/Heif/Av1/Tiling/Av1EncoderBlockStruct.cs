@@ -3,14 +3,19 @@
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 
-internal partial class Av1TileWriter
+internal class Av1EncoderBlockStruct
 {
-    internal class Av1EncoderBlockStruct
-    {
-        public required Av1MacroBlockD MacroBlock { get; internal set; }
+    public Av1TransformUnit[] TransformBlocks { get; } = new Av1TransformUnit[Av1Constants.MaxTransformUnitCount];
 
-        public required int[] PaletteSize { get; internal set; }
+    public required Av1MacroBlockD MacroBlock { get; set; }
 
-        public int QIndex { get; internal set; }
-    }
+    public int ModeDecisionScanIndex { get; set; }
+
+    public int QuantizationIndex { get; set; }
+
+    public int SegmentId { get; set; }
+
+    public Av1FilterIntraMode FilterIntraMode { get; set; }
+
+    public required int[] PaletteSize { get; internal set; }
 }

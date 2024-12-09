@@ -1153,17 +1153,17 @@ internal class Av1TileReader : IAv1TileReader
         int rowIndex = partitionInfo.RowIndex;
         if (partitionInfo.AvailableAbove && partitionInfo.AvailableLeft)
         {
-            prevUL = this.GetSegmentId(partitionInfo, rowIndex - 1, columnIndex - 1);
+            prevUL = Av1SymbolContextHelper.GetSegmentId(partitionInfo, this.FrameHeader, this.segmentIds, rowIndex - 1, columnIndex - 1);
         }
 
         if (partitionInfo.AvailableAbove)
         {
-            prevU = this.GetSegmentId(partitionInfo, rowIndex - 1, columnIndex);
+            prevU = Av1SymbolContextHelper.GetSegmentId(partitionInfo, this.FrameHeader, this.segmentIds, rowIndex - 1, columnIndex);
         }
 
         if (partitionInfo.AvailableLeft)
         {
-            prevU = this.GetSegmentId(partitionInfo, rowIndex, columnIndex - 1);
+            prevU = Av1SymbolContextHelper.GetSegmentId(partitionInfo, this.FrameHeader, this.segmentIds, rowIndex, columnIndex - 1);
         }
 
         if (prevU == -1)
@@ -1189,72 +1189,7 @@ internal class Av1TileReader : IAv1TileReader
                 : prevUL == prevU && prevUL == prevL ? 2
                 : prevUL == prevU || prevUL == prevL || prevU == prevL ? 1 : 0;
             int lastActiveSegmentId = this.FrameHeader.SegmentationParameters.LastActiveSegmentId;
-            partitionInfo.ModeInfo.SegmentId = NegativeDeinterleave(reader.ReadSegmentId(ctx), predictor, lastActiveSegmentId + 1);
-        }
-    }
-
-    private int GetSegmentId(Av1PartitionInfo partitionInfo, int rowIndex, int columnIndex)
-    {
-        int modeInfoOffset = (rowIndex * this.FrameHeader.ModeInfoColumnCount) + columnIndex;
-        int bw4 = partitionInfo.ModeInfo.BlockSize.Get4x4WideCount();
-        int bh4 = partitionInfo.ModeInfo.BlockSize.Get4x4HighCount();
-        int xMin = Math.Min(this.FrameHeader.ModeInfoColumnCount - columnIndex, bw4);
-        int yMin = Math.Min(this.FrameHeader.ModeInfoRowCount - rowIndex, bh4);
-        int segmentId = Av1Constants.MaxSegmentCount - 1;
-        for (int y = 0; y < yMin; y++)
-        {
-            for (int x = 0; x < xMin; x++)
-            {
-                segmentId = Math.Min(segmentId, this.segmentIds[y][x]);
-            }
-        }
-
-        return segmentId;
-    }
-
-    private static int NegativeDeinterleave(int diff, int reference, int max)
-    {
-        if (reference == 0)
-        {
-            return diff;
-        }
-
-        if (reference >= max - 1)
-        {
-            return max - diff - 1;
-        }
-
-        if (2 * reference < max)
-        {
-            if (diff <= 2 * reference)
-            {
-                if ((diff & 1) > 0)
-                {
-                    return reference + ((diff + 1) >> 1);
-                }
-                else
-                {
-                    return reference - (diff >> 1);
-                }
-            }
-
-            return diff;
-        }
-        else
-        {
-            if (diff <= 2 * (max - reference - 1))
-            {
-                if ((diff & 1) > 0)
-                {
-                    return reference + ((diff + 1) >> 1);
-                }
-                else
-                {
-                    return reference - (diff >> 1);
-                }
-            }
-
-            return max - (diff + 1);
+            partitionInfo.ModeInfo.SegmentId = Av1SymbolContextHelper.NegativeDeinterleave(reader.ReadSegmentId(ctx), predictor, lastActiveSegmentId + 1);
         }
     }
 

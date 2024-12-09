@@ -119,7 +119,17 @@ internal static class Av1DefaultDistributions
             new(711, 966, 1172, 32448, 32538, 32617, 32664)
         ];
 
+    /// <summary>
+    /// Gets the skip <see cref="Av1Distribution"/>.
+    /// </summary>
+    /// <remarks>SVT: default_skip_cdfs</remarks>
     public static Av1Distribution[] Skip => [new(31671), new(16515), new(4576)];
+
+    /// <summary>
+    /// Gets the skip mode <see cref="Av1Distribution"/>.
+    /// </summary>
+    /// <remarks>SVT: default_skip_mode_cdfs</remarks>
+    public static Av1Distribution[] SkipMode => [new(32621), new(20708), new(8127)];
 
     public static Av1Distribution DeltaLoopFilterAbsolute => new(28160, 32120, 32677);
 

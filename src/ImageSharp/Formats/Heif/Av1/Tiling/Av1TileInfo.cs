@@ -13,6 +13,15 @@ internal class Av1TileInfo
         this.SetTileColumn(frameHeader.TilesInfo, frameHeader.ModeInfoColumnCount, column);
     }
 
+    public Av1TileInfo(Av1TileInfo tileInfo)
+    {
+        this.ModeInfoColumnStart = tileInfo.ModeInfoColumnStart;
+        this.ModeInfoColumnEnd = tileInfo.ModeInfoColumnEnd;
+        this.ModeInfoRowStart = tileInfo.ModeInfoRowStart;
+        this.ModeInfoRowEnd = tileInfo.ModeInfoRowEnd;
+        this.TileIndex = tileInfo.TileIndex;
+    }
+
     public int ModeInfoRowStart { get; private set; }
 
     public int ModeInfoRowEnd { get; private set; }

@@ -26,6 +26,7 @@ internal ref struct Av1SymbolDecoder
     private readonly Av1Distribution[][] keyFrameYMode = Av1DefaultDistributions.KeyFrameYMode;
     private readonly Av1Distribution[][] uvMode = Av1DefaultDistributions.UvMode;
     private readonly Av1Distribution[] skip = Av1DefaultDistributions.Skip;
+    private readonly Av1Distribution[] skipMode = Av1DefaultDistributions.SkipMode;
     private readonly Av1Distribution deltaLoopFilterAbsolute = Av1DefaultDistributions.DeltaLoopFilterAbsolute;
     private readonly Av1Distribution deltaQuantizerAbsolute = Av1DefaultDistributions.DeltaQuantizerAbsolute;
     private readonly Av1Distribution[] segmentId = Av1DefaultDistributions.SegmentId;
@@ -130,6 +131,12 @@ internal ref struct Av1SymbolDecoder
     {
         ref Av1SymbolReader r = ref this.reader;
         return r.ReadSymbol(this.skip[ctx]) > 0;
+    }
+
+    public bool ReadSkipMode(Av1BlockSize blockSize)
+    {
+        ref Av1SymbolReader r = ref this.reader;
+        return r.ReadSymbol(this.skipMode[(int)blockSize]) > 0;
     }
 
     public int ReadDeltaLoopFilterAbsolute()

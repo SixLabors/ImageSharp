@@ -18,4 +18,6 @@ internal class Av1PictureParentControlSet
     public int AlignedWidth { get; internal set; }
 
     public int AlignedHeight { get; internal set; }
+
+    public required Av1SuperblockGeometry[] SuperblockGeometry { get; internal set; }
 }

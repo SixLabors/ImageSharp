@@ -5,7 +5,7 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 
-internal class Av1BlockModeInfoEncoder
+internal class Av1EncoderBlockModeInfo
 {
     public Av1BlockSize BlockSize { get; }
 

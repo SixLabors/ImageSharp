@@ -389,7 +389,7 @@ internal static class Av1SymbolContextHelper
     /// <summary>
     /// SVT: svt_aom_get_segment_id
     /// </summary>
-    public static int GetSegmentId(Av1Common cm, ReadOnlySpan<byte> segment_ids, Av1BlockSize bsize, Point modeInfoPosition)
+    public static int GetSegmentId(Av1EncoderCommon cm, ReadOnlySpan<byte> segment_ids, Av1BlockSize bsize, Point modeInfoPosition)
     {
         int mi_offset = (modeInfoPosition.Y * cm.ModeInfoColumnCount) + modeInfoPosition.X;
         int bw = bsize.GetWidth();

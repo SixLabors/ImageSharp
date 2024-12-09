@@ -5,7 +5,7 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 
 internal class Av1MacroBlockModeInfo
 {
-    public required Av1BlockModeInfoEncoder Block { get; internal set; }
+    public required Av1EncoderBlockModeInfo Block { get; internal set; }
 
     public required Av1PaletteLumaModeInfo Palette { get; internal set; }
 

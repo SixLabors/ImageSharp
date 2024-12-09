@@ -28,7 +28,7 @@ internal class Av1PictureControlSet
     /// </summary>
     internal void UpdateSegmentation(Av1BlockSize blockSize, Point origin, int segmentId)
     {
-        Av1Common cm = this.Parent.Common;
+        Av1EncoderCommon cm = this.Parent.Common;
         Span<byte> segment_ids = this.SegmentationNeighborMap;
         int mi_col = origin.X >> Av1Constants.ModeInfoSizeLog2;
         int mi_row = origin.Y >> Av1Constants.ModeInfoSizeLog2;

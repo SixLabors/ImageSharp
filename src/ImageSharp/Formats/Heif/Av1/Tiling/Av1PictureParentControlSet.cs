@@ -7,7 +7,7 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 
 internal class Av1PictureParentControlSet
 {
-    public required Av1Common Common { get; internal set; }
+    public required Av1EncoderCommon Common { get; internal set; }
 
     public required ObuFrameHeader FrameHeader { get; internal set; }
 

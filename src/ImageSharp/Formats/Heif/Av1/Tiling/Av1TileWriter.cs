@@ -55,7 +55,7 @@ internal partial class Av1TileWriter
             {
                 int hbs = bsize.Get4x4WideCount() >> 1;
                 int quarter_step = bsize.Get4x4WideCount() >> 2;
-                Av1Common cm = pcs.Parent.Common;
+                Av1EncoderCommon cm = pcs.Parent.Common;
                 int mi_row = blockOrigin.Y >> Av1Constants.ModeInfoSizeLog2;
                 int mi_col = blockOrigin.X >> Av1Constants.ModeInfoSizeLog2;
 
@@ -293,7 +293,7 @@ internal partial class Av1TileWriter
         Guard.IsTrue(blockSize.Get4x4WidthLog2() == blockSize.Get4x4HeightLog2(), nameof(blockSize), "Blocks need to be square.");
         Guard.IsTrue(blockSizeLog2 >= 0, nameof(blockSizeLog2), "bsl needs to be a positive integer.");
 
-        context_index = ((left * 2) + above) + blockSizeLog2 * Av1Constants.PartitionProbabilitySet;
+        context_index = ((left * 2) + above) + (blockSizeLog2 * Av1Constants.PartitionProbabilitySet);
 
         if (!has_rows && !has_cols)
         {
@@ -414,7 +414,7 @@ internal partial class Av1TileWriter
                 tile_idx,
                 blk_ptr.MacroBlock,
                 skipWritingCoefficients,
-                blockOrigin / (1 << Av1Constants.ModeInfoSizeLog2));
+                blockOrigin << Av1Constants.ModeInfoSizeLog2);
 
             if (pcs.Parent.FrameHeader.DeltaQParameters.IsPresent)
             {
@@ -467,8 +467,7 @@ internal partial class Av1TileWriter
                     macroBlockModeInfo,
                     blk_ptr,
                     blockGeometry.BlockSize,
-                    blockOrigin.Y >> Av1Constants.ModeInfoSizeLog2,
-                    blockOrigin.X >> Av1Constants.ModeInfoSizeLog2);
+                    blockOrigin >> Av1Constants.ModeInfoSizeLog2);
             }
 
             if (!macroBlockModeInfo.Block.UseIntraBlockCopy &&
@@ -728,7 +727,7 @@ internal partial class Av1TileWriter
                     pcs,
                     Av1ComponentType.Chroma,
                     cb_dc_sign_level_coeff_na,
-                    RoundUv(blockOrigin + (Size)transformOrigin - (Size)blockGeometry.Origin) / 2,
+                    RoundUv(blockOrigin + (Size)transformOrigin - (Size)blockGeometry.Origin) >> 1,
                     blockGeometry.BlockSizeUv,
                     chroma_tx_size,
                     blockContext);
@@ -754,7 +753,7 @@ internal partial class Av1TileWriter
                     pcs,
                     Av1ComponentType.Chroma,
                     cr_dc_sign_level_coeff_na,
-                    RoundUv(blockOrigin + (Size)transformOrigin - (Size)blockGeometry.Origin) / 2,
+                    RoundUv(blockOrigin + (Size)transformOrigin - (Size)blockGeometry.Origin) >> 1,
                     blockGeometry.BlockSizeUv,
                     chroma_tx_size,
                     blockContext);
@@ -775,7 +774,7 @@ internal partial class Av1TileWriter
                 ReadOnlySpan<byte> dc_sign_level_coeff = MemoryMarshal.AsBytes(culLevelCbSpan);
                 cb_dc_sign_level_coeff_na.UnitModeWrite(
                     dc_sign_level_coeff,
-                    RoundUv(transformOrigin) / 2,
+                    RoundUv(transformOrigin) >> 1,
                     new Size(transformWidth, transformHeight),
                     Av1NeighborArrayUnit<byte>.UnitMask.Top | Av1NeighborArrayUnit<byte>.UnitMask.Left);
 
@@ -784,7 +783,7 @@ internal partial class Av1TileWriter
                 dc_sign_level_coeff = MemoryMarshal.AsBytes(culLevelCrSpan);
                 cr_dc_sign_level_coeff_na.UnitModeWrite(
                     dc_sign_level_coeff,
-                    RoundUv(transformOrigin) / 2,
+                    RoundUv(transformOrigin) >> 1,
                     new Size(transformWidth, transformHeight),
                     Av1NeighborArrayUnit<byte>.UnitMask.Top | Av1NeighborArrayUnit<byte>.UnitMask.Left);
             }
@@ -793,7 +792,7 @@ internal partial class Av1TileWriter
         }
     }
 
-    private static Point RoundUv(Point point) => throw new NotImplementedException();
+    private static Point RoundUv(Point point) => (point >> 3) << 3;
 
     /// <summary>
     /// SVT: svt_aom_get_txb_ctx
@@ -984,7 +983,7 @@ internal partial class Av1TileWriter
         int mi_row = blockOrigin.Y >> Av1Constants.ModeInfoSizeLog2;
         bool left_available = xd.IsLeftAvailable;
         bool up_available = xd.IsUpAvailable;
-        Av1Common cm = pcs.Parent.Common;
+        Av1EncoderCommon cm = pcs.Parent.Common;
         Span<byte> segmentation_map = pcs.SegmentationNeighborMap;
 
         if (up_available && left_available)
@@ -1003,7 +1002,8 @@ internal partial class Av1TileWriter
         }
 
         // Pick CDF index based on number of matching/out-of-bounds segment IDs.
-        if (prev_ul < 0 || prev_u < 0 || prev_l < 0) /* Edge case */
+        // Edge case
+        if (prev_ul < 0 || prev_u < 0 || prev_l < 0)
         {
             cdf_index = 0;
         }
@@ -1021,12 +1021,14 @@ internal partial class Av1TileWriter
         }
 
         // If 2 or more are identical returns that as predictor, otherwise prev_l.
-        if (prev_u == -1) // edge case
+        // edge case
+        if (prev_u == -1)
         {
             return prev_l == -1 ? 0 : prev_l;
         }
 
-        if (prev_l == -1) // edge case
+        // edge case
+        if (prev_l == -1)
         {
             return prev_u;
         }

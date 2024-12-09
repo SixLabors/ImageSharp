@@ -5,7 +5,7 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 
-internal class Av1Common
+internal class Av1EncoderCommon
 {
     public int ModeInfoRowCount { get; internal set; }
 

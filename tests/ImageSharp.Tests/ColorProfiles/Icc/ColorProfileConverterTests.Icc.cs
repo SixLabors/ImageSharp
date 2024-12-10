@@ -3,6 +3,7 @@
 
 using System.Numerics;
 using SixLabors.ImageSharp.ColorProfiles;
+using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using Wacton.Unicolour;
 using Wacton.Unicolour.Icc;
 using Rgb = SixLabors.ImageSharp.ColorProfiles.Rgb;
@@ -12,20 +13,21 @@ namespace SixLabors.ImageSharp.Tests.ColorProfiles.Icc;
 public class ColorProfileConverterTests
 {
     [Theory]
-    [InlineData(TestIccProfiles.Fogra39, TestIccProfiles.Fogra39, IccConversion.CmykToCmyk)] // CMYK -> LAB -> CMYK (commonly used v2 profiles)
-    [InlineData(TestIccProfiles.Fogra39, TestIccProfiles.Swop2006, IccConversion.CmykToCmyk)] // CMYK -> LAB -> CMYK (commonly used v2 profiles)
-    [InlineData(TestIccProfiles.Swop2006, TestIccProfiles.Fogra39, IccConversion.CmykToCmyk)] // CMYK -> LAB -> CMYK (commonly used v2 profiles)
-    [InlineData(TestIccProfiles.Swop2006, TestIccProfiles.Swop2006, IccConversion.CmykToCmyk)] // CMYK -> LAB -> CMYK (commonly used v2 profiles)
-    [InlineData(TestIccProfiles.Fogra39, TestIccProfiles.JapanColor2011, IccConversion.CmykToCmyk)] // CMYK -> LAB -> CMYK (different bit depth v2 LUTs, 16-bit vs 8-bit)
-    [InlineData(TestIccProfiles.JapanColor2011, TestIccProfiles.Fogra39, IccConversion.CmykToCmyk)] // CMYK -> LAB -> CMYK (different bit depth v2 LUTs, 8-bit vs 16-bit)
-    [InlineData(TestIccProfiles.Fogra39, TestIccProfiles.Cgats21, IccConversion.CmykToCmyk)] // CMYK -> LAB -> CMYK (different LUT versions, v2 vs v4)
-    [InlineData(TestIccProfiles.Fogra39, TestIccProfiles.StandardRgbV4, IccConversion.CmykToRgb)] // CMYK -> LAB -> RGB (different LUT versions, v2 vs v4)
-    [InlineData(TestIccProfiles.StandardRgbV4, TestIccProfiles.Fogra39, IccConversion.RgbToCmyk)] // RGB -> LAB -> CMYK (different LUT versions, v4 vs v2)
-    [InlineData(TestIccProfiles.StandardRgbV4, TestIccProfiles.RommRgb, IccConversion.RgbToRgb)] // RGB -> LAB -> XYZ -> RGB (different LUT elements, B-Matrix-M-CLUT-A vs B-Matrix-M)
+    [InlineData(TestIccProfiles.Fogra39, TestIccProfiles.Fogra39)] // CMYK -> LAB -> CMYK (commonly used v2 profiles)
+    [InlineData(TestIccProfiles.Fogra39, TestIccProfiles.Swop2006)] // CMYK -> LAB -> CMYK (commonly used v2 profiles)
+    [InlineData(TestIccProfiles.Swop2006, TestIccProfiles.Fogra39)] // CMYK -> LAB -> CMYK (commonly used v2 profiles)
+    [InlineData(TestIccProfiles.Swop2006, TestIccProfiles.Swop2006)] // CMYK -> LAB -> CMYK (commonly used v2 profiles)
+    [InlineData(TestIccProfiles.Fogra39, TestIccProfiles.JapanColor2011)] // CMYK -> LAB -> CMYK (different bit depth v2 LUTs, 16-bit vs 8-bit)
+    [InlineData(TestIccProfiles.JapanColor2011, TestIccProfiles.Fogra39)] // CMYK -> LAB -> CMYK (different bit depth v2 LUTs, 8-bit vs 16-bit)
+    [InlineData(TestIccProfiles.Fogra39, TestIccProfiles.Cgats21)] // CMYK -> LAB -> CMYK (different LUT versions, v2 vs v4)
+    [InlineData(TestIccProfiles.Fogra39, TestIccProfiles.StandardRgbV4)] // CMYK -> LAB -> RGB (different LUT versions, v2 vs v4)
+    [InlineData(TestIccProfiles.StandardRgbV4, TestIccProfiles.Fogra39)] // RGB -> LAB -> CMYK (different LUT versions, v4 vs v2)
+    [InlineData(TestIccProfiles.StandardRgbV4, TestIccProfiles.RommRgb)] // RGB -> LAB -> XYZ -> RGB (different LUT elements, B-Matrix-M-CLUT-A vs B-Matrix-M)
+    [InlineData(TestIccProfiles.RommRgb, TestIccProfiles.StandardRgbV4)] // RGB -> XYZ -> LAB -> RGB (different LUT elements, B-Matrix-M vs B-Matrix-M-CLUT-A)
     // TODO: enable once supported by Unicolour - in the meantime, manually test known values
-    // [InlineData(TestIccProfiles.Fogra39, TestIccProfiles.StandardRgbV2, IccConversion.CmykToRgb)] // CMYK -> XYZ -> LAB -> RGB (different LUT tags, A2B vs TRC)
-    // [InlineData(TestIccProfiles.StandardRgbV2, TestIccProfiles.Fogra39, IccConversion.RgbToCmyk)] // RGB -> XYZ -> LAB -> CMYK (different LUT tags, TRC vs A2B)
-    public void CanConvertCmykIccProfiles(string sourceProfile, string targetProfile, IccConversion iccConversion)
+    // [InlineData(TestIccProfiles.Fogra39, TestIccProfiles.StandardRgbV2)] // CMYK -> XYZ -> LAB -> RGB (different LUT tags, A2B vs TRC)
+    // [InlineData(TestIccProfiles.StandardRgbV2, TestIccProfiles.Fogra39)] // RGB -> XYZ -> LAB -> CMYK (different LUT tags, TRC vs A2B)
+    public void CanConvertCmykIccProfiles(string sourceProfile, string targetProfile)
     {
         // TODO: delete after testing
         float[] input = [0.734798908f, 0.887050927f, 0.476583719f, 0.547810674f];
@@ -38,13 +40,19 @@ public class ColorProfileConverterTests
             TargetIccProfile = TestIccProfiles.GetProfile(targetProfile)
         });
 
-        Vector4 actualTargetValues = iccConversion switch
+        IccColorSpaceType sourceDataSpace = converter.Options.SourceIccProfile!.Header.DataColorSpace;
+        IccColorSpaceType targetDataSpace = converter.Options.TargetIccProfile!.Header.DataColorSpace;
+        Vector4 actualTargetValues = sourceDataSpace switch
         {
-            IccConversion.CmykToCmyk => converter.Convert<Cmyk, Cmyk>(new Cmyk(new Vector4(input))).ToScaledVector4(),
-            IccConversion.CmykToRgb => converter.Convert<Cmyk, Rgb>(new Cmyk(new Vector4(input))).ToScaledVector4(),
-            IccConversion.RgbToCmyk => converter.Convert<Rgb, Cmyk>(new Rgb(new Vector3(input))).ToScaledVector4(),
-            IccConversion.RgbToRgb => converter.Convert<Rgb, Rgb>(new Rgb(new Vector3(input))).ToScaledVector4(),
-            _ => throw new ArgumentOutOfRangeException(nameof(iccConversion), iccConversion, null)
+            IccColorSpaceType.Cmyk when targetDataSpace == IccColorSpaceType.Cmyk
+                => converter.Convert<Cmyk, Cmyk>(new Cmyk(new Vector4(input))).ToScaledVector4(),
+            IccColorSpaceType.Cmyk when targetDataSpace == IccColorSpaceType.Rgb
+                => converter.Convert<Cmyk, Rgb>(new Cmyk(new Vector4(input))).ToScaledVector4(),
+            IccColorSpaceType.Rgb when targetDataSpace == IccColorSpaceType.Cmyk
+                => converter.Convert<Rgb, Cmyk>(new Rgb(new Vector3(input))).ToScaledVector4(),
+            IccColorSpaceType.Rgb when targetDataSpace == IccColorSpaceType.Rgb
+                => converter.Convert<Rgb, Rgb>(new Rgb(new Vector3(input))).ToScaledVector4(),
+            _ => throw new ArgumentOutOfRangeException("Unexpected ICC profile data colour spaces")
         };
 
         const double tolerance = 0.000005;
@@ -81,13 +89,5 @@ public class ColorProfileConverterTests
         // is inclusive at the upper bound while retaining precision.
         // Clamp the result between 0 and 1 to ensure it does not exceed the bounds.
         return value == 0 ? 0F : Math.Clamp((float)value + 0.0000001F, 0, 1);
-    }
-
-    public enum IccConversion
-    {
-        CmykToCmyk,
-        CmykToRgb,
-        RgbToCmyk,
-        RgbToRgb
     }
 }

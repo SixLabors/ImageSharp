@@ -63,8 +63,7 @@ internal static class ColorProfileConverterExtensionsIcc
                 xyz = pcsConverter.Convert<CieLab, CieXyz>(in lab);
                 break;
             case IccColorSpaceType.CieXyz:
-                xyz = new CieXyz(sourcePcs[0], sourcePcs[1], sourcePcs[2]);
-                xyz = pcsConverter.Convert<CieXyz, CieXyz>(in xyz);
+                xyz = CieXyz.FromScaledVector4(sourcePcs);
                 break;
             default:
                 throw new ArgumentOutOfRangeException($"Source PCS {sourcePcsType} not supported");
@@ -113,11 +112,15 @@ internal static class ColorProfileConverterExtensionsIcc
                 {
                     targetPcs = LabToLabV2(targetPcs);
                 }
+                else if (targetConverter.Is16BitLutEntry)
+                {
+                    // TODO: find a way to test? needs a non-perceptual-intent v2 profile with 8-bit LUT...
+                    targetPcs = LabToLabV2(targetPcs);
+                }
 
                 break;
             case IccColorSpaceType.CieXyz:
-                CieXyz targetXyz = pcsConverter.Convert<CieXyz, CieXyz>(in xyz);
-                targetPcs = targetXyz.ToScaledVector4();
+                targetPcs = xyz.ToScaledVector4();
                 break;
             default:
                 throw new ArgumentOutOfRangeException($"Target PCS {targetPcsType} not supported");

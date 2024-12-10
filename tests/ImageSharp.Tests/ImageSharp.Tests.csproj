@@ -32,11 +32,8 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>PixelOperationsTests.Specialized.Generated.tt</DependentUpon>
     </None>
-    <None Update="TestDataIcc\Profiles\Coated_Fogra39L_VIGC_300.icc">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="TestDataIcc\Profiles\SWOP2006_Coated5v2.icc">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    <None Update="TestDataIcc\Profiles\*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
 

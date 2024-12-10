@@ -7,6 +7,7 @@ using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.Metadata.Profiles.Iptc;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Tests.TestDataIcc;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Jpg;
 
@@ -77,7 +78,7 @@ public partial class JpegEncoderTests
     {
         // arrange
         using Image<Rgba32> input = new(1, 1);
-        input.Metadata.IccProfile = new IccProfile(IccTestDataProfiles.Profile_Random_Array);
+        input.Metadata.IccProfile = new IccProfile(IccTestDataProfiles.ProfileRandomArray);
 
         // act
         using MemoryStream memStream = new();

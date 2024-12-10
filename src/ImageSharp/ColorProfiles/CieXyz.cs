@@ -4,6 +4,7 @@
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
 
 namespace SixLabors.ImageSharp.ColorProfiles;
 
@@ -87,6 +88,47 @@ public readonly struct CieXyz : IProfileConnectingSpace<CieXyz, CieXyz>
     /// <returns>The <see cref="Vector3"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Vector3 ToVector3() => new(this.X, this.Y, this.Z);
+
+    /// <inheritdoc/>
+    public Vector4 ToScaledVector4()
+    {
+        Vector3 v3 = default;
+        v3 += this.AsVector3Unsafe();
+        v3 *= 32768F / 65535;
+        return new Vector4(v3, 1F);
+    }
+
+    /// <inheritdoc/>
+    public static CieXyz FromScaledVector4(Vector4 source)
+    {
+        Vector3 v3 = source.AsVector128().AsVector3();
+        v3 *= 65535 / 32768F;
+        return new CieXyz(v3);
+    }
+
+    /// <inheritdoc/>
+    public static void ToScaledVector4(ReadOnlySpan<CieXyz> source, Span<Vector4> destination)
+    {
+        Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
+
+        // TODO: Optimize via SIMD
+        for (int i = 0; i < source.Length; i++)
+        {
+            destination[i] = source[i].ToScaledVector4();
+        }
+    }
+
+    /// <inheritdoc/>
+    public static void FromScaledVector4(ReadOnlySpan<Vector4> source, Span<CieXyz> destination)
+    {
+        Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
+
+        // TODO: Optimize via SIMD
+        for (int i = 0; i < source.Length; i++)
+        {
+            destination[i] = FromScaledVector4(source[i]);
+        }
+    }
 
     /// <inheritdoc/>
     public static CieXyz FromProfileConnectingSpace(ColorConversionOptions options, in CieXyz source)

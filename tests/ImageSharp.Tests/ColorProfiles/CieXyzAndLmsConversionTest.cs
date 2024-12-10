@@ -11,6 +11,7 @@ namespace SixLabors.ImageSharp.Tests.ColorProfiles;
 /// <remarks>
 /// Test data generated using original colorful library.
 /// </remarks>
+[Trait("Color", "Conversion")]
 public class CieXyzAndLmsConversionTest
 {
     private static readonly ApproximateColorProfileComparer Comparer = new(.0001f);

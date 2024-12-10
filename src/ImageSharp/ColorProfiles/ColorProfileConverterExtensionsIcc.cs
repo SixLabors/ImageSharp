@@ -5,6 +5,7 @@ using System.Buffers;
 using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.Intrinsics;
 using SixLabors.ImageSharp.ColorProfiles.Icc;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
@@ -33,64 +34,103 @@ internal static class ColorProfileConverterExtensionsIcc
             MemoryAllocator = converter.Options.MemoryAllocator,
 
             // TODO: Double check this but I think these are normalized values.
-            SourceWhitePoint = CieXyz.FromScaledVector4(new(converter.Options.SourceIccProfile.Header.PcsIlluminant, 1F)),
-            TargetWhitePoint = CieXyz.FromScaledVector4(new(converter.Options.TargetIccProfile.Header.PcsIlluminant, 1F)),
+            SourceWhitePoint = new CieXyz(converter.Options.SourceIccProfile.Header.PcsIlluminant),
+            TargetWhitePoint = new CieXyz(converter.Options.TargetIccProfile.Header.PcsIlluminant),
         });
 
         IccDataToPcsConverter sourceConverter = new(converter.Options.SourceIccProfile);
         IccPcsToDataConverter targetConverter = new(converter.Options.TargetIccProfile);
-        IccColorSpaceType sourcePcsType = converter.Options.SourceIccProfile.Header.ProfileConnectionSpace;
-        IccColorSpaceType targetPcsType = converter.Options.TargetIccProfile.Header.ProfileConnectionSpace;
-        IccVersion sourceVersion = converter.Options.SourceIccProfile.Header.Version;
-        IccVersion targetVersion = converter.Options.TargetIccProfile.Header.Version;
+        IccProfileHeader sourceHeader = converter.Options.SourceIccProfile.Header;
+        IccProfileHeader targetHeader = converter.Options.TargetIccProfile.Header;
+        IccColorSpaceType sourcePcsType = sourceHeader.ProfileConnectionSpace;
+        IccColorSpaceType targetPcsType = targetHeader.ProfileConnectionSpace;
+        IccRenderingIntent sourceIntent = sourceHeader.RenderingIntent;
+        IccRenderingIntent targetIntent = targetHeader.RenderingIntent;
+        IccVersion sourceVersion = sourceHeader.Version;
+        IccVersion targetVersion = targetHeader.Version;
 
-        Vector4 pcs = sourceConverter.Calculate(source.ToScaledVector4());
+        // all conversions are funnelled through XYZ in case PCS adjustments need to be made
+        CieXyz xyz;
 
-        // Profile connecting spaces can only be Lab, XYZ.
-        if (sourcePcsType is IccColorSpaceType.CieLab && targetPcsType is IccColorSpaceType.CieXyz)
+        Vector4 sourcePcs = sourceConverter.Calculate(source.ToScaledVector4());
+        switch (sourcePcsType)
         {
-            // Convert from Lab to XYZ.
-            CieLab lab = CieLab.FromScaledVector4(pcs);
-            CieXyz xyz = pcsConverter.Convert<CieLab, CieXyz>(in lab);
-            pcs = xyz.ToScaledVector4();
+            case IccColorSpaceType.CieLab:
+                if (sourceConverter.Is16BitLutEntry)
+                {
+                    sourcePcs = LabV2ToLab(sourcePcs);
+                }
+
+                CieLab lab = CieLab.FromScaledVector4(sourcePcs);
+                xyz = pcsConverter.Convert<CieLab, CieXyz>(in lab);
+                break;
+            case IccColorSpaceType.CieXyz:
+                xyz = new CieXyz(sourcePcs[0], sourcePcs[1], sourcePcs[2]);
+                xyz = pcsConverter.Convert<CieXyz, CieXyz>(in xyz);
+                break;
+            default:
+                throw new ArgumentOutOfRangeException($"Source PCS {sourcePcsType} not supported");
         }
-        else if (sourcePcsType is IccColorSpaceType.CieXyz && targetPcsType is IccColorSpaceType.CieLab)
+
+        // TODO: handle PCS adjustment for absolute intent?
+        // TODO: or throw unsupported error, since most profiles headers contain perceptual (i've encountered a couple of relative, but so far no saturation or absolute)
+        bool adjustSourcePcsForPerceptual = sourceIntent == IccRenderingIntent.Perceptual && sourceVersion.Major == 2;
+        bool adjustTargetPcsForPerceptual = targetIntent == IccRenderingIntent.Perceptual && targetVersion.Major == 2;
+
+        // if both profiles need PCS adjustment, they both share the same unadjusted PCS space
+        // effectively cancelling out the need to make the adjustment
+        bool adjustPcsForPerceptual = adjustSourcePcsForPerceptual ^ adjustTargetPcsForPerceptual;
+        if (adjustPcsForPerceptual)
         {
-            // Convert from XYZ to Lab.
-            CieXyz xyz = CieXyz.FromScaledVector4(pcs);
-            CieLab lab = pcsConverter.Convert<CieXyz, CieLab>(in xyz);
-            pcs = lab.ToScaledVector4();
-        }
-        else if (sourcePcsType is IccColorSpaceType.CieXyz && targetPcsType is IccColorSpaceType.CieXyz)
-        {
-            // Convert from XYZ to XYZ.
-            CieXyz xyz = CieXyz.FromScaledVector4(pcs);
-            CieXyz targetXyz = pcsConverter.Convert<CieXyz, CieXyz>(in xyz);
-            pcs = targetXyz.ToScaledVector4();
-        }
-        else if (sourcePcsType is IccColorSpaceType.CieLab && targetPcsType is IccColorSpaceType.CieLab)
-        {
-            // Convert from Lab to Lab.
-            if (sourceVersion.Major == 4 && targetVersion.Major == 2)
+            // as per DemoIccMAX icPerceptual values in IccCmm.h
+            CieXyz refBlack = new(0.00336F, 0.0034731F, 0.00287F);
+            CieXyz refWhite = new(0.9642F, 1.0000F, 0.8249F);
+
+            if (adjustSourcePcsForPerceptual)
             {
-                // Convert from Lab v4 to Lab v2.
-                pcs = LabToLabV2(pcs);
-            }
-            else if (sourceVersion.Major == 2 && targetVersion.Major == 4)
-            {
-                // Convert from Lab v2 to Lab v4.
-                pcs = LabV2ToLab(pcs);
+                Vector3 iccXyz = xyz.ToScaledVector4().AsVector128().AsVector3();
+                Vector3 scale = Vector3.One - Vector3.Divide(refBlack.ToVector3(), refWhite.ToVector3());
+                Vector3 offset = refBlack.ToScaledVector4().AsVector128().AsVector3();
+                Vector3 adjustedXyz = (iccXyz * scale) + offset;
+                xyz = CieXyz.FromScaledVector4(new Vector4(adjustedXyz, 1F));
             }
 
-            CieLab lab = CieLab.FromScaledVector4(pcs);
-            CieLab targetLab = pcsConverter.Convert<CieLab, CieLab>(in lab);
-            pcs = targetLab.ToScaledVector4();
+            if (adjustTargetPcsForPerceptual)
+            {
+                Vector3 iccXyz = xyz.ToScaledVector4().AsVector128().AsVector3();
+                Vector3 scale = Vector3.Divide(Vector3.One, Vector3.One - Vector3.Divide(refBlack.ToVector3(), refWhite.ToVector3()));
+                Vector3 offset = -refBlack.ToScaledVector4().AsVector128().AsVector3() * scale;
+                Vector3 adjustedXyz = (iccXyz * scale) + offset;
+                xyz = CieXyz.FromScaledVector4(new Vector4(adjustedXyz, 1F));
+            }
+        }
+
+        Vector4 targetPcs;
+        switch (targetPcsType)
+        {
+            case IccColorSpaceType.CieLab:
+                CieLab lab = pcsConverter.Convert<CieXyz, CieLab>(in xyz);
+                targetPcs = lab.ToScaledVector4();
+                if (adjustTargetPcsForPerceptual)
+                {
+                    targetPcs = LabToLabV2(targetPcs);
+                }
+
+                break;
+            case IccColorSpaceType.CieXyz:
+                CieXyz targetXyz = pcsConverter.Convert<CieXyz, CieXyz>(in xyz);
+                targetPcs = targetXyz.ToScaledVector4();
+                break;
+            default:
+                throw new ArgumentOutOfRangeException($"Target PCS {targetPcsType} not supported");
         }
 
         // Convert to the target space.
-        return TTo.FromScaledVector4(targetConverter.Calculate(pcs));
+        Vector4 targetValue = targetConverter.Calculate(targetPcs);
+        return TTo.FromScaledVector4(targetValue);
     }
 
+    // TODO: update to match workflow of the function above
     internal static void ConvertUsingIccProfile<TFrom, TTo>(this ColorProfileConverter converter, ReadOnlySpan<TFrom> source, Span<TTo> destination)
         where TFrom : struct, IColorProfile<TFrom>
         where TTo : struct, IColorProfile<TTo>
@@ -202,6 +242,8 @@ internal static class ColorProfileConverterExtensionsIcc
         targetConverter.Calculate(pcsNormalized, pcsNormalized);
         TTo.FromScaledVector4(pcsNormalized, destination);
     }
+
+
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Vector4 LabToLabV2(Vector4 input)

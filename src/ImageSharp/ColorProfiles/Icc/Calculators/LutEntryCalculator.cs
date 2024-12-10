@@ -20,13 +20,17 @@ internal class LutEntryCalculator : IVector4Calculator
     {
         Guard.NotNull(lut, nameof(lut));
         this.Init(lut.InputValues, lut.OutputValues, lut.ClutValues, lut.Matrix);
+        this.Is16Bit = false;
     }
 
     public LutEntryCalculator(IccLut16TagDataEntry lut)
     {
         Guard.NotNull(lut, nameof(lut));
         this.Init(lut.InputValues, lut.OutputValues, lut.ClutValues, lut.Matrix);
+        this.Is16Bit = true;
     }
+
+    internal bool Is16Bit { get; }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Vector4 Calculate(Vector4 value)

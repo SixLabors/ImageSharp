@@ -22,13 +22,7 @@ internal static class TestIccProfiles
     public static Wacton.Unicolour.Configuration GetUnicolourConfiguration(string file)
         => UnicolourConfigurationCache.GetOrAdd(
             file,
-            f =>
-            {
-                string p = GetFullPath(f);
-                bool b = File.Exists(p);
-                var profile = new Profile(p);
-                return new Wacton.Unicolour.Configuration(iccConfiguration: new(GetFullPath(f), Intent.Unspecified));
-            });
+            f => new Wacton.Unicolour.Configuration(iccConfiguration: new(GetFullPath(f), Intent.Unspecified)));
 
     private static string GetFullPath(string file)
         => Path.GetFullPath(Path.Combine(".", "TestDataIcc", "Profiles", file));

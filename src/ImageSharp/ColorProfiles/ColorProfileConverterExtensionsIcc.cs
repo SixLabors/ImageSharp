@@ -32,8 +32,6 @@ internal static class ColorProfileConverterExtensionsIcc
         ColorProfileConverter pcsConverter = new(new ColorConversionOptions()
         {
             MemoryAllocator = converter.Options.MemoryAllocator,
-
-            // TODO: Double check this but I think these are normalized values.
             SourceWhitePoint = new CieXyz(converter.Options.SourceIccProfile.Header.PcsIlluminant),
             TargetWhitePoint = new CieXyz(converter.Options.TargetIccProfile.Header.PcsIlluminant),
         });

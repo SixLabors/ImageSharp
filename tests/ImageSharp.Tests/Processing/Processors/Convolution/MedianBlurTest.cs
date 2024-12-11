@@ -12,5 +12,5 @@ public class MedianBlurTest : Basic1ParameterConvolutionTests
     protected override void Apply(IImageProcessingContext ctx, int value) => ctx.MedianBlur(value, true);
 
     protected override void Apply(IImageProcessingContext ctx, int value, Rectangle bounds) =>
-        ctx.MedianBlur(value, true, bounds);
+        ctx.MedianBlur(bounds, value, true);
 }

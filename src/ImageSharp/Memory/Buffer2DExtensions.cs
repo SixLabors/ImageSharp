@@ -26,26 +26,64 @@ public static class Buffer2DExtensions
     }
 
     /// <summary>
-    /// TODO: Does not work with multi-buffer groups, should be specific to Resize.
-    /// Copy <paramref name="columnCount"/> columns of <paramref name="buffer"/> inplace,
-    /// from positions starting at <paramref name="sourceIndex"/> to positions at <paramref name="destIndex"/>.
+    /// Performs a deep clone of the buffer covering the specified <paramref name="rectangle"/>.
     /// </summary>
+    /// <typeparam name="T">The element type.</typeparam>
+    /// <param name="source">The source buffer.</param>
+    /// <param name="configuration">The configuration.</param>
+    /// <param name="rectangle">The rectangle to clone.</param>
+    /// <returns>The <see cref="Buffer2D{T}"/>.</returns>
+    internal static Buffer2D<T> CloneRegion<T>(this Buffer2D<T> source, Configuration configuration, Rectangle rectangle)
+        where T : unmanaged
+    {
+        Buffer2D<T> buffer = configuration.MemoryAllocator.Allocate2D<T>(
+            rectangle.Width,
+            rectangle.Height,
+            configuration.PreferContiguousImageBuffers);
+
+        // Optimization for when the size of the area is the same as the buffer size.
+        Buffer2DRegion<T> sourceRegion = source.GetRegion(rectangle);
+        if (sourceRegion.IsFullBufferArea)
+        {
+            sourceRegion.Buffer.FastMemoryGroup.CopyTo(buffer.FastMemoryGroup);
+        }
+        else
+        {
+            for (int y = 0; y < rectangle.Height; y++)
+            {
+                sourceRegion.DangerousGetRowSpan(y).CopyTo(buffer.DangerousGetRowSpan(y));
+            }
+        }
+
+        return buffer;
+    }
+
+    /// <summary>
+    /// TODO: Does not work with multi-buffer groups, should be specific to Resize.
+    /// Copy <paramref name="columnCount"/> columns of <paramref name="buffer"/> in-place,
+    /// from positions starting at <paramref name="sourceIndex"/> to positions at <paramref name="destinationIndex"/>.
+    /// </summary>
+    /// <typeparam name="T">The element type.</typeparam>
+    /// <param name="buffer">The <see cref="Buffer2D{T}"/>.</param>
+    /// <param name="sourceIndex">The source column index.</param>
+    /// <param name="destinationIndex">The destination column index.</param>
+    /// <param name="columnCount">The number of columns to copy.</param>
     internal static unsafe void DangerousCopyColumns<T>(
         this Buffer2D<T> buffer,
         int sourceIndex,
-        int destIndex,
+        int destinationIndex,
         int columnCount)
         where T : struct
     {
         DebugGuard.NotNull(buffer, nameof(buffer));
         DebugGuard.MustBeGreaterThanOrEqualTo(sourceIndex, 0, nameof(sourceIndex));
-        DebugGuard.MustBeGreaterThanOrEqualTo(destIndex, 0, nameof(sourceIndex));
-        CheckColumnRegionsDoNotOverlap(buffer, sourceIndex, destIndex, columnCount);
+        DebugGuard.MustBeGreaterThanOrEqualTo(destinationIndex, 0, nameof(sourceIndex));
+        CheckColumnRegionsDoNotOverlap(buffer, sourceIndex, destinationIndex, columnCount);
 
         int elementSize = Unsafe.SizeOf<T>();
         int width = buffer.Width * elementSize;
         int sOffset = sourceIndex * elementSize;
-        int dOffset = destIndex * elementSize;
+        int dOffset = destinationIndex * elementSize;
         long count = columnCount * elementSize;
 
         Span<byte> span = MemoryMarshal.AsBytes(buffer.DangerousGetSingleMemory().Span);
@@ -73,9 +111,7 @@ public static class Buffer2DExtensions
     /// <returns>The <see cref="Rectangle"/></returns>
     internal static Rectangle FullRectangle<T>(this Buffer2D<T> buffer)
         where T : struct
-    {
-        return new Rectangle(0, 0, buffer.Width, buffer.Height);
-    }
+        => new(0, 0, buffer.Width, buffer.Height);
 
     /// <summary>
     /// Return a <see cref="Buffer2DRegion{T}"/> to the subregion represented by 'rectangle'
@@ -86,11 +122,11 @@ public static class Buffer2DExtensions
     /// <returns>The <see cref="Buffer2DRegion{T}"/></returns>
     internal static Buffer2DRegion<T> GetRegion<T>(this Buffer2D<T> buffer, Rectangle rectangle)
         where T : unmanaged =>
-        new Buffer2DRegion<T>(buffer, rectangle);
+        new(buffer, rectangle);
 
     internal static Buffer2DRegion<T> GetRegion<T>(this Buffer2D<T> buffer, int x, int y, int width, int height)
         where T : unmanaged =>
-        new Buffer2DRegion<T>(buffer, new Rectangle(x, y, width, height));
+        new(buffer, new Rectangle(x, y, width, height));
 
     /// <summary>
     /// Return a <see cref="Buffer2DRegion{T}"/> to the whole area of 'buffer'
@@ -100,7 +136,7 @@ public static class Buffer2DExtensions
     /// <returns>The <see cref="Buffer2DRegion{T}"/></returns>
     internal static Buffer2DRegion<T> GetRegion<T>(this Buffer2D<T> buffer)
         where T : unmanaged =>
-        new Buffer2DRegion<T>(buffer);
+        new(buffer);
 
     /// <summary>
     /// Returns the size of the buffer.
@@ -115,6 +151,8 @@ public static class Buffer2DExtensions
     /// <summary>
     /// Gets the bounds of the buffer.
     /// </summary>
+    /// <typeparam name="T">The element type</typeparam>
+    /// <param name="buffer">The <see cref="Buffer2D{T}"/></param>
     /// <returns>The <see cref="Rectangle"/></returns>
     internal static Rectangle Bounds<T>(this Buffer2D<T> buffer)
         where T : struct =>

@@ -98,13 +98,13 @@ public class WebpEncoderTests
             switch (gifF.DisposalMode)
             {
                 case FrameDisposalMode.RestoreToBackground:
-                    Assert.Equal(FrameDisposalMode.RestoreToBackground, webpF.DisposalMethod);
+                    Assert.Equal(FrameDisposalMode.RestoreToBackground, webpF.DisposalMode);
                     break;
                 case FrameDisposalMode.RestoreToPrevious:
                 case FrameDisposalMode.Unspecified:
                 case FrameDisposalMode.DoNotDispose:
                 default:
-                    Assert.Equal(FrameDisposalMode.DoNotDispose, webpF.DisposalMethod);
+                    Assert.Equal(FrameDisposalMode.DoNotDispose, webpF.DisposalMode);
                     break;
             }
         }
@@ -147,22 +147,22 @@ public class WebpEncoderTests
             switch (pngF.BlendMode)
             {
                 case FrameBlendMode.Source:
-                    Assert.Equal(FrameBlendMode.Source, webpF.BlendMethod);
+                    Assert.Equal(FrameBlendMode.Source, webpF.BlendMode);
                     break;
                 case FrameBlendMode.Over:
                 default:
-                    Assert.Equal(FrameBlendMode.Over, webpF.BlendMethod);
+                    Assert.Equal(FrameBlendMode.Over, webpF.BlendMode);
                     break;
             }
 
             switch (pngF.DisposalMode)
             {
                 case FrameDisposalMode.RestoreToBackground:
-                    Assert.Equal(FrameDisposalMode.RestoreToBackground, webpF.DisposalMethod);
+                    Assert.Equal(FrameDisposalMode.RestoreToBackground, webpF.DisposalMode);
                     break;
                 case FrameDisposalMode.DoNotDispose:
                 default:
-                    Assert.Equal(FrameDisposalMode.DoNotDispose, webpF.DisposalMethod);
+                    Assert.Equal(FrameDisposalMode.DoNotDispose, webpF.DisposalMode);
                     break;
             }
         }
@@ -311,7 +311,7 @@ public class WebpEncoderTests
         {
             FileFormat = WebpFileFormatType.Lossless,
             Method = method,
-            TransparentColorMode = WebpTransparentColorMode.Preserve
+            TransparentColorMode = TransparentColorMode.Preserve
         };
 
         using Image<TPixel> image = provider.GetImage();
@@ -516,6 +516,21 @@ public class WebpEncoderTests
         image.VerifyEncoder(provider, "webp", string.Empty, encoder);
     }
 
+    // https://github.com/SixLabors/ImageSharp/issues/2801
+    [Theory]
+    [WithFile(Lossy.Issue2801, PixelTypes.Rgba32)]
+    public void WebpDecoder_CanDecode_Issue2801<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        WebpEncoder encoder = new()
+        {
+            Quality = 100
+        };
+
+        using Image<TPixel> image = provider.GetImage();
+        image.VerifyEncoder(provider, "webp", string.Empty, encoder, ImageComparer.TolerantPercentage(0.0994F));
+    }
+
     public static void RunEncodeLossy_WithPeakImage()
     {
         TestImageProvider<Rgba32> provider = TestImageProvider<Rgba32>.File(TestImageLossyFullPath);
@@ -530,6 +545,44 @@ public class WebpEncoderTests
 
     [Fact]
     public void RunEncodeLossy_WithPeakImage_WithoutHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunEncodeLossy_WithPeakImage, HwIntrinsics.DisableHWIntrinsic);
+
+    [Theory]
+    [WithFile(TestPatternOpaque, PixelTypes.Rgba32)]
+    public void CanSave_NonSeekableStream<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage();
+        WebpEncoder encoder = new();
+
+        using MemoryStream seekable = new();
+        image.Save(seekable, encoder);
+
+        using MemoryStream memoryStream = new();
+        using NonSeekableStream nonSeekable = new(memoryStream);
+
+        image.Save(nonSeekable, encoder);
+
+        Assert.True(seekable.ToArray().SequenceEqual(memoryStream.ToArray()));
+    }
+
+    [Theory]
+    [WithFile(TestPatternOpaque, PixelTypes.Rgba32)]
+    public async Task CanSave_NonSeekableStream_Async<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage();
+        WebpEncoder encoder = new();
+
+        await using MemoryStream seekable = new();
+        image.Save(seekable, encoder);
+
+        await using MemoryStream memoryStream = new();
+        await using NonSeekableStream nonSeekable = new(memoryStream);
+
+        await image.SaveAsync(nonSeekable, encoder);
+
+        Assert.True(seekable.ToArray().SequenceEqual(memoryStream.ToArray()));
+    }
 
     private static ImageComparer GetComparer(int quality)
     {

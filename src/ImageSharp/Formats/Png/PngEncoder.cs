@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 using SixLabors.ImageSharp.Processing.Processors.Quantization;
 
@@ -9,7 +8,7 @@ namespace SixLabors.ImageSharp.Formats.Png;
 /// <summary>
 /// Image encoder for writing image data to a stream in png format.
 /// </summary>
-public class PngEncoder : QuantizingImageEncoder
+public class PngEncoder : QuantizingAnimatedImageEncoder
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="PngEncoder"/> class.
@@ -68,12 +67,6 @@ public class PngEncoder : QuantizingImageEncoder
     /// Gets the chunk filter method. This allows to filter ancillary chunks.
     /// </summary>
     public PngChunkFilter? ChunkFilter { get; init; }
-
-    /// <summary>
-    /// Gets a value indicating whether fully transparent pixels that may contain R, G, B values which are not 0,
-    /// should be converted to transparent black, which can yield in better compression in some cases.
-    /// </summary>
-    public PngTransparentColorMode TransparentColorMode { get; init; }
 
     /// <inheritdoc/>
     protected override void Encode<TPixel>(Image<TPixel> image, Stream stream, CancellationToken cancellationToken)

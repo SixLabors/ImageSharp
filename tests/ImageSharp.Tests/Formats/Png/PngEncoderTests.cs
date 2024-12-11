@@ -340,13 +340,13 @@ public partial class PngEncoderTests
     [InlineData(PngColorType.Palette)]
     [InlineData(PngColorType.RgbWithAlpha)]
     [InlineData(PngColorType.GrayscaleWithAlpha)]
-    public void Encode_WithPngTransparentColorBehaviorClear_Works(PngColorType colorType)
+    public void Encode_WithTransparentColorBehaviorClear_Works(PngColorType colorType)
     {
         // arrange
-        Image<Rgba32> image = new(50, 50);
+        using Image<Rgba32> image = new(50, 50);
         PngEncoder encoder = new()
         {
-            TransparentColorMode = PngTransparentColorMode.Clear,
+            TransparentColorMode = TransparentColorMode.Clear,
             ColorType = colorType
         };
         Rgba32 rgba32 = Color.Blue.ToPixel<Rgba32>();
@@ -524,7 +524,7 @@ public partial class PngEncoderTests
 
             Assert.Equal(webpF.FrameDelay, (uint)(pngF.FrameDelay.ToDouble() * 1000));
 
-            switch (webpF.BlendMethod)
+            switch (webpF.BlendMode)
             {
                 case FrameBlendMode.Source:
                     Assert.Equal(FrameBlendMode.Source, pngF.BlendMode);
@@ -535,7 +535,7 @@ public partial class PngEncoderTests
                     break;
             }
 
-            switch (webpF.DisposalMethod)
+            switch (webpF.DisposalMode)
             {
                 case FrameDisposalMode.RestoreToBackground:
                     Assert.Equal(FrameDisposalMode.RestoreToBackground, pngF.DisposalMode);

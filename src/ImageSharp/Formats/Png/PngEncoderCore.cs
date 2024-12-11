@@ -7,6 +7,7 @@ using System.IO.Hashing;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
 using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Compression.Zlib;
 using SixLabors.ImageSharp.Formats.Png.Chunks;
@@ -124,6 +125,24 @@ internal sealed class PngEncoderCore : IDisposable
     private int derivedTransparencyIndex = -1;
 
     /// <summary>
+    /// The default background color of the canvas when animating.
+    /// This color may be used to fill the unused space on the canvas around the frames,
+    /// as well as the transparent pixels of the first frame.
+    /// The background color is also used when a frame disposal mode is <see cref="FrameDisposalMode.RestoreToBackground"/>.
+    /// </summary>
+    private readonly Color? backgroundColor;
+
+    /// <summary>
+    /// The number of times any animation is repeated.
+    /// </summary>
+    private readonly ushort? repeatCount;
+
+    /// <summary>
+    /// Whether the root frame is shown as part of the animated sequence.
+    /// </summary>
+    private readonly bool? animateRootFrame;
+
+    /// <summary>
     /// A reusable Crc32 hashing instance.
     /// </summary>
     private readonly Crc32 crc32 = new();
@@ -139,6 +158,9 @@ internal sealed class PngEncoderCore : IDisposable
         this.memoryAllocator = configuration.MemoryAllocator;
         this.encoder = encoder;
         this.quantizer = encoder.Quantizer;
+        this.backgroundColor = encoder.BackgroundColor;
+        this.repeatCount = encoder.RepeatCount;
+        this.animateRootFrame = encoder.AnimateRootFrame;
     }
 
     /// <summary>
@@ -167,18 +189,18 @@ internal sealed class PngEncoderCore : IDisposable
         ImageFrame<TPixel> currentFrame = image.Frames.RootFrame;
         int currentFrameIndex = 0;
 
-        bool clearTransparency = this.encoder.TransparentColorMode is PngTransparentColorMode.Clear;
+        bool clearTransparency = EncodingUtilities.ShouldClearTransparentPixels<TPixel>(this.encoder.TransparentColorMode);
         if (clearTransparency)
         {
             currentFrame = clonedFrame = currentFrame.Clone();
-            ClearTransparentPixels(currentFrame);
+            EncodingUtilities.ClearTransparentPixels(currentFrame, Color.Transparent);
         }
 
         // Do not move this. We require an accurate bit depth for the header chunk.
         IndexedImageFrame<TPixel>? quantized = this.CreateQuantizedImageAndUpdateBitDepth(
             pngMetadata,
             currentFrame,
-            currentFrame.Bounds(),
+            currentFrame.Bounds,
             null);
 
         this.WriteHeaderChunk(stream);
@@ -194,89 +216,104 @@ internal sealed class PngEncoderCore : IDisposable
 
         if (image.Frames.Count > 1)
         {
-            this.WriteAnimationControlChunk(stream, (uint)(image.Frames.Count - (pngMetadata.AnimateRootFrame ? 0 : 1)), pngMetadata.RepeatCount);
+            this.WriteAnimationControlChunk(
+                stream,
+                (uint)(image.Frames.Count - (pngMetadata.AnimateRootFrame ? 0 : 1)),
+                this.repeatCount ?? pngMetadata.RepeatCount);
         }
 
         // If the first frame isn't animated, write it as usual and skip it when writing animated frames
-        if (!pngMetadata.AnimateRootFrame || image.Frames.Count == 1)
+        bool userAnimateRootFrame = this.animateRootFrame == true;
+        if ((!userAnimateRootFrame && !pngMetadata.AnimateRootFrame) || image.Frames.Count == 1)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             FrameControl frameControl = new((uint)this.width, (uint)this.height);
             this.WriteDataChunks(frameControl, currentFrame.PixelBuffer.GetRegion(), quantized, stream, false);
             currentFrameIndex++;
         }
 
-        if (image.Frames.Count > 1)
+        try
         {
-            // Write the first animated frame.
-            currentFrame = image.Frames[currentFrameIndex];
-            PngFrameMetadata frameMetadata = currentFrame.Metadata.GetPngMetadata();
-            FrameDisposalMode previousDisposal = frameMetadata.DisposalMode;
-            FrameControl frameControl = this.WriteFrameControlChunk(stream, frameMetadata, currentFrame.Bounds(), 0);
-            uint sequenceNumber = 1;
-            if (pngMetadata.AnimateRootFrame)
+            if (image.Frames.Count > 1)
             {
-                this.WriteDataChunks(frameControl, currentFrame.PixelBuffer.GetRegion(), quantized, stream, false);
-            }
-            else
-            {
-                sequenceNumber += this.WriteDataChunks(frameControl, currentFrame.PixelBuffer.GetRegion(), quantized, stream, true);
-            }
-
-            currentFrameIndex++;
-
-            // Capture the global palette for reuse on subsequent frames.
-            ReadOnlyMemory<TPixel>? previousPalette = quantized?.Palette.ToArray();
-
-            // Write following frames.
-            ImageFrame<TPixel> previousFrame = image.Frames.RootFrame;
-
-            // This frame is reused to store de-duplicated pixel buffers.
-            using ImageFrame<TPixel> encodingFrame = new(image.Configuration, previousFrame.Size);
-
-            for (; currentFrameIndex < image.Frames.Count; currentFrameIndex++)
-            {
-                ImageFrame<TPixel>? prev = previousDisposal == FrameDisposalMode.RestoreToBackground ? null : previousFrame;
+                // Write the first animated frame.
                 currentFrame = image.Frames[currentFrameIndex];
-                ImageFrame<TPixel>? nextFrame = currentFrameIndex < image.Frames.Count - 1 ? image.Frames[currentFrameIndex + 1] : null;
-
-                frameMetadata = currentFrame.Metadata.GetPngMetadata();
-                bool blend = frameMetadata.BlendMode == FrameBlendMode.Over;
-
-                (bool difference, Rectangle bounds) =
-                    AnimationUtilities.DeDuplicatePixels(
-                        image.Configuration,
-                        prev,
-                        currentFrame,
-                        nextFrame,
-                        encodingFrame,
-                        Color.Transparent,
-                        blend);
-
-                if (clearTransparency)
+                PngFrameMetadata frameMetadata = currentFrame.Metadata.GetPngMetadata();
+                FrameDisposalMode previousDisposal = frameMetadata.DisposalMode;
+                FrameControl frameControl = this.WriteFrameControlChunk(stream, frameMetadata, currentFrame.Bounds, 0);
+                uint sequenceNumber = 1;
+                if (pngMetadata.AnimateRootFrame)
                 {
-                    ClearTransparentPixels(encodingFrame);
+                    this.WriteDataChunks(frameControl, currentFrame.PixelBuffer.GetRegion(), quantized, stream, false);
+                }
+                else
+                {
+                    sequenceNumber += this.WriteDataChunks(frameControl, currentFrame.PixelBuffer.GetRegion(), quantized, stream, true);
                 }
 
-                // Each frame control sequence number must be incremented by the number of frame data chunks that follow.
-                frameControl = this.WriteFrameControlChunk(stream, frameMetadata, bounds, sequenceNumber);
+                currentFrameIndex++;
 
-                // Dispose of previous quantized frame and reassign.
-                quantized?.Dispose();
-                quantized = this.CreateQuantizedImageAndUpdateBitDepth(pngMetadata, encodingFrame, bounds, previousPalette);
-                sequenceNumber += this.WriteDataChunks(frameControl, encodingFrame.PixelBuffer.GetRegion(bounds), quantized, stream, true) + 1;
+                // Capture the global palette for reuse on subsequent frames.
+                ReadOnlyMemory<TPixel>? previousPalette = quantized?.Palette.ToArray();
 
-                previousFrame = currentFrame;
-                previousDisposal = frameMetadata.DisposalMode;
+                // Write following frames.
+                ImageFrame<TPixel> previousFrame = image.Frames.RootFrame;
+
+                // This frame is reused to store de-duplicated pixel buffers.
+                using ImageFrame<TPixel> encodingFrame = new(image.Configuration, previousFrame.Size);
+
+                for (; currentFrameIndex < image.Frames.Count; currentFrameIndex++)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+
+                    ImageFrame<TPixel>? prev = previousDisposal == FrameDisposalMode.RestoreToBackground ? null : previousFrame;
+                    currentFrame = image.Frames[currentFrameIndex];
+                    ImageFrame<TPixel>? nextFrame = currentFrameIndex < image.Frames.Count - 1 ? image.Frames[currentFrameIndex + 1] : null;
+
+                    frameMetadata = currentFrame.Metadata.GetPngMetadata();
+                    bool blend = frameMetadata.BlendMode == FrameBlendMode.Over;
+                    Color background = frameMetadata.DisposalMode == FrameDisposalMode.RestoreToBackground
+                        ? this.backgroundColor ?? Color.Transparent
+                        : Color.Transparent;
+
+                    (bool difference, Rectangle bounds) =
+                        AnimationUtilities.DeDuplicatePixels(
+                            image.Configuration,
+                            prev,
+                            currentFrame,
+                            nextFrame,
+                            encodingFrame,
+                            background,
+                            blend);
+
+                    if (clearTransparency)
+                    {
+                        EncodingUtilities.ClearTransparentPixels(encodingFrame, background);
+                    }
+
+                    // Each frame control sequence number must be incremented by the number of frame data chunks that follow.
+                    frameControl = this.WriteFrameControlChunk(stream, frameMetadata, bounds, sequenceNumber);
+
+                    // Dispose of previous quantized frame and reassign.
+                    quantized?.Dispose();
+                    quantized = this.CreateQuantizedImageAndUpdateBitDepth(pngMetadata, encodingFrame, bounds, previousPalette);
+                    sequenceNumber += this.WriteDataChunks(frameControl, encodingFrame.PixelBuffer.GetRegion(bounds), quantized, stream, true) + 1;
+
+                    previousFrame = currentFrame;
+                    previousDisposal = frameMetadata.DisposalMode;
+                }
             }
+
+            this.WriteEndChunk(stream);
+
+            stream.Flush();
         }
-
-        this.WriteEndChunk(stream);
-
-        stream.Flush();
-
-        // Dispose of allocations from final frame.
-        clonedFrame?.Dispose();
-        quantized?.Dispose();
+        finally
+        {
+            // Dispose of allocations from final frame.
+            clonedFrame?.Dispose();
+            quantized?.Dispose();
+        }
     }
 
     /// <inheritdoc />
@@ -285,32 +322,6 @@ internal sealed class PngEncoderCore : IDisposable
         this.previousScanline?.Dispose();
         this.currentScanline?.Dispose();
     }
-
-    /// <summary>
-    /// Convert transparent pixels, to transparent black pixels, which can yield to better compression in some cases.
-    /// </summary>
-    /// <typeparam name="TPixel">The type of the pixel.</typeparam>
-    /// <param name="clone">The cloned image frame where the transparent pixels will be changed.</param>
-    private static void ClearTransparentPixels<TPixel>(ImageFrame<TPixel> clone)
-        where TPixel : unmanaged, IPixel<TPixel>
-        => clone.ProcessPixelRows(accessor =>
-        {
-            // TODO: We should be able to speed this up with SIMD and masking.
-            Rgba32 transparent = Color.Transparent.ToPixel<Rgba32>();
-            for (int y = 0; y < accessor.Height; y++)
-            {
-                Span<TPixel> span = accessor.GetRowSpan(y);
-                for (int x = 0; x < accessor.Width; x++)
-                {
-                    ref TPixel pixel = ref span[x];
-                    Rgba32 rgba = pixel.ToRgba32();
-                    if (rgba.A is 0)
-                    {
-                        pixel = TPixel.FromRgba32(transparent);
-                    }
-                }
-            }
-        });
 
     /// <summary>
     /// Creates the quantized image and calculates and sets the bit depth.

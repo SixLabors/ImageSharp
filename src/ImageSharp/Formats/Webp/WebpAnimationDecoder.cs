@@ -220,8 +220,8 @@ internal class WebpAnimationDecoder : IDisposable
     {
         WebpFrameMetadata frameMetadata = meta.GetWebpMetadata();
         frameMetadata.FrameDelay = frameData.Duration;
-        frameMetadata.BlendMethod = frameData.BlendingMethod;
-        frameMetadata.DisposalMethod = frameData.DisposalMethod;
+        frameMetadata.BlendMode = frameData.BlendingMethod;
+        frameMetadata.DisposalMode = frameData.DisposalMethod;
     }
 
     /// <summary>
@@ -343,7 +343,7 @@ internal class WebpAnimationDecoder : IDisposable
             return;
         }
 
-        Rectangle interest = Rectangle.Intersect(imageFrame.Bounds(), this.restoreArea.Value);
+        Rectangle interest = Rectangle.Intersect(imageFrame.Bounds, this.restoreArea.Value);
         Buffer2DRegion<TPixel> pixelRegion = imageFrame.PixelBuffer.GetRegion(interest);
         TPixel backgroundPixel = backgroundColor.ToPixel<TPixel>();
         pixelRegion.Fill(backgroundPixel);

@@ -35,18 +35,48 @@ internal class Convolution2PassProcessor<TPixel> : ImageProcessor<TPixel>
         Rectangle sourceRectangle,
         BorderWrappingMode borderWrapModeX,
         BorderWrappingMode borderWrapModeY)
+        : this(configuration, kernel, kernel, preserveAlpha, source, sourceRectangle, borderWrapModeX, borderWrapModeY)
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Convolution2PassProcessor{TPixel}"/> class.
+    /// </summary>
+    /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
+    /// <param name="kernelX">The 1D convolution kernel. X Direction</param>
+    /// <param name="kernelY">The 1D convolution kernel. Y Direction</param>
+    /// <param name="preserveAlpha">Whether the convolution filter is applied to alpha as well as the color channels.</param>
+    /// <param name="source">The source <see cref="Image{TPixel}"/> for the current processor instance.</param>
+    /// <param name="sourceRectangle">The source area to process for the current processor instance.</param>
+    /// <param name="borderWrapModeX">The <see cref="BorderWrappingMode"/> to use when mapping the pixels outside of the border, in X direction.</param>
+    /// <param name="borderWrapModeY">The <see cref="BorderWrappingMode"/> to use when mapping the pixels outside of the border, in Y direction.</param>
+    public Convolution2PassProcessor(
+        Configuration configuration,
+        float[] kernelX,
+        float[] kernelY,
+        bool preserveAlpha,
+        Image<TPixel> source,
+        Rectangle sourceRectangle,
+        BorderWrappingMode borderWrapModeX,
+        BorderWrappingMode borderWrapModeY)
         : base(configuration, source, sourceRectangle)
     {
-        this.Kernel = kernel;
+        this.KernelX = kernelX;
+        this.KernelY = kernelY;
         this.PreserveAlpha = preserveAlpha;
         this.BorderWrapModeX = borderWrapModeX;
         this.BorderWrapModeY = borderWrapModeY;
     }
 
     /// <summary>
-    /// Gets the convolution kernel.
+    /// Gets the convolution kernel. X direction.
     /// </summary>
-    public float[] Kernel { get; }
+    public float[] KernelX { get; }
+
+    /// <summary>
+    /// Gets the convolution kernel. Y direction.
+    /// </summary>
+    public float[] KernelY { get; }
 
     /// <summary>
     /// Gets a value indicating whether the convolution filter is applied to alpha as well as the color channels.
@@ -68,21 +98,21 @@ internal class Convolution2PassProcessor<TPixel> : ImageProcessor<TPixel>
     {
         using Buffer2D<TPixel> firstPassPixels = this.Configuration.MemoryAllocator.Allocate2D<TPixel>(source.Size);
 
-        var interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds());
+        Rectangle interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds);
 
         // We can create a single sampling map with the size as if we were using the non separated 2D kernel
         // the two 1D kernels represent, and reuse it across both convolution steps, like in the bokeh blur.
-        using var mapXY = new KernelSamplingMap(this.Configuration.MemoryAllocator);
+        using KernelSamplingMap mapXY = new(this.Configuration.MemoryAllocator);
 
-        mapXY.BuildSamplingOffsetMap(this.Kernel.Length, this.Kernel.Length, interest, this.BorderWrapModeX, this.BorderWrapModeY);
+        mapXY.BuildSamplingOffsetMap(this.KernelX.Length, this.KernelX.Length, interest, this.BorderWrapModeX, this.BorderWrapModeY);
 
         // Horizontal convolution
-        var horizontalOperation = new HorizontalConvolutionRowOperation(
+        HorizontalConvolutionRowOperation horizontalOperation = new(
             interest,
             firstPassPixels,
             source.PixelBuffer,
             mapXY,
-            this.Kernel,
+            this.KernelX,
             this.Configuration,
             this.PreserveAlpha);
 
@@ -92,12 +122,12 @@ internal class Convolution2PassProcessor<TPixel> : ImageProcessor<TPixel>
             in horizontalOperation);
 
         // Vertical convolution
-        var verticalOperation = new VerticalConvolutionRowOperation(
+        VerticalConvolutionRowOperation verticalOperation = new(
             interest,
             source.PixelBuffer,
             firstPassPixels,
             mapXY,
-            this.Kernel,
+            this.KernelY,
             this.Configuration,
             this.PreserveAlpha);
 
@@ -140,7 +170,7 @@ internal class Convolution2PassProcessor<TPixel> : ImageProcessor<TPixel>
         }
 
         /// <inheritdoc/>
-        [MethodImpl(InliningOptions.ShortMethod)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public int GetRequiredBufferLength(Rectangle bounds)
             => 2 * bounds.Width;
 
@@ -306,7 +336,7 @@ internal class Convolution2PassProcessor<TPixel> : ImageProcessor<TPixel>
         }
 
         /// <inheritdoc/>
-        [MethodImpl(InliningOptions.ShortMethod)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public int GetRequiredBufferLength(Rectangle bounds)
             => 2 * bounds.Width;
 

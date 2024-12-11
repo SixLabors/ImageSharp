@@ -12,8 +12,8 @@ public partial class ImageTests
     {
         public Decode_Cancellation() => this.TopLevelConfiguration.StreamProcessingBufferSize = 128;
 
-        public static readonly string[] TestFileForEachCodec = new[]
-        {
+        public static readonly string[] TestFileForEachCodec =
+        [
             TestImages.Jpeg.Baseline.Snake,
 
             // TODO: Figure out Unix cancellation failures, and validate cancellation for each decoder.
@@ -24,7 +24,7 @@ public partial class ImageTests
             //TestImages.Tga.Bit32BottomRight,
             //TestImages.Webp.Lossless.WithExif,
             //TestImages.Pbm.GrayscaleBinaryWide
-        };
+        ];
 
         public static object[][] IdentifyData { get; } = TestFileForEachCodec.Select(f => new object[] { f }).ToArray();
 
@@ -32,16 +32,16 @@ public partial class ImageTests
         [MemberData(nameof(IdentifyData))]
         public async Task IdentifyAsync_PreCancelled(string file)
         {
-            using FileStream fs = File.OpenRead(TestFile.GetInputFileFullPath(file));
+            await using FileStream fs = File.OpenRead(TestFile.GetInputFileFullPath(file));
             CancellationToken preCancelled = new(canceled: true);
             await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await Image.IdentifyAsync(fs, preCancelled));
         }
 
         private static TheoryData<bool, string, double> CreateLoadData()
         {
-            double[] percentages = new[] { 0, 0.3, 0.7 };
+            double[] percentages = [0, 0.3, 0.7];
 
-            TheoryData<bool, string, double> data = new();
+            TheoryData<bool, string, double> data = [];
 
             foreach (string file in TestFileForEachCodec)
             {

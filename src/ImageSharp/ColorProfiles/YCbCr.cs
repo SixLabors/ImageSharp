@@ -95,7 +95,7 @@ public readonly struct YCbCr : IColorProfile<YCbCr, Rgb>
     /// <inheritdoc/>
     public static YCbCr FromScaledVector4(Vector4 source)
     {
-        Vector3 v3 = source.AsVector128().AsVector3();
+        Vector3 v3 = source.AsVector3();
         v3 *= Max;
         return new YCbCr(v3);
     }

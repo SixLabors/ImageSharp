@@ -90,7 +90,7 @@ public readonly struct Hsl : IColorProfile<Hsl, Rgb>
 
     /// <inheritdoc/>
     public static Hsl FromScaledVector4(Vector4 source)
-        => new(source.AsVector128().AsVector3() * 360F);
+        => new(source.AsVector3() * 360F);
 
     /// <inheritdoc/>
     public static void ToScaledVector4(ReadOnlySpan<Hsl> source, Span<Vector4> destination)

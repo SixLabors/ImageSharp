@@ -52,7 +52,7 @@ public class ColorProfileConverterTests
                 => converter.Convert<Rgb, Cmyk>(new Rgb(new Vector3(input))).ToScaledVector4(),
             IccColorSpaceType.Rgb when targetDataSpace == IccColorSpaceType.Rgb
                 => converter.Convert<Rgb, Rgb>(new Rgb(new Vector3(input))).ToScaledVector4(),
-            _ => throw new ArgumentOutOfRangeException("Unexpected ICC profile data colour spaces")
+            _ => throw new NotSupportedException("Unexpected ICC profile data color spaces")
         };
 
         const double tolerance = 0.000005;

@@ -5,7 +5,6 @@ using System.Buffers;
 using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 using System.Runtime.CompilerServices;
-using System.Runtime.Intrinsics;
 using SixLabors.ImageSharp.ColorProfiles.Icc;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
@@ -47,7 +46,7 @@ internal static class ColorProfileConverterExtensionsIcc
         IccVersion sourceVersion = sourceHeader.Version;
         IccVersion targetVersion = targetHeader.Version;
 
-        // all conversions are funnelled through XYZ in case PCS adjustments need to be made
+        // all conversions are funneled through XYZ in case PCS adjustments need to be made
         CieXyz xyz;
 
         Vector4 sourcePcs = sourceConverter.Calculate(source.ToScaledVector4());
@@ -85,18 +84,18 @@ internal static class ColorProfileConverterExtensionsIcc
 
             if (adjustSourcePcsForPerceptual)
             {
-                Vector3 iccXyz = xyz.ToScaledVector4().AsVector128().AsVector3();
+                Vector3 iccXyz = xyz.ToScaledVector4().AsVector3();
                 Vector3 scale = Vector3.One - Vector3.Divide(refBlack.ToVector3(), refWhite.ToVector3());
-                Vector3 offset = refBlack.ToScaledVector4().AsVector128().AsVector3();
+                Vector3 offset = refBlack.ToScaledVector4().AsVector3();
                 Vector3 adjustedXyz = (iccXyz * scale) + offset;
                 xyz = CieXyz.FromScaledVector4(new Vector4(adjustedXyz, 1F));
             }
 
             if (adjustTargetPcsForPerceptual)
             {
-                Vector3 iccXyz = xyz.ToScaledVector4().AsVector128().AsVector3();
+                Vector3 iccXyz = xyz.ToScaledVector4().AsVector3();
                 Vector3 scale = Vector3.Divide(Vector3.One, Vector3.One - Vector3.Divide(refBlack.ToVector3(), refWhite.ToVector3()));
-                Vector3 offset = -refBlack.ToScaledVector4().AsVector128().AsVector3() * scale;
+                Vector3 offset = -refBlack.ToScaledVector4().AsVector3() * scale;
                 Vector3 adjustedXyz = (iccXyz * scale) + offset;
                 xyz = CieXyz.FromScaledVector4(new Vector4(adjustedXyz, 1F));
             }
@@ -243,8 +242,6 @@ internal static class ColorProfileConverterExtensionsIcc
         targetConverter.Calculate(pcsNormalized, pcsNormalized);
         TTo.FromScaledVector4(pcsNormalized, destination);
     }
-
-
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Vector4 LabToLabV2(Vector4 input)

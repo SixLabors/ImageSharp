@@ -103,7 +103,7 @@ public readonly struct Lms : IColorProfile<Lms, CieXyz>
     /// <inheritdoc/>
     public static Lms FromScaledVector4(Vector4 source)
     {
-        Vector3 v3 = source.AsVector128().AsVector3();
+        Vector3 v3 = source.AsVector3();
         v3 *= 2F;
         v3 -= new Vector3(1F);
         return new Lms(v3);

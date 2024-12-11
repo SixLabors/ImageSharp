@@ -96,7 +96,7 @@ public readonly struct CieLch : IColorProfile<CieLch, CieLab>
     /// <inheritdoc/>
     public static CieLch FromScaledVector4(Vector4 source)
     {
-        Vector3 v3 = source.AsVector128().AsVector3();
+        Vector3 v3 = source.AsVector3();
         v3 *= new Vector3(100, 400, 360);
         v3 -= new Vector3(0, 200, 0);
         return new CieLch(v3);

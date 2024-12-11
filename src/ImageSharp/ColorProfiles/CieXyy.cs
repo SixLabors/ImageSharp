@@ -90,7 +90,7 @@ public readonly struct CieXyy : IColorProfile<CieXyy, CieXyz>
 
     /// <inheritdoc/>
     public static CieXyy FromScaledVector4(Vector4 source)
-        => new(source.AsVector128().AsVector3());
+        => new(source.AsVector3());
 
     /// <inheritdoc/>
     public static void ToScaledVector4(ReadOnlySpan<CieXyy> source, Span<Vector4> destination)

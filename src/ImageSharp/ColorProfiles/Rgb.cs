@@ -89,7 +89,7 @@ public readonly struct Rgb : IProfileConnectingSpace<Rgb, CieXyz>
     /// <returns>The <see cref="Rgb"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Rgb FromScaledVector4(Vector4 source)
-        => new(source.AsVector128().AsVector3());
+        => new(source.AsVector3());
 
     /// <summary>
     /// Expands the color into a generic ("scaled") <see cref="Vector4"/> representation

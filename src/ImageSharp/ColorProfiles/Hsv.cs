@@ -88,7 +88,7 @@ public readonly struct Hsv : IColorProfile<Hsv, Rgb>
 
     /// <inheritdoc/>
     public static Hsv FromScaledVector4(Vector4 source)
-        => new(source.AsVector128().AsVector3() * 360F);
+        => new(source.AsVector3() * 360F);
 
     /// <inheritdoc/>
     public static void ToScaledVector4(ReadOnlySpan<Hsv> source, Span<Vector4> destination)

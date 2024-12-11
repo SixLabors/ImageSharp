@@ -94,7 +94,7 @@ public readonly struct HunterLab : IColorProfile<HunterLab, CieXyz>
     /// <inheritdoc/>
     public static HunterLab FromScaledVector4(Vector4 source)
     {
-        Vector3 v3 = source.AsVector128().AsVector3();
+        Vector3 v3 = source.AsVector3();
         v3 *= new Vector3(100F, 255, 255);
         v3 -= new Vector3(0, 128F, 128F);
         return new HunterLab(v3);

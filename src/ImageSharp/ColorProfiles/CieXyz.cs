@@ -101,7 +101,7 @@ public readonly struct CieXyz : IProfileConnectingSpace<CieXyz, CieXyz>
     /// <inheritdoc/>
     public static CieXyz FromScaledVector4(Vector4 source)
     {
-        Vector3 v3 = source.AsVector128().AsVector3();
+        Vector3 v3 = source.AsVector3();
         v3 *= 65535 / 32768F;
         return new CieXyz(v3);
     }

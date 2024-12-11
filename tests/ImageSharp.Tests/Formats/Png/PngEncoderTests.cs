@@ -340,13 +340,13 @@ public partial class PngEncoderTests
     [InlineData(PngColorType.Palette)]
     [InlineData(PngColorType.RgbWithAlpha)]
     [InlineData(PngColorType.GrayscaleWithAlpha)]
-    public void Encode_WithPngTransparentColorBehaviorClear_Works(PngColorType colorType)
+    public void Encode_WithTransparentColorBehaviorClear_Works(PngColorType colorType)
     {
         // arrange
-        Image<Rgba32> image = new(50, 50);
+        using Image<Rgba32> image = new(50, 50);
         PngEncoder encoder = new()
         {
-            TransparentColorMode = PngTransparentColorMode.Clear,
+            TransparentColorMode = TransparentColorMode.Clear,
             ColorType = colorType
         };
         Rgba32 rgba32 = Color.Blue.ToPixel<Rgba32>();

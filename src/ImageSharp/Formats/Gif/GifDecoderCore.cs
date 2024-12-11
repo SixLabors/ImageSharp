@@ -665,7 +665,7 @@ internal sealed class GifDecoderCore : ImageDecoderCore
             return;
         }
 
-        Rectangle interest = Rectangle.Intersect(frame.Bounds(), this.restoreArea.Value);
+        Rectangle interest = Rectangle.Intersect(frame.Bounds, this.restoreArea.Value);
         Buffer2DRegion<TPixel> pixelRegion = frame.PixelBuffer.GetRegion(interest);
         pixelRegion.Clear();
 

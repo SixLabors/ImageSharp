@@ -89,7 +89,7 @@ internal class ConvolutionProcessor<TPixel> : ImageProcessor<TPixel>
 
         source.CopyTo(targetPixels);
 
-        Rectangle interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds());
+        Rectangle interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds);
 
         using (KernelSamplingMap map = new(allocator))
         {

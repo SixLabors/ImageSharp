@@ -72,10 +72,10 @@ internal class FlipProcessor<TPixel> : ImageProcessor<TPixel>
     /// <param name="configuration">The configuration.</param>
     private static void FlipY(ImageFrame<TPixel> source, Configuration configuration)
     {
-        var operation = new RowOperation(source.PixelBuffer);
+        RowOperation operation = new(source.PixelBuffer);
         ParallelRowIterator.IterateRows(
             configuration,
-            source.Bounds(),
+            source.Bounds,
             in operation);
     }
 

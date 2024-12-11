@@ -50,6 +50,11 @@ internal sealed class TiffEncoderCore
     private readonly DeflateCompressionLevel compressionLevel;
 
     /// <summary>
+    /// The transparent color mode to use when encoding.
+    /// </summary>
+    private readonly TransparentColorMode transparentColorMode;
+
+    /// <summary>
     /// Whether to skip metadata during encoding.
     /// </summary>
     private readonly bool skipMetadata;
@@ -59,20 +64,21 @@ internal sealed class TiffEncoderCore
     /// <summary>
     /// Initializes a new instance of the <see cref="TiffEncoderCore"/> class.
     /// </summary>
-    /// <param name="options">The options for the encoder.</param>
+    /// <param name="encoder">The options for the encoder.</param>
     /// <param name="configuration">The global configuration.</param>
-    public TiffEncoderCore(TiffEncoder options, Configuration configuration)
+    public TiffEncoderCore(TiffEncoder encoder, Configuration configuration)
     {
         this.configuration = configuration;
         this.memoryAllocator = configuration.MemoryAllocator;
-        this.PhotometricInterpretation = options.PhotometricInterpretation;
-        this.quantizer = options.Quantizer ?? KnownQuantizers.Octree;
-        this.pixelSamplingStrategy = options.PixelSamplingStrategy;
-        this.BitsPerPixel = options.BitsPerPixel;
-        this.HorizontalPredictor = options.HorizontalPredictor;
-        this.CompressionType = options.Compression;
-        this.compressionLevel = options.CompressionLevel ?? DeflateCompressionLevel.DefaultCompression;
-        this.skipMetadata = options.SkipMetadata;
+        this.PhotometricInterpretation = encoder.PhotometricInterpretation;
+        this.quantizer = encoder.Quantizer ?? KnownQuantizers.Octree;
+        this.pixelSamplingStrategy = encoder.PixelSamplingStrategy;
+        this.BitsPerPixel = encoder.BitsPerPixel;
+        this.HorizontalPredictor = encoder.HorizontalPredictor;
+        this.CompressionType = encoder.Compression;
+        this.compressionLevel = encoder.CompressionLevel ?? DeflateCompressionLevel.DefaultCompression;
+        this.skipMetadata = encoder.SkipMetadata;
+        this.transparentColorMode = encoder.TransparentColorMode;
     }
 
     /// <summary>
@@ -131,14 +137,30 @@ internal sealed class TiffEncoderCore
 
         long ifdMarker = WriteHeader(writer, buffer);
 
-        Image<TPixel>? metadataImage = image;
+        Image<TPixel>? imageMetadata = image;
 
         foreach (ImageFrame<TPixel> frame in image.Frames)
         {
-            cancellationToken.ThrowIfCancellationRequested();
+            ImageFrame<TPixel>? clonedFrame = null;
+            try
+            {
+                cancellationToken.ThrowIfCancellationRequested();
 
-            ifdMarker = this.WriteFrame(writer, frame, image.Metadata, metadataImage, this.BitsPerPixel.Value, this.CompressionType.Value, ifdMarker);
-            metadataImage = null;
+                if (EncodingUtilities.ShouldClearTransparentPixels<TPixel>(this.transparentColorMode))
+                {
+                    clonedFrame = frame.Clone();
+                    EncodingUtilities.ClearTransparentPixels(clonedFrame, Color.Transparent);
+                }
+
+                ImageFrame<TPixel> encodingFrame = clonedFrame ?? frame;
+
+                ifdMarker = this.WriteFrame(writer, encodingFrame, image.Metadata, imageMetadata, this.BitsPerPixel.Value, this.CompressionType.Value, ifdMarker);
+                imageMetadata = null;
+            }
+            finally
+            {
+                clonedFrame?.Dispose();
+            }
         }
 
         long currentOffset = writer.BaseStream.Position;

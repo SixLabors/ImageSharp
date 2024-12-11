@@ -3,6 +3,7 @@
 
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
+using SixLabors.ImageSharp.Formats.Heif.Av1.ModeDecision;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
@@ -37,7 +38,7 @@ internal partial class Av1TileWriter
         {
             bool code_blk_cond = true; // Code cu only if it is inside the picture
             Av1EncoderBlockStruct blk_ptr = superblock.FinalBlocks[final_blk_index];
-            Av1BlockGeometry blk_geom = GetBlockGeometryByModeDecisionScanIndex(blk_index);
+            Av1BlockGeometry blk_geom = Av1BlockGeometryFactory.GetBlockGeometryByModeDecisionScanIndex(blk_index);
 
             Av1BlockSize bsize = blk_geom.BlockSize;
             Point blockOrigin = blk_geom.Origin;
@@ -234,16 +235,16 @@ internal partial class Av1TileWriter
                 if (superblock.CodingUnitPartitionTypes[blk_index] != Av1PartitionType.Split)
                 {
                     final_blk_index++;
-                    blk_index += blk_geom.NextDepthSequenceOffset;
+                    blk_index += blk_geom.NextDepthOffset;
                 }
                 else
                 {
-                    blk_index += blk_geom.NextDepth1Offset;
+                    blk_index += blk_geom.Depth1Offset;
                 }
             }
             else
             {
-                blk_index += blk_geom.NextDepth1Offset;
+                blk_index += blk_geom.Depth1Offset;
             }
         }
         while (blk_index < scs.MaxBlockCount);
@@ -623,7 +624,7 @@ internal partial class Av1TileWriter
         Av1NeighborArrayUnit<byte> luma_dc_sign_level_coeff_na)
     {
         // Removed any code related to INTER frames.
-        Av1BlockGeometry blockGeometry = GetBlockGeometryByModeDecisionScanIndex(blk_ptr.ModeDecisionScanIndex);
+        Av1BlockGeometry blockGeometry = Av1BlockGeometryFactory.GetBlockGeometryByModeDecisionScanIndex(blk_ptr.ModeDecisionScanIndex);
         int tx_depth = mbmi.Block.TransformDepth;
         int txb_count = blockGeometry.TransformBlockCount[mbmi.Block.TransformDepth];
         ObuFrameHeader frameHeader = pcs.Parent.FrameHeader;
@@ -700,7 +701,7 @@ internal partial class Av1TileWriter
         Av1NeighborArrayUnit<byte> cr_dc_sign_level_coeff_na,
         Av1NeighborArrayUnit<byte> cb_dc_sign_level_coeff_na)
     {
-        Av1BlockGeometry blockGeometry = GetBlockGeometryByModeDecisionScanIndex(blk_ptr.ModeDecisionScanIndex);
+        Av1BlockGeometry blockGeometry = Av1BlockGeometryFactory.GetBlockGeometryByModeDecisionScanIndex(blk_ptr.ModeDecisionScanIndex);
 
         if (!blockGeometry.HasUv)
         {
@@ -1044,9 +1045,4 @@ internal partial class Av1TileWriter
         int left_skip = (left_mi != null && left_mi.Block.Skip) ? 1 : 0;
         writer.WriteSkip(skip, above_skip + left_skip);
     }
-
-    /// <summary>
-    /// SVT: get_blk_geom_mds
-    /// </summary>
-    private static Av1BlockGeometry GetBlockGeometryByModeDecisionScanIndex(int modeDecisionScanIndex) => throw new NotImplementedException();
 }

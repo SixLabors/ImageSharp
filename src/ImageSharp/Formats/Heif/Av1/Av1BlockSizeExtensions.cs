@@ -52,9 +52,20 @@ internal static class Av1BlockSizeExtensions
     private static readonly int[] PelsLog2Count =
         [4, 5, 5, 6, 7, 7, 8, 9, 9, 10, 11, 11, 12, 13, 13, 14, 6, 6, 8, 8, 10, 10];
 
+    private static readonly Av1BlockSize[][] HeightWidthToSize = [
+        [Av1BlockSize.Block4x4, Av1BlockSize.Block4x8, Av1BlockSize.Block4x16, Av1BlockSize.Invalid, Av1BlockSize.Invalid, Av1BlockSize.Invalid],
+        [Av1BlockSize.Block8x4, Av1BlockSize.Block8x8, Av1BlockSize.Block8x16, Av1BlockSize.Block8x32, Av1BlockSize.Invalid, Av1BlockSize.Invalid],
+        [Av1BlockSize.Block16x4, Av1BlockSize.Block16x8, Av1BlockSize.Block16x16, Av1BlockSize.Block16x32, Av1BlockSize.Block16x64, Av1BlockSize.Invalid],
+        [Av1BlockSize.Invalid, Av1BlockSize.Block32x8, Av1BlockSize.Block32x16, Av1BlockSize.Block32x32, Av1BlockSize.Block32x64, Av1BlockSize.Invalid],
+        [Av1BlockSize.Invalid, Av1BlockSize.Invalid, Av1BlockSize.Block64x16, Av1BlockSize.Block64x32, Av1BlockSize.Block64x64, Av1BlockSize.Block64x128],
+        [Av1BlockSize.Invalid, Av1BlockSize.Invalid, Av1BlockSize.Invalid, Av1BlockSize.Invalid, Av1BlockSize.Block128x64, Av1BlockSize.Block128x128]
+    ];
+
     public static int Get4x4WideCount(this Av1BlockSize blockSize) => SizeWide[(int)blockSize];
 
     public static int Get4x4HighCount(this Av1BlockSize blockSize) => SizeHigh[(int)blockSize];
+
+    public static Av1BlockSize FromWidthAndHeight(uint widthLog2, uint heightLog2) => HeightWidthToSize[heightLog2][widthLog2];
 
     /// <summary>
     /// Returns the width of the block in samples.

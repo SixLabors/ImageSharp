@@ -22,9 +22,14 @@ internal static class TestIccProfiles
     public const string Swop2006 = "SWOP2006_Coated5v2.icc";
 
     /// <summary>
-    /// v2 CMYK -> LAB, output, lut8
+    /// v2 CMYK -> LAB, output, lut8 (A2B tags)
     /// </summary>
     public const string JapanColor2011 = "JapanColor2011Coated.icc";
+
+    /// <summary>
+    /// v2 CMYK -> LAB, output, lut8 (B2A tags)
+    /// </summary>
+    public const string JapanColor2003 = "JapanColor2003WebCoated.icc";
 
     /// <summary>
     /// v4 CMYK -> LAB, output, lutAToB: B-CLUT-A

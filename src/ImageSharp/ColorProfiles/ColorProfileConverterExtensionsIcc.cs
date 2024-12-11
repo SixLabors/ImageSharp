@@ -28,7 +28,7 @@ internal static class ColorProfileConverterExtensionsIcc
             throw new InvalidOperationException("Target ICC profile is missing.");
         }
 
-        ColorProfileConverter pcsConverter = new(new ColorConversionOptions()
+        ColorProfileConverter pcsConverter = new(new ColorConversionOptions
         {
             MemoryAllocator = converter.Options.MemoryAllocator,
             SourceWhitePoint = new CieXyz(converter.Options.SourceIccProfile.Header.PcsIlluminant),
@@ -39,90 +39,28 @@ internal static class ColorProfileConverterExtensionsIcc
         IccPcsToDataConverter targetConverter = new(converter.Options.TargetIccProfile);
         IccProfileHeader sourceHeader = converter.Options.SourceIccProfile.Header;
         IccProfileHeader targetHeader = converter.Options.TargetIccProfile.Header;
-        IccColorSpaceType sourcePcsType = sourceHeader.ProfileConnectionSpace;
-        IccColorSpaceType targetPcsType = targetHeader.ProfileConnectionSpace;
         IccRenderingIntent sourceIntent = sourceHeader.RenderingIntent;
         IccRenderingIntent targetIntent = targetHeader.RenderingIntent;
         IccVersion sourceVersion = sourceHeader.Version;
         IccVersion targetVersion = targetHeader.Version;
 
-        // all conversions are funneled through XYZ in case PCS adjustments need to be made
-        CieXyz xyz;
-
         Vector4 sourcePcs = sourceConverter.Calculate(source.ToScaledVector4());
-        switch (sourcePcsType)
-        {
-            case IccColorSpaceType.CieLab:
-                if (sourceConverter.Is16BitLutEntry)
-                {
-                    sourcePcs = LabV2ToLab(sourcePcs);
-                }
-
-                CieLab lab = CieLab.FromScaledVector4(sourcePcs);
-                xyz = pcsConverter.Convert<CieLab, CieXyz>(in lab);
-                break;
-            case IccColorSpaceType.CieXyz:
-                xyz = CieXyz.FromScaledVector4(sourcePcs);
-                break;
-            default:
-                throw new ArgumentOutOfRangeException($"Source PCS {sourcePcsType} not supported");
-        }
-
-        // TODO: handle PCS adjustment for absolute intent?
-        // TODO: or throw unsupported error, since most profiles headers contain perceptual (i've encountered a couple of relative, but so far no saturation or absolute)
-        bool adjustSourcePcsForPerceptual = sourceIntent == IccRenderingIntent.Perceptual && sourceVersion.Major == 2;
-        bool adjustTargetPcsForPerceptual = targetIntent == IccRenderingIntent.Perceptual && targetVersion.Major == 2;
+        Vector4 targetPcs;
 
         // if both profiles need PCS adjustment, they both share the same unadjusted PCS space
         // effectively cancelling out the need to make the adjustment
-        bool adjustPcsForPerceptual = adjustSourcePcsForPerceptual ^ adjustTargetPcsForPerceptual;
-        if (adjustPcsForPerceptual)
+        // TODO: handle PCS adjustment for absolute intent? would make this a lot more complicated
+        // TODO: alternatively throw unsupported error, since most profiles headers contain perceptual (i've encountered a couple of relative intent, but so far no saturation or absolute)
+        bool adjustSourcePcsForPerceptual = sourceIntent == IccRenderingIntent.Perceptual && sourceVersion.Major == 2;
+        bool adjustTargetPcsForPerceptual = targetIntent == IccRenderingIntent.Perceptual && targetVersion.Major == 2;
+        if (adjustSourcePcsForPerceptual ^ adjustTargetPcsForPerceptual)
         {
-            // as per DemoIccMAX icPerceptual values in IccCmm.h
-            CieXyz refBlack = new(0.00336F, 0.0034731F, 0.00287F);
-            CieXyz refWhite = new(0.9642F, 1.0000F, 0.8249F);
-
-            if (adjustSourcePcsForPerceptual)
-            {
-                Vector3 iccXyz = xyz.ToScaledVector4().AsVector3();
-                Vector3 scale = Vector3.One - Vector3.Divide(refBlack.ToVector3(), refWhite.ToVector3());
-                Vector3 offset = refBlack.ToScaledVector4().AsVector3();
-                Vector3 adjustedXyz = (iccXyz * scale) + offset;
-                xyz = CieXyz.FromScaledVector4(new Vector4(adjustedXyz, 1F));
-            }
-
-            if (adjustTargetPcsForPerceptual)
-            {
-                Vector3 iccXyz = xyz.ToScaledVector4().AsVector3();
-                Vector3 scale = Vector3.Divide(Vector3.One, Vector3.One - Vector3.Divide(refBlack.ToVector3(), refWhite.ToVector3()));
-                Vector3 offset = -refBlack.ToScaledVector4().AsVector3() * scale;
-                Vector3 adjustedXyz = (iccXyz * scale) + offset;
-                xyz = CieXyz.FromScaledVector4(new Vector4(adjustedXyz, 1F));
-            }
+            targetPcs = GetTargetPcsWithPerceptualV2Adjustment(converter, sourcePcs, adjustSourcePcsForPerceptual, adjustTargetPcsForPerceptual, pcsConverter);
         }
-
-        Vector4 targetPcs;
-        switch (targetPcsType)
+        else
         {
-            case IccColorSpaceType.CieLab:
-                CieLab lab = pcsConverter.Convert<CieXyz, CieLab>(in xyz);
-                targetPcs = lab.ToScaledVector4();
-                if (adjustTargetPcsForPerceptual)
-                {
-                    targetPcs = LabToLabV2(targetPcs);
-                }
-                else if (targetConverter.Is16BitLutEntry)
-                {
-                    // TODO: find a way to test? needs a non-perceptual-intent v2 profile with 8-bit LUT...
-                    targetPcs = LabToLabV2(targetPcs);
-                }
-
-                break;
-            case IccColorSpaceType.CieXyz:
-                targetPcs = xyz.ToScaledVector4();
-                break;
-            default:
-                throw new ArgumentOutOfRangeException($"Target PCS {targetPcsType} not supported");
+            // TODO: replace with function that bypasses PCS adjustment
+            targetPcs = GetTargetPcsWithPerceptualV2Adjustment(converter, sourcePcs, adjustSourcePcsForPerceptual, adjustTargetPcsForPerceptual, pcsConverter);
         }
 
         // Convert to the target space.
@@ -241,6 +179,85 @@ internal static class ColorProfileConverterExtensionsIcc
         // Convert to the target space.
         targetConverter.Calculate(pcsNormalized, pcsNormalized);
         TTo.FromScaledVector4(pcsNormalized, destination);
+    }
+
+    private static Vector4 GetTargetPcsWithPerceptualV2Adjustment(
+        ColorProfileConverter converter,
+        Vector4 sourcePcs,
+        bool adjustSource,
+        bool adjustTarget,
+        ColorProfileConverter pcsConverter)
+    {
+        IccDataToPcsConverter sourceConverter = new(converter.Options.SourceIccProfile!);
+        IccPcsToDataConverter targetConverter = new(converter.Options.TargetIccProfile!);
+        IccProfileHeader sourceHeader = converter.Options.SourceIccProfile!.Header;
+        IccProfileHeader targetHeader = converter.Options.TargetIccProfile!.Header;
+        IccColorSpaceType sourcePcsType = sourceHeader.ProfileConnectionSpace;
+        IccColorSpaceType targetPcsType = targetHeader.ProfileConnectionSpace;
+
+        // all conversions are funneled through XYZ in case PCS adjustments need to be made
+        CieXyz xyz;
+
+        switch (sourcePcsType)
+        {
+            // 16-bit Lab encodings changed from v2 to v4, but 16-bit LUTs always use the legacy encoding regardless of version
+            // so convert Lab to modern v4 encoding when returned from a 16-bit LUT
+            case IccColorSpaceType.CieLab:
+                sourcePcs = sourceConverter.Is16BitLutEntry ? LabV2ToLab(sourcePcs) : sourcePcs;
+                CieLab lab = CieLab.FromScaledVector4(sourcePcs);
+                xyz = pcsConverter.Convert<CieLab, CieXyz>(in lab);
+                break;
+            case IccColorSpaceType.CieXyz:
+                xyz = CieXyz.FromScaledVector4(sourcePcs);
+                break;
+            default:
+                throw new ArgumentOutOfRangeException($"Source PCS {sourcePcsType} not supported");
+        }
+
+        // as per DemoIccMAX icPerceptual values in IccCmm.h
+        CieXyz refBlack = new(0.00336F, 0.0034731F, 0.00287F);
+        CieXyz refWhite = new(0.9642F, 1.0000F, 0.8249F);
+
+        // when converting from device to PCS with v2 perceptual intent
+        // the black point needs to be adjusted to v4 after converting the PCS values
+        if (adjustSource)
+        {
+            Vector3 iccXyz = xyz.ToScaledVector4().AsVector3();
+            Vector3 scale = Vector3.One - Vector3.Divide(refBlack.ToVector3(), refWhite.ToVector3());
+            Vector3 offset = refBlack.ToScaledVector4().AsVector3();
+            Vector3 adjustedXyz = (iccXyz * scale) + offset;
+            xyz = CieXyz.FromScaledVector4(new Vector4(adjustedXyz, 1F));
+        }
+
+        // when converting from PCS to device with v2 perceptual intent
+        // the black point needs to be adjusted to v2 before converting the PCS values
+        if (adjustTarget)
+        {
+            Vector3 iccXyz = xyz.ToScaledVector4().AsVector3();
+            Vector3 scale = Vector3.Divide(Vector3.One, Vector3.One - Vector3.Divide(refBlack.ToVector3(), refWhite.ToVector3()));
+            Vector3 offset = -refBlack.ToScaledVector4().AsVector3() * scale;
+            Vector3 adjustedXyz = (iccXyz * scale) + offset;
+            xyz = CieXyz.FromScaledVector4(new Vector4(adjustedXyz, 1F));
+        }
+
+        Vector4 targetPcs;
+        switch (targetPcsType)
+        {
+            // 16-bit Lab encodings changed from v2 to v4, but 16-bit LUTs always use the legacy encoding regardless of version
+            // so convert Lab back to legacy encoding before using in a 16-bit LUT
+            case IccColorSpaceType.CieLab:
+                CieLab lab = pcsConverter.Convert<CieXyz, CieLab>(in xyz);
+                targetPcs = lab.ToScaledVector4();
+                targetPcs = targetConverter.Is16BitLutEntry ? LabToLabV2(targetPcs) : targetPcs;
+                break;
+            case IccColorSpaceType.CieXyz:
+                targetPcs = xyz.ToScaledVector4();
+                break;
+            default:
+                throw new ArgumentOutOfRangeException($"Target PCS {targetPcsType} not supported");
+        }
+
+        return targetPcs;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

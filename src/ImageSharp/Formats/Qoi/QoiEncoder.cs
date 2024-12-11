@@ -6,7 +6,7 @@ namespace SixLabors.ImageSharp.Formats.Qoi;
 /// <summary>
 /// Image encoder for writing an image to a stream as a QOI image
 /// </summary>
-public class QoiEncoder : ImageEncoder
+public class QoiEncoder : AlphaAwareImageEncoder
 {
     /// <summary>
     /// Gets the color channels on the image that can be

@@ -38,8 +38,8 @@ internal class BinaryThresholdProcessor<TPixel> : ImageProcessor<TPixel>
         Rectangle sourceRectangle = this.SourceRectangle;
         Configuration configuration = this.Configuration;
 
-        var interest = Rectangle.Intersect(sourceRectangle, source.Bounds());
-        var operation = new RowOperation(
+        Rectangle interest = Rectangle.Intersect(sourceRectangle, source.Bounds);
+        RowOperation operation = new(
             interest.X,
             source.PixelBuffer,
             upper,
@@ -169,10 +169,8 @@ internal class BinaryThresholdProcessor<TPixel> : ImageProcessor<TPixel>
             {
                 return chroma / (max + min);
             }
-            else
-            {
-                return chroma / (2F - max - min);
-            }
+
+            return chroma / (2F - max - min);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

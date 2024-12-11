@@ -61,7 +61,7 @@ internal class AffineTransformProcessor<TPixel> : TransformProcessor<TPixel>, IR
         if (matrix.Equals(Matrix3x2.Identity))
         {
             // The clone will be blank here copy all the pixel data over
-            Rectangle interest = Rectangle.Intersect(this.SourceRectangle, destination.Bounds());
+            Rectangle interest = Rectangle.Intersect(this.SourceRectangle, destination.Bounds);
             Buffer2DRegion<TPixel> sourceBuffer = source.PixelBuffer.GetRegion(interest);
             Buffer2DRegion<TPixel> destinationBuffer = destination.PixelBuffer.GetRegion(interest);
             for (int y = 0; y < sourceBuffer.Height; y++)
@@ -79,13 +79,13 @@ internal class AffineTransformProcessor<TPixel> : TransformProcessor<TPixel>, IR
         {
             NNAffineOperation nnOperation = new(
                 source.PixelBuffer,
-                Rectangle.Intersect(this.SourceRectangle, source.Bounds()),
+                Rectangle.Intersect(this.SourceRectangle, source.Bounds),
                 destination.PixelBuffer,
                 matrix);
 
             ParallelRowIterator.IterateRows(
                 configuration,
-                destination.Bounds(),
+                destination.Bounds,
                 in nnOperation);
 
             return;
@@ -94,14 +94,14 @@ internal class AffineTransformProcessor<TPixel> : TransformProcessor<TPixel>, IR
         AffineOperation<TResampler> operation = new(
             configuration,
             source.PixelBuffer,
-            Rectangle.Intersect(this.SourceRectangle, source.Bounds()),
+            Rectangle.Intersect(this.SourceRectangle, source.Bounds),
             destination.PixelBuffer,
             in sampler,
             matrix);
 
         ParallelRowIterator.IterateRowIntervals<AffineOperation<TResampler>, Vector4>(
             configuration,
-            destination.Bounds(),
+            destination.Bounds,
             in operation);
     }
 

@@ -58,7 +58,7 @@ internal class EdgeDetectorCompassProcessor<TPixel> : ImageProcessor<TPixel>
     /// <inheritdoc />
     protected override void OnFrameApply(ImageFrame<TPixel> source)
     {
-        Rectangle interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds());
+        Rectangle interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds);
 
         // We need a clean copy for each pass to start from
         using ImageFrame<TPixel> cleanCopy = source.Clone();

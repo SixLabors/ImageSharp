@@ -46,7 +46,7 @@ internal sealed class PaletteDitherProcessor<TPixel> : ImageProcessor<TPixel>
     /// <inheritdoc/>
     protected override void OnFrameApply(ImageFrame<TPixel> source)
     {
-        Rectangle interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds());
+        Rectangle interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds);
         this.dither.ApplyPaletteDither(in this.ditherProcessor, source, interest);
     }
 

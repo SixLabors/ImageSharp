@@ -29,7 +29,7 @@ internal sealed class MedianBlurProcessor<TPixel> : ImageProcessor<TPixel>
 
         source.CopyTo(targetPixels);
 
-        Rectangle interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds());
+        Rectangle interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds);
 
         using KernelSamplingMap map = new(this.Configuration.MemoryAllocator);
         map.BuildSamplingOffsetMap(kernelSize, kernelSize, interest, this.definition.BorderWrapModeX, this.definition.BorderWrapModeY);

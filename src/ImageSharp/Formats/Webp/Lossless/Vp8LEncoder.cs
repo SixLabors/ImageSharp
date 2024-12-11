@@ -69,7 +69,7 @@ internal class Vp8LEncoder : IDisposable
     /// Flag indicating whether to preserve the exact RGB values under transparent area. Otherwise, discard this invisible
     /// RGB information for better compression.
     /// </summary>
-    private readonly WebpTransparentColorMode transparentColorMode;
+    private readonly TransparentColorMode transparentColorMode;
 
     /// <summary>
     /// Whether to skip metadata during encoding.
@@ -114,7 +114,7 @@ internal class Vp8LEncoder : IDisposable
         uint quality,
         bool skipMetadata,
         WebpEncodingMethod method,
-        WebpTransparentColorMode transparentColorMode,
+        TransparentColorMode transparentColorMode,
         bool nearLossless,
         int nearLosslessQuality)
     {

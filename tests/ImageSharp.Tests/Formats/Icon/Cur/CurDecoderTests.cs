@@ -20,8 +20,8 @@ public class CurDecoderTests
         using Image<Rgba32> image = provider.GetImage(CurDecoder.Instance);
 
         CurFrameMetadata meta = image.Frames[0].Metadata.GetCurMetadata();
-        Assert.Equal(image.Width, meta.EncodingWidth);
-        Assert.Equal(image.Height, meta.EncodingHeight);
+        Assert.Equal(image.Width, meta.EncodingWidth.Value);
+        Assert.Equal(image.Height, meta.EncodingHeight.Value);
         Assert.Equal(IconFrameCompression.Bmp, meta.Compression);
         Assert.Equal(BmpBitsPerPixel.Bit32, meta.BmpBitsPerPixel);
     }
@@ -33,8 +33,8 @@ public class CurDecoderTests
     {
         using Image<Rgba32> image = provider.GetImage(CurDecoder.Instance);
         CurFrameMetadata meta = image.Frames[0].Metadata.GetCurMetadata();
-        Assert.Equal(image.Width, meta.EncodingWidth);
-        Assert.Equal(image.Height, meta.EncodingHeight);
+        Assert.Equal(image.Width, meta.EncodingWidth.Value);
+        Assert.Equal(image.Height, meta.EncodingHeight.Value);
         Assert.Equal(IconFrameCompression.Bmp, meta.Compression);
         Assert.Equal(BmpBitsPerPixel.Bit32, meta.BmpBitsPerPixel);
     }

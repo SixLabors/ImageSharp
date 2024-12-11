@@ -36,8 +36,13 @@ internal static class MemoryGroupExtensions
 
     /// <summary>
     /// Returns a slice that is expected to be within the bounds of a single buffer.
-    /// Otherwise <see cref="ArgumentOutOfRangeException"/> is thrown.
     /// </summary>
+    /// <typeparam name="T">The type of element.</typeparam>
+    /// <param name="group">The group.</param>
+    /// <param name="start">The start index of the slice.</param>
+    /// <param name="length">The length of the slice.</param>
+    /// <exception cref="ArgumentOutOfRangeException">Slice is out of bounds.</exception>
+    /// <returns>The <see cref="MemoryGroup{T}"/> slice.</returns>
     internal static Memory<T> GetBoundedMemorySlice<T>(this IMemoryGroup<T> group, long start, int length)
         where T : struct
     {

@@ -20,7 +20,7 @@ public class CieLchuvAndCmykConversionTests
         // Arrange
         Cmyk input = new(c2, m, y, k);
         CieLchuv expected = new(l, c, h);
-        ColorConversionOptions options = new() { WhitePoint = KnownIlluminants.D65, TargetWhitePoint = KnownIlluminants.D65 };
+        ColorConversionOptions options = new() { SourceWhitePoint = KnownIlluminants.D65, TargetWhitePoint = KnownIlluminants.D65 };
         ColorProfileConverter converter = new(options);
 
         Span<Cmyk> inputSpan = new Cmyk[5];
@@ -49,7 +49,7 @@ public class CieLchuvAndCmykConversionTests
         // Arrange
         CieLchuv input = new(l, c, h);
         Cmyk expected = new(c2, m, y, k);
-        ColorConversionOptions options = new() { WhitePoint = KnownIlluminants.D65, TargetWhitePoint = KnownIlluminants.D65 };
+        ColorConversionOptions options = new() { SourceWhitePoint = KnownIlluminants.D65, TargetWhitePoint = KnownIlluminants.D65 };
         ColorProfileConverter converter = new(options);
 
         Span<CieLchuv> inputSpan = new CieLchuv[5];

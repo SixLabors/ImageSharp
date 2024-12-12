@@ -214,30 +214,18 @@ internal static class ColorProfileConverterExtensionsIcc
                 throw new ArgumentOutOfRangeException($"Source PCS {sourcePcsType} not supported");
         }
 
-        // as per DemoIccMAX icPerceptual values in IccCmm.h
-        CieXyz refBlack = new(0.00336F, 0.0034731F, 0.00287F);
-        CieXyz refWhite = new(0.9642F, 1.0000F, 0.8249F);
-
         // when converting from device to PCS with v2 perceptual intent
         // the black point needs to be adjusted to v4 after converting the PCS values
         if (adjustSource)
         {
-            Vector3 iccXyz = xyz.ToScaledVector4().AsVector3();
-            Vector3 scale = Vector3.One - Vector3.Divide(refBlack.ToVector3(), refWhite.ToVector3());
-            Vector3 offset = refBlack.ToScaledVector4().AsVector3();
-            Vector3 adjustedXyz = (iccXyz * scale) + offset;
-            xyz = CieXyz.FromScaledVector4(new Vector4(adjustedXyz, 1F));
+            xyz = new CieXyz(AdjustPcsFromV2BlackPoint(xyz.ToVector3()));
         }
 
         // when converting from PCS to device with v2 perceptual intent
         // the black point needs to be adjusted to v2 before converting the PCS values
         if (adjustTarget)
         {
-            Vector3 iccXyz = xyz.ToScaledVector4().AsVector3();
-            Vector3 scale = Vector3.Divide(Vector3.One, Vector3.One - Vector3.Divide(refBlack.ToVector3(), refWhite.ToVector3()));
-            Vector3 offset = -refBlack.ToScaledVector4().AsVector3() * scale;
-            Vector3 adjustedXyz = (iccXyz * scale) + offset;
-            xyz = CieXyz.FromScaledVector4(new Vector4(adjustedXyz, 1F));
+            xyz = new CieXyz(AdjustPcsToV2BlackPoint(xyz.ToVector3()));
         }
 
         Vector4 targetPcs;
@@ -259,6 +247,22 @@ internal static class ColorProfileConverterExtensionsIcc
 
         return targetPcs;
     }
+
+    // as per DemoIccMAX icPerceptual values in IccCmm.h
+    // refBlack = 0.00336F, 0.0034731F, 0.00287F
+    // refWhite = 0.9642F, 1.0000F, 0.8249F
+    // scale = 1 - (refBlack / refWhite)
+    // offset = refBlack
+    private static Vector3 AdjustPcsFromV2BlackPoint(Vector3 xyz)
+        => (xyz * new Vector3(0.9965153F, 0.9965269F, 0.9965208F)) + new Vector3(0.00336F, 0.0034731F, 0.00287F);
+
+    // as per DemoIccMAX icPerceptual values in IccCmm.h
+    // refBlack = 0.00336F, 0.0034731F, 0.00287F
+    // refWhite = 0.9642F, 1.0000F, 0.8249F
+    // scale = 1 / (1 - (refBlack / refWhite))
+    // offset = -refBlack * scale
+    private static Vector3 AdjustPcsToV2BlackPoint(Vector3 xyz)
+        => (xyz * new Vector3(1.0034969F, 1.0034852F, 1.0034913F)) - new Vector3(0.0033717495F, 0.0034852044F, 0.0028800198F);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Vector4 LabToLabV2(Vector4 input)

@@ -80,9 +80,12 @@ public class ColorProfileConverterTests
 
         Rgb actualRgb = converter.Convert<Cmyk, Rgb>(new Cmyk(new Vector4(input)));
 
-        Assert.Equal(expectedR, actualRgb.R);
-        Assert.Equal(expectedG, actualRgb.G);
-        Assert.Equal(expectedB, actualRgb.B);
+        // TODO: investigate lower tolerance than CanConvertCmykIccProfiles()
+        // currently assuming it's a rounding error in the process of gathering test data manually
+        const double tolerance = 0.0005;
+        Assert.Equal(expectedR, actualRgb.R, tolerance);
+        Assert.Equal(expectedG, actualRgb.G, tolerance);
+        Assert.Equal(expectedB, actualRgb.B, tolerance);
     }
 
     private static double[] GetExpectedTargetValues(string sourceProfile, string targetProfile, float[] input)

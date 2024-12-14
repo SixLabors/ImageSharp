@@ -189,6 +189,9 @@ internal static class ColorProfileConverterExtensionsIcc
                 sourcePcs = sourceParams.Is16BitLutEntry ? LabV2ToLab(sourcePcs) : sourcePcs;
                 CieLab lab = CieLab.FromScaledVector4(sourcePcs);
                 CieXyz xyz = pcsConverter.Convert<CieLab, CieXyz>(in lab);
+
+                // DemoMaxICC clips negatives as part of IccUtil.cpp : icLabToXYZ > icICubeth
+                xyz = new CieXyz(Vector3.Clamp(xyz.ToVector3(), Vector3.Zero, new Vector3(float.MaxValue, float.MaxValue, float.MaxValue)));
                 return xyz.ToScaledVector4();
             }
 
@@ -258,6 +261,9 @@ internal static class ColorProfileConverterExtensionsIcc
                 sourcePcs = sourceParams.Is16BitLutEntry ? LabV2ToLab(sourcePcs) : sourcePcs;
                 CieLab lab = CieLab.FromScaledVector4(sourcePcs);
                 xyz = pcsConverter.Convert<CieLab, CieXyz>(in lab);
+
+                // DemoMaxICC clips negatives as part of IccUtil.cpp : icLabToXYZ > icICubeth
+                xyz = new CieXyz(Vector3.Clamp(xyz.ToVector3(), Vector3.Zero, new Vector3(float.MaxValue, float.MaxValue, float.MaxValue)));
                 break;
             case IccColorSpaceType.CieXyz:
                 xyz = CieXyz.FromScaledVector4(sourcePcs);

@@ -39,13 +39,16 @@ internal class ColorTrcCalculator : IVector4Calculator
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Vector4 Calculate(Vector4 value)
     {
+        // uses the descaled XYZ as DemoMaxICC IccCmm.cpp : CIccXformMatrixTRC::Apply()
+        Vector4 xyz = new(CieXyz.FromScaledVector4(value).ToVector3(), 1);
+
         if (this.toPcs)
         {
-            value = this.curveCalculator.Calculate(value);
+            value = this.curveCalculator.Calculate(xyz);
             return Vector4.Transform(value, this.matrix);
         }
 
-        value = Vector4.Transform(value, this.matrix);
+        value = Vector4.Transform(xyz, this.matrix);
         return this.curveCalculator.Calculate(value);
     }
 }

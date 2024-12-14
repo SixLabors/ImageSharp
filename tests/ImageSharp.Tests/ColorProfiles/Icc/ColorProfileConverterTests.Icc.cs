@@ -29,9 +29,7 @@ public class ColorProfileConverterTests
     // [InlineData(TestIccProfiles.StandardRgbV2, TestIccProfiles.Fogra39)] // RGB -> XYZ -> LAB -> CMYK (different LUT tags, TRC vs A2B)
     public void CanConvertCmykIccProfiles(string sourceProfile, string targetProfile)
     {
-        // TODO: delete after testing
-        float[] input = [0.734798908f, 0.887050927f, 0.476583719f, 0.547810674f];
-        // float[] input = [GetNormalizedRandomValue(), GetNormalizedRandomValue(), GetNormalizedRandomValue(), GetNormalizedRandomValue()];
+        float[] input = [GetNormalizedRandomValue(), GetNormalizedRandomValue(), GetNormalizedRandomValue(), GetNormalizedRandomValue()];
         double[] expectedTargetValues = GetExpectedTargetValues(sourceProfile, targetProfile, input);
 
         ColorProfileConverter converter = new(new ColorConversionOptions

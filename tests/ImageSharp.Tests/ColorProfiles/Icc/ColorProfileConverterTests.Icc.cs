@@ -25,7 +25,6 @@ public class ColorProfileConverterTests
     [InlineData(TestIccProfiles.RommRgb, TestIccProfiles.StandardRgbV4)] // RGB -> XYZ -> LAB -> RGB (different LUT elements, B-Matrix-M vs B-Matrix-M-CLUT-A)
     // TODO: enable once supported by Unicolour - in the meantime, manually test known values
     // [InlineData(TestIccProfiles.Fogra39, TestIccProfiles.JapanColor2003)] // CMYK -> LAB -> CMYK (different bit depth v2 LUTs, 16-bit vs 8-bit)
-    // [InlineData(TestIccProfiles.Fogra39, TestIccProfiles.StandardRgbV2)] // CMYK -> XYZ -> LAB -> RGB (different LUT tags, A2B vs TRC)
     // [InlineData(TestIccProfiles.StandardRgbV2, TestIccProfiles.Fogra39)] // RGB -> XYZ -> LAB -> CMYK (different LUT tags, TRC vs A2B)
     public void CanConvertCmykIccProfiles(string sourceProfile, string targetProfile)
     {
@@ -58,6 +57,32 @@ public class ColorProfileConverterTests
         {
             Assert.Equal(expectedTargetValues[i], actualTargetValues[i], tolerance);
         }
+    }
+
+    // TODO: replace with random Unicolour comparison once supported
+    // CMYK -> XYZ -> LAB -> RGB (different LUT tags, A2B vs TRC)
+    [Theory]
+    [InlineData(0, 0, 0, 0, 0.999871254, 1, 1)]
+    [InlineData(1, 0, 0, 0, 0, 0.620751977, 0.885590851)]
+    [InlineData(0, 1, 0, 0, 0.913222313, 0.0174613427, 0.505019307)]
+    [InlineData(0, 0, 1, 0, 1, 0.937102795, 0)]
+    [InlineData(0, 0, 0, 1, 0.104899481, 0.103322059, 0.0991369858)]
+    [InlineData(1, 1, 1, 1, 0, 0, 1.95495249e-05)]
+    public void CanConvertCmykIccProfilesToRgbUsingMatrixTrc(float c, float m, float y, float k, float expectedR, float expectedG, float expectedB)
+    {
+        float[] input = [c, m, y, k];
+
+        ColorProfileConverter converter = new(new ColorConversionOptions
+        {
+            SourceIccProfile = TestIccProfiles.GetProfile(TestIccProfiles.Fogra39),
+            TargetIccProfile = TestIccProfiles.GetProfile(TestIccProfiles.StandardRgbV2)
+        });
+
+        Rgb actualRgb = converter.Convert<Cmyk, Rgb>(new Cmyk(new Vector4(input)));
+
+        Assert.Equal(expectedR, actualRgb.R);
+        Assert.Equal(expectedG, actualRgb.G);
+        Assert.Equal(expectedB, actualRgb.B);
     }
 
     private static double[] GetExpectedTargetValues(string sourceProfile, string targetProfile, float[] input)

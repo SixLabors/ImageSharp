@@ -263,7 +263,7 @@ internal static class ColorProfileConverterExtensionsIcc
                 xyz = pcsConverter.Convert<CieLab, CieXyz>(in lab);
 
                 // DemoMaxICC clips negatives as part of IccUtil.cpp : icLabToXYZ > icICubeth
-                xyz = new CieXyz(Vector3.Clamp(xyz.ToVector3(), Vector3.Zero, new Vector3(float.MaxValue, float.MaxValue, float.MaxValue)));
+                xyz = new CieXyz(Vector3.Max(xyz.ToVector3(), Vector3.Zero));
                 break;
             case IccColorSpaceType.CieXyz:
                 xyz = CieXyz.FromScaledVector4(sourcePcs);

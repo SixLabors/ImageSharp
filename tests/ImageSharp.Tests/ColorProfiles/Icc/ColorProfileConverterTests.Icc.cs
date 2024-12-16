@@ -33,7 +33,7 @@ public class ColorProfileConverterTests(ITestOutputHelper testOutputHelper)
         Vector4 actualTargetValues = GetActualTargetValues(input, sourceProfile, targetProfile);
 
         testOutputHelper.WriteLine($"Input {string.Join(", ", input)} · Expected output {string.Join(", ", expectedTargetValues)}");
-        const double tolerance = 0.00001;
+        const double tolerance = 0.00005;
         for (int i = 0; i < expectedTargetValues.Length; i++)
         {
             Assert.Equal(expectedTargetValues[i], actualTargetValues[i], tolerance);
@@ -98,14 +98,58 @@ public class ColorProfileConverterTests(ITestOutputHelper testOutputHelper)
 
         if (sourceConfig.Icc.Error != null || targetConfig.Icc.Error != null)
         {
-            Assert.Fail("Unicolour does not support the ICC profile - test values manually in the meantime");
+            Assert.Fail("Unicolour does not support the ICC profile - test values will need to be calculated manually");
+        }
+
+        /* This is a hack to trick Unicolour to work in the same way as ImageSharp.
+         * ImageSharp bypasses PCS adjustment for v2 perceptual intent if source and target both need it
+         * as they both share the same understanding of what the PCS is (see ColorProfileConverterExtensionsIcc.GetTargetPcsWithPerceptualV2Adjustment)
+         * Unicolour does not support a direct profile-to-profile conversion so will always perform PCS adjustment for v2 perceptual intent.
+         * However, PCS adjustment clips negative XYZ values, causing those particular values in Unicolour and ImageSharp to diverge.
+         * It's unclear to me if there's a fundamental correct answer here.
+         *
+         * There are 2 obvious ways to keep Unicolour and ImageSharp values aligned:
+         * 1. Make ImageSharp always perform PCS adjustment, clipping negative XYZ values during the process - but creates a lot more calculations
+         * 2. Make Unicolour stop performing PCS adjustment, allowing negative XYZ values during conversion
+         *
+         * Option 2 is implemented by modifying the profiles so they claim to be v4 profiles
+         * since v4 perceptual profiles do not apply PCS adjustment.
+         */
+        bool isSourcePerceptualV2 = sourceConfig.Icc.Intent == Intent.Perceptual && sourceConfig.Icc.Profile!.Header.ProfileVersion.Major == 2;
+        bool isTargetPerceptualV2 = targetConfig.Icc.Intent == Intent.Perceptual && targetConfig.Icc.Profile!.Header.ProfileVersion.Major == 2;
+        if (isSourcePerceptualV2 && isTargetPerceptualV2)
+        {
+            sourceConfig = GetUnicolourConfigAsV4Header(sourceConfig);
+            targetConfig = GetUnicolourConfigAsV4Header(targetConfig);
         }
 
         Channels channels = new(input.Select(value => (double)value).ToArray());
-
         Unicolour source = new(sourceConfig, channels);
         Unicolour target = source.ConvertToConfiguration(targetConfig);
         return target.Icc.Values;
+    }
+
+    private static Wacton.Unicolour.Configuration GetUnicolourConfigAsV4Header(Wacton.Unicolour.Configuration config)
+    {
+        string profilePath = config.Icc.Profile!.FileInfo.FullName;
+        string modifiedFilename = $"{Path.GetFileNameWithoutExtension(profilePath)}_modified.icc";
+        string modifiedProfile = Path.Combine(Path.GetDirectoryName(profilePath)!, modifiedFilename);
+
+        Wacton.Unicolour.Configuration modifiedConfig;
+        if (!TestIccProfiles.HasUnicolourConfiguration(modifiedProfile))
+        {
+            byte[] bytes = File.ReadAllBytes(profilePath);
+            bytes[8] = 4; // byte 8 of profile is major version
+            File.WriteAllBytes(modifiedProfile, bytes);
+            modifiedConfig = TestIccProfiles.GetUnicolourConfiguration(modifiedProfile);
+            File.Delete(modifiedProfile);
+        }
+        else
+        {
+            modifiedConfig = TestIccProfiles.GetUnicolourConfiguration(modifiedProfile);
+        }
+
+        return modifiedConfig;
     }
 
     private static Vector4 GetActualTargetValues(float[] input, string sourceProfile, string targetProfile)

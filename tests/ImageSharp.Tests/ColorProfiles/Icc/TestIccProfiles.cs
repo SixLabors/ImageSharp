@@ -59,6 +59,9 @@ internal static class TestIccProfiles
             file,
             f => new Wacton.Unicolour.Configuration(iccConfiguration: new(GetFullPath(f), Intent.Unspecified, f)));
 
+    public static bool HasUnicolourConfiguration(string file)
+        => UnicolourConfigurationCache.ContainsKey(file);
+
     private static string GetFullPath(string file)
         => Path.GetFullPath(Path.Combine(".", "TestDataIcc", "Profiles", file));
 }

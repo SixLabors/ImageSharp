@@ -37,7 +37,7 @@ internal class LutEntryCalculator : IVector4Calculator
     {
         if (this.doTransform)
         {
-            value = Vector4.Transform(value, this.matrix);
+            value = Vector4.Transform(value, Matrix4x4.Transpose(this.matrix));
         }
 
         value = CalculateLut(this.inputCurve, value);

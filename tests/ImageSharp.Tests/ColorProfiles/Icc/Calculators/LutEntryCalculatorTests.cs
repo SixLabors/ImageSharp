@@ -14,7 +14,7 @@ namespace SixLabors.ImageSharp.Tests.ColorProfiles.Icc.Calculators
     [Trait("Color", "Conversion")]
     public class LutEntryCalculatorTests
     {
-        [Theory(Skip = "Results do not match not expected.")]
+        [Theory]
         [MemberData(nameof(IccConversionDataLutEntry.Lut8ConversionTestData), MemberType = typeof(IccConversionDataLutEntry))]
         internal void LutEntryCalculator_WithLut8_ReturnsResult(IccLut8TagDataEntry lut, Vector4 input, Vector4 expected)
         {
@@ -25,7 +25,7 @@ namespace SixLabors.ImageSharp.Tests.ColorProfiles.Icc.Calculators
             VectorAssert.Equal(expected, result, 4);
         }
 
-        [Theory(Skip = "Results do not match not expected.")]
+        [Theory]
         [MemberData(nameof(IccConversionDataLutEntry.Lut16ConversionTestData), MemberType = typeof(IccConversionDataLutEntry))]
         internal void LutEntryCalculator_WithLut16_ReturnsResult(IccLut16TagDataEntry lut, Vector4 input, Vector4 expected)
         {

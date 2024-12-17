@@ -49,13 +49,13 @@ public class IccConversionDataLutEntry
 
     public static object[][] Lut8ConversionTestData =
     {
-        new object[] { Lut8, new Vector4(0.2f, 0.3f, 0, 0), new Vector4(0.339762866f, 0, 0, 0) },
-        new object[] { Lut8Matrix, new Vector4(0.21f, 0.31f, 0.41f, 0), new Vector4(0.431305826f, 0, 0, 0) },
+        new object[] { Lut8, new Vector4(0.2f, 0.3f, 0, 0), new Vector4(0.4578933760499877f, 0, 0, 0) },
+        new object[] { Lut8Matrix, new Vector4(0.21f, 0.31f, 0.41f, 0), new Vector4(0.40099657491875312f, 0, 0, 0) },
     };
 
     public static object[][] Lut16ConversionTestData =
     {
-        new object[] { Lut16, new Vector4(0.2f, 0.3f, 0, 0), new Vector4(0.245625019f, 0, 0, 0) },
-        new object[] { Lut16Matrix, new Vector4(0.21f, 0.31f, 0.41f, 0), new Vector4(0.336980581f, 0, 0, 0) },
+        new object[] { Lut16, new Vector4(0.2f, 0.3f, 0, 0), new Vector4(0.3543750030529918f, 0, 0, 0) },
+        new object[] { Lut16Matrix, new Vector4(0.21f, 0.31f, 0.41f, 0), new Vector4(0.29739562389689594f, 0, 0, 0) },
     };
 }

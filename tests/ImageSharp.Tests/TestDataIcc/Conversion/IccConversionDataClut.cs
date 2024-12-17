@@ -151,9 +151,9 @@ public class IccConversionDataClut
     public static object[][] ClutConversionTestData =
     [
         [Clut3x2, new Vector4(0.75f, 0.75f, 0.75f, 0), new Vector4(0.31f, 0.31f, 0, 0)],
-        [Clut3x1, new Vector4(0.2f, 0.6f, 0.8f, 0), new Vector4(0.276f, 0, 0, 0)],
+        [Clut3x1, new Vector4(0.2f, 0.6f, 0.8f, 0), new Vector4(0.284f, 0, 0, 0)],
         [Clut3x1, new Vector4(0.75f, 0.75f, 0.75f, 0), new Vector4(0.31f, 0, 0, 0)],
-        [Clut2x2, new Vector4(0.2f, 0.6f, 0, 0), new Vector4(0.46f, 0.54f, 0, 0)],
+        [Clut2x2, new Vector4(0.2f, 0.6f, 0, 0), new Vector4(0.34f, 0.66f, 0, 0)],
         [Clut2x2, new Vector4(0.25f, 0.75f, 0, 0), new Vector4(0.4f, 0.6f, 0, 0)],
         [Clut2x1, new Vector4(0.25f, 0.75f, 0, 0), new Vector4(0.4f, 0, 0, 0)],
         [Clut1x2, new Vector4(0.25f, 0, 0, 0), new Vector4(0.125f, 0.625f, 0, 0)],

@@ -26,7 +26,7 @@ public class DecodeGif
         }
     }
 
-    [Params(TestImages.Gif.Rings)]
+    [Params(TestImages.Gif.Cheers)]
     public string TestImage { get; set; }
 
     [Benchmark(Baseline = true, Description = "System.Drawing Gif")]

@@ -9,6 +9,7 @@ namespace SixLabors.ImageSharp.Tests.ColorProfiles;
 /// <summary>
 /// Tests the <see cref="HunterLab"/> struct.
 /// </summary>
+[Trait("Color", "Conversion")]
 public class HunterLabTests
 {
     [Fact]

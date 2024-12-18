@@ -244,6 +244,11 @@ internal static class ColorProfileConverterExtensionsIcc
     /// Not required if both spaces need adjustment, since they both have the same understanding of the PCS.
     /// Not compatible with PCS adjustment for absolute intent.
     /// </summary>
+    /// <param name="sourcePcs">The source PCS values.</param>
+    /// <param name="sourceParams">The source profile parameters.</param>
+    /// <param name="targetParams">The target profile parameters.</param>
+    /// <param name="pcsConverter">The converter to use for the PCS adjustments.</param>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when the source or target PCS is not supported.</exception>
     private static Vector4 GetTargetPcsWithPerceptualV2Adjustment(
         Vector4 sourcePcs,
         ConversionParams sourceParams,
@@ -294,16 +299,12 @@ internal static class ColorProfileConverterExtensionsIcc
             case IccColorSpaceType.CieLab:
                 CieLab lab = pcsConverter.Convert<CieXyz, CieLab>(in xyz);
                 targetPcs = lab.ToScaledVector4();
-                targetPcs = targetParams.Is16BitLutEntry ? LabToLabV2(targetPcs) : targetPcs;
-                break;
+                return targetParams.Is16BitLutEntry ? LabToLabV2(targetPcs) : targetPcs;
             case IccColorSpaceType.CieXyz:
-                targetPcs = xyz.ToScaledVector4();
-                break;
+                return xyz.ToScaledVector4();
             default:
                 throw new ArgumentOutOfRangeException($"Target PCS {targetParams.PcsType} is not supported");
         }
-
-        return targetPcs;
     }
 
     // as per DemoIccMAX icPerceptual values in IccCmm.h

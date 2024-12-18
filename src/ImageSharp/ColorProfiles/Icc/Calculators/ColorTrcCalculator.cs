@@ -23,7 +23,7 @@ internal class ColorTrcCalculator : IVector4Calculator
         bool toPcs)
     {
         this.toPcs = toPcs;
-        this.curveCalculator = new TrcCalculator(new IccTagDataEntry[] { redTrc, greenTrc, blueTrc }, !toPcs);
+        this.curveCalculator = new TrcCalculator([redTrc, greenTrc, blueTrc], !toPcs);
 
         Vector3 mr = redMatrixColumn.Data[0];
         Vector3 mg = greenMatrixColumn.Data[0];

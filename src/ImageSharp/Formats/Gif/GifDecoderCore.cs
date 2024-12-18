@@ -423,19 +423,14 @@ internal sealed class GifDecoderCore : ImageDecoderCore
 
         // Determine the color table for this frame. If there is a local one, use it otherwise use the global color table.
         bool hasLocalColorTable = this.imageDescriptor.LocalColorTableFlag;
-
+        Span<byte> rawColorTable = default;
         if (hasLocalColorTable)
         {
             // Read and store the local color table. We allocate the maximum possible size and slice to match.
             int length = this.currentLocalColorTableSize = this.imageDescriptor.LocalColorTableSize * 3;
             this.currentLocalColorTable ??= this.configuration.MemoryAllocator.Allocate<byte>(768, AllocationOptions.Clean);
             stream.Read(this.currentLocalColorTable.GetSpan()[..length]);
-        }
-
-        Span<byte> rawColorTable = default;
-        if (hasLocalColorTable)
-        {
-            rawColorTable = this.currentLocalColorTable!.GetSpan()[..this.currentLocalColorTableSize];
+            rawColorTable = this.currentLocalColorTable!.GetSpan()[..length];
         }
         else if (this.globalColorTable != null)
         {
@@ -443,7 +438,7 @@ internal sealed class GifDecoderCore : ImageDecoderCore
         }
 
         ReadOnlySpan<Rgb24> colorTable = MemoryMarshal.Cast<byte, Rgb24>(rawColorTable);
-        this.ReadFrameColors(stream, ref image, ref previousFrame, colorTable, this.imageDescriptor);
+        this.ReadFrameColors(stream, ref image, ref previousFrame, colorTable);
 
         // Skip any remaining blocks
         SkipBlock(stream);
@@ -457,15 +452,14 @@ internal sealed class GifDecoderCore : ImageDecoderCore
     /// <param name="image">The image to decode the information to.</param>
     /// <param name="previousFrame">The previous frame.</param>
     /// <param name="colorTable">The color table containing the available colors.</param>
-    /// <param name="descriptor">The <see cref="GifImageDescriptor"/></param>
     private void ReadFrameColors<TPixel>(
         BufferedReadStream stream,
         ref Image<TPixel>? image,
         ref ImageFrame<TPixel>? previousFrame,
-        ReadOnlySpan<Rgb24> colorTable,
-        in GifImageDescriptor descriptor)
+        ReadOnlySpan<Rgb24> colorTable)
         where TPixel : unmanaged, IPixel<TPixel>
     {
+        GifImageDescriptor descriptor = this.imageDescriptor;
         int imageWidth = this.logicalScreenDescriptor.Width;
         int imageHeight = this.logicalScreenDescriptor.Height;
         bool transFlag = this.graphicsControlExtension.TransparencyFlag;
@@ -528,7 +522,6 @@ internal sealed class GifDecoderCore : ImageDecoderCore
         // However we have images that exceed this that can be decoded by other libraries. #1530
         using IMemoryOwner<byte> indicesRowOwner = this.memoryAllocator.Allocate<byte>(descriptor.Width);
         Span<byte> indicesRow = indicesRowOwner.Memory.Span;
-        ref byte indicesRowRef = ref MemoryMarshal.GetReference(indicesRow);
 
         int minCodeSize = stream.ReadByte();
         if (LzwDecoder.IsValidMinCodeSize(minCodeSize))
@@ -572,22 +565,28 @@ internal sealed class GifDecoderCore : ImageDecoderCore
                 }
 
                 lzwDecoder.DecodePixelRow(indicesRow);
-                ref TPixel rowRef = ref MemoryMarshal.GetReference(imageFrame.PixelBuffer.DangerousGetRowSpan(writeY));
+
+                // #403 The left + width value can be larger than the image width
+                int maxX = Math.Min(descriptorRight, imageWidth);
+                Span<TPixel> row = imageFrame.PixelBuffer.DangerousGetRowSpan(writeY);
+
+                // Take the descriptorLeft..maxX slice of the row, so the loop can be simplified.
+                row = row[descriptorLeft..maxX];
 
                 if (!transFlag)
                 {
-                    // #403 The left + width value can be larger than the image width
-                    for (int x = descriptorLeft; x < descriptorRight && x < imageWidth; x++)
+                    for (int x = 0; x < row.Length; x++)
                     {
-                        int index = Numerics.Clamp(Unsafe.Add(ref indicesRowRef, (uint)(x - descriptorLeft)), 0, colorTableMaxIdx);
-                        Unsafe.Add(ref rowRef, (uint)x) = TPixel.FromRgb24(colorTable[index]);
+                        int index = indicesRow[x];
+                        index = Numerics.Clamp(index, 0, colorTableMaxIdx);
+                        row[x] = TPixel.FromRgb24(colorTable[index]);
                     }
                 }
                 else
                 {
-                    for (int x = descriptorLeft; x < descriptorRight && x < imageWidth; x++)
+                    for (int x = 0; x < row.Length; x++)
                     {
-                        int index = Unsafe.Add(ref indicesRowRef, (uint)(x - descriptorLeft));
+                        int index = indicesRow[x];
 
                         // Treat any out of bounds values as transparent.
                         if (index > colorTableMaxIdx || index == transIndex)
@@ -595,7 +594,7 @@ internal sealed class GifDecoderCore : ImageDecoderCore
                             continue;
                         }
 
-                        Unsafe.Add(ref rowRef, (uint)x) = TPixel.FromRgb24(colorTable[index]);
+                        row[x] = TPixel.FromRgb24(colorTable[index]);
                     }
                 }
             }

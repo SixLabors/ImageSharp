@@ -28,7 +28,7 @@ internal abstract partial class JpegColorConverterBase
             ref Vector<float> kBase =
                 ref Unsafe.As<float, Vector<float>>(ref MemoryMarshal.GetReference(values.Component3));
 
-            var scale = new Vector<float>(1 / (this.MaximumValue * this.MaximumValue));
+            Vector<float> scale = new Vector<float>(1 / (this.MaximumValue * this.MaximumValue));
 
             nuint n = values.Component0.VectorCount<float>();
             for (nuint i = 0; i < n; i++)
@@ -76,7 +76,7 @@ internal abstract partial class JpegColorConverterBase
                 ref Unsafe.As<float, Vector<float>>(ref MemoryMarshal.GetReference(b));
 
             // Used for the color conversion
-            var scale = new Vector<float>(maxValue);
+            Vector<float> scale = new Vector<float>(maxValue);
 
             nuint n = values.Component0.VectorCount<float>();
             for (nuint i = 0; i < n; i++)
@@ -86,7 +86,7 @@ internal abstract partial class JpegColorConverterBase
                 Vector<float> ytmp = scale - Unsafe.Add(ref srcB, i);
                 Vector<float> ktmp = Vector.Min(ctmp, Vector.Min(mtmp, ytmp));
 
-                var kMask = Vector.Equals(ktmp, scale);
+                Vector<int> kMask = Vector.Equals(ktmp, scale);
                 ctmp = Vector.AndNot((ctmp - ktmp) / (scale - ktmp), kMask.As<int, float>());
                 mtmp = Vector.AndNot((mtmp - ktmp) / (scale - ktmp), kMask.As<int, float>());
                 ytmp = Vector.AndNot((ytmp - ktmp) / (scale - ktmp), kMask.As<int, float>());

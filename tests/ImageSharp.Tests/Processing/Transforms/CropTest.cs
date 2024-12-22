@@ -25,7 +25,7 @@ public class CropTest : BaseImageOperationsExtensionTest
     [InlineData(12, 123, 6, 2)]
     public void CropRectangleCropProcessorWithRectangleSet(int x, int y, int width, int height)
     {
-        var cropRectangle = new Rectangle(x, y, width, height);
+        Rectangle cropRectangle = new Rectangle(x, y, width, height);
         this.operations.Crop(cropRectangle);
         CropProcessor processor = this.Verify<CropProcessor>();
 
@@ -35,7 +35,7 @@ public class CropTest : BaseImageOperationsExtensionTest
     [Fact]
     public void CropRectangleWithInvalidBoundsThrowsException()
     {
-        var cropRectangle = Rectangle.Inflate(this.SourceBounds(), 5, 5);
+        Rectangle cropRectangle = Rectangle.Inflate(this.SourceBounds(), 5, 5);
         Assert.Throws<ArgumentException>(() => this.operations.Crop(cropRectangle));
     }
 }

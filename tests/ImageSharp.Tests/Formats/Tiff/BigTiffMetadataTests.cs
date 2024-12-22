@@ -16,7 +16,7 @@ public class BigTiffMetadataTests
     [Fact]
     public void ExifLong8()
     {
-        var long8 = new ExifLong8(ExifTagValue.StripByteCounts);
+        ExifLong8 long8 = new ExifLong8(ExifTagValue.StripByteCounts);
 
         Assert.True(long8.TrySetValue(0));
         Assert.Equal(0UL, long8.GetValue());
@@ -34,7 +34,7 @@ public class BigTiffMetadataTests
     [Fact]
     public void ExifSignedLong8()
     {
-        var long8 = new ExifSignedLong8(ExifTagValue.ImageID);
+        ExifSignedLong8 long8 = new ExifSignedLong8(ExifTagValue.ImageID);
 
         Assert.False(long8.TrySetValue(0));
 
@@ -53,7 +53,7 @@ public class BigTiffMetadataTests
     [Fact]
     public void ExifLong8Array()
     {
-        var long8 = new ExifLong8Array(ExifTagValue.StripOffsets);
+        ExifLong8Array long8 = new ExifLong8Array(ExifTagValue.StripOffsets);
 
         Assert.True(long8.TrySetValue((short)-123));
         Assert.Equal(new[] { 0UL }, long8.GetValue());
@@ -91,7 +91,7 @@ public class BigTiffMetadataTests
     [Fact]
     public void ExifSignedLong8Array()
     {
-        var long8 = new ExifSignedLong8Array(ExifTagValue.StripOffsets);
+        ExifSignedLong8Array long8 = new ExifSignedLong8Array(ExifTagValue.StripOffsets);
 
         Assert.True(long8.TrySetValue(new[] { 0L }));
         Assert.Equal(new[] { 0L }, long8.GetValue());
@@ -105,9 +105,9 @@ public class BigTiffMetadataTests
     [Fact]
     public void NotCoveredTags()
     {
-        using var input = new Image<Rgba32>(10, 10);
+        using Image<Rgba32> input = new Image<Rgba32>(10, 10);
 
-        var testTags = new Dictionary<ExifTag, (ExifDataType DataType, object Value)>
+        Dictionary<ExifTag, (ExifDataType DataType, object Value)> testTags = new Dictionary<ExifTag, (ExifDataType DataType, object Value)>
         {
             { new ExifTag<float[]>((ExifTagValue)0xdd01), (ExifDataType.SingleFloat, new float[] { 1.2f, 2.3f, 4.5f }) },
             { new ExifTag<float>((ExifTagValue)0xdd02), (ExifDataType.SingleFloat, 2.345f) },
@@ -122,7 +122,7 @@ public class BigTiffMetadataTests
         };
 
         // arrange
-        var values = new List<IExifValue>();
+        List<IExifValue> values = new List<IExifValue>();
         foreach (KeyValuePair<ExifTag, (ExifDataType DataType, object Value)> tag in testTags)
         {
             ExifValue newExifValue = ExifValues.Create((ExifTagValue)(ushort)tag.Key, tag.Value.DataType, tag.Value.Value is Array);
@@ -134,13 +134,13 @@ public class BigTiffMetadataTests
         input.Frames.RootFrame.Metadata.ExifProfile = new ExifProfile(values, Array.Empty<ExifTag>());
 
         // act
-        var encoder = new TiffEncoder();
-        using var memStream = new MemoryStream();
+        TiffEncoder encoder = new TiffEncoder();
+        using MemoryStream memStream = new MemoryStream();
         input.Save(memStream, encoder);
 
         // assert
         memStream.Position = 0;
-        using var output = Image.Load<Rgba32>(memStream);
+        using Image<Rgba32> output = Image.Load<Rgba32>(memStream);
         ImageFrameMetadata loadedFrameMetadata = output.Frames.RootFrame.Metadata;
         foreach (KeyValuePair<ExifTag, (ExifDataType DataType, object Value)> tag in testTags)
         {
@@ -158,7 +158,7 @@ public class BigTiffMetadataTests
     [Fact]
     public void NotCoveredTags64bit()
     {
-        var testTags = new Dictionary<ExifTag, (ExifDataType DataType, object Value)>
+        Dictionary<ExifTag, (ExifDataType DataType, object Value)> testTags = new Dictionary<ExifTag, (ExifDataType DataType, object Value)>
         {
             { new ExifTag<ulong>((ExifTagValue)0xdd11), (ExifDataType.Long8, ulong.MaxValue) },
             { new ExifTag<long>((ExifTagValue)0xdd12), (ExifDataType.SignedLong8, long.MaxValue) },
@@ -167,7 +167,7 @@ public class BigTiffMetadataTests
             ////{ new ExifTag<long[]>((ExifTagValue)0xdd14), (ExifDataType.SignedLong8, new long[] { -1234, 56789L, long.MaxValue }) },
         };
 
-        var values = new List<IExifValue>();
+        List<IExifValue> values = new List<IExifValue>();
         foreach (KeyValuePair<ExifTag, (ExifDataType DataType, object Value)> tag in testTags)
         {
             ExifValue newExifValue = ExifValues.Create((ExifTagValue)(ushort)tag.Key, tag.Value.DataType, tag.Value.Value is Array);
@@ -179,7 +179,7 @@ public class BigTiffMetadataTests
         // act
         byte[] inputBytes = WriteIfdTags64Bit(values);
         Configuration config = Configuration.Default;
-        var reader = new EntryReader(
+        EntryReader reader = new EntryReader(
             new MemoryStream(inputBytes),
             BitConverter.IsLittleEndian ? ByteOrder.LittleEndian : ByteOrder.BigEndian,
             config.MemoryAllocator);
@@ -205,8 +205,8 @@ public class BigTiffMetadataTests
     private static byte[] WriteIfdTags64Bit(List<IExifValue> values)
     {
         byte[] buffer = new byte[8];
-        var ms = new MemoryStream();
-        var writer = new TiffStreamWriter(ms);
+        MemoryStream ms = new MemoryStream();
+        TiffStreamWriter writer = new TiffStreamWriter(ms);
         WriteLong8(writer, buffer, (ulong)values.Count);
 
         foreach (IExifValue entry in values)

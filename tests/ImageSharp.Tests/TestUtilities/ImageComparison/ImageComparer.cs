@@ -147,7 +147,7 @@ public static class ImageComparerExtensions
         IEnumerable<ImageSimilarityReport<TPixelA, TPixelB>> reports = comparer.CompareImages(expected, actual);
         if (reports.Any())
         {
-            var cleanedReports = new List<ImageSimilarityReport<TPixelA, TPixelB>>(reports.Count());
+            List<ImageSimilarityReport<TPixelA, TPixelB>> cleanedReports = new List<ImageSimilarityReport<TPixelA, TPixelB>>(reports.Count());
             foreach (ImageSimilarityReport<TPixelA, TPixelB> r in reports)
             {
                 IEnumerable<PixelDifference> outsideChanges = r.Differences.Where(

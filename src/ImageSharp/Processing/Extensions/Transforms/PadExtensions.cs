@@ -30,7 +30,7 @@ public static class PadExtensions
     public static IImageProcessingContext Pad(this IImageProcessingContext source, int width, int height, Color color)
     {
         Size size = source.GetCurrentSize();
-        var options = new ResizeOptions
+        ResizeOptions? options = new ResizeOptions
         {
             // Prevent downsizing.
             Size = new Size(Math.Max(width, size.Width), Math.Max(height, size.Height)),

@@ -27,7 +27,7 @@ internal static class SizeExtensions
     /// </summary>
     public static Size DivideRoundUp(this Size originalSize, int divX, int divY)
     {
-        var sizeVect = (Vector2)(SizeF)originalSize;
+        Vector2 sizeVect = (Vector2)(SizeF)originalSize;
         sizeVect /= new Vector2(divX, divY);
         sizeVect.X = MathF.Ceiling(sizeVect.X);
         sizeVect.Y = MathF.Ceiling(sizeVect.Y);

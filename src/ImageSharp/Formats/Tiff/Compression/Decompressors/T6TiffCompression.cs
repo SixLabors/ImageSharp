@@ -57,9 +57,9 @@ internal sealed class T6TiffCompression : TiffBaseDecompressor
         Span<byte> scanLine = scanLineBuffer.GetSpan()[..this.width];
         Span<byte> referenceScanLineSpan = scanLineBuffer.GetSpan().Slice(this.width, this.width);
 
-        var bitReader = new T6BitReader(stream, this.FillOrder, byteCount);
+        T6BitReader? bitReader = new T6BitReader(stream, this.FillOrder, byteCount);
 
-        var referenceScanLine = new CcittReferenceScanline(this.isWhiteZero, this.width);
+        CcittReferenceScanline referenceScanLine = new CcittReferenceScanline(this.isWhiteZero, this.width);
         nint bitsWritten = 0;
         for (int y = 0; y < height; y++)
         {

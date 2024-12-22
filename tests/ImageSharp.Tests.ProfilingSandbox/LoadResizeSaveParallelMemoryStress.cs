@@ -38,7 +38,7 @@ internal class LoadResizeSaveParallelMemoryStress
         Console.WriteLine($"64 bit: {Environment.Is64BitProcess}");
         CommandLineOptions options = args.Length > 0 ? CommandLineOptions.Parse(args) : null;
 
-        var lrs = new LoadResizeSaveParallelMemoryStress();
+        LoadResizeSaveParallelMemoryStress lrs = new LoadResizeSaveParallelMemoryStress();
         if (options != null)
         {
             lrs.Benchmarks.MaxDegreeOfParallelism = options.MaxDegreeOfParallelism;
@@ -108,7 +108,7 @@ internal class LoadResizeSaveParallelMemoryStress
             }
         }
 
-        var stats = new Stats(timer, lrs.Benchmarks.TotalProcessedMegapixels);
+        Stats stats = new Stats(timer, lrs.Benchmarks.TotalProcessedMegapixels);
         Console.WriteLine($"Total Megapixels: {stats.TotalMegapixels}, TotalOomRetries: {UnmanagedMemoryHandle.TotalOomRetries}, TotalOutstandingHandles: {UnmanagedMemoryHandle.TotalOutstandingHandles}, Total Gen2 GC count: {GC.CollectionCount(2)}");
         Console.WriteLine(stats.GetMarkdown());
         if (options?.FileOutput != null)
@@ -203,7 +203,7 @@ internal class LoadResizeSaveParallelMemoryStress
 
         public string GetMarkdown()
         {
-            var bld = new StringBuilder();
+            StringBuilder bld = new StringBuilder();
             bld.AppendLine($"| {nameof(this.TotalSeconds)} | {nameof(this.MegapixelsPerSec)} | {nameof(this.MegapixelsPerSecPerCpu)} |");
             bld.AppendLine(
                 $"| {L(nameof(this.TotalSeconds))} | {L(nameof(this.MegapixelsPerSec))} | {L(nameof(this.MegapixelsPerSecPerCpu))} |");

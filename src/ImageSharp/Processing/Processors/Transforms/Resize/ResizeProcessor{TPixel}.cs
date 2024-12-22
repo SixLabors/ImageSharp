@@ -81,7 +81,7 @@ internal class ResizeProcessor<TPixel> : TransformProcessor<TPixel>, IResampling
             return;
         }
 
-        var interest = Rectangle.Intersect(destinationRectangle, destination.Bounds);
+        Rectangle interest = Rectangle.Intersect(destinationRectangle, destination.Bounds);
 
         if (sampler is NearestNeighborResampler)
         {
@@ -110,13 +110,13 @@ internal class ResizeProcessor<TPixel> : TransformProcessor<TPixel>, IResampling
         // Since all image frame dimensions have to be the same we can calculate
         // the kernel maps and reuse for all frames.
         MemoryAllocator allocator = configuration.MemoryAllocator;
-        using var horizontalKernelMap = ResizeKernelMap.Calculate(
+        using ResizeKernelMap? horizontalKernelMap = ResizeKernelMap.Calculate(
             in sampler,
             destinationRectangle.Width,
             sourceRectangle.Width,
             allocator);
 
-        using var verticalKernelMap = ResizeKernelMap.Calculate(
+        using ResizeKernelMap? verticalKernelMap = ResizeKernelMap.Calculate(
             in sampler,
             destinationRectangle.Height,
             sourceRectangle.Height,
@@ -158,7 +158,7 @@ internal class ResizeProcessor<TPixel> : TransformProcessor<TPixel>, IResampling
         float widthFactor = sourceRectangle.Width / (float)destinationRectangle.Width;
         float heightFactor = sourceRectangle.Height / (float)destinationRectangle.Height;
 
-        var operation = new NNRowOperation(
+        NNRowOperation operation = new NNRowOperation(
             sourceRectangle,
             destinationRectangle,
             interest,
@@ -208,7 +208,7 @@ internal class ResizeProcessor<TPixel> : TransformProcessor<TPixel>, IResampling
 
         // To reintroduce parallel processing, we would launch multiple workers
         // for different row intervals of the image.
-        using var worker = new ResizeWorker<TPixel>(
+        using ResizeWorker<TPixel>? worker = new ResizeWorker<TPixel>(
             configuration,
             sourceRegion,
             conversionModifiers,
@@ -218,7 +218,7 @@ internal class ResizeProcessor<TPixel> : TransformProcessor<TPixel>, IResampling
             destinationRectangle.Location);
         worker.Initialize();
 
-        var workingInterval = new RowInterval(interest.Top, interest.Bottom);
+        RowInterval workingInterval = new RowInterval(interest.Top, interest.Bottom);
         worker.FillDestinationPixels(workingInterval, destination.PixelBuffer);
     }
 

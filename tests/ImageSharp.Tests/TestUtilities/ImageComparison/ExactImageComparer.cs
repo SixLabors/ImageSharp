@@ -23,10 +23,10 @@ public class ExactImageComparer : ImageComparer
         int width = actual.Width;
 
         // TODO: Comparing through Rgba64 may not be robust enough because of the existence of super high precision pixel types.
-        var aBuffer = new Rgba64[width];
-        var bBuffer = new Rgba64[width];
+        Rgba64[] aBuffer = new Rgba64[width];
+        Rgba64[] bBuffer = new Rgba64[width];
 
-        var differences = new List<PixelDifference>();
+        List<PixelDifference> differences = new List<PixelDifference>();
         Configuration configuration = expected.Configuration;
         Buffer2D<TPixelA> expectedBuffer = expected.PixelBuffer;
         Buffer2D<TPixelB> actualBuffer = actual.PixelBuffer;
@@ -46,7 +46,7 @@ public class ExactImageComparer : ImageComparer
 
                 if (aPixel != bPixel)
                 {
-                    var diff = new PixelDifference(new Point(x, y), aPixel, bPixel);
+                    PixelDifference diff = new PixelDifference(new Point(x, y), aPixel, bPixel);
                     differences.Add(diff);
                 }
             }

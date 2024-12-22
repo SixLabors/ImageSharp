@@ -147,7 +147,7 @@ public partial class Buffer2DTests
         const int unpooledBufferSize = 8_000;
 
         int elementSize = sizeof(TestStructs.Foo);
-        var allocator = new UniformUnmanagedMemoryPoolMemoryAllocator(
+        UniformUnmanagedMemoryPoolMemoryAllocator allocator = new UniformUnmanagedMemoryPoolMemoryAllocator(
             sharedPoolThreshold * elementSize,
             poolBufferSize * elementSize,
             maxPoolSize * elementSize,
@@ -155,7 +155,7 @@ public partial class Buffer2DTests
 
         using Buffer2D<TestStructs.Foo> buffer = allocator.Allocate2D<TestStructs.Foo>(width, height);
 
-        var rnd = new Random(42);
+        Random rnd = new Random(42);
 
         for (int y = 0; y < buffer.Height; y++)
         {
@@ -284,7 +284,7 @@ public partial class Buffer2DTests
     [InlineData(5, 1, 1, 3, 2)]
     public void CopyColumns(int width, int height, int startIndex, int destIndex, int columnCount)
     {
-        var rnd = new Random(123);
+        Random rnd = new Random(123);
         using (Buffer2D<float> b = this.MemoryAllocator.Allocate2D<float>(width, height))
         {
             rnd.RandomFill(b.DangerousGetSingleSpan(), 0, 1);
@@ -306,7 +306,7 @@ public partial class Buffer2DTests
     [Fact]
     public void CopyColumns_InvokeMultipleTimes()
     {
-        var rnd = new Random(123);
+        Random rnd = new Random(123);
         using (Buffer2D<float> b = this.MemoryAllocator.Allocate2D<float>(100, 100))
         {
             rnd.RandomFill(b.DangerousGetSingleSpan(), 0, 1);

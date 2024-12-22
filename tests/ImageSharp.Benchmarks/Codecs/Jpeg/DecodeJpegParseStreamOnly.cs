@@ -27,20 +27,20 @@ public class DecodeJpegParseStreamOnly
     [Benchmark(Baseline = true, Description = "System.Drawing FULL")]
     public SDSize JpegSystemDrawing()
     {
-        using var memoryStream = new MemoryStream(this.jpegBytes);
-        using var image = System.Drawing.Image.FromStream(memoryStream);
+        using MemoryStream memoryStream = new MemoryStream(this.jpegBytes);
+        using System.Drawing.Image image = System.Drawing.Image.FromStream(memoryStream);
         return image.Size;
     }
 
     [Benchmark(Description = "JpegDecoderCore.ParseStream")]
     public void ParseStream()
     {
-        using var memoryStream = new MemoryStream(this.jpegBytes);
-        using var bufferedStream = new BufferedReadStream(Configuration.Default, memoryStream);
-        var options = new JpegDecoderOptions() { GeneralOptions = new() { SkipMetadata = true } };
+        using MemoryStream memoryStream = new MemoryStream(this.jpegBytes);
+        using BufferedReadStream bufferedStream = new BufferedReadStream(Configuration.Default, memoryStream);
+        JpegDecoderOptions options = new JpegDecoderOptions() { GeneralOptions = new() { SkipMetadata = true } };
 
-        using var decoder = new JpegDecoderCore(options);
-        var spectralConverter = new NoopSpectralConverter();
+        using JpegDecoderCore decoder = new JpegDecoderCore(options);
+        NoopSpectralConverter spectralConverter = new NoopSpectralConverter();
         decoder.ParseStream(bufferedStream, spectralConverter, cancellationToken: default);
     }
 

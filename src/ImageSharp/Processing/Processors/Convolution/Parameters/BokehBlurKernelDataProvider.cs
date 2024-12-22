@@ -90,7 +90,7 @@ internal static class BokehBlurKernelDataProvider
         int componentsCount)
     {
         // Reuse the initialized values from the cache, if possible
-        var parameters = new BokehBlurParameters(radius, componentsCount);
+        BokehBlurParameters parameters = new BokehBlurParameters(radius, componentsCount);
         if (!Cache.TryGetValue(parameters, out BokehBlurKernelData info))
         {
             // Initialize the complex kernels and parameters with the current arguments
@@ -130,7 +130,7 @@ internal static class BokehBlurKernelDataProvider
         int kernelSize,
         float kernelsScale)
     {
-        var kernels = new Complex64[kernelParameters.Length][];
+        Complex64[][]? kernels = new Complex64[kernelParameters.Length][];
         ref Vector4 baseRef = ref MemoryMarshal.GetReference(kernelParameters.AsSpan());
         for (int i = 0; i < kernelParameters.Length; i++)
         {
@@ -156,7 +156,7 @@ internal static class BokehBlurKernelDataProvider
         float a,
         float b)
     {
-        var kernel = new Complex64[kernelSize];
+        Complex64[]? kernel = new Complex64[kernelSize];
         ref Complex64 baseRef = ref MemoryMarshal.GetReference(kernel.AsSpan());
         int r = radius, n = -r;
 

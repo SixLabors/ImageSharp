@@ -60,12 +60,12 @@ public class EncodeTiff
     public void SystemDrawing()
     {
         ImageCodecInfo codec = FindCodecForType("image/tiff");
-        using var parameters = new EncoderParameters(1)
+        using EncoderParameters parameters = new EncoderParameters(1)
         {
             Param = { [0] = new EncoderParameter(Encoder.Compression, (long)Cast(this.Compression)) }
         };
 
-        using var memoryStream = new MemoryStream();
+        using MemoryStream memoryStream = new MemoryStream();
         this.drawing.Save(memoryStream, codec, parameters);
     }
 
@@ -77,8 +77,8 @@ public class EncodeTiff
                 TiffPhotometricInterpretation.WhiteIsZero :
                 TiffPhotometricInterpretation.Rgb;
 
-        var encoder = new TiffEncoder() { Compression = this.Compression, PhotometricInterpretation = photometricInterpretation };
-        using var memoryStream = new MemoryStream();
+        TiffEncoder encoder = new TiffEncoder() { Compression = this.Compression, PhotometricInterpretation = photometricInterpretation };
+        using MemoryStream memoryStream = new MemoryStream();
         this.core.SaveAsTiff(memoryStream, encoder);
     }
 

@@ -28,7 +28,7 @@ public class NumericsTests
     [InlineData(1, 100)]
     public void DivideCeil_RandomValues(int seed, int count)
     {
-        var rng = new Random(seed);
+        Random rng = new Random(seed);
         for (int i = 0; i < count; i++)
         {
             uint value = (uint)rng.Next();

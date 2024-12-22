@@ -58,7 +58,7 @@ public class ConfigurationTests
     {
         Assert.True(this.DefaultConfiguration.MaxDegreeOfParallelism == Environment.ProcessorCount);
 
-        var cfg = new Configuration();
+        Configuration cfg = new Configuration();
         Assert.True(cfg.MaxDegreeOfParallelism == Environment.ProcessorCount);
     }
 
@@ -71,7 +71,7 @@ public class ConfigurationTests
     [InlineData(5, false)]
     public void MaxDegreeOfParallelism_CompatibleWith_ParallelOptions(int maxDegreeOfParallelism, bool throws)
     {
-        var cfg = new Configuration();
+        Configuration cfg = new Configuration();
         if (throws)
         {
             Assert.Throws<ArgumentOutOfRangeException>(
@@ -87,8 +87,8 @@ public class ConfigurationTests
     [Fact]
     public void ConstructorCallConfigureOnFormatProvider()
     {
-        var provider = new Mock<IImageFormatConfigurationModule>();
-        var config = new Configuration(provider.Object);
+        Mock<IImageFormatConfigurationModule> provider = new Mock<IImageFormatConfigurationModule>();
+        Configuration config = new Configuration(provider.Object);
 
         provider.Verify(x => x.Configure(config));
     }
@@ -96,8 +96,8 @@ public class ConfigurationTests
     [Fact]
     public void AddFormatCallsConfig()
     {
-        var provider = new Mock<IImageFormatConfigurationModule>();
-        var config = new Configuration();
+        Mock<IImageFormatConfigurationModule> provider = new Mock<IImageFormatConfigurationModule>();
+        Configuration config = new Configuration();
         config.Configure(provider.Object);
 
         provider.Verify(x => x.Configure(config));
@@ -118,7 +118,7 @@ public class ConfigurationTests
     [Fact]
     public void DefaultConfigurationHasCorrectFormatCount()
     {
-        var config = Configuration.CreateDefaultInstance();
+        Configuration config = Configuration.CreateDefaultInstance();
 
         Assert.Equal(this.expectedDefaultConfigurationCount, config.ImageFormats.Count());
     }
@@ -140,7 +140,7 @@ public class ConfigurationTests
     [Fact]
     public void StreamBufferSize_CannotGoBelowMinimum()
     {
-        var config = new Configuration();
+        Configuration config = new Configuration();
 
         Assert.Throws<ArgumentOutOfRangeException>(
                 () => config.StreamProcessingBufferSize = 0);
@@ -150,14 +150,14 @@ public class ConfigurationTests
     public void MemoryAllocator_Setter_Roundtrips()
     {
         MemoryAllocator customAllocator = new SimpleGcMemoryAllocator();
-        var config = new Configuration() { MemoryAllocator = customAllocator };
+        Configuration config = new Configuration() { MemoryAllocator = customAllocator };
         Assert.Same(customAllocator, config.MemoryAllocator);
     }
 
     [Fact]
     public void MemoryAllocator_SetNull_ThrowsArgumentNullException()
     {
-        var config = new Configuration();
+        Configuration config = new Configuration();
         Assert.Throws<ArgumentNullException>(() => config.MemoryAllocator = null);
     }
 
@@ -168,9 +168,9 @@ public class ConfigurationTests
 
         static void RunTest()
         {
-            var c1 = new Configuration();
-            var c2 = new Configuration(new MockConfigurationModule());
-            var c3 = Configuration.CreateDefaultInstance();
+            Configuration c1 = new Configuration();
+            Configuration c2 = new Configuration(new MockConfigurationModule());
+            Configuration c3 = Configuration.CreateDefaultInstance();
 
             Assert.Same(MemoryAllocator.Default, Configuration.Default.MemoryAllocator);
             Assert.Same(MemoryAllocator.Default, c1.MemoryAllocator);

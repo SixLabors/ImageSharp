@@ -205,8 +205,8 @@ public class BufferedStreams
 
     private static byte[] CreateTestBytes()
     {
-        var buffer = new byte[Configuration.Default.StreamProcessingBufferSize * 3];
-        var random = new Random();
+        byte[] buffer = new byte[Configuration.Default.StreamProcessingBufferSize * 3];
+        Random random = new Random();
         random.NextBytes(buffer);
 
         return buffer;

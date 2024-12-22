@@ -66,14 +66,14 @@ internal abstract partial class MemoryGroup<T>
             int sizeOfLastBuffer,
             AllocationOptions options)
         {
-            var result = new IMemoryOwner<T>[pooledBuffers.Length];
+            IMemoryOwner<T>[]? result = new IMemoryOwner<T>[pooledBuffers.Length];
             for (int i = 0; i < pooledBuffers.Length - 1; i++)
             {
-                var currentBuffer = ObservedBuffer.Create(pooledBuffers[i], bufferLength, options);
+                ObservedBuffer? currentBuffer = ObservedBuffer.Create(pooledBuffers[i], bufferLength, options);
                 result[i] = currentBuffer;
             }
 
-            var lastBuffer = ObservedBuffer.Create(pooledBuffers[pooledBuffers.Length - 1], sizeOfLastBuffer, options);
+            ObservedBuffer? lastBuffer = ObservedBuffer.Create(pooledBuffers[pooledBuffers.Length - 1], sizeOfLastBuffer, options);
             result[result.Length - 1] = lastBuffer;
             return result;
         }
@@ -193,7 +193,7 @@ internal abstract partial class MemoryGroup<T>
                 int lengthInElements,
                 AllocationOptions options)
             {
-                var buffer = new ObservedBuffer(handle, lengthInElements);
+                ObservedBuffer? buffer = new ObservedBuffer(handle, lengthInElements);
                 if (options.Has(AllocationOptions.Clean))
                 {
                     buffer.GetSpan().Clear();

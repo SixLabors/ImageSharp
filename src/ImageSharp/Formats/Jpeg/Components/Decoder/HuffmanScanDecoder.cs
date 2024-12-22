@@ -184,7 +184,7 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
                 for (int k = 0; k < this.scanComponentCount; k++)
                 {
                     int order = this.frame.ComponentOrder[k];
-                    var component = this.components[order] as JpegComponent;
+                    JpegComponent component = this.components[order] as JpegComponent;
 
                     ref HuffmanTable dcHuffmanTable = ref this.dcHuffmanTables[component.DcTableId];
                     ref HuffmanTable acHuffmanTable = ref this.acHuffmanTables[component.AcTableId];
@@ -233,7 +233,7 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
 
     private void ParseBaselineDataNonInterleaved()
     {
-        var component = this.components[this.frame.ComponentOrder[0]] as JpegComponent;
+        JpegComponent component = this.components[this.frame.ComponentOrder[0]] as JpegComponent;
         ref JpegBitReader buffer = ref this.scanBuffer;
 
         int w = component.WidthInBlocks;
@@ -394,7 +394,7 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
                 for (int k = 0; k < this.scanComponentCount; k++)
                 {
                     int order = this.frame.ComponentOrder[k];
-                    var component = this.components[order] as JpegComponent;
+                    JpegComponent component = this.components[order] as JpegComponent;
                     ref HuffmanTable dcHuffmanTable = ref this.dcHuffmanTables[component.DcTableId];
 
                     int h = component.HorizontalSamplingFactor;
@@ -435,7 +435,7 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
 
     private void ParseProgressiveDataNonInterleaved()
     {
-        var component = this.components[this.frame.ComponentOrder[0]] as JpegComponent;
+        JpegComponent component = this.components[this.frame.ComponentOrder[0]] as JpegComponent;
         ref JpegBitReader buffer = ref this.scanBuffer;
 
         int w = component.WidthInBlocks;

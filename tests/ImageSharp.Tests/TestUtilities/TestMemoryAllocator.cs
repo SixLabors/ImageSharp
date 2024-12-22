@@ -46,7 +46,7 @@ internal class TestMemoryAllocator : MemoryAllocator
     private T[] AllocateArray<T>(int length, AllocationOptions options)
         where T : struct
     {
-        var array = new T[length + 42];
+        T[] array = new T[length + 42];
         this.allocationLog?.Add(AllocationRequest.Create<T>(options, length, array));
 
         if (options == AllocationOptions.None)

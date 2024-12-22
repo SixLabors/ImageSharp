@@ -22,7 +22,7 @@ public class IptcProfileTests
     public void IptcProfile_WithUtf8Data_WritesEnvelopeRecord_Works()
     {
         // arrange
-        var profile = new IptcProfile();
+        IptcProfile profile = new IptcProfile();
         profile.SetValue(IptcTag.City, "ESPAÑA");
         profile.UpdateData();
         byte[] expectedEnvelopeData = { 28, 1, 90, 0, 3, 27, 37, 71 };
@@ -39,7 +39,7 @@ public class IptcProfileTests
     public void IptcProfile_SetValue_WithStrictEnabled_Works(IptcTag tag)
     {
         // arrange
-        var profile = new IptcProfile();
+        IptcProfile profile = new IptcProfile();
         string value = new('s', tag.MaxLength() + 1);
         int expectedLength = tag.MaxLength();
 
@@ -56,7 +56,7 @@ public class IptcProfileTests
     public void IptcProfile_SetValue_WithStrictDisabled_Works(IptcTag tag)
     {
         // arrange
-        var profile = new IptcProfile();
+        IptcProfile profile = new IptcProfile();
         string value = new('s', tag.MaxLength() + 1);
         int expectedLength = value.Length;
 
@@ -77,8 +77,8 @@ public class IptcProfileTests
     public void IptcProfile_SetDateValue_Works(IptcTag tag)
     {
         // arrange
-        var profile = new IptcProfile();
-        var datetime = new DateTimeOffset(new DateTime(1994, 3, 17));
+        IptcProfile profile = new IptcProfile();
+        DateTimeOffset datetime = new DateTimeOffset(new DateTime(1994, 3, 17));
 
         // act
         profile.SetDateTimeValue(tag, datetime);
@@ -96,8 +96,8 @@ public class IptcProfileTests
     public void IptcProfile_SetTimeValue_Works(IptcTag tag)
     {
         // arrange
-        var profile = new IptcProfile();
-        var dateTimeUtc = new DateTime(1994, 3, 17, 14, 15, 16, DateTimeKind.Utc);
+        IptcProfile profile = new IptcProfile();
+        DateTime dateTimeUtc = new DateTime(1994, 3, 17, 14, 15, 16, DateTimeKind.Utc);
         DateTimeOffset dateTimeOffset = new DateTimeOffset(dateTimeUtc).ToOffset(TimeSpan.FromHours(2));
 
         // act
@@ -116,7 +116,7 @@ public class IptcProfileTests
         using (Image<TPixel> image = provider.GetImage(JpegDecoder.Instance))
         {
             Assert.NotNull(image.Metadata.IptcProfile);
-            var iptcValues = image.Metadata.IptcProfile.Values.ToList();
+            List<IptcValue> iptcValues = image.Metadata.IptcProfile.Values.ToList();
             IptcProfileContainsExpectedValues(iptcValues);
         }
     }
@@ -130,7 +130,7 @@ public class IptcProfileTests
         {
             IptcProfile iptc = image.Frames.RootFrame.Metadata.IptcProfile;
             Assert.NotNull(iptc);
-            var iptcValues = iptc.Values.ToList();
+            List<IptcValue> iptcValues = iptc.Values.ToList();
             IptcProfileContainsExpectedValues(iptcValues);
         }
     }
@@ -170,7 +170,7 @@ public class IptcProfileTests
     public void IptcProfile_ToAndFromByteArray_Works()
     {
         // arrange
-        var profile = new IptcProfile();
+        IptcProfile profile = new IptcProfile();
         const string expectedCaptionWriter = "unittest";
         const string expectedCaption = "test";
         profile.SetValue(IptcTag.CaptionWriter, expectedCaptionWriter);
@@ -179,10 +179,10 @@ public class IptcProfileTests
         // act
         profile.UpdateData();
         byte[] profileBytes = profile.Data;
-        var profileFromBytes = new IptcProfile(profileBytes);
+        IptcProfile profileFromBytes = new IptcProfile(profileBytes);
 
         // assert
-        var iptcValues = profileFromBytes.Values.ToList();
+        List<IptcValue> iptcValues = profileFromBytes.Values.ToList();
         ContainsIptcValue(iptcValues, IptcTag.CaptionWriter, expectedCaptionWriter);
         ContainsIptcValue(iptcValues, IptcTag.Caption, expectedCaption);
     }
@@ -191,7 +191,7 @@ public class IptcProfileTests
     public void IptcProfile_CloneIsDeep()
     {
         // arrange
-        var profile = new IptcProfile();
+        IptcProfile profile = new IptcProfile();
         const string captionWriter = "unittest";
         const string caption = "test";
         profile.SetValue(IptcTag.CaptionWriter, captionWriter);
@@ -203,7 +203,7 @@ public class IptcProfileTests
 
         // assert
         Assert.Equal(2, clone.Values.Count());
-        var cloneValues = clone.Values.ToList();
+        List<IptcValue> cloneValues = clone.Values.ToList();
         ContainsIptcValue(cloneValues, IptcTag.CaptionWriter, captionWriter);
         ContainsIptcValue(cloneValues, IptcTag.Caption, "changed");
         ContainsIptcValue(profile.Values.ToList(), IptcTag.Caption, caption);
@@ -213,7 +213,7 @@ public class IptcProfileTests
     public void IptcValue_CloneIsDeep()
     {
         // arrange
-        var iptcValue = new IptcValue(IptcTag.Caption, System.Text.Encoding.UTF8, "test", true);
+        IptcValue iptcValue = new IptcValue(IptcTag.Caption, System.Text.Encoding.UTF8, "test", true);
 
         // act
         IptcValue clone = iptcValue.DeepClone();
@@ -240,7 +240,7 @@ public class IptcProfileTests
         // assert
         IptcProfile actual = reloadedImage.Metadata.IptcProfile;
         Assert.NotNull(actual);
-        var iptcValues = actual.Values.ToList();
+        List<IptcValue> iptcValues = actual.Values.ToList();
         ContainsIptcValue(iptcValues, IptcTag.CaptionWriter, expectedCaptionWriter);
         ContainsIptcValue(iptcValues, IptcTag.Caption, expectedCaption);
     }
@@ -263,7 +263,7 @@ public class IptcProfileTests
     public void IptcProfile_AddRepeatable_Works(IptcTag tag)
     {
         // arrange
-        var profile = new IptcProfile();
+        IptcProfile profile = new IptcProfile();
         const string expectedValue1 = "test";
         const string expectedValue2 = "another one";
         profile.SetValue(tag, expectedValue1, false);
@@ -272,7 +272,7 @@ public class IptcProfileTests
         profile.SetValue(tag, expectedValue2, false);
 
         // assert
-        var values = profile.Values.ToList();
+        List<IptcValue> values = profile.Values.ToList();
         Assert.Equal(2, values.Count);
         ContainsIptcValue(values, tag, expectedValue1);
         ContainsIptcValue(values, tag, expectedValue2);
@@ -315,7 +315,7 @@ public class IptcProfileTests
     public void IptcProfile_AddNoneRepeatable_DoesOverrideOldValue(IptcTag tag)
     {
         // arrange
-        var profile = new IptcProfile();
+        IptcProfile profile = new IptcProfile();
         const string expectedValue = "another one";
         profile.SetValue(tag, "test", false);
 
@@ -323,7 +323,7 @@ public class IptcProfileTests
         profile.SetValue(tag, expectedValue, false);
 
         // assert
-        var values = profile.Values.ToList();
+        List<IptcValue> values = profile.Values.ToList();
         Assert.Equal(1, values.Count);
         ContainsIptcValue(values, tag, expectedValue);
     }
@@ -332,7 +332,7 @@ public class IptcProfileTests
     public void IptcProfile_RemoveByTag_RemovesAllEntrys()
     {
         // arrange
-        var profile = new IptcProfile();
+        IptcProfile profile = new IptcProfile();
         profile.SetValue(IptcTag.Byline, "test");
         profile.SetValue(IptcTag.Byline, "test2");
 
@@ -348,7 +348,7 @@ public class IptcProfileTests
     public void IptcProfile_RemoveByTagAndValue_Works()
     {
         // arrange
-        var profile = new IptcProfile();
+        IptcProfile profile = new IptcProfile();
         profile.SetValue(IptcTag.Byline, "test");
         profile.SetValue(IptcTag.Byline, "test2");
 
@@ -364,7 +364,7 @@ public class IptcProfileTests
     public void IptcProfile_GetValue_RetrievesAllEntries()
     {
         // arrange
-        var profile = new IptcProfile();
+        IptcProfile profile = new IptcProfile();
         profile.SetValue(IptcTag.Byline, "test");
         profile.SetValue(IptcTag.Byline, "test2");
         profile.SetValue(IptcTag.Caption, "test");
@@ -385,7 +385,7 @@ public class IptcProfileTests
 
     private static Image<Rgba32> WriteAndReadJpeg(Image<Rgba32> image)
     {
-        using (var memStream = new MemoryStream())
+        using (MemoryStream memStream = new MemoryStream())
         {
             image.SaveAsJpeg(memStream);
             image.Dispose();

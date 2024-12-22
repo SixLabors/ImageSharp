@@ -409,7 +409,7 @@ internal class HuffmanScanEncoder
                 {
                     this.FlushRemainingBytes();
                     this.WriteRestart(restarts % 8);
-                    foreach (var component in frame.Components)
+                    foreach (Component? component in frame.Components)
                     {
                         component.DcPredictor = 0;
                     }

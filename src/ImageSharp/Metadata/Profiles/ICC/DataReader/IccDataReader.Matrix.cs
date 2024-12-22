@@ -17,7 +17,7 @@ internal sealed partial class IccDataReader
     /// <returns>The read matrix</returns>
     public float[,] ReadMatrix(int xCount, int yCount, bool isSingle)
     {
-        var matrix = new float[xCount, yCount];
+        float[,]? matrix = new float[xCount, yCount];
         for (int y = 0; y < yCount; y++)
         {
             for (int x = 0; x < xCount; x++)
@@ -44,7 +44,7 @@ internal sealed partial class IccDataReader
     /// <returns>The read matrix</returns>
     public float[] ReadMatrix(int yCount, bool isSingle)
     {
-        var matrix = new float[yCount];
+        float[]? matrix = new float[yCount];
         for (int i = 0; i < yCount; i++)
         {
             if (isSingle)

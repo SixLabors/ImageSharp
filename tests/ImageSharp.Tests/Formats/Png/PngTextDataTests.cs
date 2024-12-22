@@ -17,8 +17,8 @@ public class PngTextDataTests
     [Fact]
     public void AreEqual()
     {
-        var property1 = new PngTextData("Foo", "Bar", "foo", "bar");
-        var property2 = new PngTextData("Foo", "Bar", "foo", "bar");
+        PngTextData property1 = new PngTextData("Foo", "Bar", "foo", "bar");
+        PngTextData property2 = new PngTextData("Foo", "Bar", "foo", "bar");
 
         Assert.Equal(property1, property2);
         Assert.True(property1 == property2);
@@ -30,10 +30,10 @@ public class PngTextDataTests
     [Fact]
     public void AreNotEqual()
     {
-        var property1 = new PngTextData("Foo", "Bar", "foo", "bar");
-        var property2 = new PngTextData("Foo", "Foo", string.Empty, string.Empty);
-        var property3 = new PngTextData("Bar", "Bar", "unit", "test");
-        var property4 = new PngTextData("Foo", null, "test", "case");
+        PngTextData property1 = new PngTextData("Foo", "Bar", "foo", "bar");
+        PngTextData property2 = new PngTextData("Foo", "Foo", string.Empty, string.Empty);
+        PngTextData property3 = new PngTextData("Bar", "Bar", "unit", "test");
+        PngTextData property4 = new PngTextData("Foo", null, "test", "case");
 
         Assert.NotEqual(property1, property2);
         Assert.True(property1 != property2);
@@ -59,7 +59,7 @@ public class PngTextDataTests
     [Fact]
     public void ConstructorAssignsProperties()
     {
-        var property = new PngTextData("Foo", null, "unit", "test");
+        PngTextData property = new PngTextData("Foo", null, "unit", "test");
         Assert.Equal("Foo", property.Keyword);
         Assert.Null(property.Value);
         Assert.Equal("unit", property.LanguageTag);

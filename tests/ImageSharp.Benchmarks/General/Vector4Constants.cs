@@ -39,8 +39,8 @@ public class Vector4Constants
 
         Vector4 x = (p * A / B) + (p * C / D);
         Vector4 y = (p / A * B) + (p / C * D);
-        var z = Vector4.Min(p, A);
-        var w = Vector4.Max(p, B);
+        Vector4 z = Vector4.Min(p, A);
+        Vector4 w = Vector4.Max(p, B);
         return x + y + z + w;
     }
 
@@ -51,8 +51,8 @@ public class Vector4Constants
 
         Vector4 x = (p * new Vector4(1.2f) / new Vector4(2.3f)) + (p * new Vector4(4.5f) / new Vector4(6.7f));
         Vector4 y = (p / new Vector4(1.2f) * new Vector4(2.3f)) + (p / new Vector4(4.5f) * new Vector4(6.7f));
-        var z = Vector4.Min(p, new Vector4(1.2f));
-        var w = Vector4.Max(p, new Vector4(2.3f));
+        Vector4 z = Vector4.Min(p, new Vector4(1.2f));
+        Vector4 w = Vector4.Max(p, new Vector4(2.3f));
         return x + y + z + w;
     }
 

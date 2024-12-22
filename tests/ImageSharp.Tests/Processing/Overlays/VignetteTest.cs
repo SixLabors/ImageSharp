@@ -48,7 +48,7 @@ public class VignetteTest : BaseImageOperationsExtensionTest
     [Fact]
     public void Vignette_Rect_VignetteProcessorWithDefaultValues()
     {
-        var rect = new Rectangle(12, 123, 43, 65);
+        Rectangle rect = new Rectangle(12, 123, 43, 65);
         this.operations.Vignette(rect);
         VignetteProcessor p = this.Verify<VignetteProcessor>(rect);
 

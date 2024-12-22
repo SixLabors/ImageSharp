@@ -46,7 +46,7 @@ public class PorterDuffFunctionsTestsTPixel
     public void NormalBlendFunctionBlenderBulk<TPixel>(TestPixel<TPixel> back, TestPixel<TPixel> source, float amount, TestPixel<TPixel> expected)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        var dest = new Span<TPixel>(new TPixel[1]);
+        Span<TPixel> dest = new Span<TPixel>(new TPixel[1]);
         new DefaultPixelBlenders<TPixel>.NormalSrcOver().Blend(this.Configuration, dest, back.AsSpan(), source.AsSpan(), AsSpan(amount));
         VectorAssert.Equal(expected.AsPixel(), dest[0], 2);
     }
@@ -86,7 +86,7 @@ public class PorterDuffFunctionsTestsTPixel
     public void MultiplyFunctionBlenderBulk<TPixel>(TestPixel<TPixel> back, TestPixel<TPixel> source, float amount, TestPixel<TPixel> expected)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        var dest = new Span<TPixel>(new TPixel[1]);
+        Span<TPixel> dest = new Span<TPixel>(new TPixel[1]);
         new DefaultPixelBlenders<TPixel>.MultiplySrcOver().Blend(this.Configuration, dest, back.AsSpan(), source.AsSpan(), AsSpan(amount));
         VectorAssert.Equal(expected.AsPixel(), dest[0], 2);
     }
@@ -136,7 +136,7 @@ public class PorterDuffFunctionsTestsTPixel
     public void AddFunctionBlenderBulk<TPixel>(TestPixel<TPixel> back, TestPixel<TPixel> source, float amount, TestPixel<TPixel> expected)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        var dest = new Span<TPixel>(new TPixel[1]);
+        Span<TPixel> dest = new Span<TPixel>(new TPixel[1]);
         new DefaultPixelBlenders<TPixel>.AddSrcOver().Blend(this.Configuration, dest, back.AsSpan(), source.AsSpan(), AsSpan(amount));
         VectorAssert.Equal(expected.AsPixel(), dest[0], 2);
     }
@@ -176,7 +176,7 @@ public class PorterDuffFunctionsTestsTPixel
     public void SubtractFunctionBlenderBulk<TPixel>(TestPixel<TPixel> back, TestPixel<TPixel> source, float amount, TestPixel<TPixel> expected)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        var dest = new Span<TPixel>(new TPixel[1]);
+        Span<TPixel> dest = new Span<TPixel>(new TPixel[1]);
         new DefaultPixelBlenders<TPixel>.SubtractSrcOver().Blend(this.Configuration, dest, back.AsSpan(), source.AsSpan(), AsSpan(amount));
         VectorAssert.Equal(expected.AsPixel(), dest[0], 2);
     }
@@ -216,7 +216,7 @@ public class PorterDuffFunctionsTestsTPixel
     public void ScreenFunctionBlenderBulk<TPixel>(TestPixel<TPixel> back, TestPixel<TPixel> source, float amount, TestPixel<TPixel> expected)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        var dest = new Span<TPixel>(new TPixel[1]);
+        Span<TPixel> dest = new Span<TPixel>(new TPixel[1]);
         new DefaultPixelBlenders<TPixel>.ScreenSrcOver().Blend(this.Configuration, dest, back.AsSpan(), source.AsSpan(), AsSpan(amount));
         VectorAssert.Equal(expected.AsPixel(), dest[0], 2);
     }
@@ -256,7 +256,7 @@ public class PorterDuffFunctionsTestsTPixel
     public void DarkenFunctionBlenderBulk<TPixel>(TestPixel<TPixel> back, TestPixel<TPixel> source, float amount, TestPixel<TPixel> expected)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        var dest = new Span<TPixel>(new TPixel[1]);
+        Span<TPixel> dest = new Span<TPixel>(new TPixel[1]);
         new DefaultPixelBlenders<TPixel>.DarkenSrcOver().Blend(this.Configuration, dest, back.AsSpan(), source.AsSpan(), AsSpan(amount));
         VectorAssert.Equal(expected.AsPixel(), dest[0], 2);
     }
@@ -296,7 +296,7 @@ public class PorterDuffFunctionsTestsTPixel
     public void LightenFunctionBlenderBulk<TPixel>(TestPixel<TPixel> back, TestPixel<TPixel> source, float amount, TestPixel<TPixel> expected)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        var dest = new Span<TPixel>(new TPixel[1]);
+        Span<TPixel> dest = new Span<TPixel>(new TPixel[1]);
         new DefaultPixelBlenders<TPixel>.LightenSrcOver().Blend(this.Configuration, dest, back.AsSpan(), source.AsSpan(), AsSpan(amount));
         VectorAssert.Equal(expected.AsPixel(), dest[0], 2);
     }
@@ -336,7 +336,7 @@ public class PorterDuffFunctionsTestsTPixel
     public void OverlayFunctionBlenderBulk<TPixel>(TestPixel<TPixel> back, TestPixel<TPixel> source, float amount, TestPixel<TPixel> expected)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        var dest = new Span<TPixel>(new TPixel[1]);
+        Span<TPixel> dest = new Span<TPixel>(new TPixel[1]);
         new DefaultPixelBlenders<TPixel>.OverlaySrcOver().Blend(this.Configuration, dest, back.AsSpan(), source.AsSpan(), AsSpan(amount));
         VectorAssert.Equal(expected.AsPixel(), dest[0], 2);
     }
@@ -376,7 +376,7 @@ public class PorterDuffFunctionsTestsTPixel
     public void HardLightFunctionBlenderBulk<TPixel>(TestPixel<TPixel> back, TestPixel<TPixel> source, float amount, TestPixel<TPixel> expected)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        var dest = new Span<TPixel>(new TPixel[1]);
+        Span<TPixel> dest = new Span<TPixel>(new TPixel[1]);
         new DefaultPixelBlenders<TPixel>.HardLightSrcOver().Blend(this.Configuration, dest, back.AsSpan(), source.AsSpan(), AsSpan(amount));
         VectorAssert.Equal(expected.AsPixel(), dest[0], 2);
     }

@@ -13,8 +13,8 @@ public class OctreeQuantizerTests
     [Fact]
     public void OctreeQuantizerConstructor()
     {
-        var expected = new QuantizerOptions { MaxColors = 128 };
-        var quantizer = new OctreeQuantizer(expected);
+        QuantizerOptions expected = new QuantizerOptions { MaxColors = 128 };
+        OctreeQuantizer quantizer = new OctreeQuantizer(expected);
 
         Assert.Equal(expected.MaxColors, quantizer.Options.MaxColors);
         Assert.Equal(QuantizerConstants.DefaultDither, quantizer.Options.Dither);
@@ -38,7 +38,7 @@ public class OctreeQuantizerTests
     [Fact]
     public void OctreeQuantizerCanCreateFrameQuantizer()
     {
-        var quantizer = new OctreeQuantizer();
+        OctreeQuantizer quantizer = new OctreeQuantizer();
         IQuantizer<Rgba32> frameQuantizer = quantizer.CreatePixelSpecificQuantizer<Rgba32>(Configuration.Default);
 
         Assert.NotNull(frameQuantizer);

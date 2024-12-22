@@ -14,7 +14,7 @@ public class JpegFileMarkerTests
     {
         const byte app1 = JpegConstants.Markers.APP1;
         const int position = 5;
-        var marker = new JpegFileMarker(app1, position);
+        JpegFileMarker marker = new JpegFileMarker(app1, position);
 
         Assert.Equal(app1, marker.Marker);
         Assert.Equal(position, marker.Position);

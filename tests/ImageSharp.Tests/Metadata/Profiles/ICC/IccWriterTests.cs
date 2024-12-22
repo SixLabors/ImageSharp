@@ -13,7 +13,7 @@ public class IccWriterTests
     {
         IccWriter writer = this.CreateWriter();
 
-        var profile = new IccProfile
+        IccProfile profile = new IccProfile
         {
             Header = IccTestDataProfiles.Header_Random_Write
         };

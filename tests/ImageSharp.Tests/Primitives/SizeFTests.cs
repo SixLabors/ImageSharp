@@ -20,9 +20,9 @@ public class SizeFTests
     [InlineData(0, 0)]
     public void NonDefaultConstructorAndDimensionsTest(float width, float height)
     {
-        var s1 = new SizeF(width, height);
-        var p1 = new PointF(width, height);
-        var s2 = new SizeF(s1);
+        SizeF s1 = new SizeF(width, height);
+        PointF p1 = new PointF(width, height);
+        SizeF s2 = new SizeF(s1);
 
         Assert.Equal(s1, s2);
         Assert.Equal(s1, new SizeF(p1));
@@ -62,10 +62,10 @@ public class SizeFTests
     [InlineData(0, 0)]
     public void ArithmeticTest(float width, float height)
     {
-        var s1 = new SizeF(width, height);
-        var s2 = new SizeF(height, width);
-        var addExpected = new SizeF(width + height, width + height);
-        var subExpected = new SizeF(width - height, height - width);
+        SizeF s1 = new SizeF(width, height);
+        SizeF s2 = new SizeF(height, width);
+        SizeF addExpected = new SizeF(width + height, width + height);
+        SizeF subExpected = new SizeF(width - height, height - width);
 
         Assert.Equal(addExpected, s1 + s2);
         Assert.Equal(addExpected, SizeF.Add(s1, s2));
@@ -81,8 +81,8 @@ public class SizeFTests
     [InlineData(0, 0)]
     public void EqualityTest(float width, float height)
     {
-        var sLeft = new SizeF(width, height);
-        var sRight = new SizeF(height, width);
+        SizeF sLeft = new SizeF(width, height);
+        SizeF sRight = new SizeF(height, width);
 
         if (width == height)
         {
@@ -103,7 +103,7 @@ public class SizeFTests
     [Fact]
     public void EqualityTest_NotSizeF()
     {
-        var size = new SizeF(0, 0);
+        SizeF size = new SizeF(0, 0);
         Assert.False(size.Equals(null));
         Assert.False(size.Equals(0));
 
@@ -119,7 +119,7 @@ public class SizeFTests
     [Fact]
     public void GetHashCodeTest()
     {
-        var size = new SizeF(10, 10);
+        SizeF size = new SizeF(10, 10);
         Assert.Equal(size.GetHashCode(), new SizeF(10, 10).GetHashCode());
         Assert.NotEqual(size.GetHashCode(), new SizeF(20, 10).GetHashCode());
         Assert.NotEqual(size.GetHashCode(), new SizeF(10, 20).GetHashCode());
@@ -132,9 +132,9 @@ public class SizeFTests
     [InlineData(0, 0)]
     public void ConversionTest(float width, float height)
     {
-        var s1 = new SizeF(width, height);
-        var p1 = (PointF)s1;
-        var s2 = new Size(unchecked((int)width), unchecked((int)height));
+        SizeF s1 = new SizeF(width, height);
+        PointF p1 = (PointF)s1;
+        Size s2 = new Size(unchecked((int)width), unchecked((int)height));
 
         Assert.Equal(new PointF(width, height), p1);
         Assert.Equal(p1, (PointF)s1);
@@ -144,7 +144,7 @@ public class SizeFTests
     [Fact]
     public void ToStringTest()
     {
-        var sz = new SizeF(10, 5);
+        SizeF sz = new SizeF(10, 5);
         Assert.Equal(string.Format(CultureInfo.CurrentCulture, "SizeF [ Width={0}, Height={1} ]", sz.Width, sz.Height), sz.ToString());
     }
 

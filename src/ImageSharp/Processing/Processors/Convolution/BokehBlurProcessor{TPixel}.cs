@@ -75,12 +75,12 @@ internal class BokehBlurProcessor<TPixel> : ImageProcessor<TPixel>
     /// <inheritdoc/>
     protected override void OnFrameApply(ImageFrame<TPixel> source)
     {
-        var sourceRectangle = Rectangle.Intersect(this.SourceRectangle, source.Bounds());
+        Rectangle sourceRectangle = Rectangle.Intersect(this.SourceRectangle, source.Bounds);
 
         // Preliminary gamma highlight pass
         if (this.gamma == 3F)
         {
-            var gammaOperation = new ApplyGamma3ExposureRowOperation(sourceRectangle, source.PixelBuffer, this.Configuration);
+            ApplyGamma3ExposureRowOperation gammaOperation = new(sourceRectangle, source.PixelBuffer, this.Configuration);
             ParallelRowIterator.IterateRows<ApplyGamma3ExposureRowOperation, Vector4>(
                 this.Configuration,
                 sourceRectangle,
@@ -88,7 +88,7 @@ internal class BokehBlurProcessor<TPixel> : ImageProcessor<TPixel>
         }
         else
         {
-            var gammaOperation = new ApplyGammaExposureRowOperation(sourceRectangle, source.PixelBuffer, this.Configuration, this.gamma);
+            ApplyGammaExposureRowOperation gammaOperation = new(sourceRectangle, source.PixelBuffer, this.Configuration, this.gamma);
             ParallelRowIterator.IterateRows<ApplyGammaExposureRowOperation, Vector4>(
                 this.Configuration,
                 sourceRectangle,
@@ -104,7 +104,7 @@ internal class BokehBlurProcessor<TPixel> : ImageProcessor<TPixel>
         // Apply the inverse gamma exposure pass, and write the final pixel data
         if (this.gamma == 3F)
         {
-            var operation = new ApplyInverseGamma3ExposureRowOperation(sourceRectangle, source.PixelBuffer, processingBuffer, this.Configuration);
+            ApplyInverseGamma3ExposureRowOperation operation = new(sourceRectangle, source.PixelBuffer, processingBuffer, this.Configuration);
             ParallelRowIterator.IterateRows(
                 this.Configuration,
                 sourceRectangle,
@@ -112,7 +112,7 @@ internal class BokehBlurProcessor<TPixel> : ImageProcessor<TPixel>
         }
         else
         {
-            var operation = new ApplyInverseGammaExposureRowOperation(sourceRectangle, source.PixelBuffer, processingBuffer, this.Configuration, 1 / this.gamma);
+            ApplyInverseGammaExposureRowOperation operation = new(sourceRectangle, source.PixelBuffer, processingBuffer, this.Configuration, 1 / this.gamma);
             ParallelRowIterator.IterateRows(
                 this.Configuration,
                 sourceRectangle,
@@ -146,7 +146,7 @@ internal class BokehBlurProcessor<TPixel> : ImageProcessor<TPixel>
         // doing two 1D convolutions with the same kernel, we can use a single kernel sampling map as if
         // we were using a 2D kernel with each dimension being the same as the length of our kernel, and
         // use the two sampling offset spans resulting from this same map. This saves some extra work.
-        using var mapXY = new KernelSamplingMap(configuration.MemoryAllocator);
+        using KernelSamplingMap mapXY = new(configuration.MemoryAllocator);
 
         mapXY.BuildSamplingOffsetMap(this.kernelSize, this.kernelSize, sourceRectangle);
 
@@ -161,7 +161,7 @@ internal class BokehBlurProcessor<TPixel> : ImageProcessor<TPixel>
             Vector4 parameters = Unsafe.Add(ref paramsRef, (uint)i);
 
             // Horizontal convolution
-            var horizontalOperation = new FirstPassConvolutionRowOperation(
+            FirstPassConvolutionRowOperation horizontalOperation = new(
                 sourceRectangle,
                 firstPassBuffer,
                 source.PixelBuffer,
@@ -175,7 +175,7 @@ internal class BokehBlurProcessor<TPixel> : ImageProcessor<TPixel>
                 in horizontalOperation);
 
             // Vertical 1D convolutions to accumulate the partial results on the target buffer
-            var verticalOperation = new BokehBlurProcessor.SecondPassConvolutionRowOperation(
+            BokehBlurProcessor.SecondPassConvolutionRowOperation verticalOperation = new(
                 sourceRectangle,
                 processingBuffer,
                 firstPassBuffer,
@@ -342,9 +342,7 @@ internal class BokehBlurProcessor<TPixel> : ImageProcessor<TPixel>
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
         public int GetRequiredBufferLength(Rectangle bounds)
-        {
-            return bounds.Width;
-        }
+            => bounds.Width;
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
@@ -391,7 +389,7 @@ internal class BokehBlurProcessor<TPixel> : ImageProcessor<TPixel>
         public void Invoke(int y)
         {
             Vector4 low = Vector4.Zero;
-            var high = new Vector4(float.PositiveInfinity, float.PositiveInfinity, float.PositiveInfinity, float.PositiveInfinity);
+            Vector4 high = new(float.PositiveInfinity, float.PositiveInfinity, float.PositiveInfinity, float.PositiveInfinity);
 
             Span<TPixel> targetPixelSpan = this.targetPixels.DangerousGetRowSpan(y)[this.bounds.X..];
             Span<Vector4> sourceRowSpan = this.sourceValues.DangerousGetRowSpan(y)[this.bounds.X..];

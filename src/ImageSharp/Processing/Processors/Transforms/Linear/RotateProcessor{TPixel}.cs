@@ -130,40 +130,40 @@ internal class RotateProcessor<TPixel> : AffineTransformProcessor<TPixel>
     /// <param name="configuration">The configuration.</param>
     private static void Rotate180(ImageFrame<TPixel> source, ImageFrame<TPixel> destination, Configuration configuration)
     {
-        var operation = new Rotate180RowOperation(source.Width, source.Height, source.PixelBuffer, destination.PixelBuffer);
+        Rotate180RowOperation operation = new(source.Width, source.Height, source.PixelBuffer, destination.PixelBuffer);
         ParallelRowIterator.IterateRows(
             configuration,
-            source.Bounds(),
+            source.Bounds,
             in operation);
     }
 
     /// <summary>
-    /// Rotates the image 270 degrees clockwise at the centre point.
+    /// Rotates the image 270 degrees clockwise at the center point.
     /// </summary>
     /// <param name="source">The source image.</param>
     /// <param name="destination">The destination image.</param>
     /// <param name="configuration">The configuration.</param>
     private static void Rotate270(ImageFrame<TPixel> source, ImageFrame<TPixel> destination, Configuration configuration)
     {
-        var operation = new Rotate270RowIntervalOperation(destination.Bounds(), source.Width, source.Height, source.PixelBuffer, destination.PixelBuffer);
+        Rotate270RowIntervalOperation operation = new(destination.Bounds, source.Width, source.Height, source.PixelBuffer, destination.PixelBuffer);
         ParallelRowIterator.IterateRowIntervals(
             configuration,
-            source.Bounds(),
+            source.Bounds,
             in operation);
     }
 
     /// <summary>
-    /// Rotates the image 90 degrees clockwise at the centre point.
+    /// Rotates the image 90 degrees clockwise at the center point.
     /// </summary>
     /// <param name="source">The source image.</param>
     /// <param name="destination">The destination image.</param>
     /// <param name="configuration">The configuration.</param>
     private static void Rotate90(ImageFrame<TPixel> source, ImageFrame<TPixel> destination, Configuration configuration)
     {
-        var operation = new Rotate90RowOperation(destination.Bounds(), source.Width, source.Height, source.PixelBuffer, destination.PixelBuffer);
+        Rotate90RowOperation operation = new(destination.Bounds, source.Width, source.Height, source.PixelBuffer, destination.PixelBuffer);
         ParallelRowIterator.IterateRows(
             configuration,
-            source.Bounds(),
+            source.Bounds,
             in operation);
     }
 

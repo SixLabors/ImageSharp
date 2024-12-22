@@ -311,7 +311,7 @@ public class WebpEncoderTests
         {
             FileFormat = WebpFileFormatType.Lossless,
             Method = method,
-            TransparentColorMode = WebpTransparentColorMode.Preserve
+            TransparentColorMode = TransparentColorMode.Preserve
         };
 
         using Image<TPixel> image = provider.GetImage();

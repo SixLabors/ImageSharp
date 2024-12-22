@@ -9,6 +9,14 @@ namespace SixLabors.ImageSharp.Formats.Webp;
 public sealed class WebpEncoder : AnimatedImageEncoder
 {
     /// <summary>
+    /// Initializes a new instance of the <see cref="WebpEncoder"/> class.
+    /// </summary>
+    public WebpEncoder()
+
+        // Match the default behavior of the native reference encoder.
+        => this.TransparentColorMode = TransparentColorMode.Clear;
+
+    /// <summary>
     /// Gets the webp file format used. Either lossless or lossy.
     /// Defaults to lossy.
     /// </summary>
@@ -57,13 +65,6 @@ public sealed class WebpEncoder : AnimatedImageEncoder
     /// Defaults to 60.
     /// </summary>
     public int FilterStrength { get; init; } = 60;
-
-    /// <summary>
-    /// Gets a value indicating whether to preserve the exact RGB values under transparent area. Otherwise, discard this invisible
-    /// RGB information for better compression.
-    /// The default value is Clear.
-    /// </summary>
-    public WebpTransparentColorMode TransparentColorMode { get; init; } = WebpTransparentColorMode.Clear;
 
     /// <summary>
     /// Gets a value indicating whether near lossless mode should be used.

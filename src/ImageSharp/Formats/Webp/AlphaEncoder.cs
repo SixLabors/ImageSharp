@@ -49,7 +49,7 @@ internal static class AlphaEncoder
                 quality,
                 skipMetadata,
                 effort,
-                WebpTransparentColorMode.Preserve,
+                TransparentColorMode.Preserve,
                 false,
                 0);
 

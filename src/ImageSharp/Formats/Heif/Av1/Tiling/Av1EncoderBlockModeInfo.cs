@@ -24,4 +24,8 @@ internal class Av1EncoderBlockModeInfo
     public int SegmentId { get; }
 
     public int TransformDepth { get; internal set; }
+
+    public Av1PredictionMode Mode { get; internal set; }
+
+    public Av1PredictionMode UvMode { get; internal set; }
 }

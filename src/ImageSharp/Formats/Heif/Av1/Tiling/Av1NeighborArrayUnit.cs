@@ -165,4 +165,6 @@ internal class Av1NeighborArrayUnit<T>
             }
         }
     }
+
+    internal void UnitModeWrite(Span<byte> dcSignSpan, Point blockOrigin, Size blockSize, Av1NeighborArrayUnit<Av1PartitionContext>.UnitMask unitMask) => throw new NotImplementedException();
 }

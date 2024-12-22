@@ -19,6 +19,12 @@ internal struct Av1PartitionContext : IMinMaxValue<Av1PartitionContext>
     // Mask to extract ModeInfo offset within max ModeInfoBlock
     public const int Mask = (1 << (7 - 2)) - 1;
 
+    public Av1PartitionContext(byte above, byte left)
+    {
+        this.Above = above;
+        this.Left = left;
+    }
+
     public static Av1PartitionContext MaxValue => throw new NotImplementedException();
 
     public static Av1PartitionContext MinValue => throw new NotImplementedException();

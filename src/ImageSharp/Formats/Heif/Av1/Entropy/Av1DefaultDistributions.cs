@@ -2003,9 +2003,9 @@ internal static class Av1DefaultDistributions
             ]
         ];
 
-    public static Av1Distribution ChromeForLumaSign => new(1418, 2123, 13340, 18405, 26972, 28343, 32294);
+    public static Av1Distribution ChromaFromLumaSign => new(1418, 2123, 13340, 18405, 26972, 28343, 32294);
 
-    public static Av1Distribution[] ChromeForLumaAlpha =>
+    public static Av1Distribution[] ChromaFromLumaAlpha =>
         [
             new(7637, 20719, 31401, 32481, 32657, 32688, 32692, 32696, 32700, 32704, 32708, 32712, 32716, 32720, 32724),
             new(14365, 23603, 28135, 31168, 32167, 32395, 32487, 32573, 32620, 32647, 32668, 32672, 32676, 32680, 32684),

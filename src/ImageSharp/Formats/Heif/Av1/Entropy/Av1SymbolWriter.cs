@@ -38,6 +38,8 @@ internal class Av1SymbolWriter : IDisposable
         distribution.Update(symbol);
     }
 
+    public void WriteLiteral(bool value) => this.WriteLiteral(value ? 1u : 0u, 1);
+
     public void WriteLiteral(uint value, int bitCount)
     {
         const uint p = 0x4000U; // (0x7FFFFFU - (128 << 15) + 128) >> 8;

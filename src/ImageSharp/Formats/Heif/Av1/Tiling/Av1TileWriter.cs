@@ -12,6 +12,37 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 
 internal partial class Av1TileWriter
 {
+    // Generates 5 bit field in which each bit set to 1 represents
+    // a BlockSize partition  11111 means we split 128x128, 64x64, 32x32, 16x16
+    // and 8x8.  10000 means we just split the 128x128 to 64x64
+    private static readonly Av1PartitionContext[] PartitionContextLookup =
+        [
+            new(31, 31),  // 4X4   - {0b11111, 0b11111}
+            new(31, 30),  // 4X8   - {0b11111, 0b11110}
+            new(30, 31),  // 8X4   - {0b11110, 0b11111}
+            new(30, 30),  // 8X8   - {0b11110, 0b11110}
+            new(30, 28),  // 8X16  - {0b11110, 0b11100}
+            new(28, 30),  // 16X8  - {0b11100, 0b11110}
+            new(28, 28),  // 16X16 - {0b11100, 0b11100}
+            new(28, 24),  // 16X32 - {0b11100, 0b11000}
+            new(24, 28),  // 32X16 - {0b11000, 0b11100}
+            new(24, 24),  // 32X32 - {0b11000, 0b11000}
+            new(24, 16),  // 32X64 - {0b11000, 0b10000}
+            new(16, 24),  // 64X32 - {0b10000, 0b11000}
+            new(16, 16),  // 64X64 - {0b10000, 0b10000}
+            new(16, 0),   // 64X128- {0b10000, 0b00000}
+            new(0, 16),   // 128X64- {0b00000, 0b10000}
+            new(0, 0),    // 128X128-{0b00000, 0b00000}
+            new(31, 28),  // 4X16  - {0b11111, 0b11100}
+            new(28, 31),  // 16X4  - {0b11100, 0b11111}
+            new(30, 24),  // 8X32  - {0b11110, 0b11000}
+            new(24, 30),  // 32X8  - {0b11000, 0b11110}
+            new(28, 16),  // 16X64 - {0b11100, 0b10000}
+            new(16, 28),  // 64X16 - {0b10000, 0b11100}
+    ];
+
+    private static readonly byte[] IntraModeContextLookup = [0, 1, 2, 3, 4, 4, 4, 4, 3, 0, 1, 2, 0];
+
     /// <summary>
     /// SVT: svt_aom_write_sb
     /// </summary>
@@ -24,11 +55,11 @@ internal partial class Av1TileWriter
         ushort tileIndex)
     {
         Av1SequenceControlSet scs = pcs.Sequence;
-        Av1NeighborArrayUnit<Av1PartitionContext> partition_context_na = pcs.PartitionContexts[tileIndex];
+        Av1NeighborArrayUnit<Av1PartitionContext> partitionContextNeighbors = pcs.PartitionContexts[tileIndex];
 
         // CU Varaiables
-        int blk_index = 0;
-        uint final_blk_index = 0;
+        int blockIndex = 0;
+        uint finalBlockIndex = 0;
 
         ec_ctx.CodedAreaSuperblock = 0;
         ec_ctx.CodedAreaSuperblockUv = 0;
@@ -37,8 +68,8 @@ internal partial class Av1TileWriter
         do
         {
             bool code_blk_cond = true; // Code cu only if it is inside the picture
-            Av1EncoderBlockStruct blk_ptr = superblock.FinalBlocks[final_blk_index];
-            Av1BlockGeometry blk_geom = Av1BlockGeometryFactory.GetBlockGeometryByModeDecisionScanIndex(blk_index);
+            Av1EncoderBlockStruct blk_ptr = superblock.FinalBlocks[finalBlockIndex];
+            Av1BlockGeometry blk_geom = Av1BlockGeometryFactory.GetBlockGeometryByModeDecisionScanIndex(blockIndex);
 
             Av1BlockSize bsize = blk_geom.BlockSize;
             Point blockOrigin = blk_geom.Origin;
@@ -98,17 +129,16 @@ internal partial class Av1TileWriter
                     // Code Split Flag
                     EncodePartition(
                         pcs,
-                        ec_ctx,
-                        writer,
+                        ref writer,
                         bsize,
-                        superblock.CodingUnitPartitionTypes[blk_index],
+                        superblock.CodingUnitPartitionTypes[blockIndex],
                         blockOrigin,
-                        partition_context_na);
+                        partitionContextNeighbors);
                 }
 
                 // assert(blk_geom.Shape == PART_N);
-                Guard.IsTrue(Av1Math.Implies(bsize == Av1BlockSize.Block4x4, superblock.CodingUnitPartitionTypes[blk_index] == Av1PartitionType.None), nameof(bsize), string.Empty);
-                switch (superblock.CodingUnitPartitionTypes[blk_index])
+                Guard.IsTrue(Av1Math.Implies(bsize == Av1BlockSize.Block4x4, superblock.CodingUnitPartitionTypes[blockIndex] == Av1PartitionType.None), nameof(bsize), string.Empty);
+                switch (superblock.CodingUnitPartitionTypes[blockIndex])
                 {
                     case Av1PartitionType.None:
                         WriteModesBlock(pcs, ec_ctx, ref writer, superblock, blk_ptr, tileIndex, frameBuffer);
@@ -119,8 +149,8 @@ internal partial class Av1TileWriter
 
                         if (mi_row + hbs < cm.ModeInfoRowCount)
                         {
-                            final_blk_index++;
-                            blk_ptr = superblock.FinalBlocks[final_blk_index];
+                            finalBlockIndex++;
+                            blk_ptr = superblock.FinalBlocks[finalBlockIndex];
                             WriteModesBlock(pcs, ec_ctx, ref writer, superblock, blk_ptr, tileIndex, frameBuffer);
                         }
 
@@ -130,8 +160,8 @@ internal partial class Av1TileWriter
                         WriteModesBlock(pcs, ec_ctx, ref writer, superblock, blk_ptr, tileIndex, frameBuffer);
                         if (mi_col + hbs < cm.ModeInfoColumnCount)
                         {
-                            final_blk_index++;
-                            blk_ptr = superblock.FinalBlocks[final_blk_index];
+                            finalBlockIndex++;
+                            blk_ptr = superblock.FinalBlocks[finalBlockIndex];
                             WriteModesBlock(pcs, ec_ctx, ref writer, superblock, blk_ptr, tileIndex, frameBuffer);
                         }
 
@@ -141,48 +171,48 @@ internal partial class Av1TileWriter
                     case Av1PartitionType.HorizontalA:
                         WriteModesBlock(pcs, ec_ctx, ref writer, superblock, blk_ptr, tileIndex, frameBuffer);
 
-                        final_blk_index++;
-                        blk_ptr = superblock.FinalBlocks[final_blk_index];
+                        finalBlockIndex++;
+                        blk_ptr = superblock.FinalBlocks[finalBlockIndex];
                         WriteModesBlock(pcs, ec_ctx, ref writer, superblock, blk_ptr, tileIndex, frameBuffer);
 
-                        final_blk_index++;
-                        blk_ptr = superblock.FinalBlocks[final_blk_index];
+                        finalBlockIndex++;
+                        blk_ptr = superblock.FinalBlocks[finalBlockIndex];
                         WriteModesBlock(pcs, ec_ctx, ref writer, superblock, blk_ptr, tileIndex, frameBuffer);
 
                         break;
                     case Av1PartitionType.HorizontalB:
                         WriteModesBlock(pcs, ec_ctx, ref writer, superblock, blk_ptr, tileIndex, frameBuffer);
 
-                        final_blk_index++;
-                        blk_ptr = superblock.FinalBlocks[final_blk_index];
+                        finalBlockIndex++;
+                        blk_ptr = superblock.FinalBlocks[finalBlockIndex];
                         WriteModesBlock(pcs, ec_ctx, ref writer, superblock, blk_ptr, tileIndex, frameBuffer);
 
-                        final_blk_index++;
-                        blk_ptr = superblock.FinalBlocks[final_blk_index];
+                        finalBlockIndex++;
+                        blk_ptr = superblock.FinalBlocks[finalBlockIndex];
                         WriteModesBlock(pcs, ec_ctx, ref writer, superblock, blk_ptr, tileIndex, frameBuffer);
 
                         break;
                     case Av1PartitionType.VerticalA:
                         WriteModesBlock(pcs, ec_ctx, ref writer, superblock, blk_ptr, tileIndex, frameBuffer);
 
-                        final_blk_index++;
-                        blk_ptr = superblock.FinalBlocks[final_blk_index];
+                        finalBlockIndex++;
+                        blk_ptr = superblock.FinalBlocks[finalBlockIndex];
                         WriteModesBlock(pcs, ec_ctx, ref writer, superblock, blk_ptr, tileIndex, frameBuffer);
 
-                        final_blk_index++;
-                        blk_ptr = superblock.FinalBlocks[final_blk_index];
+                        finalBlockIndex++;
+                        blk_ptr = superblock.FinalBlocks[finalBlockIndex];
                         WriteModesBlock(pcs, ec_ctx, ref writer, superblock, blk_ptr, tileIndex, frameBuffer);
 
                         break;
                     case Av1PartitionType.VerticalB:
                         WriteModesBlock(pcs, ec_ctx, ref writer, superblock, blk_ptr, tileIndex, frameBuffer);
 
-                        final_blk_index++;
-                        blk_ptr = superblock.FinalBlocks[final_blk_index];
+                        finalBlockIndex++;
+                        blk_ptr = superblock.FinalBlocks[finalBlockIndex];
                         WriteModesBlock(pcs, ec_ctx, ref writer, superblock, blk_ptr, tileIndex, frameBuffer);
 
-                        final_blk_index++;
-                        blk_ptr = superblock.FinalBlocks[final_blk_index];
+                        finalBlockIndex++;
+                        blk_ptr = superblock.FinalBlocks[finalBlockIndex];
                         WriteModesBlock(pcs, ec_ctx, ref writer, superblock, blk_ptr, tileIndex, frameBuffer);
 
                         break;
@@ -200,8 +230,8 @@ internal partial class Av1TileWriter
 
                             if (i > 0)
                             {
-                                final_blk_index++;
-                                blk_ptr = superblock.FinalBlocks[final_blk_index];
+                                finalBlockIndex++;
+                                blk_ptr = superblock.FinalBlocks[finalBlockIndex];
                             }
 
                             WriteModesBlock(pcs, ec_ctx, ref writer, superblock, blk_ptr, tileIndex, frameBuffer);
@@ -222,8 +252,8 @@ internal partial class Av1TileWriter
 
                             if (i > 0)
                             {
-                                final_blk_index++;
-                                blk_ptr = superblock.FinalBlocks[final_blk_index];
+                                finalBlockIndex++;
+                                blk_ptr = superblock.FinalBlocks[finalBlockIndex];
                             }
 
                             WriteModesBlock(pcs, ec_ctx, ref writer, superblock, blk_ptr, tileIndex, frameBuffer);
@@ -232,25 +262,23 @@ internal partial class Av1TileWriter
                         break;
                 }
 
-                if (superblock.CodingUnitPartitionTypes[blk_index] != Av1PartitionType.Split)
+                if (superblock.CodingUnitPartitionTypes[blockIndex] != Av1PartitionType.Split)
                 {
-                    final_blk_index++;
-                    blk_index += blk_geom.NextDepthOffset;
+                    finalBlockIndex++;
+                    blockIndex += blk_geom.NextDepthOffset;
                 }
                 else
                 {
-                    blk_index += blk_geom.Depth1Offset;
+                    blockIndex += blk_geom.Depth1Offset;
                 }
             }
             else
             {
-                blk_index += blk_geom.Depth1Offset;
+                blockIndex += blk_geom.Depth1Offset;
             }
         }
-        while (blk_index < scs.MaxBlockCount);
+        while (blockIndex < scs.MaxBlockCount);
     }
-
-    private static void EncodePartition(Av1PictureControlSet pcs, Av1EntropyCodingContext ec_ctx, Av1SymbolEncoder writer, Av1BlockSize bsize, object value, Point blockOrigin, Av1NeighborArrayUnit<Av1PartitionContext> partition_context_na) => throw new NotImplementedException();
 
     /// <summary>
     /// SVT: encode_partition_av1
@@ -332,15 +360,14 @@ internal partial class Av1TileWriter
     {
         Av1SequenceControlSet scs = pcs.Sequence;
         ObuFrameHeader frm_hdr = pcs.Parent.FrameHeader;
-        /*
         Av1NeighborArrayUnit<byte> luma_dc_sign_level_coeff_na = pcs.LuminanceDcSignLevelCoefficientNeighbors[tile_idx];
         Av1NeighborArrayUnit<byte> cr_dc_sign_level_coeff_na = pcs.CrDcSignLevelCoefficientNeighbors[tile_idx];
         Av1NeighborArrayUnit<byte> cb_dc_sign_level_coeff_na = pcs.CbDcSignLevelCoefficientNeighbors[tile_idx];
         Av1NeighborArrayUnit<byte> txfm_context_array = pcs.TransformFunctionContexts[tile_idx];
-        Av1BlockGeometry blockGeometry = GetBlockGeometryMds(blk_ptr.ModeDecisionScanIndex);
+        Av1BlockGeometry blockGeometry = Av1BlockGeometryFactory.GetBlockGeometryByModeDecisionScanIndex(blk_ptr.ModeDecisionScanIndex);
         Point blockOrigin = Point.Add(entropyCodingContext.SuperblockOrigin, (Size)blockGeometry.Origin);
         Av1BlockSize blockSize = blockGeometry.BlockSize;
-        Av1MacroBlockModeInfo macroBlockModeInfo = GetMacroBlockModeInfo(pcs, blockOrigin);
+        Av1MacroBlockModeInfo macroBlockModeInfo = pcs.GetMacroBlockModeInfo(blockOrigin);
         bool skipWritingCoefficients = macroBlockModeInfo.Block.Skip;
         entropyCodingContext.MacroBlockModeInfo = macroBlockModeInfo;
 
@@ -359,7 +386,7 @@ internal partial class Av1TileWriter
 
         if (blk_ptr.MacroBlock.IsUpAvailable)
         {
-            blk_ptr.MacroBlock.AboveMacroBlock = blk_ptr.MacroBlock.ModeInfo[-mi_stride].mbmi;
+            blk_ptr.MacroBlock.AboveMacroBlock = blk_ptr.MacroBlock.ModeInfo[-mi_stride].MacroBlockModeInfo;
         }
         else
         {
@@ -368,25 +395,21 @@ internal partial class Av1TileWriter
 
         if (blk_ptr.MacroBlock.IsLeftAvailable)
         {
-            blk_ptr.MacroBlock.LeftMacroBlock = blk_ptr.MacroBlock.ModeInfo[-1].mbmi;
+            blk_ptr.MacroBlock.LeftMacroBlock = blk_ptr.MacroBlock.ModeInfo[-1].MacroBlockModeInfo;
         }
         else
         {
             blk_ptr.MacroBlock.LeftMacroBlock = null;
         }
 
-        blk_ptr.MacroBlock.tile_ctx = frame_context;
-
-        int bw = blockSize.GetWidth();
-        int bh = blockSize.GetHeight();
-        set_mi_row_col(
+        // Not required, part of Av1SymbolEncoder.
+        // blk_ptr.MacroBlock.tile_ctx = frame_context;
+        SetModeInfoRowAndColumn(
             pcs,
             blk_ptr.MacroBlock,
             blk_ptr.MacroBlock.Tile,
-            mi_row,
-            bh,
-            mi_col,
-            bw,
+            modeInfoPosition,
+            blockSize,
             mi_stride,
             pcs.Parent.Common.ModeInfoRowCount,
             pcs.Parent.Common.ModeInfoColumnCount);
@@ -394,7 +417,6 @@ internal partial class Av1TileWriter
         // if (pcs.slice_type == I_SLICE)
         // We implement only INTRA frames.
         {
-
             // const int32_t skip = write_skip(cm, xd, mbmi->segment_id, mi, w)
             if (pcs.Parent.FrameHeader.SegmentationParameters.Enabled && pcs.Parent.FrameHeader.SegmentationParameters.SegmentIdPrecedesSkip)
             {
@@ -413,7 +435,6 @@ internal partial class Av1TileWriter
                 pcs,
                 ref writer,
                 tile_idx,
-                blk_ptr.MacroBlock,
                 skipWritingCoefficients,
                 blockOrigin << Av1Constants.ModeInfoSizeLog2);
 
@@ -434,8 +455,8 @@ internal partial class Av1TileWriter
             }
 
             Av1PredictionMode intra_luma_mode = macroBlockModeInfo.Block.Mode;
-            uint intra_chroma_mode = macroBlockModeInfo.Block.UvMode;
-            if (svt_aom_allow_intrabc(pcs.Parent.FrameHeader, pcs.Parent.SliceType))
+            Av1PredictionMode intra_chroma_mode = macroBlockModeInfo.Block.UvMode;
+            if (IsIntraBlockCopyAllowed(pcs.Parent.FrameHeader/*, pcs.Parent.SliceType*/))
             {
                 WriteIntraBlockCopyInfo(ref writer, macroBlockModeInfo, blk_ptr);
             }
@@ -460,10 +481,10 @@ internal partial class Av1TileWriter
                 }
             }
 
-            if (!macroBlockModeInfo.Block.UseIntraBlockCopy && svt_aom_allow_palette(frm_hdr.AllowScreenContentTools, blockGeometry.BlockSize))
+            if (!macroBlockModeInfo.Block.UseIntraBlockCopy && IsPaletteAllowed(frm_hdr.AllowScreenContentTools, blockGeometry.BlockSize))
             {
                 WritePaletteModeInfo(
-                    pcs.Parent,
+                    scs,
                     ref writer,
                     macroBlockModeInfo,
                     blk_ptr,
@@ -472,10 +493,9 @@ internal partial class Av1TileWriter
             }
 
             if (!macroBlockModeInfo.Block.UseIntraBlockCopy &&
-                svt_aom_filter_intra_allowed(
-                    scs.SequenceHeader.FilterIntraLevel, blockSize, blk_ptr.PaletteSize[0], intra_luma_mode))
+                IsFilterIntraAllowed(scs.SequenceHeader.FilterIntraLevel > 0, blockSize, blk_ptr.PaletteSize[0], intra_luma_mode))
             {
-                writer.WriteSkip(blk_ptr.FilterIntraMode != Av1FilterIntraMode.AllFilterIntraModes, blockSize);
+                writer.WriteFilterIntra(blk_ptr.FilterIntraMode, blockSize);
                 if (blk_ptr.FilterIntraMode != Av1FilterIntraMode.AllFilterIntraModes)
                 {
                     writer.WriteFilterIntraMode(blk_ptr.FilterIntraMode);
@@ -484,13 +504,16 @@ internal partial class Av1TileWriter
 
             if (!macroBlockModeInfo.Block.UseIntraBlockCopy)
             {
-                assert(blk_ptr.PaletteSize[1] == 0);
-                TOKENEXTRA tok = entropyCodingContext.tok;
+                Guard.IsTrue(blk_ptr.PaletteSize[1] == 0, nameof(blk_ptr), "Palette of chroma plane shall be empty.");
+
+                // TOKENEXTRA tok = entropyCodingContext.tok;
                 for (int plane = 0; plane < 2; ++plane)
                 {
                     int palette_size_plane = blk_ptr.PaletteSize[plane];
                     if (palette_size_plane > 0)
                     {
+                        throw new NotImplementedException("Tokenizing palette not implemented.");
+                        /*
                         Av1TransformSize tx_size =
                             blockGeometry.TransformSize[macroBlockModeInfo.Block.TransformDepth]; // inherit tx_size from 1st transform block;
                         svt_av1_tokenize_color_map(
@@ -503,12 +526,13 @@ internal partial class Av1TileWriter
                             PALETTE_MAP,
                             0); // NO CDF update in entropy, the update will take place in arithmetic encode
                         assert(macroBlockModeInfo.Block.UseIntraBlockCopy);
-                        assert(svt_aom_allow_palette(pcs.Parent.FrameHeader.AllowScreenContentTools, blockGeometry.BlockSize));
+                        assert(IsPaletteAllowed(pcs.Parent.FrameHeader.AllowScreenContentTools, blockGeometry.BlockSize));
                         svt_aom_get_block_dimensions(blockGeometry.BlockSize, plane, blk_ptr.MacroBlock, null, null, out int rowCount, out int columnCount);
                         pack_map_tokens(ref writer, ref entropyCodingContext.tok, palette_size_plane, rowCount * columnCount);
 
                         // advance the pointer
                         entropyCodingContext.tok = tok;
+                        */
                     }
                 }
             }
@@ -546,16 +570,374 @@ internal partial class Av1TileWriter
         }
 
         // Update the neighbors
-        ec_update_neighbors(pcs, entropyCodingContext, blockOrigin, blk_ptr, tile_idx, blockSize, coeff_ptr);
+        UpdateNeighbors(pcs, entropyCodingContext, blockOrigin, blk_ptr, tile_idx, blockSize);
 
-        if (svt_av1_allow_palette(pcs.Parent.PaletteLevel, blockGeometry.BlockSize))
+        if (IsPaletteAllowed(pcs.Parent.PaletteLevel, blockGeometry.BlockSize))
         {
+            /*
             // free ENCDEC palette info buffer
             assert(blk_ptr.palette_info.color_idx_map != null && "free palette:Null");
             EB_FREE(blk_ptr.palette_info.color_idx_map);
             blk_ptr.palette_info.color_idx_map = null;
-            EB_FREE(blk_ptr.palette_info);
+            EB_FREE(blk_ptr.palette_info);*/
+        }
+    }
+
+    private static void EncodeIntraChromaMode(
+        ref Av1SymbolEncoder writer,
+        Av1MacroBlockModeInfo macroBlockModeInfo,
+        Av1EncoderBlockStruct blk_ptr,
+        Av1BlockSize blockSize,
+        Av1PredictionMode lumaMode,
+        Av1PredictionMode chromaMode,
+        bool isChromaFromLumaAllowed)
+    {
+        writer.WriteChromaMode(chromaMode, isChromaFromLumaAllowed, lumaMode);
+
+        if (chromaMode == Av1PredictionMode.UvChromaFromLuma)
+        {
+            writer.WriteChromaFromLumaAlphas(
+                blk_ptr.PredictionUnits[0].ChromaFromLumaIndex,
+                blk_ptr.PredictionUnits[0].ChromaFromLumaSigns);
+        }
+
+        if (blockSize >= Av1BlockSize.Block8x8 && macroBlockModeInfo.Block.UvMode.IsDirectional())
+        {
+            writer.WriteAngleDelta(blk_ptr.PredictionUnits[0].AngleDelta[(int)Av1PlaneType.Uv] + Av1Constants.MaxAngleDelta, chromaMode);
+        }
+    }
+
+    /// <summary>
+    /// Get the contexts (left and top) for writing the intra luma mode for key frames.
+    /// Intended to be used for key frame only.
+    /// </summary>
+    /// <remarks>SVT: svt_aom_get_kf_y_mode_ctx</remarks>
+    private static void GetYModeContext(Av1MacroBlockD xd, out byte above_ctx, out byte left_ctx)
+    {
+        Av1PredictionMode intraLumaLeftMode = Av1PredictionMode.DC;
+        Av1PredictionMode intraLumaTopMode = Av1PredictionMode.DC;
+        if (xd.IsLeftAvailable)
+        {
+            // When called for key frame, neighbouring mode should be intra
+            // assert(!is_inter_block(&xd->mi[-1]->mbmi.block_mi) || is_intrabc_block(&xd->mi[-1]->mbmi.block_mi));
+            intraLumaLeftMode = xd.ModeInfo[-1].MacroBlockModeInfo.Block.Mode;
+        }
+
+        if (xd.IsUpAvailable)
+        {
+            // When called for key frame, neighbouring mode should be intra
+            // assert(!is_inter_block(&xd->mi[-xd->mi_stride]->mbmi.block_mi) ||
+            //       is_intrabc_block(&xd->mi[-xd->mi_stride]->mbmi.block_mi));
+            intraLumaTopMode = xd.ModeInfo[-xd.ModeInfoStride].MacroBlockModeInfo.Block.Mode;
+        }
+
+        above_ctx = IntraModeContextLookup[(int)intraLumaTopMode];
+        left_ctx = IntraModeContextLookup[(int)intraLumaLeftMode];
+    }
+
+    /// <summary>
+    /// SVT: encode_intra_luma_mode_kf_av1
+    /// </summary>
+    private static void EncodeIntraLumaMode(
+        ref Av1SymbolEncoder writer,
+        Av1MacroBlockModeInfo macroBlockModeInfo,
+        Av1EncoderBlockStruct blk_ptr,
+        Av1BlockSize blockSize,
+        Av1PredictionMode lumaMode)
+    {
+        GetYModeContext(blk_ptr.MacroBlock, out byte topContext, out byte leftContext);
+        writer.WriteLumaMode(lumaMode, topContext, leftContext);
+
+        if (blockSize >= Av1BlockSize.Block8x8 && macroBlockModeInfo.Block.Mode.IsDirectional())
+        {
+            writer.WriteAngleDelta(blk_ptr.PredictionUnits[0].AngleDelta[(int)Av1PlaneType.Y] + Av1Constants.MaxAngleDelta, lumaMode);
+        }
+    }
+
+    private static void WritePaletteModeInfo(
+        Av1SequenceControlSet scs,
+        ref Av1SymbolEncoder writer,
+        Av1MacroBlockModeInfo macroBlockModeInfo,
+        Av1EncoderBlockStruct blk_ptr,
+        Av1BlockSize blockSize,
+        Point point)
+    {/*
+        Av1PredictionMode intra_luma_mode = macroBlockModeInfo.Mode;
+        Av1PredictionMode intra_chroma_mode = macroBlockModeInfo.ModeUv;
+
+        Av1PaletteModeInfo pmi = blk_ptr.PaletteInfo.pmi;
+        int bsize_ctx = svt_aom_get_palette_bsize_ctx(bsize);
+        Guard.MustBeGreaterThanOrEqualTo(bsize_ctx, 0, nameof(bsize_ctx));
+        if (intra_luma_mode == Av1PredictionMode.DC)
+        {
+            int n = blk_ptr.PaletteSize[0];
+            int palette_y_mode_ctx = svt_aom_get_palette_mode_ctx(blk_ptr->av1xd);
+            writer.WriteYMode(n > 0, bsize_ctx, palette_y_mode_ctx);
+            if (n > 0)
+            {
+                writer.WriteYSize(n - PALETTE_MIN_SIZE, bsize_ctx);
+                write_palette_colors_y(blk_ptr.MacroBlock, pmi, scs.StaticConfig.EncoderBitDepth, ref writer, n);
+            }
+        }
+
+        bool uv_dc_pred = intra_chroma_mode == Av1PredictionMode.DC && is_chroma_reference(point, blockSize, 1, 1);
+        if (uv_dc_pred)
+        {
+            // assert(blk_ptr->palette_size[1] == 0); //remove when chroma is on
+            bool palette_uv_mode_ctx = blk_ptr.PaletteSize[0] > 0;
+            writer.WriteUvMode(false, palette_uv_mode_ctx);
         }*/
+        throw new NotImplementedException("Palette mode encoding not implemented.");
+    }
+
+    /// <summary>
+    /// SVT: svt_aom_filter_intra_allowed
+    /// </summary>
+    private static bool IsFilterIntraAllowed(
+        bool enableFilterIntra,
+        Av1BlockSize blockSize,
+        int paletteSize,
+        Av1PredictionMode mode)
+        => mode == Av1PredictionMode.DC && paletteSize == 0 && IsFilterIntraAllowedBlockSize(enableFilterIntra, blockSize);
+
+    /// <summary>
+    /// SVT: svt_aom_filter_intra_allowed_bsize
+    /// </summary>
+    private static bool IsFilterIntraAllowedBlockSize(bool enableFilterIntra, Av1BlockSize blockSize)
+    {
+        if (!enableFilterIntra)
+        {
+            return false;
+        }
+
+        return blockSize.GetWidth() <= 32 && blockSize.GetHeight() <= 32;
+    }
+
+    /// <summary>
+    /// SVT: write_intrabc_info
+    /// </summary>
+    private static void WriteIntraBlockCopyInfo(
+        ref Av1SymbolEncoder writer,
+        Av1MacroBlockModeInfo macroBlockModeInfo,
+        Av1EncoderBlockStruct block)
+    {
+        bool use_intrabc = macroBlockModeInfo.Block.UseIntraBlockCopy;
+        writer.WriteUseIntraBlockCopy(use_intrabc);
+        if (use_intrabc)
+        {
+            throw new NotImplementedException("Intra block code encoding not implemented.");
+            /*
+            //assert(mbmi->mode == DC_PRED);
+            //assert(mbmi->uv_mode == UV_DC_PRED);
+            //assert(mbmi->motion_mode == SIMPLE_TRANSLATION);
+            IntMv dv_ref = block->predmv[0]; // mbmi_ext->ref_mv_stack[INTRA_FRAME][0].this_mv;
+            MV mv;
+            mv = macroBlockModeInfo.Block.mv[INTRA_FRAME].as_mv;
+            svt_av1_encode_dv(w, &mv, &dv_ref.as_mv, &ec_ctx->ndvc);*/
+        }
+    }
+
+    /// <summary>
+    /// SVT: svt_aom_allow_intrabc
+    /// </summary>
+    private static bool IsIntraBlockCopyAllowed(ObuFrameHeader frameHeader)
+        => frameHeader.AllowScreenContentTools && frameHeader.AllowIntraBlockCopy;
+
+    /// <summary>
+    /// SVT: ec_update_neighbors
+    /// </summary>
+    private static void UpdateNeighbors(
+        Av1PictureControlSet pcs,
+        Av1EntropyCodingContext entropyCodingContext,
+        Point blockOrigin,
+        Av1EncoderBlockStruct blk_ptr,
+        ushort tile_idx,
+        Av1BlockSize blockSize)
+    {
+        Av1NeighborArrayUnit<Av1PartitionContext> partition_context_na = pcs.PartitionContexts[tile_idx];
+        Av1NeighborArrayUnit<byte> luma_dc_sign_level_coeff_na = pcs.LuminanceDcSignLevelCoefficientNeighbors[tile_idx];
+        Av1NeighborArrayUnit<byte> cr_dc_sign_level_coeff_na = pcs.CrDcSignLevelCoefficientNeighbors[tile_idx];
+        Av1NeighborArrayUnit<byte> cb_dc_sign_level_coeff_na = pcs.CbDcSignLevelCoefficientNeighbors[tile_idx];
+        Av1BlockGeometry blk_geom = Av1BlockGeometryFactory.GetBlockGeometryByModeDecisionScanIndex(blk_ptr.ModeDecisionScanIndex);
+        Av1MacroBlockModeInfo mbmi = pcs.GetMacroBlockModeInfo(blockOrigin);
+        bool skip_coeff = mbmi.Block.Skip;
+
+        // Update the Leaf Depth Neighbor Array
+        Av1PartitionContext partition = new(
+            PartitionContextLookup[(int)blockSize].Above,
+            PartitionContextLookup[(int)blockSize].Left);
+        Size size = new(blk_geom.BlockWidth, blk_geom.BlockHeight);
+        Span<Av1PartitionContext> partitionSpan = new(ref partition);
+        partition_context_na.UnitModeWrite(
+            partitionSpan,
+            blockOrigin,
+            size,
+            Av1NeighborArrayUnit<Av1PartitionContext>.UnitMask.Left | Av1NeighborArrayUnit<Av1PartitionContext>.UnitMask.Top);
+        if (skip_coeff)
+        {
+            byte dcSignLevelCoefficient = 0;
+            Span<byte> dcSignSpan = new(ref dcSignLevelCoefficient);
+
+            luma_dc_sign_level_coeff_na.UnitModeWrite(
+                dcSignSpan,
+                blockOrigin,
+                size,
+                Av1NeighborArrayUnit<Av1PartitionContext>.UnitMask.Left | Av1NeighborArrayUnit<Av1PartitionContext>.UnitMask.Top);
+
+            if (blk_geom.HasUv)
+            {
+                cb_dc_sign_level_coeff_na.UnitModeWrite(
+                    dcSignSpan,
+                    ((blockOrigin >> 3) << 3) >> 1,
+                    size,
+                    Av1NeighborArrayUnit<Av1PartitionContext>.UnitMask.Left | Av1NeighborArrayUnit<Av1PartitionContext>.UnitMask.Top);
+                cr_dc_sign_level_coeff_na.UnitModeWrite(
+                    dcSignSpan,
+                    ((blockOrigin >> 3) << 3) >> 1,
+                    size,
+                    Av1NeighborArrayUnit<Av1PartitionContext>.UnitMask.Left | Av1NeighborArrayUnit<Av1PartitionContext>.UnitMask.Top);
+                entropyCodingContext.CodedAreaSuperblockUv += blk_geom.BlockWidthUv * blk_geom.BlockHeightUv;
+            }
+
+            entropyCodingContext.CodedAreaSuperblock += blk_geom.BlockWidth * blk_geom.BlockHeight;
+        }
+    }
+
+    /// <summary>
+    /// SVT: svt_av1_allow_palette
+    /// </summary>
+    private static bool IsPaletteAllowed(int allowPalette, Av1BlockSize blockSize)
+    {
+        Guard.MustBeLessThan((int)blockSize, (int)Av1BlockSize.AllSizes, nameof(blockSize));
+        return allowPalette != 0 &&
+            blockSize.GetWidth() <= 64 &&
+            blockSize.GetHeight() <= 64 &&
+            blockSize >= Av1BlockSize.Block8x8;
+    }
+
+    /// <summary>
+    /// SVT: svt_aom_allow_palette
+    /// </summary>
+    private static bool IsPaletteAllowed(bool allowScreenContentTools, Av1BlockSize blockSize)
+        => allowScreenContentTools &&
+            blockSize.GetWidth() <= 64 &&
+            blockSize.GetHeight() <= 64 &&
+            blockSize >= Av1BlockSize.Block8x8;
+
+    /// <summary>
+    /// SVT: write_cdef
+    /// </summary>
+    private static void WriteCdef(
+        Av1SequenceControlSet scs,
+        Av1PictureControlSet pcs,
+        ref Av1SymbolEncoder writer,
+        int tileIndex,
+        bool skip,
+        Point modeInfoPosition)
+    {
+        Av1EncoderCommon cm = pcs.Parent.Common;
+        ObuFrameHeader frameHeader = pcs.Parent.FrameHeader;
+
+        if (frameHeader.CodedLossless || frameHeader.AllowIntraBlockCopy)
+        {
+            // Initialize to indicate no CDEF for safety.
+            frameHeader.CdefParameters.BitCount = 0;
+            frameHeader.CdefParameters.YStrength[0] = 0;
+            frameHeader.CdefParameters.UvStrength[0] = 0;
+
+            // pcs.Parent.nb_cdef_strengths = 1;
+            return;
+        }
+
+        // int m = ~((1 << (6 - Av1Constants.ModeInfoSizeLog2)) - 1);
+        // cm->mi_grid_visible[(mi_row & m) * cm->mi_stride + (mi_col & m)];
+        Av1ModeInfo mi = pcs.GetFromModeInfoGrid(modeInfoPosition)[0];
+
+        // Initialise when at top left part of the superblock
+        if ((modeInfoPosition.Y & (scs.SequenceHeader.SuperblockModeInfoSize - 1)) == 0 &&
+            (modeInfoPosition.X & (scs.SequenceHeader.SuperblockModeInfoSize - 1)) == 0)
+        {
+            // Top left?
+            pcs.CdefPreset[tileIndex][0] = -1;
+            pcs.CdefPreset[tileIndex][1] = -1;
+            pcs.CdefPreset[tileIndex][2] = -1;
+            pcs.CdefPreset[tileIndex][3] = -1;
+        }
+
+        // Emit CDEF param at first non-skip coding block
+        int mask = 1 << (6 - Av1Constants.ModeInfoSizeLog2);
+        int index = scs.SequenceHeader.Use128x128Superblock ? Math.Max(1, modeInfoPosition.X & mask) + (2 * Math.Max(1, modeInfoPosition.Y & mask)) : 0;
+
+        if (pcs.CdefPreset[tileIndex][index] == -1 && !skip)
+        {
+            writer.WriteCdefStrength(mi.MacroBlockModeInfo.CdefStrength, frameHeader.CdefParameters.BitCount);
+            pcs.CdefPreset[tileIndex][index] = mi.MacroBlockModeInfo.CdefStrength;
+        }
+    }
+
+    /// <summary>
+    /// SVT: set_mi_row_col
+    /// </summary>
+    private static void SetModeInfoRowAndColumn(
+        Av1PictureControlSet pcs,
+        Av1MacroBlockD macroBlock,
+        Av1TileInfo tile,
+        Point modeInfoPosition,
+        Av1BlockSize blockSize,
+        int modeInfoStride,
+        int modeInfoRowCount,
+        int modeInfoColumnCount)
+    {
+        macroBlock.ToTopEdge = -((modeInfoPosition.Y << Av1Constants.ModeInfoSizeLog2) << 3);
+        macroBlock.ToBottomEdge = ((modeInfoRowCount - blockSize.GetHeight() - modeInfoPosition.Y) << Av1Constants.ModeInfoSizeLog2) << 3;
+        macroBlock.ToLeftEdge = -((modeInfoPosition.X << Av1Constants.ModeInfoSizeLog2) << 3);
+        macroBlock.ToRightEdge = ((modeInfoColumnCount - blockSize.GetWidth() - modeInfoPosition.X) << Av1Constants.ModeInfoSizeLog2) << 3;
+
+        macroBlock.ModeInfoStride = modeInfoStride;
+
+        // Are edges available for intra prediction?
+        macroBlock.IsUpAvailable = modeInfoPosition.Y > tile.ModeInfoRowStart;
+        macroBlock.IsLeftAvailable = modeInfoPosition.X > tile.ModeInfoColumnStart;
+        macroBlock.ModeInfo = pcs.GetFromModeInfoGrid(modeInfoPosition);
+
+        if (macroBlock.IsUpAvailable)
+        {
+            macroBlock.AboveMacroBlock = macroBlock.ModeInfo[-modeInfoStride].MacroBlockModeInfo;
+        }
+        else
+        {
+            macroBlock.AboveMacroBlock = null;
+        }
+
+        if (macroBlock.IsLeftAvailable)
+        {
+            macroBlock.LeftMacroBlock = macroBlock.ModeInfo[-1].MacroBlockModeInfo;
+        }
+        else
+        {
+            macroBlock.LeftMacroBlock = null;
+        }
+
+        macroBlock.N8Size = new Size(blockSize.GetWidth(), blockSize.GetHeight());
+        macroBlock.IsSecondRectangle = false;
+        if (macroBlock.N8Size.Width < macroBlock.N8Size.Height)
+        {
+            // Only mark is_sec_rect as 1 for the last block.
+            // For PARTITION_VERT_4, it would be (0, 0, 0, 1);
+            // For other partitions, it would be (0, 1).
+            if (((modeInfoPosition.X + macroBlock.N8Size.Width) & (macroBlock.N8Size.Height - 1)) == 0)
+            {
+                macroBlock.IsSecondRectangle = true;
+            }
+        }
+
+        if (macroBlock.N8Size.Width > macroBlock.N8Size.Height)
+        {
+            if ((modeInfoPosition.Y & (macroBlock.N8Size.Width - 1)) > 0)
+            {
+                macroBlock.IsSecondRectangle = true;
+            }
+        }
     }
 
     /// <summary>

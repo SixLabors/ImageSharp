@@ -18,4 +18,6 @@ internal class Av1EncoderBlockStruct
     public Av1FilterIntraMode FilterIntraMode { get; set; }
 
     public required int[] PaletteSize { get; internal set; }
+
+    public required Av1EncoderPredictionUnit[] PredictionUnits { get; internal set; }
 }

@@ -41,8 +41,8 @@ internal ref struct Av1SymbolDecoder
     private readonly Av1Distribution[][][] coefficientsBaseRange;
     private readonly Av1Distribution[][] transformBlockSkip;
     private readonly Av1Distribution[][][] endOfBlockExtra;
-    private readonly Av1Distribution chromeForLumaSign = Av1DefaultDistributions.ChromeForLumaSign;
-    private readonly Av1Distribution[] chromeForLumaAlpha = Av1DefaultDistributions.ChromeForLumaAlpha;
+    private readonly Av1Distribution chromaFromLumaSign = Av1DefaultDistributions.ChromaFromLumaSign;
+    private readonly Av1Distribution[] chromaFromLumaAlpha = Av1DefaultDistributions.ChromaFromLumaAlpha;
     private readonly Av1Distribution[][][] intraExtendedTransform = Av1DefaultDistributions.IntraExtendedTransform;
     private readonly Configuration configuration;
     private Av1SymbolReader reader;
@@ -248,21 +248,21 @@ internal ref struct Av1SymbolDecoder
     public int ReadChromFromLumaSign()
     {
         ref Av1SymbolReader r = ref this.reader;
-        return r.ReadSymbol(this.chromeForLumaSign);
+        return r.ReadSymbol(this.chromaFromLumaSign);
     }
 
     public int ReadChromaFromLumaAlphaU(int jointSignPlus1)
     {
         ref Av1SymbolReader r = ref this.reader;
         int context = jointSignPlus1 - 3;
-        return r.ReadSymbol(this.chromeForLumaAlpha[context]);
+        return r.ReadSymbol(this.chromaFromLumaAlpha[context]);
     }
 
     public int ReadChromaFromLumaAlphaV(int jointSignPlus1)
     {
         ref Av1SymbolReader r = ref this.reader;
         int context = AlphaVContexts[jointSignPlus1];
-        return r.ReadSymbol(this.chromeForLumaAlpha[context]);
+        return r.ReadSymbol(this.chromaFromLumaAlpha[context]);
     }
 
     /// <summary>

@@ -22,18 +22,25 @@ internal class Av1SymbolEncoder : IDisposable
 
     private readonly Av1Distribution tileIntraBlockCopy = Av1DefaultDistributions.IntraBlockCopy;
     private readonly Av1Distribution[] tilePartitionTypes = Av1DefaultDistributions.PartitionTypes;
+    private readonly Av1Distribution[][] keyFrameYMode = Av1DefaultDistributions.KeyFrameYMode;
+    private readonly Av1Distribution[][] uvMode = Av1DefaultDistributions.UvMode;
     private readonly Av1Distribution[][] transformBlockSkip;
     private readonly Av1Distribution[][][] endOfBlockFlag;
     private readonly Av1Distribution[][][] coefficientsBaseRange;
     private readonly Av1Distribution[][][] coefficientsBase;
     private readonly Av1Distribution[][][] coefficientsBaseEndOfBlock;
+    private readonly Av1Distribution[] filterIntra = Av1DefaultDistributions.FilterIntra;
     private readonly Av1Distribution filterIntraMode = Av1DefaultDistributions.FilterIntraMode;
+    private readonly Av1Distribution deltaQuantizerAbsolute = Av1DefaultDistributions.DeltaQuantizerAbsolute;
     private readonly Av1Distribution[][] dcSign;
     private readonly Av1Distribution[][][] endOfBlockExtra;
     private readonly Av1Distribution[][][] intraExtendedTransform = Av1DefaultDistributions.IntraExtendedTransform;
     private readonly Av1Distribution[] segmentId = Av1DefaultDistributions.SegmentId;
+    private readonly Av1Distribution[] angleDelta = Av1DefaultDistributions.AngleDelta;
     private readonly Av1Distribution[] skip = Av1DefaultDistributions.Skip;
     private readonly Av1Distribution[] skipMode = Av1DefaultDistributions.SkipMode;
+    private readonly Av1Distribution chromaFromLumaSign = Av1DefaultDistributions.ChromaFromLumaSign;
+    private readonly Av1Distribution[] chromaFromLumaAlpha = Av1DefaultDistributions.ChromaFromLumaAlpha;
     private bool isDisposed;
     private readonly Configuration configuration;
     private Av1SymbolWriter writer;
@@ -332,9 +339,86 @@ internal class Av1SymbolEncoder : IDisposable
         w.WriteSymbol(skip, this.skipMode[context]);
     }
 
+    internal void WriteFilterIntra(Av1FilterIntraMode filterIntraMode, Av1BlockSize blockSize)
+    {
+        ref Av1SymbolWriter w = ref this.writer;
+        w.WriteSymbol(filterIntraMode != Av1FilterIntraMode.AllFilterIntraModes, this.filterIntra[(int)blockSize]);
+    }
+
     internal void WriteFilterIntraMode(Av1FilterIntraMode filterIntraMode)
     {
         ref Av1SymbolWriter w = ref this.writer;
         w.WriteSymbol((int)filterIntraMode, this.filterIntraMode);
+    }
+
+    internal void WriteDeltaQIndex(int deltaQindex)
+    {
+        ref Av1SymbolWriter w = ref this.writer;
+        bool sign = deltaQindex < 0;
+        int abs = Math.Abs(deltaQindex);
+        bool smallval = abs < Av1Constants.DeltaQuantizerSmall;
+
+        w.WriteSymbol(Math.Min(abs, Av1Constants.DeltaQuantizerSmall), this.deltaQuantizerAbsolute);
+
+        if (!smallval)
+        {
+            int rem_bits = Av1Math.MostSignificantBit((uint)(abs - 1)) - 1;
+            int threshold = (1 << rem_bits) + 1;
+            w.WriteLiteral((uint)(rem_bits - 1), 3);
+            w.WriteLiteral((uint)(abs - threshold), rem_bits);
+        }
+
+        if (abs > 0)
+        {
+            w.WriteLiteral(sign);
+        }
+    }
+
+    internal void WriteLumaMode(Av1PredictionMode lumaMode, byte topContext, byte leftContext)
+    {
+        ref Av1SymbolWriter w = ref this.writer;
+        w.WriteSymbol((int)lumaMode, this.keyFrameYMode[topContext][leftContext]);
+    }
+
+    internal void WriteAngleDelta(int angleDelta, Av1PredictionMode context)
+    {
+        ref Av1SymbolWriter w = ref this.writer;
+        w.WriteSymbol(angleDelta, this.angleDelta[context - Av1PredictionMode.Vertical]);
+    }
+
+    internal void WriteCdefStrength(int cdefStrength, int bitCount)
+    {
+        ref Av1SymbolWriter w = ref this.writer;
+        w.WriteLiteral((uint)cdefStrength, bitCount);
+    }
+
+    internal void WriteChromaMode(Av1PredictionMode chromaMode, bool isChromaFromLumaAllowed, Av1PredictionMode lumaMode)
+    {
+        ref Av1SymbolWriter w = ref this.writer;
+        int cflAllowed = isChromaFromLumaAllowed ? 1 : 0;
+        w.WriteSymbol((int)chromaMode, this.uvMode[cflAllowed][(int)lumaMode]);
+    }
+
+    internal void WriteChromaFromLumaAlphas(int chromaFromLumaIndex, int joinedSign)
+    {
+        ref Av1SymbolWriter w = ref this.writer;
+        w.WriteSymbol(joinedSign, this.chromaFromLumaSign);
+
+        // Magnitudes are only signaled for nonzero codes.
+        int signU = ((joinedSign + 1) * 11) >> 5;
+        if (signU != 0)
+        {
+            int contextU = chromaFromLumaIndex - 2;
+            int indexU = chromaFromLumaIndex >> Av1Constants.ChromaFromLumaAlphabetSizeLog2;
+            w.WriteSymbol(indexU, this.chromaFromLumaAlpha[contextU]);
+        }
+
+        int signV = (joinedSign + 1) - (3 * signU);
+        if (signV != 0)
+        {
+            int contextV = (signV * 3) - signU - 3;
+            int indexV = chromaFromLumaIndex & ((1 << Av1Constants.ChromaFromLumaAlphabetSizeLog2) - 1);
+            w.WriteSymbol(indexV, this.chromaFromLumaAlpha[contextV]);
+        }
     }
 }

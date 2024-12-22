@@ -65,6 +65,12 @@ internal static class Av1BlockSizeExtensions
 
     public static int Get4x4HighCount(this Av1BlockSize blockSize) => SizeHigh[(int)blockSize];
 
+    /// <summary>
+    /// Gets the <see cref="Av1BlockSize"/> given by the Log2 of the width and height.
+    /// </summary>
+    /// <param name="widthLog2">Log2 of the width value.</param>
+    /// <param name="heightLog2">Log2 of the height value.</param>
+    /// <returns>The <see cref="Av1BlockSize"/>.</returns>
     public static Av1BlockSize FromWidthAndHeight(uint widthLog2, uint heightLog2) => HeightWidthToSize[heightLog2][widthLog2];
 
     /// <summary>

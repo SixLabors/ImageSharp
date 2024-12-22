@@ -23,5 +23,6 @@ internal enum Av1PredictionMode
     IntraModeStart = DC,
     IntraModeEnd = Paeth + 1,
     IntraModes = Paeth,
+    UvIntraModes = UvChromaFromLuma + 1,
     IntraInvalid = 25,
 }

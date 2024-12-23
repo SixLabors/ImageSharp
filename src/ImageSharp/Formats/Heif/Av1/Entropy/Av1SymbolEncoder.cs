@@ -11,15 +11,6 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 
 internal class Av1SymbolEncoder : IDisposable
 {
-    private static readonly int[][] ExtendedTransformIndices = [
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [1, 3, 4, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [1, 5, 6, 4, 0, 0, 0, 0, 0, 0, 2, 3, 0, 0, 0, 0],
-        [3, 4, 5, 8, 6, 7, 9, 10, 11, 0, 1, 2, 0, 0, 0, 0],
-        [7, 8, 9, 12, 10, 11, 13, 14, 15, 0, 1, 2, 3, 4, 5, 6],
-    ];
-
     private readonly Av1Distribution tileIntraBlockCopy = Av1DefaultDistributions.IntraBlockCopy;
     private readonly Av1Distribution[] tilePartitionTypes = Av1DefaultDistributions.PartitionTypes;
     private readonly Av1Distribution[][] keyFrameYMode = Av1DefaultDistributions.KeyFrameYMode;
@@ -289,35 +280,35 @@ internal class Av1SymbolEncoder : IDisposable
         Av1PredictionMode intraDirection)
     {
         // bool isInter = mbmi->block_mi.use_intrabc || is_inter_mode(mbmi->block_mi.mode);
-        ref Av1SymbolWriter w = ref this.writer;
-        if (Av1SymbolContextHelper.GetExtendedTransformTypeCount(transformSize, useReducedTransformSet) > 1 && baseQIndex > 0)
+        Av1TransformSetType transformSetType = Av1SymbolContextHelper.GetExtendedTransformSetType(transformSize, useReducedTransformSet);
+        if (Av1SymbolContextHelper.GetExtendedTransformTypeCount(transformSetType) > 1 && baseQIndex > 0)
         {
             Av1TransformSize squareTransformSize = transformSize.GetSquareSize();
             Guard.MustBeLessThanOrEqualTo((int)squareTransformSize, Av1Constants.ExtendedTransformCount, nameof(squareTransformSize));
 
-            Av1TransformSetType transformSetType = Av1SymbolContextHelper.GetExtendedTransformSetType(transformSize, useReducedTransformSet);
-            int extendedSet = Av1SymbolContextHelper.GetExtendedTransformSet(transformSize, useReducedTransformSet);
+            int extendedSet = Av1SymbolContextHelper.GetExtendedTransformSet(transformSetType);
 
             // eset == 0 should correspond to a set with only DCT_DCT and there
             // is no need to send the tx_type
             Guard.MustBeGreaterThan(extendedSet, 0, nameof(extendedSet));
 
             // assert(av1_ext_tx_used[tx_set_type][transformType]);
-            Av1PredictionMode intraMode;
+            Av1PredictionMode intraDirectionContext;
             if (filterIntraMode != Av1FilterIntraMode.AllFilterIntraModes)
             {
-                intraMode = filterIntraMode.ToIntraDirection();
+                intraDirectionContext = filterIntraMode.ToIntraDirection();
             }
             else
             {
-                intraMode = intraDirection;
+                intraDirectionContext = intraDirection;
             }
 
-            Guard.MustBeLessThan((int)intraMode, 13, nameof(intraMode));
+            Guard.MustBeLessThan((int)intraDirectionContext, 13, nameof(intraDirectionContext));
             Guard.MustBeLessThan((int)squareTransformSize, 4, nameof(squareTransformSize));
+            ref Av1SymbolWriter w = ref this.writer;
             w.WriteSymbol(
-                ExtendedTransformIndices[(int)transformSetType][(int)transformType],
-                this.intraExtendedTransform[extendedSet][(int)squareTransformSize][(int)intraMode]);
+                Av1SymbolContextHelper.ExtendedTransformIndices[(int)transformSetType][(int)transformType],
+                this.intraExtendedTransform[extendedSet][(int)squareTransformSize][(int)intraDirectionContext]);
         }
     }
 

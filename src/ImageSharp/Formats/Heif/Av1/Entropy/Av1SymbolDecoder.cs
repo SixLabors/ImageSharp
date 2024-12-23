@@ -9,15 +9,6 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 
 internal ref struct Av1SymbolDecoder
 {
-    private static readonly int[][] ExtendedTransformIndicesInverse = [
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [9, 0, 3, 1, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [9, 0, 10, 11, 3, 1, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [9, 10, 11, 0, 1, 2, 4, 5, 3, 6, 7, 8, 0, 0, 0, 0],
-        [9, 10, 11, 12, 13, 14, 15, 0, 1, 2, 4, 5, 3, 6, 7, 8],
-    ];
-
     private static readonly int[] IntraModeContext = [0, 1, 2, 3, 4, 4, 4, 4, 3, 0, 1, 2, 0];
     private static readonly int[] AlphaVContexts = [-1, 0, 3, -1, 1, 4, -1, 2, 5];
 
@@ -199,6 +190,9 @@ internal ref struct Av1SymbolDecoder
         return transformSize;
     }
 
+    /// <summary>
+    /// SVT: parse_transform_type
+    /// </summary>
     public Av1TransformType ReadTransformType(
         Av1TransformSize transformSize,
         bool useReducedTransformSet,
@@ -216,12 +210,17 @@ internal ref struct Av1SymbolDecoder
             return;
         */
 
+        if (baseQIndex == 0)
+        {
+            return transformType;
+        }
+
         // Ignoring INTER blocks here, as these should not end up here.
         // int inter_block = is_inter_block_dec(mbmi);
         Av1TransformSetType transformSetType = Av1SymbolContextHelper.GetExtendedTransformSetType(transformSize, useReducedTransformSet);
-        if (Av1SymbolContextHelper.GetExtendedTransformTypeCount(transformSize, useReducedTransformSet) > 1 && baseQIndex > 0)
+        if (Av1SymbolContextHelper.GetExtendedTransformTypeCount(transformSetType) > 1 && baseQIndex > 0)
         {
-            int extendedSet = Av1SymbolContextHelper.GetExtendedTransformSet(transformSize, useReducedTransformSet);
+            int extendedSet = Av1SymbolContextHelper.GetExtendedTransformSet(transformSetType);
 
             // eset == 0 should correspond to a set with only DCT_DCT and
             // there is no need to read the tx_type
@@ -233,7 +232,7 @@ internal ref struct Av1SymbolDecoder
                 : intraDirection;
             ref Av1SymbolReader r = ref this.reader;
             int symbol = r.ReadSymbol(this.intraExtendedTransform[extendedSet][(int)squareTransformSize][(int)intraMode]);
-            transformType = (Av1TransformType)ExtendedTransformIndicesInverse[(int)transformSetType][symbol];
+            transformType = (Av1TransformType)Av1SymbolContextHelper.ExtendedTransformIndicesInverse[(int)transformSetType][symbol];
         }
 
         return transformType;
@@ -311,7 +310,7 @@ internal ref struct Av1SymbolDecoder
 
         if (plane == (int)Av1Plane.Y)
         {
-            this.ReadTransformType(transformSize, useReducedTransformSet, modeInfo.FilterIntraModeInfo.UseFilterIntra, this.baseQIndex, modeInfo.FilterIntraModeInfo.Mode, modeInfo.YMode);
+            transformInfo.Type = this.ReadTransformType(transformSize, useReducedTransformSet, modeInfo.FilterIntraModeInfo.UseFilterIntra, this.baseQIndex, modeInfo.FilterIntraModeInfo.Mode, modeInfo.YMode);
         }
 
         transformInfo.Type = ComputeTransformType(planeType, modeInfo, isLossless, transformSize, transformInfo, useReducedTransformSet);

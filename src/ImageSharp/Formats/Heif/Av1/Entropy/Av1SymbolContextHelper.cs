@@ -19,6 +19,15 @@ internal static class Av1SymbolContextHelper
         [7, 8, 9, 12, 10, 11, 13, 14, 15, 0, 1, 2, 3, 4, 5, 6],
     ];
 
+    public static readonly int[][] ExtendedTransformIndicesInverse = [
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [9, 0, 3, 1, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [9, 0, 10, 11, 3, 1, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [9, 10, 11, 0, 1, 2, 4, 5, 3, 6, 7, 8, 0, 0, 0, 0],
+        [9, 10, 11, 12, 13, 14, 15, 0, 1, 2, 4, 5, 3, 6, 7, 8],
+    ];
+
     public static readonly int[] EndOfBlockOffsetBits = [0, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
     public static readonly int[] EndOfBlockGroupStart = [0, 1, 2, 3, 5, 9, 17, 33, 65, 129, 257, 513];
     private static readonly int[] TransformCountInSet = [1, 2, 5, 7, 12, 16];
@@ -216,6 +225,9 @@ internal static class Av1SymbolContextHelper
         return Av1NzMap.GetNzMapContextFromStats(stats, levels, position, transformSize, transformClass);
     }
 
+    /// <summary>
+    /// SVT: get_ext_tx_set_type
+    /// </summary>
     internal static Av1TransformSetType GetExtendedTransformSetType(Av1TransformSize transformSize, bool useReducedSet)
     {
         Av1TransformSize squareUpSize = transformSize.GetSquareUpSize();
@@ -285,52 +297,14 @@ internal static class Av1SymbolContextHelper
     }
 
     /// <summary>
-    /// SVT: get_ext_tx_set_type
+    /// SVT: get_ext_tx_types
     /// </summary>
-    internal static Av1TransformSetType GetExtendedTransformSetType(Av1TransformSize transformSize, bool isInter, bool useReducedTransformSet)
-    {
-        Av1TransformSize transformSizeSquareUp = transformSize.GetSquareUpSize();
-
-        if (transformSizeSquareUp > Av1TransformSize.Size32x32)
-        {
-            return Av1TransformSetType.DctOnly;
-        }
-
-        if (transformSizeSquareUp == Av1TransformSize.Size32x32)
-        {
-            return isInter ? Av1TransformSetType.DctIdentity : Av1TransformSetType.DctOnly;
-        }
-
-        if (useReducedTransformSet)
-        {
-            return isInter ? Av1TransformSetType.DctIdentity : Av1TransformSetType.Dtt4Identity;
-        }
-
-        Av1TransformSize transformSizeSquare = transformSize.GetSquareSize();
-        if (isInter)
-        {
-            return transformSizeSquare == Av1TransformSize.Size16x16 ? Av1TransformSetType.Dtt9Identity1dDct : Av1TransformSetType.All16;
-        }
-        else
-        {
-            return transformSizeSquare == Av1TransformSize.Size16x16 ? Av1TransformSetType.Dtt4Identity : Av1TransformSetType.Dtt4Identity1dDct;
-        }
-    }
-
-    internal static int GetExtendedTransformTypeCount(Av1TransformSize transformSize, bool useReducedTransformSet)
-    {
-        int setType = (int)GetExtendedTransformSetType(transformSize, useReducedTransformSet);
-        return TransformCountInSet[setType];
-    }
+    internal static int GetExtendedTransformTypeCount(Av1TransformSetType setType) => TransformCountInSet[(int)setType];
 
     /// <summary>
     /// SVT: get_ext_tx_set
     /// </summary>
-    internal static int GetExtendedTransformSet(Av1TransformSize transformSize, bool useReducedTransformSet)
-    {
-        int setType = (int)GetExtendedTransformSetType(transformSize, useReducedTransformSet);
-        return ExtendedTransformSetToIndex[setType];
-    }
+    internal static int GetExtendedTransformSet(Av1TransformSetType setType) => ExtendedTransformSetToIndex[(int)setType];
 
     /// <summary>
     /// SVT: set_dc_sign

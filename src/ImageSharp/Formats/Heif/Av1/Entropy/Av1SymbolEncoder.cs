@@ -330,19 +330,21 @@ internal class Av1SymbolEncoder : IDisposable
         w.WriteSymbol(skip, this.skipMode[context]);
     }
 
-    internal void WriteFilterIntra(Av1FilterIntraMode filterIntraMode, Av1BlockSize blockSize)
+    internal void WriteFilterIntraMode(Av1FilterIntraMode filterIntraMode, Av1BlockSize blockSize)
     {
         ref Av1SymbolWriter w = ref this.writer;
-        w.WriteSymbol(filterIntraMode != Av1FilterIntraMode.AllFilterIntraModes, this.filterIntra[(int)blockSize]);
+        bool useFilter = filterIntraMode != Av1FilterIntraMode.AllFilterIntraModes;
+        w.WriteSymbol(useFilter, this.filterIntra[(int)blockSize]);
+        if (useFilter)
+        {
+            w.WriteSymbol((int)filterIntraMode, this.filterIntraMode);
+        }
     }
 
-    internal void WriteFilterIntraMode(Av1FilterIntraMode filterIntraMode)
-    {
-        ref Av1SymbolWriter w = ref this.writer;
-        w.WriteSymbol((int)filterIntraMode, this.filterIntraMode);
-    }
-
-    internal void WriteDeltaQIndex(int deltaQindex)
+    /// <summary>
+    /// SVT: av1_write_delta_q_index
+    /// </summary>
+    internal void WriteDeltaQuantizerIndex(int deltaQindex)
     {
         ref Av1SymbolWriter w = ref this.writer;
         bool sign = deltaQindex < 0;
@@ -353,7 +355,7 @@ internal class Av1SymbolEncoder : IDisposable
 
         if (!smallval)
         {
-            int rem_bits = Av1Math.MostSignificantBit((uint)(abs - 1)) - 1;
+            int rem_bits = Av1Math.MostSignificantBit((uint)(abs - 1));
             int threshold = (1 << rem_bits) + 1;
             w.WriteLiteral((uint)(rem_bits - 1), 3);
             w.WriteLiteral((uint)(abs - threshold), rem_bits);

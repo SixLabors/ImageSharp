@@ -191,11 +191,11 @@ public class Av1EntropyTests
         Assert.Equal(expectedValues, values);
     }
 
-    [Fact]
-    public void RoundTripPartitionType()
+    [Theory]
+    [MemberData(nameof(GetRangeData), 20)]
+    public void RoundTripPartitionType(int context)
     {
         // Assign
-        int ctx = 7;
         Configuration configuration = Configuration.Default;
         Av1SymbolEncoder encoder = new(configuration, 100 / 8, BaseQIndex);
         Av1PartitionType[] values = [
@@ -206,7 +206,7 @@ public class Av1EntropyTests
         // Act
         foreach (Av1PartitionType value in values)
         {
-            encoder.WritePartitionType(value, 7);
+            encoder.WritePartitionType(value, context);
         }
 
         using IMemoryOwner<byte> encoded = encoder.Exit();
@@ -214,7 +214,7 @@ public class Av1EntropyTests
         Av1SymbolDecoder decoder = new(Configuration.Default, encoded.GetSpan(), BaseQIndex);
         for (int i = 0; i < values.Length; i++)
         {
-            actuals[i] = decoder.ReadPartitionType(ctx);
+            actuals[i] = decoder.ReadPartitionType(context);
         }
 
         // Assert
@@ -222,16 +222,11 @@ public class Av1EntropyTests
     }
 
     [Theory]
-    [InlineData((int)Av1BlockSize.Block4x4, 7)]
-    [InlineData((int)Av1BlockSize.Block4x4, 5)]
-    [InlineData((int)Av1BlockSize.Block8x4, 7)]
-    [InlineData((int)Av1BlockSize.Block4x8, 7)]
-    [InlineData((int)Av1BlockSize.Block32x64, 7)]
-    [InlineData((int)Av1BlockSize.Block64x32, 7)]
-    [InlineData((int)Av1BlockSize.Block64x64, 7)]
-    public void RoundTripSplitOrHorizontalPartitionType(int blockSize, int context)
+    [MemberData(nameof(GetSplitPartitionTypeData))]
+    public void RoundTripSplitOrHorizontalPartitionType(int size, int context)
     {
         // Assign
+        Av1BlockSize blockSize = (Av1BlockSize)size;
         Configuration configuration = Configuration.Default;
         Av1SymbolEncoder encoder = new(configuration, 100 / 8, BaseQIndex);
         Av1PartitionType[] values = [
@@ -242,7 +237,7 @@ public class Av1EntropyTests
         // Act
         foreach (Av1PartitionType value in values)
         {
-            encoder.WriteSplitOrHorizontal(value, (Av1BlockSize)blockSize, context);
+            encoder.WriteSplitOrHorizontal(value, blockSize, context);
         }
 
         using IMemoryOwner<byte> encoded = encoder.Exit();
@@ -250,7 +245,7 @@ public class Av1EntropyTests
         Av1SymbolDecoder decoder = new(Configuration.Default, encoded.GetSpan(), BaseQIndex);
         for (int i = 0; i < values.Length; i++)
         {
-            actuals[i] = decoder.ReadSplitOrHorizontal((Av1BlockSize)blockSize, context);
+            actuals[i] = decoder.ReadSplitOrHorizontal(blockSize, context);
         }
 
         // Assert
@@ -258,16 +253,11 @@ public class Av1EntropyTests
     }
 
     [Theory]
-    [InlineData((int)Av1BlockSize.Block4x4, 7)]
-    [InlineData((int)Av1BlockSize.Block4x4, 5)]
-    [InlineData((int)Av1BlockSize.Block8x4, 7)]
-    [InlineData((int)Av1BlockSize.Block4x8, 7)]
-    [InlineData((int)Av1BlockSize.Block32x64, 7)]
-    [InlineData((int)Av1BlockSize.Block64x32, 7)]
-    [InlineData((int)Av1BlockSize.Block64x64, 7)]
-    public void RoundTripSplitOrVerticalPartitionType(int blockSize, int context)
+    [MemberData(nameof(GetSplitPartitionTypeData))]
+    public void RoundTripSplitOrVerticalPartitionType(int size, int context)
     {
         // Assign
+        Av1BlockSize blockSize = (Av1BlockSize)size;
         Configuration configuration = Configuration.Default;
         Av1SymbolEncoder encoder = new(configuration, 100 / 8, BaseQIndex);
         Av1PartitionType[] values = [
@@ -278,7 +268,7 @@ public class Av1EntropyTests
         // Act
         foreach (Av1PartitionType value in values)
         {
-            encoder.WriteSplitOrVertical(value, (Av1BlockSize)blockSize, context);
+            encoder.WriteSplitOrVertical(value, blockSize, context);
         }
 
         using IMemoryOwner<byte> encoded = encoder.Exit();
@@ -286,19 +276,49 @@ public class Av1EntropyTests
         Av1SymbolDecoder decoder = new(Configuration.Default, encoded.GetSpan(), BaseQIndex);
         for (int i = 0; i < values.Length; i++)
         {
-            actuals[i] = decoder.ReadSplitOrVertical((Av1BlockSize)blockSize, context);
+            actuals[i] = decoder.ReadSplitOrVertical(blockSize, context);
         }
 
         // Assert
         Assert.Equal(values, actuals);
     }
 
-    [Fact]
-    public void RoundTripTransformBlockSkip()
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    public void RoundTripSkip(int context)
     {
         // Assign
-        const Av1TransformSize transformSizeContext = Av1TransformSize.Size4x4;
-        const int skipContext = 0;
+        Configuration configuration = Configuration.Default;
+        Av1SymbolEncoder encoder = new(configuration, 100 / 8, BaseQIndex);
+        bool[] values = [true, true, false, false, false, false, false, false, true];
+        bool[] actuals = new bool[values.Length];
+
+        // Act
+        foreach (bool value in values)
+        {
+            encoder.WriteSkip(value, context);
+        }
+
+        using IMemoryOwner<byte> encoded = encoder.Exit();
+
+        Av1SymbolDecoder decoder = new(Configuration.Default, encoded.GetSpan(), BaseQIndex);
+        for (int i = 0; i < values.Length; i++)
+        {
+            actuals[i] = decoder.ReadSkip(context);
+        }
+
+        // Assert
+        Assert.Equal(values, actuals);
+    }
+
+    [Theory]
+    [MemberData(nameof(GetTransformBlockSkipData))]
+    internal void RoundTripTransformBlockSkip(int transformContext, int skipContext)
+    {
+        // Assign
+        Av1TransformSize transformSizeContext = (Av1TransformSize)transformContext;
         Configuration configuration = Configuration.Default;
         Av1SymbolEncoder encoder = new(configuration, 100 / 8, BaseQIndex);
         bool[] values = [true, true, false, false, false, false, false, false, true];
@@ -322,13 +342,14 @@ public class Av1EntropyTests
         Assert.Equal(values, actuals);
     }
 
-    [Fact]
-    public void RoundTripTransformType()
+    // [Theory]
+    [MemberData(nameof(GetTransformTypeData))]
+    public void RoundTripTransformType(int txSizeContext, int intraMode, int intraDir)
     {
         // Assign
-        const Av1TransformSize transformSizeContext = Av1TransformSize.Size4x4;
-        const Av1FilterIntraMode filterIntraMode = Av1FilterIntraMode.DC;
-        const Av1PredictionMode intraDirection = Av1PredictionMode.DC;
+        Av1TransformSize transformSizeContext = (Av1TransformSize)txSizeContext;
+        Av1FilterIntraMode filterIntraMode = (Av1FilterIntraMode)intraMode;
+        Av1PredictionMode intraDirection = (Av1PredictionMode)intraDir;
         Configuration configuration = Configuration.Default;
         Av1SymbolEncoder encoder = new(configuration, 100 / 8, BaseQIndex);
 
@@ -336,7 +357,7 @@ public class Av1EntropyTests
         Av1TransformType[] values = [
             Av1TransformType.DctDct, Av1TransformType.DctDct, Av1TransformType.Identity, Av1TransformType.AdstDct,
             Av1TransformType.DctDct, Av1TransformType.AdstAdst, Av1TransformType.Identity, Av1TransformType.DctAdst
-            ];
+        ];
         Av1TransformType[] actuals = new Av1TransformType[values.Length];
 
         // Act
@@ -357,25 +378,26 @@ public class Av1EntropyTests
         Assert.Equal(values, actuals);
     }
 
-    [Fact]
-    public void RoundTripEndOfBlockPosition()
+    [Theory]
+    [MemberData(nameof(GetEndOfBlockPositionData))]
+    public void RoundTripEndOfBlockPosition(int txSize, int txSizeContext, int plane, int txClass)
     {
         // Assign
-        const Av1TransformSize transformSize = Av1TransformSize.Size4x4;
-        const Av1TransformSize transformSizeContext = Av1TransformSize.Size4x4;
-        const Av1ComponentType componentType = Av1ComponentType.Luminance;
-        const Av1PlaneType planeType = Av1PlaneType.Y;
-        const Av1TransformClass transformClass = Av1TransformClass.Class2D;
+        Av1TransformSize transformSize = (Av1TransformSize)txSize;
+        Av1TransformSize transformSizeContext = (Av1TransformSize)txSizeContext;
+        Av1ComponentType componentType = (Av1ComponentType)plane;
+        Av1PlaneType planeType = (Av1PlaneType)plane;
+        Av1TransformClass transformClass = (Av1TransformClass)txClass;
         Configuration configuration = Configuration.Default;
         Av1SymbolEncoder encoder = new(configuration, 100 / 8, BaseQIndex);
 
-        ushort[] values = [1, 2, 3, 4, 5];
+        int[] values = [1, 2, 3, 4, 5];
         int[] actuals = new int[values.Length];
 
         // Act
-        foreach (ushort value in values)
+        foreach (int value in values)
         {
-            encoder.WriteEndOfBlockPosition(value, componentType, transformClass, transformSize, transformSizeContext);
+            encoder.WriteEndOfBlockPosition((ushort)value, componentType, transformClass, transformSize, transformSizeContext);
         }
 
         using IMemoryOwner<byte> encoded = encoder.Exit();
@@ -387,7 +409,7 @@ public class Av1EntropyTests
         }
 
         // Assert
-        Assert.Equal(values.Select(x => (int)x).ToArray(), actuals);
+        Assert.Equal(values, actuals);
     }
 
     [Fact]
@@ -412,6 +434,94 @@ public class Av1EntropyTests
         for (int i = 0; i < values.Length; i++)
         {
             actuals[i] = decoder.ReadGolomb();
+        }
+
+        // Assert
+        Assert.Equal(values, actuals);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    public void RoundTripSegmentId(int context)
+    {
+        // Assign
+        int[] values = [3, 6, 7, 0, 2, 0, 2, 1, 1];
+        Configuration configuration = Configuration.Default;
+        Av1SymbolEncoder encoder = new(configuration, 100 / 8, BaseQIndex);
+        int[] actuals = new int[values.Length];
+
+        // Act
+        foreach (int value in values)
+        {
+            encoder.WriteSegmentId(value, context);
+        }
+
+        using IMemoryOwner<byte> encoded = encoder.Exit();
+
+        Av1SymbolDecoder decoder = new(Configuration.Default, encoded.GetSpan(), BaseQIndex);
+        for (int i = 0; i < values.Length; i++)
+        {
+            actuals[i] = decoder.ReadSegmentId(context);
+        }
+
+        // Assert
+        Assert.Equal(values, actuals);
+    }
+
+    [Fact]
+    public void RoundTripDeltaQuantizerIndex()
+    {
+        // Assign
+        int[] values = [3, 6, -7, -8, -2, 0, 2, 1, -1];
+        Configuration configuration = Configuration.Default;
+        Av1SymbolEncoder encoder = new(configuration, 100 / 8, BaseQIndex);
+        int[] actuals = new int[values.Length];
+
+        // Act
+        foreach (int value in values)
+        {
+            encoder.WriteDeltaQuantizerIndex(value);
+        }
+
+        using IMemoryOwner<byte> encoded = encoder.Exit();
+
+        Av1SymbolDecoder decoder = new(Configuration.Default, encoded.GetSpan(), BaseQIndex);
+        for (int i = 0; i < values.Length; i++)
+        {
+            actuals[i] = decoder.ReadDeltaQuantizerIndex();
+        }
+
+        // Assert
+        Assert.Equal(values, actuals);
+    }
+
+    [Theory]
+    [MemberData(nameof(GetRangeData), (int)Av1BlockSize.AllSizes)]
+    public void RoundTripFilterIntraMode(int bSize)
+    {
+        // Assign
+        Av1BlockSize blockSize = (Av1BlockSize)bSize;
+        Av1FilterIntraMode[] values = [
+            Av1FilterIntraMode.DC, Av1FilterIntraMode.Vertical, Av1FilterIntraMode.DC, Av1FilterIntraMode.Paeth,
+            Av1FilterIntraMode.AllFilterIntraModes, Av1FilterIntraMode.Directional157, Av1FilterIntraMode.DC, Av1FilterIntraMode.Directional157];
+        Configuration configuration = Configuration.Default;
+        Av1SymbolEncoder encoder = new(configuration, 100 / 8, BaseQIndex);
+        Av1FilterIntraMode[] actuals = new Av1FilterIntraMode[values.Length];
+
+        // Act
+        foreach (Av1FilterIntraMode value in values)
+        {
+            encoder.WriteFilterIntraMode(value, blockSize);
+        }
+
+        using IMemoryOwner<byte> encoded = encoder.Exit();
+
+        Av1SymbolDecoder decoder = new(Configuration.Default, encoded.GetSpan(), BaseQIndex);
+        for (int i = 0; i < values.Length; i++)
+        {
+            actuals[i] = decoder.ReadFilterUltraMode(blockSize);
         }
 
         // Assert
@@ -443,5 +553,81 @@ public class Av1EntropyTests
 
         // Assert
         Assert.Equal(values, actuals);
+    }
+
+    public static TheoryData<int> GetRangeData(int count)
+    {
+        TheoryData<int> result = [];
+        for (int i = 0; i < count; i++)
+        {
+            result.Add(i);
+        }
+
+        return result;
+    }
+
+    public static TheoryData<int, int> GetTransformBlockSkipData()
+    {
+        TheoryData<int, int> result = [];
+        for (Av1TransformSize transformSizeContext = Av1TransformSize.Size4x4; transformSizeContext <= Av1TransformSize.Size64x64; transformSizeContext++)
+        {
+            for (int skipContext = 0; skipContext < 5; skipContext++)
+            {
+                result.Add((int)transformSizeContext, skipContext);
+            }
+        }
+
+        return result;
+    }
+
+    public static TheoryData<int, int> GetSplitPartitionTypeData()
+    {
+        TheoryData<int, int> result = [];
+        for (Av1BlockSize blockSize = Av1BlockSize.Block4x4; blockSize < Av1BlockSize.AllSizes; blockSize++)
+        {
+            for (int context = 4; context < 16; context++)
+            {
+                result.Add((int)blockSize, context);
+            }
+        }
+
+        return result;
+    }
+
+    public static TheoryData<int, int, int> GetTransformTypeData()
+    {
+        TheoryData<int, int, int> result = [];
+        for (Av1TransformSize transformSize = Av1TransformSize.Size4x4; transformSize < Av1TransformSize.AllSizes; transformSize++)
+        {
+            for (Av1FilterIntraMode filterIntraMode = Av1FilterIntraMode.DC; filterIntraMode <= Av1FilterIntraMode.AllFilterIntraModes; filterIntraMode++)
+            {
+                for (Av1PredictionMode intraDirection = Av1PredictionMode.IntraModeStart; intraDirection < Av1PredictionMode.IntraModeEnd; intraDirection++)
+                {
+                    result.Add((int)transformSize, (int)filterIntraMode, (int)intraDirection);
+                }
+            }
+        }
+
+        return result;
+    }
+
+    public static TheoryData<int, int, int, int> GetEndOfBlockPositionData()
+    {
+        TheoryData<int, int, int, int> result = [];
+        for (Av1TransformSize transformSize = Av1TransformSize.Size4x4; transformSize < Av1TransformSize.AllSizes; transformSize++)
+        {
+            for (Av1TransformSize transformSizeContext = Av1TransformSize.Size4x4; transformSizeContext <= Av1TransformSize.Size64x64; transformSizeContext++)
+            {
+                for (int componentType = 0; componentType < 2; componentType++)
+                {
+                    for (Av1TransformClass transformClass = Av1TransformClass.Class2D; transformClass <= Av1TransformClass.ClassVertical; transformClass++)
+                    {
+                        result.Add((int)transformSize, (int)transformSizeContext, componentType, (int)transformClass);
+                    }
+                }
+            }
+        }
+
+        return result;
     }
 }

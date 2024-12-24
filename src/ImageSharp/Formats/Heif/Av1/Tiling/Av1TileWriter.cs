@@ -449,7 +449,7 @@ internal partial class Av1TileWriter
                     int reduced_delta_qindex = (current_q_index - pcs.Parent.PreviousQIndex[tile_idx]) /
                         frm_hdr.DeltaQParameters.Resolution;
 
-                    writer.WriteDeltaQIndex(reduced_delta_qindex);
+                    writer.WriteDeltaQuantizerIndex(reduced_delta_qindex);
                     pcs.Parent.PreviousQIndex[tile_idx] = current_q_index;
                 }
             }
@@ -495,11 +495,7 @@ internal partial class Av1TileWriter
             if (!macroBlockModeInfo.Block.UseIntraBlockCopy &&
                 IsFilterIntraAllowed(scs.SequenceHeader.FilterIntraLevel > 0, blockSize, blk_ptr.PaletteSize[0], intra_luma_mode))
             {
-                writer.WriteFilterIntra(blk_ptr.FilterIntraMode, blockSize);
-                if (blk_ptr.FilterIntraMode != Av1FilterIntraMode.AllFilterIntraModes)
-                {
-                    writer.WriteFilterIntraMode(blk_ptr.FilterIntraMode);
-                }
+                writer.WriteFilterIntraMode(blk_ptr.FilterIntraMode, blockSize);
             }
 
             if (!macroBlockModeInfo.Block.UseIntraBlockCopy)

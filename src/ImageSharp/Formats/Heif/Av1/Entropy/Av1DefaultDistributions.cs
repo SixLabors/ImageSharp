@@ -135,7 +135,16 @@ internal static class Av1DefaultDistributions
 
     public static Av1Distribution DeltaQuantizerAbsolute => new(28160, 32120, 32677);
 
-    public static Av1Distribution[] SegmentId => [new(128 * 128), new(128 * 128), new(128 * 128)];
+    /// <summary>
+    /// Gets the Segment identifier <see cref="Av1Distribution"/>.
+    /// </summary>
+    /// <remarks>SVT: default_spatial_pred_seg_tree_cdf</remarks>
+    public static Av1Distribution[] SegmentId =>
+        [
+            new(5622, 7893, 16093, 18233, 27809, 28373, 32533),
+            new(14274, 18230, 22557, 24935, 29980, 30851, 32344),
+            new(27527, 28487, 28723, 28890, 32397, 32647, 32679),
+        ];
 
     public static Av1Distribution[][] KeyFrameYMode =>
         [

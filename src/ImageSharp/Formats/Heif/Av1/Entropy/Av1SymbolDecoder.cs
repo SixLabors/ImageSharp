@@ -53,7 +53,7 @@ internal ref struct Av1SymbolDecoder
         this.endOfBlockExtra = Av1DefaultDistributions.GetEndOfBlockExtra(qIndex);
     }
 
-    public int ReadLiteral(int bitCount)
+    public int ReadCdfStrength(int bitCount)
     {
         ref Av1SymbolReader r = ref this.reader;
         return r.ReadLiteral(bitCount);
@@ -130,22 +130,53 @@ internal ref struct Av1SymbolDecoder
         return r.ReadSymbol(this.skipMode[(int)blockSize]) > 0;
     }
 
-    public int ReadDeltaLoopFilterAbsolute()
+    public int ReadDeltaLoopFilter()
     {
         ref Av1SymbolReader r = ref this.reader;
-        return r.ReadSymbol(this.deltaLoopFilterAbsolute);
+        int deltaLoopFilterAbsolute = r.ReadSymbol(this.deltaLoopFilterAbsolute);
+        if (deltaLoopFilterAbsolute == Av1Constants.DeltaLoopFilterSmall)
+        {
+            int deltaLoopFilterRemainingBits = r.ReadLiteral(3) + 1;
+            int deltaLoopFilterAbsoluteBitCount = r.ReadLiteral(deltaLoopFilterRemainingBits);
+            deltaLoopFilterAbsolute = deltaLoopFilterAbsoluteBitCount + (1 << deltaLoopFilterRemainingBits) + 1;
+        }
+
+        bool deltaLoopFilterSign = true;
+        if (deltaLoopFilterAbsolute != 0)
+        {
+            deltaLoopFilterSign = r.ReadLiteral(1) > 0;
+        }
+
+        return deltaLoopFilterSign ? -deltaLoopFilterAbsolute : deltaLoopFilterAbsolute;
     }
 
-    public int ReadDeltaQuantizerAbsolute()
+    /// <summary>
+    /// SVT: read_delta_qindex
+    /// </summary>
+    public int ReadDeltaQuantizerIndex()
     {
         ref Av1SymbolReader r = ref this.reader;
-        return r.ReadSymbol(this.deltaQuantizerAbsolute);
+        int deltaQuantizerAbsolute = r.ReadSymbol(this.deltaQuantizerAbsolute);
+        if (deltaQuantizerAbsolute == Av1Constants.DeltaQuantizerSmall)
+        {
+            int deltaQuantizerRemainingBits = r.ReadLiteral(3) + 1;
+            int deltaQuantizerAbsoluteBase = r.ReadLiteral(deltaQuantizerRemainingBits);
+            deltaQuantizerAbsolute = deltaQuantizerAbsoluteBase + (1 << deltaQuantizerRemainingBits) + 1;
+        }
+
+        bool deltaQuantizerSignBit = true;
+        if (deltaQuantizerAbsolute != 0)
+        {
+            deltaQuantizerSignBit = r.ReadLiteral(1) > 0;
+        }
+
+        return deltaQuantizerSignBit ? -deltaQuantizerAbsolute : deltaQuantizerAbsolute;
     }
 
-    public int ReadSegmentId(int ctx)
+    public int ReadSegmentId(int context)
     {
         ref Av1SymbolReader r = ref this.reader;
-        return r.ReadSymbol(this.segmentId[ctx]);
+        return r.ReadSymbol(this.segmentId[context]);
     }
 
     public int ReadAngleDelta(Av1PredictionMode mode)
@@ -154,16 +185,17 @@ internal ref struct Av1SymbolDecoder
         return r.ReadSymbol(this.angleDelta[(int)mode - 1]);
     }
 
-    public bool ReadUseFilterUltra(Av1BlockSize blockSize)
+    public Av1FilterIntraMode ReadFilterUltraMode(Av1BlockSize blockSize)
     {
         ref Av1SymbolReader r = ref this.reader;
-        return r.ReadSymbol(this.filterIntra[(int)blockSize]) > 0;
-    }
+        Av1FilterIntraMode filterIntraMode = Av1FilterIntraMode.AllFilterIntraModes;
+        bool useFilterIntra = r.ReadSymbol(this.filterIntra[(int)blockSize]) > 0;
+        if (useFilterIntra)
+        {
+            filterIntraMode = (Av1FilterIntraMode)r.ReadSymbol(this.filterIntraMode);
+        }
 
-    public Av1FilterIntraMode ReadFilterUltraMode()
-    {
-        ref Av1SymbolReader r = ref this.reader;
-        return (Av1FilterIntraMode)r.ReadSymbol(this.filterIntraMode);
+        return filterIntraMode;
     }
 
     public Av1TransformSize ReadTransformSize(Av1BlockSize blockSize, int context)
@@ -348,6 +380,7 @@ internal ref struct Av1SymbolDecoder
 
     public int ReadEndOfBlockPosition(Av1TransformSize transformSize, Av1TransformClass transformClass, Av1TransformSize transformSizeContext, Av1PlaneType planeType)
     {
+        ref Av1SymbolReader r = ref this.reader;
         int endOfBlockExtra = 0;
         int endOfBlockPoint = this.ReadEndOfBlockFlag(planeType, transformClass, transformSize);
         int endOfBlockShift = Av1SymbolContextHelper.EndOfBlockOffsetBits[endOfBlockPoint];
@@ -362,7 +395,7 @@ internal ref struct Av1SymbolDecoder
 
             for (int j = 1; j < endOfBlockShift; j++)
             {
-                if (this.ReadLiteral(1) != 0)
+                if (r.ReadLiteral(1) != 0)
                 {
                     Av1Math.SetBit(ref endOfBlockExtra, endOfBlockShift - 1 - j);
                 }
@@ -451,6 +484,7 @@ internal ref struct Av1SymbolDecoder
 
     public int ReadCoefficientsSign(Span<int> coefficientBuffer, int endOfBlock, ReadOnlySpan<short> scan, Av1LevelBuffer levels, int dcSignContext, Av1PlaneType planeType)
     {
+        ref Av1SymbolReader r = ref this.reader;
         int maxScanLine = 0;
         int culLevel = 0;
         int dcValue = 0;
@@ -469,7 +503,7 @@ internal ref struct Av1SymbolDecoder
                 }
                 else
                 {
-                    sign = this.ReadLiteral(1);
+                    sign = r.ReadLiteral(1);
                 }
 
                 if (level >= Av1Constants.CoefficientBaseRange + Av1Constants.BaseLevelsCount + 1)
@@ -535,13 +569,14 @@ internal ref struct Av1SymbolDecoder
 
     internal int ReadGolomb()
     {
+        ref Av1SymbolReader r = ref this.reader;
         int x = 1;
         int length = 0;
         int i = 0;
 
         while (i == 0)
         {
-            i = this.ReadLiteral(1);
+            i = r.ReadLiteral(1);
             ++length;
             if (length > 20)
             {
@@ -553,7 +588,7 @@ internal ref struct Av1SymbolDecoder
         for (i = 0; i < length - 1; ++i)
         {
             x <<= 1;
-            x += this.ReadLiteral(1);
+            x += r.ReadLiteral(1);
         }
 
         return x - 1;

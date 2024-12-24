@@ -69,9 +69,9 @@ public class Av1SymbolContextTests
         for (Av1TransformSetType setType = Av1TransformSetType.DctOnly; setType <= Av1TransformSetType.All16; setType++)
         {
             int count = Av1SymbolContextHelper.GetExtendedTransformTypeCount(setType);
-            for (int type = 1; type < count; type++)
+            for (int index = 1; index < count; index++)
             {
-                result.Add((int)setType, type);
+                result.Add((int)setType, index);
             }
         }
 

@@ -1051,20 +1051,18 @@ internal class Av1TileReader : IAv1TileReader
 
     private void FilterIntraModeInfo(ref Av1SymbolDecoder reader, Av1PartitionInfo partitionInfo)
     {
+        partitionInfo.ModeInfo.FilterIntraModeInfo.UseFilterIntra = false;
         if (this.SequenceHeader.EnableFilterIntra &&
             partitionInfo.ModeInfo.YMode == Av1PredictionMode.DC &&
             partitionInfo.ModeInfo.GetPaletteSize(Av1PlaneType.Y) == 0 &&
             Math.Max(partitionInfo.ModeInfo.BlockSize.GetWidth(), partitionInfo.ModeInfo.BlockSize.GetHeight()) <= 32)
         {
-            partitionInfo.ModeInfo.FilterIntraModeInfo.UseFilterIntra = reader.ReadUseFilterUltra(partitionInfo.ModeInfo.BlockSize);
-            if (partitionInfo.ModeInfo.FilterIntraModeInfo.UseFilterIntra)
+            Av1FilterIntraMode filterIntraMode = reader.ReadFilterUltraMode(partitionInfo.ModeInfo.BlockSize);
+            if (filterIntraMode != Av1FilterIntraMode.AllFilterIntraModes)
             {
-                partitionInfo.ModeInfo.FilterIntraModeInfo.Mode = reader.ReadFilterUltraMode();
+                partitionInfo.ModeInfo.FilterIntraModeInfo.UseFilterIntra = true;
+                partitionInfo.ModeInfo.FilterIntraModeInfo.Mode = filterIntraMode;
             }
-        }
-        else
-        {
-            partitionInfo.ModeInfo.FilterIntraModeInfo.UseFilterIntra = false;
         }
     }
 
@@ -1209,7 +1207,8 @@ internal class Av1TileReader : IAv1TileReader
         int c = partitionInfo.ColumnIndex & cdefMask4;
         if (partitionInfo.CdefStrength[r][c] == -1)
         {
-            partitionInfo.CdefStrength[r][c] = reader.ReadLiteral(this.FrameHeader.CdefParameters.BitCount);
+            int cdfStrength = reader.ReadCdfStrength(this.FrameHeader.CdefParameters.BitCount);
+            partitionInfo.CdefStrength[r][c] = cdfStrength;
             if (this.SequenceHeader.SuperblockSize == Av1BlockSize.Block128x128)
             {
                 int w4 = partitionInfo.ModeInfo.BlockSize.Get4x4WideCount();
@@ -1218,7 +1217,7 @@ internal class Av1TileReader : IAv1TileReader
                 {
                     for (int j = c; j < c + w4; j += cdefSize4)
                     {
-                        partitionInfo.CdefStrength[i & cdefMask4][j & cdefMask4] = partitionInfo.CdefStrength[r][c];
+                        partitionInfo.CdefStrength[i & cdefMask4][j & cdefMask4] = cdfStrength;
                     }
                 }
             }
@@ -1245,21 +1244,9 @@ internal class Av1TileReader : IAv1TileReader
             Span<int> currentDeltaLoopFilter = partitionInfo.SuperblockInfo.SuperblockDeltaLoopFilter;
             for (int i = 0; i < frameLoopFilterCount; i++)
             {
-                int deltaLoopFilterAbsolute = reader.ReadDeltaLoopFilterAbsolute();
-                if (deltaLoopFilterAbsolute == Av1Constants.DeltaLoopFilterSmall)
-                {
-                    int deltaLoopFilterRemainingBits = reader.ReadLiteral(3) + 1;
-                    int deltaLoopFilterAbsoluteBitCount = reader.ReadLiteral(deltaLoopFilterRemainingBits);
-                    deltaLoopFilterAbsolute = deltaLoopFilterAbsoluteBitCount + (1 << deltaLoopFilterRemainingBits) + 1;
-                }
-
-                if (deltaLoopFilterAbsolute != 0)
-                {
-                    bool deltaLoopFilterSign = reader.ReadLiteral(1) > 0;
-                    int reducedDeltaLoopFilterLevel = deltaLoopFilterSign ? -deltaLoopFilterAbsolute : deltaLoopFilterAbsolute;
-                    int deltaLoopFilterResolution = this.FrameHeader.DeltaLoopFilterParameters.Resolution;
-                    currentDeltaLoopFilter[i] = Av1Math.Clip3(-Av1Constants.MaxLoopFilter, Av1Constants.MaxLoopFilter, currentDeltaLoopFilter[i] + (reducedDeltaLoopFilterLevel << deltaLoopFilterResolution));
-                }
+                int reducedDeltaLoopFilterLevel = reader.ReadDeltaLoopFilter();
+                int deltaLoopFilterResolution = this.FrameHeader.DeltaLoopFilterParameters.Resolution;
+                currentDeltaLoopFilter[i] = Av1Math.Clip3(-Av1Constants.MaxLoopFilter, Av1Constants.MaxLoopFilter, currentDeltaLoopFilter[i] + (reducedDeltaLoopFilterLevel << deltaLoopFilterResolution));
             }
         }
     }
@@ -1280,6 +1267,9 @@ internal class Av1TileReader : IAv1TileReader
         }
     }
 
+    /// <summary>
+    /// SVT: read_delta_qindex
+    /// </summary>
     private void ReadDeltaQuantizerIndex(ref Av1SymbolDecoder reader, Av1PartitionInfo partitionInfo)
     {
         Av1BlockSize superBlockSize = this.SequenceHeader.Use128x128Superblock ? Av1BlockSize.Block128x128 : Av1BlockSize.Block64x64;
@@ -1291,22 +1281,10 @@ internal class Av1TileReader : IAv1TileReader
 
         if (partitionInfo.ModeInfo.BlockSize != this.SequenceHeader.SuperblockSize || !partitionInfo.ModeInfo.Skip)
         {
-            int deltaQuantizerAbsolute = reader.ReadDeltaQuantizerAbsolute();
-            if (deltaQuantizerAbsolute == Av1Constants.DeltaQuantizerSmall)
-            {
-                int deltaQuantizerRemainingBits = reader.ReadLiteral(3) + 1;
-                int deltaQuantizerAbsoluteBitCount = reader.ReadLiteral(deltaQuantizerRemainingBits);
-                deltaQuantizerAbsolute = deltaQuantizerRemainingBits + (1 << deltaQuantizerRemainingBits) + 1;
-            }
-
-            if (deltaQuantizerAbsolute != 0)
-            {
-                bool deltaQuantizerSignBit = reader.ReadLiteral(1) > 0;
-                int reducedDeltaQuantizerIndex = deltaQuantizerSignBit ? -deltaQuantizerAbsolute : deltaQuantizerAbsolute;
-                int deltaQuantizerResolution = this.FrameHeader.DeltaQParameters.Resolution;
-                this.currentQuantizerIndex = Av1Math.Clip3(1, 255, this.currentQuantizerIndex + (reducedDeltaQuantizerIndex << deltaQuantizerResolution));
-                partitionInfo.SuperblockInfo.SuperblockDeltaQ = this.currentQuantizerIndex;
-            }
+            int reducedDeltaQuantizerIndex = reader.ReadDeltaQuantizerIndex();
+            int deltaQuantizerResolution = this.FrameHeader.DeltaQParameters.Resolution;
+            this.currentQuantizerIndex = Av1Math.Clip3(1, 255, this.currentQuantizerIndex + (reducedDeltaQuantizerIndex << deltaQuantizerResolution));
+            partitionInfo.SuperblockInfo.SuperblockDeltaQ = this.currentQuantizerIndex;
         }
     }
 

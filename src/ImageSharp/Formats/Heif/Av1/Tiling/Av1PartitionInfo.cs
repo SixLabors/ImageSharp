@@ -69,7 +69,7 @@ internal class Av1PartitionInfo
 
     public Av1BlockModeInfo? LeftModeInfoForChroma { get; set; }
 
-    public int[][] CdefStrength { get; set; }
+    public int[] CdefStrength { get; set; }
 
     public int[] ReferenceFrame { get; set; }
 

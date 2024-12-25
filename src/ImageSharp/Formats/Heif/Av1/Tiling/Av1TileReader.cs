@@ -1194,6 +1194,7 @@ internal class Av1TileReader : IAv1TileReader
     /// <summary>
     /// 5.11.56. Read CDEF syntax.
     /// </summary>
+    /// <remarks>SVT: read_cdef</remarks>
     private void ReadCdef(ref Av1SymbolDecoder reader, Av1PartitionInfo partitionInfo)
     {
         if (partitionInfo.ModeInfo.Skip || this.FrameHeader.CodedLossless || !this.SequenceHeader.EnableCdef || this.FrameHeader.AllowIntraBlockCopy)
@@ -1202,22 +1203,24 @@ internal class Av1TileReader : IAv1TileReader
         }
 
         int cdefSize4 = Av1BlockSize.Block64x64.Get4x4WideCount();
-        int cdefMask4 = ~(cdefSize4 - 1);
-        int r = partitionInfo.RowIndex & cdefMask4;
-        int c = partitionInfo.ColumnIndex & cdefMask4;
-        if (partitionInfo.CdefStrength[r][c] == -1)
+        int row = partitionInfo.RowIndex & cdefSize4;
+        int col = partitionInfo.ColumnIndex & cdefSize4;
+        int index = this.SequenceHeader.SuperblockSize == Av1BlockSize.Block128x128 ? Math.Max(1, col) + (Math.Max(1, row) << 1) : 0;
+        if (partitionInfo.CdefStrength[index] == -1)
         {
             int cdfStrength = reader.ReadCdfStrength(this.FrameHeader.CdefParameters.BitCount);
-            partitionInfo.CdefStrength[r][c] = cdfStrength;
+            partitionInfo.CdefStrength[index] = cdfStrength;
+
+            // Populate to nearby 64x64s if needed based on h4 & w4
             if (this.SequenceHeader.SuperblockSize == Av1BlockSize.Block128x128)
             {
                 int w4 = partitionInfo.ModeInfo.BlockSize.Get4x4WideCount();
                 int h4 = partitionInfo.ModeInfo.BlockSize.Get4x4HighCount();
-                for (int i = r; i < r + h4; i += cdefSize4)
+                for (int i = row; i < row + h4; i += cdefSize4)
                 {
-                    for (int j = c; j < c + w4; j += cdefSize4)
+                    for (int j = col; j < col + w4; j += cdefSize4)
                     {
-                        partitionInfo.CdefStrength[i & cdefMask4][j & cdefMask4] = cdfStrength;
+                        partitionInfo.CdefStrength[Math.Max(1, j & cdefSize4) + (Math.Max(1, i & cdefSize4) << 1)] = cdfStrength;
                     }
                 }
             }

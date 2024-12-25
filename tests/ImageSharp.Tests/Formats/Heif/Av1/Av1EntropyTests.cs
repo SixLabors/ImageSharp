@@ -601,9 +601,28 @@ public class Av1EntropyTests
         TheoryData<int, int, int> result = [];
         for (Av1TransformSize transformSize = Av1TransformSize.Size4x4; transformSize < Av1TransformSize.AllSizes; transformSize++)
         {
-            // TODO: Figure out why larger sizes don't round trip correctly.
+            if (transformSize == Av1TransformSize.Size16x16)
+            {
+                for (Av1PredictionMode intraDirection = Av1PredictionMode.IntraModeStart; intraDirection < Av1PredictionMode.IntraModeEnd; intraDirection++)
+                {
+                    result.Add((int)transformSize, (int)Av1FilterIntraMode.AllFilterIntraModes, (int)intraDirection);
+                }
+
+                if (transformSize == Av1TransformSize.Size16x16)
+                {
+                    result.Add((int)transformSize, 0, 0);
+                    result.Add((int)transformSize, 1, 1);
+                    result.Add((int)transformSize, 2, 2);
+                    result.Add((int)transformSize, 3, 6);
+                    result.Add((int)transformSize, 4, 0);
+                }
+
+                continue;
+            }
+
             if (transformSize.GetSquareSize() >= Av1TransformSize.Size16x16 || transformSize is Av1TransformSize.Size32x8 or Av1TransformSize.Size8x32)
             {
+                // DctOnly, doesn't make sense to test.
                 continue;
             }
 

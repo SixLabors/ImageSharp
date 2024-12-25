@@ -6,32 +6,35 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 internal enum Av1TransformSetType
 {
     /// <summary>
-    /// DCT only.
+    /// Allowed transforms: DCT only.
     /// </summary>
     DctOnly,
 
     /// <summary>
-    /// DCT + Identity only
+    /// Allowed transforms: DCT + Identity only
     /// </summary>
-    DctIdentity,
+    InterSet3,
 
     /// <summary>
-    /// Discrete Trig transforms w/o flip (4) + Identity (1)
+    /// Allowed transforms: Discrete Trig transforms w/o flip (4) + Identity (1)
     /// </summary>
-    Dtt4Identity,
+    /// <remarks>Referenced in spec as TX_SET_INTRA_2.</remarks>
+    IntraSet2,
 
     /// <summary>
-    /// Discrete Trig transforms w/o flip (4) + Identity (1) + 1D Hor/vert DCT (2)
+    /// Allowed transforms: Discrete Trig transforms w/o flip (4) + Identity (1) + 1D Hor/vert DCT (2)
     /// </summary>
-    Dtt4Identity1dDct,
+    /// <remarks>Referenced in spec as TX_SET_INTRA_1.</remarks>
+    IntraSet1,
 
     /// <summary>
-    /// Discrete Trig transforms w/ flip (9) + Identity (1) + 1D Hor/Ver DCT (2)
+    /// Allowed transforms: Discrete Trig transforms w/ flip (9) + Identity (1) + 1D Hor/Ver DCT (2)
     /// </summary>
-    Dtt9Identity1dDct,
+    InterSet2,
 
     /// <summary>
-    /// Discrete Trig transforms w/ flip (9) + Identity (1) + 1D Hor/Ver (6)
+    /// Allowed transforms: Discrete Trig transforms w/ flip (9) + Identity (1) + 1D Hor/Ver (6)
     /// </summary>
-    All16
+    InterSet1,
+    AllSets
 }

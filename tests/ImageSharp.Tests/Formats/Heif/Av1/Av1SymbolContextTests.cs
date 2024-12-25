@@ -38,8 +38,8 @@ public class Av1SymbolContextTests
         Av1TransformSetType transformSetType = (Av1TransformSetType)setType;
 
         // Act
-        int transformType = Av1SymbolContextHelper.ExtendedTransformIndicesInverse[(int)transformSetType][index];
-        int actualIndex = Av1SymbolContextHelper.ExtendedTransformIndices[(int)transformSetType][transformType];
+        Av1TransformType transformType = Av1SymbolContextHelper.ExtendedTransformInverse[(int)transformSetType][index];
+        int actualIndex = Av1SymbolContextHelper.ExtendedTransformIndices[(int)transformSetType][(int)transformType];
 
         // Assert
         Assert.Equal(actualIndex, index);
@@ -66,10 +66,10 @@ public class Av1SymbolContextTests
     public static TheoryData<int, int> GetExtendedTransformIndicesData()
     {
         TheoryData<int, int> result = [];
-        for (Av1TransformSetType setType = Av1TransformSetType.DctOnly; setType <= Av1TransformSetType.All16; setType++)
+        for (Av1TransformSetType setType = Av1TransformSetType.DctOnly; setType < Av1TransformSetType.AllSets; setType++)
         {
             int count = Av1SymbolContextHelper.GetExtendedTransformTypeCount(setType);
-            for (int index = 1; index < count; index++)
+            for (int index = 0; index < count; index++)
             {
                 result.Add((int)setType, index);
             }

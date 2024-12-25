@@ -11,26 +11,31 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 internal static class Av1SymbolContextHelper
 {
     public static readonly int[][] ExtendedTransformIndices = [
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [1, 3, 4, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [1, 5, 6, 4, 0, 0, 0, 0, 0, 0, 2, 3, 0, 0, 0, 0],
-        [3, 4, 5, 8, 6, 7, 9, 10, 11, 0, 1, 2, 0, 0, 0, 0],
-        [7, 8, 9, 12, 10, 11, 13, 14, 15, 0, 1, 2, 3, 4, 5, 6],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], // DCT only
+        [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], // Inter set 3
+        [1, 3, 4, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], // Intra set 2
+        [1, 5, 6, 4, 0, 0, 0, 0, 0, 0, 2, 3, 0, 0, 0, 0], // Intra set 1
+        [3, 4, 5, 8, 6, 7, 9, 10, 11, 0, 1, 2, 0, 0, 0, 0], // Inter set 2
+        [7, 8, 9, 12, 10, 11, 13, 14, 15, 0, 1, 2, 3, 4, 5, 6], // All 16, inter set 1
     ];
 
-    public static readonly int[][] ExtendedTransformIndicesInverse = [
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [9, 0, 3, 1, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [9, 0, 10, 11, 3, 1, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [9, 10, 11, 0, 1, 2, 4, 5, 3, 6, 7, 8, 0, 0, 0, 0],
-        [9, 10, 11, 12, 13, 14, 15, 0, 1, 2, 4, 5, 3, 6, 7, 8],
+    // Maps tx set types to the distribution indices. INTRA values only
+    private static readonly int[] ExtendedTransformSetToIndex = [0, -1, 2, 1, -1, -1];
+
+    /// <summary>
+    /// Section 5.11.48: Transform type syntax
+    /// </summary>
+    public static readonly Av1TransformType[][] ExtendedTransformInverse = [
+        [Av1TransformType.DctDct], // DCT only
+        [], // Inter set 3
+        [Av1TransformType.Identity, Av1TransformType.DctDct, Av1TransformType.AdstAdst, Av1TransformType.AdstDct, Av1TransformType.DctAdst], // Intra set 2
+        [Av1TransformType.Identity, Av1TransformType.DctDct, Av1TransformType.VerticalDct, Av1TransformType.HorizontalDct, Av1TransformType.AdstAdst, Av1TransformType.AdstDct, Av1TransformType.DctAdst], // Intra set 1
+        [], // Inter set 2
+        [], // All 16, inter set 1
     ];
 
     public static readonly int[] EndOfBlockOffsetBits = [0, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
     public static readonly int[] EndOfBlockGroupStart = [0, 1, 2, 3, 5, 9, 17, 33, 65, 129, 257, 513];
-    private static readonly int[] TransformCountInSet = [1, 2, 5, 7, 12, 16];
     private static readonly byte[] EndOfBlockToPositionSmall = [
         0, 1, 2, // 0-2
         3, 3, // 3-4
@@ -58,9 +63,6 @@ internal static class Av1SymbolContextHelper
         10, // 257-512
         11 // 513-
     ];
-
-    // Maps tx set types to the indices. INTRA values only
-    private static readonly int[] ExtendedTransformSetToIndex = [0, -1, 2, 1, -1, -1];
 
     internal static Av1TransformSize GetTransformSizeContext(Av1TransformSize originalSize)
         => (Av1TransformSize)(((int)originalSize.GetSquareSize() + (int)originalSize.GetSquareUpSize() + 1) >> 1);
@@ -239,11 +241,11 @@ internal static class Av1SymbolContextHelper
 
         if (useReducedSet)
         {
-            return Av1TransformSetType.Dtt4Identity;
+            return Av1TransformSetType.IntraSet2;
         }
 
         Av1TransformSize squareSize = transformSize.GetSquareSize();
-        return squareSize == Av1TransformSize.Size16x16 ? Av1TransformSetType.Dtt4Identity : Av1TransformSetType.Dtt4Identity1dDct;
+        return squareSize == Av1TransformSize.Size16x16 ? Av1TransformSetType.IntraSet2 : Av1TransformSetType.IntraSet1;
     }
 
     internal static Av1TransformType ConvertIntraModeToTransformType(Av1BlockModeInfo modeInfo, Av1PlaneType planeType)
@@ -299,7 +301,7 @@ internal static class Av1SymbolContextHelper
     /// <summary>
     /// SVT: get_ext_tx_types
     /// </summary>
-    internal static int GetExtendedTransformTypeCount(Av1TransformSetType setType) => TransformCountInSet[(int)setType];
+    internal static int GetExtendedTransformTypeCount(Av1TransformSetType setType) => ExtendedTransformInverse[(int)setType].Length;
 
     /// <summary>
     /// SVT: get_ext_tx_set

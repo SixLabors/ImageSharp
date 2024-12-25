@@ -250,21 +250,16 @@ internal ref struct Av1SymbolDecoder
         // Ignoring INTER blocks here, as these should not end up here.
         // int inter_block = is_inter_block_dec(mbmi);
         Av1TransformSetType transformSetType = Av1SymbolContextHelper.GetExtendedTransformSetType(transformSize, useReducedTransformSet);
-        if (Av1SymbolContextHelper.GetExtendedTransformTypeCount(transformSetType) > 1 && baseQIndex > 0)
+        if (transformSetType > Av1TransformSetType.DctOnly && baseQIndex > 0)
         {
             int extendedSet = Av1SymbolContextHelper.GetExtendedTransformSet(transformSetType);
-
-            // eset == 0 should correspond to a set with only DCT_DCT and
-            // there is no need to read the tx_type
-            Guard.IsFalse(extendedSet == 0, nameof(extendedSet), string.Empty);
-
             Av1TransformSize squareTransformSize = transformSize.GetSquareSize();
             Av1PredictionMode intraMode = useFilterIntra
                 ? filterIntraMode.ToIntraDirection()
                 : intraDirection;
             ref Av1SymbolReader r = ref this.reader;
             int symbol = r.ReadSymbol(this.intraExtendedTransform[extendedSet][(int)squareTransformSize][(int)intraMode]);
-            transformType = (Av1TransformType)Av1SymbolContextHelper.ExtendedTransformIndicesInverse[(int)transformSetType][symbol];
+            transformType = Av1SymbolContextHelper.ExtendedTransformInverse[(int)transformSetType][symbol];
         }
 
         return transformType;

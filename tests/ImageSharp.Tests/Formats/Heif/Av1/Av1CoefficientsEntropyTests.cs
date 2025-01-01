@@ -100,25 +100,26 @@ public class Av1CoefficientsEntropyTests
         Assert.Equal(endOfBlock, actuals[0]);
     }
 
-    [Fact]
-    public void RoundTripFullCoefficients()
+    [Theory]
+    [MemberData(nameof(GetBlockSize4x4Data))]
+    public void RoundTripFullCoefficientsYSize4x4(int bSize, int txSize, int txType)
     {
         // Assign
         const ushort endOfBlock = 16;
-        const Av1BlockSize blockSize = Av1BlockSize.Block4x4;
-        const Av1TransformSize transformSize = Av1TransformSize.Size4x4;
-        const Av1TransformType transformType = Av1TransformType.Identity;
-        const Av1PredictionMode intraDirection = Av1PredictionMode.DC;
         const Av1ComponentType componentType = Av1ComponentType.Luminance;
-        const Av1FilterIntraMode filterIntraMode = Av1FilterIntraMode.DC;
+        Av1BlockSize blockSize = (Av1BlockSize)bSize;
+        Av1TransformSize transformSize = (Av1TransformSize)txSize;
+        Av1TransformType transformType = (Av1TransformType)txType;
+        Av1PredictionMode intraDirection = Av1PredictionMode.DC;
+        Av1FilterIntraMode filterIntraMode = Av1FilterIntraMode.DC;
         Av1BlockModeInfo modeInfo = new(Av1Constants.MaxPlanes, blockSize, new Point(0, 0));
         Av1TransformInfo transformInfo = new(transformSize, 0, 0);
-        int[] aboveContexts = new int[1];
-        int[] leftContexts = new int[1];
+        int[] aboveContexts = new int[transformSize.Get4x4WideCount()];
+        int[] leftContexts = new int[transformSize.Get4x4HighCount()];
         Av1TransformBlockContext transformBlockContext = new();
         Configuration configuration = Configuration.Default;
         Av1SymbolEncoder encoder = new(configuration, 100 / 8, BaseQIndex);
-        Span<int> coefficientsBuffer = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
+        Span<int> coefficientsBuffer = Enumerable.Range(0, blockSize.GetHeight() * blockSize.GetWidth()).ToArray();
         Span<int> actuals = new int[16 + 1];
 
         // Act
@@ -133,5 +134,18 @@ public class Av1CoefficientsEntropyTests
         // Assert
         Assert.Equal(endOfBlock, actuals[0]);
         Assert.Equal(coefficientsBuffer[..endOfBlock], actuals[1..(endOfBlock + 1)]);
+    }
+
+    public static TheoryData<int, int, int> GetBlockSize4x4Data()
+    {
+        TheoryData<int, int, int> result = [];
+        Av1BlockSize blockSize = Av1BlockSize.Block4x4;
+        Av1TransformSize transformSize = blockSize.GetMaximumTransformSize();
+        for (Av1TransformType transformType = Av1TransformType.DctDct; transformType < Av1TransformType.VerticalDct; transformType++)
+        {
+            result.Add((int)blockSize, (int)transformSize, (int)transformType);
+        }
+
+        return result;
     }
 }

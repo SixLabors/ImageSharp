@@ -8,16 +8,6 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 
 internal static class Av1NzMap
 {
-    private static readonly int[] ClipMax3 = [
-        0, 1, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
-        3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
-        3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
-        3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
-        3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
-        3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
-        3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3
-    ];
-
     // SIG_COEF_CONTEXTS_2D = 26
     private const int NzMapContext0 = 26;
     private const int NzMapContext5 = NzMapContext0 + 5;
@@ -351,35 +341,35 @@ internal static class Av1NzMap
         Span<byte> row2 = levels.GetRow(position.Y + 2)[position.X..];
 
         // Note: AOMMIN(level, 3) is useless for decoder since level < 3.
-        mag = ClipMax3[row0[1]]; // { 0, 1 }
-        mag += ClipMax3[row1[0]]; // { 1, 0 }
+        mag = ClipMax3(row0[1]); // { 0, 1 }
+        mag += ClipMax3(row1[0]); // { 1, 0 }
 
         switch (transformClass)
         {
             case Av1TransformClass.Class2D:
-                mag += ClipMax3[row1[1]]; // { 1, 1 }
-                mag += ClipMax3[row0[2]]; // { 0, 2 }
-                mag += ClipMax3[row2[0]]; // { 2, 0 }
+                mag += ClipMax3(row1[1]); // { 1, 1 }
+                mag += ClipMax3(row0[2]); // { 0, 2 }
+                mag += ClipMax3(row2[0]); // { 2, 0 }
                 break;
 
             case Av1TransformClass.ClassVertical:
                 Span<byte> row3 = levels.GetRow(position.Y + 3)[position.X..];
                 Span<byte> row4 = levels.GetRow(position.Y + 4)[position.X..];
-                mag += ClipMax3[row2[0]]; // { 2, 0 }
-                mag += ClipMax3[row3[0]]; // { 3, 0 }
-                mag += ClipMax3[row4[0]]; // { 4, 0 }
+                mag += ClipMax3(row2[0]); // { 2, 0 }
+                mag += ClipMax3(row3[0]); // { 3, 0 }
+                mag += ClipMax3(row4[0]); // { 4, 0 }
                 break;
             case Av1TransformClass.ClassHorizontal:
-                mag += ClipMax3[row0[2]]; // { 0, 2 }
-                mag += ClipMax3[row0[3]]; // { 0, 3 }
-                mag += ClipMax3[row0[4]]; // { 0, 4 }
+                mag += ClipMax3(row0[2]); // { 0, 2 }
+                mag += ClipMax3(row0[3]); // { 0, 3 }
+                mag += ClipMax3(row0[4]); // { 0, 4 }
                 break;
         }
 
         return mag;
     }
 
-    public static int GetNzMapContextFromStats(int stats, Av1LevelBuffer levels, Point position, Av1TransformSize transformSize, Av1TransformClass transformClass)
+    public static int GetNzMapContextFromStats(int stats, Point position, Av1TransformSize transformSize, Av1TransformClass transformClass)
     {
         // tx_class == 0(TX_CLASS_2D)
         if (position.Y == 0 && ((int)transformClass | position.X) == 0)
@@ -418,4 +408,6 @@ internal static class Av1NzMap
     public static int GetNzMapContext(Av1TransformSize transformSize, Point pos) => GetNzMapContext(transformSize, pos.X + (pos.Y * transformSize.GetWidth()));
 
     public static int GetNzMapContext(Av1TransformSize transformSize, int pos) => NzMapContextOffset[(int)transformSize][pos];
+
+    private static int ClipMax3(int value) => Math.Min(value, 3);
 }

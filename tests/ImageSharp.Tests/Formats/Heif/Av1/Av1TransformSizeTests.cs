@@ -131,6 +131,21 @@ public class Av1TransformSizeTests
         Assert.Equal(transformHeight, blockHeight);
     }
 
+    [Theory]
+    [MemberData(nameof(GetAllSizes))]
+    internal void LogMinus4ReturnsReferenceValues(int s)
+    {
+        // Assign
+        Av1TransformSize transformSize = (Av1TransformSize)s;
+        int expected = ReferenceLog2Minus4(transformSize);
+
+        // Act
+        int actual = transformSize.GetLog2Minus4();
+
+        // Assert
+        Assert.Equal(expected, actual);
+    }
+
     public static TheoryData<int> GetAllSizes()
     {
         TheoryData<int> combinations = [];
@@ -148,5 +163,12 @@ public class Av1TransformSizeTests
         int height = transformSize.GetHeight();
         int ratio = width > height ? width / height : height / width;
         return ratio;
+    }
+
+    private static int ReferenceLog2Minus4(Av1TransformSize transformSize)
+    {
+        int widthLog2 = Av1Math.Log2(transformSize.GetWidth());
+        int heightLog2 = Av1Math.Log2(transformSize.GetHeight());
+        return Math.Min(widthLog2, 5) + Math.Min(heightLog2, 5) - 4;
     }
 }

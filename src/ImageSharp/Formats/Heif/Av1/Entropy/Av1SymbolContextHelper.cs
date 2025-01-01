@@ -123,6 +123,11 @@ internal static class Av1SymbolContextHelper
         return ctx + Av1NzMap.GetNzMapContext(transformSize, position);
     }
 
+    /// <summary>
+    /// Section 8.3.2 in the spec, under coeff_br. Optimized for end of block based
+    /// on the fact that {0, 1}, {1, 0}, {1, 1}, {0, 2} and {2, 0} will all be 0 in
+    /// the end of block case.
+    /// </summary>
     internal static int GetBaseRangeContextEndOfBlock(Point pos, Av1TransformClass transformClass)
     {
         if (pos.X == 0 && pos.Y == 0)
@@ -143,6 +148,7 @@ internal static class Av1SymbolContextHelper
     /// <summary>
     /// SVT: get_br_ctx
     /// </summary>
+    /// <remarks>Spec section 8.2.3, under 'coeff_br'.</remarks>
     internal static int GetBaseRangeContext(Av1LevelBuffer levels, Point position, Av1TransformClass transformClass)
     {
         Span<byte> row0 = levels.GetRow(position.Y);
@@ -224,7 +230,7 @@ internal static class Av1SymbolContextHelper
     internal static int GetLowerLevelsContext(Av1LevelBuffer levels, Point position, Av1TransformSize transformSize, Av1TransformClass transformClass)
     {
         int stats = Av1NzMap.GetNzMagnitude(levels, position, transformClass);
-        return Av1NzMap.GetNzMapContextFromStats(stats, levels, position, transformSize, transformClass);
+        return Av1NzMap.GetNzMapContextFromStats(stats, position, transformSize, transformClass);
     }
 
     /// <summary>
@@ -265,18 +271,17 @@ internal static class Av1SymbolContextHelper
     internal static sbyte GetNzMapContext(
         Av1LevelBuffer levels,
         Point position,
-        int scan_idx,
-        bool is_eob,
+        bool isEndOfBlock,
         Av1TransformSize transformSize,
         Av1TransformClass transformClass)
     {
-        if (is_eob)
+        if (isEndOfBlock)
         {
             return (sbyte)GetLowerLevelContextEndOfBlock(levels, position);
         }
 
         int stats = Av1NzMap.GetNzMagnitude(levels, position, transformClass);
-        return (sbyte)Av1NzMap.GetNzMapContextFromStats(stats, levels, position, transformSize, transformClass);
+        return (sbyte)Av1NzMap.GetNzMapContextFromStats(stats, position, transformSize, transformClass);
     }
 
     /// <summary>
@@ -294,7 +299,7 @@ internal static class Av1SymbolContextHelper
         {
             int pos = scan[i];
             Point position = levels.GetPosition(pos);
-            coefficientContexts[pos] = GetNzMapContext(levels, position, i, i == eob - 1, transformSize, transformClass);
+            coefficientContexts[pos] = GetNzMapContext(levels, position, i == eob - 1, transformSize, transformClass);
         }
     }
 

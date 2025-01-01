@@ -103,6 +103,8 @@ internal static class Av1TransformSizeExtensions
         Av1TransformSize.Size64x64,  // TX_64X16
     ];
 
+    // This is computed as:
+    // min(transform_width_log2, 5) + min(transform_height_log2, 5) - 4.
     private static readonly int[] Log2Minus4 = [
         0, // TX_4X4
         2, // TX_8X8

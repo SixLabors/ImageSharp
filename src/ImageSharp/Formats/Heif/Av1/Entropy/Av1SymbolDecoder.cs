@@ -562,6 +562,22 @@ internal ref struct Av1SymbolDecoder
         return r.ReadSymbol(this.coefficientsBase[(int)transformSizeContext][(int)planeType][coefficientContext]);
     }
 
+    private void ReadCoefficientsBaseRangeLoop(Av1TransformSize transformSizeContext, Av1PlaneType planeType, int baseRangeContext, ref int level)
+    {
+        ref Av1SymbolReader r = ref this.reader;
+        Av1TransformSize limitedTransformSizeContext = (Av1TransformSize)Math.Min((int)transformSizeContext, (int)Av1TransformSize.Size32x32);
+        Av1Distribution distribution = this.coefficientsBaseRange[(int)transformSizeContext][(int)planeType][baseRangeContext];
+        for (int idx = 0; idx < Av1Constants.CoefficientBaseRange; idx += Av1Constants.BaseRangeSizeMinus1)
+        {
+            int coefficientBaseRange = r.ReadSymbol(distribution);
+            level += coefficientBaseRange;
+            if (coefficientBaseRange < Av1Constants.BaseRangeSizeMinus1)
+            {
+                break;
+            }
+        }
+    }
+
     internal int ReadGolomb()
     {
         ref Av1SymbolReader r = ref this.reader;

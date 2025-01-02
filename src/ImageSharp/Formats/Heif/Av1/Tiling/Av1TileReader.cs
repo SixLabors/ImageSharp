@@ -413,13 +413,13 @@ internal class Av1TileReader : IAv1TileReader
                         continue;
                     }
 
-                    ref Av1TransformInfo transformInfoRef = ref (plane == 0) ? ref superblockInfo.GetTransformInfoY() : ref superblockInfo.GetTransformInfoUv();
+                    Span<Av1TransformInfo> transformInfoSpan = (plane == 0) ? superblockInfo.GetTransformInfoY() : superblockInfo.GetTransformInfoUv();
                     if (isLosslessBlock)
                     {
                         // TODO: Implement.
                         int unitHeight = Av1Math.RoundPowerOf2(Math.Min(modeUnitBlocksHigh + row, maxBlocksHigh), 0);
                         int unitWidth = Av1Math.RoundPowerOf2(Math.Min(modeUnitBlocksWide + column, maxBlocksWide), 0);
-                        DebugGuard.IsTrue(Unsafe.Add(ref transformInfoRef, transformInfoIndices[plane]).Size == Av1TransformSize.Size4x4, "Lossless frame shall have transform units of size 4x4.");
+                        DebugGuard.IsTrue(transformInfoSpan[transformInfoIndices[plane]].Size == Av1TransformSize.Size4x4, "Lossless frame shall have transform units of size 4x4.");
                         transformUnitCount = ((unitWidth - column) * (unitHeight - row)) >> (subX + subY);
                     }
                     else
@@ -439,7 +439,7 @@ internal class Av1TileReader : IAv1TileReader
                     DebugGuard.IsFalse(transformUnitCount == 0, nameof(transformUnitCount), string.Empty);
                     for (int tu = 0; tu < transformUnitCount; tu++)
                     {
-                        Av1TransformInfo transformInfo = Unsafe.Add(ref transformInfoRef, transformInfoIndices[plane]);
+                        Av1TransformInfo transformInfo = transformInfoSpan[transformInfoIndices[plane]];
                         DebugGuard.MustBeLessThanOrEqualTo(transformInfo.OffsetX, maxBlocksWide, nameof(transformInfo));
                         DebugGuard.MustBeLessThanOrEqualTo(transformInfo.OffsetY, maxBlocksHigh, nameof(transformInfo));
 
@@ -830,8 +830,8 @@ internal class Av1TileReader : IAv1TileReader
     {
         int transformInfoYIndex = partitionInfo.ModeInfo.FirstTransformLocation[(int)Av1PlaneType.Y];
         int transformInfoUvIndex = partitionInfo.ModeInfo.FirstTransformLocation[(int)Av1PlaneType.Uv];
-        ref Av1TransformInfo lumaTransformInfo = ref superblockInfo.GetTransformInfoY();
-        ref Av1TransformInfo chromaTransformInfo = ref superblockInfo.GetTransformInfoUv();
+        Span<Av1TransformInfo> lumaTransformInfo = superblockInfo.GetTransformInfoY();
+        Span<Av1TransformInfo> chromaTransformInfo = superblockInfo.GetTransformInfoUv();
         int totalLumaTransformUnitCount = 0;
         int totalChromaTransformUnitCount = 0;
         int forceSplitCount = 0;
@@ -864,7 +864,7 @@ internal class Av1TileReader : IAv1TileReader
                 {
                     for (int blockColumn = idx; blockColumn < unitWidth; blockColumn += stepColumn)
                     {
-                        Unsafe.Add(ref lumaTransformInfo, transformInfoYIndex) = new Av1TransformInfo(
+                        lumaTransformInfo[transformInfoYIndex] = new Av1TransformInfo(
                             transformSize, blockColumn, blockRow);
                         transformInfoYIndex++;
                         lumaTransformUnitCount++;
@@ -889,7 +889,7 @@ internal class Av1TileReader : IAv1TileReader
                 {
                     for (int blockColumn = idx; blockColumn < unitWidth; blockColumn += stepColumn)
                     {
-                        Unsafe.Add(ref chromaTransformInfo, transformInfoUvIndex) = new Av1TransformInfo(
+                        chromaTransformInfo[transformInfoUvIndex] = new Av1TransformInfo(
                             transformSizeUv, blockColumn, blockRow);
                         transformInfoUvIndex++;
                         chromaTransformUnitCount++;
@@ -910,8 +910,8 @@ internal class Av1TileReader : IAv1TileReader
                 partitionInfo.ModeInfo.FirstTransformLocation[(int)Av1PlaneType.Uv],
                 nameof(totalChromaTransformUnitCount));
             int originalIndex = transformInfoUvIndex - totalChromaTransformUnitCount;
-            ref Av1TransformInfo originalInfo = ref Unsafe.Add(ref chromaTransformInfo, originalIndex);
-            ref Av1TransformInfo infoV = ref Unsafe.Add(ref chromaTransformInfo, transformInfoUvIndex);
+            ref Av1TransformInfo originalInfo = ref chromaTransformInfo[originalIndex];
+            ref Av1TransformInfo infoV = ref chromaTransformInfo[transformInfoUvIndex];
             for (int i = 0; i < totalChromaTransformUnitCount; i++)
             {
                 infoV = originalInfo;

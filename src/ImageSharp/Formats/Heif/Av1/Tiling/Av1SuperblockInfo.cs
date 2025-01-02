@@ -43,9 +43,9 @@ internal class Av1SuperblockInfo
 
     public int BlockCount { get; internal set; }
 
-    public ref Av1TransformInfo GetTransformInfoY() => ref this.frameInfo.GetSuperblockTransformY(this.Position);
+    public Span<Av1TransformInfo> GetTransformInfoY() => this.frameInfo.GetSuperblockTransformY(this.Position);
 
-    public ref Av1TransformInfo GetTransformInfoUv() => ref this.frameInfo.GetSuperblockTransformUv(this.Position);
+    public Span<Av1TransformInfo> GetTransformInfoUv() => this.frameInfo.GetSuperblockTransformUv(this.Position);
 
     public Av1BlockModeInfo GetModeInfo(Point index) => this.frameInfo.GetModeInfo(this.Position, index);
 

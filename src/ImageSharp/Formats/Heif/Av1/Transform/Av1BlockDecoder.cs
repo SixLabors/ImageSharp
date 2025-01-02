@@ -75,8 +75,8 @@ internal class Av1BlockDecoder
 
         for (int plane = 0; plane < colorConfig.PlaneCount; plane++)
         {
-            int subX = (plane > 0) ? colorConfig.SubSamplingX ? 1 : 0 : 0;
-            int subY = (plane > 0) ? colorConfig.SubSamplingY ? 1 : 0 : 0;
+            int subX = (plane > 0) && colorConfig.SubSamplingX ? 1 : 0;
+            int subY = (plane > 0) && colorConfig.SubSamplingY ? 1 : 0;
 
             if (plane != 0 && !partitionInfo.IsChroma)
             {
@@ -90,11 +90,12 @@ internal class Av1BlockDecoder
                 0 => superblockInfo.TransformInfoIndexY + modeInfo.FirstTransformLocation[plane],
                 _ => throw new InvalidImageContentException("Maximum of 3 color planes")
             };
-            ref Av1TransformInfo transformInfo = ref Unsafe.Add(ref this.frameInfo.GetSuperblockTransform(plane, superblockInfo.Position), transformInfoIndex);
+            Span<Av1TransformInfo> transformInfo = this.frameInfo.GetSuperblockTransform(plane, superblockInfo.Position)[transformInfoIndex..];
+            Guard.NotNull(transformInfo[0]);
 
             if (isLosslessBlock)
             {
-                Guard.IsTrue(transformInfo.Size == Av1TransformSize.Size4x4, nameof(transformInfo.Size), "Lossless may only have 4x4 blocks.");
+                Guard.IsTrue(transformInfo[0].Size == Av1TransformSize.Size4x4, nameof(transformInfo), "Lossless may only have 4x4 blocks.");
                 transformUnitCount = (maxBlocksWide * maxBlocksHigh) >> (subX + subY);
             }
             else
@@ -120,10 +121,10 @@ internal class Av1BlockDecoder
                 Span<byte> transformBlockReconstructionBuffer;
                 int transformBlockOffset;
 
-                transformSize = transformInfo.Size;
+                transformSize = transformInfo[0].Size;
                 Span<int> coefficients = superblockInfo.GetCoefficients((Av1Plane)plane)[this.currentCoefficientIndex[plane]..];
 
-                transformBlockOffset = ((transformInfo.OffsetY * reconstructionStride) + transformInfo.OffsetX) << Av1Constants.ModeInfoSizeLog2;
+                transformBlockOffset = ((transformInfo[0].OffsetY * reconstructionStride) + transformInfo[0].OffsetX) << Av1Constants.ModeInfoSizeLog2;
                 transformBlockReconstructionBuffer = blockReconstructionBuffer.Slice(transformBlockOffset << (highBitDepth ? 1 : 0));
 
                 if (this.isLoopFilterEnabled)
@@ -156,18 +157,18 @@ internal class Av1BlockDecoder
                         transformBlockReconstructionBuffer,
                         reconstructionStride,
                         this.frameBuffer.BitDepth,
-                        transformInfo.OffsetX,
-                        transformInfo.OffsetY);
+                        transformInfo[0].OffsetX,
+                        transformInfo[0].OffsetY);
                 }
 
                 int numberOfCoefficients = 0;
 
-                if (!modeInfo.Skip && transformInfo.CodeBlockFlag)
+                if (!modeInfo.Skip && transformInfo[0].CodeBlockFlag)
                 {
                     Span<int> quantizationCoefficients = this.CurrentInverseQuantizationCoefficients;
                     int inverseQuantizationSize = transformSize.GetWidth() * transformSize.GetHeight();
                     quantizationCoefficients[..inverseQuantizationSize].Clear();
-                    transformType = transformInfo.Type;
+                    transformType = transformInfo[0].Type;
 
                     // SVT: svt_aom_inverse_quantize
                     numberOfCoefficients = inverseQuantizer.InverseQuantize(
@@ -216,7 +217,7 @@ internal class Av1BlockDecoder
                 }
 
                 // increment transform pointer
-                transformInfo = ref Unsafe.Add(ref transformInfo, 1);
+                transformInfo = transformInfo[1..];
             }
         }
     }

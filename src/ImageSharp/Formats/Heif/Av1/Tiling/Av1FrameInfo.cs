@@ -113,28 +113,28 @@ internal partial class Av1FrameInfo
         return this.modeInfos[index];
     }
 
-    public ref Av1TransformInfo GetSuperblockTransform(int plane, Point index)
+    public Span<Av1TransformInfo> GetSuperblockTransform(int plane, Point index)
     {
         if (plane == 0)
         {
-            return ref this.GetSuperblockTransformY(index);
+            return this.GetSuperblockTransformY(index);
         }
 
-        return ref this.GetSuperblockTransformUv(index);
+        return this.GetSuperblockTransformUv(index);
     }
 
-    public ref Av1TransformInfo GetSuperblockTransformY(Point index)
+    public Span<Av1TransformInfo> GetSuperblockTransformY(Point index)
     {
         Span<Av1TransformInfo> span = this.transformInfosY;
         int offset = ((index.Y * this.superblockColumnCount) + index.X) * this.modeInfoCountPerSuperblock;
-        return ref span[offset];
+        return span.Slice(offset, this.modeInfoCountPerSuperblock);
     }
 
-    public ref Av1TransformInfo GetSuperblockTransformUv(Point index)
+    public Span<Av1TransformInfo> GetSuperblockTransformUv(Point index)
     {
         Span<Av1TransformInfo> span = this.transformInfosUv;
         int offset = (((index.Y * this.superblockColumnCount) + index.X) * this.modeInfoCountPerSuperblock) << 1;
-        return ref span[offset];
+        return span.Slice(offset, this.modeInfoCountPerSuperblock);
     }
 
     public Span<int> GetCoefficients(int plane) =>

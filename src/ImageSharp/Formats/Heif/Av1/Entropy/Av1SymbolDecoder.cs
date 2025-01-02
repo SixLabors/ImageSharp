@@ -410,15 +410,7 @@ internal ref struct Av1SymbolDecoder
         if (level > Av1Constants.BaseLevelsCount)
         {
             int baseRangeContext = Av1SymbolContextHelper.GetBaseRangeContextEndOfBlock(position, transformClass);
-            for (int idx = 0; idx < Av1Constants.CoefficientBaseRange; idx += Av1Constants.BaseRangeSizeMinus1)
-            {
-                int coefficientBaseRange = this.ReadCoefficientsBaseRange(limitedTransformSizeContext, planeType, baseRangeContext);
-                level += coefficientBaseRange;
-                if (coefficientBaseRange < Av1Constants.BaseRangeSizeMinus1)
-                {
-                    break;
-                }
-            }
+            this.ReadCoefficientsBaseRangeLoop(transformSizeContext, planeType, baseRangeContext, ref level);
         }
 
         levels.GetRow(position)[position.X] = (byte)level;
@@ -435,15 +427,7 @@ internal ref struct Av1SymbolDecoder
             if (level > Av1Constants.BaseLevelsCount)
             {
                 int baseRangeContext = Av1SymbolContextHelper.GetBaseRangeContext2d(levels, position);
-                for (int idx = 0; idx < Av1Constants.CoefficientBaseRange; idx += Av1Constants.BaseRangeSizeMinus1)
-                {
-                    int coefficientBaseRange = this.ReadCoefficientsBaseRange(limitedTransformSizeContext, planeType, baseRangeContext);
-                    level += coefficientBaseRange;
-                    if (coefficientBaseRange < Av1Constants.BaseRangeSizeMinus1)
-                    {
-                        break;
-                    }
-                }
+                this.ReadCoefficientsBaseRangeLoop(transformSizeContext, planeType, baseRangeContext, ref level);
             }
 
             levels.GetRow(position)[position.X] = (byte)level;
@@ -462,15 +446,7 @@ internal ref struct Av1SymbolDecoder
             if (level > Av1Constants.BaseLevelsCount)
             {
                 int baseRangeContext = Av1SymbolContextHelper.GetBaseRangeContext(levels, position, transformClass);
-                for (int idx = 0; idx < Av1Constants.CoefficientBaseRange; idx += Av1Constants.BaseRangeSizeMinus1)
-                {
-                    int coefficientBaseRange = this.ReadCoefficientsBaseRange(limitedTransformSizeContext, planeType, baseRangeContext);
-                    level += coefficientBaseRange;
-                    if (coefficientBaseRange < Av1Constants.BaseRangeSizeMinus1)
-                    {
-                        break;
-                    }
-                }
+                this.ReadCoefficientsBaseRangeLoop(transformSizeContext, planeType, baseRangeContext, ref level);
             }
 
             levels.GetRow(position)[position.X] = (byte)level;
@@ -566,7 +542,7 @@ internal ref struct Av1SymbolDecoder
     {
         ref Av1SymbolReader r = ref this.reader;
         Av1TransformSize limitedTransformSizeContext = (Av1TransformSize)Math.Min((int)transformSizeContext, (int)Av1TransformSize.Size32x32);
-        Av1Distribution distribution = this.coefficientsBaseRange[(int)transformSizeContext][(int)planeType][baseRangeContext];
+        Av1Distribution distribution = this.coefficientsBaseRange[(int)limitedTransformSizeContext][(int)planeType][baseRangeContext];
         for (int idx = 0; idx < Av1Constants.CoefficientBaseRange; idx += Av1Constants.BaseRangeSizeMinus1)
         {
             int coefficientBaseRange = r.ReadSymbol(distribution);

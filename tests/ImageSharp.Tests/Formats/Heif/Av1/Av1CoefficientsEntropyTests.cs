@@ -112,6 +112,26 @@ public class Av1CoefficientsEntropyTests
         Av1TransformType transformType = (Av1TransformType)txType;
         Av1PredictionMode intraDirection = Av1PredictionMode.DC;
         Av1FilterIntraMode filterIntraMode = Av1FilterIntraMode.DC;
+        RoundTripCoefficientsCore(endOfBlock, componentType, blockSize, transformSize, transformType, intraDirection, filterIntraMode);
+    }
+
+    [Theory]
+    [MemberData(nameof(GetBlockSize4x4Data))]
+    public void RoundTripFullCoefficientsUvSize4x4(int bSize, int txSize, int txType)
+    {
+        // Assign
+        const ushort endOfBlock = 16;
+        const Av1ComponentType componentType = Av1ComponentType.Chroma;
+        Av1BlockSize blockSize = (Av1BlockSize)bSize;
+        Av1TransformSize transformSize = (Av1TransformSize)txSize;
+        Av1TransformType transformType = (Av1TransformType)txType;
+        Av1PredictionMode intraDirection = Av1PredictionMode.DC;
+        Av1FilterIntraMode filterIntraMode = Av1FilterIntraMode.DC;
+        RoundTripCoefficientsCore(endOfBlock, componentType, blockSize, transformSize, transformType, intraDirection, filterIntraMode);
+    }
+
+    private static void RoundTripCoefficientsCore(ushort endOfBlock, Av1ComponentType componentType, Av1BlockSize blockSize, Av1TransformSize transformSize, Av1TransformType transformType, Av1PredictionMode intraDirection, Av1FilterIntraMode filterIntraMode)
+    {
         Av1BlockModeInfo modeInfo = new(Av1Constants.MaxPlanes, blockSize, new Point(0, 0));
         Av1TransformInfo transformInfo = new(transformSize, 0, 0);
         int[] aboveContexts = new int[transformSize.Get4x4WideCount()];
@@ -124,8 +144,7 @@ public class Av1CoefficientsEntropyTests
 
         // Act
         encoder.WriteCoefficients(transformSize, transformType, intraDirection, coefficientsBuffer, componentType, transformBlockContext, endOfBlock, true, filterIntraMode);
-
-        using IMemoryOwner<byte> encoded = encoder.Exit();
+        IMemoryOwner<byte> encoded = encoder.Exit();
 
         Av1SymbolDecoder decoder = new(Configuration.Default, encoded.GetSpan(), BaseQIndex);
         int plane = Math.Min((int)componentType, 1);

@@ -60,8 +60,8 @@ internal class Av1InverseQuantizer
         short dequantAc = this.deQuantsDeltaQ.GetAc(mode.SegmentId, plane);
         int qmLevel = lossless || !usingQuantizationMatrix ? Av1ScanOrderConstants.QuantizationMatrixLevelCount - 1 : this.frameHeader.QuantizationParameters.QMatrix[(int)plane];
         ReadOnlySpan<int> iqMatrix = (transformType.ToClass() == Av1TransformClass.Class2D) ?
-            Av1QuantizationConstants.GetQuantizationMatrix(qmLevel, plane, qmTransformSize)
-            : Av1QuantizationConstants.GetQuantizationMatrix(Av1Constants.QuantificationMatrixLevelCount - 1, Av1Plane.Y, qmTransformSize);
+            Av1InverseQuantizationLookup.GetQuantizationMatrix(qmLevel, plane, qmTransformSize)
+            : Av1InverseQuantizationLookup.GetQuantizationMatrix(Av1Constants.QuantificationMatrixLevelCount - 1, Av1Plane.Y, qmTransformSize);
         int shift = transformSize.GetScale();
 
         int coefficientCount = level[0];

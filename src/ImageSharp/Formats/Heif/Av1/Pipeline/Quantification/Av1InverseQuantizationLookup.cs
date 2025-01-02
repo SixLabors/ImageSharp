@@ -6,7 +6,7 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Quantification;
 
-internal class Av1QuantizationConstants
+internal class Av1InverseQuantizationLookup
 {
     /// <summary>
     /// Gets 16 sets of quantization matrices for chroma and luma and each TX size.
@@ -6796,6 +6796,8 @@ internal class Av1QuantizationConstants
       ]
     ];
 
-    public static int[] GetQuantizationMatrix(int level, Av1Plane plane, Av1TransformSize transformSize)
+    public static ReadOnlySpan<int> GetQuantizationMatrix(int level, Av1Plane plane, Av1TransformSize transformSize)
+
+        // Transform size must be adjusted.
         => InverseWeightTable[level][Math.Min(1, (int)plane)][(int)transformSize];
 }

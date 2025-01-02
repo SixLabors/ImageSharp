@@ -175,7 +175,7 @@ internal static class Av1Constants
     /// <summary>
     /// Total number of Quantification Matrices sets stored.
     /// </summary>
-    public const int QuantificationMatrixLevelCount = 4;
+    public const int QuantificationMatrixLevelCount = 1 << 4;
 
     public const int AngleStep = 3;
 

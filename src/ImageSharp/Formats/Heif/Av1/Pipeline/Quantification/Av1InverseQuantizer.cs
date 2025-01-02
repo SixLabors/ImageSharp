@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
@@ -10,49 +9,15 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Quantification;
 
 internal class Av1InverseQuantizer
 {
-    private const int QuatizationMatrixTotalSize = 3344;
-
     private readonly ObuSequenceHeader sequenceHeader;
     private readonly ObuFrameHeader frameHeader;
-    private readonly int[][][] inverseQuantizationMatrix;
-    private Av1DeQuantizationContext? deQuantsDeltaQ;
+    private Av1DeQuantizationContext deQuantsDeltaQ;
 
     public Av1InverseQuantizer(ObuSequenceHeader sequenceHeader, ObuFrameHeader frameHeader)
     {
         this.sequenceHeader = sequenceHeader;
         this.frameHeader = frameHeader;
-
-        this.inverseQuantizationMatrix = new int[Av1Constants.QuantificationMatrixLevelCount][][];
-        for (int q = 0; q < Av1Constants.QuantificationMatrixLevelCount; ++q)
-        {
-            this.inverseQuantizationMatrix[q] = new int[Av1Constants.MaxPlanes][];
-            for (int c = 0; c < Av1Constants.MaxPlanes; c++)
-            {
-                int lumaOrChroma = Math.Min(1, c);
-                int current = 0;
-                this.inverseQuantizationMatrix[q][c] = new int[(int)Av1TransformSize.AllSizes];
-                for (Av1TransformSize t = 0; t < Av1TransformSize.AllSizes; ++t)
-                {
-                    int size = t.GetSize2d();
-                    Av1TransformSize qmTransformSize = t.GetAdjusted();
-                    if (q == Av1Constants.QuantificationMatrixLevelCount - 1)
-                    {
-                        this.inverseQuantizationMatrix[q][c][(int)t] = -1;
-                    }
-                    else if (t != qmTransformSize)
-                    {
-                        // Reuse matrices for 'qm_tx_size'
-                        this.inverseQuantizationMatrix[q][c][(int)t] = this.inverseQuantizationMatrix[q][c][(int)qmTransformSize];
-                    }
-                    else
-                    {
-                        Guard.MustBeLessThanOrEqualTo(current + size, QuatizationMatrixTotalSize, nameof(current));
-                        this.inverseQuantizationMatrix[q][c][(int)t] = Av1QuantizationConstants.InverseWT[q][lumaOrChroma][current];
-                        current += size;
-                    }
-                }
-            }
-        }
+        this.deQuantsDeltaQ = new(sequenceHeader, frameHeader);
     }
 
     public void UpdateDequant(Av1DeQuantizationContext deQuants, Av1SuperblockInfo superblockInfo)
@@ -94,9 +59,9 @@ internal class Av1InverseQuantizer
         short dequantDc = this.deQuantsDeltaQ.GetDc(mode.SegmentId, plane);
         short dequantAc = this.deQuantsDeltaQ.GetAc(mode.SegmentId, plane);
         int qmLevel = lossless || !usingQuantizationMatrix ? Av1ScanOrderConstants.QuantizationMatrixLevelCount - 1 : this.frameHeader.QuantizationParameters.QMatrix[(int)plane];
-        ref int iqMatrix = ref (transformType.ToClass() == Av1TransformClass.Class2D) ?
-            ref this.inverseQuantizationMatrix[qmLevel][(int)plane][(int)qmTransformSize]
-            : ref this.inverseQuantizationMatrix[Av1Constants.QuantificationMatrixLevelCount - 1][0][(int)qmTransformSize];
+        ReadOnlySpan<int> iqMatrix = (transformType.ToClass() == Av1TransformClass.Class2D) ?
+            Av1QuantizationConstants.GetQuantizationMatrix(qmLevel, plane, qmTransformSize)
+            : Av1QuantizationConstants.GetQuantizationMatrix(Av1Constants.QuantificationMatrixLevelCount - 1, Av1Plane.Y, qmTransformSize);
         int shift = transformSize.GetScale();
 
         int coefficientCount = level[0];
@@ -106,7 +71,7 @@ internal class Av1InverseQuantizer
         if (lev != 0)
         {
             int pos = scanIndices[0];
-            qCoefficient = (int)(((long)Math.Abs(lev) * GetDeQuantizedValue(dequantDc, pos, ref iqMatrix)) & 0xffffff);
+            qCoefficient = (int)(((long)Math.Abs(lev) * GetDeQuantizedValue(dequantDc, pos, iqMatrix)) & 0xffffff);
             qCoefficient >>= shift;
 
             if (lev < 0)
@@ -123,7 +88,7 @@ internal class Av1InverseQuantizer
             if (lev != 0)
             {
                 int pos = scanIndices[i];
-                qCoefficient = (int)(((long)Math.Abs(lev) * GetDeQuantizedValue(dequantAc, pos, ref iqMatrix)) & 0xffffff);
+                qCoefficient = (int)(((long)Math.Abs(lev) * GetDeQuantizedValue(dequantAc, pos, iqMatrix)) & 0xffffff);
                 qCoefficient >>= shift;
 
                 if (lev < 0)
@@ -141,12 +106,12 @@ internal class Av1InverseQuantizer
     /// <summary>
     /// SVT: get_dqv
     /// </summary>
-    private static int GetDeQuantizedValue(short dequant, int coefficientIndex, ref int iqMatrix)
+    private static int GetDeQuantizedValue(short dequant, int coefficientIndex, ReadOnlySpan<int> iqMatrix)
     {
         const int bias = 1 << (Av1ScanOrderConstants.QuantizationMatrixLevelBitCount - 1);
         int deQuantifiedValue = dequant;
 
-        deQuantifiedValue = ((Unsafe.Add(ref iqMatrix, coefficientIndex) * deQuantifiedValue) + bias) >> Av1ScanOrderConstants.QuantizationMatrixLevelBitCount;
+        deQuantifiedValue = ((iqMatrix[coefficientIndex] * deQuantifiedValue) + bias) >> Av1ScanOrderConstants.QuantizationMatrixLevelBitCount;
         return deQuantifiedValue;
     }
 }

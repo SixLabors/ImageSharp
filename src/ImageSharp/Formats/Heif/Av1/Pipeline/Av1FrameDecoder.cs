@@ -25,7 +25,7 @@ internal class Av1FrameDecoder : IAv1FrameDecoder
         this.frameInfo = frameInfo;
         this.frameBuffer = frameBuffer;
         this.inverseQuantizer = new(sequenceHeader, frameHeader);
-        this.deQuants = new();
+        this.deQuants = new(sequenceHeader, frameHeader);
         this.blockDecoder = new(this.sequenceHeader, this.frameHeader, this.frameInfo, this.frameBuffer);
     }
 

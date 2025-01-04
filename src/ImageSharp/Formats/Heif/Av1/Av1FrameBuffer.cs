@@ -49,15 +49,15 @@ internal class Av1FrameBuffer<T> : IDisposable
         {
             case Av1ColorFormat.Yuv420:
                 strideChroma = (strideY + 1) >> 1;
-                heightChroma = (this.Height + 1) >> 1;
+                heightChroma = (heightY + 1) >> 1;
                 break;
             case Av1ColorFormat.Yuv422:
                 strideChroma = (strideY + 1) >> 1;
-                heightChroma = this.Height;
+                heightChroma = heightY;
                 break;
             case Av1ColorFormat.Yuv444:
                 strideChroma = strideY;
-                heightChroma = this.Height;
+                heightChroma = heightY;
                 break;
         }
 

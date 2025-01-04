@@ -24,6 +24,9 @@ internal class Av1PredictionDecoder
         this.is16BitPipeline = is16BitPipeline;
     }
 
+    /// <summary>
+    /// SVT: svt_av1_predict_intra
+    /// </summary>
     public void Decode(
         Av1PartitionInfo partitionInfo,
         Av1Plane plane,
@@ -37,8 +40,11 @@ internal class Av1PredictionDecoder
     {
         int bytesPerPixel = (bitDepth == Av1BitDepth.EightBit && !this.is16BitPipeline) ? 2 : 1;
         int stride = pixelStride * bytesPerPixel;
-        Span<byte> topNeighbor = pixelBuffer.Slice(-stride);
-        Span<byte> leftNeighbor = pixelBuffer.Slice(-1);
+
+        // Deviation from SVT: Buffer starts at PREVIOUS row.
+        Span<byte> topNeighbor = pixelBuffer;
+        Span<byte> leftNeighbor = pixelBuffer[(stride - 1)..];
+        Span<byte> startOfPixels = pixelBuffer[stride..];
 
         bool is16BitPipeline = this.is16BitPipeline;
         Av1PredictionMode mode = (plane == Av1Plane.Y) ? partitionInfo.ModeInfo.YMode : partitionInfo.ModeInfo.UvMode;
@@ -50,7 +56,7 @@ internal class Av1PredictionDecoder
                 plane,
                 transformSize,
                 tileInfo,
-                pixelBuffer,
+                startOfPixels,
                 stride,
                 topNeighbor,
                 leftNeighbor,
@@ -63,7 +69,7 @@ internal class Av1PredictionDecoder
             this.PredictChromaFromLumaBlock(
                 partitionInfo,
                 partitionInfo.ChromaFromLumaContext,
-                ref pixelBuffer,
+                startOfPixels,
                 stride,
                 transformSize,
                 plane);
@@ -76,7 +82,7 @@ internal class Av1PredictionDecoder
             plane,
             transformSize,
             tileInfo,
-            pixelBuffer,
+            startOfPixels,
             stride,
             topNeighbor,
             leftNeighbor,
@@ -87,7 +93,7 @@ internal class Av1PredictionDecoder
             bitDepth);
     }
 
-    private void PredictChromaFromLumaBlock(Av1PartitionInfo partitionInfo, Av1ChromaFromLumaContext? chromaFromLumaContext, ref Span<byte> pixelBuffer, int stride, Av1TransformSize transformSize, Av1Plane plane)
+    private void PredictChromaFromLumaBlock(Av1PartitionInfo partitionInfo, Av1ChromaFromLumaContext? chromaFromLumaContext, Span<byte> pixelBuffer, int stride, Av1TransformSize transformSize, Av1Plane plane)
     {
         Av1BlockModeInfo modeInfo = partitionInfo.ModeInfo;
         bool isChromaFromLumaAllowedFlag = IsChromaFromLumaAllowedWithFrameHeader(partitionInfo, this.sequenceHeader.ColorConfig, this.frameHeader);

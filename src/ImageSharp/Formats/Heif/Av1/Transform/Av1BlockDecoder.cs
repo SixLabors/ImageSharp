@@ -146,7 +146,6 @@ internal class Av1BlockDecoder
                 }
 
                 // if (!inter_block)
-                if (true)
                 {
                     // SVT: svt_av1_predict_intra
                     predictionDecoder.Decode(
@@ -226,24 +225,28 @@ internal class Av1BlockDecoder
     {
         int blockOffset;
 
-        if (plane == 0)
+        switch (plane)
         {
-            blockOffset = ((frameBuffer.OriginY + blockRowInPixels) * frameBuffer.BufferY!.Width) +
-                (frameBuffer.OriginX + blockColumnInPixels);
-            reconstructionStride = frameBuffer.BufferY!.Width;
+            case 0:
+                reconstructionStride = frameBuffer.BufferY!.Width;
+                blockOffset = ((frameBuffer.OriginY + blockRowInPixels) * reconstructionStride) +
+                    (frameBuffer.OriginX + blockColumnInPixels);
+                break;
+            case 1:
+                reconstructionStride = frameBuffer.BufferCb!.Width;
+                blockOffset = (((frameBuffer.OriginY >> subY) + blockRowInPixels) * reconstructionStride) +
+                    ((frameBuffer.OriginX >> subX) + blockColumnInPixels);
+                break;
+            default:
+                reconstructionStride = frameBuffer.BufferCr!.Width;
+                blockOffset = (((frameBuffer.OriginY >> subY) + blockRowInPixels) * reconstructionStride) +
+                    ((frameBuffer.OriginX >> subX) + blockColumnInPixels);
+                break;
         }
-        else if (plane == 1)
-        {
-            blockOffset = (((frameBuffer.OriginY >> subY) + blockRowInPixels) * frameBuffer.BufferCb!.Width) +
-                ((frameBuffer.OriginX >> subX) + blockColumnInPixels);
-            reconstructionStride = frameBuffer.BufferCb!.Width;
-        }
-        else
-        {
-            blockOffset = (((frameBuffer.OriginY >> subY) + blockRowInPixels) * frameBuffer.BufferCr!.Width) +
-                ((frameBuffer.OriginX >> subX) + blockColumnInPixels);
-            reconstructionStride = frameBuffer.BufferCr!.Width;
-        }
+
+        // Deviation from SVT, return PREVIOUS row in Block Reconstruction Buffer.
+        blockOffset -= reconstructionStride;
+        Guard.MustBeGreaterThanOrEqualTo(blockOffset, 0, nameof(blockOffset));
 
         if (frameBuffer.BitDepth != Av1BitDepth.EightBit || frameBuffer.Is16BitPipeline)
         {

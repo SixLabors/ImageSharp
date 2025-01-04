@@ -13,6 +13,14 @@ internal class Av1TransformInfo
     /// <summary>
     /// Initializes a new instance of the <see cref="Av1TransformInfo"/> class.
     /// </summary>
+    public Av1TransformInfo()
+        : this(Av1TransformSize.Size4x4, 0, 0)
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Av1TransformInfo"/> class.
+    /// </summary>
     public Av1TransformInfo(Av1TransformSize size, int offsetX, int offsetY)
     {
         this.Size = size;

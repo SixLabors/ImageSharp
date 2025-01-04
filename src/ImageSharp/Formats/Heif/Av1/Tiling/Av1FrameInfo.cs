@@ -60,6 +60,12 @@ internal partial class Av1FrameInfo
             {
                 Point point = new(x, y);
                 this.superblockInfos[i] = new(this, point);
+                for (int j = 0; j < this.modeInfoCountPerSuperblock; j++)
+                {
+                    this.transformInfosY[j] = new Av1TransformInfo();
+                    this.transformInfosUv[j] = new Av1TransformInfo();
+                }
+
                 i++;
             }
         }

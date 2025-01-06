@@ -29,63 +29,12 @@ public class ColorProfileConverterTests(ITestOutputHelper testOutputHelper)
     [InlineData(TestIccProfiles.StandardRgbV2, TestIccProfiles.Fogra39)] // RGB -> XYZ -> LAB -> CMYK (different LUT tags, TRC vs A2B)
     public void CanConvertCmykIccProfiles(string sourceProfile, string targetProfile)
     {
-        float[] input = [0.8f, 0.6f, 0.4f, 0.2f];
+        float[] input = [GetNormalizedRandomValue(), GetNormalizedRandomValue(), GetNormalizedRandomValue(), GetNormalizedRandomValue()];
         double[] expectedTargetValues = GetExpectedTargetValues(sourceProfile, targetProfile, input);
         Vector4 actualTargetValues = GetActualTargetValues(input, sourceProfile, targetProfile);
 
         testOutputHelper.WriteLine($"Input {string.Join(", ", input)} · Expected output {string.Join(", ", expectedTargetValues)}");
         const double tolerance = 0.00005;
-        for (int i = 0; i < expectedTargetValues.Length; i++)
-        {
-            Assert.Equal(expectedTargetValues[i], actualTargetValues[i], tolerance);
-        }
-    }
-
-    // TODO: replace with random Unicolour comparison once supported
-    // CMYK -> XYZ -> LAB -> RGB (different LUT tags, A2B vs TRC)
-    [Theory]
-    [InlineData(0, 0, 0, 0, 0.999871254, 1, 1)]
-    [InlineData(1, 0, 0, 0, 0, 0.620751977, 0.885590851)]
-    [InlineData(0, 1, 0, 0, 0.913222313, 0.0174613427, 0.505019307)]
-    [InlineData(0, 0, 1, 0, 1, 0.937102795, 0)]
-    [InlineData(0, 0, 0, 1, 0.104899481, 0.103322059, 0.0991369858)]
-    [InlineData(1, 1, 1, 1, 0, 0, 1.95495249e-05)]
-    [InlineData(0.8, 0.6, 0.4, 0.2, 0.26316157, 0.348658293, 0.43705827)]
-    [InlineData(0.2, 0.4, 0.6, 0.8, 0.283472508, 0.222469613, 0.148681521)]
-    public void CanConvertCmykIccProfilesToRgbUsingMatrixTrc(float c, float m, float y, float k, float expectedR, float expectedG, float expectedB)
-    {
-        float[] input = [c, m, y, k];
-        float[] expectedTargetValues = [expectedR, expectedG, expectedB];
-        Vector4 actualTargetValues = GetActualTargetValues(input, TestIccProfiles.Fogra39, TestIccProfiles.StandardRgbV2);
-
-        // TODO: investigate lower tolerance than CanConvertCmykIccProfiles()
-        // currently assuming it's a rounding error in the process of gathering test data manually
-        const double tolerance = 0.0005;
-        for (int i = 0; i < expectedTargetValues.Length; i++)
-        {
-            Assert.Equal(expectedTargetValues[i], actualTargetValues[i], tolerance);
-        }
-    }
-
-    // TODO: replace with random Unicolour comparison once supported
-    // RGB -> XYZ -> LAB -> CMYK (different LUT tags, TRC vs A2B)
-    [Theory]
-    [InlineData(0, 0, 0, 0.7701597, 0.6655727, 0.5460027, 0.9999934)]
-    [InlineData(1, 0, 0, 0.00024405644, 0.9664673, 0.96581775, 0)]
-    [InlineData(0, 1, 0, 0.7057834, 5.4162505E-05, 0.99998796, 0)]
-    [InlineData(0, 0, 1, 0.993157, 0.79850656, 0.00074962573, 0.0003229109)]
-    [InlineData(1, 1, 1, 2.5115267E-05, 8.9339E-05, 0.00010595919, 0)]
-    [InlineData(0.75, 0.5, 0.25, 0.041562695, 0.45613098, 0.7557201, 0.23913471)]
-    [InlineData(0.25, 0.5, 0.75, 0.7424422, 0.40337864, 0.005461347, 0.05777717)]
-    public void CanConvertRgbIccProfilesToCmykUsingMatrixTrc(float r, float g, float b, float expectedC, float expectedM, float expectedY, float expectedK)
-    {
-        float[] input = [r, g, b];
-        float[] expectedTargetValues = [expectedC, expectedM, expectedY, expectedK];
-        Vector4 actualTargetValues = GetActualTargetValues(input, TestIccProfiles.StandardRgbV2, TestIccProfiles.Fogra39);
-
-        // TODO: investigate lower tolerance than CanConvertCmykIccProfiles()
-        // currently assuming it's a rounding error in the process of gathering test data manually
-        const double tolerance = 0.0005;
         for (int i = 0; i < expectedTargetValues.Length; i++)
         {
             Assert.Equal(expectedTargetValues[i], actualTargetValues[i], tolerance);

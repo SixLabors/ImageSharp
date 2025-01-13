@@ -163,19 +163,12 @@ internal static class Av1InverseTransformMath
         return ClipPixelHighBitDepth(dest + trans, bitDepth);
     }
 
-    private static short ClipPixelHighBitDepth(long val, int bd)
+    private static short ClipPixelHighBitDepth(long val, int bd) => bd switch
     {
-        switch (bd)
-        {
-            case 8:
-            default:
-                return (short)Av1Math.Clamp(val, 0, 255);
-            case 10:
-                return (short)Av1Math.Clamp(val, 0, 1023);
-            case 12:
-                return (short)Av1Math.Clamp(val, 0, 4095);
-        }
-    }
+        10 => (short)Av1Math.Clamp(val, 0, 1023),
+        12 => (short)Av1Math.Clamp(val, 0, 4095),
+        _ => (short)Av1Math.Clamp(val, 0, 255),
+    };
 
     public static void RoundShiftArray(Span<int> arr, int size, int bit)
     {

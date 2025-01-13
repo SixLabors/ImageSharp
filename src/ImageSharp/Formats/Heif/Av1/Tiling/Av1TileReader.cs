@@ -169,11 +169,7 @@ internal class Av1TileReader : IAv1TileReader
         {
             int ctx = this.GetPartitionPlaneContext(modeInfoLocation, blockSize, tileInfo, superblockInfo);
             partitionType = Av1PartitionType.Split;
-            if (blockSize < Av1BlockSize.Block8x8)
-            {
-                partitionType = Av1PartitionType.None;
-            }
-            else if (hasRows && hasColumns)
+            if (hasRows && hasColumns)
             {
                 partitionType = reader.ReadPartitionType(ctx);
             }
@@ -376,6 +372,7 @@ internal class Av1TileReader : IAv1TileReader
     /// <summary>
     /// 5.11.34. Residual syntax.
     /// </summary>
+    /// <remarks>SVT: parse_residual</remarks>
     private void Residual(ref Av1SymbolDecoder reader, Av1PartitionInfo partitionInfo, Av1SuperblockInfo superblockInfo, Av1TileInfo tileInfo, Av1BlockSize blockSize)
     {
         int maxBlocksWide = partitionInfo.GetMaxBlockWide(blockSize, false);
@@ -813,6 +810,7 @@ internal class Av1TileReader : IAv1TileReader
     /// <summary>
     /// Section 5.11.16. Block TX size syntax.
     /// </summary>
+    /// <remarks>SVT: read_block_tx_size</remarks>
     private void ReadBlockTransformSize(ref Av1SymbolDecoder reader, Point modeInfoLocation, Av1PartitionInfo partitionInfo, Av1SuperblockInfo superblockInfo, Av1TileInfo tileInfo)
     {
         Av1BlockSize blockSize = partitionInfo.ModeInfo.BlockSize;
@@ -1318,7 +1316,7 @@ internal class Av1TileReader : IAv1TileReader
         int blockSizeLog = blockSize.Get4x4WidthLog2() - Av1BlockSize.Block8x8.Get4x4WidthLog2();
         int above = (aboveCtx >> blockSizeLog) & 0x1;
         int left = (leftCtx >> blockSizeLog) & 0x1;
-        DebugGuard.IsTrue(blockSize.Get4x4WidthLog2() == blockSize.Get4x4HeightLog2(), "Blocks should be square");
+        DebugGuard.IsTrue(blockSize.Get4x4WidthLog2() == blockSize.Get4x4HeightLog2(), "Blocks should be square.");
         DebugGuard.MustBeGreaterThanOrEqualTo(blockSizeLog, 0, nameof(blockSizeLog));
         return ((left << 1) + above) + (blockSizeLog * Av1Constants.PartitionProbabilitySet);
     }

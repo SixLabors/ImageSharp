@@ -868,18 +868,24 @@ internal class Av1PredictionDecoder
         }
     }
 
+    /// <summary>
+    /// SVT: svt_aom_use_intra_edge_upsample
+    /// </summary>
     private static bool UseIntraEdgeUpsample(int width, int height, int delta, bool type)
     {
         int d = Math.Abs(delta);
-        int widthHeight = width + height;
         if (d is <= 0 or >= 40)
         {
             return false;
         }
 
+        int widthHeight = width + height;
         return type ? (widthHeight <= 8) : (widthHeight <= 16);
     }
 
+    /// <summary>
+    /// SVT: svt_av1_filter_intra_edge_c
+    /// </summary>
     private static void FilterIntraEdge(ref byte buffer, int count, int strength)
     {
         // TODO: Consider creating SIMD version
@@ -911,6 +917,9 @@ internal class Av1PredictionDecoder
         }
     }
 
+    /// <summary>
+    /// SVT: svt_aom_intra_edge_filter_strength
+    /// </summary>
     private static int IntraEdgeFilterStrength(int width, int height, int delta, bool filterType)
     {
         int d = Math.Abs(delta);

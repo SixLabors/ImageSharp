@@ -243,6 +243,10 @@ internal class ObuReader
         }
     }
 
+    /// <summary>
+    /// 5.9.9. Compute image size function.
+    /// </summary>
+    /// <remarks>SVT: compute_image_size</remarks>
     private void ComputeImageSize(ObuSequenceHeader sequenceHeader)
     {
         ObuFrameHeader frameHeader = this.FrameHeader!;

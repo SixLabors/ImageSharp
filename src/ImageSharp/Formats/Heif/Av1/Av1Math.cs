@@ -202,4 +202,8 @@ internal static class Av1Math
 
     internal static void SetBit(ref int endOfBlockExtra, int n)
         => endOfBlockExtra |= 1 << n;
+
+    internal static int AbsoluteDifference(int a, int b) => (a > b) ? a - b : b - a;
+
+    internal static int DivideRound(int value, int bitCount) => (value + (1 << (bitCount - 1))) >> bitCount;
 }

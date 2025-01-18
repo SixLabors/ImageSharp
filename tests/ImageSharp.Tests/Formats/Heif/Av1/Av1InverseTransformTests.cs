@@ -20,37 +20,37 @@ public class Av1InverseTransformTests
     public void AccuracyOfDct1dTransformSize4Test()
         => AssertAccuracy1d(Av1TransformType.DctDct, Av1TransformSize.Size4x4, 1);
 
-    // [Fact]
+    [Fact]
     public void AccuracyOfDct1dTransformSize8Test()
-        => AssertAccuracy1d(Av1TransformType.DctDct, Av1TransformSize.Size8x8, 1, 2);
+        => AssertAccuracy1d(Av1TransformType.DctDct, Av1TransformSize.Size8x8, 2, 2);
 
-    // [Fact]
+    [Fact]
     public void AccuracyOfDct1dTransformSize16Test()
-        => AssertAccuracy1d(Av1TransformType.DctDct, Av1TransformSize.Size16x16, 1, 3);
+        => AssertAccuracy1d(Av1TransformType.DctDct, Av1TransformSize.Size16x16, 3, 3);
 
-    // [Fact]
+    [Fact]
     public void AccuracyOfDct1dTransformSize32Test()
-        => AssertAccuracy1d(Av1TransformType.DctDct, Av1TransformSize.Size32x32, 1, 4);
+        => AssertAccuracy1d(Av1TransformType.DctDct, Av1TransformSize.Size32x32, 4, 4);
 
-    // [Fact]
+    [Fact]
     public void AccuracyOfDct1dTransformSize64Test()
-        => AssertAccuracy1d(Av1TransformType.DctDct, Av1TransformSize.Size64x64, 1, 5);
+        => AssertAccuracy1d(Av1TransformType.DctDct, Av1TransformSize.Size64x64, 5, 5);
 
     [Fact]
     public void AccuracyOfAdst1dTransformSize4Test()
         => AssertAccuracy1d(Av1TransformType.AdstAdst, Av1TransformSize.Size4x4, 1);
 
-    // [Fact]
+    [Fact]
     public void AccuracyOfAdst1dTransformSize8Test()
-        => AssertAccuracy1d(Av1TransformType.AdstAdst, Av1TransformSize.Size8x8, 1, 2);
+        => AssertAccuracy1d(Av1TransformType.AdstAdst, Av1TransformSize.Size8x8, 2, 2);
 
-    // [Fact]
+    [Fact]
     public void AccuracyOfAdst1dTransformSize16Test()
-        => AssertAccuracy1d(Av1TransformType.AdstAdst, Av1TransformSize.Size16x16, 1, 3);
+        => AssertAccuracy1d(Av1TransformType.AdstAdst, Av1TransformSize.Size16x16, 3, 3);
 
-    // [Fact]
+    [Fact]
     public void AccuracyOfAdst1dTransformSize32Test()
-        => AssertAccuracy1d(Av1TransformType.AdstAdst, Av1TransformSize.Size32x32, 1, 3);
+        => AssertAccuracy1d(Av1TransformType.AdstAdst, Av1TransformSize.Size32x32, 4, 3);
 
     [Fact]
     public void AccuracyOfIdentity1dTransformSize4Test()
@@ -70,7 +70,7 @@ public class Av1InverseTransformTests
 
     [Fact]
     public void AccuracyOfIdentity1dTransformSize64Test()
-        => AssertAccuracy1d(Av1TransformType.Identity, Av1TransformSize.Size64x64, 4);
+        => AssertAccuracy1d(Av1TransformType.Identity, Av1TransformSize.Size64x64, 1);
 
     [Fact]
     public void AccuracyOfEchoTransformSize4Test()
@@ -96,7 +96,7 @@ public class Av1InverseTransformTests
         config.GenerateStageRange(8);
         config.SetFlip(false, false);
         config.SetShift(0, 0, 0);
-        IAv1Forward1dTransformer transformer = new Av1EchoTestTransformer();
+        IAv1Transformer1d transformer = new Av1EchoTestTransformer();
 
         // Act
         Av1Inverse2dTransformer.Transform2dAdd(
@@ -132,7 +132,7 @@ public class Av1InverseTransformTests
         Av1Transform2dFlipConfiguration config = new(Av1TransformType.Identity, Av1TransformSize.Size4x4);
         config.SetFlip(false, true);
         config.SetShift(0, 0, 0);
-        IAv1Forward1dTransformer transformer = new Av1EchoTestTransformer();
+        IAv1Transformer1d transformer = new Av1EchoTestTransformer();
 
         // Act
         Av1Inverse2dTransformer.Transform2dAdd(
@@ -168,7 +168,7 @@ public class Av1InverseTransformTests
         Av1Transform2dFlipConfiguration config = new(Av1TransformType.Identity, Av1TransformSize.Size4x4);
         config.SetFlip(true, false);
         config.SetShift(0, 0, 0);
-        IAv1Forward1dTransformer transformer = new Av1EchoTestTransformer();
+        IAv1Transformer1d transformer = new Av1EchoTestTransformer();
 
         // Act
         Av1Inverse2dTransformer.Transform2dAdd(
@@ -204,7 +204,7 @@ public class Av1InverseTransformTests
         Av1Transform2dFlipConfiguration config = new(Av1TransformType.Identity, Av1TransformSize.Size4x4);
         config.SetFlip(true, true);
         config.SetShift(0, 0, 0);
-        IAv1Forward1dTransformer transformer = new Av1EchoTestTransformer();
+        IAv1Transformer1d transformer = new Av1EchoTestTransformer();
 
         // Act
         Av1Inverse2dTransformer.Transform2dAdd(
@@ -228,8 +228,8 @@ public class Av1InverseTransformTests
         int allowedError = 1)
     {
         Av1Transform2dFlipConfiguration config = new(transformType, transformSize);
-        IAv1Forward1dTransformer forward = GetForwardTransformer(config.TransformFunctionTypeColumn);
-        IAv1Forward1dTransformer inverse = GetInverseTransformer(config.TransformFunctionTypeColumn);
+        IAv1Transformer1d forward = GetForwardTransformer(config.TransformFunctionTypeColumn);
+        IAv1Transformer1d inverse = GetInverseTransformer(config.TransformFunctionTypeColumn);
         AssertAccuracy1d(transformType, transformSize, scaleLog2, forward, inverse, allowedError);
     }
 
@@ -237,8 +237,8 @@ public class Av1InverseTransformTests
         Av1TransformType transformType,
         Av1TransformSize transformSize,
         int scaleLog2,
-        IAv1Forward1dTransformer forwardTransformer,
-        IAv1Forward1dTransformer inverseTransformer,
+        IAv1Transformer1d forwardTransformer,
+        IAv1Transformer1d inverseTransformer,
         int allowedError = 1)
     {
         const int bitDepth = 10;
@@ -430,7 +430,7 @@ public class Av1InverseTransformTests
     private static bool IsTransformTypeImplemented(Av1TransformType transformType, Av1TransformSize transformSize)
         => transformSize == Av1TransformSize.Size4x4;
 
-    private static IAv1Forward1dTransformer GetForwardTransformer(Av1TransformFunctionType func) =>
+    private static IAv1Transformer1d GetForwardTransformer(Av1TransformFunctionType func) =>
         func switch
         {
             Av1TransformFunctionType.Dct4 => new Av1Dct4Forward1dTransformer(),
@@ -451,18 +451,18 @@ public class Av1InverseTransformTests
             _ => null,
         };
 
-    private static IAv1Forward1dTransformer GetInverseTransformer(Av1TransformFunctionType func) =>
+    private static IAv1Transformer1d GetInverseTransformer(Av1TransformFunctionType func) =>
         func switch
         {
             Av1TransformFunctionType.Dct4 => new Av1Dct4Inverse1dTransformer(),
-            Av1TransformFunctionType.Dct8 => null, // new Av1Dct8Inverse1dTransformer(),
-            Av1TransformFunctionType.Dct16 => null, // new Av1Dct16Inverse1dTransformer(),
-            Av1TransformFunctionType.Dct32 => null, // new Av1Dct32Inverse1dTransformer(),
-            Av1TransformFunctionType.Dct64 => null, // new Av1Dct64Inverse1dTransformer(),
+            Av1TransformFunctionType.Dct8 => new Av1Dct8Inverse1dTransformer(),
+            Av1TransformFunctionType.Dct16 => new Av1Dct16Inverse1dTransformer(),
+            Av1TransformFunctionType.Dct32 => new Av1Dct32Inverse1dTransformer(),
+            Av1TransformFunctionType.Dct64 => new Av1Dct64Inverse1dTransformer(),
             Av1TransformFunctionType.Adst4 => new Av1Adst4Inverse1dTransformer(),
-            Av1TransformFunctionType.Adst8 => null, // new Av1Adst8Inverse1dTransformer(),
-            Av1TransformFunctionType.Adst16 => null, // new Av1Adst16Inverse1dTransformer(),
-            Av1TransformFunctionType.Adst32 => null, // new Av1Adst32Inverse1dTransformer(),
+            Av1TransformFunctionType.Adst8 => new Av1Adst8Inverse1dTransformer(),
+            Av1TransformFunctionType.Adst16 => new Av1Adst16Inverse1dTransformer(),
+            Av1TransformFunctionType.Adst32 => new Av1Adst32Inverse1dTransformer(),
             Av1TransformFunctionType.Identity4 => new Av1Identity4Inverse1dTransformer(),
             Av1TransformFunctionType.Identity8 => new Av1Identity8Inverse1dTransformer(),
             Av1TransformFunctionType.Identity16 => new Av1Identity16Inverse1dTransformer(),
@@ -483,8 +483,7 @@ public class Av1InverseTransformTests
     private static int GetMaximumError<T>(Span<T> expected, Span<T> actual)
     {
         int maximumErrorInTest = 0;
-        int count = Math.Min(expected.Length, 32);
-        for (int ni = 0; ni < count; ++ni)
+        for (int ni = 0; ni < expected.Length; ++ni)
         {
             maximumErrorInTest = Math.Max(maximumErrorInTest, Math.Abs(Convert.ToInt32(actual[ni], CultureInfo.InvariantCulture) - Convert.ToInt32(expected[ni], CultureInfo.InvariantCulture)));
         }

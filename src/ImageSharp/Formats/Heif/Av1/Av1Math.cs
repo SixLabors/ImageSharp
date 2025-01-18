@@ -1,10 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System;
-using System.Runtime.InteropServices;
-using System.Security.Cryptography;
-
 namespace SixLabors.ImageSharp.Formats.Heif.Av1;
 
 internal static class Av1Math
@@ -167,16 +163,19 @@ internal static class Av1Math
     internal static int RoundPowerOf2(int value, int n) => (value + ((1 << n) >> 1)) >> n;
 
     internal static int Clamp(int value, int low, int high)
-        => value < low ? low : (value > high ? high : value);
+        => Math.Max(low, Math.Min(high, value));
 
     internal static long Clamp(long value, long low, long high)
-        => value < low ? low : (value > high ? high : value);
+        => Math.Max(low, Math.Min(high, value));
 
     internal static int DivideLog2Floor(int value, int n)
         => value >> n;
 
     internal static int DivideLog2Ceiling(int value, int n)
         => (value + (1 << n) - 1) >> n;
+
+    internal static int DivideRound(int value, int bitCount)
+        => (value + (1 << (bitCount - 1))) >> bitCount;
 
     // Last 3 bits are the value of mod 8.
     internal static int Modulus8(int value) => value & 0x07;
@@ -204,6 +203,4 @@ internal static class Av1Math
         => endOfBlockExtra |= 1 << n;
 
     internal static int AbsoluteDifference(int a, int b) => (a > b) ? a - b : b - a;
-
-    internal static int DivideRound(int value, int bitCount) => (value + (1 << (bitCount - 1))) >> bitCount;
 }

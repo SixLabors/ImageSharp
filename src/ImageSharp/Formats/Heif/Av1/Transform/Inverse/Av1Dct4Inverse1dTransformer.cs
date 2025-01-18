@@ -5,7 +5,7 @@ using System.Runtime.CompilerServices;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform.Inverse;
 
-internal class Av1Dct4Inverse1dTransformer : IAv1Forward1dTransformer
+internal class Av1Dct4Inverse1dTransformer : IAv1Transformer1d
 {
     public void Transform(Span<int> input, Span<int> output, int cosBit, Span<byte> stageRange)
     {
@@ -46,10 +46,11 @@ internal class Av1Dct4Inverse1dTransformer : IAv1Forward1dTransformer
 
         // stage 3
         stage++;
-        Unsafe.Add(ref output, 0) = ClampValue(temp1[0] + temp1[3], stageRange[stage]);
-        Unsafe.Add(ref output, 1) = ClampValue(temp1[1] + temp1[2], stageRange[stage]);
-        Unsafe.Add(ref output, 2) = ClampValue(temp1[1] - temp1[2], stageRange[stage]);
-        Unsafe.Add(ref output, 3) = ClampValue(temp1[0] - temp1[3], stageRange[stage]);
+        Unsafe.Add(ref output, 0) = temp1[0] + temp1[3];
+        Unsafe.Add(ref output, 1) = temp1[1] + temp1[2];
+        Unsafe.Add(ref output, 2) = temp1[1] - temp1[2];
+        Unsafe.Add(ref output, 3) = temp1[0] - temp1[3];
+        ClampBuffer4(ref output, stageRange[stage]);
     }
 
     internal static int ClampValue(int value, byte bit)
@@ -62,6 +63,114 @@ internal class Av1Dct4Inverse1dTransformer : IAv1Forward1dTransformer
         long max_value = (1L << (bit - 1)) - 1;
         long min_value = -(1L << (bit - 1));
         return (int)Av1Math.Clamp(value, min_value, max_value);
+    }
+
+    internal static void ClampBuffer4(ref int buffer, byte bit)
+    {
+        if (bit <= 0)
+        {
+            return; // Do nothing for invalid clamp bit.
+        }
+
+        long max_value = (1L << (bit - 1)) - 1;
+        long min_value = -(1L << (bit - 1));
+
+        Unsafe.Add(ref buffer, 0) = (int)Av1Math.Clamp(Unsafe.Add(ref buffer, 0), min_value, max_value);
+        Unsafe.Add(ref buffer, 1) = (int)Av1Math.Clamp(Unsafe.Add(ref buffer, 1), min_value, max_value);
+        Unsafe.Add(ref buffer, 2) = (int)Av1Math.Clamp(Unsafe.Add(ref buffer, 2), min_value, max_value);
+        Unsafe.Add(ref buffer, 3) = (int)Av1Math.Clamp(Unsafe.Add(ref buffer, 3), min_value, max_value);
+    }
+
+    internal static void ClampBuffer8(ref int buffer, byte bit)
+    {
+        if (bit <= 0)
+        {
+            return; // Do nothing for invalid clamp bit.
+        }
+
+        long max_value = (1L << (bit - 1)) - 1;
+        long min_value = -(1L << (bit - 1));
+
+        Unsafe.Add(ref buffer, 0) = (int)Av1Math.Clamp(Unsafe.Add(ref buffer, 0), min_value, max_value);
+        Unsafe.Add(ref buffer, 1) = (int)Av1Math.Clamp(Unsafe.Add(ref buffer, 1), min_value, max_value);
+        Unsafe.Add(ref buffer, 2) = (int)Av1Math.Clamp(Unsafe.Add(ref buffer, 2), min_value, max_value);
+        Unsafe.Add(ref buffer, 3) = (int)Av1Math.Clamp(Unsafe.Add(ref buffer, 3), min_value, max_value);
+        Unsafe.Add(ref buffer, 4) = (int)Av1Math.Clamp(Unsafe.Add(ref buffer, 4), min_value, max_value);
+        Unsafe.Add(ref buffer, 5) = (int)Av1Math.Clamp(Unsafe.Add(ref buffer, 5), min_value, max_value);
+        Unsafe.Add(ref buffer, 6) = (int)Av1Math.Clamp(Unsafe.Add(ref buffer, 6), min_value, max_value);
+        Unsafe.Add(ref buffer, 7) = (int)Av1Math.Clamp(Unsafe.Add(ref buffer, 7), min_value, max_value);
+    }
+
+    internal static void ClampBuffer16(ref int buffer, byte bit)
+    {
+        if (bit <= 0)
+        {
+            return; // Do nothing for invalid clamp bit.
+        }
+
+        long max_value = (1L << (bit - 1)) - 1;
+        long min_value = -(1L << (bit - 1));
+
+        Unsafe.Add(ref buffer, 0) = (int)Av1Math.Clamp(Unsafe.Add(ref buffer, 0), min_value, max_value);
+        Unsafe.Add(ref buffer, 1) = (int)Av1Math.Clamp(Unsafe.Add(ref buffer, 1), min_value, max_value);
+        Unsafe.Add(ref buffer, 2) = (int)Av1Math.Clamp(Unsafe.Add(ref buffer, 2), min_value, max_value);
+        Unsafe.Add(ref buffer, 3) = (int)Av1Math.Clamp(Unsafe.Add(ref buffer, 3), min_value, max_value);
+        Unsafe.Add(ref buffer, 4) = (int)Av1Math.Clamp(Unsafe.Add(ref buffer, 4), min_value, max_value);
+        Unsafe.Add(ref buffer, 5) = (int)Av1Math.Clamp(Unsafe.Add(ref buffer, 5), min_value, max_value);
+        Unsafe.Add(ref buffer, 6) = (int)Av1Math.Clamp(Unsafe.Add(ref buffer, 6), min_value, max_value);
+        Unsafe.Add(ref buffer, 7) = (int)Av1Math.Clamp(Unsafe.Add(ref buffer, 7), min_value, max_value);
+        Unsafe.Add(ref buffer, 8) = (int)Av1Math.Clamp(Unsafe.Add(ref buffer, 8), min_value, max_value);
+        Unsafe.Add(ref buffer, 9) = (int)Av1Math.Clamp(Unsafe.Add(ref buffer, 9), min_value, max_value);
+        Unsafe.Add(ref buffer, 10) = (int)Av1Math.Clamp(Unsafe.Add(ref buffer, 10), min_value, max_value);
+        Unsafe.Add(ref buffer, 11) = (int)Av1Math.Clamp(Unsafe.Add(ref buffer, 11), min_value, max_value);
+        Unsafe.Add(ref buffer, 12) = (int)Av1Math.Clamp(Unsafe.Add(ref buffer, 12), min_value, max_value);
+        Unsafe.Add(ref buffer, 13) = (int)Av1Math.Clamp(Unsafe.Add(ref buffer, 13), min_value, max_value);
+        Unsafe.Add(ref buffer, 14) = (int)Av1Math.Clamp(Unsafe.Add(ref buffer, 14), min_value, max_value);
+        Unsafe.Add(ref buffer, 15) = (int)Av1Math.Clamp(Unsafe.Add(ref buffer, 15), min_value, max_value);
+    }
+
+    internal static void ClampBuffer32(ref int buffer, byte bit)
+    {
+        if (bit <= 0)
+        {
+            return; // Do nothing for invalid clamp bit.
+        }
+
+        long max_value = (1L << (bit - 1)) - 1;
+        long min_value = -(1L << (bit - 1));
+
+        Unsafe.Add(ref buffer, 0) = (int)Av1Math.Clamp(Unsafe.Add(ref buffer, 0), min_value, max_value);
+        Unsafe.Add(ref buffer, 1) = (int)Av1Math.Clamp(Unsafe.Add(ref buffer, 1), min_value, max_value);
+        Unsafe.Add(ref buffer, 2) = (int)Av1Math.Clamp(Unsafe.Add(ref buffer, 2), min_value, max_value);
+        Unsafe.Add(ref buffer, 3) = (int)Av1Math.Clamp(Unsafe.Add(ref buffer, 3), min_value, max_value);
+        Unsafe.Add(ref buffer, 4) = (int)Av1Math.Clamp(Unsafe.Add(ref buffer, 4), min_value, max_value);
+        Unsafe.Add(ref buffer, 5) = (int)Av1Math.Clamp(Unsafe.Add(ref buffer, 5), min_value, max_value);
+        Unsafe.Add(ref buffer, 6) = (int)Av1Math.Clamp(Unsafe.Add(ref buffer, 6), min_value, max_value);
+        Unsafe.Add(ref buffer, 7) = (int)Av1Math.Clamp(Unsafe.Add(ref buffer, 7), min_value, max_value);
+        Unsafe.Add(ref buffer, 8) = (int)Av1Math.Clamp(Unsafe.Add(ref buffer, 8), min_value, max_value);
+        Unsafe.Add(ref buffer, 9) = (int)Av1Math.Clamp(Unsafe.Add(ref buffer, 9), min_value, max_value);
+        Unsafe.Add(ref buffer, 10) = (int)Av1Math.Clamp(Unsafe.Add(ref buffer, 10), min_value, max_value);
+        Unsafe.Add(ref buffer, 11) = (int)Av1Math.Clamp(Unsafe.Add(ref buffer, 11), min_value, max_value);
+        Unsafe.Add(ref buffer, 12) = (int)Av1Math.Clamp(Unsafe.Add(ref buffer, 12), min_value, max_value);
+        Unsafe.Add(ref buffer, 13) = (int)Av1Math.Clamp(Unsafe.Add(ref buffer, 13), min_value, max_value);
+        Unsafe.Add(ref buffer, 14) = (int)Av1Math.Clamp(Unsafe.Add(ref buffer, 14), min_value, max_value);
+        Unsafe.Add(ref buffer, 15) = (int)Av1Math.Clamp(Unsafe.Add(ref buffer, 15), min_value, max_value);
+        Unsafe.Add(ref buffer, 16) = (int)Av1Math.Clamp(Unsafe.Add(ref buffer, 16), min_value, max_value);
+        Unsafe.Add(ref buffer, 17) = (int)Av1Math.Clamp(Unsafe.Add(ref buffer, 17), min_value, max_value);
+        Unsafe.Add(ref buffer, 18) = (int)Av1Math.Clamp(Unsafe.Add(ref buffer, 18), min_value, max_value);
+        Unsafe.Add(ref buffer, 19) = (int)Av1Math.Clamp(Unsafe.Add(ref buffer, 19), min_value, max_value);
+        Unsafe.Add(ref buffer, 20) = (int)Av1Math.Clamp(Unsafe.Add(ref buffer, 20), min_value, max_value);
+        Unsafe.Add(ref buffer, 21) = (int)Av1Math.Clamp(Unsafe.Add(ref buffer, 21), min_value, max_value);
+        Unsafe.Add(ref buffer, 22) = (int)Av1Math.Clamp(Unsafe.Add(ref buffer, 22), min_value, max_value);
+        Unsafe.Add(ref buffer, 23) = (int)Av1Math.Clamp(Unsafe.Add(ref buffer, 23), min_value, max_value);
+        Unsafe.Add(ref buffer, 24) = (int)Av1Math.Clamp(Unsafe.Add(ref buffer, 24), min_value, max_value);
+        Unsafe.Add(ref buffer, 25) = (int)Av1Math.Clamp(Unsafe.Add(ref buffer, 25), min_value, max_value);
+        Unsafe.Add(ref buffer, 26) = (int)Av1Math.Clamp(Unsafe.Add(ref buffer, 26), min_value, max_value);
+        Unsafe.Add(ref buffer, 27) = (int)Av1Math.Clamp(Unsafe.Add(ref buffer, 27), min_value, max_value);
+        Unsafe.Add(ref buffer, 28) = (int)Av1Math.Clamp(Unsafe.Add(ref buffer, 28), min_value, max_value);
+        Unsafe.Add(ref buffer, 29) = (int)Av1Math.Clamp(Unsafe.Add(ref buffer, 29), min_value, max_value);
+        Unsafe.Add(ref buffer, 30) = (int)Av1Math.Clamp(Unsafe.Add(ref buffer, 30), min_value, max_value);
+        Unsafe.Add(ref buffer, 31) = (int)Av1Math.Clamp(Unsafe.Add(ref buffer, 31), min_value, max_value);
     }
 
     internal static int HalfButterfly(int w0, int in0, int w1, int in1, int bit)

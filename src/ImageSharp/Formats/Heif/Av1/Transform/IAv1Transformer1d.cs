@@ -6,7 +6,7 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 /// <summary>
 /// Implementation of a specific forward 1-dimensional transform function.
 /// </summary>
-internal interface IAv1Forward1dTransformer
+internal interface IAv1Transformer1d
 {
     /// <summary>
     /// Execute the 1 dimensional transformation.

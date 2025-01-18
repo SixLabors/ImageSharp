@@ -171,9 +171,9 @@ internal static class Av1TransformSizeExtensions
         _ => size
     };
 
-    public static int GetBlockWidthLog2(this Av1TransformSize size) => BlockWidthLog2[(int)GetAdjusted(size)];
+    public static int GetBlockWidthLog2(this Av1TransformSize size) => BlockWidthLog2[(int)size];
 
-    public static int GetBlockHeightLog2(this Av1TransformSize size) => BlockHeightLog2[(int)GetAdjusted(size)];
+    public static int GetBlockHeightLog2(this Av1TransformSize size) => BlockHeightLog2[(int)size];
 
     public static int GetRectangleLogRatio(this Av1TransformSize size)
     {

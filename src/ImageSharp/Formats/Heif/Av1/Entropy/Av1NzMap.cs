@@ -372,7 +372,7 @@ internal static class Av1NzMap
     public static int GetNzMapContextFromStats(int stats, Point position, Av1TransformSize transformSize, Av1TransformClass transformClass)
     {
         // tx_class == 0(TX_CLASS_2D)
-        if (position.Y == 0 && ((int)transformClass | position.X) == 0)
+        if (transformClass == 0 && (position.X == 0) && (position.Y == 0))
         {
             return 0;
         }

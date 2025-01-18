@@ -5,7 +5,7 @@ using System.Runtime.CompilerServices;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform.Forward;
 
-internal class Av1Identity64Forward1dTransformer : IAv1Forward1dTransformer
+internal class Av1Identity64Forward1dTransformer : IAv1Transformer1d
 {
     private const int QuadNewSqrt2 = 4 * 5793;
 

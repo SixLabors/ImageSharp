@@ -38,8 +38,8 @@ internal class Av1Inverse2dTransformer
 
         int cosBitColumn = config.CosBitColumn;
         int cosBitRow = config.CosBitRow;
-        IAv1Forward1dTransformer? functionColumn = Av1InverseTransformerFactory.GetTransformer(config.TransformFunctionTypeColumn);
-        IAv1Forward1dTransformer? functionRow = Av1InverseTransformerFactory.GetTransformer(config.TransformFunctionTypeRow);
+        IAv1Transformer1d? functionColumn = Av1InverseTransformerFactory.GetTransformer(config.TransformFunctionTypeColumn);
+        IAv1Transformer1d? functionRow = Av1InverseTransformerFactory.GetTransformer(config.TransformFunctionTypeRow);
         Guard.NotNull(functionColumn);
         Guard.NotNull(functionRow);
 
@@ -168,8 +168,8 @@ internal class Av1Inverse2dTransformer
 
         int cosBitColumn = config.CosBitColumn;
         int cosBitRow = config.CosBitRow;
-        IAv1Forward1dTransformer? functionColumn = Av1InverseTransformerFactory.GetTransformer(config.TransformFunctionTypeColumn);
-        IAv1Forward1dTransformer? functionRow = Av1InverseTransformerFactory.GetTransformer(config.TransformFunctionTypeRow);
+        IAv1Transformer1d? functionColumn = Av1InverseTransformerFactory.GetTransformer(config.TransformFunctionTypeColumn);
+        IAv1Transformer1d? functionRow = Av1InverseTransformerFactory.GetTransformer(config.TransformFunctionTypeRow);
         Guard.NotNull(functionColumn);
         Guard.NotNull(functionRow);
 

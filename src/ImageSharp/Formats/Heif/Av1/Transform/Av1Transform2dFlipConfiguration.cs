@@ -140,8 +140,8 @@ internal class Av1Transform2dFlipConfiguration
         this.CosBitRow = CosBitRowMap[txw_idx][txh_idx];
         this.TransformFunctionTypeColumn = TransformFunctionTypeMap[txh_idx][(int)this.TransformTypeColumn];
         this.TransformFunctionTypeRow = TransformFunctionTypeMap[txw_idx][(int)this.TransformTypeRow];
-        this.StageNumberColumn = StageNumberList[(int)this.TransformFunctionTypeColumn];
-        this.StageNumberRow = StageNumberList[(int)this.TransformFunctionTypeRow];
+        this.StageNumberColumn = this.TransformFunctionTypeColumn != Av1TransformFunctionType.Invalid ? StageNumberList[(int)this.TransformFunctionTypeColumn] : -1;
+        this.StageNumberRow = this.TransformFunctionTypeRow != Av1TransformFunctionType.Invalid ? StageNumberList[(int)this.TransformFunctionTypeRow] : -1;
         this.StageRangeColumn = new byte[12];
         this.StageRangeRow = new byte[12];
         this.NonScaleRange();
@@ -303,23 +303,23 @@ internal class Av1Transform2dFlipConfiguration
     /// </summary>
     private void NonScaleRange()
     {
-        Span<int> range_mult2_col = RangeMulti2List[(int)this.TransformFunctionTypeColumn];
         if (this.TransformFunctionTypeColumn != Av1TransformFunctionType.Invalid)
         {
+            Span<int> range_mult2_col = RangeMulti2List[(int)this.TransformFunctionTypeColumn];
             int stage_num_col = this.StageNumberColumn;
             for (int i = 0; i < stage_num_col; ++i)
             {
                 this.StageRangeColumn[i] = (byte)((range_mult2_col[i] + 1) >> 1);
             }
-        }
 
-        if (this.TransformFunctionTypeRow != Av1TransformFunctionType.Invalid)
-        {
-            int stage_num_row = this.StageNumberRow;
-            Span<int> range_mult2_row = RangeMulti2List[(int)this.TransformFunctionTypeRow];
-            for (int i = 0; i < stage_num_row; ++i)
+            if (this.TransformFunctionTypeRow != Av1TransformFunctionType.Invalid)
             {
-                this.StageRangeRow[i] = (byte)((range_mult2_col[this.StageNumberColumn - 1] + range_mult2_row[i] + 1) >> 1);
+                int stage_num_row = this.StageNumberRow;
+                Span<int> range_mult2_row = RangeMulti2List[(int)this.TransformFunctionTypeRow];
+                for (int i = 0; i < stage_num_row; ++i)
+                {
+                    this.StageRangeRow[i] = (byte)((range_mult2_col[this.StageNumberColumn - 1] + range_mult2_row[i] + 1) >> 1);
+                }
             }
         }
     }

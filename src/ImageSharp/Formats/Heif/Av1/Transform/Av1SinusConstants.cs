@@ -67,7 +67,47 @@ internal static class Av1SinusConstants
             [0, 21133, 39716, 53510, 60849]
         ];
 
+    private static readonly int[] Cosinus128Lookup = [
+        4096, 4095, 4091, 4085, 4076, 4065, 4052, 4036,
+        4017, 3996, 3973, 3948, 3920, 3889, 3857, 3822,
+        3784, 3745, 3703, 3659, 3612, 3564, 3513, 3461,
+        3406, 3349, 3290, 3229, 3166, 3102, 3035, 2967,
+        2896, 2824, 2751, 2675, 2598, 2520, 2440, 2359,
+        2276, 2191, 2106, 2019, 1931, 1842, 1751, 1660,
+        1567, 1474, 1380, 1285, 1189, 1092, 995, 897,
+        799, 700, 601, 501, 401, 301, 201, 101, 0
+        ];
+
     public static Span<int> CosinusPi(int n) => CosinusPiArray[n - MinimumCosinusBit];
 
     public static Span<int> SinusPi(int n) => SinusPiArray[n - MinimumCosinusBit];
+
+    /// <summary>
+    /// Spec: 7.13.2.1 Butterfly functions
+    /// </summary>
+    public static int Sinus128(int angle) => Cosinus128(angle - 64);
+
+    /// <summary>
+    /// Spec: 7.13.2.1 Butterfly functions
+    /// </summary>
+    public static int Cosinus128(int angle)
+    {
+        int angle2 = angle & 255;
+        if (angle2 is >= 0 and <= 64)
+        {
+            return Cosinus128Lookup[angle2];
+        }
+
+        if (angle2 <= 128)
+        {
+            return -Cosinus128Lookup[128 - angle2];
+        }
+
+        if (angle2 <= 192)
+        {
+            return -Cosinus128Lookup[angle2 - 128];
+        }
+
+        return Cosinus128Lookup[256 - angle2];
+    }
 }

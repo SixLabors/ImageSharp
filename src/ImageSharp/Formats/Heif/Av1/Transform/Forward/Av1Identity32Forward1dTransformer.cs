@@ -5,7 +5,7 @@ using System.Runtime.CompilerServices;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform.Forward;
 
-internal class Av1Identity32Forward1dTransformer : IAv1Forward1dTransformer
+internal class Av1Identity32Forward1dTransformer : IAv1Transformer1d
 {
     public void Transform(Span<int> input, Span<int> output, int cosBit, Span<byte> stageRange)
     {

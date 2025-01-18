@@ -5,7 +5,7 @@ using System.Runtime.CompilerServices;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform.Inverse;
 
-internal class Av1Identity16Inverse1dTransformer : IAv1Forward1dTransformer
+internal class Av1Identity16Inverse1dTransformer : IAv1Transformer1d
 {
     private const long Sqrt2Times2 = Av1Identity4Inverse1dTransformer.Sqrt2 >> 1;
 

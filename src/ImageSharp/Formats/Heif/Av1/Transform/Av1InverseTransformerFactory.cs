@@ -31,11 +31,22 @@ internal static class Av1InverseTransformerFactory
         Av1Inverse2dTransformer.Transform2dAdd(coefficients, readBuffer, readStride, writeBuffer, writeStride, config, buffer, transformFunctionParameters.BitDepth);
     }
 
-    internal static IAv1Forward1dTransformer? GetTransformer(Av1TransformFunctionType type) => type switch
+    internal static IAv1Transformer1d? GetTransformer(Av1TransformFunctionType type) => type switch
     {
         Av1TransformFunctionType.Dct4 => new Av1Dct4Inverse1dTransformer(),
+        Av1TransformFunctionType.Dct8 => new Av1Dct8Inverse1dTransformer(),
+        Av1TransformFunctionType.Dct16 => new Av1Dct16Inverse1dTransformer(),
+        Av1TransformFunctionType.Dct32 => new Av1Dct32Inverse1dTransformer(),
+        Av1TransformFunctionType.Dct64 => new Av1Dct64Inverse1dTransformer(),
         Av1TransformFunctionType.Adst4 => new Av1Adst4Inverse1dTransformer(),
+        Av1TransformFunctionType.Adst8 => new Av1Adst8Inverse1dTransformer(),
+        Av1TransformFunctionType.Adst16 => new Av1Adst16Inverse1dTransformer(),
+        Av1TransformFunctionType.Adst32 => new Av1Adst32Inverse1dTransformer(),
         Av1TransformFunctionType.Identity4 => new Av1Identity4Inverse1dTransformer(),
+        Av1TransformFunctionType.Identity8 => new Av1Identity8Inverse1dTransformer(),
+        Av1TransformFunctionType.Identity16 => new Av1Identity16Inverse1dTransformer(),
+        Av1TransformFunctionType.Identity32 => new Av1Identity32Inverse1dTransformer(),
+        Av1TransformFunctionType.Identity64 => new Av1Identity64Inverse1dTransformer(),
         _ => null
     };
 }

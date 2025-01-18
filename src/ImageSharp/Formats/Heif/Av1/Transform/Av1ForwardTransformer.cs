@@ -12,7 +12,7 @@ internal class Av1ForwardTransformer
     private const int NewSqrt = 5793;
     private const int NewSqrtBitCount = 12;
 
-    private static readonly IAv1Forward1dTransformer?[] Transformers =
+    private static readonly IAv1Transformer1d?[] Transformers =
         [
             new Av1Dct4Forward1dTransformer(),
             new Av1Dct8Forward1dTransformer(),
@@ -36,14 +36,14 @@ internal class Av1ForwardTransformer
     internal static void Transform2d(Span<short> input, Span<int> coefficients, uint stride, Av1TransformType transformType, Av1TransformSize transformSize, int bitDepth)
     {
         Av1Transform2dFlipConfiguration config = new(transformType, transformSize);
-        IAv1Forward1dTransformer? columnTransformer = GetTransformer(config.TransformFunctionTypeColumn);
-        IAv1Forward1dTransformer? rowTransformer = GetTransformer(config.TransformFunctionTypeRow);
+        IAv1Transformer1d? columnTransformer = GetTransformer(config.TransformFunctionTypeColumn);
+        IAv1Transformer1d? rowTransformer = GetTransformer(config.TransformFunctionTypeRow);
         Transform2d(columnTransformer, rowTransformer, input, coefficients, stride, config, bitDepth);
     }
 
     internal static void Transform2d<TColumn, TRow>(TColumn? transformFunctionColumn, TRow? transformFunctionRow, Span<short> input, Span<int> coefficients, uint stride, Av1Transform2dFlipConfiguration config, int bitDepth)
-            where TColumn : IAv1Forward1dTransformer
-            where TRow : IAv1Forward1dTransformer
+            where TColumn : IAv1Transformer1d
+            where TRow : IAv1Transformer1d
     {
         if (transformFunctionColumn != null && transformFunctionRow != null)
         {
@@ -55,15 +55,15 @@ internal class Av1ForwardTransformer
         }
     }
 
-    private static IAv1Forward1dTransformer? GetTransformer(Av1TransformFunctionType transformerType)
+    private static IAv1Transformer1d? GetTransformer(Av1TransformFunctionType transformerType)
         => Transformers[(int)transformerType];
 
     /// <summary>
     /// SVT: av1_tranform_two_d_core_c
     /// </summary>
     private static void Transform2dCore<TColumn, TRow>(TColumn transformFunctionColumn, TRow transformFunctionRow, Span<short> input, uint inputStride, Span<int> output, Av1Transform2dFlipConfiguration config, Span<int> buf, int bitDepth)
-            where TColumn : IAv1Forward1dTransformer
-            where TRow : IAv1Forward1dTransformer
+            where TColumn : IAv1Transformer1d
+            where TRow : IAv1Transformer1d
     {
         int c, r;
 

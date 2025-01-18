@@ -14,8 +14,8 @@ internal abstract class Av1Forward2dTransformerBase
     /// SVT: av1_tranform_two_d_core_c
     /// </summary>
     protected static void Transform2dCore<TColumn, TRow>(TColumn transformFunctionColumn, TRow transformFunctionRow, Span<short> input, uint inputStride, Span<int> output, Av1Transform2dFlipConfiguration config, Span<int> buf, int bitDepth)
-            where TColumn : IAv1Forward1dTransformer
-            where TRow : IAv1Forward1dTransformer
+            where TColumn : IAv1Transformer1d
+            where TRow : IAv1Transformer1d
     {
         int c, r;
 

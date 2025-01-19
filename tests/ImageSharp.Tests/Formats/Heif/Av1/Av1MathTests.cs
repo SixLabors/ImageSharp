@@ -9,6 +9,81 @@ namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 public class Av1MathTests
 {
     [Theory]
+    [InlineData(1, 0)]
+    [InlineData(2, 1)]
+    [InlineData(3, 1)]
+    [InlineData(4, 2)]
+    [InlineData(5, 2)]
+    [InlineData(7, 2)]
+    [InlineData(8, 3)]
+    [InlineData(9, 3)]
+    public void TestMostSignificantBit(uint value, int expected)
+    {
+        int actual = Av1Math.MostSignificantBit(value);
+        Assert.Equal(expected, actual);
+    }
+
+    [Theory]
+    [InlineData(1, 0)]
+    [InlineData(2, 1)]
+    [InlineData(3, 1)]
+    [InlineData(4, 2)]
+    [InlineData(5, 2)]
+    [InlineData(7, 2)]
+    [InlineData(8, 3)]
+    [InlineData(9, 3)]
+    public void TestLog2(int value, int expected)
+    {
+        int actual = Av1Math.Log2(value);
+        Assert.Equal(expected, actual);
+    }
+
+    [Theory]
+    [InlineData(1, 0)]
+    [InlineData(2, 1)]
+    [InlineData(3, 1)]
+    [InlineData(4, 2)]
+    [InlineData(5, 2)]
+    [InlineData(7, 2)]
+    [InlineData(8, 3)]
+    [InlineData(9, 3)]
+    public void TestFloorLog2(uint value, uint expected)
+    {
+        uint actual = Av1Math.FloorLog2(value);
+        Assert.Equal(expected, actual);
+    }
+
+    [Theory]
+    [InlineData(1, 0)]
+    [InlineData(2, 1)]
+    [InlineData(3, 1)]
+    [InlineData(4, 2)]
+    [InlineData(5, 2)]
+    [InlineData(7, 2)]
+    [InlineData(8, 3)]
+    [InlineData(9, 3)]
+    public void TestLog2_32(uint value, uint expected)
+    {
+        uint actual = Av1Math.Log2_32(value);
+        Assert.Equal(expected, actual);
+    }
+
+    [Theory]
+    [InlineData(1, 0)]
+    [InlineData(2, 1)]
+    [InlineData(3, 2)]
+    [InlineData(4, 2)]
+    [InlineData(5, 3)]
+    [InlineData(7, 3)]
+    [InlineData(8, 3)]
+    [InlineData(9, 4)]
+    public void TestLog2Ceiling(uint value, uint expected)
+    {
+        uint actual = Av1Math.CeilLog2(value);
+        Assert.Equal(expected, actual);
+    }
+
+    [Theory]
     [InlineData(4, 2, 1)]
     [InlineData(4, 3, 0)]
     [InlineData(5, 3, 0)]

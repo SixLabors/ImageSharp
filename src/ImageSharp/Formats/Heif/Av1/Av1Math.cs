@@ -26,17 +26,6 @@ internal static class Av1Math
         return log;
     }
 
-    public static uint Log2(uint n)
-    {
-        uint result = 0U;
-        while ((n >>= 1) > 0)
-        {
-            result++;
-        }
-
-        return result;
-    }
-
     public static int Log2(int n)
     {
         int result = 0;

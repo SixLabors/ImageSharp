@@ -1,8 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Drawing;
-using System;
 using System.Runtime.CompilerServices;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform.Inverse;

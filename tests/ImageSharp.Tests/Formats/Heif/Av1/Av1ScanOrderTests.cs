@@ -65,6 +65,45 @@ public class Av1ScanOrderTests
         Assert.Equal(width * height, scanOrder.Scan.Length);
     }
 
+    [Theory]
+    [MemberData(nameof(GetCombinations))]
+    internal void AllIndicesAreInDiagonalOrder(int s, int t)
+    {
+        // Assign
+        Av1TransformSize transformSize = (Av1TransformSize)s;
+        Av1TransformType transformType = (Av1TransformType)t;
+        int width = Math.Min(transformSize.GetWidth(), 32);
+        int height = Math.Min(transformSize.GetHeight(), 32);
+
+        // Act
+        Av1ScanOrder scanOrder = Av1ScanOrderConstants.GetScanOrder(transformSize, transformType);
+
+        // Assert
+        HashSet<int> visited = [];
+        ReadOnlySpan<short> scan = scanOrder.Scan;
+
+        // In reverse order, the indiced used in
+        // <see cref="Av1SymbolContextHelper.GetBaseRangeContext2d()" /> must already be known.
+        for (int i = scanOrder.Scan.Length - 1; i >= 0; i--)
+        {
+            visited.Add(scan[i]);
+            if (scan.Length > i + 1)
+            {
+                Assert.Contains(scan[i + 1], visited);
+            }
+
+            if (scan.Length > i + width)
+            {
+                Assert.Contains(scan[i + width], visited);
+            }
+
+            if (scan.Length > i + width + 1)
+            {
+                Assert.Contains(scan[i + width + 1], visited);
+            }
+        }
+    }
+
     public static TheoryData<int, int> GetCombinations()
     {
         TheoryData<int, int> combinations = [];

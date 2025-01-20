@@ -101,14 +101,14 @@ public class Av1CoefficientsEntropyTests
     }
 
     [Theory]
-    [MemberData(nameof(GetBlockSize4x4Data))]
-    public void RoundTripFullCoefficientsYSize4x4(int bSize, int txSize, int txType)
+    [MemberData(nameof(GetTransformTypes))]
+    public void RoundTripFullCoefficientsYSize4x4(int txType)
     {
         // Assign
         const ushort endOfBlock = 16;
         const Av1ComponentType componentType = Av1ComponentType.Luminance;
-        Av1BlockSize blockSize = (Av1BlockSize)bSize;
-        Av1TransformSize transformSize = (Av1TransformSize)txSize;
+        Av1BlockSize blockSize = Av1BlockSize.Block4x4;
+        Av1TransformSize transformSize = blockSize.GetMaximumTransformSize();
         Av1TransformType transformType = (Av1TransformType)txType;
         Av1PredictionMode intraDirection = Av1PredictionMode.DC;
         Av1FilterIntraMode filterIntraMode = Av1FilterIntraMode.DC;
@@ -116,14 +116,29 @@ public class Av1CoefficientsEntropyTests
     }
 
     [Theory]
-    [MemberData(nameof(GetBlockSize4x4Data))]
-    public void RoundTripFullCoefficientsUvSize4x4(int bSize, int txSize, int txType)
+    [MemberData(nameof(GetTransformTypes))]
+    public void RoundTripFullCoefficientsYSize8x8(int txType)
+    {
+        // Assign
+        const ushort endOfBlock = 16;
+        const Av1ComponentType componentType = Av1ComponentType.Luminance;
+        Av1BlockSize blockSize = Av1BlockSize.Block8x8;
+        Av1TransformSize transformSize = blockSize.GetMaximumTransformSize();
+        Av1TransformType transformType = (Av1TransformType)txType;
+        Av1PredictionMode intraDirection = Av1PredictionMode.DC;
+        Av1FilterIntraMode filterIntraMode = Av1FilterIntraMode.DC;
+        RoundTripCoefficientsCore(endOfBlock, componentType, blockSize, transformSize, transformType, intraDirection, filterIntraMode);
+    }
+
+    [Theory]
+    [MemberData(nameof(GetTransformTypes))]
+    public void RoundTripFullCoefficientsUvSize4x4(int txType)
     {
         // Assign
         const ushort endOfBlock = 16;
         const Av1ComponentType componentType = Av1ComponentType.Chroma;
-        Av1BlockSize blockSize = (Av1BlockSize)bSize;
-        Av1TransformSize transformSize = (Av1TransformSize)txSize;
+        Av1BlockSize blockSize = Av1BlockSize.Block4x4;
+        Av1TransformSize transformSize = blockSize.GetMaxUvTransformSize(true, true);
         Av1TransformType transformType = (Av1TransformType)txType;
         Av1PredictionMode intraDirection = Av1PredictionMode.DC;
         Av1FilterIntraMode filterIntraMode = Av1FilterIntraMode.DC;
@@ -155,14 +170,12 @@ public class Av1CoefficientsEntropyTests
         Assert.Equal(coefficientsBuffer[..endOfBlock], actuals[1..(endOfBlock + 1)]);
     }
 
-    public static TheoryData<int, int, int> GetBlockSize4x4Data()
+    public static TheoryData<int> GetTransformTypes()
     {
-        TheoryData<int, int, int> result = [];
-        Av1BlockSize blockSize = Av1BlockSize.Block4x4;
-        Av1TransformSize transformSize = blockSize.GetMaximumTransformSize();
+        TheoryData<int> result = [];
         for (Av1TransformType transformType = Av1TransformType.DctDct; transformType < Av1TransformType.VerticalDct; transformType++)
         {
-            result.Add((int)blockSize, (int)transformSize, (int)transformType);
+            result.Add((int)transformType);
         }
 
         return result;

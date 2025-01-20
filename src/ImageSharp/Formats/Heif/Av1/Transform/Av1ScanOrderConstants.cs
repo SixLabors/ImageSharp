@@ -359,7 +359,6 @@ internal static class Av1ScanOrderConstants
     private static readonly short[] DefaultInverseScan8x8 = [];
     private static readonly short[] DefaultInverseScan16x16 = [];
     private static readonly short[] DefaultInverseScan32x32 = [];
-    private static readonly short[] DefaultInverseScan64x64 = [];
     private static readonly short[] DefaultInverseScan4x8 = [];
     private static readonly short[] DefaultInverseScan8x4 = [];
     private static readonly short[] DefaultInverseScan8x16 = [];
@@ -375,7 +374,6 @@ internal static class Av1ScanOrderConstants
     private static readonly short[] MatrixColumnInverseScan8x8 = [];
     private static readonly short[] MatrixColumnInverseScan16x16 = [];
     private static readonly short[] MatrixColumnInverseScan32x32 = [];
-    private static readonly short[] MatrixColumnInverseScan64x64 = [];
     private static readonly short[] MatrixColumnInverseScan4x8 = [];
     private static readonly short[] MatrixColumnInverseScan8x4 = [];
     private static readonly short[] MatrixColumnInverseScan8x16 = [];
@@ -391,7 +389,6 @@ internal static class Av1ScanOrderConstants
     private static readonly short[] MatrixRowInverseScan8x8 = [];
     private static readonly short[] MatrixRowInverseScan16x16 = [];
     private static readonly short[] MatrixRowInverseScan32x32 = [];
-    private static readonly short[] MatrixRowInverseScan64x64 = [];
     private static readonly short[] MatrixRowInverseScan4x8 = [];
     private static readonly short[] MatrixRowInverseScan8x4 = [];
     private static readonly short[] MatrixRowInverseScan8x16 = [];
@@ -403,12 +400,11 @@ internal static class Av1ScanOrderConstants
     private static readonly short[] MatrixRowInverseScan8x32 = [];
     private static readonly short[] MatrixRowInverseScan32x8 = [];
 
-    // Neighborss are not used (yet) for AVIF coding, leave these arrays empty for now.
+    // Neighbors are not used (yet) for AVIF coding, leave these arrays empty for now.
     private static readonly short[] DefaultScan4x4Neighbors = [];
     private static readonly short[] DefaultScan8x8Neighbors = [];
     private static readonly short[] DefaultScan16x16Neighbors = [];
     private static readonly short[] DefaultScan32x32Neighbors = [];
-    private static readonly short[] DefaultScan64x64Neighbors = [];
     private static readonly short[] DefaultScan4x8Neighbors = [];
     private static readonly short[] DefaultScan8x4Neighbors = [];
     private static readonly short[] DefaultScan8x16Neighbors = [];
@@ -424,7 +420,6 @@ internal static class Av1ScanOrderConstants
     private static readonly short[] MatrixColumnScan8x8Neighbors = [];
     private static readonly short[] MatrixColumnScan16x16Neighbors = [];
     private static readonly short[] MatrixColumnScan32x32Neighbors = [];
-    private static readonly short[] MatrixColumnScan64x64Neighbors = [];
     private static readonly short[] MatrixColumnScan4x8Neighbors = [];
     private static readonly short[] MatrixColumnScan8x4Neighbors = [];
     private static readonly short[] MatrixColumnScan8x16Neighbors = [];
@@ -440,7 +435,6 @@ internal static class Av1ScanOrderConstants
     private static readonly short[] MatrixRowScan8x8Neighbors = [];
     private static readonly short[] MatrixRowScan16x16Neighbors = [];
     private static readonly short[] MatrixRowScan32x32Neighbors = [];
-    private static readonly short[] MatrixRowScan64x64Neighbors = [];
     private static readonly short[] MatrixRowScan4x8Neighbors = [];
     private static readonly short[] MatrixRowScan8x4Neighbors = [];
     private static readonly short[] MatrixRowScan8x16Neighbors = [];

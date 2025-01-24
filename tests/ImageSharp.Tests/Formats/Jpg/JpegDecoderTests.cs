@@ -229,6 +229,19 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg
             }
         }
 
+        // https://github.com/SixLabors/ImageSharp/issues/2638
+        [Theory]
+        [WithFile(TestImages.Jpeg.Issues.Issue2638, PixelTypes.Rgba32)]
+        public void Issue2638_DecodeWorks<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            using (Image<TPixel> image = provider.GetImage(JpegDecoder))
+            {
+                image.DebugSave(provider);
+                image.CompareToOriginal(provider);
+            }
+        }
+
         // DEBUG ONLY!
         // The PDF.js output should be saved by "tests\ImageSharp.Tests\Formats\Jpg\pdfjs\jpeg-converter.htm"
         // into "\tests\Images\ActualOutput\JpegDecoderTests\"

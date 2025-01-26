@@ -490,8 +490,9 @@ internal abstract class BaseExifReader
 
         foreach (IExifValue val in values)
         {
-            // Sometimes duplicates appear, can compare val.Tag == exif.Tag
-            if (val == exif)
+            // to skip duplicates must be used Equals method,
+            // == operator not defined for ExifValue and IExifValue
+            if (exif.Equals(val))
             {
                 Debug.WriteLine($"Duplicate Exif tag: tag={exif.Tag}, dataType={exif.DataType}");
                 return;

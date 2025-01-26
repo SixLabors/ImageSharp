@@ -189,10 +189,19 @@ internal abstract class BaseExifReader
     {
         if (this.subIfds is not null)
         {
-            foreach (ulong subIfdOffset in this.subIfds)
+            do
             {
-                this.ReadValues(values, (uint)subIfdOffset);
+                int sz = this.subIfds.Count;
+                Span<ulong> buf = sz <= 256 ? stackalloc ulong[sz] : new ulong[sz];
+
+                this.subIfds.CopyTo(buf);
+                this.subIfds.Clear();
+                foreach (ulong subIfdOffset in buf)
+                {
+                    this.ReadValues(values, (uint)subIfdOffset);
+                }
             }
+            while (this.subIfds.Count > 0);
         }
     }
 

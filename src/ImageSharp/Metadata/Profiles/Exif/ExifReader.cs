@@ -191,10 +191,7 @@ internal abstract class BaseExifReader
         {
             do
             {
-                int sz = this.subIfds.Count;
-                Span<ulong> buf = sz <= 256 ? stackalloc ulong[sz] : new ulong[sz];
-
-                this.subIfds.CopyTo(buf);
+                ulong[] buf = [.. this.subIfds];
                 this.subIfds.Clear();
                 foreach (ulong subIfdOffset in buf)
                 {
@@ -456,6 +453,7 @@ internal abstract class BaseExifReader
             ExifTagValue.TileByteCounts => new ExifLong8Array(ExifTagValue.TileByteCounts),
             _ => ExifValues.Create(tag) ?? ExifValues.Create(tag, dataType, numberOfComponents),
         };
+
         if (exifValue is null)
         {
             this.AddInvalidTag(new UnkownExifTag(tag));

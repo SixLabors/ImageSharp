@@ -130,7 +130,7 @@ internal static class BokehBlurKernelDataProvider
         int kernelSize,
         float kernelsScale)
     {
-        Complex64[][]? kernels = new Complex64[kernelParameters.Length][];
+        Complex64[][] kernels = new Complex64[kernelParameters.Length][];
         ref Vector4 baseRef = ref MemoryMarshal.GetReference(kernelParameters.AsSpan());
         for (int i = 0; i < kernelParameters.Length; i++)
         {
@@ -156,7 +156,7 @@ internal static class BokehBlurKernelDataProvider
         float a,
         float b)
     {
-        Complex64[]? kernel = new Complex64[kernelSize];
+        Complex64[] kernel = new Complex64[kernelSize];
         ref Complex64 baseRef = ref MemoryMarshal.GetReference(kernel.AsSpan());
         int r = radius, n = -r;
 

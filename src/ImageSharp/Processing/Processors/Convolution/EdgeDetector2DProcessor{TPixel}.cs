@@ -55,7 +55,7 @@ internal class EdgeDetector2DProcessor<TPixel> : ImageProcessor<TPixel>
     /// <inheritdoc />
     protected override void OnFrameApply(ImageFrame<TPixel> source)
     {
-        using Convolution2DProcessor<TPixel>? processor = new(
+        using Convolution2DProcessor<TPixel> processor = new(
             this.Configuration,
             in this.kernelX,
             in this.kernelY,

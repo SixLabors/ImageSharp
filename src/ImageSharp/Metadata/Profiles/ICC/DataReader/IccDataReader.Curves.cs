@@ -18,13 +18,13 @@ internal sealed partial class IccDataReader
     {
         ushort segmentCount = this.ReadUInt16();
         this.AddIndex(2);   // 2 bytes reserved
-        float[]? breakPoints = new float[segmentCount - 1];
+        float[] breakPoints = new float[segmentCount - 1];
         for (int i = 0; i < breakPoints.Length; i++)
         {
             breakPoints[i] = this.ReadSingle();
         }
 
-        IccCurveSegment[]? segments = new IccCurveSegment[segmentCount];
+        IccCurveSegment[] segments = new IccCurveSegment[segmentCount];
         for (int i = 0; i < segmentCount; i++)
         {
             segments[i] = this.ReadCurveSegment();

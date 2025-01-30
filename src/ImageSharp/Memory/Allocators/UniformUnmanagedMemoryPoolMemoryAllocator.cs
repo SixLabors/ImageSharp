@@ -96,7 +96,7 @@ internal sealed class UniformUnmanagedMemoryPoolMemoryAllocator : MemoryAllocato
 
         if (lengthInBytes <= (ulong)this.sharedArrayPoolThresholdInBytes)
         {
-            SharedArrayPoolBuffer<T>? buffer = new SharedArrayPoolBuffer<T>(length);
+            SharedArrayPoolBuffer<T> buffer = new SharedArrayPoolBuffer<T>(length);
             if (options.Has(AllocationOptions.Clean))
             {
                 buffer.GetSpan().Clear();
@@ -127,7 +127,7 @@ internal sealed class UniformUnmanagedMemoryPoolMemoryAllocator : MemoryAllocato
     {
         if (totalLengthInBytes <= this.sharedArrayPoolThresholdInBytes)
         {
-            SharedArrayPoolBuffer<T>? buffer = new SharedArrayPoolBuffer<T>((int)totalLengthInElements);
+            SharedArrayPoolBuffer<T> buffer = new SharedArrayPoolBuffer<T>((int)totalLengthInElements);
             return MemoryGroup<T>.CreateContiguous(buffer, options.Has(AllocationOptions.Clean));
         }
 

@@ -72,7 +72,7 @@ public partial class Buffer2DTests
 
         using Buffer2D<byte> buffer = useSizeOverload ?
             this.MemoryAllocator.Allocate2D<byte>(
-                new Size(200, 200),
+                new(200, 200),
                 preferContiguosImageBuffers: true) :
             this.MemoryAllocator.Allocate2D<byte>(
             200,
@@ -354,7 +354,7 @@ public partial class Buffer2DTests
     [Theory]
     [MemberData(nameof(InvalidLengths))]
     public void Allocate_IncorrectAmount_ThrowsCorrect_InvalidMemoryOperationException_Size(Size size)
-        => Assert.Throws<InvalidMemoryOperationException>(() => this.MemoryAllocator.Allocate2D<Rgba32>(new Size(size)));
+        => Assert.Throws<InvalidMemoryOperationException>(() => this.MemoryAllocator.Allocate2D<Rgba32>(new(size)));
 
     [Theory]
     [MemberData(nameof(InvalidLengths))]

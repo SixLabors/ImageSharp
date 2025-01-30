@@ -236,9 +236,9 @@ public struct RectangleF : IEquatable<RectangleF>
     /// <returns>A transformed <see cref="RectangleF"/>.</returns>
     public static RectangleF Transform(RectangleF rectangle, Matrix3x2 matrix)
     {
-        PointF bottomRight = PointF.Transform(new PointF(rectangle.Right, rectangle.Bottom), matrix);
+        PointF bottomRight = PointF.Transform(new(rectangle.Right, rectangle.Bottom), matrix);
         PointF topLeft = PointF.Transform(rectangle.Location, matrix);
-        return new RectangleF(topLeft, new SizeF(bottomRight - topLeft));
+        return new(topLeft, new(bottomRight - topLeft));
     }
 
     /// <summary>
@@ -255,7 +255,7 @@ public struct RectangleF : IEquatable<RectangleF>
         float y1 = MathF.Min(a.Y, b.Y);
         float y2 = MathF.Max(a.Bottom, b.Bottom);
 
-        return new RectangleF(x1, y1, x2 - x1, y2 - y1);
+        return new(x1, y1, x2 - x1, y2 - y1);
     }
 
     /// <summary>

@@ -375,7 +375,7 @@ internal static class IccTestDataTagDataEntry
             }
         }
 
-        return new IccLocalizedString(culture, text);
+        return new(culture, text);
     }
 
     private static readonly IccLocalizedString[] LocalizedString_RandArr_enUS_deDE = new IccLocalizedString[]
@@ -541,8 +541,8 @@ internal static class IccTestDataTagDataEntry
     public static readonly IccProfileSequenceIdentifierTagDataEntry ProfileSequenceIdentifier_Val = new(
         new IccProfileSequenceIdentifier[]
         {
-            new IccProfileSequenceIdentifier(IccTestDataNonPrimitives.ProfileId_ValRand, LocalizedString_RandArr_enUS_deDE),
-            new IccProfileSequenceIdentifier(IccTestDataNonPrimitives.ProfileId_ValRand, LocalizedString_RandArr_enUS_deDE),
+            new(IccTestDataNonPrimitives.ProfileId_ValRand, LocalizedString_RandArr_enUS_deDE),
+            new(IccTestDataNonPrimitives.ProfileId_ValRand, LocalizedString_RandArr_enUS_deDE),
         });
 
     public static readonly byte[] ProfileSequenceIdentifier_Arr = ArrayHelper.Concat(

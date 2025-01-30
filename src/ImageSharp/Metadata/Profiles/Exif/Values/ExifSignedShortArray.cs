@@ -56,7 +56,7 @@ internal sealed class ExifSignedShortArray : ExifArrayValue<short>
             return false;
         }
 
-        short[]? value = new short[intArray.Length];
+        short[] value = new short[intArray.Length];
         for (int i = 0; i < intArray.Length; i++)
         {
             int s = intArray[i];

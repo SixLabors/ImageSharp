@@ -110,13 +110,13 @@ internal class ResizeProcessor<TPixel> : TransformProcessor<TPixel>, IResampling
         // Since all image frame dimensions have to be the same we can calculate
         // the kernel maps and reuse for all frames.
         MemoryAllocator allocator = configuration.MemoryAllocator;
-        using ResizeKernelMap? horizontalKernelMap = ResizeKernelMap.Calculate(
+        using ResizeKernelMap horizontalKernelMap = ResizeKernelMap.Calculate(
             in sampler,
             destinationRectangle.Width,
             sourceRectangle.Width,
             allocator);
 
-        using ResizeKernelMap? verticalKernelMap = ResizeKernelMap.Calculate(
+        using ResizeKernelMap verticalKernelMap = ResizeKernelMap.Calculate(
             in sampler,
             destinationRectangle.Height,
             sourceRectangle.Height,
@@ -208,7 +208,7 @@ internal class ResizeProcessor<TPixel> : TransformProcessor<TPixel>, IResampling
 
         // To reintroduce parallel processing, we would launch multiple workers
         // for different row intervals of the image.
-        using ResizeWorker<TPixel>? worker = new(
+        using ResizeWorker<TPixel> worker = new(
             configuration,
             sourceRegion,
             conversionModifiers,

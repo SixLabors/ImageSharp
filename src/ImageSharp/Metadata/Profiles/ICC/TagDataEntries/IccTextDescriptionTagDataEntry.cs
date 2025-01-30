@@ -123,7 +123,7 @@ internal sealed class IccTextDescriptionTagDataEntry : IccTagDataEntry, IEquatab
                 && p4 >= 0x41 && p4 <= 0x5A)
             {
                 string culture = new(new[] { (char)p1, (char)p2, '-', (char)p3, (char)p4 });
-                return new CultureInfo(culture);
+                return new(culture);
             }
 
             return null;

@@ -18,7 +18,7 @@ public static class GraphicOptionsDefaultsExtensions
     /// <returns>The passed in <paramref name="context"/> to allow chaining.</returns>
     public static IImageProcessingContext SetGraphicsOptions(this IImageProcessingContext context, Action<GraphicsOptions> optionsBuilder)
     {
-        GraphicsOptions? cloned = context.GetGraphicsOptions().DeepClone();
+        GraphicsOptions cloned = context.GetGraphicsOptions().DeepClone();
         optionsBuilder(cloned);
         context.Properties[typeof(GraphicsOptions)] = cloned;
         return context;
@@ -31,7 +31,7 @@ public static class GraphicOptionsDefaultsExtensions
     /// <param name="optionsBuilder">The default options to use.</param>
     public static void SetGraphicsOptions(this Configuration configuration, Action<GraphicsOptions> optionsBuilder)
     {
-        GraphicsOptions? cloned = configuration.GetGraphicsOptions().DeepClone();
+        GraphicsOptions cloned = configuration.GetGraphicsOptions().DeepClone();
         optionsBuilder(cloned);
         configuration.Properties[typeof(GraphicsOptions)] = cloned;
     }
@@ -87,7 +87,7 @@ public static class GraphicOptionsDefaultsExtensions
             return go;
         }
 
-        GraphicsOptions? configOptions = new();
+        GraphicsOptions configOptions = new();
 
         // capture the fallback so the same instance will always be returned in case its mutated
         configuration.Properties[typeof(GraphicsOptions)] = configOptions;

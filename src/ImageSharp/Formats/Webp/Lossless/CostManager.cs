@@ -49,7 +49,7 @@ internal sealed class CostManager : IDisposable
         }
 
         // Fill in the cache intervals.
-        CostCacheInterval? cur = new()
+        CostCacheInterval cur = new()
         {
             Start = 0,
             End = 1,

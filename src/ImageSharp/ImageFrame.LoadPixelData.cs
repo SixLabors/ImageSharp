@@ -40,7 +40,7 @@ public partial class ImageFrame
         int count = width * height;
         Guard.MustBeGreaterThanOrEqualTo(data.Length, count, nameof(data));
 
-        ImageFrame<TPixel>? image = new(configuration, width, height);
+        ImageFrame<TPixel> image = new(configuration, width, height);
 
         data = data[..count];
         data.CopyTo(image.PixelBuffer.FastMemoryGroup);

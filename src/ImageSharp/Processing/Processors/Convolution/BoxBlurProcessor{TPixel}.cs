@@ -68,7 +68,7 @@ internal class BoxBlurProcessor<TPixel> : ImageProcessor<TPixel>
     /// <inheritdoc/>
     protected override void OnFrameApply(ImageFrame<TPixel> source)
     {
-        using Convolution2PassProcessor<TPixel>? processor = new(this.Configuration, this.Kernel, false, this.Source, this.SourceRectangle, this.BorderWrapModeX, this.BorderWrapModeY);
+        using Convolution2PassProcessor<TPixel> processor = new(this.Configuration, this.Kernel, false, this.Source, this.SourceRectangle, this.BorderWrapModeX, this.BorderWrapModeY);
 
         processor.Apply(source);
     }
@@ -80,7 +80,7 @@ internal class BoxBlurProcessor<TPixel> : ImageProcessor<TPixel>
     /// <returns>The <see cref="DenseMatrix{T}"/>.</returns>
     private static float[] CreateBoxKernel(int kernelSize)
     {
-        float[]? kernel = new float[kernelSize];
+        float[] kernel = new float[kernelSize];
 
         kernel.AsSpan().Fill(1F / kernelSize);
 

@@ -118,7 +118,7 @@ public static class ResizeExtensions
         Rectangle targetRectangle,
         bool compand)
     {
-        ResizeOptions? options = new ResizeOptions
+        ResizeOptions options = new ResizeOptions
         {
             Size = new Size(width, height),
             Mode = ResizeMode.Manual,
@@ -151,7 +151,7 @@ public static class ResizeExtensions
         Rectangle targetRectangle,
         bool compand)
     {
-        ResizeOptions? options = new ResizeOptions
+        ResizeOptions options = new ResizeOptions
         {
             Size = new Size(width, height),
             Mode = ResizeMode.Manual,

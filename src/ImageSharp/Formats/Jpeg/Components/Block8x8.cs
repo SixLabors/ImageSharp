@@ -140,7 +140,7 @@ internal partial struct Block8x8
     /// <inheritdoc />
     public override string ToString()
     {
-        StringBuilder? sb = new();
+        StringBuilder sb = new();
         sb.Append('[');
         for (int i = 0; i < Size; i++)
         {

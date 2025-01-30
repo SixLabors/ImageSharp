@@ -437,7 +437,7 @@ public sealed class Image<TPixel> : Image
     {
         Guard.NotNull(frames, nameof(frames));
 
-        ImageFrame<TPixel>? rootFrame = frames.FirstOrDefault() ?? throw new ArgumentException("Must not be empty.", nameof(frames));
+        ImageFrame<TPixel> rootFrame = frames.FirstOrDefault() ?? throw new ArgumentException("Must not be empty.", nameof(frames));
 
         Size rootSize = rootFrame.Size;
 

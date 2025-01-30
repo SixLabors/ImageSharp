@@ -65,7 +65,7 @@ public static partial class ParallelRowIterator
         }
 
         int verticalStep = DivideCeil(rectangle.Height, numOfSteps);
-        ParallelOptions? parallelOptions = new() { MaxDegreeOfParallelism = numOfSteps };
+        ParallelOptions parallelOptions = new() { MaxDegreeOfParallelism = numOfSteps };
         RowOperationWrapper<T> wrappingOperation = new(top, bottom, verticalStep, in operation);
 
         Parallel.For(
@@ -135,7 +135,7 @@ public static partial class ParallelRowIterator
         }
 
         int verticalStep = DivideCeil(height, numOfSteps);
-        ParallelOptions? parallelOptions = new ParallelOptions { MaxDegreeOfParallelism = numOfSteps };
+        ParallelOptions parallelOptions = new ParallelOptions { MaxDegreeOfParallelism = numOfSteps };
         RowOperationWrapper<T, TBuffer> wrappingOperation = new RowOperationWrapper<T, TBuffer>(top, bottom, verticalStep, bufferLength, allocator, in operation);
 
         Parallel.For(
@@ -192,7 +192,7 @@ public static partial class ParallelRowIterator
         }
 
         int verticalStep = DivideCeil(rectangle.Height, numOfSteps);
-        ParallelOptions? parallelOptions = new ParallelOptions { MaxDegreeOfParallelism = numOfSteps };
+        ParallelOptions parallelOptions = new ParallelOptions { MaxDegreeOfParallelism = numOfSteps };
         RowIntervalOperationWrapper<T> wrappingOperation = new RowIntervalOperationWrapper<T>(top, bottom, verticalStep, in operation);
 
         Parallel.For(
@@ -259,7 +259,7 @@ public static partial class ParallelRowIterator
         }
 
         int verticalStep = DivideCeil(height, numOfSteps);
-        ParallelOptions? parallelOptions = new ParallelOptions { MaxDegreeOfParallelism = numOfSteps };
+        ParallelOptions parallelOptions = new ParallelOptions { MaxDegreeOfParallelism = numOfSteps };
         RowIntervalOperationWrapper<T, TBuffer> wrappingOperation = new RowIntervalOperationWrapper<T, TBuffer>(top, bottom, verticalStep, bufferLength, allocator, in operation);
 
         Parallel.For(

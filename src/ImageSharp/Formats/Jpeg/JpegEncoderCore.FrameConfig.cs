@@ -13,15 +13,15 @@ internal sealed unsafe partial class JpegEncoderCore
 {
     private static JpegFrameConfig[] CreateFrameConfigs()
     {
-        JpegHuffmanTableConfig? defaultLuminanceHuffmanDC = new(@class: 0, destIndex: 0, HuffmanSpec.LuminanceDC);
-        JpegHuffmanTableConfig? defaultLuminanceHuffmanAC = new(@class: 1, destIndex: 0, HuffmanSpec.LuminanceAC);
-        JpegHuffmanTableConfig? defaultChrominanceHuffmanDC = new(@class: 0, destIndex: 1, HuffmanSpec.ChrominanceDC);
-        JpegHuffmanTableConfig? defaultChrominanceHuffmanAC = new(@class: 1, destIndex: 1, HuffmanSpec.ChrominanceAC);
+        JpegHuffmanTableConfig defaultLuminanceHuffmanDC = new(@class: 0, destIndex: 0, HuffmanSpec.LuminanceDC);
+        JpegHuffmanTableConfig defaultLuminanceHuffmanAC = new(@class: 1, destIndex: 0, HuffmanSpec.LuminanceAC);
+        JpegHuffmanTableConfig defaultChrominanceHuffmanDC = new(@class: 0, destIndex: 1, HuffmanSpec.ChrominanceDC);
+        JpegHuffmanTableConfig defaultChrominanceHuffmanAC = new(@class: 1, destIndex: 1, HuffmanSpec.ChrominanceAC);
 
-        JpegQuantizationTableConfig? defaultLuminanceQuantTable = new(0, Quantization.LuminanceTable);
-        JpegQuantizationTableConfig? defaultChrominanceQuantTable = new(1, Quantization.ChrominanceTable);
+        JpegQuantizationTableConfig defaultLuminanceQuantTable = new(0, Quantization.LuminanceTable);
+        JpegQuantizationTableConfig defaultChrominanceQuantTable = new(1, Quantization.ChrominanceTable);
 
-        JpegHuffmanTableConfig[]? yCbCrHuffmanConfigs = new JpegHuffmanTableConfig[]
+        JpegHuffmanTableConfig[] yCbCrHuffmanConfigs = new JpegHuffmanTableConfig[]
         {
             defaultLuminanceHuffmanDC,
             defaultLuminanceHuffmanAC,
@@ -29,7 +29,7 @@ internal sealed unsafe partial class JpegEncoderCore
             defaultChrominanceHuffmanAC,
         };
 
-        JpegQuantizationTableConfig[]? yCbCrQuantTableConfigs = new JpegQuantizationTableConfig[]
+        JpegQuantizationTableConfig[] yCbCrQuantTableConfigs = new JpegQuantizationTableConfig[]
         {
             defaultLuminanceQuantTable,
             defaultChrominanceQuantTable,

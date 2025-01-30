@@ -164,7 +164,7 @@ internal sealed partial class IccDataReader
     /// <returns>The read bytes</returns>
     public byte[] ReadBytes(int count)
     {
-        byte[]? bytes = new byte[count];
+        byte[] bytes = new byte[count];
         Buffer.BlockCopy(this.data, this.AddIndex(count), bytes, 0, count);
         return bytes;
     }

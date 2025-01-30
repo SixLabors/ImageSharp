@@ -112,6 +112,8 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: |
+            8.0.x
+            7.0.x
             6.0.x
 
       - name: DotNet Setup Preview
@@ -121,12 +123,12 @@ jobs:
           dotnet-version: |
             7.0.x
 
-      - name: Ensure DotNet Path
-        if: ${{ matrix.options.os != 'windows-latest' }}
-        run: echo "/usr/share/dotnet" >> $GITHUB_PATH
+      # - name: Ensure DotNet Path
+      #   if: ${{ matrix.options.os != 'windows-latest' }}
+      #   run: echo "/usr/share/dotnet" >> $GITHUB_PATH
 
-      - name: Confirm DotNet Version
-        run: dotnet --version
+      # - name: Confirm DotNet Version
+      #   run: dotnet --version
 
       - name: DotNet Build
         if: ${{ matrix.options.sdk-preview != true }}

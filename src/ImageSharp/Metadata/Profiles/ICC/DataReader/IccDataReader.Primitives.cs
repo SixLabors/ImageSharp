@@ -16,55 +16,37 @@ internal sealed partial class IccDataReader
     /// Reads an ushort
     /// </summary>
     /// <returns>the value</returns>
-    public ushort ReadUInt16()
-    {
-        return BinaryPrimitives.ReadUInt16BigEndian(this.data.AsSpan(this.AddIndex(2), 2));
-    }
+    public ushort ReadUInt16() => BinaryPrimitives.ReadUInt16BigEndian(this.data.AsSpan(this.AddIndex(2), 2));
 
     /// <summary>
     /// Reads a short
     /// </summary>
     /// <returns>the value</returns>
-    public short ReadInt16()
-    {
-        return BinaryPrimitives.ReadInt16BigEndian(this.data.AsSpan(this.AddIndex(2), 2));
-    }
+    public short ReadInt16() => BinaryPrimitives.ReadInt16BigEndian(this.data.AsSpan(this.AddIndex(2), 2));
 
     /// <summary>
     /// Reads an uint
     /// </summary>
     /// <returns>the value</returns>
-    public uint ReadUInt32()
-    {
-        return BinaryPrimitives.ReadUInt32BigEndian(this.data.AsSpan(this.AddIndex(4), 4));
-    }
+    public uint ReadUInt32() => BinaryPrimitives.ReadUInt32BigEndian(this.data.AsSpan(this.AddIndex(4), 4));
 
     /// <summary>
     /// Reads an int
     /// </summary>
     /// <returns>the value</returns>
-    public int ReadInt32()
-    {
-        return BinaryPrimitives.ReadInt32BigEndian(this.data.AsSpan(this.AddIndex(4), 4));
-    }
+    public int ReadInt32() => BinaryPrimitives.ReadInt32BigEndian(this.data.AsSpan(this.AddIndex(4), 4));
 
     /// <summary>
     /// Reads an ulong
     /// </summary>
     /// <returns>the value</returns>
-    public ulong ReadUInt64()
-    {
-        return BinaryPrimitives.ReadUInt64BigEndian(this.data.AsSpan(this.AddIndex(8), 8));
-    }
+    public ulong ReadUInt64() => BinaryPrimitives.ReadUInt64BigEndian(this.data.AsSpan(this.AddIndex(8), 8));
 
     /// <summary>
     /// Reads a long
     /// </summary>
     /// <returns>the value</returns>
-    public long ReadInt64()
-    {
-        return BinaryPrimitives.ReadInt64BigEndian(this.data.AsSpan(this.AddIndex(8), 8));
-    }
+    public long ReadInt64() => BinaryPrimitives.ReadInt64BigEndian(this.data.AsSpan(this.AddIndex(8), 8));
 
     /// <summary>
     /// Reads a float.
@@ -152,10 +134,7 @@ internal sealed partial class IccDataReader
     /// Reads an unsigned 16bit number with 8 value bits and 8 fractional bits.
     /// </summary>
     /// <returns>The number as double</returns>
-    public float ReadUFix8()
-    {
-        return this.ReadUInt16() / 256f;
-    }
+    public float ReadUFix8() => this.ReadUInt16() / 256f;
 
     /// <summary>
     /// Reads a number of bytes and advances the index.

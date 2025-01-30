@@ -61,13 +61,9 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: |
+            8.0.x
+            7.0.x
             6.0.x
-
-      - name: Ensure DotNet Path
-        run: echo "/usr/share/dotnet" >> $GITHUB_PATH
-
-      - name: Confirm DotNet Version
-        run: dotnet --version  # This will now find dotnet in /usr/share/dotnet
 
       - name: DotNet Build
         shell: pwsh

@@ -19,45 +19,45 @@ jobs:
         isARM:
           - ${{ contains(github.event.pull_request.labels.*.name, 'arch:arm32') || contains(github.event.pull_request.labels.*.name, 'arch:arm64') }}
         options:
-          # - os: ubuntu-latest
-          #   framework: net7.0
-          #   sdk: 7.0.x
-          #   sdk-preview: true
-          #   runtime: -x64
-          #   codecov: false
-          # - os: macos-13 # macos-latest runs on arm64 runners where libgdiplus is unavailable
-          #   framework: net7.0
-          #   sdk: 7.0.x
-          #   sdk-preview: true
-          #   runtime: -x64
-          #   codecov: false
-          # - os: windows-latest
-          #   framework: net7.0
-          #   sdk: 7.0.x
-          #   sdk-preview: true
-          #   runtime: -x64
-          #   codecov: false
-          # - os: buildjet-4vcpu-ubuntu-2204-arm
-          #   framework: net7.0
-          #   sdk: 7.0.x
-          #   sdk-preview: true
-          #   runtime: -x64
-          #   codecov: false
+          - os: ubuntu-latest
+            framework: net7.0
+            sdk: 7.0.x
+            sdk-preview: true
+            runtime: -x64
+            codecov: false
+          - os: macos-13 # macos-latest runs on arm64 runners where libgdiplus is unavailable
+            framework: net7.0
+            sdk: 7.0.x
+            sdk-preview: true
+            runtime: -x64
+            codecov: false
+          - os: windows-latest
+            framework: net7.0
+            sdk: 7.0.x
+            sdk-preview: true
+            runtime: -x64
+            codecov: false
+          - os: buildjet-4vcpu-ubuntu-2204-arm
+            framework: net7.0
+            sdk: 7.0.x
+            sdk-preview: true
+            runtime: -x64
+            codecov: false
           - os: ubuntu-latest
             framework: net6.0
             sdk: 6.0.x
             runtime: -x64
             codecov: false
-          # - os: macos-13 # macos-latest runs on arm64 runners where libgdiplus is unavailable
-          #   framework: net6.0
-          #   sdk: 6.0.x
-          #   runtime: -x64
-          #   codecov: false
-          # - os: windows-latest
-          #   framework: net6.0
-          #   sdk: 6.0.x
-          #   runtime: -x64
-          #   codecov: false
+          - os: macos-13 # macos-latest runs on arm64 runners where libgdiplus is unavailable
+            framework: net6.0
+            sdk: 6.0.x
+            runtime: -x64
+            codecov: false
+          - os: windows-latest
+            framework: net6.0
+            sdk: 6.0.x
+            runtime: -x64
+            codecov: false
         exclude:
           - isARM: false
             options:
@@ -108,27 +108,12 @@ jobs:
           restore-keys: ${{ runner.os }}-nuget-
 
       - name: DotNet Setup
-        if: ${{ matrix.options.sdk-preview != true }}
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: |
             8.0.x
             7.0.x
             6.0.x
-
-      - name: DotNet Setup Preview
-        if: ${{ matrix.options.sdk-preview == true }}
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: |
-            7.0.x
-
-      # - name: Ensure DotNet Path
-      #   if: ${{ matrix.options.os != 'windows-latest' }}
-      #   run: echo "/usr/share/dotnet" >> $GITHUB_PATH
-
-      # - name: Confirm DotNet Version
-      #   run: dotnet --version
 
       - name: DotNet Build
         if: ${{ matrix.options.sdk-preview != true }}

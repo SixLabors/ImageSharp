@@ -122,10 +122,11 @@ jobs:
             7.0.x
 
       - name: Ensure DotNet Path
+        if: ${{ matrix.options.os != 'windows-latest' }}
         run: echo "/usr/share/dotnet" >> $GITHUB_PATH
 
       - name: Confirm DotNet Version
-        run: dotnet --version  # This will now find dotnet in /usr/share/dotnet
+        run: dotnet --version
 
       - name: DotNet Build
         if: ${{ matrix.options.sdk-preview != true }}

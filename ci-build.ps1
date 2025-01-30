@@ -3,11 +3,14 @@ param(
   [string]$targetFramework
 )
 
+Write-Output "PATH"
 Write-Output $env:PATH
 
+Write-Output "DOTNET_LIST"
 dotnet --list-sdks
 
 # Confirm dotnet version.
+Write-Output "DOTNET_VERSION"
 dotnet --version
 
 dotnet clean -c Release

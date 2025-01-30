@@ -67,7 +67,7 @@ jobs:
 
     steps:
       - name: Install libgdi+, which is required for tests running on ubuntu
-        if: ${{ matrix.options.os == 'buildjet-4vcpu-ubuntu-2204-arm' }}
+        if: ${{ contains(matrix.options.os, 'ubuntu') }}
         run: sudo apt-get -y install libgdiplus libgif-dev libglib2.0-dev libcairo2-dev libtiff-dev libexif-dev
 
       - name: Git Config
@@ -108,18 +108,12 @@ jobs:
           restore-keys: ${{ runner.os }}-nuget-
 
       - name: DotNet Setup
-        if: ${{ matrix.options.sdk-preview != true }}
-        uses: actions/setup-dotnet@v3
+        uses: actions/setup-dotnet@v4
         with:
           dotnet-version: |
-            6.0.x
-
-      - name: DotNet Setup Preview
-        if: ${{ matrix.options.sdk-preview == true }}
-        uses: actions/setup-dotnet@v3
-        with:
-          dotnet-version: |
+            8.0.x
             7.0.x
+            6.0.x
 
       - name: DotNet Build
         if: ${{ matrix.options.sdk-preview != true }}

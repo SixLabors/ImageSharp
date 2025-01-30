@@ -664,17 +664,15 @@ internal class TiffDecoderCore : ImageDecoderCore
                     cancellationToken);
 
                 int tileBufferOffset = 0;
+                int bytesToCopy = isLastHorizontalTile ? RoundUpToMultipleOfEight(bitsPerPixel * remainingPixelsInRow) : bytesPerTileRow;
+                int rowWidth = Math.Min(tileWidth, remainingPixelsInRow);
+                int left = tileX * tileWidth;
+
                 for (int y = rowStartY; y < rowEndY; y++)
                 {
-                    int bytesToCopy = isLastHorizontalTile ? RoundUpToMultipleOfEight(bitsPerPixel * remainingPixelsInRow) : bytesPerTileRow;
-                    ReadOnlySpan<byte> tileRowSpan = tileBufferSpan.Slice(tileBufferOffset, bytesToCopy);
-
                     // Decode the tile row directly into the pixel buffer.
-                    int left = tileX * tileWidth;
-                    int rowWidth = Math.Min(tileWidth, remainingPixelsInRow);
-
+                    ReadOnlySpan<byte> tileRowSpan = tileBufferSpan.Slice(tileBufferOffset, bytesToCopy);
                     colorDecoder.Decode(tileRowSpan, pixels, left, y, rowWidth, 1);
-
                     tileBufferOffset += bytesPerTileRow;
                 }
 

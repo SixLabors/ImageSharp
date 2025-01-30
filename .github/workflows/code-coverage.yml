@@ -63,6 +63,12 @@ jobs:
           dotnet-version: |
             6.0.x
 
+      - name: Ensure Dotnet Path
+        run: echo "/usr/share/dotnet" >> $GITHUB_PATH
+
+      - name: Confirm .NET Version
+        run: dotnet --version  # This will now find dotnet in /usr/share/dotnet
+
       - name: DotNet Build
         shell: pwsh
         run: ./ci-build.ps1 "${{matrix.options.framework}}"

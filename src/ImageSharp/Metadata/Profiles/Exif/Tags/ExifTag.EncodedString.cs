@@ -9,15 +9,15 @@ public abstract partial class ExifTag
     /// <summary>
     /// Gets the UserComment exif tag.
     /// </summary>
-    public static ExifTag<EncodedString> UserComment { get; } = new ExifTag<EncodedString>(ExifTagValue.UserComment);
+    public static ExifTag<EncodedString> UserComment { get; } = new(ExifTagValue.UserComment);
 
     /// <summary>
     /// Gets the GPSProcessingMethod exif tag.
     /// </summary>
-    public static ExifTag<EncodedString> GPSProcessingMethod { get; } = new ExifTag<EncodedString>(ExifTagValue.GPSProcessingMethod);
+    public static ExifTag<EncodedString> GPSProcessingMethod { get; } = new(ExifTagValue.GPSProcessingMethod);
 
     /// <summary>
     /// Gets the GPSAreaInformation exif tag.
     /// </summary>
-    public static ExifTag<EncodedString> GPSAreaInformation { get; } = new ExifTag<EncodedString>(ExifTagValue.GPSAreaInformation);
+    public static ExifTag<EncodedString> GPSAreaInformation { get; } = new(ExifTagValue.GPSAreaInformation);
 }

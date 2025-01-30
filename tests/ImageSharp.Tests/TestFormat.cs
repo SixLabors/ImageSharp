@@ -24,8 +24,8 @@ public class TestFormat : IImageFormatConfigurationModule, IImageFormat
 
     public TestFormat()
     {
-        this.Encoder = new TestEncoder(this);
-        this.Decoder = new TestDecoder(this);
+        this.Encoder = new(this);
+        this.Decoder = new(this);
     }
 
     public List<DecodeOperation> DecodeCalls { get; } = new();
@@ -38,7 +38,7 @@ public class TestFormat : IImageFormatConfigurationModule, IImageFormat
 
     public MemoryStream CreateStream(byte[] marker = null)
     {
-        var ms = new MemoryStream();
+        MemoryStream ms = new();
         byte[] data = this.header;
         ms.Write(data, 0, data.Length);
         if (marker != null)
@@ -54,7 +54,7 @@ public class TestFormat : IImageFormatConfigurationModule, IImageFormat
     {
         byte[] buffer = new byte[size];
         this.header.CopyTo(buffer, 0);
-        var semaphoreStream = new SemaphoreReadMemoryStream(buffer, waitAfterPosition, notifyWaitPositionReachedSemaphore, continueSemaphore);
+        SemaphoreReadMemoryStream semaphoreStream = new(buffer, waitAfterPosition, notifyWaitPositionReachedSemaphore, continueSemaphore);
         return seeakable ? semaphoreStream : new AsyncStreamWrapper(semaphoreStream, () => false);
     }
 
@@ -220,7 +220,7 @@ public class TestFormat : IImageFormatConfigurationModule, IImageFormat
             using MemoryStream ms = new();
             stream.CopyTo(ms, configuration.StreamProcessingBufferSize);
             byte[] marker = ms.ToArray().Skip(this.testFormat.header.Length).ToArray();
-            this.testFormat.DecodeCalls.Add(new DecodeOperation
+            this.testFormat.DecodeCalls.Add(new()
             {
                 Marker = marker,
                 Config = configuration,

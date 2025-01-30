@@ -396,7 +396,7 @@ internal class Vp8EncIterator
         this.MakeLuma16Preds();
         for (mode = 0; mode < maxMode; mode++)
         {
-            Vp8Histogram histo = new Vp8Histogram();
+            Vp8Histogram histo = new();
             histo.CollectHistogram(this.YuvIn.AsSpan(YOffEnc), this.YuvP.AsSpan(Vp8Encoding.Vp8I16ModeOffsets[mode]), 0, 16);
             int alpha = histo.GetAlpha();
             if (alpha > bestAlpha)

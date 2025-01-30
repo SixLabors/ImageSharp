@@ -66,7 +66,7 @@ public partial struct L8 : IPixel<L8>, IPackedVector<byte>
     public readonly Vector4 ToVector4()
     {
         float rgb = this.PackedValue / 255f;
-        return new Vector4(rgb, rgb, rgb, 1f);
+        return new(rgb, rgb, rgb, 1f);
     }
 
     /// <inheritdoc />

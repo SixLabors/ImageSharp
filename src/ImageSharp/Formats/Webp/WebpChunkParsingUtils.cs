@@ -358,7 +358,7 @@ internal static class WebpChunkParsingUtils
 
                     if (metadata.ExifProfile != null)
                     {
-                        metadata.ExifProfile = new ExifProfile(exifData);
+                        metadata.ExifProfile = new(exifData);
                     }
 
                     break;
@@ -372,7 +372,7 @@ internal static class WebpChunkParsingUtils
 
                     if (metadata.XmpProfile != null)
                     {
-                        metadata.XmpProfile = new XmpProfile(xmpData);
+                        metadata.XmpProfile = new(xmpData);
                     }
 
                     break;

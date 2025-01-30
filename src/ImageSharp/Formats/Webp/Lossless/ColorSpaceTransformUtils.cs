@@ -16,13 +16,13 @@ internal static class ColorSpaceTransformUtils
         {
             const int span = 16;
             Span<ushort> values = stackalloc ushort[span];
-            var collectColorBlueTransformsShuffleLowMask256 = Vector256.Create(255, 2, 255, 6, 255, 10, 255, 14, 255, 255, 255, 255, 255, 255, 255, 255, 255, 18, 255, 22, 255, 26, 255, 30, 255, 255, 255, 255, 255, 255, 255, 255);
-            var collectColorBlueTransformsShuffleHighMask256 = Vector256.Create(255, 255, 255, 255, 255, 255, 255, 255, 255, 2, 255, 6, 255, 10, 255, 14, 255, 255, 255, 255, 255, 255, 255, 255, 255, 18, 255, 22, 255, 26, 255, 30);
-            var collectColorBlueTransformsGreenBlueMask256 = Vector256.Create(255, 255, 0, 0, 255, 255, 0, 0, 255, 255, 0, 0, 255, 255, 0, 0, 255, 255, 0, 0, 255, 255, 0, 0, 255, 255, 0, 0, 255, 255, 0, 0);
-            var collectColorBlueTransformsGreenMask256 = Vector256.Create(0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255);
-            var collectColorBlueTransformsBlueMask256 = Vector256.Create(255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0);
-            var multsr = Vector256.Create(LosslessUtils.Cst5b(redToBlue));
-            var multsg = Vector256.Create(LosslessUtils.Cst5b(greenToBlue));
+            Vector256<byte> collectColorBlueTransformsShuffleLowMask256 = Vector256.Create(255, 2, 255, 6, 255, 10, 255, 14, 255, 255, 255, 255, 255, 255, 255, 255, 255, 18, 255, 22, 255, 26, 255, 30, 255, 255, 255, 255, 255, 255, 255, 255);
+            Vector256<byte> collectColorBlueTransformsShuffleHighMask256 = Vector256.Create(255, 255, 255, 255, 255, 255, 255, 255, 255, 2, 255, 6, 255, 10, 255, 14, 255, 255, 255, 255, 255, 255, 255, 255, 255, 18, 255, 22, 255, 26, 255, 30);
+            Vector256<byte> collectColorBlueTransformsGreenBlueMask256 = Vector256.Create(255, 255, 0, 0, 255, 255, 0, 0, 255, 255, 0, 0, 255, 255, 0, 0, 255, 255, 0, 0, 255, 255, 0, 0, 255, 255, 0, 0, 255, 255, 0, 0);
+            Vector256<byte> collectColorBlueTransformsGreenMask256 = Vector256.Create(0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255);
+            Vector256<byte> collectColorBlueTransformsBlueMask256 = Vector256.Create(255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0);
+            Vector256<short> multsr = Vector256.Create(LosslessUtils.Cst5b(redToBlue));
+            Vector256<short> multsg = Vector256.Create(LosslessUtils.Cst5b(greenToBlue));
             for (int y = 0; y < tileHeight; y++)
             {
                 Span<uint> srcSpan = bgra[(y * stride)..];
@@ -66,13 +66,13 @@ internal static class ColorSpaceTransformUtils
         {
             const int span = 8;
             Span<ushort> values = stackalloc ushort[span];
-            var collectColorBlueTransformsShuffleLowMask = Vector128.Create(255, 2, 255, 6, 255, 10, 255, 14, 255, 255, 255, 255, 255, 255, 255, 255);
-            var collectColorBlueTransformsShuffleHighMask = Vector128.Create(255, 255, 255, 255, 255, 255, 255, 255, 255, 2, 255, 6, 255, 10, 255, 14);
-            var collectColorBlueTransformsGreenBlueMask = Vector128.Create(255, 255, 0, 0, 255, 255, 0, 0, 255, 255, 0, 0, 255, 255, 0, 0);
-            var collectColorBlueTransformsGreenMask = Vector128.Create(0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255);
-            var collectColorBlueTransformsBlueMask = Vector128.Create(255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0);
-            var multsr = Vector128.Create(LosslessUtils.Cst5b(redToBlue));
-            var multsg = Vector128.Create(LosslessUtils.Cst5b(greenToBlue));
+            Vector128<byte> collectColorBlueTransformsShuffleLowMask = Vector128.Create(255, 2, 255, 6, 255, 10, 255, 14, 255, 255, 255, 255, 255, 255, 255, 255);
+            Vector128<byte> collectColorBlueTransformsShuffleHighMask = Vector128.Create(255, 255, 255, 255, 255, 255, 255, 255, 255, 2, 255, 6, 255, 10, 255, 14);
+            Vector128<byte> collectColorBlueTransformsGreenBlueMask = Vector128.Create(255, 255, 0, 0, 255, 255, 0, 0, 255, 255, 0, 0, 255, 255, 0, 0);
+            Vector128<byte> collectColorBlueTransformsGreenMask = Vector128.Create(0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255);
+            Vector128<byte> collectColorBlueTransformsBlueMask = Vector128.Create(255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0);
+            Vector128<short> multsr = Vector128.Create(LosslessUtils.Cst5b(redToBlue));
+            Vector128<short> multsg = Vector128.Create(LosslessUtils.Cst5b(greenToBlue));
             for (int y = 0; y < tileHeight; y++)
             {
                 Span<uint> srcSpan = bgra[(y * stride)..];
@@ -139,7 +139,7 @@ internal static class ColorSpaceTransformUtils
         {
             Vector256<byte> collectColorRedTransformsGreenMask256 = Vector256.Create(0x00ff00).AsByte();
             Vector256<byte> collectColorRedTransformsAndMask256 = Vector256.Create((short)0xff).AsByte();
-            var multsg = Vector256.Create(LosslessUtils.Cst5b(greenToRed));
+            Vector256<short> multsg = Vector256.Create(LosslessUtils.Cst5b(greenToRed));
             const int span = 16;
             Span<ushort> values = stackalloc ushort[span];
             for (int y = 0; y < tileHeight; y++)
@@ -182,7 +182,7 @@ internal static class ColorSpaceTransformUtils
         {
             Vector128<byte> collectColorRedTransformsGreenMask = Vector128.Create(0x00ff00).AsByte();
             Vector128<byte> collectColorRedTransformsAndMask = Vector128.Create((short)0xff).AsByte();
-            var multsg = Vector128.Create(LosslessUtils.Cst5b(greenToRed));
+            Vector128<short> multsg = Vector128.Create(LosslessUtils.Cst5b(greenToRed));
             const int span = 8;
             Span<ushort> values = stackalloc ushort[span];
             for (int y = 0; y < tileHeight; y++)

@@ -64,13 +64,13 @@ public class Program
 
     private static void RunResizeProfilingTest()
     {
-        var test = new ResizeProfilingBenchmarks(new ConsoleOutput());
+        ResizeProfilingBenchmarks test = new(new ConsoleOutput());
         test.ResizeBicubic(4000, 4000);
     }
 
     private static void RunToVector4ProfilingTest()
     {
-        var tests = new PixelOperationsTests.Rgba32_OperationsTests(new ConsoleOutput());
+        PixelOperationsTests.Rgba32_OperationsTests tests = new(new ConsoleOutput());
         tests.Benchmark_ToVector4();
     }
 }

@@ -8,7 +8,7 @@ namespace SixLabors.ImageSharp;
 /// </content>
 public partial struct Color
 {
-    private static readonly Lazy<Color[]> WebSafePaletteLazy = new Lazy<Color[]>(CreateWebSafePalette, true);
+    private static readonly Lazy<Color[]> WebSafePaletteLazy = new(CreateWebSafePalette, true);
 
     /// <summary>
     /// Gets a collection of named, web safe colors as defined in the CSS Color Module Level 4.

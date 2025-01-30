@@ -31,7 +31,7 @@ public class PngMetadataTests
             ColorType = PngColorType.GrayscaleWithAlpha,
             InterlaceMethod = PngInterlaceMode.Adam7,
             Gamma = 2,
-            TextData = new List<PngTextData> { new PngTextData("name", "value", "foo", "bar") },
+            TextData = new List<PngTextData> { new("name", "value", "foo", "bar") },
             RepeatCount = 123,
             AnimateRootFrame = false
         };
@@ -111,10 +111,10 @@ public class PngMetadataTests
         using MemoryStream memoryStream = new();
 
         // This will be a zTXt chunk.
-        PngTextData expectedText = new("large-text", new string('c', 100), string.Empty, string.Empty);
+        PngTextData expectedText = new("large-text", new('c', 100), string.Empty, string.Empty);
 
         // This will be a iTXt chunk.
-        PngTextData expectedTextNoneLatin = new("large-text-non-latin", new string('Ф', 100), "language-tag", "translated-keyword");
+        PngTextData expectedTextNoneLatin = new("large-text-non-latin", new('Ф', 100), "language-tag", "translated-keyword");
         PngMetadata inputMetadata = input.Metadata.GetFormatMetadata(PngFormat.Instance);
         inputMetadata.TextData.Add(expectedText);
         inputMetadata.TextData.Add(expectedTextNoneLatin);

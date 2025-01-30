@@ -18,7 +18,7 @@ internal static class IccTestDataLut
             result[i] = i / 255f;
         }
 
-        return new IccLut(result);
+        return new(result);
     }
 
     private static byte[] CreateLUT8()

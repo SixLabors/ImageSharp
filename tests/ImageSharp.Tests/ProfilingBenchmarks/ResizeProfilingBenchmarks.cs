@@ -28,7 +28,7 @@ public class ResizeProfilingBenchmarks : MeasureFixture
             this.ExecutionCount,
             () =>
                 {
-                    using (var image = new Image<Rgba32>(this.configuration, width, height))
+                    using (Image<Rgba32> image = new(this.configuration, width, height))
                     {
                         image.Mutate(x => x.Resize(width / 5, height / 5));
                     }

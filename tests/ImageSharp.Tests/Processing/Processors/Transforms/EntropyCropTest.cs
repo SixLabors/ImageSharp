@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms;
 [GroupOutput("Transforms")]
 public class EntropyCropTest
 {
-    public static readonly TheoryData<float> EntropyCropValues = new TheoryData<float> { .25F, .75F };
+    public static readonly TheoryData<float> EntropyCropValues = new() { .25F, .75F };
 
     public static readonly string[] InputImages =
         {
@@ -35,8 +35,8 @@ public class EntropyCropTest
     {
         // arrange
         using Image<TPixel> image = provider.GetImage();
-        var expectedHeight = image.Height;
-        var expectedWidth = image.Width;
+        int expectedHeight = image.Height;
+        int expectedWidth = image.Width;
 
         // act
         image.Mutate(img => img.EntropyCrop());

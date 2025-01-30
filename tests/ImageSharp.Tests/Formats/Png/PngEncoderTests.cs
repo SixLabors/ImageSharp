@@ -380,7 +380,7 @@ public partial class PngEncoderTests
         if (colorType is PngColorType.Grayscale or PngColorType.GrayscaleWithAlpha)
         {
             byte luminance = ColorNumerics.Get8BitBT709Luminance(expectedColor.R, expectedColor.G, expectedColor.B);
-            expectedColor = new Rgba32(luminance, luminance, luminance);
+            expectedColor = new(luminance, luminance, luminance);
         }
 
         actual.ProcessPixelRows(accessor =>
@@ -681,7 +681,7 @@ public partial class PngEncoderTests
             FilterMethod = pngFilterMethod,
             CompressionLevel = compressionLevel,
             BitDepth = bitDepth,
-            Quantizer = new WuQuantizer(new QuantizerOptions { MaxColors = paletteSize }),
+            Quantizer = new WuQuantizer(new() { MaxColors = paletteSize }),
             InterlaceMethod = interlaceMode,
             ChunkFilter = optimizeMethod,
         };

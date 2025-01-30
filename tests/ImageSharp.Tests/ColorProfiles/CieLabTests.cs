@@ -34,8 +34,8 @@ public class CieLabTests
         Assert.True(new CieLab(1, 0, 1) != default);
         Assert.False(new CieLab(1, 0, 1) == default);
         Assert.Equal(default, default(CieLab));
-        Assert.Equal(new CieLab(1, 0, 1), new CieLab(1, 0, 1));
-        Assert.Equal(new CieLab(Vector3.One), new CieLab(Vector3.One));
+        Assert.Equal(new(1, 0, 1), new CieLab(1, 0, 1));
+        Assert.Equal(new(Vector3.One), new CieLab(Vector3.One));
         Assert.False(x.Equals(y));
         Assert.False(new CieLab(1, 0, 1) == default);
         Assert.False(x.Equals((object)y));

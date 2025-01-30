@@ -83,7 +83,7 @@ public sealed class ExifProfile : IDeepCloneable<ExifProfile>
 
         if (other.values != null)
         {
-            this.values = new List<IExifValue>(other.Values.Count);
+            this.values = new(other.Values.Count);
 
             foreach (IExifValue value in other.Values)
             {
@@ -349,7 +349,7 @@ public sealed class ExifProfile : IDeepCloneable<ExifProfile>
 
         if (this.data is null)
         {
-            this.values = new List<IExifValue>();
+            this.values = new();
             return;
         }
 

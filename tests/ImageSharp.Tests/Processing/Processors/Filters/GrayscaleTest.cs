@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Filters;
 public class GrayscaleTest
 {
     public static readonly TheoryData<GrayscaleMode> GrayscaleModeTypes
-        = new TheoryData<GrayscaleMode>
+        = new()
         {
             GrayscaleMode.Bt601,
             GrayscaleMode.Bt709

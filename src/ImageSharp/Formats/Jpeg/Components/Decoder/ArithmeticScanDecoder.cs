@@ -244,7 +244,7 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
 
         this.scanComponentCount = scanComponentCount;
 
-        this.scanBuffer = new JpegBitReader(this.stream);
+        this.scanBuffer = new(this.stream);
 
         this.frame.AllocateComponents();
 

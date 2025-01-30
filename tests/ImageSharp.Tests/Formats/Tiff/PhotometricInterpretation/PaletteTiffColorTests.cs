@@ -83,12 +83,12 @@ public class PaletteTiffColorTests : PhotometricInterpretationTestBase
     public void Decode_WritesPixelData(byte[] inputData, ushort bitsPerSample, ushort[] colorMap, int left, int top, int width, int height, Rgba32[][] expectedResult)
         => AssertDecode(expectedResult, pixels =>
             {
-                new PaletteTiffColor<Rgba32>(new TiffBitsPerSample(bitsPerSample, 0, 0), colorMap).Decode(inputData, pixels, left, top, width, height);
+                new PaletteTiffColor<Rgba32>(new(bitsPerSample, 0, 0), colorMap).Decode(inputData, pixels, left, top, width, height);
             });
 
     private static uint[][] GeneratePalette(int count)
     {
-        var palette = new uint[count][];
+        uint[][] palette = new uint[count][];
 
         for (uint i = 0; i < count; i++)
         {
@@ -101,7 +101,7 @@ public class PaletteTiffColorTests : PhotometricInterpretationTestBase
     private static ushort[] GenerateColorMap(uint[][] colorPalette)
     {
         int colorCount = colorPalette.Length;
-        var colorMap = new ushort[colorCount * 3];
+        ushort[] colorMap = new ushort[colorCount * 3];
 
         for (int i = 0; i < colorCount; i++)
         {
@@ -115,7 +115,7 @@ public class PaletteTiffColorTests : PhotometricInterpretationTestBase
 
     private static Rgba32[][] GenerateResult(uint[][] colorPalette, int[][] pixelLookup)
     {
-        var result = new Rgba32[pixelLookup.Length][];
+        Rgba32[][] result = new Rgba32[pixelLookup.Length][];
 
         for (int y = 0; y < pixelLookup.Length; y++)
         {
@@ -124,7 +124,7 @@ public class PaletteTiffColorTests : PhotometricInterpretationTestBase
             for (int x = 0; x < pixelLookup[y].Length; x++)
             {
                 uint[] sourceColor = colorPalette[pixelLookup[y][x]];
-                result[y][x] = new Rgba32(sourceColor[0] / 65535F, sourceColor[1] / 65535F, sourceColor[2] / 65535F);
+                result[y][x] = new(sourceColor[0] / 65535F, sourceColor[1] / 65535F, sourceColor[2] / 65535F);
             }
         }
 

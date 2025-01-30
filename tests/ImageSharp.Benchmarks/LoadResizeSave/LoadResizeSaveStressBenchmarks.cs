@@ -18,7 +18,7 @@ public class LoadResizeSaveStressBenchmarks
     [GlobalSetup]
     public void Setup()
     {
-        this.runner = new LoadResizeSaveStressRunner()
+        this.runner = new()
         {
             ImageCount = Environment.ProcessorCount,
             Filter = Filter

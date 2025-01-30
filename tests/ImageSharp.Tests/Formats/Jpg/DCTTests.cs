@@ -46,7 +46,7 @@ public static class DCTTests
         {
             float[] sourceArray = Create8x8RandomFloatData(MinInputValue, MaxInputValue, seed);
 
-            var srcBlock = Block8x8F.Load(sourceArray);
+            Block8x8F srcBlock = Block8x8F.Load(sourceArray);
 
             // reference
             Block8x8F expected = ReferenceImplementations.LLM_FloatingPoint_DCT.TransformIDCT(ref srcBlock);
@@ -79,7 +79,7 @@ public static class DCTTests
         {
             float[] sourceArray = Create8x8RandomFloatData(MinInputValue, MaxInputValue, seed);
 
-            var srcBlock = Block8x8F.Load(sourceArray);
+            Block8x8F srcBlock = Block8x8F.Load(sourceArray);
 
             // reference
             Block8x8F expected = ReferenceImplementations.AccurateDCT.TransformIDCT(ref srcBlock);

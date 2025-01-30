@@ -19,7 +19,7 @@ public class YuvConversionTests
 
     public static void RunUpSampleYuvToRgbTest()
     {
-        var provider = TestImageProvider<Rgba32>.File(TestImageLossyFullPath);
+        TestImageProvider<Rgba32> provider = TestImageProvider<Rgba32>.File(TestImageLossyFullPath);
         using Image<Rgba32> image = provider.GetImage(WebpDecoder.Instance);
         image.DebugSave(provider);
         image.CompareToOriginal(provider, ReferenceDecoder);

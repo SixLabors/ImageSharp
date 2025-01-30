@@ -67,7 +67,7 @@ internal sealed class UniformUnmanagedMemoryPoolMemoryAllocator : MemoryAllocato
         this.poolBufferSizeInBytes = poolBufferSizeInBytes;
         this.poolCapacity = (int)(maxPoolSizeInBytes / poolBufferSizeInBytes);
         this.trimSettings = trimSettings;
-        this.pool = new UniformUnmanagedMemoryPool(this.poolBufferSizeInBytes, this.poolCapacity, this.trimSettings);
+        this.pool = new(this.poolBufferSizeInBytes, this.poolCapacity, this.trimSettings);
         this.nonPoolAllocator = new UnmanagedMemoryAllocator(unmanagedBufferSizeInBytes);
     }
 
@@ -96,7 +96,7 @@ internal sealed class UniformUnmanagedMemoryPoolMemoryAllocator : MemoryAllocato
 
         if (lengthInBytes <= (ulong)this.sharedArrayPoolThresholdInBytes)
         {
-            var buffer = new SharedArrayPoolBuffer<T>(length);
+            SharedArrayPoolBuffer<T> buffer = new SharedArrayPoolBuffer<T>(length);
             if (options.Has(AllocationOptions.Clean))
             {
                 buffer.GetSpan().Clear();
@@ -127,7 +127,7 @@ internal sealed class UniformUnmanagedMemoryPoolMemoryAllocator : MemoryAllocato
     {
         if (totalLengthInBytes <= this.sharedArrayPoolThresholdInBytes)
         {
-            var buffer = new SharedArrayPoolBuffer<T>((int)totalLengthInElements);
+            SharedArrayPoolBuffer<T> buffer = new SharedArrayPoolBuffer<T>((int)totalLengthInElements);
             return MemoryGroup<T>.CreateContiguous(buffer, options.Has(AllocationOptions.Clean));
         }
 

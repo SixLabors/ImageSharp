@@ -31,7 +31,7 @@ internal class MemoryGroupView<T> : IMemoryGroup<T>
 
         for (int i = 0; i < owner.Count; i++)
         {
-            this.memoryWrappers[i] = new MemoryOwnerWrapper(this, i);
+            this.memoryWrappers[i] = new(this, i);
         }
     }
 
@@ -79,7 +79,7 @@ internal class MemoryGroupView<T> : IMemoryGroup<T>
     [MethodImpl(InliningOptions.ShortMethod)]
     public MemoryGroupEnumerator<T> GetEnumerator()
     {
-        return new MemoryGroupEnumerator<T>(this);
+        return new(this);
     }
 
     /// <inheritdoc/>

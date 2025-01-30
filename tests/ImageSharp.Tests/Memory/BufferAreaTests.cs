@@ -7,14 +7,14 @@ namespace SixLabors.ImageSharp.Tests.Memory;
 
 public class BufferAreaTests
 {
-    private readonly TestMemoryAllocator memoryAllocator = new TestMemoryAllocator();
+    private readonly TestMemoryAllocator memoryAllocator = new();
 
     [Fact]
     public void Construct()
     {
         using Buffer2D<int> buffer = this.memoryAllocator.Allocate2D<int>(10, 20);
-        var rectangle = new Rectangle(3, 2, 5, 6);
-        var area = new Buffer2DRegion<int>(buffer, rectangle);
+        Rectangle rectangle = new(3, 2, 5, 6);
+        Buffer2DRegion<int> area = new(buffer, rectangle);
 
         Assert.Equal(buffer, area.Buffer);
         Assert.Equal(rectangle, area.Rectangle);
@@ -43,7 +43,7 @@ public class BufferAreaTests
     {
         this.memoryAllocator.BufferCapacityInBytes = sizeof(int) * bufferCapacity;
         using Buffer2D<int> buffer = this.CreateTestBuffer(20, 30);
-        var r = new Rectangle(rx, ry, 5, 6);
+        Rectangle r = new(rx, ry, 5, 6);
 
         Buffer2DRegion<int> region = buffer.GetRegion(r);
 
@@ -62,7 +62,7 @@ public class BufferAreaTests
         this.memoryAllocator.BufferCapacityInBytes = sizeof(int) * bufferCapacity;
 
         using Buffer2D<int> buffer = this.CreateTestBuffer(20, 30);
-        var r = new Rectangle(rx, ry, w, h);
+        Rectangle r = new(rx, ry, w, h);
 
         Buffer2DRegion<int> region = buffer.GetRegion(r);
 
@@ -87,7 +87,7 @@ public class BufferAreaTests
 
         Buffer2DRegion<int> area1 = area0.GetSubRegion(4, 4, 5, 5);
 
-        var expectedRect = new Rectangle(10, 12, 5, 5);
+        Rectangle expectedRect = new(10, 12, 5, 5);
 
         Assert.Equal(buffer, area1.Buffer);
         Assert.Equal(expectedRect, area1.Rectangle);
@@ -120,7 +120,7 @@ public class BufferAreaTests
         this.memoryAllocator.BufferCapacityInBytes = sizeof(int) * bufferCapacity;
 
         using Buffer2D<int> buffer = this.CreateTestBuffer(22, 13);
-        var emptyRow = new int[22];
+        int[] emptyRow = new int[22];
         buffer.GetRegion().Clear();
 
         for (int y = 0; y < 13; y++)

@@ -10,14 +10,14 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff.PhotometricInterpretation;
 [Trait("Format", "Tiff")]
 public abstract class PhotometricInterpretationTestBase
 {
-    public static Rgba32 DefaultColor = new Rgba32(42, 96, 18, 128);
+    public static Rgba32 DefaultColor = new(42, 96, 18, 128);
 
     public static Rgba32[][] Offset(Rgba32[][] input, int xOffset, int yOffset, int width, int height)
     {
         int inputHeight = input.Length;
         int inputWidth = input[0].Length;
 
-        var output = new Rgba32[height][];
+        Rgba32[][] output = new Rgba32[height][];
 
         for (int y = 0; y < output.Length; y++)
         {
@@ -45,7 +45,7 @@ public abstract class PhotometricInterpretationTestBase
         int resultWidth = expectedResult[0].Length;
         int resultHeight = expectedResult.Length;
 
-        using (var image = new Image<Rgba32>(resultWidth, resultHeight))
+        using (Image<Rgba32> image = new(resultWidth, resultHeight))
         {
             image.Mutate(x => x.BackgroundColor(Color.FromPixel(DefaultColor)));
             Buffer2D<Rgba32> pixels = image.GetRootFramePixelBuffer();

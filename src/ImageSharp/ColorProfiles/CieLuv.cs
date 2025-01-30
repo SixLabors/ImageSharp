@@ -123,7 +123,7 @@ public readonly struct CieLuv : IColorProfile<CieLuv, CieXyz>
             v = 0;
         }
 
-        return new CieLuv((float)l, (float)u, (float)v);
+        return new((float)l, (float)u, (float)v);
     }
 
     /// <inheritdoc/>
@@ -177,7 +177,7 @@ public readonly struct CieLuv : IColorProfile<CieLuv, CieXyz>
             z = 0;
         }
 
-        return new CieXyz((float)x, (float)y, (float)z);
+        return new((float)x, (float)y, (float)z);
     }
 
     /// <inheritdoc/>

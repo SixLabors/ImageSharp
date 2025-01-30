@@ -17,7 +17,7 @@ public class SimpleGcMemoryAllocatorTests
         }
     }
 
-    protected SimpleGcMemoryAllocator MemoryAllocator { get; } = new SimpleGcMemoryAllocator();
+    protected SimpleGcMemoryAllocator MemoryAllocator { get; } = new();
 
     public static TheoryData<int> InvalidLengths { get; set; } = new()
     {

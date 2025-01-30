@@ -16,7 +16,7 @@ public static class HistogramEqualizationExtensions
     /// <param name="source">The current image processing context.</param>
     /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
     public static IImageProcessingContext HistogramEqualization(this IImageProcessingContext source) =>
-        HistogramEqualization(source, new HistogramEqualizationOptions());
+        HistogramEqualization(source, new());
 
     /// <summary>
     /// Equalizes the histogram of an image to increases the contrast.

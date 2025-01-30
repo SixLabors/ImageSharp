@@ -154,7 +154,7 @@ public class BlackIsZeroTiffColorTests : PhotometricInterpretationTestBase
     public void Decode_WritesPixelData(byte[] inputData, ushort bitsPerSample, int left, int top, int width, int height, Rgba32[][] expectedResult)
         => AssertDecode(
             expectedResult,
-            pixels => new BlackIsZeroTiffColor<Rgba32>(new TiffBitsPerSample(bitsPerSample, 0, 0)).Decode(inputData, pixels, left, top, width, height));
+            pixels => new BlackIsZeroTiffColor<Rgba32>(new(bitsPerSample, 0, 0)).Decode(inputData, pixels, left, top, width, height));
 
     [Theory]
     [MemberData(nameof(BilevelData))]

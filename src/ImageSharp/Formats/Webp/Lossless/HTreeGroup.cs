@@ -15,7 +15,7 @@ internal struct HTreeGroup
 {
     public HTreeGroup(uint packedTableSize)
     {
-        this.HTrees = new List<HuffmanCode[]>(WebpConstants.HuffmanCodesPerMetaCode);
+        this.HTrees = new(WebpConstants.HuffmanCodesPerMetaCode);
         this.PackedTable = new HuffmanCode[packedTableSize];
         this.IsTrivialCode = false;
         this.IsTrivialLiteral = false;

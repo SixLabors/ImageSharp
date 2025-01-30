@@ -106,7 +106,7 @@ internal sealed partial class IccDataReader
     /// <returns>The read signature</returns>
     public IccTypeSignature ReadTagDataEntryHeader()
     {
-        var type = (IccTypeSignature)this.ReadUInt32();
+        IccTypeSignature type = (IccTypeSignature)this.ReadUInt32();
         this.AddIndex(4); // 4 bytes are not used
         return type;
     }
@@ -142,7 +142,7 @@ internal sealed partial class IccDataReader
     public IccChromaticityTagDataEntry ReadChromaticityTagDataEntry()
     {
         ushort channelCount = this.ReadUInt16();
-        var colorant = (IccColorantEncoding)this.ReadUInt16();
+        IccColorantEncoding colorant = (IccColorantEncoding)this.ReadUInt16();
 
         if (Enum.IsDefined(colorant) && colorant != IccColorantEncoding.Unknown)
         {
@@ -181,7 +181,7 @@ internal sealed partial class IccDataReader
     public IccColorantTableTagDataEntry ReadColorantTableTagDataEntry()
     {
         uint colorantCount = this.ReadUInt32();
-        var cdata = new IccColorantTableEntry[colorantCount];
+        IccColorantTableEntry[] cdata = new IccColorantTableEntry[colorantCount];
         for (int i = 0; i < colorantCount; i++)
         {
             cdata[i] = this.ReadColorantTableEntry();
@@ -263,7 +263,7 @@ internal sealed partial class IccDataReader
         ushort outTableCount = this.ReadUInt16();
 
         // Input LUT
-        var inValues = new IccLut[inChCount];
+        IccLut[] inValues = new IccLut[inChCount];
         byte[] gridPointCount = new byte[inChCount];
         for (int i = 0; i < inChCount; i++)
         {
@@ -275,7 +275,7 @@ internal sealed partial class IccDataReader
         IccClut clut = this.ReadClut16(inChCount, outChCount, gridPointCount);
 
         // Output LUT
-        var outValues = new IccLut[outChCount];
+        IccLut[] outValues = new IccLut[outChCount];
         for (int i = 0; i < outChCount; i++)
         {
             outValues[i] = this.ReadLut16(outTableCount);
@@ -298,7 +298,7 @@ internal sealed partial class IccDataReader
         float[,] matrix = this.ReadMatrix(3, 3, false);
 
         // Input LUT
-        var inValues = new IccLut[inChCount];
+        IccLut[] inValues = new IccLut[inChCount];
         byte[] gridPointCount = new byte[inChCount];
         for (int i = 0; i < inChCount; i++)
         {
@@ -310,7 +310,7 @@ internal sealed partial class IccDataReader
         IccClut clut = this.ReadClut8(inChCount, outChCount, gridPointCount);
 
         // Output LUT
-        var outValues = new IccLut[outChCount];
+        IccLut[] outValues = new IccLut[outChCount];
         for (int i = 0; i < outChCount; i++)
         {
             outValues[i] = this.ReadLut8();
@@ -461,9 +461,9 @@ internal sealed partial class IccDataReader
         uint recordCount = this.ReadUInt32();
 
         this.ReadUInt32();  // Record size (always 12)
-        var text = new IccLocalizedString[recordCount];
+        IccLocalizedString[] text = new IccLocalizedString[recordCount];
 
-        var culture = new CultureInfo[recordCount];
+        CultureInfo[] culture = new CultureInfo[recordCount];
         uint[] length = new uint[recordCount];
         uint[] offset = new uint[recordCount];
 
@@ -528,13 +528,13 @@ internal sealed partial class IccDataReader
         this.ReadUInt16();
         uint elementCount = this.ReadUInt32();
 
-        var positionTable = new IccPositionNumber[elementCount];
+        IccPositionNumber[] positionTable = new IccPositionNumber[elementCount];
         for (int i = 0; i < elementCount; i++)
         {
             positionTable[i] = this.ReadPositionNumber();
         }
 
-        var elements = new IccMultiProcessElement[elementCount];
+        IccMultiProcessElement[] elements = new IccMultiProcessElement[elementCount];
         for (int i = 0; i < elementCount; i++)
         {
             this.currentIndex = (int)positionTable[i].Offset + start;
@@ -556,7 +556,7 @@ internal sealed partial class IccDataReader
         string prefix = this.ReadAsciiString(32);
         string suffix = this.ReadAsciiString(32);
 
-        var colors = new IccNamedColor[colorCount];
+        IccNamedColor[] colors = new IccNamedColor[colorCount];
         for (int i = 0; i < colorCount; i++)
         {
             colors[i] = this.ReadNamedColor(coordCount);
@@ -581,7 +581,7 @@ internal sealed partial class IccDataReader
     public IccProfileSequenceDescTagDataEntry ReadProfileSequenceDescTagDataEntry()
     {
         uint count = this.ReadUInt32();
-        var description = new IccProfileDescription[count];
+        IccProfileDescription[] description = new IccProfileDescription[count];
         for (int i = 0; i < count; i++)
         {
             description[i] = this.ReadProfileDescription();
@@ -598,13 +598,13 @@ internal sealed partial class IccDataReader
     {
         int start = this.currentIndex - 8; // 8 is the tag header size
         uint count = this.ReadUInt32();
-        var table = new IccPositionNumber[count];
+        IccPositionNumber[] table = new IccPositionNumber[count];
         for (int i = 0; i < count; i++)
         {
             table[i] = this.ReadPositionNumber();
         }
 
-        var entries = new IccProfileSequenceIdentifier[count];
+        IccProfileSequenceIdentifier[] entries = new IccProfileSequenceIdentifier[count];
         for (int i = 0; i < count; i++)
         {
             this.currentIndex = (int)(start + table[i].Offset);
@@ -633,7 +633,7 @@ internal sealed partial class IccDataReader
             offset[i] = this.ReadUInt32();
         }
 
-        var curves = new IccResponseCurve[measurementCount];
+        IccResponseCurve[] curves = new IccResponseCurve[measurementCount];
         for (int i = 0; i < measurementCount; i++)
         {
             this.currentIndex = (int)(start + offset[i]);
@@ -780,7 +780,7 @@ internal sealed partial class IccDataReader
     public IccXyzTagDataEntry ReadXyzTagDataEntry(uint size)
     {
         uint count = (size - 8) / 12;
-        var arrayData = new Vector3[count];
+        Vector3[] arrayData = new Vector3[count];
         for (int i = 0; i < count; i++)
         {
             arrayData[i] = this.ReadXyzNumber();
@@ -859,9 +859,9 @@ internal sealed partial class IccDataReader
     /// <returns>The read entry</returns>
     public IccScreeningTagDataEntry ReadScreeningTagDataEntry()
     {
-        var flags = (IccScreeningFlag)this.ReadInt32();
+        IccScreeningFlag flags = (IccScreeningFlag)this.ReadInt32();
         uint channelCount = this.ReadUInt32();
-        var channels = new IccScreeningChannel[channelCount];
+        IccScreeningChannel[] channels = new IccScreeningChannel[channelCount];
         for (int i = 0; i < channels.Length; i++)
         {
             channels[i] = this.ReadScreeningChannel();

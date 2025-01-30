@@ -26,7 +26,7 @@ public class ParallelRowIteratorTests
     /// maxDegreeOfParallelism, minY, maxY, expectedStepLength, expectedLastStepLength
     /// </summary>
     public static TheoryData<int, int, int, int, int, int> IterateRows_OverMinimumPixelsLimit_Data =
-        new TheoryData<int, int, int, int, int, int>
+        new()
         {
             { 1, 0, 100, -1, 100, 1 },
             { 2, 0, 9, 5, 4, 2 },
@@ -52,12 +52,12 @@ public class ParallelRowIteratorTests
         int expectedLastStepLength,
         int expectedNumberOfSteps)
     {
-        var parallelSettings = new ParallelExecutionSettings(
+        ParallelExecutionSettings parallelSettings = new(
             maxDegreeOfParallelism,
             1,
             Configuration.Default.MemoryAllocator);
 
-        var rectangle = new Rectangle(0, minY, 10, maxY - minY);
+        Rectangle rectangle = new(0, minY, 10, maxY - minY);
 
         int actualNumberOfSteps = 0;
 
@@ -73,7 +73,7 @@ public class ParallelRowIteratorTests
             Assert.Equal(expected, step);
         }
 
-        var operation = new TestRowIntervalOperation(RowAction);
+        TestRowIntervalOperation operation = new(RowAction);
 
         ParallelRowIterator.IterateRowIntervals(
             rectangle,
@@ -93,15 +93,15 @@ public class ParallelRowIteratorTests
         int expectedLastStepLength,
         int expectedNumberOfSteps)
     {
-        var parallelSettings = new ParallelExecutionSettings(
+        ParallelExecutionSettings parallelSettings = new(
             maxDegreeOfParallelism,
             1,
             Configuration.Default.MemoryAllocator);
 
-        var rectangle = new Rectangle(0, minY, 10, maxY - minY);
+        Rectangle rectangle = new(0, minY, 10, maxY - minY);
 
         int[] expectedData = Enumerable.Repeat(0, minY).Concat(Enumerable.Range(minY, maxY - minY)).ToArray();
-        var actualData = new int[maxY];
+        int[] actualData = new int[maxY];
 
         void RowAction(RowInterval rows)
         {
@@ -111,7 +111,7 @@ public class ParallelRowIteratorTests
             }
         }
 
-        var operation = new TestRowIntervalOperation(RowAction);
+        TestRowIntervalOperation operation = new(RowAction);
 
         ParallelRowIterator.IterateRowIntervals(
             rectangle,
@@ -131,12 +131,12 @@ public class ParallelRowIteratorTests
         int expectedLastStepLength,
         int expectedNumberOfSteps)
     {
-        var parallelSettings = new ParallelExecutionSettings(
+        ParallelExecutionSettings parallelSettings = new(
             maxDegreeOfParallelism,
             1,
             Configuration.Default.MemoryAllocator);
 
-        var rectangle = new Rectangle(0, minY, 10, maxY - minY);
+        Rectangle rectangle = new(0, minY, 10, maxY - minY);
 
         int actualNumberOfSteps = 0;
 
@@ -152,7 +152,7 @@ public class ParallelRowIteratorTests
             Assert.Equal(expected, step);
         }
 
-        var operation = new TestRowIntervalOperation<Vector4>(RowAction);
+        TestRowIntervalOperation<Vector4> operation = new(RowAction);
 
         ParallelRowIterator.IterateRowIntervals<TestRowIntervalOperation<Vector4>, Vector4>(
             rectangle,
@@ -172,15 +172,15 @@ public class ParallelRowIteratorTests
         int expectedLastStepLength,
         int expectedNumberOfSteps)
     {
-        var parallelSettings = new ParallelExecutionSettings(
+        ParallelExecutionSettings parallelSettings = new(
             maxDegreeOfParallelism,
             1,
             Configuration.Default.MemoryAllocator);
 
-        var rectangle = new Rectangle(0, minY, 10, maxY - minY);
+        Rectangle rectangle = new(0, minY, 10, maxY - minY);
 
         int[] expectedData = Enumerable.Repeat(0, minY).Concat(Enumerable.Range(minY, maxY - minY)).ToArray();
-        var actualData = new int[maxY];
+        int[] actualData = new int[maxY];
 
         void RowAction(RowInterval rows, Span<Vector4> buffer)
         {
@@ -190,7 +190,7 @@ public class ParallelRowIteratorTests
             }
         }
 
-        var operation = new TestRowIntervalOperation<Vector4>(RowAction);
+        TestRowIntervalOperation<Vector4> operation = new(RowAction);
 
         ParallelRowIterator.IterateRowIntervals<TestRowIntervalOperation<Vector4>, Vector4>(
             rectangle,
@@ -201,7 +201,7 @@ public class ParallelRowIteratorTests
     }
 
     public static TheoryData<int, int, int, int, int, int, int> IterateRows_WithEffectiveMinimumPixelsLimit_Data =
-        new TheoryData<int, int, int, int, int, int, int>
+        new()
         {
             { 2, 200, 50, 2, 1, -1, 2 },
             { 2, 200, 200, 1, 1, -1, 1 },
@@ -223,12 +223,12 @@ public class ParallelRowIteratorTests
         int expectedStepLength,
         int expectedLastStepLength)
     {
-        var parallelSettings = new ParallelExecutionSettings(
+        ParallelExecutionSettings parallelSettings = new(
             maxDegreeOfParallelism,
             minimumPixelsProcessedPerTask,
             Configuration.Default.MemoryAllocator);
 
-        var rectangle = new Rectangle(0, 0, width, height);
+        Rectangle rectangle = new(0, 0, width, height);
 
         int actualNumberOfSteps = 0;
 
@@ -244,7 +244,7 @@ public class ParallelRowIteratorTests
             Assert.Equal(expected, step);
         }
 
-        var operation = new TestRowIntervalOperation(RowAction);
+        TestRowIntervalOperation operation = new(RowAction);
 
         ParallelRowIterator.IterateRowIntervals(
             rectangle,
@@ -265,12 +265,12 @@ public class ParallelRowIteratorTests
         int expectedStepLength,
         int expectedLastStepLength)
     {
-        var parallelSettings = new ParallelExecutionSettings(
+        ParallelExecutionSettings parallelSettings = new(
             maxDegreeOfParallelism,
             minimumPixelsProcessedPerTask,
             Configuration.Default.MemoryAllocator);
 
-        var rectangle = new Rectangle(0, 0, width, height);
+        Rectangle rectangle = new(0, 0, width, height);
 
         int actualNumberOfSteps = 0;
 
@@ -286,7 +286,7 @@ public class ParallelRowIteratorTests
             Assert.Equal(expected, step);
         }
 
-        var operation = new TestRowIntervalOperation<Vector4>(RowAction);
+        TestRowIntervalOperation<Vector4> operation = new(RowAction);
 
         ParallelRowIterator.IterateRowIntervals<TestRowIntervalOperation<Vector4>, Vector4>(
             rectangle,
@@ -297,7 +297,7 @@ public class ParallelRowIteratorTests
     }
 
     public static readonly TheoryData<int, int, int, int, int, int, int> IterateRectangularBuffer_Data =
-        new TheoryData<int, int, int, int, int, int, int>
+        new()
         {
             { 8, 582, 453, 10, 10, 291, 226 }, // boundary data from DetectEdgesTest.DetectEdges_InBox
             { 2, 582, 453, 10, 10, 291, 226 },
@@ -322,13 +322,13 @@ public class ParallelRowIteratorTests
         using (Buffer2D<Point> expected = memoryAllocator.Allocate2D<Point>(bufferWidth, bufferHeight, AllocationOptions.Clean))
         using (Buffer2D<Point> actual = memoryAllocator.Allocate2D<Point>(bufferWidth, bufferHeight, AllocationOptions.Clean))
         {
-            var rect = new Rectangle(rectX, rectY, rectWidth, rectHeight);
+            Rectangle rect = new(rectX, rectY, rectWidth, rectHeight);
 
             void FillRow(int y, Buffer2D<Point> buffer)
             {
                 for (int x = rect.Left; x < rect.Right; x++)
                 {
-                    buffer[x, y] = new Point(x, y);
+                    buffer[x, y] = new(x, y);
                 }
             }
 
@@ -339,7 +339,7 @@ public class ParallelRowIteratorTests
             }
 
             // Fill actual data using IterateRows:
-            var settings = new ParallelExecutionSettings(maxDegreeOfParallelism, memoryAllocator);
+            ParallelExecutionSettings settings = new(maxDegreeOfParallelism, memoryAllocator);
 
             void RowAction(RowInterval rows)
             {
@@ -350,7 +350,7 @@ public class ParallelRowIteratorTests
                 }
             }
 
-            var operation = new TestRowIntervalOperation(RowAction);
+            TestRowIntervalOperation operation = new(RowAction);
 
             ParallelRowIterator.IterateRowIntervals(
                 rect,
@@ -369,15 +369,15 @@ public class ParallelRowIteratorTests
     [InlineData(10, -10)]
     public void IterateRowsRequiresValidRectangle(int width, int height)
     {
-        var parallelSettings = default(ParallelExecutionSettings);
+        ParallelExecutionSettings parallelSettings = default(ParallelExecutionSettings);
 
-        var rect = new Rectangle(0, 0, width, height);
+        Rectangle rect = new(0, 0, width, height);
 
         void RowAction(RowInterval rows)
         {
         }
 
-        var operation = new TestRowIntervalOperation(RowAction);
+        TestRowIntervalOperation operation = new(RowAction);
 
         ArgumentOutOfRangeException ex = Assert.Throws<ArgumentOutOfRangeException>(
             () => ParallelRowIterator.IterateRowIntervals(rect, in parallelSettings, in operation));
@@ -392,15 +392,15 @@ public class ParallelRowIteratorTests
     [InlineData(10, -10)]
     public void IterateRowsWithTempBufferRequiresValidRectangle(int width, int height)
     {
-        var parallelSettings = default(ParallelExecutionSettings);
+        ParallelExecutionSettings parallelSettings = default(ParallelExecutionSettings);
 
-        var rect = new Rectangle(0, 0, width, height);
+        Rectangle rect = new(0, 0, width, height);
 
         void RowAction(RowInterval rows, Span<Rgba32> memory)
         {
         }
 
-        var operation = new TestRowIntervalOperation<Rgba32>(RowAction);
+        TestRowIntervalOperation<Rgba32> operation = new(RowAction);
 
         ArgumentOutOfRangeException ex = Assert.Throws<ArgumentOutOfRangeException>(
             () => ParallelRowIterator.IterateRowIntervals<TestRowIntervalOperation<Rgba32>, Rgba32>(rect, in parallelSettings, in operation));
@@ -434,7 +434,7 @@ public class ParallelRowIteratorTests
         {
         }
 
-        public StrongBox<int> MaxY { get; } = new StrongBox<int>();
+        public StrongBox<int> MaxY { get; } = new();
 
         public void Invoke(int y)
         {

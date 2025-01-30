@@ -12,8 +12,8 @@ public class RotateFlipTests
     public static readonly string[] FlipFiles = { TestImages.Bmp.F };
 
     public static readonly TheoryData<RotateMode, FlipMode> RotateFlipValues
-        = new TheoryData<RotateMode, FlipMode>
-    {
+        = new()
+        {
         { RotateMode.None, FlipMode.Vertical },
         { RotateMode.None, FlipMode.Horizontal },
         { RotateMode.Rotate90, FlipMode.None },

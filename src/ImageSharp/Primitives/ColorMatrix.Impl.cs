@@ -181,11 +181,11 @@ public partial struct ColorMatrix
             float m41, float m42, float m43, float m44,
             float m51, float m52, float m53, float m54)
         {
-            this.X = new Vector4(m11, m12, m13, m14);
-            this.Y = new Vector4(m21, m22, m23, m24);
-            this.Z = new Vector4(m31, m32, m33, m34);
-            this.W = new Vector4(m41, m42, m43, m44);
-            this.V = new Vector4(m51, m52, m53, m54);
+            this.X = new(m11, m12, m13, m14);
+            this.Y = new(m21, m22, m23, m24);
+            this.Z = new(m31, m32, m33, m34);
+            this.W = new(m41, m42, m43, m44);
+            this.V = new(m51, m52, m53, m54);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

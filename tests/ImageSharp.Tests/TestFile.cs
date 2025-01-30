@@ -79,7 +79,7 @@ public sealed class TestFile
     /// The <see cref="TestFile"/>.
     /// </returns>
     public static TestFile Create(string file)
-        => Cache.GetOrAdd(file, (string fileName) => new TestFile(GetInputFileFullPath(fileName)));
+        => Cache.GetOrAdd(file, (string fileName) => new(GetInputFileFullPath(fileName)));
 
     /// <summary>
     /// Gets the file name.

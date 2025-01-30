@@ -389,7 +389,7 @@ public partial class PngDecoderTests
         TestFile testFile = TestFile.Create(imagePath);
         using MemoryStream stream = new(testFile.Bytes, false);
 
-        ImageInfo imageInfo = Image.Identify(new DecoderOptions() { SegmentIntegrityHandling = SegmentIntegrityHandling.IgnoreData }, stream);
+        ImageInfo imageInfo = Image.Identify(new() { SegmentIntegrityHandling = SegmentIntegrityHandling.IgnoreData }, stream);
 
         Assert.NotNull(imageInfo);
         Assert.Equal(expectedPixelSize, imageInfo.PixelType.BitsPerPixel);
@@ -679,7 +679,7 @@ public partial class PngDecoderTests
 
         // TODO: Try to reduce this to 1.
         Assert.True(eofHitCounter.EofHitCount <= 3);
-        Assert.Equal(new Size(200, 120), eofHitCounter.Image.Size);
+        Assert.Equal(new(200, 120), eofHitCounter.Image.Size);
     }
 
     [Fact]

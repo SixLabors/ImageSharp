@@ -114,6 +114,6 @@ public class IccDataWriterPrimitivesTests
 
     private static IccDataWriter CreateWriter()
     {
-        return new IccDataWriter();
+        return new();
     }
 }

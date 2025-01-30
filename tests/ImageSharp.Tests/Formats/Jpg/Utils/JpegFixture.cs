@@ -72,7 +72,7 @@ public class JpegFixture : MeasureFixture
     // ReSharper disable once InconsistentNaming
     public static int[] Create8x8RandomIntData(int minValue, int maxValue, int seed = 42)
     {
-        var rnd = new Random(seed);
+        Random rnd = new(seed);
         int[] result = new int[64];
         for (int i = 0; i < 8; i++)
         {
@@ -87,7 +87,7 @@ public class JpegFixture : MeasureFixture
 
     public static float[] Create8x8RandomFloatData(float minValue, float maxValue, int seed = 42, int xBorder = 8, int yBorder = 8)
     {
-        var rnd = new Random(seed);
+        Random rnd = new(seed);
         float[] result = new float[64];
         for (int y = 0; y < yBorder; y++)
         {
@@ -112,7 +112,7 @@ public class JpegFixture : MeasureFixture
 
     internal void Print8x8Data<T>(Span<T> data)
     {
-        var bld = new StringBuilder();
+        StringBuilder bld = new();
         for (int i = 0; i < 8; i++)
         {
             for (int j = 0; j < 8; j++)
@@ -135,7 +135,7 @@ public class JpegFixture : MeasureFixture
             count = data.Length;
         }
 
-        var sb = new StringBuilder();
+        StringBuilder sb = new();
         for (int i = 0; i < count; i++)
         {
             sb.Append($"{data[i],3} ");
@@ -158,7 +158,7 @@ public class JpegFixture : MeasureFixture
 
     internal void CompareBlocks(Span<float> a, Span<float> b, float tolerance)
     {
-        var comparer = new ApproximateFloatComparer(tolerance);
+        ApproximateFloatComparer comparer = new(tolerance);
         double totalDifference = 0.0;
 
         bool failed = false;
@@ -192,7 +192,7 @@ public class JpegFixture : MeasureFixture
 
     internal static bool CompareBlocks(Span<float> a, Span<float> b, float tolerance, out float diff)
     {
-        var comparer = new ApproximateFloatComparer(tolerance);
+        ApproximateFloatComparer comparer = new(tolerance);
         bool failed = false;
 
         diff = 0;

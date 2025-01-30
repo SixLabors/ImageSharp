@@ -70,19 +70,19 @@ public class RationalTests
         Assert.Equal(7U, rational.Numerator);
         Assert.Equal(55U, rational.Denominator);
 
-        rational = new Rational(755, 100);
+        rational = new(755, 100);
         Assert.Equal(151U, rational.Numerator);
         Assert.Equal(20U, rational.Denominator);
 
-        rational = new Rational(755, 100, false);
+        rational = new(755, 100, false);
         Assert.Equal(755U, rational.Numerator);
         Assert.Equal(100U, rational.Denominator);
 
-        rational = new Rational(-7.55);
+        rational = new(-7.55);
         Assert.Equal(151U, rational.Numerator);
         Assert.Equal(20U, rational.Denominator);
 
-        rational = new Rational(7);
+        rational = new(7);
         Assert.Equal(7U, rational.Numerator);
         Assert.Equal(1U, rational.Denominator);
     }
@@ -101,7 +101,7 @@ public class RationalTests
         Rational rational = new(0, 0);
         Assert.Equal(double.NaN, rational.ToDouble());
 
-        rational = new Rational(2, 0);
+        rational = new(2, 0);
         Assert.Equal(double.PositiveInfinity, rational.ToDouble());
     }
 
@@ -111,19 +111,19 @@ public class RationalTests
         Rational rational = new(0, 0);
         Assert.Equal("[ Indeterminate ]", rational.ToString());
 
-        rational = new Rational(double.PositiveInfinity);
+        rational = new(double.PositiveInfinity);
         Assert.Equal("[ PositiveInfinity ]", rational.ToString());
 
-        rational = new Rational(double.NegativeInfinity);
+        rational = new(double.NegativeInfinity);
         Assert.Equal("[ PositiveInfinity ]", rational.ToString());
 
-        rational = new Rational(0, 1);
+        rational = new(0, 1);
         Assert.Equal("0", rational.ToString());
 
-        rational = new Rational(2, 1);
+        rational = new(2, 1);
         Assert.Equal("2", rational.ToString());
 
-        rational = new Rational(1, 2);
+        rational = new(1, 2);
         Assert.Equal("1/2", rational.ToString());
     }
 }

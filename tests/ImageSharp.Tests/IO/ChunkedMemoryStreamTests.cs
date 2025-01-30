@@ -269,7 +269,7 @@ public class ChunkedMemoryStreamTests
     {
         ChunkedMemoryStream memoryStream;
         const string bufferSize = nameof(bufferSize);
-        using (memoryStream = new ChunkedMemoryStream(this.allocator))
+        using (memoryStream = new(this.allocator))
         {
             const string destination = nameof(destination);
             Assert.Throws<ArgumentNullException>(destination, () => memoryStream.CopyTo(destination: null));
@@ -293,7 +293,7 @@ public class ChunkedMemoryStreamTests
         Assert.Throws<ObjectDisposedException>(() => memoryStream.CopyTo(disposedStream, 1));
 
         // Then for the destination being disposed.
-        memoryStream = new ChunkedMemoryStream(this.allocator);
+        memoryStream = new(this.allocator);
         Assert.Throws<ObjectDisposedException>(() => memoryStream.CopyTo(disposedStream, 1));
         memoryStream.Dispose();
     }

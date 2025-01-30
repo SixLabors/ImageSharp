@@ -30,7 +30,7 @@ internal abstract partial class JpegColorConverterBase
                 ref Unsafe.As<float, Vector256<float>>(ref MemoryMarshal.GetReference(values.Component3));
 
             // Used for the color conversion
-            var scale = Vector256.Create(1 / (this.MaximumValue * this.MaximumValue));
+            Vector256<float> scale = Vector256.Create(1 / (this.MaximumValue * this.MaximumValue));
 
             nuint n = values.Component0.Vector256Count<float>();
             for (nuint i = 0; i < n; i++)
@@ -69,7 +69,7 @@ internal abstract partial class JpegColorConverterBase
             ref Vector256<float> srcB =
                 ref Unsafe.As<float, Vector256<float>>(ref MemoryMarshal.GetReference(bLane));
 
-            var scale = Vector256.Create(maxValue);
+            Vector256<float> scale = Vector256.Create(maxValue);
 
             nuint n = values.Component0.Vector256Count<float>();
             for (nuint i = 0; i < n; i++)

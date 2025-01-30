@@ -45,17 +45,17 @@ public class DecodeJpeg_ImageSpecific
     [Benchmark(Baseline = true)]
     public SDSize SystemDrawing()
     {
-        using var memoryStream = new MemoryStream(this.jpegBytes);
-        using var image = SDImage.FromStream(memoryStream);
+        using MemoryStream memoryStream = new(this.jpegBytes);
+        using SDImage image = SDImage.FromStream(memoryStream);
         return image.Size;
     }
 
     [Benchmark]
     public Size ImageSharp()
     {
-        using var memoryStream = new MemoryStream(this.jpegBytes);
-        using var image = Image.Load(new DecoderOptions() { SkipMetadata = true }, memoryStream);
-        return new Size(image.Width, image.Height);
+        using MemoryStream memoryStream = new(this.jpegBytes);
+        using Image image = Image.Load(new() { SkipMetadata = true }, memoryStream);
+        return new(image.Width, image.Height);
     }
 
     /*

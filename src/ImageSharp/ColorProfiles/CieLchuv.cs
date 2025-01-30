@@ -25,7 +25,7 @@ public readonly struct CieLchuv : IColorProfile<CieLchuv, CieXyz>
     /// <param name="h">The hue in degrees.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public CieLchuv(float l, float c, float h)
-       : this(new Vector3(l, c, h))
+       : this(new(l, c, h))
     {
     }
 
@@ -102,7 +102,7 @@ public readonly struct CieLchuv : IColorProfile<CieLchuv, CieXyz>
             hDegrees += 360;
         }
 
-        return new CieLchuv(l, c, hDegrees);
+        return new(l, c, hDegrees);
     }
 
     /// <inheritdoc/>

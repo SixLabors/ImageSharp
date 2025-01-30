@@ -14,7 +14,7 @@ internal sealed partial class IccDataReader
     /// <returns>The read LUT</returns>
     public IccLut ReadLut8()
     {
-        return new IccLut(this.ReadBytes(256));
+        return new(this.ReadBytes(256));
     }
 
     /// <summary>
@@ -24,13 +24,13 @@ internal sealed partial class IccDataReader
     /// <returns>The read LUT</returns>
     public IccLut ReadLut16(int count)
     {
-        var values = new ushort[count];
+        ushort[] values = new ushort[count];
         for (int i = 0; i < count; i++)
         {
             values[i] = this.ReadUInt16();
         }
 
-        return new IccLut(values);
+        return new(values);
     }
 
     /// <summary>
@@ -44,7 +44,7 @@ internal sealed partial class IccDataReader
     public IccClut ReadClut(int inChannelCount, int outChannelCount, bool isFloat)
     {
         // Grid-points are always 16 bytes long but only 0-inChCount are used
-        var gridPointCount = new byte[inChannelCount];
+        byte[] gridPointCount = new byte[inChannelCount];
         Buffer.BlockCopy(this.data, this.AddIndex(16), gridPointCount, 0, inChannelCount);
 
         if (!isFloat)
@@ -86,7 +86,7 @@ internal sealed partial class IccDataReader
 
         const float Max = byte.MaxValue;
 
-        var values = new float[length][];
+        float[][] values = new float[length][];
         for (int i = 0; i < length; i++)
         {
             values[i] = new float[outChannelCount];
@@ -97,7 +97,7 @@ internal sealed partial class IccDataReader
         }
 
         this.currentIndex = start + (length * outChannelCount);
-        return new IccClut(values, gridPointCount, IccClutDataType.UInt8);
+        return new(values, gridPointCount, IccClutDataType.UInt8);
     }
 
     /// <summary>
@@ -120,7 +120,7 @@ internal sealed partial class IccDataReader
 
         const float Max = ushort.MaxValue;
 
-        var values = new float[length][];
+        float[][] values = new float[length][];
         for (int i = 0; i < length; i++)
         {
             values[i] = new float[outChannelCount];
@@ -131,7 +131,7 @@ internal sealed partial class IccDataReader
         }
 
         this.currentIndex = start + (length * outChannelCount * 2);
-        return new IccClut(values, gridPointCount, IccClutDataType.UInt16);
+        return new(values, gridPointCount, IccClutDataType.UInt16);
     }
 
     /// <summary>
@@ -152,7 +152,7 @@ internal sealed partial class IccDataReader
 
         length /= inChCount;
 
-        var values = new float[length][];
+        float[][] values = new float[length][];
         for (int i = 0; i < length; i++)
         {
             values[i] = new float[outChCount];
@@ -163,6 +163,6 @@ internal sealed partial class IccDataReader
         }
 
         this.currentIndex = start + (length * outChCount * 4);
-        return new IccClut(values, gridPointCount, IccClutDataType.Float);
+        return new(values, gridPointCount, IccClutDataType.Float);
     }
 }

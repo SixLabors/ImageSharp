@@ -5,7 +5,7 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless;
 
 internal class Vp8LBackwardRefs
 {
-    public Vp8LBackwardRefs(int pixels) => this.Refs = new List<PixOrCopy>(pixels);
+    public Vp8LBackwardRefs(int pixels) => this.Refs = new(pixels);
 
     /// <summary>
     /// Gets or sets the common block-size.

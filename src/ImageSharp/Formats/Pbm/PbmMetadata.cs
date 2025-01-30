@@ -77,7 +77,7 @@ public class PbmMetadata : IFormatMetadata<PbmMetadata>
             _ => PbmComponentType.Short
         };
 
-        return new PbmMetadata
+        return new()
         {
             ColorType = color,
             ComponentType = componentType

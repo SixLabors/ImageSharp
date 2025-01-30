@@ -165,7 +165,7 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
             int b = stream.ReadByte();
             if (b == -1)
             {
-                return new JpegFileMarker(JpegConstants.Markers.EOI, stream.Length - 2);
+                return new(JpegConstants.Markers.EOI, stream.Length - 2);
             }
 
             // Found a marker.
@@ -177,14 +177,14 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
                     b = stream.ReadByte();
                     if (b == -1)
                     {
-                        return new JpegFileMarker(JpegConstants.Markers.EOI, stream.Length - 2);
+                        return new(JpegConstants.Markers.EOI, stream.Length - 2);
                     }
                 }
 
                 // Found a valid marker. Exit loop
                 if (b is not 0 and (< JpegConstants.Markers.RST0 or > JpegConstants.Markers.RST7))
                 {
-                    return new JpegFileMarker((byte)(uint)b, stream.Position - 2);
+                    return new((byte)(uint)b, stream.Position - 2);
                 }
             }
         }
@@ -201,7 +201,7 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
         this.InitXmpProfile();
         this.InitDerivedMetadataProperties();
 
-        return new Image<TPixel>(
+        return new(
             this.configuration,
             spectralConverter.GetPixelBuffer(cancellationToken),
             this.Metadata);
@@ -218,7 +218,7 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
         this.InitDerivedMetadataProperties();
 
         Size pixelSize = this.Frame.PixelSize;
-        return new ImageInfo(new(pixelSize.Width, pixelSize.Height), this.Metadata);
+        return new(new(pixelSize.Width, pixelSize.Height), this.Metadata);
     }
 
     /// <summary>
@@ -229,7 +229,7 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
     /// <param name="scanDecoder">The scan decoder.</param>
     public void LoadTables(byte[] tableBytes, IJpegScanDecoder scanDecoder)
     {
-        this.Metadata = new ImageMetadata();
+        this.Metadata = new();
         this.QuantizationTables = new Block8x8F[4];
         this.scanDecoder = scanDecoder;
         if (tableBytes.Length < 4)
@@ -252,7 +252,7 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
 
         // Read next marker.
         bytesRead = stream.Read(markerBuffer);
-        fileMarker = new JpegFileMarker(markerBuffer[1], (int)stream.Position - 2);
+        fileMarker = new(markerBuffer[1], (int)stream.Position - 2);
 
         while (fileMarker.Marker != JpegConstants.Markers.EOI || (fileMarker.Marker == JpegConstants.Markers.EOI && fileMarker.Invalid))
         {
@@ -296,7 +296,7 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
                 JpegThrowHelper.ThrowInvalidImageContentException("Not enough data to read marker");
             }
 
-            fileMarker = new JpegFileMarker(markerBuffer[1], 0);
+            fileMarker = new(markerBuffer[1], 0);
         }
     }
 
@@ -312,7 +312,7 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
 
         this.scanDecoder ??= new HuffmanScanDecoder(stream, spectralConverter, cancellationToken);
 
-        this.Metadata = new ImageMetadata();
+        this.Metadata = new();
 
         Span<byte> markerBuffer = stackalloc byte[2];
 
@@ -525,7 +525,7 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
             chars[i] = (char)read;
         }
 
-        metadata.Comments.Add(new JpegComData(chars));
+        metadata.Comments.Add(new(chars));
     }
 
     /// <summary>
@@ -657,7 +657,7 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
     {
         if (this.hasExif)
         {
-            this.Metadata.ExifProfile = new ExifProfile(this.exifData);
+            this.Metadata.ExifProfile = new(this.exifData);
         }
     }
 
@@ -683,7 +683,7 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
     {
         if (this.hasIptc)
         {
-            this.Metadata.IptcProfile = new IptcProfile(this.iptcData);
+            this.Metadata.IptcProfile = new(this.iptcData);
         }
     }
 
@@ -694,7 +694,7 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
     {
         if (this.hasXmp)
         {
-            this.Metadata.XmpProfile = new XmpProfile(this.xmpData);
+            this.Metadata.XmpProfile = new(this.xmpData);
         }
     }
 
@@ -978,7 +978,7 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
     /// <param name="remaining">The remaining bytes in the segment block.</param>
     private void ProcessArithmeticTable(BufferedReadStream stream, int remaining)
     {
-        this.arithmeticDecodingTables ??= new List<ArithmeticDecodingTable>(4);
+        this.arithmeticDecodingTables ??= new(4);
 
         while (remaining > 0)
         {
@@ -1228,7 +1228,7 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
             JpegThrowHelper.ThrowNotSupportedComponentCount(componentCount);
         }
 
-        this.Frame = new JpegFrame(frameMarker, precision, frameWidth, frameHeight, componentCount);
+        this.Frame = new(frameMarker, precision, frameWidth, frameHeight, componentCount);
         this.Dimensions = new(frameWidth, frameHeight);
         this.Metadata.GetJpegMetadata().Progressive = this.Frame.Progressive;
 

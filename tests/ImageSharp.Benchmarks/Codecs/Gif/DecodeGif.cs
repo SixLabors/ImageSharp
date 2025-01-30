@@ -32,7 +32,7 @@ public class DecodeGif
     [Benchmark(Baseline = true, Description = "System.Drawing Gif")]
     public SDSize GifSystemDrawing()
     {
-        using MemoryStream memoryStream = new MemoryStream(this.gifBytes);
+        using MemoryStream memoryStream = new(this.gifBytes);
         using SDImage image = SDImage.FromStream(memoryStream);
         return image.Size;
     }
@@ -40,8 +40,8 @@ public class DecodeGif
     [Benchmark(Description = "ImageSharp Gif")]
     public Size GifImageSharp()
     {
-        using MemoryStream memoryStream = new MemoryStream(this.gifBytes);
+        using MemoryStream memoryStream = new(this.gifBytes);
         using Image<Rgba32> image = Image.Load<Rgba32>(memoryStream);
-        return new Size(image.Width, image.Height);
+        return new(image.Width, image.Height);
     }
 }

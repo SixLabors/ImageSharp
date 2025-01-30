@@ -69,7 +69,7 @@ public class Vp8LHistogramTests
         Vp8LBackwardRefs backwardRefs = new(pixelData.Length);
         for (int i = 0; i < pixelData.Length; i++)
         {
-            backwardRefs.Add(new PixOrCopy()
+            backwardRefs.Add(new()
             {
                 BgraOrDistance = pixelData[i],
                 Len = 1,

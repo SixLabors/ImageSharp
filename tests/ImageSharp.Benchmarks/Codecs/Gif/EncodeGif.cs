@@ -21,9 +21,9 @@ public class EncodeGif
     private Image<Rgba32> bmpCore;
 
     // Try to get as close to System.Drawing's output as possible
-    private readonly GifEncoder encoder = new GifEncoder
+    private readonly GifEncoder encoder = new()
     {
-        Quantizer = new WebSafePaletteQuantizer(new QuantizerOptions { Dither = KnownDitherings.Bayer4x4 })
+        Quantizer = new WebSafePaletteQuantizer(new() { Dither = KnownDitherings.Bayer4x4 })
     };
 
     [Params(TestImages.Bmp.Car, TestImages.Png.Rgb48Bpp)]
@@ -53,14 +53,14 @@ public class EncodeGif
     [Benchmark(Baseline = true, Description = "System.Drawing Gif")]
     public void GifSystemDrawing()
     {
-        using MemoryStream memoryStream = new MemoryStream();
+        using MemoryStream memoryStream = new();
         this.bmpDrawing.Save(memoryStream, ImageFormat.Gif);
     }
 
     [Benchmark(Description = "ImageSharp Gif")]
     public void GifImageSharp()
     {
-        using MemoryStream memoryStream = new MemoryStream();
+        using MemoryStream memoryStream = new();
         this.bmpCore.SaveAsGif(memoryStream, this.encoder);
     }
 }

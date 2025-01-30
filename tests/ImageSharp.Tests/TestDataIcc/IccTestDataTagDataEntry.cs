@@ -356,7 +356,7 @@ internal static class IccTestDataTagDataEntry
         {
             try
             {
-                culture = new CultureInfo(language);
+                culture = new(language);
             }
             catch (CultureNotFoundException)
             {
@@ -367,7 +367,7 @@ internal static class IccTestDataTagDataEntry
         {
             try
             {
-                culture = new CultureInfo($"{language}-{country}");
+                culture = new($"{language}-{country}");
             }
             catch (CultureNotFoundException)
             {

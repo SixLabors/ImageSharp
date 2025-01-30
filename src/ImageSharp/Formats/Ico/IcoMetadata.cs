@@ -68,7 +68,7 @@ public class IcoMetadata : IFormatMetadata<IcoMetadata>
             compression = IconFrameCompression.Png;
         }
 
-        return new IcoMetadata
+        return new()
         {
             BmpBitsPerPixel = bbpp,
             Compression = compression,
@@ -130,7 +130,7 @@ public class IcoMetadata : IFormatMetadata<IcoMetadata>
             }
         }
 
-        return new PixelTypeInfo(bpp)
+        return new(bpp)
         {
             AlphaRepresentation = alpha,
             ComponentInfo = info,

@@ -50,7 +50,7 @@ internal readonly struct PngPhysical
         uint vResolution = BinaryPrimitives.ReadUInt32BigEndian(data.Slice(4, 4));
         byte unit = data[8];
 
-        return new PngPhysical(hResolution, vResolution, unit);
+        return new(hResolution, vResolution, unit);
     }
 
     /// <summary>

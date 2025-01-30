@@ -23,18 +23,18 @@ public class ImageProcessingContextTests : IDisposable
 
     private readonly Mock<ICloningImageProcessor<Rgba32>> cloningProcessorImpl;
 
-    private static readonly Rectangle Bounds = new Rectangle(3, 3, 5, 5);
+    private static readonly Rectangle Bounds = new(3, 3, 5, 5);
 
     public ImageProcessingContextTests()
     {
-        this.processorDefinition = new Mock<IImageProcessor>();
-        this.cloningProcessorDefinition = new Mock<ICloningImageProcessor>();
-        this.regularProcessorImpl = new Mock<IImageProcessor<Rgba32>>();
-        this.cloningProcessorImpl = new Mock<ICloningImageProcessor<Rgba32>>();
+        this.processorDefinition = new();
+        this.cloningProcessorDefinition = new();
+        this.regularProcessorImpl = new();
+        this.cloningProcessorImpl = new();
     }
 
     // bool throwException, bool useBounds
-    public static readonly TheoryData<bool, bool> ProcessorTestData = new TheoryData<bool, bool>()
+    public static readonly TheoryData<bool, bool> ProcessorTestData = new()
     {
         { false, false },
         { false, true },

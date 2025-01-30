@@ -102,7 +102,7 @@ public class CompandingTests
     private static void CompandingIsCorrectImpl(Vector4 e, Vector4 c, float expanded, Vector4 compressed)
     {
         // W (alpha) is already the linear representation of the color.
-        Assert.Equal(new Vector4(expanded, expanded, expanded, e.W), e, Comparer);
+        Assert.Equal(new(expanded, expanded, expanded, e.W), e, Comparer);
         Assert.Equal(compressed, c, Comparer);
     }
 }

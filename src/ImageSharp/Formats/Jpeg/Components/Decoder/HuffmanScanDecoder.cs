@@ -115,7 +115,7 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
 
         this.scanComponentCount = scanComponentCount;
 
-        this.scanBuffer = new JpegBitReader(this.stream);
+        this.scanBuffer = new(this.stream);
 
         this.frame.AllocateComponents();
 
@@ -783,6 +783,6 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
     public void BuildHuffmanTable(int type, int index, ReadOnlySpan<byte> codeLengths, ReadOnlySpan<byte> values, Span<uint> workspace)
     {
         HuffmanTable[] tables = type == 0 ? this.dcHuffmanTables : this.acHuffmanTables;
-        tables[index] = new HuffmanTable(codeLengths, values, workspace);
+        tables[index] = new(codeLengths, values, workspace);
     }
 }

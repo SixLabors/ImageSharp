@@ -332,7 +332,7 @@ internal sealed class ExifWriter
 
     private int WriteHeaders(List<IExifValue> values, Span<byte> destination, int offset)
     {
-        this.dataOffsets = new List<int>();
+        this.dataOffsets = new();
 
         int newOffset = WriteUInt16((ushort)values.Count, destination, offset);
 

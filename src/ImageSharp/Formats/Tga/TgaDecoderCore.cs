@@ -622,7 +622,7 @@ internal sealed class TgaDecoderCore : ImageDecoderCore
                         else
                         {
                             byte alpha = alphaBits == 0 ? byte.MaxValue : bufferSpan[idx + 3];
-                            color = TPixel.FromBgra32(new Bgra32(bufferSpan[idx + 2], bufferSpan[idx + 1], bufferSpan[idx], alpha));
+                            color = TPixel.FromBgra32(new(bufferSpan[idx + 2], bufferSpan[idx + 1], bufferSpan[idx], alpha));
                         }
 
                         break;

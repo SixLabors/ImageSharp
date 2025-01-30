@@ -132,7 +132,7 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
         {
             int bytesPerColorMapEntry = this.ReadImageHeaders(stream, out bool inverted, out byte[] palette);
 
-            image = new Image<TPixel>(this.configuration, this.infoHeader.Width, this.infoHeader.Height, this.metadata);
+            image = new(this.configuration, this.infoHeader.Width, this.infoHeader.Height, this.metadata);
 
             Buffer2D<TPixel> pixels = image.GetRootFramePixelBuffer();
 
@@ -220,7 +220,7 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
     protected override ImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken)
     {
         this.ReadImageHeaders(stream, out _, out _);
-        return new ImageInfo(new(this.infoHeader.Width, this.infoHeader.Height), this.metadata);
+        return new(new(this.infoHeader.Width, this.infoHeader.Height), this.metadata);
     }
 
     /// <summary>
@@ -343,7 +343,7 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
                             RleSkippedPixelHandling.Transparent => TPixel.FromScaledVector4(Vector4.Zero),
 
                             // Default handling for skipped pixels is black (which is what System.Drawing is also doing).
-                            _ => TPixel.FromScaledVector4(new Vector4(0.0f, 0.0f, 0.0f, 1.0f)),
+                            _ => TPixel.FromScaledVector4(new(0.0f, 0.0f, 0.0f, 1.0f)),
                         };
                     }
                     else
@@ -404,7 +404,7 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
                             RleSkippedPixelHandling.Transparent => TPixel.FromScaledVector4(Vector4.Zero),
 
                             // Default handling for skipped pixels is black (which is what System.Drawing is also doing).
-                            _ => TPixel.FromScaledVector4(new Vector4(0.0f, 0.0f, 0.0f, 1.0f)),
+                            _ => TPixel.FromScaledVector4(new(0.0f, 0.0f, 0.0f, 1.0f)),
                         };
                     }
                     else
@@ -1332,7 +1332,7 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
         long infoHeaderStart = stream.Position;
 
         // Resolution is stored in PPM.
-        this.metadata = new ImageMetadata
+        this.metadata = new()
         {
             ResolutionUnits = PixelResolutionUnit.PixelsPerMeter
         };
@@ -1426,7 +1426,7 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
                 byte[] iccProfileData = new byte[this.infoHeader.ProfileSize];
                 stream.Position = infoHeaderStart + this.infoHeader.ProfileData;
                 stream.Read(iccProfileData);
-                this.metadata.IccProfile = new IccProfile(iccProfileData);
+                this.metadata.IccProfile = new(iccProfileData);
                 stream.Position = streamPosition;
             }
         }

@@ -18,12 +18,12 @@ internal static partial class LibJpegTools
         BigInteger totalDiff = 0;
         if (actual.WidthInBlocks < expected.WidthInBlocks)
         {
-            throw new Exception("actual.WidthInBlocks < expected.WidthInBlocks");
+            throw new("actual.WidthInBlocks < expected.WidthInBlocks");
         }
 
         if (actual.HeightInBlocks < expected.HeightInBlocks)
         {
-            throw new Exception("actual.HeightInBlocks < expected.HeightInBlocks");
+            throw new("actual.HeightInBlocks < expected.HeightInBlocks");
         }
 
         int w = expected.WidthInBlocks;
@@ -65,7 +65,7 @@ internal static partial class LibJpegTools
         }
 
         string args = $@"""{sourceFile}"" ""{destFile}""";
-        Process process = new Process
+        Process process = new()
         {
             StartInfo =
                                   {
@@ -95,8 +95,8 @@ internal static partial class LibJpegTools
         {
             RunDumpJpegCoeffsTool(testFile.FullPath, coeffFileFullPath);
 
-            using (FileStream dumpStream = new FileStream(coeffFileFullPath, FileMode.Open))
-            using (BinaryReader rdr = new BinaryReader(dumpStream))
+            using (FileStream dumpStream = new(coeffFileFullPath, FileMode.Open))
+            using (BinaryReader rdr = new(dumpStream))
             {
                 int componentCount = rdr.ReadInt16();
                 ComponentData[] result = new ComponentData[componentCount];
@@ -105,7 +105,7 @@ internal static partial class LibJpegTools
                 {
                     int widthInBlocks = rdr.ReadInt16();
                     int heightInBlocks = rdr.ReadInt16();
-                    ComponentData resultComponent = new ComponentData(widthInBlocks, heightInBlocks, i);
+                    ComponentData resultComponent = new(widthInBlocks, heightInBlocks, i);
                     result[i] = resultComponent;
                 }
 
@@ -127,7 +127,7 @@ internal static partial class LibJpegTools
                     }
                 }
 
-                return new SpectralData(result);
+                return new(result);
             }
         }
         finally

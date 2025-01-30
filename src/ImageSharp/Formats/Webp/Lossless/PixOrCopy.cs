@@ -15,7 +15,7 @@ internal sealed class PixOrCopy
     public uint BgraOrDistance { get; set; }
 
     public static PixOrCopy CreateCacheIdx(int idx) =>
-        new PixOrCopy
+        new()
         {
             Mode = PixOrCopyMode.CacheIdx,
             BgraOrDistance = (uint)idx,
@@ -23,7 +23,7 @@ internal sealed class PixOrCopy
         };
 
     public static PixOrCopy CreateLiteral(uint bgra) =>
-        new PixOrCopy
+        new()
         {
             Mode = PixOrCopyMode.Literal,
             BgraOrDistance = bgra,
@@ -31,7 +31,7 @@ internal sealed class PixOrCopy
         };
 
     public static PixOrCopy CreateCopy(uint distance, ushort len) =>
-        new PixOrCopy
+        new()
     {
         Mode = PixOrCopyMode.Copy,
         BgraOrDistance = distance,

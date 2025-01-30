@@ -10,7 +10,7 @@ public class RowIntervalTests
     [Fact]
     public void Slice1()
     {
-        RowInterval rowInterval = new RowInterval(10, 20);
+        RowInterval rowInterval = new(10, 20);
         RowInterval sliced = rowInterval.Slice(5);
 
         Assert.Equal(15, sliced.Min);
@@ -20,7 +20,7 @@ public class RowIntervalTests
     [Fact]
     public void Slice2()
     {
-        RowInterval rowInterval = new RowInterval(10, 20);
+        RowInterval rowInterval = new(10, 20);
         RowInterval sliced = rowInterval.Slice(3, 5);
 
         Assert.Equal(13, sliced.Min);
@@ -30,8 +30,8 @@ public class RowIntervalTests
     [Fact]
     public void Equality_WhenTrue()
     {
-        RowInterval a = new RowInterval(42, 123);
-        RowInterval b = new RowInterval(42, 123);
+        RowInterval a = new(42, 123);
+        RowInterval b = new(42, 123);
 
         Assert.True(a.Equals(b));
         Assert.True(a.Equals((object)b));
@@ -42,9 +42,9 @@ public class RowIntervalTests
     [Fact]
     public void Equality_WhenFalse()
     {
-        RowInterval a = new RowInterval(42, 123);
-        RowInterval b = new RowInterval(42, 125);
-        RowInterval c = new RowInterval(40, 123);
+        RowInterval a = new(42, 123);
+        RowInterval b = new(42, 125);
+        RowInterval c = new(40, 123);
 
         Assert.False(a.Equals(b));
         Assert.False(c.Equals(a));

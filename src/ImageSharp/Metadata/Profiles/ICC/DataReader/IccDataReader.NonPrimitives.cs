@@ -18,7 +18,7 @@ internal sealed partial class IccDataReader
     {
         try
         {
-            return new DateTime(
+            return new(
                 year: this.ReadUInt16(),
                 month: this.ReadUInt16(),
                 day: this.ReadUInt16(),

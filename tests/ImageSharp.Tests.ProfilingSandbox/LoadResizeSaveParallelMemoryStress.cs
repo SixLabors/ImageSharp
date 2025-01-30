@@ -17,7 +17,7 @@ internal class LoadResizeSaveParallelMemoryStress
 {
     private LoadResizeSaveParallelMemoryStress()
     {
-        this.Benchmarks = new LoadResizeSaveStressRunner()
+        this.Benchmarks = new()
         {
             Filter = JpegKind.Baseline,
         };
@@ -38,7 +38,7 @@ internal class LoadResizeSaveParallelMemoryStress
         Console.WriteLine($"64 bit: {Environment.Is64BitProcess}");
         CommandLineOptions options = args.Length > 0 ? CommandLineOptions.Parse(args) : null;
 
-        LoadResizeSaveParallelMemoryStress lrs = new LoadResizeSaveParallelMemoryStress();
+        LoadResizeSaveParallelMemoryStress lrs = new();
         if (options != null)
         {
             lrs.Benchmarks.MaxDegreeOfParallelism = options.MaxDegreeOfParallelism;
@@ -108,7 +108,7 @@ internal class LoadResizeSaveParallelMemoryStress
             }
         }
 
-        Stats stats = new Stats(timer, lrs.Benchmarks.TotalProcessedMegapixels);
+        Stats stats = new(timer, lrs.Benchmarks.TotalProcessedMegapixels);
         Console.WriteLine($"Total Megapixels: {stats.TotalMegapixels}, TotalOomRetries: {UnmanagedMemoryHandle.TotalOomRetries}, TotalOutstandingHandles: {UnmanagedMemoryHandle.TotalOutstandingHandles}, Total Gen2 GC count: {GC.CollectionCount(2)}");
         Console.WriteLine(stats.GetMarkdown());
         if (options?.FileOutput != null)
@@ -203,7 +203,7 @@ internal class LoadResizeSaveParallelMemoryStress
 
         public string GetMarkdown()
         {
-            StringBuilder bld = new StringBuilder();
+            StringBuilder bld = new();
             bld.AppendLine($"| {nameof(this.TotalSeconds)} | {nameof(this.MegapixelsPerSec)} | {nameof(this.MegapixelsPerSecPerCpu)} |");
             bld.AppendLine(
                 $"| {L(nameof(this.TotalSeconds))} | {L(nameof(this.MegapixelsPerSec))} | {L(nameof(this.MegapixelsPerSecPerCpu))} |");
@@ -295,7 +295,7 @@ internal class LoadResizeSaveParallelMemoryStress
                     (int)B(this.MaxContiguousPoolBufferMegaBytes),
                     B(this.MaxPoolSizeMegaBytes),
                     (int)B(this.MaxCapacityOfNonPoolBuffersMegaBytes),
-                    new UniformUnmanagedMemoryPool.TrimSettings
+                    new()
                     {
                         TrimPeriodMilliseconds = this.TrimTimeSeconds.Value * 1000
                     });

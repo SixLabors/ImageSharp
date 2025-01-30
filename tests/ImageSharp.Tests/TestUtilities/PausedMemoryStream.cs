@@ -92,9 +92,9 @@ public class PausedMemoryStream : MemoryStream, IPausedStream
         try
         {
             int bytesRead;
-            while ((bytesRead = await this.ReadAsync(new Memory<byte>(buffer), cancellationToken).ConfigureAwait(false)) != 0)
+            while ((bytesRead = await this.ReadAsync(new(buffer), cancellationToken).ConfigureAwait(false)) != 0)
             {
-                await destination.WriteAsync(new ReadOnlyMemory<byte>(buffer, 0, bytesRead), cancellationToken).ConfigureAwait(false);
+                await destination.WriteAsync(new(buffer, 0, bytesRead), cancellationToken).ConfigureAwait(false);
             }
         }
         finally

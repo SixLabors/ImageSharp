@@ -241,7 +241,7 @@ internal sealed class GifDecoderCore : ImageDecoderCore
             GifThrowHelper.ThrowNoHeader();
         }
 
-        return new ImageInfo(
+        return new(
             new(this.logicalScreenDescriptor.Width, this.logicalScreenDescriptor.Height),
             this.metadata,
             framesMetadata);

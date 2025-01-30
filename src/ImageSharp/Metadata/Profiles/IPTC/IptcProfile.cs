@@ -186,7 +186,7 @@ public sealed class IptcProfile : IDeepCloneable<IptcProfile>
             }
         }
 
-        this.values.Add(new IptcValue(tag, encoding, value, strict));
+        this.values.Add(new(tag, encoding, value, strict));
     }
 
     /// <summary>

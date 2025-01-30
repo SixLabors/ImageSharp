@@ -46,7 +46,7 @@ public class EncodePng
     [Benchmark(Baseline = true, Description = "System.Drawing Png")]
     public void PngSystemDrawing()
     {
-        using MemoryStream memoryStream = new MemoryStream();
+        using MemoryStream memoryStream = new();
         this.bmpDrawing.Save(memoryStream, ImageFormat.Png);
     }
 

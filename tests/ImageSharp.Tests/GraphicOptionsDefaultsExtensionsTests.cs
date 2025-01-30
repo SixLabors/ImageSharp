@@ -12,8 +12,8 @@ public class GraphicOptionsDefaultsExtensionsTests
     [Fact]
     public void SetDefaultOptionsOnProcessingContext()
     {
-        GraphicsOptions option = new GraphicsOptions();
-        Configuration config = new Configuration();
+        GraphicsOptions option = new();
+        Configuration config = new();
         FakeImageOperationsProvider.FakeImageOperations<Rgba32> context = new FakeImageOperationsProvider.FakeImageOperations<Rgba32>(config, null, true);
 
         context.SetGraphicsOptions(option);
@@ -26,11 +26,11 @@ public class GraphicOptionsDefaultsExtensionsTests
     [Fact]
     public void UpdateDefaultOptionsOnProcessingContext_AlwaysNewInstance()
     {
-        GraphicsOptions option = new GraphicsOptions()
+        GraphicsOptions option = new()
         {
             BlendPercentage = 0.9f
         };
-        Configuration config = new Configuration();
+        Configuration config = new();
         FakeImageOperationsProvider.FakeImageOperations<Rgba32> context = new FakeImageOperationsProvider.FakeImageOperations<Rgba32>(config, null, true);
         context.SetGraphicsOptions(option);
 
@@ -48,8 +48,8 @@ public class GraphicOptionsDefaultsExtensionsTests
     [Fact]
     public void SetDefaultOptionsOnConfiguration()
     {
-        GraphicsOptions option = new GraphicsOptions();
-        Configuration config = new Configuration();
+        GraphicsOptions option = new();
+        Configuration config = new();
 
         config.SetGraphicsOptions(option);
 
@@ -59,11 +59,11 @@ public class GraphicOptionsDefaultsExtensionsTests
     [Fact]
     public void UpdateDefaultOptionsOnConfiguration_AlwaysNewInstance()
     {
-        GraphicsOptions option = new GraphicsOptions()
+        GraphicsOptions option = new()
         {
             BlendPercentage = 0.9f
         };
-        Configuration config = new Configuration();
+        Configuration config = new();
         config.SetGraphicsOptions(option);
 
         config.SetGraphicsOptions(o =>
@@ -80,7 +80,7 @@ public class GraphicOptionsDefaultsExtensionsTests
     [Fact]
     public void GetDefaultOptionsFromConfiguration_SettingNullThenReturnsNewInstance()
     {
-        Configuration config = new Configuration();
+        Configuration config = new();
 
         GraphicsOptions options = config.GetGraphicsOptions();
         Assert.NotNull(options);
@@ -96,7 +96,7 @@ public class GraphicOptionsDefaultsExtensionsTests
     [Fact]
     public void GetDefaultOptionsFromConfiguration_IgnoreIncorectlyTypesDictionEntry()
     {
-        Configuration config = new Configuration();
+        Configuration config = new();
 
         config.Properties[typeof(GraphicsOptions)] = "wronge type";
         GraphicsOptions options = config.GetGraphicsOptions();
@@ -107,7 +107,7 @@ public class GraphicOptionsDefaultsExtensionsTests
     [Fact]
     public void GetDefaultOptionsFromConfiguration_AlwaysReturnsInstance()
     {
-        Configuration config = new Configuration();
+        Configuration config = new();
 
         Assert.DoesNotContain(typeof(GraphicsOptions), config.Properties.Keys);
         GraphicsOptions options = config.GetGraphicsOptions();
@@ -117,7 +117,7 @@ public class GraphicOptionsDefaultsExtensionsTests
     [Fact]
     public void GetDefaultOptionsFromConfiguration_AlwaysReturnsSameValue()
     {
-        Configuration config = new Configuration();
+        Configuration config = new();
 
         GraphicsOptions options = config.GetGraphicsOptions();
         GraphicsOptions options2 = config.GetGraphicsOptions();
@@ -127,7 +127,7 @@ public class GraphicOptionsDefaultsExtensionsTests
     [Fact]
     public void GetDefaultOptionsFromProcessingContext_AlwaysReturnsInstance()
     {
-        Configuration config = new Configuration();
+        Configuration config = new();
         FakeImageOperationsProvider.FakeImageOperations<Rgba32> context = new FakeImageOperationsProvider.FakeImageOperations<Rgba32>(config, null, true);
 
         GraphicsOptions ctxOptions = context.GetGraphicsOptions();
@@ -137,7 +137,7 @@ public class GraphicOptionsDefaultsExtensionsTests
     [Fact]
     public void GetDefaultOptionsFromProcessingContext_AlwaysReturnsInstanceEvenIfSetToNull()
     {
-        Configuration config = new Configuration();
+        Configuration config = new();
         FakeImageOperationsProvider.FakeImageOperations<Rgba32> context = new FakeImageOperationsProvider.FakeImageOperations<Rgba32>(config, null, true);
 
         context.SetGraphicsOptions((GraphicsOptions)null);
@@ -148,8 +148,8 @@ public class GraphicOptionsDefaultsExtensionsTests
     [Fact]
     public void GetDefaultOptionsFromProcessingContext_FallbackToConfigsInstance()
     {
-        GraphicsOptions option = new GraphicsOptions();
-        Configuration config = new Configuration();
+        GraphicsOptions option = new();
+        Configuration config = new();
         config.SetGraphicsOptions(option);
         FakeImageOperationsProvider.FakeImageOperations<Rgba32> context = new FakeImageOperationsProvider.FakeImageOperations<Rgba32>(config, null, true);
 
@@ -160,7 +160,7 @@ public class GraphicOptionsDefaultsExtensionsTests
     [Fact]
     public void GetDefaultOptionsFromProcessingContext_IgnoreIncorectlyTypesDictionEntry()
     {
-        Configuration config = new Configuration();
+        Configuration config = new();
         FakeImageOperationsProvider.FakeImageOperations<Rgba32> context = new FakeImageOperationsProvider.FakeImageOperations<Rgba32>(config, null, true);
         context.Properties[typeof(GraphicsOptions)] = "wronge type";
         GraphicsOptions options = context.GetGraphicsOptions();

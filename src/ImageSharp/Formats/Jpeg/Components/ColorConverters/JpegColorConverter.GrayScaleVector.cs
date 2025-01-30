@@ -22,7 +22,7 @@ internal abstract partial class JpegColorConverterBase
             ref Vector<float> cBase =
                 ref Unsafe.As<float, Vector<float>>(ref MemoryMarshal.GetReference(values.Component0));
 
-            Vector<float> scale = new Vector<float>(1 / this.MaximumValue);
+            Vector<float> scale = new(1 / this.MaximumValue);
 
             nuint n = values.Component0.VectorCount<float>();
             for (nuint i = 0; i < n; i++)
@@ -49,9 +49,9 @@ internal abstract partial class JpegColorConverterBase
             ref Vector<float> srcB =
                 ref Unsafe.As<float, Vector<float>>(ref MemoryMarshal.GetReference(bLane));
 
-            Vector<float> rMult = new Vector<float>(0.299f);
-            Vector<float> gMult = new Vector<float>(0.587f);
-            Vector<float> bMult = new Vector<float>(0.114f);
+            Vector<float> rMult = new(0.299f);
+            Vector<float> gMult = new(0.587f);
+            Vector<float> bMult = new(0.114f);
 
             nuint n = values.Component0.VectorCount<float>();
             for (nuint i = 0; i < n; i++)

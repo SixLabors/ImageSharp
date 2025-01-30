@@ -124,7 +124,7 @@ public readonly struct Buffer2DRegion<T>
 
         int x = this.Rectangle.X + rectangle.X;
         int y = this.Rectangle.Y + rectangle.Y;
-        rectangle = new Rectangle(x, y, rectangle.Width, rectangle.Height);
+        rectangle = new(x, y, rectangle.Width, rectangle.Height);
         return new Buffer2DRegion<T>(this.Buffer, rectangle);
     }
 

@@ -400,10 +400,10 @@ public partial class JpegDecoderTests
             exif.SetValue(ExifTag.XPSubject, "This is a subject");
 
             // exif.SetValue(ExifTag.UserComment, new EncodedString(EncodedString.CharacterCode.JIS, "ビッ"));
-            exif.SetValue(ExifTag.UserComment, new EncodedString(EncodedString.CharacterCode.JIS, "eng comment text (JIS)"));
+            exif.SetValue(ExifTag.UserComment, new(EncodedString.CharacterCode.JIS, "eng comment text (JIS)"));
 
-            exif.SetValue(ExifTag.GPSProcessingMethod, new EncodedString(EncodedString.CharacterCode.ASCII, "GPS processing method (ASCII)"));
-            exif.SetValue(ExifTag.GPSAreaInformation, new EncodedString(EncodedString.CharacterCode.Unicode, "GPS area info (Unicode)"));
+            exif.SetValue(ExifTag.GPSProcessingMethod, new(EncodedString.CharacterCode.ASCII, "GPS processing method (ASCII)"));
+            exif.SetValue(ExifTag.GPSAreaInformation, new(EncodedString.CharacterCode.Unicode, "GPS area info (Unicode)"));
 
             image.Metadata.ExifProfile = exif;
 
@@ -441,7 +441,7 @@ public partial class JpegDecoderTests
         image.CompareToOriginal(provider);
 
     }
-    
+
     // https://github.com/SixLabors/ImageSharp/issues/2758
     [Theory]
     [WithFile(TestImages.Jpeg.Issues.Issue2758, PixelTypes.L8)]

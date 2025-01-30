@@ -32,7 +32,7 @@ public abstract class ProcessPixelRowsTestBase
     [Fact]
     public void PixelAccessorDimensionsAreCorrect()
     {
-        using Image<Rgb24> image = new Image<Rgb24>(123, 456);
+        using Image<Rgb24> image = new(123, 456);
         this.ProcessPixelRowsImpl(image, accessor =>
         {
             Assert.Equal(123, accessor.Width);
@@ -43,7 +43,7 @@ public abstract class ProcessPixelRowsTestBase
     [Fact]
     public void WriteImagePixels_SingleImage()
     {
-        using Image<L16> image = new Image<L16>(256, 256);
+        using Image<L16> image = new(256, 256);
         this.ProcessPixelRowsImpl(image, accessor =>
         {
             for (int y = 0; y < accessor.Height; y++)
@@ -51,7 +51,7 @@ public abstract class ProcessPixelRowsTestBase
                 Span<L16> row = accessor.GetRowSpan(y);
                 for (int x = 0; x < row.Length; x++)
                 {
-                    row[x] = new L16((ushort)(x * y));
+                    row[x] = new((ushort)(x * y));
                 }
             }
         });
@@ -71,18 +71,18 @@ public abstract class ProcessPixelRowsTestBase
     [Fact]
     public void WriteImagePixels_MultiImage2()
     {
-        using Image<L16> img1 = new Image<L16>(256, 256);
+        using Image<L16> img1 = new(256, 256);
         Buffer2D<L16> buffer = img1.Frames.RootFrame.PixelBuffer;
         for (int y = 0; y < 256; y++)
         {
             Span<L16> row = buffer.DangerousGetRowSpan(y);
             for (int x = 0; x < 256; x++)
             {
-                row[x] = new L16((ushort)(x * y));
+                row[x] = new((ushort)(x * y));
             }
         }
 
-        using Image<L16> img2 = new Image<L16>(256, 256);
+        using Image<L16> img2 = new(256, 256);
 
         this.ProcessPixelRowsImpl(img1, img2, (accessor1, accessor2) =>
         {
@@ -109,19 +109,19 @@ public abstract class ProcessPixelRowsTestBase
     [Fact]
     public void WriteImagePixels_MultiImage3()
     {
-        using Image<L16> img1 = new Image<L16>(256, 256);
+        using Image<L16> img1 = new(256, 256);
         Buffer2D<L16> buffer2 = img1.Frames.RootFrame.PixelBuffer;
         for (int y = 0; y < 256; y++)
         {
             Span<L16> row = buffer2.DangerousGetRowSpan(y);
             for (int x = 0; x < 256; x++)
             {
-                row[x] = new L16((ushort)(x * y));
+                row[x] = new((ushort)(x * y));
             }
         }
 
-        using Image<L16> img2 = new Image<L16>(256, 256);
-        using Image<L16> img3 = new Image<L16>(256, 256);
+        using Image<L16> img2 = new(256, 256);
+        using Image<L16> img3 = new(256, 256);
 
         this.ProcessPixelRowsImpl(img1, img2, img3, (accessor1, accessor2, accessor3) =>
         {
@@ -154,8 +154,8 @@ public abstract class ProcessPixelRowsTestBase
     [Fact]
     public void Disposed_ThrowsObjectDisposedException()
     {
-        using Image<L16> nonDisposed = new Image<L16>(1, 1);
-        Image<L16> disposed = new Image<L16>(1, 1);
+        using Image<L16> nonDisposed = new(1, 1);
+        Image<L16> disposed = new(1, 1);
         disposed.Dispose();
 
         Assert.Throws<ObjectDisposedException>(() => this.ProcessPixelRowsImpl(disposed, _ => { }));
@@ -179,10 +179,10 @@ public abstract class ProcessPixelRowsTestBase
         {
             bool throwExceptionInner = bool.Parse(throwExceptionStr);
             UnmanagedBuffer<L8> buffer = UnmanagedBuffer<L8>.Allocate(100);
-            MockUnmanagedMemoryAllocator<L8> allocator = new MockUnmanagedMemoryAllocator<L8>(buffer);
+            MockUnmanagedMemoryAllocator<L8> allocator = new(buffer);
             Configuration.Default.MemoryAllocator = allocator;
 
-            Image<L8> image = new Image<L8>(10, 10);
+            Image<L8> image = new(10, 10);
 
             Assert.Equal(1, UnmanagedMemoryHandle.TotalOutstandingHandles);
             try
@@ -217,11 +217,11 @@ public abstract class ProcessPixelRowsTestBase
             bool throwExceptionInner = bool.Parse(throwExceptionStr);
             UnmanagedBuffer<L8> buffer1 = UnmanagedBuffer<L8>.Allocate(100);
             UnmanagedBuffer<L8> buffer2 = UnmanagedBuffer<L8>.Allocate(100);
-            MockUnmanagedMemoryAllocator<L8> allocator = new MockUnmanagedMemoryAllocator<L8>(buffer1, buffer2);
+            MockUnmanagedMemoryAllocator<L8> allocator = new(buffer1, buffer2);
             Configuration.Default.MemoryAllocator = allocator;
 
-            Image<L8> image1 = new Image<L8>(10, 10);
-            Image<L8> image2 = new Image<L8>(10, 10);
+            Image<L8> image1 = new(10, 10);
+            Image<L8> image2 = new(10, 10);
 
             Assert.Equal(2, UnmanagedMemoryHandle.TotalOutstandingHandles);
             try
@@ -258,12 +258,12 @@ public abstract class ProcessPixelRowsTestBase
             UnmanagedBuffer<L8> buffer1 = UnmanagedBuffer<L8>.Allocate(100);
             UnmanagedBuffer<L8> buffer2 = UnmanagedBuffer<L8>.Allocate(100);
             UnmanagedBuffer<L8> buffer3 = UnmanagedBuffer<L8>.Allocate(100);
-            MockUnmanagedMemoryAllocator<L8> allocator = new MockUnmanagedMemoryAllocator<L8>(buffer1, buffer2, buffer3);
+            MockUnmanagedMemoryAllocator<L8> allocator = new(buffer1, buffer2, buffer3);
             Configuration.Default.MemoryAllocator = allocator;
 
-            Image<L8> image1 = new Image<L8>(10, 10);
-            Image<L8> image2 = new Image<L8>(10, 10);
-            Image<L8> image3 = new Image<L8>(10, 10);
+            Image<L8> image1 = new(10, 10);
+            Image<L8> image2 = new(10, 10);
+            Image<L8> image3 = new(10, 10);
 
             Assert.Equal(3, UnmanagedMemoryHandle.TotalOutstandingHandles);
             try

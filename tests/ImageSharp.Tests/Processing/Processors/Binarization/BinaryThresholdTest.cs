@@ -12,8 +12,8 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Binarization;
 public class BinaryThresholdTest
 {
     public static readonly TheoryData<float> BinaryThresholdValues
-        = new TheoryData<float>
-    {
+        = new()
+        {
         .25F,
         .75F
     };
@@ -46,7 +46,7 @@ public class BinaryThresholdTest
         using (Image<TPixel> source = provider.GetImage())
         using (Image<TPixel> image = source.Clone())
         {
-            Rectangle bounds = new Rectangle(image.Width / 8, image.Height / 8, 6 * image.Width / 8, 6 * image.Width / 8);
+            Rectangle bounds = new(image.Width / 8, image.Height / 8, 6 * image.Width / 8, 6 * image.Width / 8);
 
             image.Mutate(x => x.BinaryThreshold(value, bounds));
             image.DebugSave(provider, value);
@@ -76,7 +76,7 @@ public class BinaryThresholdTest
         using (Image<TPixel> source = provider.GetImage())
         using (Image<TPixel> image = source.Clone())
         {
-            Rectangle bounds = new Rectangle(image.Width / 8, image.Height / 8, 6 * image.Width / 8, 6 * image.Width / 8);
+            Rectangle bounds = new(image.Width / 8, image.Height / 8, 6 * image.Width / 8, 6 * image.Width / 8);
 
             image.Mutate(x => x.BinaryThreshold(value, BinaryThresholdMode.Saturation, bounds));
             image.DebugSave(provider, value);
@@ -114,7 +114,7 @@ public class BinaryThresholdTest
         using (Image<TPixel> source = provider.GetImage())
         using (Image<TPixel> image = source.Clone())
         {
-            Rectangle bounds = new Rectangle(image.Width / 8, image.Height / 8, 6 * image.Width / 8, 6 * image.Width / 8);
+            Rectangle bounds = new(image.Width / 8, image.Height / 8, 6 * image.Width / 8, 6 * image.Width / 8);
 
             image.Mutate(x => x.BinaryThreshold(value, BinaryThresholdMode.MaxChroma, bounds));
             image.DebugSave(provider, value);

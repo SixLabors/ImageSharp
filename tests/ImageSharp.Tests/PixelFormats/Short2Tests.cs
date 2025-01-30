@@ -36,9 +36,9 @@ public class Short2Tests
     [Fact]
     public void Short2_ToVector4()
     {
-        Assert.Equal(new Vector4(0x7FFF, 0x7FFF, 0, 1), new Short2(Vector2.One * 0x7FFF).ToVector4());
-        Assert.Equal(new Vector4(0, 0, 0, 1), new Short2(Vector2.Zero).ToVector4());
-        Assert.Equal(new Vector4(-0x8000, -0x8000, 0, 1), new Short2(Vector2.One * -0x8000).ToVector4());
+        Assert.Equal(new(0x7FFF, 0x7FFF, 0, 1), new Short2(Vector2.One * 0x7FFF).ToVector4());
+        Assert.Equal(new(0, 0, 0, 1), new Short2(Vector2.Zero).ToVector4());
+        Assert.Equal(new(-0x8000, -0x8000, 0, 1), new Short2(Vector2.One * -0x8000).ToVector4());
     }
 
     [Fact]
@@ -140,7 +140,7 @@ public class Short2Tests
     public void Short2_FromBgra5551()
     {
         // act
-        Short2 short2 = Short2.FromBgra5551(new Bgra5551(1.0f, 1.0f, 1.0f, 1.0f));
+        Short2 short2 = Short2.FromBgra5551(new(1.0f, 1.0f, 1.0f, 1.0f));
 
         // assert
         Vector4 actual = short2.ToScaledVector4();

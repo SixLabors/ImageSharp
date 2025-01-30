@@ -22,7 +22,7 @@ public class IptcProfileTests
     public void IptcProfile_WithUtf8Data_WritesEnvelopeRecord_Works()
     {
         // arrange
-        IptcProfile profile = new IptcProfile();
+        IptcProfile profile = new();
         profile.SetValue(IptcTag.City, "ESPAÑA");
         profile.UpdateData();
         byte[] expectedEnvelopeData = { 28, 1, 90, 0, 3, 27, 37, 71 };
@@ -39,7 +39,7 @@ public class IptcProfileTests
     public void IptcProfile_SetValue_WithStrictEnabled_Works(IptcTag tag)
     {
         // arrange
-        IptcProfile profile = new IptcProfile();
+        IptcProfile profile = new();
         string value = new('s', tag.MaxLength() + 1);
         int expectedLength = tag.MaxLength();
 
@@ -56,7 +56,7 @@ public class IptcProfileTests
     public void IptcProfile_SetValue_WithStrictDisabled_Works(IptcTag tag)
     {
         // arrange
-        IptcProfile profile = new IptcProfile();
+        IptcProfile profile = new();
         string value = new('s', tag.MaxLength() + 1);
         int expectedLength = value.Length;
 
@@ -77,8 +77,8 @@ public class IptcProfileTests
     public void IptcProfile_SetDateValue_Works(IptcTag tag)
     {
         // arrange
-        IptcProfile profile = new IptcProfile();
-        DateTimeOffset datetime = new DateTimeOffset(new DateTime(1994, 3, 17));
+        IptcProfile profile = new();
+        DateTimeOffset datetime = new(new(1994, 3, 17));
 
         // act
         profile.SetDateTimeValue(tag, datetime);
@@ -96,8 +96,8 @@ public class IptcProfileTests
     public void IptcProfile_SetTimeValue_Works(IptcTag tag)
     {
         // arrange
-        IptcProfile profile = new IptcProfile();
-        DateTime dateTimeUtc = new DateTime(1994, 3, 17, 14, 15, 16, DateTimeKind.Utc);
+        IptcProfile profile = new();
+        DateTime dateTimeUtc = new(1994, 3, 17, 14, 15, 16, DateTimeKind.Utc);
         DateTimeOffset dateTimeOffset = new DateTimeOffset(dateTimeUtc).ToOffset(TimeSpan.FromHours(2));
 
         // act
@@ -170,7 +170,7 @@ public class IptcProfileTests
     public void IptcProfile_ToAndFromByteArray_Works()
     {
         // arrange
-        IptcProfile profile = new IptcProfile();
+        IptcProfile profile = new();
         const string expectedCaptionWriter = "unittest";
         const string expectedCaption = "test";
         profile.SetValue(IptcTag.CaptionWriter, expectedCaptionWriter);
@@ -179,7 +179,7 @@ public class IptcProfileTests
         // act
         profile.UpdateData();
         byte[] profileBytes = profile.Data;
-        IptcProfile profileFromBytes = new IptcProfile(profileBytes);
+        IptcProfile profileFromBytes = new(profileBytes);
 
         // assert
         List<IptcValue> iptcValues = profileFromBytes.Values.ToList();
@@ -191,7 +191,7 @@ public class IptcProfileTests
     public void IptcProfile_CloneIsDeep()
     {
         // arrange
-        IptcProfile profile = new IptcProfile();
+        IptcProfile profile = new();
         const string captionWriter = "unittest";
         const string caption = "test";
         profile.SetValue(IptcTag.CaptionWriter, captionWriter);
@@ -213,7 +213,7 @@ public class IptcProfileTests
     public void IptcValue_CloneIsDeep()
     {
         // arrange
-        IptcValue iptcValue = new IptcValue(IptcTag.Caption, System.Text.Encoding.UTF8, "test", true);
+        IptcValue iptcValue = new(IptcTag.Caption, System.Text.Encoding.UTF8, "test", true);
 
         // act
         IptcValue clone = iptcValue.DeepClone();
@@ -228,7 +228,7 @@ public class IptcProfileTests
     {
         // arrange
         using Image<Rgba32> image = new(1, 1);
-        image.Metadata.IptcProfile = new IptcProfile();
+        image.Metadata.IptcProfile = new();
         const string expectedCaptionWriter = "unittest";
         const string expectedCaption = "test";
         image.Metadata.IptcProfile.SetValue(IptcTag.CaptionWriter, expectedCaptionWriter);
@@ -263,7 +263,7 @@ public class IptcProfileTests
     public void IptcProfile_AddRepeatable_Works(IptcTag tag)
     {
         // arrange
-        IptcProfile profile = new IptcProfile();
+        IptcProfile profile = new();
         const string expectedValue1 = "test";
         const string expectedValue2 = "another one";
         profile.SetValue(tag, expectedValue1, false);
@@ -315,7 +315,7 @@ public class IptcProfileTests
     public void IptcProfile_AddNoneRepeatable_DoesOverrideOldValue(IptcTag tag)
     {
         // arrange
-        IptcProfile profile = new IptcProfile();
+        IptcProfile profile = new();
         const string expectedValue = "another one";
         profile.SetValue(tag, "test", false);
 
@@ -332,7 +332,7 @@ public class IptcProfileTests
     public void IptcProfile_RemoveByTag_RemovesAllEntrys()
     {
         // arrange
-        IptcProfile profile = new IptcProfile();
+        IptcProfile profile = new();
         profile.SetValue(IptcTag.Byline, "test");
         profile.SetValue(IptcTag.Byline, "test2");
 
@@ -348,7 +348,7 @@ public class IptcProfileTests
     public void IptcProfile_RemoveByTagAndValue_Works()
     {
         // arrange
-        IptcProfile profile = new IptcProfile();
+        IptcProfile profile = new();
         profile.SetValue(IptcTag.Byline, "test");
         profile.SetValue(IptcTag.Byline, "test2");
 
@@ -364,7 +364,7 @@ public class IptcProfileTests
     public void IptcProfile_GetValue_RetrievesAllEntries()
     {
         // arrange
-        IptcProfile profile = new IptcProfile();
+        IptcProfile profile = new();
         profile.SetValue(IptcTag.Byline, "test");
         profile.SetValue(IptcTag.Byline, "test2");
         profile.SetValue(IptcTag.Caption, "test");
@@ -380,12 +380,12 @@ public class IptcProfileTests
     private static void ContainsIptcValue(List<IptcValue> values, IptcTag tag, string value)
     {
         Assert.True(values.Any(val => val.Tag == tag), $"Missing iptc tag {tag}");
-        Assert.True(values.Contains(new IptcValue(tag, System.Text.Encoding.UTF8.GetBytes(value), false)), $"expected iptc value '{value}' was not found for tag '{tag}'");
+        Assert.True(values.Contains(new(tag, System.Text.Encoding.UTF8.GetBytes(value), false)), $"expected iptc value '{value}' was not found for tag '{tag}'");
     }
 
     private static Image<Rgba32> WriteAndReadJpeg(Image<Rgba32> image)
     {
-        using (MemoryStream memStream = new MemoryStream())
+        using (MemoryStream memStream = new())
         {
             image.SaveAsJpeg(memStream);
             image.Dispose();

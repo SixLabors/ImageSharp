@@ -195,9 +195,9 @@ public class DrawImageTests
         where TPixel : unmanaged, IPixel<TPixel>
     {
         using Image<TPixel> foreground = provider.GetImage();
-        using Image<Rgba32> background = new(100, 100, new Rgba32(0, 255, 255));
+        using Image<Rgba32> background = new(100, 100, new(0, 255, 255));
 
-        background.Mutate(c => c.DrawImage(foreground, new Point(64, 10), new Rectangle(32, 32, 32, 32), 1F));
+        background.Mutate(c => c.DrawImage(foreground, new(64, 10), new Rectangle(32, 32, 32, 32), 1F));
 
         background.DebugSave(
             provider,
@@ -216,9 +216,9 @@ public class DrawImageTests
     where TPixel : unmanaged, IPixel<TPixel>
     {
         using Image<TPixel> foreground = provider.GetImage();
-        using Image<Rgba32> background = new(100, 100, new Rgba32(0, 255, 255));
+        using Image<Rgba32> background = new(100, 100, new(0, 255, 255));
 
-        background.Mutate(c => c.DrawImage(foreground, new Point(10, 10), new Rectangle(320, 128, 32, 32), 1F));
+        background.Mutate(c => c.DrawImage(foreground, new(10, 10), new Rectangle(320, 128, 32, 32), 1F));
 
         background.DebugSave(
             provider,
@@ -237,9 +237,9 @@ public class DrawImageTests
     where TPixel : unmanaged, IPixel<TPixel>
     {
         using Image<TPixel> foreground = provider.GetImage();
-        using Image<Rgba32> background = new(100, 100, new Rgba32(0, 255, 255));
+        using Image<Rgba32> background = new(100, 100, new(0, 255, 255));
 
-        background.Mutate(c => c.DrawImage(foreground, new Point(10, 10), new Rectangle(32, 32, 32, 32), 1F));
+        background.Mutate(c => c.DrawImage(foreground, new(10, 10), new Rectangle(32, 32, 32, 32), 1F));
 
         background.DebugSave(
             provider,
@@ -258,9 +258,9 @@ public class DrawImageTests
     where TPixel : unmanaged, IPixel<TPixel>
     {
         using Image<TPixel> foreground = provider.GetImage();
-        using Image<Rgba32> background = new(100, 100, new Rgba32(0, 255, 255));
+        using Image<Rgba32> background = new(100, 100, new(0, 255, 255));
 
-        background.Mutate(c => c.DrawImage(foreground, new Point(-10, -10), new Rectangle(32, 32, 32, 32), 1F));
+        background.Mutate(c => c.DrawImage(foreground, new(-10, -10), new Rectangle(32, 32, 32, 32), 1F));
 
         background.DebugSave(
             provider,
@@ -279,9 +279,9 @@ public class DrawImageTests
     where TPixel : unmanaged, IPixel<TPixel>
     {
         using Image<TPixel> foreground = provider.GetImage();
-        using Image<Rgba32> background = new(100, 100, new Rgba32(0, 255, 255));
+        using Image<Rgba32> background = new(100, 100, new(0, 255, 255));
 
-        background.Mutate(c => c.DrawImage(foreground, new Point(80, 80), new Rectangle(32, 32, 32, 32), 1F));
+        background.Mutate(c => c.DrawImage(foreground, new(80, 80), new Rectangle(32, 32, 32, 32), 1F));
 
         background.DebugSave(
             provider,

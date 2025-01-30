@@ -13,7 +13,7 @@ public partial class ColorTests
         [Fact]
         public void Rgba64()
         {
-            Rgba64 source = new Rgba64(100, 2222, 3333, 4444);
+            Rgba64 source = new(100, 2222, 3333, 4444);
 
             // Act:
             Color color = Color.FromPixel(source);
@@ -26,7 +26,7 @@ public partial class ColorTests
         [Fact]
         public void Rgba32()
         {
-            Rgba32 source = new Rgba32(1, 22, 33, 231);
+            Rgba32 source = new(1, 22, 33, 231);
 
             // Act:
             Color color = Color.FromPixel(source);
@@ -39,7 +39,7 @@ public partial class ColorTests
         [Fact]
         public void Argb32()
         {
-            Argb32 source = new Argb32(1, 22, 33, 231);
+            Argb32 source = new(1, 22, 33, 231);
 
             // Act:
             Color color = Color.FromPixel(source);
@@ -52,7 +52,7 @@ public partial class ColorTests
         [Fact]
         public void Bgra32()
         {
-            Bgra32 source = new Bgra32(1, 22, 33, 231);
+            Bgra32 source = new(1, 22, 33, 231);
 
             // Act:
             Color color = Color.FromPixel(source);
@@ -65,7 +65,7 @@ public partial class ColorTests
         [Fact]
         public void Abgr32()
         {
-            Abgr32 source = new Abgr32(1, 22, 33, 231);
+            Abgr32 source = new(1, 22, 33, 231);
 
             // Act:
             Color color = Color.FromPixel(source);
@@ -78,7 +78,7 @@ public partial class ColorTests
         [Fact]
         public void Rgb24()
         {
-            Rgb24 source = new Rgb24(1, 22, 231);
+            Rgb24 source = new(1, 22, 231);
 
             // Act:
             Color color = Color.FromPixel(source);
@@ -91,7 +91,7 @@ public partial class ColorTests
         [Fact]
         public void Bgr24()
         {
-            Bgr24 source = new Bgr24(1, 22, 231);
+            Bgr24 source = new(1, 22, 231);
 
             // Act:
             Color color = Color.FromPixel(source);
@@ -108,10 +108,10 @@ public partial class ColorTests
             Color color = Color.FromScaledVector(Vector4.One);
 
             // Assert:
-            Assert.Equal(new RgbaVector(1, 1, 1, 1), color.ToPixel<RgbaVector>());
-            Assert.Equal(new Rgba64(65535, 65535, 65535, 65535), color.ToPixel<Rgba64>());
-            Assert.Equal(new Rgba32(255, 255, 255, 255), color.ToPixel<Rgba32>());
-            Assert.Equal(new L8(255), color.ToPixel<L8>());
+            Assert.Equal(new(1, 1, 1, 1), color.ToPixel<RgbaVector>());
+            Assert.Equal(new(65535, 65535, 65535, 65535), color.ToPixel<Rgba64>());
+            Assert.Equal(new(255, 255, 255, 255), color.ToPixel<Rgba32>());
+            Assert.Equal(new(255), color.ToPixel<L8>());
         }
 
         [Fact]

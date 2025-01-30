@@ -76,7 +76,7 @@ public class UnmanagedBufferTests
 
         static List<UnmanagedBuffer<byte>> FillList(int countInner)
         {
-            List<UnmanagedBuffer<byte>> l = new List<UnmanagedBuffer<byte>>();
+            List<UnmanagedBuffer<byte>> l = new();
             for (int i = 0; i < countInner; i++)
             {
                 UnmanagedBuffer<byte> h = UnmanagedBuffer<byte>.Allocate(42);

@@ -72,7 +72,7 @@ internal static class BackwardReferenceEncoder
                     BackwardReferencesLz77(width, height, bgra, 0, hashChain, worst);
                     break;
                 case Vp8LLz77Type.Lz77Box:
-                    hashChainBox = new Vp8LHashChain(memoryAllocator, width * height);
+                    hashChainBox = new(memoryAllocator, width * height);
                     BackwardReferencesLz77Box(width, height, bgra, 0, hashChain, hashChainBox, worst);
                     break;
             }
@@ -145,7 +145,7 @@ internal static class BackwardReferenceEncoder
         for (int i = 0; i < colorCache.Length; i++)
         {
             histos[i].PaletteCodeBits = i;
-            colorCache[i] = new ColorCache(i);
+            colorCache[i] = new(i);
         }
 
         // Find the cacheBits giving the lowest entropy.
@@ -282,7 +282,7 @@ internal static class BackwardReferenceEncoder
 
         if (useColorCache)
         {
-            colorCache = new ColorCache(cacheBits);
+            colorCache = new(cacheBits);
         }
 
         costModel.Build(xSize, cacheBits, refs);
@@ -384,7 +384,7 @@ internal static class BackwardReferenceEncoder
 
         if (useColorCache)
         {
-            colorCache = new ColorCache(cacheBits);
+            colorCache = new(cacheBits);
         }
 
         backwardRefs.Refs.Clear();
@@ -476,7 +476,7 @@ internal static class BackwardReferenceEncoder
         ColorCache? colorCache = null;
         if (useColorCache)
         {
-            colorCache = new ColorCache(cacheBits);
+            colorCache = new(cacheBits);
         }
 
         refs.Refs.Clear();
@@ -731,7 +731,7 @@ internal static class BackwardReferenceEncoder
 
         if (useColorCache)
         {
-            colorCache = new ColorCache(cacheBits);
+            colorCache = new(cacheBits);
         }
 
         refs.Refs.Clear();
@@ -779,7 +779,7 @@ internal static class BackwardReferenceEncoder
     private static void BackwardRefsWithLocalCache(ReadOnlySpan<uint> bgra, int cacheBits, Vp8LBackwardRefs refs)
     {
         int pixelIndex = 0;
-        ColorCache colorCache = new ColorCache(cacheBits);
+        ColorCache colorCache = new(cacheBits);
         for (int idx = 0; idx < refs.Refs.Count; idx++)
         {
             PixOrCopy v = refs.Refs[idx];

@@ -23,8 +23,8 @@ public class SizeTests
     [InlineData(0, 0)]
     public void NonDefaultConstructorTest(int width, int height)
     {
-        Size s1 = new Size(width, height);
-        Size s2 = new Size(new Point(width, height));
+        Size s1 = new(width, height);
+        Size s2 = new(new Point(width, height));
 
         Assert.Equal(s1, s2);
 
@@ -59,7 +59,7 @@ public class SizeTests
     [InlineData(0, 0)]
     public void DimensionsTest(int width, int height)
     {
-        Size p = new Size(width, height);
+        Size p = new(width, height);
         Assert.Equal(width, p.Width);
         Assert.Equal(height, p.Height);
     }
@@ -72,7 +72,7 @@ public class SizeTests
     public void PointFConversionTest(int width, int height)
     {
         SizeF sz = new Size(width, height);
-        Assert.Equal(new SizeF(width, height), sz);
+        Assert.Equal(new(width, height), sz);
     }
 
     [Theory]
@@ -83,7 +83,7 @@ public class SizeTests
     public void SizeConversionTest(int width, int height)
     {
         Point sz = (Point)new Size(width, height);
-        Assert.Equal(new Point(width, height), sz);
+        Assert.Equal(new(width, height), sz);
     }
 
     [Theory]
@@ -93,14 +93,14 @@ public class SizeTests
     [InlineData(0, 0)]
     public void ArithmeticTest(int width, int height)
     {
-        Size sz1 = new Size(width, height);
-        Size sz2 = new Size(height, width);
+        Size sz1 = new(width, height);
+        Size sz2 = new(height, width);
         Size addExpected, subExpected;
 
         unchecked
         {
-            addExpected = new Size(width + height, height + width);
-            subExpected = new Size(width - height, height - width);
+            addExpected = new(width + height, height + width);
+            subExpected = new(width - height, height - width);
         }
 
         Assert.Equal(addExpected, sz1 + sz2);
@@ -116,14 +116,14 @@ public class SizeTests
     [InlineData(0, 0)]
     public void PointFMathematicalTest(float width, float height)
     {
-        SizeF szF = new SizeF(width, height);
+        SizeF szF = new(width, height);
         Size pCeiling, pTruncate, pRound;
 
         unchecked
         {
-            pCeiling = new Size((int)MathF.Ceiling(width), (int)MathF.Ceiling(height));
-            pTruncate = new Size((int)width, (int)height);
-            pRound = new Size((int)MathF.Round(width), (int)MathF.Round(height));
+            pCeiling = new((int)MathF.Ceiling(width), (int)MathF.Ceiling(height));
+            pTruncate = new((int)width, (int)height);
+            pRound = new((int)MathF.Round(width), (int)MathF.Round(height));
         }
 
         Assert.Equal(pCeiling, Size.Ceiling(szF));
@@ -138,9 +138,9 @@ public class SizeTests
     [InlineData(0, 0)]
     public void EqualityTest(int width, int height)
     {
-        Size p1 = new Size(width, height);
-        Size p2 = new Size(unchecked(width - 1), unchecked(height - 1));
-        Size p3 = new Size(width, height);
+        Size p1 = new(width, height);
+        Size p2 = new(unchecked(width - 1), unchecked(height - 1));
+        Size p3 = new(width, height);
 
         Assert.True(p1 == p3);
         Assert.True(p1 != p2);
@@ -160,7 +160,7 @@ public class SizeTests
     [Fact]
     public void EqualityTest_NotSize()
     {
-        Size size = new Size(0, 0);
+        Size size = new(0, 0);
         Assert.False(size.Equals(null));
         Assert.False(size.Equals(0));
         Assert.False(size.Equals(new SizeF(0, 0)));
@@ -169,7 +169,7 @@ public class SizeTests
     [Fact]
     public void GetHashCodeTest()
     {
-        Size size = new Size(10, 10);
+        Size size = new(10, 10);
         Assert.Equal(size.GetHashCode(), new Size(10, 10).GetHashCode());
         Assert.NotEqual(size.GetHashCode(), new Size(20, 10).GetHashCode());
         Assert.NotEqual(size.GetHashCode(), new Size(10, 20).GetHashCode());
@@ -178,7 +178,7 @@ public class SizeTests
     [Fact]
     public void ToStringTest()
     {
-        Size sz = new Size(10, 5);
+        Size sz = new(10, 5);
         Assert.Equal(string.Format(CultureInfo.CurrentCulture, "Size [ Width={0}, Height={1} ]", sz.Width, sz.Height), sz.ToString());
     }
 
@@ -206,12 +206,12 @@ public class SizeTests
     [InlineData(int.MinValue, int.MinValue)]
     public void MultiplicationTestSizeInt(int dimension, int multiplier)
     {
-        Size sz1 = new Size(dimension, dimension);
+        Size sz1 = new(dimension, dimension);
         Size mulExpected;
 
         unchecked
         {
-            mulExpected = new Size(dimension * multiplier, dimension * multiplier);
+            mulExpected = new(dimension * multiplier, dimension * multiplier);
         }
 
         Assert.Equal(mulExpected, sz1 * multiplier);
@@ -222,12 +222,12 @@ public class SizeTests
     [InlineData(1000, 2000, 3000)]
     public void MultiplicationTestSizeIntWidthHeightMultiplier(int width, int height, int multiplier)
     {
-        Size sz1 = new Size(width, height);
+        Size sz1 = new(width, height);
         Size mulExpected;
 
         unchecked
         {
-            mulExpected = new Size(width * multiplier, height * multiplier);
+            mulExpected = new(width * multiplier, height * multiplier);
         }
 
         Assert.Equal(mulExpected, sz1 * multiplier);
@@ -258,10 +258,10 @@ public class SizeTests
     [InlineData(int.MinValue, float.MinValue)]
     public void MultiplicationTestSizeFloat(int dimension, float multiplier)
     {
-        Size sz1 = new Size(dimension, dimension);
+        Size sz1 = new(dimension, dimension);
         SizeF mulExpected;
 
-        mulExpected = new SizeF(dimension * multiplier, dimension * multiplier);
+        mulExpected = new(dimension * multiplier, dimension * multiplier);
 
         Assert.Equal(mulExpected, sz1 * multiplier);
         Assert.Equal(mulExpected, multiplier * sz1);
@@ -271,10 +271,10 @@ public class SizeTests
     [InlineData(1000, 2000, 30.33f)]
     public void MultiplicationTestSizeFloatWidthHeightMultiplier(int width, int height, float multiplier)
     {
-        Size sz1 = new Size(width, height);
+        Size sz1 = new(width, height);
         SizeF mulExpected;
 
-        mulExpected = new SizeF(width * multiplier, height * multiplier);
+        mulExpected = new(width * multiplier, height * multiplier);
 
         Assert.Equal(mulExpected, sz1 * multiplier);
         Assert.Equal(mulExpected, multiplier * sz1);
@@ -283,10 +283,10 @@ public class SizeTests
     [Fact]
     public void DivideByZeroChecks()
     {
-        Size size = new Size(100, 100);
+        Size size = new(100, 100);
         Assert.Throws<DivideByZeroException>(() => size / 0);
 
-        SizeF expectedSizeF = new SizeF(float.PositiveInfinity, float.PositiveInfinity);
+        SizeF expectedSizeF = new(float.PositiveInfinity, float.PositiveInfinity);
         Assert.Equal(expectedSizeF, size / 0.0f);
     }
 
@@ -305,10 +305,10 @@ public class SizeTests
     [InlineData(int.MaxValue, -1)]
     public void DivideTestSizeInt(int dimension, int divisor)
     {
-        Size size = new Size(dimension, dimension);
+        Size size = new(dimension, dimension);
         Size expected;
 
-        expected = new Size(dimension / divisor, dimension / divisor);
+        expected = new(dimension / divisor, dimension / divisor);
 
         Assert.Equal(expected, size / divisor);
     }
@@ -317,10 +317,10 @@ public class SizeTests
     [InlineData(1111, 2222, 3333)]
     public void DivideTestSizeIntWidthHeightDivisor(int width, int height, int divisor)
     {
-        Size size = new Size(width, height);
+        Size size = new(width, height);
         Size expected;
 
-        expected = new Size(width / divisor, height / divisor);
+        expected = new(width / divisor, height / divisor);
 
         Assert.Equal(expected, size / divisor);
     }
@@ -341,10 +341,10 @@ public class SizeTests
     [InlineData(int.MinValue, -1.0f)]
     public void DivideTestSizeFloat(int dimension, float divisor)
     {
-        SizeF size = new SizeF(dimension, dimension);
+        SizeF size = new(dimension, dimension);
         SizeF expected;
 
-        expected = new SizeF(dimension / divisor, dimension / divisor);
+        expected = new(dimension / divisor, dimension / divisor);
         Assert.Equal(expected, size / divisor);
     }
 
@@ -352,10 +352,10 @@ public class SizeTests
     [InlineData(1111, 2222, -333.33f)]
     public void DivideTestSizeFloatWidthHeightDivisor(int width, int height, float divisor)
     {
-        SizeF size = new SizeF(width, height);
+        SizeF size = new(width, height);
         SizeF expected;
 
-        expected = new SizeF(width / divisor, height / divisor);
+        expected = new(width / divisor, height / divisor);
         Assert.Equal(expected, size / divisor);
     }
 
@@ -366,7 +366,7 @@ public class SizeTests
     [InlineData(0, 0)]
     public void DeconstructTest(int width, int height)
     {
-        Size s = new Size(width, height);
+        Size s = new(width, height);
 
         (int deconstructedWidth, int deconstructedHeight) = s;
 

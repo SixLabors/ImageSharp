@@ -504,10 +504,10 @@ internal abstract class BaseExifReader
     }
 
     private void AddInvalidTag(ExifTag tag)
-        => (this.invalidTags ??= new List<ExifTag>()).Add(tag);
+        => (this.invalidTags ??= new()).Add(tag);
 
     private void AddSubIfd(object? val)
-        => (this.subIfds ??= new List<ulong>()).Add(Convert.ToUInt64(val, CultureInfo.InvariantCulture));
+        => (this.subIfds ??= new()).Add(Convert.ToUInt64(val, CultureInfo.InvariantCulture));
 
     private void Seek(ulong pos)
         => this.data.Seek((long)pos, SeekOrigin.Begin);
@@ -639,7 +639,7 @@ internal abstract class BaseExifReader
         uint numerator = this.ConvertToUInt32(buffer[..4]);
         uint denominator = this.ConvertToUInt32(buffer.Slice(4, 4));
 
-        return new Rational(numerator, denominator, false);
+        return new(numerator, denominator, false);
     }
 
     private sbyte ConvertToSignedByte(ReadOnlySpan<byte> buffer) => unchecked((sbyte)buffer[0]);
@@ -666,7 +666,7 @@ internal abstract class BaseExifReader
         int numerator = this.ConvertToInt32(buffer[..4]);
         int denominator = this.ConvertToInt32(buffer.Slice(4, 4));
 
-        return new SignedRational(numerator, denominator, false);
+        return new(numerator, denominator, false);
     }
 
     private short ConvertToSignedShort(ReadOnlySpan<byte> buffer)

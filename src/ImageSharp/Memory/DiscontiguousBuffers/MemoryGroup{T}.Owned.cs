@@ -23,7 +23,7 @@ internal abstract partial class MemoryGroup<T>
         {
             this.memoryOwners = memoryOwners;
             this.Swappable = swappable;
-            this.View = new MemoryGroupView<T>(this);
+            this.View = new(this);
             this.memoryGroupSpanCache = MemoryGroupSpanCache.Create(memoryOwners);
         }
 
@@ -124,7 +124,7 @@ internal abstract partial class MemoryGroup<T>
         public override void RecreateViewAfterSwap()
         {
             this.View.Invalidate();
-            this.View = new MemoryGroupView<T>(this);
+            this.View = new(this);
         }
 
         /// <inheritdoc/>
@@ -193,7 +193,7 @@ internal abstract partial class MemoryGroup<T>
                 int lengthInElements,
                 AllocationOptions options)
             {
-                ObservedBuffer? buffer = new ObservedBuffer(handle, lengthInElements);
+                ObservedBuffer? buffer = new(handle, lengthInElements);
                 if (options.Has(AllocationOptions.Clean))
                 {
                     buffer.GetSpan().Clear();
@@ -212,7 +212,7 @@ internal abstract partial class MemoryGroup<T>
             public override unsafe MemoryHandle Pin(int elementIndex = 0)
             {
                 void* pbData = Unsafe.Add<T>(this.handle.Pointer, elementIndex);
-                return new MemoryHandle(pbData);
+                return new(pbData);
             }
 
             public override void Unpin()

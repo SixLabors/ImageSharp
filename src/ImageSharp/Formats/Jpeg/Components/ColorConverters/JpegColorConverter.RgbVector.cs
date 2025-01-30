@@ -26,7 +26,7 @@ internal abstract partial class JpegColorConverterBase
             ref Vector<float> bBase =
                 ref Unsafe.As<float, Vector<float>>(ref MemoryMarshal.GetReference(values.Component2));
 
-            Vector<float> scale = new Vector<float>(1 / this.MaximumValue);
+            Vector<float> scale = new(1 / this.MaximumValue);
 
             nuint n = values.Component0.VectorCount<float>();
             for (nuint i = 0; i < n; i++)

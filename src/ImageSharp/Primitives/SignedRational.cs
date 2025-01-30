@@ -117,7 +117,7 @@ public readonly struct SignedRational : IEquatable<SignedRational>
     /// </returns>
     public static SignedRational FromDouble(double value)
     {
-        return new SignedRational(value, false);
+        return new(value, false);
     }
 
     /// <summary>

@@ -68,7 +68,7 @@ internal readonly struct ValueSize : IEquatable<ValueSize>
     /// <returns>a Values size with type PercentageOfWidth</returns>
     public static ValueSize PercentageOfWidth(float percentage)
     {
-        return new ValueSize(percentage, ValueSizeType.PercentageOfWidth);
+        return new(percentage, ValueSizeType.PercentageOfWidth);
     }
 
     /// <summary>

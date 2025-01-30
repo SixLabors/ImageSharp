@@ -36,8 +36,8 @@ internal static unsafe class QuantEnc
         int tlambda = dqm.TLambda;
         Span<byte> src = it.YuvIn.AsSpan(Vp8EncIterator.YOffEnc);
         Span<int> scratch = it.Scratch3;
-        Vp8ModeScore? rdTmp = new Vp8ModeScore();
-        Vp8Residual? res = new Vp8Residual();
+        Vp8ModeScore? rdTmp = new();
+        Vp8Residual? res = new();
         Vp8ModeScore rdCur = rdTmp;
         Vp8ModeScore rdBest = rd;
         int mode;
@@ -107,7 +107,7 @@ internal static unsafe class QuantEnc
         Span<byte> bestBlocks = it.YuvOut2.AsSpan(Vp8EncIterator.YOffEnc);
         Span<int> scratch = it.Scratch3;
         int totalHeaderBits = 0;
-        Vp8ModeScore? rdBest = new Vp8ModeScore();
+        Vp8ModeScore? rdBest = new();
 
         if (maxI4HeaderBits == 0)
         {
@@ -118,9 +118,9 @@ internal static unsafe class QuantEnc
         rdBest.H = 211;  // '211' is the value of VP8BitCost(0, 145)
         rdBest.SetRdScore(dqm.LambdaMode);
         it.StartI4();
-        Vp8ModeScore? rdi4 = new Vp8ModeScore();
-        Vp8ModeScore? rdTmp = new Vp8ModeScore();
-        Vp8Residual? res = new Vp8Residual();
+        Vp8ModeScore? rdi4 = new();
+        Vp8ModeScore? rdTmp = new();
+        Vp8Residual? res = new();
         Span<short> tmpLevels = stackalloc short[16];
         do
         {
@@ -220,9 +220,9 @@ internal static unsafe class QuantEnc
         Span<byte> tmpDst = it.YuvOut2.AsSpan(Vp8EncIterator.UOffEnc);
         Span<byte> dst0 = it.YuvOut.AsSpan(Vp8EncIterator.UOffEnc);
         Span<byte> dst = dst0;
-        Vp8ModeScore? rdBest = new Vp8ModeScore();
-        Vp8ModeScore? rdUv = new Vp8ModeScore();
-        Vp8Residual? res = new Vp8Residual();
+        Vp8ModeScore? rdBest = new();
+        Vp8ModeScore? rdUv = new();
+        Vp8Residual? res = new();
         int mode;
 
         rd.ModeUv = -1;

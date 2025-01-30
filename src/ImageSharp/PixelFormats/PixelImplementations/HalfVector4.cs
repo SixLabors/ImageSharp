@@ -22,7 +22,7 @@ public partial struct HalfVector4 : IPixel<HalfVector4>, IPackedVector<ulong>
     /// <param name="z">The z-component.</param>
     /// <param name="w">The w-component.</param>
     public HalfVector4(float x, float y, float z, float w)
-        : this(new Vector4(x, y, z, w))
+        : this(new(x, y, z, w))
     {
     }
 

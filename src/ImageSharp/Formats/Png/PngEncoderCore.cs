@@ -1542,7 +1542,7 @@ internal sealed class PngEncoderCore : IDisposable
             }
             else
             {
-                this.quantizer = new WuQuantizer(new QuantizerOptions { MaxColors = ColorNumerics.GetColorCountForBitDepth(bitDepth) });
+                this.quantizer = new WuQuantizer(new() { MaxColors = ColorNumerics.GetColorCountForBitDepth(bitDepth) });
             }
         }
 

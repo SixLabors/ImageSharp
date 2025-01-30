@@ -23,10 +23,10 @@ public class RectangleFTests
     [InlineData(0, float.MinValue, float.MaxValue, 0)]
     public void NonDefaultConstructorTest(float x, float y, float width, float height)
     {
-        RectangleF rect1 = new RectangleF(x, y, width, height);
-        PointF p = new PointF(x, y);
-        SizeF s = new SizeF(width, height);
-        RectangleF rect2 = new RectangleF(p, s);
+        RectangleF rect1 = new(x, y, width, height);
+        PointF p = new(x, y);
+        SizeF s = new(width, height);
+        RectangleF rect2 = new(p, s);
 
         Assert.Equal(rect1, rect2);
     }
@@ -38,7 +38,7 @@ public class RectangleFTests
     [InlineData(0, float.MinValue, float.MaxValue, 0)]
     public void FromLTRBTest(float left, float top, float right, float bottom)
     {
-        RectangleF expected = new RectangleF(left, top, right - left, bottom - top);
+        RectangleF expected = new(left, top, right - left, bottom - top);
         RectangleF actual = RectangleF.FromLTRB(left, top, right, bottom);
 
         Assert.Equal(expected, actual);
@@ -51,9 +51,9 @@ public class RectangleFTests
     [InlineData(0, float.MinValue, float.MaxValue, 0)]
     public void DimensionsTest(float x, float y, float width, float height)
     {
-        RectangleF rect = new RectangleF(x, y, width, height);
-        PointF p = new PointF(x, y);
-        SizeF s = new SizeF(width, height);
+        RectangleF rect = new(x, y, width, height);
+        PointF p = new(x, y);
+        SizeF s = new(width, height);
 
         Assert.Equal(p, rect.Location);
         Assert.Equal(s, rect.Size);
@@ -84,8 +84,8 @@ public class RectangleFTests
     [InlineData(float.MaxValue, float.MinValue)]
     public void LocationSetTest(float x, float y)
     {
-        PointF point = new PointF(x, y);
-        RectangleF rect = new RectangleF(10, 10, 10, 10) { Location = point };
+        PointF point = new(x, y);
+        RectangleF rect = new(10, 10, 10, 10) { Location = point };
         Assert.Equal(point, rect.Location);
         Assert.Equal(point.X, rect.X);
         Assert.Equal(point.Y, rect.Y);
@@ -96,8 +96,8 @@ public class RectangleFTests
     [InlineData(float.MaxValue, float.MinValue)]
     public void SizeSetTest(float x, float y)
     {
-        SizeF size = new SizeF(x, y);
-        RectangleF rect = new RectangleF(10, 10, 10, 10) { Size = size };
+        SizeF size = new(x, y);
+        RectangleF rect = new(10, 10, 10, 10) { Size = size };
         Assert.Equal(size, rect.Size);
         Assert.Equal(size.Width, rect.Width);
         Assert.Equal(size.Height, rect.Height);
@@ -109,8 +109,8 @@ public class RectangleFTests
     [InlineData(0, float.MinValue, float.MaxValue, 0)]
     public void EqualityTest(float x, float y, float width, float height)
     {
-        RectangleF rect1 = new RectangleF(x, y, width, height);
-        RectangleF rect2 = new RectangleF(width, height, x, y);
+        RectangleF rect1 = new(x, y, width, height);
+        RectangleF rect2 = new(width, height, x, y);
 
         Assert.True(rect1 != rect2);
         Assert.False(rect1 == rect2);
@@ -121,7 +121,7 @@ public class RectangleFTests
     [Fact]
     public void EqualityTestNotRectangleF()
     {
-        RectangleF rectangle = new RectangleF(0, 0, 0, 0);
+        RectangleF rectangle = new(0, 0, 0, 0);
         Assert.False(rectangle.Equals(null));
         Assert.False(rectangle.Equals(0));
 
@@ -137,8 +137,8 @@ public class RectangleFTests
     [Fact]
     public void GetHashCodeTest()
     {
-        RectangleF rect1 = new RectangleF(10, 10, 10, 10);
-        RectangleF rect2 = new RectangleF(10, 10, 10, 10);
+        RectangleF rect1 = new(10, 10, 10, 10);
+        RectangleF rect2 = new(10, 10, 10, 10);
         Assert.Equal(rect1.GetHashCode(), rect2.GetHashCode());
         Assert.NotEqual(rect1.GetHashCode(), new RectangleF(20, 10, 10, 10).GetHashCode());
         Assert.NotEqual(rect1.GetHashCode(), new RectangleF(10, 20, 10, 10).GetHashCode());
@@ -151,11 +151,11 @@ public class RectangleFTests
     [InlineData(0, float.MinValue, float.MaxValue, 0)]
     public void ContainsTest(float x, float y, float width, float height)
     {
-        RectangleF rect = new RectangleF(x, y, width, height);
+        RectangleF rect = new(x, y, width, height);
         float x1 = (x + width) / 2;
         float y1 = (y + height) / 2;
-        PointF p = new PointF(x1, y1);
-        RectangleF r = new RectangleF(x1, y1, width / 2, height / 2);
+        PointF p = new(x1, y1);
+        RectangleF r = new(x1, y1, width / 2, height / 2);
 
         Assert.False(rect.Contains(x1, y1));
         Assert.False(rect.Contains(p));
@@ -168,13 +168,13 @@ public class RectangleFTests
     [InlineData(0, float.MinValue, float.MaxValue, 0)]
     public void InflateTest(float x, float y, float width, float height)
     {
-        RectangleF rect = new RectangleF(x, y, width, height);
-        RectangleF inflatedRect = new RectangleF(x - width, y - height, width + (2 * width), height + (2 * height));
+        RectangleF rect = new(x, y, width, height);
+        RectangleF inflatedRect = new(x - width, y - height, width + (2 * width), height + (2 * height));
 
         rect.Inflate(width, height);
         Assert.Equal(inflatedRect, rect);
 
-        SizeF s = new SizeF(x, y);
+        SizeF s = new(x, y);
         inflatedRect = RectangleF.Inflate(rect, x, y);
 
         rect.Inflate(s);
@@ -186,8 +186,8 @@ public class RectangleFTests
     [InlineData(0, float.MinValue, float.MaxValue, 0)]
     public void IntersectTest(float x, float y, float width, float height)
     {
-        RectangleF rect1 = new RectangleF(x, y, width, height);
-        RectangleF rect2 = new RectangleF(y, x, width, height);
+        RectangleF rect1 = new(x, y, width, height);
+        RectangleF rect2 = new(y, x, width, height);
         RectangleF expectedRect = RectangleF.Intersect(rect1, rect2);
         rect1.Intersect(rect2);
         Assert.Equal(expectedRect, rect1);
@@ -197,9 +197,9 @@ public class RectangleFTests
     [Fact]
     public void IntersectIntersectingRectsTest()
     {
-        RectangleF rect1 = new RectangleF(0, 0, 5, 5);
-        RectangleF rect2 = new RectangleF(1, 1, 3, 3);
-        RectangleF expected = new RectangleF(1, 1, 3, 3);
+        RectangleF rect1 = new(0, 0, 5, 5);
+        RectangleF rect2 = new(1, 1, 3, 3);
+        RectangleF expected = new(1, 1, 3, 3);
 
         Assert.Equal(expected, RectangleF.Intersect(rect1, rect2));
     }
@@ -211,15 +211,15 @@ public class RectangleFTests
     [InlineData(0, float.MinValue, float.MaxValue, 0)]
     public void UnionTest(float x, float y, float width, float height)
     {
-        RectangleF a = new RectangleF(x, y, width, height);
-        RectangleF b = new RectangleF(width, height, x, y);
+        RectangleF a = new(x, y, width, height);
+        RectangleF b = new(width, height, x, y);
 
         float x1 = Math.Min(a.X, b.X);
         float x2 = Math.Max(a.X + a.Width, b.X + b.Width);
         float y1 = Math.Min(a.Y, b.Y);
         float y2 = Math.Max(a.Y + a.Height, b.Y + b.Height);
 
-        RectangleF expectedRectangle = new RectangleF(x1, y1, x2 - x1, y2 - y1);
+        RectangleF expectedRectangle = new(x1, y1, x2 - x1, y2 - y1);
 
         Assert.Equal(expectedRectangle, RectangleF.Union(a, b));
     }
@@ -231,9 +231,9 @@ public class RectangleFTests
     [InlineData(0, float.MinValue, float.MaxValue, 0)]
     public void OffsetTest(float x, float y, float width, float height)
     {
-        RectangleF r1 = new RectangleF(x, y, width, height);
-        RectangleF expectedRect = new RectangleF(x + width, y + height, width, height);
-        PointF p = new PointF(width, height);
+        RectangleF r1 = new(x, y, width, height);
+        RectangleF expectedRect = new(x + width, y + height, width, height);
+        PointF p = new(width, height);
 
         r1.Offset(p);
         Assert.Equal(expectedRect, r1);
@@ -246,7 +246,7 @@ public class RectangleFTests
     [Fact]
     public void ToStringTest()
     {
-        RectangleF r = new RectangleF(5, 5.1F, 1.3F, 1);
+        RectangleF r = new(5, 5.1F, 1.3F, 1);
         Assert.Equal(string.Format(CultureInfo.CurrentCulture, "RectangleF [ X={0}, Y={1}, Width={2}, Height={3} ]", r.X, r.Y, r.Width, r.Height), r.ToString());
     }
 
@@ -270,7 +270,7 @@ public class RectangleFTests
     [InlineData(0, 0, 0, 0)]
     public void DeconstructTest(float x, float y, float width, float height)
     {
-        RectangleF r = new RectangleF(x, y, width, height);
+        RectangleF r = new(x, y, width, height);
 
         (float dx, float dy, float dw, float dh) = r;
 

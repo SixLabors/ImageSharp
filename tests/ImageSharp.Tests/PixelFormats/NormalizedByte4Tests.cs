@@ -17,8 +17,8 @@ public class NormalizedByte4Tests
     public void AreEqual()
     {
         NormalizedByte4 color1 = new(0.0f, 0.0f, 0.0f, 0.0f);
-        NormalizedByte4 color2 = new(new Vector4(0.0f));
-        NormalizedByte4 color3 = new(new Vector4(1f, 0.0f, 1f, 1f));
+        NormalizedByte4 color2 = new(new(0.0f));
+        NormalizedByte4 color3 = new(new(1f, 0.0f, 1f, 1f));
         NormalizedByte4 color4 = new(1f, 0.0f, 1f, 1f);
 
         Assert.Equal(color1, color2);
@@ -32,8 +32,8 @@ public class NormalizedByte4Tests
     public void AreNotEqual()
     {
         NormalizedByte4 color1 = new(0.0f, 0.0f, 0.0f, 0.0f);
-        NormalizedByte4 color2 = new(new Vector4(1f));
-        NormalizedByte4 color3 = new(new Vector4(1f, 0.0f, 0.0f, 1f));
+        NormalizedByte4 color2 = new(new(1f));
+        NormalizedByte4 color3 = new(new(1f, 0.0f, 0.0f, 1f));
         NormalizedByte4 color4 = new(1f, 1f, 0.0f, 1f);
 
         Assert.NotEqual(color1, color2);
@@ -98,7 +98,7 @@ public class NormalizedByte4Tests
         Vector4 expected = Vector4.One;
 
         // act
-        NormalizedByte4 pixel = NormalizedByte4.FromArgb32(new Argb32(255, 255, 255, 255));
+        NormalizedByte4 pixel = NormalizedByte4.FromArgb32(new(255, 255, 255, 255));
 
         // assert
         Assert.Equal(expected, pixel.ToScaledVector4());
@@ -111,7 +111,7 @@ public class NormalizedByte4Tests
         Vector4 expected = Vector4.One;
 
         // act
-        NormalizedByte4 pixel = NormalizedByte4.FromBgr24(new Bgr24(byte.MaxValue, byte.MaxValue, byte.MaxValue));
+        NormalizedByte4 pixel = NormalizedByte4.FromBgr24(new(byte.MaxValue, byte.MaxValue, byte.MaxValue));
 
         // assert
         Assert.Equal(expected, pixel.ToScaledVector4());
@@ -124,7 +124,7 @@ public class NormalizedByte4Tests
         Vector4 expected = Vector4.One;
 
         // act
-        NormalizedByte4 pixel = NormalizedByte4.FromL8(new L8(byte.MaxValue));
+        NormalizedByte4 pixel = NormalizedByte4.FromL8(new(byte.MaxValue));
 
         // assert
         Assert.Equal(expected, pixel.ToScaledVector4());
@@ -137,7 +137,7 @@ public class NormalizedByte4Tests
         Vector4 expected = Vector4.One;
 
         // act
-        NormalizedByte4 pixel = NormalizedByte4.FromL16(new L16(ushort.MaxValue));
+        NormalizedByte4 pixel = NormalizedByte4.FromL16(new(ushort.MaxValue));
 
         // assert
         Assert.Equal(expected, pixel.ToScaledVector4());
@@ -150,7 +150,7 @@ public class NormalizedByte4Tests
         Vector4 expected = Vector4.One;
 
         // act
-        NormalizedByte4 pixel = NormalizedByte4.FromRgb24(new Rgb24(byte.MaxValue, byte.MaxValue, byte.MaxValue));
+        NormalizedByte4 pixel = NormalizedByte4.FromRgb24(new(byte.MaxValue, byte.MaxValue, byte.MaxValue));
 
         // assert
         Assert.Equal(expected, pixel.ToScaledVector4());
@@ -163,7 +163,7 @@ public class NormalizedByte4Tests
         Vector4 expected = Vector4.One;
 
         // act
-        NormalizedByte4 pixel = NormalizedByte4.FromRgba32(new Rgba32(255, 255, 255, 255));
+        NormalizedByte4 pixel = NormalizedByte4.FromRgba32(new(255, 255, 255, 255));
 
         // assert
         Assert.Equal(expected, pixel.ToScaledVector4());
@@ -176,7 +176,7 @@ public class NormalizedByte4Tests
         Vector4 expected = Vector4.One;
 
         // act
-        NormalizedByte4 pixel = NormalizedByte4.FromBgra5551(new Bgra5551(1f, 1f, 1f, 1f));
+        NormalizedByte4 pixel = NormalizedByte4.FromBgra5551(new(1f, 1f, 1f, 1f));
 
         // assert
         Assert.Equal(expected, pixel.ToVector4());
@@ -189,7 +189,7 @@ public class NormalizedByte4Tests
         Vector4 expected = Vector4.One;
 
         // act
-        NormalizedByte4 pixel = NormalizedByte4.FromRgb48(new Rgb48(ushort.MaxValue, ushort.MaxValue, ushort.MaxValue));
+        NormalizedByte4 pixel = NormalizedByte4.FromRgb48(new(ushort.MaxValue, ushort.MaxValue, ushort.MaxValue));
 
         // assert
         Assert.Equal(expected, pixel.ToScaledVector4());
@@ -202,7 +202,7 @@ public class NormalizedByte4Tests
         Vector4 expected = Vector4.One;
 
         // act
-        NormalizedByte4 pixel = NormalizedByte4.FromRgba64(new Rgba64(ushort.MaxValue, ushort.MaxValue, ushort.MaxValue, ushort.MaxValue));
+        NormalizedByte4 pixel = NormalizedByte4.FromRgba64(new(ushort.MaxValue, ushort.MaxValue, ushort.MaxValue, ushort.MaxValue));
 
         // assert
         Assert.Equal(expected, pixel.ToScaledVector4());

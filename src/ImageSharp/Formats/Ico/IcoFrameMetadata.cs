@@ -66,7 +66,7 @@ public class IcoFrameMetadata : IFormatFrameMetadata<IcoFrameMetadata>
     {
         if (!metadata.PixelTypeInfo.HasValue)
         {
-            return new IcoFrameMetadata
+            return new()
             {
                 BmpBitsPerPixel = BmpBitsPerPixel.Bit32,
                 Compression = IconFrameCompression.Png
@@ -91,7 +91,7 @@ public class IcoFrameMetadata : IFormatFrameMetadata<IcoFrameMetadata>
             compression = IconFrameCompression.Png;
         }
 
-        return new IcoFrameMetadata
+        return new()
         {
             BmpBitsPerPixel = bbpp,
             Compression = compression,
@@ -206,7 +206,7 @@ public class IcoFrameMetadata : IFormatFrameMetadata<IcoFrameMetadata>
             }
         }
 
-        return new PixelTypeInfo(bpp)
+        return new(bpp)
         {
             AlphaRepresentation = alpha,
             ComponentInfo = info,

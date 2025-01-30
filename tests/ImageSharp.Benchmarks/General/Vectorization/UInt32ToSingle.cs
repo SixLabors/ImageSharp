@@ -27,10 +27,10 @@ public class UInt32ToSingle
 
         nuint n = Count / (uint)Vector<float>.Count;
 
-        Vector<float> bVec = new Vector<float>(256.0f / 255.0f);
-        Vector<float> magicFloat = new Vector<float>(32768.0f);
-        Vector<uint> magicInt = new Vector<uint>(1191182336); // reinterpreted value of 32768.0f
-        Vector<uint> mask = new Vector<uint>(255);
+        Vector<float> bVec = new(256.0f / 255.0f);
+        Vector<float> magicFloat = new(32768.0f);
+        Vector<uint> magicInt = new(1191182336); // reinterpreted value of 32768.0f
+        Vector<uint> mask = new(255);
 
         for (nuint i = 0; i < n; i++)
         {
@@ -55,7 +55,7 @@ public class UInt32ToSingle
         ref Vector<float> bf = ref Unsafe.As<float, Vector<float>>(ref this.data[0]);
         ref Vector<uint> bu = ref Unsafe.As<Vector<float>, Vector<uint>>(ref bf);
 
-        Vector<float> scale = new Vector<float>(1f / 255f);
+        Vector<float> scale = new(1f / 255f);
 
         for (nuint i = 0; i < n; i++)
         {
@@ -74,7 +74,7 @@ public class UInt32ToSingle
         ref Vector<float> bf = ref Unsafe.As<float, Vector<float>>(ref this.data[0]);
         ref Vector<int> bu = ref Unsafe.As<Vector<float>, Vector<int>>(ref bf);
 
-        Vector<float> scale = new Vector<float>(1f / 255f);
+        Vector<float> scale = new(1f / 255f);
 
         for (nuint i = 0; i < n; i++)
         {
@@ -91,7 +91,7 @@ public class UInt32ToSingle
         nuint n = Count / (uint)Vector<float>.Count;
 
         ref Vector<float> bf = ref Unsafe.As<float, Vector<float>>(ref this.data[0]);
-        Vector<float> scale = new Vector<float>(1f / 255f);
+        Vector<float> scale = new(1f / 255f);
 
         for (nuint i = 0; i < n; i++)
         {

@@ -25,7 +25,7 @@ public readonly struct CieLch : IColorProfile<CieLch, CieLab>
     /// <param name="h">The hue in degrees.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public CieLch(float l, float c, float h)
-        : this(new Vector3(l, c, h))
+        : this(new(l, c, h))
     {
     }
 
@@ -101,7 +101,7 @@ public readonly struct CieLch : IColorProfile<CieLch, CieLab>
             hDegrees += 360;
         }
 
-        return new CieLch(l, c, hDegrees);
+        return new(l, c, hDegrees);
     }
 
     /// <inheritdoc/>
@@ -127,7 +127,7 @@ public readonly struct CieLch : IColorProfile<CieLch, CieLab>
         float a = c * MathF.Cos(hRadians);
         float b = c * MathF.Sin(hRadians);
 
-        return new CieLab(l, a, b);
+        return new(l, a, b);
     }
 
     /// <inheritdoc/>

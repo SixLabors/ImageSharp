@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Filters;
 public class HueTest
 {
     public static readonly TheoryData<int> HueValues
-    = new TheoryData<int>
+    = new()
     {
         180,
         -180

@@ -108,7 +108,7 @@ internal sealed class WebpLosslessDecoder
         int numberOfTransformsPresent = 0;
         if (isLevel0)
         {
-            decoder.Transforms = new List<Vp8LTransform>(WebpConstants.MaxNumberOfTransforms);
+            decoder.Transforms = new(WebpConstants.MaxNumberOfTransforms);
 
             // Next bit indicates, if a transformation is present.
             while (this.bitReader.ReadBit())
@@ -129,7 +129,7 @@ internal sealed class WebpLosslessDecoder
         }
         else
         {
-            decoder.Metadata = new Vp8LMetadata();
+            decoder.Metadata = new();
         }
 
         // Color cache.
@@ -156,7 +156,7 @@ internal sealed class WebpLosslessDecoder
         // Finish setting up the color-cache.
         if (isColorCachePresent)
         {
-            decoder.Metadata.ColorCache = new ColorCache(colorCacheBits);
+            decoder.Metadata.ColorCache = new(colorCacheBits);
             colorCacheSize = 1 << colorCacheBits;
             decoder.Metadata.ColorCacheSize = colorCacheSize;
         }
@@ -416,7 +416,7 @@ internal sealed class WebpLosslessDecoder
         int[] codeLengths = new int[maxAlphabetSize];
         for (int i = 0; i < numHTreeGroupsMax; i++)
         {
-            hTreeGroups[i] = new HTreeGroup(HuffmanUtils.HuffmanPackedTableSize);
+            hTreeGroups[i] = new(HuffmanUtils.HuffmanPackedTableSize);
             HTreeGroup hTreeGroup = hTreeGroups[i];
             int totalSize = 0;
             bool isTrivialLiteral = true;

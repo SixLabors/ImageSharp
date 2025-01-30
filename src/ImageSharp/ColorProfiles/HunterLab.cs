@@ -108,7 +108,7 @@ public readonly struct HunterLab : IColorProfile<HunterLab, CieXyz>
             b = 0;
         }
 
-        return new HunterLab(l, a, b);
+        return new(l, a, b);
     }
 
     /// <inheritdoc/>
@@ -141,7 +141,7 @@ public readonly struct HunterLab : IColorProfile<HunterLab, CieXyz>
         float x = (((a / ka) * sqrtPow) + pow) * xn;
         float z = (((b / kb) * sqrtPow) - pow) * (-zn);
 
-        return new CieXyz(x, y, z);
+        return new(x, y, z);
     }
 
     /// <inheritdoc/>

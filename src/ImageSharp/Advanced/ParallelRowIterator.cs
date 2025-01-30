@@ -65,8 +65,8 @@ public static partial class ParallelRowIterator
         }
 
         int verticalStep = DivideCeil(rectangle.Height, numOfSteps);
-        ParallelOptions? parallelOptions = new ParallelOptions { MaxDegreeOfParallelism = numOfSteps };
-        RowOperationWrapper<T> wrappingOperation = new RowOperationWrapper<T>(top, bottom, verticalStep, in operation);
+        ParallelOptions? parallelOptions = new() { MaxDegreeOfParallelism = numOfSteps };
+        RowOperationWrapper<T> wrappingOperation = new(top, bottom, verticalStep, in operation);
 
         Parallel.For(
             0,

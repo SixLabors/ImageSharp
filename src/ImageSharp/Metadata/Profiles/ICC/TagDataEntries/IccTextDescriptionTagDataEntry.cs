@@ -86,23 +86,23 @@ internal sealed class IccTextDescriptionTagDataEntry : IccTagDataEntry, IEquatab
         {
             CultureInfo culture = GetCulture(textEntry.UnicodeLanguageCode);
             localString = culture != null
-                ? new IccLocalizedString(culture, textEntry.Unicode)
+                ? new(culture, textEntry.Unicode)
                 : new IccLocalizedString(textEntry.Unicode);
         }
         else if (!string.IsNullOrEmpty(textEntry.Ascii))
         {
-            localString = new IccLocalizedString(textEntry.Ascii);
+            localString = new(textEntry.Ascii);
         }
         else if (!string.IsNullOrEmpty(textEntry.ScriptCode))
         {
-            localString = new IccLocalizedString(textEntry.ScriptCode);
+            localString = new(textEntry.ScriptCode);
         }
         else
         {
-            localString = new IccLocalizedString(string.Empty);
+            localString = new(string.Empty);
         }
 
-        return new IccMultiLocalizedUnicodeTagDataEntry(new[] { localString }, textEntry.TagSignature);
+        return new(new[] { localString }, textEntry.TagSignature);
 
         static CultureInfo GetCulture(uint value)
         {

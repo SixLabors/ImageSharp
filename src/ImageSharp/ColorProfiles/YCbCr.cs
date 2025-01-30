@@ -26,7 +26,7 @@ public readonly struct YCbCr : IColorProfile<YCbCr, Rgb>
     /// <param name="cr">The cr chroma component.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public YCbCr(float y, float cb, float cr)
-        : this(new Vector3(y, cb, cr))
+        : this(new(y, cb, cr))
     {
     }
 
@@ -94,7 +94,7 @@ public readonly struct YCbCr : IColorProfile<YCbCr, Rgb>
         float cb = 128F + ((-0.168736F * r) - (0.331264F * g) + (0.5F * b));
         float cr = 128F + ((0.5F * r) - (0.418688F * g) - (0.081312F * b));
 
-        return new YCbCr(y, cb, cr);
+        return new(y, cb, cr);
     }
 
     /// <inheritdoc/>

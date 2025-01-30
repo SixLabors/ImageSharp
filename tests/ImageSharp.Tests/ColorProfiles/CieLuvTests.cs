@@ -33,8 +33,8 @@ public class CieLuvTests
         Assert.True(default == default(CieLuv));
         Assert.False(default != default(CieLuv));
         Assert.Equal(default, default(CieLuv));
-        Assert.Equal(new CieLuv(1, 0, 1), new CieLuv(1, 0, 1));
-        Assert.Equal(new CieLuv(Vector3.One), new CieLuv(Vector3.One));
+        Assert.Equal(new(1, 0, 1), new CieLuv(1, 0, 1));
+        Assert.Equal(new(Vector3.One), new CieLuv(Vector3.One));
         Assert.False(x.Equals(y));
         Assert.False(x.Equals((object)y));
         Assert.False(x.GetHashCode().Equals(y.GetHashCode()));

@@ -32,7 +32,7 @@ public abstract partial class TestImageProvider<TPixel> : IXunitSerializable
                 ISpecializedDecoderOptions specialized)
             {
                 Type customType = customDecoder?.GetType();
-                this.commonValues = new Tuple<PixelTypes, string, Type>(
+                this.commonValues = new(
                     pixelType,
                     filePath,
                     customType);
@@ -45,7 +45,7 @@ public abstract partial class TestImageProvider<TPixel> : IXunitSerializable
             {
                 Type type = options.GetType();
 
-                Dictionary<string, object> data = new Dictionary<string, object>();
+                Dictionary<string, object> data = new();
 
                 while (type != null && type != typeof(object))
                 {
@@ -196,7 +196,7 @@ public abstract partial class TestImageProvider<TPixel> : IXunitSerializable
                 return this.DecodeImage(decoder, options);
             }
 
-            Key key = new Key(this.PixelType, this.FilePath, decoder, options, null);
+            Key key = new(this.PixelType, this.FilePath, decoder, options, null);
             Image<TPixel> cachedImage = Cache.GetOrAdd(key, _ => this.DecodeImage(decoder, options));
 
             return cachedImage.Clone(this.Configuration);
@@ -233,7 +233,7 @@ public abstract partial class TestImageProvider<TPixel> : IXunitSerializable
                 return this.DecodeImage(decoder, options);
             }
 
-            Key key = new Key(this.PixelType, this.FilePath, decoder, options.GeneralOptions, options);
+            Key key = new(this.PixelType, this.FilePath, decoder, options.GeneralOptions, options);
             Image<TPixel> cachedImage = Cache.GetOrAdd(key, _ => this.DecodeImage(decoder, options));
 
             return cachedImage.Clone(this.Configuration);

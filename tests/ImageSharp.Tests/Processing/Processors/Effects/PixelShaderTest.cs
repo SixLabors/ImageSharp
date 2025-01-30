@@ -24,7 +24,7 @@ public class PixelShaderTest
                 {
                     Vector4 v4 = span[i];
                     float avg = (v4.X + v4.Y + v4.Z) / 3f;
-                    span[i] = new Vector4(avg);
+                    span[i] = new(avg);
                 }
             }),
             appendPixelTypeToFileName: false);
@@ -43,7 +43,7 @@ public class PixelShaderTest
                     {
                         Vector4 v4 = span[i];
                         float avg = (v4.X + v4.Y + v4.Z) / 3f;
-                        span[i] = new Vector4(avg);
+                        span[i] = new(avg);
                     }
                 },
                 rect));
@@ -71,7 +71,7 @@ public class PixelShaderTest
 
                         Vector4 v4 = span[i];
                         float avg = (v4.X + v4.Y + v4.Z) / 3f;
-                        Vector4 gray = new Vector4(avg, avg, avg, a);
+                        Vector4 gray = new(avg, avg, avg, a);
 
                         span[i] = Vector4.Clamp(gray, Vector4.Zero, Vector4.One);
                     }
@@ -101,7 +101,7 @@ public class PixelShaderTest
 
                         Vector4 v4 = span[i];
                         float avg = (v4.X + v4.Y + v4.Z) / 3f;
-                        Vector4 gray = new Vector4(avg, avg, avg, a);
+                        Vector4 gray = new(avg, avg, avg, a);
 
                         span[i] = Vector4.Clamp(gray, Vector4.Zero, Vector4.One);
                     }

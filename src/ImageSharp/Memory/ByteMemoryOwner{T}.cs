@@ -24,7 +24,7 @@ internal sealed class ByteMemoryOwner<T> : IMemoryOwner<T>
     public ByteMemoryOwner(IMemoryOwner<byte> memoryOwner)
     {
         this.memoryOwner = memoryOwner;
-        this.memoryManager = new ByteMemoryManager<T>(memoryOwner.Memory);
+        this.memoryManager = new(memoryOwner.Memory);
     }
 
     /// <inheritdoc/>

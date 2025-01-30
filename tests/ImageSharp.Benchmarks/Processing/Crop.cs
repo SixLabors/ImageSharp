@@ -17,14 +17,14 @@ public class Crop
     [Benchmark(Baseline = true, Description = "System.Drawing Crop")]
     public SDSize CropSystemDrawing()
     {
-        using Bitmap source = new Bitmap(800, 800);
-        using Bitmap destination = new Bitmap(100, 100);
+        using Bitmap source = new(800, 800);
+        using Bitmap destination = new(100, 100);
         using Graphics graphics = Graphics.FromImage(destination);
 
         graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
         graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
         graphics.CompositingQuality = CompositingQuality.HighQuality;
-        graphics.DrawImage(source, new SDRectangle(0, 0, 100, 100), 0, 0, 100, 100, GraphicsUnit.Pixel);
+        graphics.DrawImage(source, new(0, 0, 100, 100), 0, 0, 100, 100, GraphicsUnit.Pixel);
 
         return destination.Size;
     }
@@ -32,8 +32,8 @@ public class Crop
     [Benchmark(Description = "ImageSharp Crop")]
     public Size CropImageSharp()
     {
-        using Image<Rgba32> image = new Image<Rgba32>(800, 800);
+        using Image<Rgba32> image = new(800, 800);
         image.Mutate(x => x.Crop(100, 100));
-        return new Size(image.Width, image.Height);
+        return new(image.Width, image.Height);
     }
 }

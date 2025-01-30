@@ -103,7 +103,7 @@ public readonly struct CieLab : IProfileConnectingSpace<CieLab, CieXyz>
         float a = 500F * (fx - fy);
         float b = 200F * (fy - fz);
 
-        return new CieLab(l, a, b);
+        return new(l, a, b);
     }
 
     /// <inheritdoc/>

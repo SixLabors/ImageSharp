@@ -207,7 +207,7 @@ public struct RectangleF : IEquatable<RectangleF>
 
         if (x2 >= x1 && y2 >= y1)
         {
-            return new RectangleF(x1, y1, x2 - x1, y2 - y1);
+            return new(x1, y1, x2 - x1, y2 - y1);
         }
 
         return Empty;

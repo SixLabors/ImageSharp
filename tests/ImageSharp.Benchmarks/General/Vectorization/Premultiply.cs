@@ -12,14 +12,14 @@ public class Premultiply
     [Benchmark(Baseline = true)]
     public Vector4 PremultiplyByVal()
     {
-        Vector4 input = new Vector4(.5F);
+        Vector4 input = new(.5F);
         return Vector4Utils.Premultiply(input);
     }
 
     [Benchmark]
     public Vector4 PremultiplyByRef()
     {
-        Vector4 input = new Vector4(.5F);
+        Vector4 input = new(.5F);
         Vector4Utils.PremultiplyRef(ref input);
         return input;
     }
@@ -27,7 +27,7 @@ public class Premultiply
     [Benchmark]
     public Vector4 PremultiplyRefWithPropertyAssign()
     {
-        Vector4 input = new Vector4(.5F);
+        Vector4 input = new(.5F);
         Vector4Utils.PremultiplyRefWithPropertyAssign(ref input);
         return input;
     }

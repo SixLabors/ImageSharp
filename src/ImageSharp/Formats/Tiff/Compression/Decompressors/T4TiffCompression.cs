@@ -60,7 +60,7 @@ internal sealed class T4TiffCompression : TiffBaseDecompressor
         }
 
         bool eolPadding = this.faxCompressionOptions.HasFlag(FaxCompressionOptions.EolPadding);
-        T4BitReader? bitReader = new T4BitReader(stream, this.FillOrder, byteCount, eolPadding);
+        T4BitReader? bitReader = new(stream, this.FillOrder, byteCount, eolPadding);
 
         buffer.Clear();
         nint bitsWritten = 0;

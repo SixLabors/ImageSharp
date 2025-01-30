@@ -35,7 +35,7 @@ public class TestVector4 : IXunitSerializable
 
     public Vector4 AsVector()
     {
-        return new Vector4(this.X, this.Y, this.Z, this.W);
+        return new(this.X, this.Y, this.Z, this.W);
     }
 
     public void Deserialize(IXunitSerializationInfo info)

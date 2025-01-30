@@ -8,7 +8,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 
 public class ExactImageComparer : ImageComparer
 {
-    public static ExactImageComparer Instance { get; } = new ExactImageComparer();
+    public static ExactImageComparer Instance { get; } = new();
 
     public override ImageSimilarityReport<TPixelA, TPixelB> CompareImagesOrFrames<TPixelA, TPixelB>(
         int index,
@@ -26,7 +26,7 @@ public class ExactImageComparer : ImageComparer
         Rgba64[] aBuffer = new Rgba64[width];
         Rgba64[] bBuffer = new Rgba64[width];
 
-        List<PixelDifference> differences = new List<PixelDifference>();
+        List<PixelDifference> differences = new();
         Configuration configuration = expected.Configuration;
         Buffer2D<TPixelA> expectedBuffer = expected.PixelBuffer;
         Buffer2D<TPixelB> actualBuffer = actual.PixelBuffer;
@@ -46,12 +46,12 @@ public class ExactImageComparer : ImageComparer
 
                 if (aPixel != bPixel)
                 {
-                    PixelDifference diff = new PixelDifference(new Point(x, y), aPixel, bPixel);
+                    PixelDifference diff = new(new(x, y), aPixel, bPixel);
                     differences.Add(diff);
                 }
             }
         }
 
-        return new ImageSimilarityReport<TPixelA, TPixelB>(index, expected, actual, differences);
+        return new(index, expected, actual, differences);
     }
 }

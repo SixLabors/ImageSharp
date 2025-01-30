@@ -41,7 +41,7 @@ internal sealed class ModifiedHuffmanTiffCompression : TiffBaseDecompressor
     /// <inheritdoc/>
     protected override void Decompress(BufferedReadStream stream, int byteCount, int stripHeight, Span<byte> buffer, CancellationToken cancellationToken)
     {
-        ModifiedHuffmanBitReader? bitReader = new ModifiedHuffmanBitReader(stream, this.FillOrder, byteCount);
+        ModifiedHuffmanBitReader? bitReader = new(stream, this.FillOrder, byteCount);
 
         buffer.Clear();
         nint bitsWritten = 0;

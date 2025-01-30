@@ -36,7 +36,7 @@ public class TestMemoryManager<T> : MemoryManager<T>
     {
         T[] pixelArray = new T[copyThisBuffer.Length];
         copyThisBuffer.CopyTo(pixelArray);
-        return new TestMemoryManager<T>(pixelArray);
+        return new(pixelArray);
     }
 
     protected override void Dispose(bool disposing)

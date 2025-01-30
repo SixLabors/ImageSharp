@@ -27,7 +27,7 @@ public class ConfigurationTests
         // The shallow copy of configuration should behave exactly like the default configuration,
         // so by using the copy, we test both the default and the copy.
         this.DefaultConfiguration = Configuration.CreateDefaultInstance().Clone();
-        this.ConfigurationEmpty = new Configuration();
+        this.ConfigurationEmpty = new();
     }
 
     [Fact]
@@ -58,7 +58,7 @@ public class ConfigurationTests
     {
         Assert.True(this.DefaultConfiguration.MaxDegreeOfParallelism == Environment.ProcessorCount);
 
-        Configuration cfg = new Configuration();
+        Configuration cfg = new();
         Assert.True(cfg.MaxDegreeOfParallelism == Environment.ProcessorCount);
     }
 
@@ -71,7 +71,7 @@ public class ConfigurationTests
     [InlineData(5, false)]
     public void MaxDegreeOfParallelism_CompatibleWith_ParallelOptions(int maxDegreeOfParallelism, bool throws)
     {
-        Configuration cfg = new Configuration();
+        Configuration cfg = new();
         if (throws)
         {
             Assert.Throws<ArgumentOutOfRangeException>(
@@ -87,8 +87,8 @@ public class ConfigurationTests
     [Fact]
     public void ConstructorCallConfigureOnFormatProvider()
     {
-        Mock<IImageFormatConfigurationModule> provider = new Mock<IImageFormatConfigurationModule>();
-        Configuration config = new Configuration(provider.Object);
+        Mock<IImageFormatConfigurationModule> provider = new();
+        Configuration config = new(provider.Object);
 
         provider.Verify(x => x.Configure(config));
     }
@@ -96,8 +96,8 @@ public class ConfigurationTests
     [Fact]
     public void AddFormatCallsConfig()
     {
-        Mock<IImageFormatConfigurationModule> provider = new Mock<IImageFormatConfigurationModule>();
-        Configuration config = new Configuration();
+        Mock<IImageFormatConfigurationModule> provider = new();
+        Configuration config = new();
         config.Configure(provider.Object);
 
         provider.Verify(x => x.Configure(config));
@@ -140,7 +140,7 @@ public class ConfigurationTests
     [Fact]
     public void StreamBufferSize_CannotGoBelowMinimum()
     {
-        Configuration config = new Configuration();
+        Configuration config = new();
 
         Assert.Throws<ArgumentOutOfRangeException>(
                 () => config.StreamProcessingBufferSize = 0);
@@ -150,14 +150,14 @@ public class ConfigurationTests
     public void MemoryAllocator_Setter_Roundtrips()
     {
         MemoryAllocator customAllocator = new SimpleGcMemoryAllocator();
-        Configuration config = new Configuration() { MemoryAllocator = customAllocator };
+        Configuration config = new() { MemoryAllocator = customAllocator };
         Assert.Same(customAllocator, config.MemoryAllocator);
     }
 
     [Fact]
     public void MemoryAllocator_SetNull_ThrowsArgumentNullException()
     {
-        Configuration config = new Configuration();
+        Configuration config = new();
         Assert.Throws<ArgumentNullException>(() => config.MemoryAllocator = null);
     }
 
@@ -168,8 +168,8 @@ public class ConfigurationTests
 
         static void RunTest()
         {
-            Configuration c1 = new Configuration();
-            Configuration c2 = new Configuration(new MockConfigurationModule());
+            Configuration c1 = new();
+            Configuration c2 = new(new MockConfigurationModule());
             Configuration c3 = Configuration.CreateDefaultInstance();
 
             Assert.Same(MemoryAllocator.Default, Configuration.Default.MemoryAllocator);

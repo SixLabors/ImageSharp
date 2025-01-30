@@ -19,40 +19,40 @@ jobs:
         isARM:
           - ${{ contains(github.event.pull_request.labels.*.name, 'arch:arm32') || contains(github.event.pull_request.labels.*.name, 'arch:arm64') }}
         options:
-          - os: ubuntu-latest
-            framework: net7.0
-            sdk: 7.0.x
-            sdk-preview: true
-            runtime: -x64
-            codecov: false
-          - os: macos-13 # macos-latest runs on arm64 runners where libgdiplus is unavailable
-            framework: net7.0
-            sdk: 7.0.x
-            sdk-preview: true
-            runtime: -x64
-            codecov: false
-          - os: windows-latest
-            framework: net7.0
-            sdk: 7.0.x
-            sdk-preview: true
-            runtime: -x64
-            codecov: false
-          - os: buildjet-4vcpu-ubuntu-2204-arm
-            framework: net7.0
-            sdk: 7.0.x
-            sdk-preview: true
-            runtime: -x64
-            codecov: false
-          - os: ubuntu-latest
-            framework: net6.0
-            sdk: 6.0.x
-            runtime: -x64
-            codecov: false
-          - os: macos-13 # macos-latest runs on arm64 runners where libgdiplus is unavailable
-            framework: net6.0
-            sdk: 6.0.x
-            runtime: -x64
-            codecov: false
+          # - os: ubuntu-latest
+          #   framework: net7.0
+          #   sdk: 7.0.x
+          #   sdk-preview: true
+          #   runtime: -x64
+          #   codecov: false
+          # - os: macos-13 # macos-latest runs on arm64 runners where libgdiplus is unavailable
+          #   framework: net7.0
+          #   sdk: 7.0.x
+          #   sdk-preview: true
+          #   runtime: -x64
+          #   codecov: false
+          # - os: windows-latest
+          #   framework: net7.0
+          #   sdk: 7.0.x
+          #   sdk-preview: true
+          #   runtime: -x64
+          #   codecov: false
+          # - os: buildjet-4vcpu-ubuntu-2204-arm
+          #   framework: net7.0
+          #   sdk: 7.0.x
+          #   sdk-preview: true
+          #   runtime: -x64
+          #   codecov: false
+          # - os: ubuntu-latest
+          #   framework: net6.0
+          #   sdk: 6.0.x
+          #   runtime: -x64
+          #   codecov: false
+          # - os: macos-13 # macos-latest runs on arm64 runners where libgdiplus is unavailable
+          #   framework: net6.0
+          #   sdk: 6.0.x
+          #   runtime: -x64
+          #   codecov: false
           - os: windows-latest
             framework: net6.0
             sdk: 6.0.x

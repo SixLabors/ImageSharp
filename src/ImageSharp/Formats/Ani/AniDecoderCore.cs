@@ -16,6 +16,21 @@ internal class AniDecoderCore : ImageDecoderCore
     protected override Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
     {
         this.ReadHeader(stream);
+        Span<byte> buffer = stackalloc byte[4];
+        _ = stream.Read(buffer);
+        uint type = BitConverter.ToUInt32(buffer);
+        switch (type)
+        {
+            case 0x73_65_71_20: // seq
+                break;
+            case 0x72_61_74_65: // rate
+                break;
+            case 0x4C_49_53_54: // list
+                break;
+            default:
+                break;
+        }
+
         throw new NotImplementedException();
     }
 
@@ -28,7 +43,7 @@ internal class AniDecoderCore : ImageDecoderCore
     {
         // Skip the identifier
         stream.Skip(12);
-        Span<byte> buffer = stackalloc byte[AniHeader.Size];
+        Span<byte> buffer = stackalloc byte[36];
         _ = stream.Read(buffer);
         AniHeader header = AniHeader.Parse(buffer);
     }

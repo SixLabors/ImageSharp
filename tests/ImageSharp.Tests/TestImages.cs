@@ -1254,4 +1254,10 @@ public static class TestImages
         public const string CurReal = "Icon/cur_real.cur";
         public const string CurFake = "Icon/cur_fake.ico";
     }
+
+    public static class Ani
+    {
+        public const string Work = "Ani/Work.ani";
+    }
+
 }

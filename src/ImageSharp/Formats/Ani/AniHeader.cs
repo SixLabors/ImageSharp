@@ -5,30 +5,37 @@ using System.Runtime.InteropServices;
 
 namespace SixLabors.ImageSharp.Formats.Ani;
 
-[StructLayout(LayoutKind.Sequential, Pack = 1, Size = Size)]
+[StructLayout(LayoutKind.Sequential, Pack = 1, Size = 36)]
 internal readonly struct AniHeader
 {
-    public const int Size = 36;
+    public uint Size { get; }
 
-    public ushort Frames { get; }
+    public uint Frames { get; }
 
-    public ushort Steps { get; }
+    public uint Steps { get; }
 
-    public ushort Width { get; }
+    public uint Width { get; }
 
-    public ushort Height { get; }
+    public uint Height { get; }
 
-    public ushort BitCount { get; }
+    public uint BitCount { get; }
 
-    public ushort Planes { get; }
+    public uint Planes { get; }
 
-    public ushort DisplayRate { get; }
+    public uint DisplayRate { get; }
 
-    public ushort Flags { get; }
+    public AniHeaderFlags Flags { get; }
 
     public static AniHeader Parse(in ReadOnlySpan<byte> data)
     => MemoryMarshal.Cast<byte, AniHeader>(data)[0];
 
     public readonly unsafe void WriteTo(in Stream stream)
     => stream.Write(MemoryMarshal.Cast<AniHeader, byte>([this]));
+}
+
+[Flags]
+public enum AniHeaderFlags : uint
+{
+    IsIcon = 1,
+    ContainsSeq = 2
 }

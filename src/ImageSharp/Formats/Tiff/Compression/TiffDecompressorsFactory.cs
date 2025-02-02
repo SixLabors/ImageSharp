@@ -24,7 +24,8 @@ internal static class TiffDecompressorsFactory
         byte[] jpegTables,
         uint oldJpegStartOfImageMarker,
         TiffFillOrder fillOrder,
-        ByteOrder byteOrder)
+        ByteOrder byteOrder,
+        bool isTiled = false)
     {
         switch (method)
         {
@@ -40,7 +41,7 @@ internal static class TiffDecompressorsFactory
 
             case TiffDecoderCompressionType.Deflate:
                 DebugGuard.IsTrue(faxOptions == FaxCompressionOptions.None, "No fax compression options are expected");
-                return new DeflateTiffCompression(allocator, width, bitsPerPixel, colorType, predictor, byteOrder == ByteOrder.BigEndian);
+                return new DeflateTiffCompression(allocator, width, bitsPerPixel, colorType, predictor, byteOrder == ByteOrder.BigEndian, isTiled);
 
             case TiffDecoderCompressionType.Lzw:
                 DebugGuard.IsTrue(faxOptions == FaxCompressionOptions.None, "No fax compression options are expected");

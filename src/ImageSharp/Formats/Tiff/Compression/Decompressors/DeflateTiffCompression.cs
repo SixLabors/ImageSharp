@@ -22,6 +22,8 @@ internal sealed class DeflateTiffCompression : TiffBaseDecompressor
 
     private readonly TiffColorType colorType;
 
+    private readonly bool isTiled;
+
     /// <summary>
     /// Initializes a new instance of the <see cref="DeflateTiffCompression" /> class.
     /// </summary>
@@ -31,11 +33,13 @@ internal sealed class DeflateTiffCompression : TiffBaseDecompressor
     /// <param name="colorType">The color type of the pixel data.</param>
     /// <param name="predictor">The tiff predictor used.</param>
     /// <param name="isBigEndian">if set to <c>true</c> decodes the pixel data as big endian, otherwise as little endian.</param>
-    public DeflateTiffCompression(MemoryAllocator memoryAllocator, int width, int bitsPerPixel, TiffColorType colorType, TiffPredictor predictor, bool isBigEndian)
+    /// <param name="isTiled">Flag indicates, if the image is a tiled image.</param>
+    public DeflateTiffCompression(MemoryAllocator memoryAllocator, int width, int bitsPerPixel, TiffColorType colorType, TiffPredictor predictor, bool isBigEndian, bool isTiled)
         : base(memoryAllocator, width, bitsPerPixel, predictor)
     {
         this.colorType = colorType;
         this.isBigEndian = isBigEndian;
+        this.isTiled = isTiled;
     }
 
     /// <inheritdoc/>
@@ -68,7 +72,8 @@ internal sealed class DeflateTiffCompression : TiffBaseDecompressor
             }
         }
 
-        if (this.Predictor == TiffPredictor.Horizontal)
+        // When the image is tiled, undoing the horizontal predictor will be done for each tile row in the DecodeTilesChunky() method.
+        if (this.Predictor == TiffPredictor.Horizontal && !this.isTiled)
         {
             HorizontalPredictor.Undo(buffer, this.Width, this.colorType, this.isBigEndian);
         }

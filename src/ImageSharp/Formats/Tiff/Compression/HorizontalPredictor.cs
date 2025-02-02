@@ -62,6 +62,22 @@ internal static class HorizontalPredictor
         }
     }
 
+    public static void UndoRow(Span<byte> pixelBytes, int width, int y, TiffColorType colorType)
+    {
+        // TODO: Implement missing colortypes, see above.
+        switch (colorType)
+        {
+            case TiffColorType.Rgb888:
+            case TiffColorType.CieLab:
+                UndoRgb24BitRow(pixelBytes, width, y);
+                break;
+            case TiffColorType.Rgba8888:
+            case TiffColorType.Cmyk:
+                UndoRgba32BitRow(pixelBytes, width, y);
+                break;
+        }
+    }
+
     public static void ApplyHorizontalPrediction(Span<byte> rows, int width, int bitsPerPixel)
     {
         if (bitsPerPixel == 8)
@@ -257,27 +273,56 @@ internal static class HorizontalPredictor
         }
     }
 
+    private static void UndoRgb24BitRow(Span<byte> pixelBytes, int width, int y)
+    {
+        int rowBytesCount = width * 3;
+        Span<byte> rowBytes = pixelBytes.Slice(y * rowBytesCount, rowBytesCount);
+        Span<Rgb24> rowRgb = MemoryMarshal.Cast<byte, Rgb24>(rowBytes)[..width];
+        ref Rgb24 rowRgbBase = ref MemoryMarshal.GetReference(rowRgb);
+        byte r = rowRgbBase.R;
+        byte g = rowRgbBase.G;
+        byte b = rowRgbBase.B;
+
+        for (int x = 1; x < rowRgb.Length; x++)
+        {
+            ref Rgb24 pixel = ref rowRgb[x];
+            r += pixel.R;
+            g += pixel.G;
+            b += pixel.B;
+            pixel = new Rgb24(r, g, b);
+        }
+    }
+
     private static void UndoRgb24Bit(Span<byte> pixelBytes, int width)
     {
         int rowBytesCount = width * 3;
         int height = pixelBytes.Length / rowBytesCount;
         for (int y = 0; y < height; y++)
         {
-            Span<byte> rowBytes = pixelBytes.Slice(y * rowBytesCount, rowBytesCount);
-            Span<Rgb24> rowRgb = MemoryMarshal.Cast<byte, Rgb24>(rowBytes)[..width];
-            ref Rgb24 rowRgbBase = ref MemoryMarshal.GetReference(rowRgb);
-            byte r = rowRgbBase.R;
-            byte g = rowRgbBase.G;
-            byte b = rowRgbBase.B;
+            UndoRgb24BitRow(pixelBytes, width, y);
+        }
+    }
 
-            for (int x = 1; x < rowRgb.Length; x++)
-            {
-                ref Rgb24 pixel = ref rowRgb[x];
-                r += pixel.R;
-                g += pixel.G;
-                b += pixel.B;
-                pixel = new Rgb24(r, g, b);
-            }
+    private static void UndoRgba32BitRow(Span<byte> pixelBytes, int width, int y)
+    {
+        int rowBytesCount = width * 4;
+
+        Span<byte> rowBytes = pixelBytes.Slice(y * rowBytesCount, rowBytesCount);
+        Span<Rgba32> rowRgb = MemoryMarshal.Cast<byte, Rgba32>(rowBytes)[..width];
+        ref Rgba32 rowRgbBase = ref MemoryMarshal.GetReference(rowRgb);
+        byte r = rowRgbBase.R;
+        byte g = rowRgbBase.G;
+        byte b = rowRgbBase.B;
+        byte a = rowRgbBase.A;
+
+        for (int x = 1; x < rowRgb.Length; x++)
+        {
+            ref Rgba32 pixel = ref rowRgb[x];
+            r += pixel.R;
+            g += pixel.G;
+            b += pixel.B;
+            a += pixel.A;
+            pixel = new Rgba32(r, g, b, a);
         }
     }
 
@@ -287,23 +332,7 @@ internal static class HorizontalPredictor
         int height = pixelBytes.Length / rowBytesCount;
         for (int y = 0; y < height; y++)
         {
-            Span<byte> rowBytes = pixelBytes.Slice(y * rowBytesCount, rowBytesCount);
-            Span<Rgba32> rowRgb = MemoryMarshal.Cast<byte, Rgba32>(rowBytes)[..width];
-            ref Rgba32 rowRgbBase = ref MemoryMarshal.GetReference(rowRgb);
-            byte r = rowRgbBase.R;
-            byte g = rowRgbBase.G;
-            byte b = rowRgbBase.B;
-            byte a = rowRgbBase.A;
-
-            for (int x = 1; x < rowRgb.Length; x++)
-            {
-                ref Rgba32 pixel = ref rowRgb[x];
-                r += pixel.R;
-                g += pixel.G;
-                b += pixel.B;
-                a += pixel.A;
-                pixel = new Rgba32(r, g, b, a);
-            }
+            UndoRgba32BitRow(pixelBytes, width, y);
         }
     }
 

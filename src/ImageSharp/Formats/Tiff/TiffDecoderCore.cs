@@ -717,7 +717,8 @@ internal class TiffDecoderCore : ImageDecoderCore
                     // Undo the horziontal predictor for each tile row.
                     if (this.Predictor == TiffPredictor.Horizontal)
                     {
-                        HorizontalPredictor.UndoRow(uncompressedPixelRow, tileLength, 0, this.ColorType);
+                        int pixelsInTileRow = isLastHorizontalTile ? remainingPixelsInRow : tileLength;
+                        HorizontalPredictor.UndoRow(uncompressedPixelRow, pixelsInTileRow, 0, this.ColorType);
                     }
 
                     tileBufferOffset += bytesPerTileRow;

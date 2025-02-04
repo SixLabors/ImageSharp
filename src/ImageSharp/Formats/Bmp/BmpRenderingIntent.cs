@@ -17,7 +17,7 @@ internal enum BmpRenderingIntent
     /// <summary>
     /// Maintains saturation. Used for business charts and other situations in which undithered colors are required.
     /// </summary>
-    LCS_GM_BUSINESS = 1,
+    LCS_GM_BUSINESS = 1,  
 
     /// <summary>
     /// Maintains colorimetric match. Used for graphic designs and named colors.

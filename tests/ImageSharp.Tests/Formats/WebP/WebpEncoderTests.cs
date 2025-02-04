@@ -582,6 +582,21 @@ public class WebpEncoderTests
         Assert.True(seekable.ToArray().SequenceEqual(memoryStream.ToArray()));
     }
 
+    // https://github.com/SixLabors/ImageSharp/issues/2866
+    [Theory]
+    [WithFile(Lossy.Issue2866, PixelTypes.Rgba32)]
+    public void WebpDecoder_CanDecode_Issue2866<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        WebpEncoder encoder = new()
+        {
+            Quality = 100
+        };
+
+        using Image<TPixel> image = provider.GetImage();
+        image.VerifyEncoder(provider, "webp", string.Empty, encoder, ImageComparer.TolerantPercentage(0.0994F));
+    }
+
     private static ImageComparer GetComparer(int quality)
     {
         float tolerance = 0.01f; // ~1.0%

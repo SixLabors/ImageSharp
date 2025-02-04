@@ -137,6 +137,7 @@ internal sealed class LzwDecoder : IDisposable
         ref int suffixRef = ref MemoryMarshal.GetReference(this.suffix.GetSpan());
         ref int pixelStackRef = ref MemoryMarshal.GetReference(this.pixelStack.GetSpan());
         Span<byte> buffer = this.scratchBuffer.GetSpan();
+        int maxTop = this.pixelStack.Length() - 1;
 
         int x = 0;
         int xyz = 0;
@@ -204,7 +205,7 @@ internal sealed class LzwDecoder : IDisposable
                     this.code = this.oldCode;
                 }
 
-                while (this.code > this.clearCode)
+                while (this.code > this.clearCode && this.top < maxTop)
                 {
                     Unsafe.Add(ref pixelStackRef, (uint)this.top++) = Unsafe.Add(ref suffixRef, (uint)this.code);
                     this.code = Unsafe.Add(ref prefixRef, (uint)this.code);
@@ -250,6 +251,7 @@ internal sealed class LzwDecoder : IDisposable
         ref int suffixRef = ref MemoryMarshal.GetReference(this.suffix.GetSpan());
         ref int pixelStackRef = ref MemoryMarshal.GetReference(this.pixelStack.GetSpan());
         Span<byte> buffer = this.scratchBuffer.GetSpan();
+        int maxTop = this.pixelStack.Length() - 1;
 
         int xyz = 0;
         while (xyz < length)
@@ -316,7 +318,7 @@ internal sealed class LzwDecoder : IDisposable
                     this.code = this.oldCode;
                 }
 
-                while (this.code > this.clearCode)
+                while (this.code > this.clearCode && this.top < maxTop)
                 {
                     Unsafe.Add(ref pixelStackRef, (uint)this.top++) = Unsafe.Add(ref suffixRef, (uint)this.code);
                     this.code = Unsafe.Add(ref prefixRef, (uint)this.code);

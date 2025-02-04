@@ -986,7 +986,8 @@ public static class TestImages
         public const string QuadTile = "Tiff/quad-tile.tiff";
         public const string TiledChunky = "Tiff/rgb_uncompressed_tiled_chunky.tiff";
         public const string TiledPlanar = "Tiff/rgb_uncompressed_tiled_planar.tiff";
-        public const string TiledDeflateCompressedWithPredictor = "Tiff/tiled_rgba_deflate_compressed_predictor.tiff";
+        public const string TiledRgbaDeflateCompressedWithPredictor = "Tiff/tiled_rgba_deflate_compressed_predictor.tiff";
+        public const string TiledRgbDeflateCompressedWithPredictor = "Tiff/tiled_rgb_deflate_compressed_predictor.tiff";
 
         // Images with alpha channel.
         public const string Rgba2BitUnassociatedAlpha = "Tiff/RgbaUnassociatedAlpha2bit.tiff";

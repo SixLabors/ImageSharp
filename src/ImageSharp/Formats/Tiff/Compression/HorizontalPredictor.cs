@@ -67,6 +67,11 @@ internal static class HorizontalPredictor
         // TODO: Implement missing colortypes, see above.
         switch (colorType)
         {
+            case TiffColorType.BlackIsZero8:
+            case TiffColorType.WhiteIsZero8:
+            case TiffColorType.PaletteColor:
+                UndoGray8BitRow(pixelBytes, width, y);
+                break;
             case TiffColorType.Rgb888:
             case TiffColorType.CieLab:
                 UndoRgb24BitRow(pixelBytes, width, y);
@@ -168,20 +173,26 @@ internal static class HorizontalPredictor
         }
     }
 
+    private static void UndoGray8BitRow(Span<byte> pixelBytes, int width, int y)
+    {
+        int rowBytesCount = width;
+        int height = pixelBytes.Length / rowBytesCount;
+        Span<byte> rowBytes = pixelBytes.Slice(y * rowBytesCount, rowBytesCount);
+        byte pixelValue = rowBytes[0];
+        for (int x = 1; x < width; x++)
+        {
+            pixelValue += rowBytes[x];
+            rowBytes[x] = pixelValue;
+        }
+    }
+
     private static void UndoGray8Bit(Span<byte> pixelBytes, int width)
     {
         int rowBytesCount = width;
         int height = pixelBytes.Length / rowBytesCount;
         for (int y = 0; y < height; y++)
         {
-            Span<byte> rowBytes = pixelBytes.Slice(y * rowBytesCount, rowBytesCount);
-
-            byte pixelValue = rowBytes[0];
-            for (int x = 1; x < width; x++)
-            {
-                pixelValue += rowBytes[x];
-                rowBytes[x] = pixelValue;
-            }
+            UndoGray8BitRow(pixelBytes, width, y);
         }
     }
 

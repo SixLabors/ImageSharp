@@ -450,6 +450,22 @@ public class WebpDecoderTests
         image.CompareToOriginal(provider, ReferenceDecoder);
     }
 
+    // https://github.com/SixLabors/ImageSharp/issues/2866
+    [Theory]
+    [WithFile(Lossy.Issue2866, PixelTypes.Rgba32)]
+    public void WebpDecoder_CanDecode_Issue2866<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        // Web
+        using Image<TPixel> image = provider.GetImage(
+            WebpDecoder.Instance,
+            new WebpDecoderOptions() { BackgroundColorHandling = BackgroundColorHandling.Ignore });
+
+        // We can't use the reference decoder here.
+        // It creates frames of different size without blending the frames.
+        image.DebugSave(provider, extension: "webp", encoder: new WebpEncoder());
+    }
+
     [Theory]
     [WithFile(Lossless.LossLessCorruptImage3, PixelTypes.Rgba32)]
     public void WebpDecoder_ThrowImageFormatException_OnInvalidImages<TPixel>(TestImageProvider<TPixel> provider)

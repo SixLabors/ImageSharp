@@ -81,15 +81,28 @@ internal class WebpAnimationDecoder : IDisposable
     /// <param name="width">The width of the image.</param>
     /// <param name="height">The height of the image.</param>
     /// <param name="completeDataSize">The size of the image data in bytes.</param>
-    public Image<TPixel> Decode<TPixel>(BufferedReadStream stream, WebpFeatures features, uint width, uint height, uint completeDataSize)
+    public Image<TPixel> Decode<TPixel>(
+        BufferedReadStream stream,
+        WebpFeatures features,
+        uint width,
+        uint height,
+        uint completeDataSize)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         Image<TPixel>? image = null;
         ImageFrame<TPixel>? previousFrame = null;
+        WebpFrameData? prevFrameData = null;
 
         this.metadata = new ImageMetadata();
         this.webpMetadata = this.metadata.GetWebpMetadata();
         this.webpMetadata.RepeatCount = features.AnimationLoopCount;
+
+        Color backgroundColor = this.backgroundColorHandling == BackgroundColorHandling.Ignore
+            ? Color.Transparent
+            : features.AnimationBackgroundColor!.Value;
+
+        this.webpMetadata.BackgroundColor = backgroundColor;
+        TPixel backgroundPixel = backgroundColor.ToPixel<TPixel>();
 
         Span<byte> buffer = stackalloc byte[4];
         uint frameCount = 0;
@@ -101,10 +114,15 @@ internal class WebpAnimationDecoder : IDisposable
             switch (chunkType)
             {
                 case WebpChunkType.FrameData:
-                    Color backgroundColor = this.backgroundColorHandling == BackgroundColorHandling.Ignore
-                        ? new Color(new Bgra32(0, 0, 0, 0))
-                        : features.AnimationBackgroundColor!.Value;
-                    uint dataSize = this.ReadFrame(stream, ref image, ref previousFrame, width, height, backgroundColor);
+                    uint dataSize = this.ReadFrame(
+                        stream,
+                        ref image,
+                        ref previousFrame,
+                        ref prevFrameData,
+                        width,
+                        height,
+                        backgroundPixel);
+
                     remainingBytes -= (int)dataSize;
                     break;
                 case WebpChunkType.Xmp:
@@ -132,10 +150,18 @@ internal class WebpAnimationDecoder : IDisposable
     /// <param name="stream">The stream, where the image should be decoded from. Cannot be null.</param>
     /// <param name="image">The image to decode the information to.</param>
     /// <param name="previousFrame">The previous frame.</param>
+    /// <param name="prevFrameData">The previous frame data.</param>
     /// <param name="width">The width of the image.</param>
     /// <param name="height">The height of the image.</param>
     /// <param name="backgroundColor">The default background color of the canvas in.</param>
-    private uint ReadFrame<TPixel>(BufferedReadStream stream, ref Image<TPixel>? image, ref ImageFrame<TPixel>? previousFrame, uint width, uint height, Color backgroundColor)
+    private uint ReadFrame<TPixel>(
+        BufferedReadStream stream,
+        ref Image<TPixel>? image,
+        ref ImageFrame<TPixel>? previousFrame,
+        ref WebpFrameData? prevFrameData,
+        uint width,
+        uint height,
+        TPixel backgroundColor)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         WebpFrameData frameData = WebpFrameData.Parse(stream);
@@ -174,39 +200,53 @@ internal class WebpAnimationDecoder : IDisposable
                 break;
         }
 
-        ImageFrame<TPixel>? currentFrame = null;
-        ImageFrame<TPixel> imageFrame;
+        bool isKeyFrame = false;
+        ImageFrame<TPixel> currentFrame;
         if (previousFrame is null)
         {
-            image = new Image<TPixel>(this.configuration, (int)width, (int)height, backgroundColor.ToPixel<TPixel>(), this.metadata);
+            image = new Image<TPixel>(this.configuration, (int)width, (int)height, backgroundColor, this.metadata);
 
             SetFrameMetadata(image.Frames.RootFrame.Metadata, frameData);
 
-            imageFrame = image.Frames.RootFrame;
+            currentFrame = image.Frames.RootFrame;
+            isKeyFrame = true;
         }
         else
         {
-            currentFrame = image!.Frames.AddFrame(previousFrame); // This clones the frame and adds it the collection.
+            // If the frame is a key frame we do not need to clone the frame or clear it.
+            isKeyFrame = prevFrameData?.DisposalMethod is WebpDisposalMethod.RestoreToBackground
+                && this.restoreArea == image!.Bounds;
+
+            if (isKeyFrame)
+            {
+                currentFrame = image!.Frames.CreateFrame(backgroundColor);
+            }
+            else
+            {
+                // This clones the frame and adds it the collection.
+                currentFrame = image!.Frames.AddFrame(previousFrame);
+                if (prevFrameData?.DisposalMethod is WebpDisposalMethod.RestoreToBackground)
+                {
+                    this.RestoreToBackground(currentFrame, backgroundColor);
+                }
+            }
 
             SetFrameMetadata(currentFrame.Metadata, frameData);
-
-            imageFrame = currentFrame;
         }
 
-        Rectangle regionRectangle = frameData.Bounds;
+        Rectangle interest = frameData.Bounds;
+        bool blend = previousFrame != null && frameData.BlendingMethod == WebpBlendMethod.Over;
+        using Buffer2D<TPixel> pixelData = this.DecodeImageFrameData<TPixel>(frameData, webpInfo);
+        DrawDecodedImageFrameOnCanvas(pixelData, currentFrame, interest, blend);
+
+        webpInfo?.Dispose();
+        previousFrame = currentFrame;
+        prevFrameData = frameData;
 
         if (frameData.DisposalMethod is WebpDisposalMethod.RestoreToBackground)
         {
-            this.RestoreToBackground(imageFrame, backgroundColor);
+            this.restoreArea = interest;
         }
-
-        using Buffer2D<TPixel> decodedImageFrame = this.DecodeImageFrameData<TPixel>(frameData, webpInfo);
-
-        bool blend = previousFrame != null && frameData.BlendingMethod == WebpBlendMethod.Over;
-        DrawDecodedImageFrameOnCanvas(decodedImageFrame, imageFrame, regionRectangle, blend);
-
-        previousFrame = currentFrame ?? image.Frames.RootFrame;
-        this.restoreArea = regionRectangle;
 
         return (uint)(stream.Position - streamStartPosition);
     }
@@ -257,30 +297,26 @@ internal class WebpAnimationDecoder : IDisposable
 
         try
         {
-            Buffer2D<TPixel> pixelBufferDecoded = decodedFrame.PixelBuffer;
+            Buffer2D<TPixel> decodeBuffer = decodedFrame.PixelBuffer;
             if (webpInfo.IsLossless)
             {
                 WebpLosslessDecoder losslessDecoder =
                     new(webpInfo.Vp8LBitReader, this.memoryAllocator, this.configuration);
-                losslessDecoder.Decode(pixelBufferDecoded, (int)webpInfo.Width, (int)webpInfo.Height);
+                losslessDecoder.Decode(decodeBuffer, (int)frameData.Width, (int)frameData.Height);
             }
             else
             {
                 WebpLossyDecoder lossyDecoder =
                     new(webpInfo.Vp8BitReader, this.memoryAllocator, this.configuration);
-                lossyDecoder.Decode(pixelBufferDecoded, (int)webpInfo.Width, (int)webpInfo.Height, webpInfo, this.alphaData);
+                lossyDecoder.Decode(decodeBuffer, (int)frameData.Width, (int)frameData.Height, webpInfo, this.alphaData);
             }
 
-            return pixelBufferDecoded;
+            return decodeBuffer;
         }
         catch
         {
             decodedFrame?.Dispose();
             throw;
-        }
-        finally
-        {
-            webpInfo.Dispose();
         }
     }
 
@@ -290,17 +326,17 @@ internal class WebpAnimationDecoder : IDisposable
     /// <typeparam name="TPixel">The type of the pixel.</typeparam>
     /// <param name="decodedImageFrame">The decoded image.</param>
     /// <param name="imageFrame">The image frame to draw into.</param>
-    /// <param name="restoreArea">The area of the frame.</param>
+    /// <param name="interest">The area of the frame to draw to.</param>
     /// <param name="blend">Whether to blend the decoded frame data onto the target frame.</param>
     private static void DrawDecodedImageFrameOnCanvas<TPixel>(
         Buffer2D<TPixel> decodedImageFrame,
         ImageFrame<TPixel> imageFrame,
-        Rectangle restoreArea,
+        Rectangle interest,
         bool blend)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         // Trim the destination frame to match the restore area. The source frame is already trimmed.
-        Buffer2DRegion<TPixel> imageFramePixels = imageFrame.PixelBuffer.GetRegion(restoreArea);
+        Buffer2DRegion<TPixel> imageFramePixels = imageFrame.PixelBuffer.GetRegion(interest);
         if (blend)
         {
             // The destination frame has already been prepopulated with the pixel data from the previous frame
@@ -309,10 +345,10 @@ internal class WebpAnimationDecoder : IDisposable
             PixelBlender<TPixel> blender =
                 PixelOperations<TPixel>.Instance.GetPixelBlender(PixelColorBlendingMode.Normal, PixelAlphaCompositionMode.SrcOver);
 
-            for (int y = 0; y < restoreArea.Height; y++)
+            for (int y = 0; y < interest.Height; y++)
             {
                 Span<TPixel> framePixelRow = imageFramePixels.DangerousGetRowSpan(y);
-                Span<TPixel> decodedPixelRow = decodedImageFrame.DangerousGetRowSpan(y)[..restoreArea.Width];
+                Span<TPixel> decodedPixelRow = decodedImageFrame.DangerousGetRowSpan(y);
 
                 blender.Blend<TPixel>(imageFrame.Configuration, framePixelRow, framePixelRow, decodedPixelRow, 1f);
             }
@@ -320,10 +356,10 @@ internal class WebpAnimationDecoder : IDisposable
             return;
         }
 
-        for (int y = 0; y < restoreArea.Height; y++)
+        for (int y = 0; y < interest.Height; y++)
         {
             Span<TPixel> framePixelRow = imageFramePixels.DangerousGetRowSpan(y);
-            Span<TPixel> decodedPixelRow = decodedImageFrame.DangerousGetRowSpan(y)[..restoreArea.Width];
+            Span<TPixel> decodedPixelRow = decodedImageFrame.DangerousGetRowSpan(y);
             decodedPixelRow.CopyTo(framePixelRow);
         }
     }
@@ -335,7 +371,7 @@ internal class WebpAnimationDecoder : IDisposable
     /// <typeparam name="TPixel">The pixel format.</typeparam>
     /// <param name="imageFrame">The image frame.</param>
     /// <param name="backgroundColor">Color of the background.</param>
-    private void RestoreToBackground<TPixel>(ImageFrame<TPixel> imageFrame, Color backgroundColor)
+    private void RestoreToBackground<TPixel>(ImageFrame<TPixel> imageFrame, TPixel backgroundColor)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         if (!this.restoreArea.HasValue)
@@ -345,8 +381,7 @@ internal class WebpAnimationDecoder : IDisposable
 
         Rectangle interest = Rectangle.Intersect(imageFrame.Bounds(), this.restoreArea.Value);
         Buffer2DRegion<TPixel> pixelRegion = imageFrame.PixelBuffer.GetRegion(interest);
-        TPixel backgroundPixel = backgroundColor.ToPixel<TPixel>();
-        pixelRegion.Fill(backgroundPixel);
+        pixelRegion.Fill(backgroundColor);
     }
 
     /// <inheritdoc/>

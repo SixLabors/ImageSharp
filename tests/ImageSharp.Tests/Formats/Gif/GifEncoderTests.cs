@@ -8,6 +8,7 @@ using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Processors.Quantization;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
+using System.Linq;
 
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests.Formats.Gif;
@@ -380,6 +381,19 @@ public class GifEncoderTests
         provider.Utility.SaveTestOutputFile(image, "webp", new WebpEncoder() { FileFormat = WebpFileFormatType.Lossless }, "animated");
         provider.Utility.SaveTestOutputFile(image, "webp", new WebpEncoder() { FileFormat = WebpFileFormatType.Lossy }, "animated-lossy");
         provider.Utility.SaveTestOutputFile(image, "png", new PngEncoder(), "animated");
+        provider.Utility.SaveTestOutputFile(image, "gif", new GifEncoder(), "animated");
+    }
+
+    [Theory]
+    [WithFile(TestImages.Gif.Issues.Issue2866, PixelTypes.Rgba32)]
+    public void GifEncoder_CanDecode_Issue2866<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage();
+
+        bool anyGlobal = ((IEnumerable<ImageFrame>)image.Frames).Any(x => x.Metadata.GetGifMetadata().ColorTableMode == GifColorTableMode.Global);
+
+        // image.DebugSaveMultiFrame(provider);
         provider.Utility.SaveTestOutputFile(image, "gif", new GifEncoder(), "animated");
     }
 }

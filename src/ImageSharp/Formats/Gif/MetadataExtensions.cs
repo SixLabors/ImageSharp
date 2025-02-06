@@ -60,21 +60,15 @@ public static partial class MetadataExtensions
         => source.TryGetFormatMetadata(GifFormat.Instance, out metadata);
 
     internal static AnimatedImageMetadata ToAnimatedImageMetadata(this GifMetadata source)
-    {
-        Color background = Color.Transparent;
-        if (source.GlobalColorTable != null)
-        {
-            background = source.GlobalColorTable.Value.Span[source.BackgroundColorIndex];
-        }
 
-        return new()
+        // We cannot trust the global GIF palette so don't use it.
+        // https://github.com/SixLabors/ImageSharp/issues/2866
+        => new()
         {
-            ColorTable = source.GlobalColorTable,
             ColorTableMode = source.ColorTableMode == GifColorTableMode.Global ? FrameColorTableMode.Global : FrameColorTableMode.Local,
             RepeatCount = source.RepeatCount,
-            BackgroundColor = background,
+            BackgroundColor = Color.Transparent,
         };
-    }
 
     internal static AnimatedImageFrameMetadata ToAnimatedImageFrameMetadata(this GifFrameMetadata source)
     {

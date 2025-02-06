@@ -485,6 +485,7 @@ public partial class PngEncoderTests
 
     [Theory]
     [WithFile(TestImages.Gif.Leo, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Gif.Issues.Issue2866, PixelTypes.Rgba32)]
     public void Encode_AnimatedFormatTransform_FromGif<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
@@ -494,7 +495,6 @@ public partial class PngEncoderTests
         }
 
         using Image<TPixel> image = provider.GetImage(GifDecoder.Instance);
-
         using MemoryStream memStream = new();
         image.Save(memStream, PngEncoder);
         memStream.Position = 0;

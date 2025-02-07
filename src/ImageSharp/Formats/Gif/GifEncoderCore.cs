@@ -98,8 +98,6 @@ internal sealed class GifEncoderCore
             useGlobalTableForFirstFrame = false;
         }
 
-        // TODO: The first frame should not need to be quantized using the global table if it has a local color table.
-
         // Quantize the first image frame returning a palette.
         IndexedImageFrame<TPixel>? quantized = null;
         if (this.quantizer is null)

@@ -334,4 +334,15 @@ public class GifDecoderTests
         image.DebugSaveMultiFrame(provider);
         image.CompareToReferenceOutputMultiFrame(provider, ImageComparer.Exact);
     }
+
+    // https://github.com/SixLabors/ImageSharp/issues/2883
+    [Theory]
+    [WithFile(TestImages.Gif.Issues.MissingClearCode, PixelTypes.Rgba32)]
+    public void IssueMissingClearCode<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage();
+        image.DebugSaveMultiFrame(provider);
+        image.CompareToReferenceOutputMultiFrame(provider, ImageComparer.Exact);
+    }
 }

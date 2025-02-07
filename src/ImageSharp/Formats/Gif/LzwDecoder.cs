@@ -204,7 +204,7 @@ internal sealed class LzwDecoder : IDisposable
                     this.code = this.oldCode;
                 }
 
-                while (this.code > this.clearCode)
+                while (this.code > this.clearCode && this.top < MaxStackSize)
                 {
                     Unsafe.Add(ref pixelStackRef, (uint)this.top++) = Unsafe.Add(ref suffixRef, (uint)this.code);
                     this.code = Unsafe.Add(ref prefixRef, (uint)this.code);

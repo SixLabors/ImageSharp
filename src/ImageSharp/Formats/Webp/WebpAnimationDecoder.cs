@@ -382,6 +382,8 @@ internal class WebpAnimationDecoder : IDisposable
         Rectangle interest = Rectangle.Intersect(imageFrame.Bounds(), this.restoreArea.Value);
         Buffer2DRegion<TPixel> pixelRegion = imageFrame.PixelBuffer.GetRegion(interest);
         pixelRegion.Fill(backgroundColor);
+
+        this.restoreArea = null;
     }
 
     /// <inheritdoc/>

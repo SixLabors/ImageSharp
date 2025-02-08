@@ -90,6 +90,8 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     [WithFile(TiledRgbaDeflateCompressedWithPredictor, PixelTypes.Rgba32)]
     [WithFile(TiledRgbDeflateCompressedWithPredictor, PixelTypes.Rgba32)]
     [WithFile(TiledGrayDeflateCompressedWithPredictor, PixelTypes.Rgba32)]
+    [WithFile(TiledGray16BitLittleEndianDeflateCompressedWithPredictor, PixelTypes.Rgba32)]
+    [WithFile(TiledGray16BitBigEndianDeflateCompressedWithPredictor, PixelTypes.Rgba32)]
     public void TiffDecoder_CanDecode_Tiled<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
 

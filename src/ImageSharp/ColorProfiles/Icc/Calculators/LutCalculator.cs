@@ -31,6 +31,8 @@ internal class LutCalculator : ISingleCalculator
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private float Lookup(float value)
     {
+        value = Math.Max(value, 0);
+
         float factor = value * (this.lut.Length - 1);
         int index = (int)factor;
         float low = this.lut[index];

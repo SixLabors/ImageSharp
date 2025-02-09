@@ -27,17 +27,31 @@ public class ColorProfileConverterTests(ITestOutputHelper testOutputHelper)
     [InlineData(TestIccProfiles.RommRgb, TestIccProfiles.StandardRgbV4)] // CMYK -> LAB -> CMYK (different bit depth v2 LUTs, 16-bit vs 8-bit)
     [InlineData(TestIccProfiles.Fogra39, TestIccProfiles.StandardRgbV2)] // CMYK -> LAB -> XYZ -> RGB (different LUT tags, A2B vs TRC)
     [InlineData(TestIccProfiles.StandardRgbV2, TestIccProfiles.Fogra39)] // RGB -> XYZ -> LAB -> CMYK (different LUT tags, TRC vs A2B)
-    public void CanConvertCmykIccProfiles(string sourceProfile, string targetProfile)
+    public void CanConvertIccProfiles(string sourceProfile, string targetProfile)
     {
-        float[] input = [GetNormalizedRandomValue(), GetNormalizedRandomValue(), GetNormalizedRandomValue(), GetNormalizedRandomValue()];
-        double[] expectedTargetValues = GetExpectedTargetValues(sourceProfile, targetProfile, input);
-        Vector4 actualTargetValues = GetActualTargetValues(input, sourceProfile, targetProfile);
+        List<float[]> inputs =
+        [
+            [0, 0, 0, 0],
+            [1, 0, 0, 0],
+            [0, 1, 0, 0],
+            [0, 0, 1, 0],
+            [0, 0, 0, 1],
+            [1, 1, 1, 1],
+            [0.5f, 0.5f, 0.5f, 0.5f],
+            [GetNormalizedRandomValue(), GetNormalizedRandomValue(), GetNormalizedRandomValue(), GetNormalizedRandomValue()]
+        ];
 
-        testOutputHelper.WriteLine($"Input {string.Join(", ", input)} · Expected output {string.Join(", ", expectedTargetValues)}");
-        const double tolerance = 0.00005;
-        for (int i = 0; i < expectedTargetValues.Length; i++)
+        foreach (float[] input in inputs)
         {
-            Assert.Equal(expectedTargetValues[i], actualTargetValues[i], tolerance);
+            double[] expectedTargetValues = GetExpectedTargetValues(sourceProfile, targetProfile, input);
+            Vector4 actualTargetValues = GetActualTargetValues(input, sourceProfile, targetProfile);
+
+            testOutputHelper.WriteLine($"Input {string.Join(", ", input)} · Expected output {string.Join(", ", expectedTargetValues)}");
+            const double tolerance = 0.00005;
+            for (int i = 0; i < expectedTargetValues.Length; i++)
+            {
+                Assert.Equal(expectedTargetValues[i], actualTargetValues[i], tolerance);
+            }
         }
     }
 

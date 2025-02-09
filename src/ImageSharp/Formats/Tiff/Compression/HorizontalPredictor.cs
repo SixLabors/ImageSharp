@@ -84,6 +84,18 @@ internal static class HorizontalPredictor
                 }
 
                 break;
+            case TiffColorType.BlackIsZero32:
+            case TiffColorType.WhiteIsZero32:
+                if (isBigEndian)
+                {
+                    UndoGray32BitBigEndianRow(pixelBytes, width, y);
+                }
+                else
+                {
+                    UndoGray32BitLittleEndianRow(pixelBytes, width, y);
+                }
+
+                break;
             case TiffColorType.Rgb888:
             case TiffColorType.CieLab:
                 UndoRgb24BitRow(pixelBytes, width, y);
@@ -266,6 +278,46 @@ internal static class HorizontalPredictor
         }
     }
 
+    private static void UndoGray32BitBigEndianRow(Span<byte> pixelBytes, int width, int y)
+    {
+        int rowBytesCount = width * 4;
+        int height = pixelBytes.Length / rowBytesCount;
+
+        int offset = 0;
+        Span<byte> rowBytes = pixelBytes.Slice(y * rowBytesCount, rowBytesCount);
+        uint pixelValue = TiffUtilities.ConvertToUIntBigEndian(rowBytes.Slice(offset, 4));
+        offset += 4;
+
+        for (int x = 1; x < width; x++)
+        {
+            Span<byte> rowSpan = rowBytes.Slice(offset, 4);
+            uint diff = TiffUtilities.ConvertToUIntBigEndian(rowSpan);
+            pixelValue += diff;
+            BinaryPrimitives.WriteUInt32BigEndian(rowSpan, pixelValue);
+            offset += 4;
+        }
+    }
+
+    private static void UndoGray32BitLittleEndianRow(Span<byte> pixelBytes, int width, int y)
+    {
+        int rowBytesCount = width * 4;
+        int height = pixelBytes.Length / rowBytesCount;
+
+        int offset = 0;
+        Span<byte> rowBytes = pixelBytes.Slice(y * rowBytesCount, rowBytesCount);
+        uint pixelValue = TiffUtilities.ConvertToUIntLittleEndian(rowBytes.Slice(offset, 4));
+        offset += 4;
+
+        for (int x = 1; x < width; x++)
+        {
+            Span<byte> rowSpan = rowBytes.Slice(offset, 4);
+            uint diff = TiffUtilities.ConvertToUIntLittleEndian(rowSpan);
+            pixelValue += diff;
+            BinaryPrimitives.WriteUInt32LittleEndian(rowSpan, pixelValue);
+            offset += 4;
+        }
+    }
+
     private static void UndoGray32Bit(Span<byte> pixelBytes, int width, bool isBigEndian)
     {
         int rowBytesCount = width * 4;
@@ -274,38 +326,14 @@ internal static class HorizontalPredictor
         {
             for (int y = 0; y < height; y++)
             {
-                int offset = 0;
-                Span<byte> rowBytes = pixelBytes.Slice(y * rowBytesCount, rowBytesCount);
-                uint pixelValue = TiffUtilities.ConvertToUIntBigEndian(rowBytes.Slice(offset, 4));
-                offset += 4;
-
-                for (int x = 1; x < width; x++)
-                {
-                    Span<byte> rowSpan = rowBytes.Slice(offset, 4);
-                    uint diff = TiffUtilities.ConvertToUIntBigEndian(rowSpan);
-                    pixelValue += diff;
-                    BinaryPrimitives.WriteUInt32BigEndian(rowSpan, pixelValue);
-                    offset += 4;
-                }
+                UndoGray32BitBigEndianRow(pixelBytes, width, y);
             }
         }
         else
         {
             for (int y = 0; y < height; y++)
             {
-                int offset = 0;
-                Span<byte> rowBytes = pixelBytes.Slice(y * rowBytesCount, rowBytesCount);
-                uint pixelValue = TiffUtilities.ConvertToUIntLittleEndian(rowBytes.Slice(offset, 4));
-                offset += 4;
-
-                for (int x = 1; x < width; x++)
-                {
-                    Span<byte> rowSpan = rowBytes.Slice(offset, 4);
-                    uint diff = TiffUtilities.ConvertToUIntLittleEndian(rowSpan);
-                    pixelValue += diff;
-                    BinaryPrimitives.WriteUInt32LittleEndian(rowSpan, pixelValue);
-                    offset += 4;
-                }
+                UndoGray32BitLittleEndianRow(pixelBytes, width, y);
             }
         }
     }

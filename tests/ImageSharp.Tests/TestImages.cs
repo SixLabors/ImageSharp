@@ -995,6 +995,8 @@ public static class TestImages
         public const string TiledGray32BitBigEndianDeflateCompressedWithPredictor = "Tiff/tiled_gray_32bit_big_endian_deflate_compressed_predictor.tiff";
         public const string TiledRgb48BitLittleEndianDeflateCompressedWithPredictor = "Tiff/tiled_rgb_48bit_little_endian_deflate_compressed_predictor.tiff";
         public const string TiledRgb48BitBigEndianDeflateCompressedWithPredictor = "Tiff/tiled_rgb_48bit_big_endian_deflate_compressed_predictor.tiff";
+        public const string TiledRgba64BitLittleEndianDeflateCompressedWithPredictor = "Tiff/tiled_rgba_64bit_little_endian_deflate_compressed_predictor.tiff";
+        public const string TiledRgba64BitBigEndianDeflateCompressedWithPredictor = "Tiff/tiled_rgba_64bit_big_endian_deflate_compressed_predictor.tiff";
 
         // Images with alpha channel.
         public const string Rgba2BitUnassociatedAlpha = "Tiff/RgbaUnassociatedAlpha2bit.tiff";

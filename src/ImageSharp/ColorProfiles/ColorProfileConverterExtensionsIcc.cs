@@ -39,6 +39,7 @@ internal static class ColorProfileConverterExtensionsIcc
             TargetWhitePoint = new CieXyz(converter.Options.TargetIccProfile.Header.PcsIlluminant),
         });
 
+        // output of Matrix TRC calculator is descaled XYZ, needs to be re-scaled to be used as PCS
         Vector4 sourcePcs = sourceParams.Converter.Calculate(source.ToScaledVector4());
         Vector4 targetPcs;
 
@@ -56,6 +57,7 @@ internal static class ColorProfileConverterExtensionsIcc
         }
 
         // Convert to the target space.
+        // input to Matrix TRC calculator is descaled XYZ, need to descale PCS before use
         return TTo.FromScaledVector4(targetParams.Converter.Calculate(targetPcs));
     }
 

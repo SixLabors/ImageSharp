@@ -4,6 +4,7 @@
 using System.Numerics;
 using SixLabors.ImageSharp.ColorProfiles.WorkingSpaces;
 using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 
 namespace SixLabors.ImageSharp.ColorProfiles;
 
@@ -27,7 +28,7 @@ public class ColorConversionOptions
     /// <summary>
     /// Gets the source white point used for chromatic adaptation in conversions from/to XYZ color space.
     /// </summary>
-    public CieXyz WhitePoint { get; init; } = KnownIlluminants.D50;
+    public CieXyz SourceWhitePoint { get; init; } = KnownIlluminants.D50;
 
     /// <summary>
     /// Gets the destination white point used for chromatic adaptation in conversions from/to XYZ color space.
@@ -37,12 +38,22 @@ public class ColorConversionOptions
     /// <summary>
     /// Gets the source working space used for companding in conversions from/to XYZ color space.
     /// </summary>
-    public RgbWorkingSpace RgbWorkingSpace { get; init; } = KnownRgbWorkingSpaces.SRgb;
+    public RgbWorkingSpace SourceRgbWorkingSpace { get; init; } = KnownRgbWorkingSpaces.SRgb;
 
     /// <summary>
     /// Gets the destination working space used for companding in conversions from/to XYZ color space.
     /// </summary>
     public RgbWorkingSpace TargetRgbWorkingSpace { get; init; } = KnownRgbWorkingSpaces.SRgb;
+
+    /// <summary>
+    /// Gets the source ICC profile.
+    /// </summary>
+    public IccProfile? SourceIccProfile { get; init; }
+
+    /// <summary>
+    /// Gets the target ICC profile.
+    /// </summary>
+    public IccProfile? TargetIccProfile { get; init; }
 
     /// <summary>
     /// Gets the transformation matrix used in conversion to perform chromatic adaptation.

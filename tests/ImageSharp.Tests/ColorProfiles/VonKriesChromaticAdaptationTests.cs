@@ -20,7 +20,7 @@ public class VonKriesChromaticAdaptationTests
     {
         ColorConversionOptions options = new()
         {
-            WhitePoint = from,
+            SourceWhitePoint = from,
             TargetWhitePoint = to
         };
 

@@ -12,6 +12,7 @@ namespace SixLabors.ImageSharp.Tests.ColorProfiles;
 /// Test data generated using:
 /// <see href="http://www.brucelindbloom.com/index.html?ColorCalculator.html"/>
 /// </remarks>
+[Trait("Color", "Conversion")]
 public class CieXyzAndCieLabConversionTest
 {
     private static readonly ApproximateColorProfileComparer Comparer = new(.0001f);
@@ -29,7 +30,7 @@ public class CieXyzAndCieLabConversionTest
     {
         // Arrange
         CieLab input = new(l, a, b);
-        ColorConversionOptions options = new() { WhitePoint = KnownIlluminants.D65, TargetWhitePoint = KnownIlluminants.D65 };
+        ColorConversionOptions options = new() { SourceWhitePoint = KnownIlluminants.D65, TargetWhitePoint = KnownIlluminants.D65 };
         ColorProfileConverter converter = new(options);
         CieXyz expected = new(x, y, z);
 
@@ -62,7 +63,7 @@ public class CieXyzAndCieLabConversionTest
     {
         // Arrange
         CieXyz input = new(x, y, z);
-        ColorConversionOptions options = new() { WhitePoint = KnownIlluminants.D65, TargetWhitePoint = KnownIlluminants.D65 };
+        ColorConversionOptions options = new() { SourceWhitePoint = KnownIlluminants.D65, TargetWhitePoint = KnownIlluminants.D65 };
         ColorProfileConverter converter = new(options);
         CieLab expected = new(l, a, b);
 

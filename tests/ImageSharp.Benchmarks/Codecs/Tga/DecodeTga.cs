@@ -48,7 +48,7 @@ public class DecodeTga
         return image.Width;
     }
 
-    private class PfimAllocator : IImageAllocator
+    private sealed class PfimAllocator : IImageAllocator
     {
         private int rented;
         private readonly ArrayPool<byte> shared = ArrayPool<byte>.Shared;

@@ -19,11 +19,6 @@ public class EncodeJpegComparison
 {
     // Big enough, 4:4:4 chroma sampling
     private const string TestImage = TestImages.Jpeg.Baseline.Calliphora;
-
-    // Change/add parameters for extra benchmarks
-    [Params(75, 90, 100)]
-    public int Quality;
-
     private MemoryStream destinationStream;
 
     // ImageSharp
@@ -32,6 +27,10 @@ public class EncodeJpegComparison
 
     // SkiaSharp
     private SKBitmap imageSkiaSharp;
+
+    // Change/add parameters for extra benchmarks
+    [Params(75, 90, 100)]
+    public int Quality { get; set; }
 
     [GlobalSetup(Target = nameof(BenchmarkImageSharp))]
     public void SetupImageSharp()

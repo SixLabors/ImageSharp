@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+#if OS_WINDOWS
 using System.Drawing.Imaging;
 using BenchmarkDotNet.Attributes;
 using SixLabors.ImageSharp.Formats.Bmp;
@@ -28,3 +29,4 @@ public class EncodeBmpMultiple : MultiImageBenchmarkBase.WithImagesPreloaded
             return null;
         });
 }
+#endif

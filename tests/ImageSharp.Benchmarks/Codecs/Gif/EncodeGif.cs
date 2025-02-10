@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+#if OS_WINDOWS
 using System.Drawing.Imaging;
 using BenchmarkDotNet.Attributes;
 using SixLabors.ImageSharp.Formats.Gif;
@@ -16,12 +17,12 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs;
 public class EncodeGif
 {
     // System.Drawing needs this.
-    private Stream bmpStream;
+    private FileStream bmpStream;
     private SDImage bmpDrawing;
     private Image<Rgba32> bmpCore;
 
     // Try to get as close to System.Drawing's output as possible
-    private readonly GifEncoder encoder = new GifEncoder
+    private readonly GifEncoder encoder = new()
     {
         Quantizer = new WebSafePaletteQuantizer(new QuantizerOptions { Dither = KnownDitherings.Bayer4x4 })
     };
@@ -53,14 +54,15 @@ public class EncodeGif
     [Benchmark(Baseline = true, Description = "System.Drawing Gif")]
     public void GifSystemDrawing()
     {
-        using var memoryStream = new MemoryStream();
+        using MemoryStream memoryStream = new();
         this.bmpDrawing.Save(memoryStream, ImageFormat.Gif);
     }
 
     [Benchmark(Description = "ImageSharp Gif")]
     public void GifImageSharp()
     {
-        using var memoryStream = new MemoryStream();
+        using MemoryStream memoryStream = new();
         this.bmpCore.SaveAsGif(memoryStream, this.encoder);
     }
 }
+#endif

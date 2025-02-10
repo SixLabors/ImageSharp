@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+#if OS_WINDOWS
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using BenchmarkDotNet.Attributes;
@@ -17,9 +18,9 @@ public class Crop
     [Benchmark(Baseline = true, Description = "System.Drawing Crop")]
     public SDSize CropSystemDrawing()
     {
-        using var source = new Bitmap(800, 800);
-        using var destination = new Bitmap(100, 100);
-        using var graphics = Graphics.FromImage(destination);
+        using Bitmap source = new(800, 800);
+        using Bitmap destination = new(100, 100);
+        using Graphics graphics = Graphics.FromImage(destination);
 
         graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
         graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
@@ -32,8 +33,9 @@ public class Crop
     [Benchmark(Description = "ImageSharp Crop")]
     public Size CropImageSharp()
     {
-        using var image = new Image<Rgba32>(800, 800);
+        using Image<Rgba32> image = new(800, 800);
         image.Mutate(x => x.Crop(100, 100));
         return new Size(image.Width, image.Height);
     }
 }
+#endif

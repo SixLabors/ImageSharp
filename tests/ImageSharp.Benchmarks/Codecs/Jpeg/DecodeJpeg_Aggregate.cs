@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+#if OS_WINDOWS
 using BenchmarkDotNet.Attributes;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests;
@@ -17,23 +18,24 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg;
 public class DecodeJpeg_Aggregate : MultiImageBenchmarkBase
 {
     protected override IEnumerable<string> InputImageSubfoldersOrFiles
-        => new[]
-        {
+        =>
+        [
             TestImages.Jpeg.BenchmarkSuite.Jpeg400_SmallMonochrome,
             TestImages.Jpeg.BenchmarkSuite.Jpeg420Exif_MidSizeYCbCr,
             TestImages.Jpeg.BenchmarkSuite.Lake_Small444YCbCr,
             TestImages.Jpeg.BenchmarkSuite.MissingFF00ProgressiveBedroom159_MidSize420YCbCr,
             TestImages.Jpeg.BenchmarkSuite.ExifGetString750Transform_Huge420YCbCr,
-        };
+        ];
 
     [Params(InputImageCategory.AllImages)]
     public override InputImageCategory InputCategory { get; set; }
 
     [Benchmark]
     public void ImageSharp()
-        => this.ForEachStream(ms => Image.Load<Rgba32>(ms));
+        => this.ForEachStream(Image.Load<Rgba32>);
 
     [Benchmark(Baseline = true)]
     public void SystemDrawing()
         => this.ForEachStream(SDImage.FromStream);
 }
+#endif

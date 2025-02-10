@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+#if OS_WINDOWS
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
@@ -40,7 +41,7 @@ public class LoadResizeSaveStressRunner
 
     public double TotalProcessedMegapixels { get; private set; }
 
-    public Size LastProcessedImageSize { get; private set; }
+    public ImageSharpSize LastProcessedImageSize { get; private set; }
 
     private string outputDirectory;
 
@@ -345,3 +346,4 @@ public class LoadResizeSaveStressRunner
         thumb.Jpegsave(this.OutputPath(input), q: Quality, keep: NetVips.Enums.ForeignKeep.None);
     }
 }
+#endif

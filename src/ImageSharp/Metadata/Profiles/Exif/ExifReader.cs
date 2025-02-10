@@ -189,10 +189,16 @@ internal abstract class BaseExifReader
     {
         if (this.subIfds is not null)
         {
-            foreach (ulong subIfdOffset in this.subIfds)
+            do
             {
-                this.ReadValues(values, (uint)subIfdOffset);
+                ulong[] buf = [.. this.subIfds];
+                this.subIfds.Clear();
+                foreach (ulong subIfdOffset in buf)
+                {
+                    this.ReadValues(values, (uint)subIfdOffset);
+                }
             }
+            while (this.subIfds.Count > 0);
         }
     }
 
@@ -447,6 +453,7 @@ internal abstract class BaseExifReader
             ExifTagValue.TileByteCounts => new ExifLong8Array(ExifTagValue.TileByteCounts),
             _ => ExifValues.Create(tag) ?? ExifValues.Create(tag, dataType, numberOfComponents),
         };
+
         if (exifValue is null)
         {
             this.AddInvalidTag(new UnkownExifTag(tag));
@@ -481,8 +488,9 @@ internal abstract class BaseExifReader
 
         foreach (IExifValue val in values)
         {
-            // Sometimes duplicates appear, can compare val.Tag == exif.Tag
-            if (val == exif)
+            // to skip duplicates must be used Equals method,
+            // == operator not defined for ExifValue and IExifValue
+            if (exif.Equals(val))
             {
                 Debug.WriteLine($"Duplicate Exif tag: tag={exif.Tag}, dataType={exif.DataType}");
                 return;

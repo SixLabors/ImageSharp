@@ -78,6 +78,7 @@ internal sealed class LzwDecoder : IDisposable
     public LzwDecoder(MemoryAllocator memoryAllocator, BufferedReadStream stream, int minCodeSize)
     {
         this.stream = stream ?? throw new ArgumentNullException(nameof(stream));
+        Guard.IsTrue(IsValidMinCodeSize(minCodeSize), nameof(minCodeSize), "Invalid minimum code size.");
 
         this.prefixOwner = memoryAllocator.Allocate<int>(MaxStackSize, AllocationOptions.Clean);
         this.suffixOwner = memoryAllocator.Allocate<int>(MaxStackSize, AllocationOptions.Clean);
@@ -92,12 +93,15 @@ internal sealed class LzwDecoder : IDisposable
         this.endCode = this.clearCode + 1;
         this.availableCode = this.clearCode + 2;
 
-        Span<int> suffix = this.suffixOwner.GetSpan();
-        int max = Math.Min(this.clearCode, suffix.Length);
-        for (this.code = 0; this.code < max; this.code++)
+        // Fill the suffix buffer with the initial values represented by the number of colors.
+        Span<int> suffix = this.suffixOwner.GetSpan()[..this.clearCode];
+        int i;
+        for (i = 0; i < suffix.Length; i++)
         {
-            suffix[this.code] = (byte)this.code;
+            suffix[i] = i;
         }
+
+        this.code = i;
     }
 
     /// <summary>
@@ -112,8 +116,7 @@ internal sealed class LzwDecoder : IDisposable
         // It is possible to specify a larger LZW minimum code size than the palette length in bits
         // which may leave a gap in the codes where no colors are assigned.
         // http://www.matthewflickinger.com/lab/whatsinagif/lzw_image_data.asp#lzw_compression
-        int clearCode = 1 << minCodeSize;
-        if (minCodeSize < 2 || minCodeSize > MaximumLzwBits || clearCode > MaxStackSize)
+        if (minCodeSize < 2 || minCodeSize > MaximumLzwBits || 1 << minCodeSize > MaxStackSize)
         {
             // Don't attempt to decode the frame indices.
             // Theoretically we could determine a min code size from the length of the provided
@@ -137,7 +140,6 @@ internal sealed class LzwDecoder : IDisposable
         Span<int> suffix = this.suffixOwner.GetSpan();
         Span<int> pixelStack = this.pixelStackOwner.GetSpan();
         Span<byte> buffer = this.bufferOwner.GetSpan();
-        int maxTop = this.pixelStackOwner.Length() - 1;
 
         // Cache frequently accessed instance fields into locals.
         // This helps avoid repeated field loads inside the tight loop.
@@ -157,8 +159,8 @@ internal sealed class LzwDecoder : IDisposable
         int clearCode = this.clearCode;
         int endCode = this.endCode;
 
-        int xyz = 0;
-        while (xyz < indices.Length)
+        int i = 0;
+        while (i < indices.Length)
         {
             if (top == 0)
             {
@@ -220,7 +222,7 @@ internal sealed class LzwDecoder : IDisposable
                     code = oldCode;
                 }
 
-                while (code > clearCode && top < maxTop)
+                while (code > clearCode && top < MaxStackSize)
                 {
                     pixelStack[top++] = suffix[code];
                     code = prefix[code];
@@ -251,7 +253,7 @@ internal sealed class LzwDecoder : IDisposable
             top--;
 
             // Clear missing pixels.
-            indices[xyz++] = (byte)pixelStack[top];
+            indices[i++] = (byte)pixelStack[top];
         }
 
         // Write back the local values to the instance fields.
@@ -279,7 +281,6 @@ internal sealed class LzwDecoder : IDisposable
         Span<int> suffix = this.suffixOwner.GetSpan();
         Span<int> pixelStack = this.pixelStackOwner.GetSpan();
         Span<byte> buffer = this.bufferOwner.GetSpan();
-        int maxTop = this.pixelStackOwner.Length() - 1;
 
         // Cache frequently accessed instance fields into locals.
         // This helps avoid repeated field loads inside the tight loop.
@@ -299,8 +300,8 @@ internal sealed class LzwDecoder : IDisposable
         int clearCode = this.clearCode;
         int endCode = this.endCode;
 
-        int xyz = 0;
-        while (xyz < length)
+        int i = 0;
+        while (i < length)
         {
             if (top == 0)
             {
@@ -362,7 +363,7 @@ internal sealed class LzwDecoder : IDisposable
                     code = oldCode;
                 }
 
-                while (code > clearCode && top < maxTop)
+                while (code > clearCode && top < MaxStackSize)
                 {
                     pixelStack[top++] = suffix[code];
                     code = prefix[code];
@@ -393,7 +394,7 @@ internal sealed class LzwDecoder : IDisposable
             top--;
 
             // Skip missing pixels.
-            xyz++;
+            i++;
         }
 
         // Write back the local values to the instance fields.

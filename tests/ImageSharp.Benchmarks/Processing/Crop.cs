@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-#if OS_WINDOWS
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using BenchmarkDotNet.Attributes;
@@ -38,4 +37,3 @@ public class Crop
         return new Size(image.Width, image.Height);
     }
 }
-#endif

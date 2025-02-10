@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-#if OS_WINDOWS
 using BenchmarkDotNet.Attributes;
 using SixLabors.ImageSharp.PixelFormats;
 using SystemColor = System.Drawing.Color;
@@ -18,4 +17,3 @@ public class ColorEquality
     public bool ColorEqual()
         => new Rgba32(128, 128, 128, 128).Equals(new Rgba32(128, 128, 128, 128));
 }
-#endif

@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-#if OS_WINDOWS
 using System.Drawing.Imaging;
 using BenchmarkDotNet.Attributes;
 
@@ -111,4 +110,3 @@ public class EncodeTiff
     public static bool IsOneBitCompression(TiffCompression compression)
         => compression is TiffCompression.Ccitt1D or TiffCompression.CcittGroup3Fax or TiffCompression.CcittGroup4Fax;
 }
-#endif

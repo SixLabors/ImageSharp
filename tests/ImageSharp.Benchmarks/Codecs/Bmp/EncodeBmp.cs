@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-#if OS_WINDOWS
 using System.Drawing.Imaging;
 using BenchmarkDotNet.Attributes;
 using SixLabors.ImageSharp.PixelFormats;
@@ -52,4 +51,3 @@ public class EncodeBmp
         this.bmpCore.SaveAsBmp(memoryStream);
     }
 }
-#endif

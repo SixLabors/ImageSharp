@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-#if OS_WINDOWS
 using BenchmarkDotNet.Attributes;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Tests;
@@ -67,4 +66,3 @@ public class DecodeJpeg_ImageSpecific
     |     'Decode Jpeg - ImageSharp' | Jpg/i(...)e.jpg [43] | 276.490 ms | 195.5104 ms | 10.7166 ms |  0.71 |    0.01 |     - |     - |     - | 36022368 B |
      */
 }
-#endif

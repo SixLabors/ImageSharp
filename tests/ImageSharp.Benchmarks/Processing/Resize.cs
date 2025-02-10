@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-#if OS_WINDOWS
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using BenchmarkDotNet.Attributes;
@@ -241,4 +240,3 @@ public class Resize_Bicubic_Compare_Rgba32_Rgb24
     [Benchmark]
     public void Rgb24() => this.rgb24.ImageSharp_P1();
 }
-#endif

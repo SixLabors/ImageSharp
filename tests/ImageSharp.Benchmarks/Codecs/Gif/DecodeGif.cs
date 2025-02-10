@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-#if OS_WINDOWS
 using BenchmarkDotNet.Attributes;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests;
@@ -19,15 +18,9 @@ public class DecodeGif
         => Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, this.TestImage);
 
     [GlobalSetup]
-    public void ReadImages()
-    {
-        if (this.gifBytes == null)
-        {
-            this.gifBytes = File.ReadAllBytes(this.TestImageFullPath);
-        }
-    }
+    public void ReadImages() => this.gifBytes ??= File.ReadAllBytes(this.TestImageFullPath);
 
-    [Params(TestImages.Gif.Rings)]
+    [Params(TestImages.Gif.Cheers)]
     public string TestImage { get; set; }
 
     [Benchmark(Baseline = true, Description = "System.Drawing Gif")]
@@ -46,4 +39,3 @@ public class DecodeGif
         return new Size(image.Width, image.Height);
     }
 }
-#endif

@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-#if OS_WINDOWS
 // Enable this for using larger Tiff files. Those files are very large (> 700MB) and therefor not part of the git repo.
 // Use the scripts gen_big.ps1 and gen_medium.ps1 in tests\Images\Input\Tiff\Benchmarks to generate those images.
 //// #define BIG_TESTS
@@ -83,4 +82,3 @@ public class DecodeTiff
         return image.Size;
     }
 }
-#endif

@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-#if OS_WINDOWS
 using System.Drawing.Imaging;
 using BenchmarkDotNet.Attributes;
 using SixLabors.ImageSharp.Formats.Gif;
@@ -65,4 +64,3 @@ public class EncodeGif
         this.bmpCore.SaveAsGif(memoryStream, this.encoder);
     }
 }
-#endif

@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-#if OS_WINDOWS
 using BenchmarkDotNet.Attributes;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests;
@@ -38,4 +37,3 @@ public class DecodeJpeg_Aggregate : MultiImageBenchmarkBase
     public void SystemDrawing()
         => this.ForEachStream(SDImage.FromStream);
 }
-#endif

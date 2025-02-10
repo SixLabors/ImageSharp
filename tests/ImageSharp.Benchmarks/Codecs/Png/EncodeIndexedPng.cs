@@ -18,7 +18,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs;
 public class EncodeIndexedPng
 {
     // System.Drawing needs this.
-    private Stream bmpStream;
+    private FileStream bmpStream;
     private Image<Rgba32> bmpCore;
 
     [GlobalSetup]
@@ -43,48 +43,48 @@ public class EncodeIndexedPng
     [Benchmark(Baseline = true, Description = "ImageSharp Octree Png")]
     public void PngCoreOctree()
     {
-        using var memoryStream = new MemoryStream();
-        var options = new PngEncoder { Quantizer = KnownQuantizers.Octree };
+        using MemoryStream memoryStream = new();
+        PngEncoder options = new() { Quantizer = KnownQuantizers.Octree };
         this.bmpCore.SaveAsPng(memoryStream, options);
     }
 
     [Benchmark(Description = "ImageSharp Octree NoDither Png")]
     public void PngCoreOctreeNoDither()
     {
-        using var memoryStream = new MemoryStream();
-        var options = new PngEncoder { Quantizer = new OctreeQuantizer(new QuantizerOptions { Dither = null }) };
+        using MemoryStream memoryStream = new();
+        PngEncoder options = new() { Quantizer = new OctreeQuantizer(new QuantizerOptions { Dither = null }) };
         this.bmpCore.SaveAsPng(memoryStream, options);
     }
 
     [Benchmark(Description = "ImageSharp Palette Png")]
     public void PngCorePalette()
     {
-        using var memoryStream = new MemoryStream();
-        var options = new PngEncoder { Quantizer = KnownQuantizers.WebSafe };
+        using MemoryStream memoryStream = new();
+        PngEncoder options = new() { Quantizer = KnownQuantizers.WebSafe };
         this.bmpCore.SaveAsPng(memoryStream, options);
     }
 
     [Benchmark(Description = "ImageSharp Palette NoDither Png")]
     public void PngCorePaletteNoDither()
     {
-        using var memoryStream = new MemoryStream();
-        var options = new PngEncoder { Quantizer = new WebSafePaletteQuantizer(new QuantizerOptions { Dither = null }) };
+        using MemoryStream memoryStream = new();
+        PngEncoder options = new() { Quantizer = new WebSafePaletteQuantizer(new QuantizerOptions { Dither = null }) };
         this.bmpCore.SaveAsPng(memoryStream, options);
     }
 
     [Benchmark(Description = "ImageSharp Wu Png")]
     public void PngCoreWu()
     {
-        using var memoryStream = new MemoryStream();
-        var options = new PngEncoder { Quantizer = KnownQuantizers.Wu };
+        using MemoryStream memoryStream = new();
+        PngEncoder options = new() { Quantizer = KnownQuantizers.Wu };
         this.bmpCore.SaveAsPng(memoryStream, options);
     }
 
     [Benchmark(Description = "ImageSharp Wu NoDither Png")]
     public void PngCoreWuNoDither()
     {
-        using var memoryStream = new MemoryStream();
-        var options = new PngEncoder { Quantizer = new WuQuantizer(new QuantizerOptions { Dither = null }), ColorType = PngColorType.Palette };
+        using MemoryStream memoryStream = new();
+        PngEncoder options = new() { Quantizer = new WuQuantizer(new QuantizerOptions { Dither = null }), ColorType = PngColorType.Palette };
         this.bmpCore.SaveAsPng(memoryStream, options);
     }
 }

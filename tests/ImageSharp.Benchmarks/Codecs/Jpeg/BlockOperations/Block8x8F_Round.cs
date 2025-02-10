@@ -36,7 +36,7 @@ public unsafe class Block8x8F_Round
 
         if (ptr % 16 != 0)
         {
-            throw new Exception("ptr is unaligned");
+            throw new InvalidOperationException("ptr is unaligned");
         }
 
         this.alignedPtr = (float*)ptr;
@@ -67,21 +67,21 @@ public unsafe class Block8x8F_Round
         ref Block8x8F b = ref this.block;
 
         ref Vector<float> row0 = ref Unsafe.As<Vector4, Vector<float>>(ref b.V0L);
-        row0 = SimdUtils.FastRound(row0);
+        row0 = row0.FastRound();
         ref Vector<float> row1 = ref Unsafe.As<Vector4, Vector<float>>(ref b.V1L);
-        row1 = SimdUtils.FastRound(row1);
+        row1 = row1.FastRound();
         ref Vector<float> row2 = ref Unsafe.As<Vector4, Vector<float>>(ref b.V2L);
-        row2 = SimdUtils.FastRound(row2);
+        row2 = row2.FastRound();
         ref Vector<float> row3 = ref Unsafe.As<Vector4, Vector<float>>(ref b.V3L);
-        row3 = SimdUtils.FastRound(row3);
+        row3 = row3.FastRound();
         ref Vector<float> row4 = ref Unsafe.As<Vector4, Vector<float>>(ref b.V4L);
-        row4 = SimdUtils.FastRound(row4);
+        row4 = row4.FastRound();
         ref Vector<float> row5 = ref Unsafe.As<Vector4, Vector<float>>(ref b.V5L);
-        row5 = SimdUtils.FastRound(row5);
+        row5 = row5.FastRound();
         ref Vector<float> row6 = ref Unsafe.As<Vector4, Vector<float>>(ref b.V6L);
-        row6 = SimdUtils.FastRound(row6);
+        row6 = row6.FastRound();
         ref Vector<float> row7 = ref Unsafe.As<Vector4, Vector<float>>(ref b.V7L);
-        row7 = SimdUtils.FastRound(row7);
+        row7 = row7.FastRound();
     }
 
     [Benchmark]
@@ -90,21 +90,21 @@ public unsafe class Block8x8F_Round
         ref Block8x8F b = ref Unsafe.AsRef<Block8x8F>(this.alignedPtr);
 
         ref Vector<float> row0 = ref Unsafe.As<Vector4, Vector<float>>(ref b.V0L);
-        row0 = SimdUtils.FastRound(row0);
+        row0 = row0.FastRound();
         ref Vector<float> row1 = ref Unsafe.As<Vector4, Vector<float>>(ref b.V1L);
-        row1 = SimdUtils.FastRound(row1);
+        row1 = row1.FastRound();
         ref Vector<float> row2 = ref Unsafe.As<Vector4, Vector<float>>(ref b.V2L);
-        row2 = SimdUtils.FastRound(row2);
+        row2 = row2.FastRound();
         ref Vector<float> row3 = ref Unsafe.As<Vector4, Vector<float>>(ref b.V3L);
-        row3 = SimdUtils.FastRound(row3);
+        row3 = row3.FastRound();
         ref Vector<float> row4 = ref Unsafe.As<Vector4, Vector<float>>(ref b.V4L);
-        row4 = SimdUtils.FastRound(row4);
+        row4 = row4.FastRound();
         ref Vector<float> row5 = ref Unsafe.As<Vector4, Vector<float>>(ref b.V5L);
-        row5 = SimdUtils.FastRound(row5);
+        row5 = row5.FastRound();
         ref Vector<float> row6 = ref Unsafe.As<Vector4, Vector<float>>(ref b.V6L);
-        row6 = SimdUtils.FastRound(row6);
+        row6 = row6.FastRound();
         ref Vector<float> row7 = ref Unsafe.As<Vector4, Vector<float>>(ref b.V7L);
-        row7 = SimdUtils.FastRound(row7);
+        row7 = row7.FastRound();
     }
 
     [Benchmark]
@@ -117,20 +117,20 @@ public unsafe class Block8x8F_Round
         ref Vector<float> row2 = ref Unsafe.As<Vector4, Vector<float>>(ref b.V2L);
         ref Vector<float> row3 = ref Unsafe.As<Vector4, Vector<float>>(ref b.V3L);
 
-        row0 = SimdUtils.FastRound(row0);
-        row1 = SimdUtils.FastRound(row1);
-        row2 = SimdUtils.FastRound(row2);
-        row3 = SimdUtils.FastRound(row3);
+        row0 = row0.FastRound();
+        row1 = row1.FastRound();
+        row2 = row2.FastRound();
+        row3 = row3.FastRound();
 
         row0 = ref Unsafe.As<Vector4, Vector<float>>(ref b.V4L);
         row1 = ref Unsafe.As<Vector4, Vector<float>>(ref b.V5L);
         row2 = ref Unsafe.As<Vector4, Vector<float>>(ref b.V6L);
         row3 = ref Unsafe.As<Vector4, Vector<float>>(ref b.V7L);
 
-        row0 = SimdUtils.FastRound(row0);
-        row1 = SimdUtils.FastRound(row1);
-        row2 = SimdUtils.FastRound(row2);
-        row3 = SimdUtils.FastRound(row3);
+        row0 = row0.FastRound();
+        row1 = row1.FastRound();
+        row2 = row2.FastRound();
+        row3 = row3.FastRound();
     }
 
     [Benchmark]
@@ -174,7 +174,7 @@ public unsafe class Block8x8F_Round
     }
 
     [Benchmark]
-    public unsafe void Sse41_V2()
+    public void Sse41_V2()
     {
         ref Vector128<float> p = ref Unsafe.As<Block8x8F, Vector128<float>>(ref this.block);
         p = Sse41.RoundToNearestInteger(p);
@@ -214,7 +214,7 @@ public unsafe class Block8x8F_Round
     }
 
     [Benchmark]
-    public unsafe void Sse41_V3()
+    public void Sse41_V3()
     {
         ref Vector128<float> p = ref Unsafe.As<Block8x8F, Vector128<float>>(ref this.block);
         p = Sse41.RoundToNearestInteger(p);
@@ -228,7 +228,7 @@ public unsafe class Block8x8F_Round
     }
 
     [Benchmark]
-    public unsafe void Sse41_V4()
+    public void Sse41_V4()
     {
         ref Vector128<float> p = ref Unsafe.As<Block8x8F, Vector128<float>>(ref this.block);
         nuint offset = (uint)sizeof(Vector128<float>);
@@ -271,7 +271,7 @@ public unsafe class Block8x8F_Round
     }
 
     [Benchmark]
-    public unsafe void Sse41_V5_Unaligned()
+    public void Sse41_V5_Unaligned()
     {
         float* p = this.alignedPtr + 1;
 
@@ -356,7 +356,7 @@ public unsafe class Block8x8F_Round
     }
 
     [Benchmark]
-    public unsafe void Sse41_V5_Aligned()
+    public void Sse41_V5_Aligned()
     {
         float* p = this.alignedPtr;
 

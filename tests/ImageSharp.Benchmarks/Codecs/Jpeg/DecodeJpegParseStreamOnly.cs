@@ -27,20 +27,20 @@ public class DecodeJpegParseStreamOnly
     [Benchmark(Baseline = true, Description = "System.Drawing FULL")]
     public SDSize JpegSystemDrawing()
     {
-        using var memoryStream = new MemoryStream(this.jpegBytes);
-        using var image = System.Drawing.Image.FromStream(memoryStream);
+        using MemoryStream memoryStream = new(this.jpegBytes);
+        using System.Drawing.Image image = System.Drawing.Image.FromStream(memoryStream);
         return image.Size;
     }
 
     [Benchmark(Description = "JpegDecoderCore.ParseStream")]
     public void ParseStream()
     {
-        using var memoryStream = new MemoryStream(this.jpegBytes);
-        using var bufferedStream = new BufferedReadStream(Configuration.Default, memoryStream);
-        var options = new JpegDecoderOptions() { GeneralOptions = new() { SkipMetadata = true } };
+        using MemoryStream memoryStream = new(this.jpegBytes);
+        using BufferedReadStream bufferedStream = new(Configuration.Default, memoryStream);
+        JpegDecoderOptions options = new() { GeneralOptions = new() { SkipMetadata = true } };
 
-        using var decoder = new JpegDecoderCore(options);
-        var spectralConverter = new NoopSpectralConverter();
+        using JpegDecoderCore decoder = new(options);
+        NoopSpectralConverter spectralConverter = new();
         decoder.ParseStream(bufferedStream, spectralConverter, cancellationToken: default);
     }
 
@@ -48,7 +48,7 @@ public class DecodeJpegParseStreamOnly
     // Nor we need to allocate final pixel buffer
     // Note: this still introduces virtual method call overhead for baseline interleaved images
     // There's no way to eliminate it as spectral conversion is built into the scan decoding loop for memory footprint reduction
-    private class NoopSpectralConverter : SpectralConverter
+    private sealed class NoopSpectralConverter : SpectralConverter
     {
         public override void ConvertStrideBaseline()
         {

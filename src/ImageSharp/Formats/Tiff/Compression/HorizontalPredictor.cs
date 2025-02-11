@@ -16,7 +16,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression;
 internal static class HorizontalPredictor
 {
     /// <summary>
-    /// Inverts the horizontal prediction.
+    /// Inverts the horizontal predictor.
     /// </summary>
     /// <param name="pixelBytes">Buffer with decompressed pixel data.</param>
     /// <param name="width">The width of the image or strip.</param>
@@ -62,9 +62,16 @@ internal static class HorizontalPredictor
         }
     }
 
+    /// <summary>
+    /// Inverts the horizontal predictor for one row.
+    /// </summary>
+    /// <param name="pixelBytes">Buffer with decompressed pixel data.</param>
+    /// <param name="width">The width in pixels of the row.</param>
+    /// <param name="y">The row index.</param>
+    /// <param name="colorType">The color type of the pixel data.</param>
+    /// <param name="isBigEndian">If set to <c>true</c> decodes the pixel data as big endian, otherwise as little endian.</param>
     public static void UndoRow(Span<byte> pixelBytes, int width, int y, TiffColorType colorType, bool isBigEndian)
     {
-        // TODO: Implement missing colortypes, see above.
         switch (colorType)
         {
             case TiffColorType.BlackIsZero8:
@@ -141,6 +148,18 @@ internal static class HorizontalPredictor
                 else
                 {
                     UndoRgb96BitLittleEndianRow(pixelBytes, width, y);
+                }
+
+                break;
+
+            case TiffColorType.Rgba32323232:
+                if (isBigEndian)
+                {
+                    UndoRgba128BitBigEndianRow(pixelBytes, width, y);
+                }
+                else
+                {
+                    UndoRgba128BitLittleEndianRow(pixelBytes, width, y);
                 }
 
                 break;
@@ -729,6 +748,92 @@ internal static class HorizontalPredictor
         }
     }
 
+    private static void UndoRgba128BitBigEndianRow(Span<byte> pixelBytes, int width, int y)
+    {
+        int rowBytesCount = width * 16;
+
+        int offset = 0;
+        Span<byte> rowBytes = pixelBytes.Slice(y * rowBytesCount, rowBytesCount);
+        uint r = TiffUtilities.ConvertToUIntBigEndian(rowBytes.Slice(offset, 4));
+        offset += 4;
+        uint g = TiffUtilities.ConvertToUIntBigEndian(rowBytes.Slice(offset, 4));
+        offset += 4;
+        uint b = TiffUtilities.ConvertToUIntBigEndian(rowBytes.Slice(offset, 4));
+        offset += 4;
+        uint a = TiffUtilities.ConvertToUIntBigEndian(rowBytes.Slice(offset, 4));
+        offset += 4;
+
+        for (int x = 1; x < width; x++)
+        {
+            Span<byte> rowSpan = rowBytes.Slice(offset, 4);
+            uint deltaR = TiffUtilities.ConvertToUIntBigEndian(rowSpan);
+            r += deltaR;
+            BinaryPrimitives.WriteUInt32BigEndian(rowSpan, r);
+            offset += 4;
+
+            rowSpan = rowBytes.Slice(offset, 4);
+            uint deltaG = TiffUtilities.ConvertToUIntBigEndian(rowSpan);
+            g += deltaG;
+            BinaryPrimitives.WriteUInt32BigEndian(rowSpan, g);
+            offset += 4;
+
+            rowSpan = rowBytes.Slice(offset, 4);
+            uint deltaB = TiffUtilities.ConvertToUIntBigEndian(rowSpan);
+            b += deltaB;
+            BinaryPrimitives.WriteUInt32BigEndian(rowSpan, b);
+            offset += 4;
+
+            rowSpan = rowBytes.Slice(offset, 4);
+            uint deltaA = TiffUtilities.ConvertToUIntBigEndian(rowSpan);
+            a += deltaA;
+            BinaryPrimitives.WriteUInt32BigEndian(rowSpan, a);
+            offset += 4;
+        }
+    }
+
+    private static void UndoRgba128BitLittleEndianRow(Span<byte> pixelBytes, int width, int y)
+    {
+        int rowBytesCount = width * 16;
+
+        int offset = 0;
+        Span<byte> rowBytes = pixelBytes.Slice(y * rowBytesCount, rowBytesCount);
+        uint r = TiffUtilities.ConvertToUIntLittleEndian(rowBytes.Slice(offset, 4));
+        offset += 4;
+        uint g = TiffUtilities.ConvertToUIntLittleEndian(rowBytes.Slice(offset, 4));
+        offset += 4;
+        uint b = TiffUtilities.ConvertToUIntLittleEndian(rowBytes.Slice(offset, 4));
+        offset += 4;
+        uint a = TiffUtilities.ConvertToUIntLittleEndian(rowBytes.Slice(offset, 4));
+        offset += 4;
+
+        for (int x = 1; x < width; x++)
+        {
+            Span<byte> rowSpan = rowBytes.Slice(offset, 4);
+            uint deltaR = TiffUtilities.ConvertToUIntLittleEndian(rowSpan);
+            r += deltaR;
+            BinaryPrimitives.WriteUInt32LittleEndian(rowSpan, r);
+            offset += 4;
+
+            rowSpan = rowBytes.Slice(offset, 4);
+            uint deltaG = TiffUtilities.ConvertToUIntLittleEndian(rowSpan);
+            g += deltaG;
+            BinaryPrimitives.WriteUInt32LittleEndian(rowSpan, g);
+            offset += 4;
+
+            rowSpan = rowBytes.Slice(offset, 4);
+            uint deltaB = TiffUtilities.ConvertToUIntLittleEndian(rowSpan);
+            b += deltaB;
+            BinaryPrimitives.WriteUInt32LittleEndian(rowSpan, b);
+            offset += 4;
+
+            rowSpan = rowBytes.Slice(offset, 4);
+            uint deltaA = TiffUtilities.ConvertToUIntLittleEndian(rowSpan);
+            a += deltaA;
+            BinaryPrimitives.WriteUInt32LittleEndian(rowSpan, a);
+            offset += 4;
+        }
+    }
+
     private static void UndoRgba128Bit(Span<byte> pixelBytes, int width, bool isBigEndian)
     {
         int rowBytesCount = width * 16;
@@ -737,86 +842,14 @@ internal static class HorizontalPredictor
         {
             for (int y = 0; y < height; y++)
             {
-                int offset = 0;
-                Span<byte> rowBytes = pixelBytes.Slice(y * rowBytesCount, rowBytesCount);
-                uint r = TiffUtilities.ConvertToUIntBigEndian(rowBytes.Slice(offset, 4));
-                offset += 4;
-                uint g = TiffUtilities.ConvertToUIntBigEndian(rowBytes.Slice(offset, 4));
-                offset += 4;
-                uint b = TiffUtilities.ConvertToUIntBigEndian(rowBytes.Slice(offset, 4));
-                offset += 4;
-                uint a = TiffUtilities.ConvertToUIntBigEndian(rowBytes.Slice(offset, 4));
-                offset += 4;
-
-                for (int x = 1; x < width; x++)
-                {
-                    Span<byte> rowSpan = rowBytes.Slice(offset, 4);
-                    uint deltaR = TiffUtilities.ConvertToUIntBigEndian(rowSpan);
-                    r += deltaR;
-                    BinaryPrimitives.WriteUInt32BigEndian(rowSpan, r);
-                    offset += 4;
-
-                    rowSpan = rowBytes.Slice(offset, 4);
-                    uint deltaG = TiffUtilities.ConvertToUIntBigEndian(rowSpan);
-                    g += deltaG;
-                    BinaryPrimitives.WriteUInt32BigEndian(rowSpan, g);
-                    offset += 4;
-
-                    rowSpan = rowBytes.Slice(offset, 4);
-                    uint deltaB = TiffUtilities.ConvertToUIntBigEndian(rowSpan);
-                    b += deltaB;
-                    BinaryPrimitives.WriteUInt32BigEndian(rowSpan, b);
-                    offset += 4;
-
-                    rowSpan = rowBytes.Slice(offset, 4);
-                    uint deltaA = TiffUtilities.ConvertToUIntBigEndian(rowSpan);
-                    a += deltaA;
-                    BinaryPrimitives.WriteUInt32BigEndian(rowSpan, a);
-                    offset += 4;
-                }
+                UndoRgba128BitBigEndianRow(pixelBytes, width, y);
             }
         }
         else
         {
             for (int y = 0; y < height; y++)
             {
-                int offset = 0;
-                Span<byte> rowBytes = pixelBytes.Slice(y * rowBytesCount, rowBytesCount);
-                uint r = TiffUtilities.ConvertToUIntLittleEndian(rowBytes.Slice(offset, 4));
-                offset += 4;
-                uint g = TiffUtilities.ConvertToUIntLittleEndian(rowBytes.Slice(offset, 4));
-                offset += 4;
-                uint b = TiffUtilities.ConvertToUIntLittleEndian(rowBytes.Slice(offset, 4));
-                offset += 4;
-                uint a = TiffUtilities.ConvertToUIntLittleEndian(rowBytes.Slice(offset, 4));
-                offset += 4;
-
-                for (int x = 1; x < width; x++)
-                {
-                    Span<byte> rowSpan = rowBytes.Slice(offset, 4);
-                    uint deltaR = TiffUtilities.ConvertToUIntLittleEndian(rowSpan);
-                    r += deltaR;
-                    BinaryPrimitives.WriteUInt32LittleEndian(rowSpan, r);
-                    offset += 4;
-
-                    rowSpan = rowBytes.Slice(offset, 4);
-                    uint deltaG = TiffUtilities.ConvertToUIntLittleEndian(rowSpan);
-                    g += deltaG;
-                    BinaryPrimitives.WriteUInt32LittleEndian(rowSpan, g);
-                    offset += 4;
-
-                    rowSpan = rowBytes.Slice(offset, 4);
-                    uint deltaB = TiffUtilities.ConvertToUIntLittleEndian(rowSpan);
-                    b += deltaB;
-                    BinaryPrimitives.WriteUInt32LittleEndian(rowSpan, b);
-                    offset += 4;
-
-                    rowSpan = rowBytes.Slice(offset, 4);
-                    uint deltaA = TiffUtilities.ConvertToUIntLittleEndian(rowSpan);
-                    a += deltaA;
-                    BinaryPrimitives.WriteUInt32LittleEndian(rowSpan, a);
-                    offset += 4;
-                }
+                UndoRgba128BitLittleEndianRow(pixelBytes, width, y);
             }
         }
     }

@@ -214,10 +214,14 @@ internal static class Av1SymbolContextHelper
         DebugGuard.MustBeGreaterThan(position.X + position.Y, 0, nameof(position));
         Span<byte> row0 = levels.GetRow(position.Y);
         Span<byte> row1 = levels.GetRow(position.Y + 1);
+
+        // No need to clip quantized values to COEFF_BASE_RANGE + NUM_BASE_LEVELS
+        // + 1, because we clip the overall output to 6 and the unclipped
+        // quantized values will always result in an output of greater than 6.
         int mag =
-            Math.Min((int)row0[position.X + 1], Av1Constants.MaxBaseRange) +
-            Math.Min((int)row1[position.X], Av1Constants.MaxBaseRange) +
-            Math.Min((int)row1[position.X + 1], Av1Constants.MaxBaseRange);
+            row0[position.X + 1] + // {0, 1}
+            row1[position.X] + //     {1, 0}
+            row1[position.X + 1];  // {1, 1}
         mag = Math.Min((mag + 1) >> 1, 6);
         if ((position.Y | position.X) < 2)
         {

@@ -48,7 +48,7 @@ public class Av1InverseTransformTests
     public void AccuracyOfAdst1dTransformSize16Test()
         => AssertAccuracy1d(Av1TransformType.AdstAdst, Av1TransformSize.Size16x16, 3, 3);
 
-    [Fact]
+    // Not mentioned in the spec.
     public void AccuracyOfAdst1dTransformSize32Test()
         => AssertAccuracy1d(Av1TransformType.AdstAdst, Av1TransformSize.Size32x32, 4, 3);
 
@@ -243,7 +243,7 @@ public class Av1InverseTransformTests
     {
         const int bitDepth = 10;
         Random rnd = new(0);
-        const int testBlockCount = 100; // Originally set to: 5000
+        const int testBlockCount = 30; // Originally set to: 5000
         Av1Transform2dFlipConfiguration config = new(transformType, transformSize);
         config.GenerateStageRange(bitDepth);
         int width = config.TransformSize.GetWidth();

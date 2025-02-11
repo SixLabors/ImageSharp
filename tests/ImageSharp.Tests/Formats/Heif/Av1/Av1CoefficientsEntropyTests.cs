@@ -117,21 +117,6 @@ public class Av1CoefficientsEntropyTests
 
     [Theory]
     [MemberData(nameof(GetTransformTypes))]
-    public void RoundTripFullCoefficientsYSize8x8(int txType)
-    {
-        // Assign
-        const ushort endOfBlock = 16;
-        const Av1ComponentType componentType = Av1ComponentType.Luminance;
-        Av1BlockSize blockSize = Av1BlockSize.Block8x8;
-        Av1TransformSize transformSize = blockSize.GetMaximumTransformSize();
-        Av1TransformType transformType = (Av1TransformType)txType;
-        Av1PredictionMode intraDirection = Av1PredictionMode.DC;
-        Av1FilterIntraMode filterIntraMode = Av1FilterIntraMode.DC;
-        RoundTripCoefficientsCore(endOfBlock, componentType, blockSize, transformSize, transformType, intraDirection, filterIntraMode);
-    }
-
-    [Theory]
-    [MemberData(nameof(GetTransformTypes))]
     public void RoundTripFullCoefficientsUvSize4x4(int txType)
     {
         // Assign

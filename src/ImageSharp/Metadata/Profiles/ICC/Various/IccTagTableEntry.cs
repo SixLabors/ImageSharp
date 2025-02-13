@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 namespace SixLabors.ImageSharp.Metadata.Profiles.Icc;
@@ -49,9 +49,7 @@ internal readonly struct IccTagTableEntry : IEquatable<IccTagTableEntry>
     /// True if the <paramref name="left"/> parameter is equal to the <paramref name="right"/> parameter; otherwise, false.
     /// </returns>
     public static bool operator ==(IccTagTableEntry left, IccTagTableEntry right)
-    {
-        return left.Equals(right);
-    }
+        => left.Equals(right);
 
     /// <summary>
     /// Compares two <see cref="IccTagTableEntry"/> objects for equality.
@@ -62,9 +60,7 @@ internal readonly struct IccTagTableEntry : IEquatable<IccTagTableEntry>
     /// True if the <paramref name="left"/> parameter is not equal to the <paramref name="right"/> parameter; otherwise, false.
     /// </returns>
     public static bool operator !=(IccTagTableEntry left, IccTagTableEntry right)
-    {
-        return !left.Equals(right);
-    }
+        => !left.Equals(right);
 
     /// <inheritdoc/>
     public override bool Equals(object? obj) => obj is IccTagTableEntry other && this.Equals(other);

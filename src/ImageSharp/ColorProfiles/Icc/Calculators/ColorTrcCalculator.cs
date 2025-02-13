@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp.ColorProfiles.Icc.Calculators;
 internal class ColorTrcCalculator : IVector4Calculator
 {
     private readonly TrcCalculator curveCalculator;
-    private Matrix4x4 matrix;
+    private readonly Matrix4x4 matrix;
     private readonly bool toPcs;
 
     public ColorTrcCalculator(
@@ -41,21 +41,25 @@ internal class ColorTrcCalculator : IVector4Calculator
     {
         if (this.toPcs)
         {
-            // when data to PCS, output from calculator is descaled XYZ
-            // but expected return value is scaled XYZ
-            // see DemoMaxICC IccCmm.cpp : CIccXformMatrixTRC::Apply()
+            // input is always linear RGB
             value = this.curveCalculator.Calculate(value);
             CieXyz xyz = new(Vector4.Transform(value, this.matrix).AsVector3());
+
+            // when data to PCS, output from calculator is descaled XYZ
+            // but downstream process requires scaled XYZ
+            // (see DemoMaxICC IccCmm.cpp : CIccXformMatrixTRC::Apply)
             return xyz.ToScaledVector4();
         }
         else
         {
-            // when PCS to data, input to calculator is scaled XYZ
-            // but need descaled XYZ for matrix multiplication
-            // see DemoMaxICC IccCmm.cpp : CIccXformMatrixTRC::Apply()
-            Vector4 xyz = new(CieXyz.FromScaledVector4(value).ToVector3(), 1);
-            value = Vector4.Transform(xyz, this.matrix);
-            return this.curveCalculator.Calculate(value);
+            // input is always XYZ
+            Vector4 xyz = Vector4.Transform(value, this.matrix);
+
+            // when data to PCS, upstream process provides scaled XYZ
+            // but input to calculator is descaled XYZ
+            // (see DemoMaxICC IccCmm.cpp : CIccXformMatrixTRC::Apply)
+            xyz = new(CieXyz.FromScaledVector4(xyz).ToVector3(), 1);
+            return this.curveCalculator.Calculate(xyz);
         }
     }
 }

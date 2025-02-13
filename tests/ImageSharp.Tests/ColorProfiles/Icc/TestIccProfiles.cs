@@ -57,7 +57,7 @@ internal static class TestIccProfiles
     public static Wacton.Unicolour.Configuration GetUnicolourConfiguration(string file)
         => UnicolourConfigurationCache.GetOrAdd(
             file,
-            f => new Wacton.Unicolour.Configuration(iccConfiguration: new(GetFullPath(f), Intent.Unspecified, f)));
+            f => new Wacton.Unicolour.Configuration(iccConfig: new(GetFullPath(f), Intent.Unspecified, f)));
 
     public static bool HasUnicolourConfiguration(string file)
         => UnicolourConfigurationCache.ContainsKey(file);

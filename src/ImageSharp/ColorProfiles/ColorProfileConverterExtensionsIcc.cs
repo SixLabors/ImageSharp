@@ -39,25 +39,19 @@ internal static class ColorProfileConverterExtensionsIcc
             TargetWhitePoint = new CieXyz(converter.Options.TargetIccProfile.Header.PcsIlluminant),
         });
 
-        // output of Matrix TRC calculator is descaled XYZ, needs to be re-scaled to be used as PCS
         Vector4 sourcePcs = sourceParams.Converter.Calculate(source.ToScaledVector4());
-        Vector4 targetPcs;
 
         // if both profiles need PCS adjustment, they both share the same unadjusted PCS space
         // cancelling out the need to make the adjustment
-        // TODO: handle PCS adjustment for absolute intent? would make this a lot more complicated
-        // TODO: alternatively throw unsupported error, since most profiles headers contain perceptual (i've encountered a couple of relative intent, but so far no saturation or absolute)
-        if (sourceParams.AdjustPcsForPerceptual ^ targetParams.AdjustPcsForPerceptual)
-        {
-            targetPcs = GetTargetPcsWithPerceptualV2Adjustment(sourcePcs, sourceParams, targetParams, pcsConverter);
-        }
-        else
-        {
-            targetPcs = GetTargetPcsWithoutAdjustment(sourcePcs, sourceParams, targetParams, pcsConverter);
-        }
+        // except if using TRC transforms, which always requires perceptual handling
+        // TODO: this does not include adjustment for absolute intent, which would double existing complexity, suggest throwing exception and addressing in future update
+        bool anyProfileNeedsPerceptualAdjustment = sourceParams.HasNoPerceptualHandling || targetParams.HasNoPerceptualHandling;
+        bool oneProfileHasV2PerceptualAdjustment = sourceParams.HasV2PerceptualHandling ^ targetParams.HasV2PerceptualHandling;
 
-        // Convert to the target space.
-        // input to Matrix TRC calculator is descaled XYZ, need to descale PCS before use
+        Vector4 targetPcs = anyProfileNeedsPerceptualAdjustment || oneProfileHasV2PerceptualAdjustment
+            ? GetTargetPcsWithPerceptualAdjustment(sourcePcs, sourceParams, targetParams, pcsConverter)
+            : GetTargetPcsWithoutAdjustment(sourcePcs, sourceParams, targetParams, pcsConverter);
+
         return TTo.FromScaledVector4(targetParams.Converter.Calculate(targetPcs));
     }
 
@@ -191,9 +185,6 @@ internal static class ColorProfileConverterExtensionsIcc
                 sourcePcs = sourceParams.Is16BitLutEntry ? LabV2ToLab(sourcePcs) : sourcePcs;
                 CieLab lab = CieLab.FromScaledVector4(sourcePcs);
                 CieXyz xyz = pcsConverter.Convert<CieLab, CieXyz>(in lab);
-
-                // DemoMaxICC clips negatives as part of IccUtil.cpp : icLabToXYZ > icICubeth
-                xyz = new CieXyz(Vector3.Clamp(xyz.ToVector3(), Vector3.Zero, new Vector3(float.MaxValue, float.MaxValue, float.MaxValue)));
                 return xyz.ToScaledVector4();
             }
 
@@ -243,7 +234,7 @@ internal static class ColorProfileConverterExtensionsIcc
     /// Effectively this is <see cref="GetTargetPcsWithoutAdjustment"/> with an extra step in the middle.
     /// It adjusts PCS by compensating for the black point used for perceptual intent in v2 profiles.
     /// The adjustment needs to be performed in XYZ space, potentially an overhead of 2 more conversions.
-    /// Not required if both spaces need adjustment, since they both have the same understanding of the PCS.
+    /// Not required if both spaces need V2 correction, since they both have the same understanding of the PCS.
     /// Not compatible with PCS adjustment for absolute intent.
     /// </summary>
     /// <param name="sourcePcs">The source PCS values.</param>
@@ -251,7 +242,7 @@ internal static class ColorProfileConverterExtensionsIcc
     /// <param name="targetParams">The target profile parameters.</param>
     /// <param name="pcsConverter">The converter to use for the PCS adjustments.</param>
     /// <exception cref="ArgumentOutOfRangeException">Thrown when the source or target PCS is not supported.</exception>
-    private static Vector4 GetTargetPcsWithPerceptualV2Adjustment(
+    private static Vector4 GetTargetPcsWithPerceptualAdjustment(
         Vector4 sourcePcs,
         ConversionParams sourceParams,
         ConversionParams targetParams,
@@ -268,9 +259,6 @@ internal static class ColorProfileConverterExtensionsIcc
                 sourcePcs = sourceParams.Is16BitLutEntry ? LabV2ToLab(sourcePcs) : sourcePcs;
                 CieLab lab = CieLab.FromScaledVector4(sourcePcs);
                 xyz = pcsConverter.Convert<CieLab, CieXyz>(in lab);
-
-                // DemoMaxICC clips negatives as part of IccUtil.cpp : icLabToXYZ > icICubeth
-                xyz = new CieXyz(Vector3.Max(xyz.ToVector3(), Vector3.Zero));
                 break;
             case IccColorSpaceType.CieXyz:
                 xyz = CieXyz.FromScaledVector4(sourcePcs);
@@ -279,28 +267,47 @@ internal static class ColorProfileConverterExtensionsIcc
                 throw new ArgumentOutOfRangeException($"Source PCS {sourceParams.PcsType} is not supported");
         }
 
+        bool oneProfileHasV2PerceptualAdjustment = sourceParams.HasV2PerceptualHandling ^ targetParams.HasV2PerceptualHandling;
+
         // when converting from device to PCS with v2 perceptual intent
         // the black point needs to be adjusted to v4 after converting the PCS values
-        if (sourceParams.AdjustPcsForPerceptual)
+        if (sourceParams.HasNoPerceptualHandling ||
+            (oneProfileHasV2PerceptualAdjustment && sourceParams.HasV2PerceptualHandling))
         {
-            xyz = new CieXyz(AdjustPcsFromV2BlackPoint(xyz.ToVector3()));
+            Vector3 vector = xyz.ToVector3();
+
+            // when using LAB PCS, negative values are clipped before PCS adjustment (in DemoIccMAX)
+            if (sourceParams.PcsType == IccColorSpaceType.CieLab)
+            {
+                vector = Vector3.Max(vector, Vector3.Zero);
+            }
+
+            xyz = new CieXyz(AdjustPcsFromV2BlackPoint(vector));
         }
 
         // when converting from PCS to device with v2 perceptual intent
         // the black point needs to be adjusted to v2 before converting the PCS values
-        if (targetParams.AdjustPcsForPerceptual)
+        if (targetParams.HasNoPerceptualHandling ||
+            (oneProfileHasV2PerceptualAdjustment && targetParams.HasV2PerceptualHandling))
         {
-            xyz = new CieXyz(AdjustPcsToV2BlackPoint(xyz.ToVector3()));
+            Vector3 vector = AdjustPcsToV2BlackPoint(xyz.ToVector3());
+
+            // when using XYZ PCS, negative values are clipped after PCS adjustment (in DemoIccMAX)
+            if (targetParams.PcsType == IccColorSpaceType.CieXyz)
+            {
+                vector = Vector3.Max(vector, Vector3.Zero);
+            }
+
+            xyz = new CieXyz(vector);
         }
 
-        Vector4 targetPcs;
         switch (targetParams.PcsType)
         {
             // 16-bit Lab encodings changed from v2 to v4, but 16-bit LUTs always use the legacy encoding regardless of version
             // so convert Lab back to legacy encoding before using in a 16-bit LUT
             case IccColorSpaceType.CieLab:
                 CieLab lab = pcsConverter.Convert<CieXyz, CieLab>(in xyz);
-                targetPcs = lab.ToScaledVector4();
+                Vector4 targetPcs = lab.ToScaledVector4();
                 return targetParams.Is16BitLutEntry ? LabToLabV2(targetPcs) : targetPcs;
             case IccColorSpaceType.CieXyz:
                 return xyz.ToScaledVector4();
@@ -396,7 +403,9 @@ internal static class ColorProfileConverterExtensionsIcc
 
         internal IccVersion Version => this.Header.Version;
 
-        internal bool AdjustPcsForPerceptual => this.Intent == IccRenderingIntent.Perceptual && this.Version.Major == 2;
+        internal bool HasV2PerceptualHandling => this.Intent == IccRenderingIntent.Perceptual && this.Version.Major == 2;
+
+        internal bool HasNoPerceptualHandling => this.Intent == IccRenderingIntent.Perceptual && this.Converter.IsTrc;
 
         internal bool Is16BitLutEntry => this.Converter.Is16BitLutEntry;
     }

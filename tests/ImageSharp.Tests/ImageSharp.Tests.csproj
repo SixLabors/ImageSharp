@@ -50,7 +50,7 @@
     <PackageReference Include="runtime.osx.10.10-x64.CoreCompat.System.Drawing" Condition="'$(IsOSX)'=='true'" />
     <PackageReference Include="SharpZipLib" />
     <PackageReference Include="System.Drawing.Common" />
-    <PackageReference Include="Wacton.Unicolour" Version="4.8.0" />
+    <PackageReference Include="Wacton.Unicolour" Version="5.0.0" />
   </ItemGroup>
 
   <ItemGroup>

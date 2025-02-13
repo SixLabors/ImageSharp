@@ -13,7 +13,9 @@ internal abstract partial class IccConverterBase
 {
     private IVector4Calculator calculator;
 
-    public bool Is16BitLutEntry => this.calculator is LutEntryCalculator { Is16Bit: true };
+    internal bool Is16BitLutEntry => this.calculator is LutEntryCalculator { Is16Bit: true };
+
+    internal bool IsTrc => this.calculator is ColorTrcCalculator or GrayTrcCalculator;
 
     /// <summary>
     /// Checks the profile for available conversion methods and gathers all the information's necessary for it.

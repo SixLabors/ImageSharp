@@ -10,28 +10,28 @@ namespace ImageSharp.Benchmarks.General.Vectorization;
 public abstract class SIMDBenchmarkBase<T>
     where T : struct
 {
-    protected T[] input;
-
-    protected T[] result;
-
-    protected T testValue;
-
-    protected Vector<T> testVector;
-
     protected virtual T GetTestValue() => default;
 
-    protected virtual Vector<T> GetTestVector() => new Vector<T>(this.GetTestValue());
+    protected virtual Vector<T> GetTestVector() => new(this.GetTestValue());
 
     [Params(32)]
     public int InputSize { get; set; }
 
+    protected T[] Input { get; set; }
+
+    protected T[] Result { get; set; }
+
+    protected T TestValue { get; set; }
+
+    protected Vector<T> TestVector { get; set; }
+
     [GlobalSetup]
     public virtual void Setup()
     {
-        this.input = new T[this.InputSize];
-        this.result = new T[this.InputSize];
-        this.testValue = this.GetTestValue();
-        this.testVector = this.GetTestVector();
+        this.Input = new T[this.InputSize];
+        this.Result = new T[this.InputSize];
+        this.TestValue = this.GetTestValue();
+        this.TestVector = this.GetTestVector();
     }
 
     public abstract class Multiply : SIMDBenchmarkBase<T>
@@ -39,13 +39,13 @@ public abstract class SIMDBenchmarkBase<T>
         [Benchmark]
         public void Simd()
         {
-            Vector<T> v = this.testVector;
+            Vector<T> v = this.TestVector;
 
-            for (int i = 0; i < this.input.Length; i += Vector<uint>.Count)
+            for (int i = 0; i < this.Input.Length; i += Vector<uint>.Count)
             {
-                Vector<T> a = Unsafe.As<T, Vector<T>>(ref this.input[i]);
-                a = a * v;
-                Unsafe.As<T, Vector<T>>(ref this.result[i]) = a;
+                Vector<T> a = Unsafe.As<T, Vector<T>>(ref this.Input[i]);
+                a *= v;
+                Unsafe.As<T, Vector<T>>(ref this.Result[i]) = a;
             }
         }
     }
@@ -55,13 +55,13 @@ public abstract class SIMDBenchmarkBase<T>
         [Benchmark]
         public void Simd()
         {
-            Vector<T> v = this.testVector;
+            Vector<T> v = this.TestVector;
 
-            for (int i = 0; i < this.input.Length; i += Vector<uint>.Count)
+            for (int i = 0; i < this.Input.Length; i += Vector<uint>.Count)
             {
-                Vector<T> a = Unsafe.As<T, Vector<T>>(ref this.input[i]);
-                a = a / v;
-                Unsafe.As<T, Vector<T>>(ref this.result[i]) = a;
+                Vector<T> a = Unsafe.As<T, Vector<T>>(ref this.Input[i]);
+                a /= v;
+                Unsafe.As<T, Vector<T>>(ref this.Result[i]) = a;
             }
         }
     }

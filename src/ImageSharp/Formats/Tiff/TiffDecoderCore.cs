@@ -648,7 +648,7 @@ internal class TiffDecoderCore : ImageDecoderCore
     }
 
     /// <summary>
-    /// Decodes the image data for Tiff's which arrange the pixel data in tiles and the chunky configuration.
+    /// Decodes the image data for TIFFs which arrange the pixel data in tiles and the chunky configuration.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
     /// <param name="frame">The image frame to decode into.</param>
@@ -674,14 +674,10 @@ internal class TiffDecoderCore : ImageDecoderCore
         int width = pixels.Width;
         int height = pixels.Height;
         int bitsPerPixel = this.BitsPerPixel;
-
-        int bytesPerRow = RoundUpToMultipleOfEight(width * bitsPerPixel);
         int bytesPerTileRow = RoundUpToMultipleOfEight(tileWidth * bitsPerPixel);
-        int uncompressedTilesSize = bytesPerTileRow * tileLength;
-        using IMemoryOwner<byte> tileBuffer = this.memoryAllocator.Allocate<byte>(uncompressedTilesSize, AllocationOptions.Clean);
-        using IMemoryOwner<byte> uncompressedPixelBuffer = this.memoryAllocator.Allocate<byte>(tilesDown * tileLength * bytesPerRow, AllocationOptions.Clean);
+
+        using IMemoryOwner<byte> tileBuffer = this.memoryAllocator.Allocate<byte>(bytesPerTileRow * tileLength, AllocationOptions.Clean);
         Span<byte> tileBufferSpan = tileBuffer.GetSpan();
-        Span<byte> uncompressedPixelBufferSpan = uncompressedPixelBuffer.GetSpan();
 
         bool isTiled = true;
         using TiffBaseDecompressor decompressor = this.CreateDecompressor<TPixel>(frame.Width, bitsPerPixel, isTiled);
@@ -690,13 +686,15 @@ internal class TiffDecoderCore : ImageDecoderCore
         int tileIndex = 0;
         for (int tileY = 0; tileY < tilesDown; tileY++)
         {
-            int remainingPixelsInRow = width;
+            int rowStartY = tileY * tileLength;
+            int rowEndY = Math.Min(rowStartY + tileLength, height);
+
             for (int tileX = 0; tileX < tilesAcross; tileX++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
-                int uncompressedPixelBufferOffset = tileY * tileLength * bytesPerRow;
                 bool isLastHorizontalTile = tileX == tilesAcross - 1;
+                int remainingPixelsInRow = width - (tileX * tileWidth);
 
                 decompressor.Decompress(
                     this.inputStream,
@@ -707,30 +705,21 @@ internal class TiffDecoderCore : ImageDecoderCore
                     cancellationToken);
 
                 int tileBufferOffset = 0;
-                uncompressedPixelBufferOffset += bytesPerTileRow * tileX;
                 int bytesToCopy = isLastHorizontalTile ? RoundUpToMultipleOfEight(bitsPerPixel * remainingPixelsInRow) : bytesPerTileRow;
-                for (int y = 0; y < tileLength; y++)
+                int rowWidth = Math.Min(tileWidth, remainingPixelsInRow);
+                int left = tileX * tileWidth;
+
+                for (int y = rowStartY; y < rowEndY; y++)
                 {
-                    Span<byte> uncompressedPixelRow = uncompressedPixelBufferSpan.Slice(uncompressedPixelBufferOffset, bytesToCopy);
-                    tileBufferSpan.Slice(tileBufferOffset, bytesToCopy).CopyTo(uncompressedPixelRow);
-
-                    // Undo the horziontal predictor for each tile row.
-                    if (this.Predictor == TiffPredictor.Horizontal)
-                    {
-                        int pixelsInTileRow = isLastHorizontalTile ? remainingPixelsInRow : tileLength;
-                        HorizontalPredictor.UndoRow(uncompressedPixelRow, pixelsInTileRow, 0, this.ColorType, this.byteOrder == ByteOrder.BigEndian);
-                    }
-
+                    // Decode the tile row directly into the pixel buffer.
+                    ReadOnlySpan<byte> tileRowSpan = tileBufferSpan.Slice(tileBufferOffset, bytesToCopy);
+                    colorDecoder.Decode(tileRowSpan, pixels, left, y, rowWidth, 1);
                     tileBufferOffset += bytesPerTileRow;
-                    uncompressedPixelBufferOffset += bytesPerRow;
                 }
 
-                remainingPixelsInRow -= tileWidth;
                 tileIndex++;
             }
         }
-
-        colorDecoder.Decode(uncompressedPixelBufferSpan, pixels, 0, 0, width, height);
     }
 
     private TiffBaseColorDecoder<TPixel> CreateChunkyColorDecoder<TPixel>()

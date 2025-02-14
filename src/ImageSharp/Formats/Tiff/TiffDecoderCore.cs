@@ -679,7 +679,8 @@ internal class TiffDecoderCore : ImageDecoderCore
         using IMemoryOwner<byte> tileBuffer = this.memoryAllocator.Allocate<byte>(bytesPerTileRow * tileLength, AllocationOptions.Clean);
         Span<byte> tileBufferSpan = tileBuffer.GetSpan();
 
-        using TiffBaseDecompressor decompressor = this.CreateDecompressor<TPixel>(frame.Width, bitsPerPixel);
+        bool isTiled = true;
+        using TiffBaseDecompressor decompressor = this.CreateDecompressor<TPixel>(frame.Width, bitsPerPixel, isTiled);
         TiffBaseColorDecoder<TPixel> colorDecoder = this.CreateChunkyColorDecoder<TPixel>();
 
         int tileIndex = 0;
@@ -747,7 +748,7 @@ internal class TiffDecoderCore : ImageDecoderCore
             this.YcbcrSubSampling,
             this.byteOrder);
 
-    private TiffBaseDecompressor CreateDecompressor<TPixel>(int frameWidth, int bitsPerPixel)
+    private TiffBaseDecompressor CreateDecompressor<TPixel>(int frameWidth, int bitsPerPixel, bool isTiled = false)
         where TPixel : unmanaged, IPixel<TPixel> =>
         TiffDecompressorsFactory.Create(
             this.Options,
@@ -762,7 +763,8 @@ internal class TiffDecoderCore : ImageDecoderCore
             this.JpegTables,
             this.OldJpegCompressionStartOfImageMarker.GetValueOrDefault(),
             this.FillOrder,
-            this.byteOrder);
+            this.byteOrder,
+            isTiled);
 
     private IMemoryOwner<ulong> ConvertNumbers(Array array, out Span<ulong> span)
     {

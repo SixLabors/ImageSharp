@@ -988,6 +988,21 @@ public static class TestImages
         public const string QuadTile = "Tiff/quad-tile.tiff";
         public const string TiledChunky = "Tiff/rgb_uncompressed_tiled_chunky.tiff";
         public const string TiledPlanar = "Tiff/rgb_uncompressed_tiled_planar.tiff";
+        public const string TiledRgbaDeflateCompressedWithPredictor = "Tiff/tiled_rgba_deflate_compressed_predictor.tiff";
+        public const string TiledRgbDeflateCompressedWithPredictor = "Tiff/tiled_rgb_deflate_compressed_predictor.tiff";
+        public const string TiledGrayDeflateCompressedWithPredictor = "Tiff/tiled_gray_deflate_compressed_predictor.tiff";
+        public const string TiledGray16BitLittleEndianDeflateCompressedWithPredictor = "Tiff/tiled_gray_16bit_little_endian_deflate_compressed_predictor.tiff";
+        public const string TiledGray16BitBigEndianDeflateCompressedWithPredictor = "Tiff/tiled_gray_16bit_big_endian_deflate_compressed_predictor.tiff";
+        public const string TiledGray32BitLittleEndianDeflateCompressedWithPredictor = "Tiff/tiled_gray_32bit_little_endian_deflate_compressed_predictor.tiff";
+        public const string TiledGray32BitBigEndianDeflateCompressedWithPredictor = "Tiff/tiled_gray_32bit_big_endian_deflate_compressed_predictor.tiff";
+        public const string TiledRgb48BitLittleEndianDeflateCompressedWithPredictor = "Tiff/tiled_rgb_48bit_little_endian_deflate_compressed_predictor.tiff";
+        public const string TiledRgb48BitBigEndianDeflateCompressedWithPredictor = "Tiff/tiled_rgb_48bit_big_endian_deflate_compressed_predictor.tiff";
+        public const string TiledRgba64BitLittleEndianDeflateCompressedWithPredictor = "Tiff/tiled_rgba_64bit_little_endian_deflate_compressed_predictor.tiff";
+        public const string TiledRgba64BitBigEndianDeflateCompressedWithPredictor = "Tiff/tiled_rgba_64bit_big_endian_deflate_compressed_predictor.tiff";
+        public const string TiledRgb96BitLittleEndianDeflateCompressedWithPredictor = "Tiff/tiled_rgb_96bit_little_endian_deflate_compressed_predictor.tiff";
+        public const string TiledRgb96BitBigEndianDeflateCompressedWithPredictor = "Tiff/tiled_rgb_96bit_big_endian_deflate_compressed_predictor.tiff";
+        public const string TiledRgba128BitLittleEndianDeflateCompressedWithPredictor = "Tiff/tiled_rgba_128bit_little_endian_deflate_compressed_predictor.tiff";
+        public const string TiledRgba128BitBigEndianDeflateCompressedWithPredictor = "Tiff/tiled_rgba_128bit_big_endian_deflate_compressed_predictor.tiff";
 
         // Images with alpha channel.
         public const string Rgba2BitUnassociatedAlpha = "Tiff/RgbaUnassociatedAlpha2bit.tiff";

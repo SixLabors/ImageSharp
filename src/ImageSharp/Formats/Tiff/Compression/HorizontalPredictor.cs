@@ -62,6 +62,14 @@ internal static class HorizontalPredictor
         }
     }
 
+    public static void UndoTile(Span<byte> pixelBytes, int tileWidth, TiffColorType colorType, bool isBigEndian)
+    {
+        for (int y = 0; y < tileWidth; y++)
+        {
+            UndoRow(pixelBytes, tileWidth, y, colorType, isBigEndian);
+        }
+    }
+
     /// <summary>
     /// Inverts the horizontal predictor for one row.
     /// </summary>

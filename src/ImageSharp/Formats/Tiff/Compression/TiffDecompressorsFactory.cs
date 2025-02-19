@@ -4,7 +4,6 @@
 using SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors;
 using SixLabors.ImageSharp.Formats.Tiff.Constants;
 using SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation;
-using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Tiff.Compression;
@@ -25,7 +24,8 @@ internal static class TiffDecompressorsFactory
         uint oldJpegStartOfImageMarker,
         TiffFillOrder fillOrder,
         ByteOrder byteOrder,
-        bool isTiled = false)
+        bool isTiled = false,
+        int tileWidth = 0)
     {
         switch (method)
         {
@@ -41,7 +41,7 @@ internal static class TiffDecompressorsFactory
 
             case TiffDecoderCompressionType.Deflate:
                 DebugGuard.IsTrue(faxOptions == FaxCompressionOptions.None, "No fax compression options are expected");
-                return new DeflateTiffCompression(allocator, width, bitsPerPixel, colorType, predictor, byteOrder == ByteOrder.BigEndian, isTiled);
+                return new DeflateTiffCompression(allocator, width, bitsPerPixel, colorType, predictor, byteOrder == ByteOrder.BigEndian, isTiled, tileWidth);
 
             case TiffDecoderCompressionType.Lzw:
                 DebugGuard.IsTrue(faxOptions == FaxCompressionOptions.None, "No fax compression options are expected");

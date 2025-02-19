@@ -36,5 +36,4 @@ public sealed class DisposableList<TValue> : List<TValue>, IDisposable
             this.disposedValue = true;
         }
     }
-
 }

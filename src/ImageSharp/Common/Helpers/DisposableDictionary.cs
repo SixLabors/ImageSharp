@@ -38,5 +38,4 @@ public sealed class DisposableDictionary<TKey, TValue> : Dictionary<TKey, TValue
             this.disposedValue = true;
         }
     }
-
 }

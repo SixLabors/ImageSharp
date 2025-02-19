@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System;
 using System.Buffers;
 using System.Buffers.Binary;
 using System.Text;
@@ -47,8 +46,8 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
     {
         this.configuration = options.Configuration;
         this.metadata = new ImageMetadata();
-        this.items = new List<HeifItem>();
-        this.itemLinks = new List<HeifItemLink>();
+        this.items = [];
+        this.itemLinks = [];
     }
 
     /// <inheritdoc/>
@@ -707,7 +706,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
         return itemDecoder.DecodeItemData(this.configuration, itemToDecode, itemMemory.GetSpan());
     }
 
-    private Image<TPixel> DecodeGrid<TPixel>(HeifItem gridItem, IDictionary<uint, IMemoryOwner<byte>> buffers)
+    private Image<TPixel> DecodeGrid<TPixel>(HeifItem gridItem, DisposableDictionary<uint, IMemoryOwner<byte>> buffers)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         List<uint> linked = this.itemLinks.First(l => l.SourceId == gridItem.Id).DestinationIds;

@@ -45,7 +45,7 @@ internal static class TiffDecompressorsFactory
 
             case TiffDecoderCompressionType.Lzw:
                 DebugGuard.IsTrue(faxOptions == FaxCompressionOptions.None, "No fax compression options are expected");
-                return new LzwTiffCompression(allocator, width, bitsPerPixel, colorType, predictor, byteOrder == ByteOrder.BigEndian);
+                return new LzwTiffCompression(allocator, width, bitsPerPixel, colorType, predictor, byteOrder == ByteOrder.BigEndian, isTiled, tileWidth);
 
             case TiffDecoderCompressionType.T4:
                 DebugGuard.IsTrue(predictor == TiffPredictor.None, "Predictor should only be used with lzw or deflate compression");

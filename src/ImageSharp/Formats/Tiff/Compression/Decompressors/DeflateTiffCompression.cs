@@ -76,11 +76,11 @@ internal sealed class DeflateTiffCompression : TiffBaseDecompressor
             }
         }
 
-        // When the image is tiled, undoing the horizontal predictor will be done for each tile row in the DecodeTilesChunky() method.
         if (this.Predictor == TiffPredictor.Horizontal)
         {
             if (this.isTiled)
             {
+                // When the image is tiled, undoing the horizontal predictor will be done for each tile row.
                 HorizontalPredictor.UndoTile(buffer, this.tileWidth, this.colorType, this.isBigEndian);
             }
             else

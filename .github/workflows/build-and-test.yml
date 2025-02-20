@@ -77,14 +77,9 @@ jobs:
       - name: Install Ubuntu prerequisites
         if: ${{ contains(matrix.options.os, 'ubuntu') }}
         run: |
-          # libssl 1.1
-          wget http://security.ubuntu.com/ubuntu/pool/main/o/openssl/openssl_1.1.1f-1ubuntu2.16_amd64.deb
-          wget http://security.ubuntu.com/ubuntu/pool/main/o/openssl/libssl-dev_1.1.1f-1ubuntu2.16_amd64.deb
-          wget http://security.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.1_1.1.1f-1ubuntu2.16_amd64.deb
-
-          sudo dpkg -i libssl1.1_1.1.1f-1ubuntu2.16_amd64.deb
-          sudo dpkg -i libssl-dev_1.1.1f-1ubuntu2.16_amd64.deb
-          sudo dpkg -i openssl_1.1.1f-1ubuntu2.16_amd64.deb
+          # libssl 1.1 (required by old .NET runtimes)
+          wget http://archive.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.1_1.1.0g-2ubuntu4_amd64.deb
+          sudo dpkg -i libssl1.1_1.1.0g-2ubuntu4_amd64.deb
 
           # libgdiplus
           sudo apt-get -y install libgdiplus libgif-dev libglib2.0-dev libcairo2-dev libtiff-dev libexif-dev

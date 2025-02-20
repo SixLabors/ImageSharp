@@ -74,6 +74,10 @@ jobs:
     runs-on: ${{matrix.options.os}}
 
     steps:
+      - name: Install Ubuntu prerequisites
+        if: ${{ contains(matrix.options.os, 'ubuntu') }}
+        run: sudo apt-get -y install libssl-dev libgdiplus libgif-dev libglib2.0-dev libcairo2-dev libtiff-dev libexif-dev
+
       - name: Git Config
         shell: bash
         run: |
@@ -165,9 +169,6 @@ jobs:
     if: (github.event_name == 'push')
 
     steps:
-      - name: Install ubuntu prerequisites
-        if: ${{ contains(matrix.options.os, 'ubuntu') }}
-        run: sudo apt-get -y install libssl-dev libgdiplus libgif-dev libglib2.0-dev libcairo2-dev libtiff-dev libexif-dev
       - name: Git Config
         shell: bash
         run: |

@@ -599,6 +599,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
         }
 
         [Theory]
+        [PlatformSpecific(~TestPlatforms.Linux)] // See discussion on https://github.com/SixLabors/ImageSharp/pull/2890
         [WithFile(Os2BitmapArray, PixelTypes.Rgba32)]
         [WithFile(Os2BitmapArray9s, PixelTypes.Rgba32)]
         [WithFile(Os2BitmapArrayDiamond, PixelTypes.Rgba32)]

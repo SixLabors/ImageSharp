@@ -4,7 +4,7 @@
 using System;
 using System.IO;
 using Microsoft.DotNet.RemoteExecutor;
-
+using Microsoft.DotNet.XUnitExtensions;
 using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
@@ -598,8 +598,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
             }
         }
 
-        [Theory]
-        [PlatformSpecific(~TestPlatforms.Linux)] // See discussion on https://github.com/SixLabors/ImageSharp/pull/2890
+        [ConditionalTheory]
         [WithFile(Os2BitmapArray, PixelTypes.Rgba32)]
         [WithFile(Os2BitmapArray9s, PixelTypes.Rgba32)]
         [WithFile(Os2BitmapArrayDiamond, PixelTypes.Rgba32)]
@@ -612,6 +611,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
         public void BmpDecoder_CanDecode_Os2BitmapArray<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
+            if (TestEnvironment.IsLinux)
+            {
+                throw new SkipTestException("See discussion on https://github.com/SixLabors/ImageSharp/pull/2890");
+            }
+
             using (Image<TPixel> image = provider.GetImage(BmpDecoder))
             {
                 image.DebugSave(provider);

@@ -15,6 +15,18 @@ public sealed class DisposableDictionary<TKey, TValue> : Dictionary<TKey, TValue
     private bool disposedValue;
 
     /// <inheritdoc />
+    public DisposableDictionary()
+        : base()
+    {
+    }
+
+    /// <inheritdoc />
+    public DisposableDictionary(int capacity)
+        : base(capacity)
+    {
+    }
+
+    /// <inheritdoc />
     public void Dispose()
     {
         // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method

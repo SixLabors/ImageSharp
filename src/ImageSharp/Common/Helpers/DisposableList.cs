@@ -13,6 +13,18 @@ public sealed class DisposableList<TValue> : List<TValue>, IDisposable
     private bool disposedValue;
 
     /// <inheritdoc />
+    public DisposableList()
+        : base()
+    {
+    }
+
+    /// <inheritdoc />
+    public DisposableList(int capacity)
+        : base(capacity)
+    {
+    }
+
+    /// <inheritdoc />
     public void Dispose()
     {
         // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method

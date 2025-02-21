@@ -58,6 +58,8 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
             throw new ImageFormatException("Not an HEIF image.");
         }
 
+        this.items.Clear();
+        this.itemLinks.Clear();
         Image<TPixel>? image = null;
         while (stream.Position < stream.Length)
         {
@@ -645,7 +647,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
             }
         }
 
-        using DisposableDictionary<uint, IMemoryOwner<byte>> buffers = [];
+        using DisposableDictionary<uint, IMemoryOwner<byte>> buffers = new(locations.Count);
         foreach (HeifLocation loc in locations.Keys)
         {
             HeifItem item = locations[loc];
@@ -659,44 +661,38 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
         HeifItem? rootItem = this.FindItemById(this.primaryItem);
         if (rootItem == null)
         {
-            throw new ImageFormatException("No primary HEIF item found.");
+            throw new ImageFormatException("No primary HEIF item defined.");
         }
 
+        IHeifItemDecoder<TPixel>? itemDecoder;
         if (rootItem.Type == Heif4CharCode.Grid)
         {
-            Image<TPixel> gridImage = this.DecodeGrid<TPixel>(rootItem, buffers);
-            if (gridImage.Width > 1 && gridImage.Height > 1)
-            {
-                return gridImage;
-            }
-
-            gridImage.Dispose();
+            itemDecoder = new GridHeifItemDecoder<TPixel>(this.configuration, this.items, this.itemLinks, buffers);
         }
 
-        IHeifItemDecoder<TPixel>? itemDecoder = HeifCompressionFactory.GetDecoder<TPixel>(rootItem.Type);
+        itemDecoder = HeifCompressionFactory.GetDecoder<TPixel>(rootItem.Type);
         HeifItem itemToDecode = rootItem;
         if (itemDecoder == null)
         {
-            // FIXME: No specific decoding yet, so parse only a JPEG thumbnail.
+            // Unable to decode the primary image, decode the thumbnail instead.
             HeifItemLink? thumbLink = this.itemLinks.FirstOrDefault(link => link.Type == Heif4CharCode.Thmb);
-            if (thumbLink == null)
+            if (thumbLink != null)
             {
-                throw new NotImplementedException("No thumbnail found");
+                HeifItem? thumbItem = this.FindItemById(thumbLink.SourceId);
+                if (thumbItem != null)
+                {
+                    itemDecoder = HeifCompressionFactory.GetDecoder<TPixel>(thumbItem.Type);
+                    if (itemDecoder != null)
+                    {
+                        itemToDecode = thumbItem;
+                    }
+                }
             }
+        }
 
-            HeifItem? thumbItem = this.FindItemById(thumbLink.SourceId);
-            if (thumbItem == null)
-            {
-                throw new NotImplementedException("No thumbnail defined");
-            }
-
-            itemDecoder = HeifCompressionFactory.GetDecoder<TPixel>(thumbItem.Type);
-            if (itemDecoder == null)
-            {
-                throw new NotImplementedException($"Don't know how to decode a thumbnail of type: {thumbItem.Type}.");
-            }
-
-            itemToDecode = thumbItem;
+        if (itemDecoder == null)
+        {
+            throw new ImageFormatException("No decodable item found inside this HEIF container.");
         }
 
         HeifMetadata meta = this.metadata.GetHeifMetadata();
@@ -704,36 +700,6 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
 
         IMemoryOwner<byte> itemMemory = buffers[itemToDecode.Id];
         return itemDecoder.DecodeItemData(this.configuration, itemToDecode, itemMemory.GetSpan());
-    }
-
-    private Image<TPixel> DecodeGrid<TPixel>(HeifItem gridItem, DisposableDictionary<uint, IMemoryOwner<byte>> buffers)
-        where TPixel : unmanaged, IPixel<TPixel>
-    {
-        List<uint> linked = this.itemLinks.First(l => l.SourceId == gridItem.Id).DestinationIds;
-        HeifMetadata meta = this.metadata.GetHeifMetadata();
-        using DisposableList<Image<TPixel>> gridTiles = [];
-        foreach (uint id in linked)
-        {
-            HeifItem? item = this.FindItemById(id);
-            if (item != null)
-            {
-                IHeifItemDecoder<TPixel>? decoder = HeifCompressionFactory.GetDecoder<TPixel>(item.Type);
-                if (decoder != null)
-                {
-                    meta.CompressionMethod = decoder.CompressionMethod;
-                    IMemoryOwner<byte> itemMemory = buffers[item.Id];
-                    gridTiles.Add(decoder.DecodeItemData(this.configuration, item, itemMemory.GetSpan()));
-                }
-            }
-        }
-
-        if (gridTiles.Count == 0)
-        {
-            return new Image<TPixel>(1, 1);
-        }
-
-        // return CombineImageTiles(gridTiles);
-        return new Image<TPixel>(1, 1);
     }
 
     private static void SkipBox(Stream stream, long boxLength)

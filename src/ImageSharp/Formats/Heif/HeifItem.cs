@@ -91,4 +91,6 @@ internal class HeifItem(Heif4CharCode type, uint id)
             this.GridCellExtent = extent;
         }
     }
+
+    public override string ToString() => $"{this.Type}:{this.Id}";
 }

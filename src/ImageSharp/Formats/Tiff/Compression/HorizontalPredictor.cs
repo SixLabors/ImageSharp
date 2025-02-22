@@ -66,12 +66,13 @@ internal static class HorizontalPredictor
     /// Inverts the horizontal predictor for each tile row.
     /// </summary>
     /// <param name="pixelBytes">Buffer with decompressed pixel data for a tile.</param>
-    /// <param name="tileWidth">Tile with in pixels.</param>
+    /// <param name="tileWidth">Tile width in pixels.</param>
+    /// <param name="tileHeight">Tile height in pixels.</param>
     /// <param name="colorType">The color type of the pixel data.</param>
     /// <param name="isBigEndian">If set to <c>true</c> decodes the pixel data as big endian, otherwise as little endian.</param>
-    public static void UndoTile(Span<byte> pixelBytes, int tileWidth, TiffColorType colorType, bool isBigEndian)
+    public static void UndoTile(Span<byte> pixelBytes, int tileWidth, int tileHeight, TiffColorType colorType, bool isBigEndian)
     {
-        for (int y = 0; y < tileWidth; y++)
+        for (int y = 0; y < tileHeight; y++)
         {
             UndoRow(pixelBytes, tileWidth, y, colorType, isBigEndian);
         }

@@ -37,7 +37,7 @@ public class LzwTiffCompressionTests
         using BufferedReadStream stream = CreateCompressedStream(data);
         byte[] buffer = new byte[data.Length];
 
-        using var decompressor = new LzwTiffCompression(Configuration.Default.MemoryAllocator, 10, 8, TiffColorType.BlackIsZero8, TiffPredictor.None, false, false, 0);
+        using var decompressor = new LzwTiffCompression(Configuration.Default.MemoryAllocator, 10, 8, TiffColorType.BlackIsZero8, TiffPredictor.None, false, false, 0, 0);
         decompressor.Decompress(stream, 0, (uint)stream.Length, 1, buffer, default);
 
         Assert.Equal(data, buffer);

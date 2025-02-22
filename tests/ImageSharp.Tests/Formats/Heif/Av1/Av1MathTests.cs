@@ -108,4 +108,16 @@ public class Av1MathTests
         Av1Math.SetBit(ref actual, n);
         Assert.Equal(expected, actual);
     }
+
+    [Theory]
+    [InlineData(255, 4, 4)]
+    [InlineData(255, -1, 0)]
+    [InlineData(255, 255, 255)]
+    [InlineData(255, 256, 255)]
+    [InlineData(255, 1000, 255)]
+    public void TestClip3(int max, int value, int expected)
+    {
+        int actual = Av1Math.Clip3(0, max, value);
+        Assert.Equal(expected, actual);
+    }
 }

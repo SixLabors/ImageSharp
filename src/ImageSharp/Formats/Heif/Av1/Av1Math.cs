@@ -93,35 +93,9 @@ internal static class Av1Math
     public static uint Clip1(uint value, int bitDepth) =>
         Clip3(0, (1U << bitDepth) - 1, value);
 
-    public static uint Clip3(uint x, uint y, uint z)
-    {
-        if (z < x)
-        {
-            return x;
-        }
+    public static uint Clip3(uint min, uint max, uint value) => Math.Max(min, Math.Min(max, value));
 
-        if (z > y)
-        {
-            return y;
-        }
-
-        return z;
-    }
-
-    public static int Clip3(int x, int y, int z)
-    {
-        if (z < x)
-        {
-            return x;
-        }
-
-        if (z > y)
-        {
-            return y;
-        }
-
-        return z;
-    }
+    public static int Clip3(int min, int max, int value) => Math.Max(min, Math.Min(max, value));
 
     public static uint Round2(uint value, int n)
     {

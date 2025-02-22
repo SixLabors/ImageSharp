@@ -5,6 +5,7 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.PixelFormats.Utils;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1;
 
@@ -43,8 +44,10 @@ internal class Av1Decoder : IAv1TileReader
         this.frameDecoder = new(this.SequenceHeader, this.FrameHeader, this.FrameInfo, this.FrameBuffer);
         this.frameDecoder.DecodeFrame();
 
-        // TODO: Implement returning proper pixels.
-        return new Image<TPixel>(1, 1);
+        Image<TPixel> resultImage = new(this.FrameHeader.FrameSize.FrameWidth, this.FrameHeader.FrameSize.FrameHeight);
+        ImageFrame<TPixel> resultFrame = resultImage.Frames.RootFrame;
+        Av1YuvConverter.ConvertToRgb(this.configuration, this.FrameBuffer, resultFrame);
+        return resultImage;
     }
 
     public void ReadTile(Span<byte> tileData, int tileNum)

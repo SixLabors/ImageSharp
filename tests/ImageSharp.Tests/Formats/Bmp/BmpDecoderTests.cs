@@ -4,7 +4,7 @@
 using System;
 using System.IO;
 using Microsoft.DotNet.RemoteExecutor;
-
+using Microsoft.DotNet.XUnitExtensions;
 using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;

@@ -96,7 +96,7 @@ public class PngMetadata : IDeepCloneable
     {
         // Should the conversion be from a format that uses a 24bit palette entries (gif)
         // we need to clone and adjust the color table to allow for transparency.
-        Color[]? colorTable = metadata.ColorTable.HasValue ? metadata.ColorTable.Value.ToArray() : null;
+        Color[]? colorTable = metadata.ColorTable?.ToArray();
         if (colorTable != null)
         {
             for (int i = 0; i < colorTable.Length; i++)

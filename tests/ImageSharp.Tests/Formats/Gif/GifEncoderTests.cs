@@ -391,8 +391,6 @@ public class GifEncoderTests
     {
         using Image<TPixel> image = provider.GetImage();
 
-        bool anyGlobal = ((IEnumerable<ImageFrame>)image.Frames).Any(x => x.Metadata.GetGifMetadata().ColorTableMode == GifColorTableMode.Global);
-
         // image.DebugSaveMultiFrame(provider);
         provider.Utility.SaveTestOutputFile(image, "gif", new GifEncoder(), "animated");
     }

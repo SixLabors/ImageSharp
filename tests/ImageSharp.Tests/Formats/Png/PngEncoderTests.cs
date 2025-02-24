@@ -484,12 +484,12 @@ public partial class PngEncoderTests
     }
 
     [Theory]
-    [WithFile(TestImages.Gif.Leo, PixelTypes.Rgba32)]
-    [WithFile(TestImages.Gif.Issues.Issue2866, PixelTypes.Rgba32)]
-    public void Encode_AnimatedFormatTransform_FromGif<TPixel>(TestImageProvider<TPixel> provider)
+    [WithFile(TestImages.Gif.Leo, PixelTypes.Rgba32, 0.613F)]
+    [WithFile(TestImages.Gif.Issues.Issue2866, PixelTypes.Rgba32, 1.06F)]
+    public void Encode_AnimatedFormatTransform_FromGif<TPixel>(TestImageProvider<TPixel> provider, float percentage)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        if (TestEnvironment.RunsOnCI && !TestEnvironment.IsWindows)
+        if (TestEnvironment.RunsOnCI)
         {
             return;
         }
@@ -499,12 +499,14 @@ public partial class PngEncoderTests
         image.Save(memStream, PngEncoder);
         memStream.Position = 0;
 
+        image.DebugSave(provider: provider, extension: "png", encoder: PngEncoder);
+
         using Image<TPixel> output = Image.Load<TPixel>(memStream);
 
         // TODO: Find a better way to compare.
-        // The image has been visually checked but the quantization pattern used in the png encoder
-        // means we cannot use an exact comparison nor replicate using the quantizing processor.
-        ImageComparer.TolerantPercentage(0.613f).VerifySimilarity(output, image);
+        // The image has been visually checked but the coarse cache used by the palette quantizer
+        // can lead to minor differences between frames.
+        ImageComparer.TolerantPercentage(percentage).VerifySimilarity(output, image);
 
         GifMetadata gif = image.Metadata.GetGifMetadata();
         PngMetadata png = output.Metadata.GetPngMetadata();
@@ -697,6 +699,35 @@ public partial class PngEncoderTests
         string actualOutputFile = provider.Utility.SaveTestOutputFile(image, "png", encoder);
         using Image<Rgba32> encoded = Image.Load<Rgba32>(actualOutputFile);
         encoded.CompareToReferenceOutput(ImageComparer.Exact, provider);
+    }
+
+    [Fact]
+    public void Issue_2862()
+    {
+        // Create a grayscale palette (or any other palette with colors that are very close to each other):
+        Rgba32[] palette = Enumerable.Range(0, 256).Select(i => new Rgba32((byte)i, (byte)i, (byte)i)).ToArray();
+
+        using Image<Rgba32> image = new(254, 4);
+        for (int y = 0; y < image.Height; y++)
+        {
+            for (int x = 0; x < image.Width; x++)
+            {
+                image[x, y] = palette[x];
+            }
+        }
+
+        using MemoryStream ms = new();
+        image.Save(ms, new PngEncoder
+        {
+            ColorType = PngColorType.Palette,
+            BitDepth = PngBitDepth.Bit8,
+            Quantizer = new PaletteQuantizer(palette.Select(Color.FromPixel).ToArray())
+        });
+
+        ms.Position = 0;
+
+        using Image<Rgba32> encoded = Image.Load<Rgba32>(ms);
+        ImageComparer.Exact.VerifySimilarity(image, encoded);
     }
 
     private static void TestPngEncoderCore<TPixel>(

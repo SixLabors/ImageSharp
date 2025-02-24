@@ -27,7 +27,7 @@ internal sealed class EuclideanPixelMap<TPixel> : IDisposable
     /// <summary>
     /// Do not make this readonly! Struct value would be always copied on non-readonly method calls.
     /// </summary>
-    private ColorDistanceCache cache;
+    private HybridColorDistanceCache cache;
     private readonly Configuration configuration;
 
     /// <summary>
@@ -51,7 +51,7 @@ internal sealed class EuclideanPixelMap<TPixel> : IDisposable
         this.configuration = configuration;
         this.Palette = palette;
         this.rgbaPalette = new Rgba32[palette.Length];
-        this.cache = new ColorDistanceCache(configuration.MemoryAllocator);
+        this.cache = new HybridColorDistanceCache(configuration.MemoryAllocator);
         PixelOperations<TPixel>.Instance.ToRgba32(configuration, this.Palette.Span, this.rgbaPalette);
 
         this.transparentIndex = transparentIndex;
@@ -80,13 +80,13 @@ internal sealed class EuclideanPixelMap<TPixel> : IDisposable
         color.ToRgba32(ref rgba);
 
         // Check if the color is in the lookup table
-        if (!this.cache.TryGetValue(rgba, out short index))
+        if (this.cache.TryGetValue(rgba, out short index))
         {
-            return this.GetClosestColorSlow(rgba, ref paletteRef, out match);
+            match = Unsafe.Add(ref paletteRef, (ushort)index);
+            return index;
         }
 
-        match = Unsafe.Add(ref paletteRef, (ushort)index);
-        return index;
+        return this.GetClosestColorSlow(rgba, ref paletteRef, out match);
     }
 
     /// <summary>
@@ -155,6 +155,7 @@ internal sealed class EuclideanPixelMap<TPixel> : IDisposable
         // Now I have the index, pop it into the cache for next time
         this.cache.Add(rgba, (byte)index);
         match = Unsafe.Add(ref paletteRef, (uint)index);
+
         return index;
     }
 
@@ -177,84 +178,265 @@ internal sealed class EuclideanPixelMap<TPixel> : IDisposable
     public void Dispose() => this.cache.Dispose();
 
     /// <summary>
-    /// A cache for storing color distance matching results.
+    /// A hybrid cache for color distance lookups that combines an exact-match dictionary with
+    /// a fallback coarse lookup table.
     /// </summary>
     /// <remarks>
-    /// <para>
-    /// The granularity of the cache has been determined based upon the current
-    /// suite of test images and provides the lowest possible memory usage while
-    /// providing enough match accuracy.
-    /// Entry count is currently limited to 2335905 entries (4MB).
-    /// </para>
+    /// This cache uses a fallback table with  2,097,152 bins, each storing a 2-byte value
+    /// (approximately 4 MB total), while the exact-match dictionary is limited to 256 entries
+    /// and occupies roughly 4 KB. Overall, the worst-case memory usage is about 2 MB.
+    /// Lookups and insertions are performed in constant time (O(1)) because the fallback table
+    /// is accessed via direct indexing and the dictionary employs a simple hash-based bucket mechanism.
+    /// The design achieves extremely fast color distance lookups with a predictable, fixed memory footprint.
     /// </remarks>
-    private unsafe struct ColorDistanceCache : IDisposable
+#pragma warning disable CA1001 // Types that own disposable fields should be disposable
+
+    // https://github.com/dotnet/roslyn-analyzers/issues/6151
+    private unsafe struct HybridColorDistanceCache : IDisposable
+#pragma warning restore CA1001 // Types that own disposable fields should be disposable
     {
         private const int IndexRBits = 5;
         private const int IndexGBits = 5;
         private const int IndexBBits = 5;
         private const int IndexABits = 6;
-        private const int IndexRCount = (1 << IndexRBits) + 1;
-        private const int IndexGCount = (1 << IndexGBits) + 1;
-        private const int IndexBCount = (1 << IndexBBits) + 1;
-        private const int IndexACount = (1 << IndexABits) + 1;
-        private const int RShift = 8 - IndexRBits;
-        private const int GShift = 8 - IndexGBits;
-        private const int BShift = 8 - IndexBBits;
-        private const int AShift = 8 - IndexABits;
-        private const int Entries = IndexRCount * IndexGCount * IndexBCount * IndexACount;
-        private MemoryHandle tableHandle;
-        private readonly IMemoryOwner<short> table;
-        private readonly short* tablePointer;
+        private const int IndexRCount = 1 << IndexRBits; // 32 bins for red
+        private const int IndexGCount = 1 << IndexGBits; // 32 bins for green
+        private const int IndexBCount = 1 << IndexBBits; // 32 bins for blue
+        private const int IndexACount = 1 << IndexABits; // 64 bins for alpha
+        private const int TotalBins = IndexRCount * IndexGCount * IndexBCount * IndexACount; // 2,097,152 bins
 
-        public ColorDistanceCache(MemoryAllocator allocator)
+        private readonly IMemoryOwner<short> fallbackTable;
+        private readonly short* fallbackPointer;
+        private MemoryHandle fallbackHandle;
+
+        private readonly ExactCache exactCache;
+
+        public HybridColorDistanceCache(MemoryAllocator allocator)
         {
-            this.table = allocator.Allocate<short>(Entries);
-            this.table.GetSpan().Fill(-1);
-            this.tableHandle = this.table.Memory.Pin();
-            this.tablePointer = (short*)this.tableHandle.Pointer;
+            this.fallbackTable = allocator.Allocate<short>(TotalBins);
+            this.fallbackTable.GetSpan().Fill(-1);
+            this.fallbackHandle = this.fallbackTable.Memory.Pin();
+            this.fallbackPointer = (short*)this.fallbackHandle.Pointer;
+
+            this.exactCache = new ExactCache(allocator);
         }
 
-        [MethodImpl(InliningOptions.ShortMethod)]
-        public readonly void Add(Rgba32 rgba, byte index)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public readonly void Add(Rgba32 color, short index)
         {
-            int idx = GetPaletteIndex(rgba);
-            this.tablePointer[idx] = index;
+            if (this.exactCache.TryAdd(color.PackedValue, index))
+            {
+                return;
+            }
+
+            this.fallbackPointer[GetCoarseIndex(color)] = index;
         }
 
-        [MethodImpl(InliningOptions.ShortMethod)]
-        public readonly bool TryGetValue(Rgba32 rgba, out short match)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public readonly bool TryGetValue(Rgba32 color, out short match)
         {
-            int idx = GetPaletteIndex(rgba);
-            match = this.tablePointer[idx];
-            return match > -1;
+            if (this.exactCache.TryGetValue(color.PackedValue, out match))
+            {
+                return true; // Exact match found
+            }
+
+            match = this.fallbackPointer[GetCoarseIndex(color)];
+            return match > -1; // Coarse match found
         }
 
-        /// <summary>
-        /// Clears the cache resetting each entry to empty.
-        /// </summary>
-        [MethodImpl(InliningOptions.ShortMethod)]
-        public readonly void Clear() => this.table.GetSpan().Fill(-1);
-
-        [MethodImpl(InliningOptions.ShortMethod)]
-        private static int GetPaletteIndex(Rgba32 rgba)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int GetCoarseIndex(Rgba32 color)
         {
-            int rIndex = rgba.R >> RShift;
-            int gIndex = rgba.G >> GShift;
-            int bIndex = rgba.B >> BShift;
-            int aIndex = rgba.A >> AShift;
+            int rIndex = color.R >> (8 - IndexRBits);
+            int gIndex = color.G >> (8 - IndexGBits);
+            int bIndex = color.B >> (8 - IndexBBits);
+            int aIndex = color.A >> (8 - IndexABits);
 
-            return (aIndex * (IndexRCount * IndexGCount * IndexBCount)) +
-                   (rIndex * (IndexGCount * IndexBCount)) +
-                   (gIndex * IndexBCount) + bIndex;
+            return (aIndex * IndexRCount * IndexGCount * IndexBCount) +
+                   (rIndex * IndexGCount * IndexBCount) +
+                   (gIndex * IndexBCount) +
+                   bIndex;
+        }
+
+        public readonly void Clear()
+        {
+            this.exactCache.Clear();
+            this.fallbackTable.GetSpan().Fill(-1);
         }
 
         public void Dispose()
         {
-            if (this.table != null)
+            this.fallbackHandle.Dispose();
+            this.fallbackTable.Dispose();
+            this.exactCache.Dispose();
+        }
+    }
+
+    /// <summary>
+    /// A fixed-capacity dictionary with exactly 512 entries mapping a <see cref="uint"/> key
+    /// to a <see cref="short"/> value.
+    /// </summary>
+    /// <remarks>
+    /// The dictionary is implemented using a fixed array of 512 buckets and an entries array
+    /// of the same size. The bucket for a key is computed as (key &amp; 0x1FF), and collisions are
+    /// resolved through a linked chain stored in the <see cref="Entry.Next"/> field.
+    /// The overall memory usage is approximately 4–5 KB. Both lookup and insertion operations are,
+    /// on average, O(1) since the bucket is determined via a simple bitmask and collision chains are
+    /// typically very short; in the worst-case, the number of iterations is bounded by 256.
+    /// This guarantees highly efficient and predictable performance for small, fixed-size color palettes.
+    /// </remarks>
+    internal sealed unsafe class ExactCache : IDisposable
+    {
+        // Buckets array: each bucket holds the index (0-based) into the entries array
+        // of the first entry in the chain, or -1 if empty.
+        private readonly IMemoryOwner<short> bucketsOwner;
+        private MemoryHandle bucketsHandle;
+        private short* buckets;
+
+        // Entries array: stores up to 256 entries.
+        private readonly IMemoryOwner<Entry> entriesOwner;
+        private MemoryHandle entriesHandle;
+        private Entry* entries;
+
+        public const int Capacity = 512;
+
+        public ExactCache(MemoryAllocator allocator)
+        {
+            this.Count = 0;
+
+            // Allocate exactly 512 ints for buckets.
+            this.bucketsOwner = allocator.Allocate<short>(Capacity, AllocationOptions.Clean);
+            Span<short> bucketSpan = this.bucketsOwner.GetSpan();
+            bucketSpan.Fill(-1);
+            this.bucketsHandle = this.bucketsOwner.Memory.Pin();
+            this.buckets = (short*)this.bucketsHandle.Pointer;
+
+            // Allocate exactly 512 entries.
+            this.entriesOwner = allocator.Allocate<Entry>(Capacity, AllocationOptions.Clean);
+            this.entriesHandle = this.entriesOwner.Memory.Pin();
+            this.entries = (Entry*)this.entriesHandle.Pointer;
+        }
+
+        public int Count { get; private set; }
+
+        /// <summary>
+        /// Adds a key/value pair to the dictionary.
+        /// If the key already exists, the dictionary is left unchanged.
+        /// </summary>
+        /// <param name="key">The key to add.</param>
+        /// <param name="value">The value to add.</param>
+        /// <returns><see langword="true"/> if the key was added; otherwise, <see langword="false"/>.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool TryAdd(uint key, short value)
+        {
+            if (this.Count == Capacity)
             {
-                this.tableHandle.Dispose();
-                this.table.Dispose();
+                return false; // Dictionary is full.
             }
+
+            // The key is a 32-bit unsigned integer representing an RGBA color, where the bytes are laid out as R|G|B|A
+            // (with R in the most significant byte and A in the least significant).
+            // To compute the bucket index:
+            // 1. (key >> 16) extracts the top 16 bits, effectively giving us the R and G channels.
+            // 2. (key >> 8) shifts the key right by 8 bits, bringing R, G, and B into the lower 24 bits (dropping A).
+            // 3. XORing these two values with the original key mixes bits from all four channels (R, G, B, and A),
+            //    which helps to counteract situations where one or more channels have a limited range.
+            // 4. Finally, we apply a bitmask of 0x1FF to keep only the lowest 9 bits, ensuring the result is between 0 and 511,
+            //    which corresponds to our fixed bucket count of 512.
+            int bucket = (int)(((key >> 16) ^ (key >> 8) ^ key) & 0x1FF);
+            int i = this.buckets[bucket];
+
+            // Traverse the collision chain.
+            Entry* entries = this.entries;
+            while (i != -1)
+            {
+                Entry e = entries[i];
+                if (e.Key == key)
+                {
+                    // Key already exists; do not overwrite.
+                    return false;
+                }
+
+                i = e.Next;
+            }
+
+            short index = (short)this.Count;
+            this.Count++;
+
+            // Insert the new entry:
+            entries[index].Key = key;
+            entries[index].Value = value;
+
+            // Link this new entry into the bucket chain.
+            entries[index].Next = this.buckets[bucket];
+            this.buckets[bucket] = index;
+            return true;
+        }
+
+        /// <summary>
+        /// Tries to retrieve the value associated with the specified key.
+        /// Returns true if the key is found; otherwise, returns false.
+        /// </summary>
+        /// <param name="key">The key to search for.</param>
+        /// <param name="value">The value associated with the key, if found.</param>
+        /// <returns><see langword="true"/> if the key is found; otherwise, <see langword="false"/>.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool TryGetValue(uint key, out short value)
+        {
+            int bucket = (int)(((key >> 16) ^ (key >> 8) ^ key) & 0x1FF);
+            int i = this.buckets[bucket];
+
+            // If the bucket is empty, return immediately.
+            if (i == -1)
+            {
+                value = -1;
+                return false;
+            }
+
+            // Traverse the chain.
+            Entry* entries = this.entries;
+            do
+            {
+                Entry e = entries[i];
+                if (e.Key == key)
+                {
+                    value = e.Value;
+                    return true;
+                }
+
+                i = e.Next;
+            }
+            while (i != -1);
+
+            value = -1;
+            return false;
+        }
+
+        /// <summary>
+        /// Clears the dictionary.
+        /// </summary>
+        public void Clear()
+        {
+            Span<short> bucketSpan = this.bucketsOwner.GetSpan();
+            bucketSpan.Fill(-1);
+            this.Count = 0;
+        }
+
+        public void Dispose()
+        {
+            this.bucketsHandle.Dispose();
+            this.bucketsOwner.Dispose();
+            this.entriesHandle.Dispose();
+            this.entriesOwner.Dispose();
+            this.buckets = null;
+            this.entries = null;
+        }
+
+        private struct Entry
+        {
+            public uint Key;     // The key (packed RGBA)
+            public short Value;  // The value; -1 means unused.
+            public short Next;     // Index of the next entry in the chain, or -1 if none.
         }
     }
 }

@@ -112,6 +112,7 @@ internal sealed class GifDecoderCore : ImageDecoderCore
         Image<TPixel>? image = null;
         ImageFrame<TPixel>? previousFrame = null;
         GifDisposalMethod? previousDisposalMethod = null;
+        bool globalColorTableUsed = false;
 
         try
         {
@@ -129,7 +130,7 @@ internal sealed class GifDecoderCore : ImageDecoderCore
                         break;
                     }
 
-                    this.ReadFrame(stream, ref image, ref previousFrame, ref previousDisposalMethod, backgroundPixel);
+                    globalColorTableUsed |= this.ReadFrame(stream, ref image, ref previousFrame, ref previousDisposalMethod, backgroundPixel);
 
                     // Reset per-frame state.
                     this.imageDescriptor = default;
@@ -163,6 +164,13 @@ internal sealed class GifDecoderCore : ImageDecoderCore
                 {
                     break;
                 }
+            }
+
+            // We cannot always trust the global GIF palette has actually been used.
+            // https://github.com/SixLabors/ImageSharp/issues/2866
+            if (!globalColorTableUsed)
+            {
+                this.gifMetadata.ColorTableMode = GifColorTableMode.Local;
             }
         }
         finally
@@ -425,7 +433,7 @@ internal sealed class GifDecoderCore : ImageDecoderCore
     /// <param name="previousFrame">The previous frame.</param>
     /// <param name="previousDisposalMethod">The previous disposal method.</param>
     /// <param name="backgroundPixel">The background color pixel.</param>
-    private void ReadFrame<TPixel>(
+    private bool ReadFrame<TPixel>(
         BufferedReadStream stream,
         ref Image<TPixel>? image,
         ref ImageFrame<TPixel>? previousFrame,
@@ -461,6 +469,8 @@ internal sealed class GifDecoderCore : ImageDecoderCore
 
         // Skip any remaining blocks
         SkipBlock(stream);
+
+        return !hasLocalColorTable;
     }
 
     /// <summary>
@@ -809,6 +819,7 @@ internal sealed class GifDecoderCore : ImageDecoderCore
         if (table is not null && index < table.Value.Length)
         {
             this.backgroundColor = table.Value.Span[index];
+            this.gifMetadata.BackgroundColorIndex = index;
         }
         else
         {

@@ -111,35 +111,43 @@ internal struct WuQuantizer<TPixel> : IQuantizer<TPixel>
     public QuantizerOptions Options { get; }
 
     /// <inheritdoc/>
-    public readonly ReadOnlyMemory<TPixel> Palette
+    public ReadOnlyMemory<TPixel> Palette
     {
         get
         {
-            QuantizerUtilities.CheckPaletteState(in this.palette);
+            if (this.palette.IsEmpty)
+            {
+                this.ResolvePalette();
+                QuantizerUtilities.CheckPaletteState(in this.palette);
+            }
+
             return this.palette;
         }
     }
 
     /// <inheritdoc/>
-    public void AddPaletteColors(Buffer2DRegion<TPixel> pixelRegion)
+    public readonly void AddPaletteColors(Buffer2DRegion<TPixel> pixelRegion)
+        => this.Build3DHistogram(pixelRegion);
+
+    /// <summary>
+    /// Once all histogram data has been accumulated, this method computes the moments,
+    /// splits the color cube, and resolves the final palette from the accumulated histogram.
+    /// </summary>
+    private void ResolvePalette()
     {
-        // TODO: Something is destroying the existing palette when adding new colors.
-        // When the QuantizingImageEncoder.PixelSamplingStrategy is DefaultPixelSamplingStrategy
-        // this leads to performance issues + the palette is not preserved.
-        // https://github.com/SixLabors/ImageSharp/issues/2498
-        this.Build3DHistogram(pixelRegion);
+        // Calculate the cumulative moments from the accumulated histogram.
         this.Get3DMoments(this.memoryAllocator);
+
+        // Partition the histogram into color cubes.
         this.BuildCube();
 
-        // Slice again since maxColors has been updated since the buffer was created.
+        // Compute the palette colors from the resolved cubes.
         Span<TPixel> paletteSpan = this.paletteOwner.GetSpan()[..this.maxColors];
         ReadOnlySpan<Moment> momentsSpan = this.momentsOwner.GetSpan();
         for (int k = 0; k < paletteSpan.Length; k++)
         {
             this.Mark(ref this.colorCube[k], (byte)k);
-
             Moment moment = Volume(ref this.colorCube[k], momentsSpan);
-
             if (moment.Weight > 0)
             {
                 ref TPixel color = ref paletteSpan[k];
@@ -147,22 +155,14 @@ internal struct WuQuantizer<TPixel> : IQuantizer<TPixel>
             }
         }
 
-        ReadOnlyMemory<TPixel> result = this.paletteOwner.Memory[..paletteSpan.Length];
-        if (this.isDithering)
-        {
-            // When called multiple times by QuantizerUtilities.BuildPalette
-            // this prevents memory churn caused by reallocation.
-            if (this.pixelMap is null)
-            {
-                this.pixelMap = new EuclideanPixelMap<TPixel>(this.Configuration, result);
-            }
-            else
-            {
-                this.pixelMap.Clear(result);
-            }
-        }
+        // Update the palette to the new computed colors.
+        this.palette = this.paletteOwner.Memory[..paletteSpan.Length];
 
-        this.palette = result;
+        // Create the pixel map if dithering is enabled.
+        if (this.isDithering && this.pixelMap is null)
+        {
+            this.pixelMap = new EuclideanPixelMap<TPixel>(this.Configuration, this.palette);
+        }
     }
 
     /// <inheritdoc/>
@@ -549,7 +549,7 @@ internal struct WuQuantizer<TPixel> : IQuantizer<TPixel>
     /// <param name="set1">The first set.</param>
     /// <param name="set2">The second set.</param>
     /// <returns>Returns a value indicating whether the box has been split.</returns>
-    private bool Cut(ref Box set1, ref Box set2)
+    private readonly bool Cut(ref Box set1, ref Box set2)
     {
         ReadOnlySpan<Moment> momentSpan = this.momentsOwner.GetSpan();
         Moment whole = Volume(ref set1, momentSpan);

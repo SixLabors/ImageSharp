@@ -200,22 +200,19 @@ internal class WebpAnimationDecoder : IDisposable
                 break;
         }
 
-        bool isKeyFrame = false;
         ImageFrame<TPixel> currentFrame;
         if (previousFrame is null)
         {
             image = new Image<TPixel>(this.configuration, (int)width, (int)height, backgroundColor, this.metadata);
 
-            SetFrameMetadata(image.Frames.RootFrame.Metadata, frameData);
-
             currentFrame = image.Frames.RootFrame;
-            isKeyFrame = true;
+            SetFrameMetadata(currentFrame.Metadata, frameData);
         }
         else
         {
             // If the frame is a key frame we do not need to clone the frame or clear it.
-            isKeyFrame = prevFrameData?.DisposalMethod is WebpDisposalMethod.RestoreToBackground
-                && this.restoreArea == image!.Bounds;
+            bool isKeyFrame = prevFrameData?.DisposalMethod is WebpDisposalMethod.RestoreToBackground
+                 && this.restoreArea == image!.Bounds;
 
             if (isKeyFrame)
             {
@@ -300,8 +297,7 @@ internal class WebpAnimationDecoder : IDisposable
             Buffer2D<TPixel> decodeBuffer = decodedFrame.PixelBuffer;
             if (webpInfo.IsLossless)
             {
-                WebpLosslessDecoder losslessDecoder =
-                    new(webpInfo.Vp8LBitReader, this.memoryAllocator, this.configuration);
+                WebpLosslessDecoder losslessDecoder = new(webpInfo.Vp8LBitReader, this.memoryAllocator, this.configuration);
                 losslessDecoder.Decode(decodeBuffer, (int)frameData.Width, (int)frameData.Height);
             }
             else

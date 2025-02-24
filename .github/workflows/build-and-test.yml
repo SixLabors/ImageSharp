@@ -91,7 +91,7 @@ jobs:
           git config --global core.longpaths true
 
       - name: Git Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v2
         with:
           fetch-depth: 0
           submodules: recursive
@@ -101,7 +101,7 @@ jobs:
         run: git lfs ls-files -l | cut -d' ' -f1 | sort > .lfs-assets-id
 
       - name: Git Setup LFS Cache
-        uses: actions/cache@v4
+        uses: actions/cache@v2
         id: lfs-cache
         with:
           path: .git/lfs
@@ -111,10 +111,10 @@ jobs:
         run: git lfs pull
 
       - name: NuGet Install
-        uses: NuGet/setup-nuget@v2
+        uses: NuGet/setup-nuget@v1
 
       - name: NuGet Setup Cache
-        uses: actions/cache@v4
+        uses: actions/cache@v2
         id: nuget-cache
         with:
           path: ~/.nuget
@@ -122,7 +122,7 @@ jobs:
           restore-keys: ${{ runner.os }}-nuget-
 
       - name: DotNet Setup
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v1
         with:
           dotnet-version: |
             6.0.x
@@ -182,16 +182,16 @@ jobs:
           git config --global core.longpaths true
 
       - name: Git Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v2
         with:
           fetch-depth: 0
           submodules: recursive
 
       - name: NuGet Install
-        uses: NuGet/setup-nuget@v2
+        uses: NuGet/setup-nuget@v1
 
       - name: NuGet Setup Cache
-        uses: actions/cache@v4
+        uses: actions/cache@v2
         id: nuget-cache
         with:
           path: ~/.nuget

@@ -317,5 +317,17 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
             image.DebugSaveMultiFrame(provider);
             image.CompareToReferenceOutputMultiFrame(provider, ImageComparer.Exact);
         }
+
+        // https://github.com/SixLabors/ImageSharp/issues/2859
+        [Theory]
+        [WithFile(TestImages.Gif.Issues.Issue2859_A, PixelTypes.Rgba32)]
+        [WithFile(TestImages.Gif.Issues.Issue2859_B, PixelTypes.Rgba32)]
+        public void Issue2859_LZWPixelStackOverflow<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            using Image<TPixel> image = provider.GetImage();
+            image.DebugSaveMultiFrame(provider);
+            image.CompareToReferenceOutputMultiFrame(provider, ImageComparer.Exact);
+        }
     }
 }

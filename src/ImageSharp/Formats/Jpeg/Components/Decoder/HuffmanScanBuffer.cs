@@ -22,6 +22,9 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
         // Whether there is no more good data to pull from the stream for the current mcu.
         private bool badData;
 
+        // How many times have we hit the eof.
+        private int eofHitCount;
+
         public HuffmanScanBuffer(BufferedReadStream stream)
         {
             this.stream = stream;
@@ -31,6 +34,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             this.MarkerPosition = 0;
             this.badData = false;
             this.NoData = false;
+            this.eofHitCount = 0;
         }
 
         /// <summary>
@@ -218,11 +222,16 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder
             // we know we have hit the EOI and completed decoding the scan buffer.
             if (value == -1 || (this.badData && this.data == 0 && this.stream.Position >= this.stream.Length))
             {
-                // We've encountered the end of the file stream which means there's no EOI marker
+                // We've hit the end of the file stream more times than allowed which means there's no EOI marker
                 // in the image or the SOS marker has the wrong dimensions set.
-                this.badData = true;
-                this.NoData = true;
-                value = 0;
+                if (this.eofHitCount > JpegConstants.Huffman.FetchLoop)
+                {
+                    this.badData = true;
+                    this.NoData = true;
+                    value = 0;
+                }
+
+                this.eofHitCount++;
             }
 
             return value;

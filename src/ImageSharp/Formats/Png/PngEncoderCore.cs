@@ -1319,7 +1319,8 @@ internal sealed class PngEncoderCore : IDisposable
         Span<byte> attempt = attemptBuffer.GetSpan();
         for (int y = 0; y < pixels.Height; y++)
         {
-            this.CollectAndFilterPixelRow(pixels.DangerousGetRowSpan(y), ref filter, ref attempt, quantized, y);
+            ReadOnlySpan<TPixel> rowSpan = pixels.DangerousGetRowSpan(y);
+            this.CollectAndFilterPixelRow(rowSpan, ref filter, ref attempt, quantized, y);
             deflateStream.Write(filter);
             this.SwapScanlineBuffers();
         }
@@ -1367,7 +1368,7 @@ internal sealed class PngEncoderCore : IDisposable
                 // Encode data
                 // Note: quantized parameter not used
                 // Note: row parameter not used
-                this.CollectAndFilterPixelRow(block, ref filter, ref attempt, null, -1);
+                this.CollectAndFilterPixelRow((ReadOnlySpan<TPixel>)block, ref filter, ref attempt, null, -1);
                 deflateStream.Write(filter);
 
                 this.SwapScanlineBuffers();

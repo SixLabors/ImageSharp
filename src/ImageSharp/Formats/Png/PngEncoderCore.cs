@@ -182,7 +182,8 @@ internal sealed class PngEncoderCore : IDisposable
             if (clearTransparency)
             {
                 currentFrame = clonedFrame = currentFrame.Clone();
-                ClearTransparentPixels(currentFrame, this.backgroundColor.Value);
+                currentFrameRegion = currentFrame.PixelBuffer.GetRegion();
+                ClearTransparentPixels(in currentFrameRegion, this.backgroundColor.Value);
             }
 
             // Do not move this. We require an accurate bit depth for the header chunk.
@@ -217,7 +218,7 @@ internal sealed class PngEncoderCore : IDisposable
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 FrameControl frameControl = new((uint)this.width, (uint)this.height);
-                this.WriteDataChunks(frameControl, currentFrame.PixelBuffer.GetRegion(), quantized, stream, false);
+                this.WriteDataChunks(in frameControl, in currentFrameRegion, quantized, stream, false);
                 currentFrameIndex++;
             }
 
@@ -286,9 +287,10 @@ internal sealed class PngEncoderCore : IDisposable
                             background,
                             blend);
 
+                    Buffer2DRegion<TPixel> encodingFrameRegion = encodingFrame.PixelBuffer.GetRegion(bounds);
                     if (clearTransparency)
                     {
-                        ClearTransparentPixels(encodingFrame, background);
+                        ClearTransparentPixels(in encodingFrameRegion, background);
                     }
 
                     // Each frame control sequence number must be incremented by the number of frame data chunks that follow.
@@ -308,7 +310,6 @@ internal sealed class PngEncoderCore : IDisposable
                         paletteQuantizer,
                         default);
 
-                    Buffer2DRegion<TPixel> encodingFrameRegion = encodingFrame.PixelBuffer.GetRegion(bounds);
                     sequenceNumber += this.WriteDataChunks(frameControl, in encodingFrameRegion, quantized, stream, true) + 1;
 
                     previousFrame = currentFrame;
@@ -392,27 +393,26 @@ internal sealed class PngEncoderCore : IDisposable
     /// <typeparam name="TPixel">The type of the pixel.</typeparam>
     /// <param name="clone">The cloned image frame where the transparent pixels will be changed.</param>
     /// <param name="color">The color to change transparent pixels to.</param>
-    private static void ClearTransparentPixels<TPixel>(ImageFrame<TPixel> clone, Color color)
+    private static void ClearTransparentPixels<TPixel>(in Buffer2DRegion<TPixel> clone, Color color)
         where TPixel : unmanaged, IPixel<TPixel>
-        => clone.ProcessPixelRows(accessor =>
+    {
+        Rgba32 rgba32 = default;
+        Rgba32 transparent = color;
+        for (int y = 0; y < clone.Height; y++)
         {
-            // TODO: We should be able to speed this up with SIMD and masking.
-            Rgba32 rgba32 = default;
-            Rgba32 transparent = color;
-            for (int y = 0; y < accessor.Height; y++)
+            Span<TPixel> row = clone.DangerousGetRowSpan(y);
+            for (int x = 0; x < row.Length; x++)
             {
-                Span<TPixel> span = accessor.GetRowSpan(y);
-                for (int x = 0; x < accessor.Width; x++)
-                {
-                    span[x].ToRgba32(ref rgba32);
+                ref TPixel pixel = ref row[x];
+                pixel.ToRgba32(ref rgba32);
 
-                    if (rgba32.A is 0)
-                    {
-                        span[x].FromRgba32(transparent);
-                    }
+                if (rgba32.A is 0)
+                {
+                    pixel.FromRgba32(transparent);
                 }
             }
-        });
+        }
+    }
 
     /// <summary>
     /// Creates the quantized image and calculates and sets the bit depth.
@@ -1595,7 +1595,7 @@ internal sealed class PngEncoderCore : IDisposable
     /// <param name="paletteQuantizer">The quantizer containing any previously derived palette.</param>
     /// <param name="backgroundColor">The background color.</param>
     private IndexedImageFrame<TPixel>? CreateQuantizedFrame<TPixel>(
-        QuantizingImageEncoder encoder,
+        PngEncoder encoder,
         PngColorType colorType,
         byte bitDepth,
         PngMetadata metadata,
@@ -1667,7 +1667,22 @@ internal sealed class PngEncoderCore : IDisposable
             frameQuantizer.AddPaletteColors(px.GetRegion());
         }
 
-        frameQuantizer.BuildPalette(encoder.PixelSamplingStrategy, image);
+        if (encoder.TransparentColorMode == PngTransparentColorMode.Clear)
+        {
+            foreach (Buffer2DRegion<TPixel> region in encoder.PixelSamplingStrategy.EnumeratePixelRegions(image))
+            {
+                using Buffer2D<TPixel> clone = region.Buffer.CloneRegion(this.configuration, region.Rectangle);
+                Buffer2DRegion<TPixel> clonedRegion = clone.GetRegion();
+
+                ClearTransparentPixels(in clonedRegion, backgroundColor);
+                frameQuantizer.AddPaletteColors(clonedRegion);
+            }
+        }
+        else
+        {
+            frameQuantizer.BuildPalette(encoder.PixelSamplingStrategy, image);
+        }
+
         return frameQuantizer.QuantizeFrame(frame, bounds);
     }
 

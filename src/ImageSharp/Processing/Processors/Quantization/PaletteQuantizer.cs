@@ -11,7 +11,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization;
 public class PaletteQuantizer : IQuantizer
 {
     private readonly ReadOnlyMemory<Color> colorPalette;
-    private readonly int transparentIndex;
+    private readonly int transparencyIndex;
+    private readonly Color transparentColor;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="PaletteQuantizer"/> class.
@@ -25,27 +26,33 @@ public class PaletteQuantizer : IQuantizer
     /// <summary>
     /// Initializes a new instance of the <see cref="PaletteQuantizer"/> class.
     /// </summary>
-    /// <param name="palette">The color palette.</param>
+    /// <param name="palette">The color palette to use.</param>
     /// <param name="options">The quantizer options defining quantization rules.</param>
     public PaletteQuantizer(ReadOnlyMemory<Color> palette, QuantizerOptions options)
-        : this(palette, options, -1)
+        : this(palette, options, -1, default)
     {
     }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="PaletteQuantizer"/> class.
     /// </summary>
-    /// <param name="palette">The color palette.</param>
+    /// <param name="palette">The color palette to use.</param>
     /// <param name="options">The quantizer options defining quantization rules.</param>
-    /// <param name="transparentIndex">An explicit index at which to match transparent pixels.</param>
-    internal PaletteQuantizer(ReadOnlyMemory<Color> palette, QuantizerOptions options, int transparentIndex)
+    /// <param name="transparencyIndex">The index of the color in the palette that should be considered as transparent.</param>
+    /// <param name="transparentColor">The color that should be considered as transparent.</param>
+    internal PaletteQuantizer(
+        ReadOnlyMemory<Color> palette,
+        QuantizerOptions options,
+        int transparencyIndex,
+        Color transparentColor)
     {
         Guard.MustBeGreaterThan(palette.Length, 0, nameof(palette));
         Guard.NotNull(options, nameof(options));
 
         this.colorPalette = palette;
         this.Options = options;
-        this.transparentIndex = transparentIndex;
+        this.transparencyIndex = transparencyIndex;
+        this.transparentColor = transparentColor;
     }
 
     /// <inheritdoc />
@@ -66,6 +73,6 @@ public class PaletteQuantizer : IQuantizer
         // treat the buffer as FILO.
         TPixel[] palette = new TPixel[Math.Min(options.MaxColors, this.colorPalette.Length)];
         Color.ToPixel(this.colorPalette.Span[..palette.Length], palette.AsSpan());
-        return new PaletteQuantizer<TPixel>(configuration, options, palette, this.transparentIndex);
+        return new PaletteQuantizer<TPixel>(configuration, options, palette, this.transparencyIndex, this.transparentColor.ToPixel<TPixel>());
     }
 }

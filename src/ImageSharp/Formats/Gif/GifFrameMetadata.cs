@@ -129,8 +129,7 @@ public class GifFrameMetadata : IFormatFrameMetadata<GifFrameMetadata>
     /// <inheritdoc/>
     public void AfterFrameApply<TPixel>(ImageFrame<TPixel> source, ImageFrame<TPixel> destination)
         where TPixel : unmanaged, IPixel<TPixel>
-    {
-    }
+        => this.LocalColorTable = null;
 
     /// <inheritdoc/>
     IDeepCloneable IDeepCloneable.DeepClone() => this.DeepClone();

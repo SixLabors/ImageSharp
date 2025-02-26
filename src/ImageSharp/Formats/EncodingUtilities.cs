@@ -3,6 +3,7 @@
 
 using System.Buffers;
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
@@ -24,13 +25,29 @@ internal static class EncodingUtilities
     /// to better compression in some cases.
     /// </summary>
     /// <typeparam name="TPixel">The type of the pixel.</typeparam>
-    /// <param name="clone">The cloned <see cref="ImageFrame{TPixel}"/> where the transparent pixels will be changed.</param>
+    /// <param name="frame">The <see cref="ImageFrame{TPixel}"/> where the transparent pixels will be changed.</param>
     /// <param name="color">The color to replace transparent pixels with.</param>
-    public static void ClearTransparentPixels<TPixel>(ImageFrame<TPixel> clone, Color color)
+    public static void ClearTransparentPixels<TPixel>(ImageFrame<TPixel> frame, Color color)
+        where TPixel : unmanaged, IPixel<TPixel>
+        => ClearTransparentPixels(frame.Configuration, frame.PixelBuffer, color);
+
+    /// <summary>
+    /// Convert transparent pixels, to pixels represented by <paramref name="color"/>, which can yield
+    /// to better compression in some cases.
+    /// </summary>
+    /// <typeparam name="TPixel">The type of the pixel.</typeparam>
+    /// <param name="configuration">The configuration.</param>
+    /// <param name="buffer">The  <see cref="Buffer2D{TPixel}"/> where the transparent pixels will be changed.</param>
+    /// <param name="color">The color to replace transparent pixels with.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void ClearTransparentPixels<TPixel>(
+        Configuration configuration,
+        Buffer2D<TPixel> buffer,
+        Color color)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        Buffer2DRegion<TPixel> buffer = clone.PixelBuffer.GetRegion();
-        ClearTransparentPixels(clone.Configuration, ref buffer, color);
+        Buffer2DRegion<TPixel> region = buffer.GetRegion();
+        ClearTransparentPixels(configuration, in region, color);
     }
 
     /// <summary>
@@ -39,29 +56,27 @@ internal static class EncodingUtilities
     /// </summary>
     /// <typeparam name="TPixel">The type of the pixel.</typeparam>
     /// <param name="configuration">The configuration.</param>
-    /// <param name="clone">The cloned <see cref="Buffer2DRegion{T}"/> where the transparent pixels will be changed.</param>
+    /// <param name="region">The <see cref="Buffer2DRegion{T}"/> where the transparent pixels will be changed.</param>
     /// <param name="color">The color to replace transparent pixels with.</param>
     public static void ClearTransparentPixels<TPixel>(
         Configuration configuration,
-        ref Buffer2DRegion<TPixel> clone,
+        in Buffer2DRegion<TPixel> region,
         Color color)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using IMemoryOwner<Vector4> vectors = configuration.MemoryAllocator.Allocate<Vector4>(clone.Width);
+        using IMemoryOwner<Vector4> vectors = configuration.MemoryAllocator.Allocate<Vector4>(region.Width);
         Span<Vector4> vectorsSpan = vectors.GetSpan();
         Vector4 replacement = color.ToScaledVector4();
-        for (int y = 0; y < clone.Height; y++)
+        for (int y = 0; y < region.Height; y++)
         {
-            Span<TPixel> span = clone.DangerousGetRowSpan(y);
+            Span<TPixel> span = region.DangerousGetRowSpan(y);
             PixelOperations<TPixel>.Instance.ToVector4(configuration, span, vectorsSpan, PixelConversionModifiers.Scale);
             ClearTransparentPixelRow(vectorsSpan, replacement);
             PixelOperations<TPixel>.Instance.FromVector4Destructive(configuration, vectorsSpan, span, PixelConversionModifiers.Scale);
         }
     }
 
-    private static void ClearTransparentPixelRow(
-        Span<Vector4> vectorsSpan,
-        Vector4 replacement)
+    private static void ClearTransparentPixelRow(Span<Vector4> vectorsSpan, Vector4 replacement)
     {
         if (Vector128.IsHardwareAccelerated)
         {

@@ -119,6 +119,7 @@ public class IcoFrameMetadata : IFormatFrameMetadata<IcoFrameMetadata>
         float ratioY = destination.Height / (float)source.Height;
         this.EncodingWidth = ScaleEncodingDimension(this.EncodingWidth, destination.Width, ratioX);
         this.EncodingHeight = ScaleEncodingDimension(this.EncodingHeight, destination.Height, ratioY);
+        this.ColorTable = null;
     }
 
     /// <inheritdoc/>

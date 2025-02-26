@@ -44,6 +44,11 @@
     <None Include="..\..\LICENSE" Pack="true" PackagePath="" />
     <None Include="..\..\shared-infrastructure\branding\icons\imagesharp\sixlabors.imagesharp.128.png" Pack="true" PackagePath="" />
     <None Include="..\..\SixLabors.ImageSharp.props" Pack="true" PackagePath="build" />
+    <None Include="Common\InlineArray.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>InlineArray.tt</DependentUpon>
+    </None>
   </ItemGroup>
 
   <ItemGroup>
@@ -51,6 +56,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Update="Common\InlineArray.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>InlineArray.tt</DependentUpon>
+    </Compile>
     <Compile Update="Formats\_Generated\ImageMetadataExtensions.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
@@ -154,6 +164,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Update="Common\InlineArray.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>InlineArray.cs</LastGenOutput>
+    </None>
     <None Update="Formats\_Generated\ImageMetadataExtensions.tt">
       <LastGenOutput>ImageMetadataExtensions.cs</LastGenOutput>
       <Generator>TextTemplatingFileGenerator</Generator>

@@ -536,6 +536,7 @@ public static class TestImages
             public const string Issue2450_B = "Gif/issues/issue_2450_2.gif";
             public const string Issue2198 = "Gif/issues/issue_2198.gif";
             public const string Issue2758 = "Gif/issues/issue_2758.gif";
+            public const string Issue2866 = "Gif/issues/issue_2866.gif";
             public const string Issue2859_A = "Gif/issues/issue_2859_A.gif";
             public const string Issue2859_B = "Gif/issues/issue_2859_B.gif";
         }
@@ -830,6 +831,7 @@ public static class TestImages
             public const string Issue2670 = "Webp/issues/Issue2670.webp";
             public const string Issue2763 = "Webp/issues/Issue2763.png";
             public const string Issue2801 = "Webp/issues/Issue2801.webp";
+            public const string Issue2866 = "Webp/issues/Issue2866.webp";
         }
     }
 

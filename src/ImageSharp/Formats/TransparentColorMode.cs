@@ -18,5 +18,5 @@ public enum TransparentColorMode
     /// to fully transparent pixels (all components set to zero),
     /// which may improve compression.
     /// </summary>
-    Clear = 1,
+    Clear = 1
 }

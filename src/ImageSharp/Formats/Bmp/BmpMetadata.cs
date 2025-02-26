@@ -158,6 +158,5 @@ public class BmpMetadata : IFormatMetadata<BmpMetadata>
     /// <inheritdoc/>
     public void AfterImageApply<TPixel>(Image<TPixel> destination)
         where TPixel : unmanaged, IPixel<TPixel>
-    {
-    }
+        => this.ColorTable = null;
 }

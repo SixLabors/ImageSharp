@@ -101,7 +101,7 @@ public class GifMetadata : IFormatMetadata<GifMetadata>
     /// <inheritdoc/>
     public PixelTypeInfo GetPixelTypeInfo()
     {
-        int bpp = this.GlobalColorTable.HasValue
+        int bpp = this.ColorTableMode == FrameColorTableMode.Global && this.GlobalColorTable.HasValue
             ? Numerics.Clamp(ColorNumerics.GetBitsNeededForColorDepth(this.GlobalColorTable.Value.Length), 1, 8)
             : 8;
 
@@ -115,15 +115,16 @@ public class GifMetadata : IFormatMetadata<GifMetadata>
     /// <inheritdoc/>
     public FormatConnectingMetadata ToFormatConnectingMetadata()
     {
-        Color color = this.GlobalColorTable.HasValue && this.GlobalColorTable.Value.Span.Length > this.BackgroundColorIndex
+        bool global = this.ColorTableMode == FrameColorTableMode.Global;
+        Color color = global && this.GlobalColorTable.HasValue && this.GlobalColorTable.Value.Span.Length > this.BackgroundColorIndex
             ? this.GlobalColorTable.Value.Span[this.BackgroundColorIndex]
             : Color.Transparent;
 
-        return new()
+        return new FormatConnectingMetadata()
         {
             AnimateRootFrame = true,
+            ColorTable = global ? this.GlobalColorTable : null,
             BackgroundColor = color,
-            ColorTable = this.GlobalColorTable,
             ColorTableMode = this.ColorTableMode,
             PixelTypeInfo = this.GetPixelTypeInfo(),
             RepeatCount = this.RepeatCount,
@@ -133,8 +134,7 @@ public class GifMetadata : IFormatMetadata<GifMetadata>
     /// <inheritdoc/>
     public void AfterImageApply<TPixel>(Image<TPixel> destination)
         where TPixel : unmanaged, IPixel<TPixel>
-    {
-    }
+        => this.GlobalColorTable = null;
 
     /// <inheritdoc/>
     IDeepCloneable IDeepCloneable.DeepClone() => this.DeepClone();

@@ -12,6 +12,7 @@ public class QuantizerOptions
 {
     private float ditherScale = QuantizerConstants.MaxDitherScale;
     private int maxColors = QuantizerConstants.MaxColors;
+    private float threshold = QuantizerConstants.DefaultTransparencyThreshold;
 
     /// <summary>
     /// Gets or sets the  algorithm to apply to the output image.
@@ -37,5 +38,15 @@ public class QuantizerOptions
     {
         get => this.maxColors;
         set => this.maxColors = Numerics.Clamp(value, QuantizerConstants.MinColors, QuantizerConstants.MaxColors);
+    }
+
+    /// <summary>
+    /// Gets or sets the threshold at which to consider a pixel transparent. Range 0..1.
+    /// Defaults to <see cref="QuantizerConstants.DefaultTransparencyThreshold"/>.
+    /// </summary>
+    public float TransparencyThreshold
+    {
+        get => this.threshold;
+        set => this.threshold = Numerics.Clamp(value, QuantizerConstants.MinTransparencyThreshold, QuantizerConstants.MaxTransparencyThreshold);
     }
 }

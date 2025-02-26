@@ -419,4 +419,15 @@ public class GifEncoderTests
             }
         });
     }
+
+    [Theory]
+    [WithFile(TestImages.Gif.Issues.Issue2866, PixelTypes.Rgba32)]
+    public void GifEncoder_CanDecode_Issue2866<TPixel>(TestImageProvider<TPixel> provider)
+    where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage();
+
+        // image.DebugSaveMultiFrame(provider);
+        provider.Utility.SaveTestOutputFile(image, "gif", new GifEncoder(), "animated");
+    }
 }

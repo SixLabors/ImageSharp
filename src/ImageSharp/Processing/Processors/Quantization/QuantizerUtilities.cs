@@ -112,7 +112,12 @@ public static class QuantizerUtilities
         IPixelSamplingStrategy pixelSamplingStrategy,
         Image<TPixel> source)
         where TPixel : unmanaged, IPixel<TPixel>
-        => quantizer.BuildPalette(source.Configuration, TransparentColorMode.Preserve, pixelSamplingStrategy, source);
+        => quantizer.BuildPalette(
+            source.Configuration,
+            TransparentColorMode.Preserve,
+            pixelSamplingStrategy,
+            source,
+            Color.Transparent);
 
     /// <summary>
     /// Adds colors to the quantized palette from the given pixel regions.
@@ -123,27 +128,33 @@ public static class QuantizerUtilities
     /// <param name="mode">The transparent color mode.</param>
     /// <param name="pixelSamplingStrategy">The pixel sampling strategy.</param>
     /// <param name="source">The source image to sample from.</param>
+    /// <param name="backgroundColor">The background color to use when clearing transparent pixels.</param>
     public static void BuildPalette<TPixel>(
         this IQuantizer<TPixel> quantizer,
         Configuration configuration,
         TransparentColorMode mode,
         IPixelSamplingStrategy pixelSamplingStrategy,
-        Image<TPixel> source)
+        Image<TPixel> source,
+        Color backgroundColor)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         if (EncodingUtilities.ShouldClearTransparentPixels<TPixel>(mode))
         {
             foreach (Buffer2DRegion<TPixel> region in pixelSamplingStrategy.EnumeratePixelRegions(source))
             {
+                // We need to clone the region to ensure we don't alter the original image.
                 using Buffer2D<TPixel> clone = region.Buffer.CloneRegion(configuration, region.Rectangle);
-                quantizer.AddPaletteColors(clone.GetRegion());
+                Buffer2DRegion<TPixel> clonedRegion = clone.GetRegion();
+
+                EncodingUtilities.ClearTransparentPixels(configuration, in clonedRegion, backgroundColor);
+                quantizer.AddPaletteColors(in clonedRegion);
             }
         }
         else
         {
             foreach (Buffer2DRegion<TPixel> region in pixelSamplingStrategy.EnumeratePixelRegions(source))
             {
-                quantizer.AddPaletteColors(region);
+                quantizer.AddPaletteColors(in region);
             }
         }
     }
@@ -160,7 +171,12 @@ public static class QuantizerUtilities
         IPixelSamplingStrategy pixelSamplingStrategy,
         ImageFrame<TPixel> source)
         where TPixel : unmanaged, IPixel<TPixel>
-        => quantizer.BuildPalette(source.Configuration, TransparentColorMode.Preserve, pixelSamplingStrategy, source);
+        => quantizer.BuildPalette(
+            source.Configuration,
+            TransparentColorMode.Preserve,
+            pixelSamplingStrategy,
+            source,
+            Color.Transparent);
 
     /// <summary>
     /// Adds colors to the quantized palette from the given pixel regions.
@@ -171,27 +187,33 @@ public static class QuantizerUtilities
     /// <param name="mode">The transparent color mode.</param>
     /// <param name="pixelSamplingStrategy">The pixel sampling strategy.</param>
     /// <param name="source">The source image frame to sample from.</param>
+    /// <param name="backgroundColor">The background color to use when clearing transparent pixels.</param>
     public static void BuildPalette<TPixel>(
         this IQuantizer<TPixel> quantizer,
         Configuration configuration,
         TransparentColorMode mode,
         IPixelSamplingStrategy pixelSamplingStrategy,
-        ImageFrame<TPixel> source)
+        ImageFrame<TPixel> source,
+        Color backgroundColor)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         if (EncodingUtilities.ShouldClearTransparentPixels<TPixel>(mode))
         {
+            // We need to clone the region to ensure we don't alter the original image.
             foreach (Buffer2DRegion<TPixel> region in pixelSamplingStrategy.EnumeratePixelRegions(source))
             {
                 using Buffer2D<TPixel> clone = region.Buffer.CloneRegion(configuration, region.Rectangle);
-                quantizer.AddPaletteColors(clone.GetRegion());
+                Buffer2DRegion<TPixel> clonedRegion = clone.GetRegion();
+
+                EncodingUtilities.ClearTransparentPixels(configuration, in clonedRegion, backgroundColor);
+                quantizer.AddPaletteColors(in clonedRegion);
             }
         }
         else
         {
             foreach (Buffer2DRegion<TPixel> region in pixelSamplingStrategy.EnumeratePixelRegions(source))
             {
-                quantizer.AddPaletteColors(region);
+                quantizer.AddPaletteColors(in region);
             }
         }
     }

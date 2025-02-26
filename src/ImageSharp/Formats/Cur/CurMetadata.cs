@@ -152,8 +152,7 @@ public class CurMetadata : IFormatMetadata<CurMetadata>
     /// <inheritdoc/>
     public void AfterImageApply<TPixel>(Image<TPixel> destination)
         where TPixel : unmanaged, IPixel<TPixel>
-    {
-    }
+        => this.ColorTable = null;
 
     /// <inheritdoc/>
     IDeepCloneable IDeepCloneable.DeepClone() => this.DeepClone();

@@ -23,7 +23,7 @@
 
   <PropertyGroup Condition="$(SIXLABORS_TESTING_PREVIEW) == true">
     <!-- Workaround various issues bound to implicit language features. -->
-    <LangVersion>latest</LangVersion>
+    <LangVersion>13.0</LangVersion>
   </PropertyGroup>
 
   <!--

@@ -74,7 +74,8 @@ internal struct WuQuantizer<TPixel> : IQuantizer<TPixel>
     private readonly IMemoryOwner<TPixel> paletteOwner;
     private ReadOnlyMemory<TPixel> palette;
     private int maxColors;
-    private short transparencyThreshold;
+    private readonly float transparencyThreshold;
+    private readonly short transparencyThreshold255;
     private readonly Box[] colorCube;
     private EuclideanPixelMap<TPixel>? pixelMap;
     private readonly bool isDithering;
@@ -102,8 +103,9 @@ internal struct WuQuantizer<TPixel> : IQuantizer<TPixel>
         this.isDisposed = false;
         this.pixelMap = default;
         this.palette = default;
-        this.isDithering = this.isDithering = this.Options.Dither is not null;
-        this.transparencyThreshold = (short)(this.Options.TransparencyThreshold * 255);
+        this.isDithering = this.Options.Dither is not null;
+        this.transparencyThreshold = this.Options.TransparencyThreshold;
+        this.transparencyThreshold255 = (short)(this.Options.TransparencyThreshold * 255);
     }
 
     /// <inheritdoc/>
@@ -152,7 +154,13 @@ internal struct WuQuantizer<TPixel> : IQuantizer<TPixel>
             Moment moment = Volume(ref this.colorCube[k], momentsSpan);
             if (moment.Weight > 0)
             {
-                paletteSpan[k] = TPixel.FromScaledVector4(moment.Normalize());
+                Vector4 normalized = moment.Normalize();
+                if (normalized.W < this.transparencyThreshold)
+                {
+                    normalized = Vector4.Zero;
+                }
+
+                paletteSpan[k] = TPixel.FromScaledVector4(normalized);
             }
         }
 
@@ -179,11 +187,11 @@ internal struct WuQuantizer<TPixel> : IQuantizer<TPixel>
         // In this case, we must use the pixel map to get the closest color.
         if (this.isDithering)
         {
-            return (byte)this.pixelMap!.GetClosestColor(color, out match, this.transparencyThreshold);
+            return (byte)this.pixelMap!.GetClosestColor(color, out match, this.transparencyThreshold255);
         }
 
         Rgba32 rgba = color.ToRgba32();
-        if (rgba.A < this.transparencyThreshold)
+        if (rgba.A < this.transparencyThreshold255)
         {
             rgba = default;
         }

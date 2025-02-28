@@ -40,7 +40,7 @@ public class LoadResizeSaveStressRunner
 
     public double TotalProcessedMegapixels { get; private set; }
 
-    public Size LastProcessedImageSize { get; private set; }
+    public ImageSharpSize LastProcessedImageSize { get; private set; }
 
     private string outputDirectory;
 

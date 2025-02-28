@@ -15,10 +15,10 @@ public class MulUInt32 : SIMDBenchmarkBase<uint>.Multiply
     [Benchmark(Baseline = true)]
     public void Standard()
     {
-        uint v = this.testValue;
-        for (int i = 0; i < this.input.Length; i++)
+        uint v = this.TestValue;
+        for (int i = 0; i < this.Input.Length; i++)
         {
-            this.result[i] = this.input[i] * v;
+            this.Result[i] = this.Input[i] * v;
         }
     }
 }
@@ -28,10 +28,10 @@ public class MulInt32 : SIMDBenchmarkBase<int>.Multiply
     [Benchmark(Baseline = true)]
     public void Standard()
     {
-        int v = this.testValue;
-        for (int i = 0; i < this.input.Length; i++)
+        int v = this.TestValue;
+        for (int i = 0; i < this.Input.Length; i++)
         {
-            this.result[i] = this.input[i] * v;
+            this.Result[i] = this.Input[i] * v;
         }
     }
 }
@@ -45,10 +45,10 @@ public class MulInt16 : SIMDBenchmarkBase<short>.Multiply
     [Benchmark(Baseline = true)]
     public void Standard()
     {
-        short v = this.testValue;
-        for (int i = 0; i < this.input.Length; i++)
+        short v = this.TestValue;
+        for (int i = 0; i < this.Input.Length; i++)
         {
-            this.result[i] = (short)(this.input[i] * v);
+            this.Result[i] = (short)(this.Input[i] * v);
         }
     }
 }

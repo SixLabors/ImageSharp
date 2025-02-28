@@ -62,9 +62,7 @@ public abstract class FromRgba32Bytes<TPixel>
         => PixelOperations<TPixel>.Instance.FromRgba32Bytes(this.configuration, this.source.GetSpan(), this.destination.GetSpan(), this.Count);
 }
 
-public class FromRgba32Bytes_ToRgba32 : FromRgba32Bytes<Rgba32>
-{
-}
+public class FromRgba32Bytes_ToRgba32 : FromRgba32Bytes<Rgba32>;
 
 public class FromRgba32Bytes_ToBgra32 : FromRgba32Bytes<Bgra32>
 {

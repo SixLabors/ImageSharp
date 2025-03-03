@@ -184,7 +184,7 @@ internal sealed class EuclideanPixelMap<TPixel> : IDisposable
     /// <remarks>
     /// This cache uses a fallback table with  2,097,152 bins, each storing a 2-byte value
     /// (approximately 4 MB total), while the exact-match dictionary is limited to 256 entries
-    /// and occupies roughly 4 KB. Overall, the worst-case memory usage is about 2 MB.
+    /// and occupies roughly 4 KB. Overall, the worst-case memory usage is about 4 MB.
     /// Lookups and insertions are performed in constant time (O(1)) because the fallback table
     /// is accessed via direct indexing and the dictionary employs a simple hash-based bucket mechanism.
     /// The design achieves extremely fast color distance lookups with a predictable, fixed memory footprint.

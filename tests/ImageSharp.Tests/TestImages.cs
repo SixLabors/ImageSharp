@@ -507,6 +507,31 @@ public static class TestImages
         public const string Bit18RGBCube = "Gif/18-bit_RGB_Cube.gif";
         public const string Global256NoTrans = "Gif/global-256-no-trans.gif";
 
+        // Test imagages from: https://github.com/peterdn/gif-test-suite.git
+        // Animated gif with 4 frames, looping forever, no transparency.
+        public const string AnimatedLoop = "Gif/animated_loop.gif";
+
+        // Animated gif with 4 frames, interlaced, looping forever, no transparency.
+        public const string AnimatedLoopInterlaced = "Gif/animated_loop_interlaced.gif";
+
+        // Transparent gif with 4 frames, loops forever.
+        public const string AnimatedTransparentLoop = "Gif/animated_transparent_loop.gif";
+
+        // Transparent gif with 4 frames, loops forever, first frame restore previous.
+        public const string AnimatedTransparentFirstFrameRestorePrev = "Gif/animated_transparent_firstframerestoreprev_loop.gif";
+
+        // Transparent gif with 4 transparent frames, loops forever, no dispose
+        public const string AnimatedTransparentNoRestore = "Gif/animated_transparent_frame_norestore_loop.gif";
+
+        // Transparent gif with 4 transparent frames, loops forever, restore previous.
+        public const string AnimatedTransparentRestorePrevious = "Gif/animated_transparent_frame_restoreprev_loop.gif";
+
+        // Static gif with no animation, no transparency.
+        public const string StaticNontransparent = "Gif/static_nontransparent.gif";
+
+        // Static transparent gif with no animation.
+        public const string StaticTransparent = "Gif/static_transparent.gif";
+
         // Test images from https://github.com/robert-ancell/pygif/tree/master/test-suite
         public const string ZeroSize = "Gif/image-zero-size.gif";
         public const string ZeroHeight = "Gif/image-zero-height.gif";

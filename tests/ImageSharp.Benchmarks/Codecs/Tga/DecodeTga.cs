@@ -31,7 +31,7 @@ public class DecodeTga
     {
         MagickReadSettings settings = new() { Format = MagickFormat.Tga };
         using MagickImage image = new(new MemoryStream(this.data), settings);
-        return (int)image.Width;
+        return image.Width;
     }
 
     [Benchmark(Description = "ImageSharp Tga")]
@@ -48,7 +48,7 @@ public class DecodeTga
         return image.Width;
     }
 
-    private class PfimAllocator : IImageAllocator
+    private sealed class PfimAllocator : IImageAllocator
     {
         private int rented;
         private readonly ArrayPool<byte> shared = ArrayPool<byte>.Shared;

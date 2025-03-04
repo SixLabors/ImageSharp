@@ -22,7 +22,7 @@ public class EncodeGifMultiple : MultiImageBenchmarkBase.WithImagesPreloaded
         => this.ForEachImageSharpImage((img, ms) =>
         {
             // Try to get as close to System.Drawing's output as possible
-            var options = new GifEncoder
+            GifEncoder options = new()
             {
                 Quantizer = new WebSafePaletteQuantizer(new QuantizerOptions { Dither = KnownDitherings.Bayer4x4 })
             };

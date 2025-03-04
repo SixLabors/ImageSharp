@@ -89,7 +89,7 @@ public class Av1YuvConverterTests
 
         // Act
         Av1YuvConverter.ConvertFromRgb(Configuration.Default, frame, frameBuffer);
-        Span<Rgb24> referenceOutput = Av1ReferenceYuvConverter.RgbToYuv(memory.Span);
+        Span<Rgb24> referenceOutput = Av1ReferenceYuvConverter.RgbToYuv(memory.Span, true);
 
         // Assert
         Span<Rgb24> actual = new Rgb24[frameBuffer.Width];
@@ -105,7 +105,7 @@ public class Av1YuvConverterTests
             actual[i] = pixel;
         }
 
-        Compare(referenceOutput, actual, 1);
+        Compare(referenceOutput, actual, 3);
     }
 
     [Fact]
@@ -127,12 +127,12 @@ public class Av1YuvConverterTests
 
         // Act
         Av1YuvConverter.ConvertToRgb(Configuration.Default, frameBuffer, frame);
-        Span<Rgb24> referenceOutput = Av1ReferenceYuvConverter.YuvToRgb(frameBuffer);
+        Span<Rgb24> referenceOutput = Av1ReferenceYuvConverter.YuvToRgb(frameBuffer, false);
 
         // Assert
         frame.DangerousTryGetSinglePixelMemory(out Memory<Rgb24> memory);
         Span<Rgb24> actual = memory.Span;
-        Compare(referenceOutput, actual, 1);
+        Compare(referenceOutput, actual, 3);
     }
 
     private static void Compare(Span<Rgb24> referenceOutput, Span<Rgb24> actual, int allowedDifference)

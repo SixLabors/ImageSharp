@@ -42,16 +42,17 @@ internal class Av1ReferenceYuvConverter
 
     private const double Wg = 1 - Wr - Wb;
 
-    public static Span<Rgb24> RgbToYuv(Span<Rgb24> row)
+    public static Span<Rgb24> RgbToYuv(Span<Rgb24> row, bool normalized)
     {
         Rgb24[] result = new Rgb24[row.Length];
         for (int i = 0; i < row.Length; i++)
         {
-            double[] current = RgbToYuv(row[i], false, true, false);
-            byte y = (byte)current[0];
-            byte u = (byte)current[1];
-            byte v = (byte)current[2];
-            result[i] = new Rgb24(y, u, v);
+            double[] current = RgbToYuv(row[i], normalized, true, false);
+            double y = Math.Max(0, Math.Min(255, Math.Round(current[0])));
+            double u = Math.Max(0, Math.Min(255, Math.Round(current[1])));
+            double v = Math.Max(0, Math.Min(255, Math.Round(current[2])));
+
+            result[i] = new Rgb24((byte)y, (byte)u, (byte)v);
         }
 
         return result;
@@ -96,7 +97,7 @@ internal class Av1ReferenceYuvConverter
         return [y, u, v];
     }
 
-    public static Span<Rgb24> YuvToRgb(Av1FrameBuffer<byte> frameBuffer)
+    public static Span<Rgb24> YuvToRgb(Av1FrameBuffer<byte> frameBuffer, bool normalized)
     {
         Span<byte> yRow = frameBuffer.BufferY!.DangerousGetSingleSpan();
         Span<byte> uRow = frameBuffer.BufferCb!.DangerousGetSingleSpan();
@@ -108,13 +109,25 @@ internal class Av1ReferenceYuvConverter
             yuv[0] = yRow[i];
             yuv[1] = uRow[i];
             yuv[2] = vRow[i];
-            result[i] = YuvToRgb(yuv, false, true, false);
+            double[] rgb = YuvToRgb(yuv, normalized, true, false);
+            double r = rgb[0] * 255;
+            double g = rgb[1] * 255;
+            double b = rgb[2] * 255;
+            byte redByte = (byte)Math.Max(0, Math.Min(255, Math.Round(r)));
+            byte greenByte = (byte)Math.Max(0, Math.Min(255, Math.Round(g)));
+            byte blueByte = (byte)Math.Max(0, Math.Min(255, Math.Round(b)));
+
+            // Assert.True(Math.Abs(redByte - r) < 3, $"Red pixel out of byte range: {redByte} iso {r} from input Y={yuv[0]}, U={yuv[1]} and V={yuv[2]}.");
+            // Assert.True(Math.Abs(greenByte - g) < 3, $"Green pixel out of byte range: {greenByte} iso {g} from input Y={yuv[0]}, U={yuv[1]} and V={yuv[2]}.");
+            // Assert.True(Math.Abs(blueByte - b) < 3, $"Blue pixel out of byte range: {blueByte} iso {b} from input Y={yuv[0]}, U={yuv[1]} and V={yuv[2]}.");
+
+            result[i] = new Rgb24(redByte, greenByte, blueByte);
         }
 
         return result;
     }
 
-    public static Rgb24 YuvToRgb(double[] yuv, bool normalized = false, bool is_8bit = false, bool is_10bit = false)
+    public static double[] YuvToRgb(double[] yuv, bool normalized = false, bool is_8bit = false, bool is_10bit = false)
     {
         double y = yuv[0];
         double u = yuv[1];
@@ -151,6 +164,6 @@ internal class Av1ReferenceYuvConverter
         double g = y - (u * Wb * (1 - Wb) / (Umax * Wg)) - (v * Wr * (1 - Wr) / (Vmax * Wg));
         double b = y + (u * (1 - Wb) / Umax);
 
-        return new Rgb24((byte)Math.Round(r * 255), (byte)Math.Round(g * 255), (byte)Math.Round(b * 255));
+        return [r, g, b];
     }
 }

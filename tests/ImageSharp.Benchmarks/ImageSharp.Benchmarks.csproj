@@ -11,7 +11,8 @@
     <IsTestProject>false</IsTestProject>
     <Configurations>Debug;Release</Configurations>
     <!-- Uncomment this to run benchmarks depending on Colorful or Pfim (colorspaces and TGA): -->
-    <!--<SignAssembly>false</SignAssembly>-->    
+    <!--<SignAssembly>false</SignAssembly>-->
+    <LangVersion>12.0</LangVersion>
   </PropertyGroup>
 
   <PropertyGroup>

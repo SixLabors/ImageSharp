@@ -14,6 +14,7 @@
     <EnsureNETCoreAppRuntime>false</EnsureNETCoreAppRuntime>
     <Configurations>Debug;Release</Configurations>
     <ValidateExecutableReferencesMatchSelfContained>false</ValidateExecutableReferencesMatchSelfContained>
+    <LangVersion>12.0</LangVersion>
   </PropertyGroup>
 
   <Choose>

@@ -13,7 +13,6 @@
     <PackageTags>Image Resize Crop Gif Jpg Jpeg Bitmap Pbm Png Tga Tiff WebP NetCore</PackageTags>
     <Description>A new, fully featured, fully managed, cross-platform, 2D graphics API for .NET</Description>
     <Configurations>Debug;Release</Configurations>
-    <LangVersion>12.0</LangVersion>
   </PropertyGroup>
 
   <!--  This enables the nullable analysis and treats all nullable warnings as error-->

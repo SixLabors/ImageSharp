@@ -2,138 +2,122 @@
 // Licensed under the Six Labors Split License.
 
 using System.Buffers.Binary;
-using System.Text;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Webp.Chunks;
 
 namespace SixLabors.ImageSharp.Formats.Webp;
 
 internal static class RiffHelper
 {
-    /// <summary>
-    /// The header bytes identifying RIFF file.
-    /// </summary>
-    private const uint RiffFourCc = 0x52_49_46_46;
-
-    public static void WriteRiffFile(Stream stream, string formType, Action<Stream> func) =>
-        WriteChunk(stream, RiffFourCc, s =>
-        {
-            s.Write(Encoding.ASCII.GetBytes(formType));
-            func(s);
-        });
-
-    public static void WriteChunk(Stream stream, uint fourCc, Action<Stream> func)
-    {
-        Span<byte> buffer = stackalloc byte[4];
-
-        // write the fourCC
-        BinaryPrimitives.WriteUInt32BigEndian(buffer, fourCc);
-        stream.Write(buffer);
-
-        long sizePosition = stream.Position;
-        stream.Position += 4;
-
-        func(stream);
-
-        long position = stream.Position;
-
-        uint dataSize = (uint)(position - sizePosition - 4);
-
-        // padding
-        if (dataSize % 2 == 1)
-        {
-            stream.WriteByte(0);
-            position++;
-        }
-
-        BinaryPrimitives.WriteUInt32LittleEndian(buffer, dataSize);
-        stream.Position = sizePosition;
-        stream.Write(buffer);
-        stream.Position = position;
-    }
-
     public static void WriteChunk(Stream stream, uint fourCc, ReadOnlySpan<byte> data)
     {
-        Span<byte> buffer = stackalloc byte[4];
-
-        // write the fourCC
-        BinaryPrimitives.WriteUInt32BigEndian(buffer, fourCc);
-        stream.Write(buffer);
-        uint size = (uint)data.Length;
-        BinaryPrimitives.WriteUInt32LittleEndian(buffer, size);
-        stream.Write(buffer);
+        long pos = BeginWriteChunk(stream, fourCc);
         stream.Write(data);
-
-        // padding
-        if (size % 2 is 1)
-        {
-            stream.WriteByte(0);
-        }
+        EndWriteChunk(stream, pos);
     }
 
-    public static unsafe void WriteChunk<TStruct>(Stream stream, uint fourCc, in TStruct chunk)
-        where TStruct : unmanaged
+    public static void WriteChunk<TStruct>(Stream stream, uint fourCc, in TStruct chunk)
+        where TStruct : unmanaged =>
+        WriteChunk(stream, fourCc, MemoryMarshal.AsBytes(MemoryMarshal.CreateReadOnlySpan(in chunk, 1)));
+
+    public static long BeginWriteChunk(Stream stream, ReadOnlySpan<byte> fourCc)
     {
-        fixed (TStruct* ptr = &chunk)
-        {
-            WriteChunk(stream, fourCc, new Span<byte>(ptr, sizeof(TStruct)));
-        }
+        // write the fourCC
+        stream.Write(fourCc);
+
+        long sizePosition = stream.Position;
+
+        // Leaving the place for the size
+        stream.Position += 4;
+
+        return sizePosition;
     }
 
     public static long BeginWriteChunk(Stream stream, uint fourCc)
     {
         Span<byte> buffer = stackalloc byte[4];
-
-        // write the fourCC
         BinaryPrimitives.WriteUInt32BigEndian(buffer, fourCc);
-        stream.Write(buffer);
+        return BeginWriteChunk(stream, buffer);
+    }
 
-        long sizePosition = stream.Position;
-        stream.Position += 4;
-
+    public static long BeginWriteRiff(Stream stream, ReadOnlySpan<byte> formType)
+    {
+        long sizePosition = BeginWriteChunk(stream, "RIFF"u8);
+        stream.Write(formType);
         return sizePosition;
     }
 
-    public static void EndWriteChunk(Stream stream, long sizePosition)
+    public static long BeginWriteList(Stream stream, ReadOnlySpan<byte> listType)
     {
-        Span<byte> buffer = stackalloc byte[4];
+        long sizePosition = BeginWriteChunk(stream, "LIST"u8);
+        stream.Write(listType);
+        return sizePosition;
+    }
 
-        long position = stream.Position;
+    public static void EndWriteChunk(Stream stream, long sizePosition, int alignment = 1)
+    {
+        Guard.MustBeGreaterThan(alignment, 0, nameof(alignment));
 
-        uint dataSize = (uint)(position - sizePosition - 4);
+        long currentPosition = stream.Position;
 
-        // padding
-        if (dataSize % 2 is 1)
+        uint dataSize = (uint)(currentPosition - sizePosition - 4);
+
+        // Add padding
+        while (dataSize % alignment is not 0)
         {
             stream.WriteByte(0);
-            position++;
+            dataSize++;
+            currentPosition++;
         }
 
         // Add the size of the encoded file to the Riff header.
-        BinaryPrimitives.WriteUInt32LittleEndian(buffer, dataSize);
         stream.Position = sizePosition;
-        stream.Write(buffer);
-        stream.Position = position;
+        stream.Write(MemoryMarshal.CreateReadOnlySpan(ref Unsafe.As<uint, byte>(ref dataSize), sizeof(uint)));
+        stream.Position = currentPosition;
     }
 
-    public static long BeginWriteRiffFile(Stream stream, string formType)
+    public static void EndWriteVp8X(Stream stream, in WebpVp8X vp8X, bool updateVp8X, long initPosition)
     {
-        long sizePosition = BeginWriteChunk(stream, RiffFourCc);
-        stream.Write(Encoding.ASCII.GetBytes(formType));
-        return sizePosition;
-    }
-
-    public static void EndWriteRiffFile(Stream stream, in WebpVp8X vp8x, bool updateVp8x, long sizePosition)
-    {
-        EndWriteChunk(stream, sizePosition + 4);
+        // Jump through "RIFF" fourCC
+        EndWriteChunk(stream, initPosition + 4, 2);
 
         // Write the VP8X chunk if necessary.
-        if (updateVp8x)
+        if (updateVp8X)
         {
             long position = stream.Position;
 
-            stream.Position = sizePosition + 12;
-            vp8x.WriteTo(stream);
+            stream.Position = initPosition + 12;
+            vp8X.WriteTo(stream);
             stream.Position = position;
         }
     }
+}
+
+internal readonly struct RiffChunkHeader
+{
+    public readonly uint FourCc;
+
+    public ReadOnlySpan<byte> FourCcBytes => MemoryMarshal.CreateReadOnlySpan(ref Unsafe.As<uint, byte>(ref Unsafe.AsRef(in this.FourCc)), sizeof(uint));
+
+    public readonly uint Size;
+}
+
+internal readonly struct RiffOrListChunkHeader
+{
+    public const int HeaderSize = 12;
+
+    public readonly uint FourCc;
+
+    public readonly uint Size;
+
+    public readonly uint FormType;
+
+    public ReadOnlySpan<byte> FourCcBytes => MemoryMarshal.CreateReadOnlySpan(ref Unsafe.As<uint, byte>(ref Unsafe.AsRef(in this.FourCc)), sizeof(uint));
+
+    public bool IsRiff => this.FourCc is 0x52_49_46_46; // "RIFF"
+
+    public bool IsList => this.FourCc is 0x4C_49_53_54; // "LIST"
+
+    public static ref RiffOrListChunkHeader Parse(ReadOnlySpan<byte> data) => ref Unsafe.As<byte, RiffOrListChunkHeader>(ref MemoryMarshal.GetReference(data));
 }

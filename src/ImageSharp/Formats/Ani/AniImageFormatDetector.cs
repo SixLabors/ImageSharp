@@ -2,28 +2,29 @@
 // Licensed under the Six Labors Split License.
 
 using System.Diagnostics.CodeAnalysis;
+using SixLabors.ImageSharp.Formats.Webp;
 
-namespace SixLabors.ImageSharp.Formats.Webp;
+namespace SixLabors.ImageSharp.Formats.Ani;
 
 /// <summary>
-/// Detects Webp file headers.
+/// Detects ico file headers.
 /// </summary>
-public sealed class WebpImageFormatDetector : IImageFormatDetector
+public class AniImageFormatDetector : IImageFormatDetector
 {
-    /// <inheritdoc />
+    /// <inheritdoc/>
     public int HeaderSize => RiffOrListChunkHeader.HeaderSize;
 
-    /// <inheritdoc />
+    /// <inheritdoc/>
     public bool TryDetectFormat(ReadOnlySpan<byte> header, [NotNullWhen(true)] out IImageFormat? format)
     {
-        format = this.IsSupportedFileFormat(header) ? WebpFormat.Instance : null;
-        return format != null;
+        format = this.IsSupportedFileFormat(header) ? AniFormat.Instance : null;
+        return format is not null;
     }
 
     private bool IsSupportedFileFormat(ReadOnlySpan<byte> header)
         => header.Length >= this.HeaderSize && RiffOrListChunkHeader.Parse(header) is
         {
             IsRiff: true,
-            FormType: WebpConstants.WebpFourCc
+            FormType: AniConstants.AniFourCc
         };
 }

@@ -1,11 +1,11 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace SixLabors.ImageSharp.Formats.Ani;
 
-[StructLayout(LayoutKind.Sequential, Pack = 1, Size = 36)]
 internal readonly struct AniHeader
 {
     public uint Size { get; }
@@ -26,16 +26,24 @@ internal readonly struct AniHeader
 
     public AniHeaderFlags Flags { get; }
 
-    public static AniHeader Parse(in ReadOnlySpan<byte> data)
-    => MemoryMarshal.Cast<byte, AniHeader>(data)[0];
+    public static ref AniHeader Parse(ReadOnlySpan<byte> data) => ref Unsafe.As<byte, AniHeader>(ref MemoryMarshal.GetReference(data));
 
-    public readonly unsafe void WriteTo(in Stream stream)
-    => stream.Write(MemoryMarshal.Cast<AniHeader, byte>([this]));
+    public void WriteTo(in Stream stream) => stream.Write(MemoryMarshal.AsBytes(MemoryMarshal.CreateReadOnlySpan(in this, 1)));
 }
 
+/// <summary>
+/// Flags for the ANI header.
+/// </summary>
 [Flags]
 public enum AniHeaderFlags : uint
 {
+    /// <summary>
+    /// If set, the ANI file's "icon" chunk contains an ICO or CUR file, otherwise it contains a BMP file.
+    /// </summary>
     IsIcon = 1,
+
+    /// <summary>
+    /// If set, the ANI file contains a "seq " chunk.
+    /// </summary>
     ContainsSeq = 2
 }

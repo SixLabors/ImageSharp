@@ -101,7 +101,7 @@ jobs:
         run: git lfs ls-files -l | cut -d' ' -f1 | sort > .lfs-assets-id
 
       - name: Git Setup LFS Cache
-        uses: actions/cache@v2
+        uses: actions/cache@v4
         id: lfs-cache
         with:
           path: .git/lfs
@@ -114,7 +114,7 @@ jobs:
         uses: NuGet/setup-nuget@v1
 
       - name: NuGet Setup Cache
-        uses: actions/cache@v2
+        uses: actions/cache@v4
         id: nuget-cache
         with:
           path: ~/.nuget

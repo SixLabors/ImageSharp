@@ -47,7 +47,7 @@ jobs:
         uses: NuGet/setup-nuget@v1
 
       - name: NuGet Setup Cache
-        uses: actions/cache@v2
+        uses: actions/cache@v4
         id: nuget-cache
         with:
           path: ~/.nuget

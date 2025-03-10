@@ -5,6 +5,7 @@ using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
+using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 
@@ -34,6 +35,8 @@ public class Av1TilingTests
 
         // Assert
         Assert.Equal(dataSize * 8, bitStreamReader.BitPosition);
+        Assert.False(frameBuffer.BufferY.Size().IsEmpty);
+        Assert.True(frameBuffer.BufferY.DangerousGetSingleSpan().ContainsAnyExcept<byte>(0));
     }
 
     [Theory]

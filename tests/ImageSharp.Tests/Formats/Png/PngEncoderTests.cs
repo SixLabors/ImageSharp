@@ -489,7 +489,7 @@ public partial class PngEncoderTests
     public void Encode_AnimatedFormatTransform_FromGif<TPixel>(TestImageProvider<TPixel> provider, float percentage)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        if (TestEnvironment.RunsOnCI)
+        if (TestEnvironment.RunsOnCI && !TestEnvironment.IsWindows)
         {
             return;
         }

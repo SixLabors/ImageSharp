@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Buffers;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Memory;
@@ -126,7 +127,7 @@ internal sealed class EuclideanPixelMap<TPixel> : IDisposable
         {
             // We have explicit instructions. No need to search.
             index = this.transparentIndex;
-            this.cache.Add(rgba, (byte)index);
+            this.cache.Add(rgba, (short)index);
             match = this.transparentMatch;
             return index;
         }
@@ -153,7 +154,7 @@ internal sealed class EuclideanPixelMap<TPixel> : IDisposable
         }
 
         // Now I have the index, pop it into the cache for next time
-        this.cache.Add(rgba, (byte)index);
+        this.cache.Add(rgba, (short)index);
         match = Unsafe.Add(ref paletteRef, (uint)index);
 
         return index;
@@ -168,11 +169,9 @@ internal sealed class EuclideanPixelMap<TPixel> : IDisposable
     [MethodImpl(InliningOptions.ShortMethod)]
     private static float DistanceSquared(Rgba32 a, Rgba32 b)
     {
-        float deltaR = a.R - b.R;
-        float deltaG = a.G - b.G;
-        float deltaB = a.B - b.B;
-        float deltaA = a.A - b.A;
-        return (deltaR * deltaR) + (deltaG * deltaG) + (deltaB * deltaB) + (deltaA * deltaA);
+        Vector4 va = new(a.R, a.G, a.B, a.A);
+        Vector4 vb = new(b.R, b.G, b.B, b.A);
+        return Vector4.DistanceSquared(va, vb);
     }
 
     public void Dispose() => this.cache.Dispose();
@@ -221,7 +220,7 @@ internal sealed class EuclideanPixelMap<TPixel> : IDisposable
             this.exactCache = new ExactCache(allocator);
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public readonly void Add(Rgba32 color, short index)
         {
             if (this.exactCache.TryAdd(color.PackedValue, index))
@@ -232,7 +231,7 @@ internal sealed class EuclideanPixelMap<TPixel> : IDisposable
             this.fallbackPointer[GetCoarseIndex(color)] = index;
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         public readonly bool TryGetValue(Rgba32 color, out short match)
         {
             if (this.exactCache.TryGetValue(color.PackedValue, out match))
@@ -244,7 +243,7 @@ internal sealed class EuclideanPixelMap<TPixel> : IDisposable
             return match > -1; // Coarse match found
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(InliningOptions.ShortMethod)]
         private static int GetCoarseIndex(Rgba32 color)
         {
             int rIndex = color.R >> (8 - IndexRBits);
@@ -325,8 +324,6 @@ internal sealed class EuclideanPixelMap<TPixel> : IDisposable
         /// </summary>
         /// <param name="key">The key to add.</param>
         /// <param name="value">The value to add.</param>
-        /// <returns><see langword="true"/> if the key was added; otherwise, <see langword="false"/>.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryAdd(uint key, short value)
         {
             if (this.Count == Capacity)
@@ -380,7 +377,6 @@ internal sealed class EuclideanPixelMap<TPixel> : IDisposable
         /// <param name="key">The key to search for.</param>
         /// <param name="value">The value associated with the key, if found.</param>
         /// <returns><see langword="true"/> if the key is found; otherwise, <see langword="false"/>.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryGetValue(uint key, out short value)
         {
             int bucket = (int)(((key >> 16) ^ (key >> 8) ^ key) & 0x1FF);

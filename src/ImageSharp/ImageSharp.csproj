@@ -13,6 +13,13 @@
     <PackageTags>Image Resize Crop Gif Jpg Jpeg Bitmap Pbm Png Tga Tiff WebP NetCore</PackageTags>
     <Description>A new, fully featured, fully managed, cross-platform, 2D graphics API for .NET</Description>
     <Configurations>Debug;Release</Configurations>
+
+    <!--
+    Enable preview features so we can use them for internal operations
+    but don't require downstream users to enable them.
+    -->
+    <EnablePreviewFeatures>True</EnablePreviewFeatures>
+    <GenerateRequiresPreviewFeaturesAttribute>False</GenerateRequiresPreviewFeaturesAttribute>
   </PropertyGroup>
 
   <!--  This enables the nullable analysis and treats all nullable warnings as error-->

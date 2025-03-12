@@ -80,7 +80,7 @@ internal sealed class PaletteDitherProcessor<TPixel> : ImageProcessor<TPixel>
         Justification = "https://github.com/dotnet/roslyn-analyzers/issues/6151")]
     internal readonly struct DitherProcessor : IPaletteDitherImageProcessor<TPixel>, IDisposable
     {
-        private readonly EuclideanPixelMap<TPixel> pixelMap;
+        private readonly PixelMap<TPixel> pixelMap;
 
         [MethodImpl(InliningOptions.ShortMethod)]
         public DitherProcessor(
@@ -89,7 +89,7 @@ internal sealed class PaletteDitherProcessor<TPixel> : ImageProcessor<TPixel>
             float ditherScale)
         {
             this.Configuration = configuration;
-            this.pixelMap = new EuclideanPixelMap<TPixel>(configuration, palette);
+            this.pixelMap = PixelMapFactory.Create(configuration, palette, ColorMatchingMode.Hybrid);
             this.Palette = palette;
             this.DitherScale = ditherScale;
         }
@@ -103,7 +103,7 @@ internal sealed class PaletteDitherProcessor<TPixel> : ImageProcessor<TPixel>
         [MethodImpl(InliningOptions.ShortMethod)]
         public TPixel GetPaletteColor(TPixel color)
         {
-            this.pixelMap.GetClosestColor(color, out TPixel match);
+            _ = this.pixelMap.GetClosestColor(color, out TPixel match);
             return match;
         }
 

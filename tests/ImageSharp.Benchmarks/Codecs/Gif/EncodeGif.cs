@@ -23,7 +23,7 @@ public class EncodeGif
     // Try to get as close to System.Drawing's output as possible
     private readonly GifEncoder encoder = new GifEncoder
     {
-        Quantizer = new WebSafePaletteQuantizer(new QuantizerOptions { Dither = KnownDitherings.Bayer4x4 })
+        Quantizer = new WebSafePaletteQuantizer(new QuantizerOptions { Dither = KnownDitherings.Bayer4x4, ColorMatchingMode = ColorMatchingMode.Coarse })
     };
 
     [Params(TestImages.Bmp.Car, TestImages.Png.Rgb48Bpp)]

@@ -75,7 +75,7 @@ internal struct WuQuantizer<TPixel> : IQuantizer<TPixel>
     private ReadOnlyMemory<TPixel> palette;
     private int maxColors;
     private readonly Box[] colorCube;
-    private EuclideanPixelMap<TPixel>? pixelMap;
+    private PixelMap<TPixel>? pixelMap;
     private readonly bool isDithering;
     private bool isDisposed;
 
@@ -161,7 +161,7 @@ internal struct WuQuantizer<TPixel> : IQuantizer<TPixel>
         // Create the pixel map if dithering is enabled.
         if (this.isDithering && this.pixelMap is null)
         {
-            this.pixelMap = new EuclideanPixelMap<TPixel>(this.Configuration, this.palette);
+            this.pixelMap = PixelMapFactory.Create(this.Configuration, this.palette, this.Options.ColorMatchingMode);
         }
     }
 

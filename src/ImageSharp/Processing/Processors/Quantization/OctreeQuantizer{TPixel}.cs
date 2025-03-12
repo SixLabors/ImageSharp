@@ -28,7 +28,7 @@ public struct OctreeQuantizer<TPixel> : IQuantizer<TPixel>
     private readonly Octree octree;
     private readonly IMemoryOwner<TPixel> paletteOwner;
     private ReadOnlyMemory<TPixel> palette;
-    private EuclideanPixelMap<TPixel>? pixelMap;
+    private PixelMap<TPixel>? pixelMap;
     private readonly bool isDithering;
     private bool isDisposed;
 
@@ -114,7 +114,7 @@ public struct OctreeQuantizer<TPixel> : IQuantizer<TPixel>
         this.octree.Palletize(paletteSpan, max, ref paletteIndex);
         ReadOnlyMemory<TPixel> result = this.paletteOwner.Memory[..paletteSpan.Length];
 
-        this.pixelMap = new EuclideanPixelMap<TPixel>(this.Configuration, result);
+        this.pixelMap = PixelMapFactory.Create(this.Configuration, result, this.Options.ColorMatchingMode);
         this.palette = result;
     }
 

@@ -21,7 +21,7 @@ namespace SixLabors.ImageSharp.Formats.Ani;
 
 internal class AniDecoderCore(DecoderOptions options) : ImageDecoderCore(options)
 {
-    private enum ListIconChunkType
+    private enum ListIconChunkType : byte
     {
         Ico = 1,
         Cur = 2,

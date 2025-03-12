@@ -28,7 +28,7 @@ internal readonly struct AniHeader
 
     public static ref AniHeader Parse(ReadOnlySpan<byte> data) => ref Unsafe.As<byte, AniHeader>(ref MemoryMarshal.GetReference(data));
 
-    public void WriteTo(in Stream stream) => stream.Write(MemoryMarshal.AsBytes(MemoryMarshal.CreateReadOnlySpan(in this, 1)));
+    public void WriteTo(Stream stream) => stream.Write(MemoryMarshal.AsBytes(MemoryMarshal.CreateReadOnlySpan(in this, 1)));
 }
 
 /// <summary>

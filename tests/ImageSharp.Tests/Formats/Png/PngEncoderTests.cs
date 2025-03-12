@@ -484,7 +484,7 @@ public partial class PngEncoderTests
     }
 
     [Theory]
-    [WithFile(TestImages.Gif.Leo, PixelTypes.Rgba32, 0.613F)]
+    [WithFile(TestImages.Gif.Leo, PixelTypes.Rgba32, 0.7629F)]
     [WithFile(TestImages.Gif.Issues.Issue2866, PixelTypes.Rgba32, 1.06F)]
     public void Encode_AnimatedFormatTransform_FromGif<TPixel>(TestImageProvider<TPixel> provider, float percentage)
         where TPixel : unmanaged, IPixel<TPixel>

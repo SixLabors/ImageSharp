@@ -31,11 +31,6 @@ internal static class WebpConstants
     /// <summary>
     /// Gets the header bytes identifying a Webp.
     /// </summary>
-    public static ReadOnlySpan<byte> WebpFormTypeFourCc => "WEBP"u8;
-
-    /// <summary>
-    /// Gets the header bytes identifying a Webp.
-    /// </summary>
     public const uint WebpFourCc = 0x57_45_42_50;
 
     /// <summary>
@@ -302,4 +297,9 @@ internal static class WebpConstants
         -7, 8,
         -8, -9
     };
+
+    /// <summary>
+    /// Gets the header bytes identifying a Webp.
+    /// </summary>
+    public static ReadOnlySpan<byte> WebpFormTypeFourCc => "WEBP"u8;
 }

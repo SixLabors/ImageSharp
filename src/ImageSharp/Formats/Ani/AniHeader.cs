@@ -30,20 +30,3 @@ internal readonly struct AniHeader
 
     public void WriteTo(Stream stream) => stream.Write(MemoryMarshal.AsBytes(MemoryMarshal.CreateReadOnlySpan(in this, 1)));
 }
-
-/// <summary>
-/// Flags for the ANI header.
-/// </summary>
-[Flags]
-public enum AniHeaderFlags : uint
-{
-    /// <summary>
-    /// If set, the ANI file's "icon" chunk contains an ICO or CUR file, otherwise it contains a BMP file.
-    /// </summary>
-    IsIcon = 1,
-
-    /// <summary>
-    /// If set, the ANI file contains a "seq " chunk.
-    /// </summary>
-    ContainsSeq = 2
-}

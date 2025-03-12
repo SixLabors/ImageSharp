@@ -3,12 +3,7 @@
 
 using System.Buffers;
 using System.Runtime.CompilerServices;
-using SixLabors.ImageSharp.Formats.Ani;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 using System.Runtime.InteropServices;
-using System;
-using System.Diagnostics.CodeAnalysis;
-using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.IO;
 

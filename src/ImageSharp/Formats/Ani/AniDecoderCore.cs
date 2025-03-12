@@ -15,19 +15,11 @@ using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Memory.Internals;
 using SixLabors.ImageSharp.Metadata;
-using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Ani;
 
 internal class AniDecoderCore(DecoderOptions options) : ImageDecoderCore(options)
 {
-    private enum ListIconChunkType : byte
-    {
-        Ico = 1,
-        Cur = 2,
-        Bmp = 3
-    }
-
     /// <summary>
     /// The general decoder options.
     /// </summary>
@@ -39,6 +31,13 @@ internal class AniDecoderCore(DecoderOptions options) : ImageDecoderCore(options
     private BufferedReadStream currentStream = null!;
 
     private AniHeader header;
+
+    private enum ListIconChunkType : byte
+    {
+        Ico = 1,
+        Cur,
+        Bmp
+    }
 
     protected override Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
     {

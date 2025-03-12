@@ -12,6 +12,13 @@ namespace SixLabors.ImageSharp.Formats.Ani;
 public class AniMetadata : IFormatMetadata<AniMetadata>
 {
     /// <summary>
+    /// Initializes a new instance of the <see cref="AniMetadata"/> class.
+    /// </summary>
+    public AniMetadata()
+    {
+    }
+
+    /// <summary>
     /// Gets or sets the width of frames in the animation.
     /// </summary>
     public uint Width { get; set; }
@@ -55,13 +62,6 @@ public class AniMetadata : IFormatMetadata<AniMetadata>
     /// Gets or sets the <see cref="ImageFrameMetadata"/> each "icon" chunk in ANI file.
     /// </summary>
     public IList<ImageFrameMetadata> IconFrames { get; set; } = [];
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="AniMetadata"/> class.
-    /// </summary>
-    public AniMetadata()
-    {
-    }
 
     /// <inheritdoc/>
     public static AniMetadata FromFormatConnectingMetadata(FormatConnectingMetadata metadata) => throw new NotImplementedException();

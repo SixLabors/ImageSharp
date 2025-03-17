@@ -105,17 +105,10 @@ internal class Av1BlockDecoder
 
             Guard.IsFalse(transformUnitCount == 0, nameof(transformUnitCount), "Must have at least a single transform unit to decode.");
 
-            // SVT: svt_aom_derive_blk_pointers
-            DeriveBlockPointers(
-                this.frameBuffer,
-                plane,
+            Point pixelPosition = new(
                 (modeInfoPosition.X >> subX) << Av1Constants.ModeInfoSizeLog2,
-                (modeInfoPosition.Y >> subY) << Av1Constants.ModeInfoSizeLog2,
-                out Span<byte> blockReconstructionBuffer,
-                out int reconstructionStride,
-                subX,
-                subY);
-
+                (modeInfoPosition.Y >> subY) << Av1Constants.ModeInfoSizeLog2);
+            Span<byte> blockReconstructionBuffer = this.frameBuffer.DeriveBlockPointer((Av1Plane)plane, pixelPosition, subX, subY, out int reconstructionStride);
             for (int tu = 0; tu < transformUnitCount; tu++)
             {
                 Span<byte> transformBlockReconstructionBuffer;

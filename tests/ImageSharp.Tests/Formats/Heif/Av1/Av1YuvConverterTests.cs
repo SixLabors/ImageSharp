@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System;
 using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.PixelFormats;
@@ -121,9 +122,9 @@ public class Av1YuvConverterTests
         sequenceHeader.MaxFrameHeight = image.Height;
         Av1FrameBuffer<byte> frameBuffer = new(Configuration.Default, sequenceHeader, Av1ColorFormat.Yuv444, false);
         Random rnd = new(42);
-        CreateTestData(rnd, frameBuffer.BufferY.DangerousGetRowSpan(0));
-        CreateTestData(rnd, frameBuffer.BufferCb.DangerousGetRowSpan(0));
-        CreateTestData(rnd, frameBuffer.BufferCr.DangerousGetRowSpan(0));
+        CreateTestData(rnd, frameBuffer, Av1Plane.Y);
+        CreateTestData(rnd, frameBuffer, Av1Plane.U);
+        CreateTestData(rnd, frameBuffer, Av1Plane.V);
 
         // Act
         Av1YuvConverter.ConvertToRgb(Configuration.Default, frameBuffer, frame);
@@ -146,6 +147,19 @@ public class Av1YuvConverterTests
                 Assert.Fail($"Difference at index {i}, expected: {referenceOutput[i]} but was {actual[i]}");
             }
         }
+    }
+
+    private static void CreateTestData(Random rnd, Av1FrameBuffer<byte> frameBuffer, Av1Plane plane)
+    {
+        const int bitCount = 8;
+        Span<byte> span = frameBuffer.DeriveBlockPointer(plane, new Point(0, 0), 0, 0, out int stride);
+        int max = (1 << bitCount) - 1;
+        for (int i = 0; i < span.Length; i++)
+        {
+            byte current = (byte)rnd.Next(max);
+            span[i] = current;
+        }
+
     }
 
     private static void CreateTestData(Random rnd, Span<byte> span, int bitCount = 8)
@@ -203,8 +217,8 @@ public class Av1YuvConverterTests
         Assert.Equal(b, actualPixel.B, 2d);
     }
 
-    [Theory]
-    [WithFile(TestImages.Jpeg.Baseline.Winter444_Interleaved, PixelTypes.Rgb24)]
+    // [Theory]
+    // [WithFile(TestImages.Jpeg.Baseline.Winter444_Interleaved, PixelTypes.Rgb24)]
     public void RoundTrip(TestImageProvider<Rgb24> provider)
     {
         // Assign

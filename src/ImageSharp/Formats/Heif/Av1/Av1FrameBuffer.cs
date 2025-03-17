@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1;
 /// Buffer for the pixels of a single frame.
 /// </summary>
 internal class Av1FrameBuffer<T> : IDisposable
-    where T : struct
+    where T : unmanaged
 {
     private const int DecoderPaddingValue = 72;
     private const int PictureBufferYFlag = 1 << 0;
@@ -189,5 +189,87 @@ internal class Av1FrameBuffer<T> : IDisposable
         this.BitIncrementCb = null;
         this.BitIncrementCr?.Dispose();
         this.BitIncrementCr = null;
+    }
+
+    /// <summary>
+    /// Returns a <see cref="Span{T}"/> starting at 1 row before this blocks pixels.
+    /// </summary>
+    /// <remarks>
+    /// SVT: svt_aom_derive_blk_pointers
+    /// </remarks>
+    public Span<T> DeriveBlockPointer(Av1Plane plane, Point locationInPixels, int subX, int subY, out int stride)
+    {
+        Span<T> blockReconstructionBuffer;
+        int blockOffset;
+        Buffer2D<T> buffer;
+
+        switch (plane)
+        {
+            case Av1Plane.Y:
+                Guard.NotNull(this.BufferY);
+                buffer = this.BufferY;
+                stride = buffer.Width;
+                blockOffset = ((this.OriginY + locationInPixels.Y) * stride) +
+                    (this.OriginX + locationInPixels.X);
+                break;
+            case Av1Plane.U:
+                Guard.NotNull(this.BufferCb);
+                buffer = this.BufferCb;
+                stride = buffer.Width;
+                blockOffset = (((this.OriginY >> subY) + locationInPixels.Y) * stride) +
+                    ((this.OriginX >> subX) + locationInPixels.X);
+                break;
+            case Av1Plane.V:
+            default:
+                Guard.NotNull(this.BufferCr);
+                buffer = this.BufferCr;
+                stride = buffer.Width;
+                blockOffset = (((this.OriginY >> subY) + locationInPixels.Y) * stride) +
+                    ((this.OriginX >> subX) + locationInPixels.X);
+                break;
+        }
+
+        // Deviation from SVT, return PREVIOUS row in Block Reconstruction Buffer.
+        blockOffset -= stride;
+        Guard.MustBeGreaterThanOrEqualTo(blockOffset, 0, nameof(blockOffset));
+
+        blockOffset = (this.BitDepth != Av1BitDepth.EightBit || this.Is16BitPipeline) ? blockOffset << 1 : blockOffset;
+        blockReconstructionBuffer = buffer.DangerousGetSingleSpan()[blockOffset..];
+
+        return blockReconstructionBuffer;
+    }
+
+    /// <summary>
+    /// Returns a <see cref="Buffer2DRegion{T}"/> starting at top left pixel of the block of the specified plane.
+    /// </summary>
+    /// <remarks>
+    /// SVT: svt_aom_derive_blk_pointers
+    /// </remarks>
+    public Buffer2DRegion<T> DeriveBlockPointer(Av1Plane plane, int subX, int subY)
+    {
+        Rectangle region;
+        Buffer2D<T> buffer;
+
+        switch (plane)
+        {
+            case Av1Plane.Y:
+                Guard.NotNull(this.BufferY);
+                buffer = this.BufferY;
+                region = new Rectangle(this.OriginX, this.OriginY, this.Width, this.Height);
+                break;
+            case Av1Plane.U:
+                Guard.NotNull(this.BufferCb);
+                buffer = this.BufferCb;
+                region = new Rectangle(this.OriginX >> subX, this.OriginY >> subY, this.Width >> subX, this.Height >> subY);
+                break;
+            case Av1Plane.V:
+            default:
+                Guard.NotNull(this.BufferCr);
+                buffer = this.BufferCr;
+                region = new Rectangle(this.OriginX >> subX, this.OriginY >> subY, this.Width >> subX, this.Height >> subY);
+                break;
+        }
+
+        return new Buffer2DRegion<T>(buffer, region);
     }
 }

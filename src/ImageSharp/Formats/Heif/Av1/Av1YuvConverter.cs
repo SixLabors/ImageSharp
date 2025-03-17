@@ -90,19 +90,19 @@ internal class Av1YuvConverter
 
         image.ProcessPixelRows(accessor =>
             {
-                Buffer2D<byte> yBuffer = buffer.BufferY;
-                Buffer2D<byte> uBuffer = buffer.BufferCb;
-                Buffer2D<byte> vBuffer = buffer.BufferCr;
+                Span<byte> yBuffer = buffer.DeriveBlockPointer(Av1Plane.Y, default, 0, 0, out int yStride);
+                Span<byte> uBuffer = buffer.DeriveBlockPointer(Av1Plane.U, default, 0, 0, out int uStride);
+                Span<byte> vBuffer = buffer.DeriveBlockPointer(Av1Plane.V, default, 0, 0, out int vStride);
+                int yOffset = yStride;
+                int uOffset = uStride;
+                int vOffset = vStride;
                 for (int y = 0; y < image.Height; y++)
                 {
                     Span<Rgb24> rgbRow = accessor.GetRowSpan(y);
                     ref Rgb24 pixel = ref rgbRow[0];
-                    Span<byte> ySpan = yBuffer.DangerousGetRowSpan(y);
-                    ref byte yRef = ref ySpan[0];
-                    Span<byte> uSpan = uBuffer.DangerousGetRowSpan(y);
-                    ref byte uRef = ref uSpan[0];
-                    Span<byte> vSpan = vBuffer.DangerousGetRowSpan(y);
-                    ref byte vRef = ref vSpan[0];
+                    ref byte yRef = ref yBuffer[yOffset];
+                    ref byte uRef = ref uBuffer[uOffset];
+                    ref byte vRef = ref vBuffer[vOffset];
                     for (int x = 0; x < image.Width; x++)
                     {
                         int u = uRef; // ((uRef - 127) * 2 * UMax) / 255;
@@ -115,6 +115,10 @@ internal class Av1YuvConverter
                         uRef = ref Unsafe.Add(ref uRef, 1);
                         vRef = ref Unsafe.Add(ref vRef, 1);
                     }
+
+                    yOffset += yStride;
+                    uOffset += uStride;
+                    vOffset += vStride;
                 }
             });
     }

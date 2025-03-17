@@ -99,12 +99,13 @@ internal class Av1ReferenceYuvConverter
 
     public static Span<Rgb24> YuvToRgb(Av1FrameBuffer<byte> frameBuffer, bool normalized)
     {
-        Span<byte> yRow = frameBuffer.BufferY!.DangerousGetSingleSpan();
-        Span<byte> uRow = frameBuffer.BufferCb!.DangerousGetSingleSpan();
-        Span<byte> vRow = frameBuffer.BufferCr!.DangerousGetSingleSpan();
-        Rgb24[] result = new Rgb24[yRow.Length];
+        Point pixelPosition = new Point(0, 1);
+        Span<byte> yRow = frameBuffer.DeriveBlockPointer(Av1Plane.Y, pixelPosition, 0, 0, out int _);
+        Span<byte> uRow = frameBuffer.DeriveBlockPointer(Av1Plane.U, pixelPosition, 0, 0, out int _);
+        Span<byte> vRow = frameBuffer.DeriveBlockPointer(Av1Plane.V, pixelPosition, 0, 0, out int _);
+        Rgb24[] result = new Rgb24[frameBuffer.Width];
         double[] yuv = new double[3];
-        for (int i = 0; i < yRow.Length; i++)
+        for (int i = 0; i < frameBuffer.Width; i++)
         {
             yuv[0] = yRow[i];
             yuv[1] = uRow[i];

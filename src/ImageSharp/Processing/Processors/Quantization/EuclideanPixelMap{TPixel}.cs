@@ -116,7 +116,7 @@ internal sealed class EuclideanPixelMap<TPixel> : IDisposable
         }
 
         // Now I have the index, pop it into the cache for next time
-        this.cache.Add(rgba, (byte)index);
+        this.cache.Add(rgba, (short)index);
         match = Unsafe.Add(ref paletteRef, (uint)index);
 
         return index;
@@ -131,9 +131,11 @@ internal sealed class EuclideanPixelMap<TPixel> : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static float DistanceSquared(Rgba32 a, Rgba32 b)
     {
-        Vector4 va = new(a.R, a.G, a.B, a.A);
-        Vector4 vb = new(b.R, b.G, b.B, b.A);
-        return Vector4.DistanceSquared(va, vb);
+        float deltaR = a.R - b.R;
+        float deltaG = a.G - b.G;
+        float deltaB = a.B - b.B;
+        float deltaA = a.A - b.A;
+        return (deltaR * deltaR) + (deltaG * deltaG) + (deltaB * deltaB) + (deltaA * deltaA);
     }
 
     public void Dispose() => this.cache.Dispose();

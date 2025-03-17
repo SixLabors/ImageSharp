@@ -71,8 +71,7 @@ public class IcoMetadata : IFormatMetadata<IcoMetadata>
         return new IcoMetadata
         {
             BmpBitsPerPixel = bbpp,
-            Compression = compression,
-            ColorTable = compression == IconFrameCompression.Bmp ? metadata.ColorTable : null
+            Compression = compression
         };
     }
 
@@ -145,8 +144,7 @@ public class IcoMetadata : IFormatMetadata<IcoMetadata>
             EncodingType = this.Compression == IconFrameCompression.Bmp && this.BmpBitsPerPixel <= BmpBitsPerPixel.Bit8
                 ? EncodingType.Lossy
                 : EncodingType.Lossless,
-            PixelTypeInfo = this.GetPixelTypeInfo(),
-            ColorTable = this.ColorTable
+            PixelTypeInfo = this.GetPixelTypeInfo()
         };
 
     /// <inheritdoc/>

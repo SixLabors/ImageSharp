@@ -69,11 +69,11 @@ internal class Vp8Decoder : IDisposable
         this.YuvBuffer = memoryAllocator.Allocate<byte>((WebpConstants.Bps * 17) + (WebpConstants.Bps * 9) + extraY);
         this.CacheY = memoryAllocator.Allocate<byte>((16 * this.CacheYStride) + extraY, AllocationOptions.Clean);
         int cacheUvSize = (16 * this.CacheUvStride) + extraUv;
-        this.CacheU = memoryAllocator.Allocate<byte>(cacheUvSize, AllocationOptions.Clean);
-        this.CacheV = memoryAllocator.Allocate<byte>(cacheUvSize, AllocationOptions.Clean);
-        this.TmpYBuffer = memoryAllocator.Allocate<byte>((int)width, AllocationOptions.Clean);
-        this.TmpUBuffer = memoryAllocator.Allocate<byte>((int)width, AllocationOptions.Clean);
-        this.TmpVBuffer = memoryAllocator.Allocate<byte>((int)width, AllocationOptions.Clean);
+        this.CacheU = memoryAllocator.Allocate<byte>(cacheUvSize);
+        this.CacheV = memoryAllocator.Allocate<byte>(cacheUvSize);
+        this.TmpYBuffer = memoryAllocator.Allocate<byte>((int)width);
+        this.TmpUBuffer = memoryAllocator.Allocate<byte>((int)width);
+        this.TmpVBuffer = memoryAllocator.Allocate<byte>((int)width);
         this.Pixels = memoryAllocator.Allocate<byte>((int)(width * height * 4), AllocationOptions.Clean);
 
 #if DEBUG

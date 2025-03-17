@@ -1570,7 +1570,8 @@ internal sealed class PngEncoderCore : IDisposable
             }
             else
             {
-                // Don't use transparency threshold for quantization PNG can handle multiple transparent colors.
+                // Don't use the default transparency threshold for quantization as PNG can handle multiple transparent colors.
+                // We choose a value that is close to zero so that edge cases causes by lower bit depths for the alpha channel are handled correctly.
                 this.quantizer = new WuQuantizer(new QuantizerOptions { TransparencyThreshold = 0, MaxColors = ColorNumerics.GetColorCountForBitDepth(bitDepth) });
             }
         }

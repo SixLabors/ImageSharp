@@ -442,40 +442,42 @@ public partial class PngEncoderTests
     }
 
     [Theory]
-    [WithFile(TestImages.Gif.Leo, PixelTypes.Rgba32, 0.613F)]
-    [WithFile(TestImages.Gif.Issues.Issue2866, PixelTypes.Rgba32, 1.06F)]
-    public void Encode_AnimatedFormatTransform_FromGif<TPixel>(TestImageProvider<TPixel> provider, float percentage)
+    [WithFile(TestImages.Gif.Leo, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Gif.Issues.Issue2866, PixelTypes.Rgba32)]
+    public void Encode_AnimatedFormatTransform_FromGif<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        if (TestEnvironment.RunsOnCI)
+        if (TestEnvironment.RunsOnCI && !TestEnvironment.IsWindows)
         {
             return;
         }
 
         using Image<TPixel> image = provider.GetImage(GifDecoder.Instance);
 
+        // Save the image for visual inspection.
+        provider.Utility.SaveTestOutputFile(image, "png", PngEncoder, "animated");
+
+        // Now compare the debug output with the reference output.
+        // We do this because the transcoding encoding is lossy and encoding will lead to differences.
+        // From the unencoded image, we can see that the image is visually the same.
+        static bool Predicate(int i, int _) => i % 8 == 0; // Image has many frames, only compare a selection of them.
+        image.CompareDebugOutputToReferenceOutputMultiFrame(provider, ImageComparer.Exact, extension: "png", encoder: PngEncoder, predicate: Predicate);
+
+        // Now save the image and load it again to compare the metadata.
         using MemoryStream memStream = new();
         image.Save(memStream, PngEncoder);
         memStream.Position = 0;
 
-        image.DebugSave(provider: provider, extension: "png", encoder: PngEncoder);
-
-        using Image<TPixel> output = Image.Load<TPixel>(memStream);
-
-        // TODO: Find a better way to compare.
-        // The image has been visually checked but the coarse cache used by the palette quantizer
-        // can lead to minor differences between frames.
-        ImageComparer.TolerantPercentage(percentage).VerifySimilarity(output, image);
-
+        using Image<TPixel> encoded = Image.Load<TPixel>(memStream);
         GifMetadata gif = image.Metadata.GetGifMetadata();
-        PngMetadata png = output.Metadata.GetPngMetadata();
+        PngMetadata png = encoded.Metadata.GetPngMetadata();
 
         Assert.Equal(gif.RepeatCount, png.RepeatCount);
 
         for (int i = 0; i < image.Frames.Count; i++)
         {
             GifFrameMetadata gifF = image.Frames[i].Metadata.GetGifMetadata();
-            PngFrameMetadata pngF = output.Frames[i].Metadata.GetPngMetadata();
+            PngFrameMetadata pngF = encoded.Frames[i].Metadata.GetPngMetadata();
 
             Assert.Equal(gifF.FrameDelay, (int)(pngF.FrameDelay.ToDouble() * 100));
 

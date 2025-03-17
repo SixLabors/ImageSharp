@@ -71,32 +71,14 @@ public class GifMetadata : IFormatMetadata<GifMetadata>
 
     /// <inheritdoc/>
     public static GifMetadata FromFormatConnectingMetadata(FormatConnectingMetadata metadata)
-    {
-        int index = 0;
-        Color background = metadata.BackgroundColor;
-        if (metadata.ColorTable.HasValue)
+        => new()
         {
-            ReadOnlySpan<Color> colorTable = metadata.ColorTable.Value.Span;
-            for (int i = 0; i < colorTable.Length; i++)
-            {
-                if (background != colorTable[i])
-                {
-                    continue;
-                }
-
-                index = i;
-                break;
-            }
-        }
-
-        return new()
-        {
-            GlobalColorTable = metadata.ColorTable,
+            // Do not copy the color table or bit depth.
+            // This will lead to a mismatch when the image is comprised of frames
+            // extracted individually from a multi-frame image.
             ColorTableMode = metadata.ColorTableMode,
             RepeatCount = metadata.RepeatCount,
-            BackgroundColorIndex = (byte)Numerics.Clamp(index, 0, 255),
         };
-    }
 
     /// <inheritdoc/>
     public PixelTypeInfo GetPixelTypeInfo()
@@ -114,22 +96,13 @@ public class GifMetadata : IFormatMetadata<GifMetadata>
 
     /// <inheritdoc/>
     public FormatConnectingMetadata ToFormatConnectingMetadata()
-    {
-        bool global = this.ColorTableMode == FrameColorTableMode.Global;
-        Color color = global && this.GlobalColorTable.HasValue && this.GlobalColorTable.Value.Span.Length > this.BackgroundColorIndex
-            ? this.GlobalColorTable.Value.Span[this.BackgroundColorIndex]
-            : Color.Transparent;
-
-        return new FormatConnectingMetadata()
+        => new()
         {
             AnimateRootFrame = true,
-            ColorTable = global ? this.GlobalColorTable : null,
-            BackgroundColor = color,
             ColorTableMode = this.ColorTableMode,
             PixelTypeInfo = this.GetPixelTypeInfo(),
             RepeatCount = this.RepeatCount,
         };
-    }
 
     /// <inheritdoc/>
     public void AfterImageApply<TPixel>(Image<TPixel> destination)

@@ -55,7 +55,7 @@ public static class QuantizerUtilities
         Buffer2DRegion<TPixel> region = source.PixelBuffer.GetRegion(interest);
 
         // Collect the palette. Required before the second pass runs.
-        quantizer.AddPaletteColors(region);
+        quantizer.AddPaletteColors(in region);
         return quantizer.QuantizeFrame(source, bounds);
     }
 

@@ -1584,14 +1584,15 @@ internal sealed class PngEncoderCore : IDisposable
             // Encoding animated frames with a global palette requires a transparent pixel in the palette
             // since we only encode the delta between frames. To ensure that we have a transparent pixel
             // we create a fake frame with a containing only transparent pixels and add it to the palette.
-            using Buffer2D<TPixel> px = image.Configuration.MemoryAllocator.Allocate2D<TPixel>(Math.Min(256, image.Width), Math.Min(256, image.Height));
+            using Buffer2D<TPixel> fake = image.Configuration.MemoryAllocator.Allocate2D<TPixel>(Math.Min(256, image.Width), Math.Min(256, image.Height));
             TPixel backGroundPixel = backgroundColor.ToPixel<TPixel>();
-            for (int i = 0; i < px.Height; i++)
+            for (int i = 0; i < fake.Height; i++)
             {
-                px.DangerousGetRowSpan(i).Fill(backGroundPixel);
+                fake.DangerousGetRowSpan(i).Fill(backGroundPixel);
             }
 
-            frameQuantizer.AddPaletteColors(px.GetRegion());
+            Buffer2DRegion<TPixel> fakeRegion = fake.GetRegion();
+            frameQuantizer.AddPaletteColors(in fakeRegion);
         }
 
         frameQuantizer.BuildPalette(

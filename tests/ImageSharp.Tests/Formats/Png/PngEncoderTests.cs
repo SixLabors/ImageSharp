@@ -449,6 +449,7 @@ public partial class PngEncoderTests
     [WithFile(TestImages.Png.APng, PixelTypes.Rgba32)]
     [WithFile(TestImages.Png.DefaultNotAnimated, PixelTypes.Rgba32)]
     [WithFile(TestImages.Png.FrameOffset, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Png.Issue2882, PixelTypes.Rgba32)]
     public void Encode_APng<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {

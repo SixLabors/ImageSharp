@@ -720,7 +720,7 @@ public partial class PngEncoderTests
         using MemoryStream ms = new();
         PaletteQuantizer quantizer = new(
             palette.Select(Color.FromPixel).ToArray(),
-            new QuantizerOptions() { ColorMatchingMode = ColorMatchingMode.Hybrid});
+            new QuantizerOptions() { ColorMatchingMode = ColorMatchingMode.Hybrid });
 
         image.Save(ms, new PngEncoder
         {

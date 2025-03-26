@@ -13,7 +13,7 @@ public interface IQuantizer
     /// <summary>
     /// Gets the quantizer options defining quantization rules.
     /// </summary>
-    QuantizerOptions Options { get; }
+    public QuantizerOptions Options { get; }
 
     /// <summary>
     /// Creates the generic frame quantizer.
@@ -21,7 +21,7 @@ public interface IQuantizer
     /// <param name="configuration">The <see cref="Configuration"/> to configure internal operations.</param>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
     /// <returns>The <see cref="IQuantizer{TPixel}"/>.</returns>
-    IQuantizer<TPixel> CreatePixelSpecificQuantizer<TPixel>(Configuration configuration)
+    public IQuantizer<TPixel> CreatePixelSpecificQuantizer<TPixel>(Configuration configuration)
         where TPixel : unmanaged, IPixel<TPixel>;
 
     /// <summary>
@@ -31,6 +31,6 @@ public interface IQuantizer
     /// <param name="configuration">The <see cref="Configuration"/> to configure internal operations.</param>
     /// <param name="options">The options to create the quantizer with.</param>
     /// <returns>The <see cref="IQuantizer{TPixel}"/>.</returns>
-    IQuantizer<TPixel> CreatePixelSpecificQuantizer<TPixel>(Configuration configuration, QuantizerOptions options)
+    public IQuantizer<TPixel> CreatePixelSpecificQuantizer<TPixel>(Configuration configuration, QuantizerOptions options)
         where TPixel : unmanaged, IPixel<TPixel>;
 }

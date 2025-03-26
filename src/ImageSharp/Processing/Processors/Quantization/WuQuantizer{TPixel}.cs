@@ -6,6 +6,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -43,30 +44,10 @@ internal struct WuQuantizer<TPixel> : IQuantizer<TPixel>
     // The following two variables determine the amount of bits to preserve when calculating the histogram.
     // Reducing the value of these numbers the granularity of the color maps produced, making it much faster
     // and using much less memory but potentially less accurate. Current results are very good though!
-
-    /// <summary>
-    /// The index bits. 6 in original code.
-    /// </summary>
     private const int IndexBits = 5;
-
-    /// <summary>
-    /// The index alpha bits. 3 in original code.
-    /// </summary>
     private const int IndexAlphaBits = 5;
-
-    /// <summary>
-    /// The index count.
-    /// </summary>
     private const int IndexCount = (1 << IndexBits) + 1;
-
-    /// <summary>
-    /// The index alpha count.
-    /// </summary>
     private const int IndexAlphaCount = (1 << IndexAlphaBits) + 1;
-
-    /// <summary>
-    /// The table length. Now 1185921. originally 2471625.
-    /// </summary>
     private const int TableLength = IndexCount * IndexCount * IndexCount * IndexAlphaCount;
 
     private readonly IMemoryOwner<Moment> momentsOwner;
@@ -74,17 +55,18 @@ internal struct WuQuantizer<TPixel> : IQuantizer<TPixel>
     private readonly IMemoryOwner<TPixel> paletteOwner;
     private ReadOnlyMemory<TPixel> palette;
     private int maxColors;
-    private readonly float transparencyThreshold;
-    private readonly short transparencyThreshold255;
     private readonly Box[] colorCube;
-    private EuclideanPixelMap<TPixel>? pixelMap;
+    private PixelMap<TPixel>? pixelMap;
     private readonly bool isDithering;
+    private readonly int transparencyThreshold255;
+    private Vector4 thresholdReplacementColorV4;
+    private readonly Rgba32 thresholdReplacementColorRgba;
     private bool isDisposed;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="WuQuantizer{TPixel}"/> struct.
     /// </summary>
-    /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
+    /// <param name="configuration">The configuration which allows altering default behavior or extending the library.</param>
     /// <param name="options">The quantizer options defining quantization rules.</param>
     [MethodImpl(InliningOptions.ShortMethod)]
     public WuQuantizer(Configuration configuration, QuantizerOptions options)
@@ -104,8 +86,9 @@ internal struct WuQuantizer<TPixel> : IQuantizer<TPixel>
         this.pixelMap = default;
         this.palette = default;
         this.isDithering = this.Options.Dither is not null;
-        this.transparencyThreshold = this.Options.TransparencyThreshold;
-        this.transparencyThreshold255 = (short)(this.Options.TransparencyThreshold * 255);
+        this.transparencyThreshold255 = (int)(this.Options.TransparencyThreshold * 255F);
+        this.thresholdReplacementColorV4 = this.Options.ThresholdReplacementColor.ToScaledVector4();
+        this.thresholdReplacementColorRgba = this.Options.ThresholdReplacementColor.ToPixel<Rgba32>();
     }
 
     /// <inheritdoc/>
@@ -130,8 +113,14 @@ internal struct WuQuantizer<TPixel> : IQuantizer<TPixel>
     }
 
     /// <inheritdoc/>
-    public readonly void AddPaletteColors(in Buffer2DRegion<TPixel> pixelRegion)
-        => this.Build3DHistogram(pixelRegion);
+    public readonly void AddPaletteColors(in Buffer2DRegion<TPixel> pixelRegion, TransparentColorMode mode)
+    {
+        PixelRowDelegate pixelRowDelegate = new(ref Unsafe.AsRef(in this), mode);
+        QuantizerUtilities.AddPaletteColors<WuQuantizer<TPixel>, TPixel, Rgba32, PixelRowDelegate>(
+            ref Unsafe.AsRef(in this),
+            in pixelRegion,
+            in pixelRowDelegate);
+    }
 
     /// <summary>
     /// Once all histogram data has been accumulated, this method computes the moments,
@@ -148,6 +137,9 @@ internal struct WuQuantizer<TPixel> : IQuantizer<TPixel>
         // Compute the palette colors from the resolved cubes.
         Span<TPixel> paletteSpan = this.paletteOwner.GetSpan()[..this.maxColors];
         ReadOnlySpan<Moment> momentsSpan = this.momentsOwner.GetSpan();
+
+        float transparencyThreshold = this.Options.TransparencyThreshold;
+        Vector4 thresholdReplacementColor = this.thresholdReplacementColorV4;
         for (int k = 0; k < paletteSpan.Length; k++)
         {
             this.Mark(ref this.colorCube[k], (byte)k);
@@ -155,9 +147,9 @@ internal struct WuQuantizer<TPixel> : IQuantizer<TPixel>
             if (moment.Weight > 0)
             {
                 Vector4 normalized = moment.Normalize();
-                if (normalized.W < this.transparencyThreshold)
+                if (normalized.W < transparencyThreshold)
                 {
-                    normalized = Vector4.Zero;
+                    normalized = thresholdReplacementColor;
                 }
 
                 paletteSpan[k] = TPixel.FromScaledVector4(normalized);
@@ -170,14 +162,19 @@ internal struct WuQuantizer<TPixel> : IQuantizer<TPixel>
         // Create the pixel map if dithering is enabled.
         if (this.isDithering && this.pixelMap is null)
         {
-            this.pixelMap = new EuclideanPixelMap<TPixel>(this.Configuration, this.palette);
+            this.pixelMap = PixelMapFactory.Create(this.Configuration, this.palette, this.Options.ColorMatchingMode);
         }
     }
 
     /// <inheritdoc/>
     [MethodImpl(InliningOptions.ShortMethod)]
     public readonly IndexedImageFrame<TPixel> QuantizeFrame(ImageFrame<TPixel> source, Rectangle bounds)
-        => QuantizerUtilities.QuantizeFrame(ref Unsafe.AsRef(in this), source, bounds);
+        => this.QuantizeFrame(source, bounds, TransparentColorMode.Preserve);
+
+    /// <inheritdoc/>
+    [MethodImpl(InliningOptions.ShortMethod)]
+    public readonly IndexedImageFrame<TPixel> QuantizeFrame(ImageFrame<TPixel> source, Rectangle bounds, TransparentColorMode mode)
+        => QuantizerUtilities.QuantizeFrame(ref Unsafe.AsRef(in this), source, bounds, mode);
 
     /// <inheritdoc/>
     public readonly byte GetQuantizedColor(TPixel color, out TPixel match)
@@ -187,13 +184,13 @@ internal struct WuQuantizer<TPixel> : IQuantizer<TPixel>
         // In this case, we must use the pixel map to get the closest color.
         if (this.isDithering)
         {
-            return (byte)this.pixelMap!.GetClosestColor(color, out match, this.transparencyThreshold255);
+            return (byte)this.pixelMap!.GetClosestColor(color, out match);
         }
 
         Rgba32 rgba = color.ToRgba32();
         if (rgba.A < this.transparencyThreshold255)
         {
-            rgba = default;
+            rgba = this.thresholdReplacementColorRgba;
         }
 
         const int shift = 8 - IndexBits;
@@ -376,37 +373,19 @@ internal struct WuQuantizer<TPixel> : IQuantizer<TPixel>
     /// <summary>
     /// Builds a 3-D color histogram of <c>counts, r/g/b, c^2</c>.
     /// </summary>
-    /// <param name="source">The source pixel data.</param>
-    private readonly void Build3DHistogram(in Buffer2DRegion<TPixel> source)
+    /// <param name="pixels">The source pixel data.</param>
+    private readonly void Build3DHistogram(ReadOnlySpan<Rgba32> pixels)
     {
-        Span<Moment> momentSpan = this.momentsOwner.GetSpan();
-
-        // Build up the 3-D color histogram
-        using IMemoryOwner<Rgba32> buffer = this.memoryAllocator.Allocate<Rgba32>(source.Width);
-        Span<Rgba32> bufferSpan = buffer.GetSpan();
-
-        float transparencyThreshold = this.Options.TransparencyThreshold * 255;
-
-        for (int y = 0; y < source.Height; y++)
+        Span<Moment> moments = this.momentsOwner.GetSpan();
+        for (int x = 0; x < pixels.Length; x++)
         {
-            Span<TPixel> row = source.DangerousGetRowSpan(y);
-            PixelOperations<TPixel>.Instance.ToRgba32(this.Configuration, row, bufferSpan);
+            Rgba32 rgba = pixels[x];
+            int r = (rgba.R >> (8 - IndexBits)) + 1;
+            int g = (rgba.G >> (8 - IndexBits)) + 1;
+            int b = (rgba.B >> (8 - IndexBits)) + 1;
+            int a = (rgba.A >> (8 - IndexAlphaBits)) + 1;
 
-            for (int x = 0; x < bufferSpan.Length; x++)
-            {
-                Rgba32 rgba = bufferSpan[x];
-                if (rgba.A < transparencyThreshold)
-                {
-                    rgba = default;
-                }
-
-                int r = (rgba.R >> (8 - IndexBits)) + 1;
-                int g = (rgba.G >> (8 - IndexBits)) + 1;
-                int b = (rgba.B >> (8 - IndexBits)) + 1;
-                int a = (rgba.A >> (8 - IndexAlphaBits)) + 1;
-
-                momentSpan[GetPaletteIndex(r, g, b, a)] += rgba;
-            }
+            moments[GetPaletteIndex(r, g, b, a)] += rgba;
         }
     }
 
@@ -917,5 +896,20 @@ internal struct WuQuantizer<TPixel> : IQuantizer<TPixel>
             hash.Add(this.Volume);
             return hash.ToHashCode();
         }
+    }
+
+    private readonly struct PixelRowDelegate : IQuantizingPixelRowDelegate<Rgba32>
+    {
+        private readonly WuQuantizer<TPixel> quantizer;
+
+        public PixelRowDelegate(ref WuQuantizer<TPixel> quantizer, TransparentColorMode mode)
+        {
+            this.quantizer = quantizer;
+            this.TransparentColorMode = mode;
+        }
+
+        public TransparentColorMode TransparentColorMode { get; }
+
+        public void Invoke(ReadOnlySpan<Rgba32> row, int rowIndex) => this.quantizer.Build3DHistogram(row);
     }
 }

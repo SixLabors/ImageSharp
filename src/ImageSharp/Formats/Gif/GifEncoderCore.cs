@@ -151,35 +151,20 @@ internal sealed class GifEncoderCore
         Color background = Color.Transparent;
         using (IQuantizer<TPixel> frameQuantizer = this.quantizer.CreatePixelSpecificQuantizer<TPixel>(this.configuration))
         {
-            ImageFrame<TPixel>? clonedFrame = null;
-            Configuration configuration = this.configuration;
             TransparentColorMode mode = this.transparentColorMode;
             IPixelSamplingStrategy strategy = this.pixelSamplingStrategy;
-            if (EncodingUtilities.ShouldClearTransparentPixels<TPixel>(mode))
-            {
-                clonedFrame = image.Frames.RootFrame.Clone();
 
-                GifFrameMetadata frameMeta = clonedFrame.Metadata.GetGifMetadata();
-                if (frameMeta.DisposalMode == FrameDisposalMode.RestoreToBackground)
-                {
-                    background = this.backgroundColor ?? Color.Transparent;
-                }
-
-                EncodingUtilities.ClearTransparentPixels(clonedFrame, background);
-            }
-
-            ImageFrame<TPixel> encodingFrame = clonedFrame ?? image.Frames.RootFrame;
-
+            ImageFrame<TPixel> encodingFrame = image.Frames.RootFrame;
             if (useGlobalTableForFirstFrame)
             {
                 if (useGlobalTable)
                 {
-                    frameQuantizer.BuildPalette(configuration, mode, strategy, image, background);
+                    frameQuantizer.BuildPalette(mode, strategy, image);
                     quantized = frameQuantizer.QuantizeFrame(encodingFrame, image.Bounds);
                 }
                 else
                 {
-                    frameQuantizer.BuildPalette(configuration, mode, strategy, encodingFrame, background);
+                    frameQuantizer.BuildPalette(mode, strategy, encodingFrame);
                     quantized = frameQuantizer.QuantizeFrame(encodingFrame, encodingFrame.Bounds);
                 }
             }
@@ -195,8 +180,6 @@ internal sealed class GifEncoderCore
                     frameMetadata.HasTransparency ? frameMetadata.TransparencyIndex : -1,
                     background);
             }
-
-            clonedFrame?.Dispose();
         }
 
         // Write the header.
@@ -402,11 +385,6 @@ internal sealed class GifEncoderCore
                 encodingFrame,
                 background,
                 true);
-
-        if (EncodingUtilities.ShouldClearTransparentPixels<TPixel>(this.transparentColorMode))
-        {
-            EncodingUtilities.ClearTransparentPixels(encodingFrame, background);
-        }
 
         using IndexedImageFrame<TPixel> quantized = this.QuantizeAdditionalFrameAndUpdateMetadata(
                 encodingFrame,

@@ -56,7 +56,7 @@ public class GifEncoderTests
             {
                 // Use the palette quantizer without dithering to ensure results
                 // are consistent
-                Quantizer = new WebSafePaletteQuantizer(new QuantizerOptions { Dither = null })
+                Quantizer = new WebSafePaletteQuantizer(new QuantizerOptions { Dither = null, TransparencyThreshold = 0 })
             };
 
             // Always save as we need to compare the encoded output.

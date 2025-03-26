@@ -6,6 +6,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -16,11 +17,10 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization;
 /// <see href="http://msdn.microsoft.com/en-us/library/aa479306.aspx"/>
 /// </summary>
 /// <typeparam name="TPixel">The pixel format.</typeparam>
-[SuppressMessage(
-    "Design",
-    "CA1001:Types that own disposable fields should be disposable",
-    Justification = "https://github.com/dotnet/roslyn-analyzers/issues/6151")]
+#pragma warning disable CA1001 // Types that own disposable fields should be disposable
+// See https://github.com/dotnet/roslyn-analyzers/issues/6151
 public struct OctreeQuantizer<TPixel> : IQuantizer<TPixel>
+#pragma warning restore CA1001 // Types that own disposable fields should be disposable
     where TPixel : unmanaged, IPixel<TPixel>
 {
     private readonly int maxColors;
@@ -28,15 +28,14 @@ public struct OctreeQuantizer<TPixel> : IQuantizer<TPixel>
     private readonly Octree octree;
     private readonly IMemoryOwner<TPixel> paletteOwner;
     private ReadOnlyMemory<TPixel> palette;
-    private EuclideanPixelMap<TPixel>? pixelMap;
+    private PixelMap<TPixel>? pixelMap;
     private readonly bool isDithering;
-    private readonly short transparencyThreshold;
     private bool isDisposed;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="OctreeQuantizer{TPixel}"/> struct.
     /// </summary>
-    /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
+    /// <param name="configuration">The configuration which allows altering default behavior or extending the library.</param>
     /// <param name="options">The quantizer options defining quantization rules.</param>
     [MethodImpl(InliningOptions.ShortMethod)]
     public OctreeQuantizer(Configuration configuration, QuantizerOptions options)
@@ -45,9 +44,8 @@ public struct OctreeQuantizer<TPixel> : IQuantizer<TPixel>
         this.Options = options;
 
         this.maxColors = this.Options.MaxColors;
-        this.transparencyThreshold = (short)(this.Options.TransparencyThreshold * 255);
         this.bitDepth = Numerics.Clamp(ColorNumerics.GetBitsNeededForColorDepth(this.maxColors), 1, 8);
-        this.octree = new Octree(this.bitDepth, this.maxColors, this.transparencyThreshold, configuration.MemoryAllocator);
+        this.octree = new Octree(configuration, this.bitDepth, this.maxColors, this.Options.TransparencyThreshold, this.Options.ThresholdReplacementColor);
         this.paletteOwner = configuration.MemoryAllocator.Allocate<TPixel>(this.maxColors, AllocationOptions.Clean);
         this.pixelMap = default;
         this.palette = default;
@@ -77,25 +75,13 @@ public struct OctreeQuantizer<TPixel> : IQuantizer<TPixel>
     }
 
     /// <inheritdoc/>
-    public readonly void AddPaletteColors(in Buffer2DRegion<TPixel> pixelRegion)
+    public readonly void AddPaletteColors(in Buffer2DRegion<TPixel> pixelRegion, TransparentColorMode mode)
     {
-        using IMemoryOwner<Rgba32> buffer = this.Configuration.MemoryAllocator.Allocate<Rgba32>(pixelRegion.Width);
-        Span<Rgba32> bufferSpan = buffer.GetSpan();
-
-        // Loop through each row
-        for (int y = 0; y < pixelRegion.Height; y++)
-        {
-            Span<TPixel> row = pixelRegion.DangerousGetRowSpan(y);
-            PixelOperations<TPixel>.Instance.ToRgba32(this.Configuration, row, bufferSpan);
-
-            Octree octree = this.octree;
-            int transparencyThreshold = this.transparencyThreshold;
-            for (int x = 0; x < bufferSpan.Length; x++)
-            {
-                // Add the color to the Octree
-                octree.AddColor(bufferSpan[x]);
-            }
-        }
+        PixelRowDelegate pixelRowDelegate = new(this.octree, mode);
+        QuantizerUtilities.AddPaletteColors<OctreeQuantizer<TPixel>, TPixel, Rgba32, PixelRowDelegate>(
+            ref Unsafe.AsRef(in this),
+            in pixelRegion,
+            in pixelRowDelegate);
     }
 
     private void ResolvePalette()
@@ -108,7 +94,7 @@ public struct OctreeQuantizer<TPixel> : IQuantizer<TPixel>
 
         if (this.isDithering)
         {
-            this.pixelMap = new EuclideanPixelMap<TPixel>(this.Configuration, result);
+            this.pixelMap = PixelMapFactory.Create(this.Configuration, result, this.Options.ColorMatchingMode);
         }
 
         this.palette = result;
@@ -117,7 +103,12 @@ public struct OctreeQuantizer<TPixel> : IQuantizer<TPixel>
     /// <inheritdoc/>
     [MethodImpl(InliningOptions.ShortMethod)]
     public readonly IndexedImageFrame<TPixel> QuantizeFrame(ImageFrame<TPixel> source, Rectangle bounds)
-        => QuantizerUtilities.QuantizeFrame(ref Unsafe.AsRef(in this), source, bounds);
+        => this.QuantizeFrame(source, bounds, TransparentColorMode.Preserve);
+
+    /// <inheritdoc/>
+    [MethodImpl(InliningOptions.ShortMethod)]
+    public readonly IndexedImageFrame<TPixel> QuantizeFrame(ImageFrame<TPixel> source, Rectangle bounds, TransparentColorMode mode)
+        => QuantizerUtilities.QuantizeFrame(ref Unsafe.AsRef(in this), source, bounds, mode);
 
     /// <inheritdoc/>
     [MethodImpl(InliningOptions.ShortMethod)]
@@ -128,7 +119,7 @@ public struct OctreeQuantizer<TPixel> : IQuantizer<TPixel>
         // In this case, we must use the pixel map to get the closest color.
         if (this.isDithering)
         {
-            return (byte)this.pixelMap!.GetClosestColor(color, out match, this.transparencyThreshold);
+            return (byte)this.pixelMap!.GetClosestColor(color, out match);
         }
 
         ref TPixel paletteRef = ref MemoryMarshal.GetReference(this.palette.Span);
@@ -151,6 +142,21 @@ public struct OctreeQuantizer<TPixel> : IQuantizer<TPixel>
         }
     }
 
+    private readonly struct PixelRowDelegate : IQuantizingPixelRowDelegate<Rgba32>
+    {
+        private readonly Octree octree;
+
+        public PixelRowDelegate(Octree octree, TransparentColorMode mode)
+        {
+            this.octree = octree;
+            this.TransparentColorMode = mode;
+        }
+
+        public TransparentColorMode TransparentColorMode { get; }
+
+        public void Invoke(ReadOnlySpan<Rgba32> row, int rowIndex) => this.octree.AddColors(row);
+    }
+
     /// <summary>
     /// A hexadecatree-based color quantization structure used for fast color distance lookups and palette generation.
     /// This tree maintains a fixed pool of nodes (capacity 4096) where each node can have up to 16 children, stores
@@ -159,6 +165,9 @@ public struct OctreeQuantizer<TPixel> : IQuantizer<TPixel>
     /// </summary>
     internal sealed class Octree : IDisposable
     {
+        // The memory allocator.
+        private readonly MemoryAllocator allocator;
+
         // Pooled buffer for OctreeNodes.
         private readonly IMemoryOwner<OctreeNode> nodesOwner;
 
@@ -172,7 +181,7 @@ public struct OctreeQuantizer<TPixel> : IQuantizer<TPixel>
         private readonly int maxColorBits;
 
         // The threshold for transparent colors.
-        private readonly short transparencyThreshold;
+        private readonly int transparencyThreshold255;
 
         // Instead of a reference to the root, we store the index of the root node.
         // Index 0 is reserved for the root.
@@ -185,28 +194,43 @@ public struct OctreeQuantizer<TPixel> : IQuantizer<TPixel>
         private int previousNode;
         private Rgba32 previousColor;
 
+        // The color to use for pixels below the transparency threshold.
+        private Vector4 thresholdReplacementColor;
+        private Vector4 thresholdReplacementColorV4;
+        private readonly Rgba32 thresholdReplacementColorRgba;
+
         // Free list for reclaimed node indices.
         private readonly Stack<short> freeIndices = new();
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Octree"/> class.
         /// </summary>
+        /// <param name="configuration">The configuration which allows altering default behavior or extending the library.</param>
         /// <param name="maxColorBits">The maximum number of significant bits in the image.</param>
         /// <param name="maxColors">The maximum number of colors to allow in the palette.</param>
         /// <param name="transparencyThreshold">The threshold for transparent colors.</param>
-        /// <param name="allocator">The memory allocator.</param>
-        public Octree(int maxColorBits, int maxColors, short transparencyThreshold, MemoryAllocator allocator)
+        /// <param name="thresholdReplacementColor">The color to use for pixels below the transparency threshold.</param>
+        public Octree(
+            Configuration configuration,
+            int maxColorBits,
+            int maxColors,
+            float transparencyThreshold,
+            Color thresholdReplacementColor)
         {
             this.maxColorBits = maxColorBits;
             this.maxColors = maxColors;
-            this.transparencyThreshold = transparencyThreshold;
+            this.transparencyThreshold255 = (int)(transparencyThreshold * 255F);
+            this.thresholdReplacementColor = thresholdReplacementColor.ToScaledVector4();
+            this.thresholdReplacementColorV4 = this.thresholdReplacementColor * 255F;
+            this.thresholdReplacementColorRgba = thresholdReplacementColor.ToPixel<Rgba32>();
             this.Leaves = 0;
             this.previousNode = -1;
             this.previousColor = default;
 
             // Allocate a conservative buffer for nodes.
             const int capacity = 4096;
-            this.nodesOwner = allocator.Allocate<OctreeNode>(capacity, AllocationOptions.Clean);
+            this.allocator = configuration.MemoryAllocator;
+            this.nodesOwner = this.allocator.Allocate<OctreeNode>(capacity, AllocationOptions.Clean);
 
             // Create the reducible nodes array (one per level 0 .. maxColorBits-1).
             this.reducibleNodes = new short[this.maxColorBits];
@@ -229,10 +253,22 @@ public struct OctreeQuantizer<TPixel> : IQuantizer<TPixel>
         internal Span<OctreeNode> Nodes => this.nodesOwner.Memory.Span;
 
         /// <summary>
+        /// Adds a span of colors to the octree.
+        /// </summary>
+        /// <param name="row">A span of color values to be added.</param>
+        public void AddColors(ReadOnlySpan<Rgba32> row)
+        {
+            for (int x = 0; x < row.Length; x++)
+            {
+                this.AddColor(row[x]);
+            }
+        }
+
+        /// <summary>
         /// Add a color to the Octree.
         /// </summary>
         /// <param name="color">The color to add.</param>
-        public void AddColor(Rgba32 color)
+        private void AddColor(Rgba32 color)
         {
             // Ensure that the tree is not already full.
             if (this.nextNode >= this.Nodes.Length && this.freeIndices.Count == 0)
@@ -241,11 +277,6 @@ public struct OctreeQuantizer<TPixel> : IQuantizer<TPixel>
                 {
                     this.Reduce();
                 }
-            }
-
-            if (color.A < this.transparencyThreshold)
-            {
-                color = default;
             }
 
             // If the color is the same as the previous color, increment the node.
@@ -540,9 +571,9 @@ public struct OctreeQuantizer<TPixel> : IQuantizer<TPixel>
                         Vector4.Zero,
                         new Vector4(255));
 
-                    if (vector.W < octree.transparencyThreshold)
+                    if (vector.W < octree.transparencyThreshold255)
                     {
-                        vector = default;
+                        vector = octree.thresholdReplacementColorV4;
                     }
 
                     palette[paletteIndex] = TPixel.FromRgba32(new Rgba32((byte)vector.X, (byte)vector.Y, (byte)vector.Z, (byte)vector.W));
@@ -571,9 +602,9 @@ public struct OctreeQuantizer<TPixel> : IQuantizer<TPixel>
             /// <param name="octree">The parent octree.</param>
             public int GetPaletteIndex(Rgba32 color, int level, Octree octree)
             {
-                if (color.A < octree.transparencyThreshold)
+                if (color.A < octree.transparencyThreshold255)
                 {
-                    color = default;
+                    color = octree.thresholdReplacementColorRgba;
                 }
 
                 if (this.Leaf)

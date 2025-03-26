@@ -3,6 +3,7 @@
 
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
+using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -20,7 +21,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization;
 internal struct PaletteQuantizer<TPixel> : IQuantizer<TPixel>
     where TPixel : unmanaged, IPixel<TPixel>
 {
-    private readonly EuclideanPixelMap<TPixel> pixelMap;
+    private readonly PixelMap<TPixel> pixelMap;
     private int transparencyIndex;
     private TPixel transparentColor;
 
@@ -58,7 +59,7 @@ internal struct PaletteQuantizer<TPixel> : IQuantizer<TPixel>
 
         this.Configuration = configuration;
         this.Options = options;
-        this.pixelMap = new EuclideanPixelMap<TPixel>(configuration, palette);
+        this.pixelMap = PixelMapFactory.Create(this.Configuration, palette, options.ColorMatchingMode);
         this.transparencyIndex = transparencyIndex;
         this.transparentColor = transparentColor;
     }
@@ -74,14 +75,24 @@ internal struct PaletteQuantizer<TPixel> : IQuantizer<TPixel>
 
     /// <inheritdoc/>
     [MethodImpl(InliningOptions.ShortMethod)]
-    public readonly IndexedImageFrame<TPixel> QuantizeFrame(ImageFrame<TPixel> source, Rectangle bounds)
-        => QuantizerUtilities.QuantizeFrame(ref Unsafe.AsRef(in this), source, bounds);
+    public readonly void AddPaletteColors(in Buffer2DRegion<TPixel> pixelRegion)
+        => this.AddPaletteColors(in pixelRegion, TransparentColorMode.Preserve);
 
     /// <inheritdoc/>
     [MethodImpl(InliningOptions.ShortMethod)]
-    public readonly void AddPaletteColors(in Buffer2DRegion<TPixel> pixelRegion)
+    public readonly void AddPaletteColors(in Buffer2DRegion<TPixel> pixelRegion, TransparentColorMode mode)
     {
     }
+
+    /// <inheritdoc/>
+    [MethodImpl(InliningOptions.ShortMethod)]
+    public readonly IndexedImageFrame<TPixel> QuantizeFrame(ImageFrame<TPixel> source, Rectangle bounds)
+        => this.QuantizeFrame(source, bounds, TransparentColorMode.Preserve);
+
+    /// <inheritdoc/>
+    [MethodImpl(InliningOptions.ShortMethod)]
+    public readonly IndexedImageFrame<TPixel> QuantizeFrame(ImageFrame<TPixel> source, Rectangle bounds, TransparentColorMode mode)
+        => QuantizerUtilities.QuantizeFrame(ref Unsafe.AsRef(in this), source, bounds, mode);
 
     /// <inheritdoc/>
     [MethodImpl(InliningOptions.ShortMethod)]

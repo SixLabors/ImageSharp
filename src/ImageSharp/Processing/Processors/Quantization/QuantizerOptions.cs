@@ -49,4 +49,15 @@ public class QuantizerOptions
         get => this.threshold;
         set => this.threshold = Numerics.Clamp(value, QuantizerConstants.MinTransparencyThreshold, QuantizerConstants.MaxTransparencyThreshold);
     }
+
+    /// <summary>
+    /// Gets or sets the color used for replacing colors with an alpha component below the threshold.
+    /// Defaults to <see cref="Color.Transparent"/>.
+    /// </summary>
+    public Color ThresholdReplacementColor { get; set; } = Color.Transparent;
+
+    /// <summary>
+    /// Gets or sets the color matching mode used for matching pixel values to palette colors.
+    /// </summary>
+    public ColorMatchingMode ColorMatchingMode { get; set; } = ColorMatchingMode.Hybrid;
 }

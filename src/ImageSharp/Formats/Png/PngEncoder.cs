@@ -42,11 +42,6 @@ public class PngEncoder : QuantizingAnimatedImageEncoder
     public float? Gamma { get; init; }
 
     /// <summary>
-    /// Gets the transparency threshold.
-    /// </summary>
-    public byte Threshold { get; init; } = byte.MaxValue;
-
-    /// <summary>
     /// Gets a value indicating whether this instance should write an Adam7 interlaced image.
     /// </summary>
     public PngInterlaceMode? InterlaceMethod { get; init; }

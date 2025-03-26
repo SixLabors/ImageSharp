@@ -110,10 +110,10 @@ internal sealed class TgaEncoderCore
         ImageFrame<TPixel>? clonedFrame = null;
         try
         {
-            if (EncodingUtilities.ShouldClearTransparentPixels<TPixel>(this.transparentColorMode))
+            if (EncodingUtilities.ShouldReplaceTransparentPixels<TPixel>(this.transparentColorMode))
             {
                 clonedFrame = image.Frames.RootFrame.Clone();
-                EncodingUtilities.ClearTransparentPixels(clonedFrame, Color.Transparent);
+                EncodingUtilities.ReplaceTransparentPixels(clonedFrame, Color.Transparent);
             }
 
             ImageFrame<TPixel> encodingFrame = clonedFrame ?? image.Frames.RootFrame;

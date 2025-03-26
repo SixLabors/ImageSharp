@@ -419,8 +419,8 @@ public partial class PngEncoderTests
 
         using Image<Rgba32> output = Image.Load<Rgba32>(memStream);
 
-        // some loss from original, due to compositing
-        ImageComparer.TolerantPercentage(0.01f).VerifySimilarity(output, image);
+        // Some loss from original, due to palette matching accuracy.
+        ImageComparer.TolerantPercentage(0.172F).VerifySimilarity(output, image);
 
         Assert.Equal(image.Frames.Count, output.Frames.Count);
 

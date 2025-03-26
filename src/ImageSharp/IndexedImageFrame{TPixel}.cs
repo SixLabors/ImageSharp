@@ -25,7 +25,7 @@ public sealed class IndexedImageFrame<TPixel> : IPixelSource, IDisposable
     /// Initializes a new instance of the <see cref="IndexedImageFrame{TPixel}"/> class.
     /// </summary>
     /// <param name="configuration">
-    /// The configuration which allows altering default behaviour or extending the library.
+    /// The configuration which allows altering default behavior or extending the library.
     /// </param>
     /// <param name="width">The frame width.</param>
     /// <param name="height">The frame height.</param>
@@ -49,7 +49,7 @@ public sealed class IndexedImageFrame<TPixel> : IPixelSource, IDisposable
     }
 
     /// <summary>
-    /// Gets the configuration which allows altering default behaviour or extending the library.
+    /// Gets the configuration which allows altering default behavior or extending the library.
     /// </summary>
     public Configuration Configuration { get; }
 

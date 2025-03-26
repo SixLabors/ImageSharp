@@ -189,12 +189,15 @@ internal sealed class PngEncoderCore : IDisposable
         {
             int currentFrameIndex = 0;
 
-            bool clearTransparency = EncodingUtilities.ShouldClearTransparentPixels<TPixel>(this.encoder.TransparentColorMode);
-            if (clearTransparency)
+            bool clearTransparency = EncodingUtilities.ShouldReplaceTransparentPixels<TPixel>(this.encoder.TransparentColorMode);
+
+            // No need to clone when quantizing. The quantizer will do it for us.
+            // TODO: We should really try to avoid the clone entirely.
+            if (clearTransparency && this.colorType is not PngColorType.Palette)
             {
                 currentFrame = clonedFrame = currentFrame.Clone();
                 currentFrameRegion = currentFrame.PixelBuffer.GetRegion();
-                EncodingUtilities.ClearTransparentPixels(this.configuration, in currentFrameRegion, this.backgroundColor.Value);
+                EncodingUtilities.ReplaceTransparentPixels(this.configuration, in currentFrameRegion, this.backgroundColor.Value);
             }
 
             // Do not move this. We require an accurate bit depth for the header chunk.
@@ -286,6 +289,7 @@ internal sealed class PngEncoderCore : IDisposable
                     ImageFrame<TPixel>? nextFrame = currentFrameIndex < image.Frames.Count - 1 ? image.Frames[currentFrameIndex + 1] : null;
 
                     frameMetadata = currentFrame.Metadata.GetPngMetadata();
+
                     bool blend = frameMetadata.BlendMode == FrameBlendMode.Over;
                     Color background = frameMetadata.DisposalMode == FrameDisposalMode.RestoreToBackground
                         ? this.backgroundColor.Value
@@ -301,9 +305,9 @@ internal sealed class PngEncoderCore : IDisposable
                             background,
                             blend);
 
-                    if (clearTransparency)
+                    if (clearTransparency && this.colorType is not PngColorType.Palette)
                     {
-                        EncodingUtilities.ClearTransparentPixels(encodingFrame, background);
+                        EncodingUtilities.ReplaceTransparentPixels(encodingFrame, background);
                     }
 
                     // Each frame control sequence number must be incremented by the number of frame data chunks that follow.
@@ -779,11 +783,6 @@ internal sealed class PngEncoderCore : IDisposable
             byte alpha = rgba.A;
 
             Unsafe.Add(ref colorTableRef, (uint)i) = rgba.Rgb;
-            if (alpha > this.encoder.Threshold)
-            {
-                alpha = byte.MaxValue;
-            }
-
             hasAlpha = hasAlpha || alpha < byte.MaxValue;
             Unsafe.Add(ref alphaTableRef, (uint)i) = alpha;
         }
@@ -1596,11 +1595,9 @@ internal sealed class PngEncoderCore : IDisposable
         }
 
         frameQuantizer.BuildPalette(
-            this.configuration,
             encoder.TransparentColorMode,
             encoder.PixelSamplingStrategy,
-            image,
-            backgroundColor);
+            image);
 
         return frameQuantizer.QuantizeFrame(frame, bounds);
     }

@@ -146,10 +146,10 @@ internal sealed class TiffEncoderCore
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
-                if (EncodingUtilities.ShouldClearTransparentPixels<TPixel>(this.transparentColorMode))
+                if (EncodingUtilities.ShouldReplaceTransparentPixels<TPixel>(this.transparentColorMode))
                 {
                     clonedFrame = frame.Clone();
-                    EncodingUtilities.ClearTransparentPixels(clonedFrame, Color.Transparent);
+                    EncodingUtilities.ReplaceTransparentPixels(clonedFrame, Color.Transparent);
                 }
 
                 ImageFrame<TPixel> encodingFrame = clonedFrame ?? frame;

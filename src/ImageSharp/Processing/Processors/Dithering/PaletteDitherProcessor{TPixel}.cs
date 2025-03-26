@@ -89,7 +89,7 @@ internal sealed class PaletteDitherProcessor<TPixel> : ImageProcessor<TPixel>
             float ditherScale)
         {
             this.Configuration = configuration;
-            this.pixelMap = PixelMapFactory.Create(configuration, palette, ColorMatchingMode.Hybrid);
+            this.pixelMap = PixelMapFactory.Create(configuration, palette, ColorMatchingMode.Coarse);
             this.Palette = palette;
             this.DitherScale = ditherScale;
         }

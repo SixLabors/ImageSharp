@@ -41,6 +41,7 @@ public class QuantizerOptions
 
     /// <summary>
     /// Gets or sets the color matching mode used for matching pixel values to palette colors.
+    /// Defaults to <see cref="ColorMatchingMode.Coarse"/>.
     /// </summary>
-    public ColorMatchingMode ColorMatchingMode { get; set; } = ColorMatchingMode.Hybrid;
+    public ColorMatchingMode ColorMatchingMode { get; set; } = ColorMatchingMode.Coarse;
 }

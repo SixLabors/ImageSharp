@@ -485,7 +485,7 @@ public partial class PngEncoderTests
     }
 
     [Theory]
-    [WithFile(TestImages.Gif.Leo, PixelTypes.Rgba32, 0.7629F)]
+    [WithFile(TestImages.Gif.Leo, PixelTypes.Rgba32, 0.7921F)]
     [WithFile(TestImages.Gif.Issues.Issue2866, PixelTypes.Rgba32, 1.06F)]
     public void Encode_AnimatedFormatTransform_FromGif<TPixel>(TestImageProvider<TPixel> provider, float percentage)
         where TPixel : unmanaged, IPixel<TPixel>
@@ -718,11 +718,15 @@ public partial class PngEncoderTests
         }
 
         using MemoryStream ms = new();
+        PaletteQuantizer quantizer = new(
+            palette.Select(Color.FromPixel).ToArray(),
+            new QuantizerOptions() { ColorMatchingMode = ColorMatchingMode.Hybrid});
+
         image.Save(ms, new PngEncoder
         {
             ColorType = PngColorType.Palette,
             BitDepth = PngBitDepth.Bit8,
-            Quantizer = new PaletteQuantizer(palette.Select(Color.FromPixel).ToArray())
+            Quantizer = quantizer
         });
 
         ms.Position = 0;

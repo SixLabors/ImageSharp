@@ -38,4 +38,10 @@ public class QuantizerOptions
         get => this.maxColors;
         set => this.maxColors = Numerics.Clamp(value, QuantizerConstants.MinColors, QuantizerConstants.MaxColors);
     }
+
+    /// <summary>
+    /// Gets or sets the color matching mode used for matching pixel values to palette colors.
+    /// Defaults to <see cref="ColorMatchingMode.Coarse"/>.
+    /// </summary>
+    public ColorMatchingMode ColorMatchingMode { get; set; } = ColorMatchingMode.Coarse;
 }

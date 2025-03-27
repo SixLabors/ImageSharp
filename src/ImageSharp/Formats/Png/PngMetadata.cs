@@ -93,32 +93,12 @@ public class PngMetadata : IDeepCloneable
     public IDeepCloneable DeepClone() => new PngMetadata(this);
 
     internal static PngMetadata FromAnimatedMetadata(AnimatedImageMetadata metadata)
-    {
-        // Should the conversion be from a format that uses a 24bit palette entries (gif)
-        // we need to clone and adjust the color table to allow for transparency.
-        Color[]? colorTable = metadata.ColorTable.HasValue ? metadata.ColorTable.Value.ToArray() : null;
-        if (colorTable != null)
+        => new()
         {
-            for (int i = 0; i < colorTable.Length; i++)
-            {
-                ref Color c = ref colorTable[i];
-                if (c == metadata.BackgroundColor)
-                {
-                    // Png treats background as fully empty
-                    c = Color.Transparent;
-                    break;
-                }
-            }
-        }
-
-        return new()
-        {
-            ColorType = colorTable != null ? PngColorType.Palette : null,
-            BitDepth = colorTable != null
-                        ? (PngBitDepth)Numerics.Clamp(ColorNumerics.GetBitsNeededForColorDepth(colorTable.Length), 1, 8)
-                        : null,
-            ColorTable = colorTable,
+            // Do not copy the color table or bit depth.
+            // This will lead to a mismatch when the image is comprised of frames
+            // extracted individually from a multi-frame image.
+            ColorType = metadata.ColorTable != null ? PngColorType.Palette : null,
             RepeatCount = metadata.RepeatCount,
         };
-    }
 }

@@ -138,6 +138,7 @@ internal static class AotCompilerTools
         AotCompileResamplers<TPixel>();
         AotCompileQuantizers<TPixel>();
         AotCompilePixelSamplingStrategys<TPixel>();
+        AotCompilePixelMaps<TPixel>();
         AotCompileDithers<TPixel>();
         AotCompileMemoryManagers<TPixel>();
 
@@ -512,6 +513,20 @@ internal static class AotCompilerTools
         default(DefaultPixelSamplingStrategy).EnumeratePixelRegions(default(ImageFrame<TPixel>));
         default(ExtensivePixelSamplingStrategy).EnumeratePixelRegions(default(Image<TPixel>));
         default(ExtensivePixelSamplingStrategy).EnumeratePixelRegions(default(ImageFrame<TPixel>));
+    }
+
+    /// <summary>
+    /// This method pre-seeds the all <see cref="IColorIndexCache{T}" /> in the AoT compiler.
+    /// </summary>
+    /// <typeparam name="TPixel">The pixel format.</typeparam>
+    [Preserve]
+    private static void AotCompilePixelMaps<TPixel>()
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        default(EuclideanPixelMap<TPixel, HybridCache>).GetClosestColor(default, out _);
+        default(EuclideanPixelMap<TPixel, AccurateCache>).GetClosestColor(default, out _);
+        default(EuclideanPixelMap<TPixel, CoarseCache>).GetClosestColor(default, out _);
+        default(EuclideanPixelMap<TPixel, NullCache>).GetClosestColor(default, out _);
     }
 
     /// <summary>

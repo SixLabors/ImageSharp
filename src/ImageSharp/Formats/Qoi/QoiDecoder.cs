@@ -4,6 +4,7 @@
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Qoi;
+
 internal class QoiDecoder : ImageDecoder
 {
     private QoiDecoder()

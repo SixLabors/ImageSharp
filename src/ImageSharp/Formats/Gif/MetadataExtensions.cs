@@ -61,18 +61,17 @@ public static partial class MetadataExtensions
 
     internal static AnimatedImageMetadata ToAnimatedImageMetadata(this GifMetadata source)
     {
-        Color background = Color.Transparent;
-        if (source.GlobalColorTable != null)
-        {
-            background = source.GlobalColorTable.Value.Span[source.BackgroundColorIndex];
-        }
+        bool global = source.ColorTableMode == GifColorTableMode.Global;
+        Color color = global && source.GlobalColorTable.HasValue && source.GlobalColorTable.Value.Span.Length > source.BackgroundColorIndex
+            ? source.GlobalColorTable.Value.Span[source.BackgroundColorIndex]
+            : Color.Transparent;
 
         return new()
         {
-            ColorTable = source.GlobalColorTable,
             ColorTableMode = source.ColorTableMode == GifColorTableMode.Global ? FrameColorTableMode.Global : FrameColorTableMode.Local,
+            ColorTable = global ? source.GlobalColorTable : null,
             RepeatCount = source.RepeatCount,
-            BackgroundColor = background,
+            BackgroundColor = color,
         };
     }
 

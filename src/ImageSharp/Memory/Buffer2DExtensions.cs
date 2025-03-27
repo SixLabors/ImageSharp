@@ -26,6 +26,39 @@ public static class Buffer2DExtensions
     }
 
     /// <summary>
+    /// Performs a deep clone of the buffer covering the specified <paramref name="rectangle"/>.
+    /// </summary>
+    /// <typeparam name="T">The element type.</typeparam>
+    /// <param name="source">The source buffer.</param>
+    /// <param name="configuration">The configuration.</param>
+    /// <param name="rectangle">The rectangle to clone.</param>
+    /// <returns>The <see cref="Buffer2D{T}"/>.</returns>
+    internal static Buffer2D<T> CloneRegion<T>(this Buffer2D<T> source, Configuration configuration, Rectangle rectangle)
+        where T : unmanaged
+    {
+        Buffer2D<T> buffer = configuration.MemoryAllocator.Allocate2D<T>(
+            rectangle.Width,
+            rectangle.Height,
+            configuration.PreferContiguousImageBuffers);
+
+        // Optimization for when the size of the area is the same as the buffer size.
+        Buffer2DRegion<T> sourceRegion = source.GetRegion(rectangle);
+        if (sourceRegion.IsFullBufferArea)
+        {
+            sourceRegion.Buffer.FastMemoryGroup.CopyTo(buffer.FastMemoryGroup);
+        }
+        else
+        {
+            for (int y = 0; y < rectangle.Height; y++)
+            {
+                sourceRegion.DangerousGetRowSpan(y).CopyTo(buffer.DangerousGetRowSpan(y));
+            }
+        }
+
+        return buffer;
+    }
+
+    /// <summary>
     /// TODO: Does not work with multi-buffer groups, should be specific to Resize.
     /// Copy <paramref name="columnCount"/> columns of <paramref name="buffer"/> inplace,
     /// from positions starting at <paramref name="sourceIndex"/> to positions at <paramref name="destIndex"/>.

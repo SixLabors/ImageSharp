@@ -74,7 +74,7 @@ internal class Vp8Decoder : IDisposable
         this.TmpYBuffer = memoryAllocator.Allocate<byte>((int)width);
         this.TmpUBuffer = memoryAllocator.Allocate<byte>((int)width);
         this.TmpVBuffer = memoryAllocator.Allocate<byte>((int)width);
-        this.Pixels = memoryAllocator.Allocate<byte>((int)(width * height * 4));
+        this.Pixels = memoryAllocator.Allocate<byte>((int)(width * height * 4), AllocationOptions.Clean);
 
 #if DEBUG
         // Filling those buffers with 205, is only useful for debugging,

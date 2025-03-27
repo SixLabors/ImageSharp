@@ -28,7 +28,7 @@ public struct OctreeQuantizer<TPixel> : IQuantizer<TPixel>
     private readonly Octree octree;
     private readonly IMemoryOwner<TPixel> paletteOwner;
     private ReadOnlyMemory<TPixel> palette;
-    private EuclideanPixelMap<TPixel>? pixelMap;
+    private PixelMap<TPixel>? pixelMap;
     private readonly bool isDithering;
     private bool isDisposed;
 
@@ -60,38 +60,43 @@ public struct OctreeQuantizer<TPixel> : IQuantizer<TPixel>
     public QuantizerOptions Options { get; }
 
     /// <inheritdoc/>
-    public readonly ReadOnlyMemory<TPixel> Palette
+    public ReadOnlyMemory<TPixel> Palette
     {
         get
         {
-            QuantizerUtilities.CheckPaletteState(in this.palette);
+            if (this.palette.IsEmpty)
+            {
+                this.ResolvePalette();
+                QuantizerUtilities.CheckPaletteState(in this.palette);
+            }
+
             return this.palette;
         }
     }
 
     /// <inheritdoc/>
-    public void AddPaletteColors(Buffer2DRegion<TPixel> pixelRegion)
+    public readonly void AddPaletteColors(Buffer2DRegion<TPixel> pixelRegion)
     {
-        using (IMemoryOwner<Rgba32> buffer = this.Configuration.MemoryAllocator.Allocate<Rgba32>(pixelRegion.Width))
+        using IMemoryOwner<Rgba32> buffer = this.Configuration.MemoryAllocator.Allocate<Rgba32>(pixelRegion.Width);
+        Span<Rgba32> bufferSpan = buffer.GetSpan();
+
+        // Loop through each row
+        for (int y = 0; y < pixelRegion.Height; y++)
         {
-            Span<Rgba32> bufferSpan = buffer.GetSpan();
+            Span<TPixel> row = pixelRegion.DangerousGetRowSpan(y);
+            PixelOperations<TPixel>.Instance.ToRgba32(this.Configuration, row, bufferSpan);
 
-            // Loop through each row
-            for (int y = 0; y < pixelRegion.Height; y++)
+            for (int x = 0; x < bufferSpan.Length; x++)
             {
-                Span<TPixel> row = pixelRegion.DangerousGetRowSpan(y);
-                PixelOperations<TPixel>.Instance.ToRgba32(this.Configuration, row, bufferSpan);
-
-                for (int x = 0; x < bufferSpan.Length; x++)
-                {
-                    Rgba32 rgba = bufferSpan[x];
-
-                    // Add the color to the Octree
-                    this.octree.AddColor(rgba);
-                }
+                // Add the color to the Octree
+                this.octree.AddColor(bufferSpan[x]);
             }
         }
+    }
 
+    [MemberNotNull(nameof(pixelMap))]
+    private void ResolvePalette()
+    {
         int paletteIndex = 0;
         Span<TPixel> paletteSpan = this.paletteOwner.GetSpan();
 
@@ -109,17 +114,7 @@ public struct OctreeQuantizer<TPixel> : IQuantizer<TPixel>
         this.octree.Palletize(paletteSpan, max, ref paletteIndex);
         ReadOnlyMemory<TPixel> result = this.paletteOwner.Memory[..paletteSpan.Length];
 
-        // When called multiple times by QuantizerUtilities.BuildPalette
-        // this prevents memory churn caused by reallocation.
-        if (this.pixelMap is null)
-        {
-            this.pixelMap = new EuclideanPixelMap<TPixel>(this.Configuration, result);
-        }
-        else
-        {
-            this.pixelMap.Clear(result);
-        }
-
+        this.pixelMap = PixelMapFactory.Create(this.Configuration, result, this.Options.ColorMatchingMode);
         this.palette = result;
     }
 

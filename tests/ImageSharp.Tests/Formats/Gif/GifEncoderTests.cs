@@ -382,4 +382,21 @@ public class GifEncoderTests
         provider.Utility.SaveTestOutputFile(image, "png", new PngEncoder(), "animated");
         provider.Utility.SaveTestOutputFile(image, "gif", new GifEncoder(), "animated");
     }
+
+    [Theory]
+    [WithFile(TestImages.Gif.Issues.Issue2866, PixelTypes.Rgba32)]
+    public void GifEncoder_CanDecode_AndEncode_Issue2866<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage();
+
+        // Save the image for visual inspection.
+        provider.Utility.SaveTestOutputFile(image, "gif", new GifEncoder(), "animated");
+
+        // Now compare the debug output with the reference output.
+        // We do this because the gif encoding is lossy and encoding will lead to differences in the 10s of percent.
+        // From the unencoded image, we can see that the image is visually the same.
+        static bool Predicate(int i, int _) => i % 8 == 0; // Image has many frames, only compare a selection of them.
+        image.CompareDebugOutputToReferenceOutputMultiFrame(provider, ImageComparer.Exact, extension: "gif", predicate: Predicate);
+    }
 }

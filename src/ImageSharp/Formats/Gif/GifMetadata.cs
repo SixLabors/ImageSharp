@@ -73,28 +73,12 @@ public class GifMetadata : IDeepCloneable
     public IDeepCloneable DeepClone() => new GifMetadata(this);
 
     internal static GifMetadata FromAnimatedMetadata(AnimatedImageMetadata metadata)
-    {
-        int index = 0;
-        Color background = metadata.BackgroundColor;
-        if (metadata.ColorTable.HasValue)
+        => new()
         {
-            ReadOnlySpan<Color> colorTable = metadata.ColorTable.Value.Span;
-            for (int i = 0; i < colorTable.Length; i++)
-            {
-                if (background == colorTable[i])
-                {
-                    index = i;
-                    break;
-                }
-            }
-        }
-
-        return new()
-        {
-            GlobalColorTable = metadata.ColorTable,
+            // Do not copy the color table or bit depth.
+            // This will lead to a mismatch when the image is comprised of frames
+            // extracted individually from a multi-frame image.
             ColorTableMode = metadata.ColorTableMode == FrameColorTableMode.Global ? GifColorTableMode.Global : GifColorTableMode.Local,
             RepeatCount = metadata.RepeatCount,
-            BackgroundColorIndex = (byte)Numerics.Clamp(index, 0, 255),
         };
-    }
 }

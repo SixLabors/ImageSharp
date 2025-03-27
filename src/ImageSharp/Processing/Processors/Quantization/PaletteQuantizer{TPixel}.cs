@@ -20,7 +20,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization;
 internal readonly struct PaletteQuantizer<TPixel> : IQuantizer<TPixel>
     where TPixel : unmanaged, IPixel<TPixel>
 {
-    private readonly EuclideanPixelMap<TPixel> pixelMap;
+    private readonly PixelMap<TPixel> pixelMap;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="PaletteQuantizer{TPixel}"/> struct.
@@ -41,7 +41,7 @@ internal readonly struct PaletteQuantizer<TPixel> : IQuantizer<TPixel>
 
         this.Configuration = configuration;
         this.Options = options;
-        this.pixelMap = new EuclideanPixelMap<TPixel>(configuration, palette, transparentIndex);
+        this.pixelMap = PixelMapFactory.Create(configuration, palette, options.ColorMatchingMode, transparentIndex);
     }
 
     /// <inheritdoc/>

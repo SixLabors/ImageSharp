@@ -76,6 +76,7 @@ public static class TestImages
         public const string FrameOffset = "Png/animated/frame-offset.png";
         public const string DefaultNotAnimated = "Png/animated/default-not-animated.png";
         public const string Issue2666 = "Png/issues/Issue_2666.png";
+        public const string Issue2882 = "Png/issues/Issue_2882.png";
 
         // Filtered test images from http://www.schaik.com/pngsuite/pngsuite_fil_png.html
         public const string Filter0 = "Png/filter0.png";
@@ -507,6 +508,31 @@ public static class TestImages
         public const string Bit18RGBCube = "Gif/18-bit_RGB_Cube.gif";
         public const string Global256NoTrans = "Gif/global-256-no-trans.gif";
 
+        // Test imagages from: https://github.com/peterdn/gif-test-suite.git
+        // Animated gif with 4 frames, looping forever, no transparency.
+        public const string AnimatedLoop = "Gif/animated_loop.gif";
+
+        // Animated gif with 4 frames, interlaced, looping forever, no transparency.
+        public const string AnimatedLoopInterlaced = "Gif/animated_loop_interlaced.gif";
+
+        // Transparent gif with 4 frames, loops forever.
+        public const string AnimatedTransparentLoop = "Gif/animated_transparent_loop.gif";
+
+        // Transparent gif with 4 frames, loops forever, first frame restore previous.
+        public const string AnimatedTransparentFirstFrameRestorePrev = "Gif/animated_transparent_firstframerestoreprev_loop.gif";
+
+        // Transparent gif with 4 transparent frames, loops forever, no dispose
+        public const string AnimatedTransparentNoRestore = "Gif/animated_transparent_frame_norestore_loop.gif";
+
+        // Transparent gif with 4 transparent frames, loops forever, restore previous.
+        public const string AnimatedTransparentRestorePrevious = "Gif/animated_transparent_frame_restoreprev_loop.gif";
+
+        // Static gif with no animation, no transparency.
+        public const string StaticNontransparent = "Gif/static_nontransparent.gif";
+
+        // Static transparent gif with no animation.
+        public const string StaticTransparent = "Gif/static_transparent.gif";
+
         // Test images from https://github.com/robert-ancell/pygif/tree/master/test-suite
         public const string ZeroSize = "Gif/image-zero-size.gif";
         public const string ZeroHeight = "Gif/image-zero-height.gif";
@@ -535,6 +561,7 @@ public static class TestImages
             public const string Issue2450_B = "Gif/issues/issue_2450_2.gif";
             public const string Issue2198 = "Gif/issues/issue_2198.gif";
             public const string Issue2758 = "Gif/issues/issue_2758.gif";
+            public const string Issue2866 = "Gif/issues/issue_2866.gif";
             public const string Issue2859_A = "Gif/issues/issue_2859_A.gif";
             public const string Issue2859_B = "Gif/issues/issue_2859_B.gif";
         }
@@ -827,6 +854,7 @@ public static class TestImages
             public const string Issue2670 = "Webp/issues/Issue2670.webp";
             public const string Issue2763 = "Webp/issues/Issue2763.png";
             public const string Issue2801 = "Webp/issues/Issue2801.webp";
+            public const string Issue2866 = "Webp/issues/Issue2866.webp";
         }
     }
 

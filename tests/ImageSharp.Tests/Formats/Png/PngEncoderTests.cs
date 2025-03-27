@@ -678,12 +678,16 @@ public partial class PngEncoderTests
             }
         }
 
+        PaletteQuantizer quantizer = new(
+            palette.Select(Color.FromPixel).ToArray(),
+            new QuantizerOptions() { ColorMatchingMode = ColorMatchingMode.Hybrid });
+
         using MemoryStream ms = new();
         image.Save(ms, new PngEncoder
         {
             ColorType = PngColorType.Palette,
             BitDepth = PngBitDepth.Bit8,
-            Quantizer = new PaletteQuantizer(palette.Select(Color.FromPixel).ToArray())
+            Quantizer = quantizer
         });
 
         ms.Position = 0;

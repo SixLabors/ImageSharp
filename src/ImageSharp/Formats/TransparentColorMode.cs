@@ -4,7 +4,7 @@
 namespace SixLabors.ImageSharp.Formats;
 
 /// <summary>
-/// Specifies how transparent pixels should be handled during encoding.
+/// Specifies how transparent pixels should be handled during encoding and quantization.
 /// </summary>
 public enum TransparentColorMode
 {

@@ -98,6 +98,7 @@ internal struct PaletteQuantizer<TPixel> : IQuantizer<TPixel>
     [MethodImpl(InliningOptions.ShortMethod)]
     public readonly byte GetQuantizedColor(TPixel color, out TPixel match)
     {
+        // TODO: We need to use thesholding here.
         if (this.transparencyIndex >= 0 && color.Equals(this.transparentColor))
         {
             match = this.transparentColor;

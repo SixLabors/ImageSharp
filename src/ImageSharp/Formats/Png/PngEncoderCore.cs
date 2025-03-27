@@ -197,7 +197,7 @@ internal sealed class PngEncoderCore : IDisposable
             {
                 currentFrame = clonedFrame = currentFrame.Clone();
                 currentFrameRegion = currentFrame.PixelBuffer.GetRegion();
-                EncodingUtilities.ReplaceTransparentPixels(this.configuration, in currentFrameRegion, this.backgroundColor.Value);
+                EncodingUtilities.ReplaceTransparentPixels(this.configuration, in currentFrameRegion);
             }
 
             // Do not move this. We require an accurate bit depth for the header chunk.
@@ -316,7 +316,7 @@ internal sealed class PngEncoderCore : IDisposable
 
                     if (clearTransparency && this.colorType is not PngColorType.Palette)
                     {
-                        EncodingUtilities.ReplaceTransparentPixels(encodingFrame, background);
+                        EncodingUtilities.ReplaceTransparentPixels(encodingFrame);
                     }
 
                     // Each frame control sequence number must be incremented by the number of frame data chunks that follow.

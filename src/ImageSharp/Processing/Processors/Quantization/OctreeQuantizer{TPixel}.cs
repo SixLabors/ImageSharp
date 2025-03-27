@@ -45,7 +45,7 @@ public struct OctreeQuantizer<TPixel> : IQuantizer<TPixel>
 
         this.maxColors = this.Options.MaxColors;
         this.bitDepth = Numerics.Clamp(ColorNumerics.GetBitsNeededForColorDepth(this.maxColors), 1, 8);
-        this.octree = new Octree(configuration, this.bitDepth, this.maxColors, this.Options.TransparencyThreshold, this.Options.ThresholdReplacementColor);
+        this.octree = new Octree(configuration, this.bitDepth, this.maxColors, this.Options.TransparencyThreshold);
         this.paletteOwner = configuration.MemoryAllocator.Allocate<TPixel>(this.maxColors, AllocationOptions.Clean);
         this.pixelMap = default;
         this.palette = default;
@@ -194,11 +194,6 @@ public struct OctreeQuantizer<TPixel> : IQuantizer<TPixel>
         private int previousNode;
         private Rgba32 previousColor;
 
-        // The color to use for pixels below the transparency threshold.
-        private Vector4 thresholdReplacementColor;
-        private Vector4 thresholdReplacementColorV4;
-        private readonly Rgba32 thresholdReplacementColorRgba;
-
         // Free list for reclaimed node indices.
         private readonly Stack<short> freeIndices = new();
 
@@ -209,20 +204,15 @@ public struct OctreeQuantizer<TPixel> : IQuantizer<TPixel>
         /// <param name="maxColorBits">The maximum number of significant bits in the image.</param>
         /// <param name="maxColors">The maximum number of colors to allow in the palette.</param>
         /// <param name="transparencyThreshold">The threshold for transparent colors.</param>
-        /// <param name="thresholdReplacementColor">The color to use for pixels below the transparency threshold.</param>
         public Octree(
             Configuration configuration,
             int maxColorBits,
             int maxColors,
-            float transparencyThreshold,
-            Color thresholdReplacementColor)
+            float transparencyThreshold)
         {
             this.maxColorBits = maxColorBits;
             this.maxColors = maxColors;
             this.transparencyThreshold255 = (int)(transparencyThreshold * 255F);
-            this.thresholdReplacementColor = thresholdReplacementColor.ToScaledVector4();
-            this.thresholdReplacementColorV4 = this.thresholdReplacementColor * 255F;
-            this.thresholdReplacementColorRgba = thresholdReplacementColor.ToPixel<Rgba32>();
             this.Leaves = 0;
             this.previousNode = -1;
             this.previousColor = default;
@@ -573,7 +563,7 @@ public struct OctreeQuantizer<TPixel> : IQuantizer<TPixel>
 
                     if (vector.W < octree.transparencyThreshold255)
                     {
-                        vector = octree.thresholdReplacementColorV4;
+                        vector = Vector4.Zero;
                     }
 
                     palette[paletteIndex] = TPixel.FromRgba32(new Rgba32((byte)vector.X, (byte)vector.Y, (byte)vector.Z, (byte)vector.W));
@@ -602,11 +592,6 @@ public struct OctreeQuantizer<TPixel> : IQuantizer<TPixel>
             /// <param name="octree">The parent octree.</param>
             public int GetPaletteIndex(Rgba32 color, int level, Octree octree)
             {
-                if (color.A < octree.transparencyThreshold255)
-                {
-                    color = octree.thresholdReplacementColorRgba;
-                }
-
                 if (this.Leaf)
                 {
                     return this.PaletteIndex;

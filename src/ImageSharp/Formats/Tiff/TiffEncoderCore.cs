@@ -146,10 +146,12 @@ internal sealed class TiffEncoderCore
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
+                // TODO: Try to avoid cloning the frame if possible.
+                // We should be cloning individual scanlines instead.
                 if (EncodingUtilities.ShouldReplaceTransparentPixels<TPixel>(this.transparentColorMode))
                 {
                     clonedFrame = frame.Clone();
-                    EncodingUtilities.ReplaceTransparentPixels(clonedFrame, Color.Transparent);
+                    EncodingUtilities.ReplaceTransparentPixels(clonedFrame);
                 }
 
                 ImageFrame<TPixel> encodingFrame = clonedFrame ?? frame;

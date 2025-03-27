@@ -146,12 +146,16 @@ internal sealed class GifEncoderCore
             }
         }
 
+        // Create a new quantizer options instance augmenting the transparent color mode to match the encoder.
+        TransparentColorMode mode = this.transparentColorMode;
+        QuantizerOptions options = this.quantizer.Options.DeepClone(o => o.TransparentColorMode = mode);
+
         // Quantize the first frame. Checking to see whether we can clear the transparent pixels
         // to allow for a smaller color palette and encoded result.
+        // TODO: What should we use as the background color here?
         Color background = Color.Transparent;
-        using (IQuantizer<TPixel> frameQuantizer = this.quantizer.CreatePixelSpecificQuantizer<TPixel>(this.configuration))
+        using (IQuantizer<TPixel> frameQuantizer = this.quantizer.CreatePixelSpecificQuantizer<TPixel>(this.configuration, options))
         {
-            TransparentColorMode mode = this.transparentColorMode;
             IPixelSamplingStrategy strategy = this.pixelSamplingStrategy;
 
             ImageFrame<TPixel> encodingFrame = image.Frames.RootFrame;

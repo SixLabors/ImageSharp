@@ -18,6 +18,13 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization;
 /// </summary>
 public static class QuantizerUtilities
 {
+    internal static QuantizerOptions DeepClone(this QuantizerOptions options, Action<QuantizerOptions>? mutate)
+    {
+        QuantizerOptions clone = options.DeepClone();
+        mutate?.Invoke(clone);
+        return clone;
+    }
+
     /// <summary>
     /// Determines if transparent pixels can be replaced based on the specified color mode and pixel type.
     /// </summary>
@@ -29,20 +36,15 @@ public static class QuantizerUtilities
         => threshold > 0 && TPixel.GetPixelTypeInfo().AlphaRepresentation == PixelAlphaRepresentation.Unassociated;
 
     /// <summary>
-    /// Replaces transparent pixels in a span with a specified color based on an alpha threshold.
+    /// Replaces pixels in a span with fully transparent pixels based on an alpha threshold.
     /// </summary>
     /// <param name="source">A span of color vectors that will be checked for transparency and potentially modified.</param>
-    /// <param name="replacement">A color vector that will replace transparent pixels when the alpha value is below the specified threshold.</param>
     /// <param name="threshold">The alpha threshold used to determine if a pixel is transparent.</param>
-    public static void ReplacePixelsByAlphaThreshold(Span<Vector4> source, Vector4 replacement, float threshold)
+    public static void ReplacePixelsByAlphaThreshold(Span<Vector4> source, float threshold)
     {
         if (Vector512.IsHardwareAccelerated && source.Length >= 4)
         {
-            Vector128<float> replacement128 = replacement.AsVector128();
-            Vector256<float> replacement256 = Vector256.Create(replacement128, replacement128);
-            Vector512<float> replacement512 = Vector512.Create(replacement256, replacement256);
             Vector512<float> threshold512 = Vector512.Create(threshold);
-
             Span<Vector512<float>> source512 = MemoryMarshal.Cast<Vector4, Vector512<float>>(source);
             for (int i = 0; i < source512.Length; i++)
             {
@@ -56,7 +58,7 @@ public static class QuantizerUtilities
 
                 // Use the mask to select the replacement vector
                 // (replacement & mask) | (v512 & ~mask)
-                v = Vector512.ConditionalSelect(mask, replacement512, v);
+                v = Vector512.ConditionalSelect(mask, Vector512<float>.Zero, v);
             }
 
             int m = Numerics.Modulo4(source.Length);
@@ -66,17 +68,14 @@ public static class QuantizerUtilities
                 {
                     if (source[i].W < threshold)
                     {
-                        source[i] = replacement;
+                        source[i] = Vector4.Zero;
                     }
                 }
             }
         }
         else if (Vector256.IsHardwareAccelerated && source.Length >= 2)
         {
-            Vector128<float> replacement128 = replacement.AsVector128();
-            Vector256<float> replacement256 = Vector256.Create(replacement128, replacement128);
             Vector256<float> threshold256 = Vector256.Create(threshold);
-
             Span<Vector256<float>> source256 = MemoryMarshal.Cast<Vector4, Vector256<float>>(source);
             for (int i = 0; i < source256.Length; i++)
             {
@@ -90,7 +89,7 @@ public static class QuantizerUtilities
 
                 // Use the mask to select the replacement vector
                 // (replacement & mask) | (v256 & ~mask)
-                v = Vector256.ConditionalSelect(mask, replacement256, v);
+                v = Vector256.ConditionalSelect(mask, Vector256<float>.Zero, v);
             }
 
             int m = Numerics.Modulo2(source.Length);
@@ -100,14 +99,13 @@ public static class QuantizerUtilities
                 {
                     if (source[i].W < threshold)
                     {
-                        source[i] = replacement;
+                        source[i] = Vector4.Zero;
                     }
                 }
             }
         }
         else if (Vector128.IsHardwareAccelerated)
         {
-            Vector128<float> replacement128 = replacement.AsVector128();
             Vector128<float> threshold128 = Vector128.Create(threshold);
 
             for (int i = 0; i < source.Length; i++)
@@ -123,7 +121,7 @@ public static class QuantizerUtilities
 
                 // Use the mask to select the replacement vector
                 // (replacement & mask) | (v128 & ~mask)
-                v = Vector128.ConditionalSelect(mask, replacement128, v128).AsVector4();
+                v = Vector128.ConditionalSelect(mask, Vector128<float>.Zero, v128).AsVector4();
             }
         }
         else
@@ -132,7 +130,7 @@ public static class QuantizerUtilities
             {
                 if (source[i].W < threshold)
                 {
-                    source[i] = replacement;
+                    source[i] = Vector4.Zero;
                 }
             }
         }
@@ -336,7 +334,7 @@ public static class QuantizerUtilities
     {
         Configuration configuration = quantizer.Configuration;
         float threshold = quantizer.Options.TransparencyThreshold;
-        Color replacement = quantizer.Options.ThresholdReplacementColor;
+        TransparentColorMode mode = quantizer.Options.TransparentColorMode;
 
         using IMemoryOwner<TPixel2> delegateRowOwner = configuration.MemoryAllocator.Allocate<TPixel2>(source.Width);
         Span<TPixel2> delegateRow = delegateRowOwner.Memory.Span;
@@ -348,7 +346,6 @@ public static class QuantizerUtilities
         {
             using IMemoryOwner<Vector4> vectorRowOwner = configuration.MemoryAllocator.Allocate<Vector4>(source.Width);
             Span<Vector4> vectorRow = vectorRowOwner.Memory.Span;
-            Vector4 replacementV4 = replacement.ToScaledVector4();
 
             if (replaceByThreshold)
             {
@@ -357,7 +354,7 @@ public static class QuantizerUtilities
                     Span<TPixel> sourceRow = source.DangerousGetRowSpan(y);
                     PixelOperations<TPixel>.Instance.ToVector4(configuration, sourceRow, vectorRow, PixelConversionModifiers.Scale);
 
-                    ReplacePixelsByAlphaThreshold(vectorRow, replacementV4, threshold);
+                    ReplacePixelsByAlphaThreshold(vectorRow, threshold);
 
                     PixelOperations<TPixel2>.Instance.FromVector4Destructive(configuration, vectorRow, delegateRow, PixelConversionModifiers.Scale);
                     rowDelegate.Invoke(delegateRow, y);
@@ -370,7 +367,7 @@ public static class QuantizerUtilities
                     Span<TPixel> sourceRow = source.DangerousGetRowSpan(y);
                     PixelOperations<TPixel>.Instance.ToVector4(configuration, sourceRow, vectorRow, PixelConversionModifiers.Scale);
 
-                    EncodingUtilities.ReplaceTransparentPixels(vectorRow, replacementV4);
+                    EncodingUtilities.ReplaceTransparentPixels(vectorRow);
 
                     PixelOperations<TPixel2>.Instance.FromVector4Destructive(configuration, vectorRow, delegateRow, PixelConversionModifiers.Scale);
                     rowDelegate.Invoke(delegateRow, y);
@@ -398,10 +395,8 @@ public static class QuantizerUtilities
         where TPixel : unmanaged, IPixel<TPixel>
     {
         float threshold = quantizer.Options.TransparencyThreshold;
-        Color replacement = quantizer.Options.ThresholdReplacementColor;
         bool replaceByThreshold = ShouldReplacePixelsByAlphaThreshold<TPixel>(threshold);
         bool replaceTransparent = EncodingUtilities.ShouldReplaceTransparentPixels<TPixel>(mode);
-        Vector4 replacementV4 = replacement.ToScaledVector4();
 
         IDither? dither = quantizer.Options.Dither;
         Buffer2D<TPixel> sourceBuffer = source.PixelBuffer;
@@ -426,7 +421,7 @@ public static class QuantizerUtilities
                         Span<TPixel> sourceRow = region.DangerousGetRowSpan(y);
                         PixelOperations<TPixel>.Instance.ToVector4(configuration, sourceRow, vectorRow, PixelConversionModifiers.Scale);
 
-                        ReplacePixelsByAlphaThreshold(vectorRow, replacementV4, threshold);
+                        ReplacePixelsByAlphaThreshold(vectorRow, threshold);
 
                         PixelOperations<TPixel>.Instance.FromVector4Destructive(configuration, vectorRow, quantizingRow, PixelConversionModifiers.Scale);
 
@@ -444,7 +439,7 @@ public static class QuantizerUtilities
                         Span<TPixel> sourceRow = region.DangerousGetRowSpan(y);
                         PixelOperations<TPixel>.Instance.ToVector4(configuration, sourceRow, vectorRow, PixelConversionModifiers.Scale);
 
-                        EncodingUtilities.ReplaceTransparentPixels(vectorRow, replacementV4);
+                        EncodingUtilities.ReplaceTransparentPixels(vectorRow);
 
                         PixelOperations<TPixel>.Instance.FromVector4Destructive(configuration, vectorRow, quantizingRow, PixelConversionModifiers.Scale);
 
@@ -483,7 +478,7 @@ public static class QuantizerUtilities
                     Span<TPixel> sourceRow = region.DangerousGetRowSpan(y);
                     PixelOperations<TPixel>.Instance.ToVector4(configuration, sourceRow, vectorRow, PixelConversionModifiers.Scale);
 
-                    ReplacePixelsByAlphaThreshold(vectorRow, replacementV4, threshold);
+                    ReplacePixelsByAlphaThreshold(vectorRow, threshold);
 
                     PixelOperations<TPixel>.Instance.FromVector4Destructive(configuration, vectorRow, sourceRow, PixelConversionModifiers.Scale);
                 }
@@ -495,7 +490,7 @@ public static class QuantizerUtilities
                     Span<TPixel> sourceRow = region.DangerousGetRowSpan(y);
                     PixelOperations<TPixel>.Instance.ToVector4(configuration, sourceRow, vectorRow, PixelConversionModifiers.Scale);
 
-                    EncodingUtilities.ReplaceTransparentPixels(vectorRow, replacementV4);
+                    EncodingUtilities.ReplaceTransparentPixels(vectorRow);
 
                     PixelOperations<TPixel>.Instance.FromVector4Destructive(configuration, vectorRow, sourceRow, PixelConversionModifiers.Scale);
                 }

@@ -368,7 +368,7 @@ internal sealed class BmpEncoderCore
             if (bpp > 8 && EncodingUtilities.ShouldReplaceTransparentPixels<TPixel>(this.transparentColorMode))
             {
                 clonedFrame = image.Frames.RootFrame.Clone();
-                EncodingUtilities.ReplaceTransparentPixels(clonedFrame, Color.Transparent);
+                EncodingUtilities.ReplaceTransparentPixels(clonedFrame);
             }
 
             ImageFrame<TPixel> encodingFrame = clonedFrame ?? image.Frames.RootFrame;

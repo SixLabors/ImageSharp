@@ -58,9 +58,6 @@ internal struct WuQuantizer<TPixel> : IQuantizer<TPixel>
     private readonly Box[] colorCube;
     private PixelMap<TPixel>? pixelMap;
     private readonly bool isDithering;
-    private readonly int transparencyThreshold255;
-    private Vector4 thresholdReplacementColorV4;
-    private readonly Rgba32 thresholdReplacementColorRgba;
     private bool isDisposed;
 
     /// <summary>
@@ -86,9 +83,6 @@ internal struct WuQuantizer<TPixel> : IQuantizer<TPixel>
         this.pixelMap = default;
         this.palette = default;
         this.isDithering = this.Options.Dither is not null;
-        this.transparencyThreshold255 = (int)(this.Options.TransparencyThreshold * 255F);
-        this.thresholdReplacementColorV4 = this.Options.ThresholdReplacementColor.ToScaledVector4();
-        this.thresholdReplacementColorRgba = this.Options.ThresholdReplacementColor.ToPixel<Rgba32>();
     }
 
     /// <inheritdoc/>
@@ -139,7 +133,6 @@ internal struct WuQuantizer<TPixel> : IQuantizer<TPixel>
         ReadOnlySpan<Moment> momentsSpan = this.momentsOwner.GetSpan();
 
         float transparencyThreshold = this.Options.TransparencyThreshold;
-        Vector4 thresholdReplacementColor = this.thresholdReplacementColorV4;
         for (int k = 0; k < paletteSpan.Length; k++)
         {
             this.Mark(ref this.colorCube[k], (byte)k);
@@ -149,7 +142,7 @@ internal struct WuQuantizer<TPixel> : IQuantizer<TPixel>
                 Vector4 normalized = moment.Normalize();
                 if (normalized.W < transparencyThreshold)
                 {
-                    normalized = thresholdReplacementColor;
+                    normalized = Vector4.Zero;
                 }
 
                 paletteSpan[k] = TPixel.FromScaledVector4(normalized);
@@ -188,10 +181,6 @@ internal struct WuQuantizer<TPixel> : IQuantizer<TPixel>
         }
 
         Rgba32 rgba = color.ToRgba32();
-        if (rgba.A < this.transparencyThreshold255)
-        {
-            rgba = this.thresholdReplacementColorRgba;
-        }
 
         const int shift = 8 - IndexBits;
         int r = rgba.R >> shift;

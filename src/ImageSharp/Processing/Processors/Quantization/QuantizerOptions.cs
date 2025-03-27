@@ -10,9 +10,11 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization;
 /// </summary>
 public class QuantizerOptions
 {
+#pragma warning disable IDE0032 // Use auto property
     private float ditherScale = QuantizerConstants.MaxDitherScale;
     private int maxColors = QuantizerConstants.MaxColors;
     private float threshold = QuantizerConstants.DefaultTransparencyThreshold;
+#pragma warning restore IDE0032 // Use auto property
 
     /// <summary>
     /// Gets or sets the  algorithm to apply to the output image.
@@ -58,6 +60,7 @@ public class QuantizerOptions
 
     /// <summary>
     /// Gets or sets the color matching mode used for matching pixel values to palette colors.
+    /// Defaults to <see cref="ColorMatchingMode.Coarse"/>.
     /// </summary>
-    public ColorMatchingMode ColorMatchingMode { get; set; } = ColorMatchingMode.Hybrid;
+    public ColorMatchingMode ColorMatchingMode { get; set; } = ColorMatchingMode.Coarse;
 }

@@ -12,21 +12,16 @@ using SDImage = System.Drawing.Image;
 
 namespace SixLabors.ImageSharp.Benchmarks.Codecs;
 
-[Config(typeof(Config.Short))]
-public class EncodeGif
+public abstract class EncodeGif
 {
     // System.Drawing needs this.
     private FileStream bmpStream;
     private SDImage bmpDrawing;
     private Image<Rgba32> bmpCore;
 
-    // Try to get as close to System.Drawing's output as possible
-    private readonly GifEncoder encoder = new()
-    {
-        Quantizer = new WebSafePaletteQuantizer(new QuantizerOptions { Dither = KnownDitherings.Bayer4x4 })
-    };
+    protected abstract GifEncoder Encoder { get; }
 
-    [Params(TestImages.Bmp.Car, TestImages.Png.Rgb48Bpp)]
+    [Params(TestImages.Gif.Leo, TestImages.Gif.Cheers)]
     public string TestImage { get; set; }
 
     [GlobalSetup]
@@ -61,6 +56,19 @@ public class EncodeGif
     public void GifImageSharp()
     {
         using MemoryStream memoryStream = new();
-        this.bmpCore.SaveAsGif(memoryStream, this.encoder);
+        this.bmpCore.SaveAsGif(memoryStream, this.Encoder);
     }
+}
+
+public class EncodeGif_DefaultEncoder : EncodeGif
+{
+    protected override GifEncoder Encoder => new();
+}
+
+public class EncodeGif_CoarsePaletteEncoder : EncodeGif
+{
+    protected override GifEncoder Encoder => new()
+    {
+        Quantizer = new WebSafePaletteQuantizer(new QuantizerOptions { Dither = KnownDitherings.Bayer4x4, ColorMatchingMode = ColorMatchingMode.Coarse })
+    };
 }

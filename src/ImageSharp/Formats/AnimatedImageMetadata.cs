@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 namespace SixLabors.ImageSharp.Formats;
+
 internal class AnimatedImageMetadata
 {
     /// <summary>

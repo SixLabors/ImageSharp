@@ -76,6 +76,7 @@ public static class TestImages
         public const string FrameOffset = "Png/animated/frame-offset.png";
         public const string DefaultNotAnimated = "Png/animated/default-not-animated.png";
         public const string Issue2666 = "Png/issues/Issue_2666.png";
+        public const string Issue2882 = "Png/issues/Issue_2882.png";
 
         // Filtered test images from http://www.schaik.com/pngsuite/pngsuite_fil_png.html
         public const string Filter0 = "Png/filter0.png";

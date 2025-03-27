@@ -69,11 +69,11 @@ internal interface IColorIndexCache<T> : IColorIndexCache
 internal unsafe struct HybridCache : IColorIndexCache<HybridCache>
 {
     private CoarseCache coarseCache;
-    private ExactCache exactCache;
+    private AccurateCache accurateCache;
 
     public HybridCache(MemoryAllocator allocator)
     {
-        this.exactCache = ExactCache.Create(allocator);
+        this.accurateCache = AccurateCache.Create(allocator);
         this.coarseCache = CoarseCache.Create(allocator);
     }
 
@@ -84,7 +84,7 @@ internal unsafe struct HybridCache : IColorIndexCache<HybridCache>
     [MethodImpl(InliningOptions.ShortMethod)]
     public bool TryAdd(Rgba32 color, short index)
     {
-        if (this.exactCache.TryAdd(color, index))
+        if (this.accurateCache.TryAdd(color, index))
         {
             return true;
         }
@@ -96,7 +96,7 @@ internal unsafe struct HybridCache : IColorIndexCache<HybridCache>
     [MethodImpl(InliningOptions.ShortMethod)]
     public readonly bool TryGetValue(Rgba32 color, out short value)
     {
-        if (this.exactCache.TryGetValue(color, out value))
+        if (this.accurateCache.TryGetValue(color, out value))
         {
             return true;
         }
@@ -107,14 +107,14 @@ internal unsafe struct HybridCache : IColorIndexCache<HybridCache>
     /// <inheritdoc/>
     public readonly void Clear()
     {
-        this.exactCache.Clear();
+        this.accurateCache.Clear();
         this.coarseCache.Clear();
     }
 
     /// <inheritdoc/>
     public void Dispose()
     {
-        this.exactCache.Dispose();
+        this.accurateCache.Dispose();
         this.coarseCache.Dispose();
     }
 }
@@ -311,7 +311,7 @@ internal unsafe struct CoarseCache : IColorIndexCache<CoarseCache>
 /// typically very short; in the worst-case, the number of iterations is bounded by 256.
 /// This guarantees highly efficient and predictable performance for small, fixed-size color palettes.
 /// </remarks>
-internal unsafe struct ExactCache : IColorIndexCache<ExactCache>
+internal unsafe struct AccurateCache : IColorIndexCache<AccurateCache>
 {
     // Buckets array: each bucket holds the index (0-based) into the entries array
     // of the first entry in the chain, or -1 if empty.
@@ -326,7 +326,7 @@ internal unsafe struct ExactCache : IColorIndexCache<ExactCache>
 
     public const int Capacity = 512;
 
-    private ExactCache(MemoryAllocator allocator)
+    private AccurateCache(MemoryAllocator allocator)
     {
         this.Count = 0;
 
@@ -346,7 +346,7 @@ internal unsafe struct ExactCache : IColorIndexCache<ExactCache>
     public int Count { get; private set; }
 
     /// <inheritdoc/>
-    public static ExactCache Create(MemoryAllocator allocator) => new(allocator);
+    public static AccurateCache Create(MemoryAllocator allocator) => new(allocator);
 
     /// <inheritdoc/>
     [MethodImpl(InliningOptions.ShortMethod)]

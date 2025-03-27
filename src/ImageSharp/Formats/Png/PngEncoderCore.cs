@@ -290,7 +290,16 @@ internal sealed class PngEncoderCore : IDisposable
 
                     frameMetadata = currentFrame.Metadata.GetPngMetadata();
 
-                    bool blend = frameMetadata.BlendMode == FrameBlendMode.Over;
+                    // Determine whether to blend the current frame over the existing canvas.
+                    // Blending is applied only when the blend method is 'Over' (source-over blending)
+                    // and when the frame's disposal method is not 'RestoreToPrevious', which indicates that
+                    // the frame should not permanently alter the canvas.
+                    bool blend = frameMetadata.BlendMode == FrameBlendMode.Over
+                                 && frameMetadata.DisposalMode != FrameDisposalMode.RestoreToPrevious;
+
+                    // Establish the background color for the current frame.
+                    // If the disposal method is 'RestoreToBackground', use the predefined background color;
+                    // otherwise, use transparent, as no explicit background restoration is needed.
                     Color background = frameMetadata.DisposalMode == FrameDisposalMode.RestoreToBackground
                         ? this.backgroundColor.Value
                         : Color.Transparent;

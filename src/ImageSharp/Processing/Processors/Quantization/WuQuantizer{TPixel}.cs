@@ -6,7 +6,6 @@ using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -107,9 +106,9 @@ internal struct WuQuantizer<TPixel> : IQuantizer<TPixel>
     }
 
     /// <inheritdoc/>
-    public readonly void AddPaletteColors(in Buffer2DRegion<TPixel> pixelRegion, TransparentColorMode mode)
+    public readonly void AddPaletteColors(in Buffer2DRegion<TPixel> pixelRegion)
     {
-        PixelRowDelegate pixelRowDelegate = new(ref Unsafe.AsRef(in this), mode);
+        PixelRowDelegate pixelRowDelegate = new(ref Unsafe.AsRef(in this));
         QuantizerUtilities.AddPaletteColors<WuQuantizer<TPixel>, TPixel, Rgba32, PixelRowDelegate>(
             ref Unsafe.AsRef(in this),
             in pixelRegion,
@@ -162,12 +161,7 @@ internal struct WuQuantizer<TPixel> : IQuantizer<TPixel>
     /// <inheritdoc/>
     [MethodImpl(InliningOptions.ShortMethod)]
     public readonly IndexedImageFrame<TPixel> QuantizeFrame(ImageFrame<TPixel> source, Rectangle bounds)
-        => this.QuantizeFrame(source, bounds, TransparentColorMode.Preserve);
-
-    /// <inheritdoc/>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public readonly IndexedImageFrame<TPixel> QuantizeFrame(ImageFrame<TPixel> source, Rectangle bounds, TransparentColorMode mode)
-        => QuantizerUtilities.QuantizeFrame(ref Unsafe.AsRef(in this), source, bounds, mode);
+        => QuantizerUtilities.QuantizeFrame(ref Unsafe.AsRef(in this), source, bounds);
 
     /// <inheritdoc/>
     public readonly byte GetQuantizedColor(TPixel color, out TPixel match)
@@ -891,13 +885,7 @@ internal struct WuQuantizer<TPixel> : IQuantizer<TPixel>
     {
         private readonly WuQuantizer<TPixel> quantizer;
 
-        public PixelRowDelegate(ref WuQuantizer<TPixel> quantizer, TransparentColorMode mode)
-        {
-            this.quantizer = quantizer;
-            this.TransparentColorMode = mode;
-        }
-
-        public TransparentColorMode TransparentColorMode { get; }
+        public PixelRowDelegate(ref WuQuantizer<TPixel> quantizer) => this.quantizer = quantizer;
 
         public void Invoke(ReadOnlySpan<Rgba32> row, int rowIndex) => this.quantizer.Build3DHistogram(row);
     }

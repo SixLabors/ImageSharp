@@ -18,7 +18,13 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization;
 /// </summary>
 public static class QuantizerUtilities
 {
-    internal static QuantizerOptions DeepClone(this QuantizerOptions options, Action<QuantizerOptions>? mutate)
+    /// <summary>
+    /// Performs a deep clone the <see cref="QuantizerOptions"/> instance and optionally mutates the clone.
+    /// </summary>
+    /// <param name="options">The <see cref="QuantizerOptions"/> instance to clone.</param>
+    /// <param name="mutate">An optional delegate to mutate the cloned instance.</param>
+    /// <returns>The cloned <see cref="QuantizerOptions"/> instance.</returns>
+    public static QuantizerOptions DeepClone(this QuantizerOptions options, Action<QuantizerOptions>? mutate)
     {
         QuantizerOptions clone = options.DeepClone();
         mutate?.Invoke(clone);
@@ -170,29 +176,6 @@ public static class QuantizerUtilities
         ImageFrame<TPixel> source,
         Rectangle bounds)
         where TPixel : unmanaged, IPixel<TPixel>
-        => BuildPaletteAndQuantizeFrame(
-            quantizer,
-            source,
-            bounds,
-            TransparentColorMode.Preserve);
-
-    /// <summary>
-    /// Execute both steps of the quantization.
-    /// </summary>
-    /// <param name="quantizer">The pixel specific quantizer.</param>
-    /// <param name="source">The source image frame to quantize.</param>
-    /// <param name="bounds">The bounds within the frame to quantize.</param>
-    /// <param name="mode">The transparent color mode.</param>
-    /// <typeparam name="TPixel">The pixel type.</typeparam>
-    /// <returns>
-    /// A <see cref="IndexedImageFrame{TPixel}"/> representing a quantized version of the source frame pixels.
-    /// </returns>
-    public static IndexedImageFrame<TPixel> BuildPaletteAndQuantizeFrame<TPixel>(
-        this IQuantizer<TPixel> quantizer,
-        ImageFrame<TPixel> source,
-        Rectangle bounds,
-        TransparentColorMode mode)
-        where TPixel : unmanaged, IPixel<TPixel>
     {
         Guard.NotNull(quantizer, nameof(quantizer));
         Guard.NotNull(source, nameof(source));
@@ -200,7 +183,7 @@ public static class QuantizerUtilities
         Rectangle interest = Rectangle.Intersect(source.Bounds, bounds);
         Buffer2DRegion<TPixel> region = source.PixelBuffer.GetRegion(interest);
 
-        quantizer.AddPaletteColors(in region, mode);
+        quantizer.AddPaletteColors(in region);
         return quantizer.QuantizeFrame(source, bounds);
     }
 
@@ -212,15 +195,13 @@ public static class QuantizerUtilities
     /// <param name="quantizer">The pixel specific quantizer.</param>
     /// <param name="source">The source image frame to quantize.</param>
     /// <param name="bounds">The bounds within the frame to quantize.</param>
-    /// <param name="mode">The transparent color mode.</param>
     /// <returns>
     /// A <see cref="IndexedImageFrame{TPixel}"/> representing a quantized version of the source frame pixels.
     /// </returns>
     public static IndexedImageFrame<TPixel> QuantizeFrame<TFrameQuantizer, TPixel>(
         ref TFrameQuantizer quantizer,
         ImageFrame<TPixel> source,
-        Rectangle bounds,
-        TransparentColorMode mode)
+        Rectangle bounds)
         where TFrameQuantizer : struct, IQuantizer<TPixel>
         where TPixel : unmanaged, IPixel<TPixel>
     {
@@ -235,13 +216,13 @@ public static class QuantizerUtilities
 
         if (quantizer.Options.Dither is null)
         {
-            SecondPass(ref quantizer, source, destination, interest, mode);
+            SecondPass(ref quantizer, source, destination, interest);
         }
         else
         {
             // We clone the image as we don't want to alter the original via error diffusion based dithering.
             using ImageFrame<TPixel> clone = source.Clone();
-            SecondPass(ref quantizer, clone, destination, interest, mode);
+            SecondPass(ref quantizer, clone, destination, interest);
         }
 
         return destination;
@@ -259,29 +240,10 @@ public static class QuantizerUtilities
         IPixelSamplingStrategy pixelSamplingStrategy,
         Image<TPixel> source)
         where TPixel : unmanaged, IPixel<TPixel>
-        => quantizer.BuildPalette(
-            TransparentColorMode.Preserve,
-            pixelSamplingStrategy,
-            source);
-
-    /// <summary>
-    /// Adds colors to the quantized palette from the given pixel regions.
-    /// </summary>
-    /// <typeparam name="TPixel">The pixel format.</typeparam>
-    /// <param name="quantizer">The pixel specific quantizer.</param>
-    /// <param name="mode">The transparent color mode.</param>
-    /// <param name="pixelSamplingStrategy">The pixel sampling strategy.</param>
-    /// <param name="source">The source image to sample from.</param>
-    public static void BuildPalette<TPixel>(
-        this IQuantizer<TPixel> quantizer,
-        TransparentColorMode mode,
-        IPixelSamplingStrategy pixelSamplingStrategy,
-        Image<TPixel> source)
-        where TPixel : unmanaged, IPixel<TPixel>
     {
         foreach (Buffer2DRegion<TPixel> region in pixelSamplingStrategy.EnumeratePixelRegions(source))
         {
-            quantizer.AddPaletteColors(in region, mode);
+            quantizer.AddPaletteColors(in region);
         }
     }
 
@@ -297,29 +259,10 @@ public static class QuantizerUtilities
         IPixelSamplingStrategy pixelSamplingStrategy,
         ImageFrame<TPixel> source)
         where TPixel : unmanaged, IPixel<TPixel>
-        => quantizer.BuildPalette(
-            TransparentColorMode.Preserve,
-            pixelSamplingStrategy,
-            source);
-
-    /// <summary>
-    /// Adds colors to the quantized palette from the given pixel regions.
-    /// </summary>
-    /// <typeparam name="TPixel">The pixel format.</typeparam>
-    /// <param name="quantizer">The pixel specific quantizer.</param>
-    /// <param name="mode">The transparent color mode.</param>
-    /// <param name="pixelSamplingStrategy">The pixel sampling strategy.</param>
-    /// <param name="source">The source image frame to sample from.</param>
-    public static void BuildPalette<TPixel>(
-        this IQuantizer<TPixel> quantizer,
-        TransparentColorMode mode,
-        IPixelSamplingStrategy pixelSamplingStrategy,
-        ImageFrame<TPixel> source)
-        where TPixel : unmanaged, IPixel<TPixel>
     {
         foreach (Buffer2DRegion<TPixel> region in pixelSamplingStrategy.EnumeratePixelRegions(source))
         {
-            quantizer.AddPaletteColors(in region, mode);
+            quantizer.AddPaletteColors(in region);
         }
     }
 
@@ -340,7 +283,7 @@ public static class QuantizerUtilities
         Span<TPixel2> delegateRow = delegateRowOwner.Memory.Span;
 
         bool replaceByThreshold = ShouldReplacePixelsByAlphaThreshold<TPixel>(threshold);
-        bool replaceTransparent = EncodingUtilities.ShouldReplaceTransparentPixels<TPixel>(rowDelegate.TransparentColorMode);
+        bool replaceTransparent = EncodingUtilities.ShouldReplaceTransparentPixels<TPixel>(mode);
 
         if (replaceByThreshold || replaceTransparent)
         {
@@ -389,13 +332,14 @@ public static class QuantizerUtilities
         ref TFrameQuantizer quantizer,
         ImageFrame<TPixel> source,
         IndexedImageFrame<TPixel> destination,
-        Rectangle bounds,
-        TransparentColorMode mode)
+        Rectangle bounds)
         where TFrameQuantizer : struct, IQuantizer<TPixel>
         where TPixel : unmanaged, IPixel<TPixel>
     {
         float threshold = quantizer.Options.TransparencyThreshold;
         bool replaceByThreshold = ShouldReplacePixelsByAlphaThreshold<TPixel>(threshold);
+
+        TransparentColorMode mode = quantizer.Options.TransparentColorMode;
         bool replaceTransparent = EncodingUtilities.ShouldReplaceTransparentPixels<TPixel>(mode);
 
         IDither? dither = quantizer.Options.Dither;

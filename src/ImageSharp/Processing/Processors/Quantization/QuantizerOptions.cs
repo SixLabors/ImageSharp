@@ -81,7 +81,8 @@ public class QuantizerOptions : IDeepCloneable<QuantizerOptions>
     }
 
     /// <summary>
-    /// Gets or sets the transparent color mode used for handling transparent colors.
+    /// Gets or sets the transparent color mode used for handling transparent colors
+    /// when not using thresholding.
     /// Defaults to <see cref="TransparentColorMode.Preserve"/>.
     /// </summary>
     public TransparentColorMode TransparentColorMode { get; set; } = TransparentColorMode.Preserve;

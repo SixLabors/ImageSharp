@@ -6,7 +6,6 @@ using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -75,9 +74,9 @@ public struct OctreeQuantizer<TPixel> : IQuantizer<TPixel>
     }
 
     /// <inheritdoc/>
-    public readonly void AddPaletteColors(in Buffer2DRegion<TPixel> pixelRegion, TransparentColorMode mode)
+    public readonly void AddPaletteColors(in Buffer2DRegion<TPixel> pixelRegion)
     {
-        PixelRowDelegate pixelRowDelegate = new(this.octree, mode);
+        PixelRowDelegate pixelRowDelegate = new(this.octree);
         QuantizerUtilities.AddPaletteColors<OctreeQuantizer<TPixel>, TPixel, Rgba32, PixelRowDelegate>(
             ref Unsafe.AsRef(in this),
             in pixelRegion,
@@ -103,12 +102,7 @@ public struct OctreeQuantizer<TPixel> : IQuantizer<TPixel>
     /// <inheritdoc/>
     [MethodImpl(InliningOptions.ShortMethod)]
     public readonly IndexedImageFrame<TPixel> QuantizeFrame(ImageFrame<TPixel> source, Rectangle bounds)
-        => this.QuantizeFrame(source, bounds, TransparentColorMode.Preserve);
-
-    /// <inheritdoc/>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public readonly IndexedImageFrame<TPixel> QuantizeFrame(ImageFrame<TPixel> source, Rectangle bounds, TransparentColorMode mode)
-        => QuantizerUtilities.QuantizeFrame(ref Unsafe.AsRef(in this), source, bounds, mode);
+        => QuantizerUtilities.QuantizeFrame(ref Unsafe.AsRef(in this), source, bounds);
 
     /// <inheritdoc/>
     [MethodImpl(InliningOptions.ShortMethod)]
@@ -146,13 +140,7 @@ public struct OctreeQuantizer<TPixel> : IQuantizer<TPixel>
     {
         private readonly Octree octree;
 
-        public PixelRowDelegate(Octree octree, TransparentColorMode mode)
-        {
-            this.octree = octree;
-            this.TransparentColorMode = mode;
-        }
-
-        public TransparentColorMode TransparentColorMode { get; }
+        public PixelRowDelegate(Octree octree) => this.octree = octree;
 
         public void Invoke(ReadOnlySpan<Rgba32> row, int rowIndex) => this.octree.AddColors(row);
     }

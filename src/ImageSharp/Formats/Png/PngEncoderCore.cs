@@ -1574,13 +1574,21 @@ internal sealed class PngEncoderCore : IDisposable
             {
                 // We can use the color data from the decoded metadata here.
                 // We avoid dithering by default to preserve the original colors.
-                this.quantizer = new PaletteQuantizer(metadata.ColorTable.Value, new() { Dither = null });
+                QuantizerOptions options = new() { Dither = null, TransparentColorMode = encoder.TransparentColorMode };
+                this.quantizer = new PaletteQuantizer(metadata.ColorTable.Value, options);
             }
             else
             {
                 // Don't use the default transparency threshold for quantization as PNG can handle multiple transparent colors.
                 // We choose a value that is close to zero so that edge cases causes by lower bit depths for the alpha channel are handled correctly.
-                this.quantizer = new WuQuantizer(new QuantizerOptions { TransparencyThreshold = 0, MaxColors = ColorNumerics.GetColorCountForBitDepth(bitDepth) });
+                QuantizerOptions options = new()
+                {
+                    TransparencyThreshold = 0,
+                    MaxColors = ColorNumerics.GetColorCountForBitDepth(bitDepth),
+                    TransparentColorMode = encoder.TransparentColorMode
+                };
+
+                this.quantizer = new WuQuantizer(options);
             }
         }
 
@@ -1604,7 +1612,6 @@ internal sealed class PngEncoderCore : IDisposable
         }
 
         frameQuantizer.BuildPalette(
-            encoder.TransparentColorMode,
             encoder.PixelSamplingStrategy,
             image);
 

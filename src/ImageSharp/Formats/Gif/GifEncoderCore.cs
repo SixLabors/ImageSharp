@@ -150,10 +150,7 @@ internal sealed class GifEncoderCore
         TransparentColorMode mode = this.transparentColorMode;
         QuantizerOptions options = this.quantizer.Options.DeepClone(o => o.TransparentColorMode = mode);
 
-        // Quantize the first frame. Checking to see whether we can clear the transparent pixels
-        // to allow for a smaller color palette and encoded result.
-        // TODO: What should we use as the background color here?
-        Color background = Color.Transparent;
+        // Quantize the first frame.
         using (IQuantizer<TPixel> frameQuantizer = this.quantizer.CreatePixelSpecificQuantizer<TPixel>(this.configuration, options))
         {
             IPixelSamplingStrategy strategy = this.pixelSamplingStrategy;
@@ -163,12 +160,12 @@ internal sealed class GifEncoderCore
             {
                 if (useGlobalTable)
                 {
-                    frameQuantizer.BuildPalette(mode, strategy, image);
+                    frameQuantizer.BuildPalette(strategy, image);
                     quantized = frameQuantizer.QuantizeFrame(encodingFrame, image.Bounds);
                 }
                 else
                 {
-                    frameQuantizer.BuildPalette(mode, strategy, encodingFrame);
+                    frameQuantizer.BuildPalette(strategy, encodingFrame);
                     quantized = frameQuantizer.QuantizeFrame(encodingFrame, encodingFrame.Bounds);
                 }
             }
@@ -176,13 +173,14 @@ internal sealed class GifEncoderCore
             {
                 quantized = this.QuantizeAdditionalFrameAndUpdateMetadata(
                     encodingFrame,
+                    options,
                     encodingFrame.Bounds,
                     frameMetadata,
                     true,
                     default,
                     false,
                     frameMetadata.HasTransparency ? frameMetadata.TransparencyIndex : -1,
-                    background);
+                    Color.Transparent);
             }
         }
 
@@ -197,6 +195,7 @@ internal sealed class GifEncoderCore
             frameMetadata.TransparencyIndex = ClampIndex(derivedTransparencyIndex);
         }
 
+        // TODO: We should be checking the metadata here also I think?
         if (!TryGetBackgroundIndex(quantized, this.backgroundColor, out byte backgroundIndex))
         {
             backgroundIndex = derivedTransparencyIndex >= 0
@@ -235,6 +234,7 @@ internal sealed class GifEncoderCore
             this.EncodeAdditionalFrames(
                 stream,
                 image,
+                options,
                 globalPalette,
                 derivedTransparencyIndex,
                 frameMetadata.DisposalMode,
@@ -264,6 +264,7 @@ internal sealed class GifEncoderCore
     private void EncodeAdditionalFrames<TPixel>(
         Stream stream,
         Image<TPixel> image,
+        QuantizerOptions options,
         ReadOnlyMemory<TPixel> globalPalette,
         int globalTransparencyIndex,
         FrameDisposalMode previousDisposalMode,
@@ -301,7 +302,7 @@ internal sealed class GifEncoderCore
                     // The palette quantizer can reuse the same global pixel map across multiple frames since the palette is unchanging.
                     // This allows a reduction of memory usage across multi-frame gifs using a global palette
                     // and also allows use to reuse the cache from previous runs.
-                    globalPaletteQuantizer = new(this.configuration, this.quantizer!.Options, globalPalette);
+                    globalPaletteQuantizer = new(this.configuration, options, globalPalette);
                     hasGlobalPaletteQuantizer = true;
                 }
 
@@ -311,6 +312,7 @@ internal sealed class GifEncoderCore
                     currentFrame,
                     nextFrame,
                     encodingFrame,
+                    options,
                     useLocal,
                     gifMetadata,
                     globalPaletteQuantizer,
@@ -361,6 +363,7 @@ internal sealed class GifEncoderCore
         ImageFrame<TPixel> currentFrame,
         ImageFrame<TPixel>? nextFrame,
         ImageFrame<TPixel> encodingFrame,
+        QuantizerOptions options,
         bool useLocal,
         GifFrameMetadata metadata,
         PaletteQuantizer<TPixel> globalPaletteQuantizer,
@@ -392,6 +395,7 @@ internal sealed class GifEncoderCore
 
         using IndexedImageFrame<TPixel> quantized = this.QuantizeAdditionalFrameAndUpdateMetadata(
                 encodingFrame,
+                options,
                 bounds,
                 metadata,
                 useLocal,
@@ -416,6 +420,7 @@ internal sealed class GifEncoderCore
 
     private IndexedImageFrame<TPixel> QuantizeAdditionalFrameAndUpdateMetadata<TPixel>(
         ImageFrame<TPixel> encodingFrame,
+        QuantizerOptions options,
         Rectangle bounds,
         GifFrameMetadata metadata,
         bool useLocal,
@@ -446,7 +451,12 @@ internal sealed class GifEncoderCore
                         transparencyIndex = palette.Length;
                         metadata.TransparencyIndex = ClampIndex(transparencyIndex);
 
-                        PaletteQuantizer quantizer = new(palette, new() { Dither = null }, transparencyIndex, transparentColor);
+                        QuantizerOptions paletteOptions = options.DeepClone(o =>
+                        {
+                            o.MaxColors = palette.Length;
+                            o.Dither = null;
+                        });
+                        PaletteQuantizer quantizer = new(palette, paletteOptions, transparencyIndex, transparentColor);
                         using IQuantizer<TPixel> frameQuantizer = quantizer.CreatePixelSpecificQuantizer<TPixel>(this.configuration, quantizer.Options);
                         quantized = frameQuantizer.BuildPaletteAndQuantizeFrame(encodingFrame, bounds);
                     }
@@ -454,7 +464,7 @@ internal sealed class GifEncoderCore
                     {
                         // We must quantize the frame to generate a local color table.
                         IQuantizer quantizer = this.hasQuantizer ? this.quantizer! : FallbackQuantizer;
-                        using IQuantizer<TPixel> frameQuantizer = quantizer.CreatePixelSpecificQuantizer<TPixel>(this.configuration, quantizer.Options);
+                        using IQuantizer<TPixel> frameQuantizer = quantizer.CreatePixelSpecificQuantizer<TPixel>(this.configuration, options);
                         quantized = frameQuantizer.BuildPaletteAndQuantizeFrame(encodingFrame, bounds);
 
                         // The transparency index derived by the quantizer will differ from the index
@@ -466,7 +476,12 @@ internal sealed class GifEncoderCore
                 else
                 {
                     // Just use the local palette.
-                    PaletteQuantizer quantizer = new(palette, new() { Dither = null }, transparencyIndex, transparentColor);
+                    QuantizerOptions paletteOptions = options.DeepClone(o =>
+                    {
+                        o.MaxColors = palette.Length;
+                        o.Dither = null;
+                    });
+                    PaletteQuantizer quantizer = new(palette, paletteOptions, transparencyIndex, transparentColor);
                     using IQuantizer<TPixel> frameQuantizer = quantizer.CreatePixelSpecificQuantizer<TPixel>(this.configuration, quantizer.Options);
                     quantized = frameQuantizer.BuildPaletteAndQuantizeFrame(encodingFrame, bounds);
                 }
@@ -475,7 +490,7 @@ internal sealed class GifEncoderCore
             {
                 // We must quantize the frame to generate a local color table.
                 IQuantizer quantizer = this.hasQuantizer ? this.quantizer! : FallbackQuantizer;
-                using IQuantizer<TPixel> frameQuantizer = quantizer.CreatePixelSpecificQuantizer<TPixel>(this.configuration, quantizer.Options);
+                using IQuantizer<TPixel> frameQuantizer = quantizer.CreatePixelSpecificQuantizer<TPixel>(this.configuration, options);
                 quantized = frameQuantizer.BuildPaletteAndQuantizeFrame(encodingFrame, bounds);
 
                 // The transparency index derived by the quantizer might differ from the index

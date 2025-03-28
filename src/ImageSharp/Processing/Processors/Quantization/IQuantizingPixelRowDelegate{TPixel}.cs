@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Quantization;
@@ -13,11 +12,6 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization;
 internal interface IQuantizingPixelRowDelegate<TPixel>
     where TPixel : unmanaged, IPixel<TPixel>
 {
-    /// <summary>
-    /// Gets the transparent color mode to use when adding colors to the palette.
-    /// </summary>
-    public TransparentColorMode TransparentColorMode { get; }
-
     /// <summary>
     /// Processes a row of pixels for quantization.
     /// </summary>

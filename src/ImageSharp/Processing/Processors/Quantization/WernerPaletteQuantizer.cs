@@ -7,7 +7,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization;
 /// A palette quantizer consisting of colors as defined in the original second edition of Werner’s Nomenclature of Colours 1821.
 /// The hex codes were collected and defined by Nicholas Rougeux <see href="https://www.c82.net/werner"/>
 /// </summary>
-public class WernerPaletteQuantizer : PaletteQuantizer
+public sealed class WernerPaletteQuantizer : PaletteQuantizer
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="WernerPaletteQuantizer" /> class.

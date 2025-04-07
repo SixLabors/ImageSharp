@@ -15,22 +15,22 @@ public interface IPaletteDitherImageProcessor<TPixel>
     /// <summary>
     /// Gets the configuration instance to use when performing operations.
     /// </summary>
-    Configuration Configuration { get; }
+    public Configuration Configuration { get; }
 
     /// <summary>
     /// Gets the dithering palette.
     /// </summary>
-    ReadOnlyMemory<TPixel> Palette { get; }
+    public ReadOnlyMemory<TPixel> Palette { get; }
 
     /// <summary>
     /// Gets the dithering scale used to adjust the amount of dither. Range 0..1.
     /// </summary>
-    float DitherScale { get; }
+    public float DitherScale { get; }
 
     /// <summary>
     /// Returns the color from the dithering palette corresponding to the given color.
     /// </summary>
     /// <param name="color">The color to match.</param>
     /// <returns>The <typeparamref name="TPixel"/> match.</returns>
-    TPixel GetPaletteColor(TPixel color);
+    public TPixel GetPaletteColor(TPixel color);
 }

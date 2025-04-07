@@ -64,20 +64,27 @@ public class MagickReferenceDecoder : ImageDecoder
         settings.SetDefines(pngReadDefines);
 
         using MagickImageCollection magickImageCollection = new(stream, settings);
+        int imageWidth = magickImageCollection.Max(x => x.Width);
+        int imageHeight = magickImageCollection.Max(x => x.Height);
+
         List<ImageFrame<TPixel>> framesList = [];
         foreach (IMagickImage<ushort> magicFrame in magickImageCollection)
         {
-            ImageFrame<TPixel> frame = new(configuration, (int)magicFrame.Width, (int)magicFrame.Height);
+            ImageFrame<TPixel> frame = new(configuration, imageWidth, imageHeight);
             framesList.Add(frame);
 
-            MemoryGroup<TPixel> framePixels = frame.PixelBuffer.FastMemoryGroup;
+            Buffer2DRegion<TPixel> buffer = frame.PixelBuffer.GetRegion(
+                imageWidth - magicFrame.Width,
+                imageHeight - magicFrame.Height,
+                magicFrame.Width,
+                magicFrame.Height);
 
             using IUnsafePixelCollection<ushort> pixels = magicFrame.GetPixelsUnsafe();
             if (magicFrame.Depth is 12 or 10 or 8 or 6 or 5 or 4 or 3 or 2 or 1)
             {
                 byte[] data = pixels.ToByteArray(PixelMapping.RGBA);
 
-                FromRgba32Bytes(configuration, data, framePixels);
+                FromRgba32Bytes(configuration, data, buffer);
             }
             else if (magicFrame.Depth is 16 or 14)
             {
@@ -88,7 +95,7 @@ public class MagickReferenceDecoder : ImageDecoder
 
                 ushort[] data = pixels.ToShortArray(PixelMapping.RGBA);
                 Span<byte> bytes = MemoryMarshal.Cast<ushort, byte>(data.AsSpan());
-                FromRgba64Bytes(configuration, bytes, framePixels);
+                FromRgba64Bytes(configuration, bytes, buffer);
             }
             else
             {
@@ -111,33 +118,40 @@ public class MagickReferenceDecoder : ImageDecoder
             PixelType = metadata.GetDecodedPixelTypeInfo()
         };
     }
-
-    private static void FromRgba32Bytes<TPixel>(Configuration configuration, Span<byte> rgbaBytes, IMemoryGroup<TPixel> destinationGroup)
+    private static void FromRgba32Bytes<TPixel>(
+        Configuration configuration,
+        Span<byte> rgbaBytes,
+        Buffer2DRegion<TPixel> destinationGroup)
         where TPixel : unmanaged, ImageSharp.PixelFormats.IPixel<TPixel>
     {
         Span<Rgba32> sourcePixels = MemoryMarshal.Cast<byte, Rgba32>(rgbaBytes);
-        foreach (Memory<TPixel> m in destinationGroup)
+        for (int y = 0; y < destinationGroup.Height; y++)
         {
-            Span<TPixel> destBuffer = m.Span;
+            Span<TPixel> destBuffer = destinationGroup.DangerousGetRowSpan(y);
             PixelOperations<TPixel>.Instance.FromRgba32(
                 configuration,
                 sourcePixels[..destBuffer.Length],
                 destBuffer);
+
             sourcePixels = sourcePixels[destBuffer.Length..];
         }
     }
 
-    private static void FromRgba64Bytes<TPixel>(Configuration configuration, Span<byte> rgbaBytes, IMemoryGroup<TPixel> destinationGroup)
+    private static void FromRgba64Bytes<TPixel>(
+        Configuration configuration,
+        Span<byte> rgbaBytes,
+        Buffer2DRegion<TPixel> destinationGroup)
         where TPixel : unmanaged, ImageSharp.PixelFormats.IPixel<TPixel>
     {
-        foreach (Memory<TPixel> m in destinationGroup)
+        for (int y = 0; y < destinationGroup.Height; y++)
         {
-            Span<TPixel> destBuffer = m.Span;
+            Span<TPixel> destBuffer = destinationGroup.DangerousGetRowSpan(y);
             PixelOperations<TPixel>.Instance.FromRgba64Bytes(
                 configuration,
                 rgbaBytes,
                 destBuffer,
                 destBuffer.Length);
+
             rgbaBytes = rgbaBytes[(destBuffer.Length * 8)..];
         }
     }

@@ -362,10 +362,13 @@ internal sealed class BmpEncoderCore
         ImageFrame<TPixel>? clonedFrame = null;
         try
         {
-            if (EncodingUtilities.ShouldClearTransparentPixels<TPixel>(this.transparentColorMode))
+            // No need to clone when quantizing. The quantizer will do it for us.
+            // TODO: We should really try to avoid the clone entirely.
+            int bpp = this.bitsPerPixel != null ? (int)this.bitsPerPixel : 32;
+            if (bpp > 8 && EncodingUtilities.ShouldReplaceTransparentPixels<TPixel>(this.transparentColorMode))
             {
                 clonedFrame = image.Frames.RootFrame.Clone();
-                EncodingUtilities.ClearTransparentPixels(clonedFrame, Color.Transparent);
+                EncodingUtilities.ReplaceTransparentPixels(clonedFrame);
             }
 
             ImageFrame<TPixel> encodingFrame = clonedFrame ?? image.Frames.RootFrame;

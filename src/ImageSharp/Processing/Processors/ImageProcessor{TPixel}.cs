@@ -95,7 +95,7 @@ public abstract class ImageProcessor<TPixel> : IImageProcessor<TPixel>
     protected abstract void OnFrameApply(ImageFrame<TPixel> source);
 
     /// <summary>
-    /// This method is called after the process is applied to prepare the processor.
+    /// This method is called after the process is applied to each frame.
     /// </summary>
     /// <param name="source">The source image. Cannot be null.</param>
     protected virtual void AfterFrameApply(ImageFrame<TPixel> source)
@@ -103,11 +103,10 @@ public abstract class ImageProcessor<TPixel> : IImageProcessor<TPixel>
     }
 
     /// <summary>
-    /// This method is called after the process is applied to prepare the processor.
+    /// This method is called after the process is applied to the complete image.
     /// </summary>
     protected virtual void AfterImageApply()
-    {
-    }
+        => this.Source.Metadata.AfterImageApply(this.Source);
 
     /// <summary>
     /// Disposes the object and frees resources for the Garbage Collector.

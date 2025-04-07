@@ -21,7 +21,7 @@ public interface IDither
     /// <param name="source">The source image.</param>
     /// <param name="destination">The destination quantized frame.</param>
     /// <param name="bounds">The region of interest bounds.</param>
-    void ApplyQuantizationDither<TFrameQuantizer, TPixel>(
+    public void ApplyQuantizationDither<TFrameQuantizer, TPixel>(
         ref TFrameQuantizer quantizer,
         ImageFrame<TPixel> source,
         IndexedImageFrame<TPixel> destination,
@@ -38,7 +38,7 @@ public interface IDither
     /// <param name="processor">The palette dithering processor.</param>
     /// <param name="source">The source image.</param>
     /// <param name="bounds">The region of interest bounds.</param>
-    void ApplyPaletteDither<TPaletteDitherImageProcessor, TPixel>(
+    public void ApplyPaletteDither<TPaletteDitherImageProcessor, TPixel>(
         in TPaletteDitherImageProcessor processor,
         ImageFrame<TPixel> source,
         Rectangle bounds)

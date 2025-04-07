@@ -53,7 +53,15 @@ public class AniFrameMetadata : IFormatFrameMetadata<AniFrameMetadata>
         };
 
     /// <inheritdoc/>
-    IDeepCloneable IDeepCloneable.DeepClone() => new AniFrameMetadata { FrameDelay = this.FrameDelay };
+    IDeepCloneable IDeepCloneable.DeepClone() => new AniFrameMetadata
+    {
+        FrameDelay = this.FrameDelay,
+        EncodingHeight = this.EncodingHeight,
+        EncodingWidth = this.EncodingWidth,
+        FrameCount = this.FrameCount
+
+        // TODO SubImageMetadata
+    };
 
     /// <inheritdoc/>
     public FormatConnectingFrameMetadata ToFormatConnectingFrameMetadata() => new FormatConnectingFrameMetadata() { Duration = TimeSpan.FromSeconds(this.FrameDelay / 60d) };
@@ -66,5 +74,13 @@ public class AniFrameMetadata : IFormatFrameMetadata<AniFrameMetadata>
     }
 
     /// <inheritdoc/>
-    public AniFrameMetadata DeepClone() => new() { FrameDelay = this.FrameDelay };
+    public AniFrameMetadata DeepClone() => new()
+    {
+        FrameDelay = this.FrameDelay,
+        EncodingHeight = this.EncodingHeight,
+        EncodingWidth = this.EncodingWidth,
+        FrameCount = this.FrameCount
+
+        // TODO SubImageMetadata
+    };
 }

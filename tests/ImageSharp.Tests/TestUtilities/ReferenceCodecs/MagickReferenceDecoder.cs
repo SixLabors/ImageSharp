@@ -79,7 +79,7 @@ public class MagickReferenceDecoder : ImageDecoder
 
                 FromRgba32Bytes(configuration, data, framePixels);
             }
-            else if (magicFrame.Depth is 16 or 14)
+            else if (magicFrame.Depth is 14 or 16 or 32)
             {
                 if (this.imageFormat is PngFormat png)
                 {

@@ -17,6 +17,12 @@ internal sealed class LzwTiffCompression : TiffBaseDecompressor
 
     private readonly TiffColorType colorType;
 
+    private readonly bool isTiled;
+
+    private readonly int tileWidth;
+
+    private readonly int tileHeight;
+
     /// <summary>
     /// Initializes a new instance of the <see cref="LzwTiffCompression" /> class.
     /// </summary>
@@ -26,11 +32,17 @@ internal sealed class LzwTiffCompression : TiffBaseDecompressor
     /// <param name="colorType">The color type of the pixel data.</param>
     /// <param name="predictor">The tiff predictor used.</param>
     /// <param name="isBigEndian">if set to <c>true</c> decodes the pixel data as big endian, otherwise as little endian.</param>
-    public LzwTiffCompression(MemoryAllocator memoryAllocator, int width, int bitsPerPixel, TiffColorType colorType, TiffPredictor predictor, bool isBigEndian)
+    /// <param name="isTiled">Flag indicates, if the image is a tiled image.</param>
+    /// <param name="tileWidth">Number of pixels in a tile row.</param>
+    /// <param name="tileHeight">Number of rows in a tile.</param>
+    public LzwTiffCompression(MemoryAllocator memoryAllocator, int width, int bitsPerPixel, TiffColorType colorType, TiffPredictor predictor, bool isBigEndian, bool isTiled, int tileWidth, int tileHeight)
         : base(memoryAllocator, width, bitsPerPixel, predictor)
     {
         this.colorType = colorType;
         this.isBigEndian = isBigEndian;
+        this.isTiled = isTiled;
+        this.tileWidth = tileWidth;
+        this.tileHeight = tileHeight;
     }
 
     /// <inheritdoc/>
@@ -41,7 +53,15 @@ internal sealed class LzwTiffCompression : TiffBaseDecompressor
 
         if (this.Predictor == TiffPredictor.Horizontal)
         {
-            HorizontalPredictor.Undo(buffer, this.Width, this.colorType, this.isBigEndian);
+            if (this.isTiled)
+            {
+                // When the image is tiled, undoing the horizontal predictor will be done for each tile row.
+                HorizontalPredictor.UndoTile(buffer, this.tileWidth, this.tileHeight, this.colorType, this.isBigEndian);
+            }
+            else
+            {
+                HorizontalPredictor.Undo(buffer, this.Width, this.colorType, this.isBigEndian);
+            }
         }
     }
 

@@ -70,7 +70,6 @@ public class AniFrameMetadata : IFormatFrameMetadata<AniFrameMetadata>
     public void AfterFrameApply<TPixel>(ImageFrame<TPixel> source, ImageFrame<TPixel> destination)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        throw new NotImplementedException();
     }
 
     /// <inheritdoc/>

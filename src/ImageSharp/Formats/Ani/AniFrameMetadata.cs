@@ -21,7 +21,7 @@ public class AniFrameMetadata : IFormatFrameMetadata<AniFrameMetadata>
     /// <summary>
     /// Gets or sets the display time for this frame (in 1/60 seconds)
     /// </summary>
-    public uint Rate { get; set; }
+    public uint FrameDelay { get; set; }
 
     /// <summary>
     /// Gets or sets the frames count of **one** "icon" chunk.
@@ -49,14 +49,14 @@ public class AniFrameMetadata : IFormatFrameMetadata<AniFrameMetadata>
     public static AniFrameMetadata FromFormatConnectingFrameMetadata(FormatConnectingFrameMetadata metadata) =>
         new()
         {
-            Rate = (uint)metadata.Duration.TotalSeconds * 60
+            FrameDelay = (uint)metadata.Duration.TotalSeconds * 60
         };
 
     /// <inheritdoc/>
-    IDeepCloneable IDeepCloneable.DeepClone() => new AniFrameMetadata { Rate = this.Rate };
+    IDeepCloneable IDeepCloneable.DeepClone() => new AniFrameMetadata { FrameDelay = this.FrameDelay };
 
     /// <inheritdoc/>
-    public FormatConnectingFrameMetadata ToFormatConnectingFrameMetadata() => new FormatConnectingFrameMetadata() { Duration = TimeSpan.FromSeconds(this.Rate / 60d) };
+    public FormatConnectingFrameMetadata ToFormatConnectingFrameMetadata() => new FormatConnectingFrameMetadata() { Duration = TimeSpan.FromSeconds(this.FrameDelay / 60d) };
 
     /// <inheritdoc/>
     public void AfterFrameApply<TPixel>(ImageFrame<TPixel> source, ImageFrame<TPixel> destination)
@@ -66,5 +66,5 @@ public class AniFrameMetadata : IFormatFrameMetadata<AniFrameMetadata>
     }
 
     /// <inheritdoc/>
-    public AniFrameMetadata DeepClone() => new() { Rate = this.Rate };
+    public AniFrameMetadata DeepClone() => new() { FrameDelay = this.FrameDelay };
 }

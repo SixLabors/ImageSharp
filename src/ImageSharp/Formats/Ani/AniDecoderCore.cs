@@ -18,12 +18,12 @@ using SixLabors.ImageSharp.Metadata;
 
 namespace SixLabors.ImageSharp.Formats.Ani;
 
-internal class AniDecoderCore(DecoderOptions options) : ImageDecoderCore(options)
+internal class AniDecoderCore : ImageDecoderCore
 {
     /// <summary>
     /// The general decoder options.
     /// </summary>
-    private readonly Configuration configuration = options.Configuration;
+    private readonly Configuration configuration;
 
     /// <summary>
     /// The stream to decode from.
@@ -31,6 +31,10 @@ internal class AniDecoderCore(DecoderOptions options) : ImageDecoderCore(options
     private BufferedReadStream currentStream = null!;
 
     private AniHeader header;
+
+    public AniDecoderCore(DecoderOptions options)
+        : base(options) =>
+        this.configuration = options.Configuration;
 
     private enum ListIconChunkType : byte
     {

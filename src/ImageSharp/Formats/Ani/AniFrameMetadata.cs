@@ -53,15 +53,7 @@ public class AniFrameMetadata : IFormatFrameMetadata<AniFrameMetadata>
         };
 
     /// <inheritdoc/>
-    IDeepCloneable IDeepCloneable.DeepClone() => new AniFrameMetadata
-    {
-        FrameDelay = this.FrameDelay,
-        EncodingHeight = this.EncodingHeight,
-        EncodingWidth = this.EncodingWidth,
-        FrameCount = this.FrameCount
-
-        // TODO SubImageMetadata
-    };
+    IDeepCloneable IDeepCloneable.DeepClone() => this.DeepClone();
 
     /// <inheritdoc/>
     public FormatConnectingFrameMetadata ToFormatConnectingFrameMetadata() => new FormatConnectingFrameMetadata() { Duration = TimeSpan.FromSeconds(this.FrameDelay / 60d) };

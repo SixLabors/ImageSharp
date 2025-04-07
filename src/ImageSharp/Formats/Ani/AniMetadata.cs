@@ -21,21 +21,33 @@ public class AniMetadata : IFormatMetadata<AniMetadata>
     /// <summary>
     /// Gets or sets the width of frames in the animation.
     /// </summary>
+    /// <remarks>
+    /// Remains zero when <see cref="Flags"/> has flag <see cref="AniHeaderFlags.IsIcon"/>
+    /// </remarks>
     public uint Width { get; set; }
 
     /// <summary>
     /// Gets or sets the height of frames in the animation.
     /// </summary>
+    /// <remarks>
+    /// Remains zero when <see cref="Flags"/> has flag <see cref="AniHeaderFlags.IsIcon"/>
+    /// </remarks>
     public uint Height { get; set; }
 
     /// <summary>
     /// Gets or sets the number of bits per pixel.
     /// </summary>
+    /// <remarks>
+    /// Remains zero when <see cref="Flags"/> has flag <see cref="AniHeaderFlags.IsIcon"/>
+    /// </remarks>
     public uint BitCount { get; set; }
 
     /// <summary>
     /// Gets or sets the number of frames in the animation.
     /// </summary>
+    /// <remarks>
+    /// Remains zero when <see cref="Flags"/> has flag <see cref="AniHeaderFlags.IsIcon"/>
+    /// </remarks>
     public uint Planes { get; set; }
 
     /// <summary>
@@ -64,21 +76,38 @@ public class AniMetadata : IFormatMetadata<AniMetadata>
     public IList<ImageFrameMetadata> IconFrames { get; set; } = [];
 
     /// <inheritdoc/>
-    public static AniMetadata FromFormatConnectingMetadata(FormatConnectingMetadata metadata) => throw new NotImplementedException();
+    public static AniMetadata FromFormatConnectingMetadata(FormatConnectingMetadata metadata)
+        => throw new NotImplementedException();
 
     /// <inheritdoc/>
     public void AfterImageApply<TPixel>(Image<TPixel> destination)
-        where TPixel : unmanaged, IPixel<TPixel> => throw new NotImplementedException();
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+    }
 
     /// <inheritdoc/>
-    public IDeepCloneable DeepClone() => throw new NotImplementedException();
+    IDeepCloneable IDeepCloneable.DeepClone() => this.DeepClone();
 
     /// <inheritdoc/>
-    public PixelTypeInfo GetPixelTypeInfo() => throw new NotImplementedException();
+    public PixelTypeInfo GetPixelTypeInfo()
+        => throw new NotImplementedException();
 
     /// <inheritdoc/>
-    public FormatConnectingMetadata ToFormatConnectingMetadata() => throw new NotImplementedException();
+    public FormatConnectingMetadata ToFormatConnectingMetadata()
+        => throw new NotImplementedException();
 
     /// <inheritdoc/>
-    AniMetadata IDeepCloneable<AniMetadata>.DeepClone() => throw new NotImplementedException();
+    public AniMetadata DeepClone() => new()
+    {
+        Width = this.Width,
+        Height = this.Height,
+        BitCount = this.BitCount,
+        Planes = this.Planes,
+        DisplayRate = this.DisplayRate,
+        Flags = this.Flags,
+        Name = this.Name,
+        Artist = this.Artist
+
+        // TODO IconFrames
+    };
 }

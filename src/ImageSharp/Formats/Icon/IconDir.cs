@@ -26,7 +26,12 @@ internal struct IconDir
     /// </summary>
     public ushort Count;
 
-    public IconDir(IconFileType type, ushort count = 0)
+    public IconDir(IconFileType type)
+        : this(type, 0)
+    {
+    }
+
+    public IconDir(IconFileType type, ushort count)
         : this(0, type, count)
     {
     }

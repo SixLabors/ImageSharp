@@ -11,11 +11,11 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs;
 
 public abstract class MultiImageBenchmarkBase
 {
-    protected Dictionary<string, byte[]> FileNamesToBytes { get; set; } = new Dictionary<string, byte[]>();
+    protected Dictionary<string, byte[]> FileNamesToBytes { get; set; } = [];
 
-    protected Dictionary<string, Image<Rgba32>> FileNamesToImageSharpImages { get; set; } = new Dictionary<string, Image<Rgba32>>();
+    protected Dictionary<string, Image<Rgba32>> FileNamesToImageSharpImages { get; set; } = [];
 
-    protected Dictionary<string, Bitmap> FileNamesToSystemDrawingImages { get; set; } = new Dictionary<string, Bitmap>();
+    protected Dictionary<string, Bitmap> FileNamesToSystemDrawingImages { get; set; } = [];
 
     /// <summary>
     /// The values of this enum separate input files into categories.
@@ -43,12 +43,12 @@ public abstract class MultiImageBenchmarkBase
 
     protected virtual string BaseFolder => TestEnvironment.InputImagesDirectoryFullPath;
 
-    protected virtual IEnumerable<string> SearchPatterns => new[] { "*.*" };
+    protected virtual IEnumerable<string> SearchPatterns => ["*.*"];
 
     /// <summary>
     /// Gets the file names containing these strings are substrings are not processed by the benchmark.
     /// </summary>
-    protected virtual IEnumerable<string> ExcludeSubstringsInFileNames => new[] { "badeof", "BadEof", "CriticalEOF" };
+    protected virtual IEnumerable<string> ExcludeSubstringsInFileNames => ["badeof", "BadEof", "CriticalEOF"];
 
     /// <summary>
     /// Gets folders containing files OR files to be processed by the benchmark.
@@ -70,7 +70,7 @@ public abstract class MultiImageBenchmarkBase
             InputImageCategory.AllImages => input,
             InputImageCategory.SmallImagesOnly => input.Where(kv => checkIfSmall(kv.Value)),
             InputImageCategory.LargeImagesOnly => input.Where(kv => !checkIfSmall(kv.Value)),
-            _ => throw new ArgumentOutOfRangeException(),
+            _ => throw new ArgumentOutOfRangeException(nameof(input), "Invalid input category")
         };
 
     protected IEnumerable<KeyValuePair<string, byte[]>> FileNames2Bytes
@@ -86,7 +86,7 @@ public abstract class MultiImageBenchmarkBase
     {
         if (!Vector.IsHardwareAccelerated)
         {
-            throw new Exception("Vector.IsHardwareAccelerated == false! Check your build settings!");
+            throw new InvalidOperationException("Vector.IsHardwareAccelerated == false! Check your build settings!");
         }
 
         // Console.WriteLine("Vector.IsHardwareAccelerated: " + Vector.IsHardwareAccelerated);
@@ -103,13 +103,13 @@ public abstract class MultiImageBenchmarkBase
                 continue;
             }
 
-            string[] excludeStrings = this.ExcludeSubstringsInFileNames.Select(s => s.ToLower()).ToArray();
+            string[] excludeStrings = this.ExcludeSubstringsInFileNames.ToArray();
 
             string[] allFiles =
                 this.SearchPatterns.SelectMany(
                     f =>
                         Directory.EnumerateFiles(path, f, SearchOption.AllDirectories)
-                            .Where(fn => !excludeStrings.Any(excludeStr => fn.ToLower().Contains(excludeStr)))).ToArray();
+                            .Where(fn => !excludeStrings.Any(excludeStr => fn.Contains(excludeStr, StringComparison.OrdinalIgnoreCase)))).ToArray();
 
             foreach (string fn in allFiles)
             {
@@ -126,7 +126,7 @@ public abstract class MultiImageBenchmarkBase
     {
         foreach (KeyValuePair<string, byte[]> kv in this.FileNames2Bytes)
         {
-            using var memoryStream = new MemoryStream(kv.Value);
+            using MemoryStream memoryStream = new(kv.Value);
             try
             {
                 object obj = operation(memoryStream);
@@ -150,7 +150,7 @@ public abstract class MultiImageBenchmarkBase
                 byte[] bytes = kv.Value;
                 string fn = kv.Key;
 
-                using (var ms1 = new MemoryStream(bytes))
+                using (MemoryStream ms1 = new(bytes))
                 {
                     this.FileNamesToImageSharpImages[fn] = Image.Load<Rgba32>(ms1);
                 }
@@ -191,7 +191,7 @@ public abstract class MultiImageBenchmarkBase
 
         protected void ForEachImageSharpImage(Func<Image<Rgba32>, MemoryStream, object> operation)
         {
-            using var workStream = new MemoryStream();
+            using MemoryStream workStream = new();
             this.ForEachImageSharpImage(
                 img =>
                 {
@@ -222,7 +222,7 @@ public abstract class MultiImageBenchmarkBase
 
         protected void ForEachSystemDrawingImage(Func<Bitmap, MemoryStream, object> operation)
         {
-            using var workStream = new MemoryStream();
+            using MemoryStream workStream = new();
             this.ForEachSystemDrawingImage(
                 img =>
                 {

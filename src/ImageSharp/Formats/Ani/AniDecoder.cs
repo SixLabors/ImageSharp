@@ -4,7 +4,10 @@ using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Ani;
 
-internal sealed class AniDecoder : ImageDecoder
+/// <summary>
+/// Decoder for generating an image out of an ani encoded stream.
+/// </summary>
+public sealed class AniDecoder : ImageDecoder
 {
     private AniDecoder()
     {
@@ -15,6 +18,7 @@ internal sealed class AniDecoder : ImageDecoder
     /// </summary>
     public static AniDecoder Instance { get; } = new();
 
+    /// <inheritdoc/>
     protected override Image<TPixel> Decode<TPixel>(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
     {
         Guard.NotNull(options, nameof(options));
@@ -24,8 +28,10 @@ internal sealed class AniDecoder : ImageDecoder
         return image;
     }
 
+    /// <inheritdoc/>
     protected override Image Decode(DecoderOptions options, Stream stream, CancellationToken cancellationToken) => this.Decode<Rgba32>(options, stream, cancellationToken);
 
+    /// <inheritdoc/>
     protected override ImageInfo Identify(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
     {
         Guard.NotNull(options, nameof(options));

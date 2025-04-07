@@ -604,7 +604,7 @@ internal class Vp8BitWriter : BitWriterBase
         uint profile = 0;
         int width = this.enc.Width;
         int height = this.enc.Height;
-        byte[] vp8FrameHeader = new byte[WebpConstants.Vp8FrameHeaderSize];
+        Span<byte> vp8FrameHeader = stackalloc byte[WebpConstants.Vp8FrameHeaderSize];
 
         // Paragraph 9.1.
         uint bits = 0 // keyframe (1b)

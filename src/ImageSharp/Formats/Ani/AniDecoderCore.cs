@@ -114,7 +114,7 @@ internal class AniDecoderCore : ImageDecoderCore
 
             ImageFrameMetadata rootFrameMetadata = img.Frames.RootFrame.Metadata;
             AniFrameMetadata aniFrameMetadata = rootFrameMetadata.GetAniMetadata();
-            aniFrameMetadata.FrameDelay = rate == default ? aniMetadata.DisplayRate : rate[i];
+            aniFrameMetadata.FrameDelay = rate.IsEmpty ? aniMetadata.DisplayRate : rate[i];
             aniFrameMetadata.FrameCount = img.Frames.Count;
             aniFrameMetadata.EncodingWidth = encodingWidth;
             aniFrameMetadata.EncodingHeight = encodingHeight;
@@ -201,7 +201,7 @@ internal class AniDecoderCore : ImageDecoderCore
 
             ImageFrameMetadata rootFrameMetadata = imageInfo.FrameMetadataCollection is [var first, ..] ? first : new();
             AniFrameMetadata aniFrameMetadata = rootFrameMetadata.GetAniMetadata();
-            aniFrameMetadata.FrameDelay = rate == default ? aniMetadata.DisplayRate : rate[i];
+            aniFrameMetadata.FrameDelay = rate.IsEmpty ? aniMetadata.DisplayRate : rate[i];
             aniFrameMetadata.FrameCount = info.FrameMetadataCollection.Count;
             aniFrameMetadata.EncodingWidth = type switch
             {
@@ -331,7 +331,7 @@ internal class AniDecoderCore : ImageDecoderCore
             }
         }
 
-        if (sequence == default)
+        if (sequence.IsEmpty)
         {
             sequence = Enumerable.Range(0, totalFrameCount.Count).ToArray();
         }

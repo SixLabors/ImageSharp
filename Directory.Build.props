@@ -21,9 +21,8 @@
   <!-- Import the shared global .props file -->
   <Import Project="$(MSBuildThisFileDirectory)shared-infrastructure\msbuild\props\SixLabors.Global.props" />
 
-  <PropertyGroup Condition="$(SIXLABORS_TESTING_PREVIEW) == true">
-    <!-- Workaround various issues bound to implicit language features. -->
-    <LangVersion>preview</LangVersion>
+  <PropertyGroup>
+    <LangVersion>12.0</LangVersion>
   </PropertyGroup>
 
   <!--

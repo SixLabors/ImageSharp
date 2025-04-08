@@ -70,11 +70,6 @@ public class AniMetadata : IFormatMetadata<AniMetadata>
     /// </summary>
     public string? Artist { get; set; }
 
-    /// <summary>
-    /// Gets or sets the <see cref="ImageFrameMetadata"/> each "icon" chunk in ANI file.
-    /// </summary>
-    public IList<ImageFrameMetadata> IconFrames { get; set; } = [];
-
     /// <inheritdoc/>
     public static AniMetadata FromFormatConnectingMetadata(FormatConnectingMetadata metadata)
         => throw new NotImplementedException();

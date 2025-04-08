@@ -59,12 +59,17 @@ internal class AniDecoderCore : ImageDecoderCore
 
         List<ImageFrame<TPixel>> list = [];
 
-        foreach (int i in sequence)
+        for (int i = 0; i < sequence.Length; i++)
         {
-            (ListIconChunkType type, Image<TPixel>? img) = frames[i];
-            byte? encodingWidth = null;
-            byte? encodingHeight = null;
-            bool isRootFrame = true;
+            int sequenceIndex = sequence[i];
+            (ListIconChunkType type, Image<TPixel>? img) = frames[sequenceIndex];
+
+            AniFrameMetadata aniFrameMetadata = new()
+            {
+                FrameDelay = rate.IsEmpty ? aniMetadata.DisplayRate : rate[sequenceIndex],
+                SequenceNumber = i
+            };
+
             list.AddRange(img.Frames.Select(source =>
             {
                 ImageFrame<TPixel> target = new(this.Options.Configuration, this.Dimensions);
@@ -73,53 +78,34 @@ internal class AniDecoderCore : ImageDecoderCore
                     source.PixelBuffer.DangerousGetRowSpan(y).CopyTo(target.PixelBuffer.DangerousGetRowSpan(y));
                 }
 
+                AniFrameMetadata clonedMetadata = aniFrameMetadata.DeepClone();
+                source.Metadata.SetFormatMetadata(AniFormat.Instance, clonedMetadata);
                 switch (type)
                 {
                     case ListIconChunkType.Ico:
                         IcoFrameMetadata icoFrameMetadata = source.Metadata.GetIcoMetadata();
-                        target.Metadata.SetFormatMetadata(IcoFormat.Instance, icoFrameMetadata);
-                        if (isRootFrame)
-                        {
-                            encodingWidth ??= icoFrameMetadata.EncodingWidth;
-                            encodingHeight ??= icoFrameMetadata.EncodingHeight;
-                        }
-
+                        // TODO source.Metadata.SetFormatMetadata(IcoFormat.Instance, null);
+                        clonedMetadata.IcoFrameMetadata = icoFrameMetadata;
+                        clonedMetadata.EncodingWidth = icoFrameMetadata.EncodingWidth;
+                        clonedMetadata.EncodingHeight = icoFrameMetadata.EncodingHeight;
                         break;
                     case ListIconChunkType.Cur:
                         CurFrameMetadata curFrameMetadata = source.Metadata.GetCurMetadata();
-                        target.Metadata.SetFormatMetadata(CurFormat.Instance, curFrameMetadata);
-                        if (isRootFrame)
-                        {
-                            encodingWidth ??= curFrameMetadata.EncodingWidth;
-                            encodingHeight ??= curFrameMetadata.EncodingHeight;
-                        }
-
+                        // TODO source.Metadata.SetFormatMetadata(CurFormat.Instance, null);
+                        clonedMetadata.CurFrameMetadata = curFrameMetadata;
+                        clonedMetadata.EncodingWidth = curFrameMetadata.EncodingWidth;
+                        clonedMetadata.EncodingHeight = curFrameMetadata.EncodingHeight;
                         break;
                     case ListIconChunkType.Bmp:
-                        if (isRootFrame)
-                        {
-                            encodingWidth = Narrow(source.Width);
-                            encodingHeight = Narrow(source.Height);
-                        }
-
+                        clonedMetadata.EncodingWidth = Narrow(source.Width);
+                        clonedMetadata.EncodingHeight = Narrow(source.Height);
                         break;
                     default:
                         break;
                 }
 
-                isRootFrame = false;
-
                 return target;
             }));
-
-            ImageFrameMetadata rootFrameMetadata = img.Frames.RootFrame.Metadata;
-            AniFrameMetadata aniFrameMetadata = rootFrameMetadata.GetAniMetadata();
-            aniFrameMetadata.FrameDelay = rate.IsEmpty ? aniMetadata.DisplayRate : rate[i];
-            aniFrameMetadata.FrameCount = img.Frames.Count;
-            aniFrameMetadata.EncodingWidth = encodingWidth;
-            aniFrameMetadata.EncodingHeight = encodingHeight;
-            aniFrameMetadata.SubImageMetadata = img.Metadata;
-            aniMetadata.IconFrames.Add(rootFrameMetadata);
         }
 
         foreach ((ListIconChunkType _, Image<TPixel> img) in frames)
@@ -193,33 +179,61 @@ internal class AniDecoderCore : ImageDecoderCore
         List<(ListIconChunkType Type, ImageInfo Info)> infoList = [];
         this.HandleRiffChunk(out Span<int> sequence, out Span<uint> rate, dataStartPosition, dataSize, aniMetadata, infoList, IdentifyFrameChunk);
 
-        ImageInfo imageInfo = new(this.Dimensions, metadata, (IReadOnlyList<ImageFrameMetadata>)aniMetadata.IconFrames);
+        List<ImageFrameMetadata> frameMetadataCollection = new(sequence.Length);
 
-        foreach (int i in sequence)
+        for (int i = 0; i < sequence.Length; i++)
         {
-            (ListIconChunkType type, ImageInfo info) = infoList[i];
+            int sequenceIndex = sequence[i];
+            (ListIconChunkType type, ImageInfo info) = infoList[sequenceIndex];
 
-            ImageFrameMetadata rootFrameMetadata = imageInfo.FrameMetadataCollection is [var first, ..] ? first : new();
-            AniFrameMetadata aniFrameMetadata = rootFrameMetadata.GetAniMetadata();
-            aniFrameMetadata.FrameDelay = rate.IsEmpty ? aniMetadata.DisplayRate : rate[i];
-            aniFrameMetadata.FrameCount = info.FrameMetadataCollection.Count;
-            aniFrameMetadata.EncodingWidth = type switch
+            AniFrameMetadata aniFrameMetadata = new()
             {
-                ListIconChunkType.Bmp => Narrow(info.Width),
-                ListIconChunkType.Cur => rootFrameMetadata.GetCurMetadata().EncodingWidth,
-                ListIconChunkType.Ico => rootFrameMetadata.GetIcoMetadata().EncodingWidth,
-                _ => null
+                FrameDelay = rate.IsEmpty ? aniMetadata.DisplayRate : rate[sequenceIndex],
+                SequenceNumber = i
             };
-            aniFrameMetadata.EncodingHeight = type switch
+
+            if (info.FrameMetadataCollection.Count is not 0)
             {
-                ListIconChunkType.Bmp => Narrow(info.Height),
-                ListIconChunkType.Cur => rootFrameMetadata.GetCurMetadata().EncodingHeight,
-                ListIconChunkType.Ico => rootFrameMetadata.GetIcoMetadata().EncodingHeight,
-                _ => null
-            };
-            aniFrameMetadata.SubImageMetadata = info.Metadata;
-            aniMetadata.IconFrames.Add(rootFrameMetadata);
+                frameMetadataCollection.AddRange(
+                    info.FrameMetadataCollection.Select(frameMetadata =>
+                    {
+                        AniFrameMetadata clonedMetadata = aniFrameMetadata.DeepClone();
+                        frameMetadata.SetFormatMetadata(AniFormat.Instance, clonedMetadata);
+                        switch (type)
+                        {
+                            case ListIconChunkType.Ico:
+                                IcoFrameMetadata icoFrameMetadata = frameMetadata.GetIcoMetadata();
+                                // TODO source.Metadata.SetFormatMetadata(IcoFormat.Instance, null);
+                                clonedMetadata.IcoFrameMetadata = icoFrameMetadata;
+                                clonedMetadata.EncodingWidth = icoFrameMetadata.EncodingWidth;
+                                clonedMetadata.EncodingHeight = icoFrameMetadata.EncodingHeight;
+                                break;
+                            case ListIconChunkType.Cur:
+                                CurFrameMetadata curFrameMetadata = frameMetadata.GetCurMetadata();
+                                // TODO source.Metadata.SetFormatMetadata(CurFormat.Instance, null);
+                                clonedMetadata.CurFrameMetadata = curFrameMetadata;
+                                clonedMetadata.EncodingWidth = curFrameMetadata.EncodingWidth;
+                                clonedMetadata.EncodingHeight = curFrameMetadata.EncodingHeight;
+                                break;
+                            default:
+                                ThrowHelper.ThrowArgumentOutOfRangeException(nameof(type), "FrameMetadata must be ICO or CUR");
+                                break;
+                        }
+
+                        return frameMetadata;
+                    }));
+            }
+            else // BMP
+            {
+                aniFrameMetadata.EncodingWidth = Narrow(info.Width);
+                aniFrameMetadata.EncodingHeight = Narrow(info.Height);
+                ImageFrameMetadata frameMetadata = new();
+                frameMetadata.SetFormatMetadata(AniFormat.Instance, aniFrameMetadata);
+                frameMetadataCollection.Add(frameMetadata);
+            }
         }
+
+        ImageInfo imageInfo = new(this.Dimensions, metadata, frameMetadataCollection);
 
         return imageInfo;
 

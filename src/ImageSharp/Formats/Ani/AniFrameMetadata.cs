@@ -1,7 +1,9 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using SixLabors.ImageSharp.Metadata;
+using System.Diagnostics.CodeAnalysis;
+using SixLabors.ImageSharp.Formats.Cur;
+using SixLabors.ImageSharp.Formats.Ico;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Ani;
@@ -24,9 +26,9 @@ public class AniFrameMetadata : IFormatFrameMetadata<AniFrameMetadata>
     public uint FrameDelay { get; set; }
 
     /// <summary>
-    /// Gets or sets the frames count of **one** "icon" chunk.
+    /// Gets or sets the sequence number of current frame.
     /// </summary>
-    public int FrameCount { get; set; } = 1;
+    public int SequenceNumber { get; set; } = 1;
 
     /// <summary>
     /// Gets or sets the encoding width. <br />
@@ -41,9 +43,21 @@ public class AniFrameMetadata : IFormatFrameMetadata<AniFrameMetadata>
     public byte? EncodingHeight { get; set; }
 
     /// <summary>
-    /// Gets or sets the <see cref="ImageMetadata"/> of one "icon" chunk.
+    /// Gets or sets a value indicating whether the frame will be encoded as an ICO or CUR file.
     /// </summary>
-    public ImageMetadata? SubImageMetadata { get; set; }
+    [MemberNotNullWhen(true, nameof(IcoFrameMetadata))]
+    [MemberNotNullWhen(false, nameof(CurFrameMetadata))]
+    public bool IsIco { get; set; }
+
+    /// <summary>
+    /// Gets or sets the <see cref="IcoFrameMetadata"/> of one "icon" chunk.
+    /// </summary>
+    public IcoFrameMetadata? IcoFrameMetadata { get; set; }
+
+    /// <summary>
+    /// Gets or sets the <see cref="CurFrameMetadata"/> of one "icon" chunk.
+    /// </summary>
+    public CurFrameMetadata? CurFrameMetadata { get; set; }
 
     /// <inheritdoc/>
     public static AniFrameMetadata FromFormatConnectingFrameMetadata(FormatConnectingFrameMetadata metadata) =>
@@ -70,7 +84,10 @@ public class AniFrameMetadata : IFormatFrameMetadata<AniFrameMetadata>
         FrameDelay = this.FrameDelay,
         EncodingHeight = this.EncodingHeight,
         EncodingWidth = this.EncodingWidth,
-        FrameCount = this.FrameCount
+        SequenceNumber = this.SequenceNumber,
+        IsIco = this.IsIco,
+        IcoFrameMetadata = this.IcoFrameMetadata?.DeepClone(),
+        CurFrameMetadata = this.CurFrameMetadata?.DeepClone(),
 
         // TODO SubImageMetadata
     };

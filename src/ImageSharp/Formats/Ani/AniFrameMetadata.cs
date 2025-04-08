@@ -43,11 +43,9 @@ public class AniFrameMetadata : IFormatFrameMetadata<AniFrameMetadata>
     public byte? EncodingHeight { get; set; }
 
     /// <summary>
-    /// Gets or sets a value indicating whether the frame will be encoded as an ICO or CUR file.
+    /// Gets or sets a value indicating whether the frame will be encoded as an ICO or CUR or BMP file.
     /// </summary>
-    [MemberNotNullWhen(true, nameof(IcoFrameMetadata))]
-    [MemberNotNullWhen(false, nameof(CurFrameMetadata))]
-    public bool IsIco { get; set; }
+    public AniFrameFormat FrameFormat { get; set; }
 
     /// <summary>
     /// Gets or sets the <see cref="IcoFrameMetadata"/> of one "icon" chunk.

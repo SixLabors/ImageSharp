@@ -36,13 +36,6 @@ internal class AniDecoderCore : ImageDecoderCore
         : base(options) =>
         this.configuration = options.Configuration;
 
-    private enum ListIconChunkType : byte
-    {
-        Ico = 1,
-        Cur,
-        Bmp
-    }
-
     protected override Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
     {
         this.currentStream = stream;
@@ -54,7 +47,7 @@ internal class AniDecoderCore : ImageDecoderCore
         ImageMetadata metadata = new();
         AniMetadata aniMetadata = this.ReadHeader(dataStartPosition, dataSize, metadata);
 
-        List<(ListIconChunkType Type, Image<TPixel> Image)> frames = [];
+        List<(AniFrameFormat Type, Image<TPixel> Image)> frames = [];
         this.HandleRiffChunk(out Span<int> sequence, out Span<uint> rate, dataStartPosition, dataSize, aniMetadata, frames, DecodeFrameChunk);
 
         List<ImageFrame<TPixel>> list = [];
@@ -62,7 +55,7 @@ internal class AniDecoderCore : ImageDecoderCore
         for (int i = 0; i < sequence.Length; i++)
         {
             int sequenceIndex = sequence[i];
-            (ListIconChunkType type, Image<TPixel>? img) = frames[sequenceIndex];
+            (AniFrameFormat type, Image<TPixel>? img) = frames[sequenceIndex];
 
             AniFrameMetadata aniFrameMetadata = new()
             {
@@ -80,23 +73,24 @@ internal class AniDecoderCore : ImageDecoderCore
 
                 AniFrameMetadata clonedMetadata = aniFrameMetadata.DeepClone();
                 source.Metadata.SetFormatMetadata(AniFormat.Instance, clonedMetadata);
+                clonedMetadata.FrameFormat = type;
                 switch (type)
                 {
-                    case ListIconChunkType.Ico:
+                    case AniFrameFormat.Ico:
                         IcoFrameMetadata icoFrameMetadata = source.Metadata.GetIcoMetadata();
                         // TODO source.Metadata.SetFormatMetadata(IcoFormat.Instance, null);
                         clonedMetadata.IcoFrameMetadata = icoFrameMetadata;
                         clonedMetadata.EncodingWidth = icoFrameMetadata.EncodingWidth;
                         clonedMetadata.EncodingHeight = icoFrameMetadata.EncodingHeight;
                         break;
-                    case ListIconChunkType.Cur:
+                    case AniFrameFormat.Cur:
                         CurFrameMetadata curFrameMetadata = source.Metadata.GetCurMetadata();
                         // TODO source.Metadata.SetFormatMetadata(CurFormat.Instance, null);
                         clonedMetadata.CurFrameMetadata = curFrameMetadata;
                         clonedMetadata.EncodingWidth = curFrameMetadata.EncodingWidth;
                         clonedMetadata.EncodingHeight = curFrameMetadata.EncodingHeight;
                         break;
-                    case ListIconChunkType.Bmp:
+                    case AniFrameFormat.Bmp:
                         clonedMetadata.EncodingWidth = Narrow(source.Width);
                         clonedMetadata.EncodingHeight = Narrow(source.Height);
                         break;
@@ -108,7 +102,7 @@ internal class AniDecoderCore : ImageDecoderCore
             }));
         }
 
-        foreach ((ListIconChunkType _, Image<TPixel> img) in frames)
+        foreach ((AniFrameFormat _, Image<TPixel> img) in frames)
         {
             img.Dispose();
         }
@@ -128,7 +122,7 @@ internal class AniDecoderCore : ImageDecoderCore
 
                 long endPosition = this.currentStream.Position + chunk.Size;
                 Image<TPixel>? frame = null;
-                ListIconChunkType type = default;
+                AniFrameFormat type = default;
                 if (aniMetadata.Flags.HasFlag(AniHeaderFlags.IsIcon))
                 {
                     if (this.currentStream.TryReadUnmanaged(out IconDir dir))
@@ -139,11 +133,11 @@ internal class AniDecoderCore : ImageDecoderCore
                         {
                             case IconFileType.CUR:
                                 frame = CurDecoder.Instance.Decode<TPixel>(this.Options, this.currentStream);
-                                type = ListIconChunkType.Cur;
+                                type = AniFrameFormat.Cur;
                                 break;
                             case IconFileType.ICO:
                                 frame = IcoDecoder.Instance.Decode<TPixel>(this.Options, this.currentStream);
-                                type = ListIconChunkType.Ico;
+                                type = AniFrameFormat.Ico;
                                 break;
                         }
                     }
@@ -151,7 +145,7 @@ internal class AniDecoderCore : ImageDecoderCore
                 else
                 {
                     frame = BmpDecoder.Instance.Decode<TPixel>(this.Options, this.currentStream);
-                    type = ListIconChunkType.Bmp;
+                    type = AniFrameFormat.Bmp;
                 }
 
                 if (frame is not null)
@@ -176,7 +170,7 @@ internal class AniDecoderCore : ImageDecoderCore
         ImageMetadata metadata = new();
         AniMetadata aniMetadata = this.ReadHeader(dataStartPosition, dataSize, metadata);
 
-        List<(ListIconChunkType Type, ImageInfo Info)> infoList = [];
+        List<(AniFrameFormat Type, ImageInfo Info)> infoList = [];
         this.HandleRiffChunk(out Span<int> sequence, out Span<uint> rate, dataStartPosition, dataSize, aniMetadata, infoList, IdentifyFrameChunk);
 
         List<ImageFrameMetadata> frameMetadataCollection = new(sequence.Length);
@@ -184,7 +178,7 @@ internal class AniDecoderCore : ImageDecoderCore
         for (int i = 0; i < sequence.Length; i++)
         {
             int sequenceIndex = sequence[i];
-            (ListIconChunkType type, ImageInfo info) = infoList[sequenceIndex];
+            (AniFrameFormat type, ImageInfo info) = infoList[sequenceIndex];
 
             AniFrameMetadata aniFrameMetadata = new()
             {
@@ -199,16 +193,17 @@ internal class AniDecoderCore : ImageDecoderCore
                     {
                         AniFrameMetadata clonedMetadata = aniFrameMetadata.DeepClone();
                         frameMetadata.SetFormatMetadata(AniFormat.Instance, clonedMetadata);
+                        clonedMetadata.FrameFormat = type;
                         switch (type)
                         {
-                            case ListIconChunkType.Ico:
+                            case AniFrameFormat.Ico:
                                 IcoFrameMetadata icoFrameMetadata = frameMetadata.GetIcoMetadata();
                                 // TODO source.Metadata.SetFormatMetadata(IcoFormat.Instance, null);
                                 clonedMetadata.IcoFrameMetadata = icoFrameMetadata;
                                 clonedMetadata.EncodingWidth = icoFrameMetadata.EncodingWidth;
                                 clonedMetadata.EncodingHeight = icoFrameMetadata.EncodingHeight;
                                 break;
-                            case ListIconChunkType.Cur:
+                            case AniFrameFormat.Cur:
                                 CurFrameMetadata curFrameMetadata = frameMetadata.GetCurMetadata();
                                 // TODO source.Metadata.SetFormatMetadata(CurFormat.Instance, null);
                                 clonedMetadata.CurFrameMetadata = curFrameMetadata;
@@ -227,6 +222,7 @@ internal class AniDecoderCore : ImageDecoderCore
             {
                 aniFrameMetadata.EncodingWidth = Narrow(info.Width);
                 aniFrameMetadata.EncodingHeight = Narrow(info.Height);
+                aniFrameMetadata.FrameFormat = type;
                 ImageFrameMetadata frameMetadata = new();
                 frameMetadata.SetFormatMetadata(AniFormat.Instance, aniFrameMetadata);
                 frameMetadataCollection.Add(frameMetadata);
@@ -248,7 +244,7 @@ internal class AniDecoderCore : ImageDecoderCore
 
                 long endPosition = this.currentStream.Position + chunk.Size;
                 ImageInfo? info = null;
-                ListIconChunkType type = default;
+                AniFrameFormat type = default;
                 if (aniMetadata.Flags.HasFlag(AniHeaderFlags.IsIcon))
                 {
                     if (this.currentStream.TryReadUnmanaged(out IconDir dir))
@@ -259,11 +255,11 @@ internal class AniDecoderCore : ImageDecoderCore
                         {
                             case IconFileType.CUR:
                                 info = CurDecoder.Instance.Identify(this.Options, this.currentStream);
-                                type = ListIconChunkType.Cur;
+                                type = AniFrameFormat.Cur;
                                 break;
                             case IconFileType.ICO:
                                 info = IcoDecoder.Instance.Identify(this.Options, this.currentStream);
-                                type = ListIconChunkType.Ico;
+                                type = AniFrameFormat.Ico;
                                 break;
                         }
                     }
@@ -271,7 +267,7 @@ internal class AniDecoderCore : ImageDecoderCore
                 else
                 {
                     info = BmpDecoder.Instance.Identify(this.Options, this.currentStream);
-                    type = ListIconChunkType.Bmp;
+                    type = AniFrameFormat.Bmp;
                 }
 
                 if (info is not null)

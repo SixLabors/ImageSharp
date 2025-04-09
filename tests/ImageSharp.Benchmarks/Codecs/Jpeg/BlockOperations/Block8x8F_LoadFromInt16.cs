@@ -12,8 +12,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg.BlockOperations;
 public class Block8x8F_LoadFromInt16
 {
     private Block8x8 source;
-
-    private Block8x8F dest = default;
+    private Block8x8F destination;
 
     [GlobalSetup]
     public void Setup()
@@ -30,16 +29,10 @@ public class Block8x8F_LoadFromInt16
     }
 
     [Benchmark(Baseline = true)]
-    public void Scalar()
-    {
-        this.dest.LoadFromInt16Scalar(ref this.source);
-    }
+    public void Scalar() => this.destination.LoadFromInt16Scalar(ref this.source);
 
     [Benchmark]
-    public void ExtendedAvx2()
-    {
-        this.dest.LoadFromInt16ExtendedAvx2(ref this.source);
-    }
+    public void ExtendedAvx2() => this.destination.LoadFromInt16ExtendedAvx2(ref this.source);
 
     // RESULT:
     //        Method |     Mean |     Error |    StdDev | Scaled |

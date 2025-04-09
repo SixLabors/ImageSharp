@@ -14,9 +14,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs;
 [MarkdownExporter]
 [HtmlExporter]
 [Config(typeof(Config.Short))]
-#pragma warning disable CA1001 // Types that own disposable fields should be disposable
 public class EncodeWebp
-#pragma warning restore CA1001 // Types that own disposable fields should be disposable
 {
     private MagickImage webpMagick;
     private Image<Rgba32> webp;

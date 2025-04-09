@@ -17,6 +17,13 @@ jobs:
     runs-on: ${{matrix.options.os}}
 
     steps:
+
+      - name: Install libgdi+, which is required for tests running on ubuntu
+        if: ${{ contains(matrix.options.os, 'ubuntu') }}
+        run: |
+            sudo apt-get update
+            sudo apt-get -y install libgdiplus libgif-dev libglib2.0-dev libcairo2-dev libtiff-dev libexif-dev
+
       - name: Git Config
         shell: bash
         run: |

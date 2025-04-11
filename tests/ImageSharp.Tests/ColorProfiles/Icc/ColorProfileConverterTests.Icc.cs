@@ -47,9 +47,9 @@ public class ColorProfileConverterTests(ITestOutputHelper testOutputHelper)
         foreach (float[] input in inputs)
         {
             double[] expectedTargetValues = GetExpectedTargetValues(sourceProfile, targetProfile, input);
-            Vector4 actualTargetValues = GetActualTargetValues(input, sourceProfile, targetProfile);
-
             testOutputHelper.WriteLine($"Input {string.Join(", ", input)} · Expected output {string.Join(", ", expectedTargetValues)}");
+
+            Vector4 actualTargetValues = GetActualTargetValues(input, sourceProfile, targetProfile);
             for (int i = 0; i < expectedTargetValues.Length; i++)
             {
                 Assert.Equal(expectedTargetValues[i], actualTargetValues[i], tolerance);

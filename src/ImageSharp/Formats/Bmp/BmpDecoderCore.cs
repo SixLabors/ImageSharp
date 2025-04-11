@@ -1597,8 +1597,8 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
 
         if (palette.Length > 0)
         {
-            Color[] colorTable = new Color[palette.Length / Unsafe.SizeOf<Bgr24>()];
-            ReadOnlySpan<Bgr24> rgbTable = MemoryMarshal.Cast<byte, Bgr24>(palette);
+            Color[] colorTable = new Color[palette.Length / Unsafe.SizeOf<Bgra32>()];
+            ReadOnlySpan<Bgra32> rgbTable = MemoryMarshal.Cast<byte, Bgra32>(palette);
             Color.FromPixel(rgbTable, colorTable);
             this.bmpMetadata.ColorTable = colorTable;
         }

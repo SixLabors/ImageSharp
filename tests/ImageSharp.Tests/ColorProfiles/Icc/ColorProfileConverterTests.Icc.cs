@@ -90,13 +90,13 @@ public class ColorProfileConverterTests(ITestOutputHelper testOutputHelper)
         }
 
         Channels channels = new(input.Select(value => (double)value).ToArray());
-        if (channels.Error != null)
-        {
-            testOutputHelper.WriteLine($"Error during Unicolour ICC conversion of supported profile: {channels.Error}");
-        }
-
         Unicolour source = new(sourceConfig, channels);
         Unicolour target = source.ConvertToConfiguration(targetConfig);
+        if (target.Icc.Error != null)
+        {
+            testOutputHelper.WriteLine($"Error during Unicolour ICC conversion of supported profile: {target.Icc.Error}");
+        }
+
         return target.Icc.Values;
     }
 

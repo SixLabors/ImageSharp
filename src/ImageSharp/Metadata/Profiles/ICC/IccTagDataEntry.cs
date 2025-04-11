@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 namespace SixLabors.ImageSharp.Metadata.Profiles.Icc;
@@ -41,9 +41,7 @@ public abstract class IccTagDataEntry : IEquatable<IccTagDataEntry>
 
     /// <inheritdoc/>
     public override bool Equals(object? obj)
-    {
-        return obj is IccTagDataEntry entry && this.Equals(entry);
-    }
+        => obj is IccTagDataEntry entry && this.Equals(entry);
 
     /// <inheritdoc/>
     public virtual bool Equals(IccTagDataEntry? other)

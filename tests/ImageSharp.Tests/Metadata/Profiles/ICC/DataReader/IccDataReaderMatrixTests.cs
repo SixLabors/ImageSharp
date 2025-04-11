@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
+using SixLabors.ImageSharp.Tests.TestDataIcc;
 
 namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.ICC.DataReader;
 
@@ -9,7 +10,7 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.ICC.DataReader;
 public class IccDataReaderMatrixTests
 {
     [Theory]
-    [MemberData(nameof(IccTestDataMatrix.Matrix2D_FloatArrayTestData), MemberType = typeof(IccTestDataMatrix))]
+    [MemberData(nameof(IccTestDataMatrix.Matrix2DFloatArrayTestData), MemberType = typeof(IccTestDataMatrix))]
     public void ReadMatrix2D(byte[] data, int xCount, int yCount, bool isSingle, float[,] expected)
     {
         IccDataReader reader = CreateReader(data);
@@ -20,7 +21,7 @@ public class IccDataReaderMatrixTests
     }
 
     [Theory]
-    [MemberData(nameof(IccTestDataMatrix.Matrix1D_ArrayTestData), MemberType = typeof(IccTestDataMatrix))]
+    [MemberData(nameof(IccTestDataMatrix.Matrix1DArrayTestData), MemberType = typeof(IccTestDataMatrix))]
     public void ReadMatrix1D(byte[] data, int yCount, bool isSingle, float[] expected)
     {
         IccDataReader reader = CreateReader(data);
@@ -30,8 +31,5 @@ public class IccDataReaderMatrixTests
         Assert.Equal(expected, output);
     }
 
-    private static IccDataReader CreateReader(byte[] data)
-    {
-        return new IccDataReader(data);
-    }
+    private static IccDataReader CreateReader(byte[] data) => new(data);
 }

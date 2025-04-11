@@ -18,7 +18,7 @@ public class ColorProfileConverterTests(ITestOutputHelper testOutputHelper)
     [InlineData(TestIccProfiles.Fogra39, TestIccProfiles.Swop2006)] // CMYK -> LAB -> CMYK (commonly used v2 profiles)
     [InlineData(TestIccProfiles.Swop2006, TestIccProfiles.Fogra39)] // CMYK -> LAB -> CMYK (commonly used v2 profiles)
     [InlineData(TestIccProfiles.Swop2006, TestIccProfiles.Swop2006)] // CMYK -> LAB -> CMYK (commonly used v2 profiles)
-    // [InlineData(TestIccProfiles.Fogra39, TestIccProfiles.JapanColor2003)] // CMYK -> LAB -> CMYK (different bit depth v2 LUTs, 8-bit vs 16-bit)
+    [InlineData(TestIccProfiles.Fogra39, TestIccProfiles.JapanColor2003)] // CMYK -> LAB -> CMYK (different bit depth v2 LUTs, 8-bit vs 16-bit)
     [InlineData(TestIccProfiles.JapanColor2011, TestIccProfiles.Fogra39)] // CMYK -> LAB -> CMYK (different LUT versions, v2 vs v4)
     [InlineData(TestIccProfiles.Fogra39, TestIccProfiles.Cgats21)] // CMYK -> LAB -> RGB (different LUT versions, v2 vs v4)
     [InlineData(TestIccProfiles.Fogra39, TestIccProfiles.StandardRgbV4)] // RGB -> LAB -> CMYK (different LUT versions, v4 vs v2)
@@ -46,7 +46,7 @@ public class ColorProfileConverterTests(ITestOutputHelper testOutputHelper)
 
         foreach (float[] input in inputs)
         {
-            double[] expectedTargetValues = GetExpectedTargetValues(sourceProfile, targetProfile, input);
+            double[] expectedTargetValues = GetExpectedTargetValues(sourceProfile, targetProfile, input, testOutputHelper);
             testOutputHelper.WriteLine($"Input {string.Join(", ", input)} · Expected output {string.Join(", ", expectedTargetValues)}");
 
             Vector4 actualTargetValues = GetActualTargetValues(input, sourceProfile, targetProfile);
@@ -57,7 +57,7 @@ public class ColorProfileConverterTests(ITestOutputHelper testOutputHelper)
         }
     }
 
-    private static double[] GetExpectedTargetValues(string sourceProfile, string targetProfile, float[] input)
+    private static double[] GetExpectedTargetValues(string sourceProfile, string targetProfile, float[] input, ITestOutputHelper testOutputHelper)
     {
         Wacton.Unicolour.Configuration sourceConfig = TestIccProfiles.GetUnicolourConfiguration(sourceProfile);
         Wacton.Unicolour.Configuration targetConfig = TestIccProfiles.GetUnicolourConfiguration(targetProfile);
@@ -90,6 +90,11 @@ public class ColorProfileConverterTests(ITestOutputHelper testOutputHelper)
         }
 
         Channels channels = new(input.Select(value => (double)value).ToArray());
+        if (channels.Error != null)
+        {
+            testOutputHelper.WriteLine($"Error during Unicolour ICC conversion of supported profile: {channels.Error}");
+        }
+
         Unicolour source = new(sourceConfig, channels);
         Unicolour target = source.ConvertToConfiguration(targetConfig);
         return target.Icc.Values;

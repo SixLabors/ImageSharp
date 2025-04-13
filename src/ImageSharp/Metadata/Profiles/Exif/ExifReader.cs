@@ -7,6 +7,7 @@ using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Text;
 using SixLabors.ImageSharp.Memory;
 
@@ -187,18 +188,22 @@ internal abstract class BaseExifReader
 
     protected void ReadSubIfd(List<IExifValue> values)
     {
-        if (this.subIfds is not null)
+        if (this.subIfds != null)
         {
-            do
+            const int maxSubIfds = 8;
+            const int maxNestingLevel = 8;
+            Span<ulong> buf = stackalloc ulong[maxSubIfds];
+            for (int i = 0; i < maxNestingLevel && this.subIfds.Count > 0; i++)
             {
-                ulong[] buf = [.. this.subIfds];
+                int sz = Math.Min(this.subIfds.Count, maxSubIfds);
+                CollectionsMarshal.AsSpan(this.subIfds)[..sz].CopyTo(buf);
+
                 this.subIfds.Clear();
-                foreach (ulong subIfdOffset in buf)
+                foreach (ulong subIfdOffset in buf[..sz])
                 {
                     this.ReadValues(values, (uint)subIfdOffset);
                 }
             }
-            while (this.subIfds.Count > 0);
         }
     }
 

@@ -7,6 +7,7 @@ using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Text;
 using SixLabors.ImageSharp.Memory;
 
@@ -187,11 +188,21 @@ internal abstract class BaseExifReader
 
     protected void ReadSubIfd(List<IExifValue> values)
     {
-        if (this.subIfds is not null)
+        if (this.subIfds != null)
         {
-            foreach (ulong subIfdOffset in this.subIfds)
+            const int maxSubIfds = 8;
+            const int maxNestingLevel = 8;
+            Span<ulong> buf = stackalloc ulong[maxSubIfds];
+            for (int i = 0; i < maxNestingLevel && this.subIfds.Count > 0; i++)
             {
-                this.ReadValues(values, (uint)subIfdOffset);
+                int sz = Math.Min(this.subIfds.Count, maxSubIfds);
+                CollectionsMarshal.AsSpan(this.subIfds)[..sz].CopyTo(buf);
+
+                this.subIfds.Clear();
+                foreach (ulong subIfdOffset in buf[..sz])
+                {
+                    this.ReadValues(values, (uint)subIfdOffset);
+                }
             }
         }
     }
@@ -447,6 +458,7 @@ internal abstract class BaseExifReader
             ExifTagValue.TileByteCounts => new ExifLong8Array(ExifTagValue.TileByteCounts),
             _ => ExifValues.Create(tag) ?? ExifValues.Create(tag, dataType, numberOfComponents),
         };
+
         if (exifValue is null)
         {
             this.AddInvalidTag(new UnkownExifTag(tag));
@@ -481,8 +493,9 @@ internal abstract class BaseExifReader
 
         foreach (IExifValue val in values)
         {
-            // Sometimes duplicates appear, can compare val.Tag == exif.Tag
-            if (val == exif)
+            // to skip duplicates must be used Equals method,
+            // == operator not defined for ExifValue and IExifValue
+            if (exif.Equals(val))
             {
                 Debug.WriteLine($"Duplicate Exif tag: tag={exif.Tag}, dataType={exif.DataType}");
                 return;

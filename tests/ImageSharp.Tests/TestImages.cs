@@ -325,6 +325,7 @@ public static class TestImages
             public const string Issue2067_CommentMarker = "Jpg/issues/issue-2067-comment.jpg";
             public const string Issue2638 = "Jpg/issues/Issue2638.jpg";
             public const string Issue2758 = "Jpg/issues/issue-2758.jpg";
+            public const string Issue2857 = "Jpg/issues/issue-2857-subsub-ifds.jpg";
 
             public static class Fuzz
             {

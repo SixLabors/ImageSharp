@@ -452,6 +452,45 @@ public partial class JpegDecoderTests
         image.Save(ms, new JpegEncoder());
     }
 
+    // https://github.com/SixLabors/ImageSharp/issues/2857
+    [Theory]
+    [WithFile(TestImages.Jpeg.Issues.Issue2857, PixelTypes.Rgb24)]
+    public void Issue2857_SubSubIfds<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage(JpegDecoder.Instance);
+
+        Assert.Equal(5616, image.Width);
+        Assert.Equal(3744, image.Height);
+
+        JpegMetadata meta = image.Metadata.GetJpegMetadata();
+        Assert.Equal(92, meta.LuminanceQuality);
+        Assert.Equal(93, meta.ChrominanceQuality);
+
+        ExifProfile exifProfile = image.Metadata.ExifProfile;
+        Assert.NotNull(exifProfile);
+
+        using MemoryStream ms = new();
+        bool hasThumbnail = exifProfile.TryCreateThumbnail(out _);
+        Assert.False(hasThumbnail);
+
+        Assert.Equal("BilderBox - Erwin Wodicka / wodicka@aon.at", exifProfile.GetValue(ExifTag.Copyright).Value);
+        Assert.Equal("Adobe Photoshop CS3 Windows", exifProfile.GetValue(ExifTag.Software).Value);
+
+        Assert.Equal("Carers; seniors; caregiver; senior care; retirement home; hands; old; elderly; elderly caregiver; elder care; elderly care; geriatric care; nursing home; age; old age care; outpatient; needy; health care; home nurse; home care; sick; retirement; medical; mobile; the elderly; nursing department; nursing treatment; nursing; care services; nursing services; nursing care; nursing allowance; nursing homes; home nursing; care category; nursing class; care; nursing shortage; nursing patient care staff\0", exifProfile.GetValue(ExifTag.XPKeywords).Value);
+
+        Assert.Equal(
+            new EncodedString(EncodedString.CharacterCode.ASCII, "StockSubmitter|Miscellaneous||Miscellaneous$|00|0000330000000110000000000000000|22$@NA_1005010.460@145$$@Miscellaneous.Miscellaneous$$@$@26$$@$@$@$@205$@$@$@$@$@$@$@$@$@43$@$@$@$$@Miscellaneous.Miscellaneous$$@90$$@22$@$@$@$@$@$@$|||"),
+            exifProfile.GetValue(ExifTag.UserComment).Value);
+
+        // the profile contains 4 duplicated UserComment
+        Assert.Equal(1, exifProfile.Values.Count(t => t.Tag == ExifTag.UserComment));
+
+        image.Mutate(x => x.Crop(new(0, 0, 100, 100)));
+
+        image.Save(ms, new JpegEncoder());
+    }
+
     private static void VerifyEncodedStrings(ExifProfile exif)
     {
         Assert.NotNull(exif);

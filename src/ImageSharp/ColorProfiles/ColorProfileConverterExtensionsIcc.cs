@@ -5,6 +5,7 @@ using System.Buffers;
 using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.Intrinsics;
 using SixLabors.ImageSharp.ColorProfiles.Icc;
 using SixLabors.ImageSharp.ColorSpaces.Conversion.Icc;
 using SixLabors.ImageSharp.Memory;
@@ -14,6 +15,30 @@ namespace SixLabors.ImageSharp.ColorProfiles;
 
 internal static class ColorProfileConverterExtensionsIcc
 {
+    private static readonly float[] PcsV2FromBlackPointScale =
+        [0.9965153F, 0.9965269F, 0.9965208F, 1F,
+         0.9965153F, 0.9965269F, 0.9965208F, 1F,
+         0.9965153F, 0.9965269F, 0.9965208F, 1F,
+         0.9965153F, 0.9965269F, 0.9965208F, 1F];
+
+    private static readonly float[] PcsV2FromBlackPointAdd =
+        [0.00336F, 0.0034731F, 0.00287F, 0F,
+         0.00336F, 0.0034731F, 0.00287F, 0F,
+         0.00336F, 0.0034731F, 0.00287F, 0F,
+         0.00336F, 0.0034731F, 0.00287F, 0F];
+
+    private static readonly float[] PcsV2ToBlackPointScale =
+        [1.0034969F, 1.0034852F, 1.0034913F, 1F,
+         1.0034969F, 1.0034852F, 1.0034913F, 1F,
+         1.0034969F, 1.0034852F, 1.0034913F, 1F,
+         1.0034969F, 1.0034852F, 1.0034913F, 1F];
+
+    private static readonly float[] PcsV2ToBlackPointAdd =
+        [0.0033717495F, 0.0034852044F, 0.0028800198F, 0F,
+         0.0033717495F, 0.0034852044F, 0.0028800198F, 0F,
+         0.0033717495F, 0.0034852044F, 0.0028800198F, 0F,
+         0.0033717495F, 0.0034852044F, 0.0028800198F, 0F];
+
     internal static TTo ConvertUsingIccProfile<TFrom, TTo>(this ColorProfileConverter converter, in TFrom source)
         where TFrom : struct, IColorProfile<TFrom>
         where TTo : struct, IColorProfile<TTo>
@@ -73,13 +98,11 @@ internal static class ColorProfileConverterExtensionsIcc
 
         Guard.MustBeGreaterThanOrEqualTo(source.Length, destination.Length, nameof(destination));
 
-        ColorProfileConverter pcsConverter = new(new ColorConversionOptions()
+        ColorProfileConverter pcsConverter = new(new ColorConversionOptions
         {
             MemoryAllocator = converter.Options.MemoryAllocator,
-
-            // TODO: Double check this but I think these are normalized values.
-            SourceWhitePoint = CieXyz.FromScaledVector4(new(converter.Options.SourceIccProfile.Header.PcsIlluminant, 1F)),
-            TargetWhitePoint = CieXyz.FromScaledVector4(new(converter.Options.TargetIccProfile.Header.PcsIlluminant, 1F)),
+            SourceWhitePoint = new CieXyz(converter.Options.SourceIccProfile.Header.PcsIlluminant),
+            TargetWhitePoint = new CieXyz(converter.Options.TargetIccProfile.Header.PcsIlluminant),
         });
 
         IccDataToPcsConverter sourceConverter = new(converter.Options.SourceIccProfile);
@@ -332,6 +355,102 @@ internal static class ColorProfileConverterExtensionsIcc
     private static Vector3 AdjustPcsToV2BlackPoint(Vector3 xyz)
         => (xyz * new Vector3(1.0034969F, 1.0034852F, 1.0034913F)) - new Vector3(0.0033717495F, 0.0034852044F, 0.0028800198F);
 
+    private static void AdjustPcsFromV2BlackPoint(Span<Vector4> source, Span<Vector4> destination)
+    {
+        if (Vector.IsHardwareAccelerated && Vector<float>.IsSupported &&
+            Vector<float>.Count <= Vector512<float>.Count &&
+            source.Length * 4 >= Vector<float>.Count)
+        {
+            // TODO: Check our constants. They may require scaling.
+            Vector<float> vScale = new(PcsV2FromBlackPointScale.AsSpan()[..Vector<float>.Count]);
+            Vector<float> vAdd = new(PcsV2FromBlackPointAdd.AsSpan()[..Vector<float>.Count]);
+
+            // SIMD loop
+            int i = 0;
+            int simdBatchSize = Vector<float>.Count / 4; // Number of Vector4 elements per SIMD batch
+            for (; i <= source.Length - simdBatchSize; i += simdBatchSize)
+            {
+                // Load the vector from source span
+                Vector<float> v = Unsafe.ReadUnaligned<Vector<float>>(ref Unsafe.As<Vector4, byte>(ref source[i]));
+
+                // Scale and add the vector
+                v *= vScale;
+                v += vAdd;
+
+                // Write the vector to the destination span
+                Unsafe.WriteUnaligned(ref Unsafe.As<Vector4, byte>(ref destination[i]), v);
+            }
+
+            // Scalar fallback for remaining elements
+            for (; i < source.Length; i++)
+            {
+                Vector4 s = source[i];
+                s *= new Vector4(0.9965153F, 0.9965269F, 0.9965208F, 1F);
+                s += new Vector4(0.00336F, 0.0034731F, 0.00287F, 0F);
+                destination[i] = s;
+            }
+        }
+        else
+        {
+            // Scalar fallback if SIMD is not supported
+            for (int i = 0; i < source.Length; i++)
+            {
+                Vector4 s = source[i];
+                s *= new Vector4(0.9965153F, 0.9965269F, 0.9965208F, 1F);
+                s += new Vector4(0.00336F, 0.0034731F, 0.00287F, 0F);
+                destination[i] = s;
+            }
+        }
+    }
+
+    private static void AdjustPcsToV2BlackPoint(Span<Vector4> source, Span<Vector4> destination)
+    {
+        if (Vector.IsHardwareAccelerated && Vector<float>.IsSupported &&
+            Vector<float>.Count <= Vector512<float>.Count &&
+            source.Length * 4 >= Vector<float>.Count)
+        {
+            // TODO: Check our constants. They may require scaling.
+            Vector<float> vScale = new(PcsV2ToBlackPointScale.AsSpan()[..Vector<float>.Count]);
+            Vector<float> vAdd = new(PcsV2ToBlackPointAdd.AsSpan()[..Vector<float>.Count]);
+
+            // SIMD loop
+            int i = 0;
+            int simdBatchSize = Vector<float>.Count / 4; // Number of Vector4 elements per SIMD batch
+            for (; i <= source.Length - simdBatchSize; i += simdBatchSize)
+            {
+                // Load the vector from source span
+                Vector<float> v = Unsafe.ReadUnaligned<Vector<float>>(ref Unsafe.As<Vector4, byte>(ref source[i]));
+
+                // Scale and add the vector
+                v *= vScale;
+                v += vAdd;
+
+                // Write the vector to the destination span
+                Unsafe.WriteUnaligned(ref Unsafe.As<Vector4, byte>(ref destination[i]), v);
+            }
+
+            // Scalar fallback for remaining elements
+            for (; i < source.Length; i++)
+            {
+                Vector4 s = source[i];
+                s *= new Vector4(1.0034969F, 1.0034852F, 1.0034913F, 1F);
+                s += new Vector4(0.0033717495F, 0.0034852044F, 0.0028800198F, 0F);
+                destination[i] = s;
+            }
+        }
+        else
+        {
+            // Scalar fallback if SIMD is not supported
+            for (int i = 0; i < source.Length; i++)
+            {
+                Vector4 s = source[i];
+                s *= new Vector4(1.0034969F, 1.0034852F, 1.0034913F, 1F);
+                s += new Vector4(0.0033717495F, 0.0034852044F, 0.0028800198F, 0F);
+                destination[i] = s;
+            }
+        }
+    }
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Vector4 LabToLabV2(Vector4 input)
         => input * 65280F / 65535F;
@@ -348,7 +467,7 @@ internal static class ColorProfileConverterExtensionsIcc
 
     private static void LabToLab(Span<Vector4> source, Span<Vector4> destination, [ConstantExpected] float scale)
     {
-        if (Vector.IsHardwareAccelerated)
+        if (Vector.IsHardwareAccelerated && Vector<float>.IsSupported)
         {
             Vector<float> vScale = new(scale);
             int i = 0;

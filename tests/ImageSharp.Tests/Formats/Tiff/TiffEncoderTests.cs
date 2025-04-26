@@ -520,12 +520,12 @@ public class TiffEncoderTests : TiffEncoderBaseTester
 
     [Theory]
     [WithFile(Issue2909, PixelTypes.Rgba32)]
-    public void TiffEncoder_EncodeBiColor_WithLzwCompression_Works<TPixel>(TestImageProvider<TPixel> provider)
+    public void TiffEncoder_WithLzwCompression_Works<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, TiffBitsPerPixel.Bit24, null, TiffCompression.Lzw, imageDecoder: TiffDecoder.Instance);
 
     [Theory]
     [WithFile(Issue2909, PixelTypes.Rgba32)]
-    public void TiffEncoder_EncodeBiColor_WithDeflateCompression_Works<TPixel>(TestImageProvider<TPixel> provider)
+    public void TiffEncoder_WithDeflateCompression_Works<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, TiffBitsPerPixel.Bit24, null, TiffCompression.Deflate, imageDecoder: TiffDecoder.Instance);
 
     [Theory]

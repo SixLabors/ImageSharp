@@ -1131,6 +1131,8 @@ public static class TestImages
         public const string InvalidIptcData = "Tiff/7324fcaff3aad96f27899da51c1bb5d9.tiff";
         public const string IptcData = "Tiff/iptc.tiff";
 
+        public const string Issue2909 = "Tiff/Issues/Issue2909.tiff";
+
         public static readonly string[] Multiframes = { MultiframeDeflateWithPreview, MultiframeLzwPredictor /*, MultiFrameDifferentSize, MultiframeDifferentSizeTiled, MultiFrameDifferentVariants,*/ };
 
         public static readonly string[] Metadata = { SampleMetadata };

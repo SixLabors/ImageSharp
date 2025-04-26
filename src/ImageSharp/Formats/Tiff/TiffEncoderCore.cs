@@ -222,15 +222,6 @@ internal sealed class TiffEncoderCore
         height = Math.Min(height, frame.Height);
         Size encodingSize = new(width, height);
 
-        using TiffBaseCompressor compressor = TiffCompressorFactory.Create(
-            compression,
-            writer.BaseStream,
-            this.memoryAllocator,
-            width,
-            (int)bitsPerPixel,
-            this.compressionLevel,
-            this.HorizontalPredictor == TiffPredictor.Horizontal ? this.HorizontalPredictor.Value : TiffPredictor.None);
-
         TiffEncoderEntriesCollector entriesCollector = new();
         using TiffBaseColorWriter<TPixel> colorWriter = TiffColorWriterFactory.Create(
             this.PhotometricInterpretation,
@@ -242,6 +233,15 @@ internal sealed class TiffEncoderCore
             this.configuration,
             entriesCollector,
             (int)bitsPerPixel);
+
+        using TiffBaseCompressor compressor = TiffCompressorFactory.Create(
+            compression,
+            writer.BaseStream,
+            this.memoryAllocator,
+            width,
+            colorWriter.BitsPerPixel,
+            this.compressionLevel,
+            this.HorizontalPredictor == TiffPredictor.Horizontal ? this.HorizontalPredictor.Value : TiffPredictor.None);
 
         int rowsPerStrip = CalcRowsPerStrip(height, colorWriter.BytesPerRow, this.CompressionType);
 

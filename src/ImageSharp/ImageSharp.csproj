@@ -44,11 +44,6 @@
     <None Include="..\..\LICENSE" Pack="true" PackagePath="" />
     <None Include="..\..\shared-infrastructure\branding\icons\imagesharp\sixlabors.imagesharp.128.png" Pack="true" PackagePath="" />
     <None Include="..\..\SixLabors.ImageSharp.props" Pack="true" PackagePath="build" />
-    <None Include="Common\InlineArray.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>InlineArray.tt</DependentUpon>
-    </None>
   </ItemGroup>
 
   <ItemGroup>

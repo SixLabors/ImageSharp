@@ -119,7 +119,7 @@ public class ImageFrameTests
             }
             else
             {
-                Span<La16> destination = MemoryMarshal.Cast<byte, La16>(actual.AsSpan());
+                Span<La16> destination = MemoryMarshal.Cast<byte, La16>(actual);
                 image.Frames.RootFrame.CopyPixelDataTo(destination);
             }
 

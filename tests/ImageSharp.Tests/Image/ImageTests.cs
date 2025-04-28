@@ -190,7 +190,7 @@ public partial class ImageTests
             }
 
             byte[] expected = TestUtils.FillImageWithRandomBytes(image);
-            byte[] actual = new byte[expected.Length];
+            Span<byte> actual = new byte[expected.Length];
             if (byteSpan)
             {
                 image.CopyPixelDataTo(actual);

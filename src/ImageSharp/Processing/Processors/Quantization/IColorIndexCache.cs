@@ -120,6 +120,84 @@ internal unsafe struct HybridCache : IColorIndexCache<HybridCache>
 }
 
 /// <summary>
+/// A coarse cache for color distance lookups that uses a fixed-size lookup table.
+/// </summary>
+/// <remarks>
+/// This cache uses a fixed lookup table with 2,097,152 bins, each storing a 2-byte value,
+/// resulting in a worst-case memory usage of approximately 4 MB. Lookups and insertions are
+/// performed in constant time (O(1)) via direct table indexing. This design is optimized for
+/// speed while maintaining a predictable, fixed memory footprint.
+/// </remarks>
+internal unsafe struct CoarseCache : IColorIndexCache<CoarseCache>
+{
+    private const int IndexRBits = 5;
+    private const int IndexGBits = 5;
+    private const int IndexBBits = 5;
+    private const int IndexABits = 6;
+    private const int IndexRCount = 1 << IndexRBits; // 32 bins for red
+    private const int IndexGCount = 1 << IndexGBits; // 32 bins for green
+    private const int IndexBCount = 1 << IndexBBits; // 32 bins for blue
+    private const int IndexACount = 1 << IndexABits; // 64 bins for alpha
+    private const int TotalBins = IndexRCount * IndexGCount * IndexBCount * IndexACount; // 2,097,152 bins
+
+    private readonly IMemoryOwner<short> binsOwner;
+    private readonly short* binsPointer;
+    private MemoryHandle binsHandle;
+
+    private CoarseCache(MemoryAllocator allocator)
+    {
+        this.binsOwner = allocator.Allocate<short>(TotalBins);
+        this.binsOwner.GetSpan().Fill(-1);
+        this.binsHandle = this.binsOwner.Memory.Pin();
+        this.binsPointer = (short*)this.binsHandle.Pointer;
+    }
+
+    /// <inheritdoc/>
+    public static CoarseCache Create(MemoryAllocator allocator) => new(allocator);
+
+    /// <inheritdoc/>
+    [MethodImpl(InliningOptions.ShortMethod)]
+    public readonly bool TryAdd(Rgba32 color, short value)
+    {
+        this.binsPointer[GetCoarseIndex(color)] = value;
+        return true;
+    }
+
+    /// <inheritdoc/>
+    [MethodImpl(InliningOptions.ShortMethod)]
+    public readonly bool TryGetValue(Rgba32 color, out short value)
+    {
+        value = this.binsPointer[GetCoarseIndex(color)];
+        return value > -1; // Coarse match found
+    }
+
+    [MethodImpl(InliningOptions.ShortMethod)]
+    private static int GetCoarseIndex(Rgba32 color)
+    {
+        int rIndex = color.R >> (8 - IndexRBits);
+        int gIndex = color.G >> (8 - IndexGBits);
+        int bIndex = color.B >> (8 - IndexBBits);
+        int aIndex = color.A >> (8 - IndexABits);
+
+        return (aIndex * IndexRCount * IndexGCount * IndexBCount) +
+               (rIndex * IndexGCount * IndexBCount) +
+               (gIndex * IndexBCount) +
+               bIndex;
+    }
+
+    /// <inheritdoc/>
+    public readonly void Clear()
+        => this.binsOwner.GetSpan().Fill(-1);
+
+    /// <inheritdoc/>
+    public void Dispose()
+    {
+        this.binsHandle.Dispose();
+        this.binsOwner.Dispose();
+    }
+}
+
+/// <summary>
 /// <para>
 /// CoarseCache is a fast, low-memory lookup structure for caching palette indices associated with RGBA values,
 /// using a quantized representation of 5,5,5,6 (RGB: 5 bits each, Alpha: 6 bits).
@@ -147,7 +225,7 @@ internal unsafe struct HybridCache : IColorIndexCache<HybridCache>
 /// making it ideal for applications such as color distance caching in images with a limited palette (up to 256 entries).
 /// </para>
 /// </summary>
-internal unsafe struct CoarseCache : IColorIndexCache<CoarseCache>
+internal unsafe struct CoarseCacheLite : IColorIndexCache<CoarseCacheLite>
 {
     // Use 5 bits per channel for R, G, and B: 32 levels each.
     // Total buckets = 32^3 = 32768.
@@ -158,7 +236,7 @@ internal unsafe struct CoarseCache : IColorIndexCache<CoarseCache>
     private readonly AlphaBucket* buckets;
     private MemoryHandle bucketHandle;
 
-    private CoarseCache(MemoryAllocator allocator)
+    private CoarseCacheLite(MemoryAllocator allocator)
     {
         this.bucketsOwner = allocator.Allocate<AlphaBucket>(BucketCount, AllocationOptions.Clean);
         this.bucketHandle = this.bucketsOwner.Memory.Pin();
@@ -166,7 +244,7 @@ internal unsafe struct CoarseCache : IColorIndexCache<CoarseCache>
     }
 
     /// <inheritdoc/>
-    public static CoarseCache Create(MemoryAllocator allocator) => new(allocator);
+    public static CoarseCacheLite Create(MemoryAllocator allocator) => new(allocator);
 
     /// <inheritdoc/>
     public readonly bool TryAdd(Rgba32 color, short paletteIndex)

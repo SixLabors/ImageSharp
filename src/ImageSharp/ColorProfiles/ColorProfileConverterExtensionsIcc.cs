@@ -64,9 +64,10 @@ internal static class ColorProfileConverterExtensionsIcc
             TargetWhitePoint = new CieXyz(converter.Options.TargetIccProfile.Header.PcsIlluminant),
         });
 
+        // Normalize the source, then convert to the PCS space.
         Vector4 sourcePcs = sourceParams.Converter.Calculate(source.ToScaledVector4());
 
-        // if both profiles need PCS adjustment, they both share the same unadjusted PCS space
+        // If both profiles need PCS adjustment, they both share the same unadjusted PCS space
         // cancelling out the need to make the adjustment
         // except if using TRC transforms, which always requires perceptual handling
         // TODO: this does not include adjustment for absolute intent, which would double existing complexity, suggest throwing exception and addressing in future update
@@ -98,6 +99,9 @@ internal static class ColorProfileConverterExtensionsIcc
 
         Guard.MustBeGreaterThanOrEqualTo(source.Length, destination.Length, nameof(destination));
 
+        ConversionParams sourceParams = new(converter.Options.SourceIccProfile, toPcs: true);
+        ConversionParams targetParams = new(converter.Options.TargetIccProfile, toPcs: false);
+
         ColorProfileConverter pcsConverter = new(new ColorConversionOptions
         {
             MemoryAllocator = converter.Options.MemoryAllocator,
@@ -105,90 +109,32 @@ internal static class ColorProfileConverterExtensionsIcc
             TargetWhitePoint = new CieXyz(converter.Options.TargetIccProfile.Header.PcsIlluminant),
         });
 
-        IccDataToPcsConverter sourceConverter = new(converter.Options.SourceIccProfile);
-        IccPcsToDataConverter targetConverter = new(converter.Options.TargetIccProfile);
-        IccColorSpaceType sourcePcsType = converter.Options.SourceIccProfile.Header.ProfileConnectionSpace;
-        IccColorSpaceType targetPcsType = converter.Options.TargetIccProfile.Header.ProfileConnectionSpace;
-        IccVersion sourceVersion = converter.Options.SourceIccProfile.Header.Version;
-        IccVersion targetVersion = converter.Options.TargetIccProfile.Header.Version;
-
         using IMemoryOwner<Vector4> pcsBuffer = converter.Options.MemoryAllocator.Allocate<Vector4>(source.Length);
-        Span<Vector4> pcsNormalized = pcsBuffer.GetSpan();
+        Span<Vector4> pcs = pcsBuffer.GetSpan();
 
-        // First normalize the values.
-        TFrom.ToScaledVector4(source, pcsNormalized);
+        // Normalize the source, then convert to the PCS space.
+        TFrom.ToScaledVector4(source, pcs);
+        sourceParams.Converter.Calculate(pcs, pcs);
 
-        // Now convert to the PCS space.
-        sourceConverter.Calculate(pcsNormalized, pcsNormalized);
+        // If both profiles need PCS adjustment, they both share the same unadjusted PCS space
+        // cancelling out the need to make the adjustment
+        // except if using TRC transforms, which always requires perceptual handling
+        // TODO: this does not include adjustment for absolute intent, which would double existing complexity, suggest throwing exception and addressing in future update
+        bool anyProfileNeedsPerceptualAdjustment = sourceParams.HasNoPerceptualHandling || targetParams.HasNoPerceptualHandling;
+        bool oneProfileHasV2PerceptualAdjustment = sourceParams.HasV2PerceptualHandling ^ targetParams.HasV2PerceptualHandling;
 
-        // Profile connecting spaces can only be Lab, XYZ.
-        if (sourcePcsType is IccColorSpaceType.CieLab && targetPcsType is IccColorSpaceType.CieXyz)
+        if (anyProfileNeedsPerceptualAdjustment || oneProfileHasV2PerceptualAdjustment)
         {
-            // Convert from Lab to XYZ.
-            using IMemoryOwner<CieLab> pcsFromBuffer = converter.Options.MemoryAllocator.Allocate<CieLab>(source.Length);
-            Span<CieLab> pcsFrom = pcsFromBuffer.GetSpan();
-            CieLab.FromScaledVector4(pcsNormalized, pcsFrom);
-
-            using IMemoryOwner<CieXyz> pcsToBuffer = converter.Options.MemoryAllocator.Allocate<CieXyz>(source.Length);
-            Span<CieXyz> pcsTo = pcsToBuffer.GetSpan();
-            pcsConverter.Convert<CieLab, CieXyz>(pcsFrom, pcsTo);
-
-            // Convert to the target normalized PCS space.
-            CieXyz.ToScaledVector4(pcsTo, pcsNormalized);
+            GetTargetPcsWithPerceptualAdjustment(pcs, sourceParams, targetParams, pcsConverter);
         }
-        else if (sourcePcsType is IccColorSpaceType.CieXyz && targetPcsType is IccColorSpaceType.CieLab)
+        else
         {
-            // Convert from XYZ to Lab.
-            using IMemoryOwner<CieXyz> pcsFromBuffer = converter.Options.MemoryAllocator.Allocate<CieXyz>(source.Length);
-            Span<CieXyz> pcsFrom = pcsFromBuffer.GetSpan();
-            CieXyz.FromScaledVector4(pcsNormalized, pcsFrom);
-
-            using IMemoryOwner<CieLab> pcsToBuffer = converter.Options.MemoryAllocator.Allocate<CieLab>(source.Length);
-            Span<CieLab> pcsTo = pcsToBuffer.GetSpan();
-            pcsConverter.Convert<CieXyz, CieLab>(pcsFrom, pcsTo);
-
-            // Convert to the target normalized PCS space.
-            CieLab.ToScaledVector4(pcsTo, pcsNormalized);
-        }
-        else if (sourcePcsType is IccColorSpaceType.CieXyz && targetPcsType is IccColorSpaceType.CieXyz)
-        {
-            // Convert from XYZ to XYZ.
-            using IMemoryOwner<CieXyz> pcsFromToBuffer = converter.Options.MemoryAllocator.Allocate<CieXyz>(source.Length);
-            Span<CieXyz> pcsFromTo = pcsFromToBuffer.GetSpan();
-            CieXyz.FromScaledVector4(pcsNormalized, pcsFromTo);
-
-            pcsConverter.Convert<CieXyz, CieXyz>(pcsFromTo, pcsFromTo);
-
-            // Convert to the target normalized PCS space.
-            CieXyz.ToScaledVector4(pcsFromTo, pcsNormalized);
-        }
-        else if (sourcePcsType is IccColorSpaceType.CieLab && targetPcsType is IccColorSpaceType.CieLab)
-        {
-            // Convert from Lab to Lab.
-            if (sourceVersion.Major == 4 && targetVersion.Major == 2)
-            {
-                // Convert from Lab v4 to Lab v2.
-                LabToLabV2(pcsNormalized, pcsNormalized);
-            }
-            else if (sourceVersion.Major == 2 && targetVersion.Major == 4)
-            {
-                // Convert from Lab v2 to Lab v4.
-                LabV2ToLab(pcsNormalized, pcsNormalized);
-            }
-
-            using IMemoryOwner<CieLab> pcsFromToBuffer = converter.Options.MemoryAllocator.Allocate<CieLab>(source.Length);
-            Span<CieLab> pcsFromTo = pcsFromToBuffer.GetSpan();
-            CieLab.FromScaledVector4(pcsNormalized, pcsFromTo);
-
-            pcsConverter.Convert<CieLab, CieLab>(pcsFromTo, pcsFromTo);
-
-            // Convert to the target normalized PCS space.
-            CieLab.ToScaledVector4(pcsFromTo, pcsNormalized);
+            GetTargetPcsWithoutAdjustment(pcs, sourceParams, targetParams, pcsConverter);
         }
 
         // Convert to the target space.
-        targetConverter.Calculate(pcsNormalized, pcsNormalized);
-        TTo.FromScaledVector4(pcsNormalized, destination);
+        targetParams.Converter.Calculate(pcs, pcs);
+        TTo.FromScaledVector4(pcs, destination);
     }
 
     private static Vector4 GetTargetPcsWithoutAdjustment(
@@ -253,8 +199,113 @@ internal static class ColorProfileConverterExtensionsIcc
         }
     }
 
+    private static void GetTargetPcsWithoutAdjustment(
+        Span<Vector4> pcs,
+        ConversionParams sourceParams,
+        ConversionParams targetParams,
+        ColorProfileConverter pcsConverter)
+    {
+        // Profile connecting spaces can only be Lab, XYZ.
+        // 16-bit Lab encodings changed from v2 to v4, but 16-bit LUTs always use the legacy encoding regardless of version
+        // so ensure that Lab is using the correct encoding when a 16-bit LUT is used
+        switch (sourceParams.PcsType)
+        {
+            // Convert from Lab to XYZ.
+            case IccColorSpaceType.CieLab when targetParams.PcsType is IccColorSpaceType.CieXyz:
+            {
+                if (sourceParams.Is16BitLutEntry)
+                {
+                    LabV2ToLab(pcs, pcs);
+                }
+
+                using IMemoryOwner<CieLab> pcsFromBuffer = pcsConverter.Options.MemoryAllocator.Allocate<CieLab>(pcs.Length);
+                Span<CieLab> pcsFrom = pcsFromBuffer.GetSpan();
+
+                using IMemoryOwner<CieXyz> pcsToBuffer = pcsConverter.Options.MemoryAllocator.Allocate<CieXyz>(pcs.Length);
+                Span<CieXyz> pcsTo = pcsToBuffer.GetSpan();
+
+                CieLab.FromScaledVector4(pcs, pcsFrom);
+                pcsConverter.Convert<CieLab, CieXyz>(pcsFrom, pcsTo);
+
+                CieXyz.ToScaledVector4(pcsTo, pcs);
+                break;
+            }
+
+            // Convert from XYZ to Lab.
+            case IccColorSpaceType.CieXyz when targetParams.PcsType is IccColorSpaceType.CieLab:
+            {
+                using IMemoryOwner<CieXyz> pcsFromBuffer = pcsConverter.Options.MemoryAllocator.Allocate<CieXyz>(pcs.Length);
+                Span<CieXyz> pcsFrom = pcsFromBuffer.GetSpan();
+
+                using IMemoryOwner<CieLab> pcsToBuffer = pcsConverter.Options.MemoryAllocator.Allocate<CieLab>(pcs.Length);
+                Span<CieLab> pcsTo = pcsToBuffer.GetSpan();
+
+                CieXyz.FromScaledVector4(pcs, pcsFrom);
+                pcsConverter.Convert<CieXyz, CieLab>(pcsFrom, pcsTo);
+
+                CieLab.ToScaledVector4(pcsTo, pcs);
+
+                if (targetParams.Is16BitLutEntry)
+                {
+                    LabToLabV2(pcs, pcs);
+                }
+
+                break;
+            }
+
+            // Convert from XYZ to XYZ.
+            case IccColorSpaceType.CieXyz when targetParams.PcsType is IccColorSpaceType.CieXyz:
+            {
+                using IMemoryOwner<CieXyz> pcsFromToBuffer = pcsConverter.Options.MemoryAllocator.Allocate<CieXyz>(pcs.Length);
+                Span<CieXyz> pcsFromTo = pcsFromToBuffer.GetSpan();
+
+                CieXyz.FromScaledVector4(pcs, pcsFromTo);
+                pcsConverter.Convert<CieXyz, CieXyz>(pcsFromTo, pcsFromTo);
+
+                CieXyz.ToScaledVector4(pcsFromTo, pcs);
+                break;
+            }
+
+            // Convert from Lab to Lab.
+            case IccColorSpaceType.CieLab when targetParams.PcsType is IccColorSpaceType.CieLab:
+            {
+                using IMemoryOwner<CieLab> pcsFromToBuffer = pcsConverter.Options.MemoryAllocator.Allocate<CieLab>(pcs.Length);
+                Span<CieLab> pcsFromTo = pcsFromToBuffer.GetSpan();
+
+                // if both source and target LUT use same v2 LAB encoding, no need to correct them
+                if (sourceParams.Is16BitLutEntry && targetParams.Is16BitLutEntry)
+                {
+                    CieLab.FromScaledVector4(pcs, pcsFromTo);
+                    pcsConverter.Convert<CieLab, CieLab>(pcsFromTo, pcsFromTo);
+                    CieLab.ToScaledVector4(pcsFromTo, pcs);
+                }
+                else
+                {
+                    if (sourceParams.Is16BitLutEntry)
+                    {
+                        LabV2ToLab(pcs, pcs);
+                    }
+
+                    CieLab.FromScaledVector4(pcs, pcsFromTo);
+                    pcsConverter.Convert<CieLab, CieLab>(pcsFromTo, pcsFromTo);
+                    CieLab.ToScaledVector4(pcsFromTo, pcs);
+
+                    if (targetParams.Is16BitLutEntry)
+                    {
+                        LabToLabV2(pcs, pcs);
+                    }
+                }
+
+                break;
+            }
+
+            default:
+                throw new ArgumentOutOfRangeException($"Source PCS {sourceParams.PcsType} to target PCS {targetParams.PcsType} is not supported");
+        }
+    }
+
     /// <summary>
-    /// Effectively this is <see cref="GetTargetPcsWithoutAdjustment"/> with an extra step in the middle.
+    /// Effectively this is <see cref="GetTargetPcsWithoutAdjustment(Vector4, ConversionParams, ConversionParams, ColorProfileConverter)"/> with an extra step in the middle.
     /// It adjusts PCS by compensating for the black point used for perceptual intent in v2 profiles.
     /// The adjustment needs to be performed in XYZ space, potentially an overhead of 2 more conversions.
     /// Not required if both spaces need V2 correction, since they both have the same understanding of the PCS.
@@ -334,6 +385,120 @@ internal static class ColorProfileConverterExtensionsIcc
                 return targetParams.Is16BitLutEntry ? LabToLabV2(targetPcs) : targetPcs;
             case IccColorSpaceType.CieXyz:
                 return xyz.ToScaledVector4();
+            default:
+                throw new ArgumentOutOfRangeException($"Target PCS {targetParams.PcsType} is not supported");
+        }
+    }
+
+    /// <summary>
+    /// Effectively this is <see cref="GetTargetPcsWithoutAdjustment(Span{Vector4}, ConversionParams, ConversionParams, ColorProfileConverter)"/> with an extra step in the middle.
+    /// It adjusts PCS by compensating for the black point used for perceptual intent in v2 profiles.
+    /// The adjustment needs to be performed in XYZ space, potentially an overhead of 2 more conversions.
+    /// Not required if both spaces need V2 correction, since they both have the same understanding of the PCS.
+    /// Not compatible with PCS adjustment for absolute intent.
+    /// </summary>
+    /// <param name="pcs">The PCS values from the source.</param>
+    /// <param name="sourceParams">The source profile parameters.</param>
+    /// <param name="targetParams">The target profile parameters.</param>
+    /// <param name="pcsConverter">The converter to use for the PCS adjustments.</param>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when the source or target PCS is not supported.</exception>
+    private static void GetTargetPcsWithPerceptualAdjustment(
+        Span<Vector4> pcs,
+        ConversionParams sourceParams,
+        ConversionParams targetParams,
+        ColorProfileConverter pcsConverter)
+    {
+        // All conversions are funneled through XYZ in case PCS adjustments need to be made
+        using IMemoryOwner<CieXyz> xyzBuffer = pcsConverter.Options.MemoryAllocator.Allocate<CieXyz>(pcs.Length);
+        Span<CieXyz> xyz = xyzBuffer.GetSpan();
+
+        switch (sourceParams.PcsType)
+        {
+            // 16-bit Lab encodings changed from v2 to v4, but 16-bit LUTs always use the legacy encoding regardless of version
+            // so convert Lab to modern v4 encoding when returned from a 16-bit LUT
+            case IccColorSpaceType.CieLab:
+            {
+                if (sourceParams.Is16BitLutEntry)
+                {
+                    LabV2ToLab(pcs, pcs);
+                }
+
+                using IMemoryOwner<CieLab> pcsFromBuffer = pcsConverter.Options.MemoryAllocator.Allocate<CieLab>(pcs.Length);
+                Span<CieLab> pcsFrom = pcsFromBuffer.GetSpan();
+                CieLab.FromScaledVector4(pcs, pcsFrom);
+                pcsConverter.Convert<CieLab, CieXyz>(pcsFrom, xyz);
+                break;
+            }
+
+            case IccColorSpaceType.CieXyz:
+                CieXyz.FromScaledVector4(pcs, xyz);
+                break;
+            default:
+                throw new ArgumentOutOfRangeException($"Source PCS {sourceParams.PcsType} is not supported");
+        }
+
+        bool oneProfileHasV2PerceptualAdjustment = sourceParams.HasV2PerceptualHandling ^ targetParams.HasV2PerceptualHandling;
+
+        using IMemoryOwner<Vector4> vectorBuffer = pcsConverter.Options.MemoryAllocator.Allocate<Vector4>(pcs.Length);
+        Span<Vector4> vector = vectorBuffer.GetSpan();
+
+        // When converting from device to PCS with v2 perceptual intent
+        // the black point needs to be adjusted to v4 after converting the PCS values
+        if (sourceParams.HasNoPerceptualHandling ||
+            (oneProfileHasV2PerceptualAdjustment && sourceParams.HasV2PerceptualHandling))
+        {
+            CieXyz.ToVector4(xyz, vector);
+
+            // When using LAB PCS, negative values are clipped before PCS adjustment (in DemoIccMAX)
+            if (sourceParams.PcsType == IccColorSpaceType.CieLab)
+            {
+                ClipNegative(vector);
+            }
+
+            AdjustPcsFromV2BlackPoint(vector, vector);
+            CieXyz.FromVector4(vector, xyz);
+        }
+
+        // When converting from PCS to device with v2 perceptual intent
+        // the black point needs to be adjusted to v2 before converting the PCS values
+        if (targetParams.HasNoPerceptualHandling ||
+            (oneProfileHasV2PerceptualAdjustment && targetParams.HasV2PerceptualHandling))
+        {
+            CieXyz.ToVector4(xyz, vector);
+            AdjustPcsToV2BlackPoint(vector, vector);
+
+            // When using XYZ PCS, negative values are clipped after PCS adjustment (in DemoIccMAX)
+            if (targetParams.PcsType == IccColorSpaceType.CieXyz)
+            {
+                ClipNegative(vector);
+            }
+
+            CieXyz.FromVector4(vector, xyz);
+        }
+
+        switch (targetParams.PcsType)
+        {
+            // 16-bit Lab encodings changed from v2 to v4, but 16-bit LUTs always use the legacy encoding regardless of version
+            // so convert Lab back to legacy encoding before using in a 16-bit LUT
+            case IccColorSpaceType.CieLab:
+            {
+                using IMemoryOwner<CieLab> pcsToBuffer = pcsConverter.Options.MemoryAllocator.Allocate<CieLab>(pcs.Length);
+                Span<CieLab> pcsTo = pcsToBuffer.GetSpan();
+                pcsConverter.Convert<CieXyz, CieLab>(xyz, pcsTo);
+
+                CieLab.ToScaledVector4(pcsTo, pcs);
+
+                if (targetParams.Is16BitLutEntry)
+                {
+                    LabToLabV2(pcs, pcs);
+                }
+
+                break;
+            }
+
+            case IccColorSpaceType.CieXyz:
+                CieXyz.ToScaledVector4(xyz, pcs);
+                break;
             default:
                 throw new ArgumentOutOfRangeException($"Target PCS {targetParams.PcsType} is not supported");
         }
@@ -447,6 +612,42 @@ internal static class ColorProfileConverterExtensionsIcc
                 s *= new Vector4(1.0034969F, 1.0034852F, 1.0034913F, 1F);
                 s += new Vector4(0.0033717495F, 0.0034852044F, 0.0028800198F, 0F);
                 destination[i] = s;
+            }
+        }
+    }
+
+    private static void ClipNegative(Span<Vector4> source)
+    {
+        if (Vector.IsHardwareAccelerated && Vector<float>.IsSupported && Vector<float>.Count >= source.Length * 4)
+        {
+            // SIMD loop
+            int i = 0;
+            int simdBatchSize = Vector<float>.Count / 4; // Number of Vector4 elements per SIMD batch
+            for (; i <= source.Length - simdBatchSize; i += simdBatchSize)
+            {
+                // Load the vector from source span
+                Vector<float> v = Unsafe.ReadUnaligned<Vector<float>>(ref Unsafe.As<Vector4, byte>(ref source[i]));
+
+                v = Vector.Max(v, Vector<float>.Zero);
+
+                // Write the vector to the destination span
+                Unsafe.WriteUnaligned(ref Unsafe.As<Vector4, byte>(ref source[i]), v);
+            }
+
+            // Scalar fallback for remaining elements
+            for (; i < source.Length; i++)
+            {
+                ref Vector4 s = ref source[i];
+                s = Vector4.Max(s, Vector4.Zero);
+            }
+        }
+        else
+        {
+            // Scalar fallback if SIMD is not supported
+            for (int i = 0; i < source.Length; i++)
+            {
+                ref Vector4 s = ref source[i];
+                s = Vector4.Max(s, Vector4.Zero);
             }
         }
     }

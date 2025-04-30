@@ -124,7 +124,7 @@ internal unsafe struct HybridCache : IColorIndexCache<HybridCache>
 /// </summary>
 /// <remarks>
 /// This cache uses a fixed lookup table with 2,097,152 bins, each storing a 2-byte value,
-/// resulting in a worst-case memory usage of approximately 4 MB. Lookups and insertions are
+/// resulting in a memory usage of approximately 4 MB. Lookups and insertions are
 /// performed in constant time (O(1)) via direct table indexing. This design is optimized for
 /// speed while maintaining a predictable, fixed memory footprint.
 /// </remarks>
@@ -209,16 +209,16 @@ internal unsafe struct CoarseCache : IColorIndexCache<CoarseCache>
 /// </para>
 /// <para>
 /// Performance Characteristics:
-///   - Lookup: O(1) for computing the bucket index from the RGB channels, plus a small constant time (up to 4 iterations)
+///   - Lookup: O(1) for computing the bucket index from the RGB channels, plus a small constant time (up to 8 iterations)
 ///     to search through the alpha entries in the bucket.
 ///   - Insertion: O(1) for bucket index computation and a quick linear search over a very small (fixed) number of entries.
 /// </para>
 /// <para>
 /// Memory Characteristics:
 ///   - The cache consists of 32,768 buckets.
-///   - Each <see cref="AlphaBucket"/> is implemented using an inline array with a capacity of 4 entries.
-///   - Each bucket occupies approximately 18 bytes.
-///   - Overall, the buckets occupy roughly 32,768 × 18 = 589,824 bytes (576 KB).
+///   - Each <see cref="AlphaBucket"/> is implemented using an inline array with a capacity of 8 entries.
+///   - Each bucket occupies approximately 1 byte (Count) + (8 entries × 3 bytes each) ≈ 25 bytes.
+///   - Overall, the buckets occupy roughly 32,768 × 25 bytes = 819,200 bytes (≈ 800 KB).
 /// </para>
 /// <para>
 /// This design provides nearly constant-time lookup and insertion with minimal memory usage,
@@ -304,27 +304,27 @@ internal unsafe struct CoarseCacheLite : IColorIndexCache<CoarseCacheLite>
     public struct AlphaBucket
     {
         // Fixed capacity for alpha entries in this bucket.
-        // We choose a capacity of 4 for several reasons:
+        // We choose a capacity of 8 for several reasons:
         //
         // 1. The alpha channel is quantized to 6 bits, so there are 64 possible distinct values.
         //    In the worst-case, a given RGB bucket might encounter up to 64 different alpha values.
         //
         // 2. However, in practice (based on probability theory and typical image data),
         //    the number of unique alpha values that actually occur for a given quantized RGB
-        //    bucket is usually very small. If you randomly sample 4 values out of 64,
+        //    bucket is usually very small. If you randomly sample 8 values out of 64,
         //    the probability that these 4 samples are all unique is high if the distribution
         //    of alpha values is skewed or if only a few alpha values are used.
         //
         // 3. Statistically, for many real-world images, most RGB buckets will have only a couple
-        //    of unique alpha values. Allocating 4 slots per bucket provides a good trade-off:
+        //    of unique alpha values. Allocating 8 slots per bucket provides a good trade-off:
         //    it captures the common-case scenario while keeping overall memory usage low.
         //
-        // 4. Even if more than 4 unique alpha values occur in a bucket,
+        // 4. Even if more than 8 unique alpha values occur in a bucket,
         //    our design overwrites the first entry. This behavior gives us some "wriggle room"
         //    while preserving the most frequently encountered or most recent values.
-        public const int Capacity = 4;
+        public const int Capacity = 8;
         public byte Count;
-        private InlineArray4<AlphaEntry> entries;
+        private InlineArray8<AlphaEntry> entries;
 
         [MethodImpl(InliningOptions.ShortMethod)]
         public bool TryGetValue(byte quantizedAlpha, out short paletteIndex)

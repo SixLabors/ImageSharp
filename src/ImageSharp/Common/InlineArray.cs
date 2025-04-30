@@ -18,6 +18,15 @@ internal struct InlineArray4<T>
 }
 
 /// <summary>
+/// Represents a safe, fixed sized buffer of 8 elements.
+/// </summary>
+[InlineArray(8)]
+internal struct InlineArray8<T>
+{
+    private T t;
+}
+
+/// <summary>
 /// Represents a safe, fixed sized buffer of 16 elements.
 /// </summary>
 [InlineArray(16)]

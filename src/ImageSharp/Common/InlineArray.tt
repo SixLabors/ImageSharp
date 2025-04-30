@@ -16,7 +16,7 @@ namespace SixLabors.ImageSharp;
 <#GenerateInlineArrays();#>
 
 <#+
-private static int[] Lengths = new int[] {4, 16 };
+private static int[] Lengths = new int[] {4, 8, 16 };
 
 void GenerateInlineArrays()
 {

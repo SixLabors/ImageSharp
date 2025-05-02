@@ -146,7 +146,7 @@ internal static class Vector256Utilities
     {
         if (Fma.IsSupported)
         {
-            return Fma.MultiplyAdd(vm1, vm0, va);
+            return Fma.MultiplyAdd(vm0, vm1, va);
         }
 
         if (Avx.IsSupported)

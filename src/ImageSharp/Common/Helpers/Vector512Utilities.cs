@@ -145,7 +145,15 @@ internal static class Vector512Utilities
     public static Vector512<float> MultiplyAdd(
         Vector512<float> va,
         Vector512<float> vm0,
-        Vector512<float> vm1) => va + (vm0 * vm1);
+        Vector512<float> vm1)
+    {
+        if (Avx512F.IsSupported)
+        {
+            return Avx512F.FusedMultiplyAdd(vm0, vm1, va);
+        }
+
+        return va + (vm0 * vm1);
+    }
 
     [DoesNotReturn]
     private static void ThrowUnreachableException() => throw new UnreachableException();

@@ -36,7 +36,7 @@ internal abstract partial class JpegColorConverterBase
         public override int ElementsPerBatch => Vector<float>.Count;
 
         /// <inheritdoc/>
-        public sealed override void ConvertToRgbInplace(in ComponentValues values)
+        public sealed override void ConvertToRgbInPlace(in ComponentValues values)
         {
             DebugGuard.IsTrue(this.IsAvailable, $"{this.GetType().Name} converter is not supported on current hardware.");
 

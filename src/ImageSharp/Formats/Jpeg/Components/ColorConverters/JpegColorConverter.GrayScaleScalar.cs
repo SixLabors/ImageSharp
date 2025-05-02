@@ -16,7 +16,7 @@ internal abstract partial class JpegColorConverterBase
         }
 
         /// <inheritdoc/>
-        public override void ConvertToRgbInplace(in ComponentValues values)
+        public override void ConvertToRgbInPlace(in ComponentValues values)
             => ConvertToRgbInplace(values.Component0, this.MaximumValue);
 
         /// <inheritdoc/>

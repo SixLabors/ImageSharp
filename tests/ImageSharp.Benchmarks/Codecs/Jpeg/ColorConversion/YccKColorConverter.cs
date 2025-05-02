@@ -19,7 +19,7 @@ public class YccKColorConverter : ColorConversionBenchmark
     {
         var values = new JpegColorConverterBase.ComponentValues(this.Input, 0);
 
-        new JpegColorConverterBase.YccKScalar(8).ConvertToRgbInplace(values);
+        new JpegColorConverterBase.YccKScalar(8).ConvertToRgbInPlace(values);
     }
 
     [Benchmark]
@@ -27,22 +27,6 @@ public class YccKColorConverter : ColorConversionBenchmark
     {
         var values = new JpegColorConverterBase.ComponentValues(this.Input, 0);
 
-        new JpegColorConverterBase.YccKVector(8).ConvertToRgbInplace(values);
-    }
-
-    [Benchmark]
-    public void SimdVectorAvx2()
-    {
-        var values = new JpegColorConverterBase.ComponentValues(this.Input, 0);
-
-        new JpegColorConverterBase.YccKAvx(8).ConvertToRgbInplace(values);
-    }
-
-    [Benchmark]
-    public void SimdVectorArm64()
-    {
-        var values = new JpegColorConverterBase.ComponentValues(this.Input, 0);
-
-        new JpegColorConverterBase.YccKArm64(8).ConvertToRgbInplace(values);
+        new JpegColorConverterBase.YccKVector(8).ConvertToRgbInPlace(values);
     }
 }

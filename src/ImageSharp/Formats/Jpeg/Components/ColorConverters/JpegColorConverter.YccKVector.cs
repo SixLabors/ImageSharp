@@ -59,9 +59,9 @@ internal abstract partial class JpegColorConverterBase
                 Vector<float> g = y + (cb * gCbMult) + (cr * gCrMult);
                 Vector<float> b = y + (cb * bCbMult);
 
-                r = (max - r.FastRound()) * scaledK;
-                g = (max - g.FastRound()) * scaledK;
-                b = (max - b.FastRound()) * scaledK;
+                r = (max - r.RoundToNearestInteger()) * scaledK;
+                g = (max - g.RoundToNearestInteger()) * scaledK;
+                b = (max - b.RoundToNearestInteger()) * scaledK;
 
                 c0 = r;
                 c1 = g;

@@ -67,21 +67,21 @@ public unsafe class Block8x8F_Round
         ref Block8x8F b = ref this.block;
 
         ref Vector<float> row0 = ref Unsafe.As<Vector4, Vector<float>>(ref b.V0L);
-        row0 = row0.FastRound();
+        row0 = row0.RoundToNearestInteger();
         ref Vector<float> row1 = ref Unsafe.As<Vector4, Vector<float>>(ref b.V1L);
-        row1 = row1.FastRound();
+        row1 = row1.RoundToNearestInteger();
         ref Vector<float> row2 = ref Unsafe.As<Vector4, Vector<float>>(ref b.V2L);
-        row2 = row2.FastRound();
+        row2 = row2.RoundToNearestInteger();
         ref Vector<float> row3 = ref Unsafe.As<Vector4, Vector<float>>(ref b.V3L);
-        row3 = row3.FastRound();
+        row3 = row3.RoundToNearestInteger();
         ref Vector<float> row4 = ref Unsafe.As<Vector4, Vector<float>>(ref b.V4L);
-        row4 = row4.FastRound();
+        row4 = row4.RoundToNearestInteger();
         ref Vector<float> row5 = ref Unsafe.As<Vector4, Vector<float>>(ref b.V5L);
-        row5 = row5.FastRound();
+        row5 = row5.RoundToNearestInteger();
         ref Vector<float> row6 = ref Unsafe.As<Vector4, Vector<float>>(ref b.V6L);
-        row6 = row6.FastRound();
+        row6 = row6.RoundToNearestInteger();
         ref Vector<float> row7 = ref Unsafe.As<Vector4, Vector<float>>(ref b.V7L);
-        row7 = row7.FastRound();
+        row7 = row7.RoundToNearestInteger();
     }
 
     [Benchmark]
@@ -90,21 +90,21 @@ public unsafe class Block8x8F_Round
         ref Block8x8F b = ref Unsafe.AsRef<Block8x8F>(this.alignedPtr);
 
         ref Vector<float> row0 = ref Unsafe.As<Vector4, Vector<float>>(ref b.V0L);
-        row0 = row0.FastRound();
+        row0 = row0.RoundToNearestInteger();
         ref Vector<float> row1 = ref Unsafe.As<Vector4, Vector<float>>(ref b.V1L);
-        row1 = row1.FastRound();
+        row1 = row1.RoundToNearestInteger();
         ref Vector<float> row2 = ref Unsafe.As<Vector4, Vector<float>>(ref b.V2L);
-        row2 = row2.FastRound();
+        row2 = row2.RoundToNearestInteger();
         ref Vector<float> row3 = ref Unsafe.As<Vector4, Vector<float>>(ref b.V3L);
-        row3 = row3.FastRound();
+        row3 = row3.RoundToNearestInteger();
         ref Vector<float> row4 = ref Unsafe.As<Vector4, Vector<float>>(ref b.V4L);
-        row4 = row4.FastRound();
+        row4 = row4.RoundToNearestInteger();
         ref Vector<float> row5 = ref Unsafe.As<Vector4, Vector<float>>(ref b.V5L);
-        row5 = row5.FastRound();
+        row5 = row5.RoundToNearestInteger();
         ref Vector<float> row6 = ref Unsafe.As<Vector4, Vector<float>>(ref b.V6L);
-        row6 = row6.FastRound();
+        row6 = row6.RoundToNearestInteger();
         ref Vector<float> row7 = ref Unsafe.As<Vector4, Vector<float>>(ref b.V7L);
-        row7 = row7.FastRound();
+        row7 = row7.RoundToNearestInteger();
     }
 
     [Benchmark]
@@ -117,20 +117,20 @@ public unsafe class Block8x8F_Round
         ref Vector<float> row2 = ref Unsafe.As<Vector4, Vector<float>>(ref b.V2L);
         ref Vector<float> row3 = ref Unsafe.As<Vector4, Vector<float>>(ref b.V3L);
 
-        row0 = row0.FastRound();
-        row1 = row1.FastRound();
-        row2 = row2.FastRound();
-        row3 = row3.FastRound();
+        row0 = row0.RoundToNearestInteger();
+        row1 = row1.RoundToNearestInteger();
+        row2 = row2.RoundToNearestInteger();
+        row3 = row3.RoundToNearestInteger();
 
         row0 = ref Unsafe.As<Vector4, Vector<float>>(ref b.V4L);
         row1 = ref Unsafe.As<Vector4, Vector<float>>(ref b.V5L);
         row2 = ref Unsafe.As<Vector4, Vector<float>>(ref b.V6L);
         row3 = ref Unsafe.As<Vector4, Vector<float>>(ref b.V7L);
 
-        row0 = row0.FastRound();
-        row1 = row1.FastRound();
-        row2 = row2.FastRound();
-        row3 = row3.FastRound();
+        row0 = row0.RoundToNearestInteger();
+        row1 = row1.RoundToNearestInteger();
+        row2 = row2.RoundToNearestInteger();
+        row3 = row3.RoundToNearestInteger();
     }
 
     [Benchmark]

@@ -38,7 +38,7 @@ internal static partial class SimdUtils
     /// </summary>
     /// <param name="v">The vector</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static Vector<float> FastRound(this Vector<float> v)
+    internal static Vector<float> RoundToNearestInteger(this Vector<float> v)
     {
         if (Avx512F.IsSupported && Vector<float>.Count == Vector512<float>.Count)
         {
@@ -59,13 +59,11 @@ internal static partial class SimdUtils
         }
 
         // https://github.com/g-truc/glm/blob/master/glm/simd/common.h#L11
-        Vector<int> magic0 = new(int.MinValue); // 0x80000000
-        Vector<float> sgn0 = Vector.AsVectorSingle(magic0);
-        Vector<float> and0 = Vector.BitwiseAnd(sgn0, v);
-        Vector<float> or0 = Vector.BitwiseOr(and0, new Vector<float>(8388608.0f));
-        Vector<float> add0 = Vector.Add(v, or0);
+        Vector<float> sign = v & new Vector<float>(-0F);
+        Vector<float> val_2p23_f32 = sign | new Vector<float>(8388608F);
 
-        return Vector.Subtract(add0, or0);
+        val_2p23_f32 = (v + val_2p23_f32) - val_2p23_f32;
+        return val_2p23_f32 | sign;
     }
 
     [Conditional("DEBUG")]

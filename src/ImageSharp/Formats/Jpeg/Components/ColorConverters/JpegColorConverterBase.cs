@@ -116,6 +116,21 @@ internal abstract partial class JpegColorConverterBase
     /// <param name="precision">The precision in bits.</param>
     private static JpegColorConverterBase GetYCbCrConverter(int precision)
     {
+        if (JpegColorConverterVector512.IsSupported)
+        {
+            return new YCbCrVector512(precision);
+        }
+
+        if (JpegColorConverterVector256.IsSupported)
+        {
+            return new YCbCrVector256(precision);
+        }
+
+        if (JpegColorConverterVector128.IsSupported)
+        {
+            return new YCbCrVector128(precision);
+        }
+
         if (JpegColorConverterVector.IsSupported)
         {
             return new YCbCrVector(precision);

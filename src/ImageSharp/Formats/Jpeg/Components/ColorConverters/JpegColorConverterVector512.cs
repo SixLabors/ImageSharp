@@ -1,7 +1,8 @@
-// Copyright (c) Six Labors.
+﻿// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 using System.Numerics;
+using System.Runtime.Intrinsics;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components;
 
@@ -9,56 +10,22 @@ internal abstract partial class JpegColorConverterBase
 {
     /// <summary>
     /// <see cref="JpegColorConverterBase"/> abstract base for implementations
-    /// based on <see cref="Vector"/> API.
+    /// based on <see cref="Vector512{T}"/> instructions.
     /// </summary>
-    /// <remarks>
-    /// Converters of this family can work with data of any size.
-    /// Even though real life data is guaranteed to be of size
-    /// divisible by 8 newer SIMD instructions like AVX512 won't work with
-    /// such data out of the box. These converters have fallback code
-    /// for 'remainder' data.
-    /// </remarks>
-    internal abstract class JpegColorConverterVector : JpegColorConverterBase
+    internal abstract class JpegColorConverterVector512 : JpegColorConverterBase
     {
-        protected JpegColorConverterVector(JpegColorSpace colorSpace, int precision)
+        protected JpegColorConverterVector512(JpegColorSpace colorSpace, int precision)
             : base(colorSpace, precision)
         {
         }
 
-        /// <summary>
-        /// Gets a value indicating whether this converter is supported on current hardware.
-        /// </summary>
-        public static bool IsSupported => Vector.IsHardwareAccelerated && Vector<float>.Count % 4 == 0;
+        public static bool IsSupported => Vector512.IsHardwareAccelerated && Vector512<float>.IsSupported;
 
         /// <inheritdoc/>
-        public sealed override bool IsAvailable => IsSupported;
-
-        public override int ElementsPerBatch => Vector<float>.Count;
+        public override bool IsAvailable => IsSupported;
 
         /// <inheritdoc/>
-        public sealed override void ConvertToRgbInPlace(in ComponentValues values)
-        {
-            DebugGuard.IsTrue(this.IsAvailable, $"{this.GetType().Name} converter is not supported on current hardware.");
-
-            int length = values.Component0.Length;
-            int remainder = (int)((uint)length % (uint)Vector<float>.Count);
-
-            int simdCount = length - remainder;
-            if (simdCount > 0)
-            {
-                this.ConvertToRgbInPlaceVectorized(values.Slice(0, simdCount));
-            }
-
-            // Jpeg images width is always divisible by 8 without a remainder
-            // so it's safe to say SSE/AVX1/AVX2 implementations would never have
-            // 'remainder' pixels
-            // But some exotic simd implementations e.g. AVX-512 can have
-            // remainder pixels
-            if (remainder > 0)
-            {
-                this.ConvertToRgbInPlaceScalarRemainder(values.Slice(simdCount, remainder));
-            }
-        }
+        public override int ElementsPerBatch => Vector512<float>.Count;
 
         /// <inheritdoc/>
         public sealed override void ConvertFromRgb(in ComponentValues values, Span<float> rLane, Span<float> gLane, Span<float> bLane)
@@ -66,7 +33,7 @@ internal abstract partial class JpegColorConverterBase
             DebugGuard.IsTrue(this.IsAvailable, $"{this.GetType().Name} converter is not supported on current hardware.");
 
             int length = values.Component0.Length;
-            int remainder = (int)((uint)length % (uint)Vector<float>.Count);
+            int remainder = (int)((uint)length % (uint)Vector512<float>.Count);
 
             int simdCount = length - remainder;
             if (simdCount > 0)
@@ -78,11 +45,6 @@ internal abstract partial class JpegColorConverterBase
                     bLane[..simdCount]);
             }
 
-            // Jpeg images width is always divisible by 8 without a remainder
-            // so it's safe to say SSE/AVX1/AVX2 implementations would never have
-            // 'remainder' pixels
-            // But some exotic simd implementations e.g. AVX-512 can have
-            // remainder pixels
             if (remainder > 0)
             {
                 this.ConvertFromRgbScalarRemainder(
@@ -90,6 +52,26 @@ internal abstract partial class JpegColorConverterBase
                     rLane.Slice(simdCount, remainder),
                     gLane.Slice(simdCount, remainder),
                     bLane.Slice(simdCount, remainder));
+            }
+        }
+
+        /// <inheritdoc/>
+        public sealed override void ConvertToRgbInPlace(in ComponentValues values)
+        {
+            DebugGuard.IsTrue(this.IsAvailable, $"{this.GetType().Name} converter is not supported on current hardware.");
+
+            int length = values.Component0.Length;
+            int remainder = (int)((uint)length % (uint)Vector512<float>.Count);
+
+            int simdCount = length - remainder;
+            if (simdCount > 0)
+            {
+                this.ConvertToRgbInPlaceVectorized(values.Slice(0, simdCount));
+            }
+
+            if (remainder > 0)
+            {
+                this.ConvertToRgbInPlaceScalarRemainder(values.Slice(simdCount, remainder));
             }
         }
 

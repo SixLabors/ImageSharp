@@ -110,6 +110,43 @@ internal static class Vector512Utilities
         return Vector512.ConvertToInt32(val_2p23_f32 | sign);
     }
 
+    /// <summary>
+    /// Rounds all values in <paramref name="vector"/> to the nearest integer
+    /// following <see cref="MidpointRounding.ToEven"/> semantics.
+    /// </summary>
+    /// <param name="vector">The vector</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<float> RoundToNearestInteger(Vector512<float> vector)
+    {
+        if (Avx512F.IsSupported)
+        {
+            // imm8 = 0b1000:
+            //   imm8[7:4] = 0b0000 -> preserve 0 fractional bits (round to whole numbers)
+            //   imm8[3:0] = 0b1000 -> _MM_FROUND_TO_NEAREST_INT | _MM_FROUND_NO_EXC (round to nearest even, suppress exceptions)
+            return Avx512F.RoundScale(vector, 0b0000_1000);
+        }
+
+        Vector512<float> sign = vector & Vector512.Create(-0F);
+        Vector512<float> val_2p23_f32 = sign | Vector512.Create(8388608F);
+
+        val_2p23_f32 = (vector + val_2p23_f32) - val_2p23_f32;
+        return val_2p23_f32 | sign;
+    }
+
+    /// <summary>
+    /// Performs a multiplication and an addition of the <see cref="Vector512{Single}"/>.
+    /// </summary>
+    /// <remarks>ret = (vm0 * vm1) + va</remarks>
+    /// <param name="va">The vector to add to the intermediate result.</param>
+    /// <param name="vm0">The first vector to multiply.</param>
+    /// <param name="vm1">The second vector to multiply.</param>
+    /// <returns>The <see cref="Vector256{T}"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<float> MultiplyAdd(
+        Vector512<float> va,
+        Vector512<float> vm0,
+        Vector512<float> vm1) => va + (vm0 * vm1);
+
     [DoesNotReturn]
     private static void ThrowUnreachableException() => throw new UnreachableException();
 }

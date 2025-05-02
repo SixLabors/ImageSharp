@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.Arm;
 using System.Runtime.Intrinsics.X86;
 using SixLabors.ImageSharp.ColorProfiles;
@@ -180,9 +181,17 @@ public class JpegColorConverterTests
         {
             // arrange
             Type expectedType = typeof(JpegColorConverterBase.YCbCrScalar);
-            if (Avx.IsSupported)
+            if (JpegColorConverterBase.JpegColorConverterVector512.IsSupported)
             {
-                expectedType = typeof(JpegColorConverterBase.YCbCrVector);
+                expectedType = typeof(JpegColorConverterBase.YCbCrVector512);
+            }
+            else if (JpegColorConverterBase.JpegColorConverterVector256.IsSupported)
+            {
+                expectedType = typeof(JpegColorConverterBase.YCbCrVector256);
+            }
+            else if (JpegColorConverterBase.JpegColorConverterVector128.IsSupported)
+            {
+                expectedType = typeof(JpegColorConverterBase.YCbCrVector128);
             }
             else if (Sse2.IsSupported)
             {

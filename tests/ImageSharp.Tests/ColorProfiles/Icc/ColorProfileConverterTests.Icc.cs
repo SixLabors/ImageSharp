@@ -13,6 +13,21 @@ namespace SixLabors.ImageSharp.Tests.ColorProfiles.Icc;
 
 public class ColorProfileConverterTests(ITestOutputHelper testOutputHelper)
 {
+    // for 3-channel spaces, 4th item is ignored
+    private static readonly List<float[]> Inputs =
+    [
+        [0, 0, 0, 0],
+        [1, 0, 0, 0],
+        [0, 1, 0, 0],
+        [0, 0, 1, 0],
+        [0, 0, 0, 1],
+        [1, 1, 1, 1],
+        [0.5f, 0.5f, 0.5f, 0.5f],
+        [0.199678659f, 0.67982769f, 0.805381715f, 0.982666492f], // requires clipping before source is PCS adjusted for Fogra39 -> sRGBv2
+        [0.776568174f, 0.961630166f, 0.31032759f, 0.895294666f], // requires clipping after target is PCS adjusted for Fogra39 -> sRGBv2
+        [GetNormalizedRandomValue(), GetNormalizedRandomValue(), GetNormalizedRandomValue(), GetNormalizedRandomValue()]
+    ];
+
     [Theory]
     [InlineData(TestIccProfiles.Fogra39, TestIccProfiles.Fogra39)] // CMYK -> LAB -> CMYK (commonly used v2 profiles)
     [InlineData(TestIccProfiles.Fogra39, TestIccProfiles.Swop2006)] // CMYK -> LAB -> CMYK (commonly used v2 profiles)
@@ -29,30 +44,41 @@ public class ColorProfileConverterTests(ITestOutputHelper testOutputHelper)
     [InlineData(TestIccProfiles.StandardRgbV2, TestIccProfiles.Fogra39)] // RGB -> XYZ -> LAB -> CMYK (different LUT tags, TRC vs A2B)
     public void CanConvertIccProfiles(string sourceProfile, string targetProfile, double tolerance = 0.00005)
     {
-        // for 3-channel spaces, 4th item is ignored
-        List<float[]> inputs =
-        [
-            [0, 0, 0, 0],
-            [1, 0, 0, 0],
-            [0, 1, 0, 0],
-            [0, 0, 1, 0],
-            [0, 0, 0, 1],
-            [1, 1, 1, 1],
-            [0.5f, 0.5f, 0.5f, 0.5f],
-            [0.199678659f, 0.67982769f, 0.805381715f, 0.982666492f], // requires clipping before source is PCS adjusted for Fogra39 -> sRGBv2
-            [0.776568174f, 0.961630166f, 0.31032759f, 0.895294666f], // requires clipping after target is PCS adjusted for Fogra39 -> sRGBv2
-            [GetNormalizedRandomValue(), GetNormalizedRandomValue(), GetNormalizedRandomValue(), GetNormalizedRandomValue()]
-        ];
+        List<Vector4> actual = Inputs.Select(input => GetActualTargetValues(input, sourceProfile, targetProfile)).ToList();
+        AssertConversion(sourceProfile, targetProfile, actual, tolerance, testOutputHelper);
+    }
 
-        foreach (float[] input in inputs)
+    [Theory]
+    [InlineData(TestIccProfiles.Fogra39, TestIccProfiles.Fogra39)] // CMYK -> LAB -> CMYK (commonly used v2 profiles)
+    [InlineData(TestIccProfiles.Fogra39, TestIccProfiles.Swop2006)] // CMYK -> LAB -> CMYK (commonly used v2 profiles)
+    [InlineData(TestIccProfiles.Swop2006, TestIccProfiles.Fogra39)] // CMYK -> LAB -> CMYK (commonly used v2 profiles)
+    [InlineData(TestIccProfiles.Swop2006, TestIccProfiles.Swop2006)] // CMYK -> LAB -> CMYK (commonly used v2 profiles)
+    [InlineData(TestIccProfiles.Fogra39, TestIccProfiles.JapanColor2003)] // CMYK -> LAB -> CMYK (different bit depth v2 LUTs, 8-bit vs 16-bit)
+    [InlineData(TestIccProfiles.JapanColor2011, TestIccProfiles.Fogra39)] // CMYK -> LAB -> CMYK (different LUT versions, v2 vs v4)
+    [InlineData(TestIccProfiles.Fogra39, TestIccProfiles.Cgats21)] // CMYK -> LAB -> RGB (different LUT versions, v2 vs v4)
+    [InlineData(TestIccProfiles.Fogra39, TestIccProfiles.StandardRgbV4)] // RGB -> LAB -> CMYK (different LUT versions, v4 vs v2)
+    [InlineData(TestIccProfiles.StandardRgbV4, TestIccProfiles.Fogra39)] // RGB -> LAB -> XYZ -> RGB (different LUT elements, B-Matrix-M-CLUT-A vs B-Matrix-M)
+    [InlineData(TestIccProfiles.StandardRgbV4, TestIccProfiles.RommRgb)] // RGB -> XYZ -> LAB -> RGB (different LUT elements, B-Matrix-M vs B-Matrix-M-CLUT-A)
+    [InlineData(TestIccProfiles.RommRgb, TestIccProfiles.StandardRgbV4)] // CMYK -> LAB -> CMYK (different bit depth v2 LUTs, 16-bit vs 8-bit)
+    [InlineData(TestIccProfiles.Fogra39, TestIccProfiles.StandardRgbV2, 0.0005)] // CMYK -> LAB -> XYZ -> RGB (different LUT tags, A2B vs TRC) --- tolerance slightly higher due to difference in inverse curve implementation
+    [InlineData(TestIccProfiles.StandardRgbV2, TestIccProfiles.Fogra39)] // RGB -> XYZ -> LAB -> CMYK (different LUT tags, TRC vs A2B)
+    public void CanBulkConvertIccProfiles(string sourceProfile, string targetProfile, double tolerance = 0.00005)
+    {
+        List<Vector4> actual = GetBulkActualTargetValues(Inputs, sourceProfile, targetProfile);
+        AssertConversion(sourceProfile, targetProfile, actual, tolerance, testOutputHelper);
+    }
+
+    private static void AssertConversion(string sourceProfile, string targetProfile, List<Vector4> actual, double tolerance, ITestOutputHelper testOutputHelper)
+    {
+        List<double[]> expected = Inputs.Select(input => GetExpectedTargetValues(sourceProfile, targetProfile, input, testOutputHelper)).ToList();
+        Assert.Equal(expected.Count, actual.Count);
+
+        for (int i = 0; i < expected.Count; i++)
         {
-            double[] expectedTargetValues = GetExpectedTargetValues(sourceProfile, targetProfile, input, testOutputHelper);
-            testOutputHelper.WriteLine($"Input {string.Join(", ", input)} · Expected output {string.Join(", ", expectedTargetValues)}");
-
-            Vector4 actualTargetValues = GetActualTargetValues(input, sourceProfile, targetProfile);
-            for (int i = 0; i < expectedTargetValues.Length; i++)
+            Log(testOutputHelper, Inputs[i], expected[i], actual[i]);
+            for (int j = 0; j < expected[i].Length; j++)
             {
-                Assert.Equal(expectedTargetValues[i], actualTargetValues[i], tolerance);
+                Assert.Equal(expected[i][j], actual[i][j], tolerance);
             }
         }
     }
@@ -147,6 +173,74 @@ public class ColorProfileConverterTests(ITestOutputHelper testOutputHelper)
         };
     }
 
+    private static List<Vector4> GetBulkActualTargetValues(List<float[]> inputs, string sourceProfile, string targetProfile)
+    {
+        ColorProfileConverter converter = new(new ColorConversionOptions
+        {
+            SourceIccProfile = TestIccProfiles.GetProfile(sourceProfile),
+            TargetIccProfile = TestIccProfiles.GetProfile(targetProfile)
+        });
+
+        IccColorSpaceType sourceDataSpace = converter.Options.SourceIccProfile!.Header.DataColorSpace;
+        IccColorSpaceType targetDataSpace = converter.Options.TargetIccProfile!.Header.DataColorSpace;
+
+        switch (sourceDataSpace)
+        {
+            case IccColorSpaceType.Cmyk:
+            {
+                Span<Cmyk> inputSpan = inputs.Select(x => new Cmyk(new Vector4(x))).ToArray();
+
+                switch (targetDataSpace)
+                {
+                    case IccColorSpaceType.Cmyk:
+                    {
+                        Span<Cmyk> outputSpan = stackalloc Cmyk[inputs.Count];
+                        converter.Convert<Cmyk, Cmyk>(inputSpan, outputSpan);
+                        return outputSpan.ToArray().Select(x => x.ToScaledVector4()).ToList();
+                    }
+
+                    case IccColorSpaceType.Rgb:
+                    {
+                        Span<Rgb> outputSpan = stackalloc Rgb[inputs.Count];
+                        converter.Convert<Cmyk, Rgb>(inputSpan, outputSpan);
+                        return outputSpan.ToArray().Select(x => x.ToScaledVector4()).ToList();
+                    }
+
+                    default:
+                        throw new NotSupportedException($"Unsupported ICC profile data color space conversion: {sourceDataSpace} -> {targetDataSpace}");
+                }
+            }
+
+            case IccColorSpaceType.Rgb:
+            {
+                Span<Rgb> inputSpan = inputs.Select(x => new Rgb(new Vector3(x))).ToArray();
+
+                switch (targetDataSpace)
+                {
+                    case IccColorSpaceType.Cmyk:
+                    {
+                        Span<Cmyk> outputSpan = stackalloc Cmyk[inputs.Count];
+                        converter.Convert<Rgb, Cmyk>(inputSpan, outputSpan);
+                        return outputSpan.ToArray().Select(x => x.ToScaledVector4()).ToList();
+                    }
+
+                    case IccColorSpaceType.Rgb:
+                    {
+                        Span<Rgb> outputSpan = stackalloc Rgb[inputs.Count];
+                        converter.Convert<Rgb, Rgb>(inputSpan, outputSpan);
+                        return outputSpan.ToArray().Select(x => x.ToScaledVector4()).ToList();
+                    }
+
+                    default:
+                        throw new NotSupportedException($"Unsupported ICC profile data color space conversion: {sourceDataSpace} -> {targetDataSpace}");
+                }
+            }
+
+            default:
+                throw new NotSupportedException($"Unsupported ICC profile data color space conversion: {sourceDataSpace} -> {targetDataSpace}");
+        }
+    }
+
     private static float GetNormalizedRandomValue()
     {
         // Generate a random value between 0 (inclusive) and 1 (exclusive).
@@ -157,5 +251,12 @@ public class ColorProfileConverterTests(ITestOutputHelper testOutputHelper)
         // is inclusive at the upper bound while retaining precision.
         // Clamp the result between 0 and 1 to ensure it does not exceed the bounds.
         return value == 0 ? 0F : Math.Clamp((float)value + 0.0000001F, 0, 1);
+    }
+
+    private static void Log(ITestOutputHelper testOutputHelper, float[] input, double[] expected, Vector4 actual)
+    {
+        string inputText = string.Join(", ", input);
+        string expectedText = string.Join(", ", expected.Select(x => $"{x:f8}"));
+        testOutputHelper.WriteLine($"Input {inputText} · Expected output {expectedText} · Actual output {actual}");
     }
 }

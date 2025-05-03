@@ -21,7 +21,7 @@ internal static class ColorProfileConverterExtensionsIcc
          0.9965153F, 0.9965269F, 0.9965208F, 1F,
          0.9965153F, 0.9965269F, 0.9965208F, 1F];
 
-    private static readonly float[] PcsV2FromBlackPointAdd =
+    private static readonly float[] PcsV2FromBlackPointOffset =
         [0.00336F, 0.0034731F, 0.00287F, 0F,
          0.00336F, 0.0034731F, 0.00287F, 0F,
          0.00336F, 0.0034731F, 0.00287F, 0F,
@@ -33,7 +33,7 @@ internal static class ColorProfileConverterExtensionsIcc
          1.0034969F, 1.0034852F, 1.0034913F, 1F,
          1.0034969F, 1.0034852F, 1.0034913F, 1F];
 
-    private static readonly float[] PcsV2ToBlackPointAdd =
+    private static readonly float[] PcsV2ToBlackPointOffset =
         [0.0033717495F, 0.0034852044F, 0.0028800198F, 0F,
          0.0033717495F, 0.0034852044F, 0.0028800198F, 0F,
          0.0033717495F, 0.0034852044F, 0.0028800198F, 0F,
@@ -81,7 +81,6 @@ internal static class ColorProfileConverterExtensionsIcc
         return TTo.FromScaledVector4(targetParams.Converter.Calculate(targetPcs));
     }
 
-    // TODO: update to match workflow of the function above
     internal static void ConvertUsingIccProfile<TFrom, TTo>(this ColorProfileConverter converter, ReadOnlySpan<TFrom> source, Span<TTo> destination)
         where TFrom : struct, IColorProfile<TFrom>
         where TTo : struct, IColorProfile<TTo>
@@ -528,7 +527,7 @@ internal static class ColorProfileConverterExtensionsIcc
         {
             // TODO: Check our constants. They may require scaling.
             Vector<float> vScale = new(PcsV2FromBlackPointScale.AsSpan()[..Vector<float>.Count]);
-            Vector<float> vAdd = new(PcsV2FromBlackPointAdd.AsSpan()[..Vector<float>.Count]);
+            Vector<float> vOffset = new(PcsV2FromBlackPointOffset.AsSpan()[..Vector<float>.Count]);
 
             // SIMD loop
             int i = 0;
@@ -538,9 +537,9 @@ internal static class ColorProfileConverterExtensionsIcc
                 // Load the vector from source span
                 Vector<float> v = Unsafe.ReadUnaligned<Vector<float>>(ref Unsafe.As<Vector4, byte>(ref source[i]));
 
-                // Scale and add the vector
+                // Scale and offset the vector
                 v *= vScale;
-                v += vAdd;
+                v += vOffset;
 
                 // Write the vector to the destination span
                 Unsafe.WriteUnaligned(ref Unsafe.As<Vector4, byte>(ref destination[i]), v);
@@ -576,7 +575,7 @@ internal static class ColorProfileConverterExtensionsIcc
         {
             // TODO: Check our constants. They may require scaling.
             Vector<float> vScale = new(PcsV2ToBlackPointScale.AsSpan()[..Vector<float>.Count]);
-            Vector<float> vAdd = new(PcsV2ToBlackPointAdd.AsSpan()[..Vector<float>.Count]);
+            Vector<float> vOffset = new(PcsV2ToBlackPointOffset.AsSpan()[..Vector<float>.Count]);
 
             // SIMD loop
             int i = 0;
@@ -586,9 +585,9 @@ internal static class ColorProfileConverterExtensionsIcc
                 // Load the vector from source span
                 Vector<float> v = Unsafe.ReadUnaligned<Vector<float>>(ref Unsafe.As<Vector4, byte>(ref source[i]));
 
-                // Scale and add the vector
+                // Scale and offset the vector
                 v *= vScale;
-                v += vAdd;
+                v -= vOffset;
 
                 // Write the vector to the destination span
                 Unsafe.WriteUnaligned(ref Unsafe.As<Vector4, byte>(ref destination[i]), v);
@@ -599,7 +598,7 @@ internal static class ColorProfileConverterExtensionsIcc
             {
                 Vector4 s = source[i];
                 s *= new Vector4(1.0034969F, 1.0034852F, 1.0034913F, 1F);
-                s += new Vector4(0.0033717495F, 0.0034852044F, 0.0028800198F, 0F);
+                s -= new Vector4(0.0033717495F, 0.0034852044F, 0.0028800198F, 0F);
                 destination[i] = s;
             }
         }
@@ -610,7 +609,7 @@ internal static class ColorProfileConverterExtensionsIcc
             {
                 Vector4 s = source[i];
                 s *= new Vector4(1.0034969F, 1.0034852F, 1.0034913F, 1F);
-                s += new Vector4(0.0033717495F, 0.0034852044F, 0.0028800198F, 0F);
+                s -= new Vector4(0.0033717495F, 0.0034852044F, 0.0028800198F, 0F);
                 destination[i] = s;
             }
         }

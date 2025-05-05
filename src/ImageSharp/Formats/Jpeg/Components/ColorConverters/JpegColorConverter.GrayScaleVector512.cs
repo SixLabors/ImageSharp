@@ -4,7 +4,7 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
-using SixLabors.ImageSharp.Common.Helpers;
+using Vector512_ = SixLabors.ImageSharp.Common.Helpers.Vector512Utilities;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components;
 
@@ -60,7 +60,7 @@ internal abstract partial class JpegColorConverterBase
                 ref Vector512<float> b = ref Unsafe.Add(ref srcBlue, i);
 
                 // luminosity = (0.299 * r) + (0.587 * g) + (0.114 * b)
-                Unsafe.Add(ref destLuminance, i) = Vector512Utilities.MultiplyAdd(Vector512Utilities.MultiplyAdd(f0114 * b, f0587, g), f0299, r);
+                Unsafe.Add(ref destLuminance, i) = Vector512_.MultiplyAdd(Vector512_.MultiplyAdd(f0114 * b, f0587, g), f0299, r);
             }
         }
 
@@ -69,7 +69,7 @@ internal abstract partial class JpegColorConverterBase
             => GrayScaleScalar.ConvertToRgbInPlace(values.Component0, this.MaximumValue);
 
         /// <inheritdoc/>
-        protected override void ConvertFromRgbScalarRemainder(in ComponentValues values, Span<float> r, Span<float> g, Span<float> b)
-            => GrayScaleScalar.ConvertFromRgbScalar(values, r, g, b);
+        protected override void ConvertFromRgbScalarRemainder(in ComponentValues values, Span<float> rLane, Span<float> gLane, Span<float> bLane)
+            => GrayScaleScalar.ConvertFromRgbScalar(values, rLane, gLane, bLane);
     }
 }

@@ -10,10 +10,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components;
 
 internal abstract partial class JpegColorConverterBase
 {
-    internal sealed class YCbCrVector256 : JpegColorConverterVector256
+    internal sealed class YccKVector256 : JpegColorConverterVector256
     {
-        public YCbCrVector256(int precision)
-            : base(JpegColorSpace.YCbCr, precision)
+        public YccKVector256(int precision)
+            : base(JpegColorSpace.Ycck, precision)
         {
         }
 
@@ -26,9 +26,13 @@ internal abstract partial class JpegColorConverterBase
                 ref Unsafe.As<float, Vector256<float>>(ref MemoryMarshal.GetReference(values.Component1));
             ref Vector256<float> c2Base =
                 ref Unsafe.As<float, Vector256<float>>(ref MemoryMarshal.GetReference(values.Component2));
+            ref Vector256<float> kBase =
+                ref Unsafe.As<float, Vector256<float>>(ref MemoryMarshal.GetReference(values.Component3));
 
+            // Used for the color conversion
             Vector256<float> chromaOffset = Vector256.Create(-this.HalfValue);
-            Vector256<float> scale = Vector256.Create(1 / this.MaximumValue);
+            Vector256<float> scale = Vector256.Create(1 / (this.MaximumValue * this.MaximumValue));
+            Vector256<float> max = Vector256.Create(this.MaximumValue);
             Vector256<float> rCrMult = Vector256.Create(YCbCrScalar.RCrMult);
             Vector256<float> gCbMult = Vector256.Create(-YCbCrScalar.GCbMult);
             Vector256<float> gCrMult = Vector256.Create(-YCbCrScalar.GCrMult);
@@ -41,13 +45,14 @@ internal abstract partial class JpegColorConverterBase
                 // y = yVals[i];
                 // cb = cbVals[i] - 128F;
                 // cr = crVals[i] - 128F;
+                // k = kVals[i] / 256F;
                 ref Vector256<float> c0 = ref Unsafe.Add(ref c0Base, i);
                 ref Vector256<float> c1 = ref Unsafe.Add(ref c1Base, i);
                 ref Vector256<float> c2 = ref Unsafe.Add(ref c2Base, i);
-
                 Vector256<float> y = c0;
                 Vector256<float> cb = c1 + chromaOffset;
                 Vector256<float> cr = c2 + chromaOffset;
+                Vector256<float> scaledK = Unsafe.Add(ref kBase, i) * scale;
 
                 // r = y + (1.402F * cr);
                 // g = y - (0.344136F * cb) - (0.714136F * cr);
@@ -56,9 +61,13 @@ internal abstract partial class JpegColorConverterBase
                 Vector256<float> g = Vector256_.MultiplyAdd(Vector256_.MultiplyAdd(y, cb, gCbMult), cr, gCrMult);
                 Vector256<float> b = Vector256_.MultiplyAdd(y, cb, bCbMult);
 
-                r = Vector256_.RoundToNearestInteger(r) * scale;
-                g = Vector256_.RoundToNearestInteger(g) * scale;
-                b = Vector256_.RoundToNearestInteger(b) * scale;
+                r = max - Vector256_.RoundToNearestInteger(r);
+                g = max - Vector256_.RoundToNearestInteger(g);
+                b = max - Vector256_.RoundToNearestInteger(b);
+
+                r *= scaledK;
+                g *= scaledK;
+                b *= scaledK;
 
                 c0 = r;
                 c1 = g;
@@ -69,6 +78,10 @@ internal abstract partial class JpegColorConverterBase
         /// <inheritdoc/>
         public override void ConvertFromRgb(in ComponentValues values, Span<float> rLane, Span<float> gLane, Span<float> bLane)
         {
+            // rgb -> cmyk
+            CmykVector256.ConvertFromRgb(in values, this.MaximumValue, rLane, gLane, bLane);
+
+            // cmyk -> ycck
             ref Vector256<float> destY =
                 ref Unsafe.As<float, Vector256<float>>(ref MemoryMarshal.GetReference(values.Component0));
             ref Vector256<float> destCb =
@@ -76,14 +89,15 @@ internal abstract partial class JpegColorConverterBase
             ref Vector256<float> destCr =
                 ref Unsafe.As<float, Vector256<float>>(ref MemoryMarshal.GetReference(values.Component2));
 
-            ref Vector256<float> srcR =
-                ref Unsafe.As<float, Vector256<float>>(ref MemoryMarshal.GetReference(rLane));
-            ref Vector256<float> srcG =
-                ref Unsafe.As<float, Vector256<float>>(ref MemoryMarshal.GetReference(gLane));
-            ref Vector256<float> srcB =
-                ref Unsafe.As<float, Vector256<float>>(ref MemoryMarshal.GetReference(bLane));
+            ref Vector256<float> srcR = ref destY;
+            ref Vector256<float> srcG = ref destCb;
+            ref Vector256<float> srcB = ref destCr;
+
+            // Used for the color conversion
+            Vector256<float> maxSampleValue = Vector256.Create(this.MaximumValue);
 
             Vector256<float> chromaOffset = Vector256.Create(this.HalfValue);
+
             Vector256<float> f0299 = Vector256.Create(0.299f);
             Vector256<float> f0587 = Vector256.Create(0.587f);
             Vector256<float> f0114 = Vector256.Create(0.114f);
@@ -96,9 +110,9 @@ internal abstract partial class JpegColorConverterBase
             nuint n = values.Component0.Vector256Count<float>();
             for (nuint i = 0; i < n; i++)
             {
-                Vector256<float> r = Unsafe.Add(ref srcR, i);
-                Vector256<float> g = Unsafe.Add(ref srcG, i);
-                Vector256<float> b = Unsafe.Add(ref srcB, i);
+                Vector256<float> r = maxSampleValue - Unsafe.Add(ref srcR, i);
+                Vector256<float> g = maxSampleValue - Unsafe.Add(ref srcG, i);
+                Vector256<float> b = maxSampleValue - Unsafe.Add(ref srcB, i);
 
                 // y  =   0 + (0.299 * r) + (0.587 * g) + (0.114 * b)
                 // cb = 128 - (0.168736 * r) - (0.331264 * g) + (0.5 * b)

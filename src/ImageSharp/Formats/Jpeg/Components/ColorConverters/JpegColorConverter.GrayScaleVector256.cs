@@ -4,7 +4,7 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
-using SixLabors.ImageSharp.Common.Helpers;
+using Vector256_ = SixLabors.ImageSharp.Common.Helpers.Vector256Utilities;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components;
 
@@ -60,7 +60,7 @@ internal abstract partial class JpegColorConverterBase
                 ref Vector256<float> b = ref Unsafe.Add(ref srcBlue, i);
 
                 // luminosity = (0.299 * r) + (0.587 * g) + (0.114 * b)
-                Unsafe.Add(ref destLuminance, i) = Vector256Utilities.MultiplyAdd(Vector256Utilities.MultiplyAdd(f0114 * b, f0587, g), f0299, r);
+                Unsafe.Add(ref destLuminance, i) = Vector256_.MultiplyAdd(Vector256_.MultiplyAdd(f0114 * b, f0587, g), f0299, r);
             }
         }
     }

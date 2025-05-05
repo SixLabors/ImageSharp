@@ -140,9 +140,19 @@ internal abstract partial class JpegColorConverterBase
     /// <param name="precision">The precision in bits.</param>
     private static JpegColorConverterBase GetYccKConverter(int precision)
     {
-        if (JpegColorConverterVector.IsSupported)
+        if (JpegColorConverterVector512.IsSupported)
         {
-            return new YccKVector(precision);
+            return new YccKVector512(precision);
+        }
+
+        if (JpegColorConverterVector256.IsSupported)
+        {
+            return new YccKVector256(precision);
+        }
+
+        if (JpegColorConverterVector128.IsSupported)
+        {
+            return new YccKVector128(precision);
         }
 
         return new YccKScalar(precision);

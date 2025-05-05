@@ -48,6 +48,17 @@ internal abstract partial class JpegColorConverterBase
 
         /// <inheritdoc/>
         protected override void ConvertFromRgbVectorized(in ComponentValues values, Span<float> rLane, Span<float> gLane, Span<float> bLane)
+            => ConvertFromRgbVectorized(in values, this.MaximumValue, rLane, gLane, bLane);
+
+        /// <inheritdoc/>
+        protected override void ConvertToRgbInPlaceScalarRemainder(in ComponentValues values)
+             => CmykScalar.ConvertToRgbInplace(values, this.MaximumValue);
+
+        /// <inheritdoc/>
+        protected override void ConvertFromRgbScalarRemainder(in ComponentValues values, Span<float> rLane, Span<float> gLane, Span<float> bLane)
+            => CmykScalar.ConvertFromRgb(values, this.MaximumValue, rLane, gLane, bLane);
+
+        internal static void ConvertFromRgbVectorized(in ComponentValues values, float maxValue, Span<float> rLane, Span<float> gLane, Span<float> bLane)
         {
             ref Vector512<float> destC =
                 ref Unsafe.As<float, Vector512<float>>(ref MemoryMarshal.GetReference(values.Component0));
@@ -65,7 +76,7 @@ internal abstract partial class JpegColorConverterBase
             ref Vector512<float> srcB =
                 ref Unsafe.As<float, Vector512<float>>(ref MemoryMarshal.GetReference(bLane));
 
-            Vector512<float> scale = Vector512.Create(this.MaximumValue);
+            Vector512<float> scale = Vector512.Create(maxValue);
 
             nuint n = values.Component0.Vector512Count<float>();
             for (nuint i = 0; i < n; i++)
@@ -86,13 +97,5 @@ internal abstract partial class JpegColorConverterBase
                 Unsafe.Add(ref destK, i) = scale - ktmp;
             }
         }
-
-        /// <inheritdoc/>
-        protected override void ConvertToRgbInPlaceScalarRemainder(in ComponentValues values)
-             => CmykScalar.ConvertToRgbInplace(values, this.MaximumValue);
-
-        /// <inheritdoc/>
-        protected override void ConvertFromRgbScalarRemainder(in ComponentValues values, Span<float> rLane, Span<float> gLane, Span<float> bLane)
-            => CmykScalar.ConvertFromRgb(values, this.MaximumValue, rLane, gLane, bLane);
     }
 }

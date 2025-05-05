@@ -71,7 +71,7 @@ internal abstract partial class JpegColorConverterBase
 
         /// <inheritdoc/>
         protected override void ConvertToRgbInPlaceScalarRemainder(in ComponentValues values)
-            => YccKScalar.ConvertToRgpInplace(values, this.MaximumValue, this.HalfValue);
+            => YccKScalar.ConvertToRgpInPlace(values, this.MaximumValue, this.HalfValue);
 
         /// <inheritdoc/>
         protected override void ConvertFromRgbVectorized(in ComponentValues values, Span<float> rLane, Span<float> gLane, Span<float> bLane)

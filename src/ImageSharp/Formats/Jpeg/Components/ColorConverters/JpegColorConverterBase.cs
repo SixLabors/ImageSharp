@@ -131,11 +131,6 @@ internal abstract partial class JpegColorConverterBase
             return new YCbCrVector128(precision);
         }
 
-        if (JpegColorConverterVector.IsSupported)
-        {
-            return new YCbCrVector(precision);
-        }
-
         return new YCbCrScalar(precision);
     }
 
@@ -159,9 +154,19 @@ internal abstract partial class JpegColorConverterBase
     /// <param name="precision">The precision in bits.</param>
     private static JpegColorConverterBase GetCmykConverter(int precision)
     {
-        if (JpegColorConverterVector.IsSupported)
+        if (JpegColorConverterVector512.IsSupported)
         {
-            return new CmykVector(precision);
+            return new CmykVector512(precision);
+        }
+
+        if (JpegColorConverterVector256.IsSupported)
+        {
+            return new CmykVector256(precision);
+        }
+
+        if (JpegColorConverterVector128.IsSupported)
+        {
+            return new CmykVector128(precision);
         }
 
         return new CmykScalar(precision);

@@ -23,14 +23,6 @@ public class YCbCrColorConversion : ColorConversionBenchmark
     }
 
     [Benchmark]
-    public void SimdVector8()
-    {
-        JpegColorConverterBase.ComponentValues values = new(this.Input, 0);
-
-        new JpegColorConverterBase.YCbCrVector(8).ConvertToRgbInPlace(values);
-    }
-
-    [Benchmark]
     public void SimdVector128()
     {
         JpegColorConverterBase.ComponentValues values = new(this.Input, 0);

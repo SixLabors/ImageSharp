@@ -38,7 +38,7 @@ internal static partial class SimdUtils
     /// </summary>
     /// <param name="v">The vector</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static Vector<float> RoundToNearestInteger(this Vector<float> v)
+    internal static Vector<float> FastRound(this Vector<float> v)
     {
         if (Avx2.IsSupported && Vector<float>.Count == Vector256<float>.Count)
         {

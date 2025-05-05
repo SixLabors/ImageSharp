@@ -73,7 +73,7 @@ public partial class SimdUtilsTests
     public void FastRound()
     {
         Vector<float> v = CreateExactTestVector1();
-        Vector<float> r = v.RoundToNearestInteger();
+        Vector<float> r = v.FastRound();
 
         this.Output.WriteLine(r.ToString());
 
@@ -90,7 +90,7 @@ public partial class SimdUtilsTests
     public void FastRound_RandomValues(int seed, float scale)
     {
         Vector<float> v = CreateRandomTestVector(seed, -scale * 0.5f, scale * 0.5f);
-        Vector<float> r = v.RoundToNearestInteger();
+        Vector<float> r = v.FastRound();
 
         this.Output.WriteLine(v.ToString());
         this.Output.WriteLine(r.ToString());

@@ -588,6 +588,6 @@ internal partial struct Block8x8F : IEquatable<Block8x8F>
         row += off;
         row = Vector.Max(row, Vector<float>.Zero);
         row = Vector.Min(row, max);
-        return row.RoundToNearestInteger();
+        return row.FastRound();
     }
 }

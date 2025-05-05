@@ -40,17 +40,6 @@ internal static partial class SimdUtils
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static Vector<float> RoundToNearestInteger(this Vector<float> v)
     {
-        if (Avx512F.IsSupported && Vector<float>.Count == Vector512<float>.Count)
-        {
-            ref Vector512<float> v512 = ref Unsafe.As<Vector<float>, Vector512<float>>(ref v);
-
-            // imm8 = 0b1000:
-            //   imm8[7:4] = 0b0000 -> preserve 0 fractional bits (round to whole numbers)
-            //   imm8[3:0] = 0b1000 -> _MM_FROUND_TO_NEAREST_INT | _MM_FROUND_NO_EXC (round to nearest even, suppress exceptions)
-            Vector512<float> vRound = Avx512F.RoundScale(v512, 0b0000_1000);
-            return Unsafe.As<Vector512<float>, Vector<float>>(ref vRound);
-        }
-
         if (Avx2.IsSupported && Vector<float>.Count == Vector256<float>.Count)
         {
             ref Vector256<float> v256 = ref Unsafe.As<Vector<float>, Vector256<float>>(ref v);

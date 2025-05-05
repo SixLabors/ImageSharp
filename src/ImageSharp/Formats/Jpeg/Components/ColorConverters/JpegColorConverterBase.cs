@@ -178,12 +178,22 @@ internal abstract partial class JpegColorConverterBase
     /// <param name="precision">The precision in bits.</param>
     private static JpegColorConverterBase GetGrayScaleConverter(int precision)
     {
-        if (JpegColorConverterVector.IsSupported)
+        if (JpegColorConverterVector512.IsSupported)
         {
-            return new GrayScaleVector(precision);
+            return new GrayScaleVector512(precision);
         }
 
-        return new GrayscaleScalar(precision);
+        if (JpegColorConverterVector256.IsSupported)
+        {
+            return new GrayScaleVector256(precision);
+        }
+
+        if (JpegColorConverterVector128.IsSupported)
+        {
+            return new GrayScaleVector128(precision);
+        }
+
+        return new GrayScaleScalar(precision);
     }
 
     /// <summary>

@@ -34,7 +34,7 @@ internal abstract partial class JpegColorConverterBase
 
         /// <inheritdoc/>
         protected override void ConvertToRgbInPlaceScalarRemainder(in ComponentValues values)
-            => GrayscaleScalar.ConvertToRgbInplace(values.Component0, this.MaximumValue);
+            => GrayScaleScalar.ConvertToRgbInPlace(values.Component0, this.MaximumValue);
 
         /// <inheritdoc/>
         protected override void ConvertFromRgbVectorized(in ComponentValues values, Span<float> rLane, Span<float> gLane, Span<float> bLane)
@@ -67,6 +67,6 @@ internal abstract partial class JpegColorConverterBase
 
         /// <inheritdoc/>
         protected override void ConvertFromRgbScalarRemainder(in ComponentValues values, Span<float> r, Span<float> g, Span<float> b)
-            => GrayscaleScalar.ConvertCoreInplaceFromRgb(values, r, g, b);
+            => GrayScaleScalar.ConvertFromRgbScalar(values, r, g, b);
     }
 }

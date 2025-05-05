@@ -14,24 +14,24 @@ internal abstract partial class JpegColorConverterBase
 
         /// <inheritdoc/>
         public override void ConvertToRgbInPlace(in ComponentValues values)
-            => ConvertToRgbInplace(values, this.MaximumValue);
+            => ConvertToRgbInPlace(values, this.MaximumValue);
 
         /// <inheritdoc/>
-        public override void ConvertFromRgb(in ComponentValues values, Span<float> r, Span<float> g, Span<float> b)
-            => ConvertFromRgb(values, r, g, b);
+        public override void ConvertFromRgb(in ComponentValues values, Span<float> rLane, Span<float> gLane, Span<float> bLane)
+            => ConvertFromRgb(values, rLane, gLane, bLane);
 
-        internal static void ConvertToRgbInplace(ComponentValues values, float maxValue)
+        internal static void ConvertToRgbInPlace(ComponentValues values, float maxValue)
         {
-            GrayscaleScalar.ConvertToRgbInplace(values.Component0, maxValue);
-            GrayscaleScalar.ConvertToRgbInplace(values.Component1, maxValue);
-            GrayscaleScalar.ConvertToRgbInplace(values.Component2, maxValue);
+            GrayScaleScalar.ConvertToRgbInPlace(values.Component0, maxValue);
+            GrayScaleScalar.ConvertToRgbInPlace(values.Component1, maxValue);
+            GrayScaleScalar.ConvertToRgbInPlace(values.Component2, maxValue);
         }
 
-        internal static void ConvertFromRgb(ComponentValues values, Span<float> r, Span<float> g, Span<float> b)
+        internal static void ConvertFromRgb(ComponentValues values, Span<float> rLane, Span<float> gLane, Span<float> bLane)
         {
-            r.CopyTo(values.Component0);
-            g.CopyTo(values.Component1);
-            b.CopyTo(values.Component2);
+            rLane.CopyTo(values.Component0);
+            gLane.CopyTo(values.Component1);
+            bLane.CopyTo(values.Component2);
         }
     }
 }

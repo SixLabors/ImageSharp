@@ -108,23 +108,23 @@ public class JpegColorConverterTests
     {
         FeatureTestRunner.RunWithHwIntrinsicsFeature(
             RunTest,
-            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX2 | HwIntrinsics.DisableSSE2 | HwIntrinsics.DisableHWIntrinsic);
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX2 | HwIntrinsics.DisableSSE2 | HwIntrinsics.DisableHWIntrinsic);
 
         static void RunTest(string arg)
         {
             // arrange
-            Type expectedType = typeof(JpegColorConverterBase.GrayscaleScalar);
-            if (Avx.IsSupported)
+            Type expectedType = typeof(JpegColorConverterBase.GrayScaleScalar);
+            if (JpegColorConverterBase.JpegColorConverterVector512.IsSupported)
             {
-                expectedType = typeof(JpegColorConverterBase.GrayScaleVector);
+                expectedType = typeof(JpegColorConverterBase.GrayScaleVector512);
             }
-            else if (Sse2.IsSupported)
+            else if (JpegColorConverterBase.JpegColorConverterVector256.IsSupported)
             {
-                expectedType = typeof(JpegColorConverterBase.GrayScaleVector);
+                expectedType = typeof(JpegColorConverterBase.GrayScaleVector256);
             }
-            else if (AdvSimd.IsSupported)
+            else if (JpegColorConverterBase.JpegColorConverterVector128.IsSupported)
             {
-                expectedType = typeof(JpegColorConverterBase.GrayScaleVector);
+                expectedType = typeof(JpegColorConverterBase.GrayScaleVector128);
             }
 
             // act
@@ -376,34 +376,65 @@ public class JpegColorConverterTests
 
     [Theory]
     [MemberData(nameof(Seeds))]
-    public void FromGrayscaleBasic(int seed) =>
-        this.TestConversionToRgb(new JpegColorConverterBase.GrayscaleScalar(8), 1, seed);
+    public void FromGrayScaleBasic(int seed) =>
+        this.TestConversionToRgb(new JpegColorConverterBase.GrayScaleScalar(8), 1, seed);
 
     [Theory]
     [MemberData(nameof(Seeds))]
-    public void FromGrayscaleVector(int seed)
-    {
-        JpegColorConverterBase.GrayScaleVector converter = new(8);
-
-        if (!converter.IsAvailable)
-        {
-            this.Output.WriteLine(
-                $"Skipping test - {converter.GetType().Name} is not supported on current hardware.");
-            return;
-        }
-
-        FeatureTestRunner.RunWithHwIntrinsicsFeature(
-            RunTest,
+    public void FromGrayScaleVector512(int seed) =>
+        this.TestConversionToRgb(
+            new JpegColorConverterBase.GrayScaleVector512(8),
+            1,
             seed,
-            IntrinsicsConfig);
+            new JpegColorConverterBase.GrayScaleScalar(8));
 
-        static void RunTest(string arg) =>
-            ValidateConversionToRgb(
-                new JpegColorConverterBase.GrayScaleVector(8),
-                1,
-                FeatureTestRunner.Deserialize<int>(arg),
-                new JpegColorConverterBase.GrayscaleScalar(8));
-    }
+    [Theory]
+    [MemberData(nameof(Seeds))]
+    public void FromGrayScaleVector256(int seed) =>
+        this.TestConversionToRgb(
+            new JpegColorConverterBase.GrayScaleVector256(8),
+            1,
+            seed,
+            new JpegColorConverterBase.GrayScaleScalar(8));
+
+    [Theory]
+    [MemberData(nameof(Seeds))]
+    public void FromGrayScaleVector128(int seed) =>
+        this.TestConversionToRgb(
+            new JpegColorConverterBase.GrayScaleVector128(8),
+            1,
+            seed,
+            new JpegColorConverterBase.GrayScaleScalar(8));
+
+    [Theory]
+    [MemberData(nameof(Seeds))]
+    public void FromRgbToGrayScaleVector512(int seed) =>
+        this.TestConversionFromRgb(
+            new JpegColorConverterBase.GrayScaleVector512(8),
+            1,
+            seed,
+            new JpegColorConverterBase.GrayScaleScalar(8),
+            precision: 2);
+
+    [Theory]
+    [MemberData(nameof(Seeds))]
+    public void FromRgbToGrayScaleVector256(int seed) =>
+    this.TestConversionFromRgb(
+        new JpegColorConverterBase.GrayScaleVector256(8),
+        1,
+        seed,
+        new JpegColorConverterBase.GrayScaleScalar(8),
+        precision: 2);
+
+    [Theory]
+    [MemberData(nameof(Seeds))]
+    public void FromRgbToGrayScaleVector128(int seed) =>
+    this.TestConversionFromRgb(
+        new JpegColorConverterBase.GrayScaleVector128(8),
+        1,
+        seed,
+        new JpegColorConverterBase.GrayScaleScalar(8),
+        precision: 2);
 
     [Theory]
     [MemberData(nameof(Seeds))]

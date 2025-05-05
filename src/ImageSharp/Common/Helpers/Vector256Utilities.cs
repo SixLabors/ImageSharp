@@ -149,11 +149,6 @@ internal static class Vector256Utilities
             return Fma.MultiplyAdd(vm0, vm1, va);
         }
 
-        if (Avx.IsSupported)
-        {
-            return Avx.Add(Avx.Multiply(vm0, vm1), va);
-        }
-
         return va + (vm0 * vm1);
     }
 

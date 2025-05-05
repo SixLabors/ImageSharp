@@ -244,6 +244,11 @@ internal static class Vector128Utilities
             return Fma.MultiplyAdd(vm1, vm0, va);
         }
 
+        if (AdvSimd.IsSupported)
+        {
+            return AdvSimd.FusedMultiplyAdd(va, vm0, vm1);
+        }
+
         return va + (vm0 * vm1);
     }
 

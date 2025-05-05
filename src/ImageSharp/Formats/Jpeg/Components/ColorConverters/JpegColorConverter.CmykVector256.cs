@@ -78,10 +78,12 @@ internal abstract partial class JpegColorConverterBase
                 Vector256<float> ytmp = scale - Unsafe.Add(ref srcB, i);
                 Vector256<float> ktmp = Vector256.Min(ctmp, Vector256.Min(mtmp, ytmp));
 
-                Vector256<float> kMask = Vector256.Equals(ktmp, scale);
-                ctmp = Vector256.AndNot((ctmp - ktmp) / (scale - ktmp), kMask);
-                mtmp = Vector256.AndNot((mtmp - ktmp) / (scale - ktmp), kMask);
-                ytmp = Vector256.AndNot((ytmp - ktmp) / (scale - ktmp), kMask);
+                Vector256<float> kMask = ~Vector256.Equals(ktmp, scale);
+                Vector256<float> divisor = scale - ktmp;
+
+                ctmp = ((ctmp - ktmp) / divisor) & kMask;
+                mtmp = ((mtmp - ktmp) / divisor) & kMask;
+                ytmp = ((ytmp - ktmp) / divisor) & kMask;
 
                 Unsafe.Add(ref destC, i) = scale - (ctmp * scale);
                 Unsafe.Add(ref destM, i) = scale - (mtmp * scale);

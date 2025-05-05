@@ -25,7 +25,7 @@ internal abstract partial class JpegColorConverterBase
         {
         }
 
-        public static bool IsSupported => Vector128.IsHardwareAccelerated && Vector128<float>.IsSupported;
+        public static bool IsSupported => Vector128.IsHardwareAccelerated;
 
         public sealed override bool IsAvailable => IsSupported;
 

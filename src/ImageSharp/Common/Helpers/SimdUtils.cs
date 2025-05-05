@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.Arm;
 using System.Runtime.Intrinsics.X86;
 
 namespace SixLabors.ImageSharp;
@@ -40,11 +41,26 @@ internal static partial class SimdUtils
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static Vector<float> FastRound(this Vector<float> v)
     {
+        // .NET9+ has a built-in method for this Vector.Round
         if (Avx2.IsSupported && Vector<float>.Count == Vector256<float>.Count)
         {
             ref Vector256<float> v256 = ref Unsafe.As<Vector<float>, Vector256<float>>(ref v);
             Vector256<float> vRound = Avx.RoundToNearestInteger(v256);
             return Unsafe.As<Vector256<float>, Vector<float>>(ref vRound);
+        }
+
+        if (Sse41.IsSupported && Vector<float>.Count == Vector128<float>.Count)
+        {
+            ref Vector128<float> v128 = ref Unsafe.As<Vector<float>, Vector128<float>>(ref v);
+            Vector128<float> vRound = Sse41.RoundToNearestInteger(v128);
+            return Unsafe.As<Vector128<float>, Vector<float>>(ref vRound);
+        }
+
+        if (AdvSimd.IsSupported && Vector<float>.Count == Vector128<float>.Count)
+        {
+            ref Vector128<float> v128 = ref Unsafe.As<Vector<float>, Vector128<float>>(ref v);
+            Vector128<float> vRound = AdvSimd.RoundToNearest(v128);
+            return Unsafe.As<Vector128<float>, Vector<float>>(ref vRound);
         }
 
         // https://github.com/g-truc/glm/blob/master/glm/simd/common.h#L11

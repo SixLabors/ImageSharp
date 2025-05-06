@@ -13,14 +13,14 @@ internal abstract partial class JpegColorConverterBase
         }
 
         /// <inheritdoc/>
-        public override void ConvertToRgbInplace(in ComponentValues values) =>
-            ConvertToRgbInplace(values, this.MaximumValue);
+        public override void ConvertToRgbInPlace(in ComponentValues values) =>
+            ConvertToRgbInPlace(values, this.MaximumValue);
 
         /// <inheritdoc/>
-        public override void ConvertFromRgb(in ComponentValues values, Span<float> r, Span<float> g, Span<float> b)
-            => ConvertFromRgb(values, this.MaximumValue, r, g, b);
+        public override void ConvertFromRgb(in ComponentValues values, Span<float> rLane, Span<float> gLane, Span<float> bLane)
+            => ConvertFromRgb(values, this.MaximumValue, rLane, gLane, bLane);
 
-        public static void ConvertToRgbInplace(in ComponentValues values, float maxValue)
+        public static void ConvertToRgbInPlace(in ComponentValues values, float maxValue)
         {
             Span<float> c0 = values.Component0;
             Span<float> c1 = values.Component1;
@@ -42,7 +42,7 @@ internal abstract partial class JpegColorConverterBase
             }
         }
 
-        public static void ConvertFromRgb(in ComponentValues values, float maxValue, Span<float> r, Span<float> g, Span<float> b)
+        public static void ConvertFromRgb(in ComponentValues values, float maxValue, Span<float> rLane, Span<float> gLane, Span<float> bLane)
         {
             Span<float> c = values.Component0;
             Span<float> m = values.Component1;
@@ -51,9 +51,9 @@ internal abstract partial class JpegColorConverterBase
 
             for (int i = 0; i < c.Length; i++)
             {
-                float ctmp = 255f - r[i];
-                float mtmp = 255f - g[i];
-                float ytmp = 255f - b[i];
+                float ctmp = 255f - rLane[i];
+                float mtmp = 255f - gLane[i];
+                float ytmp = 255f - bLane[i];
                 float ktmp = MathF.Min(MathF.Min(ctmp, mtmp), ytmp);
 
                 if (ktmp >= 255f)

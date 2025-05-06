@@ -616,35 +616,7 @@ internal static partial class SimdUtils
                 return Fma.MultiplyAdd(vm1, vm0, va);
             }
 
-            return Avx.Add(Avx.Multiply(vm0, vm1), va);
-        }
-
-        /// <summary>
-        /// Performs a multiplication and an addition of the <see cref="Vector128{Single}"/>.
-        /// TODO: Fix. The arguments are in a different order to the FMA intrinsic.
-        /// </summary>
-        /// <remarks>ret = (vm0 * vm1) + va</remarks>
-        /// <param name="va">The vector to add to the intermediate result.</param>
-        /// <param name="vm0">The first vector to multiply.</param>
-        /// <param name="vm1">The second vector to multiply.</param>
-        /// <returns>The <see cref="Vector256{T}"/>.</returns>
-        [MethodImpl(InliningOptions.AlwaysInline)]
-        public static Vector128<float> MultiplyAdd(
-            Vector128<float> va,
-            Vector128<float> vm0,
-            Vector128<float> vm1)
-        {
-            if (Fma.IsSupported)
-            {
-                return Fma.MultiplyAdd(vm1, vm0, va);
-            }
-
-            if (AdvSimd.IsSupported)
-            {
-                return AdvSimd.Add(AdvSimd.Multiply(vm0, vm1), va);
-            }
-
-            return Sse.Add(Sse.Multiply(vm0, vm1), va);
+            return va + (vm0 * vm1);
         }
 
         /// <summary>

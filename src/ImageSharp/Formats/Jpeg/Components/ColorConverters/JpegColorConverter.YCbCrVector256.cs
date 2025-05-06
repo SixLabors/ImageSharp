@@ -1,26 +1,24 @@
-// Copyright (c) Six Labors.
+﻿// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
-using System.Runtime.Intrinsics.X86;
-using static SixLabors.ImageSharp.SimdUtils;
+using Vector256_ = SixLabors.ImageSharp.Common.Helpers.Vector256Utilities;
 
-// ReSharper disable ImpureMethodCallOnReadonlyValueField
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components;
 
 internal abstract partial class JpegColorConverterBase
 {
-    internal sealed class YCbCrAvx : JpegColorConverterAvx
+    internal sealed class YCbCrVector256 : JpegColorConverterVector256
     {
-        public YCbCrAvx(int precision)
+        public YCbCrVector256(int precision)
             : base(JpegColorSpace.YCbCr, precision)
         {
         }
 
         /// <inheritdoc/>
-        public override void ConvertToRgbInplace(in ComponentValues values)
+        public override void ConvertToRgbInPlace(in ComponentValues values)
         {
             ref Vector256<float> c0Base =
                 ref Unsafe.As<float, Vector256<float>>(ref MemoryMarshal.GetReference(values.Component0));
@@ -29,13 +27,12 @@ internal abstract partial class JpegColorConverterBase
             ref Vector256<float> c2Base =
                 ref Unsafe.As<float, Vector256<float>>(ref MemoryMarshal.GetReference(values.Component2));
 
-            // Used for the color conversion
-            var chromaOffset = Vector256.Create(-this.HalfValue);
-            var scale = Vector256.Create(1 / this.MaximumValue);
-            var rCrMult = Vector256.Create(YCbCrScalar.RCrMult);
-            var gCbMult = Vector256.Create(-YCbCrScalar.GCbMult);
-            var gCrMult = Vector256.Create(-YCbCrScalar.GCrMult);
-            var bCbMult = Vector256.Create(YCbCrScalar.BCbMult);
+            Vector256<float> chromaOffset = Vector256.Create(-this.HalfValue);
+            Vector256<float> scale = Vector256.Create(1 / this.MaximumValue);
+            Vector256<float> rCrMult = Vector256.Create(YCbCrScalar.RCrMult);
+            Vector256<float> gCbMult = Vector256.Create(-YCbCrScalar.GCbMult);
+            Vector256<float> gCrMult = Vector256.Create(-YCbCrScalar.GCrMult);
+            Vector256<float> bCbMult = Vector256.Create(YCbCrScalar.BCbMult);
 
             // Walking 8 elements at one step:
             nuint n = values.Component0.Vector256Count<float>();
@@ -49,19 +46,19 @@ internal abstract partial class JpegColorConverterBase
                 ref Vector256<float> c2 = ref Unsafe.Add(ref c2Base, i);
 
                 Vector256<float> y = c0;
-                Vector256<float> cb = Avx.Add(c1, chromaOffset);
-                Vector256<float> cr = Avx.Add(c2, chromaOffset);
+                Vector256<float> cb = c1 + chromaOffset;
+                Vector256<float> cr = c2 + chromaOffset;
 
                 // r = y + (1.402F * cr);
                 // g = y - (0.344136F * cb) - (0.714136F * cr);
                 // b = y + (1.772F * cb);
-                Vector256<float> r = HwIntrinsics.MultiplyAdd(y, cr, rCrMult);
-                Vector256<float> g = HwIntrinsics.MultiplyAdd(HwIntrinsics.MultiplyAdd(y, cb, gCbMult), cr, gCrMult);
-                Vector256<float> b = HwIntrinsics.MultiplyAdd(y, cb, bCbMult);
+                Vector256<float> r = Vector256_.MultiplyAdd(y, cr, rCrMult);
+                Vector256<float> g = Vector256_.MultiplyAdd(Vector256_.MultiplyAdd(y, cb, gCbMult), cr, gCrMult);
+                Vector256<float> b = Vector256_.MultiplyAdd(y, cb, bCbMult);
 
-                r = Avx.Multiply(Avx.RoundToNearestInteger(r), scale);
-                g = Avx.Multiply(Avx.RoundToNearestInteger(g), scale);
-                b = Avx.Multiply(Avx.RoundToNearestInteger(b), scale);
+                r = Vector256_.RoundToNearestInteger(r) * scale;
+                g = Vector256_.RoundToNearestInteger(g) * scale;
+                b = Vector256_.RoundToNearestInteger(b) * scale;
 
                 c0 = r;
                 c1 = g;
@@ -86,17 +83,15 @@ internal abstract partial class JpegColorConverterBase
             ref Vector256<float> srcB =
                 ref Unsafe.As<float, Vector256<float>>(ref MemoryMarshal.GetReference(bLane));
 
-            // Used for the color conversion
-            var chromaOffset = Vector256.Create(this.HalfValue);
-
-            var f0299 = Vector256.Create(0.299f);
-            var f0587 = Vector256.Create(0.587f);
-            var f0114 = Vector256.Create(0.114f);
-            var fn0168736 = Vector256.Create(-0.168736f);
-            var fn0331264 = Vector256.Create(-0.331264f);
-            var fn0418688 = Vector256.Create(-0.418688f);
-            var fn0081312F = Vector256.Create(-0.081312F);
-            var f05 = Vector256.Create(0.5f);
+            Vector256<float> chromaOffset = Vector256.Create(this.HalfValue);
+            Vector256<float> f0299 = Vector256.Create(0.299f);
+            Vector256<float> f0587 = Vector256.Create(0.587f);
+            Vector256<float> f0114 = Vector256.Create(0.114f);
+            Vector256<float> fn0168736 = Vector256.Create(-0.168736f);
+            Vector256<float> fn0331264 = Vector256.Create(-0.331264f);
+            Vector256<float> fn0418688 = Vector256.Create(-0.418688f);
+            Vector256<float> fn0081312F = Vector256.Create(-0.081312F);
+            Vector256<float> f05 = Vector256.Create(0.5f);
 
             nuint n = values.Component0.Vector256Count<float>();
             for (nuint i = 0; i < n; i++)
@@ -108,9 +103,9 @@ internal abstract partial class JpegColorConverterBase
                 // y  =   0 + (0.299 * r) + (0.587 * g) + (0.114 * b)
                 // cb = 128 - (0.168736 * r) - (0.331264 * g) + (0.5 * b)
                 // cr = 128 + (0.5 * r) - (0.418688 * g) - (0.081312 * b)
-                Vector256<float> y = HwIntrinsics.MultiplyAdd(HwIntrinsics.MultiplyAdd(Avx.Multiply(f0114, b), f0587, g), f0299, r);
-                Vector256<float> cb = Avx.Add(chromaOffset, HwIntrinsics.MultiplyAdd(HwIntrinsics.MultiplyAdd(Avx.Multiply(f05, b), fn0331264, g), fn0168736, r));
-                Vector256<float> cr = Avx.Add(chromaOffset, HwIntrinsics.MultiplyAdd(HwIntrinsics.MultiplyAdd(Avx.Multiply(fn0081312F, b), fn0418688, g), f05, r));
+                Vector256<float> y = Vector256_.MultiplyAdd(Vector256_.MultiplyAdd(f0114 * b, f0587, g), f0299, r);
+                Vector256<float> cb = chromaOffset + Vector256_.MultiplyAdd(Vector256_.MultiplyAdd(f05 * b, fn0331264, g), fn0168736, r);
+                Vector256<float> cr = chromaOffset + Vector256_.MultiplyAdd(Vector256_.MultiplyAdd(fn0081312F * b, fn0418688, g), f05, r);
 
                 Unsafe.Add(ref destY, i) = y;
                 Unsafe.Add(ref destCb, i) = cb;

@@ -32,7 +32,7 @@ internal abstract class BitReaderBase : IDisposable
     /// <param name="memoryAllocator">Used for allocating memory during reading data from the stream.</param>
     protected static IMemoryOwner<byte> ReadImageDataFromStream(Stream input, int bytesToRead, MemoryAllocator memoryAllocator)
     {
-        IMemoryOwner<byte> data = memoryAllocator.Allocate<byte>(bytesToRead);
+        IMemoryOwner<byte> data = memoryAllocator.Allocate<byte>(bytesToRead, AllocationOptions.Clean);
         Span<byte> dataSpan = data.Memory.Span;
         input.Read(dataSpan[..bytesToRead], 0, bytesToRead);
 

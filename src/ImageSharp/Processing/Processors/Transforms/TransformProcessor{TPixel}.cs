@@ -3,6 +3,7 @@
 
 using SixLabors.ImageSharp.PixelFormats;
 
+// TODO: DO we need this class?
 namespace SixLabors.ImageSharp.Processing.Processors.Transforms;
 
 /// <summary>
@@ -21,19 +22,5 @@ internal abstract class TransformProcessor<TPixel> : CloningImageProcessor<TPixe
     protected TransformProcessor(Configuration configuration, Image<TPixel> source, Rectangle sourceRectangle)
         : base(configuration, source, sourceRectangle)
     {
-    }
-
-    /// <inheritdoc/>
-    protected override void AfterFrameApply(ImageFrame<TPixel> source, ImageFrame<TPixel> destination)
-    {
-        base.AfterFrameApply(source, destination);
-        destination.Metadata.AfterFrameApply(source, destination);
-    }
-
-    /// <inheritdoc/>
-    protected override void AfterImageApply(Image<TPixel> destination)
-    {
-        base.AfterImageApply(destination);
-        destination.Metadata.AfterImageApply(destination);
     }
 }

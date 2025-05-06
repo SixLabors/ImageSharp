@@ -96,8 +96,7 @@ public class IcoFrameMetadata : IFormatFrameMetadata<IcoFrameMetadata>
             BmpBitsPerPixel = bbpp,
             Compression = compression,
             EncodingWidth = ClampEncodingDimension(metadata.EncodingWidth),
-            EncodingHeight = ClampEncodingDimension(metadata.EncodingHeight),
-            ColorTable = compression == IconFrameCompression.Bmp ? metadata.ColorTable : null
+            EncodingHeight = ClampEncodingDimension(metadata.EncodingHeight)
         };
     }
 
@@ -106,7 +105,6 @@ public class IcoFrameMetadata : IFormatFrameMetadata<IcoFrameMetadata>
         => new()
         {
             PixelTypeInfo = this.GetPixelTypeInfo(),
-            ColorTable = this.ColorTable,
             EncodingWidth = this.EncodingWidth,
             EncodingHeight = this.EncodingHeight
         };
@@ -119,6 +117,7 @@ public class IcoFrameMetadata : IFormatFrameMetadata<IcoFrameMetadata>
         float ratioY = destination.Height / (float)source.Height;
         this.EncodingWidth = ScaleEncodingDimension(this.EncodingWidth, destination.Width, ratioX);
         this.EncodingHeight = ScaleEncodingDimension(this.EncodingHeight, destination.Height, ratioY);
+        this.ColorTable = null;
     }
 
     /// <inheritdoc/>

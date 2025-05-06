@@ -14,7 +14,7 @@ public interface IFormatFrameMetadata : IDeepCloneable
     /// Converts the metadata to a <see cref="FormatConnectingFrameMetadata"/> instance.
     /// </summary>
     /// <returns>The <see cref="FormatConnectingFrameMetadata"/>.</returns>
-    FormatConnectingFrameMetadata ToFormatConnectingFrameMetadata();
+    public FormatConnectingFrameMetadata ToFormatConnectingFrameMetadata();
 
     /// <summary>
     /// This method is called after a process has been applied to the image frame.
@@ -22,7 +22,7 @@ public interface IFormatFrameMetadata : IDeepCloneable
     /// <typeparam name="TPixel">The type of pixel format.</typeparam>
     /// <param name="source">The source image frame.</param>
     /// <param name="destination">The destination image frame.</param>
-    void AfterFrameApply<TPixel>(ImageFrame<TPixel> source, ImageFrame<TPixel> destination)
+    public void AfterFrameApply<TPixel>(ImageFrame<TPixel> source, ImageFrame<TPixel> destination)
         where TPixel : unmanaged, IPixel<TPixel>;
 }
 
@@ -39,6 +39,6 @@ public interface IFormatFrameMetadata<TSelf> : IFormatFrameMetadata, IDeepClonea
     /// <param name="metadata">The <see cref="FormatConnectingFrameMetadata"/>.</param>
     /// <returns>The <typeparamref name="TSelf"/>.</returns>
 #pragma warning disable CA1000 // Do not declare static members on generic types
-    static abstract TSelf FromFormatConnectingFrameMetadata(FormatConnectingFrameMetadata metadata);
+    public static abstract TSelf FromFormatConnectingFrameMetadata(FormatConnectingFrameMetadata metadata);
 #pragma warning restore CA1000 // Do not declare static members on generic types
 }

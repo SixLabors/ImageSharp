@@ -1086,7 +1086,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
             {
                 PixelBlender<TPixel> blender =
                     PixelOperations<TPixel>.Instance.GetPixelBlender(PixelColorBlendingMode.Normal, PixelAlphaCompositionMode.SrcOver);
-                blender.Blend<TPixel>(this.configuration, destination, destination, rowSpan, 1f);
+                blender.Blend<TPixel>(this.configuration, destination, destination, rowSpan, 1F);
             }
         }
         finally
@@ -1208,7 +1208,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
             {
                 PixelBlender<TPixel> blender =
                     PixelOperations<TPixel>.Instance.GetPixelBlender(PixelColorBlendingMode.Normal, PixelAlphaCompositionMode.SrcOver);
-                blender.Blend<TPixel>(this.configuration, destination, destination, rowSpan, 1f);
+                blender.Blend<TPixel>(this.configuration, destination, destination, rowSpan, 1F);
             }
         }
         finally
@@ -1866,6 +1866,9 @@ internal sealed class PngDecoderCore : ImageDecoderCore
             return false;
         }
 
+        // Capture the current position so we can revert back to it if we fail to read a valid chunk.
+        long position = this.currentStream.Position;
+
         if (!this.TryReadChunkLength(buffer, out int length))
         {
             // IEND
@@ -1884,7 +1887,48 @@ internal sealed class PngDecoderCore : ImageDecoderCore
             }
         }
 
-        PngChunkType type = this.ReadChunkType(buffer);
+        PngChunkType type;
+
+        // Loop until we get a chunk type that is valid.
+        while (true)
+        {
+            type = this.ReadChunkType(buffer);
+            if (!IsValidChunkType(type))
+            {
+                // The chunk type is invalid.
+                // Revert back to the next byte past the previous position and try again.
+                this.currentStream.Position = ++position;
+
+                // If we are now at the end of the stream, we're done.
+                if (this.currentStream.Position >= this.currentStream.Length)
+                {
+                    chunk = default;
+                    return false;
+                }
+
+                // Read the next chunk’s length.
+                if (!this.TryReadChunkLength(buffer, out length))
+                {
+                    chunk = default;
+                    return false;
+                }
+
+                while (length < 0)
+                {
+                    if (!this.TryReadChunkLength(buffer, out length))
+                    {
+                        chunk = default;
+                        return false;
+                    }
+                }
+
+                // Continue to try reading the next chunk.
+                continue;
+            }
+
+            // We have a valid chunk type.
+            break;
+        }
 
         // If we're reading color metadata only we're only interested in the IHDR and tRNS chunks.
         // We can skip most other chunk data in the stream for better performance.
@@ -1901,7 +1945,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
 
         // A chunk might report a length that exceeds the length of the stream.
         // Take the minimum of the two values to ensure we don't read past the end of the stream.
-        long position = this.currentStream.Position;
+        position = this.currentStream.Position;
         chunk = new PngChunk(
             length: (int)Math.Min(length, this.currentStream.Length - position),
             type: type,
@@ -1918,6 +1962,32 @@ internal sealed class PngDecoderCore : ImageDecoderCore
 
         return true;
     }
+
+    /// <summary>
+    /// Determines whether the 4-byte chunk type is valid (all ASCII letters).
+    /// </summary>
+    /// <param name="type">The chunk type.</param>
+    [MethodImpl(InliningOptions.ShortMethod)]
+    private static bool IsValidChunkType(PngChunkType type)
+    {
+        uint value = (uint)type;
+        byte b0 = (byte)(value >> 24);
+        byte b1 = (byte)(value >> 16);
+        byte b2 = (byte)(value >> 8);
+        byte b3 = (byte)value;
+        return IsAsciiLetter(b0) && IsAsciiLetter(b1) && IsAsciiLetter(b2) && IsAsciiLetter(b3);
+    }
+
+    /// <summary>
+    /// Returns a value indicating whether the given byte is an ASCII letter.
+    /// </summary>
+    /// <param name="b">The byte to check.</param>
+    /// <returns>
+    /// <see langword="true"/> if the byte is an ASCII letter; otherwise, <see langword="false"/>.
+    /// </returns>
+    [MethodImpl(InliningOptions.ShortMethod)]
+    private static bool IsAsciiLetter(byte b)
+        => (b >= (byte)'A' && b <= (byte)'Z') || (b >= (byte)'a' && b <= (byte)'z');
 
     /// <summary>
     /// Validates the png chunk.

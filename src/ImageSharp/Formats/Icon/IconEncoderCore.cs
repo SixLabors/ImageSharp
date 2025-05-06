@@ -120,17 +120,17 @@ internal abstract class IconEncoderCore
         this.entries = this.iconFileType switch
         {
             IconFileType.ICO =>
-            image.Frames.Select(i =>
+            [.. image.Frames.Select(i =>
             {
                 IcoFrameMetadata metadata = i.Metadata.GetIcoMetadata();
                 return new EncodingFrameMetadata(metadata.Compression, metadata.BmpBitsPerPixel, metadata.ColorTable, metadata.ToIconDirEntry(i.Size));
-            }).ToArray(),
+            })],
             IconFileType.CUR =>
-            image.Frames.Select(i =>
+            [.. image.Frames.Select(i =>
             {
                 CurFrameMetadata metadata = i.Metadata.GetCurMetadata();
                 return new EncodingFrameMetadata(metadata.Compression, metadata.BmpBitsPerPixel, metadata.ColorTable, metadata.ToIconDirEntry(i.Size));
-            }).ToArray(),
+            })],
             _ => throw new NotSupportedException(),
         };
     }
@@ -149,9 +149,15 @@ internal abstract class IconEncoderCore
 
         if (metadata.ColorTable is null)
         {
+            int count = metadata.Entry.ColorCount;
+            if (count == 0)
+            {
+                count = 256;
+            }
+
             return new WuQuantizer(new()
             {
-                MaxColors = metadata.Entry.ColorCount
+                MaxColors = count
             });
         }
 

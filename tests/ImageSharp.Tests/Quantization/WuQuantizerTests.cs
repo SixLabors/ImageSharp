@@ -79,7 +79,7 @@ public class WuQuantizerTests
         }
 
         Configuration config = Configuration.Default;
-        WuQuantizer quantizer = new(new QuantizerOptions { Dither = null });
+        WuQuantizer quantizer = new(new QuantizerOptions { Dither = null, TransparencyThreshold = 0 });
 
         ImageFrame<Rgba32> frame = image.Frames.RootFrame;
 
@@ -152,7 +152,7 @@ public class WuQuantizerTests
         }
 
         Configuration config = Configuration.Default;
-        WuQuantizer quantizer = new(new QuantizerOptions { Dither = null });
+        WuQuantizer quantizer = new(new QuantizerOptions { Dither = null, TransparencyThreshold = 0 });
 
         ImageFrame<Rgba32> frame = image.Frames.RootFrame;
         using (IQuantizer<Rgba32> frameQuantizer = quantizer.CreatePixelSpecificQuantizer<Rgba32>(config))

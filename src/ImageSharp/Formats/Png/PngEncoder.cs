@@ -1,8 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using SixLabors.ImageSharp.Processing.Processors.Quantization;
-
 namespace SixLabors.ImageSharp.Formats.Png;
 
 /// <summary>
@@ -10,16 +8,6 @@ namespace SixLabors.ImageSharp.Formats.Png;
 /// </summary>
 public class PngEncoder : QuantizingAnimatedImageEncoder
 {
-    /// <summary>
-    /// Initializes a new instance of the <see cref="PngEncoder"/> class.
-    /// </summary>
-    public PngEncoder()
-
-        // Hack. TODO: Investigate means to fix/optimize the Wu quantizer.
-        // The Wu quantizer does not handle the default sampling strategy well for some larger images.
-        // It's expensive and the results are not better than the extensive strategy.
-        => this.PixelSamplingStrategy = new ExtensivePixelSamplingStrategy();
-
     /// <summary>
     /// Gets the number of bits per sample or per palette index (not per pixel).
     /// Not all values are allowed for all <see cref="ColorType" /> values.
@@ -52,11 +40,6 @@ public class PngEncoder : QuantizingAnimatedImageEncoder
     /// </summary>
     /// <value>The gamma value of the image.</value>
     public float? Gamma { get; init; }
-
-    /// <summary>
-    /// Gets the transparency threshold.
-    /// </summary>
-    public byte Threshold { get; init; } = byte.MaxValue;
 
     /// <summary>
     /// Gets a value indicating whether this instance should write an Adam7 interlaced image.

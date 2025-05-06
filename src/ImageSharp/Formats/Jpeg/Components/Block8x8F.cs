@@ -8,6 +8,8 @@ using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
 using System.Text;
 using SixLabors.ImageSharp.Common.Helpers;
+using Vector128_ = SixLabors.ImageSharp.Common.Helpers.Vector128Utilities;
+using Vector256_ = SixLabors.ImageSharp.Common.Helpers.Vector256Utilities;
 
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components;
@@ -332,22 +334,13 @@ internal partial struct Block8x8F : IEquatable<Block8x8F>
     /// <param name="maximum">The maximum value.</param>
     public void NormalizeColorsAndRoundInPlace(float maximum)
     {
-        if (SimdUtils.HasVector8)
+        if (Vector256.IsHardwareAccelerated)
         {
-            this.NormalizeColorsAndRoundInPlaceVector8(maximum);
+            this.NormalizeColorsAndRoundInPlaceVector256(maximum);
         }
-        else
+        else if (Vector128.IsHardwareAccelerated)
         {
-            this.NormalizeColorsInPlace(maximum);
-            this.RoundInPlace();
-        }
-    }
-
-    public void DE_NormalizeColors(float maximum)
-    {
-        if (SimdUtils.HasVector8)
-        {
-            this.NormalizeColorsAndRoundInPlaceVector8(maximum);
+            this.NormalizeColorsAndRoundInPlaceVector128(maximum);
         }
         else
         {
@@ -589,5 +582,23 @@ internal partial struct Block8x8F : IEquatable<Block8x8F>
         row = Vector.Max(row, Vector<float>.Zero);
         row = Vector.Min(row, max);
         return row.FastRound();
+    }
+
+    [MethodImpl(InliningOptions.ShortMethod)]
+    private static Vector256<float> NormalizeAndRoundVector256(Vector256<float> row, Vector256<float> off, Vector256<float> max)
+    {
+        row += off;
+        row = Vector256.Max(row, Vector256<float>.Zero);
+        row = Vector256.Min(row, max);
+        return Vector256_.RoundToNearestInteger(row);
+    }
+
+    [MethodImpl(InliningOptions.ShortMethod)]
+    private static Vector128<float> NormalizeAndRoundVector128(Vector128<float> row, Vector128<float> off, Vector128<float> max)
+    {
+        row += off;
+        row = Vector128.Max(row, Vector128<float>.Zero);
+        row = Vector128.Min(row, max);
+        return Vector128_.RoundToNearestInteger(row);
     }
 }

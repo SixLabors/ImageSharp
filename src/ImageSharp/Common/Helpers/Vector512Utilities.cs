@@ -17,7 +17,9 @@ namespace SixLabors.ImageSharp.Common.Helpers;
 /// </list>
 /// Should only be used if the intrinsics are available.
 /// </summary>
-internal static class Vector512Utilities
+#pragma warning disable SA1649 // File name should match first type name
+internal static class Vector512_
+#pragma warning restore SA1649 // File name should match first type name
 {
     /// <summary>
     /// Gets a value indicating whether shuffle float operations are supported.
@@ -126,6 +128,13 @@ internal static class Vector512Utilities
             return Avx512F.RoundScale(vector, 0b0000_1000);
         }
 
+        if (Avx.IsSupported)
+        {
+            Vector256<float> lower = Avx.RoundToNearestInteger(vector.GetLower());
+            Vector256<float> upper = Avx.RoundToNearestInteger(vector.GetUpper());
+            return Vector512.Create(lower, upper);
+        }
+
         Vector512<float> sign = vector & Vector512.Create(-0F);
         Vector512<float> val_2p23_f32 = sign | Vector512.Create(8388608F);
 
@@ -152,8 +161,27 @@ internal static class Vector512Utilities
             return Avx512F.FusedMultiplyAdd(vm0, vm1, va);
         }
 
+        if (Fma.IsSupported)
+        {
+            Vector256<float> lower = Fma.MultiplyAdd(vm0.GetLower(), vm1.GetLower(), va.GetLower());
+            Vector256<float> upper = Fma.MultiplyAdd(vm0.GetUpper(), vm1.GetUpper(), va.GetUpper());
+            return Vector512.Create(lower, upper);
+        }
+
         return va + (vm0 * vm1);
     }
+
+    /// <summary>
+    /// Restricts a vector between a minimum and a maximum value.
+    /// </summary>
+    /// <typeparam name="T">The type of the elements in the vector.</typeparam>
+    /// <param name="value">The vector to restrict.</param>
+    /// <param name="min">The minimum value.</param>
+    /// <param name="max">The maximum value.</param>
+    /// <returns>The restricted <see cref="Vector512{T}"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<T> Clamp<T>(Vector512<T> value, Vector512<T> min, Vector512<T> max)
+        => Vector512.Min(Vector512.Max(value, min), max);
 
     [DoesNotReturn]
     private static void ThrowUnreachableException() => throw new UnreachableException();

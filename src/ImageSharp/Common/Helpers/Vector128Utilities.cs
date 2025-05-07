@@ -19,7 +19,9 @@ namespace SixLabors.ImageSharp.Common.Helpers;
 /// </list>
 /// Should only be used if the intrinsics are available.
 /// </summary>
-internal static class Vector128Utilities
+#pragma warning disable SA1649 // File name should match first type name
+internal static class Vector128_
+#pragma warning restore SA1649 // File name should match first type name
 {
     /// <summary>
     /// Gets a value indicating whether shuffle operations are supported.
@@ -314,8 +316,8 @@ internal static class Vector128Utilities
         return Vector128.Narrow(lefClamped, rightClamped);
     }
 
-    /// <summary
-    /// >Restricts a vector between a minimum and a maximum value.
+    /// <summary>
+    /// Restricts a vector between a minimum and a maximum value.
     /// </summary>
     /// <typeparam name="T">The type of the elements in the vector.</typeparam>
     /// <param name="value">The vector to restrict.</param>

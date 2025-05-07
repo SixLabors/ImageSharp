@@ -8,8 +8,6 @@ using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
 using System.Text;
 using SixLabors.ImageSharp.Common.Helpers;
-using Vector128_ = SixLabors.ImageSharp.Common.Helpers.Vector128Utilities;
-using Vector256_ = SixLabors.ImageSharp.Common.Helpers.Vector256Utilities;
 
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components;
@@ -25,7 +23,6 @@ internal partial struct Block8x8F : IEquatable<Block8x8F>
     /// </summary>
     public const int Size = 64;
 
-#pragma warning disable SA1600 // ElementsMustBeDocumented
     [FieldOffset(0)]
     public Vector4 V0L;
     [FieldOffset(16)]
@@ -65,7 +62,6 @@ internal partial struct Block8x8F : IEquatable<Block8x8F>
     public Vector4 V7L;
     [FieldOffset(240)]
     public Vector4 V7R;
-#pragma warning restore SA1600 // ElementsMustBeDocumented
 
     /// <summary>
     /// Get/Set scalar elements at a given index
@@ -159,18 +155,17 @@ internal partial struct Block8x8F : IEquatable<Block8x8F>
     [MethodImpl(InliningOptions.ShortMethod)]
     public void MultiplyInPlace(float value)
     {
-        // TODO: Vector512
         if (Vector256.IsHardwareAccelerated)
         {
             Vector256<float> valueVec = Vector256.Create(value);
-            this.V0 *= valueVec;
-            this.V1 *= valueVec;
-            this.V2 *= valueVec;
-            this.V3 *= valueVec;
-            this.V4 *= valueVec;
-            this.V5 *= valueVec;
-            this.V6 *= valueVec;
-            this.V7 *= valueVec;
+            this.V256_0 *= valueVec;
+            this.V256_1 *= valueVec;
+            this.V256_2 *= valueVec;
+            this.V256_3 *= valueVec;
+            this.V256_4 *= valueVec;
+            this.V256_5 *= valueVec;
+            this.V256_6 *= valueVec;
+            this.V256_7 *= valueVec;
         }
         else
         {
@@ -201,17 +196,16 @@ internal partial struct Block8x8F : IEquatable<Block8x8F>
     [MethodImpl(InliningOptions.ShortMethod)]
     public unsafe void MultiplyInPlace(ref Block8x8F other)
     {
-        // TODO: Vector512
         if (Vector256.IsHardwareAccelerated)
         {
-            this.V0 *= other.V0;
-            this.V1 *= other.V1;
-            this.V2 *= other.V2;
-            this.V3 *= other.V3;
-            this.V4 *= other.V4;
-            this.V5 *= other.V5;
-            this.V6 *= other.V6;
-            this.V7 *= other.V7;
+            this.V256_0 *= other.V256_0;
+            this.V256_1 *= other.V256_1;
+            this.V256_2 *= other.V256_2;
+            this.V256_3 *= other.V256_3;
+            this.V256_4 *= other.V256_4;
+            this.V256_5 *= other.V256_5;
+            this.V256_6 *= other.V256_6;
+            this.V256_7 *= other.V256_7;
         }
         else
         {
@@ -241,18 +235,17 @@ internal partial struct Block8x8F : IEquatable<Block8x8F>
     [MethodImpl(InliningOptions.ShortMethod)]
     public void AddInPlace(float value)
     {
-        // TODO: Vector512
         if (Vector256.IsHardwareAccelerated)
         {
             Vector256<float> valueVec = Vector256.Create(value);
-            this.V0 += valueVec;
-            this.V1 += valueVec;
-            this.V2 += valueVec;
-            this.V3 += valueVec;
-            this.V4 += valueVec;
-            this.V5 += valueVec;
-            this.V6 += valueVec;
-            this.V7 += valueVec;
+            this.V256_0 += valueVec;
+            this.V256_1 += valueVec;
+            this.V256_2 += valueVec;
+            this.V256_3 += valueVec;
+            this.V256_4 += valueVec;
+            this.V256_5 += valueVec;
+            this.V256_6 += valueVec;
+            this.V256_7 += valueVec;
         }
         else
         {
@@ -353,6 +346,34 @@ internal partial struct Block8x8F : IEquatable<Block8x8F>
     }
 
     /// <summary>
+    /// Level shift by +maximum/2, clip to [0, maximum]
+    /// </summary>
+    /// <param name="maximum">The maximum value to normalize to.</param>
+    public void NormalizeColorsInPlace(float maximum)
+    {
+        Vector4 min = Vector4.Zero;
+        Vector4 max = new(maximum);
+        Vector4 off = new(MathF.Ceiling(maximum * 0.5F));
+
+        this.V0L = Vector4.Clamp(this.V0L + off, min, max);
+        this.V0R = Vector4.Clamp(this.V0R + off, min, max);
+        this.V1L = Vector4.Clamp(this.V1L + off, min, max);
+        this.V1R = Vector4.Clamp(this.V1R + off, min, max);
+        this.V2L = Vector4.Clamp(this.V2L + off, min, max);
+        this.V2R = Vector4.Clamp(this.V2R + off, min, max);
+        this.V3L = Vector4.Clamp(this.V3L + off, min, max);
+        this.V3R = Vector4.Clamp(this.V3R + off, min, max);
+        this.V4L = Vector4.Clamp(this.V4L + off, min, max);
+        this.V4R = Vector4.Clamp(this.V4R + off, min, max);
+        this.V5L = Vector4.Clamp(this.V5L + off, min, max);
+        this.V5R = Vector4.Clamp(this.V5R + off, min, max);
+        this.V6L = Vector4.Clamp(this.V6L + off, min, max);
+        this.V6R = Vector4.Clamp(this.V6R + off, min, max);
+        this.V7L = Vector4.Clamp(this.V7L + off, min, max);
+        this.V7R = Vector4.Clamp(this.V7R + off, min, max);
+    }
+
+    /// <summary>
     /// Rounds all values in the block.
     /// </summary>
     public void RoundInPlace()
@@ -376,39 +397,84 @@ internal partial struct Block8x8F : IEquatable<Block8x8F>
     }
 
     /// <summary>
-    /// Loads values from <paramref name="source"/> using extended AVX2 intrinsics.
+    /// Fill the block from <paramref name="source"/> doing short -&gt; float conversion.
     /// </summary>
-    /// <param name="source">The source <see cref="Block8x8"/></param>
-    public void LoadFromInt16ExtendedAvx2(ref Block8x8 source)
+    /// <param name="source">The source block</param>
+    public void LoadFromInt16Scalar(ref Block8x8 source)
     {
-        DebugGuard.IsTrue(
-            Avx2.IsSupported,
-            "LoadFromUInt16ExtendedAvx2 only works on AVX2 compatible architecture!");
+        ref short selfRef = ref Unsafe.As<Block8x8, short>(ref source);
 
-        ref short sRef = ref Unsafe.As<Block8x8, short>(ref source);
-        ref Vector256<float> dRef = ref Unsafe.As<Block8x8F, Vector256<float>>(ref this);
+        this.V0L.X = Unsafe.Add(ref selfRef, 0);
+        this.V0L.Y = Unsafe.Add(ref selfRef, 1);
+        this.V0L.Z = Unsafe.Add(ref selfRef, 2);
+        this.V0L.W = Unsafe.Add(ref selfRef, 3);
+        this.V0R.X = Unsafe.Add(ref selfRef, 4);
+        this.V0R.Y = Unsafe.Add(ref selfRef, 5);
+        this.V0R.Z = Unsafe.Add(ref selfRef, 6);
+        this.V0R.W = Unsafe.Add(ref selfRef, 7);
 
-        // Vector256<ushort>.Count == 16 on AVX2
-        // We can process 2 block rows in a single step
-        Vector256<int> top = Avx2.ConvertToVector256Int32(Vector128.LoadUnsafe(ref sRef));
-        Vector256<int> bottom = Avx2.ConvertToVector256Int32(Vector128.LoadUnsafe(ref sRef, (nuint)Vector256<int>.Count));
-        dRef = Avx.ConvertToVector256Single(top);
-        Unsafe.Add(ref dRef, 1) = Avx.ConvertToVector256Single(bottom);
+        this.V1L.X = Unsafe.Add(ref selfRef, 8);
+        this.V1L.Y = Unsafe.Add(ref selfRef, 9);
+        this.V1L.Z = Unsafe.Add(ref selfRef, 10);
+        this.V1L.W = Unsafe.Add(ref selfRef, 11);
+        this.V1R.X = Unsafe.Add(ref selfRef, 12);
+        this.V1R.Y = Unsafe.Add(ref selfRef, 13);
+        this.V1R.Z = Unsafe.Add(ref selfRef, 14);
+        this.V1R.W = Unsafe.Add(ref selfRef, 15);
 
-        top = Avx2.ConvertToVector256Int32(Vector128.LoadUnsafe(ref sRef, (nuint)(Vector256<int>.Count * 2)));
-        bottom = Avx2.ConvertToVector256Int32(Vector128.LoadUnsafe(ref sRef, (nuint)(Vector256<int>.Count * 3)));
-        Unsafe.Add(ref dRef, 2) = Avx.ConvertToVector256Single(top);
-        Unsafe.Add(ref dRef, 3) = Avx.ConvertToVector256Single(bottom);
+        this.V2L.X = Unsafe.Add(ref selfRef, 16);
+        this.V2L.Y = Unsafe.Add(ref selfRef, 17);
+        this.V2L.Z = Unsafe.Add(ref selfRef, 18);
+        this.V2L.W = Unsafe.Add(ref selfRef, 19);
+        this.V2R.X = Unsafe.Add(ref selfRef, 20);
+        this.V2R.Y = Unsafe.Add(ref selfRef, 21);
+        this.V2R.Z = Unsafe.Add(ref selfRef, 22);
+        this.V2R.W = Unsafe.Add(ref selfRef, 23);
 
-        top = Avx2.ConvertToVector256Int32(Vector128.LoadUnsafe(ref sRef, (nuint)(Vector256<int>.Count * 4)));
-        bottom = Avx2.ConvertToVector256Int32(Vector128.LoadUnsafe(ref sRef, (nuint)(Vector256<int>.Count * 5)));
-        Unsafe.Add(ref dRef, 4) = Avx.ConvertToVector256Single(top);
-        Unsafe.Add(ref dRef, 5) = Avx.ConvertToVector256Single(bottom);
+        this.V3L.X = Unsafe.Add(ref selfRef, 24);
+        this.V3L.Y = Unsafe.Add(ref selfRef, 25);
+        this.V3L.Z = Unsafe.Add(ref selfRef, 26);
+        this.V3L.W = Unsafe.Add(ref selfRef, 27);
+        this.V3R.X = Unsafe.Add(ref selfRef, 28);
+        this.V3R.Y = Unsafe.Add(ref selfRef, 29);
+        this.V3R.Z = Unsafe.Add(ref selfRef, 30);
+        this.V3R.W = Unsafe.Add(ref selfRef, 31);
 
-        top = Avx2.ConvertToVector256Int32(Vector128.LoadUnsafe(ref sRef, (nuint)(Vector256<int>.Count * 6)));
-        bottom = Avx2.ConvertToVector256Int32(Vector128.LoadUnsafe(ref sRef, (nuint)(Vector256<int>.Count * 7)));
-        Unsafe.Add(ref dRef, 6) = Avx.ConvertToVector256Single(top);
-        Unsafe.Add(ref dRef, 7) = Avx.ConvertToVector256Single(bottom);
+        this.V4L.X = Unsafe.Add(ref selfRef, 32);
+        this.V4L.Y = Unsafe.Add(ref selfRef, 33);
+        this.V4L.Z = Unsafe.Add(ref selfRef, 34);
+        this.V4L.W = Unsafe.Add(ref selfRef, 35);
+        this.V4R.X = Unsafe.Add(ref selfRef, 36);
+        this.V4R.Y = Unsafe.Add(ref selfRef, 37);
+        this.V4R.Z = Unsafe.Add(ref selfRef, 38);
+        this.V4R.W = Unsafe.Add(ref selfRef, 39);
+
+        this.V5L.X = Unsafe.Add(ref selfRef, 40);
+        this.V5L.Y = Unsafe.Add(ref selfRef, 41);
+        this.V5L.Z = Unsafe.Add(ref selfRef, 42);
+        this.V5L.W = Unsafe.Add(ref selfRef, 43);
+        this.V5R.X = Unsafe.Add(ref selfRef, 44);
+        this.V5R.Y = Unsafe.Add(ref selfRef, 45);
+        this.V5R.Z = Unsafe.Add(ref selfRef, 46);
+        this.V5R.W = Unsafe.Add(ref selfRef, 47);
+
+        this.V6L.X = Unsafe.Add(ref selfRef, 48);
+        this.V6L.Y = Unsafe.Add(ref selfRef, 49);
+        this.V6L.Z = Unsafe.Add(ref selfRef, 50);
+        this.V6L.W = Unsafe.Add(ref selfRef, 51);
+        this.V6R.X = Unsafe.Add(ref selfRef, 52);
+        this.V6R.Y = Unsafe.Add(ref selfRef, 53);
+        this.V6R.Z = Unsafe.Add(ref selfRef, 54);
+        this.V6R.W = Unsafe.Add(ref selfRef, 55);
+
+        this.V7L.X = Unsafe.Add(ref selfRef, 56);
+        this.V7L.Y = Unsafe.Add(ref selfRef, 57);
+        this.V7L.Z = Unsafe.Add(ref selfRef, 58);
+        this.V7L.W = Unsafe.Add(ref selfRef, 59);
+        this.V7R.X = Unsafe.Add(ref selfRef, 60);
+        this.V7R.Y = Unsafe.Add(ref selfRef, 61);
+        this.V7R.Z = Unsafe.Add(ref selfRef, 62);
+        this.V7R.W = Unsafe.Add(ref selfRef, 63);
     }
 
     /// <summary>
@@ -422,11 +488,11 @@ internal partial struct Block8x8F : IEquatable<Block8x8F>
             const int equalityMask = unchecked((int)0b1111_1111_1111_1111_1111_1111_1111_1111);
 
             Vector256<int> targetVector = Vector256.Create(value);
-            ref Vector256<float> blockStride = ref this.V0;
+            ref Vector256<float> blockStride = ref this.V256_0;
 
             for (nuint i = 0; i < RowCount; i++)
             {
-                Vector256<int> areEqual = Avx2.CompareEqual(Avx.ConvertToVector256Int32WithTruncation(Unsafe.Add(ref this.V0, i)), targetVector);
+                Vector256<int> areEqual = Avx2.CompareEqual(Avx.ConvertToVector256Int32WithTruncation(Unsafe.Add(ref this.V256_0, i)), targetVector);
                 if (Avx2.MoveMask(areEqual.AsByte()) != equalityMask)
                 {
                     return false;
@@ -576,32 +642,5 @@ internal partial struct Block8x8F : IEquatable<Block8x8F>
 
         // row #6
         RuntimeUtility.Swap(ref Unsafe.Add(ref elemRef, 55), ref Unsafe.Add(ref elemRef, 62));
-    }
-
-    [MethodImpl(InliningOptions.ShortMethod)]
-    private static Vector<float> NormalizeAndRound(Vector<float> row, Vector<float> off, Vector<float> max)
-    {
-        row += off;
-        row = Vector.Max(row, Vector<float>.Zero);
-        row = Vector.Min(row, max);
-        return row.FastRound();
-    }
-
-    [MethodImpl(InliningOptions.ShortMethod)]
-    private static Vector256<float> NormalizeAndRoundVector256(Vector256<float> row, Vector256<float> off, Vector256<float> max)
-    {
-        row += off;
-        row = Vector256.Max(row, Vector256<float>.Zero);
-        row = Vector256.Min(row, max);
-        return Vector256_.RoundToNearestInteger(row);
-    }
-
-    [MethodImpl(InliningOptions.ShortMethod)]
-    private static Vector128<float> NormalizeAndRoundVector128(Vector128<float> row, Vector128<float> off, Vector128<float> max)
-    {
-        row += off;
-        row = Vector128.Max(row, Vector128<float>.Zero);
-        row = Vector128.Min(row, max);
-        return Vector128_.RoundToNearestInteger(row);
     }
 }

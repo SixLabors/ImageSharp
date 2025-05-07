@@ -26,14 +26,14 @@ internal static partial class FloatingPointDCT
         // Applies 1D floating point FDCT inplace
         static void FDCT8x8_1D_Avx(ref Block8x8F block)
         {
-            Vector256<float> tmp0 = Avx.Add(block.V0, block.V7);
-            Vector256<float> tmp7 = Avx.Subtract(block.V0, block.V7);
-            Vector256<float> tmp1 = Avx.Add(block.V1, block.V6);
-            Vector256<float> tmp6 = Avx.Subtract(block.V1, block.V6);
-            Vector256<float> tmp2 = Avx.Add(block.V2, block.V5);
-            Vector256<float> tmp5 = Avx.Subtract(block.V2, block.V5);
-            Vector256<float> tmp3 = Avx.Add(block.V3, block.V4);
-            Vector256<float> tmp4 = Avx.Subtract(block.V3, block.V4);
+            Vector256<float> tmp0 = Avx.Add(block.V256_0, block.V256_7);
+            Vector256<float> tmp7 = Avx.Subtract(block.V256_0, block.V256_7);
+            Vector256<float> tmp1 = Avx.Add(block.V256_1, block.V256_6);
+            Vector256<float> tmp6 = Avx.Subtract(block.V256_1, block.V256_6);
+            Vector256<float> tmp2 = Avx.Add(block.V256_2, block.V256_5);
+            Vector256<float> tmp5 = Avx.Subtract(block.V256_2, block.V256_5);
+            Vector256<float> tmp3 = Avx.Add(block.V256_3, block.V256_4);
+            Vector256<float> tmp4 = Avx.Subtract(block.V256_3, block.V256_4);
 
             // Even part
             Vector256<float> tmp10 = Avx.Add(tmp0, tmp3);
@@ -41,13 +41,13 @@ internal static partial class FloatingPointDCT
             Vector256<float> tmp11 = Avx.Add(tmp1, tmp2);
             Vector256<float> tmp12 = Avx.Subtract(tmp1, tmp2);
 
-            block.V0 = Avx.Add(tmp10, tmp11);
-            block.V4 = Avx.Subtract(tmp10, tmp11);
+            block.V256_0 = Avx.Add(tmp10, tmp11);
+            block.V256_4 = Avx.Subtract(tmp10, tmp11);
 
             var mm256_F_0_7071 = Vector256.Create(0.707106781f);
             Vector256<float> z1 = Avx.Multiply(Avx.Add(tmp12, tmp13), mm256_F_0_7071);
-            block.V2 = Avx.Add(tmp13, z1);
-            block.V6 = Avx.Subtract(tmp13, z1);
+            block.V256_2 = Avx.Add(tmp13, z1);
+            block.V256_6 = Avx.Subtract(tmp13, z1);
 
             // Odd part
             tmp10 = Avx.Add(tmp4, tmp5);
@@ -62,10 +62,10 @@ internal static partial class FloatingPointDCT
             Vector256<float> z11 = Avx.Add(tmp7, z3);
             Vector256<float> z13 = Avx.Subtract(tmp7, z3);
 
-            block.V5 = Avx.Add(z13, z2);
-            block.V3 = Avx.Subtract(z13, z2);
-            block.V1 = Avx.Add(z11, z4);
-            block.V7 = Avx.Subtract(z11, z4);
+            block.V256_5 = Avx.Add(z13, z2);
+            block.V256_3 = Avx.Subtract(z13, z2);
+            block.V256_1 = Avx.Add(z11, z4);
+            block.V256_7 = Avx.Subtract(z11, z4);
         }
     }
 
@@ -88,10 +88,10 @@ internal static partial class FloatingPointDCT
         static void IDCT8x8_1D_Avx(ref Block8x8F block)
         {
             // Even part
-            Vector256<float> tmp0 = block.V0;
-            Vector256<float> tmp1 = block.V2;
-            Vector256<float> tmp2 = block.V4;
-            Vector256<float> tmp3 = block.V6;
+            Vector256<float> tmp0 = block.V256_0;
+            Vector256<float> tmp1 = block.V256_2;
+            Vector256<float> tmp2 = block.V256_4;
+            Vector256<float> tmp3 = block.V256_6;
 
             Vector256<float> z5 = tmp0;
             Vector256<float> tmp10 = Avx.Add(z5, tmp2);
@@ -107,10 +107,10 @@ internal static partial class FloatingPointDCT
             tmp2 = Avx.Subtract(tmp11, tmp12);
 
             // Odd part
-            Vector256<float> tmp4 = block.V1;
-            Vector256<float> tmp5 = block.V3;
-            Vector256<float> tmp6 = block.V5;
-            Vector256<float> tmp7 = block.V7;
+            Vector256<float> tmp4 = block.V256_1;
+            Vector256<float> tmp5 = block.V256_3;
+            Vector256<float> tmp6 = block.V256_5;
+            Vector256<float> tmp7 = block.V256_7;
 
             Vector256<float> z13 = Avx.Add(tmp6, tmp5);
             Vector256<float> z10 = Avx.Subtract(tmp6, tmp5);
@@ -129,14 +129,14 @@ internal static partial class FloatingPointDCT
             tmp5 = Avx.Subtract(tmp11, tmp6);
             tmp4 = Avx.Subtract(tmp10, tmp5);
 
-            block.V0 = Avx.Add(tmp0, tmp7);
-            block.V7 = Avx.Subtract(tmp0, tmp7);
-            block.V1 = Avx.Add(tmp1, tmp6);
-            block.V6 = Avx.Subtract(tmp1, tmp6);
-            block.V2 = Avx.Add(tmp2, tmp5);
-            block.V5 = Avx.Subtract(tmp2, tmp5);
-            block.V3 = Avx.Add(tmp3, tmp4);
-            block.V4 = Avx.Subtract(tmp3, tmp4);
+            block.V256_0 = Avx.Add(tmp0, tmp7);
+            block.V256_7 = Avx.Subtract(tmp0, tmp7);
+            block.V256_1 = Avx.Add(tmp1, tmp6);
+            block.V256_6 = Avx.Subtract(tmp1, tmp6);
+            block.V256_2 = Avx.Add(tmp2, tmp5);
+            block.V256_5 = Avx.Subtract(tmp2, tmp5);
+            block.V256_3 = Avx.Add(tmp3, tmp4);
+            block.V256_4 = Avx.Subtract(tmp3, tmp4);
         }
     }
 }

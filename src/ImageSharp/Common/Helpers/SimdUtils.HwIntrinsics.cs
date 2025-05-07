@@ -66,9 +66,9 @@ internal static partial class SimdUtils
             ref Span<float> destination,
             [ConstantExpected] byte control)
         {
-            if ((Vector512.IsHardwareAccelerated && Vector512Utilities.SupportsShuffleFloat) ||
-                (Vector256.IsHardwareAccelerated && Vector256Utilities.SupportsShuffleFloat) ||
-                (Vector128.IsHardwareAccelerated && Vector128Utilities.SupportsShuffleFloat))
+            if ((Vector512.IsHardwareAccelerated && Vector512_.SupportsShuffleFloat) ||
+                (Vector256.IsHardwareAccelerated && Vector256_.SupportsShuffleFloat) ||
+                (Vector128.IsHardwareAccelerated && Vector128_.SupportsShuffleFloat))
             {
                 int remainder = 0;
                 if (Vector512.IsHardwareAccelerated)
@@ -112,9 +112,9 @@ internal static partial class SimdUtils
             ref Span<byte> destination,
             [ConstantExpected] byte control)
         {
-            if ((Vector512.IsHardwareAccelerated && Vector512Utilities.SupportsShuffleByte) ||
-                (Vector256.IsHardwareAccelerated && Vector256Utilities.SupportsShuffleByte) ||
-                (Vector128.IsHardwareAccelerated && Vector128Utilities.SupportsShuffleByte))
+            if ((Vector512.IsHardwareAccelerated && Vector512_.SupportsShuffleByte) ||
+                (Vector256.IsHardwareAccelerated && Vector256_.SupportsShuffleByte) ||
+                (Vector128.IsHardwareAccelerated && Vector128_.SupportsShuffleByte))
             {
                 int remainder = 0;
                 if (Vector512.IsHardwareAccelerated)
@@ -158,7 +158,7 @@ internal static partial class SimdUtils
             ref Span<byte> destination,
             [ConstantExpected] byte control)
         {
-            if (Vector128.IsHardwareAccelerated && Vector128Utilities.SupportsShuffleByte && Vector128Utilities.SupportsRightAlign)
+            if (Vector128.IsHardwareAccelerated && Vector128_.SupportsShuffleByte && Vector128_.SupportsRightAlign)
             {
                 int remainder = source.Length % (Vector128<byte>.Count * 3);
 
@@ -190,7 +190,7 @@ internal static partial class SimdUtils
             ref Span<byte> destination,
             [ConstantExpected] byte control)
         {
-            if (Vector128.IsHardwareAccelerated && Vector128Utilities.SupportsShuffleByte && Vector128Utilities.SupportsShiftByte)
+            if (Vector128.IsHardwareAccelerated && Vector128_.SupportsShuffleByte && Vector128_.SupportsShiftByte)
             {
                 int remainder = source.Length % (Vector128<byte>.Count * 3);
 
@@ -223,7 +223,7 @@ internal static partial class SimdUtils
             ref Span<byte> destination,
             [ConstantExpected] byte control)
         {
-            if (Vector128.IsHardwareAccelerated && Vector128Utilities.SupportsShuffleByte && Vector128Utilities.SupportsShiftByte)
+            if (Vector128.IsHardwareAccelerated && Vector128_.SupportsShuffleByte && Vector128_.SupportsShiftByte)
             {
                 int remainder = source.Length & ((Vector128<byte>.Count * 4) - 1);    // bit-hack for modulo
 
@@ -249,7 +249,7 @@ internal static partial class SimdUtils
             Span<float> destination,
             [ConstantExpected] byte control)
         {
-            if (Vector512.IsHardwareAccelerated && Vector512Utilities.SupportsShuffleFloat)
+            if (Vector512.IsHardwareAccelerated && Vector512_.SupportsShuffleFloat)
             {
                 ref Vector512<float> sourceBase = ref Unsafe.As<float, Vector512<float>>(ref MemoryMarshal.GetReference(source));
                 ref Vector512<float> destinationBase = ref Unsafe.As<float, Vector512<float>>(ref MemoryMarshal.GetReference(destination));
@@ -263,21 +263,21 @@ internal static partial class SimdUtils
                     ref Vector512<float> vs0 = ref Unsafe.Add(ref sourceBase, i);
                     ref Vector512<float> vd0 = ref Unsafe.Add(ref destinationBase, i);
 
-                    vd0 = Vector512Utilities.Shuffle(vs0, control);
-                    Unsafe.Add(ref vd0, (nuint)1) = Vector512Utilities.Shuffle(Unsafe.Add(ref vs0, (nuint)1), control);
-                    Unsafe.Add(ref vd0, (nuint)2) = Vector512Utilities.Shuffle(Unsafe.Add(ref vs0, (nuint)2), control);
-                    Unsafe.Add(ref vd0, (nuint)3) = Vector512Utilities.Shuffle(Unsafe.Add(ref vs0, (nuint)3), control);
+                    vd0 = Vector512_.Shuffle(vs0, control);
+                    Unsafe.Add(ref vd0, (nuint)1) = Vector512_.Shuffle(Unsafe.Add(ref vs0, (nuint)1), control);
+                    Unsafe.Add(ref vd0, (nuint)2) = Vector512_.Shuffle(Unsafe.Add(ref vs0, (nuint)2), control);
+                    Unsafe.Add(ref vd0, (nuint)3) = Vector512_.Shuffle(Unsafe.Add(ref vs0, (nuint)3), control);
                 }
 
                 if (m > 0)
                 {
                     for (nuint i = u; i < n; i++)
                     {
-                        Unsafe.Add(ref destinationBase, i) = Vector512Utilities.Shuffle(Unsafe.Add(ref sourceBase, i), control);
+                        Unsafe.Add(ref destinationBase, i) = Vector512_.Shuffle(Unsafe.Add(ref sourceBase, i), control);
                     }
                 }
             }
-            else if (Vector256.IsHardwareAccelerated && Vector256Utilities.SupportsShuffleFloat)
+            else if (Vector256.IsHardwareAccelerated && Vector256_.SupportsShuffleFloat)
             {
                 ref Vector256<float> sourceBase = ref Unsafe.As<float, Vector256<float>>(ref MemoryMarshal.GetReference(source));
                 ref Vector256<float> destinationBase = ref Unsafe.As<float, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
@@ -291,21 +291,21 @@ internal static partial class SimdUtils
                     ref Vector256<float> vs0 = ref Unsafe.Add(ref sourceBase, i);
                     ref Vector256<float> vd0 = ref Unsafe.Add(ref destinationBase, i);
 
-                    vd0 = Vector256Utilities.Shuffle(vs0, control);
-                    Unsafe.Add(ref vd0, (nuint)1) = Vector256Utilities.Shuffle(Unsafe.Add(ref vs0, (nuint)1), control);
-                    Unsafe.Add(ref vd0, (nuint)2) = Vector256Utilities.Shuffle(Unsafe.Add(ref vs0, (nuint)2), control);
-                    Unsafe.Add(ref vd0, (nuint)3) = Vector256Utilities.Shuffle(Unsafe.Add(ref vs0, (nuint)3), control);
+                    vd0 = Vector256_.Shuffle(vs0, control);
+                    Unsafe.Add(ref vd0, (nuint)1) = Vector256_.Shuffle(Unsafe.Add(ref vs0, (nuint)1), control);
+                    Unsafe.Add(ref vd0, (nuint)2) = Vector256_.Shuffle(Unsafe.Add(ref vs0, (nuint)2), control);
+                    Unsafe.Add(ref vd0, (nuint)3) = Vector256_.Shuffle(Unsafe.Add(ref vs0, (nuint)3), control);
                 }
 
                 if (m > 0)
                 {
                     for (nuint i = u; i < n; i++)
                     {
-                        Unsafe.Add(ref destinationBase, i) = Vector256Utilities.Shuffle(Unsafe.Add(ref sourceBase, i), control);
+                        Unsafe.Add(ref destinationBase, i) = Vector256_.Shuffle(Unsafe.Add(ref sourceBase, i), control);
                     }
                 }
             }
-            else if (Vector128.IsHardwareAccelerated && Vector128Utilities.SupportsShuffleFloat)
+            else if (Vector128.IsHardwareAccelerated && Vector128_.SupportsShuffleFloat)
             {
                 ref Vector128<float> sourceBase = ref Unsafe.As<float, Vector128<float>>(ref MemoryMarshal.GetReference(source));
                 ref Vector128<float> destinationBase = ref Unsafe.As<float, Vector128<float>>(ref MemoryMarshal.GetReference(destination));
@@ -319,17 +319,17 @@ internal static partial class SimdUtils
                     ref Vector128<float> vs0 = ref Unsafe.Add(ref sourceBase, i);
                     ref Vector128<float> vd0 = ref Unsafe.Add(ref destinationBase, i);
 
-                    vd0 = Vector128Utilities.Shuffle(vs0, control);
-                    Unsafe.Add(ref vd0, (nuint)1) = Vector128Utilities.Shuffle(Unsafe.Add(ref vs0, (nuint)1), control);
-                    Unsafe.Add(ref vd0, (nuint)2) = Vector128Utilities.Shuffle(Unsafe.Add(ref vs0, (nuint)2), control);
-                    Unsafe.Add(ref vd0, (nuint)3) = Vector128Utilities.Shuffle(Unsafe.Add(ref vs0, (nuint)3), control);
+                    vd0 = Vector128_.Shuffle(vs0, control);
+                    Unsafe.Add(ref vd0, (nuint)1) = Vector128_.Shuffle(Unsafe.Add(ref vs0, (nuint)1), control);
+                    Unsafe.Add(ref vd0, (nuint)2) = Vector128_.Shuffle(Unsafe.Add(ref vs0, (nuint)2), control);
+                    Unsafe.Add(ref vd0, (nuint)3) = Vector128_.Shuffle(Unsafe.Add(ref vs0, (nuint)3), control);
                 }
 
                 if (m > 0)
                 {
                     for (nuint i = u; i < n; i++)
                     {
-                        Unsafe.Add(ref destinationBase, i) = Vector128Utilities.Shuffle(Unsafe.Add(ref sourceBase, i), control);
+                        Unsafe.Add(ref destinationBase, i) = Vector128_.Shuffle(Unsafe.Add(ref sourceBase, i), control);
                     }
                 }
             }
@@ -341,7 +341,7 @@ internal static partial class SimdUtils
             Span<byte> destination,
             [ConstantExpected] byte control)
         {
-            if (Vector512.IsHardwareAccelerated && Vector512Utilities.SupportsShuffleByte)
+            if (Vector512.IsHardwareAccelerated && Vector512_.SupportsShuffleByte)
             {
                 Span<byte> temp = stackalloc byte[Vector512<byte>.Count];
                 Shuffle.MMShuffleSpan(ref temp, control);
@@ -359,21 +359,21 @@ internal static partial class SimdUtils
                     ref Vector512<byte> vs0 = ref Unsafe.Add(ref sourceBase, i);
                     ref Vector512<byte> vd0 = ref Unsafe.Add(ref destinationBase, i);
 
-                    vd0 = Vector512Utilities.Shuffle(vs0, mask);
-                    Unsafe.Add(ref vd0, (nuint)1) = Vector512Utilities.Shuffle(Unsafe.Add(ref vs0, (nuint)1), mask);
-                    Unsafe.Add(ref vd0, (nuint)2) = Vector512Utilities.Shuffle(Unsafe.Add(ref vs0, (nuint)2), mask);
-                    Unsafe.Add(ref vd0, (nuint)3) = Vector512Utilities.Shuffle(Unsafe.Add(ref vs0, (nuint)3), mask);
+                    vd0 = Vector512_.Shuffle(vs0, mask);
+                    Unsafe.Add(ref vd0, (nuint)1) = Vector512_.Shuffle(Unsafe.Add(ref vs0, (nuint)1), mask);
+                    Unsafe.Add(ref vd0, (nuint)2) = Vector512_.Shuffle(Unsafe.Add(ref vs0, (nuint)2), mask);
+                    Unsafe.Add(ref vd0, (nuint)3) = Vector512_.Shuffle(Unsafe.Add(ref vs0, (nuint)3), mask);
                 }
 
                 if (m > 0)
                 {
                     for (nuint i = u; i < n; i++)
                     {
-                        Unsafe.Add(ref destinationBase, i) = Vector512Utilities.Shuffle(Unsafe.Add(ref sourceBase, i), mask);
+                        Unsafe.Add(ref destinationBase, i) = Vector512_.Shuffle(Unsafe.Add(ref sourceBase, i), mask);
                     }
                 }
             }
-            else if (Vector256.IsHardwareAccelerated && Vector256Utilities.SupportsShuffleByte)
+            else if (Vector256.IsHardwareAccelerated && Vector256_.SupportsShuffleByte)
             {
                 Span<byte> temp = stackalloc byte[Vector256<byte>.Count];
                 Shuffle.MMShuffleSpan(ref temp, control);
@@ -391,21 +391,21 @@ internal static partial class SimdUtils
                     ref Vector256<byte> vs0 = ref Unsafe.Add(ref sourceBase, i);
                     ref Vector256<byte> vd0 = ref Unsafe.Add(ref destinationBase, i);
 
-                    vd0 = Vector256Utilities.Shuffle(vs0, mask);
-                    Unsafe.Add(ref vd0, (nuint)1) = Vector256Utilities.Shuffle(Unsafe.Add(ref vs0, (nuint)1), mask);
-                    Unsafe.Add(ref vd0, (nuint)2) = Vector256Utilities.Shuffle(Unsafe.Add(ref vs0, (nuint)2), mask);
-                    Unsafe.Add(ref vd0, (nuint)3) = Vector256Utilities.Shuffle(Unsafe.Add(ref vs0, (nuint)3), mask);
+                    vd0 = Vector256_.Shuffle(vs0, mask);
+                    Unsafe.Add(ref vd0, (nuint)1) = Vector256_.Shuffle(Unsafe.Add(ref vs0, (nuint)1), mask);
+                    Unsafe.Add(ref vd0, (nuint)2) = Vector256_.Shuffle(Unsafe.Add(ref vs0, (nuint)2), mask);
+                    Unsafe.Add(ref vd0, (nuint)3) = Vector256_.Shuffle(Unsafe.Add(ref vs0, (nuint)3), mask);
                 }
 
                 if (m > 0)
                 {
                     for (nuint i = u; i < n; i++)
                     {
-                        Unsafe.Add(ref destinationBase, i) = Vector256Utilities.Shuffle(Unsafe.Add(ref sourceBase, i), mask);
+                        Unsafe.Add(ref destinationBase, i) = Vector256_.Shuffle(Unsafe.Add(ref sourceBase, i), mask);
                     }
                 }
             }
-            else if (Vector128.IsHardwareAccelerated && Vector128Utilities.SupportsShuffleByte)
+            else if (Vector128.IsHardwareAccelerated && Vector128_.SupportsShuffleByte)
             {
                 Span<byte> temp = stackalloc byte[Vector128<byte>.Count];
                 Shuffle.MMShuffleSpan(ref temp, control);
@@ -423,17 +423,17 @@ internal static partial class SimdUtils
                     ref Vector128<byte> vs0 = ref Unsafe.Add(ref sourceBase, i);
                     ref Vector128<byte> vd0 = ref Unsafe.Add(ref destinationBase, i);
 
-                    vd0 = Vector128Utilities.Shuffle(vs0, mask);
-                    Unsafe.Add(ref vd0, (nuint)1) = Vector128Utilities.Shuffle(Unsafe.Add(ref vs0, (nuint)1), mask);
-                    Unsafe.Add(ref vd0, (nuint)2) = Vector128Utilities.Shuffle(Unsafe.Add(ref vs0, (nuint)2), mask);
-                    Unsafe.Add(ref vd0, (nuint)3) = Vector128Utilities.Shuffle(Unsafe.Add(ref vs0, (nuint)3), mask);
+                    vd0 = Vector128_.Shuffle(vs0, mask);
+                    Unsafe.Add(ref vd0, (nuint)1) = Vector128_.Shuffle(Unsafe.Add(ref vs0, (nuint)1), mask);
+                    Unsafe.Add(ref vd0, (nuint)2) = Vector128_.Shuffle(Unsafe.Add(ref vs0, (nuint)2), mask);
+                    Unsafe.Add(ref vd0, (nuint)3) = Vector128_.Shuffle(Unsafe.Add(ref vs0, (nuint)3), mask);
                 }
 
                 if (m > 0)
                 {
                     for (nuint i = u; i < n; i++)
                     {
-                        Unsafe.Add(ref destinationBase, i) = Vector128Utilities.Shuffle(Unsafe.Add(ref sourceBase, i), mask);
+                        Unsafe.Add(ref destinationBase, i) = Vector128_.Shuffle(Unsafe.Add(ref sourceBase, i), mask);
                     }
                 }
             }
@@ -445,11 +445,11 @@ internal static partial class SimdUtils
             Span<byte> destination,
             [ConstantExpected] byte control)
         {
-            if (Vector128.IsHardwareAccelerated && Vector128Utilities.SupportsShuffleByte && Vector128Utilities.SupportsRightAlign)
+            if (Vector128.IsHardwareAccelerated && Vector128_.SupportsShuffleByte && Vector128_.SupportsRightAlign)
             {
                 Vector128<byte> maskPad4Nx16 = ShuffleMaskPad4Nx16();
                 Vector128<byte> maskSlice4Nx16 = ShuffleMaskSlice4Nx16();
-                Vector128<byte> maskE = Vector128Utilities.AlignRight(maskSlice4Nx16, maskSlice4Nx16, 12);
+                Vector128<byte> maskE = Vector128_.AlignRight(maskSlice4Nx16, maskSlice4Nx16, 12);
 
                 Span<byte> bytes = stackalloc byte[Vector128<byte>.Count];
                 Shuffle.MMShuffleSpan(ref bytes, control);
@@ -467,28 +467,28 @@ internal static partial class SimdUtils
                     Vector128<byte> v0 = vs;
                     Vector128<byte> v1 = Unsafe.Add(ref vs, (nuint)1);
                     Vector128<byte> v2 = Unsafe.Add(ref vs, (nuint)2);
-                    Vector128<byte> v3 = Vector128Utilities.ShiftRightBytesInVector(v2, 4);
+                    Vector128<byte> v3 = Vector128_.ShiftRightBytesInVector(v2, 4);
 
-                    v2 = Vector128Utilities.AlignRight(v2, v1, 8);
-                    v1 = Vector128Utilities.AlignRight(v1, v0, 12);
+                    v2 = Vector128_.AlignRight(v2, v1, 8);
+                    v1 = Vector128_.AlignRight(v1, v0, 12);
 
-                    v0 = Vector128Utilities.Shuffle(Vector128Utilities.Shuffle(v0, maskPad4Nx16), mask);
-                    v1 = Vector128Utilities.Shuffle(Vector128Utilities.Shuffle(v1, maskPad4Nx16), mask);
-                    v2 = Vector128Utilities.Shuffle(Vector128Utilities.Shuffle(v2, maskPad4Nx16), mask);
-                    v3 = Vector128Utilities.Shuffle(Vector128Utilities.Shuffle(v3, maskPad4Nx16), mask);
+                    v0 = Vector128_.Shuffle(Vector128_.Shuffle(v0, maskPad4Nx16), mask);
+                    v1 = Vector128_.Shuffle(Vector128_.Shuffle(v1, maskPad4Nx16), mask);
+                    v2 = Vector128_.Shuffle(Vector128_.Shuffle(v2, maskPad4Nx16), mask);
+                    v3 = Vector128_.Shuffle(Vector128_.Shuffle(v3, maskPad4Nx16), mask);
 
-                    v0 = Vector128Utilities.Shuffle(v0, maskE);
-                    v1 = Vector128Utilities.Shuffle(v1, maskSlice4Nx16);
-                    v2 = Vector128Utilities.Shuffle(v2, maskE);
-                    v3 = Vector128Utilities.Shuffle(v3, maskSlice4Nx16);
+                    v0 = Vector128_.Shuffle(v0, maskE);
+                    v1 = Vector128_.Shuffle(v1, maskSlice4Nx16);
+                    v2 = Vector128_.Shuffle(v2, maskE);
+                    v3 = Vector128_.Shuffle(v3, maskSlice4Nx16);
 
-                    v0 = Vector128Utilities.AlignRight(v1, v0, 4);
-                    v3 = Vector128Utilities.AlignRight(v3, v2, 12);
+                    v0 = Vector128_.AlignRight(v1, v0, 4);
+                    v3 = Vector128_.AlignRight(v3, v2, 12);
 
-                    v1 = Vector128Utilities.ShiftLeftBytesInVector(v1, 4);
-                    v2 = Vector128Utilities.ShiftRightBytesInVector(v2, 4);
+                    v1 = Vector128_.ShiftLeftBytesInVector(v1, 4);
+                    v2 = Vector128_.ShiftRightBytesInVector(v2, 4);
 
-                    v1 = Vector128Utilities.AlignRight(v2, v1, 8);
+                    v1 = Vector128_.AlignRight(v2, v1, 8);
 
                     ref Vector128<byte> vd = ref Unsafe.Add(ref destinationBase, i);
 
@@ -505,7 +505,7 @@ internal static partial class SimdUtils
             Span<byte> destination,
             [ConstantExpected] byte control)
         {
-            if (Vector128.IsHardwareAccelerated && Vector128Utilities.SupportsShuffleByte && Vector128Utilities.SupportsShiftByte)
+            if (Vector128.IsHardwareAccelerated && Vector128_.SupportsShuffleByte && Vector128_.SupportsShiftByte)
             {
                 Vector128<byte> maskPad4Nx16 = ShuffleMaskPad4Nx16();
                 Vector128<byte> fill = Vector128.Create(0xff000000ff000000ul).AsByte();
@@ -527,17 +527,17 @@ internal static partial class SimdUtils
                     ref Vector128<byte> v0 = ref Unsafe.Add(ref sourceBase, i);
                     Vector128<byte> v1 = Unsafe.Add(ref v0, 1);
                     Vector128<byte> v2 = Unsafe.Add(ref v0, 2);
-                    Vector128<byte> v3 = Vector128Utilities.ShiftRightBytesInVector(v2, 4);
+                    Vector128<byte> v3 = Vector128_.ShiftRightBytesInVector(v2, 4);
 
-                    v2 = Vector128Utilities.AlignRight(v2, v1, 8);
-                    v1 = Vector128Utilities.AlignRight(v1, v0, 12);
+                    v2 = Vector128_.AlignRight(v2, v1, 8);
+                    v1 = Vector128_.AlignRight(v1, v0, 12);
 
                     ref Vector128<byte> vd = ref Unsafe.Add(ref destinationBase, j);
 
-                    vd = Vector128Utilities.Shuffle(Vector128Utilities.Shuffle(v0, maskPad4Nx16) | fill, mask);
-                    Unsafe.Add(ref vd, 1) = Vector128Utilities.Shuffle(Vector128Utilities.Shuffle(v1, maskPad4Nx16) | fill, mask);
-                    Unsafe.Add(ref vd, 2) = Vector128Utilities.Shuffle(Vector128Utilities.Shuffle(v2, maskPad4Nx16) | fill, mask);
-                    Unsafe.Add(ref vd, 3) = Vector128Utilities.Shuffle(Vector128Utilities.Shuffle(v3, maskPad4Nx16) | fill, mask);
+                    vd = Vector128_.Shuffle(Vector128_.Shuffle(v0, maskPad4Nx16) | fill, mask);
+                    Unsafe.Add(ref vd, 1) = Vector128_.Shuffle(Vector128_.Shuffle(v1, maskPad4Nx16) | fill, mask);
+                    Unsafe.Add(ref vd, 2) = Vector128_.Shuffle(Vector128_.Shuffle(v2, maskPad4Nx16) | fill, mask);
+                    Unsafe.Add(ref vd, 3) = Vector128_.Shuffle(Vector128_.Shuffle(v3, maskPad4Nx16) | fill, mask);
                 }
             }
         }
@@ -548,10 +548,10 @@ internal static partial class SimdUtils
             Span<byte> destination,
             [ConstantExpected] byte control)
         {
-            if (Vector128.IsHardwareAccelerated && Vector128Utilities.SupportsShuffleByte && Vector128Utilities.SupportsShiftByte)
+            if (Vector128.IsHardwareAccelerated && Vector128_.SupportsShuffleByte && Vector128_.SupportsShiftByte)
             {
                 Vector128<byte> maskSlice4Nx16 = ShuffleMaskSlice4Nx16();
-                Vector128<byte> maskE = Vector128Utilities.AlignRight(maskSlice4Nx16, maskSlice4Nx16, 12);
+                Vector128<byte> maskE = Vector128_.AlignRight(maskSlice4Nx16, maskSlice4Nx16, 12);
 
                 Span<byte> temp = stackalloc byte[Vector128<byte>.Count];
                 Shuffle.MMShuffleSpan(ref temp, control);
@@ -574,18 +574,18 @@ internal static partial class SimdUtils
                     Vector128<byte> v2 = Unsafe.Add(ref vs, 2);
                     Vector128<byte> v3 = Unsafe.Add(ref vs, 3);
 
-                    v0 = Vector128Utilities.Shuffle(Vector128Utilities.Shuffle(v0, mask), maskE);
-                    v1 = Vector128Utilities.Shuffle(Vector128Utilities.Shuffle(v1, mask), maskSlice4Nx16);
-                    v2 = Vector128Utilities.Shuffle(Vector128Utilities.Shuffle(v2, mask), maskE);
-                    v3 = Vector128Utilities.Shuffle(Vector128Utilities.Shuffle(v3, mask), maskSlice4Nx16);
+                    v0 = Vector128_.Shuffle(Vector128_.Shuffle(v0, mask), maskE);
+                    v1 = Vector128_.Shuffle(Vector128_.Shuffle(v1, mask), maskSlice4Nx16);
+                    v2 = Vector128_.Shuffle(Vector128_.Shuffle(v2, mask), maskE);
+                    v3 = Vector128_.Shuffle(Vector128_.Shuffle(v3, mask), maskSlice4Nx16);
 
-                    v0 = Vector128Utilities.AlignRight(v1, v0, 4);
-                    v3 = Vector128Utilities.AlignRight(v3, v2, 12);
+                    v0 = Vector128_.AlignRight(v1, v0, 4);
+                    v3 = Vector128_.AlignRight(v3, v2, 12);
 
-                    v1 = Vector128Utilities.ShiftLeftBytesInVector(v1, 4);
-                    v2 = Vector128Utilities.ShiftRightBytesInVector(v2, 4);
+                    v1 = Vector128_.ShiftLeftBytesInVector(v1, 4);
+                    v2 = Vector128_.ShiftRightBytesInVector(v2, 4);
 
-                    v1 = Vector128Utilities.AlignRight(v2, v1, 8);
+                    v1 = Vector128_.AlignRight(v2, v1, 8);
 
                     ref Vector128<byte> vd = ref Unsafe.Add(ref destinationBase, j);
 
@@ -965,10 +965,10 @@ internal static partial class SimdUtils
                     Vector512<float> f2 = scale * Unsafe.Add(ref s, 2);
                     Vector512<float> f3 = scale * Unsafe.Add(ref s, 3);
 
-                    Vector512<int> w0 = Vector512Utilities.ConvertToInt32RoundToEven(f0);
-                    Vector512<int> w1 = Vector512Utilities.ConvertToInt32RoundToEven(f1);
-                    Vector512<int> w2 = Vector512Utilities.ConvertToInt32RoundToEven(f2);
-                    Vector512<int> w3 = Vector512Utilities.ConvertToInt32RoundToEven(f3);
+                    Vector512<int> w0 = Vector512_.ConvertToInt32RoundToEven(f0);
+                    Vector512<int> w1 = Vector512_.ConvertToInt32RoundToEven(f1);
+                    Vector512<int> w2 = Vector512_.ConvertToInt32RoundToEven(f2);
+                    Vector512<int> w3 = Vector512_.ConvertToInt32RoundToEven(f3);
 
                     Vector512<short> u0 = Avx512BW.PackSignedSaturate(w0, w1);
                     Vector512<short> u1 = Avx512BW.PackSignedSaturate(w2, w3);
@@ -999,10 +999,10 @@ internal static partial class SimdUtils
                     Vector256<float> f2 = scale * Unsafe.Add(ref s, 2);
                     Vector256<float> f3 = scale * Unsafe.Add(ref s, 3);
 
-                    Vector256<int> w0 = Vector256Utilities.ConvertToInt32RoundToEven(f0);
-                    Vector256<int> w1 = Vector256Utilities.ConvertToInt32RoundToEven(f1);
-                    Vector256<int> w2 = Vector256Utilities.ConvertToInt32RoundToEven(f2);
-                    Vector256<int> w3 = Vector256Utilities.ConvertToInt32RoundToEven(f3);
+                    Vector256<int> w0 = Vector256_.ConvertToInt32RoundToEven(f0);
+                    Vector256<int> w1 = Vector256_.ConvertToInt32RoundToEven(f1);
+                    Vector256<int> w2 = Vector256_.ConvertToInt32RoundToEven(f2);
+                    Vector256<int> w3 = Vector256_.ConvertToInt32RoundToEven(f3);
 
                     Vector256<short> u0 = Avx2.PackSignedSaturate(w0, w1);
                     Vector256<short> u1 = Avx2.PackSignedSaturate(w2, w3);
@@ -1033,15 +1033,15 @@ internal static partial class SimdUtils
                     Vector128<float> f2 = scale * Unsafe.Add(ref s, 2);
                     Vector128<float> f3 = scale * Unsafe.Add(ref s, 3);
 
-                    Vector128<int> w0 = Vector128Utilities.ConvertToInt32RoundToEven(f0);
-                    Vector128<int> w1 = Vector128Utilities.ConvertToInt32RoundToEven(f1);
-                    Vector128<int> w2 = Vector128Utilities.ConvertToInt32RoundToEven(f2);
-                    Vector128<int> w3 = Vector128Utilities.ConvertToInt32RoundToEven(f3);
+                    Vector128<int> w0 = Vector128_.ConvertToInt32RoundToEven(f0);
+                    Vector128<int> w1 = Vector128_.ConvertToInt32RoundToEven(f1);
+                    Vector128<int> w2 = Vector128_.ConvertToInt32RoundToEven(f2);
+                    Vector128<int> w3 = Vector128_.ConvertToInt32RoundToEven(f3);
 
-                    Vector128<short> u0 = Vector128Utilities.PackSignedSaturate(w0, w1);
-                    Vector128<short> u1 = Vector128Utilities.PackSignedSaturate(w2, w3);
+                    Vector128<short> u0 = Vector128_.PackSignedSaturate(w0, w1);
+                    Vector128<short> u1 = Vector128_.PackSignedSaturate(w2, w3);
 
-                    Unsafe.Add(ref destinationBase, i) = Vector128Utilities.PackUnsignedSaturate(u0, u1);
+                    Unsafe.Add(ref destinationBase, i) = Vector128_.PackUnsignedSaturate(u0, u1);
                 }
             }
         }

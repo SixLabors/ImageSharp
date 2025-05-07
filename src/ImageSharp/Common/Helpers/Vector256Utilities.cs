@@ -17,7 +17,9 @@ namespace SixLabors.ImageSharp.Common.Helpers;
 /// </list>
 /// Should only be used if the intrinsics are available.
 /// </summary>
-internal static class Vector256Utilities
+#pragma warning disable SA1649 // File name should match first type name
+internal static class Vector256_
+#pragma warning restore SA1649 // File name should match first type name
 {
     /// <summary>
     /// Gets a value indicating whether shuffle byte operations are supported.
@@ -151,6 +153,18 @@ internal static class Vector256Utilities
 
         return va + (vm0 * vm1);
     }
+
+    /// <summary>
+    /// Restricts a vector between a minimum and a maximum value.
+    /// </summary>
+    /// <typeparam name="T">The type of the elements in the vector.</typeparam>
+    /// <param name="value">The vector to restrict.</param>
+    /// <param name="min">The minimum value.</param>
+    /// <param name="max">The maximum value.</param>
+    /// <returns>The restricted <see cref="Vector256{T}"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<T> Clamp<T>(Vector256<T> value, Vector256<T> min, Vector256<T> max)
+        => Vector256.Min(Vector256.Max(value, min), max);
 
     [DoesNotReturn]
     private static void ThrowUnreachableException() => throw new UnreachableException();

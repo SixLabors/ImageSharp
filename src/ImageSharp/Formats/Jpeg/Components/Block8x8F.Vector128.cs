@@ -40,6 +40,36 @@ internal partial struct Block8x8F
         this.V7R = NormalizeAndRoundVector128(this.V7R.AsVector128(), off, max).AsVector4();
     }
 
+    /// <summary>
+    /// Loads values from <paramref name="source"/> using extended AVX2 intrinsics.
+    /// </summary>
+    /// <param name="source">The source <see cref="Block8x8"/></param>
+    public void LoadFromInt16ExtendedVector128(ref Block8x8 source)
+    {
+        DebugGuard.IsTrue(Vector128.IsHardwareAccelerated, "Vector128 support is required to run this operation!");
+
+        ref Vector128<short> srcBase = ref Unsafe.As<Block8x8, Vector128<short>>(ref source);
+        ref Vector128<float> destBase = ref Unsafe.As<Block8x8F, Vector128<float>>(ref this);
+
+        // Only 8 iterations, one per 128b short block
+        for (nuint i = 0; i < 8; i++)
+        {
+            Vector128<short> src = Unsafe.Add(ref srcBase, i);
+
+            // Step 1: Widen short -> int
+            Vector128<int> lower = Vector128.WidenLower(src); // lower 4 shorts -> 4 ints
+            Vector128<int> upper = Vector128.WidenUpper(src); // upper 4 shorts -> 4 ints
+
+            // Step 2: Convert int -> float
+            Vector128<float> lowerF = Vector128.ConvertToSingle(lower);
+            Vector128<float> upperF = Vector128.ConvertToSingle(upper);
+
+            // Step 3: Store to destination (this is 16 lanes -> two Vector128<float> blocks)
+            Unsafe.Add(ref destBase, (i * 2) + 0) = lowerF;
+            Unsafe.Add(ref destBase, (i * 2) + 1) = upperF;
+        }
+    }
+
     [MethodImpl(InliningOptions.ShortMethod)]
     private static Vector128<float> NormalizeAndRoundVector128(Vector128<float> value, Vector128<float> off, Vector128<float> max)
         => Vector128_.RoundToNearestInteger(Vector128_.Clamp(value + off, Vector128<float>.Zero, max));

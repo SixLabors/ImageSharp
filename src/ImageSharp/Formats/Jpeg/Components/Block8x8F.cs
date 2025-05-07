@@ -392,6 +392,11 @@ internal partial struct Block8x8F : IEquatable<Block8x8F>
             this.LoadFromInt16ExtendedAvx2(ref source);
             return;
         }
+        else if (Vector128.IsHardwareAccelerated)
+        {
+            this.LoadFromInt16ExtendedVector128(ref source);
+            return;
+        }
 
         this.LoadFromInt16Scalar(ref source);
     }

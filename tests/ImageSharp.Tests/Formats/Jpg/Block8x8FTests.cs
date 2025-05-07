@@ -55,7 +55,7 @@ public partial class Block8x8FTests : JpegFixture
             Times,
             () =>
             {
-                var block = default(Block8x8F);
+                Block8x8F block = default;
 
                 for (int i = 0; i < Block8x8F.Size; i++)
                 {
@@ -68,7 +68,7 @@ public partial class Block8x8FTests : JpegFixture
                     sum += block[i];
                 }
             });
-        Assert.Equal(sum, 64f * 63f * 0.5f);
+        Assert.Equal(64f * 63f * 0.5f, sum);
     }
 
     [Fact]
@@ -93,7 +93,7 @@ public partial class Block8x8FTests : JpegFixture
                     sum += block[i];
                 }
             });
-        Assert.Equal(sum, 64f * 63f * 0.5f);
+        Assert.Equal(64f * 63f * 0.5f, sum);
     }
 
     [Fact]
@@ -121,7 +121,7 @@ public partial class Block8x8FTests : JpegFixture
     }
 
     [Fact]
-    public void TransposeInplace()
+    public void TransposeInPlace()
     {
         static void RunTest()
         {
@@ -276,7 +276,7 @@ public partial class Block8x8FTests : JpegFixture
         float[] data = Create8x8RandomFloatData(-1000, 1000);
 
         Block8x8F source = Block8x8F.Load(data);
-        var dest = default(Block8x8);
+        Block8x8 dest = default;
 
         source.RoundInto(ref dest);
 
@@ -388,10 +388,31 @@ public partial class Block8x8FTests : JpegFixture
 
         short[] data = Create8x8ShortData();
 
-        var source = Block8x8.Load(data);
+        Block8x8 source = Block8x8.Load(data);
 
         Block8x8F dest = default;
         dest.LoadFromInt16Scalar(ref source);
+
+        for (int i = 0; i < Block8x8F.Size; i++)
+        {
+            Assert.Equal(data[i], dest[i]);
+        }
+    }
+
+    [Fact]
+    public void LoadFromUInt16ExtendedVector128()
+    {
+        if (this.SkipOnNonVector128Runner())
+        {
+            return;
+        }
+
+        short[] data = Create8x8ShortData();
+
+        Block8x8 source = Block8x8.Load(data);
+
+        Block8x8F dest = default;
+        dest.LoadFromInt16ExtendedVector128(ref source);
 
         for (int i = 0; i < Block8x8F.Size; i++)
         {
@@ -409,7 +430,7 @@ public partial class Block8x8FTests : JpegFixture
 
         short[] data = Create8x8ShortData();
 
-        var source = Block8x8.Load(data);
+        Block8x8 source = Block8x8.Load(data);
 
         Block8x8F dest = default;
         dest.LoadFromInt16ExtendedAvx2(ref source);

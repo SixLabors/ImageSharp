@@ -1012,9 +1012,9 @@ internal static partial class SimdUtils
                     Unsafe.Add(ref destinationBase, i) = b;
                 }
             }
-            else if (Sse2.IsSupported || AdvSimd.IsSupported)
+            else if (Vector128.IsHardwareAccelerated)
             {
-                // Sse, AdvSimd
+                // Sse, AdvSimd, etc.
                 DebugVerifySpanInput(source, destination, Vector128<byte>.Count);
 
                 nuint n = destination.Vector128Count<byte>();

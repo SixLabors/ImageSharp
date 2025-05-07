@@ -6,6 +6,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.Arm;
+using System.Runtime.Intrinsics.Wasm;
 using System.Runtime.Intrinsics.X86;
 
 namespace SixLabors.ImageSharp.Common.Helpers;
@@ -270,8 +271,16 @@ internal static class Vector128Utilities
             return AdvSimd.ExtractNarrowingSaturateUnsignedUpper(AdvSimd.ExtractNarrowingSaturateUnsignedLower(left), right);
         }
 
-        ThrowUnreachableException();
-        return default;
+        if (PackedSimd.IsSupported)
+        {
+            return PackedSimd.ConvertNarrowingSaturateUnsigned(left, right);
+        }
+
+        Vector128<short> min = Vector128.Create((short)byte.MinValue);
+        Vector128<short> max = Vector128.Create((short)byte.MaxValue);
+        Vector128<ushort> lefClamped = Clamp(left, min, max).AsUInt16();
+        Vector128<ushort> rightClamped = Clamp(right, min, max).AsUInt16();
+        return Vector128.Narrow(lefClamped, rightClamped);
     }
 
     /// <summary>
@@ -293,9 +302,29 @@ internal static class Vector128Utilities
             return AdvSimd.ExtractNarrowingSaturateUpper(AdvSimd.ExtractNarrowingSaturateLower(left), right);
         }
 
-        ThrowUnreachableException();
-        return default;
+        if (PackedSimd.IsSupported)
+        {
+            return PackedSimd.ConvertNarrowingSaturateSigned(left, right);
+        }
+
+        Vector128<int> min = Vector128.Create((int)short.MinValue);
+        Vector128<int> max = Vector128.Create((int)short.MaxValue);
+        Vector128<int> lefClamped = Clamp(left, min, max);
+        Vector128<int> rightClamped = Clamp(right, min, max);
+        return Vector128.Narrow(lefClamped, rightClamped);
     }
+
+    /// <summary
+    /// >Restricts a vector between a minimum and a maximum value.
+    /// </summary>
+    /// <typeparam name="T">The type of the elements in the vector.</typeparam>
+    /// <param name="value">The vector to restrict.</param>
+    /// <param name="min">The minimum value.</param>
+    /// <param name="max">The maximum value.</param>
+    /// <returns>The restricted <see cref="Vector128{T}"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector128<T> Clamp<T>(Vector128<T> value, Vector128<T> min, Vector128<T> max)
+        => Vector128.Min(Vector128.Max(value, min), max);
 
     [DoesNotReturn]
     private static void ThrowUnreachableException() => throw new UnreachableException();

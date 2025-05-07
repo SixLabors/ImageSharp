@@ -64,6 +64,7 @@ internal partial struct Block8x8F
 
         ref Vector128<short> destBase = ref Unsafe.As<Block8x8, Vector128<short>>(ref dest);
 
+        // TODO: We can use the v128 utilities for this.
         for (nuint i = 0; i < 16; i += 2)
         {
             Vector128<int> left = Sse2.ConvertToVector128Int32(Sse.Multiply(Unsafe.Add(ref aBase, i + 0), Unsafe.Add(ref bBase, i + 0)));

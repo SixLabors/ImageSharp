@@ -130,7 +130,7 @@ public partial class Block8x8FTests : JpegFixture
 
             Block8x8F block8x8 = Block8x8F.Load(Create8x8FloatData());
 
-            block8x8.TransposeInplace();
+            block8x8.TransposeInPlace();
 
             float[] actual = new float[64];
             block8x8.ScaledCopyTo(actual);

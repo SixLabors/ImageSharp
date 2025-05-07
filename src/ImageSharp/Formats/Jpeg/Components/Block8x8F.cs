@@ -159,17 +159,18 @@ internal partial struct Block8x8F : IEquatable<Block8x8F>
     [MethodImpl(InliningOptions.ShortMethod)]
     public void MultiplyInPlace(float value)
     {
-        if (Avx.IsSupported)
+        // TODO: Vector512
+        if (Vector256.IsHardwareAccelerated)
         {
             Vector256<float> valueVec = Vector256.Create(value);
-            this.V0 = Avx.Multiply(this.V0, valueVec);
-            this.V1 = Avx.Multiply(this.V1, valueVec);
-            this.V2 = Avx.Multiply(this.V2, valueVec);
-            this.V3 = Avx.Multiply(this.V3, valueVec);
-            this.V4 = Avx.Multiply(this.V4, valueVec);
-            this.V5 = Avx.Multiply(this.V5, valueVec);
-            this.V6 = Avx.Multiply(this.V6, valueVec);
-            this.V7 = Avx.Multiply(this.V7, valueVec);
+            this.V0 *= valueVec;
+            this.V1 *= valueVec;
+            this.V2 *= valueVec;
+            this.V3 *= valueVec;
+            this.V4 *= valueVec;
+            this.V5 *= valueVec;
+            this.V6 *= valueVec;
+            this.V7 *= valueVec;
         }
         else
         {
@@ -200,16 +201,17 @@ internal partial struct Block8x8F : IEquatable<Block8x8F>
     [MethodImpl(InliningOptions.ShortMethod)]
     public unsafe void MultiplyInPlace(ref Block8x8F other)
     {
-        if (Avx.IsSupported)
+        // TODO: Vector512
+        if (Vector256.IsHardwareAccelerated)
         {
-            this.V0 = Avx.Multiply(this.V0, other.V0);
-            this.V1 = Avx.Multiply(this.V1, other.V1);
-            this.V2 = Avx.Multiply(this.V2, other.V2);
-            this.V3 = Avx.Multiply(this.V3, other.V3);
-            this.V4 = Avx.Multiply(this.V4, other.V4);
-            this.V5 = Avx.Multiply(this.V5, other.V5);
-            this.V6 = Avx.Multiply(this.V6, other.V6);
-            this.V7 = Avx.Multiply(this.V7, other.V7);
+            this.V0 *= other.V0;
+            this.V1 *= other.V1;
+            this.V2 *= other.V2;
+            this.V3 *= other.V3;
+            this.V4 *= other.V4;
+            this.V5 *= other.V5;
+            this.V6 *= other.V6;
+            this.V7 *= other.V7;
         }
         else
         {
@@ -239,17 +241,18 @@ internal partial struct Block8x8F : IEquatable<Block8x8F>
     [MethodImpl(InliningOptions.ShortMethod)]
     public void AddInPlace(float value)
     {
-        if (Avx.IsSupported)
+        // TODO: Vector512
+        if (Vector256.IsHardwareAccelerated)
         {
             Vector256<float> valueVec = Vector256.Create(value);
-            this.V0 = Avx.Add(this.V0, valueVec);
-            this.V1 = Avx.Add(this.V1, valueVec);
-            this.V2 = Avx.Add(this.V2, valueVec);
-            this.V3 = Avx.Add(this.V3, valueVec);
-            this.V4 = Avx.Add(this.V4, valueVec);
-            this.V5 = Avx.Add(this.V5, valueVec);
-            this.V6 = Avx.Add(this.V6, valueVec);
-            this.V7 = Avx.Add(this.V7, valueVec);
+            this.V0 += valueVec;
+            this.V1 += valueVec;
+            this.V2 += valueVec;
+            this.V3 += valueVec;
+            this.V4 += valueVec;
+            this.V5 += valueVec;
+            this.V6 += valueVec;
+            this.V7 += valueVec;
         }
         else
         {
@@ -509,10 +512,10 @@ internal partial struct Block8x8F : IEquatable<Block8x8F>
     }
 
     /// <summary>
-    /// Transpose the block inplace.
+    /// Transpose the block in-place.
     /// </summary>
     [MethodImpl(InliningOptions.ShortMethod)]
-    public void TransposeInplace()
+    public void TransposeInPlace()
     {
         if (Avx.IsSupported)
         {
@@ -520,15 +523,15 @@ internal partial struct Block8x8F : IEquatable<Block8x8F>
         }
         else
         {
-            this.TransposeInplace_Scalar();
+            this.TransposeInPlace_Scalar();
         }
     }
 
     /// <summary>
-    /// Scalar inplace transpose implementation for <see cref="TransposeInplace"/>
+    /// Scalar in-place transpose implementation for <see cref="TransposeInPlace"/>
     /// </summary>
     [MethodImpl(InliningOptions.ShortMethod)]
-    private void TransposeInplace_Scalar()
+    private void TransposeInPlace_Scalar()
     {
         ref float elemRef = ref Unsafe.As<Block8x8F, float>(ref this);
 

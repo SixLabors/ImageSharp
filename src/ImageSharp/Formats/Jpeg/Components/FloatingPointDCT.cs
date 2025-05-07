@@ -77,7 +77,7 @@ internal static partial class FloatingPointDCT
 
         // Spectral macroblocks are transposed before quantization
         // so we must transpose quantization table
-        quantTable.TransposeInplace();
+        quantTable.TransposeInPlace();
     }
 
     /// <summary>
@@ -97,7 +97,7 @@ internal static partial class FloatingPointDCT
         // Spectral macroblocks are not transposed before quantization
         // Transpose is done after quantization at zig-zag stage
         // so we must transpose quantization table
-        quantTable.TransposeInplace();
+        quantTable.TransposeInPlace();
     }
 
     /// <summary>
@@ -155,7 +155,7 @@ internal static partial class FloatingPointDCT
         IDCT8x4_Vector4(ref transposedBlock.V0R);
 
         // Second pass - process rows
-        transposedBlock.TransposeInplace();
+        transposedBlock.TransposeInPlace();
         IDCT8x4_Vector4(ref transposedBlock.V0L);
         IDCT8x4_Vector4(ref transposedBlock.V0R);
 
@@ -225,7 +225,7 @@ internal static partial class FloatingPointDCT
         FDCT8x4_Vector4(ref block.V0R);
 
         // Second pass - process rows
-        block.TransposeInplace();
+        block.TransposeInPlace();
         FDCT8x4_Vector4(ref block.V0L);
         FDCT8x4_Vector4(ref block.V0R);
 

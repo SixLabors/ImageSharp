@@ -20,7 +20,7 @@ internal static partial class FloatingPointDCT
         FDCT8x8_1D_Avx(ref block);
 
         // Second pass - process rows
-        block.TransposeInplace();
+        block.TransposeInPlace();
         FDCT8x8_1D_Avx(ref block);
 
         // Applies 1D floating point FDCT inplace
@@ -81,7 +81,7 @@ internal static partial class FloatingPointDCT
         IDCT8x8_1D_Avx(ref transposedBlock);
 
         // Second pass - process rows
-        transposedBlock.TransposeInplace();
+        transposedBlock.TransposeInPlace();
         IDCT8x8_1D_Avx(ref transposedBlock);
 
         // Applies 1D floating point FDCT inplace

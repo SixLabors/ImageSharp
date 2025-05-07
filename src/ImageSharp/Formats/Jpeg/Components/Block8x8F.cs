@@ -282,10 +282,10 @@ internal partial struct Block8x8F : IEquatable<Block8x8F>
             MultiplyIntoInt16_Avx2(ref block, ref qt, ref dest);
             ZigZag.ApplyTransposingZigZagOrderingAvx2(ref dest);
         }
-        else if (Ssse3.IsSupported)
+        else if (Vector128.IsHardwareAccelerated)
         {
-            MultiplyIntoInt16_Sse2(ref block, ref qt, ref dest);
-            ZigZag.ApplyTransposingZigZagOrderingSsse3(ref dest);
+            MultiplyIntoInt16Vector128(ref block, ref qt, ref dest);
+            ZigZag.ApplyTransposingZigZagOrderingVector128(ref dest);
         }
         else
         {
@@ -387,7 +387,7 @@ internal partial struct Block8x8F : IEquatable<Block8x8F>
     [MethodImpl(InliningOptions.ShortMethod)]
     public void LoadFrom(ref Block8x8 source)
     {
-        if (SimdUtils.HasVector8)
+        if (Avx2.IsSupported)
         {
             this.LoadFromInt16ExtendedAvx2(ref source);
             return;
@@ -483,6 +483,7 @@ internal partial struct Block8x8F : IEquatable<Block8x8F>
     /// <param name="value">Value to compare to.</param>
     public bool EqualsToScalar(int value)
     {
+        // TODO: Can we provide a Vector128 implementation for this?
         if (Avx2.IsSupported)
         {
             const int equalityMask = unchecked((int)0b1111_1111_1111_1111_1111_1111_1111_1111);
@@ -585,10 +586,11 @@ internal partial struct Block8x8F : IEquatable<Block8x8F>
     {
         if (Avx.IsSupported)
         {
-            this.TransposeInplace_Avx();
+            this.TransposeInPlace_Avx();
         }
         else
         {
+            // TODO: Can we provide a Vector128 implementation for this?
             this.TransposeInPlace_Scalar();
         }
     }

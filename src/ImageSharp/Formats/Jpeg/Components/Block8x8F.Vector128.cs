@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
 using SixLabors.ImageSharp.Common.Helpers;
@@ -19,8 +20,8 @@ internal partial struct Block8x8F
     [MethodImpl(InliningOptions.ShortMethod)]
     public void NormalizeColorsAndRoundInPlaceVector128(float maximum)
     {
-        Vector128<float> off = Vector128.Create(MathF.Ceiling(maximum * 0.5F));
         Vector128<float> max = Vector128.Create(maximum);
+        Vector128<float> off = Vector128.Ceiling(max * .5F);
 
         this.V0L = NormalizeAndRoundVector128(this.V0L.AsVector128(), off, max).AsVector4();
         this.V0R = NormalizeAndRoundVector128(this.V0R.AsVector128(), off, max).AsVector4();

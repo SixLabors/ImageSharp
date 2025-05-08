@@ -488,18 +488,30 @@ internal partial struct Block8x8F : IEquatable<Block8x8F>
     /// <param name="value">Value to compare to.</param>
     public bool EqualsToScalar(int value)
     {
-        // TODO: Can we provide a Vector128 implementation for this?
-        if (Avx2.IsSupported)
+        if (Vector256.IsHardwareAccelerated)
         {
-            const int equalityMask = unchecked((int)0b1111_1111_1111_1111_1111_1111_1111_1111);
-
             Vector256<int> targetVector = Vector256.Create(value);
             ref Vector256<float> blockStride = ref this.V256_0;
 
             for (nuint i = 0; i < RowCount; i++)
             {
-                Vector256<int> areEqual = Avx2.CompareEqual(Avx.ConvertToVector256Int32WithTruncation(Unsafe.Add(ref this.V256_0, i)), targetVector);
-                if (Avx2.MoveMask(areEqual.AsByte()) != equalityMask)
+                if (!Vector256.EqualsAll(Vector256.ConvertToInt32(Unsafe.Add(ref this.V256_0, i)), targetVector))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        if (Vector128.IsHardwareAccelerated)
+        {
+            Vector128<int> targetVector = Vector128.Create(value);
+            ref Vector4 blockStride = ref this.V0L;
+
+            for (nuint i = 0; i < RowCount * 2; i++)
+            {
+                if (!Vector128.EqualsAll(Vector128.ConvertToInt32(Unsafe.Add(ref this.V0L, i).AsVector128()), targetVector))
                 {
                     return false;
                 }

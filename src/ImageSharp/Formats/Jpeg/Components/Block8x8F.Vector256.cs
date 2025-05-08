@@ -46,8 +46,8 @@ internal partial struct Block8x8F
     [MethodImpl(InliningOptions.ShortMethod)]
     public void NormalizeColorsAndRoundInPlaceVector256(float maximum)
     {
-        Vector256<float> off = Vector256.Create(MathF.Ceiling(maximum * 0.5F));
         Vector256<float> max = Vector256.Create(maximum);
+        Vector256<float> off = Vector256.Ceiling(max * .5F);
 
         this.V256_0 = NormalizeAndRoundVector256(this.V256_0, off, max);
         this.V256_1 = NormalizeAndRoundVector256(this.V256_1, off, max);

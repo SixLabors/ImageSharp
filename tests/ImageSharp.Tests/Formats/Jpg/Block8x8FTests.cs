@@ -462,7 +462,7 @@ public partial class Block8x8FTests : JpegFixture
         // 3. DisableAvx2 - call fallback code of float implementation
         FeatureTestRunner.RunWithHwIntrinsicsFeature(
             RunTest,
-            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX2);
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX | HwIntrinsics.DisableSSE);
     }
 
     [Theory]

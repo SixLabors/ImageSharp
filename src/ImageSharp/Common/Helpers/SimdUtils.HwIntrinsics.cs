@@ -620,29 +620,6 @@ internal static partial class SimdUtils
         }
 
         /// <summary>
-        /// Performs a multiplication and a subtraction of the <see cref="Vector256{Single}"/>.
-        /// TODO: Fix. The arguments are in a different order to the FMA intrinsic.
-        /// </summary>
-        /// <remarks>ret = (vm0 * vm1) - vs</remarks>
-        /// <param name="vs">The vector to subtract from the intermediate result.</param>
-        /// <param name="vm0">The first vector to multiply.</param>
-        /// <param name="vm1">The second vector to multiply.</param>
-        /// <returns>The <see cref="Vector256{T}"/>.</returns>
-        [MethodImpl(InliningOptions.ShortMethod)]
-        public static Vector256<float> MultiplySubtract(
-            Vector256<float> vs,
-            Vector256<float> vm0,
-            Vector256<float> vm1)
-        {
-            if (Fma.IsSupported)
-            {
-                return Fma.MultiplySubtract(vm1, vm0, vs);
-            }
-
-            return Avx.Subtract(Avx.Multiply(vm0, vm1), vs);
-        }
-
-        /// <summary>
         /// Performs a multiplication and a negated addition of the <see cref="Vector256{Single}"/>.
         /// </summary>
         /// <remarks>ret = c - (a * b)</remarks>

@@ -211,10 +211,10 @@ internal partial struct Block8x8
     }
 
     /// <summary>
-    /// Transpose the block inplace.
+    /// Transpose the block in place.
     /// </summary>
     [MethodImpl(InliningOptions.ShortMethod)]
-    public void TransposeInplace()
+    public void TransposeInPlace()
     {
         ref short elemRef = ref Unsafe.As<Block8x8, short>(ref this);
 

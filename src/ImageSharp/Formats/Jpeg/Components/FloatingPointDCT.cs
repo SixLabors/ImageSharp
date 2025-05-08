@@ -4,7 +4,7 @@
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Runtime.Intrinsics.X86;
+using System.Runtime.Intrinsics;
 
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components;
@@ -101,7 +101,7 @@ internal static partial class FloatingPointDCT
     }
 
     /// <summary>
-    /// Apply 2D floating point IDCT inplace.
+    /// Apply 2D floating point IDCT in place.
     /// </summary>
     /// <remarks>
     /// Input block must be dequantized with quantization table
@@ -110,9 +110,9 @@ internal static partial class FloatingPointDCT
     /// <param name="block">Input block.</param>
     public static void TransformIDCT(ref Block8x8F block)
     {
-        if (Avx.IsSupported)
+        if (Vector256.IsHardwareAccelerated)
         {
-            IDCT8x8_Avx(ref block);
+            IDCT8x8_Vector256(ref block);
         }
         else
         {
@@ -121,7 +121,7 @@ internal static partial class FloatingPointDCT
     }
 
     /// <summary>
-    /// Apply 2D floating point IDCT inplace.
+    /// Apply 2D floating point IDCT in place.
     /// </summary>
     /// <remarks>
     /// Input block must be quantized after this method with quantization
@@ -130,9 +130,9 @@ internal static partial class FloatingPointDCT
     /// <param name="block">Input block.</param>
     public static void TransformFDCT(ref Block8x8F block)
     {
-        if (Avx.IsSupported)
+        if (Vector256.IsHardwareAccelerated)
         {
-            FDCT8x8_Avx(ref block);
+            FDCT8x8_Vector256(ref block);
         }
         else
         {

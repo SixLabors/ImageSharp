@@ -141,6 +141,28 @@ internal static class Vector256_
     }
 
     /// <summary>
+    /// Performs a multiplication and a subtraction of the <see cref="Vector256{Single}"/>.
+    /// </summary>
+    /// <remarks>ret = (vm0 * vm1) - vs</remarks>
+    /// <param name="vs">The vector to subtract from the intermediate result.</param>
+    /// <param name="vm0">The first vector to multiply.</param>
+    /// <param name="vm1">The second vector to multiply.</param>
+    /// <returns>The <see cref="Vector256{T}"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<float> MultiplySubtract(
+        Vector256<float> vs,
+        Vector256<float> vm0,
+        Vector256<float> vm1)
+    {
+        if (Fma.IsSupported)
+        {
+            return Fma.MultiplySubtract(vm1, vm0, vs);
+        }
+
+        return (vm0 * vm1) - vs;
+    }
+
+    /// <summary>
     /// Packs signed 32-bit integers to signed 16-bit integers and saturates.
     /// </summary>
     /// <param name="left">The left hand source vector.</param>

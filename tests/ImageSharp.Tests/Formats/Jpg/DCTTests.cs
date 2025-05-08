@@ -62,7 +62,7 @@ public static class DCTTests
             FloatingPointDCT.AdjustToIDCT(ref dequantMatrix);
 
             // IDCT implementation tranforms blocks after transposition
-            srcBlock.TransposeInplace();
+            srcBlock.TransposeInPlace();
             srcBlock.MultiplyInPlace(ref dequantMatrix);
 
             // IDCT calculation
@@ -95,7 +95,7 @@ public static class DCTTests
             FloatingPointDCT.AdjustToIDCT(ref dequantMatrix);
 
             // IDCT implementation tranforms blocks after transposition
-            srcBlock.TransposeInplace();
+            srcBlock.TransposeInPlace();
             srcBlock.MultiplyInPlace(ref dequantMatrix);
 
             // IDCT calculation
@@ -136,7 +136,7 @@ public static class DCTTests
 
                 // testee
                 // IDCT implementation tranforms blocks after transposition
-                srcBlock.TransposeInplace();
+                srcBlock.TransposeInPlace();
                 FloatingPointDCT.TransformIDCT(ref srcBlock);
 
                 float[] actualDest = srcBlock.ToArray();
@@ -182,7 +182,7 @@ public static class DCTTests
 
             // testee
             // IDCT implementation tranforms blocks after transposition
-            srcBlock.TransposeInplace();
+            srcBlock.TransposeInPlace();
             ScaledFloatingPointDCT.TransformIDCT_4x4(ref srcBlock, ref dequantMatrix, NormalizationValue, MaxOutputValue);
 
             Span<float> expectedSpan = expectedDest.AsSpan();
@@ -243,7 +243,7 @@ public static class DCTTests
 
             // testee
             // IDCT implementation tranforms blocks after transposition
-            srcBlock.TransposeInplace();
+            srcBlock.TransposeInPlace();
             ScaledFloatingPointDCT.TransformIDCT_2x2(ref srcBlock, ref dequantMatrix, NormalizationValue, MaxOutputValue);
 
             Span<float> expectedSpan = expectedDest.AsSpan();
@@ -338,7 +338,7 @@ public static class DCTTests
                 // Second transpose call is done by Quantize step
                 // Do this manually here just to be complient to the reference implementation
                 FloatingPointDCT.TransformFDCT(ref block);
-                block.TransposeInplace();
+                block.TransposeInPlace();
 
                 // Part of the IDCT calculations is fused into the quantization step
                 // We must multiply input block with adjusted no-quantization matrix

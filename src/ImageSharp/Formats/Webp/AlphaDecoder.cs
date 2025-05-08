@@ -326,11 +326,11 @@ internal class AlphaDecoder : IDisposable
             {
                 Vector128<long> a0 = Vector128.Create(Unsafe.As<byte, long>(ref Unsafe.Add(ref srcRef, i)), 0);
                 Vector128<byte> a1 = a0.AsByte() + last.AsByte();
-                Vector128<byte> a2 = Vector128Utilities.ShiftLeftBytesInVector(a1, 1);
+                Vector128<byte> a2 = Vector128_.ShiftLeftBytesInVector(a1, 1);
                 Vector128<byte> a3 = a1 + a2;
-                Vector128<byte> a4 = Vector128Utilities.ShiftLeftBytesInVector(a3, 2);
+                Vector128<byte> a4 = Vector128_.ShiftLeftBytesInVector(a3, 2);
                 Vector128<byte> a5 = a3 + a4;
-                Vector128<byte> a6 = Vector128Utilities.ShiftLeftBytesInVector(a5, 4);
+                Vector128<byte> a6 = Vector128_.ShiftLeftBytesInVector(a5, 4);
                 Vector128<byte> a7 = a5 + a6;
 
                 ref byte outputRef = ref Unsafe.Add(ref dstRef, i);

@@ -32,7 +32,7 @@ public class Block8x8F_LoadFromInt16
     public void Scalar() => this.destination.LoadFromInt16Scalar(ref this.source);
 
     [Benchmark]
-    public void ExtendedAvx2() => this.destination.LoadFromInt16ExtendedAvx2(ref this.source);
+    public void ExtendedAvx2() => this.destination.LoadFromInt16ExtendedVector256(ref this.source);
 
     // RESULT:
     //        Method |     Mean |     Error |    StdDev | Scaled |

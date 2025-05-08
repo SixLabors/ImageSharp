@@ -1,6 +1,9 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
@@ -17,11 +20,11 @@ internal static partial class ZigZag
 #pragma warning restore SA1309
 
     /// <summary>
-    /// Gets shuffle vectors for <see cref="ApplyTransposingZigZagOrderingSsse3"/>
+    /// Gets shuffle vectors for <see cref="ApplyTransposingZigZagOrderingVector128"/>
     /// zig zag implementation.
     /// </summary>
-    private static ReadOnlySpan<byte> SseShuffleMasks => new byte[]
-    {
+    private static ReadOnlySpan<byte> SseShuffleMasks =>
+    [
 #pragma warning disable SA1515
         /* row0 - A0 B0 A1 A2 B1 C0 D0 C1 */
         // A
@@ -83,14 +86,14 @@ internal static partial class ZigZag
         // H
         _,  _, _, _,  _,  _,  _,  _, 10, 11, 12, 13,  _,  _, 14, 15,
 #pragma warning restore SA1515
-    };
+    ];
 
     /// <summary>
     /// Gets shuffle vectors for <see cref="ApplyTransposingZigZagOrderingAvx2"/>
     /// zig zag implementation.
     /// </summary>
-    private static ReadOnlySpan<byte> AvxShuffleMasks => new byte[]
-    {
+    private static ReadOnlySpan<byte> AvxShuffleMasks =>
+    [
 #pragma warning disable SA1515
         /* 01 */
         // [cr] crln_01_AB_CD
@@ -138,15 +141,15 @@ internal static partial class ZigZag
         // (in) GH
         _, _, _, _,   _, _, _, _,   0, 1, 10, 11,   12, 13, 2, 3,   _, _, _, _,   _, _, 0, 1,   6, 7, 8, 9,   2, 3, 10, 11,
 #pragma warning restore SA1515
-    };
+    ];
 
     /// <summary>
-    /// Applies zig zag ordering for given 8x8 matrix using SSE cpu intrinsics.
+    /// Applies zig zag ordering for given 8x8 matrix using <see cref="Vector128{T}"/> cpu intrinsics.
     /// </summary>
     /// <param name="block">Input matrix.</param>
-    public static unsafe void ApplyTransposingZigZagOrderingSsse3(ref Block8x8 block)
+    public static unsafe void ApplyTransposingZigZagOrderingVector128(ref Block8x8 block)
     {
-        DebugGuard.IsTrue(Ssse3.IsSupported, "Ssse3 support is required to run this operation!");
+        DebugGuard.IsTrue(Vector128.IsHardwareAccelerated, "Vector128 support is required to run this operation!");
 
         fixed (byte* shuffleVectorsPtr = &MemoryMarshal.GetReference(SseShuffleMasks))
         {
@@ -160,68 +163,68 @@ internal static partial class ZigZag
             Vector128<byte> rowH = block.V7.AsByte();
 
             // row0 - A0 B0 A1 A2 B1 C0 D0 C1
-            Vector128<short> row0_A = Ssse3.Shuffle(rowA, Sse2.LoadVector128(shuffleVectorsPtr + (16 * 0))).AsInt16();
-            Vector128<short> row0_B = Ssse3.Shuffle(rowB, Sse2.LoadVector128(shuffleVectorsPtr + (16 * 1))).AsInt16();
-            Vector128<short> row0_C = Ssse3.Shuffle(rowC, Sse2.LoadVector128(shuffleVectorsPtr + (16 * 2))).AsInt16();
-            Vector128<short> row0 = Sse2.Or(Sse2.Or(row0_A, row0_B), row0_C);
-            row0 = Sse2.Insert(row0.AsUInt16(), Sse2.Extract(rowD.AsUInt16(), 0), 6).AsInt16();
+            Vector128<short> row0_A = ZShuffle(rowA, Vector128.Load(shuffleVectorsPtr + (16 * 0))).AsInt16();
+            Vector128<short> row0_B = ZShuffle(rowB, Vector128.Load(shuffleVectorsPtr + (16 * 1))).AsInt16();
+            Vector128<short> row0_C = ZShuffle(rowC, Vector128.Load(shuffleVectorsPtr + (16 * 2))).AsInt16();
+            Vector128<short> row0 = row0_A | row0_B | row0_C;
+            row0 = row0.AsUInt16().WithElement(6, rowD.AsUInt16().GetElement(0)).AsInt16();
 
             // row1 - B2 A3 A4 B3 C2 D1 E0 F0
-            Vector128<short> row1_A = Ssse3.Shuffle(rowA, Sse2.LoadVector128(shuffleVectorsPtr + (16 * 3))).AsInt16();
-            Vector128<short> row1_B = Ssse3.Shuffle(rowB, Sse2.LoadVector128(shuffleVectorsPtr + (16 * 4))).AsInt16();
-            Vector128<short> row1 = Sse2.Or(row1_A, row1_B);
-            row1 = Sse2.Insert(row1.AsUInt16(), Sse2.Extract(rowC.AsUInt16(), 2), 4).AsInt16();
-            row1 = Sse2.Insert(row1.AsUInt16(), Sse2.Extract(rowD.AsUInt16(), 1), 5).AsInt16();
-            row1 = Sse2.Insert(row1.AsUInt16(), Sse2.Extract(rowE.AsUInt16(), 0), 6).AsInt16();
-            row1 = Sse2.Insert(row1.AsUInt16(), Sse2.Extract(rowF.AsUInt16(), 0), 7).AsInt16();
+            Vector128<short> row1_A = ZShuffle(rowA, Vector128.Load(shuffleVectorsPtr + (16 * 3))).AsInt16();
+            Vector128<short> row1_B = ZShuffle(rowB, Vector128.Load(shuffleVectorsPtr + (16 * 4))).AsInt16();
+            Vector128<short> row1 = row1_A | row1_B;
+            row1 = row1.AsUInt16().WithElement(4, rowC.AsUInt16().GetElement(2)).AsInt16();
+            row1 = row1.AsUInt16().WithElement(5, rowD.AsUInt16().GetElement(1)).AsInt16();
+            row1 = row1.AsUInt16().WithElement(6, rowE.AsUInt16().GetElement(0)).AsInt16();
+            row1 = row1.AsUInt16().WithElement(7, rowF.AsUInt16().GetElement(0)).AsInt16();
 
             // row2 - E1 D2 C3 B4 A5 A6 B5 C4
-            Vector128<short> row2_A = Ssse3.Shuffle(rowA, Sse2.LoadVector128(shuffleVectorsPtr + (16 * 5))).AsInt16();
-            Vector128<short> row2_B = Ssse3.Shuffle(rowB, Sse2.LoadVector128(shuffleVectorsPtr + (16 * 6))).AsInt16();
-            Vector128<short> row2_C = Ssse3.Shuffle(rowC, Sse2.LoadVector128(shuffleVectorsPtr + (16 * 7))).AsInt16();
-            Vector128<short> row2 = Sse2.Or(Sse2.Or(row2_A, row2_B), row2_C);
-            row2 = Sse2.Insert(row2.AsUInt16(), Sse2.Extract(rowD.AsUInt16(), 2), 1).AsInt16();
-            row2 = Sse2.Insert(row2.AsUInt16(), Sse2.Extract(rowE.AsUInt16(), 1), 0).AsInt16();
+            Vector128<short> row2_A = ZShuffle(rowA, Vector128.Load(shuffleVectorsPtr + (16 * 5))).AsInt16();
+            Vector128<short> row2_B = ZShuffle(rowB, Vector128.Load(shuffleVectorsPtr + (16 * 6))).AsInt16();
+            Vector128<short> row2_C = ZShuffle(rowC, Vector128.Load(shuffleVectorsPtr + (16 * 7))).AsInt16();
+            Vector128<short> row2 = row2_A | row2_B | row2_C;
+            row2 = row2.AsUInt16().WithElement(1, rowD.AsUInt16().GetElement(2)).AsInt16();
+            row2 = row2.AsUInt16().WithElement(0, rowE.AsUInt16().GetElement(1)).AsInt16();
 
             // row3 - D3 E2 F1 G0 H0 G1 F2 E3
-            Vector128<short> row3_E = Ssse3.Shuffle(rowE, Sse2.LoadVector128(shuffleVectorsPtr + (16 * 8))).AsInt16();
-            Vector128<short> row3_F = Ssse3.Shuffle(rowF, Sse2.LoadVector128(shuffleVectorsPtr + (16 * 9))).AsInt16();
-            Vector128<short> row3_G = Ssse3.Shuffle(rowG, Sse2.LoadVector128(shuffleVectorsPtr + (16 * 10))).AsInt16();
-            Vector128<short> row3 = Sse2.Or(Sse2.Or(row3_E, row3_F), row3_G);
-            row3 = Sse2.Insert(row3.AsUInt16(), Sse2.Extract(rowD.AsUInt16(), 3), 0).AsInt16();
-            row3 = Sse2.Insert(row3.AsUInt16(), Sse2.Extract(rowH.AsUInt16(), 0), 4).AsInt16();
+            Vector128<short> row3_E = ZShuffle(rowE, Vector128.Load(shuffleVectorsPtr + (16 * 8))).AsInt16();
+            Vector128<short> row3_F = ZShuffle(rowF, Vector128.Load(shuffleVectorsPtr + (16 * 9))).AsInt16();
+            Vector128<short> row3_G = ZShuffle(rowG, Vector128.Load(shuffleVectorsPtr + (16 * 10))).AsInt16();
+            Vector128<short> row3 = row3_E | row3_F | row3_G;
+            row3 = row3.AsUInt16().WithElement(0, rowD.AsUInt16().GetElement(3)).AsInt16();
+            row3 = row3.AsUInt16().WithElement(4, rowH.AsUInt16().GetElement(0)).AsInt16();
 
             // row4 - D4 C5 B6 A7 B7 C6 D5 E4
-            Vector128<short> row4_B = Ssse3.Shuffle(rowB, Sse2.LoadVector128(shuffleVectorsPtr + (16 * 11))).AsInt16();
-            Vector128<short> row4_C = Ssse3.Shuffle(rowC, Sse2.LoadVector128(shuffleVectorsPtr + (16 * 12))).AsInt16();
-            Vector128<short> row4_D = Ssse3.Shuffle(rowD, Sse2.LoadVector128(shuffleVectorsPtr + (16 * 13))).AsInt16();
-            Vector128<short> row4 = Sse2.Or(Sse2.Or(row4_B, row4_C), row4_D);
-            row4 = Sse2.Insert(row4.AsUInt16(), Sse2.Extract(rowA.AsUInt16(), 7), 3).AsInt16();
-            row4 = Sse2.Insert(row4.AsUInt16(), Sse2.Extract(rowE.AsUInt16(), 4), 7).AsInt16();
+            Vector128<short> row4_B = ZShuffle(rowB, Vector128.Load(shuffleVectorsPtr + (16 * 11))).AsInt16();
+            Vector128<short> row4_C = ZShuffle(rowC, Vector128.Load(shuffleVectorsPtr + (16 * 12))).AsInt16();
+            Vector128<short> row4_D = ZShuffle(rowD, Vector128.Load(shuffleVectorsPtr + (16 * 13))).AsInt16();
+            Vector128<short> row4 = row4_B | row4_C | row4_D;
+            row4 = row4.AsUInt16().WithElement(3, rowA.AsUInt16().GetElement(7)).AsInt16();
+            row4 = row4.AsUInt16().WithElement(7, rowE.AsUInt16().GetElement(4)).AsInt16();
 
             // row5 - F3 G2 H1 H2 G3 F4 E5 D6
-            Vector128<short> row5_F = Ssse3.Shuffle(rowF, Sse2.LoadVector128(shuffleVectorsPtr + (16 * 14))).AsInt16();
-            Vector128<short> row5_G = Ssse3.Shuffle(rowG, Sse2.LoadVector128(shuffleVectorsPtr + (16 * 15))).AsInt16();
-            Vector128<short> row5_H = Ssse3.Shuffle(rowH, Sse2.LoadVector128(shuffleVectorsPtr + (16 * 16))).AsInt16();
-            Vector128<short> row5 = Sse2.Or(Sse2.Or(row5_F, row5_G), row5_H);
-            row5 = Sse2.Insert(row5.AsUInt16(), Sse2.Extract(rowD.AsUInt16(), 6), 7).AsInt16();
-            row5 = Sse2.Insert(row5.AsUInt16(), Sse2.Extract(rowE.AsUInt16(), 5), 6).AsInt16();
+            Vector128<short> row5_F = ZShuffle(rowF, Vector128.Load(shuffleVectorsPtr + (16 * 14))).AsInt16();
+            Vector128<short> row5_G = ZShuffle(rowG, Vector128.Load(shuffleVectorsPtr + (16 * 15))).AsInt16();
+            Vector128<short> row5_H = ZShuffle(rowH, Vector128.Load(shuffleVectorsPtr + (16 * 16))).AsInt16();
+            Vector128<short> row5 = row5_F | row5_G | row5_H;
+            row5 = row5.AsUInt16().WithElement(7, rowD.AsUInt16().GetElement(6)).AsInt16();
+            row5 = row5.AsUInt16().WithElement(6, rowE.AsUInt16().GetElement(5)).AsInt16();
 
             // row6 - C7 D7 E6 F5 G4 H3 H4 G5
-            Vector128<short> row6_G = Ssse3.Shuffle(rowG, Sse2.LoadVector128(shuffleVectorsPtr + (16 * 17))).AsInt16();
-            Vector128<short> row6_H = Ssse3.Shuffle(rowH, Sse2.LoadVector128(shuffleVectorsPtr + (16 * 18))).AsInt16();
-            Vector128<short> row6 = Sse2.Or(row6_G, row6_H);
-            row6 = Sse2.Insert(row6.AsUInt16(), Sse2.Extract(rowC.AsUInt16(), 7), 0).AsInt16();
-            row6 = Sse2.Insert(row6.AsUInt16(), Sse2.Extract(rowD.AsUInt16(), 7), 1).AsInt16();
-            row6 = Sse2.Insert(row6.AsUInt16(), Sse2.Extract(rowE.AsUInt16(), 6), 2).AsInt16();
-            row6 = Sse2.Insert(row6.AsUInt16(), Sse2.Extract(rowF.AsUInt16(), 5), 3).AsInt16();
+            Vector128<short> row6_G = ZShuffle(rowG, Vector128.Load(shuffleVectorsPtr + (16 * 17))).AsInt16();
+            Vector128<short> row6_H = ZShuffle(rowH, Vector128.Load(shuffleVectorsPtr + (16 * 18))).AsInt16();
+            Vector128<short> row6 = row6_G | row6_H;
+            row6 = row6.AsUInt16().WithElement(0, rowC.AsUInt16().GetElement(7)).AsInt16();
+            row6 = row6.AsUInt16().WithElement(1, rowD.AsUInt16().GetElement(7)).AsInt16();
+            row6 = row6.AsUInt16().WithElement(2, rowE.AsUInt16().GetElement(6)).AsInt16();
+            row6 = row6.AsUInt16().WithElement(3, rowF.AsUInt16().GetElement(5)).AsInt16();
 
             // row7 - F6 E7 F7 G6 H5 H6 G7 H7
-            Vector128<short> row7_F = Ssse3.Shuffle(rowF, Sse2.LoadVector128(shuffleVectorsPtr + (16 * 19))).AsInt16();
-            Vector128<short> row7_G = Ssse3.Shuffle(rowG, Sse2.LoadVector128(shuffleVectorsPtr + (16 * 20))).AsInt16();
-            Vector128<short> row7_H = Ssse3.Shuffle(rowH, Sse2.LoadVector128(shuffleVectorsPtr + (16 * 21))).AsInt16();
-            Vector128<short> row7 = Sse2.Or(Sse2.Or(row7_F, row7_G), row7_H);
-            row7 = Sse2.Insert(row7.AsUInt16(), Sse2.Extract(rowE.AsUInt16(), 7), 1).AsInt16();
+            Vector128<short> row7_F = ZShuffle(rowF, Vector128.Load(shuffleVectorsPtr + (16 * 19))).AsInt16();
+            Vector128<short> row7_G = ZShuffle(rowG, Vector128.Load(shuffleVectorsPtr + (16 * 20))).AsInt16();
+            Vector128<short> row7_H = ZShuffle(rowH, Vector128.Load(shuffleVectorsPtr + (16 * 21))).AsInt16();
+            Vector128<short> row7 = row7_F | row7_G | row7_H;
+            row7 = row7.AsUInt16().WithElement(1, rowE.AsUInt16().GetElement(7)).AsInt16();
 
             block.V0 = row0;
             block.V1 = row1;
@@ -300,4 +303,20 @@ internal static partial class ZigZag
             block.V67 = row67.AsInt16();
         }
     }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static Vector128<byte> ZShuffle(Vector128<byte> source, Vector128<byte> mask)
+    {
+        // For x64 we use the SSSE3 shuffle intrinsic to avoid additional instructions. 3 vs 1.
+        if (Ssse3.IsSupported)
+        {
+            return Ssse3.Shuffle(source, mask);
+        }
+
+        // For ARM and WASM, codegen will be optimal.
+        return Vector128.Shuffle(source, mask);
+    }
+
+    [DoesNotReturn]
+    private static void ThrowUnreachableException() => throw new UnreachableException();
 }

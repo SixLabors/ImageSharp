@@ -4,7 +4,7 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
-using Vector512_ = SixLabors.ImageSharp.Common.Helpers.Vector512Utilities;
+using SixLabors.ImageSharp.Common.Helpers;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components;
 

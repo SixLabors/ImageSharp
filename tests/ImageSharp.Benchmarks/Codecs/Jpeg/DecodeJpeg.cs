@@ -8,6 +8,7 @@ using SixLabors.ImageSharp.Tests;
 
 namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg;
 
+[Config(typeof(Config.HwIntrinsics_SSE_AVX))]
 public class DecodeJpeg
 {
     private JpegDecoder decoder;
@@ -21,7 +22,7 @@ public class DecodeJpeg
         this.preloadedImageStream = new MemoryStream(bytes);
     }
 
-    private void GenericBechmark()
+    private void GenericBenchmark()
     {
         this.preloadedImageStream.Position = 0;
         using Image img = this.decoder.Decode(DecoderOptions.Default, this.preloadedImageStream);
@@ -51,16 +52,16 @@ public class DecodeJpeg
     }
 
     [Benchmark(Description = "Baseline 4:4:4 Interleaved")]
-    public void JpegBaselineInterleaved444() => this.GenericBechmark();
+    public void JpegBaselineInterleaved444() => this.GenericBenchmark();
 
     [Benchmark(Description = "Baseline 4:2:0 Interleaved")]
-    public void JpegBaselineInterleaved420() => this.GenericBechmark();
+    public void JpegBaselineInterleaved420() => this.GenericBenchmark();
 
     [Benchmark(Description = "Baseline 4:0:0 (grayscale)")]
-    public void JpegBaseline400() => this.GenericBechmark();
+    public void JpegBaseline400() => this.GenericBenchmark();
 
     [Benchmark(Description = "Progressive 4:2:0 Non-Interleaved")]
-    public void JpegProgressiveNonInterleaved420() => this.GenericBechmark();
+    public void JpegProgressiveNonInterleaved420() => this.GenericBenchmark();
 }
 
 /*

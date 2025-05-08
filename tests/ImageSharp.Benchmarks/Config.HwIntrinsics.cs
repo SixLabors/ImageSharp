@@ -34,6 +34,7 @@ public partial class Config
     // like `LZCNT`, `BMI1`, or `BMI2`
     // `EnableSSE3_4` is a legacy switch that exists for compat and is basically the same as `EnableSSE3`
     private const string EnableAES = "DOTNET_EnableAES";
+    private const string EnableAVX512F = "DOTNET_EnableAVX512F";
     private const string EnableAVX = "DOTNET_EnableAVX";
     private const string EnableAVX2 = "DOTNET_EnableAVX2";
     private const string EnableBMI1 = "DOTNET_EnableBMI1";
@@ -73,6 +74,38 @@ public partial class Config
             {
                 this.AddJob(Job.Default.WithRuntime(CoreRuntime.Core80)
                     .WithId("3. AVX"));
+            }
+        }
+    }
+
+    public class HwIntrinsics_SSE_AVX_AVX512F : Config
+    {
+        public HwIntrinsics_SSE_AVX_AVX512F()
+        {
+            this.AddJob(Job.Default.WithRuntime(CoreRuntime.Core80)
+                .WithEnvironmentVariables(
+                    new EnvironmentVariable(EnableHWIntrinsic, Off),
+                    new EnvironmentVariable(FeatureSIMD, Off))
+                .WithId("1. No HwIntrinsics").AsBaseline());
+
+            if (Sse.IsSupported)
+            {
+                this.AddJob(Job.Default.WithRuntime(CoreRuntime.Core80)
+                    .WithEnvironmentVariables(new EnvironmentVariable(EnableAVX, Off))
+                    .WithId("2. SSE"));
+            }
+
+            if (Avx.IsSupported)
+            {
+                this.AddJob(Job.Default.WithRuntime(CoreRuntime.Core80)
+                    .WithEnvironmentVariables(new EnvironmentVariable(EnableAVX512F, Off))
+                    .WithId("3. AVX"));
+            }
+
+            if (Avx512F.IsSupported)
+            {
+                this.AddJob(Job.Default.WithRuntime(CoreRuntime.Core80)
+                    .WithId("3. AVX512F"));
             }
         }
     }

@@ -14,7 +14,7 @@ public class Block8x8F_Transpose
     [Benchmark]
     public float TransposeInplace()
     {
-        this.source.TransposeInplace();
+        this.source.TransposeInPlace();
         return this.source[0];
     }
 

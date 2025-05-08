@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
@@ -60,109 +59,76 @@ internal partial struct Block8x8F
     }
 
     /// <summary>
-    /// Loads values from <paramref name="source"/> using extended AVX2 intrinsics.
+    /// Loads values from <paramref name="source"/> using <see cref="Vector256{T}"/> intrinsics.
     /// </summary>
     /// <param name="source">The source <see cref="Block8x8"/></param>
-    public void LoadFromInt16ExtendedAvx2(ref Block8x8 source)
+    public void LoadFromInt16ExtendedVector256(ref Block8x8 source)
     {
         DebugGuard.IsTrue(
-            Avx2.IsSupported,
-            "LoadFromUInt16ExtendedAvx2 only works on AVX2 compatible architecture!");
+            Vector256.IsHardwareAccelerated,
+            "LoadFromInt16ExtendedVector256 only works on Vector256 compatible architecture!");
 
         ref short sRef = ref Unsafe.As<Block8x8, short>(ref source);
         ref Vector256<float> dRef = ref Unsafe.As<Block8x8F, Vector256<float>>(ref this);
 
-        // Vector256<ushort>.Count == 16 on AVX2
+        // Vector256<ushort>.Count == 16
         // We can process 2 block rows in a single step
-        Vector256<int> top = Avx2.ConvertToVector256Int32(Vector128.LoadUnsafe(ref sRef));
-        Vector256<int> bottom = Avx2.ConvertToVector256Int32(Vector128.LoadUnsafe(ref sRef, (nuint)Vector256<int>.Count));
-        dRef = Avx.ConvertToVector256Single(top);
-        Unsafe.Add(ref dRef, 1) = Avx.ConvertToVector256Single(bottom);
+        Vector256<int> top = Vector256_.Widen(Vector128.LoadUnsafe(ref sRef));
+        Vector256<int> bottom = Vector256_.Widen(Vector128.LoadUnsafe(ref sRef, (nuint)Vector256<int>.Count));
+        dRef = Vector256.ConvertToSingle(top);
+        Unsafe.Add(ref dRef, 1) = Vector256.ConvertToSingle(bottom);
 
-        top = Avx2.ConvertToVector256Int32(Vector128.LoadUnsafe(ref sRef, (nuint)(Vector256<int>.Count * 2)));
-        bottom = Avx2.ConvertToVector256Int32(Vector128.LoadUnsafe(ref sRef, (nuint)(Vector256<int>.Count * 3)));
-        Unsafe.Add(ref dRef, 2) = Avx.ConvertToVector256Single(top);
-        Unsafe.Add(ref dRef, 3) = Avx.ConvertToVector256Single(bottom);
+        top = Vector256_.Widen(Vector128.LoadUnsafe(ref sRef, (nuint)(Vector256<int>.Count * 2)));
+        bottom = Vector256_.Widen(Vector128.LoadUnsafe(ref sRef, (nuint)(Vector256<int>.Count * 3)));
+        Unsafe.Add(ref dRef, 2) = Vector256.ConvertToSingle(top);
+        Unsafe.Add(ref dRef, 3) = Vector256.ConvertToSingle(bottom);
 
-        top = Avx2.ConvertToVector256Int32(Vector128.LoadUnsafe(ref sRef, (nuint)(Vector256<int>.Count * 4)));
-        bottom = Avx2.ConvertToVector256Int32(Vector128.LoadUnsafe(ref sRef, (nuint)(Vector256<int>.Count * 5)));
-        Unsafe.Add(ref dRef, 4) = Avx.ConvertToVector256Single(top);
-        Unsafe.Add(ref dRef, 5) = Avx.ConvertToVector256Single(bottom);
+        top = Vector256_.Widen(Vector128.LoadUnsafe(ref sRef, (nuint)(Vector256<int>.Count * 4)));
+        bottom = Vector256_.Widen(Vector128.LoadUnsafe(ref sRef, (nuint)(Vector256<int>.Count * 5)));
+        Unsafe.Add(ref dRef, 4) = Vector256.ConvertToSingle(top);
+        Unsafe.Add(ref dRef, 5) = Vector256.ConvertToSingle(bottom);
 
-        top = Avx2.ConvertToVector256Int32(Vector128.LoadUnsafe(ref sRef, (nuint)(Vector256<int>.Count * 6)));
-        bottom = Avx2.ConvertToVector256Int32(Vector128.LoadUnsafe(ref sRef, (nuint)(Vector256<int>.Count * 7)));
-        Unsafe.Add(ref dRef, 6) = Avx.ConvertToVector256Single(top);
-        Unsafe.Add(ref dRef, 7) = Avx.ConvertToVector256Single(bottom);
+        top = Vector256_.Widen(Vector128.LoadUnsafe(ref sRef, (nuint)(Vector256<int>.Count * 6)));
+        bottom = Vector256_.Widen(Vector128.LoadUnsafe(ref sRef, (nuint)(Vector256<int>.Count * 7)));
+        Unsafe.Add(ref dRef, 6) = Vector256.ConvertToSingle(top);
+        Unsafe.Add(ref dRef, 7) = Vector256.ConvertToSingle(bottom);
     }
 
     [MethodImpl(InliningOptions.ShortMethod)]
     private static Vector256<float> NormalizeAndRoundVector256(Vector256<float> value, Vector256<float> off, Vector256<float> max)
         => Vector256_.RoundToNearestInteger(Vector256_.Clamp(value + off, Vector256<float>.Zero, max));
 
-    private static unsafe void MultiplyIntoInt16_Avx2(ref Block8x8F a, ref Block8x8F b, ref Block8x8 dest)
+    private static unsafe void MultiplyIntoInt16Vector256(ref Block8x8F a, ref Block8x8F b, ref Block8x8 dest)
     {
-        DebugGuard.IsTrue(Avx2.IsSupported, "Avx2 support is required to run this operation!");
+        DebugGuard.IsTrue(Vector256.IsHardwareAccelerated, "Vector256 support is required to run this operation!");
 
         ref Vector256<float> aBase = ref a.V256_0;
         ref Vector256<float> bBase = ref b.V256_0;
-
         ref Vector256<short> destRef = ref dest.V01;
-        Vector256<int> multiplyIntoInt16ShuffleMask = Vector256.Create(0, 1, 4, 5, 2, 3, 6, 7);
 
         for (nuint i = 0; i < 8; i += 2)
         {
-            Vector256<int> row0 = Avx.ConvertToVector256Int32(Avx.Multiply(Unsafe.Add(ref aBase, i + 0), Unsafe.Add(ref bBase, i + 0)));
-            Vector256<int> row1 = Avx.ConvertToVector256Int32(Avx.Multiply(Unsafe.Add(ref aBase, i + 1), Unsafe.Add(ref bBase, i + 1)));
+            Vector256<int> row0 = Vector256_.ConvertToInt32RoundToEven(Unsafe.Add(ref aBase, i + 0) * Unsafe.Add(ref bBase, i + 0));
+            Vector256<int> row1 = Vector256_.ConvertToInt32RoundToEven(Unsafe.Add(ref aBase, i + 1) * Unsafe.Add(ref bBase, i + 1));
 
-            Vector256<short> row = Avx2.PackSignedSaturate(row0, row1);
-            row = Avx2.PermuteVar8x32(row.AsInt32(), multiplyIntoInt16ShuffleMask).AsInt16();
+            Vector256<short> row = Vector256_.PackSignedSaturate(row0, row1);
+            row = Vector256.Shuffle(row.AsInt32(), Vector256.Create(0, 1, 4, 5, 2, 3, 6, 7)).AsInt16();
 
             Unsafe.Add(ref destRef, i / 2) = row;
         }
     }
 
-    private void TransposeInPlace_Avx()
+    private void TransposeInPlaceVector256()
     {
         // https://stackoverflow.com/questions/25622745/transpose-an-8x8-float-using-avx-avx2/25627536#25627536
-        Vector256<float> r0 = Avx.InsertVector128(
-            this.V256_0,
-            Unsafe.As<Vector4, Vector128<float>>(ref this.V4L),
-            1);
-
-        Vector256<float> r1 = Avx.InsertVector128(
-           this.V256_1,
-           Unsafe.As<Vector4, Vector128<float>>(ref this.V5L),
-           1);
-
-        Vector256<float> r2 = Avx.InsertVector128(
-           this.V256_2,
-           Unsafe.As<Vector4, Vector128<float>>(ref this.V6L),
-           1);
-
-        Vector256<float> r3 = Avx.InsertVector128(
-           this.V256_3,
-           Unsafe.As<Vector4, Vector128<float>>(ref this.V7L),
-           1);
-
-        Vector256<float> r4 = Avx.InsertVector128(
-           Unsafe.As<Vector4, Vector128<float>>(ref this.V0R).ToVector256(),
-           Unsafe.As<Vector4, Vector128<float>>(ref this.V4R),
-           1);
-
-        Vector256<float> r5 = Avx.InsertVector128(
-           Unsafe.As<Vector4, Vector128<float>>(ref this.V1R).ToVector256(),
-           Unsafe.As<Vector4, Vector128<float>>(ref this.V5R),
-           1);
-
-        Vector256<float> r6 = Avx.InsertVector128(
-           Unsafe.As<Vector4, Vector128<float>>(ref this.V2R).ToVector256(),
-           Unsafe.As<Vector4, Vector128<float>>(ref this.V6R),
-           1);
-
-        Vector256<float> r7 = Avx.InsertVector128(
-           Unsafe.As<Vector4, Vector128<float>>(ref this.V3R).ToVector256(),
-           Unsafe.As<Vector4, Vector128<float>>(ref this.V7R),
-           1);
+        Vector256<float> r0 = this.V256_0.WithUpper(this.V4L.AsVector128());
+        Vector256<float> r1 = this.V256_1.WithUpper(this.V5L.AsVector128());
+        Vector256<float> r2 = this.V256_2.WithUpper(this.V6L.AsVector128());
+        Vector256<float> r3 = this.V256_3.WithUpper(this.V7L.AsVector128());
+        Vector256<float> r4 = this.V0R.AsVector128().ToVector256().WithUpper(this.V4R.AsVector128());
+        Vector256<float> r5 = this.V1R.AsVector128().ToVector256().WithUpper(this.V5R.AsVector128());
+        Vector256<float> r6 = this.V2R.AsVector128().ToVector256().WithUpper(this.V6R.AsVector128());
+        Vector256<float> r7 = this.V3R.AsVector128().ToVector256().WithUpper(this.V7R.AsVector128());
 
         Vector256<float> t0 = Avx.UnpackLow(r0, r1);
         Vector256<float> t2 = Avx.UnpackLow(r2, r3);

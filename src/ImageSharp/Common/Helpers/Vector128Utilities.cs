@@ -26,7 +26,7 @@ internal static class Vector128_
     /// <summary>
     /// Gets a value indicating whether shuffle operations are supported.
     /// </summary>
-    public static bool SupportsShuffleFloat
+    public static bool SupportsShuffleNativeFloat
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get => Sse.IsSupported;
@@ -35,10 +35,10 @@ internal static class Vector128_
     /// <summary>
     /// Gets a value indicating whether shuffle operations are supported.
     /// </summary>
-    public static bool SupportsShuffleByte
+    public static bool SupportsShuffleNativeByte
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => Ssse3.IsSupported || AdvSimd.Arm64.IsSupported;
+        get => Ssse3.IsSupported || AdvSimd.Arm64.IsSupported || PackedSimd.IsSupported;
     }
 
     /// <summary>
@@ -66,7 +66,7 @@ internal static class Vector128_
     /// <param name="control">The shuffle control byte.</param>
     /// <returns>The <see cref="Vector128{Single}"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector128<float> Shuffle(Vector128<float> vector, [ConstantExpected] byte control)
+    public static Vector128<float> ShuffleNative(Vector128<float> vector, [ConstantExpected] byte control)
     {
         if (Sse.IsSupported)
         {
@@ -89,7 +89,7 @@ internal static class Vector128_
     /// A new vector containing the values from <paramref name="vector" /> selected by the given <paramref name="indices" />.
     /// </returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector128<byte> Shuffle(Vector128<byte> vector, Vector128<byte> indices)
+    public static Vector128<byte> ShuffleNative(Vector128<byte> vector, Vector128<byte> indices)
     {
         if (Ssse3.IsSupported)
         {
@@ -99,6 +99,11 @@ internal static class Vector128_
         if (AdvSimd.Arm64.IsSupported)
         {
             return AdvSimd.Arm64.VectorTableLookup(vector, indices);
+        }
+
+        if (PackedSimd.IsSupported)
+        {
+            return PackedSimd.Swizzle(vector, indices);
         }
 
         ThrowUnreachableException();

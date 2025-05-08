@@ -433,7 +433,7 @@ public partial class Block8x8FTests : JpegFixture
         Block8x8 source = Block8x8.Load(data);
 
         Block8x8F dest = default;
-        dest.LoadFromInt16ExtendedAvx2(ref source);
+        dest.LoadFromInt16ExtendedVector256(ref source);
 
         for (int i = 0; i < Block8x8F.Size; i++)
         {

@@ -277,9 +277,9 @@ internal partial struct Block8x8F : IEquatable<Block8x8F>
     /// <param name="qt">The quantization table.</param>
     public static void Quantize(ref Block8x8F block, ref Block8x8 dest, ref Block8x8F qt)
     {
-        if (Avx2.IsSupported)
+        if (Vector256.IsHardwareAccelerated)
         {
-            MultiplyIntoInt16_Avx2(ref block, ref qt, ref dest);
+            MultiplyIntoInt16Vector256(ref block, ref qt, ref dest);
             ZigZag.ApplyTransposingZigZagOrderingAvx2(ref dest);
         }
         else if (Vector128.IsHardwareAccelerated)
@@ -387,9 +387,9 @@ internal partial struct Block8x8F : IEquatable<Block8x8F>
     [MethodImpl(InliningOptions.ShortMethod)]
     public void LoadFrom(ref Block8x8 source)
     {
-        if (Avx2.IsSupported)
+        if (Vector256.IsHardwareAccelerated)
         {
-            this.LoadFromInt16ExtendedAvx2(ref source);
+            this.LoadFromInt16ExtendedVector256(ref source);
             return;
         }
         else if (Vector128.IsHardwareAccelerated)
@@ -601,9 +601,9 @@ internal partial struct Block8x8F : IEquatable<Block8x8F>
     [MethodImpl(InliningOptions.ShortMethod)]
     public void TransposeInPlace()
     {
-        if (Avx.IsSupported)
+        if (Vector256.IsHardwareAccelerated)
         {
-            this.TransposeInPlace_Avx();
+            this.TransposeInPlaceVector256();
         }
         else
         {

@@ -24,10 +24,10 @@ internal static class Vector256_
     /// <summary>
     /// Gets a value indicating whether shuffle byte operations are supported.
     /// </summary>
-    public static bool SupportsShuffleFloat
+    public static bool SupportsShuffleNativeFloat
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => Avx.IsSupported || Sse.IsSupported;
+        get => Avx.IsSupported;
     }
 
     /// <summary>
@@ -46,18 +46,11 @@ internal static class Vector256_
     /// <param name="control">The shuffle control byte.</param>
     /// <returns>The <see cref="Vector256{Single}"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector256<float> Shuffle(Vector256<float> vector, [ConstantExpected] byte control)
+    public static Vector256<float> ShuffleNative(Vector256<float> vector, [ConstantExpected] byte control)
     {
         if (Avx.IsSupported)
         {
             return Avx.Shuffle(vector, vector, control);
-        }
-
-        if (Sse.IsSupported)
-        {
-            Vector128<float> lower = vector.GetLower();
-            Vector128<float> upper = vector.GetUpper();
-            return Vector256.Create(Sse.Shuffle(lower, lower, control), Sse.Shuffle(upper, upper, control));
         }
 
         ThrowUnreachableException();
@@ -73,7 +66,7 @@ internal static class Vector256_
     /// </param>
     /// <returns>The <see cref="Vector256{Single}"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector256<byte> Shuffle(Vector256<byte> vector, Vector256<byte> indices)
+    public static Vector256<byte> ShuffleNative(Vector256<byte> vector, Vector256<byte> indices)
     {
         if (Avx2.IsSupported)
         {
@@ -96,13 +89,6 @@ internal static class Vector256_
         if (Avx.IsSupported)
         {
             return Avx.ConvertToVector256Int32(vector);
-        }
-
-        if (Sse2.IsSupported)
-        {
-            Vector128<int> lower = Sse2.ConvertToVector128Int32(vector.GetLower());
-            Vector128<int> upper = Sse2.ConvertToVector128Int32(vector.GetUpper());
-            return Vector256.Create(lower, upper);
         }
 
         Vector256<float> sign = vector & Vector256.Create(-0F);
@@ -155,6 +141,27 @@ internal static class Vector256_
     }
 
     /// <summary>
+    /// Packs signed 32-bit integers to signed 16-bit integers and saturates.
+    /// </summary>
+    /// <param name="left">The left hand source vector.</param>
+    /// <param name="right">The right hand source vector.</param>
+    /// <returns>The <see cref="Vector256{Int16}"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<short> PackSignedSaturate(Vector256<int> left, Vector256<int> right)
+    {
+        if (Avx2.IsSupported)
+        {
+            return Avx2.PackSignedSaturate(left, right);
+        }
+
+        Vector256<int> min = Vector256.Create((int)short.MinValue);
+        Vector256<int> max = Vector256.Create((int)short.MaxValue);
+        Vector256<int> lefClamped = Clamp(left, min, max);
+        Vector256<int> rightClamped = Clamp(right, min, max);
+        return Vector256.Narrow(lefClamped, rightClamped);
+    }
+
+    /// <summary>
     /// Restricts a vector between a minimum and a maximum value.
     /// </summary>
     /// <typeparam name="T">The type of the elements in the vector.</typeparam>
@@ -165,6 +172,21 @@ internal static class Vector256_
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<T> Clamp<T>(Vector256<T> value, Vector256<T> min, Vector256<T> max)
         => Vector256.Min(Vector256.Max(value, min), max);
+
+    /// <summary>
+    /// Widens a <see cref="Vector128{Int16}"/> to a <see cref="Vector256{Int32}"/>.
+    /// </summary>
+    /// <param name="value">The vector to widen.</param>
+    /// <returns>The widened <see cref="Vector256{Int32}"/>.</returns>
+    public static Vector256<int> Widen(Vector128<short> value)
+    {
+        if (Avx2.IsSupported)
+        {
+            return Avx2.ConvertToVector256Int32(value);
+        }
+
+        return Vector256.WidenLower(value.ToVector256());
+    }
 
     [DoesNotReturn]
     private static void ThrowUnreachableException() => throw new UnreachableException();

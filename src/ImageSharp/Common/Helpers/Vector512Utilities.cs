@@ -24,16 +24,16 @@ internal static class Vector512_
     /// <summary>
     /// Gets a value indicating whether shuffle float operations are supported.
     /// </summary>
-    public static bool SupportsShuffleFloat
+    public static bool SupportsShuffleNativeFloat
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => Avx512F.IsSupported || Avx.IsSupported;
+        get => Avx512F.IsSupported;
     }
 
     /// <summary>
     /// Gets a value indicating whether shuffle byte operations are supported.
     /// </summary>
-    public static bool SupportsShuffleByte
+    public static bool SupportsShuffleNativeByte
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get => Avx512BW.IsSupported;
@@ -46,18 +46,11 @@ internal static class Vector512_
     /// <param name="control">The shuffle control byte.</param>
     /// <returns>The <see cref="Vector512{Single}"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector512<float> Shuffle(Vector512<float> vector, [ConstantExpected] byte control)
+    public static Vector512<float> ShuffleNative(Vector512<float> vector, [ConstantExpected] byte control)
     {
         if (Avx512F.IsSupported)
         {
             return Avx512F.Shuffle(vector, vector, control);
-        }
-
-        if (Avx.IsSupported)
-        {
-            Vector256<float> lower = vector.GetLower();
-            Vector256<float> upper = vector.GetUpper();
-            return Vector512.Create(Avx.Shuffle(lower, lower, control), Avx.Shuffle(upper, upper, control));
         }
 
         ThrowUnreachableException();
@@ -73,7 +66,7 @@ internal static class Vector512_
     /// </param>
     /// <returns>The <see cref="Vector512{Byte}"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector512<byte> Shuffle(Vector512<byte> vector, Vector512<byte> indices)
+    public static Vector512<byte> ShuffleNative(Vector512<byte> vector, Vector512<byte> indices)
     {
         if (Avx512BW.IsSupported)
         {

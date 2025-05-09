@@ -12,7 +12,7 @@ public class ColorProfileConverter
     /// Initializes a new instance of the <see cref="ColorProfileConverter"/> class.
     /// </summary>
     public ColorProfileConverter()
-    : this(new())
+        : this(new())
     {
     }
 

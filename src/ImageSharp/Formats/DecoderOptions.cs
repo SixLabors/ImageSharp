@@ -62,8 +62,9 @@ public sealed class DecoderOptions
 
     /// <summary>
     /// Gets a value that controls how ICC profiles are handled during decode.
+    /// TODO: Implement this.
     /// </summary>
-    public ColorProfileHandling ColorProfileHandling { get; init; }
+    internal ColorProfileHandling ColorProfileHandling { get; init; }
 
     internal void SetConfiguration(Configuration configuration) => this.configuration = configuration;
 }

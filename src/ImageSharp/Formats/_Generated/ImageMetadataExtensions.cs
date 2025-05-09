@@ -14,6 +14,7 @@ using SixLabors.ImageSharp.Formats.Qoi;
 using SixLabors.ImageSharp.Formats.Tga;
 using SixLabors.ImageSharp.Formats.Tiff;
 using SixLabors.ImageSharp.Formats.Webp;
+using SixLabors.ImageSharp.Formats.Ani;
 
 namespace SixLabors.ImageSharp;
 
@@ -101,6 +102,26 @@ public static class ImageMetadataExtensions
     /// <param name="source">The image metadata.</param>
     /// <returns>The new <see cref="IcoMetadata"/></returns>
     public static IcoMetadata CloneIcoMetadata(this ImageMetadata source) => source.CloneFormatMetadata(IcoFormat.Instance);
+
+    /// <summary>
+    /// Gets the <see cref="AniMetadata"/> from <paramref name="source"/>.<br/>
+    /// If none is found, an instance is created either by conversion from the decoded image format metadata
+    /// or the requested format default constructor.
+    /// This instance will be added to the metadata for future requests.
+    /// </summary>
+    /// <param name="source">The image metadata.</param>
+    /// <returns>
+    /// The <see cref="AniMetadata"/>
+    /// </returns>
+    public static AniMetadata GetAniMetadata(this ImageMetadata source) => source.GetFormatMetadata(AniFormat.Instance);
+
+    /// <summary>
+    /// Creates a new cloned instance of <see cref="IcoMetadata"/> from the <paramref name="source"/>.
+    /// The instance is created via <see cref="GetIcoMetadata(ImageMetadata)"/>
+    /// </summary>
+    /// <param name="source">The image metadata.</param>
+    /// <returns>The new <see cref="IcoMetadata"/></returns>
+    public static AniMetadata CloneAniMetadata(this ImageMetadata source) => source.CloneFormatMetadata(AniFormat.Instance);
 
     /// <summary>
     /// Gets the <see cref="JpegMetadata"/> from <paramref name="source"/>.<br/>
@@ -282,6 +303,26 @@ public static class ImageMetadataExtensions
     /// <param name="source">The image frame metadata.</param>
     /// <returns>The new <see cref="IcoFrameMetadata"/></returns>
     public static IcoFrameMetadata CloneIcoMetadata(this ImageFrameMetadata source) => source.CloneFormatMetadata(IcoFormat.Instance);
+
+    /// <summary>
+    /// Gets the <see cref="AniFrameMetadata"/> from <paramref name="source"/>.<br/>
+    /// If none is found, an instance is created either by conversion from the decoded image format metadata
+    /// or the requested format default constructor.
+    /// This instance will be added to the metadata for future requests.
+    /// </summary>
+    /// <param name="source">The image frame metadata.</param>
+    /// <returns>
+    /// The <see cref="IcoFrameMetadata"/>
+    /// </returns>
+    public static AniFrameMetadata GetAniMetadata(this ImageFrameMetadata source) => source.GetFormatMetadata(AniFormat.Instance);
+
+    /// <summary>
+    /// Creates a new cloned instance of <see cref="IcoMetadata"/> from the <paramref name="source"/>.
+    /// The instance is created via <see cref="GetAniMetadata(ImageFrameMetadata)"/>
+    /// </summary>
+    /// <param name="source">The image frame metadata.</param>
+    /// <returns>The new <see cref="IcoFrameMetadata"/></returns>
+    public static AniFrameMetadata CloneAniMetadata(this ImageFrameMetadata source) => source.CloneFormatMetadata(AniFormat.Instance);
 
     /// <summary>
     /// Gets the <see cref="GifFrameMetadata"/> from <paramref name="source"/>.<br/>

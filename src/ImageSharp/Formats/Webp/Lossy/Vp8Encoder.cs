@@ -517,7 +517,7 @@ internal class Vp8Encoder : IDisposable
 
             if (hasAnimation)
             {
-                RiffHelper.EndWriteChunk(stream, prevPosition);
+                RiffHelper.EndWriteChunk(stream, prevPosition, 2);
             }
         }
         finally

@@ -34,7 +34,6 @@ public readonly struct CieXyz : IProfileConnectingSpace<CieXyz, CieXyz>
     /// </summary>
     /// <param name="vector">The vector representing the x, y, z components.</param>
     public CieXyz(Vector3 vector)
-        : this()
     {
         this.X = vector.X;
         this.Y = vector.Y;

@@ -37,7 +37,6 @@ public readonly struct CieLuv : IColorProfile<CieLuv, CieXyz>
     /// <param name="vector">The vector representing the l, u, v components.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public CieLuv(Vector3 vector)
-        : this()
     {
         this.L = vector.X;
         this.U = vector.Y;

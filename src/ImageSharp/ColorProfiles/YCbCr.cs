@@ -4,7 +4,6 @@
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Runtime.Intrinsics;
 
 namespace SixLabors.ImageSharp.ColorProfiles;
 
@@ -39,6 +38,16 @@ public readonly struct YCbCr : IColorProfile<YCbCr, Rgb>
     public YCbCr(Vector3 vector)
     {
         vector = Vector3.Clamp(vector, Min, Max);
+        this.Y = vector.X;
+        this.Cb = vector.Y;
+        this.Cr = vector.Z;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+#pragma warning disable SA1313 // Parameter names should begin with lower-case letter
+    private YCbCr(Vector3 vector, bool _)
+#pragma warning restore SA1313 // Parameter names should begin with lower-case letter
+    {
         this.Y = vector.X;
         this.Cb = vector.Y;
         this.Cr = vector.Z;
@@ -97,7 +106,7 @@ public readonly struct YCbCr : IColorProfile<YCbCr, Rgb>
     {
         Vector3 v3 = source.AsVector3();
         v3 *= Max;
-        return new YCbCr(v3);
+        return new YCbCr(v3, true);
     }
 
     /// <inheritdoc/>
@@ -174,8 +183,7 @@ public readonly struct YCbCr : IColorProfile<YCbCr, Rgb>
         // TODO: We can optimize this by using SIMD
         for (int i = 0; i < source.Length; i++)
         {
-            YCbCr ycbcr = source[i];
-            destination[i] = ycbcr.ToProfileConnectingSpace(options);
+            destination[i] = source[i].ToProfileConnectingSpace(options);
         }
     }
 

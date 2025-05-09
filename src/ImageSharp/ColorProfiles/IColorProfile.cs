@@ -30,7 +30,7 @@ public interface IColorProfile<TSelf> : IColorProfile, IEquatable<TSelf>
     /// The vector components are typically expanded in least to greatest significance order.
     /// </summary>
     /// <returns>The <see cref="Vector4"/>.</returns>
-    Vector4 ToScaledVector4();
+    public Vector4 ToScaledVector4();
 
 #pragma warning disable CA1000 // Do not declare static members on generic types
     /// <summary>

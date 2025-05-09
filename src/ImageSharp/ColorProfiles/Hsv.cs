@@ -4,7 +4,6 @@
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Runtime.Intrinsics;
 
 namespace SixLabors.ImageSharp.ColorProfiles;
 
@@ -37,6 +36,16 @@ public readonly struct Hsv : IColorProfile<Hsv, Rgb>
     public Hsv(Vector3 vector)
     {
         vector = Vector3.Clamp(vector, Min, Max);
+        this.H = vector.X;
+        this.S = vector.Y;
+        this.V = vector.Z;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+#pragma warning disable SA1313 // Parameter names should begin with lower-case letter
+    private Hsv(Vector3 vector, bool _)
+#pragma warning restore SA1313 // Parameter names should begin with lower-case letter
+    {
         this.H = vector.X;
         this.S = vector.Y;
         this.V = vector.Z;
@@ -88,7 +97,7 @@ public readonly struct Hsv : IColorProfile<Hsv, Rgb>
 
     /// <inheritdoc/>
     public static Hsv FromScaledVector4(Vector4 source)
-        => new(source.AsVector3() * 360F);
+        => new(source.AsVector3() * 360F, true);
 
     /// <inheritdoc/>
     public static void ToScaledVector4(ReadOnlySpan<Hsv> source, Span<Vector4> destination)

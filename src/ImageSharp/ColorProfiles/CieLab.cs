@@ -4,7 +4,6 @@
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Runtime.Intrinsics;
 
 namespace SixLabors.ImageSharp.ColorProfiles;
 
@@ -36,7 +35,6 @@ public readonly struct CieLab : IProfileConnectingSpace<CieLab, CieXyz>
     /// <param name="vector">The vector representing the l, a, b components.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public CieLab(Vector3 vector)
-        : this()
     {
         this.L = vector.X;
         this.A = vector.Y;

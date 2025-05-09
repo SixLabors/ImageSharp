@@ -4,7 +4,6 @@
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Runtime.Intrinsics;
 
 namespace SixLabors.ImageSharp.ColorProfiles;
 
@@ -36,7 +35,6 @@ public readonly struct CieXyy : IColorProfile<CieXyy, CieXyz>
     /// <param name="vector">The vector representing the x, y, Y components.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public CieXyy(Vector3 vector)
-        : this()
     {
         // Not clamping as documentation about this space only indicates "usual" ranges
         this.X = vector.X;

@@ -36,7 +36,18 @@ public readonly struct Cmyk : IColorProfile<Cmyk, Rgb>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Cmyk(Vector4 vector)
     {
-        vector = Numerics.Clamp(vector, Min, Max);
+        vector = Vector4.Clamp(vector, Min, Max);
+        this.C = vector.X;
+        this.M = vector.Y;
+        this.Y = vector.Z;
+        this.K = vector.W;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+#pragma warning disable SA1313 // Parameter names should begin with lower-case letter
+    private Cmyk(Vector4 vector, bool _)
+#pragma warning restore SA1313 // Parameter names should begin with lower-case letter
+    {
         this.C = vector.X;
         this.M = vector.Y;
         this.Y = vector.Z;
@@ -99,7 +110,7 @@ public readonly struct Cmyk : IColorProfile<Cmyk, Rgb>
 
     /// <inheritdoc/>
     public static Cmyk FromScaledVector4(Vector4 source)
-        => new(source);
+        => new(source, true);
 
     /// <inheritdoc/>
     public static void ToScaledVector4(ReadOnlySpan<Cmyk> source, Span<Vector4> destination)

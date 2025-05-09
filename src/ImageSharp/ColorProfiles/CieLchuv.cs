@@ -4,7 +4,6 @@
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Runtime.Intrinsics;
 
 namespace SixLabors.ImageSharp.ColorProfiles;
 
@@ -36,9 +35,18 @@ public readonly struct CieLchuv : IColorProfile<CieLchuv, CieXyz>
     /// <param name="vector">The vector representing the l, c, h components.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public CieLchuv(Vector3 vector)
-        : this()
     {
         vector = Vector3.Clamp(vector, Min, Max);
+        this.L = vector.X;
+        this.C = vector.Y;
+        this.H = vector.Z;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+#pragma warning disable SA1313 // Parameter names should begin with lower-case letter
+    private CieLchuv(Vector3 vector, bool _)
+#pragma warning restore SA1313 // Parameter names should begin with lower-case letter
+    {
         this.L = vector.X;
         this.C = vector.Y;
         this.H = vector.Z;
@@ -98,7 +106,7 @@ public readonly struct CieLchuv : IColorProfile<CieLchuv, CieXyz>
         Vector3 v3 = source.AsVector3();
         v3 *= new Vector3(100, 400, 360);
         v3 -= new Vector3(0, 200, 0);
-        return new CieLchuv(v3);
+        return new CieLchuv(v3, true);
     }
 
     /// <inheritdoc/>

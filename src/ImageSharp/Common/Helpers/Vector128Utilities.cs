@@ -193,11 +193,63 @@ internal static class Vector128Utilities
             return AdvSimd.ConvertToInt32RoundToEven(vector);
         }
 
-        Vector128<float> sign = vector & Vector128.Create(-0.0f);
-        Vector128<float> val_2p23_f32 = sign | Vector128.Create(8388608.0f);
+        Vector128<float> sign = vector & Vector128.Create(-0F);
+        Vector128<float> val_2p23_f32 = sign | Vector128.Create(8388608F);
 
         val_2p23_f32 = (vector + val_2p23_f32) - val_2p23_f32;
         return Vector128.ConvertToInt32(val_2p23_f32 | sign);
+    }
+
+    /// <summary>
+    /// Rounds all values in <paramref name="vector"/> to the nearest integer
+    /// following <see cref="MidpointRounding.ToEven"/> semantics.
+    /// </summary>
+    /// <param name="vector">The vector</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector128<float> RoundToNearestInteger(Vector128<float> vector)
+    {
+        if (Sse41.IsSupported)
+        {
+            return Sse41.RoundToNearestInteger(vector);
+        }
+
+        if (AdvSimd.IsSupported)
+        {
+            return AdvSimd.RoundToNearest(vector);
+        }
+
+        Vector128<float> sign = vector & Vector128.Create(-0F);
+        Vector128<float> val_2p23_f32 = sign | Vector128.Create(8388608F);
+
+        val_2p23_f32 = (vector + val_2p23_f32) - val_2p23_f32;
+        return val_2p23_f32 | sign;
+    }
+
+    /// <summary>
+    /// Performs a multiplication and an addition of the <see cref="Vector128{Single}"/>.
+    /// </summary>
+    /// <remarks>ret = (vm0 * vm1) + va</remarks>
+    /// <param name="va">The vector to add to the intermediate result.</param>
+    /// <param name="vm0">The first vector to multiply.</param>
+    /// <param name="vm1">The second vector to multiply.</param>
+    /// <returns>The <see cref="Vector256{T}"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector128<float> MultiplyAdd(
+        Vector128<float> va,
+        Vector128<float> vm0,
+        Vector128<float> vm1)
+    {
+        if (Fma.IsSupported)
+        {
+            return Fma.MultiplyAdd(vm1, vm0, va);
+        }
+
+        if (AdvSimd.IsSupported)
+        {
+            return AdvSimd.FusedMultiplyAdd(va, vm0, vm1);
+        }
+
+        return va + (vm0 * vm1);
     }
 
     /// <summary>

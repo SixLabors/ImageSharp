@@ -103,11 +103,53 @@ internal static class Vector256Utilities
             return Vector256.Create(lower, upper);
         }
 
-        Vector256<float> sign = vector & Vector256.Create(-0.0f);
-        Vector256<float> val_2p23_f32 = sign | Vector256.Create(8388608.0f);
+        Vector256<float> sign = vector & Vector256.Create(-0F);
+        Vector256<float> val_2p23_f32 = sign | Vector256.Create(8388608F);
 
         val_2p23_f32 = (vector + val_2p23_f32) - val_2p23_f32;
         return Vector256.ConvertToInt32(val_2p23_f32 | sign);
+    }
+
+    /// <summary>
+    /// Rounds all values in <paramref name="vector"/> to the nearest integer
+    /// following <see cref="MidpointRounding.ToEven"/> semantics.
+    /// </summary>
+    /// <param name="vector">The vector</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<float> RoundToNearestInteger(Vector256<float> vector)
+    {
+        if (Avx.IsSupported)
+        {
+            return Avx.RoundToNearestInteger(vector);
+        }
+
+        Vector256<float> sign = vector & Vector256.Create(-0F);
+        Vector256<float> val_2p23_f32 = sign | Vector256.Create(8388608F);
+
+        val_2p23_f32 = (vector + val_2p23_f32) - val_2p23_f32;
+        return val_2p23_f32 | sign;
+    }
+
+    /// <summary>
+    /// Performs a multiplication and an addition of the <see cref="Vector256{Single}"/>.
+    /// </summary>
+    /// <remarks>ret = (vm0 * vm1) + va</remarks>
+    /// <param name="va">The vector to add to the intermediate result.</param>
+    /// <param name="vm0">The first vector to multiply.</param>
+    /// <param name="vm1">The second vector to multiply.</param>
+    /// <returns>The <see cref="Vector256{T}"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<float> MultiplyAdd(
+        Vector256<float> va,
+        Vector256<float> vm0,
+        Vector256<float> vm1)
+    {
+        if (Fma.IsSupported)
+        {
+            return Fma.MultiplyAdd(vm0, vm1, va);
+        }
+
+        return va + (vm0 * vm1);
     }
 
     [DoesNotReturn]

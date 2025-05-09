@@ -1,24 +1,23 @@
-// Copyright (c) Six Labors.
+﻿// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
-using System.Runtime.Intrinsics.X86;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components;
 
 internal abstract partial class JpegColorConverterBase
 {
-    internal sealed class CmykAvx : JpegColorConverterAvx
+    internal sealed class CmykVector256 : JpegColorConverterVector256
     {
-        public CmykAvx(int precision)
+        public CmykVector256(int precision)
             : base(JpegColorSpace.Cmyk, precision)
         {
         }
 
         /// <inheritdoc/>
-        public override void ConvertToRgbInplace(in ComponentValues values)
+        public override void ConvertToRgbInPlace(in ComponentValues values)
         {
             ref Vector256<float> c0Base =
                 ref Unsafe.As<float, Vector256<float>>(ref MemoryMarshal.GetReference(values.Component0));
@@ -30,7 +29,7 @@ internal abstract partial class JpegColorConverterBase
                 ref Unsafe.As<float, Vector256<float>>(ref MemoryMarshal.GetReference(values.Component3));
 
             // Used for the color conversion
-            var scale = Vector256.Create(1 / (this.MaximumValue * this.MaximumValue));
+            Vector256<float> scale = Vector256.Create(1 / (this.MaximumValue * this.MaximumValue));
 
             nuint n = values.Component0.Vector256Count<float>();
             for (nuint i = 0; i < n; i++)
@@ -40,10 +39,10 @@ internal abstract partial class JpegColorConverterBase
                 ref Vector256<float> y = ref Unsafe.Add(ref c2Base, i);
                 Vector256<float> k = Unsafe.Add(ref c3Base, i);
 
-                k = Avx.Multiply(k, scale);
-                c = Avx.Multiply(c, k);
-                m = Avx.Multiply(m, k);
-                y = Avx.Multiply(y, k);
+                k *= scale;
+                c *= k;
+                m *= k;
+                y *= k;
             }
         }
 
@@ -69,26 +68,27 @@ internal abstract partial class JpegColorConverterBase
             ref Vector256<float> srcB =
                 ref Unsafe.As<float, Vector256<float>>(ref MemoryMarshal.GetReference(bLane));
 
-            var scale = Vector256.Create(maxValue);
+            Vector256<float> scale = Vector256.Create(maxValue);
 
             nuint n = values.Component0.Vector256Count<float>();
             for (nuint i = 0; i < n; i++)
             {
-                Vector256<float> ctmp = Avx.Subtract(scale, Unsafe.Add(ref srcR, i));
-                Vector256<float> mtmp = Avx.Subtract(scale, Unsafe.Add(ref srcG, i));
-                Vector256<float> ytmp = Avx.Subtract(scale, Unsafe.Add(ref srcB, i));
-                Vector256<float> ktmp = Avx.Min(ctmp, Avx.Min(mtmp, ytmp));
+                Vector256<float> ctmp = scale - Unsafe.Add(ref srcR, i);
+                Vector256<float> mtmp = scale - Unsafe.Add(ref srcG, i);
+                Vector256<float> ytmp = scale - Unsafe.Add(ref srcB, i);
+                Vector256<float> ktmp = Vector256.Min(ctmp, Vector256.Min(mtmp, ytmp));
 
-                Vector256<float> kMask = Avx.CompareNotEqual(ktmp, scale);
+                Vector256<float> kMask = ~Vector256.Equals(ktmp, scale);
+                Vector256<float> divisor = scale - ktmp;
 
-                ctmp = Avx.And(Avx.Divide(Avx.Subtract(ctmp, ktmp), Avx.Subtract(scale, ktmp)), kMask);
-                mtmp = Avx.And(Avx.Divide(Avx.Subtract(mtmp, ktmp), Avx.Subtract(scale, ktmp)), kMask);
-                ytmp = Avx.And(Avx.Divide(Avx.Subtract(ytmp, ktmp), Avx.Subtract(scale, ktmp)), kMask);
+                ctmp = ((ctmp - ktmp) / divisor) & kMask;
+                mtmp = ((mtmp - ktmp) / divisor) & kMask;
+                ytmp = ((ytmp - ktmp) / divisor) & kMask;
 
-                Unsafe.Add(ref destC, i) = Avx.Subtract(scale, Avx.Multiply(ctmp, scale));
-                Unsafe.Add(ref destM, i) = Avx.Subtract(scale, Avx.Multiply(mtmp, scale));
-                Unsafe.Add(ref destY, i) = Avx.Subtract(scale, Avx.Multiply(ytmp, scale));
-                Unsafe.Add(ref destK, i) = Avx.Subtract(scale, ktmp);
+                Unsafe.Add(ref destC, i) = scale - (ctmp * scale);
+                Unsafe.Add(ref destM, i) = scale - (mtmp * scale);
+                Unsafe.Add(ref destY, i) = scale - (ytmp * scale);
+                Unsafe.Add(ref destK, i) = scale - ktmp;
             }
         }
     }

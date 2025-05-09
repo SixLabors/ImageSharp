@@ -19,14 +19,14 @@ internal abstract partial class JpegColorConverterBase
         }
 
         /// <inheritdoc/>
-        public override void ConvertToRgbInplace(in ComponentValues values)
-            => ConvertToRgbInplace(values, this.MaximumValue, this.HalfValue);
+        public override void ConvertToRgbInPlace(in ComponentValues values)
+            => ConvertToRgbInPlace(values, this.MaximumValue, this.HalfValue);
 
         /// <inheritdoc/>
-        public override void ConvertFromRgb(in ComponentValues values, Span<float> r, Span<float> g, Span<float> b)
-            => ConvertFromRgb(values, this.HalfValue, r, g, b);
+        public override void ConvertFromRgb(in ComponentValues values, Span<float> rLane, Span<float> gLane, Span<float> bLane)
+            => ConvertFromRgb(values, this.HalfValue, rLane, gLane, bLane);
 
-        public static void ConvertToRgbInplace(in ComponentValues values, float maxValue, float halfValue)
+        public static void ConvertToRgbInPlace(in ComponentValues values, float maxValue, float halfValue)
         {
             Span<float> c0 = values.Component0;
             Span<float> c1 = values.Component1;

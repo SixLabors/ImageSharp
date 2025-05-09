@@ -8,22 +8,22 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components;
 
 internal abstract partial class JpegColorConverterBase
 {
-    internal sealed class GrayscaleScalar : JpegColorConverterScalar
+    internal sealed class GrayScaleScalar : JpegColorConverterScalar
     {
-        public GrayscaleScalar(int precision)
+        public GrayScaleScalar(int precision)
             : base(JpegColorSpace.Grayscale, precision)
         {
         }
 
         /// <inheritdoc/>
-        public override void ConvertToRgbInplace(in ComponentValues values)
-            => ConvertToRgbInplace(values.Component0, this.MaximumValue);
+        public override void ConvertToRgbInPlace(in ComponentValues values)
+            => ConvertToRgbInPlace(values.Component0, this.MaximumValue);
 
         /// <inheritdoc/>
-        public override void ConvertFromRgb(in ComponentValues values, Span<float> r, Span<float> g, Span<float> b)
-            => ConvertCoreInplaceFromRgb(values, r, g, b);
+        public override void ConvertFromRgb(in ComponentValues values, Span<float> rLane, Span<float> gLane, Span<float> bLane)
+            => ConvertFromRgbScalar(values, rLane, gLane, bLane);
 
-        internal static void ConvertToRgbInplace(Span<float> values, float maxValue)
+        internal static void ConvertToRgbInPlace(Span<float> values, float maxValue)
         {
             ref float valuesRef = ref MemoryMarshal.GetReference(values);
             float scale = 1 / maxValue;
@@ -34,15 +34,14 @@ internal abstract partial class JpegColorConverterBase
             }
         }
 
-        internal static void ConvertCoreInplaceFromRgb(in ComponentValues values, Span<float> rLane, Span<float> gLane, Span<float> bLane)
+        internal static void ConvertFromRgbScalar(in ComponentValues values, Span<float> rLane, Span<float> gLane, Span<float> bLane)
         {
             Span<float> c0 = values.Component0;
 
             for (int i = 0; i < c0.Length; i++)
             {
-                // luminocity = (0.299 * r) + (0.587 * g) + (0.114 * b)
-                float luma = (0.299f * rLane[i]) + (0.587f * gLane[i]) + (0.114f * bLane[i]);
-                c0[i] = luma;
+                // luminosity = (0.299 * r) + (0.587 * g) + (0.114 * b)
+                c0[i] = (float)((0.299f * rLane[i]) + (0.587f * gLane[i]) + (0.114f * bLane[i]));
             }
         }
     }

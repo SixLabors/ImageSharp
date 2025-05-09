@@ -1,24 +1,23 @@
-// Copyright (c) Six Labors.
+﻿// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
-using System.Runtime.Intrinsics.Arm;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components;
 
 internal abstract partial class JpegColorConverterBase
 {
-    internal sealed class CmykArm64 : JpegColorConverterArm64
+    internal sealed class CmykVector128 : JpegColorConverterVector128
     {
-        public CmykArm64(int precision)
+        public CmykVector128(int precision)
             : base(JpegColorSpace.Cmyk, precision)
         {
         }
 
         /// <inheritdoc/>
-        public override void ConvertToRgbInplace(in ComponentValues values)
+        public override void ConvertToRgbInPlace(in ComponentValues values)
         {
             ref Vector128<float> c0Base =
                 ref Unsafe.As<float, Vector128<float>>(ref MemoryMarshal.GetReference(values.Component0));
@@ -30,20 +29,20 @@ internal abstract partial class JpegColorConverterBase
                 ref Unsafe.As<float, Vector128<float>>(ref MemoryMarshal.GetReference(values.Component3));
 
             // Used for the color conversion
-            var scale = Vector128.Create(1 / (this.MaximumValue * this.MaximumValue));
+            Vector128<float> scale = Vector128.Create(1 / (this.MaximumValue * this.MaximumValue));
 
-            nint n = (nint)(uint)values.Component0.Length / Vector128<float>.Count;
-            for (nint i = 0; i < n; i++)
+            nuint n = values.Component0.Vector128Count<float>();
+            for (nuint i = 0; i < n; i++)
             {
                 ref Vector128<float> c = ref Unsafe.Add(ref c0Base, i);
                 ref Vector128<float> m = ref Unsafe.Add(ref c1Base, i);
                 ref Vector128<float> y = ref Unsafe.Add(ref c2Base, i);
                 Vector128<float> k = Unsafe.Add(ref c3Base, i);
 
-                k = AdvSimd.Multiply(k, scale);
-                c = AdvSimd.Multiply(c, k);
-                m = AdvSimd.Multiply(m, k);
-                y = AdvSimd.Multiply(y, k);
+                k *= scale;
+                c *= k;
+                m *= k;
+                y *= k;
             }
         }
 
@@ -69,26 +68,27 @@ internal abstract partial class JpegColorConverterBase
             ref Vector128<float> srcB =
                 ref Unsafe.As<float, Vector128<float>>(ref MemoryMarshal.GetReference(bLane));
 
-            var scale = Vector128.Create(maxValue);
+            Vector128<float> scale = Vector128.Create(maxValue);
 
-            nint n = (nint)(uint)values.Component0.Length / Vector128<float>.Count;
-            for (nint i = 0; i < n; i++)
+            nuint n = values.Component0.Vector128Count<float>();
+            for (nuint i = 0; i < n; i++)
             {
-                Vector128<float> ctmp = AdvSimd.Subtract(scale, Unsafe.Add(ref srcR, i));
-                Vector128<float> mtmp = AdvSimd.Subtract(scale, Unsafe.Add(ref srcG, i));
-                Vector128<float> ytmp = AdvSimd.Subtract(scale, Unsafe.Add(ref srcB, i));
-                Vector128<float> ktmp = AdvSimd.Min(ctmp, AdvSimd.Min(mtmp, ytmp));
+                Vector128<float> ctmp = scale - Unsafe.Add(ref srcR, i);
+                Vector128<float> mtmp = scale - Unsafe.Add(ref srcG, i);
+                Vector128<float> ytmp = scale - Unsafe.Add(ref srcB, i);
+                Vector128<float> ktmp = Vector128.Min(ctmp, Vector128.Min(mtmp, ytmp));
 
-                Vector128<float> kMask = AdvSimd.Not(AdvSimd.CompareEqual(ktmp, scale));
+                Vector128<float> kMask = ~Vector128.Equals(ktmp, scale);
+                Vector128<float> divisor = scale - ktmp;
 
-                ctmp = AdvSimd.And(AdvSimd.Arm64.Divide(AdvSimd.Subtract(ctmp, ktmp), AdvSimd.Subtract(scale, ktmp)), kMask);
-                mtmp = AdvSimd.And(AdvSimd.Arm64.Divide(AdvSimd.Subtract(mtmp, ktmp), AdvSimd.Subtract(scale, ktmp)), kMask);
-                ytmp = AdvSimd.And(AdvSimd.Arm64.Divide(AdvSimd.Subtract(ytmp, ktmp), AdvSimd.Subtract(scale, ktmp)), kMask);
+                ctmp = ((ctmp - ktmp) / divisor) & kMask;
+                mtmp = ((mtmp - ktmp) / divisor) & kMask;
+                ytmp = ((ytmp - ktmp) / divisor) & kMask;
 
-                Unsafe.Add(ref destC, i) = AdvSimd.Subtract(scale, AdvSimd.Multiply(ctmp, scale));
-                Unsafe.Add(ref destM, i) = AdvSimd.Subtract(scale, AdvSimd.Multiply(mtmp, scale));
-                Unsafe.Add(ref destY, i) = AdvSimd.Subtract(scale, AdvSimd.Multiply(ytmp, scale));
-                Unsafe.Add(ref destK, i) = AdvSimd.Subtract(scale, ktmp);
+                Unsafe.Add(ref destC, i) = scale - (ctmp * scale);
+                Unsafe.Add(ref destM, i) = scale - (mtmp * scale);
+                Unsafe.Add(ref destY, i) = scale - (ytmp * scale);
+                Unsafe.Add(ref destK, i) = scale - ktmp;
             }
         }
     }

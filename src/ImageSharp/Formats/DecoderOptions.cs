@@ -60,5 +60,11 @@ public sealed class DecoderOptions
     /// </summary>
     public SegmentIntegrityHandling SegmentIntegrityHandling { get; init; } = SegmentIntegrityHandling.IgnoreNonCritical;
 
+    /// <summary>
+    /// Gets a value that controls how ICC profiles are handled during decode.
+    /// TODO: Implement this.
+    /// </summary>
+    internal ColorProfileHandling ColorProfileHandling { get; init; }
+
     internal void SetConfiguration(Configuration configuration) => this.configuration = configuration;
 }

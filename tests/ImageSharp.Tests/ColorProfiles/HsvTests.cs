@@ -9,6 +9,7 @@ namespace SixLabors.ImageSharp.Tests.ColorProfiles;
 /// <summary>
 /// Tests the <see cref="Hsv"/> struct.
 /// </summary>
+[Trait("Color", "Conversion")]
 public class HsvTests
 {
     [Fact]

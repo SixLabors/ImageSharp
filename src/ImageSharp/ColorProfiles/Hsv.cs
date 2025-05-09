@@ -41,6 +41,16 @@ public readonly struct Hsv : IColorProfile<Hsv, Rgb>
         this.V = vector.Z;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+#pragma warning disable SA1313 // Parameter names should begin with lower-case letter
+    private Hsv(Vector3 vector, bool _)
+#pragma warning restore SA1313 // Parameter names should begin with lower-case letter
+    {
+        this.H = vector.X;
+        this.S = vector.Y;
+        this.V = vector.Z;
+    }
+
     /// <summary>
     /// Gets the hue component.
     /// <remarks>A value ranging between 0 and 360.</remarks>
@@ -80,6 +90,38 @@ public readonly struct Hsv : IColorProfile<Hsv, Rgb>
     /// </returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool operator !=(Hsv left, Hsv right) => !left.Equals(right);
+
+    /// <inheritdoc/>
+    public Vector4 ToScaledVector4()
+        => new(this.AsVector3Unsafe() / 360F, 1F);
+
+    /// <inheritdoc/>
+    public static Hsv FromScaledVector4(Vector4 source)
+        => new(source.AsVector3() * 360F, true);
+
+    /// <inheritdoc/>
+    public static void ToScaledVector4(ReadOnlySpan<Hsv> source, Span<Vector4> destination)
+    {
+        Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
+
+        // TODO: Optimize via SIMD
+        for (int i = 0; i < source.Length; i++)
+        {
+            destination[i] = source[i].ToScaledVector4();
+        }
+    }
+
+    /// <inheritdoc/>
+    public static void FromScaledVector4(ReadOnlySpan<Vector4> source, Span<Hsv> destination)
+    {
+        Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
+
+        // TODO: Optimize via SIMD
+        for (int i = 0; i < source.Length; i++)
+        {
+            destination[i] = FromScaledVector4(source[i]);
+        }
+    }
 
     /// <inheritdoc/>
     public static Hsv FromProfileConnectingSpace(ColorConversionOptions options, in Rgb source)

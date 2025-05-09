@@ -43,6 +43,16 @@ public readonly struct YCbCr : IColorProfile<YCbCr, Rgb>
         this.Cr = vector.Z;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+#pragma warning disable SA1313 // Parameter names should begin with lower-case letter
+    private YCbCr(Vector3 vector, bool _)
+#pragma warning restore SA1313 // Parameter names should begin with lower-case letter
+    {
+        this.Y = vector.X;
+        this.Cb = vector.Y;
+        this.Cr = vector.Z;
+    }
+
     /// <summary>
     /// Gets the Y luminance component.
     /// <remarks>A value ranging between 0 and 255.</remarks>
@@ -81,6 +91,47 @@ public readonly struct YCbCr : IColorProfile<YCbCr, Rgb>
     /// </returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool operator !=(YCbCr left, YCbCr right) => !left.Equals(right);
+
+    /// <inheritdoc/>
+    public Vector4 ToScaledVector4()
+    {
+        Vector3 v3 = default;
+        v3 += this.AsVector3Unsafe();
+        v3 /= Max;
+        return new Vector4(v3, 1F);
+    }
+
+    /// <inheritdoc/>
+    public static YCbCr FromScaledVector4(Vector4 source)
+    {
+        Vector3 v3 = source.AsVector3();
+        v3 *= Max;
+        return new YCbCr(v3, true);
+    }
+
+    /// <inheritdoc/>
+    public static void ToScaledVector4(ReadOnlySpan<YCbCr> source, Span<Vector4> destination)
+    {
+        Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
+
+        // TODO: Optimize via SIMD
+        for (int i = 0; i < source.Length; i++)
+        {
+            destination[i] = source[i].ToScaledVector4();
+        }
+    }
+
+    /// <inheritdoc/>
+    public static void FromScaledVector4(ReadOnlySpan<Vector4> source, Span<YCbCr> destination)
+    {
+        Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
+
+        // TODO: Optimize via SIMD
+        for (int i = 0; i < source.Length; i++)
+        {
+            destination[i] = FromScaledVector4(source[i]);
+        }
+    }
 
     /// <inheritdoc/>
     public static YCbCr FromProfileConnectingSpace(ColorConversionOptions options, in Rgb source)
@@ -132,8 +183,7 @@ public readonly struct YCbCr : IColorProfile<YCbCr, Rgb>
         // TODO: We can optimize this by using SIMD
         for (int i = 0; i < source.Length; i++)
         {
-            YCbCr ycbcr = source[i];
-            destination[i] = ycbcr.ToProfileConnectingSpace(options);
+            destination[i] = source[i].ToProfileConnectingSpace(options);
         }
     }
 

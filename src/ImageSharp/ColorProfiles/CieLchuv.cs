@@ -35,9 +35,18 @@ public readonly struct CieLchuv : IColorProfile<CieLchuv, CieXyz>
     /// <param name="vector">The vector representing the l, c, h components.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public CieLchuv(Vector3 vector)
-        : this()
     {
         vector = Vector3.Clamp(vector, Min, Max);
+        this.L = vector.X;
+        this.C = vector.Y;
+        this.H = vector.Z;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+#pragma warning disable SA1313 // Parameter names should begin with lower-case letter
+    private CieLchuv(Vector3 vector, bool _)
+#pragma warning restore SA1313 // Parameter names should begin with lower-case letter
+    {
         this.L = vector.X;
         this.C = vector.Y;
         this.H = vector.Z;
@@ -51,7 +60,7 @@ public readonly struct CieLchuv : IColorProfile<CieLchuv, CieXyz>
 
     /// <summary>
     /// Gets the a chroma component.
-    /// <remarks>A value ranging from 0 to 200.</remarks>
+    /// <remarks>A value ranging from -200 to 200.</remarks>
     /// </summary>
     public float C { get; }
 
@@ -80,6 +89,49 @@ public readonly struct CieLchuv : IColorProfile<CieLchuv, CieXyz>
     /// True if the current left is unequal to the <paramref name="right"/> parameter; otherwise, false.
     /// </returns>
     public static bool operator !=(CieLchuv left, CieLchuv right) => !left.Equals(right);
+
+    /// <inheritdoc/>
+    public Vector4 ToScaledVector4()
+    {
+        Vector3 v3 = default;
+        v3 += this.AsVector3Unsafe();
+        v3 += new Vector3(0, 200, 0);
+        v3 /= new Vector3(100, 400, 360);
+        return new Vector4(v3, 1F);
+    }
+
+    /// <inheritdoc/>
+    public static CieLchuv FromScaledVector4(Vector4 source)
+    {
+        Vector3 v3 = source.AsVector3();
+        v3 *= new Vector3(100, 400, 360);
+        v3 -= new Vector3(0, 200, 0);
+        return new CieLchuv(v3, true);
+    }
+
+    /// <inheritdoc/>
+    public static void ToScaledVector4(ReadOnlySpan<CieLchuv> source, Span<Vector4> destination)
+    {
+        Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
+
+        // TODO: Optimize via SIMD
+        for (int i = 0; i < source.Length; i++)
+        {
+            destination[i] = source[i].ToScaledVector4();
+        }
+    }
+
+    /// <inheritdoc/>
+    public static void FromScaledVector4(ReadOnlySpan<Vector4> source, Span<CieLchuv> destination)
+    {
+        Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
+
+        // TODO: Optimize via SIMD
+        for (int i = 0; i < source.Length; i++)
+        {
+            destination[i] = FromScaledVector4(source[i]);
+        }
+    }
 
     /// <inheritdoc/>
     public static CieLchuv FromProfileConnectingSpace(ColorConversionOptions options, in CieXyz source)

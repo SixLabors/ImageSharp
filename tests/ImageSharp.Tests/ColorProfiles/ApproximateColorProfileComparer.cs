@@ -22,7 +22,8 @@ internal readonly struct ApproximateColorProfileComparer :
     IEqualityComparer<Cmyk>,
     IEqualityComparer<Hsl>,
     IEqualityComparer<Hsv>,
-    IEqualityComparer<HunterLab>
+    IEqualityComparer<HunterLab>,
+    IEqualityComparer<Y>
 {
     private readonly float epsilon;
 
@@ -58,6 +59,8 @@ internal readonly struct ApproximateColorProfileComparer :
 
     public bool Equals(HunterLab x, HunterLab y) => this.Equals(x.L, y.L) && this.Equals(x.A, y.A) && this.Equals(x.B, y.B);
 
+    public bool Equals(Y x, Y y) => this.Equals(x.L, y.L);
+
     public int GetHashCode([DisallowNull] CieLab obj) => obj.GetHashCode();
 
     public int GetHashCode([DisallowNull] CieXyz obj) => obj.GetHashCode();
@@ -83,6 +86,8 @@ internal readonly struct ApproximateColorProfileComparer :
     public int GetHashCode([DisallowNull] Hsv obj) => obj.GetHashCode();
 
     public int GetHashCode([DisallowNull] HunterLab obj) => obj.GetHashCode();
+
+    public int GetHashCode([DisallowNull] Y obj) => obj.GetHashCode();
 
     private bool Equals(float x, float y)
     {

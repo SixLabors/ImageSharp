@@ -37,7 +37,6 @@ public readonly struct CieLuv : IColorProfile<CieLuv, CieXyz>
     /// <param name="vector">The vector representing the l, u, v components.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public CieLuv(Vector3 vector)
-        : this()
     {
         this.L = vector.X;
         this.U = vector.Y;
@@ -83,6 +82,18 @@ public readonly struct CieLuv : IColorProfile<CieLuv, CieXyz>
     /// </returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool operator !=(CieLuv left, CieLuv right) => !left.Equals(right);
+
+    /// <inheritdoc/>
+    public Vector4 ToScaledVector4() => throw new NotImplementedException();
+
+    /// <inheritdoc/>
+    public static CieLuv FromScaledVector4(Vector4 source) => throw new NotImplementedException();
+
+    /// <inheritdoc/>
+    public static void ToScaledVector4(ReadOnlySpan<CieLuv> source, Span<Vector4> destination) => throw new NotImplementedException();
+
+    /// <inheritdoc/>
+    public static void FromScaledVector4(ReadOnlySpan<Vector4> source, Span<CieLuv> destination) => throw new NotImplementedException();
 
     /// <inheritdoc/>
     public static CieLuv FromProfileConnectingSpace(ColorConversionOptions options, in CieXyz source)
@@ -143,7 +154,7 @@ public readonly struct CieLuv : IColorProfile<CieLuv, CieXyz>
         // Use doubles here for accuracy.
         // Conversion algorithm described here:
         // http://www.brucelindbloom.com/index.html?Eqn_Luv_to_XYZ.html
-        CieXyz whitePoint = options.WhitePoint;
+        CieXyz whitePoint = options.SourceWhitePoint;
 
         double l = this.L, u = this.U, v = this.V;
 

@@ -81,6 +81,49 @@ public readonly struct HunterLab : IColorProfile<HunterLab, CieXyz>
     public static bool operator !=(HunterLab left, HunterLab right) => !left.Equals(right);
 
     /// <inheritdoc/>
+    public Vector4 ToScaledVector4()
+    {
+        Vector3 v3 = default;
+        v3 += this.AsVector3Unsafe();
+        v3 += new Vector3(0, 128F, 128F);
+        v3 /= new Vector3(100F, 255F, 255F);
+        return new Vector4(v3, 1F);
+    }
+
+    /// <inheritdoc/>
+    public static HunterLab FromScaledVector4(Vector4 source)
+    {
+        Vector3 v3 = source.AsVector3();
+        v3 *= new Vector3(100F, 255, 255);
+        v3 -= new Vector3(0, 128F, 128F);
+        return new HunterLab(v3);
+    }
+
+    /// <inheritdoc/>
+    public static void ToScaledVector4(ReadOnlySpan<HunterLab> source, Span<Vector4> destination)
+    {
+        Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
+
+        // TODO: Optimize via SIMD
+        for (int i = 0; i < source.Length; i++)
+        {
+            destination[i] = source[i].ToScaledVector4();
+        }
+    }
+
+    /// <inheritdoc/>
+    public static void FromScaledVector4(ReadOnlySpan<Vector4> source, Span<HunterLab> destination)
+    {
+        Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
+
+        // TODO: Optimize via SIMD
+        for (int i = 0; i < source.Length; i++)
+        {
+            destination[i] = FromScaledVector4(source[i]);
+        }
+    }
+
+    /// <inheritdoc/>
     public static HunterLab FromProfileConnectingSpace(ColorConversionOptions options, in CieXyz source)
     {
         // Conversion algorithm described here:
@@ -127,7 +170,7 @@ public readonly struct HunterLab : IColorProfile<HunterLab, CieXyz>
     {
         // Conversion algorithm described here:
         // http://en.wikipedia.org/wiki/Lab_color_space#Hunter_Lab
-        CieXyz whitePoint = options.WhitePoint;
+        CieXyz whitePoint = options.SourceWhitePoint;
         float l = this.L, a = this.A, b = this.B;
         float xn = whitePoint.X, yn = whitePoint.Y, zn = whitePoint.Z;
 

@@ -35,7 +35,6 @@ public readonly struct CieXyy : IColorProfile<CieXyy, CieXyz>
     /// <param name="vector">The vector representing the x, y, Y components.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public CieXyy(Vector3 vector)
-        : this()
     {
         // Not clamping as documentation about this space only indicates "usual" ranges
         this.X = vector.X;
@@ -82,6 +81,38 @@ public readonly struct CieXyy : IColorProfile<CieXyy, CieXyz>
     /// </returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool operator !=(CieXyy left, CieXyy right) => !left.Equals(right);
+
+    /// <inheritdoc/>
+    public Vector4 ToScaledVector4()
+        => new(this.AsVector3Unsafe(), 1F);
+
+    /// <inheritdoc/>
+    public static CieXyy FromScaledVector4(Vector4 source)
+        => new(source.AsVector3());
+
+    /// <inheritdoc/>
+    public static void ToScaledVector4(ReadOnlySpan<CieXyy> source, Span<Vector4> destination)
+    {
+        Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
+
+        // TODO: Optimize via SIMD
+        for (int i = 0; i < source.Length; i++)
+        {
+            destination[i] = source[i].ToScaledVector4();
+        }
+    }
+
+    /// <inheritdoc/>
+    public static void FromScaledVector4(ReadOnlySpan<Vector4> source, Span<CieXyy> destination)
+    {
+        Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
+
+        // TODO: Optimize via SIMD
+        for (int i = 0; i < source.Length; i++)
+        {
+            destination[i] = FromScaledVector4(source[i]);
+        }
+    }
 
     /// <inheritdoc/>
     public static CieXyy FromProfileConnectingSpace(ColorConversionOptions options, in CieXyz source)

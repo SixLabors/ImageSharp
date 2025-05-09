@@ -44,7 +44,7 @@ public class ColorProfileConverterTests(ITestOutputHelper testOutputHelper)
     [InlineData(TestIccProfiles.StandardRgbV2, TestIccProfiles.Fogra39)] // RGB -> XYZ -> LAB -> CMYK (different LUT tags, TRC vs A2B)
     public void CanConvertIccProfiles(string sourceProfile, string targetProfile, double tolerance = 0.00005)
     {
-        List<Vector4> actual = Inputs.Select(input => GetActualTargetValues(input, sourceProfile, targetProfile)).ToList();
+        List<Vector4> actual = Inputs.ConvertAll(input => GetActualTargetValues(input, sourceProfile, targetProfile));
         AssertConversion(sourceProfile, targetProfile, actual, tolerance, testOutputHelper);
     }
 
@@ -70,7 +70,7 @@ public class ColorProfileConverterTests(ITestOutputHelper testOutputHelper)
 
     private static void AssertConversion(string sourceProfile, string targetProfile, List<Vector4> actual, double tolerance, ITestOutputHelper testOutputHelper)
     {
-        List<double[]> expected = Inputs.Select(input => GetExpectedTargetValues(sourceProfile, targetProfile, input, testOutputHelper)).ToList();
+        List<double[]> expected = Inputs.ConvertAll(input => GetExpectedTargetValues(sourceProfile, targetProfile, input, testOutputHelper));
         Assert.Equal(expected.Count, actual.Count);
 
         for (int i = 0; i < expected.Count; i++)
@@ -115,7 +115,7 @@ public class ColorProfileConverterTests(ITestOutputHelper testOutputHelper)
             targetConfig = GetUnicolourConfigAsV4Header(targetConfig);
         }
 
-        Channels channels = new(input.Select(value => (double)value).ToArray());
+        Channels channels = new([.. input.Select(value => (double)value)]);
         Unicolour source = new(sourceConfig, channels);
         Unicolour target = source.ConvertToConfiguration(targetConfig);
         if (target.Icc.Error != null)
@@ -196,14 +196,14 @@ public class ColorProfileConverterTests(ITestOutputHelper testOutputHelper)
                     {
                         Span<Cmyk> outputSpan = stackalloc Cmyk[inputs.Count];
                         converter.Convert<Cmyk, Cmyk>(inputSpan, outputSpan);
-                        return outputSpan.ToArray().Select(x => x.ToScaledVector4()).ToList();
+                        return [.. outputSpan.ToArray().Select(x => x.ToScaledVector4())];
                     }
 
                     case IccColorSpaceType.Rgb:
                     {
                         Span<Rgb> outputSpan = stackalloc Rgb[inputs.Count];
                         converter.Convert<Cmyk, Rgb>(inputSpan, outputSpan);
-                        return outputSpan.ToArray().Select(x => x.ToScaledVector4()).ToList();
+                        return [.. outputSpan.ToArray().Select(x => x.ToScaledVector4())];
                     }
 
                     default:
@@ -221,14 +221,14 @@ public class ColorProfileConverterTests(ITestOutputHelper testOutputHelper)
                     {
                         Span<Cmyk> outputSpan = stackalloc Cmyk[inputs.Count];
                         converter.Convert<Rgb, Cmyk>(inputSpan, outputSpan);
-                        return outputSpan.ToArray().Select(x => x.ToScaledVector4()).ToList();
+                        return [.. outputSpan.ToArray().Select(x => x.ToScaledVector4())];
                     }
 
                     case IccColorSpaceType.Rgb:
                     {
                         Span<Rgb> outputSpan = stackalloc Rgb[inputs.Count];
                         converter.Convert<Rgb, Rgb>(inputSpan, outputSpan);
-                        return outputSpan.ToArray().Select(x => x.ToScaledVector4()).ToList();
+                        return [.. outputSpan.ToArray().Select(x => x.ToScaledVector4())];
                     }
 
                     default:

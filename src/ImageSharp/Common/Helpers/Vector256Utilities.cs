@@ -33,7 +33,7 @@ internal static class Vector256_
     /// <summary>
     /// Gets a value indicating whether shuffle byte operations are supported.
     /// </summary>
-    public static bool SupportsShuffleByte
+    public static bool SupportsShuffleNativeByte
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get => Avx2.IsSupported;

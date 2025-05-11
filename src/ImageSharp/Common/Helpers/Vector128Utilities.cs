@@ -4,6 +4,7 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.Arm;
 using System.Runtime.Intrinsics.Wasm;
@@ -38,13 +39,26 @@ internal static class Vector128_
     public static bool SupportsShuffleNativeByte
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => Ssse3.IsSupported || AdvSimd.Arm64.IsSupported || PackedSimd.IsSupported;
+        get
+        {
+            if (Vector128.IsHardwareAccelerated)
+            {
+                if (RuntimeInformation.ProcessArchitecture is Architecture.X86 or Architecture.X64)
+                {
+                    return Ssse3.IsSupported;
+                }
+
+                return true;
+            }
+
+            return false;
+        }
     }
 
     /// <summary>
     /// Gets a value indicating whether right align operations are supported.
     /// </summary>
-    public static bool SupportsRightAlign
+    public static bool SupportsAlignRight
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get => Ssse3.IsSupported || AdvSimd.IsSupported;
@@ -91,23 +105,16 @@ internal static class Vector128_
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector128<byte> ShuffleNative(Vector128<byte> vector, Vector128<byte> indices)
     {
+        // For x64 we use the SSSE3 shuffle intrinsic to avoid additional instructions. 3 vs 1.
         if (Ssse3.IsSupported)
         {
             return Ssse3.Shuffle(vector, indices);
         }
 
-        if (AdvSimd.Arm64.IsSupported)
-        {
-            return AdvSimd.Arm64.VectorTableLookup(vector, indices);
-        }
-
-        if (PackedSimd.IsSupported)
-        {
-            return PackedSimd.Swizzle(vector, indices);
-        }
-
-        ThrowUnreachableException();
-        return default;
+        // For ARM and WASM, codegen will be optimal.
+        // We don't throw for x86/x64 so we should never use this method without
+        // checking for support.
+        return Vector128.Shuffle(vector, indices);
     }
 
     /// <summary>

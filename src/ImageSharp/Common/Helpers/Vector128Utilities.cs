@@ -27,15 +27,6 @@ internal static class Vector128_
     /// <summary>
     /// Gets a value indicating whether shuffle operations are supported.
     /// </summary>
-    public static bool SupportsShuffleNativeFloat
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => Sse.IsSupported;
-    }
-
-    /// <summary>
-    /// Gets a value indicating whether shuffle operations are supported.
-    /// </summary>
     public static bool SupportsShuffleNativeByte
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -87,8 +78,14 @@ internal static class Vector128_
             return Sse.Shuffle(vector, vector, control);
         }
 
-        ThrowUnreachableException();
-        return default;
+        // Don't use InverseMMShuffle here as we want to avoid the cast.
+        Vector128<int> indices = Vector128.Create(
+            control & 0x3,
+            (control >> 2) & 0x3,
+            (control >> 4) & 0x3,
+            (control >> 6) & 0x3);
+
+        return Vector128.Shuffle(vector, indices);
     }
 
     /// <summary>

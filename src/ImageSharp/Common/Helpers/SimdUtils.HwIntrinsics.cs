@@ -68,7 +68,7 @@ internal static partial class SimdUtils
         {
             if ((Vector512.IsHardwareAccelerated && Vector512_.SupportsShuffleNativeFloat) ||
                 (Vector256.IsHardwareAccelerated && Vector256_.SupportsShuffleNativeFloat) ||
-                (Vector128.IsHardwareAccelerated && Vector128_.SupportsShuffleNativeFloat))
+                 Vector128.IsHardwareAccelerated)
             {
                 int remainder = 0;
                 if (Vector512.IsHardwareAccelerated)
@@ -305,7 +305,7 @@ internal static partial class SimdUtils
                     }
                 }
             }
-            else if (Vector128.IsHardwareAccelerated && Vector128_.SupportsShuffleNativeFloat)
+            else if (Vector128.IsHardwareAccelerated)
             {
                 ref Vector128<float> sourceBase = ref Unsafe.As<float, Vector128<float>>(ref MemoryMarshal.GetReference(source));
                 ref Vector128<float> destinationBase = ref Unsafe.As<float, Vector128<float>>(ref MemoryMarshal.GetReference(destination));

@@ -6,8 +6,8 @@ using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
+using SixLabors.ImageSharp.ColorProfiles.Conversion.Icc;
 using SixLabors.ImageSharp.ColorProfiles.Icc;
-using SixLabors.ImageSharp.ColorSpaces.Conversion.Icc;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 

@@ -9,6 +9,7 @@ namespace SixLabors.ImageSharp.ColorProfiles;
 
 /// <summary>
 /// Represents an CMYK (cyan, magenta, yellow, keyline) color.
+/// <see href="https://en.wikipedia.org/wiki/CMYK_color_model"/>
 /// </summary>
 [StructLayout(LayoutKind.Sequential)]
 public readonly struct Cmyk : IColorProfile<Cmyk, Rgb>
@@ -130,12 +131,12 @@ public readonly struct Cmyk : IColorProfile<Cmyk, Rgb>
     public static Cmyk FromProfileConnectingSpace(ColorConversionOptions options, in Rgb source)
     {
         // To CMY
-        Vector3 cmy = Vector3.One - source.ToScaledVector3();
+        Vector3 cmy = Vector3.One - source.AsVector3Unsafe();
 
         // To CMYK
         Vector3 k = new(MathF.Min(cmy.X, MathF.Min(cmy.Y, cmy.Z)));
 
-        if (MathF.Abs(k.X - 1F) < Constants.Epsilon)
+        if (k.X >= 1F - Constants.Epsilon)
         {
             return new Cmyk(0, 0, 0, 1F);
         }
@@ -161,7 +162,7 @@ public readonly struct Cmyk : IColorProfile<Cmyk, Rgb>
     /// <inheritdoc/>
     public Rgb ToProfileConnectingSpace(ColorConversionOptions options)
     {
-        Vector3 rgb = (Vector3.One - new Vector3(this.C, this.M, this.Y)) * (Vector3.One - new Vector3(this.K));
+        Vector3 rgb = (Vector3.One - new Vector3(this.C, this.M, this.Y)) * (1F - this.K);
         return Rgb.FromScaledVector3(rgb);
     }
 
@@ -171,8 +172,7 @@ public readonly struct Cmyk : IColorProfile<Cmyk, Rgb>
         // TODO: We can possibly optimize this by using SIMD
         for (int i = 0; i < source.Length; i++)
         {
-            Cmyk cmyk = source[i];
-            destination[i] = cmyk.ToProfileConnectingSpace(options);
+            destination[i] = source[i].ToProfileConnectingSpace(options);
         }
     }
 

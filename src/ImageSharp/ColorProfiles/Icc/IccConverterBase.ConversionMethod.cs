@@ -1,7 +1,7 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Icc;
+namespace SixLabors.ImageSharp.ColorProfiles.Conversion.Icc;
 
 /// <summary>
 /// Color converter for ICC profiles

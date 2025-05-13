@@ -322,10 +322,14 @@ internal class ClutCalculator : IVector4Calculator
         int offset = 0;
         for (int i = 0; i < this.outputCount; i++)
         {
-            float pv = (p[offset + this.n000] * dF0) + (p[offset + this.n001] * dF1) + (p[offset + this.n010] * dF2) + (p[offset + this.n011] * dF3) +
-                       (p[offset + this.n100] * dF4) + (p[offset + this.n101] * dF5) + (p[offset + this.n110] * dF6) + (p[offset + this.n111] * dF7);
-
-            destPixel[i] = pv;
+            destPixel[i] = (float)((p[offset + this.n000] * dF0) +
+                                   (p[offset + this.n001] * dF1) +
+                                   (p[offset + this.n010] * dF2) +
+                                   (p[offset + this.n011] * dF3) +
+                                   (p[offset + this.n100] * dF4) +
+                                   (p[offset + this.n101] * dF5) +
+                                   (p[offset + this.n110] * dF6) +
+                                   (p[offset + this.n111] * dF7));
             offset++;
         }
     }

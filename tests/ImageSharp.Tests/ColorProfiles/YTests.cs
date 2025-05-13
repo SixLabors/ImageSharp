@@ -1,10 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-
-// Copyright (c) Six Labors.
-// Licensed under the Six Labors Split License.
-
 using SixLabors.ImageSharp.ColorProfiles;
 
 namespace SixLabors.ImageSharp.Tests.ColorProfiles;

@@ -15,9 +15,9 @@ public class YCbCrTests
     [Fact]
     public void YCbCrConstructorAssignsFields()
     {
-        const float y = 75F;
-        const float cb = 64F;
-        const float cr = 87F;
+        const float y = .75F;
+        const float cb = .64F;
+        const float cr = .87F;
         YCbCr yCbCr = new(y, cb, cr);
 
         Assert.Equal(y, yCbCr.Y);

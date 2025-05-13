@@ -17,7 +17,13 @@ public readonly struct Y : IColorProfile<Y, Rgb>
     /// Initializes a new instance of the <see cref="Y"/> struct.
     /// </summary>
     /// <param name="l">The luminance component.</param>
-    public Y(float l) => this.L = l;
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Y(float l) => this.L = Numerics.Clamp(l, 0, 1);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+#pragma warning disable SA1313 // Parameter names should begin with lower-case letter
+    private Y(float l, bool _) => this.L = l;
+#pragma warning restore SA1313 // Parameter names should begin with lower-case letter
 
     /// <summary>
     /// Gets the luminance component.
@@ -48,31 +54,10 @@ public readonly struct Y : IColorProfile<Y, Rgb>
     public static bool operator !=(Y left, Y right) => !left.Equals(right);
 
     /// <inheritdoc/>
-    public static Y FromProfileConnectingSpace(ColorConversionOptions options, in Rgb source)
-    {
-        Vector3 weights = options.YCoefficients;
-        float l = (weights.X * source.R) + (weights.Y * source.G) + (weights.Z * source.B);
-        return new Y(l);
-    }
-
-    /// <inheritdoc/>
-    public static void FromProfileConnectionSpace(ColorConversionOptions options, ReadOnlySpan<Rgb> source, Span<Y> destination)
-    {
-        Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
-
-        // TODO: We can optimize this by using SIMD
-        for (int i = 0; i < source.Length; i++)
-        {
-            Rgb rgb = source[i];
-            destination[i] = FromProfileConnectingSpace(options, in rgb);
-        }
-    }
-
-    /// <inheritdoc/>
     public Vector4 ToScaledVector4() => new(this.L);
 
     /// <inheritdoc/>
-    public static Y FromScaledVector4(Vector4 source) => new(source.X);
+    public static Y FromScaledVector4(Vector4 source) => new(source.X, true);
 
     /// <inheritdoc/>
     public static void ToScaledVector4(ReadOnlySpan<Y> source, Span<Vector4> destination)
@@ -103,6 +88,14 @@ public readonly struct Y : IColorProfile<Y, Rgb>
         => new(this.L, this.L, this.L);
 
     /// <inheritdoc/>
+    public static Y FromProfileConnectingSpace(ColorConversionOptions options, in Rgb source)
+    {
+        Matrix4x4 m = options.YCbCrMatrix.Forward;
+        float offset = options.YCbCrMatrix.Offset.X;
+        return new(Vector3.Dot(source.AsVector3Unsafe(), new Vector3(m.M11, m.M12, m.M13)) + offset);
+    }
+
+    /// <inheritdoc/>
     public static void ToProfileConnectionSpace(ColorConversionOptions options, ReadOnlySpan<Y> source, Span<Rgb> destination)
     {
         Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
@@ -111,6 +104,19 @@ public readonly struct Y : IColorProfile<Y, Rgb>
         for (int i = 0; i < source.Length; i++)
         {
             destination[i] = source[i].ToProfileConnectingSpace(options);
+        }
+    }
+
+    /// <inheritdoc/>
+    public static void FromProfileConnectionSpace(ColorConversionOptions options, ReadOnlySpan<Rgb> source, Span<Y> destination)
+    {
+        Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
+
+        // TODO: We can optimize this by using SIMD
+        for (int i = 0; i < source.Length; i++)
+        {
+            Rgb rgb = source[i];
+            destination[i] = FromProfileConnectingSpace(options, in rgb);
         }
     }
 

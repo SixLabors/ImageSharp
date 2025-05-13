@@ -5,7 +5,7 @@
 using SixLabors.ImageSharp.ColorProfiles.Icc.Calculators;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 
-namespace SixLabors.ImageSharp.ColorSpaces.Conversion.Icc;
+namespace SixLabors.ImageSharp.ColorProfiles.Conversion.Icc;
 
 internal partial class CurveCalculator : ISingleCalculator
 {

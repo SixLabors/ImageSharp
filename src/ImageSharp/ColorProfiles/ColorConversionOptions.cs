@@ -46,9 +46,9 @@ public class ColorConversionOptions
     public RgbWorkingSpace TargetRgbWorkingSpace { get; init; } = KnownRgbWorkingSpaces.SRgb;
 
     /// <summary>
-    /// Gets the Y (luma) coefficients to use in conversions from RGB.
+    /// Gets the YCbCr matrix to used to perform conversions from/to RGB.
     /// </summary>
-    public Vector3 YCoefficients { get; init; } = KnownYCoefficients.BT709;
+    public YCbCrMatrix YCbCrMatrix { get; init; } = KnownYCbCrMatrices.BT601;
 
     /// <summary>
     /// Gets the source ICC profile.

@@ -8,15 +8,13 @@ using System.Runtime.InteropServices;
 namespace SixLabors.ImageSharp.ColorProfiles;
 
 /// <summary>
-/// Represents an YCbCr (luminance, blue chroma, red chroma) color as defined in the ITU-T T.871 specification for the JFIF use with Jpeg.
-/// <see href="http://en.wikipedia.org/wiki/YCbCr"/>
-/// <see href="http://www.ijg.org/files/T-REC-T.871-201105-I!!PDF-E.pdf"/>
+/// Represents an YCbCr (luminance, blue chroma, red chroma) color.
 /// </summary>
 [StructLayout(LayoutKind.Sequential)]
 public readonly struct YCbCr : IColorProfile<YCbCr, Rgb>
 {
     private static readonly Vector3 Min = Vector3.Zero;
-    private static readonly Vector3 Max = new(255);
+    private static readonly Vector3 Max = Vector3.One;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="YCbCr"/> struct.
@@ -55,19 +53,19 @@ public readonly struct YCbCr : IColorProfile<YCbCr, Rgb>
 
     /// <summary>
     /// Gets the Y luminance component.
-    /// <remarks>A value ranging between 0 and 255.</remarks>
+    /// <remarks>A value ranging between 0 and 1.</remarks>
     /// </summary>
     public float Y { get; }
 
     /// <summary>
     /// Gets the Cb chroma component.
-    /// <remarks>A value ranging between 0 and 255.</remarks>
+    /// <remarks>A value ranging between 0 and 1.</remarks>
     /// </summary>
     public float Cb { get; }
 
     /// <summary>
     /// Gets the Cr chroma component.
-    /// <remarks>A value ranging between 0 and 255.</remarks>
+    /// <remarks>A value ranging between 0 and 1.</remarks>
     /// </summary>
     public float Cr { get; }
 
@@ -97,17 +95,12 @@ public readonly struct YCbCr : IColorProfile<YCbCr, Rgb>
     {
         Vector3 v3 = default;
         v3 += this.AsVector3Unsafe();
-        v3 /= Max;
         return new Vector4(v3, 1F);
     }
 
     /// <inheritdoc/>
     public static YCbCr FromScaledVector4(Vector4 source)
-    {
-        Vector3 v3 = source.AsVector3();
-        v3 *= Max;
-        return new YCbCr(v3, true);
-    }
+        => new(source.AsVector3(), true);
 
     /// <inheritdoc/>
     public static void ToScaledVector4(ReadOnlySpan<YCbCr> source, Span<Vector4> destination)
@@ -136,16 +129,15 @@ public readonly struct YCbCr : IColorProfile<YCbCr, Rgb>
     /// <inheritdoc/>
     public static YCbCr FromProfileConnectingSpace(ColorConversionOptions options, in Rgb source)
     {
-        Vector3 rgb = source.ToScaledVector3() * Max;
-        float r = rgb.X;
-        float g = rgb.Y;
-        float b = rgb.Z;
+        Vector3 rgb = source.AsVector3Unsafe();
+        Matrix4x4 m = options.YCbCrMatrix.Forward;
+        Vector3 offset = options.YCbCrMatrix.Offset;
 
-        float y = (0.299F * r) + (0.587F * g) + (0.114F * b);
-        float cb = 128F + ((-0.168736F * r) - (0.331264F * g) + (0.5F * b));
-        float cr = 128F + ((0.5F * r) - (0.418688F * g) - (0.081312F * b));
+        float y = Vector3.Dot(rgb, new Vector3(m.M11, m.M12, m.M13));
+        float cb = Vector3.Dot(rgb, new Vector3(m.M21, m.M22, m.M23));
+        float cr = Vector3.Dot(rgb, new Vector3(m.M31, m.M32, m.M33));
 
-        return new YCbCr(y, cb, cr);
+        return new YCbCr(new Vector3(y, cb, cr) + offset, true);
     }
 
     /// <inheritdoc/>
@@ -164,15 +156,15 @@ public readonly struct YCbCr : IColorProfile<YCbCr, Rgb>
     /// <inheritdoc/>
     public Rgb ToProfileConnectingSpace(ColorConversionOptions options)
     {
-        float y = this.Y;
-        float cb = this.Cb - 128F;
-        float cr = this.Cr - 128F;
+        Matrix4x4 m = options.YCbCrMatrix.Inverse;
+        Vector3 offset = options.YCbCrMatrix.Offset;
+        Vector3 normalized = this.AsVector3Unsafe() - offset;
 
-        float r = MathF.Round(y + (1.402F * cr), MidpointRounding.AwayFromZero);
-        float g = MathF.Round(y - (0.344136F * cb) - (0.714136F * cr), MidpointRounding.AwayFromZero);
-        float b = MathF.Round(y + (1.772F * cb), MidpointRounding.AwayFromZero);
+        float r = Vector3.Dot(normalized, new Vector3(m.M11, m.M12, m.M13));
+        float g = Vector3.Dot(normalized, new Vector3(m.M21, m.M22, m.M23));
+        float b = Vector3.Dot(normalized, new Vector3(m.M31, m.M32, m.M33));
 
-        return Rgb.FromScaledVector3(new Vector3(r, g, b) / Max);
+        return Rgb.FromScaledVector3(new Vector3(r, g, b));
     }
 
     /// <inheritdoc/>

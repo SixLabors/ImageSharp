@@ -225,7 +225,7 @@ public readonly struct Rgb : IProfileConnectingSpace<Rgb, CieXyz>
     public bool Equals(Rgb other)
         => this.AsVector3Unsafe() == other.AsVector3Unsafe();
 
-    private Vector3 AsVector3Unsafe() => Unsafe.As<Rgb, Vector3>(ref Unsafe.AsRef(in this));
+    internal Vector3 AsVector3Unsafe() => Unsafe.As<Rgb, Vector3>(ref Unsafe.AsRef(in this));
 
     private static Matrix4x4 GetCieXyzToRgbMatrix(RgbWorkingSpace workingSpace)
     {

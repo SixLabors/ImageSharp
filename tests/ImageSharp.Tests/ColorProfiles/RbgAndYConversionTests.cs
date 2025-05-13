@@ -19,40 +19,11 @@ public class RbgAndYConversionTests
     [InlineData(0F, 0F, 0F, 0F)]
     [InlineData(0.5F, 0.5F, 0.5F, 0.5F)]
     [InlineData(1F, 1F, 1F, 1F)]
-    public void Convert_Y_To_Rgb(float y, float r, float g, float b)
-    {
-        // Arrange
-        Y input = new(y);
-        Rgb expected = new(r, g, b);
-        ColorProfileConverter converter = new();
-
-        Span<Y> inputSpan = new Y[5];
-        inputSpan.Fill(input);
-
-        Span<Rgb> actualSpan = new Rgb[5];
-
-        // Act
-        Rgb actual = converter.Convert<Y, Rgb>(input);
-        converter.Convert<Y, Rgb>(inputSpan, actualSpan);
-
-        // Assert
-        Assert.Equal(expected, actual, Comparer);
-
-        for (int i = 0; i < actualSpan.Length; i++)
-        {
-            Assert.Equal(expected, actualSpan[i], Comparer);
-        }
-    }
-
-    [Theory]
-    [InlineData(0F, 0F, 0F, 0F)]
-    [InlineData(0.5F, 0.5F, 0.5F, 0.5F)]
-    [InlineData(1F, 1F, 1F, 1F)]
     public void Convert_Rgb_To_Y_BT601(float r, float g, float b, float y)
     {
         ColorConversionOptions options = new()
         {
-            YCoefficients = KnownYCoefficients.BT601
+            YCbCrMatrix = KnownYCbCrMatrices.BT601
         };
 
         Convert_Rgb_To_Y_Core(r, g, b, y, options);
@@ -66,7 +37,7 @@ public class RbgAndYConversionTests
     {
         ColorConversionOptions options = new()
         {
-            YCoefficients = KnownYCoefficients.BT709
+            YCbCrMatrix = KnownYCbCrMatrices.BT709
         };
 
         Convert_Rgb_To_Y_Core(r, g, b, y, options);
@@ -80,7 +51,7 @@ public class RbgAndYConversionTests
     {
         ColorConversionOptions options = new()
         {
-            YCoefficients = KnownYCoefficients.BT2020
+            YCbCrMatrix = KnownYCbCrMatrices.BT2020
         };
 
         Convert_Rgb_To_Y_Core(r, g, b, y, options);

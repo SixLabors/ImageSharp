@@ -27,7 +27,7 @@ public class RgbAndCieXyzConversionTest
     {
         // Arrange
         CieXyz input = new(x, y, z);
-        ColorConversionOptions options = new() { WhitePoint = KnownIlluminants.D50, TargetRgbWorkingSpace = KnownRgbWorkingSpaces.SRgb };
+        ColorConversionOptions options = new() { SourceWhitePoint = KnownIlluminants.D50, TargetRgbWorkingSpace = KnownRgbWorkingSpaces.SRgb };
         ColorProfileConverter converter = new(options);
         Rgb expected = new(r, g, b);
 
@@ -60,7 +60,7 @@ public class RgbAndCieXyzConversionTest
     {
         // Arrange
         CieXyz input = new(x, y, z);
-        ColorConversionOptions options = new() { WhitePoint = KnownIlluminants.D65, TargetRgbWorkingSpace = KnownRgbWorkingSpaces.SRgb };
+        ColorConversionOptions options = new() { SourceWhitePoint = KnownIlluminants.D65, TargetRgbWorkingSpace = KnownRgbWorkingSpaces.SRgb };
         ColorProfileConverter converter = new(options);
         Rgb expected = new(r, g, b);
 
@@ -93,7 +93,7 @@ public class RgbAndCieXyzConversionTest
     {
         // Arrange
         Rgb input = new(r, g, b);
-        ColorConversionOptions options = new() { TargetWhitePoint = KnownIlluminants.D50, RgbWorkingSpace = KnownRgbWorkingSpaces.SRgb };
+        ColorConversionOptions options = new() { TargetWhitePoint = KnownIlluminants.D50, SourceRgbWorkingSpace = KnownRgbWorkingSpaces.SRgb };
         ColorProfileConverter converter = new(options);
         CieXyz expected = new(x, y, z);
 
@@ -126,7 +126,7 @@ public class RgbAndCieXyzConversionTest
     {
         // Arrange
         Rgb input = new(r, g, b);
-        ColorConversionOptions options = new() { TargetWhitePoint = KnownIlluminants.D65, RgbWorkingSpace = KnownRgbWorkingSpaces.SRgb };
+        ColorConversionOptions options = new() { TargetWhitePoint = KnownIlluminants.D65, SourceRgbWorkingSpace = KnownRgbWorkingSpaces.SRgb };
         ColorProfileConverter converter = new(options);
         CieXyz expected = new(x, y, z);
 

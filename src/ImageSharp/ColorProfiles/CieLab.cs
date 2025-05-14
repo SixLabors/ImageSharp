@@ -35,7 +35,6 @@ public readonly struct CieLab : IProfileConnectingSpace<CieLab, CieXyz>
     /// <param name="vector">The vector representing the l, a, b components.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public CieLab(Vector3 vector)
-        : this()
     {
         this.L = vector.X;
         this.A = vector.Y;
@@ -81,6 +80,49 @@ public readonly struct CieLab : IProfileConnectingSpace<CieLab, CieXyz>
     /// </returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool operator !=(CieLab left, CieLab right) => !left.Equals(right);
+
+    /// <inheritdoc/>
+    public Vector4 ToScaledVector4()
+    {
+        Vector3 v3 = default;
+        v3 += this.AsVector3Unsafe();
+        v3 += new Vector3(0, 128F, 128F);
+        v3 /= new Vector3(100F, 255F, 255F);
+        return new Vector4(v3, 1F);
+    }
+
+    /// <inheritdoc/>
+    public static CieLab FromScaledVector4(Vector4 source)
+    {
+        Vector3 v3 = source.AsVector3();
+        v3 *= new Vector3(100F, 255, 255);
+        v3 -= new Vector3(0, 128F, 128F);
+        return new CieLab(v3);
+    }
+
+    /// <inheritdoc/>
+    public static void ToScaledVector4(ReadOnlySpan<CieLab> source, Span<Vector4> destination)
+    {
+        Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
+
+        // TODO: Optimize via SIMD
+        for (int i = 0; i < source.Length; i++)
+        {
+            destination[i] = source[i].ToScaledVector4();
+        }
+    }
+
+    /// <inheritdoc/>
+    public static void FromScaledVector4(ReadOnlySpan<Vector4> source, Span<CieLab> destination)
+    {
+        Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
+
+        // TODO: Optimize via SIMD
+        for (int i = 0; i < source.Length; i++)
+        {
+            destination[i] = FromScaledVector4(source[i]);
+        }
+    }
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -136,7 +178,7 @@ public readonly struct CieLab : IProfileConnectingSpace<CieLab, CieXyz>
         float yr = l > CieConstants.Kappa * CieConstants.Epsilon ? Numerics.Pow3((l + 16F) / 116F) : l / CieConstants.Kappa;
         float zr = fz3 > CieConstants.Epsilon ? fz3 : ((116F * fz) - 16F) / CieConstants.Kappa;
 
-        CieXyz whitePoint = options.WhitePoint;
+        CieXyz whitePoint = options.SourceWhitePoint;
         Vector3 wxyz = new(whitePoint.X, whitePoint.Y, whitePoint.Z);
         Vector3 xyzr = new(xr, yr, zr);
 

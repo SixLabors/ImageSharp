@@ -13,12 +13,12 @@ public interface IQuantizingImageEncoder
     /// <summary>
     /// Gets the quantizer used to generate the color palette.
     /// </summary>
-    IQuantizer? Quantizer { get; }
+    public IQuantizer? Quantizer { get; }
 
     /// <summary>
     /// Gets the <see cref="IPixelSamplingStrategy"/> used for quantization when building color palettes.
     /// </summary>
-    IPixelSamplingStrategy PixelSamplingStrategy { get; }
+    public IPixelSamplingStrategy PixelSamplingStrategy { get; }
 }
 
 /// <summary>

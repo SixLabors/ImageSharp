@@ -51,6 +51,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Update="Common\InlineArray.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>InlineArray.tt</DependentUpon>
+    </Compile>
     <Compile Update="Formats\_Generated\ImageMetadataExtensions.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
@@ -144,6 +149,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Update="Common\InlineArray.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>InlineArray.cs</LastGenOutput>
+    </None>
     <None Update="Formats\_Generated\ImageMetadataExtensions.tt">
       <LastGenOutput>ImageMetadataExtensions.cs</LastGenOutput>
       <Generator>TextTemplatingFileGenerator</Generator>

@@ -21,14 +21,29 @@ public static class QuantizerConstants
     public const int MaxColors = 256;
 
     /// <summary>
-    /// The minumim dithering scale used to adjust the amount of dither.
+    /// The minimum dithering scale used to adjust the amount of dither.
     /// </summary>
     public const float MinDitherScale = 0;
 
     /// <summary>
-    /// The max dithering scale used to adjust the amount of dither.
+    /// The maximum dithering scale used to adjust the amount of dither.
     /// </summary>
     public const float MaxDitherScale = 1F;
+
+    /// <summary>
+    /// The default threshold at which to consider a pixel transparent.
+    /// </summary>
+    public const float DefaultTransparencyThreshold = 64 / 255F;
+
+    /// <summary>
+    /// The minimum threshold at which to consider a pixel transparent.
+    /// </summary>
+    public const float MinTransparencyThreshold = 0F;
+
+    /// <summary>
+    /// The maximum threshold at which to consider a pixel transparent.
+    /// </summary>
+    public const float MaxTransparencyThreshold = 1F;
 
     /// <summary>
     /// Gets the default dithering algorithm to use.

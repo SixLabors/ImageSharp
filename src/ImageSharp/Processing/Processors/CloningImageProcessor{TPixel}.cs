@@ -132,16 +132,14 @@ public abstract class CloningImageProcessor<TPixel> : ICloningImageProcessor<TPi
     /// <param name="source">The source image. Cannot be null.</param>
     /// <param name="destination">The cloned/destination image. Cannot be null.</param>
     protected virtual void AfterFrameApply(ImageFrame<TPixel> source, ImageFrame<TPixel> destination)
-    {
-    }
+        => destination.Metadata.AfterFrameApply(source, destination);
 
     /// <summary>
     /// This method is called after the process is applied to prepare the processor.
     /// </summary>
     /// <param name="destination">The cloned/destination image. Cannot be null.</param>
     protected virtual void AfterImageApply(Image<TPixel> destination)
-    {
-    }
+        => destination.Metadata.AfterImageApply(destination);
 
     /// <summary>
     /// Disposes the object and frees resources for the Garbage Collector.

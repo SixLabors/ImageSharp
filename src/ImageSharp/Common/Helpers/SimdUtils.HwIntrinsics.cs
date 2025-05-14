@@ -1030,10 +1030,10 @@ internal static partial class SimdUtils
                     w2 = Vector128_.Clamp(w2, min, max);
                     w3 = Vector128_.Clamp(w3, min, max);
 
-                    Vector128<short> u0 = Vector128.Narrow(w0, w1);
-                    Vector128<short> u1 = Vector128.Narrow(w2, w3);
+                    Vector128<ushort> u0 = Vector128.Narrow(w0, w1).AsUInt16();
+                    Vector128<ushort> u1 = Vector128.Narrow(w2, w3).AsUInt16();
 
-                    Unsafe.Add(ref destinationBase, i) = Vector128.Narrow(u0, u1).AsByte();
+                    Unsafe.Add(ref destinationBase, i) = Vector128.Narrow(u0, u1);
                 }
             }
         }

@@ -18,7 +18,7 @@ internal static class WebpCommonUtils
     /// </summary>
     /// <param name="row">The row to check.</param>
     /// <returns>Returns true if alpha has non-0xff values.</returns>
-    public static unsafe bool CheckNonOpaque(Span<Bgra32> row)
+    public static unsafe bool CheckNonOpaque(ReadOnlySpan<Bgra32> row)
     {
         if (Avx2.IsSupported)
         {

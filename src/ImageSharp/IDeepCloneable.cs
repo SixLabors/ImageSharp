@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 namespace SixLabors.ImageSharp;
@@ -14,7 +14,7 @@ public interface IDeepCloneable<out T>
     /// Creates a new <typeparamref name="T"/> that is a deep copy of the current instance.
     /// </summary>
     /// <returns>The <typeparamref name="T"/>.</returns>
-    T DeepClone();
+    public T DeepClone();
 }
 
 /// <summary>
@@ -26,5 +26,5 @@ public interface IDeepCloneable
     /// Creates a new object that is a deep copy of the current instance.
     /// </summary>
     /// <returns>The <see cref="IDeepCloneable"/>.</returns>
-    IDeepCloneable DeepClone();
+    public IDeepCloneable DeepClone();
 }

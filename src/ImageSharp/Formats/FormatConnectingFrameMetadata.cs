@@ -16,11 +16,6 @@ public class FormatConnectingFrameMetadata
     public PixelTypeInfo? PixelTypeInfo { get; init; }
 
     /// <summary>
-    /// Gets the frame color table if any.
-    /// </summary>
-    public ReadOnlyMemory<Color>? ColorTable { get; init; }
-
-    /// <summary>
     /// Gets the frame color table mode.
     /// </summary>
     public FrameColorTableMode ColorTableMode { get; init; }

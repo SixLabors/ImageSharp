@@ -14,17 +14,17 @@ public interface IAnimatedImageEncoder
     /// as well as the transparent pixels of the first frame.
     /// The background color is also used when a frame disposal mode is <see cref="FrameDisposalMode.RestoreToBackground"/>.
     /// </summary>
-    Color? BackgroundColor { get; }
+    public Color? BackgroundColor { get; }
 
     /// <summary>
     /// Gets the number of times any animation is repeated in supported encoders.
     /// </summary>
-    ushort? RepeatCount { get; }
+    public ushort? RepeatCount { get; }
 
     /// <summary>
     /// Gets a value indicating whether the root frame is shown as part of the animated sequence in supported encoders.
     /// </summary>
-    bool? AnimateRootFrame { get; }
+    public bool? AnimateRootFrame { get; }
 }
 
 /// <summary>

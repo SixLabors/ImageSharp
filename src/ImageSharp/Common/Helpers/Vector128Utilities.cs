@@ -205,6 +205,11 @@ internal static class Vector128_
             return AdvSimd.ConvertToInt32RoundToEven(vector);
         }
 
+        if (PackedSimd.IsSupported)
+        {
+            return PackedSimd.ConvertToInt32Saturate(PackedSimd.RoundToNearest(vector));
+        }
+
         Vector128<float> sign = vector & Vector128.Create(-0F);
         Vector128<float> val_2p23_f32 = sign | Vector128.Create(8388608F);
 
@@ -228,6 +233,11 @@ internal static class Vector128_
         if (AdvSimd.IsSupported)
         {
             return AdvSimd.RoundToNearest(vector);
+        }
+
+        if (PackedSimd.IsSupported)
+        {
+            return PackedSimd.RoundToNearest(vector);
         }
 
         Vector128<float> sign = vector & Vector128.Create(-0F);

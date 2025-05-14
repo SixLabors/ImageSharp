@@ -1008,6 +1008,8 @@ internal static partial class SimdUtils
                 ref Vector128<byte> destinationBase = ref Unsafe.As<byte, Vector128<byte>>(ref MemoryMarshal.GetReference(destination));
 
                 Vector128<float> scale = Vector128.Create((float)byte.MaxValue);
+                Vector128<int> min = Vector128<int>.Zero;
+                Vector128<int> max = Vector128.Create((int)byte.MaxValue);
 
                 for (nuint i = 0; i < n; i++)
                 {
@@ -1023,10 +1025,15 @@ internal static partial class SimdUtils
                     Vector128<int> w2 = Vector128_.ConvertToInt32RoundToEven(f2);
                     Vector128<int> w3 = Vector128_.ConvertToInt32RoundToEven(f3);
 
-                    Vector128<short> u0 = Vector128_.PackSignedSaturate(w0, w1);
-                    Vector128<short> u1 = Vector128_.PackSignedSaturate(w2, w3);
+                    w0 = Vector128_.Clamp(w0, min, max);
+                    w1 = Vector128_.Clamp(w1, min, max);
+                    w2 = Vector128_.Clamp(w2, min, max);
+                    w3 = Vector128_.Clamp(w3, min, max);
 
-                    Unsafe.Add(ref destinationBase, i) = Vector128_.PackUnsignedSaturate(u0, u1);
+                    Vector128<short> u0 = Vector128.Narrow(w0, w1);
+                    Vector128<short> u1 = Vector128.Narrow(w2, w3);
+
+                    Unsafe.Add(ref destinationBase, i) = Vector128.Narrow(u0, u1).AsByte();
                 }
             }
         }

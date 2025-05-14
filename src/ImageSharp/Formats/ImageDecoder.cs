@@ -46,10 +46,10 @@ public abstract class ImageDecoder : IImageDecoder
         where TPixel : unmanaged, IPixel<TPixel>
     {
         Image<TPixel> image = await WithSeekableMemoryStreamAsync(
-                options,
-                stream,
-                (s, ct) => this.Decode<TPixel>(options, s, ct),
-                cancellationToken).ConfigureAwait(false);
+            options,
+            stream,
+            (s, ct) => this.Decode<TPixel>(options, s, ct),
+            cancellationToken).ConfigureAwait(false);
 
         this.SetDecoderFormat(options.Configuration, image);
 

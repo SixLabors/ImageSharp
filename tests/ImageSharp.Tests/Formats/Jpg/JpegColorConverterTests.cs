@@ -1,8 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Runtime.Intrinsics.Arm;
-using System.Runtime.Intrinsics.X86;
 using SixLabors.ImageSharp.ColorProfiles;
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
 using SixLabors.ImageSharp.Memory;
@@ -15,7 +13,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg;
 [Trait("Format", "Jpg")]
 public class JpegColorConverterTests
 {
-    private const float MaxColorChannelValue = 255f;
+    private const float MaxColorChannelValue = 255F;
 
     private const float Precision = 0.1F / 255;
 
@@ -754,7 +752,7 @@ public class JpegColorConverterTests
                 ValidateGrayScale(original, result, i);
                 break;
             case JpegColorSpace.Ycck:
-                ValidateCyyK(original, result, i);
+                ValidateYccK(original, result, i);
                 break;
             case JpegColorSpace.Cmyk:
                 ValidateCmyk(original, result, i);
@@ -774,17 +772,25 @@ public class JpegColorConverterTests
     private static void ValidateYCbCr(in JpegColorConverterBase.ComponentValues values, in JpegColorConverterBase.ComponentValues result, int i)
     {
         float y = values.Component0[i];
-        float cb = values.Component1[i];
-        float cr = values.Component2[i];
-        Rgb expected = ColorSpaceConverter.Convert<YCbCr, Rgb>(new YCbCr(y, cb, cr));
+        float cb = values.Component1[i] - 128;
+        float cr = values.Component2[i] - 128;
 
+        float r = (float)Math.Round(y + (1.402F * cr), MidpointRounding.AwayFromZero);
+        float g = (float)Math.Round(y - (0.344136F * cb) - (0.714136F * cr), MidpointRounding.AwayFromZero);
+        float b = (float)Math.Round(y + (1.772F * cb), MidpointRounding.AwayFromZero);
+
+        r /= MaxColorChannelValue;
+        g /= MaxColorChannelValue;
+        b /= MaxColorChannelValue;
+
+        Rgb expected = Rgb.Clamp(new(r, g, b));
         Rgb actual = Rgb.Clamp(new(result.Component0[i], result.Component1[i], result.Component2[i]));
 
         bool equal = ColorSpaceComparer.Equals(expected, actual);
         Assert.True(equal, $"Colors {expected} and {actual} are not equal at index {i}");
     }
 
-    private static void ValidateCyyK(in JpegColorConverterBase.ComponentValues values, in JpegColorConverterBase.ComponentValues result, int i)
+    private static void ValidateYccK(in JpegColorConverterBase.ComponentValues values, in JpegColorConverterBase.ComponentValues result, int i)
     {
         float y = values.Component0[i];
         float cb = values.Component1[i] - 128F;
@@ -792,9 +798,7 @@ public class JpegColorConverterTests
         float k = values.Component3[i] / 255F;
 
         float r = (255F - (float)Math.Round(y + (1.402F * cr), MidpointRounding.AwayFromZero)) * k;
-        float g = (255F - (float)Math.Round(
-            y - (0.344136F * cb) - (0.714136F * cr),
-            MidpointRounding.AwayFromZero)) * k;
+        float g = (255F - (float)Math.Round(y - (0.344136F * cb) - (0.714136F * cr), MidpointRounding.AwayFromZero)) * k;
         float b = (255F - (float)Math.Round(y + (1.772F * cb), MidpointRounding.AwayFromZero)) * k;
 
         r /= MaxColorChannelValue;

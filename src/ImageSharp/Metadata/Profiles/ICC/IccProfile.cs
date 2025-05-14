@@ -190,7 +190,6 @@ public sealed class IccProfile : IDeepCloneable<IccProfile>
             return;
         }
 
-        IccReader reader = new();
         this.header = IccReader.ReadHeader(this.data);
     }
 
@@ -207,7 +206,6 @@ public sealed class IccProfile : IDeepCloneable<IccProfile>
             return;
         }
 
-        IccReader reader = new();
         this.entries = IccReader.ReadTagData(this.data);
     }
 }

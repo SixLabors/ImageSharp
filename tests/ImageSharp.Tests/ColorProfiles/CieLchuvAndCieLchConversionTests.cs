@@ -20,7 +20,7 @@ public class CieLchuvAndCieLchConversionTests
         // Arrange
         CieLch input = new(l2, c2, h2);
         CieLchuv expected = new(l, c, h);
-        ColorConversionOptions options = new() { WhitePoint = KnownIlluminants.D50, TargetWhitePoint = KnownIlluminants.D65 };
+        ColorConversionOptions options = new() { SourceWhitePoint = KnownIlluminants.D50, TargetWhitePoint = KnownIlluminants.D65 };
         ColorProfileConverter converter = new(options);
 
         Span<CieLch> inputSpan = new CieLch[5];
@@ -48,7 +48,7 @@ public class CieLchuvAndCieLchConversionTests
         // Arrange
         CieLchuv input = new(l, c, h);
         CieLch expected = new(l2, c2, h2);
-        ColorConversionOptions options = new() { WhitePoint = KnownIlluminants.D65, TargetWhitePoint = KnownIlluminants.D50 };
+        ColorConversionOptions options = new() { SourceWhitePoint = KnownIlluminants.D65, TargetWhitePoint = KnownIlluminants.D50 };
         ColorProfileConverter converter = new(options);
 
         Span<CieLchuv> inputSpan = new CieLchuv[5];

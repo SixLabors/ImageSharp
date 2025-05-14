@@ -203,6 +203,17 @@ public static class TestImages
 
     public static class Jpeg
     {
+        public static class ICC
+        {
+            public const string SRgb = "Jpg/icc-profiles/Momiji-sRGB-yes.jpg";
+            public const string AdobeRgb = "Jpg/icc-profiles/Momiji-AdobeRGB-yes.jpg";
+            public const string ColorMatch = "Jpg/icc-profiles/Momiji-ColorMatch-yes.jpg";
+            public const string ProPhoto = "Jpg/icc-profiles/Momiji-ProPhoto-yes.jpg";
+            public const string WideRGB = "Jpg/icc-profiles/Momiji-WideRGB-yes.jpg";
+            public const string AppleRGB = "Jpg/icc-profiles/Momiji-AppleRGB-yes.jpg";
+            public const string CMYK = "Jpg/icc-profiles/issue-129.jpg";
+        }
+
         public static class Progressive
         {
             public const string Fb = "Jpg/progressive/fb.jpg";

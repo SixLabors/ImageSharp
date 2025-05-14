@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
+using SixLabors.ImageSharp.Tests.TestDataIcc;
 
 namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.ICC.DataReader;
 
@@ -166,7 +167,7 @@ public class IccDataReaderTagDataEntryTests
 
     [Theory]
     [MemberData(
-        nameof(IccTestDataTagDataEntry.MultiLocalizedUnicodeTagDataEntryTestData_Read),
+        nameof(IccTestDataTagDataEntry.MultiLocalizedUnicodeTagDataEntryTestDataRead),
         MemberType = typeof(IccTestDataTagDataEntry))]
     internal void ReadMultiLocalizedUnicodeTagDataEntry(byte[] data, IccMultiLocalizedUnicodeTagDataEntry expected)
     {

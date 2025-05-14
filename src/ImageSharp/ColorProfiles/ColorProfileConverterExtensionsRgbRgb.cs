@@ -12,6 +12,11 @@ internal static class ColorProfileConverterExtensionsRgbRgb
         where TFrom : struct, IColorProfile<TFrom, Rgb>
         where TTo : struct, IColorProfile<TTo, Rgb>
     {
+        if (converter.ShouldUseIccProfiles())
+        {
+            return converter.ConvertUsingIccProfile<TFrom, TTo>(source);
+        }
+
         ColorConversionOptions options = converter.Options;
 
         // Convert to input PCS
@@ -33,6 +38,12 @@ internal static class ColorProfileConverterExtensionsRgbRgb
         where TFrom : struct, IColorProfile<TFrom, Rgb>
         where TTo : struct, IColorProfile<TTo, Rgb>
     {
+        if (converter.ShouldUseIccProfiles())
+        {
+            converter.ConvertUsingIccProfile(source, destination);
+            return;
+        }
+
         ColorConversionOptions options = converter.Options;
 
         // Convert to input PCS.

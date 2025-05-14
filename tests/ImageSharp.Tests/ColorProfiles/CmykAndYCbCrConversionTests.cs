@@ -13,8 +13,9 @@ public class CmykAndYCbCrConversionTests
     private static readonly ApproximateColorProfileComparer Comparer = new(.0002F);
 
     [Theory]
-    [InlineData(0, 0, 0, 0, 255, 128, 128)]
-    [InlineData(0.360555, 0.1036901, 0.818514, 0.274615, 136.5134, 69.90555, 114.9948)]
+    [InlineData(0, 0, 0, 1, 0, .5F, .5F)]
+    [InlineData(0, 0, 0, 0, 1, .5F, .5F)]
+    [InlineData(0, .8570679F, .49999997F, 0, .439901F, .5339159F, .899500132F)]
     public void Convert_Cmyk_To_YCbCr(float c, float m, float y, float k, float y2, float cb, float cr)
     {
         // Arrange
@@ -41,8 +42,9 @@ public class CmykAndYCbCrConversionTests
     }
 
     [Theory]
-    [InlineData(255, 128, 128, 0, 0, 0, 5.960464E-08)]
-    [InlineData(136.5134, 69.90555, 114.9948, 0.2891567, 0, 0.7951807, 0.3490196)]
+    [InlineData(0, .5F, .5F, 0, 0, 0, 1)]
+    [InlineData(1, .5F, .5F, 0, 0, 0, 0)]
+    [InlineData(.5F, .5F, 1F, 0, .8570679F, .49999997F, 0)]
     public void Convert_YCbCr_To_Cmyk(float y2, float cb, float cr, float c, float m, float y, float k)
     {
         // Arrange

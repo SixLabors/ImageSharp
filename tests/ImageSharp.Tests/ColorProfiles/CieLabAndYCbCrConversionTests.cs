@@ -13,8 +13,9 @@ public class CieLabAndYCbCrConversionTests
     private static readonly ApproximateColorProfileComparer Comparer = new(.0002F);
 
     [Theory]
-    [InlineData(0, 128, 128, 0, 0, 0)]
-    [InlineData(87.4179, 133.9763, 247.5308, 55.06287, 82.54838, 23.1697)]
+    [InlineData(1, .5F, .5F, 100, 0, 0)]
+    [InlineData(0, .5F, .5F, 0, 0, 0)]
+    [InlineData(.5F, .5F, .5F, 53.38897F, 0, 0)]
     public void Convert_YCbCr_to_CieLab(float y, float cb, float cr, float l, float a, float b)
     {
         // Arrange
@@ -41,8 +42,9 @@ public class CieLabAndYCbCrConversionTests
     }
 
     [Theory]
-    [InlineData(0, 0, 0, 0, 128, 128)]
-    [InlineData(55.06287, 82.54838, 23.1697, 87.41701, 133.97232, 247.5314)]
+    [InlineData(100, 0, 0, 1, .5F, .5F)]
+    [InlineData(0, 0, 0, 0, .5F, .5F)]
+    [InlineData(53.38897F, 0, 0, .5F, .5F, .5F)]
     public void Convert_CieLab_to_YCbCr(float l, float a, float b, float y, float cb, float cr)
     {
         // Arrange

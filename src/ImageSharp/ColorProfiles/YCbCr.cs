@@ -130,8 +130,8 @@ public readonly struct YCbCr : IColorProfile<YCbCr, Rgb>
     public static YCbCr FromProfileConnectingSpace(ColorConversionOptions options, in Rgb source)
     {
         Vector3 rgb = source.AsVector3Unsafe();
-        Matrix4x4 m = options.TransposedYCbCrMatrix.Forward;
-        Vector3 offset = options.TransposedYCbCrMatrix.Offset;
+        Matrix4x4 m = options.TransposedYCbCrTransform.Forward;
+        Vector3 offset = options.TransposedYCbCrTransform.Offset;
 
         return new YCbCr(Vector3.Transform(rgb, m) + offset, true);
     }
@@ -152,8 +152,8 @@ public readonly struct YCbCr : IColorProfile<YCbCr, Rgb>
     /// <inheritdoc/>
     public Rgb ToProfileConnectingSpace(ColorConversionOptions options)
     {
-        Matrix4x4 m = options.TransposedYCbCrMatrix.Inverse;
-        Vector3 offset = options.TransposedYCbCrMatrix.Offset;
+        Matrix4x4 m = options.TransposedYCbCrTransform.Inverse;
+        Vector3 offset = options.TransposedYCbCrTransform.Offset;
         Vector3 normalized = this.AsVector3Unsafe() - offset;
 
         return Rgb.FromScaledVector3(Vector3.Transform(normalized, m));

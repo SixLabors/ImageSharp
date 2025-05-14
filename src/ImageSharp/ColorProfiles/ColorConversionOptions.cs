@@ -14,11 +14,16 @@ namespace SixLabors.ImageSharp.ColorProfiles;
 public class ColorConversionOptions
 {
     private Matrix4x4 adaptationMatrix;
+    private YCbCrMatrix yCbCrMatrix;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ColorConversionOptions"/> class.
     /// </summary>
-    public ColorConversionOptions() => this.AdaptationMatrix = KnownChromaticAdaptationMatrices.Bradford;
+    public ColorConversionOptions()
+    {
+        this.AdaptationMatrix = KnownChromaticAdaptationMatrices.Bradford;
+        this.YCbCrMatrix = KnownYCbCrMatrices.BT601;
+    }
 
     /// <summary>
     /// Gets the memory allocator.
@@ -48,7 +53,15 @@ public class ColorConversionOptions
     /// <summary>
     /// Gets the YCbCr matrix to used to perform conversions from/to RGB.
     /// </summary>
-    public YCbCrMatrix YCbCrMatrix { get; init; } = KnownYCbCrMatrices.BT601;
+    public YCbCrMatrix YCbCrMatrix
+    {
+        get => this.yCbCrMatrix;
+        init
+        {
+            this.yCbCrMatrix = value;
+            this.TransposedYCbCrMatrix = value.Transpose();
+        }
+    }
 
     /// <summary>
     /// Gets the source ICC profile.
@@ -70,10 +83,12 @@ public class ColorConversionOptions
         init
         {
             this.adaptationMatrix = value;
-            Matrix4x4.Invert(value, out Matrix4x4 inverted);
+            _ = Matrix4x4.Invert(value, out Matrix4x4 inverted);
             this.InverseAdaptationMatrix = inverted;
         }
     }
+
+    internal YCbCrMatrix TransposedYCbCrMatrix { get; private set; }
 
     internal Matrix4x4 InverseAdaptationMatrix { get; private set; }
 }

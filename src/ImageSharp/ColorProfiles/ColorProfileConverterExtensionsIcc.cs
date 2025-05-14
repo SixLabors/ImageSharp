@@ -363,7 +363,7 @@ internal static class ColorProfileConverterExtensionsIcc
         if (targetParams.HasNoPerceptualHandling ||
             (oneProfileHasV2PerceptualAdjustment && targetParams.HasV2PerceptualHandling))
         {
-            Vector3 vector = AdjustPcsToV2BlackPoint(xyz.ToVector3());
+            Vector3 vector = AdjustPcsToV2BlackPoint(xyz.AsVector3Unsafe());
 
             // when using XYZ PCS, negative values are clipped after PCS adjustment (in DemoIccMAX)
             if (targetParams.PcsType == IccColorSpaceType.CieXyz)

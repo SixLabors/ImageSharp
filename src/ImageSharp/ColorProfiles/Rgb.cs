@@ -128,7 +128,7 @@ public readonly struct Rgb : IProfileConnectingSpace<Rgb, CieXyz>
     public static Rgb FromProfileConnectingSpace(ColorConversionOptions options, in CieXyz source)
     {
         // Convert to linear rgb then compress.
-        Rgb linear = new(Vector3.Transform(source.ToVector3(), GetCieXyzToRgbMatrix(options.TargetRgbWorkingSpace)));
+        Rgb linear = new(Vector3.Transform(source.AsVector3Unsafe(), GetCieXyzToRgbMatrix(options.TargetRgbWorkingSpace)));
         return FromScaledVector4(options.TargetRgbWorkingSpace.Compress(linear.ToScaledVector4()));
     }
 
@@ -141,7 +141,7 @@ public readonly struct Rgb : IProfileConnectingSpace<Rgb, CieXyz>
         for (int i = 0; i < source.Length; i++)
         {
             // Convert to linear rgb then compress.
-            Rgb linear = new(Vector3.Transform(source[i].ToVector3(), matrix));
+            Rgb linear = new(Vector3.Transform(source[i].AsVector3Unsafe(), matrix));
             Vector4 nonlinear = options.TargetRgbWorkingSpace.Compress(linear.ToScaledVector4());
             destination[i] = FromScaledVector4(nonlinear);
         }
@@ -271,7 +271,7 @@ public readonly struct Rgb : IProfileConnectingSpace<Rgb, CieXyz>
 
         Matrix4x4.Invert(xyzMatrix, out Matrix4x4 inverseXyzMatrix);
 
-        Vector3 vector = Vector3.Transform(workingSpace.WhitePoint.ToVector3(), inverseXyzMatrix);
+        Vector3 vector = Vector3.Transform(workingSpace.WhitePoint.AsVector3Unsafe(), inverseXyzMatrix);
 
         // Use transposed Rows/Columns
         return new Matrix4x4

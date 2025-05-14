@@ -80,12 +80,8 @@ public readonly struct CieXyz : IProfileConnectingSpace<CieXyz, CieXyz>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool operator !=(CieXyz left, CieXyz right) => !left.Equals(right);
 
-    /// <summary>
-    /// Returns a new <see cref="Vector3"/> representing this instance.
-    /// </summary>
-    /// <returns>The <see cref="Vector3"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Vector3 ToVector3() => new(this.X, this.Y, this.Z);
+    internal Vector3 ToVector3() => new(this.X, this.Y, this.Z);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal Vector4 ToVector4()
@@ -203,5 +199,5 @@ public readonly struct CieXyz : IProfileConnectingSpace<CieXyz, CieXyz>
     public bool Equals(CieXyz other)
         => this.AsVector3Unsafe() == other.AsVector3Unsafe();
 
-    private Vector3 AsVector3Unsafe() => Unsafe.As<CieXyz, Vector3>(ref Unsafe.AsRef(in this));
+    internal Vector3 AsVector3Unsafe() => Unsafe.As<CieXyz, Vector3>(ref Unsafe.AsRef(in this));
 }

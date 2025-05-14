@@ -82,13 +82,6 @@ public readonly struct Lms : IColorProfile<Lms, CieXyz>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool operator !=(Lms left, Lms right) => !left.Equals(right);
 
-    /// <summary>
-    /// Returns a new <see cref="Vector3"/> representing this instance.
-    /// </summary>
-    /// <returns>The <see cref="Vector3"/>.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Vector3 ToVector3() => new(this.L, this.M, this.S);
-
     /// <inheritdoc/>
     public Vector4 ToScaledVector4()
     {
@@ -134,10 +127,7 @@ public readonly struct Lms : IColorProfile<Lms, CieXyz>
 
     /// <inheritdoc/>
     public static Lms FromProfileConnectingSpace(ColorConversionOptions options, in CieXyz source)
-    {
-        Vector3 vector = Vector3.Transform(source.ToVector3(), options.AdaptationMatrix);
-        return new Lms(vector);
-    }
+        => new(Vector3.Transform(source.AsVector3Unsafe(), options.AdaptationMatrix));
 
     /// <inheritdoc/>
     public static void FromProfileConnectionSpace(ColorConversionOptions options, ReadOnlySpan<CieXyz> source, Span<Lms> destination)
@@ -153,10 +143,7 @@ public readonly struct Lms : IColorProfile<Lms, CieXyz>
 
     /// <inheritdoc/>
     public CieXyz ToProfileConnectingSpace(ColorConversionOptions options)
-    {
-        Vector3 vector = Vector3.Transform(this.ToVector3(), options.InverseAdaptationMatrix);
-        return new CieXyz(vector);
-    }
+        => new(Vector3.Transform(this.AsVector3Unsafe(), options.InverseAdaptationMatrix));
 
     /// <inheritdoc/>
     public static void ToProfileConnectionSpace(ColorConversionOptions options, ReadOnlySpan<Lms> source, Span<CieXyz> destination)

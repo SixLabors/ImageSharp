@@ -55,4 +55,7 @@ public readonly struct YCbCrMatrix
     /// Gets the chrominance offset vector to apply during encoding (add) or decoding (subtract).
     /// </summary>
     public Vector3 Offset { get; }
+
+    internal YCbCrMatrix Transpose()
+        => new(Matrix4x4.Transpose(this.Forward), Matrix4x4.Transpose(this.Inverse), this.Offset);
 }

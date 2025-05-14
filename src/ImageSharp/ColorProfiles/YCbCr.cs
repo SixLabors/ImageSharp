@@ -130,14 +130,10 @@ public readonly struct YCbCr : IColorProfile<YCbCr, Rgb>
     public static YCbCr FromProfileConnectingSpace(ColorConversionOptions options, in Rgb source)
     {
         Vector3 rgb = source.AsVector3Unsafe();
-        Matrix4x4 m = options.YCbCrMatrix.Forward;
-        Vector3 offset = options.YCbCrMatrix.Offset;
+        Matrix4x4 m = options.TransposedYCbCrMatrix.Forward;
+        Vector3 offset = options.TransposedYCbCrMatrix.Offset;
 
-        float y = Vector3.Dot(rgb, new Vector3(m.M11, m.M12, m.M13));
-        float cb = Vector3.Dot(rgb, new Vector3(m.M21, m.M22, m.M23));
-        float cr = Vector3.Dot(rgb, new Vector3(m.M31, m.M32, m.M33));
-
-        return new YCbCr(new Vector3(y, cb, cr) + offset, true);
+        return new YCbCr(Vector3.Transform(rgb, m) + offset, true);
     }
 
     /// <inheritdoc/>
@@ -156,15 +152,11 @@ public readonly struct YCbCr : IColorProfile<YCbCr, Rgb>
     /// <inheritdoc/>
     public Rgb ToProfileConnectingSpace(ColorConversionOptions options)
     {
-        Matrix4x4 m = options.YCbCrMatrix.Inverse;
-        Vector3 offset = options.YCbCrMatrix.Offset;
+        Matrix4x4 m = options.TransposedYCbCrMatrix.Inverse;
+        Vector3 offset = options.TransposedYCbCrMatrix.Offset;
         Vector3 normalized = this.AsVector3Unsafe() - offset;
 
-        float r = Vector3.Dot(normalized, new Vector3(m.M11, m.M12, m.M13));
-        float g = Vector3.Dot(normalized, new Vector3(m.M21, m.M22, m.M23));
-        float b = Vector3.Dot(normalized, new Vector3(m.M31, m.M32, m.M33));
-
-        return Rgb.FromScaledVector3(new Vector3(r, g, b));
+        return Rgb.FromScaledVector3(Vector3.Transform(normalized, m));
     }
 
     /// <inheritdoc/>

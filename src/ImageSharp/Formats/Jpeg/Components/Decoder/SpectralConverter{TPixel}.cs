@@ -144,8 +144,6 @@ internal class SpectralConverter<TPixel> : SpectralConverter, IDisposable
 
             JpegColorConverterBase.ComponentValues values = new(this.componentProcessors, y);
 
-            values = values.Slice(0, width); // slice away Jpeg padding
-
             if (iccProfile != null)
             {
                 this.colorConverter.ConvertToRgbInPlaceWithIcc(this.Configuration, in values, iccProfile);
@@ -154,6 +152,8 @@ internal class SpectralConverter<TPixel> : SpectralConverter, IDisposable
             {
                 this.colorConverter.ConvertToRgbInPlace(in values);
             }
+
+            values = values.Slice(0, width); // slice away Jpeg padding
 
             Span<byte> r = this.rgbBuffer.Slice(0, width);
             Span<byte> g = this.rgbBuffer.Slice(width, width);

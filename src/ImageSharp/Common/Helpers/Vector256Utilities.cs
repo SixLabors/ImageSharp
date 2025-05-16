@@ -17,21 +17,23 @@ namespace SixLabors.ImageSharp.Common.Helpers;
 /// </list>
 /// Should only be used if the intrinsics are available.
 /// </summary>
-internal static class Vector256Utilities
+#pragma warning disable SA1649 // File name should match first type name
+internal static class Vector256_
+#pragma warning restore SA1649 // File name should match first type name
 {
     /// <summary>
     /// Gets a value indicating whether shuffle byte operations are supported.
     /// </summary>
-    public static bool SupportsShuffleFloat
+    public static bool SupportsShuffleNativeFloat
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => Avx.IsSupported || Sse.IsSupported;
+        get => Avx.IsSupported;
     }
 
     /// <summary>
     /// Gets a value indicating whether shuffle byte operations are supported.
     /// </summary>
-    public static bool SupportsShuffleByte
+    public static bool SupportsShuffleNativeByte
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get => Avx2.IsSupported;
@@ -44,18 +46,11 @@ internal static class Vector256Utilities
     /// <param name="control">The shuffle control byte.</param>
     /// <returns>The <see cref="Vector256{Single}"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector256<float> Shuffle(Vector256<float> vector, [ConstantExpected] byte control)
+    public static Vector256<float> ShuffleNative(Vector256<float> vector, [ConstantExpected] byte control)
     {
         if (Avx.IsSupported)
         {
             return Avx.Shuffle(vector, vector, control);
-        }
-
-        if (Sse.IsSupported)
-        {
-            Vector128<float> lower = vector.GetLower();
-            Vector128<float> upper = vector.GetUpper();
-            return Vector256.Create(Sse.Shuffle(lower, lower, control), Sse.Shuffle(upper, upper, control));
         }
 
         ThrowUnreachableException();
@@ -71,7 +66,7 @@ internal static class Vector256Utilities
     /// </param>
     /// <returns>The <see cref="Vector256{Single}"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector256<byte> Shuffle(Vector256<byte> vector, Vector256<byte> indices)
+    public static Vector256<byte> ShuffleNative(Vector256<byte> vector, Vector256<byte> indices)
     {
         if (Avx2.IsSupported)
         {
@@ -94,13 +89,6 @@ internal static class Vector256Utilities
         if (Avx.IsSupported)
         {
             return Avx.ConvertToVector256Int32(vector);
-        }
-
-        if (Sse2.IsSupported)
-        {
-            Vector128<int> lower = Sse2.ConvertToVector128Int32(vector.GetLower());
-            Vector128<int> upper = Sse2.ConvertToVector128Int32(vector.GetUpper());
-            return Vector256.Create(lower, upper);
         }
 
         Vector256<float> sign = vector & Vector256.Create(-0F);
@@ -150,6 +138,76 @@ internal static class Vector256Utilities
         }
 
         return va + (vm0 * vm1);
+    }
+
+    /// <summary>
+    /// Performs a multiplication and a subtraction of the <see cref="Vector256{Single}"/>.
+    /// </summary>
+    /// <remarks>ret = (vm0 * vm1) - vs</remarks>
+    /// <param name="vs">The vector to subtract from the intermediate result.</param>
+    /// <param name="vm0">The first vector to multiply.</param>
+    /// <param name="vm1">The second vector to multiply.</param>
+    /// <returns>The <see cref="Vector256{T}"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<float> MultiplySubtract(
+        Vector256<float> vs,
+        Vector256<float> vm0,
+        Vector256<float> vm1)
+    {
+        if (Fma.IsSupported)
+        {
+            return Fma.MultiplySubtract(vm1, vm0, vs);
+        }
+
+        return (vm0 * vm1) - vs;
+    }
+
+    /// <summary>
+    /// Packs signed 32-bit integers to signed 16-bit integers and saturates.
+    /// </summary>
+    /// <param name="left">The left hand source vector.</param>
+    /// <param name="right">The right hand source vector.</param>
+    /// <returns>The <see cref="Vector256{Int16}"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<short> PackSignedSaturate(Vector256<int> left, Vector256<int> right)
+    {
+        if (Avx2.IsSupported)
+        {
+            return Avx2.PackSignedSaturate(left, right);
+        }
+
+        Vector256<int> min = Vector256.Create((int)short.MinValue);
+        Vector256<int> max = Vector256.Create((int)short.MaxValue);
+        Vector256<int> lefClamped = Clamp(left, min, max);
+        Vector256<int> rightClamped = Clamp(right, min, max);
+        return Vector256.Narrow(lefClamped, rightClamped);
+    }
+
+    /// <summary>
+    /// Restricts a vector between a minimum and a maximum value.
+    /// </summary>
+    /// <typeparam name="T">The type of the elements in the vector.</typeparam>
+    /// <param name="value">The vector to restrict.</param>
+    /// <param name="min">The minimum value.</param>
+    /// <param name="max">The maximum value.</param>
+    /// <returns>The restricted <see cref="Vector256{T}"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<T> Clamp<T>(Vector256<T> value, Vector256<T> min, Vector256<T> max)
+        => Vector256.Min(Vector256.Max(value, min), max);
+
+    /// <summary>
+    /// Widens a <see cref="Vector128{Int16}"/> to a <see cref="Vector256{Int32}"/>.
+    /// </summary>
+    /// <param name="value">The vector to widen.</param>
+    /// <returns>The widened <see cref="Vector256{Int32}"/>.</returns>
+    public static Vector256<int> Widen(Vector128<short> value)
+    {
+        if (Avx2.IsSupported)
+        {
+            return Avx2.ConvertToVector256Int32(value);
+        }
+
+        return Vector256.WidenLower(value.ToVector256());
     }
 
     [DoesNotReturn]

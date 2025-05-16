@@ -1,6 +1,8 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.Metadata.Profiles.Icc;
+
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
 
 /// <summary>
@@ -11,8 +13,9 @@ internal abstract class SpectralConverter
     /// <summary>
     /// Supported scaled spectral block sizes for scaled IDCT decoding.
     /// </summary>
-    private static readonly int[] ScaledBlockSizes = new int[]
-    {
+    private static readonly int[] ScaledBlockSizes =
+    [
+
         // 8 => 1, 1/8 of the original size
         1,
 
@@ -21,7 +24,7 @@ internal abstract class SpectralConverter
 
         // 8 => 4, 1/2 of the original size
         4,
-    };
+    ];
 
     /// <summary>
     /// Gets a value indicating whether this converter has converted spectral
@@ -50,13 +53,16 @@ internal abstract class SpectralConverter
     /// Converts single spectral jpeg stride to color stride in baseline
     /// decoding mode.
     /// </summary>
+    /// <param name="iccProfile">
+    /// The ICC profile to use for color conversion. If <see langword="null"/>, then the default color space is used.
+    /// </param>
     /// <remarks>
     /// Called once per decoded spectral stride in <see cref="HuffmanScanDecoder"/>
     /// only for baseline interleaved jpeg images.
     /// Spectral 'stride' doesn't particularly mean 'single stride'.
     /// Actual stride height depends on the subsampling factor of the given image.
     /// </remarks>
-    public abstract void ConvertStrideBaseline();
+    public abstract void ConvertStrideBaseline(IccProfile? iccProfile);
 
     /// <summary>
     /// Marks current converter state as 'converted'.
@@ -83,7 +89,7 @@ internal abstract class SpectralConverter
     /// Calculates image size with optional scaling.
     /// </summary>
     /// <remarks>
-    /// Does not apply scalling if <paramref name="targetSize"/> is null.
+    /// Does not apply scaling if <paramref name="targetSize"/> is null.
     /// </remarks>
     /// <param name="size">Size of the image.</param>
     /// <param name="targetSize">Target size of the image.</param>

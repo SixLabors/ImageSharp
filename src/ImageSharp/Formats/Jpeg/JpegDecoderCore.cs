@@ -127,7 +127,7 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
     /// Gets the only supported precisions
     /// </summary>
     // Refers to assembly's static data segment, no allocation occurs.
-    private static ReadOnlySpan<byte> SupportedPrecisions => new byte[] { 8, 12 };
+    private static ReadOnlySpan<byte> SupportedPrecisions => [8, 12];
 
     /// <summary>
     /// Gets the frame
@@ -201,9 +201,11 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
         this.InitXmpProfile();
         this.InitDerivedMetadataProperties();
 
+        _ = this.Options.TryGetIccProfileForColorConversion(this.Metadata.IccProfile, out IccProfile profile);
+
         return new Image<TPixel>(
             this.configuration,
-            spectralConverter.GetPixelBuffer(cancellationToken),
+            spectralConverter.GetPixelBuffer(profile, cancellationToken),
             this.Metadata);
     }
 
@@ -666,7 +668,7 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
     /// </summary>
     private void InitIccProfile()
     {
-        if (this.hasIcc)
+        if (this.hasIcc && this.Metadata.IccProfile == null)
         {
             IccProfile profile = new(this.iccData);
             if (profile.CheckIsValid())
@@ -1512,7 +1514,9 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
             arithmeticScanDecoder.InitDecodingTables(this.arithmeticDecodingTables);
         }
 
-        this.scanDecoder.ParseEntropyCodedData(selectorsCount);
+        this.InitIccProfile();
+        _ = this.Options.TryGetIccProfileForColorConversion(this.Metadata.IccProfile, out IccProfile profile);
+        this.scanDecoder.ParseEntropyCodedData(selectorsCount, profile);
     }
 
     /// <summary>

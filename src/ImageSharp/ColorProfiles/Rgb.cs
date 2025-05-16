@@ -98,7 +98,7 @@ public readonly struct Rgb : IProfileConnectingSpace<Rgb, CieXyz>
     /// <returns>The <see cref="Vector4"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Vector4 ToScaledVector4()
-        => new(this.ToScaledVector3(), 1F);
+        => new(this.AsVector3Unsafe(), 1F);
 
     /// <inheritdoc/>
     public static void ToScaledVector4(ReadOnlySpan<Rgb> source, Span<Vector4> destination)
@@ -154,7 +154,7 @@ public readonly struct Rgb : IProfileConnectingSpace<Rgb, CieXyz>
         Rgb linear = FromScaledVector4(options.SourceRgbWorkingSpace.Expand(this.ToScaledVector4()));
 
         // Then convert to xyz
-        return new CieXyz(Vector3.Transform(linear.ToScaledVector3(), GetRgbToCieXyzMatrix(options.SourceRgbWorkingSpace)));
+        return new CieXyz(Vector3.Transform(linear.AsVector3Unsafe(), GetRgbToCieXyzMatrix(options.SourceRgbWorkingSpace)));
     }
 
     /// <inheritdoc/>
@@ -171,7 +171,7 @@ public readonly struct Rgb : IProfileConnectingSpace<Rgb, CieXyz>
             Rgb linear = FromScaledVector4(options.SourceRgbWorkingSpace.Expand(rgb.ToScaledVector4()));
 
             // Then convert to xyz
-            destination[i] = new CieXyz(Vector3.Transform(linear.ToScaledVector3(), matrix));
+            destination[i] = new CieXyz(Vector3.Transform(linear.AsVector3Unsafe(), matrix));
         }
     }
 

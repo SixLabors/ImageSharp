@@ -15,7 +15,7 @@ public static class KnownYCbCrMatrices
     /// <summary>
     /// ITU-R BT.601 (SD video standard).
     /// </summary>
-    public static readonly YCbCrMatrix BT601 = new(
+    public static readonly YCbCrTransform BT601 = new(
         new Matrix4x4(
             0.299000F, 0.587000F, 0.114000F, 0F,
            -0.168736F, -0.331264F, 0.500000F, 0F,
@@ -31,7 +31,7 @@ public static class KnownYCbCrMatrices
     /// <summary>
     /// ITU-R BT.709 (HD video, sRGB standard).
     /// </summary>
-    public static readonly YCbCrMatrix BT709 = new(
+    public static readonly YCbCrTransform BT709 = new(
         new Matrix4x4(
             0.212600F, 0.715200F, 0.072200F, 0F,
            -0.114572F, -0.385428F, 0.500000F, 0F,
@@ -47,7 +47,7 @@ public static class KnownYCbCrMatrices
     /// <summary>
     /// ITU-R BT.2020 (UHD/4K video standard).
     /// </summary>
-    public static readonly YCbCrMatrix BT2020 = new(
+    public static readonly YCbCrTransform BT2020 = new(
         new Matrix4x4(
             0.262700F, 0.678000F, 0.059300F, 0F,
            -0.139630F, -0.360370F, 0.500000F, 0F,

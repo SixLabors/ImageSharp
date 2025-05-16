@@ -6,6 +6,7 @@ using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
 using SixLabors.ImageSharp.Formats.Tiff.Constants;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors;
@@ -57,7 +58,13 @@ internal sealed class OldJpegTiffCompression : TiffBaseDecompressor
 
                 jpegDecoder.ParseStream(stream, spectralConverterGray, cancellationToken);
 
-                using Buffer2D<L8> decompressedBuffer = spectralConverterGray.GetPixelBuffer(cancellationToken);
+                _ = this.options.GeneralOptions.TryGetIccProfileForColorConversion(
+                    jpegDecoder.Metadata?.IccProfile,
+                    out IccProfile? profile);
+
+                using Buffer2D<L8> decompressedBuffer = spectralConverterGray.GetPixelBuffer(
+                    profile,
+                    cancellationToken);
                 JpegCompressionUtils.CopyImageBytesToBuffer(spectralConverterGray.Configuration, buffer, decompressedBuffer);
                 break;
             }
@@ -69,7 +76,11 @@ internal sealed class OldJpegTiffCompression : TiffBaseDecompressor
 
                 jpegDecoder.ParseStream(stream, spectralConverter, cancellationToken);
 
-                using Buffer2D<Rgb24> decompressedBuffer = spectralConverter.GetPixelBuffer(cancellationToken);
+                _ = this.options.GeneralOptions.TryGetIccProfileForColorConversion(
+                    jpegDecoder.Metadata?.IccProfile,
+                    out IccProfile? profile);
+
+                using Buffer2D<Rgb24> decompressedBuffer = spectralConverter.GetPixelBuffer(profile, cancellationToken);
                 JpegCompressionUtils.CopyImageBytesToBuffer(spectralConverter.Configuration, buffer, decompressedBuffer);
                 break;
             }

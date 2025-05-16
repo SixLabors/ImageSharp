@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 #nullable disable
 
@@ -11,6 +11,17 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc;
 /// </summary>
 public sealed class IccProfileHeader
 {
+    private static readonly Vector3 TruncatedD50 = new(0.9642029F, 1F, 0.8249054F);
+
+    // sRGB v4 Preference
+    private static readonly IccProfileId StandardRgbV2 = new(0x3D0EB2DE, 0xAE9397BE, 0x9B6726CE, 0x8C0A43CE);
+
+    // sRGB v4 Preference
+    private static readonly IccProfileId StandardRgbV4 = new(0x34562ABF, 0x994CCD06, 0x6D2C5721, 0xD0D68C5D);
+
+    // sRGB v4 Appearance
+    private static readonly IccProfileId StandardRgbV4A = new(0xDF1132A1, 0x746E97B0, 0xAD85719, 0xBE711E08);
+
     /// <summary>
     /// Gets or sets the profile size in bytes (will be ignored when writing a profile).
     /// </summary>
@@ -97,4 +108,31 @@ public sealed class IccProfileHeader
     /// Gets or sets the profile ID (hash).
     /// </summary>
     public IccProfileId Id { get; set; }
+
+    internal static bool IsLikelySrgb(IccProfileHeader header)
+    {
+        // Reject known perceptual-appearance profile
+        // This profile employs perceptual rendering intents to maintain color appearance across different
+        // devices and media, which can lead to variations from standard sRGB representations.
+        if (header.Id == StandardRgbV4A)
+        {
+            return false;
+        }
+
+        // Accept known sRGB profile IDs
+        if (header.Id == StandardRgbV2 || header.Id == StandardRgbV4)
+        {
+            return true;
+        }
+
+        // Fallback: best-guess heuristic
+        return
+            header.FileSignature == "acsp" &&
+            header.DataColorSpace == IccColorSpaceType.Rgb &&
+            (header.ProfileConnectionSpace == IccColorSpaceType.CieXyz || header.ProfileConnectionSpace == IccColorSpaceType.CieLab) &&
+            (header.Class == IccProfileClass.DisplayDevice || header.Class == IccProfileClass.ColorSpace) &&
+            header.PcsIlluminant == TruncatedD50 &&
+            (header.Version.Major == 2 || header.Version.Major == 4) &&
+            !string.Equals(header.CmmType, "ADBE", StringComparison.Ordinal);
+    }
 }

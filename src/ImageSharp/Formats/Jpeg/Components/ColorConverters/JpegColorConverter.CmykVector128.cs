@@ -1,9 +1,10 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
+using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components;
 
@@ -45,6 +46,10 @@ internal abstract partial class JpegColorConverterBase
                 y *= k;
             }
         }
+
+        /// <inheritdoc/>
+        public override void ConvertToRgbInPlaceWithIcc(Configuration configuration, in ComponentValues values, IccProfile profile)
+            => CmykScalar.ConvertToRgbInPlaceWithIcc(configuration, profile, values, this.MaximumValue);
 
         /// <inheritdoc/>
         public override void ConvertFromRgb(in ComponentValues values, Span<float> rLane, Span<float> gLane, Span<float> bLane)

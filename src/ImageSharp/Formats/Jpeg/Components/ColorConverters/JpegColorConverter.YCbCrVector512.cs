@@ -4,6 +4,7 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
+using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using Vector512_ = SixLabors.ImageSharp.Common.Helpers.Vector512Utilities;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components;
@@ -16,6 +17,10 @@ internal abstract partial class JpegColorConverterBase
             : base(JpegColorSpace.YCbCr, precision)
         {
         }
+
+        /// <inheritdoc/>
+        public override void ConvertToRgbInPlaceWithIcc(Configuration configuration, in ComponentValues values, IccProfile profile)
+            => YCbCrScalar.ConvertToRgbInPlaceWithIcc(configuration, profile, values, this.MaximumValue);
 
         /// <inheritdoc/>
         protected override void ConvertToRgbInPlaceVectorized(in ComponentValues values)

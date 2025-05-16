@@ -1,9 +1,10 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
+using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using Vector256_ = SixLabors.ImageSharp.Common.Helpers.Vector256Utilities;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components;
@@ -23,6 +24,12 @@ internal abstract partial class JpegColorConverterBase
             ref Vector256<float> c0Base =
                 ref Unsafe.As<float, Vector256<float>>(ref MemoryMarshal.GetReference(values.Component0));
 
+            ref Vector256<float> c1Base =
+                ref Unsafe.As<float, Vector256<float>>(ref MemoryMarshal.GetReference(values.Component1));
+
+            ref Vector256<float> c2Base =
+                ref Unsafe.As<float, Vector256<float>>(ref MemoryMarshal.GetReference(values.Component2));
+
             // Used for the color conversion
             Vector256<float> scale = Vector256.Create(1 / this.MaximumValue);
 
@@ -31,8 +38,15 @@ internal abstract partial class JpegColorConverterBase
             {
                 ref Vector256<float> c0 = ref Unsafe.Add(ref c0Base, i);
                 c0 *= scale;
+
+                Unsafe.Add(ref c1Base, i) = c0;
+                Unsafe.Add(ref c2Base, i) = c0;
             }
         }
+
+        /// <inheritdoc/>
+        public override void ConvertToRgbInPlaceWithIcc(Configuration configuration, in ComponentValues values, IccProfile profile)
+            => GrayScaleScalar.ConvertToRgbInPlaceWithIcc(configuration, profile, values, this.MaximumValue);
 
         /// <inheritdoc/>
         public override void ConvertFromRgb(in ComponentValues values, Span<float> rLane, Span<float> gLane, Span<float> bLane)

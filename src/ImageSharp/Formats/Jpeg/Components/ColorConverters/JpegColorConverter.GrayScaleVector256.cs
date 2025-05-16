@@ -36,11 +36,11 @@ internal abstract partial class JpegColorConverterBase
             nuint n = values.Component0.Vector256Count<float>();
             for (nuint i = 0; i < n; i++)
             {
-                ref Vector256<float> c0 = ref Unsafe.Add(ref c0Base, i);
-                c0 *= scale;
+                Vector256<float> c = Unsafe.Add(ref c0Base, i) * scale;
 
-                Unsafe.Add(ref c1Base, i) = c0;
-                Unsafe.Add(ref c2Base, i) = c0;
+                Unsafe.Add(ref c0Base, i) = c;
+                Unsafe.Add(ref c1Base, i) = c;
+                Unsafe.Add(ref c2Base, i) = c;
             }
         }
 

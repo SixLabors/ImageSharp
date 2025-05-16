@@ -67,14 +67,9 @@ internal abstract partial class JpegColorConverterBase
 
             for (nuint i = 0; i < (nuint)values.Component0.Length; i++)
             {
-                ref float c0 = ref Unsafe.Add(ref c0Base, i);
-                c0 *= scale;
-
-                ref float c1 = ref Unsafe.Add(ref c1Base, i);
-                c1 *= scale;
-
-                ref float c2 = ref Unsafe.Add(ref c2Base, i);
-                c2 *= scale;
+                Unsafe.Add(ref c0Base, i) *= scale;
+                Unsafe.Add(ref c1Base, i) *= scale;
+                Unsafe.Add(ref c2Base, i) *= scale;
             }
         }
 

@@ -74,7 +74,7 @@ internal abstract partial class JpegColorConverterBase
                 ref Vector128<float> b = ref Unsafe.Add(ref srcBlue, i);
 
                 // luminosity = (0.299 * r) + (0.587 * g) + (0.114 * b)
-                Unsafe.Add(ref destLuminance, i) = Vector128Utilities.MultiplyAdd(Vector128Utilities.MultiplyAdd(f0114 * b, f0587, g), f0299, r);
+                Unsafe.Add(ref destLuminance, i) = Vector128_.MultiplyAdd(Vector128_.MultiplyAdd(f0114 * b, f0587, g), f0299, r);
             }
         }
     }

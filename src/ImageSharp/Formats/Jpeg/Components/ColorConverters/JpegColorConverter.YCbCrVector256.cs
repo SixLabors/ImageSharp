@@ -1,11 +1,11 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
+using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
-using Vector256_ = SixLabors.ImageSharp.Common.Helpers.Vector256Utilities;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components;
 

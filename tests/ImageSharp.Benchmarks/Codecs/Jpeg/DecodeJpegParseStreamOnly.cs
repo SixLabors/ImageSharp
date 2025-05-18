@@ -5,6 +5,7 @@ using BenchmarkDotNet.Attributes;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
 using SixLabors.ImageSharp.IO;
+using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.Tests;
 using SDSize = System.Drawing.Size;
 
@@ -50,7 +51,7 @@ public class DecodeJpegParseStreamOnly
     // There's no way to eliminate it as spectral conversion is built into the scan decoding loop for memory footprint reduction
     private sealed class NoopSpectralConverter : SpectralConverter
     {
-        public override void ConvertStrideBaseline()
+        public override void ConvertStrideBaseline(IccProfile iccProfile)
         {
         }
 

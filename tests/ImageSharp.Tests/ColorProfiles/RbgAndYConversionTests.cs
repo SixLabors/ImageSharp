@@ -23,7 +23,7 @@ public class RbgAndYConversionTests
     {
         ColorConversionOptions options = new()
         {
-            YCbCrMatrix = KnownYCbCrMatrices.BT601
+            YCbCrTransform = KnownYCbCrMatrices.BT601
         };
 
         Convert_Rgb_To_Y_Core(r, g, b, y, options);
@@ -37,7 +37,7 @@ public class RbgAndYConversionTests
     {
         ColorConversionOptions options = new()
         {
-            YCbCrMatrix = KnownYCbCrMatrices.BT709
+            YCbCrTransform = KnownYCbCrMatrices.BT709
         };
 
         Convert_Rgb_To_Y_Core(r, g, b, y, options);
@@ -51,7 +51,7 @@ public class RbgAndYConversionTests
     {
         ColorConversionOptions options = new()
         {
-            YCbCrMatrix = KnownYCbCrMatrices.BT2020
+            YCbCrTransform = KnownYCbCrMatrices.BT2020
         };
 
         Convert_Rgb_To_Y_Core(r, g, b, y, options);

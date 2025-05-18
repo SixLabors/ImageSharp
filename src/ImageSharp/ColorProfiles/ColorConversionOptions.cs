@@ -14,7 +14,7 @@ namespace SixLabors.ImageSharp.ColorProfiles;
 public class ColorConversionOptions
 {
     private Matrix4x4 adaptationMatrix;
-    private YCbCrMatrix yCbCrMatrix;
+    private YCbCrTransform yCbCrTransform;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ColorConversionOptions"/> class.
@@ -22,7 +22,7 @@ public class ColorConversionOptions
     public ColorConversionOptions()
     {
         this.AdaptationMatrix = KnownChromaticAdaptationMatrices.Bradford;
-        this.YCbCrMatrix = KnownYCbCrMatrices.BT601;
+        this.YCbCrTransform = KnownYCbCrMatrices.BT601;
     }
 
     /// <summary>
@@ -53,13 +53,13 @@ public class ColorConversionOptions
     /// <summary>
     /// Gets the YCbCr matrix to used to perform conversions from/to RGB.
     /// </summary>
-    public YCbCrMatrix YCbCrMatrix
+    public YCbCrTransform YCbCrTransform
     {
-        get => this.yCbCrMatrix;
+        get => this.yCbCrTransform;
         init
         {
-            this.yCbCrMatrix = value;
-            this.TransposedYCbCrMatrix = value.Transpose();
+            this.yCbCrTransform = value;
+            this.TransposedYCbCrTransform = value.Transpose();
         }
     }
 
@@ -88,7 +88,7 @@ public class ColorConversionOptions
         }
     }
 
-    internal YCbCrMatrix TransposedYCbCrMatrix { get; private set; }
+    internal YCbCrTransform TransposedYCbCrTransform { get; private set; }
 
     internal Matrix4x4 InverseAdaptationMatrix { get; private set; }
 }

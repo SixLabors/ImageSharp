@@ -126,6 +126,11 @@ internal sealed class PngDecoderCore : ImageDecoderCore
     private readonly int maxUncompressedLength;
 
     /// <summary>
+    /// A value indicating whether the image data has been read.
+    /// </summary>
+    private bool hasImageData;
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="PngDecoderCore"/> class.
     /// </summary>
     /// <param name="options">The decoder options.</param>
@@ -746,7 +751,11 @@ internal sealed class PngDecoderCore : ImageDecoderCore
         where TPixel : unmanaged, IPixel<TPixel>
     {
         using ZlibInflateStream inflateStream = new(this.currentStream, getData);
-        inflateStream.AllocateNewBytes(chunkLength, true);
+        if (!inflateStream.AllocateNewBytes(chunkLength, !this.hasImageData))
+        {
+            return;
+        }
+
         DeflateStream dataStream = inflateStream.CompressedStream!;
 
         if (this.header.InterlaceMethod is PngInterlaceMode.Adam7)
@@ -800,7 +809,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                 int bytesRead = compressedStream.Read(scanSpan, currentRowBytesRead, bytesPerFrameScanline - currentRowBytesRead);
                 if (bytesRead <= 0)
                 {
-                    return;
+                    goto EXIT;
                 }
 
                 currentRowBytesRead += bytesRead;
@@ -845,6 +854,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
         }
 
         EXIT:
+        this.hasImageData = true;
         blendMemory?.Dispose();
     }
 
@@ -903,7 +913,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                     int bytesRead = compressedStream.Read(this.scanline.GetSpan(), currentRowBytesRead, bytesPerInterlaceScanline - currentRowBytesRead);
                     if (bytesRead <= 0)
                     {
-                        return;
+                        goto EXIT;
                     }
 
                     currentRowBytesRead += bytesRead;
@@ -976,6 +986,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
         }
 
         EXIT:
+        this.hasImageData = true;
         blendMemory?.Dispose();
     }
 

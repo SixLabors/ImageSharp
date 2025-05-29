@@ -18,7 +18,9 @@ jobs:
 
     steps:
       - name: Install libgdi+, which is required for tests running on ubuntu
-        run: sudo apt-get -y install libgdiplus libgif-dev libglib2.0-dev libcairo2-dev libtiff-dev libexif-dev
+        run: |
+            sudo apt-get update
+            sudo apt-get -y install libgdiplus libgif-dev libglib2.0-dev libcairo2-dev libtiff-dev libexif-dev
 
       - name: Git Config
         shell: bash

@@ -374,9 +374,6 @@ internal class Vp8LEncoder : IDisposable
     /// <param name="inputImgHeight">The input image height.</param>
     private void WriteImageSize(int inputImgWidth, int inputImgHeight)
     {
-        Guard.MustBeLessThan(inputImgWidth, WebpConstants.MaxDimension, nameof(inputImgWidth));
-        Guard.MustBeLessThan(inputImgHeight, WebpConstants.MaxDimension, nameof(inputImgHeight));
-
         uint width = (uint)inputImgWidth - 1;
         uint height = (uint)inputImgHeight - 1;
 

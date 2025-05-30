@@ -403,6 +403,59 @@ internal static class Vector128_
         => Vector128.Min(Vector128.Max(value, min), max);
 
     /// <summary>
+    /// Multiply packed signed 16-bit integers in <paramref name="left"/> and <paramref name="right"/>, producing
+    /// intermediate signed 32-bit integers. Horizontally add adjacent pairs of intermediate 32-bit integers, and
+    /// pack the results.
+    /// </summary>
+    /// <param name="left">
+    /// The first vector containing packed signed 16-bit integers to multiply and add.
+    /// </param>
+    /// <param name="right">
+    /// The second vector containing packed signed 16-bit integers to multiply and add.
+    /// </param>
+    /// <returns>
+    /// A vector containing the results of multiplying and adding adjacent pairs of packed signed 16-bit integers
+    /// </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector128<int> MultiplyAddAdjacent(Vector128<short> left, Vector128<short> right)
+    {
+        if (Sse2.IsSupported)
+        {
+            return Sse2.MultiplyAddAdjacent(left, right);
+        }
+
+        if (AdvSimd.IsSupported)
+        {
+            Vector128<int> prodLo = AdvSimd.MultiplyWideningLower(left.GetLower(), right.GetLower());
+            Vector128<int> prodHi = AdvSimd.MultiplyWideningLower(left.GetUpper(), right.GetUpper());
+
+            Vector128<long> v0 = AdvSimd.AddPairwiseWidening(prodLo);
+            Vector128<long> v1 = AdvSimd.AddPairwiseWidening(prodHi);
+
+            return Vector128.Narrow(v0, v1);
+        }
+
+        {
+            // Widen each half of the short vectors into two int vectors
+            (Vector128<int> leftLo, Vector128<int> leftHi) = Vector128.Widen(left);
+            (Vector128<int> rightLo, Vector128<int> rightHi) = Vector128.Widen(right);
+
+            // Elementwise multiply: each int lane now holds the full 32-bit product
+            Vector128<int> prodLo = leftLo * rightLo;
+            Vector128<int> prodHi = leftHi * rightHi;
+
+            // Extract the low and high parts of the products shuffling them to form a result we can add together.
+            // Use out-of-bounds to zero out the unused lanes.
+            Vector128<int> v0 = Vector128.Shuffle(prodLo, Vector128.Create(0, 2, 8, 8));
+            Vector128<int> v1 = Vector128.Shuffle(prodHi, Vector128.Create(8, 8, 0, 2));
+            Vector128<int> v2 = Vector128.Shuffle(prodLo, Vector128.Create(1, 3, 8, 8));
+            Vector128<int> v3 = Vector128.Shuffle(prodHi, Vector128.Create(8, 8, 1, 3));
+
+            return v0 + v1 + v2 + v3;
+        }
+    }
+
+    /// <summary>
     /// Multiply the packed 16-bit integers in <paramref name="left"/> and <paramref name="right"/>, producing
     /// intermediate 32-bit integers, and store the low 16 bits of the intermediate integers in the result.
     /// </summary>
@@ -425,67 +478,15 @@ internal static class Vector128_
         }
 
         // Widen each half of the short vectors into two int vectors
-        (Vector128<int> leftLower, Vector128<int> leftUpper) = Vector128.Widen(left);
-        (Vector128<int> rightLower, Vector128<int> rightUpper) = Vector128.Widen(right);
+        (Vector128<int> leftLo, Vector128<int> leftHi) = Vector128.Widen(left);
+        (Vector128<int> rightLo, Vector128<int> rightHi) = Vector128.Widen(right);
 
         // Elementwise multiply: each int lane now holds the full 32-bit product
-        Vector128<int> prodLo = leftLower * rightLower;
-        Vector128<int> prodHi = leftUpper * rightUpper;
+        Vector128<int> prodLo = leftLo * rightLo;
+        Vector128<int> prodHi = leftHi * rightHi;
 
         // Narrow the two int vectors back into one short vector
         return Vector128.Narrow(prodLo, prodHi);
-    }
-
-    /// <summary>
-    /// Multiply packed signed 16-bit integers in <paramref name="left"/> and <paramref name="right"/>, producing
-    /// intermediate signed 32-bit integers. Horizontally add adjacent pairs of intermediate 32-bit integers, and
-    /// pack the results.
-    /// </summary>
-    /// <param name="left">
-    /// The first vector containing packed signed 16-bit integers to multiply and add.
-    /// </param>
-    /// <param name="right">
-    /// The second vector containing packed signed 16-bit integers to multiply and add.
-    /// </param>
-    /// <returns>
-    /// A vector containing the results of multiplying and adding adjacent pairs of packed signed 16-bit integers
-    /// </returns>
-    public static Vector128<int> MultiplyAddAdjacent(Vector128<short> left, Vector128<short> right)
-    {
-        if (Sse2.IsSupported)
-        {
-            return Sse2.MultiplyAddAdjacent(left, right);
-        }
-
-        if (AdvSimd.IsSupported)
-        {
-            Vector128<int> prodLo = AdvSimd.MultiplyWideningLower(left.GetLower(), right.GetLower());
-            Vector128<int> prodHi = AdvSimd.MultiplyWideningLower(left.GetUpper(), right.GetUpper());
-
-            Vector128<long> v0 = AdvSimd.AddPairwiseWidening(prodLo);
-            Vector128<long> v1 = AdvSimd.AddPairwiseWidening(prodHi);
-
-            return Vector128.Narrow(v0, v1);
-        }
-
-        {
-            // Widen each half of the short vectors into two int vectors
-            (Vector128<int> leftLower, Vector128<int> leftUpper) = Vector128.Widen(left);
-            (Vector128<int> rightLower, Vector128<int> rightUpper) = Vector128.Widen(right);
-
-            // Elementwise multiply: each int lane now holds the full 32-bit product
-            Vector128<int> prodLo = leftLower * rightLower;
-            Vector128<int> prodHi = leftUpper * rightUpper;
-
-            // Extract the low and high parts of the products shuffling them to form a result we can add together.
-            // Use out-of-bounds to zero out the unused lanes.
-            Vector128<int> v0 = Vector128.Shuffle(prodLo, Vector128.Create(0, 2, 8, 8));
-            Vector128<int> v1 = Vector128.Shuffle(prodHi, Vector128.Create(8, 8, 0, 2));
-            Vector128<int> v2 = Vector128.Shuffle(prodLo, Vector128.Create(1, 3, 8, 8));
-            Vector128<int> v3 = Vector128.Shuffle(prodHi, Vector128.Create(8, 8, 1, 3));
-
-            return v0 + v1 + v2 + v3;
-        }
     }
 
     /// <summary>
@@ -511,12 +512,12 @@ internal static class Vector128_
         }
 
         // Widen each half of the short vectors into two int vectors
-        (Vector128<int> leftLower, Vector128<int> leftUpper) = Vector128.Widen(left);
-        (Vector128<int> rightLower, Vector128<int> rightUpper) = Vector128.Widen(right);
+        (Vector128<int> leftLo, Vector128<int> leftHi) = Vector128.Widen(left);
+        (Vector128<int> rightLo, Vector128<int> rightHi) = Vector128.Widen(right);
 
         // Elementwise multiply: each int lane now holds the full 32-bit product
-        Vector128<int> prodLo = leftLower * rightLower;
-        Vector128<int> prodHi = leftUpper * rightUpper;
+        Vector128<int> prodLo = leftLo * rightLo;
+        Vector128<int> prodHi = leftHi * rightHi;
 
         // Arithmetic shift right by 16 bits to extract the high word
         prodLo >>= 16;
@@ -540,6 +541,7 @@ internal static class Vector128_
     /// A vector containing the unpacked and interleaved 64-bit integers from the high
     /// halves of <paramref name="left"/> and <paramref name="right"/>.
     /// </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector128<long> UnpackHigh(Vector128<long> left, Vector128<long> right)
     {
         if (Sse2.IsSupported)
@@ -569,6 +571,7 @@ internal static class Vector128_
     /// A vector containing the unpacked and interleaved 64-bit integers from the low
     /// halves of <paramref name="left"/> and <paramref name="right"/>.
     /// </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector128<long> UnpackLow(Vector128<long> left, Vector128<long> right)
     {
         if (Sse2.IsSupported)
@@ -598,6 +601,7 @@ internal static class Vector128_
     /// A vector containing the unpacked and interleaved 32-bit integers from the high
     /// halves of <paramref name="left"/> and <paramref name="right"/>.
     /// </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector128<int> UnpackHigh(Vector128<int> left, Vector128<int> right)
     {
         if (Sse2.IsSupported)
@@ -628,6 +632,7 @@ internal static class Vector128_
     /// A vector containing the unpacked and interleaved 32-bit integers from the low
     /// halves of <paramref name="left"/> and <paramref name="right"/>.
     /// </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector128<int> UnpackLow(Vector128<int> left, Vector128<int> right)
     {
         if (Sse2.IsSupported)
@@ -658,6 +663,7 @@ internal static class Vector128_
     /// A vector containing the unpacked and interleaved 16-bit integers from the high
     /// halves of <paramref name="left"/> and <paramref name="right"/>.
     /// </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector128<short> UnpackHigh(Vector128<short> left, Vector128<short> right)
     {
         if (Sse2.IsSupported)
@@ -688,6 +694,7 @@ internal static class Vector128_
     /// A vector containing the unpacked and interleaved 16-bit integers from the low
     /// halves of <paramref name="left"/> and <paramref name="right"/>.
     /// </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector128<short> UnpackLow(Vector128<short> left, Vector128<short> right)
     {
         if (Sse2.IsSupported)
@@ -718,6 +725,7 @@ internal static class Vector128_
     /// A vector containing the unpacked and interleaved 8-bit integers from the low
     /// halves of <paramref name="left"/> and <paramref name="right"/>.
     /// </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector128<byte> UnpackLow(Vector128<byte> left, Vector128<byte> right)
     {
         if (Sse2.IsSupported)
@@ -734,6 +742,57 @@ internal static class Vector128_
         return Vector128.Shuffle(
             unpacked,
             Vector128.Shuffle(unpacked, Vector128.Create((byte)0, 8, 1, 9, 2, 10, 3, 11, 4, 12, 5, 13, 6, 14, 7, 15)));
+    }
+
+    /// <summary>
+    /// Subtract packed unsigned 8-bit integers in <paramref name="right"/> from packed unsigned 8-bit integers
+    /// in <paramref name="left"/> using saturation, and store the results.
+    /// </summary>
+    /// <param name="left">
+    /// The first vector containing packed unsigned 8-bit integers to subtract from.
+    /// </param>
+    /// <param name="right">
+    /// The second vector containing packed unsigned 8-bit integers to subtract.
+    /// </param>
+    /// <returns>
+    /// A vector containing the results of subtracting packed unsigned 8-bit integers
+    /// </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector128<byte> SubtractSaturate(Vector128<byte> left, Vector128<byte> right)
+    {
+        if (Sse2.IsSupported)
+        {
+            return Sse2.SubtractSaturate(left, right);
+        }
+
+        if (AdvSimd.IsSupported)
+        {
+            return AdvSimd.SubtractSaturate(left, right);
+        }
+
+        if (PackedSimd.IsSupported)
+        {
+            return PackedSimd.SubtractSaturate(left, right);
+        }
+
+        // Widen inputs to 16-bit to safely compute unsigned differences without underflow
+        (Vector128<ushort> leftLo, Vector128<ushort> leftHi) = Vector128.Widen(left);
+        (Vector128<ushort> rightLo, Vector128<ushort> rightHi) = Vector128.Widen(right);
+
+        // Subtract
+        Vector128<ushort> diffLo = leftLo - rightLo;
+        Vector128<ushort> diffHi = leftHi - rightHi;
+
+        // Mask lanes where left >= right to preserve the result
+        // All other lanes are zeroed (saturate to 0)
+        Vector128<ushort> maskLo = Vector128.GreaterThanOrEqual(leftLo, rightLo).AsUInt16();
+        Vector128<ushort> maskHi = Vector128.GreaterThanOrEqual(leftHi, rightHi).AsUInt16();
+
+        diffLo &= maskLo;
+        diffHi &= maskHi;
+
+        // Narrow back to bytes
+        return Vector128.Narrow(diffLo, diffHi);
     }
 
     [DoesNotReturn]

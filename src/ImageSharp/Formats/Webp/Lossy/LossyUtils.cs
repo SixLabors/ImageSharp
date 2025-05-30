@@ -67,16 +67,16 @@ internal static class LossyUtils
             // Load values.
             ref byte aRef = ref MemoryMarshal.GetReference(a);
             ref byte bRef = ref MemoryMarshal.GetReference(b);
-            var a0 = Vector256.Create(
+            Vector256<byte> a0 = Vector256.Create(
                 Unsafe.As<byte, Vector128<byte>>(ref aRef),
                 Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref aRef, WebpConstants.Bps)));
-            var a1 = Vector256.Create(
+            Vector256<byte> a1 = Vector256.Create(
                 Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref aRef, WebpConstants.Bps * 2)),
                 Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref aRef, WebpConstants.Bps * 3)));
-            var b0 = Vector256.Create(
+            Vector256<byte> b0 = Vector256.Create(
                 Unsafe.As<byte, Vector128<byte>>(ref bRef),
                 Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref bRef, WebpConstants.Bps)));
-            var b1 = Vector256.Create(
+            Vector256<byte> b1 = Vector256.Create(
                 Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref bRef, WebpConstants.Bps * 2)),
                 Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref bRef, WebpConstants.Bps * 3)));
 
@@ -193,16 +193,16 @@ internal static class LossyUtils
         for (int i = 0; i < numPairs; i++)
         {
             // Load values.
-            var a0 = Vector256.Create(
+            Vector256<byte> a0 = Vector256.Create(
                 Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref aRef, offset)),
                 Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref aRef, offset + WebpConstants.Bps)));
-            var b0 = Vector256.Create(
+            Vector256<byte> b0 = Vector256.Create(
                 Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref bRef, offset)),
                 Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref bRef, offset + WebpConstants.Bps)));
-            var a1 = Vector256.Create(
+            Vector256<byte> a1 = Vector256.Create(
                 Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref aRef, offset + (2 * WebpConstants.Bps))),
                 Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref aRef, offset + (3 * WebpConstants.Bps))));
-            var b1 = Vector256.Create(
+            Vector256<byte> b1 = Vector256.Create(
                 Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref bRef, offset + (2 * WebpConstants.Bps))),
                 Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref bRef, offset + (3 * WebpConstants.Bps))));
 
@@ -1057,24 +1057,24 @@ internal static class LossyUtils
             // Load and concatenate the transform coefficients (we'll do two transforms
             // in parallel).
             ref short srcRef = ref MemoryMarshal.GetReference(src);
-            var in0 = Vector128.Create(Unsafe.As<short, long>(ref srcRef), 0);
-            var in1 = Vector128.Create(Unsafe.As<short, long>(ref Unsafe.Add(ref srcRef, 4)), 0);
-            var in2 = Vector128.Create(Unsafe.As<short, long>(ref Unsafe.Add(ref srcRef, 8)), 0);
-            var in3 = Vector128.Create(Unsafe.As<short, long>(ref Unsafe.Add(ref srcRef, 12)), 0);
+            Vector128<long> in0 = Vector128.Create(Unsafe.As<short, long>(ref srcRef), 0);
+            Vector128<long> in1 = Vector128.Create(Unsafe.As<short, long>(ref Unsafe.Add(ref srcRef, 4)), 0);
+            Vector128<long> in2 = Vector128.Create(Unsafe.As<short, long>(ref Unsafe.Add(ref srcRef, 8)), 0);
+            Vector128<long> in3 = Vector128.Create(Unsafe.As<short, long>(ref Unsafe.Add(ref srcRef, 12)), 0);
 
             // a00 a10 a20 a30   x x x x
             // a01 a11 a21 a31   x x x x
             // a02 a12 a22 a32   x x x x
             // a03 a13 a23 a33   x x x x
-            var inb0 = Vector128.Create(Unsafe.As<short, long>(ref Unsafe.Add(ref srcRef, 16)), 0);
-            var inb1 = Vector128.Create(Unsafe.As<short, long>(ref Unsafe.Add(ref srcRef, 20)), 0);
-            var inb2 = Vector128.Create(Unsafe.As<short, long>(ref Unsafe.Add(ref srcRef, 24)), 0);
-            var inb3 = Vector128.Create(Unsafe.As<short, long>(ref Unsafe.Add(ref srcRef, 28)), 0);
+            Vector128<long> inb0 = Vector128.Create(Unsafe.As<short, long>(ref Unsafe.Add(ref srcRef, 16)), 0);
+            Vector128<long> inb1 = Vector128.Create(Unsafe.As<short, long>(ref Unsafe.Add(ref srcRef, 20)), 0);
+            Vector128<long> inb2 = Vector128.Create(Unsafe.As<short, long>(ref Unsafe.Add(ref srcRef, 24)), 0);
+            Vector128<long> inb3 = Vector128.Create(Unsafe.As<short, long>(ref Unsafe.Add(ref srcRef, 28)), 0);
 
-            in0 = Sse2.UnpackLow(in0, inb0);
-            in1 = Sse2.UnpackLow(in1, inb1);
-            in2 = Sse2.UnpackLow(in2, inb2);
-            in3 = Sse2.UnpackLow(in3, inb3);
+            in0 = Vector128_.UnpackLow(in0, inb0);
+            in1 = Vector128_.UnpackLow(in1, inb1);
+            in2 = Vector128_.UnpackLow(in2, inb2);
+            in3 = Vector128_.UnpackLow(in3, inb3);
 
             // a00 a10 a20 a30   b00 b10 b20 b30
             // a01 a11 a21 a31   b01 b11 b21 b31
@@ -1086,8 +1086,8 @@ internal static class LossyUtils
             Vector128<short> a = Sse2.Add(in0.AsInt16(), in2.AsInt16());
             Vector128<short> b = Sse2.Subtract(in0.AsInt16(), in2.AsInt16());
 
-            var k1 = Vector128.Create((short)20091);
-            var k2 = Vector128.Create((short)-30068);
+            Vector128<short> k1 = Vector128.Create((short)20091);
+            Vector128<short> k2 = Vector128.Create((short)-30068);
 
             // c = MUL(in1, K2) - MUL(in3, K1) = MUL(in1, k2) - MUL(in3, k1) + in1 - in3
             Vector128<short> c1 = Sse2.MultiplyHigh(in1.AsInt16(), k2);
@@ -1193,10 +1193,10 @@ internal static class LossyUtils
         {
             // Load and concatenate the transform coefficients.
             ref short srcRef = ref MemoryMarshal.GetReference(src);
-            var in0 = Vector128.Create(Unsafe.As<short, long>(ref srcRef), 0);
-            var in1 = Vector128.Create(Unsafe.As<short, long>(ref Unsafe.Add(ref srcRef, 4)), 0);
-            var in2 = Vector128.Create(Unsafe.As<short, long>(ref Unsafe.Add(ref srcRef, 8)), 0);
-            var in3 = Vector128.Create(Unsafe.As<short, long>(ref Unsafe.Add(ref srcRef, 12)), 0);
+            Vector128<long> in0 = Vector128.Create(Unsafe.As<short, long>(ref srcRef), 0);
+            Vector128<long> in1 = Vector128.Create(Unsafe.As<short, long>(ref Unsafe.Add(ref srcRef, 4)), 0);
+            Vector128<long> in2 = Vector128.Create(Unsafe.As<short, long>(ref Unsafe.Add(ref srcRef, 8)), 0);
+            Vector128<long> in3 = Vector128.Create(Unsafe.As<short, long>(ref Unsafe.Add(ref srcRef, 12)), 0);
 
             // a00 a10 a20 a30   x x x x
             // a01 a11 a21 a31   x x x x
@@ -1208,8 +1208,8 @@ internal static class LossyUtils
             Vector128<short> a = Sse2.Add(in0.AsInt16(), in2.AsInt16());
             Vector128<short> b = Sse2.Subtract(in0.AsInt16(), in2.AsInt16());
 
-            var k1 = Vector128.Create((short)20091);
-            var k2 = Vector128.Create((short)-30068);
+            Vector128<short> k1 = Vector128.Create((short)20091);
+            Vector128<short> k2 = Vector128.Create((short)-30068);
 
             // c = MUL(in1, K2) - MUL(in3, K1) = MUL(in1, k2) - MUL(in3, k1) + in1 - in3
             Vector128<short> c1 = Sse2.MultiplyHigh(in1.AsInt16(), k2);
@@ -2034,7 +2034,7 @@ internal static class LossyUtils
     // Applies filter on 2 pixels (p0 and q0)
     private static void DoFilter2Sse2(ref Vector128<byte> p1, ref Vector128<byte> p0, ref Vector128<byte> q0, ref Vector128<byte> q1, int thresh)
     {
-        var signBit = Vector128.Create((byte)0x80);
+        Vector128<byte> signBit = Vector128.Create((byte)0x80);
 
         // Convert p1/q1 to byte (for GetBaseDelta).
         Vector128<byte> p1s = Sse2.Xor(p1, signBit);
@@ -2063,7 +2063,7 @@ internal static class LossyUtils
         // Compute hev mask.
         Vector128<byte> notHev = GetNotHev(ref p1, ref p0, ref q0, ref q1, tresh);
 
-        var signBit = Vector128.Create((byte)0x80);
+        Vector128<byte> signBit = Vector128.Create((byte)0x80);
 
         // Convert to signed values.
         p1 = Sse2.Xor(p1, signBit);
@@ -2107,7 +2107,7 @@ internal static class LossyUtils
         Vector128<byte> notHev = GetNotHev(ref p1, ref p0, ref q0, ref q1, tresh);
 
         // Convert to signed values.
-        var signBit = Vector128.Create((byte)0x80);
+        Vector128<byte> signBit = Vector128.Create((byte)0x80);
         p1 = Sse2.Xor(p1, signBit);
         p0 = Sse2.Xor(p0, signBit);
         q0 = Sse2.Xor(q0, signBit);
@@ -2128,11 +2128,11 @@ internal static class LossyUtils
         Vector128<byte> flow = Sse2.UnpackLow(Vector128<byte>.Zero, f);
         Vector128<byte> fhigh = Sse2.UnpackHigh(Vector128<byte>.Zero, f);
 
-        var nine = Vector128.Create((short)0x0900);
+        Vector128<short> nine = Vector128.Create((short)0x0900);
         Vector128<short> f9Low = Sse2.MultiplyHigh(flow.AsInt16(), nine); // Filter (lo) * 9
         Vector128<short> f9High = Sse2.MultiplyHigh(fhigh.AsInt16(), nine); // Filter (hi) * 9
 
-        var sixtyThree = Vector128.Create((short)63);
+        Vector128<short> sixtyThree = Vector128.Create((short)63);
         Vector128<short> a2Low = Sse2.Add(f9Low, sixtyThree); // Filter * 9 + 63
         Vector128<short> a2High = Sse2.Add(f9High, sixtyThree); // Filter * 9 + 63
 
@@ -2163,7 +2163,7 @@ internal static class LossyUtils
         Vector128<byte> t1 = Abs(p1, p0);
         Vector128<byte> t2 = Abs(q1, q0);
 
-        var h = Vector128.Create((byte)hevThresh);
+        Vector128<byte> h = Vector128.Create((byte)hevThresh);
         Vector128<byte> tMax = Sse2.Max(t1, t2);
 
         Vector128<byte> tMaxH = Sse2.SubtractSaturate(tMax, h);
@@ -2252,9 +2252,9 @@ internal static class LossyUtils
 
     private static Vector128<byte> NeedsFilter(Vector128<byte> p1, Vector128<byte> p0, Vector128<byte> q0, Vector128<byte> q1, int thresh)
     {
-        var mthresh = Vector128.Create((byte)thresh);
+        Vector128<byte> mthresh = Vector128.Create((byte)thresh);
         Vector128<byte> t1 = Abs(p1, q1); // abs(p1 - q1)
-        var fe = Vector128.Create((byte)0xFE);
+        Vector128<byte> fe = Vector128.Create((byte)0xFE);
         Vector128<byte> t2 = Sse2.And(t1, fe); // set lsb of each byte to zero.
         Vector128<short> t3 = Sse2.ShiftRightLogical(t2.AsInt16(), 1); // abs(p1 - q1) / 2
 
@@ -2400,7 +2400,7 @@ internal static class LossyUtils
     [MethodImpl(InliningOptions.ShortMethod)]
     private static void ComplexMask(Vector128<byte> p1, Vector128<byte> p0, Vector128<byte> q0, Vector128<byte> q1, int thresh, int ithresh, ref Vector128<byte> mask)
     {
-        var it = Vector128.Create((byte)ithresh);
+        Vector128<byte> it = Vector128.Create((byte)ithresh);
         Vector128<byte> diff = Sse2.SubtractSaturate(mask, it);
         Vector128<byte> threshMask = Sse2.CompareEqual(diff, Vector128<byte>.Zero);
         Vector128<byte> filterMask = NeedsFilter(p1, p0, q0, q1, thresh);
@@ -2414,7 +2414,7 @@ internal static class LossyUtils
     // Pixels 'pi' and 'qi' are int8_t on input, uint8_t on output (sign flip).
     private static void Update2Pixels(ref Vector128<byte> pi, ref Vector128<byte> qi, Vector128<short> a0Low, Vector128<short> a0High)
     {
-        var signBit = Vector128.Create((byte)0x80);
+        Vector128<byte> signBit = Vector128.Create((byte)0x80);
         Vector128<short> a1Low = Sse2.ShiftRightArithmetic(a0Low, 7);
         Vector128<short> a1High = Sse2.ShiftRightArithmetic(a0High, 7);
         Vector128<sbyte> delta = Sse2.PackSignedSaturate(a1Low, a1High);
@@ -2427,8 +2427,8 @@ internal static class LossyUtils
     [MethodImpl(InliningOptions.ShortMethod)]
     private static Vector128<byte> LoadUvEdge(ref byte uRef, ref byte vRef, int offset)
     {
-        var uVec = Vector128.Create(Unsafe.As<byte, long>(ref Unsafe.Add(ref uRef, (uint)offset)), 0);
-        var vVec = Vector128.Create(Unsafe.As<byte, long>(ref Unsafe.Add(ref vRef, (uint)offset)), 0);
+        Vector128<long> uVec = Vector128.Create(Unsafe.As<byte, long>(ref Unsafe.Add(ref uRef, (uint)offset)), 0);
+        Vector128<long> vVec = Vector128.Create(Unsafe.As<byte, long>(ref Unsafe.Add(ref vRef, (uint)offset)), 0);
         return Sse2.UnpackLow(uVec, vVec).AsByte();
     }
 

@@ -167,6 +167,27 @@ internal static class Vector256_
     /// </summary>
     /// <param name="left">The left hand source vector.</param>
     /// <param name="right">The right hand source vector.</param>
+    /// <returns>The <see cref="Vector256{UInt16}"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<ushort> PackUnsignedSaturate(Vector256<int> left, Vector256<int> right)
+    {
+        if (Avx2.IsSupported)
+        {
+            return Avx2.PackUnsignedSaturate(left, right);
+        }
+
+        Vector256<int> min = Vector256.Create((int)ushort.MinValue);
+        Vector256<int> max = Vector256.Create((int)ushort.MaxValue);
+        Vector256<uint> lefClamped = Clamp(left, min, max).AsUInt32();
+        Vector256<uint> rightClamped = Clamp(right, min, max).AsUInt32();
+        return Vector256.Narrow(lefClamped, rightClamped);
+    }
+
+    /// <summary>
+    /// Packs signed 32-bit integers to signed 16-bit integers and saturates.
+    /// </summary>
+    /// <param name="left">The left hand source vector.</param>
+    /// <param name="right">The right hand source vector.</param>
     /// <returns>The <see cref="Vector256{Int16}"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<short> PackSignedSaturate(Vector256<int> left, Vector256<int> right)
@@ -208,6 +229,78 @@ internal static class Vector256_
         }
 
         return Vector256.WidenLower(value.ToVector256());
+    }
+
+    /// <summary>
+    /// Multiply the packed 16-bit integers in <paramref name="left"/> and <paramref name="right"/>, producing
+    /// intermediate 32-bit integers, and store the low 16 bits of the intermediate integers in the result.
+    /// </summary>
+    /// <param name="left">
+    /// The first vector containing packed 16-bit integers to multiply.
+    /// </param>
+    /// <param name="right">
+    /// The second vector containing packed 16-bit integers to multiply.
+    /// </param>
+    /// <returns>
+    /// A vector containing the low 16 bits of the products of the packed 16-bit integers
+    /// from <paramref name="left"/> and <paramref name="right"/>.
+    /// </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<short> MultiplyLow(Vector256<short> left, Vector256<short> right)
+    {
+        if (Avx2.IsSupported)
+        {
+            return Avx2.MultiplyLow(left, right);
+        }
+
+        // Widen each half of the short vectors into two int vectors
+        (Vector256<int> leftLower, Vector256<int> leftUpper) = Vector256.Widen(left);
+        (Vector256<int> rightLower, Vector256<int> rightUpper) = Vector256.Widen(right);
+
+        // Elementwise multiply: each int lane now holds the full 32-bit product
+        Vector256<int> prodLo = leftLower * rightLower;
+        Vector256<int> prodHi = leftUpper * rightUpper;
+
+        // Narrow the two int vectors back into one short vector
+        return Vector256.Narrow(prodLo, prodHi);
+    }
+
+    /// <summary>
+    /// Multiply the packed 16-bit integers in <paramref name="left"/> and <paramref name="right"/>, producing
+    /// intermediate 32-bit integers, and store the high 16 bits of the intermediate integers in the result.
+    /// </summary>
+    /// <param name="left">
+    /// The first vector containing packed 16-bit integers to multiply.
+    /// </param>
+    /// <param name="right">
+    /// The second vector containing packed 16-bit integers to multiply.
+    /// </param>
+    /// <returns>
+    /// A vector containing the high 16 bits of the products of the packed 16-bit integers
+    /// from <paramref name="left"/> and <paramref name="right"/>.
+    /// </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<short> MultiplyHigh(Vector256<short> left, Vector256<short> right)
+    {
+        if (Avx2.IsSupported)
+        {
+            return Avx2.MultiplyHigh(left, right);
+        }
+
+        // Widen each half of the short vectors into two int vectors
+        (Vector256<int> leftLower, Vector256<int> leftUpper) = Vector256.Widen(left);
+        (Vector256<int> rightLower, Vector256<int> rightUpper) = Vector256.Widen(right);
+
+        // Elementwise multiply: each int lane now holds the full 32-bit product
+        Vector256<int> prodLo = leftLower * rightLower;
+        Vector256<int> prodHi = leftUpper * rightUpper;
+
+        // Arithmetic shift right by 16 bits to extract the high word
+        prodLo >>= 16;
+        prodHi >>= 16;
+
+        // Narrow the two int vectors back into one short vector
+        return Vector256.Narrow(prodLo, prodHi);
     }
 
     [DoesNotReturn]

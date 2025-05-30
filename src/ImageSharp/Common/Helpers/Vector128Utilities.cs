@@ -305,6 +305,37 @@ internal static class Vector128_
     }
 
     /// <summary>
+    /// Packs signed 32-bit integers to unsigned 16-bit integers and saturates.
+    /// </summary>
+    /// <param name="left">The left hand source vector.</param>
+    /// <param name="right">The right hand source vector.</param>
+    /// <returns>The <see cref="Vector128{UInt16}"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector128<ushort> PackUnsignedSaturate(Vector128<int> left, Vector128<int> right)
+    {
+        if (Sse41.IsSupported)
+        {
+            return Sse41.PackUnsignedSaturate(left, right);
+        }
+
+        if (AdvSimd.IsSupported)
+        {
+            return AdvSimd.ExtractNarrowingSaturateUnsignedUpper(AdvSimd.ExtractNarrowingSaturateUnsignedLower(left), right);
+        }
+
+        if (PackedSimd.IsSupported)
+        {
+            return PackedSimd.ConvertNarrowingSaturateUnsigned(left, right);
+        }
+
+        Vector128<int> min = Vector128.Create((int)ushort.MinValue);
+        Vector128<int> max = Vector128.Create((int)ushort.MaxValue);
+        Vector128<uint> lefClamped = Clamp(left, min, max).AsUInt32();
+        Vector128<uint> rightClamped = Clamp(right, min, max).AsUInt32();
+        return Vector128.Narrow(lefClamped, rightClamped);
+    }
+
+    /// <summary>
     /// Packs signed 32-bit integers to signed 16-bit integers and saturates.
     /// </summary>
     /// <param name="left">The left hand source vector.</param>
@@ -346,6 +377,78 @@ internal static class Vector128_
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector128<T> Clamp<T>(Vector128<T> value, Vector128<T> min, Vector128<T> max)
         => Vector128.Min(Vector128.Max(value, min), max);
+
+    /// <summary>
+    /// Multiply the packed 16-bit integers in <paramref name="left"/> and <paramref name="right"/>, producing
+    /// intermediate 32-bit integers, and store the low 16 bits of the intermediate integers in the result.
+    /// </summary>
+    /// <param name="left">
+    /// The first vector containing packed 16-bit integers to multiply.
+    /// </param>
+    /// <param name="right">
+    /// The second vector containing packed 16-bit integers to multiply.
+    /// </param>
+    /// <returns>
+    /// A vector containing the low 16 bits of the products of the packed 16-bit integers
+    /// from <paramref name="left"/> and <paramref name="right"/>.
+    /// </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector128<short> MultiplyLow(Vector128<short> left, Vector128<short> right)
+    {
+        if (Sse2.IsSupported)
+        {
+            return Sse2.MultiplyLow(left, right);
+        }
+
+        // Widen each half of the short vectors into two int vectors
+        (Vector128<int> leftLower, Vector128<int> leftUpper) = Vector128.Widen(left);
+        (Vector128<int> rightLower, Vector128<int> rightUpper) = Vector128.Widen(right);
+
+        // Elementwise multiply: each int lane now holds the full 32-bit product
+        Vector128<int> prodLo = leftLower * rightLower;
+        Vector128<int> prodHi = leftUpper * rightUpper;
+
+        // Narrow the two int vectors back into one short vector
+        return Vector128.Narrow(prodLo, prodHi);
+    }
+
+    /// <summary>
+    /// Multiply the packed 16-bit integers in <paramref name="left"/> and <paramref name="right"/>, producing
+    /// intermediate 32-bit integers, and store the high 16 bits of the intermediate integers in the result.
+    /// </summary>
+    /// <param name="left">
+    /// The first vector containing packed 16-bit integers to multiply.
+    /// </param>
+    /// <param name="right">
+    /// The second vector containing packed 16-bit integers to multiply.
+    /// </param>
+    /// <returns>
+    /// A vector containing the high 16 bits of the products of the packed 16-bit integers
+    /// from <paramref name="left"/> and <paramref name="right"/>.
+    /// </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector128<short> MultiplyHigh(Vector128<short> left, Vector128<short> right)
+    {
+        if (Sse2.IsSupported)
+        {
+            return Sse2.MultiplyHigh(left, right);
+        }
+
+        // Widen each half of the short vectors into two int vectors
+        (Vector128<int> leftLower, Vector128<int> leftUpper) = Vector128.Widen(left);
+        (Vector128<int> rightLower, Vector128<int> rightUpper) = Vector128.Widen(right);
+
+        // Elementwise multiply: each int lane now holds the full 32-bit product
+        Vector128<int> prodLo = leftLower * rightLower;
+        Vector128<int> prodHi = leftUpper * rightUpper;
+
+        // Arithmetic shift right by 16 bits to extract the high word
+        prodLo >>= 16;
+        prodHi >>= 16;
+
+        // Narrow the two int vectors back into one short vector
+        return Vector128.Narrow(prodLo, prodHi);
+    }
 
     [DoesNotReturn]
     private static void ThrowUnreachableException() => throw new UnreachableException();

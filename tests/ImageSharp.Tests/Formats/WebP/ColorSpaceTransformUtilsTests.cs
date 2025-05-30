@@ -71,17 +71,17 @@ public class ColorSpaceTransformUtilsTests
     public void CollectColorBlueTransforms_WithHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunCollectColorBlueTransformsTest, HwIntrinsics.AllowAll);
 
     [Fact]
-    public void CollectColorBlueTransforms_WithoutSSE41_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunCollectColorBlueTransformsTest, HwIntrinsics.DisableSSE41);
+    public void CollectColorBlueTransforms_WithoutVector128_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunCollectColorBlueTransformsTest, HwIntrinsics.DisableSSE41);
 
     [Fact]
-    public void CollectColorBlueTransforms_WithoutAvx2_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunCollectColorBlueTransformsTest, HwIntrinsics.DisableAVX2);
+    public void CollectColorBlueTransforms_WithoutVector256_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunCollectColorBlueTransformsTest, HwIntrinsics.DisableAVX2);
 
     [Fact]
     public void CollectColorRedTransforms_WithHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunCollectColorRedTransformsTest, HwIntrinsics.AllowAll);
 
     [Fact]
-    public void CollectColorRedTransforms_WithoutSSE41_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunCollectColorRedTransformsTest, HwIntrinsics.DisableSSE41);
+    public void CollectColorRedTransforms_WithoutVector128_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunCollectColorRedTransformsTest, HwIntrinsics.DisableSSE41);
 
     [Fact]
-    public void CollectColorRedTransforms_WithoutAvx2_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunCollectColorRedTransformsTest, HwIntrinsics.DisableAVX2);
+    public void CollectColorRedTransforms_WithoutVector256_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunCollectColorRedTransformsTest, HwIntrinsics.DisableAVX2);
 }

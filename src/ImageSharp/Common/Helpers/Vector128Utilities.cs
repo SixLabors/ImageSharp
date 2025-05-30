@@ -436,6 +436,20 @@ internal static class Vector128_
         return Vector128.Narrow(prodLo, prodHi);
     }
 
+    /// <summary>
+    /// Multiply packed signed 16-bit integers in <paramref name="left"/> and <paramref name="right"/>, producing
+    /// intermediate signed 32-bit integers. Horizontally add adjacent pairs of intermediate 32-bit integers, and
+    /// pack the results.
+    /// </summary>
+    /// <param name="left">
+    /// The first vector containing packed signed 16-bit integers to multiply and add.
+    /// </param>
+    /// <param name="right">
+    /// The second vector containing packed signed 16-bit integers to multiply and add.
+    /// </param>
+    /// <returns>
+    /// A vector containing the results of multiplying and adding adjacent pairs of packed signed 16-bit integers
+    /// </returns>
     public static Vector128<int> MultiplyAddAdjacent(Vector128<short> left, Vector128<short> right)
     {
         if (Sse2.IsSupported)
@@ -443,22 +457,35 @@ internal static class Vector128_
             return Sse2.MultiplyAddAdjacent(left, right);
         }
 
-        // Widen each half of the short vectors into two int vectors
-        (Vector128<int> leftLower, Vector128<int> leftUpper) = Vector128.Widen(left);
-        (Vector128<int> rightLower, Vector128<int> rightUpper) = Vector128.Widen(right);
+        if (AdvSimd.IsSupported)
+        {
+            Vector128<int> prodLo = AdvSimd.MultiplyWideningLower(left.GetLower(), right.GetLower());
+            Vector128<int> prodHi = AdvSimd.MultiplyWideningLower(left.GetUpper(), right.GetUpper());
 
-        // Elementwise multiply: each int lane now holds the full 32-bit product
-        Vector128<int> prodLo = leftLower * rightLower;
-        Vector128<int> prodHi = leftUpper * rightUpper;
+            Vector128<long> v0 = AdvSimd.AddPairwiseWidening(prodLo);
+            Vector128<long> v1 = AdvSimd.AddPairwiseWidening(prodHi);
 
-        // Extract the low and high parts of the products shuffling them to form a result we can add together.
-        // Use out-of-bounds to zero out the unused lanes.
-        Vector128<int> v0 = Vector128.Shuffle(prodLo, Vector128.Create(0, 2, 8, 8));
-        Vector128<int> v1 = Vector128.Shuffle(prodHi, Vector128.Create(8, 8, 0, 2));
-        Vector128<int> v2 = Vector128.Shuffle(prodLo, Vector128.Create(1, 3, 8, 8));
-        Vector128<int> v3 = Vector128.Shuffle(prodHi, Vector128.Create(8, 8, 1, 3));
+            return Vector128.Narrow(v0, v1);
+        }
 
-        return v0 + v1 + v2 + v3;
+        {
+            // Widen each half of the short vectors into two int vectors
+            (Vector128<int> leftLower, Vector128<int> leftUpper) = Vector128.Widen(left);
+            (Vector128<int> rightLower, Vector128<int> rightUpper) = Vector128.Widen(right);
+
+            // Elementwise multiply: each int lane now holds the full 32-bit product
+            Vector128<int> prodLo = leftLower * rightLower;
+            Vector128<int> prodHi = leftUpper * rightUpper;
+
+            // Extract the low and high parts of the products shuffling them to form a result we can add together.
+            // Use out-of-bounds to zero out the unused lanes.
+            Vector128<int> v0 = Vector128.Shuffle(prodLo, Vector128.Create(0, 2, 8, 8));
+            Vector128<int> v1 = Vector128.Shuffle(prodHi, Vector128.Create(8, 8, 0, 2));
+            Vector128<int> v2 = Vector128.Shuffle(prodLo, Vector128.Create(1, 3, 8, 8));
+            Vector128<int> v3 = Vector128.Shuffle(prodHi, Vector128.Create(8, 8, 1, 3));
+
+            return v0 + v1 + v2 + v3;
+        }
     }
 
     /// <summary>

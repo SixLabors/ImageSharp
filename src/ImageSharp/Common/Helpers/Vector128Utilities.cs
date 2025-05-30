@@ -677,6 +677,38 @@ internal static class Vector128_
         return Vector128.Shuffle(unpacked, Vector128.Create(0, 4, 1, 5, 2, 6, 3, 7));
     }
 
+    /// <summary>
+    /// Unpack and interleave 8-bit integers from the low half of <paramref name="left"/> and <paramref name="right"/>
+    /// and store the results in the result.
+    /// </summary>
+    /// <param name="left">
+    /// The first vector containing packed 8-bit integers to unpack from the low half.
+    /// </param>
+    /// <param name="right">
+    /// The second vector containing packed 8-bit integers to unpack from the low half.
+    /// </param>
+    /// <returns>
+    /// A vector containing the unpacked and interleaved 8-bit integers from the low
+    /// halves of <paramref name="left"/> and <paramref name="right"/>.
+    /// </returns>
+    public static Vector128<byte> UnpackLow(Vector128<byte> left, Vector128<byte> right)
+    {
+        if (Sse2.IsSupported)
+        {
+            return Sse2.UnpackLow(left, right);
+        }
+
+        if (AdvSimd.IsSupported)
+        {
+            return AdvSimd.Arm64.ZipLow(left, right);
+        }
+
+        Vector128<byte> unpacked = Vector128.Create(left.GetLower(), right.GetLower());
+        return Vector128.Shuffle(
+            unpacked,
+            Vector128.Shuffle(unpacked, Vector128.Create((byte)0, 8, 1, 9, 2, 10, 3, 11, 4, 12, 5, 13, 6, 14, 7, 15)));
+    }
+
     [DoesNotReturn]
     private static void ThrowUnreachableException() => throw new UnreachableException();
 }

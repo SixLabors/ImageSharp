@@ -3,7 +3,6 @@
 
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Jpeg;
-using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
@@ -364,5 +363,55 @@ public partial class JpegDecoderTests
         using Image<TPixel> image = provider.GetImage(JpegDecoder.Instance);
         image.DebugSave(provider);
         image.CompareToOriginal(provider);
+    }
+
+    [Theory]
+    [WithFile(TestImages.Jpeg.ICC.CMYK, PixelTypes.Rgba32)]
+    public void Decode_CMYK_ICC_Jpeg<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        JpegDecoderOptions options = new()
+        {
+            GeneralOptions = new() { ColorProfileHandling = ColorProfileHandling.Convert }
+        };
+
+        using Image<TPixel> image = provider.GetImage(JpegDecoder.Instance, options);
+        image.DebugSave(provider);
+        image.CompareToReferenceOutput(provider);
+    }
+
+    [Theory]
+    [WithFile(TestImages.Jpeg.ICC.YCCK, PixelTypes.Rgba32)]
+    public void Decode_YCCK_ICC_Jpeg<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        JpegDecoderOptions options = new()
+        {
+            GeneralOptions = new() { ColorProfileHandling = ColorProfileHandling.Convert }
+        };
+
+        using Image<TPixel> image = provider.GetImage(JpegDecoder.Instance, options);
+        image.DebugSave(provider);
+        image.CompareToReferenceOutput(provider);
+    }
+
+    [Theory]
+    [WithFile(TestImages.Jpeg.ICC.SRgb, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Jpeg.ICC.AdobeRgb, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Jpeg.ICC.ColorMatch, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Jpeg.ICC.ProPhoto, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Jpeg.ICC.WideRGB, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Jpeg.ICC.AppleRGB, PixelTypes.Rgba32)]
+    public void Decode_RGB_ICC_Jpeg<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        JpegDecoderOptions options = new()
+        {
+            GeneralOptions = new() { ColorProfileHandling = ColorProfileHandling.Convert }
+        };
+
+        using Image<TPixel> image = provider.GetImage(JpegDecoder.Instance, options);
+        image.DebugSave(provider);
+        image.CompareToReferenceOutput(provider);
     }
 }

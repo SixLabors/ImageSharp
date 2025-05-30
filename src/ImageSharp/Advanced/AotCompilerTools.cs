@@ -277,11 +277,11 @@ internal static class AotCompilerTools
     private static void AotCompileSpectralConverter<TPixel>()
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        default(SpectralConverter<TPixel>).GetPixelBuffer(default);
-        default(GrayJpegSpectralConverter<TPixel>).GetPixelBuffer(default);
-        default(RgbJpegSpectralConverter<TPixel>).GetPixelBuffer(default);
-        default(TiffJpegSpectralConverter<TPixel>).GetPixelBuffer(default);
-        default(TiffOldJpegSpectralConverter<TPixel>).GetPixelBuffer(default);
+        default(SpectralConverter<TPixel>).GetPixelBuffer(default, default);
+        default(GrayJpegSpectralConverter<TPixel>).GetPixelBuffer(default, default);
+        default(RgbJpegSpectralConverter<TPixel>).GetPixelBuffer(default, default);
+        default(TiffJpegSpectralConverter<TPixel>).GetPixelBuffer(default, default);
+        default(TiffOldJpegSpectralConverter<TPixel>).GetPixelBuffer(default, default);
     }
 
     /// <summary>

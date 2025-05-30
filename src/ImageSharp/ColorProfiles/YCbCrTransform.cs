@@ -8,7 +8,7 @@ namespace SixLabors.ImageSharp.ColorProfiles;
 
 /// <summary>
 /// <para>
-/// Represents a YCbCr color matrix containing forward and inverse transformation matrices,
+/// Represents a YCbCr color transform containing forward and inverse transformation matrices,
 /// and the chrominance offsets to apply for full-range encoding
 /// </para>
 /// <para>
@@ -17,10 +17,10 @@ namespace SixLabors.ImageSharp.ColorProfiles;
 /// working spaces will produce incorrect conversions.
 /// </para>
 /// </summary>
-public readonly struct YCbCrMatrix
+public readonly struct YCbCrTransform
 {
     /// <summary>
-    /// Initializes a new instance of the <see cref="YCbCrMatrix"/> struct.
+    /// Initializes a new instance of the <see cref="YCbCrTransform"/> struct.
     /// </summary>
     /// <param name="forward">
     /// The forward transformation matrix from RGB to YCbCr. The matrix must include the
@@ -34,7 +34,7 @@ public readonly struct YCbCrMatrix
     /// The chrominance offsets to be added after the forward conversion,
     /// and subtracted before the inverse conversion. Usually <c>(0, 0.5, 0.5)</c>.
     /// </param>
-    public YCbCrMatrix(Matrix4x4 forward, Matrix4x4 inverse, Vector3 offset)
+    public YCbCrTransform(Matrix4x4 forward, Matrix4x4 inverse, Vector3 offset)
     {
         this.Forward = forward;
         this.Inverse = inverse;
@@ -56,6 +56,6 @@ public readonly struct YCbCrMatrix
     /// </summary>
     public Vector3 Offset { get; }
 
-    internal YCbCrMatrix Transpose()
+    internal YCbCrTransform Transpose()
         => new(Matrix4x4.Transpose(this.Forward), Matrix4x4.Transpose(this.Inverse), this.Offset);
 }

@@ -89,6 +89,30 @@ internal static class Vector128_
     }
 
     /// <summary>
+    /// Creates a new vector by selecting values from an input vector using the control.
+    /// </summary>
+    /// <param name="vector">The input vector from which values are selected.</param>
+    /// <param name="control">The shuffle control byte.</param>
+    /// <returns>The <see cref="Vector128{Single}"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector128<int> ShuffleNative(Vector128<int> vector, [ConstantExpected] byte control)
+    {
+        if (Sse2.IsSupported)
+        {
+            return Sse2.Shuffle(vector, control);
+        }
+
+        // Don't use InverseMMShuffle here as we want to avoid the cast.
+        Vector128<int> indices = Vector128.Create(
+            control & 0x3,
+            (control >> 2) & 0x3,
+            (control >> 4) & 0x3,
+            (control >> 6) & 0x3);
+
+        return Vector128.Shuffle(vector, indices);
+    }
+
+    /// <summary>
     /// Creates a new vector by selecting values from an input vector using a set of indices.
     /// </summary>
     /// <param name="vector">
@@ -412,6 +436,31 @@ internal static class Vector128_
         return Vector128.Narrow(prodLo, prodHi);
     }
 
+    public static Vector128<int> MultiplyAddAdjacent(Vector128<short> left, Vector128<short> right)
+    {
+        if (Sse2.IsSupported)
+        {
+            return Sse2.MultiplyAddAdjacent(left, right);
+        }
+
+        // Widen each half of the short vectors into two int vectors
+        (Vector128<int> leftLower, Vector128<int> leftUpper) = Vector128.Widen(left);
+        (Vector128<int> rightLower, Vector128<int> rightUpper) = Vector128.Widen(right);
+
+        // Elementwise multiply: each int lane now holds the full 32-bit product
+        Vector128<int> prodLo = leftLower * rightLower;
+        Vector128<int> prodHi = leftUpper * rightUpper;
+
+        // Extract the low and high parts of the products shuffling them to form a result we can add together.
+        // Use out-of-bounds to zero out the unused lanes.
+        Vector128<int> v0 = Vector128.Shuffle(prodLo, Vector128.Create(0, 2, 8, 8));
+        Vector128<int> v1 = Vector128.Shuffle(prodHi, Vector128.Create(8, 8, 0, 2));
+        Vector128<int> v2 = Vector128.Shuffle(prodLo, Vector128.Create(1, 3, 8, 8));
+        Vector128<int> v3 = Vector128.Shuffle(prodHi, Vector128.Create(8, 8, 1, 3));
+
+        return v0 + v1 + v2 + v3;
+    }
+
     /// <summary>
     /// Multiply the packed 16-bit integers in <paramref name="left"/> and <paramref name="right"/>, producing
     /// intermediate 32-bit integers, and store the high 16 bits of the intermediate integers in the result.
@@ -448,6 +497,184 @@ internal static class Vector128_
 
         // Narrow the two int vectors back into one short vector
         return Vector128.Narrow(prodLo, prodHi);
+    }
+
+    /// <summary>
+    /// Unpack and interleave 64-bit integers from the high half of <paramref name="left"/> and <paramref name="right"/>
+    /// and store the results in the result.
+    /// </summary>
+    /// <param name="left">
+    /// The first vector containing packed 64-bit integers to unpack from the high half.
+    /// </param>
+    /// <param name="right">
+    /// The second vector containing packed 64-bit integers to unpack from the high half.
+    /// </param>
+    /// <returns>
+    /// A vector containing the unpacked and interleaved 64-bit integers from the high
+    /// halves of <paramref name="left"/> and <paramref name="right"/>.
+    /// </returns>
+    public static Vector128<long> UnpackHigh(Vector128<long> left, Vector128<long> right)
+    {
+        if (Sse2.IsSupported)
+        {
+            return Sse2.UnpackHigh(left, right);
+        }
+
+        if (AdvSimd.IsSupported)
+        {
+            return AdvSimd.Arm64.ZipHigh(left, right);
+        }
+
+        return Vector128.Create(left.GetUpper(), right.GetUpper());
+    }
+
+    /// <summary>
+    /// Unpack and interleave 64-bit integers from the low half of <paramref name="left"/> and <paramref name="right"/>
+    /// and store the results in the result.
+    /// </summary>
+    /// <param name="left">
+    /// The first vector containing packed 64-bit integers to unpack from the low half.
+    /// </param>
+    /// <param name="right">
+    /// The second vector containing packed 64-bit integers to unpack from the low half.
+    /// </param>
+    /// <returns>
+    /// A vector containing the unpacked and interleaved 64-bit integers from the low
+    /// halves of <paramref name="left"/> and <paramref name="right"/>.
+    /// </returns>
+    public static Vector128<long> UnpackLow(Vector128<long> left, Vector128<long> right)
+    {
+        if (Sse2.IsSupported)
+        {
+            return Sse2.UnpackLow(left, right);
+        }
+
+        if (AdvSimd.IsSupported)
+        {
+            return AdvSimd.Arm64.ZipLow(left, right);
+        }
+
+        return Vector128.Create(left.GetLower(), right.GetLower());
+    }
+
+    /// <summary>
+    /// Unpack and interleave 32-bit integers from the high half of <paramref name="left"/> and <paramref name="right"/>
+    /// and store the results in the result.
+    /// </summary>
+    /// <param name="left">
+    /// The first vector containing packed 32-bit integers to unpack from the high half.
+    /// </param>
+    /// <param name="right">
+    /// The second vector containing packed 32-bit integers to unpack from the high half.
+    /// </param>
+    /// <returns>
+    /// A vector containing the unpacked and interleaved 32-bit integers from the high
+    /// halves of <paramref name="left"/> and <paramref name="right"/>.
+    /// </returns>
+    public static Vector128<int> UnpackHigh(Vector128<int> left, Vector128<int> right)
+    {
+        if (Sse2.IsSupported)
+        {
+            return Sse2.UnpackHigh(left, right);
+        }
+
+        if (AdvSimd.IsSupported)
+        {
+            return AdvSimd.Arm64.ZipHigh(left, right);
+        }
+
+        Vector128<int> unpacked = Vector128.Create(left.GetUpper(), right.GetUpper());
+        return Vector128.Shuffle(unpacked, Vector128.Create(0, 2, 1, 3));
+    }
+
+    /// <summary>
+    /// Unpack and interleave 32-bit integers from the low half of <paramref name="left"/> and <paramref name="right"/>
+    /// and store the results in the result.
+    /// </summary>
+    /// <param name="left">
+    /// The first vector containing packed 32-bit integers to unpack from the low half.
+    /// </param>
+    /// <param name="right">
+    /// The second vector containing packed 32-bit integers to unpack from the low half.
+    /// </param>
+    /// <returns>
+    /// A vector containing the unpacked and interleaved 32-bit integers from the low
+    /// halves of <paramref name="left"/> and <paramref name="right"/>.
+    /// </returns>
+    public static Vector128<int> UnpackLow(Vector128<int> left, Vector128<int> right)
+    {
+        if (Sse2.IsSupported)
+        {
+            return Sse2.UnpackLow(left, right);
+        }
+
+        if (AdvSimd.IsSupported)
+        {
+            return AdvSimd.Arm64.ZipLow(left, right);
+        }
+
+        Vector128<int> unpacked = Vector128.Create(left.GetLower(), right.GetLower());
+        return Vector128.Shuffle(unpacked, Vector128.Create(0, 2, 1, 3));
+    }
+
+    /// <summary>
+    /// Unpack and interleave 16-bit integers from the high half of <paramref name="left"/> and <paramref name="right"/>
+    /// and store the results in the result.
+    /// </summary>
+    /// <param name="left">
+    /// The first vector containing packed 16-bit integers to unpack from the high half.
+    /// </param>
+    /// <param name="right">
+    /// The second vector containing packed 16-bit integers to unpack from the high half.
+    /// </param>
+    /// <returns>
+    /// A vector containing the unpacked and interleaved 16-bit integers from the high
+    /// halves of <paramref name="left"/> and <paramref name="right"/>.
+    /// </returns>
+    public static Vector128<short> UnpackHigh(Vector128<short> left, Vector128<short> right)
+    {
+        if (Sse2.IsSupported)
+        {
+            return Sse2.UnpackHigh(left, right);
+        }
+
+        if (AdvSimd.IsSupported)
+        {
+            return AdvSimd.Arm64.ZipHigh(left, right);
+        }
+
+        Vector128<short> unpacked = Vector128.Create(left.GetUpper(), right.GetUpper());
+        return Vector128.Shuffle(unpacked, Vector128.Create(0, 4, 1, 5, 2, 6, 3, 7));
+    }
+
+    /// <summary>
+    /// Unpack and interleave 16-bit integers from the low half of <paramref name="left"/> and <paramref name="right"/>
+    /// and store the results in the result.
+    /// </summary>
+    /// <param name="left">
+    /// The first vector containing packed 16-bit integers to unpack from the low half.
+    /// </param>
+    /// <param name="right">
+    /// The second vector containing packed 16-bit integers to unpack from the low half.
+    /// </param>
+    /// <returns>
+    /// A vector containing the unpacked and interleaved 16-bit integers from the low
+    /// halves of <paramref name="left"/> and <paramref name="right"/>.
+    /// </returns>
+    public static Vector128<short> UnpackLow(Vector128<short> left, Vector128<short> right)
+    {
+        if (Sse2.IsSupported)
+        {
+            return Sse2.UnpackLow(left, right);
+        }
+
+        if (AdvSimd.IsSupported)
+        {
+            return AdvSimd.Arm64.ZipLow(left, right);
+        }
+
+        Vector128<short> unpacked = Vector128.Create(left.GetLower(), right.GetLower());
+        return Vector128.Shuffle(unpacked, Vector128.Create(0, 4, 1, 5, 2, 6, 3, 7));
     }
 
     [DoesNotReturn]

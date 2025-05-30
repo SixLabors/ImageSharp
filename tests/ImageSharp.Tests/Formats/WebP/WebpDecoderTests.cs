@@ -549,4 +549,14 @@ public class WebpDecoderTests
         Assert.Equal(37.8, meta.VerticalResolution);
         Assert.Equal(PixelResolutionUnit.PixelsPerCentimeter, meta.ResolutionUnits);
     }
+
+    [Theory]
+    [WithFile(Lossy.Issue2925, PixelTypes.Rgba32)]
+    public void WebpDecoder_CanDecode_Issue2925<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage(WebpDecoder.Instance);
+        image.DebugSave(provider);
+        image.CompareToOriginal(provider, ReferenceDecoder);
+    }
 }

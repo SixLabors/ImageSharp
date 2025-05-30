@@ -217,7 +217,7 @@ internal sealed class WebpDecoderCore : ImageDecoderCore, IDisposable
                     else
                     {
                         // Ignore unknown chunks.
-                        uint chunkSize = ReadChunkSize(stream, buffer);
+                        uint chunkSize = ReadChunkSize(stream, buffer, false);
                         stream.Skip((int)chunkSize);
                     }
                 }
@@ -500,9 +500,10 @@ internal sealed class WebpDecoderCore : ImageDecoderCore, IDisposable
     /// </summary>
     /// <param name="stream">The stream to decode from.</param>
     /// <param name="buffer">Temporary buffer.</param>
+    /// <param name="required">If true, the chunk size is required to be read, otherwise it can be skipped.</param>
     /// <returns>The chunk size in bytes.</returns>
     /// <exception cref="ImageFormatException">Invalid data.</exception>
-    private static uint ReadChunkSize(BufferedReadStream stream, Span<byte> buffer)
+    private static uint ReadChunkSize(BufferedReadStream stream, Span<byte> buffer, bool required = true)
     {
         if (stream.Read(buffer, 0, 4) == 4)
         {
@@ -510,7 +511,13 @@ internal sealed class WebpDecoderCore : ImageDecoderCore, IDisposable
             return (chunkSize % 2 == 0) ? chunkSize : chunkSize + 1;
         }
 
-        throw new ImageFormatException("Invalid Webp data.");
+        if (required)
+        {
+            throw new ImageFormatException("Invalid Webp data.");
+        }
+
+        // Return the size of the remaining data in the stream.
+        return (uint)(stream.Length - stream.Position);
     }
 
     /// <inheritdoc/>

@@ -20,12 +20,12 @@ internal static class LossyUtils
     {
         if (Avx2.IsSupported)
         {
-            return Vp8_Sse16xN_Avx2(a, b, 4);
+            return Vp8_Sse16xN_Vector256(a, b, 4);
         }
 
-        if (Sse2.IsSupported)
+        if (Vector128.IsHardwareAccelerated)
         {
-            return Vp8_Sse16xN_Sse2(a, b, 8);
+            return Vp8_16xN_Vector128(a, b, 8);
         }
 
         if (AdvSimd.IsSupported)
@@ -40,14 +40,14 @@ internal static class LossyUtils
     [MethodImpl(InliningOptions.ShortMethod)]
     public static int Vp8_Sse16x8(Span<byte> a, Span<byte> b)
     {
-        if (Avx2.IsSupported)
+        if (Vector256.IsHardwareAccelerated)
         {
-            return Vp8_Sse16xN_Avx2(a, b, 2);
+            return Vp8_Sse16xN_Vector256(a, b, 2);
         }
 
-        if (Sse2.IsSupported)
+        if (Vector128.IsHardwareAccelerated)
         {
-            return Vp8_Sse16xN_Sse2(a, b, 4);
+            return Vp8_16xN_Vector128(a, b, 4);
         }
 
         if (AdvSimd.IsSupported)
@@ -81,21 +81,21 @@ internal static class LossyUtils
                 Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref bRef, WebpConstants.Bps * 3)));
 
             // Combine pair of lines.
-            Vector256<int> a01 = Avx2.UnpackLow(a0.AsInt32(), a1.AsInt32());
-            Vector256<int> b01 = Avx2.UnpackLow(b0.AsInt32(), b1.AsInt32());
+            Vector256<int> a01 = Vector256_.UnpackLow(a0.AsInt32(), a1.AsInt32());
+            Vector256<int> b01 = Vector256_.UnpackLow(b0.AsInt32(), b1.AsInt32());
 
             // Convert to 16b.
-            Vector256<byte> a01s = Avx2.UnpackLow(a01.AsByte(), Vector256<byte>.Zero);
-            Vector256<byte> b01s = Avx2.UnpackLow(b01.AsByte(), Vector256<byte>.Zero);
+            Vector256<byte> a01s = Vector256_.UnpackLow(a01.AsByte(), Vector256<byte>.Zero);
+            Vector256<byte> b01s = Vector256_.UnpackLow(b01.AsByte(), Vector256<byte>.Zero);
 
             // subtract, square and accumulate.
-            Vector256<short> d0 = Avx2.SubtractSaturate(a01s.AsInt16(), b01s.AsInt16());
-            Vector256<int> e0 = Avx2.MultiplyAddAdjacent(d0, d0);
+            Vector256<short> d0 = Vector256_.SubtractSaturate(a01s.AsInt16(), b01s.AsInt16());
+            Vector256<int> e0 = Vector256_.MultiplyAddAdjacent(d0, d0);
 
-            return Numerics.ReduceSum(e0);
+            return ReduceSumVector256(e0);
         }
 
-        if (Sse2.IsSupported)
+        if (Vector128.IsHardwareAccelerated)
         {
             // Load values.
             ref byte aRef = ref MemoryMarshal.GetReference(a);
@@ -110,25 +110,25 @@ internal static class LossyUtils
             Vector128<byte> b3 = Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref bRef, WebpConstants.Bps * 3));
 
             // Combine pair of lines.
-            Vector128<int> a01 = Sse2.UnpackLow(a0.AsInt32(), a1.AsInt32());
-            Vector128<int> a23 = Sse2.UnpackLow(a2.AsInt32(), a3.AsInt32());
-            Vector128<int> b01 = Sse2.UnpackLow(b0.AsInt32(), b1.AsInt32());
-            Vector128<int> b23 = Sse2.UnpackLow(b2.AsInt32(), b3.AsInt32());
+            Vector128<int> a01 = Vector128_.UnpackLow(a0.AsInt32(), a1.AsInt32());
+            Vector128<int> a23 = Vector128_.UnpackLow(a2.AsInt32(), a3.AsInt32());
+            Vector128<int> b01 = Vector128_.UnpackLow(b0.AsInt32(), b1.AsInt32());
+            Vector128<int> b23 = Vector128_.UnpackLow(b2.AsInt32(), b3.AsInt32());
 
             // Convert to 16b.
-            Vector128<byte> a01s = Sse2.UnpackLow(a01.AsByte(), Vector128<byte>.Zero);
-            Vector128<byte> a23s = Sse2.UnpackLow(a23.AsByte(), Vector128<byte>.Zero);
-            Vector128<byte> b01s = Sse2.UnpackLow(b01.AsByte(), Vector128<byte>.Zero);
-            Vector128<byte> b23s = Sse2.UnpackLow(b23.AsByte(), Vector128<byte>.Zero);
+            Vector128<byte> a01s = Vector128_.UnpackLow(a01.AsByte(), Vector128<byte>.Zero);
+            Vector128<byte> a23s = Vector128_.UnpackLow(a23.AsByte(), Vector128<byte>.Zero);
+            Vector128<byte> b01s = Vector128_.UnpackLow(b01.AsByte(), Vector128<byte>.Zero);
+            Vector128<byte> b23s = Vector128_.UnpackLow(b23.AsByte(), Vector128<byte>.Zero);
 
             // subtract, square and accumulate.
-            Vector128<short> d0 = Sse2.SubtractSaturate(a01s.AsInt16(), b01s.AsInt16());
+            Vector128<short> d0 = Vector128_.SubtractSaturate(a01s.AsInt16(), b01s.AsInt16());
             Vector128<short> d1 = Sse2.SubtractSaturate(a23s.AsInt16(), b23s.AsInt16());
             Vector128<int> e0 = Sse2.MultiplyAddAdjacent(d0, d0);
             Vector128<int> e1 = Sse2.MultiplyAddAdjacent(d1, d1);
             Vector128<int> sum = Sse2.Add(e0, e1);
 
-            return ReduceSum(sum);
+            return ReduceSumVector128(sum);
         }
 
         if (AdvSimd.IsSupported)
@@ -159,7 +159,7 @@ internal static class LossyUtils
     }
 
     [MethodImpl(InliningOptions.ShortMethod)]
-    private static int Vp8_Sse16xN_Sse2(Span<byte> a, Span<byte> b, int numPairs)
+    private static int Vp8_16xN_Vector128(Span<byte> a, Span<byte> b, int numPairs)
     {
         Vector128<int> sum = Vector128<int>.Zero;
         nuint offset = 0;
@@ -173,18 +173,18 @@ internal static class LossyUtils
             Vector128<byte> a1 = Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref aRef, offset + WebpConstants.Bps));
             Vector128<byte> b1 = Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref bRef, offset + WebpConstants.Bps));
 
-            Vector128<int> sum1 = SubtractAndAccumulate(a0, b0);
-            Vector128<int> sum2 = SubtractAndAccumulate(a1, b1);
+            Vector128<int> sum1 = SubtractAndAccumulateVector128(a0, b0);
+            Vector128<int> sum2 = SubtractAndAccumulateVector128(a1, b1);
             sum += sum1 + sum2;
 
             offset += 2 * WebpConstants.Bps;
         }
 
-        return ReduceSum(sum);
+        return ReduceSumVector128(sum);
     }
 
     [MethodImpl(InliningOptions.ShortMethod)]
-    private static int Vp8_Sse16xN_Avx2(Span<byte> a, Span<byte> b, int numPairs)
+    private static int Vp8_Sse16xN_Vector256(Span<byte> a, Span<byte> b, int numPairs)
     {
         Vector256<int> sum = Vector256<int>.Zero;
         nuint offset = 0;
@@ -206,14 +206,14 @@ internal static class LossyUtils
                 Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref bRef, offset + (2 * WebpConstants.Bps))),
                 Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref bRef, offset + (3 * WebpConstants.Bps))));
 
-            Vector256<int> sum1 = SubtractAndAccumulate(a0, b0);
-            Vector256<int> sum2 = SubtractAndAccumulate(a1, b1);
-            sum = Avx2.Add(sum, Avx2.Add(sum1, sum2));
+            Vector256<int> sum1 = SubtractAndAccumulateVector256(a0, b0);
+            Vector256<int> sum2 = SubtractAndAccumulateVector256(a1, b1);
+            sum += sum1 + sum2;
 
             offset += 4 * WebpConstants.Bps;
         }
 
-        return Numerics.ReduceSum(sum);
+        return ReduceSumVector256(sum);
     }
 
     [MethodImpl(InliningOptions.ShortMethod)]
@@ -306,41 +306,41 @@ internal static class LossyUtils
     }
 
     [MethodImpl(InliningOptions.ShortMethod)]
-    private static Vector128<int> SubtractAndAccumulate(Vector128<byte> a, Vector128<byte> b)
+    private static Vector128<int> SubtractAndAccumulateVector128(Vector128<byte> a, Vector128<byte> b)
     {
         // Take abs(a-b) in 8b.
-        Vector128<byte> ab = Sse2.SubtractSaturate(a, b);
-        Vector128<byte> ba = Sse2.SubtractSaturate(b, a);
-        Vector128<byte> absAb = Sse2.Or(ab, ba);
+        Vector128<byte> ab = Vector128_.SubtractSaturate(a, b);
+        Vector128<byte> ba = Vector128_.SubtractSaturate(b, a);
+        Vector128<byte> absAb = ab | ba;
 
         // Zero-extend to 16b.
-        Vector128<byte> c0 = Sse2.UnpackLow(absAb, Vector128<byte>.Zero);
-        Vector128<byte> c1 = Sse2.UnpackHigh(absAb, Vector128<byte>.Zero);
+        Vector128<byte> c0 = Vector128_.UnpackLow(absAb, Vector128<byte>.Zero);
+        Vector128<byte> c1 = Vector128_.UnpackHigh(absAb, Vector128<byte>.Zero);
 
         // Multiply with self.
-        Vector128<int> sum1 = Sse2.MultiplyAddAdjacent(c0.AsInt16(), c0.AsInt16());
-        Vector128<int> sum2 = Sse2.MultiplyAddAdjacent(c1.AsInt16(), c1.AsInt16());
+        Vector128<int> sum1 = Vector128_.MultiplyAddAdjacent(c0.AsInt16(), c0.AsInt16());
+        Vector128<int> sum2 = Vector128_.MultiplyAddAdjacent(c1.AsInt16(), c1.AsInt16());
 
-        return Sse2.Add(sum1, sum2);
+        return sum1 + sum2;
     }
 
     [MethodImpl(InliningOptions.ShortMethod)]
-    private static Vector256<int> SubtractAndAccumulate(Vector256<byte> a, Vector256<byte> b)
+    private static Vector256<int> SubtractAndAccumulateVector256(Vector256<byte> a, Vector256<byte> b)
     {
         // Take abs(a-b) in 8b.
-        Vector256<byte> ab = Avx2.SubtractSaturate(a, b);
-        Vector256<byte> ba = Avx2.SubtractSaturate(b, a);
+        Vector256<byte> ab = Vector256_.SubtractSaturate(a, b);
+        Vector256<byte> ba = Vector256_.SubtractSaturate(b, a);
         Vector256<byte> absAb = Avx2.Or(ab, ba);
 
         // Zero-extend to 16b.
-        Vector256<byte> c0 = Avx2.UnpackLow(absAb, Vector256<byte>.Zero);
-        Vector256<byte> c1 = Avx2.UnpackHigh(absAb, Vector256<byte>.Zero);
+        Vector256<byte> c0 = Vector256_.UnpackLow(absAb, Vector256<byte>.Zero);
+        Vector256<byte> c1 = Vector256_.UnpackHigh(absAb, Vector256<byte>.Zero);
 
         // Multiply with self.
-        Vector256<int> sum1 = Avx2.MultiplyAddAdjacent(c0.AsInt16(), c0.AsInt16());
-        Vector256<int> sum2 = Avx2.MultiplyAddAdjacent(c1.AsInt16(), c1.AsInt16());
+        Vector256<int> sum1 = Vector256_.MultiplyAddAdjacent(c0.AsInt16(), c0.AsInt16());
+        Vector256<int> sum2 = Vector256_.MultiplyAddAdjacent(c1.AsInt16(), c1.AsInt16());
 
-        return Avx2.Add(sum1, sum2);
+        return sum1 + sum2;
     }
 
     [MethodImpl(InliningOptions.ShortMethod)]
@@ -990,7 +990,7 @@ internal static class LossyUtils
         // difference of weighted sums.
         Vector128<int> result = ab0ab2Sum - b0w0bb2w8Sum;
 
-        return ReduceSum(result);
+        return ReduceSumVector128(result);
     }
 
     // Transpose two 4x4 16b matrices horizontally stored in registers.
@@ -1916,7 +1916,27 @@ internal static class LossyUtils
     /// <param name="accumulator">The accumulator to reduce.</param>
     /// <returns>The sum of all elements.</returns>
     [MethodImpl(InliningOptions.ShortMethod)]
-    private static int ReduceSum(Vector128<int> accumulator)
+    public static int ReduceSumVector256(Vector256<int> accumulator)
+    {
+        // Add upper lane to lower lane.
+        Vector128<int> vsum = accumulator.GetLower() + accumulator.GetUpper();
+
+        // Add odd to even.
+        vsum += Vector128_.ShuffleNative(vsum, 0b_11_11_01_01);
+
+        // Add high to low.
+        vsum += Vector128_.ShuffleNative(vsum, 0b_11_10_11_10);
+
+        return vsum.ToScalar();
+    }
+
+    /// <summary>
+    /// Reduces elements of the vector into one sum.
+    /// </summary>
+    /// <param name="accumulator">The accumulator to reduce.</param>
+    /// <returns>The sum of all elements.</returns>
+    [MethodImpl(InliningOptions.ShortMethod)]
+    private static int ReduceSumVector128(Vector128<int> accumulator)
     {
         // Add odd to even.
         Vector128<int> vsum = accumulator + Vector128_.ShuffleNative(accumulator, 0b_11_11_01_01);

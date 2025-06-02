@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -44,24 +43,6 @@ internal static class Vector128_
 
             return false;
         }
-    }
-
-    /// <summary>
-    /// Gets a value indicating whether right align operations are supported.
-    /// </summary>
-    public static bool SupportsAlignRight
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => Ssse3.IsSupported || AdvSimd.IsSupported;
-    }
-
-    /// <summary>
-    /// Gets a value indicating whether right or left byte shift operations are supported.
-    /// </summary>
-    public static bool SupportsShiftByte
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => Sse2.IsSupported || AdvSimd.IsSupported;
     }
 
     /// <summary>
@@ -157,8 +138,7 @@ internal static class Vector128_
             return AdvSimd.ExtractVector128(value, Vector128<byte>.Zero, numBytes);
         }
 
-        ThrowUnreachableException();
-        return default;
+        return Vector128.Shuffle(value, Vector128.Create((byte)0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15) + Vector128.Create(numBytes));
     }
 
     /// <summary>
@@ -182,8 +162,7 @@ internal static class Vector128_
 #pragma warning restore CA1857 // A constant is expected for the parameter
         }
 
-        ThrowUnreachableException();
-        return default;
+        return Vector128.Shuffle(value, Vector128.Create((byte)0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15) - Vector128.Create(numBytes));
     }
 
     /// <summary>
@@ -206,8 +185,9 @@ internal static class Vector128_
             return AdvSimd.ExtractVector128(right, left, mask);
         }
 
-        ThrowUnreachableException();
-        return default;
+#pragma warning disable CA1857 // A constant is expected for the parameter
+        return ShiftLeftBytesInVector(left, (byte)(Vector128<byte>.Count - mask)) | ShiftRightBytesInVector(right, mask);
+#pragma warning restore CA1857 // A constant is expected for the parameter
     }
 
     /// <summary>
@@ -387,6 +367,37 @@ internal static class Vector128_
         Vector128<int> max = Vector128.Create((int)short.MaxValue);
         Vector128<int> lefClamped = Clamp(left, min, max);
         Vector128<int> rightClamped = Clamp(right, min, max);
+        return Vector128.Narrow(lefClamped, rightClamped);
+    }
+
+    /// <summary>
+    /// Packs signed 16-bit integers to signed 8-bit integers and saturates.
+    /// </summary>
+    /// <param name="left">The left hand source vector.</param>
+    /// <param name="right">The right hand source vector.</param>
+    /// <returns>The <see cref="Vector128{Int16}"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector128<sbyte> PackSignedSaturate(Vector128<short> left, Vector128<short> right)
+    {
+        if (Sse2.IsSupported)
+        {
+            return Sse2.PackSignedSaturate(left, right);
+        }
+
+        if (AdvSimd.IsSupported)
+        {
+            return AdvSimd.ExtractNarrowingSaturateUpper(AdvSimd.ExtractNarrowingSaturateLower(left), right);
+        }
+
+        if (PackedSimd.IsSupported)
+        {
+            return PackedSimd.ConvertNarrowingSaturateSigned(left, right);
+        }
+
+        Vector128<short> min = Vector128.Create((short)sbyte.MinValue);
+        Vector128<short> max = Vector128.Create((short)sbyte.MaxValue);
+        Vector128<short> lefClamped = Clamp(left, min, max);
+        Vector128<short> rightClamped = Clamp(right, min, max);
         return Vector128.Narrow(lefClamped, rightClamped);
     }
 
@@ -739,9 +750,7 @@ internal static class Vector128_
         }
 
         Vector128<byte> unpacked = Vector128.Create(left.GetUpper(), right.GetUpper());
-        return Vector128.Shuffle(
-            unpacked,
-            Vector128.Shuffle(unpacked, Vector128.Create((byte)0, 8, 1, 9, 2, 10, 3, 11, 4, 12, 5, 13, 6, 14, 7, 15)));
+        return Vector128.Shuffle(unpacked, Vector128.Create((byte)0, 8, 1, 9, 2, 10, 3, 11, 4, 12, 5, 13, 6, 14, 7, 15));
     }
 
     /// <summary>
@@ -772,9 +781,69 @@ internal static class Vector128_
         }
 
         Vector128<byte> unpacked = Vector128.Create(left.GetLower(), right.GetLower());
-        return Vector128.Shuffle(
-            unpacked,
-            Vector128.Shuffle(unpacked, Vector128.Create((byte)0, 8, 1, 9, 2, 10, 3, 11, 4, 12, 5, 13, 6, 14, 7, 15)));
+        return Vector128.Shuffle(unpacked, Vector128.Create((byte)0, 8, 1, 9, 2, 10, 3, 11, 4, 12, 5, 13, 6, 14, 7, 15));
+    }
+
+    /// <summary>
+    /// Unpack and interleave 8-bit signed integers from the high half of <paramref name="left"/> and <paramref name="right"/>
+    /// and store the results in the result.
+    /// </summary>
+    /// <param name="left">
+    /// The first vector containing packed 8-bit signed integers to unpack from the high half.
+    /// </param>
+    /// <param name="right">
+    /// The second vector containing packed 8-bit signed integers to unpack from the high half.
+    /// </param>
+    /// <returns>
+    /// A vector containing the unpacked and interleaved 8-bit signed integers from the high
+    /// halves of <paramref name="left"/> and <paramref name="right"/>.
+    /// </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector128<sbyte> UnpackHigh(Vector128<sbyte> left, Vector128<sbyte> right)
+    {
+        if (Sse2.IsSupported)
+        {
+            return Sse2.UnpackHigh(left, right);
+        }
+
+        if (AdvSimd.IsSupported)
+        {
+            return AdvSimd.Arm64.ZipHigh(left, right);
+        }
+
+        Vector128<sbyte> unpacked = Vector128.Create(left.GetUpper(), right.GetUpper());
+        return Vector128.Shuffle(unpacked, Vector128.Create(0, 8, 1, 9, 2, 10, 3, 11, 4, 12, 5, 13, 6, 14, 7, 15));
+    }
+
+    /// <summary>
+    /// Unpack and interleave 8-bit signed integers from the low half of <paramref name="left"/> and <paramref name="right"/>
+    /// and store the results in the result.
+    /// </summary>
+    /// <param name="left">
+    /// The first vector containing packed 8-bit signed integers to unpack from the low half.
+    /// </param>
+    /// <param name="right">
+    /// The second vector containing packed 8-bit signed integers to unpack from the low half.
+    /// </param>
+    /// <returns>
+    /// A vector containing the unpacked and interleaved 8-bit signed integers from the low
+    /// halves of <paramref name="left"/> and <paramref name="right"/>.
+    /// </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector128<sbyte> UnpackLow(Vector128<sbyte> left, Vector128<sbyte> right)
+    {
+        if (Sse2.IsSupported)
+        {
+            return Sse2.UnpackLow(left, right);
+        }
+
+        if (AdvSimd.IsSupported)
+        {
+            return AdvSimd.Arm64.ZipLow(left, right);
+        }
+
+        Vector128<sbyte> unpacked = Vector128.Create(left.GetLower(), right.GetLower());
+        return Vector128.Shuffle(unpacked, Vector128.Create(0, 8, 1, 9, 2, 10, 3, 11, 4, 12, 5, 13, 6, 14, 7, 15));
     }
 
     /// <summary>
@@ -817,14 +886,63 @@ internal static class Vector128_
         Vector128<int> diffHi = leftHi - rightHi;
 
         // Clamp to signed 16-bit range
-        Vector128<int> shortMin = Vector128.Create((int)short.MinValue);
-        Vector128<int> shortMax = Vector128.Create((int)short.MaxValue);
+        Vector128<int> min = Vector128.Create((int)short.MinValue);
+        Vector128<int> max = Vector128.Create((int)short.MaxValue);
 
-        diffLo = Clamp(diffLo, shortMin, shortMax);
-        diffHi = Clamp(diffHi, shortMin, shortMax);
+        diffLo = Clamp(diffLo, min, max);
+        diffHi = Clamp(diffHi, min, max);
 
         // Narrow back to 16 bit signed.
         return Vector128.Narrow(diffLo, diffHi);
+    }
+
+    /// <summary>
+    /// Add packed unsigned 8-bit integers in <paramref name="right"/> from packed unsigned 8-bit integers
+    /// in <paramref name="left"/> using saturation, and store the results.
+    /// </summary>
+    /// <param name="left">
+    /// The first vector containing packed unsigned 8-bit integers to add to.
+    /// </param>
+    /// <param name="right">
+    /// The second vector containing packed unsigned 8-bit integers to add.
+    /// </param>
+    /// <returns>
+    /// A vector containing the results of adding packed unsigned 8-bit integers
+    /// </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector128<byte> AddSaturate(Vector128<byte> left, Vector128<byte> right)
+    {
+        if (Sse2.IsSupported)
+        {
+            return Sse2.AddSaturate(left, right);
+        }
+
+        if (AdvSimd.IsSupported)
+        {
+            return AdvSimd.AddSaturate(left, right);
+        }
+
+        if (PackedSimd.IsSupported)
+        {
+            return PackedSimd.AddSaturate(left, right);
+        }
+
+        // Widen inputs to 16-bit
+        (Vector128<ushort> leftLo, Vector128<ushort> leftHi) = Vector128.Widen(left);
+        (Vector128<ushort> rightLo, Vector128<ushort> rightHi) = Vector128.Widen(right);
+
+        // Add
+        Vector128<ushort> sumLo = leftLo + rightLo;
+        Vector128<ushort> sumHi = leftHi + rightHi;
+
+        // Clamp to signed 8-bit range
+        Vector128<ushort> max = Vector128.Create((ushort)byte.MaxValue);
+
+        sumLo = Clamp(sumLo, Vector128<ushort>.Zero, max);
+        sumHi = Clamp(sumHi, Vector128<ushort>.Zero, max);
+
+        // Narrow back to bytes
+        return Vector128.Narrow(sumLo, sumHi);
     }
 
     /// <summary>
@@ -876,6 +994,103 @@ internal static class Vector128_
         return Vector128.Narrow(diffLo, diffHi);
     }
 
-    [DoesNotReturn]
-    private static void ThrowUnreachableException() => throw new UnreachableException();
+    /// <summary>
+    /// Add packed unsigned 8-bit integers in <paramref name="right"/> from packed unsigned 8-bit integers
+    /// in <paramref name="left"/> using saturation, and store the results.
+    /// </summary>
+    /// <param name="left">
+    /// The first vector containing packed unsigned 8-bit integers to add to.
+    /// </param>
+    /// <param name="right">
+    /// The second vector containing packed unsigned 8-bit integers to add.
+    /// </param>
+    /// <returns>
+    /// A vector containing the results of adding packed unsigned 8-bit integers
+    /// </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector128<sbyte> AddSaturate(Vector128<sbyte> left, Vector128<sbyte> right)
+    {
+        if (Sse2.IsSupported)
+        {
+            return Sse2.AddSaturate(left, right);
+        }
+
+        if (AdvSimd.IsSupported)
+        {
+            return AdvSimd.AddSaturate(left, right);
+        }
+
+        if (PackedSimd.IsSupported)
+        {
+            return PackedSimd.AddSaturate(left, right);
+        }
+
+        // Widen inputs to 16-bit
+        (Vector128<short> leftLo, Vector128<short> leftHi) = Vector128.Widen(left);
+        (Vector128<short> rightLo, Vector128<short> rightHi) = Vector128.Widen(right);
+
+        // Add
+        Vector128<short> sumLo = leftLo + rightLo;
+        Vector128<short> sumHi = leftHi + rightHi;
+
+        // Clamp to signed 8-bit range
+        Vector128<short> min = Vector128.Create((short)sbyte.MinValue);
+        Vector128<short> max = Vector128.Create((short)sbyte.MaxValue);
+
+        sumLo = Clamp(sumLo, min, max);
+        sumHi = Clamp(sumHi, min, max);
+
+        // Narrow back to signed bytes
+        return Vector128.Narrow(sumLo, sumHi);
+    }
+
+    /// <summary>
+    /// Subtract packed signed 8-bit integers in <paramref name="right"/> from packed signed 8-bit integers
+    /// in <paramref name="left"/> using saturation, and store the results.
+    /// </summary>
+    /// <param name="left">
+    /// The first vector containing packed signed 8-bit integers to subtract from.
+    /// </param>
+    /// <param name="right">
+    /// The second vector containing packed signed 8-bit integers to subtract.
+    /// </param>
+    /// <returns>
+    /// A vector containing the results of subtracting packed signed 8-bit integers
+    /// </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector128<sbyte> SubtractSaturate(Vector128<sbyte> left, Vector128<sbyte> right)
+    {
+        if (Sse2.IsSupported)
+        {
+            return Sse2.SubtractSaturate(left, right);
+        }
+
+        if (AdvSimd.IsSupported)
+        {
+            return AdvSimd.SubtractSaturate(left, right);
+        }
+
+        if (PackedSimd.IsSupported)
+        {
+            return PackedSimd.SubtractSaturate(left, right);
+        }
+
+        // Widen inputs to 16-bit
+        (Vector128<short> leftLo, Vector128<short> leftHi) = Vector128.Widen(left);
+        (Vector128<short> rightLo, Vector128<short> rightHi) = Vector128.Widen(right);
+
+        // Subtract
+        Vector128<short> diffLo = leftLo - rightLo;
+        Vector128<short> diffHi = leftHi - rightHi;
+
+        // Clamp to signed 8-bit range
+        Vector128<short> min = Vector128.Create((short)sbyte.MinValue);
+        Vector128<short> max = Vector128.Create((short)sbyte.MaxValue);
+
+        diffLo = Clamp(diffLo, min, max);
+        diffHi = Clamp(diffHi, min, max);
+
+        // Narrow back to signed bytes
+        return Vector128.Narrow(diffLo, diffHi);
+    }
 }

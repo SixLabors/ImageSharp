@@ -114,7 +114,7 @@ internal static partial class SimdUtils
         {
             if ((Vector512.IsHardwareAccelerated && Vector512_.SupportsShuffleNativeByte) ||
                 (Vector256.IsHardwareAccelerated && Vector256_.SupportsShuffleNativeByte) ||
-                (Vector128.IsHardwareAccelerated && Vector128_.SupportsShuffleNativeByte))
+                Vector128.IsHardwareAccelerated)
             {
                 int remainder = 0;
                 if (Vector512.IsHardwareAccelerated)
@@ -158,7 +158,7 @@ internal static partial class SimdUtils
             ref Span<byte> destination,
             [ConstantExpected] byte control)
         {
-            if (Vector128.IsHardwareAccelerated && Vector128_.SupportsShuffleNativeByte && Vector128_.SupportsAlignRight)
+            if (Vector128.IsHardwareAccelerated)
             {
                 int remainder = source.Length % (Vector128<byte>.Count * 3);
 
@@ -190,7 +190,7 @@ internal static partial class SimdUtils
             ref Span<byte> destination,
             [ConstantExpected] byte control)
         {
-            if (Vector128.IsHardwareAccelerated && Vector128_.SupportsShuffleNativeByte && Vector128_.SupportsShiftByte)
+            if (Vector128.IsHardwareAccelerated)
             {
                 int remainder = source.Length % (Vector128<byte>.Count * 3);
 
@@ -223,7 +223,7 @@ internal static partial class SimdUtils
             ref Span<byte> destination,
             [ConstantExpected] byte control)
         {
-            if (Vector128.IsHardwareAccelerated && Vector128_.SupportsShuffleNativeByte && Vector128_.SupportsShiftByte)
+            if (Vector128.IsHardwareAccelerated)
             {
                 int remainder = source.Length & ((Vector128<byte>.Count * 4) - 1);    // bit-hack for modulo
 
@@ -405,7 +405,7 @@ internal static partial class SimdUtils
                     }
                 }
             }
-            else if (Vector128.IsHardwareAccelerated && Vector128_.SupportsShuffleNativeByte)
+            else if (Vector128.IsHardwareAccelerated)
             {
                 Span<byte> temp = stackalloc byte[Vector128<byte>.Count];
                 Shuffle.MMShuffleSpan(ref temp, control);
@@ -445,9 +445,7 @@ internal static partial class SimdUtils
             Span<byte> destination,
             [ConstantExpected] byte control)
         {
-            if (Vector128.IsHardwareAccelerated &&
-                Vector128_.SupportsShuffleNativeByte &&
-                Vector128_.SupportsAlignRight)
+            if (Vector128.IsHardwareAccelerated)
             {
                 Vector128<byte> maskPad4Nx16 = ShuffleMaskPad4Nx16();
                 Vector128<byte> maskSlice4Nx16 = ShuffleMaskSlice4Nx16();
@@ -507,10 +505,7 @@ internal static partial class SimdUtils
             Span<byte> destination,
             [ConstantExpected] byte control)
         {
-            if (Vector128.IsHardwareAccelerated &&
-                Vector128_.SupportsShuffleNativeByte &&
-                Vector128_.SupportsShiftByte &&
-                Vector128_.SupportsAlignRight)
+            if (Vector128.IsHardwareAccelerated)
             {
                 Vector128<byte> maskPad4Nx16 = ShuffleMaskPad4Nx16();
                 Vector128<byte> fill = Vector128.Create(0xff000000ff000000ul).AsByte();
@@ -553,10 +548,7 @@ internal static partial class SimdUtils
             Span<byte> destination,
             [ConstantExpected] byte control)
         {
-            if (Vector128.IsHardwareAccelerated &&
-                Vector128_.SupportsShuffleNativeByte &&
-                Vector128_.SupportsShiftByte &&
-                Vector128_.SupportsAlignRight)
+            if (Vector128.IsHardwareAccelerated)
             {
                 Vector128<byte> maskSlice4Nx16 = ShuffleMaskSlice4Nx16();
                 Vector128<byte> maskE = Vector128_.AlignRight(maskSlice4Nx16, maskSlice4Nx16, 12);

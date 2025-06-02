@@ -1451,9 +1451,9 @@ internal static class LossyUtils
             // Beginning of p1
             ref byte pRef = ref Unsafe.Add(ref MemoryMarshal.GetReference(p), (uint)(offset - 2));
 
-            Load16x4(ref pRef, ref Unsafe.Add(ref pRef, 8 * (uint)stride), stride, out Vector128<byte> p1, out Vector128<byte> p0, out Vector128<byte> q0, out Vector128<byte> q1);
+            Load16x4Vector128(ref pRef, ref Unsafe.Add(ref pRef, 8 * (uint)stride), stride, out Vector128<byte> p1, out Vector128<byte> p0, out Vector128<byte> q0, out Vector128<byte> q1);
             DoFilter2Sse2(ref p1, ref p0, ref q0, ref q1, thresh);
-            Store16x4(p1, p0, q0, q1, ref pRef, ref Unsafe.Add(ref pRef, 8 * (uint)stride), stride);
+            Store16x4Vector128(p1, p0, q0, q1, ref pRef, ref Unsafe.Add(ref pRef, 8 * (uint)stride), stride);
         }
         else
         {
@@ -1535,7 +1535,7 @@ internal static class LossyUtils
             mask = Vector128.Max(mask, AbsVector128(q2, q1));
 
             ComplexMaskVector128(p1, p0, q0, q1, thresh, ithresh, ref mask);
-            DoFilter6Sse2(ref p2, ref p1, ref p0, ref q0, ref q1, ref q2, mask, hevThresh);
+            DoFilter6Vector128(ref p2, ref p1, ref p0, ref q0, ref q1, ref q2, mask, hevThresh);
 
             // Store.
             ref byte outputRef = ref MemoryMarshal.GetReference(p);
@@ -1559,23 +1559,23 @@ internal static class LossyUtils
         {
             ref byte pRef = ref MemoryMarshal.GetReference(p);
             ref byte bRef = ref Unsafe.Add(ref pRef, (uint)offset - 4);
-            Load16x4(ref bRef, ref Unsafe.Add(ref bRef, 8 * (uint)stride), stride, out Vector128<byte> p3, out Vector128<byte> p2, out Vector128<byte> p1, out Vector128<byte> p0);
+            Load16x4Vector128(ref bRef, ref Unsafe.Add(ref bRef, 8 * (uint)stride), stride, out Vector128<byte> p3, out Vector128<byte> p2, out Vector128<byte> p1, out Vector128<byte> p0);
 
             Vector128<byte> mask = AbsVector128(p1, p0);
             mask = Sse2.Max(mask, AbsVector128(p3, p2));
             mask = Sse2.Max(mask, AbsVector128(p2, p1));
 
-            Load16x4(ref Unsafe.Add(ref pRef, (uint)offset), ref Unsafe.Add(ref pRef, (uint)(offset + (8 * stride))), stride, out Vector128<byte> q0, out Vector128<byte> q1, out Vector128<byte> q2, out Vector128<byte> q3);
+            Load16x4Vector128(ref Unsafe.Add(ref pRef, (uint)offset), ref Unsafe.Add(ref pRef, (uint)(offset + (8 * stride))), stride, out Vector128<byte> q0, out Vector128<byte> q1, out Vector128<byte> q2, out Vector128<byte> q3);
 
             mask = Sse2.Max(mask, AbsVector128(q1, q0));
             mask = Sse2.Max(mask, AbsVector128(q3, q2));
             mask = Sse2.Max(mask, AbsVector128(q2, q1));
 
             ComplexMaskVector128(p1, p0, q0, q1, thresh, ithresh, ref mask);
-            DoFilter6Sse2(ref p2, ref p1, ref p0, ref q0, ref q1, ref q2, mask, hevThresh);
+            DoFilter6Vector128(ref p2, ref p1, ref p0, ref q0, ref q1, ref q2, mask, hevThresh);
 
-            Store16x4(p3, p2, p1, p0, ref bRef, ref Unsafe.Add(ref bRef, 8 * (uint)stride), stride);
-            Store16x4(q0, q1, q2, q3, ref Unsafe.Add(ref pRef, (uint)offset), ref Unsafe.Add(ref pRef, (uint)(offset + (8 * stride))), stride);
+            Store16x4Vector128(p3, p2, p1, p0, ref bRef, ref Unsafe.Add(ref bRef, 8 * (uint)stride), stride);
+            Store16x4Vector128(q0, q1, q2, q3, ref Unsafe.Add(ref pRef, (uint)offset), ref Unsafe.Add(ref pRef, (uint)(offset + (8 * stride))), stride);
         }
         else
         {
@@ -1644,7 +1644,7 @@ internal static class LossyUtils
         if (Sse2.IsSupported)
         {
             ref byte pRef = ref MemoryMarshal.GetReference(p);
-            Load16x4(ref Unsafe.Add(ref pRef, (uint)offset), ref Unsafe.Add(ref pRef, (uint)(offset + (8 * stride))), stride, out Vector128<byte> p3, out Vector128<byte> p2, out Vector128<byte> p1, out Vector128<byte> p0);
+            Load16x4Vector128(ref Unsafe.Add(ref pRef, (uint)offset), ref Unsafe.Add(ref pRef, (uint)(offset + (8 * stride))), stride, out Vector128<byte> p3, out Vector128<byte> p2, out Vector128<byte> p1, out Vector128<byte> p0);
 
             Vector128<byte> mask;
             for (int k = 3; k > 0; k--)
@@ -1660,7 +1660,7 @@ internal static class LossyUtils
                 mask = Sse2.Max(mask, AbsVector128(p3, p2));
                 mask = Sse2.Max(mask, AbsVector128(p2, p1));
 
-                Load16x4(ref Unsafe.Add(ref pRef, (uint)offset), ref Unsafe.Add(ref pRef, (uint)(offset + (8 * stride))), stride, out p3, out p2, out Vector128<byte> tmp1, out Vector128<byte> tmp2);
+                Load16x4Vector128(ref Unsafe.Add(ref pRef, (uint)offset), ref Unsafe.Add(ref pRef, (uint)(offset + (8 * stride))), stride, out p3, out p2, out Vector128<byte> tmp1, out Vector128<byte> tmp2);
 
                 mask = Sse2.Max(mask, AbsVector128(tmp1, tmp2));
                 mask = Sse2.Max(mask, AbsVector128(p3, p2));
@@ -1669,7 +1669,7 @@ internal static class LossyUtils
                 ComplexMaskVector128(p1, p0, p3, p2, thresh, ithresh, ref mask);
                 DoFilter4Sse2(ref p1, ref p0, ref p3, ref p2, mask, hevThresh);
 
-                Store16x4(p1, p0, p3, p2, ref bRef, ref Unsafe.Add(ref bRef, 8 * (uint)stride), stride);
+                Store16x4Vector128(p1, p0, p3, p2, ref bRef, ref Unsafe.Add(ref bRef, 8 * (uint)stride), stride);
 
                 // Rotate samples.
                 p1 = tmp1;
@@ -1714,7 +1714,7 @@ internal static class LossyUtils
             mask = Sse2.Max(mask, AbsVector128(q2, q1));
 
             ComplexMaskVector128(p1, p0, q0, q1, thresh, ithresh, ref mask);
-            DoFilter6Sse2(ref p2, ref p1, ref p0, ref q0, ref q1, ref q2, mask, hevThresh);
+            DoFilter6Vector128(ref p2, ref p1, ref p0, ref q0, ref q1, ref q2, mask, hevThresh);
 
             // Store.
             StoreUvVector128(p2, ref uRef, ref vRef, offset - (3 * stride));
@@ -1738,23 +1738,23 @@ internal static class LossyUtils
         {
             ref byte uRef = ref MemoryMarshal.GetReference(u);
             ref byte vRef = ref MemoryMarshal.GetReference(v);
-            Load16x4(ref Unsafe.Add(ref uRef, (uint)offset - 4), ref Unsafe.Add(ref vRef, (uint)offset - 4), stride, out Vector128<byte> p3, out Vector128<byte> p2, out Vector128<byte> p1, out Vector128<byte> p0);
+            Load16x4Vector128(ref Unsafe.Add(ref uRef, (uint)offset - 4), ref Unsafe.Add(ref vRef, (uint)offset - 4), stride, out Vector128<byte> p3, out Vector128<byte> p2, out Vector128<byte> p1, out Vector128<byte> p0);
 
             Vector128<byte> mask = AbsVector128(p1, p0);
             mask = Sse2.Max(mask, AbsVector128(p3, p2));
             mask = Sse2.Max(mask, AbsVector128(p2, p1));
 
-            Load16x4(ref Unsafe.Add(ref uRef, (uint)offset), ref Unsafe.Add(ref vRef, (uint)offset), stride, out Vector128<byte> q0, out Vector128<byte> q1, out Vector128<byte> q2, out Vector128<byte> q3);
+            Load16x4Vector128(ref Unsafe.Add(ref uRef, (uint)offset), ref Unsafe.Add(ref vRef, (uint)offset), stride, out Vector128<byte> q0, out Vector128<byte> q1, out Vector128<byte> q2, out Vector128<byte> q3);
 
             mask = Sse2.Max(mask, AbsVector128(q1, q0));
             mask = Sse2.Max(mask, AbsVector128(q3, q2));
             mask = Sse2.Max(mask, AbsVector128(q2, q1));
 
             ComplexMaskVector128(p1, p0, q0, q1, thresh, ithresh, ref mask);
-            DoFilter6Sse2(ref p2, ref p1, ref p0, ref q0, ref q1, ref q2, mask, hevThresh);
+            DoFilter6Vector128(ref p2, ref p1, ref p0, ref q0, ref q1, ref q2, mask, hevThresh);
 
-            Store16x4(p3, p2, p1, p0, ref Unsafe.Add(ref uRef, (uint)offset - 4), ref Unsafe.Add(ref vRef, (uint)offset - 4), stride);
-            Store16x4(q0, q1, q2, q3, ref Unsafe.Add(ref uRef, (uint)offset), ref Unsafe.Add(ref vRef, (uint)offset), stride);
+            Store16x4Vector128(p3, p2, p1, p0, ref Unsafe.Add(ref uRef, (uint)offset - 4), ref Unsafe.Add(ref vRef, (uint)offset - 4), stride);
+            Store16x4Vector128(q0, q1, q2, q3, ref Unsafe.Add(ref uRef, (uint)offset), ref Unsafe.Add(ref vRef, (uint)offset), stride);
         }
         else
         {
@@ -1815,7 +1815,7 @@ internal static class LossyUtils
         {
             ref byte uRef = ref MemoryMarshal.GetReference(u);
             ref byte vRef = ref MemoryMarshal.GetReference(v);
-            Load16x4(ref Unsafe.Add(ref uRef, (uint)offset), ref Unsafe.Add(ref vRef, (uint)offset), stride, out Vector128<byte> t2, out Vector128<byte> t1, out Vector128<byte> p1, out Vector128<byte> p0);
+            Load16x4Vector128(ref Unsafe.Add(ref uRef, (uint)offset), ref Unsafe.Add(ref vRef, (uint)offset), stride, out Vector128<byte> t2, out Vector128<byte> t1, out Vector128<byte> p1, out Vector128<byte> p0);
 
             Vector128<byte> mask = AbsVector128(p1, p0);
             mask = Sse2.Max(mask, AbsVector128(t2, t1));
@@ -1824,7 +1824,7 @@ internal static class LossyUtils
             // Beginning of q0.
             offset += 4;
 
-            Load16x4(ref Unsafe.Add(ref uRef, (uint)offset), ref Unsafe.Add(ref vRef, (uint)offset), stride, out Vector128<byte> q0, out Vector128<byte> q1, out t1, out t2);
+            Load16x4Vector128(ref Unsafe.Add(ref uRef, (uint)offset), ref Unsafe.Add(ref vRef, (uint)offset), stride, out Vector128<byte> q0, out Vector128<byte> q1, out t1, out t2);
 
             mask = Sse2.Max(mask, AbsVector128(q1, q0));
             mask = Sse2.Max(mask, AbsVector128(t2, t1));
@@ -1835,7 +1835,7 @@ internal static class LossyUtils
 
             // Beginning of p1.
             offset -= 2;
-            Store16x4(p1, p0, q0, q1, ref Unsafe.Add(ref uRef, (uint)offset), ref Unsafe.Add(ref vRef, (uint)offset), stride);
+            Store16x4Vector128(p1, p0, q0, q1, ref Unsafe.Add(ref uRef, (uint)offset), ref Unsafe.Add(ref vRef, (uint)offset), stride);
         }
         else
         {
@@ -2070,7 +2070,7 @@ internal static class LossyUtils
         // Mask filter values we don't care about.
         a &= mask;
 
-        DoSimpleFilterSse2(ref p0, ref q0, a);
+        DoSimpleFilterVector128(ref p0, ref q0, a);
 
         // Flip sign.
         p0 ^= signBit;
@@ -2081,7 +2081,7 @@ internal static class LossyUtils
     private static void DoFilter4Sse2(ref Vector128<byte> p1, ref Vector128<byte> p0, ref Vector128<byte> q0, ref Vector128<byte> q1, Vector128<byte> mask, int tresh)
     {
         // Compute hev mask.
-        Vector128<byte> notHev = GetNotHev(ref p1, ref p0, ref q0, ref q1, tresh);
+        Vector128<byte> notHev = GetNotHevVector128(ref p1, ref p0, ref q0, ref q1, tresh);
 
         Vector128<byte> signBit = Vector128.Create((byte)0x80);
 
@@ -2121,75 +2121,75 @@ internal static class LossyUtils
     }
 
     // Applies filter on 6 pixels (p2, p1, p0, q0, q1 and q2)
-    private static void DoFilter6Sse2(ref Vector128<byte> p2, ref Vector128<byte> p1, ref Vector128<byte> p0, ref Vector128<byte> q0, ref Vector128<byte> q1, ref Vector128<byte> q2, Vector128<byte> mask, int tresh)
+    private static void DoFilter6Vector128(ref Vector128<byte> p2, ref Vector128<byte> p1, ref Vector128<byte> p0, ref Vector128<byte> q0, ref Vector128<byte> q1, ref Vector128<byte> q2, Vector128<byte> mask, int tresh)
     {
         // Compute hev mask.
-        Vector128<byte> notHev = GetNotHev(ref p1, ref p0, ref q0, ref q1, tresh);
+        Vector128<byte> notHev = GetNotHevVector128(ref p1, ref p0, ref q0, ref q1, tresh);
 
         // Convert to signed values.
         Vector128<byte> signBit = Vector128.Create((byte)0x80);
-        p1 = Sse2.Xor(p1, signBit);
-        p0 = Sse2.Xor(p0, signBit);
-        q0 = Sse2.Xor(q0, signBit);
-        q1 = Sse2.Xor(q1, signBit);
-        p2 = Sse2.Xor(p2, signBit);
-        q2 = Sse2.Xor(q2, signBit);
+        p1 ^= signBit;
+        p0 ^= signBit;
+        q0 ^= signBit;
+        q1 ^= signBit;
+        p2 ^= signBit;
+        q2 ^= signBit;
 
         Vector128<sbyte> a = GetBaseDeltaVector128(p1.AsSByte(), p0.AsSByte(), q0.AsSByte(), q1.AsSByte());
 
         // Do simple filter on pixels with hev.
-        Vector128<byte> m = Sse2.AndNot(notHev, mask);
-        Vector128<byte> f = Sse2.And(a.AsByte(), m);
-        DoSimpleFilterSse2(ref p0, ref q0, f);
+        Vector128<byte> m = ~notHev & mask;
+        Vector128<byte> f = a.AsByte() & m;
+        DoSimpleFilterVector128(ref p0, ref q0, f);
 
         // Do strong filter on pixels with not hev.
-        m = Sse2.And(notHev, mask);
-        f = Sse2.And(a.AsByte(), m);
-        Vector128<byte> flow = Sse2.UnpackLow(Vector128<byte>.Zero, f);
-        Vector128<byte> fhigh = Sse2.UnpackHigh(Vector128<byte>.Zero, f);
+        m = notHev & mask;
+        f = a.AsByte() & m;
+        Vector128<byte> flow = Vector128_.UnpackLow(Vector128<byte>.Zero, f);
+        Vector128<byte> fhigh = Vector128_.UnpackHigh(Vector128<byte>.Zero, f);
 
         Vector128<short> nine = Vector128.Create((short)0x0900);
-        Vector128<short> f9Low = Sse2.MultiplyHigh(flow.AsInt16(), nine); // Filter (lo) * 9
-        Vector128<short> f9High = Sse2.MultiplyHigh(fhigh.AsInt16(), nine); // Filter (hi) * 9
+        Vector128<short> f9Low = Vector128_.MultiplyHigh(flow.AsInt16(), nine); // Filter (lo) * 9
+        Vector128<short> f9High = Vector128_.MultiplyHigh(fhigh.AsInt16(), nine); // Filter (hi) * 9
 
         Vector128<short> sixtyThree = Vector128.Create((short)63);
-        Vector128<short> a2Low = Sse2.Add(f9Low, sixtyThree); // Filter * 9 + 63
-        Vector128<short> a2High = Sse2.Add(f9High, sixtyThree); // Filter * 9 + 63
+        Vector128<short> a2Low = f9Low + sixtyThree; // Filter * 9 + 63
+        Vector128<short> a2High = f9High + sixtyThree; // Filter * 9 + 63
 
-        Vector128<short> a1Low = Sse2.Add(a2Low, f9Low); // Filter * 18 + 63
-        Vector128<short> a1High = Sse2.Add(a2High, f9High); // // Filter * 18 + 63
+        Vector128<short> a1Low = a2Low + f9Low; // Filter * 18 + 63
+        Vector128<short> a1High = a2High + f9High; // // Filter * 18 + 63
 
-        Vector128<short> a0Low = Sse2.Add(a1Low, f9Low); // Filter * 27 + 63
-        Vector128<short> a0High = Sse2.Add(a1High, f9High); // Filter * 27 + 63
+        Vector128<short> a0Low = a1Low + f9Low; // Filter * 27 + 63
+        Vector128<short> a0High = a1High + f9High; // Filter * 27 + 63
 
         Update2PixelsVector128(ref p2, ref q2, a2Low, a2High);
         Update2PixelsVector128(ref p1, ref q1, a1Low, a1High);
         Update2PixelsVector128(ref p0, ref q0, a0Low, a0High);
     }
 
-    private static void DoSimpleFilterSse2(ref Vector128<byte> p0, ref Vector128<byte> q0, Vector128<byte> fl)
+    private static void DoSimpleFilterVector128(ref Vector128<byte> p0, ref Vector128<byte> q0, Vector128<byte> fl)
     {
-        Vector128<sbyte> v3 = Sse2.AddSaturate(fl.AsSByte(), Vector128.Create((byte)3).AsSByte());
-        Vector128<sbyte> v4 = Sse2.AddSaturate(fl.AsSByte(), Vector128.Create((byte)4).AsSByte());
+        Vector128<sbyte> v3 = Vector128_.AddSaturate(fl.AsSByte(), Vector128.Create((byte)3).AsSByte());
+        Vector128<sbyte> v4 = Vector128_.AddSaturate(fl.AsSByte(), Vector128.Create((byte)4).AsSByte());
 
         v4 = SignedShift8bVector128(v4.AsByte()).AsSByte(); // v4 >> 3
         v3 = SignedShift8bVector128(v3.AsByte()).AsSByte(); // v3 >> 3
-        q0 = Sse2.SubtractSaturate(q0.AsSByte(), v4).AsByte(); // q0 -= v4
-        p0 = Sse2.AddSaturate(p0.AsSByte(), v3).AsByte(); // p0 += v3
+        q0 = Vector128_.SubtractSaturate(q0.AsSByte(), v4).AsByte(); // q0 -= v4
+        p0 = Vector128_.AddSaturate(p0.AsSByte(), v3).AsByte(); // p0 += v3
     }
 
-    private static Vector128<byte> GetNotHev(ref Vector128<byte> p1, ref Vector128<byte> p0, ref Vector128<byte> q0, ref Vector128<byte> q1, int hevThresh)
+    private static Vector128<byte> GetNotHevVector128(ref Vector128<byte> p1, ref Vector128<byte> p0, ref Vector128<byte> q0, ref Vector128<byte> q1, int hevThresh)
     {
         Vector128<byte> t1 = AbsVector128(p1, p0);
         Vector128<byte> t2 = AbsVector128(q1, q0);
 
         Vector128<byte> h = Vector128.Create((byte)hevThresh);
-        Vector128<byte> tMax = Sse2.Max(t1, t2);
+        Vector128<byte> tMax = Vector128.Max(t1, t2);
 
-        Vector128<byte> tMaxH = Sse2.SubtractSaturate(tMax, h);
+        Vector128<byte> tMaxH = Vector128_.SubtractSaturate(tMax, h);
 
         // not_hev <= t1 && not_hev <= t2
-        return Sse2.CompareEqual(tMaxH, Vector128<byte>.Zero);
+        return Vector128.Equals(tMaxH, Vector128<byte>.Zero);
     }
 
     // Applies filter on 4 pixels (p1, p0, q0 and q1)
@@ -2287,7 +2287,7 @@ internal static class LossyUtils
         return Vector128.Equals(t7, Vector128<byte>.Zero);
     }
 
-    private static void Load16x4(ref byte r0, ref byte r8, int stride, out Vector128<byte> p1, out Vector128<byte> p0, out Vector128<byte> q0, out Vector128<byte> q1)
+    private static void Load16x4Vector128(ref byte r0, ref byte r8, int stride, out Vector128<byte> p1, out Vector128<byte> p0, out Vector128<byte> q0, out Vector128<byte> q1)
     {
         // Assume the pixels around the edge (|) are numbered as follows
         //                00 01 | 02 03
@@ -2311,10 +2311,10 @@ internal static class LossyUtils
         // p0 = f1 e1 d1 c1 b1 a1 91 81 71 61 51 41 31 21 11 01
         // q0 = f2 e2 d2 c2 b2 a2 92 82 72 62 52 42 32 22 12 02
         // q1 = f3 e3 d3 c3 b3 a3 93 83 73 63 53 43 33 23 13 03
-        p1 = Sse2.UnpackLow(t1.AsInt64(), p0.AsInt64()).AsByte();
-        p0 = Sse2.UnpackHigh(t1.AsInt64(), p0.AsInt64()).AsByte();
-        q0 = Sse2.UnpackLow(t2.AsInt64(), q1.AsInt64()).AsByte();
-        q1 = Sse2.UnpackHigh(t2.AsInt64(), q1.AsInt64()).AsByte();
+        p1 = Vector128_.UnpackLow(t1.AsInt64(), p0.AsInt64()).AsByte();
+        p0 = Vector128_.UnpackHigh(t1.AsInt64(), p0.AsInt64()).AsByte();
+        q0 = Vector128_.UnpackLow(t2.AsInt64(), q1.AsInt64()).AsByte();
+        q1 = Vector128_.UnpackHigh(t2.AsInt64(), q1.AsInt64()).AsByte();
     }
 
     // Reads 8 rows across a vertical edge.
@@ -2350,44 +2350,44 @@ internal static class LossyUtils
     }
 
     // Transpose back and store
-    private static void Store16x4(Vector128<byte> p1, Vector128<byte> p0, Vector128<byte> q0, Vector128<byte> q1, ref byte r0Ref, ref byte r8Ref, int stride)
+    private static void Store16x4Vector128(Vector128<byte> p1, Vector128<byte> p0, Vector128<byte> q0, Vector128<byte> q1, ref byte r0Ref, ref byte r8Ref, int stride)
     {
         // p0 = 71 70 61 60 51 50 41 40 31 30 21 20 11 10 01 00
         // p1 = f1 f0 e1 e0 d1 d0 c1 c0 b1 b0 a1 a0 91 90 81 80
-        Vector128<byte> p0s = Sse2.UnpackLow(p1, p0);
-        Vector128<byte> p1s = Sse2.UnpackHigh(p1, p0);
+        Vector128<byte> p0s = Vector128_.UnpackLow(p1, p0);
+        Vector128<byte> p1s = Vector128_.UnpackHigh(p1, p0);
 
         // q0 = 73 72 63 62 53 52 43 42 33 32 23 22 13 12 03 02
         // q1 = f3 f2 e3 e2 d3 d2 c3 c2 b3 b2 a3 a2 93 92 83 82
-        Vector128<byte> q0s = Sse2.UnpackLow(q0, q1);
-        Vector128<byte> q1s = Sse2.UnpackHigh(q0, q1);
+        Vector128<byte> q0s = Vector128_.UnpackLow(q0, q1);
+        Vector128<byte> q1s = Vector128_.UnpackHigh(q0, q1);
 
         // p0 = 33 32 31 30 23 22 21 20 13 12 11 10 03 02 01 00
         // q0 = 73 72 71 70 63 62 61 60 53 52 51 50 43 42 41 40
         Vector128<byte> t1 = p0s;
-        p0s = Sse2.UnpackLow(t1.AsInt16(), q0s.AsInt16()).AsByte();
-        q0s = Sse2.UnpackHigh(t1.AsInt16(), q0s.AsInt16()).AsByte();
+        p0s = Vector128_.UnpackLow(t1.AsInt16(), q0s.AsInt16()).AsByte();
+        q0s = Vector128_.UnpackHigh(t1.AsInt16(), q0s.AsInt16()).AsByte();
 
         // p1 = b3 b2 b1 b0 a3 a2 a1 a0 93 92 91 90 83 82 81 80
         // q1 = f3 f2 f1 f0 e3 e2 e1 e0 d3 d2 d1 d0 c3 c2 c1 c0
         t1 = p1s;
-        p1s = Sse2.UnpackLow(t1.AsInt16(), q1s.AsInt16()).AsByte();
-        q1s = Sse2.UnpackHigh(t1.AsInt16(), q1s.AsInt16()).AsByte();
+        p1s = Vector128_.UnpackLow(t1.AsInt16(), q1s.AsInt16()).AsByte();
+        q1s = Vector128_.UnpackHigh(t1.AsInt16(), q1s.AsInt16()).AsByte();
 
-        Store4x4(p0s, ref r0Ref, stride);
-        Store4x4(q0s, ref Unsafe.Add(ref r0Ref, 4 * (uint)stride), stride);
+        Store4x4Vector128(p0s, ref r0Ref, stride);
+        Store4x4Vector128(q0s, ref Unsafe.Add(ref r0Ref, 4 * (uint)stride), stride);
 
-        Store4x4(p1s, ref r8Ref, stride);
-        Store4x4(q1s, ref Unsafe.Add(ref r8Ref, 4 * (uint)stride), stride);
+        Store4x4Vector128(p1s, ref r8Ref, stride);
+        Store4x4Vector128(q1s, ref Unsafe.Add(ref r8Ref, 4 * (uint)stride), stride);
     }
 
-    private static void Store4x4(Vector128<byte> x, ref byte dstRef, int stride)
+    private static void Store4x4Vector128(Vector128<byte> x, ref byte dstRef, int stride)
     {
         int offset = 0;
         for (int i = 0; i < 4; i++)
         {
-            Unsafe.As<byte, int>(ref Unsafe.Add(ref dstRef, (uint)offset)) = Sse2.ConvertToInt32(x.AsInt32());
-            x = Sse2.ShiftRightLogical128BitLane(x, 4);
+            Unsafe.As<byte, int>(ref Unsafe.Add(ref dstRef, (uint)offset)) = x.AsInt32().ToScalar();
+            x = Vector128_.ShiftRightBytesInVector(x, 4);
             offset += stride;
         }
     }

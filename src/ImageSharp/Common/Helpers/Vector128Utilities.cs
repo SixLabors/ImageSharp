@@ -24,28 +24,6 @@ internal static class Vector128_
 #pragma warning restore SA1649 // File name should match first type name
 {
     /// <summary>
-    /// Gets a value indicating whether shuffle operations are supported.
-    /// </summary>
-    public static bool SupportsShuffleNativeByte
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get
-        {
-            if (Vector128.IsHardwareAccelerated)
-            {
-                if (RuntimeInformation.ProcessArchitecture is Architecture.X86 or Architecture.X64)
-                {
-                    return Ssse3.IsSupported;
-                }
-
-                return true;
-            }
-
-            return false;
-        }
-    }
-
-    /// <summary>
     /// Creates a new vector by selecting values from an input vector using the control.
     /// </summary>
     /// <param name="vector">The input vector from which values are selected.</param>

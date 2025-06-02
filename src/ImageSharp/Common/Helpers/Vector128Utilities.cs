@@ -3,7 +3,6 @@
 
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.Arm;
 using System.Runtime.Intrinsics.Wasm;
@@ -23,6 +22,35 @@ namespace SixLabors.ImageSharp.Common.Helpers;
 internal static class Vector128_
 #pragma warning restore SA1649 // File name should match first type name
 {
+    /// <summary>
+    /// Average packed unsigned 8-bit integers in <paramref name="left"/> and <paramref name="right"/>, and store the results.
+    /// </summary>
+    /// <param name="left">
+    /// The first vector containing packed unsigned 8-bit integers to average.
+    /// </param>
+    /// <param name="right">
+    /// The second vector containing packed unsigned 8-bit integers to average.
+    /// </param>
+    /// <returns>
+    /// A vector containing the average of the packed unsigned 8-bit integers
+    /// </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector128<byte> Average(Vector128<byte> left, Vector128<byte> right)
+    {
+        if (Sse2.IsSupported)
+        {
+            return Sse2.Average(left, right);
+        }
+
+        if (AdvSimd.IsSupported)
+        {
+            return AdvSimd.FusedAddRoundedHalving(left, right);
+        }
+
+        // Portable fallback: (a + b + 1) >> 1
+        return (left + right + Vector128.Create((byte)1)) >> 1;
+    }
+
     /// <summary>
     /// Creates a new vector by selecting values from an input vector using the control.
     /// </summary>
@@ -442,6 +470,43 @@ internal static class Vector128_
 
             return v0 + v1 + v2 + v3;
         }
+    }
+
+    /// <summary>
+    /// Horizontally add adjacent pairs of 16-bit integers in <paramref name="left"/> and <paramref name="right"/>, and
+    /// pack the signed 16-bit results.
+    /// </summary>
+    /// <param name="left">
+    /// The first vector containing packed signed 16-bit integers to add.
+    /// </param>
+    /// <param name="right">
+    /// The second vector containing packed signed 16-bit integers to add.
+    /// </param>
+    /// <returns>
+    /// A vector containing the results of horizontally adding adjacent pairs of packed signed 16-bit integers
+    /// </returns>
+    public static Vector128<short> HorizontalAdd(Vector128<short> left, Vector128<short> right)
+    {
+        if (Ssse3.IsSupported)
+        {
+            return Ssse3.HorizontalAdd(left, right);
+        }
+
+        if (AdvSimd.Arm64.IsSupported)
+        {
+            return AdvSimd.Arm64.AddPairwise(left, right);
+        }
+
+        // Extract the low and high parts of the products shuffling them to form a result we can add together.
+        // Use out-of-bounds to zero out the unused lanes.
+        Vector128<short> even = Vector128.Create(0, 2, 4, 6, 8, 8, 8, 8);
+        Vector128<short> odd = Vector128.Create(1, 3, 5, 7, 8, 8, 8, 8);
+        Vector128<short> v0 = Vector128.Shuffle(right, even);
+        Vector128<short> v1 = Vector128.Shuffle(right, odd);
+        Vector128<short> v2 = Vector128.Shuffle(left, even);
+        Vector128<short> v3 = Vector128.Shuffle(left, odd);
+
+        return v0 + v1 + v2 + v3;
     }
 
     /// <summary>

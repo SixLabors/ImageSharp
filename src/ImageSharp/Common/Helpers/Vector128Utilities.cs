@@ -609,6 +609,44 @@ internal static class Vector128_
     }
 
     /// <summary>
+    /// Multiply the packed 16-bit unsigned integers in <paramref name="left"/> and <paramref name="right"/>, producing
+    /// intermediate unsigned 32-bit integers, and store the high 16 bits of the intermediate integers in the result.
+    /// </summary>
+    /// <param name="left">
+    /// The first vector containing packed 16-bit unsigned integers to multiply.
+    /// </param>
+    /// <param name="right">
+    /// The second vector containing packed 16-bit unsigned integers to multiply.
+    /// </param>
+    /// <returns>
+    /// A vector containing the high 16 bits of the products of the packed 16-bit unsigned integers
+    /// from <paramref name="left"/> and <paramref name="right"/>.
+    /// </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector128<ushort> MultiplyHigh(Vector128<ushort> left, Vector128<ushort> right)
+    {
+        if (Sse2.IsSupported)
+        {
+            return Sse2.MultiplyHigh(left, right);
+        }
+
+        // Widen each half of the short vectors into two uint vectors
+        (Vector128<uint> leftLo, Vector128<uint> leftHi) = Vector128.Widen(left);
+        (Vector128<uint> rightLo, Vector128<uint> rightHi) = Vector128.Widen(right);
+
+        // Elementwise multiply: each int lane now holds the full 32-bit product
+        Vector128<uint> prodLo = leftLo * rightLo;
+        Vector128<uint> prodHi = leftHi * rightHi;
+
+        // Arithmetic shift right by 16 bits to extract the high word
+        prodLo >>= 16;
+        prodHi >>= 16;
+
+        // Narrow the two int vectors back into one short vector
+        return Vector128.Narrow(prodLo, prodHi);
+    }
+
+    /// <summary>
     /// Unpack and interleave 64-bit integers from the high half of <paramref name="left"/> and <paramref name="right"/>
     /// and store the results in the result.
     /// </summary>
@@ -927,7 +965,7 @@ internal static class Vector128_
     /// The second vector containing packed signed 16-bit integers to subtract.
     /// </param>
     /// <returns>
-    /// A vector containing the results of subtracting packed unsigned 16-bit integers
+    /// A vector containing the results of subtracting packed signed 16-bit integers
     /// </returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector128<short> SubtractSaturate(Vector128<short> left, Vector128<short> right)
@@ -967,7 +1005,57 @@ internal static class Vector128_
     }
 
     /// <summary>
-    /// Add packed unsigned 8-bit integers in <paramref name="right"/> from packed unsigned 8-bit integers
+    /// Subtract packed unsigned 16-bit integers in <paramref name="right"/> from packed unsigned 16-bit integers
+    /// in <paramref name="left"/> using saturation, and store the results.
+    /// </summary>
+    /// <param name="left">
+    /// The first vector containing packed unsigned 16-bit integers to subtract from.
+    /// </param>
+    /// <param name="right">
+    /// The second vector containing packed unsigned 16-bit integers to subtract.
+    /// </param>
+    /// <returns>
+    /// A vector containing the results of subtracting packed unsigned 16-bit integers
+    /// </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector128<ushort> SubtractSaturate(Vector128<ushort> left, Vector128<ushort> right)
+    {
+        if (Sse2.IsSupported)
+        {
+            return Sse2.SubtractSaturate(left, right);
+        }
+
+        if (AdvSimd.IsSupported)
+        {
+            return AdvSimd.SubtractSaturate(left, right);
+        }
+
+        if (PackedSimd.IsSupported)
+        {
+            return PackedSimd.SubtractSaturate(left, right);
+        }
+
+        // Widen inputs to 32-bit signed
+        (Vector128<uint> leftLo, Vector128<uint> leftHi) = Vector128.Widen(left);
+        (Vector128<uint> rightLo, Vector128<uint> rightHi) = Vector128.Widen(right);
+
+        // Subtract
+        Vector128<uint> diffLo = leftLo - rightLo;
+        Vector128<uint> diffHi = leftHi - rightHi;
+
+        // Clamp to signed 16-bit range
+        Vector128<uint> min = Vector128.Create((uint)ushort.MinValue);
+        Vector128<uint> max = Vector128.Create((uint)ushort.MaxValue);
+
+        diffLo = Clamp(diffLo, min, max);
+        diffHi = Clamp(diffHi, min, max);
+
+        // Narrow back to 16 bit signed.
+        return Vector128.Narrow(diffLo, diffHi);
+    }
+
+    /// <summary>
+    /// Add packed unsigned 8-bit integers in <paramref name="right"/> to packed unsigned 8-bit integers
     /// in <paramref name="left"/> using saturation, and store the results.
     /// </summary>
     /// <param name="left">
@@ -1012,6 +1100,55 @@ internal static class Vector128_
         sumHi = Clamp(sumHi, Vector128<ushort>.Zero, max);
 
         // Narrow back to bytes
+        return Vector128.Narrow(sumLo, sumHi);
+    }
+
+    /// <summary>
+    /// Add packed unsigned 16-bit integers in <paramref name="right"/> to packed unsigned 16-bit integers
+    /// in <paramref name="left"/> using saturation, and store the results.
+    /// </summary>
+    /// <param name="left">
+    /// The first vector containing packed unsigned 16-bit integers to add to.
+    /// </param>
+    /// <param name="right">
+    /// The second vector containing packed unsigned 16-bit integers to add.
+    /// </param>
+    /// <returns>
+    /// A vector containing the results of adding packed unsigned 16-bit integers
+    /// </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector128<ushort> AddSaturate(Vector128<ushort> left, Vector128<ushort> right)
+    {
+        if (Sse2.IsSupported)
+        {
+            return Sse2.AddSaturate(left, right);
+        }
+
+        if (AdvSimd.IsSupported)
+        {
+            return AdvSimd.AddSaturate(left, right);
+        }
+
+        if (PackedSimd.IsSupported)
+        {
+            return PackedSimd.AddSaturate(left, right);
+        }
+
+        // Widen inputs to 32-bit
+        (Vector128<uint> leftLo, Vector128<uint> leftHi) = Vector128.Widen(left);
+        (Vector128<uint> rightLo, Vector128<uint> rightHi) = Vector128.Widen(right);
+
+        // Add
+        Vector128<uint> sumLo = leftLo + rightLo;
+        Vector128<uint> sumHi = leftHi + rightHi;
+
+        // Clamp to signed 16-bit range
+        Vector128<uint> max = Vector128.Create((uint)ushort.MaxValue);
+
+        sumLo = Clamp(sumLo, Vector128<uint>.Zero, max);
+        sumHi = Clamp(sumHi, Vector128<uint>.Zero, max);
+
+        // Narrow back to 16 bit unsigned.
         return Vector128.Narrow(sumLo, sumHi);
     }
 

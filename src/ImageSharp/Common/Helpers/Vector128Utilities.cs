@@ -1319,9 +1319,29 @@ internal static class Vector128_
             return Sse2.MoveMask(value);
         }
 
+        // AdvSimd versions ported from Stack Overflow answer:
+        // https://stackoverflow.com/questions/11870910/sse-mm-movemask-epi8-equivalent-method-for-arm-neon
+        if (AdvSimd.Arm64.IsSupported)
+        {
+            // Shift values to align each MSB to its corresponding bit in the output
+            Vector128<sbyte> shift = Vector128.Create(-7, -6, -5, -4, -3, -2, -1, 0, -7, -6, -5, -4, -3, -2, -1, 0);
+
+            // Mask to isolate MSBs
+            Vector128<byte> msbMask = Vector128.Create((byte)0x80);
+            Vector128<byte> masked = value & msbMask;
+
+            // Shift each MSB into the correct bit position
+            Vector128<byte> shifted = AdvSimd.ShiftLogical(masked.AsSByte(), shift).AsByte();
+
+            // Sum lanes: lower 8 go into bits 0–7, upper 8 go into bits 8–15
+            byte lo = AdvSimd.Arm64.AddAcross(shifted.GetLower()).ToScalar();
+            byte hi = AdvSimd.Arm64.AddAcross(shifted.GetUpper()).ToScalar();
+
+            return lo + (hi << 8);
+        }
+
         if (AdvSimd.IsSupported)
         {
-            // https://stackoverflow.com/questions/11870910/sse-mm-movemask-epi8-equivalent-method-for-arm-neon
             Vector128<byte> powers = Vector128.Create(1, 2, 4, 8, 16, 32, 64, 128, 1, 2, 4, 8, 16, 32, 64, 128);
             Vector128<byte> msbMask = Vector128.Create((byte)0x80);
             Vector128<byte> normalized = AdvSimd.CompareEqual(value & msbMask, msbMask); // 0xFF or 0x00

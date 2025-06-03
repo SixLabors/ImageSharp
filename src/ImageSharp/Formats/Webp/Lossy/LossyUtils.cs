@@ -5,8 +5,6 @@ using System.Buffers.Binary;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
-using System.Runtime.Intrinsics.Arm;
-using System.Runtime.Intrinsics.X86;
 using SixLabors.ImageSharp.Common.Helpers;
 
 // ReSharper disable InconsistentNaming
@@ -18,7 +16,7 @@ internal static class LossyUtils
     [MethodImpl(InliningOptions.ShortMethod)]
     public static int Vp8_Sse16x16(Span<byte> a, Span<byte> b)
     {
-        if (Avx2.IsSupported)
+        if (Vector256.IsHardwareAccelerated)
         {
             return Vp8_Sse16xN_Vector256(a, b, 4);
         }
@@ -26,11 +24,6 @@ internal static class LossyUtils
         if (Vector128.IsHardwareAccelerated)
         {
             return Vp8_16xN_Vector128(a, b, 8);
-        }
-
-        if (AdvSimd.IsSupported)
-        {
-            return Vp8_Sse16x16_Neon(a, b);
         }
 
         return Vp8_SseNxN(a, b, 16, 16);
@@ -50,11 +43,6 @@ internal static class LossyUtils
             return Vp8_16xN_Vector128(a, b, 4);
         }
 
-        if (AdvSimd.IsSupported)
-        {
-            return Vp8_Sse16x8_Neon(a, b);
-        }
-
         return Vp8_SseNxN(a, b, 16, 8);
     }
 
@@ -62,7 +50,7 @@ internal static class LossyUtils
     [MethodImpl(InliningOptions.ShortMethod)]
     public static int Vp8_Sse4x4(Span<byte> a, Span<byte> b)
     {
-        if (Avx2.IsSupported)
+        if (Vector256.IsHardwareAccelerated)
         {
             // Load values.
             ref byte aRef = ref MemoryMarshal.GetReference(a);
@@ -123,17 +111,12 @@ internal static class LossyUtils
 
             // subtract, square and accumulate.
             Vector128<short> d0 = Vector128_.SubtractSaturate(a01s.AsInt16(), b01s.AsInt16());
-            Vector128<short> d1 = Sse2.SubtractSaturate(a23s.AsInt16(), b23s.AsInt16());
-            Vector128<int> e0 = Sse2.MultiplyAddAdjacent(d0, d0);
-            Vector128<int> e1 = Sse2.MultiplyAddAdjacent(d1, d1);
-            Vector128<int> sum = Sse2.Add(e0, e1);
+            Vector128<short> d1 = Vector128_.SubtractSaturate(a23s.AsInt16(), b23s.AsInt16());
+            Vector128<int> e0 = Vector128_.MultiplyAddAdjacent(d0, d0);
+            Vector128<int> e1 = Vector128_.MultiplyAddAdjacent(d1, d1);
+            Vector128<int> sum = e0 + e1;
 
             return ReduceSumVector128(sum);
-        }
-
-        if (AdvSimd.IsSupported)
-        {
-            return Vp8_Sse4x4_Neon(a, b);
         }
 
         return Vp8_SseNxN(a, b, 4, 4);
@@ -217,95 +200,6 @@ internal static class LossyUtils
     }
 
     [MethodImpl(InliningOptions.ShortMethod)]
-    private static unsafe int Vp8_Sse16x16_Neon(Span<byte> a, Span<byte> b)
-    {
-        Vector128<uint> sum = Vector128<uint>.Zero;
-        fixed (byte* aRef = &MemoryMarshal.GetReference(a))
-        {
-            fixed (byte* bRef = &MemoryMarshal.GetReference(b))
-            {
-                for (int y = 0; y < 16; y++)
-                {
-                    sum = AccumulateSSE16Neon(aRef + (y * WebpConstants.Bps), bRef + (y * WebpConstants.Bps), sum);
-                }
-            }
-        }
-
-        return (int)Vector128.Sum(sum);
-    }
-
-    [MethodImpl(InliningOptions.ShortMethod)]
-    private static unsafe int Vp8_Sse16x8_Neon(Span<byte> a, Span<byte> b)
-    {
-        Vector128<uint> sum = Vector128<uint>.Zero;
-        fixed (byte* aRef = &MemoryMarshal.GetReference(a))
-        {
-            fixed (byte* bRef = &MemoryMarshal.GetReference(b))
-            {
-                for (int y = 0; y < 8; y++)
-                {
-                    sum = AccumulateSSE16Neon(aRef + (y * WebpConstants.Bps), bRef + (y * WebpConstants.Bps), sum);
-                }
-            }
-        }
-
-        return (int)Vector128.Sum(sum);
-    }
-
-    [MethodImpl(InliningOptions.ShortMethod)]
-    private static int Vp8_Sse4x4_Neon(Span<byte> a, Span<byte> b)
-    {
-        Vector128<byte> a0 = Load4x4Neon(a).AsByte();
-        Vector128<byte> b0 = Load4x4Neon(b).AsByte();
-        Vector128<byte> absDiff = AdvSimd.AbsoluteDifference(a0, b0);
-        Vector64<byte> absDiffLower = absDiff.GetLower().AsByte();
-        Vector64<byte> absDiffUpper = absDiff.GetUpper().AsByte();
-        Vector128<ushort> prod1 = AdvSimd.MultiplyWideningLower(absDiffLower, absDiffLower);
-        Vector128<ushort> prod2 = AdvSimd.MultiplyWideningLower(absDiffUpper, absDiffUpper);
-
-        // pair-wise adds and widen.
-        Vector128<uint> sum1 = AdvSimd.AddPairwiseWidening(prod1);
-        Vector128<uint> sum2 = AdvSimd.AddPairwiseWidening(prod2);
-
-        Vector128<uint> sum = AdvSimd.Add(sum1, sum2);
-
-        return (int)Vector128.Sum(sum);
-    }
-
-    // Load all 4x4 pixels into a single Vector128<uint>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    private static unsafe Vector128<uint> Load4x4Neon(Span<byte> src)
-    {
-        fixed (byte* srcRef = &MemoryMarshal.GetReference(src))
-        {
-            Vector128<uint> output = Vector128<uint>.Zero;
-            output = AdvSimd.LoadAndInsertScalar(output, 0, (uint*)srcRef);
-            output = AdvSimd.LoadAndInsertScalar(output, 1, (uint*)(srcRef + WebpConstants.Bps));
-            output = AdvSimd.LoadAndInsertScalar(output, 2, (uint*)(srcRef + (WebpConstants.Bps * 2)));
-            output = AdvSimd.LoadAndInsertScalar(output, 3, (uint*)(srcRef + (WebpConstants.Bps * 3)));
-            return output;
-        }
-    }
-
-    [MethodImpl(InliningOptions.ShortMethod)]
-    private static unsafe Vector128<uint> AccumulateSSE16Neon(byte* a, byte* b, Vector128<uint> sum)
-    {
-        Vector128<byte> a0 = AdvSimd.LoadVector128(a);
-        Vector128<byte> b0 = AdvSimd.LoadVector128(b);
-
-        Vector128<byte> absDiff = AdvSimd.AbsoluteDifference(a0, b0);
-        Vector64<byte> absDiffLower = absDiff.GetLower();
-        Vector64<byte> absDiffUpper = absDiff.GetUpper();
-        Vector128<ushort> prod1 = AdvSimd.MultiplyWideningLower(absDiffLower, absDiffLower);
-        Vector128<ushort> prod2 = AdvSimd.MultiplyWideningLower(absDiffUpper, absDiffUpper);
-
-        // pair-wise adds and widen.
-        Vector128<uint> sum1 = AdvSimd.AddPairwiseWidening(prod1);
-        Vector128<uint> sum2 = AdvSimd.AddPairwiseWidening(prod2);
-        return AdvSimd.Add(sum, AdvSimd.Add(sum1, sum2));
-    }
-
-    [MethodImpl(InliningOptions.ShortMethod)]
     private static Vector128<int> SubtractAndAccumulateVector128(Vector128<byte> a, Vector128<byte> b)
     {
         // Take abs(a-b) in 8b.
@@ -330,7 +224,7 @@ internal static class LossyUtils
         // Take abs(a-b) in 8b.
         Vector256<byte> ab = Vector256_.SubtractSaturate(a, b);
         Vector256<byte> ba = Vector256_.SubtractSaturate(b, a);
-        Vector256<byte> absAb = Avx2.Or(ab, ba);
+        Vector256<byte> absAb = ab | ba;
 
         // Zero-extend to 16b.
         Vector256<byte> c0 = Vector256_.UnpackLow(absAb, Vector256<byte>.Zero);
@@ -948,7 +842,7 @@ internal static class LossyUtils
         // a20 a21 a22 a23   b20 b21 b22 b23
         // a30 a31 a32 a33   b30 b31 b32 b33
         // Transpose the two 4x4.
-        Vp8Transpose_2_4x4_16b(b0, b1, b2, b3, out Vector128<long> output0, out Vector128<long> output1, out Vector128<long> output2, out Vector128<long> output3);
+        Vp8Transpose_2_4x4_16bVector128(b0, b1, b2, b3, out Vector128<long> output0, out Vector128<long> output1, out Vector128<long> output2, out Vector128<long> output3);
 
         // a00 a10 a20 a30   b00 b10 b20 b30
         // a01 a11 a21 a31   b01 b11 b21 b31
@@ -995,7 +889,7 @@ internal static class LossyUtils
 
     // Transpose two 4x4 16b matrices horizontally stored in registers.
     [MethodImpl(InliningOptions.ShortMethod)]
-    public static void Vp8Transpose_2_4x4_16b(Vector128<short> b0, Vector128<short> b1, Vector128<short> b2, Vector128<short> b3, out Vector128<long> output0, out Vector128<long> output1, out Vector128<long> output2, out Vector128<long> output3)
+    public static void Vp8Transpose_2_4x4_16bVector128(Vector128<short> b0, Vector128<short> b1, Vector128<short> b2, Vector128<short> b3, out Vector128<long> output0, out Vector128<long> output1, out Vector128<long> output2, out Vector128<long> output3)
     {
         // Transpose the two 4x4.
         // a00 a01 a02 a03   b00 b01 b02 b03
@@ -1110,7 +1004,7 @@ internal static class LossyUtils
             Vector128<short> tmp3 = a.AsInt16() - d;
 
             // Transpose the two 4x4.
-            Vp8Transpose_2_4x4_16b(tmp0, tmp1, tmp2, tmp3, out Vector128<long> t0, out Vector128<long> t1, out Vector128<long> t2, out Vector128<long> t3);
+            Vp8Transpose_2_4x4_16bVector128(tmp0, tmp1, tmp2, tmp3, out Vector128<long> t0, out Vector128<long> t1, out Vector128<long> t2, out Vector128<long> t3);
 
             // Horizontal pass and subsequent transpose.
             // First pass, c and d calculations are longer because of the "trick" multiplications.
@@ -1143,7 +1037,7 @@ internal static class LossyUtils
             Vector128<short> shifted3 = Vector128.ShiftRightArithmetic(tmp3, 3);
 
             // Transpose the two 4x4.
-            Vp8Transpose_2_4x4_16b(shifted0, shifted1, shifted2, shifted3, out t0, out t1, out t2, out t3);
+            Vp8Transpose_2_4x4_16bVector128(shifted0, shifted1, shifted2, shifted3, out t0, out t1, out t2, out t3);
 
             // Add inverse transform to 'dst' and store.
             // Load the reference(s).
@@ -1189,7 +1083,7 @@ internal static class LossyUtils
 
     public static void TransformOne(Span<short> src, Span<byte> dst, Span<int> scratch)
     {
-        if (Sse2.IsSupported)
+        if (Vector128.IsHardwareAccelerated)
         {
             // Load and concatenate the transform coefficients.
             ref short srcRef = ref MemoryMarshal.GetReference(src);
@@ -1205,102 +1099,102 @@ internal static class LossyUtils
 
             // Vertical pass and subsequent transpose.
             // First pass, c and d calculations are longer because of the "trick" multiplications.
-            Vector128<short> a = Sse2.Add(in0.AsInt16(), in2.AsInt16());
-            Vector128<short> b = Sse2.Subtract(in0.AsInt16(), in2.AsInt16());
+            Vector128<short> a = in0.AsInt16() + in2.AsInt16();
+            Vector128<short> b = in0.AsInt16() - in2.AsInt16();
 
             Vector128<short> k1 = Vector128.Create((short)20091);
             Vector128<short> k2 = Vector128.Create((short)-30068);
 
             // c = MUL(in1, K2) - MUL(in3, K1) = MUL(in1, k2) - MUL(in3, k1) + in1 - in3
-            Vector128<short> c1 = Sse2.MultiplyHigh(in1.AsInt16(), k2);
-            Vector128<short> c2 = Sse2.MultiplyHigh(in3.AsInt16(), k1);
-            Vector128<short> c3 = Sse2.Subtract(in1.AsInt16(), in3.AsInt16());
-            Vector128<short> c4 = Sse2.Subtract(c1, c2);
-            Vector128<short> c = Sse2.Add(c3.AsInt16(), c4);
+            Vector128<short> c1 = Vector128_.MultiplyHigh(in1.AsInt16(), k2);
+            Vector128<short> c2 = Vector128_.MultiplyHigh(in3.AsInt16(), k1);
+            Vector128<short> c3 = in1.AsInt16() - in3.AsInt16();
+            Vector128<short> c4 = c1 - c2;
+            Vector128<short> c = c3.AsInt16() + c4;
 
             // d = MUL(in1, K1) + MUL(in3, K2) = MUL(in1, k1) + MUL(in3, k2) + in1 + in3
-            Vector128<short> d1 = Sse2.MultiplyHigh(in1.AsInt16(), k1);
-            Vector128<short> d2 = Sse2.MultiplyHigh(in3.AsInt16(), k2);
-            Vector128<short> d3 = Sse2.Add(in1.AsInt16(), in3.AsInt16());
-            Vector128<short> d4 = Sse2.Add(d1, d2);
-            Vector128<short> d = Sse2.Add(d3, d4);
+            Vector128<short> d1 = Vector128_.MultiplyHigh(in1.AsInt16(), k1);
+            Vector128<short> d2 = Vector128_.MultiplyHigh(in3.AsInt16(), k2);
+            Vector128<short> d3 = in1.AsInt16() + in3.AsInt16();
+            Vector128<short> d4 = d1 + d2;
+            Vector128<short> d = d3 + d4;
 
             // Second pass.
-            Vector128<short> tmp0 = Sse2.Add(a.AsInt16(), d);
-            Vector128<short> tmp1 = Sse2.Add(b.AsInt16(), c);
-            Vector128<short> tmp2 = Sse2.Subtract(b.AsInt16(), c);
-            Vector128<short> tmp3 = Sse2.Subtract(a.AsInt16(), d);
+            Vector128<short> tmp0 = a.AsInt16() + d;
+            Vector128<short> tmp1 = b.AsInt16() + c;
+            Vector128<short> tmp2 = b.AsInt16() - c;
+            Vector128<short> tmp3 = a.AsInt16() - d;
 
             // Transpose the two 4x4.
-            Vp8Transpose_2_4x4_16b(tmp0, tmp1, tmp2, tmp3, out Vector128<long> t0, out Vector128<long> t1, out Vector128<long> t2, out Vector128<long> t3);
+            Vp8Transpose_2_4x4_16bVector128(tmp0, tmp1, tmp2, tmp3, out Vector128<long> t0, out Vector128<long> t1, out Vector128<long> t2, out Vector128<long> t3);
 
             // Horizontal pass and subsequent transpose.
             // First pass, c and d calculations are longer because of the "trick" multiplications.
-            Vector128<short> dc = Sse2.Add(t0.AsInt16(), Vector128.Create((short)4));
-            a = Sse2.Add(dc, t2.AsInt16());
-            b = Sse2.Subtract(dc, t2.AsInt16());
+            Vector128<short> dc = t0.AsInt16() + Vector128.Create((short)4);
+            a = dc + t2.AsInt16();
+            b = dc - t2.AsInt16();
 
             // c = MUL(T1, K2) - MUL(T3, K1) = MUL(T1, k2) - MUL(T3, k1) + T1 - T3
-            c1 = Sse2.MultiplyHigh(t1.AsInt16(), k2);
-            c2 = Sse2.MultiplyHigh(t3.AsInt16(), k1);
-            c3 = Sse2.Subtract(t1.AsInt16(), t3.AsInt16());
-            c4 = Sse2.Subtract(c1, c2);
-            c = Sse2.Add(c3, c4);
+            c1 = Vector128_.MultiplyHigh(t1.AsInt16(), k2);
+            c2 = Vector128_.MultiplyHigh(t3.AsInt16(), k1);
+            c3 = t1.AsInt16() - t3.AsInt16();
+            c4 = c1 - c2;
+            c = c3 + c4;
 
             // d = MUL(T1, K1) + MUL(T3, K2) = MUL(T1, k1) + MUL(T3, k2) + T1 + T3
-            d1 = Sse2.MultiplyHigh(t1.AsInt16(), k1);
-            d2 = Sse2.MultiplyHigh(t3.AsInt16(), k2);
-            d3 = Sse2.Add(t1.AsInt16(), t3.AsInt16());
-            d4 = Sse2.Add(d1, d2);
-            d = Sse2.Add(d3, d4);
+            d1 = Vector128_.MultiplyHigh(t1.AsInt16(), k1);
+            d2 = Vector128_.MultiplyHigh(t3.AsInt16(), k2);
+            d3 = t1.AsInt16() + t3.AsInt16();
+            d4 = d1 + d2;
+            d = d3 + d4;
 
             // Second pass.
-            tmp0 = Sse2.Add(a, d);
-            tmp1 = Sse2.Add(b, c);
-            tmp2 = Sse2.Subtract(b, c);
-            tmp3 = Sse2.Subtract(a, d);
-            Vector128<short> shifted0 = Sse2.ShiftRightArithmetic(tmp0, 3);
-            Vector128<short> shifted1 = Sse2.ShiftRightArithmetic(tmp1, 3);
-            Vector128<short> shifted2 = Sse2.ShiftRightArithmetic(tmp2, 3);
-            Vector128<short> shifted3 = Sse2.ShiftRightArithmetic(tmp3, 3);
+            tmp0 = a + d;
+            tmp1 = b + c;
+            tmp2 = b - c;
+            tmp3 = a - d;
+            Vector128<short> shifted0 = Vector128.ShiftRightArithmetic(tmp0, 3);
+            Vector128<short> shifted1 = Vector128.ShiftRightArithmetic(tmp1, 3);
+            Vector128<short> shifted2 = Vector128.ShiftRightArithmetic(tmp2, 3);
+            Vector128<short> shifted3 = Vector128.ShiftRightArithmetic(tmp3, 3);
 
             // Transpose the two 4x4.
-            Vp8Transpose_2_4x4_16b(shifted0, shifted1, shifted2, shifted3, out t0, out t1, out t2, out t3);
+            Vp8Transpose_2_4x4_16bVector128(shifted0, shifted1, shifted2, shifted3, out t0, out t1, out t2, out t3);
 
             // Add inverse transform to 'dst' and store.
             // Load the reference(s).
             // Load four bytes/pixels per line.
             ref byte dstRef = ref MemoryMarshal.GetReference(dst);
-            Vector128<byte> dst0 = Sse2.ConvertScalarToVector128Int32(Unsafe.As<byte, int>(ref dstRef)).AsByte();
-            Vector128<byte> dst1 = Sse2.ConvertScalarToVector128Int32(Unsafe.As<byte, int>(ref Unsafe.Add(ref dstRef, WebpConstants.Bps))).AsByte();
-            Vector128<byte> dst2 = Sse2.ConvertScalarToVector128Int32(Unsafe.As<byte, int>(ref Unsafe.Add(ref dstRef, WebpConstants.Bps * 2))).AsByte();
-            Vector128<byte> dst3 = Sse2.ConvertScalarToVector128Int32(Unsafe.As<byte, int>(ref Unsafe.Add(ref dstRef, WebpConstants.Bps * 3))).AsByte();
+            Vector128<byte> dst0 = Vector128.CreateScalar(Unsafe.As<byte, int>(ref dstRef)).AsByte();
+            Vector128<byte> dst1 = Vector128.CreateScalar(Unsafe.As<byte, int>(ref Unsafe.Add(ref dstRef, WebpConstants.Bps))).AsByte();
+            Vector128<byte> dst2 = Vector128.CreateScalar(Unsafe.As<byte, int>(ref Unsafe.Add(ref dstRef, WebpConstants.Bps * 2))).AsByte();
+            Vector128<byte> dst3 = Vector128.CreateScalar(Unsafe.As<byte, int>(ref Unsafe.Add(ref dstRef, WebpConstants.Bps * 3))).AsByte();
 
             // Convert to 16b.
-            dst0 = Sse2.UnpackLow(dst0, Vector128<byte>.Zero);
-            dst1 = Sse2.UnpackLow(dst1, Vector128<byte>.Zero);
-            dst2 = Sse2.UnpackLow(dst2, Vector128<byte>.Zero);
-            dst3 = Sse2.UnpackLow(dst3, Vector128<byte>.Zero);
+            dst0 = Vector128_.UnpackLow(dst0, Vector128<byte>.Zero);
+            dst1 = Vector128_.UnpackLow(dst1, Vector128<byte>.Zero);
+            dst2 = Vector128_.UnpackLow(dst2, Vector128<byte>.Zero);
+            dst3 = Vector128_.UnpackLow(dst3, Vector128<byte>.Zero);
 
             // Add the inverse transform(s).
-            dst0 = Sse2.Add(dst0.AsInt16(), t0.AsInt16()).AsByte();
-            dst1 = Sse2.Add(dst1.AsInt16(), t1.AsInt16()).AsByte();
-            dst2 = Sse2.Add(dst2.AsInt16(), t2.AsInt16()).AsByte();
-            dst3 = Sse2.Add(dst3.AsInt16(), t3.AsInt16()).AsByte();
+            dst0 = (dst0.AsInt16() + t0.AsInt16()).AsByte();
+            dst1 = (dst1.AsInt16() + t1.AsInt16()).AsByte();
+            dst2 = (dst2.AsInt16() + t2.AsInt16()).AsByte();
+            dst3 = (dst3.AsInt16() + t3.AsInt16()).AsByte();
 
             // Unsigned saturate to 8b.
-            dst0 = Sse2.PackUnsignedSaturate(dst0.AsInt16(), dst0.AsInt16());
-            dst1 = Sse2.PackUnsignedSaturate(dst1.AsInt16(), dst1.AsInt16());
-            dst2 = Sse2.PackUnsignedSaturate(dst2.AsInt16(), dst2.AsInt16());
-            dst3 = Sse2.PackUnsignedSaturate(dst3.AsInt16(), dst3.AsInt16());
+            dst0 = Vector128_.PackUnsignedSaturate(dst0.AsInt16(), dst0.AsInt16());
+            dst1 = Vector128_.PackUnsignedSaturate(dst1.AsInt16(), dst1.AsInt16());
+            dst2 = Vector128_.PackUnsignedSaturate(dst2.AsInt16(), dst2.AsInt16());
+            dst3 = Vector128_.PackUnsignedSaturate(dst3.AsInt16(), dst3.AsInt16());
 
             // Store the results.
             // Store four bytes/pixels per line.
             ref byte outputRef = ref MemoryMarshal.GetReference(dst);
-            int output0 = Sse2.ConvertToInt32(dst0.AsInt32());
-            int output1 = Sse2.ConvertToInt32(dst1.AsInt32());
-            int output2 = Sse2.ConvertToInt32(dst2.AsInt32());
-            int output3 = Sse2.ConvertToInt32(dst3.AsInt32());
+            int output0 = dst0.AsInt32().ToScalar();
+            int output1 = dst1.AsInt32().ToScalar();
+            int output2 = dst2.AsInt32().ToScalar();
+            int output3 = dst3.AsInt32().ToScalar();
             Unsafe.As<byte, int>(ref outputRef) = output0;
             Unsafe.As<byte, int>(ref Unsafe.Add(ref outputRef, WebpConstants.Bps)) = output1;
             Unsafe.As<byte, int>(ref Unsafe.Add(ref outputRef, WebpConstants.Bps * 2)) = output2;

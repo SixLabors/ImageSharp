@@ -131,14 +131,14 @@ internal static unsafe class Vp8Encoding
             InverseTransformVerticalPass(in0, in2, in1, in3, out Vector128<short> tmp0, out Vector128<short> tmp1, out Vector128<short> tmp2, out Vector128<short> tmp3);
 
             // Transpose the two 4x4.
-            LossyUtils.Vp8Transpose_2_4x4_16b(tmp0, tmp1, tmp2, tmp3, out Vector128<long> t0, out Vector128<long> t1, out Vector128<long> t2, out Vector128<long> t3);
+            LossyUtils.Vp8Transpose_2_4x4_16bVector128(tmp0, tmp1, tmp2, tmp3, out Vector128<long> t0, out Vector128<long> t1, out Vector128<long> t2, out Vector128<long> t3);
 
             // Horizontal pass and subsequent transpose.
             // First pass, c and d calculations are longer because of the "trick" multiplications.
             InverseTransformHorizontalPass(t0, t2, t1, t3, out Vector128<short> shifted0, out Vector128<short> shifted1, out Vector128<short> shifted2, out Vector128<short> shifted3);
 
             // Transpose the two 4x4.
-            LossyUtils.Vp8Transpose_2_4x4_16b(shifted0, shifted1, shifted2, shifted3, out t0, out t1, out t2, out t3);
+            LossyUtils.Vp8Transpose_2_4x4_16bVector128(shifted0, shifted1, shifted2, shifted3, out t0, out t1, out t2, out t3);
 
             // Add inverse transform to 'ref' and store.
             // Load the reference(s).
@@ -210,14 +210,14 @@ internal static unsafe class Vp8Encoding
             InverseTransformVerticalPass(in0, in2, in1, in3, out Vector128<short> tmp0, out Vector128<short> tmp1, out Vector128<short> tmp2, out Vector128<short> tmp3);
 
             // Transpose the two 4x4.
-            LossyUtils.Vp8Transpose_2_4x4_16b(tmp0, tmp1, tmp2, tmp3, out Vector128<long> t0, out Vector128<long> t1, out Vector128<long> t2, out Vector128<long> t3);
+            LossyUtils.Vp8Transpose_2_4x4_16bVector128(tmp0, tmp1, tmp2, tmp3, out Vector128<long> t0, out Vector128<long> t1, out Vector128<long> t2, out Vector128<long> t3);
 
             // Horizontal pass and subsequent transpose.
             // First pass, c and d calculations are longer because of the "trick" multiplications.
             InverseTransformHorizontalPass(t0, t2, t1, t3, out Vector128<short> shifted0, out Vector128<short> shifted1, out Vector128<short> shifted2, out Vector128<short> shifted3);
 
             // Transpose the two 4x4.
-            LossyUtils.Vp8Transpose_2_4x4_16b(shifted0, shifted1, shifted2, shifted3, out t0, out t1, out t2, out t3);
+            LossyUtils.Vp8Transpose_2_4x4_16bVector128(shifted0, shifted1, shifted2, shifted3, out t0, out t1, out t2, out t3);
 
             // Add inverse transform to 'ref' and store.
             // Load the reference(s).

@@ -1300,4 +1300,68 @@ internal static class Vector128_
         // Narrow back to signed bytes
         return Vector128.Narrow(diffLo, diffHi);
     }
+
+    /// <summary>
+    /// Create mask from the most significant bit of each 8-bit element in <paramref name="value"/>, and store the result.
+    /// </summary>
+    /// <param name="value">
+    /// The vector containing packed 8-bit integers from which to create the mask.
+    /// </param>
+    /// <returns>
+    /// A 16-bit integer mask where each bit corresponds to the most significant bit of each 8-bit element
+    /// in <paramref name="value"/>.
+    /// </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static int MoveMask(Vector128<byte> value)
+    {
+        if (Sse2.IsSupported)
+        {
+            return Sse2.MoveMask(value);
+        }
+
+        if (AdvSimd.IsSupported)
+        {
+            // https://stackoverflow.com/questions/11870910/sse-mm-movemask-epi8-equivalent-method-for-arm-neon
+            Vector128<byte> powers = Vector128.Create(1, 2, 4, 8, 16, 32, 64, 128, 1, 2, 4, 8, 16, 32, 64, 128);
+            Vector128<byte> masked = value & powers;
+
+            Vector128<ushort> sum8 = AdvSimd.AddPairwiseWidening(masked);
+            Vector128<uint> sum16 = AdvSimd.AddPairwiseWidening(sum8);
+            Vector128<ulong> sum32 = AdvSimd.AddPairwiseWidening(sum16);
+
+            // Extract lower 8 bits of each 64-bit lane
+            byte lo = sum32.AsByte().GetElement(0);
+            byte hi = sum32.AsByte().GetElement(8);
+
+            return (hi << 8) | lo;
+        }
+
+        {
+            // Step 1: isolate MSBs
+            Vector128<byte> msbMask = Vector128.Create((byte)0x80);
+            Vector128<byte> masked = value & msbMask;
+
+            // Step 2: shift each byte so MSB lands in bit position [0..15]
+            // i.e. convert: 0x80 → 1 << i
+            Vector128<ushort> bitShifts = Vector128.Create((ushort)1, 2, 4, 8, 16, 32, 64, 128);
+            Vector128<ushort> bitShiftsHigh = Vector128.Create(256, 512, 1024, 2048, 4096, 8192, 16384, 32768);
+
+            // Step 3: widen to ushort
+            (Vector128<ushort> lo, Vector128<ushort> hi) = Vector128.Widen(masked);
+
+            // Step 4: compare > 0 to get 0xFFFF where MSB was set
+            lo = Vector128.ConditionalSelect(Vector128.Equals(lo, Vector128<ushort>.Zero), Vector128<ushort>.Zero, bitShifts);
+            hi = Vector128.ConditionalSelect(Vector128.Equals(hi, Vector128<ushort>.Zero), Vector128<ushort>.Zero, bitShiftsHigh);
+
+            // Step 5: bitwise OR the two halves
+            Vector128<ushort> maskVector = lo | hi;
+
+            // Step 6: horizontal OR reduction via shuffles
+            maskVector |= Vector128.Shuffle(maskVector, Vector128.Create((ushort)4, 5, 6, 7, 0, 1, 2, 3));
+            maskVector |= Vector128.Shuffle(maskVector, Vector128.Create((ushort)2, 3, 0, 1, 6, 7, 4, 5));
+            maskVector |= Vector128.Shuffle(maskVector, Vector128.Create((ushort)1, 0, 3, 2, 5, 4, 7, 6));
+
+            return maskVector.ToScalar();
+        }
+    }
 }

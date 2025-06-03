@@ -232,6 +232,27 @@ internal static class Vector256_
     }
 
     /// <summary>
+    /// Packs signed 16-bit integers to signed 8-bit integers and saturates.
+    /// </summary>
+    /// <param name="left">The left hand source vector.</param>
+    /// <param name="right">The right hand source vector.</param>
+    /// <returns>The <see cref="Vector256{SByte}"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<sbyte> PackSignedSaturate(Vector256<short> left, Vector256<short> right)
+    {
+        if (Avx2.IsSupported)
+        {
+            return Avx2.PackSignedSaturate(left, right);
+        }
+
+        Vector256<short> min = Vector256.Create((short)sbyte.MinValue);
+        Vector256<short> max = Vector256.Create((short)sbyte.MaxValue);
+        Vector256<short> lefClamped = Clamp(left, min, max);
+        Vector256<short> rightClamped = Clamp(right, min, max);
+        return Vector256.Narrow(lefClamped, rightClamped);
+    }
+
+    /// <summary>
     /// Restricts a vector between a minimum and a maximum value.
     /// </summary>
     /// <typeparam name="T">The type of the elements in the vector.</typeparam>
@@ -464,6 +485,28 @@ internal static class Vector256_
         return Vector256.Create(
             Vector128_.SubtractSaturate(left.GetLower(), right.GetLower()),
             Vector128_.SubtractSaturate(left.GetUpper(), right.GetUpper()));
+    }
+
+    /// <summary>
+    /// Create mask from the most significant bit of each 8-bit element in <paramref name="value"/>, and store the result.
+    /// </summary>
+    /// <param name="value">
+    /// The vector containing packed 8-bit integers from which to create the mask.
+    /// </param>
+    /// <returns>
+    /// A 16-bit integer mask where each bit corresponds to the most significant bit of each 8-bit element
+    /// in <paramref name="value"/>.
+    /// </returns>
+    public static int MoveMask(Vector256<byte> value)
+    {
+        if (Avx2.IsSupported)
+        {
+            return Avx2.MoveMask(value);
+        }
+
+        int loMask = Vector128_.MoveMask(value.GetLower());
+        int hiMask = Vector128_.MoveMask(value.GetUpper());
+        return loMask | (hiMask << 16);
     }
 
     [DoesNotReturn]

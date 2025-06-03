@@ -100,6 +100,33 @@ internal static class Vector128_
     }
 
     /// <summary>
+    /// Shuffle 16-bit integers in the high 64 bits of <paramref name="value"/> using the control in <paramref name="control"/>.
+    /// Store the results in the high 64 bits of the destination, with the low 64 bits being copied from <paramref name="value"/>.
+    /// </summary>
+    /// <param name="value">The input vector containing packed 16-bit integers to shuffle.</param>
+    /// <param name="control">The shuffle control byte.</param>
+    /// <returns>
+    /// A vector containing the shuffled 16-bit integers in the high 64 bits, with the low 64 bits copied from <paramref name="value"/>.
+    /// </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector128<short> ShuffleHigh(Vector128<short> value, [ConstantExpected] byte control)
+    {
+        if (Sse2.IsSupported)
+        {
+            return Sse2.ShuffleHigh(value, control);
+        }
+
+        // Don't use InverseMMShuffle here as we want to avoid the cast.
+        Vector64<short> indices = Vector64.Create(
+            (short)(control & 0x3),
+            (short)((control >> 2) & 0x3),
+            (short)((control >> 4) & 0x3),
+            (short)((control >> 6) & 0x3));
+
+        return Vector128.Create(value.GetLower(), Vector64.Shuffle(value.GetUpper(), indices));
+    }
+
+    /// <summary>
     /// Creates a new vector by selecting values from an input vector using a set of indices.
     /// </summary>
     /// <param name="vector">

@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
@@ -22,24 +21,6 @@ internal static class Vector512_
 #pragma warning restore SA1649 // File name should match first type name
 {
     /// <summary>
-    /// Gets a value indicating whether shuffle float operations are supported.
-    /// </summary>
-    public static bool SupportsShuffleNativeFloat
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => Avx512F.IsSupported;
-    }
-
-    /// <summary>
-    /// Gets a value indicating whether shuffle byte operations are supported.
-    /// </summary>
-    public static bool SupportsShuffleNativeByte
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => Avx512BW.IsSupported;
-    }
-
-    /// <summary>
     /// Creates a new vector by selecting values from an input vector using the control.
     /// </summary>
     /// <param name="vector">The input vector from which values are selected.</param>
@@ -47,15 +28,7 @@ internal static class Vector512_
     /// <returns>The <see cref="Vector512{Single}"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector512<float> ShuffleNative(Vector512<float> vector, [ConstantExpected] byte control)
-    {
-        if (Avx512F.IsSupported)
-        {
-            return Avx512F.Shuffle(vector, vector, control);
-        }
-
-        ThrowUnreachableException();
-        return default;
-    }
+        => Avx512F.Shuffle(vector, vector, control);
 
     /// <summary>
     /// Creates a new vector by selecting values from an input vector using a set of indices.
@@ -73,8 +46,9 @@ internal static class Vector512_
             return Avx512BW.Shuffle(vector, indices);
         }
 
-        ThrowUnreachableException();
-        return default;
+        return Vector512.Create(
+            Vector256_.ShuffleNative(vector.GetLower(), indices.GetLower()),
+            Vector256_.ShuffleNative(vector.GetUpper(), indices.GetUpper()));
     }
 
     /// <summary>
@@ -175,7 +149,4 @@ internal static class Vector512_
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector512<T> Clamp<T>(Vector512<T> value, Vector512<T> min, Vector512<T> max)
         => Vector512.Min(Vector512.Max(value, min), max);
-
-    [DoesNotReturn]
-    private static void ThrowUnreachableException() => throw new UnreachableException();
 }

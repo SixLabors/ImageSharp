@@ -66,9 +66,9 @@ internal static partial class SimdUtils
             ref Span<float> destination,
             [ConstantExpected] byte control)
         {
-            if ((Vector512.IsHardwareAccelerated && Vector512_.SupportsShuffleNativeFloat) ||
-                (Vector256.IsHardwareAccelerated && Vector256_.SupportsShuffleNativeFloat) ||
-                 Vector128.IsHardwareAccelerated)
+            if (Vector512.IsHardwareAccelerated ||
+                Vector256.IsHardwareAccelerated ||
+                Vector128.IsHardwareAccelerated)
             {
                 int remainder = 0;
                 if (Vector512.IsHardwareAccelerated)
@@ -112,8 +112,8 @@ internal static partial class SimdUtils
             ref Span<byte> destination,
             [ConstantExpected] byte control)
         {
-            if ((Vector512.IsHardwareAccelerated && Vector512_.SupportsShuffleNativeByte) ||
-                (Vector256.IsHardwareAccelerated && Vector256_.SupportsShuffleNativeByte) ||
+            if (Vector512.IsHardwareAccelerated ||
+                Vector256.IsHardwareAccelerated ||
                 Vector128.IsHardwareAccelerated)
             {
                 int remainder = 0;
@@ -249,7 +249,7 @@ internal static partial class SimdUtils
             Span<float> destination,
             [ConstantExpected] byte control)
         {
-            if (Vector512.IsHardwareAccelerated && Vector512_.SupportsShuffleNativeFloat)
+            if (Vector512.IsHardwareAccelerated)
             {
                 ref Vector512<float> sourceBase = ref Unsafe.As<float, Vector512<float>>(ref MemoryMarshal.GetReference(source));
                 ref Vector512<float> destinationBase = ref Unsafe.As<float, Vector512<float>>(ref MemoryMarshal.GetReference(destination));
@@ -277,7 +277,7 @@ internal static partial class SimdUtils
                     }
                 }
             }
-            else if (Vector256.IsHardwareAccelerated && Vector256_.SupportsShuffleNativeFloat)
+            else if (Vector256.IsHardwareAccelerated)
             {
                 ref Vector256<float> sourceBase = ref Unsafe.As<float, Vector256<float>>(ref MemoryMarshal.GetReference(source));
                 ref Vector256<float> destinationBase = ref Unsafe.As<float, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
@@ -341,7 +341,7 @@ internal static partial class SimdUtils
             Span<byte> destination,
             [ConstantExpected] byte control)
         {
-            if (Vector512.IsHardwareAccelerated && Vector512_.SupportsShuffleNativeByte)
+            if (Vector512.IsHardwareAccelerated)
             {
                 Span<byte> temp = stackalloc byte[Vector512<byte>.Count];
                 Shuffle.MMShuffleSpan(ref temp, control);
@@ -373,7 +373,7 @@ internal static partial class SimdUtils
                     }
                 }
             }
-            else if (Vector256.IsHardwareAccelerated && Vector256_.SupportsShuffleNativeByte)
+            else if (Vector256.IsHardwareAccelerated)
             {
                 Span<byte> temp = stackalloc byte[Vector256<byte>.Count];
                 Shuffle.MMShuffleSpan(ref temp, control);

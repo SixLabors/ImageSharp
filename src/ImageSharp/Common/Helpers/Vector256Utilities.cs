@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
@@ -22,24 +21,6 @@ internal static class Vector256_
 #pragma warning restore SA1649 // File name should match first type name
 {
     /// <summary>
-    /// Gets a value indicating whether shuffle byte operations are supported.
-    /// </summary>
-    public static bool SupportsShuffleNativeFloat
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => Avx.IsSupported;
-    }
-
-    /// <summary>
-    /// Gets a value indicating whether shuffle byte operations are supported.
-    /// </summary>
-    public static bool SupportsShuffleNativeByte
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => Avx2.IsSupported;
-    }
-
-    /// <summary>
     /// Creates a new vector by selecting values from an input vector using a set of indices.
     /// </summary>
     /// <param name="vector">The input vector from which values are selected.</param>
@@ -47,15 +28,7 @@ internal static class Vector256_
     /// <returns>The <see cref="Vector256{Single}"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> ShuffleNative(Vector256<float> vector, [ConstantExpected] byte control)
-    {
-        if (Avx.IsSupported)
-        {
-            return Avx.Shuffle(vector, vector, control);
-        }
-
-        ThrowUnreachableException();
-        return default;
-    }
+        => Avx.Shuffle(vector, vector, control);
 
     /// <summary>
     /// Creates a new vector by selecting values from an input vector using a set of indices.</summary>
@@ -73,8 +46,9 @@ internal static class Vector256_
             return Avx2.Shuffle(vector, indices);
         }
 
-        ThrowUnreachableException();
-        return default;
+        return Vector256.Create(
+            Vector128_.ShuffleNative(vector.GetLower(), indices.GetLower()),
+            Vector128_.ShuffleNative(vector.GetUpper(), indices.GetUpper()));
     }
 
     /// <summary>
@@ -508,7 +482,4 @@ internal static class Vector256_
         int hiMask = Vector128_.MoveMask(value.GetUpper());
         return loMask | (hiMask << 16);
     }
-
-    [DoesNotReturn]
-    private static void ThrowUnreachableException() => throw new UnreachableException();
 }

@@ -1323,7 +1323,9 @@ internal static class Vector128_
         {
             // https://stackoverflow.com/questions/11870910/sse-mm-movemask-epi8-equivalent-method-for-arm-neon
             Vector128<byte> powers = Vector128.Create(1, 2, 4, 8, 16, 32, 64, 128, 1, 2, 4, 8, 16, 32, 64, 128);
-            Vector128<byte> masked = value & powers;
+            Vector128<byte> msbMask = Vector128.Create((byte)0x80);
+            Vector128<byte> normalized = AdvSimd.CompareEqual(value & msbMask, msbMask); // 0xFF or 0x00
+            Vector128<byte> masked = normalized & powers;
 
             Vector128<ushort> sum8 = AdvSimd.AddPairwiseWidening(masked);
             Vector128<uint> sum16 = AdvSimd.AddPairwiseWidening(sum8);

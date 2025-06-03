@@ -12,7 +12,7 @@ internal static class ColorSpaceTransformUtils
 {
     public static void CollectColorBlueTransforms(Span<uint> bgra, int stride, int tileWidth, int tileHeight, int greenToBlue, int redToBlue, Span<int> histo)
     {
-        if (Vector256_.SupportsShuffleNativeByte && tileWidth >= 16)
+        if (Vector256.IsHardwareAccelerated && tileWidth >= 16)
         {
             const int span = 16;
             Span<ushort> values = stackalloc ushort[span];

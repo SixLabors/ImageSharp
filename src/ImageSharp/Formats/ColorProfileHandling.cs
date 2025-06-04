@@ -14,8 +14,13 @@ public enum ColorProfileHandling
     Preserve,
 
     /// <summary>
+    /// Removes any embedded Standard sRGB ICC color profiles without transforming the pixels of the image.
+    /// </summary>
+    Compact,
+
+    /// <summary>
     /// Transforms the pixels of the image based on the conversion of any embedded ICC color profiles to sRGB V4 profile.
-    /// The original profile is then replaced.
+    /// The original profile is then removed.
     /// </summary>
     Convert
 }

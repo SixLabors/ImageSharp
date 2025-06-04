@@ -1,6 +1,8 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Diagnostics.CodeAnalysis;
+using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Transforms;
 
@@ -62,9 +64,46 @@ public sealed class DecoderOptions
 
     /// <summary>
     /// Gets a value that controls how ICC profiles are handled during decode.
-    /// TODO: Implement this.
     /// </summary>
-    internal ColorProfileHandling ColorProfileHandling { get; init; }
+    public ColorProfileHandling ColorProfileHandling { get; init; }
 
     internal void SetConfiguration(Configuration configuration) => this.configuration = configuration;
+
+    internal bool TryGetIccProfileForColorConversion(IccProfile? profile, [NotNullWhen(true)] out IccProfile? value)
+    {
+        value = null;
+
+        if (profile is null)
+        {
+            return false;
+        }
+
+        if (IccProfileHeader.IsLikelySrgb(profile.Header))
+        {
+            return false;
+        }
+
+        if (this.ColorProfileHandling == ColorProfileHandling.Preserve)
+        {
+            return false;
+        }
+
+        value = profile;
+        return true;
+    }
+
+    internal bool CanRemoveIccProfile(IccProfile? profile)
+    {
+        if (profile is null)
+        {
+            return false;
+        }
+
+        if (this.ColorProfileHandling == ColorProfileHandling.Compact && IccProfileHeader.IsLikelySrgb(profile.Header))
+        {
+            return true;
+        }
+
+        return this.ColorProfileHandling == ColorProfileHandling.Convert;
+    }
 }

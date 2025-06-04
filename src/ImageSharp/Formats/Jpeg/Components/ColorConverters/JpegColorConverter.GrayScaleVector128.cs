@@ -5,6 +5,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using SixLabors.ImageSharp.Common.Helpers;
+using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components;
 
@@ -18,10 +19,20 @@ internal abstract partial class JpegColorConverterBase
         }
 
         /// <inheritdoc/>
+        public override void ConvertToRgbInPlaceWithIcc(Configuration configuration, in ComponentValues values, IccProfile profile)
+            => GrayScaleScalar.ConvertToRgbInPlaceWithIcc(configuration, profile, values, this.MaximumValue);
+
+        /// <inheritdoc/>
         public override void ConvertToRgbInPlace(in ComponentValues values)
         {
             ref Vector128<float> c0Base =
                 ref Unsafe.As<float, Vector128<float>>(ref MemoryMarshal.GetReference(values.Component0));
+
+            ref Vector128<float> c1Base =
+                ref Unsafe.As<float, Vector128<float>>(ref MemoryMarshal.GetReference(values.Component1));
+
+            ref Vector128<float> c2Base =
+                ref Unsafe.As<float, Vector128<float>>(ref MemoryMarshal.GetReference(values.Component2));
 
             // Used for the color conversion
             Vector128<float> scale = Vector128.Create(1 / this.MaximumValue);
@@ -29,8 +40,11 @@ internal abstract partial class JpegColorConverterBase
             nuint n = values.Component0.Vector128Count<float>();
             for (nuint i = 0; i < n; i++)
             {
-                ref Vector128<float> c0 = ref Unsafe.Add(ref c0Base, i);
-                c0 *= scale;
+                Vector128<float> c = Unsafe.Add(ref c0Base, i) * scale;
+
+                Unsafe.Add(ref c0Base, i) = c;
+                Unsafe.Add(ref c1Base, i) = c;
+                Unsafe.Add(ref c2Base, i) = c;
             }
         }
 

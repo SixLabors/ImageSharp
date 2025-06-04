@@ -13,7 +13,7 @@ public sealed class IccProfileHeader
 {
     private static readonly Vector3 TruncatedD50 = new(0.9642029F, 1F, 0.8249054F);
 
-    // sRGB v4 Preference
+    // sRGB v2 Preference
     private static readonly IccProfileId StandardRgbV2 = new(0x3D0EB2DE, 0xAE9397BE, 0x9B6726CE, 0x8C0A43CE);
 
     // sRGB v4 Preference

@@ -73,11 +73,10 @@ internal abstract partial class JpegColorConverterBase
             // do not implement transforms from it.
             // Therefore, we first convert JPEG YCbCr to RGB manually, then perform
             // color-managed conversion to the target profile.
-
-            // TODO: The initial YCbCr => RGB conversion is assumed to be in the sRGB working space.
-            // To perform accurate colorimetric conversion via XYZ, we should derive the working space
-            // from the source ICC profile (e.g., via header/tags).
-            // This is a placeholder until that logic is implemented.
+            //
+            // The YCbCr => RGB conversion is based on BT.601 and is independent of any embedded ICC profile.
+            // Since the same RGB working space is used during conversion to and from XYZ,
+            // colorimetric accuracy is preserved.
             ColorProfileConverter converter = new();
 
             PackedNormalizeInterleave3(c0, c1, c2, packed, 1F / maxValue);

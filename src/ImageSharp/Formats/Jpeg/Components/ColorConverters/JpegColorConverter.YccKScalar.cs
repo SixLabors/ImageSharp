@@ -104,10 +104,9 @@ internal abstract partial class JpegColorConverterBase
             // ICC profiles expect colorimetric CMYK values, so we must first convert YccK to CMYK using a hardcoded inverse transform.
             // This transform assumes Rec.601 YCbCr coefficients and an inverted K channel.
             //
-            // TODO: The intermediate YccK => RGB step assumes a working space with sRGB primaries and D65 white point.
-            // To perform accurate colorimetric conversion via XYZ, we should derive the working space
-            // from the source ICC profile (e.g., via header/tags).
-            // This is a placeholder until that logic is implemented.
+            // The YccK => Cmyk conversion is independent of any embedded ICC profile.
+            // Since the same RGB working space is used during conversion to and from XYZ,
+            // colorimetric accuracy is preserved.
             converter.Convert<YccK, Cmyk>(MemoryMarshal.Cast<Cmyk, YccK>(source), source);
 
             Span<Rgb> destination = MemoryMarshal.Cast<float, Rgb>(packed)[..source.Length];

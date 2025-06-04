@@ -48,7 +48,7 @@ public class SpectralToPixelConversionTests
         provider.Utility.TestName = JpegDecoderTests.DecodeBaselineJpegOutputName;
 
         // Comparison
-        using var image = new Image<TPixel>(Configuration.Default, converter.GetPixelBuffer(CancellationToken.None), new ImageMetadata());
+        using var image = new Image<TPixel>(Configuration.Default, converter.GetPixelBuffer(null, CancellationToken.None), new ImageMetadata());
         using Image<TPixel> referenceImage = provider.GetReferenceOutputImage<TPixel>(appendPixelTypeToFileName: false);
         ImageSimilarityReport report = ImageComparer.Exact.CompareImagesOrFrames(referenceImage, image);
 

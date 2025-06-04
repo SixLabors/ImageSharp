@@ -5,6 +5,7 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.IO;
+using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
 
@@ -54,12 +55,12 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
     private ArithmeticDecodingTable[] acDecodingTables;
 
     // Don't make this a ReadOnlySpan<byte>, as the values need to get updated.
-    private readonly byte[] fixedBin = { 113, 0, 0, 0 };
+    private readonly byte[] fixedBin = [113, 0, 0, 0];
 
     private readonly CancellationToken cancellationToken;
 
     private static readonly int[] ArithmeticTable =
-    {
+    [
         Pack(0x5a1d,   1,   1, 1),
         Pack(0x2586,  14,   2, 0),
         Pack(0x1114,  16,   3, 0),
@@ -177,9 +178,9 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
         // This last entry is used for fixed probability estimate of 0.5
         // as suggested in Section 10.3 Table 5 of ITU-T Rec. T.851.
         Pack(0x5a1d, 113, 113, 0)
-    };
+    ];
 
-    private readonly List<ArithmeticStatistics> statistics = new();
+    private readonly List<ArithmeticStatistics> statistics = [];
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ArithmeticScanDecoder"/> class.
@@ -234,11 +235,8 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
 
     private ref byte GetFixedBinReference() => ref MemoryMarshal.GetArrayDataReference(this.fixedBin);
 
-    /// <summary>
-    /// Decodes the entropy coded data.
-    /// </summary>
-    /// <param name="scanComponentCount">Component count in the current scan.</param>
-    public void ParseEntropyCodedData(int scanComponentCount)
+    /// <inheritdoc/>
+    public void ParseEntropyCodedData(int scanComponentCount, IccProfile iccProfile)
     {
         this.cancellationToken.ThrowIfCancellationRequested();
 
@@ -254,7 +252,7 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
         }
         else
         {
-            this.ParseBaselineData();
+            this.ParseBaselineData(iccProfile);
         }
 
         if (this.scanBuffer.HasBadMarker())
@@ -310,7 +308,7 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
         return statistic;
     }
 
-    private void ParseBaselineData()
+    private void ParseBaselineData(IccProfile iccProfile)
     {
         for (int i = 0; i < this.components.Length; i++)
         {
@@ -326,13 +324,13 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
         if (this.scanComponentCount != 1)
         {
             this.spectralConverter.PrepareForDecoding();
-            this.ParseBaselineDataInterleaved();
+            this.ParseBaselineDataInterleaved(iccProfile);
             this.spectralConverter.CommitConversion();
         }
         else if (this.frame.ComponentCount == 1)
         {
             this.spectralConverter.PrepareForDecoding();
-            this.ParseBaselineDataSingleComponent();
+            this.ParseBaselineDataSingleComponent(iccProfile);
             this.spectralConverter.CommitConversion();
         }
         else
@@ -345,8 +343,9 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
     {
         this.CheckProgressiveData();
 
-        foreach (ArithmeticDecodingComponent component in this.components)
+        for (int i = 0; i < this.components.Length; i++)
         {
+            ArithmeticDecodingComponent component = (ArithmeticDecodingComponent)this.components[i];
             if (this.SpectralStart == 0 && this.SuccessiveHigh == 0)
             {
                 component.DcPredictor = 0;
@@ -422,7 +421,7 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
         }
     }
 
-    private void ParseBaselineDataInterleaved()
+    private void ParseBaselineDataInterleaved(IccProfile iccProfile)
     {
         int mcu = 0;
         int mcusPerColumn = this.frame.McusPerColumn;
@@ -463,7 +462,7 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
                             {
                                 // It is very likely that some spectral data was decoded before we've encountered 'end of scan'
                                 // so we need to decode what's left and return (or maybe throw?)
-                                this.spectralConverter.ConvertStrideBaseline();
+                                this.spectralConverter.ConvertStrideBaseline(iccProfile);
                                 return;
                             }
 
@@ -485,11 +484,11 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
             }
 
             // Convert from spectral to actual pixels via given converter.
-            this.spectralConverter.ConvertStrideBaseline();
+            this.spectralConverter.ConvertStrideBaseline(iccProfile);
         }
     }
 
-    private void ParseBaselineDataSingleComponent()
+    private void ParseBaselineDataSingleComponent(IccProfile iccProfile)
     {
         ArithmeticDecodingComponent component = this.frame.Components[0] as ArithmeticDecodingComponent;
         int mcuLines = this.frame.McusPerColumn;
@@ -516,7 +515,7 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
                     {
                         // It is very likely that some spectral data was decoded before we've encountered 'end of scan'
                         // so we need to decode what's left and return (or maybe throw?)
-                        this.spectralConverter.ConvertStrideBaseline();
+                        this.spectralConverter.ConvertStrideBaseline(iccProfile);
                         return;
                     }
 
@@ -531,7 +530,7 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
             }
 
             // Convert from spectral to actual pixels via given converter.
-            this.spectralConverter.ConvertStrideBaseline();
+            this.spectralConverter.ConvertStrideBaseline(iccProfile);
         }
     }
 
@@ -1108,8 +1107,9 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
 
             this.todo = this.restartInterval;
 
-            foreach (ArithmeticDecodingComponent component in this.components)
+            for (int i = 0; i < this.components.Length; i++)
             {
+                ArithmeticDecodingComponent component = (ArithmeticDecodingComponent)this.components[i];
                 component.DcPredictor = 0;
                 component.DcContext = 0;
                 component.DcStatistics?.Reset();

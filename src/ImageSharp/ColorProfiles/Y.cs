@@ -90,8 +90,8 @@ public readonly struct Y : IColorProfile<Y, Rgb>
     /// <inheritdoc/>
     public static Y FromProfileConnectingSpace(ColorConversionOptions options, in Rgb source)
     {
-        Matrix4x4 m = options.YCbCrMatrix.Forward;
-        float offset = options.YCbCrMatrix.Offset.X;
+        Matrix4x4 m = options.YCbCrTransform.Forward;
+        float offset = options.YCbCrTransform.Offset.X;
         return new(Vector3.Dot(source.AsVector3Unsafe(), new Vector3(m.M11, m.M12, m.M13)) + offset);
     }
 

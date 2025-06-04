@@ -16,6 +16,7 @@ internal static class TestIccProfiles
     /// v2 CMYK -> LAB, output, lut16
     /// </summary>
     public const string Fogra39 = "Coated_Fogra39L_VIGC_300.icc";
+
     /// <summary>
     /// v2 CMYK -> LAB, output, lut16
     /// </summary>
@@ -45,6 +46,11 @@ internal static class TestIccProfiles
     /// v4 RGB -> LAB, colorspace, lutAToB: B-Matrix-M-CLUT-A [only intent 0 & 1]
     /// </summary>
     public const string StandardRgbV4 = "sRGB_v4_ICC_preference.icc";
+
+    /// <summary>
+    /// v2 CMYK -> LAB, output
+    /// </summary>
+    public const string Issue129 = "issue-129.icc";
 
     /// <summary>
     /// v2 RGB -> XYZ, display, TRCs

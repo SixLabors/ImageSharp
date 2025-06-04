@@ -202,7 +202,7 @@ public sealed class IccProfile : IDeepCloneable<IccProfile>
 
         if (this.data is null)
         {
-            this.entries = Array.Empty<IccTagDataEntry>();
+            this.entries = [];
             return;
         }
 

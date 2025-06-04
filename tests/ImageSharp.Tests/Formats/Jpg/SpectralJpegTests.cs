@@ -6,6 +6,7 @@ using SixLabors.ImageSharp.Formats.Jpeg.Components;
 using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.Formats.Jpg.Utils;
 using Xunit.Abstractions;
@@ -164,7 +165,7 @@ public class SpectralJpegTests
             }
         }
 
-        public override void ConvertStrideBaseline()
+        public override void ConvertStrideBaseline(IccProfile iccProfile)
         {
             // This would be called only for baseline non-interleaved images
             // We must copy spectral strides here

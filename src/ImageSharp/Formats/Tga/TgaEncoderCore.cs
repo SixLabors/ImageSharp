@@ -29,6 +29,8 @@ internal sealed class TgaEncoderCore
     /// </summary>
     private readonly TgaCompression compression;
 
+    private readonly TransparentColorMode transparentColorMode;
+
     /// <summary>
     /// Initializes a new instance of the <see cref="TgaEncoderCore"/> class.
     /// </summary>
@@ -39,6 +41,7 @@ internal sealed class TgaEncoderCore
         this.memoryAllocator = memoryAllocator;
         this.bitsPerPixel = encoder.BitsPerPixel;
         this.compression = encoder.Compression;
+        this.transparentColorMode = encoder.TransparentColorMode;
     }
 
     /// <summary>
@@ -103,16 +106,35 @@ internal sealed class TgaEncoderCore
         fileHeader.WriteTo(buffer);
 
         stream.Write(buffer, 0, TgaFileHeader.Size);
-        if (this.compression is TgaCompression.RunLength)
-        {
-            this.WriteRunLengthEncodedImage(stream, image.Frames.RootFrame, cancellationToken);
-        }
-        else
-        {
-            this.WriteImage(image.Configuration, stream, image.Frames.RootFrame, cancellationToken);
-        }
 
-        stream.Flush();
+        ImageFrame<TPixel>? clonedFrame = null;
+        try
+        {
+            // TODO: Try to avoid cloning the frame if possible.
+            // We should be cloning individual scanlines instead.
+            if (EncodingUtilities.ShouldReplaceTransparentPixels<TPixel>(this.transparentColorMode))
+            {
+                clonedFrame = image.Frames.RootFrame.Clone();
+                EncodingUtilities.ReplaceTransparentPixels(clonedFrame);
+            }
+
+            ImageFrame<TPixel> encodingFrame = clonedFrame ?? image.Frames.RootFrame;
+
+            if (this.compression is TgaCompression.RunLength)
+            {
+                this.WriteRunLengthEncodedImage(stream, encodingFrame, cancellationToken);
+            }
+            else
+            {
+                this.WriteImage(image.Configuration, stream, encodingFrame, cancellationToken);
+            }
+
+            stream.Flush();
+        }
+        finally
+        {
+            clonedFrame?.Dispose();
+        }
     }
 
     /// <summary>

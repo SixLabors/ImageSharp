@@ -29,26 +29,26 @@ public class DecodeTga
     [Benchmark(Baseline = true, Description = "ImageMagick Tga")]
     public int TgaImageMagick()
     {
-        var settings = new MagickReadSettings { Format = MagickFormat.Tga };
-        using var image = new MagickImage(new MemoryStream(this.data), settings);
+        MagickReadSettings settings = new() { Format = MagickFormat.Tga };
+        using MagickImage image = new(new MemoryStream(this.data), settings);
         return image.Width;
     }
 
     [Benchmark(Description = "ImageSharp Tga")]
     public int TgaImageSharp()
     {
-        using var image = Image.Load<Bgr24>(this.data);
+        using Image<Bgr24> image = Image.Load<Bgr24>(this.data);
         return image.Width;
     }
 
     [Benchmark(Description = "Pfim Tga")]
     public int TgaPfim()
     {
-        using var image = Targa.Create(this.data, this.pfimConfig);
+        using Targa image = Targa.Create(this.data, this.pfimConfig);
         return image.Width;
     }
 
-    private class PfimAllocator : IImageAllocator
+    private sealed class PfimAllocator : IImageAllocator
     {
         private int rented;
         private readonly ArrayPool<byte> shared = ArrayPool<byte>.Shared;

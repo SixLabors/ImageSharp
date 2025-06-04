@@ -56,7 +56,7 @@ public class GifEncoderTests
             {
                 // Use the palette quantizer without dithering to ensure results
                 // are consistent
-                Quantizer = new WebSafePaletteQuantizer(new QuantizerOptions { Dither = null })
+                Quantizer = new WebSafePaletteQuantizer(new QuantizerOptions { Dither = null, TransparencyThreshold = 0 })
             };
 
             // Always save as we need to compare the encoded output.
@@ -334,7 +334,7 @@ public class GifEncoderTests
 
             Assert.Equal(webpF.FrameDelay, (uint)(gifF.FrameDelay * 10));
 
-            switch (webpF.DisposalMethod)
+            switch (webpF.DisposalMode)
             {
                 case FrameDisposalMode.RestoreToBackground:
                     Assert.Equal(FrameDisposalMode.RestoreToBackground, gifF.DisposalMode);
@@ -360,5 +360,80 @@ public class GifEncoderTests
         provider.Utility.SaveTestOutputFile(image, "webp", new WebpEncoder() { FileFormat = WebpFileFormatType.Lossy }, "animated-lossy");
         provider.Utility.SaveTestOutputFile(image, "png", new PngEncoder(), "animated");
         provider.Utility.SaveTestOutputFile(image, "gif", new GifEncoder(), "animated");
+    }
+
+    [Fact]
+    public void Encode_WithTransparentColorBehaviorClear_Works()
+    {
+        // arrange
+        using Image<Rgba32> image = new(50, 50);
+        GifEncoder encoder = new()
+        {
+            TransparentColorMode = TransparentColorMode.Clear,
+        };
+        Rgba32 rgba32 = Color.Blue.ToPixel<Rgba32>();
+        image.ProcessPixelRows(accessor =>
+        {
+            for (int y = 0; y < image.Height; y++)
+            {
+                Span<Rgba32> rowSpan = accessor.GetRowSpan(y);
+
+                // Half of the test image should be transparent.
+                if (y > 25)
+                {
+                    rgba32.A = 0;
+                }
+
+                for (int x = 0; x < image.Width; x++)
+                {
+                    rowSpan[x] = Rgba32.FromRgba32(rgba32);
+                }
+            }
+        });
+
+        // act
+        using MemoryStream memStream = new();
+        image.Save(memStream, encoder);
+
+        // assert
+        memStream.Position = 0;
+        using Image<Rgba32> actual = Image.Load<Rgba32>(memStream);
+        Rgba32 expectedColor = Color.Blue.ToPixel<Rgba32>();
+
+        actual.ProcessPixelRows(accessor =>
+        {
+            Rgba32 transparent = Color.Transparent.ToPixel<Rgba32>();
+            for (int y = 0; y < accessor.Height; y++)
+            {
+                Span<Rgba32> rowSpan = accessor.GetRowSpan(y);
+
+                if (y > 25)
+                {
+                    expectedColor = transparent;
+                }
+
+                for (int x = 0; x < accessor.Width; x++)
+                {
+                    Assert.Equal(expectedColor, rowSpan[x]);
+                }
+            }
+        });
+    }
+
+    [Theory]
+    [WithFile(TestImages.Gif.Issues.Issue2866, PixelTypes.Rgba32)]
+    public void GifEncoder_CanDecode_AndEncode_Issue2866<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage();
+
+        // Save the image for visual inspection.
+        provider.Utility.SaveTestOutputFile(image, "gif", new GifEncoder(), "animated");
+
+        // Now compare the debug output with the reference output.
+        // We do this because the gif encoding is lossy and encoding will lead to differences in the 10s of percent.
+        // From the unencoded image, we can see that the image is visually the same.
+        static bool Predicate(int i, int _) => i % 8 == 0; // Image has many frames, only compare a selection of them.
+        image.CompareDebugOutputToReferenceOutputMultiFrame(provider, ImageComparer.Exact, extension: "gif", predicate: Predicate);
     }
 }

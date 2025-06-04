@@ -719,10 +719,20 @@ public partial class PngDecoderTests
     [Theory]
     [WithFile(TestImages.Png.Issue2752, PixelTypes.Rgba32)]
     public void CanDecodeJustOneFrame<TPixel>(TestImageProvider<TPixel> provider)
-    where TPixel : unmanaged, IPixel<TPixel>
+        where TPixel : unmanaged, IPixel<TPixel>
     {
         DecoderOptions options = new() { MaxFrames = 1 };
         using Image<TPixel> image = provider.GetImage(PngDecoder.Instance, options);
         Assert.Equal(1, image.Frames.Count);
+    }
+
+    [Theory]
+    [WithFile(TestImages.Png.Issue2924, PixelTypes.Rgba32)]
+    public void CanDecode_Issue2924<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage(PngDecoder.Instance);
+        image.DebugSave(provider);
+        image.CompareToReferenceOutput(provider);
     }
 }

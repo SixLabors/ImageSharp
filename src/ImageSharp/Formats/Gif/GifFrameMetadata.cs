@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Numerics;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Gif;
@@ -77,34 +76,12 @@ public class GifFrameMetadata : IFormatFrameMetadata<GifFrameMetadata>
 
     /// <inheritdoc />
     public static GifFrameMetadata FromFormatConnectingFrameMetadata(FormatConnectingFrameMetadata metadata)
-    {
-        int index = -1;
-        const float background = 1f;
-        if (metadata.ColorTable.HasValue)
+        => new()
         {
-            ReadOnlySpan<Color> colorTable = metadata.ColorTable.Value.Span;
-            for (int i = 0; i < colorTable.Length; i++)
-            {
-                Vector4 vector = colorTable[i].ToScaledVector4();
-                if (vector.W < background)
-                {
-                    index = i;
-                }
-            }
-        }
-
-        bool hasTransparency = index >= 0;
-
-        return new()
-        {
-            LocalColorTable = metadata.ColorTable,
             ColorTableMode = metadata.ColorTableMode,
             FrameDelay = (int)Math.Round(metadata.Duration.TotalMilliseconds / 10),
             DisposalMode = metadata.DisposalMode,
-            HasTransparency = hasTransparency,
-            TransparencyIndex = hasTransparency ? unchecked((byte)index) : byte.MinValue,
         };
-    }
 
     /// <inheritdoc />
     public FormatConnectingFrameMetadata ToFormatConnectingFrameMetadata()
@@ -118,7 +95,6 @@ public class GifFrameMetadata : IFormatFrameMetadata<GifFrameMetadata>
 
         return new()
         {
-            ColorTable = this.LocalColorTable,
             ColorTableMode = this.ColorTableMode,
             Duration = TimeSpan.FromMilliseconds(this.FrameDelay * 10),
             DisposalMode = this.DisposalMode,
@@ -129,8 +105,7 @@ public class GifFrameMetadata : IFormatFrameMetadata<GifFrameMetadata>
     /// <inheritdoc/>
     public void AfterFrameApply<TPixel>(ImageFrame<TPixel> source, ImageFrame<TPixel> destination)
         where TPixel : unmanaged, IPixel<TPixel>
-    {
-    }
+        => this.LocalColorTable = null;
 
     /// <inheritdoc/>
     IDeepCloneable IDeepCloneable.DeepClone() => this.DeepClone();

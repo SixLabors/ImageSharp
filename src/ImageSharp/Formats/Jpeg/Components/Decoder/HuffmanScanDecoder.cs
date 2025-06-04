@@ -5,6 +5,7 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.IO;
+using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
 
@@ -109,7 +110,7 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
     public int SuccessiveLow { get; set; }
 
     /// <inheritdoc/>
-    public void ParseEntropyCodedData(int scanComponentCount)
+    public void ParseEntropyCodedData(int scanComponentCount, IccProfile iccProfile)
     {
         this.cancellationToken.ThrowIfCancellationRequested();
 
@@ -119,9 +120,11 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
 
         this.frame.AllocateComponents();
 
+        this.todo = this.restartInterval;
+
         if (!this.frame.Progressive)
         {
-            this.ParseBaselineData();
+            this.ParseBaselineData(iccProfile);
         }
         else
         {
@@ -143,18 +146,18 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
         this.spectralConverter.InjectFrameData(frame, jpegData);
     }
 
-    private void ParseBaselineData()
+    private void ParseBaselineData(IccProfile iccProfile)
     {
         if (this.scanComponentCount != 1)
         {
             this.spectralConverter.PrepareForDecoding();
-            this.ParseBaselineDataInterleaved();
+            this.ParseBaselineDataInterleaved(iccProfile);
             this.spectralConverter.CommitConversion();
         }
         else if (this.frame.ComponentCount == 1)
         {
             this.spectralConverter.PrepareForDecoding();
-            this.ParseBaselineDataSingleComponent();
+            this.ParseBaselineDataSingleComponent(iccProfile);
             this.spectralConverter.CommitConversion();
         }
         else
@@ -163,7 +166,7 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
         }
     }
 
-    private void ParseBaselineDataInterleaved()
+    private void ParseBaselineDataInterleaved(IccProfile iccProfile)
     {
         int mcu = 0;
         int mcusPerColumn = this.frame.McusPerColumn;
@@ -182,7 +185,7 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
                 for (int k = 0; k < this.scanComponentCount; k++)
                 {
                     int order = this.frame.ComponentOrder[k];
-                    var component = this.components[order] as JpegComponent;
+                    JpegComponent component = this.components[order] as JpegComponent;
 
                     ref HuffmanTable dcHuffmanTable = ref this.dcHuffmanTables[component.DcTableId];
                     ref HuffmanTable acHuffmanTable = ref this.acHuffmanTables[component.AcTableId];
@@ -203,7 +206,7 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
                             {
                                 // It is very likely that some spectral data was decoded before we've encountered 'end of scan'
                                 // so we need to decode what's left and return (or maybe throw?)
-                                this.spectralConverter.ConvertStrideBaseline();
+                                this.spectralConverter.ConvertStrideBaseline(iccProfile);
                                 return;
                             }
 
@@ -225,13 +228,13 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
             }
 
             // Convert from spectral to actual pixels via given converter
-            this.spectralConverter.ConvertStrideBaseline();
+            this.spectralConverter.ConvertStrideBaseline(iccProfile);
         }
     }
 
     private void ParseBaselineDataNonInterleaved()
     {
-        var component = this.components[this.frame.ComponentOrder[0]] as JpegComponent;
+        JpegComponent component = this.components[this.frame.ComponentOrder[0]] as JpegComponent;
         ref JpegBitReader buffer = ref this.scanBuffer;
 
         int w = component.WidthInBlocks;
@@ -264,7 +267,7 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
         }
     }
 
-    private void ParseBaselineDataSingleComponent()
+    private void ParseBaselineDataSingleComponent(IccProfile iccProfile)
     {
         JpegComponent component = this.frame.Components[0];
         int mcuLines = this.frame.McusPerColumn;
@@ -291,7 +294,7 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
                     {
                         // It is very likely that some spectral data was decoded before we've encountered 'end of scan'
                         // so we need to decode what's left and return (or maybe throw?)
-                        this.spectralConverter.ConvertStrideBaseline();
+                        this.spectralConverter.ConvertStrideBaseline(iccProfile);
                         return;
                     }
 
@@ -306,7 +309,7 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
             }
 
             // Convert from spectral to actual pixels via given converter
-            this.spectralConverter.ConvertStrideBaseline();
+            this.spectralConverter.ConvertStrideBaseline(iccProfile);
         }
     }
 
@@ -392,7 +395,7 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
                 for (int k = 0; k < this.scanComponentCount; k++)
                 {
                     int order = this.frame.ComponentOrder[k];
-                    var component = this.components[order] as JpegComponent;
+                    JpegComponent component = this.components[order] as JpegComponent;
                     ref HuffmanTable dcHuffmanTable = ref this.dcHuffmanTables[component.DcTableId];
 
                     int h = component.HorizontalSamplingFactor;
@@ -433,7 +436,7 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
 
     private void ParseProgressiveDataNonInterleaved()
     {
-        var component = this.components[this.frame.ComponentOrder[0]] as JpegComponent;
+        JpegComponent component = this.components[this.frame.ComponentOrder[0]] as JpegComponent;
         ref JpegBitReader buffer = ref this.scanBuffer;
 
         int w = component.WidthInBlocks;
@@ -770,7 +773,7 @@ internal class HuffmanScanDecoder : IJpegScanDecoder
     }
 
     /// <summary>
-    /// Build the huffman table using code lengths and code values.
+    /// Build the Huffman table using code lengths and code values.
     /// </summary>
     /// <param name="type">Table type.</param>
     /// <param name="index">Table index.</param>

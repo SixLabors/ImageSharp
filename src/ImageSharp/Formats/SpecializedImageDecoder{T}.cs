@@ -24,6 +24,7 @@ public abstract class SpecializedImageDecoder<T> : ImageDecoder, ISpecializedIma
             s => this.Decode<TPixel>(options, s, default));
 
         this.SetDecoderFormat(options.GeneralOptions.Configuration, image);
+
         return image;
     }
 
@@ -36,6 +37,7 @@ public abstract class SpecializedImageDecoder<T> : ImageDecoder, ISpecializedIma
             s => this.Decode(options, s, default));
 
         this.SetDecoderFormat(options.GeneralOptions.Configuration, image);
+
         return image;
     }
 
@@ -50,6 +52,7 @@ public abstract class SpecializedImageDecoder<T> : ImageDecoder, ISpecializedIma
             cancellationToken).ConfigureAwait(false);
 
         this.SetDecoderFormat(options.GeneralOptions.Configuration, image);
+
         return image;
     }
 
@@ -63,6 +66,7 @@ public abstract class SpecializedImageDecoder<T> : ImageDecoder, ISpecializedIma
             cancellationToken).ConfigureAwait(false);
 
         this.SetDecoderFormat(options.GeneralOptions.Configuration, image);
+
         return image;
     }
 

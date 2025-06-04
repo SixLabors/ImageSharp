@@ -46,12 +46,12 @@ internal class GlobalHistogramEqualizationProcessor<TPixel> : HistogramEqualizat
     {
         MemoryAllocator memoryAllocator = this.Configuration.MemoryAllocator;
         int numberOfPixels = source.Width * source.Height;
-        var interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds());
+        Rectangle interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds);
 
         using IMemoryOwner<int> histogramBuffer = memoryAllocator.Allocate<int>(this.LuminanceLevels, AllocationOptions.Clean);
 
         // Build the histogram of the grayscale levels.
-        var grayscaleOperation = new GrayscaleLevelsRowOperation<TPixel>(this.Configuration, interest, histogramBuffer, source.PixelBuffer, this.LuminanceLevels);
+        GrayscaleLevelsRowOperation<TPixel> grayscaleOperation = new(this.Configuration, interest, histogramBuffer, source.PixelBuffer, this.LuminanceLevels);
         ParallelRowIterator.IterateRows<GrayscaleLevelsRowOperation<TPixel>, Vector4>(
             this.Configuration,
             interest,
@@ -74,7 +74,7 @@ internal class GlobalHistogramEqualizationProcessor<TPixel> : HistogramEqualizat
         float numberOfPixelsMinusCdfMin = numberOfPixels - cdfMin;
 
         // Apply the cdf to each pixel of the image
-        var cdfOperation = new CdfApplicationRowOperation(this.Configuration, interest, cdfBuffer, source.PixelBuffer, this.LuminanceLevels, numberOfPixelsMinusCdfMin);
+        CdfApplicationRowOperation cdfOperation = new(this.Configuration, interest, cdfBuffer, source.PixelBuffer, this.LuminanceLevels, numberOfPixelsMinusCdfMin);
         ParallelRowIterator.IterateRows<CdfApplicationRowOperation, Vector4>(
             this.Configuration,
             interest,
@@ -118,7 +118,7 @@ internal class GlobalHistogramEqualizationProcessor<TPixel> : HistogramEqualizat
         [MethodImpl(InliningOptions.ShortMethod)]
         public void Invoke(int y, Span<Vector4> span)
         {
-            Span<Vector4> vectorBuffer = span.Slice(0, this.bounds.Width);
+            Span<Vector4> vectorBuffer = span[..this.bounds.Width];
             ref Vector4 vectorRef = ref MemoryMarshal.GetReference(vectorBuffer);
             ref int cdfBase = ref MemoryMarshal.GetReference(this.cdfBuffer.GetSpan());
             int levels = this.luminanceLevels;
@@ -129,7 +129,7 @@ internal class GlobalHistogramEqualizationProcessor<TPixel> : HistogramEqualizat
 
             for (int x = 0; x < this.bounds.Width; x++)
             {
-                var vector = Unsafe.Add(ref vectorRef, (uint)x);
+                Vector4 vector = Unsafe.Add(ref vectorRef, (uint)x);
                 int luminance = ColorNumerics.GetBT709Luminance(ref vector, levels);
                 float luminanceEqualized = Unsafe.Add(ref cdfBase, (uint)luminance) / noOfPixelsMinusCdfMin;
                 Unsafe.Add(ref vectorRef, (uint)x) = new Vector4(luminanceEqualized, luminanceEqualized, luminanceEqualized, vector.W);

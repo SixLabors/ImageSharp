@@ -32,7 +32,7 @@ internal class QuantizeProcessor<TPixel> : ImageProcessor<TPixel>
     /// <inheritdoc />
     protected override void OnFrameApply(ImageFrame<TPixel> source)
     {
-        Rectangle interest = Rectangle.Intersect(source.Bounds(), this.SourceRectangle);
+        Rectangle interest = Rectangle.Intersect(source.Bounds, this.SourceRectangle);
 
         Configuration configuration = this.Configuration;
         using IQuantizer<TPixel> frameQuantizer = this.quantizer.CreatePixelSpecificQuantizer<TPixel>(configuration);

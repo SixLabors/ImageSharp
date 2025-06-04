@@ -53,7 +53,7 @@ internal class EdgeDetectorProcessor<TPixel> : ImageProcessor<TPixel>
     /// <inheritdoc/>
     protected override void OnFrameApply(ImageFrame<TPixel> source)
     {
-        using var processor = new ConvolutionProcessor<TPixel>(this.Configuration, in this.kernelXY, true, this.Source, this.SourceRectangle);
+        using ConvolutionProcessor<TPixel> processor = new(this.Configuration, in this.kernelXY, true, this.Source, this.SourceRectangle);
         processor.Apply(source);
     }
 }

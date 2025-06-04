@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.Processing;
 /// </summary>
 public class ProjectiveTransformBuilder
 {
-    private readonly List<Func<Size, Matrix4x4>> transformMatrixFactories = new();
+    private readonly List<Func<Size, Matrix4x4>> transformMatrixFactories = [];
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ProjectiveTransformBuilder"/> class.
@@ -280,6 +280,30 @@ public class ProjectiveTransformBuilder
         => this.AppendMatrix(Matrix4x4.CreateTranslation(new Vector3(position, 0)));
 
     /// <summary>
+    /// Prepends a quad distortion matrix using the specified corner points.
+    /// </summary>
+    /// <param name="topLeft">The top-left corner point of the distorted quad.</param>
+    /// <param name="topRight">The top-right corner point of the distorted quad.</param>
+    /// <param name="bottomRight">The bottom-right corner point of the distorted quad.</param>
+    /// <param name="bottomLeft">The bottom-left corner point of the distorted quad.</param>
+    /// <returns>The <see cref="ProjectiveTransformBuilder"/>.</returns>
+    public ProjectiveTransformBuilder PrependQuadDistortion(PointF topLeft, PointF topRight, PointF bottomRight, PointF bottomLeft)
+        => this.Prepend(size => TransformUtils.CreateQuadDistortionMatrix(
+            new Rectangle(Point.Empty, size), topLeft, topRight, bottomRight, bottomLeft, this.TransformSpace));
+
+    /// <summary>
+    /// Appends a quad distortion matrix using the specified corner points.
+    /// </summary>
+    /// <param name="topLeft">The top-left corner point of the distorted quad.</param>
+    /// <param name="topRight">The top-right corner point of the distorted quad.</param>
+    /// <param name="bottomRight">The bottom-right corner point of the distorted quad.</param>
+    /// <param name="bottomLeft">The bottom-left corner point of the distorted quad.</param>
+    /// <returns>The <see cref="ProjectiveTransformBuilder"/>.</returns>
+    public ProjectiveTransformBuilder AppendQuadDistortion(PointF topLeft, PointF topRight, PointF bottomRight, PointF bottomLeft)
+        => this.Append(size => TransformUtils.CreateQuadDistortionMatrix(
+            new Rectangle(Point.Empty, size), topLeft, topRight, bottomRight, bottomLeft, this.TransformSpace));
+
+    /// <summary>
     /// Prepends a raw matrix.
     /// </summary>
     /// <param name="matrix">The matrix to prepend.</param>
@@ -361,18 +385,8 @@ public class ProjectiveTransformBuilder
     /// <returns>The <see cref="Size"/>.</returns>
     public Size GetTransformedSize(Rectangle sourceRectangle)
     {
-        Size size = sourceRectangle.Size;
-
-        // Translate the origin matrix to cater for source rectangle offsets.
-        Matrix4x4 matrix = Matrix4x4.CreateTranslation(new Vector3(-sourceRectangle.Location, 0));
-
-        foreach (Func<Size, Matrix4x4> factory in this.transformMatrixFactories)
-        {
-            matrix *= factory(size);
-            CheckDegenerate(matrix);
-        }
-
-        return TransformUtils.GetTransformedSize(matrix, size);
+        Matrix4x4 matrix = this.BuildMatrix(sourceRectangle);
+        return TransformUtils.GetTransformedSize(matrix, sourceRectangle.Size, this.TransformSpace);
     }
 
     private static void CheckDegenerate(Matrix4x4 matrix)

@@ -106,7 +106,7 @@ public class WebpCommonUtilsTests
             174, 183, 189, 255,
             148, 158, 158, 255,
         };
-        Span<Bgra32> row = MemoryMarshal.Cast<byte, Bgra32>(rowBytes);
+        ReadOnlySpan<Bgra32> row = MemoryMarshal.Cast<byte, Bgra32>(rowBytes);
 
         bool noneOpaque;
         for (int length = 8; length < row.Length; length += 8)
@@ -188,7 +188,7 @@ public class WebpCommonUtilsTests
             174, 183, 189, 255,
             148, 158, 158, 255,
         };
-        Span<Bgra32> row = MemoryMarshal.Cast<byte, Bgra32>(rowBytes);
+        ReadOnlySpan<Bgra32> row = MemoryMarshal.Cast<byte, Bgra32>(rowBytes);
 
         bool noneOpaque;
         for (int length = 8; length < row.Length; length += 8)

@@ -19,12 +19,7 @@ public class DecodeBmp
 
     [GlobalSetup]
     public void ReadImages()
-    {
-        if (this.bmpBytes == null)
-        {
-            this.bmpBytes = File.ReadAllBytes(this.TestImageFullPath);
-        }
-    }
+        => this.bmpBytes ??= File.ReadAllBytes(this.TestImageFullPath);
 
     [Params(TestImages.Bmp.Car)]
     public string TestImage { get; set; }
@@ -32,16 +27,16 @@ public class DecodeBmp
     [Benchmark(Baseline = true, Description = "System.Drawing Bmp")]
     public SDSize BmpSystemDrawing()
     {
-        using var memoryStream = new MemoryStream(this.bmpBytes);
-        using var image = SDImage.FromStream(memoryStream);
+        using MemoryStream memoryStream = new(this.bmpBytes);
+        using SDImage image = SDImage.FromStream(memoryStream);
         return image.Size;
     }
 
     [Benchmark(Description = "ImageSharp Bmp")]
     public Size BmpImageSharp()
     {
-        using var memoryStream = new MemoryStream(this.bmpBytes);
-        using var image = Image.Load<Rgba32>(memoryStream);
+        using MemoryStream memoryStream = new(this.bmpBytes);
+        using Image<Rgba32> image = Image.Load<Rgba32>(memoryStream);
         return new Size(image.Width, image.Height);
     }
 }

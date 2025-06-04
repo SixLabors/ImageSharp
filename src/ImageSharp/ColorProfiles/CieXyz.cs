@@ -34,7 +34,6 @@ public readonly struct CieXyz : IProfileConnectingSpace<CieXyz, CieXyz>
     /// </summary>
     /// <param name="vector">The vector representing the x, y, z components.</param>
     public CieXyz(Vector3 vector)
-        : this()
     {
         this.X = vector.X;
         this.Y = vector.Y;
@@ -81,12 +80,85 @@ public readonly struct CieXyz : IProfileConnectingSpace<CieXyz, CieXyz>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool operator !=(CieXyz left, CieXyz right) => !left.Equals(right);
 
-    /// <summary>
-    /// Returns a new <see cref="Vector3"/> representing this instance.
-    /// </summary>
-    /// <returns>The <see cref="Vector3"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Vector3 ToVector3() => new(this.X, this.Y, this.Z);
+    internal Vector3 ToVector3() => new(this.X, this.Y, this.Z);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal Vector4 ToVector4()
+    {
+        Vector3 v3 = default;
+        v3 += this.AsVector3Unsafe();
+        return new Vector4(v3, 1F);
+    }
+
+    /// <inheritdoc/>
+    public Vector4 ToScaledVector4()
+    {
+        Vector3 v3 = default;
+        v3 += this.AsVector3Unsafe();
+        v3 *= 32768F / 65535;
+        return new Vector4(v3, 1F);
+    }
+
+    internal static CieXyz FromVector4(Vector4 source)
+    {
+        Vector3 v3 = source.AsVector3();
+        return new CieXyz(v3);
+    }
+
+    /// <inheritdoc/>
+    public static CieXyz FromScaledVector4(Vector4 source)
+    {
+        Vector3 v3 = source.AsVector3();
+        v3 *= 65535 / 32768F;
+        return new CieXyz(v3);
+    }
+
+    /// <inheritdoc/>
+    public static void ToScaledVector4(ReadOnlySpan<CieXyz> source, Span<Vector4> destination)
+    {
+        Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
+
+        // TODO: Optimize via SIMD
+        for (int i = 0; i < source.Length; i++)
+        {
+            destination[i] = source[i].ToScaledVector4();
+        }
+    }
+
+    /// <inheritdoc/>
+    public static void FromScaledVector4(ReadOnlySpan<Vector4> source, Span<CieXyz> destination)
+    {
+        Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
+
+        // TODO: Optimize via SIMD
+        for (int i = 0; i < source.Length; i++)
+        {
+            destination[i] = FromScaledVector4(source[i]);
+        }
+    }
+
+    internal static void FromVector4(ReadOnlySpan<Vector4> source, Span<CieXyz> destination)
+    {
+        Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
+
+        // TODO: Optimize via SIMD
+        for (int i = 0; i < source.Length; i++)
+        {
+            destination[i] = FromVector4(source[i]);
+        }
+    }
+
+    internal static void ToVector4(ReadOnlySpan<CieXyz> source, Span<Vector4> destination)
+    {
+        Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
+
+        // TODO: Optimize via SIMD
+        for (int i = 0; i < source.Length; i++)
+        {
+            destination[i] = source[i].ToVector4();
+        }
+    }
 
     /// <inheritdoc/>
     public static CieXyz FromProfileConnectingSpace(ColorConversionOptions options, in CieXyz source)
@@ -127,5 +199,5 @@ public readonly struct CieXyz : IProfileConnectingSpace<CieXyz, CieXyz>
     public bool Equals(CieXyz other)
         => this.AsVector3Unsafe() == other.AsVector3Unsafe();
 
-    private Vector3 AsVector3Unsafe() => Unsafe.As<CieXyz, Vector3>(ref Unsafe.AsRef(in this));
+    internal Vector3 AsVector3Unsafe() => Unsafe.As<CieXyz, Vector3>(ref Unsafe.AsRef(in this));
 }

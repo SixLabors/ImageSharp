@@ -53,8 +53,8 @@ public class IcoDecoderTests
         int expectedWidth = image.Width >= 256 ? 0 : image.Width;
         int expectedHeight = image.Height >= 256 ? 0 : image.Height;
 
-        Assert.Equal(expectedWidth, meta.EncodingWidth);
-        Assert.Equal(expectedHeight, meta.EncodingHeight);
+        Assert.Equal(expectedWidth, meta.EncodingWidth.Value);
+        Assert.Equal(expectedHeight, meta.EncodingHeight.Value);
         Assert.Equal(IconFrameCompression.Bmp, meta.Compression);
         Assert.Equal(BmpBitsPerPixel.Bit1, meta.BmpBitsPerPixel);
     }
@@ -89,8 +89,8 @@ public class IcoDecoderTests
         int expectedWidth = image.Width >= 256 ? 0 : image.Width;
         int expectedHeight = image.Height >= 256 ? 0 : image.Height;
 
-        Assert.Equal(expectedWidth, meta.EncodingWidth);
-        Assert.Equal(expectedHeight, meta.EncodingHeight);
+        Assert.Equal(expectedWidth, meta.EncodingWidth.Value);
+        Assert.Equal(expectedHeight, meta.EncodingHeight.Value);
         Assert.Equal(IconFrameCompression.Bmp, meta.Compression);
         Assert.Equal(BmpBitsPerPixel.Bit24, meta.BmpBitsPerPixel);
     }
@@ -125,8 +125,8 @@ public class IcoDecoderTests
         int expectedWidth = image.Width >= 256 ? 0 : image.Width;
         int expectedHeight = image.Height >= 256 ? 0 : image.Height;
 
-        Assert.Equal(expectedWidth, meta.EncodingWidth);
-        Assert.Equal(expectedHeight, meta.EncodingHeight);
+        Assert.Equal(expectedWidth, meta.EncodingWidth.Value);
+        Assert.Equal(expectedHeight, meta.EncodingHeight.Value);
         Assert.Equal(IconFrameCompression.Bmp, meta.Compression);
         Assert.Equal(BmpBitsPerPixel.Bit32, meta.BmpBitsPerPixel);
     }
@@ -160,8 +160,8 @@ public class IcoDecoderTests
         int expectedWidth = image.Width >= 256 ? 0 : image.Width;
         int expectedHeight = image.Height >= 256 ? 0 : image.Height;
 
-        Assert.Equal(expectedWidth, meta.EncodingWidth);
-        Assert.Equal(expectedHeight, meta.EncodingHeight);
+        Assert.Equal(expectedWidth, meta.EncodingWidth.Value);
+        Assert.Equal(expectedHeight, meta.EncodingHeight.Value);
         Assert.Equal(IconFrameCompression.Bmp, meta.Compression);
         Assert.Equal(BmpBitsPerPixel.Bit4, meta.BmpBitsPerPixel);
     }
@@ -196,8 +196,8 @@ public class IcoDecoderTests
         int expectedWidth = image.Width >= 256 ? 0 : image.Width;
         int expectedHeight = image.Height >= 256 ? 0 : image.Height;
 
-        Assert.Equal(expectedWidth, meta.EncodingWidth);
-        Assert.Equal(expectedHeight, meta.EncodingHeight);
+        Assert.Equal(expectedWidth, meta.EncodingWidth.Value);
+        Assert.Equal(expectedHeight, meta.EncodingHeight.Value);
         Assert.Equal(IconFrameCompression.Bmp, meta.Compression);
         Assert.Equal(BmpBitsPerPixel.Bit8, meta.BmpBitsPerPixel);
     }
@@ -226,8 +226,8 @@ public class IcoDecoderTests
         int expectedWidth = image.Width >= 256 ? 0 : image.Width;
         int expectedHeight = image.Height >= 256 ? 0 : image.Height;
 
-        Assert.Equal(expectedWidth, meta.EncodingWidth);
-        Assert.Equal(expectedHeight, meta.EncodingHeight);
+        Assert.Equal(expectedWidth, meta.EncodingWidth.Value);
+        Assert.Equal(expectedHeight, meta.EncodingHeight.Value);
         Assert.Equal(IconFrameCompression.Png, meta.Compression);
         Assert.Equal(BmpBitsPerPixel.Bit32, meta.BmpBitsPerPixel);
     }
@@ -324,8 +324,8 @@ public class IcoDecoderTests
         int expectedWidth = image.Width >= 256 ? 0 : image.Width;
         int expectedHeight = image.Height >= 256 ? 0 : image.Height;
 
-        Assert.Equal(expectedWidth, meta.EncodingWidth);
-        Assert.Equal(expectedHeight, meta.EncodingHeight);
+        Assert.Equal(expectedWidth, meta.EncodingWidth.Value);
+        Assert.Equal(expectedHeight, meta.EncodingHeight.Value);
         Assert.Equal(IconFrameCompression.Bmp, meta.Compression);
         Assert.Equal(BmpBitsPerPixel.Bit32, meta.BmpBitsPerPixel);
     }

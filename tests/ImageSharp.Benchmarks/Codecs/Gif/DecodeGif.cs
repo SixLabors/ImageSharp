@@ -18,30 +18,24 @@ public class DecodeGif
         => Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, this.TestImage);
 
     [GlobalSetup]
-    public void ReadImages()
-    {
-        if (this.gifBytes == null)
-        {
-            this.gifBytes = File.ReadAllBytes(this.TestImageFullPath);
-        }
-    }
+    public void ReadImages() => this.gifBytes ??= File.ReadAllBytes(this.TestImageFullPath);
 
-    [Params(TestImages.Gif.Rings)]
+    [Params(TestImages.Gif.Cheers)]
     public string TestImage { get; set; }
 
     [Benchmark(Baseline = true, Description = "System.Drawing Gif")]
     public SDSize GifSystemDrawing()
     {
-        using var memoryStream = new MemoryStream(this.gifBytes);
-        using var image = SDImage.FromStream(memoryStream);
+        using MemoryStream memoryStream = new(this.gifBytes);
+        using SDImage image = SDImage.FromStream(memoryStream);
         return image.Size;
     }
 
     [Benchmark(Description = "ImageSharp Gif")]
     public Size GifImageSharp()
     {
-        using var memoryStream = new MemoryStream(this.gifBytes);
-        using var image = Image.Load<Rgba32>(memoryStream);
+        using MemoryStream memoryStream = new(this.gifBytes);
+        using Image<Rgba32> image = Image.Load<Rgba32>(memoryStream);
         return new Size(image.Width, image.Height);
     }
 }

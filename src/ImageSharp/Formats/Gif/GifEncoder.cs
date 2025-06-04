@@ -6,7 +6,7 @@ namespace SixLabors.ImageSharp.Formats.Gif;
 /// <summary>
 /// Image encoder for writing image data to a stream in gif format.
 /// </summary>
-public sealed class GifEncoder : QuantizingImageEncoder
+public sealed class GifEncoder : QuantizingAnimatedImageEncoder
 {
     /// <summary>
     /// Gets the color table mode: Global or local.

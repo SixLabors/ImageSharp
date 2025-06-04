@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs;
 [Config(typeof(Config.Short))]
 public class EncodeTiff
 {
-    private Stream stream;
+    private FileStream stream;
     private SDImage drawing;
     private Image<Rgba32> core;
 
@@ -60,12 +60,12 @@ public class EncodeTiff
     public void SystemDrawing()
     {
         ImageCodecInfo codec = FindCodecForType("image/tiff");
-        using var parameters = new EncoderParameters(1)
+        using EncoderParameters parameters = new(1)
         {
             Param = { [0] = new EncoderParameter(Encoder.Compression, (long)Cast(this.Compression)) }
         };
 
-        using var memoryStream = new MemoryStream();
+        using MemoryStream memoryStream = new();
         this.drawing.Save(memoryStream, codec, parameters);
     }
 
@@ -77,8 +77,8 @@ public class EncodeTiff
                 TiffPhotometricInterpretation.WhiteIsZero :
                 TiffPhotometricInterpretation.Rgb;
 
-        var encoder = new TiffEncoder() { Compression = this.Compression, PhotometricInterpretation = photometricInterpretation };
-        using var memoryStream = new MemoryStream();
+        TiffEncoder encoder = new() { Compression = this.Compression, PhotometricInterpretation = photometricInterpretation };
+        using MemoryStream memoryStream = new();
         this.core.SaveAsTiff(memoryStream, encoder);
     }
 
@@ -98,33 +98,15 @@ public class EncodeTiff
     }
 
     private static EncoderValue Cast(TiffCompression compression)
-    {
-        switch (compression)
+        => compression switch
         {
-            case TiffCompression.None:
-                return EncoderValue.CompressionNone;
-
-            case TiffCompression.CcittGroup3Fax:
-                return EncoderValue.CompressionCCITT3;
-
-            case TiffCompression.Ccitt1D:
-                return EncoderValue.CompressionRle;
-
-            case TiffCompression.Lzw:
-                return EncoderValue.CompressionLZW;
-
-            default:
-                throw new NotSupportedException(compression.ToString());
-        }
-    }
+            TiffCompression.None => EncoderValue.CompressionNone,
+            TiffCompression.CcittGroup3Fax => EncoderValue.CompressionCCITT3,
+            TiffCompression.Ccitt1D => EncoderValue.CompressionRle,
+            TiffCompression.Lzw => EncoderValue.CompressionLZW,
+            _ => throw new NotSupportedException(compression.ToString()),
+        };
 
     public static bool IsOneBitCompression(TiffCompression compression)
-    {
-        if (compression is TiffCompression.Ccitt1D or TiffCompression.CcittGroup3Fax or TiffCompression.CcittGroup4Fax)
-        {
-            return true;
-        }
-
-        return false;
-    }
+        => compression is TiffCompression.Ccitt1D or TiffCompression.CcittGroup3Fax or TiffCompression.CcittGroup4Fax;
 }

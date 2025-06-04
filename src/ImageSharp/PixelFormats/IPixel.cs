@@ -23,7 +23,8 @@ public interface IPixel<TSelf> : IPixel, IEquatable<TSelf>
     static abstract PixelOperations<TSelf> CreatePixelOperations();
 
     /// <summary>
-    /// Initializes the pixel instance from a generic scaled <see cref="Vector4"/>.
+    /// Initializes the pixel instance from a generic a generic ("scaled") <see cref="Vector4"/> representation
+    /// with values scaled and clamped between <value>0</value> and <value>1</value>
     /// </summary>
     /// <param name="source">The vector to load the pixel from.</param>
     /// <returns>The <typeparamref name="TSelf"/>.</returns>

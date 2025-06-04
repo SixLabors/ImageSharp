@@ -20,7 +20,7 @@ public class CieLuvAndHunterLabConversionTests
         // Arrange
         CieLuv input = new(l, u, v);
         HunterLab expected = new(l2, a, b);
-        ColorConversionOptions options = new() { WhitePoint = KnownIlluminants.D65, TargetWhitePoint = KnownIlluminants.D50 };
+        ColorConversionOptions options = new() { SourceWhitePoint = KnownIlluminants.D65, TargetWhitePoint = KnownIlluminants.D50 };
         ColorProfileConverter converter = new(options);
 
         Span<CieLuv> inputSpan = new CieLuv[5];
@@ -49,7 +49,7 @@ public class CieLuvAndHunterLabConversionTests
         // Arrange
         HunterLab input = new(l2, a, b);
         CieLuv expected = new(l, u, v);
-        ColorConversionOptions options = new() { WhitePoint = KnownIlluminants.D50, TargetWhitePoint = KnownIlluminants.D65 };
+        ColorConversionOptions options = new() { SourceWhitePoint = KnownIlluminants.D50, TargetWhitePoint = KnownIlluminants.D65 };
         ColorProfileConverter converter = new(options);
 
         Span<HunterLab> inputSpan = new HunterLab[5];

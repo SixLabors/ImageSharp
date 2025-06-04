@@ -183,7 +183,7 @@ internal class AlphaDecoder : IDisposable
         else
         {
             this.LosslessDecoder.DecodeImageData(this.Vp8LDec, this.Vp8LDec.Pixels.Memory.Span);
-            this.ExtractAlphaRows(this.Vp8LDec);
+            this.ExtractAlphaRows(this.Vp8LDec, this.Width);
         }
     }
 
@@ -257,14 +257,15 @@ internal class AlphaDecoder : IDisposable
     /// Once the image-stream is decoded into ARGB color values, the transparency information will be extracted from the green channel of the ARGB quadruplet.
     /// </summary>
     /// <param name="dec">The VP8L decoder.</param>
-    private void ExtractAlphaRows(Vp8LDecoder dec)
+    /// <param name="width">The image width.</param>
+    private void ExtractAlphaRows(Vp8LDecoder dec, int width)
     {
         int numRowsToProcess = dec.Height;
-        int width = dec.Width;
         Span<uint> input = dec.Pixels.Memory.Span;
         Span<byte> output = this.Alpha.Memory.Span;
 
         // Extract alpha (which is stored in the green plane).
+        // the final width (!= dec->width_)
         int pixelCount = width * numRowsToProcess;
         WebpLosslessDecoder.ApplyInverseTransforms(dec, input, this.memoryAllocator);
         ExtractGreen(input, output, pixelCount);
@@ -325,11 +326,11 @@ internal class AlphaDecoder : IDisposable
             {
                 Vector128<long> a0 = Vector128.Create(Unsafe.As<byte, long>(ref Unsafe.Add(ref srcRef, i)), 0);
                 Vector128<byte> a1 = a0.AsByte() + last.AsByte();
-                Vector128<byte> a2 = Vector128Utilities.ShiftLeftBytesInVector(a1, 1);
+                Vector128<byte> a2 = Vector128_.ShiftLeftBytesInVector(a1, 1);
                 Vector128<byte> a3 = a1 + a2;
-                Vector128<byte> a4 = Vector128Utilities.ShiftLeftBytesInVector(a3, 2);
+                Vector128<byte> a4 = Vector128_.ShiftLeftBytesInVector(a3, 2);
                 Vector128<byte> a5 = a3 + a4;
-                Vector128<byte> a6 = Vector128Utilities.ShiftLeftBytesInVector(a5, 4);
+                Vector128<byte> a6 = Vector128_.ShiftLeftBytesInVector(a5, 4);
                 Vector128<byte> a7 = a5 + a6;
 
                 ref byte outputRef = ref Unsafe.Add(ref dstRef, i);

@@ -4,8 +4,10 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.Arm;
+using System.Runtime.Intrinsics.Wasm;
 using System.Runtime.Intrinsics.X86;
 
 namespace SixLabors.ImageSharp.Common.Helpers;
@@ -18,30 +20,36 @@ namespace SixLabors.ImageSharp.Common.Helpers;
 /// </list>
 /// Should only be used if the intrinsics are available.
 /// </summary>
-internal static class Vector128Utilities
+#pragma warning disable SA1649 // File name should match first type name
+internal static class Vector128_
+#pragma warning restore SA1649 // File name should match first type name
 {
     /// <summary>
     /// Gets a value indicating whether shuffle operations are supported.
     /// </summary>
-    public static bool SupportsShuffleFloat
+    public static bool SupportsShuffleNativeByte
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => Sse.IsSupported;
-    }
+        get
+        {
+            if (Vector128.IsHardwareAccelerated)
+            {
+                if (RuntimeInformation.ProcessArchitecture is Architecture.X86 or Architecture.X64)
+                {
+                    return Ssse3.IsSupported;
+                }
 
-    /// <summary>
-    /// Gets a value indicating whether shuffle operations are supported.
-    /// </summary>
-    public static bool SupportsShuffleByte
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => Ssse3.IsSupported || AdvSimd.Arm64.IsSupported;
+                return true;
+            }
+
+            return false;
+        }
     }
 
     /// <summary>
     /// Gets a value indicating whether right align operations are supported.
     /// </summary>
-    public static bool SupportsRightAlign
+    public static bool SupportsAlignRight
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get => Ssse3.IsSupported || AdvSimd.IsSupported;
@@ -63,15 +71,21 @@ internal static class Vector128Utilities
     /// <param name="control">The shuffle control byte.</param>
     /// <returns>The <see cref="Vector128{Single}"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector128<float> Shuffle(Vector128<float> vector, [ConstantExpected] byte control)
+    public static Vector128<float> ShuffleNative(Vector128<float> vector, [ConstantExpected] byte control)
     {
         if (Sse.IsSupported)
         {
             return Sse.Shuffle(vector, vector, control);
         }
 
-        ThrowUnreachableException();
-        return default;
+        // Don't use InverseMMShuffle here as we want to avoid the cast.
+        Vector128<int> indices = Vector128.Create(
+            control & 0x3,
+            (control >> 2) & 0x3,
+            (control >> 4) & 0x3,
+            (control >> 6) & 0x3);
+
+        return Vector128.Shuffle(vector, indices);
     }
 
     /// <summary>
@@ -86,20 +100,18 @@ internal static class Vector128Utilities
     /// A new vector containing the values from <paramref name="vector" /> selected by the given <paramref name="indices" />.
     /// </returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector128<byte> Shuffle(Vector128<byte> vector, Vector128<byte> indices)
+    public static Vector128<byte> ShuffleNative(Vector128<byte> vector, Vector128<byte> indices)
     {
+        // For x64 we use the SSSE3 shuffle intrinsic to avoid additional instructions. 3 vs 1.
         if (Ssse3.IsSupported)
         {
             return Ssse3.Shuffle(vector, indices);
         }
 
-        if (AdvSimd.Arm64.IsSupported)
-        {
-            return AdvSimd.Arm64.VectorTableLookup(vector, indices);
-        }
-
-        ThrowUnreachableException();
-        return default;
+        // For ARM and WASM, codegen will be optimal.
+        // We don't throw for x86/x64 so we should never use this method without
+        // checking for support.
+        return Vector128.Shuffle(vector, indices);
     }
 
     /// <summary>
@@ -193,11 +205,73 @@ internal static class Vector128Utilities
             return AdvSimd.ConvertToInt32RoundToEven(vector);
         }
 
-        Vector128<float> sign = vector & Vector128.Create(-0.0f);
-        Vector128<float> val_2p23_f32 = sign | Vector128.Create(8388608.0f);
+        if (PackedSimd.IsSupported)
+        {
+            return PackedSimd.ConvertToInt32Saturate(PackedSimd.RoundToNearest(vector));
+        }
+
+        Vector128<float> sign = vector & Vector128.Create(-0F);
+        Vector128<float> val_2p23_f32 = sign | Vector128.Create(8388608F);
 
         val_2p23_f32 = (vector + val_2p23_f32) - val_2p23_f32;
         return Vector128.ConvertToInt32(val_2p23_f32 | sign);
+    }
+
+    /// <summary>
+    /// Rounds all values in <paramref name="vector"/> to the nearest integer
+    /// following <see cref="MidpointRounding.ToEven"/> semantics.
+    /// </summary>
+    /// <param name="vector">The vector</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector128<float> RoundToNearestInteger(Vector128<float> vector)
+    {
+        if (Sse41.IsSupported)
+        {
+            return Sse41.RoundToNearestInteger(vector);
+        }
+
+        if (AdvSimd.IsSupported)
+        {
+            return AdvSimd.RoundToNearest(vector);
+        }
+
+        if (PackedSimd.IsSupported)
+        {
+            return PackedSimd.RoundToNearest(vector);
+        }
+
+        Vector128<float> sign = vector & Vector128.Create(-0F);
+        Vector128<float> val_2p23_f32 = sign | Vector128.Create(8388608F);
+
+        val_2p23_f32 = (vector + val_2p23_f32) - val_2p23_f32;
+        return val_2p23_f32 | sign;
+    }
+
+    /// <summary>
+    /// Performs a multiplication and an addition of the <see cref="Vector128{Single}"/>.
+    /// </summary>
+    /// <remarks>ret = (vm0 * vm1) + va</remarks>
+    /// <param name="va">The vector to add to the intermediate result.</param>
+    /// <param name="vm0">The first vector to multiply.</param>
+    /// <param name="vm1">The second vector to multiply.</param>
+    /// <returns>The <see cref="Vector256{T}"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector128<float> MultiplyAdd(
+        Vector128<float> va,
+        Vector128<float> vm0,
+        Vector128<float> vm1)
+    {
+        if (Fma.IsSupported)
+        {
+            return Fma.MultiplyAdd(vm1, vm0, va);
+        }
+
+        if (AdvSimd.IsSupported)
+        {
+            return AdvSimd.FusedMultiplyAdd(va, vm0, vm1);
+        }
+
+        return va + (vm0 * vm1);
     }
 
     /// <summary>
@@ -218,8 +292,16 @@ internal static class Vector128Utilities
             return AdvSimd.ExtractNarrowingSaturateUnsignedUpper(AdvSimd.ExtractNarrowingSaturateUnsignedLower(left), right);
         }
 
-        ThrowUnreachableException();
-        return default;
+        if (PackedSimd.IsSupported)
+        {
+            return PackedSimd.ConvertNarrowingSaturateUnsigned(left, right);
+        }
+
+        Vector128<short> min = Vector128.Create((short)byte.MinValue);
+        Vector128<short> max = Vector128.Create((short)byte.MaxValue);
+        Vector128<ushort> lefClamped = Clamp(left, min, max).AsUInt16();
+        Vector128<ushort> rightClamped = Clamp(right, min, max).AsUInt16();
+        return Vector128.Narrow(lefClamped, rightClamped);
     }
 
     /// <summary>
@@ -241,9 +323,29 @@ internal static class Vector128Utilities
             return AdvSimd.ExtractNarrowingSaturateUpper(AdvSimd.ExtractNarrowingSaturateLower(left), right);
         }
 
-        ThrowUnreachableException();
-        return default;
+        if (PackedSimd.IsSupported)
+        {
+            return PackedSimd.ConvertNarrowingSaturateSigned(left, right);
+        }
+
+        Vector128<int> min = Vector128.Create((int)short.MinValue);
+        Vector128<int> max = Vector128.Create((int)short.MaxValue);
+        Vector128<int> lefClamped = Clamp(left, min, max);
+        Vector128<int> rightClamped = Clamp(right, min, max);
+        return Vector128.Narrow(lefClamped, rightClamped);
     }
+
+    /// <summary>
+    /// Restricts a vector between a minimum and a maximum value.
+    /// </summary>
+    /// <typeparam name="T">The type of the elements in the vector.</typeparam>
+    /// <param name="value">The vector to restrict.</param>
+    /// <param name="min">The minimum value.</param>
+    /// <param name="max">The maximum value.</param>
+    /// <returns>The restricted <see cref="Vector128{T}"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector128<T> Clamp<T>(Vector128<T> value, Vector128<T> min, Vector128<T> max)
+        => Vector128.Min(Vector128.Max(value, min), max);
 
     [DoesNotReturn]
     private static void ThrowUnreachableException() => throw new UnreachableException();

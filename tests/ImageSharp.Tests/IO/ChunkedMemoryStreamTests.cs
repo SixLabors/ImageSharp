@@ -13,6 +13,8 @@ namespace SixLabors.ImageSharp.Tests.IO;
 /// </summary>
 public class ChunkedMemoryStreamTests
 {
+    private readonly Random bufferFiller = new(123);
+
     /// <summary>
     /// The default length in bytes of each buffer chunk when allocating large buffers.
     /// </summary>
@@ -30,7 +32,7 @@ public class ChunkedMemoryStreamTests
     [Fact]
     public void MemoryStream_GetPositionTest_Negative()
     {
-        using var ms = new ChunkedMemoryStream(this.allocator);
+        using ChunkedMemoryStream ms = new(this.allocator);
         long iCurrentPos = ms.Position;
         for (int i = -1; i > -6; i--)
         {
@@ -42,7 +44,7 @@ public class ChunkedMemoryStreamTests
     [Fact]
     public void MemoryStream_ReadTest_Negative()
     {
-        var ms2 = new ChunkedMemoryStream(this.allocator);
+        ChunkedMemoryStream ms2 = new(this.allocator);
 
         Assert.Throws<ArgumentNullException>(() => ms2.Read(null, 0, 0));
         Assert.Throws<ArgumentOutOfRangeException>(() => ms2.Read(new byte[] { 1 }, -1, 0));
@@ -64,7 +66,7 @@ public class ChunkedMemoryStreamTests
     public void MemoryStream_ReadByteTest(int length)
     {
         using MemoryStream ms = this.CreateTestStream(length);
-        using var cms = new ChunkedMemoryStream(this.allocator);
+        using ChunkedMemoryStream cms = new(this.allocator);
 
         ms.CopyTo(cms);
         cms.Position = 0;
@@ -85,7 +87,7 @@ public class ChunkedMemoryStreamTests
     public void MemoryStream_ReadByteBufferTest(int length)
     {
         using MemoryStream ms = this.CreateTestStream(length);
-        using var cms = new ChunkedMemoryStream(this.allocator);
+        using ChunkedMemoryStream cms = new(this.allocator);
 
         ms.CopyTo(cms);
         cms.Position = 0;
@@ -105,10 +107,11 @@ public class ChunkedMemoryStreamTests
     [InlineData(DefaultSmallChunkSize * 4)]
     [InlineData((int)(DefaultSmallChunkSize * 5.5))]
     [InlineData(DefaultSmallChunkSize * 16)]
+    [InlineData(DefaultSmallChunkSize * 32)]
     public void MemoryStream_ReadByteBufferSpanTest(int length)
     {
         using MemoryStream ms = this.CreateTestStream(length);
-        using var cms = new ChunkedMemoryStream(this.allocator);
+        using ChunkedMemoryStream cms = new(this.allocator);
 
         ms.CopyTo(cms);
         cms.Position = 0;
@@ -122,18 +125,24 @@ public class ChunkedMemoryStreamTests
         }
     }
 
-    [Fact]
-    public void MemoryStream_WriteToTests()
+    [Theory]
+    [InlineData(DefaultSmallChunkSize)]
+    [InlineData((int)(DefaultSmallChunkSize * 1.5))]
+    [InlineData(DefaultSmallChunkSize * 4)]
+    [InlineData((int)(DefaultSmallChunkSize * 5.5))]
+    [InlineData(DefaultSmallChunkSize * 16)]
+    [InlineData(DefaultSmallChunkSize * 32)]
+    public void MemoryStream_WriteToTests(int length)
     {
-        using (var ms2 = new ChunkedMemoryStream(this.allocator))
+        using (ChunkedMemoryStream ms2 = new(this.allocator))
         {
             byte[] bytArrRet;
-            byte[] bytArr = new byte[] { byte.MinValue, byte.MaxValue, 1, 2, 3, 4, 5, 6, 128, 250 };
+            byte[] bytArr = this.CreateTestBuffer(length);
 
             // [] Write to memoryStream, check the memoryStream
             ms2.Write(bytArr, 0, bytArr.Length);
 
-            using var readonlyStream = new ChunkedMemoryStream(this.allocator);
+            using ChunkedMemoryStream readonlyStream = new(this.allocator);
             ms2.WriteTo(readonlyStream);
             readonlyStream.Flush();
             readonlyStream.Position = 0;
@@ -146,11 +155,11 @@ public class ChunkedMemoryStreamTests
         }
 
         // [] Write to memoryStream, check the memoryStream
-        using (var ms2 = new ChunkedMemoryStream(this.allocator))
-        using (var ms3 = new ChunkedMemoryStream(this.allocator))
+        using (ChunkedMemoryStream ms2 = new(this.allocator))
+        using (ChunkedMemoryStream ms3 = new(this.allocator))
         {
             byte[] bytArrRet;
-            byte[] bytArr = new byte[] { byte.MinValue, byte.MaxValue, 1, 2, 3, 4, 5, 6, 128, 250 };
+            byte[] bytArr = this.CreateTestBuffer(length);
 
             ms2.Write(bytArr, 0, bytArr.Length);
             ms2.WriteTo(ms3);
@@ -164,21 +173,29 @@ public class ChunkedMemoryStreamTests
         }
     }
 
-    [Fact]
-    public void MemoryStream_WriteToSpanTests()
+    [Theory]
+    [InlineData(DefaultSmallChunkSize)]
+    [InlineData((int)(DefaultSmallChunkSize * 1.5))]
+    [InlineData(DefaultSmallChunkSize * 4)]
+    [InlineData((int)(DefaultSmallChunkSize * 5.5))]
+    [InlineData(DefaultSmallChunkSize * 16)]
+    [InlineData(DefaultSmallChunkSize * 32)]
+    public void MemoryStream_WriteToSpanTests(int length)
     {
-        using (var ms2 = new ChunkedMemoryStream(this.allocator))
+        using (ChunkedMemoryStream ms2 = new(this.allocator))
         {
             Span<byte> bytArrRet;
-            Span<byte> bytArr = new byte[] { byte.MinValue, byte.MaxValue, 1, 2, 3, 4, 5, 6, 128, 250 };
+            Span<byte> bytArr = this.CreateTestBuffer(length);
 
             // [] Write to memoryStream, check the memoryStream
             ms2.Write(bytArr, 0, bytArr.Length);
 
-            using var readonlyStream = new ChunkedMemoryStream(this.allocator);
+            using ChunkedMemoryStream readonlyStream = new(this.allocator);
             ms2.WriteTo(readonlyStream);
+
             readonlyStream.Flush();
             readonlyStream.Position = 0;
+
             bytArrRet = new byte[(int)readonlyStream.Length];
             readonlyStream.Read(bytArrRet, 0, (int)readonlyStream.Length);
             for (int i = 0; i < bytArr.Length; i++)
@@ -188,13 +205,14 @@ public class ChunkedMemoryStreamTests
         }
 
         // [] Write to memoryStream, check the memoryStream
-        using (var ms2 = new ChunkedMemoryStream(this.allocator))
-        using (var ms3 = new ChunkedMemoryStream(this.allocator))
+        using (ChunkedMemoryStream ms2 = new(this.allocator))
+        using (ChunkedMemoryStream ms3 = new(this.allocator))
         {
             Span<byte> bytArrRet;
-            Span<byte> bytArr = new byte[] { byte.MinValue, byte.MaxValue, 1, 2, 3, 4, 5, 6, 128, 250 };
+            Span<byte> bytArr = this.CreateTestBuffer(length);
 
             ms2.Write(bytArr, 0, bytArr.Length);
+
             ms2.WriteTo(ms3);
             ms3.Position = 0;
             bytArrRet = new byte[(int)ms3.Length];
@@ -209,37 +227,35 @@ public class ChunkedMemoryStreamTests
     [Fact]
     public void MemoryStream_WriteByteTests()
     {
-        using (var ms2 = new ChunkedMemoryStream(this.allocator))
+        using ChunkedMemoryStream ms2 = new(this.allocator);
+        byte[] bytArrRet;
+        byte[] bytArr = new byte[] { byte.MinValue, byte.MaxValue, 1, 2, 3, 4, 5, 6, 128, 250 };
+
+        for (int i = 0; i < bytArr.Length; i++)
         {
-            byte[] bytArrRet;
-            byte[] bytArr = new byte[] { byte.MinValue, byte.MaxValue, 1, 2, 3, 4, 5, 6, 128, 250 };
+            ms2.WriteByte(bytArr[i]);
+        }
 
-            for (int i = 0; i < bytArr.Length; i++)
-            {
-                ms2.WriteByte(bytArr[i]);
-            }
-
-            using var readonlyStream = new ChunkedMemoryStream(this.allocator);
-            ms2.WriteTo(readonlyStream);
-            readonlyStream.Flush();
-            readonlyStream.Position = 0;
-            bytArrRet = new byte[(int)readonlyStream.Length];
-            readonlyStream.Read(bytArrRet, 0, (int)readonlyStream.Length);
-            for (int i = 0; i < bytArr.Length; i++)
-            {
-                Assert.Equal(bytArr[i], bytArrRet[i]);
-            }
+        using ChunkedMemoryStream readonlyStream = new(this.allocator);
+        ms2.WriteTo(readonlyStream);
+        readonlyStream.Flush();
+        readonlyStream.Position = 0;
+        bytArrRet = new byte[(int)readonlyStream.Length];
+        readonlyStream.Read(bytArrRet, 0, (int)readonlyStream.Length);
+        for (int i = 0; i < bytArr.Length; i++)
+        {
+            Assert.Equal(bytArr[i], bytArrRet[i]);
         }
     }
 
     [Fact]
     public void MemoryStream_WriteToTests_Negative()
     {
-        using var ms2 = new ChunkedMemoryStream(this.allocator);
+        using ChunkedMemoryStream ms2 = new(this.allocator);
         Assert.Throws<ArgumentNullException>(() => ms2.WriteTo(null));
 
         ms2.Write(new byte[] { 1 }, 0, 1);
-        var readonlyStream = new MemoryStream(new byte[1028], false);
+        MemoryStream readonlyStream = new(new byte[1028], false);
         Assert.Throws<NotSupportedException>(() => ms2.WriteTo(readonlyStream));
 
         readonlyStream.Dispose();
@@ -286,7 +302,7 @@ public class ChunkedMemoryStreamTests
     [MemberData(nameof(CopyToData))]
     public void CopyTo(Stream source, byte[] expected)
     {
-        using var destination = new ChunkedMemoryStream(this.allocator);
+        using ChunkedMemoryStream destination = new(this.allocator);
         source.CopyTo(destination);
         Assert.InRange(source.Position, source.Length, int.MaxValue); // Copying the data should have read to the end of the stream or stayed past the end.
         Assert.Equal(expected, destination.ToArray());
@@ -297,16 +313,16 @@ public class ChunkedMemoryStreamTests
         IEnumerable<string> allImageFiles = Directory.EnumerateFiles(TestEnvironment.InputImagesDirectoryFullPath, "*.*", SearchOption.AllDirectories)
             .Where(s => !s.EndsWith("txt", StringComparison.OrdinalIgnoreCase));
 
-        var result = new List<string>();
+        List<string> result = new();
         foreach (string path in allImageFiles)
         {
-            result.Add(path.Substring(TestEnvironment.InputImagesDirectoryFullPath.Length));
+            result.Add(path[TestEnvironment.InputImagesDirectoryFullPath.Length..]);
         }
 
         return result;
     }
 
-    public static IEnumerable<string> AllTestImages = GetAllTestImages();
+    public static IEnumerable<string> AllTestImages { get; } = GetAllTestImages();
 
     [Theory]
     [WithFileCollection(nameof(AllTestImages), PixelTypes.Rgba32)]
@@ -334,40 +350,77 @@ public class ChunkedMemoryStreamTests
             ((TestImageProvider<TPixel>.FileProvider)provider).FilePath);
 
         using FileStream fs = File.OpenRead(fullPath);
-        using var nonSeekableStream = new NonSeekableStream(fs);
+        using NonSeekableStream nonSeekableStream = new(fs);
 
-        var actual = Image.Load<TPixel>(nonSeekableStream);
+        using Image<TPixel> actual = Image.Load<TPixel>(nonSeekableStream);
 
         ImageComparer.Exact.VerifySimilarity(expected, actual);
+        expected.Dispose();
+    }
+
+    [Theory]
+    [WithFileCollection(nameof(AllTestImages), PixelTypes.Rgba32)]
+    public void EncoderIntegrationTest<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        if (!TestEnvironment.Is64BitProcess)
+        {
+            return;
+        }
+
+        Image<TPixel> expected;
+        try
+        {
+            expected = provider.GetImage();
+        }
+        catch
+        {
+            // The image is invalid
+            return;
+        }
+
+        string fullPath = Path.Combine(
+            TestEnvironment.InputImagesDirectoryFullPath,
+            ((TestImageProvider<TPixel>.FileProvider)provider).FilePath);
+
+        using MemoryStream ms = new();
+        using NonSeekableStream nonSeekableStream = new(ms);
+        expected.SaveAsWebp(nonSeekableStream);
+
+        using Image<TPixel> actual = Image.Load<TPixel>(nonSeekableStream);
+
+        ImageComparer.Exact.VerifySimilarity(expected, actual);
+        expected.Dispose();
     }
 
     public static IEnumerable<object[]> CopyToData()
     {
         // Stream is positioned @ beginning of data
         byte[] data1 = new byte[] { 1, 2, 3 };
-        var stream1 = new MemoryStream(data1);
+        MemoryStream stream1 = new(data1);
 
         yield return new object[] { stream1, data1 };
 
         // Stream is positioned in the middle of data
         byte[] data2 = new byte[] { 0xff, 0xf3, 0xf0 };
-        var stream2 = new MemoryStream(data2) { Position = 1 };
+        MemoryStream stream2 = new(data2) { Position = 1 };
 
         yield return new object[] { stream2, new byte[] { 0xf3, 0xf0 } };
 
         // Stream is positioned after end of data
         byte[] data3 = data2;
-        var stream3 = new MemoryStream(data3) { Position = data3.Length + 1 };
+        MemoryStream stream3 = new(data3) { Position = data3.Length + 1 };
 
         yield return new object[] { stream3, Array.Empty<byte>() };
     }
 
-    private MemoryStream CreateTestStream(int length)
+    private byte[] CreateTestBuffer(int length)
     {
         byte[] buffer = new byte[length];
-        var random = new Random();
-        random.NextBytes(buffer);
-
-        return new MemoryStream(buffer);
+        this.bufferFiller.NextBytes(buffer);
+        return buffer;
     }
+
+    private MemoryStream CreateTestStream(int length)
+        => new(this.CreateTestBuffer(length));
 }

@@ -58,7 +58,7 @@ internal sealed unsafe partial class JpegEncoderCore
         Guard.NotNull(image, nameof(image));
         Guard.NotNull(stream, nameof(stream));
 
-        if (image.Width >= JpegConstants.MaxLength || image.Height >= JpegConstants.MaxLength)
+        if (image.Width > JpegConstants.MaxLength || image.Height > JpegConstants.MaxLength)
         {
             JpegThrowHelper.ThrowDimensionsTooLarge(image.Width, image.Height);
         }
@@ -100,11 +100,14 @@ internal sealed unsafe partial class JpegEncoderCore
         this.WriteStartOfFrame(image.Width, image.Height, frameConfig, buffer);
 
         // Write the Huffman tables.
-        HuffmanScanEncoder scanEncoder = new(frame.BlocksPerMcu, stream);
+        HuffmanScanEncoder scanEncoder = new(frame.BlocksPerMcu, this.encoder.RestartInterval, stream);
         this.WriteDefineHuffmanTables(frameConfig.HuffmanTables, scanEncoder, buffer);
 
         // Write the quantization tables.
         this.WriteDefineQuantizationTables(frameConfig.QuantizationTables, this.encoder.Quality, jpegMetadata, buffer);
+
+        // Write define restart interval
+        this.WriteDri(this.encoder.RestartInterval, buffer);
 
         // Write scans with actual pixel data
         using SpectralConverter<TPixel> spectralConverter = new(frame, image, this.QuantizationTables);
@@ -427,6 +430,25 @@ internal sealed unsafe partial class JpegEncoderCore
     }
 
     /// <summary>
+    /// Writes the DRI marker
+    /// </summary>
+    /// <param name="restartInterval">Numbers of MCUs between restart markers.</param>
+    /// <param name="buffer">Temporary buffer.</param>
+    private void WriteDri(int restartInterval, Span<byte> buffer)
+    {
+        if (restartInterval <= 0)
+        {
+            return;
+        }
+
+        this.WriteMarkerHeader(JpegConstants.Markers.DRI, 4, buffer);
+
+        buffer[1] = (byte)(restartInterval & 0xff);
+        buffer[0] = (byte)(restartInterval >> 8);
+        this.outputStream.Write(buffer, 0, 2);
+    }
+
+    /// <summary>
     /// Writes the App1 header.
     /// </summary>
     /// <param name="app1Length">The length of the data the app1 marker contains.</param>
@@ -563,7 +585,8 @@ internal sealed unsafe partial class JpegEncoderCore
 
         // Length (high byte, low byte), 8 + components * 3.
         int markerlen = 8 + (3 * components.Length);
-        this.WriteMarkerHeader(JpegConstants.Markers.SOF0, markerlen, buffer);
+        byte marker = this.encoder.Progressive ? JpegConstants.Markers.SOF2 : JpegConstants.Markers.SOF0;
+        this.WriteMarkerHeader(marker, markerlen, buffer);
         buffer[5] = (byte)components.Length;
         buffer[0] = 8; // Data Precision. 8 for now, 12 and 16 bit jpegs not supported
         buffer[1] = (byte)(height >> 8);
@@ -597,7 +620,17 @@ internal sealed unsafe partial class JpegEncoderCore
     /// </summary>
     /// <param name="components">The collecction of component configuration items.</param>
     /// <param name="buffer">Temporary buffer.</param>
-    private void WriteStartOfScan(Span<JpegComponentConfig> components, Span<byte> buffer)
+    private void WriteStartOfScan(Span<JpegComponentConfig> components, Span<byte> buffer) =>
+        this.WriteStartOfScan(components, buffer, 0x00, 0x3f);
+
+    /// <summary>
+    /// Writes the StartOfScan marker.
+    /// </summary>
+    /// <param name="components">The collecction of component configuration items.</param>
+    /// <param name="buffer">Temporary buffer.</param>
+    /// <param name="spectralStart">Start of spectral selection</param>
+    /// <param name="spectralEnd">End of spectral selection</param>
+    private void WriteStartOfScan(Span<JpegComponentConfig> components, Span<byte> buffer, byte spectralStart, byte spectralEnd)
     {
         // Write the SOS (Start Of Scan) marker "\xff\xda" followed by 12 bytes:
         // - the marker length "\x00\x0c",
@@ -630,8 +663,8 @@ internal sealed unsafe partial class JpegEncoderCore
             buffer[i2 + 6] = (byte)tableSelectors;
         }
 
-        buffer[sosSize - 1] = 0x00; // Ss - Start of spectral selection.
-        buffer[sosSize] = 0x3f; // Se - End of spectral selection.
+        buffer[sosSize - 1] = spectralStart; // Ss - Start of spectral selection.
+        buffer[sosSize] = spectralEnd; // Se - End of spectral selection.
         buffer[sosSize + 1] = 0x00; // Ah + Ah (Successive approximation bit position high + low)
         this.outputStream.Write(buffer, 0, sosSize + 2);
     }
@@ -666,7 +699,14 @@ internal sealed unsafe partial class JpegEncoderCore
         CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        if (frame.Components.Length == 1)
+        if (this.encoder.Progressive)
+        {
+            frame.AllocateComponents(fullScan: true);
+            spectralConverter.ConvertFull();
+
+            this.WriteProgressiveScans<TPixel>(frame, frameConfig, encoder, buffer, cancellationToken);
+        }
+        else if (frame.Components.Length == 1)
         {
             frame.AllocateComponents(fullScan: false);
 
@@ -690,6 +730,50 @@ internal sealed unsafe partial class JpegEncoderCore
             {
                 this.WriteStartOfScan(components.Slice(i, 1), buffer);
                 encoder.EncodeScanBaseline(frame.Components[i], cancellationToken);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Writes the progressive scans
+    /// </summary>
+    /// <typeparam name="TPixel">The type of pixel format.</typeparam>
+    /// <param name="frame">The current frame.</param>
+    /// <param name="frameConfig">The frame configuration.</param>
+    /// <param name="encoder">The scan encoder.</param>
+    /// <param name="buffer">Temporary buffer.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    private void WriteProgressiveScans<TPixel>(
+        JpegFrame frame,
+        JpegFrameConfig frameConfig,
+        HuffmanScanEncoder encoder,
+        Span<byte> buffer,
+        CancellationToken cancellationToken)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        Span<JpegComponentConfig> components = frameConfig.Components;
+
+        // Phase 1: DC scan
+        for (int i = 0; i < frame.Components.Length; i++)
+        {
+            this.WriteStartOfScan(components.Slice(i, 1), buffer, 0x00, 0x00);
+
+            encoder.EncodeDcScan(frame.Components[i], cancellationToken);
+        }
+
+        // Phase 2: AC scans
+        int acScans = this.encoder.ProgressiveScans - 1;
+        int valuesPerScan = 64 / acScans;
+        for (int scan = 0; scan < acScans; scan++)
+        {
+            int start = Math.Max(1, scan * valuesPerScan);
+            int end = scan == acScans - 1 ? 64 : (scan + 1) * valuesPerScan;
+
+            for (int i = 0; i < components.Length; i++)
+            {
+                this.WriteStartOfScan(components.Slice(i, 1), buffer, (byte)start, (byte)(end - 1));
+
+                encoder.EncodeAcScan(frame.Components[i], start, end, cancellationToken);
             }
         }
     }

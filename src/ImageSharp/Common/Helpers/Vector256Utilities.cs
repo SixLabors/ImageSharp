@@ -46,9 +46,7 @@ internal static class Vector256_
             return Avx2.Shuffle(vector, indices);
         }
 
-        return Vector256.Create(
-            Vector128_.ShuffleNative(vector.GetLower(), indices.GetLower()),
-            Vector128_.ShuffleNative(vector.GetUpper(), indices.GetUpper()));
+        return Vector256.Shuffle(vector, indices);
     }
 
     /// <summary>

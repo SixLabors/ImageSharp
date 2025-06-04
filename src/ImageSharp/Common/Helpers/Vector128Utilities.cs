@@ -127,6 +127,33 @@ internal static class Vector128_
     }
 
     /// <summary>
+    /// Shuffle 16-bit integers in the low 64 bits of <paramref name="value"/> using the control in <paramref name="control"/>.
+    /// Store the results in the low 64 bits of the destination, with the high 64 bits being copied from <paramref name="value"/>.
+    /// </summary>
+    /// <param name="value">The input vector containing packed 16-bit integers to shuffle.</param>
+    /// <param name="control">The shuffle control byte.</param>
+    /// <returns>
+    /// A vector containing the shuffled 16-bit integers in the low 64 bits, with the high 64 bits copied from <paramref name="value"/>.
+    /// </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector128<short> ShuffleLow(Vector128<short> value, [ConstantExpected] byte control)
+    {
+        if (Sse2.IsSupported)
+        {
+            return Sse2.ShuffleLow(value, control);
+        }
+
+        // Don't use InverseMMShuffle here as we want to avoid the cast.
+        Vector64<short> indices = Vector64.Create(
+            (short)(control & 0x3),
+            (short)((control >> 2) & 0x3),
+            (short)((control >> 4) & 0x3),
+            (short)((control >> 6) & 0x3));
+
+        return Vector128.Create(Vector64.Shuffle(value.GetLower(), indices), value.GetUpper());
+    }
+
+    /// <summary>
     /// Creates a new vector by selecting values from an input vector using a set of indices.
     /// </summary>
     /// <param name="vector">
@@ -196,6 +223,42 @@ internal static class Vector128_
         }
 
         return Vector128.Shuffle(value, Vector128.Create((byte)0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15) - Vector128.Create(numBytes));
+    }
+
+    /// <summary>
+    /// Shift packed 16-bit integers in <paramref name="value"/> left by <paramref name="value"/> while
+    /// shifting in zeros, and store the results
+    /// </summary>
+    /// <param name="value">The vector containing packed 16-bit integers to shift.</param>
+    /// <param name="count">The number of bits to shift left.</param>
+    /// <returns>
+    /// A vector containing the packed 16-bit integers shifted left by <paramref name="count"/>, with zeros shifted in.
+    /// </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector128<short> ShiftLeftLogical(Vector128<short> value, [ConstantExpected] byte count)
+    {
+        if (Sse2.IsSupported)
+        {
+            return Sse2.ShiftLeftLogical(value, count);
+        }
+
+        // Zero lanes where count >= 16 to match SSE2
+        if (count >= 16)
+        {
+            return Vector128<short>.Zero;
+        }
+
+        if (AdvSimd.IsSupported)
+        {
+            return AdvSimd.ShiftLogical(value, Vector128.Create((short)count));
+        }
+
+        if (PackedSimd.IsSupported)
+        {
+            return PackedSimd.ShiftLeft(value, count);
+        }
+
+        return Vector128.ShiftLeft(value, count);
     }
 
     /// <summary>

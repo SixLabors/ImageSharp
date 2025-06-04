@@ -160,6 +160,9 @@ public static class TestImages
         // Issue 2752: https://github.com/SixLabors/ImageSharp/issues/2752
         public const string Issue2752 = "Png/issues/Issue_2752.png";
 
+        // Issue 2924: https://github.com/SixLabors/ImageSharp/issues/2924
+        public const string Issue2924 = "Png/issues/Issue_2924.png";
+
         public static class Bad
         {
             public const string MissingDataChunk = "Png/xdtn0g01.png";
@@ -871,6 +874,7 @@ public static class TestImages
             public const string Issue2763 = "Webp/issues/Issue2763.png";
             public const string Issue2801 = "Webp/issues/Issue2801.webp";
             public const string Issue2866 = "Webp/issues/Issue2866.webp";
+            public const string Issue2925 = "Webp/issues/Issue2925.webp";
         }
 
         public const string AlphaBlend = "Webp/alpha-blend.webp";

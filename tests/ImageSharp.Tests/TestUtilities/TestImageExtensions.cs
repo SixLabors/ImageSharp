@@ -59,11 +59,6 @@ public static class TestImageExtensions
         bool appendSourceFileOrDescription = true,
         IImageEncoder encoder = null)
     {
-        if (TestEnvironment.RunsWithCodeCoverage)
-        {
-            return image;
-        }
-
         provider.Utility.SaveTestOutputFile(
             image,
             extension,
@@ -112,11 +107,6 @@ public static class TestImageExtensions
         Func<int, int, bool> predicate = null)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        if (TestEnvironment.RunsWithCodeCoverage)
-        {
-            return image;
-        }
-
         provider.Utility.SaveTestOutputFileMultiFrame(
             image,
             extension,
@@ -298,24 +288,23 @@ public static class TestImageExtensions
             appendPixelTypeToFileName,
             predicate: predicate);
 
-        using (Image<TPixel> debugImage = GetDebugOutputImageMultiFrame<TPixel>(
+        using Image<TPixel> debugImage = GetDebugOutputImageMultiFrame<TPixel>(
             provider,
             image.Frames.Count,
             testOutputDetails,
             extension,
             appendPixelTypeToFileName,
-            predicate: predicate))
+            predicate: predicate);
 
-        using (Image<TPixel> referenceImage = GetReferenceOutputImageMultiFrame<TPixel>(
+        using Image<TPixel> referenceImage = GetReferenceOutputImageMultiFrame<TPixel>(
             provider,
             image.Frames.Count,
             testOutputDetails,
             extension,
             appendPixelTypeToFileName,
-            predicate: predicate))
-        {
-            comparer.VerifySimilarity(referenceImage, debugImage);
-        }
+            predicate: predicate);
+
+        comparer.VerifySimilarity(referenceImage, debugImage);
 
         return image;
     }

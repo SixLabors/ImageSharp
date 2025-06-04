@@ -97,14 +97,14 @@ internal static unsafe class LosslessUtils
     {
         if (Vector256.IsHardwareAccelerated && pixelData.Length >= 8)
         {
-            Vector256<byte> addGreenToBlueAndRedMaskAvx2 = Vector256.Create(1, 255, 1, 255, 5, 255, 5, 255, 9, 255, 9, 255, 13, 255, 13, 255, 17, 255, 17, 255, 21, 255, 21, 255, 25, 255, 25, 255, 29, 255, 29, 255);
+            Vector256<byte> addGreenToBlueAndRedMask = Vector256.Create(1, 255, 1, 255, 5, 255, 5, 255, 9, 255, 9, 255, 13, 255, 13, 255, 17, 255, 17, 255, 21, 255, 21, 255, 25, 255, 25, 255, 29, 255, 29, 255);
             nuint numPixels = (uint)pixelData.Length;
             nuint i = 0;
             do
             {
                 ref uint pos = ref Unsafe.Add(ref MemoryMarshal.GetReference(pixelData), i);
                 Vector256<byte> input = Unsafe.As<uint, Vector256<uint>>(ref pos).AsByte();
-                Vector256<byte> in0g0g = Vector256_.ShuffleNative(input, addGreenToBlueAndRedMaskAvx2);
+                Vector256<byte> in0g0g = Vector256_.ShuffleNative(input, addGreenToBlueAndRedMask);
                 Vector256<byte> output = input + in0g0g;
                 Unsafe.As<uint, Vector256<uint>>(ref pos) = output.AsUInt32();
                 i += 8;
@@ -161,14 +161,14 @@ internal static unsafe class LosslessUtils
     {
         if (Vector256.IsHardwareAccelerated && pixelData.Length >= 8)
         {
-            Vector256<byte> subtractGreenFromBlueAndRedMaskAvx2 = Vector256.Create(1, 255, 1, 255, 5, 255, 5, 255, 9, 255, 9, 255, 13, 255, 13, 255, 17, 255, 17, 255, 21, 255, 21, 255, 25, 255, 25, 255, 29, 255, 29, 255);
+            Vector256<byte> subtractGreenFromBlueAndRedMask = Vector256.Create(1, 255, 1, 255, 5, 255, 5, 255, 9, 255, 9, 255, 13, 255, 13, 255, 17, 255, 17, 255, 21, 255, 21, 255, 25, 255, 25, 255, 29, 255, 29, 255);
             nuint numPixels = (uint)pixelData.Length;
             nuint i = 0;
             do
             {
                 ref uint pos = ref Unsafe.Add(ref MemoryMarshal.GetReference(pixelData), i);
                 Vector256<byte> input = Unsafe.As<uint, Vector256<uint>>(ref pos).AsByte();
-                Vector256<byte> in0g0g = Vector256_.ShuffleNative(input, subtractGreenFromBlueAndRedMaskAvx2);
+                Vector256<byte> in0g0g = Vector256_.ShuffleNative(input, subtractGreenFromBlueAndRedMask);
                 Vector256<byte> output = input - in0g0g;
                 Unsafe.As<uint, Vector256<uint>>(ref pos) = output.AsUInt32();
                 i += 8;

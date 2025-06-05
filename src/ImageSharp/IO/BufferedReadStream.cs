@@ -215,9 +215,9 @@ internal sealed class BufferedReadStream : Stream
     {
         this.Position = origin switch
         {
-            SeekOrigin.Begin => (int)offset,
-            SeekOrigin.Current => (int)(this.Position + offset),
-            SeekOrigin.End => (int)(this.Length + offset),
+            SeekOrigin.Begin => offset,
+            SeekOrigin.Current => this.Position + offset,
+            SeekOrigin.End => this.Length + offset,
             _ => throw new ArgumentOutOfRangeException(nameof(offset)),
         };
 

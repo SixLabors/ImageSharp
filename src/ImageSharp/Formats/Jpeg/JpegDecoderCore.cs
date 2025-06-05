@@ -115,12 +115,14 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
     /// Initializes a new instance of the <see cref="JpegDecoderCore"/> class.
     /// </summary>
     /// <param name="options">The decoder options.</param>
-    public JpegDecoderCore(JpegDecoderOptions options)
+    /// <param name="iccProfile">The ICC profile to use for color conversion.</param>
+    public JpegDecoderCore(JpegDecoderOptions options, IccProfile iccProfile = null)
         : base(options.GeneralOptions)
     {
         this.resizeMode = options.ResizeMode;
         this.configuration = options.GeneralOptions.Configuration;
         this.skipMetadata = options.GeneralOptions.SkipMetadata;
+        this.SetIccMetadata(iccProfile);
     }
 
     /// <summary>
@@ -231,7 +233,7 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
     /// <param name="scanDecoder">The scan decoder.</param>
     public void LoadTables(byte[] tableBytes, IJpegScanDecoder scanDecoder)
     {
-        this.Metadata = new ImageMetadata();
+        this.Metadata ??= new ImageMetadata();
         this.QuantizationTables = new Block8x8F[4];
         this.scanDecoder = scanDecoder;
         if (tableBytes.Length < 4)
@@ -314,7 +316,7 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
 
         this.scanDecoder ??= new HuffmanScanDecoder(stream, spectralConverter, cancellationToken);
 
-        this.Metadata = new ImageMetadata();
+        this.Metadata ??= new ImageMetadata();
 
         Span<byte> markerBuffer = stackalloc byte[2];
 
@@ -675,6 +677,16 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
             {
                 this.Metadata.IccProfile = profile;
             }
+        }
+    }
+
+    private void SetIccMetadata(IccProfile profile)
+    {
+        if (!this.skipMetadata && profile?.CheckIsValid() == true)
+        {
+            this.hasIcc = true;
+            this.Metadata ??= new ImageMetadata();
+            this.Metadata.IccProfile = profile;
         }
     }
 

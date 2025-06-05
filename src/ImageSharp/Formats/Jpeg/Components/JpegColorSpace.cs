@@ -24,6 +24,11 @@ internal enum JpegColorSpace
     Cmyk,
 
     /// <summary>
+    /// YccK color space with 4 components, used with tiff images, which use jpeg compression.
+    /// </summary>
+    TiffYccK,
+
+    /// <summary>
     /// Cmyk color space with 4 components, used with tiff images, which use jpeg compression.
     /// </summary>
     TiffCmyk,

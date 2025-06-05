@@ -31,22 +31,30 @@ internal sealed class TiffJpegSpectralConverter<TPixel> : SpectralConverter<TPix
     /// <inheritdoc/>
     protected override JpegColorConverterBase GetColorConverter(JpegFrame frame, IRawJpegData jpegData)
     {
-        JpegColorSpace colorSpace = GetJpegColorSpaceFromPhotometricInterpretation(this.photometricInterpretation);
+        JpegColorSpace colorSpace = GetJpegColorSpace(this.photometricInterpretation, jpegData);
         return JpegColorConverterBase.GetConverter(colorSpace, frame.Precision);
     }
 
     /// <summary>
     /// Photometric interpretation Rgb and YCbCr will be mapped to RGB colorspace, which means the jpeg decompression will leave the data as is (no color conversion).
-    /// The color conversion will be done after the decompression. For Separated/CMYK, the jpeg color converter will handle the color conversion,
+    /// The color conversion will be done after the decompression. For Separated/CMYK/YCCK, the jpeg color converter will handle the color conversion,
     /// since the jpeg color converter needs to return RGB data and cannot return 4 component data.
     /// For grayscale images <see cref="GrayJpegSpectralConverter{TPixel}"/> must be used.
     /// </summary>
-    private static JpegColorSpace GetJpegColorSpaceFromPhotometricInterpretation(TiffPhotometricInterpretation interpretation)
-        => interpretation switch
-        {
-            TiffPhotometricInterpretation.Rgb => JpegColorSpace.RGB,
-            TiffPhotometricInterpretation.YCbCr => JpegColorSpace.RGB,
-            TiffPhotometricInterpretation.Separated => JpegColorSpace.TiffCmyk,
-            _ => throw new InvalidImageContentException($"Invalid tiff photometric interpretation for jpeg encoding: {interpretation}"),
-        };
+    /// <param name="interpretation">
+    /// The <see cref="TiffPhotometricInterpretation"/> to convert to a <see cref="JpegColorSpace"/>.
+    /// </param>
+    /// <param name="data">
+    /// The <see cref="IRawJpegData"/> containing the color space information.
+    /// </param>
+    /// <exception cref="InvalidImageContentException">
+    /// Thrown when the <paramref name="interpretation"/> is not supported for JPEG encoding.
+    /// </exception>
+    private static JpegColorSpace GetJpegColorSpace(TiffPhotometricInterpretation interpretation, IRawJpegData data) => interpretation switch
+    {
+        TiffPhotometricInterpretation.Rgb => JpegColorSpace.RGB,
+        TiffPhotometricInterpretation.Separated => data.ColorSpace == JpegColorSpace.Ycck ? JpegColorSpace.TiffYccK : JpegColorSpace.TiffCmyk,
+        TiffPhotometricInterpretation.YCbCr => JpegColorSpace.RGB, // TODO: Why doesn't this use the YCbCr color space?
+        _ => throw new InvalidImageContentException($"Invalid TIFF photometric interpretation for JPEG encoding: {interpretation}"),
+    };
 }

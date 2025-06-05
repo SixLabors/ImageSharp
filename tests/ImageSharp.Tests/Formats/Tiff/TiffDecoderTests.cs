@@ -347,7 +347,34 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     {
         // Note: The image from MagickReferenceDecoder does not look right, maybe we are doing something wrong
         // converting the pixel data from Magick.NET to our format with CMYK?
-        using Image<TPixel> image = provider.GetImage();
+        using Image<TPixel> image = provider.GetImage(TiffDecoder.Instance);
+        image.DebugSave(provider);
+        image.CompareToReferenceOutput(ImageComparer.Exact, provider);
+    }
+
+    [Theory]
+    [WithFile(Issues2454_A, PixelTypes.Rgba32)]
+    [WithFile(Issues2454_B, PixelTypes.Rgba32)]
+    public void TiffDecoder_CanDecode_YccK<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage(TiffDecoder.Instance);
+        image.DebugSave(provider);
+        image.CompareToReferenceOutput(ImageComparer.Exact, provider);
+    }
+
+    [Theory]
+    [WithFile(Issues2454_A, PixelTypes.Rgba32)]
+    [WithFile(Issues2454_B, PixelTypes.Rgba32)]
+    public void TiffDecoder_CanDecode_YccK_ICC<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        DecoderOptions options = new()
+        {
+            ColorProfileHandling = ColorProfileHandling.Convert,
+        };
+
+        using Image<TPixel> image = provider.GetImage(TiffDecoder.Instance, options);
         image.DebugSave(provider);
         image.CompareToReferenceOutput(ImageComparer.Exact, provider);
     }

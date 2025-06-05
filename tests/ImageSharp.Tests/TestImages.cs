@@ -1130,6 +1130,8 @@ public static class TestImages
         public const string Issues2149 = "Tiff/Issues/Group4CompressionWithStrips.tiff";
         public const string Issues2255 = "Tiff/Issues/Issue2255.png";
         public const string Issues2435 = "Tiff/Issues/Issue2435.tiff";
+        public const string Issues2454_A = "Tiff/Issues/Issue2454_A.tif";
+        public const string Issues2454_B = "Tiff/Issues/Issue2454_B.tif";
         public const string Issues2587 = "Tiff/Issues/Issue2587.tiff";
         public const string Issues2679 = "Tiff/Issues/Issue2679.tiff";
         public const string JpegCompressedGray0000539558 = "Tiff/Issues/JpegCompressedGray-0000539558.tiff";

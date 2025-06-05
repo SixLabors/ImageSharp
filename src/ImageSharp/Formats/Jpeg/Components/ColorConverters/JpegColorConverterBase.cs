@@ -153,6 +153,39 @@ internal abstract partial class JpegColorConverterBase
         }
     }
 
+    public static void PackedNormalizeInterleave4(
+        ReadOnlySpan<float> xLane,
+        ReadOnlySpan<float> yLane,
+        ReadOnlySpan<float> zLane,
+        ReadOnlySpan<float> wLane,
+        Span<float> packed,
+        float maxValue)
+    {
+        DebugGuard.IsTrue(packed.Length % 4 == 0, "Packed length must be divisible by 4.");
+        DebugGuard.IsTrue(yLane.Length == xLane.Length, nameof(yLane), "Channels must be of same size!");
+        DebugGuard.IsTrue(zLane.Length == xLane.Length, nameof(zLane), "Channels must be of same size!");
+        DebugGuard.IsTrue(wLane.Length == xLane.Length, nameof(wLane), "Channels must be of same size!");
+        DebugGuard.MustBeLessThanOrEqualTo(packed.Length / 4, xLane.Length, nameof(packed));
+
+        float scale = 1F / maxValue;
+
+        // TODO: Investigate SIMD version of this.
+        ref float xLaneRef = ref MemoryMarshal.GetReference(xLane);
+        ref float yLaneRef = ref MemoryMarshal.GetReference(yLane);
+        ref float zLaneRef = ref MemoryMarshal.GetReference(zLane);
+        ref float wLaneRef = ref MemoryMarshal.GetReference(wLane);
+        ref float packedRef = ref MemoryMarshal.GetReference(packed);
+
+        for (nuint i = 0; i < (nuint)xLane.Length; i++)
+        {
+            nuint baseIdx = i * 4;
+            Unsafe.Add(ref packedRef, baseIdx) = Unsafe.Add(ref xLaneRef, i) * scale;
+            Unsafe.Add(ref packedRef, baseIdx + 1) = Unsafe.Add(ref yLaneRef, i) * scale;
+            Unsafe.Add(ref packedRef, baseIdx + 2) = Unsafe.Add(ref zLaneRef, i) * scale;
+            Unsafe.Add(ref packedRef, baseIdx + 3) = Unsafe.Add(ref wLaneRef, i) * scale;
+        }
+    }
+
     public static void PackedInvertNormalizeInterleave4(
         ReadOnlySpan<float> xLane,
         ReadOnlySpan<float> yLane,
@@ -198,6 +231,8 @@ internal abstract partial class JpegColorConverterBase
             GetCmykConverter(8),
             GetGrayScaleConverter(8),
             GetRgbConverter(8),
+            GetTiffCmykConverter(8),
+            GetTiffYccKConverter(8),
 
             // 12-bit converters
             GetYCbCrConverter(12),
@@ -205,6 +240,8 @@ internal abstract partial class JpegColorConverterBase
             GetCmykConverter(12),
             GetGrayScaleConverter(12),
             GetRgbConverter(12),
+            GetTiffCmykConverter(12),
+            GetTiffYccKConverter(12),
         ];
 
     /// <summary>
@@ -327,7 +364,45 @@ internal abstract partial class JpegColorConverterBase
         return new RgbScalar(precision);
     }
 
-    private static JpegColorConverterBase GetTiffCmykConverter(int precision) => new TiffCmykScalar(precision);
+    private static JpegColorConverterBase GetTiffCmykConverter(int precision)
+    {
+        if (JpegColorConverterVector512.IsSupported)
+        {
+            return new TiffCmykVector512(precision);
+        }
+
+        if (JpegColorConverterVector256.IsSupported)
+        {
+            return new TiffCmykVector256(precision);
+        }
+
+        if (JpegColorConverterVector128.IsSupported)
+        {
+            return new TiffCmykVector128(precision);
+        }
+
+        return new TiffCmykScalar(precision);
+    }
+
+    private static JpegColorConverterBase GetTiffYccKConverter(int precision)
+    {
+        if (JpegColorConverterVector512.IsSupported)
+        {
+            return new TiffYccKVector512(precision);
+        }
+
+        if (JpegColorConverterVector256.IsSupported)
+        {
+            return new TiffYccKVector256(precision);
+        }
+
+        if (JpegColorConverterVector128.IsSupported)
+        {
+            return new TiffYccKVector128(precision);
+        }
+
+        return new TiffYccKScalar(precision);
+    }
 
     /// <summary>
     /// A stack-only struct to reference the input buffers using <see cref="ReadOnlySpan{T}"/>-s.

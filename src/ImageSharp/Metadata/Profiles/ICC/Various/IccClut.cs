@@ -91,15 +91,7 @@ internal sealed class IccClut : IEquatable<IccClut>
             return false;
         }
 
-        for (int i = 0; i < this.Values.Length; i++)
-        {
-            if (!this.Values.SequenceEqual(other.Values))
-            {
-                return false;
-            }
-        }
-
-        return true;
+        return this.Values.SequenceEqual(other.Values);
     }
 
     private void CheckValues()

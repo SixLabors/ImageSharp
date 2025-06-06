@@ -66,18 +66,14 @@ public class Vp8LHistogramTests
         // All remaining values are expected to be zero.
         literals.AsSpan().CopyTo(expectedLiterals);
 
-        Vp8LBackwardRefs backwardRefs = new(pixelData.Length);
+        MemoryAllocator memoryAllocator = Configuration.Default.MemoryAllocator;
+
+        using Vp8LBackwardRefs backwardRefs = new(memoryAllocator, pixelData.Length);
         for (int i = 0; i < pixelData.Length; i++)
         {
-            backwardRefs.Add(new PixOrCopy()
-            {
-                BgraOrDistance = pixelData[i],
-                Len = 1,
-                Mode = PixOrCopyMode.Literal
-            });
+            backwardRefs.Add(PixOrCopy.CreateLiteral(pixelData[i]));
         }
 
-        MemoryAllocator memoryAllocator = Configuration.Default.MemoryAllocator;
         using OwnedVp8LHistogram histogram0 = OwnedVp8LHistogram.Create(memoryAllocator, backwardRefs, 3);
         using OwnedVp8LHistogram histogram1 = OwnedVp8LHistogram.Create(memoryAllocator, backwardRefs, 3);
         for (int i = 0; i < 5; i++)

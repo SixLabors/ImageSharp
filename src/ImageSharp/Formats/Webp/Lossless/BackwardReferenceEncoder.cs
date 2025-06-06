@@ -149,9 +149,8 @@ internal static class BackwardReferenceEncoder
         }
 
         // Find the cacheBits giving the lowest entropy.
-        for (int idx = 0; idx < refs.Refs.Count; idx++)
+        foreach (PixOrCopy v in refs)
         {
-            PixOrCopy v = refs.Refs[idx];
             if (v.IsLiteral())
             {
                 uint pix = bgra[pos++];
@@ -387,7 +386,7 @@ internal static class BackwardReferenceEncoder
             colorCache = new ColorCache(cacheBits);
         }
 
-        backwardRefs.Refs.Clear();
+        backwardRefs.Clear();
         for (int ix = 0; ix < chosenPathSize; ix++)
         {
             int len = chosenPath[ix];
@@ -479,7 +478,7 @@ internal static class BackwardReferenceEncoder
             colorCache = new ColorCache(cacheBits);
         }
 
-        refs.Refs.Clear();
+        refs.Clear();
         for (int i = 0; i < pixCount;)
         {
             // Alternative #1: Code the pixels starting at 'i' using backward reference.
@@ -734,7 +733,7 @@ internal static class BackwardReferenceEncoder
             colorCache = new ColorCache(cacheBits);
         }
 
-        refs.Refs.Clear();
+        refs.Clear();
 
         // Add first pixel as literal.
         AddSingleLiteral(bgra[0], useColorCache, colorCache, refs);
@@ -779,10 +778,9 @@ internal static class BackwardReferenceEncoder
     private static void BackwardRefsWithLocalCache(ReadOnlySpan<uint> bgra, int cacheBits, Vp8LBackwardRefs refs)
     {
         int pixelIndex = 0;
-        ColorCache colorCache = new ColorCache(cacheBits);
-        for (int idx = 0; idx < refs.Refs.Count; idx++)
+        ColorCache colorCache = new(cacheBits);
+        foreach (ref PixOrCopy v in refs)
         {
-            PixOrCopy v = refs.Refs[idx];
             if (v.IsLiteral())
             {
                 uint bgraLiteral = v.BgraOrDistance;
@@ -790,9 +788,7 @@ internal static class BackwardReferenceEncoder
                 if (ix >= 0)
                 {
                     // Color cache contains bgraLiteral
-                    v.Mode = PixOrCopyMode.CacheIdx;
-                    v.BgraOrDistance = (uint)ix;
-                    v.Len = 1;
+                    v = PixOrCopy.CreateCacheIdx(ix);
                 }
                 else
                 {
@@ -814,14 +810,13 @@ internal static class BackwardReferenceEncoder
 
     private static void BackwardReferences2DLocality(int xSize, Vp8LBackwardRefs refs)
     {
-        using List<PixOrCopy>.Enumerator c = refs.Refs.GetEnumerator();
-        while (c.MoveNext())
+        foreach (ref PixOrCopy v in refs)
         {
-            if (c.Current.IsCopy())
+            if (v.IsCopy())
             {
-                int dist = (int)c.Current.BgraOrDistance;
+                int dist = (int)v.BgraOrDistance;
                 int transformedDist = DistanceToPlaneCode(xSize, dist);
-                c.Current.BgraOrDistance = (uint)transformedDist;
+                v = PixOrCopy.CreateCopy((uint)transformedDist, v.Len);
             }
         }
     }

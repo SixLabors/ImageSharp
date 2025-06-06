@@ -6,37 +6,24 @@ using System.Diagnostics;
 namespace SixLabors.ImageSharp.Formats.Webp.Lossless;
 
 [DebuggerDisplay("Mode: {Mode}, Len: {Len}, BgraOrDistance: {BgraOrDistance}")]
-internal sealed class PixOrCopy
+internal readonly struct PixOrCopy
 {
-    public PixOrCopyMode Mode { get; set; }
+    public readonly PixOrCopyMode Mode;
+    public readonly ushort Len;
+    public readonly uint BgraOrDistance;
 
-    public ushort Len { get; set; }
-
-    public uint BgraOrDistance { get; set; }
-
-    public static PixOrCopy CreateCacheIdx(int idx) =>
-        new PixOrCopy
-        {
-            Mode = PixOrCopyMode.CacheIdx,
-            BgraOrDistance = (uint)idx,
-            Len = 1
-        };
-
-    public static PixOrCopy CreateLiteral(uint bgra) =>
-        new PixOrCopy
-        {
-            Mode = PixOrCopyMode.Literal,
-            BgraOrDistance = bgra,
-            Len = 1
-        };
-
-    public static PixOrCopy CreateCopy(uint distance, ushort len) =>
-        new PixOrCopy
+    private PixOrCopy(PixOrCopyMode mode, ushort len, uint bgraOrDistance)
     {
-        Mode = PixOrCopyMode.Copy,
-        BgraOrDistance = distance,
-        Len = len
-    };
+        this.Mode = mode;
+        this.Len = len;
+        this.BgraOrDistance = bgraOrDistance;
+    }
+
+    public static PixOrCopy CreateCacheIdx(int idx) => new(PixOrCopyMode.CacheIdx, 1, (uint)idx);
+
+    public static PixOrCopy CreateLiteral(uint bgra) => new(PixOrCopyMode.Literal, 1, bgra);
+
+    public static PixOrCopy CreateCopy(uint distance, ushort len) => new(PixOrCopyMode.Copy, len, distance);
 
     public int Literal(int component) => (int)(this.BgraOrDistance >> (component * 8)) & 0xFF;
 

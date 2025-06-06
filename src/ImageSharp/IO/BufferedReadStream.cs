@@ -69,7 +69,7 @@ internal sealed class BufferedReadStream : Stream
     }
 
     /// <summary>
-    /// Gets the number indicating the EOF hits occured while reading from this instance.
+    /// Gets the number indicating the EOF hits occurred while reading from this instance.
     /// </summary>
     public int EofHitCount { get; private set; }
 
@@ -213,20 +213,13 @@ internal sealed class BufferedReadStream : Stream
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public override long Seek(long offset, SeekOrigin origin)
     {
-        switch (origin)
+        this.Position = origin switch
         {
-            case SeekOrigin.Begin:
-                this.Position = offset;
-                break;
-
-            case SeekOrigin.Current:
-                this.Position += offset;
-                break;
-
-            case SeekOrigin.End:
-                this.Position = this.Length - offset;
-                break;
-        }
+            SeekOrigin.Begin => offset,
+            SeekOrigin.Current => this.Position + offset,
+            SeekOrigin.End => this.Length + offset,
+            _ => throw new ArgumentOutOfRangeException(nameof(offset)),
+        };
 
         return this.readerPosition;
     }

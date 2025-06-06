@@ -110,9 +110,8 @@ internal static class HistogramEncoder
         int x = 0, y = 0;
         int histoXSize = LosslessUtils.SubSampleSize(xSize, histoBits);
 
-        for (int i = 0; i < backwardRefs.Count; i++)
+        foreach (PixOrCopy v in backwardRefs)
         {
-            PixOrCopy v = backwardRefs[i];
             int ix = ((y >> histoBits) * histoXSize) + (x >> histoBits);
             histograms[ix].AddSinglePixOrCopy(v, false);
             x += v.Len;
@@ -217,7 +216,7 @@ internal static class HistogramEncoder
             clusterMappings[idx] = (ushort)idx;
         }
 
-        List<int> indicesToRemove = new();
+        List<int> indicesToRemove = [];
         Vp8LStreaks stats = new();
         Vp8LBitEntropy bitsEntropy = new();
         for (int idx = 0; idx < histograms.Count; idx++)
@@ -345,7 +344,7 @@ internal static class HistogramEncoder
 
         // Priority list of histogram pairs. Its size impacts the quality of the compression and the speed:
         // the smaller the faster but the worse for the compression.
-        List<HistogramPair> histoPriorityList = new();
+        List<HistogramPair> histoPriorityList = [];
         const int maxSize = 9;
 
         // Fill the initial mapping.
@@ -480,7 +479,7 @@ internal static class HistogramEncoder
         int histoSize = histograms.Count(h => h != null);
 
         // Priority list of histogram pairs.
-        List<HistogramPair> histoPriorityList = new();
+        List<HistogramPair> histoPriorityList = [];
         int maxSize = histoSize * histoSize;
         Vp8LStreaks stats = new();
         Vp8LBitEntropy bitsEntropy = new();

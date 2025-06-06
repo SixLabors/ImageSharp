@@ -1058,9 +1058,8 @@ internal class Vp8LEncoder : IDisposable
         int histogramIx = histogramSymbols[0];
         Span<HuffmanTreeCode> codes = huffmanCodes.AsSpan(5 * histogramIx);
 
-        for (int i = 0; i < backwardRefs.Count; i++)
+        foreach (PixOrCopy v in backwardRefs)
         {
-            PixOrCopy v = backwardRefs[i];
             if (tileX != (x & tileMask) || tileY != (y & tileMask))
             {
                 tileX = x & tileMask;

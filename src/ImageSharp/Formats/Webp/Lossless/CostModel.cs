@@ -40,9 +40,9 @@ internal class CostModel
         using OwnedVp8LHistogram histogram = OwnedVp8LHistogram.Create(this.memoryAllocator, cacheBits);
 
         // The following code is similar to HistogramCreate but converts the distance to plane code.
-        for (int i = 0; i < backwardRefs.Count; i++)
+        foreach (PixOrCopy v in backwardRefs)
         {
-            histogram.AddSinglePixOrCopy(backwardRefs[i], true, xSize);
+            histogram.AddSinglePixOrCopy(v, true, xSize);
         }
 
         ConvertPopulationCountTableToBitEstimates(histogram.NumCodes(), histogram.Literal, this.Literal);

@@ -149,9 +149,8 @@ internal static class BackwardReferenceEncoder
         }
 
         // Find the cacheBits giving the lowest entropy.
-        for (int idx = 0; idx < refs.Count; idx++)
+        foreach (PixOrCopy v in refs)
         {
-            PixOrCopy v = refs[idx];
             if (v.IsLiteral())
             {
                 uint pix = bgra[pos++];
@@ -780,9 +779,8 @@ internal static class BackwardReferenceEncoder
     {
         int pixelIndex = 0;
         ColorCache colorCache = new(cacheBits);
-        for (int idx = 0; idx < refs.Count; idx++)
+        foreach (ref PixOrCopy v in refs)
         {
-            PixOrCopy v = refs[idx];
             if (v.IsLiteral())
             {
                 uint bgraLiteral = v.BgraOrDistance;
@@ -790,7 +788,7 @@ internal static class BackwardReferenceEncoder
                 if (ix >= 0)
                 {
                     // Color cache contains bgraLiteral
-                    refs[idx] = PixOrCopy.CreateCacheIdx(ix);
+                    v = PixOrCopy.CreateCacheIdx(ix);
                 }
                 else
                 {
@@ -812,15 +810,13 @@ internal static class BackwardReferenceEncoder
 
     private static void BackwardReferences2DLocality(int xSize, Vp8LBackwardRefs refs)
     {
-        for (int idx = 0; idx < refs.Count; idx++)
+        foreach (ref PixOrCopy v in refs)
         {
-            PixOrCopy v = refs[idx];
-
             if (v.IsCopy())
             {
                 int dist = (int)v.BgraOrDistance;
                 int transformedDist = DistanceToPlaneCode(xSize, dist);
-                refs[idx] = PixOrCopy.CreateCopy((uint)transformedDist, v.Len);
+                v = PixOrCopy.CreateCopy((uint)transformedDist, v.Len);
             }
         }
     }

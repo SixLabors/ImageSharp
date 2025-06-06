@@ -5,7 +5,7 @@ using System.Buffers;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
-using System.Runtime.Intrinsics.X86;
+using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -29,9 +29,9 @@ internal static class YuvConversion
     //  ([3*a +   b + 9*c + 3*d      a + 3*b + 3*c + 9*d]   [8 8]) / 16
     public static void UpSample(Span<byte> topY, Span<byte> bottomY, Span<byte> topU, Span<byte> topV, Span<byte> curU, Span<byte> curV, Span<byte> topDst, Span<byte> bottomDst, int len, byte[] uvBuffer)
     {
-        if (Sse41.IsSupported)
+        if (Vector128.IsHardwareAccelerated)
         {
-            UpSampleSse41(topY, bottomY, topU, topV, curU, curV, topDst, bottomDst, len, uvBuffer);
+            UpSampleVector128(topY, bottomY, topU, topV, curU, curV, topDst, bottomDst, len, uvBuffer);
         }
         else
         {
@@ -107,7 +107,7 @@ internal static class YuvConversion
     //
     // Then m can be written as
     // m = (k + t + 1) / 2 - (((b^c) & (s^t)) | (k^t)) & 1
-    private static void UpSampleSse41(Span<byte> topY, Span<byte> bottomY, Span<byte> topU, Span<byte> topV, Span<byte> curU, Span<byte> curV, Span<byte> topDst, Span<byte> bottomDst, int len, byte[] uvBuffer)
+    private static void UpSampleVector128(Span<byte> topY, Span<byte> bottomY, Span<byte> topU, Span<byte> topV, Span<byte> curU, Span<byte> curV, Span<byte> topDst, Span<byte> bottomDst, int len, byte[] uvBuffer)
     {
         const int xStep = 3;
         Array.Clear(uvBuffer);
@@ -138,18 +138,18 @@ internal static class YuvConversion
         {
             for (pos = 1, uvPos = 0; pos + 32 + 1 <= len; pos += 32, uvPos += 16)
             {
-                UpSample32Pixels(ref Unsafe.Add(ref topURef, (uint)uvPos), ref Unsafe.Add(ref curURef, (uint)uvPos), ru);
-                UpSample32Pixels(ref Unsafe.Add(ref topVRef, (uint)uvPos), ref Unsafe.Add(ref curVRef, (uint)uvPos), rv);
-                ConvertYuvToBgrWithBottomYSse41(topY, bottomY, topDst, bottomDst, ru, rv, pos, xStep);
+                UpSample32PixelsVector128(ref Unsafe.Add(ref topURef, (uint)uvPos), ref Unsafe.Add(ref curURef, (uint)uvPos), ru);
+                UpSample32PixelsVector128(ref Unsafe.Add(ref topVRef, (uint)uvPos), ref Unsafe.Add(ref curVRef, (uint)uvPos), rv);
+                ConvertYuvToBgrWithBottomYVector128(topY, bottomY, topDst, bottomDst, ru, rv, pos, xStep);
             }
         }
         else
         {
             for (pos = 1, uvPos = 0; pos + 32 + 1 <= len; pos += 32, uvPos += 16)
             {
-                UpSample32Pixels(ref Unsafe.Add(ref topURef, (uint)uvPos), ref Unsafe.Add(ref curURef, (uint)uvPos), ru);
-                UpSample32Pixels(ref Unsafe.Add(ref topVRef, (uint)uvPos), ref Unsafe.Add(ref curVRef, (uint)uvPos), rv);
-                ConvertYuvToBgrSse41(topY, topDst, ru, rv, pos, xStep);
+                UpSample32PixelsVector128(ref Unsafe.Add(ref topURef, (uint)uvPos), ref Unsafe.Add(ref curURef, (uint)uvPos), ru);
+                UpSample32PixelsVector128(ref Unsafe.Add(ref topVRef, (uint)uvPos), ref Unsafe.Add(ref curVRef, (uint)uvPos), rv);
+                ConvertYuvToBgrVector128(topY, topDst, ru, rv, pos, xStep);
             }
         }
 
@@ -161,18 +161,18 @@ internal static class YuvConversion
             Span<byte> tmpBottomDst = tmpTopDst[(4 * 32)..];
             Span<byte> tmpTop = tmpBottomDst[(4 * 32)..];
             Span<byte> tmpBottom = bottomY.IsEmpty ? null : tmpTop[32..];
-            UpSampleLastBlock(topU[uvPos..], curU[uvPos..], leftOver, ru);
-            UpSampleLastBlock(topV[uvPos..], curV[uvPos..], leftOver, rv);
+            UpSampleLastBlockVector128(topU[uvPos..], curU[uvPos..], leftOver, ru);
+            UpSampleLastBlockVector128(topV[uvPos..], curV[uvPos..], leftOver, rv);
 
             topY[pos..len].CopyTo(tmpTop);
             if (!bottomY.IsEmpty)
             {
                 bottomY[pos..len].CopyTo(tmpBottom);
-                ConvertYuvToBgrWithBottomYSse41(tmpTop, tmpBottom, tmpTopDst, tmpBottomDst, ru, rv, 0, xStep);
+                ConvertYuvToBgrWithBottomYVector128(tmpTop, tmpBottom, tmpTopDst, tmpBottomDst, ru, rv, 0, xStep);
             }
             else
             {
-                ConvertYuvToBgrSse41(tmpTop, tmpTopDst, ru, rv, 0, xStep);
+                ConvertYuvToBgrVector128(tmpTop, tmpTopDst, ru, rv, 0, xStep);
             }
 
             tmpTopDst[..((len - pos) * xStep)].CopyTo(topDst[(pos * xStep)..]);
@@ -184,7 +184,7 @@ internal static class YuvConversion
     }
 
     // Loads 17 pixels each from rows r1 and r2 and generates 32 pixels.
-    private static void UpSample32Pixels(ref byte r1, ref byte r2, Span<byte> output)
+    private static void UpSample32PixelsVector128(ref byte r1, ref byte r2, Span<byte> output)
     {
         // Load inputs.
         Vector128<byte> a = Unsafe.As<byte, Vector128<byte>>(ref r1);
@@ -192,28 +192,28 @@ internal static class YuvConversion
         Vector128<byte> c = Unsafe.As<byte, Vector128<byte>>(ref r2);
         Vector128<byte> d = Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref r2, 1));
 
-        Vector128<byte> s = Sse2.Average(a, d); // s = (a + d + 1) / 2
-        Vector128<byte> t = Sse2.Average(b, c); // t = (b + c + 1) / 2
-        Vector128<byte> st = Sse2.Xor(s, t); // st = s^t
+        Vector128<byte> s = Vector128_.Average(a, d); // s = (a + d + 1) / 2
+        Vector128<byte> t = Vector128_.Average(b, c); // t = (b + c + 1) / 2
+        Vector128<byte> st = s ^ t; // st = s^t
 
-        Vector128<byte> ad = Sse2.Xor(a, d); // ad = a^d
-        Vector128<byte> bc = Sse2.Xor(b, c); // bc = b^c
+        Vector128<byte> ad = a ^ d; // ad = a^d
+        Vector128<byte> bc = b ^ c; // bc = b^c
 
-        Vector128<byte> t1 = Sse2.Or(ad, bc); // (a^d) | (b^c)
-        Vector128<byte> t2 = Sse2.Or(t1, st); // (a^d) | (b^c) | (s^t)
-        Vector128<byte> t3 = Sse2.And(t2, Vector128.Create((byte)1)); // (a^d) | (b^c) | (s^t) & 1
-        Vector128<byte> t4 = Sse2.Average(s, t);
-        Vector128<byte> k = Sse2.Subtract(t4, t3); // k = (a + b + c + d) / 4
+        Vector128<byte> t1 = ad | bc; // (a^d) | (b^c)
+        Vector128<byte> t2 = t1 | st; // (a^d) | (b^c) | (s^t)
+        Vector128<byte> t3 = t2 & Vector128.Create((byte)1); // (a^d) | (b^c) | (s^t) & 1
+        Vector128<byte> t4 = Vector128_.Average(s, t);
+        Vector128<byte> k = t4 - t3; // k = (a + b + c + d) / 4
 
-        Vector128<byte> diag1 = GetM(k, st, bc, t);
-        Vector128<byte> diag2 = GetM(k, st, ad, s);
+        Vector128<byte> diag1 = GetMVector128(k, st, bc, t);
+        Vector128<byte> diag2 = GetMVector128(k, st, ad, s);
 
         // Pack the alternate pixels.
-        PackAndStore(a, b, diag1, diag2, output); // store top.
-        PackAndStore(c, d, diag2, diag1, output[(2 * 32)..]);
+        PackAndStoreVector128(a, b, diag1, diag2, output); // store top.
+        PackAndStoreVector128(c, d, diag2, diag1, output[(2 * 32)..]);
     }
 
-    private static void UpSampleLastBlock(Span<byte> tb, Span<byte> bb, int numPixels, Span<byte> output)
+    private static void UpSampleLastBlockVector128(Span<byte> tb, Span<byte> bb, int numPixels, Span<byte> output)
     {
         Span<byte> r1 = stackalloc byte[17];
         Span<byte> r2 = stackalloc byte[17];
@@ -230,27 +230,27 @@ internal static class YuvConversion
 
         ref byte r1Ref = ref MemoryMarshal.GetReference(r1);
         ref byte r2Ref = ref MemoryMarshal.GetReference(r2);
-        UpSample32Pixels(ref r1Ref, ref r2Ref, output);
+        UpSample32PixelsVector128(ref r1Ref, ref r2Ref, output);
     }
 
     // Computes out = (k + in + 1) / 2 - ((ij & (s^t)) | (k^in)) & 1
-    private static Vector128<byte> GetM(Vector128<byte> k, Vector128<byte> st, Vector128<byte> ij, Vector128<byte> input)
+    private static Vector128<byte> GetMVector128(Vector128<byte> k, Vector128<byte> st, Vector128<byte> ij, Vector128<byte> input)
     {
-        Vector128<byte> tmp0 = Sse2.Average(k, input); // (k + in + 1) / 2
-        Vector128<byte> tmp1 = Sse2.And(ij, st); // (ij) & (s^t)
-        Vector128<byte> tmp2 = Sse2.Xor(k, input); // (k^in)
-        Vector128<byte> tmp3 = Sse2.Or(tmp1, tmp2); // ((ij) & (s^t)) | (k^in)
-        Vector128<byte> tmp4 = Sse2.And(tmp3, Vector128.Create((byte)1)); // & 1 -> lsb_correction
+        Vector128<byte> tmp0 = Vector128_.Average(k, input); // (k + in + 1) / 2
+        Vector128<byte> tmp1 = ij & st; // (ij) & (s^t)
+        Vector128<byte> tmp2 = k ^ input; // (k^in)
+        Vector128<byte> tmp3 = tmp1 | tmp2; // ((ij) & (s^t)) | (k^in)
+        Vector128<byte> tmp4 = tmp3 & Vector128.Create((byte)1); // & 1 -> lsb_correction
 
-        return Sse2.Subtract(tmp0, tmp4); // (k + in + 1) / 2 - lsb_correction
+        return tmp0 - tmp4; // (k + in + 1) / 2 - lsb_correction
     }
 
-    private static void PackAndStore(Vector128<byte> a, Vector128<byte> b, Vector128<byte> da, Vector128<byte> db, Span<byte> output)
+    private static void PackAndStoreVector128(Vector128<byte> a, Vector128<byte> b, Vector128<byte> da, Vector128<byte> db, Span<byte> output)
     {
-        Vector128<byte> ta = Sse2.Average(a, da); // (9a + 3b + 3c +  d + 8) / 16
-        Vector128<byte> tb = Sse2.Average(b, db); // (3a + 9b +  c + 3d + 8) / 16
-        Vector128<byte> t1 = Sse2.UnpackLow(ta, tb);
-        Vector128<byte> t2 = Sse2.UnpackHigh(ta, tb);
+        Vector128<byte> ta = Vector128_.Average(a, da); // (9a + 3b + 3c +  d + 8) / 16
+        Vector128<byte> tb = Vector128_.Average(b, db); // (3a + 9b +  c + 3d + 8) / 16
+        Vector128<byte> t1 = Vector128_.UnpackLow(ta, tb);
+        Vector128<byte> t2 = Vector128_.UnpackHigh(ta, tb);
 
         ref byte output0Ref = ref MemoryMarshal.GetReference(output);
         ref byte output1Ref = ref Unsafe.Add(ref output0Ref, 16);
@@ -562,41 +562,42 @@ internal static class YuvConversion
     }
 
     [MethodImpl(InliningOptions.ShortMethod)]
-    private static void ConvertYuvToBgrSse41(Span<byte> topY, Span<byte> topDst, Span<byte> ru, Span<byte> rv, int curX, int step) => YuvToBgrSse41(topY[curX..], ru, rv, topDst[(curX * step)..]);
+    private static void ConvertYuvToBgrVector128(Span<byte> topY, Span<byte> topDst, Span<byte> ru, Span<byte> rv, int curX, int step)
+        => YuvToBgrVector128(topY[curX..], ru, rv, topDst[(curX * step)..]);
 
     [MethodImpl(InliningOptions.ShortMethod)]
-    private static void ConvertYuvToBgrWithBottomYSse41(Span<byte> topY, Span<byte> bottomY, Span<byte> topDst, Span<byte> bottomDst, Span<byte> ru, Span<byte> rv, int curX, int step)
+    private static void ConvertYuvToBgrWithBottomYVector128(Span<byte> topY, Span<byte> bottomY, Span<byte> topDst, Span<byte> bottomDst, Span<byte> ru, Span<byte> rv, int curX, int step)
     {
-        YuvToBgrSse41(topY[curX..], ru, rv, topDst[(curX * step)..]);
-        YuvToBgrSse41(bottomY[curX..], ru[64..], rv[64..], bottomDst[(curX * step)..]);
+        YuvToBgrVector128(topY[curX..], ru, rv, topDst[(curX * step)..]);
+        YuvToBgrVector128(bottomY[curX..], ru[64..], rv[64..], bottomDst[(curX * step)..]);
     }
 
-    private static void YuvToBgrSse41(Span<byte> y, Span<byte> u, Span<byte> v, Span<byte> dst)
+    private static void YuvToBgrVector128(Span<byte> y, Span<byte> u, Span<byte> v, Span<byte> dst)
     {
         ref byte yRef = ref MemoryMarshal.GetReference(y);
         ref byte uRef = ref MemoryMarshal.GetReference(u);
         ref byte vRef = ref MemoryMarshal.GetReference(v);
-        ConvertYuv444ToBgrSse41(ref yRef, ref uRef, ref vRef, out Vector128<short> r0, out Vector128<short> g0, out Vector128<short> b0);
-        ConvertYuv444ToBgrSse41(ref Unsafe.Add(ref yRef, 8), ref Unsafe.Add(ref uRef, 8), ref Unsafe.Add(ref vRef, 8), out Vector128<short> r1, out Vector128<short> g1, out Vector128<short> b1);
-        ConvertYuv444ToBgrSse41(ref Unsafe.Add(ref yRef, 16), ref Unsafe.Add(ref uRef, 16), ref Unsafe.Add(ref vRef, 16), out Vector128<short> r2, out Vector128<short> g2, out Vector128<short> b2);
-        ConvertYuv444ToBgrSse41(ref Unsafe.Add(ref yRef, 24), ref Unsafe.Add(ref uRef, 24), ref Unsafe.Add(ref vRef, 24), out Vector128<short> r3, out Vector128<short> g3, out Vector128<short> b3);
+        ConvertYuv444ToBgrVector128(ref yRef, ref uRef, ref vRef, out Vector128<short> r0, out Vector128<short> g0, out Vector128<short> b0);
+        ConvertYuv444ToBgrVector128(ref Unsafe.Add(ref yRef, 8), ref Unsafe.Add(ref uRef, 8), ref Unsafe.Add(ref vRef, 8), out Vector128<short> r1, out Vector128<short> g1, out Vector128<short> b1);
+        ConvertYuv444ToBgrVector128(ref Unsafe.Add(ref yRef, 16), ref Unsafe.Add(ref uRef, 16), ref Unsafe.Add(ref vRef, 16), out Vector128<short> r2, out Vector128<short> g2, out Vector128<short> b2);
+        ConvertYuv444ToBgrVector128(ref Unsafe.Add(ref yRef, 24), ref Unsafe.Add(ref uRef, 24), ref Unsafe.Add(ref vRef, 24), out Vector128<short> r3, out Vector128<short> g3, out Vector128<short> b3);
 
         // Cast to 8b and store as BBBBGGGGRRRR.
-        Vector128<byte> bgr0 = Sse2.PackUnsignedSaturate(b0, b1);
-        Vector128<byte> bgr1 = Sse2.PackUnsignedSaturate(b2, b3);
-        Vector128<byte> bgr2 = Sse2.PackUnsignedSaturate(g0, g1);
-        Vector128<byte> bgr3 = Sse2.PackUnsignedSaturate(g2, g3);
-        Vector128<byte> bgr4 = Sse2.PackUnsignedSaturate(r0, r1);
-        Vector128<byte> bgr5 = Sse2.PackUnsignedSaturate(r2, r3);
+        Vector128<byte> bgr0 = Vector128_.PackUnsignedSaturate(b0, b1);
+        Vector128<byte> bgr1 = Vector128_.PackUnsignedSaturate(b2, b3);
+        Vector128<byte> bgr2 = Vector128_.PackUnsignedSaturate(g0, g1);
+        Vector128<byte> bgr3 = Vector128_.PackUnsignedSaturate(g2, g3);
+        Vector128<byte> bgr4 = Vector128_.PackUnsignedSaturate(r0, r1);
+        Vector128<byte> bgr5 = Vector128_.PackUnsignedSaturate(r2, r3);
 
         // Pack as BGRBGRBGRBGR.
-        PlanarTo24bSse41(bgr0, bgr1, bgr2, bgr3, bgr4, bgr5, dst);
+        PlanarTo24bVector128(bgr0, bgr1, bgr2, bgr3, bgr4, bgr5, dst);
     }
 
     // Pack the planar buffers
     // rrrr... rrrr... gggg... gggg... bbbb... bbbb....
     // triplet by triplet in the output buffer rgb as rgbrgbrgbrgb ...
-    private static void PlanarTo24bSse41(Vector128<byte> input0, Vector128<byte> input1, Vector128<byte> input2, Vector128<byte> input3, Vector128<byte> input4, Vector128<byte> input5, Span<byte> rgb)
+    private static void PlanarTo24bVector128(Vector128<byte> input0, Vector128<byte> input1, Vector128<byte> input2, Vector128<byte> input3, Vector128<byte> input4, Vector128<byte> input5, Span<byte> rgb)
     {
         // The input is 6 registers of sixteen 8b but for the sake of explanation,
         // let's take 6 registers of four 8b values.
@@ -612,7 +613,7 @@ internal static class YuvConversion
         //   r0g0b0r1 | g1b1r2g2 | b2r3g3b3 | r4g4b4r5 | g5b5r6g6 | b6r7g7b7
 
         // Process R.
-        ChannelMixing(
+        ChannelMixingVector128(
             input0,
             input1,
             Vector128.Create(0, 255, 255, 1, 255, 255, 2, 255, 255, 3, 255, 255, 4, 255, 255, 5),        // PlanarTo24Shuffle0
@@ -627,7 +628,7 @@ internal static class YuvConversion
 
         // Process G.
         // Same as before, just shifted to the left by one and including the right padding.
-        ChannelMixing(
+        ChannelMixingVector128(
             input2,
             input3,
             Vector128.Create(255, 0, 255, 255, 1, 255, 255, 2, 255, 255, 3, 255, 255, 4, 255, 255),      // PlanarTo24Shuffle3
@@ -641,7 +642,7 @@ internal static class YuvConversion
             out Vector128<byte> g5);
 
         // Process B.
-        ChannelMixing(
+        ChannelMixingVector128(
             input4,
             input5,
             Vector128.Create(255, 255, 0, 255, 255, 1, 255, 255, 2, 255, 255, 3, 255, 255, 4, 255),     // PlanarTo24Shuffle6
@@ -655,24 +656,24 @@ internal static class YuvConversion
             out Vector128<byte> b5);
 
         // OR the different channels.
-        Vector128<byte> rg0 = Sse2.Or(r0, g0);
-        Vector128<byte> rg1 = Sse2.Or(r1, g1);
-        Vector128<byte> rg2 = Sse2.Or(r2, g2);
-        Vector128<byte> rg3 = Sse2.Or(r3, g3);
-        Vector128<byte> rg4 = Sse2.Or(r4, g4);
-        Vector128<byte> rg5 = Sse2.Or(r5, g5);
+        Vector128<byte> rg0 = r0 | g0;
+        Vector128<byte> rg1 = r1 | g1;
+        Vector128<byte> rg2 = r2 | g2;
+        Vector128<byte> rg3 = r3 | g3;
+        Vector128<byte> rg4 = r4 | g4;
+        Vector128<byte> rg5 = r5 | g5;
 
         ref byte outputRef = ref MemoryMarshal.GetReference(rgb);
-        Unsafe.As<byte, Vector128<byte>>(ref outputRef) = Sse2.Or(rg0, b0);
-        Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref outputRef, 16)) = Sse2.Or(rg1, b1);
-        Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref outputRef, 32)) = Sse2.Or(rg2, b2);
-        Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref outputRef, 48)) = Sse2.Or(rg3, b3);
-        Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref outputRef, 64)) = Sse2.Or(rg4, b4);
-        Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref outputRef, 80)) = Sse2.Or(rg5, b5);
+        Unsafe.As<byte, Vector128<byte>>(ref outputRef) = rg0 | b0;
+        Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref outputRef, 16)) = rg1 | b1;
+        Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref outputRef, 32)) = rg2 | b2;
+        Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref outputRef, 48)) = rg3 | b3;
+        Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref outputRef, 64)) = rg4 | b4;
+        Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref outputRef, 80)) = rg5 | b5;
     }
 
     // Shuffles the input buffer as A0 0 0 A1 0 0 A2
-    private static void ChannelMixing(
+    private static void ChannelMixingVector128(
         Vector128<byte> input0,
         Vector128<byte> input1,
         Vector128<byte> shuffle0,
@@ -685,53 +686,53 @@ internal static class YuvConversion
         out Vector128<byte> output4,
         out Vector128<byte> output5)
     {
-        output0 = Ssse3.Shuffle(input0, shuffle0);
-        output1 = Ssse3.Shuffle(input0, shuffle1);
-        output2 = Ssse3.Shuffle(input0, shuffle2);
-        output3 = Ssse3.Shuffle(input1, shuffle0);
-        output4 = Ssse3.Shuffle(input1, shuffle1);
-        output5 = Ssse3.Shuffle(input1, shuffle2);
+        output0 = Vector128_.ShuffleNative(input0, shuffle0);
+        output1 = Vector128_.ShuffleNative(input0, shuffle1);
+        output2 = Vector128_.ShuffleNative(input0, shuffle2);
+        output3 = Vector128_.ShuffleNative(input1, shuffle0);
+        output4 = Vector128_.ShuffleNative(input1, shuffle1);
+        output5 = Vector128_.ShuffleNative(input1, shuffle2);
     }
 
     // Convert 32 samples of YUV444 to B/G/R
-    private static void ConvertYuv444ToBgrSse41(ref byte y, ref byte u, ref byte v, out Vector128<short> r, out Vector128<short> g, out Vector128<short> b)
+    private static void ConvertYuv444ToBgrVector128(ref byte y, ref byte u, ref byte v, out Vector128<short> r, out Vector128<short> g, out Vector128<short> b)
     {
         // Load the bytes into the *upper* part of 16b words. That's "<< 8", basically.
         Vector128<byte> y0 = Unsafe.As<byte, Vector128<byte>>(ref y);
         Vector128<byte> u0 = Unsafe.As<byte, Vector128<byte>>(ref u);
         Vector128<byte> v0 = Unsafe.As<byte, Vector128<byte>>(ref v);
-        y0 = Sse2.UnpackLow(Vector128<byte>.Zero, y0);
-        u0 = Sse2.UnpackLow(Vector128<byte>.Zero, u0);
-        v0 = Sse2.UnpackLow(Vector128<byte>.Zero, v0);
+        y0 = Vector128_.UnpackLow(Vector128<byte>.Zero, y0);
+        u0 = Vector128_.UnpackLow(Vector128<byte>.Zero, u0);
+        v0 = Vector128_.UnpackLow(Vector128<byte>.Zero, v0);
 
         // These constants are 14b fixed-point version of ITU-R BT.601 constants.
         // R = (19077 * y             + 26149 * v - 14234) >> 6
         // G = (19077 * y -  6419 * u - 13320 * v +  8708) >> 6
         // B = (19077 * y + 33050 * u             - 17685) >> 6
-        var k19077 = Vector128.Create((ushort)19077);
-        var k26149 = Vector128.Create((ushort)26149);
-        var k14234 = Vector128.Create((ushort)14234);
+        Vector128<ushort> k19077 = Vector128.Create((ushort)19077);
+        Vector128<ushort> k26149 = Vector128.Create((ushort)26149);
+        Vector128<ushort> k14234 = Vector128.Create((ushort)14234);
 
-        Vector128<ushort> y1 = Sse2.MultiplyHigh(y0.AsUInt16(), k19077);
-        Vector128<ushort> r0 = Sse2.MultiplyHigh(v0.AsUInt16(), k26149);
-        Vector128<ushort> g0 = Sse2.MultiplyHigh(u0.AsUInt16(), Vector128.Create((ushort)6419));
-        Vector128<ushort> g1 = Sse2.MultiplyHigh(v0.AsUInt16(), Vector128.Create((ushort)13320));
+        Vector128<ushort> y1 = Vector128_.MultiplyHigh(y0.AsUInt16(), k19077);
+        Vector128<ushort> r0 = Vector128_.MultiplyHigh(v0.AsUInt16(), k26149);
+        Vector128<ushort> g0 = Vector128_.MultiplyHigh(u0.AsUInt16(), Vector128.Create((ushort)6419));
+        Vector128<ushort> g1 = Vector128_.MultiplyHigh(v0.AsUInt16(), Vector128.Create((ushort)13320));
 
-        Vector128<ushort> r1 = Sse2.Subtract(y1.AsUInt16(), k14234);
-        Vector128<ushort> r2 = Sse2.Add(r1, r0);
+        Vector128<ushort> r1 = y1.AsUInt16() - k14234;
+        Vector128<ushort> r2 = r1 + r0;
 
-        Vector128<ushort> g2 = Sse2.Add(y1.AsUInt16(), Vector128.Create((ushort)8708));
-        Vector128<ushort> g3 = Sse2.Add(g0, g1);
-        Vector128<ushort> g4 = Sse2.Subtract(g2, g3);
+        Vector128<ushort> g2 = y1.AsUInt16() + Vector128.Create((ushort)8708);
+        Vector128<ushort> g3 = g0 + g1;
+        Vector128<ushort> g4 = g2 - g3;
 
-        Vector128<ushort> b0 = Sse2.MultiplyHigh(u0.AsUInt16(), Vector128.Create(26, 129, 26, 129, 26, 129, 26, 129, 26, 129, 26, 129, 26, 129, 26, 129).AsUInt16());
-        Vector128<ushort> b1 = Sse2.AddSaturate(b0, y1);
-        Vector128<ushort> b2 = Sse2.SubtractSaturate(b1, Vector128.Create((ushort)17685));
+        Vector128<ushort> b0 = Vector128_.MultiplyHigh(u0.AsUInt16(), Vector128.Create(26, 129, 26, 129, 26, 129, 26, 129, 26, 129, 26, 129, 26, 129, 26, 129).AsUInt16());
+        Vector128<ushort> b1 = Vector128_.AddSaturate(b0, y1);
+        Vector128<ushort> b2 = Vector128_.SubtractSaturate(b1, Vector128.Create((ushort)17685));
 
         // Use logical shift for B2, which can be larger than 32767.
-        r = Sse2.ShiftRightArithmetic(r2.AsInt16(), 6); // range: [-14234, 30815]
-        g = Sse2.ShiftRightArithmetic(g4.AsInt16(), 6); // range: [-10953, 27710]
-        b = Sse2.ShiftRightLogical(b2.AsInt16(), 6); // range: [0, 34238]
+        r = Vector128.ShiftRightArithmetic(r2.AsInt16(), 6); // range: [-14234, 30815]
+        g = Vector128.ShiftRightArithmetic(g4.AsInt16(), 6); // range: [-10953, 27710]
+        b = Vector128.ShiftRightLogical(b2.AsInt16(), 6); // range: [0, 34238]
     }
 
     [MethodImpl(InliningOptions.ShortMethod)]

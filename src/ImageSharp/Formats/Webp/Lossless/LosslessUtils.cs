@@ -6,6 +6,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
+using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Webp.Lossless;
@@ -94,17 +95,20 @@ internal static unsafe class LosslessUtils
     /// <param name="pixelData">The pixel data to apply the transformation.</param>
     public static void AddGreenToBlueAndRed(Span<uint> pixelData)
     {
-        if (Avx2.IsSupported && pixelData.Length >= 8)
+        if (Vector256.IsHardwareAccelerated && pixelData.Length >= 8)
         {
-            Vector256<byte> addGreenToBlueAndRedMaskAvx2 = Vector256.Create(1, 255, 1, 255, 5, 255, 5, 255, 9, 255, 9, 255, 13, 255, 13, 255, 17, 255, 17, 255, 21, 255, 21, 255, 25, 255, 25, 255, 29, 255, 29, 255);
+            // The `255` values disable the write for alpha (A), since 0x80 is set in the control byte (high bit set).
+            // Each byte index is within its respective 128-bit lane (0–15 and 16–31), so this is safe for per-lane shuffle.
+            // The high bits are not set for the index bytes, and the values are always < 16 per lane, satisfying AVX2 lane rules.
+            Vector256<byte> addGreenToBlueAndRedMask = Vector256.Create(1, 255, 1, 255, 5, 255, 5, 255, 9, 255, 9, 255, 13, 255, 13, 255, 17, 255, 17, 255, 21, 255, 21, 255, 25, 255, 25, 255, 29, 255, 29, 255);
             nuint numPixels = (uint)pixelData.Length;
             nuint i = 0;
             do
             {
                 ref uint pos = ref Unsafe.Add(ref MemoryMarshal.GetReference(pixelData), i);
                 Vector256<byte> input = Unsafe.As<uint, Vector256<uint>>(ref pos).AsByte();
-                Vector256<byte> in0g0g = Avx2.Shuffle(input, addGreenToBlueAndRedMaskAvx2);
-                Vector256<byte> output = Avx2.Add(input, in0g0g);
+                Vector256<byte> in0g0g = Vector256_.ShufflePerLane(input, addGreenToBlueAndRedMask);
+                Vector256<byte> output = input + in0g0g;
                 Unsafe.As<uint, Vector256<uint>>(ref pos) = output.AsUInt32();
                 i += 8;
             }
@@ -115,39 +119,17 @@ internal static unsafe class LosslessUtils
                 AddGreenToBlueAndRedScalar(pixelData[(int)i..]);
             }
         }
-        else if (Ssse3.IsSupported && pixelData.Length >= 4)
+        else if (Vector128.IsHardwareAccelerated && pixelData.Length >= 4)
         {
-            Vector128<byte> addGreenToBlueAndRedMaskSsse3 = Vector128.Create(1, 255, 1, 255, 5, 255, 5, 255, 9, 255, 9, 255, 13, 255, 13, 255);
+            Vector128<byte> addGreenToBlueAndRedMask = Vector128.Create(1, 255, 1, 255, 5, 255, 5, 255, 9, 255, 9, 255, 13, 255, 13, 255);
             nuint numPixels = (uint)pixelData.Length;
             nuint i = 0;
             do
             {
                 ref uint pos = ref Unsafe.Add(ref MemoryMarshal.GetReference(pixelData), i);
                 Vector128<byte> input = Unsafe.As<uint, Vector128<uint>>(ref pos).AsByte();
-                Vector128<byte> in0g0g = Ssse3.Shuffle(input, addGreenToBlueAndRedMaskSsse3);
-                Vector128<byte> output = Sse2.Add(input, in0g0g);
-                Unsafe.As<uint, Vector128<uint>>(ref pos) = output.AsUInt32();
-                i += 4;
-            }
-            while (i <= numPixels - 4);
-
-            if (i != numPixels)
-            {
-                AddGreenToBlueAndRedScalar(pixelData[(int)i..]);
-            }
-        }
-        else if (Sse2.IsSupported && pixelData.Length >= 4)
-        {
-            nuint numPixels = (uint)pixelData.Length;
-            nuint i = 0;
-            do
-            {
-                ref uint pos = ref Unsafe.Add(ref MemoryMarshal.GetReference(pixelData), i);
-                Vector128<byte> input = Unsafe.As<uint, Vector128<uint>>(ref pos).AsByte();
-                Vector128<ushort> a = Sse2.ShiftRightLogical(input.AsUInt16(), 8); // 0 a 0 g
-                Vector128<ushort> b = Sse2.ShuffleLow(a, SimdUtils.Shuffle.MMShuffle2200);
-                Vector128<ushort> c = Sse2.ShuffleHigh(b, SimdUtils.Shuffle.MMShuffle2200); // 0g0g
-                Vector128<byte> output = Sse2.Add(input.AsByte(), c.AsByte());
+                Vector128<byte> in0g0g = Vector128_.ShuffleNative(input, addGreenToBlueAndRedMask);
+                Vector128<byte> output = input + in0g0g;
                 Unsafe.As<uint, Vector128<uint>>(ref pos) = output.AsUInt32();
                 i += 4;
             }
@@ -180,17 +162,17 @@ internal static unsafe class LosslessUtils
 
     public static void SubtractGreenFromBlueAndRed(Span<uint> pixelData)
     {
-        if (Avx2.IsSupported && pixelData.Length >= 8)
+        if (Vector256.IsHardwareAccelerated && pixelData.Length >= 8)
         {
-            Vector256<byte> subtractGreenFromBlueAndRedMaskAvx2 = Vector256.Create(1, 255, 1, 255, 5, 255, 5, 255, 9, 255, 9, 255, 13, 255, 13, 255, 17, 255, 17, 255, 21, 255, 21, 255, 25, 255, 25, 255, 29, 255, 29, 255);
+            Vector256<byte> subtractGreenFromBlueAndRedMask = Vector256.Create(1, 255, 1, 255, 5, 255, 5, 255, 9, 255, 9, 255, 13, 255, 13, 255, 17, 255, 17, 255, 21, 255, 21, 255, 25, 255, 25, 255, 29, 255, 29, 255);
             nuint numPixels = (uint)pixelData.Length;
             nuint i = 0;
             do
             {
                 ref uint pos = ref Unsafe.Add(ref MemoryMarshal.GetReference(pixelData), i);
                 Vector256<byte> input = Unsafe.As<uint, Vector256<uint>>(ref pos).AsByte();
-                Vector256<byte> in0g0g = Avx2.Shuffle(input, subtractGreenFromBlueAndRedMaskAvx2);
-                Vector256<byte> output = Avx2.Subtract(input, in0g0g);
+                Vector256<byte> in0g0g = Vector256_.ShufflePerLane(input, subtractGreenFromBlueAndRedMask);
+                Vector256<byte> output = input - in0g0g;
                 Unsafe.As<uint, Vector256<uint>>(ref pos) = output.AsUInt32();
                 i += 8;
             }
@@ -201,39 +183,17 @@ internal static unsafe class LosslessUtils
                 SubtractGreenFromBlueAndRedScalar(pixelData[(int)i..]);
             }
         }
-        else if (Ssse3.IsSupported && pixelData.Length >= 4)
+        else if (Vector128.IsHardwareAccelerated && pixelData.Length >= 4)
         {
-            Vector128<byte> subtractGreenFromBlueAndRedMaskSsse3 = Vector128.Create(1, 255, 1, 255, 5, 255, 5, 255, 9, 255, 9, 255, 13, 255, 13, 255);
+            Vector128<byte> subtractGreenFromBlueAndRedMask = Vector128.Create(1, 255, 1, 255, 5, 255, 5, 255, 9, 255, 9, 255, 13, 255, 13, 255);
             nuint numPixels = (uint)pixelData.Length;
             nuint i = 0;
             do
             {
                 ref uint pos = ref Unsafe.Add(ref MemoryMarshal.GetReference(pixelData), i);
                 Vector128<byte> input = Unsafe.As<uint, Vector128<uint>>(ref pos).AsByte();
-                Vector128<byte> in0g0g = Ssse3.Shuffle(input, subtractGreenFromBlueAndRedMaskSsse3);
-                Vector128<byte> output = Sse2.Subtract(input, in0g0g);
-                Unsafe.As<uint, Vector128<uint>>(ref pos) = output.AsUInt32();
-                i += 4;
-            }
-            while (i <= numPixels - 4);
-
-            if (i != numPixels)
-            {
-                SubtractGreenFromBlueAndRedScalar(pixelData[(int)i..]);
-            }
-        }
-        else if (Sse2.IsSupported && pixelData.Length >= 4)
-        {
-            nuint numPixels = (uint)pixelData.Length;
-            nuint i = 0;
-            do
-            {
-                ref uint pos = ref Unsafe.Add(ref MemoryMarshal.GetReference(pixelData), i);
-                Vector128<byte> input = Unsafe.As<uint, Vector128<uint>>(ref pos).AsByte();
-                Vector128<ushort> a = Sse2.ShiftRightLogical(input.AsUInt16(), 8); // 0 a 0 g
-                Vector128<ushort> b = Sse2.ShuffleLow(a, SimdUtils.Shuffle.MMShuffle2200);
-                Vector128<ushort> c = Sse2.ShuffleHigh(b, SimdUtils.Shuffle.MMShuffle2200); // 0g0g
-                Vector128<byte> output = Sse2.Subtract(input.AsByte(), c.AsByte());
+                Vector128<byte> in0g0g = Vector128_.ShuffleNative(input, subtractGreenFromBlueAndRedMask);
+                Vector128<byte> output = input - in0g0g;
                 Unsafe.As<uint, Vector128<uint>>(ref pos) = output.AsUInt32();
                 i += 4;
             }
@@ -412,7 +372,7 @@ internal static unsafe class LosslessUtils
                 TransformColorScalar(m, pixelData[(int)idx..], numPixels - (int)idx);
             }
         }
-        else if (Sse2.IsSupported && numPixels >= 4)
+        else if (Vector128.IsHardwareAccelerated && numPixels >= 4)
         {
             Vector128<byte> transformColorAlphaGreenMask = Vector128.Create(0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255);
             Vector128<byte> transformColorRedBlueMask = Vector128.Create(255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0);
@@ -423,16 +383,16 @@ internal static unsafe class LosslessUtils
             {
                 ref uint pos = ref Unsafe.Add(ref MemoryMarshal.GetReference(pixelData), idx);
                 Vector128<uint> input = Unsafe.As<uint, Vector128<uint>>(ref pos);
-                Vector128<byte> a = Sse2.And(input.AsByte(), transformColorAlphaGreenMask);
-                Vector128<short> b = Sse2.ShuffleLow(a.AsInt16(), SimdUtils.Shuffle.MMShuffle2200);
-                Vector128<short> c = Sse2.ShuffleHigh(b.AsInt16(), SimdUtils.Shuffle.MMShuffle2200);
-                Vector128<short> d = Sse2.MultiplyHigh(c.AsInt16(), multsrb.AsInt16());
-                Vector128<short> e = Sse2.ShiftLeftLogical(input.AsInt16(), 8);
-                Vector128<short> f = Sse2.MultiplyHigh(e.AsInt16(), multsb2.AsInt16());
-                Vector128<int> g = Sse2.ShiftRightLogical(f.AsInt32(), 16);
-                Vector128<byte> h = Sse2.Add(g.AsByte(), d.AsByte());
-                Vector128<byte> i = Sse2.And(h, transformColorRedBlueMask);
-                Vector128<byte> output = Sse2.Subtract(input.AsByte(), i);
+                Vector128<byte> a = input.AsByte() & transformColorAlphaGreenMask;
+                Vector128<short> b = Vector128_.ShuffleLow(a.AsInt16(), SimdUtils.Shuffle.MMShuffle2200);
+                Vector128<short> c = Vector128_.ShuffleHigh(b.AsInt16(), SimdUtils.Shuffle.MMShuffle2200);
+                Vector128<short> d = Vector128_.MultiplyHigh(c.AsInt16(), multsrb.AsInt16());
+                Vector128<short> e = Vector128_.ShiftLeftLogical(input.AsInt16(), 8);
+                Vector128<short> f = Vector128_.MultiplyHigh(e.AsInt16(), multsb2.AsInt16());
+                Vector128<int> g = Vector128.ShiftRightLogical(f.AsInt32(), 16);
+                Vector128<byte> h = g.AsByte() + d.AsByte();
+                Vector128<byte> i = h & transformColorRedBlueMask;
+                Vector128<byte> output = input.AsByte() - i;
                 Unsafe.As<uint, Vector128<uint>>(ref pos) = output.AsUInt32();
                 idx += 4;
             }
@@ -503,7 +463,7 @@ internal static unsafe class LosslessUtils
                 TransformColorInverseScalar(m, pixelData[(int)idx..]);
             }
         }
-        else if (Sse2.IsSupported && pixelData.Length >= 4)
+        else if (Vector128.IsHardwareAccelerated && pixelData.Length >= 4)
         {
             Vector128<byte> transformColorInverseAlphaGreenMask = Vector128.Create(0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255);
             Vector128<int> multsrb = MkCst16(Cst5b(m.GreenToRed), Cst5b(m.GreenToBlue));
@@ -514,17 +474,17 @@ internal static unsafe class LosslessUtils
             {
                 ref uint pos = ref Unsafe.Add(ref MemoryMarshal.GetReference(pixelData), idx);
                 Vector128<uint> input = Unsafe.As<uint, Vector128<uint>>(ref pos);
-                Vector128<byte> a = Sse2.And(input.AsByte(), transformColorInverseAlphaGreenMask);
-                Vector128<short> b = Sse2.ShuffleLow(a.AsInt16(), SimdUtils.Shuffle.MMShuffle2200);
-                Vector128<short> c = Sse2.ShuffleHigh(b.AsInt16(), SimdUtils.Shuffle.MMShuffle2200);
-                Vector128<short> d = Sse2.MultiplyHigh(c.AsInt16(), multsrb.AsInt16());
-                Vector128<byte> e = Sse2.Add(input.AsByte(), d.AsByte());
-                Vector128<short> f = Sse2.ShiftLeftLogical(e.AsInt16(), 8);
-                Vector128<short> g = Sse2.MultiplyHigh(f, multsb2.AsInt16());
-                Vector128<int> h = Sse2.ShiftRightLogical(g.AsInt32(), 8);
-                Vector128<byte> i = Sse2.Add(h.AsByte(), f.AsByte());
-                Vector128<short> j = Sse2.ShiftRightLogical(i.AsInt16(), 8);
-                Vector128<byte> output = Sse2.Or(j.AsByte(), a);
+                Vector128<byte> a = input.AsByte() & transformColorInverseAlphaGreenMask;
+                Vector128<short> b = Vector128_.ShuffleLow(a.AsInt16(), SimdUtils.Shuffle.MMShuffle2200);
+                Vector128<short> c = Vector128_.ShuffleHigh(b.AsInt16(), SimdUtils.Shuffle.MMShuffle2200);
+                Vector128<short> d = Vector128_.MultiplyHigh(c.AsInt16(), multsrb.AsInt16());
+                Vector128<byte> e = input.AsByte() + d.AsByte();
+                Vector128<short> f = Vector128_.ShiftLeftLogical(e.AsInt16(), 8);
+                Vector128<short> g = Vector128_.MultiplyHigh(f, multsb2.AsInt16());
+                Vector128<int> h = Vector128.ShiftRightLogical(g.AsInt32(), 8);
+                Vector128<byte> i = h.AsByte() + f.AsByte();
+                Vector128<short> j = Vector128.ShiftRightLogical(i.AsInt16(), 8);
+                Vector128<byte> output = j.AsByte() | a;
                 Unsafe.As<uint, Vector128<uint>>(ref pos) = output.AsUInt32();
             }
 
@@ -1401,15 +1361,15 @@ internal static unsafe class LosslessUtils
 
     private static uint ClampedAddSubtractFull(uint c0, uint c1, uint c2)
     {
-        if (Sse2.IsSupported)
+        if (Vector128.IsHardwareAccelerated)
         {
-            Vector128<byte> c0Vec = Sse2.UnpackLow(Sse2.ConvertScalarToVector128UInt32(c0).AsByte(), Vector128<byte>.Zero);
-            Vector128<byte> c1Vec = Sse2.UnpackLow(Sse2.ConvertScalarToVector128UInt32(c1).AsByte(), Vector128<byte>.Zero);
-            Vector128<byte> c2Vec = Sse2.UnpackLow(Sse2.ConvertScalarToVector128UInt32(c2).AsByte(), Vector128<byte>.Zero);
-            Vector128<short> v1 = Sse2.Add(c0Vec.AsInt16(), c1Vec.AsInt16());
-            Vector128<short> v2 = Sse2.Subtract(v1, c2Vec.AsInt16());
-            Vector128<byte> b = Sse2.PackUnsignedSaturate(v2, v2);
-            return Sse2.ConvertToUInt32(b.AsUInt32());
+            Vector128<byte> c0Vec = Vector128_.UnpackLow(Vector128.CreateScalar(c0).AsByte(), Vector128<byte>.Zero);
+            Vector128<byte> c1Vec = Vector128_.UnpackLow(Vector128.CreateScalar(c1).AsByte(), Vector128<byte>.Zero);
+            Vector128<byte> c2Vec = Vector128_.UnpackLow(Vector128.CreateScalar(c2).AsByte(), Vector128<byte>.Zero);
+            Vector128<short> v1 = c0Vec.AsInt16() + c1Vec.AsInt16();
+            Vector128<short> v2 = v1 - c2Vec.AsInt16();
+            Vector128<byte> b = Vector128_.PackUnsignedSaturate(v2, v2);
+            return b.AsUInt32().ToScalar();
         }
 
         {
@@ -1432,20 +1392,20 @@ internal static unsafe class LosslessUtils
 
     private static uint ClampedAddSubtractHalf(uint c0, uint c1, uint c2)
     {
-        if (Sse2.IsSupported)
+        if (Vector128.IsHardwareAccelerated)
         {
-            Vector128<byte> c0Vec = Sse2.UnpackLow(Sse2.ConvertScalarToVector128UInt32(c0).AsByte(), Vector128<byte>.Zero);
-            Vector128<byte> c1Vec = Sse2.UnpackLow(Sse2.ConvertScalarToVector128UInt32(c1).AsByte(), Vector128<byte>.Zero);
-            Vector128<byte> b0 = Sse2.UnpackLow(Sse2.ConvertScalarToVector128UInt32(c2).AsByte(), Vector128<byte>.Zero);
-            Vector128<short> avg = Sse2.Add(c1Vec.AsInt16(), c0Vec.AsInt16());
-            Vector128<short> a0 = Sse2.ShiftRightLogical(avg, 1);
-            Vector128<short> a1 = Sse2.Subtract(a0, b0.AsInt16());
-            Vector128<short> bgta = Sse2.CompareGreaterThan(b0.AsInt16(), a0.AsInt16());
-            Vector128<short> a2 = Sse2.Subtract(a1, bgta);
-            Vector128<short> a3 = Sse2.ShiftRightArithmetic(a2, 1);
-            Vector128<short> a4 = Sse2.Add(a0, a3).AsInt16();
-            Vector128<byte> a5 = Sse2.PackUnsignedSaturate(a4, a4);
-            return Sse2.ConvertToUInt32(a5.AsUInt32());
+            Vector128<byte> c0Vec = Vector128_.UnpackLow(Vector128.CreateScalar(c0).AsByte(), Vector128<byte>.Zero);
+            Vector128<byte> c1Vec = Vector128_.UnpackLow(Vector128.CreateScalar(c1).AsByte(), Vector128<byte>.Zero);
+            Vector128<byte> b0 = Vector128_.UnpackLow(Vector128.CreateScalar(c2).AsByte(), Vector128<byte>.Zero);
+            Vector128<short> avg = c1Vec.AsInt16() + c0Vec.AsInt16();
+            Vector128<short> a0 = Vector128.ShiftRightLogical(avg, 1);
+            Vector128<short> a1 = a0 - b0.AsInt16();
+            Vector128<short> bgta = Vector128.GreaterThan(b0.AsInt16(), a0.AsInt16());
+            Vector128<short> a2 = a1 - bgta;
+            Vector128<short> a3 = Vector128.ShiftRightArithmetic(a2, 1);
+            Vector128<short> a4 = (a0 + a3).AsInt16();
+            Vector128<byte> a5 = Vector128_.PackUnsignedSaturate(a4, a4);
+            return a5.AsUInt32().ToScalar();
         }
 
         {
@@ -1475,23 +1435,23 @@ internal static unsafe class LosslessUtils
 
     private static uint Select(uint a, uint b, uint c, Span<short> scratch)
     {
-        if (Sse2.IsSupported)
+        if (Vector128.IsHardwareAccelerated)
         {
             fixed (short* ptr = &MemoryMarshal.GetReference(scratch))
             {
-                Vector128<byte> a0 = Sse2.ConvertScalarToVector128UInt32(a).AsByte();
-                Vector128<byte> b0 = Sse2.ConvertScalarToVector128UInt32(b).AsByte();
-                Vector128<byte> c0 = Sse2.ConvertScalarToVector128UInt32(c).AsByte();
-                Vector128<byte> ac0 = Sse2.SubtractSaturate(a0, c0);
-                Vector128<byte> ca0 = Sse2.SubtractSaturate(c0, a0);
-                Vector128<byte> bc0 = Sse2.SubtractSaturate(b0, c0);
-                Vector128<byte> cb0 = Sse2.SubtractSaturate(c0, b0);
-                Vector128<byte> ac = Sse2.Or(ac0, ca0);
-                Vector128<byte> bc = Sse2.Or(bc0, cb0);
-                Vector128<byte> pa = Sse2.UnpackLow(ac, Vector128<byte>.Zero); // |a - c|
-                Vector128<byte> pb = Sse2.UnpackLow(bc, Vector128<byte>.Zero); // |b - c|
-                Vector128<ushort> diff = Sse2.Subtract(pb.AsUInt16(), pa.AsUInt16());
-                Sse2.Store((ushort*)ptr, diff);
+                Vector128<byte> a0 = Vector128.CreateScalar(a).AsByte();
+                Vector128<byte> b0 = Vector128.CreateScalar(b).AsByte();
+                Vector128<byte> c0 = Vector128.CreateScalar(c).AsByte();
+                Vector128<byte> ac0 = Vector128_.SubtractSaturate(a0, c0);
+                Vector128<byte> ca0 = Vector128_.SubtractSaturate(c0, a0);
+                Vector128<byte> bc0 = Vector128_.SubtractSaturate(b0, c0);
+                Vector128<byte> cb0 = Vector128_.SubtractSaturate(c0, b0);
+                Vector128<byte> ac = ac0 | ca0;
+                Vector128<byte> bc = bc0 | cb0;
+                Vector128<byte> pa = Vector128_.UnpackLow(ac, Vector128<byte>.Zero); // |a - c|
+                Vector128<byte> pb = Vector128_.UnpackLow(bc, Vector128<byte>.Zero); // |b - c|
+                Vector128<ushort> diff = pb.AsUInt16() - pa.AsUInt16();
+                diff.Store((ushort*)ptr);
                 int paMinusPb = ptr[3] + ptr[2] + ptr[1] + ptr[0];
                 return (paMinusPb <= 0) ? a : b;
             }

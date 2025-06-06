@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
@@ -22,24 +21,6 @@ internal static class Vector256_
 #pragma warning restore SA1649 // File name should match first type name
 {
     /// <summary>
-    /// Gets a value indicating whether shuffle byte operations are supported.
-    /// </summary>
-    public static bool SupportsShuffleNativeFloat
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => Avx.IsSupported;
-    }
-
-    /// <summary>
-    /// Gets a value indicating whether shuffle byte operations are supported.
-    /// </summary>
-    public static bool SupportsShuffleNativeByte
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => Avx2.IsSupported;
-    }
-
-    /// <summary>
     /// Creates a new vector by selecting values from an input vector using a set of indices.
     /// </summary>
     /// <param name="vector">The input vector from which values are selected.</param>
@@ -47,15 +28,7 @@ internal static class Vector256_
     /// <returns>The <see cref="Vector256{Single}"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> ShuffleNative(Vector256<float> vector, [ConstantExpected] byte control)
-    {
-        if (Avx.IsSupported)
-        {
-            return Avx.Shuffle(vector, vector, control);
-        }
-
-        ThrowUnreachableException();
-        return default;
-    }
+        => Avx.Shuffle(vector, vector, control);
 
     /// <summary>
     /// Creates a new vector by selecting values from an input vector using a set of indices.</summary>
@@ -66,15 +39,17 @@ internal static class Vector256_
     /// </param>
     /// <returns>The <see cref="Vector256{Single}"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector256<byte> ShuffleNative(Vector256<byte> vector, Vector256<byte> indices)
+    public static Vector256<byte> ShufflePerLane(Vector256<byte> vector, Vector256<byte> indices)
     {
         if (Avx2.IsSupported)
         {
             return Avx2.Shuffle(vector, indices);
         }
 
-        ThrowUnreachableException();
-        return default;
+        Vector128<byte> indicesLo = indices.GetLower();
+        Vector128<byte> lower = Vector128_.ShuffleNative(vector.GetLower(), indicesLo);
+        Vector128<byte> upper = Vector128_.ShuffleNative(vector.GetUpper(), indicesLo);
+        return Vector256.Create(lower, upper);
     }
 
     /// <summary>
@@ -163,6 +138,54 @@ internal static class Vector256_
     }
 
     /// <summary>
+    /// Multiply packed signed 16-bit integers in <paramref name="left"/> and <paramref name="right"/>, producing
+    /// intermediate signed 32-bit integers. Horizontally add adjacent pairs of intermediate 32-bit integers, and
+    /// pack the results.
+    /// </summary>
+    /// <param name="left">
+    /// The first vector containing packed signed 16-bit integers to multiply and add.
+    /// </param>
+    /// <param name="right">
+    /// The second vector containing packed signed 16-bit integers to multiply and add.
+    /// </param>
+    /// <returns>
+    /// A vector containing the results of multiplying and adding adjacent pairs of packed signed 16-bit integers
+    /// </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<int> MultiplyAddAdjacent(Vector256<short> left, Vector256<short> right)
+    {
+        if (Avx2.IsSupported)
+        {
+            return Avx2.MultiplyAddAdjacent(left, right);
+        }
+
+        return Vector256.Create(
+            Vector128_.MultiplyAddAdjacent(left.GetLower(), right.GetLower()),
+            Vector128_.MultiplyAddAdjacent(left.GetUpper(), right.GetUpper()));
+    }
+
+    /// <summary>
+    /// Packs signed 32-bit integers to signed 16-bit integers and saturates.
+    /// </summary>
+    /// <param name="left">The left hand source vector.</param>
+    /// <param name="right">The right hand source vector.</param>
+    /// <returns>The <see cref="Vector256{UInt16}"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<ushort> PackUnsignedSaturate(Vector256<int> left, Vector256<int> right)
+    {
+        if (Avx2.IsSupported)
+        {
+            return Avx2.PackUnsignedSaturate(left, right);
+        }
+
+        Vector256<int> min = Vector256.Create((int)ushort.MinValue);
+        Vector256<int> max = Vector256.Create((int)ushort.MaxValue);
+        Vector256<uint> lefClamped = Clamp(left, min, max).AsUInt32();
+        Vector256<uint> rightClamped = Clamp(right, min, max).AsUInt32();
+        return Vector256.Narrow(lefClamped, rightClamped);
+    }
+
+    /// <summary>
     /// Packs signed 32-bit integers to signed 16-bit integers and saturates.
     /// </summary>
     /// <param name="left">The left hand source vector.</param>
@@ -180,6 +203,27 @@ internal static class Vector256_
         Vector256<int> max = Vector256.Create((int)short.MaxValue);
         Vector256<int> lefClamped = Clamp(left, min, max);
         Vector256<int> rightClamped = Clamp(right, min, max);
+        return Vector256.Narrow(lefClamped, rightClamped);
+    }
+
+    /// <summary>
+    /// Packs signed 16-bit integers to signed 8-bit integers and saturates.
+    /// </summary>
+    /// <param name="left">The left hand source vector.</param>
+    /// <param name="right">The right hand source vector.</param>
+    /// <returns>The <see cref="Vector256{SByte}"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<sbyte> PackSignedSaturate(Vector256<short> left, Vector256<short> right)
+    {
+        if (Avx2.IsSupported)
+        {
+            return Avx2.PackSignedSaturate(left, right);
+        }
+
+        Vector256<short> min = Vector256.Create((short)sbyte.MinValue);
+        Vector256<short> max = Vector256.Create((short)sbyte.MaxValue);
+        Vector256<short> lefClamped = Clamp(left, min, max);
+        Vector256<short> rightClamped = Clamp(right, min, max);
         return Vector256.Narrow(lefClamped, rightClamped);
     }
 
@@ -210,6 +254,211 @@ internal static class Vector256_
         return Vector256.WidenLower(value.ToVector256());
     }
 
-    [DoesNotReturn]
-    private static void ThrowUnreachableException() => throw new UnreachableException();
+    /// <summary>
+    /// Multiply the packed 16-bit integers in <paramref name="left"/> and <paramref name="right"/>, producing
+    /// intermediate 32-bit integers, and store the low 16 bits of the intermediate integers in the result.
+    /// </summary>
+    /// <param name="left">
+    /// The first vector containing packed 16-bit integers to multiply.
+    /// </param>
+    /// <param name="right">
+    /// The second vector containing packed 16-bit integers to multiply.
+    /// </param>
+    /// <returns>
+    /// A vector containing the low 16 bits of the products of the packed 16-bit integers
+    /// from <paramref name="left"/> and <paramref name="right"/>.
+    /// </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<short> MultiplyLow(Vector256<short> left, Vector256<short> right)
+    {
+        if (Avx2.IsSupported)
+        {
+            return Avx2.MultiplyLow(left, right);
+        }
+
+        // Widen each half of the short vectors into two int vectors
+        (Vector256<int> leftLower, Vector256<int> leftUpper) = Vector256.Widen(left);
+        (Vector256<int> rightLower, Vector256<int> rightUpper) = Vector256.Widen(right);
+
+        // Elementwise multiply: each int lane now holds the full 32-bit product
+        Vector256<int> prodLo = leftLower * rightLower;
+        Vector256<int> prodHi = leftUpper * rightUpper;
+
+        // Narrow the two int vectors back into one short vector
+        return Vector256.Narrow(prodLo, prodHi);
+    }
+
+    /// <summary>
+    /// Multiply the packed 16-bit integers in <paramref name="left"/> and <paramref name="right"/>, producing
+    /// intermediate 32-bit integers, and store the high 16 bits of the intermediate integers in the result.
+    /// </summary>
+    /// <param name="left">
+    /// The first vector containing packed 16-bit integers to multiply.
+    /// </param>
+    /// <param name="right">
+    /// The second vector containing packed 16-bit integers to multiply.
+    /// </param>
+    /// <returns>
+    /// A vector containing the high 16 bits of the products of the packed 16-bit integers
+    /// from <paramref name="left"/> and <paramref name="right"/>.
+    /// </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<short> MultiplyHigh(Vector256<short> left, Vector256<short> right)
+    {
+        if (Avx2.IsSupported)
+        {
+            return Avx2.MultiplyHigh(left, right);
+        }
+
+        // Widen each half of the short vectors into two int vectors
+        (Vector256<int> leftLower, Vector256<int> leftUpper) = Vector256.Widen(left);
+        (Vector256<int> rightLower, Vector256<int> rightUpper) = Vector256.Widen(right);
+
+        // Elementwise multiply: each int lane now holds the full 32-bit product
+        Vector256<int> prodLo = leftLower * rightLower;
+        Vector256<int> prodHi = leftUpper * rightUpper;
+
+        // Arithmetic shift right by 16 bits to extract the high word
+        prodLo >>= 16;
+        prodHi >>= 16;
+
+        // Narrow the two int vectors back into one short vector
+        return Vector256.Narrow(prodLo, prodHi);
+    }
+
+    /// <summary>
+    /// Unpack and interleave 32-bit integers from the low half of <paramref name="left"/> and <paramref name="right"/>
+    /// and store the results in the result.
+    /// </summary>
+    /// <param name="left">
+    /// The first vector containing packed 32-bit integers to unpack from the low half.
+    /// </param>
+    /// <param name="right">
+    /// The second vector containing packed 32-bit integers to unpack from the low half.
+    /// </param>
+    /// <returns>
+    /// A vector containing the unpacked and interleaved 32-bit integers from the low
+    /// halves of <paramref name="left"/> and <paramref name="right"/>.
+    /// </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<int> UnpackLow(Vector256<int> left, Vector256<int> right)
+    {
+        if (Avx2.IsSupported)
+        {
+            return Avx2.UnpackLow(left, right);
+        }
+
+        Vector128<int> lo = Vector128_.UnpackLow(left.GetLower(), right.GetLower());
+        Vector128<int> hi = Vector128_.UnpackLow(left.GetUpper(), right.GetUpper());
+
+        return Vector256.Create(lo, hi);
+    }
+
+    /// <summary>
+    /// Unpack and interleave 8-bit integers from the high half of <paramref name="left"/> and <paramref name="right"/>
+    /// and store the results in the result.
+    /// </summary>
+    /// <param name="left">
+    /// The first vector containing packed 8-bit integers to unpack from the high half.
+    /// </param>
+    /// <param name="right">
+    /// The second vector containing packed 8-bit integers to unpack from the high half.
+    /// </param>
+    /// <returns>
+    /// A vector containing the unpacked and interleaved 8-bit integers from the high
+    /// halves of <paramref name="left"/> and <paramref name="right"/>.
+    /// </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<byte> UnpackHigh(Vector256<byte> left, Vector256<byte> right)
+    {
+        if (Avx2.IsSupported)
+        {
+            return Avx2.UnpackHigh(left, right);
+        }
+
+        Vector128<byte> lo = Vector128_.UnpackHigh(left.GetLower(), right.GetLower());
+        Vector128<byte> hi = Vector128_.UnpackHigh(left.GetUpper(), right.GetUpper());
+
+        return Vector256.Create(lo, hi);
+    }
+
+    /// <summary>
+    /// Unpack and interleave 8-bit integers from the low half of <paramref name="left"/> and <paramref name="right"/>
+    /// and store the results in the result.
+    /// </summary>
+    /// <param name="left">
+    /// The first vector containing packed 8-bit integers to unpack from the low half.
+    /// </param>
+    /// <param name="right">
+    /// The second vector containing packed 8-bit integers to unpack from the low half.
+    /// </param>
+    /// <returns>
+    /// A vector containing the unpacked and interleaved 8-bit integers from the low
+    /// halves of <paramref name="left"/> and <paramref name="right"/>.
+    /// </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<byte> UnpackLow(Vector256<byte> left, Vector256<byte> right)
+    {
+        if (Avx2.IsSupported)
+        {
+            return Avx2.UnpackLow(left, right);
+        }
+
+        Vector128<byte> lo = Vector128_.UnpackLow(left.GetLower(), right.GetLower());
+        Vector128<byte> hi = Vector128_.UnpackLow(left.GetUpper(), right.GetUpper());
+
+        return Vector256.Create(lo, hi);
+    }
+
+    /// <summary>
+    /// Subtract packed signed 16-bit integers in <paramref name="right"/> from packed signed 16-bit integers
+    /// in <paramref name="left"/> using saturation, and store the results.
+    /// </summary>
+    /// <param name="left">
+    /// The first vector containing packed signed 16-bit integers to subtract from.
+    /// </param>
+    /// <param name="right">
+    /// The second vector containing packed signed 16-bit integers to subtract.
+    /// </param>
+    /// <returns>
+    /// A vector containing the results of subtracting packed unsigned 16-bit integers
+    /// </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<short> SubtractSaturate(Vector256<short> left, Vector256<short> right)
+    {
+        if (Avx2.IsSupported)
+        {
+            return Avx2.SubtractSaturate(left, right);
+        }
+
+        return Vector256.Create(
+            Vector128_.SubtractSaturate(left.GetLower(), right.GetLower()),
+            Vector128_.SubtractSaturate(left.GetUpper(), right.GetUpper()));
+    }
+
+    /// <summary>
+    /// Subtract packed unsigned 8-bit integers in <paramref name="right"/> from packed unsigned 8-bit integers
+    /// in <paramref name="left"/> using saturation, and store the results.
+    /// </summary>
+    /// <param name="left">
+    /// The first vector containing packed unsigned 8-bit integers to subtract from.
+    /// </param>
+    /// <param name="right">
+    /// The second vector containing packed unsigned 8-bit integers to subtract.
+    /// </param>
+    /// <returns>
+    /// A vector containing the results of subtracting packed unsigned 8-bit integers
+    /// </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<byte> SubtractSaturate(Vector256<byte> left, Vector256<byte> right)
+    {
+        if (Avx2.IsSupported)
+        {
+            return Avx2.SubtractSaturate(left, right);
+        }
+
+        return Vector256.Create(
+            Vector128_.SubtractSaturate(left.GetLower(), right.GetLower()),
+            Vector128_.SubtractSaturate(left.GetUpper(), right.GetUpper()));
+    }
 }

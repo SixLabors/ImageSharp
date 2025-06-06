@@ -97,6 +97,9 @@ internal static unsafe class LosslessUtils
     {
         if (Vector256.IsHardwareAccelerated && pixelData.Length >= 8)
         {
+            // The `255` values disable the write for alpha (A), since 0x80 is set in the control byte (high bit set).
+            // Each byte index is within its respective 128-bit lane (0–15 and 16–31), so this is safe for per-lane shuffle.
+            // The high bits are not set for the index bytes, and the values are always < 16 per lane, satisfying AVX2 lane rules.
             Vector256<byte> addGreenToBlueAndRedMask = Vector256.Create(1, 255, 1, 255, 5, 255, 5, 255, 9, 255, 9, 255, 13, 255, 13, 255, 17, 255, 17, 255, 21, 255, 21, 255, 25, 255, 25, 255, 29, 255, 29, 255);
             nuint numPixels = (uint)pixelData.Length;
             nuint i = 0;
@@ -104,7 +107,7 @@ internal static unsafe class LosslessUtils
             {
                 ref uint pos = ref Unsafe.Add(ref MemoryMarshal.GetReference(pixelData), i);
                 Vector256<byte> input = Unsafe.As<uint, Vector256<uint>>(ref pos).AsByte();
-                Vector256<byte> in0g0g = Vector256_.ShuffleNative(input, addGreenToBlueAndRedMask);
+                Vector256<byte> in0g0g = Vector256_.ShufflePerLane(input, addGreenToBlueAndRedMask);
                 Vector256<byte> output = input + in0g0g;
                 Unsafe.As<uint, Vector256<uint>>(ref pos) = output.AsUInt32();
                 i += 8;
@@ -168,7 +171,7 @@ internal static unsafe class LosslessUtils
             {
                 ref uint pos = ref Unsafe.Add(ref MemoryMarshal.GetReference(pixelData), i);
                 Vector256<byte> input = Unsafe.As<uint, Vector256<uint>>(ref pos).AsByte();
-                Vector256<byte> in0g0g = Vector256_.ShuffleNative(input, subtractGreenFromBlueAndRedMask);
+                Vector256<byte> in0g0g = Vector256_.ShufflePerLane(input, subtractGreenFromBlueAndRedMask);
                 Vector256<byte> output = input - in0g0g;
                 Unsafe.As<uint, Vector256<uint>>(ref pos) = output.AsUInt32();
                 i += 8;

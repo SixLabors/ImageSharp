@@ -16,6 +16,9 @@ internal static class ColorSpaceTransformUtils
         {
             const int span = 16;
             Span<ushort> values = stackalloc ushort[span];
+
+            // These shuffle masks are safe for use with Avx2.Shuffle because all indices are within their respective 128-bit lanes (0–15 for the low mask, 16–31 for the high mask),
+            // and all disabled lanes are set to 0xFF to zero those bytes per the vpshufb specification. This guarantees lane-local shuffling with no cross-lane violations.
             Vector256<byte> collectColorBlueTransformsShuffleLowMask256 = Vector256.Create(255, 2, 255, 6, 255, 10, 255, 14, 255, 255, 255, 255, 255, 255, 255, 255, 255, 18, 255, 22, 255, 26, 255, 30, 255, 255, 255, 255, 255, 255, 255, 255);
             Vector256<byte> collectColorBlueTransformsShuffleHighMask256 = Vector256.Create(255, 255, 255, 255, 255, 255, 255, 255, 255, 2, 255, 6, 255, 10, 255, 14, 255, 255, 255, 255, 255, 255, 255, 255, 255, 18, 255, 22, 255, 26, 255, 30);
             Vector256<byte> collectColorBlueTransformsGreenBlueMask256 = Vector256.Create(255, 255, 0, 0, 255, 255, 0, 0, 255, 255, 0, 0, 255, 255, 0, 0, 255, 255, 0, 0, 255, 255, 0, 0, 255, 255, 0, 0, 255, 255, 0, 0);
@@ -33,8 +36,8 @@ internal static class ColorSpaceTransformUtils
                     nuint input1Idx = x + (span / 2);
                     Vector256<byte> input0 = Unsafe.As<uint, Vector256<uint>>(ref Unsafe.Add(ref inputRef, input0Idx)).AsByte();
                     Vector256<byte> input1 = Unsafe.As<uint, Vector256<uint>>(ref Unsafe.Add(ref inputRef, input1Idx)).AsByte();
-                    Vector256<byte> r0 = Vector256_.ShuffleNative(input0, collectColorBlueTransformsShuffleLowMask256);
-                    Vector256<byte> r1 = Vector256_.ShuffleNative(input1, collectColorBlueTransformsShuffleHighMask256);
+                    Vector256<byte> r0 = Vector256_.ShufflePerLane(input0, collectColorBlueTransformsShuffleLowMask256);
+                    Vector256<byte> r1 = Vector256_.ShufflePerLane(input1, collectColorBlueTransformsShuffleHighMask256);
                     Vector256<byte> r = r0 | r1;
                     Vector256<byte> gb0 = input0 & collectColorBlueTransformsGreenBlueMask256;
                     Vector256<byte> gb1 = input1 & collectColorBlueTransformsGreenBlueMask256;

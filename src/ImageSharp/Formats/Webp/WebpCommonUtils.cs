@@ -44,8 +44,8 @@ internal static class WebpCommonUtils
                     Vector256<short> c1 = Vector256_.PackSignedSaturate(b2, b3).AsInt16();
                     Vector256<byte> d = Vector256_.PackSignedSaturate(c0, c1).AsByte();
                     Vector256<byte> bits = Vector256.Equals(d, all0x80Vector256);
-                    int mask = Vector256_.MoveMask(bits);
-                    if (mask != -1)
+                    uint mask = bits.ExtractMostSignificantBits();
+                    if (mask != 0xFFFF_FFFF)
                     {
                         return true;
                     }
@@ -138,7 +138,7 @@ internal static class WebpCommonUtils
         Vector128<short> c1 = Vector128_.PackSignedSaturate(b2, b3).AsInt16();
         Vector128<byte> d = Vector128_.PackSignedSaturate(c0, c1).AsByte();
         Vector128<byte> bits = Vector128.Equals(d, Vector128.Create((byte)0x80).AsByte());
-        int mask = Vector128_.MoveMask(bits);
+        uint mask = bits.ExtractMostSignificantBits();
         return mask != 0xFFFF;
     }
 
@@ -153,7 +153,7 @@ internal static class WebpCommonUtils
         Vector128<short> c = Vector128_.PackSignedSaturate(b0, b1).AsInt16();
         Vector128<byte> d = Vector128_.PackSignedSaturate(c, c).AsByte();
         Vector128<byte> bits = Vector128.Equals(d, Vector128.Create((byte)0x80).AsByte());
-        int mask = Vector128_.MoveMask(bits);
+        uint mask = bits.ExtractMostSignificantBits();
         return mask != 0xFFFF;
     }
 }

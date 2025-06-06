@@ -47,8 +47,10 @@ internal static class Vector128_
             return AdvSimd.FusedAddRoundedHalving(left, right);
         }
 
-        // Portable fallback: (a + b + 1) >> 1
-        return (left + right + Vector128.Create((byte)1)) >> 1;
+        // Account for potential 9th bit to ensure correct rounded result.
+        return Vector128.Narrow(
+            (Vector128.WidenLower(left) + Vector128.WidenLower(right) + Vector128<ushort>.One) >> 1,
+            (Vector128.WidenUpper(left) + Vector128.WidenUpper(right) + Vector128<ushort>.One) >> 1);
     }
 
     /// <summary>
@@ -117,13 +119,17 @@ internal static class Vector128_
         }
 
         // Don't use InverseMMShuffle here as we want to avoid the cast.
-        Vector64<short> indices = Vector64.Create(
-            (short)(control & 0x3),
-            (short)((control >> 2) & 0x3),
-            (short)((control >> 4) & 0x3),
-            (short)((control >> 6) & 0x3));
+        Vector128<short> indices = Vector128.Create(
+           0,
+           1,
+           2,
+           3,
+           (short)((control & 0x3) + 4),
+           (short)(((control >> 2) & 0x3) + 4),
+           (short)(((control >> 4) & 0x3) + 4),
+           (short)(((control >> 6) & 0x3) + 4));
 
-        return Vector128.Create(value.GetLower(), Vector64.Shuffle(value.GetUpper(), indices));
+        return Vector128.Shuffle(value, indices);
     }
 
     /// <summary>
@@ -144,13 +150,17 @@ internal static class Vector128_
         }
 
         // Don't use InverseMMShuffle here as we want to avoid the cast.
-        Vector64<short> indices = Vector64.Create(
-            (short)(control & 0x3),
-            (short)((control >> 2) & 0x3),
-            (short)((control >> 4) & 0x3),
-            (short)((control >> 6) & 0x3));
+        Vector128<short> indices = Vector128.Create(
+           (short)(control & 0x3),
+           (short)((control >> 2) & 0x3),
+           (short)((control >> 4) & 0x3),
+           (short)((control >> 6) & 0x3),
+           4,
+           5,
+           6,
+           7);
 
-        return Vector128.Create(Vector64.Shuffle(value.GetLower(), indices), value.GetUpper());
+        return Vector128.Shuffle(value, indices);
     }
 
     /// <summary>
@@ -237,28 +247,13 @@ internal static class Vector128_
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector128<short> ShiftLeftLogical(Vector128<short> value, [ConstantExpected] byte count)
     {
-        if (Sse2.IsSupported)
-        {
-            return Sse2.ShiftLeftLogical(value, count);
-        }
-
         // Zero lanes where count >= 16 to match SSE2
         if (count >= 16)
         {
             return Vector128<short>.Zero;
         }
 
-        if (AdvSimd.IsSupported)
-        {
-            return AdvSimd.ShiftLogical(value, Vector128.Create((short)count));
-        }
-
-        if (PackedSimd.IsSupported)
-        {
-            return PackedSimd.ShiftLeft(value, count);
-        }
-
-        return Vector128.ShiftLeft(value, count);
+        return value << count;
     }
 
     /// <summary>
@@ -536,6 +531,11 @@ internal static class Vector128_
             Vector128<int> prodLo = AdvSimd.MultiplyWideningLower(left.GetLower(), right.GetLower());
             Vector128<int> prodHi = AdvSimd.MultiplyWideningLower(left.GetUpper(), right.GetUpper());
 
+            if (AdvSimd.Arm64.IsSupported)
+            {
+                return AdvSimd.Arm64.AddPairwise(prodLo, prodHi);
+            }
+
             Vector128<long> v0 = AdvSimd.AddPairwiseWidening(prodLo);
             Vector128<long> v1 = AdvSimd.AddPairwiseWidening(prodHi);
 
@@ -587,50 +587,26 @@ internal static class Vector128_
             return AdvSimd.Arm64.AddPairwise(left, right);
         }
 
-        // Extract the low and high parts of the products shuffling them to form a result we can add together.
-        // Use out-of-bounds to zero out the unused lanes.
-        Vector128<short> even = Vector128.Create(0, 2, 4, 6, 8, 8, 8, 8);
-        Vector128<short> odd = Vector128.Create(1, 3, 5, 7, 8, 8, 8, 8);
-        Vector128<short> v0 = Vector128.Shuffle(right, even);
-        Vector128<short> v1 = Vector128.Shuffle(right, odd);
-        Vector128<short> v2 = Vector128.Shuffle(left, even);
-        Vector128<short> v3 = Vector128.Shuffle(left, odd);
-
-        return v0 + v1 + v2 + v3;
-    }
-
-    /// <summary>
-    /// Multiply the packed 16-bit integers in <paramref name="left"/> and <paramref name="right"/>, producing
-    /// intermediate 32-bit integers, and store the low 16 bits of the intermediate integers in the result.
-    /// </summary>
-    /// <param name="left">
-    /// The first vector containing packed 16-bit integers to multiply.
-    /// </param>
-    /// <param name="right">
-    /// The second vector containing packed 16-bit integers to multiply.
-    /// </param>
-    /// <returns>
-    /// A vector containing the low 16 bits of the products of the packed 16-bit integers
-    /// from <paramref name="left"/> and <paramref name="right"/>.
-    /// </returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector128<short> MultiplyLow(Vector128<short> left, Vector128<short> right)
-    {
-        if (Sse2.IsSupported)
+        if (AdvSimd.IsSupported)
         {
-            return Sse2.MultiplyLow(left, right);
+            Vector128<int> v0 = AdvSimd.AddPairwiseWidening(left);
+            Vector128<int> v1 = AdvSimd.AddPairwiseWidening(right);
+
+            return Vector128.Narrow(v0, v1);
         }
 
-        // Widen each half of the short vectors into two int vectors
-        (Vector128<int> leftLo, Vector128<int> leftHi) = Vector128.Widen(left);
-        (Vector128<int> rightLo, Vector128<int> rightHi) = Vector128.Widen(right);
+        {
+            // Extract the low and high parts of the products shuffling them to form a result we can add together.
+            // Use out-of-bounds to zero out the unused lanes.
+            Vector128<short> even = Vector128.Create(0, 2, 4, 6, 8, 8, 8, 8);
+            Vector128<short> odd = Vector128.Create(1, 3, 5, 7, 8, 8, 8, 8);
+            Vector128<short> v0 = Vector128.Shuffle(right, even);
+            Vector128<short> v1 = Vector128.Shuffle(right, odd);
+            Vector128<short> v2 = Vector128.Shuffle(left, even);
+            Vector128<short> v3 = Vector128.Shuffle(left, odd);
 
-        // Elementwise multiply: each int lane now holds the full 32-bit product
-        Vector128<int> prodLo = leftLo * rightLo;
-        Vector128<int> prodHi = leftHi * rightHi;
-
-        // Narrow the two int vectors back into one short vector
-        return Vector128.Narrow(prodLo, prodHi);
+            return v0 + v1 + v2 + v3;
+        }
     }
 
     /// <summary>
@@ -655,20 +631,33 @@ internal static class Vector128_
             return Sse2.MultiplyHigh(left, right);
         }
 
-        // Widen each half of the short vectors into two int vectors
-        (Vector128<int> leftLo, Vector128<int> leftHi) = Vector128.Widen(left);
-        (Vector128<int> rightLo, Vector128<int> rightHi) = Vector128.Widen(right);
+        if (AdvSimd.IsSupported)
+        {
+            Vector128<int> prodLo = AdvSimd.MultiplyWideningLower(left.GetLower(), right.GetLower());
+            Vector128<int> prodHi = AdvSimd.MultiplyWideningUpper(left, right);
 
-        // Elementwise multiply: each int lane now holds the full 32-bit product
-        Vector128<int> prodLo = leftLo * rightLo;
-        Vector128<int> prodHi = leftHi * rightHi;
+            prodLo >>= 16;
+            prodHi >>= 16;
 
-        // Arithmetic shift right by 16 bits to extract the high word
-        prodLo >>= 16;
-        prodHi >>= 16;
+            return Vector128.Narrow(prodLo, prodHi);
+        }
 
-        // Narrow the two int vectors back into one short vector
-        return Vector128.Narrow(prodLo, prodHi);
+        {
+            // Widen each half of the short vectors into two int vectors
+            (Vector128<int> leftLo, Vector128<int> leftHi) = Vector128.Widen(left);
+            (Vector128<int> rightLo, Vector128<int> rightHi) = Vector128.Widen(right);
+
+            // Elementwise multiply: each int lane now holds the full 32-bit product
+            Vector128<int> prodLo = leftLo * rightLo;
+            Vector128<int> prodHi = leftHi * rightHi;
+
+            // Arithmetic shift right by 16 bits to extract the high word
+            prodLo >>= 16;
+            prodHi >>= 16;
+
+            // Narrow the two int vectors back into one short vector
+            return Vector128.Narrow(prodLo, prodHi);
+        }
     }
 
     /// <summary>
@@ -693,20 +682,33 @@ internal static class Vector128_
             return Sse2.MultiplyHigh(left, right);
         }
 
-        // Widen each half of the short vectors into two uint vectors
-        (Vector128<uint> leftLo, Vector128<uint> leftHi) = Vector128.Widen(left);
-        (Vector128<uint> rightLo, Vector128<uint> rightHi) = Vector128.Widen(right);
+        if (AdvSimd.IsSupported)
+        {
+            Vector128<uint> prodLo = AdvSimd.MultiplyWideningLower(left.GetLower(), right.GetLower());
+            Vector128<uint> prodHi = AdvSimd.MultiplyWideningUpper(left, right);
 
-        // Elementwise multiply: each int lane now holds the full 32-bit product
-        Vector128<uint> prodLo = leftLo * rightLo;
-        Vector128<uint> prodHi = leftHi * rightHi;
+            prodLo >>= 16;
+            prodHi >>= 16;
 
-        // Arithmetic shift right by 16 bits to extract the high word
-        prodLo >>= 16;
-        prodHi >>= 16;
+            return Vector128.Narrow(prodLo, prodHi);
+        }
 
-        // Narrow the two int vectors back into one short vector
-        return Vector128.Narrow(prodLo, prodHi);
+        {
+            // Widen each half of the short vectors into two uint vectors
+            (Vector128<uint> leftLo, Vector128<uint> leftHi) = Vector128.Widen(left);
+            (Vector128<uint> rightLo, Vector128<uint> rightHi) = Vector128.Widen(right);
+
+            // Elementwise multiply: each int lane now holds the full 32-bit product
+            Vector128<uint> prodLo = leftLo * rightLo;
+            Vector128<uint> prodHi = leftHi * rightHi;
+
+            // Arithmetic shift right by 16 bits to extract the high word
+            prodLo >>= 16;
+            prodHi >>= 16;
+
+            // Narrow the two int vectors back into one short vector
+            return Vector128.Narrow(prodLo, prodHi);
+        }
     }
 
     /// <summary>
@@ -1362,91 +1364,5 @@ internal static class Vector128_
 
         // Narrow back to signed bytes
         return Vector128.Narrow(diffLo, diffHi);
-    }
-
-    /// <summary>
-    /// Create mask from the most significant bit of each 8-bit element in <paramref name="value"/>, and store the result.
-    /// </summary>
-    /// <param name="value">
-    /// The vector containing packed 8-bit integers from which to create the mask.
-    /// </param>
-    /// <returns>
-    /// A 16-bit integer mask where each bit corresponds to the most significant bit of each 8-bit element
-    /// in <paramref name="value"/>.
-    /// </returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static int MoveMask(Vector128<byte> value)
-    {
-        if (Sse2.IsSupported)
-        {
-            return Sse2.MoveMask(value);
-        }
-
-        // AdvSimd versions ported from Stack Overflow answer:
-        // https://stackoverflow.com/questions/11870910/sse-mm-movemask-epi8-equivalent-method-for-arm-neon
-        if (AdvSimd.Arm64.IsSupported)
-        {
-            // Shift values to align each MSB to its corresponding bit in the output
-            Vector128<sbyte> shift = Vector128.Create(-7, -6, -5, -4, -3, -2, -1, 0, -7, -6, -5, -4, -3, -2, -1, 0);
-
-            // Mask to isolate MSBs
-            Vector128<byte> msbMask = Vector128.Create((byte)0x80);
-            Vector128<byte> masked = value & msbMask;
-
-            // Shift each MSB into the correct bit position
-            Vector128<byte> shifted = AdvSimd.ShiftLogical(masked.AsSByte(), shift).AsByte();
-
-            // Sum lanes: lower 8 go into bits 0–7, upper 8 go into bits 8–15
-            byte lo = AdvSimd.Arm64.AddAcross(shifted.GetLower()).ToScalar();
-            byte hi = AdvSimd.Arm64.AddAcross(shifted.GetUpper()).ToScalar();
-
-            return lo + (hi << 8);
-        }
-
-        if (AdvSimd.IsSupported)
-        {
-            Vector128<byte> powers = Vector128.Create(1, 2, 4, 8, 16, 32, 64, 128, 1, 2, 4, 8, 16, 32, 64, 128);
-            Vector128<byte> msbMask = Vector128.Create((byte)0x80);
-            Vector128<byte> normalized = AdvSimd.CompareEqual(value & msbMask, msbMask); // 0xFF or 0x00
-            Vector128<byte> masked = normalized & powers;
-
-            Vector128<ushort> sum8 = AdvSimd.AddPairwiseWidening(masked);
-            Vector128<uint> sum16 = AdvSimd.AddPairwiseWidening(sum8);
-            Vector128<ulong> sum32 = AdvSimd.AddPairwiseWidening(sum16);
-
-            // Extract lower 8 bits of each 64-bit lane
-            byte lo = sum32.AsByte().GetElement(0);
-            byte hi = sum32.AsByte().GetElement(8);
-
-            return (hi << 8) | lo;
-        }
-
-        {
-            // Step 1: isolate MSBs
-            Vector128<byte> msbMask = Vector128.Create((byte)0x80);
-            Vector128<byte> masked = value & msbMask;
-
-            // Step 2: shift each byte so MSB lands in bit position [0..15]
-            // i.e. convert: 0x80 → 1 << i
-            Vector128<ushort> bitShifts = Vector128.Create((ushort)1, 2, 4, 8, 16, 32, 64, 128);
-            Vector128<ushort> bitShiftsHigh = Vector128.Create(256, 512, 1024, 2048, 4096, 8192, 16384, 32768);
-
-            // Step 3: widen to ushort
-            (Vector128<ushort> lo, Vector128<ushort> hi) = Vector128.Widen(masked);
-
-            // Step 4: compare > 0 to get 0xFFFF where MSB was set
-            lo = Vector128.ConditionalSelect(Vector128.Equals(lo, Vector128<ushort>.Zero), Vector128<ushort>.Zero, bitShifts);
-            hi = Vector128.ConditionalSelect(Vector128.Equals(hi, Vector128<ushort>.Zero), Vector128<ushort>.Zero, bitShiftsHigh);
-
-            // Step 5: bitwise OR the two halves
-            Vector128<ushort> maskVector = lo | hi;
-
-            // Step 6: horizontal OR reduction via shuffles
-            maskVector |= Vector128.Shuffle(maskVector, Vector128.Create((ushort)4, 5, 6, 7, 0, 1, 2, 3));
-            maskVector |= Vector128.Shuffle(maskVector, Vector128.Create((ushort)2, 3, 0, 1, 6, 7, 4, 5));
-            maskVector |= Vector128.Shuffle(maskVector, Vector128.Create((ushort)1, 0, 3, 2, 5, 4, 7, 6));
-
-            return maskVector.ToScalar();
-        }
     }
 }

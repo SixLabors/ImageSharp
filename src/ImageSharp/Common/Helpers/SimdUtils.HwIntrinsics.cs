@@ -375,6 +375,11 @@ internal static partial class SimdUtils
             }
             else if (Vector256.IsHardwareAccelerated)
             {
+                // ShufflePerLane performs per-128-bit-lane shuffling using Avx2.Shuffle (vpshufb).
+                // MMShuffleSpan generates indices in the range [0, 31] and never sets bit 7 in any byte,
+                // so the shuffle will not zero elements. Because vpshufb uses only the low 4 bits (b[i] & 0x0F)
+                // for indexing within each lane, and ignores the upper bits unless bit 7 is set,
+                // this usage is guaranteed to remain within-lane and non-zeroing.
                 Span<byte> temp = stackalloc byte[Vector256<byte>.Count];
                 Shuffle.MMShuffleSpan(ref temp, control);
                 Vector256<byte> mask = Unsafe.As<byte, Vector256<byte>>(ref MemoryMarshal.GetReference(temp));
@@ -391,17 +396,17 @@ internal static partial class SimdUtils
                     ref Vector256<byte> vs0 = ref Unsafe.Add(ref sourceBase, i);
                     ref Vector256<byte> vd0 = ref Unsafe.Add(ref destinationBase, i);
 
-                    vd0 = Vector256_.ShuffleNative(vs0, mask);
-                    Unsafe.Add(ref vd0, (nuint)1) = Vector256_.ShuffleNative(Unsafe.Add(ref vs0, (nuint)1), mask);
-                    Unsafe.Add(ref vd0, (nuint)2) = Vector256_.ShuffleNative(Unsafe.Add(ref vs0, (nuint)2), mask);
-                    Unsafe.Add(ref vd0, (nuint)3) = Vector256_.ShuffleNative(Unsafe.Add(ref vs0, (nuint)3), mask);
+                    vd0 = Vector256_.ShufflePerLane(vs0, mask);
+                    Unsafe.Add(ref vd0, (nuint)1) = Vector256_.ShufflePerLane(Unsafe.Add(ref vs0, (nuint)1), mask);
+                    Unsafe.Add(ref vd0, (nuint)2) = Vector256_.ShufflePerLane(Unsafe.Add(ref vs0, (nuint)2), mask);
+                    Unsafe.Add(ref vd0, (nuint)3) = Vector256_.ShufflePerLane(Unsafe.Add(ref vs0, (nuint)3), mask);
                 }
 
                 if (m > 0)
                 {
                     for (nuint i = u; i < n; i++)
                     {
-                        Unsafe.Add(ref destinationBase, i) = Vector256_.ShuffleNative(Unsafe.Add(ref sourceBase, i), mask);
+                        Unsafe.Add(ref destinationBase, i) = Vector256_.ShufflePerLane(Unsafe.Add(ref sourceBase, i), mask);
                     }
                 }
             }

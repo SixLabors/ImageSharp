@@ -39,14 +39,17 @@ internal static class Vector256_
     /// </param>
     /// <returns>The <see cref="Vector256{Single}"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector256<byte> ShuffleNative(Vector256<byte> vector, Vector256<byte> indices)
+    public static Vector256<byte> ShufflePerLane(Vector256<byte> vector, Vector256<byte> indices)
     {
         if (Avx2.IsSupported)
         {
             return Avx2.Shuffle(vector, indices);
         }
 
-        return Vector256.Shuffle(vector, indices);
+        Vector128<byte> indicesLo = indices.GetLower();
+        Vector128<byte> lower = Vector128_.ShuffleNative(vector.GetLower(), indicesLo);
+        Vector128<byte> upper = Vector128_.ShuffleNative(vector.GetUpper(), indicesLo);
+        return Vector256.Create(lower, upper);
     }
 
     /// <summary>
@@ -457,27 +460,5 @@ internal static class Vector256_
         return Vector256.Create(
             Vector128_.SubtractSaturate(left.GetLower(), right.GetLower()),
             Vector128_.SubtractSaturate(left.GetUpper(), right.GetUpper()));
-    }
-
-    /// <summary>
-    /// Create mask from the most significant bit of each 8-bit element in <paramref name="value"/>, and store the result.
-    /// </summary>
-    /// <param name="value">
-    /// The vector containing packed 8-bit integers from which to create the mask.
-    /// </param>
-    /// <returns>
-    /// A 16-bit integer mask where each bit corresponds to the most significant bit of each 8-bit element
-    /// in <paramref name="value"/>.
-    /// </returns>
-    public static int MoveMask(Vector256<byte> value)
-    {
-        if (Avx2.IsSupported)
-        {
-            return Avx2.MoveMask(value);
-        }
-
-        int loMask = Vector128_.MoveMask(value.GetLower());
-        int hiMask = Vector128_.MoveMask(value.GetUpper());
-        return loMask | (hiMask << 16);
     }
 }

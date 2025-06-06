@@ -210,6 +210,8 @@ public partial class PixelOperations<TPixel>
     {
         GuardUnpackIntoRgbPlanes(redChannel, greenChannel, blueChannel, source);
 
+        // TODO: This can be much faster.
+        // Convert to Rgba32 first using pixel operations then use the R, G, B properties.
         int count = source.Length;
 
         ref float r = ref MemoryMarshal.GetReference(redChannel);

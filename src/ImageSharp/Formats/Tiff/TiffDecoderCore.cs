@@ -11,6 +11,7 @@ using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
+using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Tiff;
@@ -280,6 +281,12 @@ internal class TiffDecoderCore : ImageDecoderCore
         if (!this.skipMetadata)
         {
             imageFrameMetaData.ExifProfile = tags;
+
+            // We resolve the ICC profile early so that we can use it for color conversion if needed.
+            if (tags.TryGetValue(ExifTag.IccProfile, out IExifValue<byte[]> iccProfileBytes))
+            {
+                imageFrameMetaData.IccProfile = new IccProfile(iccProfileBytes.Value);
+            }
         }
 
         TiffFrameMetadata tiffMetadata = TiffFrameMetadata.Parse(tags);
@@ -438,7 +445,7 @@ internal class TiffDecoderCore : ImageDecoderCore
                 stripBuffers[stripIndex] = this.memoryAllocator.Allocate<byte>(uncompressedStripSize);
             }
 
-            using TiffBaseDecompressor decompressor = this.CreateDecompressor<TPixel>(width, bitsPerPixel);
+            using TiffBaseDecompressor decompressor = this.CreateDecompressor<TPixel>(width, bitsPerPixel, frame.Metadata);
             TiffBasePlanarColorDecoder<TPixel> colorDecoder = this.CreatePlanarColorDecoder<TPixel>();
 
             for (int i = 0; i < stripsPerPlane; i++)
@@ -507,7 +514,7 @@ internal class TiffDecoderCore : ImageDecoderCore
         Span<byte> stripBufferSpan = stripBuffer.GetSpan();
         Buffer2D<TPixel> pixels = frame.PixelBuffer;
 
-        using TiffBaseDecompressor decompressor = this.CreateDecompressor<TPixel>(width, bitsPerPixel);
+        using TiffBaseDecompressor decompressor = this.CreateDecompressor<TPixel>(width, bitsPerPixel, frame.Metadata);
         TiffBaseColorDecoder<TPixel> colorDecoder = this.CreateChunkyColorDecoder<TPixel>();
 
         for (int stripIndex = 0; stripIndex < stripOffsets.Length; stripIndex++)
@@ -578,7 +585,7 @@ internal class TiffDecoderCore : ImageDecoderCore
                 tilesBuffers[i] = this.memoryAllocator.Allocate<byte>(uncompressedTilesSize, AllocationOptions.Clean);
             }
 
-            using TiffBaseDecompressor decompressor = this.CreateDecompressor<TPixel>(frame.Width, bitsPerPixel);
+            using TiffBaseDecompressor decompressor = this.CreateDecompressor<TPixel>(frame.Width, bitsPerPixel, frame.Metadata);
             TiffBasePlanarColorDecoder<TPixel> colorDecoder = this.CreatePlanarColorDecoder<TPixel>();
 
             int tileIndex = 0;
@@ -679,7 +686,7 @@ internal class TiffDecoderCore : ImageDecoderCore
         using IMemoryOwner<byte> tileBuffer = this.memoryAllocator.Allocate<byte>(bytesPerTileRow * tileLength, AllocationOptions.Clean);
         Span<byte> tileBufferSpan = tileBuffer.GetSpan();
 
-        using TiffBaseDecompressor decompressor = this.CreateDecompressor<TPixel>(frame.Width, bitsPerPixel, true, tileWidth, tileLength);
+        using TiffBaseDecompressor decompressor = this.CreateDecompressor<TPixel>(frame.Width, bitsPerPixel, frame.Metadata, true, tileWidth, tileLength);
         TiffBaseColorDecoder<TPixel> colorDecoder = this.CreateChunkyColorDecoder<TPixel>();
 
         int tileIndex = 0;
@@ -733,6 +740,7 @@ internal class TiffDecoderCore : ImageDecoderCore
             this.ReferenceBlackAndWhite,
             this.YcbcrCoefficients,
             this.YcbcrSubSampling,
+            this.CompressionType,
             this.byteOrder);
 
     private TiffBasePlanarColorDecoder<TPixel> CreatePlanarColorDecoder<TPixel>()
@@ -747,7 +755,13 @@ internal class TiffDecoderCore : ImageDecoderCore
             this.YcbcrSubSampling,
             this.byteOrder);
 
-    private TiffBaseDecompressor CreateDecompressor<TPixel>(int frameWidth, int bitsPerPixel, bool isTiled = false, int tileWidth = 0, int tileHeight = 0)
+    private TiffBaseDecompressor CreateDecompressor<TPixel>(
+        int frameWidth,
+        int bitsPerPixel,
+        ImageFrameMetadata metadata,
+        bool isTiled = false,
+        int tileWidth = 0,
+        int tileHeight = 0)
         where TPixel : unmanaged, IPixel<TPixel> =>
         TiffDecompressorsFactory.Create(
             this.Options,
@@ -756,6 +770,7 @@ internal class TiffDecoderCore : ImageDecoderCore
             this.PhotometricInterpretation,
             frameWidth,
             bitsPerPixel,
+            metadata,
             this.ColorType,
             this.Predictor,
             this.FaxCompressionOptions,

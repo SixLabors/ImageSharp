@@ -12,7 +12,10 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components;
 
 internal abstract partial class JpegColorConverterBase
 {
-    internal sealed class YccKScalar : JpegColorConverterScalar
+    /// <summary>
+    /// Color converter for tiff images, which use the jpeg compression and CMYK colorspace.
+    /// </summary>
+    internal sealed class TiffYccKScalar : JpegColorConverterScalar
     {
         // Derived from ITU-T Rec. T.871
         internal const float RCrMult = 1.402f;
@@ -20,20 +23,19 @@ internal abstract partial class JpegColorConverterBase
         internal const float GCrMult = (float)(0.299 * 1.402 / 0.587);
         internal const float BCbMult = 1.772f;
 
-        public YccKScalar(int precision)
-            : base(JpegColorSpace.Ycck, precision)
+        public TiffYccKScalar(int precision)
+            : base(JpegColorSpace.TiffYccK, precision)
         {
         }
 
         /// <inheritdoc/>
         public override void ConvertToRgbInPlace(in ComponentValues values)
-            => ConvertToRgbInPlace(values, this.MaximumValue, this.HalfValue);
+            => ConvertToRgbInPlace(in values, this.MaximumValue, this.HalfValue);
 
         /// <inheritdoc/>
         public override void ConvertToRgbInPlaceWithIcc(Configuration configuration, in ComponentValues values, IccProfile profile)
             => ConvertToRgbInPlaceWithIcc(configuration, profile, values, this.MaximumValue);
 
-        /// <inheritdoc/>
         public override void ConvertFromRgb(in ComponentValues values, Span<float> rLane, Span<float> gLane, Span<float> bLane)
             => ConvertFromRgb(values, this.HalfValue, this.MaximumValue, rLane, gLane, bLane);
 
@@ -44,44 +46,70 @@ internal abstract partial class JpegColorConverterBase
             Span<float> c2 = values.Component2;
             Span<float> c3 = values.Component3;
 
-            float scale = 1 / (maxValue * maxValue);
+            float scale = 1F / maxValue;
+            halfValue *= scale;
 
             for (int i = 0; i < values.Component0.Length; i++)
             {
-                float y = c0[i];
-                float cb = c1[i] - halfValue;
-                float cr = c2[i] - halfValue;
-                float scaledK = c3[i] * scale;
+                float y = c0[i] * scale;
+                float cb = (c1[i] * scale) - halfValue;
+                float cr = (c2[i] * scale) - halfValue;
+                float scaledK = 1 - (c3[i] * scale);
 
                 // r = y + (1.402F * cr);
                 // g = y - (0.344136F * cb) - (0.714136F * cr);
                 // b = y + (1.772F * cb);
-                c0[i] = (maxValue - MathF.Round(y + (RCrMult * cr), MidpointRounding.AwayFromZero)) * scaledK;
-                c1[i] = (maxValue - MathF.Round(y - (GCbMult * cb) - (GCrMult * cr), MidpointRounding.AwayFromZero)) * scaledK;
-                c2[i] = (maxValue - MathF.Round(y + (BCbMult * cb), MidpointRounding.AwayFromZero)) * scaledK;
+                c0[i] = (y + (RCrMult * cr)) * scaledK;
+                c1[i] = (y - (GCbMult * cb) - (GCrMult * cr)) * scaledK;
+                c2[i] = (y + (BCbMult * cb)) * scaledK;
             }
         }
 
         public static void ConvertFromRgb(in ComponentValues values, float halfValue, float maxValue, Span<float> rLane, Span<float> gLane, Span<float> bLane)
         {
-            // rgb -> cmyk
-            CmykScalar.ConvertFromRgb(in values, maxValue, rLane, gLane, bLane);
+            Span<float> y = values.Component0;
+            Span<float> cb = values.Component1;
+            Span<float> cr = values.Component2;
+            Span<float> k = values.Component3;
 
-            // cmyk -> ycck
-            Span<float> c = values.Component0;
-            Span<float> m = values.Component1;
-            Span<float> y = values.Component2;
-
-            for (int i = 0; i < y.Length; i++)
+            for (int i = 0; i < cr.Length; i++)
             {
-                float r = maxValue - c[i];
-                float g = maxValue - m[i];
-                float b = maxValue - y[i];
+                // Scale down to [0-1]
+                const float divisor = 1F / 255F;
+                float r = rLane[i] * divisor;
+                float g = gLane[i] * divisor;
+                float b = bLane[i] * divisor;
 
-                // k value is passed untouched from rgb -> cmyk conversion
-                c[i] = (0.299f * r) + (0.587f * g) + (0.114f * b);
-                m[i] = halfValue - (0.168736f * r) - (0.331264f * g) + (0.5f * b);
-                y[i] = halfValue + (0.5f * r) - (0.418688f * g) - (0.081312f * b);
+                float ytmp;
+                float cbtmp;
+                float crtmp;
+                float ktmp = 1F - MathF.Max(r, MathF.Max(g, b));
+
+                if (ktmp >= 1F)
+                {
+                    ytmp = 0F;
+                    cbtmp = 0.5F;
+                    crtmp = 0.5F;
+                    ktmp = maxValue;
+                }
+                else
+                {
+                    float kmask = 1F / (1F - ktmp);
+                    r *= kmask;
+                    g *= kmask;
+                    b *= kmask;
+
+                    // Scale to [0-maxValue]
+                    ytmp = ((0.299f * r) + (0.587f * g) + (0.114f * b)) * maxValue;
+                    cbtmp = halfValue - (((0.168736f * r) - (0.331264f * g) + (0.5f * b)) * maxValue);
+                    crtmp = halfValue + (((0.5f * r) - (0.418688f * g) - (0.081312f * b)) * maxValue);
+                    ktmp *= maxValue;
+                }
+
+                y[i] = ytmp;
+                cb[i] = cbtmp;
+                cr[i] = crtmp;
+                k[i] = ktmp;
             }
         }
 
@@ -95,12 +123,12 @@ internal abstract partial class JpegColorConverterBase
             Span<float> c2 = values.Component2;
             Span<float> c3 = values.Component3;
 
-            PackedInvertNormalizeInterleave4(c0, c1, c2, c3, packed, maxValue);
+            PackedNormalizeInterleave4(c0, c1, c2, c3, packed, maxValue);
 
             ColorProfileConverter converter = new();
             Span<Cmyk> source = MemoryMarshal.Cast<float, Cmyk>(packed);
 
-            // YccK is not a defined ICC color space â€” it's a JPEG-specific encoding used in Adobe-style CMYK JPEGs.
+            // YccK is not a defined ICC color space — it's a JPEG-specific encoding used in Adobe-style CMYK JPEGs.
             // ICC profiles expect colorimetric CMYK values, so we must first convert YccK to CMYK using a hardcoded inverse transform.
             // This transform assumes Rec.601 YCbCr coefficients and an inverted K channel.
             //

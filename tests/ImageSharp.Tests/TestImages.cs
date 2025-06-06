@@ -1122,6 +1122,7 @@ public static class TestImages
         public const string Cmyk = "Tiff/Cmyk.tiff";
         public const string Cmyk64BitDeflate = "Tiff/cmyk_deflate_64bit.tiff";
         public const string CmykLzwPredictor = "Tiff/Cmyk-lzw-predictor.tiff";
+        public const string CmykJpeg = "Tiff/Cmyk-jpeg.tiff";
 
         public const string Issues1716Rgb161616BitLittleEndian = "Tiff/Issues/Issue1716.tiff";
         public const string Issues1891 = "Tiff/Issues/Issue1891.tiff";
@@ -1129,6 +1130,8 @@ public static class TestImages
         public const string Issues2149 = "Tiff/Issues/Group4CompressionWithStrips.tiff";
         public const string Issues2255 = "Tiff/Issues/Issue2255.png";
         public const string Issues2435 = "Tiff/Issues/Issue2435.tiff";
+        public const string Issues2454_A = "Tiff/Issues/Issue2454_A.tif";
+        public const string Issues2454_B = "Tiff/Issues/Issue2454_B.tif";
         public const string Issues2587 = "Tiff/Issues/Issue2587.tiff";
         public const string Issues2679 = "Tiff/Issues/Issue2679.tiff";
         public const string JpegCompressedGray0000539558 = "Tiff/Issues/JpegCompressedGray-0000539558.tiff";

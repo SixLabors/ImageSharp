@@ -341,14 +341,44 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     [Theory]
     [WithFile(Cmyk, PixelTypes.Rgba32)]
     [WithFile(CmykLzwPredictor, PixelTypes.Rgba32)]
+    [WithFile(CmykJpeg, PixelTypes.Rgba32)]
     public void TiffDecoder_CanDecode_Cmyk<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         // Note: The image from MagickReferenceDecoder does not look right, maybe we are doing something wrong
         // converting the pixel data from Magick.NET to our format with CMYK?
-        using Image<TPixel> image = provider.GetImage();
+        using Image<TPixel> image = provider.GetImage(TiffDecoder.Instance);
         image.DebugSave(provider);
         image.CompareToReferenceOutput(ImageComparer.Exact, provider);
+    }
+
+    [Theory]
+    [WithFile(Issues2454_A, PixelTypes.Rgba32)]
+    [WithFile(Issues2454_B, PixelTypes.Rgba32)]
+    public void TiffDecoder_CanDecode_YccK<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage(TiffDecoder.Instance);
+        image.DebugSave(provider);
+        image.CompareToReferenceOutput(ImageComparer.Exact, provider);
+    }
+
+    [Theory]
+    [WithFile(Issues2454_A, PixelTypes.Rgba32)]
+    [WithFile(Issues2454_B, PixelTypes.Rgba32)]
+    public void TiffDecoder_CanDecode_YccK_ICC<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        DecoderOptions options = new()
+        {
+            ColorProfileHandling = ColorProfileHandling.Convert,
+        };
+
+        using Image<TPixel> image = provider.GetImage(TiffDecoder.Instance, options);
+        image.DebugSave(provider);
+
+        // Linux reports a 0.0000% difference, so we use a tolerant comparer here.
+        image.CompareToReferenceOutput(ImageComparer.TolerantPercentage(0.0001F), provider);
     }
 
     [Theory]

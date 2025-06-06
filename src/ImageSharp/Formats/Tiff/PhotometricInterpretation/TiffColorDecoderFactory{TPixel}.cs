@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.Formats.Tiff.Compression;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -19,6 +20,7 @@ internal static class TiffColorDecoderFactory<TPixel>
         Rational[] referenceBlackAndWhite,
         Rational[] ycbcrCoefficients,
         ushort[] ycbcrSubSampling,
+        TiffDecoderCompressionType compression,
         ByteOrder byteOrder)
     {
         switch (colorType)
@@ -410,7 +412,7 @@ internal static class TiffColorDecoderFactory<TPixel>
                     && bitsPerSample.Channel1 == 8
                     && bitsPerSample.Channel0 == 8,
                     "bitsPerSample");
-                return new CmykTiffColor<TPixel>();
+                return new CmykTiffColor<TPixel>(compression);
 
             default:
                 throw TiffThrowHelper.InvalidColorType(colorType.ToString());

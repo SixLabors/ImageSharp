@@ -86,7 +86,7 @@ internal abstract partial class JpegColorConverterBase
             ref Vector128<float> destK =
                 ref Unsafe.As<float, Vector128<float>>(ref MemoryMarshal.GetReference(values.Component3));
 
-            Vector128<float> maxSourceValue = Vector128.Create(255F);
+            Vector128<float> maxSourceValue = Vector128.Create(1 / 255F);
             Vector128<float> maxSampleValue = Vector128.Create(this.MaximumValue);
             Vector128<float> chromaOffset = Vector128.Create(this.HalfValue);
 
@@ -102,17 +102,17 @@ internal abstract partial class JpegColorConverterBase
             nuint n = values.Component0.Vector128Count<float>();
             for (nuint i = 0; i < n; i++)
             {
-                Vector128<float> r = Unsafe.Add(ref srcR, i) / maxSourceValue;
-                Vector128<float> g = Unsafe.Add(ref srcG, i) / maxSourceValue;
-                Vector128<float> b = Unsafe.Add(ref srcB, i) / maxSourceValue;
+                Vector128<float> r = Unsafe.Add(ref srcR, i) * maxSourceValue;
+                Vector128<float> g = Unsafe.Add(ref srcG, i) * maxSourceValue;
+                Vector128<float> b = Unsafe.Add(ref srcB, i) * maxSourceValue;
                 Vector128<float> ktmp = Vector128<float>.One - Vector128.Max(r, Vector128.Min(g, b));
 
                 Vector128<float> kMask = ~Vector128.Equals(ktmp, Vector128<float>.One);
-                Vector128<float> divisor = Vector128<float>.One - ktmp;
+                Vector128<float> divisor = Vector128<float>.One / (Vector128<float>.One - ktmp);
 
-                r /= divisor;
-                g /= divisor;
-                b /= divisor;
+                r = (r * divisor) & kMask;
+                g = (g * divisor) & kMask;
+                b = (b * divisor) & kMask;
 
                 // y  =   0 + (0.299 * r) + (0.587 * g) + (0.114 * b)
                 // cb = 128 - (0.168736 * r) - (0.331264 * g) + (0.5 * b)

@@ -119,11 +119,11 @@ internal abstract partial class JpegColorConverterBase
                 Vector512<float> ktmp = Vector512<float>.One - Vector512.Max(r, Vector512.Min(g, b));
 
                 Vector512<float> kMask = ~Vector512.Equals(ktmp, Vector512<float>.One);
-                Vector512<float> divisor = Vector512<float>.One - ktmp;
+                Vector512<float> divisor = Vector512<float>.One / (Vector512<float>.One - ktmp);
 
-                r /= divisor;
-                g /= divisor;
-                b /= divisor;
+                r = (r * divisor) & kMask;
+                g = (g * divisor) & kMask;
+                b = (b * divisor) & kMask;
 
                 // y  =   0 + (0.299 * r) + (0.587 * g) + (0.114 * b)
                 // cb = 128 - (0.168736 * r) - (0.331264 * g) + (0.5 * b)

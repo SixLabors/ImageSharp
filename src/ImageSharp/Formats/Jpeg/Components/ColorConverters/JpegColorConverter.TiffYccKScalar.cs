@@ -75,9 +75,10 @@ internal abstract partial class JpegColorConverterBase
             for (int i = 0; i < cr.Length; i++)
             {
                 // Scale down to [0-1]
-                float r = rLane[i] / 255F;
-                float g = gLane[i] / 255F;
-                float b = bLane[i] / 255F;
+                const float divisor = 1F / 255F;
+                float r = rLane[i] * divisor;
+                float g = gLane[i] * divisor;
+                float b = bLane[i] * divisor;
 
                 float ytmp;
                 float cbtmp;
@@ -87,15 +88,16 @@ internal abstract partial class JpegColorConverterBase
                 if (ktmp >= 1F)
                 {
                     ytmp = 0F;
-                    cbtmp = 0F;
-                    crtmp = 0F;
+                    cbtmp = 0.5F;
+                    crtmp = 0.5F;
                     ktmp = maxValue;
                 }
                 else
                 {
-                    r /= 1F - ktmp;
-                    g /= 1F - ktmp;
-                    b /= 1F - ktmp;
+                    float kmask = 1F / (1F - ktmp);
+                    r *= kmask;
+                    g *= kmask;
+                    b *= kmask;
 
                     // Scale to [0-maxValue]
                     ytmp = ((0.299f * r) + (0.587f * g) + (0.114f * b)) * maxValue;

@@ -76,9 +76,10 @@ internal abstract partial class JpegColorConverterBase
                 }
                 else
                 {
-                    ctmp = (ctmp - ktmp) / (255F - ktmp);
-                    mtmp = (mtmp - ktmp) / (255F - ktmp);
-                    ytmp = (ytmp - ktmp) / (255F - ktmp);
+                    float divisor = 1 / (255F - ktmp);
+                    ctmp = (ctmp - ktmp) * divisor;
+                    mtmp = (mtmp - ktmp) * divisor;
+                    ytmp = (ytmp - ktmp) * divisor;
                 }
 
                 c[i] = ctmp * maxValue;

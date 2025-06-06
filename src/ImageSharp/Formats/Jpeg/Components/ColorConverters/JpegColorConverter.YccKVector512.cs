@@ -138,6 +138,6 @@ internal abstract partial class JpegColorConverterBase
 
         /// <inheritdoc/>
         protected override void ConvertFromRgbScalarRemainder(in ComponentValues values, Span<float> rLane, Span<float> gLane, Span<float> bLane)
-            => TiffYccKScalar.ConvertFromRgb(in values, this.HalfValue, this.MaximumValue, rLane, gLane, bLane);
+            => YccKScalar.ConvertFromRgb(in values, this.HalfValue, this.MaximumValue, rLane, gLane, bLane);
     }
 }

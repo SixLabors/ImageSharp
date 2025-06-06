@@ -109,10 +109,10 @@ internal static class HistogramEncoder
     {
         int x = 0, y = 0;
         int histoXSize = LosslessUtils.SubSampleSize(xSize, histoBits);
-        using List<PixOrCopy>.Enumerator backwardRefsEnumerator = backwardRefs.Refs.GetEnumerator();
-        while (backwardRefsEnumerator.MoveNext())
+
+        for (int i = 0; i < backwardRefs.Count; i++)
         {
-            PixOrCopy v = backwardRefsEnumerator.Current;
+            PixOrCopy v = backwardRefs[i];
             int ix = ((y >> histoBits) * histoXSize) + (x >> histoBits);
             histograms[ix].AddSinglePixOrCopy(v, false);
             x += v.Len;

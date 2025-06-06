@@ -138,9 +138,9 @@ internal abstract unsafe class Vp8LHistogram
     /// <param name="refs">The backward references.</param>
     public void StoreRefs(Vp8LBackwardRefs refs)
     {
-        for (int i = 0; i < refs.Refs.Count; i++)
+        for (int i = 0; i < refs.Count; i++)
         {
-            this.AddSinglePixOrCopy(refs.Refs[i], false);
+            this.AddSinglePixOrCopy(refs[i], false);
         }
     }
 

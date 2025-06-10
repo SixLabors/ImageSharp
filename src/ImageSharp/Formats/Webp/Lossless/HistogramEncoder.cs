@@ -113,7 +113,7 @@ internal static class HistogramEncoder
         foreach (PixOrCopy v in backwardRefs)
         {
             int ix = ((y >> histoBits) * histoXSize) + (x >> histoBits);
-            histograms[ix].AddSinglePixOrCopy(v, false);
+            histograms[ix].AddSinglePixOrCopy(in v, false);
             x += v.Len;
             while (x >= xSize)
             {

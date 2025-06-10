@@ -140,7 +140,7 @@ internal abstract unsafe class Vp8LHistogram
     {
         foreach (PixOrCopy v in refs)
         {
-            this.AddSinglePixOrCopy(v, false);
+            this.AddSinglePixOrCopy(in v, false);
         }
     }
 
@@ -150,7 +150,7 @@ internal abstract unsafe class Vp8LHistogram
     /// <param name="v">The token to add.</param>
     /// <param name="useDistanceModifier">Indicates whether to use the distance modifier.</param>
     /// <param name="xSize">xSize is only used when useDistanceModifier is true.</param>
-    public void AddSinglePixOrCopy(PixOrCopy v, bool useDistanceModifier, int xSize = 0)
+    public void AddSinglePixOrCopy(in PixOrCopy v, bool useDistanceModifier, int xSize = 0)
     {
         if (v.IsLiteral())
         {

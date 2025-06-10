@@ -42,7 +42,7 @@ internal class CostModel
         // The following code is similar to HistogramCreate but converts the distance to plane code.
         foreach (PixOrCopy v in backwardRefs)
         {
-            histogram.AddSinglePixOrCopy(v, true, xSize);
+            histogram.AddSinglePixOrCopy(in v, true, xSize);
         }
 
         ConvertPopulationCountTableToBitEstimates(histogram.NumCodes(), histogram.Literal, this.Literal);

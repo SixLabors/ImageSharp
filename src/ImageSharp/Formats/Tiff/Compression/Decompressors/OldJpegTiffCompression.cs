@@ -6,6 +6,7 @@ using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
 using SixLabors.ImageSharp.Formats.Tiff.Constants;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -17,6 +18,8 @@ internal sealed class OldJpegTiffCompression : TiffBaseDecompressor
 
     private readonly uint startOfImageMarker;
 
+    private readonly ImageFrameMetadata metadata;
+
     private readonly TiffPhotometricInterpretation photometricInterpretation;
 
     public OldJpegTiffCompression(
@@ -24,12 +27,14 @@ internal sealed class OldJpegTiffCompression : TiffBaseDecompressor
         MemoryAllocator memoryAllocator,
         int width,
         int bitsPerPixel,
+        ImageFrameMetadata metadata,
         uint startOfImageMarker,
         TiffPhotometricInterpretation photometricInterpretation)
         : base(memoryAllocator, width, bitsPerPixel)
     {
         this.options = options;
         this.startOfImageMarker = startOfImageMarker;
+        this.metadata = metadata;
         this.photometricInterpretation = photometricInterpretation;
     }
 
@@ -47,7 +52,7 @@ internal sealed class OldJpegTiffCompression : TiffBaseDecompressor
 
     private void DecodeJpegData(BufferedReadStream stream, Span<byte> buffer, CancellationToken cancellationToken)
     {
-        using JpegDecoderCore jpegDecoder = new(this.options);
+        using JpegDecoderCore jpegDecoder = new(this.options, this.metadata.IccProfile);
         Configuration configuration = this.options.GeneralOptions.Configuration;
         switch (this.photometricInterpretation)
         {
@@ -71,6 +76,7 @@ internal sealed class OldJpegTiffCompression : TiffBaseDecompressor
 
             case TiffPhotometricInterpretation.YCbCr:
             case TiffPhotometricInterpretation.Rgb:
+            case TiffPhotometricInterpretation.Separated:
             {
                 using SpectralConverter<Rgb24> spectralConverter = new TiffOldJpegSpectralConverter<Rgb24>(configuration, this.photometricInterpretation);
 

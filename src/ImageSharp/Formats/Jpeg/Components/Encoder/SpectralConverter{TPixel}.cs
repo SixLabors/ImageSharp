@@ -2,7 +2,6 @@
 // Licensed under the Six Labors Split License.
 
 using System.Buffers;
-using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -109,6 +108,8 @@ internal class SpectralConverter<TPixel> : SpectralConverter, IDisposable
             int y = yy - this.pixelRowCounter;
 
             // Unpack TPixel to r/g/b planes
+            // TODO: The individual implementation code would be much easier here if
+            // we scaled to [0-1] before passing to the individual converters.
             int srcIndex = Math.Min(yy, pixelBufferLastVerticalIndex);
             Span<TPixel> sourceRow = this.pixelBuffer.DangerousGetRowSpan(srcIndex);
             PixelOperations<TPixel>.Instance.UnpackIntoRgbPlanes(rLane, gLane, bLane, sourceRow);

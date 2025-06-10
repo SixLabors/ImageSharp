@@ -221,10 +221,10 @@ internal static unsafe class Vp8Encoding
             ref byte referenceRef = ref MemoryMarshal.GetReference(reference);
 
             // Load four bytes/pixels per line.
-            Vector128<byte> ref0 = Vector128.CreateScalar(Unsafe.As<byte, int>(ref referenceRef)).AsByte();
-            Vector128<byte> ref1 = Vector128.CreateScalar(Unsafe.As<byte, int>(ref Unsafe.Add(ref referenceRef, WebpConstants.Bps))).AsByte();
-            Vector128<byte> ref2 = Vector128.CreateScalar(Unsafe.As<byte, int>(ref Unsafe.Add(ref referenceRef, WebpConstants.Bps * 2))).AsByte();
-            Vector128<byte> ref3 = Vector128.CreateScalar(Unsafe.As<byte, int>(ref Unsafe.Add(ref referenceRef, WebpConstants.Bps * 3))).AsByte();
+            Vector128<byte> ref0 = Vector128.CreateScalar(Unsafe.ReadUnaligned<int>(ref referenceRef)).AsByte();
+            Vector128<byte> ref1 = Vector128.CreateScalar(Unsafe.ReadUnaligned<int>(ref Unsafe.Add(ref referenceRef, WebpConstants.Bps))).AsByte();
+            Vector128<byte> ref2 = Vector128.CreateScalar(Unsafe.ReadUnaligned<int>(ref Unsafe.Add(ref referenceRef, WebpConstants.Bps * 2))).AsByte();
+            Vector128<byte> ref3 = Vector128.CreateScalar(Unsafe.ReadUnaligned<int>(ref Unsafe.Add(ref referenceRef, WebpConstants.Bps * 3))).AsByte();
 
             // Convert to 16b.
             ref0 = Vector128_.UnpackLow(ref0, Vector128<byte>.Zero);
@@ -253,10 +253,10 @@ internal static unsafe class Vp8Encoding
             int output2 = ref2.AsInt32().ToScalar();
             int output3 = ref3.AsInt32().ToScalar();
 
-            Unsafe.As<byte, int>(ref outputRef) = output0;
-            Unsafe.As<byte, int>(ref Unsafe.Add(ref outputRef, WebpConstants.Bps)) = output1;
-            Unsafe.As<byte, int>(ref Unsafe.Add(ref outputRef, WebpConstants.Bps * 2)) = output2;
-            Unsafe.As<byte, int>(ref Unsafe.Add(ref outputRef, WebpConstants.Bps * 3)) = output3;
+            Unsafe.WriteUnaligned(ref outputRef, output0);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref outputRef, WebpConstants.Bps), output1);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref outputRef, WebpConstants.Bps * 2), output2);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref outputRef, WebpConstants.Bps * 3), output3);
         }
         else
         {

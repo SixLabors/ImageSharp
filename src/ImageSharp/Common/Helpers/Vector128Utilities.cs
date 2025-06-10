@@ -86,11 +86,6 @@ internal static class Vector128_
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector128<int> ShuffleNative(Vector128<int> vector, [ConstantExpected] byte control)
     {
-        if (Sse2.IsSupported)
-        {
-            return Sse2.Shuffle(vector, control);
-        }
-
         // Don't use InverseMMShuffle here as we want to avoid the cast.
         Vector128<int> indices = Vector128.Create(
             control & 0x3,
@@ -529,17 +524,16 @@ internal static class Vector128_
         if (AdvSimd.IsSupported)
         {
             Vector128<int> prodLo = AdvSimd.MultiplyWideningLower(left.GetLower(), right.GetLower());
-            Vector128<int> prodHi = AdvSimd.MultiplyWideningLower(left.GetUpper(), right.GetUpper());
+            Vector128<int> prodHi = AdvSimd.MultiplyWideningUpper(left, right);
 
             if (AdvSimd.Arm64.IsSupported)
             {
                 return AdvSimd.Arm64.AddPairwise(prodLo, prodHi);
             }
 
-            Vector128<long> v0 = AdvSimd.AddPairwiseWidening(prodLo);
-            Vector128<long> v1 = AdvSimd.AddPairwiseWidening(prodHi);
-
-            return Vector128.Narrow(v0, v1);
+            Vector64<int> v0 = AdvSimd.AddPairwise(prodLo.GetLower(), prodLo.GetUpper());
+            Vector64<int> v1 = AdvSimd.AddPairwise(prodHi.GetLower(), prodHi.GetUpper());
+            return Vector128.Create(v0, v1);
         }
 
         {

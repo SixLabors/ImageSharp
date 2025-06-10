@@ -464,7 +464,7 @@ internal static class HistogramEncoder
                     }
                 }
 
-                HistoListUpdateHead(histoPriorityList, p);
+                HistoListUpdateHead(histoPriorityList, p, j);
                 j++;
             }
 
@@ -524,7 +524,7 @@ internal static class HistogramEncoder
                 }
                 else
                 {
-                    HistoListUpdateHead(histoPriorityList, p);
+                    HistoListUpdateHead(histoPriorityList, p, i);
                     i++;
                 }
             }
@@ -646,7 +646,7 @@ internal static class HistogramEncoder
 
         histoList.Add(pair);
 
-        HistoListUpdateHead(histoList, pair);
+        HistoListUpdateHead(histoList, pair, histoList.Count - 1);
 
         return pair.CostDiff;
     }
@@ -673,13 +673,11 @@ internal static class HistogramEncoder
     /// <summary>
     /// Check whether a pair in the list should be updated as head or not.
     /// </summary>
-    private static void HistoListUpdateHead(List<HistogramPair> histoList, HistogramPair pair)
+    private static void HistoListUpdateHead(List<HistogramPair> histoList, HistogramPair pair, int idx)
     {
         if (pair.CostDiff < histoList[0].CostDiff)
         {
-            // Replace the best pair.
-            int oldIdx = histoList.IndexOf(pair);
-            histoList[oldIdx] = histoList[0];
+            histoList[idx] = histoList[0];
             histoList[0] = pair;
         }
     }

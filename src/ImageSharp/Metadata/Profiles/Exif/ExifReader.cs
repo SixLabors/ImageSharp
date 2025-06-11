@@ -90,8 +90,8 @@ internal abstract class BaseExifReader
     private readonly MemoryAllocator? allocator;
     private readonly Stream data;
     private List<ExifTag>? invalidTags;
-
     private List<ulong>? subIfds;
+    private bool isBigEndian;
 
     protected BaseExifReader(Stream stream, MemoryAllocator? allocator)
     {
@@ -116,7 +116,17 @@ internal abstract class BaseExifReader
     /// </summary>
     public uint ThumbnailOffset { get; protected set; }
 
-    public bool IsBigEndian { get; protected set; }
+    public bool IsBigEndian
+    {
+        get => this.isBigEndian;
+        protected set
+        {
+            this.isBigEndian = value;
+            this.ByteOrder = value ? ByteOrder.BigEndian : ByteOrder.LittleEndian;
+        }
+    }
+
+    protected ByteOrder ByteOrder { get; private set; }
 
     public List<(ulong Offset, ExifDataType DataType, ulong NumberOfComponents, ExifValue Exif)> BigValues { get; } = new();
 
@@ -485,7 +495,14 @@ internal abstract class BaseExifReader
 
     private void Add(IList<IExifValue> values, IExifValue exif, object? value)
     {
-        if (!exif.TrySetValue(value))
+        if (exif is ExifEncodedString encodedString)
+        {
+            if (!encodedString.TrySetValue(value, this.ByteOrder))
+            {
+                return;
+            }
+        }
+        else if (!exif.TrySetValue(value))
         {
             return;
         }

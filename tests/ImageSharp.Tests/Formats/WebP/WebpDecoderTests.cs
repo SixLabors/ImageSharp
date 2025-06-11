@@ -5,6 +5,7 @@ using System.Runtime.Intrinsics.X86;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.Metadata;
+using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.TestUtilities;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
@@ -556,6 +557,24 @@ public class WebpDecoderTests
         where TPixel : unmanaged, IPixel<TPixel>
     {
         using Image<TPixel> image = provider.GetImage(WebpDecoder.Instance);
+        image.DebugSave(provider);
+        image.CompareToOriginal(provider, ReferenceDecoder);
+    }
+
+    [Theory]
+    [WithFile(Lossy.Issue2906, PixelTypes.Rgba32)]
+    public void WebpDecoder_CanDecode_Issue2906<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage(WebpDecoder.Instance);
+
+        ExifProfile exifProfile = image.Metadata.ExifProfile;
+        IExifValue<EncodedString> comment = exifProfile.GetValue(ExifTag.UserComment);
+
+        Assert.NotNull(comment);
+        Assert.Equal(EncodedString.CharacterCode.Unicode, comment.Value.Code);
+        Assert.StartsWith("1girl, pariya, ", comment.Value.Text);
+
         image.DebugSave(provider);
         image.CompareToOriginal(provider, ReferenceDecoder);
     }

@@ -5,6 +5,7 @@ using SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors;
 using SixLabors.ImageSharp.Formats.Tiff.Constants;
 using SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation;
 using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.Metadata;
 
 namespace SixLabors.ImageSharp.Formats.Tiff.Compression;
 
@@ -17,6 +18,7 @@ internal static class TiffDecompressorsFactory
         TiffPhotometricInterpretation photometricInterpretation,
         int width,
         int bitsPerPixel,
+        ImageFrameMetadata metadata,
         TiffColorType colorType,
         TiffPredictor predictor,
         FaxCompressionOptions faxOptions,
@@ -62,11 +64,11 @@ internal static class TiffDecompressorsFactory
 
             case TiffDecoderCompressionType.Jpeg:
                 DebugGuard.IsTrue(predictor == TiffPredictor.None, "Predictor should only be used with lzw or deflate compression");
-                return new JpegTiffCompression(new() { GeneralOptions = options }, allocator, width, bitsPerPixel, jpegTables, photometricInterpretation);
+                return new JpegTiffCompression(new() { GeneralOptions = options }, allocator, width, bitsPerPixel, metadata, jpegTables, photometricInterpretation);
 
             case TiffDecoderCompressionType.OldJpeg:
                 DebugGuard.IsTrue(predictor == TiffPredictor.None, "Predictor should only be used with lzw or deflate compression");
-                return new OldJpegTiffCompression(new() { GeneralOptions = options }, allocator, width, bitsPerPixel, oldJpegStartOfImageMarker, photometricInterpretation);
+                return new OldJpegTiffCompression(new() { GeneralOptions = options }, allocator, width, bitsPerPixel, metadata, oldJpegStartOfImageMarker, photometricInterpretation);
 
             case TiffDecoderCompressionType.Webp:
                 DebugGuard.IsTrue(predictor == TiffPredictor.None, "Predictor should only be used with lzw or deflate compression");

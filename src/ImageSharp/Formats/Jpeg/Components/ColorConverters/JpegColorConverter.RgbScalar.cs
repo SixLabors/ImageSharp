@@ -75,6 +75,7 @@ internal abstract partial class JpegColorConverterBase
 
         internal static void ConvertFromRgb(ComponentValues values, Span<float> rLane, Span<float> gLane, Span<float> bLane)
         {
+            // TODO: This doesn't seem correct. We should be scaling to the maximum value here.
             rLane.CopyTo(values.Component0);
             gLane.CopyTo(values.Component1);
             bLane.CopyTo(values.Component2);

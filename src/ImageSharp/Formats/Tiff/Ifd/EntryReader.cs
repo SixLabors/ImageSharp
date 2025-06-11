@@ -14,7 +14,7 @@ internal class EntryReader : BaseExifReader
         : base(stream, allocator) =>
         this.IsBigEndian = byteOrder == ByteOrder.BigEndian;
 
-    public List<IExifValue> Values { get; } = new();
+    public List<IExifValue> Values { get; } = [];
 
     public ulong NextIfdOffset { get; private set; }
 
@@ -31,8 +31,6 @@ internal class EntryReader : BaseExifReader
         {
             this.ReadValues64(this.Values, ifdOffset);
             this.NextIfdOffset = this.ReadUInt64();
-
-            //// this.ReadSubIfd64(this.Values);
         }
     }
 
@@ -62,9 +60,9 @@ internal class HeaderReader : BaseExifReader
         {
             this.IsBigTiff = true;
 
-            ushort bytesize = this.ReadUInt16();
+            ushort byteSize = this.ReadUInt16();
             ushort reserve = this.ReadUInt16();
-            if (bytesize == TiffConstants.BigTiffByteSize && reserve == 0)
+            if (byteSize == TiffConstants.BigTiffByteSize && reserve == 0)
             {
                 this.FirstIfdOffset = this.ReadUInt64();
                 return;

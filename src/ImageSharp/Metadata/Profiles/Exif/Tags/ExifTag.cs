@@ -4,7 +4,7 @@
 namespace SixLabors.ImageSharp.Metadata.Profiles.Exif;
 
 /// <summary>
-/// Class that represents an exif tag from the Exif standard 2.31.
+/// Class that represents an Exif tag from the Exif standard 2.31.
 /// </summary>
 public abstract partial class ExifTag : IEquatable<ExifTag>
 {
@@ -16,21 +16,21 @@ public abstract partial class ExifTag : IEquatable<ExifTag>
     /// Converts the specified <see cref="ExifTag"/> to a <see cref="ushort"/>.
     /// </summary>
     /// <param name="tag">The <see cref="ExifTag"/> to convert.</param>
-    public static explicit operator ushort(ExifTag tag) => tag?.value ?? (ushort)ExifTagValue.Unknown;
+    public static explicit operator ushort(ExifTag? tag) => tag?.value ?? (ushort)ExifTagValue.Unknown;
 
     /// <summary>
     /// Determines whether the specified <see cref="ExifTag"/> instances are considered equal.
     /// </summary>
     /// <param name="left">The first <see cref="ExifTag"/> to compare.</param>
     /// <param name="right"> The second <see cref="ExifTag"/> to compare.</param>
-    public static bool operator ==(ExifTag left, ExifTag right) => Equals(left, right);
+    public static bool operator ==(ExifTag? left, ExifTag? right) => left?.Equals(right) == true;
 
     /// <summary>
     /// Determines whether the specified <see cref="ExifTag"/> instances are not considered equal.
     /// </summary>
     /// <param name="left">The first <see cref="ExifTag"/> to compare.</param>
     /// <param name="right"> The second <see cref="ExifTag"/> to compare.</param>
-    public static bool operator !=(ExifTag left, ExifTag right) => !Equals(left, right);
+    public static bool operator !=(ExifTag left, ExifTag right) => !(left == right);
 
     /// <inheritdoc/>
     public override bool Equals(object? obj)

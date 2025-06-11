@@ -16,13 +16,13 @@ internal static class ExifEncodedStringHelpers
     private const ulong UnicodeCode = 0x_45_44_4F_43_49_4E_55;
     private const ulong UndefinedCode = 0x_00_00_00_00_00_00_00_00;
 
-    private static ReadOnlySpan<byte> AsciiCodeBytes => new byte[] { 0x41, 0x53, 0x43, 0x49, 0x49, 0, 0, 0 };
+    private static ReadOnlySpan<byte> AsciiCodeBytes => [0x41, 0x53, 0x43, 0x49, 0x49, 0, 0, 0];
 
-    private static ReadOnlySpan<byte> JISCodeBytes => new byte[] { 0x4A, 0x49, 0x53, 0, 0, 0, 0, 0 };
+    private static ReadOnlySpan<byte> JISCodeBytes => [0x4A, 0x49, 0x53, 0, 0, 0, 0, 0];
 
-    private static ReadOnlySpan<byte> UnicodeCodeBytes => new byte[] { 0x55, 0x4E, 0x49, 0x43, 0x4F, 0x44, 0x45, 0 };
+    private static ReadOnlySpan<byte> UnicodeCodeBytes => [0x55, 0x4E, 0x49, 0x43, 0x4F, 0x44, 0x45, 0];
 
-    private static ReadOnlySpan<byte> UndefinedCodeBytes => new byte[] { 0, 0, 0, 0, 0, 0, 0, 0 };
+    private static ReadOnlySpan<byte> UndefinedCodeBytes => [0, 0, 0, 0, 0, 0, 0, 0];
 
     // 20932 EUC-JP Japanese (JIS 0208-1990 and 0212-1990)
     // https://docs.microsoft.com/en-us/dotnet/api/system.text.encoding?view=net-6.0
@@ -50,37 +50,66 @@ internal static class ExifEncodedStringHelpers
         _ => UndefinedCodeBytes
     };
 
-    public static Encoding GetEncoding(CharacterCode code) => code switch
+    public static Encoding GetEncoding(CharacterCode code, ByteOrder order) => code switch
     {
         CharacterCode.ASCII => Encoding.ASCII,
         CharacterCode.JIS => JIS0208Encoding,
-        CharacterCode.Unicode => Encoding.Unicode,
+        CharacterCode.Unicode => order is ByteOrder.BigEndian ? Encoding.BigEndianUnicode : Encoding.Unicode,
         CharacterCode.Undefined => Encoding.UTF8,
         _ => Encoding.UTF8
     };
 
-    public static bool TryParse(ReadOnlySpan<byte> buffer, out EncodedString encodedString)
+    public static bool TryParse(ReadOnlySpan<byte> buffer, ByteOrder order, out EncodedString encodedString)
     {
         if (TryDetect(buffer, out CharacterCode code))
         {
-            string text = GetEncoding(code).GetString(buffer[CharacterCodeBytesLength..]);
-            encodedString = new EncodedString(code, text);
-            return true;
+            ReadOnlySpan<byte> textBuffer = buffer[CharacterCodeBytesLength..];
+            if (code == CharacterCode.Unicode && textBuffer.Length >= 2)
+            {
+                // Check BOM
+                if (textBuffer[0] == 0xFF && textBuffer[1] == 0xFE)
+                {
+                    // Little-endian BOM
+                    string text = Encoding.Unicode.GetString(textBuffer[2..]);
+                    encodedString = new EncodedString(code, text);
+                    return true;
+                }
+                else if (textBuffer[0] == 0xFE && textBuffer[1] == 0xFF)
+                {
+                    // Big-endian BOM
+                    string text = Encoding.BigEndianUnicode.GetString(textBuffer[2..]);
+                    encodedString = new EncodedString(code, text);
+                    return true;
+                }
+                else
+                {
+                    // No BOM, use EXIF byte order
+                    string text = GetEncoding(code, order).GetString(textBuffer);
+                    encodedString = new EncodedString(code, text);
+                    return true;
+                }
+            }
+            else
+            {
+                string text = GetEncoding(code, order).GetString(textBuffer);
+                encodedString = new EncodedString(code, text);
+                return true;
+            }
         }
 
         encodedString = default;
         return false;
     }
 
-    public static uint GetDataLength(EncodedString encodedString) =>
-        (uint)GetEncoding(encodedString.Code).GetByteCount(encodedString.Text) + CharacterCodeBytesLength;
+    public static uint GetDataLength(EncodedString encodedString, ByteOrder order) =>
+        (uint)GetEncoding(encodedString.Code, order).GetByteCount(encodedString.Text) + CharacterCodeBytesLength;
 
     public static int Write(EncodedString encodedString, Span<byte> destination)
     {
         GetCodeBytes(encodedString.Code).CopyTo(destination);
 
         string text = encodedString.Text;
-        int count = Write(GetEncoding(encodedString.Code), text, destination[CharacterCodeBytesLength..]);
+        int count = Write(GetEncoding(encodedString.Code, ByteOrder.LittleEndian), text, destination[CharacterCodeBytesLength..]);
 
         return CharacterCodeBytesLength + count;
     }
@@ -92,8 +121,7 @@ internal static class ExifEncodedStringHelpers
     {
         if (buffer.Length >= CharacterCodeBytesLength)
         {
-            ulong test = BinaryPrimitives.ReadUInt64LittleEndian(buffer);
-            switch (test)
+            switch (BinaryPrimitives.ReadUInt64LittleEndian(buffer))
             {
                 case AsciiCode:
                     code = CharacterCode.ASCII;
@@ -108,7 +136,8 @@ internal static class ExifEncodedStringHelpers
                     code = CharacterCode.Undefined;
                     return true;
                 default:
-                    break;
+                    code = default;
+                    return false;
             }
         }
 

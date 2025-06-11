@@ -101,8 +101,8 @@ internal static class ExifEncodedStringHelpers
         return false;
     }
 
-    public static uint GetDataLength(EncodedString encodedString, ByteOrder order) =>
-        (uint)GetEncoding(encodedString.Code, order).GetByteCount(encodedString.Text) + CharacterCodeBytesLength;
+    public static uint GetDataLength(EncodedString encodedString) =>
+        (uint)GetEncoding(encodedString.Code, ByteOrder.LittleEndian).GetByteCount(encodedString.Text) + CharacterCodeBytesLength;
 
     public static int Write(EncodedString encodedString, Span<byte> destination)
     {

@@ -281,7 +281,7 @@ internal sealed class ExifWriter
 
         if (value is EncodedString encodedString)
         {
-            return ExifEncodedStringHelpers.GetDataLength(encodedString, ByteOrder.LittleEndian);
+            return ExifEncodedStringHelpers.GetDataLength(encodedString);
         }
 
         if (exifValue.DataType == ExifDataType.Ascii)

@@ -41,14 +41,14 @@ public class EncodeTga
     [Benchmark(Baseline = true, Description = "Magick Tga")]
     public void MagickTga()
     {
-        using var memoryStream = new MemoryStream();
+        using MemoryStream memoryStream = new();
         this.tgaMagick.Write(memoryStream, MagickFormat.Tga);
     }
 
     [Benchmark(Description = "ImageSharp Tga")]
     public void ImageSharpTga()
     {
-        using var memoryStream = new MemoryStream();
+        using MemoryStream memoryStream = new();
         this.tga.SaveAsTga(memoryStream);
     }
 }

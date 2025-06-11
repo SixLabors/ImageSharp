@@ -78,7 +78,7 @@ public class BufferedStreams
     public int StandardStreamRead()
     {
         int r = 0;
-        Stream stream = this.stream1;
+        MemoryStream stream = this.stream1;
         byte[] b = this.chunk1;
 
         for (int i = 0; i < stream.Length / 2; i++)
@@ -138,7 +138,7 @@ public class BufferedStreams
     public int StandardStreamReadByte()
     {
         int r = 0;
-        Stream stream = this.stream2;
+        MemoryStream stream = this.stream2;
 
         for (int i = 0; i < stream.Length; i++)
         {
@@ -205,8 +205,8 @@ public class BufferedStreams
 
     private static byte[] CreateTestBytes()
     {
-        var buffer = new byte[Configuration.Default.StreamProcessingBufferSize * 3];
-        var random = new Random();
+        byte[] buffer = new byte[Configuration.Default.StreamProcessingBufferSize * 3];
+        Random random = new();
         random.NextBytes(buffer);
 
         return buffer;

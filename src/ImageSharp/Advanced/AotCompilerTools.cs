@@ -138,10 +138,11 @@ internal static class AotCompilerTools
         AotCompileResamplers<TPixel>();
         AotCompileQuantizers<TPixel>();
         AotCompilePixelSamplingStrategys<TPixel>();
+        AotCompilePixelMaps<TPixel>();
         AotCompileDithers<TPixel>();
         AotCompileMemoryManagers<TPixel>();
 
-        Unsafe.SizeOf<TPixel>();
+        _ = Unsafe.SizeOf<TPixel>();
 
         // TODO: Do the discovery work to figure out what works and what doesn't.
     }
@@ -276,11 +277,11 @@ internal static class AotCompilerTools
     private static void AotCompileSpectralConverter<TPixel>()
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        default(SpectralConverter<TPixel>).GetPixelBuffer(default);
-        default(GrayJpegSpectralConverter<TPixel>).GetPixelBuffer(default);
-        default(RgbJpegSpectralConverter<TPixel>).GetPixelBuffer(default);
-        default(TiffJpegSpectralConverter<TPixel>).GetPixelBuffer(default);
-        default(TiffOldJpegSpectralConverter<TPixel>).GetPixelBuffer(default);
+        default(SpectralConverter<TPixel>).GetPixelBuffer(default, default);
+        default(GrayJpegSpectralConverter<TPixel>).GetPixelBuffer(default, default);
+        default(RgbJpegSpectralConverter<TPixel>).GetPixelBuffer(default, default);
+        default(TiffJpegSpectralConverter<TPixel>).GetPixelBuffer(default, default);
+        default(TiffOldJpegSpectralConverter<TPixel>).GetPixelBuffer(default, default);
     }
 
     /// <summary>
@@ -512,6 +513,20 @@ internal static class AotCompilerTools
         default(DefaultPixelSamplingStrategy).EnumeratePixelRegions(default(ImageFrame<TPixel>));
         default(ExtensivePixelSamplingStrategy).EnumeratePixelRegions(default(Image<TPixel>));
         default(ExtensivePixelSamplingStrategy).EnumeratePixelRegions(default(ImageFrame<TPixel>));
+    }
+
+    /// <summary>
+    /// This method pre-seeds the all <see cref="IColorIndexCache{T}" /> in the AoT compiler.
+    /// </summary>
+    /// <typeparam name="TPixel">The pixel format.</typeparam>
+    [Preserve]
+    private static void AotCompilePixelMaps<TPixel>()
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        default(EuclideanPixelMap<TPixel, HybridCache>).GetClosestColor(default, out _);
+        default(EuclideanPixelMap<TPixel, AccurateCache>).GetClosestColor(default, out _);
+        default(EuclideanPixelMap<TPixel, CoarseCache>).GetClosestColor(default, out _);
+        default(EuclideanPixelMap<TPixel, NullCache>).GetClosestColor(default, out _);
     }
 
     /// <summary>

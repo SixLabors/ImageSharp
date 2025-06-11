@@ -271,7 +271,7 @@ public class Block8x8Tests : JpegFixture
 
             Block8x8 block8x8 = Block8x8.Load(Create8x8ShortData());
 
-            block8x8.TransposeInplace();
+            block8x8.TransposeInPlace();
 
             short[] actual = new short[64];
             block8x8.CopyTo(actual);

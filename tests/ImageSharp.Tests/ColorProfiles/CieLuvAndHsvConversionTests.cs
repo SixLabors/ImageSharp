@@ -20,7 +20,7 @@ public class CieLuvAndHsvConversionTests
         // Arrange
         CieLuv input = new(l, u, v);
         Hsv expected = new(h, s, v2);
-        ColorConversionOptions options = new() { WhitePoint = KnownIlluminants.D65, TargetWhitePoint = KnownIlluminants.D65 };
+        ColorConversionOptions options = new() { SourceWhitePoint = KnownIlluminants.D65, TargetWhitePoint = KnownIlluminants.D65 };
         ColorProfileConverter converter = new(options);
 
         Span<CieLuv> inputSpan = new CieLuv[5];
@@ -49,7 +49,7 @@ public class CieLuvAndHsvConversionTests
         // Arrange
         Hsv input = new(h, s, v2);
         CieLuv expected = new(l, u, v);
-        ColorConversionOptions options = new() { WhitePoint = KnownIlluminants.D65, TargetWhitePoint = KnownIlluminants.D65 };
+        ColorConversionOptions options = new() { SourceWhitePoint = KnownIlluminants.D65, TargetWhitePoint = KnownIlluminants.D65 };
         ColorProfileConverter converter = new(options);
 
         Span<Hsv> inputSpan = new Hsv[5];

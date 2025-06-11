@@ -90,6 +90,11 @@ internal sealed class GifDecoderCore : ImageDecoderCore
     private GifMetadata? gifMetadata;
 
     /// <summary>
+    /// The background color index.
+    /// </summary>
+    private byte backgroundColorIndex;
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="GifDecoderCore"/> class.
     /// </summary>
     /// <param name="options">The decoder options.</param>
@@ -108,6 +113,10 @@ internal sealed class GifDecoderCore : ImageDecoderCore
         uint frameCount = 0;
         Image<TPixel>? image = null;
         ImageFrame<TPixel>? previousFrame = null;
+        FrameDisposalMode? previousDisposalMode = null;
+        bool globalColorTableUsed = false;
+        Color backgroundColor = Color.Transparent;
+
         try
         {
             this.ReadLogicalScreenDescriptorAndGlobalColorTable(stream);
@@ -123,7 +132,7 @@ internal sealed class GifDecoderCore : ImageDecoderCore
                         break;
                     }
 
-                    this.ReadFrame(stream, ref image, ref previousFrame);
+                    globalColorTableUsed |= this.ReadFrame(stream, ref image, ref previousFrame, ref previousDisposalMode, ref backgroundColor);
 
                     // Reset per-frame state.
                     this.imageDescriptor = default;
@@ -158,6 +167,13 @@ internal sealed class GifDecoderCore : ImageDecoderCore
                     break;
                 }
             }
+
+            // We cannot always trust the global GIF palette has actually been used.
+            // https://github.com/SixLabors/ImageSharp/issues/2866
+            if (!globalColorTableUsed)
+            {
+                this.gifMetadata.ColorTableMode = FrameColorTableMode.Local;
+            }
         }
         finally
         {
@@ -179,6 +195,8 @@ internal sealed class GifDecoderCore : ImageDecoderCore
         uint frameCount = 0;
         ImageFrameMetadata? previousFrame = null;
         List<ImageFrameMetadata> framesMetadata = [];
+        bool globalColorTableUsed = false;
+
         try
         {
             this.ReadLogicalScreenDescriptorAndGlobalColorTable(stream);
@@ -194,7 +212,7 @@ internal sealed class GifDecoderCore : ImageDecoderCore
                         break;
                     }
 
-                    this.ReadFrameMetadata(stream, framesMetadata, ref previousFrame);
+                    globalColorTableUsed |= this.ReadFrameMetadata(stream, framesMetadata, ref previousFrame);
 
                     // Reset per-frame state.
                     this.imageDescriptor = default;
@@ -228,6 +246,13 @@ internal sealed class GifDecoderCore : ImageDecoderCore
                 {
                     break;
                 }
+            }
+
+            // We cannot always trust the global GIF palette has actually been used.
+            // https://github.com/SixLabors/ImageSharp/issues/2866
+            if (!globalColorTableUsed)
+            {
+                this.gifMetadata.ColorTableMode = FrameColorTableMode.Local;
             }
         }
         finally
@@ -416,26 +441,29 @@ internal sealed class GifDecoderCore : ImageDecoderCore
     /// <param name="stream">The <see cref="BufferedReadStream"/> containing image data.</param>
     /// <param name="image">The image to decode the information to.</param>
     /// <param name="previousFrame">The previous frame.</param>
-    private void ReadFrame<TPixel>(BufferedReadStream stream, ref Image<TPixel>? image, ref ImageFrame<TPixel>? previousFrame)
+    /// <param name="previousDisposalMode">The previous frame disposal mode.</param>
+    /// <param name="backgroundColor">The background color.</param>
+    /// <returns>Whether the frame has a global color table.</returns>
+    private bool ReadFrame<TPixel>(
+        BufferedReadStream stream,
+        ref Image<TPixel>? image,
+        ref ImageFrame<TPixel>? previousFrame,
+        ref FrameDisposalMode? previousDisposalMode,
+        ref Color backgroundColor)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         this.ReadImageDescriptor(stream);
 
         // Determine the color table for this frame. If there is a local one, use it otherwise use the global color table.
         bool hasLocalColorTable = this.imageDescriptor.LocalColorTableFlag;
-
+        Span<byte> rawColorTable = default;
         if (hasLocalColorTable)
         {
             // Read and store the local color table. We allocate the maximum possible size and slice to match.
             int length = this.currentLocalColorTableSize = this.imageDescriptor.LocalColorTableSize * 3;
             this.currentLocalColorTable ??= this.configuration.MemoryAllocator.Allocate<byte>(768, AllocationOptions.Clean);
             stream.Read(this.currentLocalColorTable.GetSpan()[..length]);
-        }
-
-        Span<byte> rawColorTable = default;
-        if (hasLocalColorTable)
-        {
-            rawColorTable = this.currentLocalColorTable!.GetSpan()[..this.currentLocalColorTableSize];
+            rawColorTable = this.currentLocalColorTable!.GetSpan()[..length];
         }
         else if (this.globalColorTable != null)
         {
@@ -443,10 +471,52 @@ internal sealed class GifDecoderCore : ImageDecoderCore
         }
 
         ReadOnlySpan<Rgb24> colorTable = MemoryMarshal.Cast<byte, Rgb24>(rawColorTable);
-        this.ReadFrameColors(stream, ref image, ref previousFrame, colorTable, this.imageDescriptor);
+
+        // First frame
+        if (image is null)
+        {
+            if (this.backgroundColorIndex < colorTable.Length)
+            {
+                backgroundColor = Color.FromPixel(colorTable[this.backgroundColorIndex]);
+            }
+            else
+            {
+                backgroundColor = Color.Transparent;
+            }
+
+            if (this.graphicsControlExtension.TransparencyFlag)
+            {
+                backgroundColor = backgroundColor.WithAlpha(0);
+            }
+        }
+
+        this.ReadFrameColors(stream, ref image, ref previousFrame, ref previousDisposalMode, colorTable, backgroundColor.ToPixel<TPixel>());
+
+        // Update from newly decoded frame.
+        if (this.graphicsControlExtension.DisposalMethod != FrameDisposalMode.RestoreToPrevious)
+        {
+            if (this.backgroundColorIndex < colorTable.Length)
+            {
+                backgroundColor = Color.FromPixel(colorTable[this.backgroundColorIndex]);
+            }
+            else
+            {
+                backgroundColor = Color.Transparent;
+            }
+
+            // TODO: I don't understand why this is always set to alpha of zero.
+            // This should be dependent on the transparency flag of the graphics
+            // control extension. ImageMagick does the same.
+            // if (this.graphicsControlExtension.TransparencyFlag)
+            {
+                backgroundColor = backgroundColor.WithAlpha(0);
+            }
+        }
 
         // Skip any remaining blocks
         SkipBlock(stream);
+
+        return !hasLocalColorTable;
     }
 
     /// <summary>
@@ -456,57 +526,73 @@ internal sealed class GifDecoderCore : ImageDecoderCore
     /// <param name="stream">The <see cref="BufferedReadStream"/> containing image data.</param>
     /// <param name="image">The image to decode the information to.</param>
     /// <param name="previousFrame">The previous frame.</param>
+    /// <param name="previousDisposalMode">The previous frame disposal mode.</param>
     /// <param name="colorTable">The color table containing the available colors.</param>
-    /// <param name="descriptor">The <see cref="GifImageDescriptor"/></param>
+    /// <param name="backgroundPixel">The background color pixel.</param>
     private void ReadFrameColors<TPixel>(
         BufferedReadStream stream,
         ref Image<TPixel>? image,
         ref ImageFrame<TPixel>? previousFrame,
+        ref FrameDisposalMode? previousDisposalMode,
         ReadOnlySpan<Rgb24> colorTable,
-        in GifImageDescriptor descriptor)
+        TPixel backgroundPixel)
         where TPixel : unmanaged, IPixel<TPixel>
     {
+        GifImageDescriptor descriptor = this.imageDescriptor;
         int imageWidth = this.logicalScreenDescriptor.Width;
         int imageHeight = this.logicalScreenDescriptor.Height;
         bool transFlag = this.graphicsControlExtension.TransparencyFlag;
+        FrameDisposalMode disposalMethod = this.graphicsControlExtension.DisposalMethod;
+        ImageFrame<TPixel> currentFrame;
+        ImageFrame<TPixel>? restoreFrame = null;
 
-        ImageFrame<TPixel>? prevFrame = null;
-        ImageFrame<TPixel>? currentFrame = null;
-        ImageFrame<TPixel> imageFrame;
-
-        if (previousFrame is null)
+        if (previousFrame is null && previousDisposalMode is null)
         {
-            if (!transFlag)
-            {
-                image = new Image<TPixel>(this.configuration, imageWidth, imageHeight, Color.Black.ToPixel<TPixel>(), this.metadata);
-            }
-            else
-            {
-                // This initializes the image to become fully transparent because the alpha channel is zero.
-                image = new Image<TPixel>(this.configuration, imageWidth, imageHeight, this.metadata);
-            }
+            image = transFlag
+                ? new Image<TPixel>(this.configuration, imageWidth, imageHeight, this.metadata)
+                : new Image<TPixel>(this.configuration, imageWidth, imageHeight, backgroundPixel, this.metadata);
 
             this.SetFrameMetadata(image.Frames.RootFrame.Metadata);
-
-            imageFrame = image.Frames.RootFrame;
+            currentFrame = image.Frames.RootFrame;
         }
         else
         {
-            if (this.graphicsControlExtension.DisposalMethod == FrameDisposalMode.RestoreToPrevious)
+            if (previousFrame != null)
             {
-                prevFrame = previousFrame;
+                currentFrame = image!.Frames.AddFrame(previousFrame);
             }
-
-            // We create a clone of the frame and add it.
-            // We will overpaint the difference of pixels on the current frame to create a complete image.
-            // This ensures that we have enough pixel data to process without distortion. #2450
-            currentFrame = image!.Frames.AddFrame(previousFrame);
+            else
+            {
+                currentFrame = image!.Frames.CreateFrame(backgroundPixel);
+            }
 
             this.SetFrameMetadata(currentFrame.Metadata);
 
-            imageFrame = currentFrame;
+            if (this.graphicsControlExtension.DisposalMethod == FrameDisposalMode.RestoreToPrevious)
+            {
+                restoreFrame = previousFrame;
+            }
 
-            this.RestoreToBackground(imageFrame);
+            if (previousDisposalMode == FrameDisposalMode.RestoreToBackground)
+            {
+                this.RestoreToBackground(currentFrame, backgroundPixel, transFlag);
+            }
+        }
+
+        if (this.graphicsControlExtension.DisposalMethod == FrameDisposalMode.RestoreToPrevious)
+        {
+            previousFrame = restoreFrame;
+        }
+        else
+        {
+            previousFrame = currentFrame;
+        }
+
+        previousDisposalMode = disposalMethod;
+
+        if (disposalMethod == FrameDisposalMode.RestoreToBackground)
+        {
+            this.restoreArea = Rectangle.Intersect(image.Bounds, new(descriptor.Left, descriptor.Top, descriptor.Width, descriptor.Height));
         }
 
         if (colorTable.Length == 0)
@@ -528,7 +614,6 @@ internal sealed class GifDecoderCore : ImageDecoderCore
         // However we have images that exceed this that can be decoded by other libraries. #1530
         using IMemoryOwner<byte> indicesRowOwner = this.memoryAllocator.Allocate<byte>(descriptor.Width);
         Span<byte> indicesRow = indicesRowOwner.Memory.Span;
-        ref byte indicesRowRef = ref MemoryMarshal.GetReference(indicesRow);
 
         int minCodeSize = stream.ReadByte();
         if (LzwDecoder.IsValidMinCodeSize(minCodeSize))
@@ -572,22 +657,28 @@ internal sealed class GifDecoderCore : ImageDecoderCore
                 }
 
                 lzwDecoder.DecodePixelRow(indicesRow);
-                ref TPixel rowRef = ref MemoryMarshal.GetReference(imageFrame.PixelBuffer.DangerousGetRowSpan(writeY));
+
+                // #403 The left + width value can be larger than the image width
+                int maxX = Math.Min(descriptorRight, imageWidth);
+                Span<TPixel> row = currentFrame.PixelBuffer.DangerousGetRowSpan(writeY);
+
+                // Take the descriptorLeft..maxX slice of the row, so the loop can be simplified.
+                row = row[descriptorLeft..maxX];
 
                 if (!transFlag)
                 {
-                    // #403 The left + width value can be larger than the image width
-                    for (int x = descriptorLeft; x < descriptorRight && x < imageWidth; x++)
+                    for (int x = 0; x < row.Length; x++)
                     {
-                        int index = Numerics.Clamp(Unsafe.Add(ref indicesRowRef, (uint)(x - descriptorLeft)), 0, colorTableMaxIdx);
-                        Unsafe.Add(ref rowRef, (uint)x) = TPixel.FromRgb24(colorTable[index]);
+                        int index = indicesRow[x];
+                        index = Numerics.Clamp(index, 0, colorTableMaxIdx);
+                        row[x] = TPixel.FromRgb24(colorTable[index]);
                     }
                 }
                 else
                 {
-                    for (int x = descriptorLeft; x < descriptorRight && x < imageWidth; x++)
+                    for (int x = 0; x < row.Length; x++)
                     {
-                        int index = Unsafe.Add(ref indicesRowRef, (uint)(x - descriptorLeft));
+                        int index = indicesRow[x];
 
                         // Treat any out of bounds values as transparent.
                         if (index > colorTableMaxIdx || index == transIndex)
@@ -595,23 +686,10 @@ internal sealed class GifDecoderCore : ImageDecoderCore
                             continue;
                         }
 
-                        Unsafe.Add(ref rowRef, (uint)x) = TPixel.FromRgb24(colorTable[index]);
+                        row[x] = TPixel.FromRgb24(colorTable[index]);
                     }
                 }
             }
-        }
-
-        if (prevFrame != null)
-        {
-            previousFrame = prevFrame;
-            return;
-        }
-
-        previousFrame = currentFrame ?? image.Frames.RootFrame;
-
-        if (this.graphicsControlExtension.DisposalMethod == FrameDisposalMode.RestoreToBackground)
-        {
-            this.restoreArea = new Rectangle(descriptor.Left, descriptor.Top, descriptor.Width, descriptor.Height);
         }
     }
 
@@ -621,7 +699,8 @@ internal sealed class GifDecoderCore : ImageDecoderCore
     /// <param name="stream">The <see cref="BufferedReadStream"/> containing image data.</param>
     /// <param name="frameMetadata">The collection of frame metadata.</param>
     /// <param name="previousFrame">The previous frame metadata.</param>
-    private void ReadFrameMetadata(BufferedReadStream stream, List<ImageFrameMetadata> frameMetadata, ref ImageFrameMetadata? previousFrame)
+    /// <returns>Whether the frame has a global color table.</returns>
+    private bool ReadFrameMetadata(BufferedReadStream stream, List<ImageFrameMetadata> frameMetadata, ref ImageFrameMetadata? previousFrame)
     {
         this.ReadImageDescriptor(stream);
 
@@ -632,6 +711,11 @@ internal sealed class GifDecoderCore : ImageDecoderCore
             int length = this.currentLocalColorTableSize = this.imageDescriptor.LocalColorTableSize * 3;
             this.currentLocalColorTable ??= this.configuration.MemoryAllocator.Allocate<byte>(768, AllocationOptions.Clean);
             stream.Read(this.currentLocalColorTable.GetSpan()[..length]);
+        }
+        else
+        {
+            this.currentLocalColorTable = null;
+            this.currentLocalColorTableSize = 0;
         }
 
         // Skip the frame indices. Pixels length + mincode size.
@@ -650,6 +734,8 @@ internal sealed class GifDecoderCore : ImageDecoderCore
 
         // Skip any remaining blocks
         SkipBlock(stream);
+
+        return !this.imageDescriptor.LocalColorTableFlag;
     }
 
     /// <summary>
@@ -657,7 +743,9 @@ internal sealed class GifDecoderCore : ImageDecoderCore
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
     /// <param name="frame">The frame.</param>
-    private void RestoreToBackground<TPixel>(ImageFrame<TPixel> frame)
+    /// <param name="background">The background color.</param>
+    /// <param name="transparent">Whether the background is transparent.</param>
+    private void RestoreToBackground<TPixel>(ImageFrame<TPixel> frame, TPixel background, bool transparent)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         if (this.restoreArea is null)
@@ -667,7 +755,14 @@ internal sealed class GifDecoderCore : ImageDecoderCore
 
         Rectangle interest = Rectangle.Intersect(frame.Bounds, this.restoreArea.Value);
         Buffer2DRegion<TPixel> pixelRegion = frame.PixelBuffer.GetRegion(interest);
-        pixelRegion.Clear();
+        if (transparent)
+        {
+            pixelRegion.Clear();
+        }
+        else
+        {
+            pixelRegion.Fill(background);
+        }
 
         this.restoreArea = null;
     }
@@ -776,7 +871,9 @@ internal sealed class GifDecoderCore : ImageDecoderCore
             }
         }
 
-        this.gifMetadata.BackgroundColorIndex = this.logicalScreenDescriptor.BackgroundColorIndex;
+        byte index = this.logicalScreenDescriptor.BackgroundColorIndex;
+        this.backgroundColorIndex = index;
+        this.gifMetadata.BackgroundColorIndex = index;
     }
 
     private unsafe struct ScratchBuffer

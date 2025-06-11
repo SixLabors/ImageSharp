@@ -30,5 +30,5 @@ internal static class Vector4Factory
     }
 
     private static float GetRandomFloat(Random rnd, float minVal, float maxVal)
-        => (float)rnd.NextDouble() * (maxVal - minVal) + minVal;
+        => ((float)rnd.NextDouble() * (maxVal - minVal)) + minVal;
 }

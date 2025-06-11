@@ -59,11 +59,6 @@ public static class TestImageExtensions
         bool appendSourceFileOrDescription = true,
         IImageEncoder encoder = null)
     {
-        if (TestEnvironment.RunsWithCodeCoverage)
-        {
-            return image;
-        }
-
         provider.Utility.SaveTestOutputFile(
             image,
             extension,
@@ -107,18 +102,15 @@ public static class TestImageExtensions
         ITestImageProvider provider,
         object testOutputDetails = null,
         string extension = "png",
+        IImageEncoder encoder = null,
         bool appendPixelTypeToFileName = true,
         Func<int, int, bool> predicate = null)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        if (TestEnvironment.RunsWithCodeCoverage)
-        {
-            return image;
-        }
-
         provider.Utility.SaveTestOutputFileMultiFrame(
             image,
             extension,
+            encoder: encoder,
             testOutputDetails: testOutputDetails,
             appendPixelTypeToFileName: appendPixelTypeToFileName,
             predicate: predicate);
@@ -277,6 +269,46 @@ public static class TestImageExtensions
         return image;
     }
 
+    public static Image<TPixel> CompareDebugOutputToReferenceOutputMultiFrame<TPixel>(
+        this Image<TPixel> image,
+        ITestImageProvider provider,
+        ImageComparer comparer,
+        object testOutputDetails = null,
+        string extension = "png",
+        IImageEncoder encoder = null,
+        bool appendPixelTypeToFileName = true,
+        Func<int, int, bool> predicate = null)
+    where TPixel : unmanaged, IPixel<TPixel>
+    {
+        image.DebugSaveMultiFrame(
+            provider,
+            testOutputDetails,
+            extension,
+            encoder,
+            appendPixelTypeToFileName,
+            predicate: predicate);
+
+        using Image<TPixel> debugImage = GetDebugOutputImageMultiFrame<TPixel>(
+            provider,
+            image.Frames.Count,
+            testOutputDetails,
+            extension,
+            appendPixelTypeToFileName,
+            predicate: predicate);
+
+        using Image<TPixel> referenceImage = GetReferenceOutputImageMultiFrame<TPixel>(
+            provider,
+            image.Frames.Count,
+            testOutputDetails,
+            extension,
+            appendPixelTypeToFileName,
+            predicate: predicate);
+
+        comparer.VerifySimilarity(referenceImage, debugImage);
+
+        return image;
+    }
+
     public static Image<TPixel> CompareToReferenceOutputMultiFrame<TPixel>(
         this Image<TPixel> image,
         ITestImageProvider provider,
@@ -344,6 +376,54 @@ public static class TestImageExtensions
             predicate);
 
         List<Image<TPixel>> temporaryFrameImages = new();
+
+        IImageDecoder decoder = TestEnvironment.GetReferenceDecoder(frameFiles[0].FileName);
+
+        for (int i = 0; i < frameFiles.Length; i++)
+        {
+            string path = frameFiles[i].FileName;
+            if (!File.Exists(path))
+            {
+                throw new FileNotFoundException("Reference output file missing: " + path);
+            }
+
+            using FileStream stream = File.OpenRead(path);
+            Image<TPixel> tempImage = decoder.Decode<TPixel>(DecoderOptions.Default, stream);
+            temporaryFrameImages.Add(tempImage);
+        }
+
+        Image<TPixel> firstTemp = temporaryFrameImages[0];
+
+        Image<TPixel> result = new(firstTemp.Width, firstTemp.Height);
+
+        foreach (Image<TPixel> fi in temporaryFrameImages)
+        {
+            result.Frames.AddFrame(fi.Frames.RootFrame);
+            fi.Dispose();
+        }
+
+        // Remove the initial empty frame:
+        result.Frames.RemoveFrame(0);
+        return result;
+    }
+
+    public static Image<TPixel> GetDebugOutputImageMultiFrame<TPixel>(
+        this ITestImageProvider provider,
+        int frameCount,
+        object testOutputDetails = null,
+        string extension = "png",
+        bool appendPixelTypeToFileName = true,
+        Func<int, int, bool> predicate = null)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        (int Index, string FileName)[] frameFiles = [.. provider.Utility.GetTestOutputFileNamesMultiFrame(
+            frameCount,
+            extension,
+            testOutputDetails,
+            appendPixelTypeToFileName,
+            predicate: predicate)];
+
+        List<Image<TPixel>> temporaryFrameImages = [];
 
         IImageDecoder decoder = TestEnvironment.GetReferenceDecoder(frameFiles[0].FileName);
 

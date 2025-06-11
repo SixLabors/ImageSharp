@@ -82,19 +82,52 @@ public readonly struct Lms : IColorProfile<Lms, CieXyz>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool operator !=(Lms left, Lms right) => !left.Equals(right);
 
-    /// <summary>
-    /// Returns a new <see cref="Vector3"/> representing this instance.
-    /// </summary>
-    /// <returns>The <see cref="Vector3"/>.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Vector3 ToVector3() => new(this.L, this.M, this.S);
+    /// <inheritdoc/>
+    public Vector4 ToScaledVector4()
+    {
+        Vector3 v3 = default;
+        v3 += this.AsVector3Unsafe();
+        v3 += new Vector3(1F);
+        v3 /= 2F;
+        return new Vector4(v3, 1F);
+    }
+
+    /// <inheritdoc/>
+    public static Lms FromScaledVector4(Vector4 source)
+    {
+        Vector3 v3 = source.AsVector3();
+        v3 *= 2F;
+        v3 -= new Vector3(1F);
+        return new Lms(v3);
+    }
+
+    /// <inheritdoc/>
+    public static void ToScaledVector4(ReadOnlySpan<Lms> source, Span<Vector4> destination)
+    {
+        Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
+
+        // TODO: Optimize via SIMD
+        for (int i = 0; i < source.Length; i++)
+        {
+            destination[i] = source[i].ToScaledVector4();
+        }
+    }
+
+    /// <inheritdoc/>
+    public static void FromScaledVector4(ReadOnlySpan<Vector4> source, Span<Lms> destination)
+    {
+        Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
+
+        // TODO: Optimize via SIMD
+        for (int i = 0; i < source.Length; i++)
+        {
+            destination[i] = FromScaledVector4(source[i]);
+        }
+    }
 
     /// <inheritdoc/>
     public static Lms FromProfileConnectingSpace(ColorConversionOptions options, in CieXyz source)
-    {
-        Vector3 vector = Vector3.Transform(source.ToVector3(), options.AdaptationMatrix);
-        return new Lms(vector);
-    }
+        => new(Vector3.Transform(source.AsVector3Unsafe(), options.AdaptationMatrix));
 
     /// <inheritdoc/>
     public static void FromProfileConnectionSpace(ColorConversionOptions options, ReadOnlySpan<CieXyz> source, Span<Lms> destination)
@@ -110,10 +143,7 @@ public readonly struct Lms : IColorProfile<Lms, CieXyz>
 
     /// <inheritdoc/>
     public CieXyz ToProfileConnectingSpace(ColorConversionOptions options)
-    {
-        Vector3 vector = Vector3.Transform(this.ToVector3(), options.InverseAdaptationMatrix);
-        return new CieXyz(vector);
-    }
+        => new(Vector3.Transform(this.AsVector3Unsafe(), options.InverseAdaptationMatrix));
 
     /// <inheritdoc/>
     public static void ToProfileConnectionSpace(ColorConversionOptions options, ReadOnlySpan<Lms> source, Span<CieXyz> destination)

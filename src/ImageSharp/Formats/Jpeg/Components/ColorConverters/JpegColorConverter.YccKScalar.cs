@@ -1,13 +1,20 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Buffers;
+using System.Numerics;
+using System.Runtime.InteropServices;
+using SixLabors.ImageSharp.ColorProfiles;
+using SixLabors.ImageSharp.ColorProfiles.Icc;
+using SixLabors.ImageSharp.Metadata.Profiles.Icc;
+
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components;
 
 internal abstract partial class JpegColorConverterBase
 {
     internal sealed class YccKScalar : JpegColorConverterScalar
     {
-        // derived from ITU-T Rec. T.871
+        // Derived from ITU-T Rec. T.871
         internal const float RCrMult = 1.402f;
         internal const float GCbMult = (float)(0.114 * 1.772 / 0.587);
         internal const float GCrMult = (float)(0.299 * 1.402 / 0.587);
@@ -19,14 +26,18 @@ internal abstract partial class JpegColorConverterBase
         }
 
         /// <inheritdoc/>
-        public override void ConvertToRgbInplace(in ComponentValues values)
-            => ConvertToRgpInplace(values, this.MaximumValue, this.HalfValue);
+        public override void ConvertToRgbInPlace(in ComponentValues values)
+            => ConvertToRgbInPlace(values, this.MaximumValue, this.HalfValue);
 
         /// <inheritdoc/>
-        public override void ConvertFromRgb(in ComponentValues values, Span<float> r, Span<float> g, Span<float> b)
-            => ConvertFromRgb(values, this.HalfValue, this.MaximumValue, r, g, b);
+        public override void ConvertToRgbInPlaceWithIcc(Configuration configuration, in ComponentValues values, IccProfile profile)
+            => ConvertToRgbInPlaceWithIcc(configuration, profile, values, this.MaximumValue);
 
-        public static void ConvertToRgpInplace(in ComponentValues values, float maxValue, float halfValue)
+        /// <inheritdoc/>
+        public override void ConvertFromRgb(in ComponentValues values, Span<float> rLane, Span<float> gLane, Span<float> bLane)
+            => ConvertFromRgb(values, this.HalfValue, this.MaximumValue, rLane, gLane, bLane);
+
+        public static void ConvertToRgbInPlace(in ComponentValues values, float maxValue, float halfValue)
         {
             Span<float> c0 = values.Component0;
             Span<float> c1 = values.Component1;
@@ -72,6 +83,43 @@ internal abstract partial class JpegColorConverterBase
                 m[i] = halfValue - (0.168736f * r) - (0.331264f * g) + (0.5f * b);
                 y[i] = halfValue + (0.5f * r) - (0.418688f * g) - (0.081312f * b);
             }
+        }
+
+        public static void ConvertToRgbInPlaceWithIcc(Configuration configuration, IccProfile profile, in ComponentValues values, float maxValue)
+        {
+            using IMemoryOwner<float> memoryOwner = configuration.MemoryAllocator.Allocate<float>(values.Component0.Length * 4);
+            Span<float> packed = memoryOwner.Memory.Span;
+
+            Span<float> c0 = values.Component0;
+            Span<float> c1 = values.Component1;
+            Span<float> c2 = values.Component2;
+            Span<float> c3 = values.Component3;
+
+            PackedInvertNormalizeInterleave4(c0, c1, c2, c3, packed, maxValue);
+
+            ColorProfileConverter converter = new();
+            Span<Cmyk> source = MemoryMarshal.Cast<float, Cmyk>(packed);
+
+            // YccK is not a defined ICC color space — it's a JPEG-specific encoding used in Adobe-style CMYK JPEGs.
+            // ICC profiles expect colorimetric CMYK values, so we must first convert YccK to CMYK using a hardcoded inverse transform.
+            // This transform assumes Rec.601 YCbCr coefficients and an inverted K channel.
+            //
+            // The YccK => Cmyk conversion is independent of any embedded ICC profile.
+            // Since the same RGB working space is used during conversion to and from XYZ,
+            // colorimetric accuracy is preserved.
+            converter.Convert<YccK, Cmyk>(MemoryMarshal.Cast<Cmyk, YccK>(source), source);
+
+            Span<Rgb> destination = MemoryMarshal.Cast<float, Rgb>(packed)[..source.Length];
+
+            ColorConversionOptions options = new()
+            {
+                SourceIccProfile = profile,
+                TargetIccProfile = CompactSrgbV4Profile.Profile,
+            };
+            converter = new(options);
+            converter.Convert<Cmyk, Rgb>(source, destination);
+
+            UnpackDeinterleave3(MemoryMarshal.Cast<float, Vector3>(packed)[..source.Length], c0, c1, c2);
         }
     }
 }

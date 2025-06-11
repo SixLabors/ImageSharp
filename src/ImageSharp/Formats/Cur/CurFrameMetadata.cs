@@ -104,7 +104,6 @@ public class CurFrameMetadata : IFormatFrameMetadata<CurFrameMetadata>
             Compression = compression,
             EncodingWidth = ClampEncodingDimension(metadata.EncodingWidth),
             EncodingHeight = ClampEncodingDimension(metadata.EncodingHeight),
-            ColorTable = compression == IconFrameCompression.Bmp ? metadata.ColorTable : null
         };
     }
 
@@ -113,7 +112,6 @@ public class CurFrameMetadata : IFormatFrameMetadata<CurFrameMetadata>
         => new()
         {
             PixelTypeInfo = this.GetPixelTypeInfo(),
-            ColorTable = this.ColorTable,
             EncodingWidth = this.EncodingWidth,
             EncodingHeight = this.EncodingHeight
         };
@@ -126,6 +124,7 @@ public class CurFrameMetadata : IFormatFrameMetadata<CurFrameMetadata>
         float ratioY = destination.Height / (float)source.Height;
         this.EncodingWidth = ScaleEncodingDimension(this.EncodingWidth, destination.Width, ratioX);
         this.EncodingHeight = ScaleEncodingDimension(this.EncodingHeight, destination.Height, ratioY);
+        this.ColorTable = null;
     }
 
     /// <inheritdoc/>

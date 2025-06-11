@@ -3,6 +3,7 @@
 
 // Uncomment this to turn unit tests into benchmarks:
 // #define BENCHMARKING
+using System.Runtime.Intrinsics;
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
 using SixLabors.ImageSharp.Tests.Formats.Jpg.Utils;
 using SixLabors.ImageSharp.Tests.TestUtilities;
@@ -24,11 +25,22 @@ public partial class Block8x8FTests : JpegFixture
     {
     }
 
-    private bool SkipOnNonAvx2Runner()
+    private bool SkipOnNonVector256Runner()
     {
-        if (!SimdUtils.HasVector8)
+        if (!Vector256.IsHardwareAccelerated)
         {
-            this.Output.WriteLine("AVX2 not supported, skipping!");
+            this.Output.WriteLine("Vector256 not supported, skipping!");
+            return true;
+        }
+
+        return false;
+    }
+
+    private bool SkipOnNonVector128Runner()
+    {
+        if (!Vector128.IsHardwareAccelerated)
+        {
+            this.Output.WriteLine("Vector128 not supported, skipping!");
             return true;
         }
 
@@ -43,7 +55,7 @@ public partial class Block8x8FTests : JpegFixture
             Times,
             () =>
             {
-                var block = default(Block8x8F);
+                Block8x8F block = default;
 
                 for (int i = 0; i < Block8x8F.Size; i++)
                 {
@@ -56,7 +68,7 @@ public partial class Block8x8FTests : JpegFixture
                     sum += block[i];
                 }
             });
-        Assert.Equal(sum, 64f * 63f * 0.5f);
+        Assert.Equal(64f * 63f * 0.5f, sum);
     }
 
     [Fact]
@@ -81,7 +93,7 @@ public partial class Block8x8FTests : JpegFixture
                     sum += block[i];
                 }
             });
-        Assert.Equal(sum, 64f * 63f * 0.5f);
+        Assert.Equal(64f * 63f * 0.5f, sum);
     }
 
     [Fact]
@@ -109,7 +121,7 @@ public partial class Block8x8FTests : JpegFixture
     }
 
     [Fact]
-    public void TransposeInplace()
+    public void TransposeInPlace()
     {
         static void RunTest()
         {
@@ -118,7 +130,7 @@ public partial class Block8x8FTests : JpegFixture
 
             Block8x8F block8x8 = Block8x8F.Load(Create8x8FloatData());
 
-            block8x8.TransposeInplace();
+            block8x8.TransposeInPlace();
 
             float[] actual = new float[64];
             block8x8.ScaledCopyTo(actual);
@@ -172,9 +184,9 @@ public partial class Block8x8FTests : JpegFixture
     [Theory]
     [InlineData(1)]
     [InlineData(2)]
-    public void NormalizeColorsAndRoundAvx2(int seed)
+    public void NormalizeColorsAndRoundVector256(int seed)
     {
-        if (this.SkipOnNonAvx2Runner())
+        if (this.SkipOnNonVector256Runner())
         {
             return;
         }
@@ -186,7 +198,31 @@ public partial class Block8x8FTests : JpegFixture
         expected.RoundInPlace();
 
         Block8x8F actual = source;
-        actual.NormalizeColorsAndRoundInPlaceVector8(255);
+        actual.NormalizeColorsAndRoundInPlaceVector256(255);
+
+        this.Output.WriteLine(expected.ToString());
+        this.Output.WriteLine(actual.ToString());
+        this.CompareBlocks(expected, actual, 0);
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    public void NormalizeColorsAndRoundVector128(int seed)
+    {
+        if (this.SkipOnNonVector128Runner())
+        {
+            return;
+        }
+
+        Block8x8F source = CreateRandomFloatBlock(-200, 200, seed);
+
+        Block8x8F expected = source;
+        expected.NormalizeColorsInPlace(255);
+        expected.RoundInPlace();
+
+        Block8x8F actual = source;
+        actual.NormalizeColorsAndRoundInPlaceVector128(255);
 
         this.Output.WriteLine(expected.ToString());
         this.Output.WriteLine(actual.ToString());
@@ -206,7 +242,7 @@ public partial class Block8x8FTests : JpegFixture
             Block8x8F source = CreateRandomFloatBlock(-2000, 2000, srcSeed);
 
             // Quantization code is used only in jpeg where it's guaranteed that
-            // qunatization valus are greater than 1
+            // quantization values are greater than 1
             // Quantize method supports negative numbers by very small numbers can cause troubles
             Block8x8F quant = CreateRandomFloatBlock(1, 2000, qtSeed);
 
@@ -240,7 +276,7 @@ public partial class Block8x8FTests : JpegFixture
         float[] data = Create8x8RandomFloatData(-1000, 1000);
 
         Block8x8F source = Block8x8F.Load(data);
-        var dest = default(Block8x8);
+        Block8x8 dest = default;
 
         source.RoundInto(ref dest);
 
@@ -345,14 +381,14 @@ public partial class Block8x8FTests : JpegFixture
     [Fact]
     public void LoadFromUInt16Scalar()
     {
-        if (this.SkipOnNonAvx2Runner())
+        if (this.SkipOnNonVector256Runner())
         {
             return;
         }
 
         short[] data = Create8x8ShortData();
 
-        var source = Block8x8.Load(data);
+        Block8x8 source = Block8x8.Load(data);
 
         Block8x8F dest = default;
         dest.LoadFromInt16Scalar(ref source);
@@ -364,19 +400,40 @@ public partial class Block8x8FTests : JpegFixture
     }
 
     [Fact]
-    public void LoadFromUInt16ExtendedAvx2()
+    public void LoadFromUInt16ExtendedVector128()
     {
-        if (this.SkipOnNonAvx2Runner())
+        if (this.SkipOnNonVector128Runner())
         {
             return;
         }
 
         short[] data = Create8x8ShortData();
 
-        var source = Block8x8.Load(data);
+        Block8x8 source = Block8x8.Load(data);
 
         Block8x8F dest = default;
-        dest.LoadFromInt16ExtendedAvx2(ref source);
+        dest.LoadFromInt16ExtendedVector128(ref source);
+
+        for (int i = 0; i < Block8x8F.Size; i++)
+        {
+            Assert.Equal(data[i], dest[i]);
+        }
+    }
+
+    [Fact]
+    public void LoadFromUInt16ExtendedAvx2()
+    {
+        if (this.SkipOnNonVector256Runner())
+        {
+            return;
+        }
+
+        short[] data = Create8x8ShortData();
+
+        Block8x8 source = Block8x8.Load(data);
+
+        Block8x8F dest = default;
+        dest.LoadFromInt16ExtendedVector256(ref source);
 
         for (int i = 0; i < Block8x8F.Size; i++)
         {
@@ -405,7 +462,7 @@ public partial class Block8x8FTests : JpegFixture
         // 3. DisableAvx2 - call fallback code of float implementation
         FeatureTestRunner.RunWithHwIntrinsicsFeature(
             RunTest,
-            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX2);
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX | HwIntrinsics.DisableSSE);
     }
 
     [Theory]

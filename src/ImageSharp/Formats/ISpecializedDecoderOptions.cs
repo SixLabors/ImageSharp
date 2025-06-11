@@ -11,5 +11,5 @@ public interface ISpecializedDecoderOptions
     /// <summary>
     /// Gets the general decoder options.
     /// </summary>
-    DecoderOptions GeneralOptions { get; init; }
+    public DecoderOptions GeneralOptions { get; init; }
 }

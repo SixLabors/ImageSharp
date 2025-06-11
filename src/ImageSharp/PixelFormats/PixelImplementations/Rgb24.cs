@@ -61,7 +61,8 @@ public partial struct Rgb24 : IPixel<Rgb24>
     /// <param name="color">The instance of <see cref="Rgb"/> to convert.</param>
     /// <returns>An instance of <see cref="Rgb24"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static implicit operator Rgb24(Rgb color) => FromScaledVector4(new Vector4(color.ToVector3(), 1f));
+    public static implicit operator Rgb24(Rgb color)
+        => FromScaledVector4(new Vector4(color.ToScaledVector3(), 1F));
 
     /// <summary>
     /// Compares two <see cref="Rgb24"/> objects for equality.

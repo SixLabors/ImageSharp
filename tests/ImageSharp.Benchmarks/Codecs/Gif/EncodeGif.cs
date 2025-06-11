@@ -3,6 +3,7 @@
 
 using System.Drawing.Imaging;
 using BenchmarkDotNet.Attributes;
+using ImageMagick;
 using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
@@ -12,21 +13,17 @@ using SDImage = System.Drawing.Image;
 
 namespace SixLabors.ImageSharp.Benchmarks.Codecs;
 
-[Config(typeof(Config.Short))]
-public class EncodeGif
+public abstract class EncodeGif
 {
     // System.Drawing needs this.
-    private Stream bmpStream;
+    private FileStream bmpStream;
     private SDImage bmpDrawing;
     private Image<Rgba32> bmpCore;
+    private MagickImageCollection magickImage;
 
-    // Try to get as close to System.Drawing's output as possible
-    private readonly GifEncoder encoder = new GifEncoder
-    {
-        Quantizer = new WebSafePaletteQuantizer(new QuantizerOptions { Dither = KnownDitherings.Bayer4x4 })
-    };
+    protected abstract GifEncoder Encoder { get; }
 
-    [Params(TestImages.Bmp.Car, TestImages.Png.Rgb48Bpp)]
+    [Params(TestImages.Gif.Leo, TestImages.Gif.Cheers)]
     public string TestImage { get; set; }
 
     [GlobalSetup]
@@ -34,10 +31,14 @@ public class EncodeGif
     {
         if (this.bmpStream == null)
         {
-            this.bmpStream = File.OpenRead(Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, this.TestImage));
+            string filePath = Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, this.TestImage);
+            this.bmpStream = File.OpenRead(filePath);
             this.bmpCore = Image.Load<Rgba32>(this.bmpStream);
             this.bmpStream.Position = 0;
             this.bmpDrawing = SDImage.FromStream(this.bmpStream);
+
+            this.bmpStream.Position = 0;
+            this.magickImage = new MagickImageCollection(this.bmpStream);
         }
     }
 
@@ -48,19 +49,40 @@ public class EncodeGif
         this.bmpStream = null;
         this.bmpCore.Dispose();
         this.bmpDrawing.Dispose();
+        this.magickImage.Dispose();
     }
 
     [Benchmark(Baseline = true, Description = "System.Drawing Gif")]
     public void GifSystemDrawing()
     {
-        using var memoryStream = new MemoryStream();
+        using MemoryStream memoryStream = new();
         this.bmpDrawing.Save(memoryStream, ImageFormat.Gif);
     }
 
     [Benchmark(Description = "ImageSharp Gif")]
     public void GifImageSharp()
     {
-        using var memoryStream = new MemoryStream();
-        this.bmpCore.SaveAsGif(memoryStream, this.encoder);
+        using MemoryStream memoryStream = new();
+        this.bmpCore.SaveAsGif(memoryStream, this.Encoder);
     }
+
+    [Benchmark(Description = "Magick.NET Gif")]
+    public void GifMagickNet()
+    {
+        using MemoryStream ms = new();
+        this.magickImage.Write(ms, MagickFormat.Gif);
+    }
+}
+
+public class EncodeGif_DefaultEncoder : EncodeGif
+{
+    protected override GifEncoder Encoder => new();
+}
+
+public class EncodeGif_CoarsePaletteEncoder : EncodeGif
+{
+    protected override GifEncoder Encoder => new()
+    {
+        Quantizer = new WebSafePaletteQuantizer(new QuantizerOptions { Dither = KnownDitherings.Bayer4x4, ColorMatchingMode = ColorMatchingMode.Coarse })
+    };
 }

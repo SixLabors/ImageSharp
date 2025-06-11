@@ -3,7 +3,7 @@
 
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
-using System.Runtime.Intrinsics.X86;
+using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Webp;
@@ -18,9 +18,9 @@ internal static class WebpCommonUtils
     /// </summary>
     /// <param name="row">The row to check.</param>
     /// <returns>Returns true if alpha has non-0xff values.</returns>
-    public static unsafe bool CheckNonOpaque(Span<Bgra32> row)
+    public static unsafe bool CheckNonOpaque(ReadOnlySpan<Bgra32> row)
     {
-        if (Avx2.IsSupported)
+        if (Vector256.IsHardwareAccelerated)
         {
             ReadOnlySpan<byte> rowBytes = MemoryMarshal.AsBytes(row);
             int i = 0;
@@ -32,20 +32,20 @@ internal static class WebpCommonUtils
 
                 for (; i + 128 <= length; i += 128)
                 {
-                    Vector256<byte> a0 = Avx.LoadVector256(src + i).AsByte();
-                    Vector256<byte> a1 = Avx.LoadVector256(src + i + 32).AsByte();
-                    Vector256<byte> a2 = Avx.LoadVector256(src + i + 64).AsByte();
-                    Vector256<byte> a3 = Avx.LoadVector256(src + i + 96).AsByte();
-                    Vector256<int> b0 = Avx2.And(a0, alphaMaskVector256).AsInt32();
-                    Vector256<int> b1 = Avx2.And(a1, alphaMaskVector256).AsInt32();
-                    Vector256<int> b2 = Avx2.And(a2, alphaMaskVector256).AsInt32();
-                    Vector256<int> b3 = Avx2.And(a3, alphaMaskVector256).AsInt32();
-                    Vector256<short> c0 = Avx2.PackSignedSaturate(b0, b1).AsInt16();
-                    Vector256<short> c1 = Avx2.PackSignedSaturate(b2, b3).AsInt16();
-                    Vector256<byte> d = Avx2.PackSignedSaturate(c0, c1).AsByte();
-                    Vector256<byte> bits = Avx2.CompareEqual(d, all0x80Vector256);
-                    int mask = Avx2.MoveMask(bits);
-                    if (mask != -1)
+                    Vector256<byte> a0 = Vector256.Load(src + i).AsByte();
+                    Vector256<byte> a1 = Vector256.Load(src + i + 32).AsByte();
+                    Vector256<byte> a2 = Vector256.Load(src + i + 64).AsByte();
+                    Vector256<byte> a3 = Vector256.Load(src + i + 96).AsByte();
+                    Vector256<int> b0 = (a0 & alphaMaskVector256).AsInt32();
+                    Vector256<int> b1 = (a1 & alphaMaskVector256).AsInt32();
+                    Vector256<int> b2 = (a2 & alphaMaskVector256).AsInt32();
+                    Vector256<int> b3 = (a3 & alphaMaskVector256).AsInt32();
+                    Vector256<short> c0 = Vector256_.PackSignedSaturate(b0, b1).AsInt16();
+                    Vector256<short> c1 = Vector256_.PackSignedSaturate(b2, b3).AsInt16();
+                    Vector256<byte> d = Vector256_.PackSignedSaturate(c0, c1).AsByte();
+                    Vector256<byte> bits = Vector256.Equals(d, all0x80Vector256);
+                    uint mask = bits.ExtractMostSignificantBits();
+                    if (mask != 0xFFFF_FFFF)
                     {
                         return true;
                     }
@@ -53,7 +53,7 @@ internal static class WebpCommonUtils
 
                 for (; i + 64 <= length; i += 64)
                 {
-                    if (IsNoneOpaque64Bytes(src, i))
+                    if (IsNoneOpaque64BytesVector128(src, i))
                     {
                         return true;
                     }
@@ -61,7 +61,7 @@ internal static class WebpCommonUtils
 
                 for (; i + 32 <= length; i += 32)
                 {
-                    if (IsNoneOpaque32Bytes(src, i))
+                    if (IsNonOpaque32BytesVector128(src, i))
                     {
                         return true;
                     }
@@ -76,7 +76,7 @@ internal static class WebpCommonUtils
                 }
             }
         }
-        else if (Sse2.IsSupported)
+        else if (Vector128.IsHardwareAccelerated)
         {
             ReadOnlySpan<byte> rowBytes = MemoryMarshal.AsBytes(row);
             int i = 0;
@@ -85,7 +85,7 @@ internal static class WebpCommonUtils
             {
                 for (; i + 64 <= length; i += 64)
                 {
-                    if (IsNoneOpaque64Bytes(src, i))
+                    if (IsNoneOpaque64BytesVector128(src, i))
                     {
                         return true;
                     }
@@ -93,7 +93,7 @@ internal static class WebpCommonUtils
 
                 for (; i + 32 <= length; i += 32)
                 {
-                    if (IsNoneOpaque32Bytes(src, i))
+                    if (IsNonOpaque32BytesVector128(src, i))
                     {
                         return true;
                     }
@@ -122,38 +122,38 @@ internal static class WebpCommonUtils
         return false;
     }
 
-    private static unsafe bool IsNoneOpaque64Bytes(byte* src, int i)
+    private static unsafe bool IsNoneOpaque64BytesVector128(byte* src, int i)
     {
         Vector128<byte> alphaMask = Vector128.Create(0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255);
 
-        Vector128<byte> a0 = Sse2.LoadVector128(src + i).AsByte();
-        Vector128<byte> a1 = Sse2.LoadVector128(src + i + 16).AsByte();
-        Vector128<byte> a2 = Sse2.LoadVector128(src + i + 32).AsByte();
-        Vector128<byte> a3 = Sse2.LoadVector128(src + i + 48).AsByte();
-        Vector128<int> b0 = Sse2.And(a0, alphaMask).AsInt32();
-        Vector128<int> b1 = Sse2.And(a1, alphaMask).AsInt32();
-        Vector128<int> b2 = Sse2.And(a2, alphaMask).AsInt32();
-        Vector128<int> b3 = Sse2.And(a3, alphaMask).AsInt32();
-        Vector128<short> c0 = Sse2.PackSignedSaturate(b0, b1).AsInt16();
-        Vector128<short> c1 = Sse2.PackSignedSaturate(b2, b3).AsInt16();
-        Vector128<byte> d = Sse2.PackSignedSaturate(c0, c1).AsByte();
-        Vector128<byte> bits = Sse2.CompareEqual(d, Vector128.Create((byte)0x80).AsByte());
-        int mask = Sse2.MoveMask(bits);
+        Vector128<byte> a0 = Vector128.Load(src + i).AsByte();
+        Vector128<byte> a1 = Vector128.Load(src + i + 16).AsByte();
+        Vector128<byte> a2 = Vector128.Load(src + i + 32).AsByte();
+        Vector128<byte> a3 = Vector128.Load(src + i + 48).AsByte();
+        Vector128<int> b0 = (a0 & alphaMask).AsInt32();
+        Vector128<int> b1 = (a1 & alphaMask).AsInt32();
+        Vector128<int> b2 = (a2 & alphaMask).AsInt32();
+        Vector128<int> b3 = (a3 & alphaMask).AsInt32();
+        Vector128<short> c0 = Vector128_.PackSignedSaturate(b0, b1).AsInt16();
+        Vector128<short> c1 = Vector128_.PackSignedSaturate(b2, b3).AsInt16();
+        Vector128<byte> d = Vector128_.PackSignedSaturate(c0, c1).AsByte();
+        Vector128<byte> bits = Vector128.Equals(d, Vector128.Create((byte)0x80).AsByte());
+        uint mask = bits.ExtractMostSignificantBits();
         return mask != 0xFFFF;
     }
 
-    private static unsafe bool IsNoneOpaque32Bytes(byte* src, int i)
+    private static unsafe bool IsNonOpaque32BytesVector128(byte* src, int i)
     {
         Vector128<byte> alphaMask = Vector128.Create(0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255);
 
-        Vector128<byte> a0 = Sse2.LoadVector128(src + i).AsByte();
-        Vector128<byte> a1 = Sse2.LoadVector128(src + i + 16).AsByte();
-        Vector128<int> b0 = Sse2.And(a0, alphaMask).AsInt32();
-        Vector128<int> b1 = Sse2.And(a1, alphaMask).AsInt32();
-        Vector128<short> c = Sse2.PackSignedSaturate(b0, b1).AsInt16();
-        Vector128<byte> d = Sse2.PackSignedSaturate(c, c).AsByte();
-        Vector128<byte> bits = Sse2.CompareEqual(d, Vector128.Create((byte)0x80).AsByte());
-        int mask = Sse2.MoveMask(bits);
+        Vector128<byte> a0 = Vector128.Load(src + i).AsByte();
+        Vector128<byte> a1 = Vector128.Load(src + i + 16).AsByte();
+        Vector128<int> b0 = (a0 & alphaMask).AsInt32();
+        Vector128<int> b1 = (a1 & alphaMask).AsInt32();
+        Vector128<short> c = Vector128_.PackSignedSaturate(b0, b1).AsInt16();
+        Vector128<byte> d = Vector128_.PackSignedSaturate(c, c).AsByte();
+        Vector128<byte> bits = Vector128.Equals(d, Vector128.Create((byte)0x80).AsByte());
+        uint mask = bits.ExtractMostSignificantBits();
         return mask != 0xFFFF;
     }
 }

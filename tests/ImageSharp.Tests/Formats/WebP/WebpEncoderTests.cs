@@ -8,6 +8,8 @@ using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.Processing.Processors.Quantization;
 using SixLabors.ImageSharp.Tests.TestUtilities;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs;
@@ -108,6 +110,63 @@ public class WebpEncoderTests
                     break;
             }
         }
+    }
+
+    [Theory]
+    // [WithFile(AlphaBlend, PixelTypes.Rgba32)]
+    // [WithFile(AlphaBlend2, PixelTypes.Rgba32)]
+    [WithFile(AlphaBlend3, PixelTypes.Rgba32)]
+    // [WithFile(AlphaBlend4, PixelTypes.Rgba32)]
+    public void Encode_AlphaBlended<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage();
+        WebpEncoder encoder = new()
+        {
+            FileFormat = WebpFileFormatType.Lossless
+        };
+
+        QuantizerOptions options = new()
+        {
+            TransparencyThreshold = 128 / 255F
+        };
+
+        // First save as gif to gif using different quantizers with default options.
+        // Alpha thresholding is 64/255F.
+        GifEncoder gifEncoder = new()
+        {
+            Quantizer = new OctreeQuantizer(options)
+        };
+        provider.Utility.SaveTestOutputFile(image, "gif", gifEncoder, "octree");
+
+        gifEncoder = new GifEncoder()
+        {
+            Quantizer = new WuQuantizer(options)
+        };
+        provider.Utility.SaveTestOutputFile(image, "gif", gifEncoder, "wu");
+
+        // Now clone and quantize the image using the same quantizers  without alpha thresholding and save as webp.
+        options = new()
+        {
+            TransparencyThreshold = 0
+        };
+
+        using Image<TPixel> cloned1 = image.Clone();
+        cloned1.Mutate(c => c.Quantize(new OctreeQuantizer(options)));
+        provider.Utility.SaveTestOutputFile(cloned1, "webp", encoder, "octree");
+
+        using Image<TPixel> cloned2 = image.Clone();
+        cloned2.Mutate(c => c.Quantize(new WuQuantizer(options)));
+        provider.Utility.SaveTestOutputFile(cloned2, "webp", encoder, "wu");
+
+        // Now blend the images with a blue background and save as webp.
+        using Image<Rgba32> background1 = new(image.Width, image.Height, Color.White.ToPixel<Rgba32>());
+        background1.Mutate(c => c.DrawImage(cloned1, 1));
+        provider.Utility.SaveTestOutputFile(background1, "webp", encoder, "octree-blended");
+
+        using Image<Rgba32> background2 = new(image.Width, image.Height, Color.White.ToPixel<Rgba32>());
+        background2.Mutate(c => c.DrawImage(cloned2, 1));
+        provider.Utility.SaveTestOutputFile(background2, "webp", encoder, "wu-blended");
     }
 
     [Theory]

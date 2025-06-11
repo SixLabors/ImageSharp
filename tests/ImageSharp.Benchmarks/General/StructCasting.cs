@@ -11,7 +11,7 @@ public class StructCasting
     [Benchmark(Baseline = true)]
     public short ExplicitCast()
     {
-        int x = 5 * 2;
+        const int x = 5 * 2;
         return (short)x;
     }
 
@@ -25,6 +25,7 @@ public class StructCasting
     [Benchmark]
     public short UnsafeCastRef()
     {
-        return Unsafe.As<int, short>(ref Unsafe.AsRef(5 * 2));
+        int x = 5 * 2;
+        return Unsafe.As<int, short>(ref Unsafe.AsRef(ref x));
     }
 }

@@ -6,6 +6,8 @@ using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
 using SixLabors.ImageSharp.Formats.Tiff.Constants;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.Metadata;
+using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors;
@@ -16,6 +18,8 @@ internal sealed class OldJpegTiffCompression : TiffBaseDecompressor
 
     private readonly uint startOfImageMarker;
 
+    private readonly ImageFrameMetadata metadata;
+
     private readonly TiffPhotometricInterpretation photometricInterpretation;
 
     public OldJpegTiffCompression(
@@ -23,12 +27,14 @@ internal sealed class OldJpegTiffCompression : TiffBaseDecompressor
         MemoryAllocator memoryAllocator,
         int width,
         int bitsPerPixel,
+        ImageFrameMetadata metadata,
         uint startOfImageMarker,
         TiffPhotometricInterpretation photometricInterpretation)
         : base(memoryAllocator, width, bitsPerPixel)
     {
         this.options = options;
         this.startOfImageMarker = startOfImageMarker;
+        this.metadata = metadata;
         this.photometricInterpretation = photometricInterpretation;
     }
 
@@ -46,7 +52,7 @@ internal sealed class OldJpegTiffCompression : TiffBaseDecompressor
 
     private void DecodeJpegData(BufferedReadStream stream, Span<byte> buffer, CancellationToken cancellationToken)
     {
-        using JpegDecoderCore jpegDecoder = new(this.options);
+        using JpegDecoderCore jpegDecoder = new(this.options, this.metadata.IccProfile);
         Configuration configuration = this.options.GeneralOptions.Configuration;
         switch (this.photometricInterpretation)
         {
@@ -57,19 +63,30 @@ internal sealed class OldJpegTiffCompression : TiffBaseDecompressor
 
                 jpegDecoder.ParseStream(stream, spectralConverterGray, cancellationToken);
 
-                using Buffer2D<L8> decompressedBuffer = spectralConverterGray.GetPixelBuffer(cancellationToken);
+                _ = this.options.GeneralOptions.TryGetIccProfileForColorConversion(
+                    jpegDecoder.Metadata?.IccProfile,
+                    out IccProfile? profile);
+
+                using Buffer2D<L8> decompressedBuffer = spectralConverterGray.GetPixelBuffer(
+                    profile,
+                    cancellationToken);
                 JpegCompressionUtils.CopyImageBytesToBuffer(spectralConverterGray.Configuration, buffer, decompressedBuffer);
                 break;
             }
 
             case TiffPhotometricInterpretation.YCbCr:
             case TiffPhotometricInterpretation.Rgb:
+            case TiffPhotometricInterpretation.Separated:
             {
                 using SpectralConverter<Rgb24> spectralConverter = new TiffOldJpegSpectralConverter<Rgb24>(configuration, this.photometricInterpretation);
 
                 jpegDecoder.ParseStream(stream, spectralConverter, cancellationToken);
 
-                using Buffer2D<Rgb24> decompressedBuffer = spectralConverter.GetPixelBuffer(cancellationToken);
+                _ = this.options.GeneralOptions.TryGetIccProfileForColorConversion(
+                    jpegDecoder.Metadata?.IccProfile,
+                    out IccProfile? profile);
+
+                using Buffer2D<Rgb24> decompressedBuffer = spectralConverter.GetPixelBuffer(profile, cancellationToken);
                 JpegCompressionUtils.CopyImageBytesToBuffer(spectralConverter.Configuration, buffer, decompressedBuffer);
                 break;
             }

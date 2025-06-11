@@ -35,6 +35,41 @@ public class GifDecoderTests
     }
 
     [Theory]
+    [WithFile(TestImages.Gif.AnimatedLoop, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Gif.AnimatedLoopInterlaced, PixelTypes.Rgba32)]
+    public void Decode_Animated<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage();
+        image.DebugSaveMultiFrame(provider);
+        image.CompareToReferenceOutputMultiFrame(provider, ImageComparer.Exact);
+    }
+
+    [Theory]
+    [WithFile(TestImages.Gif.AnimatedTransparentNoRestore, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Gif.AnimatedTransparentRestorePrevious, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Gif.AnimatedTransparentLoop, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Gif.AnimatedTransparentFirstFrameRestorePrev, PixelTypes.Rgba32)]
+    public void Decode_Animated_WithTransparency<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage();
+        image.DebugSaveMultiFrame(provider);
+        image.CompareToReferenceOutputMultiFrame(provider, ImageComparer.Exact);
+    }
+
+    [Theory]
+    [WithFile(TestImages.Gif.StaticNontransparent, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Gif.StaticTransparent, PixelTypes.Rgba32)]
+    public void Decode_Static_No_Animation<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage();
+        image.DebugSave(provider);
+        image.CompareFirstFrameToReferenceOutput(ImageComparer.Exact, provider);
+    }
+
+    [Theory]
     [WithFile(TestImages.Gif.Issues.Issue2450_A, PixelTypes.Rgba32)]
     [WithFile(TestImages.Gif.Issues.Issue2450_B, PixelTypes.Rgba32)]
     public void Decode_Issue2450<TPixel>(TestImageProvider<TPixel> provider)
@@ -328,6 +363,18 @@ public class GifDecoderTests
     [Theory]
     [WithFile(TestImages.Gif.Issues.BadMaxLzwBits, PixelTypes.Rgba32)]
     public void IssueTooLargeLzwBits<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage();
+        image.DebugSaveMultiFrame(provider);
+        image.CompareToReferenceOutputMultiFrame(provider, ImageComparer.Exact);
+    }
+
+    // https://github.com/SixLabors/ImageSharp/issues/2859
+    [Theory]
+    [WithFile(TestImages.Gif.Issues.Issue2859_A, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Gif.Issues.Issue2859_B, PixelTypes.Rgba32)]
+    public void Issue2859_LZWPixelStackOverflow<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         using Image<TPixel> image = provider.GetImage();

@@ -580,6 +580,16 @@ public class TiffEncoderTests : TiffEncoderBaseTester
         where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, TiffBitsPerPixel.Bit1, TiffPhotometricInterpretation.BlackIsZero, TiffCompression.Ccitt1D);
 
     [Theory]
+    [WithFile(Issue2909, PixelTypes.Rgba32)]
+    public void TiffEncoder_WithLzwCompression_Works<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, TiffBitsPerPixel.Bit24, null, TiffCompression.Lzw, imageDecoder: TiffDecoder.Instance);
+
+    [Theory]
+    [WithFile(Issue2909, PixelTypes.Rgba32)]
+    public void TiffEncoder_WithDeflateCompression_Works<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, TiffBitsPerPixel.Bit24, null, TiffCompression.Deflate, imageDecoder: TiffDecoder.Instance);
+
+    [Theory]
     [WithFile(GrayscaleUncompressed, PixelTypes.L8, TiffPhotometricInterpretation.BlackIsZero, TiffCompression.PackBits)]
     [WithFile(GrayscaleUncompressed16Bit, PixelTypes.L16, TiffPhotometricInterpretation.BlackIsZero, TiffCompression.PackBits)]
     [WithFile(RgbUncompressed, PixelTypes.Rgba32, TiffPhotometricInterpretation.Rgb, TiffCompression.Deflate)]

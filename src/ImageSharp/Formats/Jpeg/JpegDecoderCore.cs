@@ -115,19 +115,21 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
     /// Initializes a new instance of the <see cref="JpegDecoderCore"/> class.
     /// </summary>
     /// <param name="options">The decoder options.</param>
-    public JpegDecoderCore(JpegDecoderOptions options)
+    /// <param name="iccProfile">The ICC profile to use for color conversion.</param>
+    public JpegDecoderCore(JpegDecoderOptions options, IccProfile iccProfile = null)
         : base(options.GeneralOptions)
     {
         this.resizeMode = options.ResizeMode;
         this.configuration = options.GeneralOptions.Configuration;
         this.skipMetadata = options.GeneralOptions.SkipMetadata;
+        this.SetIccMetadata(iccProfile);
     }
 
     /// <summary>
     /// Gets the only supported precisions
     /// </summary>
     // Refers to assembly's static data segment, no allocation occurs.
-    private static ReadOnlySpan<byte> SupportedPrecisions => new byte[] { 8, 12 };
+    private static ReadOnlySpan<byte> SupportedPrecisions => [8, 12];
 
     /// <summary>
     /// Gets the frame
@@ -201,9 +203,11 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
         this.InitXmpProfile();
         this.InitDerivedMetadataProperties();
 
+        _ = this.Options.TryGetIccProfileForColorConversion(this.Metadata.IccProfile, out IccProfile profile);
+
         return new Image<TPixel>(
             this.configuration,
-            spectralConverter.GetPixelBuffer(cancellationToken),
+            spectralConverter.GetPixelBuffer(profile, cancellationToken),
             this.Metadata);
     }
 
@@ -229,7 +233,7 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
     /// <param name="scanDecoder">The scan decoder.</param>
     public void LoadTables(byte[] tableBytes, IJpegScanDecoder scanDecoder)
     {
-        this.Metadata = new ImageMetadata();
+        this.Metadata ??= new ImageMetadata();
         this.QuantizationTables = new Block8x8F[4];
         this.scanDecoder = scanDecoder;
         if (tableBytes.Length < 4)
@@ -312,7 +316,7 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
 
         this.scanDecoder ??= new HuffmanScanDecoder(stream, spectralConverter, cancellationToken);
 
-        this.Metadata = new ImageMetadata();
+        this.Metadata ??= new ImageMetadata();
 
         Span<byte> markerBuffer = stackalloc byte[2];
 
@@ -666,13 +670,23 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
     /// </summary>
     private void InitIccProfile()
     {
-        if (this.hasIcc)
+        if (this.hasIcc && this.Metadata.IccProfile == null)
         {
             IccProfile profile = new(this.iccData);
             if (profile.CheckIsValid())
             {
                 this.Metadata.IccProfile = profile;
             }
+        }
+    }
+
+    private void SetIccMetadata(IccProfile profile)
+    {
+        if (!this.skipMetadata && profile?.CheckIsValid() == true)
+        {
+            this.hasIcc = true;
+            this.Metadata ??= new ImageMetadata();
+            this.Metadata.IccProfile = profile;
         }
     }
 
@@ -1512,7 +1526,9 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
             arithmeticScanDecoder.InitDecodingTables(this.arithmeticDecodingTables);
         }
 
-        this.scanDecoder.ParseEntropyCodedData(selectorsCount);
+        this.InitIccProfile();
+        _ = this.Options.TryGetIccProfileForColorConversion(this.Metadata.IccProfile, out IccProfile profile);
+        this.scanDecoder.ParseEntropyCodedData(selectorsCount, profile);
     }
 
     /// <summary>

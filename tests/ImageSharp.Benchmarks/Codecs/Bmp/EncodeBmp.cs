@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs;
 [Config(typeof(Config.Short))]
 public class EncodeBmp
 {
-    private Stream bmpStream;
+    private FileStream bmpStream;
     private SDImage bmpDrawing;
     private Image<Rgba32> bmpCore;
 
@@ -40,14 +40,14 @@ public class EncodeBmp
     [Benchmark(Baseline = true, Description = "System.Drawing Bmp")]
     public void BmpSystemDrawing()
     {
-        using var memoryStream = new MemoryStream();
+        using MemoryStream memoryStream = new();
         this.bmpDrawing.Save(memoryStream, ImageFormat.Bmp);
     }
 
     [Benchmark(Description = "ImageSharp Bmp")]
     public void BmpImageSharp()
     {
-        using var memoryStream = new MemoryStream();
+        using MemoryStream memoryStream = new();
         this.bmpCore.SaveAsBmp(memoryStream);
     }
 }

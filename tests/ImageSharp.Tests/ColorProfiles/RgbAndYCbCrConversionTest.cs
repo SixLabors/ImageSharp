@@ -16,9 +16,9 @@ public class RgbAndYCbCrConversionTest
     private static readonly ApproximateColorProfileComparer Comparer = new(.001F);
 
     [Theory]
-    [InlineData(255, 128, 128, 1, 1, 1)]
-    [InlineData(0, 128, 128, 0, 0, 0)]
-    [InlineData(128, 128, 128, 0.502, 0.502, 0.502)]
+    [InlineData(1, .5F, .5F, 1, 1, 1)]
+    [InlineData(0, .5F, .5F, 0, 0, 0)]
+    [InlineData(.5F, .5F, .5F, .5F, .5F, .5F)]
     public void Convert_YCbCr_To_Rgb(float y, float cb, float cr, float r, float g, float b)
     {
         // Arrange
@@ -45,10 +45,9 @@ public class RgbAndYCbCrConversionTest
     }
 
     [Theory]
-    [InlineData(0, 0, 0, 0, 128, 128)]
-    [InlineData(1, 1, 1, 255, 128, 128)]
-    [InlineData(0.5, 0.5, 0.5, 127.5, 128, 128)]
-    [InlineData(1, 0, 0, 76.245, 84.972, 255)]
+    [InlineData(1, 1, 1, 1, .5F, .5F)]
+    [InlineData(0, 0, 0, 0, .5F, .5F)]
+    [InlineData(.5F, .5F, .5F, .5F, .5F, .5F)]
     public void Convert_Rgb_To_YCbCr(float r, float g, float b, float y, float cb, float cr)
     {
         // Arrange

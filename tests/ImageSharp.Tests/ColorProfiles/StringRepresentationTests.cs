@@ -6,11 +6,13 @@ using SixLabors.ImageSharp.ColorProfiles;
 
 namespace SixLabors.ImageSharp.Tests.ColorProfiles;
 
+[Trait("Color", "Conversion")]
 public class StringRepresentationTests
 {
     private static readonly Vector3 One = new(1);
     private static readonly Vector3 Zero = new(0);
     private static readonly Vector3 Random = new(42.4F, 94.5F, 83.4F);
+    private static readonly Vector4 Random4 = new(42.4F, 94.5F, 83.4F, 1);
 
     public static readonly TheoryData<object, string> TestData = new()
     {
@@ -51,7 +53,10 @@ public class StringRepresentationTests
         { Rgb.Clamp(new Rgb(Random)), "Rgb(1, 1, 1)" },
         { new Hsl(Random), "Hsl(42.4, 1, 1)" },           // clamping to 1 is expected
         { new Hsv(Random), "Hsv(42.4, 1, 1)" },           // clamping to 1 is expected
-        { new YCbCr(Random), "YCbCr(42.4, 94.5, 83.4)" },
+        { new Y(Random.X), "Y(1)" },
+        { new YCbCr(Random), "YCbCr(1, 1, 1)" },
+        { new YccK(Random4), "YccK(1, 1, 1, 1)" },
+        { new Cmyk(Random4), "Cmyk(1, 1, 1, 1)" },
     };
 
     [Theory]

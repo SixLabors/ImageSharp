@@ -23,14 +23,14 @@ public abstract partial class ExifTag : IEquatable<ExifTag>
     /// </summary>
     /// <param name="left">The first <see cref="ExifTag"/> to compare.</param>
     /// <param name="right"> The second <see cref="ExifTag"/> to compare.</param>
-    public static bool operator ==(ExifTag left, ExifTag right) => left?.Equals(right) == true;
+    public static bool operator ==(ExifTag? left, ExifTag? right) => left?.Equals(right) == true;
 
     /// <summary>
     /// Determines whether the specified <see cref="ExifTag"/> instances are not considered equal.
     /// </summary>
     /// <param name="left">The first <see cref="ExifTag"/> to compare.</param>
     /// <param name="right"> The second <see cref="ExifTag"/> to compare.</param>
-    public static bool operator !=(ExifTag left, ExifTag right) => !(left == right);
+    public static bool operator !=(ExifTag? left, ExifTag? right) => !(left == right);
 
     /// <inheritdoc/>
     public override bool Equals(object? obj)

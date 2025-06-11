@@ -51,7 +51,7 @@ internal partial class ResizeKernelMap : IDisposable
         this.DestinationLength = destinationLength;
         this.MaxDiameter = (radius * 2) + 1;
 
-        if (ResizeKernel.SupportsVectorization)
+        if (ResizeKernel.IsHardwareAccelerated)
         {
             this.data = memoryAllocator.Allocate2D<float>(this.MaxDiameter * 4, bufferHeight, preferContiguosImageBuffers: true);
         }

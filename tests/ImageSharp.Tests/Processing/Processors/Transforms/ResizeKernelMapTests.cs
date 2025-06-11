@@ -141,7 +141,7 @@ public partial class ResizeKernelMapTests
             Span<float> actualValues;
 
             ApproximateFloatComparer comparer;
-            if (ResizeKernel.SupportsVectorization)
+            if (ResizeKernel.IsHardwareAccelerated)
             {
                 comparer = new ApproximateFloatComparer(1e-4f);
 

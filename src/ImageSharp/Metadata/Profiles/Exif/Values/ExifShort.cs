@@ -36,7 +36,7 @@ internal sealed class ExifShort : ExifValue<ushort>
         switch (value)
         {
             case int intValue:
-                if (intValue >= ushort.MinValue && intValue <= ushort.MaxValue)
+                if (intValue is >= ushort.MinValue and <= ushort.MaxValue)
                 {
                     this.Value = (ushort)intValue;
                     return true;

@@ -875,6 +875,7 @@ public static class TestImages
             public const string Issue2801 = "Webp/issues/Issue2801.webp";
             public const string Issue2866 = "Webp/issues/Issue2866.webp";
             public const string Issue2925 = "Webp/issues/Issue2925.webp";
+            public const string Issue2906 = "Webp/issues/Issue2906.webp";
         }
 
         public const string AlphaBlend = "Webp/alpha-blend.webp";

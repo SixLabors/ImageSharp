@@ -3,7 +3,6 @@
 
 using System.Diagnostics.CodeAnalysis;
 using SixLabors.ImageSharp.PixelFormats;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace SixLabors.ImageSharp.Metadata.Profiles.Exif;
 
@@ -48,7 +47,7 @@ public sealed class ExifProfile : IDeepCloneable<ExifProfile>
     {
         this.Parts = ExifParts.All;
         this.data = data;
-        this.InvalidTags = Array.Empty<ExifTag>();
+        this.InvalidTags = [];
     }
 
     /// <summary>
@@ -171,7 +170,7 @@ public sealed class ExifProfile : IDeepCloneable<ExifProfile>
     /// <summary>
     /// Returns the value with the specified tag.
     /// </summary>
-    /// <param name="tag">The tag of the exif value.</param>
+    /// <param name="tag">The tag of the Exif value.</param>
     /// <param name="exifValue">The value with the specified tag.</param>
     /// <returns>True when found, otherwise false</returns>
     /// <typeparam name="TValueType">The data type of the tag.</typeparam>
@@ -215,7 +214,7 @@ public sealed class ExifProfile : IDeepCloneable<ExifProfile>
     /// <summary>
     /// Sets the value of the specified tag.
     /// </summary>
-    /// <param name="tag">The tag of the exif value.</param>
+    /// <param name="tag">The tag of the Exif value.</param>
     /// <param name="value">The value.</param>
     /// <typeparam name="TValueType">The data type of the tag.</typeparam>
     public void SetValue<TValueType>(ExifTag<TValueType> tag, TValueType value)
@@ -234,7 +233,7 @@ public sealed class ExifProfile : IDeepCloneable<ExifProfile>
 
         if (this.values.Count == 0)
         {
-            return Array.Empty<byte>();
+            return [];
         }
 
         ExifWriter writer = new(this.values, this.Parts);
@@ -247,7 +246,7 @@ public sealed class ExifProfile : IDeepCloneable<ExifProfile>
     /// <summary>
     /// Returns the value with the specified tag.
     /// </summary>
-    /// <param name="tag">The tag of the exif value.</param>
+    /// <param name="tag">The tag of the Exif value.</param>
     /// <returns>The value with the specified tag.</returns>
     internal IExifValue? GetValueInternal(ExifTag tag)
     {
@@ -265,7 +264,7 @@ public sealed class ExifProfile : IDeepCloneable<ExifProfile>
     /// <summary>
     /// Sets the value of the specified tag.
     /// </summary>
-    /// <param name="tag">The tag of the exif value.</param>
+    /// <param name="tag">The tag of the Exif value.</param>
     /// <param name="value">The value.</param>
     /// <exception cref="NotSupportedException">Newly created value is null.</exception>
     internal void SetValueInternal(ExifTag tag, object? value)
@@ -279,11 +278,7 @@ public sealed class ExifProfile : IDeepCloneable<ExifProfile>
             }
         }
 
-        ExifValue? newExifValue = ExifValues.Create(tag);
-        if (newExifValue is null)
-        {
-            throw new NotSupportedException($"Newly created value for tag {tag} is null.");
-        }
+        ExifValue? newExifValue = ExifValues.Create(tag) ?? throw new NotSupportedException($"Newly created value for tag {tag} is null.");
 
         newExifValue.TrySetValue(value);
         this.values.Add(newExifValue);
@@ -349,7 +344,7 @@ public sealed class ExifProfile : IDeepCloneable<ExifProfile>
 
         if (this.data is null)
         {
-            this.values = new List<IExifValue>();
+            this.values = [];
             return;
         }
 

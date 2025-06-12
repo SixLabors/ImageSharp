@@ -55,7 +55,7 @@ internal sealed class ExifWriter
 
         if (length == 0)
         {
-            return Array.Empty<byte>();
+            return [];
         }
 
         // two bytes for the byte Order marker 'II' or 'MM', followed by the number 42 (0x2A) and a 0, making 4 bytes total
@@ -197,7 +197,7 @@ internal sealed class ExifWriter
 
     private List<IExifValue> GetPartValues(ExifParts part)
     {
-        List<IExifValue> result = new();
+        List<IExifValue> result = [];
 
         if (!EnumUtils.HasFlag(this.allowedParts, part))
         {
@@ -332,7 +332,7 @@ internal sealed class ExifWriter
 
     private int WriteHeaders(List<IExifValue> values, Span<byte> destination, int offset)
     {
-        this.dataOffsets = new List<int>();
+        this.dataOffsets = [];
 
         int newOffset = WriteUInt16((ushort)values.Count, destination, offset);
 

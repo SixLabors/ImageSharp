@@ -1137,6 +1137,7 @@ public static class TestImages
         public const string Issues2679 = "Tiff/Issues/Issue2679.tiff";
         public const string JpegCompressedGray0000539558 = "Tiff/Issues/JpegCompressedGray-0000539558.tiff";
         public const string Tiled0000023664 = "Tiff/Issues/tiled-0000023664.tiff";
+        public const string ExtraSamplesUnspecified = "Tiff/Issues/ExtraSamplesUnspecified.tif";
 
         public const string SmallRgbDeflate = "Tiff/rgb_small_deflate.tiff";
         public const string SmallRgbLzw = "Tiff/rgb_small_lzw.tiff";

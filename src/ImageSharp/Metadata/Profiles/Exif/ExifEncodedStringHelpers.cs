@@ -67,29 +67,23 @@ internal static class ExifEncodedStringHelpers
             if (code == CharacterCode.Unicode && textBuffer.Length >= 2)
             {
                 // Check BOM
-                if (textBuffer[0] == 0xFF && textBuffer[1] == 0xFE)
+                if (textBuffer.StartsWith((ReadOnlySpan<byte>)[0xFF, 0xFE]))
                 {
                     // Little-endian BOM
                     string text = Encoding.Unicode.GetString(textBuffer[2..]);
                     encodedString = new EncodedString(code, text);
                     return true;
                 }
-                else if (textBuffer[0] == 0xFE && textBuffer[1] == 0xFF)
+
+                if (textBuffer.StartsWith((ReadOnlySpan<byte>)[0xFE, 0xFF]))
                 {
                     // Big-endian BOM
                     string text = Encoding.BigEndianUnicode.GetString(textBuffer[2..]);
                     encodedString = new EncodedString(code, text);
                     return true;
                 }
-                else
-                {
-                    // No BOM, use EXIF byte order
-                    string text = GetEncoding(code, order).GetString(textBuffer);
-                    encodedString = new EncodedString(code, text);
-                    return true;
-                }
             }
-            else
+
             {
                 string text = GetEncoding(code, order).GetString(textBuffer);
                 encodedString = new EncodedString(code, text);

@@ -34,7 +34,7 @@ internal class ExifReader : BaseExifReader
     /// </returns>
     public List<IExifValue> ReadValues()
     {
-        List<IExifValue> values = new();
+        List<IExifValue> values = [];
 
         // II == 0x4949
         this.IsBigEndian = this.ReadUInt16() != 0x4949;
@@ -64,7 +64,7 @@ internal class ExifReader : BaseExifReader
             return;
         }
 
-        List<IExifValue> values = new();
+        List<IExifValue> values = [];
         this.ReadValues(values, offset);
 
         for (int i = 0; i < values.Count; i++)
@@ -90,8 +90,8 @@ internal abstract class BaseExifReader
     private readonly MemoryAllocator? allocator;
     private readonly Stream data;
     private List<ExifTag>? invalidTags;
-
     private List<ulong>? subIfds;
+    private bool isBigEndian;
 
     protected BaseExifReader(Stream stream, MemoryAllocator? allocator)
     {
@@ -104,7 +104,7 @@ internal abstract class BaseExifReader
     /// <summary>
     /// Gets the invalid tags.
     /// </summary>
-    public IReadOnlyList<ExifTag> InvalidTags => this.invalidTags ?? (IReadOnlyList<ExifTag>)Array.Empty<ExifTag>();
+    public IReadOnlyList<ExifTag> InvalidTags => this.invalidTags ?? (IReadOnlyList<ExifTag>)[];
 
     /// <summary>
     /// Gets or sets the thumbnail length in the byte stream.
@@ -116,9 +116,19 @@ internal abstract class BaseExifReader
     /// </summary>
     public uint ThumbnailOffset { get; protected set; }
 
-    public bool IsBigEndian { get; protected set; }
+    public bool IsBigEndian
+    {
+        get => this.isBigEndian;
+        protected set
+        {
+            this.isBigEndian = value;
+            this.ByteOrder = value ? ByteOrder.BigEndian : ByteOrder.LittleEndian;
+        }
+    }
 
-    public List<(ulong Offset, ExifDataType DataType, ulong NumberOfComponents, ExifValue Exif)> BigValues { get; } = new();
+    protected ByteOrder ByteOrder { get; private set; }
+
+    public List<(ulong Offset, ExifDataType DataType, ulong NumberOfComponents, ExifValue Exif)> BigValues { get; } = [];
 
     protected void ReadBigValues(List<IExifValue> values)
     {
@@ -486,14 +496,21 @@ internal abstract class BaseExifReader
 
     private void Add(IList<IExifValue> values, ExifValue exif, object? value)
     {
-        if (!exif.TrySetValue(value))
+        if (exif is ExifEncodedString encodedString)
+        {
+            if (!encodedString.TrySetValue(value, this.ByteOrder))
+            {
+                return;
+            }
+        }
+        else if (!exif.TrySetValue(value))
         {
             return;
         }
 
         foreach (IExifValue val in values)
         {
-            // to skip duplicates must be used Equals method,
+            // To skip duplicates must be used Equals method,
             // == operator not defined for ExifValue and IExifValue
             if (exif.Equals(val))
             {
@@ -517,10 +534,10 @@ internal abstract class BaseExifReader
     }
 
     private void AddInvalidTag(ExifTag tag)
-        => (this.invalidTags ??= new List<ExifTag>()).Add(tag);
+        => (this.invalidTags ??= []).Add(tag);
 
     private void AddSubIfd(object? val)
-        => (this.subIfds ??= new List<ulong>()).Add(Convert.ToUInt64(val, CultureInfo.InvariantCulture));
+        => (this.subIfds ??= []).Add(Convert.ToUInt64(val, CultureInfo.InvariantCulture));
 
     private void Seek(ulong pos)
         => this.data.Seek((long)pos, SeekOrigin.Begin);

@@ -2,8 +2,9 @@
 // Licensed under the Six Labors Split License.
 
 using System.Diagnostics.CodeAnalysis;
+using System.Numerics;
 using SixLabors.ImageSharp.PixelFormats;
-using static System.Runtime.InteropServices.JavaScript.JSType;
+using SixLabors.ImageSharp.Processing.Processors.Transforms;
 
 namespace SixLabors.ImageSharp.Metadata.Profiles.Exif;
 
@@ -48,7 +49,7 @@ public sealed class ExifProfile : IDeepCloneable<ExifProfile>
     {
         this.Parts = ExifParts.All;
         this.data = data;
-        this.InvalidTags = Array.Empty<ExifTag>();
+        this.InvalidTags = [];
     }
 
     /// <summary>
@@ -161,11 +162,9 @@ public sealed class ExifProfile : IDeepCloneable<ExifProfile>
             return false;
         }
 
-        using (MemoryStream memStream = new(this.data, this.thumbnailOffset, this.thumbnailLength))
-        {
-            image = Image.Load<TPixel>(memStream);
-            return true;
-        }
+        using MemoryStream memStream = new(this.data, this.thumbnailOffset, this.thumbnailLength);
+        image = Image.Load<TPixel>(memStream);
+        return true;
     }
 
     /// <summary>
@@ -267,7 +266,7 @@ public sealed class ExifProfile : IDeepCloneable<ExifProfile>
     /// </summary>
     /// <param name="tag">The tag of the exif value.</param>
     /// <param name="value">The value.</param>
-    /// <exception cref="NotSupportedException">Newly created value is null.</exception>
+    /// <exception cref="NotSupportedException">The newly created value is null.</exception>
     internal void SetValueInternal(ExifTag tag, object? value)
     {
         foreach (IExifValue exifValue in this.Values)
@@ -309,6 +308,60 @@ public sealed class ExifProfile : IDeepCloneable<ExifProfile>
         if (this.TryGetValue(ExifTag.PixelYDimension, out _))
         {
             this.SetValue(ExifTag.PixelYDimension, height);
+        }
+    }
+
+    internal void SyncSubject(int width, int height, Matrix4x4 matrix)
+    {
+        if (matrix.IsIdentity)
+        {
+            return;
+        }
+
+        if (this.TryGetValue(ExifTag.SubjectLocation, out IExifValue<ushort[]>? location))
+        {
+            if (location.Value?.Length == 2)
+            {
+                Vector2 point = TransformUtils.ProjectiveTransform2D(location.Value[0], location.Value[1], matrix);
+
+                // Ensure the point is within the image dimensions.
+                point = Vector2.Clamp(point, Vector2.Zero, new Vector2(width - 1, height - 1));
+
+                // Round the point to the nearest pixel.
+                location.Value[0] = (ushort)Math.Floor(point.X);
+                location.Value[1] = (ushort)Math.Floor(point.Y);
+
+                this.SetValue(ExifTag.SubjectLocation, location.Value);
+            }
+            else
+            {
+                this.RemoveValue(ExifTag.SubjectLocation);
+            }
+        }
+
+        if (this.TryGetValue(ExifTag.SubjectArea, out IExifValue<ushort[]>? area))
+        {
+            if (area.Value?.Length == 4)
+            {
+                RectangleF rectangle = new(area.Value[0], area.Value[1], area.Value[2], area.Value[3]);
+                if (!TransformUtils.TryGetTransformedRectangle(rectangle, matrix, out Rectangle bounds))
+                {
+                    return;
+                }
+
+                // Ensure the bounds are within the image dimensions.
+                bounds = Rectangle.Intersect(bounds, new Rectangle(0, 0, width, height));
+
+                area.Value[0] = (ushort)bounds.X;
+                area.Value[1] = (ushort)bounds.Y;
+                area.Value[2] = (ushort)bounds.Width;
+                area.Value[3] = (ushort)bounds.Height;
+                this.SetValue(ExifTag.SubjectArea, area.Value);
+            }
+            else
+            {
+                this.RemoveValue(ExifTag.SubjectArea);
+            }
         }
     }
 

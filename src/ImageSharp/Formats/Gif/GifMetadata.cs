@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Numerics;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Gif;
@@ -105,7 +106,7 @@ public class GifMetadata : IFormatMetadata<GifMetadata>
         };
 
     /// <inheritdoc/>
-    public void AfterImageApply<TPixel>(Image<TPixel> destination)
+    public void AfterImageApply<TPixel>(Image<TPixel> destination, Matrix4x4 matrix)
         where TPixel : unmanaged, IPixel<TPixel>
         => this.GlobalColorTable = null;
 

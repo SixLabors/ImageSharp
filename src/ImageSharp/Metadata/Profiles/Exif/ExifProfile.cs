@@ -323,7 +323,7 @@ public sealed class ExifProfile : IDeepCloneable<ExifProfile>
                 // Ensure the point is within the image dimensions.
                 point = Vector2.Clamp(point, Vector2.Zero, new Vector2(width - 1, height - 1));
 
-                // Round the point to the nearest pixel.
+                // Floor the point to the nearest pixel.
                 location.Value[0] = (ushort)Math.Floor(point.X);
                 location.Value[1] = (ushort)Math.Floor(point.Y);
 

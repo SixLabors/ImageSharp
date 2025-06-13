@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Numerics;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Metadata.Profiles.Cicp;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
@@ -158,16 +159,21 @@ public sealed class ImageFrameMetadata : IDeepCloneable<ImageFrameMetadata>
     /// <typeparam name="TPixel">The type of pixel format.</typeparam>
     /// <param name="source">The source image frame.</param>
     /// <param name="destination">The destination image frame.</param>
-    internal void AfterFrameApply<TPixel>(ImageFrame<TPixel> source, ImageFrame<TPixel> destination)
+    /// <param name="matrix">The transformation matrix applied to the frame.</param>
+    internal void AfterFrameApply<TPixel>(
+        ImageFrame<TPixel> source,
+        ImageFrame<TPixel> destination,
+        Matrix4x4 matrix)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         // Always updated using the full frame dimensions.
         // Individual format frame metadata will update with sub region dimensions if appropriate.
         this.ExifProfile?.SyncDimensions(destination.Width, destination.Height);
+        this.ExifProfile?.SyncSubject(destination.Width, destination.Height, matrix);
 
         foreach (KeyValuePair<IImageFormat, IFormatFrameMetadata> meta in this.formatMetadata)
         {
-            meta.Value.AfterFrameApply(source, destination);
+            meta.Value.AfterFrameApply(source, destination, matrix);
         }
     }
 }

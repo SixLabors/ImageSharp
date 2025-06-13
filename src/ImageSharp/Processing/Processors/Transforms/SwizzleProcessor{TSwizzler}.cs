@@ -16,10 +16,7 @@ public sealed class SwizzleProcessor<TSwizzler> : IImageProcessor
     /// Initializes a new instance of the <see cref="SwizzleProcessor{TSwizzler}"/> class.
     /// </summary>
     /// <param name="swizzler">The swizzler operation.</param>
-    public SwizzleProcessor(TSwizzler swizzler)
-    {
-        this.Swizzler = swizzler;
-    }
+    public SwizzleProcessor(TSwizzler swizzler) => this.Swizzler = swizzler;
 
     /// <summary>
     /// Gets the swizzler operation.

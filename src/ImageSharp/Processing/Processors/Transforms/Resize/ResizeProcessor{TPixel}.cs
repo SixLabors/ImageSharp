@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
@@ -21,6 +22,7 @@ internal class ResizeProcessor<TPixel> : TransformProcessor<TPixel>, IResampling
     private readonly IResampler resampler;
     private readonly Rectangle destinationRectangle;
     private Image<TPixel>? destination;
+    private readonly Matrix4x4 transformMatrix;
 
     public ResizeProcessor(Configuration configuration, ResizeProcessor definition, Image<TPixel> source, Rectangle sourceRectangle)
         : base(configuration, source, sourceRectangle)
@@ -30,6 +32,17 @@ internal class ResizeProcessor<TPixel> : TransformProcessor<TPixel>, IResampling
         this.destinationRectangle = definition.DestinationRectangle;
         this.options = definition.Options;
         this.resampler = definition.Options.Sampler;
+
+        // Calculate the transform matrix from the resize operation to allow us
+        // to update any metadata that represents pixel coordinates in the source image.
+        Vector2 scale = new(
+            this.destinationRectangle.Width / (float)this.SourceRectangle.Width,
+            this.destinationRectangle.Height / (float)this.SourceRectangle.Height);
+
+        this.transformMatrix = new ProjectiveTransformBuilder()
+                                    .AppendScale(scale)
+                                    .AppendTranslation((PointF)this.destinationRectangle.Location)
+                                    .BuildMatrix(sourceRectangle);
     }
 
     /// <inheritdoc/>
@@ -49,6 +62,9 @@ internal class ResizeProcessor<TPixel> : TransformProcessor<TPixel>, IResampling
     {
         // Everything happens in BeforeImageApply.
     }
+
+    /// <inheritdoc/>
+    protected override Matrix4x4 GetTransformMatrix() => this.transformMatrix;
 
     public void ApplyTransform<TResampler>(in TResampler sampler)
         where TResampler : struct, IResampler
@@ -81,7 +97,7 @@ internal class ResizeProcessor<TPixel> : TransformProcessor<TPixel>, IResampling
             return;
         }
 
-        var interest = Rectangle.Intersect(destinationRectangle, destination.Bounds);
+        Rectangle interest = Rectangle.Intersect(destinationRectangle, destination.Bounds);
 
         if (sampler is NearestNeighborResampler)
         {
@@ -110,13 +126,13 @@ internal class ResizeProcessor<TPixel> : TransformProcessor<TPixel>, IResampling
         // Since all image frame dimensions have to be the same we can calculate
         // the kernel maps and reuse for all frames.
         MemoryAllocator allocator = configuration.MemoryAllocator;
-        using var horizontalKernelMap = ResizeKernelMap.Calculate(
+        using ResizeKernelMap horizontalKernelMap = ResizeKernelMap.Calculate(
             in sampler,
             destinationRectangle.Width,
             sourceRectangle.Width,
             allocator);
 
-        using var verticalKernelMap = ResizeKernelMap.Calculate(
+        using ResizeKernelMap verticalKernelMap = ResizeKernelMap.Calculate(
             in sampler,
             destinationRectangle.Height,
             sourceRectangle.Height,
@@ -158,7 +174,7 @@ internal class ResizeProcessor<TPixel> : TransformProcessor<TPixel>, IResampling
         float widthFactor = sourceRectangle.Width / (float)destinationRectangle.Width;
         float heightFactor = sourceRectangle.Height / (float)destinationRectangle.Height;
 
-        var operation = new NNRowOperation(
+        NNRowOperation operation = new(
             sourceRectangle,
             destinationRectangle,
             interest,
@@ -179,10 +195,8 @@ internal class ResizeProcessor<TPixel> : TransformProcessor<TPixel>, IResampling
         {
             return PixelConversionModifiers.Premultiply.ApplyCompanding(compand);
         }
-        else
-        {
-            return PixelConversionModifiers.None.ApplyCompanding(compand);
-        }
+
+        return PixelConversionModifiers.None.ApplyCompanding(compand);
     }
 
     private static void ApplyResizeFrameTransform(
@@ -208,7 +222,7 @@ internal class ResizeProcessor<TPixel> : TransformProcessor<TPixel>, IResampling
 
         // To reintroduce parallel processing, we would launch multiple workers
         // for different row intervals of the image.
-        using var worker = new ResizeWorker<TPixel>(
+        using ResizeWorker<TPixel> worker = new(
             configuration,
             sourceRegion,
             conversionModifiers,
@@ -218,7 +232,7 @@ internal class ResizeProcessor<TPixel> : TransformProcessor<TPixel>, IResampling
             destinationRectangle.Location);
         worker.Initialize();
 
-        var workingInterval = new RowInterval(interest.Top, interest.Bottom);
+        RowInterval workingInterval = new(interest.Top, interest.Bottom);
         worker.FillDestinationPixels(workingInterval, destination.PixelBuffer);
     }
 

@@ -3,14 +3,16 @@
 
 using System.Numerics;
 using System.Reflection;
+using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Transforms;
+using SixLabors.ImageSharp.Tests.TestUtilities;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using Xunit.Abstractions;
 
 // ReSharper disable InconsistentNaming
-namespace SixLabors.ImageSharp.Tests.Processing.Transforms;
+namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms;
 
 [Trait("Category", "Processors")]
 public class ProjectiveTransformTests
@@ -20,7 +22,7 @@ public class ProjectiveTransformTests
 
     private ITestOutputHelper Output { get; }
 
-    public static readonly TheoryData<string> ResamplerNames = new TheoryData<string>
+    public static readonly TheoryData<string> ResamplerNames = new()
     {
         nameof(KnownResamplers.Bicubic),
         nameof(KnownResamplers.Box),
@@ -39,7 +41,7 @@ public class ProjectiveTransformTests
         nameof(KnownResamplers.Welch),
     };
 
-    public static readonly TheoryData<TaperSide, TaperCorner> TaperMatrixData = new TheoryData<TaperSide, TaperCorner>
+    public static readonly TheoryData<TaperSide, TaperCorner> TaperMatrixData = new()
     {
         { TaperSide.Bottom, TaperCorner.Both },
         { TaperSide.Bottom, TaperCorner.LeftOrTop },
@@ -71,16 +73,14 @@ public class ProjectiveTransformTests
         where TPixel : unmanaged, IPixel<TPixel>
     {
         IResampler sampler = GetResampler(resamplerName);
-        using (Image<TPixel> image = provider.GetImage())
-        {
-            ProjectiveTransformBuilder builder = new ProjectiveTransformBuilder()
-                .AppendTaper(TaperSide.Right, TaperCorner.Both, .5F);
+        using Image<TPixel> image = provider.GetImage();
+        ProjectiveTransformBuilder builder = new ProjectiveTransformBuilder()
+            .AppendTaper(TaperSide.Right, TaperCorner.Both, .5F);
 
-            image.Mutate(i => i.Transform(builder, sampler));
+        image.Mutate(i => i.Transform(builder, sampler));
 
-            image.DebugSave(provider, resamplerName);
-            image.CompareToReferenceOutput(ValidatorComparer, provider, resamplerName);
-        }
+        image.DebugSave(provider, resamplerName);
+        image.CompareToReferenceOutput(ValidatorComparer, provider, resamplerName);
     }
 
     [Theory]
@@ -88,17 +88,15 @@ public class ProjectiveTransformTests
     public void Transform_WithTaperMatrix<TPixel>(TestImageProvider<TPixel> provider, TaperSide taperSide, TaperCorner taperCorner)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using (Image<TPixel> image = provider.GetImage())
-        {
-            ProjectiveTransformBuilder builder = new ProjectiveTransformBuilder()
-                .AppendTaper(taperSide, taperCorner, .5F);
+        using Image<TPixel> image = provider.GetImage();
+        ProjectiveTransformBuilder builder = new ProjectiveTransformBuilder()
+            .AppendTaper(taperSide, taperCorner, .5F);
 
-            image.Mutate(i => i.Transform(builder));
+        image.Mutate(i => i.Transform(builder));
 
-            FormattableString testOutputDetails = $"{taperSide}-{taperCorner}";
-            image.DebugSave(provider, testOutputDetails);
-            image.CompareFirstFrameToReferenceOutput(TolerantComparer, provider, testOutputDetails);
-        }
+        FormattableString testOutputDetails = $"{taperSide}-{taperCorner}";
+        image.DebugSave(provider, testOutputDetails);
+        image.CompareFirstFrameToReferenceOutput(TolerantComparer, provider, testOutputDetails);
     }
 
     [Theory]
@@ -106,17 +104,15 @@ public class ProjectiveTransformTests
     public void Transform_WithQuadDistortion<TPixel>(TestImageProvider<TPixel> provider, PointF topLeft, PointF topRight, PointF bottomRight, PointF bottomLeft)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using (Image<TPixel> image = provider.GetImage())
-        {
-            ProjectiveTransformBuilder builder = new ProjectiveTransformBuilder()
-                .AppendQuadDistortion(topLeft, topRight, bottomRight, bottomLeft);
+        using Image<TPixel> image = provider.GetImage();
+        ProjectiveTransformBuilder builder = new ProjectiveTransformBuilder()
+            .AppendQuadDistortion(topLeft, topRight, bottomRight, bottomLeft);
 
-            image.Mutate(i => i.Transform(builder));
+        image.Mutate(i => i.Transform(builder));
 
-            FormattableString testOutputDetails = $"{topLeft}-{topRight}-{bottomRight}-{bottomLeft}";
-            image.DebugSave(provider, testOutputDetails);
-            image.CompareFirstFrameToReferenceOutput(TolerantComparer, provider, testOutputDetails);
-        }
+        FormattableString testOutputDetails = $"{topLeft}-{topRight}-{bottomRight}-{bottomLeft}";
+        image.DebugSave(provider, testOutputDetails);
+        image.CompareFirstFrameToReferenceOutput(TolerantComparer, provider, testOutputDetails);
     }
 
     [Theory]
@@ -129,19 +125,17 @@ public class ProjectiveTransformTests
 
         // This test matches the output described in the example at
         // https://docs.microsoft.com/en-us/xamarin/xamarin-forms/user-interface/graphics/skiasharp/transforms/non-affine
-        using (Image<TPixel> image = provider.GetImage())
-        {
-            Matrix4x4 matrix = Matrix4x4.Identity;
-            matrix.M14 = 0.01F;
+        using Image<TPixel> image = provider.GetImage();
+        Matrix4x4 matrix = Matrix4x4.Identity;
+        matrix.M14 = 0.01F;
 
-            ProjectiveTransformBuilder builder = new ProjectiveTransformBuilder()
+        ProjectiveTransformBuilder builder = new ProjectiveTransformBuilder()
             .AppendMatrix(matrix);
 
-            image.Mutate(i => i.Transform(builder));
+        image.Mutate(i => i.Transform(builder));
 
-            image.DebugSave(provider);
-            image.CompareToReferenceOutput(TolerantComparer, provider);
-        }
+        image.DebugSave(provider);
+        image.CompareToReferenceOutput(TolerantComparer, provider);
     }
 
     [Theory]
@@ -151,30 +145,28 @@ public class ProjectiveTransformTests
     {
         // https://jsfiddle.net/dFrHS/545/
         // https://github.com/SixLabors/ImageSharp/issues/787
-        using (Image<TPixel> image = provider.GetImage())
-        {
+        using Image<TPixel> image = provider.GetImage();
 #pragma warning disable SA1117 // Parameters should be on same line or separate lines
-            Matrix4x4 matrix = new(
-                0.260987f, -0.434909f, 0, -0.0022184f,
-                0.373196f, 0.949882f, 0, -0.000312129f,
-                0, 0, 1, 0,
-                52, 165, 0, 1);
+        Matrix4x4 matrix = new(
+            0.260987f, -0.434909f, 0, -0.0022184f,
+            0.373196f, 0.949882f, 0, -0.000312129f,
+            0, 0, 1, 0,
+            52, 165, 0, 1);
 #pragma warning restore SA1117 // Parameters should be on same line or separate lines
 
-            ProjectiveTransformBuilder builder = new ProjectiveTransformBuilder()
+        ProjectiveTransformBuilder builder = new ProjectiveTransformBuilder()
             .AppendMatrix(matrix);
 
-            image.Mutate(i => i.Transform(builder));
+        image.Mutate(i => i.Transform(builder));
 
-            image.DebugSave(provider);
-            image.CompareToReferenceOutput(TolerantComparer, provider);
-        }
+        image.DebugSave(provider);
+        image.CompareToReferenceOutput(TolerantComparer, provider);
     }
 
     [Fact]
     public void Issue1911()
     {
-        using var image = new Image<Rgba32>(100, 100);
+        using Image<Rgba32> image = new(100, 100);
         image.Mutate(x => x = x.Transform(new Rectangle(0, 0, 99, 100), Matrix4x4.Identity, new Size(99, 100), KnownResamplers.Lanczos2));
 
         Assert.Equal(99, image.Width);
@@ -240,13 +232,44 @@ public class ProjectiveTransformTests
         ImageComparer.Exact.VerifySimilarity(img, img3);
     }
 
+    [Theory]
+    [WithTestPatternImages(100, 100, PixelTypes.Rgba32)]
+    public void TransformUpdatesSubject<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage();
+
+        image.Metadata.ExifProfile = new();
+        image.Metadata.ExifProfile.SetValue(ExifTag.SubjectLocation, [5, 15]);
+        image.Metadata.ExifProfile.SetValue(ExifTag.SubjectArea, [5, 15, 50, 50]);
+
+        ProjectiveTransformBuilder builder = new ProjectiveTransformBuilder()
+            .AppendRotationDegrees(180);
+
+        image.Mutate(ctx => ctx.Transform(builder));
+
+        // A 180-degree rotation inverts both axes around the image center.
+        // The subject location (5, 15) becomes (imageWidth - 5 - 1, imageHeight - 15 - 1) = (94, 84)
+        Assert.Equal(
+            [94, 84],
+            image.Metadata.ExifProfile.GetValue(ExifTag.SubjectLocation).Value);
+
+        // The subject area is also mirrored around the center.
+        // New X = imageWidth - originalX - width
+        // New Y = imageHeight - originalY - height
+        // (5, 15, 50, 50) becomes (44, 34, 50, 50)
+        Assert.Equal(
+            [44, 34, 50, 50],
+            image.Metadata.ExifProfile.GetValue(ExifTag.SubjectArea).Value);
+    }
+
     private static IResampler GetResampler(string name)
     {
         PropertyInfo property = typeof(KnownResamplers).GetTypeInfo().GetProperty(name);
 
         if (property is null)
         {
-            throw new Exception($"No resampler named {name}");
+            throw new InvalidOperationException($"No resampler named {name}");
         }
 
         return (IResampler)property.GetValue(null);

@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Numerics;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Metadata.Profiles.Cicp;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
@@ -235,14 +236,16 @@ public sealed class ImageMetadata : IDeepCloneable<ImageMetadata>
     /// </summary>
     /// <typeparam name="TPixel">The type of pixel format.</typeparam>
     /// <param name="destination">The destination image.</param>
-    internal void AfterImageApply<TPixel>(Image<TPixel> destination)
+    /// <param name="matrix">The transformation matrix applied to the image.</param>
+    internal void AfterImageApply<TPixel>(Image<TPixel> destination, Matrix4x4 matrix)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         this.ExifProfile?.SyncDimensions(destination.Width, destination.Height);
+        this.ExifProfile?.SyncSubject(destination.Width, destination.Height, matrix);
 
         foreach (KeyValuePair<IImageFormat, IFormatMetadata> meta in this.formatMetadata)
         {
-            meta.Value.AfterImageApply(destination);
+            meta.Value.AfterImageApply(destination, matrix);
         }
     }
 

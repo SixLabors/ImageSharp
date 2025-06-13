@@ -420,6 +420,28 @@ internal static class TransformUtils
     }
 
     /// <summary>
+    /// Attempts to derive a 4x4 projective transform matrix that approximates the behavior of an <typeparamref name="T"/>.
+    /// </summary>
+    /// <param name="swizzler">
+    /// The swizzler to use for the transformation.
+    /// </param>
+    /// <param name="sourceRectangle">
+    /// The source rectangle that defines the area to be transformed.
+    /// </param>
+    /// <typeparam name="T">
+    /// The type of the swizzler, which must implement <see cref="ISwizzler"/>.
+    /// </typeparam>
+    public static Matrix4x4 GetSwizzlerMatrix<T>(T swizzler, Rectangle sourceRectangle)
+        where T : struct, ISwizzler
+        => CreateQuadDistortionMatrix(
+            sourceRectangle,
+            swizzler.Transform(new Point(sourceRectangle.Left, sourceRectangle.Top)),
+            swizzler.Transform(new Point(sourceRectangle.Right, sourceRectangle.Top)),
+            swizzler.Transform(new Point(sourceRectangle.Right, sourceRectangle.Bottom)),
+            swizzler.Transform(new Point(sourceRectangle.Left, sourceRectangle.Bottom)),
+            TransformSpace.Pixel);
+
+    /// <summary>
     /// Returns the size relative to the source for the given transformation matrix.
     /// </summary>
     /// <param name="matrix">The transformation matrix.</param>
@@ -504,7 +526,7 @@ internal static class TransformUtils
     /// <see langword="true"/> if the transformation was successful; otherwise, <see langword="false"/>.
     /// </returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static bool TryGetTransformedRectangle(RectangleF rectangle, Matrix4x4 matrix, out Rectangle bounds)
+    internal static bool TryGetTransformedRectangle(RectangleF rectangle, Matrix4x4 matrix, out Rectangle bounds)
     {
         if (matrix.IsIdentity || rectangle.Equals(default))
         {

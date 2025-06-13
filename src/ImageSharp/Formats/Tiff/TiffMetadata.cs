@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Numerics;
 using SixLabors.ImageSharp.Formats.Tiff.Constants;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -181,7 +182,7 @@ public class TiffMetadata : IFormatMetadata<TiffMetadata>
         };
 
     /// <inheritdoc/>
-    public void AfterImageApply<TPixel>(Image<TPixel> destination)
+    public void AfterImageApply<TPixel>(Image<TPixel> destination, Matrix4x4 matrix)
         where TPixel : unmanaged, IPixel<TPixel>
     {
     }

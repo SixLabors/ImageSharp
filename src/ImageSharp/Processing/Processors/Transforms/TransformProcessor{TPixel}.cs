@@ -1,9 +1,9 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Numerics;
 using SixLabors.ImageSharp.PixelFormats;
 
-// TODO: DO we need this class?
 namespace SixLabors.ImageSharp.Processing.Processors.Transforms;
 
 /// <summary>
@@ -23,4 +23,20 @@ internal abstract class TransformProcessor<TPixel> : CloningImageProcessor<TPixe
         : base(configuration, source, sourceRectangle)
     {
     }
+
+    /// <summary>
+    /// Gets the transform matrix that will be applied to the image.
+    /// </summary>
+    /// <returns>
+    /// The <see cref="Matrix4x4"/> that represents the transformation to be applied to the image.
+    /// </returns>
+    protected abstract Matrix4x4 GetTransformMatrix();
+
+    /// <inheritdoc/>
+    protected override void AfterFrameApply(ImageFrame<TPixel> source, ImageFrame<TPixel> destination)
+        => destination.Metadata.AfterFrameApply(source, destination, this.GetTransformMatrix());
+
+    /// <inheritdoc/>
+    protected override void AfterImageApply(Image<TPixel> destination)
+        => destination.Metadata.AfterImageApply(destination, this.GetTransformMatrix());
 }

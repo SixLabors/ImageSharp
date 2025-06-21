@@ -81,7 +81,7 @@ public sealed class ImageFrame<TPixel> : ImageFrame, IPixelSource<TPixel>
     /// <param name="height">The height of the image in pixels.</param>
     /// <param name="backgroundColor">The color to clear the image with.</param>
     internal ImageFrame(Configuration configuration, int width, int height, TPixel backgroundColor)
-        : this(configuration, width, height, backgroundColor, new ImageFrameMetadata())
+        : this(configuration, width, height, backgroundColor, new())
     {
     }
 
@@ -114,7 +114,7 @@ public sealed class ImageFrame<TPixel> : ImageFrame, IPixelSource<TPixel>
     /// <param name="height">The height of the image in pixels.</param>
     /// <param name="memorySource">The memory source.</param>
     internal ImageFrame(Configuration configuration, int width, int height, MemoryGroup<TPixel> memorySource)
-        : this(configuration, width, height, memorySource, new ImageFrameMetadata())
+        : this(configuration, width, height, memorySource, new())
     {
     }
 
@@ -132,7 +132,7 @@ public sealed class ImageFrame<TPixel> : ImageFrame, IPixelSource<TPixel>
         Guard.MustBeGreaterThan(width, 0, nameof(width));
         Guard.MustBeGreaterThan(height, 0, nameof(height));
 
-        this.PixelBuffer = new Buffer2D<TPixel>(memorySource, width, height);
+        this.PixelBuffer = new(memorySource, width, height);
     }
 
     /// <summary>

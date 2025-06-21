@@ -19,7 +19,7 @@ internal class SharedArrayPoolBuffer<T> : ManagedBufferBase<T>, IRefCounted
     {
         this.lengthInBytes = lengthInElements * Unsafe.SizeOf<T>();
         this.Array = ArrayPool<byte>.Shared.Rent(this.lengthInBytes);
-        this.lifetimeGuard = new LifetimeGuard(this.Array);
+        this.lifetimeGuard = new(this.Array);
     }
 
     public byte[]? Array { get; private set; }

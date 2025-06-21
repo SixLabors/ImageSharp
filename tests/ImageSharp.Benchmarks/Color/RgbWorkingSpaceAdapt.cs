@@ -13,7 +13,7 @@ public class RgbWorkingSpaceAdapt
 
     private static readonly RGBColor RGBColor = new(0.206162, 0.260277, 0.746717);
 
-    private static readonly ColorProfileConverter ColorProfileConverter = new(new ColorConversionOptions { SourceRgbWorkingSpace = KnownRgbWorkingSpaces.WideGamutRgb, TargetRgbWorkingSpace = KnownRgbWorkingSpaces.SRgb });
+    private static readonly ColorProfileConverter ColorProfileConverter = new(new() { SourceRgbWorkingSpace = KnownRgbWorkingSpaces.WideGamutRgb, TargetRgbWorkingSpace = KnownRgbWorkingSpaces.SRgb });
 
     private static readonly IColorConverter<RGBColor, RGBColor> ColourfulConverter = new ConverterBuilder().FromRGB(RGBWorkingSpaces.WideGamutRGB).ToRGB(RGBWorkingSpaces.sRGB).Build();
 

@@ -162,7 +162,7 @@ public class NumericsTests
     [InlineData(63)]
     public void PremultiplyVectorSpan(int length)
     {
-        var rnd = new Random(42);
+        Random rnd = new Random(42);
         Vector4[] source = rnd.GenerateRandomVectorArray(length, 0, 1);
         Vector4[] expected = source.Select(v =>
         {
@@ -182,7 +182,7 @@ public class NumericsTests
     [InlineData(63)]
     public void UnPremultiplyVectorSpan(int length)
     {
-        var rnd = new Random(42);
+        Random rnd = new Random(42);
         Vector4[] source = rnd.GenerateRandomVectorArray(length, 0, 1);
         Vector4[] expected = source.Select(v =>
         {
@@ -280,7 +280,7 @@ public class NumericsTests
     {
         Span<T> actual = new T[length];
 
-        var r = new Random();
+        Random r = new Random();
         for (int i = 0; i < length; i++)
         {
             actual[i] = (T)Convert.ChangeType(r.Next(byte.MinValue, byte.MaxValue), typeof(T));

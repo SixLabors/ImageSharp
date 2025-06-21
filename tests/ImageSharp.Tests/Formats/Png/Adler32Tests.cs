@@ -30,7 +30,7 @@ public class Adler32Tests
     {
         // arrange
         byte[] data = GetBuffer(length);
-        var adler = new SharpAdler32();
+        SharpAdler32 adler = new SharpAdler32();
         adler.Update(data);
         long expected = adler.Value;
 

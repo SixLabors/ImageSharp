@@ -44,7 +44,7 @@ public struct OctreeQuantizer<TPixel> : IQuantizer<TPixel>
 
         this.maxColors = this.Options.MaxColors;
         this.bitDepth = Numerics.Clamp(ColorNumerics.GetBitsNeededForColorDepth(this.maxColors), 1, 8);
-        this.octree = new Octree(configuration, this.bitDepth, this.maxColors, this.Options.TransparencyThreshold);
+        this.octree = new(configuration, this.bitDepth, this.maxColors, this.Options.TransparencyThreshold);
         this.paletteOwner = configuration.MemoryAllocator.Allocate<TPixel>(this.maxColors, AllocationOptions.Clean);
         this.pixelMap = default;
         this.palette = default;
@@ -547,14 +547,14 @@ public struct OctreeQuantizer<TPixel> : IQuantizer<TPixel>
                     Vector4 vector = Vector4.Clamp(
                         (sum + offset) / this.PixelCount,
                         Vector4.Zero,
-                        new Vector4(255));
+                        new(255));
 
                     if (vector.W < octree.transparencyThreshold255)
                     {
                         vector = Vector4.Zero;
                     }
 
-                    palette[paletteIndex] = TPixel.FromRgba32(new Rgba32((byte)vector.X, (byte)vector.Y, (byte)vector.Z, (byte)vector.W));
+                    palette[paletteIndex] = TPixel.FromRgba32(new((byte)vector.X, (byte)vector.Y, (byte)vector.Z, (byte)vector.W));
 
                     this.PaletteIndex = paletteIndex++;
                 }

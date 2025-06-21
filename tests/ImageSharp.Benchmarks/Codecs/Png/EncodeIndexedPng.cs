@@ -52,7 +52,7 @@ public class EncodeIndexedPng
     public void PngCoreOctreeNoDither()
     {
         using MemoryStream memoryStream = new();
-        PngEncoder options = new() { Quantizer = new OctreeQuantizer(new QuantizerOptions { Dither = null }) };
+        PngEncoder options = new() { Quantizer = new OctreeQuantizer(new() { Dither = null }) };
         this.bmpCore.SaveAsPng(memoryStream, options);
     }
 
@@ -68,7 +68,7 @@ public class EncodeIndexedPng
     public void PngCorePaletteNoDither()
     {
         using MemoryStream memoryStream = new();
-        PngEncoder options = new() { Quantizer = new WebSafePaletteQuantizer(new QuantizerOptions { Dither = null }) };
+        PngEncoder options = new() { Quantizer = new WebSafePaletteQuantizer(new() { Dither = null }) };
         this.bmpCore.SaveAsPng(memoryStream, options);
     }
 
@@ -84,7 +84,7 @@ public class EncodeIndexedPng
     public void PngCoreWuNoDither()
     {
         using MemoryStream memoryStream = new();
-        PngEncoder options = new() { Quantizer = new WuQuantizer(new QuantizerOptions { Dither = null }), ColorType = PngColorType.Palette };
+        PngEncoder options = new() { Quantizer = new WuQuantizer(new() { Dither = null }), ColorType = PngColorType.Palette };
         this.bmpCore.SaveAsPng(memoryStream, options);
     }
 }

@@ -31,7 +31,7 @@ public class PngEncoderFilterTests : MeasureFixture
     {
         static void RunTest()
         {
-            var data = new TestData(PngFilterMethod.Average, Size);
+            TestData data = new TestData(PngFilterMethod.Average, Size);
             data.TestFilter();
         }
 
@@ -45,7 +45,7 @@ public class PngEncoderFilterTests : MeasureFixture
     {
         static void RunTest()
         {
-            var data = new TestData(PngFilterMethod.Average, Size);
+            TestData data = new TestData(PngFilterMethod.Average, Size);
             data.TestFilter();
         }
 
@@ -59,7 +59,7 @@ public class PngEncoderFilterTests : MeasureFixture
     {
         static void RunTest()
         {
-            var data = new TestData(PngFilterMethod.Average, Size);
+            TestData data = new TestData(PngFilterMethod.Average, Size);
             data.TestFilter();
         }
 
@@ -73,7 +73,7 @@ public class PngEncoderFilterTests : MeasureFixture
     {
         static void RunTest()
         {
-            var data = new TestData(PngFilterMethod.Average, Size);
+            TestData data = new TestData(PngFilterMethod.Average, Size);
             data.TestFilter();
         }
 
@@ -87,7 +87,7 @@ public class PngEncoderFilterTests : MeasureFixture
     {
         static void RunTest()
         {
-            var data = new TestData(PngFilterMethod.Paeth, Size);
+            TestData data = new TestData(PngFilterMethod.Paeth, Size);
             data.TestFilter();
         }
 
@@ -101,7 +101,7 @@ public class PngEncoderFilterTests : MeasureFixture
     {
         static void RunTest()
         {
-            var data = new TestData(PngFilterMethod.Paeth, Size);
+            TestData data = new TestData(PngFilterMethod.Paeth, Size);
             data.TestFilter();
         }
 
@@ -115,7 +115,7 @@ public class PngEncoderFilterTests : MeasureFixture
     {
         static void RunTest()
         {
-            var data = new TestData(PngFilterMethod.Paeth, Size);
+            TestData data = new TestData(PngFilterMethod.Paeth, Size);
             data.TestFilter();
         }
 
@@ -129,7 +129,7 @@ public class PngEncoderFilterTests : MeasureFixture
     {
         static void RunTest()
         {
-            var data = new TestData(PngFilterMethod.Up, Size);
+            TestData data = new TestData(PngFilterMethod.Up, Size);
             data.TestFilter();
         }
 
@@ -143,7 +143,7 @@ public class PngEncoderFilterTests : MeasureFixture
     {
         static void RunTest()
         {
-            var data = new TestData(PngFilterMethod.Up, Size);
+            TestData data = new TestData(PngFilterMethod.Up, Size);
             data.TestFilter();
         }
 
@@ -157,7 +157,7 @@ public class PngEncoderFilterTests : MeasureFixture
     {
         static void RunTest()
         {
-            var data = new TestData(PngFilterMethod.Up, Size);
+            TestData data = new TestData(PngFilterMethod.Up, Size);
             data.TestFilter();
         }
 
@@ -171,7 +171,7 @@ public class PngEncoderFilterTests : MeasureFixture
     {
         static void RunTest()
         {
-            var data = new TestData(PngFilterMethod.Sub, Size);
+            TestData data = new TestData(PngFilterMethod.Sub, Size);
             data.TestFilter();
         }
 
@@ -185,7 +185,7 @@ public class PngEncoderFilterTests : MeasureFixture
     {
         static void RunTest()
         {
-            var data = new TestData(PngFilterMethod.Sub, Size);
+            TestData data = new TestData(PngFilterMethod.Sub, Size);
             data.TestFilter();
         }
 
@@ -199,7 +199,7 @@ public class PngEncoderFilterTests : MeasureFixture
     {
         static void RunTest()
         {
-            var data = new TestData(PngFilterMethod.Sub, Size);
+            TestData data = new TestData(PngFilterMethod.Sub, Size);
             data.TestFilter();
         }
 
@@ -227,7 +227,7 @@ public class PngEncoderFilterTests : MeasureFixture
             this.expectedResult = new byte[1 + (size * size * bpp)];
             this.resultBuffer = new byte[1 + (size * size * bpp)];
 
-            var rng = new Random(12345678);
+            Random rng = new Random(12345678);
             byte[] tmp = new byte[6];
             for (int i = 0; i < this.previousScanline.Length; i += bpp)
             {

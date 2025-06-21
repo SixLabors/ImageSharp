@@ -24,7 +24,7 @@ public partial class Buffer2DTests
         }
     }
 
-    private TestMemoryAllocator MemoryAllocator { get; } = new TestMemoryAllocator();
+    private TestMemoryAllocator MemoryAllocator { get; } = new();
 
     private const int Big = 99999;
 
@@ -72,7 +72,7 @@ public partial class Buffer2DTests
 
         using Buffer2D<byte> buffer = useSizeOverload ?
             this.MemoryAllocator.Allocate2D<byte>(
-                new Size(200, 200),
+                new(200, 200),
                 preferContiguosImageBuffers: true) :
             this.MemoryAllocator.Allocate2D<byte>(
             200,
@@ -147,7 +147,7 @@ public partial class Buffer2DTests
         const int unpooledBufferSize = 8_000;
 
         int elementSize = sizeof(TestStructs.Foo);
-        var allocator = new UniformUnmanagedMemoryPoolMemoryAllocator(
+        UniformUnmanagedMemoryPoolMemoryAllocator allocator = new(
             sharedPoolThreshold * elementSize,
             poolBufferSize * elementSize,
             maxPoolSize * elementSize,
@@ -155,7 +155,7 @@ public partial class Buffer2DTests
 
         using Buffer2D<TestStructs.Foo> buffer = allocator.Allocate2D<TestStructs.Foo>(width, height);
 
-        var rnd = new Random(42);
+        Random rnd = new(42);
 
         for (int y = 0; y < buffer.Height; y++)
         {
@@ -169,7 +169,7 @@ public partial class Buffer2DTests
         }
 
         // Re-seed
-        rnd = new Random(42);
+        rnd = new(42);
         for (int y = 0; y < buffer.Height; y++)
         {
             Span<TestStructs.Foo> span = buffer.GetSafeRowMemory(y).Span;
@@ -208,7 +208,7 @@ public partial class Buffer2DTests
         }
     }
 
-    public static TheoryData<int, int, int, int> GetRowSpanY_OutOfRange_Data = new TheoryData<int, int, int, int>()
+    public static TheoryData<int, int, int, int> GetRowSpanY_OutOfRange_Data = new()
     {
         { Big, 10, 8, -1 },
         { Big, 10, 8, 8 },
@@ -227,7 +227,7 @@ public partial class Buffer2DTests
         Assert.True(ex is ArgumentOutOfRangeException || ex is IndexOutOfRangeException);
     }
 
-    public static TheoryData<int, int, int, int, int> Indexer_OutOfRange_Data = new TheoryData<int, int, int, int, int>()
+    public static TheoryData<int, int, int, int, int> Indexer_OutOfRange_Data = new()
     {
         { Big, 10, 8, 1, -1 },
         { Big, 10, 8, 1, 8 },
@@ -284,7 +284,7 @@ public partial class Buffer2DTests
     [InlineData(5, 1, 1, 3, 2)]
     public void CopyColumns(int width, int height, int startIndex, int destIndex, int columnCount)
     {
-        var rnd = new Random(123);
+        Random rnd = new(123);
         using (Buffer2D<float> b = this.MemoryAllocator.Allocate2D<float>(width, height))
         {
             rnd.RandomFill(b.DangerousGetSingleSpan(), 0, 1);
@@ -306,7 +306,7 @@ public partial class Buffer2DTests
     [Fact]
     public void CopyColumns_InvokeMultipleTimes()
     {
-        var rnd = new Random(123);
+        Random rnd = new(123);
         using (Buffer2D<float> b = this.MemoryAllocator.Allocate2D<float>(100, 100))
         {
             rnd.RandomFill(b.DangerousGetSingleSpan(), 0, 1);
@@ -354,7 +354,7 @@ public partial class Buffer2DTests
     [Theory]
     [MemberData(nameof(InvalidLengths))]
     public void Allocate_IncorrectAmount_ThrowsCorrect_InvalidMemoryOperationException_Size(Size size)
-        => Assert.Throws<InvalidMemoryOperationException>(() => this.MemoryAllocator.Allocate2D<Rgba32>(new Size(size)));
+        => Assert.Throws<InvalidMemoryOperationException>(() => this.MemoryAllocator.Allocate2D<Rgba32>(new(size)));
 
     [Theory]
     [MemberData(nameof(InvalidLengths))]

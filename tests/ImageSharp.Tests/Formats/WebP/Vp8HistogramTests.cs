@@ -13,7 +13,7 @@ public class Vp8HistogramTests
     {
         get
         {
-            var result = new List<object[]>();
+            List<object[]> result = new List<object[]>();
             result.Add(new object[]
             {
                 new byte[]
@@ -69,7 +69,7 @@ public class Vp8HistogramTests
     private static void RunCollectHistogramTest()
     {
         // arrange
-        var histogram = new Vp8Histogram();
+        Vp8Histogram histogram = new Vp8Histogram();
 
         byte[] reference =
         {
@@ -172,7 +172,7 @@ public class Vp8HistogramTests
     public void GetAlpha_WithEmptyHistogram_Works()
     {
         // arrange
-        var histogram = new Vp8Histogram();
+        Vp8Histogram histogram = new Vp8Histogram();
 
         // act
         int alpha = histogram.GetAlpha();
@@ -186,7 +186,7 @@ public class Vp8HistogramTests
     public void GetAlpha_Works(byte[] reference, byte[] pred)
     {
         // arrange
-        var histogram = new Vp8Histogram();
+        Vp8Histogram histogram = new Vp8Histogram();
         histogram.CollectHistogram(reference, pred, 0, 1);
 
         // act
@@ -201,9 +201,9 @@ public class Vp8HistogramTests
     public void Merge_Works(byte[] reference, byte[] pred)
     {
         // arrange
-        var histogram1 = new Vp8Histogram();
+        Vp8Histogram histogram1 = new Vp8Histogram();
         histogram1.CollectHistogram(reference, pred, 0, 1);
-        var histogram2 = new Vp8Histogram();
+        Vp8Histogram histogram2 = new Vp8Histogram();
         histogram1.Merge(histogram2);
 
         // act

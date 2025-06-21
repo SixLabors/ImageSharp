@@ -101,7 +101,7 @@ internal sealed class ZlibDeflateStream : Stream
         this.rawStream.WriteByte(Cmf);
         this.rawStream.WriteByte((byte)flg);
 
-        this.deflateStream = new DeflaterOutputStream(memoryAllocator, this.rawStream, compressionLevel);
+        this.deflateStream = new(memoryAllocator, this.rawStream, compressionLevel);
     }
 
     /// <inheritdoc/>

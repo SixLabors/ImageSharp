@@ -93,7 +93,7 @@ internal class WebpAnimationDecoder : IDisposable
         ImageFrame<TPixel>? previousFrame = null;
         WebpFrameData? prevFrameData = null;
 
-        this.metadata = new ImageMetadata();
+        this.metadata = new();
         this.webpMetadata = this.metadata.GetWebpMetadata();
         this.webpMetadata.RepeatCount = features.AnimationLoopCount;
 
@@ -204,7 +204,7 @@ internal class WebpAnimationDecoder : IDisposable
         ImageFrame<TPixel> currentFrame;
         if (previousFrame is null)
         {
-            image = new Image<TPixel>(this.configuration, (int)width, (int)height, backgroundColor, this.metadata);
+            image = new(this.configuration, (int)width, (int)height, backgroundColor, this.metadata);
 
             currentFrame = image.Frames.RootFrame;
             SetFrameMetadata(currentFrame.Metadata, frameData);

@@ -33,12 +33,12 @@ internal static class TiffDecoderMetadataCreator
                 ImageFrameMetadata frameMetaData = frames[i];
                 if (TryGetIptc(frameMetaData.ExifProfile.Values, out byte[] iptcBytes))
                 {
-                    frameMetaData.IptcProfile = new IptcProfile(iptcBytes);
+                    frameMetaData.IptcProfile = new(iptcBytes);
                 }
 
                 if (frameMetaData.ExifProfile.TryGetValue(ExifTag.XMP, out IExifValue<byte[]> xmpProfileBytes))
                 {
-                    frameMetaData.XmpProfile = new XmpProfile(xmpProfileBytes.Value);
+                    frameMetaData.XmpProfile = new(xmpProfileBytes.Value);
                 }
             }
         }

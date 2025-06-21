@@ -119,7 +119,7 @@ public class La32Tests
         ushort expected = ColorNumerics.Get16BitBT709Luminance(scaledRgb, scaledRgb, scaledRgb);
 
         // Act
-        La32 pixel = La32.FromRgba32(new Rgba32(rgb, rgb, rgb));
+        La32 pixel = La32.FromRgba32(new(rgb, rgb, rgb));
         ushort actual = pixel.L;
 
         // Assert
@@ -154,7 +154,7 @@ public class La32Tests
         const ushort expected = ushort.MaxValue;
 
         // act
-        La32 pixel = La32.FromBgra5551(new Bgra5551(1f, 1f, 1f, 1f));
+        La32 pixel = La32.FromBgra5551(new(1f, 1f, 1f, 1f));
 
         // assert
         Assert.Equal(expected, pixel.L);

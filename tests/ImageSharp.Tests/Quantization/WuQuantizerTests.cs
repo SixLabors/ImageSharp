@@ -12,7 +12,7 @@ public class WuQuantizerTests
     public void SinglePixelOpaque()
     {
         Configuration config = Configuration.Default;
-        WuQuantizer quantizer = new(new QuantizerOptions { Dither = null });
+        WuQuantizer quantizer = new(new() { Dither = null });
 
         using Image<Rgba32> image = new(config, 1, 1, Color.Black.ToPixel<Rgba32>());
         ImageFrame<Rgba32> frame = image.Frames.RootFrame;
@@ -32,7 +32,7 @@ public class WuQuantizerTests
     public void SinglePixelTransparent()
     {
         Configuration config = Configuration.Default;
-        WuQuantizer quantizer = new(new QuantizerOptions { Dither = null });
+        WuQuantizer quantizer = new(new() { Dither = null });
 
         using Image<Rgba32> image = new(config, 1, 1, default(Rgba32));
         ImageFrame<Rgba32> frame = image.Frames.RootFrame;
@@ -49,19 +49,19 @@ public class WuQuantizerTests
     }
 
     [Fact]
-    public void GrayScale() => TestScale(c => new Rgba32(c, c, c, 128));
+    public void GrayScale() => TestScale(c => new(c, c, c, 128));
 
     [Fact]
-    public void RedScale() => TestScale(c => new Rgba32(c, 0, 0, 128));
+    public void RedScale() => TestScale(c => new(c, 0, 0, 128));
 
     [Fact]
-    public void GreenScale() => TestScale(c => new Rgba32(0, c, 0, 128));
+    public void GreenScale() => TestScale(c => new(0, c, 0, 128));
 
     [Fact]
-    public void BlueScale() => TestScale(c => new Rgba32(0, 0, c, 128));
+    public void BlueScale() => TestScale(c => new(0, 0, c, 128));
 
     [Fact]
-    public void AlphaScale() => TestScale(c => new Rgba32(0, 0, 0, c));
+    public void AlphaScale() => TestScale(c => new(0, 0, 0, c));
 
     [Fact]
     public void Palette256()
@@ -75,11 +75,11 @@ public class WuQuantizerTests
             byte b = (byte)(((i / 16) % 4) * 85);
             byte a = (byte)((i / 64) * 85);
 
-            image[0, i] = new Rgba32(r, g, b, a);
+            image[0, i] = new(r, g, b, a);
         }
 
         Configuration config = Configuration.Default;
-        WuQuantizer quantizer = new(new QuantizerOptions { Dither = null, TransparencyThreshold = 0 });
+        WuQuantizer quantizer = new(new() { Dither = null, TransparencyThreshold = 0 });
 
         ImageFrame<Rgba32> frame = image.Frames.RootFrame;
 
@@ -125,7 +125,7 @@ public class WuQuantizerTests
         // See https://github.com/SixLabors/ImageSharp/issues/866
         using Image<TPixel> image = provider.GetImage();
         Configuration config = Configuration.Default;
-        WuQuantizer quantizer = new(new QuantizerOptions { Dither = null });
+        WuQuantizer quantizer = new(new() { Dither = null });
         ImageFrame<TPixel> frame = image.Frames.RootFrame;
 
         using IQuantizer<TPixel> frameQuantizer = quantizer.CreatePixelSpecificQuantizer<TPixel>(config);
@@ -152,7 +152,7 @@ public class WuQuantizerTests
         }
 
         Configuration config = Configuration.Default;
-        WuQuantizer quantizer = new(new QuantizerOptions { Dither = null, TransparencyThreshold = 0 });
+        WuQuantizer quantizer = new(new() { Dither = null, TransparencyThreshold = 0 });
 
         ImageFrame<Rgba32> frame = image.Frames.RootFrame;
         using (IQuantizer<Rgba32> frameQuantizer = quantizer.CreatePixelSpecificQuantizer<Rgba32>(config))

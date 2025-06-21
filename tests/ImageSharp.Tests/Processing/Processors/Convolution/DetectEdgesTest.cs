@@ -55,7 +55,7 @@ public class DetectEdgesTest
             ctx =>
                 {
                     Size size = ctx.GetCurrentSize();
-                    var bounds = new Rectangle(10, 10, size.Width / 2, size.Height / 2);
+                    Rectangle bounds = new Rectangle(10, 10, size.Width / 2, size.Height / 2);
                     ctx.DetectEdges(bounds);
                 },
             comparer: OpaqueComparer,
@@ -158,7 +158,7 @@ public class DetectEdgesTest
     {
         using (Image<TPixel> image = provider.GetImage())
         {
-            var bounds = new Rectangle(10, 10, image.Width / 2, image.Height / 2);
+            Rectangle bounds = new Rectangle(10, 10, image.Width / 2, image.Height / 2);
 
             image.Mutate(x => x.DetectEdges(bounds));
             image.DebugSave(provider);

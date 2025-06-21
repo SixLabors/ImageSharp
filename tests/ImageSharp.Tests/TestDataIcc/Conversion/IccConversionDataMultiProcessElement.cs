@@ -48,14 +48,14 @@ public class IccConversionDataMultiProcessElement
 
     private static IccCurveSetProcessElement Create1DSingleCurveSet(IccCurveSegment segment)
     {
-        var curve = new IccOneDimensionalCurve(new float[0], new[] { segment });
-        return new IccCurveSetProcessElement(new[] { curve });
+        IccOneDimensionalCurve curve = new(new float[0], new[] { segment });
+        return new(new[] { curve });
     }
 
     private static IccCurveSetProcessElement Create1DMultiCurveSet(float[] breakPoints, params IccCurveSegment[] segments)
     {
-        var curve = new IccOneDimensionalCurve(breakPoints, segments);
-        return new IccCurveSetProcessElement(new[] { curve });
+        IccOneDimensionalCurve curve = new(breakPoints, segments);
+        return new(new[] { curve });
     }
 
     public static object[][] MpeCurveConversionTestData =

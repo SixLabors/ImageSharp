@@ -152,7 +152,7 @@ public class ColorProfileConverterTests(ITestOutputHelper testOutputHelper)
 
     private static Vector4 GetActualTargetValues(float[] input, string sourceProfile, string targetProfile)
     {
-        ColorProfileConverter converter = new(new ColorConversionOptions
+        ColorProfileConverter converter = new(new()
         {
             SourceIccProfile = TestIccProfiles.GetProfile(sourceProfile),
             TargetIccProfile = TestIccProfiles.GetProfile(targetProfile)
@@ -163,20 +163,20 @@ public class ColorProfileConverterTests(ITestOutputHelper testOutputHelper)
         return sourceDataSpace switch
         {
             IccColorSpaceType.Cmyk when targetDataSpace == IccColorSpaceType.Cmyk
-                => converter.Convert<Cmyk, Cmyk>(new Cmyk(new Vector4(input))).ToScaledVector4(),
+                => converter.Convert<Cmyk, Cmyk>(new(new(input))).ToScaledVector4(),
             IccColorSpaceType.Cmyk when targetDataSpace == IccColorSpaceType.Rgb
-                => converter.Convert<Cmyk, Rgb>(new Cmyk(new Vector4(input))).ToScaledVector4(),
+                => converter.Convert<Cmyk, Rgb>(new(new(input))).ToScaledVector4(),
             IccColorSpaceType.Rgb when targetDataSpace == IccColorSpaceType.Cmyk
-                => converter.Convert<Rgb, Cmyk>(new Rgb(new Vector3(input))).ToScaledVector4(),
+                => converter.Convert<Rgb, Cmyk>(new(new(input))).ToScaledVector4(),
             IccColorSpaceType.Rgb when targetDataSpace == IccColorSpaceType.Rgb
-                => converter.Convert<Rgb, Rgb>(new Rgb(new Vector3(input))).ToScaledVector4(),
+                => converter.Convert<Rgb, Rgb>(new(new(input))).ToScaledVector4(),
             _ => throw new NotSupportedException($"Unsupported ICC profile data color space conversion: {sourceDataSpace} -> {targetDataSpace}")
         };
     }
 
     private static List<Vector4> GetBulkActualTargetValues(List<float[]> inputs, string sourceProfile, string targetProfile)
     {
-        ColorProfileConverter converter = new(new ColorConversionOptions
+        ColorProfileConverter converter = new(new()
         {
             SourceIccProfile = TestIccProfiles.GetProfile(sourceProfile),
             TargetIccProfile = TestIccProfiles.GetProfile(targetProfile)
@@ -189,7 +189,7 @@ public class ColorProfileConverterTests(ITestOutputHelper testOutputHelper)
         {
             case IccColorSpaceType.Cmyk:
             {
-                Span<Cmyk> inputSpan = inputs.Select(x => new Cmyk(new Vector4(x))).ToArray();
+                Span<Cmyk> inputSpan = inputs.Select(x => new Cmyk(new(x))).ToArray();
 
                 switch (targetDataSpace)
                 {
@@ -214,7 +214,7 @@ public class ColorProfileConverterTests(ITestOutputHelper testOutputHelper)
 
             case IccColorSpaceType.Rgb:
             {
-                Span<Rgb> inputSpan = inputs.Select(x => new Rgb(new Vector3(x))).ToArray();
+                Span<Rgb> inputSpan = inputs.Select(x => new Rgb(new(x))).ToArray();
 
                 switch (targetDataSpace)
                 {

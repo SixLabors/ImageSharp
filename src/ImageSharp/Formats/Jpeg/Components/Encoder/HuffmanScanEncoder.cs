@@ -134,7 +134,7 @@ internal class HuffmanScanEncoder
     public void BuildHuffmanTable(JpegHuffmanTableConfig tableConfig)
     {
         HuffmanLut[] tables = tableConfig.Class == 0 ? this.dcHuffmanTables : this.acHuffmanTables;
-        tables[tableConfig.DestinationIndex] = new HuffmanLut(tableConfig.Table);
+        tables[tableConfig.DestinationIndex] = new(tableConfig.Table);
     }
 
     /// <summary>
@@ -409,7 +409,7 @@ internal class HuffmanScanEncoder
                 {
                     this.FlushRemainingBytes();
                     this.WriteRestart(restarts % 8);
-                    foreach (var component in frame.Components)
+                    foreach (Component component in frame.Components)
                     {
                         component.DcPredictor = 0;
                     }

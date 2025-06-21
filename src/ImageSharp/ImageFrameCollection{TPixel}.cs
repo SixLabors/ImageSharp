@@ -23,7 +23,7 @@ public sealed class ImageFrameCollection<TPixel> : ImageFrameCollection, IEnumer
         this.parent = parent ?? throw new ArgumentNullException(nameof(parent));
 
         // Frames are already cloned within the caller
-        this.frames.Add(new ImageFrame<TPixel>(parent.Configuration, width, height, backgroundColor));
+        this.frames.Add(new(parent.Configuration, width, height, backgroundColor));
     }
 
     internal ImageFrameCollection(Image<TPixel> parent, int width, int height, MemoryGroup<TPixel> memorySource)
@@ -31,7 +31,7 @@ public sealed class ImageFrameCollection<TPixel> : ImageFrameCollection, IEnumer
         this.parent = parent ?? throw new ArgumentNullException(nameof(parent));
 
         // Frames are already cloned within the caller
-        this.frames.Add(new ImageFrame<TPixel>(parent.Configuration, width, height, memorySource));
+        this.frames.Add(new(parent.Configuration, width, height, memorySource));
     }
 
     internal ImageFrameCollection(Image<TPixel> parent, IEnumerable<ImageFrame<TPixel>> frames)
@@ -269,7 +269,7 @@ public sealed class ImageFrameCollection<TPixel> : ImageFrameCollection, IEnumer
 
         this.frames.Remove(frame);
 
-        return new Image<TPixel>(this.parent.Configuration, this.parent.Metadata.DeepClone(), new[] { frame });
+        return new(this.parent.Configuration, this.parent.Metadata.DeepClone(), new[] { frame });
     }
 
     /// <summary>
@@ -284,7 +284,7 @@ public sealed class ImageFrameCollection<TPixel> : ImageFrameCollection, IEnumer
 
         ImageFrame<TPixel> frame = this[index];
         ImageFrame<TPixel> clonedFrame = frame.Clone();
-        return new Image<TPixel>(this.parent.Configuration, this.parent.Metadata.DeepClone(), new[] { clonedFrame });
+        return new(this.parent.Configuration, this.parent.Metadata.DeepClone(), new[] { clonedFrame });
     }
 
     /// <summary>

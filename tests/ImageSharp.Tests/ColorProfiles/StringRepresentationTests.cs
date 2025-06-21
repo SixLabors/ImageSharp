@@ -50,7 +50,7 @@ public class StringRepresentationTests
         { new HunterLab(Random), "HunterLab(42.4, 94.5, 83.4)" },
         { new Lms(Random), "Lms(42.4, 94.5, 83.4)" },
         { new Rgb(Random), "Rgb(42.4, 94.5, 83.4)" },
-        { Rgb.Clamp(new Rgb(Random)), "Rgb(1, 1, 1)" },
+        { Rgb.Clamp(new(Random)), "Rgb(1, 1, 1)" },
         { new Hsl(Random), "Hsl(42.4, 1, 1)" },           // clamping to 1 is expected
         { new Hsv(Random), "Hsv(42.4, 1, 1)" },           // clamping to 1 is expected
         { new Y(Random.X), "Y(1)" },

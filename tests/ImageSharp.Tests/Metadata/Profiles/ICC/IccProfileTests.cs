@@ -22,7 +22,7 @@ public class IccProfileTests
     public void CalculateHash_WithByteArray_DoesNotModifyData()
     {
         byte[] data = IccTestDataProfiles.ProfileRandomArray;
-        var copy = new byte[data.Length];
+        byte[] copy = new byte[data.Length];
         Buffer.BlockCopy(data, 0, copy, 0, data.Length);
 
         IccProfile.CalculateHash(data);
@@ -34,7 +34,7 @@ public class IccProfileTests
     [MemberData(nameof(IccTestDataProfiles.ProfileValidityTestData), MemberType = typeof(IccTestDataProfiles))]
     public void CheckIsValid_WithProfiles_ReturnsValidity(byte[] data, bool expected)
     {
-        var profile = new IccProfile(data);
+        IccProfile profile = new IccProfile(data);
 
         bool result = profile.CheckIsValid();
 

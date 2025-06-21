@@ -46,7 +46,7 @@ public class BinaryThresholdTest
         using (Image<TPixel> source = provider.GetImage())
         using (Image<TPixel> image = source.Clone())
         {
-            var bounds = new Rectangle(image.Width / 8, image.Height / 8, 6 * image.Width / 8, 6 * image.Width / 8);
+            Rectangle bounds = new Rectangle(image.Width / 8, image.Height / 8, 6 * image.Width / 8, 6 * image.Width / 8);
 
             image.Mutate(x => x.BinaryThreshold(value, bounds));
             image.DebugSave(provider, value);
@@ -76,7 +76,7 @@ public class BinaryThresholdTest
         using (Image<TPixel> source = provider.GetImage())
         using (Image<TPixel> image = source.Clone())
         {
-            var bounds = new Rectangle(image.Width / 8, image.Height / 8, 6 * image.Width / 8, 6 * image.Width / 8);
+            Rectangle bounds = new Rectangle(image.Width / 8, image.Height / 8, 6 * image.Width / 8, 6 * image.Width / 8);
 
             image.Mutate(x => x.BinaryThreshold(value, BinaryThresholdMode.Saturation, bounds));
             image.DebugSave(provider, value);
@@ -96,7 +96,7 @@ public class BinaryThresholdTest
 
             if (!TestEnvironment.Is64BitProcess && TestEnvironment.IsFramework)
             {
-                var comparer = ImageComparer.TolerantPercentage(0.0004F);
+                ImageComparer comparer = ImageComparer.TolerantPercentage(0.0004F);
                 image.CompareToReferenceOutput(comparer, provider, value.ToString("0.00", NumberFormatInfo.InvariantInfo));
             }
             else
@@ -114,14 +114,14 @@ public class BinaryThresholdTest
         using (Image<TPixel> source = provider.GetImage())
         using (Image<TPixel> image = source.Clone())
         {
-            var bounds = new Rectangle(image.Width / 8, image.Height / 8, 6 * image.Width / 8, 6 * image.Width / 8);
+            Rectangle bounds = new Rectangle(image.Width / 8, image.Height / 8, 6 * image.Width / 8, 6 * image.Width / 8);
 
             image.Mutate(x => x.BinaryThreshold(value, BinaryThresholdMode.MaxChroma, bounds));
             image.DebugSave(provider, value);
 
             if (!TestEnvironment.Is64BitProcess && TestEnvironment.IsFramework)
             {
-                var comparer = ImageComparer.TolerantPercentage(0.0004F);
+                ImageComparer comparer = ImageComparer.TolerantPercentage(0.0004F);
                 image.CompareToReferenceOutput(comparer, provider, value.ToString("0.00", NumberFormatInfo.InvariantInfo));
             }
             else

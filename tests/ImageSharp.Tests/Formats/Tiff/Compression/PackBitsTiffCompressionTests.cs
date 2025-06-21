@@ -22,11 +22,11 @@ public class PackBitsTiffCompressionTests
     [InlineData(new byte[] { 0xFE, 0xAA, 0x02, 0x80, 0x00, 0x2A, 0xFD, 0xAA, 0x03, 0x80, 0x00, 0x2A, 0x22, 0xF7, 0xAA }, new byte[] { 0xAA, 0xAA, 0xAA, 0x80, 0x00, 0x2A, 0xAA, 0xAA, 0xAA, 0xAA, 0x80, 0x00, 0x2A, 0x22, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA })] // Apple PackBits sample
     public void Decompress_ReadsData(byte[] inputData, byte[] expectedResult)
     {
-        using var memoryStream = new MemoryStream(inputData);
-        using var stream = new BufferedReadStream(Configuration.Default, memoryStream);
+        using MemoryStream memoryStream = new MemoryStream(inputData);
+        using BufferedReadStream stream = new BufferedReadStream(Configuration.Default, memoryStream);
         byte[] buffer = new byte[expectedResult.Length];
 
-        using var decompressor = new PackBitsTiffCompression(MemoryAllocator.Create(), default, default);
+        using PackBitsTiffCompression decompressor = new PackBitsTiffCompression(MemoryAllocator.Create(), default, default);
         decompressor.Decompress(stream, 0, (uint)inputData.Length, 1, buffer, default);
 
         Assert.Equal(expectedResult, buffer);

@@ -57,7 +57,7 @@ public class GraphicsOptionsTests
     [Fact]
     public void NonDefaultClone()
     {
-        var expected = new GraphicsOptions
+        GraphicsOptions expected = new GraphicsOptions
         {
             AlphaCompositionMode = PixelAlphaCompositionMode.DestAtop,
             Antialias = false,
@@ -74,7 +74,7 @@ public class GraphicsOptionsTests
     [Fact]
     public void CloneIsDeep()
     {
-        var expected = new GraphicsOptions();
+        GraphicsOptions expected = new GraphicsOptions();
         GraphicsOptions actual = expected.DeepClone();
 
         actual.AlphaCompositionMode = PixelAlphaCompositionMode.DestAtop;

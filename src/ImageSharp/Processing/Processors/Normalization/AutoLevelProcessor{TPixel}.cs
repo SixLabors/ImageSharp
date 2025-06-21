@@ -214,7 +214,7 @@ internal class AutoLevelProcessor<TPixel> : HistogramEqualizationProcessor<TPixe
                 float scaledY = Unsafe.Add(ref cdfBase, originalY) / noOfPixelsMinusCdfMin;
                 uint originalZ = (uint)MathF.Round(vector.Z);
                 float scaledZ = Unsafe.Add(ref cdfBase, originalZ) / noOfPixelsMinusCdfMin;
-                Unsafe.Add(ref vectorRef, (uint)x) = new Vector4(scaledX, scaledY, scaledZ, vector.W);
+                Unsafe.Add(ref vectorRef, (uint)x) = new(scaledX, scaledY, scaledZ, vector.W);
             }
 
             PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, vectorBuffer, pixelRow);

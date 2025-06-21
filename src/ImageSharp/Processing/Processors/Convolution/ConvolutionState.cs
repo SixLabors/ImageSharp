@@ -20,7 +20,7 @@ internal readonly ref struct ConvolutionState
         in DenseMatrix<float> kernel,
         KernelSamplingMap map)
     {
-        this.Kernel = new ReadOnlyKernel(kernel);
+        this.Kernel = new(kernel);
         this.kernelHeight = (uint)kernel.Rows;
         this.kernelWidth = (uint)kernel.Columns;
         this.rowOffsetMap = map.GetRowOffsetSpan();

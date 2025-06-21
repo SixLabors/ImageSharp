@@ -191,7 +191,7 @@ public sealed class IptcValue : IDeepCloneable<IptcValue>
     /// <returns>A <see cref="byte"/> array.</returns>
     public byte[] ToByteArray()
     {
-        var result = new byte[this.data.Length];
+        byte[] result = new byte[this.data.Length];
         this.data.CopyTo(result, 0);
         return result;
     }

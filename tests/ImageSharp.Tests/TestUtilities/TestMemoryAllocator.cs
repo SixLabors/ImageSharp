@@ -33,8 +33,8 @@ internal class TestMemoryAllocator : MemoryAllocator
 
     public void EnableNonThreadSafeLogging()
     {
-        this.allocationLog = new List<AllocationRequest>();
-        this.returnLog = new List<ReturnRequest>();
+        this.allocationLog = new();
+        this.returnLog = new();
     }
 
     public override IMemoryOwner<T> Allocate<T>(int length, AllocationOptions options = AllocationOptions.None)
@@ -46,7 +46,7 @@ internal class TestMemoryAllocator : MemoryAllocator
     private T[] AllocateArray<T>(int length, AllocationOptions options)
         where T : struct
     {
-        var array = new T[length + 42];
+        T[] array = new T[length + 42];
         this.allocationLog?.Add(AllocationRequest.Create<T>(options, length, array));
 
         if (options == AllocationOptions.None)
@@ -61,7 +61,7 @@ internal class TestMemoryAllocator : MemoryAllocator
     private void Return<T>(BasicArrayBuffer<T> buffer)
         where T : struct
     {
-        this.returnLog?.Add(new ReturnRequest(buffer.Array.GetHashCode()));
+        this.returnLog?.Add(new(buffer.Array.GetHashCode()));
     }
 
     public struct AllocationRequest
@@ -83,7 +83,7 @@ internal class TestMemoryAllocator : MemoryAllocator
         {
             Type type = typeof(T);
             int elementSize = Marshal.SizeOf(type);
-            return new AllocationRequest(type, allocationOptions, length, length * elementSize, buffer.GetHashCode());
+            return new(type, allocationOptions, length, length * elementSize, buffer.GetHashCode());
         }
 
         public Type ElementType { get; }
@@ -150,7 +150,7 @@ internal class TestMemoryAllocator : MemoryAllocator
             }
 
             void* ptr = (void*)this.pinHandle.AddrOfPinnedObject();
-            return new MemoryHandle(ptr, pinnable: this);
+            return new(ptr, pinnable: this);
         }
 
         public override void Unpin()

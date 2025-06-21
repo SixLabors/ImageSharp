@@ -34,8 +34,8 @@ public class CieLchuvTests
         Assert.True(default == default(CieLchuv));
         Assert.False(default != default(CieLchuv));
         Assert.Equal(default, default(CieLchuv));
-        Assert.Equal(new CieLchuv(1, 0, 1), new CieLchuv(1, 0, 1));
-        Assert.Equal(new CieLchuv(Vector3.One), new CieLchuv(Vector3.One));
+        Assert.Equal(new(1, 0, 1), new CieLchuv(1, 0, 1));
+        Assert.Equal(new(Vector3.One), new CieLchuv(Vector3.One));
         Assert.False(x.Equals(y));
         Assert.False(x.Equals((object)y));
         Assert.False(x.GetHashCode().Equals(y.GetHashCode()));

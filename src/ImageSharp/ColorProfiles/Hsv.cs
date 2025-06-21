@@ -24,7 +24,7 @@ public readonly struct Hsv : IColorProfile<Hsv, Rgb>
     /// <param name="v">The v value (brightness) component.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Hsv(float h, float s, float v)
-        : this(new Vector3(h, s, v))
+        : this(new(h, s, v))
     {
     }
 
@@ -139,7 +139,7 @@ public readonly struct Hsv : IColorProfile<Hsv, Rgb>
 
         if (MathF.Abs(chroma) < Constants.Epsilon)
         {
-            return new Hsv(0, s, v);
+            return new(0, s, v);
         }
 
         if (MathF.Abs(r - max) < Constants.Epsilon)
@@ -163,7 +163,7 @@ public readonly struct Hsv : IColorProfile<Hsv, Rgb>
 
         s = chroma / v;
 
-        return new Hsv(h, s, v);
+        return new(h, s, v);
     }
 
     /// <inheritdoc/>
@@ -185,7 +185,7 @@ public readonly struct Hsv : IColorProfile<Hsv, Rgb>
 
         if (MathF.Abs(s) < Constants.Epsilon)
         {
-            return new Rgb(v, v, v);
+            return new(v, v, v);
         }
 
         float h = (MathF.Abs(this.H - 360) < Constants.Epsilon) ? 0 : this.H / 60;
@@ -236,7 +236,7 @@ public readonly struct Hsv : IColorProfile<Hsv, Rgb>
                 break;
         }
 
-        return new Rgb(r, g, b);
+        return new(r, g, b);
     }
 
     /// <inheritdoc/>

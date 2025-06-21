@@ -17,21 +17,21 @@ internal sealed class CostManager : IDisposable
 
     private const int FreeIntervalsStartCount = 25;
 
-    private readonly Stack<CostInterval> freeIntervals = new Stack<CostInterval>(FreeIntervalsStartCount);
+    private readonly Stack<CostInterval> freeIntervals = new(FreeIntervalsStartCount);
 
     public CostManager(MemoryAllocator memoryAllocator, IMemoryOwner<ushort> distArray, int pixCount, CostModel costModel)
     {
         int costCacheSize = pixCount > BackwardReferenceEncoder.MaxLength ? BackwardReferenceEncoder.MaxLength : pixCount;
 
-        this.CacheIntervals = new List<CostCacheInterval>();
-        this.CostCache = new List<double>();
+        this.CacheIntervals = new();
+        this.CostCache = new();
         this.Costs = memoryAllocator.Allocate<float>(pixCount);
         this.DistArray = distArray;
         this.Count = 0;
 
         for (int i = 0; i < FreeIntervalsStartCount; i++)
         {
-            this.freeIntervals.Push(new CostInterval());
+            this.freeIntervals.Push(new());
         }
 
         // Fill in the cost cache.
@@ -49,7 +49,7 @@ internal sealed class CostManager : IDisposable
         }
 
         // Fill in the cache intervals.
-        var cur = new CostCacheInterval()
+        CostCacheInterval cur = new()
         {
             Start = 0,
             End = 1,
@@ -62,7 +62,7 @@ internal sealed class CostManager : IDisposable
             double costVal = this.CostCache[i];
             if (costVal != cur.Cost)
             {
-                cur = new CostCacheInterval()
+                cur = new()
                 {
                     Start = i,
                     Cost = costVal
@@ -258,7 +258,7 @@ internal sealed class CostManager : IDisposable
         }
         else
         {
-            intervalNew = new CostInterval() { Cost = cost, Start = start, End = end, Index = position };
+            intervalNew = new() { Cost = cost, Start = start, End = end, Index = position };
         }
 
         this.PositionOrphanInterval(intervalNew, intervalIn);

@@ -41,7 +41,7 @@ public static class MemoryAllocatorExtensions
             memoryGroup = memoryAllocator.AllocateGroup<T>(groupLength, width, options);
         }
 
-        return new Buffer2D<T>(memoryGroup, width, height);
+        return new(memoryGroup, width, height);
     }
 
     /// <summary>
@@ -109,7 +109,7 @@ public static class MemoryAllocatorExtensions
             groupLength,
             width * alignmentMultiplier,
             options);
-        return new Buffer2D<T>(memoryGroup, width, height);
+        return new(memoryGroup, width, height);
     }
 
     /// <summary>

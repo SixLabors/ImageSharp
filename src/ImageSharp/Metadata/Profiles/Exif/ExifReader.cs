@@ -669,7 +669,7 @@ internal abstract class BaseExifReader
         uint numerator = this.ConvertToUInt32(buffer[..4]);
         uint denominator = this.ConvertToUInt32(buffer.Slice(4, 4));
 
-        return new Rational(numerator, denominator, false);
+        return new(numerator, denominator, false);
     }
 
     private sbyte ConvertToSignedByte(ReadOnlySpan<byte> buffer) => unchecked((sbyte)buffer[0]);
@@ -696,7 +696,7 @@ internal abstract class BaseExifReader
         int numerator = this.ConvertToInt32(buffer[..4]);
         int denominator = this.ConvertToInt32(buffer.Slice(4, 4));
 
-        return new SignedRational(numerator, denominator, false);
+        return new(numerator, denominator, false);
     }
 
     private short ConvertToSignedShort(ReadOnlySpan<byte> buffer)

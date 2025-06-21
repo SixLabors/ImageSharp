@@ -38,7 +38,7 @@ public static class MemoryAllocatorValidator
 
     public static TestMemoryDiagnostics MonitorAllocations()
     {
-        var diag = new TestMemoryDiagnostics();
+        TestMemoryDiagnostics diag = new TestMemoryDiagnostics();
         LocalInstance.Value = diag;
         return diag;
     }

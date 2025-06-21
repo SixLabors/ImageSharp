@@ -442,6 +442,6 @@ public class IccDataReaderTagDataEntryTests
 
     private static IccDataReader CreateReader(byte[] data)
     {
-        return new IccDataReader(data);
+        return new(data);
     }
 }

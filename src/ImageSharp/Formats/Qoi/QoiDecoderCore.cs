@@ -68,7 +68,7 @@ internal class QoiDecoderCore : ImageDecoderCore
         qoiMetadata.Channels = this.header.Channels;
         qoiMetadata.ColorSpace = this.header.ColorSpace;
 
-        return new ImageInfo(size, metadata);
+        return new(size, metadata);
     }
 
     /// <summary>
@@ -124,7 +124,7 @@ internal class QoiDecoderCore : ImageDecoderCore
             ThrowInvalidImageContentException();
         }
 
-        this.header = new QoiHeader(width, height, (QoiChannels)channels, (QoiColorSpace)colorSpace);
+        this.header = new(width, height, (QoiChannels)channels, (QoiColorSpace)colorSpace);
     }
 
     [DoesNotReturn]

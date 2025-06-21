@@ -28,7 +28,7 @@ public class ParallelExecutionSettingsTests
         }
         else
         {
-            var parallelSettings = new ParallelExecutionSettings(
+            ParallelExecutionSettings parallelSettings = new ParallelExecutionSettings(
                 maxDegreeOfParallelism,
                 Configuration.Default.MemoryAllocator);
             Assert.Equal(maxDegreeOfParallelism, parallelSettings.MaxDegreeOfParallelism);

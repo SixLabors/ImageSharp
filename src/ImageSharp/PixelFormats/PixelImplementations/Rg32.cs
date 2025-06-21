@@ -22,7 +22,7 @@ public partial struct Rg32 : IPixel<Rg32>, IPackedVector<uint>
     /// <param name="x">The x-component</param>
     /// <param name="y">The y-component</param>
     public Rg32(float x, float y)
-        : this(new Vector2(x, y))
+        : this(new(x, y))
     {
     }
 
@@ -90,7 +90,7 @@ public partial struct Rg32 : IPixel<Rg32>, IPackedVector<uint>
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Rg32 FromVector4(Vector4 source) => new() { PackedValue = Pack(new Vector2(source.X, source.Y)) };
+    public static Rg32 FromVector4(Vector4 source) => new() { PackedValue = Pack(new(source.X, source.Y)) };
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

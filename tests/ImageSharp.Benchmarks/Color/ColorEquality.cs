@@ -15,5 +15,5 @@ public class ColorEquality
 
     [Benchmark(Description = "ImageSharp Color Equals")]
     public bool ColorEqual()
-        => new Rgba32(128, 128, 128, 128).Equals(new Rgba32(128, 128, 128, 128));
+        => new Rgba32(128, 128, 128, 128).Equals(new(128, 128, 128, 128));
 }

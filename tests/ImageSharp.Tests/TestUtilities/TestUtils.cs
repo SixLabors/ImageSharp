@@ -69,7 +69,7 @@ public static class TestUtils
                 Span<La16> row = accessor.GetRowSpan(y);
                 for (int x = 0; x < row.Length; x++)
                 {
-                    row[x] = new La16(expected[cnt++], expected[cnt++]);
+                    row[x] = new(expected[cnt++], expected[cnt++]);
                 }
             }
         });
@@ -393,7 +393,7 @@ public static class TestUtils
 
         if (property is null)
         {
-            throw new Exception($"No dither named '{name}");
+            throw new($"No dither named '{name}");
         }
 
         return (IDither)property.GetValue(null);

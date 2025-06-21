@@ -38,12 +38,12 @@ public class DenseMatrixTests
     [Fact]
     public void DenseMatrixReturnsCorrectDimensions()
     {
-        var dense = new DenseMatrix<float>(FloydSteinbergMatrix);
+        DenseMatrix<float> dense = new(FloydSteinbergMatrix);
         Assert.True(dense.Columns == FloydSteinbergMatrix.GetLength(1));
         Assert.True(dense.Rows == FloydSteinbergMatrix.GetLength(0));
         Assert.Equal(3, dense.Columns);
         Assert.Equal(2, dense.Rows);
-        Assert.Equal(new Size(3, 2), dense.Size);
+        Assert.Equal(new(3, 2), dense.Size);
     }
 
     [Fact]
@@ -63,7 +63,7 @@ public class DenseMatrixTests
     [Fact]
     public void DenseMatrixGetSetReturnsCorrectResults()
     {
-        var dense = new DenseMatrix<int>(4, 4);
+        DenseMatrix<int> dense = new(4, 4);
         const int Val = 5;
 
         dense[3, 3] = Val;
@@ -74,7 +74,7 @@ public class DenseMatrixTests
     [Fact]
     public void DenseMatrixCanFillAndClear()
     {
-        var dense = new DenseMatrix<int>(9);
+        DenseMatrix<int> dense = new(9);
         dense.Fill(4);
 
         for (int i = 0; i < dense.Data.Length; i++)
@@ -100,7 +100,7 @@ public class DenseMatrixTests
     [Fact]
     public void DenseMatrixCanTranspose()
     {
-        var dense = new DenseMatrix<int>(3, 1);
+        DenseMatrix<int> dense = new(3, 1);
         dense[0, 0] = 1;
         dense[0, 1] = 2;
         dense[0, 2] = 3;
@@ -117,9 +117,9 @@ public class DenseMatrixTests
     [Fact]
     public void DenseMatrixEquality()
     {
-        var dense = new DenseMatrix<int>(3, 1);
-        var dense2 = new DenseMatrix<int>(3, 1);
-        var dense3 = new DenseMatrix<int>(1, 3);
+        DenseMatrix<int> dense = new(3, 1);
+        DenseMatrix<int> dense2 = new(3, 1);
+        DenseMatrix<int> dense3 = new(1, 3);
 
         Assert.True(dense == dense2);
         Assert.False(dense != dense2);

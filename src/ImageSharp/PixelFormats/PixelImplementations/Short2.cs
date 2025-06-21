@@ -29,7 +29,7 @@ public partial struct Short2 : IPixel<Short2>, IPackedVector<uint>
     /// <param name="x">The x-component.</param>
     /// <param name="y">The y-component.</param>
     public Short2(float x, float y)
-        : this(new Vector2(x, y))
+        : this(new(x, y))
     {
     }
 
@@ -75,7 +75,7 @@ public partial struct Short2 : IPixel<Short2>, IPackedVector<uint>
         Vector2 scaled = this.ToVector2();
         scaled += new Vector2(32767f);
         scaled /= 65534F;
-        return new Vector4(scaled, 0f, 1f);
+        return new(scaled, 0f, 1f);
     }
 
     /// <inheritdoc />
@@ -103,7 +103,7 @@ public partial struct Short2 : IPixel<Short2>, IPackedVector<uint>
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Short2 FromVector4(Vector4 source) => new() { PackedValue = Pack(new Vector2(source.X, source.Y)) };
+    public static Short2 FromVector4(Vector4 source) => new() { PackedValue = Pack(new(source.X, source.Y)) };
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

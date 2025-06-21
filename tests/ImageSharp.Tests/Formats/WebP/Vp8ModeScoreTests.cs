@@ -11,7 +11,7 @@ public class Vp8ModeScoreTests
     [Fact]
     public void InitScore_Works()
     {
-        var score = new Vp8ModeScore();
+        Vp8ModeScore score = new Vp8ModeScore();
         score.InitScore();
         Assert.Equal(0, score.D);
         Assert.Equal(0, score.SD);
@@ -25,7 +25,7 @@ public class Vp8ModeScoreTests
     public void CopyScore_Works()
     {
         // arrange
-        var score1 = new Vp8ModeScore
+        Vp8ModeScore score1 = new Vp8ModeScore
         {
             Score = 123,
             Nz = 1,
@@ -36,7 +36,7 @@ public class Vp8ModeScoreTests
             R = 6,
             SD = 7
         };
-        var score2 = new Vp8ModeScore();
+        Vp8ModeScore score2 = new Vp8ModeScore();
         score2.InitScore();
 
         // act
@@ -55,7 +55,7 @@ public class Vp8ModeScoreTests
     public void AddScore_Works()
     {
         // arrange
-        var score1 = new Vp8ModeScore
+        Vp8ModeScore score1 = new Vp8ModeScore
         {
             Score = 123,
             Nz = 1,
@@ -66,7 +66,7 @@ public class Vp8ModeScoreTests
             R = 6,
             SD = 7
         };
-        var score2 = new Vp8ModeScore
+        Vp8ModeScore score2 = new Vp8ModeScore
         {
             Score = 123,
             Nz = 1,

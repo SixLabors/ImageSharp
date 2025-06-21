@@ -12,9 +12,9 @@ public class GraphicOptionsDefaultsExtensionsTests
     [Fact]
     public void SetDefaultOptionsOnProcessingContext()
     {
-        var option = new GraphicsOptions();
-        var config = new Configuration();
-        var context = new FakeImageOperationsProvider.FakeImageOperations<Rgba32>(config, null, true);
+        GraphicsOptions option = new GraphicsOptions();
+        Configuration config = new Configuration();
+        FakeImageOperationsProvider.FakeImageOperations<Rgba32> context = new FakeImageOperationsProvider.FakeImageOperations<Rgba32>(config, null, true);
 
         context.SetGraphicsOptions(option);
 
@@ -26,12 +26,12 @@ public class GraphicOptionsDefaultsExtensionsTests
     [Fact]
     public void UpdateDefaultOptionsOnProcessingContext_AlwaysNewInstance()
     {
-        var option = new GraphicsOptions()
+        GraphicsOptions option = new GraphicsOptions()
         {
             BlendPercentage = 0.9f
         };
-        var config = new Configuration();
-        var context = new FakeImageOperationsProvider.FakeImageOperations<Rgba32>(config, null, true);
+        Configuration config = new Configuration();
+        FakeImageOperationsProvider.FakeImageOperations<Rgba32> context = new FakeImageOperationsProvider.FakeImageOperations<Rgba32>(config, null, true);
         context.SetGraphicsOptions(option);
 
         context.SetGraphicsOptions(o =>
@@ -40,7 +40,7 @@ public class GraphicOptionsDefaultsExtensionsTests
             o.BlendPercentage = 0.4f;
         });
 
-        var returnedOption = context.GetGraphicsOptions();
+        GraphicsOptions returnedOption = context.GetGraphicsOptions();
         Assert.Equal(0.4f, returnedOption.BlendPercentage);
         Assert.Equal(0.9f, option.BlendPercentage); // hasn't been mutated
     }
@@ -48,8 +48,8 @@ public class GraphicOptionsDefaultsExtensionsTests
     [Fact]
     public void SetDefaultOptionsOnConfiguration()
     {
-        var option = new GraphicsOptions();
-        var config = new Configuration();
+        GraphicsOptions option = new GraphicsOptions();
+        Configuration config = new Configuration();
 
         config.SetGraphicsOptions(option);
 
@@ -59,11 +59,11 @@ public class GraphicOptionsDefaultsExtensionsTests
     [Fact]
     public void UpdateDefaultOptionsOnConfiguration_AlwaysNewInstance()
     {
-        var option = new GraphicsOptions()
+        GraphicsOptions option = new GraphicsOptions()
         {
             BlendPercentage = 0.9f
         };
-        var config = new Configuration();
+        Configuration config = new Configuration();
         config.SetGraphicsOptions(option);
 
         config.SetGraphicsOptions(o =>
@@ -72,7 +72,7 @@ public class GraphicOptionsDefaultsExtensionsTests
             o.BlendPercentage = 0.4f;
         });
 
-        var returnedOption = config.GetGraphicsOptions();
+        GraphicsOptions returnedOption = config.GetGraphicsOptions();
         Assert.Equal(0.4f, returnedOption.BlendPercentage);
         Assert.Equal(0.9f, option.BlendPercentage); // hasn't been mutated
     }
@@ -80,13 +80,13 @@ public class GraphicOptionsDefaultsExtensionsTests
     [Fact]
     public void GetDefaultOptionsFromConfiguration_SettingNullThenReturnsNewInstance()
     {
-        var config = new Configuration();
+        Configuration config = new Configuration();
 
-        var options = config.GetGraphicsOptions();
+        GraphicsOptions options = config.GetGraphicsOptions();
         Assert.NotNull(options);
         config.SetGraphicsOptions((GraphicsOptions)null);
 
-        var options2 = config.GetGraphicsOptions();
+        GraphicsOptions options2 = config.GetGraphicsOptions();
         Assert.NotNull(options2);
 
         // we set it to null should now be a new instance
@@ -96,10 +96,10 @@ public class GraphicOptionsDefaultsExtensionsTests
     [Fact]
     public void GetDefaultOptionsFromConfiguration_IgnoreIncorectlyTypesDictionEntry()
     {
-        var config = new Configuration();
+        Configuration config = new Configuration();
 
         config.Properties[typeof(GraphicsOptions)] = "wronge type";
-        var options = config.GetGraphicsOptions();
+        GraphicsOptions options = config.GetGraphicsOptions();
         Assert.NotNull(options);
         Assert.IsType<GraphicsOptions>(options);
     }
@@ -107,63 +107,63 @@ public class GraphicOptionsDefaultsExtensionsTests
     [Fact]
     public void GetDefaultOptionsFromConfiguration_AlwaysReturnsInstance()
     {
-        var config = new Configuration();
+        Configuration config = new Configuration();
 
         Assert.DoesNotContain(typeof(GraphicsOptions), config.Properties.Keys);
-        var options = config.GetGraphicsOptions();
+        GraphicsOptions options = config.GetGraphicsOptions();
         Assert.NotNull(options);
     }
 
     [Fact]
     public void GetDefaultOptionsFromConfiguration_AlwaysReturnsSameValue()
     {
-        var config = new Configuration();
+        Configuration config = new Configuration();
 
-        var options = config.GetGraphicsOptions();
-        var options2 = config.GetGraphicsOptions();
+        GraphicsOptions options = config.GetGraphicsOptions();
+        GraphicsOptions options2 = config.GetGraphicsOptions();
         Assert.Equal(options, options2);
     }
 
     [Fact]
     public void GetDefaultOptionsFromProcessingContext_AlwaysReturnsInstance()
     {
-        var config = new Configuration();
-        var context = new FakeImageOperationsProvider.FakeImageOperations<Rgba32>(config, null, true);
+        Configuration config = new Configuration();
+        FakeImageOperationsProvider.FakeImageOperations<Rgba32> context = new FakeImageOperationsProvider.FakeImageOperations<Rgba32>(config, null, true);
 
-        var ctxOptions = context.GetGraphicsOptions();
+        GraphicsOptions ctxOptions = context.GetGraphicsOptions();
         Assert.NotNull(ctxOptions);
     }
 
     [Fact]
     public void GetDefaultOptionsFromProcessingContext_AlwaysReturnsInstanceEvenIfSetToNull()
     {
-        var config = new Configuration();
-        var context = new FakeImageOperationsProvider.FakeImageOperations<Rgba32>(config, null, true);
+        Configuration config = new Configuration();
+        FakeImageOperationsProvider.FakeImageOperations<Rgba32> context = new FakeImageOperationsProvider.FakeImageOperations<Rgba32>(config, null, true);
 
         context.SetGraphicsOptions((GraphicsOptions)null);
-        var ctxOptions = context.GetGraphicsOptions();
+        GraphicsOptions ctxOptions = context.GetGraphicsOptions();
         Assert.NotNull(ctxOptions);
     }
 
     [Fact]
     public void GetDefaultOptionsFromProcessingContext_FallbackToConfigsInstance()
     {
-        var option = new GraphicsOptions();
-        var config = new Configuration();
+        GraphicsOptions option = new GraphicsOptions();
+        Configuration config = new Configuration();
         config.SetGraphicsOptions(option);
-        var context = new FakeImageOperationsProvider.FakeImageOperations<Rgba32>(config, null, true);
+        FakeImageOperationsProvider.FakeImageOperations<Rgba32> context = new FakeImageOperationsProvider.FakeImageOperations<Rgba32>(config, null, true);
 
-        var ctxOptions = context.GetGraphicsOptions();
+        GraphicsOptions ctxOptions = context.GetGraphicsOptions();
         Assert.Equal(option, ctxOptions);
     }
 
     [Fact]
     public void GetDefaultOptionsFromProcessingContext_IgnoreIncorectlyTypesDictionEntry()
     {
-        var config = new Configuration();
-        var context = new FakeImageOperationsProvider.FakeImageOperations<Rgba32>(config, null, true);
+        Configuration config = new Configuration();
+        FakeImageOperationsProvider.FakeImageOperations<Rgba32> context = new FakeImageOperationsProvider.FakeImageOperations<Rgba32>(config, null, true);
         context.Properties[typeof(GraphicsOptions)] = "wronge type";
-        var options = context.GetGraphicsOptions();
+        GraphicsOptions options = context.GetGraphicsOptions();
         Assert.NotNull(options);
         Assert.IsType<GraphicsOptions>(options);
     }

@@ -58,11 +58,11 @@ internal sealed unsafe class DeflaterHuffman : IDisposable
     /// <param name="memoryAllocator">The memory allocator to use for buffer allocations.</param>
     public DeflaterHuffman(MemoryAllocator memoryAllocator)
     {
-        this.Pending = new DeflaterPendingBuffer(memoryAllocator);
+        this.Pending = new(memoryAllocator);
 
-        this.literalTree = new Tree(memoryAllocator, LiteralNumber, 257, 15);
-        this.distTree = new Tree(memoryAllocator, DistanceNumber, 1, 15);
-        this.blTree = new Tree(memoryAllocator, BitLengthNumber, 4, 7);
+        this.literalTree = new(memoryAllocator, LiteralNumber, 257, 15);
+        this.distTree = new(memoryAllocator, DistanceNumber, 1, 15);
+        this.blTree = new(memoryAllocator, BitLengthNumber, 4, 7);
 
         this.distanceMemoryOwner = memoryAllocator.Allocate<short>(BufferSize);
         this.distanceBufferHandle = this.distanceMemoryOwner.Memory.Pin();

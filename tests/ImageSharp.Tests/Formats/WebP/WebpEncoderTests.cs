@@ -139,7 +139,7 @@ public class WebpEncoderTests
         };
         provider.Utility.SaveTestOutputFile(image, "gif", gifEncoder, "octree");
 
-        gifEncoder = new GifEncoder()
+        gifEncoder = new()
         {
             Quantizer = new WuQuantizer(options)
         };

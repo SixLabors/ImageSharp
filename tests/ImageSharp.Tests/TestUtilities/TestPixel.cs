@@ -35,7 +35,7 @@ public class TestPixel<TPixel> : IXunitSerializable
 
     public float Alpha { get; set; }
 
-    public TPixel AsPixel() => TPixel.FromScaledVector4(new Vector4(this.Red, this.Green, this.Blue, this.Alpha));
+    public TPixel AsPixel() => TPixel.FromScaledVector4(new(this.Red, this.Green, this.Blue, this.Alpha));
 
     internal Span<TPixel> AsSpan() => new([this.AsPixel()]);
 

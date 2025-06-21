@@ -122,8 +122,8 @@ internal static unsafe class PredictorEncoder
         int tileYSize = LosslessUtils.SubSampleSize(height, bits);
         int[] accumulatedRedHisto = new int[256];
         int[] accumulatedBlueHisto = new int[256];
-        var prevX = default(Vp8LMultipliers);
-        var prevY = default(Vp8LMultipliers);
+        Vp8LMultipliers prevX = default(Vp8LMultipliers);
+        Vp8LMultipliers prevY = default(Vp8LMultipliers);
         for (int tileY = 0; tileY < tileYSize; tileY++)
         {
             for (int tileX = 0; tileX < tileXSize; tileX++)
@@ -856,7 +856,7 @@ internal static unsafe class PredictorEncoder
         int tileHeight = allYMax - tileYOffset;
         Span<uint> tileArgb = argb[((tileYOffset * xSize) + tileXOffset)..];
 
-        var bestTx = default(Vp8LMultipliers);
+        Vp8LMultipliers bestTx = default(Vp8LMultipliers);
 
         GetBestGreenToRed(tileArgb, xSize, scratch, tileWidth, tileHeight, prevX, prevY, quality, accumulatedRedHisto, ref bestTx);
 

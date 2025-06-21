@@ -12,7 +12,7 @@ public partial class MemoryGroupTests : MemoryGroupTestsBase
     [Fact]
     public void IsValid_TrueAfterCreation()
     {
-        using var g = MemoryGroup<byte>.Allocate(this.MemoryAllocator, 10, 100);
+        using MemoryGroup<byte> g = MemoryGroup<byte>.Allocate(this.MemoryAllocator, 10, 100);
 
         Assert.True(g.IsValid);
     }
@@ -20,7 +20,7 @@ public partial class MemoryGroupTests : MemoryGroupTestsBase
     [Fact]
     public void IsValid_FalseAfterDisposal()
     {
-        using var g = MemoryGroup<byte>.Allocate(this.MemoryAllocator, 10, 100);
+        using MemoryGroup<byte> g = MemoryGroup<byte>.Allocate(this.MemoryAllocator, 10, 100);
 
         g.Dispose();
         Assert.False(g.IsValid);
@@ -102,10 +102,10 @@ public partial class MemoryGroupTests : MemoryGroupTestsBase
         int[] data0 = { 1, 2, 3, 4 };
         int[] data1 = { 5, 6, 7, 8 };
         int[] data2 = { 9, 10 };
-        using var mgr0 = new TestMemoryManager<int>(data0);
-        using var mgr1 = new TestMemoryManager<int>(data1);
+        using TestMemoryManager<int> mgr0 = new TestMemoryManager<int>(data0);
+        using TestMemoryManager<int> mgr1 = new TestMemoryManager<int>(data1);
 
-        using var group = MemoryGroup<int>.Wrap(mgr0.Memory, mgr1.Memory, data2);
+        using MemoryGroup<int> group = MemoryGroup<int>.Wrap(mgr0.Memory, mgr1.Memory, data2);
 
         Assert.Equal(3, group.Count);
         Assert.Equal(4, group.BufferLength);
@@ -217,7 +217,7 @@ public partial class MemoryGroupTests : MemoryGroupTestsBase
         using MemoryGroup<int> group = this.CreateTestGroup(100, 10, true);
         group.Clear();
 
-        var expectedRow = new int[10];
+        int[] expectedRow = new int[10];
         foreach (Memory<int> memory in group)
         {
             Assert.True(memory.Span.SequenceEqual(expectedRow));

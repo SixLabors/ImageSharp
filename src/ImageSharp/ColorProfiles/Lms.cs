@@ -89,7 +89,7 @@ public readonly struct Lms : IColorProfile<Lms, CieXyz>
         v3 += this.AsVector3Unsafe();
         v3 += new Vector3(1F);
         v3 /= 2F;
-        return new Vector4(v3, 1F);
+        return new(v3, 1F);
     }
 
     /// <inheritdoc/>
@@ -98,7 +98,7 @@ public readonly struct Lms : IColorProfile<Lms, CieXyz>
         Vector3 v3 = source.AsVector3();
         v3 *= 2F;
         v3 -= new Vector3(1F);
-        return new Lms(v3);
+        return new(v3);
     }
 
     /// <inheritdoc/>

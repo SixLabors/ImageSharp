@@ -31,7 +31,7 @@ public class LargeImageIntegrationTests
             Configuration configuration = Configuration.Default.Clone();
             configuration.PreferContiguousImageBuffers = true;
 
-            using var image = new Image<Rgba32>(configuration, 2048, 2048);
+            using Image<Rgba32> image = new Image<Rgba32>(configuration, 2048, 2048);
             Assert.True(image.DangerousTryGetSinglePixelMemory(out Memory<Rgba32> mem));
             Assert.Equal(2048 * 2048, mem.Length);
         }
@@ -69,7 +69,7 @@ public class LargeImageIntegrationTests
                 Configuration = configuration
             };
 
-            using var image = Image.Load<Rgba32>(options, path);
+            using Image<Rgba32> image = Image.Load<Rgba32>(options, path);
             File.Delete(path);
             Assert.Equal(1, image.GetPixelMemoryGroup().Count);
         }

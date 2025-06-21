@@ -24,7 +24,7 @@ public class EncodeGifMultiple : MultiImageBenchmarkBase.WithImagesPreloaded
             // Try to get as close to System.Drawing's output as possible
             GifEncoder options = new()
             {
-                Quantizer = new WebSafePaletteQuantizer(new QuantizerOptions { Dither = KnownDitherings.Bayer4x4 })
+                Quantizer = new WebSafePaletteQuantizer(new() { Dither = KnownDitherings.Bayer4x4 })
             };
 
             img.Save(ms, options);

@@ -61,7 +61,7 @@ internal class LutEntryCalculator : IVector4Calculator
     {
         this.inputCurve = InitLut(inputCurve);
         this.outputCurve = InitLut(outputCurve);
-        this.clutCalculator = new ClutCalculator(clut);
+        this.clutCalculator = new(clut);
         this.matrix = matrix;
 
         this.doTransform = !matrix.IsIdentity && inputCurve.Length == 3;
@@ -72,7 +72,7 @@ internal class LutEntryCalculator : IVector4Calculator
         LutCalculator[] calculators = new LutCalculator[curves.Length];
         for (int i = 0; i < curves.Length; i++)
         {
-            calculators[i] = new LutCalculator(curves[i].Values, false);
+            calculators[i] = new(curves[i].Values, false);
         }
 
         return calculators;

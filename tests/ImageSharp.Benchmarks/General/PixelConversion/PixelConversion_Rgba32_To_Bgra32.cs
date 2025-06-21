@@ -252,8 +252,8 @@ public class PixelConversion_Rgba32_To_Bgra32
     private static void BitopsSimdImpl(ref Octet<uint> s, ref Octet<uint> d)
     {
         Vector<uint> sVec = Unsafe.As<Octet<uint>, Vector<uint>>(ref s);
-        var aMask = new Vector<uint>(0xFF00FF00);
-        var bMask = new Vector<uint>(0x00FF00FF);
+        Vector<uint> aMask = new Vector<uint>(0xFF00FF00);
+        Vector<uint> bMask = new Vector<uint>(0x00FF00FF);
 
         Vector<uint> aa = sVec & aMask;
         Vector<uint> bb = sVec & bMask;

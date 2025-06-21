@@ -25,7 +25,7 @@ public partial struct Byte4 : IPixel<Byte4>, IPackedVector<uint>
     /// <param name="z">The z-component</param>
     /// <param name="w">The w-component</param>
     public Byte4(float x, float y, float z, float w)
-        : this(new Vector4(x, y, z, w))
+        : this(new(x, y, z, w))
     {
     }
 

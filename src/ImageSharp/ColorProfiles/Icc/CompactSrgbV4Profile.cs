@@ -37,6 +37,6 @@ internal static class CompactSrgbV4Profile
     {
         byte[] buffer = new byte[Data.Length];
         Data.CopyTo(buffer);
-        return new IccProfile(buffer);
+        return new(buffer);
     }
 }

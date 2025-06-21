@@ -48,7 +48,7 @@ public class ImageExtensionsTest
 
         using (Image<Rgba32> image = new(10, 10))
         {
-            image.SaveAsTiff(file, new TiffEncoder());
+            image.SaveAsTiff(file, new());
         }
 
         IImageFormat format = Image.DetectFormat(file);
@@ -109,7 +109,7 @@ public class ImageExtensionsTest
 
         using (Image<Rgba32> image = new(10, 10))
         {
-            image.SaveAsTiff(memoryStream, new TiffEncoder());
+            image.SaveAsTiff(memoryStream, new());
         }
 
         memoryStream.Position = 0;

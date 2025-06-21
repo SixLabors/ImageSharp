@@ -26,7 +26,7 @@ public readonly struct Cmyk : IColorProfile<Cmyk, Rgb>
     /// <param name="k">The keyline black component.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Cmyk(float c, float m, float y, float k)
-        : this(new Vector4(c, m, y, k))
+        : this(new(c, m, y, k))
     {
     }
 
@@ -138,12 +138,12 @@ public readonly struct Cmyk : IColorProfile<Cmyk, Rgb>
 
         if (k.X >= 1F - Constants.Epsilon)
         {
-            return new Cmyk(0, 0, 0, 1F);
+            return new(0, 0, 0, 1F);
         }
 
         cmy = (cmy - k) / (Vector3.One - k);
 
-        return new Cmyk(cmy.X, cmy.Y, cmy.Z, k.X);
+        return new(cmy.X, cmy.Y, cmy.Z, k.X);
     }
 
     /// <inheritdoc/>

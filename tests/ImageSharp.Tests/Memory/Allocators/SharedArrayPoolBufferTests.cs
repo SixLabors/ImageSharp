@@ -16,7 +16,7 @@ public class SharedArrayPoolBufferTests
 
         static void RunTest()
         {
-            using (var buffer = new SharedArrayPoolBuffer<byte>(900))
+            using (SharedArrayPoolBuffer<byte> buffer = new SharedArrayPoolBuffer<byte>(900))
             {
                 Assert.Equal(900, buffer.GetSpan().Length);
                 buffer.GetSpan().Fill(42);
@@ -36,7 +36,7 @@ public class SharedArrayPoolBufferTests
 
         static void RunTest()
         {
-            var buffer = new SharedArrayPoolBuffer<byte>(900);
+            SharedArrayPoolBuffer<byte> buffer = new SharedArrayPoolBuffer<byte>(900);
             Span<byte> span = buffer.GetSpan();
 
             buffer.AddRef();

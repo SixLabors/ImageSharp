@@ -20,7 +20,7 @@ internal sealed partial class IccDataWriter
         uint offset = (uint)this.dataStream.Position;
         int count = this.WriteTagDataEntry(data);
         this.WritePadding();
-        table = new IccTagTableEntry(data.TagSignature, offset, (uint)count);
+        table = new(data.TagSignature, offset, (uint)count);
         return count;
     }
 
@@ -546,7 +546,7 @@ internal sealed partial class IccDataWriter
             uint offset = (uint)(this.dataStream.Position - start);
             int size = this.WriteMultiProcessElement(value.Data[i]);
             count += this.WritePadding();
-            posTable[i] = new IccPositionNumber(offset, (uint)size);
+            posTable[i] = new(offset, (uint)size);
             count += size;
         }
 
@@ -634,7 +634,7 @@ internal sealed partial class IccDataWriter
             int size = this.WriteProfileId(sequenceIdentifier.Id);
             size += this.WriteTagDataEntry(new IccMultiLocalizedUnicodeTagDataEntry(sequenceIdentifier.Description));
             size += this.WritePadding();
-            table[i] = new IccPositionNumber(offset, (uint)size);
+            table[i] = new(offset, (uint)size);
             count += size;
         }
 

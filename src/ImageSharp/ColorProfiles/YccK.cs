@@ -27,7 +27,7 @@ public readonly struct YccK : IColorProfile<YccK, Rgb>
     /// <param name="k">The keyline black component.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public YccK(float y, float cb, float cr, float k)
-        : this(new Vector4(y, cb, cr, k))
+        : this(new(y, cb, cr, k))
     {
     }
 
@@ -149,11 +149,11 @@ public readonly struct YccK : IColorProfile<YccK, Rgb>
 
         if (k >= 1F - Constants.Epsilon)
         {
-            return new YccK(new Vector4(0F, 0.5F, 0.5F, 1F), true);
+            return new(new(0F, 0.5F, 0.5F, 1F), true);
         }
 
         rgb /= 1F - k;
-        return new YccK(new Vector4(Vector3.Transform(rgb, m), k) + new Vector4(offset, 0F));
+        return new(new Vector4(Vector3.Transform(rgb, m), k) + new Vector4(offset, 0F));
     }
 
     /// <inheritdoc/>

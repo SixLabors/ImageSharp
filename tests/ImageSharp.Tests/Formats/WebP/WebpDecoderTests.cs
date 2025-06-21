@@ -349,7 +349,7 @@ public class WebpDecoderTests
         WebpDecoderOptions options = new()
         {
             BackgroundColorHandling = BackgroundColorHandling.Ignore,
-            GeneralOptions = new DecoderOptions()
+            GeneralOptions = new()
             {
                 MaxFrames = 1
             }
@@ -460,7 +460,7 @@ public class WebpDecoderTests
         // Web
         using Image<TPixel> image = provider.GetImage(
             WebpDecoder.Instance,
-            new WebpDecoderOptions() { BackgroundColorHandling = BackgroundColorHandling.Ignore });
+            new() { BackgroundColorHandling = BackgroundColorHandling.Ignore });
 
         // We can't use the reference decoder here.
         // It creates frames of different size without blending the frames.

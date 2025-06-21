@@ -114,7 +114,7 @@ public class L8Tests
         byte expected = ColorNumerics.Get8BitBT709Luminance(rgb, rgb, rgb);
 
         // Act
-        L8 pixel = L8.FromRgba32(new Rgba32(rgb, rgb, rgb));
+        L8 pixel = L8.FromRgba32(new(rgb, rgb, rgb));
         byte actual = pixel.PackedValue;
 
         // Assert
@@ -145,7 +145,7 @@ public class L8Tests
         const byte expected = byte.MaxValue;
 
         // act
-        L8 grey = L8.FromBgra5551(new Bgra5551(1f, 1f, 1f, 1f));
+        L8 grey = L8.FromBgra5551(new(1f, 1f, 1f, 1f));
 
         // assert
         Assert.Equal(expected, grey.PackedValue);

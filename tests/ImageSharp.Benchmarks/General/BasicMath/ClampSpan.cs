@@ -12,7 +12,7 @@ public class ClampSpan
 
     public void Setup()
     {
-        var r = new Random();
+        Random r = new Random();
 
         for (int i = 0; i < A.Length; i++)
         {

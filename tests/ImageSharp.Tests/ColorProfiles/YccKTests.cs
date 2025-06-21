@@ -34,8 +34,8 @@ public class YccKTests
         Assert.True(default == default(YccK));
         Assert.False(default != default(YccK));
         Assert.Equal(default, default(YccK));
-        Assert.Equal(new YccK(1, 1, 1, 1), new YccK(1, 1, 1, 1));
-        Assert.Equal(new YccK(.5F, .5F, .5F, .5F), new YccK(.5F, .5F, .5F, .5F));
+        Assert.Equal(new(1, 1, 1, 1), new YccK(1, 1, 1, 1));
+        Assert.Equal(new(.5F, .5F, .5F, .5F), new YccK(.5F, .5F, .5F, .5F));
 
         Assert.False(x.Equals(y));
         Assert.False(x.Equals((object)y));

@@ -16,7 +16,7 @@ public class ImageFrameTests
 
         private void LimitBufferCapacity(int bufferCapacityInBytes)
         {
-            var allocator = new TestMemoryAllocator();
+            TestMemoryAllocator allocator = new TestMemoryAllocator();
             allocator.BufferCapacityInBytes = bufferCapacityInBytes;
             this.configuration.MemoryAllocator = allocator;
         }
@@ -31,7 +31,7 @@ public class ImageFrameTests
                 this.LimitBufferCapacity(100);
             }
 
-            using var image = new Image<Rgba32>(this.configuration, 10, 10);
+            using Image<Rgba32> image = new Image<Rgba32>(this.configuration, 10, 10);
             ImageFrame<Rgba32> frame = image.Frames.RootFrame;
             Rgba32 val = frame[3, 4];
             Assert.Equal(default(Rgba32), val);
@@ -57,7 +57,7 @@ public class ImageFrameTests
                 this.LimitBufferCapacity(100);
             }
 
-            using var image = new Image<Rgba32>(this.configuration, 10, 10);
+            using Image<Rgba32> image = new Image<Rgba32>(this.configuration, 10, 10);
             ImageFrame<Rgba32> frame = image.Frames.RootFrame;
             ArgumentOutOfRangeException ex = Assert.Throws<ArgumentOutOfRangeException>(() => _ = frame[x, 3]);
             Assert.Equal("x", ex.ParamName);
@@ -72,7 +72,7 @@ public class ImageFrameTests
                 this.LimitBufferCapacity(100);
             }
 
-            using var image = new Image<Rgba32>(this.configuration, 10, 10);
+            using Image<Rgba32> image = new Image<Rgba32>(this.configuration, 10, 10);
             ImageFrame<Rgba32> frame = image.Frames.RootFrame;
             ArgumentOutOfRangeException ex = Assert.Throws<ArgumentOutOfRangeException>(() => frame[x, 3] = default);
             Assert.Equal("x", ex.ParamName);
@@ -87,7 +87,7 @@ public class ImageFrameTests
                 this.LimitBufferCapacity(100);
             }
 
-            using var image = new Image<Rgba32>(this.configuration, 10, 10);
+            using Image<Rgba32> image = new Image<Rgba32>(this.configuration, 10, 10);
             ImageFrame<Rgba32> frame = image.Frames.RootFrame;
             ArgumentOutOfRangeException ex = Assert.Throws<ArgumentOutOfRangeException>(() => frame[3, y] = default);
             Assert.Equal("y", ex.ParamName);
@@ -105,7 +105,7 @@ public class ImageFrameTests
                 this.LimitBufferCapacity(20);
             }
 
-            using var image = new Image<La16>(this.configuration, 10, 10);
+            using Image<La16> image = new Image<La16>(this.configuration, 10, 10);
             if (disco)
             {
                 Assert.True(image.GetPixelMemoryGroup().Count > 1);
@@ -131,7 +131,7 @@ public class ImageFrameTests
         [InlineData(true)]
         public void CopyPixelDataTo_DestinationTooShort_Throws(bool byteSpan)
         {
-            using var image = new Image<La16>(this.configuration, 10, 10);
+            using Image<La16> image = new Image<La16>(this.configuration, 10, 10);
 
             Assert.ThrowsAny<ArgumentOutOfRangeException>(() =>
             {
@@ -173,7 +173,7 @@ public class ImageFrameTests
         [Fact]
         public void NullReference_Throws()
         {
-            using var img = new Image<Rgb24>(1, 1);
+            using Image<Rgb24> img = new Image<Rgb24>(1, 1);
             ImageFrame<Rgb24> frame = img.Frames.RootFrame;
 
             Assert.Throws<ArgumentNullException>(() => frame.ProcessPixelRows(null));

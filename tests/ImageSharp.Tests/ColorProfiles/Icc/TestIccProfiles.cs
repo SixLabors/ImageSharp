@@ -58,12 +58,12 @@ internal static class TestIccProfiles
     public const string StandardRgbV2 = "sRGB2014.icc";
 
     public static IccProfile GetProfile(string file)
-        => ProfileCache.GetOrAdd(file, f => new IccProfile(File.ReadAllBytes(GetFullPath(f))));
+        => ProfileCache.GetOrAdd(file, f => new(File.ReadAllBytes(GetFullPath(f))));
 
     public static Wacton.Unicolour.Configuration GetUnicolourConfiguration(string file)
         => UnicolourConfigurationCache.GetOrAdd(
             file,
-            f => new Wacton.Unicolour.Configuration(iccConfig: new(GetFullPath(f), Intent.Unspecified, f)));
+            f => new(iccConfig: new(GetFullPath(f), Intent.Unspecified, f)));
 
     public static bool HasUnicolourConfiguration(string file)
         => UnicolourConfigurationCache.ContainsKey(file);

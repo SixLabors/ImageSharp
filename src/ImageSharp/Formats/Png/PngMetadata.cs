@@ -209,7 +209,7 @@ public class PngMetadata : IFormatMetadata<PngMetadata>
                 break;
         }
 
-        return new PixelTypeInfo(bpp)
+        return new(bpp)
         {
             AlphaRepresentation = alpha,
             ColorType = colorType,

@@ -23,7 +23,7 @@ public abstract class DecodeEncodeGif
     private string TestImageFullPath => Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, this.TestImage);
 
     [GlobalSetup]
-    public void Setup() => this.outputStream = new MemoryStream();
+    public void Setup() => this.outputStream = new();
 
     [GlobalCleanup]
     public void Cleanup() => this.outputStream.Close();
@@ -54,6 +54,6 @@ public class DecodeEncodeGif_CoarsePaletteEncoder : DecodeEncodeGif
 {
     protected override GifEncoder Encoder => new()
     {
-        Quantizer = new WebSafePaletteQuantizer(new QuantizerOptions { Dither = KnownDitherings.Bayer4x4, ColorMatchingMode = ColorMatchingMode.Coarse })
+        Quantizer = new WebSafePaletteQuantizer(new() { Dither = KnownDitherings.Bayer4x4, ColorMatchingMode = ColorMatchingMode.Coarse })
     };
 }

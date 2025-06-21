@@ -27,7 +27,7 @@ internal sealed class JpegFrame : IDisposable
         for (int i = 0; i < this.Components.Length; i++)
         {
             JpegComponentConfig componentConfig = componentConfigs[i];
-            this.Components[i] = new Component(allocator, componentConfig.HorizontalSampleFactor, componentConfig.VerticalSampleFactor, componentConfig.QuantizatioTableIndex)
+            this.Components[i] = new(allocator, componentConfig.HorizontalSampleFactor, componentConfig.VerticalSampleFactor, componentConfig.QuantizatioTableIndex)
             {
                 DcTableId = componentConfig.DcTableSelector,
                 AcTableId = componentConfig.AcTableSelector,

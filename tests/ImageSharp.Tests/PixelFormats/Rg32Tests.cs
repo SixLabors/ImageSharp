@@ -69,7 +69,7 @@ public class Rg32Tests
         const uint expected = 0xFFFFFFFF;
 
         // act
-        Rg32 rg32 = Rg32.FromBgra5551(new Bgra5551(1f, 1f, 1f, 1f));
+        Rg32 rg32 = Rg32.FromBgra5551(new(1f, 1f, 1f, 1f));
 
         // assert
         Assert.Equal(expected, rg32.PackedValue);

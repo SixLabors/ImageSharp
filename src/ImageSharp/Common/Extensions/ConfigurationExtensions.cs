@@ -14,6 +14,6 @@ internal static class ConfigurationExtensions
     /// </summary>
     public static ParallelOptions GetParallelOptions(this Configuration configuration)
     {
-        return new ParallelOptions { MaxDegreeOfParallelism = configuration.MaxDegreeOfParallelism };
+        return new() { MaxDegreeOfParallelism = configuration.MaxDegreeOfParallelism };
     }
 }

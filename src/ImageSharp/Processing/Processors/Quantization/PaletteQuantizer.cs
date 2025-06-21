@@ -19,7 +19,7 @@ public class PaletteQuantizer : IQuantizer
     /// </summary>
     /// <param name="palette">The color palette.</param>
     public PaletteQuantizer(ReadOnlyMemory<Color> palette)
-        : this(palette, new QuantizerOptions())
+        : this(palette, new())
     {
     }
 

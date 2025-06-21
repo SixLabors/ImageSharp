@@ -297,7 +297,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                             {
                                 byte[] exifData = new byte[chunk.Length];
                                 chunk.Data.GetSpan().CopyTo(exifData);
-                                MergeOrSetExifProfile(metadata, new ExifProfile(exifData), replaceExistingKeys: true);
+                                MergeOrSetExifProfile(metadata, new(exifData), replaceExistingKeys: true);
                             }
 
                             break;
@@ -497,7 +497,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                             {
                                 byte[] exifData = new byte[chunk.Length];
                                 chunk.Data.GetSpan().CopyTo(exifData);
-                                MergeOrSetExifProfile(metadata, new ExifProfile(exifData), replaceExistingKeys: true);
+                                MergeOrSetExifProfile(metadata, new(exifData), replaceExistingKeys: true);
                             }
 
                             break;
@@ -525,7 +525,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                 PngThrowHelper.ThrowInvalidHeader();
             }
 
-            return new ImageInfo(new(this.header.Width, this.header.Height), metadata, framesMetadata);
+            return new(new(this.header.Width, this.header.Height), metadata, framesMetadata);
         }
         finally
         {
@@ -626,7 +626,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
     private void InitializeImage<TPixel>(ImageMetadata metadata, FrameControl frameControl, out Image<TPixel> image)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        image = new Image<TPixel>(this.configuration, this.header.Width, this.header.Height, metadata);
+        image = new(this.configuration, this.header.Width, this.header.Height, metadata);
 
         PngFrameMetadata frameMetadata = image.Frames.RootFrame.Metadata.GetPngMetadata();
         frameMetadata.FromChunk(in frameControl);
@@ -1377,7 +1377,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
 
         if (!TryReadTextChunkMetadata(baseMetadata, name, value))
         {
-            metadata.TextData.Add(new PngTextData(name, value, string.Empty, string.Empty));
+            metadata.TextData.Add(new(name, value, string.Empty, string.Empty));
         }
     }
 
@@ -1418,7 +1418,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
         if (this.TryDecompressTextData(compressedData, PngConstants.Encoding, out string? uncompressed)
             && !TryReadTextChunkMetadata(baseMetadata, name, uncompressed))
         {
-            metadata.TextData.Add(new PngTextData(name, uncompressed, string.Empty, string.Empty));
+            metadata.TextData.Add(new(name, uncompressed, string.Empty, string.Empty));
         }
     }
 
@@ -1476,7 +1476,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
             fullRange = null;
         }
 
-        metadata.CicpProfile = new CicpProfile(colorPrimaries, transferFunction, matrixCoefficients, fullRange);
+        metadata.CicpProfile = new(colorPrimaries, transferFunction, matrixCoefficients, fullRange);
     }
 
     /// <summary>
@@ -1560,7 +1560,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
             return false;
         }
 
-        MergeOrSetExifProfile(metadata, new ExifProfile(exifBlob), replaceExistingKeys: false);
+        MergeOrSetExifProfile(metadata, new(exifBlob), replaceExistingKeys: false);
         return true;
     }
 
@@ -1594,7 +1594,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
 
         if (this.TryDecompressZlibData(compressedData, this.maxUncompressedLength, out byte[] iccpProfileBytes))
         {
-            metadata.IccProfile = new IccProfile(iccpProfileBytes);
+            metadata.IccProfile = new(iccpProfileBytes);
         }
     }
 
@@ -1750,17 +1750,17 @@ internal sealed class PngDecoderCore : ImageDecoderCore
 
             if (this.TryDecompressTextData(compressedData, PngConstants.TranslatedEncoding, out string? uncompressed))
             {
-                pngMetadata.TextData.Add(new PngTextData(keyword, uncompressed, language, translatedKeyword));
+                pngMetadata.TextData.Add(new(keyword, uncompressed, language, translatedKeyword));
             }
         }
         else if (IsXmpTextData(keywordBytes))
         {
-            metadata.XmpProfile = new XmpProfile(data[dataStartIdx..].ToArray());
+            metadata.XmpProfile = new(data[dataStartIdx..].ToArray());
         }
         else
         {
             string value = PngConstants.TranslatedEncoding.GetString(data[dataStartIdx..]);
-            pngMetadata.TextData.Add(new PngTextData(keyword, value, language, translatedKeyword));
+            pngMetadata.TextData.Add(new(keyword, value, language, translatedKeyword));
         }
     }
 
@@ -1950,14 +1950,14 @@ internal sealed class PngDecoderCore : ImageDecoderCore
             type != PngChunkType.AnimationControl &&
             type != PngChunkType.FrameControl)
         {
-            chunk = new PngChunk(length, type);
+            chunk = new(length, type);
             return true;
         }
 
         // A chunk might report a length that exceeds the length of the stream.
         // Take the minimum of the two values to ensure we don't read past the end of the stream.
         position = this.currentStream.Position;
-        chunk = new PngChunk(
+        chunk = new(
             length: (int)Math.Min(length, this.currentStream.Length - position),
             type: type,
             data: this.ReadChunkData(length));

@@ -531,7 +531,7 @@ internal static class TiffDecoderOptionsParser
 
                 // Some encoders do not set the BitsPerSample correctly, so we set those values here to the required values:
                 // https://github.com/SixLabors/ImageSharp/issues/2587
-                options.BitsPerSample = new TiffBitsPerSample(1, 0, 0);
+                options.BitsPerSample = new(1, 0, 0);
                 options.BitsPerPixel = 1;
 
                 break;
@@ -549,7 +549,7 @@ internal static class TiffDecoderOptionsParser
                     options.FaxCompressionOptions = FaxCompressionOptions.None;
                 }
 
-                options.BitsPerSample = new TiffBitsPerSample(1, 0, 0);
+                options.BitsPerSample = new(1, 0, 0);
                 options.BitsPerPixel = 1;
 
                 break;
@@ -557,7 +557,7 @@ internal static class TiffDecoderOptionsParser
 
             case TiffCompression.Ccitt1D:
                 options.CompressionType = TiffDecoderCompressionType.HuffmanRle;
-                options.BitsPerSample = new TiffBitsPerSample(1, 0, 0);
+                options.BitsPerSample = new(1, 0, 0);
                 options.BitsPerPixel = 1;
 
                 break;

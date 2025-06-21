@@ -124,16 +124,16 @@ internal class Vp8LEncoder : IDisposable
         this.transparentColorMode = transparentColorMode;
         this.nearLossless = nearLossless;
         this.nearLosslessQuality = Numerics.Clamp(nearLosslessQuality, 0, 100);
-        this.bitWriter = new Vp8LBitWriter(initialSize);
+        this.bitWriter = new(initialSize);
         this.Bgra = memoryAllocator.Allocate<uint>(pixelCount);
         this.EncodedData = memoryAllocator.Allocate<uint>(pixelCount);
         this.Palette = memoryAllocator.Allocate<uint>(WebpConstants.MaxPaletteSize);
         this.Refs = new Vp8LBackwardRefs[3];
-        this.HashChain = new Vp8LHashChain(memoryAllocator, pixelCount);
+        this.HashChain = new(memoryAllocator, pixelCount);
 
         for (int i = 0; i < this.Refs.Length; i++)
         {
-            this.Refs[i] = new Vp8LBackwardRefs(memoryAllocator, pixelCount);
+            this.Refs[i] = new(memoryAllocator, pixelCount);
         }
     }
 
@@ -549,14 +549,14 @@ internal class Vp8LEncoder : IDisposable
                 // We can only apply kPalette or kPaletteAndSpatial if we can indeed use a palette.
                 if ((entropyIx != EntropyIx.Palette && entropyIx != EntropyIx.PaletteAndSpatial) || usePalette)
                 {
-                    crunchConfigs.Add(new CrunchConfig { EntropyIdx = entropyIx });
+                    crunchConfigs.Add(new() { EntropyIdx = entropyIx });
                 }
             }
         }
         else
         {
             // Only choose the guessed best transform.
-            crunchConfigs.Add(new CrunchConfig { EntropyIdx = entropyIdx });
+            crunchConfigs.Add(new() { EntropyIdx = entropyIdx });
             if (this.quality >= 75 && this.method == WebpEncodingMethod.Level5)
             {
                 // Test with and without color cache.
@@ -565,7 +565,7 @@ internal class Vp8LEncoder : IDisposable
                 // If we have a palette, also check in combination with spatial.
                 if (entropyIdx == EntropyIx.Palette)
                 {
-                    crunchConfigs.Add(new CrunchConfig { EntropyIdx = EntropyIx.PaletteAndSpatial });
+                    crunchConfigs.Add(new() { EntropyIdx = EntropyIx.PaletteAndSpatial });
                 }
             }
         }
@@ -575,7 +575,7 @@ internal class Vp8LEncoder : IDisposable
         {
             for (int j = 0; j < nlz77s; j++)
             {
-                crunchConfig.SubConfigs.Add(new CrunchSubConfig
+                crunchConfig.SubConfigs.Add(new()
                 {
                     Lz77 = j == 0 ? (int)Vp8LLz77Type.Lz77Standard | (int)Vp8LLz77Type.Lz77Rle : (int)Vp8LLz77Type.Lz77Box,
                     DoNotCache = doNotCache
@@ -712,7 +712,7 @@ internal class Vp8LEncoder : IDisposable
             HuffmanTreeToken[] tokens = new HuffmanTreeToken[maxTokens];
             for (int i = 0; i < tokens.Length; i++)
             {
-                tokens[i] = new HuffmanTreeToken();
+                tokens[i] = new();
             }
 
             for (int i = 0; i < 5 * histogramImageSize; i++)
@@ -858,7 +858,7 @@ internal class Vp8LEncoder : IDisposable
         HuffmanTreeToken[] tokens = new HuffmanTreeToken[maxTokens];
         for (int i = 0; i < tokens.Length; i++)
         {
-            tokens[i] = new HuffmanTreeToken();
+            tokens[i] = new();
         }
 
         // Store Huffman codes.

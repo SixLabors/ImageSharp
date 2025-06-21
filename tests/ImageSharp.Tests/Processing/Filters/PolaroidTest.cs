@@ -13,7 +13,7 @@ public class PolaroidTest : BaseImageOperationsExtensionTest
     public void Polaroid_amount_PolaroidProcessorDefaultsSet()
     {
         this.operations.Polaroid();
-        var processor = this.Verify<PolaroidProcessor>();
+        PolaroidProcessor processor = this.Verify<PolaroidProcessor>();
         Assert.Equal(processor.GraphicsOptions, this.options);
     }
 
@@ -21,7 +21,7 @@ public class PolaroidTest : BaseImageOperationsExtensionTest
     public void Polaroid_amount_rect_PolaroidProcessorDefaultsSet()
     {
         this.operations.Polaroid(this.rect);
-        var processor = this.Verify<PolaroidProcessor>(this.rect);
+        PolaroidProcessor processor = this.Verify<PolaroidProcessor>(this.rect);
         Assert.Equal(processor.GraphicsOptions, this.options);
     }
 }

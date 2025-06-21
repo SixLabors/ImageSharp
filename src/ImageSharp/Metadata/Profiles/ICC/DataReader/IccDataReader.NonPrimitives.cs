@@ -18,7 +18,7 @@ internal sealed partial class IccDataReader
     {
         try
         {
-            return new DateTime(
+            return new(
                 year: this.ReadUInt16(),
                 month: this.ReadUInt16(),
                 day: this.ReadUInt16(),
@@ -45,7 +45,7 @@ internal sealed partial class IccDataReader
         int minor = (version >> 20) & 0x0F;
         int bugfix = (version >> 16) & 0x0F;
 
-        return new IccVersion(major, minor, bugfix);
+        return new(major, minor, bugfix);
     }
 
     /// <summary>
@@ -54,7 +54,7 @@ internal sealed partial class IccDataReader
     /// <returns>the XYZ number</returns>
     public Vector3 ReadXyzNumber()
     {
-        return new Vector3(
+        return new(
             x: this.ReadFix16(),
             y: this.ReadFix16(),
             z: this.ReadFix16());
@@ -66,7 +66,7 @@ internal sealed partial class IccDataReader
     /// <returns>the profile ID</returns>
     public IccProfileId ReadProfileId()
     {
-        return new IccProfileId(
+        return new(
             p1: this.ReadUInt32(),
             p2: this.ReadUInt32(),
             p3: this.ReadUInt32(),
@@ -79,7 +79,7 @@ internal sealed partial class IccDataReader
     /// <returns>the position number</returns>
     public IccPositionNumber ReadPositionNumber()
     {
-        return new IccPositionNumber(
+        return new(
             offset: this.ReadUInt32(),
             size: this.ReadUInt32());
     }
@@ -90,7 +90,7 @@ internal sealed partial class IccDataReader
     /// <returns>the response number</returns>
     public IccResponseNumber ReadResponseNumber()
     {
-        return new IccResponseNumber(
+        return new(
             deviceCode: this.ReadUInt16(),
             measurementValue: this.ReadFix16());
     }
@@ -104,14 +104,14 @@ internal sealed partial class IccDataReader
     {
         string name = this.ReadAsciiString(32);
         ushort[] pcsCoord = { this.ReadUInt16(), this.ReadUInt16(), this.ReadUInt16() };
-        var deviceCoord = new ushort[deviceCoordCount];
+        ushort[] deviceCoord = new ushort[deviceCoordCount];
 
         for (int i = 0; i < deviceCoordCount; i++)
         {
             deviceCoord[i] = this.ReadUInt16();
         }
 
-        return new IccNamedColor(name, pcsCoord, deviceCoord);
+        return new(name, pcsCoord, deviceCoord);
     }
 
     /// <summary>
@@ -122,13 +122,13 @@ internal sealed partial class IccDataReader
     {
         uint manufacturer = this.ReadUInt32();
         uint model = this.ReadUInt32();
-        var attributes = (IccDeviceAttribute)this.ReadInt64();
-        var technologyInfo = (IccProfileTag)this.ReadUInt32();
+        IccDeviceAttribute attributes = (IccDeviceAttribute)this.ReadInt64();
+        IccProfileTag technologyInfo = (IccProfileTag)this.ReadUInt32();
 
         IccMultiLocalizedUnicodeTagDataEntry manufacturerInfo = ReadText();
         IccMultiLocalizedUnicodeTagDataEntry modelInfo = ReadText();
 
-        return new IccProfileDescription(
+        return new(
             manufacturer,
             model,
             attributes,
@@ -158,7 +158,7 @@ internal sealed partial class IccDataReader
     /// <returns>the profile description</returns>
     public IccColorantTableEntry ReadColorantTableEntry()
     {
-        return new IccColorantTableEntry(
+        return new(
             name: this.ReadAsciiString(32),
             pcs1: this.ReadUInt16(),
             pcs2: this.ReadUInt16(),
@@ -171,7 +171,7 @@ internal sealed partial class IccDataReader
     /// <returns>the screening channel</returns>
     public IccScreeningChannel ReadScreeningChannel()
     {
-        return new IccScreeningChannel(
+        return new(
             frequency: this.ReadFix16(),
             angle: this.ReadFix16(),
             spotShape: (IccScreeningSpotType)this.ReadInt32());

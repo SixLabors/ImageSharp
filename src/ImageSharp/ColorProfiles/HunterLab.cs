@@ -87,7 +87,7 @@ public readonly struct HunterLab : IColorProfile<HunterLab, CieXyz>
         v3 += this.AsVector3Unsafe();
         v3 += new Vector3(0, 128F, 128F);
         v3 /= new Vector3(100F, 255F, 255F);
-        return new Vector4(v3, 1F);
+        return new(v3, 1F);
     }
 
     /// <inheritdoc/>
@@ -96,7 +96,7 @@ public readonly struct HunterLab : IColorProfile<HunterLab, CieXyz>
         Vector3 v3 = source.AsVector3();
         v3 *= new Vector3(100F, 255, 255);
         v3 -= new Vector3(0, 128F, 128F);
-        return new HunterLab(v3);
+        return new(v3);
     }
 
     /// <inheritdoc/>
@@ -151,7 +151,7 @@ public readonly struct HunterLab : IColorProfile<HunterLab, CieXyz>
             b = 0;
         }
 
-        return new HunterLab(l, a, b);
+        return new(l, a, b);
     }
 
     /// <inheritdoc/>
@@ -184,7 +184,7 @@ public readonly struct HunterLab : IColorProfile<HunterLab, CieXyz>
         float x = (((a / ka) * sqrtPow) + pow) * xn;
         float z = (((b / kb) * sqrtPow) - pow) * (-zn);
 
-        return new CieXyz(x, y, z);
+        return new(x, y, z);
     }
 
     /// <inheritdoc/>

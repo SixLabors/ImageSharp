@@ -18,12 +18,12 @@ internal static partial class LibJpegTools
         BigInteger totalDiff = 0;
         if (actual.WidthInBlocks < expected.WidthInBlocks)
         {
-            throw new Exception("actual.WidthInBlocks < expected.WidthInBlocks");
+            throw new("actual.WidthInBlocks < expected.WidthInBlocks");
         }
 
         if (actual.HeightInBlocks < expected.HeightInBlocks)
         {
-            throw new Exception("actual.HeightInBlocks < expected.HeightInBlocks");
+            throw new("actual.HeightInBlocks < expected.HeightInBlocks");
         }
 
         int w = expected.WidthInBlocks;
@@ -65,7 +65,7 @@ internal static partial class LibJpegTools
         }
 
         string args = $@"""{sourceFile}"" ""{destFile}""";
-        var process = new Process
+        Process process = new()
         {
             StartInfo =
                                   {
@@ -95,21 +95,21 @@ internal static partial class LibJpegTools
         {
             RunDumpJpegCoeffsTool(testFile.FullPath, coeffFileFullPath);
 
-            using (var dumpStream = new FileStream(coeffFileFullPath, FileMode.Open))
-            using (var rdr = new BinaryReader(dumpStream))
+            using (FileStream dumpStream = new(coeffFileFullPath, FileMode.Open))
+            using (BinaryReader rdr = new(dumpStream))
             {
                 int componentCount = rdr.ReadInt16();
-                var result = new ComponentData[componentCount];
+                ComponentData[] result = new ComponentData[componentCount];
 
                 for (int i = 0; i < componentCount; i++)
                 {
                     int widthInBlocks = rdr.ReadInt16();
                     int heightInBlocks = rdr.ReadInt16();
-                    var resultComponent = new ComponentData(widthInBlocks, heightInBlocks, i);
+                    ComponentData resultComponent = new(widthInBlocks, heightInBlocks, i);
                     result[i] = resultComponent;
                 }
 
-                var buffer = new byte[64 * sizeof(short)];
+                byte[] buffer = new byte[64 * sizeof(short)];
 
                 for (int i = 0; i < result.Length; i++)
                 {
@@ -127,7 +127,7 @@ internal static partial class LibJpegTools
                     }
                 }
 
-                return new SpectralData(result);
+                return new(result);
             }
         }
         finally

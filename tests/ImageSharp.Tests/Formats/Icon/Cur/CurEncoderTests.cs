@@ -122,7 +122,7 @@ public class CurEncoderTests
                 {
                     if (expectedColor != rowSpan[x])
                     {
-                        var xx = 0;
+                        int xx = 0;
                     }
 
 

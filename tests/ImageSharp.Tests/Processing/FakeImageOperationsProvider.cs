@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp.Tests.Processing;
 
 internal class FakeImageOperationsProvider : IImageProcessingContextFactory
 {
-    private readonly List<object> imageOperators = new List<object>();
+    private readonly List<object> imageOperators = new();
 
     public bool HasCreated<TPixel>(Image<TPixel> source)
         where TPixel : unmanaged, IPixel<TPixel>
@@ -35,7 +35,7 @@ internal class FakeImageOperationsProvider : IImageProcessingContextFactory
     public IInternalImageProcessingContext<TPixel> CreateImageProcessingContext<TPixel>(Configuration configuration, Image<TPixel> source, bool mutate)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        var op = new FakeImageOperations<TPixel>(configuration, source, mutate);
+        FakeImageOperations<TPixel> op = new(configuration, source, mutate);
         this.imageOperators.Add(op);
         return op;
     }
@@ -51,7 +51,7 @@ internal class FakeImageOperationsProvider : IImageProcessingContextFactory
 
         public Image<TPixel> Source { get; }
 
-        public List<AppliedOperation> Applied { get; } = new List<AppliedOperation>();
+        public List<AppliedOperation> Applied { get; } = new();
 
         public Configuration Configuration { get; }
 
@@ -69,7 +69,7 @@ internal class FakeImageOperationsProvider : IImageProcessingContextFactory
 
         public IImageProcessingContext ApplyProcessor(IImageProcessor processor, Rectangle rectangle)
         {
-            this.Applied.Add(new AppliedOperation
+            this.Applied.Add(new()
             {
                 Rectangle = rectangle,
                 NonGenericProcessor = processor
@@ -79,7 +79,7 @@ internal class FakeImageOperationsProvider : IImageProcessingContextFactory
 
         public IImageProcessingContext ApplyProcessor(IImageProcessor processor)
         {
-            this.Applied.Add(new AppliedOperation
+            this.Applied.Add(new()
             {
                 NonGenericProcessor = processor
             });

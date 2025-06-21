@@ -174,7 +174,7 @@ internal class OilPaintingProcessor<TPixel> : ImageProcessor<TPixel>
                         float green = greenBinSpan[maxIndex] / maxIntensity;
                         float alpha = sourceRowVector4Span[x].W;
 
-                        targetRowVector4Span[x] = new Vector4(red, green, blue, alpha);
+                        targetRowVector4Span[x] = new(red, green, blue, alpha);
                     }
                 }
 

@@ -117,7 +117,7 @@ public class LoadResizeSaveStressRunner
 
     public void ForEachImageParallel(Action<string> action) => Parallel.ForEach(
         this.Images,
-        new ParallelOptions { MaxDegreeOfParallelism = this.MaxDegreeOfParallelism },
+        new() { MaxDegreeOfParallelism = this.MaxDegreeOfParallelism },
         action);
 
     public Task ForEachImageParallelAsync(Func<string, Task> action)
@@ -148,7 +148,7 @@ public class LoadResizeSaveStressRunner
 
     private void LogImageProcessed(int width, int height)
     {
-        this.LastProcessedImageSize = new Size(width, height);
+        this.LastProcessedImageSize = new(width, height);
         double pixels = width * (double)height;
         this.TotalProcessedMegapixels += pixels / 1_000_000.0;
     }
@@ -322,7 +322,7 @@ public class LoadResizeSaveStressRunner
         (int width, int height) = this.ScaledSize(info.Width, info.Height, this.ThumbnailSize);
         SKSizeI supportedScale = codec.GetScaledDimensions((float)width / info.Width);
 
-        using SKBitmap original = SKBitmap.Decode(codec, new SKImageInfo(supportedScale.Width, supportedScale.Height));
+        using SKBitmap original = SKBitmap.Decode(codec, new(supportedScale.Width, supportedScale.Height));
         using SKBitmap resized = original.Resize(new SKImageInfo(width, height), SKFilterQuality.High);
         if (resized == null)
         {

@@ -32,14 +32,14 @@ public class HistogramEqualizationTests
             70,  87,  69,  68,  65,  73,  78,  90
         };
 
-        using (var image = new Image<Rgba32>(8, 8))
+        using (Image<Rgba32> image = new(8, 8))
         {
             for (int y = 0; y < 8; y++)
             {
                 for (int x = 0; x < 8; x++)
                 {
                     byte luminance = pixels[(y * 8) + x];
-                    image[x, y] = new Rgba32(luminance, luminance, luminance);
+                    image[x, y] = new(luminance, luminance, luminance);
                 }
             }
 
@@ -56,7 +56,7 @@ public class HistogramEqualizationTests
             };
 
             // Act
-            image.Mutate(x => x.HistogramEqualization(new HistogramEqualizationOptions
+            image.Mutate(x => x.HistogramEqualization(new()
             {
                 LuminanceLevels = luminanceLevels,
                 Method = HistogramEqualizationMethod.Global
@@ -83,7 +83,7 @@ public class HistogramEqualizationTests
     {
         using (Image<TPixel> image = provider.GetImage())
         {
-            var options = new HistogramEqualizationOptions
+            HistogramEqualizationOptions options = new()
             {
                 Method = HistogramEqualizationMethod.Global,
                 LuminanceLevels = 256,
@@ -101,7 +101,7 @@ public class HistogramEqualizationTests
     {
         using (Image<TPixel> image = provider.GetImage())
         {
-            var options = new HistogramEqualizationOptions
+            HistogramEqualizationOptions options = new()
             {
                 Method = HistogramEqualizationMethod.AdaptiveSlidingWindow,
                 LuminanceLevels = 256,
@@ -121,7 +121,7 @@ public class HistogramEqualizationTests
     {
         using (Image<TPixel> image = provider.GetImage())
         {
-            var options = new HistogramEqualizationOptions
+            HistogramEqualizationOptions options = new()
             {
                 Method = HistogramEqualizationMethod.AdaptiveTileInterpolation,
                 LuminanceLevels = 256,
@@ -141,7 +141,7 @@ public class HistogramEqualizationTests
     {
         using (Image<TPixel> image = provider.GetImage())
         {
-            var options = new HistogramEqualizationOptions
+            HistogramEqualizationOptions options = new()
             {
                 Method = HistogramEqualizationMethod.AutoLevel,
                 LuminanceLevels = 256,
@@ -160,7 +160,7 @@ public class HistogramEqualizationTests
     {
         using (Image<TPixel> image = provider.GetImage())
         {
-            var options = new HistogramEqualizationOptions
+            HistogramEqualizationOptions options = new()
             {
                 Method = HistogramEqualizationMethod.AutoLevel,
                 LuminanceLevels = 256,
@@ -187,7 +187,7 @@ public class HistogramEqualizationTests
     {
         using (Image<TPixel> image = provider.GetImage())
         {
-            var options = new HistogramEqualizationOptions()
+            HistogramEqualizationOptions options = new()
             {
                 Method = HistogramEqualizationMethod.AdaptiveTileInterpolation,
                 LuminanceLevels = 256,
@@ -214,7 +214,7 @@ public class HistogramEqualizationTests
         // https://github.com/SixLabors/ImageSharp/discussions/1640
         // Test using isolated memory to ensure clean buffers for reference
         provider.Configuration = Configuration.CreateDefaultInstance();
-        var options = new HistogramEqualizationOptions
+        HistogramEqualizationOptions options = new()
         {
             Method = HistogramEqualizationMethod.AdaptiveTileInterpolation,
             LuminanceLevels = 4096,

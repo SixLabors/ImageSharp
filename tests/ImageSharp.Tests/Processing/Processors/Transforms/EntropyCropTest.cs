@@ -35,8 +35,8 @@ public class EntropyCropTest
     {
         // arrange
         using Image<TPixel> image = provider.GetImage();
-        var expectedHeight = image.Height;
-        var expectedWidth = image.Width;
+        int expectedHeight = image.Height;
+        int expectedWidth = image.Width;
 
         // act
         image.Mutate(img => img.EntropyCrop());

@@ -102,7 +102,7 @@ public class BinaryDitherTests
         using (Image<TPixel> source = provider.GetImage())
         using (Image<TPixel> image = source.Clone())
         {
-            var bounds = new Rectangle(10, 10, image.Width / 2, image.Height / 2);
+            Rectangle bounds = new Rectangle(10, 10, image.Width / 2, image.Height / 2);
 
             image.Mutate(x => x.BinaryDither(DefaultDitherer, bounds));
             image.DebugSave(provider);
@@ -119,7 +119,7 @@ public class BinaryDitherTests
         using (Image<TPixel> source = provider.GetImage())
         using (Image<TPixel> image = source.Clone())
         {
-            var bounds = new Rectangle(10, 10, image.Width / 2, image.Height / 2);
+            Rectangle bounds = new Rectangle(10, 10, image.Width / 2, image.Height / 2);
 
             image.Mutate(x => x.BinaryDither(DefaultErrorDiffuser, bounds));
             image.DebugSave(provider);

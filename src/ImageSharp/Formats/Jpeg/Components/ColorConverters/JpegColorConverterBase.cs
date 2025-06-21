@@ -514,7 +514,7 @@ internal abstract partial class JpegColorConverterBase
             Span<float> c2 = this.Component2.Length > 0 ? this.Component2.Slice(start, length) : [];
             Span<float> c3 = this.Component3.Length > 0 ? this.Component3.Slice(start, length) : [];
 
-            return new ComponentValues(this.ComponentCount, c0, c1, c2, c3);
+            return new(this.ComponentCount, c0, c1, c2, c3);
         }
     }
 }

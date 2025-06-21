@@ -23,7 +23,7 @@ public partial struct Bgra5551 : IPixel<Bgra5551>, IPackedVector<ushort>
     /// <param name="z">The z-component</param>
     /// <param name="w">The w-component</param>
     public Bgra5551(float x, float y, float z, float w)
-        : this(new Vector4(x, y, z, w))
+        : this(new(x, y, z, w))
     {
     }
 

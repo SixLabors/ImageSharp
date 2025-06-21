@@ -42,7 +42,7 @@ internal readonly struct GifXmpApplicationExtension : IGifExtension
             stream.Skip(1); // Skip the terminator.
         }
 
-        return new GifXmpApplicationExtension(buffer);
+        return new(buffer);
     }
 
     public int WriteTo(Span<byte> buffer)

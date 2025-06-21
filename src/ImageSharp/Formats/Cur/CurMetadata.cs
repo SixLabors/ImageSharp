@@ -68,7 +68,7 @@ public class CurMetadata : IFormatMetadata<CurMetadata>
             compression = IconFrameCompression.Png;
         }
 
-        return new CurMetadata
+        return new()
         {
             BmpBitsPerPixel = bbpp,
             Compression = compression
@@ -129,7 +129,7 @@ public class CurMetadata : IFormatMetadata<CurMetadata>
             }
         }
 
-        return new PixelTypeInfo(bpp)
+        return new(bpp)
         {
             AlphaRepresentation = alpha,
             ComponentInfo = info,

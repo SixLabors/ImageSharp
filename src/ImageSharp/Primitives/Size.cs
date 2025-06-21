@@ -85,14 +85,14 @@ public struct Size : IEquatable<Size>
     /// </summary>
     /// <param name="size">The point.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static implicit operator SizeF(Size size) => new SizeF(size.Width, size.Height);
+    public static implicit operator SizeF(Size size) => new(size.Width, size.Height);
 
     /// <summary>
     /// Converts the given <see cref="Size"/> into a <see cref="Point"/>.
     /// </summary>
     /// <param name="size">The size.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static explicit operator Point(Size size) => new Point(size.Width, size.Height);
+    public static explicit operator Point(Size size) => new(size.Width, size.Height);
 
     /// <summary>
     /// Computes the sum of adding two sizes.
@@ -138,7 +138,7 @@ public struct Size : IEquatable<Size>
     /// <param name="left">Dividend of type <see cref="Size"/>.</param>
     /// <param name="right">Divisor of type <see cref="int"/>.</param>
     /// <returns>Result of type <see cref="Size"/>.</returns>
-    public static Size operator /(Size left, int right) => new Size(unchecked(left.Width / right), unchecked(left.Height / right));
+    public static Size operator /(Size left, int right) => new(unchecked(left.Width / right), unchecked(left.Height / right));
 
     /// <summary>
     /// Multiplies <see cref="Size"/> by a <see cref="float"/> producing <see cref="SizeF"/>.
@@ -163,7 +163,7 @@ public struct Size : IEquatable<Size>
     /// <param name="right">Divisor of type <see cref="int"/>.</param>
     /// <returns>Result of type <see cref="SizeF"/>.</returns>
     public static SizeF operator /(Size left, float right)
-        => new SizeF(left.Width / right, left.Height / right);
+        => new(left.Width / right, left.Height / right);
 
     /// <summary>
     /// Compares two <see cref="Size"/> objects for equality.
@@ -202,7 +202,7 @@ public struct Size : IEquatable<Size>
     /// <param name="right">The size on the right hand of the operand.</param>
     /// <returns>The <see cref="Size"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Size Add(Size left, Size right) => new Size(unchecked(left.Width + right.Width), unchecked(left.Height + right.Height));
+    public static Size Add(Size left, Size right) => new(unchecked(left.Width + right.Width), unchecked(left.Height + right.Height));
 
     /// <summary>
     /// Contracts a <see cref="Size"/> by another <see cref="Size"/>.
@@ -211,7 +211,7 @@ public struct Size : IEquatable<Size>
     /// <param name="right">The size on the right hand of the operand.</param>
     /// <returns>The <see cref="Size"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Size Subtract(Size left, Size right) => new Size(unchecked(left.Width - right.Width), unchecked(left.Height - right.Height));
+    public static Size Subtract(Size left, Size right) => new(unchecked(left.Width - right.Width), unchecked(left.Height - right.Height));
 
     /// <summary>
     /// Converts a <see cref="SizeF"/> to a <see cref="Size"/> by performing a ceiling operation on all the dimensions.
@@ -219,7 +219,7 @@ public struct Size : IEquatable<Size>
     /// <param name="size">The size.</param>
     /// <returns>The <see cref="Size"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Size Ceiling(SizeF size) => new Size(unchecked((int)MathF.Ceiling(size.Width)), unchecked((int)MathF.Ceiling(size.Height)));
+    public static Size Ceiling(SizeF size) => new(unchecked((int)MathF.Ceiling(size.Width)), unchecked((int)MathF.Ceiling(size.Height)));
 
     /// <summary>
     /// Converts a <see cref="SizeF"/> to a <see cref="Size"/> by performing a round operation on all the dimensions.
@@ -227,7 +227,7 @@ public struct Size : IEquatable<Size>
     /// <param name="size">The size.</param>
     /// <returns>The <see cref="Size"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Size Round(SizeF size) => new Size(unchecked((int)MathF.Round(size.Width)), unchecked((int)MathF.Round(size.Height)));
+    public static Size Round(SizeF size) => new(unchecked((int)MathF.Round(size.Width)), unchecked((int)MathF.Round(size.Height)));
 
     /// <summary>
     /// Transforms a size by the given matrix.
@@ -237,9 +237,9 @@ public struct Size : IEquatable<Size>
     /// <returns>A transformed size.</returns>
     public static SizeF Transform(Size size, Matrix3x2 matrix)
     {
-        var v = Vector2.Transform(new Vector2(size.Width, size.Height), matrix);
+        Vector2 v = Vector2.Transform(new(size.Width, size.Height), matrix);
 
-        return new SizeF(v.X, v.Y);
+        return new(v.X, v.Y);
     }
 
     /// <summary>
@@ -248,7 +248,7 @@ public struct Size : IEquatable<Size>
     /// <param name="size">The size.</param>
     /// <returns>The <see cref="Size"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Size Truncate(SizeF size) => new Size(unchecked((int)size.Width), unchecked((int)size.Height));
+    public static Size Truncate(SizeF size) => new(unchecked((int)size.Width), unchecked((int)size.Height));
 
     /// <summary>
     /// Deconstructs this size into two integers.
@@ -281,7 +281,7 @@ public struct Size : IEquatable<Size>
     /// <param name="multiplier">Multiplier of type <see cref="int"/>.</param>
     /// <returns>Product of type <see cref="Size"/>.</returns>
     private static Size Multiply(Size size, int multiplier) =>
-        new Size(unchecked(size.Width * multiplier), unchecked(size.Height * multiplier));
+        new(unchecked(size.Width * multiplier), unchecked(size.Height * multiplier));
 
     /// <summary>
     /// Multiplies <see cref="Size"/> by a <see cref="float"/> producing <see cref="SizeF"/>.
@@ -290,5 +290,5 @@ public struct Size : IEquatable<Size>
     /// <param name="multiplier">Multiplier of type <see cref="float"/>.</param>
     /// <returns>Product of type SizeF.</returns>
     private static SizeF Multiply(Size size, float multiplier) =>
-        new SizeF(size.Width * multiplier, size.Height * multiplier);
+        new(size.Width * multiplier, size.Height * multiplier);
 }

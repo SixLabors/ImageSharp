@@ -69,8 +69,8 @@ public class PixelConversion_ConvertToRgba32
     [GlobalSetup]
     public void Setup()
     {
-        this.compatibleMemoryLayoutRunner = new ConversionRunner<TestRgba>(this.Count);
-        this.permutedRunner = new ConversionRunner<TestArgb>(this.Count);
+        this.compatibleMemoryLayoutRunner = new(this.Count);
+        this.permutedRunner = new(this.Count);
     }
 
     [Benchmark(Baseline = true)]

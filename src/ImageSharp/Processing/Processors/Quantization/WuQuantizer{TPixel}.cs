@@ -513,7 +513,7 @@ internal struct WuQuantizer<TPixel> : IQuantizer<TPixel>
                 continue;
             }
 
-            vector = new Vector4(half.R, half.G, half.B, half.A);
+            vector = new(half.R, half.G, half.B, half.A);
             temp += Vector4.Dot(vector, vector) / half.Weight;
 
             if (temp > max)

@@ -37,7 +37,7 @@ public static class TestFontUtilities
     /// </returns>
     private static string GetFontsDirectory()
     {
-        List<string> directories = new List<string>
+        List<string> directories = new()
         {
              "TestFonts/", // Here for code coverage tests.
              "tests/ImageSharp.Tests/TestFonts/", // from travis/build script
@@ -59,7 +59,7 @@ public static class TestFontUtilities
             return directory;
         }
 
-        throw new System.Exception($"Unable to find Fonts directory at any of these locations [{string.Join(", ", directories)}]");
+        throw new($"Unable to find Fonts directory at any of these locations [{string.Join(", ", directories)}]");
     }
 
     /// <summary>

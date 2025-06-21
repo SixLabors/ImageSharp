@@ -38,9 +38,9 @@ public class EncodeJpegComparison
         using FileStream imageBinaryStream = File.OpenRead(Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, TestImage));
 
         this.imageImageSharp = Image.Load<Rgba32>(imageBinaryStream);
-        this.encoderImageSharp = new JpegEncoder { Quality = this.Quality, ColorType = JpegColorType.YCbCrRatio420 };
+        this.encoderImageSharp = new() { Quality = this.Quality, ColorType = JpegColorType.YCbCrRatio420 };
 
-        this.destinationStream = new MemoryStream();
+        this.destinationStream = new();
     }
 
     [GlobalCleanup(Target = nameof(BenchmarkImageSharp))]
@@ -67,7 +67,7 @@ public class EncodeJpegComparison
 
         this.imageSkiaSharp = SKBitmap.Decode(imageBinaryStream);
 
-        this.destinationStream = new MemoryStream();
+        this.destinationStream = new();
     }
 
     [GlobalCleanup(Target = nameof(BenchmarkSkiaSharp))]

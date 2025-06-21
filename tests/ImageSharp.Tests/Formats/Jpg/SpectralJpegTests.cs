@@ -47,13 +47,13 @@ public class SpectralJpegTests
         byte[] sourceBytes = TestFile.Create(provider.SourceFileOrDescription).Bytes;
         JpegDecoderOptions option = new();
 
-        using var decoder = new JpegDecoderCore(option);
-        using var ms = new MemoryStream(sourceBytes);
-        using var bufferedStream = new BufferedReadStream(Configuration.Default, ms);
+        using JpegDecoderCore decoder = new(option);
+        using MemoryStream ms = new(sourceBytes);
+        using BufferedReadStream bufferedStream = new(Configuration.Default, ms);
 
         // internal scan decoder which we substitute to assert spectral correctness
-        var debugConverter = new DebugSpectralConverter<TPixel>();
-        var scanDecoder = new HuffmanScanDecoder(bufferedStream, debugConverter, cancellationToken: default);
+        DebugSpectralConverter<TPixel> debugConverter = new();
+        HuffmanScanDecoder scanDecoder = new(bufferedStream, debugConverter, cancellationToken: default);
 
         // This would parse entire image
         decoder.ParseStream(bufferedStream, debugConverter, cancellationToken: default);
@@ -77,12 +77,12 @@ public class SpectralJpegTests
         byte[] sourceBytes = TestFile.Create(provider.SourceFileOrDescription).Bytes;
         JpegDecoderOptions options = new();
 
-        using var decoder = new JpegDecoderCore(options);
-        using var ms = new MemoryStream(sourceBytes);
-        using var bufferedStream = new BufferedReadStream(Configuration.Default, ms);
+        using JpegDecoderCore decoder = new(options);
+        using MemoryStream ms = new(sourceBytes);
+        using BufferedReadStream bufferedStream = new(Configuration.Default, ms);
 
         // internal scan decoder which we substitute to assert spectral correctness
-        var debugConverter = new DebugSpectralConverter<TPixel>();
+        DebugSpectralConverter<TPixel> debugConverter = new();
 
         // This would parse entire image
         decoder.ParseStream(bufferedStream, debugConverter, cancellationToken: default);
@@ -101,7 +101,7 @@ public class SpectralJpegTests
         int componentCount = imageSharpData.ComponentCount;
         if (libJpegData.ComponentCount != componentCount)
         {
-            throw new Exception("libJpegData.ComponentCount != componentCount");
+            throw new("libJpegData.ComponentCount != componentCount");
         }
 
         double averageDifference = 0;
@@ -198,14 +198,14 @@ public class SpectralJpegTests
 
         public override void PrepareForDecoding()
         {
-            var spectralComponents = new LibJpegTools.ComponentData[this.frame.ComponentCount];
+            LibJpegTools.ComponentData[] spectralComponents = new LibJpegTools.ComponentData[this.frame.ComponentCount];
             for (int i = 0; i < spectralComponents.Length; i++)
             {
                 JpegComponent component = this.frame.Components[i];
-                spectralComponents[i] = new LibJpegTools.ComponentData(component.WidthInBlocks, component.HeightInBlocks, component.Index);
+                spectralComponents[i] = new(component.WidthInBlocks, component.HeightInBlocks, component.Index);
             }
 
-            this.spectralData = new LibJpegTools.SpectralData(spectralComponents);
+            this.spectralData = new(spectralComponents);
         }
     }
 }

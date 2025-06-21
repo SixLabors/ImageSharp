@@ -622,7 +622,7 @@ internal sealed class TgaDecoderCore : ImageDecoderCore
                         else
                         {
                             byte alpha = alphaBits == 0 ? byte.MaxValue : bufferSpan[idx + 3];
-                            color = TPixel.FromBgra32(new Bgra32(bufferSpan[idx + 2], bufferSpan[idx + 1], bufferSpan[idx], alpha));
+                            color = TPixel.FromBgra32(new(bufferSpan[idx + 2], bufferSpan[idx + 1], bufferSpan[idx], alpha));
                         }
 
                         break;
@@ -638,7 +638,7 @@ internal sealed class TgaDecoderCore : ImageDecoderCore
     protected override ImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken)
     {
         this.ReadFileHeader(stream);
-        return new ImageInfo(
+        return new(
             new(this.fileHeader.Width, this.fileHeader.Height),
             this.metadata);
     }
@@ -705,7 +705,7 @@ internal sealed class TgaDecoderCore : ImageDecoderCore
         Guard.NotNull(this.tgaMetadata);
 
         byte alpha = this.tgaMetadata.AlphaChannelBits == 0 ? byte.MaxValue : scratchBuffer[3];
-        pixelRow[x] = TPixel.FromBgra32(new Bgra32(scratchBuffer[2], scratchBuffer[1], scratchBuffer[0], alpha));
+        pixelRow[x] = TPixel.FromBgra32(new(scratchBuffer[2], scratchBuffer[1], scratchBuffer[0], alpha));
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -907,9 +907,9 @@ internal sealed class TgaDecoderCore : ImageDecoderCore
 
         stream.Read(buffer, 0, TgaFileHeader.Size);
         this.fileHeader = TgaFileHeader.Parse(buffer);
-        this.Dimensions = new Size(this.fileHeader.Width, this.fileHeader.Height);
+        this.Dimensions = new(this.fileHeader.Width, this.fileHeader.Height);
 
-        this.metadata = new ImageMetadata();
+        this.metadata = new();
         this.tgaMetadata = this.metadata.GetTgaMetadata();
         this.tgaMetadata.BitsPerPixel = (TgaBitsPerPixel)this.fileHeader.PixelDepth;
 

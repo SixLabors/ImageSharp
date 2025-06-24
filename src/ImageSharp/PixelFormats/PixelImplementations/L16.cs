@@ -64,7 +64,7 @@ public partial struct L16 : IPixel<L16>, IPackedVector<ushort>
     public readonly Vector4 ToVector4()
     {
         float scaled = this.PackedValue / Max;
-        return new Vector4(scaled, scaled, scaled, 1f);
+        return new(scaled, scaled, scaled, 1f);
     }
 
     /// <inheritdoc />

@@ -139,7 +139,7 @@ public class JpegMetadata : IFormatMetadata<JpegMetadata>
                 break;
         }
 
-        return new JpegMetadata
+        return new()
         {
             ColorType = color,
             ChrominanceQuality = metadata.Quality,
@@ -182,7 +182,7 @@ public class JpegMetadata : IFormatMetadata<JpegMetadata>
                 break;
         }
 
-        return new PixelTypeInfo(bpp)
+        return new(bpp)
         {
             AlphaRepresentation = PixelAlphaRepresentation.None,
             ColorType = colorType,

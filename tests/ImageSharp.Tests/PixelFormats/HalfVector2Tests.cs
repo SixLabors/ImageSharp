@@ -76,7 +76,7 @@ public class HalfVector2Tests
     public void HalfVector2_FromBgra5551()
     {
         // act
-        HalfVector2 pixel = HalfVector2.FromBgra5551(new Bgra5551(1f, 1f, 1f, 1f));
+        HalfVector2 pixel = HalfVector2.FromBgra5551(new(1f, 1f, 1f, 1f));
 
         // assert
         Vector4 actual = pixel.ToScaledVector4();

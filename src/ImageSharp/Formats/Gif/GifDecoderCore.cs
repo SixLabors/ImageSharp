@@ -266,7 +266,7 @@ internal sealed class GifDecoderCore : ImageDecoderCore
             GifThrowHelper.ThrowNoHeader();
         }
 
-        return new ImageInfo(
+        return new(
             new(this.logicalScreenDescriptor.Width, this.logicalScreenDescriptor.Height),
             this.metadata,
             framesMetadata);
@@ -344,7 +344,7 @@ internal sealed class GifDecoderCore : ImageDecoderCore
                 GifXmpApplicationExtension extension = GifXmpApplicationExtension.Read(stream, this.memoryAllocator);
                 if (extension.Data.Length > 0)
                 {
-                    this.metadata!.XmpProfile = new XmpProfile(extension.Data);
+                    this.metadata!.XmpProfile = new(extension.Data);
                 }
                 else
                 {
@@ -554,7 +554,7 @@ internal sealed class GifDecoderCore : ImageDecoderCore
         if (previousFrame is null && previousDisposalMode is null)
         {
             image = transFlag
-                ? new Image<TPixel>(this.configuration, imageWidth, imageHeight, this.metadata)
+                ? new(this.configuration, imageWidth, imageHeight, this.metadata)
                 : new Image<TPixel>(this.configuration, imageWidth, imageHeight, backgroundPixel, this.metadata);
 
             this.SetFrameMetadata(image.Frames.RootFrame.Metadata);

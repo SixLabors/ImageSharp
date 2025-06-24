@@ -43,11 +43,11 @@ public class BitwiseOrUInt32
     [Benchmark]
     public void Simd()
     {
-        var v = new Vector<uint>(this.testValue);
+        Vector<uint> v = new Vector<uint>(this.testValue);
 
         for (int i = 0; i < this.input.Length; i += Vector<uint>.Count)
         {
-            var a = new Vector<uint>(this.input, i);
+            Vector<uint> a = new Vector<uint>(this.input, i);
             a = Vector.BitwiseOr(a, v);
             a.CopyTo(this.result, i);
         }

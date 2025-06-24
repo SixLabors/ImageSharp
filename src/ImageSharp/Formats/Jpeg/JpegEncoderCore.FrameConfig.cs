@@ -13,15 +13,15 @@ internal sealed unsafe partial class JpegEncoderCore
 {
     private static JpegFrameConfig[] CreateFrameConfigs()
     {
-        var defaultLuminanceHuffmanDC = new JpegHuffmanTableConfig(@class: 0, destIndex: 0, HuffmanSpec.LuminanceDC);
-        var defaultLuminanceHuffmanAC = new JpegHuffmanTableConfig(@class: 1, destIndex: 0, HuffmanSpec.LuminanceAC);
-        var defaultChrominanceHuffmanDC = new JpegHuffmanTableConfig(@class: 0, destIndex: 1, HuffmanSpec.ChrominanceDC);
-        var defaultChrominanceHuffmanAC = new JpegHuffmanTableConfig(@class: 1, destIndex: 1, HuffmanSpec.ChrominanceAC);
+        JpegHuffmanTableConfig defaultLuminanceHuffmanDC = new JpegHuffmanTableConfig(@class: 0, destIndex: 0, HuffmanSpec.LuminanceDC);
+        JpegHuffmanTableConfig defaultLuminanceHuffmanAC = new JpegHuffmanTableConfig(@class: 1, destIndex: 0, HuffmanSpec.LuminanceAC);
+        JpegHuffmanTableConfig defaultChrominanceHuffmanDC = new JpegHuffmanTableConfig(@class: 0, destIndex: 1, HuffmanSpec.ChrominanceDC);
+        JpegHuffmanTableConfig defaultChrominanceHuffmanAC = new JpegHuffmanTableConfig(@class: 1, destIndex: 1, HuffmanSpec.ChrominanceAC);
 
-        var defaultLuminanceQuantTable = new JpegQuantizationTableConfig(0, Quantization.LuminanceTable);
-        var defaultChrominanceQuantTable = new JpegQuantizationTableConfig(1, Quantization.ChrominanceTable);
+        JpegQuantizationTableConfig defaultLuminanceQuantTable = new JpegQuantizationTableConfig(0, Quantization.LuminanceTable);
+        JpegQuantizationTableConfig defaultChrominanceQuantTable = new JpegQuantizationTableConfig(1, Quantization.ChrominanceTable);
 
-        var yCbCrHuffmanConfigs = new JpegHuffmanTableConfig[]
+        JpegHuffmanTableConfig[] yCbCrHuffmanConfigs = new JpegHuffmanTableConfig[]
         {
             defaultLuminanceHuffmanDC,
             defaultLuminanceHuffmanAC,
@@ -29,7 +29,7 @@ internal sealed unsafe partial class JpegEncoderCore
             defaultChrominanceHuffmanAC,
         };
 
-        var yCbCrQuantTableConfigs = new JpegQuantizationTableConfig[]
+        JpegQuantizationTableConfig[] yCbCrQuantTableConfigs = new JpegQuantizationTableConfig[]
         {
             defaultLuminanceQuantTable,
             defaultChrominanceQuantTable,

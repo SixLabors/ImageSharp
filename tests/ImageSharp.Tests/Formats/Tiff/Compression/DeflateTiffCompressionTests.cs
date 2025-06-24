@@ -23,7 +23,7 @@ public class DeflateTiffCompressionTests
         using BufferedReadStream stream = CreateCompressedStream(data);
         byte[] buffer = new byte[data.Length];
 
-        using var decompressor = new DeflateTiffCompression(Configuration.Default.MemoryAllocator, 10, 8, TiffColorType.BlackIsZero8, TiffPredictor.None, false, false, 0, 0);
+        using DeflateTiffCompression decompressor = new(Configuration.Default.MemoryAllocator, 10, 8, TiffColorType.BlackIsZero8, TiffPredictor.None, false, false, 0, 0);
 
         decompressor.Decompress(stream, 0, (uint)stream.Length, 1, buffer, default);
 
@@ -41,6 +41,6 @@ public class DeflateTiffCompressionTests
         }
 
         compressedStream.Seek(0, SeekOrigin.Begin);
-        return new BufferedReadStream(Configuration.Default, compressedStream);
+        return new(Configuration.Default, compressedStream);
     }
 }

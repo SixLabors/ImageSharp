@@ -34,8 +34,8 @@ public class YCbCrTests
         Assert.True(default == default(YCbCr));
         Assert.False(default != default(YCbCr));
         Assert.Equal(default, default(YCbCr));
-        Assert.Equal(new YCbCr(1, 0, 1), new YCbCr(1, 0, 1));
-        Assert.Equal(new YCbCr(Vector3.One), new YCbCr(Vector3.One));
+        Assert.Equal(new(1, 0, 1), new YCbCr(1, 0, 1));
+        Assert.Equal(new(Vector3.One), new YCbCr(Vector3.One));
         Assert.False(x.Equals(y));
         Assert.False(x.Equals((object)y));
         Assert.False(x.GetHashCode().Equals(y.GetHashCode()));

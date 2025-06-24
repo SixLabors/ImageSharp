@@ -11,7 +11,7 @@ public class ExifReaderTests
     [Fact]
     public void Read_DataIsEmpty_ReturnsEmptyCollection()
     {
-        var reader = new ExifReader(Array.Empty<byte>());
+        ExifReader reader = new ExifReader(Array.Empty<byte>());
 
         IList<IExifValue> result = reader.ReadValues();
 
@@ -21,7 +21,7 @@ public class ExifReaderTests
     [Fact]
     public void Read_DataIsMinimal_ReturnsEmptyCollection()
     {
-        var reader = new ExifReader(new byte[] { 69, 120, 105, 102, 0, 0 });
+        ExifReader reader = new ExifReader(new byte[] { 69, 120, 105, 102, 0, 0 });
 
         IList<IExifValue> result = reader.ReadValues();
 

@@ -21,12 +21,12 @@ public partial class ImageTests
 
         public Load_FromStream_UseDefaultConfiguration()
         {
-            this.BaseStream = new MemoryStream(Data);
-            this.Stream = new AsyncStreamWrapper(this.BaseStream, () => this.AllowSynchronousIO);
+            this.BaseStream = new(Data);
+            this.Stream = new(this.BaseStream, () => this.AllowSynchronousIO);
         }
 
         private static void VerifyDecodedImage(Image img)
-            => Assert.Equal(new Size(127, 64), img.Size);
+            => Assert.Equal(new(127, 64), img.Size);
 
         [Fact]
         public void Stream_Specific()

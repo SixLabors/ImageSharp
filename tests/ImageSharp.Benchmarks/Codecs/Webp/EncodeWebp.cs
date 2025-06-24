@@ -30,7 +30,7 @@ public class EncodeWebp
         if (this.webp == null)
         {
             this.webp = Image.Load<Rgba32>(this.TestImageFullPath);
-            this.webpMagick = new MagickImage(this.TestImageFullPath);
+            this.webpMagick = new(this.TestImageFullPath);
         }
     }
 

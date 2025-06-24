@@ -65,7 +65,7 @@ public class Rgb48Tests
         const ushort expected = ushort.MaxValue;
 
         // act
-        Rgb48 rgb = Rgb48.FromBgra5551(new Bgra5551(1f, 1f, 1f, 1f));
+        Rgb48 rgb = Rgb48.FromBgra5551(new(1f, 1f, 1f, 1f));
 
         // assert
         Assert.Equal(expected, rgb.R);

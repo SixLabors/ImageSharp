@@ -18,19 +18,19 @@ internal sealed partial class IccDataReader
     {
         ushort segmentCount = this.ReadUInt16();
         this.AddIndex(2);   // 2 bytes reserved
-        var breakPoints = new float[segmentCount - 1];
+        float[] breakPoints = new float[segmentCount - 1];
         for (int i = 0; i < breakPoints.Length; i++)
         {
             breakPoints[i] = this.ReadSingle();
         }
 
-        var segments = new IccCurveSegment[segmentCount];
+        IccCurveSegment[] segments = new IccCurveSegment[segmentCount];
         for (int i = 0; i < segmentCount; i++)
         {
             segments[i] = this.ReadCurveSegment();
         }
 
-        return new IccOneDimensionalCurve(breakPoints, segments);
+        return new(breakPoints, segments);
     }
 
     /// <summary>
@@ -40,20 +40,20 @@ internal sealed partial class IccDataReader
     /// <returns>The read curve</returns>
     public IccResponseCurve ReadResponseCurve(int channelCount)
     {
-        var type = (IccCurveMeasurementEncodings)this.ReadUInt32();
-        var measurement = new uint[channelCount];
+        IccCurveMeasurementEncodings type = (IccCurveMeasurementEncodings)this.ReadUInt32();
+        uint[] measurement = new uint[channelCount];
         for (int i = 0; i < channelCount; i++)
         {
             measurement[i] = this.ReadUInt32();
         }
 
-        var xyzValues = new Vector3[channelCount];
+        Vector3[] xyzValues = new Vector3[channelCount];
         for (int i = 0; i < channelCount; i++)
         {
             xyzValues[i] = this.ReadXyzNumber();
         }
 
-        var response = new IccResponseNumber[channelCount][];
+        IccResponseNumber[][] response = new IccResponseNumber[channelCount][];
         for (int i = 0; i < channelCount; i++)
         {
             response[i] = new IccResponseNumber[measurement[i]];
@@ -63,7 +63,7 @@ internal sealed partial class IccDataReader
             }
         }
 
-        return new IccResponseCurve(type, xyzValues, response);
+        return new(type, xyzValues, response);
     }
 
     /// <summary>
@@ -106,11 +106,11 @@ internal sealed partial class IccDataReader
 
         switch (type)
         {
-            case 0: return new IccParametricCurve(gamma);
-            case 1: return new IccParametricCurve(gamma, a, b);
-            case 2: return new IccParametricCurve(gamma, a, b, c);
-            case 3: return new IccParametricCurve(gamma, a, b, c, d);
-            case 4: return new IccParametricCurve(gamma, a, b, c, d, e, f);
+            case 0: return new(gamma);
+            case 1: return new(gamma, a, b);
+            case 2: return new(gamma, a, b, c);
+            case 3: return new(gamma, a, b, c, d);
+            case 4: return new(gamma, a, b, c, d, e, f);
             default: throw new InvalidIccProfileException($"Invalid parametric curve type of {type}");
         }
     }
@@ -121,7 +121,7 @@ internal sealed partial class IccDataReader
     /// <returns>The read segment</returns>
     public IccCurveSegment ReadCurveSegment()
     {
-        var signature = (IccCurveSegmentSignature)this.ReadUInt32();
+        IccCurveSegmentSignature signature = (IccCurveSegmentSignature)this.ReadUInt32();
         this.AddIndex(4);   // 4 bytes reserved
 
         switch (signature)
@@ -141,7 +141,7 @@ internal sealed partial class IccDataReader
     /// <returns>The read segment</returns>
     public IccFormulaCurveElement ReadFormulaCurveElement()
     {
-        var type = (IccFormulaCurveType)this.ReadUInt16();
+        IccFormulaCurveType type = (IccFormulaCurveType)this.ReadUInt16();
         this.AddIndex(2);   // 2 bytes reserved
         float gamma, a, b, c, d, e;
         gamma = d = e = 0;
@@ -165,7 +165,7 @@ internal sealed partial class IccDataReader
             e = this.ReadSingle();
         }
 
-        return new IccFormulaCurveElement(type, gamma, a, b, c, d, e);
+        return new(type, gamma, a, b, c, d, e);
     }
 
     /// <summary>
@@ -175,13 +175,13 @@ internal sealed partial class IccDataReader
     public IccSampledCurveElement ReadSampledCurveElement()
     {
         uint count = this.ReadUInt32();
-        var entries = new float[count];
+        float[] entries = new float[count];
         for (int i = 0; i < count; i++)
         {
             entries[i] = this.ReadSingle();
         }
 
-        return new IccSampledCurveElement(entries);
+        return new(entries);
     }
 
     /// <summary>
@@ -191,7 +191,7 @@ internal sealed partial class IccDataReader
     /// <returns>The curve data</returns>
     private IccTagDataEntry[] ReadCurves(int count)
     {
-        var tdata = new IccTagDataEntry[count];
+        IccTagDataEntry[] tdata = new IccTagDataEntry[count];
         for (int i = 0; i < count; i++)
         {
             IccTypeSignature type = this.ReadTagDataEntryHeader();

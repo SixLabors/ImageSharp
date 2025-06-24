@@ -12,7 +12,7 @@ public sealed class WebSafePaletteQuantizer : PaletteQuantizer
     /// Initializes a new instance of the <see cref="WebSafePaletteQuantizer" /> class.
     /// </summary>
     public WebSafePaletteQuantizer()
-        : this(new QuantizerOptions())
+        : this(new())
     {
     }
 

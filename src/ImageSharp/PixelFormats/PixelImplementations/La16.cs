@@ -93,7 +93,7 @@ public partial struct La16 : IPixel<La16>, IPackedVector<ushort>
     {
         const float max = 255f;
         float rgb = this.L / max;
-        return new Vector4(rgb, rgb, rgb, this.A / max);
+        return new(rgb, rgb, rgb, this.A / max);
     }
 
     /// <inheritdoc />

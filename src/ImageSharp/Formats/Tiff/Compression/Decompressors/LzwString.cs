@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors;
 /// </summary>
 public class LzwString
 {
-    private static readonly LzwString Empty = new LzwString(0, 0, 0, null);
+    private static readonly LzwString Empty = new(0, 0, 0, null);
 
     private readonly LzwString previous;
     private readonly byte value;
@@ -50,10 +50,10 @@ public class LzwString
     {
         if (this == Empty)
         {
-            return new LzwString(other);
+            return new(other);
         }
 
-        return new LzwString(other, this.FirstChar, this.Length + 1, this);
+        return new(other, this.FirstChar, this.Length + 1, this);
     }
 
     /// <summary>

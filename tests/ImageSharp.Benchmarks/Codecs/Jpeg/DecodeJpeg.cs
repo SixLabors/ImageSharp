@@ -19,7 +19,7 @@ public class DecodeJpeg
     {
         this.decoder = JpegDecoder.Instance;
         byte[] bytes = File.ReadAllBytes(Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, imageSubpath));
-        this.preloadedImageStream = new MemoryStream(bytes);
+        this.preloadedImageStream = new(bytes);
     }
 
     private void GenericBenchmark()

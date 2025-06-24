@@ -150,7 +150,7 @@ public class RgbaVectorTests
         Vector4 expected = Vector4.One;
 
         // act
-        RgbaVector rgb = RgbaVector.FromBgra5551(new Bgra5551(1.0f, 1.0f, 1.0f, 1.0f));
+        RgbaVector rgb = RgbaVector.FromBgra5551(new(1.0f, 1.0f, 1.0f, 1.0f));
 
         // assert
         Assert.Equal(expected, rgb.ToScaledVector4());
@@ -163,7 +163,7 @@ public class RgbaVectorTests
         Vector4 expected = Vector4.One;
 
         // act
-        RgbaVector rgba = RgbaVector.FromL16(new L16(ushort.MaxValue));
+        RgbaVector rgba = RgbaVector.FromL16(new(ushort.MaxValue));
 
         // assert
         Assert.Equal(expected, rgba.ToScaledVector4());
@@ -176,7 +176,7 @@ public class RgbaVectorTests
         Vector4 expected = Vector4.One;
 
         // act
-        RgbaVector rgba = RgbaVector.FromL8(new L8(byte.MaxValue));
+        RgbaVector rgba = RgbaVector.FromL8(new(byte.MaxValue));
 
         // assert
         Assert.Equal(expected, rgba.ToScaledVector4());

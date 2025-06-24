@@ -83,7 +83,7 @@ public class TestUtilityExtensionsTests
         PixelTypes pt,
         IEnumerable<KeyValuePair<PixelTypes, Type>> pixelTypesExp)
     {
-        Assert.Contains(new KeyValuePair<PixelTypes, Type>(pt, typeof(T)), pixelTypesExp);
+        Assert.Contains(new(pt, typeof(T)), pixelTypesExp);
     }
 
     [Fact]

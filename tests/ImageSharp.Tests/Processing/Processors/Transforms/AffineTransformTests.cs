@@ -213,7 +213,7 @@ public class AffineTransformTests
     public void Issue1911()
     {
         using Image<Rgba32> image = new(100, 100);
-        image.Mutate(x => x = x.Transform(new Rectangle(0, 0, 99, 100), Matrix3x2.Identity, new Size(99, 100), KnownResamplers.Lanczos2));
+        image.Mutate(x => x = x.Transform(new(0, 0, 99, 100), Matrix3x2.Identity, new(99, 100), KnownResamplers.Lanczos2));
 
         Assert.Equal(99, image.Width);
         Assert.Equal(100, image.Height);
@@ -227,7 +227,7 @@ public class AffineTransformTests
         using Image<TPixel> image = provider.GetImage();
 
         AffineTransformBuilder builder =
-            new AffineTransformBuilder().AppendRotationDegrees(270, new Vector2(3.5f, 3.5f));
+            new AffineTransformBuilder().AppendRotationDegrees(270, new(3.5f, 3.5f));
         image.Mutate(x => x.BackgroundColor(Color.Red));
         image.Mutate(x => x = x.Transform(builder));
 
@@ -246,7 +246,7 @@ public class AffineTransformTests
 
         Matrix3x2 m = Matrix3x2.Identity;
         Rectangle r = new(25, 25, 50, 50);
-        image.Mutate(x => x.Transform(r, m, new Size(100, 100), KnownResamplers.Bicubic));
+        image.Mutate(x => x.Transform(r, m, new(100, 100), KnownResamplers.Bicubic));
         image.DebugSave(provider);
         image.CompareToReferenceOutput(ValidatorComparer, provider);
     }
@@ -260,9 +260,9 @@ public class AffineTransformTests
     {
         using Image<TPixel> image = provider.GetImage();
 
-        Matrix3x2 m = Matrix3x2.CreateRotation(radians, new Vector2(50, 50));
+        Matrix3x2 m = Matrix3x2.CreateRotation(radians, new(50, 50));
         Rectangle r = new(25, 25, 50, 50);
-        image.Mutate(x => x.Transform(r, m, new Size(100, 100), KnownResamplers.Bicubic));
+        image.Mutate(x => x.Transform(r, m, new(100, 100), KnownResamplers.Bicubic));
         image.DebugSave(provider, testOutputDetails: radians);
         image.CompareToReferenceOutput(ValidatorComparer, provider, testOutputDetails: radians);
     }

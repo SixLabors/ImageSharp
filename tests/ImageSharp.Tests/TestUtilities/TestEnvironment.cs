@@ -19,9 +19,9 @@ public static partial class TestEnvironment
 
     private const string ToolsDirectoryRelativePath = @"tests\Images\External\tools";
 
-    private static readonly Lazy<string> SolutionDirectoryFullPathLazy = new Lazy<string>(GetSolutionDirectoryFullPathImpl);
+    private static readonly Lazy<string> SolutionDirectoryFullPathLazy = new(GetSolutionDirectoryFullPathImpl);
 
-    private static readonly Lazy<Version> NetCoreVersionLazy = new Lazy<Version>(GetNetCoreVersion);
+    private static readonly Lazy<Version> NetCoreVersionLazy = new(GetNetCoreVersion);
 
     static TestEnvironment() => PrepareRemoteExecutor();
 
@@ -52,8 +52,7 @@ public static partial class TestEnvironment
 
     internal static string SolutionDirectoryFullPath => SolutionDirectoryFullPathLazy.Value;
 
-    private static readonly FileInfo TestAssemblyFile =
-        new FileInfo(typeof(TestEnvironment).GetTypeInfo().Assembly.Location);
+    private static readonly FileInfo TestAssemblyFile = new(typeof(TestEnvironment).GetTypeInfo().Assembly.Location);
 
     private static string GetSolutionDirectoryFullPathImpl()
     {
@@ -199,7 +198,7 @@ public static partial class TestEnvironment
             "Microsoft SDKs",
             "Windows");
 
-        FileInfo corFlagsFile = Find(new DirectoryInfo(windowsSdksDir), "CorFlags.exe");
+        FileInfo corFlagsFile = Find(new(windowsSdksDir), "CorFlags.exe");
 
         string remoteExecutorPath = Path.Combine(TestAssemblyFile.DirectoryName, "Microsoft.DotNet.RemoteExecutor.exe");
 
@@ -215,7 +214,7 @@ public static partial class TestEnvironment
 
         string args = $"{remoteExecutorTmpPath} /32Bit+ /Force";
 
-        var si = new ProcessStartInfo()
+        ProcessStartInfo si = new()
         {
             FileName = corFlagsFile.FullName,
             Arguments = args,
@@ -224,14 +223,14 @@ public static partial class TestEnvironment
             RedirectStandardError = true
         };
 
-        using var proc = Process.Start(si);
+        using Process proc = Process.Start(si);
         proc.WaitForExit();
         string standardOutput = proc.StandardOutput.ReadToEnd();
         string standardError = proc.StandardError.ReadToEnd();
 
         if (proc.ExitCode != 0)
         {
-            throw new Exception(
+            throw new(
                 $@"Failed to run {si.FileName} {si.Arguments}:\n STDOUT: {standardOutput}\n STDERR: {standardError}");
         }
 

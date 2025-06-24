@@ -32,7 +32,7 @@ public readonly partial struct OrderedDither : IDither, IEquatable<OrderedDither
         // We don't want to adjust the original matrix generation code as that
         // creates known, easy to test values.
         // https://en.wikipedia.org/wiki/Ordered_dithering#Algorithm
-        var thresholdMatrix = new DenseMatrix<float>((int)length);
+        DenseMatrix<float> thresholdMatrix = new DenseMatrix<float>((int)length);
         float m2 = length * length;
         for (int y = 0; y < length; y++)
         {

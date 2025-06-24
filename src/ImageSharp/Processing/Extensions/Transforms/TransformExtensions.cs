@@ -34,7 +34,7 @@ public static class TransformExtensions
         this IImageProcessingContext source,
         AffineTransformBuilder builder,
         IResampler sampler) =>
-        source.Transform(new Rectangle(Point.Empty, source.GetCurrentSize()), builder, sampler);
+        source.Transform(new(Point.Empty, source.GetCurrentSize()), builder, sampler);
 
     /// <summary>
     /// Performs an affine transform of an image using the specified sampling algorithm.
@@ -96,7 +96,7 @@ public static class TransformExtensions
         this IImageProcessingContext source,
         ProjectiveTransformBuilder builder,
         IResampler sampler) =>
-        source.Transform(new Rectangle(Point.Empty, source.GetCurrentSize()), builder, sampler);
+        source.Transform(new(Point.Empty, source.GetCurrentSize()), builder, sampler);
 
     /// <summary>
     /// Performs a projective transform of an image using the specified sampling algorithm.

@@ -90,7 +90,7 @@ public partial struct La32 : IPixel<La32>, IPackedVector<uint>
     public readonly Vector4 ToVector4()
     {
         float rgb = this.L / Max;
-        return new Vector4(rgb, rgb, rgb, this.A / Max);
+        return new(rgb, rgb, rgb, this.A / Max);
     }
 
     /// <inheritdoc />

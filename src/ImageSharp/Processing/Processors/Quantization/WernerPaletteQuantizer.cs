@@ -13,7 +13,7 @@ public sealed class WernerPaletteQuantizer : PaletteQuantizer
     /// Initializes a new instance of the <see cref="WernerPaletteQuantizer" /> class.
     /// </summary>
     public WernerPaletteQuantizer()
-        : this(new QuantizerOptions())
+        : this(new())
     {
     }
 

@@ -187,7 +187,7 @@ public partial struct Rgba32 : IPixel<Rgba32>, IPackedVector<uint>
     /// <param name="color">The instance of <see cref="Rgb"/> to convert.</param>
     /// <returns>An instance of <see cref="Rgba32"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static implicit operator Rgba32(Rgb color) => FromScaledVector4(new Vector4(color.ToScaledVector3(), 1F));
+    public static implicit operator Rgba32(Rgb color) => FromScaledVector4(new(color.ToScaledVector3(), 1F));
 
     /// <summary>
     /// Compares two <see cref="Rgba32"/> objects for equality.
@@ -444,6 +444,6 @@ public partial struct Rgba32 : IPixel<Rgba32>, IPackedVector<uint>
         char g = hex[1];
         char r = hex[0];
 
-        return new string(new[] { r, r, g, g, b, b, a, a });
+        return new(new[] { r, r, g, g, b, b, a, a });
     }
 }

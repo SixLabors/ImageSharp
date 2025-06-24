@@ -65,12 +65,12 @@ public class TolerantImageComparer : ImageComparer
         int width = actual.Width;
 
         // TODO: Comparing through Rgba64 may not robust enough because of the existence of super high precision pixel types.
-        var aBuffer = new Rgba64[width];
-        var bBuffer = new Rgba64[width];
+        Rgba64[] aBuffer = new Rgba64[width];
+        Rgba64[] bBuffer = new Rgba64[width];
 
         float totalDifference = 0F;
 
-        var differences = new List<PixelDifference>();
+        List<PixelDifference> differences = new();
         Configuration configuration = expected.Configuration;
         Buffer2D<TPixelA> expectedBuffer = expected.PixelBuffer;
         Buffer2D<TPixelB> actualBuffer = actual.PixelBuffer;
@@ -89,7 +89,7 @@ public class TolerantImageComparer : ImageComparer
 
                 if (d > this.PerPixelManhattanThreshold)
                 {
-                    var diff = new PixelDifference(new Point(x, y), aBuffer[x], bBuffer[x]);
+                    PixelDifference diff = new(new(x, y), aBuffer[x], bBuffer[x]);
                     differences.Add(diff);
 
                     totalDifference += d;
@@ -102,7 +102,7 @@ public class TolerantImageComparer : ImageComparer
 
         if (normalizedDifference > this.ImageThreshold)
         {
-            return new ImageSimilarityReport<TPixelA, TPixelB>(index, expected, actual, differences, normalizedDifference);
+            return new(index, expected, actual, differences, normalizedDifference);
         }
         else
         {

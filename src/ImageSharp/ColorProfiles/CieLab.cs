@@ -88,7 +88,7 @@ public readonly struct CieLab : IProfileConnectingSpace<CieLab, CieXyz>
         v3 += this.AsVector3Unsafe();
         v3 += new Vector3(0, 128F, 128F);
         v3 /= new Vector3(100F, 255F, 255F);
-        return new Vector4(v3, 1F);
+        return new(v3, 1F);
     }
 
     /// <inheritdoc/>
@@ -97,7 +97,7 @@ public readonly struct CieLab : IProfileConnectingSpace<CieLab, CieXyz>
         Vector3 v3 = source.AsVector3();
         v3 *= new Vector3(100F, 255, 255);
         v3 -= new Vector3(0, 128F, 128F);
-        return new CieLab(v3);
+        return new(v3);
     }
 
     /// <inheritdoc/>
@@ -145,7 +145,7 @@ public readonly struct CieLab : IProfileConnectingSpace<CieLab, CieXyz>
         float a = 500F * (fx - fy);
         float b = 200F * (fy - fz);
 
-        return new CieLab(l, a, b);
+        return new(l, a, b);
     }
 
     /// <inheritdoc/>

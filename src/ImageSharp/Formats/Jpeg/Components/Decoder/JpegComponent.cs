@@ -21,7 +21,7 @@ internal class JpegComponent : IDisposable, IJpegComponent
 
         this.HorizontalSamplingFactor = horizontalFactor;
         this.VerticalSamplingFactor = verticalFactor;
-        this.SamplingFactors = new Size(this.HorizontalSamplingFactor, this.VerticalSamplingFactor);
+        this.SamplingFactors = new(this.HorizontalSamplingFactor, this.VerticalSamplingFactor);
 
         this.QuantizationTableIndex = quantizationTableIndex;
         this.Index = index;
@@ -109,7 +109,7 @@ internal class JpegComponent : IDisposable, IJpegComponent
 
         int blocksPerLineForMcu = this.Frame.McusPerLine * this.HorizontalSamplingFactor;
         int blocksPerColumnForMcu = this.Frame.McusPerColumn * this.VerticalSamplingFactor;
-        this.SizeInBlocks = new Size(blocksPerLineForMcu, blocksPerColumnForMcu);
+        this.SizeInBlocks = new(blocksPerLineForMcu, blocksPerColumnForMcu);
 
         this.SubSamplingDivisors = new Size(maxSubFactorH, maxSubFactorV).DivideBy(this.SamplingFactors);
 

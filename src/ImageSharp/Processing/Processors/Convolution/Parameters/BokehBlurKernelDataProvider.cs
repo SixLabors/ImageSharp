@@ -16,7 +16,7 @@ internal static class BokehBlurKernelDataProvider
     /// <summary>
     /// The mapping of initialized complex kernels and parameters, to speed up the initialization of new <see cref="BokehBlurProcessor{TPixel}"/> instances
     /// </summary>
-    private static readonly ConcurrentDictionary<BokehBlurParameters, BokehBlurKernelData> Cache = new ConcurrentDictionary<BokehBlurParameters, BokehBlurKernelData>();
+    private static readonly ConcurrentDictionary<BokehBlurParameters, BokehBlurKernelData> Cache = new();
 
     /// <summary>
     /// Gets the kernel scales to adjust the component values in each kernel
@@ -90,7 +90,7 @@ internal static class BokehBlurKernelDataProvider
         int componentsCount)
     {
         // Reuse the initialized values from the cache, if possible
-        var parameters = new BokehBlurParameters(radius, componentsCount);
+        BokehBlurParameters parameters = new(radius, componentsCount);
         if (!Cache.TryGetValue(parameters, out BokehBlurKernelData info))
         {
             // Initialize the complex kernels and parameters with the current arguments
@@ -99,7 +99,7 @@ internal static class BokehBlurKernelDataProvider
             NormalizeKernels(kernels, kernelParameters);
 
             // Store them in the cache for future use
-            info = new BokehBlurKernelData(kernelParameters, kernels);
+            info = new(kernelParameters, kernels);
             Cache.TryAdd(parameters, info);
         }
 
@@ -130,7 +130,7 @@ internal static class BokehBlurKernelDataProvider
         int kernelSize,
         float kernelsScale)
     {
-        var kernels = new Complex64[kernelParameters.Length][];
+        Complex64[][] kernels = new Complex64[kernelParameters.Length][];
         ref Vector4 baseRef = ref MemoryMarshal.GetReference(kernelParameters.AsSpan());
         for (int i = 0; i < kernelParameters.Length; i++)
         {
@@ -156,7 +156,7 @@ internal static class BokehBlurKernelDataProvider
         float a,
         float b)
     {
-        var kernel = new Complex64[kernelSize];
+        Complex64[] kernel = new Complex64[kernelSize];
         ref Complex64 baseRef = ref MemoryMarshal.GetReference(kernel.AsSpan());
         int r = radius, n = -r;
 
@@ -167,7 +167,7 @@ internal static class BokehBlurKernelDataProvider
             value *= value;
 
             // Fill in the complex kernel values
-            Unsafe.Add(ref baseRef, (uint)i) = new Complex64(
+            Unsafe.Add(ref baseRef, (uint)i) = new(
                 MathF.Exp(-a * value) * MathF.Cos(b * value),
                 MathF.Exp(-a * value) * MathF.Sin(b * value));
         }

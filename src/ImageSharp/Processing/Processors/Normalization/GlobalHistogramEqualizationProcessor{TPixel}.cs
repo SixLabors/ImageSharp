@@ -132,7 +132,7 @@ internal class GlobalHistogramEqualizationProcessor<TPixel> : HistogramEqualizat
                 Vector4 vector = Unsafe.Add(ref vectorRef, (uint)x);
                 int luminance = ColorNumerics.GetBT709Luminance(ref vector, levels);
                 float luminanceEqualized = Unsafe.Add(ref cdfBase, (uint)luminance) / noOfPixelsMinusCdfMin;
-                Unsafe.Add(ref vectorRef, (uint)x) = new Vector4(luminanceEqualized, luminanceEqualized, luminanceEqualized, vector.W);
+                Unsafe.Add(ref vectorRef, (uint)x) = new(luminanceEqualized, luminanceEqualized, luminanceEqualized, vector.W);
             }
 
             PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, vectorBuffer, pixelRow);

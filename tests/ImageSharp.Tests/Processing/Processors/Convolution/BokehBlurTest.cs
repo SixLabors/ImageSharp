@@ -108,9 +108,9 @@ public class BokehBlurTest
 
     public static readonly TheoryData<BokehBlurInfo> BokehBlurValues = new()
     {
-        new BokehBlurInfo { Radius = 8, Components = 1, Gamma = 1 },
-        new BokehBlurInfo { Radius = 16, Components = 1, Gamma = 3 },
-        new BokehBlurInfo { Radius = 16, Components = 2, Gamma = 3 }
+        new() { Radius = 8, Components = 1, Gamma = 1 },
+        new() { Radius = 16, Components = 1, Gamma = 3 },
+        new() { Radius = 16, Components = 2, Gamma = 3 }
     };
 
     public static readonly string[] TestFiles =

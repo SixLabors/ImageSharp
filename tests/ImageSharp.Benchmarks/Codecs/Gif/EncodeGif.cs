@@ -38,7 +38,7 @@ public abstract class EncodeGif
             this.bmpDrawing = SDImage.FromStream(this.bmpStream);
 
             this.bmpStream.Position = 0;
-            this.magickImage = new MagickImageCollection(this.bmpStream);
+            this.magickImage = new(this.bmpStream);
         }
     }
 
@@ -83,6 +83,6 @@ public class EncodeGif_CoarsePaletteEncoder : EncodeGif
 {
     protected override GifEncoder Encoder => new()
     {
-        Quantizer = new WebSafePaletteQuantizer(new QuantizerOptions { Dither = KnownDitherings.Bayer4x4, ColorMatchingMode = ColorMatchingMode.Coarse })
+        Quantizer = new WebSafePaletteQuantizer(new() { Dither = KnownDitherings.Bayer4x4, ColorMatchingMode = ColorMatchingMode.Coarse })
     };
 }

@@ -80,7 +80,7 @@ public class Vp8ResidualTests
         Vp8BandProbas[] bandProbas = new Vp8BandProbas[8];
         for (int i = 0; i < bandProbas.Length; i++)
         {
-            bandProbas[i] = new Vp8BandProbas();
+            bandProbas[i] = new();
             for (int j = 0; j < bandProbas[i].Probabilities.Length; j++)
             {
                 for (int k = 0; k < 11; k++)
@@ -95,7 +95,7 @@ public class Vp8ResidualTests
         residual.Costs = new Vp8Costs[16];
         for (int i = 0; i < residual.Costs.Length; i++)
         {
-            residual.Costs[i] = new Vp8Costs();
+            residual.Costs[i] = new();
             Vp8CostArray[] costsArray = residual.Costs[i].Costs;
             for (int j = 0; j < costsArray.Length; j++)
             {
@@ -109,7 +109,7 @@ public class Vp8ResidualTests
         residual.Stats = new Vp8Stats[8];
         for (int i = 0; i < residual.Stats.Length; i++)
         {
-            residual.Stats[i] = new Vp8Stats();
+            residual.Stats[i] = new();
             for (int j = 0; j < residual.Stats[i].Stats.Length; j++)
             {
                 for (int k = 0; k < residual.Stats[i].Stats[j].Stats.Length; k++)

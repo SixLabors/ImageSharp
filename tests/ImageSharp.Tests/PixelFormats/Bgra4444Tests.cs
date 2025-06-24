@@ -17,8 +17,8 @@ public class Bgra4444Tests
     public void AreEqual()
     {
         Bgra4444 color1 = new(0.0f, 0.0f, 0.0f, 0.0f);
-        Bgra4444 color2 = new(new Vector4(0.0f));
-        Bgra4444 color3 = new(new Vector4(1.0f, 0.0f, 1.0f, 1.0f));
+        Bgra4444 color2 = new(new(0.0f));
+        Bgra4444 color3 = new(new(1.0f, 0.0f, 1.0f, 1.0f));
         Bgra4444 color4 = new(1.0f, 0.0f, 1.0f, 1.0f);
 
         Assert.Equal(color1, color2);
@@ -32,8 +32,8 @@ public class Bgra4444Tests
     public void AreNotEqual()
     {
         Bgra4444 color1 = new(0.0f, 0.0f, 0.0f, 0.0f);
-        Bgra4444 color2 = new(new Vector4(1.0f));
-        Bgra4444 color3 = new(new Vector4(1.0f, 0.0f, 0.0f, 1.0f));
+        Bgra4444 color2 = new(new(1.0f));
+        Bgra4444 color3 = new(new(1.0f, 0.0f, 0.0f, 1.0f));
         Bgra4444 color4 = new(1.0f, 1.0f, 0.0f, 1.0f);
 
         Assert.NotEqual(color1, color2);
@@ -114,7 +114,7 @@ public class Bgra4444Tests
         const ushort expected = ushort.MaxValue;
 
         // act
-        Bgra4444 pixel = Bgra4444.FromBgra5551(new Bgra5551(1.0f, 1.0f, 1.0f, 1.0f));
+        Bgra4444 pixel = Bgra4444.FromBgra5551(new(1.0f, 1.0f, 1.0f, 1.0f));
 
         // assert
         Assert.Equal(expected, pixel.PackedValue);
@@ -127,7 +127,7 @@ public class Bgra4444Tests
         const ushort expectedPackedValue = ushort.MaxValue;
 
         // act
-        Bgra4444 pixel = Bgra4444.FromArgb32(new Argb32(255, 255, 255, 255));
+        Bgra4444 pixel = Bgra4444.FromArgb32(new(255, 255, 255, 255));
 
         // assert
         Assert.Equal(expectedPackedValue, pixel.PackedValue);
@@ -141,8 +141,8 @@ public class Bgra4444Tests
         const ushort expectedPackedValue2 = 0xFF0F;
 
         // act
-        Bgra4444 bgra1 = Bgra4444.FromRgba32(new Rgba32(255, 255, 255, 255));
-        Bgra4444 bgra2 = Bgra4444.FromRgba32(new Rgba32(255, 0, 255, 255));
+        Bgra4444 bgra1 = Bgra4444.FromRgba32(new(255, 255, 255, 255));
+        Bgra4444 bgra2 = Bgra4444.FromRgba32(new(255, 0, 255, 255));
 
         // assert
         Assert.Equal(expectedPackedValue1, bgra1.PackedValue);
@@ -156,7 +156,7 @@ public class Bgra4444Tests
         const ushort expectedPackedValue = ushort.MaxValue;
 
         // act
-        Bgra4444 pixel = Bgra4444.FromRgb48(new Rgb48(ushort.MaxValue, ushort.MaxValue, ushort.MaxValue));
+        Bgra4444 pixel = Bgra4444.FromRgb48(new(ushort.MaxValue, ushort.MaxValue, ushort.MaxValue));
 
         // assert
         Assert.Equal(expectedPackedValue, pixel.PackedValue);
@@ -169,7 +169,7 @@ public class Bgra4444Tests
         const ushort expectedPackedValue = ushort.MaxValue;
 
         // act
-        Bgra4444 pixel = Bgra4444.FromRgba64(new Rgba64(ushort.MaxValue, ushort.MaxValue, ushort.MaxValue, ushort.MaxValue));
+        Bgra4444 pixel = Bgra4444.FromRgba64(new(ushort.MaxValue, ushort.MaxValue, ushort.MaxValue, ushort.MaxValue));
 
         // assert
         Assert.Equal(expectedPackedValue, pixel.PackedValue);
@@ -182,7 +182,7 @@ public class Bgra4444Tests
         const ushort expectedPackedValue = ushort.MaxValue;
 
         // act
-        Bgra4444 pixel = Bgra4444.FromL16(new L16(ushort.MaxValue));
+        Bgra4444 pixel = Bgra4444.FromL16(new(ushort.MaxValue));
 
         // assert
         Assert.Equal(expectedPackedValue, pixel.PackedValue);
@@ -195,7 +195,7 @@ public class Bgra4444Tests
         const ushort expectedPackedValue = ushort.MaxValue;
 
         // act
-        Bgra4444 pixel = Bgra4444.FromL8(new L8(byte.MaxValue));
+        Bgra4444 pixel = Bgra4444.FromL8(new(byte.MaxValue));
 
         // assert
         Assert.Equal(expectedPackedValue, pixel.PackedValue);
@@ -208,7 +208,7 @@ public class Bgra4444Tests
         const ushort expectedPackedValue = ushort.MaxValue;
 
         // act
-        Bgra4444 pixel = Bgra4444.FromBgr24(new Bgr24(byte.MaxValue, byte.MaxValue, byte.MaxValue));
+        Bgra4444 pixel = Bgra4444.FromBgr24(new(byte.MaxValue, byte.MaxValue, byte.MaxValue));
 
         // assert
         Assert.Equal(expectedPackedValue, pixel.PackedValue);
@@ -221,7 +221,7 @@ public class Bgra4444Tests
         const ushort expectedPackedValue = ushort.MaxValue;
 
         // act
-        Bgra4444 pixel = Bgra4444.FromRgb24(new Rgb24(byte.MaxValue, byte.MaxValue, byte.MaxValue));
+        Bgra4444 pixel = Bgra4444.FromRgb24(new(byte.MaxValue, byte.MaxValue, byte.MaxValue));
 
         // assert
         Assert.Equal(expectedPackedValue, pixel.PackedValue);

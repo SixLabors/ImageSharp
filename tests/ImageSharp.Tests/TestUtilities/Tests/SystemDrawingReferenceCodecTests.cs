@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Drawing;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.PixelFormats;
@@ -35,7 +36,7 @@ public class SystemDrawingReferenceCodecTests
     {
         string path = TestFile.GetInputFileFullPath(TestImages.Png.Splash);
 
-        using var sdBitmap = new System.Drawing.Bitmap(path);
+        using Bitmap sdBitmap = new System.Drawing.Bitmap(path);
         using Image<TPixel> image = SystemDrawingBridge.From32bppArgbSystemDrawingBitmap<TPixel>(sdBitmap);
         image.DebugSave(dummyProvider);
     }
@@ -49,7 +50,7 @@ public class SystemDrawingReferenceCodecTests
             sourceImage.Mutate(c => c.MakeOpaque());
         }
 
-        var encoder = new PngEncoder { ColorType = pngColorType };
+        PngEncoder encoder = new PngEncoder { ColorType = pngColorType };
         return provider.Utility.SaveTestOutputFile(sourceImage, "png", encoder);
     }
 
@@ -65,7 +66,7 @@ public class SystemDrawingReferenceCodecTests
 
         string path = SavePng(provider, PngColorType.RgbWithAlpha);
 
-        using var sdBitmap = new System.Drawing.Bitmap(path);
+        using Bitmap sdBitmap = new System.Drawing.Bitmap(path);
         using Image<TPixel> original = provider.GetImage();
         using Image<TPixel> resaved = SystemDrawingBridge.From32bppArgbSystemDrawingBitmap<TPixel>(sdBitmap);
         ImageComparer comparer = ImageComparer.Exact;
@@ -80,7 +81,7 @@ public class SystemDrawingReferenceCodecTests
         string path = SavePng(provider, PngColorType.Rgb);
 
         using Image<TPixel> original = provider.GetImage();
-        using var sdBitmap = new System.Drawing.Bitmap(path);
+        using Bitmap sdBitmap = new System.Drawing.Bitmap(path);
         using Image<TPixel> resaved = SystemDrawingBridge.From24bppRgbSystemDrawingBitmap<TPixel>(sdBitmap);
         ImageComparer comparer = ImageComparer.Exact;
         comparer.VerifySimilarity(original, resaved);

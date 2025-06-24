@@ -71,7 +71,7 @@ internal static class ExifEncodedStringHelpers
                 {
                     // Little-endian BOM
                     string text = Encoding.Unicode.GetString(textBuffer[2..]);
-                    encodedString = new EncodedString(code, text);
+                    encodedString = new(code, text);
                     return true;
                 }
 
@@ -79,14 +79,14 @@ internal static class ExifEncodedStringHelpers
                 {
                     // Big-endian BOM
                     string text = Encoding.BigEndianUnicode.GetString(textBuffer[2..]);
-                    encodedString = new EncodedString(code, text);
+                    encodedString = new(code, text);
                     return true;
                 }
             }
 
             {
                 string text = GetEncoding(code, order).GetString(textBuffer);
-                encodedString = new EncodedString(code, text);
+                encodedString = new(code, text);
                 return true;
             }
         }

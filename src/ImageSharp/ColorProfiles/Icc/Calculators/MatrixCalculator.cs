@@ -14,7 +14,7 @@ internal class MatrixCalculator : IVector4Calculator
     public MatrixCalculator(Matrix4x4 matrix3x3, Vector3 matrix3x1)
     {
         this.matrix2D = matrix3x3;
-        this.matrix1D = new Vector4(matrix3x1, 0);
+        this.matrix1D = new(matrix3x1, 0);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

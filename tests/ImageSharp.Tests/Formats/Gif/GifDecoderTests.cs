@@ -381,4 +381,21 @@ public class GifDecoderTests
         image.DebugSaveMultiFrame(provider);
         image.CompareToReferenceOutputMultiFrame(provider, ImageComparer.Exact);
     }
+
+    // https://github.com/SixLabors/ImageSharp/issues/2953
+    [Theory]
+    [WithFile(TestImages.Gif.Issues.Issue2953, PixelTypes.Rgba32)]
+    public void Issue2953<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        // We should throw a InvalidImageContentException when trying to identify or load an invalid GIF file.
+        TestFile testFile = TestFile.Create(provider.SourceFileOrDescription);
+
+        Assert.Throws<InvalidImageContentException>(() => Image.Identify(testFile.FullPath));
+        Assert.Throws<InvalidImageContentException>(() => Image.Load(testFile.FullPath));
+
+        DecoderOptions options = new() { SkipMetadata = true };
+        Assert.Throws<InvalidImageContentException>(() => Image.Identify(options, testFile.FullPath));
+        Assert.Throws<InvalidImageContentException>(() => Image.Load(options, testFile.FullPath));
+    }
 }

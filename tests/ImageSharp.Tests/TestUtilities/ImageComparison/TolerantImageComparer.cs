@@ -70,7 +70,7 @@ public class TolerantImageComparer : ImageComparer
 
         float totalDifference = 0F;
 
-        List<PixelDifference> differences = new();
+        List<PixelDifference> differences = [];
         Configuration configuration = expected.Configuration;
         Buffer2D<TPixelA> expectedBuffer = expected.PixelBuffer;
         Buffer2D<TPixelB> actualBuffer = actual.PixelBuffer;

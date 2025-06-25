@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Iptc;
 [DebuggerDisplay("{Tag} = {ToString(),nq} ({GetType().Name,nq})")]
 public sealed class IptcValue : IDeepCloneable<IptcValue>
 {
-    private byte[] data = Array.Empty<byte>();
+    private byte[] data = [];
     private Encoding encoding;
 
     internal IptcValue(IptcValue other)
@@ -91,7 +91,7 @@ public sealed class IptcValue : IDeepCloneable<IptcValue>
         {
             if (string.IsNullOrEmpty(value))
             {
-                this.data = Array.Empty<byte>();
+                this.data = [];
             }
             else
             {

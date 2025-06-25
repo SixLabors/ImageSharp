@@ -12,14 +12,14 @@ internal static class IccTestDataProfiles
     public static readonly IccProfileId ProfileRandomIdValue = new(0x917D6DE6, 0x84C958D1, 0x3BB0F5BB, 0xADD1134F);
 
     public static readonly byte[] HeaderRandomIdArray =
-    {
-        0x84, 0xA8, 0xD4, 0x60, 0xC7, 0x16, 0xB6, 0xF3, 0x9B, 0x0E, 0x4C, 0x3D, 0xAB, 0x95, 0xF8, 0x38,
-    };
+    [
+        0x84, 0xA8, 0xD4, 0x60, 0xC7, 0x16, 0xB6, 0xF3, 0x9B, 0x0E, 0x4C, 0x3D, 0xAB, 0x95, 0xF8, 0x38
+    ];
 
     public static readonly byte[] ProfileRandomIdArray =
-    {
-        0x91, 0x7D, 0x6D, 0xE6, 0x84, 0xC9, 0x58, 0xD1, 0x3B, 0xB0, 0xF5, 0xBB, 0xAD, 0xD1, 0x13, 0x4F,
-    };
+    [
+        0x91, 0x7D, 0x6D, 0xE6, 0x84, 0xC9, 0x58, 0xD1, 0x3B, 0xB0, 0xF5, 0xBB, 0xAD, 0xD1, 0x13, 0x4F
+    ];
 
     public static readonly IccProfileHeader HeaderRandomWrite = CreateHeaderRandomValue(
         562,        // should be overwritten
@@ -106,10 +106,10 @@ internal static class IccTestDataProfiles
             168,
             ProfileRandomIdValue,
             "acsp"),
-        new IccTagDataEntry[] { IccTestDataTagDataEntry.UnknownVal, IccTestDataTagDataEntry.UnknownVal });
+        [IccTestDataTagDataEntry.UnknownVal, IccTestDataTagDataEntry.UnknownVal]);
 
     public static readonly byte[] HeaderCorruptDataColorSpaceArray =
-    {
+    [
         0x00, 0x00, 0x00, 0x80,     // Size
         0x61, 0x62, 0x63, 0x64,     // CmmType
         0x04, 0x30, 0x00, 0x00,     // Version
@@ -134,11 +134,11 @@ internal static class IccTestDataProfiles
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00,
-    };
+        0x00, 0x00, 0x00, 0x00
+    ];
 
     public static readonly byte[] HeaderCorruptProfileConnectionSpaceArray =
-    {
+    [
         0x00, 0x00, 0x00, 0x80,     // Size
         0x62, 0x63, 0x64, 0x65,     // CmmType
         0x04, 0x30, 0x00, 0x00,     // Version
@@ -163,11 +163,11 @@ internal static class IccTestDataProfiles
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00,
-    };
+        0x00, 0x00, 0x00, 0x00
+    ];
 
     public static readonly byte[] HeaderCorruptRenderingIntentArray =
-    {
+    [
         0x00, 0x00, 0x00, 0x80,     // Size
         0x63, 0x64, 0x65, 0x66,     // CmmType
         0x04, 0x30, 0x00, 0x00,     // Version
@@ -192,8 +192,8 @@ internal static class IccTestDataProfiles
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00,
-    };
+        0x00, 0x00, 0x00, 0x00
+    ];
 
     public static readonly byte[] HeaderDataTooSmallArray = new byte[127];
 
@@ -204,20 +204,20 @@ internal static class IccTestDataProfiles
     public static readonly byte[] HeaderSizeBiggerThanDataArray = CreateHeaderRandomArray(160, 0, HeaderRandomIdArray);
 
     public static readonly object[][] ProfileIdTestData =
-    {
-        new object[] { HeaderRandomArray, HeaderRandomIdValue },
-        new object[] { ProfileRandomArray, ProfileRandomIdValue },
-    };
+    [
+        [HeaderRandomArray, HeaderRandomIdValue],
+        [ProfileRandomArray, ProfileRandomIdValue]
+    ];
 
     public static readonly object[][] ProfileValidityTestData =
-    {
-        new object[] { HeaderCorruptDataColorSpaceArray, false },
-        new object[] { HeaderCorruptProfileConnectionSpaceArray, false },
-        new object[] { HeaderCorruptRenderingIntentArray, false },
-        new object[] { HeaderDataTooSmallArray, false },
-        new object[] { HeaderInvalidSizeSmallArray, false },
-        new object[] { HeaderInvalidSizeBigArray, false },
-        new object[] { HeaderSizeBiggerThanDataArray, false },
-        new object[] { HeaderRandomArray, true },
-    };
+    [
+        [HeaderCorruptDataColorSpaceArray, false],
+        [HeaderCorruptProfileConnectionSpaceArray, false],
+        [HeaderCorruptRenderingIntentArray, false],
+        [HeaderDataTooSmallArray, false],
+        [HeaderInvalidSizeSmallArray, false],
+        [HeaderInvalidSizeBigArray, false],
+        [HeaderSizeBiggerThanDataArray, false],
+        [HeaderRandomArray, true]
+    ];
 }

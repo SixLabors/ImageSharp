@@ -269,7 +269,7 @@ public sealed class ImageFrameCollection<TPixel> : ImageFrameCollection, IEnumer
 
         this.frames.Remove(frame);
 
-        return new(this.parent.Configuration, this.parent.Metadata.DeepClone(), new[] { frame });
+        return new(this.parent.Configuration, this.parent.Metadata.DeepClone(), [frame]);
     }
 
     /// <summary>
@@ -284,7 +284,7 @@ public sealed class ImageFrameCollection<TPixel> : ImageFrameCollection, IEnumer
 
         ImageFrame<TPixel> frame = this[index];
         ImageFrame<TPixel> clonedFrame = frame.Clone();
-        return new(this.parent.Configuration, this.parent.Metadata.DeepClone(), new[] { clonedFrame });
+        return new(this.parent.Configuration, this.parent.Metadata.DeepClone(), [clonedFrame]);
     }
 
     /// <summary>

@@ -17,18 +17,18 @@ internal class YCbCrConverter
     private readonly YCbCrToRgbConverter converter;
 
     private static readonly Rational[] DefaultLuma =
-    {
+    [
         new(299, 1000),
         new(587, 1000),
         new(114, 1000)
-    };
+    ];
 
     private static readonly Rational[] DefaultReferenceBlackWhite =
-    {
+    [
         new(0, 1), new(255, 1),
         new(128, 1), new(255, 1),
         new(128, 1), new(255, 1)
-    };
+    ];
 
     public YCbCrConverter(Rational[] referenceBlackAndWhite, Rational[] coefficients)
     {

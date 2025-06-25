@@ -45,7 +45,7 @@ public class WebpCommonUtilsTests
     {
         // arrange
         byte[] rowBytes =
-        {
+        [
             122, 120, 101, 255,
             171, 165, 151, 255,
             209, 208, 210, 255,
@@ -104,8 +104,8 @@ public class WebpCommonUtilsTests
             171, 165, 151, 0,
             209, 208, 210, 100,
             174, 183, 189, 255,
-            148, 158, 158, 255,
-        };
+            148, 158, 158, 255
+        ];
         ReadOnlySpan<Bgra32> row = MemoryMarshal.Cast<byte, Bgra32>(rowBytes);
 
         bool noneOpaque;
@@ -127,7 +127,7 @@ public class WebpCommonUtilsTests
     {
         // arrange
         byte[] rowBytes =
-        {
+        [
             122, 120, 101, 255,
             171, 165, 151, 255,
             209, 208, 210, 255,
@@ -186,8 +186,8 @@ public class WebpCommonUtilsTests
             171, 165, 151, 255,
             209, 208, 210, 255,
             174, 183, 189, 255,
-            148, 158, 158, 255,
-        };
+            148, 158, 158, 255
+        ];
         ReadOnlySpan<Bgra32> row = MemoryMarshal.Cast<byte, Bgra32>(rowBytes);
 
         bool noneOpaque;

@@ -10,7 +10,7 @@ public class ClampFloat
 {
     private readonly float min = -1.5f;
     private readonly float max = 2.5f;
-    private static readonly float[] Values = { -10, -5, -3, -1.5f, -0.5f, 0f, 1f, 1.5f, 2.5f, 3, 10 };
+    private static readonly float[] Values = [-10, -5, -3, -1.5f, -0.5f, 0f, 1f, 1.5f, 2.5f, 3, 10];
 
     [Benchmark(Baseline = true)]
     public float UsingMathF()

@@ -21,32 +21,32 @@ internal sealed unsafe partial class JpegEncoderCore
         JpegQuantizationTableConfig defaultLuminanceQuantTable = new JpegQuantizationTableConfig(0, Quantization.LuminanceTable);
         JpegQuantizationTableConfig defaultChrominanceQuantTable = new JpegQuantizationTableConfig(1, Quantization.ChrominanceTable);
 
-        JpegHuffmanTableConfig[] yCbCrHuffmanConfigs = new JpegHuffmanTableConfig[]
-        {
+        JpegHuffmanTableConfig[] yCbCrHuffmanConfigs =
+        [
             defaultLuminanceHuffmanDC,
             defaultLuminanceHuffmanAC,
             defaultChrominanceHuffmanDC,
-            defaultChrominanceHuffmanAC,
-        };
+            defaultChrominanceHuffmanAC
+        ];
 
-        JpegQuantizationTableConfig[] yCbCrQuantTableConfigs = new JpegQuantizationTableConfig[]
-        {
+        JpegQuantizationTableConfig[] yCbCrQuantTableConfigs =
+        [
             defaultLuminanceQuantTable,
-            defaultChrominanceQuantTable,
-        };
+            defaultChrominanceQuantTable
+        ];
 
-        return new JpegFrameConfig[]
-        {
+        return
+        [
+
             // YCbCr 4:4:4
             new JpegFrameConfig(
                 JpegColorSpace.YCbCr,
                 JpegColorType.YCbCrRatio444,
-                new JpegComponentConfig[]
-                {
+                [
                     new JpegComponentConfig(id: 1, hsf: 1, vsf: 1, quantIndex: 0, dcIndex: 0, acIndex: 0),
                     new JpegComponentConfig(id: 2, hsf: 1, vsf: 1, quantIndex: 1, dcIndex: 1, acIndex: 1),
-                    new JpegComponentConfig(id: 3, hsf: 1, vsf: 1, quantIndex: 1, dcIndex: 1, acIndex: 1),
-                },
+                    new JpegComponentConfig(id: 3, hsf: 1, vsf: 1, quantIndex: 1, dcIndex: 1, acIndex: 1)
+                ],
                 yCbCrHuffmanConfigs,
                 yCbCrQuantTableConfigs),
 
@@ -54,12 +54,11 @@ internal sealed unsafe partial class JpegEncoderCore
             new JpegFrameConfig(
                 JpegColorSpace.YCbCr,
                 JpegColorType.YCbCrRatio422,
-                new JpegComponentConfig[]
-                {
+                [
                     new JpegComponentConfig(id: 1, hsf: 2, vsf: 1, quantIndex: 0, dcIndex: 0, acIndex: 0),
                     new JpegComponentConfig(id: 2, hsf: 1, vsf: 1, quantIndex: 1, dcIndex: 1, acIndex: 1),
-                    new JpegComponentConfig(id: 3, hsf: 1, vsf: 1, quantIndex: 1, dcIndex: 1, acIndex: 1),
-                },
+                    new JpegComponentConfig(id: 3, hsf: 1, vsf: 1, quantIndex: 1, dcIndex: 1, acIndex: 1)
+                ],
                 yCbCrHuffmanConfigs,
                 yCbCrQuantTableConfigs),
 
@@ -67,12 +66,11 @@ internal sealed unsafe partial class JpegEncoderCore
             new JpegFrameConfig(
                 JpegColorSpace.YCbCr,
                 JpegColorType.YCbCrRatio420,
-                new JpegComponentConfig[]
-                {
+                [
                     new JpegComponentConfig(id: 1, hsf: 2, vsf: 2, quantIndex: 0, dcIndex: 0, acIndex: 0),
                     new JpegComponentConfig(id: 2, hsf: 1, vsf: 1, quantIndex: 1, dcIndex: 1, acIndex: 1),
-                    new JpegComponentConfig(id: 3, hsf: 1, vsf: 1, quantIndex: 1, dcIndex: 1, acIndex: 1),
-                },
+                    new JpegComponentConfig(id: 3, hsf: 1, vsf: 1, quantIndex: 1, dcIndex: 1, acIndex: 1)
+                ],
                 yCbCrHuffmanConfigs,
                 yCbCrQuantTableConfigs),
 
@@ -80,12 +78,11 @@ internal sealed unsafe partial class JpegEncoderCore
             new JpegFrameConfig(
                 JpegColorSpace.YCbCr,
                 JpegColorType.YCbCrRatio411,
-                new JpegComponentConfig[]
-                {
+                [
                     new JpegComponentConfig(id: 1, hsf: 4, vsf: 1, quantIndex: 0, dcIndex: 0, acIndex: 0),
                     new JpegComponentConfig(id: 2, hsf: 1, vsf: 1, quantIndex: 1, dcIndex: 1, acIndex: 1),
-                    new JpegComponentConfig(id: 3, hsf: 1, vsf: 1, quantIndex: 1, dcIndex: 1, acIndex: 1),
-                },
+                    new JpegComponentConfig(id: 3, hsf: 1, vsf: 1, quantIndex: 1, dcIndex: 1, acIndex: 1)
+                ],
                 yCbCrHuffmanConfigs,
                 yCbCrQuantTableConfigs),
 
@@ -93,12 +90,11 @@ internal sealed unsafe partial class JpegEncoderCore
             new JpegFrameConfig(
                 JpegColorSpace.YCbCr,
                 JpegColorType.YCbCrRatio410,
-                new JpegComponentConfig[]
-                {
+                [
                     new JpegComponentConfig(id: 1, hsf: 4, vsf: 2, quantIndex: 0, dcIndex: 0, acIndex: 0),
                     new JpegComponentConfig(id: 2, hsf: 1, vsf: 1, quantIndex: 1, dcIndex: 1, acIndex: 1),
-                    new JpegComponentConfig(id: 3, hsf: 1, vsf: 1, quantIndex: 1, dcIndex: 1, acIndex: 1),
-                },
+                    new JpegComponentConfig(id: 3, hsf: 1, vsf: 1, quantIndex: 1, dcIndex: 1, acIndex: 1)
+                ],
                 yCbCrHuffmanConfigs,
                 yCbCrQuantTableConfigs),
 
@@ -106,39 +102,33 @@ internal sealed unsafe partial class JpegEncoderCore
             new JpegFrameConfig(
                 JpegColorSpace.Grayscale,
                 JpegColorType.Luminance,
-                new JpegComponentConfig[]
-                {
-                    new JpegComponentConfig(id: 0, hsf: 1, vsf: 1, quantIndex: 0, dcIndex: 0, acIndex: 0),
-                },
-                new JpegHuffmanTableConfig[]
-                {
+                [
+                    new JpegComponentConfig(id: 0, hsf: 1, vsf: 1, quantIndex: 0, dcIndex: 0, acIndex: 0)
+                ],
+                [
                     defaultLuminanceHuffmanDC,
                     defaultLuminanceHuffmanAC
-                },
-                new JpegQuantizationTableConfig[]
-                {
+                ],
+                [
                     defaultLuminanceQuantTable
-                }),
+                ]),
 
             // Rgb
             new JpegFrameConfig(
                 JpegColorSpace.RGB,
                 JpegColorType.Rgb,
-                new JpegComponentConfig[]
-                {
+                [
                     new JpegComponentConfig(id: 82, hsf: 1, vsf: 1, quantIndex: 0, dcIndex: 0, acIndex: 0),
                     new JpegComponentConfig(id: 71, hsf: 1, vsf: 1, quantIndex: 0, dcIndex: 0, acIndex: 0),
-                    new JpegComponentConfig(id: 66, hsf: 1, vsf: 1, quantIndex: 0, dcIndex: 0, acIndex: 0),
-                },
-                new JpegHuffmanTableConfig[]
-                {
+                    new JpegComponentConfig(id: 66, hsf: 1, vsf: 1, quantIndex: 0, dcIndex: 0, acIndex: 0)
+                ],
+                [
                     defaultLuminanceHuffmanDC,
                     defaultLuminanceHuffmanAC
-                },
-                new JpegQuantizationTableConfig[]
-                {
+                ],
+                [
                     defaultLuminanceQuantTable
-                })
+                ])
             {
                 AdobeColorTransformMarkerFlag = JpegConstants.Adobe.ColorTransformUnknown
             },
@@ -147,22 +137,19 @@ internal sealed unsafe partial class JpegEncoderCore
             new JpegFrameConfig(
                 JpegColorSpace.Cmyk,
                 JpegColorType.Cmyk,
-                new JpegComponentConfig[]
-                {
+                [
                     new JpegComponentConfig(id: 1, hsf: 1, vsf: 1, quantIndex: 0, dcIndex: 0, acIndex: 0),
                     new JpegComponentConfig(id: 2, hsf: 1, vsf: 1, quantIndex: 0, dcIndex: 0, acIndex: 0),
                     new JpegComponentConfig(id: 3, hsf: 1, vsf: 1, quantIndex: 0, dcIndex: 0, acIndex: 0),
-                    new JpegComponentConfig(id: 4, hsf: 1, vsf: 1, quantIndex: 0, dcIndex: 0, acIndex: 0),
-                },
-                new JpegHuffmanTableConfig[]
-                {
+                    new JpegComponentConfig(id: 4, hsf: 1, vsf: 1, quantIndex: 0, dcIndex: 0, acIndex: 0)
+                ],
+                [
                     defaultLuminanceHuffmanDC,
                     defaultLuminanceHuffmanAC
-                },
-                new JpegQuantizationTableConfig[]
-                {
+                ],
+                [
                     defaultLuminanceQuantTable
-                })
+                ])
             {
                 AdobeColorTransformMarkerFlag = JpegConstants.Adobe.ColorTransformUnknown,
             },
@@ -171,25 +158,22 @@ internal sealed unsafe partial class JpegEncoderCore
             new JpegFrameConfig(
                 JpegColorSpace.Ycck,
                 JpegColorType.Ycck,
-                new JpegComponentConfig[]
-                {
+                [
                     new JpegComponentConfig(id: 1, hsf: 1, vsf: 1, quantIndex: 0, dcIndex: 0, acIndex: 0),
                     new JpegComponentConfig(id: 2, hsf: 1, vsf: 1, quantIndex: 0, dcIndex: 0, acIndex: 0),
                     new JpegComponentConfig(id: 3, hsf: 1, vsf: 1, quantIndex: 0, dcIndex: 0, acIndex: 0),
-                    new JpegComponentConfig(id: 4, hsf: 1, vsf: 1, quantIndex: 0, dcIndex: 0, acIndex: 0),
-                },
-                new JpegHuffmanTableConfig[]
-                {
+                    new JpegComponentConfig(id: 4, hsf: 1, vsf: 1, quantIndex: 0, dcIndex: 0, acIndex: 0)
+                ],
+                [
                     defaultLuminanceHuffmanDC,
                     defaultLuminanceHuffmanAC
-                },
-                new JpegQuantizationTableConfig[]
-                {
+                ],
+                [
                     defaultLuminanceQuantTable
-                })
+                ])
             {
                 AdobeColorTransformMarkerFlag = JpegConstants.Adobe.ColorTransformYcck,
-            },
-        };
+            }
+        ];
     }
 }

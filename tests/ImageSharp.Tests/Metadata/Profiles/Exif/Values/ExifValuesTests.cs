@@ -355,7 +355,7 @@ public class ExifValuesTests
     [MemberData(nameof(ByteArrayTags))]
     public void ExifByteArrayTests(ExifTag tag)
     {
-        byte[] expected = new[] { byte.MaxValue };
+        byte[] expected = [byte.MaxValue];
         ExifValue value = ExifValues.Create(tag);
 
         Assert.False(value.TrySetValue(expected.ToString()));
@@ -369,7 +369,7 @@ public class ExifValuesTests
     [MemberData(nameof(DoubleArrayTags))]
     public void ExifDoubleArrayTests(ExifTag tag)
     {
-        double[] expected = new[] { double.MaxValue };
+        double[] expected = [double.MaxValue];
         ExifValue value = ExifValues.Create(tag);
 
         Assert.False(value.TrySetValue(expected.ToString()));
@@ -397,7 +397,7 @@ public class ExifValuesTests
     [MemberData(nameof(LongArrayTags))]
     public void ExifLongArrayTests(ExifTag tag)
     {
-        uint[] expected = new[] { uint.MaxValue };
+        uint[] expected = [uint.MaxValue];
         ExifValue value = ExifValues.Create(tag);
 
         Assert.False(value.TrySetValue(expected.ToString()));
@@ -458,7 +458,7 @@ public class ExifValuesTests
     [MemberData(nameof(NumberArrayTags))]
     public void ExifNumberArrayTests(ExifTag tag)
     {
-        Number[] expected = new[] { new Number(uint.MaxValue) };
+        Number[] expected = [new Number(uint.MaxValue)];
         ExifValue value = ExifValues.Create(tag);
 
         Assert.False(value.TrySetValue(expected.ToString()));
@@ -496,7 +496,7 @@ public class ExifValuesTests
     [MemberData(nameof(RationalArrayTags))]
     public void ExifRationalArrayTests(ExifTag tag)
     {
-        Rational[] expected = new[] { new Rational(21, 42) };
+        Rational[] expected = [new Rational(21, 42)];
         ExifValue value = ExifValues.Create(tag);
 
         Assert.False(value.TrySetValue(expected.ToString()));
@@ -526,7 +526,7 @@ public class ExifValuesTests
     [MemberData(nameof(ShortArrayTags))]
     public void ExifShortArrayTests(ExifTag tag)
     {
-        ushort[] expected = new[] { ushort.MaxValue };
+        ushort[] expected = [ushort.MaxValue];
         ExifValue value = ExifValues.Create(tag);
 
         Assert.False(value.TrySetValue(expected.ToString()));
@@ -554,7 +554,7 @@ public class ExifValuesTests
     [MemberData(nameof(SignedRationalArrayTags))]
     public void ExifSignedRationalArrayTests(ExifTag tag)
     {
-        SignedRational[] expected = new[] { new SignedRational(21, 42) };
+        SignedRational[] expected = [new SignedRational(21, 42)];
         ExifValue value = ExifValues.Create(tag);
 
         Assert.False(value.TrySetValue(expected.ToString()));
@@ -569,7 +569,7 @@ public class ExifValuesTests
     [MemberData(nameof(SignedShortArrayTags))]
     public void ExifSignedShortArrayTests(ExifTag tag)
     {
-        short[] expected = new short[] { 21, 42 };
+        short[] expected = [21, 42];
         ExifValue value = ExifValues.Create(tag);
 
         Assert.False(value.TrySetValue(expected.ToString()));
@@ -612,7 +612,7 @@ public class ExifValuesTests
     [MemberData(nameof(UndefinedArrayTags))]
     public void ExifUndefinedArrayTests(ExifTag tag)
     {
-        byte[] expected = new[] { byte.MaxValue };
+        byte[] expected = [byte.MaxValue];
         ExifValue value = ExifValues.Create(tag);
 
         Assert.False(value.TrySetValue(expected.ToString()));

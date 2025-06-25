@@ -47,7 +47,7 @@ internal sealed class LzwEncoder : IDisposable
     /// Mask used when shifting pixel values
     /// </summary>
     private static readonly int[] Masks =
-    {
+    [
         0b0,
         0b1,
         0b11,
@@ -65,7 +65,7 @@ internal sealed class LzwEncoder : IDisposable
         0b11111111111111,
         0b111111111111111,
         0b1111111111111111
-    };
+    ];
 
     /// <summary>
     /// The maximum number of bits/code.

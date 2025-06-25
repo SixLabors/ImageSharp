@@ -387,7 +387,7 @@ internal sealed class ChunkedMemoryStream : Stream
 
     private sealed class MemoryChunkBuffer : IDisposable
     {
-        private readonly List<MemoryChunk> memoryChunks = new();
+        private readonly List<MemoryChunk> memoryChunks = [];
         private readonly MemoryAllocator allocator;
         private readonly int allocatorCapacity;
         private bool isDisposed;

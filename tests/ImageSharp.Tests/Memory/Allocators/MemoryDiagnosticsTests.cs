@@ -27,7 +27,7 @@ public class MemoryDiagnosticsTests
             int leakCounter = 0;
             MemoryDiagnostics.UndisposedAllocation += _ => Interlocked.Increment(ref leakCounter);
 
-            List<IDisposable> buffers = new();
+            List<IDisposable> buffers = [];
 
             Assert.Equal(0, MemoryDiagnostics.TotalUndisposedAllocationCount);
             for (int length = 1024; length <= 64 * OneMb; length *= 2)

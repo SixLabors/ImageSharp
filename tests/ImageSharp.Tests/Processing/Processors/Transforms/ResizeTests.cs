@@ -20,15 +20,15 @@ public class ResizeTests
 
     public static readonly string[] AllResamplerNames = TestUtils.GetAllResamplerNames();
 
-    public static readonly string[] CommonTestImages = { TestImages.Png.CalliphoraPartial };
+    public static readonly string[] CommonTestImages = [TestImages.Png.CalliphoraPartial];
 
     public static readonly string[] SmokeTestResamplerNames =
-        {
-            nameof(KnownResamplers.NearestNeighbor),
+    [
+        nameof(KnownResamplers.NearestNeighbor),
             nameof(KnownResamplers.Bicubic),
             nameof(KnownResamplers.Box),
-            nameof(KnownResamplers.Lanczos5),
-        };
+            nameof(KnownResamplers.Lanczos5)
+    ];
 
     private static readonly ImageComparer ValidatorComparer =
         ImageComparer.TolerantPercentage(0.07F);

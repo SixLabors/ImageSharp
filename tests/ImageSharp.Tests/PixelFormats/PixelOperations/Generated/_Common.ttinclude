@@ -13,8 +13,8 @@ using Xunit;
 using Xunit.Abstractions;
 <#+
     private static readonly string[] UnassociatedAlphaPixelTypes =
-    {
-        "A8",
+        [
+            "A8",
         "Argb32",
         "Abgr32",
         "Bgra32",
@@ -31,13 +31,13 @@ using Xunit.Abstractions;
         "Rgba64",
         "RgbaVector",
         "Short4"
-    };
+            ];
 
-    private static readonly string[] AssociatedAlphaPixelTypes = Array.Empty<string>();
+    private static readonly string[] AssociatedAlphaPixelTypes = [];
 
     private static readonly string[] CommonPixelTypes =
-    {
-        "A8",
+        [
+            "A8",
         "Argb32",
         "Abgr32",
         "Bgr24",
@@ -65,8 +65,8 @@ using Xunit.Abstractions;
         "Rgba64",
         "RgbaVector",
         "Short2",
-        "Short4",
-    };
+        "Short4"
+            ];
 
     void GenerateSpecializedClass(string pixelType, string alpha)
     {#>

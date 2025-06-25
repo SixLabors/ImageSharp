@@ -32,12 +32,12 @@ public class ImageFormatManager
     /// <summary>
     /// The list of supported <see cref="IImageFormat"/>s.
     /// </summary>
-    private readonly HashSet<IImageFormat> imageFormats = new();
+    private readonly HashSet<IImageFormat> imageFormats = [];
 
     /// <summary>
     /// The list of supported <see cref="IImageFormatDetector"/>s.
     /// </summary>
-    private ConcurrentBag<IImageFormatDetector> imageFormatDetectors = new();
+    private ConcurrentBag<IImageFormatDetector> imageFormatDetectors = [];
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ImageFormatManager" /> class.
@@ -161,7 +161,7 @@ public class ImageFormatManager
     /// <summary>
     /// Removes all the registered image format detectors.
     /// </summary>
-    public void ClearImageFormatDetectors() => this.imageFormatDetectors = new();
+    public void ClearImageFormatDetectors() => this.imageFormatDetectors = [];
 
     /// <summary>
     /// Adds a new detector for detecting mime types.

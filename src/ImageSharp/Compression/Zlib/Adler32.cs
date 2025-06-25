@@ -32,11 +32,11 @@ internal static class Adler32
     private const int BlockSize = 1 << 5;
 
     // The C# compiler emits this as a compile-time constant embedded in the PE file.
-    private static ReadOnlySpan<byte> Tap1Tap2 => new byte[]
-    {
+    private static ReadOnlySpan<byte> Tap1Tap2 =>
+    [
         32, 31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, // tap1
         16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1 // tap2
-    };
+    ];
 
     /// <summary>
     /// Calculates the Adler32 checksum with the bytes taken from the span.

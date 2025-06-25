@@ -5,14 +5,14 @@ namespace SixLabors.ImageSharp.Tests.TestDataIcc;
 
 internal static class IccTestDataArray
 {
-    public static readonly byte[] UInt8 = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+    public static readonly byte[] UInt8 = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
 
     public static readonly object[][] UInt8TestData =
-    {
-        new object[] { UInt8, UInt8 }
-    };
+    [
+        [UInt8, UInt8]
+    ];
 
-    public static readonly ushort[] UInt16Val = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+    public static readonly ushort[] UInt16Val = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
 
     public static readonly byte[] UInt16Arr = ArrayHelper.Concat(
         IccTestDataPrimitives.UInt160,
@@ -27,11 +27,11 @@ internal static class IccTestDataArray
         IccTestDataPrimitives.UInt169);
 
     public static readonly object[][] UInt16TestData =
-    {
-        new object[] { UInt16Arr, UInt16Val }
-    };
+    [
+        [UInt16Arr, UInt16Val]
+    ];
 
-    public static readonly short[] Int16Val = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+    public static readonly short[] Int16Val = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
 
     public static readonly byte[] Int16Arr = ArrayHelper.Concat(
         IccTestDataPrimitives.Int160,
@@ -46,11 +46,11 @@ internal static class IccTestDataArray
         IccTestDataPrimitives.Int169);
 
     public static readonly object[][] Int16TestData =
-    {
-        new object[] { Int16Arr, Int16Val }
-    };
+    [
+        [Int16Arr, Int16Val]
+    ];
 
-    public static readonly uint[] UInt32Val = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+    public static readonly uint[] UInt32Val = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
 
     public static readonly byte[] UInt32Arr = ArrayHelper.Concat(
         IccTestDataPrimitives.UInt320,
@@ -65,11 +65,11 @@ internal static class IccTestDataArray
         IccTestDataPrimitives.UInt329);
 
     public static readonly object[][] UInt32TestData =
-    {
-        new object[] { UInt32Arr, UInt32Val }
-    };
+    [
+        [UInt32Arr, UInt32Val]
+    ];
 
-    public static readonly int[] Int32Val = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+    public static readonly int[] Int32Val = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
 
     public static readonly byte[] Int32Arr = ArrayHelper.Concat(
         IccTestDataPrimitives.Int320,
@@ -84,11 +84,11 @@ internal static class IccTestDataArray
         IccTestDataPrimitives.Int329);
 
     public static readonly object[][] Int32TestData =
-    {
-        new object[] { Int32Arr, Int32Val }
-    };
+    [
+        [Int32Arr, Int32Val]
+    ];
 
-    public static readonly ulong[] UInt64Val = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+    public static readonly ulong[] UInt64Val = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
 
     public static readonly byte[] UInt64Arr = ArrayHelper.Concat(
         IccTestDataPrimitives.UInt640,
@@ -103,7 +103,7 @@ internal static class IccTestDataArray
         IccTestDataPrimitives.UInt649);
 
     public static readonly object[][] UInt64TestData =
-    {
-        new object[] { UInt64Arr, UInt64Val }
-    };
+    [
+        [UInt64Arr, UInt64Val]
+    ];
 }

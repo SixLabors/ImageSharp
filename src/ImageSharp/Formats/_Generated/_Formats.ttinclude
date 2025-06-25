@@ -3,7 +3,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 <#+
-    private static readonly string[] formats = new []{
+    private static readonly string[] formats = [
         "Bmp",
         "Cur",
         "Gif",
@@ -14,15 +14,15 @@
         "Qoi",
         "Tga",
         "Tiff",
-        "Webp",
-    };
+        "Webp"
+        ];
 
-    private static readonly string[] frameFormats = new []{
+    private static readonly string[] frameFormats = [
         "Cur",
         "Ico",
         "Gif",
         "Png",
         "Tiff",
-        "Webp",
-    };
+        "Webp"
+        ];
 #>

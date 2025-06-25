@@ -45,7 +45,7 @@ public class ImageFrameMetadataTests
         ExifProfile exifProfile = new();
         exifProfile.SetValue(ExifTag.Software, "UnitTest");
         exifProfile.SetValue(ExifTag.Artist, "UnitTest");
-        XmpProfile xmpProfile = new(Array.Empty<byte>());
+        XmpProfile xmpProfile = new([]);
         IccProfile iccProfile = new()
         {
             Header = new IccProfileHeader

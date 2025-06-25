@@ -28,7 +28,7 @@ public class TestFormat : IImageFormatConfigurationModule, IImageFormat
         this.Decoder = new TestDecoder(this);
     }
 
-    public List<DecodeOperation> DecodeCalls { get; } = new();
+    public List<DecodeOperation> DecodeCalls { get; } = [];
 
     public TestEncoder Encoder { get; }
 
@@ -103,7 +103,7 @@ public class TestFormat : IImageFormatConfigurationModule, IImageFormat
 
     public string Extension => "test_ext";
 
-    public IEnumerable<string> SupportedExtensions => new[] { "test_ext" };
+    public IEnumerable<string> SupportedExtensions => ["test_ext"];
 
     public int HeaderSize => this.header.Length;
 
@@ -111,7 +111,7 @@ public class TestFormat : IImageFormatConfigurationModule, IImageFormat
 
     public string DefaultMimeType => this.MimeType;
 
-    public IEnumerable<string> MimeTypes => new[] { this.MimeType };
+    public IEnumerable<string> MimeTypes => [this.MimeType];
 
     public IEnumerable<string> FileExtensions => this.SupportedExtensions;
 
@@ -193,7 +193,7 @@ public class TestFormat : IImageFormatConfigurationModule, IImageFormat
 
         public TestDecoder(TestFormat testFormat) => this.testFormat = testFormat;
 
-        public IEnumerable<string> MimeTypes => new[] { this.testFormat.MimeType };
+        public IEnumerable<string> MimeTypes => [this.testFormat.MimeType];
 
         public IEnumerable<string> FileExtensions => this.testFormat.SupportedExtensions;
 
@@ -246,7 +246,7 @@ public class TestFormat : IImageFormatConfigurationModule, IImageFormat
 
         public TestEncoder(TestFormat testFormat) => this.testFormat = testFormat;
 
-        public IEnumerable<string> MimeTypes => new[] { this.testFormat.MimeType };
+        public IEnumerable<string> MimeTypes => [this.testFormat.MimeType];
 
         public IEnumerable<string> FileExtensions => this.testFormat.SupportedExtensions;
 

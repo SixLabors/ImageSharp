@@ -26,7 +26,7 @@ public class ExactImageComparer : ImageComparer
         Rgba64[] aBuffer = new Rgba64[width];
         Rgba64[] bBuffer = new Rgba64[width];
 
-        List<PixelDifference> differences = new();
+        List<PixelDifference> differences = [];
         Configuration configuration = expected.Configuration;
         Buffer2D<TPixelA> expectedBuffer = expected.PixelBuffer;
         Buffer2D<TPixelB> actualBuffer = actual.PixelBuffer;

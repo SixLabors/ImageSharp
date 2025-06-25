@@ -15,12 +15,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg;
 public class SpectralToPixelConversionTests
 {
     public static readonly string[] BaselineTestJpegs =
-    {
+    [
         TestImages.Jpeg.Baseline.Calliphora, TestImages.Jpeg.Baseline.Cmyk, TestImages.Jpeg.Baseline.Jpeg400,
         TestImages.Jpeg.Baseline.Jpeg444, TestImages.Jpeg.Baseline.Testorig420,
         TestImages.Jpeg.Baseline.Jpeg420Small, TestImages.Jpeg.Baseline.Bad.BadEOF,
         TestImages.Jpeg.Baseline.MultiScanBaselineCMYK
-    };
+    ];
 
     public SpectralToPixelConversionTests(ITestOutputHelper output) => this.Output = output;
 

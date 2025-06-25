@@ -67,7 +67,7 @@ public static class FeatureTestRunner
 
                 RemoteExecutor.Invoke(
                     action,
-                    new()
+                    new RemoteInvokeOptions
                     {
                         StartInfo = processStartInfo
                     })
@@ -109,7 +109,7 @@ public static class FeatureTestRunner
                 RemoteExecutor.Invoke(
                     action,
                     intrinsic.Key.ToString(),
-                    new()
+                    new RemoteInvokeOptions
                     {
                         StartInfo = processStartInfo
                     })
@@ -153,7 +153,7 @@ public static class FeatureTestRunner
                 RemoteExecutor.Invoke(
                     action,
                     BasicSerializer.Serialize(serializable),
-                    new()
+                    new RemoteInvokeOptions
                     {
                         StartInfo = processStartInfo
                     })
@@ -198,7 +198,7 @@ public static class FeatureTestRunner
                     action,
                     BasicSerializer.Serialize(serializable),
                     intrinsic.Key.ToString(),
-                    new()
+                    new RemoteInvokeOptions
                     {
                         StartInfo = processStartInfo
                     })
@@ -247,7 +247,7 @@ public static class FeatureTestRunner
                     action,
                     BasicSerializer.Serialize(arg1),
                     BasicSerializer.Serialize(arg2),
-                    new()
+                    new RemoteInvokeOptions
                     {
                         StartInfo = processStartInfo
                     })
@@ -294,7 +294,7 @@ public static class FeatureTestRunner
                     action,
                     BasicSerializer.Serialize(arg1),
                     arg2,
-                    new()
+                    new RemoteInvokeOptions
                     {
                         StartInfo = processStartInfo
                     })
@@ -338,7 +338,7 @@ public static class FeatureTestRunner
                 RemoteExecutor.Invoke(
                     action,
                     serializable.ToString(),
-                    new()
+                    new RemoteInvokeOptions
                     {
                         StartInfo = processStartInfo
                     })
@@ -385,7 +385,7 @@ public static class FeatureTestRunner
                     action,
                     arg0.ToString(),
                     arg1.ToString(),
-                    new()
+                    new RemoteInvokeOptions
                     {
                         StartInfo = processStartInfo
                     })

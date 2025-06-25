@@ -54,7 +54,7 @@ internal sealed class DeflateTiffCompression : TiffBaseDecompressor
     protected override void Decompress(BufferedReadStream stream, int byteCount, int stripHeight, Span<byte> buffer, CancellationToken cancellationToken)
     {
         long pos = stream.Position;
-        using (ZlibInflateStream deframeStream = new ZlibInflateStream(
+        using (ZlibInflateStream deframeStream = new(
             stream,
             () =>
             {

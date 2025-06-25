@@ -155,7 +155,7 @@ public class WhiteIsZeroTiffColorTests : PhotometricInterpretationTestBase
     {
         AssertDecode(expectedResult, pixels =>
             {
-                new WhiteIsZeroTiffColor<Rgba32>(new(bitsPerSample, 0, 0)).Decode(inputData, pixels, left, top, width, height);
+                new WhiteIsZeroTiffColor<Rgba32>(new TiffBitsPerSample(bitsPerSample, 0, 0)).Decode(inputData, pixels, left, top, width, height);
             });
     }
 

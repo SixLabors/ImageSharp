@@ -31,7 +31,7 @@ internal class CmykTiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
                 Span<TPixel> pixelRow = pixels.DangerousGetRowSpan(y).Slice(left, width);
                 for (int x = 0; x < pixelRow.Length; x++)
                 {
-                    pixelRow[x] = TPixel.FromVector4(new(data[offset] * Inv255, data[offset + 1] * Inv255, data[offset + 2] * Inv255, 1.0f));
+                    pixelRow[x] = TPixel.FromVector4(new Vector4(data[offset] * Inv255, data[offset + 1] * Inv255, data[offset + 2] * Inv255, 1.0f));
 
                     offset += 3;
                 }
@@ -47,7 +47,7 @@ internal class CmykTiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
             {
                 Cmyk cmyk = new(data[offset] * Inv255, data[offset + 1] * Inv255, data[offset + 2] * Inv255, data[offset + 3] * Inv255);
                 Rgb rgb = ColorProfileConverter.Convert<Cmyk, Rgb>(in cmyk);
-                pixelRow[x] = TPixel.FromScaledVector4(new(rgb.R, rgb.G, rgb.B, 1.0f));
+                pixelRow[x] = TPixel.FromScaledVector4(new Vector4(rgb.R, rgb.G, rgb.B, 1.0f));
 
                 offset += 4;
             }

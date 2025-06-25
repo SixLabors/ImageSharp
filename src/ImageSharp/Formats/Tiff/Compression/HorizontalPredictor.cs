@@ -222,7 +222,7 @@ internal static class HorizontalPredictor
                 byte r = (byte)(rowRgb[x].R - rowRgb[x - 1].R);
                 byte g = (byte)(rowRgb[x].G - rowRgb[x - 1].G);
                 byte b = (byte)(rowRgb[x].B - rowRgb[x - 1].B);
-                rowRgb[x] = new(r, g, b);
+                rowRgb[x] = new Rgb24(r, g, b);
             }
         }
     }
@@ -429,7 +429,7 @@ internal static class HorizontalPredictor
             r += pixel.R;
             g += pixel.G;
             b += pixel.B;
-            pixel = new(r, g, b);
+            pixel = new Rgb24(r, g, b);
         }
     }
 
@@ -462,7 +462,7 @@ internal static class HorizontalPredictor
             g += pixel.G;
             b += pixel.B;
             a += pixel.A;
-            pixel = new(r, g, b, a);
+            pixel = new Rgba32(r, g, b, a);
         }
     }
 

@@ -22,7 +22,7 @@ internal readonly struct GifNetscapeLoopingApplicationExtension : IGifExtension
     public static GifNetscapeLoopingApplicationExtension Parse(ReadOnlySpan<byte> buffer)
     {
         ushort repeatCount = BinaryPrimitives.ReadUInt16LittleEndian(buffer[..2]);
-        return new(repeatCount);
+        return new GifNetscapeLoopingApplicationExtension(repeatCount);
     }
 
     public int WriteTo(Span<byte> buffer)

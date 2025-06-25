@@ -47,11 +47,11 @@ public class VectorFetching
     [Benchmark]
     public void FetchWithVectorConstructor()
     {
-        Vector<float> v = new Vector<float>(this.testValue);
+        Vector<float> v = new(this.testValue);
 
         for (int i = 0; i < this.data.Length; i += Vector<uint>.Count)
         {
-            Vector<float> a = new Vector<float>(this.data, i);
+            Vector<float> a = new(this.data, i);
             a = a * v;
             a.CopyTo(this.data, i);
         }
@@ -60,7 +60,7 @@ public class VectorFetching
     [Benchmark]
     public void FetchWithUnsafeCast()
     {
-        Vector<float> v = new Vector<float>(this.testValue);
+        Vector<float> v = new(this.testValue);
         ref Vector<float> start = ref Unsafe.As<float, Vector<float>>(ref this.data[0]);
 
         nuint n = (uint)this.InputSize / (uint)Vector<uint>.Count;
@@ -79,7 +79,7 @@ public class VectorFetching
     [Benchmark]
     public void FetchWithUnsafeCastNoTempVector()
     {
-        Vector<float> v = new Vector<float>(this.testValue);
+        Vector<float> v = new(this.testValue);
         ref Vector<float> start = ref Unsafe.As<float, Vector<float>>(ref this.data[0]);
 
         nuint n = (uint)this.InputSize / (uint)Vector<uint>.Count;
@@ -94,9 +94,9 @@ public class VectorFetching
     [Benchmark]
     public void FetchWithUnsafeCastFromReference()
     {
-        Vector<float> v = new Vector<float>(this.testValue);
+        Vector<float> v = new(this.testValue);
 
-        Span<float> span = new Span<float>(this.data);
+        Span<float> span = new(this.data);
 
         ref Vector<float> start = ref Unsafe.As<float, Vector<float>>(ref MemoryMarshal.GetReference(span));
 

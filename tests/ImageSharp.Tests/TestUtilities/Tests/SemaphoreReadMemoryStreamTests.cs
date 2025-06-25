@@ -5,8 +5,8 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.Tests;
 
 public class SemaphoreReadMemoryStreamTests
 {
-    private readonly SemaphoreSlim continueSemaphore = new SemaphoreSlim(0);
-    private readonly SemaphoreSlim notifyWaitPositionReachedSemaphore = new SemaphoreSlim(0);
+    private readonly SemaphoreSlim continueSemaphore = new(0);
+    private readonly SemaphoreSlim notifyWaitPositionReachedSemaphore = new(0);
     private readonly byte[] buffer = new byte[128];
 
     [Fact]

@@ -187,7 +187,7 @@ public partial struct Rgba32 : IPixel<Rgba32>, IPackedVector<uint>
     /// <param name="color">The instance of <see cref="Rgb"/> to convert.</param>
     /// <returns>An instance of <see cref="Rgba32"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static implicit operator Rgba32(Rgb color) => FromScaledVector4(new(color.ToScaledVector3(), 1F));
+    public static implicit operator Rgba32(Rgb color) => FromScaledVector4(new Vector4(color.ToScaledVector3(), 1F));
 
     /// <summary>
     /// Compares two <see cref="Rgba32"/> objects for equality.
@@ -328,7 +328,7 @@ public partial struct Rgba32 : IPixel<Rgba32>, IPackedVector<uint>
     public static Rgba32 FromL16(L16 source)
     {
         byte rgb = ColorNumerics.From16BitTo8Bit(source.PackedValue);
-        return new(rgb, rgb, rgb);
+        return new Rgba32(rgb, rgb, rgb);
     }
 
     /// <inheritdoc/>
@@ -340,7 +340,7 @@ public partial struct Rgba32 : IPixel<Rgba32>, IPackedVector<uint>
     public static Rgba32 FromLa32(La32 source)
     {
         byte rgb = ColorNumerics.From16BitTo8Bit(source.L);
-        return new(rgb, rgb, rgb, ColorNumerics.From16BitTo8Bit(source.A));
+        return new Rgba32(rgb, rgb, rgb, ColorNumerics.From16BitTo8Bit(source.A));
     }
 
     /// <inheritdoc/>
@@ -407,7 +407,7 @@ public partial struct Rgba32 : IPixel<Rgba32>, IPackedVector<uint>
         vector = Numerics.Clamp(vector, Vector4.Zero, MaxBytes);
 
         Vector128<byte> result = Vector128.ConvertToInt32(vector.AsVector128()).AsByte();
-        return new(result.GetElement(0), result.GetElement(4), result.GetElement(8), result.GetElement(12));
+        return new Rgba32(result.GetElement(0), result.GetElement(4), result.GetElement(8), result.GetElement(12));
     }
 
     /// <summary>
@@ -444,6 +444,6 @@ public partial struct Rgba32 : IPixel<Rgba32>, IPackedVector<uint>
         char g = hex[1];
         char r = hex[0];
 
-        return new(new[] { r, r, g, g, b, b, a, a });
+        return new string(new[] { r, r, g, g, b, b, a, a });
     }
 }

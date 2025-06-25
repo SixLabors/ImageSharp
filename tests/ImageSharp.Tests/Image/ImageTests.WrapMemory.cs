@@ -64,13 +64,13 @@ public partial class ImageTests
             public override unsafe Span<Bgra32> GetSpan()
             {
                 void* ptr = (void*)this.bmpData.Scan0;
-                return new(ptr, this.length);
+                return new Span<Bgra32>(ptr, this.length);
             }
 
             public override unsafe MemoryHandle Pin(int elementIndex = 0)
             {
                 void* ptr = (void*)this.bmpData.Scan0;
-                return new(ptr, pinnable: this);
+                return new MemoryHandle(ptr, pinnable: this);
             }
 
             public override void Unpin()

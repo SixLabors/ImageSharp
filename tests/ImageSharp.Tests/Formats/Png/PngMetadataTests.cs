@@ -111,10 +111,10 @@ public class PngMetadataTests
         using MemoryStream memoryStream = new();
 
         // This will be a zTXt chunk.
-        PngTextData expectedText = new("large-text", new('c', 100), string.Empty, string.Empty);
+        PngTextData expectedText = new("large-text", new string('c', 100), string.Empty, string.Empty);
 
         // This will be a iTXt chunk.
-        PngTextData expectedTextNoneLatin = new("large-text-non-latin", new('Ф', 100), "language-tag", "translated-keyword");
+        PngTextData expectedTextNoneLatin = new("large-text-non-latin", new string('Ф', 100), "language-tag", "translated-keyword");
         PngMetadata inputMetadata = input.Metadata.GetFormatMetadata(PngFormat.Instance);
         inputMetadata.TextData.Add(expectedText);
         inputMetadata.TextData.Add(expectedTextNoneLatin);

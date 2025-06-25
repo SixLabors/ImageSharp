@@ -47,7 +47,7 @@ public class UnmanagedMemoryHandleTests
         static void RunTest(string countStr)
         {
             int countInner = int.Parse(countStr);
-            List<UnmanagedMemoryHandle> l = new List<UnmanagedMemoryHandle>();
+            List<UnmanagedMemoryHandle> l = new();
             for (int i = 0; i < countInner; i++)
             {
                 Assert.Equal(i, UnmanagedMemoryHandle.TotalOutstandingHandles);

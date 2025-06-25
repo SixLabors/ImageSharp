@@ -42,13 +42,13 @@ internal sealed unsafe class UnmanagedMemoryManager<T> : MemoryManager<T>
     /// <inheritdoc/>
     public override Span<T> GetSpan()
     {
-        return new(this.pointer, this.length);
+        return new Span<T>(this.pointer, this.length);
     }
 
     /// <inheritdoc/>
     public override MemoryHandle Pin(int elementIndex = 0)
     {
-        return new(((T*)this.pointer) + elementIndex, pinnable: this);
+        return new MemoryHandle(((T*)this.pointer) + elementIndex, pinnable: this);
     }
 
     /// <inheritdoc/>

@@ -19,7 +19,7 @@ internal class Component : IDisposable
 
         this.HorizontalSamplingFactor = horizontalFactor;
         this.VerticalSamplingFactor = verticalFactor;
-        this.SamplingFactors = new(horizontalFactor, verticalFactor);
+        this.SamplingFactors = new Size(horizontalFactor, verticalFactor);
 
         this.QuantizationTableIndex = quantizationTableIndex;
     }
@@ -95,7 +95,7 @@ internal class Component : IDisposable
 
         int blocksPerLineForMcu = frame.McusPerLine * this.HorizontalSamplingFactor;
         int blocksPerColumnForMcu = frame.McusPerColumn * this.VerticalSamplingFactor;
-        this.SizeInBlocks = new(blocksPerLineForMcu, blocksPerColumnForMcu);
+        this.SizeInBlocks = new Size(blocksPerLineForMcu, blocksPerColumnForMcu);
 
         this.SubSamplingDivisors = new Size(maxSubFactorH, maxSubFactorV).DivideBy(this.SamplingFactors);
 

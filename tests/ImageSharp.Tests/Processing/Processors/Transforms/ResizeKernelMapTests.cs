@@ -22,8 +22,8 @@ public partial class ResizeKernelMapTests
     /// resamplerName, srcSize, destSize
     /// </summary>
     public static readonly TheoryData<IResampler, int, int> KernelMapData
-        = new TheoryData<IResampler, int, int>
-    {
+        = new()
+        {
         { KnownResamplers.Bicubic, 15, 10 },
         { KnownResamplers.Bicubic, 10, 15 },
         { KnownResamplers.Bicubic, 20, 20 },
@@ -124,7 +124,7 @@ public partial class ResizeKernelMapTests
         this.Output.WriteLine($"Expected KernelMap:\n{PrintKernelMap(referenceMap)}\n");
         this.Output.WriteLine($"Actual KernelMap:\n{PrintKernelMap(kernelMap)}\n");
 #endif
-        ApproximateFloatComparer comparer = new ApproximateFloatComparer(1e-6f);
+        ApproximateFloatComparer comparer = new(1e-6f);
 
         for (int i = 0; i < kernelMap.DestinationLength; i++)
         {
@@ -163,7 +163,7 @@ public partial class ResizeKernelMapTests
         Func<TKernelMap, int> getDestinationSize,
         Func<TKernelMap, int, ReferenceKernel> getKernel)
     {
-        StringBuilder bld = new StringBuilder();
+        StringBuilder bld = new();
 
         if (kernelMap is ResizeKernelMap actualMap)
         {
@@ -193,7 +193,7 @@ public partial class ResizeKernelMapTests
 
     private static TheoryData<string, int, int> GenerateImageResizeData()
     {
-        TheoryData<string, int, int> result = new TheoryData<string, int, int>();
+        TheoryData<string, int, int> result = new();
 
         string[] resamplerNames = TestUtils.GetAllResamplerNames(false);
 

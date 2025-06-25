@@ -23,7 +23,7 @@ internal class Vp8Proba
         {
             for (int j = 0; j < WebpConstants.NumBands; j++)
             {
-                this.Bands[i, j] = new();
+                this.Bands[i, j] = new Vp8BandProbas();
             }
         }
 

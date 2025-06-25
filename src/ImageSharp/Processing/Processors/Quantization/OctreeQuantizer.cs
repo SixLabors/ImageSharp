@@ -16,7 +16,7 @@ public class OctreeQuantizer : IQuantizer
     /// using the default <see cref="QuantizerOptions"/>.
     /// </summary>
     public OctreeQuantizer()
-        : this(new())
+        : this(new QuantizerOptions())
     {
     }
 

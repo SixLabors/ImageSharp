@@ -147,7 +147,7 @@ internal sealed class IccLut16TagDataEntry : IccTagDataEntry, IEquatable<IccLut1
 
     private static Matrix4x4 CreateMatrix(float[,] matrix)
     {
-        return new(
+        return new Matrix4x4(
             matrix[0, 0],
             matrix[0, 1],
             matrix[0, 2],

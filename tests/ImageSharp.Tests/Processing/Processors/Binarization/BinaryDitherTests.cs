@@ -17,7 +17,7 @@ public class BinaryDitherTests
             TestImages.Png.CalliphoraPartial, TestImages.Png.Bike
         };
 
-    public static readonly TheoryData<string, IDither> OrderedDitherers = new TheoryData<string, IDither>
+    public static readonly TheoryData<string, IDither> OrderedDitherers = new()
     {
         { "Bayer8x8", KnownDitherings.Bayer8x8 },
         { "Bayer4x4", KnownDitherings.Bayer4x4 },
@@ -25,7 +25,7 @@ public class BinaryDitherTests
         { "Bayer2x2", KnownDitherings.Bayer2x2 }
     };
 
-    public static readonly TheoryData<string, IDither> ErrorDiffusers = new TheoryData<string, IDither>
+    public static readonly TheoryData<string, IDither> ErrorDiffusers = new()
     {
         { "Atkinson", KnownDitherings.Atkinson },
         { "Burks", KnownDitherings.Burks },
@@ -102,7 +102,7 @@ public class BinaryDitherTests
         using (Image<TPixel> source = provider.GetImage())
         using (Image<TPixel> image = source.Clone())
         {
-            Rectangle bounds = new Rectangle(10, 10, image.Width / 2, image.Height / 2);
+            Rectangle bounds = new(10, 10, image.Width / 2, image.Height / 2);
 
             image.Mutate(x => x.BinaryDither(DefaultDitherer, bounds));
             image.DebugSave(provider);
@@ -119,7 +119,7 @@ public class BinaryDitherTests
         using (Image<TPixel> source = provider.GetImage())
         using (Image<TPixel> image = source.Clone())
         {
-            Rectangle bounds = new Rectangle(10, 10, image.Width / 2, image.Height / 2);
+            Rectangle bounds = new(10, 10, image.Width / 2, image.Height / 2);
 
             image.Mutate(x => x.BinaryDither(DefaultErrorDiffuser, bounds));
             image.DebugSave(provider);

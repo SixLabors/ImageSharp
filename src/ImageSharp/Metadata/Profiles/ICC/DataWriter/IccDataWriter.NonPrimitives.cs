@@ -111,9 +111,9 @@ internal sealed partial class IccDataWriter
              + this.WriteInt64((long)value.DeviceAttributes)
              + this.WriteUInt32((uint)value.TechnologyInformation)
              + this.WriteTagDataEntryHeader(IccTypeSignature.MultiLocalizedUnicode)
-             + this.WriteMultiLocalizedUnicodeTagDataEntry(new(value.DeviceManufacturerInfo))
+             + this.WriteMultiLocalizedUnicodeTagDataEntry(new IccMultiLocalizedUnicodeTagDataEntry(value.DeviceManufacturerInfo))
              + this.WriteTagDataEntryHeader(IccTypeSignature.MultiLocalizedUnicode)
-             + this.WriteMultiLocalizedUnicodeTagDataEntry(new(value.DeviceModelInfo));
+             + this.WriteMultiLocalizedUnicodeTagDataEntry(new IccMultiLocalizedUnicodeTagDataEntry(value.DeviceModelInfo));
     }
 
     /// <summary>

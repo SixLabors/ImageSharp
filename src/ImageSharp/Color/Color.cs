@@ -81,10 +81,10 @@ public readonly partial struct Color : IEquatable<Color>
         PixelTypeInfo info = TPixel.GetPixelTypeInfo();
         if (info.ComponentInfo.HasValue && info.ComponentInfo.Value.GetMaximumComponentPrecision() <= (int)PixelComponentBitDepth.Bit32)
         {
-            return new(source.ToScaledVector4());
+            return new Color(source.ToScaledVector4());
         }
 
-        return new(source);
+        return new Color(source);
     }
 
     /// <summary>
@@ -120,7 +120,7 @@ public readonly partial struct Color : IEquatable<Color>
         {
             for (int i = 0; i < destination.Length; i++)
             {
-                destination[i] = new(source[i]);
+                destination[i] = new Color(source[i]);
             }
         }
     }

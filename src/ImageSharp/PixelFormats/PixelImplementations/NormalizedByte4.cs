@@ -27,7 +27,7 @@ public partial struct NormalizedByte4 : IPixel<NormalizedByte4>, IPackedVector<u
     /// <param name="z">The z-component.</param>
     /// <param name="w">The w-component.</param>
     public NormalizedByte4(float x, float y, float z, float w)
-        : this(new(x, y, z, w))
+        : this(new Vector4(x, y, z, w))
     {
     }
 

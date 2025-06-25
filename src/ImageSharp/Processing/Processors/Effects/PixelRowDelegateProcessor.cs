@@ -37,7 +37,7 @@ internal sealed class PixelRowDelegateProcessor : IImageProcessor
     public IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>(Configuration configuration, Image<TPixel> source, Rectangle sourceRectangle)
         where TPixel : unmanaged, IPixel<TPixel>
         => new PixelRowDelegateProcessor<TPixel, PixelRowDelegate>(
-            new(this.PixelRowOperation),
+            new PixelRowDelegate(this.PixelRowOperation),
             configuration,
             this.Modifiers,
             source,

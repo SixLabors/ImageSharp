@@ -19,18 +19,18 @@ public class WuQuantizerTests
         Assert.Equal(expected.MaxColors, quantizer.Options.MaxColors);
         Assert.Equal(QuantizerConstants.DefaultDither, quantizer.Options.Dither);
 
-        expected = new() { Dither = null };
-        quantizer = new(expected);
+        expected = new QuantizerOptions { Dither = null };
+        quantizer = new WuQuantizer(expected);
         Assert.Equal(QuantizerConstants.MaxColors, quantizer.Options.MaxColors);
         Assert.Null(quantizer.Options.Dither);
 
-        expected = new() { Dither = KnownDitherings.Atkinson };
-        quantizer = new(expected);
+        expected = new QuantizerOptions { Dither = KnownDitherings.Atkinson };
+        quantizer = new WuQuantizer(expected);
         Assert.Equal(QuantizerConstants.MaxColors, quantizer.Options.MaxColors);
         Assert.Equal(KnownDitherings.Atkinson, quantizer.Options.Dither);
 
-        expected = new() { Dither = KnownDitherings.Atkinson, MaxColors = 0 };
-        quantizer = new(expected);
+        expected = new QuantizerOptions { Dither = KnownDitherings.Atkinson, MaxColors = 0 };
+        quantizer = new WuQuantizer(expected);
         Assert.Equal(QuantizerConstants.MinColors, quantizer.Options.MaxColors);
         Assert.Equal(KnownDitherings.Atkinson, quantizer.Options.Dither);
     }
@@ -46,14 +46,14 @@ public class WuQuantizerTests
         Assert.Equal(QuantizerConstants.DefaultDither, frameQuantizer.Options.Dither);
         frameQuantizer.Dispose();
 
-        quantizer = new(new() { Dither = null });
+        quantizer = new WuQuantizer(new QuantizerOptions { Dither = null });
         frameQuantizer = quantizer.CreatePixelSpecificQuantizer<Rgba32>(Configuration.Default);
 
         Assert.NotNull(frameQuantizer);
         Assert.Null(frameQuantizer.Options.Dither);
         frameQuantizer.Dispose();
 
-        quantizer = new(new() { Dither = KnownDitherings.Atkinson });
+        quantizer = new WuQuantizer(new QuantizerOptions { Dither = KnownDitherings.Atkinson });
         frameQuantizer = quantizer.CreatePixelSpecificQuantizer<Rgba32>(Configuration.Default);
         Assert.NotNull(frameQuantizer);
         Assert.Equal(KnownDitherings.Atkinson, frameQuantizer.Options.Dither);

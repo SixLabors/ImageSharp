@@ -186,7 +186,7 @@ public sealed class IccProfile : IDeepCloneable<IccProfile>
 
         if (this.data is null)
         {
-            this.header = new();
+            this.header = new IccProfileHeader();
             return;
         }
 

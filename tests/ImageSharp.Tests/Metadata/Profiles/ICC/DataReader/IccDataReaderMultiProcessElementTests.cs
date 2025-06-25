@@ -55,6 +55,6 @@ public class IccDataReaderMultiProcessElementTests
 
     private static IccDataReader CreateReader(byte[] data)
     {
-        return new(data);
+        return new IccDataReader(data);
     }
 }

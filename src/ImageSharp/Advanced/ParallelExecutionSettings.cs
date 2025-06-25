@@ -79,7 +79,7 @@ public readonly struct ParallelExecutionSettings
     {
         Guard.MustBeGreaterThan(multiplier, 0, nameof(multiplier));
 
-        return new(
+        return new ParallelExecutionSettings(
             this.MaxDegreeOfParallelism,
             this.MinimumPixelsProcessedPerTask * multiplier,
             this.MemoryAllocator);
@@ -92,6 +92,6 @@ public readonly struct ParallelExecutionSettings
     /// <returns>The <see cref="ParallelExecutionSettings"/>.</returns>
     public static ParallelExecutionSettings FromConfiguration(Configuration configuration)
     {
-        return new(configuration.MaxDegreeOfParallelism, configuration.MemoryAllocator);
+        return new ParallelExecutionSettings(configuration.MaxDegreeOfParallelism, configuration.MemoryAllocator);
     }
 }

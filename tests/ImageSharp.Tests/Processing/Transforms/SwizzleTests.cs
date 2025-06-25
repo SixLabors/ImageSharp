@@ -13,7 +13,7 @@ public class SwizzleTests : BaseImageOperationsExtensionTest
     {
         public InvertXAndYSwizzler(Size sourceSize)
         {
-            this.DestinationSize = new(sourceSize.Height, sourceSize.Width);
+            this.DestinationSize = new Size(sourceSize.Height, sourceSize.Width);
         }
 
         public Size DestinationSize { get; }
@@ -27,7 +27,7 @@ public class SwizzleTests : BaseImageOperationsExtensionTest
         int width = 5;
         int height = 10;
 
-        this.operations.Swizzle(new InvertXAndYSwizzler(new(width, height)));
+        this.operations.Swizzle(new InvertXAndYSwizzler(new Size(width, height)));
         SwizzleProcessor<InvertXAndYSwizzler> processor = this.Verify<SwizzleProcessor<InvertXAndYSwizzler>>();
 
         Assert.Equal(processor.Swizzler.DestinationSize.Width, height);

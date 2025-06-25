@@ -27,7 +27,7 @@ internal sealed partial class IccDataReader
             values[i] = this.ReadUInt16();
         }
 
-        return new(values);
+        return new IccLut(values);
     }
 
     /// <summary>
@@ -92,7 +92,7 @@ internal sealed partial class IccDataReader
             }
         }
 
-        return new(values, gridPointCount, IccClutDataType.UInt8, outChannelCount);
+        return new IccClut(values, gridPointCount, IccClutDataType.UInt8, outChannelCount);
     }
 
     /// <summary>
@@ -126,7 +126,7 @@ internal sealed partial class IccDataReader
         }
 
         this.currentIndex = start + (length * outChannelCount * 2);
-        return new(values, gridPointCount, IccClutDataType.UInt16, outChannelCount);
+        return new IccClut(values, gridPointCount, IccClutDataType.UInt16, outChannelCount);
     }
 
     /// <summary>
@@ -158,6 +158,6 @@ internal sealed partial class IccDataReader
         }
 
         this.currentIndex = start + (length * outChCount * 4);
-        return new(values, gridPointCount, IccClutDataType.Float, outChCount);
+        return new IccClut(values, gridPointCount, IccClutDataType.Float, outChCount);
     }
 }

@@ -339,7 +339,7 @@ internal static class IccTestDataTagDataEntry
         {
             try
             {
-                culture = new(language);
+                culture = new CultureInfo(language);
             }
             catch (CultureNotFoundException)
             {
@@ -350,7 +350,7 @@ internal static class IccTestDataTagDataEntry
         {
             try
             {
-                culture = new($"{language}-{country}");
+                culture = new CultureInfo($"{language}-{country}");
             }
             catch (CultureNotFoundException)
             {
@@ -358,7 +358,7 @@ internal static class IccTestDataTagDataEntry
             }
         }
 
-        return new(culture, text);
+        return new IccLocalizedString(culture, text);
     }
 
     private static readonly IccLocalizedString[] LocalizedStringRandArrEnUsDeDe = new[]

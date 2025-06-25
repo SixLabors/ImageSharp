@@ -124,7 +124,7 @@ public sealed class IptcValue : IDeepCloneable<IptcValue>
     public int Length => this.data.Length;
 
     /// <inheritdoc/>
-    public IptcValue DeepClone() => new IptcValue(this);
+    public IptcValue DeepClone() => new(this);
 
     /// <summary>
     /// Determines whether the specified object is equal to the current <see cref="IptcValue"/>.

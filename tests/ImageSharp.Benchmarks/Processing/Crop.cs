@@ -24,7 +24,7 @@ public class Crop
         graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
         graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
         graphics.CompositingQuality = CompositingQuality.HighQuality;
-        graphics.DrawImage(source, new(0, 0, 100, 100), 0, 0, 100, 100, GraphicsUnit.Pixel);
+        graphics.DrawImage(source, new SDRectangle(0, 0, 100, 100), 0, 0, 100, 100, GraphicsUnit.Pixel);
 
         return destination.Size;
     }
@@ -34,6 +34,6 @@ public class Crop
     {
         using Image<Rgba32> image = new(800, 800);
         image.Mutate(x => x.Crop(100, 100));
-        return new(image.Width, image.Height);
+        return new Size(image.Width, image.Height);
     }
 }

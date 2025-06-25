@@ -25,7 +25,7 @@ internal class Vp8Decoder : IDisposable
     /// <param name="memoryAllocator">Used for allocating memory for the pixel data output and the temporary buffers.</param>
     public Vp8Decoder(Vp8FrameHeader frameHeader, Vp8PictureHeader pictureHeader, Vp8SegmentHeader segmentHeader, Vp8Proba probabilities, MemoryAllocator memoryAllocator)
     {
-        this.FilterHeader = new();
+        this.FilterHeader = new Vp8FilterHeader();
         this.FrameHeader = frameHeader;
         this.PictureHeader = pictureHeader;
         this.SegmentHeader = segmentHeader;
@@ -41,22 +41,22 @@ internal class Vp8Decoder : IDisposable
         this.FilterInfo = new Vp8FilterInfo[this.MbWidth];
         for (int i = 0; i < this.MbWidth; i++)
         {
-            this.MacroBlockInfo[i] = new();
-            this.MacroBlockData[i] = new();
-            this.YuvTopSamples[i] = new();
-            this.FilterInfo[i] = new();
+            this.MacroBlockInfo[i] = new Vp8MacroBlock();
+            this.MacroBlockData[i] = new Vp8MacroBlockData();
+            this.YuvTopSamples[i] = new Vp8TopSamples();
+            this.FilterInfo[i] = new Vp8FilterInfo();
         }
 
-        this.MacroBlockInfo[this.MbWidth] = new();
+        this.MacroBlockInfo[this.MbWidth] = new Vp8MacroBlock();
 
         this.DeQuantMatrices = new Vp8QuantMatrix[WebpConstants.NumMbSegments];
         this.FilterStrength = new Vp8FilterInfo[WebpConstants.NumMbSegments, 2];
         for (int i = 0; i < WebpConstants.NumMbSegments; i++)
         {
-            this.DeQuantMatrices[i] = new();
+            this.DeQuantMatrices[i] = new Vp8QuantMatrix();
             for (int j = 0; j < 2; j++)
             {
-                this.FilterStrength[i, j] = new();
+                this.FilterStrength[i, j] = new Vp8FilterInfo();
             }
         }
 
@@ -245,7 +245,7 @@ internal class Vp8Decoder : IDisposable
 
     public Vp8MacroBlock CurrentMacroBlock => this.MacroBlockInfo[this.MbX];
 
-    public Vp8MacroBlock LeftMacroBlock => this.leftMacroBlock ??= new();
+    public Vp8MacroBlock LeftMacroBlock => this.leftMacroBlock ??= new Vp8MacroBlock();
 
     public Vp8MacroBlockData CurrentBlockData => this.MacroBlockData[this.MbX];
 

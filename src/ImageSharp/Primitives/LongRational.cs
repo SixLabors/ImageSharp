@@ -133,22 +133,22 @@ internal readonly struct LongRational : IEquatable<LongRational>
     {
         if (value == 0.0)
         {
-            return new(0, 1);
+            return new LongRational(0, 1);
         }
 
         if (double.IsNaN(value))
         {
-            return new(0, 0);
+            return new LongRational(0, 0);
         }
 
         if (double.IsPositiveInfinity(value))
         {
-            return new(1, 0);
+            return new LongRational(1, 0);
         }
 
         if (double.IsNegativeInfinity(value))
         {
-            return new(-1, 0);
+            return new LongRational(-1, 0);
         }
 
         long numerator = 1;
@@ -208,14 +208,14 @@ internal readonly struct LongRational : IEquatable<LongRational>
 
         if (this.Numerator == this.Denominator)
         {
-            return new(1, 1);
+            return new LongRational(1, 1);
         }
 
         long gcd = GreatestCommonDivisor(Math.Abs(this.Numerator), Math.Abs(this.Denominator));
 
         if (gcd > 1)
         {
-            return new(this.Numerator / gcd, this.Denominator / gcd);
+            return new LongRational(this.Numerator / gcd, this.Denominator / gcd);
         }
 
         return this;

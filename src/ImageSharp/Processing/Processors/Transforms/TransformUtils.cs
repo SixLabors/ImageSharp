@@ -407,10 +407,10 @@ internal static class TransformUtils
         float scaleY = 1F / new Vector2(matrix.M12, matrix.M22).Length(); // sqrt(M12^2 + M22^2)
 
         // Apply the offset relative to the scale
-        SizeF offsetSize = usePixelSpace ? new(scaleX, scaleY) : SizeF.Empty;
+        SizeF offsetSize = usePixelSpace ? new SizeF(scaleX, scaleY) : SizeF.Empty;
 
         // Subtract the offset size to translate to the appropriate space (pixel or coordinate).
-        if (TryGetTransformedRectangle(new(Point.Empty, size - offsetSize), matrix, out Rectangle bounds))
+        if (TryGetTransformedRectangle(new RectangleF(Point.Empty, size - offsetSize), matrix, out Rectangle bounds))
         {
             // Add the offset size back to translate the transformed bounds to the correct space.
             return Size.Ceiling(ConstrainSize(bounds) + offsetSize);
@@ -455,11 +455,11 @@ internal static class TransformUtils
         {
             float scaleX = 1F / new Vector2(matrix.M11, matrix.M21).Length(); // sqrt(M11^2 + M21^2)
             float scaleY = 1F / new Vector2(matrix.M12, matrix.M22).Length(); // sqrt(M12^2 + M22^2)
-            offsetSize = new(scaleX, scaleY);
+            offsetSize = new SizeF(scaleX, scaleY);
         }
 
         // Subtract the offset size to translate to the pixel space.
-        if (TryGetTransformedRectangle(new(Point.Empty, size - offsetSize), matrix, out Rectangle bounds))
+        if (TryGetTransformedRectangle(new RectangleF(Point.Empty, size - offsetSize), matrix, out Rectangle bounds))
         {
             // Add the offset size back to translate the transformed bounds to the coordinate space.
             return Size.Ceiling((constrain ? ConstrainSize(bounds) : bounds.Size) + offsetSize);
@@ -485,10 +485,10 @@ internal static class TransformUtils
             return false;
         }
 
-        Vector2 tl = Vector2.Transform(new(rectangle.Left, rectangle.Top), matrix);
-        Vector2 tr = Vector2.Transform(new(rectangle.Right, rectangle.Top), matrix);
-        Vector2 bl = Vector2.Transform(new(rectangle.Left, rectangle.Bottom), matrix);
-        Vector2 br = Vector2.Transform(new(rectangle.Right, rectangle.Bottom), matrix);
+        Vector2 tl = Vector2.Transform(new Vector2(rectangle.Left, rectangle.Top), matrix);
+        Vector2 tr = Vector2.Transform(new Vector2(rectangle.Right, rectangle.Top), matrix);
+        Vector2 bl = Vector2.Transform(new Vector2(rectangle.Left, rectangle.Bottom), matrix);
+        Vector2 br = Vector2.Transform(new Vector2(rectangle.Right, rectangle.Bottom), matrix);
 
         bounds = GetBoundingRectangle(tl, tr, bl, br);
         return true;
@@ -540,7 +540,7 @@ internal static class TransformUtils
             width = rectangle.Width;
         }
 
-        return new(width, height);
+        return new Size(width, height);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

@@ -150,7 +150,7 @@ public class PredictorEncoderTests
         where TPixel : unmanaged, IPixel<TPixel>
     {
         Rgba32 rgba = color.ToRgba32();
-        return new(rgba.R, rgba.G, rgba.B, rgba.A);
+        return new Bgra32(rgba.R, rgba.G, rgba.B, rgba.A);
     }
 
     private static string TestImageFullPath(string path)

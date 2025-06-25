@@ -62,7 +62,7 @@ public class EncodeTiff
         ImageCodecInfo codec = FindCodecForType("image/tiff");
         using EncoderParameters parameters = new(1)
         {
-            Param = { [0] = new(Encoder.Compression, (long)Cast(this.Compression)) }
+            Param = { [0] = new EncoderParameter(Encoder.Compression, (long)Cast(this.Compression)) }
         };
 
         using MemoryStream memoryStream = new();

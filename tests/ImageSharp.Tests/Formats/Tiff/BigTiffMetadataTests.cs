@@ -131,7 +131,7 @@ public class BigTiffMetadataTests
             values.Add(newExifValue);
         }
 
-        input.Frames.RootFrame.Metadata.ExifProfile = new(values, Array.Empty<ExifTag>());
+        input.Frames.RootFrame.Metadata.ExifProfile = new ExifProfile(values, Array.Empty<ExifTag>());
 
         // act
         TiffEncoder encoder = new();

@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.Formats;
 /// </summary>
 public sealed class DecoderOptions
 {
-    private static readonly Lazy<DecoderOptions> LazyOptions = new(() => new());
+    private static readonly Lazy<DecoderOptions> LazyOptions = new(() => new DecoderOptions());
 
     private uint maxFrames = int.MaxValue;
 

@@ -36,8 +36,8 @@ public class CmykTests
         Assert.True(default == default(Cmyk));
         Assert.False(default != default(Cmyk));
         Assert.Equal(default, default(Cmyk));
-        Assert.Equal(new(1, 0, 1, 0), new Cmyk(1, 0, 1, 0));
-        Assert.Equal(new(Vector4.One), new Cmyk(Vector4.One));
+        Assert.Equal(new Cmyk(1, 0, 1, 0), new Cmyk(1, 0, 1, 0));
+        Assert.Equal(new Cmyk(Vector4.One), new Cmyk(Vector4.One));
         Assert.False(x.Equals(y));
         Assert.False(x.Equals((object)y));
         Assert.False(x.GetHashCode().Equals(y.GetHashCode()));

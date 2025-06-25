@@ -76,7 +76,7 @@ public class PointTests
     public void PointFConversionTest(int x, int y)
     {
         PointF p = new Point(x, y);
-        Assert.Equal(new(x, y), p);
+        Assert.Equal(new PointF(x, y), p);
     }
 
     [Theory]
@@ -87,7 +87,7 @@ public class PointTests
     public void SizeConversionTest(int x, int y)
     {
         Size sz = (Size)new Point(x, y);
-        Assert.Equal(new(x, y), sz);
+        Assert.Equal(new Size(x, y), sz);
     }
 
     [Theory]
@@ -102,8 +102,8 @@ public class PointTests
 
         unchecked
         {
-            addExpected = new(x + y, y + x);
-            subExpected = new(x - y, y - x);
+            addExpected = new Point(x + y, y + x);
+            subExpected = new Point(x - y, y - x);
         }
 
         Assert.Equal(addExpected, p + s);
@@ -124,9 +124,9 @@ public class PointTests
 
         unchecked
         {
-            pCeiling = new((int)MathF.Ceiling(x), (int)MathF.Ceiling(y));
-            pTruncate = new((int)x, (int)y);
-            pRound = new((int)MathF.Round(x), (int)MathF.Round(y));
+            pCeiling = new Point((int)MathF.Ceiling(x), (int)MathF.Ceiling(y));
+            pTruncate = new Point((int)x, (int)y);
+            pRound = new Point((int)MathF.Round(x), (int)MathF.Round(y));
         }
 
         Assert.Equal(pCeiling, Point.Ceiling(pf));
@@ -161,7 +161,7 @@ public class PointTests
 
         Point pout = Point.Transform(p, matrix);
 
-        Assert.Equal(new(-3, 21), pout);
+        Assert.Equal(new Point(-3, 21), pout);
     }
 
     [Fact]
@@ -171,7 +171,7 @@ public class PointTests
         Matrix3x2 matrix = Matrix3x2Extensions.CreateSkewDegrees(45, 45, Point.Empty);
 
         Point pout = Point.Transform(p, matrix);
-        Assert.Equal(new(30, 30), pout);
+        Assert.Equal(new Point(30, 30), pout);
     }
 
     [Theory]

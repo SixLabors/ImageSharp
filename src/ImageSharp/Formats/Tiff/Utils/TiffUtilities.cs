@@ -45,7 +45,7 @@ internal static class TiffUtilities
             return TPixel.FromRgba64(default);
         }
 
-        return TPixel.FromRgba64(new((ushort)(r / a), (ushort)(g / a), (ushort)(b / a), a));
+        return TPixel.FromRgba64(new Rgba64((ushort)(r / a), (ushort)(g / a), (ushort)(b / a), a));
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

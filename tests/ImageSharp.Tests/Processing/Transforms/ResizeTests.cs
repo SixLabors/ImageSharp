@@ -66,7 +66,7 @@ public class ResizeTests : BaseImageOperationsExtensionTest
 
         ResizeOptions resizeOptions = new()
         {
-            Size = new(width, height),
+            Size = new Size(width, height),
             Sampler = sampler,
             Compand = compand,
             Mode = mode

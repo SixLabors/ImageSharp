@@ -120,7 +120,7 @@ public readonly struct TiffBitsPerSample : IEquatable<TiffBitsPerSample>
                 break;
         }
 
-        sample = new(c0, c1, c2, c3);
+        sample = new TiffBitsPerSample(c0, c1, c2, c3);
         return true;
     }
 

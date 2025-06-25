@@ -19,8 +19,8 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg.BlockOperations;
 public unsafe class Block8x8F_DivideRound
 {
     private const int ExecutionCount = 5; // Added this to reduce the effect of copying the blocks
-    private static readonly Vector4 MinusOne = new Vector4(-1);
-    private static readonly Vector4 Half = new Vector4(0.5f);
+    private static readonly Vector4 MinusOne = new(-1);
+    private static readonly Vector4 Half = new(0.5f);
 
     private Block8x8F inputDividend;
     private Block8x8F inputDivisor;

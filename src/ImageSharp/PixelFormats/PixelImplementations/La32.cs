@@ -78,7 +78,7 @@ public partial struct La32 : IPixel<La32>, IPackedVector<uint>
     public readonly Rgba32 ToRgba32()
     {
         byte rgb = ColorNumerics.From16BitTo8Bit(this.L);
-        return new(rgb, rgb, rgb, ColorNumerics.From16BitTo8Bit(this.A));
+        return new Rgba32(rgb, rgb, rgb, ColorNumerics.From16BitTo8Bit(this.A));
     }
 
     /// <inheritdoc/>
@@ -90,7 +90,7 @@ public partial struct La32 : IPixel<La32>, IPackedVector<uint>
     public readonly Vector4 ToVector4()
     {
         float rgb = this.L / Max;
-        return new(rgb, rgb, rgb, this.A / Max);
+        return new Vector4(rgb, rgb, rgb, this.A / Max);
     }
 
     /// <inheritdoc />
@@ -117,7 +117,7 @@ public partial struct La32 : IPixel<La32>, IPackedVector<uint>
     {
         ushort l = ColorNumerics.Get16BitBT709Luminance(source.R, source.G, source.B);
         ushort a = ColorNumerics.From8BitTo16Bit(source.A);
-        return new(l, a);
+        return new La32(l, a);
     }
 
     /// <inheritdoc/>
@@ -126,7 +126,7 @@ public partial struct La32 : IPixel<La32>, IPackedVector<uint>
     {
         ushort l = ColorNumerics.Get16BitBT709Luminance(source.R, source.G, source.B);
         ushort a = ColorNumerics.From8BitTo16Bit(source.A);
-        return new(l, a);
+        return new La32(l, a);
     }
 
     /// <inheritdoc />
@@ -143,7 +143,7 @@ public partial struct La32 : IPixel<La32>, IPackedVector<uint>
     {
         ushort l = ColorNumerics.Get16BitBT709Luminance(source.R, source.G, source.B);
         ushort a = ColorNumerics.From8BitTo16Bit(source.A);
-        return new(l, a);
+        return new La32(l, a);
     }
 
     /// <inheritdoc/>
@@ -160,7 +160,7 @@ public partial struct La32 : IPixel<La32>, IPackedVector<uint>
     {
         ushort l = ColorNumerics.From8BitTo16Bit(source.L);
         ushort a = ColorNumerics.From8BitTo16Bit(source.A);
-        return new(l, a);
+        return new La32(l, a);
     }
 
     /// <inheritdoc/>
@@ -176,7 +176,7 @@ public partial struct La32 : IPixel<La32>, IPackedVector<uint>
     public static La32 FromRgb48(Rgb48 source)
     {
         ushort l = ColorNumerics.Get16BitBT709Luminance(source.R, source.G, source.B);
-        return new(l, ushort.MaxValue);
+        return new La32(l, ushort.MaxValue);
     }
 
     /// <inheritdoc/>
@@ -185,7 +185,7 @@ public partial struct La32 : IPixel<La32>, IPackedVector<uint>
     {
         ushort l = ColorNumerics.Get16BitBT709Luminance(source.R, source.G, source.B);
         ushort a = ColorNumerics.From8BitTo16Bit(source.A);
-        return new(l, a);
+        return new La32(l, a);
     }
 
     /// <inheritdoc/>
@@ -210,6 +210,6 @@ public partial struct La32 : IPixel<La32>, IPackedVector<uint>
         vector = Numerics.Clamp(vector, Vector4.Zero, Vector4.One) * Max;
         ushort l = ColorNumerics.Get16BitBT709Luminance(vector.X, vector.Y, vector.Z);
         ushort a = (ushort)MathF.Round(vector.W);
-        return new(l, a);
+        return new La32(l, a);
     }
 }

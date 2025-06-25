@@ -133,7 +133,7 @@ internal static class PngScanlineProcessor
                 ushort l = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o, 2));
                 ushort a = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o + 2, 2));
 
-                Unsafe.Add(ref rowSpanRef, (uint)x) = TPixel.FromLa32(new(l, a));
+                Unsafe.Add(ref rowSpanRef, (uint)x) = TPixel.FromLa32(new La32(l, a));
             }
         }
         else
@@ -143,7 +143,7 @@ internal static class PngScanlineProcessor
             {
                 byte l = Unsafe.Add(ref scanlineSpanRef, offset2);
                 byte a = Unsafe.Add(ref scanlineSpanRef, offset2 + bytesPerSample);
-                Unsafe.Add(ref rowSpanRef, x) = TPixel.FromLa16(new(l, a));
+                Unsafe.Add(ref rowSpanRef, x) = TPixel.FromLa16(new La16(l, a));
                 offset2 += bytesPerPixel;
             }
         }
@@ -239,7 +239,7 @@ internal static class PngScanlineProcessor
                     ushort r = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o, bytesPerSample));
                     ushort g = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o + bytesPerSample, bytesPerSample));
                     ushort b = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o + (2 * bytesPerSample), bytesPerSample));
-                    Unsafe.Add(ref rowSpanRef, x) = TPixel.FromRgb48(new(r, g, b));
+                    Unsafe.Add(ref rowSpanRef, x) = TPixel.FromRgb48(new Rgb48(r, g, b));
                 }
             }
             else if (pixelOffset == 0 && increment == 1)
@@ -258,7 +258,7 @@ internal static class PngScanlineProcessor
                     byte r = Unsafe.Add(ref scanlineSpanRef, (uint)o);
                     byte g = Unsafe.Add(ref scanlineSpanRef, (uint)(o + bytesPerSample));
                     byte b = Unsafe.Add(ref scanlineSpanRef, (uint)(o + (2 * bytesPerSample)));
-                    Unsafe.Add(ref rowSpanRef, x) = TPixel.FromRgb24(new(r, g, b));
+                    Unsafe.Add(ref rowSpanRef, x) = TPixel.FromRgb24(new Rgb24(r, g, b));
                 }
             }
 
@@ -339,7 +339,7 @@ internal static class PngScanlineProcessor
                 ushort g = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o + bytesPerSample, bytesPerSample));
                 ushort b = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o + (2 * bytesPerSample), bytesPerSample));
                 ushort a = BinaryPrimitives.ReadUInt16BigEndian(scanlineSpan.Slice(o + (3 * bytesPerSample), bytesPerSample));
-                Unsafe.Add(ref rowSpanRef, x) = TPixel.FromRgba64(new(r, g, b, a));
+                Unsafe.Add(ref rowSpanRef, x) = TPixel.FromRgba64(new Rgba64(r, g, b, a));
             }
         }
         else if (pixelOffset == 0 && increment == 1)
@@ -360,7 +360,7 @@ internal static class PngScanlineProcessor
                 byte g = Unsafe.Add(ref scanlineSpanRef, (uint)(o + bytesPerSample));
                 byte b = Unsafe.Add(ref scanlineSpanRef, (uint)(o + (2 * bytesPerSample)));
                 byte a = Unsafe.Add(ref scanlineSpanRef, (uint)(o + (3 * bytesPerSample)));
-                Unsafe.Add(ref rowSpanRef, x) = TPixel.FromRgba32(new(r, g, b, a));
+                Unsafe.Add(ref rowSpanRef, x) = TPixel.FromRgba32(new Rgba32(r, g, b, a));
             }
         }
     }

@@ -165,7 +165,7 @@ public class UniformUnmanagedPoolMemoryAllocatorTests
 
         static void RunTest()
         {
-            MemoryAllocator allocator = MemoryAllocator.Create(new()
+            MemoryAllocator allocator = MemoryAllocator.Create(new MemoryAllocatorOptions
             {
                 MaximumPoolSizeMegabytes = 8
             });
@@ -422,7 +422,7 @@ public class UniformUnmanagedPoolMemoryAllocatorTests
     [Fact]
     public void Allocate_OverLimit_ThrowsInvalidMemoryOperationException()
     {
-        MemoryAllocator allocator = MemoryAllocator.Create(new()
+        MemoryAllocator allocator = MemoryAllocator.Create(new MemoryAllocatorOptions
         {
             AllocationLimitMegabytes = 4
         });
@@ -434,7 +434,7 @@ public class UniformUnmanagedPoolMemoryAllocatorTests
     [Fact]
     public void AllocateGroup_OverLimit_ThrowsInvalidMemoryOperationException()
     {
-        MemoryAllocator allocator = MemoryAllocator.Create(new()
+        MemoryAllocator allocator = MemoryAllocator.Create(new MemoryAllocatorOptions
         {
             AllocationLimitMegabytes = 4
         });
@@ -450,7 +450,7 @@ public class UniformUnmanagedPoolMemoryAllocatorTests
         static void RunTest()
         {
             const long threeGB = 3L * (1 << 30);
-            MemoryAllocator allocator = MemoryAllocator.Create(new()
+            MemoryAllocator allocator = MemoryAllocator.Create(new MemoryAllocatorOptions
             {
                 AllocationLimitMegabytes = (int)(threeGB / 1024)
             });

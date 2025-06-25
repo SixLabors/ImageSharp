@@ -59,7 +59,7 @@ public static class TestFontUtilities
             return directory;
         }
 
-        throw new($"Unable to find Fonts directory at any of these locations [{string.Join(", ", directories)}]");
+        throw new Exception($"Unable to find Fonts directory at any of these locations [{string.Join(", ", directories)}]");
     }
 
     /// <summary>

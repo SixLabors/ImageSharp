@@ -31,7 +31,7 @@ internal class EofHitCounter : IDisposable
     {
         BufferedReadStream stream = new(Configuration.Default, new MemoryStream(imageData));
         Image image = Image.Load(stream);
-        return new(stream, image);
+        return new EofHitCounter(stream, image);
     }
 
     public static EofHitCounter RunDecoder<T, TO>(byte[] imageData, T decoder, TO options)
@@ -40,7 +40,7 @@ internal class EofHitCounter : IDisposable
     {
         BufferedReadStream stream = new(options.GeneralOptions.Configuration, new MemoryStream(imageData));
         Image image = decoder.Decode(options, stream);
-        return new(stream, image);
+        return new EofHitCounter(stream, image);
     }
 
     public void Dispose()

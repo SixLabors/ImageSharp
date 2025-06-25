@@ -103,9 +103,9 @@ public class WebpMetaDataTests
     public void Encode_WritesExifWithPadding(WebpFileFormatType fileFormatType)
     {
         // arrange
-        using Image<Rgba32> input = new Image<Rgba32>(25, 25);
-        using MemoryStream memoryStream = new MemoryStream();
-        ExifProfile expectedExif = new ExifProfile();
+        using Image<Rgba32> input = new(25, 25);
+        using MemoryStream memoryStream = new();
+        ExifProfile expectedExif = new();
         string expectedSoftware = "ImageSharp";
         expectedExif.SetValue(ExifTag.Software, expectedSoftware);
         input.Metadata.ExifProfile = expectedExif;
@@ -129,7 +129,7 @@ public class WebpMetaDataTests
     {
         // arrange
         using Image<TPixel> input = provider.GetImage(WebpDecoder.Instance);
-        using MemoryStream memoryStream = new MemoryStream();
+        using MemoryStream memoryStream = new();
         ExifProfile expectedExif = input.Metadata.ExifProfile;
 
         // act
@@ -150,7 +150,7 @@ public class WebpMetaDataTests
     {
         // arrange
         using Image<TPixel> input = provider.GetImage(WebpDecoder.Instance);
-        using MemoryStream memoryStream = new MemoryStream();
+        using MemoryStream memoryStream = new();
         ExifProfile expectedExif = input.Metadata.ExifProfile;
 
         // act
@@ -174,7 +174,7 @@ public class WebpMetaDataTests
         ImageSharp.Metadata.Profiles.Icc.IccProfile expectedProfile = input.Metadata.IccProfile;
         byte[] expectedProfileBytes = expectedProfile.ToByteArray();
 
-        using MemoryStream memStream = new MemoryStream();
+        using MemoryStream memStream = new();
         input.Save(memStream, new WebpEncoder()
         {
             FileFormat = fileFormat

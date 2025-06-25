@@ -132,7 +132,7 @@ internal class AffineTransformProcessor<TPixel> : TransformProcessor<TPixel>, IR
 
             for (int x = 0; x < destinationRowSpan.Length; x++)
             {
-                Vector2 point = Vector2.Transform(new(x, y), this.matrix);
+                Vector2 point = Vector2.Transform(new Vector2(x, y), this.matrix);
                 int px = (int)MathF.Round(point.X);
                 int py = (int)MathF.Round(point.Y);
 
@@ -204,7 +204,7 @@ internal class AffineTransformProcessor<TPixel> : TransformProcessor<TPixel>, IR
 
                 for (int x = 0; x < span.Length; x++)
                 {
-                    Vector2 point = Vector2.Transform(new(x, y), matrix);
+                    Vector2 point = Vector2.Transform(new Vector2(x, y), matrix);
                     float pY = point.Y;
                     float pX = point.X;
 

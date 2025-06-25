@@ -109,27 +109,27 @@ internal partial class LutABCalculator : IVector4Calculator
 
         if (hasACurve)
         {
-            this.curveACalculator = new(curveA, false);
+            this.curveACalculator = new TrcCalculator(curveA, false);
         }
 
         if (hasBCurve)
         {
-            this.curveBCalculator = new(curveB, false);
+            this.curveBCalculator = new TrcCalculator(curveB, false);
         }
 
         if (hasMCurve)
         {
-            this.curveMCalculator = new(curveM, false);
+            this.curveMCalculator = new TrcCalculator(curveM, false);
         }
 
         if (hasMatrix)
         {
-            this.matrixCalculator = new(matrix3x3.Value, matrix3x1.Value);
+            this.matrixCalculator = new MatrixCalculator(matrix3x3.Value, matrix3x1.Value);
         }
 
         if (hasClut)
         {
-            this.clutCalculator = new(clut);
+            this.clutCalculator = new ClutCalculator(clut);
         }
     }
 }

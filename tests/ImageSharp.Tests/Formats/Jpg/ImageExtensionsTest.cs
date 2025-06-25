@@ -48,7 +48,7 @@ public class ImageExtensionsTest
 
         using (Image<Rgba32> image = new(10, 10))
         {
-            image.SaveAsJpeg(file, new());
+            image.SaveAsJpeg(file, new JpegEncoder());
         }
 
         IImageFormat format = Image.DetectFormat(file);
@@ -109,7 +109,7 @@ public class ImageExtensionsTest
 
         using (Image<Rgba32> image = new(10, 10))
         {
-            image.SaveAsJpeg(memoryStream, new());
+            image.SaveAsJpeg(memoryStream, new JpegEncoder());
         }
 
         memoryStream.Position = 0;

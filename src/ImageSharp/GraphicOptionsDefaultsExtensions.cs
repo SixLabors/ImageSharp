@@ -87,7 +87,7 @@ public static class GraphicOptionsDefaultsExtensions
             return go;
         }
 
-        GraphicsOptions configOptions = new GraphicsOptions();
+        GraphicsOptions configOptions = new();
 
         // capture the fallback so the same instance will always be returned in case its mutated
         configuration.Properties[typeof(GraphicsOptions)] = configOptions;

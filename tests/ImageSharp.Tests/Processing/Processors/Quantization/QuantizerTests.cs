@@ -13,10 +13,10 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Quantization;
 public class QuantizerTests
 {
     public static readonly string[] CommonTestImages =
-    {
+    [
         TestImages.Png.CalliphoraPartial,
         TestImages.Png.Bike
-    };
+    ];
 
     private static readonly QuantizerOptions NoDitherOptions = new() { Dither = null };
     private static readonly QuantizerOptions DiffuserDitherOptions = new() { Dither = KnownDitherings.FloydSteinberg };

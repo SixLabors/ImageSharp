@@ -82,7 +82,7 @@ public class ExifProfileTests
     public void ConstructorEmpty()
     {
         new ExifProfile(null);
-        new ExifProfile(Array.Empty<byte>());
+        new ExifProfile([]);
     }
 
     [Fact]
@@ -231,7 +231,7 @@ public class ExifProfileTests
         IExifValue<Rational[]> referenceBlackWhite = image.Metadata.ExifProfile.GetValue(ExifTag.ReferenceBlackWhite);
         Assert.Null(referenceBlackWhite.Value);
 
-        Rational[] expectedLatitude = new Rational[] { new(12.3), new(4.56), new(789.0) };
+        Rational[] expectedLatitude = [new(12.3), new(4.56), new(789.0)];
         image.Metadata.ExifProfile.SetValue(ExifTag.GPSLatitude, expectedLatitude);
 
         IExifValue<Rational[]> latitude = image.Metadata.ExifProfile.GetValue(ExifTag.GPSLatitude);
@@ -362,7 +362,7 @@ public class ExifProfileTests
     [Fact]
     public void ReadWriteLargeProfileJpg()
     {
-        ExifTag<string>[] tags = { ExifTag.Software, ExifTag.Copyright, ExifTag.Model, ExifTag.ImageDescription };
+        ExifTag<string>[] tags = [ExifTag.Software, ExifTag.Copyright, ExifTag.Model, ExifTag.ImageDescription];
         foreach (ExifTag<string> tag in tags)
         {
             // Arrange

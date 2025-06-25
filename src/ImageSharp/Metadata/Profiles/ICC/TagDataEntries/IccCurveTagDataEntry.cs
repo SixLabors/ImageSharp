@@ -12,7 +12,7 @@ internal sealed class IccCurveTagDataEntry : IccTagDataEntry, IEquatable<IccCurv
     /// Initializes a new instance of the <see cref="IccCurveTagDataEntry"/> class.
     /// </summary>
     public IccCurveTagDataEntry()
-        : this(Array.Empty<float>(), IccProfileTag.Unknown)
+        : this([], IccProfileTag.Unknown)
     {
     }
 
@@ -21,7 +21,7 @@ internal sealed class IccCurveTagDataEntry : IccTagDataEntry, IEquatable<IccCurv
     /// </summary>
     /// <param name="gamma">Gamma value</param>
     public IccCurveTagDataEntry(float gamma)
-        : this(new[] { gamma }, IccProfileTag.Unknown)
+        : this([gamma], IccProfileTag.Unknown)
     {
     }
 
@@ -39,7 +39,7 @@ internal sealed class IccCurveTagDataEntry : IccTagDataEntry, IEquatable<IccCurv
     /// </summary>
     /// <param name="tagSignature">Tag Signature</param>
     public IccCurveTagDataEntry(IccProfileTag tagSignature)
-        : this(Array.Empty<float>(), tagSignature)
+        : this([], tagSignature)
     {
     }
 
@@ -49,7 +49,7 @@ internal sealed class IccCurveTagDataEntry : IccTagDataEntry, IEquatable<IccCurv
     /// <param name="gamma">Gamma value</param>
     /// <param name="tagSignature">Tag Signature</param>
     public IccCurveTagDataEntry(float gamma, IccProfileTag tagSignature)
-        : this(new[] { gamma }, tagSignature)
+        : this([gamma], tagSignature)
     {
     }
 
@@ -61,7 +61,7 @@ internal sealed class IccCurveTagDataEntry : IccTagDataEntry, IEquatable<IccCurv
     public IccCurveTagDataEntry(float[] curveData, IccProfileTag tagSignature)
         : base(IccTypeSignature.Curve, tagSignature)
     {
-        this.CurveData = curveData ?? Array.Empty<float>();
+        this.CurveData = curveData ?? [];
     }
 
     /// <summary>

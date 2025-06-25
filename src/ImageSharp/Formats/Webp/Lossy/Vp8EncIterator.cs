@@ -36,12 +36,12 @@ internal class Vp8EncIterator
     /// Array to record the position of the top sample to pass to the prediction functions.
     /// </summary>
     private readonly byte[] vp8TopLeftI4 =
-    {
+    [
         17, 21, 25, 29,
         13, 17, 21, 25,
         9,  13, 17, 21,
         5,   9, 13, 17
-    };
+    ];
 
     private int currentMbIdx;
 

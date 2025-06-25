@@ -339,12 +339,12 @@ public partial class Buffer2DTests
         Assert.NotSame(mgBefore, buffer1.MemoryGroup);
     }
 
-    public static TheoryData<Size> InvalidLengths { get; set; } = new()
-    {
-        { new(-1, -1) },
-        { new(32768, 32769) },
-        { new(32769, 32768) }
-    };
+    public static TheoryData<Size> InvalidLengths { get; set; } =
+    [
+        new(-1, -1),
+        new(32768, 32769),
+        new(32769, 32768)
+    ];
 
     [Theory]
     [MemberData(nameof(InvalidLengths))]

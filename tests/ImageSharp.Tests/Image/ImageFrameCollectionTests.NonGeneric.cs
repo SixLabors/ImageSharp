@@ -247,7 +247,7 @@ public abstract partial class ImageFrameCollectionTests
         {
             Image<Rgba32> image = new(Configuration.Default, 10, 10);
             ImageFrameCollection<Rgba32> frameCollection = image.Frames;
-            Rgba32[] rgba32Array = Array.Empty<Rgba32>();
+            Rgba32[] rgba32Array = [];
 
             image.Dispose(); // this should invalidate underlying collection as well
 

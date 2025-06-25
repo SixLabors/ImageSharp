@@ -28,12 +28,12 @@ internal static class PngConstants
     /// <summary>
     /// The list of mimetypes that equate to a Png.
     /// </summary>
-    public static readonly IEnumerable<string> MimeTypes = new[] { "image/png", "image/apng" };
+    public static readonly IEnumerable<string> MimeTypes = ["image/png", "image/apng"];
 
     /// <summary>
     /// The list of file extensions that equate to a Png.
     /// </summary>
-    public static readonly IEnumerable<string> FileExtensions = new[] { "png", "apng" };
+    public static readonly IEnumerable<string> FileExtensions = ["png", "apng"];
 
     /// <summary>
     /// The header bytes as a big-endian coded ulong.
@@ -45,11 +45,11 @@ internal static class PngConstants
     /// </summary>
     public static readonly Dictionary<PngColorType, byte[]> ColorTypes = new()
     {
-        [PngColorType.Grayscale] = new byte[] { 1, 2, 4, 8, 16 },
-        [PngColorType.Rgb] = new byte[] { 8, 16 },
-        [PngColorType.Palette] = new byte[] { 1, 2, 4, 8 },
-        [PngColorType.GrayscaleWithAlpha] = new byte[] { 8, 16 },
-        [PngColorType.RgbWithAlpha] = new byte[] { 8, 16 }
+        [PngColorType.Grayscale] = [1, 2, 4, 8, 16],
+        [PngColorType.Rgb] = [8, 16],
+        [PngColorType.Palette] = [1, 2, 4, 8],
+        [PngColorType.GrayscaleWithAlpha] = [8, 16],
+        [PngColorType.RgbWithAlpha] = [8, 16]
     };
 
     /// <summary>
@@ -65,8 +65,8 @@ internal static class PngConstants
     /// <summary>
     /// Gets the header bytes identifying a Png.
     /// </summary>
-    public static ReadOnlySpan<byte> HeaderBytes => new byte[]
-    {
+    public static ReadOnlySpan<byte> HeaderBytes =>
+    [
         0x89, // Set the high bit.
         0x50, // P
         0x4E, // N
@@ -75,13 +75,13 @@ internal static class PngConstants
         0x0A, // Line ending CRLF
         0x1A, // EOF
         0x0A // LF
-    };
+    ];
 
     /// <summary>
     /// Gets the keyword of the XMP metadata, encoded in an iTXT chunk.
     /// </summary>
-    public static ReadOnlySpan<byte> XmpKeyword => new[]
-    {
+    public static ReadOnlySpan<byte> XmpKeyword =>
+    [
         (byte)'X',
         (byte)'M',
         (byte)'L',
@@ -99,5 +99,5 @@ internal static class PngConstants
         (byte)'x',
         (byte)'m',
         (byte)'p'
-    };
+    ];
 }

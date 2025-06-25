@@ -16,24 +16,23 @@ public class GeneralFormatTests
     /// A collection made up of one file for each image format.
     /// </summary>
     public static readonly IEnumerable<string> DefaultFiles =
-        new[]
-        {
-            TestImages.Bmp.Car,
+    [
+        TestImages.Bmp.Car,
             TestImages.Jpeg.Baseline.Calliphora,
             TestImages.Png.Splash,
             TestImages.Gif.Trans
-        };
+    ];
 
     /// <summary>
     /// The collection of image files to test against.
     /// </summary>
-    protected static readonly List<TestFile> Files = new()
-    {
+    protected static readonly List<TestFile> Files =
+    [
         TestFile.Create(TestImages.Jpeg.Baseline.Calliphora),
         TestFile.Create(TestImages.Bmp.Car),
         TestFile.Create(TestImages.Png.Splash),
-        TestFile.Create(TestImages.Gif.Rings),
-    };
+        TestFile.Create(TestImages.Gif.Rings)
+    ];
 
     [Theory]
     [WithFileCollection(nameof(DefaultFiles), PixelTypes.Rgba32)]
@@ -151,7 +150,7 @@ public class GeneralFormatTests
     private static IQuantizer GetQuantizer(string name)
     {
         PropertyInfo property = typeof(KnownQuantizers).GetTypeInfo().GetProperty(name);
-        return (IQuantizer)property.GetMethod.Invoke(null, Array.Empty<object>());
+        return (IQuantizer)property.GetMethod.Invoke(null, []);
     }
 
     [Fact]

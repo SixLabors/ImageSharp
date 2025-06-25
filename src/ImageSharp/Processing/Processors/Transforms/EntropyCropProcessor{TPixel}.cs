@@ -36,7 +36,8 @@ internal class EntropyCropProcessor<TPixel> : ImageProcessor<TPixel>
 
         // TODO: This is clunky. We should add behavior enum to ExtractFrame.
         // All frames have be the same size so we only need to calculate the correct dimensions for the first frame
-        using (Image<TPixel> temp = new(this.Configuration, this.Source.Metadata.DeepClone(), new[] { this.Source.Frames.RootFrame.Clone() }))
+        using (Image<TPixel> temp = new(this.Configuration, this.Source.Metadata.DeepClone(), [this.Source.Frames.RootFrame.Clone()
+               ]))
         {
             Configuration configuration = this.Source.Configuration;
 

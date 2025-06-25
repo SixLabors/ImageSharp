@@ -20,11 +20,11 @@ public class DitherTest : BaseImageOperationsExtensionTest
     private readonly IDither orderedDither;
     private readonly IDither errorDiffuser;
     private readonly Color[] testPalette =
-    {
+    [
         Color.Red,
         Color.Green,
         Color.Blue
-    };
+    ];
 
     public DitherTest()
     {

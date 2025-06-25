@@ -208,8 +208,8 @@ public class TiffMetadataTests
         Rational expectedResolution = new(10, 1, simplify: false);
         Assert.Equal(expectedResolution, exifProfile.GetValue(ExifTag.XResolution).Value);
         Assert.Equal(expectedResolution, exifProfile.GetValue(ExifTag.YResolution).Value);
-        Assert.Equal(new Number[] { 8u }, exifProfile.GetValue(ExifTag.StripOffsets)?.Value, new NumberComparer());
-        Assert.Equal(new Number[] { 285u }, exifProfile.GetValue(ExifTag.StripByteCounts)?.Value, new NumberComparer());
+        Assert.Equal([8u], exifProfile.GetValue(ExifTag.StripOffsets)?.Value, new NumberComparer());
+        Assert.Equal([285u], exifProfile.GetValue(ExifTag.StripByteCounts)?.Value, new NumberComparer());
         Assert.Null(exifProfile.GetValue(ExifTag.ExtraSamples, false)?.Value);
         Assert.Equal(32u, exifProfile.GetValue(ExifTag.RowsPerStrip).Value);
         Assert.Null(exifProfile.GetValue(ExifTag.SampleFormat, false));

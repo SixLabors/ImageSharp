@@ -103,7 +103,7 @@ public class ImageSimilarityReport<TPixelA, TPixelB> : ImageSimilarityReport
     }
 
     public static ImageSimilarityReport<TPixelA, TPixelB> Empty =>
-        new ImageSimilarityReport<TPixelA, TPixelB>(0, null, null, Enumerable.Empty<PixelDifference>(), 0f);
+        new ImageSimilarityReport<TPixelA, TPixelB>(0, null, null, [], 0f);
 
     public new ImageFrame<TPixelA> ExpectedImage => (ImageFrame<TPixelA>)base.ExpectedImage;
 

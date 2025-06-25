@@ -196,7 +196,7 @@ internal class Vp8Encoder : IDisposable
     }
 
     // This uses C#'s optimization to refer to the static data segment of the assembly, no allocation occurs.
-    private static ReadOnlySpan<byte> AverageBytesPerMb => new byte[] { 50, 24, 16, 9, 7, 5, 3, 2 };
+    private static ReadOnlySpan<byte> AverageBytesPerMb => [50, 24, 16, 9, 7, 5, 3, 2];
 
     public int BaseQuant { get; set; }
 

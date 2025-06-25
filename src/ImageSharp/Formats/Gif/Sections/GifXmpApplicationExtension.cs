@@ -34,7 +34,7 @@ internal readonly struct GifXmpApplicationExtension : IGifExtension
 
         // Exclude the "magic trailer", see XMP Specification Part 3, 1.1.2 GIF
         int xmpLength = xmpBytes.Length - 256; // 257 - unread 0x0
-        byte[] buffer = Array.Empty<byte>();
+        byte[] buffer = [];
         if (xmpLength > 0)
         {
             buffer = new byte[xmpLength];

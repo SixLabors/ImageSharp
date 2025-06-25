@@ -23,8 +23,8 @@ internal sealed class CostManager : IDisposable
     {
         int costCacheSize = pixCount > BackwardReferenceEncoder.MaxLength ? BackwardReferenceEncoder.MaxLength : pixCount;
 
-        this.CacheIntervals = new();
-        this.CostCache = new();
+        this.CacheIntervals = [];
+        this.CostCache = [];
         this.Costs = memoryAllocator.Allocate<float>(pixCount);
         this.DistArray = distArray;
         this.Count = 0;

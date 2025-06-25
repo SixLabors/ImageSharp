@@ -90,30 +90,30 @@ internal static class IccTestDataMatrix
         IccTestDataPrimitives.Single9);
 
     public static readonly object[][] Matrix2DFloatArrayTestData =
-    {
-        new object[] { Fix162DGrad, 3, 3, false, Single2DArrayValGrad },
-        new object[] { Fix162DIdentity, 3, 3, false, Single2DArrayValIdentity },
-        new object[] { Single2DGrad, 3, 3, true, Single2DArrayValGrad },
-    };
+    [
+        [Fix162DGrad, 3, 3, false, Single2DArrayValGrad],
+        [Fix162DIdentity, 3, 3, false, Single2DArrayValIdentity],
+        [Single2DGrad, 3, 3, true, Single2DArrayValGrad]
+    ];
 
     public static readonly object[][] Matrix2DDenseMatrixTestData =
-    {
-        new object[] { Fix162DGrad, 3, 3, false, SingleDenseMatrixValGrad },
-        new object[] { Fix162DIdentity, 3, 3, false, SingleDenseMatrixValIdentity },
-        new object[] { Single2DGrad, 3, 3, true, SingleDenseMatrixValGrad },
-    };
+    [
+        [Fix162DGrad, 3, 3, false, SingleDenseMatrixValGrad],
+        [Fix162DIdentity, 3, 3, false, SingleDenseMatrixValIdentity],
+        [Single2DGrad, 3, 3, true, SingleDenseMatrixValGrad]
+    ];
 
     public static readonly object[][] Matrix2DMatrix4X4TestData =
-    {
-        new object[] { Fix162DGrad, 3, 3, false, SingleMatrix4X4ValGrad },
-        new object[] { Fix162DIdentity, 3, 3, false, SingleMatrix4X4ValIdentity },
-        new object[] { Single2DGrad, 3, 3, true, SingleMatrix4X4ValGrad },
-    };
+    [
+        [Fix162DGrad, 3, 3, false, SingleMatrix4X4ValGrad],
+        [Fix162DIdentity, 3, 3, false, SingleMatrix4X4ValIdentity],
+        [Single2DGrad, 3, 3, true, SingleMatrix4X4ValGrad]
+    ];
 
     /// <summary>
     /// 3x1 Matrix
     /// </summary>
-    public static readonly float[] Single1DArrayValGrad = { 1, 4, 7 };
+    public static readonly float[] Single1DArrayValGrad = [1, 4, 7];
 
     /// <summary>
     /// 3x1 Matrix
@@ -137,14 +137,14 @@ internal static class IccTestDataMatrix
         IccTestDataPrimitives.Single7);
 
     public static readonly object[][] Matrix1DArrayTestData =
-    {
-        new object[] { Fix161DGrad, 3, false, Single1DArrayValGrad },
-        new object[] { Single1DGrad, 3, true, Single1DArrayValGrad },
-    };
+    [
+        [Fix161DGrad, 3, false, Single1DArrayValGrad],
+        [Single1DGrad, 3, true, Single1DArrayValGrad]
+    ];
 
     public static readonly object[][] Matrix1DVector3TestData =
-    {
-        new object[] { Fix161DGrad, 3, false, SingleVector3ValGrad },
-        new object[] { Single1DGrad, 3, true, SingleVector3ValGrad },
-    };
+    [
+        [Fix161DGrad, 3, false, SingleVector3ValGrad],
+        [Single1DGrad, 3, true, SingleVector3ValGrad]
+    ];
 }

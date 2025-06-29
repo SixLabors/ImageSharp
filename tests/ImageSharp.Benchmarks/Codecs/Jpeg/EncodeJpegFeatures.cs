@@ -44,13 +44,13 @@ public class EncodeJpegFeatures
     {
         using FileStream imageBinaryStream = File.OpenRead(Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, TestImage));
         this.bmpCore = Image.Load<Rgb24>(imageBinaryStream);
-        this.encoder = new()
+        this.encoder = new JpegEncoder
         {
             Quality = this.Quality,
             ColorType = this.TargetColorSpace,
             Interleaved = true,
         };
-        this.destinationStream = new();
+        this.destinationStream = new MemoryStream();
     }
 
     [GlobalCleanup]

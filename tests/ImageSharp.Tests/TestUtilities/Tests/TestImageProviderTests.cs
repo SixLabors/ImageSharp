@@ -368,7 +368,7 @@ public class TestImageProviderTests
         {
             using Image<Rgba32> image = this.Decode<Rgba32>(this.CreateDefaultSpecializedOptions(options), stream, cancellationToken);
             ImageMetadata metadata = image.Metadata;
-            return new(image.Size, metadata, new List<ImageFrameMetadata>(image.Frames.Select(x => x.Metadata)))
+            return new ImageInfo(image.Size, metadata, new List<ImageFrameMetadata>(image.Frames.Select(x => x.Metadata)))
             {
                 PixelType = metadata.GetDecodedPixelTypeInfo()
             };
@@ -415,7 +415,7 @@ public class TestImageProviderTests
         {
             using Image<Rgba32> image = this.Decode<Rgba32>(this.CreateDefaultSpecializedOptions(options), stream, cancellationToken);
             ImageMetadata metadata = image.Metadata;
-            return new(image.Size, metadata, new List<ImageFrameMetadata>(image.Frames.Select(x => x.Metadata)))
+            return new ImageInfo(image.Size, metadata, new List<ImageFrameMetadata>(image.Frames.Select(x => x.Metadata)))
             {
                 PixelType = metadata.GetDecodedPixelTypeInfo()
             };

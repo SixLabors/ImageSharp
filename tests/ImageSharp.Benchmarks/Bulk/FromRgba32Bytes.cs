@@ -49,7 +49,7 @@ public abstract class FromRgba32Bytes<TPixel>
         for (int i = 0; i < this.Count; i++)
         {
             int i4 = i * 4;
-            d[i] = TPixel.FromRgba32(new(s[i4], s[i4 + 1], s[i4 + 2], s[i4 + 3]));
+            d[i] = TPixel.FromRgba32(new Rgba32(s[i4], s[i4 + 1], s[i4 + 2], s[i4 + 3]));
         }
     }
 

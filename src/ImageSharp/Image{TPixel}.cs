@@ -41,7 +41,7 @@ public sealed class Image<TPixel> : Image
     /// <param name="height">The height of the image in pixels.</param>
     /// <param name="backgroundColor">The color to initialize the pixels with.</param>
     public Image(Configuration configuration, int width, int height, TPixel backgroundColor)
-        : this(configuration, width, height, backgroundColor, new())
+        : this(configuration, width, height, backgroundColor, new ImageMetadata())
     {
     }
 
@@ -53,7 +53,7 @@ public sealed class Image<TPixel> : Image
     /// <param name="height">The height of the image in pixels.</param>
     /// <param name="backgroundColor">The color to initialize the pixels with.</param>
     public Image(int width, int height, TPixel backgroundColor)
-        : this(Configuration.Default, width, height, backgroundColor, new())
+        : this(Configuration.Default, width, height, backgroundColor, new ImageMetadata())
     {
     }
 
@@ -77,8 +77,8 @@ public sealed class Image<TPixel> : Image
     /// <param name="height">The height of the image in pixels.</param>
     /// <param name="metadata">The images metadata.</param>
     internal Image(Configuration configuration, int width, int height, ImageMetadata? metadata)
-        : base(configuration, TPixel.GetPixelTypeInfo(), metadata ?? new(), width, height)
-        => this.frames = new(this, width, height, default(TPixel));
+        : base(configuration, TPixel.GetPixelTypeInfo(), metadata ?? new ImageMetadata(), width, height)
+        => this.frames = new ImageFrameCollection<TPixel>(this, width, height, default(TPixel));
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Image{TPixel}"/> class
@@ -111,7 +111,7 @@ public sealed class Image<TPixel> : Image
         int height,
         ImageMetadata metadata)
         : base(configuration, TPixel.GetPixelTypeInfo(), metadata, width, height)
-        => this.frames = new(this, width, height, memoryGroup);
+        => this.frames = new ImageFrameCollection<TPixel>(this, width, height, memoryGroup);
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Image{TPixel}"/> class
@@ -128,8 +128,8 @@ public sealed class Image<TPixel> : Image
         int height,
         TPixel backgroundColor,
         ImageMetadata? metadata)
-        : base(configuration, TPixel.GetPixelTypeInfo(), metadata ?? new(), width, height)
-        => this.frames = new(this, width, height, backgroundColor);
+        : base(configuration, TPixel.GetPixelTypeInfo(), metadata ?? new ImageMetadata(), width, height)
+        => this.frames = new ImageFrameCollection<TPixel>(this, width, height, backgroundColor);
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Image{TPixel}" /> class
@@ -140,7 +140,7 @@ public sealed class Image<TPixel> : Image
     /// <param name="frames">The frames that will be owned by this image instance.</param>
     internal Image(Configuration configuration, ImageMetadata metadata, IEnumerable<ImageFrame<TPixel>> frames)
         : base(configuration, TPixel.GetPixelTypeInfo(), metadata, ValidateFramesAndGetSize(frames))
-        => this.frames = new(this, frames);
+        => this.frames = new ImageFrameCollection<TPixel>(this, frames);
 
     /// <inheritdoc />
     protected override ImageFrameCollection NonGenericFrameCollection => this.Frames;
@@ -344,7 +344,7 @@ public sealed class Image<TPixel> : Image
             clonedFrames[i] = this.frames[i].Clone(configuration);
         }
 
-        return new(configuration, this.Metadata.DeepClone(), clonedFrames);
+        return new Image<TPixel>(configuration, this.Metadata.DeepClone(), clonedFrames);
     }
 
     /// <summary>
@@ -363,7 +363,7 @@ public sealed class Image<TPixel> : Image
             clonedFrames[i] = this.frames[i].CloneAs<TPixel2>(configuration);
         }
 
-        return new(configuration, this.Metadata.DeepClone(), clonedFrames);
+        return new Image<TPixel2>(configuration, this.Metadata.DeepClone(), clonedFrames);
     }
 
     /// <inheritdoc/>

@@ -18,7 +18,7 @@ public class SixLaborsXunitTestFramework : XunitTestFramework
     public SixLaborsXunitTestFramework(IMessageSink messageSink)
         : base(messageSink)
     {
-        DiagnosticMessage message = new DiagnosticMessage(HostEnvironmentInfo.GetInformation());
+        DiagnosticMessage message = new(HostEnvironmentInfo.GetInformation());
         messageSink.OnMessage(message);
     }
 }

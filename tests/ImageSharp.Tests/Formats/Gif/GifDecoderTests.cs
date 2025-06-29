@@ -90,7 +90,7 @@ public class GifDecoderTests
     {
         DecoderOptions options = new()
         {
-            TargetSize = new() { Width = 150, Height = 150 },
+            TargetSize = new Size { Width = 150, Height = 150 },
             MaxFrames = 1
         };
 
@@ -257,7 +257,7 @@ public class GifDecoderTests
     public void Issue405_BadApplicationExtensionBlockLength<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> image = provider.GetImage(GifDecoder.Instance, new() { MaxFrames = 1 });
+        using Image<TPixel> image = provider.GetImage(GifDecoder.Instance, new DecoderOptions { MaxFrames = 1 });
         image.DebugSave(provider);
 
         image.CompareFirstFrameToReferenceOutput(ImageComparer.Exact, provider);
@@ -269,7 +269,7 @@ public class GifDecoderTests
     public void Issue1668_InvalidColorIndex<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> image = provider.GetImage(GifDecoder.Instance, new() { MaxFrames = 1 });
+        using Image<TPixel> image = provider.GetImage(GifDecoder.Instance, new DecoderOptions { MaxFrames = 1 });
         image.DebugSave(provider);
 
         image.CompareFirstFrameToReferenceOutput(ImageComparer.Exact, provider);
@@ -318,7 +318,7 @@ public class GifDecoderTests
     public void Issue1962<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> image = provider.GetImage(GifDecoder.Instance, new() { MaxFrames = 1 });
+        using Image<TPixel> image = provider.GetImage(GifDecoder.Instance, new DecoderOptions { MaxFrames = 1 });
         image.DebugSave(provider);
 
         image.CompareFirstFrameToReferenceOutput(ImageComparer.Exact, provider);
@@ -330,7 +330,7 @@ public class GifDecoderTests
     public void Issue2012EmptyXmp<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> image = provider.GetImage(GifDecoder.Instance, new() { MaxFrames = 1 });
+        using Image<TPixel> image = provider.GetImage(GifDecoder.Instance, new DecoderOptions { MaxFrames = 1 });
 
         image.DebugSave(provider);
         image.CompareFirstFrameToReferenceOutput(ImageComparer.Exact, provider);

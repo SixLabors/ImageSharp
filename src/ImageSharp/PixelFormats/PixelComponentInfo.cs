@@ -81,7 +81,7 @@ public readonly struct PixelComponentInfo
             sum += p;
         }
 
-        return new(count, bitsPerPixel - sum, precisionData1, precisionData2);
+        return new PixelComponentInfo(count, bitsPerPixel - sum, precisionData1, precisionData2);
     }
 
     /// <summary>

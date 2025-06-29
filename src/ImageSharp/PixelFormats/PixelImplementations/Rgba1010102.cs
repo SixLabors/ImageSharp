@@ -25,7 +25,7 @@ public partial struct Rgba1010102 : IPixel<Rgba1010102>, IPackedVector<uint>
     /// <param name="z">The z-component</param>
     /// <param name="w">The w-component</param>
     public Rgba1010102(float x, float y, float z, float w)
-        : this(new(x, y, z, w))
+        : this(new Vector4(x, y, z, w))
     {
     }
 

@@ -24,8 +24,8 @@ public class TestFormat : IImageFormatConfigurationModule, IImageFormat
 
     public TestFormat()
     {
-        this.Encoder = new(this);
-        this.Decoder = new(this);
+        this.Encoder = new TestEncoder(this);
+        this.Decoder = new TestDecoder(this);
     }
 
     public List<DecodeOperation> DecodeCalls { get; } = new();
@@ -205,7 +205,7 @@ public class TestFormat : IImageFormatConfigurationModule, IImageFormat
         {
             using Image<TestPixelForAgnosticDecode> image = this.Decode<TestPixelForAgnosticDecode>(this.CreateDefaultSpecializedOptions(options), stream, cancellationToken);
             ImageMetadata metadata = image.Metadata;
-            return new(image.Size, metadata, new List<ImageFrameMetadata>(image.Frames.Select(x => x.Metadata)))
+            return new ImageInfo(image.Size, metadata, new List<ImageFrameMetadata>(image.Frames.Select(x => x.Metadata)))
             {
                 PixelType = metadata.GetDecodedPixelTypeInfo()
             };
@@ -220,7 +220,7 @@ public class TestFormat : IImageFormatConfigurationModule, IImageFormat
             using MemoryStream ms = new();
             stream.CopyTo(ms, configuration.StreamProcessingBufferSize);
             byte[] marker = ms.ToArray().Skip(this.testFormat.header.Length).ToArray();
-            this.testFormat.DecodeCalls.Add(new()
+            this.testFormat.DecodeCalls.Add(new DecodeOperation
             {
                 Marker = marker,
                 Config = configuration,

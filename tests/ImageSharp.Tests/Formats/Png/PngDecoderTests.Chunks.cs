@@ -64,7 +64,7 @@ public partial class PngDecoderTests
     {
         string chunkName = GetChunkTypeName(chunkType);
 
-        using (MemoryStream memStream = new MemoryStream())
+        using (MemoryStream memStream = new())
         {
             WriteHeaderChunk(memStream);
             WriteChunk(memStream, chunkName);

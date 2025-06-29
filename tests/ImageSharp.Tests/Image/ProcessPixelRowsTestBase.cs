@@ -51,7 +51,7 @@ public abstract class ProcessPixelRowsTestBase
                 Span<L16> row = accessor.GetRowSpan(y);
                 for (int x = 0; x < row.Length; x++)
                 {
-                    row[x] = new((ushort)(x * y));
+                    row[x] = new L16((ushort)(x * y));
                 }
             }
         });
@@ -78,7 +78,7 @@ public abstract class ProcessPixelRowsTestBase
             Span<L16> row = buffer.DangerousGetRowSpan(y);
             for (int x = 0; x < 256; x++)
             {
-                row[x] = new((ushort)(x * y));
+                row[x] = new L16((ushort)(x * y));
             }
         }
 
@@ -116,7 +116,7 @@ public abstract class ProcessPixelRowsTestBase
             Span<L16> row = buffer2.DangerousGetRowSpan(y);
             for (int x = 0; x < 256; x++)
             {
-                row[x] = new((ushort)(x * y));
+                row[x] = new L16((ushort)(x * y));
             }
         }
 

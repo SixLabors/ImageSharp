@@ -298,12 +298,12 @@ internal class TiffEncoderEntriesCollector
             {
                 this.Collector.AddOrReplace(new ExifRational(ExifTagValue.XResolution)
                 {
-                    Value = new(resolution.HorizontalResolution.Value)
+                    Value = new Rational(resolution.HorizontalResolution.Value)
                 });
 
                 this.Collector.AddOrReplace(new ExifRational(ExifTagValue.YResolution)
                 {
-                    Value = new(resolution.VerticalResolution.Value)
+                    Value = new Rational(resolution.VerticalResolution.Value)
                 });
             }
         }

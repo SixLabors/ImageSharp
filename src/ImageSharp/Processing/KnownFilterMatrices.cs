@@ -221,7 +221,7 @@ public static class KnownFilterMatrices
         Guard.MustBeGreaterThanOrEqualTo(amount, 0, nameof(amount));
 
         // See https://cs.chromium.org/chromium/src/cc/paint/render_surface_filters.cc
-        return new()
+        return new ColorMatrix
         {
             M11 = amount,
             M22 = amount,
@@ -246,7 +246,7 @@ public static class KnownFilterMatrices
         // See https://cs.chromium.org/chromium/src/cc/paint/render_surface_filters.cc
         float contrast = (-.5F * amount) + .5F;
 
-        return new()
+        return new ColorMatrix
         {
             M11 = amount,
             M22 = amount,
@@ -338,7 +338,7 @@ public static class KnownFilterMatrices
         // The matrix is set up to preserve the luminance of the image.
         // See http://graficaobscura.com/matrix/index.html
         // Number are taken from https://msdn.microsoft.com/en-us/library/jj192162(v=vs.85).aspx
-        return new()
+        return new ColorMatrix
         {
             M11 = .213F + (cosRadian * .787F) - (sinRadian * .213F),
             M21 = .715F - (cosRadian * .715F) - (sinRadian * .715F),
@@ -367,7 +367,7 @@ public static class KnownFilterMatrices
         // See https://cs.chromium.org/chromium/src/cc/paint/render_surface_filters.cc
         float invert = 1F - (2F * amount);
 
-        return new()
+        return new ColorMatrix
         {
             M11 = invert,
             M22 = invert,
@@ -389,7 +389,7 @@ public static class KnownFilterMatrices
         Guard.MustBeBetweenOrEqualTo(amount, 0, 1, nameof(amount));
 
         // See https://cs.chromium.org/chromium/src/cc/paint/render_surface_filters.cc
-        return new()
+        return new ColorMatrix
         {
             M11 = 1F,
             M22 = 1F,
@@ -443,7 +443,7 @@ public static class KnownFilterMatrices
         Guard.MustBeGreaterThanOrEqualTo(amount, 0, nameof(amount));
         amount--;
 
-        return new()
+        return new ColorMatrix
         {
             M11 = 1F,
             M22 = 1F,
@@ -467,7 +467,7 @@ public static class KnownFilterMatrices
         amount = 1F - amount;
 
         // See https://cs.chromium.org/chromium/src/cc/paint/render_surface_filters.cc
-        return new()
+        return new ColorMatrix
         {
             M11 = .393F + (.607F * amount),
             M21 = .769F - (.769F * amount),

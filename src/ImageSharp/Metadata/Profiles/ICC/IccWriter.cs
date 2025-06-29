@@ -77,7 +77,7 @@ internal sealed class IccWriter
             writer.WriteTagDataEntry(group.Key, out IccTagTableEntry tableEntry);
             foreach (IccTagDataEntry item in group)
             {
-                table.Add(new(item.TagSignature, tableEntry.Offset, tableEntry.DataSize));
+                table.Add(new IccTagTableEntry(item.TagSignature, tableEntry.Offset, tableEntry.DataSize));
             }
         }
 

@@ -73,7 +73,7 @@ public class PorterDuffBulkVsPixel
             BulkVectorConvert(span, span, span, amounts.GetSpan());
         }
 
-        return new(image.Width, image.Height);
+        return new Size(image.Width, image.Height);
     }
 
     [Benchmark(Description = "ImageSharp BulkPixelConvert")]
@@ -89,6 +89,6 @@ public class PorterDuffBulkVsPixel
             BulkPixelConvert(span, span, span, amounts.GetSpan());
         }
 
-        return new(image.Width, image.Height);
+        return new Size(image.Width, image.Height);
     }
 }

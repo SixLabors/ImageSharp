@@ -108,10 +108,10 @@ public partial class ColorTests
             Color color = Color.FromScaledVector(Vector4.One);
 
             // Assert:
-            Assert.Equal(new(1, 1, 1, 1), color.ToPixel<RgbaVector>());
-            Assert.Equal(new(65535, 65535, 65535, 65535), color.ToPixel<Rgba64>());
-            Assert.Equal(new(255, 255, 255, 255), color.ToPixel<Rgba32>());
-            Assert.Equal(new(255), color.ToPixel<L8>());
+            Assert.Equal(new RgbaVector(1, 1, 1, 1), color.ToPixel<RgbaVector>());
+            Assert.Equal(new Rgba64(65535, 65535, 65535, 65535), color.ToPixel<Rgba64>());
+            Assert.Equal(new Rgba32(255, 255, 255, 255), color.ToPixel<Rgba32>());
+            Assert.Equal(new L8(255), color.ToPixel<L8>());
         }
 
         [Fact]

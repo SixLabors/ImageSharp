@@ -15,7 +15,7 @@ public class ColorNumericsTests
     public void GetBT709Luminance_WithVector4(float x, float y, float z, int luminanceLevels, int expected)
     {
         // arrange
-        Vector4 vector = new Vector4(x, y, z, 0.0f);
+        Vector4 vector = new(x, y, z, 0.0f);
 
         // act
         int actual = ColorNumerics.GetBT709Luminance(ref vector, luminanceLevels);

@@ -24,7 +24,7 @@ public class RectangleTests
     public void NonDefaultConstructorTest(int x, int y, int width, int height)
     {
         Rectangle rect1 = new(x, y, width, height);
-        Rectangle rect2 = new(new(x, y), new(width, height));
+        Rectangle rect2 = new(new Point(x, y), new Size(width, height));
 
         Assert.Equal(rect1, rect2);
     }
@@ -69,8 +69,8 @@ public class RectangleTests
     public void DimensionsTest(int x, int y, int width, int height)
     {
         Rectangle rect = new(x, y, width, height);
-        Assert.Equal(new(x, y), rect.Location);
-        Assert.Equal(new(width, height), rect.Size);
+        Assert.Equal(new Point(x, y), rect.Location);
+        Assert.Equal(new Size(width, height), rect.Size);
 
         Assert.Equal(x, rect.X);
         Assert.Equal(y, rect.Y);
@@ -171,15 +171,15 @@ public class RectangleTests
 
         unchecked
         {
-            rCeiling = new(
+            rCeiling = new Rectangle(
                 (int)Math.Ceiling(x),
                 (int)Math.Ceiling(y),
                 (int)Math.Ceiling(width),
                 (int)Math.Ceiling(height));
 
-            rTruncate = new((int)x, (int)y, (int)width, (int)height);
+            rTruncate = new Rectangle((int)x, (int)y, (int)width, (int)height);
 
-            rRound = new(
+            rRound = new Rectangle(
                 (int)Math.Round(x),
                 (int)Math.Round(y),
                 (int)Math.Round(width),
@@ -214,7 +214,7 @@ public class RectangleTests
         Rectangle inflatedRect, rect = new(x, y, width, height);
         unchecked
         {
-            inflatedRect = new(x - width, y - height, width + (2 * width), height + (2 * height));
+            inflatedRect = new Rectangle(x - width, y - height, width + (2 * width), height + (2 * height));
         }
 
         Assert.Equal(inflatedRect, Rectangle.Inflate(rect, width, height));
@@ -225,7 +225,7 @@ public class RectangleTests
         Size s = new(x, y);
         unchecked
         {
-            inflatedRect = new(rect.X - x, rect.Y - y, rect.Width + (2 * x), rect.Height + (2 * y));
+            inflatedRect = new Rectangle(rect.X - x, rect.Y - y, rect.Width + (2 * x), rect.Height + (2 * y));
         }
 
         rect.Inflate(s);

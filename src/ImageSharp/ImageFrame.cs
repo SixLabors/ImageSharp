@@ -25,7 +25,7 @@ public abstract partial class ImageFrame : IConfigurationProvider, IDisposable
     protected ImageFrame(Configuration configuration, int width, int height, ImageFrameMetadata metadata)
     {
         this.Configuration = configuration;
-        this.Size = new(width, height);
+        this.Size = new Size(width, height);
         this.Metadata = metadata;
     }
 

@@ -40,7 +40,7 @@ public class Issue594
         const float z = 0.5f;
         const float w = -0.7f;
 
-        pixel = new(x, y, z, w);
+        pixel = new NormalizedByte4(x, y, z, w);
         Assert.Equal(0xA740DA0D, pixel.PackedValue);
         NormalizedByte4 n = NormalizedByte4.FromRgba32(pixel.ToRgba32());
         Assert.Equal(0xA740DA0D, n.PackedValue);

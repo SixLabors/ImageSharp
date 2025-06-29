@@ -173,7 +173,7 @@ public partial struct Bgra32 : IPixel<Bgra32>, IPackedVector<uint>
     public static Bgra32 FromL16(L16 source)
     {
         byte rgb = ColorNumerics.From16BitTo8Bit(source.PackedValue);
-        return new(rgb, rgb, rgb);
+        return new Bgra32(rgb, rgb, rgb);
     }
 
     /// <inheritdoc/>
@@ -185,7 +185,7 @@ public partial struct Bgra32 : IPixel<Bgra32>, IPackedVector<uint>
     public static Bgra32 FromLa32(La32 source)
     {
         byte rgb = ColorNumerics.From16BitTo8Bit(source.L);
-        return new(rgb, rgb, rgb, ColorNumerics.From16BitTo8Bit(source.A));
+        return new Bgra32(rgb, rgb, rgb, ColorNumerics.From16BitTo8Bit(source.A));
     }
 
     /// <inheritdoc/>
@@ -242,6 +242,6 @@ public partial struct Bgra32 : IPixel<Bgra32>, IPackedVector<uint>
         vector = Numerics.Clamp(vector, Vector4.Zero, MaxBytes);
 
         Vector128<byte> result = Vector128.ConvertToInt32(vector.AsVector128()).AsByte();
-        return new(result.GetElement(0), result.GetElement(4), result.GetElement(8), result.GetElement(12));
+        return new Bgra32(result.GetElement(0), result.GetElement(4), result.GetElement(8), result.GetElement(12));
     }
 }

@@ -17,7 +17,7 @@ internal class LoadResizeSaveParallelMemoryStress
 {
     private LoadResizeSaveParallelMemoryStress()
     {
-        this.Benchmarks = new()
+        this.Benchmarks = new LoadResizeSaveStressRunner
         {
             Filter = JpegKind.Baseline,
         };
@@ -295,7 +295,7 @@ internal class LoadResizeSaveParallelMemoryStress
                     (int)B(this.MaxContiguousPoolBufferMegaBytes),
                     B(this.MaxPoolSizeMegaBytes),
                     (int)B(this.MaxCapacityOfNonPoolBuffersMegaBytes),
-                    new()
+                    new UniformUnmanagedMemoryPool.TrimSettings
                     {
                         TrimPeriodMilliseconds = this.TrimTimeSeconds.Value * 1000
                     });

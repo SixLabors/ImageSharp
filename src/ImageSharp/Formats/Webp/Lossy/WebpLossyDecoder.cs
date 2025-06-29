@@ -150,7 +150,7 @@ internal sealed class WebpLossyDecoder
             {
                 int offset = yMulWidth + x;
                 Bgr24 bgr = pixelsBgr[offset];
-                decodedPixelRow[x] = TPixel.FromBgra32(new(bgr.R, bgr.G, bgr.B, alphaSpan[offset]));
+                decodedPixelRow[x] = TPixel.FromBgra32(new Bgra32(bgr.R, bgr.G, bgr.B, alphaSpan[offset]));
             }
         }
     }
@@ -1173,13 +1173,13 @@ internal sealed class WebpLossyDecoder
                 pSize = sizeLeft;
             }
 
-            dec.Vp8BitReaders[p] = new(this.bitReader.Data, (uint)pSize, partStart);
+            dec.Vp8BitReaders[p] = new Vp8BitReader(this.bitReader.Data, (uint)pSize, partStart);
             partStart += pSize;
             sizeLeft -= pSize;
             sz = sz[3..];
         }
 
-        dec.Vp8BitReaders[lastPart] = new(this.bitReader.Data, (uint)sizeLeft, partStart);
+        dec.Vp8BitReaders[lastPart] = new Vp8BitReader(this.bitReader.Data, (uint)sizeLeft, partStart);
     }
 
     private void ParseDequantizationIndices(Vp8Decoder decoder)

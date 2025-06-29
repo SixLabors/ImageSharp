@@ -265,7 +265,7 @@ internal sealed class PngEncoderCore : IDisposable
                 {
                     // Use the previously derived global palette and a shared quantizer to
                     // quantize the subsequent frames. This allows us to cache the color matching resolution.
-                    paletteQuantizer ??= new(
+                    paletteQuantizer ??= new PaletteQuantizer<TPixel>(
                         this.configuration,
                         this.quantizer!.Options,
                         previousPalette);

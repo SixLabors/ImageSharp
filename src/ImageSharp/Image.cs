@@ -47,7 +47,7 @@ public abstract partial class Image : IDisposable, IConfigurationProvider
         ImageMetadata metadata,
         int width,
         int height)
-        : this(configuration, pixelType, metadata, new(width, height))
+        : this(configuration, pixelType, metadata, new Size(width, height))
     {
     }
 

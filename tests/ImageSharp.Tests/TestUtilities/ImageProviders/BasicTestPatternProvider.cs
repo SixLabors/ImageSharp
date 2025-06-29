@@ -78,6 +78,6 @@ public abstract partial class TestImageProvider<TPixel> : IXunitSerializable
             return x < midX ? BottomLeftColor : BottomRightColor;
         }
 
-        private static TPixel GetBottomRightColor() => TPixel.FromScaledVector4(new(1f, 0f, 1f, 0.5f));
+        private static TPixel GetBottomRightColor() => TPixel.FromScaledVector4(new Vector4(1f, 0f, 1f, 0.5f));
     }
 }

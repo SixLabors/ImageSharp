@@ -18,7 +18,7 @@ internal sealed partial class IccDataReader
     {
         try
         {
-            return new(
+            return new DateTime(
                 year: this.ReadUInt16(),
                 month: this.ReadUInt16(),
                 day: this.ReadUInt16(),
@@ -45,7 +45,7 @@ internal sealed partial class IccDataReader
         int minor = (version >> 20) & 0x0F;
         int bugfix = (version >> 16) & 0x0F;
 
-        return new(major, minor, bugfix);
+        return new IccVersion(major, minor, bugfix);
     }
 
     /// <summary>
@@ -54,7 +54,7 @@ internal sealed partial class IccDataReader
     /// <returns>the XYZ number</returns>
     public Vector3 ReadXyzNumber()
     {
-        return new(
+        return new Vector3(
             x: this.ReadFix16(),
             y: this.ReadFix16(),
             z: this.ReadFix16());
@@ -66,7 +66,7 @@ internal sealed partial class IccDataReader
     /// <returns>the profile ID</returns>
     public IccProfileId ReadProfileId()
     {
-        return new(
+        return new IccProfileId(
             p1: this.ReadUInt32(),
             p2: this.ReadUInt32(),
             p3: this.ReadUInt32(),
@@ -79,7 +79,7 @@ internal sealed partial class IccDataReader
     /// <returns>the position number</returns>
     public IccPositionNumber ReadPositionNumber()
     {
-        return new(
+        return new IccPositionNumber(
             offset: this.ReadUInt32(),
             size: this.ReadUInt32());
     }
@@ -90,7 +90,7 @@ internal sealed partial class IccDataReader
     /// <returns>the response number</returns>
     public IccResponseNumber ReadResponseNumber()
     {
-        return new(
+        return new IccResponseNumber(
             deviceCode: this.ReadUInt16(),
             measurementValue: this.ReadFix16());
     }
@@ -111,7 +111,7 @@ internal sealed partial class IccDataReader
             deviceCoord[i] = this.ReadUInt16();
         }
 
-        return new(name, pcsCoord, deviceCoord);
+        return new IccNamedColor(name, pcsCoord, deviceCoord);
     }
 
     /// <summary>
@@ -128,7 +128,7 @@ internal sealed partial class IccDataReader
         IccMultiLocalizedUnicodeTagDataEntry manufacturerInfo = ReadText();
         IccMultiLocalizedUnicodeTagDataEntry modelInfo = ReadText();
 
-        return new(
+        return new IccProfileDescription(
             manufacturer,
             model,
             attributes,
@@ -158,7 +158,7 @@ internal sealed partial class IccDataReader
     /// <returns>the profile description</returns>
     public IccColorantTableEntry ReadColorantTableEntry()
     {
-        return new(
+        return new IccColorantTableEntry(
             name: this.ReadAsciiString(32),
             pcs1: this.ReadUInt16(),
             pcs2: this.ReadUInt16(),
@@ -171,7 +171,7 @@ internal sealed partial class IccDataReader
     /// <returns>the screening channel</returns>
     public IccScreeningChannel ReadScreeningChannel()
     {
-        return new(
+        return new IccScreeningChannel(
             frequency: this.ReadFix16(),
             angle: this.ReadFix16(),
             spotShape: (IccScreeningSpotType)this.ReadInt32());

@@ -24,7 +24,7 @@ public class PixelShaderTest
                 {
                     Vector4 v4 = span[i];
                     float avg = (v4.X + v4.Y + v4.Z) / 3f;
-                    span[i] = new(avg);
+                    span[i] = new Vector4(avg);
                 }
             }),
             appendPixelTypeToFileName: false);
@@ -43,7 +43,7 @@ public class PixelShaderTest
                     {
                         Vector4 v4 = span[i];
                         float avg = (v4.X + v4.Y + v4.Z) / 3f;
-                        span[i] = new(avg);
+                        span[i] = new Vector4(avg);
                     }
                 },
                 rect));

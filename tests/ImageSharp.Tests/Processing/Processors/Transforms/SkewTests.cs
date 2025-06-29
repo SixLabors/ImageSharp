@@ -33,8 +33,8 @@ public class SkewTests
                                                              nameof(KnownResamplers.Welch),
                                                          };
 
-    public static readonly TheoryData<float, float> SkewValues = new TheoryData<float, float>
-                                                                     {
+    public static readonly TheoryData<float, float> SkewValues = new()
+    {
                                                                          { 20, 10 },
                                                                          { -20, -10 }
                                                                      };

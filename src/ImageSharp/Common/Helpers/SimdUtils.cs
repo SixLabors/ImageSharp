@@ -29,7 +29,7 @@ internal static partial class SimdUtils
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static Vector4 PseudoRound(this Vector4 v)
     {
-        Vector4 sign = Numerics.Clamp(v, new(-1), new(1));
+        Vector4 sign = Numerics.Clamp(v, new Vector4(-1), new Vector4(1));
 
         return v + (sign * 0.5f);
     }

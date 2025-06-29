@@ -54,6 +54,6 @@ public class LzwTiffCompressionTests
 
         compressedStream.Seek(0, SeekOrigin.Begin);
 
-        return new(Configuration.Default, compressedStream);
+        return new BufferedReadStream(Configuration.Default, compressedStream);
     }
 }

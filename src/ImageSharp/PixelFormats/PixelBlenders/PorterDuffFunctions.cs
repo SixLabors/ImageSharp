@@ -179,7 +179,7 @@ internal static partial class PorterDuffFunctions
         float cg = OverlayValueFunction(backdrop.Y, source.Y);
         float cb = OverlayValueFunction(backdrop.Z, source.Z);
 
-        return Vector4.Min(Vector4.One, new(cr, cg, cb, 0));
+        return Vector4.Min(Vector4.One, new Vector4(cr, cg, cb, 0));
     }
 
     /// <summary>
@@ -208,7 +208,7 @@ internal static partial class PorterDuffFunctions
         float cg = OverlayValueFunction(source.Y, backdrop.Y);
         float cb = OverlayValueFunction(source.Z, backdrop.Z);
 
-        return Vector4.Min(Vector4.One, new(cr, cg, cb, 0));
+        return Vector4.Min(Vector4.One, new Vector4(cr, cg, cb, 0));
     }
 
     /// <summary>

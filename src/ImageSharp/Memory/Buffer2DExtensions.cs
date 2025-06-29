@@ -126,7 +126,7 @@ public static class Buffer2DExtensions
 
     internal static Buffer2DRegion<T> GetRegion<T>(this Buffer2D<T> buffer, int x, int y, int width, int height)
         where T : unmanaged =>
-        new(buffer, new(x, y, width, height));
+        new(buffer, new Rectangle(x, y, width, height));
 
     /// <summary>
     /// Return a <see cref="Buffer2DRegion{T}"/> to the whole area of 'buffer'

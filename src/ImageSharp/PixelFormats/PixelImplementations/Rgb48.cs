@@ -100,7 +100,7 @@ public partial struct Rgb48 : IPixel<Rgb48>
     public static Rgb48 FromVector4(Vector4 source)
     {
         source = Numerics.Clamp(source, Vector4.Zero, Vector4.One) * Max;
-        return new((ushort)MathF.Round(source.X), (ushort)MathF.Round(source.Y), (ushort)MathF.Round(source.Z));
+        return new Rgb48((ushort)MathF.Round(source.X), (ushort)MathF.Round(source.Y), (ushort)MathF.Round(source.Z));
     }
 
     /// <inheritdoc />
@@ -132,7 +132,7 @@ public partial struct Rgb48 : IPixel<Rgb48>
     public static Rgb48 FromL8(L8 source)
     {
         ushort rgb = ColorNumerics.From8BitTo16Bit(source.PackedValue);
-        return new(rgb, rgb, rgb);
+        return new Rgb48(rgb, rgb, rgb);
     }
 
     /// <inheritdoc/>
@@ -144,7 +144,7 @@ public partial struct Rgb48 : IPixel<Rgb48>
     public static Rgb48 FromLa16(La16 source)
     {
         ushort rgb = ColorNumerics.From8BitTo16Bit(source.L);
-        return new(rgb, rgb, rgb);
+        return new Rgb48(rgb, rgb, rgb);
     }
 
     /// <inheritdoc/>

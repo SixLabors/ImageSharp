@@ -39,14 +39,14 @@ public class ResizeHelperTests
 
         (Size size, Rectangle rectangle) = ResizeHelper.CalculateTargetLocationAndBounds(
             sourceSize,
-            new()
+            new ResizeOptions
             {
                 Mode = ResizeMode.Min,
                 Size = target
             });
 
         Assert.Equal(sourceSize, size);
-        Assert.Equal(new(0, 0, sourceSize.Width, sourceSize.Height), rectangle);
+        Assert.Equal(new Rectangle(0, 0, sourceSize.Width, sourceSize.Height), rectangle);
     }
 
     [Fact]
@@ -60,7 +60,7 @@ public class ResizeHelperTests
 
         (Size size, Rectangle rectangle) = ResizeHelper.CalculateTargetLocationAndBounds(
             sourceSize,
-            new()
+            new ResizeOptions
             {
                 Mode = ResizeMode.Max,
                 Size = target
@@ -81,7 +81,7 @@ public class ResizeHelperTests
 
         (Size size, Rectangle rectangle) = ResizeHelper.CalculateTargetLocationAndBounds(
             sourceSize,
-            new()
+            new ResizeOptions
             {
                 Mode = ResizeMode.Crop,
                 Size = target
@@ -102,7 +102,7 @@ public class ResizeHelperTests
 
         (Size size, Rectangle rectangle) = ResizeHelper.CalculateTargetLocationAndBounds(
             sourceSize,
-            new()
+            new ResizeOptions
             {
                 Mode = ResizeMode.BoxPad,
                 Size = target
@@ -123,7 +123,7 @@ public class ResizeHelperTests
 
         (Size size, Rectangle rectangle) = ResizeHelper.CalculateTargetLocationAndBounds(
             sourceSize,
-            new()
+            new ResizeOptions
             {
                 Mode = ResizeMode.Pad,
                 Size = target
@@ -144,7 +144,7 @@ public class ResizeHelperTests
 
         (Size size, Rectangle rectangle) = ResizeHelper.CalculateTargetLocationAndBounds(
             sourceSize,
-            new()
+            new ResizeOptions
             {
                 Mode = ResizeMode.Stretch,
                 Size = target

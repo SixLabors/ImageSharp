@@ -620,10 +620,10 @@ public class JpegColorConverterTests
             // no need to dispose when buffer is not array owner
             Memory<float> memory = new(values);
             MemoryGroup<float> source = MemoryGroup<float>.Wrap(memory);
-            buffers[i] = new(source, values.Length, 1);
+            buffers[i] = new Buffer2D<float>(source, values.Length, 1);
         }
 
-        return new(buffers, 0);
+        return new JpegColorConverterBase.ComponentValues(buffers, 0);
     }
 
     private static float[] CreateRandomValues(int length, Random rnd)
@@ -783,8 +783,8 @@ public class JpegColorConverterTests
         g /= MaxColorChannelValue;
         b /= MaxColorChannelValue;
 
-        Rgb expected = Rgb.Clamp(new(r, g, b));
-        Rgb actual = Rgb.Clamp(new(result.Component0[i], result.Component1[i], result.Component2[i]));
+        Rgb expected = Rgb.Clamp(new Rgb(r, g, b));
+        Rgb actual = Rgb.Clamp(new Rgb(result.Component0[i], result.Component1[i], result.Component2[i]));
 
         bool equal = ColorSpaceComparer.Equals(expected, actual);
         Assert.True(equal, $"Colors {expected} and {actual} are not equal at index {i}");
@@ -804,9 +804,9 @@ public class JpegColorConverterTests
         r /= MaxColorChannelValue;
         g /= MaxColorChannelValue;
         b /= MaxColorChannelValue;
-        Rgb expected = Rgb.Clamp(new(r, g, b));
+        Rgb expected = Rgb.Clamp(new Rgb(r, g, b));
 
-        Rgb actual = Rgb.Clamp(new(result.Component0[i], result.Component1[i], result.Component2[i]));
+        Rgb actual = Rgb.Clamp(new Rgb(result.Component0[i], result.Component1[i], result.Component2[i]));
 
         bool equal = ColorSpaceComparer.Equals(expected, actual);
         Assert.True(equal, $"Colors {expected} and {actual} are not equal at index {i}");
@@ -817,9 +817,9 @@ public class JpegColorConverterTests
         float r = values.Component0[i] / MaxColorChannelValue;
         float g = values.Component1[i] / MaxColorChannelValue;
         float b = values.Component2[i] / MaxColorChannelValue;
-        Rgb expected = Rgb.Clamp(new(r, g, b));
+        Rgb expected = Rgb.Clamp(new Rgb(r, g, b));
 
-        Rgb actual = Rgb.Clamp(new(result.Component0[i], result.Component1[i], result.Component2[i]));
+        Rgb actual = Rgb.Clamp(new Rgb(result.Component0[i], result.Component1[i], result.Component2[i]));
 
         bool equal = ColorSpaceComparer.Equals(expected, actual);
         Assert.True(equal, $"Colors {expected} and {actual} are not equal at index {i}");
@@ -828,9 +828,9 @@ public class JpegColorConverterTests
     private static void ValidateGrayScale(in JpegColorConverterBase.ComponentValues values, in JpegColorConverterBase.ComponentValues result, int i)
     {
         float y = values.Component0[i] / MaxColorChannelValue;
-        Rgb expected = Rgb.Clamp(new(y, y, y));
+        Rgb expected = Rgb.Clamp(new Rgb(y, y, y));
 
-        Rgb actual = Rgb.Clamp(new(result.Component0[i], result.Component0[i], result.Component0[i]));
+        Rgb actual = Rgb.Clamp(new Rgb(result.Component0[i], result.Component0[i], result.Component0[i]));
 
         bool equal = ColorSpaceComparer.Equals(expected, actual);
         Assert.True(equal, $"Colors {expected} and {actual} are not equal at index {i}");
@@ -846,9 +846,9 @@ public class JpegColorConverterTests
         float r = c * k / MaxColorChannelValue;
         float g = m * k / MaxColorChannelValue;
         float b = y * k / MaxColorChannelValue;
-        Rgb expected = Rgb.Clamp(new(r, g, b));
+        Rgb expected = Rgb.Clamp(new Rgb(r, g, b));
 
-        Rgb actual = Rgb.Clamp(new(result.Component0[i], result.Component1[i], result.Component2[i]));
+        Rgb actual = Rgb.Clamp(new Rgb(result.Component0[i], result.Component1[i], result.Component2[i]));
 
         bool equal = ColorSpaceComparer.Equals(expected, actual);
         Assert.True(equal, $"Colors {expected} and {actual} are not equal at index {i}");

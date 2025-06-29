@@ -12,11 +12,11 @@ public static class IccConversionDataTrc
     internal static IccCurveTagDataEntry Gamma2Curve = new(2);
     internal static IccCurveTagDataEntry LutCurve = new(new float[] { 0, 0.7f, 1 });
 
-    internal static IccParametricCurveTagDataEntry ParamCurve1 = new(new(2.2f));
-    internal static IccParametricCurveTagDataEntry ParamCurve2 = new(new(2.2f, 1.5f, -0.5f));
-    internal static IccParametricCurveTagDataEntry ParamCurve3 = new(new(2.2f, 1.5f, -0.5f, 0.3f));
-    internal static IccParametricCurveTagDataEntry ParamCurve4 = new(new(2.4f, 1 / 1.055f, 0.055f / 1.055f, 1 / 12.92f, 0.04045f));
-    internal static IccParametricCurveTagDataEntry ParamCurve5 = new(new(2.2f, 0.7f, 0.2f, 0.3f, 0.1f, 0.5f, 0.2f));
+    internal static IccParametricCurveTagDataEntry ParamCurve1 = new(new IccParametricCurve(2.2f));
+    internal static IccParametricCurveTagDataEntry ParamCurve2 = new(new IccParametricCurve(2.2f, 1.5f, -0.5f));
+    internal static IccParametricCurveTagDataEntry ParamCurve3 = new(new IccParametricCurve(2.2f, 1.5f, -0.5f, 0.3f));
+    internal static IccParametricCurveTagDataEntry ParamCurve4 = new(new IccParametricCurve(2.4f, 1 / 1.055f, 0.055f / 1.055f, 1 / 12.92f, 0.04045f));
+    internal static IccParametricCurveTagDataEntry ParamCurve5 = new(new IccParametricCurve(2.2f, 0.7f, 0.2f, 0.3f, 0.1f, 0.5f, 0.2f));
 
     public static object[][] TrcArrayConversionTestData { get; } =
     {

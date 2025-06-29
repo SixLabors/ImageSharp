@@ -158,7 +158,7 @@ public abstract class CloningImageProcessor<TPixel> : ICloningImageProcessor<TPi
         ImageFrame<TPixel>[] destinationFrames = new ImageFrame<TPixel>[source.Frames.Count];
         for (int i = 0; i < destinationFrames.Length; i++)
         {
-            destinationFrames[i] = new(
+            destinationFrames[i] = new ImageFrame<TPixel>(
                 this.Configuration,
                 destinationSize.Width,
                 destinationSize.Height,
@@ -166,7 +166,7 @@ public abstract class CloningImageProcessor<TPixel> : ICloningImageProcessor<TPi
         }
 
         // Use the overload to prevent an extra frame being added.
-        return new(this.Configuration, source.Metadata.DeepClone(), destinationFrames);
+        return new Image<TPixel>(this.Configuration, source.Metadata.DeepClone(), destinationFrames);
     }
 
     private void CheckFrameCount(Image<TPixel> a, Image<TPixel> b)

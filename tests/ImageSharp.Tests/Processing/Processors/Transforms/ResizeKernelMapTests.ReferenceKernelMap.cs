@@ -80,10 +80,10 @@ public partial class ResizeKernelMapTests
 
                 float[] floatVals = values.Select(v => (float)v).ToArray();
 
-                result.Add(new(left, floatVals));
+                result.Add(new ReferenceKernel(left, floatVals));
             }
 
-            return new(result.ToArray());
+            return new ReferenceKernelMap(result.ToArray());
         }
     }
 
@@ -103,7 +103,7 @@ public partial class ResizeKernelMapTests
 
         public static implicit operator ReferenceKernel(ResizeKernel orig)
         {
-            return new(orig.StartIndex, orig.Values.ToArray());
+            return new ReferenceKernel(orig.StartIndex, orig.Values.ToArray());
         }
     }
 }

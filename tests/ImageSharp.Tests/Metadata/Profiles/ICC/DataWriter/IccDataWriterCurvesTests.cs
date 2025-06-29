@@ -81,5 +81,5 @@ public class IccDataWriterCurvesTests
         Assert.Equal(expected, output);
     }
 
-    private static IccDataWriter CreateWriter() => new IccDataWriter();
+    private static IccDataWriter CreateWriter() => new();
 }

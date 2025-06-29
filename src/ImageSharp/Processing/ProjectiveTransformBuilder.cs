@@ -69,7 +69,7 @@ public class ProjectiveTransformBuilder
     /// <param name="radians">The amount of rotation, in radians.</param>
     /// <returns>The <see cref="ProjectiveTransformBuilder"/>.</returns>
     public ProjectiveTransformBuilder PrependRotationRadians(float radians)
-        => this.Prepend(size => new(TransformUtils.CreateRotationTransformMatrixRadians(radians, size, this.TransformSpace)));
+        => this.Prepend(size => new Matrix4x4(TransformUtils.CreateRotationTransformMatrixRadians(radians, size, this.TransformSpace)));
 
     /// <summary>
     /// Prepends a centered rotation matrix using the given rotation in degrees at the given origin.
@@ -87,7 +87,7 @@ public class ProjectiveTransformBuilder
     /// <param name="origin">The rotation origin point.</param>
     /// <returns>The <see cref="ProjectiveTransformBuilder"/>.</returns>
     internal ProjectiveTransformBuilder PrependRotationRadians(float radians, Vector2 origin)
-        => this.PrependMatrix(Matrix4x4.CreateRotationZ(radians, new(origin, 0)));
+        => this.PrependMatrix(Matrix4x4.CreateRotationZ(radians, new Vector3(origin, 0)));
 
     /// <summary>
     /// Appends a centered rotation matrix using the given rotation in degrees.
@@ -103,7 +103,7 @@ public class ProjectiveTransformBuilder
     /// <param name="radians">The amount of rotation, in radians.</param>
     /// <returns>The <see cref="ProjectiveTransformBuilder"/>.</returns>
     public ProjectiveTransformBuilder AppendRotationRadians(float radians)
-        => this.Append(size => new(TransformUtils.CreateRotationTransformMatrixRadians(radians, size, this.TransformSpace)));
+        => this.Append(size => new Matrix4x4(TransformUtils.CreateRotationTransformMatrixRadians(radians, size, this.TransformSpace)));
 
     /// <summary>
     /// Appends a centered rotation matrix using the given rotation in degrees at the given origin.
@@ -121,7 +121,7 @@ public class ProjectiveTransformBuilder
     /// <param name="origin">The rotation origin point.</param>
     /// <returns>The <see cref="ProjectiveTransformBuilder"/>.</returns>
     internal ProjectiveTransformBuilder AppendRotationRadians(float radians, Vector2 origin)
-        => this.AppendMatrix(Matrix4x4.CreateRotationZ(radians, new(origin, 0)));
+        => this.AppendMatrix(Matrix4x4.CreateRotationZ(radians, new Vector3(origin, 0)));
 
     /// <summary>
     /// Prepends a scale matrix from the given uniform scale.
@@ -187,7 +187,7 @@ public class ProjectiveTransformBuilder
     /// <param name="radiansY">The Y angle, in radians.</param>
     /// <returns>The <see cref="ProjectiveTransformBuilder"/>.</returns>
     public ProjectiveTransformBuilder PrependSkewRadians(float radiansX, float radiansY)
-        => this.Prepend(size => new(TransformUtils.CreateSkewTransformMatrixRadians(radiansX, radiansY, size, this.TransformSpace)));
+        => this.Prepend(size => new Matrix4x4(TransformUtils.CreateSkewTransformMatrixRadians(radiansX, radiansY, size, this.TransformSpace)));
 
     /// <summary>
     /// Prepends a skew matrix using the given angles in degrees at the given origin.
@@ -207,7 +207,7 @@ public class ProjectiveTransformBuilder
     /// <param name="origin">The skew origin point.</param>
     /// <returns>The <see cref="ProjectiveTransformBuilder"/>.</returns>
     public ProjectiveTransformBuilder PrependSkewRadians(float radiansX, float radiansY, Vector2 origin)
-        => this.PrependMatrix(new(Matrix3x2.CreateSkew(radiansX, radiansY, origin)));
+        => this.PrependMatrix(new Matrix4x4(Matrix3x2.CreateSkew(radiansX, radiansY, origin)));
 
     /// <summary>
     /// Appends a centered skew matrix from the give angles in degrees.
@@ -225,7 +225,7 @@ public class ProjectiveTransformBuilder
     /// <param name="radiansY">The Y angle, in radians.</param>
     /// <returns>The <see cref="ProjectiveTransformBuilder"/>.</returns>
     public ProjectiveTransformBuilder AppendSkewRadians(float radiansX, float radiansY)
-        => this.Append(size => new(TransformUtils.CreateSkewTransformMatrixRadians(radiansX, radiansY, size, this.TransformSpace)));
+        => this.Append(size => new Matrix4x4(TransformUtils.CreateSkewTransformMatrixRadians(radiansX, radiansY, size, this.TransformSpace)));
 
     /// <summary>
     /// Appends a skew matrix using the given angles in degrees at the given origin.
@@ -245,7 +245,7 @@ public class ProjectiveTransformBuilder
     /// <param name="origin">The skew origin point.</param>
     /// <returns>The <see cref="ProjectiveTransformBuilder"/>.</returns>
     public ProjectiveTransformBuilder AppendSkewRadians(float radiansX, float radiansY, Vector2 origin)
-        => this.AppendMatrix(new(Matrix3x2.CreateSkew(radiansX, radiansY, origin)));
+        => this.AppendMatrix(new Matrix4x4(Matrix3x2.CreateSkew(radiansX, radiansY, origin)));
 
     /// <summary>
     /// Prepends a translation matrix from the given vector.
@@ -261,7 +261,7 @@ public class ProjectiveTransformBuilder
     /// <param name="position">The translation position.</param>
     /// <returns>The <see cref="ProjectiveTransformBuilder"/>.</returns>
     public ProjectiveTransformBuilder PrependTranslation(Vector2 position)
-        => this.PrependMatrix(Matrix4x4.CreateTranslation(new(position, 0)));
+        => this.PrependMatrix(Matrix4x4.CreateTranslation(new Vector3(position, 0)));
 
     /// <summary>
     /// Appends a translation matrix from the given vector.
@@ -277,7 +277,7 @@ public class ProjectiveTransformBuilder
     /// <param name="position">The translation position.</param>
     /// <returns>The <see cref="ProjectiveTransformBuilder"/>.</returns>
     public ProjectiveTransformBuilder AppendTranslation(Vector2 position)
-        => this.AppendMatrix(Matrix4x4.CreateTranslation(new(position, 0)));
+        => this.AppendMatrix(Matrix4x4.CreateTranslation(new Vector3(position, 0)));
 
     /// <summary>
     /// Prepends a quad distortion matrix using the specified corner points.
@@ -289,7 +289,7 @@ public class ProjectiveTransformBuilder
     /// <returns>The <see cref="ProjectiveTransformBuilder"/>.</returns>
     public ProjectiveTransformBuilder PrependQuadDistortion(PointF topLeft, PointF topRight, PointF bottomRight, PointF bottomLeft)
         => this.Prepend(size => TransformUtils.CreateQuadDistortionMatrix(
-            new(Point.Empty, size), topLeft, topRight, bottomRight, bottomLeft, this.TransformSpace));
+            new Rectangle(Point.Empty, size), topLeft, topRight, bottomRight, bottomLeft, this.TransformSpace));
 
     /// <summary>
     /// Appends a quad distortion matrix using the specified corner points.
@@ -301,7 +301,7 @@ public class ProjectiveTransformBuilder
     /// <returns>The <see cref="ProjectiveTransformBuilder"/>.</returns>
     public ProjectiveTransformBuilder AppendQuadDistortion(PointF topLeft, PointF topRight, PointF bottomRight, PointF bottomLeft)
         => this.Append(size => TransformUtils.CreateQuadDistortionMatrix(
-            new(Point.Empty, size), topLeft, topRight, bottomRight, bottomLeft, this.TransformSpace));
+            new Rectangle(Point.Empty, size), topLeft, topRight, bottomRight, bottomLeft, this.TransformSpace));
 
     /// <summary>
     /// Prepends a raw matrix.
@@ -359,7 +359,7 @@ public class ProjectiveTransformBuilder
         Guard.MustBeGreaterThan(sourceRectangle.Height, 0, nameof(sourceRectangle));
 
         // Translate the origin matrix to cater for source rectangle offsets.
-        Matrix4x4 matrix = Matrix4x4.CreateTranslation(new(-sourceRectangle.Location, 0));
+        Matrix4x4 matrix = Matrix4x4.CreateTranslation(new Vector3(-sourceRectangle.Location, 0));
 
         Size size = sourceRectangle.Size;
 

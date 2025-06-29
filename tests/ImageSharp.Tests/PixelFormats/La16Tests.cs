@@ -116,7 +116,7 @@ public class La16Tests
         byte expected = ColorNumerics.Get8BitBT709Luminance(rgb, rgb, rgb);
 
         // Act
-        La16 gray = La16.FromRgba32(new(rgb, rgb, rgb));
+        La16 gray = La16.FromRgba32(new Rgba32(rgb, rgb, rgb));
         byte actual = gray.L;
 
         // Assert
@@ -148,7 +148,7 @@ public class La16Tests
         const byte expected = byte.MaxValue;
 
         // act
-        La16 grey = La16.FromBgra5551(new(1.0f, 1.0f, 1.0f, 1.0f));
+        La16 grey = La16.FromBgra5551(new Bgra5551(1.0f, 1.0f, 1.0f, 1.0f));
 
         // assert
         Assert.Equal(expected, grey.L);

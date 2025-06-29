@@ -29,8 +29,8 @@ public partial class Buffer2DTests
                 Assert.Equal(bb, a.FastMemoryGroup.Single());
                 Assert.Equal(aa, b.FastMemoryGroup.Single());
 
-                Assert.Equal(new(3, 7), a.Size());
-                Assert.Equal(new(10, 5), b.Size());
+                Assert.Equal(new Size(3, 7), a.Size());
+                Assert.Equal(new Size(10, 5), b.Size());
 
                 Assert.Equal(666, b[1, 3]);
                 Assert.Equal(444, a[1, 3]);

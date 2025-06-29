@@ -41,10 +41,10 @@ public class TgaMetadata : IFormatMetadata<TgaMetadata>
         int bpp = metadata.PixelTypeInfo.BitsPerPixel;
         return bpp switch
         {
-            <= 8 => new() { BitsPerPixel = TgaBitsPerPixel.Bit8 },
-            <= 16 => new() { BitsPerPixel = TgaBitsPerPixel.Bit16 },
-            <= 24 => new() { BitsPerPixel = TgaBitsPerPixel.Bit24 },
-            _ => new() { BitsPerPixel = TgaBitsPerPixel.Bit32 }
+            <= 8 => new TgaMetadata { BitsPerPixel = TgaBitsPerPixel.Bit8 },
+            <= 16 => new TgaMetadata { BitsPerPixel = TgaBitsPerPixel.Bit16 },
+            <= 24 => new TgaMetadata { BitsPerPixel = TgaBitsPerPixel.Bit24 },
+            _ => new TgaMetadata { BitsPerPixel = TgaBitsPerPixel.Bit32 }
         };
     }
 
@@ -79,7 +79,7 @@ public class TgaMetadata : IFormatMetadata<TgaMetadata>
                 break;
         }
 
-        return new(bpp)
+        return new PixelTypeInfo(bpp)
         {
             AlphaRepresentation = alpha,
             ComponentInfo = info,

@@ -93,7 +93,7 @@ public partial struct La16 : IPixel<La16>, IPackedVector<ushort>
     {
         const float max = 255f;
         float rgb = this.L / max;
-        return new(rgb, rgb, rgb, this.A / max);
+        return new Vector4(rgb, rgb, rgb, this.A / max);
     }
 
     /// <inheritdoc />
@@ -188,6 +188,6 @@ public partial struct La16 : IPixel<La16>, IPackedVector<ushort>
         byte l = ColorNumerics.Get8BitBT709Luminance(result.GetElement(0), result.GetElement(4), result.GetElement(8));
         byte a = result.GetElement(12);
 
-        return new(l, a);
+        return new La16(l, a);
     }
 }

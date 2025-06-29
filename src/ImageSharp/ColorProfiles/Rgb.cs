@@ -154,7 +154,7 @@ public readonly struct Rgb : IProfileConnectingSpace<Rgb, CieXyz>
         Rgb linear = FromScaledVector4(options.SourceRgbWorkingSpace.Expand(this.ToScaledVector4()));
 
         // Then convert to xyz
-        return new(Vector3.Transform(linear.AsVector3Unsafe(), GetRgbToCieXyzMatrix(options.SourceRgbWorkingSpace)));
+        return new CieXyz(Vector3.Transform(linear.AsVector3Unsafe(), GetRgbToCieXyzMatrix(options.SourceRgbWorkingSpace)));
     }
 
     /// <inheritdoc/>
@@ -171,7 +171,7 @@ public readonly struct Rgb : IProfileConnectingSpace<Rgb, CieXyz>
             Rgb linear = FromScaledVector4(options.SourceRgbWorkingSpace.Expand(rgb.ToScaledVector4()));
 
             // Then convert to xyz
-            destination[i] = new(Vector3.Transform(linear.AsVector3Unsafe(), matrix));
+            destination[i] = new CieXyz(Vector3.Transform(linear.AsVector3Unsafe(), matrix));
         }
     }
 
@@ -274,7 +274,7 @@ public readonly struct Rgb : IProfileConnectingSpace<Rgb, CieXyz>
         Vector3 vector = Vector3.Transform(workingSpace.WhitePoint.AsVector3Unsafe(), inverseXyzMatrix);
 
         // Use transposed Rows/Columns
-        return new()
+        return new Matrix4x4
         {
             M11 = vector.X * mXr,
             M21 = vector.Y * mXg,

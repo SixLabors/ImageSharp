@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Numerics;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -55,7 +56,7 @@ internal class RgbaFloat32323232TiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
                     float a = BitConverter.ToSingle(buffer);
                     offset += 4;
 
-                    pixelRow[x] = TPixel.FromScaledVector4(new(r, g, b, a));
+                    pixelRow[x] = TPixel.FromScaledVector4(new Vector4(r, g, b, a));
                 }
             }
             else
@@ -74,7 +75,7 @@ internal class RgbaFloat32323232TiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
                     float a = BitConverter.ToSingle(data.Slice(offset, 4));
                     offset += 4;
 
-                    pixelRow[x] = TPixel.FromScaledVector4(new(r, g, b, a));
+                    pixelRow[x] = TPixel.FromScaledVector4(new Vector4(r, g, b, a));
                 }
             }
         }

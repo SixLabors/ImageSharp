@@ -69,7 +69,7 @@ internal class FakeImageOperationsProvider : IImageProcessingContextFactory
 
         public IImageProcessingContext ApplyProcessor(IImageProcessor processor, Rectangle rectangle)
         {
-            this.Applied.Add(new()
+            this.Applied.Add(new AppliedOperation
             {
                 Rectangle = rectangle,
                 NonGenericProcessor = processor
@@ -79,7 +79,7 @@ internal class FakeImageOperationsProvider : IImageProcessingContextFactory
 
         public IImageProcessingContext ApplyProcessor(IImageProcessor processor)
         {
-            this.Applied.Add(new()
+            this.Applied.Add(new AppliedOperation
             {
                 NonGenericProcessor = processor
             });

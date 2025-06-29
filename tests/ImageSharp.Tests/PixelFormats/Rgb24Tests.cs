@@ -68,7 +68,7 @@ public class Rgb24Tests
     [Fact]
     public void FromRgba32()
     {
-        Rgb24 rgb = Rgb24.FromRgba32(new(1, 2, 3, 4));
+        Rgb24 rgb = Rgb24.FromRgba32(new Rgba32(1, 2, 3, 4));
 
         Assert.Equal(1, rgb.R);
         Assert.Equal(2, rgb.G);
@@ -117,7 +117,7 @@ public class Rgb24Tests
     public void Rgb24_FromBgra5551()
     {
         // act
-        Rgb24 rgb = Rgb24.FromBgra5551(new(1.0f, 1.0f, 1.0f, 1.0f));
+        Rgb24 rgb = Rgb24.FromBgra5551(new Bgra5551(1.0f, 1.0f, 1.0f, 1.0f));
 
         // assert
         Assert.Equal(255, rgb.R);

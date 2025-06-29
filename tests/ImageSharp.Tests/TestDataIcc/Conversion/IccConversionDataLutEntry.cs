@@ -52,7 +52,7 @@ public class IccConversionDataLutEntry
             values[i] = 0.1f + (i / (float)length);
         }
 
-        return new(values);
+        return new IccLut(values);
     }
 
     private static IccLut CreateIdentityLut(float min, float max) => new([min, max]);

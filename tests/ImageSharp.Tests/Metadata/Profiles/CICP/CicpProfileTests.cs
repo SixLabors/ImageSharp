@@ -25,10 +25,10 @@ public class CicpProfileTests
     public void WritingPng_PreservesCicpProfile()
     {
         // arrange
-        using Image<Rgba32> image = new Image<Rgba32>(1, 1);
+        using Image<Rgba32> image = new(1, 1);
         CicpProfile original = CreateCicpProfile();
         image.Metadata.CicpProfile = original;
-        PngEncoder encoder = new PngEncoder();
+        PngEncoder encoder = new();
 
         // act
         using Image<Rgba32> reloadedImage = WriteAndRead(image, encoder);
@@ -49,7 +49,7 @@ public class CicpProfileTests
 
     private static CicpProfile CreateCicpProfile()
     {
-        CicpProfile profile = new CicpProfile()
+        CicpProfile profile = new()
         {
             ColorPrimaries = CicpColorPrimaries.ItuRBt2020_2,
             TransferCharacteristics = CicpTransferCharacteristics.SmpteSt2084,
@@ -70,7 +70,7 @@ public class CicpProfileTests
 
     private static Image<Rgba32> WriteAndRead(Image<Rgba32> image, IImageEncoder encoder)
     {
-        using (MemoryStream memStream = new MemoryStream())
+        using (MemoryStream memStream = new())
         {
             image.Save(memStream, encoder);
             image.Dispose();

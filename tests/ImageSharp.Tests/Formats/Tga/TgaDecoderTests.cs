@@ -749,7 +749,7 @@ public class TgaDecoderTests
     {
         DecoderOptions options = new()
         {
-            TargetSize = new() { Width = 150, Height = 150 }
+            TargetSize = new Size { Width = 150, Height = 150 }
         };
 
         using Image<TPixel> image = provider.GetImage(TgaDecoder.Instance, options);

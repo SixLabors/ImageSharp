@@ -65,7 +65,7 @@ public class PngTextDataTests
         Assert.Equal("unit", property.LanguageTag);
         Assert.Equal("test", property.TranslatedKeyword);
 
-        property = new("Foo", string.Empty, string.Empty, null);
+        property = new PngTextData("Foo", string.Empty, string.Empty, null);
         Assert.Equal("Foo", property.Keyword);
         Assert.Equal(string.Empty, property.Value);
         Assert.Equal(string.Empty, property.LanguageTag);

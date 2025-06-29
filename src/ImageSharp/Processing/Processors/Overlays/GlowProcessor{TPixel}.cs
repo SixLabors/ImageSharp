@@ -105,7 +105,7 @@ internal class GlowProcessor<TPixel> : ImageProcessor<TPixel>
 
             for (int i = 0; i < this.bounds.Width; i++)
             {
-                float distance = Vector2.Distance(this.center, new(i + this.bounds.X, y));
+                float distance = Vector2.Distance(this.center, new Vector2(i + this.bounds.X, y));
                 span[i] = Numerics.Clamp(this.blendPercent * (1 - (.95F * (distance / this.maxDistance))), 0, 1F);
             }
 

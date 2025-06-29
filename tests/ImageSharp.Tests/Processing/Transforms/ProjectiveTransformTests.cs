@@ -57,10 +57,10 @@ public class ProjectiveTransformTests
 
     public static readonly TheoryData<PointF, PointF, PointF, PointF> QuadDistortionData = new()
     {
-        { new(0, 0), new(150, 0), new(150, 150), new(0, 150) }, // source == destination
-        { new(25, 50), new(210, 25), new(140, 210), new(15, 125) }, // Distortion
-        { new(-50, -50), new(200, -50), new(200, 200), new(-50, 200) }, // Scaling
-        { new(150, 0), new(150, 150), new(0, 150), new(0, 0) }, // Rotation
+        { new PointF(0, 0), new PointF(150, 0), new PointF(150, 150), new PointF(0, 150) }, // source == destination
+        { new PointF(25, 50), new PointF(210, 25), new PointF(140, 210), new PointF(15, 125) }, // Distortion
+        { new PointF(-50, -50), new PointF(200, -50), new PointF(200, 200), new PointF(-50, 200) }, // Scaling
+        { new PointF(150, 0), new PointF(150, 150), new PointF(0, 150), new PointF(0, 0) }, // Rotation
     };
 
     public ProjectiveTransformTests(ITestOutputHelper output) => this.Output = output;
@@ -175,7 +175,7 @@ public class ProjectiveTransformTests
     public void Issue1911()
     {
         using Image<Rgba32> image = new(100, 100);
-        image.Mutate(x => x = x.Transform(new(0, 0, 99, 100), Matrix4x4.Identity, new(99, 100), KnownResamplers.Lanczos2));
+        image.Mutate(x => x = x.Transform(new Rectangle(0, 0, 99, 100), Matrix4x4.Identity, new Size(99, 100), KnownResamplers.Lanczos2));
 
         Assert.Equal(99, image.Width);
         Assert.Equal(100, image.Height);
@@ -190,7 +190,7 @@ public class ProjectiveTransformTests
 
         Matrix4x4 m = Matrix4x4.Identity;
         Rectangle r = new(25, 25, 50, 50);
-        image.Mutate(x => x.Transform(r, m, new(100, 100), KnownResamplers.Bicubic));
+        image.Mutate(x => x.Transform(r, m, new Size(100, 100), KnownResamplers.Bicubic));
         image.DebugSave(provider);
         image.CompareToReferenceOutput(ValidatorComparer, provider);
     }
@@ -204,9 +204,9 @@ public class ProjectiveTransformTests
     {
         using Image<TPixel> image = provider.GetImage();
 
-        Matrix4x4 m = Matrix4x4.CreateRotationX(radians, new(50, 50, 1F)) * Matrix4x4.CreateRotationY(radians, new(50, 50, 1F));
+        Matrix4x4 m = Matrix4x4.CreateRotationX(radians, new Vector3(50, 50, 1F)) * Matrix4x4.CreateRotationY(radians, new Vector3(50, 50, 1F));
         Rectangle r = new(25, 25, 50, 50);
-        image.Mutate(x => x.Transform(r, m, new(100, 100), KnownResamplers.Bicubic));
+        image.Mutate(x => x.Transform(r, m, new Size(100, 100), KnownResamplers.Bicubic));
         image.DebugSave(provider, testOutputDetails: radians);
         image.CompareToReferenceOutput(ValidatorComparer, provider, testOutputDetails: radians);
     }
@@ -246,7 +246,7 @@ public class ProjectiveTransformTests
 
         if (property is null)
         {
-            throw new($"No resampler named {name}");
+            throw new Exception($"No resampler named {name}");
         }
 
         return (IResampler)property.GetValue(null);

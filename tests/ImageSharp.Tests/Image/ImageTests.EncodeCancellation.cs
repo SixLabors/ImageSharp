@@ -15,7 +15,7 @@ public partial class ImageTests
         {
             using Image<Rgba32> image = new(10, 10);
             await Assert.ThrowsAsync<TaskCanceledException>(
-                async () => await image.SaveAsBmpAsync(Stream.Null, new(canceled: true)));
+                async () => await image.SaveAsBmpAsync(Stream.Null, new CancellationToken(canceled: true)));
         }
 
         [Fact]
@@ -23,7 +23,7 @@ public partial class ImageTests
         {
             using Image<Rgba32> image = new(10, 10);
             await Assert.ThrowsAsync<TaskCanceledException>(
-                async () => await image.SaveAsCurAsync(Stream.Null, new(canceled: true)));
+                async () => await image.SaveAsCurAsync(Stream.Null, new CancellationToken(canceled: true)));
         }
 
         [Fact]
@@ -31,7 +31,7 @@ public partial class ImageTests
         {
             using Image<Rgba32> image = new(10, 10);
             await Assert.ThrowsAsync<TaskCanceledException>(
-                async () => await image.SaveAsGifAsync(Stream.Null, new(canceled: true)));
+                async () => await image.SaveAsGifAsync(Stream.Null, new CancellationToken(canceled: true)));
         }
 
         [Fact]
@@ -41,7 +41,7 @@ public partial class ImageTests
             image.Frames.CreateFrame();
 
             await Assert.ThrowsAsync<TaskCanceledException>(
-                async () => await image.SaveAsGifAsync(Stream.Null, new(canceled: true)));
+                async () => await image.SaveAsGifAsync(Stream.Null, new CancellationToken(canceled: true)));
         }
 
         [Fact]
@@ -49,7 +49,7 @@ public partial class ImageTests
         {
             using Image<Rgba32> image = new(10, 10);
             await Assert.ThrowsAsync<TaskCanceledException>(
-                async () => await image.SaveAsIcoAsync(Stream.Null, new(canceled: true)));
+                async () => await image.SaveAsIcoAsync(Stream.Null, new CancellationToken(canceled: true)));
         }
 
         [Fact]
@@ -57,7 +57,7 @@ public partial class ImageTests
         {
             using Image<Rgba32> image = new(10, 10);
             await Assert.ThrowsAsync<TaskCanceledException>(
-                async () => await image.SaveAsJpegAsync(Stream.Null, new(canceled: true)));
+                async () => await image.SaveAsJpegAsync(Stream.Null, new CancellationToken(canceled: true)));
         }
 
         [Fact]
@@ -65,7 +65,7 @@ public partial class ImageTests
         {
             using Image<Rgba32> image = new(10, 10);
             await Assert.ThrowsAsync<TaskCanceledException>(
-                async () => await image.SaveAsPbmAsync(Stream.Null, new(canceled: true)));
+                async () => await image.SaveAsPbmAsync(Stream.Null, new CancellationToken(canceled: true)));
         }
 
         [Fact]
@@ -73,7 +73,7 @@ public partial class ImageTests
         {
             using Image<Rgba32> image = new(10, 10);
             await Assert.ThrowsAsync<TaskCanceledException>(
-                async () => await image.SaveAsPngAsync(Stream.Null, new(canceled: true)));
+                async () => await image.SaveAsPngAsync(Stream.Null, new CancellationToken(canceled: true)));
         }
 
         [Fact]
@@ -83,7 +83,7 @@ public partial class ImageTests
             image.Frames.CreateFrame();
 
             await Assert.ThrowsAsync<TaskCanceledException>(
-                async () => await image.SaveAsPngAsync(Stream.Null, new(canceled: true)));
+                async () => await image.SaveAsPngAsync(Stream.Null, new CancellationToken(canceled: true)));
         }
 
         [Fact]
@@ -91,7 +91,7 @@ public partial class ImageTests
         {
             using Image<Rgba32> image = new(10, 10);
             await Assert.ThrowsAsync<TaskCanceledException>(
-                async () => await image.SaveAsQoiAsync(Stream.Null, new(canceled: true)));
+                async () => await image.SaveAsQoiAsync(Stream.Null, new CancellationToken(canceled: true)));
         }
 
         [Fact]
@@ -99,7 +99,7 @@ public partial class ImageTests
         {
             using Image<Rgba32> image = new(10, 10);
             await Assert.ThrowsAsync<TaskCanceledException>(
-                async () => await image.SaveAsTgaAsync(Stream.Null, new(canceled: true)));
+                async () => await image.SaveAsTgaAsync(Stream.Null, new CancellationToken(canceled: true)));
         }
 
         [Fact]
@@ -107,7 +107,7 @@ public partial class ImageTests
         {
             using Image<Rgba32> image = new(10, 10);
             await Assert.ThrowsAsync<TaskCanceledException>(
-                async () => await image.SaveAsTiffAsync(Stream.Null, new(canceled: true)));
+                async () => await image.SaveAsTiffAsync(Stream.Null, new CancellationToken(canceled: true)));
         }
 
         [Fact]
@@ -115,7 +115,7 @@ public partial class ImageTests
         {
             using Image<Rgba32> image = new(10, 10);
             await Assert.ThrowsAsync<TaskCanceledException>(
-                async () => await image.SaveAsWebpAsync(Stream.Null, new(canceled: true)));
+                async () => await image.SaveAsWebpAsync(Stream.Null, new CancellationToken(canceled: true)));
         }
 
         [Fact]
@@ -125,7 +125,7 @@ public partial class ImageTests
             image.Frames.CreateFrame();
 
             await Assert.ThrowsAsync<TaskCanceledException>(
-                async () => await image.SaveAsWebpAsync(Stream.Null, new(canceled: true)));
+                async () => await image.SaveAsWebpAsync(Stream.Null, new CancellationToken(canceled: true)));
         }
     }
 }

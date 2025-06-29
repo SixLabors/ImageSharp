@@ -56,7 +56,7 @@ internal class Rgba16PlanarTiffColor<TPixel> : TiffBasePlanarColorDecoder<TPixel
 
                     pixelRow[x] = hasAssociatedAlpha
                         ? TiffUtilities.ColorFromRgba64Premultiplied<TPixel>(r, g, b, a)
-                        : TPixel.FromRgba64(new(r, g, b, a));
+                        : TPixel.FromRgba64(new Rgba64(r, g, b, a));
                 }
             }
             else
@@ -72,7 +72,7 @@ internal class Rgba16PlanarTiffColor<TPixel> : TiffBasePlanarColorDecoder<TPixel
 
                     pixelRow[x] = hasAssociatedAlpha
                         ? TiffUtilities.ColorFromRgba64Premultiplied<TPixel>(r, g, b, a)
-                        : TPixel.FromRgba64(new(r, g, b, a));
+                        : TPixel.FromRgba64(new Rgba64(r, g, b, a));
                 }
             }
         }

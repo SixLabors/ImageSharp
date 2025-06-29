@@ -84,5 +84,5 @@ public class GraphicsOptions : IDeepCloneable<GraphicsOptions>
     public PixelAlphaCompositionMode AlphaCompositionMode { get; set; } = PixelAlphaCompositionMode.SrcOver;
 
     /// <inheritdoc/>
-    public GraphicsOptions DeepClone() => new GraphicsOptions(this);
+    public GraphicsOptions DeepClone() => new(this);
 }

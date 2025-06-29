@@ -18,12 +18,12 @@ internal static partial class LibJpegTools
         BigInteger totalDiff = 0;
         if (actual.WidthInBlocks < expected.WidthInBlocks)
         {
-            throw new("actual.WidthInBlocks < expected.WidthInBlocks");
+            throw new Exception("actual.WidthInBlocks < expected.WidthInBlocks");
         }
 
         if (actual.HeightInBlocks < expected.HeightInBlocks)
         {
-            throw new("actual.HeightInBlocks < expected.HeightInBlocks");
+            throw new Exception("actual.HeightInBlocks < expected.HeightInBlocks");
         }
 
         int w = expected.WidthInBlocks;
@@ -127,7 +127,7 @@ internal static partial class LibJpegTools
                     }
                 }
 
-                return new(result);
+                return new SpectralData(result);
             }
         }
         finally

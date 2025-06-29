@@ -26,7 +26,7 @@ public class EncodeTga
         if (this.tga == null)
         {
             this.tga = Image.Load<Rgba32>(this.TestImageFullPath);
-            this.tgaMagick = new(this.TestImageFullPath);
+            this.tgaMagick = new MagickImage(this.TestImageFullPath);
         }
     }
 

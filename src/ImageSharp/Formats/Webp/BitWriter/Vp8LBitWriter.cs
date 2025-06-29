@@ -102,7 +102,7 @@ internal class Vp8LBitWriter : BitWriterBase
     {
         byte[] clonedBuffer = new byte[this.Buffer.Length];
         System.Buffer.BlockCopy(this.Buffer, 0, clonedBuffer, 0, this.cur);
-        return new(clonedBuffer, this.bits, this.used, this.cur);
+        return new Vp8LBitWriter(clonedBuffer, this.bits, this.used, this.cur);
     }
 
     /// <inheritdoc/>

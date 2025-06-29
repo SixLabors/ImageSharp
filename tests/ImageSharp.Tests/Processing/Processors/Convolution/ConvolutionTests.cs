@@ -12,7 +12,7 @@ public class ConvolutionTests
 {
     private static readonly ImageComparer ValidatorComparer = ImageComparer.TolerantPercentage(0.05F);
 
-    public static readonly TheoryData<DenseMatrix<float>> Values = new TheoryData<DenseMatrix<float>>
+    public static readonly TheoryData<DenseMatrix<float>> Values = new()
     {
         // Sharpening kernel.
         new float[,]

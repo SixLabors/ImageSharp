@@ -47,7 +47,7 @@ public class ImageExtensionsTest
 
         using (Image<L8> image = new(10, 10))
         {
-            image.SaveAsPbm(file, new());
+            image.SaveAsPbm(file, new PbmEncoder());
         }
 
         IImageFormat format = Image.DetectFormat(file);
@@ -108,7 +108,7 @@ public class ImageExtensionsTest
 
         using (Image<L8> image = new(10, 10))
         {
-            image.SaveAsPbm(memoryStream, new());
+            image.SaveAsPbm(memoryStream, new PbmEncoder());
         }
 
         memoryStream.Position = 0;

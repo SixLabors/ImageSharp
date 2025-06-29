@@ -23,7 +23,7 @@ internal static class IccTestDataProfiles
 
     public static readonly IccProfileHeader HeaderRandomWrite = CreateHeaderRandomValue(
         562,        // should be overwritten
-        new(1, 2, 3, 4),   // should be overwritten
+        new IccProfileId(1, 2, 3, 4),   // should be overwritten
         "ijkl");    // should be overwritten to "acsp"
 
     public static readonly IccProfileHeader HeaderRandomRead = CreateHeaderRandomValue(132, HeaderRandomIdValue, "acsp");
@@ -34,7 +34,7 @@ internal static class IccTestDataProfiles
     {
         Class = IccProfileClass.DisplayDevice,
         CmmType = "abcd",
-        CreationDate = new(1990, 11, 26, 7, 21, 42),
+        CreationDate = new DateTime(1990, 11, 26, 7, 21, 42),
         CreatorSignature = "dcba",
         DataColorSpace = IccColorSpaceType.Rgb,
         DeviceAttributes = IccDeviceAttribute.ChromaBlackWhite | IccDeviceAttribute.OpacityTransparent,
@@ -43,12 +43,12 @@ internal static class IccTestDataProfiles
         FileSignature = "acsp",
         Flags = IccProfileFlag.Embedded | IccProfileFlag.Independent,
         Id = id,
-        PcsIlluminant = new(4, 5, 6),
+        PcsIlluminant = new Vector3(4, 5, 6),
         PrimaryPlatformSignature = IccPrimaryPlatformType.MicrosoftCorporation,
         ProfileConnectionSpace = IccColorSpaceType.CieXyz,
         RenderingIntent = IccRenderingIntent.AbsoluteColorimetric,
         Size = size,
-        Version = new(4, 3, 0),
+        Version = new IccVersion(4, 3, 0),
     };
 
     public static byte[] CreateHeaderRandomArray(uint size, uint nrOfEntries, byte[] profileId) => ArrayHelper.Concat(

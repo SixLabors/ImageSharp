@@ -27,10 +27,10 @@ public class ImageProcessingContextTests : IDisposable
 
     public ImageProcessingContextTests()
     {
-        this.processorDefinition = new();
-        this.cloningProcessorDefinition = new();
-        this.regularProcessorImpl = new();
-        this.cloningProcessorImpl = new();
+        this.processorDefinition = new Mock<IImageProcessor>();
+        this.cloningProcessorDefinition = new Mock<ICloningImageProcessor>();
+        this.regularProcessorImpl = new Mock<IImageProcessor<Rgba32>>();
+        this.cloningProcessorImpl = new Mock<ICloningImageProcessor<Rgba32>>();
     }
 
     // bool throwException, bool useBounds

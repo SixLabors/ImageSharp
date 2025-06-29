@@ -106,7 +106,7 @@ public class QuantizedImageTests
     {
         using Image<TPixel> image = provider.GetImage();
         OctreeQuantizer octreeQuantizer = new();
-        IQuantizer<TPixel> quantizer = octreeQuantizer.CreatePixelSpecificQuantizer<TPixel>(Configuration.Default, new() { MaxColors = 128 });
+        IQuantizer<TPixel> quantizer = octreeQuantizer.CreatePixelSpecificQuantizer<TPixel>(Configuration.Default, new QuantizerOptions { MaxColors = 128 });
         ImageFrame<TPixel> frame = image.Frames[0];
         quantizer.BuildPaletteAndQuantizeFrame(frame, frame.Bounds);
     }

@@ -23,7 +23,7 @@ internal sealed partial class IccDataWriter : IDisposable
     /// </summary>
     public IccDataWriter()
     {
-        this.dataStream = new();
+        this.dataStream = new MemoryStream();
     }
 
     /// <summary>

@@ -71,7 +71,7 @@ internal class PlainDecoder
             for (int x = 0; x < width; x++)
             {
                 stream.ReadDecimal(out int value);
-                rowSpan[x] = new((byte)value);
+                rowSpan[x] = new L8((byte)value);
                 eofReached = !stream.SkipWhitespaceAndComments();
                 if (eofReached)
                 {
@@ -107,7 +107,7 @@ internal class PlainDecoder
             for (int x = 0; x < width; x++)
             {
                 stream.ReadDecimal(out int value);
-                rowSpan[x] = new((ushort)value);
+                rowSpan[x] = new L16((ushort)value);
                 eofReached = !stream.SkipWhitespaceAndComments();
                 if (eofReached)
                 {
@@ -154,7 +154,7 @@ internal class PlainDecoder
 
                 stream.ReadDecimal(out int blue);
 
-                rowSpan[x] = new((byte)red, (byte)green, (byte)blue);
+                rowSpan[x] = new Rgb24((byte)red, (byte)green, (byte)blue);
                 eofReached = !stream.SkipWhitespaceAndComments();
                 if (eofReached)
                 {
@@ -201,7 +201,7 @@ internal class PlainDecoder
 
                 stream.ReadDecimal(out int blue);
 
-                rowSpan[x] = new((ushort)red, (ushort)green, (ushort)blue);
+                rowSpan[x] = new Rgb48((ushort)red, (ushort)green, (ushort)blue);
                 eofReached = !stream.SkipWhitespaceAndComments();
                 if (eofReached)
                 {

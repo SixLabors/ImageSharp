@@ -24,7 +24,7 @@ public readonly struct YCbCr : IColorProfile<YCbCr, Rgb>
     /// <param name="cr">The cr chroma component.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public YCbCr(float y, float cb, float cr)
-        : this(new(y, cb, cr))
+        : this(new Vector3(y, cb, cr))
     {
     }
 
@@ -95,7 +95,7 @@ public readonly struct YCbCr : IColorProfile<YCbCr, Rgb>
     {
         Vector3 v3 = default;
         v3 += this.AsVector3Unsafe();
-        return new(v3, 1F);
+        return new Vector4(v3, 1F);
     }
 
     /// <inheritdoc/>
@@ -133,7 +133,7 @@ public readonly struct YCbCr : IColorProfile<YCbCr, Rgb>
         Matrix4x4 m = options.TransposedYCbCrTransform.Forward;
         Vector3 offset = options.TransposedYCbCrTransform.Offset;
 
-        return new(Vector3.Transform(rgb, m) + offset, true);
+        return new YCbCr(Vector3.Transform(rgb, m) + offset, true);
     }
 
     /// <inheritdoc/>

@@ -72,7 +72,7 @@ public class SizeTests
     public void PointFConversionTest(int width, int height)
     {
         SizeF sz = new Size(width, height);
-        Assert.Equal(new(width, height), sz);
+        Assert.Equal(new SizeF(width, height), sz);
     }
 
     [Theory]
@@ -83,7 +83,7 @@ public class SizeTests
     public void SizeConversionTest(int width, int height)
     {
         Point sz = (Point)new Size(width, height);
-        Assert.Equal(new(width, height), sz);
+        Assert.Equal(new Point(width, height), sz);
     }
 
     [Theory]
@@ -99,8 +99,8 @@ public class SizeTests
 
         unchecked
         {
-            addExpected = new(width + height, height + width);
-            subExpected = new(width - height, height - width);
+            addExpected = new Size(width + height, height + width);
+            subExpected = new Size(width - height, height - width);
         }
 
         Assert.Equal(addExpected, sz1 + sz2);
@@ -121,9 +121,9 @@ public class SizeTests
 
         unchecked
         {
-            pCeiling = new((int)MathF.Ceiling(width), (int)MathF.Ceiling(height));
-            pTruncate = new((int)width, (int)height);
-            pRound = new((int)MathF.Round(width), (int)MathF.Round(height));
+            pCeiling = new Size((int)MathF.Ceiling(width), (int)MathF.Ceiling(height));
+            pTruncate = new Size((int)width, (int)height);
+            pRound = new Size((int)MathF.Round(width), (int)MathF.Round(height));
         }
 
         Assert.Equal(pCeiling, Size.Ceiling(szF));
@@ -211,7 +211,7 @@ public class SizeTests
 
         unchecked
         {
-            mulExpected = new(dimension * multiplier, dimension * multiplier);
+            mulExpected = new Size(dimension * multiplier, dimension * multiplier);
         }
 
         Assert.Equal(mulExpected, sz1 * multiplier);
@@ -227,7 +227,7 @@ public class SizeTests
 
         unchecked
         {
-            mulExpected = new(width * multiplier, height * multiplier);
+            mulExpected = new Size(width * multiplier, height * multiplier);
         }
 
         Assert.Equal(mulExpected, sz1 * multiplier);
@@ -261,7 +261,7 @@ public class SizeTests
         Size sz1 = new(dimension, dimension);
         SizeF mulExpected;
 
-        mulExpected = new(dimension * multiplier, dimension * multiplier);
+        mulExpected = new SizeF(dimension * multiplier, dimension * multiplier);
 
         Assert.Equal(mulExpected, sz1 * multiplier);
         Assert.Equal(mulExpected, multiplier * sz1);
@@ -274,7 +274,7 @@ public class SizeTests
         Size sz1 = new(width, height);
         SizeF mulExpected;
 
-        mulExpected = new(width * multiplier, height * multiplier);
+        mulExpected = new SizeF(width * multiplier, height * multiplier);
 
         Assert.Equal(mulExpected, sz1 * multiplier);
         Assert.Equal(mulExpected, multiplier * sz1);
@@ -308,7 +308,7 @@ public class SizeTests
         Size size = new(dimension, dimension);
         Size expected;
 
-        expected = new(dimension / divisor, dimension / divisor);
+        expected = new Size(dimension / divisor, dimension / divisor);
 
         Assert.Equal(expected, size / divisor);
     }
@@ -320,7 +320,7 @@ public class SizeTests
         Size size = new(width, height);
         Size expected;
 
-        expected = new(width / divisor, height / divisor);
+        expected = new Size(width / divisor, height / divisor);
 
         Assert.Equal(expected, size / divisor);
     }
@@ -344,7 +344,7 @@ public class SizeTests
         SizeF size = new(dimension, dimension);
         SizeF expected;
 
-        expected = new(dimension / divisor, dimension / divisor);
+        expected = new SizeF(dimension / divisor, dimension / divisor);
         Assert.Equal(expected, size / divisor);
     }
 
@@ -355,7 +355,7 @@ public class SizeTests
         SizeF size = new(width, height);
         SizeF expected;
 
-        expected = new(width / divisor, height / divisor);
+        expected = new SizeF(width / divisor, height / divisor);
         Assert.Equal(expected, size / divisor);
     }
 

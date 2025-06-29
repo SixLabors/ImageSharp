@@ -43,11 +43,11 @@ public class DivFloat
     [Benchmark]
     public void Simd()
     {
-        Vector<float> v = new Vector<float>(this.testValue);
+        Vector<float> v = new(this.testValue);
 
         for (int i = 0; i < this.input.Length; i += Vector<uint>.Count)
         {
-            Vector<float> a = new Vector<float>(this.input, i);
+            Vector<float> a = new(this.input, i);
             a = a / v;
             a.CopyTo(this.result, i);
         }

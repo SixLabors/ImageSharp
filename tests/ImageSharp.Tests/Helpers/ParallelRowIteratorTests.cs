@@ -328,7 +328,7 @@ public class ParallelRowIteratorTests
             {
                 for (int x = rect.Left; x < rect.Right; x++)
                 {
-                    buffer[x, y] = new(x, y);
+                    buffer[x, y] = new Point(x, y);
                 }
             }
 

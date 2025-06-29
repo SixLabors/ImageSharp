@@ -147,7 +147,7 @@ internal sealed unsafe class DeflaterEngine : IDisposable
     /// <param name="strategy">The deflate strategy to use.</param>
     public DeflaterEngine(MemoryAllocator memoryAllocator, DeflateStrategy strategy)
     {
-        this.huffman = new(memoryAllocator);
+        this.huffman = new DeflaterHuffman(memoryAllocator);
         this.Pending = this.huffman.Pending;
         this.strategy = strategy;
 

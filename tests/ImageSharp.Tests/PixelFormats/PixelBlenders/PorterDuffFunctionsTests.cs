@@ -16,8 +16,8 @@ public class PorterDuffFunctionsTests
 
     public static TheoryData<TestVector4, TestVector4, float, TestVector4> NormalBlendFunctionData { get; } = new()
     {
-        { new(1, 1, 1, 1), new(1, 1, 1, 1), 1, new(1, 1, 1, 1) },
-        { new(1, 1, 1, 1), new(0, 0, 0, .8f), .5f, new(0.6f, 0.6f, 0.6f, 1) }
+        { new TestVector4(1, 1, 1, 1), new TestVector4(1, 1, 1, 1), 1, new TestVector4(1, 1, 1, 1) },
+        { new TestVector4(1, 1, 1, 1), new TestVector4(0, 0, 0, .8f), .5f, new TestVector4(0.6f, 0.6f, 0.6f, 1) }
     };
 
     [Theory]
@@ -47,9 +47,9 @@ public class PorterDuffFunctionsTests
 
     public static TheoryData<TestVector4, TestVector4, float, TestVector4> MultiplyFunctionData { get; } = new()
     {
-        { new(1, 1, 1, 1), new(1, 1, 1, 1), 1, new(1, 1, 1, 1) },
-        { new(1, 1, 1, 1), new(0, 0, 0, .8f), .5f, new(0.6f, 0.6f, 0.6f, 1) },
-        { new(0.9f, 0.9f, 0.9f, 0.9f), new(0.4f, 0.4f, 0.4f, 0.4f), .5f, new(0.7834783f, 0.7834783f, 0.7834783f, 0.92f) }
+        { new TestVector4(1, 1, 1, 1), new TestVector4(1, 1, 1, 1), 1, new TestVector4(1, 1, 1, 1) },
+        { new TestVector4(1, 1, 1, 1), new TestVector4(0, 0, 0, .8f), .5f, new TestVector4(0.6f, 0.6f, 0.6f, 1) },
+        { new TestVector4(0.9f, 0.9f, 0.9f, 0.9f), new TestVector4(0.4f, 0.4f, 0.4f, 0.4f), .5f, new TestVector4(0.7834783f, 0.7834783f, 0.7834783f, 0.92f) }
     };
 
     [Theory]
@@ -79,9 +79,9 @@ public class PorterDuffFunctionsTests
 
     public static TheoryData<TestVector4, TestVector4, float, TestVector4> AddFunctionData { get; } = new()
     {
-        { new(1, 1, 1, 1), new(1, 1, 1, 1), 1, new(1, 1, 1, 1) },
-        { new(1, 1, 1, 1), new(0, 0, 0, .8f), .5f, new(1, 1, 1, 1) },
-        { new(0.2f, 0.2f, 0.2f, 0.3f), new(0.3f, 0.3f, 0.3f, 0.2f), .5f, new(0.24324325f, 0.24324325f, 0.24324325f, .37f) }
+        { new TestVector4(1, 1, 1, 1), new TestVector4(1, 1, 1, 1), 1, new TestVector4(1, 1, 1, 1) },
+        { new TestVector4(1, 1, 1, 1), new TestVector4(0, 0, 0, .8f), .5f, new TestVector4(1, 1, 1, 1) },
+        { new TestVector4(0.2f, 0.2f, 0.2f, 0.3f), new TestVector4(0.3f, 0.3f, 0.3f, 0.2f), .5f, new TestVector4(0.24324325f, 0.24324325f, 0.24324325f, .37f) }
     };
 
     [Theory]
@@ -111,9 +111,9 @@ public class PorterDuffFunctionsTests
 
     public static TheoryData<TestVector4, TestVector4, float, TestVector4> SubtractFunctionData { get; } = new()
     {
-        { new(1, 1, 1, 1), new(1, 1, 1, 1), 1, new(0, 0, 0, 1) },
-        { new(1, 1, 1, 1), new(0, 0, 0, .8f), .5f, new(1, 1, 1, 1f) },
-        { new(0.2f, 0.2f, 0.2f, 0.3f), new(0.3f, 0.3f, 0.3f, 0.2f), .5f, new(.2027027f, .2027027f, .2027027f, .37f) }
+        { new TestVector4(1, 1, 1, 1), new TestVector4(1, 1, 1, 1), 1, new TestVector4(0, 0, 0, 1) },
+        { new TestVector4(1, 1, 1, 1), new TestVector4(0, 0, 0, .8f), .5f, new TestVector4(1, 1, 1, 1f) },
+        { new TestVector4(0.2f, 0.2f, 0.2f, 0.3f), new TestVector4(0.3f, 0.3f, 0.3f, 0.2f), .5f, new TestVector4(.2027027f, .2027027f, .2027027f, .37f) }
     };
 
     [Theory]
@@ -143,9 +143,9 @@ public class PorterDuffFunctionsTests
 
     public static TheoryData<TestVector4, TestVector4, float, TestVector4> ScreenFunctionData { get; } = new()
     {
-        { new(1, 1, 1, 1), new(1, 1, 1, 1), 1, new(1, 1, 1, 1) },
-        { new(1, 1, 1, 1), new(0, 0, 0, .8f), .5f, new(1, 1, 1, 1f) },
-        { new(0.2f, 0.2f, 0.2f, 0.3f), new(0.3f, 0.3f, 0.3f, 0.2f), .5f, new(.2383784f, .2383784f, .2383784f, .37f) }
+        { new TestVector4(1, 1, 1, 1), new TestVector4(1, 1, 1, 1), 1, new TestVector4(1, 1, 1, 1) },
+        { new TestVector4(1, 1, 1, 1), new TestVector4(0, 0, 0, .8f), .5f, new TestVector4(1, 1, 1, 1f) },
+        { new TestVector4(0.2f, 0.2f, 0.2f, 0.3f), new TestVector4(0.3f, 0.3f, 0.3f, 0.2f), .5f, new TestVector4(.2383784f, .2383784f, .2383784f, .37f) }
     };
 
     [Theory]
@@ -175,9 +175,9 @@ public class PorterDuffFunctionsTests
 
     public static TheoryData<TestVector4, TestVector4, float, TestVector4> DarkenFunctionData { get; } = new()
     {
-        { new(1, 1, 1, 1), new(1, 1, 1, 1), 1, new(1, 1, 1, 1) },
-        { new(1, 1, 1, 1), new(0, 0, 0, .8f), .5f, new(.6f, .6f, .6f, 1f) },
-        { new(0.2f, 0.2f, 0.2f, 0.3f), new(0.3f, 0.3f, 0.3f, 0.2f), .5f, new(.2189189f, .2189189f, .2189189f, .37f) }
+        { new TestVector4(1, 1, 1, 1), new TestVector4(1, 1, 1, 1), 1, new TestVector4(1, 1, 1, 1) },
+        { new TestVector4(1, 1, 1, 1), new TestVector4(0, 0, 0, .8f), .5f, new TestVector4(.6f, .6f, .6f, 1f) },
+        { new TestVector4(0.2f, 0.2f, 0.2f, 0.3f), new TestVector4(0.3f, 0.3f, 0.3f, 0.2f), .5f, new TestVector4(.2189189f, .2189189f, .2189189f, .37f) }
     };
 
     [Theory]
@@ -207,9 +207,9 @@ public class PorterDuffFunctionsTests
 
     public static TheoryData<TestVector4, TestVector4, float, TestVector4> LightenFunctionData { get; } = new()
     {
-        { new(1, 1, 1, 1), new(1, 1, 1, 1), 1, new(1, 1, 1, 1) },
-        { new(1, 1, 1, 1), new(0, 0, 0, .8f), .5f, new(1, 1, 1, 1f) },
-        { new(0.2f, 0.2f, 0.2f, 0.3f), new(0.3f, 0.3f, 0.3f, 0.2f), .5f, new(.227027f, .227027f, .227027f, .37f) },
+        { new TestVector4(1, 1, 1, 1), new TestVector4(1, 1, 1, 1), 1, new TestVector4(1, 1, 1, 1) },
+        { new TestVector4(1, 1, 1, 1), new TestVector4(0, 0, 0, .8f), .5f, new TestVector4(1, 1, 1, 1f) },
+        { new TestVector4(0.2f, 0.2f, 0.2f, 0.3f), new TestVector4(0.3f, 0.3f, 0.3f, 0.2f), .5f, new TestVector4(.227027f, .227027f, .227027f, .37f) },
     };
 
     [Theory]
@@ -239,9 +239,9 @@ public class PorterDuffFunctionsTests
 
     public static TheoryData<TestVector4, TestVector4, float, TestVector4> OverlayFunctionData { get; } = new()
     {
-        { new(1, 1, 1, 1), new(1, 1, 1, 1), 1, new(1, 1, 1, 1) },
-        { new(1, 1, 1, 1), new(0, 0, 0, .8f), .5f, new(1, 1, 1, 1f) },
-        { new(0.2f, 0.2f, 0.2f, 0.3f), new(0.3f, 0.3f, 0.3f, 0.2f), .5f, new(.2124324f, .2124324f, .2124324f, .37f) },
+        { new TestVector4(1, 1, 1, 1), new TestVector4(1, 1, 1, 1), 1, new TestVector4(1, 1, 1, 1) },
+        { new TestVector4(1, 1, 1, 1), new TestVector4(0, 0, 0, .8f), .5f, new TestVector4(1, 1, 1, 1f) },
+        { new TestVector4(0.2f, 0.2f, 0.2f, 0.3f), new TestVector4(0.3f, 0.3f, 0.3f, 0.2f), .5f, new TestVector4(.2124324f, .2124324f, .2124324f, .37f) },
     };
 
     [Theory]
@@ -271,9 +271,9 @@ public class PorterDuffFunctionsTests
 
     public static TheoryData<TestVector4, TestVector4, float, TestVector4> HardLightFunctionData { get; } = new()
     {
-        { new(1, 1, 1, 1), new(1, 1, 1, 1), 1, new(1, 1, 1, 1) },
-        { new(1, 1, 1, 1), new(0, 0, 0, .8f), .5f, new(0.6f, 0.6f, 0.6f, 1f) },
-        { new(0.2f, 0.2f, 0.2f, 0.3f), new(0.3f, 0.3f, 0.3f, 0.2f), .5f, new(.2124324f, .2124324f, .2124324f, .37f) },
+        { new TestVector4(1, 1, 1, 1), new TestVector4(1, 1, 1, 1), 1, new TestVector4(1, 1, 1, 1) },
+        { new TestVector4(1, 1, 1, 1), new TestVector4(0, 0, 0, .8f), .5f, new TestVector4(0.6f, 0.6f, 0.6f, 1f) },
+        { new TestVector4(0.2f, 0.2f, 0.2f, 0.3f), new TestVector4(0.3f, 0.3f, 0.3f, 0.2f), .5f, new TestVector4(.2124324f, .2124324f, .2124324f, .37f) },
     };
 
     [Theory]

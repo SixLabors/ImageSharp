@@ -15,7 +15,7 @@ public sealed class BmpFormat : IImageFormat<BmpMetadata>
     /// <summary>
     /// Gets the shared instance.
     /// </summary>
-    public static BmpFormat Instance { get; } = new BmpFormat();
+    public static BmpFormat Instance { get; } = new();
 
     /// <inheritdoc/>
     public string Name => "BMP";

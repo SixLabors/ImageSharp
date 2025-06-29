@@ -237,9 +237,9 @@ public struct Size : IEquatable<Size>
     /// <returns>A transformed size.</returns>
     public static SizeF Transform(Size size, Matrix3x2 matrix)
     {
-        Vector2 v = Vector2.Transform(new(size.Width, size.Height), matrix);
+        Vector2 v = Vector2.Transform(new Vector2(size.Width, size.Height), matrix);
 
-        return new(v.X, v.Y);
+        return new SizeF(v.X, v.Y);
     }
 
     /// <summary>

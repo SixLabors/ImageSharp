@@ -26,9 +26,9 @@ public abstract class TiffEncoderBaseTester
         where TPixel : unmanaged, IPixel<TPixel>
     {
         // arrange
-        TiffEncoder tiffEncoder = new TiffEncoder() { PhotometricInterpretation = photometricInterpretation, Compression = compression };
+        TiffEncoder tiffEncoder = new() { PhotometricInterpretation = photometricInterpretation, Compression = compression };
         using Image<TPixel> input = provider.GetImage();
-        using MemoryStream memStream = new MemoryStream();
+        using MemoryStream memStream = new();
         TiffFrameMetadata inputMeta = input.Frames.RootFrame.Metadata.GetTiffMetadata();
         TiffCompression inputCompression = inputMeta.Compression;
 
@@ -89,7 +89,7 @@ public abstract class TiffEncoderBaseTester
         where TPixel : unmanaged, IPixel<TPixel>
     {
         using Image<TPixel> image = provider.GetImage();
-        TiffEncoder encoder = new TiffEncoder
+        TiffEncoder encoder = new()
         {
             PhotometricInterpretation = photometricInterpretation,
             BitsPerPixel = bitsPerPixel,

@@ -214,14 +214,14 @@ internal partial class UniformUnmanagedMemoryPool : System.Runtime.ConstrainedEx
     {
         lock (AllPools)
         {
-            AllPools.Add(new(pool));
+            AllPools.Add(new WeakReference<UniformUnmanagedMemoryPool>(pool));
 
             // Invoke the timer callback more frequently, than trimSettings.TrimPeriodMilliseconds.
             // We are checking in the callback if enough time passed since the last trimming. If not, we do nothing.
             int period = settings.TrimPeriodMilliseconds / 4;
             if (trimTimer == null)
             {
-                trimTimer = new(_ => TimerCallback(), null, period, period);
+                trimTimer = new Timer(_ => TimerCallback(), null, period, period);
             }
             else if (settings.TrimPeriodMilliseconds < minTrimPeriodMilliseconds)
             {

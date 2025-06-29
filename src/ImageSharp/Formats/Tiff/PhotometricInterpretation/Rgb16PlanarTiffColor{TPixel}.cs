@@ -44,7 +44,7 @@ internal class Rgb16PlanarTiffColor<TPixel> : TiffBasePlanarColorDecoder<TPixel>
 
                     offset += 2;
 
-                    pixelRow[x] = TPixel.FromRgb48(new(r, g, b));
+                    pixelRow[x] = TPixel.FromRgb48(new Rgb48(r, g, b));
                 }
             }
             else
@@ -57,7 +57,7 @@ internal class Rgb16PlanarTiffColor<TPixel> : TiffBasePlanarColorDecoder<TPixel>
 
                     offset += 2;
 
-                    pixelRow[x] = TPixel.FromRgb48(new(r, g, b));
+                    pixelRow[x] = TPixel.FromRgb48(new Rgb48(r, g, b));
                 }
             }
         }

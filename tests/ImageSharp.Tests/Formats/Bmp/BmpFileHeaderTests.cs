@@ -11,7 +11,7 @@ public class BmpFileHeaderTests
     [Fact]
     public void TestWrite()
     {
-        BmpFileHeader header = new BmpFileHeader(1, 2, 3, 4);
+        BmpFileHeader header = new(1, 2, 3, 4);
 
         byte[] buffer = new byte[14];
 

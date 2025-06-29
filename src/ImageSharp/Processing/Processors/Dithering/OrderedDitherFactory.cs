@@ -29,7 +29,7 @@ internal static class OrderedDitherFactory
         while (length > bayerLength);
 
         // Create our Bayer matrix that matches the given exponent and dimensions
-        DenseMatrix<uint> matrix = new DenseMatrix<uint>((int)length);
+        DenseMatrix<uint> matrix = new((int)length);
         uint i = 0;
         for (int y = 0; y < length; y++)
         {

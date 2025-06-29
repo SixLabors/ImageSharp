@@ -81,7 +81,7 @@ internal class AdaptiveHistogramEqualizationProcessor<TPixel> : HistogramEqualiz
             RowIntervalOperation operation = new(cdfData, tileYStartPositions, tileWidth, tileHeight, tileCount, halfTileWidth, luminanceLevels, source.PixelBuffer);
             ParallelRowIterator.IterateRowIntervals(
                 this.Configuration,
-                new(0, 0, sourceWidth, tileYStartPositions.Count),
+                new Rectangle(0, 0, sourceWidth, tileYStartPositions.Count),
                 in operation);
 
             // Fix left column
@@ -145,7 +145,7 @@ internal class AdaptiveHistogramEqualizationProcessor<TPixel> : HistogramEqualiz
             {
                 ref TPixel pixel = ref rowSpan[dx];
                 float luminanceEqualized = cdfData.RemapGreyValue(cdfX, cdfY, GetLuminance(pixel, luminanceLevels));
-                pixel = TPixel.FromVector4(new(luminanceEqualized, luminanceEqualized, luminanceEqualized, pixel.ToVector4().W));
+                pixel = TPixel.FromVector4(new Vector4(luminanceEqualized, luminanceEqualized, luminanceEqualized, pixel.ToVector4().W));
             }
         }
     }
@@ -191,7 +191,7 @@ internal class AdaptiveHistogramEqualizationProcessor<TPixel> : HistogramEqualiz
                 {
                     ref TPixel pixel = ref rowSpan[dx];
                     float luminanceEqualized = InterpolateBetweenTwoTiles(pixel, cdfData, cdfX, cdfY, cdfX, cdfY + 1, tileY, tileHeight, luminanceLevels);
-                    pixel = TPixel.FromVector4(new(luminanceEqualized, luminanceEqualized, luminanceEqualized, pixel.ToVector4().W));
+                    pixel = TPixel.FromVector4(new Vector4(luminanceEqualized, luminanceEqualized, luminanceEqualized, pixel.ToVector4().W));
                 }
 
                 tileY++;
@@ -243,7 +243,7 @@ internal class AdaptiveHistogramEqualizationProcessor<TPixel> : HistogramEqualiz
                 {
                     ref TPixel pixel = ref rowSpan[dx];
                     float luminanceEqualized = InterpolateBetweenTwoTiles(pixel, cdfData, cdfX, cdfY, cdfX + 1, cdfY, tileX, tileWidth, luminanceLevels);
-                    pixel = TPixel.FromVector4(new(luminanceEqualized, luminanceEqualized, luminanceEqualized, pixel.ToVector4().W));
+                    pixel = TPixel.FromVector4(new Vector4(luminanceEqualized, luminanceEqualized, luminanceEqualized, pixel.ToVector4().W));
                     tileX++;
                 }
             }
@@ -432,7 +432,7 @@ internal class AdaptiveHistogramEqualizationProcessor<TPixel> : HistogramEqualiz
                                 this.tileHeight,
                                 this.luminanceLevels);
 
-                            pixel = TPixel.FromVector4(new(luminanceEqualized, luminanceEqualized, luminanceEqualized, pixel.ToVector4().W));
+                            pixel = TPixel.FromVector4(new Vector4(luminanceEqualized, luminanceEqualized, luminanceEqualized, pixel.ToVector4().W));
                             tileX++;
                         }
 
@@ -515,7 +515,7 @@ internal class AdaptiveHistogramEqualizationProcessor<TPixel> : HistogramEqualiz
 
             ParallelRowIterator.IterateRowIntervals(
                 this.configuration,
-                new(0, 0, this.sourceWidth, this.tileYStartPositions.Count),
+                new Rectangle(0, 0, this.sourceWidth, this.tileYStartPositions.Count),
                 in operation);
         }
 

@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Buffers;
+using System.Numerics;
 using SixLabors.ImageSharp.Formats.Tiff.Utils;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
@@ -62,7 +63,7 @@ internal class RgbPlanarTiffColor<TPixel> : TiffBasePlanarColorDecoder<TPixel>
                 float g = gBitReader.ReadBits(this.bitsPerSampleG) / this.gFactor;
                 float b = bBitReader.ReadBits(this.bitsPerSampleB) / this.bFactor;
 
-                pixelRow[x] = TPixel.FromScaledVector4(new(r, g, b, 1f));
+                pixelRow[x] = TPixel.FromScaledVector4(new Vector4(r, g, b, 1f));
             }
 
             rBitReader.NextRow();

@@ -118,7 +118,7 @@ internal static class WebpChunkParsingUtils
 
         Vp8BitReader bitReader = new(stream, remaining, memoryAllocator, partitionLength) { Remaining = remaining };
 
-        return new()
+        return new WebpImageInfo
         {
             Width = width,
             Height = height,
@@ -176,7 +176,7 @@ internal static class WebpChunkParsingUtils
             WebpThrowHelper.ThrowNotSupportedException($"Unexpected version number {version} found in VP8L header");
         }
 
-        return new()
+        return new WebpImageInfo
         {
             Width = width,
             Height = height,
@@ -239,7 +239,7 @@ internal static class WebpChunkParsingUtils
         uint height = ReadUInt24LittleEndian(stream, buffer) + 1;
 
         // Read all the chunks in the order they occur.
-        return new()
+        return new WebpImageInfo
         {
             Width = width,
             Height = height,
@@ -358,7 +358,7 @@ internal static class WebpChunkParsingUtils
 
                     if (metadata.ExifProfile != null)
                     {
-                        metadata.ExifProfile = new(exifData);
+                        metadata.ExifProfile = new ExifProfile(exifData);
                     }
 
                     break;
@@ -372,7 +372,7 @@ internal static class WebpChunkParsingUtils
 
                     if (metadata.XmpProfile != null)
                     {
-                        metadata.XmpProfile = new(xmpData);
+                        metadata.XmpProfile = new XmpProfile(xmpData);
                     }
 
                     break;

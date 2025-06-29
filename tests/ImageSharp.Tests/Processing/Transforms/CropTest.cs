@@ -17,7 +17,7 @@ public class CropTest : BaseImageOperationsExtensionTest
         this.operations.Crop(width, height);
         CropProcessor processor = this.Verify<CropProcessor>();
 
-        Assert.Equal(new(0, 0, width, height), processor.CropRectangle);
+        Assert.Equal(new Rectangle(0, 0, width, height), processor.CropRectangle);
     }
 
     [Theory]

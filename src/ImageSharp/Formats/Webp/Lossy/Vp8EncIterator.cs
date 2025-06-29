@@ -427,7 +427,7 @@ internal class Vp8EncIterator
             this.MakeIntra4Preds();
             for (mode = 0; mode < maxMode; ++mode)
             {
-                histos[curHisto] = new();
+                histos[curHisto] = new Vp8Histogram();
                 histos[curHisto].CollectHistogram(src, this.YuvP.AsSpan(Vp8Encoding.Vp8I4ModeOffsets[mode]), 0, 1);
 
                 int alpha = histos[curHisto].GetAlpha();

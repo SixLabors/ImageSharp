@@ -117,7 +117,7 @@ public abstract class PixelOperationsTests<TPixel> : MeasureFixture
         const byte alpha = byte.MinValue;
         const byte noAlpha = byte.MaxValue;
 
-        TPixel pixel = TPixel.FromRgba32(new(0, 0, 0, alpha));
+        TPixel pixel = TPixel.FromRgba32(new Rgba32(0, 0, 0, alpha));
 
         Rgba32 dest = pixel.ToRgba32();
 
@@ -480,7 +480,7 @@ public abstract class PixelOperationsTests<TPixel> : MeasureFixture
         {
             int i4 = i * 4;
 
-            expected[i] = TPixel.FromArgb32(new(source[i4 + 1], source[i4 + 2], source[i4 + 3], source[i4 + 0]));
+            expected[i] = TPixel.FromArgb32(new Argb32(source[i4 + 1], source[i4 + 2], source[i4 + 3], source[i4 + 0]));
         }
 
         TestOperation(
@@ -524,7 +524,7 @@ public abstract class PixelOperationsTests<TPixel> : MeasureFixture
         {
             int i3 = i * 3;
 
-            expected[i] = TPixel.FromBgr24(new(source[i3 + 2], source[i3 + 1], source[i3]));
+            expected[i] = TPixel.FromBgr24(new Bgr24(source[i3 + 2], source[i3 + 1], source[i3]));
         }
 
         TestOperation(
@@ -566,7 +566,7 @@ public abstract class PixelOperationsTests<TPixel> : MeasureFixture
         {
             int i4 = i * 4;
 
-            expected[i] = TPixel.FromBgra32(new(source[i4 + 2], source[i4 + 1], source[i4 + 0], source[i4 + 3]));
+            expected[i] = TPixel.FromBgra32(new Bgra32(source[i4 + 2], source[i4 + 1], source[i4 + 0], source[i4 + 3]));
         }
 
         TestOperation(
@@ -609,7 +609,7 @@ public abstract class PixelOperationsTests<TPixel> : MeasureFixture
         {
             int i4 = i * 4;
 
-            expected[i] = TPixel.FromAbgr32(new(source[i4 + 3], source[i4 + 2], source[i4 + 1], source[i4 + 0]));
+            expected[i] = TPixel.FromAbgr32(new Abgr32(source[i4 + 3], source[i4 + 2], source[i4 + 1], source[i4 + 0]));
         }
 
         TestOperation(
@@ -863,7 +863,7 @@ public abstract class PixelOperationsTests<TPixel> : MeasureFixture
         {
             int i3 = i * 3;
 
-            expected[i] = TPixel.FromRgb24(new(source[i3 + 0], source[i3 + 1], source[i3 + 2]));
+            expected[i] = TPixel.FromRgb24(new Rgb24(source[i3 + 0], source[i3 + 1], source[i3 + 2]));
         }
 
         TestOperation(
@@ -905,7 +905,7 @@ public abstract class PixelOperationsTests<TPixel> : MeasureFixture
         {
             int i4 = i * 4;
 
-            expected[i] = TPixel.FromRgba32(new(source[i4 + 0], source[i4 + 1], source[i4 + 2], source[i4 + 3]));
+            expected[i] = TPixel.FromRgba32(new Rgba32(source[i4 + 0], source[i4 + 1], source[i4 + 2], source[i4 + 3]));
         }
 
         TestOperation(

@@ -47,7 +47,7 @@ public class MemoryGroupIndexTests
     {
         MemoryGroupIndex a = new(10, 3, 3);
         a += 1;
-        Assert.Equal(new(10, 3, 4), a);
+        Assert.Equal(new MemoryGroupIndex(10, 3, 4), a);
     }
 
     [Fact]
@@ -58,7 +58,7 @@ public class MemoryGroupIndexTests
         a += 8;
         b += 1;
 
-        Assert.Equal(new(10, 6, 1), a);
-        Assert.Equal(new(10, 6, 0), b);
+        Assert.Equal(new MemoryGroupIndex(10, 6, 1), a);
+        Assert.Equal(new MemoryGroupIndex(10, 6, 0), b);
     }
 }

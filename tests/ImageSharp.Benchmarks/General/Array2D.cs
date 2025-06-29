@@ -44,7 +44,7 @@ public class Array2D
             this.jaggedData[i] = new float[this.Count];
         }
 
-        this.matrix = new(this.array2D);
+        this.matrix = new DenseMatrix<float>(this.array2D);
 
         this.Min = (this.Count / 2) - 10;
         this.Min = Math.Max(0, this.Min);

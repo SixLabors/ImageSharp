@@ -25,14 +25,14 @@ internal class BlackIsZero4TiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
             for (int x = left; x < left + width - 1;)
             {
                 byte byteData = data[offset++];
-                pixelRowSpan[x++] = TPixel.FromL8(new((byte)(((byteData & 0xF0) >> 4) * 17)));
-                pixelRowSpan[x++] = TPixel.FromL8(new((byte)((byteData & 0x0F) * 17)));
+                pixelRowSpan[x++] = TPixel.FromL8(new L8((byte)(((byteData & 0xF0) >> 4) * 17)));
+                pixelRowSpan[x++] = TPixel.FromL8(new L8((byte)((byteData & 0x0F) * 17)));
             }
 
             if (isOddWidth)
             {
                 byte byteData = data[offset++];
-                pixelRowSpan[left + width - 1] = TPixel.FromL8(new((byte)(((byteData & 0xF0) >> 4) * 17)));
+                pixelRowSpan[left + width - 1] = TPixel.FromL8(new L8((byte)(((byteData & 0xF0) >> 4) * 17)));
             }
         }
     }

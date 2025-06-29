@@ -47,7 +47,7 @@ public class ImageExtensionsTest
 
         using (Image<L8> image = new(10, 10))
         {
-            image.SaveAsQoi(file, new());
+            image.SaveAsQoi(file, new QoiEncoder());
         }
 
         IImageFormat format = Image.DetectFormat(file);
@@ -108,7 +108,7 @@ public class ImageExtensionsTest
 
         using (Image<L8> image = new(10, 10))
         {
-            image.SaveAsQoi(memoryStream, new());
+            image.SaveAsQoi(memoryStream, new QoiEncoder());
         }
 
         memoryStream.Position = 0;

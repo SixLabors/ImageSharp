@@ -67,8 +67,8 @@ internal sealed class UniformUnmanagedMemoryPoolMemoryAllocator : MemoryAllocato
         this.poolBufferSizeInBytes = poolBufferSizeInBytes;
         this.poolCapacity = (int)(maxPoolSizeInBytes / poolBufferSizeInBytes);
         this.trimSettings = trimSettings;
-        this.pool = new(this.poolBufferSizeInBytes, this.poolCapacity, this.trimSettings);
-        this.nonPoolAllocator = new(unmanagedBufferSizeInBytes);
+        this.pool = new UniformUnmanagedMemoryPool(this.poolBufferSizeInBytes, this.poolCapacity, this.trimSettings);
+        this.nonPoolAllocator = new UnmanagedMemoryAllocator(unmanagedBufferSizeInBytes);
     }
 
     // This delegate allows overriding the method returning the available system memory,

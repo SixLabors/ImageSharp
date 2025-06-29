@@ -93,7 +93,7 @@ public class GifFrameMetadata : IFormatFrameMetadata<GifFrameMetadata>
         // If the color table is global and frame has no transparency. Consider it 'Source' also.
         blendSource |= this.ColorTableMode == FrameColorTableMode.Global && !this.HasTransparency;
 
-        return new()
+        return new FormatConnectingFrameMetadata
         {
             ColorTableMode = this.ColorTableMode,
             Duration = TimeSpan.FromMilliseconds(this.FrameDelay * 10),

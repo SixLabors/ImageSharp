@@ -92,7 +92,7 @@ internal static class AlphaEncoder
             for (int x = 0; x < width; x++)
             {
                 // Leave A/R/B channels zero'd.
-                pixelRow[x] = new(0, alphaRow[x], 0, 0);
+                pixelRow[x] = new Bgra32(0, alphaRow[x], 0, 0);
             }
         }
 

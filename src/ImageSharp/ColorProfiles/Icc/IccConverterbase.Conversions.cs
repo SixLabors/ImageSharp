@@ -91,7 +91,7 @@ internal abstract partial class IccConverterBase
             throw new InvalidIccProfileException("Missing matrix column or channel.");
         }
 
-        return new(
+        return new ColorTrcCalculator(
             redMatrixColumn,
             greenMatrixColumn,
             blueMatrixColumn,
@@ -104,6 +104,6 @@ internal abstract partial class IccConverterBase
     private static GrayTrcCalculator InitGrayTrc(IccProfile profile, bool toPcs)
     {
         IccTagDataEntry entry = GetTag(profile, IccProfileTag.GrayTrc);
-        return new(entry, toPcs);
+        return new GrayTrcCalculator(entry, toPcs);
     }
 }

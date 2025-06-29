@@ -75,7 +75,7 @@ internal readonly struct Convolution2DRowOperation<TPixel> : IRowOperation<Vecto
         Span<Vector4> targetYBuffer = span.Slice(boundsWidth, boundsWidth);
         Span<Vector4> targetXBuffer = span.Slice(boundsWidth * 2, boundsWidth);
 
-        Convolution2DState state = new Convolution2DState(in this.kernelMatrixY, in this.kernelMatrixX, this.map);
+        Convolution2DState state = new(in this.kernelMatrixY, in this.kernelMatrixX, this.map);
         ref int sampleRowBase = ref state.GetSampleRow((uint)(y - this.bounds.Y));
 
         // Clear the target buffers for each row run.
@@ -141,7 +141,7 @@ internal readonly struct Convolution2DRowOperation<TPixel> : IRowOperation<Vecto
         Span<Vector4> targetYBuffer = span.Slice(boundsWidth, boundsWidth);
         Span<Vector4> targetXBuffer = span.Slice(boundsWidth * 2, boundsWidth);
 
-        Convolution2DState state = new Convolution2DState(in this.kernelMatrixY, in this.kernelMatrixX, this.map);
+        Convolution2DState state = new(in this.kernelMatrixY, in this.kernelMatrixX, this.map);
         ref int sampleRowBase = ref state.GetSampleRow((uint)(y - this.bounds.Y));
 
         // Clear the target buffers for each row run.

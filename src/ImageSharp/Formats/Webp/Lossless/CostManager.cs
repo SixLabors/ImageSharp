@@ -23,15 +23,15 @@ internal sealed class CostManager : IDisposable
     {
         int costCacheSize = pixCount > BackwardReferenceEncoder.MaxLength ? BackwardReferenceEncoder.MaxLength : pixCount;
 
-        this.CacheIntervals = new();
-        this.CostCache = new();
+        this.CacheIntervals = new List<CostCacheInterval>();
+        this.CostCache = new List<double>();
         this.Costs = memoryAllocator.Allocate<float>(pixCount);
         this.DistArray = distArray;
         this.Count = 0;
 
         for (int i = 0; i < FreeIntervalsStartCount; i++)
         {
-            this.freeIntervals.Push(new());
+            this.freeIntervals.Push(new CostInterval());
         }
 
         // Fill in the cost cache.
@@ -62,7 +62,7 @@ internal sealed class CostManager : IDisposable
             double costVal = this.CostCache[i];
             if (costVal != cur.Cost)
             {
-                cur = new()
+                cur = new CostCacheInterval
                 {
                     Start = i,
                     Cost = costVal
@@ -258,7 +258,7 @@ internal sealed class CostManager : IDisposable
         }
         else
         {
-            intervalNew = new() { Cost = cost, Start = start, End = end, Index = position };
+            intervalNew = new CostInterval { Cost = cost, Start = start, End = end, Index = position };
         }
 
         this.PositionOrphanInterval(intervalNew, intervalIn);

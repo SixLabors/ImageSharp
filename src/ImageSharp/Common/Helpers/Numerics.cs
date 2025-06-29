@@ -656,7 +656,7 @@ internal static class Numerics
             return Sse.Shuffle(value.AsVector128(), value.AsVector128(), ShuffleAlphaControl).AsVector4();
         }
 
-        return new(value.W);
+        return new Vector4(value.W);
     }
 
     /// <summary>

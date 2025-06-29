@@ -23,7 +23,7 @@ internal class WhiteIsZero8TiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
             for (int x = 0; x < pixelRow.Length; x++)
             {
                 byte intensity = (byte)(byte.MaxValue - data[offset++]);
-                pixelRow[x] = TPixel.FromL8(new(intensity));
+                pixelRow[x] = TPixel.FromL8(new L8(intensity));
             }
         }
     }

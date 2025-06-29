@@ -9,14 +9,14 @@ namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Exif.Values;
 [Trait("Profile", "Exif")]
 public class ExifValuesTests
 {
-    public static TheoryData<ExifTag> ByteTags => new TheoryData<ExifTag>
+    public static TheoryData<ExifTag> ByteTags => new()
     {
         { ExifTag.FaxProfile },
         { ExifTag.ModeNumber },
         { ExifTag.GPSAltitudeRef }
     };
 
-    public static TheoryData<ExifTag> ByteArrayTags => new TheoryData<ExifTag>
+    public static TheoryData<ExifTag> ByteArrayTags => new()
     {
         { ExifTag.ClipPath },
         { ExifTag.VersionYear },
@@ -26,7 +26,7 @@ public class ExifValuesTests
         { ExifTag.GPSVersionID },
     };
 
-    public static TheoryData<ExifTag> DoubleArrayTags => new TheoryData<ExifTag>
+    public static TheoryData<ExifTag> DoubleArrayTags => new()
     {
         { ExifTag.PixelScale },
         { ExifTag.IntergraphMatrix },
@@ -34,7 +34,7 @@ public class ExifValuesTests
         { ExifTag.ModelTransform }
     };
 
-    public static TheoryData<ExifTag> LongTags => new TheoryData<ExifTag>
+    public static TheoryData<ExifTag> LongTags => new()
     {
         { ExifTag.SubfileType },
         { ExifTag.SubIFDOffset },
@@ -59,7 +59,7 @@ public class ExifValuesTests
         { ExifTag.ImageNumber },
     };
 
-    public static TheoryData<ExifTag> LongArrayTags => new TheoryData<ExifTag>
+    public static TheoryData<ExifTag> LongArrayTags => new()
     {
         { ExifTag.FreeOffsets },
         { ExifTag.FreeByteCounts },
@@ -73,7 +73,7 @@ public class ExifValuesTests
         { ExifTag.IntergraphRegisters }
     };
 
-    public static TheoryData<ExifTag> NumberTags => new TheoryData<ExifTag>
+    public static TheoryData<ExifTag> NumberTags => new()
     {
         { ExifTag.ImageWidth },
         { ExifTag.ImageLength },
@@ -85,7 +85,7 @@ public class ExifValuesTests
         { ExifTag.PixelYDimension }
     };
 
-    public static TheoryData<ExifTag> NumberArrayTags => new TheoryData<ExifTag>
+    public static TheoryData<ExifTag> NumberArrayTags => new()
     {
         { ExifTag.StripOffsets },
         { ExifTag.StripByteCounts },
@@ -94,7 +94,7 @@ public class ExifValuesTests
         { ExifTag.ImageLayer }
     };
 
-    public static TheoryData<ExifTag> RationalTags => new TheoryData<ExifTag>
+    public static TheoryData<ExifTag> RationalTags => new()
     {
         { ExifTag.XPosition },
         { ExifTag.YPosition },
@@ -131,7 +131,7 @@ public class ExifValuesTests
         { ExifTag.GPSHPositioningError },
     };
 
-    public static TheoryData<ExifTag> RationalArrayTags => new TheoryData<ExifTag>
+    public static TheoryData<ExifTag> RationalArrayTags => new()
     {
         { ExifTag.WhitePoint },
         { ExifTag.PrimaryChromaticities },
@@ -145,7 +145,7 @@ public class ExifValuesTests
         { ExifTag.LensSpecification }
     };
 
-    public static TheoryData<ExifTag> ShortTags => new TheoryData<ExifTag>
+    public static TheoryData<ExifTag> ShortTags => new()
     {
         { ExifTag.OldSubfileType },
         { ExifTag.Compression },
@@ -196,7 +196,7 @@ public class ExifValuesTests
         { ExifTag.GPSDifferential }
     };
 
-    public static TheoryData<ExifTag> ShortArrayTags => new TheoryData<ExifTag>
+    public static TheoryData<ExifTag> ShortArrayTags => new()
     {
         { ExifTag.BitsPerSample },
         { ExifTag.MinSampleValue },
@@ -220,7 +220,7 @@ public class ExifValuesTests
         { ExifTag.SubjectLocation }
     };
 
-    public static TheoryData<ExifTag> SignedRationalTags => new TheoryData<ExifTag>
+    public static TheoryData<ExifTag> SignedRationalTags => new()
     {
         { ExifTag.ShutterSpeedValue },
         { ExifTag.BrightnessValue },
@@ -230,17 +230,17 @@ public class ExifValuesTests
         { ExifTag.CameraElevationAngle }
     };
 
-    public static TheoryData<ExifTag> SignedRationalArrayTags => new TheoryData<ExifTag>
+    public static TheoryData<ExifTag> SignedRationalArrayTags => new()
     {
         { ExifTag.Decode }
     };
 
-    public static TheoryData<ExifTag> SignedShortArrayTags => new TheoryData<ExifTag>
+    public static TheoryData<ExifTag> SignedShortArrayTags => new()
     {
         { ExifTag.TimeZoneOffset }
     };
 
-    public static TheoryData<ExifTag> StringTags => new TheoryData<ExifTag>
+    public static TheoryData<ExifTag> StringTags => new()
     {
         { ExifTag.ImageDescription },
         { ExifTag.Make },
@@ -298,13 +298,13 @@ public class ExifValuesTests
         { ExifTag.GPSDateStamp },
     };
 
-    public static TheoryData<ExifTag> UndefinedTags => new TheoryData<ExifTag>
+    public static TheoryData<ExifTag> UndefinedTags => new()
     {
         { ExifTag.FileSource },
         { ExifTag.SceneType }
     };
 
-    public static TheoryData<ExifTag> UndefinedArrayTags => new TheoryData<ExifTag>
+    public static TheoryData<ExifTag> UndefinedArrayTags => new()
     {
         { ExifTag.JPEGTables },
         { ExifTag.OECF },
@@ -320,14 +320,14 @@ public class ExifValuesTests
         { ExifTag.ImageSourceData },
     };
 
-    public static TheoryData<ExifTag> EncodedStringTags => new TheoryData<ExifTag>
+    public static TheoryData<ExifTag> EncodedStringTags => new()
     {
         { ExifTag.UserComment },
         { ExifTag.GPSProcessingMethod },
         { ExifTag.GPSAreaInformation }
     };
 
-    public static TheoryData<ExifTag> Ucs2StringTags => new TheoryData<ExifTag>
+    public static TheoryData<ExifTag> Ucs2StringTags => new()
     {
         { ExifTag.XPTitle },
         { ExifTag.XPComment },
@@ -481,7 +481,7 @@ public class ExifValuesTests
     [MemberData(nameof(RationalTags))]
     public void ExifRationalTests(ExifTag tag)
     {
-        Rational expected = new Rational(21, 42);
+        Rational expected = new(21, 42);
         ExifValue value = ExifValues.Create(tag);
 
         Assert.False(value.TrySetValue(expected.ToString()));
@@ -540,7 +540,7 @@ public class ExifValuesTests
     [MemberData(nameof(SignedRationalTags))]
     public void ExifSignedRationalTests(ExifTag tag)
     {
-        SignedRational expected = new SignedRational(21, 42);
+        SignedRational expected = new(21, 42);
         ExifValue value = ExifValues.Create(tag);
 
         Assert.False(value.TrySetValue(expected.ToString()));
@@ -633,7 +633,7 @@ public class ExifValuesTests
             Assert.Equal(ExifEncodedStringHelpers.CharacterCodeBytesLength, ExifEncodedStringHelpers.GetCodeBytes(charCode).Length);
 
             const string expectedText = "test string";
-            EncodedString expected = new EncodedString(charCode, expectedText);
+            EncodedString expected = new(charCode, expectedText);
             ExifValue value = ExifValues.Create(tag);
 
             Assert.False(value.TrySetValue(123));

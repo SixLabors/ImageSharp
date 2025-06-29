@@ -108,7 +108,7 @@ public class PbmDecoderTests
     {
         DecoderOptions options = new()
         {
-            TargetSize = new() { Width = 150, Height = 150 }
+            TargetSize = new Size { Width = 150, Height = 150 }
         };
 
         using Image<TPixel> image = provider.GetImage(PbmDecoder.Instance, options);
@@ -130,7 +130,7 @@ public class PbmDecoderTests
         using EofHitCounter eofHitCounter = EofHitCounter.RunDecoder(bytes);
 
         Assert.True(eofHitCounter.EofHitCount <= 2);
-        Assert.Equal(new(100, 100), eofHitCounter.Image.Size);
+        Assert.Equal(new Size(100, 100), eofHitCounter.Image.Size);
     }
 
     [Fact]
@@ -139,6 +139,6 @@ public class PbmDecoderTests
         using EofHitCounter eofHitCounter = EofHitCounter.RunDecoder(RgbBinaryPrematureEof);
 
         Assert.True(eofHitCounter.EofHitCount <= 2);
-        Assert.Equal(new(29, 30), eofHitCounter.Image.Size);
+        Assert.Equal(new Size(29, 30), eofHitCounter.Image.Size);
     }
 }

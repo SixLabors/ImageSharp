@@ -116,7 +116,7 @@ public partial class JpegDecoderTests
     public void JpegDecoder_Decode_Resize<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        DecoderOptions options = new() { TargetSize = new() { Width = 150, Height = 150 } };
+        DecoderOptions options = new() { TargetSize = new Size { Width = 150, Height = 150 } };
         using Image<TPixel> image = provider.GetImage(JpegDecoder.Instance, options);
 
         FormattableString details = $"{options.TargetSize.Value.Width}_{options.TargetSize.Value.Height}";
@@ -136,7 +136,7 @@ public partial class JpegDecoderTests
     {
         DecoderOptions options = new()
         {
-            TargetSize = new() { Width = 150, Height = 150 },
+            TargetSize = new Size { Width = 150, Height = 150 },
             Sampler = KnownResamplers.Bicubic
         };
         using Image<TPixel> image = provider.GetImage(JpegDecoder.Instance, options);
@@ -156,7 +156,7 @@ public partial class JpegDecoderTests
     public void JpegDecoder_Decode_Specialized_IDCT_Resize<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        DecoderOptions options = new() { TargetSize = new() { Width = 150, Height = 150 } };
+        DecoderOptions options = new() { TargetSize = new Size { Width = 150, Height = 150 } };
         JpegDecoderOptions specializedOptions = new()
         {
             GeneralOptions = options,
@@ -180,7 +180,7 @@ public partial class JpegDecoderTests
     public void JpegDecoder_Decode_Specialized_Scale_Resize<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        DecoderOptions options = new() { TargetSize = new() { Width = 150, Height = 150 } };
+        DecoderOptions options = new() { TargetSize = new Size { Width = 150, Height = 150 } };
         JpegDecoderOptions specializedOptions = new()
         {
             GeneralOptions = options,
@@ -204,7 +204,7 @@ public partial class JpegDecoderTests
     public void JpegDecoder_Decode_Specialized_Combined_Resize<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        DecoderOptions options = new() { TargetSize = new() { Width = 150, Height = 150 } };
+        DecoderOptions options = new() { TargetSize = new Size { Width = 150, Height = 150 } };
         JpegDecoderOptions specializedOptions = new()
         {
             GeneralOptions = options,
@@ -372,7 +372,7 @@ public partial class JpegDecoderTests
     {
         JpegDecoderOptions options = new()
         {
-            GeneralOptions = new() { ColorProfileHandling = ColorProfileHandling.Convert }
+            GeneralOptions = new DecoderOptions { ColorProfileHandling = ColorProfileHandling.Convert }
         };
 
         using Image<TPixel> image = provider.GetImage(JpegDecoder.Instance, options);
@@ -387,7 +387,7 @@ public partial class JpegDecoderTests
     {
         JpegDecoderOptions options = new()
         {
-            GeneralOptions = new() { ColorProfileHandling = ColorProfileHandling.Convert }
+            GeneralOptions = new DecoderOptions { ColorProfileHandling = ColorProfileHandling.Convert }
         };
 
         using Image<TPixel> image = provider.GetImage(JpegDecoder.Instance, options);
@@ -407,7 +407,7 @@ public partial class JpegDecoderTests
     {
         JpegDecoderOptions options = new()
         {
-            GeneralOptions = new() { ColorProfileHandling = ColorProfileHandling.Convert }
+            GeneralOptions = new DecoderOptions { ColorProfileHandling = ColorProfileHandling.Convert }
         };
 
         using Image<TPixel> image = provider.GetImage(JpegDecoder.Instance, options);

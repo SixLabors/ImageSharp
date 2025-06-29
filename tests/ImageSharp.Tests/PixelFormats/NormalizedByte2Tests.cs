@@ -32,8 +32,8 @@ public class NormalizedByte2Tests
     [Fact]
     public void NormalizedByte2_ToVector4()
     {
-        Assert.Equal(new(1, 1, 0, 1), new NormalizedByte2(Vector2.One).ToVector4());
-        Assert.Equal(new(0, 0, 0, 1), new NormalizedByte2(Vector2.Zero).ToVector4());
+        Assert.Equal(new Vector4(1, 1, 0, 1), new NormalizedByte2(Vector2.One).ToVector4());
+        Assert.Equal(new Vector4(0, 0, 0, 1), new NormalizedByte2(Vector2.Zero).ToVector4());
     }
 
     [Fact]
@@ -74,7 +74,7 @@ public class NormalizedByte2Tests
         Vector4 expected = new(1, 1, 0, 1);
 
         // act
-        NormalizedByte2 pixel = NormalizedByte2.FromBgra5551(new(1f, 1f, 1f, 1f));
+        NormalizedByte2 pixel = NormalizedByte2.FromBgra5551(new Bgra5551(1f, 1f, 1f, 1f));
 
         // assert
         Assert.Equal(expected, pixel.ToVector4());

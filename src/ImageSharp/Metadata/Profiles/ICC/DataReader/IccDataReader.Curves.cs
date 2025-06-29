@@ -30,7 +30,7 @@ internal sealed partial class IccDataReader
             segments[i] = this.ReadCurveSegment();
         }
 
-        return new(breakPoints, segments);
+        return new IccOneDimensionalCurve(breakPoints, segments);
     }
 
     /// <summary>
@@ -63,7 +63,7 @@ internal sealed partial class IccDataReader
             }
         }
 
-        return new(type, xyzValues, response);
+        return new IccResponseCurve(type, xyzValues, response);
     }
 
     /// <summary>
@@ -106,11 +106,11 @@ internal sealed partial class IccDataReader
 
         switch (type)
         {
-            case 0: return new(gamma);
-            case 1: return new(gamma, a, b);
-            case 2: return new(gamma, a, b, c);
-            case 3: return new(gamma, a, b, c, d);
-            case 4: return new(gamma, a, b, c, d, e, f);
+            case 0: return new IccParametricCurve(gamma);
+            case 1: return new IccParametricCurve(gamma, a, b);
+            case 2: return new IccParametricCurve(gamma, a, b, c);
+            case 3: return new IccParametricCurve(gamma, a, b, c, d);
+            case 4: return new IccParametricCurve(gamma, a, b, c, d, e, f);
             default: throw new InvalidIccProfileException($"Invalid parametric curve type of {type}");
         }
     }
@@ -165,7 +165,7 @@ internal sealed partial class IccDataReader
             e = this.ReadSingle();
         }
 
-        return new(type, gamma, a, b, c, d, e);
+        return new IccFormulaCurveElement(type, gamma, a, b, c, d, e);
     }
 
     /// <summary>
@@ -181,7 +181,7 @@ internal sealed partial class IccDataReader
             entries[i] = this.ReadSingle();
         }
 
-        return new(entries);
+        return new IccSampledCurveElement(entries);
     }
 
     /// <summary>

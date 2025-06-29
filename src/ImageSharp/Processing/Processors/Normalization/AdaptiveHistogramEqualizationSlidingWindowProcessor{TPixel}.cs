@@ -383,7 +383,7 @@ internal class AdaptiveHistogramEqualizationSlidingWindowProcessor<TPixel> : His
                     // Map the current pixel to the new equalized value.
                     int luminance = GetLuminance(this.source[x, y], this.processor.LuminanceLevels);
                     float luminanceEqualized = Unsafe.Add(ref cdfBase, (uint)luminance) / numberOfPixelsMinusCdfMin;
-                    this.targetPixels[x, y] = TPixel.FromVector4(new(luminanceEqualized, luminanceEqualized, luminanceEqualized, this.source[x, y].ToVector4().W));
+                    this.targetPixels[x, y] = TPixel.FromVector4(new Vector4(luminanceEqualized, luminanceEqualized, luminanceEqualized, this.source[x, y].ToVector4().W));
 
                     // Remove top most row from the histogram, mirroring rows which exceeds the borders.
                     if (this.useFastPath)

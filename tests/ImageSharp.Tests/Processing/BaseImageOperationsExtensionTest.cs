@@ -18,10 +18,10 @@ public abstract class BaseImageOperationsExtensionTest : IDisposable
 
     public BaseImageOperationsExtensionTest()
     {
-        this.options = new() { Antialias = false };
-        this.source = new(91 + 324, 123 + 56);
-        this.rect = new(91, 123, 324, 56); // make this random?
-        this.internalOperations = new(this.source.Configuration, this.source, false);
+        this.options = new GraphicsOptions { Antialias = false };
+        this.source = new Image<Rgba32>(91 + 324, 123 + 56);
+        this.rect = new Rectangle(91, 123, 324, 56); // make this random?
+        this.internalOperations = new FakeImageOperationsProvider.FakeImageOperations<Rgba32>(this.source.Configuration, this.source, false);
         this.internalOperations.SetGraphicsOptions(this.options);
         this.operations = this.internalOperations;
     }

@@ -33,7 +33,7 @@ public static class PadExtensions
         ResizeOptions options = new()
         {
             // Prevent downsizing.
-            Size = new(Math.Max(width, size.Width), Math.Max(height, size.Height)),
+            Size = new Size(Math.Max(width, size.Width), Math.Max(height, size.Height)),
             Mode = ResizeMode.BoxPad,
             Sampler = KnownResamplers.NearestNeighbor,
             PadColor = color

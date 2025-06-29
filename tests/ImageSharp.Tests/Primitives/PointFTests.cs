@@ -130,7 +130,7 @@ public class PointFTests
         Matrix3x2 matrix = Matrix3x2Extensions.CreateSkewDegrees(45, 45, PointF.Empty);
 
         PointF pout = PointF.Transform(p, matrix);
-        Assert.Equal(new(30, 30), pout);
+        Assert.Equal(new PointF(30, 30), pout);
     }
 
     [Theory]

@@ -11,14 +11,14 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms;
 public class RotateTests
 {
     public static readonly TheoryData<float> RotateAngles
-        = new TheoryData<float>
-    {
+        = new()
+        {
         50, -50, 170, -170
     };
 
     public static readonly TheoryData<RotateMode> RotateEnumValues
-        = new TheoryData<RotateMode>
-    {
+        = new()
+        {
         RotateMode.None,
         RotateMode.Rotate90,
         RotateMode.Rotate180,

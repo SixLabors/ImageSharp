@@ -18,7 +18,7 @@ internal abstract partial class MemoryGroup<T>
             : base(bufferLength, totalLength)
         {
             this.source = source;
-            this.View = new(this);
+            this.View = new MemoryGroupView<T>(this);
         }
 
         public override int Count
@@ -33,7 +33,7 @@ internal abstract partial class MemoryGroup<T>
         [MethodImpl(InliningOptions.ShortMethod)]
         public override MemoryGroupEnumerator<T> GetEnumerator()
         {
-            return new(this);
+            return new MemoryGroupEnumerator<T>(this);
         }
 
         /// <inheritdoc/>

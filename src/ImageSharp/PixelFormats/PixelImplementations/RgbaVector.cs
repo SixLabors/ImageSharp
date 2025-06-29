@@ -115,7 +115,7 @@ public partial struct RgbaVector : IPixel<RgbaVector>
     public static RgbaVector FromVector4(Vector4 source)
     {
         source = Numerics.Clamp(source, Vector4.Zero, Vector4.One);
-        return new(source.X, source.Y, source.Z, source.W);
+        return new RgbaVector(source.X, source.Y, source.Z, source.W);
     }
 
     /// <inheritdoc />

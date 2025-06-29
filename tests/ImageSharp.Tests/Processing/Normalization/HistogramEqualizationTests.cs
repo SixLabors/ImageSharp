@@ -39,7 +39,7 @@ public class HistogramEqualizationTests
                 for (int x = 0; x < 8; x++)
                 {
                     byte luminance = pixels[(y * 8) + x];
-                    image[x, y] = new(luminance, luminance, luminance);
+                    image[x, y] = new Rgba32(luminance, luminance, luminance);
                 }
             }
 
@@ -56,7 +56,7 @@ public class HistogramEqualizationTests
             };
 
             // Act
-            image.Mutate(x => x.HistogramEqualization(new()
+            image.Mutate(x => x.HistogramEqualization(new HistogramEqualizationOptions
             {
                 LuminanceLevels = luminanceLevels,
                 Method = HistogramEqualizationMethod.Global

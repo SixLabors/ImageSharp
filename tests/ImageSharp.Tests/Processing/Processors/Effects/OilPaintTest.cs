@@ -49,7 +49,7 @@ public class OilPaintTest
     [Fact]
     public void Issue2518_PixelComponentOutsideOfRange_ThrowsImageProcessingException()
     {
-        using Image<RgbaVector> image = new(10, 10, new(1, 1, 100));
+        using Image<RgbaVector> image = new(10, 10, new RgbaVector(1, 1, 100));
         Assert.Throws<ImageProcessingException>(() => image.Mutate(ctx => ctx.OilPaint()));
     }
 }

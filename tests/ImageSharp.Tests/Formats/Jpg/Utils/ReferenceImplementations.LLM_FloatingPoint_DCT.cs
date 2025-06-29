@@ -219,8 +219,8 @@ internal static partial class ReferenceImplementations
             y[6] = c3 * r[6] - c2 * r[2];
             */
 
-            w0 = new(1.175876f);
-            w1 = new(0.785695f);
+            w0 = new Vector4(1.175876f);
+            w1 = new Vector4(0.785695f);
             c3 = (w0 * t4) + (w1 * t7);
             c0 = (w0 * t7) - (w1 * t4);
             /*
@@ -228,8 +228,8 @@ internal static partial class ReferenceImplementations
             c0 = t7 * r[3] - t4 * r[5];
             */
 
-            w0 = new(1.387040f);
-            w1 = new(0.275899f);
+            w0 = new Vector4(1.387040f);
+            w1 = new Vector4(0.275899f);
             c2 = (w0 * t5) + (w1 * t6);
             c1 = (w0 * t6) - (w1 * t5);
             /*
@@ -300,7 +300,7 @@ internal static partial class ReferenceImplementations
 #pragma warning restore SA1300 // Element should begin with upper-case letter
         {
             src = src.Slice(offset);
-            return new(src[0], src[1], src[2], src[3]);
+            return new Vector4(src[0], src[1], src[2], src[3]);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

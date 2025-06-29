@@ -108,29 +108,29 @@ public partial class ColorTests
         [Fact]
         public void ShortHex()
         {
-            Assert.Equal(new(255, 255, 255), Color.ParseHex("#fff").ToPixel<Rgb24>());
-            Assert.Equal(new(255, 255, 255), Color.ParseHex("fff").ToPixel<Rgb24>());
-            Assert.Equal(new(0, 0, 0, 255), Color.ParseHex("000f").ToPixel<Rgba32>());
+            Assert.Equal(new Rgb24(255, 255, 255), Color.ParseHex("#fff").ToPixel<Rgb24>());
+            Assert.Equal(new Rgb24(255, 255, 255), Color.ParseHex("fff").ToPixel<Rgb24>());
+            Assert.Equal(new Rgba32(0, 0, 0, 255), Color.ParseHex("000f").ToPixel<Rgba32>());
         }
 
         [Fact]
         public void TryShortHex()
         {
             Assert.True(Color.TryParseHex("#fff", out Color actual));
-            Assert.Equal(new(255, 255, 255), actual.ToPixel<Rgb24>());
+            Assert.Equal(new Rgb24(255, 255, 255), actual.ToPixel<Rgb24>());
 
             Assert.True(Color.TryParseHex("fff", out actual));
-            Assert.Equal(new(255, 255, 255), actual.ToPixel<Rgb24>());
+            Assert.Equal(new Rgb24(255, 255, 255), actual.ToPixel<Rgb24>());
 
             Assert.True(Color.TryParseHex("000f", out actual));
-            Assert.Equal(new(0, 0, 0, 255), actual.ToPixel<Rgba32>());
+            Assert.Equal(new Rgba32(0, 0, 0, 255), actual.ToPixel<Rgba32>());
         }
 
         [Fact]
         public void LeadingPoundIsOptional()
         {
-            Assert.Equal(new(0, 128, 128), Color.ParseHex("#008080").ToPixel<Rgb24>());
-            Assert.Equal(new(0, 128, 128), Color.ParseHex("008080").ToPixel<Rgb24>());
+            Assert.Equal(new Rgb24(0, 128, 128), Color.ParseHex("#008080").ToPixel<Rgb24>());
+            Assert.Equal(new Rgb24(0, 128, 128), Color.ParseHex("008080").ToPixel<Rgb24>());
         }
 
         [Fact]

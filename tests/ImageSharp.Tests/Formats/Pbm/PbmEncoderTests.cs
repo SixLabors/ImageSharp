@@ -38,12 +38,12 @@ public class PbmEncoderTests
     [MemberData(nameof(PbmColorTypeFiles))]
     public void PbmEncoder_PreserveColorType(string imagePath, PbmColorType pbmColorType)
     {
-        PbmEncoder options = new PbmEncoder();
+        PbmEncoder options = new();
 
         TestFile testFile = TestFile.Create(imagePath);
         using (Image<Rgba32> input = testFile.CreateRgba32Image())
         {
-            using (MemoryStream memStream = new MemoryStream())
+            using (MemoryStream memStream = new())
             {
                 input.Save(memStream, options);
                 memStream.Position = 0;
@@ -60,7 +60,7 @@ public class PbmEncoderTests
     [MemberData(nameof(PbmColorTypeFiles))]
     public void PbmEncoder_WithPlainEncoding_PreserveBitsPerPixel(string imagePath, PbmColorType pbmColorType)
     {
-        PbmEncoder options = new PbmEncoder()
+        PbmEncoder options = new()
         {
             Encoding = PbmEncoding.Plain
         };
@@ -68,7 +68,7 @@ public class PbmEncoderTests
         TestFile testFile = TestFile.Create(imagePath);
         using (Image<Rgba32> input = testFile.CreateRgba32Image())
         {
-            using (MemoryStream memStream = new MemoryStream())
+            using (MemoryStream memStream = new())
             {
                 input.Save(memStream, options);
 
@@ -132,9 +132,9 @@ public class PbmEncoderTests
     {
         using (Image<TPixel> image = provider.GetImage())
         {
-            PbmEncoder encoder = new PbmEncoder { ColorType = colorType, Encoding = encoding };
+            PbmEncoder encoder = new() { ColorType = colorType, Encoding = encoding };
 
-            using (MemoryStream memStream = new MemoryStream())
+            using (MemoryStream memStream = new())
             {
                 image.Save(memStream, encoder);
                 memStream.Position = 0;

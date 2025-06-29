@@ -38,7 +38,7 @@ internal sealed class ExifRationalArray : ExifArrayValue<Rational>
         {
             if (signed.Numerator >= 0 && signed.Denominator >= 0)
             {
-                this.Value = [new((uint)signed.Numerator, (uint)signed.Denominator)];
+                this.Value = [new Rational((uint)signed.Numerator, (uint)signed.Denominator)];
             }
 
             return true;
@@ -60,7 +60,7 @@ internal sealed class ExifRationalArray : ExifArrayValue<Rational>
         for (int i = 0; i < signed.Length; i++)
         {
             SignedRational s = signed[i];
-            unsigned[i] = new((uint)s.Numerator, (uint)s.Denominator);
+            unsigned[i] = new Rational((uint)s.Numerator, (uint)s.Denominator);
         }
 
         this.Value = unsigned;

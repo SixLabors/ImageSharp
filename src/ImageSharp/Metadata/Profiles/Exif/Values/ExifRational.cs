@@ -39,7 +39,7 @@ internal sealed class ExifRational : ExifValue<Rational>
 
                 if (signed.Numerator >= uint.MinValue && signed.Denominator >= uint.MinValue)
                 {
-                    this.Value = new((uint)signed.Numerator, (uint)signed.Denominator);
+                    this.Value = new Rational((uint)signed.Numerator, (uint)signed.Denominator);
                 }
 
                 return true;

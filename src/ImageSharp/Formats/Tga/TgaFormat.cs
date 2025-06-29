@@ -11,7 +11,7 @@ public sealed class TgaFormat : IImageFormat<TgaMetadata>
     /// <summary>
     /// Gets the shared instance.
     /// </summary>
-    public static TgaFormat Instance { get; } = new TgaFormat();
+    public static TgaFormat Instance { get; } = new();
 
     /// <inheritdoc/>
     public string Name => "TGA";

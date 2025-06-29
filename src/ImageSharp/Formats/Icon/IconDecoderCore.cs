@@ -63,7 +63,7 @@ internal abstract class IconDecoderCore : ImageDecoderCore
 
             // Since Windows Vista, the size of an image is determined from the BITMAPINFOHEADER structure or PNG image data
             // which technically allows storing icons with larger than 256 pixels, but such larger sizes are not recommended by Microsoft.
-            this.Dimensions = new(Math.Max(this.Dimensions.Width, temp.Size.Width), Math.Max(this.Dimensions.Height, temp.Size.Height));
+            this.Dimensions = new Size(Math.Max(this.Dimensions.Width, temp.Size.Width), Math.Max(this.Dimensions.Height, temp.Size.Height));
         }
 
         ImageMetadata metadata = new();
@@ -208,7 +208,7 @@ internal abstract class IconDecoderCore : ImageDecoderCore
 
             // Since Windows Vista, the size of an image is determined from the BITMAPINFOHEADER structure or PNG image data
             // which technically allows storing icons with larger than 256 pixels, but such larger sizes are not recommended by Microsoft.
-            this.Dimensions = new(Math.Max(this.Dimensions.Width, frameInfo.Size.Width), Math.Max(this.Dimensions.Height, frameInfo.Size.Height));
+            this.Dimensions = new Size(Math.Max(this.Dimensions.Width, frameInfo.Size.Width), Math.Max(this.Dimensions.Height, frameInfo.Size.Height));
         }
 
         // Copy the format specific metadata to the image.
@@ -222,7 +222,7 @@ internal abstract class IconDecoderCore : ImageDecoderCore
             metadata.SetFormatMetadata(PngFormat.Instance, pngMetadata);
         }
 
-        return new(this.Dimensions, metadata, frames);
+        return new ImageInfo(this.Dimensions, metadata, frames);
     }
 
     protected abstract void SetFrameMetadata(
@@ -276,20 +276,20 @@ internal abstract class IconDecoderCore : ImageDecoderCore
             height = Math.Max(height, entry.Height);
         }
 
-        this.Dimensions = new(width, height);
+        this.Dimensions = new Size(width, height);
     }
 
     private ImageDecoderCore GetDecoder(bool isPng)
     {
         if (isPng)
         {
-            return new PngDecoderCore(new()
+            return new PngDecoderCore(new PngDecoderOptions
             {
                 GeneralOptions = this.Options,
             });
         }
 
-        return new BmpDecoderCore(new()
+        return new BmpDecoderCore(new BmpDecoderOptions
         {
             GeneralOptions = this.Options,
             ProcessedAlphaMask = true,

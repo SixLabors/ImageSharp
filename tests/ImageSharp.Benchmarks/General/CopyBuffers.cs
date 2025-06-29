@@ -36,11 +36,11 @@ public class CopyBuffers
     public void Setup()
     {
         this.sourceArray = new byte[this.Count];
-        this.sourceMemory = new(this.sourceArray);
+        this.sourceMemory = new Memory<byte>(this.sourceArray);
         this.sourceHandle = this.sourceMemory.Pin();
 
         this.destArray = new byte[this.Count];
-        this.destMemory = new(this.destArray);
+        this.destMemory = new Memory<byte>(this.destArray);
         this.destHandle = this.destMemory.Pin();
     }
 

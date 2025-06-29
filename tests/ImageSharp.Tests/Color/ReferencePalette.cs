@@ -273,7 +273,7 @@ internal static class ReferencePalette
     };
 
     public static readonly Dictionary<string, Color> ColorNames =
-        new Dictionary<string, Color>(StringComparer.OrdinalIgnoreCase)
+        new(StringComparer.OrdinalIgnoreCase)
         {
             { nameof(Color.AliceBlue), Color.AliceBlue },
             { nameof(Color.AntiqueWhite), Color.AntiqueWhite },

@@ -214,7 +214,7 @@ public struct Rectangle : IEquatable<Rectangle>
 
         if (x2 >= x1 && y2 >= y1)
         {
-            return new(x1, y1, x2 - x1, y2 - y1);
+            return new Rectangle(x1, y1, x2 - x1, y2 - y1);
         }
 
         return Empty;
@@ -245,7 +245,7 @@ public struct Rectangle : IEquatable<Rectangle>
     {
         unchecked
         {
-            return new(
+            return new Rectangle(
                 (int)MathF.Ceiling(rectangle.X),
                 (int)MathF.Ceiling(rectangle.Y),
                 (int)MathF.Ceiling(rectangle.Width),
@@ -261,9 +261,9 @@ public struct Rectangle : IEquatable<Rectangle>
     /// <returns>A transformed rectangle.</returns>
     public static RectangleF Transform(Rectangle rectangle, Matrix3x2 matrix)
     {
-        PointF bottomRight = Point.Transform(new(rectangle.Right, rectangle.Bottom), matrix);
+        PointF bottomRight = Point.Transform(new Point(rectangle.Right, rectangle.Bottom), matrix);
         PointF topLeft = Point.Transform(rectangle.Location, matrix);
-        return new(topLeft, new(bottomRight - topLeft));
+        return new RectangleF(topLeft, new SizeF(bottomRight - topLeft));
     }
 
     /// <summary>
@@ -276,7 +276,7 @@ public struct Rectangle : IEquatable<Rectangle>
     {
         unchecked
         {
-            return new(
+            return new Rectangle(
                 (int)rectangle.X,
                 (int)rectangle.Y,
                 (int)rectangle.Width,
@@ -294,7 +294,7 @@ public struct Rectangle : IEquatable<Rectangle>
     {
         unchecked
         {
-            return new(
+            return new Rectangle(
                 (int)MathF.Round(rectangle.X),
                 (int)MathF.Round(rectangle.Y),
                 (int)MathF.Round(rectangle.Width),
@@ -316,7 +316,7 @@ public struct Rectangle : IEquatable<Rectangle>
         int y1 = Math.Min(a.Y, b.Y);
         int y2 = Math.Max(a.Bottom, b.Bottom);
 
-        return new(x1, y1, x2 - x1, y2 - y1);
+        return new Rectangle(x1, y1, x2 - x1, y2 - y1);
     }
 
     /// <summary>

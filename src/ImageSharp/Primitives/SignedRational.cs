@@ -117,7 +117,7 @@ public readonly struct SignedRational : IEquatable<SignedRational>
     /// </returns>
     public static SignedRational FromDouble(double value)
     {
-        return new(value, false);
+        return new SignedRational(value, false);
     }
 
     /// <summary>
@@ -130,7 +130,7 @@ public readonly struct SignedRational : IEquatable<SignedRational>
     /// </returns>
     public static SignedRational FromDouble(double value, bool bestPrecision)
     {
-        return new(value, bestPrecision);
+        return new SignedRational(value, bestPrecision);
     }
 
     /// <inheritdoc/>

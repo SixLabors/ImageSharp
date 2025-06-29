@@ -55,7 +55,7 @@ public partial struct HalfSingle : IPixel<HalfSingle>, IPackedVector<ushort>
     {
         float single = this.ToSingle() + 1F;
         single /= 2F;
-        return new(single, 0, 0, 1F);
+        return new Vector4(single, 0, 0, 1F);
     }
 
     /// <inheritdoc />
@@ -79,7 +79,7 @@ public partial struct HalfSingle : IPixel<HalfSingle>, IPackedVector<ushort>
         float scaled = source.X;
         scaled *= 2F;
         scaled--;
-        return new() { PackedValue = HalfTypeHelper.Pack(scaled) };
+        return new HalfSingle { PackedValue = HalfTypeHelper.Pack(scaled) };
     }
 
     /// <inheritdoc />

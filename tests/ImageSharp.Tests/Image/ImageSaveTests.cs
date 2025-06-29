@@ -23,22 +23,22 @@ public class ImageSaveTests : IDisposable
 
     public ImageSaveTests()
     {
-        this.localImageFormat = new();
+        this.localImageFormat = new Mock<IImageFormat>();
         this.localImageFormat.Setup(x => x.FileExtensions).Returns(new[] { "png" });
         this.localMimeTypeDetector = new MockImageFormatDetector(this.localImageFormat.Object);
 
-        this.encoder = new();
+        this.encoder = new Mock<IImageEncoder>();
 
-        this.encoderNotInFormat = new();
+        this.encoderNotInFormat = new Mock<IImageEncoder>();
 
-        this.fileSystem = new();
+        this.fileSystem = new Mock<IFileSystem>();
         Configuration config = new()
         {
             FileSystem = this.fileSystem.Object
         };
         config.ImageFormatsManager.AddImageFormatDetector(this.localMimeTypeDetector);
         config.ImageFormatsManager.SetEncoder(this.localImageFormat.Object, this.encoder.Object);
-        this.image = new(config, 1, 1);
+        this.image = new Image<Rgba32>(config, 1, 1);
     }
 
     [Fact]

@@ -158,7 +158,7 @@ internal class ResizeProcessor<TPixel> : TransformProcessor<TPixel>, IResampling
         float widthFactor = sourceRectangle.Width / (float)destinationRectangle.Width;
         float heightFactor = sourceRectangle.Height / (float)destinationRectangle.Height;
 
-        NNRowOperation operation = new NNRowOperation(
+        NNRowOperation operation = new(
             sourceRectangle,
             destinationRectangle,
             interest,
@@ -208,7 +208,7 @@ internal class ResizeProcessor<TPixel> : TransformProcessor<TPixel>, IResampling
 
         // To reintroduce parallel processing, we would launch multiple workers
         // for different row intervals of the image.
-        using ResizeWorker<TPixel> worker = new ResizeWorker<TPixel>(
+        using ResizeWorker<TPixel> worker = new(
             configuration,
             sourceRegion,
             conversionModifiers,
@@ -218,7 +218,7 @@ internal class ResizeProcessor<TPixel> : TransformProcessor<TPixel>, IResampling
             destinationRectangle.Location);
         worker.Initialize();
 
-        RowInterval workingInterval = new RowInterval(interest.Top, interest.Bottom);
+        RowInterval workingInterval = new(interest.Top, interest.Bottom);
         worker.FillDestinationPixels(workingInterval, destination.PixelBuffer);
     }
 

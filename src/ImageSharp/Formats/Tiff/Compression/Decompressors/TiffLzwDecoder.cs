@@ -103,7 +103,7 @@ internal sealed class TiffLzwDecoder
         this.table = new LzwString[TableSize];
         for (int i = 0; i < 256; i++)
         {
-            this.table[i] = new((byte)i);
+            this.table[i] = new LzwString((byte)i);
         }
 
         this.Init();

@@ -83,7 +83,7 @@ public partial class MemoryGroupTests
                 return;
             }
 
-            UniformUnmanagedMemoryPool pool = new UniformUnmanagedMemoryPool(bufferCapacity, expectedNumberOfBuffers);
+            UniformUnmanagedMemoryPool pool = new(bufferCapacity, expectedNumberOfBuffers);
 
             // Act:
             Assert.True(MemoryGroup<T>.TryAllocate(pool, totalLength, bufferAlignment, AllocationOptions.None, out MemoryGroup<T> g));
@@ -98,7 +98,7 @@ public partial class MemoryGroupTests
         [InlineData(AllocationOptions.Clean)]
         public unsafe void Allocate_FromPool_AllocationOptionsAreApplied(AllocationOptions options)
         {
-            UniformUnmanagedMemoryPool pool = new UniformUnmanagedMemoryPool(10, 5);
+            UniformUnmanagedMemoryPool pool = new(10, 5);
             UnmanagedMemoryHandle[] buffers = pool.Rent(5);
             foreach (UnmanagedMemoryHandle b in buffers)
             {
@@ -128,7 +128,7 @@ public partial class MemoryGroupTests
             int requestBytes,
             bool shouldSucceed)
         {
-            UniformUnmanagedMemoryPool pool = new UniformUnmanagedMemoryPool(bufferCapacityBytes, poolCapacity);
+            UniformUnmanagedMemoryPool pool = new(bufferCapacityBytes, poolCapacity);
             int alignmentElements = alignmentBytes / Unsafe.SizeOf<S4>();
             int requestElements = requestBytes / Unsafe.SizeOf<S4>();
 

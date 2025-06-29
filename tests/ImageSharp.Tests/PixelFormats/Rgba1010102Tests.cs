@@ -17,8 +17,8 @@ public class Rgba1010102Tests
     public void AreEqual()
     {
         Rgba1010102 color1 = new(0.0f, 0.0f, 0.0f, 0.0f);
-        Rgba1010102 color2 = new(new(0.0f));
-        Rgba1010102 color3 = new(new(1f, 0.0f, 1f, 1f));
+        Rgba1010102 color2 = new(new Vector4(0.0f));
+        Rgba1010102 color3 = new(new Vector4(1f, 0.0f, 1f, 1f));
         Rgba1010102 color4 = new(1f, 0.0f, 1f, 1f);
 
         Assert.Equal(color1, color2);
@@ -32,8 +32,8 @@ public class Rgba1010102Tests
     public void AreNotEqual()
     {
         Rgba1010102 color1 = new(0.0f, 0.0f, 0.0f, 0.0f);
-        Rgba1010102 color2 = new(new(1f));
-        Rgba1010102 color3 = new(new(1f, 0.0f, 0.0f, 1f));
+        Rgba1010102 color2 = new(new Vector4(1f));
+        Rgba1010102 color3 = new(new Vector4(1f, 0.0f, 0.0f, 1f));
         Rgba1010102 color4 = new(1f, 1f, 0.0f, 1f);
 
         Assert.NotEqual(color1, color2);
@@ -101,7 +101,7 @@ public class Rgba1010102Tests
         const uint expected = 0xFFFFFFFF;
 
         // act
-        Rgba1010102 rgba = Rgba1010102.FromBgra5551(new(1f, 1f, 1f, 1f));
+        Rgba1010102 rgba = Rgba1010102.FromBgra5551(new Bgra5551(1f, 1f, 1f, 1f));
 
         // assert
         Assert.Equal(expected, rgba.PackedValue);
@@ -114,7 +114,7 @@ public class Rgba1010102Tests
         const uint expectedPackedValue = uint.MaxValue;
 
         // act
-        Rgba1010102 rgba = Rgba1010102.FromArgb32(new(255, 255, 255, 255));
+        Rgba1010102 rgba = Rgba1010102.FromArgb32(new Argb32(255, 255, 255, 255));
 
         // assert
         Assert.Equal(expectedPackedValue, rgba.PackedValue);
@@ -128,8 +128,8 @@ public class Rgba1010102Tests
         const uint expectedPackedValue2 = 0xFFF003FF;
 
         // act
-        Rgba1010102 rgba1 = Rgba1010102.FromRgba32(new(255, 255, 255, 255));
-        Rgba1010102 rgba2 = Rgba1010102.FromRgba32(new(255, 0, 255, 255));
+        Rgba1010102 rgba1 = Rgba1010102.FromRgba32(new Rgba32(255, 255, 255, 255));
+        Rgba1010102 rgba2 = Rgba1010102.FromRgba32(new Rgba32(255, 0, 255, 255));
 
         // assert
         Assert.Equal(expectedPackedValue1, rgba1.PackedValue);
@@ -143,7 +143,7 @@ public class Rgba1010102Tests
         const uint expectedPackedValue = uint.MaxValue;
 
         // act
-        Rgba1010102 rgba = Rgba1010102.FromBgr24(new(byte.MaxValue, byte.MaxValue, byte.MaxValue));
+        Rgba1010102 rgba = Rgba1010102.FromBgr24(new Bgr24(byte.MaxValue, byte.MaxValue, byte.MaxValue));
 
         // assert
         Assert.Equal(expectedPackedValue, rgba.PackedValue);
@@ -156,7 +156,7 @@ public class Rgba1010102Tests
         const uint expectedPackedValue = uint.MaxValue;
 
         // act
-        Rgba1010102 rgba = Rgba1010102.FromL8(new(byte.MaxValue));
+        Rgba1010102 rgba = Rgba1010102.FromL8(new L8(byte.MaxValue));
 
         // assert
         Assert.Equal(expectedPackedValue, rgba.PackedValue);
@@ -169,7 +169,7 @@ public class Rgba1010102Tests
         const uint expectedPackedValue = uint.MaxValue;
 
         // act
-        Rgba1010102 rgba = Rgba1010102.FromL16(new(ushort.MaxValue));
+        Rgba1010102 rgba = Rgba1010102.FromL16(new L16(ushort.MaxValue));
 
         // assert
         Assert.Equal(expectedPackedValue, rgba.PackedValue);
@@ -182,7 +182,7 @@ public class Rgba1010102Tests
         const uint expectedPackedValue = uint.MaxValue;
 
         // act
-        Rgba1010102 rgba = Rgba1010102.FromRgb24(new(byte.MaxValue, byte.MaxValue, byte.MaxValue));
+        Rgba1010102 rgba = Rgba1010102.FromRgb24(new Rgb24(byte.MaxValue, byte.MaxValue, byte.MaxValue));
 
         // assert
         Assert.Equal(expectedPackedValue, rgba.PackedValue);
@@ -195,7 +195,7 @@ public class Rgba1010102Tests
         const uint expectedPackedValue = uint.MaxValue;
 
         // act
-        Rgba1010102 rgba = Rgba1010102.FromRgb48(new(ushort.MaxValue, ushort.MaxValue, ushort.MaxValue));
+        Rgba1010102 rgba = Rgba1010102.FromRgb48(new Rgb48(ushort.MaxValue, ushort.MaxValue, ushort.MaxValue));
 
         // assert
         Assert.Equal(expectedPackedValue, rgba.PackedValue);
@@ -208,7 +208,7 @@ public class Rgba1010102Tests
         const uint expectedPackedValue = uint.MaxValue;
 
         // act
-        Rgba1010102 rgba = Rgba1010102.FromRgba64(new(ushort.MaxValue, ushort.MaxValue, ushort.MaxValue, ushort.MaxValue));
+        Rgba1010102 rgba = Rgba1010102.FromRgba64(new Rgba64(ushort.MaxValue, ushort.MaxValue, ushort.MaxValue, ushort.MaxValue));
 
         // assert
         Assert.Equal(expectedPackedValue, rgba.PackedValue);

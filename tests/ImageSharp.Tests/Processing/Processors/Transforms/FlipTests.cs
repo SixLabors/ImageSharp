@@ -12,8 +12,8 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms;
 public class FlipTests
 {
     public static readonly TheoryData<FlipMode> FlipValues =
-        new TheoryData<FlipMode>
-            {
+        new()
+        {
                 FlipMode.None,
                 FlipMode.Vertical,
                 FlipMode.Horizontal,

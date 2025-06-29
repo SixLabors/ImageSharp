@@ -157,7 +157,7 @@ public class Block8x8Tests : JpegFixture
         static void RunTest(string seedSerialized)
         {
             int seed = FeatureTestRunner.Deserialize<int>(seedSerialized);
-            Random rng = new Random(seed);
+            Random rng = new(seed);
 
             for (int i = 0; i < 1000; i++)
             {
@@ -188,7 +188,7 @@ public class Block8x8Tests : JpegFixture
         static void RunTest(string seedSerialized)
         {
             int seed = FeatureTestRunner.Deserialize<int>(seedSerialized);
-            Random rng = new Random(seed);
+            Random rng = new(seed);
 
             for (int i = 0; i < 1000; i++)
             {
@@ -223,7 +223,7 @@ public class Block8x8Tests : JpegFixture
         static void RunTest(string seedSerialized)
         {
             int seed = FeatureTestRunner.Deserialize<int>(seedSerialized);
-            Random rng = new Random(seed);
+            Random rng = new(seed);
 
             for (int i = 0; i < 1000; i++)
             {

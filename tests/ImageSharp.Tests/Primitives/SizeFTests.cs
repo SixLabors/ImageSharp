@@ -25,8 +25,8 @@ public class SizeFTests
         SizeF s2 = new(s1);
 
         Assert.Equal(s1, s2);
-        Assert.Equal(s1, new(p1));
-        Assert.Equal(s2, new(p1));
+        Assert.Equal(s1, new SizeF(p1));
+        Assert.Equal(s2, new SizeF(p1));
 
         Assert.Equal(width, s1.Width);
         Assert.Equal(height, s1.Height);
@@ -136,7 +136,7 @@ public class SizeFTests
         PointF p1 = (PointF)s1;
         Size s2 = new(unchecked((int)width), unchecked((int)height));
 
-        Assert.Equal(new(width, height), p1);
+        Assert.Equal(new PointF(width, height), p1);
         Assert.Equal(p1, (PointF)s1);
         Assert.Equal(s2, (Size)s1);
     }
@@ -175,7 +175,7 @@ public class SizeFTests
         SizeF sz1 = new(dimension, dimension);
         SizeF mulExpected;
 
-        mulExpected = new(dimension * multiplier, dimension * multiplier);
+        mulExpected = new SizeF(dimension * multiplier, dimension * multiplier);
 
         Assert.Equal(mulExpected, sz1 * multiplier);
         Assert.Equal(mulExpected, multiplier * sz1);
@@ -188,7 +188,7 @@ public class SizeFTests
         SizeF sz1 = new(width, height);
         SizeF mulExpected;
 
-        mulExpected = new(width * multiplier, height * multiplier);
+        mulExpected = new SizeF(width * multiplier, height * multiplier);
 
         Assert.Equal(mulExpected, sz1 * multiplier);
         Assert.Equal(mulExpected, multiplier * sz1);

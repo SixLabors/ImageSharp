@@ -13,7 +13,7 @@ internal class Vp8Stats
         this.Stats = new Vp8StatsArray[WebpConstants.NumCtx];
         for (int i = 0; i < WebpConstants.NumCtx; i++)
         {
-            this.Stats[i] = new();
+            this.Stats[i] = new Vp8StatsArray();
         }
     }
 

@@ -101,7 +101,7 @@ public class A8Tests
         const byte expected = byte.MaxValue;
 
         // act
-        A8 alpha = A8.FromBgra5551(new(0.0f, 0.0f, 0.0f, 1.0f));
+        A8 alpha = A8.FromBgra5551(new Bgra5551(0.0f, 0.0f, 0.0f, 1.0f));
 
         // assert
         Assert.Equal(expected, alpha.PackedValue);

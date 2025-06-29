@@ -31,28 +31,28 @@ public class BufferedStreams
     [GlobalSetup]
     public void CreateStreams()
     {
-        this.stream1 = new(this.buffer);
-        this.stream2 = new(this.buffer);
-        this.stream3 = new(this.buffer);
-        this.stream4 = new(this.buffer);
-        this.stream5 = new(this.buffer);
-        this.stream6 = new(this.buffer);
-        this.stream6 = new(this.buffer);
+        this.stream1 = new MemoryStream(this.buffer);
+        this.stream2 = new MemoryStream(this.buffer);
+        this.stream3 = new MemoryStream(this.buffer);
+        this.stream4 = new MemoryStream(this.buffer);
+        this.stream5 = new MemoryStream(this.buffer);
+        this.stream6 = new MemoryStream(this.buffer);
+        this.stream6 = new MemoryStream(this.buffer);
 
-        this.chunkedMemoryStream1 = new(Configuration.Default.MemoryAllocator);
+        this.chunkedMemoryStream1 = new ChunkedMemoryStream(Configuration.Default.MemoryAllocator);
         this.chunkedMemoryStream1.Write(this.buffer);
         this.chunkedMemoryStream1.Position = 0;
 
-        this.chunkedMemoryStream2 = new(Configuration.Default.MemoryAllocator);
+        this.chunkedMemoryStream2 = new ChunkedMemoryStream(Configuration.Default.MemoryAllocator);
         this.chunkedMemoryStream2.Write(this.buffer);
         this.chunkedMemoryStream2.Position = 0;
 
-        this.bufferedStream1 = new(Configuration.Default, this.stream3);
-        this.bufferedStream2 = new(Configuration.Default, this.stream4);
-        this.bufferedStream3 = new(Configuration.Default, this.chunkedMemoryStream1);
-        this.bufferedStream4 = new(Configuration.Default, this.chunkedMemoryStream2);
-        this.bufferedStreamWrap1 = new(this.stream5);
-        this.bufferedStreamWrap2 = new(this.stream6);
+        this.bufferedStream1 = new BufferedReadStream(Configuration.Default, this.stream3);
+        this.bufferedStream2 = new BufferedReadStream(Configuration.Default, this.stream4);
+        this.bufferedStream3 = new BufferedReadStream(Configuration.Default, this.chunkedMemoryStream1);
+        this.bufferedStream4 = new BufferedReadStream(Configuration.Default, this.chunkedMemoryStream2);
+        this.bufferedStreamWrap1 = new BufferedReadStreamWrapper(this.stream5);
+        this.bufferedStreamWrap2 = new BufferedReadStreamWrapper(this.stream6);
     }
 
     [GlobalCleanup]

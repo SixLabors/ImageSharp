@@ -42,13 +42,13 @@ public class ClampVector4
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Vector4 ClampUsingVectorClamp(float x, float min, float max)
     {
-        return Vector4.Clamp(new(x), new(min), new(max));
+        return Vector4.Clamp(new Vector4(x), new Vector4(min), new Vector4(max));
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Vector4 ClampUsingVectorMinMax(float x, float min, float max)
     {
-        return Vector4.Min(new(max), Vector4.Max(new(min), new(x)));
+        return Vector4.Min(new Vector4(max), Vector4.Max(new Vector4(min), new Vector4(x)));
     }
 
     // RESULTS

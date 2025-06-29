@@ -31,7 +31,7 @@ public static class VonKriesChromaticAdaptation
 
         if (from.Equals(to))
         {
-            return new(source.X, source.Y, source.Z);
+            return new CieXyz(source.X, source.Y, source.Z);
         }
 
         Vector3 sourceColorLms = Vector3.Transform(source.AsVector3Unsafe(), matrix);
@@ -42,7 +42,7 @@ public static class VonKriesChromaticAdaptation
         Vector3 targetColorLms = Vector3.Multiply(vector, sourceColorLms);
 
         Matrix4x4.Invert(matrix, out Matrix4x4 inverseMatrix);
-        return new(Vector3.Transform(targetColorLms, inverseMatrix));
+        return new CieXyz(Vector3.Transform(targetColorLms, inverseMatrix));
     }
 
     /// <summary>
@@ -89,7 +89,7 @@ public static class VonKriesChromaticAdaptation
             Vector3 sourceColorLms = Vector3.Transform(sp.AsVector3Unsafe(), matrix);
 
             Vector3 targetColorLms = Vector3.Multiply(vector, sourceColorLms);
-            dp = new(Vector3.Transform(targetColorLms, inverseMatrix));
+            dp = new CieXyz(Vector3.Transform(targetColorLms, inverseMatrix));
         }
     }
 }

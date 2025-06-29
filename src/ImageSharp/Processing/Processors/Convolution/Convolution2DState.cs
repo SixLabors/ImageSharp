@@ -22,8 +22,8 @@ internal readonly ref struct Convolution2DState
         KernelSamplingMap map)
     {
         // We check the kernels are the same size upstream.
-        this.KernelY = new(kernelY);
-        this.KernelX = new(kernelX);
+        this.KernelY = new ReadOnlyKernel(kernelY);
+        this.KernelX = new ReadOnlyKernel(kernelX);
         this.kernelHeight = (uint)kernelY.Rows;
         this.kernelWidth = (uint)kernelY.Columns;
         this.rowOffsetMap = map.GetRowOffsetSpan();

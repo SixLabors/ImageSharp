@@ -46,12 +46,12 @@ public class ExactImageComparer : ImageComparer
 
                 if (aPixel != bPixel)
                 {
-                    PixelDifference diff = new(new(x, y), aPixel, bPixel);
+                    PixelDifference diff = new(new Point(x, y), aPixel, bPixel);
                     differences.Add(diff);
                 }
             }
         }
 
-        return new(index, expected, actual, differences);
+        return new ImageSimilarityReport<TPixelA, TPixelB>(index, expected, actual, differences);
     }
 }

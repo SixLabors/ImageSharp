@@ -50,10 +50,10 @@ public class LzwString
     {
         if (this == Empty)
         {
-            return new(other);
+            return new LzwString(other);
         }
 
-        return new(other, this.FirstChar, this.Length + 1, this);
+        return new LzwString(other, this.FirstChar, this.Length + 1, this);
     }
 
     /// <summary>

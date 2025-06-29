@@ -400,10 +400,10 @@ public partial class JpegDecoderTests
             exif.SetValue(ExifTag.XPSubject, "This is a subject");
 
             // exif.SetValue(ExifTag.UserComment, new EncodedString(EncodedString.CharacterCode.JIS, "ビッ"));
-            exif.SetValue(ExifTag.UserComment, new(EncodedString.CharacterCode.JIS, "eng comment text (JIS)"));
+            exif.SetValue(ExifTag.UserComment, new EncodedString(EncodedString.CharacterCode.JIS, "eng comment text (JIS)"));
 
-            exif.SetValue(ExifTag.GPSProcessingMethod, new(EncodedString.CharacterCode.ASCII, "GPS processing method (ASCII)"));
-            exif.SetValue(ExifTag.GPSAreaInformation, new(EncodedString.CharacterCode.Unicode, "GPS area info (Unicode)"));
+            exif.SetValue(ExifTag.GPSProcessingMethod, new EncodedString(EncodedString.CharacterCode.ASCII, "GPS processing method (ASCII)"));
+            exif.SetValue(ExifTag.GPSAreaInformation, new EncodedString(EncodedString.CharacterCode.Unicode, "GPS area info (Unicode)"));
 
             image.Metadata.ExifProfile = exif;
 
@@ -461,7 +461,7 @@ public partial class JpegDecoderTests
         // We want to test the encoder to ensure the determined values can be encoded but not by encoding
         // the full size image as it would be too slow.
         // We will crop the image to a smaller size and then encode it.
-        image.Mutate(x => x.Crop(new(0, 0, 100, 100)));
+        image.Mutate(x => x.Crop(new Rectangle(0, 0, 100, 100)));
 
         using MemoryStream ms = new();
         image.Save(ms, new JpegEncoder());
@@ -495,13 +495,13 @@ public partial class JpegDecoderTests
         Assert.Equal("Carers; seniors; caregiver; senior care; retirement home; hands; old; elderly; elderly caregiver; elder care; elderly care; geriatric care; nursing home; age; old age care; outpatient; needy; health care; home nurse; home care; sick; retirement; medical; mobile; the elderly; nursing department; nursing treatment; nursing; care services; nursing services; nursing care; nursing allowance; nursing homes; home nursing; care category; nursing class; care; nursing shortage; nursing patient care staff\0", exifProfile.GetValue(ExifTag.XPKeywords).Value);
 
         Assert.Equal(
-            new(EncodedString.CharacterCode.ASCII, "StockSubmitter|Miscellaneous||Miscellaneous$|00|0000330000000110000000000000000|22$@NA_1005010.460@145$$@Miscellaneous.Miscellaneous$$@$@26$$@$@$@$@205$@$@$@$@$@$@$@$@$@43$@$@$@$$@Miscellaneous.Miscellaneous$$@90$$@22$@$@$@$@$@$@$|||"),
+            new EncodedString(EncodedString.CharacterCode.ASCII, "StockSubmitter|Miscellaneous||Miscellaneous$|00|0000330000000110000000000000000|22$@NA_1005010.460@145$$@Miscellaneous.Miscellaneous$$@$@26$$@$@$@$@205$@$@$@$@$@$@$@$@$@43$@$@$@$$@Miscellaneous.Miscellaneous$$@90$$@22$@$@$@$@$@$@$|||"),
             exifProfile.GetValue(ExifTag.UserComment).Value);
 
         // the profile contains 4 duplicated UserComment
         Assert.Equal(1, exifProfile.Values.Count(t => t.Tag == ExifTag.UserComment));
 
-        image.Mutate(x => x.Crop(new(0, 0, 100, 100)));
+        image.Mutate(x => x.Crop(new Rectangle(0, 0, 100, 100)));
 
         image.Save(ms, new JpegEncoder());
     }

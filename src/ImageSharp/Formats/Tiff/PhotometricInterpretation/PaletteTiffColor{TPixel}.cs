@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Numerics;
 using SixLabors.ImageSharp.Formats.Tiff.Utils;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
@@ -63,7 +64,7 @@ internal class PaletteTiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
             float r = colorMap[rOffset + i] * InvMax;
             float g = colorMap[gOffset + i] * InvMax;
             float b = colorMap[bOffset + i] * InvMax;
-            palette[i] = TPixel.FromScaledVector4(new(r, g, b, 1f));
+            palette[i] = TPixel.FromScaledVector4(new Vector4(r, g, b, 1f));
         }
 
         return palette;

@@ -334,7 +334,7 @@ public class TiffEncoderTests : TiffEncoderBaseTester
         foreach (ImageFrame<TPixel> frame in image.Frames)
         {
             TiffFrameMetadata metadata = frame.Metadata.GetTiffMetadata();
-            encodedDimensions.Add(new(metadata.EncodingWidth, metadata.EncodingHeight));
+            encodedDimensions.Add(new Size(metadata.EncodingWidth, metadata.EncodingHeight));
         }
 
         const int scale = 2;

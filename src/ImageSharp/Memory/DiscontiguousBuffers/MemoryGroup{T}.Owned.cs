@@ -23,7 +23,7 @@ internal abstract partial class MemoryGroup<T>
         {
             this.memoryOwners = memoryOwners;
             this.Swappable = swappable;
-            this.View = new(this);
+            this.View = new MemoryGroupView<T>(this);
             this.memoryGroupSpanCache = MemoryGroupSpanCache.Create(memoryOwners);
         }
 
@@ -124,7 +124,7 @@ internal abstract partial class MemoryGroup<T>
         public override void RecreateViewAfterSwap()
         {
             this.View.Invalidate();
-            this.View = new(this);
+            this.View = new MemoryGroupView<T>(this);
         }
 
         /// <inheritdoc/>
@@ -212,7 +212,7 @@ internal abstract partial class MemoryGroup<T>
             public override unsafe MemoryHandle Pin(int elementIndex = 0)
             {
                 void* pbData = Unsafe.Add<T>(this.handle.Pointer, elementIndex);
-                return new(pbData);
+                return new MemoryHandle(pbData);
             }
 
             public override void Unpin()

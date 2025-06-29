@@ -75,7 +75,7 @@ public class TiffMetadata : IFormatMetadata<TiffMetadata>
         int bpp = metadata.PixelTypeInfo.BitsPerPixel;
         return bpp switch
         {
-            1 => new()
+            1 => new TiffMetadata
             {
                 BitsPerPixel = TiffBitsPerPixel.Bit1,
                 BitsPerSample = TiffConstants.BitsPerSample1Bit,
@@ -83,7 +83,7 @@ public class TiffMetadata : IFormatMetadata<TiffMetadata>
                 Compression = TiffCompression.CcittGroup4Fax,
                 Predictor = TiffPredictor.None
             },
-            <= 4 => new()
+            <= 4 => new TiffMetadata
             {
                 BitsPerPixel = TiffBitsPerPixel.Bit4,
                 BitsPerSample = TiffConstants.BitsPerSample4Bit,
@@ -91,7 +91,7 @@ public class TiffMetadata : IFormatMetadata<TiffMetadata>
                 Compression = TiffCompression.Deflate,
                 Predictor = TiffPredictor.None // Best match for low bit depth
             },
-            8 => new()
+            8 => new TiffMetadata
             {
                 BitsPerPixel = TiffBitsPerPixel.Bit8,
                 BitsPerSample = TiffConstants.BitsPerSample8Bit,
@@ -99,7 +99,7 @@ public class TiffMetadata : IFormatMetadata<TiffMetadata>
                 Compression = TiffCompression.Deflate,
                 Predictor = TiffPredictor.Horizontal
             },
-            16 => new()
+            16 => new TiffMetadata
             {
                 BitsPerPixel = TiffBitsPerPixel.Bit16,
                 BitsPerSample = TiffConstants.BitsPerSample16Bit,
@@ -107,7 +107,7 @@ public class TiffMetadata : IFormatMetadata<TiffMetadata>
                 Compression = TiffCompression.Deflate,
                 Predictor = TiffPredictor.Horizontal
             },
-            32 or 64 => new()
+            32 or 64 => new TiffMetadata
             {
                 BitsPerPixel = TiffBitsPerPixel.Bit32,
                 BitsPerSample = TiffConstants.BitsPerSampleRgb8Bit,
@@ -115,7 +115,7 @@ public class TiffMetadata : IFormatMetadata<TiffMetadata>
                 Compression = TiffCompression.Deflate,
                 Predictor = TiffPredictor.Horizontal
             },
-            _ => new()
+            _ => new TiffMetadata
             {
                 BitsPerPixel = TiffBitsPerPixel.Bit24,
                 BitsPerSample = TiffConstants.BitsPerSampleRgb8Bit,
@@ -165,7 +165,7 @@ public class TiffMetadata : IFormatMetadata<TiffMetadata>
                 break;
         }
 
-        return new(bpp)
+        return new PixelTypeInfo(bpp)
         {
             ColorType = colorType,
             ComponentInfo = info,

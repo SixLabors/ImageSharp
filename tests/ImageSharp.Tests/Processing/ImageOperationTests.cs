@@ -22,13 +22,13 @@ public class ImageOperationTests : IDisposable
 
     public ImageOperationTests()
     {
-        this.provider = new();
+        this.provider = new FakeImageOperationsProvider();
 
         Mock<IImageProcessor> processorMock = new();
         this.processorDefinition = processorMock.Object;
 
-        this.image = new(
-            new()
+        this.image = new Image<Rgba32>(
+            new Configuration
             {
                 ImageOperationsProvider = this.provider
             },

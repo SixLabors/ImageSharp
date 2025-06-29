@@ -57,11 +57,11 @@ internal static class ColorProfileConverterExtensionsIcc
         ConversionParams sourceParams = new(converter.Options.SourceIccProfile, toPcs: true);
         ConversionParams targetParams = new(converter.Options.TargetIccProfile, toPcs: false);
 
-        ColorProfileConverter pcsConverter = new(new()
+        ColorProfileConverter pcsConverter = new(new ColorConversionOptions
         {
             MemoryAllocator = converter.Options.MemoryAllocator,
-            SourceWhitePoint = new(converter.Options.SourceIccProfile.Header.PcsIlluminant),
-            TargetWhitePoint = new(converter.Options.TargetIccProfile.Header.PcsIlluminant),
+            SourceWhitePoint = new CieXyz(converter.Options.SourceIccProfile.Header.PcsIlluminant),
+            TargetWhitePoint = new CieXyz(converter.Options.TargetIccProfile.Header.PcsIlluminant),
         });
 
         // Normalize the source, then convert to the PCS space.
@@ -101,11 +101,11 @@ internal static class ColorProfileConverterExtensionsIcc
         ConversionParams sourceParams = new(converter.Options.SourceIccProfile, toPcs: true);
         ConversionParams targetParams = new(converter.Options.TargetIccProfile, toPcs: false);
 
-        ColorProfileConverter pcsConverter = new(new()
+        ColorProfileConverter pcsConverter = new(new ColorConversionOptions
         {
             MemoryAllocator = converter.Options.MemoryAllocator,
-            SourceWhitePoint = new(converter.Options.SourceIccProfile.Header.PcsIlluminant),
-            TargetWhitePoint = new(converter.Options.TargetIccProfile.Header.PcsIlluminant),
+            SourceWhitePoint = new CieXyz(converter.Options.SourceIccProfile.Header.PcsIlluminant),
+            TargetWhitePoint = new CieXyz(converter.Options.TargetIccProfile.Header.PcsIlluminant),
         });
 
         using IMemoryOwner<Vector4> pcsBuffer = converter.Options.MemoryAllocator.Allocate<Vector4>(source.Length);
@@ -355,7 +355,7 @@ internal static class ColorProfileConverterExtensionsIcc
                 vector = Vector3.Max(vector, Vector3.Zero);
             }
 
-            xyz = new(AdjustPcsFromV2BlackPoint(vector));
+            xyz = new CieXyz(AdjustPcsFromV2BlackPoint(vector));
         }
 
         // when converting from PCS to device with v2 perceptual intent
@@ -371,7 +371,7 @@ internal static class ColorProfileConverterExtensionsIcc
                 vector = Vector3.Max(vector, Vector3.Zero);
             }
 
-            xyz = new(vector);
+            xyz = new CieXyz(vector);
         }
 
         switch (targetParams.PcsType)

@@ -27,7 +27,7 @@ internal sealed class ChunkedMemoryStream : Stream
     /// </summary>
     /// <param name="allocator">The memory allocator.</param>
     public ChunkedMemoryStream(MemoryAllocator allocator)
-        => this.memoryChunkBuffer = new(allocator);
+        => this.memoryChunkBuffer = new MemoryChunkBuffer(allocator);
 
     /// <inheritdoc/>
     public override bool CanRead => !this.isDisposed;

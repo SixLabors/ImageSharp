@@ -32,7 +32,7 @@ internal static class SizeExtensions
         sizeVect.X = MathF.Ceiling(sizeVect.X);
         sizeVect.Y = MathF.Ceiling(sizeVect.Y);
 
-        return new((int)sizeVect.X, (int)sizeVect.Y);
+        return new Size((int)sizeVect.X, (int)sizeVect.Y);
     }
 
     /// <summary>

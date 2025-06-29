@@ -24,8 +24,8 @@ public class Vector4Constants
     [GlobalSetup]
     public void Setup()
     {
-        this.random = new(42);
-        this.parameter = new(
+        this.random = new Random(42);
+        this.parameter = new Vector4(
             this.GetRandomFloat(),
             this.GetRandomFloat(),
             this.GetRandomFloat(),
@@ -51,8 +51,8 @@ public class Vector4Constants
 
         Vector4 x = (p * new Vector4(1.2f) / new Vector4(2.3f)) + (p * new Vector4(4.5f) / new Vector4(6.7f));
         Vector4 y = (p / new Vector4(1.2f) * new Vector4(2.3f)) + (p / new Vector4(4.5f) * new Vector4(6.7f));
-        Vector4 z = Vector4.Min(p, new(1.2f));
-        Vector4 w = Vector4.Max(p, new(2.3f));
+        Vector4 z = Vector4.Min(p, new Vector4(1.2f));
+        Vector4 w = Vector4.Max(p, new Vector4(2.3f));
         return x + y + z + w;
     }
 

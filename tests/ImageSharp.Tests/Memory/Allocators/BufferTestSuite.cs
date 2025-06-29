@@ -58,7 +58,7 @@ public abstract class BufferTestSuite
         }
     }
 
-    public static readonly TheoryData<int> LengthValues = new TheoryData<int> { 0, 1, 7, 1023, 1024 };
+    public static readonly TheoryData<int> LengthValues = new() { 0, 1, 7, 1023, 1024 };
 
     [Theory]
     [MemberData(nameof(LengthValues))]

@@ -461,7 +461,7 @@ public partial class JpegDecoderTests
         // We want to test the encoder to ensure the determined values can be encoded but not by encoding
         // the full size image as it would be too slow.
         // We will crop the image to a smaller size and then encode it.
-        image.Mutate(x => x.Crop(new(0, 0, 100, 100)));
+        image.Mutate(x => x.Crop(new Rectangle(0, 0, 100, 100)));
 
         using MemoryStream ms = new();
         image.Save(ms, new JpegEncoder());
@@ -501,7 +501,7 @@ public partial class JpegDecoderTests
         // the profile contains 4 duplicated UserComment
         Assert.Equal(1, exifProfile.Values.Count(t => t.Tag == ExifTag.UserComment));
 
-        image.Mutate(x => x.Crop(new(0, 0, 100, 100)));
+        image.Mutate(x => x.Crop(new Rectangle(0, 0, 100, 100)));
 
         image.Save(ms, new JpegEncoder());
     }

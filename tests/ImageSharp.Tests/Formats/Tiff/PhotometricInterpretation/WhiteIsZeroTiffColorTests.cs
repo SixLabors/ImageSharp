@@ -10,14 +10,14 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff.PhotometricInterpretation;
 [Trait("Format", "Tiff")]
 public class WhiteIsZeroTiffColorTests : PhotometricInterpretationTestBase
 {
-    private static readonly Rgba32 Gray000 = new Rgba32(255, 255, 255, 255);
-    private static readonly Rgba32 Gray128 = new Rgba32(127, 127, 127, 255);
-    private static readonly Rgba32 Gray255 = new Rgba32(0, 0, 0, 255);
-    private static readonly Rgba32 Gray0 = new Rgba32(255, 255, 255, 255);
-    private static readonly Rgba32 Gray8 = new Rgba32(119, 119, 119, 255);
-    private static readonly Rgba32 GrayF = new Rgba32(0, 0, 0, 255);
-    private static readonly Rgba32 Bit0 = new Rgba32(255, 255, 255, 255);
-    private static readonly Rgba32 Bit1 = new Rgba32(0, 0, 0, 255);
+    private static readonly Rgba32 Gray000 = new(255, 255, 255, 255);
+    private static readonly Rgba32 Gray128 = new(127, 127, 127, 255);
+    private static readonly Rgba32 Gray255 = new(0, 0, 0, 255);
+    private static readonly Rgba32 Gray0 = new(255, 255, 255, 255);
+    private static readonly Rgba32 Gray8 = new(119, 119, 119, 255);
+    private static readonly Rgba32 GrayF = new(0, 0, 0, 255);
+    private static readonly Rgba32 Bit0 = new(255, 255, 255, 255);
+    private static readonly Rgba32 Bit1 = new(0, 0, 0, 255);
 
     private static readonly byte[] BilevelBytes4X4 =
     {

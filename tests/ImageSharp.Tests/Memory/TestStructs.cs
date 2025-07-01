@@ -19,7 +19,7 @@ public static class TestStructs
 
         internal static Foo[] CreateArray(int size)
         {
-            var result = new Foo[size];
+            Foo[] result = new Foo[size];
             for (int i = 0; i < size; i++)
             {
                 result[i] = new Foo(i + 1, i + 1);
@@ -70,7 +70,7 @@ public static class TestStructs
 
         internal static AlignedFoo[] CreateArray(int size)
         {
-            var result = new AlignedFoo[size];
+            AlignedFoo[] result = new AlignedFoo[size];
             for (int i = 0; i < size; i++)
             {
                 result[i] = new AlignedFoo(i + 1, i + 1);

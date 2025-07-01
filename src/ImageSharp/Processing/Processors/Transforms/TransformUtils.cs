@@ -477,7 +477,7 @@ internal static class TransformUtils
         {
             float scaleX = 1F / new Vector2(matrix.M11, matrix.M21).Length(); // sqrt(M11^2 + M21^2)
             float scaleY = 1F / new Vector2(matrix.M12, matrix.M22).Length(); // sqrt(M12^2 + M22^2)
-            offsetSize = new(scaleX, scaleY);
+            offsetSize = new SizeF(scaleX, scaleY);
         }
 
         // Subtract the offset size to translate to the pixel space.

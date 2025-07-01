@@ -222,7 +222,7 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
         this.InitDerivedMetadataProperties();
 
         Size pixelSize = this.Frame.PixelSize;
-        return new ImageInfo(new(pixelSize.Width, pixelSize.Height), this.Metadata);
+        return new ImageInfo(new Size(pixelSize.Width, pixelSize.Height), this.Metadata);
     }
 
     /// <summary>
@@ -1243,7 +1243,7 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
         }
 
         this.Frame = new JpegFrame(frameMarker, precision, frameWidth, frameHeight, componentCount);
-        this.Dimensions = new(frameWidth, frameHeight);
+        this.Dimensions = new Size(frameWidth, frameHeight);
         this.Metadata.GetJpegMetadata().Progressive = this.Frame.Progressive;
 
         remaining -= length;

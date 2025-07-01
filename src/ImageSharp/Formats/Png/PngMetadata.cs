@@ -130,7 +130,7 @@ public class PngMetadata : IFormatMetadata<PngMetadata>
             4 => PngBitDepth.Bit4,
             _ => (bpc <= 8) ? PngBitDepth.Bit8 : PngBitDepth.Bit16,
         };
-        return new()
+        return new PngMetadata
         {
             ColorType = color,
             BitDepth = bitDepth,

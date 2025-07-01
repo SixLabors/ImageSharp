@@ -107,7 +107,7 @@ internal class YCbCrConverter
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Rgba32 Convert(float y, float cb, float cr)
         {
-            var pixel = default(Rgba32);
+            Rgba32 pixel = default(Rgba32);
             pixel.R = RoundAndClampTo8Bit((cr * this.cr2R) + y);
             pixel.G = RoundAndClampTo8Bit((this.y2G * y) + (this.cr2G * cr) + (this.cb2G * cb));
             pixel.B = RoundAndClampTo8Bit((cb * this.cb2B) + y);

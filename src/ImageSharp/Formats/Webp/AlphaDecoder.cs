@@ -60,7 +60,7 @@ internal class AlphaDecoder : IDisposable
 
         if (this.Compressed)
         {
-            Vp8LBitReader bitReader = new Vp8LBitReader(data);
+            Vp8LBitReader bitReader = new(data);
             this.LosslessDecoder = new WebpLosslessDecoder(bitReader, memoryAllocator, configuration);
             this.LosslessDecoder.DecodeImageStream(this.Vp8LDec, width, height, true);
 

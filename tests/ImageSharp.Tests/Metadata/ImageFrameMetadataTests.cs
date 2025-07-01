@@ -48,7 +48,7 @@ public class ImageFrameMetadataTests
         XmpProfile xmpProfile = new(Array.Empty<byte>());
         IccProfile iccProfile = new()
         {
-            Header = new IccProfileHeader()
+            Header = new IccProfileHeader
             {
                 CmmType = "Unittest"
             }

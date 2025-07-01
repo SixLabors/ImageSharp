@@ -58,7 +58,7 @@ internal class ColorTrcCalculator : IVector4Calculator
             // when data to PCS, upstream process provides scaled XYZ
             // but input to calculator is descaled XYZ
             // (see DemoMaxICC IccCmm.cpp : CIccXformMatrixTRC::Apply)
-            xyz = new(CieXyz.FromScaledVector4(xyz).AsVector3Unsafe(), 1);
+            xyz = new Vector4(CieXyz.FromScaledVector4(xyz).AsVector3Unsafe(), 1);
             return this.curveCalculator.Calculate(xyz);
         }
     }

@@ -57,7 +57,7 @@ public class AutoOrientTests
     public void AutoOrient_WorksWithCorruptExifData<TPixel>(TestImageProvider<TPixel> provider, ExifDataType dataType, byte[] orientation)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        var profile = new ExifProfile();
+        ExifProfile profile = new();
         profile.SetValue(ExifTag.JPEGTables, orientation);
 
         byte[] bytes = profile.ToByteArray();

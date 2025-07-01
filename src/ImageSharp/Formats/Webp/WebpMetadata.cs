@@ -89,7 +89,7 @@ public class WebpMetadata : IFormatMetadata<WebpMetadata>
                 break;
         }
 
-        return new()
+        return new WebpMetadata
         {
             BitsPerPixel = bitsPerPixel,
             ColorType = color,

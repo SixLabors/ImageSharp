@@ -22,16 +22,16 @@ public class DetectEdgesTest
     public const PixelTypes CommonNonDefaultPixelTypes = PixelTypes.Rgba32 | PixelTypes.Bgra32 | PixelTypes.RgbaVector;
 
     public static readonly TheoryData<EdgeDetectorKernel, string> DetectEdgesFilters
-        = new TheoryData<EdgeDetectorKernel, string>
-    {
+        = new()
+        {
         { KnownEdgeDetectorKernels.Laplacian3x3, nameof(KnownEdgeDetectorKernels.Laplacian3x3) },
         { KnownEdgeDetectorKernels.Laplacian5x5, nameof(KnownEdgeDetectorKernels.Laplacian5x5) },
         { KnownEdgeDetectorKernels.LaplacianOfGaussian, nameof(KnownEdgeDetectorKernels.LaplacianOfGaussian) },
     };
 
     public static readonly TheoryData<EdgeDetector2DKernel, string> DetectEdges2DFilters
-        = new TheoryData<EdgeDetector2DKernel, string>
-    {
+        = new()
+        {
         { KnownEdgeDetectorKernels.Kayyali, nameof(KnownEdgeDetectorKernels.Kayyali) },
         { KnownEdgeDetectorKernels.Prewitt, nameof(KnownEdgeDetectorKernels.Prewitt) },
         { KnownEdgeDetectorKernels.RobertsCross, nameof(KnownEdgeDetectorKernels.RobertsCross) },
@@ -40,8 +40,8 @@ public class DetectEdgesTest
     };
 
     public static readonly TheoryData<EdgeDetectorCompassKernel, string> DetectEdgesCompassFilters
-        = new TheoryData<EdgeDetectorCompassKernel, string>
-    {
+        = new()
+        {
         { KnownEdgeDetectorKernels.Kirsch, nameof(KnownEdgeDetectorKernels.Kirsch) },
         { KnownEdgeDetectorKernels.Robinson, nameof(KnownEdgeDetectorKernels.Robinson) },
     };
@@ -55,7 +55,7 @@ public class DetectEdgesTest
             ctx =>
                 {
                     Size size = ctx.GetCurrentSize();
-                    var bounds = new Rectangle(10, 10, size.Width / 2, size.Height / 2);
+                    Rectangle bounds = new(10, 10, size.Width / 2, size.Height / 2);
                     ctx.DetectEdges(bounds);
                 },
             comparer: OpaqueComparer,
@@ -158,7 +158,7 @@ public class DetectEdgesTest
     {
         using (Image<TPixel> image = provider.GetImage())
         {
-            var bounds = new Rectangle(10, 10, image.Width / 2, image.Height / 2);
+            Rectangle bounds = new(10, 10, image.Width / 2, image.Height / 2);
 
             image.Mutate(x => x.DetectEdges(bounds));
             image.DebugSave(provider);

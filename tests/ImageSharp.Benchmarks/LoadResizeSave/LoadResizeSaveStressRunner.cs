@@ -148,7 +148,7 @@ public class LoadResizeSaveStressRunner
 
     private void LogImageProcessed(int width, int height)
     {
-        this.LastProcessedImageSize = new Size(width, height);
+        this.LastProcessedImageSize = new ImageSharpSize(width, height);
         double pixels = width * (double)height;
         this.TotalProcessedMegapixels += pixels / 1_000_000.0;
     }

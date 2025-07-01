@@ -148,7 +148,7 @@ public class CurFrameMetadata : IFormatFrameMetadata<CurFrameMetadata>
             ? (byte)0
             : (byte)ColorNumerics.GetColorCountForBitDepth((int)this.BmpBitsPerPixel);
 
-        return new()
+        return new IconDirEntry
         {
             Width = ClampEncodingDimension(this.EncodingWidth ?? size.Width),
             Height = ClampEncodingDimension(this.EncodingHeight ?? size.Height),

@@ -32,7 +32,7 @@ public class ImageSaveTests : IDisposable
         this.encoderNotInFormat = new Mock<IImageEncoder>();
 
         this.fileSystem = new Mock<IFileSystem>();
-        var config = new Configuration
+        Configuration config = new()
         {
             FileSystem = this.fileSystem.Object
         };

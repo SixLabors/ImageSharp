@@ -32,15 +32,15 @@ public class MagickReferenceDecoder : ImageDecoder
         this.validate = validate;
     }
 
-    public static MagickReferenceDecoder Png { get; } = new MagickReferenceDecoder(PngFormat.Instance);
+    public static MagickReferenceDecoder Png { get; } = new(PngFormat.Instance);
 
-    public static MagickReferenceDecoder Bmp { get; } = new MagickReferenceDecoder(BmpFormat.Instance);
+    public static MagickReferenceDecoder Bmp { get; } = new(BmpFormat.Instance);
 
-    public static MagickReferenceDecoder Jpeg { get; } = new MagickReferenceDecoder(JpegFormat.Instance);
+    public static MagickReferenceDecoder Jpeg { get; } = new(JpegFormat.Instance);
 
-    public static MagickReferenceDecoder Tiff { get; } = new MagickReferenceDecoder(TiffFormat.Instance);
+    public static MagickReferenceDecoder Tiff { get; } = new(TiffFormat.Instance);
 
-    public static MagickReferenceDecoder WebP { get; } = new MagickReferenceDecoder(WebpFormat.Instance);
+    public static MagickReferenceDecoder WebP { get; } = new(WebpFormat.Instance);
 
     protected override Image<TPixel> Decode<TPixel>(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
     {
@@ -103,7 +103,7 @@ public class MagickReferenceDecoder : ImageDecoder
             }
         }
 
-        return ReferenceCodecUtilities.EnsureDecodedMetadata<TPixel>(new(configuration, metadata, framesList), this.imageFormat);
+        return ReferenceCodecUtilities.EnsureDecodedMetadata<TPixel>(new Image<TPixel>(configuration, metadata, framesList), this.imageFormat);
     }
 
     protected override Image Decode(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
@@ -113,7 +113,7 @@ public class MagickReferenceDecoder : ImageDecoder
     {
         using Image<Rgba32> image = this.Decode<Rgba32>(options, stream, cancellationToken);
         ImageMetadata metadata = image.Metadata;
-        return new(image.Size, metadata, new List<ImageFrameMetadata>(image.Frames.Select(x => x.Metadata)))
+        return new ImageInfo(image.Size, metadata, new List<ImageFrameMetadata>(image.Frames.Select(x => x.Metadata)))
         {
             PixelType = metadata.GetDecodedPixelTypeInfo()
         };

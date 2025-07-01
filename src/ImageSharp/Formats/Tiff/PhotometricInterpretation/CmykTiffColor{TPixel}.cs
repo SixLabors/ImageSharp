@@ -47,7 +47,7 @@ internal class CmykTiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
             {
                 Cmyk cmyk = new(data[offset] * Inv255, data[offset + 1] * Inv255, data[offset + 2] * Inv255, data[offset + 3] * Inv255);
                 Rgb rgb = ColorProfileConverter.Convert<Cmyk, Rgb>(in cmyk);
-                pixelRow[x] = TPixel.FromScaledVector4(new(rgb.R, rgb.G, rgb.B, 1.0f));
+                pixelRow[x] = TPixel.FromScaledVector4(new Vector4(rgb.R, rgb.G, rgb.B, 1.0f));
 
                 offset += 4;
             }

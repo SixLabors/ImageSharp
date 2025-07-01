@@ -121,7 +121,7 @@ public class GifEncoderTests
         // Always save as we need to compare the encoded output.
         provider.Utility.SaveTestOutputFile(image, "gif", encoder, "global");
 
-        encoder = new()
+        encoder = new GifEncoder
         {
             ColorTableMode = FrameColorTableMode.Local,
             Quantizer = new OctreeQuantizer(new QuantizerOptions { Dither = null }),

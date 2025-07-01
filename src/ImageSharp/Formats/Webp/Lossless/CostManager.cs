@@ -17,7 +17,7 @@ internal sealed class CostManager : IDisposable
 
     private const int FreeIntervalsStartCount = 25;
 
-    private readonly Stack<CostInterval> freeIntervals = new Stack<CostInterval>(FreeIntervalsStartCount);
+    private readonly Stack<CostInterval> freeIntervals = new(FreeIntervalsStartCount);
 
     public CostManager(MemoryAllocator memoryAllocator, IMemoryOwner<ushort> distArray, int pixCount, CostModel costModel)
     {
@@ -49,7 +49,7 @@ internal sealed class CostManager : IDisposable
         }
 
         // Fill in the cache intervals.
-        var cur = new CostCacheInterval()
+        CostCacheInterval cur = new()
         {
             Start = 0,
             End = 1,
@@ -62,7 +62,7 @@ internal sealed class CostManager : IDisposable
             double costVal = this.CostCache[i];
             if (costVal != cur.Cost)
             {
-                cur = new CostCacheInterval()
+                cur = new CostCacheInterval
                 {
                     Start = i,
                     Cost = costVal
@@ -258,7 +258,7 @@ internal sealed class CostManager : IDisposable
         }
         else
         {
-            intervalNew = new CostInterval() { Cost = cost, Start = start, End = end, Index = position };
+            intervalNew = new CostInterval { Cost = cost, Start = start, End = end, Index = position };
         }
 
         this.PositionOrphanInterval(intervalNew, intervalIn);

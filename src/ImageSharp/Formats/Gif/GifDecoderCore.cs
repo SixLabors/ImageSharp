@@ -267,7 +267,7 @@ internal sealed class GifDecoderCore : ImageDecoderCore
         }
 
         return new ImageInfo(
-            new(this.logicalScreenDescriptor.Width, this.logicalScreenDescriptor.Height),
+            new Size(this.logicalScreenDescriptor.Width, this.logicalScreenDescriptor.Height),
             this.metadata,
             framesMetadata);
     }
@@ -305,7 +305,7 @@ internal sealed class GifDecoderCore : ImageDecoderCore
             GifThrowHelper.ThrowInvalidImageContentException("Width or height should not be 0");
         }
 
-        this.Dimensions = new(this.imageDescriptor.Width, this.imageDescriptor.Height);
+        this.Dimensions = new Size(this.imageDescriptor.Width, this.imageDescriptor.Height);
     }
 
     /// <summary>
@@ -412,6 +412,11 @@ internal sealed class GifDecoderCore : ImageDecoderCore
             if (length > GifConstants.MaxCommentSubBlockLength)
             {
                 GifThrowHelper.ThrowInvalidImageContentException($"Gif comment length '{length}' exceeds max '{GifConstants.MaxCommentSubBlockLength}' of a comment data block");
+            }
+
+            if (length == -1)
+            {
+                GifThrowHelper.ThrowInvalidImageContentException("Unexpected end of stream while reading gif comment");
             }
 
             if (this.skipMetadata)
@@ -592,7 +597,7 @@ internal sealed class GifDecoderCore : ImageDecoderCore
 
         if (disposalMethod == FrameDisposalMode.RestoreToBackground)
         {
-            this.restoreArea = Rectangle.Intersect(image.Bounds, new(descriptor.Left, descriptor.Top, descriptor.Width, descriptor.Height));
+            this.restoreArea = Rectangle.Intersect(image.Bounds, new Rectangle(descriptor.Left, descriptor.Top, descriptor.Width, descriptor.Height));
         }
 
         if (colorTable.Length == 0)

@@ -21,8 +21,7 @@ public class SwizzleTests
 
         public Size DestinationSize { get; }
 
-        public Point Transform(Point point)
-            => new(point.Y, point.X);
+        public Point Transform(Point point) => new(point.Y, point.X);
     }
 
     [Theory]

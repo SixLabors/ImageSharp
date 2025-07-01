@@ -248,7 +248,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                             break;
                         case PngChunkType.Data:
                             pngMetadata.AnimateRootFrame = currentFrameControl != null;
-                            currentFrameControl ??= new((uint)this.header.Width, (uint)this.header.Height);
+                            currentFrameControl ??= new FrameControl((uint)this.header.Width, (uint)this.header.Height);
                             if (image is null)
                             {
                                 this.InitializeImage(metadata, currentFrameControl.Value, out image);
@@ -433,7 +433,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                             }
 
                             pngMetadata.AnimateRootFrame = currentFrameControl != null;
-                            currentFrameControl ??= new((uint)this.header.Width, (uint)this.header.Height);
+                            currentFrameControl ??= new FrameControl((uint)this.header.Width, (uint)this.header.Height);
                             if (framesMetadata.Count == 0)
                             {
                                 InitializeFrameMetadata(framesMetadata, currentFrameControl.Value);
@@ -525,7 +525,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                 PngThrowHelper.ThrowInvalidHeader();
             }
 
-            return new ImageInfo(new(this.header.Width, this.header.Height), metadata, framesMetadata);
+            return new ImageInfo(new Size(this.header.Width, this.header.Height), metadata, framesMetadata);
         }
         finally
         {
@@ -1343,7 +1343,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
         pngMetadata.InterlaceMethod = this.header.InterlaceMethod;
 
         this.pngColorType = this.header.ColorType;
-        this.Dimensions = new(this.header.Width, this.header.Height);
+        this.Dimensions = new Size(this.header.Width, this.header.Height);
     }
 
     /// <summary>

@@ -16,7 +16,7 @@ internal class TiffEncoderEntriesCollector
 {
     private const string SoftwareValue = "ImageSharp";
 
-    public List<IExifValue> Entries { get; } = new List<IExifValue>();
+    public List<IExifValue> Entries { get; } = new();
 
     public void ProcessMetadata(Image image, bool skipMetadata)
         => new MetadataProcessor(this).Process(image, skipMetadata);

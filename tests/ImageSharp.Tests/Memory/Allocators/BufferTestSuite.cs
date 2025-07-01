@@ -58,7 +58,7 @@ public abstract class BufferTestSuite
         }
     }
 
-    public static readonly TheoryData<int> LengthValues = new TheoryData<int> { 0, 1, 7, 1023, 1024 };
+    public static readonly TheoryData<int> LengthValues = new() { 0, 1, 7, 1023, 1024 };
 
     [Theory]
     [MemberData(nameof(LengthValues))]
@@ -172,7 +172,7 @@ public abstract class BufferTestSuite
     {
         using (IMemoryOwner<T> buffer = this.MemoryAllocator.Allocate<T>(desiredLength))
         {
-            var expectedVals = new T[buffer.Length()];
+            T[] expectedVals = new T[buffer.Length()];
 
             for (int i = 0; i < buffer.Length(); i++)
             {
@@ -213,7 +213,7 @@ public abstract class BufferTestSuite
     private T TestIndexOutOfRangeShouldThrow<T>(int desiredLength)
         where T : struct, IEquatable<T>
     {
-        var dummy = default(T);
+        T dummy = default(T);
 
         using (IMemoryOwner<T> buffer = this.MemoryAllocator.Allocate<T>(desiredLength))
         {

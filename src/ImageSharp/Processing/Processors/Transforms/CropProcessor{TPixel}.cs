@@ -41,6 +41,7 @@ internal class CropProcessor<TPixel> : TransformProcessor<TPixel>
     /// <inheritdoc/>
     protected override Size GetDestinationSize() => new(this.cropRectangle.Width, this.cropRectangle.Height);
 
+    /// <inheritdoc/>
     protected override Matrix4x4 GetTransformMatrix() => this.transformMatrix;
 
     /// <inheritdoc/>

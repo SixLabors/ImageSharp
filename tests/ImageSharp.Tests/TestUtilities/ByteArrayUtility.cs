@@ -11,7 +11,7 @@ public static class ByteArrayUtility
     {
         if (isLittleEndian != BitConverter.IsLittleEndian)
         {
-            var reversedBytes = new byte[bytes.Length];
+            byte[] reversedBytes = new byte[bytes.Length];
             Array.Copy(bytes, reversedBytes, bytes.Length);
             Array.Reverse(reversedBytes);
             return reversedBytes;

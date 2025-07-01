@@ -337,6 +337,6 @@ internal partial class UniformUnmanagedMemoryPool : System.Runtime.ConstrainedEx
 
         public bool Enabled => this.Rate > 0;
 
-        public static TrimSettings Default => new TrimSettings();
+        public static TrimSettings Default => new();
     }
 }

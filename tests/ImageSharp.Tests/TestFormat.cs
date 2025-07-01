@@ -38,7 +38,7 @@ public class TestFormat : IImageFormatConfigurationModule, IImageFormat
 
     public MemoryStream CreateStream(byte[] marker = null)
     {
-        var ms = new MemoryStream();
+        MemoryStream ms = new();
         byte[] data = this.header;
         ms.Write(data, 0, data.Length);
         if (marker != null)
@@ -54,7 +54,7 @@ public class TestFormat : IImageFormatConfigurationModule, IImageFormat
     {
         byte[] buffer = new byte[size];
         this.header.CopyTo(buffer, 0);
-        var semaphoreStream = new SemaphoreReadMemoryStream(buffer, waitAfterPosition, notifyWaitPositionReachedSemaphore, continueSemaphore);
+        SemaphoreReadMemoryStream semaphoreStream = new(buffer, waitAfterPosition, notifyWaitPositionReachedSemaphore, continueSemaphore);
         return seeakable ? semaphoreStream : new AsyncStreamWrapper(semaphoreStream, () => false);
     }
 
@@ -205,7 +205,7 @@ public class TestFormat : IImageFormatConfigurationModule, IImageFormat
         {
             using Image<TestPixelForAgnosticDecode> image = this.Decode<TestPixelForAgnosticDecode>(this.CreateDefaultSpecializedOptions(options), stream, cancellationToken);
             ImageMetadata metadata = image.Metadata;
-            return new(image.Size, metadata, new List<ImageFrameMetadata>(image.Frames.Select(x => x.Metadata)))
+            return new ImageInfo(image.Size, metadata, new List<ImageFrameMetadata>(image.Frames.Select(x => x.Metadata)))
             {
                 PixelType = metadata.GetDecodedPixelTypeInfo()
             };

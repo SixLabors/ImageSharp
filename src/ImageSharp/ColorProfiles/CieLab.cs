@@ -182,7 +182,7 @@ public readonly struct CieLab : IProfileConnectingSpace<CieLab, CieXyz>
         Vector3 wxyz = new(whitePoint.X, whitePoint.Y, whitePoint.Z);
         Vector3 xyzr = new(xr, yr, zr);
 
-        return new(xyzr * wxyz);
+        return new CieXyz(xyzr * wxyz);
     }
 
     /// <inheritdoc/>

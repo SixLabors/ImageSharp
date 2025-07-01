@@ -33,14 +33,14 @@ public class SpectralToPixelConversionTests
     {
         // Stream
         byte[] sourceBytes = TestFile.Create(provider.SourceFileOrDescription).Bytes;
-        using var ms = new MemoryStream(sourceBytes);
-        using var bufferedStream = new BufferedReadStream(Configuration.Default, ms);
+        using MemoryStream ms = new(sourceBytes);
+        using BufferedReadStream bufferedStream = new(Configuration.Default, ms);
 
         // Decoding
         JpegDecoderOptions options = new();
-        using var converter = new SpectralConverter<TPixel>(Configuration.Default);
-        using var decoder = new JpegDecoderCore(options);
-        var scanDecoder = new HuffmanScanDecoder(bufferedStream, converter, cancellationToken: default);
+        using SpectralConverter<TPixel> converter = new(Configuration.Default);
+        using JpegDecoderCore decoder = new(options);
+        HuffmanScanDecoder scanDecoder = new(bufferedStream, converter, cancellationToken: default);
         decoder.ParseStream(bufferedStream, converter, cancellationToken: default);
 
         // Test metadata
@@ -48,7 +48,7 @@ public class SpectralToPixelConversionTests
         provider.Utility.TestName = JpegDecoderTests.DecodeBaselineJpegOutputName;
 
         // Comparison
-        using var image = new Image<TPixel>(Configuration.Default, converter.GetPixelBuffer(null, CancellationToken.None), new ImageMetadata());
+        using Image<TPixel> image = new(Configuration.Default, converter.GetPixelBuffer(null, CancellationToken.None), new ImageMetadata());
         using Image<TPixel> referenceImage = provider.GetReferenceOutputImage<TPixel>(appendPixelTypeToFileName: false);
         ImageSimilarityReport report = ImageComparer.Exact.CompareImagesOrFrames(referenceImage, image);
 

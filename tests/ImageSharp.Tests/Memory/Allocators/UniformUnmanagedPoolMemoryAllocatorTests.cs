@@ -44,7 +44,7 @@ public class UniformUnmanagedPoolMemoryAllocatorTests
     }
 
     public static TheoryData<object, int, int, int, int, long, int, int, int, int> AllocateData =
-        new TheoryData<object, int, int, int, int, long, int, int, int, int>()
+        new()
         {
             { default(S4), 16, 256, 256, 1024, 64, 64, 1, -1, 64 },
             { default(S4), 16, 256, 256, 1024, 256, 256, 1, -1, 256 },
@@ -69,7 +69,7 @@ public class UniformUnmanagedPoolMemoryAllocatorTests
         int expectedSizeOfLastBuffer)
         where T : struct
     {
-        var allocator = new UniformUnmanagedMemoryPoolMemoryAllocator(
+        UniformUnmanagedMemoryPoolMemoryAllocator allocator = new(
             sharedArrayPoolThresholdInBytes,
             maxContiguousPoolBufferInBytes,
             maxPoolSizeInBytes,
@@ -86,13 +86,13 @@ public class UniformUnmanagedPoolMemoryAllocatorTests
     [Fact]
     public void AllocateGroup_MultipleTimes_ExceedPoolLimit()
     {
-        var allocator = new UniformUnmanagedMemoryPoolMemoryAllocator(
+        UniformUnmanagedMemoryPoolMemoryAllocator allocator = new(
             64,
             128,
             1024,
             1024);
 
-        var groups = new List<MemoryGroup<S4>>();
+        List<MemoryGroup<S4>> groups = new();
         for (int i = 0; i < 16; i++)
         {
             int lengthInElements = 128 / Unsafe.SizeOf<S4>();
@@ -110,7 +110,7 @@ public class UniformUnmanagedPoolMemoryAllocatorTests
     [Fact]
     public void AllocateGroup_SizeInBytesOverLongMaxValue_ThrowsInvalidMemoryOperationException()
     {
-        var allocator = new UniformUnmanagedMemoryPoolMemoryAllocator(null);
+        UniformUnmanagedMemoryPoolMemoryAllocator allocator = new(null);
         Assert.Throws<InvalidMemoryOperationException>(() => allocator.AllocateGroup<byte>(int.MaxValue * (long)int.MaxValue, int.MaxValue));
     }
 
@@ -128,7 +128,7 @@ public class UniformUnmanagedPoolMemoryAllocatorTests
     [Fact]
     public unsafe void Allocate_MemoryIsPinnableMultipleTimes()
     {
-        var allocator = new UniformUnmanagedMemoryPoolMemoryAllocator(null);
+        UniformUnmanagedMemoryPoolMemoryAllocator allocator = new(null);
         using IMemoryOwner<byte> memoryOwner = allocator.Allocate<byte>(100);
 
         using (MemoryHandle pin = memoryOwner.Memory.Pin())
@@ -149,7 +149,7 @@ public class UniformUnmanagedPoolMemoryAllocatorTests
 
         static void RunTest()
         {
-            var allocator = MemoryAllocator.Create();
+            MemoryAllocator allocator = MemoryAllocator.Create();
             long sixteenMegabytes = 16 * (1 << 20);
 
             // Should allocate 4 times 4MB discontiguos blocks:
@@ -165,7 +165,7 @@ public class UniformUnmanagedPoolMemoryAllocatorTests
 
         static void RunTest()
         {
-            var allocator = MemoryAllocator.Create(new MemoryAllocatorOptions()
+            MemoryAllocator allocator = MemoryAllocator.Create(new MemoryAllocatorOptions
             {
                 MaximumPoolSizeMegabytes = 8
             });
@@ -205,7 +205,7 @@ public class UniformUnmanagedPoolMemoryAllocatorTests
 
         static void RunTest(string sharedStr)
         {
-            var allocator = new UniformUnmanagedMemoryPoolMemoryAllocator(512, 1024, 16 * 1024, 1024);
+            UniformUnmanagedMemoryPoolMemoryAllocator allocator = new(512, 1024, 16 * 1024, 1024);
             IMemoryOwner<byte> buffer0 = allocator.Allocate<byte>(bool.Parse(sharedStr) ? 300 : 600);
             buffer0.GetSpan()[0] = 42;
             buffer0.Dispose();
@@ -223,7 +223,7 @@ public class UniformUnmanagedPoolMemoryAllocatorTests
 
         static void RunTest(string sharedStr)
         {
-            var allocator = new UniformUnmanagedMemoryPoolMemoryAllocator(512, 1024, 16 * 1024, 1024);
+            UniformUnmanagedMemoryPoolMemoryAllocator allocator = new(512, 1024, 16 * 1024, 1024);
             MemoryGroup<byte> g0 = allocator.AllocateGroup<byte>(bool.Parse(sharedStr) ? 300 : 600, 100);
             g0.Single().Span[0] = 42;
             g0.Dispose();
@@ -238,7 +238,7 @@ public class UniformUnmanagedPoolMemoryAllocatorTests
         RemoteExecutor.Invoke(RunTest).Dispose();
         static void RunTest()
         {
-            var allocator = new UniformUnmanagedMemoryPoolMemoryAllocator(128, 512, 16 * 512, 1024);
+            UniformUnmanagedMemoryPoolMemoryAllocator allocator = new(128, 512, 16 * 512, 1024);
             MemoryGroup<byte> g = allocator.AllocateGroup<byte>(2048, 128);
             g.Dispose();
             Assert.Equal(4, UnmanagedMemoryHandle.TotalOutstandingHandles);
@@ -253,7 +253,7 @@ public class UniformUnmanagedPoolMemoryAllocatorTests
         RemoteExecutor.Invoke(RunTest).Dispose();
         static void RunTest()
         {
-            var allocator = new UniformUnmanagedMemoryPoolMemoryAllocator(128, 512, 16 * 512, 1024);
+            UniformUnmanagedMemoryPoolMemoryAllocator allocator = new(128, 512, 16 * 512, 1024);
             IMemoryOwner<byte> b = allocator.Allocate<byte>(256);
             MemoryGroup<byte> g = allocator.AllocateGroup<byte>(2048, 128);
             Assert.Equal(5, UnmanagedMemoryHandle.TotalOutstandingHandles);
@@ -297,7 +297,7 @@ public class UniformUnmanagedPoolMemoryAllocatorTests
 
         static void RunTest(string lengthStr)
         {
-            var allocator = new UniformUnmanagedMemoryPoolMemoryAllocator(512, 1024, 16 * 1024, 1024);
+            UniformUnmanagedMemoryPoolMemoryAllocator allocator = new(512, 1024, 16 * 1024, 1024);
             int lengthInner = int.Parse(lengthStr);
 
             AllocateGroupAndForget(allocator, lengthInner);
@@ -365,7 +365,7 @@ public class UniformUnmanagedPoolMemoryAllocatorTests
 
         static void RunTest(string lengthStr)
         {
-            var allocator = new UniformUnmanagedMemoryPoolMemoryAllocator(512, 1024, 16 * 1024, 1024);
+            UniformUnmanagedMemoryPoolMemoryAllocator allocator = new(512, 1024, 16 * 1024, 1024);
             int lengthInner = int.Parse(lengthStr);
 
             AllocateSingleAndForget(allocator, lengthInner);
@@ -422,7 +422,7 @@ public class UniformUnmanagedPoolMemoryAllocatorTests
     [Fact]
     public void Allocate_OverLimit_ThrowsInvalidMemoryOperationException()
     {
-        MemoryAllocator allocator = MemoryAllocator.Create(new MemoryAllocatorOptions()
+        MemoryAllocator allocator = MemoryAllocator.Create(new MemoryAllocatorOptions
         {
             AllocationLimitMegabytes = 4
         });
@@ -434,7 +434,7 @@ public class UniformUnmanagedPoolMemoryAllocatorTests
     [Fact]
     public void AllocateGroup_OverLimit_ThrowsInvalidMemoryOperationException()
     {
-        MemoryAllocator allocator = MemoryAllocator.Create(new MemoryAllocatorOptions()
+        MemoryAllocator allocator = MemoryAllocator.Create(new MemoryAllocatorOptions
         {
             AllocationLimitMegabytes = 4
         });
@@ -450,7 +450,7 @@ public class UniformUnmanagedPoolMemoryAllocatorTests
         static void RunTest()
         {
             const long threeGB = 3L * (1 << 30);
-            MemoryAllocator allocator = MemoryAllocator.Create(new MemoryAllocatorOptions()
+            MemoryAllocator allocator = MemoryAllocator.Create(new MemoryAllocatorOptions
             {
                 AllocationLimitMegabytes = (int)(threeGB / 1024)
             });

@@ -116,7 +116,7 @@ internal abstract class IconEncoderCore
     [MemberNotNull(nameof(entries))]
     private void InitHeader(Image image)
     {
-        this.fileHeader = new(this.iconFileType, (ushort)image.Frames.Count);
+        this.fileHeader = new IconDir(this.iconFileType, (ushort)image.Frames.Count);
         this.entries = this.iconFileType switch
         {
             IconFileType.ICO =>
@@ -155,14 +155,14 @@ internal abstract class IconEncoderCore
                 count = 256;
             }
 
-            return new WuQuantizer(new()
+            return new WuQuantizer(new QuantizerOptions
             {
                 MaxColors = count
             });
         }
 
         // Don't dither if we have a palette. We want to preserve as much information as possible.
-        return new PaletteQuantizer(metadata.ColorTable.Value, new() { Dither = null });
+        return new PaletteQuantizer(metadata.ColorTable.Value, new QuantizerOptions { Dither = null });
     }
 
     internal sealed class EncodingFrameMetadata

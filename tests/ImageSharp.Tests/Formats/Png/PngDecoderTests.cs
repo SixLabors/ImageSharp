@@ -140,7 +140,7 @@ public partial class PngDecoderTests
     {
         DecoderOptions options = new()
         {
-            TargetSize = new() { Width = 150, Height = 150 }
+            TargetSize = new Size { Width = 150, Height = 150 }
         };
 
         using Image<TPixel> image = provider.GetImage(PngDecoder.Instance, options);
@@ -178,7 +178,7 @@ public partial class PngDecoderTests
 
             DecoderOptions options = new()
             {
-                TargetSize = new() { Width = 150, Height = 150 }
+                TargetSize = new Size { Width = 150, Height = 150 }
             };
 
             using Image<Rgba32> image = provider.GetImage(PngDecoder.Instance, options);
@@ -389,7 +389,7 @@ public partial class PngDecoderTests
         TestFile testFile = TestFile.Create(imagePath);
         using MemoryStream stream = new(testFile.Bytes, false);
 
-        ImageInfo imageInfo = Image.Identify(new DecoderOptions() { SegmentIntegrityHandling = SegmentIntegrityHandling.IgnoreData }, stream);
+        ImageInfo imageInfo = Image.Identify(new DecoderOptions { SegmentIntegrityHandling = SegmentIntegrityHandling.IgnoreData }, stream);
 
         Assert.NotNull(imageInfo);
         Assert.Equal(expectedPixelSize, imageInfo.PixelType.BitsPerPixel);
@@ -674,7 +674,7 @@ public partial class PngDecoderTests
     public void Binary_PrematureEof()
     {
         PngDecoder decoder = PngDecoder.Instance;
-        PngDecoderOptions options = new() { GeneralOptions = new() { SegmentIntegrityHandling = SegmentIntegrityHandling.IgnoreData } };
+        PngDecoderOptions options = new() { GeneralOptions = new DecoderOptions { SegmentIntegrityHandling = SegmentIntegrityHandling.IgnoreData } };
         using EofHitCounter eofHitCounter = EofHitCounter.RunDecoder(TestImages.Png.Bad.FlagOfGermany0000016446, decoder, options);
 
         // TODO: Try to reduce this to 1.

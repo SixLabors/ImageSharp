@@ -128,7 +128,7 @@ internal abstract partial class JpegColorConverterBase
             ColorProfileConverter converter = new();
             Span<Cmyk> source = MemoryMarshal.Cast<float, Cmyk>(packed);
 
-            // YccK is not a defined ICC color space — it's a JPEG-specific encoding used in Adobe-style CMYK JPEGs.
+            // YccK is not a defined ICC color space ï¿½ it's a JPEG-specific encoding used in Adobe-style CMYK JPEGs.
             // ICC profiles expect colorimetric CMYK values, so we must first convert YccK to CMYK using a hardcoded inverse transform.
             // This transform assumes Rec.601 YCbCr coefficients and an inverted K channel.
             //
@@ -144,7 +144,7 @@ internal abstract partial class JpegColorConverterBase
                 SourceIccProfile = profile,
                 TargetIccProfile = CompactSrgbV4Profile.Profile,
             };
-            converter = new(options);
+            converter = new ColorProfileConverter(options);
             converter.Convert<Cmyk, Rgb>(source, destination);
 
             UnpackDeinterleave3(MemoryMarshal.Cast<float, Vector3>(packed)[..source.Length], c0, c1, c2);

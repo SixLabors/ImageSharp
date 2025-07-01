@@ -91,7 +91,7 @@ internal abstract partial class JpegColorConverterBase
                 SourceIccProfile = profile,
                 TargetIccProfile = CompactSrgbV4Profile.Profile,
             };
-            converter = new(options);
+            converter = new ColorProfileConverter(options);
             converter.Convert<Rgb, Rgb>(destination, destination);
 
             UnpackDeinterleave3(MemoryMarshal.Cast<float, Vector3>(packed)[..source.Length], c0, c1, c2);

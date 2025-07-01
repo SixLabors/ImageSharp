@@ -74,7 +74,7 @@ internal static class SpanExtensions
     /// <returns>A new <see cref="Span{T}"/> with float values</returns>
     public static float[] ConvertAllToFloat(this int[] src)
     {
-        var result = new float[src.Length];
+        float[] result = new float[src.Length];
         for (int i = 0; i < src.Length; i++)
         {
             result[i] = src[i];
@@ -91,7 +91,7 @@ internal static class SpanExtensions
     /// <returns>A new instance of <see cref="Span{T}"/></returns>
     public static Span<float> AddScalarToAllValues(this Span<float> src, float scalar)
     {
-        var result = new float[src.Length];
+        float[] result = new float[src.Length];
         for (int i = 0; i < src.Length; i++)
         {
             result[i] = src[i] + scalar;
@@ -108,7 +108,7 @@ internal static class SpanExtensions
     /// <returns>A new instance of <see cref="Span{T}"/></returns>
     public static Span<int> AddScalarToAllValues(this Span<int> src, int scalar)
     {
-        var result = new int[src.Length];
+        int[] result = new int[src.Length];
         for (int i = 0; i < src.Length; i++)
         {
             result[i] = src[i] + scalar;

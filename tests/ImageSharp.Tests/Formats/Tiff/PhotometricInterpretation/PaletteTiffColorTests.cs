@@ -88,7 +88,7 @@ public class PaletteTiffColorTests : PhotometricInterpretationTestBase
 
     private static uint[][] GeneratePalette(int count)
     {
-        var palette = new uint[count][];
+        uint[][] palette = new uint[count][];
 
         for (uint i = 0; i < count; i++)
         {
@@ -101,7 +101,7 @@ public class PaletteTiffColorTests : PhotometricInterpretationTestBase
     private static ushort[] GenerateColorMap(uint[][] colorPalette)
     {
         int colorCount = colorPalette.Length;
-        var colorMap = new ushort[colorCount * 3];
+        ushort[] colorMap = new ushort[colorCount * 3];
 
         for (int i = 0; i < colorCount; i++)
         {
@@ -115,7 +115,7 @@ public class PaletteTiffColorTests : PhotometricInterpretationTestBase
 
     private static Rgba32[][] GenerateResult(uint[][] colorPalette, int[][] pixelLookup)
     {
-        var result = new Rgba32[pixelLookup.Length][];
+        Rgba32[][] result = new Rgba32[pixelLookup.Length][];
 
         for (int y = 0; y < pixelLookup.Length; y++)
         {

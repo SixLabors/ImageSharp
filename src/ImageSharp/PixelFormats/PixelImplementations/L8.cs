@@ -54,7 +54,7 @@ public partial struct L8 : IPixel<L8>, IPackedVector<byte>
     public readonly Rgba32 ToRgba32()
     {
         byte rgb = this.PackedValue;
-        return new(rgb, rgb, rgb);
+        return new Rgba32(rgb, rgb, rgb);
     }
 
     /// <inheritdoc/>

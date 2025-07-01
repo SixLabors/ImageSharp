@@ -17,7 +17,7 @@ public class DitherTests
     public static readonly string[] CommonTestImages = { TestImages.Png.CalliphoraPartial, TestImages.Png.Bike };
 
     public static readonly TheoryData<IDither, string> ErrorDiffusers
-        = new TheoryData<IDither, string>
+        = new()
         {
             { KnownDitherings.Atkinson, nameof(KnownDitherings.Atkinson) },
             { KnownDitherings.Burks, nameof(KnownDitherings.Burks) },
@@ -31,7 +31,7 @@ public class DitherTests
         };
 
     public static readonly TheoryData<IDither, string> OrderedDitherers
-        = new TheoryData<IDither, string>
+        = new()
         {
             { KnownDitherings.Bayer2x2, nameof(KnownDitherings.Bayer2x2) },
             { KnownDitherings.Bayer4x4, nameof(KnownDitherings.Bayer4x4) },
@@ -41,7 +41,7 @@ public class DitherTests
         };
 
     public static readonly TheoryData<IDither> DefaultInstanceDitherers
-        = new TheoryData<IDither>
+        = new()
         {
             default(ErrorDither),
             default(OrderedDither)
@@ -101,7 +101,7 @@ public class DitherTests
         }
 
         // Increased tolerance because of compatibility issues on .NET 4.6.2:
-        var comparer = ImageComparer.TolerantPercentage(1f);
+        ImageComparer comparer = ImageComparer.TolerantPercentage(1f);
         provider.RunValidatingProcessorTest(x => x.Dither(DefaultErrorDiffuser), comparer: comparer);
     }
 
@@ -186,7 +186,7 @@ public class DitherTests
     {
         void Command()
         {
-            using var image = new Image<Rgba32>(10, 10);
+            using Image<Rgba32> image = new(10, 10);
             image.Mutate(x => x.Dither(dither));
         }
 

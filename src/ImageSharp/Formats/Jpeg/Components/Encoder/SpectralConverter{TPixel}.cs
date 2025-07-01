@@ -46,7 +46,7 @@ internal class SpectralConverter<TPixel> : SpectralConverter, IDisposable
         // component processors from spectral to Rgb24
         const int blockPixelWidth = 8;
         this.alignedPixelWidth = majorBlockWidth * blockPixelWidth;
-        var postProcessorBufferSize = new Size(this.alignedPixelWidth, this.pixelRowsPerStep);
+        Size postProcessorBufferSize = new(this.alignedPixelWidth, this.pixelRowsPerStep);
         this.componentProcessors = new ComponentProcessor[frame.Components.Length];
         for (int i = 0; i < this.componentProcessors.Length; i++)
         {
@@ -119,7 +119,7 @@ internal class SpectralConverter<TPixel> : SpectralConverter, IDisposable
             bLane.Slice(paddingStartIndex).Fill(bLane[paddingStartIndex - 1]);
 
             // Convert from rgb24 to target pixel type
-            var values = new JpegColorConverterBase.ComponentValues(this.componentProcessors, y);
+            JpegColorConverterBase.ComponentValues values = new(this.componentProcessors, y);
             this.colorConverter.ConvertFromRgb(values, rLane, gLane, bLane);
         }
 

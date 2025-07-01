@@ -33,7 +33,7 @@ public class HistogramEqualization
     [Benchmark(Description = "Global Histogram Equalization")]
     public void GlobalHistogramEqualization()
         => this.image.Mutate(img => img.HistogramEqualization(
-            new HistogramEqualizationOptions()
+            new HistogramEqualizationOptions
             {
                 LuminanceLevels = 256,
                 Method = HistogramEqualizationMethod.Global
@@ -42,7 +42,7 @@ public class HistogramEqualization
     [Benchmark(Description = "AdaptiveHistogramEqualization (Tile interpolation)")]
     public void AdaptiveHistogramEqualization()
         => this.image.Mutate(img => img.HistogramEqualization(
-            new HistogramEqualizationOptions()
+            new HistogramEqualizationOptions
             {
                 LuminanceLevels = 256,
                 Method = HistogramEqualizationMethod.AdaptiveTileInterpolation

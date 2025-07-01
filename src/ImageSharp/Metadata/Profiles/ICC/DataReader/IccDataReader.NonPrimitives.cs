@@ -104,7 +104,7 @@ internal sealed partial class IccDataReader
     {
         string name = this.ReadAsciiString(32);
         ushort[] pcsCoord = { this.ReadUInt16(), this.ReadUInt16(), this.ReadUInt16() };
-        var deviceCoord = new ushort[deviceCoordCount];
+        ushort[] deviceCoord = new ushort[deviceCoordCount];
 
         for (int i = 0; i < deviceCoordCount; i++)
         {
@@ -122,8 +122,8 @@ internal sealed partial class IccDataReader
     {
         uint manufacturer = this.ReadUInt32();
         uint model = this.ReadUInt32();
-        var attributes = (IccDeviceAttribute)this.ReadInt64();
-        var technologyInfo = (IccProfileTag)this.ReadUInt32();
+        IccDeviceAttribute attributes = (IccDeviceAttribute)this.ReadInt64();
+        IccProfileTag technologyInfo = (IccProfileTag)this.ReadUInt32();
 
         IccMultiLocalizedUnicodeTagDataEntry manufacturerInfo = ReadText();
         IccMultiLocalizedUnicodeTagDataEntry modelInfo = ReadText();

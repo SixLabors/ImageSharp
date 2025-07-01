@@ -48,7 +48,7 @@ internal sealed class LzwTiffCompression : TiffBaseDecompressor
     /// <inheritdoc/>
     protected override void Decompress(BufferedReadStream stream, int byteCount, int stripHeight, Span<byte> buffer, CancellationToken cancellationToken)
     {
-        var decoder = new TiffLzwDecoder(stream);
+        TiffLzwDecoder decoder = new(stream);
         decoder.DecodePixels(buffer);
 
         if (this.Predictor == TiffPredictor.Horizontal)

@@ -9,13 +9,12 @@ namespace SixLabors.ImageSharp.Tests;
 
 public class PointFTests
 {
-    private static readonly ApproximateFloatComparer ApproximateFloatComparer =
-        new ApproximateFloatComparer(1e-6f);
+    private static readonly ApproximateFloatComparer ApproximateFloatComparer = new(1e-6f);
 
     [Fact]
     public void CanReinterpretCastFromVector2()
     {
-        var vector = new Vector2(1, 2);
+        Vector2 vector = new(1, 2);
 
         PointF point = Unsafe.As<Vector2, PointF>(ref vector);
 
@@ -37,7 +36,7 @@ public class PointFTests
     [InlineData(0.0, 0.0)]
     public void NonDefaultConstructorTest(float x, float y)
     {
-        var p1 = new PointF(x, y);
+        PointF p1 = new(x, y);
 
         Assert.Equal(x, p1.X);
         Assert.Equal(y, p1.Y);
@@ -67,7 +66,7 @@ public class PointFTests
     [InlineData(0, 0)]
     public void CoordinatesTest(float x, float y)
     {
-        var p = new PointF(x, y);
+        PointF p = new(x, y);
         Assert.Equal(x, p.X);
         Assert.Equal(y, p.Y);
 
@@ -84,11 +83,11 @@ public class PointFTests
     [InlineData(0, 0, 0, 0)]
     public void ArithmeticTestWithSize(float x, float y, int x1, int y1)
     {
-        var p = new PointF(x, y);
-        var s = new Size(x1, y1);
+        PointF p = new(x, y);
+        Size s = new(x1, y1);
 
-        var addExpected = new PointF(x + x1, y + y1);
-        var subExpected = new PointF(x - x1, y - y1);
+        PointF addExpected = new(x + x1, y + y1);
+        PointF subExpected = new(x - x1, y - y1);
         Assert.Equal(addExpected, p + s);
         Assert.Equal(subExpected, p - s);
         Assert.Equal(addExpected, PointF.Add(p, s));
@@ -101,11 +100,11 @@ public class PointFTests
     [InlineData(0, 0)]
     public void ArithmeticTestWithSizeF(float x, float y)
     {
-        var p = new PointF(x, y);
-        var s = new SizeF(y, x);
+        PointF p = new(x, y);
+        SizeF s = new(y, x);
 
-        var addExpected = new PointF(x + y, y + x);
-        var subExpected = new PointF(x - y, y - x);
+        PointF addExpected = new(x + y, y + x);
+        PointF subExpected = new(x - y, y - x);
         Assert.Equal(addExpected, p + s);
         Assert.Equal(subExpected, p - s);
         Assert.Equal(addExpected, PointF.Add(p, s));
@@ -115,10 +114,10 @@ public class PointFTests
     [Fact]
     public void RotateTest()
     {
-        var p = new PointF(13, 17);
+        PointF p = new(13, 17);
         Matrix3x2 matrix = Matrix3x2Extensions.CreateRotationDegrees(45, PointF.Empty);
 
-        var pout = PointF.Transform(p, matrix);
+        PointF pout = PointF.Transform(p, matrix);
 
         Assert.Equal(-2.82842732F, pout.X, ApproximateFloatComparer);
         Assert.Equal(21.2132034F, pout.Y, ApproximateFloatComparer);
@@ -127,10 +126,10 @@ public class PointFTests
     [Fact]
     public void SkewTest()
     {
-        var p = new PointF(13, 17);
+        PointF p = new(13, 17);
         Matrix3x2 matrix = Matrix3x2Extensions.CreateSkewDegrees(45, 45, PointF.Empty);
 
-        var pout = PointF.Transform(p, matrix);
+        PointF pout = PointF.Transform(p, matrix);
         Assert.Equal(new PointF(30, 30), pout);
     }
 
@@ -142,8 +141,8 @@ public class PointFTests
     [InlineData(0, 0)]
     public void EqualityTest(float x, float y)
     {
-        var pLeft = new PointF(x, y);
-        var pRight = new PointF(y, x);
+        PointF pLeft = new(x, y);
+        PointF pRight = new(y, x);
 
         if (x == y)
         {
@@ -164,7 +163,7 @@ public class PointFTests
     [Fact]
     public void EqualityTest_NotPointF()
     {
-        var point = new PointF(0, 0);
+        PointF point = new(0, 0);
         Assert.False(point.Equals(null));
         Assert.False(point.Equals(0));
 
@@ -180,7 +179,7 @@ public class PointFTests
     [Fact]
     public void GetHashCodeTest()
     {
-        var point = new PointF(10, 10);
+        PointF point = new(10, 10);
         Assert.Equal(point.GetHashCode(), new PointF(10, 10).GetHashCode());
         Assert.NotEqual(point.GetHashCode(), new PointF(20, 10).GetHashCode());
         Assert.NotEqual(point.GetHashCode(), new PointF(10, 20).GetHashCode());
@@ -189,7 +188,7 @@ public class PointFTests
     [Fact]
     public void ToStringTest()
     {
-        var p = new PointF(5.1F, -5.123F);
+        PointF p = new(5.1F, -5.123F);
         Assert.Equal(string.Format(CultureInfo.CurrentCulture, "PointF [ X={0}, Y={1} ]", p.X, p.Y), p.ToString());
     }
 
@@ -200,7 +199,7 @@ public class PointFTests
     [InlineData(0, 0)]
     public void DeconstructTest(float x, float y)
     {
-        PointF p = new PointF(x, y);
+        PointF p = new(x, y);
 
         (float deconstructedX, float deconstructedY) = p;
 

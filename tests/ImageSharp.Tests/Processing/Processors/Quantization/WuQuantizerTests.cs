@@ -13,8 +13,8 @@ public class WuQuantizerTests
     [Fact]
     public void WuQuantizerConstructor()
     {
-        var expected = new QuantizerOptions { MaxColors = 128 };
-        var quantizer = new WuQuantizer(expected);
+        QuantizerOptions expected = new() { MaxColors = 128 };
+        WuQuantizer quantizer = new(expected);
 
         Assert.Equal(expected.MaxColors, quantizer.Options.MaxColors);
         Assert.Equal(QuantizerConstants.DefaultDither, quantizer.Options.Dither);
@@ -38,7 +38,7 @@ public class WuQuantizerTests
     [Fact]
     public void WuQuantizerCanCreateFrameQuantizer()
     {
-        var quantizer = new WuQuantizer();
+        WuQuantizer quantizer = new();
         IQuantizer<Rgba32> frameQuantizer = quantizer.CreatePixelSpecificQuantizer<Rgba32>(Configuration.Default);
 
         Assert.NotNull(frameQuantizer);

@@ -456,8 +456,7 @@ public class ResizeTests
         where TPixel : unmanaged, IPixel<TPixel>
     {
         using Image<TPixel> image = provider.GetImage();
-        ResizeOptions options = new()
-        { Size = new Size(image.Width, image.Height / 2) };
+        ResizeOptions options = new() { Size = new Size(image.Width, image.Height / 2) };
 
         image.Mutate(x => x.Resize(options));
 
@@ -471,8 +470,7 @@ public class ResizeTests
         where TPixel : unmanaged, IPixel<TPixel>
     {
         using Image<TPixel> image = provider.GetImage();
-        ResizeOptions options = new()
-        { Size = new Size(image.Width / 2, image.Height) };
+        ResizeOptions options = new() { Size = new Size(image.Width / 2, image.Height) };
 
         image.Mutate(x => x.Resize(options));
 
@@ -504,8 +502,7 @@ public class ResizeTests
         where TPixel : unmanaged, IPixel<TPixel>
     {
         using Image<TPixel> image = provider.GetImage();
-        ResizeOptions options = new()
-        { Size = new Size(300, 300), Mode = ResizeMode.Max };
+        ResizeOptions options = new() { Size = new Size(300, 300), Mode = ResizeMode.Max };
 
         image.Mutate(x => x.Resize(options));
 

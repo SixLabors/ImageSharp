@@ -228,7 +228,7 @@ internal class TiffDecoderCore : ImageDecoderCore
 
         ImageMetadata metadata = TiffDecoderMetadataCreator.Create(framesMetadata, this.skipMetadata, reader.ByteOrder, reader.IsBigTiff);
 
-        return new ImageInfo(new(width, height), metadata, framesMetadata);
+        return new ImageInfo(new Size(width, height), metadata, framesMetadata);
     }
 
     /// <summary>

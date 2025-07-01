@@ -1,9 +1,11 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Transforms;
+using SixLabors.ImageSharp.Tests.TestUtilities;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms;
@@ -12,12 +14,10 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Transforms;
 [GroupOutput("Transforms")]
 public class SwizzleTests
 {
-    private struct InvertXAndYSwizzler : ISwizzler
+    private readonly struct SwapXAndYSwizzler : ISwizzler
     {
-        public InvertXAndYSwizzler(Size sourceSize)
-        {
-            this.DestinationSize = new Size(sourceSize.Height, sourceSize.Width);
-        }
+        public SwapXAndYSwizzler(Size sourceSize)
+            => this.DestinationSize = new Size(sourceSize.Height, sourceSize.Width);
 
         public Size DestinationSize { get; }
 
@@ -34,15 +34,15 @@ public class SwizzleTests
         using Image<TPixel> expectedImage = provider.GetImage();
         using Image<TPixel> image = provider.GetImage();
 
-        image.Mutate(ctx => ctx.Swizzle(new InvertXAndYSwizzler(new Size(image.Width, image.Height))));
+        image.Mutate(ctx => ctx.Swizzle(new SwapXAndYSwizzler(new Size(image.Width, image.Height))));
 
         image.DebugSave(
             provider,
-            nameof(InvertXAndYSwizzler),
+            nameof(SwapXAndYSwizzler),
             appendPixelTypeToFileName: false,
             appendSourceFileOrDescription: true);
 
-        image.Mutate(ctx => ctx.Swizzle(new InvertXAndYSwizzler(new Size(image.Width, image.Height))));
+        image.Mutate(ctx => ctx.Swizzle(new SwapXAndYSwizzler(new Size(image.Width, image.Height))));
 
         image.DebugSave(
             provider,
@@ -51,5 +51,27 @@ public class SwizzleTests
             appendSourceFileOrDescription: true);
 
         ImageComparer.Exact.VerifySimilarity(expectedImage, image);
+    }
+
+    [Theory]
+    [WithTestPatternImages(100, 100, PixelTypes.Rgba32)]
+    public void SwizzleUpdatesSubject<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage();
+
+        image.Metadata.ExifProfile = new();
+        image.Metadata.ExifProfile.SetValue(ExifTag.SubjectLocation, [5, 15]);
+        image.Metadata.ExifProfile.SetValue(ExifTag.SubjectArea, [5, 15, 20, 20]);
+
+        image.Mutate(ctx => ctx.Swizzle(new SwapXAndYSwizzler(new Size(image.Width, image.Height))));
+
+        Assert.Equal(
+            [15, 5],
+            image.Metadata.ExifProfile.GetValue(ExifTag.SubjectLocation).Value);
+
+        Assert.Equal(
+            [15, 5, 20, 20],
+            image.Metadata.ExifProfile.GetValue(ExifTag.SubjectArea).Value);
     }
 }

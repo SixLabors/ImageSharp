@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Numerics;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats;
@@ -22,7 +23,8 @@ public interface IFormatFrameMetadata : IDeepCloneable
     /// <typeparam name="TPixel">The type of pixel format.</typeparam>
     /// <param name="source">The source image frame.</param>
     /// <param name="destination">The destination image frame.</param>
-    public void AfterFrameApply<TPixel>(ImageFrame<TPixel> source, ImageFrame<TPixel> destination)
+    /// <param name="matrix">The transformation matrix applied to the image frame.</param>
+    public void AfterFrameApply<TPixel>(ImageFrame<TPixel> source, ImageFrame<TPixel> destination, Matrix4x4 matrix)
         where TPixel : unmanaged, IPixel<TPixel>;
 }
 

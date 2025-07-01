@@ -48,6 +48,9 @@ internal class ProjectiveTransformProcessor<TPixel> : TransformProcessor<TPixel>
     }
 
     /// <inheritdoc/>
+    protected override Matrix4x4 GetTransformMatrix() => this.transformMatrix;
+
+    /// <inheritdoc/>
     public void ApplyTransform<TResampler>(in TResampler sampler)
         where TResampler : struct, IResampler
     {

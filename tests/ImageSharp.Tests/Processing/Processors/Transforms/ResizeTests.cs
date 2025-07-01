@@ -3,10 +3,12 @@
 
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Transforms;
 using SixLabors.ImageSharp.Tests.Memory;
+using SixLabors.ImageSharp.Tests.TestUtilities;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 
 // ReSharper disable InconsistentNaming
@@ -20,15 +22,15 @@ public class ResizeTests
 
     public static readonly string[] AllResamplerNames = TestUtils.GetAllResamplerNames();
 
-    public static readonly string[] CommonTestImages = { TestImages.Png.CalliphoraPartial };
+    public static readonly string[] CommonTestImages = [TestImages.Png.CalliphoraPartial];
 
     public static readonly string[] SmokeTestResamplerNames =
-        {
+        [
             nameof(KnownResamplers.NearestNeighbor),
             nameof(KnownResamplers.Bicubic),
             nameof(KnownResamplers.Box),
             nameof(KnownResamplers.Lanczos5),
-        };
+        ];
 
     private static readonly ImageComparer ValidatorComparer =
         ImageComparer.TolerantPercentage(0.07F);
@@ -242,9 +244,7 @@ public class ResizeTests
     [WithTestPatternImages(50, 50, CommonNonDefaultPixelTypes)]
     public void Resize_IsNotBoundToSinglePixelType<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
-    {
-        provider.RunValidatingProcessorTest(x => x.Resize(x.GetCurrentSize() / 2), comparer: ValidatorComparer);
-    }
+        => provider.RunValidatingProcessorTest(x => x.Resize(x.GetCurrentSize() / 2), comparer: ValidatorComparer);
 
     [Theory]
     [WithFileCollection(nameof(CommonTestImages), PixelTypes.Rgba32)]
@@ -257,7 +257,7 @@ public class ResizeTests
 
         using Image<TPixel> image1 = Image.WrapMemory(mmg.Memory, image0.Width, image0.Height);
         Assert.ThrowsAny<Exception>(
-            () => { image1.Mutate(x => x.Resize(image0.Width / 2, image0.Height / 2, true)); });
+            () => image1.Mutate(x => x.Resize(image0.Width / 2, image0.Height / 2, true)));
     }
 
     [Theory]
@@ -579,6 +579,7 @@ public class ResizeTests
         }
 
         using Image<TPixel> image = provider.GetImage();
+
         // Don't bother saving, we're testing the EXIF metadata updates.
         image.Mutate(x => x.Resize(image.Width / 2, image.Height / 2));
     }
@@ -629,5 +630,29 @@ public class ResizeTests
             x => x.Resize(30, 30),
             appendPixelTypeToFileName: false,
             appendSourceFileOrDescription: false);
+    }
+
+    [Theory]
+    [WithTestPatternImages(100, 100, PixelTypes.Rgba32)]
+    public void ResizeUpdatesSubject<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage();
+
+        image.Metadata.ExifProfile = new();
+        image.Metadata.ExifProfile.SetValue(ExifTag.SubjectLocation, [5, 15]);
+        image.Metadata.ExifProfile.SetValue(ExifTag.SubjectArea, [5, 15, 20, 20]);
+
+        image.Mutate(ctx => ctx.Resize(new Size(image.Width / 2, image.Height / 2)));
+
+        // The transform operates in pixel space, so the resulting values correspond to the
+        // scaled pixel centers, producing whole-number coordinates after resizing.
+        Assert.Equal(
+            [2, 7],
+            image.Metadata.ExifProfile.GetValue(ExifTag.SubjectLocation).Value);
+
+        Assert.Equal(
+            [2, 7, 11, 11],
+            image.Metadata.ExifProfile.GetValue(ExifTag.SubjectArea).Value);
     }
 }

@@ -86,7 +86,7 @@ public class GifMetadataTests
         using Image<Rgba32> image = testFile.CreateRgba32Image(GifDecoder.Instance);
         GifMetadata metadata = image.Metadata.GetGifMetadata();
         Assert.Equal(2, metadata.Comments.Count);
-        Assert.Equal(new('c', 349), metadata.Comments[0]);
+        Assert.Equal(new string('c', 349), metadata.Comments[0]);
         Assert.Equal("ImageSharp", metadata.Comments[1]);
     }
 
@@ -104,7 +104,7 @@ public class GifMetadataTests
         using Image<Rgba32> image = decoder.Decode<Rgba32>(DecoderOptions.Default, memoryStream);
         GifMetadata metadata = image.Metadata.GetGifMetadata();
         Assert.Equal(2, metadata.Comments.Count);
-        Assert.Equal(new('c', 349), metadata.Comments[0]);
+        Assert.Equal(new string('c', 349), metadata.Comments[0]);
         Assert.Equal("ImageSharp", metadata.Comments[1]);
     }
 

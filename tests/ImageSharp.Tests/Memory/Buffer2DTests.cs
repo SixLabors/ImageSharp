@@ -72,7 +72,7 @@ public partial class Buffer2DTests
 
         using Buffer2D<byte> buffer = useSizeOverload ?
             this.MemoryAllocator.Allocate2D<byte>(
-                new(200, 200),
+                new Size(200, 200),
                 preferContiguosImageBuffers: true) :
             this.MemoryAllocator.Allocate2D<byte>(
             200,
@@ -169,7 +169,7 @@ public partial class Buffer2DTests
         }
 
         // Re-seed
-        rnd = new(42);
+        rnd = new Random(42);
         for (int y = 0; y < buffer.Height; y++)
         {
             Span<TestStructs.Foo> span = buffer.GetSafeRowMemory(y).Span;
@@ -341,9 +341,9 @@ public partial class Buffer2DTests
 
     public static TheoryData<Size> InvalidLengths { get; set; } = new()
     {
-        { new(-1, -1) },
-        { new(32768, 32769) },
-        { new(32769, 32768) }
+        { new Size(-1, -1) },
+        { new Size(32768, 32769) },
+        { new Size(32769, 32768) }
     };
 
     [Theory]
@@ -354,7 +354,7 @@ public partial class Buffer2DTests
     [Theory]
     [MemberData(nameof(InvalidLengths))]
     public void Allocate_IncorrectAmount_ThrowsCorrect_InvalidMemoryOperationException_Size(Size size)
-        => Assert.Throws<InvalidMemoryOperationException>(() => this.MemoryAllocator.Allocate2D<Rgba32>(new(size)));
+        => Assert.Throws<InvalidMemoryOperationException>(() => this.MemoryAllocator.Allocate2D<Rgba32>(new Size(size)));
 
     [Theory]
     [MemberData(nameof(InvalidLengths))]

@@ -21,7 +21,7 @@ internal readonly ref struct MedianConvolutionState
         in DenseMatrix<Vector4> kernel,
         KernelSamplingMap map)
     {
-        this.Kernel = new(kernel);
+        this.Kernel = new Kernel<Vector4>(kernel);
         this.kernelHeight = kernel.Rows;
         this.kernelWidth = kernel.Columns;
         this.rowOffsetMap = map.GetRowOffsetSpan();

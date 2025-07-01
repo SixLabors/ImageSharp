@@ -113,7 +113,7 @@ internal sealed class GifEncoderCore
         TransparentColorMode mode = this.transparentColorMode;
 
         // Create a new quantizer options instance augmenting the transparent color mode to match the encoder.
-        QuantizerOptions options = (this.encoder.Quantizer?.Options ?? new()).DeepClone(o => o.TransparentColorMode = mode);
+        QuantizerOptions options = (this.encoder.Quantizer?.Options ?? new QuantizerOptions()).DeepClone(o => o.TransparentColorMode = mode);
 
         if (globalQuantizer is null)
         {

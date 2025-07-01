@@ -613,7 +613,7 @@ internal sealed unsafe class OwnedVp8LHistogram : Vp8LHistogram, IDisposable
     {
         IMemoryOwner<uint> bufferOwner = memoryAllocator.Allocate<uint>(BufferSize, AllocationOptions.Clean);
         MemoryHandle bufferHandle = bufferOwner.Memory.Pin();
-        return new(bufferOwner, ref bufferHandle, (uint*)bufferHandle.Pointer, paletteCodeBits);
+        return new OwnedVp8LHistogram(bufferOwner, ref bufferHandle, (uint*)bufferHandle.Pointer, paletteCodeBits);
     }
 
     /// <summary>

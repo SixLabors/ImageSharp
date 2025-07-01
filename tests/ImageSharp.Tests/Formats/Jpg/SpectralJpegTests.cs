@@ -101,7 +101,7 @@ public class SpectralJpegTests
         int componentCount = imageSharpData.ComponentCount;
         if (libJpegData.ComponentCount != componentCount)
         {
-            throw new("libJpegData.ComponentCount != componentCount");
+            throw new Exception("libJpegData.ComponentCount != componentCount");
         }
 
         double averageDifference = 0;
@@ -202,10 +202,10 @@ public class SpectralJpegTests
             for (int i = 0; i < spectralComponents.Length; i++)
             {
                 JpegComponent component = this.frame.Components[i];
-                spectralComponents[i] = new(component.WidthInBlocks, component.HeightInBlocks, component.Index);
+                spectralComponents[i] = new LibJpegTools.ComponentData(component.WidthInBlocks, component.HeightInBlocks, component.Index);
             }
 
-            this.spectralData = new(spectralComponents);
+            this.spectralData = new LibJpegTools.SpectralData(spectralComponents);
         }
     }
 }

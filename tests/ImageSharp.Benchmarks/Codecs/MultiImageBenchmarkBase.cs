@@ -155,7 +155,7 @@ public abstract class MultiImageBenchmarkBase
                     this.FileNamesToImageSharpImages[fn] = Image.Load<Rgba32>(ms1);
                 }
 
-                this.FileNamesToSystemDrawingImages[fn] = new(new MemoryStream(bytes));
+                this.FileNamesToSystemDrawingImages[fn] = new Bitmap(new MemoryStream(bytes));
             }
         }
 

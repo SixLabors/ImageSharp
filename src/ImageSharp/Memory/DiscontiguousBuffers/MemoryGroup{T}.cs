@@ -260,14 +260,14 @@ internal abstract partial class MemoryGroup<T> : IMemoryGroup<T>, IDisposable
             case SpanCacheMode.SinglePointer:
             {
                 void* start = Unsafe.Add<T>(this.memoryGroupSpanCache.SinglePointer, y * width);
-                return new(start, width);
+                return new Span<T>(start, width);
             }
 
             case SpanCacheMode.MultiPointer:
             {
                 this.GetMultiBufferPosition(y, width, out int bufferIdx, out int bufferStart);
                 void* start = Unsafe.Add<T>(this.memoryGroupSpanCache.MultiPointer[bufferIdx], bufferStart);
-                return new(start, width);
+                return new Span<T>(start, width);
             }
 
             default:

@@ -36,7 +36,7 @@ internal class WhiteIsZeroTiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
             {
                 int value = bitReader.ReadBits(this.bitsPerSample0);
                 float intensity = 1f - (value / this.factor);
-                pixelRow[x] = TPixel.FromScaledVector4(new(intensity, intensity, intensity, 1f));
+                pixelRow[x] = TPixel.FromScaledVector4(new Vector4(intensity, intensity, intensity, 1f));
             }
 
             bitReader.NextRow();

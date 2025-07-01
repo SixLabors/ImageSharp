@@ -134,7 +134,7 @@ internal static partial class SimdUtils
         ref Rgba32 rgb = ref MemoryMarshal.GetReference(destination);
 
         nuint count = (uint)redChannel.Length / 4;
-        destination.Fill(new(0, 0, 0, 255));
+        destination.Fill(new Rgba32(0, 0, 0, 255));
         for (nuint i = 0; i < count; i++)
         {
             ref Rgba32 d0 = ref Unsafe.Add(ref rgb, i * 4);

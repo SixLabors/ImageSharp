@@ -53,7 +53,7 @@ public abstract partial class Image
         Guard.IsTrue(pixelMemory.Length >= (long)width * height, nameof(pixelMemory), "The length of the input memory is less than the specified image size");
 
         MemoryGroup<TPixel> memorySource = MemoryGroup<TPixel>.Wrap(pixelMemory);
-        return new(configuration, memorySource, width, height, metadata);
+        return new Image<TPixel>(configuration, memorySource, width, height, metadata);
     }
 
     /// <summary>
@@ -87,7 +87,7 @@ public abstract partial class Image
         int width,
         int height)
         where TPixel : unmanaged, IPixel<TPixel>
-        => WrapMemory(configuration, pixelMemory, width, height, new());
+        => WrapMemory(configuration, pixelMemory, width, height, new ImageMetadata());
 
     /// <summary>
     /// <para>
@@ -148,7 +148,7 @@ public abstract partial class Image
         Guard.IsTrue(pixelMemoryOwner.Memory.Length >= (long)width * height, nameof(pixelMemoryOwner), "The length of the input memory is less than the specified image size");
 
         MemoryGroup<TPixel> memorySource = MemoryGroup<TPixel>.Wrap(pixelMemoryOwner);
-        return new(configuration, memorySource, width, height, metadata);
+        return new Image<TPixel>(configuration, memorySource, width, height, metadata);
     }
 
     /// <summary>
@@ -171,7 +171,7 @@ public abstract partial class Image
         int width,
         int height)
         where TPixel : unmanaged, IPixel<TPixel>
-        => WrapMemory(configuration, pixelMemoryOwner, width, height, new());
+        => WrapMemory(configuration, pixelMemoryOwner, width, height, new ImageMetadata());
 
     /// <summary>
     /// Wraps an existing contiguous memory area of at least 'width' x 'height' pixels,
@@ -235,7 +235,7 @@ public abstract partial class Image
         Guard.IsTrue(memoryManager.Memory.Length >= (long)width * height, nameof(byteMemory), "The length of the input memory is less than the specified image size");
 
         MemoryGroup<TPixel> memorySource = MemoryGroup<TPixel>.Wrap(memoryManager.Memory);
-        return new(configuration, memorySource, width, height, metadata);
+        return new Image<TPixel>(configuration, memorySource, width, height, metadata);
     }
 
     /// <summary>
@@ -269,7 +269,7 @@ public abstract partial class Image
         int width,
         int height)
         where TPixel : unmanaged, IPixel<TPixel>
-        => WrapMemory<TPixel>(configuration, byteMemory, width, height, new());
+        => WrapMemory<TPixel>(configuration, byteMemory, width, height, new ImageMetadata());
 
     /// <summary>
     /// <para>
@@ -333,7 +333,7 @@ public abstract partial class Image
         Guard.IsTrue(pixelMemoryOwner.Memory.Length >= (long)width * height, nameof(pixelMemoryOwner), "The length of the input memory is less than the specified image size");
 
         MemoryGroup<TPixel> memorySource = MemoryGroup<TPixel>.Wrap(pixelMemoryOwner);
-        return new(configuration, memorySource, width, height, metadata);
+        return new Image<TPixel>(configuration, memorySource, width, height, metadata);
     }
 
     /// <summary>
@@ -356,7 +356,7 @@ public abstract partial class Image
         int width,
         int height)
         where TPixel : unmanaged, IPixel<TPixel>
-        => WrapMemory<TPixel>(configuration, byteMemoryOwner, width, height, new());
+        => WrapMemory<TPixel>(configuration, byteMemoryOwner, width, height, new ImageMetadata());
 
     /// <summary>
     /// Wraps an existing contiguous memory area of at least 'width' x 'height' pixels,
@@ -429,7 +429,7 @@ public abstract partial class Image
         Guard.MustBeGreaterThanOrEqualTo(bufferSizeInBytes / sizeof(TPixel), memoryManager.Memory.Span.Length, nameof(bufferSizeInBytes));
 
         MemoryGroup<TPixel> memorySource = MemoryGroup<TPixel>.Wrap(memoryManager.Memory);
-        return new(configuration, memorySource, width, height, metadata);
+        return new Image<TPixel>(configuration, memorySource, width, height, metadata);
     }
 
     /// <summary>
@@ -470,7 +470,7 @@ public abstract partial class Image
         int width,
         int height)
         where TPixel : unmanaged, IPixel<TPixel>
-        => WrapMemory<TPixel>(configuration, pointer, bufferSizeInBytes, width, height, new());
+        => WrapMemory<TPixel>(configuration, pointer, bufferSizeInBytes, width, height, new ImageMetadata());
 
     /// <summary>
     /// <para>

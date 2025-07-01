@@ -51,7 +51,7 @@ internal class SpectralConverter<TPixel> : SpectralConverter, IDisposable
         for (int i = 0; i < this.componentProcessors.Length; i++)
         {
             Component component = frame.Components[i];
-            this.componentProcessors[i] = new(
+            this.componentProcessors[i] = new ComponentProcessor(
                 allocator,
                 component,
                 postProcessorBufferSize,

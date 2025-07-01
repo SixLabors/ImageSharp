@@ -71,7 +71,7 @@ internal readonly struct AdobeMarker : IEquatable<AdobeMarker>
             short app14Flags1 = (short)((bytes[9] << 8) | bytes[10]);
             byte colorTransform = bytes[11];
 
-            marker = new(dctEncodeVersion, app14Flags0, app14Flags1, colorTransform);
+            marker = new AdobeMarker(dctEncodeVersion, app14Flags0, app14Flags1, colorTransform);
             return true;
         }
 

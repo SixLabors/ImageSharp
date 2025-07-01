@@ -16,7 +16,7 @@ public class SwizzleTests
     {
         public InvertXAndYSwizzler(Size sourceSize)
         {
-            this.DestinationSize = new(sourceSize.Height, sourceSize.Width);
+            this.DestinationSize = new Size(sourceSize.Height, sourceSize.Width);
         }
 
         public Size DestinationSize { get; }
@@ -34,7 +34,7 @@ public class SwizzleTests
         using Image<TPixel> expectedImage = provider.GetImage();
         using Image<TPixel> image = provider.GetImage();
 
-        image.Mutate(ctx => ctx.Swizzle(new InvertXAndYSwizzler(new(image.Width, image.Height))));
+        image.Mutate(ctx => ctx.Swizzle(new InvertXAndYSwizzler(new Size(image.Width, image.Height))));
 
         image.DebugSave(
             provider,
@@ -42,7 +42,7 @@ public class SwizzleTests
             appendPixelTypeToFileName: false,
             appendSourceFileOrDescription: true);
 
-        image.Mutate(ctx => ctx.Swizzle(new InvertXAndYSwizzler(new(image.Width, image.Height))));
+        image.Mutate(ctx => ctx.Swizzle(new InvertXAndYSwizzler(new Size(image.Width, image.Height))));
 
         image.DebugSave(
             provider,

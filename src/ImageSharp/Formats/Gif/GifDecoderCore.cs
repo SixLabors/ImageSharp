@@ -266,8 +266,8 @@ internal sealed class GifDecoderCore : ImageDecoderCore
             GifThrowHelper.ThrowNoHeader();
         }
 
-        return new(
-            new(this.logicalScreenDescriptor.Width, this.logicalScreenDescriptor.Height),
+        return new ImageInfo(
+            new Size(this.logicalScreenDescriptor.Width, this.logicalScreenDescriptor.Height),
             this.metadata,
             framesMetadata);
     }
@@ -305,7 +305,7 @@ internal sealed class GifDecoderCore : ImageDecoderCore
             GifThrowHelper.ThrowInvalidImageContentException("Width or height should not be 0");
         }
 
-        this.Dimensions = new(this.imageDescriptor.Width, this.imageDescriptor.Height);
+        this.Dimensions = new Size(this.imageDescriptor.Width, this.imageDescriptor.Height);
     }
 
     /// <summary>
@@ -344,7 +344,7 @@ internal sealed class GifDecoderCore : ImageDecoderCore
                 GifXmpApplicationExtension extension = GifXmpApplicationExtension.Read(stream, this.memoryAllocator);
                 if (extension.Data.Length > 0)
                 {
-                    this.metadata!.XmpProfile = new(extension.Data);
+                    this.metadata!.XmpProfile = new XmpProfile(extension.Data);
                 }
                 else
                 {
@@ -554,7 +554,7 @@ internal sealed class GifDecoderCore : ImageDecoderCore
         if (previousFrame is null && previousDisposalMode is null)
         {
             image = transFlag
-                ? new(this.configuration, imageWidth, imageHeight, this.metadata)
+                ? new Image<TPixel>(this.configuration, imageWidth, imageHeight, this.metadata)
                 : new Image<TPixel>(this.configuration, imageWidth, imageHeight, backgroundPixel, this.metadata);
 
             this.SetFrameMetadata(image.Frames.RootFrame.Metadata);
@@ -597,7 +597,7 @@ internal sealed class GifDecoderCore : ImageDecoderCore
 
         if (disposalMethod == FrameDisposalMode.RestoreToBackground)
         {
-            this.restoreArea = Rectangle.Intersect(image.Bounds, new(descriptor.Left, descriptor.Top, descriptor.Width, descriptor.Height));
+            this.restoreArea = Rectangle.Intersect(image.Bounds, new Rectangle(descriptor.Left, descriptor.Top, descriptor.Width, descriptor.Height));
         }
 
         if (colorTable.Length == 0)

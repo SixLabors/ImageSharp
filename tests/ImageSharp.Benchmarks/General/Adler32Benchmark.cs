@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.Benchmarks.General;
 public class Adler32Benchmark
 {
     private byte[] data;
-    private readonly SharpAdler32 adler = new SharpAdler32();
+    private readonly SharpAdler32 adler = new();
 
     [Params(1024, 2048, 4096)]
     public int Count { get; set; }

@@ -25,7 +25,7 @@ public sealed class WebpDecoder : SpecializedImageDecoder<WebpDecoderOptions>
         Guard.NotNull(options, nameof(options));
         Guard.NotNull(stream, nameof(stream));
 
-        using WebpDecoderCore decoder = new(new() { GeneralOptions = options });
+        using WebpDecoderCore decoder = new(new WebpDecoderOptions { GeneralOptions = options });
         return decoder.Identify(options.Configuration, stream, cancellationToken);
     }
 

@@ -43,11 +43,11 @@ public class MulUInt32
     [Benchmark]
     public void Simd()
     {
-        Vector<uint> v = new Vector<uint>(this.testValue);
+        Vector<uint> v = new(this.testValue);
 
         for (int i = 0; i < this.input.Length; i += Vector<uint>.Count)
         {
-            Vector<uint> a = new Vector<uint>(this.input, i);
+            Vector<uint> a = new(this.input, i);
             a = a * v;
             a.CopyTo(this.result, i);
         }

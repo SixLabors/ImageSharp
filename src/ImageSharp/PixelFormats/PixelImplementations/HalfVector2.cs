@@ -63,7 +63,7 @@ public partial struct HalfVector2 : IPixel<HalfVector2>, IPackedVector<uint>
         Vector2 scaled = this.ToVector2();
         scaled += Vector2.One;
         scaled /= 2F;
-        return new(scaled, 0F, 1F);
+        return new Vector4(scaled, 0F, 1F);
     }
 
     /// <inheritdoc />
@@ -71,7 +71,7 @@ public partial struct HalfVector2 : IPixel<HalfVector2>, IPackedVector<uint>
     public readonly Vector4 ToVector4()
     {
         Vector2 vector = this.ToVector2();
-        return new(vector.X, vector.Y, 0F, 1F);
+        return new Vector4(vector.X, vector.Y, 0F, 1F);
     }
 
     /// <inheritdoc />
@@ -90,7 +90,7 @@ public partial struct HalfVector2 : IPixel<HalfVector2>, IPackedVector<uint>
     {
         Vector2 scaled = new Vector2(source.X, source.Y) * 2F;
         scaled -= Vector2.One;
-        return new() { PackedValue = Pack(scaled.X, scaled.Y) };
+        return new HalfVector2 { PackedValue = Pack(scaled.X, scaled.Y) };
     }
 
     /// <inheritdoc />

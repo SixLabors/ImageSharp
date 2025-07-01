@@ -78,7 +78,7 @@ public class IptcProfileTests
     {
         // arrange
         IptcProfile profile = new();
-        DateTimeOffset datetime = new(new(1994, 3, 17));
+        DateTimeOffset datetime = new(new DateTime(1994, 3, 17));
 
         // act
         profile.SetDateTimeValue(tag, datetime);
@@ -228,7 +228,7 @@ public class IptcProfileTests
     {
         // arrange
         using Image<Rgba32> image = new(1, 1);
-        image.Metadata.IptcProfile = new();
+        image.Metadata.IptcProfile = new IptcProfile();
         const string expectedCaptionWriter = "unittest";
         const string expectedCaption = "test";
         image.Metadata.IptcProfile.SetValue(IptcTag.CaptionWriter, expectedCaptionWriter);
@@ -380,7 +380,7 @@ public class IptcProfileTests
     private static void ContainsIptcValue(List<IptcValue> values, IptcTag tag, string value)
     {
         Assert.True(values.Any(val => val.Tag == tag), $"Missing iptc tag {tag}");
-        Assert.True(values.Contains(new(tag, System.Text.Encoding.UTF8.GetBytes(value), false)), $"expected iptc value '{value}' was not found for tag '{tag}'");
+        Assert.True(values.Contains(new IptcValue(tag, System.Text.Encoding.UTF8.GetBytes(value), false)), $"expected iptc value '{value}' was not found for tag '{tag}'");
     }
 
     private static Image<Rgba32> WriteAndReadJpeg(Image<Rgba32> image)

@@ -36,7 +36,7 @@ public readonly struct DenseMatrix<T> : IEquatable<DenseMatrix<T>>
 
         this.Rows = rows;
         this.Columns = columns;
-        this.Size = new(columns, rows);
+        this.Size = new Size(columns, rows);
         this.Count = columns * rows;
         this.Data = new T[this.Columns * this.Rows];
     }
@@ -56,7 +56,7 @@ public readonly struct DenseMatrix<T> : IEquatable<DenseMatrix<T>>
 
         this.Rows = rows;
         this.Columns = columns;
-        this.Size = new(columns, rows);
+        this.Size = new Size(columns, rows);
         this.Count = this.Columns * this.Rows;
         this.Data = new T[this.Columns * this.Rows];
 
@@ -84,7 +84,7 @@ public readonly struct DenseMatrix<T> : IEquatable<DenseMatrix<T>>
 
         this.Rows = rows;
         this.Columns = columns;
-        this.Size = new(columns, rows);
+        this.Size = new Size(columns, rows);
         this.Count = this.Columns * this.Rows;
         this.Data = new T[this.Columns * this.Rows];
 

@@ -99,7 +99,7 @@ internal static class BokehBlurKernelDataProvider
             NormalizeKernels(kernels, kernelParameters);
 
             // Store them in the cache for future use
-            info = new(kernelParameters, kernels);
+            info = new BokehBlurKernelData(kernelParameters, kernels);
             Cache.TryAdd(parameters, info);
         }
 
@@ -167,7 +167,7 @@ internal static class BokehBlurKernelDataProvider
             value *= value;
 
             // Fill in the complex kernel values
-            Unsafe.Add(ref baseRef, (uint)i) = new(
+            Unsafe.Add(ref baseRef, (uint)i) = new Complex64(
                 MathF.Exp(-a * value) * MathF.Cos(b * value),
                 MathF.Exp(-a * value) * MathF.Sin(b * value));
         }

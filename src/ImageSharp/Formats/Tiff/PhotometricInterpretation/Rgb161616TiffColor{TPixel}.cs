@@ -48,7 +48,7 @@ internal class Rgb161616TiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
                     ushort b = TiffUtilities.ConvertToUShortBigEndian(data.Slice(offset, 2));
                     offset += 2;
 
-                    pixelRow[x] = TPixel.FromRgb48(new(r, g, b));
+                    pixelRow[x] = TPixel.FromRgb48(new Rgb48(r, g, b));
                 }
             }
             else

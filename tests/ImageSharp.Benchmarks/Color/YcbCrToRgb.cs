@@ -22,7 +22,7 @@ public class YcbCrToRgb
         byte g = (byte)Numerics.Clamp(y - (0.34414F * ccb) - (0.71414F * ccr), 0, 255);
         byte b = (byte)Numerics.Clamp(y + (1.772F * ccb), 0, 255);
 
-        return new(r, g, b);
+        return new Vector3(r, g, b);
     }
 
     [Benchmark(Description = "Scaled Integer Conversion")]
@@ -45,6 +45,6 @@ public class YcbCrToRgb
         byte g = (byte)Numerics.Clamp(y - (g0 >> 10) - (g1 >> 10), 0, 255);
         byte b = (byte)Numerics.Clamp(y + (b0 >> 10), 0, 255);
 
-        return new(r, g, b);
+        return new Vector3(r, g, b);
     }
 }

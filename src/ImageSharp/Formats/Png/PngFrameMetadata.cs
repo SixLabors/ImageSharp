@@ -53,7 +53,7 @@ public class PngFrameMetadata : IFormatFrameMetadata<PngFrameMetadata>
     /// <param name="frameControl">The chunk to create an instance from.</param>
     internal void FromChunk(in FrameControl frameControl)
     {
-        this.FrameDelay = new(frameControl.DelayNumerator, frameControl.DelayDenominator);
+        this.FrameDelay = new Rational(frameControl.DelayNumerator, frameControl.DelayDenominator);
         this.DisposalMode = frameControl.DisposalMode;
         this.BlendMode = frameControl.BlendMode;
     }
@@ -62,7 +62,7 @@ public class PngFrameMetadata : IFormatFrameMetadata<PngFrameMetadata>
     public static PngFrameMetadata FromFormatConnectingFrameMetadata(FormatConnectingFrameMetadata metadata)
         => new()
         {
-            FrameDelay = new(metadata.Duration.TotalMilliseconds / 1000),
+            FrameDelay = new Rational(metadata.Duration.TotalMilliseconds / 1000),
             DisposalMode = GetMode(metadata.DisposalMode),
             BlendMode = metadata.BlendMode,
         };
@@ -76,7 +76,7 @@ public class PngFrameMetadata : IFormatFrameMetadata<PngFrameMetadata>
             delay = 0;
         }
 
-        return new()
+        return new FormatConnectingFrameMetadata
         {
             ColorTableMode = FrameColorTableMode.Global,
             Duration = TimeSpan.FromMilliseconds(delay * 1000),

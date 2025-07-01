@@ -89,7 +89,7 @@ internal sealed class ResizeWorker<TPixel> : IDisposable
         this.tempRowBuffer = configuration.MemoryAllocator.Allocate<Vector4>(this.sourceRectangle.Width);
         this.tempColumnBuffer = configuration.MemoryAllocator.Allocate<Vector4>(targetWorkingRect.Width);
 
-        this.currentWindow = new(0, this.workerHeight);
+        this.currentWindow = new RowInterval(0, this.workerHeight);
     }
 
     public void Dispose()
@@ -158,7 +158,7 @@ internal sealed class ResizeWorker<TPixel> : IDisposable
             0,
             this.windowBandHeight);
 
-        this.currentWindow = new(minY, maxY);
+        this.currentWindow = new RowInterval(minY, maxY);
 
         // Calculate the remainder:
         this.CalculateFirstPassValues(this.currentWindow.Slice(this.windowBandHeight));

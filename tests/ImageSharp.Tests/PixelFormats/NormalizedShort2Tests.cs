@@ -36,8 +36,8 @@ public class NormalizedShort2Tests
     [Fact]
     public void NormalizedShort2_ToVector4()
     {
-        Assert.Equal(new(1, 1, 0, 1), new NormalizedShort2(Vector2.One).ToVector4());
-        Assert.Equal(new(0, 0, 0, 1), new NormalizedShort2(Vector2.Zero).ToVector4());
+        Assert.Equal(new Vector4(1, 1, 0, 1), new NormalizedShort2(Vector2.One).ToVector4());
+        Assert.Equal(new Vector4(0, 0, 0, 1), new NormalizedShort2(Vector2.Zero).ToVector4());
     }
 
     [Fact]
@@ -78,7 +78,7 @@ public class NormalizedShort2Tests
         Vector4 expected = new(1, 1, 0, 1);
 
         // act
-        NormalizedShort2 normalizedShort2 = NormalizedShort2.FromBgra5551(new(1f, 1f, 1f, 1f));
+        NormalizedShort2 normalizedShort2 = NormalizedShort2.FromBgra5551(new Bgra5551(1f, 1f, 1f, 1f));
 
         // assert
         Assert.Equal(expected, normalizedShort2.ToVector4());

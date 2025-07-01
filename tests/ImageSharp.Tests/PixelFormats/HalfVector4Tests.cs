@@ -73,7 +73,7 @@ public class HalfVector4Tests
         Vector4 expected = Vector4.One;
 
         // act
-        HalfVector4 pixel = HalfVector4.FromBgra5551(new(1.0f, 1.0f, 1.0f, 1.0f));
+        HalfVector4 pixel = HalfVector4.FromBgra5551(new Bgra5551(1.0f, 1.0f, 1.0f, 1.0f));
 
         // assert
         Assert.Equal(expected, pixel.ToScaledVector4());

@@ -43,7 +43,7 @@ public class DenseMatrixTests
         Assert.True(dense.Rows == FloydSteinbergMatrix.GetLength(0));
         Assert.Equal(3, dense.Columns);
         Assert.Equal(2, dense.Rows);
-        Assert.Equal(new(3, 2), dense.Size);
+        Assert.Equal(new Size(3, 2), dense.Size);
     }
 
     [Fact]

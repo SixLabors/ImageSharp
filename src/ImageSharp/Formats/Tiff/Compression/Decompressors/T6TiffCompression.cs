@@ -69,7 +69,7 @@ internal sealed class T6TiffCompression : TiffBaseDecompressor
             bitsWritten = this.WriteScanLine(buffer, scanLine, bitsWritten);
 
             scanLine.CopyTo(referenceScanLineSpan);
-            referenceScanLine = new(this.isWhiteZero, referenceScanLineSpan);
+            referenceScanLine = new CcittReferenceScanline(this.isWhiteZero, referenceScanLineSpan);
         }
     }
 

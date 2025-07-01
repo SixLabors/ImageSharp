@@ -7,7 +7,7 @@ namespace SixLabors.ImageSharp.Tests.Memory.DiscontiguousBuffers;
 
 public abstract class MemoryGroupTestsBase
 {
-    internal readonly TestMemoryAllocator MemoryAllocator = new TestMemoryAllocator();
+    internal readonly TestMemoryAllocator MemoryAllocator = new();
 
     /// <summary>
     /// Create a group, either uninitialized or filled with incrementing numbers starting with 1.

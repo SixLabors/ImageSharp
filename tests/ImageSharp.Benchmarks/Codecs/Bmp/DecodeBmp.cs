@@ -37,6 +37,6 @@ public class DecodeBmp
     {
         using MemoryStream memoryStream = new(this.bmpBytes);
         using Image<Rgba32> image = Image.Load<Rgba32>(memoryStream);
-        return new(image.Width, image.Height);
+        return new Size(image.Width, image.Height);
     }
 }

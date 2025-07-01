@@ -79,7 +79,7 @@ public sealed class TestFile
     /// The <see cref="TestFile"/>.
     /// </returns>
     public static TestFile Create(string file)
-        => Cache.GetOrAdd(file, (string fileName) => new(GetInputFileFullPath(fileName)));
+        => Cache.GetOrAdd(file, (string fileName) => new TestFile(GetInputFileFullPath(fileName)));
 
     /// <summary>
     /// Gets the file name.
@@ -117,7 +117,7 @@ public sealed class TestFile
     /// The <see cref="Image{Rgba32}"/>.
     /// </returns>
     public Image<Rgba32> CreateRgba32Image(IImageDecoder decoder)
-        => this.CreateRgba32Image(decoder, new());
+        => this.CreateRgba32Image(decoder, new DecoderOptions());
 
     /// <summary>
     /// Creates a new <see cref="Rgba32"/> image.

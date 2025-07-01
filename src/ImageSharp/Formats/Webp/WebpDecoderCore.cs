@@ -93,7 +93,7 @@ internal sealed class WebpDecoderCore : ImageDecoderCore, IDisposable
                     return animationDecoder.Decode<TPixel>(stream, this.webImageInfo.Features, this.webImageInfo.Width, this.webImageInfo.Height, fileSize);
                 }
 
-                image = new(this.configuration, (int)this.webImageInfo.Width, (int)this.webImageInfo.Height, metadata);
+                image = new Image<TPixel>(this.configuration, (int)this.webImageInfo.Width, (int)this.webImageInfo.Height, metadata);
                 Buffer2D<TPixel> pixels = image.GetRootFramePixelBuffer();
                 if (this.webImageInfo.IsLossless)
                 {
@@ -136,8 +136,8 @@ internal sealed class WebpDecoderCore : ImageDecoderCore, IDisposable
         ImageMetadata metadata = new();
         using (this.webImageInfo = this.ReadVp8Info(stream, metadata, true))
         {
-            return new(
-                new((int)this.webImageInfo.Width, (int)this.webImageInfo.Height),
+            return new ImageInfo(
+                new Size((int)this.webImageInfo.Width, (int)this.webImageInfo.Height),
                 metadata);
         }
     }
@@ -229,7 +229,7 @@ internal sealed class WebpDecoderCore : ImageDecoderCore, IDisposable
             default:
                 WebpThrowHelper.ThrowImageFormatException("Unrecognized VP8 header");
                 return
-                    new(); // this return will never be reached, because throw helper will throw an exception.
+                    new WebpImageInfo(); // this return will never be reached, because throw helper will throw an exception.
         }
     }
 
@@ -389,7 +389,7 @@ internal sealed class WebpDecoderCore : ImageDecoderCore, IDisposable
                 return;
             }
 
-            metadata.XmpProfile = new(xmpData);
+            metadata.XmpProfile = new XmpProfile(xmpData);
         }
     }
 

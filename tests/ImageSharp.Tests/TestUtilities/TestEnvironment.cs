@@ -198,7 +198,7 @@ public static partial class TestEnvironment
             "Microsoft SDKs",
             "Windows");
 
-        FileInfo corFlagsFile = Find(new(windowsSdksDir), "CorFlags.exe");
+        FileInfo corFlagsFile = Find(new DirectoryInfo(windowsSdksDir), "CorFlags.exe");
 
         string remoteExecutorPath = Path.Combine(TestAssemblyFile.DirectoryName, "Microsoft.DotNet.RemoteExecutor.exe");
 
@@ -230,7 +230,7 @@ public static partial class TestEnvironment
 
         if (proc.ExitCode != 0)
         {
-            throw new(
+            throw new Exception(
                 $@"Failed to run {si.FileName} {si.Arguments}:\n STDOUT: {standardOutput}\n STDERR: {standardError}");
         }
 

@@ -30,7 +30,7 @@ internal sealed class TiffBiColorWriter<TPixel> : TiffBaseColorWriter<TPixel>
         : base(image, encodingSize, memoryAllocator, configuration, entriesCollector)
     {
         // Convert image to black and white.
-        this.imageBlackWhite = new(configuration, new(), [image.Clone()]);
+        this.imageBlackWhite = new Image<TPixel>(configuration, new ImageMetadata(), [image.Clone()]);
         this.imageBlackWhite.Mutate(img => img.BinaryDither(KnownDitherings.FloydSteinberg));
     }
 

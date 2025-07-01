@@ -31,7 +31,7 @@ internal partial class CurveCalculator : ISingleCalculator
         }
         else
         {
-            this.lutCalculator = new(entry.CurveData, inverted);
+            this.lutCalculator = new LutCalculator(entry.CurveData, inverted);
             this.type = CalculationType.Lut;
         }
     }

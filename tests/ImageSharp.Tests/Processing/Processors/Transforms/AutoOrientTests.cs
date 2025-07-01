@@ -44,7 +44,7 @@ public class AutoOrientTests
         where TPixel : unmanaged, IPixel<TPixel>
     {
         using Image<TPixel> image = provider.GetImage();
-        image.Metadata.ExifProfile = new();
+        image.Metadata.ExifProfile = new ExifProfile();
         image.Metadata.ExifProfile.SetValue(ExifTag.Orientation, orientation);
 
         image.Mutate(x => x.AutoOrient());
@@ -79,7 +79,7 @@ public class AutoOrientTests
 
         using Image<TPixel> image = provider.GetImage();
         using Image<TPixel> reference = image.Clone();
-        image.Metadata.ExifProfile = new(bytes);
+        image.Metadata.ExifProfile = new ExifProfile(bytes);
         image.Mutate(x => x.AutoOrient());
         image.DebugSave(provider, $"{dataType}-{orientationCode}", appendPixelTypeToFileName: false);
         ImageComparer.Exact.VerifySimilarity(image, reference);

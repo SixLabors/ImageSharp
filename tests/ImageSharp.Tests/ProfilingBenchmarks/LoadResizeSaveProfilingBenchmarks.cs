@@ -28,7 +28,7 @@ public class LoadResizeSaveProfilingBenchmarks : MeasureFixture
 
         byte[] imageBytes = TestFile.Create(imagePath).Bytes;
 
-        using MemoryStream ms = new MemoryStream();
+        using MemoryStream ms = new();
         this.Measure(
             30,
             () =>

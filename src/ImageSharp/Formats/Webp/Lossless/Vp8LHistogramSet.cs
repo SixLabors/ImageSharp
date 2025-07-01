@@ -25,7 +25,7 @@ internal sealed class Vp8LHistogramSet : IEnumerable<Vp8LHistogram>, IDisposable
         unsafe
         {
             uint* basePointer = (uint*)this.bufferHandle.Pointer;
-            this.items = new(capacity);
+            this.items = new List<Vp8LHistogram>(capacity);
             for (int i = 0; i < capacity; i++)
             {
                 this.items.Add(new MemberVp8LHistogram(basePointer + (Vp8LHistogram.BufferSize * i), cacheBits));
@@ -41,7 +41,7 @@ internal sealed class Vp8LHistogramSet : IEnumerable<Vp8LHistogram>, IDisposable
         unsafe
         {
             uint* basePointer = (uint*)this.bufferHandle.Pointer;
-            this.items = new(capacity);
+            this.items = new List<Vp8LHistogram>(capacity);
             for (int i = 0; i < capacity; i++)
             {
                 this.items.Add(new MemberVp8LHistogram(basePointer + (Vp8LHistogram.BufferSize * i), refs, cacheBits));
@@ -49,9 +49,9 @@ internal sealed class Vp8LHistogramSet : IEnumerable<Vp8LHistogram>, IDisposable
         }
     }
 
-    public Vp8LHistogramSet(int capacity) => this.items = new(capacity);
+    public Vp8LHistogramSet(int capacity) => this.items = new List<Vp8LHistogram>(capacity);
 
-    public Vp8LHistogramSet() => this.items = new();
+    public Vp8LHistogramSet() => this.items = new List<Vp8LHistogram>();
 
     public int Count => this.items.Count;
 

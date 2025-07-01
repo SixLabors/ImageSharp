@@ -49,8 +49,8 @@ public class DecodeJpeg_ImageSpecific
     public Size ImageSharp()
     {
         using MemoryStream memoryStream = new(this.jpegBytes);
-        using Image image = Image.Load(new() { SkipMetadata = true }, memoryStream);
-        return new(image.Width, image.Height);
+        using Image image = Image.Load(new DecoderOptions { SkipMetadata = true }, memoryStream);
+        return new Size(image.Width, image.Height);
     }
 
     /*

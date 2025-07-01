@@ -159,7 +159,7 @@ public static class ImageComparerExtensions
 
                 if (outsideChanges.Any())
                 {
-                    cleanedReports.Add(new(r.Index, r.ExpectedImage, r.ActualImage, outsideChanges, null));
+                    cleanedReports.Add(new ImageSimilarityReport<TPixelA, TPixelB>(r.Index, r.ExpectedImage, r.ActualImage, outsideChanges, null));
                 }
             }
 

@@ -32,8 +32,8 @@ public class CieXyChromaticityCoordinatesTests
         Assert.True(new CieXyChromaticityCoordinates(1, 0) != default);
         Assert.False(new CieXyChromaticityCoordinates(1, 0) == default);
         Assert.Equal(default, default(CieXyChromaticityCoordinates));
-        Assert.Equal(new(1, 0), new CieXyChromaticityCoordinates(1, 0));
-        Assert.Equal(new(1, 1), new CieXyChromaticityCoordinates(1, 1));
+        Assert.Equal(new CieXyChromaticityCoordinates(1, 0), new CieXyChromaticityCoordinates(1, 0));
+        Assert.Equal(new CieXyChromaticityCoordinates(1, 1), new CieXyChromaticityCoordinates(1, 1));
         Assert.False(x.Equals(y));
         Assert.False(new CieXyChromaticityCoordinates(1, 0) == default);
         Assert.False(x.Equals((object)y));

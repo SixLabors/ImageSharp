@@ -56,12 +56,12 @@ internal class AlphaDecoder : IDisposable
 
         this.Alpha = memoryAllocator.Allocate<byte>(totalPixels);
         this.AlphaFilterType = (WebpAlphaFilterType)filter;
-        this.Vp8LDec = new(width, height, memoryAllocator);
+        this.Vp8LDec = new Vp8LDecoder(width, height, memoryAllocator);
 
         if (this.Compressed)
         {
             Vp8LBitReader bitReader = new(data);
-            this.LosslessDecoder = new(bitReader, memoryAllocator, configuration);
+            this.LosslessDecoder = new WebpLosslessDecoder(bitReader, memoryAllocator, configuration);
             this.LosslessDecoder.DecodeImageStream(this.Vp8LDec, width, height, true);
 
             // Special case: if alpha data uses only the color indexing transform and

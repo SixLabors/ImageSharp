@@ -72,7 +72,7 @@ internal static class ResizeHelper
 
             // case ResizeMode.Stretch:
             default:
-                return (new(Sanitize(width), Sanitize(height)), new(0, 0, Sanitize(width), Sanitize(height)));
+                return (new Size(Sanitize(width), Sanitize(height)), new Rectangle(0, 0, Sanitize(width), Sanitize(height)));
         }
     }
 
@@ -143,7 +143,7 @@ internal static class ResizeHelper
             }
 
             // Target image width and height can be different to the rectangle width and height.
-            return (new(Sanitize(width), Sanitize(height)), new(targetX, targetY, Sanitize(targetWidth), Sanitize(targetHeight)));
+            return (new Size(Sanitize(width), Sanitize(height)), new Rectangle(targetX, targetY, Sanitize(targetWidth), Sanitize(targetHeight)));
         }
 
         // Switch to pad mode to downscale and calculate from there.
@@ -253,7 +253,7 @@ internal static class ResizeHelper
         }
 
         // Target image width and height can be different to the rectangle width and height.
-        return (new(Sanitize(width), Sanitize(height)), new(targetX, targetY, Sanitize(targetWidth), Sanitize(targetHeight)));
+        return (new Size(Sanitize(width), Sanitize(height)), new Rectangle(targetX, targetY, Sanitize(targetWidth), Sanitize(targetHeight)));
     }
 
     private static (Size Size, Rectangle Rectangle) CalculateMaxRectangle(
@@ -282,7 +282,7 @@ internal static class ResizeHelper
         }
 
         // Replace the size to match the rectangle.
-        return (new(Sanitize(targetWidth), Sanitize(targetHeight)), new(0, 0, Sanitize(targetWidth), Sanitize(targetHeight)));
+        return (new Size(Sanitize(targetWidth), Sanitize(targetHeight)), new Rectangle(0, 0, Sanitize(targetWidth), Sanitize(targetHeight)));
     }
 
     private static (Size Size, Rectangle Rectangle) CalculateMinRectangle(
@@ -298,7 +298,7 @@ internal static class ResizeHelper
         // Don't upscale
         if (width > sourceWidth || height > sourceHeight)
         {
-            return (new(sourceWidth, sourceHeight), new(0, 0, sourceWidth, sourceHeight));
+            return (new Size(sourceWidth, sourceHeight), new Rectangle(0, 0, sourceWidth, sourceHeight));
         }
 
         // Find the shortest distance to go.
@@ -330,7 +330,7 @@ internal static class ResizeHelper
         }
 
         // Replace the size to match the rectangle.
-        return (new(Sanitize(targetWidth), Sanitize(targetHeight)), new(0, 0, Sanitize(targetWidth), Sanitize(targetHeight)));
+        return (new Size(Sanitize(targetWidth), Sanitize(targetHeight)), new Rectangle(0, 0, Sanitize(targetWidth), Sanitize(targetHeight)));
     }
 
     private static (Size Size, Rectangle Rectangle) CalculatePadRectangle(
@@ -398,7 +398,7 @@ internal static class ResizeHelper
         }
 
         // Target image width and height can be different to the rectangle width and height.
-        return (new(Sanitize(width), Sanitize(height)), new(targetX, targetY, Sanitize(targetWidth), Sanitize(targetHeight)));
+        return (new Size(Sanitize(width), Sanitize(height)), new Rectangle(targetX, targetY, Sanitize(targetWidth), Sanitize(targetHeight)));
     }
 
     private static (Size Size, Rectangle Rectangle) CalculateManualRectangle(
@@ -419,7 +419,7 @@ internal static class ResizeHelper
         int targetHeight = targetRectangle.Height > 0 ? targetRectangle.Height : height;
 
         // Target image width and height can be different to the rectangle width and height.
-        return (new(Sanitize(width), Sanitize(height)), new(targetX, targetY, Sanitize(targetWidth), Sanitize(targetHeight)));
+        return (new Size(Sanitize(width), Sanitize(height)), new Rectangle(targetX, targetY, Sanitize(targetWidth), Sanitize(targetHeight)));
     }
 
     [DoesNotReturn]

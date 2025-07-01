@@ -33,7 +33,7 @@ internal sealed class ExifEncodedString : ExifValue<EncodedString>
 
         if (value is string stringValue)
         {
-            this.Value = new(stringValue);
+            this.Value = new EncodedString(stringValue);
             return true;
         }
         else if (value is byte[] buffer)

@@ -346,7 +346,7 @@ public class ResizeTests
                             "invalid dimensional input for Resize_WorksWithAllResamplers!");
                     }
 
-                    newSize = new(specificDestWidth.Value, specificDestHeight.Value);
+                    newSize = new SizeF(specificDestWidth.Value, specificDestHeight.Value);
                     destSizeInfo = $"{newSize.Width}x{newSize.Height}";
                 }
 
@@ -439,7 +439,7 @@ public class ResizeTests
         using Image<TPixel> image = provider.GetImage();
         ResizeOptions options = new()
         {
-            Size = new(image.Width + 200, image.Height + 200),
+            Size = new Size(image.Width + 200, image.Height + 200),
             Mode = ResizeMode.BoxPad,
             PadColor = Color.HotPink
         };
@@ -456,7 +456,7 @@ public class ResizeTests
         where TPixel : unmanaged, IPixel<TPixel>
     {
         using Image<TPixel> image = provider.GetImage();
-        ResizeOptions options = new() { Size = new(image.Width, image.Height / 2) };
+        ResizeOptions options = new() { Size = new Size(image.Width, image.Height / 2) };
 
         image.Mutate(x => x.Resize(options));
 
@@ -470,7 +470,7 @@ public class ResizeTests
         where TPixel : unmanaged, IPixel<TPixel>
     {
         using Image<TPixel> image = provider.GetImage();
-        ResizeOptions options = new() { Size = new(image.Width / 2, image.Height) };
+        ResizeOptions options = new() { Size = new Size(image.Width / 2, image.Height) };
 
         image.Mutate(x => x.Resize(options));
 
@@ -486,7 +486,7 @@ public class ResizeTests
         using Image<TPixel> image = provider.GetImage();
         ResizeOptions options = new()
         {
-            Size = new(480, 600),
+            Size = new Size(480, 600),
             Mode = ResizeMode.Crop
         };
 
@@ -502,7 +502,7 @@ public class ResizeTests
         where TPixel : unmanaged, IPixel<TPixel>
     {
         using Image<TPixel> image = provider.GetImage();
-        ResizeOptions options = new() { Size = new(300, 300), Mode = ResizeMode.Max };
+        ResizeOptions options = new() { Size = new Size(300, 300), Mode = ResizeMode.Max };
 
         image.Mutate(x => x.Resize(options));
 
@@ -518,7 +518,7 @@ public class ResizeTests
         using Image<TPixel> image = provider.GetImage();
         ResizeOptions options = new()
         {
-            Size = new((int)Math.Round(image.Width * .75F), (int)Math.Round(image.Height * .95F)),
+            Size = new Size((int)Math.Round(image.Width * .75F), (int)Math.Round(image.Height * .95F)),
             Mode = ResizeMode.Min
         };
 
@@ -536,7 +536,7 @@ public class ResizeTests
         using Image<TPixel> image = provider.GetImage();
         ResizeOptions options = new()
         {
-            Size = new(image.Width + 200, image.Height),
+            Size = new Size(image.Width + 200, image.Height),
             Mode = ResizeMode.Pad,
             PadColor = Color.Lavender
         };
@@ -555,7 +555,7 @@ public class ResizeTests
         using Image<TPixel> image = provider.GetImage();
         ResizeOptions options = new()
         {
-            Size = new(image.Width / 2, image.Height),
+            Size = new Size(image.Width / 2, image.Height),
             Mode = ResizeMode.Stretch
         };
 

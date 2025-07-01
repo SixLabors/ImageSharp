@@ -27,7 +27,7 @@ public struct MemoryGroupIndex : IEquatable<MemoryGroupIndex>
     public static MemoryGroupIndex operator +(MemoryGroupIndex idx, int val)
     {
         int nextElementIndex = idx.ElementIndex + val;
-        return new(
+        return new MemoryGroupIndex(
             idx.BufferLength,
             idx.BufferIndex + (nextElementIndex / idx.BufferLength),
             nextElementIndex % idx.BufferLength);
@@ -105,14 +105,14 @@ internal static class MemoryGroupIndexExtensions
     public static MemoryGroupIndex MinIndex<T>(this IMemoryGroup<T> group)
         where T : struct
     {
-        return new(group.BufferLength, 0, 0);
+        return new MemoryGroupIndex(group.BufferLength, 0, 0);
     }
 
     public static MemoryGroupIndex MaxIndex<T>(this IMemoryGroup<T> group)
         where T : struct
     {
         return group.Count == 0
-            ? new(group.BufferLength, 0, 0)
+            ? new MemoryGroupIndex(group.BufferLength, 0, 0)
             : new MemoryGroupIndex(group.BufferLength, group.Count - 1, group[group.Count - 1].Length);
     }
 }

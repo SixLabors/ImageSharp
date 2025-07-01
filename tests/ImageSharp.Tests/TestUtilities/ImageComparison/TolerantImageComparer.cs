@@ -89,7 +89,7 @@ public class TolerantImageComparer : ImageComparer
 
                 if (d > this.PerPixelManhattanThreshold)
                 {
-                    PixelDifference diff = new(new(x, y), aBuffer[x], bBuffer[x]);
+                    PixelDifference diff = new(new Point(x, y), aBuffer[x], bBuffer[x]);
                     differences.Add(diff);
 
                     totalDifference += d;
@@ -102,7 +102,7 @@ public class TolerantImageComparer : ImageComparer
 
         if (normalizedDifference > this.ImageThreshold)
         {
-            return new(index, expected, actual, differences, normalizedDifference);
+            return new ImageSimilarityReport<TPixelA, TPixelB>(index, expected, actual, differences, normalizedDifference);
         }
         else
         {

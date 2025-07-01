@@ -77,7 +77,7 @@ public static class ResizeExtensions
     /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
     /// <remarks>Passing zero for one of height or width will automatically preserve the aspect ratio of the original image or the nearest possible ratio.</remarks>
     public static IImageProcessingContext Resize(this IImageProcessingContext source, Size size, IResampler sampler, bool compand)
-        => Resize(source, size.Width, size.Height, sampler, new(0, 0, size.Width, size.Height), compand);
+        => Resize(source, size.Width, size.Height, sampler, new Rectangle(0, 0, size.Width, size.Height), compand);
 
     /// <summary>
     /// Resizes an image to the given width and height with the given sampler.
@@ -90,7 +90,7 @@ public static class ResizeExtensions
     /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
     /// <remarks>Passing zero for one of height or width will automatically preserve the aspect ratio of the original image or the nearest possible ratio.</remarks>
     public static IImageProcessingContext Resize(this IImageProcessingContext source, int width, int height, IResampler sampler, bool compand)
-        => Resize(source, width, height, sampler, new(0, 0, width, height), compand);
+        => Resize(source, width, height, sampler, new Rectangle(0, 0, width, height), compand);
 
     /// <summary>
     /// Resizes an image to the given width and height with the given sampler and
@@ -120,7 +120,7 @@ public static class ResizeExtensions
     {
         ResizeOptions options = new()
         {
-            Size = new(width, height),
+            Size = new Size(width, height),
             Mode = ResizeMode.Manual,
             Sampler = sampler,
             TargetRectangle = targetRectangle,
@@ -153,7 +153,7 @@ public static class ResizeExtensions
     {
         ResizeOptions options = new()
         {
-            Size = new(width, height),
+            Size = new Size(width, height),
             Mode = ResizeMode.Manual,
             Sampler = sampler,
             TargetRectangle = targetRectangle,

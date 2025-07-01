@@ -68,7 +68,7 @@ internal readonly struct ValueSize : IEquatable<ValueSize>
     /// <returns>a Values size with type PercentageOfWidth</returns>
     public static ValueSize PercentageOfWidth(float percentage)
     {
-        return new(percentage, ValueSizeType.PercentageOfWidth);
+        return new ValueSize(percentage, ValueSizeType.PercentageOfWidth);
     }
 
     /// <summary>
@@ -78,7 +78,7 @@ internal readonly struct ValueSize : IEquatable<ValueSize>
     /// <returns>a Values size with type PercentageOfHeight</returns>
     public static ValueSize PercentageOfHeight(float percentage)
     {
-        return new(percentage, ValueSizeType.PercentageOfHeight);
+        return new ValueSize(percentage, ValueSizeType.PercentageOfHeight);
     }
 
     /// <summary>
@@ -88,7 +88,7 @@ internal readonly struct ValueSize : IEquatable<ValueSize>
     /// <returns>a Values size with type Absolute.</returns>
     public static ValueSize Absolute(float value)
     {
-        return new(value, ValueSizeType.Absolute);
+        return new ValueSize(value, ValueSizeType.Absolute);
     }
 
     /// <summary>

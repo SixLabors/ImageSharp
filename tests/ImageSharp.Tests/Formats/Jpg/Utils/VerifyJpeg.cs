@@ -11,7 +11,7 @@ internal static class VerifyJpeg
 {
     internal static void VerifySize(IJpegComponent component, int expectedBlocksX, int expectedBlocksY)
     {
-        Assert.Equal(new(expectedBlocksX, expectedBlocksY), component.SizeInBlocks);
+        Assert.Equal(new Size(expectedBlocksX, expectedBlocksY), component.SizeInBlocks);
     }
 
     internal static void VerifyComponent(

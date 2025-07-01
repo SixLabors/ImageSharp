@@ -172,19 +172,19 @@ internal class Vp8Encoder : IDisposable
         this.MbInfo = new Vp8MacroBlockInfo[this.Mbw * this.Mbh];
         for (int i = 0; i < this.MbInfo.Length; i++)
         {
-            this.MbInfo[i] = new();
+            this.MbInfo[i] = new Vp8MacroBlockInfo();
         }
 
         this.SegmentInfos = new Vp8SegmentInfo[4];
         for (int i = 0; i < 4; i++)
         {
-            this.SegmentInfos[i] = new();
+            this.SegmentInfos[i] = new Vp8SegmentInfo();
         }
 
-        this.FilterHeader = new();
+        this.FilterHeader = new Vp8FilterHeader();
         int predSize = (((4 * this.Mbw) + 1) * ((4 * this.Mbh) + 1)) + this.PredsWidth + 1;
         this.PredsWidth = (4 * this.Mbw) + 1;
-        this.Proba = new();
+        this.Proba = new Vp8EncProba();
         this.Preds = new byte[predSize + this.PredsWidth + this.Mbw];
 
         // Initialize with default values, which the reference c implementation uses,
@@ -424,14 +424,14 @@ internal class Vp8Encoder : IDisposable
         this.uvAlpha /= totalMb;
 
         // Analysis is done, proceed to actual encoding.
-        this.SegmentHeader = new(4);
+        this.SegmentHeader = new Vp8EncSegmentHeader(4);
         this.AssignSegments(alphas);
         this.SetLoopParams(this.quality);
 
         // Initialize the bitwriter.
         int averageBytesPerMacroBlock = AverageBytesPerMb[this.BaseQuant >> 4];
         int expectedSize = this.Mbw * this.Mbh * averageBytesPerMacroBlock;
-        this.bitWriter = new(expectedSize, this);
+        this.bitWriter = new Vp8BitWriter(expectedSize, this);
 
         // Stats-collection loop.
         this.StatLoop(width, height, yStride, uvStride);

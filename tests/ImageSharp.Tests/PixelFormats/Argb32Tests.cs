@@ -128,7 +128,7 @@ public class Argb32Tests
         const uint expected = uint.MaxValue;
 
         // act
-        Argb32 argb = Argb32.FromBgra5551(new(1f, 1f, 1f, 1f));
+        Argb32 argb = Argb32.FromBgra5551(new Bgra5551(1f, 1f, 1f, 1f));
 
         // assert
         Assert.Equal(expected, argb.PackedValue);

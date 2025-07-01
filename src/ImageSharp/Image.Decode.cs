@@ -36,7 +36,7 @@ public abstract partial class Image
                 width,
                 height,
                 configuration.PreferContiguousImageBuffers);
-        return new(configuration, uninitializedMemoryBuffer.FastMemoryGroup, width, height, metadata);
+        return new Image<TPixel>(configuration, uninitializedMemoryBuffer.FastMemoryGroup, width, height, metadata);
     }
 
     /// <summary>

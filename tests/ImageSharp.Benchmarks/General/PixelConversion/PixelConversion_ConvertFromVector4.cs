@@ -65,8 +65,8 @@ public class PixelConversion_ConvertFromVector4
     [GlobalSetup]
     public void Setup()
     {
-        this.nonVectorRunner = new(this.Count);
-        this.vectorRunner = new(this.Count);
+        this.nonVectorRunner = new ConversionRunner<TestArgb>(this.Count);
+        this.vectorRunner = new ConversionRunner<TestRgbaVector>(this.Count);
     }
 
     [Benchmark(Baseline = true)]

@@ -19,7 +19,7 @@ public static class ImageComparingUtils
             ?? throw new InvalidOperationException("CompareToOriginal() works only with file providers!");
 
         TestFile testFile = TestFile.Create(path);
-        using Image<Rgba32> magickImage = DecodeWithMagick<Rgba32>(new(testFile.FullPath));
+        using Image<Rgba32> magickImage = DecodeWithMagick<Rgba32>(new FileInfo(testFile.FullPath));
         if (useExactComparer)
         {
             ImageComparer.Exact.VerifySimilarity(magickImage, image);

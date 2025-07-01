@@ -20,7 +20,7 @@ internal sealed class LzwCompressor : TiffBaseCompressor
     public override TiffCompression Method => TiffCompression.Lzw;
 
     /// <inheritdoc/>
-    public override void Initialize(int rowsPerStrip) => this.lzwEncoder = new(this.Allocator);
+    public override void Initialize(int rowsPerStrip) => this.lzwEncoder = new TiffLzwEncoder(this.Allocator);
 
     /// <inheritdoc/>
     public override void CompressStrip(Span<byte> rows, int height)

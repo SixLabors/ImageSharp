@@ -27,7 +27,7 @@ public class ConfigurationTests
         // The shallow copy of configuration should behave exactly like the default configuration,
         // so by using the copy, we test both the default and the copy.
         this.DefaultConfiguration = Configuration.CreateDefaultInstance().Clone();
-        this.ConfigurationEmpty = new();
+        this.ConfigurationEmpty = new Configuration();
     }
 
     [Fact]

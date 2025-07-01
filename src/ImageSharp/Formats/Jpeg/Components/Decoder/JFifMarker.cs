@@ -80,7 +80,7 @@ internal readonly struct JFifMarker : IEquatable<JFifMarker>
             byte densityUnits = bytes[7];
             short xDensity = (short)((bytes[8] << 8) | bytes[9]);
             short yDensity = (short)((bytes[10] << 8) | bytes[11]);
-            marker = new(majorVersion, minorVersion, densityUnits, xDensity, yDensity);
+            marker = new JFifMarker(majorVersion, minorVersion, densityUnits, xDensity, yDensity);
             return true;
         }
 

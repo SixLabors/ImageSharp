@@ -47,7 +47,7 @@ public class ParseStreamTests
 
             Assert.Equal(expectedSizeInBlocks, decoder.Frame.McuSize);
 
-            Size uniform1 = new Size(1, 1);
+            Size uniform1 = new(1, 1);
             IJpegComponent c0 = decoder.Components[0];
             VerifyJpeg.VerifyComponent(c0, expectedSizeInBlocks, uniform1, uniform1);
         }
@@ -62,7 +62,7 @@ public class ParseStreamTests
     [InlineData(TestImages.Jpeg.Baseline.Cmyk)]
     public void PrintComponentData(string imageFile)
     {
-        StringBuilder sb = new StringBuilder();
+        StringBuilder sb = new();
 
         using (JpegDecoderCore decoder = JpegFixture.ParseJpegStream(imageFile))
         {
@@ -110,7 +110,7 @@ public class ParseStreamTests
             IJpegComponent c1 = decoder.Components[1];
             IJpegComponent c2 = decoder.Components[2];
 
-            Size uniform1 = new Size(1, 1);
+            Size uniform1 = new(1, 1);
 
             Size expectedLumaSizeInBlocks = decoder.Frame.McuSize.MultiplyBy(fLuma);
 

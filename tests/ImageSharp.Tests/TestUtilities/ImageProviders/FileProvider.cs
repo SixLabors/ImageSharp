@@ -32,7 +32,7 @@ public abstract partial class TestImageProvider<TPixel> : IXunitSerializable
                 ISpecializedDecoderOptions specialized)
             {
                 Type customType = customDecoder?.GetType();
-                this.commonValues = new(
+                this.commonValues = new Tuple<PixelTypes, string, Type>(
                     pixelType,
                     filePath,
                     customType);

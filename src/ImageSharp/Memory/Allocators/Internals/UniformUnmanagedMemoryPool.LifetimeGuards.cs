@@ -11,7 +11,7 @@ internal partial class UniformUnmanagedMemoryPool
         bool clear)
         where T : struct
     {
-        UnmanagedBuffer<T> buffer = new UnmanagedBuffer<T>(lengthInElements, new ReturnToPoolBufferLifetimeGuard(this, handle));
+        UnmanagedBuffer<T> buffer = new(lengthInElements, new ReturnToPoolBufferLifetimeGuard(this, handle));
         if (clear)
         {
             buffer.Clear();

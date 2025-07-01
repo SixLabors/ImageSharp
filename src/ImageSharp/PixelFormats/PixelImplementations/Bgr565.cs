@@ -28,7 +28,7 @@ public partial struct Bgr565(Vector3 vector) : IPixel<Bgr565>, IPackedVector<ush
     /// <param name="y">The y-component</param>
     /// <param name="z">The z-component</param>
     public Bgr565(float x, float y, float z)
-        : this(new(x, y, z))
+        : this(new Vector3(x, y, z))
     {
     }
 
@@ -84,7 +84,7 @@ public partial struct Bgr565(Vector3 vector) : IPixel<Bgr565>, IPackedVector<ush
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Bgr565 FromVector4(Vector4 source) => new() { PackedValue = Pack(new(source.X, source.Y, source.Z)) };
+    public static Bgr565 FromVector4(Vector4 source) => new() { PackedValue = Pack(new Vector3(source.X, source.Y, source.Z)) };
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

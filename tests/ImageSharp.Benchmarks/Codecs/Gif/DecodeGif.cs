@@ -36,6 +36,6 @@ public class DecodeGif
     {
         using MemoryStream memoryStream = new(this.gifBytes);
         using Image<Rgba32> image = Image.Load<Rgba32>(memoryStream);
-        return new(image.Width, image.Height);
+        return new Size(image.Width, image.Height);
     }
 }

@@ -38,7 +38,7 @@ internal sealed class PositionAwarePixelRowDelegateProcessor : IImageProcessor
         where TPixel : unmanaged, IPixel<TPixel>
     {
         return new PixelRowDelegateProcessor<TPixel, PixelRowDelegate>(
-            new(this.PixelRowOperation),
+            new PixelRowDelegate(this.PixelRowOperation),
             configuration,
             this.Modifiers,
             source,

@@ -89,7 +89,7 @@ public class LosslessUtilsTests
             392450, 196861, 16712192, 16711680, 130564, 16451071
         };
 
-        Vp8LMultipliers m = new Vp8LMultipliers()
+        Vp8LMultipliers m = new()
         {
             GreenToBlue = 240,
             GreenToRed = 232,
@@ -121,7 +121,7 @@ public class LosslessUtilsTests
             16711680, 65027, 16712962
         };
 
-        Vp8LMultipliers m = new Vp8LMultipliers()
+        Vp8LMultipliers m = new()
         {
             GreenToBlue = 240,
             GreenToRed = 232,

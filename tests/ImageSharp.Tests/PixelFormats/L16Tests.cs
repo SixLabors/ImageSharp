@@ -115,7 +115,7 @@ public class L16Tests
         ushort expected = ColorNumerics.Get16BitBT709Luminance(scaledRgb, scaledRgb, scaledRgb);
 
         // Act
-        L16 pixel = L16.FromRgba32(new(rgb, rgb, rgb));
+        L16 pixel = L16.FromRgba32(new Rgba32(rgb, rgb, rgb));
         ushort actual = pixel.PackedValue;
 
         // Assert
@@ -149,7 +149,7 @@ public class L16Tests
         const ushort expected = ushort.MaxValue;
 
         // act
-        L16 pixel = L16.FromBgra5551(new(1.0f, 1.0f, 1.0f, 1.0f));
+        L16 pixel = L16.FromBgra5551(new Bgra5551(1.0f, 1.0f, 1.0f, 1.0f));
 
         // assert
         Assert.Equal(expected, pixel.PackedValue);

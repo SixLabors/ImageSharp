@@ -86,23 +86,23 @@ internal sealed class IccTextDescriptionTagDataEntry : IccTagDataEntry, IEquatab
         {
             CultureInfo culture = GetCulture(textEntry.UnicodeLanguageCode);
             localString = culture != null
-                ? new(culture, textEntry.Unicode)
+                ? new IccLocalizedString(culture, textEntry.Unicode)
                 : new IccLocalizedString(textEntry.Unicode);
         }
         else if (!string.IsNullOrEmpty(textEntry.Ascii))
         {
-            localString = new(textEntry.Ascii);
+            localString = new IccLocalizedString(textEntry.Ascii);
         }
         else if (!string.IsNullOrEmpty(textEntry.ScriptCode))
         {
-            localString = new(textEntry.ScriptCode);
+            localString = new IccLocalizedString(textEntry.ScriptCode);
         }
         else
         {
-            localString = new(string.Empty);
+            localString = new IccLocalizedString(string.Empty);
         }
 
-        return new(new[] { localString }, textEntry.TagSignature);
+        return new IccMultiLocalizedUnicodeTagDataEntry(new[] { localString }, textEntry.TagSignature);
 
         static CultureInfo GetCulture(uint value)
         {
@@ -123,7 +123,7 @@ internal sealed class IccTextDescriptionTagDataEntry : IccTagDataEntry, IEquatab
                 && p4 >= 0x41 && p4 <= 0x5A)
             {
                 string culture = new(new[] { (char)p1, (char)p2, '-', (char)p3, (char)p4 });
-                return new(culture);
+                return new CultureInfo(culture);
             }
 
             return null;

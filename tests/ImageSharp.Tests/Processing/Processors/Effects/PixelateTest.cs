@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Effects;
 [GroupOutput("Effects")]
 public class PixelateTest
 {
-    public static readonly TheoryData<int> PixelateValues = new TheoryData<int> { 4, 8 };
+    public static readonly TheoryData<int> PixelateValues = new() { 4, 8 };
 
     [Theory]
     [WithFile(TestImages.Png.Ducky, nameof(PixelateValues), PixelTypes.Rgba32)]

@@ -23,12 +23,12 @@ internal class ColorTrcCalculator : IVector4Calculator
         bool toPcs)
     {
         this.toPcs = toPcs;
-        this.curveCalculator = new([redTrc, greenTrc, blueTrc], !toPcs);
+        this.curveCalculator = new TrcCalculator([redTrc, greenTrc, blueTrc], !toPcs);
 
         Vector3 mr = redMatrixColumn.Data[0];
         Vector3 mg = greenMatrixColumn.Data[0];
         Vector3 mb = blueMatrixColumn.Data[0];
-        this.matrix = new(mr.X, mr.Y, mr.Z, 0, mg.X, mg.Y, mg.Z, 0, mb.X, mb.Y, mb.Z, 0, 0, 0, 0, 1);
+        this.matrix = new Matrix4x4(mr.X, mr.Y, mr.Z, 0, mg.X, mg.Y, mg.Z, 0, mb.X, mb.Y, mb.Z, 0, 0, 0, 0, 1);
 
         if (!toPcs)
         {
@@ -58,7 +58,7 @@ internal class ColorTrcCalculator : IVector4Calculator
             // when data to PCS, upstream process provides scaled XYZ
             // but input to calculator is descaled XYZ
             // (see DemoMaxICC IccCmm.cpp : CIccXformMatrixTRC::Apply)
-            xyz = new(CieXyz.FromScaledVector4(xyz).AsVector3Unsafe(), 1);
+            xyz = new Vector4(CieXyz.FromScaledVector4(xyz).AsVector3Unsafe(), 1);
             return this.curveCalculator.Calculate(xyz);
         }
     }

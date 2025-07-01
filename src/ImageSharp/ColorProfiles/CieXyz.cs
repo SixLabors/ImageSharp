@@ -88,7 +88,7 @@ public readonly struct CieXyz : IProfileConnectingSpace<CieXyz, CieXyz>
     {
         Vector3 v3 = default;
         v3 += this.AsVector3Unsafe();
-        return new(v3, 1F);
+        return new Vector4(v3, 1F);
     }
 
     /// <inheritdoc/>
@@ -97,13 +97,13 @@ public readonly struct CieXyz : IProfileConnectingSpace<CieXyz, CieXyz>
         Vector3 v3 = default;
         v3 += this.AsVector3Unsafe();
         v3 *= 32768F / 65535;
-        return new(v3, 1F);
+        return new Vector4(v3, 1F);
     }
 
     internal static CieXyz FromVector4(Vector4 source)
     {
         Vector3 v3 = source.AsVector3();
-        return new(v3);
+        return new CieXyz(v3);
     }
 
     /// <inheritdoc/>
@@ -111,7 +111,7 @@ public readonly struct CieXyz : IProfileConnectingSpace<CieXyz, CieXyz>
     {
         Vector3 v3 = source.AsVector3();
         v3 *= 65535 / 32768F;
-        return new(v3);
+        return new CieXyz(v3);
     }
 
     /// <inheritdoc/>

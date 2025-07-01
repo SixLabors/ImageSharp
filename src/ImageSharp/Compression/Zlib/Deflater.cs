@@ -79,7 +79,7 @@ internal sealed class Deflater : IDisposable
         }
 
         // TODO: Possibly provide DeflateStrategy as an option.
-        this.engine = new(memoryAllocator, DeflateStrategy.Default);
+        this.engine = new DeflaterEngine(memoryAllocator, DeflateStrategy.Default);
 
         this.SetLevel(level);
         this.Reset();

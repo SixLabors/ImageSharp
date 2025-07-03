@@ -1,6 +1,8 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Buffers.Binary;
+using System.Globalization;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -165,6 +167,64 @@ public partial struct Argb32 : IPixel<Argb32>, IPackedVector<uint>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool operator !=(Argb32 left, Argb32 right) => !left.Equals(right);
 
+    /// <summary>
+    /// Creates a new instance of the <see cref="Argb32"/> struct
+    /// from the given hexadecimal string.
+    /// </summary>
+    /// <param name="hex">
+    /// The hexadecimal representation of the combined color components arranged
+    /// in rgb, argb, rrggbb, or aarrggbb format.
+    /// </param>
+    /// <returns>
+    /// The <see cref="Argb32"/>.
+    /// </returns>
+    /// <exception cref="ArgumentException">Hexadecimal string is not in the correct format.</exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Argb32 ParseHex(string hex)
+    {
+        Guard.NotNull(hex, nameof(hex));
+
+        if (!TryParseHex(hex, out Argb32 rgba))
+        {
+            throw new ArgumentException("Hexadecimal string is not in the correct format.", nameof(hex));
+        }
+
+        return rgba;
+    }
+
+    /// <summary>
+    /// Attempts to create a new instance of the <see cref="Argb32"/> struct
+    /// from the given hexadecimal string.
+    /// </summary>
+    /// <param name="hex">
+    /// The hexadecimal representation of the combined color components arranged
+    /// in rgb, argb, rrggbb, or aarrggbb format.
+    /// </param>
+    /// <param name="result">When this method returns, contains the <see cref="Argb32"/> equivalent of the hexadecimal input.</param>
+    /// <returns>
+    /// The <see cref="bool"/>.
+    /// </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool TryParseHex(string? hex, out Argb32 result)
+    {
+        result = default;
+        if (string.IsNullOrWhiteSpace(hex))
+        {
+            return false;
+        }
+
+        ReadOnlySpan<char> hexSpan = ToArgbHex(hex);
+
+        if (!uint.TryParse(hexSpan, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out uint packedValue))
+        {
+            return false;
+        }
+
+        packedValue = BinaryPrimitives.ReverseEndianness(packedValue);
+        result = Unsafe.As<uint, Argb32>(ref packedValue);
+        return true;
+    }
+
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly Rgba32 ToRgba32() => Rgba32.FromArgb32(this);
@@ -269,6 +329,16 @@ public partial struct Argb32 : IPixel<Argb32>, IPackedVector<uint>
             A = ColorNumerics.From16BitTo8Bit(source.A)
         };
 
+    /// <summary>
+    /// Converts the value of this instance to a hexadecimal string. The format is AARRGGBB.
+    /// </summary>
+    /// <returns>A hexadecimal string representation of the value.</returns>
+    public readonly string ToHex()
+    {
+        uint hexOrder = (uint)((this.B << 0) | (this.G << 8) | (this.R << 16) | (this.A << 24));
+        return hexOrder.ToString("X8", CultureInfo.InvariantCulture);
+    }
+
     /// <inheritdoc/>
     public override readonly bool Equals(object? obj) => obj is Argb32 argb32 && this.Equals(argb32);
 
@@ -297,5 +367,47 @@ public partial struct Argb32 : IPixel<Argb32>, IPackedVector<uint>
 
         Vector128<byte> result = Vector128.ConvertToInt32(vector.AsVector128()).AsByte();
         return new Argb32(result.GetElement(0), result.GetElement(4), result.GetElement(8), result.GetElement(12));
+    }
+
+    /// <summary>
+    /// Converts the specified hex value to an aarrggbb hex value.
+    /// </summary>
+    /// <param name="hexText">The hex value to convert.</param>
+    /// <returns>
+    /// A aarrggbb hex value.
+    /// </returns>
+    private static ReadOnlySpan<char> ToArgbHex(string hexText)
+    {
+        if (hexText.Length == 8)
+        {
+            return hexText;
+        }
+
+        ReadOnlySpan<char> hex = hexText.AsSpan();
+        if (hex[0] == '#')
+        {
+            hex = hex[1..];
+        }
+
+        if (hex.Length == 8)
+        {
+            return hex;
+        }
+
+        if (hex.Length == 6)
+        {
+            return $"FF{hex}";
+        }
+
+        if (hex.Length is < 3 or > 4)
+        {
+            return null;
+        }
+
+        var (a, r, g, b) = hex.Length == 3
+            ? ('F', hex[0], hex[1], hex[2])
+            : (hex[0], hex[1], hex[2], hex[3]);
+
+        return new string(new[] { a, a, r, r, g, g, b, b });
     }
 }

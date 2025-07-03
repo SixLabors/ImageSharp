@@ -21,10 +21,10 @@ public class Rgba32Tests
     {
         Rgba32 color1 = new(0, 0, 0);
         Rgba32 color2 = new(0, 0, 0, 1F);
-        Rgba32 color3 = Rgba32.ParseHex("#000");
-        Rgba32 color4 = Rgba32.ParseHex("#000F");
-        Rgba32 color5 = Rgba32.ParseHex("#000000");
-        Rgba32 color6 = Rgba32.ParseHex("#000000FF");
+        Rgba32 color3 = Color.ParseHex("#000").ToPixel<Rgba32>();
+        Rgba32 color4 = Color.ParseHex("#000F").ToPixel<Rgba32>();
+        Rgba32 color5 = Color.ParseHex("#000000").ToPixel<Rgba32>();
+        Rgba32 color6 = Color.ParseHex("#000000FF").ToPixel<Rgba32>();
 
         Assert.Equal(color1, color2);
         Assert.Equal(color1, color3);
@@ -41,9 +41,9 @@ public class Rgba32Tests
     {
         Rgba32 color1 = new(255, 0, 0, 255);
         Rgba32 color2 = new(0, 0, 0, 255);
-        Rgba32 color3 = Rgba32.ParseHex("#000");
-        Rgba32 color4 = Rgba32.ParseHex("#000000");
-        Rgba32 color5 = Rgba32.ParseHex("#FF000000");
+        Rgba32 color3 = Color.ParseHex("#000").ToPixel<Rgba32>();
+        Rgba32 color4 = Color.ParseHex("#000000").ToPixel<Rgba32>();
+        Rgba32 color5 = Color.ParseHex("#FF000000").ToPixel<Rgba32>();
 
         Assert.NotEqual(color1, color2);
         Assert.NotEqual(color1, color3);
@@ -80,30 +80,6 @@ public class Rgba32Tests
         Assert.Equal(Math.Round(.1f * 255), color5.G);
         Assert.Equal(Math.Round(.133f * 255), color5.B);
         Assert.Equal(Math.Round(.5f * 255), color5.A);
-    }
-
-    /// <summary>
-    /// Tests whether FromHex and ToHex work correctly.
-    /// </summary>
-    [Fact]
-    public void FromAndToHex()
-    {
-        // 8 digit hex matches css4 spec. RRGGBBAA
-        Rgba32 color = Rgba32.ParseHex("#AABBCCDD"); // 170, 187, 204, 221
-        Assert.Equal(170, color.R);
-        Assert.Equal(187, color.G);
-        Assert.Equal(204, color.B);
-        Assert.Equal(221, color.A);
-
-        Assert.Equal("AABBCCDD", color.ToHex());
-
-        color.R = 0;
-
-        Assert.Equal("00BBCCDD", color.ToHex());
-
-        color.A = 255;
-
-        Assert.Equal("00BBCCFF", color.ToHex());
     }
 
     /// <summary>

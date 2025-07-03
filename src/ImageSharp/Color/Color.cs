@@ -1,6 +1,8 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Buffers.Binary;
+using System.Globalization;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.PixelFormats;
@@ -126,66 +128,91 @@ public readonly partial struct Color : IEquatable<Color>
     }
 
     /// <summary>
-    /// Creates a new instance of the <see cref="Color"/> struct
-    /// from the given hexadecimal string.
+    /// Gets a <see cref="Color"/> from the given hexadecimal string.
     /// </summary>
     /// <param name="hex">
-    /// The hexadecimal representation of the combined color components arranged
-    /// in rgb, rgba, rrggbb, or rrggbbaa format to match web syntax.
+    /// The hexadecimal representation of the combined color components.
+    /// </param>
+    /// <param name="format">
+    /// The format of the hexadecimal string to parse, if applicable. Defaults to <see cref="ColorHexFormat.Rgba"/>.
     /// </param>
     /// <returns>
-    /// The <see cref="Color"/>.
+    /// The <see cref="Color"/> equivalent of the hexadecimal input.
     /// </returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Color ParseHex(string hex)
+    /// <exception cref="ArgumentException">
+    /// Thrown when the <paramref name="hex"/> is not in the correct format.
+    /// </exception>
+    public static Color ParseHex(string hex, ColorHexFormat format = ColorHexFormat.Rgba)
     {
-        Rgba32 rgba = Rgba32.ParseHex(hex);
-        return FromPixel(rgba);
+        Guard.NotNull(hex, nameof(hex));
+
+        if (!TryParseHex(hex, out Color color, format))
+        {
+            throw new ArgumentException("Hexadecimal string is not in the correct format.", nameof(hex));
+        }
+
+        return color;
     }
 
     /// <summary>
-    /// Attempts to creates a new instance of the <see cref="Color"/> struct
-    /// from the given hexadecimal string.
+    /// Gets a <see cref="Color"/> from the given hexadecimal string.
     /// </summary>
     /// <param name="hex">
-    /// The hexadecimal representation of the combined color components arranged
-    /// in rgb, rgba, rrggbb, or rrggbbaa format to match web syntax.
+    /// The hexadecimal representation of the combined color components.
     /// </param>
-    /// <param name="result">When this method returns, contains the <see cref="Color"/> equivalent of the hexadecimal input.</param>
+    /// <param name="result">
+    /// When this method returns, contains the <see cref="Color"/> equivalent of the hexadecimal input.
+    /// </param>
+    /// <param name="format">
+    /// The format of the hexadecimal string to parse, if applicable. Defaults to <see cref="ColorHexFormat.Rgba"/>.
+    /// </param>
     /// <returns>
-    /// The <see cref="bool"/>.
+    /// <see langword="true"/> if the parsing was successful; otherwise, <see langword="false"/>.
     /// </returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool TryParseHex(string hex, out Color result)
+    public static bool TryParseHex(string hex, out Color result, ColorHexFormat format = ColorHexFormat.Rgba)
     {
         result = default;
 
-        if (Rgba32.TryParseHex(hex, out Rgba32 rgba))
+        if (format == ColorHexFormat.Argb)
         {
-            result = FromPixel(rgba);
-            return true;
+            if (TryParseArgbHex(hex, out Argb32 argb))
+            {
+                result = FromPixel(argb);
+                return true;
+            }
+        }
+        else if (format == ColorHexFormat.Rgba)
+        {
+            if (TryParseRgbaHex(hex, out Rgba32 rgba))
+            {
+                result = FromPixel(rgba);
+                return true;
+            }
         }
 
         return false;
     }
 
     /// <summary>
-    /// Creates a new instance of the <see cref="Color"/> struct
-    /// from the given input string.
+    /// Gets a <see cref="Color"/> from the given input string.
     /// </summary>
     /// <param name="input">
-    /// The name of the color or the hexadecimal representation of the combined color components arranged
-    /// in rgb, rgba, rrggbb, or rrggbbaa format to match web syntax.
+    /// The name of the color or the hexadecimal representation of the combined color components.
+    /// </param>
+    /// <param name="format">
+    /// The format of the hexadecimal string to parse, if applicable. Defaults to <see cref="ColorHexFormat.Rgba"/>.
     /// </param>
     /// <returns>
-    /// The <see cref="Color"/>.
+    /// The <see cref="Color"/> equivalent of the input string.
     /// </returns>
-    /// <exception cref="ArgumentException">Input string is not in the correct format.</exception>
-    public static Color Parse(string input)
+    /// <exception cref="ArgumentException">
+    /// Thrown when the <paramref name="input"/> is not in the correct format.
+    /// </exception>
+    public static Color Parse(string input, ColorHexFormat format = ColorHexFormat.Rgba)
     {
         Guard.NotNull(input, nameof(input));
 
-        if (!TryParse(input, out Color color))
+        if (!TryParse(input, out Color color, format))
         {
             throw new ArgumentException("Input string is not in the correct format.", nameof(input));
         }
@@ -194,18 +221,21 @@ public readonly partial struct Color : IEquatable<Color>
     }
 
     /// <summary>
-    /// Attempts to creates a new instance of the <see cref="Color"/> struct
-    /// from the given input string.
+    /// Tries to create a new instance of the <see cref="Color"/> struct from the given input string.
     /// </summary>
     /// <param name="input">
-    /// The name of the color or the hexadecimal representation of the combined color components arranged
-    /// in rgb, rgba, rrggbb, or rrggbbaa format to match web syntax.
+    /// The name of the color or the hexadecimal representation of the combined color components.
     /// </param>
-    /// <param name="result">When this method returns, contains the <see cref="Color"/> equivalent of the hexadecimal input.</param>
+    /// <param name="result">
+    /// When this method returns, contains the <see cref="Color"/> equivalent of the input string.
+    /// </param>
+    /// <param name="format">
+    /// The format of the hexadecimal string to parse, if applicable. Defaults to <see cref="ColorHexFormat.Rgba"/>.
+    /// </param>
     /// <returns>
-    /// The <see cref="bool"/>.
+    /// <see langword="true"/> if the parsing was successful; otherwise, <see langword="false"/>.
     /// </returns>
-    public static bool TryParse(string input, out Color result)
+    public static bool TryParse(string input, out Color result, ColorHexFormat format = ColorHexFormat.Rgba)
     {
         result = default;
 
@@ -219,7 +249,13 @@ public readonly partial struct Color : IEquatable<Color>
             return true;
         }
 
-        return TryParseHex(input, out result);
+        result = default;
+        if (string.IsNullOrWhiteSpace(input))
+        {
+            return false;
+        }
+
+        return TryParseHex(input, out result, format);
     }
 
     /// <summary>
@@ -227,6 +263,7 @@ public readonly partial struct Color : IEquatable<Color>
     /// </summary>
     /// <param name="alpha">The new value of alpha [0..1].</param>
     /// <returns>The color having it's alpha channel altered.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Color WithAlpha(float alpha)
     {
         Vector4 v = this.ToScaledVector4();
@@ -235,22 +272,32 @@ public readonly partial struct Color : IEquatable<Color>
     }
 
     /// <summary>
-    /// Gets the hexadecimal representation of the color instance in rrggbbaa form.
+    /// Gets the hexadecimal string representation of the color instance.
     /// </summary>
+    /// <param name="format">
+    /// The format of the hexadecimal string to return. Defaults to <see cref="ColorHexFormat.Rgba"/>.
+    /// </param>
     /// <returns>A hexadecimal string representation of the value.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when the <paramref name="format"/> is not supported.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public string ToHex()
+    public string ToHex(ColorHexFormat format = ColorHexFormat.Rgba)
     {
-        if (this.boxedHighPrecisionPixel is not null)
-        {
-            return this.boxedHighPrecisionPixel.ToRgba32().ToHex();
-        }
+        Rgba32 rgba = (this.boxedHighPrecisionPixel is not null)
+            ? this.boxedHighPrecisionPixel.ToRgba32()
+            : Rgba32.FromScaledVector4(this.data);
 
-        return Rgba32.FromScaledVector4(this.data).ToHex();
+        uint hexOrder = format switch
+        {
+            ColorHexFormat.Argb => (uint)((rgba.B << 0) | (rgba.G << 8) | (rgba.R << 16) | (rgba.A << 24)),
+            ColorHexFormat.Rgba => (uint)((rgba.A << 0) | (rgba.B << 8) | (rgba.G << 16) | (rgba.R << 24)),
+            _ => throw new ArgumentOutOfRangeException(nameof(format), format, "Unsupported color hex format.")
+        };
+
+        return hexOrder.ToString("X8", CultureInfo.InvariantCulture);
     }
 
     /// <inheritdoc />
-    public override string ToString() => this.ToHex();
+    public override string ToString() => this.ToHex(ColorHexFormat.Rgba);
 
     /// <summary>
     /// Converts the color instance to a specified <typeparamref name="TPixel"/> type.
@@ -335,5 +382,146 @@ public readonly partial struct Color : IEquatable<Color>
         }
 
         return this.boxedHighPrecisionPixel.GetHashCode();
+    }
+
+    /// <summary>
+    /// Gets the hexadecimal string representation of the color instance in the format RRGGBBAA.
+    /// </summary>
+    /// <param name="hex">
+    /// The hexadecimal representation of the combined color components.
+    /// </param>
+    /// <param name="result">
+    /// When this method returns, contains the <see cref="Rgba32"/> equivalent of the hexadecimal input.
+    /// </param>
+    /// <returns>
+    /// <see langword="true"/> if the parsing was successful; otherwise, <see langword="false"/>.
+    /// </returns>
+    private static bool TryParseRgbaHex(string? hex, out Rgba32 result)
+    {
+        result = default;
+        if (string.IsNullOrWhiteSpace(hex))
+        {
+            return false;
+        }
+
+        ReadOnlySpan<char> hexSpan = ToRgbaHex(hex);
+
+        if (!uint.TryParse(hexSpan, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out uint packedValue))
+        {
+            return false;
+        }
+
+        packedValue = BinaryPrimitives.ReverseEndianness(packedValue);
+        result = Unsafe.As<uint, Rgba32>(ref packedValue);
+        return true;
+    }
+
+    /// <summary>
+    /// Gets the hexadecimal string representation of the color instance in the format AARRGGBB.
+    /// </summary>
+    /// <param name="hex">
+    /// The hexadecimal representation of the combined color components.
+    /// </param>
+    /// <param name="result">
+    /// When this method returns, contains the <see cref="Argb32"/> equivalent of the hexadecimal input.
+    /// </param>
+    /// <returns>
+    /// <see langword="true"/> if the parsing was successful; otherwise, <see langword="false"/>.
+    /// </returns>
+    private static bool TryParseArgbHex(string? hex, out Argb32 result)
+    {
+        result = default;
+        if (string.IsNullOrWhiteSpace(hex))
+        {
+            return false;
+        }
+
+        ReadOnlySpan<char> hexSpan = ToArgbHex(hex);
+
+        if (!uint.TryParse(hexSpan, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out uint packedValue))
+        {
+            return false;
+        }
+
+        packedValue = BinaryPrimitives.ReverseEndianness(packedValue);
+        result = Unsafe.As<uint, Argb32>(ref packedValue);
+        return true;
+    }
+
+    /// <summary>
+    /// Converts the specified hex value to an RRGGBBAA hex value.
+    /// </summary>
+    /// <param name="value">The hex value to convert.</param>
+    /// <returns>
+    /// A span containing the converted hex value in the format RRGGBBAA.
+    /// </returns>
+    private static ReadOnlySpan<char> ToRgbaHex(string value)
+    {
+        ReadOnlySpan<char> hex = value.AsSpan();
+
+        if (hex[0] == '#')
+        {
+            hex = hex[1..];
+        }
+
+        if (hex.Length == 8)
+        {
+            return hex;
+        }
+
+        if (hex.Length == 6)
+        {
+            return $"{hex}FF";
+        }
+
+        if (hex.Length is < 3 or > 4)
+        {
+            return null;
+        }
+
+        char a = hex.Length == 3 ? 'F' : hex[3];
+        char b = hex[2];
+        char g = hex[1];
+        char r = hex[0];
+
+        return new string([r, r, g, g, b, b, a, a]);
+    }
+
+    /// <summary>
+    /// Converts the specified hex value to an AARRGGBB hex value.
+    /// </summary>
+    /// <param name="value">The hex value to convert.</param>
+    /// <returns>
+    /// A span containing the converted hex value in the format AARRGGBB.
+    /// </returns>
+    private static ReadOnlySpan<char> ToArgbHex(string value)
+    {
+        ReadOnlySpan<char> hex = value.AsSpan();
+
+        if (hex[0] == '#')
+        {
+            hex = hex[1..];
+        }
+
+        if (hex.Length == 8)
+        {
+            return hex;
+        }
+
+        if (hex.Length == 6)
+        {
+            return $"FF{hex}";
+        }
+
+        if (hex.Length is < 3 or > 4)
+        {
+            return null;
+        }
+
+        (char a, char r, char g, char b) = hex.Length == 3
+            ? ('F', hex[0], hex[1], hex[2])
+            : (hex[0], hex[1], hex[2], hex[3]);
+
+        return new string([a, a, r, r, g, g, b, b]);
     }
 }

@@ -37,9 +37,9 @@ internal static unsafe class Vp8Encoding
 
     private const int C8HE8 = C8VE8 + (1 * 16);
 
-    public static readonly int[] Vp8I16ModeOffsets = { I16DC16, I16TM16, I16VE16, I16HE16 };
+    public static readonly int[] Vp8I16ModeOffsets = [I16DC16, I16TM16, I16VE16, I16HE16];
 
-    public static readonly int[] Vp8UvModeOffsets = { C8DC8, C8TM8, C8VE8, C8HE8 };
+    public static readonly int[] Vp8UvModeOffsets = [C8DC8, C8TM8, C8VE8, C8HE8];
 
     private const int I4DC4 = (3 * 16 * WebpConstants.Bps) + 0;
 
@@ -61,7 +61,8 @@ internal static unsafe class Vp8Encoding
 
     private const int I4HU4 = I4HD4 + 4;
 
-    public static readonly int[] Vp8I4ModeOffsets = { I4DC4, I4TM4, I4VE4, I4HE4, I4RD4, I4VR4, I4LD4, I4VL4, I4HD4, I4HU4 };
+    public static readonly int[] Vp8I4ModeOffsets = [I4DC4, I4TM4, I4VE4, I4HE4, I4RD4, I4VR4, I4LD4, I4VL4, I4HD4, I4HU4
+    ];
 
     private static byte[] GetClip1()
     {

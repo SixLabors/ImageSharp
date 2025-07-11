@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Quantization;
 [Trait("Category", "Processors")]
 public class PaletteQuantizerTests
 {
-    private static readonly Color[] Palette = { Color.Red, Color.Green, Color.Blue };
+    private static readonly Color[] Palette = [Color.Red, Color.Green, Color.Blue];
 
     [Fact]
     public void PaletteQuantizerConstructor()

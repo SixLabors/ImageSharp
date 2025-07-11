@@ -11,12 +11,11 @@ internal static class IccTestDataMultiProcessElements
     /// <para>Input Channel Count: 3</para>
     /// <para>Output Channel Count: 3</para>
     /// </summary>
-    public static readonly IccCurveSetProcessElement CurvePeValGrad = new(new[]
-    {
+    public static readonly IccCurveSetProcessElement CurvePeValGrad = new([
         IccTestDataCurves.OneDimensionalValFormula1,
         IccTestDataCurves.OneDimensionalValFormula2,
         IccTestDataCurves.OneDimensionalValFormula1
-    });
+    ]);
 
     /// <summary>
     /// <para>Input Channel Count: 3</para>
@@ -28,9 +27,9 @@ internal static class IccTestDataMultiProcessElements
         IccTestDataCurves.OneDimensionalFormula1);
 
     public static readonly object[][] CurveSetTestData =
-    {
-        new object[] { CurvePeGrad, CurvePeValGrad, 3, 3 },
-    };
+    [
+        [CurvePeGrad, CurvePeValGrad, 3, 3]
+    ];
 
     /// <summary>
     /// <para>Input Channel Count: 3</para>
@@ -49,9 +48,9 @@ internal static class IccTestDataMultiProcessElements
         IccTestDataMatrix.Single1DGrad);
 
     public static readonly object[][] MatrixTestData =
-    {
-        new object[] { MatrixPeGrad, MatrixPeValGrad, 3, 3 },
-    };
+    [
+        [MatrixPeGrad, MatrixPeValGrad, 3, 3]
+    ];
 
     /// <summary>
     /// <para>Input Channel Count: 2</para>
@@ -66,9 +65,9 @@ internal static class IccTestDataMultiProcessElements
     public static readonly byte[] ClutpeGrad = IccTestDataLut.ClutF32;
 
     public static readonly object[][] ClutTestData =
-    {
-        new object[] { ClutpeGrad, ClutpeValGrad, 2, 3 },
-    };
+    [
+        [ClutpeGrad, ClutpeValGrad, 2, 3]
+    ];
 
     public static readonly IccMultiProcessElement MpeValMatrix = MatrixPeValGrad;
     public static readonly IccMultiProcessElement MpeValClut = ClutpeValGrad;
@@ -104,27 +103,27 @@ internal static class IccTestDataMultiProcessElements
         CurvePeGrad);
 
     public static readonly byte[] MpeBAcs =
-    {
+    [
         0x62, 0x41, 0x43, 0x53,
         0x00, 0x03,
         0x00, 0x03,
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    };
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+    ];
 
     public static readonly byte[] MpeEAcs =
-    {
+    [
         0x65, 0x41, 0x43, 0x53,
         0x00, 0x03,
         0x00, 0x03,
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    };
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+    ];
 
     public static readonly object[][] MultiProcessElementTestData =
-    {
-        new object[] { MpeMatrix, MpeValMatrix },
-        new object[] { MpeClut, MpeValClut },
-        new object[] { MpeCurve, MpeValCurve },
-        new object[] { MpeBAcs, MpeValbAcs },
-        new object[] { MpeEAcs, MpeValeAcs },
-    };
+    [
+        [MpeMatrix, MpeValMatrix],
+        [MpeClut, MpeValClut],
+        [MpeCurve, MpeValCurve],
+        [MpeBAcs, MpeValbAcs],
+        [MpeEAcs, MpeValeAcs]
+    ];
 }

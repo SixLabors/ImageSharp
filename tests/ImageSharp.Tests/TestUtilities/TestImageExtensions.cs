@@ -375,7 +375,7 @@ public static class TestImageExtensions
             appendPixelTypeToFileName,
             predicate);
 
-        List<Image<TPixel>> temporaryFrameImages = new();
+        List<Image<TPixel>> temporaryFrameImages = [];
 
         IImageDecoder decoder = TestEnvironment.GetReferenceDecoder(frameFiles[0].FileName);
 

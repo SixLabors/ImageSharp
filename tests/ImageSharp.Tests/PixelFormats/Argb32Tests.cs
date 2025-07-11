@@ -20,9 +20,18 @@ public class Argb32Tests
         Argb32 color2 = new(new Vector4(0.0f));
         Argb32 color3 = new(new Vector4(1f, 0.0f, 1f, 1f));
         Argb32 color4 = new(1f, 0.0f, 1f, 1f);
+        Argb32 color5 = new(0, 0, 0, 1F);
+        Argb32 color6 = Argb32.ParseHex("#000");
+        Argb32 color7 = Argb32.ParseHex("#F000");
+        Argb32 color8 = Argb32.ParseHex("#000000");
+        Argb32 color9 = Argb32.ParseHex("#FF000000");
 
         Assert.Equal(color1, color2);
         Assert.Equal(color3, color4);
+        Assert.Equal(color5, color6);
+        Assert.Equal(color5, color7);
+        Assert.Equal(color5, color8);
+        Assert.Equal(color5, color9);
     }
 
     /// <summary>
@@ -69,6 +78,94 @@ public class Argb32Tests
         Assert.Equal(Math.Round(.1f * 255), color5.G);
         Assert.Equal(Math.Round(.133f * 255), color5.B);
         Assert.Equal(Math.Round(.5f * 255), color5.A);
+    }
+
+    /// <summary>
+    /// Tests whether FromHex and ToHex work correctly.
+    /// </summary>
+    [Fact]
+    public void FromAndToHex()
+    {
+        // 8 digit hex. AARRGGBB
+        Argb32 color = Argb32.ParseHex("#AABBCCDD");
+        Assert.Equal(0xAA, color.A);
+        Assert.Equal(0xBB, color.R);
+        Assert.Equal(0xCC, color.G);
+        Assert.Equal(0xDD, color.B);
+
+        Assert.Equal("AABBCCDD", color.ToHex());
+
+        color.R = 0;
+
+        Assert.Equal("AA00CCDD", color.ToHex());
+
+        color.A = 255;
+
+        Assert.Equal("FF00CCDD", color.ToHex());
+    }
+
+    [Fact]
+    public void Argb32_TryParseHex()
+    {
+        Assert.True(Argb32.TryParseHex("000", out Argb32 color));
+        Assert.Equal("FF000000", color.ToHex());
+
+        Assert.True(Argb32.TryParseHex("#000", out color));
+        Assert.Equal("FF000000", color.ToHex());
+
+        Assert.True(Argb32.TryParseHex("0000", out color));
+        Assert.Equal("00000000", color.ToHex());
+
+        Assert.True(Argb32.TryParseHex("#0000", out color));
+        Assert.Equal("00000000", color.ToHex());
+
+        Assert.True(Argb32.TryParseHex("000000", out color));
+        Assert.Equal("FF000000", color.ToHex());
+
+        Assert.True(Argb32.TryParseHex("#000000", out color));
+        Assert.Equal("FF000000", color.ToHex());
+
+        Assert.True(Argb32.TryParseHex("abc", out color));
+        Assert.Equal("FFAABBCC", color.ToHex());
+
+        Assert.True(Argb32.TryParseHex("ABC", out color));
+        Assert.Equal("FFAABBCC", color.ToHex());
+
+        Assert.True(Argb32.TryParseHex("#ABC", out color));
+        Assert.Equal("FFAABBCC", color.ToHex());
+
+        Assert.True(Argb32.TryParseHex("ABCD", out color));
+        Assert.Equal("AABBCCDD", color.ToHex());
+
+        Assert.True(Argb32.TryParseHex("#ABCD", out color));
+        Assert.Equal("AABBCCDD", color.ToHex());
+
+        Assert.True(Argb32.TryParseHex("AABBCC", out color));
+        Assert.Equal("FFAABBCC", color.ToHex());
+
+        Assert.True(Argb32.TryParseHex("#AABBCC", out color));
+        Assert.Equal("FFAABBCC", color.ToHex());
+
+        Assert.True(Argb32.TryParseHex("AABBCCDD", out color));
+        Assert.Equal("AABBCCDD", color.ToHex());
+
+        Assert.True(Argb32.TryParseHex("#AABBCCDD", out color));
+        Assert.Equal("AABBCCDD", color.ToHex());
+
+        Assert.False(Argb32.TryParseHex(string.Empty, out _));
+        Assert.False(Argb32.TryParseHex(null, out _));
+        Assert.False(Argb32.TryParseHex("A", out _));
+        Assert.False(Argb32.TryParseHex("#A", out _));
+        Assert.False(Argb32.TryParseHex("AB", out _));
+        Assert.False(Argb32.TryParseHex("#AB", out _));
+        Assert.False(Argb32.TryParseHex("ABCDE", out _));
+        Assert.False(Argb32.TryParseHex("#ABCDE", out _));
+        Assert.False(Argb32.TryParseHex("ABCDEFG", out _));
+        Assert.False(Argb32.TryParseHex("#ABCDEFG", out _));
+        Assert.False(Argb32.TryParseHex("ABCD123", out _));
+        Assert.False(Argb32.TryParseHex("#ABCD123", out _));
+        Assert.False(Argb32.TryParseHex("ABCD12345", out _));
+        Assert.False(Argb32.TryParseHex("#ABCD12345", out _));
     }
 
     [Fact]

@@ -33,4 +33,13 @@
   <PropertyGroup Condition="$(Configuration.StartsWith('Release')) == true">
     <Optimize>true</Optimize>
   </PropertyGroup>
+
+  <!-- Required restore feeds. -->
+  <PropertyGroup>
+    <RestoreSources>
+      https://api.nuget.org/v3/index.json;
+      https://f.feedz.io/sixlabors/sixlabors/nuget/index.json;
+      https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-eng/nuget/v3/index.json;
+    </RestoreSources>
+  </PropertyGroup>
 </Project>

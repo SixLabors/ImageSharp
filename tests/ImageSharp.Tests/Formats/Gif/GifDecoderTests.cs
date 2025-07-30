@@ -183,16 +183,16 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
             image.CompareToReferenceOutputMultiFrame(provider, ImageComparer.Exact);
         }
 
-    // https://github.com/SixLabors/ImageSharp/issues/2758
-    [Theory]
-    [WithFile(TestImages.Gif.Issues.Issue2758, PixelTypes.Rgba32)]
-    public void Issue2758_BadDescriptorDimensions<TPixel>(TestImageProvider<TPixel> provider)
-        where TPixel : unmanaged, IPixel<TPixel>
-    {
-        using Image<TPixel> image = provider.GetImage();
-        image.DebugSaveMultiFrame(provider);
-        image.CompareToReferenceOutputMultiFrame(provider, ImageComparer.Exact);
-    }
+        // https://github.com/SixLabors/ImageSharp/issues/2758
+        [Theory]
+        [WithFile(TestImages.Gif.Issues.Issue2758, PixelTypes.Rgba32)]
+        public void Issue2758_BadDescriptorDimensions<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            using Image<TPixel> image = provider.GetImage();
+            image.DebugSaveMultiFrame(provider);
+            image.CompareToReferenceOutputMultiFrame(provider, ImageComparer.Exact);
+        }
 
         // https://github.com/SixLabors/ImageSharp/issues/405
         [Theory]
@@ -328,6 +328,19 @@ namespace SixLabors.ImageSharp.Tests.Formats.Gif
             using Image<TPixel> image = provider.GetImage();
             image.DebugSaveMultiFrame(provider);
             image.CompareToReferenceOutputMultiFrame(provider, ImageComparer.Exact);
+        }
+
+        // https://github.com/SixLabors/ImageSharp/issues/2953
+        [Theory]
+        [WithFile(TestImages.Gif.Issues.Issue2953, PixelTypes.Rgba32)]
+        public void Issue2953<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            // We should throw a InvalidImageContentException when trying to identify or load an invalid GIF file.
+            var testFile = TestFile.Create(provider.SourceFileOrDescription);
+
+            Assert.Throws<InvalidImageContentException>(() => Image.Identify(testFile.FullPath));
+            Assert.Throws<InvalidImageContentException>(() => Image.Load(testFile.FullPath));
         }
     }
 }

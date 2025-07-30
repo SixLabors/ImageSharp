@@ -402,6 +402,11 @@ namespace SixLabors.ImageSharp.Formats.Gif
                     GifThrowHelper.ThrowInvalidImageContentException($"Gif comment length '{length}' exceeds max '{GifConstants.MaxCommentSubBlockLength}' of a comment data block");
                 }
 
+                if (length == -1)
+                {
+                    GifThrowHelper.ThrowInvalidImageContentException("Unexpected end of stream while reading gif comment");
+                }
+
                 if (this.skipMetadata)
                 {
                     stream.Seek(length, SeekOrigin.Current);

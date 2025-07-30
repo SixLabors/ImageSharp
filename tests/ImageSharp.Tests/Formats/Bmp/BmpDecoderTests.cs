@@ -611,13 +611,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Bmp
         public void BmpDecoder_CanDecode_Os2BitmapArray<TPixel>(TestImageProvider<TPixel> provider)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            if (TestEnvironment.IsLinux && TestEnvironment.RunsOnCI)
-            {
-                // Build runs are failing on CI only.
-                // System.NotSupportedException : ImageSharp does not support this BMP file. File header bitmap type marker '25974'.
-                return;
-            }
-
             using (Image<TPixel> image = provider.GetImage(BmpDecoder))
             {
                 image.DebugSave(provider);

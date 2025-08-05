@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Buffers.Binary;
 using System.Globalization;
 using System.Numerics;
 using System.Runtime.CompilerServices;
@@ -399,19 +398,12 @@ public readonly partial struct Color : IEquatable<Color>
     private static bool TryParseRgbaHex(string? hex, out Rgba32 result)
     {
         result = default;
-        if (string.IsNullOrWhiteSpace(hex))
+
+        if (!TryConvertToRgbaUInt32(hex, out uint packedValue))
         {
             return false;
         }
 
-        ReadOnlySpan<char> hexSpan = ToRgbaHex(hex);
-
-        if (!uint.TryParse(hexSpan, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out uint packedValue))
-        {
-            return false;
-        }
-
-        packedValue = BinaryPrimitives.ReverseEndianness(packedValue);
         result = Unsafe.As<uint, Rgba32>(ref packedValue);
         return true;
     }
@@ -431,32 +423,25 @@ public readonly partial struct Color : IEquatable<Color>
     private static bool TryParseArgbHex(string? hex, out Argb32 result)
     {
         result = default;
-        if (string.IsNullOrWhiteSpace(hex))
+
+        if (!TryConvertToArgbUInt32(hex, out uint packedValue))
         {
             return false;
         }
 
-        ReadOnlySpan<char> hexSpan = ToArgbHex(hex);
-
-        if (!uint.TryParse(hexSpan, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out uint packedValue))
-        {
-            return false;
-        }
-
-        packedValue = BinaryPrimitives.ReverseEndianness(packedValue);
         result = Unsafe.As<uint, Argb32>(ref packedValue);
         return true;
     }
 
-    /// <summary>
-    /// Converts the specified hex value to an RRGGBBAA hex value.
-    /// </summary>
-    /// <param name="value">The hex value to convert.</param>
-    /// <returns>
-    /// A span containing the converted hex value in the format RRGGBBAA.
-    /// </returns>
-    private static ReadOnlySpan<char> ToRgbaHex(string value)
+    private static bool TryConvertToRgbaUInt32(string? value, out uint result)
     {
+        result = default;
+
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return false;
+        }
+
         ReadOnlySpan<char> hex = value.AsSpan();
 
         if (hex[0] == '#')
@@ -464,64 +449,69 @@ public readonly partial struct Color : IEquatable<Color>
             hex = hex[1..];
         }
 
-        if (hex.Length == 8)
-        {
-            return hex;
-        }
-
-        char a1 = 'F', a2 = 'F';
-        char r1, r2, g1, g2, b1, b2;
+        byte a = 255, r, g, b;
 
         switch (hex.Length)
         {
-            case 6:
-                r1 = hex[0];
-                r2 = hex[1];
-                g1 = hex[2];
-                g2 = hex[3];
-                b1 = hex[4];
-                b2 = hex[5];
+            case 8:
+                if (!TryParseByte(hex[0], hex[1], out r) ||
+                    !TryParseByte(hex[2], hex[3], out g) ||
+                    !TryParseByte(hex[4], hex[5], out b) ||
+                    !TryParseByte(hex[6], hex[7], out a))
+                {
+                    return false;
+                }
+
                 break;
 
-            case 3:
-                r1 = r2 = hex[0];
-                g1 = g2 = hex[1];
-                b1 = b2 = hex[2];
+            case 6:
+                if (!TryParseByte(hex[0], hex[1], out r) ||
+                    !TryParseByte(hex[2], hex[3], out g) ||
+                    !TryParseByte(hex[4], hex[5], out b))
+                {
+                    return false;
+                }
+
                 break;
 
             case 4:
-                r1 = r2 = hex[0];
-                g1 = g2 = hex[1];
-                b1 = b2 = hex[2];
-                a1 = a2 = hex[3];
+                if (!TryExpand(hex[0], out r) ||
+                    !TryExpand(hex[1], out g) ||
+                    !TryExpand(hex[2], out b) ||
+                    !TryExpand(hex[3], out a))
+                {
+                    return false;
+                }
+
+                break;
+
+            case 3:
+                if (!TryExpand(hex[0], out r) ||
+                    !TryExpand(hex[1], out g) ||
+                    !TryExpand(hex[2], out b))
+                {
+                    return false;
+                }
+
                 break;
 
             default:
-                return null;
+                return false;
         }
 
-        return string.Create(8, (r1, r2, g1, g2, b1, b2, a1, a2), static (span, s) =>
-        {
-            span[0] = s.r1;
-            span[1] = s.r2;
-            span[2] = s.g1;
-            span[3] = s.g2;
-            span[4] = s.b1;
-            span[5] = s.b2;
-            span[6] = s.a1;
-            span[7] = s.a2;
-        });
+        result = (uint)(r | (g << 8) | (b << 16) | (a << 24)); // RGBA layout
+        return true;
     }
 
-    /// <summary>
-    /// Converts the specified hex value to an AARRGGBB hex value.
-    /// </summary>
-    /// <param name="value">The hex value to convert.</param>
-    /// <returns>
-    /// A span containing the converted hex value in the format AARRGGBB.
-    /// </returns>
-    private static ReadOnlySpan<char> ToArgbHex(string value)
+    private static bool TryConvertToArgbUInt32(string? value, out uint result)
     {
+        result = default;
+
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return false;
+        }
+
         ReadOnlySpan<char> hex = value.AsSpan();
 
         if (hex[0] == '#')
@@ -529,52 +519,104 @@ public readonly partial struct Color : IEquatable<Color>
             hex = hex[1..];
         }
 
-        if (hex.Length == 8)
-        {
-            return hex;
-        }
-
-        char a1 = 'F', a2 = 'F';
-        char r1, r2, g1, g2, b1, b2;
+        byte a = 255, r, g, b;
 
         switch (hex.Length)
         {
-            case 6:
-                r1 = hex[0];
-                r2 = hex[1];
-                g1 = hex[2];
-                g2 = hex[3];
-                b1 = hex[4];
-                b2 = hex[5];
+            case 8:
+                if (!TryParseByte(hex[0], hex[1], out a) ||
+                    !TryParseByte(hex[2], hex[3], out r) ||
+                    !TryParseByte(hex[4], hex[5], out g) ||
+                    !TryParseByte(hex[6], hex[7], out b))
+                {
+                    return false;
+                }
+
                 break;
 
-            case 3:
-                r1 = r2 = hex[0];
-                g1 = g2 = hex[1];
-                b1 = b2 = hex[2];
+            case 6:
+                if (!TryParseByte(hex[0], hex[1], out r) ||
+                    !TryParseByte(hex[2], hex[3], out g) ||
+                    !TryParseByte(hex[4], hex[5], out b))
+                {
+                    return false;
+                }
+
                 break;
 
             case 4:
-                a1 = a2 = hex[0];
-                r1 = r2 = hex[1];
-                g1 = g2 = hex[2];
-                b1 = b2 = hex[3];
+                if (!TryExpand(hex[0], out a) ||
+                    !TryExpand(hex[1], out r) ||
+                    !TryExpand(hex[2], out g) ||
+                    !TryExpand(hex[3], out b))
+                {
+                    return false;
+                }
+
+                break;
+
+            case 3:
+                if (!TryExpand(hex[0], out r) ||
+                    !TryExpand(hex[1], out g) ||
+                    !TryExpand(hex[2], out b))
+                {
+                    return false;
+                }
+
                 break;
 
             default:
-                return null;
+                return false;
         }
 
-        return string.Create(8, (a1, a2, r1, r2, g1, g2, b1, b2), static (span, s) =>
+        result = (uint)((b << 24) | (g << 16) | (r << 8) | a);
+        return true;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static bool TryParseByte(char hi, char lo, out byte value)
+    {
+        if (TryConvertHexCharToByte(hi, out byte high) && TryConvertHexCharToByte(lo, out byte low))
         {
-            span[0] = s.a1;
-            span[1] = s.a2;
-            span[2] = s.r1;
-            span[3] = s.r2;
-            span[4] = s.g1;
-            span[5] = s.g2;
-            span[6] = s.b1;
-            span[7] = s.b2;
-        });
+            value = (byte)((high << 4) | low);
+            return true;
+        }
+
+        value = 0;
+        return false;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static bool TryExpand(char c, out byte value)
+    {
+        if (TryConvertHexCharToByte(c, out byte nibble))
+        {
+            value = (byte)((nibble << 4) | nibble);
+            return true;
+        }
+
+        value = 0;
+        return false;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static bool TryConvertHexCharToByte(char c, out byte value)
+    {
+        if ((uint)(c - '0') <= 9)
+        {
+            value = (byte)(c - '0');
+            return true;
+        }
+
+        char lower = (char)(c | 0x20); // Normalize to lowercase
+
+        if ((uint)(lower - 'a') <= 5)
+        {
+            value = (byte)(lower - 'a' + 10);
+            return true;
+        }
+
+        value = 0;
+        return false;
     }
 }

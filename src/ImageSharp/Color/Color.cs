@@ -469,22 +469,45 @@ public readonly partial struct Color : IEquatable<Color>
             return hex;
         }
 
-        if (hex.Length == 6)
+        char a1 = 'F', a2 = 'F';
+        char r1, r2, g1, g2, b1, b2;
+
+        switch (hex.Length)
         {
-            return $"{hex}FF";
+            case 6:
+                r1 = hex[0]; r2 = hex[1];
+                g1 = hex[2]; g2 = hex[3];
+                b1 = hex[4]; b2 = hex[5];
+                break;
+
+            case 3:
+                r1 = r2 = hex[0];
+                g1 = g2 = hex[1];
+                b1 = b2 = hex[2];
+                break;
+
+            case 4:
+                r1 = r2 = hex[0];
+                g1 = g2 = hex[1];
+                b1 = b2 = hex[2];
+                a1 = a2 = hex[3];
+                break;
+
+            default:
+                return null;
         }
 
-        if (hex.Length is < 3 or > 4)
+        return string.Create(8, (r1, r2, g1, g2, b1, b2, a1, a2), static (span, s) =>
         {
-            return null;
-        }
-
-        char a = hex.Length == 3 ? 'F' : hex[3];
-        char b = hex[2];
-        char g = hex[1];
-        char r = hex[0];
-
-        return new string([r, r, g, g, b, b, a, a]);
+            span[0] = s.r1;
+            span[1] = s.r2;
+            span[2] = s.g1;
+            span[3] = s.g2;
+            span[4] = s.b1;
+            span[5] = s.b2;
+            span[6] = s.a1;
+            span[7] = s.a2;
+        });
     }
 
     /// <summary>
@@ -508,20 +531,47 @@ public readonly partial struct Color : IEquatable<Color>
             return hex;
         }
 
-        if (hex.Length == 6)
+        char a1 = 'F', a2 = 'F';
+        char r1, r2, g1, g2, b1, b2;
+
+        switch (hex.Length)
         {
-            return $"FF{hex}";
+            case 6:
+                r1 = hex[0];
+                r2 = hex[1];
+                g1 = hex[2];
+                g2 = hex[3];
+                b1 = hex[4];
+                b2 = hex[5];
+                break;
+
+            case 3:
+                r1 = r2 = hex[0];
+                g1 = g2 = hex[1];
+                b1 = b2 = hex[2];
+                break;
+
+            case 4:
+                a1 = a2 = hex[0];
+                r1 = r2 = hex[1];
+                g1 = g2 = hex[2];
+                b1 = b2 = hex[3];
+                break;
+
+            default:
+                return null;
         }
 
-        if (hex.Length is < 3 or > 4)
+        return string.Create(8, (a1, a2, r1, r2, g1, g2, b1, b2), static (span, s) =>
         {
-            return null;
-        }
-
-        (char a, char r, char g, char b) = hex.Length == 3
-            ? ('F', hex[0], hex[1], hex[2])
-            : (hex[0], hex[1], hex[2], hex[3]);
-
-        return new string([a, a, r, r, g, g, b, b]);
+            span[0] = s.a1;
+            span[1] = s.a2;
+            span[2] = s.r1;
+            span[3] = s.r2;
+            span[4] = s.g1;
+            span[5] = s.g2;
+            span[6] = s.b1;
+            span[7] = s.b2;
+        });
     }
 }

@@ -234,7 +234,7 @@ public class PngMetadata : IFormatMetadata<PngMetadata>
         this.ColorTable = null;
 
         // If the color type is RGB and we have a transparent color, we need to switch to RGBA
-        // so that we  do not incorrectly preserve the obsolete tRNS chunk.
+        // so that we do not incorrectly preserve the obsolete tRNS chunk.
         if (this.ColorType == PngColorType.Rgb && this.TransparentColor.HasValue)
         {
             this.ColorType = PngColorType.RgbWithAlpha;

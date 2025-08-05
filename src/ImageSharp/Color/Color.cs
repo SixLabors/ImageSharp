@@ -475,9 +475,12 @@ public readonly partial struct Color : IEquatable<Color>
         switch (hex.Length)
         {
             case 6:
-                r1 = hex[0]; r2 = hex[1];
-                g1 = hex[2]; g2 = hex[3];
-                b1 = hex[4]; b2 = hex[5];
+                r1 = hex[0];
+                r2 = hex[1];
+                g1 = hex[2];
+                g2 = hex[3];
+                b1 = hex[4];
+                b2 = hex[5];
                 break;
 
             case 3:

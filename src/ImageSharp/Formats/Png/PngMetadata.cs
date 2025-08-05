@@ -230,7 +230,24 @@ public class PngMetadata : IFormatMetadata<PngMetadata>
     /// <inheritdoc/>
     public void AfterImageApply<TPixel>(Image<TPixel> destination, Matrix4x4 matrix)
         where TPixel : unmanaged, IPixel<TPixel>
-        => this.ColorTable = null;
+    {
+        this.ColorTable = null;
+
+        // If the color type is RGB and we have a transparent color, we need to switch to RGBA
+        // so that we  do not incorrectly preserve the obsolete tRNS chunk.
+        if (this.ColorType == PngColorType.Rgb && this.TransparentColor.HasValue)
+        {
+            this.ColorType = PngColorType.RgbWithAlpha;
+            this.TransparentColor = null;
+        }
+
+        // The same applies for Grayscale.
+        if (this.ColorType == PngColorType.Grayscale && this.TransparentColor.HasValue)
+        {
+            this.ColorType = PngColorType.GrayscaleWithAlpha;
+            this.TransparentColor = null;
+        }
+    }
 
     /// <inheritdoc/>
     IDeepCloneable IDeepCloneable.DeepClone() => this.DeepClone();

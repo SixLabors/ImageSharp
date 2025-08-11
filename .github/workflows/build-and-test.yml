@@ -14,7 +14,7 @@ on:
     types: [ labeled, opened, synchronize, reopened ]
 
 jobs:
-  # Primes the LFS cache so all matrix jobs can restore it in the same workflow run
+  # Warm LFS cache once, generate a stable .lfs-assets-id with LF endings, and save it as an artifact
   WarmLfs:
     runs-on: ubuntu-latest
     steps:
@@ -30,9 +30,11 @@ jobs:
           fetch-depth: 0
           submodules: recursive
 
-      # See https://github.com/actions/checkout/issues/165#issuecomment-657673315
-      - name: Git Create LFS FileList
-        run: git lfs ls-files -l | cut -d' ' -f1 | sort > .lfs-assets-id
+      # Generate the LFS id list once and normalise to LF so hashFiles() matches across OS
+      - name: Git Create LFS FileList (normalized)
+        shell: bash
+        run: |
+          git lfs ls-files -l | cut -d' ' -f1 | sort | tr -d '\r' > .lfs-assets-id
 
       - name: Git Setup LFS Cache
         uses: actions/cache@v4
@@ -42,10 +44,19 @@ jobs:
           key: lfs-${{ hashFiles('.lfs-assets-id') }}-v1
 
       - name: Git Pull LFS
+        shell: bash
         run: git lfs pull
 
+      # Make the exact same .lfs-assets-id available to all matrix jobs
+      - name: Publish LFS id artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: lfs-assets-id
+          path: .lfs-assets-id
+          if-no-files-found: error
+
   Build:
-    needs: WarmLfs   # Ensure the cache is saved before starting the matrix
+    needs: WarmLfs # Ensure the cache and id file exist before starting the matrix
     strategy:
       matrix:
         isARM:
@@ -101,7 +112,7 @@ jobs:
             options:
               os: buildjet-4vcpu-ubuntu-2204-arm
 
-    runs-on: ${{matrix.options.os}}
+    runs-on: ${{ matrix.options.os }}
 
     steps:
       - name: Install libgdi+, which is required for tests running on ubuntu
@@ -122,9 +133,11 @@ jobs:
           fetch-depth: 0
           submodules: recursive
 
-      # Each job restores the now-primed cache, and pulls only if needed
-      - name: Git Create LFS FileList
-        run: git lfs ls-files -l | cut -d' ' -f1 | sort > .lfs-assets-id
+      # Use the exact id list from WarmLfs to guarantee identical cache key on all OS
+      - name: Download LFS id artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: lfs-assets-id
 
       - name: Git Setup LFS Cache
         uses: actions/cache@v4
@@ -164,21 +177,21 @@ jobs:
       - name: DotNet Build
         if: ${{ matrix.options.sdk-preview != true }}
         shell: pwsh
-        run: ./ci-build.ps1 "${{matrix.options.framework}}"
+        run: ./ci-build.ps1 "${{ matrix.options.framework }}"
         env:
           SIXLABORS_TESTING: True
 
       - name: DotNet Build Preview
         if: ${{ matrix.options.sdk-preview == true }}
         shell: pwsh
-        run: ./ci-build.ps1 "${{matrix.options.framework}}"
+        run: ./ci-build.ps1 "${{ matrix.options.framework }}"
         env:
           SIXLABORS_TESTING_PREVIEW: True
 
       - name: DotNet Test
         if: ${{ matrix.options.sdk-preview != true }}
         shell: pwsh
-        run: ./ci-test.ps1 "${{matrix.options.os}}" "${{matrix.options.framework}}" "${{matrix.options.runtime}}" "${{matrix.options.codecov}}"
+        run: ./ci-test.ps1 "${{ matrix.options.os }}" "${{ matrix.options.framework }}" "${{ matrix.options.runtime }}" "${{ matrix.options.codecov }}"
         env:
           SIXLABORS_TESTING: True
           XUNIT_PATH: .\tests\ImageSharp.Tests # Required for xunit
@@ -186,7 +199,7 @@ jobs:
       - name: DotNet Test Preview
         if: ${{ matrix.options.sdk-preview == true }}
         shell: pwsh
-        run: ./ci-test.ps1 "${{matrix.options.os}}" "${{matrix.options.framework}}" "${{matrix.options.runtime}}" "${{matrix.options.codecov}}"
+        run: ./ci-test.ps1 "${{ matrix.options.os }}" "${{ matrix.options.framework }}" "${{ matrix.options.runtime }}" "${{ matrix.options.codecov }}"
         env:
           SIXLABORS_TESTING_PREVIEW: True
           XUNIT_PATH: .\tests\ImageSharp.Tests # Required for xunit

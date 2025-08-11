@@ -44,8 +44,8 @@ public partial class JpegDecoderTests
     private static bool SkipTest(ITestImageProvider provider)
     {
         string[] largeImagesToSkipOn32Bit =
-            {
-                TestImages.Jpeg.Baseline.Jpeg420Exif,
+        [
+            TestImages.Jpeg.Baseline.Jpeg420Exif,
                 TestImages.Jpeg.Issues.MissingFF00ProgressiveBedroom159,
                 TestImages.Jpeg.Issues.BadZigZagProgressive385,
                 TestImages.Jpeg.Issues.NoEoiProgressive517,
@@ -53,7 +53,7 @@ public partial class JpegDecoderTests
                 TestImages.Jpeg.Issues.InvalidEOI695,
                 TestImages.Jpeg.Issues.ExifResizeOutOfRange696,
                 TestImages.Jpeg.Issues.ExifGetString750Transform
-            };
+        ];
 
         return !TestEnvironment.Is64BitProcess && largeImagesToSkipOn32Bit.Contains(provider.SourceFileOrDescription);
     }

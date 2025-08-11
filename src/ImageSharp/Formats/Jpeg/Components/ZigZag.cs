@@ -18,8 +18,8 @@ internal static partial class ZigZag
     /// The worst case would be a run-length of 15, which means we need 16
     /// fake entries.
     /// </remarks>
-    public static ReadOnlySpan<byte> ZigZagOrder => new byte[]
-    {
+    public static ReadOnlySpan<byte> ZigZagOrder =>
+    [
         0,  1,  8, 16,  9,  2,  3, 10,
         17, 24, 32, 25, 18, 11,  4,  5,
         12, 19, 26, 33, 40, 48, 41, 34,
@@ -32,7 +32,7 @@ internal static partial class ZigZag
         // Extra entries for safety in decoder
         63, 63, 63, 63, 63, 63, 63, 63,
         63, 63, 63, 63, 63, 63, 63, 63
-    };
+    ];
 
     /// <summary>
     /// Gets span of zig-zag with fused transpose step ordering indices.
@@ -47,8 +47,8 @@ internal static partial class ZigZag
     /// The worst case would be a run-length of 15, which means we need 16
     /// fake entries.
     /// </remarks>
-    public static ReadOnlySpan<byte> TransposingOrder => new byte[]
-    {
+    public static ReadOnlySpan<byte> TransposingOrder =>
+    [
         0,  8,  1,  2,  9,  16, 24, 17,
         10, 3,  4,  11, 18, 25, 32, 40,
         33, 26, 19, 12, 5,  6,  13, 20,
@@ -61,5 +61,5 @@ internal static partial class ZigZag
         // Extra entries for safety in decoder
         63, 63, 63, 63, 63, 63, 63, 63,
         63, 63, 63, 63, 63, 63, 63, 63
-    };
+    ];
 }

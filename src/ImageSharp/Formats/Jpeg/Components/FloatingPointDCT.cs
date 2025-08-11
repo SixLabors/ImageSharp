@@ -49,8 +49,8 @@ internal static partial class FloatingPointDCT
     /// </code>
     /// </para>
     /// </remarks>
-    private static readonly float[] AdjustmentCoefficients = new float[]
-    {
+    private static readonly float[] AdjustmentCoefficients =
+    [
         1f, 1.3870399f, 1.306563f, 1.1758755f, 1f, 0.78569496f, 0.5411961f, 0.27589938f,
         1.3870399f, 1.9238797f, 1.812255f, 1.6309863f, 1.3870399f, 1.0897902f, 0.7506606f, 0.38268346f,
         1.306563f, 1.812255f, 1.707107f, 1.5363555f, 1.306563f, 1.02656f, 0.7071068f, 0.36047992f,
@@ -58,8 +58,8 @@ internal static partial class FloatingPointDCT
         1f, 1.3870399f, 1.306563f, 1.1758755f, 1f, 0.78569496f, 0.5411961f, 0.27589938f,
         0.78569496f, 1.0897902f, 1.02656f, 0.9238795f, 0.78569496f, 0.61731654f, 0.42521507f, 0.21677275f,
         0.5411961f, 0.7506606f, 0.7071068f, 0.63637924f, 0.5411961f, 0.42521507f, 0.29289323f, 0.14931567f,
-        0.27589938f, 0.38268346f, 0.36047992f, 0.32442334f, 0.27589938f, 0.21677275f, 0.14931567f, 0.076120466f,
-    };
+        0.27589938f, 0.38268346f, 0.36047992f, 0.32442334f, 0.27589938f, 0.21677275f, 0.14931567f, 0.076120466f
+    ];
 
     /// <summary>
     /// Adjusts given quantization table for usage with <see cref="TransformIDCT"/>.

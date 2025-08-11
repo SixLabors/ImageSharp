@@ -24,14 +24,20 @@ public class IccConversionDataMatrix
     };
 
     public static object[][] MatrixConversionTestData =
-    {
-        new object[] { CreateMatrix(Matrix3x3Identity), Vector3Zero, new Vector4(0.5f, 0.5f, 0.5f, 0), new Vector4(0.5f, 0.5f, 0.5f, 0) },
-        new object[] { CreateMatrix(Matrix3x3Identity), new Vector3(0.2f, 0.2f, 0.2f), new Vector4(0.5f, 0.5f, 0.5f, 0), new Vector4(0.7f, 0.7f, 0.7f, 0) },
-        new object[] { CreateMatrix(Matrix3x3Random), Vector3Zero, new Vector4(0.5f, 0.5f, 0.5f, 0), new Vector4(0.6f, 0.75f, 0.9f, 0) },
-        new object[] { CreateMatrix(Matrix3x3Random), new Vector3(0.1f, 0.2f, 0.3f), new Vector4(0.5f, 0.5f, 0.5f, 0), new Vector4(0.7f, 0.95f, 1.2f, 0) },
-        new object[] { CreateMatrix(Matrix3x3Random), Vector3Zero, new Vector4(0.2f, 0.4f, 0.7f, 0), new Vector4(0.67f, 0.8f, 0.93f, 0) },
-        new object[] { CreateMatrix(Matrix3x3Random), new Vector3(0.1f, 0.2f, 0.3f), new Vector4(0.2f, 0.4f, 0.7f, 0), new Vector4(0.77f, 1, 1.23f, 0) },
-    };
+    [
+        [CreateMatrix(Matrix3x3Identity), Vector3Zero, new Vector4(0.5f, 0.5f, 0.5f, 0), new Vector4(0.5f, 0.5f, 0.5f, 0)
+        ],
+        [CreateMatrix(Matrix3x3Identity), new Vector3(0.2f, 0.2f, 0.2f), new Vector4(0.5f, 0.5f, 0.5f, 0), new Vector4(0.7f, 0.7f, 0.7f, 0)
+        ],
+        [CreateMatrix(Matrix3x3Random), Vector3Zero, new Vector4(0.5f, 0.5f, 0.5f, 0), new Vector4(0.6f, 0.75f, 0.9f, 0)
+        ],
+        [CreateMatrix(Matrix3x3Random), new Vector3(0.1f, 0.2f, 0.3f), new Vector4(0.5f, 0.5f, 0.5f, 0), new Vector4(0.7f, 0.95f, 1.2f, 0)
+        ],
+        [CreateMatrix(Matrix3x3Random), Vector3Zero, new Vector4(0.2f, 0.4f, 0.7f, 0), new Vector4(0.67f, 0.8f, 0.93f, 0)
+        ],
+        [CreateMatrix(Matrix3x3Random), new Vector3(0.1f, 0.2f, 0.3f), new Vector4(0.2f, 0.4f, 0.7f, 0), new Vector4(0.77f, 1, 1.23f, 0)
+        ]
+    ];
 
     private static Matrix4x4 CreateMatrix(float[,] matrix) => new(
             matrix[0, 0],

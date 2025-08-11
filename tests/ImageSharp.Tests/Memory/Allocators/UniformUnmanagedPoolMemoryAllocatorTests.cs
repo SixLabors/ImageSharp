@@ -92,7 +92,7 @@ public class UniformUnmanagedPoolMemoryAllocatorTests
             1024,
             1024);
 
-        List<MemoryGroup<S4>> groups = new();
+        List<MemoryGroup<S4>> groups = [];
         for (int i = 0; i < 16; i++)
         {
             int lengthInElements = 128 / Unsafe.SizeOf<S4>();

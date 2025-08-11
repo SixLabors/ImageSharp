@@ -103,7 +103,7 @@ internal sealed partial class IccDataReader
     public IccNamedColor ReadNamedColor(uint deviceCoordCount)
     {
         string name = this.ReadAsciiString(32);
-        ushort[] pcsCoord = { this.ReadUInt16(), this.ReadUInt16(), this.ReadUInt16() };
+        ushort[] pcsCoord = [this.ReadUInt16(), this.ReadUInt16(), this.ReadUInt16()];
         ushort[] deviceCoord = new ushort[deviceCoordCount];
 
         for (int i = 0; i < deviceCoordCount; i++)

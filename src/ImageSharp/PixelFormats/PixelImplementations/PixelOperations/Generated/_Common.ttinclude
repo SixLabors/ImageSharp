@@ -14,8 +14,8 @@ using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.PixelFormats.Utils;
 <#+
     private static readonly string[] CommonPixelTypes =
-    {
-        "Argb32",
+        [
+            "Argb32",
         "Abgr32",
         "Bgr24",
         "Bgra32",
@@ -28,27 +28,27 @@ using SixLabors.ImageSharp.PixelFormats.Utils;
         "Rgb48",
         "Rgba64",
         "Bgra5551"
-    };
+            ];
 
     private static readonly string[] OptimizedPixelTypes =
-    {
-        "Rgba32",
+        [
+            "Rgba32",
         "Argb32",
         "Abgr32",
         "Bgra32",
         "Rgb24",
         "Bgr24"
-    };
+            ];
 
     // Types with Rgba32-combatable to/from Vector4 conversion
     private static readonly string[] Rgba32CompatibleTypes =
-    {
-        "Argb32",
+        [
+            "Argb32",
         "Abgr32",
         "Bgra32",
         "Rgb24",
         "Bgr24"
-    };
+            ];
 
     void GenerateGenericConverterMethods(string pixelType)
     {
@@ -187,7 +187,7 @@ using SixLabors.ImageSharp.PixelFormats.Utils;
 
         var matching32BitTypes = OptimizedPixelTypes.Contains(pixelType) ?
             OptimizedPixelTypes.Where(p => p != pixelType) :
-            Enumerable.Empty<string>();
+            [];
 
         foreach (string destPixelType in matching32BitTypes)
         {

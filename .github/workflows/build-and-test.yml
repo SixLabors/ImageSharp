@@ -14,40 +14,54 @@ on:
     types: [ labeled, opened, synchronize, reopened ]
 
 jobs:
-  # Warm LFS cache once, generate a stable .lfs-assets-id with LF endings, and save it as an artifact
-  WarmLfs:
+  # Warm up LFS cache once, on a single runner, and compute a stable cache key
+  WarmLFS:
     runs-on: ubuntu-latest
-    steps:
-      - name: Git Config
-        shell: bash
-        run: |
-          git config --global core.autocrlf false
-          git config --global core.longpaths true
 
-      - name: Git Checkout
-        uses: actions/checkout@v4
+    # Expose the computed cache key so matrix jobs can use it
+    outputs:
+      lfs_key: ${{ steps.compute-key.outputs.lfs_key }}
+
+    steps:
+      # Checkout repo with full history and submodules so we can see all LFS files
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
           submodules: recursive
 
-      # Generate the LFS id list once and normalise to LF so hashFiles() matches across OS
-      - name: Git Create LFS FileList
+      # Create a deterministic list of LFS object IDs:
+      # - `git lfs ls-files -l` lists all tracked LFS objects with their SHA-256
+      # - `awk '{print $1}'` extracts just the SHA field
+      # - `sort` sorts in byte order (hex hashes sort the same everywhere)
+      # This ensures the file content is identical regardless of OS or locale
+      - name: Git Create LFS id list
         shell: bash
-        run: git lfs ls-files -l | cut -d' ' -f1 | sort | tr -d '\r' > .lfs-assets-id
+        run: git lfs ls-files -l | awk '{print $1}' | sort > .lfs-assets-id
 
+      # Compute a stable cache key by hashing the list file itself.
+      # This guarantees the same key across all OSes and all matrix jobs.
+      - name: Git Compute LFS cache key
+        id: compute-key
+        shell: bash
+        run: |
+          # sha256sum outputs "<hash>  <filename>"
+          KEY_HASH=$(sha256sum .lfs-assets-id | awk '{print $1}')
+          echo "lfs_key=lfs-${KEY_HASH}-v1" >> "$GITHUB_OUTPUT"
+
+      # Restore or populate the cache for .git/lfs using the computed key
       - name: Git Setup LFS Cache
         uses: actions/cache@v4
-        id: lfs-cache
         with:
           path: .git/lfs
-          key: lfs-${{ hashFiles('.lfs-assets-id') }}-v1
+          key: ${{ steps.compute-key.outputs.lfs_key }}
 
+      # Ensure all LFS files for this commit are present locally
       - name: Git Pull LFS
         shell: bash
         run: git lfs pull
 
   Build:
-    needs: WarmLfs # Ensure the cache and id file exist before starting the matrix
+    needs: WarmLFS # Ensure the cache and id file exist before starting the matrix
     strategy:
       matrix:
         isARM:
@@ -124,10 +138,12 @@ jobs:
           fetch-depth: 0
           submodules: recursive
 
-      # Each job restores the now-primed cache, and pulls only if needed
-      - name: Git Create LFS FileList
-        shell: bash
-        run: git lfs ls-files -l | cut -d' ' -f1 | sort | tr -d '\r' > .lfs-assets-id
+      # Use the *exact same key* computed in WarmLFS to restore the warmed cache.
+      # This avoids regenerating the key per-OS and ensures all matrix jobs hit the same cache.
+      - uses: actions/cache@v4
+        with:
+          path: .git/lfs
+          key: ${{ needs.WarmLFS.outputs.lfs_key }}
 
       - name: Git Setup LFS Cache
         uses: actions/cache@v4

@@ -36,10 +36,14 @@ jobs:
           fetch-depth: 0
           submodules: recursive
 
-      # Normalize the LFS id list to LF so the cache key is stable across environments
-      - name: Git Create LFS FileList
+      # Create a deterministic list of LFS object IDs:
+      # - `git lfs ls-files -l` lists all tracked LFS objects with their SHA-256
+      # - `awk '{print $1}'` extracts just the SHA field
+      # - `sort` sorts in byte order (hex hashes sort the same everywhere)
+      # This ensures the file content is identical regardless of OS or locale
+      - name: Git Create LFS id list
         shell: bash
-        run: git lfs ls-files -l | cut -d' ' -f1 | sort | tr -d '\r' > .lfs-assets-id
+        run: git lfs ls-files -l | awk '{print $1}' | sort > .lfs-assets-id
 
       - name: Git Setup LFS Cache
         uses: actions/cache@v4

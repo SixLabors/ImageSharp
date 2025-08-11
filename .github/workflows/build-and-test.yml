@@ -12,8 +12,40 @@ on:
       - main
       - release/*
     types: [ labeled, opened, synchronize, reopened ]
+
 jobs:
+  # Primes the LFS cache so all matrix jobs can restore it in the same workflow run
+  WarmLfs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Git Config
+        shell: bash
+        run: |
+          git config --global core.autocrlf false
+          git config --global core.longpaths true
+
+      - name: Git Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      # See https://github.com/actions/checkout/issues/165#issuecomment-657673315
+      - name: Git Create LFS FileList
+        run: git lfs ls-files -l | cut -d' ' -f1 | sort > .lfs-assets-id
+
+      - name: Git Setup LFS Cache
+        uses: actions/cache@v4
+        id: lfs-cache
+        with:
+          path: .git/lfs
+          key: lfs-${{ hashFiles('.lfs-assets-id') }}-v1
+
+      - name: Git Pull LFS
+        run: git lfs pull
+
   Build:
+    needs: WarmLfs   # Ensure the cache is saved before starting the matrix
     strategy:
       matrix:
         isARM:
@@ -90,7 +122,7 @@ jobs:
           fetch-depth: 0
           submodules: recursive
 
-      # See https://github.com/actions/checkout/issues/165#issuecomment-657673315
+      # Each job restores the now-primed cache, and pulls only if needed
       - name: Git Create LFS FileList
         run: git lfs ls-files -l | cut -d' ' -f1 | sort > .lfs-assets-id
 
@@ -99,7 +131,7 @@ jobs:
         id: lfs-cache
         with:
           path: .git/lfs
-          key: ${{ runner.os }}-lfs-${{ hashFiles('.lfs-assets-id') }}-v1
+          key: lfs-${{ hashFiles('.lfs-assets-id') }}-v1
 
       - name: Git Pull LFS
         run: git lfs pull
@@ -213,4 +245,3 @@ jobs:
         run: |
           dotnet nuget push .\artifacts\*.nupkg -k ${{secrets.NUGET_TOKEN}} -s https://api.nuget.org/v3/index.json --skip-duplicate
           dotnet nuget push .\artifacts\*.snupkg -k ${{secrets.NUGET_TOKEN}} -s https://api.nuget.org/v3/index.json --skip-duplicate
-

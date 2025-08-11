@@ -22,20 +22,20 @@ public class ReferenceDecoderBenchmarks
     public const int DefaultExecutionCount = 50;
 
     public static readonly string[] PngBenchmarkFiles =
-        {
-            TestImages.Png.CalliphoraPartial,
+    [
+        TestImages.Png.CalliphoraPartial,
             TestImages.Png.Kaboom,
             TestImages.Png.Bike,
             TestImages.Png.Splash,
             TestImages.Png.SplashInterlaced
-        };
+    ];
 
     public static readonly string[] BmpBenchmarkFiles =
-        {
-            TestImages.Bmp.NegHeight,
+    [
+        TestImages.Bmp.NegHeight,
             TestImages.Bmp.Car,
             TestImages.Bmp.V5Header
-        };
+    ];
 
     public ReferenceDecoderBenchmarks(ITestOutputHelper output)
     {

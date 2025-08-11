@@ -14,9 +14,9 @@ public class SkewTests
 {
     private const PixelTypes CommonPixelTypes = PixelTypes.Bgra32 | PixelTypes.Rgb24;
 
-    public static readonly string[] ResamplerNames = new[]
-                                                         {
-                                                             nameof(KnownResamplers.Bicubic),
+    public static readonly string[] ResamplerNames =
+    [
+        nameof(KnownResamplers.Bicubic),
                                                              nameof(KnownResamplers.Box),
                                                              nameof(KnownResamplers.CatmullRom),
                                                              nameof(KnownResamplers.Hermite),
@@ -30,8 +30,8 @@ public class SkewTests
                                                              nameof(KnownResamplers.RobidouxSharp),
                                                              nameof(KnownResamplers.Spline),
                                                              nameof(KnownResamplers.Triangle),
-                                                             nameof(KnownResamplers.Welch),
-                                                         };
+                                                             nameof(KnownResamplers.Welch)
+    ];
 
     public static readonly TheoryData<float, float> SkewValues = new()
     {

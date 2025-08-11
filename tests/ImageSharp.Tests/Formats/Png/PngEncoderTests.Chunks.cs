@@ -188,15 +188,15 @@ public partial class PngEncoderTests
             { PngChunkType.Data, false },
             { PngChunkType.End, false }
         };
-        List<PngChunkType> excludedChunkTypes = new()
-        {
+        List<PngChunkType> excludedChunkTypes =
+        [
             PngChunkType.Gamma,
             PngChunkType.Exif,
             PngChunkType.Physical,
             PngChunkType.Text,
             PngChunkType.InternationalText,
-            PngChunkType.CompressedText,
-        };
+            PngChunkType.CompressedText
+        ];
 
         // act
         input.Save(memStream, encoder);
@@ -252,7 +252,7 @@ public partial class PngEncoderTests
             { PngChunkType.Data, false },
             { PngChunkType.End, false }
         };
-        List<PngChunkType> excludedChunkTypes = new();
+        List<PngChunkType> excludedChunkTypes = [];
         switch (chunkFilter)
         {
             case PngChunkFilter.ExcludeGammaChunk:
@@ -326,8 +326,8 @@ public partial class PngEncoderTests
         using Image<Rgba32> input = testFile.CreateRgba32Image();
         using MemoryStream memStream = new();
         PngEncoder encoder = new() { ChunkFilter = PngChunkFilter.None, TextCompressionThreshold = 8 };
-        List<PngChunkType> expectedChunkTypes = new()
-        {
+        List<PngChunkType> expectedChunkTypes =
+        [
             PngChunkType.Header,
             PngChunkType.Gamma,
             PngChunkType.EmbeddedColorProfile,
@@ -338,8 +338,8 @@ public partial class PngEncoderTests
             PngChunkType.Exif,
             PngChunkType.Physical,
             PngChunkType.Data,
-            PngChunkType.End,
-        };
+            PngChunkType.End
+        ];
 
         // act
         input.Save(memStream, encoder);

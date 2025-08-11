@@ -21,7 +21,7 @@ public class HistogramEqualizationTests
     {
         // Arrange
         byte[] pixels =
-        {
+        [
             52,  55,  61,  59,  70,  61,  76,  61,
             62,  59,  55, 104,  94,  85,  59,  71,
             63,  65,  66, 113, 144, 104,  63,  72,
@@ -30,7 +30,7 @@ public class HistogramEqualizationTests
             68,  79,  60,  79,  77,  66,  58,  75,
             69,  85,  64,  58,  55,  61,  65,  83,
             70,  87,  69,  68,  65,  73,  78,  90
-        };
+        ];
 
         using (Image<Rgba32> image = new(8, 8))
         {
@@ -44,7 +44,7 @@ public class HistogramEqualizationTests
             }
 
             byte[] expected =
-            {
+            [
                 0,    12,   53,   32,  146,   53,  174,   53,
                 57,   32,   12,  227,  219,  202,   32,  154,
                 65,   85,   93,  239,  251,  227,   65,  158,
@@ -53,7 +53,7 @@ public class HistogramEqualizationTests
                 117, 190,   36,  190,  178,   93,   20,  170,
                 130, 202,   73,   20,   12,   53,   85,  194,
                 146, 206,  130,  117,   85,  166,  182,  215
-            };
+            ];
 
             // Act
             image.Mutate(x => x.HistogramEqualization(new HistogramEqualizationOptions

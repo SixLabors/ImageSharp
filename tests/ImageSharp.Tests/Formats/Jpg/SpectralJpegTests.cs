@@ -22,19 +22,19 @@ public class SpectralJpegTests
     private ITestOutputHelper Output { get; }
 
     public static readonly string[] BaselineTestJpegs =
-        {
-            TestImages.Jpeg.Baseline.Calliphora, TestImages.Jpeg.Baseline.Cmyk, TestImages.Jpeg.Baseline.Jpeg400,
+    [
+        TestImages.Jpeg.Baseline.Calliphora, TestImages.Jpeg.Baseline.Cmyk, TestImages.Jpeg.Baseline.Jpeg400,
             TestImages.Jpeg.Baseline.Jpeg444, TestImages.Jpeg.Baseline.Testorig420,
             TestImages.Jpeg.Baseline.Jpeg420Small, TestImages.Jpeg.Baseline.Bad.BadEOF,
             TestImages.Jpeg.Baseline.MultiScanBaselineCMYK
-        };
+    ];
 
     public static readonly string[] ProgressiveTestJpegs =
-        {
-            TestImages.Jpeg.Progressive.Fb, TestImages.Jpeg.Progressive.Progress,
+    [
+        TestImages.Jpeg.Progressive.Fb, TestImages.Jpeg.Progressive.Progress,
             TestImages.Jpeg.Progressive.Festzug, TestImages.Jpeg.Progressive.Bad.BadEOF,
-            TestImages.Jpeg.Progressive.Bad.ExifUndefType,
-        };
+            TestImages.Jpeg.Progressive.Bad.ExifUndefType
+    ];
 
     public static readonly string[] AllTestJpegs = BaselineTestJpegs.Concat(ProgressiveTestJpegs).ToArray();
 

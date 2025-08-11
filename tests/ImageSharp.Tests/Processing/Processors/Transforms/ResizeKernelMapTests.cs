@@ -198,14 +198,14 @@ public partial class ResizeKernelMapTests
         string[] resamplerNames = TestUtils.GetAllResamplerNames(false);
 
         int[] dimensionVals =
-            {
-                // Arbitrary, small dimensions:
+        [
+            // Arbitrary, small dimensions:
                 9, 10, 11, 13, 49, 50, 53, 99, 100, 199, 200, 201, 299, 300, 301,
 
                 // Typical image sizes:
                 640, 480, 800, 600, 1024, 768, 1280, 960, 1536, 1180, 1600, 1200, 2048, 1536, 2240, 1680, 2560,
                 1920, 3032, 2008, 3072, 2304, 3264, 2448
-            };
+        ];
 
         IOrderedEnumerable<(int S, int D)> source2Dest = dimensionVals
             .SelectMany(s => dimensionVals.Select(d => (s, d)))

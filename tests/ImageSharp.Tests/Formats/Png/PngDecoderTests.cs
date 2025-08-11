@@ -21,7 +21,7 @@ public partial class PngDecoderTests
     private const PixelTypes TestPixelTypes = PixelTypes.Rgba32 | PixelTypes.RgbaVector | PixelTypes.Argb32;
 
     public static readonly string[] CommonTestImages =
-    {
+    [
         TestImages.Png.Splash,
         TestImages.Png.FilterVar,
 
@@ -35,29 +35,29 @@ public partial class PngDecoderTests
         TestImages.Png.Rgb24BppTrans,
 
         TestImages.Png.Bad.ChunkLength1,
-        TestImages.Png.Bad.ChunkLength2,
-    };
+        TestImages.Png.Bad.ChunkLength2
+    ];
 
     public static readonly string[] TestImagesIssue1014 =
-    {
+    [
         TestImages.Png.Issue1014_1, TestImages.Png.Issue1014_2,
         TestImages.Png.Issue1014_3, TestImages.Png.Issue1014_4,
         TestImages.Png.Issue1014_5, TestImages.Png.Issue1014_6
-    };
+    ];
 
     public static readonly string[] TestImagesIssue1177 =
-    {
+    [
         TestImages.Png.Issue1177_1,
         TestImages.Png.Issue1177_2
-    };
+    ];
 
     public static readonly string[] CorruptedTestImages =
-    {
+    [
         TestImages.Png.Bad.CorruptedChunk,
         TestImages.Png.Bad.ZlibOverflow,
         TestImages.Png.Bad.ZlibOverflow2,
-        TestImages.Png.Bad.ZlibZtxtBadHeader,
-    };
+        TestImages.Png.Bad.ZlibZtxtBadHeader
+    ];
 
     public static readonly TheoryData<string, Type> PixelFormatRange = new()
     {
@@ -79,7 +79,7 @@ public partial class PngDecoderTests
     };
 
     public static readonly string[] MultiFrameTestFiles =
-    {
+    [
         TestImages.Png.APng,
         TestImages.Png.SplitIDatZeroLength,
         TestImages.Png.DisposeNone,
@@ -90,7 +90,7 @@ public partial class PngDecoderTests
         TestImages.Png.BlendOverMultiple,
         TestImages.Png.FrameOffset,
         TestImages.Png.DefaultNotAnimated
-    };
+    ];
 
     [Theory]
     [MemberData(nameof(PixelFormatRange))]

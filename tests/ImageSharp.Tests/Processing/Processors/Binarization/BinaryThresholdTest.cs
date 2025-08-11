@@ -19,10 +19,10 @@ public class BinaryThresholdTest
     };
 
     public static readonly string[] CommonTestImages =
-    {
+    [
         TestImages.Png.Rgb48Bpp,
-        TestImages.Png.ColorsSaturationLightness,
-    };
+        TestImages.Png.ColorsSaturationLightness
+    ];
 
     public const PixelTypes TestPixelTypes = PixelTypes.Rgba32 | PixelTypes.Bgra32 | PixelTypes.Rgb24;
 

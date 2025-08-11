@@ -14,7 +14,7 @@ public class DitherTests
     public const PixelTypes CommonNonDefaultPixelTypes =
         PixelTypes.Rgba32 | PixelTypes.Bgra32 | PixelTypes.Rgb24 | PixelTypes.RgbaVector;
 
-    public static readonly string[] CommonTestImages = { TestImages.Png.CalliphoraPartial, TestImages.Png.Bike };
+    public static readonly string[] CommonTestImages = [TestImages.Png.CalliphoraPartial, TestImages.Png.Bike];
 
     public static readonly TheoryData<IDither, string> ErrorDiffusers
         = new()

@@ -239,7 +239,7 @@ public class Vp8ResidualTests
     {
         // arrange
         Vp8Residual residual = new();
-        short[] coeffs = { 110, 0, -2, 0, 0, 0, 0, 0, 0, -1, 0, 0, 0, 0, 0, 0 };
+        short[] coeffs = [110, 0, -2, 0, 0, 0, 0, 0, 0, -1, 0, 0, 0, 0, 0, 0];
 
         // act
         residual.SetCoeffs(coeffs);

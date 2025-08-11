@@ -67,9 +67,9 @@ public partial class ColorTests
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public void ToHex(bool highPrecision)
+    public void ToHexRgba(bool highPrecision)
     {
-        string expected = "ABCD1234";
+        const string expected = "AABBCCDD";
         Color color = Color.ParseHex(expected);
 
         if (highPrecision)
@@ -81,10 +81,27 @@ public partial class ColorTests
         Assert.Equal(expected, actual);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ToHexArgb(bool highPrecision)
+    {
+        const string expected = "AABBCCDD";
+        Color color = Color.ParseHex(expected, ColorHexFormat.Argb);
+
+        if (highPrecision)
+        {
+            color = Color.FromPixel(color.ToPixel<RgbaDouble>());
+        }
+
+        string actual = color.ToHex(ColorHexFormat.Argb);
+        Assert.Equal(expected, actual);
+    }
+
     [Fact]
     public void WebSafePalette_IsCorrect()
     {
-        Rgba32[] actualPalette = Color.WebSafePalette.ToArray().Select(c => c.ToPixel<Rgba32>()).ToArray();
+        Rgba32[] actualPalette = [.. Color.WebSafePalette.ToArray().Select(c => c.ToPixel<Rgba32>())];
 
         for (int i = 0; i < ReferencePalette.WebSafeColors.Length; i++)
         {
@@ -95,7 +112,7 @@ public partial class ColorTests
     [Fact]
     public void WernerPalette_IsCorrect()
     {
-        Rgba32[] actualPalette = Color.WernerPalette.ToArray().Select(c => c.ToPixel<Rgba32>()).ToArray();
+        Rgba32[] actualPalette = [.. Color.WernerPalette.ToArray().Select(c => c.ToPixel<Rgba32>())];
 
         for (int i = 0; i < ReferencePalette.WernerColors.Length; i++)
         {
@@ -103,7 +120,7 @@ public partial class ColorTests
         }
     }
 
-    public class FromHex
+    public class FromHexRgba
     {
         [Fact]
         public void ShortHex()
@@ -124,6 +141,23 @@ public partial class ColorTests
 
             Assert.True(Color.TryParseHex("000f", out actual));
             Assert.Equal(new Rgba32(0, 0, 0, 255), actual.ToPixel<Rgba32>());
+        }
+
+        [Fact]
+        public void LongHex()
+        {
+            Assert.Equal(new Rgba32(255, 255, 255, 0), Color.ParseHex("#FFFFFF00").ToPixel<Rgba32>());
+            Assert.Equal(new Rgba32(255, 255, 255, 128), Color.ParseHex("#FFFFFF80").ToPixel<Rgba32>());
+        }
+
+        [Fact]
+        public void TryLongHex()
+        {
+            Assert.True(Color.TryParseHex("#FFFFFF00", out Color actual));
+            Assert.Equal(new Rgba32(255, 255, 255, 0), actual.ToPixel<Rgba32>());
+
+            Assert.True(Color.TryParseHex("#FFFFFF80", out actual));
+            Assert.Equal(new Rgba32(255, 255, 255, 128), actual.ToPixel<Rgba32>());
         }
 
         [Fact]
@@ -150,6 +184,72 @@ public partial class ColorTests
 
         [Fact]
         public void FalseOnNull() => Assert.False(Color.TryParseHex(null, out Color _));
+    }
+
+    public class FromHexArgb
+    {
+        [Fact]
+        public void ShortHex()
+        {
+            Assert.Equal(new Rgb24(255, 255, 255), Color.ParseHex("#fff", ColorHexFormat.Argb).ToPixel<Rgb24>());
+            Assert.Equal(new Rgb24(255, 255, 255), Color.ParseHex("fff", ColorHexFormat.Argb).ToPixel<Rgb24>());
+            Assert.Equal(new Argb32(0, 0, 255, 0), Color.ParseHex("000f", ColorHexFormat.Argb).ToPixel<Argb32>());
+        }
+
+        [Fact]
+        public void TryShortHex()
+        {
+            Assert.True(Color.TryParseHex("#fff", out Color actual, ColorHexFormat.Argb));
+            Assert.Equal(new Rgb24(255, 255, 255), actual.ToPixel<Rgb24>());
+
+            Assert.True(Color.TryParseHex("fff", out actual, ColorHexFormat.Argb));
+            Assert.Equal(new Rgb24(255, 255, 255), actual.ToPixel<Rgb24>());
+
+            Assert.True(Color.TryParseHex("000f", out actual, ColorHexFormat.Argb));
+            Assert.Equal(new Argb32(0, 0, 255, 0), actual.ToPixel<Argb32>());
+        }
+
+        [Fact]
+        public void LongHex()
+        {
+            Assert.Equal(new Argb32(255, 255, 255, 0), Color.ParseHex("#00FFFFFF", ColorHexFormat.Argb).ToPixel<Argb32>());
+            Assert.Equal(new Argb32(255, 255, 255, 128), Color.ParseHex("#80FFFFFF", ColorHexFormat.Argb).ToPixel<Argb32>());
+        }
+
+        [Fact]
+        public void TryLongHex()
+        {
+            Assert.True(Color.TryParseHex("#00FFFFFF", out Color actual, ColorHexFormat.Argb));
+            Assert.Equal(new Argb32(255, 255, 255, 0), actual.ToPixel<Argb32>());
+
+            Assert.True(Color.TryParseHex("#80FFFFFF", out actual, ColorHexFormat.Argb));
+            Assert.Equal(new Argb32(255, 255, 255, 128), actual.ToPixel<Argb32>());
+        }
+
+        [Fact]
+        public void LeadingPoundIsOptional()
+        {
+            Assert.Equal(new Rgb24(0, 128, 128), Color.ParseHex("#008080", ColorHexFormat.Argb).ToPixel<Rgb24>());
+            Assert.Equal(new Rgb24(0, 128, 128), Color.ParseHex("008080", ColorHexFormat.Argb).ToPixel<Rgb24>());
+        }
+
+        [Fact]
+        public void ThrowsOnEmpty() => Assert.Throws<ArgumentException>(() => Color.ParseHex(string.Empty, ColorHexFormat.Argb));
+
+        [Fact]
+        public void ThrowsOnInvalid() => Assert.Throws<ArgumentException>(() => Color.ParseHex("!", ColorHexFormat.Argb));
+
+        [Fact]
+        public void ThrowsOnNull() => Assert.Throws<ArgumentNullException>(() => Color.ParseHex(null, ColorHexFormat.Argb));
+
+        [Fact]
+        public void FalseOnEmpty() => Assert.False(Color.TryParseHex(string.Empty, out Color _, ColorHexFormat.Argb));
+
+        [Fact]
+        public void FalseOnInvalid() => Assert.False(Color.TryParseHex("!", out Color _, ColorHexFormat.Argb));
+
+        [Fact]
+        public void FalseOnNull() => Assert.False(Color.TryParseHex(null, out Color _, ColorHexFormat.Argb));
     }
 
     public class FromString

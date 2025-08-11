@@ -46,14 +46,6 @@ jobs:
         shell: bash
         run: git lfs pull
 
-      # Make the exact same .lfs-assets-id available to all matrix jobs
-      - name: Publish LFS id artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: lfs-assets-id
-          path: .lfs-assets-id
-          if-no-files-found: error
-
   Build:
     needs: WarmLfs # Ensure the cache and id file exist before starting the matrix
     strategy:

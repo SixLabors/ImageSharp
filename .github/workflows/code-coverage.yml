@@ -36,7 +36,7 @@ jobs:
           fetch-depth: 0
           submodules: recursive
 
-      # Create a deterministic list of LFS object IDs:
+      # Deterministic list of LFS object IDs, then compute a portable key:
       # - `git lfs ls-files -l` lists all tracked LFS objects with their SHA-256
       # - `awk '{print $1}'` extracts just the SHA field
       # - `sort` sorts in byte order (hex hashes sort the same everywhere)

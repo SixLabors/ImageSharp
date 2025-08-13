@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.Formats.Png;
 public sealed class PngDecoderOptions : ISpecializedDecoderOptions
 {
     /// <inheritdoc/>
-    public DecoderOptions GeneralOptions { get; init; } = new DecoderOptions();
+    public DecoderOptions GeneralOptions { get; init; } = new();
 
     /// <summary>
     /// Gets the maximum memory in bytes that a zTXt, sPLT, iTXt, iCCP, or unknown chunk can occupy when decompressed.

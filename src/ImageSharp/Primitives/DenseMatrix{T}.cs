@@ -198,7 +198,7 @@ public readonly struct DenseMatrix<T> : IEquatable<DenseMatrix<T>>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public DenseMatrix<T> Transpose()
     {
-        DenseMatrix<T> result = new DenseMatrix<T>(this.Rows, this.Columns);
+        DenseMatrix<T> result = new(this.Rows, this.Columns);
 
         for (int y = 0; y < this.Rows; y++)
         {

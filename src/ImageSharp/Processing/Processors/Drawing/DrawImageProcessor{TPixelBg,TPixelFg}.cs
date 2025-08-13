@@ -112,7 +112,7 @@ internal class DrawImageProcessor<TPixelBg, TPixelFg> : ImageProcessor<TPixelBg>
         }
 
         // Sanitize the dimensions so that we don't try and sample outside the image.
-        Rectangle backgroundRectangle = Rectangle.Intersect(new(left, top, width, height), this.SourceRectangle);
+        Rectangle backgroundRectangle = Rectangle.Intersect(new Rectangle(left, top, width, height), this.SourceRectangle);
         Configuration configuration = this.Configuration;
 
         DrawImageProcessor<TPixelBg, TPixelFg>.RowOperation operation =
@@ -127,7 +127,7 @@ internal class DrawImageProcessor<TPixelBg, TPixelFg> : ImageProcessor<TPixelBg>
 
         ParallelRowIterator.IterateRows(
             configuration,
-            new(0, 0, foregroundRectangle.Width, foregroundRectangle.Height),
+            new Rectangle(0, 0, foregroundRectangle.Width, foregroundRectangle.Height),
             in operation);
     }
 

@@ -60,7 +60,7 @@ internal static partial class LibJpegTools
 
         internal void MakeBlock(Block8x8 block, int y, int x)
         {
-            block.TransposeInplace();
+            block.TransposeInPlace();
             this.MakeBlock(block.ToArray(), y, x);
         }
 

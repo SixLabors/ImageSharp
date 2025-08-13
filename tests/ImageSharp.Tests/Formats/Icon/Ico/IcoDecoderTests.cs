@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.Formats.Ico;
 using SixLabors.ImageSharp.Formats.Icon;
@@ -277,7 +278,7 @@ public class IcoDecoderTests
     [WithFile(MultiSizeF, PixelTypes.Rgba32)]
     public void MultiSize_CanDecodeSingleFrame(TestImageProvider<Rgba32> provider)
     {
-        using Image<Rgba32> image = provider.GetImage(IcoDecoder.Instance, new() { MaxFrames = 1 });
+        using Image<Rgba32> image = provider.GetImage(IcoDecoder.Instance, new DecoderOptions { MaxFrames = 1 });
         Assert.Single(image.Frames);
     }
 
@@ -293,7 +294,7 @@ public class IcoDecoderTests
         TestFile testFile = TestFile.Create(imagePath);
         using MemoryStream stream = new(testFile.Bytes, false);
 
-        ImageInfo imageInfo = Image.Identify(new() { MaxFrames = 1 }, stream);
+        ImageInfo imageInfo = Image.Identify(new DecoderOptions { MaxFrames = 1 }, stream);
 
         Assert.Single(imageInfo.FrameMetadataCollection);
     }

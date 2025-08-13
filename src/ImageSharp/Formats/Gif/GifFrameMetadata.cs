@@ -77,34 +77,12 @@ public class GifFrameMetadata : IFormatFrameMetadata<GifFrameMetadata>
 
     /// <inheritdoc />
     public static GifFrameMetadata FromFormatConnectingFrameMetadata(FormatConnectingFrameMetadata metadata)
-    {
-        int index = -1;
-        const float background = 1f;
-        if (metadata.ColorTable.HasValue)
+        => new()
         {
-            ReadOnlySpan<Color> colorTable = metadata.ColorTable.Value.Span;
-            for (int i = 0; i < colorTable.Length; i++)
-            {
-                Vector4 vector = colorTable[i].ToScaledVector4();
-                if (vector.W < background)
-                {
-                    index = i;
-                }
-            }
-        }
-
-        bool hasTransparency = index >= 0;
-
-        return new()
-        {
-            LocalColorTable = metadata.ColorTable,
             ColorTableMode = metadata.ColorTableMode,
             FrameDelay = (int)Math.Round(metadata.Duration.TotalMilliseconds / 10),
             DisposalMode = metadata.DisposalMode,
-            HasTransparency = hasTransparency,
-            TransparencyIndex = hasTransparency ? unchecked((byte)index) : byte.MinValue,
         };
-    }
 
     /// <inheritdoc />
     public FormatConnectingFrameMetadata ToFormatConnectingFrameMetadata()
@@ -116,9 +94,8 @@ public class GifFrameMetadata : IFormatFrameMetadata<GifFrameMetadata>
         // If the color table is global and frame has no transparency. Consider it 'Source' also.
         blendSource |= this.ColorTableMode == FrameColorTableMode.Global && !this.HasTransparency;
 
-        return new()
+        return new FormatConnectingFrameMetadata
         {
-            ColorTable = this.LocalColorTable,
             ColorTableMode = this.ColorTableMode,
             Duration = TimeSpan.FromMilliseconds(this.FrameDelay * 10),
             DisposalMode = this.DisposalMode,
@@ -127,10 +104,9 @@ public class GifFrameMetadata : IFormatFrameMetadata<GifFrameMetadata>
     }
 
     /// <inheritdoc/>
-    public void AfterFrameApply<TPixel>(ImageFrame<TPixel> source, ImageFrame<TPixel> destination)
+    public void AfterFrameApply<TPixel>(ImageFrame<TPixel> source, ImageFrame<TPixel> destination, Matrix4x4 matrix)
         where TPixel : unmanaged, IPixel<TPixel>
-    {
-    }
+        => this.LocalColorTable = null;
 
     /// <inheritdoc/>
     IDeepCloneable IDeepCloneable.DeepClone() => this.DeepClone();

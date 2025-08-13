@@ -5,6 +5,7 @@ using System.Runtime.Intrinsics.X86;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.Metadata;
+using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.TestUtilities;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
@@ -348,7 +349,7 @@ public class WebpDecoderTests
         WebpDecoderOptions options = new()
         {
             BackgroundColorHandling = BackgroundColorHandling.Ignore,
-            GeneralOptions = new DecoderOptions()
+            GeneralOptions = new DecoderOptions
             {
                 MaxFrames = 1
             }
@@ -387,7 +388,7 @@ public class WebpDecoderTests
     {
         DecoderOptions options = new()
         {
-            TargetSize = new() { Width = 150, Height = 150 }
+            TargetSize = new Size { Width = 150, Height = 150 }
         };
 
         using Image<TPixel> image = provider.GetImage(WebpDecoder.Instance, options);
@@ -448,6 +449,22 @@ public class WebpDecoderTests
         using Image<TPixel> image = provider.GetImage(WebpDecoder.Instance);
         image.DebugSave(provider);
         image.CompareToOriginal(provider, ReferenceDecoder);
+    }
+
+    // https://github.com/SixLabors/ImageSharp/issues/2866
+    [Theory]
+    [WithFile(Lossy.Issue2866, PixelTypes.Rgba32)]
+    public void WebpDecoder_CanDecode_Issue2866<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        // Web
+        using Image<TPixel> image = provider.GetImage(
+            WebpDecoder.Instance,
+            new WebpDecoderOptions { BackgroundColorHandling = BackgroundColorHandling.Ignore });
+
+        // We can't use the reference decoder here.
+        // It creates frames of different size without blending the frames.
+        image.DebugSave(provider, extension: "webp", encoder: new WebpEncoder());
     }
 
     [Theory]
@@ -532,5 +549,33 @@ public class WebpDecoderTests
         Assert.Equal(37.8, meta.HorizontalResolution);
         Assert.Equal(37.8, meta.VerticalResolution);
         Assert.Equal(PixelResolutionUnit.PixelsPerCentimeter, meta.ResolutionUnits);
+    }
+
+    [Theory]
+    [WithFile(Lossy.Issue2925, PixelTypes.Rgba32)]
+    public void WebpDecoder_CanDecode_Issue2925<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage(WebpDecoder.Instance);
+        image.DebugSave(provider);
+        image.CompareToOriginal(provider, ReferenceDecoder);
+    }
+
+    [Theory]
+    [WithFile(Lossy.Issue2906, PixelTypes.Rgba32)]
+    public void WebpDecoder_CanDecode_Issue2906<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage(WebpDecoder.Instance);
+
+        ExifProfile exifProfile = image.Metadata.ExifProfile;
+        IExifValue<EncodedString> comment = exifProfile.GetValue(ExifTag.UserComment);
+
+        Assert.NotNull(comment);
+        Assert.Equal(EncodedString.CharacterCode.Unicode, comment.Value.Code);
+        Assert.StartsWith("1girl, pariya, ", comment.Value.Text);
+
+        image.DebugSave(provider);
+        image.CompareToOriginal(provider, ReferenceDecoder);
     }
 }

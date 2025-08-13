@@ -399,7 +399,7 @@ internal class Vp8BitWriter : BitWriterBase
         int mbSize = this.enc.Mbw * this.enc.Mbh;
         int expectedSize = (int)((uint)mbSize * 7 / 8);
 
-        Vp8BitWriter bitWriterPartZero = new Vp8BitWriter(expectedSize, this.enc);
+        Vp8BitWriter bitWriterPartZero = new(expectedSize, this.enc);
 
         // Partition #0 with header and partition sizes.
         uint size0 = bitWriterPartZero.GeneratePartition0();
@@ -545,7 +545,7 @@ internal class Vp8BitWriter : BitWriterBase
     // Writes the partition #0 modes (that is: all intra modes)
     private void CodeIntraModes()
     {
-        Vp8EncIterator it = new Vp8EncIterator(this.enc);
+        Vp8EncIterator it = new(this.enc);
         int predsWidth = this.enc.PredsWidth;
 
         do
@@ -604,7 +604,7 @@ internal class Vp8BitWriter : BitWriterBase
         uint profile = 0;
         int width = this.enc.Width;
         int height = this.enc.Height;
-        byte[] vp8FrameHeader = new byte[WebpConstants.Vp8FrameHeaderSize];
+        Span<byte> vp8FrameHeader = stackalloc byte[WebpConstants.Vp8FrameHeaderSize];
 
         // Paragraph 9.1.
         uint bits = 0 // keyframe (1b)

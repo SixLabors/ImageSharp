@@ -47,14 +47,14 @@ public class ChunkedMemoryStreamTests
         ChunkedMemoryStream ms2 = new(this.allocator);
 
         Assert.Throws<ArgumentNullException>(() => ms2.Read(null, 0, 0));
-        Assert.Throws<ArgumentOutOfRangeException>(() => ms2.Read(new byte[] { 1 }, -1, 0));
-        Assert.Throws<ArgumentOutOfRangeException>(() => ms2.Read(new byte[] { 1 }, 0, -1));
-        Assert.Throws<ArgumentException>(() => ms2.Read(new byte[] { 1 }, 2, 0));
-        Assert.Throws<ArgumentException>(() => ms2.Read(new byte[] { 1 }, 0, 2));
+        Assert.Throws<ArgumentOutOfRangeException>(() => ms2.Read([1], -1, 0));
+        Assert.Throws<ArgumentOutOfRangeException>(() => ms2.Read([1], 0, -1));
+        Assert.Throws<ArgumentException>(() => ms2.Read([1], 2, 0));
+        Assert.Throws<ArgumentException>(() => ms2.Read([1], 0, 2));
 
         ms2.Dispose();
 
-        Assert.Throws<ObjectDisposedException>(() => ms2.Read(new byte[] { 1 }, 0, 1));
+        Assert.Throws<ObjectDisposedException>(() => ms2.Read([1], 0, 1));
     }
 
     [Theory]
@@ -229,7 +229,7 @@ public class ChunkedMemoryStreamTests
     {
         using ChunkedMemoryStream ms2 = new(this.allocator);
         byte[] bytArrRet;
-        byte[] bytArr = new byte[] { byte.MinValue, byte.MaxValue, 1, 2, 3, 4, 5, 6, 128, 250 };
+        byte[] bytArr = [byte.MinValue, byte.MaxValue, 1, 2, 3, 4, 5, 6, 128, 250];
 
         for (int i = 0; i < bytArr.Length; i++)
         {
@@ -254,7 +254,7 @@ public class ChunkedMemoryStreamTests
         using ChunkedMemoryStream ms2 = new(this.allocator);
         Assert.Throws<ArgumentNullException>(() => ms2.WriteTo(null));
 
-        ms2.Write(new byte[] { 1 }, 0, 1);
+        ms2.Write([1], 0, 1);
         MemoryStream readonlyStream = new(new byte[1028], false);
         Assert.Throws<NotSupportedException>(() => ms2.WriteTo(readonlyStream));
 
@@ -313,7 +313,7 @@ public class ChunkedMemoryStreamTests
         IEnumerable<string> allImageFiles = Directory.EnumerateFiles(TestEnvironment.InputImagesDirectoryFullPath, "*.*", SearchOption.AllDirectories)
             .Where(s => !s.EndsWith("txt", StringComparison.OrdinalIgnoreCase));
 
-        List<string> result = new();
+        List<string> result = [];
         foreach (string path in allImageFiles)
         {
             result.Add(path[TestEnvironment.InputImagesDirectoryFullPath.Length..]);
@@ -396,22 +396,22 @@ public class ChunkedMemoryStreamTests
     public static IEnumerable<object[]> CopyToData()
     {
         // Stream is positioned @ beginning of data
-        byte[] data1 = new byte[] { 1, 2, 3 };
+        byte[] data1 = [1, 2, 3];
         MemoryStream stream1 = new(data1);
 
-        yield return new object[] { stream1, data1 };
+        yield return [stream1, data1];
 
         // Stream is positioned in the middle of data
-        byte[] data2 = new byte[] { 0xff, 0xf3, 0xf0 };
+        byte[] data2 = [0xff, 0xf3, 0xf0];
         MemoryStream stream2 = new(data2) { Position = 1 };
 
-        yield return new object[] { stream2, new byte[] { 0xf3, 0xf0 } };
+        yield return [stream2, new byte[] { 0xf3, 0xf0 }];
 
         // Stream is positioned after end of data
         byte[] data3 = data2;
         MemoryStream stream3 = new(data3) { Position = data3.Length + 1 };
 
-        yield return new object[] { stream3, Array.Empty<byte>() };
+        yield return [stream3, Array.Empty<byte>()];
     }
 
     private byte[] CreateTestBuffer(int length)

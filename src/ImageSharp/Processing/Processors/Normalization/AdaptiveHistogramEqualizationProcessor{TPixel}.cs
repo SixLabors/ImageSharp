@@ -145,7 +145,7 @@ internal class AdaptiveHistogramEqualizationProcessor<TPixel> : HistogramEqualiz
             {
                 ref TPixel pixel = ref rowSpan[dx];
                 float luminanceEqualized = cdfData.RemapGreyValue(cdfX, cdfY, GetLuminance(pixel, luminanceLevels));
-                pixel = TPixel.FromVector4(new(luminanceEqualized, luminanceEqualized, luminanceEqualized, pixel.ToVector4().W));
+                pixel = TPixel.FromVector4(new Vector4(luminanceEqualized, luminanceEqualized, luminanceEqualized, pixel.ToVector4().W));
             }
         }
     }

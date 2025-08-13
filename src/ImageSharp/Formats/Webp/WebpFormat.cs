@@ -15,7 +15,7 @@ public sealed class WebpFormat : IImageFormat<WebpMetadata, WebpFrameMetadata>
     /// <summary>
     /// Gets the shared instance.
     /// </summary>
-    public static WebpFormat Instance { get; } = new WebpFormat();
+    public static WebpFormat Instance { get; } = new();
 
     /// <inheritdoc/>
     public string Name => "WEBP";
@@ -30,8 +30,8 @@ public sealed class WebpFormat : IImageFormat<WebpMetadata, WebpFrameMetadata>
     public IEnumerable<string> FileExtensions => WebpConstants.FileExtensions;
 
     /// <inheritdoc/>
-    public WebpMetadata CreateDefaultFormatMetadata() => new WebpMetadata();
+    public WebpMetadata CreateDefaultFormatMetadata() => new();
 
     /// <inheritdoc/>
-    public WebpFrameMetadata CreateDefaultFormatFrameMetadata() => new WebpFrameMetadata();
+    public WebpFrameMetadata CreateDefaultFormatFrameMetadata() => new();
 }

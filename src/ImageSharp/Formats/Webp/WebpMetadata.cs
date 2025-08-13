@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Numerics;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Webp;
@@ -88,7 +89,7 @@ public class WebpMetadata : IFormatMetadata<WebpMetadata>
                 break;
         }
 
-        return new()
+        return new WebpMetadata
         {
             BitsPerPixel = bitsPerPixel,
             ColorType = color,
@@ -146,7 +147,7 @@ public class WebpMetadata : IFormatMetadata<WebpMetadata>
         };
 
     /// <inheritdoc/>
-    public void AfterImageApply<TPixel>(Image<TPixel> destination)
+    public void AfterImageApply<TPixel>(Image<TPixel> destination, Matrix4x4 matrix)
         where TPixel : unmanaged, IPixel<TPixel>
     {
     }

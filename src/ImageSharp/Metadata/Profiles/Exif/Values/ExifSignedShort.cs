@@ -31,7 +31,7 @@ internal sealed class ExifSignedShort : ExifValue<short>
         switch (value)
         {
             case int intValue:
-                if (intValue >= short.MinValue && intValue <= short.MaxValue)
+                if (intValue is >= short.MinValue and <= short.MaxValue)
                 {
                     this.Value = (short)intValue;
                     return true;

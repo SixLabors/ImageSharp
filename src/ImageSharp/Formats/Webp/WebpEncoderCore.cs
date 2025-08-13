@@ -132,6 +132,11 @@ internal sealed class WebpEncoderCore
         Guard.NotNull(image, nameof(image));
         Guard.NotNull(stream, nameof(stream));
 
+        if (image.Width > WebpConstants.MaxDimension || image.Height > WebpConstants.MaxDimension)
+        {
+            WebpThrowHelper.ThrowDimensionsTooLarge(image.Width, image.Height);
+        }
+
         bool lossless;
         if (this.fileFormat is not null)
         {

@@ -77,11 +77,11 @@ public class DrawImageTests
         PngEncoder encoder;
         if (provider.PixelType == PixelTypes.Rgba64)
         {
-            encoder = new() { BitDepth = PngBitDepth.Bit16 };
+            encoder = new PngEncoder { BitDepth = PngBitDepth.Bit16 };
         }
         else
         {
-            encoder = new();
+            encoder = new PngEncoder();
         }
 
         image.DebugSave(provider, testInfo, encoder: encoder);

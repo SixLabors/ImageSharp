@@ -245,7 +245,7 @@ public partial struct Rgba64 : IPixel<Rgba64>, IPackedVector<ulong>
     public static Rgba64 FromL8(L8 source)
     {
         ushort rgb = ColorNumerics.From8BitTo16Bit(source.PackedValue);
-        return new(rgb, rgb, rgb, ushort.MaxValue);
+        return new Rgba64(rgb, rgb, rgb, ushort.MaxValue);
     }
 
     /// <inheritdoc />
@@ -257,7 +257,7 @@ public partial struct Rgba64 : IPixel<Rgba64>, IPackedVector<ulong>
     public static Rgba64 FromLa16(La16 source)
     {
         ushort rgb = ColorNumerics.From8BitTo16Bit(source.L);
-        return new(rgb, rgb, rgb, ColorNumerics.From8BitTo16Bit(source.A));
+        return new Rgba64(rgb, rgb, rgb, ColorNumerics.From8BitTo16Bit(source.A));
     }
 
     /// <inheritdoc/>

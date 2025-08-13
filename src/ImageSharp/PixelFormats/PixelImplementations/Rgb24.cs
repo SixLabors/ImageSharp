@@ -61,7 +61,8 @@ public partial struct Rgb24 : IPixel<Rgb24>
     /// <param name="color">The instance of <see cref="Rgb"/> to convert.</param>
     /// <returns>An instance of <see cref="Rgb24"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static implicit operator Rgb24(Rgb color) => FromScaledVector4(new Vector4(color.ToVector3(), 1f));
+    public static implicit operator Rgb24(Rgb color)
+        => FromScaledVector4(new Vector4(color.ToScaledVector3(), 1F));
 
     /// <summary>
     /// Compares two <see cref="Rgb24"/> objects for equality.
@@ -120,7 +121,7 @@ public partial struct Rgb24 : IPixel<Rgb24>
         source = Numerics.Clamp(source, Vector4.Zero, MaxBytes);
 
         Vector128<byte> result = Vector128.ConvertToInt32(source.AsVector128()).AsByte();
-        return new(result.GetElement(0), result.GetElement(4), result.GetElement(8));
+        return new Rgb24(result.GetElement(0), result.GetElement(4), result.GetElement(8));
     }
 
     /// <inheritdoc/>
@@ -152,7 +153,7 @@ public partial struct Rgb24 : IPixel<Rgb24>
     public static Rgb24 FromL16(L16 source)
     {
         byte rgb = ColorNumerics.From16BitTo8Bit(source.PackedValue);
-        return new(rgb, rgb, rgb);
+        return new Rgb24(rgb, rgb, rgb);
     }
 
     /// <inheritdoc/>
@@ -164,7 +165,7 @@ public partial struct Rgb24 : IPixel<Rgb24>
     public static Rgb24 FromLa32(La32 source)
     {
         byte rgb = ColorNumerics.From16BitTo8Bit(source.L);
-        return new(rgb, rgb, rgb);
+        return new Rgb24(rgb, rgb, rgb);
     }
 
     /// <inheritdoc/>

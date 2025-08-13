@@ -115,7 +115,7 @@ public struct RgbaDouble : IPixel<RgbaDouble>
     public static RgbaDouble FromVector4(Vector4 source)
     {
         source = Numerics.Clamp(source, Vector4.Zero, Vector4.One);
-        return new(source.X, source.Y, source.Z, source.W);
+        return new RgbaDouble(source.X, source.Y, source.Z, source.W);
     }
 
     /// <inheritdoc />

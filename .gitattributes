@@ -139,3 +139,7 @@
 *.heic              filter=lfs diff=lfs merge=lfs -text
 *.hif               filter=lfs diff=lfs merge=lfs -text
 *.avif              filter=lfs diff=lfs merge=lfs -text
+###############################################################################
+# Handle ICC files by git lfs
+###############################################################################
+*.icc               filter=lfs diff=lfs merge=lfs -text

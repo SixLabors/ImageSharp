@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
+using SixLabors.ImageSharp.Tests.TestDataIcc;
 
 namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.ICC.DataWriter;
 
@@ -41,7 +42,7 @@ public class IccDataWriterPrimitivesTests
         byte[] output = writer.GetData();
 
         Assert.Equal(0, count);
-        Assert.Equal(Array.Empty<byte>(), output);
+        Assert.Equal([], output);
     }
 
     [Fact]
@@ -61,7 +62,7 @@ public class IccDataWriterPrimitivesTests
         byte[] output = writer.GetData();
 
         Assert.Equal(0, count);
-        Assert.Equal(Array.Empty<byte>(), output);
+        Assert.Equal([], output);
     }
 
     [Theory]
@@ -112,8 +113,5 @@ public class IccDataWriterPrimitivesTests
         Assert.Equal(expected, output);
     }
 
-    private static IccDataWriter CreateWriter()
-    {
-        return new IccDataWriter();
-    }
+    private static IccDataWriter CreateWriter() => new();
 }

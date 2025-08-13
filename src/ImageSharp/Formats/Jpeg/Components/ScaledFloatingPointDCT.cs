@@ -48,7 +48,7 @@ internal static class ScaledFloatingPointDCT
 
         // Spectral macroblocks are transposed before quantization
         // so we must transpose quantization table
-        quantTable.TransposeInplace();
+        quantTable.TransposeInPlace();
     }
 
     /// <summary>

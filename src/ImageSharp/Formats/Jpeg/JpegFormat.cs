@@ -15,7 +15,7 @@ public sealed class JpegFormat : IImageFormat<JpegMetadata>
     /// <summary>
     /// Gets the shared instance.
     /// </summary>
-    public static JpegFormat Instance { get; } = new JpegFormat();
+    public static JpegFormat Instance { get; } = new();
 
     /// <inheritdoc/>
     public string Name => "JPEG";

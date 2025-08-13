@@ -51,7 +51,7 @@ public class BasicSerializerTests
     [Fact]
     public void SerializeDeserialize_ShouldPreserveValues()
     {
-        var obj = new DerivedObj() { Length = 123.1, Name = "Lol123!", Lives = 7, Strength = 4.8 };
+        DerivedObj obj = new() { Length = 123.1, Name = "Lol123!", Lives = 7, Strength = 4.8 };
 
         string str = BasicSerializer.Serialize(obj);
         BaseObj mirrorBase = BasicSerializer.Deserialize<BaseObj>(str);

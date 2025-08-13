@@ -27,7 +27,7 @@ internal sealed class ChunkedMemoryStream : Stream
     /// </summary>
     /// <param name="allocator">The memory allocator.</param>
     public ChunkedMemoryStream(MemoryAllocator allocator)
-        => this.memoryChunkBuffer = new(allocator);
+        => this.memoryChunkBuffer = new MemoryChunkBuffer(allocator);
 
     /// <inheritdoc/>
     public override bool CanRead => !this.isDisposed;
@@ -76,9 +76,9 @@ internal sealed class ChunkedMemoryStream : Stream
 
         this.Position = origin switch
         {
-            SeekOrigin.Begin => (int)offset,
-            SeekOrigin.Current => (int)(this.Position + offset),
-            SeekOrigin.End => (int)(this.Length + offset),
+            SeekOrigin.Begin => offset,
+            SeekOrigin.Current => this.Position + offset,
+            SeekOrigin.End => this.Length + offset,
             _ => throw new ArgumentOutOfRangeException(nameof(offset)),
         };
 
@@ -387,7 +387,7 @@ internal sealed class ChunkedMemoryStream : Stream
 
     private sealed class MemoryChunkBuffer : IDisposable
     {
-        private readonly List<MemoryChunk> memoryChunks = new();
+        private readonly List<MemoryChunk> memoryChunks = [];
         private readonly MemoryAllocator allocator;
         private readonly int allocatorCapacity;
         private bool isDisposed;

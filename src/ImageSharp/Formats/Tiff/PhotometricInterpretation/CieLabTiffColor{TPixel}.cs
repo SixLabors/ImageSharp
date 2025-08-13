@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Numerics;
 using SixLabors.ImageSharp.ColorProfiles;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
@@ -30,7 +31,7 @@ internal class CieLabTiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
                 float l = (data[offset] & 0xFF) * 100f * Inv255;
                 CieLab lab = new(l, (sbyte)data[offset + 1], (sbyte)data[offset + 2]);
                 Rgb rgb = ColorProfileConverter.Convert<CieLab, Rgb>(in lab);
-                pixelRow[x] = TPixel.FromScaledVector4(new(rgb.R, rgb.G, rgb.B, 1f));
+                pixelRow[x] = TPixel.FromScaledVector4(new Vector4(rgb.R, rgb.G, rgb.B, 1f));
 
                 offset += 3;
             }

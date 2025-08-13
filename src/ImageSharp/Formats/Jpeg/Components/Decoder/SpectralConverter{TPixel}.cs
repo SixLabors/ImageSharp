@@ -4,6 +4,7 @@
 
 using System.Buffers;
 using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
@@ -98,9 +99,10 @@ internal class SpectralConverter<TPixel> : SpectralConverter, IDisposable
     /// For non-baseline interleaved jpeg this method does a 'lazy' spectral
     /// conversion from spectral to color.
     /// </remarks>
+    /// <param name="iccProfile">Optional ICC profile for color conversion.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Pixel buffer.</returns>
-    public Buffer2D<TPixel> GetPixelBuffer(CancellationToken cancellationToken)
+    public Buffer2D<TPixel> GetPixelBuffer(IccProfile iccProfile, CancellationToken cancellationToken)
     {
         if (!this.Converted)
         {
@@ -111,7 +113,7 @@ internal class SpectralConverter<TPixel> : SpectralConverter, IDisposable
             for (int step = 0; step < steps; step++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                this.ConvertStride(step);
+                this.ConvertStride(step, iccProfile);
             }
         }
 
@@ -124,7 +126,8 @@ internal class SpectralConverter<TPixel> : SpectralConverter, IDisposable
     /// Converts single spectral jpeg stride to color stride.
     /// </summary>
     /// <param name="spectralStep">Spectral stride index.</param>
-    private void ConvertStride(int spectralStep)
+    /// <param name="iccProfile">Optional ICC profile for color conversion.</param>
+    private void ConvertStride(int spectralStep, IccProfile iccProfile)
     {
         int maxY = Math.Min(this.pixelBuffer.Height, this.pixelRowCounter + this.pixelRowsPerStep);
 
@@ -141,7 +144,15 @@ internal class SpectralConverter<TPixel> : SpectralConverter, IDisposable
 
             JpegColorConverterBase.ComponentValues values = new(this.componentProcessors, y);
 
-            this.colorConverter.ConvertToRgbInplace(values);
+            if (iccProfile != null)
+            {
+                this.colorConverter.ConvertToRgbInPlaceWithIcc(this.Configuration, in values, iccProfile);
+            }
+            else
+            {
+                this.colorConverter.ConvertToRgbInPlace(in values);
+            }
+
             values = values.Slice(0, width); // slice away Jpeg padding
 
             Span<byte> r = this.rgbBuffer.Slice(0, width);
@@ -222,11 +233,11 @@ internal class SpectralConverter<TPixel> : SpectralConverter, IDisposable
     }
 
     /// <inheritdoc/>
-    public override void ConvertStrideBaseline()
+    public override void ConvertStrideBaseline(IccProfile iccProfile)
     {
         // Convert next pixel stride using single spectral `stride'
         // Note that zero passing eliminates extra virtual call
-        this.ConvertStride(spectralStep: 0);
+        this.ConvertStride(spectralStep: 0, iccProfile);
 
         foreach (ComponentProcessor cpp in this.componentProcessors)
         {

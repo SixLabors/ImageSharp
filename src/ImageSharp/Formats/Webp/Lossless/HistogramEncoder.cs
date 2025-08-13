@@ -109,12 +109,11 @@ internal static class HistogramEncoder
     {
         int x = 0, y = 0;
         int histoXSize = LosslessUtils.SubSampleSize(xSize, histoBits);
-        using List<PixOrCopy>.Enumerator backwardRefsEnumerator = backwardRefs.Refs.GetEnumerator();
-        while (backwardRefsEnumerator.MoveNext())
+
+        foreach (PixOrCopy v in backwardRefs)
         {
-            PixOrCopy v = backwardRefsEnumerator.Current;
             int ix = ((y >> histoBits) * histoXSize) + (x >> histoBits);
-            histograms[ix].AddSinglePixOrCopy(v, false);
+            histograms[ix].AddSinglePixOrCopy(in v, false);
             x += v.Len;
             while (x >= xSize)
             {
@@ -217,7 +216,7 @@ internal static class HistogramEncoder
             clusterMappings[idx] = (ushort)idx;
         }
 
-        List<int> indicesToRemove = new();
+        List<int> indicesToRemove = [];
         Vp8LStreaks stats = new();
         Vp8LBitEntropy bitsEntropy = new();
         for (int idx = 0; idx < histograms.Count; idx++)
@@ -345,7 +344,7 @@ internal static class HistogramEncoder
 
         // Priority list of histogram pairs. Its size impacts the quality of the compression and the speed:
         // the smaller the faster but the worse for the compression.
-        List<HistogramPair> histoPriorityList = new();
+        List<HistogramPair> histoPriorityList = [];
         const int maxSize = 9;
 
         // Fill the initial mapping.
@@ -465,7 +464,7 @@ internal static class HistogramEncoder
                     }
                 }
 
-                HistoListUpdateHead(histoPriorityList, p);
+                HistoListUpdateHead(histoPriorityList, p, j);
                 j++;
             }
 
@@ -480,7 +479,7 @@ internal static class HistogramEncoder
         int histoSize = histograms.Count(h => h != null);
 
         // Priority list of histogram pairs.
-        List<HistogramPair> histoPriorityList = new();
+        List<HistogramPair> histoPriorityList = [];
         int maxSize = histoSize * histoSize;
         Vp8LStreaks stats = new();
         Vp8LBitEntropy bitsEntropy = new();
@@ -525,7 +524,7 @@ internal static class HistogramEncoder
                 }
                 else
                 {
-                    HistoListUpdateHead(histoPriorityList, p);
+                    HistoListUpdateHead(histoPriorityList, p, i);
                     i++;
                 }
             }
@@ -647,7 +646,7 @@ internal static class HistogramEncoder
 
         histoList.Add(pair);
 
-        HistoListUpdateHead(histoList, pair);
+        HistoListUpdateHead(histoList, pair, histoList.Count - 1);
 
         return pair.CostDiff;
     }
@@ -674,13 +673,11 @@ internal static class HistogramEncoder
     /// <summary>
     /// Check whether a pair in the list should be updated as head or not.
     /// </summary>
-    private static void HistoListUpdateHead(List<HistogramPair> histoList, HistogramPair pair)
+    private static void HistoListUpdateHead(List<HistogramPair> histoList, HistogramPair pair, int idx)
     {
         if (pair.CostDiff < histoList[0].CostDiff)
         {
-            // Replace the best pair.
-            int oldIdx = histoList.IndexOf(pair);
-            histoList[oldIdx] = histoList[0];
+            histoList[idx] = histoList[0];
             histoList[0] = pair;
         }
     }

@@ -22,7 +22,7 @@ public abstract class Resize<TPixel>
 
     private SDImage sourceBitmap;
 
-    protected Configuration Configuration { get; } = new Configuration(new JpegConfigurationModule());
+    protected Configuration Configuration { get; } = new(new JpegConfigurationModule());
 
     protected int DestSize { get; private set; }
 

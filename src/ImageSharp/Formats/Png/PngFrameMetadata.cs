@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Numerics;
 using SixLabors.ImageSharp.Formats.Png.Chunks;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -62,7 +63,7 @@ public class PngFrameMetadata : IFormatFrameMetadata<PngFrameMetadata>
     public static PngFrameMetadata FromFormatConnectingFrameMetadata(FormatConnectingFrameMetadata metadata)
         => new()
         {
-            FrameDelay = new(metadata.Duration.TotalMilliseconds / 1000),
+            FrameDelay = new Rational(metadata.Duration.TotalMilliseconds / 1000),
             DisposalMode = GetMode(metadata.DisposalMode),
             BlendMode = metadata.BlendMode,
         };
@@ -76,7 +77,7 @@ public class PngFrameMetadata : IFormatFrameMetadata<PngFrameMetadata>
             delay = 0;
         }
 
-        return new()
+        return new FormatConnectingFrameMetadata
         {
             ColorTableMode = FrameColorTableMode.Global,
             Duration = TimeSpan.FromMilliseconds(delay * 1000),
@@ -86,7 +87,7 @@ public class PngFrameMetadata : IFormatFrameMetadata<PngFrameMetadata>
     }
 
     /// <inheritdoc/>
-    public void AfterFrameApply<TPixel>(ImageFrame<TPixel> source, ImageFrame<TPixel> destination)
+    public void AfterFrameApply<TPixel>(ImageFrame<TPixel> source, ImageFrame<TPixel> destination, Matrix4x4 matrix)
         where TPixel : unmanaged, IPixel<TPixel>
     {
     }

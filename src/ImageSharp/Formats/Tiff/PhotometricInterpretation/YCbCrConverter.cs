@@ -17,18 +17,18 @@ internal class YCbCrConverter
     private readonly YCbCrToRgbConverter converter;
 
     private static readonly Rational[] DefaultLuma =
-    {
+    [
         new(299, 1000),
         new(587, 1000),
         new(114, 1000)
-    };
+    ];
 
     private static readonly Rational[] DefaultReferenceBlackWhite =
-    {
+    [
         new(0, 1), new(255, 1),
         new(128, 1), new(255, 1),
         new(128, 1), new(255, 1)
-    };
+    ];
 
     public YCbCrConverter(Rational[] referenceBlackAndWhite, Rational[] coefficients)
     {
@@ -107,7 +107,7 @@ internal class YCbCrConverter
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Rgba32 Convert(float y, float cb, float cr)
         {
-            var pixel = default(Rgba32);
+            Rgba32 pixel = default(Rgba32);
             pixel.R = RoundAndClampTo8Bit((cr * this.cr2R) + y);
             pixel.G = RoundAndClampTo8Bit((this.y2G * y) + (this.cr2G * cr) + (this.cb2G * cb));
             pixel.B = RoundAndClampTo8Bit((cb * this.cb2B) + y);

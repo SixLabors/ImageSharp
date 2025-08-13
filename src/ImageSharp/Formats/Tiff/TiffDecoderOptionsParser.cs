@@ -25,20 +25,22 @@ internal static class TiffDecoderOptionsParser
     /// <returns>True, if the image uses tiles. Otherwise the images has strip's.</returns>
     public static bool VerifyAndParse(this TiffDecoderCore options, ExifProfile exifProfile, TiffFrameMetadata frameMetadata)
     {
-        IExifValue extraSamplesExifValue = exifProfile.GetValueInternal(ExifTag.ExtraSamples);
-        if (extraSamplesExifValue is not null)
+        if (exifProfile.TryGetValue(ExifTag.ExtraSamples, out IExifValue<ushort[]> samples))
         {
-            short[] extraSamples = (short[])extraSamplesExifValue.GetValue();
-            if (extraSamples.Length != 1)
+            // We only support a single sample pertaining to alpha data.
+            // Other information is discarded.
+            TiffExtraSampleType sampleType = (TiffExtraSampleType)samples.Value[0];
+            if (sampleType is TiffExtraSampleType.CorelDrawUnassociatedAlphaData)
             {
-                TiffThrowHelper.ThrowNotSupported("ExtraSamples is only supported with one extra sample for alpha data.");
+                // According to libtiff, this CorelDRAW-specific value indicates unassociated alpha.
+                // Patch required for compatibility with malformed CorelDRAW-generated TIFFs.
+                // https://libtiff.gitlab.io/libtiff/releases/v3.9.0beta.html
+                sampleType = TiffExtraSampleType.UnassociatedAlphaData;
             }
 
-            TiffExtraSampleType extraSamplesType = (TiffExtraSampleType)extraSamples[0];
-            options.ExtraSamplesType = extraSamplesType;
-            if (extraSamplesType is not (TiffExtraSampleType.UnassociatedAlphaData or TiffExtraSampleType.AssociatedAlphaData))
+            if (sampleType is (TiffExtraSampleType.UnassociatedAlphaData or TiffExtraSampleType.AssociatedAlphaData))
             {
-                TiffThrowHelper.ThrowNotSupported("Decoding Tiff images with ExtraSamples is not supported with UnspecifiedData.");
+                options.ExtraSamplesType = sampleType;
             }
         }
 

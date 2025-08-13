@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Numerics;
 using SixLabors.ImageSharp.Formats.Tiff.Utils;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
@@ -35,7 +36,7 @@ internal class BlackIsZeroTiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
             {
                 int value = bitReader.ReadBits(this.bitsPerSample0);
                 float intensity = value / this.factor;
-                pixelRow[x] = TPixel.FromScaledVector4(new(intensity, intensity, intensity, 1f));
+                pixelRow[x] = TPixel.FromScaledVector4(new Vector4(intensity, intensity, intensity, 1f));
             }
 
             bitReader.NextRow();

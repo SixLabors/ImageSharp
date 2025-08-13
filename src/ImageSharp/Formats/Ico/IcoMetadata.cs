@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Numerics;
 using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.Formats.Icon;
 using SixLabors.ImageSharp.PixelFormats;
@@ -71,8 +72,7 @@ public class IcoMetadata : IFormatMetadata<IcoMetadata>
         return new IcoMetadata
         {
             BmpBitsPerPixel = bbpp,
-            Compression = compression,
-            ColorTable = compression == IconFrameCompression.Bmp ? metadata.ColorTable : null
+            Compression = compression
         };
     }
 
@@ -145,15 +145,13 @@ public class IcoMetadata : IFormatMetadata<IcoMetadata>
             EncodingType = this.Compression == IconFrameCompression.Bmp && this.BmpBitsPerPixel <= BmpBitsPerPixel.Bit8
                 ? EncodingType.Lossy
                 : EncodingType.Lossless,
-            PixelTypeInfo = this.GetPixelTypeInfo(),
-            ColorTable = this.ColorTable
+            PixelTypeInfo = this.GetPixelTypeInfo()
         };
 
     /// <inheritdoc/>
-    public void AfterImageApply<TPixel>(Image<TPixel> destination)
+    public void AfterImageApply<TPixel>(Image<TPixel> destination, Matrix4x4 matrix)
         where TPixel : unmanaged, IPixel<TPixel>
-    {
-    }
+        => this.ColorTable = null;
 
     /// <inheritdoc/>
     IDeepCloneable IDeepCloneable.DeepClone() => this.DeepClone();

@@ -5,7 +5,6 @@
 using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
-using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.Metadata.Profiles.Iptc;
 using SixLabors.ImageSharp.Metadata.Profiles.Xmp;
 
@@ -29,6 +28,8 @@ internal static class TiffDecoderMetadataCreator
         {
             for (int i = 0; i < frames.Count; i++)
             {
+                // ICC profile data has already been resolved in the frame metadata,
+                // as it is required for color conversion.
                 ImageFrameMetadata frameMetaData = frames[i];
                 if (TryGetIptc(frameMetaData.ExifProfile.Values, out byte[] iptcBytes))
                 {
@@ -38,11 +39,6 @@ internal static class TiffDecoderMetadataCreator
                 if (frameMetaData.ExifProfile.TryGetValue(ExifTag.XMP, out IExifValue<byte[]> xmpProfileBytes))
                 {
                     frameMetaData.XmpProfile = new XmpProfile(xmpProfileBytes.Value);
-                }
-
-                if (frameMetaData.ExifProfile.TryGetValue(ExifTag.IccProfile, out IExifValue<byte[]> iccProfileBytes))
-                {
-                    frameMetaData.IccProfile = new IccProfile(iccProfileBytes.Value);
                 }
             }
         }

@@ -25,12 +25,12 @@ public sealed class IndexedImageFrame<TPixel> : IPixelSource, IDisposable
     /// Initializes a new instance of the <see cref="IndexedImageFrame{TPixel}"/> class.
     /// </summary>
     /// <param name="configuration">
-    /// The configuration which allows altering default behaviour or extending the library.
+    /// The configuration which allows altering default behavior or extending the library.
     /// </param>
     /// <param name="width">The frame width.</param>
     /// <param name="height">The frame height.</param>
     /// <param name="palette">The color palette.</param>
-    internal IndexedImageFrame(Configuration configuration, int width, int height, ReadOnlyMemory<TPixel> palette)
+    public IndexedImageFrame(Configuration configuration, int width, int height, ReadOnlyMemory<TPixel> palette)
     {
         Guard.NotNull(configuration, nameof(configuration));
         Guard.MustBeLessThanOrEqualTo(palette.Length, QuantizerConstants.MaxColors, nameof(palette));
@@ -42,14 +42,14 @@ public sealed class IndexedImageFrame<TPixel> : IPixelSource, IDisposable
         this.Height = height;
         this.pixelBuffer = configuration.MemoryAllocator.Allocate2D<byte>(width, height);
 
-        // Copy the palette over. We want the lifetime of this frame to be independant of any palette source.
+        // Copy the palette over. We want the lifetime of this frame to be independent of any palette source.
         this.paletteOwner = configuration.MemoryAllocator.Allocate<TPixel>(palette.Length);
         palette.Span.CopyTo(this.paletteOwner.GetSpan());
         this.Palette = this.paletteOwner.Memory[..palette.Length];
     }
 
     /// <summary>
-    /// Gets the configuration which allows altering default behaviour or extending the library.
+    /// Gets the configuration which allows altering default behavior or extending the library.
     /// </summary>
     public Configuration Configuration { get; }
 

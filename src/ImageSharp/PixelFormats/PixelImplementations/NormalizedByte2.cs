@@ -93,7 +93,7 @@ public partial struct NormalizedByte2 : IPixel<NormalizedByte2>, IPackedVector<u
     {
         Vector2 scaled = new Vector2(source.X, source.Y) * 2f;
         scaled -= Vector2.One;
-        return new() { PackedValue = Pack(scaled) };
+        return new NormalizedByte2 { PackedValue = Pack(scaled) };
     }
 
     /// <inheritdoc />

@@ -110,7 +110,7 @@ internal sealed class TiffStreamWriter : IDisposable
         if (value.Length % 4 != 0)
         {
             // No allocation occurs, refers directly to assembly's data segment.
-            ReadOnlySpan<byte> paddingBytes = new byte[4] { 0x00, 0x00, 0x00, 0x00 };
+            ReadOnlySpan<byte> paddingBytes = [0x00, 0x00, 0x00, 0x00];
             paddingBytes = paddingBytes[..(4 - (value.Length % 4))];
             this.BaseStream.Write(paddingBytes);
         }

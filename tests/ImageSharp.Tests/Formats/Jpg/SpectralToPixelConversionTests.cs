@@ -15,12 +15,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Jpg;
 public class SpectralToPixelConversionTests
 {
     public static readonly string[] BaselineTestJpegs =
-    {
+    [
         TestImages.Jpeg.Baseline.Calliphora, TestImages.Jpeg.Baseline.Cmyk, TestImages.Jpeg.Baseline.Jpeg400,
         TestImages.Jpeg.Baseline.Jpeg444, TestImages.Jpeg.Baseline.Testorig420,
         TestImages.Jpeg.Baseline.Jpeg420Small, TestImages.Jpeg.Baseline.Bad.BadEOF,
         TestImages.Jpeg.Baseline.MultiScanBaselineCMYK
-    };
+    ];
 
     public SpectralToPixelConversionTests(ITestOutputHelper output) => this.Output = output;
 
@@ -33,14 +33,14 @@ public class SpectralToPixelConversionTests
     {
         // Stream
         byte[] sourceBytes = TestFile.Create(provider.SourceFileOrDescription).Bytes;
-        using var ms = new MemoryStream(sourceBytes);
-        using var bufferedStream = new BufferedReadStream(Configuration.Default, ms);
+        using MemoryStream ms = new(sourceBytes);
+        using BufferedReadStream bufferedStream = new(Configuration.Default, ms);
 
         // Decoding
         JpegDecoderOptions options = new();
-        using var converter = new SpectralConverter<TPixel>(Configuration.Default);
-        using var decoder = new JpegDecoderCore(options);
-        var scanDecoder = new HuffmanScanDecoder(bufferedStream, converter, cancellationToken: default);
+        using SpectralConverter<TPixel> converter = new(Configuration.Default);
+        using JpegDecoderCore decoder = new(options);
+        HuffmanScanDecoder scanDecoder = new(bufferedStream, converter, cancellationToken: default);
         decoder.ParseStream(bufferedStream, converter, cancellationToken: default);
 
         // Test metadata
@@ -48,7 +48,7 @@ public class SpectralToPixelConversionTests
         provider.Utility.TestName = JpegDecoderTests.DecodeBaselineJpegOutputName;
 
         // Comparison
-        using var image = new Image<TPixel>(Configuration.Default, converter.GetPixelBuffer(CancellationToken.None), new ImageMetadata());
+        using Image<TPixel> image = new(Configuration.Default, converter.GetPixelBuffer(null, CancellationToken.None), new ImageMetadata());
         using Image<TPixel> referenceImage = provider.GetReferenceOutputImage<TPixel>(appendPixelTypeToFileName: false);
         ImageSimilarityReport report = ImageComparer.Exact.CompareImagesOrFrames(referenceImage, image);
 

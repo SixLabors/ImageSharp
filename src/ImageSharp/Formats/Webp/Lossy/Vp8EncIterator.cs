@@ -36,12 +36,12 @@ internal class Vp8EncIterator
     /// Array to record the position of the top sample to pass to the prediction functions.
     /// </summary>
     private readonly byte[] vp8TopLeftI4 =
-    {
+    [
         17, 21, 25, 29,
         13, 17, 21, 25,
         9,  13, 17, 21,
         5,   9, 13, 17
-    };
+    ];
 
     private int currentMbIdx;
 
@@ -396,7 +396,7 @@ internal class Vp8EncIterator
         this.MakeLuma16Preds();
         for (mode = 0; mode < maxMode; mode++)
         {
-            Vp8Histogram histo = new Vp8Histogram();
+            Vp8Histogram histo = new();
             histo.CollectHistogram(this.YuvIn.AsSpan(YOffEnc), this.YuvP.AsSpan(Vp8Encoding.Vp8I16ModeOffsets[mode]), 0, 16);
             int alpha = histo.GetAlpha();
             if (alpha > bestAlpha)
@@ -414,7 +414,7 @@ internal class Vp8EncIterator
     {
         Span<byte> modes = stackalloc byte[16];
         const int maxMode = MaxIntra4Mode;
-        Vp8Histogram totalHisto = new Vp8Histogram();
+        Vp8Histogram totalHisto = new();
         int curHisto = 0;
         this.StartI4();
         do
@@ -467,7 +467,7 @@ internal class Vp8EncIterator
         this.MakeChroma8Preds();
         for (mode = 0; mode < maxMode; ++mode)
         {
-            Vp8Histogram histo = new Vp8Histogram();
+            Vp8Histogram histo = new();
             histo.CollectHistogram(this.YuvIn.AsSpan(UOffEnc), this.YuvP.AsSpan(Vp8Encoding.Vp8UvModeOffsets[mode]), 16, 16 + 4 + 4);
             int alpha = histo.GetAlpha();
             if (alpha > bestAlpha)

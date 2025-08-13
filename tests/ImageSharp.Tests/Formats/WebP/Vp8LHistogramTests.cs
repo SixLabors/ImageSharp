@@ -14,7 +14,7 @@ public class Vp8LHistogramTests
     {
         // arrange
         uint[] pixelData =
-        {
+        [
             4278191104, 4278191104, 4278191104, 4278191104, 4278191104, 4278191104, 4278191104, 4294577152,
             4294707200, 4294707200, 4294707200, 4294707200, 4294837248, 4294837248, 4293926912, 4294316544,
             4278191104, 4278191104, 4294837248, 4294837248, 4280287232, 4280350720, 4294447104, 4294707200,
@@ -47,10 +47,10 @@ public class Vp8LHistogramTests
             4280287232, 4280287232, 4280287232, 4280287232, 4280287232, 4279503872, 4279503872, 4280288256,
             4280287232, 4280287232, 4280287232, 4280287232, 4280287232, 4280287232, 4280287232, 4280287232,
             4280287232, 4280287232, 4280287232, 4280287232, 4280287232, 4280287232, 4280287232, 4280287232
-        };
+        ];
 
         uint[] literals =
-        {
+        [
             198, 0, 14, 0, 46, 0, 22, 0, 36, 0, 24, 0, 12, 0, 10, 0, 10, 0, 2, 0, 2, 0, 0, 0, 0, 0, 6, 0, 0, 0,
             10, 0, 24, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 4, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -59,25 +59,21 @@ public class Vp8LHistogramTests
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 6, 0, 2, 0, 0, 0, 0, 0, 6, 0, 0, 0, 2, 0, 0, 0, 2, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 6, 0, 2, 0, 2, 0, 2, 0, 0, 0, 8, 0, 2, 0, 38, 0, 4
-        };
+        ];
 
         uint[] expectedLiterals = new uint[1305];
 
         // All remaining values are expected to be zero.
         literals.AsSpan().CopyTo(expectedLiterals);
 
-        Vp8LBackwardRefs backwardRefs = new(pixelData.Length);
+        MemoryAllocator memoryAllocator = Configuration.Default.MemoryAllocator;
+
+        using Vp8LBackwardRefs backwardRefs = new(memoryAllocator, pixelData.Length);
         for (int i = 0; i < pixelData.Length; i++)
         {
-            backwardRefs.Add(new PixOrCopy()
-            {
-                BgraOrDistance = pixelData[i],
-                Len = 1,
-                Mode = PixOrCopyMode.Literal
-            });
+            backwardRefs.Add(PixOrCopy.CreateLiteral(pixelData[i]));
         }
 
-        MemoryAllocator memoryAllocator = Configuration.Default.MemoryAllocator;
         using OwnedVp8LHistogram histogram0 = OwnedVp8LHistogram.Create(memoryAllocator, backwardRefs, 3);
         using OwnedVp8LHistogram histogram1 = OwnedVp8LHistogram.Create(memoryAllocator, backwardRefs, 3);
         for (int i = 0; i < 5; i++)

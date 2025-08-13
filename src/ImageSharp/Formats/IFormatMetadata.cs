@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Numerics;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats;
@@ -14,20 +15,21 @@ public interface IFormatMetadata : IDeepCloneable
     /// Converts the metadata to a <see cref="PixelTypeInfo"/> instance.
     /// </summary>
     /// <returns>The pixel type info.</returns>
-    PixelTypeInfo GetPixelTypeInfo();
+    public PixelTypeInfo GetPixelTypeInfo();
 
     /// <summary>
     /// Converts the metadata to a <see cref="FormatConnectingMetadata"/> instance.
     /// </summary>
     /// <returns>The <see cref="FormatConnectingMetadata"/>.</returns>
-    FormatConnectingMetadata ToFormatConnectingMetadata();
+    public FormatConnectingMetadata ToFormatConnectingMetadata();
 
     /// <summary>
     /// This method is called after a process has been applied to the image.
     /// </summary>
     /// <typeparam name="TPixel">The type of pixel format.</typeparam>
     /// <param name="destination">The destination image .</param>
-    void AfterImageApply<TPixel>(Image<TPixel> destination)
+    /// <param name="matrix">The transformation matrix applied to the image.</param>
+    public void AfterImageApply<TPixel>(Image<TPixel> destination, Matrix4x4 matrix)
         where TPixel : unmanaged, IPixel<TPixel>;
 }
 
@@ -44,6 +46,6 @@ public interface IFormatMetadata<TSelf> : IFormatMetadata, IDeepCloneable<TSelf>
     /// <param name="metadata">The <see cref="FormatConnectingMetadata"/>.</param>
     /// <returns>The <typeparamref name="TSelf"/>.</returns>
 #pragma warning disable CA1000 // Do not declare static members on generic types
-    static abstract TSelf FromFormatConnectingMetadata(FormatConnectingMetadata metadata);
+    public static abstract TSelf FromFormatConnectingMetadata(FormatConnectingMetadata metadata);
 #pragma warning restore CA1000 // Do not declare static members on generic types
 }

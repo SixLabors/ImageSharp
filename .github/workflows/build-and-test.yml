@@ -12,8 +12,54 @@ on:
       - main
       - release/*
     types: [ labeled, opened, synchronize, reopened ]
+
 jobs:
+  # Prime a single LFS cache and expose the exact key for the matrix
+  WarmLFS:
+    runs-on: ubuntu-latest
+    outputs:
+      lfs_key: ${{ steps.expose-key.outputs.lfs_key }}
+    steps:
+      - name: Git Config
+        shell: bash
+        run: |
+          git config --global core.autocrlf false
+          git config --global core.longpaths true
+
+      - name: Git Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      # Deterministic list of LFS object IDs, then compute a portable key:
+      # - `git lfs ls-files -l` lists all tracked LFS objects with their SHA-256
+      # - `awk '{print $1}'` extracts just the SHA field
+      # - `sort` sorts in byte order (hex hashes sort the same everywhere)
+      # This ensures the file content is identical regardless of OS or locale
+      - name: Git Create LFS id list
+        shell: bash
+        run: git lfs ls-files -l | awk '{print $1}' | sort > .lfs-assets-id
+
+      - name: Git Expose LFS cache key
+        id: expose-key
+        shell: bash
+        env:
+          LFS_KEY: lfs-${{ hashFiles('.lfs-assets-id') }}-v1
+        run: echo "lfs_key=$LFS_KEY" >> "$GITHUB_OUTPUT"
+
+      - name: Git Setup LFS Cache
+        uses: actions/cache@v4
+        with:
+          path: .git/lfs
+          key: ${{ steps.expose-key.outputs.lfs_key }}
+
+      - name: Git Pull LFS
+        shell: bash
+        run: git lfs pull
+
   Build:
+    needs: WarmLFS
     strategy:
       matrix:
         isARM:
@@ -69,12 +115,14 @@ jobs:
             options:
               os: buildjet-4vcpu-ubuntu-2204-arm
 
-    runs-on: ${{matrix.options.os}}
+    runs-on: ${{ matrix.options.os }}
 
     steps:
       - name: Install libgdi+, which is required for tests running on ubuntu
         if: ${{ contains(matrix.options.os, 'ubuntu') }}
-        run: sudo apt-get -y install libgdiplus libgif-dev libglib2.0-dev libcairo2-dev libtiff-dev libexif-dev
+        run: |
+          sudo apt-get update
+          sudo apt-get -y install libgdiplus libgif-dev libglib2.0-dev libcairo2-dev libtiff-dev libexif-dev
 
       - name: Git Config
         shell: bash
@@ -88,18 +136,15 @@ jobs:
           fetch-depth: 0
           submodules: recursive
 
-      # See https://github.com/actions/checkout/issues/165#issuecomment-657673315
-      - name: Git Create LFS FileList
-        run: git lfs ls-files -l | cut -d' ' -f1 | sort > .lfs-assets-id
-
+      # Use the warmed key from WarmLFS. Do not recompute or recreate .lfs-assets-id here.
       - name: Git Setup LFS Cache
         uses: actions/cache@v4
-        id: lfs-cache
         with:
           path: .git/lfs
-          key: ${{ runner.os }}-lfs-${{ hashFiles('.lfs-assets-id') }}-v1
+          key: ${{ needs.WarmLFS.outputs.lfs_key }}
 
       - name: Git Pull LFS
+        shell: bash
         run: git lfs pull
 
       - name: NuGet Install
@@ -166,11 +211,8 @@ jobs:
 
   Publish:
     needs: [Build]
-
     runs-on: ubuntu-latest
-
     if: (github.event_name == 'push')
-
     steps:
       - name: Git Config
         shell: bash
@@ -211,4 +253,3 @@ jobs:
         run: |
           dotnet nuget push .\artifacts\*.nupkg -k ${{secrets.NUGET_TOKEN}} -s https://api.nuget.org/v3/index.json --skip-duplicate
           dotnet nuget push .\artifacts\*.snupkg -k ${{secrets.NUGET_TOKEN}} -s https://api.nuget.org/v3/index.json --skip-duplicate
-

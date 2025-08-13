@@ -161,7 +161,7 @@ public class ImageFormatManager
     /// <summary>
     /// Removes all the registered image format detectors.
     /// </summary>
-    public void ClearImageFormatDetectors() => this.imageFormatDetectors = new();
+    public void ClearImageFormatDetectors() => this.imageFormatDetectors = new ConcurrentBag<IImageFormatDetector>();
 
     /// <summary>
     /// Adds a new detector for detecting mime types.

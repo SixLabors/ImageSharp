@@ -362,10 +362,13 @@ internal sealed class BmpEncoderCore
         ImageFrame<TPixel>? clonedFrame = null;
         try
         {
-            if (EncodingUtilities.ShouldClearTransparentPixels<TPixel>(this.transparentColorMode))
+            // No need to clone when quantizing. The quantizer will do it for us.
+            // TODO: We should really try to avoid the clone entirely.
+            int bpp = this.bitsPerPixel != null ? (int)this.bitsPerPixel : 32;
+            if (bpp > 8 && EncodingUtilities.ShouldReplaceTransparentPixels<TPixel>(this.transparentColorMode))
             {
                 clonedFrame = image.Frames.RootFrame.Clone();
-                EncodingUtilities.ClearTransparentPixels(clonedFrame, Color.Transparent);
+                EncodingUtilities.ReplaceTransparentPixels(clonedFrame);
             }
 
             ImageFrame<TPixel> encodingFrame = clonedFrame ?? image.Frames.RootFrame;
@@ -652,7 +655,7 @@ internal sealed class BmpEncoderCore
         CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using IQuantizer<TPixel> frameQuantizer = this.quantizer.CreatePixelSpecificQuantizer<TPixel>(configuration, new QuantizerOptions()
+        using IQuantizer<TPixel> frameQuantizer = this.quantizer.CreatePixelSpecificQuantizer<TPixel>(configuration, new QuantizerOptions
         {
             MaxColors = 16,
             Dither = this.quantizer.Options.Dither,
@@ -709,7 +712,7 @@ internal sealed class BmpEncoderCore
         CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using IQuantizer<TPixel> frameQuantizer = this.quantizer.CreatePixelSpecificQuantizer<TPixel>(configuration, new QuantizerOptions()
+        using IQuantizer<TPixel> frameQuantizer = this.quantizer.CreatePixelSpecificQuantizer<TPixel>(configuration, new QuantizerOptions
         {
             MaxColors = 4,
             Dither = this.quantizer.Options.Dither,
@@ -775,7 +778,7 @@ internal sealed class BmpEncoderCore
         CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using IQuantizer<TPixel> frameQuantizer = this.quantizer.CreatePixelSpecificQuantizer<TPixel>(configuration, new QuantizerOptions()
+        using IQuantizer<TPixel> frameQuantizer = this.quantizer.CreatePixelSpecificQuantizer<TPixel>(configuration, new QuantizerOptions
         {
             MaxColors = 2,
             Dither = this.quantizer.Options.Dither,

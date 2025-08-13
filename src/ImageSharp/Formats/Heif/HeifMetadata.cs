@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Numerics;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Heif;
@@ -30,13 +31,10 @@ public class HeifMetadata : IFormatMetadata<HeifMetadata>
     public HeifCompressionMethod CompressionMethod { get; set; }
 
     /// <inheritdoc/>
-    public static HeifMetadata FromFormatConnectingMetadata(FormatConnectingMetadata metadata)
+    public static HeifMetadata FromFormatConnectingMetadata(FormatConnectingMetadata metadata) => new()
     {
-        return new HeifMetadata
-        {
-            CompressionMethod = HeifCompressionMethod.LegacyJpeg
-        };
-    }
+        CompressionMethod = HeifCompressionMethod.LegacyJpeg
+    };
 
     /// <inheritdoc/>
     public PixelTypeInfo GetPixelTypeInfo()
@@ -67,7 +65,7 @@ public class HeifMetadata : IFormatMetadata<HeifMetadata>
     public HeifMetadata DeepClone() => new(this);
 
     /// <inheritdoc/>
-    public void AfterImageApply<TPixel>(Image<TPixel> destination)
+    public void AfterImageApply<TPixel>(Image<TPixel> destination, Matrix4x4 matrix)
         where TPixel : unmanaged, IPixel<TPixel>
     {
     }

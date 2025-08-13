@@ -64,10 +64,6 @@ internal class Av1YuvConverter
     {
         // Weight multiplied by 256 to exploit full byte resolution, rounded to the nearest integer.
         // Using BT.709 specification
-        const int rvWeight = (int)(1.28033 * 255);
-        const int guWeight = (int)(-0.21482 * 255);
-        const int gvWeight = (int)(-0.38059 * 255);
-        const int buWeight = (int)(2.12798 * 255);
         Guard.NotNull(buffer.BufferY);
         Guard.NotNull(buffer.BufferCb);
         Guard.NotNull(buffer.BufferCr);
@@ -126,15 +122,6 @@ internal class Av1YuvConverter
     private static void ConvertRgbToYuv444(ImageFrame<Rgb24> image, Av1FrameBuffer<byte> buffer)
     {
         // Weight multiplied by 256 to exploit full byte resolution, rounded to the nearest integer.
-        const int yrWeight = (int)(0.2126 * 255);
-        const int ygWeight = (int)(0.7152 * 255);
-        const int ybWeight = (int)(0.0722 * 255);
-        const int urWeight = (int)(-0.09991 * 255);
-        const int ugWeight = (int)(-0.33609 * 255);
-        const int ubWeight = (int)(0.436 * 255);
-        const int vrWeight = (int)(0.615 * 255);
-        const int vgWeight = (int)(-0.55861 * 255);
-        const int vbWeight = (int)(-0.05639 * 255);
         Guard.NotNull(buffer.BufferY);
         Guard.NotNull(buffer.BufferCb);
         Guard.NotNull(buffer.BufferCr);

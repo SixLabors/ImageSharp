@@ -181,8 +181,6 @@ csharp_style_prefer_primary_constructors = false:none
 dotnet_style_prefer_collection_expression = true:error
 resharper_use_collection_expression_highlighting =true:error
 
-
-
 ##########################################
 # Unnecessary Code Rules
 # https://docs.microsoft.com/dotnet/fundamentals/code-analysis/style-rules/unnecessary-code-rules

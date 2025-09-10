@@ -489,6 +489,12 @@ internal sealed class GifDecoderCore : ImageDecoderCore
                 backgroundColor = Color.Transparent;
             }
 
+            // We zero the alpha only when this frame declares transparency so that
+            // frames with a transparent index coalesce over a transparent canvas rather than
+            // baking the LSD background as a matte. When the flag is not set, this frame will
+            // write an opaque color for every addressed pixel; keeping the LSD background
+            // opaque here allows ReadFrameColors to show that background in uncovered areas
+            // for non-transparent GIFs that rely on it. We still do not prefill the canvas here.
             if (this.graphicsControlExtension.TransparencyFlag)
             {
                 backgroundColor = backgroundColor.WithAlpha(0);
@@ -498,24 +504,18 @@ internal sealed class GifDecoderCore : ImageDecoderCore
         this.ReadFrameColors(stream, ref image, ref previousFrame, ref previousDisposalMode, colorTable, backgroundColor.ToPixel<TPixel>());
 
         // Update from newly decoded frame.
-        if (this.graphicsControlExtension.DisposalMethod != FrameDisposalMode.RestoreToPrevious)
+        FrameDisposalMode disposalMethod = this.graphicsControlExtension.DisposalMethod;
+        if (disposalMethod != FrameDisposalMode.RestoreToPrevious)
         {
-            if (this.backgroundColorIndex < colorTable.Length)
-            {
-                backgroundColor = Color.FromPixel(colorTable[this.backgroundColorIndex]);
-            }
-            else
-            {
-                backgroundColor = Color.Transparent;
-            }
-
-            // TODO: I don't understand why this is always set to alpha of zero.
-            // This should be dependent on the transparency flag of the graphics
-            // control extension. ImageMagick does the same.
-            // if (this.graphicsControlExtension.TransparencyFlag)
-            {
-                backgroundColor = backgroundColor.WithAlpha(0);
-            }
+            // Do not key this on the transparency flag. Disposal handling is determined by
+            // the previous frame's disposal, not by whether the current frame declares a transparent
+            // index. For editing we carry a transparent background so that RestoreToBackground clears
+            // remove pixels to transparent rather than painting an opaque matte. The LSD background
+            // color is display advice and should be used only when explicitly flattening or when
+            // rendering with an option to honor it.
+            backgroundColor = (this.backgroundColorIndex < colorTable.Length)
+                ? Color.FromPixel(colorTable[this.backgroundColorIndex]).WithAlpha(0)
+                : Color.Transparent;
         }
 
         // Skip any remaining blocks
@@ -546,29 +546,44 @@ internal sealed class GifDecoderCore : ImageDecoderCore
         GifImageDescriptor descriptor = this.imageDescriptor;
         int imageWidth = this.logicalScreenDescriptor.Width;
         int imageHeight = this.logicalScreenDescriptor.Height;
-        bool transFlag = this.graphicsControlExtension.TransparencyFlag;
+        bool useTransparency = this.graphicsControlExtension.TransparencyFlag;
+        bool useBackground;
         FrameDisposalMode disposalMethod = this.graphicsControlExtension.DisposalMethod;
         ImageFrame<TPixel> currentFrame;
         ImageFrame<TPixel>? restoreFrame = null;
 
         if (previousFrame is null && previousDisposalMode is null)
         {
-            image = transFlag
-                ? new Image<TPixel>(this.configuration, imageWidth, imageHeight, this.metadata)
-                : new Image<TPixel>(this.configuration, imageWidth, imageHeight, backgroundPixel, this.metadata);
+            // First frame: prefill with LSD background iff a GCT exists (policy: HonorBackgroundColor).
+            useBackground =
+                this.logicalScreenDescriptor.GlobalColorTableFlag
+                && disposalMethod == FrameDisposalMode.RestoreToBackground;
+
+            image = useBackground
+                ? new Image<TPixel>(this.configuration, imageWidth, imageHeight, backgroundPixel, this.metadata)
+                : new Image<TPixel>(this.configuration, imageWidth, imageHeight, this.metadata);
 
             this.SetFrameMetadata(image.Frames.RootFrame.Metadata);
             currentFrame = image.Frames.RootFrame;
         }
         else
         {
+            // Subsequent frames: use LSD background iff previous disposal was RestoreToBackground and a GCT exists.
+            useBackground =
+                this.logicalScreenDescriptor.GlobalColorTableFlag
+                && previousDisposalMode == FrameDisposalMode.RestoreToBackground;
+
             if (previousFrame != null)
             {
                 currentFrame = image!.Frames.AddFrame(previousFrame);
             }
-            else
+            else if (useBackground)
             {
                 currentFrame = image!.Frames.CreateFrame(backgroundPixel);
+            }
+            else
+            {
+                currentFrame = image!.Frames.CreateFrame();
             }
 
             this.SetFrameMetadata(currentFrame.Metadata);
@@ -580,7 +595,7 @@ internal sealed class GifDecoderCore : ImageDecoderCore
 
             if (previousDisposalMode == FrameDisposalMode.RestoreToBackground)
             {
-                this.RestoreToBackground(currentFrame, backgroundPixel, transFlag);
+                this.RestoreToBackground(currentFrame, backgroundPixel, !useBackground);
             }
         }
 
@@ -670,22 +685,31 @@ internal sealed class GifDecoderCore : ImageDecoderCore
                 // Take the descriptorLeft..maxX slice of the row, so the loop can be simplified.
                 row = row[descriptorLeft..maxX];
 
-                if (!transFlag)
-                {
-                    for (int x = 0; x < row.Length; x++)
-                    {
-                        int index = indicesRow[x];
-                        index = Numerics.Clamp(index, 0, colorTableMaxIdx);
-                        row[x] = TPixel.FromRgb24(colorTable[index]);
-                    }
-                }
-                else
+                if (!useTransparency)
                 {
                     for (int x = 0; x < row.Length; x++)
                     {
                         int index = indicesRow[x];
 
+                        // Treat any out of bounds values as background.
+                        if (index > colorTableMaxIdx)
+                        {
+                            index = Numerics.Clamp(index, 0, colorTableMaxIdx);
+                        }
+
+                        row[x] = TPixel.FromRgb24(colorTable[index]);
+                    }
+                }
+                else
+                {
+                    TPixel transparentPixel = Color.Transparent.ToPixel<TPixel>();
+                    for (int x = 0; x < row.Length; x++)
+                    {
+                        int index = indicesRow[x];
+
                         // Treat any out of bounds values as transparent.
+                        // We explicitly set the pixel to transparent rather than alter the inbound
+                        // color palette.
                         if (index > colorTableMaxIdx || index == transIndex)
                         {
                             continue;

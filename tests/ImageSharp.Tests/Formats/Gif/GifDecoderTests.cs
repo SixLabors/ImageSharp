@@ -398,4 +398,14 @@ public class GifDecoderTests
         Assert.Throws<InvalidImageContentException>(() => Image.Identify(options, testFile.FullPath));
         Assert.Throws<InvalidImageContentException>(() => Image.Load(options, testFile.FullPath));
     }
+
+    [Theory]
+    [WithFile(TestImages.Gif.Issues.Issue2980, PixelTypes.Rgba32)]
+    public void Issue2980<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage();
+        image.DebugSaveMultiFrame(provider);
+        image.CompareToReferenceOutputMultiFrame(provider, ImageComparer.Exact);
+    }
 }

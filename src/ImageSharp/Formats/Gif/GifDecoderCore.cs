@@ -702,7 +702,6 @@ internal sealed class GifDecoderCore : ImageDecoderCore
                 }
                 else
                 {
-                    TPixel transparentPixel = Color.Transparent.ToPixel<TPixel>();
                     for (int x = 0; x < row.Length; x++)
                     {
                         int index = indicesRow[x];

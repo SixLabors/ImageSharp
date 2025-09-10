@@ -582,6 +582,7 @@ public static class TestImages
             public const string Issue2859_A = "Gif/issues/issue_2859_A.gif";
             public const string Issue2859_B = "Gif/issues/issue_2859_B.gif";
             public const string Issue2953 = "Gif/issues/issue_2953.gif";
+            public const string Issue2980 = "Gif/issues/issue_2980.gif";
         }
 
         public static readonly string[] Animated =

@@ -115,6 +115,11 @@ namespace SixLabors.ImageSharp.Formats.Png
         private PngChunk? nextChunk;
 
         /// <summary>
+        /// A value indicating whether the image data has been read.
+        /// </summary>
+        private bool hasImageData;
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="PngDecoderCore"/> class.
         /// </summary>
         /// <param name="configuration">The configuration.</param>
@@ -565,7 +570,11 @@ namespace SixLabors.ImageSharp.Formats.Png
             where TPixel : unmanaged, IPixel<TPixel>
         {
             using var deframeStream = new ZlibInflateStream(this.currentStream, this.ReadNextDataChunk);
-            deframeStream.AllocateNewBytes(chunk.Length, true);
+            if (!deframeStream.AllocateNewBytes(chunk.Length, !this.hasImageData))
+            {
+                return;
+            }
+
             DeflateStream dataStream = deframeStream.CompressedStream;
 
             if (this.header.InterlaceMethod == PngInterlaceMode.Adam7)
@@ -596,7 +605,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                     int bytesRead = compressedStream.Read(scanlineSpan, this.currentRowBytesRead, this.bytesPerScanline - this.currentRowBytesRead);
                     if (bytesRead <= 0)
                     {
-                        return;
+                        goto EXIT;
                     }
 
                     this.currentRowBytesRead += bytesRead;
@@ -635,6 +644,9 @@ namespace SixLabors.ImageSharp.Formats.Png
                 this.SwapScanlineBuffers();
                 this.currentRow++;
             }
+
+            EXIT:
+            this.hasImageData = true;
         }
 
         /// <summary>
@@ -672,7 +684,7 @@ namespace SixLabors.ImageSharp.Formats.Png
                         int bytesRead = compressedStream.Read(this.scanline.GetSpan(), this.currentRowBytesRead, bytesPerInterlaceScanline - this.currentRowBytesRead);
                         if (bytesRead <= 0)
                         {
-                            return;
+                            goto EXIT;
                         }
 
                         this.currentRowBytesRead += bytesRead;
@@ -729,6 +741,9 @@ namespace SixLabors.ImageSharp.Formats.Png
                     pass = 0;
                     break;
                 }
+
+                EXIT:
+                this.hasImageData = true;
             }
         }
 

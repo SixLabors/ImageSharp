@@ -534,5 +534,15 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png
             string path = Path.GetFullPath(Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, file));
             using Image image = Image.Load(path);
         }
+
+        [Theory]
+        [WithFile(TestImages.Png.Issue2924, PixelTypes.Rgba32)]
+        public void CanDecode_Issue2924<TPixel>(TestImageProvider<TPixel> provider)
+            where TPixel : unmanaged, IPixel<TPixel>
+        {
+            using Image<TPixel> image = provider.GetImage(PngDecoder);
+            image.DebugSave(provider);
+            image.CompareToReferenceOutput(provider);
+        }
     }
 }

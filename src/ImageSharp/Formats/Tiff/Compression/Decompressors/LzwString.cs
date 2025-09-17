@@ -77,9 +77,9 @@ public class LzwString
 
         LzwString e = this;
         int endIdx = this.Length - 1;
-        if (endIdx >= buffer.Length)
+        if (offset + endIdx >= buffer.Length)
         {
-            TiffThrowHelper.ThrowImageFormatException("Error reading lzw compressed stream. Either pixel buffer to write to is to small or code length is invalid!");
+            TiffThrowHelper.ThrowImageFormatException("Error reading lzw compressed stream. Either pixel buffer to write to is too small or code length is invalid!");
         }
 
         for (int i = endIdx; i >= 0; i--)

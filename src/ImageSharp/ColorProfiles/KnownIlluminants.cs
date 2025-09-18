@@ -9,6 +9,7 @@ namespace SixLabors.ImageSharp.ColorProfiles;
 /// </summary>
 /// <remarks>
 /// Coefficients taken from: http://www.brucelindbloom.com/index.html?Eqn_ChromAdapt.html
+/// and https://color.org/specification/ICC.1-2022-05.pdf
 /// <br />
 /// Descriptions taken from: http://en.wikipedia.org/wiki/Standard_illuminant
 /// </remarks>
@@ -30,9 +31,14 @@ public static class KnownIlluminants
     public static CieXyz C { get; } = new(0.98074F, 1F, 1.18232F);
 
     /// <summary>
-    /// Gets the Horizon Light. ICC profile PCS illuminant.
+    /// Gets the Horizon Light.
     /// </summary>
     public static CieXyz D50 { get; } = new(0.96422F, 1F, 0.82521F);
+
+    /// <summary>
+    /// Gets the D50 illuminant used in the ICC profile specification.
+    /// </summary>
+    public static CieXyz D50Icc { get; } = new(0.9642F, 1F, 0.8249F);
 
     /// <summary>
     /// Gets the Mid-morning / Mid-afternoon Daylight illuminant.

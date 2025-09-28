@@ -1164,6 +1164,7 @@ public static class TestImages
         public const string IptcData = "Tiff/iptc.tiff";
 
         public const string Issue2909 = "Tiff/Issues/Issue2909.tiff";
+        public const string Issue2983 = "Tiff/Issues/Issue2983.tiff";
 
         public static readonly string[] Multiframes = [MultiframeDeflateWithPreview, MultiframeLzwPredictor /*, MultiFrameDifferentSize, MultiframeDifferentSizeTiled, MultiFrameDifferentVariants,*/
         ];

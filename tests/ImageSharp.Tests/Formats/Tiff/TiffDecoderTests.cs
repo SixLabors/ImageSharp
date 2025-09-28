@@ -833,4 +833,9 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     [WithFile(ExtraSamplesUnspecified, PixelTypes.Rgba32)]
     public void TiffDecoder_CanDecode_ExtraSamplesUnspecified<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
+
+    [Theory]
+    [WithFile(Issue2983, PixelTypes.Rgba32)]
+    public void TiffDecoder_CanDecode_Issue2983<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
 }

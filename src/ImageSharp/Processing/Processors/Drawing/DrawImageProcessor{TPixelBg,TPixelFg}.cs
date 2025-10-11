@@ -141,7 +141,7 @@ internal class DrawImageProcessor<TPixelBg, TPixelFg> : ImageProcessor<TPixelBg>
             new Rectangle(0, 0, foregroundRectangle.Width, foregroundRectangle.Height),
             in operation);
 
-        if (this.RepeatCount is 0 || this.currentFrameLoop / this.ForegroundImage.Frames.Count <= this.RepeatCount)
+        if (this.RepeatCount is 0 || this.currentFrameLoop / this.ForegroundImage.Frames.Count < this.RepeatCount)
         {
             this.currentFrameLoop++;
         }

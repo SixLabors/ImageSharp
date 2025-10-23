@@ -344,7 +344,7 @@ internal static class WebpChunkParsingUtils
                         WebpThrowHelper.ThrowImageFormatException("Could not read enough data for the EXIF profile");
                     }
 
-                    if (metadata.ExifProfile != null)
+                    if (metadata.ExifProfile == null)
                     {
                         ExifProfile exifProfile = new(exifData);
 
@@ -371,10 +371,7 @@ internal static class WebpChunkParsingUtils
                         WebpThrowHelper.ThrowImageFormatException("Could not read enough data for the XMP profile");
                     }
 
-                    if (metadata.XmpProfile != null)
-                    {
-                        metadata.XmpProfile = new XmpProfile(xmpData);
-                    }
+                    metadata.XmpProfile ??= new XmpProfile(xmpData);
 
                     break;
                 default:

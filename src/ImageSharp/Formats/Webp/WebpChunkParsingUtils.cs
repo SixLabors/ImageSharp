@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Buffers.Binary;
+using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Formats.Webp.BitReader;
 using SixLabors.ImageSharp.Formats.Webp.Lossy;
 using SixLabors.ImageSharp.IO;
@@ -120,6 +121,7 @@ internal static class WebpChunkParsingUtils
 
         return new WebpImageInfo
         {
+            DataSize = dataSize,
             Width = width,
             Height = height,
             XScale = xScale,
@@ -178,6 +180,7 @@ internal static class WebpChunkParsingUtils
 
         return new WebpImageInfo
         {
+            DataSize = imageDataSize,
             Width = width,
             Height = height,
             BitsPerPixel = features.Alpha ? WebpBitsPerPixel.Bit32 : WebpBitsPerPixel.Bit24,
@@ -333,7 +336,13 @@ internal static class WebpChunkParsingUtils
     /// If there are more such chunks, readers MAY ignore all except the first one.
     /// Also, a file may possibly contain both 'EXIF' and 'XMP ' chunks.
     /// </summary>
-    public static void ParseOptionalChunks(BufferedReadStream stream, WebpChunkType chunkType, ImageMetadata metadata, bool ignoreMetaData, Span<byte> buffer)
+    public static void ParseOptionalChunks(
+        BufferedReadStream stream,
+        WebpChunkType chunkType,
+        ImageMetadata metadata,
+        bool ignoreMetaData,
+        SegmentIntegrityHandling segmentIntegrityHandling,
+        Span<byte> buffer)
     {
         long streamLength = stream.Length;
         while (stream.Position < streamLength)
@@ -353,12 +362,30 @@ internal static class WebpChunkParsingUtils
                     bytesRead = stream.Read(exifData, 0, (int)chunkLength);
                     if (bytesRead != chunkLength)
                     {
-                        WebpThrowHelper.ThrowImageFormatException("Could not read enough data for the EXIF profile");
+                        if (segmentIntegrityHandling == SegmentIntegrityHandling.IgnoreNone)
+                        {
+                            WebpThrowHelper.ThrowImageFormatException("Could not read enough data for the EXIF profile");
+                        }
+
+                        return;
                     }
 
                     if (metadata.ExifProfile != null)
                     {
-                        metadata.ExifProfile = new ExifProfile(exifData);
+                        ExifProfile exifProfile = new(exifData);
+
+                        // Set the resolution from the metadata.
+                        double horizontalValue = GetExifResolutionValue(exifProfile, ExifTag.XResolution);
+                        double verticalValue = GetExifResolutionValue(exifProfile, ExifTag.YResolution);
+
+                        if (horizontalValue > 0 && verticalValue > 0)
+                        {
+                            metadata.HorizontalResolution = horizontalValue;
+                            metadata.VerticalResolution = verticalValue;
+                            metadata.ResolutionUnits = UnitConverter.ExifProfileToResolutionUnit(exifProfile);
+                        }
+
+                        metadata.ExifProfile = exifProfile;
                     }
 
                     break;
@@ -367,7 +394,12 @@ internal static class WebpChunkParsingUtils
                     bytesRead = stream.Read(xmpData, 0, (int)chunkLength);
                     if (bytesRead != chunkLength)
                     {
-                        WebpThrowHelper.ThrowImageFormatException("Could not read enough data for the XMP profile");
+                        if (segmentIntegrityHandling == SegmentIntegrityHandling.IgnoreNone)
+                        {
+                            WebpThrowHelper.ThrowImageFormatException("Could not read enough data for the XMP profile");
+                        }
+
+                        return;
                     }
 
                     if (metadata.XmpProfile != null)
@@ -381,6 +413,16 @@ internal static class WebpChunkParsingUtils
                     break;
             }
         }
+    }
+
+    private static double GetExifResolutionValue(ExifProfile exifProfile, ExifTag<Rational> tag)
+    {
+        if (exifProfile.TryGetValue(tag, out IExifValue<Rational>? resolution))
+        {
+            return resolution.Value.ToDouble();
+        }
+
+        return 0;
     }
 
     /// <summary>

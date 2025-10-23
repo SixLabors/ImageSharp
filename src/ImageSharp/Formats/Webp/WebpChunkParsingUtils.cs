@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Buffers.Binary;
+using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Formats.Webp.BitReader;
 using SixLabors.ImageSharp.Formats.Webp.Lossy;
 using SixLabors.ImageSharp.IO;
@@ -343,9 +344,22 @@ internal static class WebpChunkParsingUtils
                         WebpThrowHelper.ThrowImageFormatException("Could not read enough data for the EXIF profile");
                     }
 
-                    if (metadata.ExifProfile != null)
+                    if (metadata.ExifProfile == null)
                     {
-                        metadata.ExifProfile = new ExifProfile(exifData);
+                        ExifProfile exifProfile = new(exifData);
+
+                        // Set the resolution from the metadata.
+                        double horizontalValue = GetExifResolutionValue(exifProfile, ExifTag.XResolution);
+                        double verticalValue = GetExifResolutionValue(exifProfile, ExifTag.YResolution);
+
+                        if (horizontalValue > 0 && verticalValue > 0)
+                        {
+                            metadata.HorizontalResolution = horizontalValue;
+                            metadata.VerticalResolution = verticalValue;
+                            metadata.ResolutionUnits = UnitConverter.ExifProfileToResolutionUnit(exifProfile);
+                        }
+
+                        metadata.ExifProfile = exifProfile;
                     }
 
                     break;
@@ -357,10 +371,7 @@ internal static class WebpChunkParsingUtils
                         WebpThrowHelper.ThrowImageFormatException("Could not read enough data for the XMP profile");
                     }
 
-                    if (metadata.XmpProfile != null)
-                    {
-                        metadata.XmpProfile = new XmpProfile(xmpData);
-                    }
+                    metadata.XmpProfile ??= new XmpProfile(xmpData);
 
                     break;
                 default:
@@ -368,6 +379,16 @@ internal static class WebpChunkParsingUtils
                     break;
             }
         }
+    }
+
+    private static double GetExifResolutionValue(ExifProfile exifProfile, ExifTag<Rational> tag)
+    {
+        if (exifProfile.TryGetValue(tag, out IExifValue<Rational>? resolution))
+        {
+            return resolution.Value.ToDouble();
+        }
+
+        return 0;
     }
 
     /// <summary>

@@ -315,6 +315,21 @@ public class WebpDecoderTests
     }
 
     [Theory]
+    [InlineData(Lossless.Animated)]
+    public void Info_AnimatedLossless_VerifyAllFrames(string imagePath)
+    {
+        TestFile testFile = TestFile.Create(imagePath);
+        using MemoryStream stream = new(testFile.Bytes, false);
+        ImageInfo image = WebpDecoder.Instance.Identify(DecoderOptions.Default, stream);
+        WebpMetadata webpMetaData = image.Metadata.GetWebpMetadata();
+        WebpFrameMetadata frameMetaData = image.FrameMetadataCollection[0].GetWebpMetadata();
+
+        Assert.Equal(0, webpMetaData.RepeatCount);
+        Assert.Equal(150U, frameMetaData.FrameDelay);
+        Assert.Equal(12, image.FrameMetadataCollection.Count);
+    }
+
+    [Theory]
     [WithFile(Lossy.Animated, PixelTypes.Rgba32)]
     public void Decode_AnimatedLossy_VerifyAllFrames<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
@@ -329,6 +344,21 @@ public class WebpDecoderTests
         Assert.Equal(0, webpMetaData.RepeatCount);
         Assert.Equal(150U, frameMetaData.FrameDelay);
         Assert.Equal(12, image.Frames.Count);
+    }
+
+    [Theory]
+    [InlineData(Lossy.Animated)]
+    public void Info_AnimatedLossy_VerifyAllFrames(string imagePath)
+    {
+        TestFile testFile = TestFile.Create(imagePath);
+        using MemoryStream stream = new(testFile.Bytes, false);
+        ImageInfo image = WebpDecoder.Instance.Identify(DecoderOptions.Default, stream);
+        WebpMetadata webpMetaData = image.Metadata.GetWebpMetadata();
+        WebpFrameMetadata frameMetaData = image.FrameMetadataCollection[0].GetWebpMetadata();
+
+        Assert.Equal(0, webpMetaData.RepeatCount);
+        Assert.Equal(150U, frameMetaData.FrameDelay);
+        Assert.Equal(12, image.FrameMetadataCollection.Count);
     }
 
     [Theory]

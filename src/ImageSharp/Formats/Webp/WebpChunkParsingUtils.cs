@@ -370,7 +370,7 @@ internal static class WebpChunkParsingUtils
                         return;
                     }
 
-                    if (metadata.ExifProfile != null)
+                    if (metadata.ExifProfile == null)
                     {
                         ExifProfile exifProfile = new(exifData);
 
@@ -402,10 +402,7 @@ internal static class WebpChunkParsingUtils
                         return;
                     }
 
-                    if (metadata.XmpProfile != null)
-                    {
-                        metadata.XmpProfile = new XmpProfile(xmpData);
-                    }
+                    metadata.XmpProfile ??= new XmpProfile(xmpData);
 
                     break;
                 default:

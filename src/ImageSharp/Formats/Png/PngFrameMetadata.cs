@@ -32,7 +32,7 @@ public class PngFrameMetadata : IFormatFrameMetadata<PngFrameMetadata>
 
     /// <summary>
     /// Gets or sets the frame delay for animated images.
-    /// If not 0, when utilized in Png animation, this field specifies the number of hundredths (1/100) of a second to
+    /// If not 0, when utilized in Png animation, this field specifies the number of seconds to
     /// wait before continuing with the processing of the Data Stream.
     /// The clock starts ticking immediately after the graphic is rendered.
     /// </summary>

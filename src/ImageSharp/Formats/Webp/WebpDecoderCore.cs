@@ -89,7 +89,9 @@ internal sealed class WebpDecoderCore : ImageDecoderCore, IDisposable
                         this.memoryAllocator,
                         this.configuration,
                         this.maxFrames,
+                        this.skipMetadata,
                         this.backgroundColorHandling);
+
                     return animationDecoder.Decode<TPixel>(stream, this.webImageInfo.Features, this.webImageInfo.Width, this.webImageInfo.Height, fileSize);
                 }
 
@@ -101,6 +103,7 @@ internal sealed class WebpDecoderCore : ImageDecoderCore, IDisposable
                         this.webImageInfo.Vp8LBitReader,
                         this.memoryAllocator,
                         this.configuration);
+
                     losslessDecoder.Decode(pixels, image.Width, image.Height);
                 }
                 else
@@ -109,6 +112,7 @@ internal sealed class WebpDecoderCore : ImageDecoderCore, IDisposable
                         this.webImageInfo.Vp8BitReader,
                         this.memoryAllocator,
                         this.configuration);
+
                     lossyDecoder.Decode(pixels, image.Width, image.Height, this.webImageInfo, this.alphaData);
                 }
 
@@ -131,11 +135,29 @@ internal sealed class WebpDecoderCore : ImageDecoderCore, IDisposable
     /// <inheritdoc />
     protected override ImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken)
     {
-        ReadImageHeader(stream, stackalloc byte[4]);
-
+        uint fileSize = ReadImageHeader(stream, stackalloc byte[4]);
         ImageMetadata metadata = new();
+
         using (this.webImageInfo = this.ReadVp8Info(stream, metadata, true))
         {
+            if (this.webImageInfo.Features is { Animation: true })
+            {
+                using WebpAnimationDecoder animationDecoder = new(
+                    this.memoryAllocator,
+                    this.configuration,
+                    this.maxFrames,
+                    this.skipMetadata,
+                    this.backgroundColorHandling);
+
+                return animationDecoder.Identify(
+                    stream,
+                    (int)this.webImageInfo.BitsPerPixel,
+                    this.webImageInfo.Features,
+                    this.webImageInfo.Width,
+                    this.webImageInfo.Height,
+                    fileSize);
+            }
+
             return new ImageInfo(
                 new PixelTypeInfo((int)this.webImageInfo.BitsPerPixel),
                 new Size((int)this.webImageInfo.Width, (int)this.webImageInfo.Height),
@@ -208,6 +230,8 @@ internal sealed class WebpDecoderCore : ImageDecoderCore, IDisposable
                     }
                     else if (WebpChunkParsingUtils.IsOptionalVp8XChunk(chunkType))
                     {
+                        // ANIM chunks appear before EXIF and XMP chunks.
+                        // Return after parsing an ANIM chunk - The animated decoder will handle the rest.
                         bool isAnimationChunk = this.ParseOptionalExtendedChunks(stream, metadata, chunkType, features, ignoreAlpha, buffer);
                         if (isAnimationChunk)
                         {

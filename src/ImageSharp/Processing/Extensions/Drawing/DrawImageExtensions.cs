@@ -21,10 +21,11 @@ public static class DrawImageExtensions
     public static IImageProcessingContext DrawImage(
         this IImageProcessingContext source,
         Image foreground,
-        float opacity)
+        float opacity,
+        int repeatCount)
     {
         GraphicsOptions options = source.GetGraphicsOptions();
-        return DrawImage(source, foreground, options.ColorBlendingMode, options.AlphaCompositionMode, opacity);
+        return DrawImage(source, foreground, options.ColorBlendingMode, options.AlphaCompositionMode, opacity, repeatCount);
     }
 
     /// <summary>
@@ -39,10 +40,11 @@ public static class DrawImageExtensions
         this IImageProcessingContext source,
         Image foreground,
         Rectangle foregroundRectangle,
-        float opacity)
+        float opacity,
+        int repeatCount)
     {
         GraphicsOptions options = source.GetGraphicsOptions();
-        return DrawImage(source, foreground, foregroundRectangle, options.ColorBlendingMode, options.AlphaCompositionMode, opacity);
+        return DrawImage(source, foreground, foregroundRectangle, options.ColorBlendingMode, options.AlphaCompositionMode, opacity, repeatCount);
     }
 
     /// <summary>
@@ -57,8 +59,9 @@ public static class DrawImageExtensions
         this IImageProcessingContext source,
         Image foreground,
         PixelColorBlendingMode colorBlending,
-        float opacity)
-        => DrawImage(source, foreground, Point.Empty, colorBlending, opacity);
+        float opacity,
+        int repeatCount)
+        => DrawImage(source, foreground, Point.Empty, colorBlending, opacity, repeatCount);
 
     /// <summary>
     /// Draws the given image together with the currently processing image by blending their pixels.
@@ -74,8 +77,9 @@ public static class DrawImageExtensions
         Image foreground,
         Rectangle foregroundRectangle,
         PixelColorBlendingMode colorBlending,
-        float opacity)
-        => DrawImage(source, foreground, foregroundRectangle, colorBlending, source.GetGraphicsOptions().AlphaCompositionMode, opacity);
+        float opacity,
+        int repeatCount)
+        => DrawImage(source, foreground, Point.Empty, foregroundRectangle, colorBlending, opacity, repeatCount);
 
     /// <summary>
     /// Draws the given image together with the currently processing image by blending their pixels.
@@ -91,8 +95,9 @@ public static class DrawImageExtensions
         Image foreground,
         PixelColorBlendingMode colorBlending,
         PixelAlphaCompositionMode alphaComposition,
-        float opacity)
-        => DrawImage(source, foreground, Point.Empty, colorBlending, alphaComposition, opacity);
+        float opacity,
+        int repeatCount)
+        => DrawImage(source, foreground, Point.Empty, colorBlending, alphaComposition, opacity, repeatCount);
 
     /// <summary>
     /// Draws the given image together with the currently processing image by blending their pixels.
@@ -110,8 +115,9 @@ public static class DrawImageExtensions
         Rectangle foregroundRectangle,
         PixelColorBlendingMode colorBlending,
         PixelAlphaCompositionMode alphaComposition,
-        float opacity)
-        => DrawImage(source, foreground, Point.Empty, foregroundRectangle, colorBlending, alphaComposition, opacity);
+        float opacity,
+        int repeatCount)
+        => DrawImage(source, foreground, Point.Empty, foregroundRectangle, colorBlending, alphaComposition, opacity, repeatCount);
 
     /// <summary>
     /// Draws the given image together with the currently processing image by blending their pixels.
@@ -123,8 +129,9 @@ public static class DrawImageExtensions
     public static IImageProcessingContext DrawImage(
         this IImageProcessingContext source,
         Image foreground,
-        GraphicsOptions options)
-        => DrawImage(source, foreground, Point.Empty, options);
+        GraphicsOptions options,
+        int repeatCount)
+        => DrawImage(source, foreground, Point.Empty, options, repeatCount);
 
     /// <summary>
     /// Draws the given image together with the currently processing image by blending their pixels.
@@ -138,8 +145,9 @@ public static class DrawImageExtensions
         this IImageProcessingContext source,
         Image foreground,
         Rectangle foregroundRectangle,
-        GraphicsOptions options)
-        => DrawImage(source, foreground, Point.Empty, foregroundRectangle, options);
+        GraphicsOptions options,
+        int repeatCount)
+        => DrawImage(source, foreground, Point.Empty, foregroundRectangle, options, repeatCount);
 
     /// <summary>
     /// Draws the given image together with the currently processing image by blending their pixels.
@@ -153,10 +161,11 @@ public static class DrawImageExtensions
         this IImageProcessingContext source,
         Image foreground,
         Point backgroundLocation,
-        float opacity)
+        float opacity,
+        int repeatCount)
     {
         GraphicsOptions options = source.GetGraphicsOptions();
-        return DrawImage(source, foreground, backgroundLocation, options.ColorBlendingMode, options.AlphaCompositionMode, opacity);
+        return DrawImage(source, foreground, backgroundLocation, options.ColorBlendingMode, options.AlphaCompositionMode, opacity, repeatCount);
     }
 
     /// <summary>
@@ -173,10 +182,11 @@ public static class DrawImageExtensions
         Image foreground,
         Point backgroundLocation,
         Rectangle foregroundRectangle,
-        float opacity)
+        float opacity,
+        int repeatCount)
     {
         GraphicsOptions options = source.GetGraphicsOptions();
-        return DrawImage(source, foreground, backgroundLocation, foregroundRectangle, options.ColorBlendingMode, options.AlphaCompositionMode, opacity);
+        return DrawImage(source, foreground, backgroundLocation, foregroundRectangle, options.ColorBlendingMode, options.AlphaCompositionMode, opacity, repeatCount);
     }
 
     /// <summary>
@@ -193,8 +203,9 @@ public static class DrawImageExtensions
         Image foreground,
         Point backgroundLocation,
         PixelColorBlendingMode colorBlending,
-        float opacity)
-        => DrawImage(source, foreground, backgroundLocation, colorBlending, source.GetGraphicsOptions().AlphaCompositionMode, opacity);
+        float opacity,
+        int repeatCount)
+        => DrawImage(source, foreground, backgroundLocation, colorBlending, source.GetGraphicsOptions().AlphaCompositionMode, opacity, repeatCount);
 
     /// <summary>
     /// Draws the given image together with the currently processing image by blending their pixels.
@@ -212,8 +223,9 @@ public static class DrawImageExtensions
         Point backgroundLocation,
         Rectangle foregroundRectangle,
         PixelColorBlendingMode colorBlending,
-        float opacity)
-        => DrawImage(source, foreground, backgroundLocation, foregroundRectangle, colorBlending, source.GetGraphicsOptions().AlphaCompositionMode, opacity);
+        float opacity,
+        int repeatCount)
+        => DrawImage(source, foreground, backgroundLocation, foregroundRectangle, colorBlending, source.GetGraphicsOptions().AlphaCompositionMode, opacity, repeatCount);
 
     /// <summary>
     /// Draws the given image together with the currently processing image by blending their pixels.
@@ -227,8 +239,9 @@ public static class DrawImageExtensions
         this IImageProcessingContext source,
         Image foreground,
         Point backgroundLocation,
-        GraphicsOptions options)
-        => DrawImage(source, foreground, backgroundLocation, options.ColorBlendingMode, options.AlphaCompositionMode, options.BlendPercentage);
+        GraphicsOptions options,
+        int repeatCount)
+        => DrawImage(source, foreground, backgroundLocation, options.ColorBlendingMode, options.AlphaCompositionMode, options.BlendPercentage, repeatCount);
 
     /// <summary>
     /// Draws the given image together with the currently processing image by blending their pixels.
@@ -244,8 +257,9 @@ public static class DrawImageExtensions
         Image foreground,
         Point backgroundLocation,
         Rectangle foregroundRectangle,
-        GraphicsOptions options)
-        => DrawImage(source, foreground, backgroundLocation, foregroundRectangle, options.ColorBlendingMode, options.AlphaCompositionMode, options.BlendPercentage);
+        GraphicsOptions options,
+        int repeatCount)
+        => DrawImage(source, foreground, backgroundLocation, foregroundRectangle, options.ColorBlendingMode, options.AlphaCompositionMode, options.BlendPercentage, repeatCount);
 
     /// <summary>
     /// Draws the given image together with the currently processing image by blending their pixels.
@@ -263,8 +277,9 @@ public static class DrawImageExtensions
         Point backgroundLocation,
         PixelColorBlendingMode colorBlending,
         PixelAlphaCompositionMode alphaComposition,
-        float opacity)
-        => source.ApplyProcessor(new DrawImageProcessor(foreground, backgroundLocation, foreground.Bounds, colorBlending, alphaComposition, opacity));
+        float opacity,
+        int repeatCount)
+        => source.ApplyProcessor(new DrawImageProcessor(foreground, backgroundLocation, foreground.Bounds, colorBlending, alphaComposition, opacity, repeatCount));
 
     /// <summary>
     /// Draws the given image together with the currently processing image by blending their pixels.
@@ -284,8 +299,9 @@ public static class DrawImageExtensions
         Rectangle foregroundRectangle,
         PixelColorBlendingMode colorBlending,
         PixelAlphaCompositionMode alphaComposition,
-        float opacity) =>
+        float opacity,
+        int repeatCount) =>
         source.ApplyProcessor(
-            new DrawImageProcessor(foreground, backgroundLocation, foregroundRectangle, colorBlending, alphaComposition, opacity),
+            new DrawImageProcessor(foreground, backgroundLocation, foregroundRectangle, colorBlending, alphaComposition, opacity, repeatCount),
             foregroundRectangle);
 }

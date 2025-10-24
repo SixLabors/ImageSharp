@@ -559,7 +559,7 @@ internal class TiffDecoderCore : ImageDecoderCore
                 ulong required = (ulong)bytesPerRow * (ulong)stripHeight;
                 if (available < required)
                 {
-                    TiffThrowHelper.ThrowImageFormatException("StripByteCounts is smaller than required for uncompressed data.");
+                    break;
                 }
 
                 for (int r = 0; r < stripHeight; r++)

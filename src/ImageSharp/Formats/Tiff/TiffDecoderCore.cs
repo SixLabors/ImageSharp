@@ -5,6 +5,7 @@
 using System.Buffers;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Formats.Tiff.Compression;
+using SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors;
 using SixLabors.ImageSharp.Formats.Tiff.Constants;
 using SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation;
 using SixLabors.ImageSharp.IO;
@@ -403,8 +404,14 @@ internal class TiffDecoderCore : ImageDecoderCore
         {
             for (int stripIndex = 0; stripIndex < stripBuffers.Length; stripIndex++)
             {
-                int uncompressedStripSize = this.CalculateStripBufferSize(frame.Width, rowsPerStrip, stripIndex);
-                stripBuffers[stripIndex] = this.memoryAllocator.Allocate<byte>(uncompressedStripSize);
+                ulong uncompressedStripSize = this.CalculateStripBufferSize(frame.Width, rowsPerStrip, stripIndex);
+
+                if (uncompressedStripSize > int.MaxValue)
+                {
+                    TiffThrowHelper.ThrowNotSupported("Strips larger than Int32.MaxValue bytes are not supported for compressed images.");
+                }
+
+                stripBuffers[stripIndex] = this.memoryAllocator.Allocate<byte>((int)uncompressedStripSize);
             }
 
             using TiffBaseDecompressor decompressor = this.CreateDecompressor<TPixel>(frame.Width, bitsPerPixel);
@@ -460,26 +467,97 @@ internal class TiffDecoderCore : ImageDecoderCore
             rowsPerStrip = frame.Height;
         }
 
-        int uncompressedStripSize = this.CalculateStripBufferSize(frame.Width, rowsPerStrip);
+        ulong uncompressedStripSize = this.CalculateStripBufferSize(frame.Width, rowsPerStrip);
         int bitsPerPixel = this.BitsPerPixel;
-
-        using IMemoryOwner<byte> stripBuffer = this.memoryAllocator.Allocate<byte>(uncompressedStripSize, AllocationOptions.Clean);
-        Span<byte> stripBufferSpan = stripBuffer.GetSpan();
         Buffer2D<TPixel> pixels = frame.PixelBuffer;
 
-        using TiffBaseDecompressor decompressor = this.CreateDecompressor<TPixel>(frame.Width, bitsPerPixel);
+        int width = frame.Width;
+        int height = frame.Height;
+
+        using TiffBaseDecompressor decompressor = this.CreateDecompressor<TPixel>(width, bitsPerPixel);
         TiffBaseColorDecoder<TPixel> colorDecoder = this.CreateChunkyColorDecoder<TPixel>();
+
+        // There exists in this world TIFF files with uncompressed strips larger than Int32.MaxValue.
+        // We can read them, but we cannot allocate a buffer that large to hold the uncompressed data.
+        // In this scenario we fall back to reading and decoding one row at a time.
+        //
+        // The NoneTiffCompression decompressor can be used to read individual rows since we have
+        // a guarantee that each row required the same number of bytes.
+        if (decompressor is NoneTiffCompression none && uncompressedStripSize > int.MaxValue)
+        {
+            ulong bytesPerRowU = this.CalculateStripBufferSize(frame.Width, 1);
+
+            // This should never happen, but we check just to be sure.
+            if (bytesPerRowU > int.MaxValue)
+            {
+                TiffThrowHelper.ThrowNotSupported("Strips larger than Int32.MaxValue bytes are not supported for compressed images.");
+            }
+
+            int bytesPerRow = (int)bytesPerRowU;
+            using IMemoryOwner<byte> rowBufferOwner = this.memoryAllocator.Allocate<byte>(bytesPerRow, AllocationOptions.Clean);
+            Span<byte> rowBuffer = rowBufferOwner.GetSpan();
+            for (int stripIndex = 0; stripIndex < stripOffsets.Length; stripIndex++)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                int stripHeight = stripIndex < stripOffsets.Length - 1 || height % rowsPerStrip == 0
+                    ? rowsPerStrip
+                    : height % rowsPerStrip;
+
+                int top = rowsPerStrip * stripIndex;
+                if (top + stripHeight > height)
+                {
+                    break;
+                }
+
+                ulong baseOffset = stripOffsets[stripIndex];
+                ulong available = stripByteCounts[stripIndex];
+                ulong required = (ulong)bytesPerRow * (ulong)stripHeight;
+                if (available < required)
+                {
+                    break;
+                }
+
+                for (int r = 0; r < stripHeight; r++)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+
+                    ulong rowOffset = baseOffset + ((ulong)r * (ulong)bytesPerRow);
+
+                    // Use the NoneTiffCompression decompressor to read exactly one row.
+                    none.Decompress(
+                        this.inputStream,
+                        rowOffset,
+                        (ulong)bytesPerRow,
+                        1,
+                        rowBuffer,
+                        cancellationToken);
+
+                    colorDecoder.Decode(rowBuffer, pixels, 0, top + r, width, 1);
+                }
+            }
+
+            return;
+        }
+
+        if (uncompressedStripSize > int.MaxValue)
+        {
+            TiffThrowHelper.ThrowNotSupported("Strips larger than Int32.MaxValue bytes are not supported for compressed images.");
+        }
+
+        using IMemoryOwner<byte> stripBuffer = this.memoryAllocator.Allocate<byte>((int)uncompressedStripSize, AllocationOptions.Clean);
+        Span<byte> stripBufferSpan = stripBuffer.GetSpan();
 
         for (int stripIndex = 0; stripIndex < stripOffsets.Length; stripIndex++)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            int stripHeight = stripIndex < stripOffsets.Length - 1 || frame.Height % rowsPerStrip == 0
+            int stripHeight = stripIndex < stripOffsets.Length - 1 || height % rowsPerStrip == 0
                 ? rowsPerStrip
-                : frame.Height % rowsPerStrip;
+                : height % rowsPerStrip;
 
             int top = rowsPerStrip * stripIndex;
-            if (top + stripHeight > frame.Height)
+            if (top + stripHeight > height)
             {
                 // Make sure we ignore any strips that are not needed for the image (if too many are present).
                 break;
@@ -493,7 +571,7 @@ internal class TiffDecoderCore : ImageDecoderCore
                 stripBufferSpan,
                 cancellationToken);
 
-            colorDecoder.Decode(stripBufferSpan, pixels, 0, top, frame.Width, stripHeight);
+            colorDecoder.Decode(stripBufferSpan, pixels, 0, top, width, stripHeight);
         }
     }
 
@@ -753,7 +831,7 @@ internal class TiffDecoderCore : ImageDecoderCore
     /// <param name="height">The height for the desired pixel buffer.</param>
     /// <param name="plane">The index of the plane for planar image configuration (or zero for chunky).</param>
     /// <returns>The size (in bytes) of the required pixel buffer.</returns>
-    private int CalculateStripBufferSize(int width, int height, int plane = -1)
+    private ulong CalculateStripBufferSize(int width, int height, int plane = -1)
     {
         DebugGuard.MustBeLessThanOrEqualTo(plane, 3, nameof(plane));
 
@@ -786,8 +864,8 @@ internal class TiffDecoderCore : ImageDecoderCore
             }
         }
 
-        int bytesPerRow = ((width * bitsPerPixel) + 7) / 8;
-        return bytesPerRow * height;
+        ulong bytesPerRow = (((ulong)width * (ulong)bitsPerPixel) + 7) / 8;
+        return bytesPerRow * (ulong)height;
     }
 
     /// <summary>

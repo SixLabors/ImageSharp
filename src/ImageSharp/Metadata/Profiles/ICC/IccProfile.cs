@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc;
 /// <summary>
 /// Represents an ICC profile
 /// </summary>
-public sealed class IccProfile : IDeepCloneable<IccProfile>
+public sealed partial class IccProfile : IDeepCloneable<IccProfile>
 {
     /// <summary>
     /// The byte array to read the ICC profile from

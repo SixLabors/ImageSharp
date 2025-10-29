@@ -637,6 +637,14 @@ internal static class TiffDecoderOptionsParser
             {
                 options.CompressionType = TiffDecoderCompressionType.Jpeg;
 
+                // Some tiff encoder set this to values different from [1, 1]. The jpeg decoder already handles this,
+                // so we set this always to [1, 1], see: https://github.com/SixLabors/ImageSharp/issues/2679
+                if (options.PhotometricInterpretation is TiffPhotometricInterpretation.YCbCr && options.YcbcrSubSampling != null)
+                {
+                    options.YcbcrSubSampling[0] = 1;
+                    options.YcbcrSubSampling[1] = 1;
+                }
+
                 if (options.PhotometricInterpretation is TiffPhotometricInterpretation.YCbCr && options.JpegTables is null)
                 {
                     // Note: Setting PhotometricInterpretation and color type to RGB here, since the jpeg decoder will handle the conversion of the pixel data.

@@ -705,6 +705,23 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     public void TiffDecoder_CanDecode_BiColorWithMissingBitsPerSample<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
 
+    // https://github.com/SixLabors/ImageSharp/issues/2679
+    [Theory]
+    [WithFile(Issues2679, PixelTypes.Rgba32)]
+    public void TiffDecoder_CanDecode_JpegCompressedWithIssue2679<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage(TiffDecoder.Instance);
+
+        // The image is handcrafted to simulate issue 2679. ImageMagick will throw an expection here and wont decode,
+        // so we compare to reference output instead.
+        image.DebugSave(provider);
+        image.CompareToReferenceOutput(
+            ImageComparer.Exact,
+            provider,
+            appendPixelTypeToFileName: false);
+    }
+
     [Theory]
     [WithFile(JpegCompressedGray0000539558, PixelTypes.Rgba32)]
     public void TiffDecoder_ThrowsException_WithCircular_IFD_Offsets<TPixel>(TestImageProvider<TPixel> provider)

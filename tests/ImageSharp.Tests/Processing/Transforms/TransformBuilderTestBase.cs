@@ -98,7 +98,7 @@ public abstract class TransformBuilderTestBase<TBuilder>
         this.AppendRotationDegrees(builder, degrees);
 
         // TODO: We should also test CreateRotationMatrixDegrees() (and all TransformUtils stuff!) for correctness
-        Matrix3x2 matrix = TransformUtils.CreateRotationTransformMatrixDegrees(degrees, size, TransformSpace.Pixel);
+        Matrix3x2 matrix = TransformUtils.CreateRotationTransformMatrixDegrees(degrees, size);
 
         Vector2 position = new(x, y);
         Vector2 expected = Vector2.Transform(position, matrix);
@@ -152,7 +152,7 @@ public abstract class TransformBuilderTestBase<TBuilder>
 
         this.AppendSkewDegrees(builder, degreesX, degreesY);
 
-        Matrix3x2 matrix = TransformUtils.CreateSkewTransformMatrixDegrees(degreesX, degreesY, size, TransformSpace.Pixel);
+        Matrix3x2 matrix = TransformUtils.CreateSkewTransformMatrixDegrees(degreesX, degreesY, size);
 
         Vector2 position = new(x, y);
         Vector2 expected = Vector2.Transform(position, matrix);

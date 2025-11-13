@@ -77,7 +77,9 @@ internal class AffineTransformProcessor<TPixel> : TransformProcessor<TPixel>, IR
             return;
         }
 
-        // Convert from screen to world space.
+        // All matrices are defined in normalized coordinate space so we need to convert to pixel space.
+        // After normalization we need to invert the matrix for correct sampling.
+        matrix = TransformUtils.NormalizeToPixel(matrix);
         Matrix3x2.Invert(matrix, out matrix);
 
         if (sampler is NearestNeighborResampler)

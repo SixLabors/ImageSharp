@@ -17,23 +17,8 @@ public class AffineTransformBuilder
     /// Initializes a new instance of the <see cref="AffineTransformBuilder"/> class.
     /// </summary>
     public AffineTransformBuilder()
-        : this(TransformSpace.Pixel)
     {
     }
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="AffineTransformBuilder"/> class.
-    /// </summary>
-    /// <param name="transformSpace">
-    /// The <see cref="TransformSpace"/> to use when applying the affine transform.
-    /// </param>
-    public AffineTransformBuilder(TransformSpace transformSpace)
-        => this.TransformSpace = transformSpace;
-
-    /// <summary>
-    /// Gets the <see cref="TransformSpace"/> to use when applying the affine transform.
-    /// </summary>
-    public TransformSpace TransformSpace { get; }
 
     /// <summary>
     /// Prepends a rotation matrix using the given rotation angle in degrees
@@ -52,7 +37,7 @@ public class AffineTransformBuilder
     /// <returns>The <see cref="AffineTransformBuilder"/>.</returns>
     public AffineTransformBuilder PrependRotationRadians(float radians)
         => this.Prepend(
-            size => TransformUtils.CreateRotationTransformMatrixRadians(radians, size, this.TransformSpace));
+            size => TransformUtils.CreateRotationTransformMatrixRadians(radians, size));
 
     /// <summary>
     /// Prepends a rotation matrix using the given rotation in degrees at the given origin.
@@ -88,7 +73,7 @@ public class AffineTransformBuilder
     /// <param name="radians">The amount of rotation, in radians.</param>
     /// <returns>The <see cref="AffineTransformBuilder"/>.</returns>
     public AffineTransformBuilder AppendRotationRadians(float radians)
-        => this.Append(size => TransformUtils.CreateRotationTransformMatrixRadians(radians, size, this.TransformSpace));
+        => this.Append(size => TransformUtils.CreateRotationTransformMatrixRadians(radians, size));
 
     /// <summary>
     /// Appends a rotation matrix using the given rotation in degrees at the given origin.
@@ -172,7 +157,7 @@ public class AffineTransformBuilder
     /// <param name="radiansY">The Y angle, in radians.</param>
     /// <returns>The <see cref="AffineTransformBuilder"/>.</returns>
     public AffineTransformBuilder PrependSkewRadians(float radiansX, float radiansY)
-        => this.Prepend(size => TransformUtils.CreateSkewTransformMatrixRadians(radiansX, radiansY, size, this.TransformSpace));
+        => this.Prepend(size => TransformUtils.CreateSkewTransformMatrixRadians(radiansX, radiansY, size));
 
     /// <summary>
     /// Prepends a skew matrix using the given angles in degrees at the given origin.
@@ -210,7 +195,7 @@ public class AffineTransformBuilder
     /// <param name="radiansY">The Y angle, in radians.</param>
     /// <returns>The <see cref="AffineTransformBuilder"/>.</returns>
     public AffineTransformBuilder AppendSkewRadians(float radiansX, float radiansY)
-        => this.Append(size => TransformUtils.CreateSkewTransformMatrixRadians(radiansX, radiansY, size, this.TransformSpace));
+        => this.Append(size => TransformUtils.CreateSkewTransformMatrixRadians(radiansX, radiansY, size));
 
     /// <summary>
     /// Appends a skew matrix using the given angles in degrees at the given origin.
@@ -344,11 +329,25 @@ public class AffineTransformBuilder
     /// for linear transforms.
     /// </exception>
     /// <returns>The <see cref="Size"/>.</returns>
-    public Size GetTransformedSize(Rectangle sourceRectangle)
+    public SizeF GetTransformedSize(Rectangle sourceRectangle)
     {
         Matrix3x2 matrix = this.BuildMatrix(sourceRectangle);
-        return TransformUtils.GetTransformedSize(matrix, sourceRectangle.Size, this.TransformSpace);
+        return GetTransformedSize(sourceRectangle, matrix);
     }
+
+    /// <summary>
+    /// Returns the size of a rectangle large enough to contain the transformed source rectangle.
+    /// </summary>
+    /// <param name="sourceRectangle">The rectangle in the source image.</param>
+    /// <param name="matrix">The transformation matrix.</param>
+    /// <exception cref="DegenerateTransformException">
+    /// The resultant matrix is degenerate containing one or more values equivalent
+    /// to <see cref="float.NaN"/> or a zero determinant and therefore cannot be used
+    /// for linear transforms.
+    /// </exception>
+    /// <returns>The <see cref="Size"/>.</returns>
+    internal static SizeF GetTransformedSize(Rectangle sourceRectangle, Matrix3x2 matrix)
+        => TransformUtils.GetRawTransformedSize(matrix, sourceRectangle.Size);
 
     private static void CheckDegenerate(Matrix3x2 matrix)
     {

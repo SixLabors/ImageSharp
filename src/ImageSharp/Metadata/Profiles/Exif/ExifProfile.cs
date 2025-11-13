@@ -340,18 +340,18 @@ public sealed class ExifProfile : IDeepCloneable<ExifProfile>
             if (area.Value?.Length == 4)
             {
                 RectangleF rectangle = new(area.Value[0], area.Value[1], area.Value[2], area.Value[3]);
-                if (!TransformUtils.TryGetTransformedRectangle(rectangle, matrix, out Rectangle bounds))
+                if (!TransformUtils.TryGetTransformedRectangle(rectangle, matrix, out RectangleF bounds))
                 {
                     return;
                 }
 
                 // Ensure the bounds are within the image dimensions.
-                bounds = Rectangle.Intersect(bounds, new Rectangle(0, 0, width, height));
+                bounds = RectangleF.Intersect(bounds, new Rectangle(0, 0, width, height));
 
-                area.Value[0] = (ushort)bounds.X;
-                area.Value[1] = (ushort)bounds.Y;
-                area.Value[2] = (ushort)bounds.Width;
-                area.Value[3] = (ushort)bounds.Height;
+                area.Value[0] = (ushort)MathF.Floor(bounds.X);
+                area.Value[1] = (ushort)MathF.Floor(bounds.Y);
+                area.Value[2] = (ushort)MathF.Ceiling(bounds.Width);
+                area.Value[3] = (ushort)MathF.Ceiling(bounds.Height);
                 this.SetValue(ExifTag.SubjectArea, area.Value);
             }
             else

@@ -652,7 +652,7 @@ public class ResizeTests
             image.Metadata.ExifProfile.GetValue(ExifTag.SubjectLocation).Value);
 
         Assert.Equal(
-            [2, 7, 11, 11],
+            [2, 7, 10, 10],
             image.Metadata.ExifProfile.GetValue(ExifTag.SubjectArea).Value);
     }
 }

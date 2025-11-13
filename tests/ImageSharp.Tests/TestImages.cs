@@ -216,6 +216,9 @@ public static class TestImages
             public const string AppleRGB = "Jpg/icc-profiles/Momiji-AppleRGB-yes.jpg";
             public const string CMYK = "Jpg/icc-profiles/issue-129.jpg";
             public const string YCCK = "Jpg/icc-profiles/issue_2723.jpg";
+            public const string SRgbGray = "Jpg/icc-profiles/sRGB_Gray.jpg";
+            public const string Perceptual = "Jpg/icc-profiles/Perceptual.jpg";
+            public const string PerceptualcLUTOnly = "Jpg/icc-profiles/Perceptual-cLUT-only.jpg";
         }
 
         public static class Progressive

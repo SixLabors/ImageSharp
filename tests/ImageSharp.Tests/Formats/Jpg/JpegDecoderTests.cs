@@ -402,6 +402,9 @@ public partial class JpegDecoderTests
     [WithFile(TestImages.Jpeg.ICC.ProPhoto, PixelTypes.Rgba32)]
     [WithFile(TestImages.Jpeg.ICC.WideRGB, PixelTypes.Rgba32)]
     [WithFile(TestImages.Jpeg.ICC.AppleRGB, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Jpeg.ICC.SRgbGray, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Jpeg.ICC.Perceptual, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Jpeg.ICC.PerceptualcLUTOnly, PixelTypes.Rgba32)]
     public void Decode_RGB_ICC_Jpeg<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {

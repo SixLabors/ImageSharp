@@ -78,7 +78,7 @@ public sealed class DecoderOptions
             return false;
         }
 
-        if (IccProfileHeader.IsLikelySrgb(profile.Header))
+        if (profile.IsCanonicalSrgbMatrixTrc())
         {
             return false;
         }
@@ -99,7 +99,7 @@ public sealed class DecoderOptions
             return false;
         }
 
-        if (this.ColorProfileHandling == ColorProfileHandling.Compact && IccProfileHeader.IsLikelySrgb(profile.Header))
+        if (this.ColorProfileHandling == ColorProfileHandling.Compact && profile.IsCanonicalSrgbMatrixTrc())
         {
             return true;
         }

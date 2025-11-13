@@ -60,8 +60,8 @@ internal static class ColorProfileConverterExtensionsIcc
         ColorProfileConverter pcsConverter = new(new ColorConversionOptions
         {
             MemoryAllocator = converter.Options.MemoryAllocator,
-            SourceWhitePoint = new CieXyz(converter.Options.SourceIccProfile.Header.PcsIlluminant),
-            TargetWhitePoint = new CieXyz(converter.Options.TargetIccProfile.Header.PcsIlluminant),
+            SourceWhitePoint = KnownIlluminants.D50Icc,
+            TargetWhitePoint = KnownIlluminants.D50Icc
         });
 
         // Normalize the source, then convert to the PCS space.
@@ -104,8 +104,8 @@ internal static class ColorProfileConverterExtensionsIcc
         ColorProfileConverter pcsConverter = new(new ColorConversionOptions
         {
             MemoryAllocator = converter.Options.MemoryAllocator,
-            SourceWhitePoint = new CieXyz(converter.Options.SourceIccProfile.Header.PcsIlluminant),
-            TargetWhitePoint = new CieXyz(converter.Options.TargetIccProfile.Header.PcsIlluminant),
+            SourceWhitePoint = KnownIlluminants.D50Icc,
+            TargetWhitePoint = KnownIlluminants.D50Icc
         });
 
         using IMemoryOwner<Vector4> pcsBuffer = converter.Options.MemoryAllocator.Allocate<Vector4>(source.Length);

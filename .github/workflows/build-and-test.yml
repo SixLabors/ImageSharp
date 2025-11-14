@@ -188,15 +188,16 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: |
-            ${{matrix.options.sdk}}
+            8.0.x
 
       - name: DotNet Setup Preview
         if: ${{ matrix.options.sdk-preview == true }}
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: |
-            ${{matrix.options.sdk}}
-
+            9.0.x
+            10.0.x
+            
       - name: DotNet Build
         if: ${{ matrix.options.sdk-preview != true }}
         shell: pwsh

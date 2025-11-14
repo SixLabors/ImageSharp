@@ -37,6 +37,7 @@ internal sealed unsafe partial class JpegEncoderCore
 
         return
         [
+
             // YCbCr 4:4:4
             new JpegFrameConfig(
                 JpegColorSpace.YCbCr,

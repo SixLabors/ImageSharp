@@ -102,7 +102,7 @@ internal sealed class IccTextDescriptionTagDataEntry : IccTagDataEntry, IEquatab
             localString = new IccLocalizedString(string.Empty);
         }
 
-        return new IccMultiLocalizedUnicodeTagDataEntry(new[] { localString }, textEntry.TagSignature);
+        return new IccMultiLocalizedUnicodeTagDataEntry([localString], textEntry.TagSignature);
 
         static CultureInfo GetCulture(uint value)
         {

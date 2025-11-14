@@ -570,7 +570,6 @@ public partial class ImageTests
         }
 
         private static bool ShouldSkipBitmapTest =>
-            !TestEnvironment.Is64BitProcess || (TestHelpers.ImageSharpBuiltAgainst != "netcoreapp3.1" &&
-                                                TestHelpers.ImageSharpBuiltAgainst != "netcoreapp2.1");
+            !TestEnvironment.Is64BitProcess;
     }
 }

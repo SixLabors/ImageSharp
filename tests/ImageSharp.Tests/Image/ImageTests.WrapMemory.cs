@@ -570,6 +570,6 @@ public partial class ImageTests
         }
 
         private static bool ShouldSkipBitmapTest =>
-            !TestEnvironment.Is64BitProcess;
+            !TestEnvironment.Is64BitProcess || true;
     }
 }

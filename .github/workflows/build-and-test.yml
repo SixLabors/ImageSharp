@@ -91,31 +91,6 @@ jobs:
             codecov: false
 
           - os: ubuntu-latest
-            framework: net9.0
-            sdk: 9.0.x
-            sdk-preview: true
-            runtime: -x64
-            codecov: false
-          - os: macos-13 # macos-latest runs on arm64 runners where libgdiplus is unavailable
-            framework: net9.0
-            sdk: 9.0.x
-            sdk-preview: true
-            runtime: -x64
-            codecov: false
-          - os: windows-latest
-            framework: net9.0
-            sdk: 9.0.x
-            sdk-preview: true
-            runtime: -x64
-            codecov: false
-          - os: buildjet-4vcpu-ubuntu-2204-arm
-            framework: net9.0
-            sdk: 9.0.x
-            sdk-preview: true
-            runtime: -x64
-            codecov: false
-
-          - os: ubuntu-latest
             framework: net8.0
             sdk: 8.0.x
             runtime: -x64
@@ -195,9 +170,8 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: |
-            9.0.x
             10.0.x
-            
+
       - name: DotNet Build
         if: ${{ matrix.options.sdk-preview != true }}
         shell: pwsh

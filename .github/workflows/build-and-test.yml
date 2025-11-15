@@ -66,26 +66,26 @@ jobs:
           - ${{ contains(github.event.pull_request.labels.*.name, 'arch:arm32') || contains(github.event.pull_request.labels.*.name, 'arch:arm64') }}
         options:
           - os: ubuntu-latest
-            framework: net9.0
-            sdk: 9.0.x
+            framework: net10.0
+            sdk: 10.0.x
             sdk-preview: true
             runtime: -x64
             codecov: false
           - os: macos-13 # macos-latest runs on arm64 runners where libgdiplus is unavailable
-            framework: net9.0
-            sdk: 9.0.x
+            framework: net10.0
+            sdk: 10.0.x
             sdk-preview: true
             runtime: -x64
             codecov: false
           - os: windows-latest
-            framework: net9.0
-            sdk: 9.0.x
+            framework: net10.0
+            sdk: 10.0.x
             sdk-preview: true
             runtime: -x64
             codecov: false
           - os: buildjet-4vcpu-ubuntu-2204-arm
-            framework: net9.0
-            sdk: 9.0.x
+            framework: net10.0
+            sdk: 10.0.x
             sdk-preview: true
             runtime: -x64
             codecov: false
@@ -170,7 +170,7 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: |
-            9.0.x
+            10.0.x
 
       - name: DotNet Build
         if: ${{ matrix.options.sdk-preview != true }}

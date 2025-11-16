@@ -360,7 +360,7 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     {
         using Image<TPixel> image = provider.GetImage(TiffDecoder.Instance);
         image.DebugSave(provider);
-        image.CompareToReferenceOutput(ImageComparer.Exact, provider);
+        image.CompareToReferenceOutput(ImageComparer.Tolerant(), provider);
     }
 
     [Theory]

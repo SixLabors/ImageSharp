@@ -115,13 +115,13 @@ public class FeatureTestRunnerTests
                     Assert.False(Pclmulqdq.IsSupported);
                     break;
                 case HwIntrinsics.DisableSSE42:
-                    Assert.False(Sse.IsSupported);
-                    Assert.False(Sse2.IsSupported);
-                    Assert.False(Sse3.IsSupported);
-                    Assert.False(Ssse3.IsSupported);
-                    Assert.False(Sse41.IsSupported);
-                    Assert.False(Sse42.IsSupported);
-                    Assert.False(Popcnt.IsSupported);
+                    Assert.False(Sse.IsSupported, "Sse should be disabled.");
+                    Assert.False(Sse2.IsSupported, "Sse2 should be disabled.");
+                    Assert.False(Sse3.IsSupported, "Sse3 should be disabled.");
+                    Assert.False(Ssse3.IsSupported, "Ssse3 should be disabled.");
+                    Assert.False(Sse41.IsSupported, "Sse41 should be disabled.");
+                    Assert.False(Sse42.IsSupported, "Sse42 should be disabled.");
+                    Assert.False(Popcnt.IsSupported, "Popcnt should be disabled.");
                     break;
                 case HwIntrinsics.DisableAVX:
                     Assert.False(Avx.IsSupported);

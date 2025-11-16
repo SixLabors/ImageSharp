@@ -115,21 +115,26 @@ public class FeatureTestRunnerTests
                     Assert.False(Pclmulqdq.IsSupported);
                     break;
                 case HwIntrinsics.DisableSSE42:
+#if NET10_0_OR_GREATER
                     Assert.False(Sse3.IsSupported, "Sse3 should be disabled.");
                     Assert.False(Ssse3.IsSupported, "Ssse3 should be disabled.");
                     Assert.False(Sse41.IsSupported, "Sse41 should be disabled.");
-                    Assert.False(Sse42.IsSupported, "Sse42 should be disabled.");
                     Assert.False(Popcnt.IsSupported, "Popcnt should be disabled.");
+#else
+                    Assert.False(Sse42.IsSupported, "Sse42 should be disabled.");
+#endif
                     break;
                 case HwIntrinsics.DisableAVX:
                     Assert.False(Avx.IsSupported);
                     break;
                 case HwIntrinsics.DisableAVX2:
                     Assert.False(Avx2.IsSupported);
+#if NET10_0_OR_GREATER
                     Assert.False(Fma.IsSupported);
                     Assert.False(Bmi1.IsSupported);
                     Assert.False(Bmi2.IsSupported);
                     Assert.False(Lzcnt.IsSupported);
+#endif
                     break;
                 case HwIntrinsics.DisableArm64Aes:
                     Assert.False(System.Runtime.Intrinsics.Arm.Aes.IsSupported);
@@ -206,23 +211,30 @@ public class FeatureTestRunnerTests
                     break;
                 case HwIntrinsics.DisableAES:
                     Assert.False(Aes.IsSupported);
+#if NET10_0_OR_GREATER
                     Assert.False(Pclmulqdq.IsSupported);
+#endif
                     break;
                 case HwIntrinsics.DisableSSE42:
-                    Assert.False(Ssse3.IsSupported);
-                    Assert.False(Sse41.IsSupported);
-                    Assert.False(Sse42.IsSupported);
-                    Assert.False(Popcnt.IsSupported);
+#if NET10_0_OR_GREATER
+                    Assert.False(Sse3.IsSupported, "Sse3 should be disabled.");
+                    Assert.False(Ssse3.IsSupported, "Ssse3 should be disabled.");
+                    Assert.False(Sse41.IsSupported, "Sse41 should be disabled.");
+                    Assert.False(Popcnt.IsSupported, "Popcnt should be disabled.");
+#endif
+                    Assert.False(Sse42.IsSupported, "Sse42 should be disabled.");
                     break;
                 case HwIntrinsics.DisableAVX:
                     Assert.False(Avx.IsSupported);
                     break;
                 case HwIntrinsics.DisableAVX2:
                     Assert.False(Avx2.IsSupported);
+#if NET10_0_OR_GREATER
                     Assert.False(Fma.IsSupported);
                     Assert.False(Bmi1.IsSupported);
                     Assert.False(Bmi2.IsSupported);
                     Assert.False(Lzcnt.IsSupported);
+#endif
                     break;
                 case HwIntrinsics.DisableArm64Aes:
                     Assert.False(System.Runtime.Intrinsics.Arm.Aes.IsSupported);

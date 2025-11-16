@@ -169,7 +169,7 @@ public class FeatureTestRunnerTests
         {
             Assert.NotNull(serializable);
             Assert.NotNull(FeatureTestRunner.DeserializeForXunit<FakeSerializable>(serializable));
-            Assert.False(Sse.IsSupported, "SSE should be disabled when DisableSSE42 is set (sanity check using serializable param overload).");
+            Assert.False(Sse42.IsSupported, "SSE42 should be disabled when DisableSSE42 is set (sanity check using serializable param overload).");
         }
 
         FeatureTestRunner.RunWithHwIntrinsicsFeature(

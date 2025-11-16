@@ -110,53 +110,28 @@ public class FeatureTestRunnerTests
                     Assert.False(Sha1.IsSupported);
                     Assert.False(Sha256.IsSupported);
                     break;
-                case HwIntrinsics.DisableSSE:
-                    Assert.False(Sse.IsSupported);
-                    break;
-                case HwIntrinsics.DisableSSE2:
-                    Assert.False(Sse2.IsSupported);
-                    break;
                 case HwIntrinsics.DisableAES:
                     Assert.False(Aes.IsSupported);
-                    break;
-                case HwIntrinsics.DisablePCLMULQDQ:
                     Assert.False(Pclmulqdq.IsSupported);
                     break;
-                case HwIntrinsics.DisableSSE3:
-                    Assert.False(Sse3.IsSupported);
-                    break;
-                case HwIntrinsics.DisableSSSE3:
-                    Assert.False(Ssse3.IsSupported);
-                    break;
-                case HwIntrinsics.DisableSSE41:
-                    Assert.False(Sse41.IsSupported);
-                    break;
                 case HwIntrinsics.DisableSSE42:
+                    Assert.False(Sse.IsSupported);
+                    Assert.False(Sse2.IsSupported);
+                    Assert.False(Sse3.IsSupported);
+                    Assert.False(Ssse3.IsSupported);
+                    Assert.False(Sse41.IsSupported);
                     Assert.False(Sse42.IsSupported);
-                    break;
-                case HwIntrinsics.DisablePOPCNT:
                     Assert.False(Popcnt.IsSupported);
                     break;
                 case HwIntrinsics.DisableAVX:
                     Assert.False(Avx.IsSupported);
                     break;
-                case HwIntrinsics.DisableFMA:
-                    Assert.False(Fma.IsSupported);
-                    break;
                 case HwIntrinsics.DisableAVX2:
                     Assert.False(Avx2.IsSupported);
-                    break;
-                case HwIntrinsics.DisableBMI1:
+                    Assert.False(Fma.IsSupported);
                     Assert.False(Bmi1.IsSupported);
-                    break;
-                case HwIntrinsics.DisableBMI2:
                     Assert.False(Bmi2.IsSupported);
-                    break;
-                case HwIntrinsics.DisableLZCNT:
                     Assert.False(Lzcnt.IsSupported);
-                    break;
-                case HwIntrinsics.DisableArm64AdvSimd:
-                    Assert.False(AdvSimd.IsSupported);
                     break;
                 case HwIntrinsics.DisableArm64Aes:
                     Assert.False(System.Runtime.Intrinsics.Arm.Aes.IsSupported);
@@ -194,7 +169,7 @@ public class FeatureTestRunnerTests
 
         FeatureTestRunner.RunWithHwIntrinsicsFeature(
             AssertHwIntrinsicsFeatureDisabled,
-            HwIntrinsics.DisableSSE,
+            HwIntrinsics.DisableSSE42,
             new FakeSerializable());
     }
 
@@ -231,53 +206,27 @@ public class FeatureTestRunnerTests
                     Assert.False(Sha1.IsSupported);
                     Assert.False(Sha256.IsSupported);
                     break;
-                case HwIntrinsics.DisableSSE:
-                    Assert.False(Sse.IsSupported);
-                    break;
-                case HwIntrinsics.DisableSSE2:
-                    Assert.False(Sse2.IsSupported);
-                    break;
                 case HwIntrinsics.DisableAES:
                     Assert.False(Aes.IsSupported);
-                    break;
-                case HwIntrinsics.DisablePCLMULQDQ:
                     Assert.False(Pclmulqdq.IsSupported);
                     break;
-                case HwIntrinsics.DisableSSE3:
-                    Assert.False(Sse3.IsSupported);
-                    break;
-                case HwIntrinsics.DisableSSSE3:
-                    Assert.False(Ssse3.IsSupported);
-                    break;
-                case HwIntrinsics.DisableSSE41:
-                    Assert.False(Sse41.IsSupported);
-                    break;
                 case HwIntrinsics.DisableSSE42:
+                    Assert.False(Sse.IsSupported);
+                    Assert.False(Sse2.IsSupported);
+                    Assert.False(Ssse3.IsSupported);
+                    Assert.False(Sse41.IsSupported);
                     Assert.False(Sse42.IsSupported);
-                    break;
-                case HwIntrinsics.DisablePOPCNT:
                     Assert.False(Popcnt.IsSupported);
                     break;
                 case HwIntrinsics.DisableAVX:
                     Assert.False(Avx.IsSupported);
                     break;
-                case HwIntrinsics.DisableFMA:
-                    Assert.False(Fma.IsSupported);
-                    break;
                 case HwIntrinsics.DisableAVX2:
                     Assert.False(Avx2.IsSupported);
-                    break;
-                case HwIntrinsics.DisableBMI1:
+                    Assert.False(Fma.IsSupported);
                     Assert.False(Bmi1.IsSupported);
-                    break;
-                case HwIntrinsics.DisableBMI2:
                     Assert.False(Bmi2.IsSupported);
-                    break;
-                case HwIntrinsics.DisableLZCNT:
                     Assert.False(Lzcnt.IsSupported);
-                    break;
-                case HwIntrinsics.DisableArm64AdvSimd:
-                    Assert.False(AdvSimd.IsSupported);
                     break;
                 case HwIntrinsics.DisableArm64Aes:
                     Assert.False(System.Runtime.Intrinsics.Arm.Aes.IsSupported);

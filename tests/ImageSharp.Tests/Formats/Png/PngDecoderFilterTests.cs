@@ -171,7 +171,7 @@ public class PngDecoderFilterTests
     public void PaethFilter_WithHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunPaethFilterTest, HwIntrinsics.AllowAll);
 
     [Fact]
-    public void PaethFilter_WithoutSsse3_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunPaethFilterTest, HwIntrinsics.DisableSSSE3);
+    public void PaethFilter_WithoutSsse3_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunPaethFilterTest, HwIntrinsics.DisableSSE42);
 
     [Fact]
     public void PaethFilter_WithoutHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunPaethFilterTest, HwIntrinsics.DisableHWIntrinsic);

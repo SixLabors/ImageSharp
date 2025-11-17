@@ -69,7 +69,7 @@ public struct Point : IEquatable<Point>
     /// Gets a value indicating whether this <see cref="Point"/> is empty.
     /// </summary>
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public bool IsEmpty => this.Equals(Empty);
+    public readonly bool IsEmpty => this.Equals(Empty);
 
     /// <summary>
     /// Creates a <see cref="PointF"/> with the coordinates of the specified <see cref="Point"/>.
@@ -239,7 +239,7 @@ public struct Point : IEquatable<Point>
     /// </summary>
     /// <param name="x">The out value for X.</param>
     /// <param name="y">The out value for Y.</param>
-    public void Deconstruct(out int x, out int y)
+    public readonly void Deconstruct(out int x, out int y)
     {
         x = this.X;
         y = this.Y;
@@ -268,17 +268,17 @@ public struct Point : IEquatable<Point>
     public void Offset(Point point) => this.Offset(point.X, point.Y);
 
     /// <inheritdoc/>
-    public override int GetHashCode() => HashCode.Combine(this.X, this.Y);
+    public override readonly int GetHashCode() => HashCode.Combine(this.X, this.Y);
 
     /// <inheritdoc/>
-    public override string ToString() => $"Point [ X={this.X}, Y={this.Y} ]";
+    public override readonly string ToString() => $"Point [ X={this.X}, Y={this.Y} ]";
 
     /// <inheritdoc/>
-    public override bool Equals(object? obj) => obj is Point other && this.Equals(other);
+    public override readonly bool Equals(object? obj) => obj is Point other && this.Equals(other);
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool Equals(Point other) => this.X.Equals(other.X) && this.Y.Equals(other.Y);
+    public readonly bool Equals(Point other) => this.X.Equals(other.X) && this.Y.Equals(other.Y);
 
     private static short HighInt16(int n) => unchecked((short)((n >> 16) & 0xffff));
 

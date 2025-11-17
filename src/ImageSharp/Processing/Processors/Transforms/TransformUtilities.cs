@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms;
 /// <summary>
 /// Contains utility methods for working with transforms.
 /// </summary>
-internal static class TransformUtils
+internal static class TransformUtilities
 {
     /// <summary>
     /// Returns a value that indicates whether the specified matrix is degenerate
@@ -80,79 +80,69 @@ internal static class TransformUtils
     }
 
     /// <summary>
-    /// Creates a centered rotation transform matrix using the given rotation in degrees and the source size.
+    /// Creates a centered rotation transform matrix using the given rotation in degrees and the original source size.
     /// </summary>
     /// <param name="degrees">The amount of rotation, in degrees.</param>
     /// <param name="size">The source image size.</param>
-    /// <param name="transformSpace">The <see cref="TransformSpace"/> to use when creating the centered matrix.</param>
     /// <returns>The <see cref="Matrix3x2"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Matrix3x2 CreateRotationTransformMatrixDegrees(float degrees, Size size, TransformSpace transformSpace)
-        => CreateRotationTransformMatrixRadians(GeometryUtilities.DegreeToRadian(degrees), size, transformSpace);
+    public static Matrix3x2 CreateRotationTransformMatrixDegrees(float degrees, Size size)
+        => CreateRotationTransformMatrixRadians(GeometryUtilities.DegreeToRadian(degrees), size);
 
     /// <summary>
-    /// Creates a centered rotation transform matrix using the given rotation in radians and the source size.
+    /// Creates a centered rotation transform matrix using the given rotation in radians and the original source size.
     /// </summary>
     /// <param name="radians">The amount of rotation, in radians.</param>
     /// <param name="size">The source image size.</param>
-    /// <param name="transformSpace">The <see cref="TransformSpace"/> to use when creating the centered matrix.</param>
     /// <returns>The <see cref="Matrix3x2"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Matrix3x2 CreateRotationTransformMatrixRadians(float radians, Size size, TransformSpace transformSpace)
-        => CreateCenteredTransformMatrix(Matrix3x2Extensions.CreateRotation(radians, PointF.Empty), size, transformSpace);
+    public static Matrix3x2 CreateRotationTransformMatrixRadians(float radians, Size size)
+        => CreateCenteredTransformMatrix(Matrix3x2Extensions.CreateRotation(radians, PointF.Empty), size);
 
     /// <summary>
-    /// Creates a centered skew transform matrix from the give angles in degrees and the source size.
+    /// Creates a centered skew transform matrix from the give angles in degrees and the original source size.
     /// </summary>
     /// <param name="degreesX">The X angle, in degrees.</param>
     /// <param name="degreesY">The Y angle, in degrees.</param>
     /// <param name="size">The source image size.</param>
-    /// <param name="transformSpace">The <see cref="TransformSpace"/> to use when creating the centered matrix.</param>
     /// <returns>The <see cref="Matrix3x2"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Matrix3x2 CreateSkewTransformMatrixDegrees(float degreesX, float degreesY, Size size, TransformSpace transformSpace)
-        => CreateSkewTransformMatrixRadians(GeometryUtilities.DegreeToRadian(degreesX), GeometryUtilities.DegreeToRadian(degreesY), size, transformSpace);
+    public static Matrix3x2 CreateSkewTransformMatrixDegrees(float degreesX, float degreesY, Size size)
+        => CreateSkewTransformMatrixRadians(GeometryUtilities.DegreeToRadian(degreesX), GeometryUtilities.DegreeToRadian(degreesY), size);
 
     /// <summary>
-    /// Creates a centered skew transform matrix from the give angles in radians and the source size.
+    /// Creates a centered skew transform matrix from the give angles in radians and the original source size.
     /// </summary>
     /// <param name="radiansX">The X angle, in radians.</param>
     /// <param name="radiansY">The Y angle, in radians.</param>
     /// <param name="size">The source image size.</param>
-    /// <param name="transformSpace">The <see cref="TransformSpace"/> to use when creating the centered matrix.</param>
     /// <returns>The <see cref="Matrix3x2"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Matrix3x2 CreateSkewTransformMatrixRadians(float radiansX, float radiansY, Size size, TransformSpace transformSpace)
-        => CreateCenteredTransformMatrix(Matrix3x2Extensions.CreateSkew(radiansX, radiansY, PointF.Empty), size, transformSpace);
+    public static Matrix3x2 CreateSkewTransformMatrixRadians(float radiansX, float radiansY, Size size)
+        => CreateCenteredTransformMatrix(Matrix3x2Extensions.CreateSkew(radiansX, radiansY, PointF.Empty), size);
 
     /// <summary>
     /// Gets the centered transform matrix based upon the source rectangle.
     /// </summary>
     /// <param name="matrix">The transformation matrix.</param>
     /// <param name="size">The source image size.</param>
-    /// <param name="transformSpace">
-    /// The <see cref="TransformSpace"/> to use when creating the centered matrix.
-    /// </param>
     /// <returns>The <see cref="Matrix3x2"/></returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Matrix3x2 CreateCenteredTransformMatrix(Matrix3x2 matrix, Size size, TransformSpace transformSpace)
+    public static Matrix3x2 CreateCenteredTransformMatrix(Matrix3x2 matrix, Size size)
     {
-        Size transformSize = GetUnboundedTransformedSize(matrix, size, transformSpace);
+        // 1) Unbounded size.
+        SizeF ts = GetRawTransformedSize(matrix, size);
 
-        // We invert the matrix to handle the transformation from screen to world space.
-        // This ensures scaling matrices are correct.
-        Matrix3x2.Invert(matrix, out Matrix3x2 inverted);
+        // 2) Invert the content transform for screen->world.
+        Matrix3x2.Invert(matrix, out Matrix3x2 inv);
 
-        // The source size is provided using the coordinate space of the source image.
-        // however the transform should always be applied in the pixel space.
-        // To account for this we offset by the size - 1 to translate to the pixel space.
-        float offset = transformSpace == TransformSpace.Pixel ? 1F : 0F;
+        // 3) Translate target (canvas) so its center is at the origin,
+        // translate source so its center is at the origin, then undo the content transform.
+        Matrix3x2 toTarget = Matrix3x2.CreateTranslation(new Vector2(-ts.Width, -ts.Height) * 0.5f);
+        Matrix3x2 toSource = Matrix3x2.CreateTranslation(new Vector2(size.Width, size.Height) * 0.5f);
 
-        Matrix3x2 translationToTargetCenter = Matrix3x2.CreateTranslation(new Vector2(-(transformSize.Width - offset), -(transformSize.Height - offset)) * .5F);
-        Matrix3x2 translateToSourceCenter = Matrix3x2.CreateTranslation(new Vector2(size.Width - offset, size.Height - offset) * .5F);
-
-        // Translate back to world space.
-        Matrix3x2.Invert(translationToTargetCenter * inverted * translateToSourceCenter, out Matrix3x2 centered);
+        // 4) World->screen.
+        Matrix3x2.Invert(toTarget * inv * toSource, out Matrix3x2 centered);
 
         return centered;
     }
@@ -287,7 +277,6 @@ internal static class TransformUtils
     /// <param name="topRight">The top-right point of the distorted quad.</param>
     /// <param name="bottomRight">The bottom-right point of the distorted quad.</param>
     /// <param name="bottomLeft">The bottom-left point of the distorted quad.</param>
-    /// <param name="transformSpace">The <see cref="TransformSpace"/> to use when creating the matrix.</param>
     /// <returns>The computed projection matrix for the quad distortion.</returns>
     /// <remarks>
     /// This method is based on the algorithm described in the following article:
@@ -298,8 +287,7 @@ internal static class TransformUtils
         PointF topLeft,
         PointF topRight,
         PointF bottomRight,
-        PointF bottomLeft,
-        TransformSpace transformSpace)
+        PointF bottomLeft)
     {
         PointF p1 = new(rectangle.X, rectangle.Y);
         PointF p2 = new(rectangle.X + rectangle.Width, rectangle.Y);
@@ -345,46 +333,94 @@ internal static class TransformUtils
             (float)b[2], (float)b[5], 0, 1);
 #pragma warning restore SA1117
 
-        // Check if the matrix involves only affine transformations by inspecting the relevant components.
-        // We want to use pixel space for calculations only if the transformation is purely 2D and does not include
-        // any perspective effects, non-standard scaling, or unusual translations that could distort the image.
-        if (transformSpace == TransformSpace.Pixel && IsAffineRotationOrSkew(projectionMatrix))
-        {
-            if (projectionMatrix.M41 != 0)
-            {
-                projectionMatrix.M41--;
-            }
-
-            if (projectionMatrix.M42 != 0)
-            {
-                projectionMatrix.M42--;
-            }
-        }
-
         return projectionMatrix;
     }
 
     /// <summary>
-    /// Returns the size relative to the source for the given transformation matrix.
+    /// Calculates the size of a destination canvas large enough to contain
+    /// the fully transformed source content, including any translation offsets.
     /// </summary>
     /// <param name="matrix">The transformation matrix.</param>
-    /// <param name="size">The source size.</param>
-    /// <param name="transformSpace">The <see cref="TransformSpace"/> to use when calculating the size.</param>
-    /// <returns>The <see cref="Size"/>.</returns>
-    public static Size GetTransformedSize(Matrix3x2 matrix, Size size, TransformSpace transformSpace)
-        => GetTransformedSize(matrix, size, transformSpace, true);
+    /// <param name="size">The original source size.</param>
+    /// <returns>
+    /// A <see cref="SizeF"/> representing the dimensions of the destination
+    /// canvas required to fully contain the transformed source, including
+    /// any positive or negative translation offsets.
+    /// </returns>
+    /// <remarks>
+    /// <para>
+    /// This method ensures that the transformed content remains fully visible
+    /// on the destination canvas by expanding its size to include translations
+    /// in all directions.
+    /// </para>
+    /// <para>
+    /// It behaves identically to calling
+    /// <see cref="GetTransformedSize(Matrix3x2, Size, bool)"/> with
+    /// <c>preserveCanvas</c> set to <see langword="true"/>.
+    /// </para>
+    /// <para>
+    /// The resulting canvas size represents the total area required to display
+    /// the transformed image without clipping, not merely the geometric bounds
+    /// of the transformed source.
+    /// </para>
+    /// </remarks>
+    public static Size GetTransformedCanvasSize(Matrix3x2 matrix, Size size)
+        => Size.Ceiling(GetTransformedSize(matrix, size, true));
+
+    /// <summary>
+    /// Calculates the size of a destination canvas large enough to contain
+    /// the fully transformed source content, including any translation offsets.
+    /// </summary>
+    /// <param name="matrix">The transformation matrix.</param>
+    /// <param name="size">The original source size.</param>
+    /// <returns>
+    /// A <see cref="SizeF"/> representing the dimensions of the destination
+    /// canvas required to fully contain the transformed source, including
+    /// any positive or negative translation offsets.
+    /// </returns>
+    /// <remarks>
+    /// <para>
+    /// This method ensures that the transformed content remains fully visible
+    /// on the destination canvas by expanding its size to include translations
+    /// in all directions.
+    /// </para>
+    /// <para>
+    /// It behaves identically to calling
+    /// <see cref="GetTransformedSize(Matrix3x2, Size, bool)"/> with
+    /// <c>preserveCanvas</c> set to <see langword="true"/>.
+    /// </para>
+    /// <para>
+    /// The resulting canvas size represents the total area required to display
+    /// the transformed image without clipping, not merely the geometric bounds
+    /// of the transformed source.
+    /// </para>
+    /// </remarks>
+    public static Size GetTransformedCanvasSize(Matrix4x4 matrix, Size size)
+        => Size.Ceiling(GetTransformedSize(matrix, size, true));
 
     /// <summary>
     /// Returns the size relative to the source for the given transformation matrix.
     /// </summary>
     /// <param name="matrix">The transformation matrix.</param>
-    /// <param name="size">The source size.</param>
-    /// <param name="transformSpace">The <see cref="TransformSpace"/> used when generating the matrix.</param>
-    /// <returns>
-    /// The <see cref="Size"/>.
-    /// </returns>
+    /// <param name="size">The original source size.</param>
+    /// <returns>The <see cref="Size"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Size GetTransformedSize(Matrix4x4 matrix, Size size, TransformSpace transformSpace)
+    public static SizeF GetRawTransformedSize(Matrix4x4 matrix, Size size)
+        => GetTransformedSize(matrix, size, false);
+
+    /// <summary>
+    /// Returns the size of the transformed source. When <paramref name="preserveCanvas"/> is true,
+    /// the size is expanded to include translation so the full moved content remains visible.
+    /// </summary>
+    /// <param name="matrix">The transformation matrix.</param>
+    /// <param name="size">The original source size.</param>
+    /// <param name="preserveCanvas">
+    /// If <see langword="true"/>, expand the size to account for translation (left/up as well as right/down).
+    /// If <see langword="false"/>, return only the transformed span without translation expansion.
+    /// </param>
+    /// <returns>The <see cref="SizeF"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static SizeF GetTransformedSize(Matrix4x4 matrix, Size size, bool preserveCanvas)
     {
         Guard.IsTrue(size.Width > 0 && size.Height > 0, nameof(size), "Source size dimensions cannot be 0!");
 
@@ -393,27 +429,9 @@ internal static class TransformUtils
             return size;
         }
 
-        // Check if the matrix involves only affine transformations by inspecting the relevant components.
-        // We want to use pixel space for calculations only if the transformation is purely 2D and does not include
-        // any perspective effects, non-standard scaling, or unusual translations that could distort the image.
-        bool usePixelSpace = transformSpace == TransformSpace.Pixel && IsAffineRotationOrSkew(matrix);
-
-        // Define an offset size to translate between pixel space and coordinate space.
-        // When using pixel space, apply a scaling sensitive offset to translate to discrete pixel coordinates.
-        // When not using pixel space, use SizeF.Empty as the offset.
-
-        // Compute scaling factors from the matrix
-        float scaleX = 1F / new Vector2(matrix.M11, matrix.M21).Length(); // sqrt(M11^2 + M21^2)
-        float scaleY = 1F / new Vector2(matrix.M12, matrix.M22).Length(); // sqrt(M12^2 + M22^2)
-
-        // Apply the offset relative to the scale
-        SizeF offsetSize = usePixelSpace ? new SizeF(scaleX, scaleY) : SizeF.Empty;
-
-        // Subtract the offset size to translate to the appropriate space (pixel or coordinate).
-        if (TryGetTransformedRectangle(new RectangleF(Point.Empty, size - offsetSize), matrix, out Rectangle bounds))
+        if (TryGetTransformedRectangle(new RectangleF(Point.Empty, size), matrix, out RectangleF bounds))
         {
-            // Add the offset size back to translate the transformed bounds to the correct space.
-            return Size.Ceiling(ConstrainSize(bounds) + offsetSize);
+            return preserveCanvas ? GetPreserveCanvasSize(bounds) : bounds.Size;
         }
 
         return size;
@@ -438,30 +456,31 @@ internal static class TransformUtils
             swizzler.Transform(new Point(sourceRectangle.Left, sourceRectangle.Top)),
             swizzler.Transform(new Point(sourceRectangle.Right, sourceRectangle.Top)),
             swizzler.Transform(new Point(sourceRectangle.Right, sourceRectangle.Bottom)),
-            swizzler.Transform(new Point(sourceRectangle.Left, sourceRectangle.Bottom)),
-            TransformSpace.Pixel);
+            swizzler.Transform(new Point(sourceRectangle.Left, sourceRectangle.Bottom)));
 
     /// <summary>
     /// Returns the size relative to the source for the given transformation matrix.
     /// </summary>
     /// <param name="matrix">The transformation matrix.</param>
-    /// <param name="size">The source size.</param>
-    /// <param name="transformSpace">The <see cref="TransformSpace"/> to use when calculating the size.</param>
+    /// <param name="size">The original source size.</param>
     /// <returns>The <see cref="Size"/>.</returns>
-    private static Size GetUnboundedTransformedSize(Matrix3x2 matrix, Size size, TransformSpace transformSpace)
-        => GetTransformedSize(matrix, size, transformSpace, false);
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static SizeF GetRawTransformedSize(Matrix3x2 matrix, Size size)
+        => GetTransformedSize(matrix, size, false);
 
     /// <summary>
-    /// Returns the size relative to the source for the given transformation matrix.
+    /// Returns the size of the transformed source. When <paramref name="preserveCanvas"/> is true,
+    /// the size is expanded to include translation so the full moved content remains visible.
     /// </summary>
     /// <param name="matrix">The transformation matrix.</param>
-    /// <param name="size">The source size.</param>
-    /// <param name="transformSpace">The <see cref="TransformSpace"/> to use when calculating the size.</param>
-    /// <param name="constrain">Whether to constrain the size to ensure that the dimensions are positive.</param>
-    /// <returns>
-    /// The <see cref="Size"/>.
-    /// </returns>
-    private static Size GetTransformedSize(Matrix3x2 matrix, Size size, TransformSpace transformSpace, bool constrain)
+    /// <param name="size">The original source size.</param>
+    /// <param name="preserveCanvas">
+    /// If <see langword="true"/>, expand the size to account for translation (left/up as well as right/down).
+    /// If <see langword="false"/>, return only the transformed span without translation expansion.
+    /// </param>
+    /// <returns>The <see cref="SizeF"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static SizeF GetTransformedSize(Matrix3x2 matrix, Size size, bool preserveCanvas)
     {
         Guard.IsTrue(size.Width > 0 && size.Height > 0, nameof(size), "Source size dimensions cannot be 0!");
 
@@ -470,21 +489,9 @@ internal static class TransformUtils
             return size;
         }
 
-        // Define an offset size to translate between coordinate space and pixel space.
-        // Compute scaling factors from the matrix
-        SizeF offsetSize = SizeF.Empty;
-        if (transformSpace == TransformSpace.Pixel)
+        if (TryGetTransformedRectangle(new RectangleF(Point.Empty, size), matrix, out RectangleF bounds))
         {
-            float scaleX = 1F / new Vector2(matrix.M11, matrix.M21).Length(); // sqrt(M11^2 + M21^2)
-            float scaleY = 1F / new Vector2(matrix.M12, matrix.M22).Length(); // sqrt(M12^2 + M22^2)
-            offsetSize = new SizeF(scaleX, scaleY);
-        }
-
-        // Subtract the offset size to translate to the pixel space.
-        if (TryGetTransformedRectangle(new RectangleF(Point.Empty, size - offsetSize), matrix, out Rectangle bounds))
-        {
-            // Add the offset size back to translate the transformed bounds to the coordinate space.
-            return Size.Ceiling((constrain ? ConstrainSize(bounds) : bounds.Size) + offsetSize);
+            return preserveCanvas ? GetPreserveCanvasSize(bounds) : bounds.Size;
         }
 
         return size;
@@ -499,7 +506,8 @@ internal static class TransformUtils
     /// <returns>
     /// <see langword="true"/> if the transformation was successful; otherwise, <see langword="false"/>.
     /// </returns>
-    private static bool TryGetTransformedRectangle(RectangleF rectangle, Matrix3x2 matrix, out Rectangle bounds)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static bool TryGetTransformedRectangle(RectangleF rectangle, Matrix3x2 matrix, out RectangleF bounds)
     {
         if (matrix.IsIdentity || rectangle.Equals(default))
         {
@@ -526,7 +534,7 @@ internal static class TransformUtils
     /// <see langword="true"/> if the transformation was successful; otherwise, <see langword="false"/>.
     /// </returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static bool TryGetTransformedRectangle(RectangleF rectangle, Matrix4x4 matrix, out Rectangle bounds)
+    internal static bool TryGetTransformedRectangle(RectangleF rectangle, Matrix4x4 matrix, out RectangleF bounds)
     {
         if (matrix.IsIdentity || rectangle.Equals(default))
         {
@@ -543,15 +551,61 @@ internal static class TransformUtils
         return true;
     }
 
+    /// <summary>
+    /// Calculates the size of a destination canvas large enough to contain the full
+    /// transformed content of a source rectangle while preserving any translation offsets.
+    /// </summary>
+    /// <param name="rectangle">
+    /// The <see cref="RectangleF"/> representing the transformed bounds of the source content
+    /// in destination (output) space.
+    /// </param>
+    /// <returns>
+    /// A <see cref="SizeF"/> that describes the canvas dimensions required to fully
+    /// contain the transformed content while accounting for any positive or negative translation.
+    /// </returns>
+    /// <remarks>
+    /// <para>
+    /// This method expands the output canvas to ensure that translated content remains visible.
+    /// </para>
+    /// <para>
+    /// If the transformation produces a positive translation, the method extends the canvas
+    /// on the positive side (right or bottom).
+    /// If the transformation produces a negative translation (the content moves left or up),
+    /// the method extends the canvas on the negative side to include that offset.
+    /// </para>
+    /// <para>
+    /// The result is equivalent to taking the union of:
+    /// <list type="bullet">
+    /// <item>
+    /// <description>The original, untransformed rectangle at the origin [0..Width] × [0..Height].</description>
+    /// </item>
+    /// <item>
+    /// <description>The translated rectangle defined by <paramref name="rectangle"/>.</description>
+    /// </item>
+    /// </list>
+    /// This ensures the entire translated image fits within the resulting canvas,
+    /// without trimming any portion caused by translation.
+    /// </para>
+    /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static Size ConstrainSize(Rectangle rectangle)
+    private static SizeF GetPreserveCanvasSize(RectangleF rectangle)
     {
-        // We want to resize the canvas here taking into account any translations.
-        int height = rectangle.Top < 0 ? rectangle.Bottom : Math.Max(rectangle.Height, rectangle.Bottom);
-        int width = rectangle.Left < 0 ? rectangle.Right : Math.Max(rectangle.Width, rectangle.Right);
+        // Compute the required height.
+        // If the top is negative, expand upward by that amount (rectangle.Bottom already includes height).
+        // Otherwise, take the larger of the transformed height or the bottom offset.
+        float height = rectangle.Top < 0
+            ? rectangle.Bottom
+            : MathF.Max(rectangle.Height, rectangle.Bottom);
 
-        // If location in either direction is translated to a negative value equal to or exceeding the
-        // dimensions in either direction we need to reassign the dimension.
+        // Compute the required width.
+        // If the left is negative, expand leftward by that amount (rectangle.Right already includes width).
+        // Otherwise, take the larger of the transformed width or the right offset.
+        float width = rectangle.Left < 0
+            ? rectangle.Right
+            : MathF.Max(rectangle.Width, rectangle.Right);
+
+        // Guard: if translation exceeds or cancels dimensions,
+        // ensure non-zero positive size using the base rectangle dimensions.
         if (height <= 0)
         {
             height = rectangle.Height;
@@ -562,63 +616,63 @@ internal static class TransformUtils
             width = rectangle.Width;
         }
 
-        return new Size(width, height);
+        // Return the final size that preserves the full visible region of the transformed content.
+        return new SizeF(width, height);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static Rectangle GetBoundingRectangle(Vector2 tl, Vector2 tr, Vector2 bl, Vector2 br)
+    private static RectangleF GetBoundingRectangle(Vector2 tl, Vector2 tr, Vector2 bl, Vector2 br)
     {
-        // Find the minimum and maximum "corners" based on the given vectors
         float left = MathF.Min(tl.X, MathF.Min(tr.X, MathF.Min(bl.X, br.X)));
         float top = MathF.Min(tl.Y, MathF.Min(tr.Y, MathF.Min(bl.Y, br.Y)));
         float right = MathF.Max(tl.X, MathF.Max(tr.X, MathF.Max(bl.X, br.X)));
         float bottom = MathF.Max(tl.Y, MathF.Max(tr.Y, MathF.Max(bl.Y, br.Y)));
 
-        // Clamp the values to the nearest whole pixel.
-        return Rectangle.FromLTRB(
-            (int)Math.Floor(left),
-            (int)Math.Floor(top),
-            (int)Math.Ceiling(right),
-            (int)Math.Ceiling(bottom));
+        return RectangleF.FromLTRB(left, top, right, bottom);
     }
 
-    private static bool IsAffineRotationOrSkew(Matrix4x4 matrix)
+    /// <summary>
+    /// Normalizes an affine 2D matrix so that it operates in pixel space.
+    /// Applies the row-vector conjugation <c>T(+0.5,+0.5) * M * T(-0.5,-0.5)</c>
+    /// to align the transform with pixel centers.
+    /// </summary>
+    /// <param name="matrix">The affine matrix.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Matrix3x2 NormalizeToPixel(Matrix3x2 matrix)
     {
-        const float epsilon = 1e-6f;
+        const float dx = 0.5f, dy = 0.5f;
 
-        // Check if the matrix is affine (last column should be [0, 0, 0, 1])
-        if (Math.Abs(matrix.M14) > epsilon ||
-            Math.Abs(matrix.M24) > epsilon ||
-            Math.Abs(matrix.M34) > epsilon ||
-            Math.Abs(matrix.M44 - 1f) > epsilon)
+        matrix.M31 += (-dx) + ((dx * matrix.M11) + (dy * matrix.M21));
+        matrix.M32 += (-dy) + ((dx * matrix.M12) + (dy * matrix.M22));
+        return matrix;
+    }
+
+    /// <summary>
+    /// Normalizes a projective 4×4 matrix so that it operates in pixel space.
+    /// Applies the row-vector conjugation <c>T(+0.5,+0.5,0) * M * T(-0.5,-0.5,0)</c>
+    /// to align the transform with pixel centers.
+    /// </summary>
+    /// <param name="matrix">The projective matrix.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Matrix4x4 NormalizeToPixel(Matrix4x4 matrix)
+    {
+        const float dx = 0.5f, dy = 0.5f;
+
+        // Fast path: affine (no perspective)
+        if (matrix.M14 == 0f && matrix.M24 == 0f && matrix.M34 == 0f && matrix.M44 == 1f)
         {
-            return false;
+            // t' = t + (-d + d·L)
+            matrix.M41 += (-dx) + ((dx * matrix.M11) + (dy * matrix.M21));
+            matrix.M42 += (-dy) + ((dx * matrix.M12) + (dy * matrix.M22));
+            return matrix;
         }
 
-        // Translation component (M41, m42) are allowed, others are not.
-        if (Math.Abs(matrix.M43) > epsilon)
-        {
-            return false;
-        }
-
-        // Extract the linear (rotation and skew) part of the matrix
-        // Upper-left 3x3 matrix
-        float m11 = matrix.M11, m12 = matrix.M12, m13 = matrix.M13;
-        float m21 = matrix.M21, m22 = matrix.M22, m23 = matrix.M23;
-        float m31 = matrix.M31, m32 = matrix.M32, m33 = matrix.M33;
-
-        // Compute the determinant of the linear part
-        float determinant = (m11 * ((m22 * m33) - (m23 * m32))) -
-                            (m12 * ((m21 * m33) - (m23 * m31))) +
-                            (m13 * ((m21 * m32) - (m22 * m31)));
-
-        // Check if the determinant is approximately ±1 (no scaling)
-        if (Math.Abs(Math.Abs(determinant) - 1f) > epsilon)
-        {
-            return false;
-        }
-
-        // All checks passed; the matrix represents rotation and/or skew (with possible translation)
-        return true;
+        Matrix4x4 tPos = Matrix4x4.Identity;
+        tPos.M41 = dx;
+        tPos.M42 = dy;
+        Matrix4x4 tNeg = Matrix4x4.Identity;
+        tNeg.M41 = -dx;
+        tNeg.M42 = -dy;
+        return tPos * matrix * tNeg;
     }
 }

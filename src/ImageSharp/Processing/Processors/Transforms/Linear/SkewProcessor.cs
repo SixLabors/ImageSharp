@@ -30,7 +30,7 @@ public sealed class SkewProcessor : AffineTransformProcessor
     /// <param name="sourceSize">The source image size</param>
     public SkewProcessor(float degreesX, float degreesY, IResampler sampler, Size sourceSize)
         : this(
-             TransformUtils.CreateSkewTransformMatrixDegrees(degreesX, degreesY, sourceSize, TransformSpace.Pixel),
+             TransformUtilities.CreateSkewTransformMatrixDegrees(degreesX, degreesY, sourceSize),
              sampler,
              sourceSize)
     {
@@ -40,7 +40,7 @@ public sealed class SkewProcessor : AffineTransformProcessor
 
     // Helper constructor:
     private SkewProcessor(Matrix3x2 skewMatrix, IResampler sampler, Size sourceSize)
-        : base(skewMatrix, sampler, TransformUtils.GetTransformedSize(skewMatrix, sourceSize, TransformSpace.Pixel))
+        : base(skewMatrix, sampler, TransformUtilities.GetTransformedCanvasSize(skewMatrix, sourceSize))
     {
     }
 

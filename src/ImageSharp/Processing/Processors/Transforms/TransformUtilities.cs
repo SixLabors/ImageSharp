@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms;
 /// <summary>
 /// Contains utility methods for working with transforms.
 /// </summary>
-internal static class TransformUtils
+internal static class TransformUtilities
 {
     /// <summary>
     /// Returns a value that indicates whether the specified matrix is degenerate
@@ -80,7 +80,7 @@ internal static class TransformUtils
     }
 
     /// <summary>
-    /// Creates a centered rotation transform matrix using the given rotation in degrees and The original source size.
+    /// Creates a centered rotation transform matrix using the given rotation in degrees and the original source size.
     /// </summary>
     /// <param name="degrees">The amount of rotation, in degrees.</param>
     /// <param name="size">The source image size.</param>
@@ -90,7 +90,7 @@ internal static class TransformUtils
         => CreateRotationTransformMatrixRadians(GeometryUtilities.DegreeToRadian(degrees), size);
 
     /// <summary>
-    /// Creates a centered rotation transform matrix using the given rotation in radians and The original source size.
+    /// Creates a centered rotation transform matrix using the given rotation in radians and the original source size.
     /// </summary>
     /// <param name="radians">The amount of rotation, in radians.</param>
     /// <param name="size">The source image size.</param>
@@ -100,7 +100,7 @@ internal static class TransformUtils
         => CreateCenteredTransformMatrix(Matrix3x2Extensions.CreateRotation(radians, PointF.Empty), size);
 
     /// <summary>
-    /// Creates a centered skew transform matrix from the give angles in degrees and The original source size.
+    /// Creates a centered skew transform matrix from the give angles in degrees and the original source size.
     /// </summary>
     /// <param name="degreesX">The X angle, in degrees.</param>
     /// <param name="degreesY">The Y angle, in degrees.</param>
@@ -111,7 +111,7 @@ internal static class TransformUtils
         => CreateSkewTransformMatrixRadians(GeometryUtilities.DegreeToRadian(degreesX), GeometryUtilities.DegreeToRadian(degreesY), size);
 
     /// <summary>
-    /// Creates a centered skew transform matrix from the give angles in radians and The original source size.
+    /// Creates a centered skew transform matrix from the give angles in radians and the original source size.
     /// </summary>
     /// <param name="radiansX">The X angle, in radians.</param>
     /// <param name="radiansY">The Y angle, in radians.</param>

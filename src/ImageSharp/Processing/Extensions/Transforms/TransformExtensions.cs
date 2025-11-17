@@ -51,7 +51,7 @@ public static class TransformExtensions
         IResampler sampler)
     {
         Matrix3x2 transform = builder.BuildMatrix(sourceRectangle);
-        Size targetDimensions = TransformUtils.GetTransformedCanvasSize(transform, sourceRectangle.Size);
+        Size targetDimensions = TransformUtilities.GetTransformedCanvasSize(transform, sourceRectangle.Size);
         return source.Transform(sourceRectangle, transform, targetDimensions, sampler);
     }
 
@@ -113,7 +113,7 @@ public static class TransformExtensions
         IResampler sampler)
     {
         Matrix4x4 transform = builder.BuildMatrix(sourceRectangle);
-        Size targetDimensions = TransformUtils.GetTransformedCanvasSize(transform, sourceRectangle.Size);
+        Size targetDimensions = TransformUtilities.GetTransformedCanvasSize(transform, sourceRectangle.Size);
         return source.Transform(sourceRectangle, transform, targetDimensions, sampler);
     }
 

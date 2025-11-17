@@ -318,7 +318,7 @@ public sealed class ExifProfile : IDeepCloneable<ExifProfile>
         {
             if (location.Value?.Length == 2)
             {
-                Vector2 point = TransformUtils.ProjectiveTransform2D(location.Value[0], location.Value[1], matrix);
+                Vector2 point = TransformUtilities.ProjectiveTransform2D(location.Value[0], location.Value[1], matrix);
 
                 // Ensure the point is within the image dimensions.
                 point = Vector2.Clamp(point, Vector2.Zero, new Vector2(width - 1, height - 1));
@@ -340,7 +340,7 @@ public sealed class ExifProfile : IDeepCloneable<ExifProfile>
             if (area.Value?.Length == 4)
             {
                 RectangleF rectangle = new(area.Value[0], area.Value[1], area.Value[2], area.Value[3]);
-                if (!TransformUtils.TryGetTransformedRectangle(rectangle, matrix, out RectangleF bounds))
+                if (!TransformUtilities.TryGetTransformedRectangle(rectangle, matrix, out RectangleF bounds))
                 {
                     return;
                 }

@@ -21,7 +21,7 @@ public sealed class ProjectiveTransformProcessor : CloningImageProcessor
         Guard.NotNull(sampler, nameof(sampler));
         Guard.MustBeValueType(sampler);
 
-        if (TransformUtils.IsDegenerate(matrix))
+        if (TransformUtilities.IsDegenerate(matrix))
         {
             throw new DegenerateTransformException("Matrix is degenerate. Check input values.");
         }

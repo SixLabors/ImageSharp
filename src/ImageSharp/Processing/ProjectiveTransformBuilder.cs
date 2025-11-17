@@ -28,7 +28,7 @@ public class ProjectiveTransformBuilder
     /// <param name="fraction">The amount to taper.</param>
     /// <returns>The <see cref="ProjectiveTransformBuilder"/>.</returns>
     public ProjectiveTransformBuilder PrependTaper(TaperSide side, TaperCorner corner, float fraction)
-        => this.Prepend(size => TransformUtils.CreateTaperMatrix(size, side, corner, fraction));
+        => this.Prepend(size => TransformUtilities.CreateTaperMatrix(size, side, corner, fraction));
 
     /// <summary>
     /// Appends a matrix that performs a tapering projective transform.
@@ -38,7 +38,7 @@ public class ProjectiveTransformBuilder
     /// <param name="fraction">The amount to taper.</param>
     /// <returns>The <see cref="ProjectiveTransformBuilder"/>.</returns>
     public ProjectiveTransformBuilder AppendTaper(TaperSide side, TaperCorner corner, float fraction)
-        => this.Append(size => TransformUtils.CreateTaperMatrix(size, side, corner, fraction));
+        => this.Append(size => TransformUtilities.CreateTaperMatrix(size, side, corner, fraction));
 
     /// <summary>
     /// Prepends a centered rotation matrix using the given rotation in degrees.
@@ -54,7 +54,7 @@ public class ProjectiveTransformBuilder
     /// <param name="radians">The amount of rotation, in radians.</param>
     /// <returns>The <see cref="ProjectiveTransformBuilder"/>.</returns>
     public ProjectiveTransformBuilder PrependRotationRadians(float radians)
-        => this.Prepend(size => new Matrix4x4(TransformUtils.CreateRotationTransformMatrixRadians(radians, size)));
+        => this.Prepend(size => new Matrix4x4(TransformUtilities.CreateRotationTransformMatrixRadians(radians, size)));
 
     /// <summary>
     /// Prepends a centered rotation matrix using the given rotation in degrees at the given origin.
@@ -89,7 +89,7 @@ public class ProjectiveTransformBuilder
     /// <param name="radians">The amount of rotation, in radians.</param>
     /// <returns>The <see cref="ProjectiveTransformBuilder"/>.</returns>
     public ProjectiveTransformBuilder AppendRotationRadians(float radians)
-        => this.Append(size => new Matrix4x4(TransformUtils.CreateRotationTransformMatrixRadians(radians, size)));
+        => this.Append(size => new Matrix4x4(TransformUtilities.CreateRotationTransformMatrixRadians(radians, size)));
 
     /// <summary>
     /// Appends a centered rotation matrix using the given rotation in degrees at the given origin.
@@ -173,7 +173,7 @@ public class ProjectiveTransformBuilder
     /// <param name="radiansY">The Y angle, in radians.</param>
     /// <returns>The <see cref="ProjectiveTransformBuilder"/>.</returns>
     public ProjectiveTransformBuilder PrependSkewRadians(float radiansX, float radiansY)
-        => this.Prepend(size => new Matrix4x4(TransformUtils.CreateSkewTransformMatrixRadians(radiansX, radiansY, size)));
+        => this.Prepend(size => new Matrix4x4(TransformUtilities.CreateSkewTransformMatrixRadians(radiansX, radiansY, size)));
 
     /// <summary>
     /// Prepends a skew matrix using the given angles in degrees at the given origin.
@@ -211,7 +211,7 @@ public class ProjectiveTransformBuilder
     /// <param name="radiansY">The Y angle, in radians.</param>
     /// <returns>The <see cref="ProjectiveTransformBuilder"/>.</returns>
     public ProjectiveTransformBuilder AppendSkewRadians(float radiansX, float radiansY)
-        => this.Append(size => new Matrix4x4(TransformUtils.CreateSkewTransformMatrixRadians(radiansX, radiansY, size)));
+        => this.Append(size => new Matrix4x4(TransformUtilities.CreateSkewTransformMatrixRadians(radiansX, radiansY, size)));
 
     /// <summary>
     /// Appends a skew matrix using the given angles in degrees at the given origin.
@@ -274,7 +274,7 @@ public class ProjectiveTransformBuilder
     /// <param name="bottomLeft">The bottom-left corner point of the distorted quad.</param>
     /// <returns>The <see cref="ProjectiveTransformBuilder"/>.</returns>
     public ProjectiveTransformBuilder PrependQuadDistortion(PointF topLeft, PointF topRight, PointF bottomRight, PointF bottomLeft)
-        => this.Prepend(size => TransformUtils.CreateQuadDistortionMatrix(
+        => this.Prepend(size => TransformUtilities.CreateQuadDistortionMatrix(
             new Rectangle(Point.Empty, size),
             topLeft,
             topRight,
@@ -290,7 +290,7 @@ public class ProjectiveTransformBuilder
     /// <param name="bottomLeft">The bottom-left corner point of the distorted quad.</param>
     /// <returns>The <see cref="ProjectiveTransformBuilder"/>.</returns>
     public ProjectiveTransformBuilder AppendQuadDistortion(PointF topLeft, PointF topRight, PointF bottomRight, PointF bottomLeft)
-        => this.Append(size => TransformUtils.CreateQuadDistortionMatrix(
+        => this.Append(size => TransformUtilities.CreateQuadDistortionMatrix(
             new Rectangle(Point.Empty, size),
             topLeft,
             topRight,
@@ -395,11 +395,11 @@ public class ProjectiveTransformBuilder
     /// </exception>
     /// <returns>The <see cref="Size"/>.</returns>
     internal static SizeF GetTransformedSize(Rectangle sourceRectangle, Matrix4x4 matrix)
-        => TransformUtils.GetRawTransformedSize(matrix, sourceRectangle.Size);
+        => TransformUtilities.GetRawTransformedSize(matrix, sourceRectangle.Size);
 
     private static void CheckDegenerate(Matrix4x4 matrix)
     {
-        if (TransformUtils.IsDegenerate(matrix))
+        if (TransformUtilities.IsDegenerate(matrix))
         {
             throw new DegenerateTransformException("Matrix is degenerate. Check input values.");
         }

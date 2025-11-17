@@ -37,7 +37,7 @@ public class AffineTransformBuilder
     /// <returns>The <see cref="AffineTransformBuilder"/>.</returns>
     public AffineTransformBuilder PrependRotationRadians(float radians)
         => this.Prepend(
-            size => TransformUtils.CreateRotationTransformMatrixRadians(radians, size));
+            size => TransformUtilities.CreateRotationTransformMatrixRadians(radians, size));
 
     /// <summary>
     /// Prepends a rotation matrix using the given rotation in degrees at the given origin.
@@ -73,7 +73,7 @@ public class AffineTransformBuilder
     /// <param name="radians">The amount of rotation, in radians.</param>
     /// <returns>The <see cref="AffineTransformBuilder"/>.</returns>
     public AffineTransformBuilder AppendRotationRadians(float radians)
-        => this.Append(size => TransformUtils.CreateRotationTransformMatrixRadians(radians, size));
+        => this.Append(size => TransformUtilities.CreateRotationTransformMatrixRadians(radians, size));
 
     /// <summary>
     /// Appends a rotation matrix using the given rotation in degrees at the given origin.
@@ -157,7 +157,7 @@ public class AffineTransformBuilder
     /// <param name="radiansY">The Y angle, in radians.</param>
     /// <returns>The <see cref="AffineTransformBuilder"/>.</returns>
     public AffineTransformBuilder PrependSkewRadians(float radiansX, float radiansY)
-        => this.Prepend(size => TransformUtils.CreateSkewTransformMatrixRadians(radiansX, radiansY, size));
+        => this.Prepend(size => TransformUtilities.CreateSkewTransformMatrixRadians(radiansX, radiansY, size));
 
     /// <summary>
     /// Prepends a skew matrix using the given angles in degrees at the given origin.
@@ -195,7 +195,7 @@ public class AffineTransformBuilder
     /// <param name="radiansY">The Y angle, in radians.</param>
     /// <returns>The <see cref="AffineTransformBuilder"/>.</returns>
     public AffineTransformBuilder AppendSkewRadians(float radiansX, float radiansY)
-        => this.Append(size => TransformUtils.CreateSkewTransformMatrixRadians(radiansX, radiansY, size));
+        => this.Append(size => TransformUtilities.CreateSkewTransformMatrixRadians(radiansX, radiansY, size));
 
     /// <summary>
     /// Appends a skew matrix using the given angles in degrees at the given origin.
@@ -347,11 +347,11 @@ public class AffineTransformBuilder
     /// </exception>
     /// <returns>The <see cref="Size"/>.</returns>
     internal static SizeF GetTransformedSize(Rectangle sourceRectangle, Matrix3x2 matrix)
-        => TransformUtils.GetRawTransformedSize(matrix, sourceRectangle.Size);
+        => TransformUtilities.GetRawTransformedSize(matrix, sourceRectangle.Size);
 
     private static void CheckDegenerate(Matrix3x2 matrix)
     {
-        if (TransformUtils.IsDegenerate(matrix))
+        if (TransformUtilities.IsDegenerate(matrix))
         {
             throw new DegenerateTransformException("Matrix is degenerate. Check input values.");
         }

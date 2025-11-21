@@ -133,7 +133,7 @@ public partial class SimdUtilsTests
         FeatureTestRunner.RunWithHwIntrinsicsFeature(
             RunTest,
             count,
-            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512 | HwIntrinsics.DisableAVX2 | HwIntrinsics.DisableSSE42);
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512 | HwIntrinsics.DisableAVX2 | HwIntrinsics.DisableHWIntrinsic);
     }
 
     [Theory]

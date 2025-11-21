@@ -50,7 +50,7 @@ public class BokehBlurTest
         List<Complex64[]> components = new();
         foreach (Match match in Regex.Matches(Components10x2, @"\[\[(.*?)\]\]", RegexOptions.Singleline))
         {
-            string[] values = match.Groups[1].Value.Trim().Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+            string[] values = match.Groups[1].Value.Trim().Split([' '], StringSplitOptions.RemoveEmptyEntries);
             Complex64[] component = values.Select(
                 value =>
                     {
@@ -114,12 +114,12 @@ public class BokehBlurTest
     };
 
     public static readonly string[] TestFiles =
-        {
-            TestImages.Png.CalliphoraPartial,
+    [
+        TestImages.Png.CalliphoraPartial,
             TestImages.Png.Bike,
             TestImages.Png.BikeGrayscale,
-            TestImages.Png.Cross,
-        };
+            TestImages.Png.Cross
+    ];
 
     [Theory]
     [WithFileCollection(nameof(TestFiles), nameof(BokehBlurValues), PixelTypes.Rgba32)]
@@ -148,7 +148,7 @@ public class BokehBlurTest
 
     [Theory]
     [WithFileCollection(nameof(TestFiles), nameof(BokehBlurValues), PixelTypes.Rgba32, HwIntrinsics.AllowAll)]
-    [WithFileCollection(nameof(TestFiles), nameof(BokehBlurValues), PixelTypes.Rgba32, HwIntrinsics.DisableSSE42)]
+    [WithFileCollection(nameof(TestFiles), nameof(BokehBlurValues), PixelTypes.Rgba32, HwIntrinsics.DisableHWIntrinsic)]
     public void BokehBlurFilterProcessor_Bounded(TestImageProvider<Rgba32> provider, BokehBlurInfo value, HwIntrinsics intrinsicsFilter)
     {
         static void RunTest(string arg1, string arg2)

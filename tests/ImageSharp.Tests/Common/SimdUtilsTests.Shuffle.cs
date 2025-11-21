@@ -292,7 +292,7 @@ public partial class SimdUtilsTests
         FeatureTestRunner.RunWithHwIntrinsicsFeature(
             RunTest,
             count,
-            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX | HwIntrinsics.DisableSSE42);
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
     }
 
     [Theory]
@@ -352,7 +352,7 @@ public partial class SimdUtilsTests
         FeatureTestRunner.RunWithHwIntrinsicsFeature(
             RunTest,
             count,
-            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX2 | HwIntrinsics.DisableSSE42);
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX2 | HwIntrinsics.DisableHWIntrinsic);
     }
 
     [Theory]
@@ -394,7 +394,7 @@ public partial class SimdUtilsTests
         FeatureTestRunner.RunWithHwIntrinsicsFeature(
             RunTest,
             count,
-            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX2 | HwIntrinsics.DisableSSE42);
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX2 | HwIntrinsics.DisableHWIntrinsic);
     }
 
     [Theory]
@@ -436,7 +436,7 @@ public partial class SimdUtilsTests
         FeatureTestRunner.RunWithHwIntrinsicsFeature(
             RunTest,
             count,
-            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX2 | HwIntrinsics.DisableSSE42);
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX2 | HwIntrinsics.DisableHWIntrinsic);
     }
 
     [Theory]
@@ -478,7 +478,7 @@ public partial class SimdUtilsTests
         FeatureTestRunner.RunWithHwIntrinsicsFeature(
             RunTest,
             count,
-            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX | HwIntrinsics.DisableSSE42);
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
     }
 
     private static void TestShuffleFloat4Channel(

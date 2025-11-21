@@ -152,7 +152,7 @@ public static class DCTTests
             FeatureTestRunner.RunWithHwIntrinsicsFeature(
                 RunTest,
                 seed,
-                HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX2 | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+                HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
         }
 
         [Theory]
@@ -352,15 +352,14 @@ public static class DCTTests
                 Assert.Equal(expectedDest, actualDest, new ApproximateFloatComparer(1f));
             }
 
-            // 4 paths:
-            // 1. AllowAll - call avx/fma implementation
-            // 2. DisableFMA - call avx without fma implementation
-            // 3. DisableAvx - call Vector4 implementation
-            // 4. DisableHWIntrinsic - call scalar fallback implementation
+            // 3 paths:
+            // 1. AllowAll - call avx implementation
+            // 2. DisableAvx - call Vector4 implementation
+            // 3. DisableHWIntrinsic - call scalar fallback implementation
             FeatureTestRunner.RunWithHwIntrinsicsFeature(
                 RunTest,
                 seed,
-                HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX2 | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+                HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
         }
     }
 }

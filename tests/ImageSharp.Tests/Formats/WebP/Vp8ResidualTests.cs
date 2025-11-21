@@ -252,5 +252,5 @@ public class Vp8ResidualTests
     public void SetCoeffsTest_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunSetCoeffsTest, HwIntrinsics.AllowAll);
 
     [Fact]
-    public void SetCoeffsTest_WithoutSSE2_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunSetCoeffsTest, HwIntrinsics.DisableSSE42);
+    public void SetCoeffsTest_WithoutSSE2_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunSetCoeffsTest, HwIntrinsics.DisableHWIntrinsic);
 }

@@ -618,7 +618,7 @@ public partial class PngEncoderTests
 
         FeatureTestRunner.RunWithHwIntrinsicsFeature(
             RunTest,
-            HwIntrinsics.DisableSSE42,
+            HwIntrinsics.DisableHWIntrinsic,
             provider);
     }
 

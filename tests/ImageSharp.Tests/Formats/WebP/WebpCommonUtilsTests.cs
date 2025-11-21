@@ -23,7 +23,7 @@ public class WebpCommonUtilsTests
 
     [Fact]
     public void CheckNonOpaque_WithOpaquePixels_WithoutSse2_Works()
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunCheckNoneOpaqueWithOpaquePixelsTest, HwIntrinsics.DisableSSE42);
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunCheckNoneOpaqueWithOpaquePixelsTest, HwIntrinsics.DisableHWIntrinsic);
 
     [Fact]
     public void CheckNonOpaque_WithOpaquePixels_WithoutAvx2_Works()
@@ -35,7 +35,7 @@ public class WebpCommonUtilsTests
 
     [Fact]
     public void CheckNonOpaque_WithNoneOpaquePixels_WithoutSse2_Works()
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunCheckNoneOpaqueWithNoneOpaquePixelsTest, HwIntrinsics.DisableSSE42);
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunCheckNoneOpaqueWithNoneOpaquePixelsTest, HwIntrinsics.DisableHWIntrinsic);
 
     [Fact]
     public void CheckNonOpaque_WithNoneOpaquePixels_WithoutAvx2_Works()

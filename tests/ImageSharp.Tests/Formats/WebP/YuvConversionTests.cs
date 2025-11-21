@@ -32,7 +32,7 @@ public class YuvConversionTests
     public void UpSampleYuvToRgb_WithHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunUpSampleYuvToRgbTest, HwIntrinsics.AllowAll);
 
     [Fact]
-    public void UpSampleYuvToRgb_WithoutSSE2_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunUpSampleYuvToRgbTest, HwIntrinsics.DisableSSE42);
+    public void UpSampleYuvToRgb_WithoutSSE2_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunUpSampleYuvToRgbTest, HwIntrinsics.DisableHWIntrinsic);
 
     [Theory]
     [WithFile(TestImages.Webp.Yuv, PixelTypes.Rgba32)]

@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 using System.Globalization;
 using System.Numerics;
@@ -332,12 +331,12 @@ internal sealed partial class IccDataReader
         uint clutOffset = this.ReadUInt32();
         uint aCurveOffset = this.ReadUInt32();
 
-        IccTagDataEntry[] bCurve = null;
-        IccTagDataEntry[] mCurve = null;
-        IccTagDataEntry[] aCurve = null;
-        IccClut clut = null;
-        float[,] matrix3x3 = null;
-        float[] matrix3x1 = null;
+        IccTagDataEntry[]? bCurve = null;
+        IccTagDataEntry[]? mCurve = null;
+        IccTagDataEntry[]? aCurve = null;
+        IccClut? clut = null;
+        float[,]? matrix3x3 = null;
+        float[]? matrix3x1 = null;
 
         if (bCurveOffset != 0)
         {
@@ -391,12 +390,12 @@ internal sealed partial class IccDataReader
         uint clutOffset = this.ReadUInt32();
         uint aCurveOffset = this.ReadUInt32();
 
-        IccTagDataEntry[] bCurve = null;
-        IccTagDataEntry[] mCurve = null;
-        IccTagDataEntry[] aCurve = null;
-        IccClut clut = null;
-        float[,] matrix3x3 = null;
-        float[] matrix3x1 = null;
+        IccTagDataEntry[]? bCurve = null;
+        IccTagDataEntry[]? mCurve = null;
+        IccTagDataEntry[]? aCurve = null;
+        IccClut? clut = null;
+        float[,]? matrix3x3 = null;
+        float[]? matrix3x1 = null;
 
         if (bCurveOffset != 0)
         {
@@ -477,7 +476,7 @@ internal sealed partial class IccDataReader
 
         return new IccMultiLocalizedUnicodeTagDataEntry(text);
 
-        CultureInfo ReadCulture(string language, string country)
+        CultureInfo ReadCulture(string language, string? country)
         {
             if (string.IsNullOrWhiteSpace(language))
             {
@@ -775,8 +774,8 @@ internal sealed partial class IccDataReader
     /// <returns>The read entry.</returns>
     public IccTextDescriptionTagDataEntry ReadTextDescriptionTagDataEntry()
     {
-        string unicodeValue, scriptcodeValue;
-        string asciiValue = unicodeValue = scriptcodeValue = null;
+        string? unicodeValue, scriptcodeValue;
+        string? asciiValue = unicodeValue = scriptcodeValue = null;
 
         int asciiCount = (int)this.ReadUInt32();
         if (asciiCount > 0)

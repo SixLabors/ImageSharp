@@ -1,7 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
+using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
@@ -57,6 +57,7 @@ internal class LutEntryCalculator : IVector4Calculator
         return value;
     }
 
+    [MemberNotNull(nameof(this.inputCurve), nameof(this.outputCurve), nameof(this.clutCalculator), nameof(this.matrix))]
     private void Init(IccLut[] inputCurve, IccLut[] outputCurve, IccClut clut, Matrix4x4 matrix)
     {
         this.inputCurve = InitLut(inputCurve);

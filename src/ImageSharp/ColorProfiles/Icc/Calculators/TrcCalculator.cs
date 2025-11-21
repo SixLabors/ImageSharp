@@ -12,7 +12,7 @@ internal class TrcCalculator : IVector4Calculator
 {
     private readonly ISingleCalculator[] calculators;
 
-    public TrcCalculator(IccTagDataEntry[] entries, bool inverted)
+    public TrcCalculator(IccTagDataEntry?[] entries, bool inverted)
     {
         Guard.NotNull(entries, nameof(entries));
 

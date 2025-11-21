@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 using System.Numerics;
 using System.Runtime.CompilerServices;
@@ -18,7 +17,7 @@ internal abstract partial class IccConverterBase
     /// </summary>
     /// <param name="profile">The ICC profile to use for the conversions</param>
     /// <param name="toPcs">True if the conversion is to the profile connection space (PCS); False if the conversion is to the data space</param>
-    protected IccConverterBase(IccProfile profile, bool toPcs)
+    protected IccConverterBase(IccProfile? profile, bool toPcs)
     {
         Guard.NotNull(profile, nameof(profile));
         this.Init(profile, toPcs, profile.Header.RenderingIntent);

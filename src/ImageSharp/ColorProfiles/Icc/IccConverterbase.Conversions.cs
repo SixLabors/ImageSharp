@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Diagnostics.CodeAnalysis;
 using SixLabors.ImageSharp.ColorProfiles.Icc.Calculators;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 
@@ -24,6 +25,7 @@ internal abstract partial class IccConverterBase
     /// <param name="toPcs">True if the conversion is to the Profile Connection Space.</param>
     /// <param name="renderingIntent">The wanted rendering intent. Can be ignored if not available.</param>
     /// <exception cref="InvalidIccProfileException">Invalid conversion method.</exception>
+    [MemberNotNull(nameof(this.calculator))]
     protected void Init(IccProfile profile, bool toPcs, IccRenderingIntent renderingIntent)
         => this.calculator = GetConversionMethod(profile, renderingIntent) switch
         {
@@ -73,13 +75,13 @@ internal abstract partial class IccConverterBase
 
     private static ColorTrcCalculator InitColorTrc(IccProfile profile, bool toPcs)
     {
-        IccXyzTagDataEntry redMatrixColumn = GetTag<IccXyzTagDataEntry>(profile, IccProfileTag.RedMatrixColumn);
-        IccXyzTagDataEntry greenMatrixColumn = GetTag<IccXyzTagDataEntry>(profile, IccProfileTag.GreenMatrixColumn);
-        IccXyzTagDataEntry blueMatrixColumn = GetTag<IccXyzTagDataEntry>(profile, IccProfileTag.BlueMatrixColumn);
+        IccXyzTagDataEntry? redMatrixColumn = GetTag<IccXyzTagDataEntry>(profile, IccProfileTag.RedMatrixColumn);
+        IccXyzTagDataEntry? greenMatrixColumn = GetTag<IccXyzTagDataEntry>(profile, IccProfileTag.GreenMatrixColumn);
+        IccXyzTagDataEntry? blueMatrixColumn = GetTag<IccXyzTagDataEntry>(profile, IccProfileTag.BlueMatrixColumn);
 
-        IccTagDataEntry redTrc = GetTag(profile, IccProfileTag.RedTrc);
-        IccTagDataEntry greenTrc = GetTag(profile, IccProfileTag.GreenTrc);
-        IccTagDataEntry blueTrc = GetTag(profile, IccProfileTag.BlueTrc);
+        IccTagDataEntry? redTrc = GetTag(profile, IccProfileTag.RedTrc);
+        IccTagDataEntry? greenTrc = GetTag(profile, IccProfileTag.GreenTrc);
+        IccTagDataEntry? blueTrc = GetTag(profile, IccProfileTag.BlueTrc);
 
         if (redMatrixColumn == null ||
             greenMatrixColumn == null ||
@@ -103,7 +105,7 @@ internal abstract partial class IccConverterBase
 
     private static GrayTrcCalculator InitGrayTrc(IccProfile profile, bool toPcs)
     {
-        IccTagDataEntry entry = GetTag(profile, IccProfileTag.GrayTrc);
+        IccTagDataEntry? entry = GetTag(profile, IccProfileTag.GrayTrc);
         return new GrayTrcCalculator(entry, toPcs);
     }
 }

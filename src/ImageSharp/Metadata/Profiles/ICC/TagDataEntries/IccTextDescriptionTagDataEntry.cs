@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 using System.Globalization;
 
@@ -19,7 +18,7 @@ internal sealed class IccTextDescriptionTagDataEntry : IccTagDataEntry, IEquatab
     /// <param name="scriptCode">ScriptCode text</param>
     /// <param name="unicodeLanguageCode">Unicode Language-Code</param>
     /// <param name="scriptCodeCode">ScriptCode Code</param>
-    public IccTextDescriptionTagDataEntry(string ascii, string unicode, string scriptCode, uint unicodeLanguageCode, ushort scriptCodeCode)
+    public IccTextDescriptionTagDataEntry(string? ascii, string? unicode, string? scriptCode, uint unicodeLanguageCode, ushort scriptCodeCode)
         : this(ascii, unicode, scriptCode, unicodeLanguageCode, scriptCodeCode, IccProfileTag.Unknown)
     {
     }
@@ -33,7 +32,7 @@ internal sealed class IccTextDescriptionTagDataEntry : IccTagDataEntry, IEquatab
     /// <param name="unicodeLanguageCode">Unicode Language-Code</param>
     /// <param name="scriptCodeCode">ScriptCode Code</param>
     /// <param name="tagSignature">Tag Signature</param>
-    public IccTextDescriptionTagDataEntry(string ascii, string unicode, string scriptCode, uint unicodeLanguageCode, ushort scriptCodeCode, IccProfileTag tagSignature)
+    public IccTextDescriptionTagDataEntry(string? ascii, string? unicode, string? scriptCode, uint unicodeLanguageCode, ushort scriptCodeCode, IccProfileTag tagSignature)
         : base(IccTypeSignature.TextDescription, tagSignature)
     {
         this.Ascii = ascii;
@@ -46,17 +45,17 @@ internal sealed class IccTextDescriptionTagDataEntry : IccTagDataEntry, IEquatab
     /// <summary>
     /// Gets the ASCII text
     /// </summary>
-    public string Ascii { get; }
+    public string? Ascii { get; }
 
     /// <summary>
     /// Gets the Unicode text
     /// </summary>
-    public string Unicode { get; }
+    public string? Unicode { get; }
 
     /// <summary>
     /// Gets the ScriptCode text
     /// </summary>
-    public string ScriptCode { get; }
+    public string? ScriptCode { get; }
 
     /// <summary>
     /// Gets the Unicode Language-Code
@@ -74,7 +73,7 @@ internal sealed class IccTextDescriptionTagDataEntry : IccTagDataEntry, IEquatab
     /// </summary>
     /// <param name="textEntry">The entry to convert</param>
     /// <returns>The converted entry</returns>
-    public static explicit operator IccMultiLocalizedUnicodeTagDataEntry(IccTextDescriptionTagDataEntry textEntry)
+    public static explicit operator IccMultiLocalizedUnicodeTagDataEntry?(IccTextDescriptionTagDataEntry? textEntry)
     {
         if (textEntry is null)
         {
@@ -84,7 +83,7 @@ internal sealed class IccTextDescriptionTagDataEntry : IccTagDataEntry, IEquatab
         IccLocalizedString localString;
         if (!string.IsNullOrEmpty(textEntry.Unicode))
         {
-            CultureInfo culture = GetCulture(textEntry.UnicodeLanguageCode);
+            CultureInfo? culture = GetCulture(textEntry.UnicodeLanguageCode);
             localString = culture != null
                 ? new IccLocalizedString(culture, textEntry.Unicode)
                 : new IccLocalizedString(textEntry.Unicode);
@@ -104,7 +103,7 @@ internal sealed class IccTextDescriptionTagDataEntry : IccTagDataEntry, IEquatab
 
         return new IccMultiLocalizedUnicodeTagDataEntry(new[] { localString }, textEntry.TagSignature);
 
-        static CultureInfo GetCulture(uint value)
+        static CultureInfo? GetCulture(uint value)
         {
             if (value == 0)
             {
@@ -131,11 +130,11 @@ internal sealed class IccTextDescriptionTagDataEntry : IccTagDataEntry, IEquatab
     }
 
     /// <inheritdoc/>
-    public override bool Equals(IccTagDataEntry other)
+    public override bool Equals(IccTagDataEntry? other)
         => other is IccTextDescriptionTagDataEntry entry && this.Equals(entry);
 
     /// <inheritdoc />
-    public bool Equals(IccTextDescriptionTagDataEntry other)
+    public bool Equals(IccTextDescriptionTagDataEntry? other)
     {
         if (other is null)
         {
@@ -156,7 +155,7 @@ internal sealed class IccTextDescriptionTagDataEntry : IccTagDataEntry, IEquatab
     }
 
     /// <inheritdoc />
-    public override bool Equals(object obj)
+    public override bool Equals(object? obj)
         => obj is IccTextDescriptionTagDataEntry other && this.Equals(other);
 
     /// <inheritdoc />

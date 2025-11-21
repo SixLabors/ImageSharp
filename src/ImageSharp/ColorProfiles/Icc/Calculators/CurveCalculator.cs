@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 using SixLabors.ImageSharp.ColorProfiles.Icc.Calculators;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
@@ -9,7 +8,7 @@ namespace SixLabors.ImageSharp.ColorProfiles.Conversion.Icc;
 
 internal partial class CurveCalculator : ISingleCalculator
 {
-    private readonly LutCalculator lutCalculator;
+    private readonly LutCalculator? lutCalculator;
     private readonly float gamma;
     private readonly CalculationType type;
 
@@ -41,7 +40,7 @@ internal partial class CurveCalculator : ISingleCalculator
         {
             CalculationType.Identity => value,
             CalculationType.Gamma => MathF.Pow(value, this.gamma), // TODO: This could be optimized using a LUT. See SrgbCompanding
-            CalculationType.Lut => this.lutCalculator.Calculate(value),
+            CalculationType.Lut => this.lutCalculator!.Calculate(value),
             _ => throw new InvalidOperationException("Invalid calculation type"),
         };
 }

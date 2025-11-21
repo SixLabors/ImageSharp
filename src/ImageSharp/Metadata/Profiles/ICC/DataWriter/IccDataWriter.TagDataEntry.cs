@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 namespace SixLabors.ImageSharp.Metadata.Profiles.Icc;
 
@@ -71,7 +70,7 @@ internal sealed partial class IccDataWriter
             IccTypeSignature.UcrBg => this.WriteUcrBgTagDataEntry((IccUcrBgTagDataEntry)entry),
 
             // Unsupported or unknown
-            _ => this.WriteUnknownTagDataEntry(entry as IccUnknownTagDataEntry),
+            _ => this.WriteUnknownTagDataEntry((entry as IccUnknownTagDataEntry)!),
         };
         return count;
     }

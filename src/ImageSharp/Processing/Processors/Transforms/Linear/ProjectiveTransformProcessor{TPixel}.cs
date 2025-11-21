@@ -75,7 +75,9 @@ internal class ProjectiveTransformProcessor<TPixel> : TransformProcessor<TPixel>
             return;
         }
 
-        // Convert from screen to world space.
+        // All matrices are defined in normalized coordinate space so we need to convert to pixel space.
+        // After normalization we need to invert the matrix for correct sampling.
+        matrix = TransformUtilities.NormalizeToPixel(matrix);
         Matrix4x4.Invert(matrix, out matrix);
 
         if (sampler is NearestNeighborResampler)
@@ -135,7 +137,7 @@ internal class ProjectiveTransformProcessor<TPixel> : TransformProcessor<TPixel>
 
             for (int x = 0; x < destinationRowSpan.Length; x++)
             {
-                Vector2 point = TransformUtils.ProjectiveTransform2D(x, y, this.matrix);
+                Vector2 point = TransformUtilities.ProjectiveTransform2D(x, y, this.matrix);
                 int px = (int)MathF.Round(point.X);
                 int py = (int)MathF.Round(point.Y);
 
@@ -207,7 +209,7 @@ internal class ProjectiveTransformProcessor<TPixel> : TransformProcessor<TPixel>
 
                 for (int x = 0; x < span.Length; x++)
                 {
-                    Vector2 point = TransformUtils.ProjectiveTransform2D(x, y, matrix);
+                    Vector2 point = TransformUtilities.ProjectiveTransform2D(x, y, matrix);
                     float pY = point.Y;
                     float pX = point.X;
 

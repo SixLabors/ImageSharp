@@ -112,12 +112,12 @@ internal class WebpAnimationDecoder : IDisposable
         this.webpMetadata = this.metadata.GetWebpMetadata();
         this.webpMetadata.RepeatCount = features.AnimationLoopCount;
 
-        Color backgroundColor = this.backgroundColorHandling == BackgroundColorHandling.Ignore
+        this.webpMetadata.BackgroundColor = this.backgroundColorHandling == BackgroundColorHandling.Ignore
             ? Color.Transparent
             : features.AnimationBackgroundColor!.Value;
 
-        this.webpMetadata.BackgroundColor = backgroundColor;
-
+        bool ignoreMetadata = this.skipMetadata;
+        SegmentIntegrityHandling segmentIntegrityHandling = this.segmentIntegrityHandling;
         Span<byte> buffer = stackalloc byte[4];
         uint frameCount = 0;
         int remainingBytes = (int)completeDataSize;
@@ -135,9 +135,16 @@ internal class WebpAnimationDecoder : IDisposable
 
                     remainingBytes -= (int)dataSize;
                     break;
+                case WebpChunkType.Iccp:
                 case WebpChunkType.Xmp:
                 case WebpChunkType.Exif:
-                    WebpChunkParsingUtils.ParseOptionalChunks(stream, chunkType, this.metadata, this.skipMetadata, this.segmentIntegrityHandling, buffer);
+                    WebpChunkParsingUtils.ParseOptionalChunks(
+                        stream,
+                        chunkType,
+                        this.metadata,
+                        ignoreMetadata,
+                        segmentIntegrityHandling,
+                        buffer);
                     break;
                 default:
 
@@ -187,9 +194,12 @@ internal class WebpAnimationDecoder : IDisposable
         this.webpMetadata.BackgroundColor = backgroundColor;
         TPixel backgroundPixel = backgroundColor.ToPixel<TPixel>();
 
+        bool ignoreMetadata = this.skipMetadata;
+        SegmentIntegrityHandling segmentIntegrityHandling = this.segmentIntegrityHandling;
         Span<byte> buffer = stackalloc byte[4];
         uint frameCount = 0;
         int remainingBytes = (int)completeDataSize;
+
         while (remainingBytes > 0)
         {
             WebpChunkType chunkType = WebpChunkParsingUtils.ReadChunkType(stream, buffer);
@@ -209,9 +219,10 @@ internal class WebpAnimationDecoder : IDisposable
 
                     remainingBytes -= (int)dataSize;
                     break;
+                case WebpChunkType.Iccp:
                 case WebpChunkType.Xmp:
                 case WebpChunkType.Exif:
-                    WebpChunkParsingUtils.ParseOptionalChunks(stream, chunkType, image!.Metadata, this.skipMetadata, this.segmentIntegrityHandling, buffer);
+                    WebpChunkParsingUtils.ParseOptionalChunks(stream, chunkType, image!.Metadata, ignoreMetadata, segmentIntegrityHandling, buffer);
                     break;
                 default:
 

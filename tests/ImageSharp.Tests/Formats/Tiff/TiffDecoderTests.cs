@@ -360,7 +360,9 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     {
         using Image<TPixel> image = provider.GetImage(TiffDecoder.Instance);
         image.DebugSave(provider);
-        image.CompareToReferenceOutput(ImageComparer.Exact, provider);
+
+        // ARM reports a 0.0000% difference, so we use a tolerant comparer here.
+        image.CompareToReferenceOutput(ImageComparer.TolerantPercentage(0.0001F), provider);
     }
 
     [Theory]

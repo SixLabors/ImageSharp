@@ -258,6 +258,9 @@ internal static class WebpChunkParsingUtils
     /// <param name="stream">The stream to read from.</param>
     /// <param name="buffer">The buffer to store the read data into.</param>
     /// <returns>A unsigned 24 bit integer.</returns>
+    /// <exception cref="ImageFormatException">
+    /// Thrown if the input stream is not valid.
+    /// </exception>
     public static uint ReadUInt24LittleEndian(Stream stream, Span<byte> buffer)
     {
         if (stream.Read(buffer, 0, 3) == 3)
@@ -274,6 +277,9 @@ internal static class WebpChunkParsingUtils
     /// </summary>
     /// <param name="stream">The stream to read from.</param>
     /// <param name="data">The uint24 data to write.</param>
+    /// <exception cref="InvalidDataException">
+    /// Thrown if the data is not a valid unsigned 24 bit integer.
+    /// </exception>
     public static unsafe void WriteUInt24LittleEndian(Stream stream, uint data)
     {
         if (data >= 1 << 24)
@@ -296,18 +302,24 @@ internal static class WebpChunkParsingUtils
     /// </summary>
     /// <param name="stream">The stream to read the data from.</param>
     /// <param name="buffer">Buffer to store the data read from the stream.</param>
+    /// <param name="required">If true, the chunk size is required to be read, otherwise it can be skipped.</param>
     /// <returns>The chunk size in bytes.</returns>
-    public static uint ReadChunkSize(Stream stream, Span<byte> buffer)
+    /// <exception cref="ImageFormatException">Thrown if the input stream is not valid.</exception>
+    public static uint ReadChunkSize(Stream stream, Span<byte> buffer, bool required = true)
     {
-        DebugGuard.IsTrue(buffer.Length is 4, "buffer has wrong length");
-
         if (stream.Read(buffer) is 4)
         {
             uint chunkSize = BinaryPrimitives.ReadUInt32LittleEndian(buffer);
             return chunkSize % 2 is 0 ? chunkSize : chunkSize + 1;
         }
 
-        throw new ImageFormatException("Invalid Webp data, could not read chunk size.");
+        if (required)
+        {
+            throw new ImageFormatException("Invalid Webp data, could not read chunk size.");
+        }
+
+        // Return the size of the remaining data in the stream.
+        return (uint)(stream.Length - stream.Position);
     }
 
     /// <summary>
@@ -320,14 +332,12 @@ internal static class WebpChunkParsingUtils
     /// </exception>
     public static WebpChunkType ReadChunkType(BufferedReadStream stream, Span<byte> buffer)
     {
-        DebugGuard.IsTrue(buffer.Length == 4, "buffer has wrong length");
-
         if (stream.Read(buffer) == 4)
         {
-            WebpChunkType chunkType = (WebpChunkType)BinaryPrimitives.ReadUInt32BigEndian(buffer);
-            return chunkType;
+            return (WebpChunkType)BinaryPrimitives.ReadUInt32BigEndian(buffer);
         }
 
+        // We should ignore unknown chunks but still be able to read the type.
         throw new ImageFormatException("Invalid Webp data, could not read chunk type.");
     }
 
@@ -336,6 +346,12 @@ internal static class WebpChunkParsingUtils
     /// If there are more such chunks, readers MAY ignore all except the first one.
     /// Also, a file may possibly contain both 'EXIF' and 'XMP ' chunks.
     /// </summary>
+    /// <param name="stream">The stream to read the data from.</param>
+    /// <param name="chunkType">The chunk type to parse.</param>
+    /// <param name="metadata">The image metadata to write to.</param>
+    /// <param name="ignoreMetaData">If true, metadata will be ignored.</param>
+    /// <param name="segmentIntegrityHandling">Indicates how to handle segment integrity issues.</param>
+    /// <param name="buffer">Buffer to store the data read from the stream.</param>
     public static void ParseOptionalChunks(
         BufferedReadStream stream,
         WebpChunkType chunkType,
@@ -344,10 +360,13 @@ internal static class WebpChunkParsingUtils
         SegmentIntegrityHandling segmentIntegrityHandling,
         Span<byte> buffer)
     {
+        bool ignoreNone = segmentIntegrityHandling == SegmentIntegrityHandling.IgnoreNone;
         long streamLength = stream.Length;
         while (stream.Position < streamLength)
         {
-            uint chunkLength = ReadChunkSize(stream, buffer);
+            // Ignore unknown chunk types or when metadata is to be ignored.
+            // If handling should ignore none, we still need to validate the chunk length.
+            uint chunkLength = ReadChunkSize(stream, buffer, ignoreNone && (chunkType is WebpChunkType.Exif or WebpChunkType.Xmp) && !ignoreMetaData);
 
             if (ignoreMetaData)
             {
@@ -362,7 +381,7 @@ internal static class WebpChunkParsingUtils
                     bytesRead = stream.Read(exifData, 0, (int)chunkLength);
                     if (bytesRead != chunkLength)
                     {
-                        if (segmentIntegrityHandling == SegmentIntegrityHandling.IgnoreNone)
+                        if (ignoreNone)
                         {
                             WebpThrowHelper.ThrowImageFormatException("Could not read enough data for the EXIF profile");
                         }
@@ -394,7 +413,7 @@ internal static class WebpChunkParsingUtils
                     bytesRead = stream.Read(xmpData, 0, (int)chunkLength);
                     if (bytesRead != chunkLength)
                     {
-                        if (segmentIntegrityHandling == SegmentIntegrityHandling.IgnoreNone)
+                        if (ignoreNone)
                         {
                             WebpThrowHelper.ThrowImageFormatException("Could not read enough data for the XMP profile");
                         }

@@ -3,15 +3,11 @@
 
 using System.Buffers;
 using System.Buffers.Binary;
-using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Formats.Webp.Lossless;
 using SixLabors.ImageSharp.Formats.Webp.Lossy;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
-using SixLabors.ImageSharp.Metadata.Profiles.Exif;
-using SixLabors.ImageSharp.Metadata.Profiles.Icc;
-using SixLabors.ImageSharp.Metadata.Profiles.Xmp;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Webp;
@@ -248,6 +244,7 @@ internal sealed class WebpDecoderCore : ImageDecoderCore, IDisposable
                     else
                     {
                         // Ignore unknown chunks.
+                        // These must always fall after the image data so we are safe to always skip them.
                         uint chunkSize = WebpChunkParsingUtils.ReadChunkSize(stream, buffer, false);
                         stream.Skip((int)chunkSize);
                     }
@@ -279,18 +276,20 @@ internal sealed class WebpDecoderCore : ImageDecoderCore, IDisposable
         bool ignoreAlpha,
         Span<byte> buffer)
     {
+        bool ignoreMetadata = this.skipMetadata;
+        SegmentIntegrityHandling integrityHandling = this.segmentIntegrityHandling;
         switch (chunkType)
         {
             case WebpChunkType.Iccp:
-                this.ReadIccProfile(stream, metadata, buffer);
+                WebpChunkParsingUtils.ReadIccProfile(stream, metadata, ignoreMetadata, integrityHandling, buffer);
                 break;
 
             case WebpChunkType.Exif:
-                this.ReadExifProfile(stream, metadata, buffer);
+                WebpChunkParsingUtils.ReadExifProfile(stream, metadata, ignoreMetadata, integrityHandling, buffer);
                 break;
 
             case WebpChunkType.Xmp:
-                this.ReadXmpProfile(stream, metadata, buffer);
+                WebpChunkParsingUtils.ReadXmpProfile(stream, metadata, ignoreMetadata, integrityHandling, buffer);
                 break;
 
             case WebpChunkType.AnimationParameter:
@@ -319,7 +318,10 @@ internal sealed class WebpDecoderCore : ImageDecoderCore, IDisposable
     /// <param name="buffer">Temporary buffer.</param>
     private void ParseOptionalChunks(BufferedReadStream stream, ImageMetadata metadata, WebpFeatures features, Span<byte> buffer)
     {
-        if (this.skipMetadata || (!features.ExifProfile && !features.XmpMetaData))
+        bool ignoreMetadata = this.skipMetadata;
+        SegmentIntegrityHandling integrityHandling = this.segmentIntegrityHandling;
+
+        if (ignoreMetadata || (!features.ExifProfile && !features.XmpMetaData))
         {
             return;
         }
@@ -331,138 +333,17 @@ internal sealed class WebpDecoderCore : ImageDecoderCore, IDisposable
             WebpChunkType chunkType = WebpChunkParsingUtils.ReadChunkType(stream, buffer);
             if (chunkType == WebpChunkType.Exif && metadata.ExifProfile == null)
             {
-                this.ReadExifProfile(stream, metadata, buffer);
+                WebpChunkParsingUtils.ReadExifProfile(stream, metadata, ignoreMetadata, integrityHandling, buffer);
             }
             else if (chunkType == WebpChunkType.Xmp && metadata.XmpProfile == null)
             {
-                this.ReadXmpProfile(stream, metadata, buffer);
+                WebpChunkParsingUtils.ReadXmpProfile(stream, metadata, ignoreMetadata, integrityHandling, buffer);
             }
             else
             {
                 // Skip duplicate XMP or EXIF chunk.
                 uint chunkLength = WebpChunkParsingUtils.ReadChunkSize(stream, buffer, false);
                 stream.Skip((int)chunkLength);
-            }
-        }
-    }
-
-    /// <summary>
-    /// Reads the EXIF profile from the stream.
-    /// </summary>
-    /// <param name="stream">The stream to decode from.</param>
-    /// <param name="metadata">The image metadata.</param>
-    /// <param name="buffer">Temporary buffer.</param>
-    private void ReadExifProfile(BufferedReadStream stream, ImageMetadata metadata, Span<byte> buffer)
-    {
-        bool ignoreMetadata = this.skipMetadata;
-        bool ignoreNone = this.segmentIntegrityHandling == SegmentIntegrityHandling.IgnoreNone && !ignoreMetadata;
-
-        uint exifChunkSize = WebpChunkParsingUtils.ReadChunkSize(stream, buffer, ignoreNone);
-        if (ignoreMetadata)
-        {
-            stream.Skip((int)exifChunkSize);
-        }
-        else
-        {
-            byte[] exifData = new byte[exifChunkSize];
-            int bytesRead = stream.Read(exifData, 0, (int)exifChunkSize);
-            if (bytesRead != exifChunkSize)
-            {
-                if (ignoreNone)
-                {
-                    WebpThrowHelper.ThrowImageFormatException("Could not read enough data for the EXIF profile");
-                }
-
-                return;
-            }
-
-            ExifProfile exifProfile = new(exifData);
-
-            // Set the resolution from the metadata.
-            double horizontalValue = GetExifResolutionValue(exifProfile, ExifTag.XResolution);
-            double verticalValue = GetExifResolutionValue(exifProfile, ExifTag.YResolution);
-
-            if (horizontalValue > 0 && verticalValue > 0)
-            {
-                metadata.HorizontalResolution = horizontalValue;
-                metadata.VerticalResolution = verticalValue;
-                metadata.ResolutionUnits = UnitConverter.ExifProfileToResolutionUnit(exifProfile);
-            }
-
-            metadata.ExifProfile = exifProfile;
-        }
-    }
-
-    private static double GetExifResolutionValue(ExifProfile exifProfile, ExifTag<Rational> tag)
-    {
-        if (exifProfile.TryGetValue(tag, out IExifValue<Rational>? resolution))
-        {
-            return resolution.Value.ToDouble();
-        }
-
-        return 0;
-    }
-
-    /// <summary>
-    /// Reads the XMP profile the stream.
-    /// </summary>
-    /// <param name="stream">The stream to decode from.</param>
-    /// <param name="metadata">The image metadata.</param>
-    /// <param name="buffer">Temporary buffer.</param>
-    private void ReadXmpProfile(BufferedReadStream stream, ImageMetadata metadata, Span<byte> buffer)
-    {
-        bool ignoreMetadata = this.skipMetadata;
-        bool ignoreNone = this.segmentIntegrityHandling == SegmentIntegrityHandling.IgnoreNone && !ignoreMetadata;
-
-        uint xmpChunkSize = WebpChunkParsingUtils.ReadChunkSize(stream, buffer, ignoreNone);
-        if (ignoreMetadata)
-        {
-            stream.Skip((int)xmpChunkSize);
-        }
-        else
-        {
-            byte[] xmpData = new byte[xmpChunkSize];
-            int bytesRead = stream.Read(xmpData, 0, (int)xmpChunkSize);
-            if (bytesRead != xmpChunkSize)
-            {
-                if (ignoreNone)
-                {
-                    WebpThrowHelper.ThrowImageFormatException("Could not read enough data for the XMP profile");
-                }
-
-                return;
-            }
-
-            metadata.XmpProfile = new XmpProfile(xmpData);
-        }
-    }
-
-    /// <summary>
-    /// Reads the ICCP chunk from the stream.
-    /// </summary>
-    /// <param name="stream">The stream to decode from.</param>
-    /// <param name="metadata">The image metadata.</param>
-    /// <param name="buffer">Temporary buffer.</param>
-    private void ReadIccProfile(BufferedReadStream stream, ImageMetadata metadata, Span<byte> buffer)
-    {
-        uint iccpChunkSize = WebpChunkParsingUtils.ReadChunkSize(stream, buffer);
-        if (this.skipMetadata)
-        {
-            stream.Skip((int)iccpChunkSize);
-        }
-        else
-        {
-            byte[] iccpData = new byte[iccpChunkSize];
-            int bytesRead = stream.Read(iccpData, 0, (int)iccpChunkSize);
-            if (bytesRead != iccpChunkSize)
-            {
-                WebpThrowHelper.ThrowInvalidImageContentException("Not enough data to read the iccp chunk");
-            }
-
-            IccProfile profile = new(iccpData);
-            if (profile.CheckIsValid())
-            {
-                metadata.IccProfile = profile;
             }
         }
     }

@@ -9,6 +9,7 @@ using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
+using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.Metadata.Profiles.Xmp;
 
 namespace SixLabors.ImageSharp.Formats.Webp;
@@ -275,7 +276,7 @@ internal static class WebpChunkParsingUtils
     /// <summary>
     /// Writes a unsigned 24 bit integer.
     /// </summary>
-    /// <param name="stream">The stream to read from.</param>
+    /// <param name="stream">The stream to write to.</param>
     /// <param name="data">The uint24 data to write.</param>
     /// <exception cref="InvalidDataException">
     /// Thrown if the data is not a valid unsigned 24 bit integer.
@@ -337,7 +338,8 @@ internal static class WebpChunkParsingUtils
             return (WebpChunkType)BinaryPrimitives.ReadUInt32BigEndian(buffer);
         }
 
-        // We should ignore unknown chunks but still be able to read the type.
+        // While we ignore unknown chunks we still need a to be a ble to read a chunk type
+        // known or otherwise from the stream.
         throw new ImageFormatException("Invalid Webp data, could not read chunk type.");
     }
 
@@ -349,85 +351,176 @@ internal static class WebpChunkParsingUtils
     /// <param name="stream">The stream to read the data from.</param>
     /// <param name="chunkType">The chunk type to parse.</param>
     /// <param name="metadata">The image metadata to write to.</param>
-    /// <param name="ignoreMetaData">If true, metadata will be ignored.</param>
+    /// <param name="ignoreMetadata">If true, metadata will be ignored.</param>
     /// <param name="segmentIntegrityHandling">Indicates how to handle segment integrity issues.</param>
     /// <param name="buffer">Buffer to store the data read from the stream.</param>
     public static void ParseOptionalChunks(
         BufferedReadStream stream,
         WebpChunkType chunkType,
         ImageMetadata metadata,
-        bool ignoreMetaData,
+        bool ignoreMetadata,
+        SegmentIntegrityHandling segmentIntegrityHandling,
+        Span<byte> buffer)
+    {
+        long streamLength = stream.Length;
+        while (stream.Position < streamLength)
+        {
+            switch (chunkType)
+            {
+                case WebpChunkType.Iccp:
+                    ReadIccProfile(stream, metadata, ignoreMetadata, segmentIntegrityHandling, buffer);
+                    break;
+
+                case WebpChunkType.Exif:
+                    ReadExifProfile(stream, metadata, ignoreMetadata, segmentIntegrityHandling, buffer);
+                    break;
+                case WebpChunkType.Xmp:
+                    ReadXmpProfile(stream, metadata, ignoreMetadata, segmentIntegrityHandling, buffer);
+                    break;
+                default:
+
+                    // Ignore unknown chunks.
+                    // These must always fall after the image data so we are safe to always skip them.
+                    uint chunkLength = ReadChunkSize(stream, buffer, false);
+                    stream.Skip((int)chunkLength);
+                    break;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Reads the ICCP chunk from the stream.
+    /// </summary>
+    /// <param name="stream">The stream to decode from.</param>
+    /// <param name="metadata">The image metadata.</param>
+    /// <param name="ignoreMetadata">If true, metadata will be ignored.</param>
+    /// <param name="segmentIntegrityHandling">Indicates how to handle segment integrity issues.</param>
+    /// <param name="buffer">Temporary buffer.</param>
+    public static void ReadIccProfile(
+        BufferedReadStream stream,
+        ImageMetadata metadata,
+        bool ignoreMetadata,
+        SegmentIntegrityHandling segmentIntegrityHandling,
+        Span<byte> buffer)
+    {
+        // While ICC profiles are optional, an invalid ICC profile cannot be ignored as it must precede the image data
+        // and since we canot determine its size to allow skipping without reading the chunk size, we have to throw if it's invalid.
+        // Hence we do not consider segment integrity handling here.
+        uint iccpChunkSize = ReadChunkSize(stream, buffer);
+        if (ignoreMetadata || metadata.IccProfile != null)
+        {
+            stream.Skip((int)iccpChunkSize);
+        }
+        else
+        {
+            bool ignoreNone = segmentIntegrityHandling == SegmentIntegrityHandling.IgnoreNone;
+            byte[] iccpData = new byte[iccpChunkSize];
+            int bytesRead = stream.Read(iccpData, 0, (int)iccpChunkSize);
+
+            // We have the size but the profile is invalid if we cannot read enough data.
+            // Use the segment integrity handling to determine if we throw.
+            if (bytesRead != iccpChunkSize && ignoreNone)
+            {
+                WebpThrowHelper.ThrowInvalidImageContentException("Not enough data to read the iccp chunk");
+            }
+
+            IccProfile profile = new(iccpData);
+            if (profile.CheckIsValid())
+            {
+                metadata.IccProfile = profile;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Reads the EXIF profile from the stream.
+    /// </summary>
+    /// <param name="stream">The stream to decode from.</param>
+    /// <param name="metadata">The image metadata.</param>
+    /// <param name="ignoreMetadata">If true, metadata will be ignored.</param>
+    /// <param name="segmentIntegrityHandling">Indicates how to handle segment integrity issues.</param>
+    /// <param name="buffer">Temporary buffer.</param>
+    public static void ReadExifProfile(
+        BufferedReadStream stream,
+        ImageMetadata metadata,
+        bool ignoreMetadata,
         SegmentIntegrityHandling segmentIntegrityHandling,
         Span<byte> buffer)
     {
         bool ignoreNone = segmentIntegrityHandling == SegmentIntegrityHandling.IgnoreNone;
-        long streamLength = stream.Length;
-        while (stream.Position < streamLength)
+        uint exifChunkSize = ReadChunkSize(stream, buffer, ignoreNone);
+        if (ignoreMetadata || metadata.ExifProfile != null)
         {
-            // Ignore unknown chunk types or when metadata is to be ignored.
-            // If handling should ignore none, we still need to validate the chunk length.
-            uint chunkLength = ReadChunkSize(stream, buffer, ignoreNone && (chunkType is WebpChunkType.Exif or WebpChunkType.Xmp) && !ignoreMetaData);
-
-            if (ignoreMetaData)
+            stream.Skip((int)exifChunkSize);
+        }
+        else
+        {
+            byte[] exifData = new byte[exifChunkSize];
+            int bytesRead = stream.Read(exifData, 0, (int)exifChunkSize);
+            if (bytesRead != exifChunkSize)
             {
-                stream.Skip((int)chunkLength);
+                if (ignoreNone)
+                {
+                    WebpThrowHelper.ThrowImageFormatException("Could not read enough data for the EXIF profile");
+                }
+
+                return;
             }
 
-            int bytesRead;
-            switch (chunkType)
+            ExifProfile exifProfile = new(exifData);
+
+            // Set the resolution from the metadata.
+            double horizontalValue = GetExifResolutionValue(exifProfile, ExifTag.XResolution);
+            double verticalValue = GetExifResolutionValue(exifProfile, ExifTag.YResolution);
+
+            if (horizontalValue > 0 && verticalValue > 0)
             {
-                case WebpChunkType.Exif:
-                    byte[] exifData = new byte[chunkLength];
-                    bytesRead = stream.Read(exifData, 0, (int)chunkLength);
-                    if (bytesRead != chunkLength)
-                    {
-                        if (ignoreNone)
-                        {
-                            WebpThrowHelper.ThrowImageFormatException("Could not read enough data for the EXIF profile");
-                        }
-
-                        return;
-                    }
-
-                    if (metadata.ExifProfile == null)
-                    {
-                        ExifProfile exifProfile = new(exifData);
-
-                        // Set the resolution from the metadata.
-                        double horizontalValue = GetExifResolutionValue(exifProfile, ExifTag.XResolution);
-                        double verticalValue = GetExifResolutionValue(exifProfile, ExifTag.YResolution);
-
-                        if (horizontalValue > 0 && verticalValue > 0)
-                        {
-                            metadata.HorizontalResolution = horizontalValue;
-                            metadata.VerticalResolution = verticalValue;
-                            metadata.ResolutionUnits = UnitConverter.ExifProfileToResolutionUnit(exifProfile);
-                        }
-
-                        metadata.ExifProfile = exifProfile;
-                    }
-
-                    break;
-                case WebpChunkType.Xmp:
-                    byte[] xmpData = new byte[chunkLength];
-                    bytesRead = stream.Read(xmpData, 0, (int)chunkLength);
-                    if (bytesRead != chunkLength)
-                    {
-                        if (ignoreNone)
-                        {
-                            WebpThrowHelper.ThrowImageFormatException("Could not read enough data for the XMP profile");
-                        }
-
-                        return;
-                    }
-
-                    metadata.XmpProfile ??= new XmpProfile(xmpData);
-
-                    break;
-                default:
-                    stream.Skip((int)chunkLength);
-                    break;
+                metadata.HorizontalResolution = horizontalValue;
+                metadata.VerticalResolution = verticalValue;
+                metadata.ResolutionUnits = UnitConverter.ExifProfileToResolutionUnit(exifProfile);
             }
+
+            metadata.ExifProfile = exifProfile;
+        }
+    }
+
+    /// <summary>
+    /// Reads the XMP profile the stream.
+    /// </summary>
+    /// <param name="stream">The stream to decode from.</param>
+    /// <param name="metadata">The image metadata.</param>
+    /// <param name="ignoreMetadata">If true, metadata will be ignored.</param>
+    /// <param name="segmentIntegrityHandling">Indicates how to handle segment integrity issues.</param>
+    /// <param name="buffer">Temporary buffer.</param>
+    public static void ReadXmpProfile(
+        BufferedReadStream stream,
+        ImageMetadata metadata,
+        bool ignoreMetadata,
+        SegmentIntegrityHandling segmentIntegrityHandling,
+        Span<byte> buffer)
+    {
+        bool ignoreNone = segmentIntegrityHandling == SegmentIntegrityHandling.IgnoreNone;
+
+        uint xmpChunkSize = ReadChunkSize(stream, buffer, ignoreNone);
+        if (ignoreMetadata || metadata.XmpProfile != null)
+        {
+            stream.Skip((int)xmpChunkSize);
+        }
+        else
+        {
+            byte[] xmpData = new byte[xmpChunkSize];
+            int bytesRead = stream.Read(xmpData, 0, (int)xmpChunkSize);
+            if (bytesRead != xmpChunkSize)
+            {
+                if (ignoreNone)
+                {
+                    WebpThrowHelper.ThrowImageFormatException("Could not read enough data for the XMP profile");
+                }
+
+                return;
+            }
+
+            metadata.XmpProfile = new XmpProfile(xmpData);
         }
     }
 

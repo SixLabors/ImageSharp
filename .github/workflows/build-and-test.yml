@@ -76,8 +76,8 @@ jobs:
             runtime: -x64
             codecov: false
           - os: macos-26
-            framework: net9.0
-            sdk: 9.0.x
+            framework: net10.0
+            sdk: 10.0.x
             sdk-preview: true
             runtime: -x64
             codecov: false

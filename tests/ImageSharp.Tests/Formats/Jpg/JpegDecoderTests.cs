@@ -432,9 +432,5 @@ public partial class JpegDecoderTests
     [Theory]
     [InlineData(TestImages.Jpeg.Issues.Issue2948)]
     public void Issue2948_No_SOS_Identify_Throws_InvalidImageContentException(string imagePath)
-        => Assert.Throws<InvalidImageContentException>(() =>
-        {
-            TestFile testFile = TestFile.Create(imagePath);
-            ImageInfo imageInfo = Image.Identify(testFile.Bytes);
-        });
+        => Assert.Throws<InvalidImageContentException>(() => _ = Image.Identify(TestFile.Create(imagePath).Bytes));
 }

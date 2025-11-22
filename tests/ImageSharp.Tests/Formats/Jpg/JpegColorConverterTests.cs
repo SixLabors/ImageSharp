@@ -102,7 +102,7 @@ public class JpegColorConverterTests
     {
         FeatureTestRunner.RunWithHwIntrinsicsFeature(
             RunTest,
-            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512 | HwIntrinsics.DisableAVX2 | HwIntrinsics.DisableHWIntrinsic | HwIntrinsics.DisableHWIntrinsic);
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512 | HwIntrinsics.DisableAVX2 | HwIntrinsics.DisableHWIntrinsic);
 
         static void RunTest(string arg)
         {
@@ -135,7 +135,7 @@ public class JpegColorConverterTests
     {
         FeatureTestRunner.RunWithHwIntrinsicsFeature(
             RunTest,
-            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX2 | HwIntrinsics.DisableHWIntrinsic | HwIntrinsics.DisableHWIntrinsic);
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX2 | HwIntrinsics.DisableHWIntrinsic);
 
         static void RunTest(string arg)
         {
@@ -168,7 +168,7 @@ public class JpegColorConverterTests
     {
         FeatureTestRunner.RunWithHwIntrinsicsFeature(
             RunTest,
-            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512 | HwIntrinsics.DisableAVX2 | HwIntrinsics.DisableHWIntrinsic | HwIntrinsics.DisableHWIntrinsic);
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512 | HwIntrinsics.DisableAVX2 | HwIntrinsics.DisableHWIntrinsic);
 
         static void RunTest(string arg)
         {
@@ -201,7 +201,7 @@ public class JpegColorConverterTests
     {
         FeatureTestRunner.RunWithHwIntrinsicsFeature(
             RunTest,
-            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512 | HwIntrinsics.DisableAVX2 | HwIntrinsics.DisableSSE42 | HwIntrinsics.DisableHWIntrinsic);
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512 | HwIntrinsics.DisableAVX2 | HwIntrinsics.DisableHWIntrinsic);
 
         static void RunTest(string arg)
         {

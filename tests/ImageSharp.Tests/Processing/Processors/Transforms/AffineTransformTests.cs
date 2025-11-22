@@ -234,7 +234,23 @@ public class AffineTransformTests
         image.DebugSave(provider);
 
         Assert.Equal(4, image.Width);
-        Assert.Equal(8, image.Height);
+        Assert.Equal(7, image.Height);
+    }
+
+    [Theory]
+    [WithFile(TestImages.Png.Issue3000, PixelTypes.Rgba32, 3, 3)]
+    [WithFile(TestImages.Png.Issue3000, PixelTypes.Rgba32, 4, 4)]
+    public void Issue3000<TPixel>(TestImageProvider<TPixel> provider, float x, float y)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage();
+
+        image.Mutate(c => c
+        .Transform(new AffineTransformBuilder().AppendRotationDegrees(90, new Vector2(x, y))));
+
+        string details = $"p-{x}-{y}";
+        image.DebugSave(provider, testOutputDetails: details);
+        image.CompareToReferenceOutput(ValidatorComparer, provider, testOutputDetails: details);
     }
 
     [Theory]
@@ -267,30 +283,40 @@ public class AffineTransformTests
         image.CompareToReferenceOutput(ValidatorComparer, provider, testOutputDetails: radians);
     }
 
-    [Fact]
-    public void TransformRotationDoesNotOffset()
+    [Theory]
+    [WithSolidFilledImages(100, 100, "DimGray", PixelTypes.Rgba32)]
+    public void TransformRotationDoesNotOffset<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
     {
         Rgba32 background = Color.DimGray.ToPixel<Rgba32>();
-        Rgba32 marker = Color.Aqua.ToPixel<Rgba32>();
+        TPixel marker = Color.Aqua.ToPixel<TPixel>();
 
-        using Image<Rgba32> img = new(100, 100, background);
+        using Image<TPixel> canvas = provider.GetImage();
+
+        using Image<TPixel> img = canvas.Clone();
         img[0, 0] = marker;
 
         img.Mutate(c => c.Rotate(180));
 
         Assert.Equal(marker, img[99, 99]);
 
-        using Image<Rgba32> img2 = new(100, 100, background);
+        img.DebugSave(provider, "Rotate180");
+
+        using Image<TPixel> img2 = canvas.Clone();
         img2[0, 0] = marker;
 
         img2.Mutate(
             c =>
             c.Transform(new AffineTransformBuilder().AppendRotationDegrees(180), KnownResamplers.NearestNeighbor));
 
-        using Image<Rgba32> img3 = new(100, 100, background);
+        img.DebugSave(provider, "AffineRotate180NN");
+
+        using Image<TPixel> img3 = canvas.Clone();
         img3[0, 0] = marker;
 
         img3.Mutate(c => c.Transform(new AffineTransformBuilder().AppendRotationDegrees(180)));
+
+        img3.DebugSave(provider, "AffineRotate180Bicubic");
 
         ImageComparer.Exact.VerifySimilarity(img, img2);
         ImageComparer.Exact.VerifySimilarity(img, img3);

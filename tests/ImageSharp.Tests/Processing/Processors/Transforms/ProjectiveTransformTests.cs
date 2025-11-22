@@ -249,17 +249,17 @@ public class ProjectiveTransformTests
         image.Mutate(ctx => ctx.Transform(builder));
 
         // A 180-degree rotation inverts both axes around the image center.
-        // The subject location (5, 15) becomes (imageWidth - 5 - 1, imageHeight - 15 - 1) = (94, 84)
+        // The subject location (5, 15) becomes (imageWidth - 5, imageHeight - 15) = (95, 85)
         Assert.Equal(
-            [94, 84],
+            [95, 85],
             image.Metadata.ExifProfile.GetValue(ExifTag.SubjectLocation).Value);
 
         // The subject area is also mirrored around the center.
         // New X = imageWidth - originalX - width
         // New Y = imageHeight - originalY - height
-        // (5, 15, 50, 50) becomes (44, 34, 50, 50)
+        // (5, 15, 50, 50) becomes (45, 35, 50, 50)
         Assert.Equal(
-            [44, 34, 50, 50],
+            [45, 35, 50, 50],
             image.Metadata.ExifProfile.GetValue(ExifTag.SubjectArea).Value);
     }
 

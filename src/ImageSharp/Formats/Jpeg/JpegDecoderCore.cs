@@ -72,6 +72,11 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
     private bool hasAdobeMarker;
 
     /// <summary>
+    /// Whether the image has a SOS marker.
+    /// </summary>
+    private bool hasSOSMarker;
+
+    /// <summary>
     /// Contains information about the JFIF marker.
     /// </summary>
     private JFifMarker jFif;
@@ -197,6 +202,12 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
     {
         using SpectralConverter<TPixel> spectralConverter = new(this.configuration, this.resizeMode == JpegDecoderResizeMode.ScaleOnly ? null : this.Options.TargetSize);
         this.ParseStream(stream, spectralConverter, cancellationToken);
+
+        if (!this.hasSOSMarker)
+        {
+            JpegThrowHelper.ThrowInvalidImageContentException("Missing SOS marker.");
+        }
+
         this.InitExifProfile();
         this.InitIccProfile();
         this.InitIptcProfile();
@@ -215,6 +226,12 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
     protected override ImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken)
     {
         this.ParseStream(stream, spectralConverter: null, cancellationToken);
+
+        if (!this.hasSOSMarker)
+        {
+            JpegThrowHelper.ThrowInvalidImageContentException("Missing SOS marker.");
+        }
+
         this.InitExifProfile();
         this.InitIccProfile();
         this.InitIptcProfile();
@@ -403,6 +420,8 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
                         break;
 
                     case JpegConstants.Markers.SOS:
+
+                        this.hasSOSMarker = true;
                         if (!metadataOnly)
                         {
                             this.ProcessStartOfScanMarker(stream, markerContentByteSize);

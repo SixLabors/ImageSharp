@@ -417,4 +417,20 @@ public partial class JpegDecoderTests
         image.DebugSave(provider);
         image.CompareToReferenceOutput(provider);
     }
+
+    // https://github.com/SixLabors/ImageSharp/issues/2948
+    [Theory]
+    [WithFile(TestImages.Jpeg.Issues.Issue2948, PixelTypes.Rgb24)]
+    public void Issue2948_No_SOS_Decode_Throws_InvalidImageContentException<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+        => Assert.Throws<InvalidImageContentException>(() =>
+        {
+            using Image<TPixel> image = provider.GetImage(JpegDecoder.Instance);
+        });
+
+    // https://github.com/SixLabors/ImageSharp/issues/2948
+    [Theory]
+    [InlineData(TestImages.Jpeg.Issues.Issue2948)]
+    public void Issue2948_No_SOS_Identify_Throws_InvalidImageContentException(string imagePath)
+        => Assert.Throws<InvalidImageContentException>(() => _ = Image.Identify(TestFile.Create(imagePath).Bytes));
 }

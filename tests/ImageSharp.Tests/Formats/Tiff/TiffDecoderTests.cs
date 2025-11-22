@@ -360,7 +360,9 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     {
         using Image<TPixel> image = provider.GetImage(TiffDecoder.Instance);
         image.DebugSave(provider);
-        image.CompareToReferenceOutput(ImageComparer.Exact, provider);
+
+        // ARM reports a 0.0000% difference, so we use a tolerant comparer here.
+        image.CompareToReferenceOutput(ImageComparer.TolerantPercentage(0.0001F), provider);
     }
 
     [Theory]
@@ -783,7 +785,7 @@ public class TiffDecoderTests : TiffDecoderBaseTester
         // ImageMagick cannot decode this image.
         image.DebugSave(provider);
         image.CompareToReferenceOutput(
-            ImageComparer.TolerantPercentage(0.0018F), // NET 9+ Uses zlib-ng to decompress, which manages to decode 2 extra pixels.
+            ImageComparer.TolerantPercentage(0.0034F), // NET 10 Uses zlib-ng to decompress, which manages to decode 3 extra pixels.
             provider,
             appendPixelTypeToFileName: false);
     }

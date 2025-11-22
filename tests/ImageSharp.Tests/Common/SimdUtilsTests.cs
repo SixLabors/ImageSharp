@@ -133,7 +133,7 @@ public partial class SimdUtilsTests
         FeatureTestRunner.RunWithHwIntrinsicsFeature(
             RunTest,
             count,
-            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX2 | HwIntrinsics.DisableSSE41);
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512 | HwIntrinsics.DisableAVX2);
     }
 
     [Theory]
@@ -171,7 +171,7 @@ public partial class SimdUtilsTests
         FeatureTestRunner.RunWithHwIntrinsicsFeature(
             RunTest,
             count,
-            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512BW | HwIntrinsics.DisableAVX2);
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512 | HwIntrinsics.DisableAVX2);
     }
 
     [Theory]

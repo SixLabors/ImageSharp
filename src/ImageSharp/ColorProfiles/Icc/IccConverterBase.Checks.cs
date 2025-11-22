@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Diagnostics.CodeAnalysis;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 
 namespace SixLabors.ImageSharp.ColorProfiles.Conversion.Icc;
@@ -145,8 +146,15 @@ internal abstract partial class IccConverterBase
     private static bool HasTag(IccProfile profile, IccProfileTag tag)
         => profile.Entries.Any(t => t.TagSignature == tag);
 
-    private static IccTagDataEntry GetTag(IccProfile profile, IccProfileTag tag)
-        => Array.Find(profile.Entries, t => t.TagSignature == tag) ?? throw new InvalidOperationException();
+    private static bool TryGetTag(IccProfile profile, IccProfileTag tag, [NotNullWhen(true)] out IccTagDataEntry? entry)
+    {
+        entry = GetTag(profile, tag);
+
+        return entry is not null;
+    }
+
+    private static IccTagDataEntry? GetTag(IccProfile profile, IccProfileTag tag)
+        => Array.Find(profile.Entries, t => t.TagSignature == tag);
 
     private static T? GetTag<T>(IccProfile profile, IccProfileTag tag)
         where T : IccTagDataEntry

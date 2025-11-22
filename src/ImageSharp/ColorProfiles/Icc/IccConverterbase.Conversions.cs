@@ -79,9 +79,9 @@ internal abstract partial class IccConverterBase
         IccXyzTagDataEntry? greenMatrixColumn = GetTag<IccXyzTagDataEntry>(profile, IccProfileTag.GreenMatrixColumn);
         IccXyzTagDataEntry? blueMatrixColumn = GetTag<IccXyzTagDataEntry>(profile, IccProfileTag.BlueMatrixColumn);
 
-        IccTagDataEntry? redTrc = GetTag(profile, IccProfileTag.RedTrc);
-        IccTagDataEntry? greenTrc = GetTag(profile, IccProfileTag.GreenTrc);
-        IccTagDataEntry? blueTrc = GetTag(profile, IccProfileTag.BlueTrc);
+        IccTagDataEntry? redTrc = GetTag<IccTagDataEntry>(profile, IccProfileTag.RedTrc);
+        IccTagDataEntry? greenTrc = GetTag<IccTagDataEntry>(profile, IccProfileTag.GreenTrc);
+        IccTagDataEntry? blueTrc = GetTag<IccTagDataEntry>(profile, IccProfileTag.BlueTrc);
 
         if (redMatrixColumn == null ||
             greenMatrixColumn == null ||
@@ -105,7 +105,11 @@ internal abstract partial class IccConverterBase
 
     private static GrayTrcCalculator InitGrayTrc(IccProfile profile, bool toPcs)
     {
-        IccTagDataEntry? entry = GetTag(profile, IccProfileTag.GrayTrc);
-        return new GrayTrcCalculator(entry, toPcs);
+        if (TryGetTag(profile, IccProfileTag.GrayTrc, out IccTagDataEntry? entry))
+        {
+            return new GrayTrcCalculator(entry, toPcs);
+        }
+
+        throw new InvalidIccProfileException("Missing GrayTRC entry.");
     }
 }

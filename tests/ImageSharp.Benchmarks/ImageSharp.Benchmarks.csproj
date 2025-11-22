@@ -19,7 +19,7 @@
     BenchmarkDotNet requires a certain structure to the code,
     as such, some of these rules cannot be implemented.
     -->
-    
+
     <!--Mark members as static-->
     <!--Validate platform compatibility-->
     <!--Types that own disposable fields should be disposable-->
@@ -39,7 +39,7 @@
   <Choose>
     <When Condition="$(SIXLABORS_TESTING_PREVIEW) == true">
       <PropertyGroup>
-        <TargetFrameworks>net8.0;net9.0</TargetFrameworks>
+        <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
       </PropertyGroup>
     </When>
     <Otherwise>

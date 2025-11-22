@@ -11,7 +11,7 @@ internal class GrayTrcCalculator : IVector4Calculator
 {
     private readonly TrcCalculator calculator;
 
-    public GrayTrcCalculator(IccTagDataEntry? grayTrc, bool toPcs)
+    public GrayTrcCalculator(IccTagDataEntry grayTrc, bool toPcs)
         => this.calculator = new TrcCalculator([grayTrc], !toPcs);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

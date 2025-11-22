@@ -145,8 +145,8 @@ internal abstract partial class IccConverterBase
     private static bool HasTag(IccProfile profile, IccProfileTag tag)
         => profile.Entries.Any(t => t.TagSignature == tag);
 
-    private static IccTagDataEntry? GetTag(IccProfile profile, IccProfileTag tag)
-        => Array.Find(profile.Entries, t => t.TagSignature == tag);
+    private static IccTagDataEntry GetTag(IccProfile profile, IccProfileTag tag)
+        => Array.Find(profile.Entries, t => t.TagSignature == tag) ?? throw new InvalidOperationException();
 
     private static T? GetTag<T>(IccProfile profile, IccProfileTag tag)
         where T : IccTagDataEntry

@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 using System.Buffers.Binary;
 
@@ -88,7 +87,7 @@ internal readonly struct PngHeader
     /// </exception>
     public void Validate()
     {
-        if (!PngConstants.ColorTypes.TryGetValue(this.ColorType, out byte[] supportedBitDepths))
+        if (!PngConstants.ColorTypes.TryGetValue(this.ColorType, out byte[]? supportedBitDepths))
         {
             throw new NotSupportedException($"Invalid or unsupported color type. Was '{this.ColorType}'.");
         }

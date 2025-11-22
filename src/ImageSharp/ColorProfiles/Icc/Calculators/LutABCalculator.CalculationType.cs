@@ -5,6 +5,7 @@ namespace SixLabors.ImageSharp.ColorProfiles.Conversion.Icc;
 
 internal partial class LutABCalculator
 {
+    [Flags]
     private enum CalculationType
     {
         AtoB = 1 << 3,

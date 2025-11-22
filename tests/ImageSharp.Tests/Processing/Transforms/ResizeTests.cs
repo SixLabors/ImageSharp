@@ -102,6 +102,6 @@ public class ResizeTests : BaseImageOperationsExtensionTest
 
         FeatureTestRunner.RunWithHwIntrinsicsFeature(
             RunTest,
-            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX2 | HwIntrinsics.DisableFMA);
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX2);
     }
 }

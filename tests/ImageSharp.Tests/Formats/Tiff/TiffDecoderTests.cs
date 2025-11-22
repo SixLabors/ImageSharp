@@ -785,7 +785,7 @@ public class TiffDecoderTests : TiffDecoderBaseTester
         // ImageMagick cannot decode this image.
         image.DebugSave(provider);
         image.CompareToReferenceOutput(
-            ImageComparer.TolerantPercentage(0.0018F), // NET 9+ Uses zlib-ng to decompress, which manages to decode 2 extra pixels.
+            ImageComparer.TolerantPercentage(0.0034F), // NET 10 Uses zlib-ng to decompress, which manages to decode 3 extra pixels.
             provider,
             appendPixelTypeToFileName: false);
     }

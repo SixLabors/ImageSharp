@@ -741,6 +741,7 @@ namespace SixLabors.ImageSharp.Tests
 
                 // Issues
                 public const string Issue1594 = "Webp/issues/Issue1594.webp";
+                public const string Issue2243 = "Webp/issues/Issue2243.webp";
             }
         }
 

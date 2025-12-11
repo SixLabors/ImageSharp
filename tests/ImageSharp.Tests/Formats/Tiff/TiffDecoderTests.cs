@@ -366,6 +366,19 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     }
 
     [Theory]
+    [WithFile(Issues3031, PixelTypes.Rgba64)]
+    [WithFile(Rgba16BitAssociatedAlphaBigEndian, PixelTypes.Rgba64)]
+    [WithFile(Rgba16BitAssociatedAlphaLittleEndian, PixelTypes.Rgba64)]
+    public void TiffDecoder_CanDecode_64Bit_WithAssociatedAlpha<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage(TiffDecoder.Instance);
+        image.DebugSave(provider);
+
+        image.CompareToReferenceOutput(ImageComparer.Exact, provider);
+    }
+
+    [Theory]
     [WithFile(Issues2454_A, PixelTypes.Rgba32)]
     [WithFile(Issues2454_B, PixelTypes.Rgba32)]
     public void TiffDecoder_CanDecode_YccK_ICC<TPixel>(TestImageProvider<TPixel> provider)

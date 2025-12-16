@@ -336,4 +336,29 @@ public class PngMetadataTests
 
         Assert.Equal(42, (int)exif.GetValue(ExifTag.ImageNumber).Value);
     }
+
+
+    [Theory]
+    [InlineData(PixelColorType.Binary, PngColorType.Palette)]
+    [InlineData(PixelColorType.Indexed, PngColorType.Palette)]
+    [InlineData(PixelColorType.Luminance, PngColorType.Grayscale)]
+    [InlineData(PixelColorType.RGB, PngColorType.Rgb)]
+    [InlineData(PixelColorType.BGR, PngColorType.Rgb)]
+    [InlineData(PixelColorType.YCbCr, PngColorType.RgbWithAlpha)]
+    [InlineData(PixelColorType.CMYK, PngColorType.RgbWithAlpha)]
+    [InlineData(PixelColorType.YCCK, PngColorType.RgbWithAlpha)]
+    public void FromFormatConnectingMetadata_ConvertColorTypeAsExpected(PixelColorType pixelColorType, PngColorType expectedPngColorType)
+    {
+        FormatConnectingMetadata formatConnectingMetadata = new()
+        {
+            PixelTypeInfo = new PixelTypeInfo(24)
+            {
+                ColorType = pixelColorType,
+            },
+        };
+
+        PngMetadata actual = PngMetadata.FromFormatConnectingMetadata(formatConnectingMetadata);
+
+        Assert.Equal(expectedPngColorType, actual.ColorType);
+    }
 }

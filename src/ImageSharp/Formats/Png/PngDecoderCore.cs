@@ -2174,7 +2174,8 @@ internal sealed class PngDecoderCore : ImageDecoderCore
 
         ColorProfileConverter converter = new(options);
 
-        image.Mutate(o => o.ProcessPixelRowsAsVector4((pixelsRow, _) =>
+        image.Mutate(o => o.ProcessPixelRowsAsVector4(
+            (pixelsRow, _) =>
                 {
                     using IMemoryOwner<Rgb> rgbBuffer = image.Configuration.MemoryAllocator.Allocate<Rgb>(pixelsRow.Length);
                     Span<Rgb> rgbPacked = rgbBuffer.Memory.Span;
@@ -2190,6 +2191,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                     {
                         Unsafe.As<float, Rgb>(ref Unsafe.Add(ref pixelsRowAsFloatsRef, cIdx)) = rgbPacked[x];
                     }
-                }));
+                },
+            PixelConversionModifiers.Scale));
     }
 }

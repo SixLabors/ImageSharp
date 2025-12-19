@@ -2170,6 +2170,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
         {
             SourceIccProfile = sourceProfile,
             TargetIccProfile = destinationProfile,
+            MemoryAllocator = image.Configuration.MemoryAllocator,
         };
 
         ColorProfileConverter converter = new(options);

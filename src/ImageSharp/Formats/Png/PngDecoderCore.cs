@@ -2178,13 +2178,8 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                 {
                     using IMemoryOwner<Rgb> rgbBuffer = image.Configuration.MemoryAllocator.Allocate<Rgb>(pixelsRow.Length);
                     Span<Rgb> rgbPacked = rgbBuffer.Memory.Span;
-                    ref Rgb rgbPackedRef = ref MemoryMarshal.GetReference(rgbPacked);
 
-                    for (int x = 0; x < pixelsRow.Length; x++)
-                    {
-                        Unsafe.Add(ref rgbPackedRef, x) = Rgb.FromScaledVector4(pixelsRow[x]);
-                    }
-
+                    Rgb.FromScaledVector4(pixelsRow, rgbPacked);
                     converter.Convert<Rgb, Rgb>(rgbPacked, rgbPacked);
 
                     Span<float> pixelsRowAsFloats = MemoryMarshal.Cast<Vector4, float>(pixelsRow);

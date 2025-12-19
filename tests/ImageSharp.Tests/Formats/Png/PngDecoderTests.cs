@@ -207,6 +207,20 @@ public partial class PngDecoderTests
     }
 
     [Theory]
+    [WithFile(TestImages.Png.Icc.Perceptual, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Png.Icc.PerceptualcLUTOnly, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Png.Icc.SRgbGray, PixelTypes.Rgba32)]
+    public void Decode_WhenColorProfileHandlingIsConvert_ApplyIccProfile<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage(PngDecoder.Instance, new DecoderOptions { ColorProfileHandling = ColorProfileHandling.Convert });
+
+        image.DebugSave(provider);
+        image.CompareToReferenceOutput(provider);
+        Assert.Null(image.Metadata.IccProfile);
+    }
+
+    [Theory]
     [WithFile(TestImages.Png.SubFilter3BytesPerPixel, PixelTypes.Rgba32)]
     [WithFile(TestImages.Png.SubFilter4BytesPerPixel, PixelTypes.Rgba32)]
     public void Decode_WithSubFilter<TPixel>(TestImageProvider<TPixel> provider)

@@ -26,6 +26,7 @@ using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.Metadata.Profiles.Xmp;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
 
 namespace SixLabors.ImageSharp.Formats.Png;
 
@@ -328,7 +329,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
 
             if (this.Options.TryGetIccProfileForColorConversion(metadata.IccProfile, out IccProfile? iccProfile))
             {
-                ApplyIccProfile(image, iccProfile, CompactSrgbV4Profile.Profile);
+                ApplyRgbaCompatibleIccProfile(image, iccProfile, CompactSrgbV4Profile.Profile);
             }
 
             return image;
@@ -2162,8 +2163,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
     private void SwapScanlineBuffers()
         => (this.scanline, this.previousScanline) = (this.previousScanline, this.scanline);
 
-    // FIXME: Maybe this could be a .Mutate(x => x.ApplyIccProfile(destinationProfile)) ? Nothing related to png here
-    private static void ApplyIccProfile<TPixel>(Image<TPixel> image, IccProfile sourceProfile, IccProfile destinationProfile)
+    private static void ApplyRgbaCompatibleIccProfile<TPixel>(Image<TPixel> image, IccProfile sourceProfile, IccProfile destinationProfile)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         ColorConversionOptions options = new()
@@ -2174,45 +2174,27 @@ internal sealed class PngDecoderCore : ImageDecoderCore
 
         ColorProfileConverter converter = new(options);
 
-        image.ProcessPixelRows(pixelAccessor =>
-            {
-                using IMemoryOwner<float> rgbBuffer = image.Configuration.MemoryAllocator.Allocate<float>(pixelAccessor.Width * 3);
-                using IMemoryOwner<float> alphaBuffer = image.Configuration.MemoryAllocator.Allocate<float>(pixelAccessor.Width);
-                Span<float> rgbPacked = rgbBuffer.Memory.Span;
-                ref float rgbPackedRef = ref MemoryMarshal.GetReference(rgbPacked);
-                Span<float> alphaPacked = alphaBuffer.Memory.Span;
-                ref float alphaPackedRef = ref MemoryMarshal.GetReference(alphaPacked);
-
-                for (int y = 0; y < pixelAccessor.Height; y++)
+        image.Mutate(o => o.ProcessPixelRowsAsVector4((pixelsRow, _) =>
                 {
-                    Span<TPixel> pixelsRow = pixelAccessor.GetRowSpan(y);
-                    int rgbIdx = 0;
-                    for (int x = 0; x < pixelsRow.Length; x++, rgbIdx += 3)
+                    using IMemoryOwner<Rgb> rgbBuffer = image.Configuration.MemoryAllocator.Allocate<Rgb>(pixelsRow.Length);
+                    Span<Rgb> rgbPacked = rgbBuffer.Memory.Span;
+                    ref Rgb rgbPackedRef = ref MemoryMarshal.GetReference(rgbPacked);
+
+                    for (int x = 0; x < pixelsRow.Length; x++)
                     {
-                        Vector4 rgba = pixelsRow[x].ToScaledVector4();
-                        Unsafe.Add(ref rgbPackedRef, rgbIdx) = rgba.X;
-                        Unsafe.Add(ref rgbPackedRef, rgbIdx + 1) = rgba.Y;
-                        Unsafe.Add(ref rgbPackedRef, rgbIdx + 2) = rgba.Z;
-                        Unsafe.Add(ref alphaPackedRef, x) = rgba.W;
+                        Unsafe.Add(ref rgbPackedRef, x) = Rgb.FromScaledVector4(pixelsRow[x]);
                     }
 
-                    Span<Rgb> source = MemoryMarshal.Cast<float, Rgb>(rgbPacked);
-                    Span<Rgb> destination = MemoryMarshal.Cast<float, Rgb>(rgbPacked);
-                    converter.Convert<Rgb, Rgb>(source, destination);
+                    converter.Convert<Rgb, Rgb>(rgbPacked, rgbPacked);
 
-                    rgbIdx = 0;
-                    for (int x = 0; x < pixelsRow.Length; x++, rgbIdx += 3)
+                    Span<float> pixelsRowAsFloats = MemoryMarshal.Cast<Vector4, float>(pixelsRow);
+                    ref float pixelsRowAsFloatsRef = ref MemoryMarshal.GetReference(pixelsRowAsFloats);
+
+                    int cIdx = 0;
+                    for (int x = 0; x < pixelsRow.Length; x++, cIdx += 4)
                     {
-                        float r = Unsafe.Add(ref rgbPackedRef, rgbIdx);
-                        float g = Unsafe.Add(ref rgbPackedRef, rgbIdx + 1);
-                        float b = Unsafe.Add(ref rgbPackedRef, rgbIdx + 2);
-                        float a = Unsafe.Add(ref alphaPackedRef, x);
-
-                        pixelsRow[x] = TPixel.FromScaledVector4(new Vector4(r, g, b, a));
+                        Unsafe.As<float, Rgb>(ref Unsafe.Add(ref pixelsRowAsFloatsRef, cIdx)) = rgbPacked[x];
                     }
-                }
-            }
-        );
+                }));
     }
-
 }

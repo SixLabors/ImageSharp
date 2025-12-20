@@ -210,6 +210,8 @@ public partial class PngDecoderTests
     [WithFile(TestImages.Png.Icc.Perceptual, PixelTypes.Rgba32)]
     [WithFile(TestImages.Png.Icc.PerceptualcLUTOnly, PixelTypes.Rgba32)]
     [WithFile(TestImages.Png.Icc.SRgbGray, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Png.Icc.SRgbGrayInterlacedRgba32, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Png.Icc.SRgbGrayInterlacedRgba64, PixelTypes.Rgba32)]
     public void Decode_WhenColorProfileHandlingIsConvert_ApplyIccProfile<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {

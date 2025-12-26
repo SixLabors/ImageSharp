@@ -62,30 +62,28 @@ jobs:
     needs: WarmLFS
     strategy:
       matrix:
-        isARM:
-          - ${{ contains(github.event.pull_request.labels.*.name, 'arch:arm32') || contains(github.event.pull_request.labels.*.name, 'arch:arm64') }}
         options:
           - os: ubuntu-latest
-            framework: net9.0
-            sdk: 9.0.x
+            framework: net10.0
+            sdk: 10.0.x
             sdk-preview: true
             runtime: -x64
             codecov: false
-          - os: macos-13 # macos-latest runs on arm64 runners where libgdiplus is unavailable
-            framework: net9.0
-            sdk: 9.0.x
+          - os: macos-26
+            framework: net10.0
+            sdk: 10.0.x
             sdk-preview: true
             runtime: -x64
             codecov: false
           - os: windows-latest
-            framework: net9.0
-            sdk: 9.0.x
+            framework: net10.0
+            sdk: 10.0.x
             sdk-preview: true
             runtime: -x64
             codecov: false
-          - os: buildjet-4vcpu-ubuntu-2204-arm
-            framework: net9.0
-            sdk: 9.0.x
+          - os: ubuntu-22.04-arm
+            framework: net10.0
+            sdk: 10.0.x
             sdk-preview: true
             runtime: -x64
             codecov: false
@@ -95,7 +93,7 @@ jobs:
             sdk: 8.0.x
             runtime: -x64
             codecov: false
-          - os: macos-13 # macos-latest runs on arm64 runners where libgdiplus is unavailable
+          - os: macos-26
             framework: net8.0
             sdk: 8.0.x
             runtime: -x64
@@ -105,15 +103,11 @@ jobs:
             sdk: 8.0.x
             runtime: -x64
             codecov: false
-          - os: buildjet-4vcpu-ubuntu-2204-arm
+          - os: ubuntu-22.04-arm
             framework: net8.0
             sdk: 8.0.x
             runtime: -x64
             codecov: false
-        exclude:
-          - isARM: false
-            options:
-              os: buildjet-4vcpu-ubuntu-2204-arm
 
     runs-on: ${{ matrix.options.os }}
 
@@ -123,6 +117,18 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get -y install libgdiplus libgif-dev libglib2.0-dev libcairo2-dev libtiff-dev libexif-dev
+
+      - name: Install libgdi+, which is required for tests running on macos
+        if: ${{ contains(matrix.options.os, 'macos-26') }}
+        run: |
+          brew update
+          brew install mono-libgdiplus
+          # Create symlinks to make libgdiplus discoverable
+          sudo mkdir -p /usr/local/lib
+          sudo ln -sf $(brew --prefix)/lib/libgdiplus.dylib /usr/local/lib/libgdiplus.dylib
+          # Verify installation
+          ls -la $(brew --prefix)/lib/libgdiplus* || echo "libgdiplus not found in brew prefix"
+          ls -la /usr/local/lib/libgdiplus* || echo "libgdiplus not found in /usr/local/lib"
 
       - name: Git Config
         shell: bash
@@ -170,7 +176,7 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: |
-            9.0.x
+            10.0.x
 
       - name: DotNet Build
         if: ${{ matrix.options.sdk-preview != true }}

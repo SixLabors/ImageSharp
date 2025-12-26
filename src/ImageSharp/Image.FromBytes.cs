@@ -34,7 +34,12 @@ public abstract partial class Image
     /// <exception cref="UnknownImageFormatException">The encoded image format is unknown.</exception>
     public static unsafe IImageFormat DetectFormat(DecoderOptions options, ReadOnlySpan<byte> buffer)
     {
-        Guard.NotNull(options, nameof(options.Configuration));
+        Guard.NotNull(options, nameof(options));
+
+        if (buffer.IsEmpty)
+        {
+            throw new UnknownImageFormatException("Cannot detect image format from empty data.");
+        }
 
         fixed (byte* ptr = buffer)
         {
@@ -66,6 +71,13 @@ public abstract partial class Image
     /// <exception cref="UnknownImageFormatException">The encoded image format is unknown.</exception>
     public static unsafe ImageInfo Identify(DecoderOptions options, ReadOnlySpan<byte> buffer)
     {
+        Guard.NotNull(options, nameof(options));
+
+        if (buffer.IsEmpty)
+        {
+            throw new UnknownImageFormatException("Cannot identify image format from empty data.");
+        }
+
         fixed (byte* ptr = buffer)
         {
             using UnmanagedMemoryStream stream = new(ptr, buffer.Length);
@@ -99,6 +111,13 @@ public abstract partial class Image
     /// <exception cref="UnknownImageFormatException">The encoded image format is unknown.</exception>
     public static unsafe Image Load(DecoderOptions options, ReadOnlySpan<byte> buffer)
     {
+        Guard.NotNull(options, nameof(options));
+
+        if (buffer.IsEmpty)
+        {
+            throw new UnknownImageFormatException("Cannot load image from empty data.");
+        }
+
         fixed (byte* ptr = buffer)
         {
             using UnmanagedMemoryStream stream = new(ptr, buffer.Length);
@@ -133,6 +152,13 @@ public abstract partial class Image
     public static unsafe Image<TPixel> Load<TPixel>(DecoderOptions options, ReadOnlySpan<byte> data)
         where TPixel : unmanaged, IPixel<TPixel>
     {
+        Guard.NotNull(options, nameof(options));
+
+        if (data.IsEmpty)
+        {
+            throw new UnknownImageFormatException("Cannot load image from empty data.");
+        }
+
         fixed (byte* ptr = data)
         {
             using UnmanagedMemoryStream stream = new(ptr, data.Length);

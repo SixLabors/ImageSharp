@@ -163,6 +163,9 @@ public static class TestImages
         // Issue 2924: https://github.com/SixLabors/ImageSharp/issues/2924
         public const string Issue2924 = "Png/issues/Issue_2924.png";
 
+        // Issue 3000: https://github.com/SixLabors/ImageSharp/issues/3000
+        public const string Issue3000 = "Png/issues/issue_3000.png";
+
         public static class Bad
         {
             public const string MissingDataChunk = "Png/xdtn0g01.png";
@@ -345,6 +348,7 @@ public static class TestImages
             public const string Issue2638 = "Jpg/issues/Issue2638.jpg";
             public const string Issue2758 = "Jpg/issues/issue-2758.jpg";
             public const string Issue2857 = "Jpg/issues/issue-2857-subsub-ifds.jpg";
+            public const string Issue2948 = "Jpg/issues/issue-2948-sos.jpg";
 
             public static class Fuzz
             {
@@ -1138,6 +1142,7 @@ public static class TestImages
         public const string Issues2435 = "Tiff/Issues/Issue2435.tiff";
         public const string Issues2454_A = "Tiff/Issues/Issue2454_A.tif";
         public const string Issues2454_B = "Tiff/Issues/Issue2454_B.tif";
+        public const string Issues3031 = "Tiff/Issues/Issue3031.tiff";
         public const string Issues2587 = "Tiff/Issues/Issue2587.tiff";
         public const string Issues2679 = "Tiff/Issues/Issue2679.tiff";
         public const string JpegCompressedGray0000539558 = "Tiff/Issues/JpegCompressedGray-0000539558.tiff";

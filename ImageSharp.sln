@@ -37,8 +37,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{815C0625-CD3
 	ProjectSection(SolutionItems) = preProject
 		src\Directory.Build.props = src\Directory.Build.props
 		src\Directory.Build.targets = src\Directory.Build.targets
-		src\README.md = src\README.md
 		src\ImageSharp.ruleset = src\ImageSharp.ruleset
+		src\README.md = src\README.md
 	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ImageSharp", "src\ImageSharp\ImageSharp.csproj", "{2AA31A1F-142C-43F4-8687-09ABCA4B3A26}"
@@ -215,6 +215,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "issues", "issues", "{5C9B68
 	ProjectSection(SolutionItems) = preProject
 		tests\Images\Input\Jpg\issues\issue-1076-invalid-subsampling.jpg = tests\Images\Input\Jpg\issues\issue-1076-invalid-subsampling.jpg
 		tests\Images\Input\Jpg\issues\issue-1221-identify-multi-frame.jpg = tests\Images\Input\Jpg\issues\issue-1221-identify-multi-frame.jpg
+		tests\Images\Input\Jpg\issues\issue-2067-comment.jpg = tests\Images\Input\Jpg\issues\issue-2067-comment.jpg
 		tests\Images\Input\Jpg\issues\issue1006-incorrect-resize.jpg = tests\Images\Input\Jpg\issues\issue1006-incorrect-resize.jpg
 		tests\Images\Input\Jpg\issues\issue1049-exif-resize.jpg = tests\Images\Input\Jpg\issues\issue1049-exif-resize.jpg
 		tests\Images\Input\Jpg\issues\Issue159-MissingFF00-Progressive-Bedroom.jpg = tests\Images\Input\Jpg\issues\Issue159-MissingFF00-Progressive-Bedroom.jpg
@@ -238,7 +239,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "issues", "issues", "{5C9B68
 		tests\Images\Input\Jpg\issues\issue750-exif-tranform.jpg = tests\Images\Input\Jpg\issues\issue750-exif-tranform.jpg
 		tests\Images\Input\Jpg\issues\Issue845-Incorrect-Quality99.jpg = tests\Images\Input\Jpg\issues\Issue845-Incorrect-Quality99.jpg
 		tests\Images\Input\Jpg\issues\issue855-incorrect-colorspace.jpg = tests\Images\Input\Jpg\issues\issue855-incorrect-colorspace.jpg
-		tests\Images\Input\Jpg\issues\issue-2067-comment.jpg = tests\Images\Input\Jpg\issues\issue-2067-comment.jpg
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "fuzz", "fuzz", "{516A3532-6AC2-417B-AD79-9BD5D0D378A0}"
@@ -661,6 +661,19 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Qoi", "Qoi", "{E801B508-493
 		tests\Images\Input\Qoi\wikipedia_008.qoi = tests\Images\Input\Qoi\wikipedia_008.qoi
 	EndProjectSection
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Heif", "Heif", "{BA5D603A-C84C-43E5-B300-8BB886B02936}"
+	ProjectSection(SolutionItems) = preProject
+		tests\Images\Input\Heif\dwsample-heic-640.heic = tests\Images\Input\Heif\dwsample-heic-640.heic
+		tests\Images\Input\Heif\image1.heic = tests\Images\Input\Heif\image1.heic
+		tests\Images\Input\Heif\image2.heic = tests\Images\Input\Heif\image2.heic
+		tests\Images\Input\Heif\image3.heic = tests\Images\Input\Heif\image3.heic
+		tests\Images\Input\Heif\image4.heic = tests\Images\Input\Heif\image4.heic
+		tests\Images\Input\Heif\IMG-20230508-0053.hif = tests\Images\Input\Heif\IMG-20230508-0053.hif
+		tests\Images\Input\Heif\Irvine_CA.avif = tests\Images\Input\Heif\Irvine_CA.avif
+		tests\Images\Input\Heif\jpeg444_xnconvert.avif = tests\Images\Input\Heif\jpeg444_xnconvert.avif
+		tests\Images\Input\Heif\Orange4x4.avif = tests\Images\Input\Heif\Orange4x4.avif
+	EndProjectSection
+EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Icon", "Icon", "{95E45DDE-A67D-48AD-BBA8-5FAA151B860D}"
 	ProjectSection(SolutionItems) = preProject
 		tests\Images\Input\Icon\aero_arrow.cur = tests\Images\Input\Icon\aero_arrow.cur
@@ -720,6 +733,7 @@ Global
 		{670DD46C-82E9-499A-B2D2-00A802ED0141} = {E1C42A6F-913B-4A7B-B1A8-2BB62843B254}
 		{5DFC394F-136F-4B76-9BCA-3BA786515EFC} = {9DA226A1-8656-49A8-A58A-A8B5C081AD66}
 		{E801B508-4935-41CD-BA85-CF11BFF55A45} = {9DA226A1-8656-49A8-A58A-A8B5C081AD66}
+		{BA5D603A-C84C-43E5-B300-8BB886B02936} = {9DA226A1-8656-49A8-A58A-A8B5C081AD66}
 		{95E45DDE-A67D-48AD-BBA8-5FAA151B860D} = {9DA226A1-8656-49A8-A58A-A8B5C081AD66}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution

@@ -19,13 +19,15 @@ public class DrawImageProcessor : IImageProcessor
     /// <param name="colorBlendingMode">The blending mode to use when drawing the image.</param>
     /// <param name="alphaCompositionMode">The Alpha blending mode to use when drawing the image.</param>
     /// <param name="opacity">The opacity of the image to blend.</param>
+    /// <param name="repeatCount">The loop count. The number of times to loop the animation. 0 means infinitely.</param>
     public DrawImageProcessor(
         Image foreground,
         Point backgroundLocation,
         PixelColorBlendingMode colorBlendingMode,
         PixelAlphaCompositionMode alphaCompositionMode,
-        float opacity)
-        : this(foreground, backgroundLocation, foreground.Bounds, colorBlendingMode, alphaCompositionMode, opacity)
+        float opacity,
+        int repeatCount)
+        : this(foreground, backgroundLocation, foreground.Bounds, colorBlendingMode, alphaCompositionMode, opacity, repeatCount)
     {
     }
 
@@ -38,13 +40,15 @@ public class DrawImageProcessor : IImageProcessor
     /// <param name="colorBlendingMode">The blending mode to use when drawing the image.</param>
     /// <param name="alphaCompositionMode">The Alpha blending mode to use when drawing the image.</param>
     /// <param name="opacity">The opacity of the image to blend.</param>
+    /// <param name="repeatCount">The loop count. The number of times to loop the animation. 0 means infinitely.</param>
     public DrawImageProcessor(
         Image foreground,
         Point backgroundLocation,
         Rectangle foregroundRectangle,
         PixelColorBlendingMode colorBlendingMode,
         PixelAlphaCompositionMode alphaCompositionMode,
-        float opacity)
+        float opacity,
+        int repeatCount)
     {
         this.ForeGround = foreground;
         this.BackgroundLocation = backgroundLocation;
@@ -52,6 +56,7 @@ public class DrawImageProcessor : IImageProcessor
         this.ColorBlendingMode = colorBlendingMode;
         this.AlphaCompositionMode = alphaCompositionMode;
         this.Opacity = opacity;
+        this.RepeatCount = repeatCount;
     }
 
     /// <summary>
@@ -83,6 +88,11 @@ public class DrawImageProcessor : IImageProcessor
     /// Gets the opacity of the image to blend.
     /// </summary>
     public float Opacity { get; }
+
+    /// <summary>
+    /// Gets the loop count. The number of times to loop the animation. 0 means infinitely.
+    /// </summary>
+    public int RepeatCount { get; }
 
     /// <inheritdoc />
     public IImageProcessor<TPixelBg> CreatePixelSpecificProcessor<TPixelBg>(Configuration configuration, Image<TPixelBg> source, Rectangle sourceRectangle)
@@ -122,6 +132,7 @@ public class DrawImageProcessor : IImageProcessor
                 this.definition.ForegroundRectangle,
                 this.definition.ColorBlendingMode,
                 this.definition.AlphaCompositionMode,
-                this.definition.Opacity);
+                this.definition.Opacity,
+                this.definition.RepeatCount);
     }
 }

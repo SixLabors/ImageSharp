@@ -12,7 +12,7 @@ public class PorterDuffFunctionsTestsTPixel
     private static Span<T> AsSpan<T>(T value)
         where T : struct
     {
-        return new Span<T>(new[] { value });
+        return new Span<T>([value]);
     }
 
     public static TheoryData<object, object, float, object> NormalBlendFunctionData = new()

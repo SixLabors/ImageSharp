@@ -22,7 +22,10 @@ public static class MemoryAllocatorValidator
         TestMemoryDiagnostics backing = LocalInstance.Value;
         if (backing != null)
         {
-            backing.TotalRemainingAllocated--;
+            lock (backing)
+            {
+                backing.TotalRemainingAllocated--;
+            }
         }
     }
 
@@ -31,8 +34,11 @@ public static class MemoryAllocatorValidator
         TestMemoryDiagnostics backing = LocalInstance.Value;
         if (backing != null)
         {
-            backing.TotalAllocated++;
-            backing.TotalRemainingAllocated++;
+            lock (backing)
+            {
+                backing.TotalAllocated++;
+                backing.TotalRemainingAllocated++;
+            }
         }
     }
 

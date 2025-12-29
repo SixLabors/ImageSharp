@@ -166,6 +166,15 @@ public static class TestImages
         // Issue 3000: https://github.com/SixLabors/ImageSharp/issues/3000
         public const string Issue3000 = "Png/issues/issue_3000.png";
 
+        public static class Icc
+        {
+            public const string SRgbGray = "Png/icc-profiles/sRGB_Gray.png";
+            public const string SRgbGrayInterlacedRgba32 = "Png/icc-profiles/sRGB_Gray_Interlaced_Rgba32.png";
+            public const string SRgbGrayInterlacedRgba64 = "Png/icc-profiles/sRGB_Gray_Interlaced_Rgba64.png";
+            public const string Perceptual = "Png/icc-profiles/Perceptual.png";
+            public const string PerceptualcLUTOnly = "Png/icc-profiles/Perceptual-cLUT-only.png";
+        }
+
         public static class Bad
         {
             public const string MissingDataChunk = "Png/xdtn0g01.png";

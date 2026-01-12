@@ -100,17 +100,6 @@ public readonly struct Rgb : IProfileConnectingSpace<Rgb, CieXyz>
     public Vector4 ToScaledVector4()
         => new(this.AsVector3Unsafe(), 1F);
 
-    /// <summary>
-    /// Expands the color into a generic ("scaled") <see cref="Vector4"/> representation
-    /// with values scaled and usually clamped between <value>0</value> and <value>1</value>.
-    /// The vector components are typically expanded in least to greatest significance order.
-    /// </summary>
-    /// <param name="alpha">The alpha component.</param>
-    /// <returns>The <see cref="Vector4"/>.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Vector4 ToScaledVector4(float alpha)
-        => new(this.AsVector3Unsafe(), 1F);
-
     /// <inheritdoc/>
     public static void ToScaledVector4(ReadOnlySpan<Rgb> source, Span<Vector4> destination)
     {

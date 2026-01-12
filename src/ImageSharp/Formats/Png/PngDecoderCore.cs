@@ -212,6 +212,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                             currentFrameControl = this.ReadFrameControlChunk(chunk.Data.GetSpan());
                             break;
                         case PngChunkType.FrameData:
+                        {
                             if (frameCount >= this.maxFrames)
                             {
                                 goto EOF;
@@ -246,7 +247,10 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                             }
 
                             break;
+                        }
+
                         case PngChunkType.Data:
+                        {
                             pngMetadata.AnimateRootFrame = currentFrameControl != null;
                             currentFrameControl ??= new FrameControl((uint)this.header.Width, (uint)this.header.Height);
                             if (image is null)
@@ -276,6 +280,8 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                             }
 
                             break;
+                        }
+
                         case PngChunkType.Palette:
                             this.palette = chunk.Data.GetSpan().ToArray();
                             break;
@@ -323,6 +329,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                 PngThrowHelper.ThrowNoData();
             }
 
+            _ = this.TryConvertIccProfile(image);
             return image;
         }
         catch

@@ -7,12 +7,9 @@ using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.IO.Compression;
 using System.IO.Hashing;
-using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
-using SixLabors.ImageSharp.ColorProfiles;
-using SixLabors.ImageSharp.ColorProfiles.Icc;
 using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Compression.Zlib;
 using SixLabors.ImageSharp.Formats.Png.Chunks;
@@ -26,7 +23,6 @@ using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.Metadata.Profiles.Xmp;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing;
 
 namespace SixLabors.ImageSharp.Formats.Png;
 
@@ -234,9 +230,10 @@ internal sealed class PngDecoderCore : ImageDecoderCore
 
                             this.InitializeFrame(previousFrameControl, currentFrameControl.Value, image, previousFrame, out currentFrame);
 
-                            if (this.Options.TryGetIccProfileForColorConversion(metadata.IccProfile, out IccProfile? iccProfile))
+                            if (!this.Options.TryGetIccProfileForColorConversion(metadata.IccProfile, out IccProfile? iccProfile))
                             {
-                                metadata.IccProfile = null;
+                                // TODO: Rework this. We need to preserve metadata
+                                // metadata.IccProfile = null;
                             }
 
                             this.currentStream.Position += 4;
@@ -271,9 +268,10 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                                 AssignColorPalette(this.palette, this.paletteAlpha, pngMetadata);
                             }
 
-                            if (this.Options.TryGetIccProfileForColorConversion(metadata.IccProfile, out IccProfile? iccProfile))
+                            if (!this.Options.TryGetIccProfileForColorConversion(metadata.IccProfile, out IccProfile? iccProfile))
                             {
-                                metadata.IccProfile = null;
+                                // TODO: Rework this. We need to preserve metadata
+                                // metadata.IccProfile = null;
                             }
 
                             this.ReadScanlines(
@@ -345,11 +343,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                 PngThrowHelper.ThrowNoData();
             }
 
-            if (this.Options.TryGetIccProfileForColorConversion(metadata.IccProfile, out IccProfile? iccProfileToApply))
-            {
-                ApplyRgbaCompatibleIccProfile(image, iccProfileToApply, CompactSrgbV4Profile.Profile);
-            }
-
+            _ = this.TryConvertIccProfile(image);
             return image;
         }
         catch
@@ -2201,37 +2195,4 @@ internal sealed class PngDecoderCore : ImageDecoderCore
 
     private void SwapScanlineBuffers()
         => (this.scanline, this.previousScanline) = (this.previousScanline, this.scanline);
-
-    private static void ApplyRgbaCompatibleIccProfile<TPixel>(Image<TPixel> image, IccProfile sourceProfile, IccProfile destinationProfile)
-        where TPixel : unmanaged, IPixel<TPixel>
-    {
-        ColorConversionOptions options = new()
-        {
-            SourceIccProfile = sourceProfile,
-            TargetIccProfile = destinationProfile,
-            MemoryAllocator = image.Configuration.MemoryAllocator,
-        };
-
-        ColorProfileConverter converter = new(options);
-
-        image.Mutate(o => o.ProcessPixelRowsAsVector4(
-            (pixelsRow, _) =>
-                {
-                    using IMemoryOwner<Rgb> rgbBuffer = image.Configuration.MemoryAllocator.Allocate<Rgb>(pixelsRow.Length);
-                    Span<Rgb> rgbPacked = rgbBuffer.Memory.Span;
-
-                    Rgb.FromScaledVector4(pixelsRow, rgbPacked);
-                    converter.Convert<Rgb, Rgb>(rgbPacked, rgbPacked);
-
-                    Span<float> pixelsRowAsFloats = MemoryMarshal.Cast<Vector4, float>(pixelsRow);
-                    ref float pixelsRowAsFloatsRef = ref MemoryMarshal.GetReference(pixelsRowAsFloats);
-
-                    int cIdx = 0;
-                    for (int x = 0; x < pixelsRow.Length; x++, cIdx += 4)
-                    {
-                        Unsafe.As<float, Rgb>(ref Unsafe.Add(ref pixelsRowAsFloatsRef, cIdx)) = rgbPacked[x];
-                    }
-                },
-            PixelConversionModifiers.Scale));
-    }
 }

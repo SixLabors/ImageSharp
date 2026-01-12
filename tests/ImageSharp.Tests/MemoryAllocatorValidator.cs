@@ -20,26 +20,13 @@ public static class MemoryAllocatorValidator
     private static void MemoryDiagnostics_MemoryReleased()
     {
         TestMemoryDiagnostics backing = LocalInstance.Value;
-        if (backing != null)
-        {
-            lock (backing)
-            {
-                backing.TotalRemainingAllocated--;
-            }
-        }
+        backing?.OnReleased();
     }
 
     private static void MemoryDiagnostics_MemoryAllocated()
     {
         TestMemoryDiagnostics backing = LocalInstance.Value;
-        if (backing != null)
-        {
-            lock (backing)
-            {
-                backing.TotalAllocated++;
-                backing.TotalRemainingAllocated++;
-            }
-        }
+        backing?.OnAllocated();
     }
 
     public static TestMemoryDiagnostics MonitorAllocations()
@@ -54,11 +41,23 @@ public static class MemoryAllocatorValidator
     public static void ValidateAllocations(int expectedAllocationCount = 0)
         => LocalInstance.Value?.Validate(expectedAllocationCount);
 
-    public class TestMemoryDiagnostics : IDisposable
+    public sealed class TestMemoryDiagnostics : IDisposable
     {
-        public int TotalAllocated { get; set; }
+        private int totalAllocated;
+        private int totalRemainingAllocated;
 
-        public int TotalRemainingAllocated { get; set; }
+        public int TotalAllocated => Volatile.Read(ref this.totalAllocated);
+
+        public int TotalRemainingAllocated => Volatile.Read(ref this.totalRemainingAllocated);
+
+        internal void OnAllocated()
+        {
+            Interlocked.Increment(ref this.totalAllocated);
+            Interlocked.Increment(ref this.totalRemainingAllocated);
+        }
+
+        internal void OnReleased()
+            => Interlocked.Decrement(ref this.totalRemainingAllocated);
 
         public void Validate(int expectedAllocationCount)
         {

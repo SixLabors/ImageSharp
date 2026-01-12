@@ -111,7 +111,7 @@ public class PngMetadata : IFormatMetadata<PngMetadata>
                 color = PngColorType.Rgb;
                 break;
             default:
-                if (colorType.HasFlag(PixelColorType.Luminance))
+                if (colorType.HasFlag(PixelColorType.Luminance | PixelColorType.Alpha))
                 {
                     color = PngColorType.GrayscaleWithAlpha;
                     break;

@@ -1134,6 +1134,8 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                     PixelOperations<TPixel>.Instance.GetPixelBlender(PixelColorBlendingMode.Normal, PixelAlphaCompositionMode.SrcOver);
                 blender.Blend<TPixel>(this.configuration, destination, destination, rowSpan, 1F);
             }
+
+            // TODO: Here is where we would perform ICC color conversion if needed over the 'destination' span.
         }
         finally
         {

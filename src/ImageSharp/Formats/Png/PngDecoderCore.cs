@@ -230,12 +230,6 @@ internal sealed class PngDecoderCore : ImageDecoderCore
 
                             this.InitializeFrame(previousFrameControl, currentFrameControl.Value, image, previousFrame, out currentFrame);
 
-                            if (!this.Options.TryGetIccProfileForColorConversion(metadata.IccProfile, out IccProfile? iccProfile))
-                            {
-                                // TODO: Rework this. We need to preserve metadata
-                                // metadata.IccProfile = null;
-                            }
-
                             this.currentStream.Position += 4;
                             this.ReadScanlines(
                                 chunk.Length - 4,
@@ -243,7 +237,6 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                                 pngMetadata,
                                 this.ReadNextFrameDataChunk,
                                 currentFrameControl.Value,
-                                iccProfile,
                                 cancellationToken);
 
                             // if current frame dispose is restore to previous, then from future frame's perspective, it never happened
@@ -268,19 +261,12 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                                 AssignColorPalette(this.palette, this.paletteAlpha, pngMetadata);
                             }
 
-                            if (!this.Options.TryGetIccProfileForColorConversion(metadata.IccProfile, out IccProfile? iccProfile))
-                            {
-                                // TODO: Rework this. We need to preserve metadata
-                                // metadata.IccProfile = null;
-                            }
-
                             this.ReadScanlines(
                                 chunk.Length,
                                 image.Frames.RootFrame,
                                 pngMetadata,
                                 this.ReadNextDataChunk,
                                 currentFrameControl.Value,
-                                iccProfile,
                                 cancellationToken);
                             if (pngMetadata.AnimateRootFrame)
                             {
@@ -764,7 +750,6 @@ internal sealed class PngDecoderCore : ImageDecoderCore
     /// <param name="pngMetadata">The png metadata</param>
     /// <param name="getData">A delegate to get more data from the inner stream for <see cref="ZlibInflateStream"/>.</param>
     /// <param name="frameControl">The frame control</param>
-    /// <param name="iccProfile">Optional ICC profile for color conversion.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     private void ReadScanlines<TPixel>(
         int chunkLength,
@@ -772,7 +757,6 @@ internal sealed class PngDecoderCore : ImageDecoderCore
         PngMetadata pngMetadata,
         Func<int> getData,
         in FrameControl frameControl,
-        IccProfile? iccProfile,
         CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
@@ -786,11 +770,11 @@ internal sealed class PngDecoderCore : ImageDecoderCore
 
         if (this.header.InterlaceMethod is PngInterlaceMode.Adam7)
         {
-            this.DecodeInterlacedPixelData(frameControl, dataStream, image, pngMetadata, iccProfile, cancellationToken);
+            this.DecodeInterlacedPixelData(frameControl, dataStream, image, pngMetadata, cancellationToken);
         }
         else
         {
-            this.DecodePixelData(frameControl, dataStream, image, pngMetadata, iccProfile, cancellationToken);
+            this.DecodePixelData(frameControl, dataStream, image, pngMetadata, cancellationToken);
         }
     }
 
@@ -802,14 +786,12 @@ internal sealed class PngDecoderCore : ImageDecoderCore
     /// <param name="compressedStream">The compressed pixel data stream.</param>
     /// <param name="imageFrame">The image frame to decode to.</param>
     /// <param name="pngMetadata">The png metadata</param>
-    /// <param name="iccProfile">Optional ICC profile for color conversion.</param>
     /// <param name="cancellationToken">The CancellationToken</param>
     private void DecodePixelData<TPixel>(
         FrameControl frameControl,
         DeflateStream compressedStream,
         ImageFrame<TPixel> imageFrame,
         PngMetadata pngMetadata,
-        IccProfile? iccProfile,
         CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
@@ -876,7 +858,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                     break;
             }
 
-            this.ProcessDefilteredScanline(frameControl, currentRow, scanSpan, imageFrame, pngMetadata, blendRowBuffer, iccProfile);
+            this.ProcessDefilteredScanline(frameControl, currentRow, scanSpan, imageFrame, pngMetadata, blendRowBuffer);
             this.SwapScanlineBuffers();
             currentRow++;
         }
@@ -894,14 +876,12 @@ internal sealed class PngDecoderCore : ImageDecoderCore
     /// <param name="compressedStream">The compressed pixel data stream.</param>
     /// <param name="imageFrame">The current image frame.</param>
     /// <param name="pngMetadata">The png metadata.</param>
-    /// <param name="iccProfile">Optional ICC profile for color conversion.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     private void DecodeInterlacedPixelData<TPixel>(
         in FrameControl frameControl,
         DeflateStream compressedStream,
         ImageFrame<TPixel> imageFrame,
         PngMetadata pngMetadata,
-        IccProfile? iccProfile,
         CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
@@ -992,7 +972,6 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                     rowSpan,
                     pngMetadata,
                     blendRowBuffer,
-                    iccProfile,
                     pixelOffset: Adam7.FirstColumn[pass],
                     increment: Adam7.ColumnIncrement[pass]);
 
@@ -1031,15 +1010,13 @@ internal sealed class PngDecoderCore : ImageDecoderCore
     /// <param name="pixels">The image</param>
     /// <param name="pngMetadata">The png metadata.</param>
     /// <param name="blendRowBuffer">A span used to temporarily hold the decoded row pixel data for alpha blending.</param>
-    /// <param name="iccProfile">Optional ICC profile for color conversion.</param>
     private void ProcessDefilteredScanline<TPixel>(
         in FrameControl frameControl,
         int currentRow,
         ReadOnlySpan<byte> scanline,
         ImageFrame<TPixel> pixels,
         PngMetadata pngMetadata,
-        Span<TPixel> blendRowBuffer,
-        IccProfile? iccProfile)
+        Span<TPixel> blendRowBuffer)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         Span<TPixel> destination = pixels.PixelBuffer.DangerousGetRowSpan(currentRow);
@@ -1073,8 +1050,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                         in frameControl,
                         scanlineSpan,
                         rowSpan,
-                        pngMetadata.TransparentColor,
-                        iccProfile);
+                        pngMetadata.TransparentColor);
 
                     break;
 
@@ -1085,8 +1061,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                         scanlineSpan,
                         rowSpan,
                         (uint)this.bytesPerPixel,
-                        (uint)this.bytesPerSample,
-                        iccProfile);
+                        (uint)this.bytesPerSample);
 
                     break;
 
@@ -1095,8 +1070,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                         in frameControl,
                         scanlineSpan,
                         rowSpan,
-                        pngMetadata.ColorTable,
-                        iccProfile);
+                        pngMetadata.ColorTable);
 
                     break;
 
@@ -1109,8 +1083,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                         rowSpan,
                         this.bytesPerPixel,
                         this.bytesPerSample,
-                        pngMetadata.TransparentColor,
-                        iccProfile);
+                        pngMetadata.TransparentColor);
 
                     break;
 
@@ -1122,8 +1095,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                         scanlineSpan,
                         rowSpan,
                         this.bytesPerPixel,
-                        this.bytesPerSample,
-                        iccProfile);
+                        this.bytesPerSample);
 
                     break;
             }
@@ -1134,8 +1106,6 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                     PixelOperations<TPixel>.Instance.GetPixelBlender(PixelColorBlendingMode.Normal, PixelAlphaCompositionMode.SrcOver);
                 blender.Blend<TPixel>(this.configuration, destination, destination, rowSpan, 1F);
             }
-
-            // TODO: Here is where we would perform ICC color conversion if needed over the 'destination' span.
         }
         finally
         {
@@ -1152,7 +1122,6 @@ internal sealed class PngDecoderCore : ImageDecoderCore
     /// <param name="destination">The current image row.</param>
     /// <param name="pngMetadata">The png metadata.</param>
     /// <param name="blendRowBuffer">A span used to temporarily hold the decoded row pixel data for alpha blending.</param>
-    /// <param name="iccProfile">Optional ICC profile for color conversion.</param>
     /// <param name="pixelOffset">The column start index. Always 0 for none interlaced images.</param>
     /// <param name="increment">The column increment. Always 1 for none interlaced images.</param>
     private void ProcessInterlacedDefilteredScanline<TPixel>(
@@ -1161,7 +1130,6 @@ internal sealed class PngDecoderCore : ImageDecoderCore
         Span<TPixel> destination,
         PngMetadata pngMetadata,
         Span<TPixel> blendRowBuffer,
-        IccProfile? iccProfile,
         int pixelOffset = 0,
         int increment = 1)
         where TPixel : unmanaged, IPixel<TPixel>
@@ -1196,8 +1164,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                         rowSpan,
                         (uint)pixelOffset,
                         (uint)increment,
-                        pngMetadata.TransparentColor,
-                        iccProfile);
+                        pngMetadata.TransparentColor);
 
                     break;
 
@@ -1210,8 +1177,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                         (uint)pixelOffset,
                         (uint)increment,
                         (uint)this.bytesPerPixel,
-                        (uint)this.bytesPerSample,
-                        iccProfile);
+                        (uint)this.bytesPerSample);
 
                     break;
 
@@ -1222,8 +1188,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                         rowSpan,
                         (uint)pixelOffset,
                         (uint)increment,
-                        pngMetadata.ColorTable,
-                        iccProfile);
+                        pngMetadata.ColorTable);
 
                     break;
 
@@ -1238,8 +1203,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                         (uint)increment,
                         this.bytesPerPixel,
                         this.bytesPerSample,
-                        pngMetadata.TransparentColor,
-                        iccProfile);
+                        pngMetadata.TransparentColor);
 
                     break;
 
@@ -1253,8 +1217,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                         (uint)pixelOffset,
                         (uint)increment,
                         this.bytesPerPixel,
-                        this.bytesPerSample,
-                        iccProfile);
+                        this.bytesPerSample);
 
                     break;
             }

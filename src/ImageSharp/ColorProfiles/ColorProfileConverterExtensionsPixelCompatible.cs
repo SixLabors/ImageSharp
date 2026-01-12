@@ -47,7 +47,7 @@ internal static class ColorProfileConverterExtensionsPixelCompatible
             throw new InvalidOperationException("Target ICC profile is missing.");
         }
 
-        // Process the rows in parallel chnks, the converter itself is thread safe.
+        // Process the rows in parallel chunks, the converter itself is thread safe.
         source.Mutate(o => o.ProcessPixelRowsAsVector4(
             row =>
             {
@@ -64,7 +64,7 @@ internal static class ColorProfileConverterExtensionsPixelCompatible
                 for (int i = 0; i < rgbSpan.Length; i++)
                 {
                     Vector3 rgb = rgbSpan[i].AsVector3Unsafe();
-                    Unsafe.As<Vector4, Vector3>(ref Unsafe.Add(ref rowRef, i)) = rgb;
+                    Unsafe.As<Vector4, Vector3>(ref Unsafe.Add(ref rowRef, (uint)i)) = rgb;
                 }
             },
             PixelConversionModifiers.Scale));

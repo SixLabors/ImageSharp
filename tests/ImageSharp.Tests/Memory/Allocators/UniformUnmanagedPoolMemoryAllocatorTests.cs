@@ -319,7 +319,6 @@ public class UniformUnmanagedPoolMemoryAllocatorTests
             // additional unmanaged handles. Therefore the only invariant we can reliably assert here is
             // "no growth" relative to the baseline.
             Assert.True(UnmanagedMemoryHandle.TotalOutstandingHandles <= baselineHandles);
-            GC.KeepAlive(allocator);
         }
     }
 
@@ -392,7 +391,7 @@ public class UniformUnmanagedPoolMemoryAllocatorTests
     private static void AllocateSingleAndForget(UniformUnmanagedMemoryPoolMemoryAllocator allocator, int length)
     {
         // Allocate and intentionally do not dispose.
-        IMemoryOwner<byte>? g = allocator.Allocate<byte>(length);
+        IMemoryOwner<byte> g = allocator.Allocate<byte>(length);
 
         // Touch the memory to ensure the buffer is actually materialized/usable.
         g.GetSpan()[0] = 42;

@@ -114,30 +114,49 @@ internal sealed class ResizeWorker<TPixel> : IDisposable
         Span<Vector4> transposedFirstPassBufferSpan = this.transposedFirstPassBuffer.DangerousGetSingleSpan();
 
         int left = this.targetWorkingRect.Left;
-        int right = this.targetWorkingRect.Right;
         int width = this.targetWorkingRect.Width;
+        nuint widthCount = (uint)width;
+
+        // Hoist invariant calculations outside the loop
+        int targetOriginY = this.targetOrigin.Y;
+        int currentWindowMax = this.currentWindow.Max;
+        int currentWindowMin = this.currentWindow.Min;
+        nuint workerHeight = (uint)this.workerHeight;
+        nuint workerHeight2 = workerHeight * 2;
+
+        ref Vector4 tempRowBase = ref MemoryMarshal.GetReference(tempColSpan);
+
         for (int y = rowInterval.Min; y < rowInterval.Max; y++)
         {
             // Ensure offsets are normalized for cropping and padding.
-            ResizeKernel kernel = this.verticalKernelMap.GetKernel((uint)(y - this.targetOrigin.Y));
+            ResizeKernel kernel = this.verticalKernelMap.GetKernel((uint)(y - targetOriginY));
 
-            while (kernel.StartIndex + kernel.Length > this.currentWindow.Max)
+            // Check if we need to slide the window before processing this row
+            int kernelEnd = kernel.StartIndex + kernel.Length;
+            while (kernelEnd > currentWindowMax)
             {
                 this.Slide();
+                currentWindowMax = this.currentWindow.Max;
+                currentWindowMin = this.currentWindow.Min;
             }
 
-            ref Vector4 tempRowBase = ref MemoryMarshal.GetReference(tempColSpan);
+            int top = kernel.StartIndex - currentWindowMin;
+            ref Vector4 colRef0 = ref transposedFirstPassBufferSpan[top];
 
-            int top = kernel.StartIndex - this.currentWindow.Min;
-
-            ref Vector4 fpBase = ref transposedFirstPassBufferSpan[top];
-
-            for (nuint x = 0; x < (uint)(right - left); x++)
+            nuint i = 0;
+            for (; i + 1 < widthCount; i += 2)
             {
-                ref Vector4 firstPassColumnBase = ref Unsafe.Add(ref fpBase, x * (uint)this.workerHeight);
+                ref Vector4 colRef1 = ref Unsafe.Add(ref colRef0, workerHeight);
 
-                // Destination color components
-                Unsafe.Add(ref tempRowBase, x) = kernel.ConvolveCore(ref firstPassColumnBase);
+                Unsafe.Add(ref tempRowBase, i) = kernel.ConvolveCore(ref colRef0);
+                Unsafe.Add(ref tempRowBase, i + 1) = kernel.ConvolveCore(ref colRef1);
+
+                colRef0 = ref Unsafe.Add(ref colRef0, workerHeight2);
+            }
+
+            if (i < widthCount)
+            {
+                Unsafe.Add(ref tempRowBase, i) = kernel.ConvolveCore(ref colRef0);
             }
 
             Span<TPixel> targetRowSpan = destination.DangerousGetRowSpan(y).Slice(left, width);
@@ -172,6 +191,13 @@ internal sealed class ResizeWorker<TPixel> : IDisposable
         nuint left = (uint)this.targetWorkingRect.Left;
         nuint right = (uint)this.targetWorkingRect.Right;
         nuint targetOriginX = (uint)this.targetOrigin.X;
+        nuint widthCount = right - left;
+        nuint workerHeight = (uint)this.workerHeight;
+        int currentWindowMin = this.currentWindow.Min;
+
+        // Cache the kernel map reference to reduce repeated field indirections.
+        ResizeKernelMap kernelMap = this.horizontalKernelMap;
+
         for (int y = calculationInterval.Min; y < calculationInterval.Max; y++)
         {
             Span<TPixel> sourceRow = this.source.DangerousGetRowSpan(y);
@@ -182,17 +208,25 @@ internal sealed class ResizeWorker<TPixel> : IDisposable
                 tempRowSpan,
                 this.conversionModifiers);
 
-            // optimization for:
-            // Span<Vector4> firstPassSpan = transposedFirstPassBufferSpan.Slice(y - this.currentWindow.Min);
-            ref Vector4 firstPassBaseRef = ref transposedFirstPassBufferSpan[y - this.currentWindow.Min];
+            ref Vector4 firstPassBaseRef = ref transposedFirstPassBufferSpan[y - currentWindowMin];
 
-            for (nuint x = left, z = 0; x < right; x++, z++)
+            // Unroll by 2 to reduce loop overhead and kernel fetch costs.
+            nuint x = left;
+            nuint z = 0;
+
+            for (; z + 1 < widthCount; x += 2, z += 2)
             {
-                ResizeKernel kernel = this.horizontalKernelMap.GetKernel(x - targetOriginX);
+                ResizeKernel kernel0 = kernelMap.GetKernel(x - targetOriginX);
+                ResizeKernel kernel1 = kernelMap.GetKernel((x + 1) - targetOriginX);
 
-                // optimization for:
-                // firstPassSpan[x * this.workerHeight] = kernel.Convolve(tempRowSpan);
-                Unsafe.Add(ref firstPassBaseRef, z * (uint)this.workerHeight) = kernel.Convolve(tempRowSpan);
+                Unsafe.Add(ref firstPassBaseRef, z * workerHeight) = kernel0.Convolve(tempRowSpan);
+                Unsafe.Add(ref firstPassBaseRef, (z + 1) * workerHeight) = kernel1.Convolve(tempRowSpan);
+            }
+
+            if (z < widthCount)
+            {
+                ResizeKernel kernel = kernelMap.GetKernel(x - targetOriginX);
+                Unsafe.Add(ref firstPassBaseRef, z * workerHeight) = kernel.Convolve(tempRowSpan);
             }
         }
     }

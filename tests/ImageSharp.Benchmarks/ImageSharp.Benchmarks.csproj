@@ -57,8 +57,9 @@
 
   <ItemGroup>
     <PackageReference Include="Magick.NET-Q16-AnyCPU" />
-    <PackageReference Include="BenchmarkDotNet" Version="0.14.0" />
-    <PackageReference Include="BenchmarkDotNet.Diagnostics.Windows" Version="0.14.0" Condition="'$(IsWindows)'=='true'" />
+    <PackageReference Include="Microsoft.VisualStudio.DiagnosticsHub.BenchmarkDotNetDiagnosers" Version="18.3.36812.1" />
+    <PackageReference Include="BenchmarkDotNet" Version="0.15.8" />
+    <PackageReference Include="BenchmarkDotNet.Diagnostics.Windows" Version="0.15.8" Condition="'$(IsWindows)'=='true'" />
     <PackageReference Include="Colourful" />
     <PackageReference Include="NetVips" />
     <PackageReference Include="NetVips.Native" />

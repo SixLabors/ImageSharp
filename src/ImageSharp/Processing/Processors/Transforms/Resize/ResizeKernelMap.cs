@@ -103,6 +103,12 @@ internal partial class ResizeKernelMap : IDisposable
     internal ref ResizeKernel GetKernel(nuint destIdx) => ref this.kernels[(int)destIdx];
 
     /// <summary>
+    /// Returns a read-only span of <see cref="ResizeKernel"/> over the underlying kernel data.
+    /// </summary>
+    [MethodImpl(InliningOptions.ShortMethod)]
+    internal ReadOnlySpan<ResizeKernel> GetKernelSpan() => this.kernels;
+
+    /// <summary>
     /// Computes the weights to apply at each pixel when resizing.
     /// </summary>
     /// <typeparam name="TResampler">The type of sampler.</typeparam>

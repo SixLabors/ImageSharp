@@ -110,28 +110,36 @@ internal sealed class ResizeWorker<TPixel> : IDisposable
     {
         Span<Vector4> tempColSpan = this.tempColumnBuffer.GetSpan();
 
-        // When creating transposedFirstPassBuffer, we made sure it's contiguous:
+        // When creating transposedFirstPassBuffer, we made sure it's contiguous.
         Span<Vector4> transposedFirstPassBufferSpan = this.transposedFirstPassBuffer.DangerousGetSingleSpan();
 
         int left = this.targetWorkingRect.Left;
         int width = this.targetWorkingRect.Width;
         nuint widthCount = (uint)width;
 
-        // Hoist invariant calculations outside the loop
+        // Normalize destination-space Y to kernel indices using uint arithmetic.
+        // This relies on the contract that processing addresses are normalized (cropping/padding handled by targetOrigin).
         int targetOriginY = this.targetOrigin.Y;
+
+        // Hoist invariant calculations outside the loop.
         int currentWindowMax = this.currentWindow.Max;
         int currentWindowMin = this.currentWindow.Min;
         nuint workerHeight = (uint)this.workerHeight;
         nuint workerHeight2 = workerHeight * 2;
 
+        // Ref-walk the kernel table to avoid bounds checks in the tight loop.
+        ReadOnlySpan<ResizeKernel> vKernels = this.verticalKernelMap.GetKernelSpan();
+        ref ResizeKernel vKernelBase = ref MemoryMarshal.GetReference(vKernels);
+
         ref Vector4 tempRowBase = ref MemoryMarshal.GetReference(tempColSpan);
 
         for (int y = rowInterval.Min; y < rowInterval.Max; y++)
         {
-            // Ensure offsets are normalized for cropping and padding.
-            ResizeKernel kernel = this.verticalKernelMap.GetKernel((uint)(y - targetOriginY));
+            // Normalize destination-space Y to an unsigned kernel index.
+            uint vIdx = (uint)(y - targetOriginY);
+            ref ResizeKernel kernel = ref Unsafe.Add(ref vKernelBase, (nint)vIdx);
 
-            // Check if we need to slide the window before processing this row
+            // Slide the working window when the kernel would read beyond the current cached region.
             int kernelEnd = kernel.StartIndex + kernel.Length;
             while (kernelEnd > currentWindowMax)
             {
@@ -143,6 +151,7 @@ internal sealed class ResizeWorker<TPixel> : IDisposable
             int top = kernel.StartIndex - currentWindowMin;
             ref Vector4 colRef0 = ref transposedFirstPassBufferSpan[top];
 
+            // Unroll by 2 and advance column refs via arithmetic to reduce inner-loop overhead.
             nuint i = 0;
             for (; i + 1 < widthCount; i += 2)
             {
@@ -190,13 +199,18 @@ internal sealed class ResizeWorker<TPixel> : IDisposable
 
         nuint left = (uint)this.targetWorkingRect.Left;
         nuint right = (uint)this.targetWorkingRect.Right;
-        nuint targetOriginX = (uint)this.targetOrigin.X;
         nuint widthCount = right - left;
+
+        // Normalize destination-space X to kernel indices using uint arithmetic.
+        // This relies on the contract that processing addresses are normalized (cropping/padding handled by targetOrigin).
+        nuint targetOriginX = (uint)this.targetOrigin.X;
+
         nuint workerHeight = (uint)this.workerHeight;
         int currentWindowMin = this.currentWindow.Min;
 
-        // Cache the kernel map reference to reduce repeated field indirections.
-        ResizeKernelMap kernelMap = this.horizontalKernelMap;
+        // Ref-walk the kernel table to avoid bounds checks in the tight loop.
+        ReadOnlySpan<ResizeKernel> hKernels = this.horizontalKernelMap.GetKernelSpan();
+        ref ResizeKernel hKernelBase = ref MemoryMarshal.GetReference(hKernels);
 
         for (int y = calculationInterval.Min; y < calculationInterval.Max; y++)
         {
@@ -210,14 +224,17 @@ internal sealed class ResizeWorker<TPixel> : IDisposable
 
             ref Vector4 firstPassBaseRef = ref transposedFirstPassBufferSpan[y - currentWindowMin];
 
-            // Unroll by 2 to reduce loop overhead and kernel fetch costs.
+            // Unroll by 2 to reduce loop and kernel lookup overhead.
             nuint x = left;
             nuint z = 0;
 
             for (; z + 1 < widthCount; x += 2, z += 2)
             {
-                ResizeKernel kernel0 = kernelMap.GetKernel(x - targetOriginX);
-                ResizeKernel kernel1 = kernelMap.GetKernel((x + 1) - targetOriginX);
+                nuint hIdx0 = (uint)(x - targetOriginX);
+                nuint hIdx1 = (uint)((x + 1) - targetOriginX);
+
+                ref ResizeKernel kernel0 = ref Unsafe.Add(ref hKernelBase, (nint)hIdx0);
+                ref ResizeKernel kernel1 = ref Unsafe.Add(ref hKernelBase, (nint)hIdx1);
 
                 Unsafe.Add(ref firstPassBaseRef, z * workerHeight) = kernel0.Convolve(tempRowSpan);
                 Unsafe.Add(ref firstPassBaseRef, (z + 1) * workerHeight) = kernel1.Convolve(tempRowSpan);
@@ -225,7 +242,9 @@ internal sealed class ResizeWorker<TPixel> : IDisposable
 
             if (z < widthCount)
             {
-                ResizeKernel kernel = kernelMap.GetKernel(x - targetOriginX);
+                nuint hIdx = (uint)(x - targetOriginX);
+                ref ResizeKernel kernel = ref Unsafe.Add(ref hKernelBase, (nint)hIdx);
+
                 Unsafe.Add(ref firstPassBaseRef, z * workerHeight) = kernel.Convolve(tempRowSpan);
             }
         }

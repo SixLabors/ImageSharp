@@ -43,7 +43,7 @@ public partial class Config : ManualConfig
                            .WithLaunchCount(1)
                            .WithWarmupCount(3)
                            .WithIterationCount(3)
-                           .WithArguments([new MsBuildArgument("/p:DebugType=portable")])) ;
+                           .WithArguments([new MsBuildArgument("/p:DebugType=portable")]));
     }
 
     public class StandardInProcess : Config

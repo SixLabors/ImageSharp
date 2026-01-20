@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 using System.Buffers;
@@ -13,7 +13,12 @@ namespace SixLabors.ImageSharp.Memory;
 internal unsafe struct MemoryGroupSpanCache
 {
     public SpanCacheMode Mode;
+
+    // Managed backing
     public byte[]? SingleArray;
+    public int SingleArrayOffsetBytes;
+
+    // Unmanaged backing
     public void* SinglePointer;
     public void*[] MultiPointer;
 
@@ -28,6 +33,7 @@ internal unsafe struct MemoryGroupSpanCache
             {
                 memoryGroupSpanCache.Mode = SpanCacheMode.SingleArray;
                 memoryGroupSpanCache.SingleArray = sharedPoolBuffer.Array;
+                memoryGroupSpanCache.SingleArrayOffsetBytes = sharedPoolBuffer.AlignedOffsetBytes;
             }
             else if (owner0 is UnmanagedBuffer<T> unmanagedBuffer)
             {

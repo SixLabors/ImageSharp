@@ -6,6 +6,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using SixLabors.ImageSharp.Memory.Allocators.Internals;
 
 namespace SixLabors.ImageSharp.Memory.Internals;
 
@@ -13,16 +14,29 @@ internal class SharedArrayPoolBuffer<T> : ManagedBufferBase<T>, IRefCounted
     where T : struct
 {
     private readonly int lengthInBytes;
+    private readonly int alignedOffsetElements;
+
+#pragma warning disable IDE0044 // Add readonly modifier
     private LifetimeGuard lifetimeGuard;
+#pragma warning restore IDE0044 // Add readonly modifier
 
     public SharedArrayPoolBuffer(int lengthInElements)
     {
-        this.lengthInBytes = lengthInElements * Unsafe.SizeOf<T>();
-        this.Array = ArrayPool<byte>.Shared.Rent(this.lengthInBytes);
+        this.lengthInBytes = checked(lengthInElements * Unsafe.SizeOf<T>());
+        nuint alignment = MemoryUtilities.GetAlignment();
+
+        // Rent slack so we can advance the exposed span start to the next aligned address.
+        this.Array = ArrayPool<byte>.Shared.Rent(checked(this.lengthInBytes + (int)alignment - 1));
+
+        int offsetBytes = MemoryUtilities.GetAlignedOffsetBytes<T>(this.Array);
+        this.alignedOffsetElements = offsetBytes / Unsafe.SizeOf<T>();
+
         this.lifetimeGuard = new LifetimeGuard(this.Array);
     }
 
     public byte[]? Array { get; private set; }
+
+    public int AlignedOffsetBytes => this.alignedOffsetElements * Unsafe.SizeOf<T>();
 
     protected override void Dispose(bool disposing)
     {
@@ -38,8 +52,16 @@ internal class SharedArrayPoolBuffer<T> : ManagedBufferBase<T>, IRefCounted
     public override Span<T> GetSpan()
     {
         this.CheckDisposed();
-        return MemoryMarshal.Cast<byte, T>(this.Array.AsSpan(0, this.lengthInBytes));
+
+        // Expose only the aligned slice, never the full rented buffer.
+        // Use the stored offset so the span base does not depend on recomputing alignment at call time.
+        int offsetBytes = this.AlignedOffsetBytes;
+
+        Span<byte> bytes = this.Array.AsSpan(offsetBytes, this.lengthInBytes);
+        return MemoryMarshal.Cast<byte, T>(bytes);
     }
+
+    protected override int GetPinnableElementOffset() => this.alignedOffsetElements;
 
     protected override object GetPinnableObject()
     {
@@ -67,11 +89,6 @@ internal class SharedArrayPoolBuffer<T> : ManagedBufferBase<T>, IRefCounted
 
         protected override void Release()
         {
-            // If this is called by a finalizer, we will end storing the first array of this bucket
-            // on the thread local storage of the finalizer thread.
-            // This is not ideal, but subsequent leaks will end up returning arrays to per-cpu buckets,
-            // meaning likely a different bucket than it was rented from,
-            // but this is PROBABLY better than not returning the arrays at all.
             ArrayPool<byte>.Shared.Return(this.array!);
             this.array = null;
         }

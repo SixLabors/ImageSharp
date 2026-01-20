@@ -16,6 +16,15 @@ internal abstract class ManagedBufferBase<T> : MemoryManager<T>
 {
     private GCHandle pinHandle;
 
+    /// <summary>
+    /// Gets the element offset (in <typeparamref name="T"/> units) from the pinned object start to the first element
+    /// of the span returned by <see cref="MemoryManager{T}.GetSpan"/>.
+    /// </summary>
+    /// <remarks>
+    /// This exists to support buffers that return a trimmed/sliced span (eg, for alignment).
+    /// </remarks>
+    protected virtual int GetPinnableElementOffset() => 0;
+
     /// <inheritdoc />
     public override unsafe MemoryHandle Pin(int elementIndex = 0)
     {
@@ -24,7 +33,8 @@ internal abstract class ManagedBufferBase<T> : MemoryManager<T>
             this.pinHandle = GCHandle.Alloc(this.GetPinnableObject(), GCHandleType.Pinned);
         }
 
-        void* ptr = Unsafe.Add<T>((void*)this.pinHandle.AddrOfPinnedObject(), elementIndex);
+        int baseIndex = this.GetPinnableElementOffset();
+        void* ptr = Unsafe.Add<T>((void*)this.pinHandle.AddrOfPinnedObject(), baseIndex + elementIndex);
 
         // We should only pass pinnable:this, when GCHandle lifetime is managed by the MemoryManager<T> instance.
         return new MemoryHandle(ptr, pinnable: this);

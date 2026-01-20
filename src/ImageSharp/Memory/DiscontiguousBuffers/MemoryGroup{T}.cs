@@ -251,9 +251,15 @@ internal abstract partial class MemoryGroup<T> : IMemoryGroup<T>, IDisposable
         {
             case SpanCacheMode.SingleArray:
             {
-                ref byte b0 = ref MemoryMarshal.GetReference<byte>(this.memoryGroupSpanCache.SingleArray);
+                // SingleArray is the raw rented byte[] from SharedArrayPoolBuffer.
+                // The exposed T-span starts at an aligned byte offset within that array.
+                ref byte b0 = ref MemoryMarshal.GetArrayDataReference(this.memoryGroupSpanCache.SingleArray!);
+
+                b0 = ref Unsafe.Add(ref b0, this.memoryGroupSpanCache.SingleArrayOffsetBytes);
+
                 ref T e0 = ref Unsafe.As<byte, T>(ref b0);
                 e0 = ref Unsafe.Add(ref e0, (uint)(y * width));
+
                 return MemoryMarshal.CreateSpan(ref e0, width);
             }
 

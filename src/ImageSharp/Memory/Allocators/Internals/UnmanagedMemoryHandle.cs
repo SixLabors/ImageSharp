@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Runtime.InteropServices;
+using SixLabors.ImageSharp.Memory.Allocators.Internals;
 
 namespace SixLabors.ImageSharp.Memory.Internals;
 
@@ -12,6 +13,9 @@ internal struct UnmanagedMemoryHandle : IEquatable<UnmanagedMemoryHandle>
 {
     // Number of allocation re-attempts when detecting OutOfMemoryException.
     private const int MaxAllocationAttempts = 10;
+
+    // Alignment for allocated memory blocks.
+    private static readonly nuint Alignment = MemoryUtilities.GetAlignment();
 
     // Track allocations for testing purposes:
     private static int totalOutstandingHandles;
@@ -67,15 +71,16 @@ internal struct UnmanagedMemoryHandle : IEquatable<UnmanagedMemoryHandle>
         return new UnmanagedMemoryHandle(handle, lengthInBytes);
     }
 
-    private static IntPtr AllocateHandle(int lengthInBytes)
+    private static unsafe IntPtr AllocateHandle(int lengthInBytes)
     {
         int counter = 0;
-        IntPtr handle = IntPtr.Zero;
-        while (handle == IntPtr.Zero)
+        void* ptr = null;
+
+        while (ptr is null)
         {
             try
             {
-                handle = Marshal.AllocHGlobal(lengthInBytes);
+                ptr = NativeMemory.AlignedAlloc((nuint)lengthInBytes, Alignment);
             }
             catch (OutOfMemoryException) when (counter < MaxAllocationAttempts)
             {
@@ -91,10 +96,10 @@ internal struct UnmanagedMemoryHandle : IEquatable<UnmanagedMemoryHandle>
             }
         }
 
-        return handle;
+        return (IntPtr)ptr;
     }
 
-    public void Free()
+    public unsafe void Free()
     {
         IntPtr h = Interlocked.Exchange(ref this.handle, IntPtr.Zero);
 
@@ -103,7 +108,7 @@ internal struct UnmanagedMemoryHandle : IEquatable<UnmanagedMemoryHandle>
             return;
         }
 
-        Marshal.FreeHGlobal(h);
+        NativeMemory.AlignedFree((void*)h);
         Interlocked.Decrement(ref totalOutstandingHandles);
         if (this.lengthInBytes > 0)
         {

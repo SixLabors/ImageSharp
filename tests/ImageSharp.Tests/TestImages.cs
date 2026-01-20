@@ -166,6 +166,15 @@ public static class TestImages
         // Issue 3000: https://github.com/SixLabors/ImageSharp/issues/3000
         public const string Issue3000 = "Png/issues/issue_3000.png";
 
+        public static class Icc
+        {
+            public const string SRgbGray = "Png/icc-profiles/sRGB_Gray.png";
+            public const string SRgbGrayInterlacedRgba32 = "Png/icc-profiles/sRGB_Gray_Interlaced_Rgba32.png";
+            public const string SRgbGrayInterlacedRgba64 = "Png/icc-profiles/sRGB_Gray_Interlaced_Rgba64.png";
+            public const string Perceptual = "Png/icc-profiles/Perceptual.png";
+            public const string PerceptualcLUTOnly = "Png/icc-profiles/Perceptual-cLUT-only.png";
+        }
+
         public static class Bad
         {
             public const string MissingDataChunk = "Png/xdtn0g01.png";
@@ -1142,6 +1151,7 @@ public static class TestImages
         public const string Issues2435 = "Tiff/Issues/Issue2435.tiff";
         public const string Issues2454_A = "Tiff/Issues/Issue2454_A.tif";
         public const string Issues2454_B = "Tiff/Issues/Issue2454_B.tif";
+        public const string Issues3031 = "Tiff/Issues/Issue3031.tiff";
         public const string Issues2587 = "Tiff/Issues/Issue2587.tiff";
         public const string Issues2679 = "Tiff/Issues/Issue2679.tiff";
         public const string JpegCompressedGray0000539558 = "Tiff/Issues/JpegCompressedGray-0000539558.tiff";

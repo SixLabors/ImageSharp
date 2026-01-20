@@ -10,6 +10,7 @@ using BenchmarkDotNet.Diagnosers;
 using BenchmarkDotNet.Environments;
 using BenchmarkDotNet.Jobs;
 using BenchmarkDotNet.Reports;
+using BenchmarkDotNet.Toolchains.InProcess.Emit;
 
 namespace SixLabors.ImageSharp.Benchmarks;
 
@@ -43,6 +44,15 @@ public partial class Config : ManualConfig
                            .WithWarmupCount(3)
                            .WithIterationCount(3)
                            .WithArguments([new MsBuildArgument("/p:DebugType=portable")]));
+    }
+
+    public class StandardInProcess : Config
+    {
+        public StandardInProcess() => this.AddJob(
+            Job.Default
+                .WithRuntime(CoreRuntime.Core80)
+                .WithToolchain(InProcessEmitToolchain.Instance)
+                .WithArguments([new MsBuildArgument("/p:DebugType=portable")]));
     }
 
 #if OS_WINDOWS

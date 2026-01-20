@@ -39,13 +39,13 @@ internal struct UnmanagedMemoryHandle : IEquatable<UnmanagedMemoryHandle>
         Interlocked.Increment(ref totalOutstandingHandles);
     }
 
-    public IntPtr Handle => this.handle;
+    public readonly IntPtr Handle => this.handle;
 
-    public bool IsInvalid => this.Handle == IntPtr.Zero;
+    public readonly bool IsInvalid => this.Handle == IntPtr.Zero;
 
-    public bool IsValid => this.Handle != IntPtr.Zero;
+    public readonly bool IsValid => this.Handle != IntPtr.Zero;
 
-    public unsafe void* Pointer => (void*)this.Handle;
+    public readonly unsafe void* Pointer => (void*)this.Handle;
 
     /// <summary>
     /// Gets the total outstanding handle allocations for testing purposes.
@@ -121,9 +121,9 @@ internal struct UnmanagedMemoryHandle : IEquatable<UnmanagedMemoryHandle>
         this.lengthInBytes = 0;
     }
 
-    public bool Equals(UnmanagedMemoryHandle other) => this.handle.Equals(other.handle);
+    public readonly bool Equals(UnmanagedMemoryHandle other) => this.handle.Equals(other.handle);
 
-    public override bool Equals(object? obj) => obj is UnmanagedMemoryHandle other && this.Equals(other);
+    public override readonly bool Equals(object? obj) => obj is UnmanagedMemoryHandle other && this.Equals(other);
 
-    public override int GetHashCode() => this.handle.GetHashCode();
+    public override readonly int GetHashCode() => this.handle.GetHashCode();
 }

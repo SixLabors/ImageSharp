@@ -17,7 +17,11 @@ internal class DrawImageProcessor<TPixelBg, TPixelFg> : ImageProcessor<TPixelBg>
     where TPixelBg : unmanaged, IPixel<TPixelBg>
     where TPixelFg : unmanaged, IPixel<TPixelFg>
 {
-    private int currentFrameLoop;
+    /// <summary>
+    /// Counts how many times <see cref="OnFrameApply"/> has been called for this processor instance.
+    /// Used to select the current foreground frame.
+    /// </summary>
+    private int foregroundFrameCounter;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DrawImageProcessor{TPixelBg, TPixelFg}"/> class.
@@ -30,7 +34,10 @@ internal class DrawImageProcessor<TPixelBg, TPixelFg> : ImageProcessor<TPixelBg>
     /// <param name="colorBlendingMode">The blending mode to use when drawing the image.</param>
     /// <param name="alphaCompositionMode">The alpha blending mode to use when drawing the image.</param>
     /// <param name="opacity">The opacity of the image to blend. Must be between 0 and 1.</param>
-    /// <param name="repeatCount">The loop count. The number of times to loop the animation. 0 means infinitely.</param>
+    /// <param name="foregroundRepeatCount">
+    /// The number of times the foreground frames are allowed to loop while applying this processor across successive frames.
+    /// A value of 0 means loop indefinitely.
+    /// </param>
     public DrawImageProcessor(
         Configuration configuration,
         Image<TPixelFg> foregroundImage,
@@ -40,10 +47,10 @@ internal class DrawImageProcessor<TPixelBg, TPixelFg> : ImageProcessor<TPixelBg>
         PixelColorBlendingMode colorBlendingMode,
         PixelAlphaCompositionMode alphaCompositionMode,
         float opacity,
-        int repeatCount)
+        int foregroundRepeatCount)
         : base(configuration, backgroundImage, backgroundImage.Bounds)
     {
-        Guard.MustBeGreaterThanOrEqualTo(repeatCount, 0, nameof(repeatCount));
+        Guard.MustBeGreaterThanOrEqualTo(foregroundRepeatCount, 0, nameof(foregroundRepeatCount));
         Guard.MustBeBetweenOrEqualTo(opacity, 0, 1, nameof(opacity));
 
         this.ForegroundImage = foregroundImage;
@@ -51,6 +58,7 @@ internal class DrawImageProcessor<TPixelBg, TPixelFg> : ImageProcessor<TPixelBg>
         this.Opacity = opacity;
         this.Blender = PixelOperations<TPixelBg>.Instance.GetPixelBlender(colorBlendingMode, alphaCompositionMode);
         this.BackgroundLocation = backgroundLocation;
+        this.ForegroundRepeatCount = foregroundRepeatCount;
     }
 
     /// <summary>
@@ -79,9 +87,10 @@ internal class DrawImageProcessor<TPixelBg, TPixelFg> : ImageProcessor<TPixelBg>
     public Point BackgroundLocation { get; }
 
     /// <summary>
-    /// Gets the loop count. The number of times to loop the animation. 0 means infinitely.
+    /// Gets the number of times the foreground frames are allowed to loop while applying this processor across
+    /// successive frames. A value of 0 means loop indefinitely.
     /// </summary>
-    public int RepeatCount { get; }
+    public int ForegroundRepeatCount { get; }
 
     /// <inheritdoc/>
     protected override void OnFrameApply(ImageFrame<TPixelBg> source)
@@ -124,9 +133,9 @@ internal class DrawImageProcessor<TPixelBg, TPixelFg> : ImageProcessor<TPixelBg>
         // Sanitize the dimensions so that we don't try and sample outside the image.
         Rectangle backgroundRectangle = Rectangle.Intersect(new Rectangle(left, top, width, height), this.SourceRectangle);
         Configuration configuration = this.Configuration;
-        int currentFrameIndex = this.currentFrameLoop % this.ForegroundImage.Frames.Count;
+        int currentFrameIndex = this.foregroundFrameCounter % this.ForegroundImage.Frames.Count;
 
-        DrawImageProcessor<TPixelBg, TPixelFg>.RowOperation operation =
+        RowOperation operation =
             new(
                 configuration,
                 source.PixelBuffer,
@@ -141,9 +150,11 @@ internal class DrawImageProcessor<TPixelBg, TPixelFg> : ImageProcessor<TPixelBg>
             new Rectangle(0, 0, foregroundRectangle.Width, foregroundRectangle.Height),
             in operation);
 
-        if (this.RepeatCount is 0 || this.currentFrameLoop / this.ForegroundImage.Frames.Count < this.RepeatCount)
+        // The repeat count only affects how the foreground frame advances across successive background frames.
+        // When exhausted, the selected foreground frame stops advancing.
+        if (this.ForegroundRepeatCount is 0 || this.foregroundFrameCounter / this.ForegroundImage.Frames.Count < this.ForegroundRepeatCount)
         {
-            this.currentFrameLoop++;
+            this.foregroundFrameCounter++;
         }
     }
 

@@ -74,7 +74,7 @@ public class ImageFrameMetadataTests
         Assert.False(metaData.ExifProfile.Equals(clone.ExifProfile));
         Assert.True(metaData.ExifProfile.Values.Count == clone.ExifProfile.Values.Count);
         Assert.False(ReferenceEquals(metaData.XmpProfile, clone.XmpProfile));
-        Assert.True(metaData.XmpProfile.Data.Equals(clone.XmpProfile.Data));
+        Assert.False(ReferenceEquals(metaData.XmpProfile.Data, clone.XmpProfile.Data));
         Assert.False(metaData.GetGifMetadata().Equals(clone.GetGifMetadata()));
         Assert.False(metaData.IccProfile.Equals(clone.IccProfile));
         Assert.False(metaData.IptcProfile.Equals(clone.IptcProfile));

@@ -79,7 +79,7 @@ public class XmpProfileTests
     }
 
     [Fact]
-    public void XmlProfile_CtorFromXDocument_Works()
+    public void XmpProfile_CtorFromXDocument_Works()
     {
         // arrange
         XDocument document = CreateMinimalXDocument();

@@ -46,7 +46,7 @@ public sealed class XmpProfile : IDeepCloneable<XmpProfile>
     /// <summary>
     /// Convert the content of this <see cref="XmpProfile"/> into an <see cref="XDocument"/>.
     /// </summary>
-    /// <returns>The <see cref="XDocument"/></returns>
+    /// <returns>The <see cref="XDocument"/> instance, or <see langword="null"/> if no XMP data is present.</returns>
     public XDocument? ToXDocument()
     {
         byte[]? data = this.Data;
@@ -74,8 +74,14 @@ public sealed class XmpProfile : IDeepCloneable<XmpProfile>
     /// <returns>The <see cref="T:Byte[]"/></returns>
     public byte[] ToByteArray()
     {
-        Guard.NotNull(this.Data);
-        byte[] result = new byte[this.Data.Length];
+        byte[]? data = this.Data;
+
+        if (data is null)
+        {
+            return [];
+        }
+
+        byte[] result = new byte[data.Length];
         this.Data.AsSpan().CopyTo(result);
         return result;
     }
@@ -83,10 +89,15 @@ public sealed class XmpProfile : IDeepCloneable<XmpProfile>
     /// <inheritdoc/>
     public XmpProfile DeepClone()
     {
-        Guard.NotNull(this.Data);
+        byte[]? data = this.Data;
+        if (data is null)
+        {
+            // Preserve the semantics of an "empty" profile when cloning.
+            return new XmpProfile();
+        }
 
-        byte[] clone = new byte[this.Data.Length];
-        this.Data.AsSpan().CopyTo(clone);
+        byte[] clone = new byte[data.Length];
+        data.AsSpan().CopyTo(clone);
         return new XmpProfile(clone);
     }
 
@@ -118,7 +129,14 @@ public sealed class XmpProfile : IDeepCloneable<XmpProfile>
         }
 
         // Allocation-free fast path for the normal case.
+
+        // Check for UTF-8 BOM (0xEF,0xBB,0xBF)
         bool hasBom = data.Length >= 3 && data[0] == 0xEF && data[1] == 0xBB && data[2] == 0xBF;
+
+        // XMP metadata is commonly stored in fixed-size container blocks (e.g. TIFF tag 700).
+        // Producers often pad unused space so the packet can be updated in-place without
+        // rewriting the file. In practice this padding is either NUL (0x00) from the container
+        // or 0x0F used by Adobe XMP writers. Both are invalid XML and must be trimmed.
         bool hasTrailingPad = data[^1] is 0 or 0x0F;
 
         if (!hasBom && !hasTrailingPad)
@@ -146,7 +164,7 @@ public sealed class XmpProfile : IDeepCloneable<XmpProfile>
         int length = end - start;
         if (length <= 0)
         {
-            return [];
+            return null;
         }
 
         byte[] normalized = new byte[length];

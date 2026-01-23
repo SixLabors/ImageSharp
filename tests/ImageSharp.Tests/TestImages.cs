@@ -62,6 +62,7 @@ public static class TestImages
         public const string TestPattern31x31HalfTransparent = "Png/testpattern31x31-halftransparent.png";
         public const string XmpColorPalette = "Png/xmp-colorpalette.png";
         public const string AdamHeadsHlg = "Png/adamHeadsHLG.png";
+        public const string IptcMetadata = "Png/iptc-profile.png";
 
         // Animated
         // https://philip.html5.org/tests/apng/tests.html

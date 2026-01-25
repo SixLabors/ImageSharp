@@ -193,24 +193,24 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                                 PngThrowHelper.ThrowInvalidHeader();
                             }
 
-                            this.ReadHeaderChunk(pngMetadata, chunk.Data.GetSpan());
+                            this.ReadHeaderChunk(pngMetadata, chunk.DataSpan);
                             break;
                         case PngChunkType.AnimationControl:
-                            this.ReadAnimationControlChunk(pngMetadata, chunk.Data.GetSpan());
+                            this.ReadAnimationControlChunk(pngMetadata, chunk.DataSpan);
                             break;
                         case PngChunkType.Physical:
-                            ReadPhysicalChunk(metadata, chunk.Data.GetSpan());
+                            ReadPhysicalChunk(metadata, chunk.DataSpan);
                             break;
                         case PngChunkType.Gamma:
-                            ReadGammaChunk(pngMetadata, chunk.Data.GetSpan());
+                            ReadGammaChunk(pngMetadata, chunk.DataSpan);
                             break;
                         case PngChunkType.Cicp:
-                            ReadCicpChunk(metadata, chunk.Data.GetSpan());
+                            ReadCicpChunk(metadata, chunk.DataSpan);
                             break;
                         case PngChunkType.FrameControl:
                             frameCount++;
                             currentFrame = null;
-                            currentFrameControl = this.ReadFrameControlChunk(chunk.Data.GetSpan());
+                            currentFrameControl = this.ReadFrameControlChunk(chunk.DataSpan);
                             break;
                         case PngChunkType.FrameData:
                         {
@@ -284,32 +284,32 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                         }
 
                         case PngChunkType.Palette:
-                            this.palette = chunk.Data.GetSpan().ToArray();
+                            this.palette = chunk.DataSpan.ToArray();
                             break;
                         case PngChunkType.Transparency:
-                            this.paletteAlpha = chunk.Data.GetSpan().ToArray();
+                            this.paletteAlpha = chunk.DataSpan.ToArray();
                             this.AssignTransparentMarkers(this.paletteAlpha, pngMetadata);
                             break;
                         case PngChunkType.Text:
-                            this.ReadTextChunk(metadata, pngMetadata, chunk.Data.GetSpan());
+                            this.ReadTextChunk(metadata, pngMetadata, chunk.DataSpan);
                             break;
                         case PngChunkType.CompressedText:
-                            this.ReadCompressedTextChunk(metadata, pngMetadata, chunk.Data.GetSpan());
+                            this.ReadCompressedTextChunk(metadata, pngMetadata, chunk.DataSpan);
                             break;
                         case PngChunkType.InternationalText:
-                            this.ReadInternationalTextChunk(metadata, chunk.Data.GetSpan());
+                            this.ReadInternationalTextChunk(metadata, chunk.DataSpan);
                             break;
                         case PngChunkType.Exif:
                             if (!this.skipMetadata)
                             {
                                 byte[] exifData = new byte[chunk.Length];
-                                chunk.Data.GetSpan().CopyTo(exifData);
+                                chunk.DataSpan.CopyTo(exifData);
                                 MergeOrSetExifProfile(metadata, new ExifProfile(exifData), replaceExistingKeys: true);
                             }
 
                             break;
                         case PngChunkType.EmbeddedColorProfile:
-                            this.ReadColorProfileChunk(metadata, chunk.Data.GetSpan());
+                            this.ReadColorProfileChunk(metadata, chunk.DataSpan);
                             break;
                         case PngChunkType.End:
                             goto EOF;
@@ -368,10 +368,10 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                     switch (chunk.Type)
                     {
                         case PngChunkType.Header:
-                            this.ReadHeaderChunk(pngMetadata, chunk.Data.GetSpan());
+                            this.ReadHeaderChunk(pngMetadata, chunk.DataSpan);
                             break;
                         case PngChunkType.AnimationControl:
-                            this.ReadAnimationControlChunk(pngMetadata, chunk.Data.GetSpan());
+                            this.ReadAnimationControlChunk(pngMetadata, chunk.DataSpan);
                             break;
                         case PngChunkType.Physical:
                             if (this.colorMetadataOnly)
@@ -380,7 +380,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                                 break;
                             }
 
-                            ReadPhysicalChunk(metadata, chunk.Data.GetSpan());
+                            ReadPhysicalChunk(metadata, chunk.DataSpan);
                             break;
                         case PngChunkType.Gamma:
                             if (this.colorMetadataOnly)
@@ -389,7 +389,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                                 break;
                             }
 
-                            ReadGammaChunk(pngMetadata, chunk.Data.GetSpan());
+                            ReadGammaChunk(pngMetadata, chunk.DataSpan);
                             break;
                         case PngChunkType.Cicp:
                             if (this.colorMetadataOnly)
@@ -398,7 +398,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                                 break;
                             }
 
-                            ReadCicpChunk(metadata, chunk.Data.GetSpan());
+                            ReadCicpChunk(metadata, chunk.DataSpan);
                             break;
                         case PngChunkType.FrameControl:
                             ++frameCount;
@@ -407,7 +407,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                                 break;
                             }
 
-                            currentFrameControl = this.ReadFrameControlChunk(chunk.Data.GetSpan());
+                            currentFrameControl = this.ReadFrameControlChunk(chunk.DataSpan);
 
                             break;
                         case PngChunkType.FrameData:
@@ -453,11 +453,11 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                             this.SkipChunkDataAndCrc(chunk);
                             break;
                         case PngChunkType.Palette:
-                            this.palette = chunk.Data.GetSpan().ToArray();
+                            this.palette = chunk.DataSpan.ToArray();
                             break;
 
                         case PngChunkType.Transparency:
-                            this.paletteAlpha = chunk.Data.GetSpan().ToArray();
+                            this.paletteAlpha = chunk.DataSpan.ToArray();
                             this.AssignTransparentMarkers(this.paletteAlpha, pngMetadata);
 
                             // Spec says tRNS must be after PLTE so safe to exit.
@@ -474,7 +474,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                                 break;
                             }
 
-                            this.ReadTextChunk(metadata, pngMetadata, chunk.Data.GetSpan());
+                            this.ReadTextChunk(metadata, pngMetadata, chunk.DataSpan);
                             break;
                         case PngChunkType.CompressedText:
                             if (this.colorMetadataOnly)
@@ -483,7 +483,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                                 break;
                             }
 
-                            this.ReadCompressedTextChunk(metadata, pngMetadata, chunk.Data.GetSpan());
+                            this.ReadCompressedTextChunk(metadata, pngMetadata, chunk.DataSpan);
                             break;
                         case PngChunkType.InternationalText:
                             if (this.colorMetadataOnly)
@@ -492,7 +492,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                                 break;
                             }
 
-                            this.ReadInternationalTextChunk(metadata, chunk.Data.GetSpan());
+                            this.ReadInternationalTextChunk(metadata, chunk.DataSpan);
                             break;
                         case PngChunkType.Exif:
                             if (this.colorMetadataOnly)
@@ -504,7 +504,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                             if (!this.skipMetadata)
                             {
                                 byte[] exifData = new byte[chunk.Length];
-                                chunk.Data.GetSpan().CopyTo(exifData);
+                                chunk.DataSpan.CopyTo(exifData);
                                 MergeOrSetExifProfile(metadata, new ExifProfile(exifData), replaceExistingKeys: true);
                             }
 
@@ -2236,7 +2236,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
 
             this.crc32.Reset();
             this.crc32.Append(chunkType);
-            this.crc32.Append(chunk.Data.GetSpan());
+            this.crc32.Append(chunk.DataSpan);
 
             if (this.crc32.GetCurrentHashAsUInt32() != inputCrc)
             {

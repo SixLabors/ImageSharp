@@ -17,6 +17,19 @@ public static class DrawImageExtensions
     /// <param name="source">The current image processing context.</param>
     /// <param name="foreground">The image to draw on the currently processing image.</param>
     /// <param name="opacity">The opacity of the image to draw. Must be between 0 and 1.</param>
+    /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
+    public static IImageProcessingContext DrawImage(
+        this IImageProcessingContext source,
+        Image foreground,
+        float opacity)
+        => DrawImage(source, foreground, opacity, 0);
+
+    /// <summary>
+    /// Draws the given image together with the currently processing image by blending their pixels.
+    /// </summary>
+    /// <param name="source">The current image processing context.</param>
+    /// <param name="foreground">The image to draw on the currently processing image.</param>
+    /// <param name="opacity">The opacity of the image to draw. Must be between 0 and 1.</param>
     /// <param name="foregroundRepeatCount">
     /// The number of times the foreground frames are allowed to loop while applying this operation across successive frames.
     /// A value of 0 means loop indefinitely.
@@ -26,7 +39,7 @@ public static class DrawImageExtensions
         this IImageProcessingContext source,
         Image foreground,
         float opacity,
-        int foregroundRepeatCount = 0)
+        int foregroundRepeatCount)
     {
         GraphicsOptions options = source.GetGraphicsOptions();
         return DrawImage(source, foreground, options.ColorBlendingMode, options.AlphaCompositionMode, opacity, foregroundRepeatCount);
@@ -39,6 +52,21 @@ public static class DrawImageExtensions
     /// <param name="foreground">The image to draw on the currently processing image.</param>
     /// <param name="foregroundRectangle">The rectangle structure that specifies the portion of the image to draw.</param>
     /// <param name="opacity">The opacity of the image to draw. Must be between 0 and 1.</param>
+    /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
+    public static IImageProcessingContext DrawImage(
+        this IImageProcessingContext source,
+        Image foreground,
+        Rectangle foregroundRectangle,
+        float opacity)
+        => DrawImage(source, foreground, foregroundRectangle, opacity, 0);
+
+    /// <summary>
+    /// Draws the given image together with the currently processing image by blending their pixels.
+    /// </summary>
+    /// <param name="source">The current image processing context.</param>
+    /// <param name="foreground">The image to draw on the currently processing image.</param>
+    /// <param name="foregroundRectangle">The rectangle structure that specifies the portion of the image to draw.</param>
+    /// <param name="opacity">The opacity of the image to draw. Must be between 0 and 1.</param>
     /// <param name="foregroundRepeatCount">
     /// The number of times the foreground frames are allowed to loop while applying this operation across successive frames.
     /// A value of 0 means loop indefinitely.
@@ -49,7 +77,7 @@ public static class DrawImageExtensions
         Image foreground,
         Rectangle foregroundRectangle,
         float opacity,
-        int foregroundRepeatCount = 0)
+        int foregroundRepeatCount)
     {
         GraphicsOptions options = source.GetGraphicsOptions();
         return DrawImage(source, foreground, foregroundRectangle, options.ColorBlendingMode, options.AlphaCompositionMode, opacity, foregroundRepeatCount);
@@ -62,6 +90,21 @@ public static class DrawImageExtensions
     /// <param name="foreground">The image to draw on the currently processing image.</param>
     /// <param name="colorBlending">The color blending mode.</param>
     /// <param name="opacity">The opacity of the image to draw. Must be between 0 and 1.</param>
+    /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
+    public static IImageProcessingContext DrawImage(
+        this IImageProcessingContext source,
+        Image foreground,
+        PixelColorBlendingMode colorBlending,
+        float opacity)
+        => DrawImage(source, foreground, colorBlending, opacity, 0);
+
+    /// <summary>
+    /// Draws the given image together with the currently processing image by blending their pixels.
+    /// </summary>
+    /// <param name="source">The current image processing context.</param>
+    /// <param name="foreground">The image to draw on the currently processing image.</param>
+    /// <param name="colorBlending">The color blending mode.</param>
+    /// <param name="opacity">The opacity of the image to draw. Must be between 0 and 1.</param>
     /// <param name="foregroundRepeatCount">
     /// The number of times the foreground frames are allowed to loop while applying this operation across successive frames.
     /// A value of 0 means loop indefinitely.
@@ -72,8 +115,25 @@ public static class DrawImageExtensions
         Image foreground,
         PixelColorBlendingMode colorBlending,
         float opacity,
-        int foregroundRepeatCount = 0)
+        int foregroundRepeatCount)
         => DrawImage(source, foreground, Point.Empty, colorBlending, opacity, foregroundRepeatCount);
+
+    /// <summary>
+    /// Draws the given image together with the currently processing image by blending their pixels.
+    /// </summary>
+    /// <param name="source">The current image processing context.</param>
+    /// <param name="foreground">The image to draw on the currently processing image.</param>
+    /// <param name="foregroundRectangle">The rectangle structure that specifies the portion of the image to draw.</param>
+    /// <param name="colorBlending">The color blending mode.</param>
+    /// <param name="opacity">The opacity of the image to draw. Must be between 0 and 1.</param>
+    /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
+    public static IImageProcessingContext DrawImage(
+        this IImageProcessingContext source,
+        Image foreground,
+        Rectangle foregroundRectangle,
+        PixelColorBlendingMode colorBlending,
+        float opacity)
+        => DrawImage(source, foreground, foregroundRectangle, colorBlending, opacity, 0);
 
     /// <summary>
     /// Draws the given image together with the currently processing image by blending their pixels.
@@ -94,8 +154,25 @@ public static class DrawImageExtensions
         Rectangle foregroundRectangle,
         PixelColorBlendingMode colorBlending,
         float opacity,
-        int foregroundRepeatCount = 0)
+        int foregroundRepeatCount)
         => DrawImage(source, foreground, Point.Empty, foregroundRectangle, colorBlending, opacity, foregroundRepeatCount);
+
+    /// <summary>
+    /// Draws the given image together with the currently processing image by blending their pixels.
+    /// </summary>
+    /// <param name="source">The current image processing context.</param>
+    /// <param name="foreground">The image to draw on the currently processing image.</param>
+    /// <param name="colorBlending">The color blending mode.</param>
+    /// <param name="alphaComposition">The alpha composition mode.</param>
+    /// <param name="opacity">The opacity of the image to draw. Must be between 0 and 1.</param>
+    /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
+    public static IImageProcessingContext DrawImage(
+        this IImageProcessingContext source,
+        Image foreground,
+        PixelColorBlendingMode colorBlending,
+        PixelAlphaCompositionMode alphaComposition,
+        float opacity)
+        => DrawImage(source, foreground, colorBlending, alphaComposition, opacity, 0);
 
     /// <summary>
     /// Draws the given image together with the currently processing image by blending their pixels.
@@ -116,7 +193,7 @@ public static class DrawImageExtensions
         PixelColorBlendingMode colorBlending,
         PixelAlphaCompositionMode alphaComposition,
         float opacity,
-        int foregroundRepeatCount = 0)
+        int foregroundRepeatCount)
         => DrawImage(source, foreground, Point.Empty, colorBlending, alphaComposition, opacity, foregroundRepeatCount);
 
     /// <summary>
@@ -128,6 +205,25 @@ public static class DrawImageExtensions
     /// <param name="colorBlending">The color blending mode.</param>
     /// <param name="alphaComposition">The alpha composition mode.</param>
     /// <param name="opacity">The opacity of the image to draw. Must be between 0 and 1.</param>
+    /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
+    public static IImageProcessingContext DrawImage(
+        this IImageProcessingContext source,
+        Image foreground,
+        Rectangle foregroundRectangle,
+        PixelColorBlendingMode colorBlending,
+        PixelAlphaCompositionMode alphaComposition,
+        float opacity)
+        => DrawImage(source, foreground, foregroundRectangle, colorBlending, alphaComposition, opacity, 0);
+
+    /// <summary>
+    /// Draws the given image together with the currently processing image by blending their pixels.
+    /// </summary>
+    /// <param name="source">The current image processing context.</param>
+    /// <param name="foreground">The image to draw on the currently processing image.</param>
+    /// <param name="foregroundRectangle">The rectangle structure that specifies the portion of the image to draw.</param>
+    /// <param name="colorBlending">The color blending mode.</param>
+    /// <param name="alphaComposition">The alpha composition mode.</param>
+    /// <param name="opacity">The opacity of the image to draw. Must be between 0 and 1.</param>
     /// <param name="foregroundRepeatCount">
     /// The number of times the foreground frames are allowed to loop while applying this operation across successive frames.
     /// A value of 0 means loop indefinitely.
@@ -140,8 +236,21 @@ public static class DrawImageExtensions
         PixelColorBlendingMode colorBlending,
         PixelAlphaCompositionMode alphaComposition,
         float opacity,
-        int foregroundRepeatCount = 0)
+        int foregroundRepeatCount)
         => DrawImage(source, foreground, Point.Empty, foregroundRectangle, colorBlending, alphaComposition, opacity, foregroundRepeatCount);
+
+    /// <summary>
+    /// Draws the given image together with the currently processing image by blending their pixels.
+    /// </summary>
+    /// <param name="source">The current image processing context.</param>
+    /// <param name="foreground">The image to draw on the currently processing image.</param>
+    /// <param name="options">The options, including the blending type and blending amount.</param>
+    /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
+    public static IImageProcessingContext DrawImage(
+        this IImageProcessingContext source,
+        Image foreground,
+        GraphicsOptions options)
+        => DrawImage(source, foreground, options, 0);
 
     /// <summary>
     /// Draws the given image together with the currently processing image by blending their pixels.
@@ -158,8 +267,23 @@ public static class DrawImageExtensions
         this IImageProcessingContext source,
         Image foreground,
         GraphicsOptions options,
-        int foregroundRepeatCount = 0)
+        int foregroundRepeatCount)
         => DrawImage(source, foreground, Point.Empty, options, foregroundRepeatCount);
+
+    /// <summary>
+    /// Draws the given image together with the currently processing image by blending their pixels.
+    /// </summary>
+    /// <param name="source">The current image processing context.</param>
+    /// <param name="foreground">The image to draw on the currently processing image.</param>
+    /// <param name="foregroundRectangle">The rectangle structure that specifies the portion of the image to draw.</param>
+    /// <param name="options">The options, including the blending type and blending amount.</param>
+    /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
+    public static IImageProcessingContext DrawImage(
+        this IImageProcessingContext source,
+        Image foreground,
+        Rectangle foregroundRectangle,
+        GraphicsOptions options)
+        => DrawImage(source, foreground, foregroundRectangle, options, 0);
 
     /// <summary>
     /// Draws the given image together with the currently processing image by blending their pixels.
@@ -178,8 +302,23 @@ public static class DrawImageExtensions
         Image foreground,
         Rectangle foregroundRectangle,
         GraphicsOptions options,
-        int foregroundRepeatCount = 0)
+        int foregroundRepeatCount)
         => DrawImage(source, foreground, Point.Empty, foregroundRectangle, options, foregroundRepeatCount);
+
+    /// <summary>
+    /// Draws the given image together with the currently processing image by blending their pixels.
+    /// </summary>
+    /// <param name="source">The current image processing context.</param>
+    /// <param name="foreground">The image to draw on the currently processing image.</param>
+    /// <param name="backgroundLocation">The location on the currently processing image at which to draw.</param>
+    /// <param name="opacity">The opacity of the image to draw. Must be between 0 and 1.</param>
+    /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
+    public static IImageProcessingContext DrawImage(
+        this IImageProcessingContext source,
+        Image foreground,
+        Point backgroundLocation,
+        float opacity)
+        => DrawImage(source, foreground, backgroundLocation, opacity, 0);
 
     /// <summary>
     /// Draws the given image together with the currently processing image by blending their pixels.
@@ -198,7 +337,7 @@ public static class DrawImageExtensions
         Image foreground,
         Point backgroundLocation,
         float opacity,
-        int foregroundRepeatCount = 0)
+        int foregroundRepeatCount)
     {
         GraphicsOptions options = source.GetGraphicsOptions();
         return DrawImage(source, foreground, backgroundLocation, options.ColorBlendingMode, options.AlphaCompositionMode, opacity, foregroundRepeatCount);
@@ -212,6 +351,23 @@ public static class DrawImageExtensions
     /// <param name="backgroundLocation">The location on the currently processing image at which to draw.</param>
     /// <param name="foregroundRectangle">The rectangle structure that specifies the portion of the image to draw.</param>
     /// <param name="opacity">The opacity of the image to draw. Must be between 0 and 1.</param>
+    /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
+    public static IImageProcessingContext DrawImage(
+        this IImageProcessingContext source,
+        Image foreground,
+        Point backgroundLocation,
+        Rectangle foregroundRectangle,
+        float opacity)
+        => DrawImage(source, foreground, backgroundLocation, foregroundRectangle, opacity, 0);
+
+    /// <summary>
+    /// Draws the given image together with the currently processing image by blending their pixels.
+    /// </summary>
+    /// <param name="source">The current image processing context.</param>
+    /// <param name="foreground">The image to draw on the currently processing image.</param>
+    /// <param name="backgroundLocation">The location on the currently processing image at which to draw.</param>
+    /// <param name="foregroundRectangle">The rectangle structure that specifies the portion of the image to draw.</param>
+    /// <param name="opacity">The opacity of the image to draw. Must be between 0 and 1.</param>
     /// <param name="foregroundRepeatCount">
     /// The number of times the foreground frames are allowed to loop while applying this operation across successive frames.
     /// A value of 0 means loop indefinitely.
@@ -223,7 +379,7 @@ public static class DrawImageExtensions
         Point backgroundLocation,
         Rectangle foregroundRectangle,
         float opacity,
-        int foregroundRepeatCount = 0)
+        int foregroundRepeatCount)
     {
         GraphicsOptions options = source.GetGraphicsOptions();
         return DrawImage(source, foreground, backgroundLocation, foregroundRectangle, options.ColorBlendingMode, options.AlphaCompositionMode, opacity, foregroundRepeatCount);
@@ -237,6 +393,23 @@ public static class DrawImageExtensions
     /// <param name="backgroundLocation">The location on the currently processing image at which to draw.</param>
     /// <param name="colorBlending">The color blending to apply.</param>
     /// <param name="opacity">The opacity of the image to draw. Must be between 0 and 1.</param>
+    /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
+    public static IImageProcessingContext DrawImage(
+        this IImageProcessingContext source,
+        Image foreground,
+        Point backgroundLocation,
+        PixelColorBlendingMode colorBlending,
+        float opacity)
+        => DrawImage(source, foreground, backgroundLocation, colorBlending, opacity, 0);
+
+    /// <summary>
+    /// Draws the given image together with the currently processing image by blending their pixels.
+    /// </summary>
+    /// <param name="source">The current image processing context.</param>
+    /// <param name="foreground">The image to draw on the currently processing image.</param>
+    /// <param name="backgroundLocation">The location on the currently processing image at which to draw.</param>
+    /// <param name="colorBlending">The color blending to apply.</param>
+    /// <param name="opacity">The opacity of the image to draw. Must be between 0 and 1.</param>
     /// <param name="foregroundRepeatCount">
     /// The number of times the foreground frames are allowed to loop while applying this operation across successive frames.
     /// A value of 0 means loop indefinitely.
@@ -248,8 +421,27 @@ public static class DrawImageExtensions
         Point backgroundLocation,
         PixelColorBlendingMode colorBlending,
         float opacity,
-        int foregroundRepeatCount = 0)
+        int foregroundRepeatCount)
         => DrawImage(source, foreground, backgroundLocation, colorBlending, source.GetGraphicsOptions().AlphaCompositionMode, opacity, foregroundRepeatCount);
+
+    /// <summary>
+    /// Draws the given image together with the currently processing image by blending their pixels.
+    /// </summary>
+    /// <param name="source">The current image processing context.</param>
+    /// <param name="foreground">The image to draw on the currently processing image.</param>
+    /// <param name="backgroundLocation">The location on the currently processing image at which to draw.</param>
+    /// <param name="foregroundRectangle">The rectangle structure that specifies the portion of the image to draw.</param>
+    /// <param name="colorBlending">The color blending to apply.</param>
+    /// <param name="opacity">The opacity of the image to draw. Must be between 0 and 1.</param>
+    /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
+    public static IImageProcessingContext DrawImage(
+        this IImageProcessingContext source,
+        Image foreground,
+        Point backgroundLocation,
+        Rectangle foregroundRectangle,
+        PixelColorBlendingMode colorBlending,
+        float opacity)
+        => DrawImage(source, foreground, backgroundLocation, foregroundRectangle, colorBlending, opacity, 0);
 
     /// <summary>
     /// Draws the given image together with the currently processing image by blending their pixels.
@@ -272,8 +464,23 @@ public static class DrawImageExtensions
         Rectangle foregroundRectangle,
         PixelColorBlendingMode colorBlending,
         float opacity,
-        int foregroundRepeatCount = 0)
+        int foregroundRepeatCount)
         => DrawImage(source, foreground, backgroundLocation, foregroundRectangle, colorBlending, source.GetGraphicsOptions().AlphaCompositionMode, opacity, foregroundRepeatCount);
+
+    /// <summary>
+    /// Draws the given image together with the currently processing image by blending their pixels.
+    /// </summary>
+    /// <param name="source">The current image processing context.</param>
+    /// <param name="foreground">The image to draw on the currently processing image.</param>
+    /// <param name="backgroundLocation">The location on the currently processing image at which to draw.</param>
+    /// <param name="options">The options containing the blend mode and opacity.</param>
+    /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
+    public static IImageProcessingContext DrawImage(
+        this IImageProcessingContext source,
+        Image foreground,
+        Point backgroundLocation,
+        GraphicsOptions options)
+        => DrawImage(source, foreground, backgroundLocation, options, 0);
 
     /// <summary>
     /// Draws the given image together with the currently processing image by blending their pixels.
@@ -292,8 +499,25 @@ public static class DrawImageExtensions
         Image foreground,
         Point backgroundLocation,
         GraphicsOptions options,
-        int foregroundRepeatCount = 0)
+        int foregroundRepeatCount)
         => DrawImage(source, foreground, backgroundLocation, options.ColorBlendingMode, options.AlphaCompositionMode, options.BlendPercentage, foregroundRepeatCount);
+
+    /// <summary>
+    /// Draws the given image together with the currently processing image by blending their pixels.
+    /// </summary>
+    /// <param name="source">The current image processing context.</param>
+    /// <param name="foreground">The image to draw on the currently processing image.</param>
+    /// <param name="backgroundLocation">The location on the currently processing image at which to draw.</param>
+    /// <param name="foregroundRectangle">The rectangle structure that specifies the portion of the image to draw.</param>
+    /// <param name="options">The options containing the blend mode and opacity.</param>
+    /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
+    public static IImageProcessingContext DrawImage(
+        this IImageProcessingContext source,
+        Image foreground,
+        Point backgroundLocation,
+        Rectangle foregroundRectangle,
+        GraphicsOptions options)
+        => DrawImage(source, foreground, backgroundLocation, foregroundRectangle, options, 0);
 
     /// <summary>
     /// Draws the given image together with the currently processing image by blending their pixels.
@@ -314,8 +538,27 @@ public static class DrawImageExtensions
         Point backgroundLocation,
         Rectangle foregroundRectangle,
         GraphicsOptions options,
-        int foregroundRepeatCount = 0)
+        int foregroundRepeatCount)
         => DrawImage(source, foreground, backgroundLocation, foregroundRectangle, options.ColorBlendingMode, options.AlphaCompositionMode, options.BlendPercentage, foregroundRepeatCount);
+
+    /// <summary>
+    /// Draws the given image together with the currently processing image by blending their pixels.
+    /// </summary>
+    /// <param name="source">The current image processing context.</param>
+    /// <param name="foreground">The image to draw on the currently processing image.</param>
+    /// <param name="backgroundLocation">The location on the currently processing image at which to draw.</param>
+    /// <param name="colorBlending">The color blending to apply.</param>
+    /// <param name="alphaComposition">The alpha composition mode.</param>
+    /// <param name="opacity">The opacity of the image to draw. Must be between 0 and 1.</param>
+    /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
+    public static IImageProcessingContext DrawImage(
+        this IImageProcessingContext source,
+        Image foreground,
+        Point backgroundLocation,
+        PixelColorBlendingMode colorBlending,
+        PixelAlphaCompositionMode alphaComposition,
+        float opacity)
+        => DrawImage(source, foreground, backgroundLocation, colorBlending, alphaComposition, opacity, 0);
 
     /// <summary>
     /// Draws the given image together with the currently processing image by blending their pixels.
@@ -338,7 +581,7 @@ public static class DrawImageExtensions
         PixelColorBlendingMode colorBlending,
         PixelAlphaCompositionMode alphaComposition,
         float opacity,
-        int foregroundRepeatCount = 0)
+        int foregroundRepeatCount)
         => source.ApplyProcessor(new DrawImageProcessor(foreground, backgroundLocation, foreground.Bounds, colorBlending, alphaComposition, opacity, foregroundRepeatCount));
 
     /// <summary>
@@ -351,6 +594,27 @@ public static class DrawImageExtensions
     /// <param name="colorBlending">The color blending to apply.</param>
     /// <param name="alphaComposition">The alpha composition mode.</param>
     /// <param name="opacity">The opacity of the image to draw. Must be between 0 and 1.</param>
+    /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
+    public static IImageProcessingContext DrawImage(
+        this IImageProcessingContext source,
+        Image foreground,
+        Point backgroundLocation,
+        Rectangle foregroundRectangle,
+        PixelColorBlendingMode colorBlending,
+        PixelAlphaCompositionMode alphaComposition,
+        float opacity)
+        => DrawImage(source, foreground, backgroundLocation, foregroundRectangle, colorBlending, alphaComposition, opacity, 0);
+
+    /// <summary>
+    /// Draws the given image together with the currently processing image by blending their pixels.
+    /// </summary>
+    /// <param name="source">The current image processing context.</param>
+    /// <param name="foreground">The image to draw on the currently processing image.</param>
+    /// <param name="backgroundLocation">The location on the currently processing image at which to draw.</param>
+    /// <param name="foregroundRectangle">The rectangle structure that specifies the portion of the image to draw.</param>
+    /// <param name="colorBlending">The color blending to apply.</param>
+    /// <param name="alphaComposition">The alpha composition mode.</param>
+    /// <param name="opacity">The opacity of the image to draw. Must be between 0 and 1.</param>
     /// <param name="foregroundRepeatCount">
     /// The number of times the foreground frames are allowed to loop while applying this operation across successive frames.
     /// A value of 0 means loop indefinitely.
@@ -364,7 +628,7 @@ public static class DrawImageExtensions
         PixelColorBlendingMode colorBlending,
         PixelAlphaCompositionMode alphaComposition,
         float opacity,
-        int foregroundRepeatCount = 0) =>
+        int foregroundRepeatCount) =>
         source.ApplyProcessor(
             new DrawImageProcessor(foreground, backgroundLocation, foregroundRectangle, colorBlending, alphaComposition, opacity, foregroundRepeatCount),
             foregroundRectangle);

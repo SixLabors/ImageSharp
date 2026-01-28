@@ -3,7 +3,6 @@
 
 using System.Runtime.Intrinsics.X86;
 using SixLabors.ImageSharp.Formats;
-using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;

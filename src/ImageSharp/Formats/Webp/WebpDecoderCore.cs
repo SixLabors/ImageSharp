@@ -122,6 +122,7 @@ internal sealed class WebpDecoderCore : ImageDecoderCore, IDisposable
                     this.ParseOptionalChunks(stream, metadata, this.webImageInfo.Features, buffer);
                 }
 
+                _ = this.TryConvertIccProfile(image);
                 return image;
             }
         }

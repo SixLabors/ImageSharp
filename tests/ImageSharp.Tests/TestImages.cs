@@ -62,6 +62,7 @@ public static class TestImages
         public const string TestPattern31x31HalfTransparent = "Png/testpattern31x31-halftransparent.png";
         public const string XmpColorPalette = "Png/xmp-colorpalette.png";
         public const string AdamHeadsHlg = "Png/adamHeadsHLG.png";
+        public const string IptcMetadata = "Png/iptc-profile.png";
 
         // Animated
         // https://philip.html5.org/tests/apng/tests.html
@@ -900,6 +901,12 @@ public static class TestImages
         public const string AlphaBlend2 = "Webp/alpha-blend-2.webp";
         public const string AlphaBlend3 = "Webp/alpha-blend-3.webp";
         public const string AlphaBlend4 = "Webp/alpha-blend-4.webp";
+
+        public static class Icc
+        {
+            public const string Perceptual = "Webp/icc-profiles/Perceptual.webp";
+            public const string PerceptualcLUTOnly = "Webp/icc-profiles/Perceptual-cLUT-only.webp";
+        }
     }
 
     public static class Tiff

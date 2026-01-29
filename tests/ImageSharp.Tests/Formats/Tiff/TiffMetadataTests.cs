@@ -157,7 +157,7 @@ public class TiffMetadataTests
         {
             Assert.NotNull(rootFrameMetaData.XmpProfile);
             Assert.NotNull(rootFrameMetaData.ExifProfile);
-            Assert.Equal(2599, rootFrameMetaData.XmpProfile.Data.Length);
+            Assert.Equal(2596, rootFrameMetaData.XmpProfile.Data.Length); // padding bytes are trimmed
             Assert.Equal(25, rootFrameMetaData.ExifProfile.Values.Count);
         }
     }
@@ -186,7 +186,7 @@ public class TiffMetadataTests
         Assert.Equal(32, rootFrame.Width);
         Assert.Equal(32, rootFrame.Height);
         Assert.NotNull(rootFrame.Metadata.XmpProfile);
-        Assert.Equal(2599, rootFrame.Metadata.XmpProfile.Data.Length);
+        Assert.Equal(2596, rootFrame.Metadata.XmpProfile.Data.Length); // padding bytes are trimmed
 
         ExifProfile exifProfile = rootFrame.Metadata.ExifProfile;
         TiffFrameMetadata tiffFrameMetadata = rootFrame.Metadata.GetTiffMetadata();

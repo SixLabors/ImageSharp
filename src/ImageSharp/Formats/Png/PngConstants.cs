@@ -63,6 +63,21 @@ internal static class PngConstants
     public const int MinTextKeywordLength = 1;
 
     /// <summary>
+    /// Specifies the keyword used to identify the Exif raw profile in image metadata.
+    /// </summary>
+    public const string ExifRawProfileKeyword = "Raw profile type exif";
+
+    /// <summary>
+    /// Specifies the profile keyword used to identify raw IPTC metadata within image files.
+    /// </summary>
+    public const string IptcRawProfileKeyword = "Raw profile type iptc";
+
+    /// <summary>
+    /// The IPTC resource id in Photoshop IRB. 0x0404 (big endian).
+    /// </summary>
+    public const ushort AdobeIptcResourceId = 0x0404;
+
+    /// <summary>
     /// Gets the header bytes identifying a Png.
     /// </summary>
     public static ReadOnlySpan<byte> HeaderBytes =>
@@ -100,4 +115,31 @@ internal static class PngConstants
         (byte)'m',
         (byte)'p'
     ];
+
+    /// <summary>
+    /// Gets the ASCII bytes for the "Photoshop 3.0" identifier used in some PNG metadata payloads.
+    /// This value is null-terminated.
+    /// </summary>
+    public static ReadOnlySpan<byte> AdobePhotoshop30 =>
+    [
+        (byte)'P',
+        (byte)'h',
+        (byte)'o',
+        (byte)'t',
+        (byte)'o',
+        (byte)'s',
+        (byte)'h',
+        (byte)'o',
+        (byte)'p',
+        (byte)' ',
+        (byte)'3',
+        (byte)'.',
+        (byte)'0',
+        0
+    ];
+
+    /// <summary>
+    /// Gets the ASCII bytes for the "8BIM" signature used in Photoshop resources.
+    /// </summary>
+    public static ReadOnlySpan<byte> EightBim => [(byte)'8', (byte)'B', (byte)'I', (byte)'M'];
 }

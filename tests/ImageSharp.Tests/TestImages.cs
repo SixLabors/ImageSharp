@@ -1194,6 +1194,12 @@ public static class TestImages
         ];
 
         public static readonly string[] Metadata = [SampleMetadata];
+
+        public static class Icc
+        {
+            public const string PerceptualCmyk = "Tiff/icc-profiles/Perceptual_CMYK.tiff";
+            public const string PerceptualCieLab = "Tiff/icc-profiles/Perceptual_CIELAB.tiff";
+        }
     }
 
     public static class BigTiff

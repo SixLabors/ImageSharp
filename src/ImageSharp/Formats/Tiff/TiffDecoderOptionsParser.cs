@@ -452,13 +452,9 @@ internal static class TiffDecoderOptionsParser
                     TiffThrowHelper.ThrowNotSupported("The number of samples in the TIFF BitsPerSample entry is not supported for CieLab images.");
                 }
 
-                ushort bitsPerChannel = options.BitsPerSample.Channel0;
-                if (bitsPerChannel != 8)
-                {
-                    TiffThrowHelper.ThrowNotSupported("Only 8 bits per channel is supported for CieLab images.");
-                }
-
-                options.ColorType = options.PlanarConfiguration == TiffPlanarConfiguration.Chunky ? TiffColorType.CieLab : TiffColorType.CieLabPlanar;
+                options.ColorType = options.PlanarConfiguration == TiffPlanarConfiguration.Chunky
+                    ? TiffColorType.CieLab
+                    : TiffColorType.CieLabPlanar;
 
                 break;
             }

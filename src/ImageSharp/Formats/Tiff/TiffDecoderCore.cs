@@ -453,7 +453,7 @@ internal class TiffDecoderCore : ImageDecoderCore
             }
 
             using TiffBaseDecompressor decompressor = this.CreateDecompressor<TPixel>(width, bitsPerPixel, frame.Metadata);
-            TiffBasePlanarColorDecoder<TPixel> colorDecoder = this.CreatePlanarColorDecoder<TPixel>();
+            TiffBasePlanarColorDecoder<TPixel> colorDecoder = this.CreatePlanarColorDecoder<TPixel>(frame.Metadata);
 
             for (int i = 0; i < stripsPerPlane; i++)
             {
@@ -518,7 +518,7 @@ internal class TiffDecoderCore : ImageDecoderCore
         int bitsPerPixel = this.BitsPerPixel;
 
         using TiffBaseDecompressor decompressor = this.CreateDecompressor<TPixel>(width, bitsPerPixel, frame.Metadata);
-        TiffBaseColorDecoder<TPixel> colorDecoder = this.CreateChunkyColorDecoder<TPixel>();
+        TiffBaseColorDecoder<TPixel> colorDecoder = this.CreateChunkyColorDecoder<TPixel>(frame.Metadata);
         Buffer2D<TPixel> pixels = frame.PixelBuffer;
 
         // There exists in this world TIFF files with uncompressed strips larger than Int32.MaxValue.
@@ -661,7 +661,7 @@ internal class TiffDecoderCore : ImageDecoderCore
             }
 
             using TiffBaseDecompressor decompressor = this.CreateDecompressor<TPixel>(frame.Width, bitsPerPixel, frame.Metadata);
-            TiffBasePlanarColorDecoder<TPixel> colorDecoder = this.CreatePlanarColorDecoder<TPixel>();
+            TiffBasePlanarColorDecoder<TPixel> colorDecoder = this.CreatePlanarColorDecoder<TPixel>(frame.Metadata);
 
             int tileIndex = 0;
             int remainingPixelsInColumn = height;
@@ -762,7 +762,7 @@ internal class TiffDecoderCore : ImageDecoderCore
         Span<byte> tileBufferSpan = tileBuffer.GetSpan();
 
         using TiffBaseDecompressor decompressor = this.CreateDecompressor<TPixel>(frame.Width, bitsPerPixel, frame.Metadata, true, tileWidth, tileLength);
-        TiffBaseColorDecoder<TPixel> colorDecoder = this.CreateChunkyColorDecoder<TPixel>();
+        TiffBaseColorDecoder<TPixel> colorDecoder = this.CreateChunkyColorDecoder<TPixel>(frame.Metadata);
 
         int tileIndex = 0;
         for (int tileY = 0; tileY < tilesDown; tileY++)
@@ -803,9 +803,11 @@ internal class TiffDecoderCore : ImageDecoderCore
         }
     }
 
-    private TiffBaseColorDecoder<TPixel> CreateChunkyColorDecoder<TPixel>()
+    private TiffBaseColorDecoder<TPixel> CreateChunkyColorDecoder<TPixel>(ImageFrameMetadata metadata)
         where TPixel : unmanaged, IPixel<TPixel> =>
         TiffColorDecoderFactory<TPixel>.Create(
+            metadata,
+            this.Options,
             this.configuration,
             this.memoryAllocator,
             this.ColorType,
@@ -818,9 +820,13 @@ internal class TiffDecoderCore : ImageDecoderCore
             this.CompressionType,
             this.byteOrder);
 
-    private TiffBasePlanarColorDecoder<TPixel> CreatePlanarColorDecoder<TPixel>()
+    private TiffBasePlanarColorDecoder<TPixel> CreatePlanarColorDecoder<TPixel>(ImageFrameMetadata metadata)
         where TPixel : unmanaged, IPixel<TPixel> =>
         TiffColorDecoderFactory<TPixel>.CreatePlanar(
+            metadata,
+            this.Options,
+            this.configuration,
+            this.memoryAllocator,
             this.ColorType,
             this.BitsPerSample,
             this.ExtraSamplesType,

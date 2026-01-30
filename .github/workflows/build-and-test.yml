@@ -11,7 +11,7 @@ on:
     branches:
       - main
       - release/*
-    types: [ labeled, opened, synchronize, reopened ]
+    types: [ opened, synchronize, reopened ]
 
 jobs:
   # Prime a single LFS cache and expose the exact key for the matrix

@@ -1199,6 +1199,8 @@ public static class TestImages
         {
             public const string PerceptualCmyk = "Tiff/icc-profiles/Perceptual_CMYK.tiff";
             public const string PerceptualCieLab = "Tiff/icc-profiles/Perceptual_CIELAB.tiff";
+            public const string PerceptualRgb8 = "Tiff/icc-profiles/Perceptual_RGB8.tiff";
+            public const string PerceptualRgb16 = "Tiff/icc-profiles/Perceptual_RGB16.tiff";
         }
     }
 

@@ -429,7 +429,6 @@ internal static class TiffColorDecoderFactory<TPixel>
         }
     }
 
-#pragma warning disable IDE0060 // Remove unused parameter
     public static TiffBasePlanarColorDecoder<TPixel> CreatePlanar(
         ImageFrameMetadata metadata,
         DecoderOptions options,

@@ -23,7 +23,7 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     public static readonly string[] MultiframeTestImages = Multiframes;
 
     [Theory]
-    // [WithFile(MultiframeDifferentVariants, PixelTypes.Rgba32)]
+    [WithFile(MultiframeDifferentVariants, PixelTypes.Rgba32)]
     [WithFile(Cmyk64BitDeflate, PixelTypes.Rgba32)]
     public void ThrowsNotSupported<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel> => Assert.Throws<NotSupportedException>(() => provider.GetImage(TiffDecoder.Instance));
@@ -355,6 +355,8 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     [Theory]
     [WithFile(Icc.PerceptualCmyk, PixelTypes.Rgba32)]
     [WithFile(Icc.PerceptualCieLab, PixelTypes.Rgba32)]
+    [WithFile(Icc.PerceptualRgb8, PixelTypes.Rgba32)]
+    [WithFile(Icc.PerceptualRgb16, PixelTypes.Rgba32)]
     public void Decode_WhenColorProfileHandlingIsConvert_ApplyIccProfile<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {

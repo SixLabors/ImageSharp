@@ -53,11 +53,6 @@ internal class TiffDecoderCore : ImageDecoderCore
     private ByteOrder byteOrder;
 
     /// <summary>
-    /// Indicating whether is BigTiff format.
-    /// </summary>
-    private bool isBigTiff;
-
-    /// <summary>
     /// Initializes a new instance of the <see cref="TiffDecoderCore" /> class.
     /// </summary>
     /// <param name="options">The decoder options.</param>
@@ -167,7 +162,6 @@ internal class TiffDecoderCore : ImageDecoderCore
 
             IList<ExifProfile> directories = reader.Read();
             this.byteOrder = reader.ByteOrder;
-            this.isBigTiff = reader.IsBigTiff;
 
             Size? size = null;
             uint frameCount = 0;
@@ -271,6 +265,15 @@ internal class TiffDecoderCore : ImageDecoderCore
         else
         {
             this.DecodeImageWithStrips(tags, frame, width, height, cancellationToken);
+        }
+
+        // Only RGB-compatible color types can be converted here because the TPixel-based ICC profile conversion
+        // expects RGB-like pixel data; other photometric interpretations (YCbCr, CMYK, Lab, etc.) would require
+        // dedicated transforms. We do this once at the frame level to avoid duplicating conversion logic
+        // across all color decoders and to keep their decode paths focused on raw pixel unpacking.
+        if (this.ColorType is >= TiffColorType.PaletteColor and <= TiffColorType.Rgba32323232Planar)
+        {
+            _ = this.TryConvertIccProfile(frame);
         }
 
         return frame;

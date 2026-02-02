@@ -97,6 +97,21 @@ public readonly partial struct Color : IEquatable<Color>
     public static Color FromScaledVector(Vector4 source) => new(source);
 
     /// <summary>
+    /// Bulk converts a span of generic scaled <see cref="Vector4"/> to a span of <see cref="Color"/>.
+    /// </summary>
+    /// <param name="source">The source vector span.</param>
+    /// <param name="destination">The destination color span.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void FromScaledVector(ReadOnlySpan<Vector4> source, Span<Color> destination)
+    {
+        Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
+        for (int i = 0; i < source.Length; i++)
+        {
+            destination[i] = FromScaledVector(source[i]);
+        }
+    }
+
+    /// <summary>
     /// Bulk converts a span of a specified <typeparamref name="TPixel"/> type to a span of <see cref="Color"/>.
     /// </summary>
     /// <typeparam name="TPixel">The pixel type to convert to.</typeparam>
@@ -112,14 +127,14 @@ public readonly partial struct Color : IEquatable<Color>
         PixelTypeInfo info = TPixel.GetPixelTypeInfo();
         if (info.ComponentInfo.HasValue && info.ComponentInfo.Value.GetMaximumComponentPrecision() <= (int)PixelComponentBitDepth.Bit32)
         {
-            for (int i = 0; i < destination.Length; i++)
+            for (int i = 0; i < source.Length; i++)
             {
                 destination[i] = FromScaledVector(source[i].ToScaledVector4());
             }
         }
         else
         {
-            for (int i = 0; i < destination.Length; i++)
+            for (int i = 0; i < source.Length; i++)
             {
                 destination[i] = new Color(source[i]);
             }

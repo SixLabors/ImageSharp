@@ -407,7 +407,7 @@ internal static class TiffDecoderOptionsParser
                 if (exifProfile.TryGetValue(ExifTag.ColorMap, out IExifValue<ushort[]> value))
                 {
                     options.ColorMap = value.Value;
-                    if (options.BitsPerSample.Channels != 1)
+                    if (options.BitsPerSample.Channels is not 1 and not 2)
                     {
                         TiffThrowHelper.ThrowNotSupported("The number of samples in the TIFF BitsPerSample entry is not supported.");
                     }

@@ -61,16 +61,15 @@ public class TiffMetadataTests
         clone.PhotometricInterpretation = TiffPhotometricInterpretation.CieLab;
         clone.Predictor = TiffPredictor.Horizontal;
 
-        Assert.False(meta.BitsPerPixel == clone.BitsPerPixel);
-        Assert.False(meta.Compression == clone.Compression);
-        Assert.False(meta.PhotometricInterpretation == clone.PhotometricInterpretation);
-        Assert.False(meta.Predictor == clone.Predictor);
+        Assert.NotEqual(meta.BitsPerPixel, clone.BitsPerPixel);
+        Assert.NotEqual(meta.Compression, clone.Compression);
+        Assert.NotEqual(meta.PhotometricInterpretation, clone.PhotometricInterpretation);
+        Assert.NotEqual(meta.Predictor, clone.Predictor);
     }
 
     private static void VerifyExpectedTiffFrameMetaDataIsPresent(TiffFrameMetadata frameMetaData)
     {
         Assert.NotNull(frameMetaData);
-        Assert.NotNull(frameMetaData.BitsPerPixel);
         Assert.Equal(TiffBitsPerPixel.Bit4, frameMetaData.BitsPerPixel);
         Assert.Equal(TiffCompression.Lzw, frameMetaData.Compression);
         Assert.Equal(TiffPhotometricInterpretation.PaletteColor, frameMetaData.PhotometricInterpretation);
@@ -408,5 +407,18 @@ public class TiffMetadataTests
 
         // Adding the IPTC and ICC profiles dynamically increments the number of values in the original EXIF profile by 2
         Assert.Equal(exifProfileInput.Values.Count + 2, encodedImageExifProfile.Values.Count);
+    }
+
+    [Theory]
+    [WithFile(PaletteDeflateMultistrip, PixelTypes.Rgba32)]
+    [WithFile(PaletteUncompressed, PixelTypes.Rgba32)]
+    public void TiffDecoder_CanAssign_ColorPalette<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage(TiffDecoder.Instance);
+        ImageFrame<TPixel> frame = image.Frames.RootFrame;
+        TiffFrameMetadata tiffMeta = frame.Metadata.GetTiffMetadata();
+        Assert.Equal(TiffPhotometricInterpretation.PaletteColor, tiffMeta.PhotometricInterpretation);
+        Assert.NotNull(tiffMeta.LocalColorTable);
     }
 }

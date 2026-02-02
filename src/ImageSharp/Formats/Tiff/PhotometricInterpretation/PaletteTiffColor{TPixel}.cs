@@ -19,7 +19,9 @@ internal class PaletteTiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
     private readonly ushort bitsPerSample1;
     private readonly TiffExtraSampleType? extraSamplesType;
 
-    private readonly Vector4[] paletteVectors;
+    private readonly Vector4[] vectorPallete;
+    private readonly TPixel[] pixelPalette;
+
     private readonly float alphaScale;
     private readonly bool hasAlpha;
     private Color[]? paletteColors;
@@ -41,7 +43,7 @@ internal class PaletteTiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
         int colorCount = 1 << this.bitsPerSample0;
 
         // TIFF PaletteColor uses ColorMap (tag 320 / 0x0140) which is RGB-only (no alpha).
-        this.paletteVectors = GeneratePaletteVectors(colorMap, colorCount);
+        this.vectorPallete = GenerateVectorPalette(colorMap, colorCount);
 
         // ExtraSamples (tag 338 / 0x0152) describes extra per-pixel samples stored in the image data stream.
         // For PaletteColor, any alpha is per pixel (stored alongside the index), not per palette entry.
@@ -54,10 +56,16 @@ internal class PaletteTiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
         {
             ulong alphaMax = (1UL << this.bitsPerSample1) - 1;
             this.alphaScale = alphaMax > 0 ? 1f / alphaMax : 1f;
+            this.pixelPalette = [];
+        }
+        else
+        {
+            // Pre-generate pixel palette for non-alpha case for performance.
+            this.pixelPalette = GeneratePixelPalette(colorMap, colorCount);
         }
     }
 
-    public Color[] PaletteColors => this.paletteColors ??= GenerateColorPalette(this.paletteVectors);
+    public Color[] PaletteColors => this.paletteColors ??= GenerateColorPalette(this.vectorPallete);
 
     /// <inheritdoc/>
     public override void Decode(ReadOnlySpan<byte> data, Buffer2D<TPixel> pixels, int left, int top, int width, int height)
@@ -66,7 +74,7 @@ internal class PaletteTiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
 
         if (this.hasAlpha)
         {
-            Color[] colors = this.paletteColors ??= GenerateColorPalette(this.paletteVectors);
+            Color[] colors = this.paletteColors ??= GenerateColorPalette(this.vectorPallete);
 
             // NOTE: ExtraSamples may report "AssociatedAlphaData". For PaletteColor, the stored color sample is the
             // palette index, not per-pixel RGB components, so the premultiplication concept is not representable
@@ -81,18 +89,19 @@ internal class PaletteTiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
                     float alpha = bitReader.ReadBits(this.bitsPerSample1) * this.alphaScale;
 
                     // Defensive guard against malformed streams.
-                    if ((uint)index >= (uint)this.paletteVectors.Length)
+                    if ((uint)index >= (uint)this.vectorPallete.Length)
                     {
                         index = 0;
                     }
 
-                    Vector4 color = this.paletteVectors[index];
+                    Vector4 color = this.vectorPallete[index];
                     color.W = alpha;
 
                     pixelRow[x] = TPixel.FromScaledVector4(color);
 
                     // Best-effort palette update for downstream conversions.
                     // This is intentionally "last writer wins" with no per-pixel branch.
+                    // Performance is not an issue here since the constructor performs no actual transformations.
                     colors[index] = Color.FromScaledVector(color);
                 }
 
@@ -110,19 +119,19 @@ internal class PaletteTiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
                 int index = bitReader.ReadBits(this.bitsPerSample0);
 
                 // Defensive guard against malformed streams.
-                if ((uint)index >= (uint)this.paletteVectors.Length)
+                if ((uint)index >= (uint)this.pixelPalette.Length)
                 {
                     index = 0;
                 }
 
-                pixelRow[x] = TPixel.FromScaledVector4(this.paletteVectors[index]);
+                pixelRow[x] = this.pixelPalette[index];
             }
 
             bitReader.NextRow();
         }
     }
 
-    private static Vector4[] GeneratePaletteVectors(ushort[] colorMap, int colorCount)
+    private static Vector4[] GenerateVectorPalette(ushort[] colorMap, int colorCount)
     {
         Vector4[] palette = new Vector4[colorCount];
 
@@ -136,6 +145,25 @@ internal class PaletteTiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
             float g = colorMap[gOffset + i] * InvMax;
             float b = colorMap[bOffset + i] * InvMax;
             palette[i] = new Vector4(r, g, b, 1f);
+        }
+
+        return palette;
+    }
+
+    private static TPixel[] GeneratePixelPalette(ushort[] colorMap, int colorCount)
+    {
+        TPixel[] palette = new TPixel[colorCount];
+
+        const int rOffset = 0;
+        int gOffset = colorCount;
+        int bOffset = colorCount * 2;
+
+        for (int i = 0; i < palette.Length; i++)
+        {
+            float r = colorMap[rOffset + i] * InvMax;
+            float g = colorMap[gOffset + i] * InvMax;
+            float b = colorMap[bOffset + i] * InvMax;
+            palette[i] = TPixel.FromScaledVector4(new Vector4(r, g, b, 1f));
         }
 
         return palette;

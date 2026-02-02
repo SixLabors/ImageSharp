@@ -33,7 +33,11 @@ public class TiffFrameMetadata : IFormatFrameMetadata<TiffFrameMetadata>
         this.InkSet = other.InkSet;
         this.EncodingWidth = other.EncodingWidth;
         this.EncodingHeight = other.EncodingHeight;
-        this.LocalColorTable = other.LocalColorTable;
+
+        if (other.LocalColorTable?.Length > 0)
+        {
+            this.LocalColorTable = other.LocalColorTable.Value.ToArray();
+        }
     }
 
     /// <summary>

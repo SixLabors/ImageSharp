@@ -620,6 +620,13 @@ internal class TiffDecoderCore : ImageDecoderCore
 
             colorDecoder.Decode(stripBufferSpan, pixels, 0, top, width, stripHeight);
         }
+
+        // If the color decoder is the palette decoder we need to capture its palette.
+        if (colorDecoder is PaletteTiffColor<TPixel> paletteDecoder)
+        {
+            TiffFrameMetadata tiffFrameMetadata = frame.Metadata.GetTiffMetadata();
+            tiffFrameMetadata.LocalColorTable = paletteDecoder.PaletteColors;
+        }
     }
 
     /// <summary>
@@ -803,6 +810,13 @@ internal class TiffDecoderCore : ImageDecoderCore
 
                 tileIndex++;
             }
+        }
+
+        // If the color decoder is the palette decoder we need to capture its palette.
+        if (colorDecoder is PaletteTiffColor<TPixel> paletteDecoder)
+        {
+            TiffFrameMetadata tiffFrameMetadata = frame.Metadata.GetTiffMetadata();
+            tiffFrameMetadata.LocalColorTable = paletteDecoder.PaletteColors;
         }
     }
 

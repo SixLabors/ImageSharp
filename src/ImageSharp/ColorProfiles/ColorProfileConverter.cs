@@ -12,7 +12,7 @@ public class ColorProfileConverter
     /// Initializes a new instance of the <see cref="ColorProfileConverter"/> class.
     /// </summary>
     public ColorProfileConverter()
-    : this(new())
+        : this(new ColorConversionOptions())
     {
     }
 
@@ -33,8 +33,8 @@ public class ColorProfileConverter
                where TTo : struct, IColorProfile
     {
         CieXyz sourceWhitePoint = TFrom.GetChromaticAdaptionWhitePointSource() == ChromaticAdaptionWhitePointSource.WhitePoint
-            ? this.Options.WhitePoint
-            : this.Options.RgbWorkingSpace.WhitePoint;
+            ? this.Options.SourceWhitePoint
+            : this.Options.SourceRgbWorkingSpace.WhitePoint;
 
         CieXyz targetWhitePoint = TTo.GetChromaticAdaptionWhitePointSource() == ChromaticAdaptionWhitePointSource.WhitePoint
             ? this.Options.TargetWhitePoint
@@ -42,4 +42,7 @@ public class ColorProfileConverter
 
         return (sourceWhitePoint, targetWhitePoint);
     }
+
+    internal bool ShouldUseIccProfiles()
+        => this.Options.SourceIccProfile != null && this.Options.TargetIccProfile != null;
 }

@@ -196,7 +196,7 @@ internal class Vp8Encoder : IDisposable
     }
 
     // This uses C#'s optimization to refer to the static data segment of the assembly, no allocation occurs.
-    private static ReadOnlySpan<byte> AverageBytesPerMb => new byte[] { 50, 24, 16, 9, 7, 5, 3, 2 };
+    private static ReadOnlySpan<byte> AverageBytesPerMb => [50, 24, 16, 9, 7, 5, 3, 2];
 
     public int BaseQuant { get; set; }
 
@@ -388,7 +388,13 @@ internal class Vp8Encoder : IDisposable
     /// <param name="hasAnimation">Flag indicating, if an animation parameter is present.</param>
     /// <param name="image">The image to encode from.</param>
     /// <returns>A <see cref="bool"/> indicating whether the frame contains an alpha channel.</returns>
-    private bool Encode<TPixel>(Stream stream, ImageFrame<TPixel> frame, Rectangle bounds, WebpFrameMetadata frameMetadata, bool hasAnimation, Image<TPixel> image)
+    private bool Encode<TPixel>(
+        Stream stream,
+        ImageFrame<TPixel> frame,
+        Rectangle bounds,
+        WebpFrameMetadata frameMetadata,
+        bool hasAnimation,
+        Image<TPixel> image)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         int width = bounds.Width;
@@ -495,8 +501,8 @@ internal class Vp8Encoder : IDisposable
                     (uint)bounds.Width,
                     (uint)bounds.Height,
                     frameMetadata.FrameDelay,
-                    frameMetadata.BlendMethod,
-                    frameMetadata.DisposalMethod)
+                    frameMetadata.BlendMode,
+                    frameMetadata.DisposalMode)
                     .WriteHeaderTo(stream);
             }
 

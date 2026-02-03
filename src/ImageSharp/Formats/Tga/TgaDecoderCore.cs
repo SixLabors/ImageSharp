@@ -639,7 +639,7 @@ internal sealed class TgaDecoderCore : ImageDecoderCore
     {
         this.ReadFileHeader(stream);
         return new ImageInfo(
-            new(this.fileHeader.Width, this.fileHeader.Height),
+            new Size(this.fileHeader.Width, this.fileHeader.Height),
             this.metadata);
     }
 

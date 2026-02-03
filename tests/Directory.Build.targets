@@ -18,18 +18,23 @@
 
   <ItemGroup>
     <!-- Test Dependencies -->
-    <PackageReference Update="Colourful" Version="3.1.0" />
-    <PackageReference Update="Magick.NET-Q16-AnyCPU" Version="13.4.0" />
-    <PackageReference Update="Microsoft.DotNet.RemoteExecutor" Version="8.0.0-beta.23580.1" />
+    <PackageReference Update="Colourful" Version="3.2.0" />
+
+    <!--
+    Do not update to 14+ yet. There's differnce in how the BMP decoder handles rounding in 16 bit images.
+    See https://github.com/ImageMagick/ImageMagick/commit/27a0a9c37f18af9c8d823a3ea076f600843b553c
+    -->
+    <PackageReference Update="Magick.NET-Q16-AnyCPU" Version="13.10.0" />
+    <PackageReference Update="Microsoft.DotNet.RemoteExecutor" Version="10.0.0-beta.25563.105" />
     <PackageReference Update="Microsoft.DotNet.XUnitExtensions" Version="8.0.0-beta.23580.1" />
-    <PackageReference Update="Moq" Version="4.20.70" />
-    <PackageReference Update="NetVips" Version="2.4.0" />
-    <PackageReference Update="NetVips.Native" Version="8.15.0" />
-    <PackageReference Update="PhotoSauce.MagicScaler" Version="0.14.0" />
-    <PackageReference Update="Pfim" Version="0.11.2" />
+    <PackageReference Update="Moq" Version="4.20.72" />
+    <PackageReference Update="NetVips" Version="3.0.0" />
+    <PackageReference Update="NetVips.Native" Version="8.16.0" />
+    <PackageReference Update="PhotoSauce.MagicScaler" Version="0.14.2" />
+    <PackageReference Update="Pfim" Version="0.11.3" />
     <PackageReference Update="runtime.osx.10.10-x64.CoreCompat.System.Drawing" Version="6.0.5.128" Condition="'$(IsOSX)'=='true'" />
     <PackageReference Update="SharpZipLib" Version="1.4.2" />
-    <PackageReference Update="SkiaSharp" Version="2.88.6" />
+    <PackageReference Update="SkiaSharp" Version="2.88.9" />
     <PackageReference Update="System.Drawing.Common" Version="6.0.0" />
     <PackageReference Update="System.IO.Compression" Version="4.3.0" />
   </ItemGroup>

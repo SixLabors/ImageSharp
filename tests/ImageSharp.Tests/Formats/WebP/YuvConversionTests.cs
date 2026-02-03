@@ -19,7 +19,7 @@ public class YuvConversionTests
 
     public static void RunUpSampleYuvToRgbTest()
     {
-        var provider = TestImageProvider<Rgba32>.File(TestImageLossyFullPath);
+        TestImageProvider<Rgba32> provider = TestImageProvider<Rgba32>.File(TestImageLossyFullPath);
         using Image<Rgba32> image = provider.GetImage(WebpDecoder.Instance);
         image.DebugSave(provider);
         image.CompareToOriginal(provider, ReferenceDecoder);
@@ -32,7 +32,7 @@ public class YuvConversionTests
     public void UpSampleYuvToRgb_WithHardwareIntrinsics_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunUpSampleYuvToRgbTest, HwIntrinsics.AllowAll);
 
     [Fact]
-    public void UpSampleYuvToRgb_WithoutSSE2_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunUpSampleYuvToRgbTest, HwIntrinsics.DisableSSE2);
+    public void UpSampleYuvToRgb_WithoutSSE2_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunUpSampleYuvToRgbTest, HwIntrinsics.DisableHWIntrinsic);
 
     [Theory]
     [WithFile(TestImages.Webp.Yuv, PixelTypes.Rgba32)]
@@ -52,7 +52,7 @@ public class YuvConversionTests
         Span<byte> u = uBuffer.GetSpan();
         Span<byte> v = vBuffer.GetSpan();
         byte[] expectedY =
-        {
+        [
             82, 82, 82, 82, 128, 135, 134, 129, 167, 179, 176, 172, 192, 201, 200, 204, 188, 172, 175, 177, 168,
             151, 154, 154, 153, 152, 151, 151, 152, 160, 160, 160, 160, 82, 82, 82, 82, 140, 137, 135, 116, 174,
             183, 176, 162, 196, 199, 199, 210, 188, 166, 176, 181, 170, 145, 155, 154, 153, 154, 151, 151, 150,
@@ -106,9 +106,9 @@ public class YuvConversionTests
             86, 75, 72, 77, 106, 96, 97, 96, 97, 100, 100, 100, 160, 160, 160, 159, 169, 170, 168, 170, 129,
             115, 117, 123, 90, 71, 76, 79, 62, 51, 51, 47, 59, 79, 75, 74, 81, 100, 97, 98, 98, 100, 100, 100,
             100
-        };
+        ];
         byte[] expectedU =
-        {
+        [
             90, 90, 59, 63, 36, 38, 23, 20, 34, 35, 47, 48, 70, 82, 104, 121, 121, 90, 90, 61, 69, 37, 42, 22,
             18, 33, 32, 47, 47, 67, 75, 97, 113, 120, 59, 61, 30, 37, 22, 20, 38, 36, 50, 50, 78, 83, 113, 122,
             142, 166, 164, 63, 69, 37, 43, 20, 18, 34, 32, 48, 47, 70, 73, 102, 110, 136, 166, 166, 36, 37, 22,
@@ -123,9 +123,9 @@ public class YuvConversionTests
             184, 212, 208, 227, 228, 227, 229, 218, 214, 196, 185, 188, 121, 113, 166, 166, 197, 191, 220, 217,
             232, 237, 223, 222, 211, 208, 185, 173, 172, 121, 120, 164, 166, 193, 194, 217, 219, 232, 235, 224,
             220, 212, 207, 188, 172, 172
-        };
+        ];
         byte[] expectedV =
-        {
+        [
             240, 240, 201, 206, 172, 174, 136, 136, 92, 90, 55, 50, 37, 30, 26, 23, 23, 240, 240, 204, 213, 173,
             179, 141, 141, 96, 98, 56, 54, 38, 31, 27, 25, 23, 201, 204, 164, 172, 129, 135, 82, 87, 46, 47, 33,
             29, 25, 23, 20, 16, 16, 206, 213, 172, 180, 137, 141, 93, 99, 54, 54, 36, 31, 26, 25, 21, 17, 16,
@@ -139,7 +139,7 @@ public class YuvConversionTests
             118, 151, 164, 188, 205, 206, 26, 27, 20, 21, 43, 39, 74, 69, 103, 102, 138, 143, 174, 188, 204,
             216, 218, 23, 25, 16, 17, 55, 48, 85, 81, 117, 118, 159, 164, 195, 205, 216, 227, 227, 23, 23, 16,
             16, 51, 52, 81, 83, 116, 122, 157, 168, 194, 206, 218, 227, 227
-        };
+        ];
 
         // act
         YuvConversion.ConvertRgbToYuv(image.Frames.RootFrame.PixelBuffer.GetRegion(), config, memoryAllocator, y, u, v);
@@ -169,7 +169,7 @@ public class YuvConversionTests
         Span<byte> u = uBuffer.GetSpan();
         Span<byte> v = vBuffer.GetSpan();
         byte[] expectedY =
-        {
+        [
             16, 16, 16, 16, 16, 235, 235, 235, 235, 235, 16, 16, 16, 16, 16, 152, 41, 41, 152, 152, 41, 41, 152,
             152, 41, 41, 152, 152, 41, 41, 152, 16, 16, 16, 16, 16, 235, 235, 235, 235, 235, 16, 16, 16, 16, 16,
             152, 41, 41, 152, 152, 41, 41, 152, 152, 41, 41, 152, 152, 41, 41, 152, 16, 16, 16, 16, 16, 235,
@@ -213,9 +213,9 @@ public class YuvConversionTests
             41, 41, 41, 41, 41, 41, 41, 41, 41, 41, 41, 41, 41, 41, 41, 29, 106, 183, 66, 143, 130, 78, 90, 168,
             116, 103, 180, 63, 140, 152, 75, 41, 41, 41, 41, 41, 41, 41, 41, 41, 41, 41, 41, 41, 41, 41, 93,
             171, 53, 131, 118, 66, 78, 155, 103, 90, 167, 50, 128, 140, 63, 75
-        };
+        ];
         byte[] expectedU =
-        {
+        [
             128, 128, 128, 128, 128, 128, 128, 139, 240, 139, 240, 139, 240, 139, 240, 139, 128, 128, 128, 128,
             128, 128, 128, 139, 240, 139, 240, 139, 240, 139, 240, 139, 128, 128, 128, 128, 128, 128, 128, 139,
             240, 139, 240, 139, 240, 139, 240, 139, 128, 128, 128, 128, 128, 128, 128, 139, 240, 139, 240, 139,
@@ -229,9 +229,9 @@ public class YuvConversionTests
             159, 159, 159, 159, 159, 159, 159, 161, 112, 113, 138, 87, 143, 112, 88, 161, 240, 240, 240, 240,
             240, 240, 240, 137, 110, 162, 110, 140, 158, 104, 159, 137, 240, 240, 240, 240, 240, 240, 240, 109,
             150, 108, 140, 161, 80, 157, 162, 128
-        };
+        ];
         byte[] expectedV =
-        {
+        [
             128, 128, 128, 128, 128, 128, 128, 189, 110, 189, 110, 189, 110, 189, 110, 189, 128, 128, 128, 128,
             128, 128, 128, 189, 110, 189, 110, 189, 110, 189, 110, 189, 128, 128, 128, 128, 128, 128, 128, 189,
             110, 189, 110, 189, 110, 189, 110, 189, 128, 128, 128, 128, 128, 128, 128, 189, 110, 189, 110, 189,
@@ -245,7 +245,7 @@ public class YuvConversionTests
             141, 165, 126, 147, 173, 101, 101, 101, 101, 101, 101, 101, 135, 109, 129, 122, 124, 107, 108, 128,
             138, 110, 110, 110, 110, 110, 110, 110, 117, 137, 151, 127, 114, 131, 139, 142, 120, 110, 110, 110,
             110, 110, 110, 110, 142, 156, 119, 137, 167, 141, 151, 66, 85
-        };
+        ];
 
         // act
         YuvConversion.ConvertRgbToYuv(image.Frames.RootFrame.PixelBuffer.GetRegion(), config, memoryAllocator, y, u, v);

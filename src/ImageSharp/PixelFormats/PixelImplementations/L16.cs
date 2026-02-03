@@ -52,7 +52,7 @@ public partial struct L16 : IPixel<L16>, IPackedVector<ushort>
     public readonly Rgba32 ToRgba32()
     {
         byte rgb = ColorNumerics.From16BitTo8Bit(this.PackedValue);
-        return new(rgb, rgb, rgb);
+        return new Rgba32(rgb, rgb, rgb);
     }
 
     /// <inheritdoc/>

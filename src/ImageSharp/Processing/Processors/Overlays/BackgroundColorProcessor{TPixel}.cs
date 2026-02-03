@@ -35,7 +35,7 @@ internal class BackgroundColorProcessor<TPixel> : ImageProcessor<TPixel>
         TPixel color = this.definition.Color.ToPixel<TPixel>();
         GraphicsOptions graphicsOptions = this.definition.GraphicsOptions;
 
-        var interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds());
+        Rectangle interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds);
 
         Configuration configuration = this.Configuration;
         MemoryAllocator memoryAllocator = configuration.MemoryAllocator;
@@ -48,7 +48,7 @@ internal class BackgroundColorProcessor<TPixel> : ImageProcessor<TPixel>
 
         PixelBlender<TPixel> blender = PixelOperations<TPixel>.Instance.GetPixelBlender(graphicsOptions);
 
-        var operation = new RowOperation(configuration, interest, blender, amount, colors, source.PixelBuffer);
+        RowOperation operation = new(configuration, interest, blender, amount, colors, source.PixelBuffer);
         ParallelRowIterator.IterateRows(
             configuration,
             interest,

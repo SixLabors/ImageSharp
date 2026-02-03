@@ -15,15 +15,31 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <!--BenchmarkDotNet cannot run static benchmarks-->
+    <!--
+    BenchmarkDotNet requires a certain structure to the code,
+    as such, some of these rules cannot be implemented.
+    -->
+
     <!--Mark members as static-->
-    <NoWarn>CA1822</NoWarn>
+    <!--Validate platform compatibility-->
+    <!--Types that own disposable fields should be disposable-->
+    <!--Cannot implicitly convert type 'System.ReadOnlySpan<byte>' to 'System.Span<byte>'-->
+    <NoWarn>CA1822;CA1416;CA1001;CS0029;CA1861;CA2201</NoWarn>
+
+
+    <!--<NoWarn>CA1001</NoWarn>-->
+
+    <!--Validate platform compatibility-->
+    <!--<NoWarn>CA1416</NoWarn>-->
+
+    <!--Types that own disposable fields should be disposable-->
+    <!--<NoWarn>CA1001</NoWarn>-->
   </PropertyGroup>
 
   <Choose>
     <When Condition="$(SIXLABORS_TESTING_PREVIEW) == true">
       <PropertyGroup>
-        <TargetFrameworks>net8.0;net9.0</TargetFrameworks>
+        <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
       </PropertyGroup>
     </When>
     <Otherwise>
@@ -41,8 +57,9 @@
 
   <ItemGroup>
     <PackageReference Include="Magick.NET-Q16-AnyCPU" />
-    <PackageReference Include="BenchmarkDotNet" Version="0.13.10" />
-    <PackageReference Include="BenchmarkDotNet.Diagnostics.Windows" Version="0.13.10" Condition="'$(IsWindows)'=='true'" />
+    <PackageReference Include="Microsoft.VisualStudio.DiagnosticsHub.BenchmarkDotNetDiagnosers" Version="18.3.36812.1" />
+    <PackageReference Include="BenchmarkDotNet" Version="0.15.8" />
+    <PackageReference Include="BenchmarkDotNet.Diagnostics.Windows" Version="0.15.8" Condition="'$(IsWindows)'=='true'" />
     <PackageReference Include="Colourful" />
     <PackageReference Include="NetVips" />
     <PackageReference Include="NetVips.Native" />

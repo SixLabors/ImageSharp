@@ -18,6 +18,7 @@ internal class AffineTransformProcessor<TPixel> : TransformProcessor<TPixel>, IR
 {
     private readonly Size destinationSize;
     private readonly Matrix3x2 transformMatrix;
+    private readonly Matrix4x4 transformMatrix4x4;
     private readonly IResampler resampler;
     private ImageFrame<TPixel>? source;
     private ImageFrame<TPixel>? destination;
@@ -34,6 +35,7 @@ internal class AffineTransformProcessor<TPixel> : TransformProcessor<TPixel>, IR
     {
         this.destinationSize = definition.DestinationSize;
         this.transformMatrix = definition.TransformMatrix;
+        this.transformMatrix4x4 = new(this.transformMatrix);
         this.resampler = definition.Sampler;
     }
 
@@ -46,6 +48,9 @@ internal class AffineTransformProcessor<TPixel> : TransformProcessor<TPixel>, IR
         this.destination = destination;
         this.resampler.ApplyTransform(this);
     }
+
+    /// <inheritdoc/>
+    protected override Matrix4x4 GetTransformMatrix() => this.transformMatrix4x4;
 
     /// <inheritdoc/>
     public void ApplyTransform<TResampler>(in TResampler sampler)
@@ -61,7 +66,7 @@ internal class AffineTransformProcessor<TPixel> : TransformProcessor<TPixel>, IR
         if (matrix.Equals(Matrix3x2.Identity))
         {
             // The clone will be blank here copy all the pixel data over
-            Rectangle interest = Rectangle.Intersect(this.SourceRectangle, destination.Bounds());
+            Rectangle interest = Rectangle.Intersect(this.SourceRectangle, destination.Bounds);
             Buffer2DRegion<TPixel> sourceBuffer = source.PixelBuffer.GetRegion(interest);
             Buffer2DRegion<TPixel> destinationBuffer = destination.PixelBuffer.GetRegion(interest);
             for (int y = 0; y < sourceBuffer.Height; y++)
@@ -72,20 +77,22 @@ internal class AffineTransformProcessor<TPixel> : TransformProcessor<TPixel>, IR
             return;
         }
 
-        // Convert from screen to world space.
+        // All matrices are defined in normalized coordinate space so we need to convert to pixel space.
+        // After normalization we need to invert the matrix for correct sampling.
+        matrix = TransformUtilities.NormalizeToPixel(matrix);
         Matrix3x2.Invert(matrix, out matrix);
 
         if (sampler is NearestNeighborResampler)
         {
             NNAffineOperation nnOperation = new(
                 source.PixelBuffer,
-                Rectangle.Intersect(this.SourceRectangle, source.Bounds()),
+                Rectangle.Intersect(this.SourceRectangle, source.Bounds),
                 destination.PixelBuffer,
                 matrix);
 
             ParallelRowIterator.IterateRows(
                 configuration,
-                destination.Bounds(),
+                destination.Bounds,
                 in nnOperation);
 
             return;
@@ -94,14 +101,14 @@ internal class AffineTransformProcessor<TPixel> : TransformProcessor<TPixel>, IR
         AffineOperation<TResampler> operation = new(
             configuration,
             source.PixelBuffer,
-            Rectangle.Intersect(this.SourceRectangle, source.Bounds()),
+            Rectangle.Intersect(this.SourceRectangle, source.Bounds),
             destination.PixelBuffer,
             in sampler,
             matrix);
 
         ParallelRowIterator.IterateRowIntervals<AffineOperation<TResampler>, Vector4>(
             configuration,
-            destination.Bounds(),
+            destination.Bounds,
             in operation);
     }
 

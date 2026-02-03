@@ -24,6 +24,7 @@ public abstract class ImageDecoder : IImageDecoder
             s => this.Decode<TPixel>(options, s, default));
 
         this.SetDecoderFormat(options.Configuration, image);
+        HandleIccProfile(options, image);
 
         return image;
     }
@@ -37,6 +38,7 @@ public abstract class ImageDecoder : IImageDecoder
             s => this.Decode(options, s, default));
 
         this.SetDecoderFormat(options.Configuration, image);
+        HandleIccProfile(options, image);
 
         return image;
     }
@@ -46,12 +48,13 @@ public abstract class ImageDecoder : IImageDecoder
         where TPixel : unmanaged, IPixel<TPixel>
     {
         Image<TPixel> image = await WithSeekableMemoryStreamAsync(
-                options,
-                stream,
-                (s, ct) => this.Decode<TPixel>(options, s, ct),
-                cancellationToken).ConfigureAwait(false);
+            options,
+            stream,
+            (s, ct) => this.Decode<TPixel>(options, s, ct),
+            cancellationToken).ConfigureAwait(false);
 
         this.SetDecoderFormat(options.Configuration, image);
+        HandleIccProfile(options, image);
 
         return image;
     }
@@ -66,6 +69,7 @@ public abstract class ImageDecoder : IImageDecoder
             cancellationToken).ConfigureAwait(false);
 
         this.SetDecoderFormat(options.Configuration, image);
+        HandleIccProfile(options, image);
 
         return image;
     }
@@ -79,6 +83,7 @@ public abstract class ImageDecoder : IImageDecoder
             s => this.Identify(options, s, default));
 
         this.SetDecoderFormat(options.Configuration, info);
+        HandleIccProfile(options, info);
 
         return info;
     }
@@ -93,6 +98,7 @@ public abstract class ImageDecoder : IImageDecoder
             cancellationToken).ConfigureAwait(false);
 
         this.SetDecoderFormat(options.Configuration, info);
+        HandleIccProfile(options, info);
 
         return info;
     }
@@ -312,6 +318,38 @@ public abstract class ImageDecoder : IImageDecoder
             foreach (ImageFrameMetadata frame in info.FrameMetadataCollection)
             {
                 frame.DecodedImageFormat = format;
+            }
+        }
+    }
+
+    private static void HandleIccProfile(DecoderOptions options, Image image)
+    {
+        if (options.CanRemoveIccProfile(image.Metadata.IccProfile))
+        {
+            image.Metadata.IccProfile = null;
+        }
+
+        foreach (ImageFrame frame in image.Frames)
+        {
+            if (options.CanRemoveIccProfile(frame.Metadata.IccProfile))
+            {
+                frame.Metadata.IccProfile = null;
+            }
+        }
+    }
+
+    private static void HandleIccProfile(DecoderOptions options, ImageInfo image)
+    {
+        if (options.CanRemoveIccProfile(image.Metadata.IccProfile))
+        {
+            image.Metadata.IccProfile = null;
+        }
+
+        foreach (ImageFrameMetadata frame in image.FrameMetadataCollection)
+        {
+            if (options.CanRemoveIccProfile(frame.IccProfile))
+            {
+                frame.IccProfile = null;
             }
         }
     }

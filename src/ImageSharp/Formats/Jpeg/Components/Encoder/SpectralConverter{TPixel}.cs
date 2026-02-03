@@ -2,7 +2,6 @@
 // Licensed under the Six Labors Split License.
 
 using System.Buffers;
-using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -47,7 +46,7 @@ internal class SpectralConverter<TPixel> : SpectralConverter, IDisposable
         // component processors from spectral to Rgb24
         const int blockPixelWidth = 8;
         this.alignedPixelWidth = majorBlockWidth * blockPixelWidth;
-        var postProcessorBufferSize = new Size(this.alignedPixelWidth, this.pixelRowsPerStep);
+        Size postProcessorBufferSize = new(this.alignedPixelWidth, this.pixelRowsPerStep);
         this.componentProcessors = new ComponentProcessor[frame.Components.Length];
         for (int i = 0; i < this.componentProcessors.Length; i++)
         {
@@ -109,6 +108,8 @@ internal class SpectralConverter<TPixel> : SpectralConverter, IDisposable
             int y = yy - this.pixelRowCounter;
 
             // Unpack TPixel to r/g/b planes
+            // TODO: The individual implementation code would be much easier here if
+            // we scaled to [0-1] before passing to the individual converters.
             int srcIndex = Math.Min(yy, pixelBufferLastVerticalIndex);
             Span<TPixel> sourceRow = this.pixelBuffer.DangerousGetRowSpan(srcIndex);
             PixelOperations<TPixel>.Instance.UnpackIntoRgbPlanes(rLane, gLane, bLane, sourceRow);
@@ -118,7 +119,7 @@ internal class SpectralConverter<TPixel> : SpectralConverter, IDisposable
             bLane.Slice(paddingStartIndex).Fill(bLane[paddingStartIndex - 1]);
 
             // Convert from rgb24 to target pixel type
-            var values = new JpegColorConverterBase.ComponentValues(this.componentProcessors, y);
+            JpegColorConverterBase.ComponentValues values = new(this.componentProcessors, y);
             this.colorConverter.ConvertFromRgb(values, rLane, gLane, bLane);
         }
 

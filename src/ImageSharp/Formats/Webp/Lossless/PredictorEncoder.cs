@@ -12,9 +12,9 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossless;
 internal static unsafe class PredictorEncoder
 {
     private static readonly sbyte[][] Offset =
-    {
-        new sbyte[] { 0, -1 }, new sbyte[] { 0, 1 }, new sbyte[] { -1, 0 }, new sbyte[] { 1, 0 }, new sbyte[] { -1, -1 }, new sbyte[] { -1, 1 }, new sbyte[] { 1, -1 }, new sbyte[] { 1, 1 }
-    };
+    [
+        [0, -1], [0, 1], [-1, 0], [1, 0], [-1, -1], [-1, 1], [1, -1], [1, 1]
+    ];
 
     private const int GreenRedToBlueNumAxis = 8;
 
@@ -29,7 +29,7 @@ internal static unsafe class PredictorEncoder
     private const int PredLowEffort = 11;
 
     // This uses C#'s compiler optimization to refer to assembly's static data directly.
-    private static ReadOnlySpan<sbyte> DeltaLut => new sbyte[] { 16, 16, 8, 4, 2, 2, 2 };
+    private static ReadOnlySpan<sbyte> DeltaLut => [16, 16, 8, 4, 2, 2, 2];
 
     /// <summary>
     /// Finds the best predictor for each tile, and converts the image to residuals
@@ -47,7 +47,7 @@ internal static unsafe class PredictorEncoder
         int[][] bestHisto,
         bool nearLossless,
         int nearLosslessQuality,
-        WebpTransparentColorMode transparentColorMode,
+        TransparentColorMode transparentColorMode,
         bool usedSubtractGreen,
         bool lowEffort)
     {
@@ -58,12 +58,12 @@ internal static unsafe class PredictorEncoder
 
         // TODO: Can we optimize this?
         int[][] histo =
-        {
+        [
             new int[256],
             new int[256],
             new int[256],
             new int[256]
-        };
+        ];
 
         if (lowEffort)
         {
@@ -122,8 +122,8 @@ internal static unsafe class PredictorEncoder
         int tileYSize = LosslessUtils.SubSampleSize(height, bits);
         int[] accumulatedRedHisto = new int[256];
         int[] accumulatedBlueHisto = new int[256];
-        var prevX = default(Vp8LMultipliers);
-        var prevY = default(Vp8LMultipliers);
+        Vp8LMultipliers prevX = default(Vp8LMultipliers);
+        Vp8LMultipliers prevY = default(Vp8LMultipliers);
         for (int tileY = 0; tileY < tileYSize; tileY++)
         {
             for (int tileX = 0; tileX < tileXSize; tileX++)
@@ -202,7 +202,7 @@ internal static unsafe class PredictorEncoder
         int[][] histoArgb,
         int[][] bestHisto,
         int maxQuantization,
-        WebpTransparentColorMode transparentColorMode,
+        TransparentColorMode transparentColorMode,
         bool usedSubtractGreen,
         bool nearLossless,
         Span<uint> modes,
@@ -340,19 +340,20 @@ internal static unsafe class PredictorEncoder
         int xEnd,
         int y,
         int maxQuantization,
-        WebpTransparentColorMode transparentColorMode,
+        TransparentColorMode transparentColorMode,
         bool usedSubtractGreen,
         bool nearLossless,
         Span<uint> output,
         Span<short> scratch)
     {
-        if (transparentColorMode == WebpTransparentColorMode.Preserve)
+        if (transparentColorMode == TransparentColorMode.Preserve)
         {
             PredictBatch(mode, xStart, y, xEnd - xStart, currentRowSpan, upperRowSpan, output, scratch);
         }
         else
         {
 #pragma warning disable SA1503 // Braces should not be omitted
+#pragma warning disable RCS1001 // Add braces (when expression spans over multiple lines)
             fixed (uint* currentRow = currentRowSpan)
             fixed (uint* upperRow = upperRowSpan)
             {
@@ -466,6 +467,7 @@ internal static unsafe class PredictorEncoder
             }
         }
     }
+#pragma warning restore RCS1001 // Add braces (when expression spans over multiple lines)
 #pragma warning restore SA1503 // Braces should not be omitted
 
     /// <summary>
@@ -577,7 +579,7 @@ internal static unsafe class PredictorEncoder
         Span<uint> argbScratch,
         Span<uint> argb,
         int maxQuantization,
-        WebpTransparentColorMode transparentColorMode,
+        TransparentColorMode transparentColorMode,
         bool usedSubtractGreen,
         bool nearLossless,
         bool lowEffort)
@@ -854,7 +856,7 @@ internal static unsafe class PredictorEncoder
         int tileHeight = allYMax - tileYOffset;
         Span<uint> tileArgb = argb[((tileYOffset * xSize) + tileXOffset)..];
 
-        var bestTx = default(Vp8LMultipliers);
+        Vp8LMultipliers bestTx = default(Vp8LMultipliers);
 
         GetBestGreenToRed(tileArgb, xSize, scratch, tileWidth, tileHeight, prevX, prevY, quality, accumulatedRedHisto, ref bestTx);
 

@@ -29,11 +29,11 @@ public class PbmDecoderTests
     public void ImageLoadCanDecode(string imagePath, PbmColorType expectedColorType, PbmComponentType expectedComponentType)
     {
         // Arrange
-        var testFile = TestFile.Create(imagePath);
-        using var stream = new MemoryStream(testFile.Bytes, false);
+        TestFile testFile = TestFile.Create(imagePath);
+        using MemoryStream stream = new(testFile.Bytes, false);
 
         // Act
-        using var image = Image.Load(stream);
+        using Image image = Image.Load(stream);
 
         // Assert
         Assert.NotNull(image);
@@ -53,11 +53,11 @@ public class PbmDecoderTests
     public void ImageLoadL8CanDecode(string imagePath)
     {
         // Arrange
-        var testFile = TestFile.Create(imagePath);
-        using var stream = new MemoryStream(testFile.Bytes, false);
+        TestFile testFile = TestFile.Create(imagePath);
+        using MemoryStream stream = new(testFile.Bytes, false);
 
         // Act
-        using var image = Image.Load<L8>(stream);
+        using Image<L8> image = Image.Load<L8>(stream);
 
         // Assert
         Assert.NotNull(image);
@@ -70,11 +70,11 @@ public class PbmDecoderTests
     public void ImageLoadRgb24CanDecode(string imagePath)
     {
         // Arrange
-        var testFile = TestFile.Create(imagePath);
-        using var stream = new MemoryStream(testFile.Bytes, false);
+        TestFile testFile = TestFile.Create(imagePath);
+        using MemoryStream stream = new(testFile.Bytes, false);
 
         // Act
-        using var image = Image.Load<Rgb24>(stream);
+        using Image<Rgb24> image = Image.Load<Rgb24>(stream);
 
         // Assert
         Assert.NotNull(image);
@@ -108,7 +108,7 @@ public class PbmDecoderTests
     {
         DecoderOptions options = new()
         {
-            TargetSize = new() { Width = 150, Height = 150 }
+            TargetSize = new Size { Width = 150, Height = 150 }
         };
 
         using Image<TPixel> image = provider.GetImage(PbmDecoder.Instance, options);

@@ -76,13 +76,13 @@ internal struct JpegBitReader
     /// Whether a RST marker has been detected, I.E. One that is between RST0 and RST7
     /// </summary>
     [MethodImpl(InliningOptions.ShortMethod)]
-    public bool HasRestartMarker() => HasRestart(this.Marker);
+    public readonly bool HasRestartMarker() => HasRestart(this.Marker);
 
     /// <summary>
     /// Whether a bad marker has been detected, I.E. One that is not between RST0 and RST7
     /// </summary>
     [MethodImpl(InliningOptions.ShortMethod)]
-    public bool HasBadMarker() => this.Marker != JpegConstants.Markers.XFF && !this.HasRestartMarker();
+    public readonly bool HasBadMarker() => this.Marker != JpegConstants.Markers.XFF && !this.HasRestartMarker();
 
     [MethodImpl(InliningOptions.AlwaysInline)]
     public void FillBuffer()
@@ -132,7 +132,7 @@ internal struct JpegBitReader
     public int GetBits(int nbits) => (int)ExtractBits(this.data, this.remainingBits -= nbits, nbits);
 
     [MethodImpl(InliningOptions.ShortMethod)]
-    public int PeekBits(int nbits) => (int)ExtractBits(this.data, this.remainingBits - nbits, nbits);
+    public readonly int PeekBits(int nbits) => (int)ExtractBits(this.data, this.remainingBits - nbits, nbits);
 
     [MethodImpl(InliningOptions.AlwaysInline)]
     private static ulong ExtractBits(ulong value, int offset, int size) => (value >> offset) & (ulong)((1 << size) - 1);

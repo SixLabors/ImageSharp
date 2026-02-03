@@ -4,6 +4,7 @@
 using BenchmarkDotNet.Attributes;
 using ImageMagick;
 using ImageMagick.Formats;
+using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests;
@@ -52,10 +53,7 @@ public class EncodeWebp
             AlphaCompression = WebPAlphaCompression.None,
             FilterStrength = 60,
             SnsStrength = 50,
-            Pass = 1,
-
-            // 100 means off.
-            NearLossless = 100
+            Pass = 1
         };
 
         this.webpMagick.Quality = 75;
@@ -85,9 +83,6 @@ public class EncodeWebp
         {
             Lossless = true,
             Method = 4,
-
-            // 100 means off.
-            NearLossless = 100
         };
 
         this.webpMagick.Quality = 75;
@@ -106,7 +101,7 @@ public class EncodeWebp
             Quality = 75,
 
             // This is equal to exact = false in libwebp, which is the default.
-            TransparentColorMode = WebpTransparentColorMode.Clear
+            TransparentColorMode = TransparentColorMode.Clear
         });
     }
 

@@ -15,14 +15,14 @@ public class EncodeGifMultiple : MultiImageBenchmarkBase.WithImagesPreloaded
     [Params(InputImageCategory.AllImages)]
     public override InputImageCategory InputCategory { get; set; }
 
-    protected override IEnumerable<string> InputImageSubfoldersOrFiles => new[] { "Gif/" };
+    protected override IEnumerable<string> InputImageSubfoldersOrFiles => ["Gif/"];
 
     [Benchmark(Description = "EncodeGifMultiple - ImageSharp")]
     public void EncodeGifImageSharp()
         => this.ForEachImageSharpImage((img, ms) =>
         {
             // Try to get as close to System.Drawing's output as possible
-            var options = new GifEncoder
+            GifEncoder options = new()
             {
                 Quantizer = new WebSafePaletteQuantizer(new QuantizerOptions { Dither = KnownDitherings.Bayer4x4 })
             };

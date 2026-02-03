@@ -6,6 +6,7 @@ using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Formats.Png.Chunks;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
+using SixLabors.ImageSharp.Metadata.Profiles.Iptc;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.TestUtilities;
 
@@ -31,16 +32,16 @@ public class PngMetadataTests
             ColorType = PngColorType.GrayscaleWithAlpha,
             InterlaceMethod = PngInterlaceMode.Adam7,
             Gamma = 2,
-            TextData = new List<PngTextData> { new PngTextData("name", "value", "foo", "bar") },
+            TextData = [new("name", "value", "foo", "bar")],
             RepeatCount = 123,
             AnimateRootFrame = false
         };
 
-        PngMetadata clone = (PngMetadata)meta.DeepClone();
+        PngMetadata clone = meta.DeepClone();
 
-        Assert.True(meta.BitDepth == clone.BitDepth);
-        Assert.True(meta.ColorType == clone.ColorType);
-        Assert.True(meta.InterlaceMethod == clone.InterlaceMethod);
+        Assert.Equal(meta.BitDepth, clone.BitDepth);
+        Assert.Equal(meta.ColorType, clone.ColorType);
+        Assert.Equal(meta.InterlaceMethod, clone.InterlaceMethod);
         Assert.True(meta.Gamma.Equals(clone.Gamma));
         Assert.False(meta.TextData.Equals(clone.TextData));
         Assert.True(meta.TextData.SequenceEqual(clone.TextData));
@@ -53,13 +54,45 @@ public class PngMetadataTests
         clone.Gamma = 1;
         clone.RepeatCount = 321;
 
-        Assert.False(meta.BitDepth == clone.BitDepth);
-        Assert.False(meta.ColorType == clone.ColorType);
-        Assert.False(meta.InterlaceMethod == clone.InterlaceMethod);
+        Assert.NotEqual(meta.BitDepth, clone.BitDepth);
+        Assert.NotEqual(meta.ColorType, clone.ColorType);
+        Assert.NotEqual(meta.InterlaceMethod, clone.InterlaceMethod);
         Assert.False(meta.Gamma.Equals(clone.Gamma));
         Assert.False(meta.TextData.Equals(clone.TextData));
         Assert.True(meta.TextData.SequenceEqual(clone.TextData));
         Assert.False(meta.RepeatCount == clone.RepeatCount);
+    }
+
+    [Theory]
+    [WithFile(TestImages.Png.IptcMetadata, PixelTypes.Rgba32)]
+    public void Decoder_CanReadIptcProfile<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage(PngDecoder.Instance);
+        Assert.NotNull(image.Metadata.IptcProfile);
+        Assert.Equal("test1, test2", image.Metadata.IptcProfile.GetValues(IptcTag.Keywords)[0].Value);
+        Assert.Equal("\0\u0004", image.Metadata.IptcProfile.GetValues(IptcTag.RecordVersion)[0].Value);
+    }
+
+    [Theory]
+    [WithFile(TestImages.Png.IptcMetadata, PixelTypes.Rgba32)]
+    public void Encoder_CanWriteIptcProfile<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage(PngDecoder.Instance);
+        Assert.NotNull(image.Metadata.IptcProfile);
+        Assert.Equal("test1, test2", image.Metadata.IptcProfile.GetValues(IptcTag.Keywords)[0].Value);
+        Assert.Equal("\0\u0004", image.Metadata.IptcProfile.GetValues(IptcTag.RecordVersion)[0].Value);
+
+        using MemoryStream memoryStream = new();
+        image.Save(memoryStream, new PngEncoder());
+
+        memoryStream.Position = 0;
+
+        using Image<Rgba32> decoded = PngDecoder.Instance.Decode<Rgba32>(DecoderOptions.Default, memoryStream);
+        Assert.NotNull(decoded.Metadata.IptcProfile);
+        Assert.Equal("test1, test2", decoded.Metadata.IptcProfile.GetValues(IptcTag.Keywords)[0].Value);
+        Assert.Equal("\0\u0004", decoded.Metadata.IptcProfile.GetValues(IptcTag.RecordVersion)[0].Value);
     }
 
     [Theory]
@@ -335,5 +368,29 @@ public class PngMetadataTests
             exif.GetValue(ExifTag.ImageHistory).Value);
 
         Assert.Equal(42, (int)exif.GetValue(ExifTag.ImageNumber).Value);
+    }
+
+    [Theory]
+    [InlineData(PixelColorType.Binary, PngColorType.Palette)]
+    [InlineData(PixelColorType.Indexed, PngColorType.Palette)]
+    [InlineData(PixelColorType.Luminance, PngColorType.Grayscale)]
+    [InlineData(PixelColorType.RGB, PngColorType.Rgb)]
+    [InlineData(PixelColorType.BGR, PngColorType.Rgb)]
+    [InlineData(PixelColorType.YCbCr, PngColorType.RgbWithAlpha)]
+    [InlineData(PixelColorType.CMYK, PngColorType.RgbWithAlpha)]
+    [InlineData(PixelColorType.YCCK, PngColorType.RgbWithAlpha)]
+    public void FromFormatConnectingMetadata_ConvertColorTypeAsExpected(PixelColorType pixelColorType, PngColorType expectedPngColorType)
+    {
+        FormatConnectingMetadata formatConnectingMetadata = new()
+        {
+            PixelTypeInfo = new PixelTypeInfo(24)
+            {
+                ColorType = pixelColorType,
+            },
+        };
+
+        PngMetadata actual = PngMetadata.FromFormatConnectingMetadata(formatConnectingMetadata);
+
+        Assert.Equal(expectedPngColorType, actual.ColorType);
     }
 }

@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc;
 /// <summary>
 /// Represents an ICC profile
 /// </summary>
-public sealed class IccProfile : IDeepCloneable<IccProfile>
+public sealed partial class IccProfile : IDeepCloneable<IccProfile>
 {
     /// <summary>
     /// The byte array to read the ICC profile from
@@ -190,7 +190,6 @@ public sealed class IccProfile : IDeepCloneable<IccProfile>
             return;
         }
 
-        IccReader reader = new();
         this.header = IccReader.ReadHeader(this.data);
     }
 
@@ -203,11 +202,10 @@ public sealed class IccProfile : IDeepCloneable<IccProfile>
 
         if (this.data is null)
         {
-            this.entries = Array.Empty<IccTagDataEntry>();
+            this.entries = [];
             return;
         }
 
-        IccReader reader = new();
         this.entries = IccReader.ReadTagData(this.data);
     }
 }

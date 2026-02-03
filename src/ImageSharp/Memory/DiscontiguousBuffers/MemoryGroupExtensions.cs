@@ -36,8 +36,13 @@ internal static class MemoryGroupExtensions
 
     /// <summary>
     /// Returns a slice that is expected to be within the bounds of a single buffer.
-    /// Otherwise <see cref="ArgumentOutOfRangeException"/> is thrown.
     /// </summary>
+    /// <typeparam name="T">The type of element.</typeparam>
+    /// <param name="group">The group.</param>
+    /// <param name="start">The start index of the slice.</param>
+    /// <param name="length">The length of the slice.</param>
+    /// <exception cref="ArgumentOutOfRangeException">Slice is out of bounds.</exception>
+    /// <returns>The <see cref="MemoryGroup{T}"/> slice.</returns>
     internal static Memory<T> GetBoundedMemorySlice<T>(this IMemoryGroup<T> group, long start, int length)
         where T : struct
     {
@@ -72,7 +77,7 @@ internal static class MemoryGroupExtensions
         Guard.NotNull(source, nameof(source));
         Guard.MustBeGreaterThanOrEqualTo(target.Length, source.TotalLength, nameof(target));
 
-        var cur = new MemoryGroupCursor<T>(source);
+        MemoryGroupCursor<T> cur = new(source);
         long position = 0;
         while (position < source.TotalLength)
         {
@@ -95,7 +100,7 @@ internal static class MemoryGroupExtensions
         Guard.NotNull(target, nameof(target));
         Guard.MustBeGreaterThanOrEqualTo(target.TotalLength, source.Length, nameof(target));
 
-        var cur = new MemoryGroupCursor<T>(target);
+        MemoryGroupCursor<T> cur = new(target);
 
         while (!source.IsEmpty)
         {
@@ -121,8 +126,8 @@ internal static class MemoryGroupExtensions
         }
 
         long position = 0;
-        var srcCur = new MemoryGroupCursor<T>(source);
-        var trgCur = new MemoryGroupCursor<T>(target);
+        MemoryGroupCursor<T> srcCur = new(source);
+        MemoryGroupCursor<T> trgCur = new(target);
 
         while (position < source.TotalLength)
         {
@@ -157,8 +162,8 @@ internal static class MemoryGroupExtensions
         }
 
         long position = 0;
-        var srcCur = new MemoryGroupCursor<TSource>(source);
-        var trgCur = new MemoryGroupCursor<TTarget>(target);
+        MemoryGroupCursor<TSource> srcCur = new(source);
+        MemoryGroupCursor<TTarget> trgCur = new(target);
 
         while (position < source.TotalLength)
         {

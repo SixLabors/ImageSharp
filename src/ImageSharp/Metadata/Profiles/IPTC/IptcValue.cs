@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Diagnostics;
+using System.Globalization;
 using System.Text;
 
 namespace SixLabors.ImageSharp.Metadata.Profiles.Iptc;
@@ -9,10 +10,10 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Iptc;
 /// <summary>
 /// Represents a single value of the IPTC profile.
 /// </summary>
-[DebuggerDisplay("{Tag} = {ToString(),nq} ({GetType().Name,nq})")]
+[DebuggerDisplay("{Tag} = {DebuggerDisplayValue(),nq} ({GetType().Name,nq})")]
 public sealed class IptcValue : IDeepCloneable<IptcValue>
 {
-    private byte[] data = Array.Empty<byte>();
+    private byte[] data = [];
     private Encoding encoding;
 
     internal IptcValue(IptcValue other)
@@ -91,7 +92,7 @@ public sealed class IptcValue : IDeepCloneable<IptcValue>
         {
             if (string.IsNullOrEmpty(value))
             {
-                this.data = Array.Empty<byte>();
+                this.data = [];
             }
             else
             {
@@ -124,7 +125,7 @@ public sealed class IptcValue : IDeepCloneable<IptcValue>
     public int Length => this.data.Length;
 
     /// <inheritdoc/>
-    public IptcValue DeepClone() => new IptcValue(this);
+    public IptcValue DeepClone() => new(this);
 
     /// <summary>
     /// Determines whether the specified object is equal to the current <see cref="IptcValue"/>.
@@ -191,7 +192,7 @@ public sealed class IptcValue : IDeepCloneable<IptcValue>
     /// <returns>A <see cref="byte"/> array.</returns>
     public byte[] ToByteArray()
     {
-        var result = new byte[this.data.Length];
+        byte[] result = new byte[this.data.Length];
         this.data.CopyTo(result, 0);
         return result;
     }
@@ -212,5 +213,38 @@ public sealed class IptcValue : IDeepCloneable<IptcValue>
         Guard.NotNull(encoding, nameof(encoding));
 
         return encoding.GetString(this.data);
+    }
+
+    private string DebuggerDisplayValue()
+    {
+        // IPTC RecordVersion (2:00) is a 2-byte binary value, commonly 0x0004.
+        // Showing it as UTF-8 produces control characters like "\0\u0004".
+        if (this.Tag == IptcTag.RecordVersion && this.data.Length == 2)
+        {
+            int version = (this.data[0] << 8) | this.data[1];
+            return version.ToString(CultureInfo.InvariantCulture);
+        }
+
+        // Prefer readable text if it looks like it, otherwise show hex.
+        // (Avoid surprising debugger output for binary payloads.)
+        bool printable = true;
+        for (int i = 0; i < this.data.Length; i++)
+        {
+            byte b = this.data[i];
+
+            // If any byte is an ASCII control character, treat this value as binary.
+            if (b is < 0x20 or 0x7F)
+            {
+                printable = false;
+                break;
+            }
+        }
+
+        if (printable)
+        {
+            return this.Value;
+        }
+
+        return Convert.ToHexString(this.data);
     }
 }

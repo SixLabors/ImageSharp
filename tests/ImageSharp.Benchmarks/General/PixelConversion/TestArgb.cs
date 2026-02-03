@@ -103,6 +103,6 @@ public struct TestArgb : ITestPixel<TestArgb>
         vector = Numerics.Clamp(vector, Vector4.Zero, MaxBytes);
 
         Vector128<byte> result = Vector128.ConvertToInt32(vector.AsVector128()).AsByte();
-        return new(result.GetElement(0), result.GetElement(4), result.GetElement(8), result.GetElement(12));
+        return new TestArgb(result.GetElement(0), result.GetElement(4), result.GetElement(8), result.GetElement(12));
     }
 }

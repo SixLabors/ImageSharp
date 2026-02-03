@@ -91,6 +91,11 @@ internal sealed class BmpEncoderCore
     /// </summary>
     private readonly IPixelSamplingStrategy pixelSamplingStrategy;
 
+    /// <summary>
+    /// The transparent color mode.
+    /// </summary>
+    private readonly TransparentColorMode transparentColorMode;
+
     /// <inheritdoc cref="BmpDecoderOptions.ProcessedAlphaMask"/>
     private readonly bool processedAlphaMask;
 
@@ -113,6 +118,7 @@ internal sealed class BmpEncoderCore
         // TODO: Use a palette quantizer if supplied.
         this.quantizer = encoder.Quantizer ?? KnownQuantizers.Octree;
         this.pixelSamplingStrategy = encoder.PixelSamplingStrategy;
+        this.transparentColorMode = encoder.TransparentColorMode;
         this.infoHeaderType = encoder.SupportTransparency ? BmpInfoHeaderType.WinVersion4 : BmpInfoHeaderType.WinVersion3;
         this.processedAlphaMask = encoder.ProcessedAlphaMask;
         this.skipFileHeader = encoder.SkipFileHeader;
@@ -181,14 +187,14 @@ internal sealed class BmpEncoderCore
 
         Span<byte> buffer = stackalloc byte[infoHeaderSize];
 
-        // for ico/cur encoder.
+        // For ico/cur encoder.
         if (!this.skipFileHeader)
         {
             WriteBitmapFileHeader(stream, infoHeaderSize, colorPaletteSize, iccProfileSize, infoHeader, buffer);
         }
 
         this.WriteBitmapInfoHeader(stream, infoHeader, buffer, infoHeaderSize);
-        this.WriteImage(configuration, stream, image);
+        this.WriteImage(configuration, stream, image, cancellationToken);
         WriteColorProfile(stream, iccProfileData, buffer, basePosition);
 
         stream.Flush();
@@ -345,44 +351,68 @@ internal sealed class BmpEncoderCore
     /// <param name="image">
     /// The <see cref="ImageFrame{TPixel}"/> containing pixel data.
     /// </param>
-    private void WriteImage<TPixel>(Configuration configuration, Stream stream, Image<TPixel> image)
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+    private void WriteImage<TPixel>(
+        Configuration configuration,
+        Stream stream,
+        Image<TPixel> image,
+        CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        Buffer2D<TPixel> pixels = image.Frames.RootFrame.PixelBuffer;
-        switch (this.bitsPerPixel)
+        ImageFrame<TPixel>? clonedFrame = null;
+        try
         {
-            case BmpBitsPerPixel.Bit32:
-                this.Write32BitPixelData(configuration, stream, pixels);
-                break;
+            // No need to clone when quantizing. The quantizer will do it for us.
+            // TODO: We should really try to avoid the clone entirely.
+            int bpp = this.bitsPerPixel != null ? (int)this.bitsPerPixel : 32;
+            if (bpp > 8 && EncodingUtilities.ShouldReplaceTransparentPixels<TPixel>(this.transparentColorMode))
+            {
+                clonedFrame = image.Frames.RootFrame.Clone();
+                EncodingUtilities.ReplaceTransparentPixels(clonedFrame);
+            }
 
-            case BmpBitsPerPixel.Bit24:
-                this.Write24BitPixelData(configuration, stream, pixels);
-                break;
+            ImageFrame<TPixel> encodingFrame = clonedFrame ?? image.Frames.RootFrame;
+            Buffer2D<TPixel> pixels = encodingFrame.PixelBuffer;
 
-            case BmpBitsPerPixel.Bit16:
-                this.Write16BitPixelData(configuration, stream, pixels);
-                break;
+            switch (this.bitsPerPixel)
+            {
+                case BmpBitsPerPixel.Bit32:
+                    this.Write32BitPixelData(configuration, stream, pixels, cancellationToken);
+                    break;
 
-            case BmpBitsPerPixel.Bit8:
-                this.Write8BitPixelData(configuration, stream, image);
-                break;
+                case BmpBitsPerPixel.Bit24:
+                    this.Write24BitPixelData(configuration, stream, pixels, cancellationToken);
+                    break;
 
-            case BmpBitsPerPixel.Bit4:
-                this.Write4BitPixelData(configuration, stream, image);
-                break;
+                case BmpBitsPerPixel.Bit16:
+                    this.Write16BitPixelData(configuration, stream, pixels, cancellationToken);
+                    break;
 
-            case BmpBitsPerPixel.Bit2:
-                this.Write2BitPixelData(configuration, stream, image);
-                break;
+                case BmpBitsPerPixel.Bit8:
+                    this.Write8BitPixelData(configuration, stream, encodingFrame, cancellationToken);
+                    break;
 
-            case BmpBitsPerPixel.Bit1:
-                this.Write1BitPixelData(configuration, stream, image);
-                break;
+                case BmpBitsPerPixel.Bit4:
+                    this.Write4BitPixelData(configuration, stream, encodingFrame, cancellationToken);
+                    break;
+
+                case BmpBitsPerPixel.Bit2:
+                    this.Write2BitPixelData(configuration, stream, encodingFrame, cancellationToken);
+                    break;
+
+                case BmpBitsPerPixel.Bit1:
+                    this.Write1BitPixelData(configuration, stream, encodingFrame, cancellationToken);
+                    break;
+            }
+
+            if (this.processedAlphaMask)
+            {
+                ProcessedAlphaMask(stream, encodingFrame);
+            }
         }
-
-        if (this.processedAlphaMask)
+        finally
         {
-            ProcessedAlphaMask(stream, image);
+            clonedFrame?.Dispose();
         }
     }
 
@@ -396,7 +426,12 @@ internal sealed class BmpEncoderCore
     /// <param name="configuration">The global configuration.</param>
     /// <param name="stream">The <see cref="Stream"/> to write to.</param>
     /// <param name="pixels">The <see cref="Buffer2D{TPixel}"/> containing pixel data.</param>
-    private void Write32BitPixelData<TPixel>(Configuration configuration, Stream stream, Buffer2D<TPixel> pixels)
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+    private void Write32BitPixelData<TPixel>(
+        Configuration configuration,
+        Stream stream,
+        Buffer2D<TPixel> pixels,
+        CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         using IMemoryOwner<byte> row = this.AllocateRow(pixels.Width, 4);
@@ -404,6 +439,8 @@ internal sealed class BmpEncoderCore
 
         for (int y = pixels.Height - 1; y >= 0; y--)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             Span<TPixel> pixelSpan = pixels.DangerousGetRowSpan(y);
             PixelOperations<TPixel>.Instance.ToBgra32Bytes(
                 configuration,
@@ -421,7 +458,12 @@ internal sealed class BmpEncoderCore
     /// <param name="configuration">The global configuration.</param>
     /// <param name="stream">The <see cref="Stream"/> to write to.</param>
     /// <param name="pixels">The <see cref="Buffer2D{TPixel}"/> containing pixel data.</param>
-    private void Write24BitPixelData<TPixel>(Configuration configuration, Stream stream, Buffer2D<TPixel> pixels)
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+    private void Write24BitPixelData<TPixel>(
+        Configuration configuration,
+        Stream stream,
+        Buffer2D<TPixel> pixels,
+        CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         int width = pixels.Width;
@@ -431,6 +473,8 @@ internal sealed class BmpEncoderCore
 
         for (int y = pixels.Height - 1; y >= 0; y--)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             Span<TPixel> pixelSpan = pixels.DangerousGetRowSpan(y);
             PixelOperations<TPixel>.Instance.ToBgr24Bytes(
                 configuration,
@@ -448,7 +492,12 @@ internal sealed class BmpEncoderCore
     /// <param name="configuration">The global configuration.</param>
     /// <param name="stream">The <see cref="Stream"/> to write to.</param>
     /// <param name="pixels">The <see cref="Buffer2D{TPixel}"/> containing pixel data.</param>
-    private void Write16BitPixelData<TPixel>(Configuration configuration, Stream stream, Buffer2D<TPixel> pixels)
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+    private void Write16BitPixelData<TPixel>(
+        Configuration configuration,
+        Stream stream,
+        Buffer2D<TPixel> pixels,
+        CancellationToken cancellationToken)
     where TPixel : unmanaged, IPixel<TPixel>
     {
         int width = pixels.Width;
@@ -458,6 +507,8 @@ internal sealed class BmpEncoderCore
 
         for (int y = pixels.Height - 1; y >= 0; y--)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             Span<TPixel> pixelSpan = pixels.DangerousGetRowSpan(y);
 
             PixelOperations<TPixel>.Instance.ToBgra5551Bytes(
@@ -476,21 +527,32 @@ internal sealed class BmpEncoderCore
     /// <typeparam name="TPixel">The type of the pixel.</typeparam>
     /// <param name="configuration">The global configuration.</param>
     /// <param name="stream">The <see cref="Stream"/> to write to.</param>
-    /// <param name="image"> The <see cref="Image{TPixel}"/> containing pixel data.</param>
-    private void Write8BitPixelData<TPixel>(Configuration configuration, Stream stream, Image<TPixel> image)
+    /// <param name="encodingFrame"> The <see cref="ImageFrame{TPixel}"/> containing pixel data.</param>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+    private void Write8BitPixelData<TPixel>(
+        Configuration configuration,
+        Stream stream,
+        ImageFrame<TPixel> encodingFrame,
+        CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        bool isL8 = typeof(TPixel) == typeof(L8);
+        PixelTypeInfo info = TPixel.GetPixelTypeInfo();
+        bool is8BitLuminance =
+            info.BitsPerPixel == 8
+            && info.ColorType == PixelColorType.Luminance
+            && info.AlphaRepresentation == PixelAlphaRepresentation.None
+            && info.ComponentInfo!.Value.ComponentCount == 1;
+
         using IMemoryOwner<byte> colorPaletteBuffer = this.memoryAllocator.Allocate<byte>(ColorPaletteSize8Bit, AllocationOptions.Clean);
         Span<byte> colorPalette = colorPaletteBuffer.GetSpan();
 
-        if (isL8)
+        if (is8BitLuminance)
         {
-            this.Write8BitPixelData(stream, image, colorPalette);
+            this.Write8BitLuminancePixelData(stream, encodingFrame, colorPalette, cancellationToken);
         }
         else
         {
-            this.Write8BitColor(configuration, stream, image, colorPalette);
+            this.Write8BitColor(configuration, stream, encodingFrame, colorPalette, cancellationToken);
         }
     }
 
@@ -500,21 +562,29 @@ internal sealed class BmpEncoderCore
     /// <typeparam name="TPixel">The type of the pixel.</typeparam>
     /// <param name="configuration">The global configuration.</param>
     /// <param name="stream">The <see cref="Stream"/> to write to.</param>
-    /// <param name="image"> The <see cref="Image{TPixel}"/> containing pixel data.</param>
+    /// <param name="encodingFrame"> The <see cref="ImageFrame{TPixel}"/> containing pixel data.</param>
     /// <param name="colorPalette">A byte span of size 1024 for the color palette.</param>
-    private void Write8BitColor<TPixel>(Configuration configuration, Stream stream, Image<TPixel> image, Span<byte> colorPalette)
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+    private void Write8BitColor<TPixel>(
+        Configuration configuration,
+        Stream stream,
+        ImageFrame<TPixel> encodingFrame,
+        Span<byte> colorPalette,
+        CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         using IQuantizer<TPixel> frameQuantizer = this.quantizer.CreatePixelSpecificQuantizer<TPixel>(configuration);
 
-        frameQuantizer.BuildPalette(this.pixelSamplingStrategy, image);
-        using IndexedImageFrame<TPixel> quantized = frameQuantizer.QuantizeFrame(image.Frames.RootFrame, image.Bounds);
+        frameQuantizer.BuildPalette(this.pixelSamplingStrategy, encodingFrame);
+        using IndexedImageFrame<TPixel> quantized = frameQuantizer.QuantizeFrame(encodingFrame, encodingFrame.Bounds);
 
         ReadOnlySpan<TPixel> quantizedColorPalette = quantized.Palette.Span;
         WriteColorPalette(configuration, stream, quantizedColorPalette, colorPalette);
 
-        for (int y = image.Height - 1; y >= 0; y--)
+        for (int y = encodingFrame.Height - 1; y >= 0; y--)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             ReadOnlySpan<byte> pixelSpan = quantized.DangerousGetRowSpan(y);
             stream.Write(pixelSpan);
 
@@ -530,9 +600,14 @@ internal sealed class BmpEncoderCore
     /// </summary>
     /// <typeparam name="TPixel">The type of the pixel.</typeparam>
     /// <param name="stream">The <see cref="Stream"/> to write to.</param>
-    /// <param name="image"> The <see cref="ImageFrame{TPixel}"/> containing pixel data.</param>
+    /// <param name="encodingFrame"> The <see cref="ImageFrame{TPixel}"/> containing pixel data.</param>
     /// <param name="colorPalette">A byte span of size 1024 for the color palette.</param>
-    private void Write8BitPixelData<TPixel>(Stream stream, Image<TPixel> image, Span<byte> colorPalette)
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+    private void Write8BitLuminancePixelData<TPixel>(
+        Stream stream,
+        ImageFrame<TPixel> encodingFrame,
+        Span<byte> colorPalette,
+        CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         // Create a color palette with 256 different gray values.
@@ -549,9 +624,11 @@ internal sealed class BmpEncoderCore
         }
 
         stream.Write(colorPalette);
-        Buffer2D<TPixel> imageBuffer = image.GetRootFramePixelBuffer();
-        for (int y = image.Height - 1; y >= 0; y--)
+        Buffer2D<TPixel> imageBuffer = encodingFrame.PixelBuffer;
+        for (int y = encodingFrame.Height - 1; y >= 0; y--)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             ReadOnlySpan<TPixel> inputPixelRow = imageBuffer.DangerousGetRowSpan(y);
             ReadOnlySpan<byte> outputPixelRow = MemoryMarshal.AsBytes(inputPixelRow);
             stream.Write(outputPixelRow);
@@ -569,20 +646,25 @@ internal sealed class BmpEncoderCore
     /// <typeparam name="TPixel">The type of the pixel.</typeparam>
     /// <param name="configuration">The global configuration.</param>
     /// <param name="stream">The <see cref="Stream"/> to write to.</param>
-    /// <param name="image"> The <see cref="ImageFrame{TPixel}"/> containing pixel data.</param>
-    private void Write4BitPixelData<TPixel>(Configuration configuration, Stream stream, Image<TPixel> image)
+    /// <param name="encodingFrame"> The <see cref="ImageFrame{TPixel}"/> containing pixel data.</param>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+    private void Write4BitPixelData<TPixel>(
+        Configuration configuration,
+        Stream stream,
+        ImageFrame<TPixel> encodingFrame,
+        CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using IQuantizer<TPixel> frameQuantizer = this.quantizer.CreatePixelSpecificQuantizer<TPixel>(configuration, new QuantizerOptions()
+        using IQuantizer<TPixel> frameQuantizer = this.quantizer.CreatePixelSpecificQuantizer<TPixel>(configuration, new QuantizerOptions
         {
             MaxColors = 16,
             Dither = this.quantizer.Options.Dither,
             DitherScale = this.quantizer.Options.DitherScale
         });
 
-        frameQuantizer.BuildPalette(this.pixelSamplingStrategy, image);
+        frameQuantizer.BuildPalette(this.pixelSamplingStrategy, encodingFrame);
 
-        using IndexedImageFrame<TPixel> quantized = frameQuantizer.QuantizeFrame(image.Frames.RootFrame, image.Bounds);
+        using IndexedImageFrame<TPixel> quantized = frameQuantizer.QuantizeFrame(encodingFrame, encodingFrame.Bounds);
         using IMemoryOwner<byte> colorPaletteBuffer = this.memoryAllocator.Allocate<byte>(ColorPaletteSize4Bit, AllocationOptions.Clean);
 
         Span<byte> colorPalette = colorPaletteBuffer.GetSpan();
@@ -591,8 +673,10 @@ internal sealed class BmpEncoderCore
 
         ReadOnlySpan<byte> pixelRowSpan = quantized.DangerousGetRowSpan(0);
         int rowPadding = pixelRowSpan.Length % 2 != 0 ? this.padding - 1 : this.padding;
-        for (int y = image.Height - 1; y >= 0; y--)
+        for (int y = encodingFrame.Height - 1; y >= 0; y--)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             pixelRowSpan = quantized.DangerousGetRowSpan(y);
 
             int endIdx = pixelRowSpan.Length % 2 == 0 ? pixelRowSpan.Length : pixelRowSpan.Length - 1;
@@ -619,20 +703,25 @@ internal sealed class BmpEncoderCore
     /// <typeparam name="TPixel">The type of the pixel.</typeparam>
     /// <param name="configuration">The global configuration.</param>
     /// <param name="stream">The <see cref="Stream"/> to write to.</param>
-    /// <param name="image"> The <see cref="ImageFrame{TPixel}"/> containing pixel data.</param>
-    private void Write2BitPixelData<TPixel>(Configuration configuration, Stream stream, Image<TPixel> image)
+    /// <param name="encodingFrame"> The <see cref="ImageFrame{TPixel}"/> containing pixel data.</param>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+    private void Write2BitPixelData<TPixel>(
+        Configuration configuration,
+        Stream stream,
+        ImageFrame<TPixel> encodingFrame,
+        CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using IQuantizer<TPixel> frameQuantizer = this.quantizer.CreatePixelSpecificQuantizer<TPixel>(configuration, new QuantizerOptions()
+        using IQuantizer<TPixel> frameQuantizer = this.quantizer.CreatePixelSpecificQuantizer<TPixel>(configuration, new QuantizerOptions
         {
             MaxColors = 4,
             Dither = this.quantizer.Options.Dither,
             DitherScale = this.quantizer.Options.DitherScale
         });
 
-        frameQuantizer.BuildPalette(this.pixelSamplingStrategy, image);
+        frameQuantizer.BuildPalette(this.pixelSamplingStrategy, encodingFrame);
 
-        using IndexedImageFrame<TPixel> quantized = frameQuantizer.QuantizeFrame(image.Frames.RootFrame, image.Bounds);
+        using IndexedImageFrame<TPixel> quantized = frameQuantizer.QuantizeFrame(encodingFrame, encodingFrame.Bounds);
         using IMemoryOwner<byte> colorPaletteBuffer = this.memoryAllocator.Allocate<byte>(ColorPaletteSize2Bit, AllocationOptions.Clean);
 
         Span<byte> colorPalette = colorPaletteBuffer.GetSpan();
@@ -641,8 +730,10 @@ internal sealed class BmpEncoderCore
 
         ReadOnlySpan<byte> pixelRowSpan = quantized.DangerousGetRowSpan(0);
         int rowPadding = pixelRowSpan.Length % 4 != 0 ? this.padding - 1 : this.padding;
-        for (int y = image.Height - 1; y >= 0; y--)
+        for (int y = encodingFrame.Height - 1; y >= 0; y--)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             pixelRowSpan = quantized.DangerousGetRowSpan(y);
 
             int endIdx = pixelRowSpan.Length % 4 == 0 ? pixelRowSpan.Length : pixelRowSpan.Length - 4;
@@ -678,20 +769,25 @@ internal sealed class BmpEncoderCore
     /// <typeparam name="TPixel">The type of the pixel.</typeparam>
     /// <param name="configuration">The global configuration.</param>
     /// <param name="stream">The <see cref="Stream"/> to write to.</param>
-    /// <param name="image"> The <see cref="ImageFrame{TPixel}"/> containing pixel data.</param>
-    private void Write1BitPixelData<TPixel>(Configuration configuration, Stream stream, Image<TPixel> image)
+    /// <param name="encodingFrame"> The <see cref="ImageFrame{TPixel}"/> containing pixel data.</param>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+    private void Write1BitPixelData<TPixel>(
+        Configuration configuration,
+        Stream stream,
+        ImageFrame<TPixel> encodingFrame,
+        CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using IQuantizer<TPixel> frameQuantizer = this.quantizer.CreatePixelSpecificQuantizer<TPixel>(configuration, new QuantizerOptions()
+        using IQuantizer<TPixel> frameQuantizer = this.quantizer.CreatePixelSpecificQuantizer<TPixel>(configuration, new QuantizerOptions
         {
             MaxColors = 2,
             Dither = this.quantizer.Options.Dither,
             DitherScale = this.quantizer.Options.DitherScale
         });
 
-        frameQuantizer.BuildPalette(this.pixelSamplingStrategy, image);
+        frameQuantizer.BuildPalette(this.pixelSamplingStrategy, encodingFrame);
 
-        using IndexedImageFrame<TPixel> quantized = frameQuantizer.QuantizeFrame(image.Frames.RootFrame, image.Bounds);
+        using IndexedImageFrame<TPixel> quantized = frameQuantizer.QuantizeFrame(encodingFrame, encodingFrame.Bounds);
         using IMemoryOwner<byte> colorPaletteBuffer = this.memoryAllocator.Allocate<byte>(ColorPaletteSize1Bit, AllocationOptions.Clean);
 
         Span<byte> colorPalette = colorPaletteBuffer.GetSpan();
@@ -700,8 +796,10 @@ internal sealed class BmpEncoderCore
 
         ReadOnlySpan<byte> quantizedPixelRow = quantized.DangerousGetRowSpan(0);
         int rowPadding = quantizedPixelRow.Length % 8 != 0 ? this.padding - 1 : this.padding;
-        for (int y = image.Height - 1; y >= 0; y--)
+        for (int y = encodingFrame.Height - 1; y >= 0; y--)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             quantizedPixelRow = quantized.DangerousGetRowSpan(y);
 
             int endIdx = quantizedPixelRow.Length % 8 == 0 ? quantizedPixelRow.Length : quantizedPixelRow.Length - 8;
@@ -766,10 +864,10 @@ internal sealed class BmpEncoderCore
         stream.WriteByte(indices);
     }
 
-    private static void ProcessedAlphaMask<TPixel>(Stream stream, Image<TPixel> image)
+    private static void ProcessedAlphaMask<TPixel>(Stream stream, ImageFrame<TPixel> encodingFrame)
          where TPixel : unmanaged, IPixel<TPixel>
     {
-        int arrayWidth = image.Width / 8;
+        int arrayWidth = encodingFrame.Width / 8;
         int padding = arrayWidth % 4;
         if (padding is not 0)
         {
@@ -777,10 +875,10 @@ internal sealed class BmpEncoderCore
         }
 
         Span<byte> mask = stackalloc byte[arrayWidth];
-        for (int y = image.Height - 1; y >= 0; y--)
+        for (int y = encodingFrame.Height - 1; y >= 0; y--)
         {
             mask.Clear();
-            Span<TPixel> row = image.GetRootFramePixelBuffer().DangerousGetRowSpan(y);
+            Span<TPixel> row = encodingFrame.PixelBuffer.DangerousGetRowSpan(y);
 
             for (int i = 0; i < arrayWidth; i++)
             {

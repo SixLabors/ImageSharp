@@ -2,7 +2,6 @@
 // Licensed under the Six Labors Split License.
 
 using System.Buffers;
-using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -42,7 +41,7 @@ public static partial class ProcessingExtensions
     /// <returns>The <see cref="Buffer2D{T}"/> containing all the sums.</returns>
     public static Buffer2D<ulong> CalculateIntegralImage<TPixel>(this ImageFrame<TPixel> source)
         where TPixel : unmanaged, IPixel<TPixel>
-        => source.CalculateIntegralImage(source.Bounds());
+        => source.CalculateIntegralImage(source.Bounds);
 
     /// <summary>
     /// Apply an image integral. <See href="https://en.wikipedia.org/wiki/Summed-area_table"/>
@@ -56,7 +55,7 @@ public static partial class ProcessingExtensions
     {
         Configuration configuration = source.Configuration;
 
-        var interest = Rectangle.Intersect(bounds, source.Bounds());
+        Rectangle interest = Rectangle.Intersect(bounds, source.Bounds);
         int startY = interest.Y;
         int startX = interest.X;
         int endY = interest.Height;

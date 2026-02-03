@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Tga;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
@@ -10,6 +11,7 @@ using static SixLabors.ImageSharp.Tests.TestImages.Tga;
 namespace SixLabors.ImageSharp.Tests.Formats.Tga;
 
 [Trait("Format", "Tga")]
+[ValidateDisposedMemoryAllocations]
 public class TgaEncoderTests
 {
     public static readonly TheoryData<TgaBitsPerPixel> BitsPerPixel =
@@ -32,43 +34,35 @@ public class TgaEncoderTests
     [MemberData(nameof(TgaBitsPerPixelFiles))]
     public void TgaEncoder_PreserveBitsPerPixel(string imagePath, TgaBitsPerPixel bmpBitsPerPixel)
     {
-        var options = new TgaEncoder();
+        TgaEncoder options = new();
 
-        var testFile = TestFile.Create(imagePath);
-        using (Image<Rgba32> input = testFile.CreateRgba32Image())
-        {
-            using (var memStream = new MemoryStream())
-            {
-                input.Save(memStream, options);
-                memStream.Position = 0;
-                using (var output = Image.Load<Rgba32>(memStream))
-                {
-                    TgaMetadata meta = output.Metadata.GetTgaMetadata();
-                    Assert.Equal(bmpBitsPerPixel, meta.BitsPerPixel);
-                }
-            }
-        }
+        TestFile testFile = TestFile.Create(imagePath);
+        using Image<Rgba32> input = testFile.CreateRgba32Image();
+        using MemoryStream memStream = new();
+
+        input.Save(memStream, options);
+        memStream.Position = 0;
+
+        using Image<Rgba32> output = Image.Load<Rgba32>(memStream);
+        TgaMetadata meta = output.Metadata.GetTgaMetadata();
+        Assert.Equal(bmpBitsPerPixel, meta.BitsPerPixel);
     }
 
     [Theory]
     [MemberData(nameof(TgaBitsPerPixelFiles))]
     public void TgaEncoder_WithCompression_PreserveBitsPerPixel(string imagePath, TgaBitsPerPixel bmpBitsPerPixel)
     {
-        var options = new TgaEncoder() { Compression = TgaCompression.RunLength };
-        var testFile = TestFile.Create(imagePath);
-        using (Image<Rgba32> input = testFile.CreateRgba32Image())
-        {
-            using (var memStream = new MemoryStream())
-            {
-                input.Save(memStream, options);
-                memStream.Position = 0;
-                using (var output = Image.Load<Rgba32>(memStream))
-                {
-                    TgaMetadata meta = output.Metadata.GetTgaMetadata();
-                    Assert.Equal(bmpBitsPerPixel, meta.BitsPerPixel);
-                }
-            }
-        }
+        TgaEncoder options = new() { Compression = TgaCompression.RunLength };
+        TestFile testFile = TestFile.Create(imagePath);
+        using Image<Rgba32> input = testFile.CreateRgba32Image();
+        using MemoryStream memStream = new();
+
+        input.Save(memStream, options);
+        memStream.Position = 0;
+
+        using Image<Rgba32> output = Image.Load<Rgba32>(memStream);
+        TgaMetadata meta = output.Metadata.GetTgaMetadata();
+        Assert.Equal(bmpBitsPerPixel, meta.BitsPerPixel);
     }
 
     [Theory]
@@ -136,17 +130,13 @@ public class TgaEncoderTests
     [Fact]
     public void TgaEncoder_RunLengthDoesNotCrossRowBoundaries()
     {
-        var options = new TgaEncoder() { Compression = TgaCompression.RunLength };
+        TgaEncoder options = new() { Compression = TgaCompression.RunLength };
 
-        using (var input = new Image<Rgba32>(30, 30))
-        {
-            using (var memStream = new MemoryStream())
-            {
-                input.Save(memStream, options);
-                byte[] imageBytes = memStream.ToArray();
-                Assert.Equal(138, imageBytes.Length);
-            }
-        }
+        using Image<Rgba32> input = new(30, 30);
+        using MemoryStream memStream = new();
+        input.Save(memStream, options);
+        byte[] imageBytes = memStream.ToArray();
+        Assert.Equal(138, imageBytes.Length);
     }
 
     [Theory]
@@ -159,6 +149,65 @@ public class TgaEncoderTests
         TestTgaEncoderCore(provider, bitsPerPixel, TgaCompression.RunLength);
     }
 
+    [Fact]
+    public void Encode_WithTransparentColorBehaviorClear_Works()
+    {
+        // arrange
+        using Image<Rgba32> image = new(50, 50);
+        TgaEncoder encoder = new()
+        {
+            BitsPerPixel = TgaBitsPerPixel.Bit32,
+            TransparentColorMode = TransparentColorMode.Clear,
+        };
+        Rgba32 rgba32 = Color.Blue.ToPixel<Rgba32>();
+        image.ProcessPixelRows(accessor =>
+        {
+            for (int y = 0; y < image.Height; y++)
+            {
+                Span<Rgba32> rowSpan = accessor.GetRowSpan(y);
+
+                // Half of the test image should be transparent.
+                if (y > 25)
+                {
+                    rgba32.A = 0;
+                }
+
+                for (int x = 0; x < image.Width; x++)
+                {
+                    rowSpan[x] = Rgba32.FromRgba32(rgba32);
+                }
+            }
+        });
+
+        // act
+        using MemoryStream memStream = new();
+        image.Save(memStream, encoder);
+
+        // assert
+        memStream.Position = 0;
+        using Image<Rgba32> actual = Image.Load<Rgba32>(memStream);
+        Rgba32 expectedColor = Color.Blue.ToPixel<Rgba32>();
+
+        actual.ProcessPixelRows(accessor =>
+        {
+            Rgba32 transparent = Color.Transparent.ToPixel<Rgba32>();
+            for (int y = 0; y < accessor.Height; y++)
+            {
+                Span<Rgba32> rowSpan = accessor.GetRowSpan(y);
+
+                if (y > 25)
+                {
+                    expectedColor = transparent;
+                }
+
+                for (int x = 0; x < accessor.Width; x++)
+                {
+                    Assert.Equal(expectedColor, rowSpan[x]);
+                }
+            }
+        });
+    }
+
     private static void TestTgaEncoderCore<TPixel>(
         TestImageProvider<TPixel> provider,
         TgaBitsPerPixel bitsPerPixel,
@@ -167,20 +216,15 @@ public class TgaEncoderTests
         float compareTolerance = 0.01f)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using (Image<TPixel> image = provider.GetImage())
-        {
-            var encoder = new TgaEncoder { BitsPerPixel = bitsPerPixel, Compression = compression };
+        using Image<TPixel> image = provider.GetImage();
+        TgaEncoder encoder = new() { BitsPerPixel = bitsPerPixel, Compression = compression };
 
-            using (var memStream = new MemoryStream())
-            {
-                image.DebugSave(provider, encoder);
-                image.Save(memStream, encoder);
-                memStream.Position = 0;
-                using (var encodedImage = (Image<TPixel>)Image.Load(memStream))
-                {
-                    ImageComparingUtils.CompareWithReferenceDecoder(provider, encodedImage, useExactComparer, compareTolerance);
-                }
-            }
-        }
+        using MemoryStream memStream = new();
+        image.DebugSave(provider, encoder);
+        image.Save(memStream, encoder);
+        memStream.Position = 0;
+
+        using Image<TPixel> encodedImage = (Image<TPixel>)Image.Load(memStream);
+        ImageComparingUtils.CompareWithReferenceDecoder(provider, encodedImage, useExactComparer, compareTolerance);
     }
 }

@@ -31,12 +31,12 @@ public static class VonKriesChromaticAdaptation
 
         if (from.Equals(to))
         {
-            return new(source.X, source.Y, source.Z);
+            return new CieXyz(source.X, source.Y, source.Z);
         }
 
-        Vector3 sourceColorLms = Vector3.Transform(source.ToVector3(), matrix);
-        Vector3 sourceWhitePointLms = Vector3.Transform(from.ToVector3(), matrix);
-        Vector3 targetWhitePointLms = Vector3.Transform(to.ToVector3(), matrix);
+        Vector3 sourceColorLms = Vector3.Transform(source.AsVector3Unsafe(), matrix);
+        Vector3 sourceWhitePointLms = Vector3.Transform(from.AsVector3Unsafe(), matrix);
+        Vector3 targetWhitePointLms = Vector3.Transform(to.AsVector3Unsafe(), matrix);
 
         Vector3 vector = targetWhitePointLms / sourceWhitePointLms;
         Vector3 targetColorLms = Vector3.Multiply(vector, sourceColorLms);
@@ -76,8 +76,8 @@ public static class VonKriesChromaticAdaptation
         ref CieXyz sourceBase = ref MemoryMarshal.GetReference(source);
         ref CieXyz destinationBase = ref MemoryMarshal.GetReference(destination);
 
-        Vector3 sourceWhitePointLms = Vector3.Transform(from.ToVector3(), matrix);
-        Vector3 targetWhitePointLms = Vector3.Transform(to.ToVector3(), matrix);
+        Vector3 sourceWhitePointLms = Vector3.Transform(from.AsVector3Unsafe(), matrix);
+        Vector3 targetWhitePointLms = Vector3.Transform(to.AsVector3Unsafe(), matrix);
 
         Vector3 vector = targetWhitePointLms / sourceWhitePointLms;
 
@@ -86,7 +86,7 @@ public static class VonKriesChromaticAdaptation
             ref CieXyz sp = ref Unsafe.Add(ref sourceBase, i);
             ref CieXyz dp = ref Unsafe.Add(ref destinationBase, i);
 
-            Vector3 sourceColorLms = Vector3.Transform(sp.ToVector3(), matrix);
+            Vector3 sourceColorLms = Vector3.Transform(sp.AsVector3Unsafe(), matrix);
 
             Vector3 targetColorLms = Vector3.Multiply(vector, sourceColorLms);
             dp = new CieXyz(Vector3.Transform(targetColorLms, inverseMatrix));

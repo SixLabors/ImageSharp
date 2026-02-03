@@ -14,7 +14,7 @@ public class LightnessTest
     private readonly ImageComparer imageComparer = ImageComparer.Tolerant(0.007F);
 
     public static readonly TheoryData<float> LightnessValues
-    = new TheoryData<float>
+    = new()
     {
         .5F,
         1.5F

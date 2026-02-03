@@ -44,7 +44,7 @@ internal sealed class TiffPaletteWriter<TPixel> : TiffBaseColorWriter<TPixel>
         this.colorPaletteBytes = this.colorPaletteSize * 2;
         using IQuantizer<TPixel> frameQuantizer = quantizer.CreatePixelSpecificQuantizer<TPixel>(
             this.Configuration,
-            new QuantizerOptions()
+            new QuantizerOptions
             {
                 MaxColors = this.maxColors
             });

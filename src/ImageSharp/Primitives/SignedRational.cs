@@ -42,7 +42,7 @@ public readonly struct SignedRational : IEquatable<SignedRational>
     {
         if (simplify)
         {
-            var rational = new LongRational(numerator, denominator).Simplify();
+            LongRational rational = new LongRational(numerator, denominator).Simplify();
 
             this.Numerator = (int)rational.Numerator;
             this.Denominator = (int)rational.Denominator;
@@ -70,7 +70,7 @@ public readonly struct SignedRational : IEquatable<SignedRational>
     /// <param name="bestPrecision">Whether to use the best possible precision when parsing the value.</param>
     public SignedRational(double value, bool bestPrecision)
     {
-        var rational = LongRational.FromDouble(value, bestPrecision);
+        LongRational rational = LongRational.FromDouble(value, bestPrecision);
 
         this.Numerator = (int)rational.Numerator;
         this.Denominator = (int)rational.Denominator;
@@ -142,8 +142,8 @@ public readonly struct SignedRational : IEquatable<SignedRational>
     /// <inheritdoc/>
     public bool Equals(SignedRational other)
     {
-        var left = new LongRational(this.Numerator, this.Denominator);
-        var right = new LongRational(other.Numerator, other.Denominator);
+        LongRational left = new(this.Numerator, this.Denominator);
+        LongRational right = new(other.Numerator, other.Denominator);
 
         return left.Equals(right);
     }
@@ -151,7 +151,7 @@ public readonly struct SignedRational : IEquatable<SignedRational>
     /// <inheritdoc/>
     public override int GetHashCode()
     {
-        var self = new LongRational(this.Numerator, this.Denominator);
+        LongRational self = new(this.Numerator, this.Denominator);
         return self.GetHashCode();
     }
 
@@ -182,7 +182,7 @@ public readonly struct SignedRational : IEquatable<SignedRational>
     /// <returns>The <see cref="string"/></returns>
     public string ToString(IFormatProvider provider)
     {
-        var rational = new LongRational(this.Numerator, this.Denominator);
+        LongRational rational = new(this.Numerator, this.Denominator);
         return rational.ToString(provider);
     }
 }

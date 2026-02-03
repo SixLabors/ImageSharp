@@ -1,26 +1,13 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
-
-using SixLabors.ImageSharp.Processing.Processors.Quantization;
 
 namespace SixLabors.ImageSharp.Formats.Png;
 
 /// <summary>
 /// Image encoder for writing image data to a stream in png format.
 /// </summary>
-public class PngEncoder : QuantizingImageEncoder
+public class PngEncoder : QuantizingAnimatedImageEncoder
 {
-    /// <summary>
-    /// Initializes a new instance of the <see cref="PngEncoder"/> class.
-    /// </summary>
-    public PngEncoder()
-
-        // Hack. TODO: Investigate means to fix/optimize the Wu quantizer.
-        // The Wu quantizer does not handle the default sampling strategy well for some larger images.
-        // It's expensive and the results are not better than the extensive strategy.
-        => this.PixelSamplingStrategy = new ExtensivePixelSamplingStrategy();
-
     /// <summary>
     /// Gets the number of bits per sample or per palette index (not per pixel).
     /// Not all values are allowed for all <see cref="ColorType" /> values.
@@ -55,11 +42,6 @@ public class PngEncoder : QuantizingImageEncoder
     public float? Gamma { get; init; }
 
     /// <summary>
-    /// Gets the transparency threshold.
-    /// </summary>
-    public byte Threshold { get; init; } = byte.MaxValue;
-
-    /// <summary>
     /// Gets a value indicating whether this instance should write an Adam7 interlaced image.
     /// </summary>
     public PngInterlaceMode? InterlaceMethod { get; init; }
@@ -68,12 +50,6 @@ public class PngEncoder : QuantizingImageEncoder
     /// Gets the chunk filter method. This allows to filter ancillary chunks.
     /// </summary>
     public PngChunkFilter? ChunkFilter { get; init; }
-
-    /// <summary>
-    /// Gets a value indicating whether fully transparent pixels that may contain R, G, B values which are not 0,
-    /// should be converted to transparent black, which can yield in better compression in some cases.
-    /// </summary>
-    public PngTransparentColorMode TransparentColorMode { get; init; }
 
     /// <inheritdoc/>
     protected override void Encode<TPixel>(Image<TPixel> image, Stream stream, CancellationToken cancellationToken)

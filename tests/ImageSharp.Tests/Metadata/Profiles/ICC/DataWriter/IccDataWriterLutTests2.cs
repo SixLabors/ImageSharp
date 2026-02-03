@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
+using SixLabors.ImageSharp.Tests.TestDataIcc;
 
 namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.ICC.DataWriter;
 
@@ -80,8 +81,5 @@ public class IccDataWriterLutTests2
         Assert.Equal(expected, output);
     }
 
-    private static IccDataWriter CreateWriter()
-    {
-        return new IccDataWriter();
-    }
+    private static IccDataWriter CreateWriter() => new();
 }

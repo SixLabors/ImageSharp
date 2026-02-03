@@ -58,7 +58,7 @@ internal sealed unsafe partial class JpegEncoderCore
         Guard.NotNull(image, nameof(image));
         Guard.NotNull(stream, nameof(stream));
 
-        if (image.Width >= JpegConstants.MaxLength || image.Height >= JpegConstants.MaxLength)
+        if (image.Width > JpegConstants.MaxLength || image.Height > JpegConstants.MaxLength)
         {
             JpegThrowHelper.ThrowDimensionsTooLarge(image.Width, image.Height);
         }

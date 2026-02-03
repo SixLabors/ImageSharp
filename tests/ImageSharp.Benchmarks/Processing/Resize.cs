@@ -12,17 +12,17 @@ using SDImage = System.Drawing.Image;
 
 namespace SixLabors.ImageSharp.Benchmarks;
 
-[Config(typeof(Config.Standard))]
+[Config(typeof(Config.StandardInProcess))]
 public abstract class Resize<TPixel>
     where TPixel : unmanaged, IPixel<TPixel>
 {
-    private byte[] bytes = null;
+    private byte[] bytes;
 
     private Image<TPixel> sourceImage;
 
     private SDImage sourceBitmap;
 
-    protected Configuration Configuration { get; } = new Configuration(new JpegConfigurationModule());
+    protected Configuration Configuration { get; } = new(new JpegConfigurationModule());
 
     protected int DestSize { get; private set; }
 
@@ -35,7 +35,7 @@ public abstract class Resize<TPixel>
 
             this.sourceImage = Image.Load<TPixel>(this.bytes);
 
-            var ms1 = new MemoryStream(this.bytes);
+            MemoryStream ms1 = new(this.bytes);
             this.sourceBitmap = SDImage.FromStream(ms1);
             this.DestSize = this.sourceBitmap.Width / 2;
         }
@@ -52,21 +52,19 @@ public abstract class Resize<TPixel>
     [Benchmark(Baseline = true)]
     public int SystemDrawing()
     {
-        using (var destination = new Bitmap(this.DestSize, this.DestSize))
+        using Bitmap destination = new(this.DestSize, this.DestSize);
+        using (Graphics g = Graphics.FromImage(destination))
         {
-            using (var g = Graphics.FromImage(destination))
-            {
-                g.CompositingMode = CompositingMode.SourceCopy;
-                g.InterpolationMode = InterpolationMode.HighQualityBicubic;
-                g.PixelOffsetMode = PixelOffsetMode.HighQuality;
-                g.CompositingQuality = CompositingQuality.HighQuality;
-                g.SmoothingMode = SmoothingMode.HighQuality;
+            g.CompositingMode = CompositingMode.SourceCopy;
+            g.InterpolationMode = InterpolationMode.HighQualityBicubic;
+            g.PixelOffsetMode = PixelOffsetMode.HighQuality;
+            g.CompositingQuality = CompositingQuality.HighQuality;
+            g.SmoothingMode = SmoothingMode.HighQuality;
 
-                g.DrawImage(this.sourceBitmap, 0, 0, this.DestSize, this.DestSize);
-            }
-
-            return destination.Width;
+            g.DrawImage(this.sourceBitmap, 0, 0, this.DestSize, this.DestSize);
         }
+
+        return destination.Width;
     }
 
     [Benchmark(Description = "ImageSharp, MaxDegreeOfParallelism = 1")]
@@ -87,10 +85,8 @@ public abstract class Resize<TPixel>
     {
         this.Configuration.MaxDegreeOfParallelism = maxDegreeOfParallelism;
 
-        using (Image<TPixel> clone = this.sourceImage.Clone(this.ExecuteResizeOperation))
-        {
-            return clone.Width;
-        }
+        using Image<TPixel> clone = this.sourceImage.Clone(this.ExecuteResizeOperation);
+        return clone.Width;
     }
 
     protected abstract void ExecuteResizeOperation(IImageProcessingContext ctx);

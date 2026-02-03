@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.Formats.Webp;
 public sealed class WebpDecoderOptions : ISpecializedDecoderOptions
 {
     /// <inheritdoc/>
-    public DecoderOptions GeneralOptions { get; init; } = new DecoderOptions();
+    public DecoderOptions GeneralOptions { get; init; } = new();
 
     /// <summary>
     /// Gets the flag to decide how to handle the background color Animation Chunk.

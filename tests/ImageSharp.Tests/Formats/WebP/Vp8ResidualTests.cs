@@ -239,7 +239,7 @@ public class Vp8ResidualTests
     {
         // arrange
         Vp8Residual residual = new();
-        short[] coeffs = { 110, 0, -2, 0, 0, 0, 0, 0, 0, -1, 0, 0, 0, 0, 0, 0 };
+        short[] coeffs = [110, 0, -2, 0, 0, 0, 0, 0, 0, -1, 0, 0, 0, 0, 0, 0];
 
         // act
         residual.SetCoeffs(coeffs);
@@ -252,5 +252,5 @@ public class Vp8ResidualTests
     public void SetCoeffsTest_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunSetCoeffsTest, HwIntrinsics.AllowAll);
 
     [Fact]
-    public void SetCoeffsTest_WithoutSSE2_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunSetCoeffsTest, HwIntrinsics.DisableSSE2);
+    public void SetCoeffsTest_WithoutSSE2_Works() => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunSetCoeffsTest, HwIntrinsics.DisableHWIntrinsic);
 }

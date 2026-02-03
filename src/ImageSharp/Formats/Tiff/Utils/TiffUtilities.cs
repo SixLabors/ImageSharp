@@ -45,7 +45,12 @@ internal static class TiffUtilities
             return TPixel.FromRgba64(default);
         }
 
-        return TPixel.FromRgba64(new((ushort)(r / a), (ushort)(g / a), (ushort)(b / a), a));
+        float scale = 65535f / a;
+        ushort ur = (ushort)Math.Min(r * scale, 65535);
+        ushort ug = (ushort)Math.Min(g * scale, 65535);
+        ushort ub = (ushort)Math.Min(b * scale, 65535);
+
+        return TPixel.FromRgba64(new Rgba64(ur, ug, ub, a));
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

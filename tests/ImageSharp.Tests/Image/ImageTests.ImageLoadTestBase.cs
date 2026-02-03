@@ -35,7 +35,7 @@ public partial class ImageTests
 
         public Configuration LocalConfiguration { get; }
 
-        public TestFormat TestFormat { get; } = new TestFormat();
+        public TestFormat TestFormat { get; } = new();
 
         /// <summary>
         /// Gets the top-level configuration in the context of this test case.
@@ -58,7 +58,7 @@ public partial class ImageTests
             // TODO: Remove all this mocking. It's too complicated and we can now use fakes.
             this.localStreamReturnImageRgba32 = new Image<Rgba32>(1, 1);
             this.localStreamReturnImageAgnostic = new Image<Bgra4444>(1, 1);
-            this.LocalImageInfo = new(new(1, 1), new ImageMetadata() { DecodedImageFormat = PngFormat.Instance });
+            this.LocalImageInfo = new ImageInfo(new Size(1, 1), new ImageMetadata { DecodedImageFormat = PngFormat.Instance });
 
             this.localImageFormatMock = new Mock<IImageFormat>();
 

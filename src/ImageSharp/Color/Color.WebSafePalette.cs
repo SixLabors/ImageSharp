@@ -8,15 +8,15 @@ namespace SixLabors.ImageSharp;
 /// </content>
 public partial struct Color
 {
-    private static readonly Lazy<Color[]> WebSafePaletteLazy = new Lazy<Color[]>(CreateWebSafePalette, true);
+    private static readonly Lazy<Color[]> WebSafePaletteLazy = new(CreateWebSafePalette, true);
 
     /// <summary>
     /// Gets a collection of named, web safe colors as defined in the CSS Color Module Level 4.
     /// </summary>
     public static ReadOnlyMemory<Color> WebSafePalette => WebSafePaletteLazy.Value;
 
-    private static Color[] CreateWebSafePalette() => new[]
-    {
+    private static Color[] CreateWebSafePalette() =>
+    [
         AliceBlue,
         AntiqueWhite,
         Aqua,
@@ -159,5 +159,5 @@ public partial struct Color
         WhiteSmoke,
         Yellow,
         YellowGreen
-    };
+    ];
 }

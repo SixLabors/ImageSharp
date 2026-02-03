@@ -37,13 +37,13 @@ public static class TestFontUtilities
     /// </returns>
     private static string GetFontsDirectory()
     {
-        List<string> directories = new List<string>
-        {
-             "TestFonts/", // Here for code coverage tests.
-             "tests/ImageSharp.Tests/TestFonts/", // from travis/build script
-             "../../../../../ImageSharp.Tests/TestFonts/", // from Sandbox46
-             "../../../../TestFonts/"
-        };
+        List<string> directories =
+        [
+            "TestFonts/", // Here for code coverage tests.
+            "tests/ImageSharp.Tests/TestFonts/", // from travis/build script
+            "../../../../../ImageSharp.Tests/TestFonts/", // from Sandbox46
+            "../../../../TestFonts/"
+        ];
 
         directories = directories.SelectMany(x => new[]
                                  {
@@ -59,7 +59,7 @@ public static class TestFontUtilities
             return directory;
         }
 
-        throw new System.Exception($"Unable to find Fonts directory at any of these locations [{string.Join(", ", directories)}]");
+        throw new Exception($"Unable to find Fonts directory at any of these locations [{string.Join(", ", directories)}]");
     }
 
     /// <summary>

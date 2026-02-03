@@ -63,7 +63,6 @@ internal abstract class IconEncoderCore
             this.entries[i].Entry.ImageOffset = (uint)stream.Position;
 
             // We crop the frame to the size specified in the metadata.
-            // TODO: we can optimize this by cropping the frame only if the new size is both required and different.
             using Image<TPixel> encodingFrame = new(width, height);
             for (int y = 0; y < height; y++)
             {
@@ -82,6 +81,8 @@ internal abstract class IconEncoderCore
                     UseDoubleHeight = true,
                     SkipFileHeader = true,
                     SupportTransparency = false,
+                    TransparentColorMode = this.encoder.TransparentColorMode,
+                    PixelSamplingStrategy = this.encoder.PixelSamplingStrategy,
                     BitsPerPixel = encodingMetadata.BmpBitsPerPixel
                 },
                 IconFrameCompression.Png => new PngEncoder()
@@ -90,6 +91,7 @@ internal abstract class IconEncoderCore
                     // https://devblogs.microsoft.com/oldnewthing/20101022-00/?p=12473
                     BitDepth = PngBitDepth.Bit8,
                     ColorType = PngColorType.RgbWithAlpha,
+                    TransparentColorMode = this.encoder.TransparentColorMode,
                     CompressionLevel = PngCompressionLevel.BestCompression
                 },
                 _ => throw new NotSupportedException(),
@@ -114,21 +116,21 @@ internal abstract class IconEncoderCore
     [MemberNotNull(nameof(entries))]
     private void InitHeader(Image image)
     {
-        this.fileHeader = new(this.iconFileType, (ushort)image.Frames.Count);
+        this.fileHeader = new IconDir(this.iconFileType, (ushort)image.Frames.Count);
         this.entries = this.iconFileType switch
         {
             IconFileType.ICO =>
-            image.Frames.Select(i =>
+            [.. image.Frames.Select(i =>
             {
                 IcoFrameMetadata metadata = i.Metadata.GetIcoMetadata();
-                return new EncodingFrameMetadata(metadata.Compression, metadata.BmpBitsPerPixel, metadata.ColorTable, metadata.ToIconDirEntry());
-            }).ToArray(),
+                return new EncodingFrameMetadata(metadata.Compression, metadata.BmpBitsPerPixel, metadata.ColorTable, metadata.ToIconDirEntry(i.Size));
+            })],
             IconFileType.CUR =>
-            image.Frames.Select(i =>
+            [.. image.Frames.Select(i =>
             {
                 CurFrameMetadata metadata = i.Metadata.GetCurMetadata();
-                return new EncodingFrameMetadata(metadata.Compression, metadata.BmpBitsPerPixel, metadata.ColorTable, metadata.ToIconDirEntry());
-            }).ToArray(),
+                return new EncodingFrameMetadata(metadata.Compression, metadata.BmpBitsPerPixel, metadata.ColorTable, metadata.ToIconDirEntry(i.Size));
+            })],
             _ => throw new NotSupportedException(),
         };
     }
@@ -147,14 +149,20 @@ internal abstract class IconEncoderCore
 
         if (metadata.ColorTable is null)
         {
-            return new WuQuantizer(new()
+            int count = metadata.Entry.ColorCount;
+            if (count == 0)
             {
-                MaxColors = metadata.Entry.ColorCount
+                count = 256;
+            }
+
+            return new WuQuantizer(new QuantizerOptions
+            {
+                MaxColors = count
             });
         }
 
         // Don't dither if we have a palette. We want to preserve as much information as possible.
-        return new PaletteQuantizer(metadata.ColorTable.Value, new() { Dither = null });
+        return new PaletteQuantizer(metadata.ColorTable.Value, new QuantizerOptions { Dither = null });
     }
 
     internal sealed class EncodingFrameMetadata

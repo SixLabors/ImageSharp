@@ -48,6 +48,9 @@ internal class ProjectiveTransformProcessor<TPixel> : TransformProcessor<TPixel>
     }
 
     /// <inheritdoc/>
+    protected override Matrix4x4 GetTransformMatrix() => this.transformMatrix;
+
+    /// <inheritdoc/>
     public void ApplyTransform<TResampler>(in TResampler sampler)
         where TResampler : struct, IResampler
     {
@@ -61,7 +64,7 @@ internal class ProjectiveTransformProcessor<TPixel> : TransformProcessor<TPixel>
         if (matrix.Equals(Matrix4x4.Identity))
         {
             // The clone will be blank here copy all the pixel data over
-            Rectangle interest = Rectangle.Intersect(this.SourceRectangle, destination.Bounds());
+            Rectangle interest = Rectangle.Intersect(this.SourceRectangle, destination.Bounds);
             Buffer2DRegion<TPixel> sourceBuffer = source.PixelBuffer.GetRegion(interest);
             Buffer2DRegion<TPixel> destinationBuffer = destination.PixelBuffer.GetRegion(interest);
             for (int y = 0; y < sourceBuffer.Height; y++)
@@ -72,20 +75,22 @@ internal class ProjectiveTransformProcessor<TPixel> : TransformProcessor<TPixel>
             return;
         }
 
-        // Convert from screen to world space.
+        // All matrices are defined in normalized coordinate space so we need to convert to pixel space.
+        // After normalization we need to invert the matrix for correct sampling.
+        matrix = TransformUtilities.NormalizeToPixel(matrix);
         Matrix4x4.Invert(matrix, out matrix);
 
         if (sampler is NearestNeighborResampler)
         {
             NNProjectiveOperation nnOperation = new(
                 source.PixelBuffer,
-                Rectangle.Intersect(this.SourceRectangle, source.Bounds()),
+                Rectangle.Intersect(this.SourceRectangle, source.Bounds),
                 destination.PixelBuffer,
                 matrix);
 
             ParallelRowIterator.IterateRows(
                 configuration,
-                destination.Bounds(),
+                destination.Bounds,
                 in nnOperation);
 
             return;
@@ -94,14 +99,14 @@ internal class ProjectiveTransformProcessor<TPixel> : TransformProcessor<TPixel>
         ProjectiveOperation<TResampler> operation = new(
             configuration,
             source.PixelBuffer,
-            Rectangle.Intersect(this.SourceRectangle, source.Bounds()),
+            Rectangle.Intersect(this.SourceRectangle, source.Bounds),
             destination.PixelBuffer,
             in sampler,
             matrix);
 
         ParallelRowIterator.IterateRowIntervals<ProjectiveOperation<TResampler>, Vector4>(
             configuration,
-            destination.Bounds(),
+            destination.Bounds,
             in operation);
     }
 
@@ -132,7 +137,7 @@ internal class ProjectiveTransformProcessor<TPixel> : TransformProcessor<TPixel>
 
             for (int x = 0; x < destinationRowSpan.Length; x++)
             {
-                Vector2 point = TransformUtils.ProjectiveTransform2D(x, y, this.matrix);
+                Vector2 point = TransformUtilities.ProjectiveTransform2D(x, y, this.matrix);
                 int px = (int)MathF.Round(point.X);
                 int py = (int)MathF.Round(point.Y);
 
@@ -204,7 +209,7 @@ internal class ProjectiveTransformProcessor<TPixel> : TransformProcessor<TPixel>
 
                 for (int x = 0; x < span.Length; x++)
                 {
-                    Vector2 point = TransformUtils.ProjectiveTransform2D(x, y, matrix);
+                    Vector2 point = TransformUtilities.ProjectiveTransform2D(x, y, matrix);
                     float pY = point.Y;
                     float pX = point.X;
 

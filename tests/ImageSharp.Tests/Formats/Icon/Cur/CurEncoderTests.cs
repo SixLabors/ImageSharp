@@ -1,8 +1,10 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Cur;
 using SixLabors.ImageSharp.Formats.Ico;
+using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using static SixLabors.ImageSharp.Tests.TestImages.Cur;
@@ -48,8 +50,8 @@ public class CurEncoderTests
         using Image<TPixel> encoded = Image.Load<TPixel>(memStream);
         encoded.DebugSaveMultiFrame(provider);
 
-        // Despite preservation of the palette. The process can still be lossy
-        encoded.CompareToOriginalMultiFrame(provider, ImageComparer.TolerantPercentage(.23f), IcoDecoder.Instance);
+        // Color palettes are not preserved when transcoding.
+        encoded.CompareToOriginalMultiFrame(provider, ImageComparer.TolerantPercentage(.05F), IcoDecoder.Instance);
 
         for (int i = 0; i < image.Frames.Count; i++)
         {
@@ -62,5 +64,71 @@ public class CurEncoderTests
             Assert.Equal(icoFrame.EncodingWidth, curFrame.EncodingWidth);
             Assert.Equal(icoFrame.EncodingHeight, curFrame.EncodingHeight);
         }
+    }
+
+    [Fact]
+    public void Encode_WithTransparentColorBehaviorClear_Works()
+    {
+        // arrange
+        using Image<Rgba32> image = new(50, 50);
+        CurEncoder encoder = new()
+        {
+            TransparentColorMode = TransparentColorMode.Clear,
+
+        };
+        Rgba32 rgba32 = Color.Blue.ToPixel<Rgba32>();
+        image.ProcessPixelRows(accessor =>
+        {
+            for (int y = 0; y < image.Height; y++)
+            {
+                Span<Rgba32> rowSpan = accessor.GetRowSpan(y);
+
+                // Half of the test image should be transparent.
+                if (y > 25)
+                {
+                    rgba32.A = 0;
+                }
+
+                for (int x = 0; x < image.Width; x++)
+                {
+                    rowSpan[x] = Rgba32.FromRgba32(rgba32);
+                }
+            }
+        });
+
+        // act
+        using MemoryStream memStream = new();
+        image.Save(memStream, encoder);
+
+        // assert
+        memStream.Position = 0;
+        using Image<Rgba32> actual = Image.Load<Rgba32>(memStream);
+        Rgba32 expectedColor = Color.Blue.ToPixel<Rgba32>();
+
+        actual.ProcessPixelRows(accessor =>
+        {
+            Rgba32 transparent = Color.Transparent.ToPixel<Rgba32>();
+            for (int y = 0; y < accessor.Height; y++)
+            {
+                Span<Rgba32> rowSpan = accessor.GetRowSpan(y);
+                Span<Rgba32> rowSpanOpp = accessor.GetRowSpan(accessor.Height - y - 1);
+
+                if (y > 25)
+                {
+                    expectedColor = transparent;
+                }
+
+                for (int x = 0; x < accessor.Width; x++)
+                {
+                    if (expectedColor != rowSpan[x])
+                    {
+                        int xx = 0;
+                    }
+
+
+                    Assert.Equal(expectedColor, rowSpan[x]);
+                }
+            }
+        });
     }
 }

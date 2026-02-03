@@ -144,9 +144,13 @@ internal partial class ResizeKernelMap : IDisposable
         int radius = (int)TolerantMath.Ceiling(scale * sampler.Radius);
 
         // 'ratio' is a rational number.
-        // Multiplying it by destSize/GCD(sourceSize, destSize) will result in a whole number "again".
-        // This value is determining the length of the periods in repeating kernel map rows.
-        int period = destinationSize / Numerics.GreatestCommonDivisor(sourceSize, destinationSize);
+        // Multiplying it by destSize/GCD(sourceSize, destinationSize) yields an integer, so every `period` rows
+        // the destination-space sampling centers repeat their fractional alignment. `period` is the repeat length
+        // in destination rows, while `sourcePeriod` is the corresponding integer offset in source pixels that
+        // must be added to the kernel's left index when we reuse the same weights from a previous period.
+        int gcd = Numerics.GreatestCommonDivisor(sourceSize, destinationSize);
+        int period = destinationSize / gcd;
+        int sourcePeriod = sourceSize / gcd;
 
         // the center position at i == 0:
         double center0 = (ratio - 1) * 0.5;
@@ -178,7 +182,8 @@ internal partial class ResizeKernelMap : IDisposable
             scale,
             radius,
             period,
-            cornerInterval)
+            cornerInterval,
+            sourcePeriod)
         : new ResizeKernelMap(
             memoryAllocator,
             sourceSize,
@@ -213,8 +218,8 @@ internal partial class ResizeKernelMap : IDisposable
     private ResizeKernel BuildKernel<TResampler>(in TResampler sampler, int destRowIndex, int dataRowIndex)
         where TResampler : struct, IResampler
     {
-        float center = (float)(((destRowIndex + .5) * this.ratio) - .5);
-        float scale = (float)this.scale;
+        double center = ((destRowIndex + .5) * this.ratio) - .5;
+        double scale = this.scale;
 
         // Keep inside bounds.
         int left = (int)TolerantMath.Ceiling(center - this.radius);
@@ -236,7 +241,7 @@ internal partial class ResizeKernelMap : IDisposable
 
         for (int j = left; j <= right; j++)
         {
-            float value = sampler.GetValue((j - center) / scale);
+            float value = sampler.GetValue((float)((j - center) / scale));
             sum += value;
             kernelStart = value;
             kernelStart = ref Unsafe.Add(ref kernelStart, 1);

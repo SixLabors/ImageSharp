@@ -13,10 +13,7 @@ public partial class ResizeKernelMapTests
 {
     private ITestOutputHelper Output { get; }
 
-    public ResizeKernelMapTests(ITestOutputHelper output)
-    {
-        this.Output = output;
-    }
+    public ResizeKernelMapTests(ITestOutputHelper output) => this.Output = output;
 
     /// <summary>
     /// resamplerName, srcSize, destSize
@@ -24,71 +21,70 @@ public partial class ResizeKernelMapTests
     public static readonly TheoryData<IResampler, int, int> KernelMapData
         = new()
         {
-        { KnownResamplers.Bicubic, 15, 10 },
-        { KnownResamplers.Bicubic, 10, 15 },
-        { KnownResamplers.Bicubic, 20, 20 },
-        { KnownResamplers.Bicubic, 50, 40 },
-        { KnownResamplers.Bicubic, 40, 50 },
-        { KnownResamplers.Bicubic, 500, 200 },
-        { KnownResamplers.Bicubic, 200, 500 },
-        { KnownResamplers.Bicubic, 3032, 400 },
-        { KnownResamplers.Bicubic, 10, 25 },
-        { KnownResamplers.Lanczos3, 16, 12 },
-        { KnownResamplers.Lanczos3, 12, 16 },
-        { KnownResamplers.Lanczos3, 12, 9 },
-        { KnownResamplers.Lanczos3, 9, 12 },
-        { KnownResamplers.Lanczos3, 6, 8 },
-        { KnownResamplers.Lanczos3, 8, 6 },
-        { KnownResamplers.Lanczos3, 20, 12 },
-        { KnownResamplers.Lanczos3, 5, 25 },
-        { KnownResamplers.Lanczos3, 5, 50 },
-        { KnownResamplers.Lanczos3, 25, 5 },
-        { KnownResamplers.Lanczos3, 50, 5 },
-        { KnownResamplers.Lanczos3, 49, 5 },
-        { KnownResamplers.Lanczos3, 31, 5 },
-        { KnownResamplers.Lanczos8, 500, 200 },
-        { KnownResamplers.Lanczos8, 100, 10 },
-        { KnownResamplers.Lanczos8, 100, 80 },
-        { KnownResamplers.Lanczos8, 10, 100 },
+            { KnownResamplers.Bicubic, 15, 10 },
+            { KnownResamplers.Bicubic, 10, 15 },
+            { KnownResamplers.Bicubic, 20, 20 },
+            { KnownResamplers.Bicubic, 50, 40 },
+            { KnownResamplers.Bicubic, 40, 50 },
+            { KnownResamplers.Bicubic, 500, 200 },
+            { KnownResamplers.Bicubic, 200, 500 },
+            { KnownResamplers.Bicubic, 3032, 400 },
+            { KnownResamplers.Bicubic, 10, 25 },
+            { KnownResamplers.Lanczos3, 16, 12 },
+            { KnownResamplers.Lanczos3, 12, 16 },
+            { KnownResamplers.Lanczos3, 12, 9 },
+            { KnownResamplers.Lanczos3, 9, 12 },
+            { KnownResamplers.Lanczos3, 6, 8 },
+            { KnownResamplers.Lanczos3, 8, 6 },
+            { KnownResamplers.Lanczos3, 20, 12 },
+            { KnownResamplers.Lanczos3, 5, 25 },
+            { KnownResamplers.Lanczos3, 5, 50 },
+            { KnownResamplers.Lanczos3, 25, 5 },
+            { KnownResamplers.Lanczos3, 50, 5 },
+            { KnownResamplers.Lanczos3, 49, 5 },
+            { KnownResamplers.Lanczos3, 31, 5 },
+            { KnownResamplers.Lanczos8, 500, 200 },
+            { KnownResamplers.Lanczos8, 100, 10 },
+            { KnownResamplers.Lanczos8, 100, 80 },
+            { KnownResamplers.Lanczos8, 10, 100 },
 
-        // Resize_WorksWithAllResamplers_Rgba32_CalliphoraPartial_Box-0.5:
-        { KnownResamplers.Box, 378, 149 },
-        { KnownResamplers.Box, 349, 174 },
+            // Resize_WorksWithAllResamplers_Rgba32_CalliphoraPartial_Box-0.5:
+            { KnownResamplers.Box, 378, 149 },
+            { KnownResamplers.Box, 349, 174 },
 
-        // Accuracy-related regression-test cases cherry-picked from GeneratedImageResizeData
-        { KnownResamplers.Box, 201, 100 },
-        { KnownResamplers.Box, 199, 99 },
-        { KnownResamplers.Box, 10, 299 },
-        { KnownResamplers.Box, 299, 10 },
-        { KnownResamplers.Box, 301, 300 },
-        { KnownResamplers.Box, 1180, 480 },
-        { KnownResamplers.Lanczos2, 3264, 3032 },
-        { KnownResamplers.Bicubic, 1280, 2240 },
-        { KnownResamplers.Bicubic, 1920, 1680 },
-        { KnownResamplers.Bicubic, 3072, 2240 },
-        { KnownResamplers.Welch, 300, 2008 },
+            // Accuracy-related regression-test cases cherry-picked from GeneratedImageResizeData
+            { KnownResamplers.Box, 201, 100 },
+            { KnownResamplers.Box, 199, 99 },
+            { KnownResamplers.Box, 10, 299 },
+            { KnownResamplers.Box, 299, 10 },
+            { KnownResamplers.Box, 301, 300 },
+            { KnownResamplers.Box, 1180, 480 },
+            { KnownResamplers.Lanczos2, 3264, 3032 },
+            { KnownResamplers.Bicubic, 1280, 2240 },
+            { KnownResamplers.Bicubic, 1920, 1680 },
+            { KnownResamplers.Bicubic, 3072, 2240 },
+            { KnownResamplers.Welch, 300, 2008 },
 
-        // ResizeKernel.Length -related regression tests cherry-picked from GeneratedImageResizeData
-        { KnownResamplers.Bicubic, 10, 50 },
-        { KnownResamplers.Bicubic, 49, 301 },
-        { KnownResamplers.Bicubic, 301, 49 },
-        { KnownResamplers.Bicubic, 1680, 1200 },
-        { KnownResamplers.Box, 13, 299 },
-        { KnownResamplers.Lanczos5, 3032, 600 },
+            // ResizeKernel.Length -related regression tests cherry-picked from GeneratedImageResizeData
+            { KnownResamplers.Bicubic, 10, 50 },
+            { KnownResamplers.Bicubic, 49, 301 },
+            { KnownResamplers.Bicubic, 301, 49 },
+            { KnownResamplers.Bicubic, 1680, 1200 },
+            { KnownResamplers.Box, 13, 299 },
+            { KnownResamplers.Lanczos5, 3032, 600 },
 
-        // Large number. https://github.com/SixLabors/ImageSharp/issues/1616
-        { KnownResamplers.Bicubic, 207773, 51943 }
-    };
+            // Large number. https://github.com/SixLabors/ImageSharp/issues/1616
+            { KnownResamplers.Bicubic, 207773, 51943 }
+        };
 
-    public static TheoryData<string, int, int> GeneratedImageResizeData =
-        GenerateImageResizeData();
+    public static TheoryData<string, int, int> GeneratedImageResizeData = GenerateImageResizeData();
 
     [Theory(Skip = "Only for debugging and development")]
     [MemberData(nameof(KernelMapData))]
     public void PrintNonNormalizedKernelMap<TResampler>(TResampler resampler, int srcSize, int destSize)
         where TResampler : struct, IResampler
     {
-        ReferenceKernelMap kernelMap = ReferenceKernelMap.Calculate<TResampler>(in resampler, destSize, srcSize, false);
+        ReferenceKernelMap kernelMap = ReferenceKernelMap.Calculate(in resampler, destSize, srcSize, false);
 
         this.Output.WriteLine($"Actual KernelMap:\n{PrintKernelMap(kernelMap)}\n");
     }
@@ -97,9 +93,7 @@ public partial class ResizeKernelMapTests
     [MemberData(nameof(KernelMapData))]
     public void KernelMapContentIsCorrect<TResampler>(TResampler resampler, int srcSize, int destSize)
         where TResampler : struct, IResampler
-    {
-        this.VerifyKernelMapContentIsCorrect(resampler, srcSize, destSize);
-    }
+        => this.VerifyKernelMapContentIsCorrect(resampler, srcSize, destSize);
 
     // Comprehensive but expensive tests, for ResizeKernelMap.
     // Enabling them can kill you, but sometimes you have to wear the burden!
@@ -125,6 +119,7 @@ public partial class ResizeKernelMapTests
         this.Output.WriteLine($"Actual KernelMap:\n{PrintKernelMap(kernelMap)}\n");
 #endif
 
+        ApproximateFloatComparer comparer = new ApproximateFloatComparer(1e-6f);
         for (int i = 0; i < kernelMap.DestinationLength; i++)
         {
             ResizeKernel kernel = kernelMap.GetKernel((uint)i);
@@ -140,14 +135,9 @@ public partial class ResizeKernelMapTests
             float[] expectedValues = referenceKernel.Values;
             Span<float> actualValues;
 
-            ApproximateFloatComparer comparer;
             if (ResizeKernel.IsHardwareAccelerated)
             {
-                comparer = new ApproximateFloatComparer(1e-4f);
-
                 Assert.Equal(expectedValues.Length, kernel.Values.Length / 4);
-
-                int actualLength = referenceKernel.Length / 4;
 
                 actualValues = new float[expectedValues.Length];
 
@@ -158,7 +148,6 @@ public partial class ResizeKernelMapTests
             }
             else
             {
-                comparer = new ApproximateFloatComparer(1e-6f);
                 actualValues = kernel.Values;
             }
 
@@ -220,12 +209,13 @@ public partial class ResizeKernelMapTests
 
         int[] dimensionVals =
         [
-            // Arbitrary, small dimensions:
-                9, 10, 11, 13, 49, 50, 53, 99, 100, 199, 200, 201, 299, 300, 301,
 
-                // Typical image sizes:
-                640, 480, 800, 600, 1024, 768, 1280, 960, 1536, 1180, 1600, 1200, 2048, 1536, 2240, 1680, 2560,
-                1920, 3032, 2008, 3072, 2304, 3264, 2448
+            // Arbitrary, small dimensions:
+            9, 10, 11, 13, 49, 50, 53, 99, 100, 199, 200, 201, 299, 300, 301,
+
+            // Typical image sizes:
+            640, 480, 800, 600, 1024, 768, 1280, 960, 1536, 1180, 1600, 1200, 2048, 1536, 2240, 1680, 2560,
+            1920, 3032, 2008, 3072, 2304, 3264, 2448
         ];
 
         IOrderedEnumerable<(int S, int D)> source2Dest = dimensionVals

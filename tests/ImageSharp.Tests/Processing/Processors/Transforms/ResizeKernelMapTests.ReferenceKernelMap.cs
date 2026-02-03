@@ -39,10 +39,9 @@ public partial class ResizeKernelMapTests
 
             List<ReferenceKernel> result = [];
 
-            float scale = (float)scaleD;
             for (int i = 0; i < destinationSize; i++)
             {
-                float center = (float)(((i + .5) * ratio) - .5);
+                double center = ((i + .5) * ratio) - .5;
 
                 // Keep inside bounds.
                 int left = (int)tolerantMath.Ceiling(center - radius);
@@ -63,7 +62,7 @@ public partial class ResizeKernelMapTests
 
                 for (int j = left; j <= right; j++)
                 {
-                    float weight = sampler.GetValue((j - center) / scale);
+                    float weight = sampler.GetValue((float)((j - center) / scaleD));
                     sum += weight;
                     values[j - left] = weight;
                 }

@@ -16,6 +16,8 @@ internal partial class ResizeKernelMap
 
         private readonly int cornerInterval;
 
+        private readonly int sourcePeriod;
+
         public PeriodicKernelMap(
             MemoryAllocator memoryAllocator,
             int sourceLength,
@@ -24,7 +26,8 @@ internal partial class ResizeKernelMap
             double scale,
             int radius,
             int period,
-            int cornerInterval)
+            int cornerInterval,
+            int sourcePeriod)
             : base(
                 memoryAllocator,
                 sourceLength,
@@ -36,6 +39,7 @@ internal partial class ResizeKernelMap
         {
             this.cornerInterval = cornerInterval;
             this.period = period;
+            this.sourcePeriod = sourcePeriod;
         }
 
         internal override string Info => base.Info + $"|period:{this.period}|cornerInterval:{this.cornerInterval}";
@@ -54,10 +58,11 @@ internal partial class ResizeKernelMap
             int bottomStartDest = this.DestinationLength - this.cornerInterval;
             for (int i = startOfFirstRepeatedMosaic; i < bottomStartDest; i++)
             {
-                float center = (float)(((i + .5) * this.ratio) - .5);
-                int left = (int)TolerantMath.Ceiling(center - this.radius);
                 ResizeKernel kernel = this.kernels[i - this.period];
-                this.kernels[i] = kernel.AlterLeftValue(left);
+
+                // Shift the kernel start index by the source-side period so the same weights align to the
+                // next repeated sampling window in the source image.
+                this.kernels[i] = kernel.AlterLeftValue(kernel.StartIndex + this.sourcePeriod);
             }
 
             // Build bottom corner data:

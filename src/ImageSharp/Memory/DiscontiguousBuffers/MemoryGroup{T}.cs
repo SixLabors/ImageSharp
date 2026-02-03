@@ -22,6 +22,9 @@ internal abstract partial class MemoryGroup<T> : IMemoryGroup<T>, IDisposable
     private static readonly int ElementSize = Unsafe.SizeOf<T>();
 
     private MemoryGroupSpanCache memoryGroupSpanCache;
+    private MemoryAllocator? trackingAllocator;
+    private long trackingLengthInBytes;
+    private int trackingReleased;
 
     private MemoryGroup(int bufferLength, long totalLength)
     {
@@ -52,16 +55,45 @@ internal abstract partial class MemoryGroup<T> : IMemoryGroup<T>, IDisposable
     /// <inheritdoc />
     public abstract MemoryGroupEnumerator<T> GetEnumerator();
 
+    /// <summary>
+    /// Configures allocation tracking by specifying the allocator and the length, in bytes, to be tracked.
+    /// </summary>
+    /// <param name="allocator">The memory allocator to use for tracking allocations.</param>
+    /// <param name="lengthInBytes">The length, in bytes, of the memory region to track. Must be greater than or equal to zero.</param>
+    /// <remarks>
+    /// Intended for initialization; callers should avoid changing tracking state concurrently with disposal.
+    /// </remarks>
+    internal void SetAllocationTracking(MemoryAllocator allocator, long lengthInBytes)
+    {
+        this.trackingAllocator = allocator;
+        this.trackingLengthInBytes = lengthInBytes;
+    }
+
+    /// <summary>
+    /// Releases any resources or tracking information associated with allocation tracking for this instance.
+    /// </summary>
+    /// <remarks>
+    /// This method is intended to be called when allocation tracking is no longer needed. It is safe
+    /// to call multiple times; subsequent calls after the first have no effect, even when called concurrently.
+    /// </remarks>
+    internal void ReleaseAllocationTracking()
+    {
+        if (Interlocked.Exchange(ref this.trackingReleased, 1) == 0 && this.trackingAllocator != null)
+        {
+            this.trackingAllocator.ReleaseAccumulatedBytes(this.trackingLengthInBytes);
+            this.trackingAllocator = null;
+        }
+    }
+
     /// <inheritdoc />
     IEnumerator<Memory<T>> IEnumerable<Memory<T>>.GetEnumerator()
-    {
+
         /* This method is implemented in each derived class.
          * Implementing the method here as non-abstract and throwing,
          * then reimplementing it explicitly in each derived class, is
          * a workaround for the lack of support for abstract explicit
          * interface method implementations in C#. */
-        throw new NotImplementedException($"The type {this.GetType()} needs to override IEnumerable<Memory<T>>.GetEnumerator()");
-    }
+        => throw new NotImplementedException($"The type {this.GetType()} needs to override IEnumerable<Memory<T>>.GetEnumerator()");
 
     /// <inheritdoc />
     IEnumerator IEnumerable.GetEnumerator() => ((IEnumerable<Memory<T>>)this).GetEnumerator();

@@ -69,6 +69,11 @@ public abstract partial class Image
     {
         Guard.NotNull(configuration, nameof(configuration));
 
+        if (data.IsEmpty)
+        {
+            throw new ArgumentException("Pixel data cannot be empty.", nameof(data));
+        }
+
         int count = width * height;
         Guard.MustBeGreaterThanOrEqualTo(data.Length, count, nameof(data));
 

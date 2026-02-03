@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.Formats;
 /// </summary>
 public sealed class DecoderOptions
 {
-    private static readonly Lazy<DecoderOptions> LazyOptions = new(() => new());
+    private static readonly Lazy<DecoderOptions> LazyOptions = new(() => new DecoderOptions());
 
     private uint maxFrames = int.MaxValue;
 
@@ -78,12 +78,12 @@ public sealed class DecoderOptions
             return false;
         }
 
-        if (IccProfileHeader.IsLikelySrgb(profile.Header))
+        if (this.ColorProfileHandling == ColorProfileHandling.Preserve)
         {
             return false;
         }
 
-        if (this.ColorProfileHandling == ColorProfileHandling.Preserve)
+        if (profile.IsCanonicalSrgbMatrixTrc())
         {
             return false;
         }
@@ -99,11 +99,11 @@ public sealed class DecoderOptions
             return false;
         }
 
-        if (this.ColorProfileHandling == ColorProfileHandling.Compact && IccProfileHeader.IsLikelySrgb(profile.Header))
+        if (this.ColorProfileHandling == ColorProfileHandling.Convert)
         {
             return true;
         }
 
-        return this.ColorProfileHandling == ColorProfileHandling.Convert;
+        return this.ColorProfileHandling == ColorProfileHandling.Compact && profile.IsCanonicalSrgbMatrixTrc();
     }
 }

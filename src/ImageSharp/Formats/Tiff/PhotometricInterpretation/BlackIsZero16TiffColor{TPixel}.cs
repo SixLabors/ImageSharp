@@ -47,7 +47,7 @@ internal class BlackIsZero16TiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
                     ushort intensity = TiffUtilities.ConvertToUShortBigEndian(data.Slice(offset, 2));
                     offset += 2;
 
-                    pixelRow[x] = TPixel.FromL16(new(intensity));
+                    pixelRow[x] = TPixel.FromL16(new L16(intensity));
                 }
             }
             else

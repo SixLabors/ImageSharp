@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Numerics;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Gif;
@@ -93,7 +94,7 @@ public class GifFrameMetadata : IFormatFrameMetadata<GifFrameMetadata>
         // If the color table is global and frame has no transparency. Consider it 'Source' also.
         blendSource |= this.ColorTableMode == FrameColorTableMode.Global && !this.HasTransparency;
 
-        return new()
+        return new FormatConnectingFrameMetadata
         {
             ColorTableMode = this.ColorTableMode,
             Duration = TimeSpan.FromMilliseconds(this.FrameDelay * 10),
@@ -103,7 +104,7 @@ public class GifFrameMetadata : IFormatFrameMetadata<GifFrameMetadata>
     }
 
     /// <inheritdoc/>
-    public void AfterFrameApply<TPixel>(ImageFrame<TPixel> source, ImageFrame<TPixel> destination)
+    public void AfterFrameApply<TPixel>(ImageFrame<TPixel> source, ImageFrame<TPixel> destination, Matrix4x4 matrix)
         where TPixel : unmanaged, IPixel<TPixel>
         => this.LocalColorTable = null;
 

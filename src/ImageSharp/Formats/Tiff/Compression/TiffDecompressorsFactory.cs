@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors;
 using SixLabors.ImageSharp.Formats.Tiff.Constants;
 using SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation;
@@ -64,11 +65,11 @@ internal static class TiffDecompressorsFactory
 
             case TiffDecoderCompressionType.Jpeg:
                 DebugGuard.IsTrue(predictor == TiffPredictor.None, "Predictor should only be used with lzw or deflate compression");
-                return new JpegTiffCompression(new() { GeneralOptions = options }, allocator, width, bitsPerPixel, metadata, jpegTables, photometricInterpretation);
+                return new JpegTiffCompression(new JpegDecoderOptions { GeneralOptions = options }, allocator, width, bitsPerPixel, metadata, jpegTables, photometricInterpretation);
 
             case TiffDecoderCompressionType.OldJpeg:
                 DebugGuard.IsTrue(predictor == TiffPredictor.None, "Predictor should only be used with lzw or deflate compression");
-                return new OldJpegTiffCompression(new() { GeneralOptions = options }, allocator, width, bitsPerPixel, metadata, oldJpegStartOfImageMarker, photometricInterpretation);
+                return new OldJpegTiffCompression(new JpegDecoderOptions { GeneralOptions = options }, allocator, width, bitsPerPixel, metadata, oldJpegStartOfImageMarker, photometricInterpretation);
 
             case TiffDecoderCompressionType.Webp:
                 DebugGuard.IsTrue(predictor == TiffPredictor.None, "Predictor should only be used with lzw or deflate compression");

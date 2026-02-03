@@ -61,16 +61,15 @@ public class TiffMetadataTests
         clone.PhotometricInterpretation = TiffPhotometricInterpretation.CieLab;
         clone.Predictor = TiffPredictor.Horizontal;
 
-        Assert.False(meta.BitsPerPixel == clone.BitsPerPixel);
-        Assert.False(meta.Compression == clone.Compression);
-        Assert.False(meta.PhotometricInterpretation == clone.PhotometricInterpretation);
-        Assert.False(meta.Predictor == clone.Predictor);
+        Assert.NotEqual(meta.BitsPerPixel, clone.BitsPerPixel);
+        Assert.NotEqual(meta.Compression, clone.Compression);
+        Assert.NotEqual(meta.PhotometricInterpretation, clone.PhotometricInterpretation);
+        Assert.NotEqual(meta.Predictor, clone.Predictor);
     }
 
     private static void VerifyExpectedTiffFrameMetaDataIsPresent(TiffFrameMetadata frameMetaData)
     {
         Assert.NotNull(frameMetaData);
-        Assert.NotNull(frameMetaData.BitsPerPixel);
         Assert.Equal(TiffBitsPerPixel.Bit4, frameMetaData.BitsPerPixel);
         Assert.Equal(TiffCompression.Lzw, frameMetaData.Compression);
         Assert.Equal(TiffPhotometricInterpretation.PaletteColor, frameMetaData.PhotometricInterpretation);
@@ -157,7 +156,7 @@ public class TiffMetadataTests
         {
             Assert.NotNull(rootFrameMetaData.XmpProfile);
             Assert.NotNull(rootFrameMetaData.ExifProfile);
-            Assert.Equal(2599, rootFrameMetaData.XmpProfile.Data.Length);
+            Assert.Equal(2596, rootFrameMetaData.XmpProfile.Data.Length); // padding bytes are trimmed
             Assert.Equal(25, rootFrameMetaData.ExifProfile.Values.Count);
         }
     }
@@ -186,7 +185,7 @@ public class TiffMetadataTests
         Assert.Equal(32, rootFrame.Width);
         Assert.Equal(32, rootFrame.Height);
         Assert.NotNull(rootFrame.Metadata.XmpProfile);
-        Assert.Equal(2599, rootFrame.Metadata.XmpProfile.Data.Length);
+        Assert.Equal(2596, rootFrame.Metadata.XmpProfile.Data.Length); // padding bytes are trimmed
 
         ExifProfile exifProfile = rootFrame.Metadata.ExifProfile;
         TiffFrameMetadata tiffFrameMetadata = rootFrame.Metadata.GetTiffMetadata();
@@ -208,8 +207,8 @@ public class TiffMetadataTests
         Rational expectedResolution = new(10, 1, simplify: false);
         Assert.Equal(expectedResolution, exifProfile.GetValue(ExifTag.XResolution).Value);
         Assert.Equal(expectedResolution, exifProfile.GetValue(ExifTag.YResolution).Value);
-        Assert.Equal(new Number[] { 8u }, exifProfile.GetValue(ExifTag.StripOffsets)?.Value, new NumberComparer());
-        Assert.Equal(new Number[] { 285u }, exifProfile.GetValue(ExifTag.StripByteCounts)?.Value, new NumberComparer());
+        Assert.Equal([8u], exifProfile.GetValue(ExifTag.StripOffsets)?.Value, new NumberComparer());
+        Assert.Equal([285u], exifProfile.GetValue(ExifTag.StripByteCounts)?.Value, new NumberComparer());
         Assert.Null(exifProfile.GetValue(ExifTag.ExtraSamples, false)?.Value);
         Assert.Equal(32u, exifProfile.GetValue(ExifTag.RowsPerStrip).Value);
         Assert.Null(exifProfile.GetValue(ExifTag.SampleFormat, false));
@@ -408,5 +407,18 @@ public class TiffMetadataTests
 
         // Adding the IPTC and ICC profiles dynamically increments the number of values in the original EXIF profile by 2
         Assert.Equal(exifProfileInput.Values.Count + 2, encodedImageExifProfile.Values.Count);
+    }
+
+    [Theory]
+    [WithFile(PaletteDeflateMultistrip, PixelTypes.Rgba32)]
+    [WithFile(PaletteUncompressed, PixelTypes.Rgba32)]
+    public void TiffDecoder_CanAssign_ColorPalette<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage(TiffDecoder.Instance);
+        ImageFrame<TPixel> frame = image.Frames.RootFrame;
+        TiffFrameMetadata tiffMeta = frame.Metadata.GetTiffMetadata();
+        Assert.Equal(TiffPhotometricInterpretation.PaletteColor, tiffMeta.PhotometricInterpretation);
+        Assert.NotNull(tiffMeta.LocalColorTable);
     }
 }

@@ -39,6 +39,24 @@ internal static class ColorProfileConverterExtensionsIcc
          0.0033717495F, 0.0034852044F, 0.0028800198F, 0F,
          0.0033717495F, 0.0034852044F, 0.0028800198F, 0F];
 
+    /// <summary>
+    /// Converts a color value from one ICC color profile to another using the specified color profile converter.
+    /// </summary>
+    /// <remarks>
+    /// This method performs color conversion using ICC profiles, ensuring accurate color mapping
+    /// between different color spaces. Both the source and target ICC profiles must be provided in the converter's
+    /// options. The method supports perceptual adjustments when required by the profiles.
+    /// </remarks>
+    /// <typeparam name="TFrom">The type representing the source color profile. Must implement <see cref="IColorProfile{TFrom}"/>.</typeparam>
+    /// <typeparam name="TTo">The type representing the destination color profile. Must implement <see cref="IColorProfile{TTo}"/>.</typeparam>
+    /// <param name="converter">The color profile converter configured with source and target ICC profiles.</param>
+    /// <param name="source">The color value to convert, defined in the source color profile.</param>
+    /// <returns>
+    /// A color value in the target color profile, resulting from the ICC profile-based conversion of the source value.
+    /// </returns>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown if either the source or target ICC profile is missing from the converter options.
+    /// </exception>
     internal static TTo ConvertUsingIccProfile<TFrom, TTo>(this ColorProfileConverter converter, in TFrom source)
         where TFrom : struct, IColorProfile<TFrom>
         where TTo : struct, IColorProfile<TTo>
@@ -60,8 +78,8 @@ internal static class ColorProfileConverterExtensionsIcc
         ColorProfileConverter pcsConverter = new(new ColorConversionOptions
         {
             MemoryAllocator = converter.Options.MemoryAllocator,
-            SourceWhitePoint = new CieXyz(converter.Options.SourceIccProfile.Header.PcsIlluminant),
-            TargetWhitePoint = new CieXyz(converter.Options.TargetIccProfile.Header.PcsIlluminant),
+            SourceWhitePoint = KnownIlluminants.D50Icc,
+            TargetWhitePoint = KnownIlluminants.D50Icc
         });
 
         // Normalize the source, then convert to the PCS space.
@@ -81,6 +99,29 @@ internal static class ColorProfileConverterExtensionsIcc
         return TTo.FromScaledVector4(targetParams.Converter.Calculate(targetPcs));
     }
 
+    /// <summary>
+    /// Converts a span of color values from a source color profile to a destination color profile using ICC profiles.
+    /// </summary>
+    /// <remarks>
+    /// This method performs color conversion by transforming the input values through the Profile
+    /// Connection Space (PCS) as defined by the provided ICC profiles. Perceptual adjustments are applied as required
+    /// by the profiles. The method does not support absolute colorimetric intent and will not perform such
+    /// conversions.
+    /// </remarks>
+    /// <typeparam name="TFrom">The type representing the source color profile. Must implement <see cref="IColorProfile{TFrom}"/>.</typeparam>
+    /// <typeparam name="TTo">The type representing the destination color profile. Must implement <see cref="IColorProfile{TTo}"/>.</typeparam>
+    /// <param name="converter">The color profile converter that provides conversion options and ICC profiles.</param>
+    /// <param name="source">
+    /// A read-only span containing the source color values to convert. The values must conform to the source color
+    /// profile.
+    /// </param>
+    /// <param name="destination">
+    /// A span to receive the converted color values in the destination color profile. Must be at least as large as the
+    /// source span.
+    /// </param>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown if the source or target ICC profile is missing from the converter options.
+    /// </exception>
     internal static void ConvertUsingIccProfile<TFrom, TTo>(this ColorProfileConverter converter, ReadOnlySpan<TFrom> source, Span<TTo> destination)
         where TFrom : struct, IColorProfile<TFrom>
         where TTo : struct, IColorProfile<TTo>
@@ -104,8 +145,8 @@ internal static class ColorProfileConverterExtensionsIcc
         ColorProfileConverter pcsConverter = new(new ColorConversionOptions
         {
             MemoryAllocator = converter.Options.MemoryAllocator,
-            SourceWhitePoint = new CieXyz(converter.Options.SourceIccProfile.Header.PcsIlluminant),
-            TargetWhitePoint = new CieXyz(converter.Options.TargetIccProfile.Header.PcsIlluminant),
+            SourceWhitePoint = KnownIlluminants.D50Icc,
+            TargetWhitePoint = KnownIlluminants.D50Icc
         });
 
         using IMemoryOwner<Vector4> pcsBuffer = converter.Options.MemoryAllocator.Allocate<Vector4>(source.Length);

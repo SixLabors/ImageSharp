@@ -124,7 +124,7 @@ internal readonly struct WebpFrameData
     {
         Span<byte> buffer = stackalloc byte[4];
 
-        return new(
+        return new WebpFrameData(
             dataSize: WebpChunkParsingUtils.ReadChunkSize(stream, buffer),
             x: WebpChunkParsingUtils.ReadUInt24LittleEndian(stream, buffer) * 2,
             y: WebpChunkParsingUtils.ReadUInt24LittleEndian(stream, buffer) * 2,

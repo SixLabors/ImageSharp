@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Numerics;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Processing.Processors;
@@ -99,14 +100,13 @@ public abstract class ImageProcessor<TPixel> : IImageProcessor<TPixel>
     /// </summary>
     /// <param name="source">The source image. Cannot be null.</param>
     protected virtual void AfterFrameApply(ImageFrame<TPixel> source)
-    {
-    }
+        => source.Metadata.AfterFrameApply(source, source, Matrix4x4.Identity);
 
     /// <summary>
     /// This method is called after the process is applied to the complete image.
     /// </summary>
     protected virtual void AfterImageApply()
-        => this.Source.Metadata.AfterImageApply(this.Source);
+        => this.Source.Metadata.AfterImageApply(this.Source, Matrix4x4.Identity);
 
     /// <summary>
     /// Disposes the object and frees resources for the Garbage Collector.

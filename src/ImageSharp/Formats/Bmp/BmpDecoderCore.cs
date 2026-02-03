@@ -220,7 +220,7 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
     protected override ImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken)
     {
         this.ReadImageHeaders(stream, out _, out _);
-        return new ImageInfo(new(this.infoHeader.Width, this.infoHeader.Height), this.metadata);
+        return new ImageInfo(new Size(this.infoHeader.Width, this.infoHeader.Height), this.metadata);
     }
 
     /// <summary>
@@ -1270,7 +1270,7 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
                     byte g = (byte)((temp & greenMask) >> rightShiftGreenMask);
                     byte b = (byte)((temp & blueMask) >> rightShiftBlueMask);
                     byte a = alphaMask != 0 ? (byte)((temp & alphaMask) >> rightShiftAlphaMask) : byte.MaxValue;
-                    pixelRow[x] = TPixel.FromRgba32(new(r, g, b, a));
+                    pixelRow[x] = TPixel.FromRgba32(new Rgba32(r, g, b, a));
                 }
 
                 offset += 4;
@@ -1457,7 +1457,7 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
         this.bmpMetadata.InfoHeaderType = infoHeaderType;
         this.bmpMetadata.BitsPerPixel = (BmpBitsPerPixel)bitsPerPixel;
 
-        this.Dimensions = new(this.infoHeader.Width, this.infoHeader.Height);
+        this.Dimensions = new Size(this.infoHeader.Width, this.infoHeader.Height);
     }
 
     /// <summary>

@@ -14,7 +14,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Iptc;
 /// </summary>
 public sealed class IptcProfile : IDeepCloneable<IptcProfile>
 {
-    private readonly Collection<IptcValue> values = new();
+    private readonly Collection<IptcValue> values = [];
 
     private const byte IptcTagMarkerByte = 0x1c;
 
@@ -67,7 +67,7 @@ public sealed class IptcProfile : IDeepCloneable<IptcProfile>
     /// <summary>
     /// Gets a byte array marking that UTF-8 encoding is used in application records.
     /// </summary>
-    private static ReadOnlySpan<byte> CodedCharacterSetUtf8Value => new byte[] { 0x1B, 0x25, 0x47 }; // Uses C#'s optimization to refer to the data segment in the assembly directly, no allocation occurs.
+    private static ReadOnlySpan<byte> CodedCharacterSetUtf8Value => [0x1B, 0x25, 0x47]; // Uses C#'s optimization to refer to the data segment in the assembly directly, no allocation occurs.
 
     /// <summary>
     /// Gets the byte data of the IPTC profile.
@@ -89,7 +89,7 @@ public sealed class IptcProfile : IDeepCloneable<IptcProfile>
     /// <returns>The values found with the specified tag.</returns>
     public List<IptcValue> GetValues(IptcTag tag)
     {
-        List<IptcValue> iptcValues = new();
+        List<IptcValue> iptcValues = [];
         foreach (IptcValue iptcValue in this.Values)
         {
             if (iptcValue.Tag == tag)

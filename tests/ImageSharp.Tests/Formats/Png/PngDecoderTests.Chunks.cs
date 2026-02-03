@@ -14,12 +14,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Png;
 public partial class PngDecoderTests
 {
     // Represents ASCII string of "123456789"
-    private readonly byte[] check = { 49, 50, 51, 52, 53, 54, 55, 56, 57 };
+    private readonly byte[] check = [49, 50, 51, 52, 53, 54, 55, 56, 57];
 
     // Contains the png marker, IHDR and pHYs chunks of a 1x1 pixel 32bit png 1 a single black pixel.
     private static readonly byte[] Raw1X1PngIhdrAndpHYs =
-        {
-            // PNG Identifier
+    [
+        // PNG Identifier
             0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A,
 
             // IHDR
@@ -36,12 +36,12 @@ public partial class PngDecoderTests
 
             // pHYS CRC
             0xC7, 0x6F, 0xA8, 0x64
-        };
+    ];
 
     // Contains the png marker, IDAT and IEND chunks of a 1x1 pixel 32bit png 1 a single black pixel.
     private static readonly byte[] Raw1X1PngIdatAndIend =
-        {
-            // IDAT
+    [
+        // IDAT
             0x00, 0x00, 0x00, 0x0C, 0x49, 0x44, 0x41, 0x54, 0x18,
             0x57, 0x63, 0x60, 0x60, 0x60, 0x00, 0x00, 0x00, 0x04,
             0x00, 0x01,
@@ -54,7 +54,7 @@ public partial class PngDecoderTests
 
             // IEND CRC
             0xAE, 0x42, 0x60, 0x82
-        };
+    ];
 
     [Theory]
     [InlineData((uint)PngChunkType.Header)] // IHDR
@@ -64,7 +64,7 @@ public partial class PngDecoderTests
     {
         string chunkName = GetChunkTypeName(chunkType);
 
-        using (var memStream = new MemoryStream())
+        using (MemoryStream memStream = new())
         {
             WriteHeaderChunk(memStream);
             WriteChunk(memStream, chunkName);
@@ -94,10 +94,10 @@ public partial class PngDecoderTests
     private static void WriteChunk(MemoryStream memStream, string chunkName)
     {
         // Needs a minimum length of 9 for pHYs chunk.
-        memStream.Write(new byte[] { 0, 0, 0, 9 }, 0, 4);
+        memStream.Write([0, 0, 0, 9], 0, 4);
         memStream.Write(Encoding.ASCII.GetBytes(chunkName), 0, 4); // 4 bytes chunk header
-        memStream.Write(new byte[] { 0, 0, 0, 0, 0, 0, 0, 0, 0 }, 0, 9); // 9 bytes of chunk data
-        memStream.Write(new byte[] { 0, 0, 0, 0 }, 0, 4); // Junk Crc
+        memStream.Write([0, 0, 0, 0, 0, 0, 0, 0, 0], 0, 9); // 9 bytes of chunk data
+        memStream.Write([0, 0, 0, 0], 0, 4); // Junk Crc
     }
 
     private static void WriteDataChunk(MemoryStream memStream)

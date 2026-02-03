@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Buffers.Binary;
 using System.Globalization;
 using System.Numerics;
 using System.Runtime.CompilerServices;
@@ -211,64 +210,6 @@ public partial struct Rgba32 : IPixel<Rgba32>, IPackedVector<uint>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool operator !=(Rgba32 left, Rgba32 right) => !left.Equals(right);
 
-    /// <summary>
-    /// Creates a new instance of the <see cref="Rgba32"/> struct
-    /// from the given hexadecimal string.
-    /// </summary>
-    /// <param name="hex">
-    /// The hexadecimal representation of the combined color components arranged
-    /// in rgb, rgba, rrggbb, or rrggbbaa format to match web syntax.
-    /// </param>
-    /// <returns>
-    /// The <see cref="Rgba32"/>.
-    /// </returns>
-    /// <exception cref="ArgumentException">Hexadecimal string is not in the correct format.</exception>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Rgba32 ParseHex(string hex)
-    {
-        Guard.NotNull(hex, nameof(hex));
-
-        if (!TryParseHex(hex, out Rgba32 rgba))
-        {
-            throw new ArgumentException("Hexadecimal string is not in the correct format.", nameof(hex));
-        }
-
-        return rgba;
-    }
-
-    /// <summary>
-    /// Attempts to creates a new instance of the <see cref="Rgba32"/> struct
-    /// from the given hexadecimal string.
-    /// </summary>
-    /// <param name="hex">
-    /// The hexadecimal representation of the combined color components arranged
-    /// in rgb, rgba, rrggbb, or rrggbbaa format to match web syntax.
-    /// </param>
-    /// <param name="result">When this method returns, contains the <see cref="Rgba32"/> equivalent of the hexadecimal input.</param>
-    /// <returns>
-    /// The <see cref="bool"/>.
-    /// </returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool TryParseHex(string? hex, out Rgba32 result)
-    {
-        result = default;
-        if (string.IsNullOrWhiteSpace(hex))
-        {
-            return false;
-        }
-
-        hex = ToRgbaHex(hex);
-
-        if (hex is null || !uint.TryParse(hex, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out uint packedValue))
-        {
-            return false;
-        }
-
-        packedValue = BinaryPrimitives.ReverseEndianness(packedValue);
-        result = Unsafe.As<uint, Rgba32>(ref packedValue);
-        return true;
-    }
-
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly Rgba32 ToRgba32() => this;
@@ -328,7 +269,7 @@ public partial struct Rgba32 : IPixel<Rgba32>, IPackedVector<uint>
     public static Rgba32 FromL16(L16 source)
     {
         byte rgb = ColorNumerics.From16BitTo8Bit(source.PackedValue);
-        return new(rgb, rgb, rgb);
+        return new Rgba32(rgb, rgb, rgb);
     }
 
     /// <inheritdoc/>
@@ -340,7 +281,7 @@ public partial struct Rgba32 : IPixel<Rgba32>, IPackedVector<uint>
     public static Rgba32 FromLa32(La32 source)
     {
         byte rgb = ColorNumerics.From16BitTo8Bit(source.L);
-        return new(rgb, rgb, rgb, ColorNumerics.From16BitTo8Bit(source.A));
+        return new Rgba32(rgb, rgb, rgb, ColorNumerics.From16BitTo8Bit(source.A));
     }
 
     /// <inheritdoc/>
@@ -407,43 +348,6 @@ public partial struct Rgba32 : IPixel<Rgba32>, IPackedVector<uint>
         vector = Numerics.Clamp(vector, Vector4.Zero, MaxBytes);
 
         Vector128<byte> result = Vector128.ConvertToInt32(vector.AsVector128()).AsByte();
-        return new(result.GetElement(0), result.GetElement(4), result.GetElement(8), result.GetElement(12));
-    }
-
-    /// <summary>
-    /// Converts the specified hex value to an rrggbbaa hex value.
-    /// </summary>
-    /// <param name="hex">The hex value to convert.</param>
-    /// <returns>
-    /// A rrggbbaa hex value.
-    /// </returns>
-    private static string? ToRgbaHex(string hex)
-    {
-        if (hex[0] == '#')
-        {
-            hex = hex[1..];
-        }
-
-        if (hex.Length == 8)
-        {
-            return hex;
-        }
-
-        if (hex.Length == 6)
-        {
-            return hex + "FF";
-        }
-
-        if (hex.Length is < 3 or > 4)
-        {
-            return null;
-        }
-
-        char a = hex.Length == 3 ? 'F' : hex[3];
-        char b = hex[2];
-        char g = hex[1];
-        char r = hex[0];
-
-        return new string(new[] { r, r, g, g, b, b, a, a });
+        return new Rgba32(result.GetElement(0), result.GetElement(4), result.GetElement(8), result.GetElement(12));
     }
 }

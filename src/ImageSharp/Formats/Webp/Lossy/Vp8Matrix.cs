@@ -5,13 +5,13 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy;
 
 internal unsafe struct Vp8Matrix
 {
+    // [luma-ac,luma-dc,chroma][dc,ac]
     private static readonly int[][] BiasMatrices =
-    {
-        // [luma-ac,luma-dc,chroma][dc,ac]
-        new[] { 96, 110 },
-        new[] { 96, 108 },
-        new[] { 110, 115 }
-    };
+    [
+        [96, 110],
+        [96, 108],
+        [110, 115]
+    ];
 
     /// <summary>
     /// Number of descaling bits for sharpening bias.
@@ -46,7 +46,7 @@ internal unsafe struct Vp8Matrix
     // Sharpening by (slightly) raising the hi-frequency coeffs.
     // Hack-ish but helpful for mid-bitrate range. Use with care.
     // This uses C#'s optimization to refer to the static data segment of the assembly, no allocation occurs.
-    private static ReadOnlySpan<byte> FreqSharpening => new byte[] { 0, 30, 60, 90, 30, 60, 90, 90, 60, 90, 90, 90, 90, 90, 90, 90 };
+    private static ReadOnlySpan<byte> FreqSharpening => [0, 30, 60, 90, 30, 60, 90, 90, 60, 90, 90, 90, 90, 90, 90, 90];
 
     /// <summary>
     /// Returns the average quantizer.

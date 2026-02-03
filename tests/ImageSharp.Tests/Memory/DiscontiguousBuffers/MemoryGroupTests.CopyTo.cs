@@ -50,7 +50,7 @@ public partial class MemoryGroupTests
         public void GroupToSpan_Success(long totalLength, int bufferLength, int spanLength)
         {
             using MemoryGroup<int> src = this.CreateTestGroup(totalLength, bufferLength, true);
-            var trg = new int[spanLength];
+            int[] trg = new int[spanLength];
             src.CopyTo(trg);
 
             int expected = 1;
@@ -67,7 +67,7 @@ public partial class MemoryGroupTests
         public void GroupToSpan_OutOfRange(long totalLength, int bufferLength, int spanLength)
         {
             using MemoryGroup<int> src = this.CreateTestGroup(totalLength, bufferLength, true);
-            var trg = new int[spanLength];
+            int[] trg = new int[spanLength];
             Assert.ThrowsAny<ArgumentOutOfRangeException>(() => src.CopyTo(trg));
         }
 
@@ -78,7 +78,7 @@ public partial class MemoryGroupTests
         [InlineData(0, 3, 0)]
         public void SpanToGroup_Success(long totalLength, int bufferLength, int spanLength)
         {
-            var src = new int[spanLength];
+            int[] src = new int[spanLength];
             for (int i = 0; i < src.Length; i++)
             {
                 src[i] = i + 1;
@@ -100,7 +100,7 @@ public partial class MemoryGroupTests
         [InlineData(0, 3, 1)]
         public void SpanToGroup_OutOfRange(long totalLength, int bufferLength, int spanLength)
         {
-            var src = new int[spanLength];
+            int[] src = new int[spanLength];
             using MemoryGroup<int> trg = this.CreateTestGroup(totalLength, bufferLength, true);
             Assert.ThrowsAny<ArgumentOutOfRangeException>(() => src.AsSpan().CopyTo(trg));
         }

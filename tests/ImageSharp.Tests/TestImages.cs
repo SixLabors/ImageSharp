@@ -62,6 +62,7 @@ public static class TestImages
         public const string TestPattern31x31HalfTransparent = "Png/testpattern31x31-halftransparent.png";
         public const string XmpColorPalette = "Png/xmp-colorpalette.png";
         public const string AdamHeadsHlg = "Png/adamHeadsHLG.png";
+        public const string IptcMetadata = "Png/iptc-profile.png";
 
         // Animated
         // https://philip.html5.org/tests/apng/tests.html
@@ -163,6 +164,18 @@ public static class TestImages
         // Issue 2924: https://github.com/SixLabors/ImageSharp/issues/2924
         public const string Issue2924 = "Png/issues/Issue_2924.png";
 
+        // Issue 3000: https://github.com/SixLabors/ImageSharp/issues/3000
+        public const string Issue3000 = "Png/issues/issue_3000.png";
+
+        public static class Icc
+        {
+            public const string SRgbGray = "Png/icc-profiles/sRGB_Gray.png";
+            public const string SRgbGrayInterlacedRgba32 = "Png/icc-profiles/sRGB_Gray_Interlaced_Rgba32.png";
+            public const string SRgbGrayInterlacedRgba64 = "Png/icc-profiles/sRGB_Gray_Interlaced_Rgba64.png";
+            public const string Perceptual = "Png/icc-profiles/Perceptual.png";
+            public const string PerceptualcLUTOnly = "Png/icc-profiles/Perceptual-cLUT-only.png";
+        }
+
         public static class Bad
         {
             public const string MissingDataChunk = "Png/xdtn0g01.png";
@@ -216,6 +229,9 @@ public static class TestImages
             public const string AppleRGB = "Jpg/icc-profiles/Momiji-AppleRGB-yes.jpg";
             public const string CMYK = "Jpg/icc-profiles/issue-129.jpg";
             public const string YCCK = "Jpg/icc-profiles/issue_2723.jpg";
+            public const string SRgbGray = "Jpg/icc-profiles/sRGB_Gray.jpg";
+            public const string Perceptual = "Jpg/icc-profiles/Perceptual.jpg";
+            public const string PerceptualcLUTOnly = "Jpg/icc-profiles/Perceptual-cLUT-only.jpg";
         }
 
         public static class Progressive
@@ -231,7 +247,7 @@ public static class TestImages
                 public const string ExifUndefType = "Jpg/progressive/ExifUndefType.jpg";
             }
 
-            public static readonly string[] All = { Fb, Progress, Festzug };
+            public static readonly string[] All = [Fb, Progress, Festzug];
         }
 
         public static class Baseline
@@ -287,12 +303,12 @@ public static class TestImages
             public const string ArithmeticCodingWithRestart = "Jpg/baseline/Calliphora-arithmetic-restart.jpg";
 
             public static readonly string[] All =
-            {
+            [
                 Cmyk, Ycck, Exif, Floorplan,
                 Calliphora, Turtle420, GammaDalaiLamaGray,
                 Hiyamugi, Jpeg400, Jpeg420Exif, Jpeg444,
                 Ratio1x1, Testorig12bit, YcckSubsample1222
-            };
+            ];
         }
 
         public static class Issues
@@ -342,6 +358,7 @@ public static class TestImages
             public const string Issue2638 = "Jpg/issues/Issue2638.jpg";
             public const string Issue2758 = "Jpg/issues/issue-2758.jpg";
             public const string Issue2857 = "Jpg/issues/issue-2857-subsub-ifds.jpg";
+            public const string Issue2948 = "Jpg/issues/issue-2948-sos.jpg";
 
             public static class Fuzz
             {
@@ -470,24 +487,24 @@ public static class TestImages
         public const string BlackWhitePalletDataMatrix = "Bmp/bit1datamatrix.bmp";
 
         public static readonly string[] BitFields =
-        {
-              Rgb32bfdef,
+        [
+            Rgb32bfdef,
               Rgb32bf,
               Rgb16565,
               Rgb16bfdef,
               Rgb16565pal,
-              Issue735,
-        };
+              Issue735
+        ];
 
         public static readonly string[] Miscellaneous =
-        {
+        [
             Car,
             F,
             NegHeight
-        };
+        ];
 
         public static readonly string[] Benchmark =
-        {
+        [
             Car,
             F,
             NegHeight,
@@ -504,7 +521,7 @@ public static class TestImages
             Bit16,
             Bit16Inverted,
             Bit32Rgb
-        };
+        ];
     }
 
     public static class Gif
@@ -581,10 +598,12 @@ public static class TestImages
             public const string Issue2866 = "Gif/issues/issue_2866.gif";
             public const string Issue2859_A = "Gif/issues/issue_2859_A.gif";
             public const string Issue2859_B = "Gif/issues/issue_2859_B.gif";
+            public const string Issue2953 = "Gif/issues/issue_2953.gif";
+            public const string Issue2980 = "Gif/issues/issue_2980.gif";
         }
 
         public static readonly string[] Animated =
-        {
+        [
             M4nb,
             Giphy,
             Cheers,
@@ -603,7 +622,7 @@ public static class TestImages
             Issues.Issue1530,
             Bit18RGBCube,
             Global256NoTrans
-        };
+        ];
     }
 
     public static class Tga
@@ -875,12 +894,19 @@ public static class TestImages
             public const string Issue2801 = "Webp/issues/Issue2801.webp";
             public const string Issue2866 = "Webp/issues/Issue2866.webp";
             public const string Issue2925 = "Webp/issues/Issue2925.webp";
+            public const string Issue2906 = "Webp/issues/Issue2906.webp";
         }
 
         public const string AlphaBlend = "Webp/alpha-blend.webp";
         public const string AlphaBlend2 = "Webp/alpha-blend-2.webp";
         public const string AlphaBlend3 = "Webp/alpha-blend-3.webp";
         public const string AlphaBlend4 = "Webp/alpha-blend-4.webp";
+
+        public static class Icc
+        {
+            public const string Perceptual = "Webp/icc-profiles/Perceptual.webp";
+            public const string PerceptualcLUTOnly = "Webp/icc-profiles/Perceptual-cLUT-only.webp";
+        }
     }
 
     public static class Tiff
@@ -1132,10 +1158,12 @@ public static class TestImages
         public const string Issues2435 = "Tiff/Issues/Issue2435.tiff";
         public const string Issues2454_A = "Tiff/Issues/Issue2454_A.tif";
         public const string Issues2454_B = "Tiff/Issues/Issue2454_B.tif";
+        public const string Issues3031 = "Tiff/Issues/Issue3031.tiff";
         public const string Issues2587 = "Tiff/Issues/Issue2587.tiff";
         public const string Issues2679 = "Tiff/Issues/Issue2679.tiff";
         public const string JpegCompressedGray0000539558 = "Tiff/Issues/JpegCompressedGray-0000539558.tiff";
         public const string Tiled0000023664 = "Tiff/Issues/tiled-0000023664.tiff";
+        public const string ExtraSamplesUnspecified = "Tiff/Issues/ExtraSamplesUnspecified.tif";
 
         public const string SmallRgbDeflate = "Tiff/rgb_small_deflate.tiff";
         public const string SmallRgbLzw = "Tiff/rgb_small_lzw.tiff";
@@ -1160,10 +1188,20 @@ public static class TestImages
         public const string IptcData = "Tiff/iptc.tiff";
 
         public const string Issue2909 = "Tiff/Issues/Issue2909.tiff";
+        public const string Issue2983 = "Tiff/Issues/Issue2983.tiff";
 
-        public static readonly string[] Multiframes = { MultiframeDeflateWithPreview, MultiframeLzwPredictor /*, MultiFrameDifferentSize, MultiframeDifferentSizeTiled, MultiFrameDifferentVariants,*/ };
+        public static readonly string[] Multiframes = [MultiframeDeflateWithPreview, MultiframeLzwPredictor /*, MultiFrameDifferentSize, MultiframeDifferentSizeTiled, MultiFrameDifferentVariants,*/
+        ];
 
-        public static readonly string[] Metadata = { SampleMetadata };
+        public static readonly string[] Metadata = [SampleMetadata];
+
+        public static class Icc
+        {
+            public const string PerceptualCmyk = "Tiff/icc-profiles/Perceptual_CMYK.tiff";
+            public const string PerceptualCieLab = "Tiff/icc-profiles/Perceptual_CIELAB.tiff";
+            public const string PerceptualRgb8 = "Tiff/icc-profiles/Perceptual_RGB8.tiff";
+            public const string PerceptualRgb16 = "Tiff/icc-profiles/Perceptual_RGB16.tiff";
+        }
     }
 
     public static class BigTiff

@@ -12,7 +12,7 @@ using SDImage = System.Drawing.Image;
 
 namespace SixLabors.ImageSharp.Benchmarks;
 
-[Config(typeof(Config.Standard))]
+[Config(typeof(Config.StandardInProcess))]
 public abstract class Resize<TPixel>
     where TPixel : unmanaged, IPixel<TPixel>
 {
@@ -22,7 +22,7 @@ public abstract class Resize<TPixel>
 
     private SDImage sourceBitmap;
 
-    protected Configuration Configuration { get; } = new Configuration(new JpegConfigurationModule());
+    protected Configuration Configuration { get; } = new(new JpegConfigurationModule());
 
     protected int DestSize { get; private set; }
 

@@ -12,14 +12,14 @@ public abstract class Basic1ParameterConvolutionTests
 {
     private static readonly ImageComparer ValidatorComparer = ImageComparer.TolerantPercentage(0.05F);
 
-    public static readonly TheoryData<int> Values = new TheoryData<int> { 3, 5 };
+    public static readonly TheoryData<int> Values = new() { 3, 5 };
 
     public static readonly string[] InputImages =
-    {
+    [
         TestImages.Bmp.Car,
         TestImages.Png.CalliphoraPartial,
         TestImages.Png.Blur
-    };
+    ];
 
     [Theory]
     [WithFileCollection(nameof(InputImages), nameof(Values), PixelTypes.Rgba32)]

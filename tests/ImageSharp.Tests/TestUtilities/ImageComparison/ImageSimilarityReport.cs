@@ -61,7 +61,7 @@ public class ImageSimilarityReport
 
     private string PrintDifference()
     {
-        var sb = new StringBuilder();
+        StringBuilder sb = new();
         if (this.TotalNormalizedDifference.HasValue)
         {
             sb.AppendLine();
@@ -103,7 +103,7 @@ public class ImageSimilarityReport<TPixelA, TPixelB> : ImageSimilarityReport
     }
 
     public static ImageSimilarityReport<TPixelA, TPixelB> Empty =>
-        new ImageSimilarityReport<TPixelA, TPixelB>(0, null, null, Enumerable.Empty<PixelDifference>(), 0f);
+        new(0, null, null, Enumerable.Empty<PixelDifference>(), 0f);
 
     public new ImageFrame<TPixelA> ExpectedImage => (ImageFrame<TPixelA>)base.ExpectedImage;
 

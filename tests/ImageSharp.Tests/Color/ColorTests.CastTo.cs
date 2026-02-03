@@ -13,10 +13,10 @@ public partial class ColorTests
         [Fact]
         public void Rgba64()
         {
-            var source = new Rgba64(100, 2222, 3333, 4444);
+            Rgba64 source = new(100, 2222, 3333, 4444);
 
             // Act:
-            var color = Color.FromPixel(source);
+            Color color = Color.FromPixel(source);
 
             // Assert:
             Rgba64 data = color.ToPixel<Rgba64>();
@@ -26,10 +26,10 @@ public partial class ColorTests
         [Fact]
         public void Rgba32()
         {
-            var source = new Rgba32(1, 22, 33, 231);
+            Rgba32 source = new(1, 22, 33, 231);
 
             // Act:
-            var color = Color.FromPixel(source);
+            Color color = Color.FromPixel(source);
 
             // Assert:
             Rgba32 data = color.ToPixel<Rgba32>();
@@ -39,10 +39,10 @@ public partial class ColorTests
         [Fact]
         public void Argb32()
         {
-            var source = new Argb32(1, 22, 33, 231);
+            Argb32 source = new(1, 22, 33, 231);
 
             // Act:
-            var color = Color.FromPixel(source);
+            Color color = Color.FromPixel(source);
 
             // Assert:
             Argb32 data = color.ToPixel<Argb32>();
@@ -52,10 +52,10 @@ public partial class ColorTests
         [Fact]
         public void Bgra32()
         {
-            var source = new Bgra32(1, 22, 33, 231);
+            Bgra32 source = new(1, 22, 33, 231);
 
             // Act:
-            var color = Color.FromPixel(source);
+            Color color = Color.FromPixel(source);
 
             // Assert:
             Bgra32 data = color.ToPixel<Bgra32>();
@@ -65,10 +65,10 @@ public partial class ColorTests
         [Fact]
         public void Abgr32()
         {
-            var source = new Abgr32(1, 22, 33, 231);
+            Abgr32 source = new(1, 22, 33, 231);
 
             // Act:
-            var color = Color.FromPixel(source);
+            Color color = Color.FromPixel(source);
 
             // Assert:
             Abgr32 data = color.ToPixel<Abgr32>();
@@ -78,10 +78,10 @@ public partial class ColorTests
         [Fact]
         public void Rgb24()
         {
-            var source = new Rgb24(1, 22, 231);
+            Rgb24 source = new(1, 22, 231);
 
             // Act:
-            var color = Color.FromPixel(source);
+            Color color = Color.FromPixel(source);
 
             // Assert:
             Rgb24 data = color.ToPixel<Rgb24>();
@@ -91,10 +91,10 @@ public partial class ColorTests
         [Fact]
         public void Bgr24()
         {
-            var source = new Bgr24(1, 22, 231);
+            Bgr24 source = new(1, 22, 231);
 
             // Act:
-            var color = Color.FromPixel(source);
+            Color color = Color.FromPixel(source);
 
             // Assert:
             Bgr24 data = color.ToPixel<Bgr24>();
@@ -129,7 +129,7 @@ public partial class ColorTests
             where TPixel : unmanaged, IPixel<TPixel>
         {
             // Act:
-            var color = Color.FromPixel(source);
+            Color color = Color.FromPixel(source);
 
             // Assert:
             TPixel actual = color.ToPixel<TPixel>();
@@ -150,7 +150,7 @@ public partial class ColorTests
             where TPixel2 : unmanaged, IPixel<TPixel2>
         {
             // Act:
-            var color = Color.FromPixel(source);
+            Color color = Color.FromPixel(source);
 
             // Assert:
             TPixel2 actual = color.ToPixel<TPixel2>();

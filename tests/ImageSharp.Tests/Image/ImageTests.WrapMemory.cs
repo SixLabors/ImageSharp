@@ -39,7 +39,7 @@ public partial class ImageTests
                 }
 
                 this.bitmap = bitmap;
-                var rectangle = new System.Drawing.Rectangle(0, 0, bitmap.Width, bitmap.Height);
+                System.Drawing.Rectangle rectangle = new(0, 0, bitmap.Width, bitmap.Height);
                 this.bmpData = bitmap.LockBits(rectangle, ImageLockMode.ReadWrite, bitmap.PixelFormat);
                 this.length = bitmap.Width * bitmap.Height;
             }
@@ -124,13 +124,13 @@ public partial class ImageTests
         [Fact]
         public void WrapMemory_CreatedImageIsCorrect()
         {
-            var cfg = Configuration.CreateDefaultInstance();
-            var metaData = new ImageMetadata();
+            Configuration cfg = Configuration.CreateDefaultInstance();
+            ImageMetadata metaData = new();
 
-            var array = new Rgba32[25];
-            var memory = new Memory<Rgba32>(array);
+            Rgba32[] array = new Rgba32[25];
+            Memory<Rgba32> memory = new(array);
 
-            using (var image = Image.WrapMemory(cfg, memory, 5, 5, metaData))
+            using (Image<Rgba32> image = Image.WrapMemory(cfg, memory, 5, 5, metaData))
             {
                 Assert.True(image.DangerousTryGetSinglePixelMemory(out Memory<Rgba32> imageMem));
                 ref Rgba32 pixel0 = ref imageMem.Span[0];
@@ -149,22 +149,22 @@ public partial class ImageTests
                 return;
             }
 
-            using (var bmp = new Bitmap(51, 23))
+            using (Bitmap bmp = new(51, 23))
             {
-                using (var memoryManager = new BitmapMemoryManager(bmp))
+                using (BitmapMemoryManager memoryManager = new(bmp))
                 {
                     Memory<Bgra32> memory = memoryManager.Memory;
                     Bgra32 bg = Color.Red.ToPixel<Bgra32>();
                     Bgra32 fg = Color.Green.ToPixel<Bgra32>();
 
-                    using (var image = Image.WrapMemory(memory, bmp.Width, bmp.Height))
+                    using (Image<Bgra32> image = Image.WrapMemory(memory, bmp.Width, bmp.Height))
                     {
                         Assert.Equal(memory, image.GetRootFramePixelBuffer().DangerousGetSingleMemory());
                         image.GetPixelMemoryGroup().Fill(bg);
 
                         image.ProcessPixelRows(accessor =>
                         {
-                            for (var i = 10; i < 20; i++)
+                            for (int i = 10; i < 20; i++)
                             {
                                 accessor.GetRowSpan(i).Slice(10, 10).Fill(fg);
                             }
@@ -195,19 +195,19 @@ public partial class ImageTests
                 return;
             }
 
-            using (var bmp = new Bitmap(51, 23))
+            using (Bitmap bmp = new(51, 23))
             {
-                var memoryManager = new BitmapMemoryManager(bmp);
+                BitmapMemoryManager memoryManager = new(bmp);
                 Bgra32 bg = Color.Red.ToPixel<Bgra32>();
                 Bgra32 fg = Color.Green.ToPixel<Bgra32>();
 
-                using (var image = Image.WrapMemory(memoryManager, bmp.Width, bmp.Height))
+                using (Image<Bgra32> image = Image.WrapMemory(memoryManager, bmp.Width, bmp.Height))
                 {
                     Assert.Equal(memoryManager.Memory, image.GetRootFramePixelBuffer().DangerousGetSingleMemory());
                     image.GetPixelMemoryGroup().Fill(bg);
                     image.ProcessPixelRows(accessor =>
                     {
-                        for (var i = 10; i < 20; i++)
+                        for (int i = 10; i < 20; i++)
                         {
                             accessor.GetRowSpan(i).Slice(10, 10).Fill(fg);
                         }
@@ -227,13 +227,13 @@ public partial class ImageTests
         [Fact]
         public void WrapMemory_FromBytes_CreatedImageIsCorrect()
         {
-            var cfg = Configuration.CreateDefaultInstance();
-            var metaData = new ImageMetadata();
+            Configuration cfg = Configuration.CreateDefaultInstance();
+            ImageMetadata metaData = new();
 
-            var array = new byte[25 * Unsafe.SizeOf<Rgba32>()];
-            var memory = new Memory<byte>(array);
+            byte[] array = new byte[25 * Unsafe.SizeOf<Rgba32>()];
+            Memory<byte> memory = new(array);
 
-            using (var image = Image.WrapMemory<Rgba32>(cfg, memory, 5, 5, metaData))
+            using (Image<Rgba32> image = Image.WrapMemory<Rgba32>(cfg, memory, 5, 5, metaData))
             {
                 Assert.True(image.DangerousTryGetSinglePixelMemory(out Memory<Rgba32> imageMem));
                 ref Rgba32 pixel0 = ref imageMem.Span[0];
@@ -252,16 +252,16 @@ public partial class ImageTests
                 return;
             }
 
-            using (var bmp = new Bitmap(51, 23))
+            using (Bitmap bmp = new(51, 23))
             {
-                using (var memoryManager = new BitmapMemoryManager(bmp))
+                using (BitmapMemoryManager memoryManager = new(bmp))
                 {
                     Memory<Bgra32> pixelMemory = memoryManager.Memory;
                     Memory<byte> byteMemory = new CastMemoryManager<Bgra32, byte>(pixelMemory).Memory;
                     Bgra32 bg = Color.Red.ToPixel<Bgra32>();
                     Bgra32 fg = Color.Green.ToPixel<Bgra32>();
 
-                    using (var image = Image.WrapMemory<Bgra32>(byteMemory, bmp.Width, bmp.Height))
+                    using (Image<Bgra32> image = Image.WrapMemory<Bgra32>(byteMemory, bmp.Width, bmp.Height))
                     {
                         Span<Bgra32> pixelSpan = pixelMemory.Span;
                         Span<Bgra32> imageSpan = image.GetRootFramePixelBuffer().DangerousGetSingleMemory().Span;
@@ -276,7 +276,7 @@ public partial class ImageTests
                         image.GetPixelMemoryGroup().Fill(bg);
                         image.ProcessPixelRows(accessor =>
                         {
-                            for (var i = 10; i < 20; i++)
+                            for (int i = 10; i < 20; i++)
                             {
                                 accessor.GetRowSpan(i).Slice(10, 10).Fill(fg);
                             }
@@ -300,16 +300,16 @@ public partial class ImageTests
         [InlineData(65536, 65537, 65536)]
         public unsafe void WrapMemory_Throws_OnTooLessWrongSize(int size, int width, int height)
         {
-            var cfg = Configuration.CreateDefaultInstance();
-            var metaData = new ImageMetadata();
+            Configuration cfg = Configuration.CreateDefaultInstance();
+            ImageMetadata metaData = new();
 
-            var array = new Rgba32[size];
+            Rgba32[] array = new Rgba32[size];
             Exception thrownException = null;
             fixed (void* ptr = array)
             {
                 try
                 {
-                    using var image = Image.WrapMemory<Rgba32>(cfg, ptr, size * sizeof(Rgba32), width, height, metaData);
+                    using Image<Rgba32> image = Image.WrapMemory<Rgba32>(cfg, ptr, size * sizeof(Rgba32), width, height, metaData);
                 }
                 catch (Exception e)
                 {
@@ -328,14 +328,14 @@ public partial class ImageTests
         [InlineData(2048, 32, 32)]
         public unsafe void WrapMemory_FromPointer_CreatedImageIsCorrect(int size, int width, int height)
         {
-            var cfg = Configuration.CreateDefaultInstance();
-            var metaData = new ImageMetadata();
+            Configuration cfg = Configuration.CreateDefaultInstance();
+            ImageMetadata metaData = new();
 
-            var array = new Rgba32[size];
+            Rgba32[] array = new Rgba32[size];
 
             fixed (void* ptr = array)
             {
-                using (var image = Image.WrapMemory<Rgba32>(cfg, ptr, size * sizeof(Rgba32), width, height, metaData))
+                using (Image<Rgba32> image = Image.WrapMemory<Rgba32>(cfg, ptr, size * sizeof(Rgba32), width, height, metaData))
                 {
                     Assert.True(image.DangerousTryGetSinglePixelMemory(out Memory<Rgba32> imageMem));
                     Span<Rgba32> imageSpan = imageMem.Span;
@@ -359,9 +359,9 @@ public partial class ImageTests
                 return;
             }
 
-            using (var bmp = new Bitmap(51, 23))
+            using (Bitmap bmp = new(51, 23))
             {
-                using (var memoryManager = new BitmapMemoryManager(bmp))
+                using (BitmapMemoryManager memoryManager = new(bmp))
                 {
                     Memory<Bgra32> pixelMemory = memoryManager.Memory;
                     Bgra32 bg = Color.Red.ToPixel<Bgra32>();
@@ -369,7 +369,7 @@ public partial class ImageTests
 
                     fixed (void* p = pixelMemory.Span)
                     {
-                        using (var image = Image.WrapMemory<Bgra32>(p, pixelMemory.Length, bmp.Width, bmp.Height))
+                        using (Image<Bgra32> image = Image.WrapMemory<Bgra32>(p, pixelMemory.Length, bmp.Width, bmp.Height))
                         {
                             Span<Bgra32> pixelSpan = pixelMemory.Span;
                             Span<Bgra32> imageSpan = image.GetRootFramePixelBuffer().DangerousGetSingleMemory().Span;
@@ -381,7 +381,7 @@ public partial class ImageTests
                             image.GetPixelMemoryGroup().Fill(bg);
                             image.ProcessPixelRows(accessor =>
                             {
-                                for (var i = 10; i < 20; i++)
+                                for (int i = 10; i < 20; i++)
                                 {
                                     accessor.GetRowSpan(i).Slice(10, 10).Fill(fg);
                                 }
@@ -407,8 +407,8 @@ public partial class ImageTests
         [InlineData(65536, 65537, 65536)]
         public void WrapMemory_MemoryOfT_InvalidSize(int size, int height, int width)
         {
-            var array = new Rgba32[size];
-            var memory = new Memory<Rgba32>(array);
+            Rgba32[] array = new Rgba32[size];
+            Memory<Rgba32> memory = new(array);
 
             Assert.Throws<ArgumentException>(() => Image.WrapMemory(memory, height, width));
         }
@@ -421,8 +421,8 @@ public partial class ImageTests
         [InlineData(2048, 32, 32)]
         public void WrapMemory_MemoryOfT_ValidSize(int size, int height, int width)
         {
-            var array = new Rgba32[size];
-            var memory = new Memory<Rgba32>(array);
+            Rgba32[] array = new Rgba32[size];
+            Memory<Rgba32> memory = new(array);
 
             Image.WrapMemory(memory, height, width);
         }
@@ -443,8 +443,8 @@ public partial class ImageTests
         [InlineData(65536, 65537, 65536)]
         public void WrapMemory_IMemoryOwnerOfT_InvalidSize(int size, int height, int width)
         {
-            var array = new Rgba32[size];
-            var memory = new TestMemoryOwner<Rgba32> { Memory = array };
+            Rgba32[] array = new Rgba32[size];
+            TestMemoryOwner<Rgba32> memory = new() { Memory = array };
 
             Assert.Throws<ArgumentException>(() => Image.WrapMemory(memory, height, width));
         }
@@ -457,10 +457,10 @@ public partial class ImageTests
         [InlineData(2048, 32, 32)]
         public void WrapMemory_IMemoryOwnerOfT_ValidSize(int size, int height, int width)
         {
-            var array = new Rgba32[size];
-            var memory = new TestMemoryOwner<Rgba32> { Memory = array };
+            Rgba32[] array = new Rgba32[size];
+            TestMemoryOwner<Rgba32> memory = new() { Memory = array };
 
-            using (var img = Image.WrapMemory<Rgba32>(memory, width, height))
+            using (Image<Rgba32> img = Image.WrapMemory<Rgba32>(memory, width, height))
             {
                 Assert.Equal(width, img.Width);
                 Assert.Equal(height, img.Height);
@@ -469,7 +469,7 @@ public partial class ImageTests
                 {
                     for (int i = 0; i < height; ++i)
                     {
-                        var arrayIndex = width * i;
+                        int arrayIndex = width * i;
 
                         Span<Rgba32> rowSpan = accessor.GetRowSpan(i);
                         ref Rgba32 r0 = ref rowSpan[0];
@@ -490,8 +490,8 @@ public partial class ImageTests
         [InlineData(65536, 65537, 65536)]
         public void WrapMemory_IMemoryOwnerOfByte_InvalidSize(int size, int height, int width)
         {
-            var array = new byte[size * Unsafe.SizeOf<Rgba32>()];
-            var memory = new TestMemoryOwner<byte> { Memory = array };
+            byte[] array = new byte[size * Unsafe.SizeOf<Rgba32>()];
+            TestMemoryOwner<byte> memory = new() { Memory = array };
 
             Assert.Throws<ArgumentException>(() => Image.WrapMemory<Rgba32>(memory, height, width));
         }
@@ -504,11 +504,11 @@ public partial class ImageTests
         [InlineData(2048, 32, 32)]
         public void WrapMemory_IMemoryOwnerOfByte_ValidSize(int size, int height, int width)
         {
-            var pixelSize = Unsafe.SizeOf<Rgba32>();
-            var array = new byte[size * pixelSize];
-            var memory = new TestMemoryOwner<byte> { Memory = array };
+            int pixelSize = Unsafe.SizeOf<Rgba32>();
+            byte[] array = new byte[size * pixelSize];
+            TestMemoryOwner<byte> memory = new() { Memory = array };
 
-            using (var img = Image.WrapMemory<Rgba32>(memory, width, height))
+            using (Image<Rgba32> img = Image.WrapMemory<Rgba32>(memory, width, height))
             {
                 Assert.Equal(width, img.Width);
                 Assert.Equal(height, img.Height);
@@ -517,7 +517,7 @@ public partial class ImageTests
                 {
                     for (int i = 0; i < height; ++i)
                     {
-                        var arrayIndex = pixelSize * width * i;
+                        int arrayIndex = pixelSize * width * i;
 
                         Span<Rgba32> rowSpan = acccessor.GetRowSpan(i);
                         ref Rgba32 r0 = ref rowSpan[0];
@@ -538,8 +538,8 @@ public partial class ImageTests
         [InlineData(65536, 65537, 65536)]
         public void WrapMemory_MemoryOfByte_InvalidSize(int size, int height, int width)
         {
-            var array = new byte[size * Unsafe.SizeOf<Rgba32>()];
-            var memory = new Memory<byte>(array);
+            byte[] array = new byte[size * Unsafe.SizeOf<Rgba32>()];
+            Memory<byte> memory = new(array);
 
             Assert.Throws<ArgumentException>(() => Image.WrapMemory<Rgba32>(memory, height, width));
         }
@@ -552,8 +552,8 @@ public partial class ImageTests
         [InlineData(2048, 32, 32)]
         public void WrapMemory_MemoryOfByte_ValidSize(int size, int height, int width)
         {
-            var array = new byte[size * Unsafe.SizeOf<Rgba32>()];
-            var memory = new Memory<byte>(array);
+            byte[] array = new byte[size * Unsafe.SizeOf<Rgba32>()];
+            Memory<byte> memory = new(array);
 
             Image.WrapMemory<Rgba32>(memory, height, width);
         }

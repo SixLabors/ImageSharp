@@ -21,7 +21,7 @@ internal sealed partial class IccDataReader
     /// <returns>The read LUT.</returns>
     public IccLut ReadLut16(int count)
     {
-        var values = new ushort[count];
+        ushort[] values = new ushort[count];
         for (int i = 0; i < count; i++)
         {
             values[i] = this.ReadUInt16();
@@ -41,7 +41,7 @@ internal sealed partial class IccDataReader
     public IccClut ReadClut(int inChannelCount, int outChannelCount, bool isFloat)
     {
         // Grid-points are always 16 bytes long but only 0-inChCount are used.
-        var gridPointCount = new byte[inChannelCount];
+        byte[] gridPointCount = new byte[inChannelCount];
         Buffer.BlockCopy(this.data, this.AddIndex(16), gridPointCount, 0, inChannelCount);
 
         if (!isFloat)

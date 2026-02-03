@@ -34,8 +34,8 @@ public class ResizeHelperTests
     [Fact]
     public void CalculateMinRectangleWhenSourceIsSmallerThanTarget()
     {
-        var sourceSize = new Size(200, 100);
-        var target = new Size(400, 200);
+        Size sourceSize = new(200, 100);
+        Size target = new(400, 200);
 
         (Size size, Rectangle rectangle) = ResizeHelper.CalculateTargetLocationAndBounds(
             sourceSize,
@@ -52,11 +52,11 @@ public class ResizeHelperTests
     [Fact]
     public void MaxSizeAndRectangleAreCorrect()
     {
-        var sourceSize = new Size(5072, 6761);
-        var target = new Size(0, 450);
+        Size sourceSize = new(5072, 6761);
+        Size target = new(0, 450);
 
-        var expectedSize = new Size(338, 450);
-        var expectedRectangle = new Rectangle(Point.Empty, expectedSize);
+        Size expectedSize = new(338, 450);
+        Rectangle expectedRectangle = new(Point.Empty, expectedSize);
 
         (Size size, Rectangle rectangle) = ResizeHelper.CalculateTargetLocationAndBounds(
             sourceSize,
@@ -73,11 +73,11 @@ public class ResizeHelperTests
     [Fact]
     public void CropSizeAndRectangleAreCorrect()
     {
-        var sourceSize = new Size(100, 100);
-        var target = new Size(25, 50);
+        Size sourceSize = new(100, 100);
+        Size target = new(25, 50);
 
-        var expectedSize = new Size(25, 50);
-        var expectedRectangle = new Rectangle(-12, 0, 50, 50);
+        Size expectedSize = new(25, 50);
+        Rectangle expectedRectangle = new(-12, 0, 50, 50);
 
         (Size size, Rectangle rectangle) = ResizeHelper.CalculateTargetLocationAndBounds(
             sourceSize,
@@ -94,11 +94,11 @@ public class ResizeHelperTests
     [Fact]
     public void BoxPadSizeAndRectangleAreCorrect()
     {
-        var sourceSize = new Size(100, 100);
-        var target = new Size(120, 110);
+        Size sourceSize = new(100, 100);
+        Size target = new(120, 110);
 
-        var expectedSize = new Size(120, 110);
-        var expectedRectangle = new Rectangle(10, 5, 100, 100);
+        Size expectedSize = new(120, 110);
+        Rectangle expectedRectangle = new(10, 5, 100, 100);
 
         (Size size, Rectangle rectangle) = ResizeHelper.CalculateTargetLocationAndBounds(
             sourceSize,
@@ -115,11 +115,11 @@ public class ResizeHelperTests
     [Fact]
     public void PadSizeAndRectangleAreCorrect()
     {
-        var sourceSize = new Size(100, 100);
-        var target = new Size(120, 110);
+        Size sourceSize = new(100, 100);
+        Size target = new(120, 110);
 
-        var expectedSize = new Size(120, 110);
-        var expectedRectangle = new Rectangle(5, 0, 110, 110);
+        Size expectedSize = new(120, 110);
+        Rectangle expectedRectangle = new(5, 0, 110, 110);
 
         (Size size, Rectangle rectangle) = ResizeHelper.CalculateTargetLocationAndBounds(
             sourceSize,
@@ -136,11 +136,11 @@ public class ResizeHelperTests
     [Fact]
     public void StretchSizeAndRectangleAreCorrect()
     {
-        var sourceSize = new Size(100, 100);
-        var target = new Size(57, 32);
+        Size sourceSize = new(100, 100);
+        Size target = new(57, 32);
 
-        var expectedSize = new Size(57, 32);
-        var expectedRectangle = new Rectangle(Point.Empty, expectedSize);
+        Size expectedSize = new(57, 32);
+        Rectangle expectedRectangle = new(Point.Empty, expectedSize);
 
         (Size size, Rectangle rectangle) = ResizeHelper.CalculateTargetLocationAndBounds(
             sourceSize,

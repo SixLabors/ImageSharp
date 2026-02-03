@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using BenchmarkDotNet.Attributes;
+using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
 using SixLabors.ImageSharp.IO;
@@ -38,7 +39,7 @@ public class DecodeJpegParseStreamOnly
     {
         using MemoryStream memoryStream = new(this.jpegBytes);
         using BufferedReadStream bufferedStream = new(Configuration.Default, memoryStream);
-        JpegDecoderOptions options = new() { GeneralOptions = new() { SkipMetadata = true } };
+        JpegDecoderOptions options = new() { GeneralOptions = new DecoderOptions { SkipMetadata = true } };
 
         using JpegDecoderCore decoder = new(options);
         NoopSpectralConverter spectralConverter = new();

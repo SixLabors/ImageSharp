@@ -353,6 +353,21 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     }
 
     [Theory]
+    [WithFile(Icc.PerceptualCmyk, PixelTypes.Rgba32)]
+    [WithFile(Icc.PerceptualCieLab, PixelTypes.Rgba32)]
+    [WithFile(Icc.PerceptualRgb8, PixelTypes.Rgba32)]
+    [WithFile(Icc.PerceptualRgb16, PixelTypes.Rgba32)]
+    public void Decode_WhenColorProfileHandlingIsConvert_ApplyIccProfile<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage(TiffDecoder.Instance, new DecoderOptions { ColorProfileHandling = ColorProfileHandling.Convert });
+
+        image.DebugSave(provider);
+        image.CompareToReferenceOutput(provider);
+        Assert.Null(image.Metadata.IccProfile);
+    }
+
+    [Theory]
     [WithFile(Issues2454_A, PixelTypes.Rgba32)]
     [WithFile(Issues2454_B, PixelTypes.Rgba32)]
     public void TiffDecoder_CanDecode_YccK<TPixel>(TestImageProvider<TPixel> provider)
@@ -360,6 +375,21 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     {
         using Image<TPixel> image = provider.GetImage(TiffDecoder.Instance);
         image.DebugSave(provider);
+
+        // ARM reports a 0.0000% difference, so we use a tolerant comparer here.
+        image.CompareToReferenceOutput(ImageComparer.TolerantPercentage(0.0001F), provider);
+    }
+
+    [Theory]
+    [WithFile(Issues3031, PixelTypes.Rgba64)]
+    [WithFile(Rgba16BitAssociatedAlphaBigEndian, PixelTypes.Rgba64)]
+    [WithFile(Rgba16BitAssociatedAlphaLittleEndian, PixelTypes.Rgba64)]
+    public void TiffDecoder_CanDecode_64Bit_WithAssociatedAlpha<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage(TiffDecoder.Instance);
+        image.DebugSave(provider);
+
         image.CompareToReferenceOutput(ImageComparer.Exact, provider);
     }
 
@@ -783,7 +813,7 @@ public class TiffDecoderTests : TiffDecoderBaseTester
         // ImageMagick cannot decode this image.
         image.DebugSave(provider);
         image.CompareToReferenceOutput(
-            ImageComparer.TolerantPercentage(0.0018F), // NET 9+ Uses zlib-ng to decompress, which manages to decode 2 extra pixels.
+            ImageComparer.TolerantPercentage(0.0034F), // NET 10 Uses zlib-ng to decompress, which manages to decode 3 extra pixels.
             provider,
             appendPixelTypeToFileName: false);
     }
@@ -810,7 +840,7 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     {
         DecoderOptions options = new()
         {
-            TargetSize = new() { Width = 150, Height = 150 }
+            TargetSize = new Size { Width = 150, Height = 150 }
         };
 
         using Image<TPixel> image = provider.GetImage(TiffDecoder.Instance, options);
@@ -828,4 +858,14 @@ public class TiffDecoderTests : TiffDecoderBaseTester
             testOutputDetails: details,
             appendPixelTypeToFileName: false);
     }
+
+    [Theory]
+    [WithFile(ExtraSamplesUnspecified, PixelTypes.Rgba32)]
+    public void TiffDecoder_CanDecode_ExtraSamplesUnspecified<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
+
+    [Theory]
+    [WithFile(Issue2983, PixelTypes.Rgba32)]
+    public void TiffDecoder_CanDecode_Issue2983<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
 }

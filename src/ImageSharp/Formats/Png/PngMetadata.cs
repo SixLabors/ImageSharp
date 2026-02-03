@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Numerics;
 using SixLabors.ImageSharp.Formats.Png.Chunks;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -110,7 +111,7 @@ public class PngMetadata : IFormatMetadata<PngMetadata>
                 color = PngColorType.Rgb;
                 break;
             default:
-                if (colorType.HasFlag(PixelColorType.Luminance))
+                if (colorType.HasFlag(PixelColorType.Luminance | PixelColorType.Alpha))
                 {
                     color = PngColorType.GrayscaleWithAlpha;
                     break;
@@ -129,7 +130,7 @@ public class PngMetadata : IFormatMetadata<PngMetadata>
             4 => PngBitDepth.Bit4,
             _ => (bpc <= 8) ? PngBitDepth.Bit8 : PngBitDepth.Bit16,
         };
-        return new()
+        return new PngMetadata
         {
             ColorType = color,
             BitDepth = bitDepth,
@@ -227,9 +228,26 @@ public class PngMetadata : IFormatMetadata<PngMetadata>
         };
 
     /// <inheritdoc/>
-    public void AfterImageApply<TPixel>(Image<TPixel> destination)
+    public void AfterImageApply<TPixel>(Image<TPixel> destination, Matrix4x4 matrix)
         where TPixel : unmanaged, IPixel<TPixel>
-        => this.ColorTable = null;
+    {
+        this.ColorTable = null;
+
+        // If the color type is RGB and we have a transparent color, we need to switch to RGBA
+        // so that we do not incorrectly preserve the obsolete tRNS chunk.
+        if (this.ColorType == PngColorType.Rgb && this.TransparentColor.HasValue)
+        {
+            this.ColorType = PngColorType.RgbWithAlpha;
+            this.TransparentColor = null;
+        }
+
+        // The same applies for Grayscale.
+        if (this.ColorType == PngColorType.Grayscale && this.TransparentColor.HasValue)
+        {
+            this.ColorType = PngColorType.GrayscaleWithAlpha;
+            this.TransparentColor = null;
+        }
+    }
 
     /// <inheritdoc/>
     IDeepCloneable IDeepCloneable.DeepClone() => this.DeepClone();

@@ -31,7 +31,7 @@ public static class VonKriesChromaticAdaptation
 
         if (from.Equals(to))
         {
-            return new(source.X, source.Y, source.Z);
+            return new CieXyz(source.X, source.Y, source.Z);
         }
 
         Vector3 sourceColorLms = Vector3.Transform(source.AsVector3Unsafe(), matrix);

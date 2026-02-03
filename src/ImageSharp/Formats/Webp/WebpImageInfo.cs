@@ -9,6 +9,11 @@ namespace SixLabors.ImageSharp.Formats.Webp;
 internal class WebpImageInfo : IDisposable
 {
     /// <summary>
+    /// Gets or sets the size of the encoded image data in bytes.
+    /// </summary>
+    public uint DataSize { get; set; }
+
+    /// <summary>
     /// Gets or sets the bitmap width in pixels.
     /// </summary>
     public uint Width { get; set; }

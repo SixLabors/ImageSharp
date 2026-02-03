@@ -64,7 +64,7 @@ public class ResizeTests : BaseImageOperationsExtensionTest
         bool compand = true;
         ResizeMode mode = ResizeMode.Stretch;
 
-        var resizeOptions = new ResizeOptions
+        ResizeOptions resizeOptions = new()
         {
             Size = new Size(width, height),
             Sampler = sampler,
@@ -93,7 +93,7 @@ public class ResizeTests : BaseImageOperationsExtensionTest
     {
         static void RunTest()
         {
-            using var image = new Image<Rgba32>(50, 50);
+            using Image<Rgba32> image = new(50, 50);
             image.Mutate(img => img.Resize(25, 25));
 
             Assert.Equal(25, image.Width);
@@ -102,6 +102,6 @@ public class ResizeTests : BaseImageOperationsExtensionTest
 
         FeatureTestRunner.RunWithHwIntrinsicsFeature(
             RunTest,
-            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX2 | HwIntrinsics.DisableFMA);
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX2);
     }
 }

@@ -31,7 +31,7 @@ internal sealed class ExifSignedByte : ExifValue<sbyte>
         switch (value)
         {
             case int intValue:
-                if (intValue >= sbyte.MinValue && intValue <= sbyte.MaxValue)
+                if (intValue is >= sbyte.MinValue and <= sbyte.MaxValue)
                 {
                     this.Value = (sbyte)intValue;
                     return true;

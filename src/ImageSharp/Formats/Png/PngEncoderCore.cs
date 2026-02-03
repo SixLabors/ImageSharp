@@ -8,6 +8,7 @@ using System.IO.Hashing;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
+using System.Text;
 using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Compression.Zlib;
 using SixLabors.ImageSharp.Formats.Png.Chunks;
@@ -217,6 +218,7 @@ internal sealed class PngEncoderCore : IDisposable
             this.WritePhysicalChunk(stream, metadata);
             this.WriteExifChunk(stream, metadata);
             this.WriteXmpChunk(stream, metadata);
+            this.WriteIptcChunk(stream, metadata);
             this.WriteTextChunks(stream, pngMetadata);
 
             if (image.Frames.Count > 1)
@@ -265,7 +267,7 @@ internal sealed class PngEncoderCore : IDisposable
                 {
                     // Use the previously derived global palette and a shared quantizer to
                     // quantize the subsequent frames. This allows us to cache the color matching resolution.
-                    paletteQuantizer ??= new(
+                    paletteQuantizer ??= new PaletteQuantizer<TPixel>(
                         this.configuration,
                         this.quantizer!.Options,
                         previousPalette);
@@ -887,6 +889,163 @@ internal sealed class PngEncoderCore : IDisposable
         // And the XMP data itself.
         xmpData.CopyTo(payload[bytesWritten..]);
         this.WriteChunk(stream, PngChunkType.InternationalText, payload);
+    }
+
+    /// <summary>
+    /// Writes the IPTC metadata from the specified image metadata to the provided stream as a compressed zTXt chunk in
+    /// PNG format, if IPTC data is present.
+    /// </summary>
+    /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
+    /// <param name="meta">The image metadata.</param>
+    private void WriteIptcChunk(Stream stream, ImageMetadata meta)
+    {
+        if ((this.chunkFilter & PngChunkFilter.ExcludeTextChunks) == PngChunkFilter.ExcludeTextChunks)
+        {
+            return;
+        }
+
+        if (meta.IptcProfile is null || !meta.IptcProfile.Values.Any())
+        {
+            return;
+        }
+
+        meta.IptcProfile.UpdateData();
+
+        byte[]? iptcData = meta.IptcProfile.Data;
+        if (iptcData?.Length is 0 or null)
+        {
+            return;
+        }
+
+        // For interoperability, wrap raw IPTC (IIM) in a Photoshop IRB (8BIM, resource 0x0404),
+        // since "Raw profile type iptc" commonly stores IRB payloads.
+        using IMemoryOwner<byte> irb = this.BuildPhotoshopIrbForIptc(iptcData);
+
+        Span<byte> irbSpan = irb.GetSpan();
+
+        // Build "raw profile" textual wrapper:
+        // "IPTC profile\n<decimal length>\n<hex bytes...>\n"
+        string rawProfileText = BuildRawProfileText("IPTC profile", irbSpan);
+
+        byte[] compressedData = this.GetZlibCompressedBytes(PngConstants.Encoding.GetBytes(rawProfileText));
+
+        // zTXt layout: keyword (latin-1) + 0 + compression-method(0) + compressed-data
+        const string iptcRawProfileKeyword = PngConstants.IptcRawProfileKeyword;
+        int payloadLength = iptcRawProfileKeyword.Length + compressedData.Length + 2;
+
+        using IMemoryOwner<byte> payload = this.memoryAllocator.Allocate<byte>(payloadLength);
+        Span<byte> outputBytes = payload.GetSpan();
+
+        PngConstants.Encoding.GetBytes(iptcRawProfileKeyword).CopyTo(outputBytes);
+        int bytesWritten = iptcRawProfileKeyword.Length;
+        outputBytes[bytesWritten++] = 0; // Null separator
+        outputBytes[bytesWritten++] = 0; // Compression method: deflate
+        compressedData.CopyTo(outputBytes[bytesWritten..]);
+
+        this.WriteChunk(stream, PngChunkType.CompressedText, outputBytes);
+    }
+
+    /// <summary>
+    /// Builds a Photoshop Image Resource Block (IRB) containing the specified IPTC-IIM data.
+    /// </summary>
+    /// <remarks>The returned IRB uses resource ID 0x0404 and an empty Pascal string for the name, as required
+    /// for IPTC-NAA record embedding in Photoshop files. The data is padded to ensure even length, as specified by the
+    /// IRB format.</remarks>
+    /// <param name="iptcIim">
+    /// The IPTC-IIM data to embed in the IRB, provided as a read-only span of bytes. The data is included as-is in the
+    /// resulting block.
+    /// </param>
+    /// <returns>
+    /// A byte array representing the Photoshop IRB with the embedded IPTC-IIM data, formatted according to the
+    /// Photoshop specification.
+    /// </returns>
+    private IMemoryOwner<byte> BuildPhotoshopIrbForIptc(ReadOnlySpan<byte> iptcIim)
+    {
+        // IRB block:
+        // 4  bytes: "8BIM"
+        // 2  bytes: resource id 0x0404 (big endian)
+        // 2  bytes: pascal name (len=0) + pad to even => 0x00 0x00
+        // 4  bytes: data size (big endian)
+        // n  bytes: IPTC-IIM data
+        // pad to even
+        int pad = (iptcIim.Length & 1) != 0 ? 1 : 0;
+        IMemoryOwner<byte> bufferOwner = this.memoryAllocator.Allocate<byte>(4 + 2 + 2 + 4 + iptcIim.Length + pad);
+        Span<byte> buffer = bufferOwner.GetSpan();
+
+        int bytesWritten = 0;
+        PngConstants.EightBim.CopyTo(buffer);
+        bytesWritten += 4;
+
+        buffer[bytesWritten++] = 0x04;
+        buffer[bytesWritten++] = 0x04;
+
+        buffer[bytesWritten++] = 0x00; // Pascal name length
+        buffer[bytesWritten++] = 0x00; // pad to even
+
+        int size = iptcIim.Length;
+        buffer[bytesWritten++] = (byte)((size >> 24) & 0xFF);
+        buffer[bytesWritten++] = (byte)((size >> 16) & 0xFF);
+        buffer[bytesWritten++] = (byte)((size >> 8) & 0xFF);
+        buffer[bytesWritten++] = (byte)(size & 0xFF);
+
+        iptcIim.CopyTo(buffer[bytesWritten..]);
+
+        // Final pad byte already zero-initialized if needed
+        return bufferOwner;
+    }
+
+    /// <summary>
+    /// Builds a formatted text representation of a binary profile, including a header, the payload length, and the
+    /// payload as hexadecimal text.
+    /// </summary>
+    /// <remarks>
+    /// The hexadecimal payload is formatted with 64 bytes per line to improve readability. The
+    /// output consists of the header line, a line with the payload length, and one or more lines of hexadecimal
+    /// text.
+    /// </remarks>
+    /// <param name="header">The header text to include at the beginning of the profile. This is written as the first line of the output.</param>
+    /// <param name="payload">The binary payload to encode as hexadecimal text. The payload is split into lines of 64 bytes each.</param>
+    /// <returns>
+    /// A string containing the header, the payload length, and the hexadecimal representation of the payload, each on
+    /// separate lines.
+    /// </returns>
+    private static string BuildRawProfileText(string header, ReadOnlySpan<byte> payload)
+    {
+        // Hex text can be multi-line
+        // Use 64 bytes per line (128 hex chars) to keep the chunk readable.
+        const int bytesPerLine = 64;
+
+        int hexChars = payload.Length * 2;
+        int lineCount = (payload.Length + (bytesPerLine - 1)) / bytesPerLine;
+        int newlineCount = 2 + lineCount; // header line + length line + hex lines
+        int capacity = header.Length + 32 + hexChars + newlineCount;
+
+        StringBuilder sb = new(capacity);
+        sb.Append(header).Append('\n');
+        sb.Append(payload.Length).Append('\n');
+
+        int i = 0;
+        while (i < payload.Length)
+        {
+            int take = Math.Min(bytesPerLine, payload.Length - i);
+            AppendHex(sb, payload.Slice(i, take));
+            sb.Append('\n');
+            i += take;
+        }
+
+        return sb.ToString();
+    }
+
+    private static void AppendHex(StringBuilder sb, ReadOnlySpan<byte> data)
+    {
+        const string hex = "0123456789ABCDEF";
+
+        for (int i = 0; i < data.Length; i++)
+        {
+            byte b = data[i];
+            _ = sb.Append(hex[b >> 4]);
+            _ = sb.Append(hex[b & 0x0F]);
+        }
     }
 
     /// <summary>

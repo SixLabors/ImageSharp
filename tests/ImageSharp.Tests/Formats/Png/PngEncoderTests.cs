@@ -88,11 +88,11 @@ public partial class PngEncoderTests
         80, 100, 120, 230
     };
 
-    public static readonly PngInterlaceMode[] InterlaceMode = new[]
-    {
+    public static readonly PngInterlaceMode[] InterlaceMode =
+    [
         PngInterlaceMode.None,
         PngInterlaceMode.Adam7
-    };
+    ];
 
     public static readonly TheoryData<string, int, int, PixelResolutionUnit> RatioFiles =
     new()
@@ -289,8 +289,8 @@ public partial class PngEncoderTests
 
         byte[] data = ms.ToArray().Take(8).ToArray();
         byte[] expected =
-        {
-                0x89, // Set the high bit.
+        [
+            0x89, // Set the high bit.
                 0x50, // P
                 0x4E, // N
                 0x47, // G
@@ -298,7 +298,7 @@ public partial class PngEncoderTests
                 0x0A, // Line ending CRLF
                 0x1A, // EOF
                 0x0A // LF
-        };
+        ];
 
         Assert.Equal(expected, data);
     }
@@ -618,7 +618,7 @@ public partial class PngEncoderTests
 
         FeatureTestRunner.RunWithHwIntrinsicsFeature(
             RunTest,
-            HwIntrinsics.DisableSSSE3,
+            HwIntrinsics.DisableHWIntrinsic,
             provider);
     }
 
@@ -680,7 +680,7 @@ public partial class PngEncoderTests
 
         PaletteQuantizer quantizer = new(
             palette.Select(Color.FromPixel).ToArray(),
-            new QuantizerOptions() { ColorMatchingMode = ColorMatchingMode.Hybrid });
+            new QuantizerOptions { ColorMatchingMode = ColorMatchingMode.Hybrid });
 
         using MemoryStream ms = new();
         image.Save(ms, new PngEncoder

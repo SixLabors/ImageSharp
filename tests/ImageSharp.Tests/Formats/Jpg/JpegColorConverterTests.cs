@@ -19,11 +19,7 @@ public class JpegColorConverterTests
 
     private const int TestBufferLength = 40;
 
-    private const HwIntrinsics IntrinsicsConfig = HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX2;
-
     private static readonly ApproximateColorProfileComparer ColorSpaceComparer = new(epsilon: Precision);
-
-    private static readonly ColorProfileConverter ColorSpaceConverter = new();
 
     public static readonly TheoryData<int> Seeds = new() { 1, 2, 3 };
 
@@ -73,7 +69,7 @@ public class JpegColorConverterTests
     {
         FeatureTestRunner.RunWithHwIntrinsicsFeature(
             RunTest,
-            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX2 | HwIntrinsics.DisableSSE2 | HwIntrinsics.DisableHWIntrinsic);
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512 | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
 
         static void RunTest(string arg)
         {
@@ -106,7 +102,7 @@ public class JpegColorConverterTests
     {
         FeatureTestRunner.RunWithHwIntrinsicsFeature(
             RunTest,
-            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX2 | HwIntrinsics.DisableSSE2 | HwIntrinsics.DisableHWIntrinsic);
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512 | HwIntrinsics.DisableAVX2 | HwIntrinsics.DisableHWIntrinsic);
 
         static void RunTest(string arg)
         {
@@ -139,7 +135,7 @@ public class JpegColorConverterTests
     {
         FeatureTestRunner.RunWithHwIntrinsicsFeature(
             RunTest,
-            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX2 | HwIntrinsics.DisableSSE2 | HwIntrinsics.DisableHWIntrinsic);
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX2 | HwIntrinsics.DisableHWIntrinsic);
 
         static void RunTest(string arg)
         {
@@ -172,7 +168,7 @@ public class JpegColorConverterTests
     {
         FeatureTestRunner.RunWithHwIntrinsicsFeature(
             RunTest,
-            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX2 | HwIntrinsics.DisableSSE2 | HwIntrinsics.DisableHWIntrinsic);
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512 | HwIntrinsics.DisableAVX2 | HwIntrinsics.DisableHWIntrinsic);
 
         static void RunTest(string arg)
         {
@@ -205,7 +201,7 @@ public class JpegColorConverterTests
     {
         FeatureTestRunner.RunWithHwIntrinsicsFeature(
             RunTest,
-            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX2 | HwIntrinsics.DisableSSE2 | HwIntrinsics.DisableHWIntrinsic);
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512 | HwIntrinsics.DisableAVX2 | HwIntrinsics.DisableHWIntrinsic);
 
         static void RunTest(string arg)
         {
@@ -783,8 +779,8 @@ public class JpegColorConverterTests
         g /= MaxColorChannelValue;
         b /= MaxColorChannelValue;
 
-        Rgb expected = Rgb.Clamp(new(r, g, b));
-        Rgb actual = Rgb.Clamp(new(result.Component0[i], result.Component1[i], result.Component2[i]));
+        Rgb expected = Rgb.Clamp(new Rgb(r, g, b));
+        Rgb actual = Rgb.Clamp(new Rgb(result.Component0[i], result.Component1[i], result.Component2[i]));
 
         bool equal = ColorSpaceComparer.Equals(expected, actual);
         Assert.True(equal, $"Colors {expected} and {actual} are not equal at index {i}");
@@ -804,9 +800,9 @@ public class JpegColorConverterTests
         r /= MaxColorChannelValue;
         g /= MaxColorChannelValue;
         b /= MaxColorChannelValue;
-        Rgb expected = Rgb.Clamp(new(r, g, b));
+        Rgb expected = Rgb.Clamp(new Rgb(r, g, b));
 
-        Rgb actual = Rgb.Clamp(new(result.Component0[i], result.Component1[i], result.Component2[i]));
+        Rgb actual = Rgb.Clamp(new Rgb(result.Component0[i], result.Component1[i], result.Component2[i]));
 
         bool equal = ColorSpaceComparer.Equals(expected, actual);
         Assert.True(equal, $"Colors {expected} and {actual} are not equal at index {i}");
@@ -817,9 +813,9 @@ public class JpegColorConverterTests
         float r = values.Component0[i] / MaxColorChannelValue;
         float g = values.Component1[i] / MaxColorChannelValue;
         float b = values.Component2[i] / MaxColorChannelValue;
-        Rgb expected = Rgb.Clamp(new(r, g, b));
+        Rgb expected = Rgb.Clamp(new Rgb(r, g, b));
 
-        Rgb actual = Rgb.Clamp(new(result.Component0[i], result.Component1[i], result.Component2[i]));
+        Rgb actual = Rgb.Clamp(new Rgb(result.Component0[i], result.Component1[i], result.Component2[i]));
 
         bool equal = ColorSpaceComparer.Equals(expected, actual);
         Assert.True(equal, $"Colors {expected} and {actual} are not equal at index {i}");
@@ -828,9 +824,9 @@ public class JpegColorConverterTests
     private static void ValidateGrayScale(in JpegColorConverterBase.ComponentValues values, in JpegColorConverterBase.ComponentValues result, int i)
     {
         float y = values.Component0[i] / MaxColorChannelValue;
-        Rgb expected = Rgb.Clamp(new(y, y, y));
+        Rgb expected = Rgb.Clamp(new Rgb(y, y, y));
 
-        Rgb actual = Rgb.Clamp(new(result.Component0[i], result.Component0[i], result.Component0[i]));
+        Rgb actual = Rgb.Clamp(new Rgb(result.Component0[i], result.Component0[i], result.Component0[i]));
 
         bool equal = ColorSpaceComparer.Equals(expected, actual);
         Assert.True(equal, $"Colors {expected} and {actual} are not equal at index {i}");
@@ -846,9 +842,9 @@ public class JpegColorConverterTests
         float r = c * k / MaxColorChannelValue;
         float g = m * k / MaxColorChannelValue;
         float b = y * k / MaxColorChannelValue;
-        Rgb expected = Rgb.Clamp(new(r, g, b));
+        Rgb expected = Rgb.Clamp(new Rgb(r, g, b));
 
-        Rgb actual = Rgb.Clamp(new(result.Component0[i], result.Component1[i], result.Component2[i]));
+        Rgb actual = Rgb.Clamp(new Rgb(result.Component0[i], result.Component1[i], result.Component2[i]));
 
         bool equal = ColorSpaceComparer.Equals(expected, actual);
         Assert.True(equal, $"Colors {expected} and {actual} are not equal at index {i}");

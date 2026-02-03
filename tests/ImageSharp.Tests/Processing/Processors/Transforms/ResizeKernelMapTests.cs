@@ -22,8 +22,8 @@ public partial class ResizeKernelMapTests
     /// resamplerName, srcSize, destSize
     /// </summary>
     public static readonly TheoryData<IResampler, int, int> KernelMapData
-        = new TheoryData<IResampler, int, int>
-    {
+        = new()
+        {
         { KnownResamplers.Bicubic, 15, 10 },
         { KnownResamplers.Bicubic, 10, 15 },
         { KnownResamplers.Bicubic, 20, 20 },
@@ -88,7 +88,7 @@ public partial class ResizeKernelMapTests
     public void PrintNonNormalizedKernelMap<TResampler>(TResampler resampler, int srcSize, int destSize)
         where TResampler : struct, IResampler
     {
-        var kernelMap = ReferenceKernelMap.Calculate<TResampler>(in resampler, destSize, srcSize, false);
+        ReferenceKernelMap kernelMap = ReferenceKernelMap.Calculate<TResampler>(in resampler, destSize, srcSize, false);
 
         this.Output.WriteLine($"Actual KernelMap:\n{PrintKernelMap(kernelMap)}\n");
     }
@@ -116,8 +116,8 @@ public partial class ResizeKernelMapTests
     private void VerifyKernelMapContentIsCorrect<TResampler>(TResampler resampler, int srcSize, int destSize)
         where TResampler : struct, IResampler
     {
-        var referenceMap = ReferenceKernelMap.Calculate(in resampler, destSize, srcSize);
-        var kernelMap = ResizeKernelMap.Calculate(in resampler, destSize, srcSize, Configuration.Default.MemoryAllocator);
+        ReferenceKernelMap referenceMap = ReferenceKernelMap.Calculate(in resampler, destSize, srcSize);
+        ResizeKernelMap kernelMap = ResizeKernelMap.Calculate(in resampler, destSize, srcSize, Configuration.Default.MemoryAllocator);
 
 #if DEBUG
         this.Output.WriteLine(kernelMap.Info);
@@ -184,7 +184,7 @@ public partial class ResizeKernelMapTests
         Func<TKernelMap, int> getDestinationSize,
         Func<TKernelMap, int, ReferenceKernel> getKernel)
     {
-        var bld = new StringBuilder();
+        StringBuilder bld = new();
 
         if (kernelMap is ResizeKernelMap actualMap)
         {
@@ -214,19 +214,19 @@ public partial class ResizeKernelMapTests
 
     private static TheoryData<string, int, int> GenerateImageResizeData()
     {
-        var result = new TheoryData<string, int, int>();
+        TheoryData<string, int, int> result = new();
 
         string[] resamplerNames = TestUtils.GetAllResamplerNames(false);
 
         int[] dimensionVals =
-            {
-                // Arbitrary, small dimensions:
+        [
+            // Arbitrary, small dimensions:
                 9, 10, 11, 13, 49, 50, 53, 99, 100, 199, 200, 201, 299, 300, 301,
 
                 // Typical image sizes:
                 640, 480, 800, 600, 1024, 768, 1280, 960, 1536, 1180, 1600, 1200, 2048, 1536, 2240, 1680, 2560,
                 1920, 3032, 2008, 3072, 2304, 3264, 2448
-            };
+        ];
 
         IOrderedEnumerable<(int S, int D)> source2Dest = dimensionVals
             .SelectMany(s => dimensionVals.Select(d => (s, d)))

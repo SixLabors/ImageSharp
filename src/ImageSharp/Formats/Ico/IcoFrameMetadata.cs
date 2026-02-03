@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Numerics;
 using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.Formats.Icon;
 using SixLabors.ImageSharp.PixelFormats;
@@ -110,7 +111,7 @@ public class IcoFrameMetadata : IFormatFrameMetadata<IcoFrameMetadata>
         };
 
     /// <inheritdoc/>
-    public void AfterFrameApply<TPixel>(ImageFrame<TPixel> source, ImageFrame<TPixel> destination)
+    public void AfterFrameApply<TPixel>(ImageFrame<TPixel> source, ImageFrame<TPixel> destination, Matrix4x4 matrix)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         float ratioX = destination.Width / (float)source.Width;
@@ -138,7 +139,7 @@ public class IcoFrameMetadata : IFormatFrameMetadata<IcoFrameMetadata>
             ? (byte)0
             : (byte)ColorNumerics.GetColorCountForBitDepth((int)this.BmpBitsPerPixel);
 
-        return new()
+        return new IconDirEntry
         {
             Width = ClampEncodingDimension(this.EncodingWidth ?? size.Width),
             Height = ClampEncodingDimension(this.EncodingHeight ?? size.Height),

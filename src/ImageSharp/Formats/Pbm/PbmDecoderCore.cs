@@ -80,7 +80,7 @@ internal sealed class PbmDecoderCore : ImageDecoderCore
     {
         this.ProcessHeader(stream);
         return new ImageInfo(
-            new(this.pixelSize.Width, this.pixelSize.Height),
+            new Size(this.pixelSize.Width, this.pixelSize.Height),
             this.metadata);
     }
 

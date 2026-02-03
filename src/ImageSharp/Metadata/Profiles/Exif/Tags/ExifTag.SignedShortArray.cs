@@ -9,5 +9,5 @@ public abstract partial class ExifTag
     /// <summary>
     /// Gets the TimeZoneOffset exif tag.
     /// </summary>
-    public static ExifTag<short[]> TimeZoneOffset { get; } = new ExifTag<short[]>(ExifTagValue.TimeZoneOffset);
+    public static ExifTag<short[]> TimeZoneOffset { get; } = new(ExifTagValue.TimeZoneOffset);
 }

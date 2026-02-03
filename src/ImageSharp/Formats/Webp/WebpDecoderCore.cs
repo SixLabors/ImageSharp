@@ -3,15 +3,11 @@
 
 using System.Buffers;
 using System.Buffers.Binary;
-using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Formats.Webp.Lossless;
 using SixLabors.ImageSharp.Formats.Webp.Lossy;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
-using SixLabors.ImageSharp.Metadata.Profiles.Exif;
-using SixLabors.ImageSharp.Metadata.Profiles.Icc;
-using SixLabors.ImageSharp.Metadata.Profiles.Xmp;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Webp;
@@ -56,6 +52,8 @@ internal sealed class WebpDecoderCore : ImageDecoderCore, IDisposable
     /// </summary>
     private readonly BackgroundColorHandling backgroundColorHandling;
 
+    private readonly SegmentIntegrityHandling segmentIntegrityHandling;
+
     /// <summary>
     /// Initializes a new instance of the <see cref="WebpDecoderCore"/> class.
     /// </summary>
@@ -64,6 +62,7 @@ internal sealed class WebpDecoderCore : ImageDecoderCore, IDisposable
         : base(options.GeneralOptions)
     {
         this.backgroundColorHandling = options.BackgroundColorHandling;
+        this.segmentIntegrityHandling = options.GeneralOptions.SegmentIntegrityHandling;
         this.configuration = options.GeneralOptions.Configuration;
         this.skipMetadata = options.GeneralOptions.SkipMetadata;
         this.maxFrames = options.GeneralOptions.MaxFrames;
@@ -89,7 +88,10 @@ internal sealed class WebpDecoderCore : ImageDecoderCore, IDisposable
                         this.memoryAllocator,
                         this.configuration,
                         this.maxFrames,
-                        this.backgroundColorHandling);
+                        this.skipMetadata,
+                        this.backgroundColorHandling,
+                        this.segmentIntegrityHandling);
+
                     return animationDecoder.Decode<TPixel>(stream, this.webImageInfo.Features, this.webImageInfo.Width, this.webImageInfo.Height, fileSize);
                 }
 
@@ -101,6 +103,7 @@ internal sealed class WebpDecoderCore : ImageDecoderCore, IDisposable
                         this.webImageInfo.Vp8LBitReader,
                         this.memoryAllocator,
                         this.configuration);
+
                     losslessDecoder.Decode(pixels, image.Width, image.Height);
                 }
                 else
@@ -109,6 +112,7 @@ internal sealed class WebpDecoderCore : ImageDecoderCore, IDisposable
                         this.webImageInfo.Vp8BitReader,
                         this.memoryAllocator,
                         this.configuration);
+
                     lossyDecoder.Decode(pixels, image.Width, image.Height, this.webImageInfo, this.alphaData);
                 }
 
@@ -118,6 +122,7 @@ internal sealed class WebpDecoderCore : ImageDecoderCore, IDisposable
                     this.ParseOptionalChunks(stream, metadata, this.webImageInfo.Features, buffer);
                 }
 
+                _ = this.TryConvertIccProfile(image);
                 return image;
             }
         }
@@ -131,11 +136,29 @@ internal sealed class WebpDecoderCore : ImageDecoderCore, IDisposable
     /// <inheritdoc />
     protected override ImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken)
     {
-        ReadImageHeader(stream, stackalloc byte[4]);
-
+        uint fileSize = ReadImageHeader(stream, stackalloc byte[4]);
         ImageMetadata metadata = new();
+
         using (this.webImageInfo = this.ReadVp8Info(stream, metadata, true))
         {
+            if (this.webImageInfo.Features is { Animation: true })
+            {
+                using WebpAnimationDecoder animationDecoder = new(
+                    this.memoryAllocator,
+                    this.configuration,
+                    this.maxFrames,
+                    this.skipMetadata,
+                    this.backgroundColorHandling,
+                    this.segmentIntegrityHandling);
+
+                return animationDecoder.Identify(
+                    stream,
+                    this.webImageInfo.Features,
+                    this.webImageInfo.Width,
+                    this.webImageInfo.Height,
+                    fileSize);
+            }
+
             return new ImageInfo(
                 new Size((int)this.webImageInfo.Width, (int)this.webImageInfo.Height),
                 metadata);
@@ -211,6 +234,8 @@ internal sealed class WebpDecoderCore : ImageDecoderCore, IDisposable
                     }
                     else if (WebpChunkParsingUtils.IsOptionalVp8XChunk(chunkType))
                     {
+                        // ANIM chunks appear before EXIF and XMP chunks.
+                        // Return after parsing an ANIM chunk - The animated decoder will handle the rest.
                         bool isAnimationChunk = this.ParseOptionalExtendedChunks(stream, metadata, chunkType, features, ignoreAlpha, buffer);
                         if (isAnimationChunk)
                         {
@@ -220,7 +245,8 @@ internal sealed class WebpDecoderCore : ImageDecoderCore, IDisposable
                     else
                     {
                         // Ignore unknown chunks.
-                        uint chunkSize = ReadChunkSize(stream, buffer, false);
+                        // These must always fall after the image data so we are safe to always skip them.
+                        uint chunkSize = WebpChunkParsingUtils.ReadChunkSize(stream, buffer, false);
                         stream.Skip((int)chunkSize);
                     }
                 }
@@ -251,18 +277,20 @@ internal sealed class WebpDecoderCore : ImageDecoderCore, IDisposable
         bool ignoreAlpha,
         Span<byte> buffer)
     {
+        bool ignoreMetadata = this.skipMetadata;
+        SegmentIntegrityHandling integrityHandling = this.segmentIntegrityHandling;
         switch (chunkType)
         {
             case WebpChunkType.Iccp:
-                this.ReadIccProfile(stream, metadata, buffer);
+                WebpChunkParsingUtils.ReadIccProfile(stream, metadata, ignoreMetadata, integrityHandling, buffer);
                 break;
 
             case WebpChunkType.Exif:
-                this.ReadExifProfile(stream, metadata, buffer);
+                WebpChunkParsingUtils.ReadExifProfile(stream, metadata, ignoreMetadata, integrityHandling, buffer);
                 break;
 
             case WebpChunkType.Xmp:
-                this.ReadXmpProfile(stream, metadata, buffer);
+                WebpChunkParsingUtils.ReadXmpProfile(stream, metadata, ignoreMetadata, integrityHandling, buffer);
                 break;
 
             case WebpChunkType.AnimationParameter:
@@ -273,7 +301,9 @@ internal sealed class WebpDecoderCore : ImageDecoderCore, IDisposable
                 this.ReadAlphaData(stream, features, ignoreAlpha, buffer);
                 break;
             default:
-                WebpThrowHelper.ThrowImageFormatException("Unexpected chunk followed VP8X header");
+
+                // Specification explicitly states to ignore unknown chunks.
+                // We do not support writing these chunks at present.
                 break;
         }
 
@@ -289,7 +319,10 @@ internal sealed class WebpDecoderCore : ImageDecoderCore, IDisposable
     /// <param name="buffer">Temporary buffer.</param>
     private void ParseOptionalChunks(BufferedReadStream stream, ImageMetadata metadata, WebpFeatures features, Span<byte> buffer)
     {
-        if (this.skipMetadata || (!features.ExifProfile && !features.XmpMetaData))
+        bool ignoreMetadata = this.skipMetadata;
+        SegmentIntegrityHandling integrityHandling = this.segmentIntegrityHandling;
+
+        if (ignoreMetadata || (!features.ExifProfile && !features.XmpMetaData))
         {
             return;
         }
@@ -298,127 +331,20 @@ internal sealed class WebpDecoderCore : ImageDecoderCore, IDisposable
         while (stream.Position < streamLength)
         {
             // Read chunk header.
-            WebpChunkType chunkType = ReadChunkType(stream, buffer);
+            WebpChunkType chunkType = WebpChunkParsingUtils.ReadChunkType(stream, buffer);
             if (chunkType == WebpChunkType.Exif && metadata.ExifProfile == null)
             {
-                this.ReadExifProfile(stream, metadata, buffer);
+                WebpChunkParsingUtils.ReadExifProfile(stream, metadata, ignoreMetadata, integrityHandling, buffer);
             }
             else if (chunkType == WebpChunkType.Xmp && metadata.XmpProfile == null)
             {
-                this.ReadXmpProfile(stream, metadata, buffer);
+                WebpChunkParsingUtils.ReadXmpProfile(stream, metadata, ignoreMetadata, integrityHandling, buffer);
             }
             else
             {
                 // Skip duplicate XMP or EXIF chunk.
-                uint chunkLength = ReadChunkSize(stream, buffer);
+                uint chunkLength = WebpChunkParsingUtils.ReadChunkSize(stream, buffer, false);
                 stream.Skip((int)chunkLength);
-            }
-        }
-    }
-
-    /// <summary>
-    /// Reads the EXIF profile from the stream.
-    /// </summary>
-    /// <param name="stream">The stream to decode from.</param>
-    /// <param name="metadata">The image metadata.</param>
-    /// <param name="buffer">Temporary buffer.</param>
-    private void ReadExifProfile(BufferedReadStream stream, ImageMetadata metadata, Span<byte> buffer)
-    {
-        uint exifChunkSize = ReadChunkSize(stream, buffer);
-        if (this.skipMetadata)
-        {
-            stream.Skip((int)exifChunkSize);
-        }
-        else
-        {
-            byte[] exifData = new byte[exifChunkSize];
-            int bytesRead = stream.Read(exifData, 0, (int)exifChunkSize);
-            if (bytesRead != exifChunkSize)
-            {
-                // Ignore invalid chunk.
-                return;
-            }
-
-            ExifProfile exifProfile = new(exifData);
-
-            // Set the resolution from the metadata.
-            double horizontalValue = GetExifResolutionValue(exifProfile, ExifTag.XResolution);
-            double verticalValue = GetExifResolutionValue(exifProfile, ExifTag.YResolution);
-
-            if (horizontalValue > 0 && verticalValue > 0)
-            {
-                metadata.HorizontalResolution = horizontalValue;
-                metadata.VerticalResolution = verticalValue;
-                metadata.ResolutionUnits = UnitConverter.ExifProfileToResolutionUnit(exifProfile);
-            }
-
-            metadata.ExifProfile = exifProfile;
-        }
-    }
-
-    private static double GetExifResolutionValue(ExifProfile exifProfile, ExifTag<Rational> tag)
-    {
-        if (exifProfile.TryGetValue(tag, out IExifValue<Rational>? resolution))
-        {
-            return resolution.Value.ToDouble();
-        }
-
-        return 0;
-    }
-
-    /// <summary>
-    /// Reads the XMP profile the stream.
-    /// </summary>
-    /// <param name="stream">The stream to decode from.</param>
-    /// <param name="metadata">The image metadata.</param>
-    /// <param name="buffer">Temporary buffer.</param>
-    private void ReadXmpProfile(BufferedReadStream stream, ImageMetadata metadata, Span<byte> buffer)
-    {
-        uint xmpChunkSize = ReadChunkSize(stream, buffer);
-        if (this.skipMetadata)
-        {
-            stream.Skip((int)xmpChunkSize);
-        }
-        else
-        {
-            byte[] xmpData = new byte[xmpChunkSize];
-            int bytesRead = stream.Read(xmpData, 0, (int)xmpChunkSize);
-            if (bytesRead != xmpChunkSize)
-            {
-                // Ignore invalid chunk.
-                return;
-            }
-
-            metadata.XmpProfile = new XmpProfile(xmpData);
-        }
-    }
-
-    /// <summary>
-    /// Reads the ICCP chunk from the stream.
-    /// </summary>
-    /// <param name="stream">The stream to decode from.</param>
-    /// <param name="metadata">The image metadata.</param>
-    /// <param name="buffer">Temporary buffer.</param>
-    private void ReadIccProfile(BufferedReadStream stream, ImageMetadata metadata, Span<byte> buffer)
-    {
-        uint iccpChunkSize = ReadChunkSize(stream, buffer);
-        if (this.skipMetadata)
-        {
-            stream.Skip((int)iccpChunkSize);
-        }
-        else
-        {
-            byte[] iccpData = new byte[iccpChunkSize];
-            int bytesRead = stream.Read(iccpData, 0, (int)iccpChunkSize);
-            if (bytesRead != iccpChunkSize)
-            {
-                WebpThrowHelper.ThrowInvalidImageContentException("Not enough data to read the iccp chunk");
-            }
-
-            IccProfile profile = new(iccpData);
-            if (profile.CheckIsValid())
-            {
-                metadata.IccProfile = profile;
             }
         }
     }
@@ -472,50 +398,6 @@ internal sealed class WebpDecoderCore : ImageDecoderCore, IDisposable
         {
             WebpThrowHelper.ThrowInvalidImageContentException("Not enough data to read the alpha data from the stream");
         }
-    }
-
-    /// <summary>
-    /// Identifies the chunk type from the chunk.
-    /// </summary>
-    /// <param name="stream">The stream to decode from.</param>
-    /// <param name="buffer">Temporary buffer.</param>
-    /// <exception cref="ImageFormatException">
-    /// Thrown if the input stream is not valid.
-    /// </exception>
-    private static WebpChunkType ReadChunkType(BufferedReadStream stream, Span<byte> buffer)
-    {
-        if (stream.Read(buffer, 0, 4) == 4)
-        {
-            return (WebpChunkType)BinaryPrimitives.ReadUInt32BigEndian(buffer);
-        }
-
-        throw new ImageFormatException("Invalid Webp data.");
-    }
-
-    /// <summary>
-    /// Reads the chunk size. If Chunk Size is odd, a single padding byte will be added to the payload,
-    /// so the chunk size will be increased by 1 in those cases.
-    /// </summary>
-    /// <param name="stream">The stream to decode from.</param>
-    /// <param name="buffer">Temporary buffer.</param>
-    /// <param name="required">If true, the chunk size is required to be read, otherwise it can be skipped.</param>
-    /// <returns>The chunk size in bytes.</returns>
-    /// <exception cref="ImageFormatException">Invalid data.</exception>
-    private static uint ReadChunkSize(BufferedReadStream stream, Span<byte> buffer, bool required = true)
-    {
-        if (stream.Read(buffer, 0, 4) == 4)
-        {
-            uint chunkSize = BinaryPrimitives.ReadUInt32LittleEndian(buffer);
-            return (chunkSize % 2 == 0) ? chunkSize : chunkSize + 1;
-        }
-
-        if (required)
-        {
-            throw new ImageFormatException("Invalid Webp data.");
-        }
-
-        // Return the size of the remaining data in the stream.
-        return (uint)(stream.Length - stream.Position);
     }
 
     /// <inheritdoc/>

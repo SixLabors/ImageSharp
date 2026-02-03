@@ -139,14 +139,14 @@ public class WebpEncoderTests
         };
         provider.Utility.SaveTestOutputFile(image, "gif", gifEncoder, "octree");
 
-        gifEncoder = new GifEncoder()
+        gifEncoder = new GifEncoder
         {
             Quantizer = new WuQuantizer(options)
         };
         provider.Utility.SaveTestOutputFile(image, "gif", gifEncoder, "wu");
 
         // Now clone and quantize the image using the same quantizers  without alpha thresholding and save as webp.
-        options = new()
+        options = new QuantizerOptions
         {
             TransparencyThreshold = 0
         };

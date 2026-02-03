@@ -11,17 +11,17 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Effects;
 [GroupOutput("Effects")]
 public class OilPaintTest
 {
-    public static readonly TheoryData<int, int> OilPaintValues = new TheoryData<int, int>
-                                                                     {
+    public static readonly TheoryData<int, int> OilPaintValues = new()
+    {
                                                                          { 15, 10 },
                                                                          { 6, 5 }
                                                                      };
 
     public static readonly string[] InputImages =
-        {
-            TestImages.Png.CalliphoraPartial,
+    [
+        TestImages.Png.CalliphoraPartial,
             TestImages.Bmp.Car
-        };
+    ];
 
     [Theory]
     [WithFileCollection(nameof(InputImages), nameof(OilPaintValues), PixelTypes.Rgba32)]

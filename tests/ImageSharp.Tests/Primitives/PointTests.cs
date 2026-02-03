@@ -21,8 +21,8 @@ public class PointTests
     [InlineData(0, 0)]
     public void NonDefaultConstructorTest(int x, int y)
     {
-        var p1 = new Point(x, y);
-        var p2 = new Point(new Size(x, y));
+        Point p1 = new(x, y);
+        Point p2 = new(new Size(x, y));
 
         Assert.Equal(p1, p2);
     }
@@ -33,8 +33,8 @@ public class PointTests
     [InlineData(0)]
     public void SingleIntConstructorTest(int x)
     {
-        var p1 = new Point(x);
-        var p2 = new Point(unchecked((short)(x & 0xFFFF)), unchecked((short)((x >> 16) & 0xFFFF)));
+        Point p1 = new(x);
+        Point p2 = new(unchecked((short)(x & 0xFFFF)), unchecked((short)((x >> 16) & 0xFFFF)));
 
         Assert.Equal(p1, p2);
     }
@@ -63,7 +63,7 @@ public class PointTests
     [InlineData(0, 0)]
     public void CoordinatesTest(int x, int y)
     {
-        var p = new Point(x, y);
+        Point p = new(x, y);
         Assert.Equal(x, p.X);
         Assert.Equal(y, p.Y);
     }
@@ -86,7 +86,7 @@ public class PointTests
     [InlineData(0, 0)]
     public void SizeConversionTest(int x, int y)
     {
-        var sz = (Size)new Point(x, y);
+        Size sz = (Size)new Point(x, y);
         Assert.Equal(new Size(x, y), sz);
     }
 
@@ -97,8 +97,8 @@ public class PointTests
     [InlineData(0, 0)]
     public void ArithmeticTest(int x, int y)
     {
-        Point addExpected, subExpected, p = new Point(x, y);
-        var s = new Size(y, x);
+        Point addExpected, subExpected, p = new(x, y);
+        Size s = new(y, x);
 
         unchecked
         {
@@ -119,7 +119,7 @@ public class PointTests
     [InlineData(0, 0)]
     public void PointFMathematicalTest(float x, float y)
     {
-        var pf = new PointF(x, y);
+        PointF pf = new(x, y);
         Point pCeiling, pTruncate, pRound;
 
         unchecked
@@ -141,8 +141,8 @@ public class PointTests
     [InlineData(0, 0)]
     public void OffsetTest(int x, int y)
     {
-        var p1 = new Point(x, y);
-        var p2 = new Point(y, x);
+        Point p1 = new(x, y);
+        Point p2 = new(y, x);
 
         p1.Offset(p2);
 
@@ -156,10 +156,10 @@ public class PointTests
     [Fact]
     public void RotateTest()
     {
-        var p = new Point(13, 17);
+        Point p = new(13, 17);
         Matrix3x2 matrix = Matrix3x2Extensions.CreateRotationDegrees(45, Point.Empty);
 
-        var pout = Point.Transform(p, matrix);
+        Point pout = Point.Transform(p, matrix);
 
         Assert.Equal(new Point(-3, 21), pout);
     }
@@ -167,10 +167,10 @@ public class PointTests
     [Fact]
     public void SkewTest()
     {
-        var p = new Point(13, 17);
+        Point p = new(13, 17);
         Matrix3x2 matrix = Matrix3x2Extensions.CreateSkewDegrees(45, 45, Point.Empty);
 
-        var pout = Point.Transform(p, matrix);
+        Point pout = Point.Transform(p, matrix);
         Assert.Equal(new Point(30, 30), pout);
     }
 
@@ -181,9 +181,9 @@ public class PointTests
     [InlineData(0, 0)]
     public void EqualityTest(int x, int y)
     {
-        var p1 = new Point(x, y);
-        var p2 = new Point((x / 2) - 1, (y / 2) - 1);
-        var p3 = new Point(x, y);
+        Point p1 = new(x, y);
+        Point p2 = new((x / 2) - 1, (y / 2) - 1);
+        Point p3 = new(x, y);
 
         Assert.True(p1 == p3);
         Assert.True(p1 != p2);
@@ -203,7 +203,7 @@ public class PointTests
     [Fact]
     public void EqualityTest_NotPoint()
     {
-        var point = new Point(0, 0);
+        Point point = new(0, 0);
         Assert.False(point.Equals(null));
         Assert.False(point.Equals(0));
         Assert.False(point.Equals(new PointF(0, 0)));
@@ -212,7 +212,7 @@ public class PointTests
     [Fact]
     public void GetHashCodeTest()
     {
-        var point = new Point(10, 10);
+        Point point = new(10, 10);
         Assert.Equal(point.GetHashCode(), new Point(10, 10).GetHashCode());
         Assert.NotEqual(point.GetHashCode(), new Point(20, 10).GetHashCode());
         Assert.NotEqual(point.GetHashCode(), new Point(10, 20).GetHashCode());
@@ -223,7 +223,7 @@ public class PointTests
     [InlineData(1, -2, 3, -4)]
     public void ConversionTest(int x, int y, int width, int height)
     {
-        var rect = new Rectangle(x, y, width, height);
+        Rectangle rect = new(x, y, width, height);
         RectangleF rectF = rect;
         Assert.Equal(x, rectF.X);
         Assert.Equal(y, rectF.Y);
@@ -234,7 +234,7 @@ public class PointTests
     [Fact]
     public void ToStringTest()
     {
-        var p = new Point(5, -5);
+        Point p = new(5, -5);
         Assert.Equal(string.Format(CultureInfo.CurrentCulture, "Point [ X={0}, Y={1} ]", p.X, p.Y), p.ToString());
     }
 
@@ -245,7 +245,7 @@ public class PointTests
     [InlineData(0, 0)]
     public void DeconstructTest(int x, int y)
     {
-        Point p = new Point(x, y);
+        Point p = new(x, y);
 
         (int deconstructedX, int deconstructedY) = p;
 

@@ -1089,39 +1089,7 @@ internal static class Numerics
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Normalize(Span<float> span, float sum)
     {
-        if (Vector512.IsHardwareAccelerated)
-        {
-            ref float startRef = ref MemoryMarshal.GetReference(span);
-            ref float endRef = ref Unsafe.Add(ref startRef, span.Length & ~15);
-            Vector512<float> sum512 = Vector512.Create(sum);
-
-            while (Unsafe.IsAddressLessThan(ref startRef, ref endRef))
-            {
-                Unsafe.As<float, Vector512<float>>(ref startRef) /= sum512;
-                startRef = ref Unsafe.Add(ref startRef, (nuint)16);
-            }
-
-            if ((span.Length & 15) >= 8)
-            {
-                Unsafe.As<float, Vector256<float>>(ref startRef) /= sum512.GetLower();
-                startRef = ref Unsafe.Add(ref startRef, (nuint)8);
-            }
-
-            if ((span.Length & 7) >= 4)
-            {
-                Unsafe.As<float, Vector128<float>>(ref startRef) /= sum512.GetLower().GetLower();
-                startRef = ref Unsafe.Add(ref startRef, (nuint)4);
-            }
-
-            endRef = ref Unsafe.Add(ref startRef, span.Length & 3);
-
-            while (Unsafe.IsAddressLessThan(ref startRef, ref endRef))
-            {
-                startRef /= sum;
-                startRef = ref Unsafe.Add(ref startRef, (nuint)1);
-            }
-        }
-        else if (Vector256.IsHardwareAccelerated)
+        if (Vector256.IsHardwareAccelerated)
         {
             ref float startRef = ref MemoryMarshal.GetReference(span);
             ref float endRef = ref Unsafe.Add(ref startRef, span.Length & ~7);

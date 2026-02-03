@@ -51,15 +51,8 @@ internal partial class ResizeKernelMap : IDisposable
         this.DestinationLength = destinationLength;
         this.MaxDiameter = (radius * 2) + 1;
 
-        if (ResizeKernel.IsHardwareAccelerated)
-        {
-            this.data = memoryAllocator.Allocate2D<float>(this.MaxDiameter * 4, bufferHeight, preferContiguosImageBuffers: true);
-        }
-        else
-        {
-            this.data = memoryAllocator.Allocate2D<float>(this.MaxDiameter, bufferHeight, preferContiguosImageBuffers: true);
-        }
-
+        int diameter = ResizeKernel.IsHardwareAccelerated ? this.MaxDiameter * 4 : this.MaxDiameter;
+        this.data = memoryAllocator.Allocate2D<float>(diameter, bufferHeight, preferContiguosImageBuffers: true);
         this.pinHandle = this.data.DangerousGetSingleMemory().Pin();
         this.kernels = new ResizeKernel[destinationLength];
         this.tempValues = new float[this.MaxDiameter];

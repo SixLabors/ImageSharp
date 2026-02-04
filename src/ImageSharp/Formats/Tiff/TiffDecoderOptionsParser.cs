@@ -25,20 +25,22 @@ internal static class TiffDecoderOptionsParser
     /// <returns>True, if the image uses tiles. Otherwise the images has strip's.</returns>
     public static bool VerifyAndParse(this TiffDecoderCore options, ExifProfile exifProfile, TiffFrameMetadata frameMetadata)
     {
-        IExifValue extraSamplesExifValue = exifProfile.GetValueInternal(ExifTag.ExtraSamples);
-        if (extraSamplesExifValue is not null)
+        if (exifProfile.TryGetValue(ExifTag.ExtraSamples, out IExifValue<ushort[]> samples))
         {
-            short[] extraSamples = (short[])extraSamplesExifValue.GetValue();
-            if (extraSamples.Length != 1)
+            // We only support a single sample pertaining to alpha data.
+            // Other information is discarded.
+            TiffExtraSampleType sampleType = (TiffExtraSampleType)samples.Value[0];
+            if (sampleType is TiffExtraSampleType.CorelDrawUnassociatedAlphaData)
             {
-                TiffThrowHelper.ThrowNotSupported("ExtraSamples is only supported with one extra sample for alpha data.");
+                // According to libtiff, this CorelDRAW-specific value indicates unassociated alpha.
+                // Patch required for compatibility with malformed CorelDRAW-generated TIFFs.
+                // https://libtiff.gitlab.io/libtiff/releases/v3.9.0beta.html
+                sampleType = TiffExtraSampleType.UnassociatedAlphaData;
             }
 
-            TiffExtraSampleType extraSamplesType = (TiffExtraSampleType)extraSamples[0];
-            options.ExtraSamplesType = extraSamplesType;
-            if (extraSamplesType is not (TiffExtraSampleType.UnassociatedAlphaData or TiffExtraSampleType.AssociatedAlphaData))
+            if (sampleType is (TiffExtraSampleType.UnassociatedAlphaData or TiffExtraSampleType.AssociatedAlphaData))
             {
-                TiffThrowHelper.ThrowNotSupported("Decoding Tiff images with ExtraSamples is not supported with UnspecifiedData.");
+                options.ExtraSamplesType = sampleType;
             }
         }
 
@@ -405,7 +407,7 @@ internal static class TiffDecoderOptionsParser
                 if (exifProfile.TryGetValue(ExifTag.ColorMap, out IExifValue<ushort[]> value))
                 {
                     options.ColorMap = value.Value;
-                    if (options.BitsPerSample.Channels != 1)
+                    if (options.BitsPerSample.Channels is not 1 and not 2)
                     {
                         TiffThrowHelper.ThrowNotSupported("The number of samples in the TIFF BitsPerSample entry is not supported.");
                     }
@@ -450,13 +452,9 @@ internal static class TiffDecoderOptionsParser
                     TiffThrowHelper.ThrowNotSupported("The number of samples in the TIFF BitsPerSample entry is not supported for CieLab images.");
                 }
 
-                ushort bitsPerChannel = options.BitsPerSample.Channel0;
-                if (bitsPerChannel != 8)
-                {
-                    TiffThrowHelper.ThrowNotSupported("Only 8 bits per channel is supported for CieLab images.");
-                }
-
-                options.ColorType = options.PlanarConfiguration == TiffPlanarConfiguration.Chunky ? TiffColorType.CieLab : TiffColorType.CieLabPlanar;
+                options.ColorType = options.PlanarConfiguration == TiffPlanarConfiguration.Chunky
+                    ? TiffColorType.CieLab
+                    : TiffColorType.CieLabPlanar;
 
                 break;
             }

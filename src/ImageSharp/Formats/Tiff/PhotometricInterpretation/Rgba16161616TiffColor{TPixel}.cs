@@ -1,5 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
+
 #nullable disable
 
 using System.Buffers;
@@ -48,31 +49,53 @@ internal class Rgba16161616TiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
 
         using IMemoryOwner<Vector4> vectors = hasAssociatedAlpha ? this.memoryAllocator.Allocate<Vector4>(width) : null;
         Span<Vector4> vectorsSpan = hasAssociatedAlpha ? vectors.GetSpan() : [];
-        for (int y = top; y < top + height; y++)
+
+        if (this.isBigEndian)
         {
-            Span<TPixel> pixelRow = pixels.DangerousGetRowSpan(y).Slice(left, width);
-
-            if (this.isBigEndian)
+            if (hasAssociatedAlpha)
             {
-                for (int x = 0; x < pixelRow.Length; x++)
+                for (int y = top; y < top + height; y++)
                 {
-                    ushort r = TiffUtilities.ConvertToUShortBigEndian(data.Slice(offset, 2));
-                    offset += 2;
-                    ushort g = TiffUtilities.ConvertToUShortBigEndian(data.Slice(offset, 2));
-                    offset += 2;
-                    ushort b = TiffUtilities.ConvertToUShortBigEndian(data.Slice(offset, 2));
-                    offset += 2;
-                    ushort a = TiffUtilities.ConvertToUShortBigEndian(data.Slice(offset, 2));
-                    offset += 2;
+                    Span<TPixel> pixelRow = pixels.DangerousGetRowSpan(y).Slice(left, width);
 
-                    pixelRow[x] = hasAssociatedAlpha
-                        ? TiffUtilities.ColorFromRgba64Premultiplied<TPixel>(r, g, b, a)
-                        : TPixel.FromRgba64(new(r, g, b, a));
+                    for (int x = 0; x < pixelRow.Length; x++)
+                    {
+                        ushort r = TiffUtilities.ConvertToUShortBigEndian(data.Slice(offset, 2));
+                        ushort g = TiffUtilities.ConvertToUShortBigEndian(data.Slice(offset + 2, 2));
+                        ushort b = TiffUtilities.ConvertToUShortBigEndian(data.Slice(offset + 4, 2));
+                        ushort a = TiffUtilities.ConvertToUShortBigEndian(data.Slice(offset + 6, 2));
+                        offset += 8;
+
+                        pixelRow[x] = TiffUtilities.ColorFromRgba64Premultiplied<TPixel>(r, g, b, a);
+                    }
                 }
             }
             else
             {
+                for (int y = top; y < top + height; y++)
+                {
+                    Span<TPixel> pixelRow = pixels.DangerousGetRowSpan(y).Slice(left, width);
+
+                    for (int x = 0; x < pixelRow.Length; x++)
+                    {
+                        ushort r = TiffUtilities.ConvertToUShortBigEndian(data.Slice(offset, 2));
+                        ushort g = TiffUtilities.ConvertToUShortBigEndian(data.Slice(offset + 2, 2));
+                        ushort b = TiffUtilities.ConvertToUShortBigEndian(data.Slice(offset + 4, 2));
+                        ushort a = TiffUtilities.ConvertToUShortBigEndian(data.Slice(offset + 6, 2));
+                        offset += 8;
+
+                        pixelRow[x] = TPixel.FromRgba64(new Rgba64(r, g, b, a));
+                    }
+                }
+            }
+        }
+        else
+        {
+            for (int y = top; y < top + height; y++)
+            {
+                Span<TPixel> pixelRow = pixels.DangerousGetRowSpan(y).Slice(left, width);
                 int byteCount = pixelRow.Length * 8;
+
                 PixelOperations<TPixel>.Instance.FromRgba64Bytes(
                     this.configuration,
                     data.Slice(offset, byteCount),

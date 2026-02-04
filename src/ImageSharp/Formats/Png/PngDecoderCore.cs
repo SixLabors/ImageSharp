@@ -21,6 +21,7 @@ using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Cicp;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
+using SixLabors.ImageSharp.Metadata.Profiles.Iptc;
 using SixLabors.ImageSharp.Metadata.Profiles.Xmp;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -132,6 +133,11 @@ internal sealed class PngDecoderCore : ImageDecoderCore
     private readonly int maxUncompressedLength;
 
     /// <summary>
+    /// A value indicating whether the image data has been read.
+    /// </summary>
+    private bool hasImageData;
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="PngDecoderCore"/> class.
     /// </summary>
     /// <param name="options">The decoder options.</param>
@@ -207,6 +213,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                             currentFrameControl = this.ReadFrameControlChunk(chunk.Data.GetSpan());
                             break;
                         case PngChunkType.FrameData:
+                        {
                             if (frameCount >= this.maxFrames)
                             {
                                 goto EOF;
@@ -241,9 +248,12 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                             }
 
                             break;
+                        }
+
                         case PngChunkType.Data:
+                        {
                             pngMetadata.AnimateRootFrame = currentFrameControl != null;
-                            currentFrameControl ??= new((uint)this.header.Width, (uint)this.header.Height);
+                            currentFrameControl ??= new FrameControl((uint)this.header.Width, (uint)this.header.Height);
                             if (image is null)
                             {
                                 this.InitializeImage(metadata, currentFrameControl.Value, out image);
@@ -271,6 +281,8 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                             }
 
                             break;
+                        }
+
                         case PngChunkType.Palette:
                             this.palette = chunk.Data.GetSpan().ToArray();
                             break;
@@ -318,6 +330,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                 PngThrowHelper.ThrowNoData();
             }
 
+            _ = this.TryConvertIccProfile(image);
             return image;
         }
         catch
@@ -428,7 +441,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                             }
 
                             pngMetadata.AnimateRootFrame = currentFrameControl != null;
-                            currentFrameControl ??= new((uint)this.header.Width, (uint)this.header.Height);
+                            currentFrameControl ??= new FrameControl((uint)this.header.Width, (uint)this.header.Height);
                             if (framesMetadata.Count == 0)
                             {
                                 InitializeFrameMetadata(framesMetadata, currentFrameControl.Value);
@@ -520,7 +533,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                 PngThrowHelper.ThrowInvalidHeader();
             }
 
-            return new ImageInfo(new(this.header.Width, this.header.Height), metadata, framesMetadata);
+            return new ImageInfo(new Size(this.header.Width, this.header.Height), metadata, framesMetadata);
         }
         finally
         {
@@ -749,7 +762,11 @@ internal sealed class PngDecoderCore : ImageDecoderCore
         where TPixel : unmanaged, IPixel<TPixel>
     {
         using ZlibInflateStream inflateStream = new(this.currentStream, getData);
-        inflateStream.AllocateNewBytes(chunkLength, true);
+        if (!inflateStream.AllocateNewBytes(chunkLength, !this.hasImageData))
+        {
+            return;
+        }
+
         DeflateStream dataStream = inflateStream.CompressedStream!;
 
         if (this.header.InterlaceMethod is PngInterlaceMode.Adam7)
@@ -803,7 +820,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                 int bytesRead = compressedStream.Read(scanSpan, currentRowBytesRead, bytesPerFrameScanline - currentRowBytesRead);
                 if (bytesRead <= 0)
                 {
-                    return;
+                    goto EXIT;
                 }
 
                 currentRowBytesRead += bytesRead;
@@ -848,6 +865,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
         }
 
         EXIT:
+        this.hasImageData = true;
         blendMemory?.Dispose();
     }
 
@@ -906,7 +924,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                     int bytesRead = compressedStream.Read(this.scanline.GetSpan(), currentRowBytesRead, bytesPerInterlaceScanline - currentRowBytesRead);
                     if (bytesRead <= 0)
                     {
-                        return;
+                        goto EXIT;
                     }
 
                     currentRowBytesRead += bytesRead;
@@ -979,6 +997,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
         }
 
         EXIT:
+        this.hasImageData = true;
         blendMemory?.Dispose();
     }
 
@@ -1086,7 +1105,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
             {
                 PixelBlender<TPixel> blender =
                     PixelOperations<TPixel>.Instance.GetPixelBlender(PixelColorBlendingMode.Normal, PixelAlphaCompositionMode.SrcOver);
-                blender.Blend<TPixel>(this.configuration, destination, destination, rowSpan, 1f);
+                blender.Blend<TPixel>(this.configuration, destination, destination, rowSpan, 1F);
             }
         }
         finally
@@ -1208,7 +1227,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
             {
                 PixelBlender<TPixel> blender =
                     PixelOperations<TPixel>.Instance.GetPixelBlender(PixelColorBlendingMode.Normal, PixelAlphaCompositionMode.SrcOver);
-                blender.Blend<TPixel>(this.configuration, destination, destination, rowSpan, 1f);
+                blender.Blend<TPixel>(this.configuration, destination, destination, rowSpan, 1F);
             }
         }
         finally
@@ -1332,7 +1351,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
         pngMetadata.InterlaceMethod = this.header.InterlaceMethod;
 
         this.pngColorType = this.header.ColorType;
-        this.Dimensions = new(this.header.Width, this.header.Height);
+        this.Dimensions = new Size(this.header.Width, this.header.Height);
     }
 
     /// <summary>
@@ -1422,14 +1441,19 @@ internal sealed class PngDecoderCore : ImageDecoderCore
     /// object unmodified.</returns>
     private static bool TryReadTextChunkMetadata(ImageMetadata baseMetadata, string chunkName, string chunkText)
     {
-        if (chunkName.Equals("Raw profile type exif", StringComparison.OrdinalIgnoreCase) &&
+        if (chunkName.Equals(PngConstants.ExifRawProfileKeyword, StringComparison.OrdinalIgnoreCase) &&
             TryReadLegacyExifTextChunk(baseMetadata, chunkText))
         {
             // Successfully parsed legacy exif data from text
             return true;
         }
 
-        // TODO: "Raw profile type iptc", potentially others?
+        if (chunkName.Equals(PngConstants.IptcRawProfileKeyword, StringComparison.OrdinalIgnoreCase) &&
+            TryReadLegacyIptcTextChunk(baseMetadata, chunkText))
+        {
+            // Successfully parsed legacy iptc data from text
+            return true;
+        }
 
         // No special chunk data identified
         return false;
@@ -1551,6 +1575,214 @@ internal sealed class PngDecoderCore : ImageDecoderCore
 
         MergeOrSetExifProfile(metadata, new ExifProfile(exifBlob), replaceExistingKeys: false);
         return true;
+    }
+
+    /// <summary>
+    /// Reads iptc data encoded into a text chunk with the name "Raw profile type iptc".
+    /// This convention is used by ImageMagick/exiftool/exiv2/digiKam and stores a byte-count
+    /// followed by hex-encoded bytes.
+    /// </summary>
+    /// <param name="metadata">The <see cref="ImageMetadata"/> to store the decoded iptc tags into.</param>
+    /// <param name="data">The contents of the "Raw profile type iptc" text chunk.</param>
+    private static bool TryReadLegacyIptcTextChunk(ImageMetadata metadata, string data)
+    {
+        // Preserve first IPTC found.
+        if (metadata.IptcProfile != null)
+        {
+            return true;
+        }
+
+        ReadOnlySpan<char> dataSpan = data.AsSpan().TrimStart();
+
+        // Must start with the "iptc" identifier (case-insensitive).
+        // Common real-world format (ImageMagick/ExifTool) is:
+        // "IPTC profile\n      <len>\n<hex...>"
+        if (dataSpan.Length < 4 || !StringEqualsInsensitive(dataSpan[..4], "iptc".AsSpan()))
+        {
+            return false;
+        }
+
+        // Skip the remainder of the first line ("IPTC profile", etc).
+        int firstLineEnd = dataSpan.IndexOf('\n');
+        if (firstLineEnd < 0)
+        {
+            return false;
+        }
+
+        dataSpan = dataSpan[(firstLineEnd + 1)..].TrimStart();
+
+        // Next line contains the decimal byte length (often indented).
+        int dataLengthEnd = dataSpan.IndexOf('\n');
+        if (dataLengthEnd < 0)
+        {
+            return false;
+        }
+
+        int dataLength;
+        try
+        {
+            dataLength = ParseInt32(dataSpan[..dataLengthEnd]);
+        }
+        catch
+        {
+            return false;
+        }
+
+        if (dataLength <= 0)
+        {
+            return false;
+        }
+
+        // Skip to the hex-encoded data.
+        dataSpan = dataSpan[(dataLengthEnd + 1)..].Trim();
+
+        byte[] iptcBlob = new byte[dataLength];
+
+        try
+        {
+            int written = 0;
+
+            for (; written < dataLength;)
+            {
+                ReadOnlySpan<char> lineSpan = dataSpan;
+
+                int newlineIndex = dataSpan.IndexOf('\n');
+                if (newlineIndex != -1)
+                {
+                    lineSpan = dataSpan[..newlineIndex];
+                }
+
+                // Important: handle CRLF and any incidental whitespace.
+                lineSpan = lineSpan.Trim(); // removes ' ', '\t', '\r', '\n', etc.
+
+                if (!lineSpan.IsEmpty)
+                {
+                    written += HexConverter.HexStringToBytes(lineSpan, iptcBlob.AsSpan()[written..]);
+                }
+
+                if (newlineIndex == -1)
+                {
+                    break;
+                }
+
+                dataSpan = dataSpan[(newlineIndex + 1)..];
+            }
+
+            if (written != dataLength)
+            {
+                return false;
+            }
+        }
+        catch
+        {
+            return false;
+        }
+
+        // Prefer IRB extraction if this is Photoshop-style data (8BIM resource blocks).
+        byte[] iptcPayload = TryExtractIptcFromPhotoshopIrb(iptcBlob, out byte[] extracted)
+            ? extracted
+            : iptcBlob;
+
+        metadata.IptcProfile = new IptcProfile(iptcPayload);
+        return true;
+    }
+
+    /// <summary>
+    /// Attempts to extract IPTC metadata from a Photoshop Image Resource Block (IRB) contained within the specified
+    /// data buffer.
+    /// </summary>
+    /// <remarks>This method scans the provided data for a Photoshop IRB block containing IPTC metadata and
+    /// extracts it if present. The method does not validate the contents of the IPTC data beyond locating the
+    /// appropriate resource block.</remarks>
+    /// <param name="data">A read-only span of bytes containing the Photoshop IRB data to search for embedded IPTC metadata.</param>
+    /// <param name="iptcBytes">When this method returns, contains the extracted IPTC metadata as a byte array if found; otherwise, an undefined
+    /// value.</param>
+    /// <returns><see langword="true"/> if IPTC metadata is successfully extracted from the IRB data; otherwise, <see langword="false"/>.</returns>
+    private static bool TryExtractIptcFromPhotoshopIrb(ReadOnlySpan<byte> data, out byte[] iptcBytes)
+    {
+        iptcBytes = default!;
+
+        ReadOnlySpan<byte> adobePhotoshop30 = PngConstants.AdobePhotoshop30;
+
+        // Some writers include the "Photoshop 3.0\0" header, some store just IRB blocks.
+        if (data.Length >= adobePhotoshop30.Length && data[..adobePhotoshop30.Length].SequenceEqual(adobePhotoshop30))
+        {
+            data = data[adobePhotoshop30.Length..];
+        }
+
+        ReadOnlySpan<byte> eightBim = PngConstants.EightBim;
+        ushort adobeIptcResourceId = PngConstants.AdobeIptcResourceId;
+        while (data.Length >= 12)
+        {
+            if (!data[..4].SequenceEqual(eightBim))
+            {
+                return false;
+            }
+
+            data = data[4..];
+
+            // Resource ID (2 bytes, big endian)
+            if (data.Length < 2)
+            {
+                return false;
+            }
+
+            ushort resourceId = (ushort)((data[0] << 8) | data[1]);
+            data = data[2..];
+
+            // Pascal string name (1-byte length, then bytes), padded to even.
+            if (data.Length < 1)
+            {
+                return false;
+            }
+
+            int nameLen = data[0];
+            int nameFieldLen = 1 + nameLen;
+            if ((nameFieldLen & 1) != 0)
+            {
+                nameFieldLen++; // pad to even
+            }
+
+            if (data.Length < nameFieldLen + 4)
+            {
+                return false;
+            }
+
+            data = data[nameFieldLen..];
+
+            // Resource data size (4 bytes, big endian)
+            int size = (data[0] << 24) | (data[1] << 16) | (data[2] << 8) | data[3];
+            data = data[4..];
+
+            if (size < 0 || data.Length < size)
+            {
+                return false;
+            }
+
+            ReadOnlySpan<byte> payload = data[..size];
+
+            // Data is padded to even.
+            int advance = size;
+            if ((advance & 1) != 0)
+            {
+                advance++;
+            }
+
+            if (resourceId == adobeIptcResourceId)
+            {
+                iptcBytes = payload.ToArray();
+                return true;
+            }
+
+            if (data.Length < advance)
+            {
+                return false;
+            }
+
+            data = data[advance..];
+        }
+
+        return false;
     }
 
     /// <summary>
@@ -1866,6 +2098,9 @@ internal sealed class PngDecoderCore : ImageDecoderCore
             return false;
         }
 
+        // Capture the current position so we can revert back to it if we fail to read a valid chunk.
+        long position = this.currentStream.Position;
+
         if (!this.TryReadChunkLength(buffer, out int length))
         {
             // IEND
@@ -1884,7 +2119,48 @@ internal sealed class PngDecoderCore : ImageDecoderCore
             }
         }
 
-        PngChunkType type = this.ReadChunkType(buffer);
+        PngChunkType type;
+
+        // Loop until we get a chunk type that is valid.
+        while (true)
+        {
+            type = this.ReadChunkType(buffer);
+            if (!IsValidChunkType(type))
+            {
+                // The chunk type is invalid.
+                // Revert back to the next byte past the previous position and try again.
+                this.currentStream.Position = ++position;
+
+                // If we are now at the end of the stream, we're done.
+                if (this.currentStream.Position >= this.currentStream.Length)
+                {
+                    chunk = default;
+                    return false;
+                }
+
+                // Read the next chunk’s length.
+                if (!this.TryReadChunkLength(buffer, out length))
+                {
+                    chunk = default;
+                    return false;
+                }
+
+                while (length < 0)
+                {
+                    if (!this.TryReadChunkLength(buffer, out length))
+                    {
+                        chunk = default;
+                        return false;
+                    }
+                }
+
+                // Continue to try reading the next chunk.
+                continue;
+            }
+
+            // We have a valid chunk type.
+            break;
+        }
 
         // If we're reading color metadata only we're only interested in the IHDR and tRNS chunks.
         // We can skip most other chunk data in the stream for better performance.
@@ -1901,7 +2177,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
 
         // A chunk might report a length that exceeds the length of the stream.
         // Take the minimum of the two values to ensure we don't read past the end of the stream.
-        long position = this.currentStream.Position;
+        position = this.currentStream.Position;
         chunk = new PngChunk(
             length: (int)Math.Min(length, this.currentStream.Length - position),
             type: type,
@@ -1918,6 +2194,32 @@ internal sealed class PngDecoderCore : ImageDecoderCore
 
         return true;
     }
+
+    /// <summary>
+    /// Determines whether the 4-byte chunk type is valid (all ASCII letters).
+    /// </summary>
+    /// <param name="type">The chunk type.</param>
+    [MethodImpl(InliningOptions.ShortMethod)]
+    private static bool IsValidChunkType(PngChunkType type)
+    {
+        uint value = (uint)type;
+        byte b0 = (byte)(value >> 24);
+        byte b1 = (byte)(value >> 16);
+        byte b2 = (byte)(value >> 8);
+        byte b3 = (byte)value;
+        return IsAsciiLetter(b0) && IsAsciiLetter(b1) && IsAsciiLetter(b2) && IsAsciiLetter(b3);
+    }
+
+    /// <summary>
+    /// Returns a value indicating whether the given byte is an ASCII letter.
+    /// </summary>
+    /// <param name="b">The byte to check.</param>
+    /// <returns>
+    /// <see langword="true"/> if the byte is an ASCII letter; otherwise, <see langword="false"/>.
+    /// </returns>
+    [MethodImpl(InliningOptions.ShortMethod)]
+    private static bool IsAsciiLetter(byte b)
+        => (b >= (byte)'A' && b <= (byte)'Z') || (b >= (byte)'a' && b <= (byte)'z');
 
     /// <summary>
     /// Validates the png chunk.

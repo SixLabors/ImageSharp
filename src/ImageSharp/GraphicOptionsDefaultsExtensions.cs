@@ -18,7 +18,7 @@ public static class GraphicOptionsDefaultsExtensions
     /// <returns>The passed in <paramref name="context"/> to allow chaining.</returns>
     public static IImageProcessingContext SetGraphicsOptions(this IImageProcessingContext context, Action<GraphicsOptions> optionsBuilder)
     {
-        var cloned = context.GetGraphicsOptions().DeepClone();
+        GraphicsOptions cloned = context.GetGraphicsOptions().DeepClone();
         optionsBuilder(cloned);
         context.Properties[typeof(GraphicsOptions)] = cloned;
         return context;
@@ -31,7 +31,7 @@ public static class GraphicOptionsDefaultsExtensions
     /// <param name="optionsBuilder">The default options to use.</param>
     public static void SetGraphicsOptions(this Configuration configuration, Action<GraphicsOptions> optionsBuilder)
     {
-        var cloned = configuration.GetGraphicsOptions().DeepClone();
+        GraphicsOptions cloned = configuration.GetGraphicsOptions().DeepClone();
         optionsBuilder(cloned);
         configuration.Properties[typeof(GraphicsOptions)] = cloned;
     }
@@ -65,7 +65,7 @@ public static class GraphicOptionsDefaultsExtensions
     /// <returns>The globaly configued default options.</returns>
     public static GraphicsOptions GetGraphicsOptions(this IImageProcessingContext context)
     {
-        if (context.Properties.TryGetValue(typeof(GraphicsOptions), out var options) && options is GraphicsOptions go)
+        if (context.Properties.TryGetValue(typeof(GraphicsOptions), out object? options) && options is GraphicsOptions go)
         {
             return go;
         }
@@ -82,12 +82,12 @@ public static class GraphicOptionsDefaultsExtensions
     /// <returns>The globaly configued default options.</returns>
     public static GraphicsOptions GetGraphicsOptions(this Configuration configuration)
     {
-        if (configuration.Properties.TryGetValue(typeof(GraphicsOptions), out var options) && options is GraphicsOptions go)
+        if (configuration.Properties.TryGetValue(typeof(GraphicsOptions), out object? options) && options is GraphicsOptions go)
         {
             return go;
         }
 
-        var configOptions = new GraphicsOptions();
+        GraphicsOptions configOptions = new();
 
         // capture the fallback so the same instance will always be returned in case its mutated
         configuration.Properties[typeof(GraphicsOptions)] = configOptions;

@@ -30,7 +30,7 @@ public class MeasureFixture
             this.Output?.WriteLine($"{operationName} X {times} ...");
         }
 
-        var sw = Stopwatch.StartNew();
+        Stopwatch sw = Stopwatch.StartNew();
 
         for (int i = 0; i < times; i++)
         {
@@ -60,7 +60,7 @@ public class MeasureGuard : IDisposable
 {
     private readonly string operation;
 
-    private readonly Stopwatch stopwatch = new Stopwatch();
+    private readonly Stopwatch stopwatch = new();
 
     public MeasureGuard(ITestOutputHelper output, string operation)
     {

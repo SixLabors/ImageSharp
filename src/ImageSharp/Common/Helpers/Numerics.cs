@@ -470,8 +470,8 @@ internal static class Numerics
         where T : unmanaged
     {
         ref T sRef = ref MemoryMarshal.GetReference(span);
-        var vmin = new Vector<T>(min);
-        var vmax = new Vector<T>(max);
+        Vector<T> vmin = new(min);
+        Vector<T> vmax = new(max);
 
         nint n = (nint)(uint)span.Length / Vector<T>.Count;
         nint m = Modulo4(n);
@@ -656,7 +656,7 @@ internal static class Numerics
             return Sse.Shuffle(value.AsVector128(), value.AsVector128(), ShuffleAlphaControl).AsVector4();
         }
 
-        return new(value.W);
+        return new Vector4(value.W);
     }
 
     /// <summary>
@@ -726,12 +726,12 @@ internal static class Numerics
             ref Vector128<float> vectors128Ref = ref Unsafe.As<Vector4, Vector128<float>>(ref MemoryMarshal.GetReference(vectors));
             ref Vector128<float> vectors128End = ref Unsafe.Add(ref vectors128Ref, (uint)vectors.Length);
 
-            var v128_341 = Vector128.Create(341);
+            Vector128<int> v128_341 = Vector128.Create(341);
             Vector128<int> v128_negativeZero = Vector128.Create(-0.0f).AsInt32();
             Vector128<int> v128_one = Vector128.Create(1.0f).AsInt32();
 
-            var v128_13rd = Vector128.Create(1 / 3f);
-            var v128_23rds = Vector128.Create(2 / 3f);
+            Vector128<float> v128_13rd = Vector128.Create(1 / 3f);
+            Vector128<float> v128_23rds = Vector128.Create(2 / 3f);
 
             while (Unsafe.IsAddressLessThan(ref vectors128Ref, ref vectors128End))
             {
@@ -882,23 +882,6 @@ internal static class Numerics
         Vector.Widen(shortHigh, out intLow, out intHigh);
         accumulator += intLow;
         accumulator += intHigh;
-    }
-
-    /// <summary>
-    /// Reduces elements of the vector into one sum.
-    /// </summary>
-    /// <param name="accumulator">The accumulator to reduce.</param>
-    /// <returns>The sum of all elements.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static int ReduceSum(Vector128<int> accumulator)
-    {
-        // Add odd to even.
-        Vector128<int> vsum = Sse2.Add(accumulator, Sse2.Shuffle(accumulator, 0b_11_11_01_01));
-
-        // Add high to low.
-        vsum = Sse2.Add(vsum, Sse2.Shuffle(vsum, 0b_11_10_11_10));
-
-        return Sse2.ConvertToInt32(vsum);
     }
 
     /// <summary>
@@ -1097,4 +1080,47 @@ internal static class Numerics
     public static nuint Vector512Count<TVector>(int length)
         where TVector : struct
         => (uint)length / (uint)Vector512<TVector>.Count;
+
+    /// <summary>
+    /// Normalizes the values in a given <see cref="Span{T}"/>.
+    /// </summary>
+    /// <param name="span">The sequence of <see cref="float"/> values to normalize.</param>
+    /// <param name="sum">The sum of the values in <paramref name="span"/>.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void Normalize(Span<float> span, float sum)
+    {
+        if (Vector256.IsHardwareAccelerated)
+        {
+            ref float startRef = ref MemoryMarshal.GetReference(span);
+            ref float endRef = ref Unsafe.Add(ref startRef, span.Length & ~7);
+            Vector256<float> sum256 = Vector256.Create(sum);
+
+            while (Unsafe.IsAddressLessThan(ref startRef, ref endRef))
+            {
+                Unsafe.As<float, Vector256<float>>(ref startRef) /= sum256;
+                startRef = ref Unsafe.Add(ref startRef, (nuint)8);
+            }
+
+            if ((span.Length & 7) >= 4)
+            {
+                Unsafe.As<float, Vector128<float>>(ref startRef) /= sum256.GetLower();
+                startRef = ref Unsafe.Add(ref startRef, (nuint)4);
+            }
+
+            endRef = ref Unsafe.Add(ref startRef, span.Length & 3);
+
+            while (Unsafe.IsAddressLessThan(ref startRef, ref endRef))
+            {
+                startRef /= sum;
+                startRef = ref Unsafe.Add(ref startRef, (nuint)1);
+            }
+        }
+        else
+        {
+            for (int i = 0; i < span.Length; i++)
+            {
+                span[i] /= sum;
+            }
+        }
+    }
 }

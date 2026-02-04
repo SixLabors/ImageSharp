@@ -73,7 +73,7 @@ internal class DirectoryReader
 
     private List<ExifProfile> ReadIfds(bool isBigTiff)
     {
-        List<EntryReader> readers = new();
+        List<EntryReader> readers = [];
         while (this.nextIfdOffset != 0 && this.nextIfdOffset < (ulong)this.stream.Length)
         {
             EntryReader reader = new(this.stream, this.ByteOrder, this.allocator);

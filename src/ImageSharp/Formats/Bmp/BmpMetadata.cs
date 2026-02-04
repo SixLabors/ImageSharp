@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Numerics;
 using SixLabors.ImageSharp.PixelFormats;
 
 // TODO: Add color table information.
@@ -156,8 +157,7 @@ public class BmpMetadata : IFormatMetadata<BmpMetadata>
     public BmpMetadata DeepClone() => new(this);
 
     /// <inheritdoc/>
-    public void AfterImageApply<TPixel>(Image<TPixel> destination)
+    public void AfterImageApply<TPixel>(Image<TPixel> destination, Matrix4x4 matrix)
         where TPixel : unmanaged, IPixel<TPixel>
-    {
-    }
+        => this.ColorTable = null;
 }

@@ -150,7 +150,7 @@ internal sealed class WebpLossyDecoder
             {
                 int offset = yMulWidth + x;
                 Bgr24 bgr = pixelsBgr[offset];
-                decodedPixelRow[x] = TPixel.FromBgra32(new(bgr.R, bgr.G, bgr.B, alphaSpan[offset]));
+                decodedPixelRow[x] = TPixel.FromBgra32(new Bgra32(bgr.R, bgr.G, bgr.B, alphaSpan[offset]));
             }
         }
     }

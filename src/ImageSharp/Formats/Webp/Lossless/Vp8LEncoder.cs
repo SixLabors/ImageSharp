@@ -26,9 +26,9 @@ internal class Vp8LEncoder : IDisposable
     /// </summary>
     private ScratchBuffer scratch;  // mutable struct, don't make readonly
 
-    private readonly int[][] histoArgb = { new int[256], new int[256], new int[256], new int[256] };
+    private readonly int[][] histoArgb = [new int[256], new int[256], new int[256], new int[256]];
 
-    private readonly int[][] bestHisto = { new int[256], new int[256], new int[256], new int[256] };
+    private readonly int[][] bestHisto = [new int[256], new int[256], new int[256], new int[256]];
 
     /// <summary>
     /// The <see cref="MemoryAllocator"/> to use for buffer allocations.
@@ -44,11 +44,6 @@ internal class Vp8LEncoder : IDisposable
     /// Maximum number of reference blocks the image will be segmented into.
     /// </summary>
     private const int MaxRefsBlockPerImage = 16;
-
-    /// <summary>
-    /// Minimum block size for backward references.
-    /// </summary>
-    private const int MinBlockSize = 256;
 
     /// <summary>
     /// A bit writer for writing lossless webp streams.
@@ -136,14 +131,9 @@ internal class Vp8LEncoder : IDisposable
         this.Refs = new Vp8LBackwardRefs[3];
         this.HashChain = new Vp8LHashChain(memoryAllocator, pixelCount);
 
-        // We round the block size up, so we're guaranteed to have at most MaxRefsBlockPerImage blocks used:
-        int refsBlockSize = ((pixelCount - 1) / MaxRefsBlockPerImage) + 1;
         for (int i = 0; i < this.Refs.Length; i++)
         {
-            this.Refs[i] = new Vp8LBackwardRefs(pixelCount)
-            {
-                BlockSize = refsBlockSize < MinBlockSize ? MinBlockSize : refsBlockSize
-            };
+            this.Refs[i] = new Vp8LBackwardRefs(memoryAllocator, pixelCount);
         }
     }
 
@@ -151,10 +141,10 @@ internal class Vp8LEncoder : IDisposable
     // This sequence is tuned from that, but more weighted for lower symbol count,
     // and more spiking histograms.
     // This uses C#'s compiler optimization to refer to assembly's static data directly.
-    private static ReadOnlySpan<byte> StorageOrder => new byte[] { 17, 18, 0, 1, 2, 3, 4, 5, 16, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 };
+    private static ReadOnlySpan<byte> StorageOrder => [17, 18, 0, 1, 2, 3, 4, 5, 16, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
 
     // This uses C#'s compiler optimization to refer to assembly's static data directly.
-    private static ReadOnlySpan<byte> Order => new byte[] { 1, 2, 0, 3 };
+    private static ReadOnlySpan<byte> Order => [1, 2, 0, 3];
 
     /// <summary>
     /// Gets the memory for the image data as packed bgra values.
@@ -371,9 +361,6 @@ internal class Vp8LEncoder : IDisposable
     /// <param name="inputImgHeight">The input image height.</param>
     private void WriteImageSize(int inputImgWidth, int inputImgHeight)
     {
-        Guard.MustBeLessThan(inputImgWidth, WebpConstants.MaxDimension, nameof(inputImgWidth));
-        Guard.MustBeLessThan(inputImgHeight, WebpConstants.MaxDimension, nameof(inputImgHeight));
-
         uint width = (uint)inputImgWidth - 1;
         uint height = (uint)inputImgHeight - 1;
 
@@ -550,7 +537,7 @@ internal class Vp8LEncoder : IDisposable
         EntropyIx entropyIdx = this.AnalyzeEntropy(bgra, width, height, usePalette, this.PaletteSize, this.TransformBits, out redAndBlueAlwaysZero);
 
         bool doNotCache = false;
-        List<CrunchConfig> crunchConfigs = new();
+        List<CrunchConfig> crunchConfigs = [];
 
         if (this.method == WebpEncodingMethod.BestQuality && this.quality == 100)
         {
@@ -596,7 +583,7 @@ internal class Vp8LEncoder : IDisposable
             }
         }
 
-        return crunchConfigs.ToArray();
+        return [.. crunchConfigs];
     }
 
     private void EncodeImage(int width, int height, bool useCache, CrunchConfig config, int cacheBits, bool lowEffort)
@@ -1071,9 +1058,8 @@ internal class Vp8LEncoder : IDisposable
         int histogramIx = histogramSymbols[0];
         Span<HuffmanTreeCode> codes = huffmanCodes.AsSpan(5 * histogramIx);
 
-        for (int i = 0; i < backwardRefs.Refs.Count; i++)
+        foreach (PixOrCopy v in backwardRefs)
         {
-            PixOrCopy v = backwardRefs.Refs[i];
             if (tileX != (x & tileMask) || tileY != (y & tileMask))
             {
                 tileX = x & tileMask;
@@ -1268,13 +1254,13 @@ internal class Vp8LEncoder : IDisposable
         // non-zero red and blue values. If all are zero, we can later skip
         // the cross color optimization.
         byte[][] histoPairs =
-        {
-            new[] { (byte)HistoIx.HistoRed, (byte)HistoIx.HistoBlue },
-            new[] { (byte)HistoIx.HistoRedPred, (byte)HistoIx.HistoBluePred },
-            new[] { (byte)HistoIx.HistoRedSubGreen, (byte)HistoIx.HistoBlueSubGreen },
-            new[] { (byte)HistoIx.HistoRedPredSubGreen, (byte)HistoIx.HistoBluePredSubGreen },
-            new[] { (byte)HistoIx.HistoRed, (byte)HistoIx.HistoBlue }
-        };
+        [
+            [(byte)HistoIx.HistoRed, (byte)HistoIx.HistoBlue],
+            [(byte)HistoIx.HistoRedPred, (byte)HistoIx.HistoBluePred],
+            [(byte)HistoIx.HistoRedSubGreen, (byte)HistoIx.HistoBlueSubGreen],
+            [(byte)HistoIx.HistoRedPredSubGreen, (byte)HistoIx.HistoBluePredSubGreen],
+            [(byte)HistoIx.HistoRed, (byte)HistoIx.HistoBlue]
+        ];
         Span<uint> redHisto = histo[(256 * histoPairs[(int)minEntropyIx][0])..];
         Span<uint> blueHisto = histo[(256 * histoPairs[(int)minEntropyIx][1])..];
         for (int i = 1; i < 256; i++)
@@ -1328,7 +1314,7 @@ internal class Vp8LEncoder : IDisposable
     /// <returns>The number of palette entries.</returns>
     private static int GetColorPalette(ReadOnlySpan<uint> bgra, int width, int height, Span<uint> palette)
     {
-        HashSet<uint> colors = new();
+        HashSet<uint> colors = [];
         for (int y = 0; y < height; y++)
         {
             ReadOnlySpan<uint> bgraRow = bgra.Slice(y * width, width);
@@ -1907,9 +1893,9 @@ internal class Vp8LEncoder : IDisposable
     /// </summary>
     public void ClearRefs()
     {
-        foreach (Vp8LBackwardRefs t in this.Refs)
+        foreach (Vp8LBackwardRefs refs in this.Refs)
         {
-            t.Refs.Clear();
+            refs.Clear();
         }
     }
 
@@ -1921,6 +1907,12 @@ internal class Vp8LEncoder : IDisposable
         this.BgraScratch?.Dispose();
         this.Palette.Dispose();
         this.TransformData?.Dispose();
+
+        foreach (Vp8LBackwardRefs refs in this.Refs)
+        {
+            refs.Dispose();
+        }
+
         this.HashChain.Dispose();
     }
 

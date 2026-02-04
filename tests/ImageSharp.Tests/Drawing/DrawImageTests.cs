@@ -77,11 +77,11 @@ public class DrawImageTests
         PngEncoder encoder;
         if (provider.PixelType == PixelTypes.Rgba64)
         {
-            encoder = new() { BitDepth = PngBitDepth.Bit16 };
+            encoder = new PngEncoder { BitDepth = PngBitDepth.Bit16 };
         }
         else
         {
-            encoder = new();
+            encoder = new PngEncoder();
         }
 
         image.DebugSave(provider, testInfo, encoder: encoder);
@@ -292,5 +292,22 @@ public class DrawImageTests
             provider,
             appendPixelTypeToFileName: false,
             appendSourceFileOrDescription: false);
+    }
+
+    [Theory]
+    [WithFile(TestImages.Gif.Giphy, PixelTypes.Rgba32)]
+    public void DrawImageAnimatedForegroundRepeatCount<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> background = provider.GetImage();
+        using Image<TPixel> foreground = Image.Load<TPixel>(TestFile.Create(TestImages.Gif.Giphy).Bytes);
+
+        Size size = new(foreground.Width / 4, foreground.Height / 4);
+        foreground.Mutate(x => x.Resize(size.Width, size.Height, KnownResamplers.Bicubic));
+
+        background.Mutate(x => x.DrawImage(foreground, Point.Empty, 1F, 0));
+
+        background.DebugSaveMultiFrame(provider);
+        background.CompareToReferenceOutputMultiFrame(provider, ImageComparer.TolerantPercentage(0.01f));
     }
 }

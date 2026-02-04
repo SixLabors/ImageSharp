@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Numerics;
 using SixLabors.ImageSharp.Formats.Png.Chunks;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -31,7 +32,7 @@ public class PngFrameMetadata : IFormatFrameMetadata<PngFrameMetadata>
 
     /// <summary>
     /// Gets or sets the frame delay for animated images.
-    /// If not 0, when utilized in Png animation, this field specifies the number of hundredths (1/100) of a second to
+    /// If not 0, when utilized in Png animation, this field specifies the number of seconds to
     /// wait before continuing with the processing of the Data Stream.
     /// The clock starts ticking immediately after the graphic is rendered.
     /// </summary>
@@ -62,7 +63,7 @@ public class PngFrameMetadata : IFormatFrameMetadata<PngFrameMetadata>
     public static PngFrameMetadata FromFormatConnectingFrameMetadata(FormatConnectingFrameMetadata metadata)
         => new()
         {
-            FrameDelay = new(metadata.Duration.TotalMilliseconds / 1000),
+            FrameDelay = new Rational(metadata.Duration.TotalMilliseconds / 1000),
             DisposalMode = GetMode(metadata.DisposalMode),
             BlendMode = metadata.BlendMode,
         };
@@ -76,7 +77,7 @@ public class PngFrameMetadata : IFormatFrameMetadata<PngFrameMetadata>
             delay = 0;
         }
 
-        return new()
+        return new FormatConnectingFrameMetadata
         {
             ColorTableMode = FrameColorTableMode.Global,
             Duration = TimeSpan.FromMilliseconds(delay * 1000),
@@ -86,7 +87,7 @@ public class PngFrameMetadata : IFormatFrameMetadata<PngFrameMetadata>
     }
 
     /// <inheritdoc/>
-    public void AfterFrameApply<TPixel>(ImageFrame<TPixel> source, ImageFrame<TPixel> destination)
+    public void AfterFrameApply<TPixel>(ImageFrame<TPixel> source, ImageFrame<TPixel> destination, Matrix4x4 matrix)
         where TPixel : unmanaged, IPixel<TPixel>
     {
     }

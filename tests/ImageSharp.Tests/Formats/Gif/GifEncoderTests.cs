@@ -56,7 +56,7 @@ public class GifEncoderTests
             {
                 // Use the palette quantizer without dithering to ensure results
                 // are consistent
-                Quantizer = new WebSafePaletteQuantizer(new QuantizerOptions { Dither = null })
+                Quantizer = new WebSafePaletteQuantizer(new QuantizerOptions { Dither = null, TransparencyThreshold = 0 })
             };
 
             // Always save as we need to compare the encoded output.
@@ -121,7 +121,7 @@ public class GifEncoderTests
         // Always save as we need to compare the encoded output.
         provider.Utility.SaveTestOutputFile(image, "gif", encoder, "global");
 
-        encoder = new()
+        encoder = new GifEncoder
         {
             ColorTableMode = FrameColorTableMode.Local,
             Quantizer = new OctreeQuantizer(new QuantizerOptions { Dither = null }),
@@ -418,5 +418,22 @@ public class GifEncoderTests
                 }
             }
         });
+    }
+
+    [Theory]
+    [WithFile(TestImages.Gif.Issues.Issue2866, PixelTypes.Rgba32)]
+    public void GifEncoder_CanDecode_AndEncode_Issue2866<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage();
+
+        // Save the image for visual inspection.
+        provider.Utility.SaveTestOutputFile(image, "gif", new GifEncoder(), "animated");
+
+        // Now compare the debug output with the reference output.
+        // We do this because the gif encoding is lossy and encoding will lead to differences in the 10s of percent.
+        // From the unencoded image, we can see that the image is visually the same.
+        static bool Predicate(int i, int _) => i % 8 == 0; // Image has many frames, only compare a selection of them.
+        image.CompareDebugOutputToReferenceOutputMultiFrame(provider, ImageComparer.Exact, extension: "gif", predicate: Predicate);
     }
 }

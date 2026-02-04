@@ -20,9 +20,9 @@ public class GifDecoderTests
     private const PixelTypes TestPixelTypes = PixelTypes.Rgba32 | PixelTypes.RgbaVector | PixelTypes.Argb32;
 
     public static readonly string[] MultiFrameTestFiles =
-    {
+    [
         TestImages.Gif.Giphy, TestImages.Gif.Kumin
-    };
+    ];
 
     [Theory]
     [WithFileCollection(nameof(MultiFrameTestFiles), PixelTypes.Rgba32)]
@@ -32,6 +32,41 @@ public class GifDecoderTests
         using Image<TPixel> image = provider.GetImage();
         image.DebugSaveMultiFrame(provider);
         image.CompareToReferenceOutputMultiFrame(provider, ImageComparer.Exact);
+    }
+
+    [Theory]
+    [WithFile(TestImages.Gif.AnimatedLoop, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Gif.AnimatedLoopInterlaced, PixelTypes.Rgba32)]
+    public void Decode_Animated<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage();
+        image.DebugSaveMultiFrame(provider);
+        image.CompareToReferenceOutputMultiFrame(provider, ImageComparer.Exact);
+    }
+
+    [Theory]
+    [WithFile(TestImages.Gif.AnimatedTransparentNoRestore, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Gif.AnimatedTransparentRestorePrevious, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Gif.AnimatedTransparentLoop, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Gif.AnimatedTransparentFirstFrameRestorePrev, PixelTypes.Rgba32)]
+    public void Decode_Animated_WithTransparency<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage();
+        image.DebugSaveMultiFrame(provider);
+        image.CompareToReferenceOutputMultiFrame(provider, ImageComparer.Exact);
+    }
+
+    [Theory]
+    [WithFile(TestImages.Gif.StaticNontransparent, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Gif.StaticTransparent, PixelTypes.Rgba32)]
+    public void Decode_Static_No_Animation<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage();
+        image.DebugSave(provider);
+        image.CompareFirstFrameToReferenceOutput(ImageComparer.Exact, provider);
     }
 
     [Theory]
@@ -55,7 +90,7 @@ public class GifDecoderTests
     {
         DecoderOptions options = new()
         {
-            TargetSize = new() { Width = 150, Height = 150 },
+            TargetSize = new Size { Width = 150, Height = 150 },
             MaxFrames = 1
         };
 
@@ -222,7 +257,7 @@ public class GifDecoderTests
     public void Issue405_BadApplicationExtensionBlockLength<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> image = provider.GetImage(GifDecoder.Instance, new() { MaxFrames = 1 });
+        using Image<TPixel> image = provider.GetImage(GifDecoder.Instance, new DecoderOptions { MaxFrames = 1 });
         image.DebugSave(provider);
 
         image.CompareFirstFrameToReferenceOutput(ImageComparer.Exact, provider);
@@ -234,7 +269,7 @@ public class GifDecoderTests
     public void Issue1668_InvalidColorIndex<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> image = provider.GetImage(GifDecoder.Instance, new() { MaxFrames = 1 });
+        using Image<TPixel> image = provider.GetImage(GifDecoder.Instance, new DecoderOptions { MaxFrames = 1 });
         image.DebugSave(provider);
 
         image.CompareFirstFrameToReferenceOutput(ImageComparer.Exact, provider);
@@ -283,7 +318,7 @@ public class GifDecoderTests
     public void Issue1962<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> image = provider.GetImage(GifDecoder.Instance, new() { MaxFrames = 1 });
+        using Image<TPixel> image = provider.GetImage(GifDecoder.Instance, new DecoderOptions { MaxFrames = 1 });
         image.DebugSave(provider);
 
         image.CompareFirstFrameToReferenceOutput(ImageComparer.Exact, provider);
@@ -295,7 +330,7 @@ public class GifDecoderTests
     public void Issue2012EmptyXmp<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> image = provider.GetImage(GifDecoder.Instance, new() { MaxFrames = 1 });
+        using Image<TPixel> image = provider.GetImage(GifDecoder.Instance, new DecoderOptions { MaxFrames = 1 });
 
         image.DebugSave(provider);
         image.CompareFirstFrameToReferenceOutput(ImageComparer.Exact, provider);
@@ -340,6 +375,33 @@ public class GifDecoderTests
     [WithFile(TestImages.Gif.Issues.Issue2859_A, PixelTypes.Rgba32)]
     [WithFile(TestImages.Gif.Issues.Issue2859_B, PixelTypes.Rgba32)]
     public void Issue2859_LZWPixelStackOverflow<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage();
+        image.DebugSaveMultiFrame(provider);
+        image.CompareToReferenceOutputMultiFrame(provider, ImageComparer.Exact);
+    }
+
+    // https://github.com/SixLabors/ImageSharp/issues/2953
+    [Theory]
+    [WithFile(TestImages.Gif.Issues.Issue2953, PixelTypes.Rgba32)]
+    public void Issue2953<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        // We should throw a InvalidImageContentException when trying to identify or load an invalid GIF file.
+        TestFile testFile = TestFile.Create(provider.SourceFileOrDescription);
+
+        Assert.Throws<InvalidImageContentException>(() => Image.Identify(testFile.FullPath));
+        Assert.Throws<InvalidImageContentException>(() => Image.Load(testFile.FullPath));
+
+        DecoderOptions options = new() { SkipMetadata = true };
+        Assert.Throws<InvalidImageContentException>(() => Image.Identify(options, testFile.FullPath));
+        Assert.Throws<InvalidImageContentException>(() => Image.Load(options, testFile.FullPath));
+    }
+
+    [Theory]
+    [WithFile(TestImages.Gif.Issues.Issue2980, PixelTypes.Rgba32)]
+    public void Issue2980<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         using Image<TPixel> image = provider.GetImage();

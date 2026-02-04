@@ -4,6 +4,7 @@
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Cur;
 using SixLabors.ImageSharp.Formats.Ico;
+using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using static SixLabors.ImageSharp.Tests.TestImages.Cur;
@@ -49,8 +50,8 @@ public class CurEncoderTests
         using Image<TPixel> encoded = Image.Load<TPixel>(memStream);
         encoded.DebugSaveMultiFrame(provider);
 
-        // Despite preservation of the palette. The process can still be lossy
-        encoded.CompareToOriginalMultiFrame(provider, ImageComparer.TolerantPercentage(.23f), IcoDecoder.Instance);
+        // Color palettes are not preserved when transcoding.
+        encoded.CompareToOriginalMultiFrame(provider, ImageComparer.TolerantPercentage(.05F), IcoDecoder.Instance);
 
         for (int i = 0; i < image.Frames.Count; i++)
         {
@@ -121,7 +122,7 @@ public class CurEncoderTests
                 {
                     if (expectedColor != rowSpan[x])
                     {
-                        var xx = 0;
+                        int xx = 0;
                     }
 
 

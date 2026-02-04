@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
@@ -16,6 +17,7 @@ internal class CropProcessor<TPixel> : TransformProcessor<TPixel>
     where TPixel : unmanaged, IPixel<TPixel>
 {
     private readonly Rectangle cropRectangle;
+    private readonly Matrix4x4 transformMatrix;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="CropProcessor{TPixel}"/> class.
@@ -26,10 +28,21 @@ internal class CropProcessor<TPixel> : TransformProcessor<TPixel>
     /// <param name="sourceRectangle">The source area to process for the current processor instance.</param>
     public CropProcessor(Configuration configuration, CropProcessor definition, Image<TPixel> source, Rectangle sourceRectangle)
         : base(configuration, source, sourceRectangle)
-        => this.cropRectangle = definition.CropRectangle;
+    {
+        this.cropRectangle = definition.CropRectangle;
+
+        // Calculate the transform matrix from the crop operation to allow us
+        // to update any metadata that represents pixel coordinates in the source image.
+        this.transformMatrix = new ProjectiveTransformBuilder()
+            .AppendTranslation(new PointF(-this.cropRectangle.X, -this.cropRectangle.Y))
+            .BuildMatrix(sourceRectangle);
+    }
 
     /// <inheritdoc/>
-    protected override Size GetDestinationSize() => new Size(this.cropRectangle.Width, this.cropRectangle.Height);
+    protected override Size GetDestinationSize() => new(this.cropRectangle.Width, this.cropRectangle.Height);
+
+    /// <inheritdoc/>
+    protected override Matrix4x4 GetTransformMatrix() => this.transformMatrix;
 
     /// <inheritdoc/>
     protected override void OnFrameApply(ImageFrame<TPixel> source, ImageFrame<TPixel> destination)
@@ -50,7 +63,7 @@ internal class CropProcessor<TPixel> : TransformProcessor<TPixel>
         ParallelExecutionSettings parallelSettings =
             ParallelExecutionSettings.FromConfiguration(this.Configuration).MultiplyMinimumPixelsPerTask(4);
 
-        var operation = new RowOperation(bounds, source.PixelBuffer, destination.PixelBuffer);
+        RowOperation operation = new(bounds, source.PixelBuffer, destination.PixelBuffer);
 
         ParallelRowIterator.IterateRows(
             bounds,

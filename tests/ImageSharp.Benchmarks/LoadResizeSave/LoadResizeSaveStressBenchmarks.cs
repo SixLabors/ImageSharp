@@ -18,7 +18,7 @@ public class LoadResizeSaveStressBenchmarks
     [GlobalSetup]
     public void Setup()
     {
-        this.runner = new LoadResizeSaveStressRunner()
+        this.runner = new LoadResizeSaveStressRunner
         {
             ImageCount = Environment.ProcessorCount,
             Filter = Filter
@@ -34,12 +34,12 @@ public class LoadResizeSaveStressBenchmarks
     }
 
     public int[] ParallelismValues { get; } =
-    {
+    [
         // Environment.ProcessorCount,
         // Environment.ProcessorCount / 2,
         // Environment.ProcessorCount / 4,
         1
-    };
+    ];
 
     [Benchmark]
     [ArgumentsSource(nameof(ParallelismValues))]

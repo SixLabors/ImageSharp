@@ -7,9 +7,9 @@ using SixLabors.ImageSharp.Formats.Jpeg.Components;
 namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg;
 
 [Config(typeof(Config.Short))]
-public class GrayscaleColorConversion : ColorConversionBenchmark
+public class GrayScaleColorConversion : ColorConversionBenchmark
 {
-    public GrayscaleColorConversion()
+    public GrayScaleColorConversion()
         : base(1)
     {
     }
@@ -17,24 +17,32 @@ public class GrayscaleColorConversion : ColorConversionBenchmark
     [Benchmark(Baseline = true)]
     public void Scalar()
     {
-        var values = new JpegColorConverterBase.ComponentValues(this.Input, 0);
+        JpegColorConverterBase.ComponentValues values = new(this.Input, 0);
 
-        new JpegColorConverterBase.GrayscaleScalar(8).ConvertToRgbInplace(values);
+        new JpegColorConverterBase.GrayScaleScalar(8).ConvertToRgbInPlace(values);
     }
 
     [Benchmark]
-    public void SimdVectorAvx()
+    public void SimdVector128()
     {
-        var values = new JpegColorConverterBase.ComponentValues(this.Input, 0);
+        JpegColorConverterBase.ComponentValues values = new(this.Input, 0);
 
-        new JpegColorConverterBase.GrayscaleAvx(8).ConvertToRgbInplace(values);
+        new JpegColorConverterBase.GrayScaleVector128(8).ConvertToRgbInPlace(values);
     }
 
     [Benchmark]
-    public void SimdVectorArm()
+    public void SimdVector256()
     {
-        var values = new JpegColorConverterBase.ComponentValues(this.Input, 0);
+        JpegColorConverterBase.ComponentValues values = new(this.Input, 0);
 
-        new JpegColorConverterBase.GrayscaleArm(8).ConvertToRgbInplace(values);
+        new JpegColorConverterBase.GrayScaleVector256(8).ConvertToRgbInPlace(values);
+    }
+
+    [Benchmark]
+    public void SimdVector512()
+    {
+        JpegColorConverterBase.ComponentValues values = new(this.Input, 0);
+
+        new JpegColorConverterBase.GrayScaleVector512(8).ConvertToRgbInPlace(values);
     }
 }

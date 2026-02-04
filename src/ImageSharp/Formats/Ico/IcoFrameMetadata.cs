@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Numerics;
 using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.Formats.Icon;
 using SixLabors.ImageSharp.PixelFormats;
@@ -96,8 +97,7 @@ public class IcoFrameMetadata : IFormatFrameMetadata<IcoFrameMetadata>
             BmpBitsPerPixel = bbpp,
             Compression = compression,
             EncodingWidth = ClampEncodingDimension(metadata.EncodingWidth),
-            EncodingHeight = ClampEncodingDimension(metadata.EncodingHeight),
-            ColorTable = compression == IconFrameCompression.Bmp ? metadata.ColorTable : null
+            EncodingHeight = ClampEncodingDimension(metadata.EncodingHeight)
         };
     }
 
@@ -106,19 +106,19 @@ public class IcoFrameMetadata : IFormatFrameMetadata<IcoFrameMetadata>
         => new()
         {
             PixelTypeInfo = this.GetPixelTypeInfo(),
-            ColorTable = this.ColorTable,
             EncodingWidth = this.EncodingWidth,
             EncodingHeight = this.EncodingHeight
         };
 
     /// <inheritdoc/>
-    public void AfterFrameApply<TPixel>(ImageFrame<TPixel> source, ImageFrame<TPixel> destination)
+    public void AfterFrameApply<TPixel>(ImageFrame<TPixel> source, ImageFrame<TPixel> destination, Matrix4x4 matrix)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         float ratioX = destination.Width / (float)source.Width;
         float ratioY = destination.Height / (float)source.Height;
         this.EncodingWidth = ScaleEncodingDimension(this.EncodingWidth, destination.Width, ratioX);
         this.EncodingHeight = ScaleEncodingDimension(this.EncodingHeight, destination.Height, ratioY);
+        this.ColorTable = null;
     }
 
     /// <inheritdoc/>
@@ -139,7 +139,7 @@ public class IcoFrameMetadata : IFormatFrameMetadata<IcoFrameMetadata>
             ? (byte)0
             : (byte)ColorNumerics.GetColorCountForBitDepth((int)this.BmpBitsPerPixel);
 
-        return new()
+        return new IconDirEntry
         {
             Width = ClampEncodingDimension(this.EncodingWidth ?? size.Width),
             Height = ClampEncodingDimension(this.EncodingHeight ?? size.Height),

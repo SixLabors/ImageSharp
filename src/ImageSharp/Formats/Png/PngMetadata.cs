@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Numerics;
 using SixLabors.ImageSharp.Formats.Png.Chunks;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -93,25 +94,6 @@ public class PngMetadata : IFormatMetadata<PngMetadata>
     /// <inheritdoc/>
     public static PngMetadata FromFormatConnectingMetadata(FormatConnectingMetadata metadata)
     {
-        // Should the conversion be from a format that uses a 24bit palette entries (gif)
-        // we need to clone and adjust the color table to allow for transparency.
-        Color[]? colorTable = metadata.ColorTable?.ToArray();
-        if (colorTable != null)
-        {
-            for (int i = 0; i < colorTable.Length; i++)
-            {
-                ref Color c = ref colorTable[i];
-                if (c != metadata.BackgroundColor)
-                {
-                    continue;
-                }
-
-                // Png treats background as fully empty
-                c = Color.Transparent;
-                break;
-            }
-        }
-
         PngColorType color;
         PixelColorType colorType = metadata.PixelTypeInfo.ColorType;
 
@@ -129,7 +111,7 @@ public class PngMetadata : IFormatMetadata<PngMetadata>
                 color = PngColorType.Rgb;
                 break;
             default:
-                if (colorType.HasFlag(PixelColorType.Luminance))
+                if (colorType.HasFlag(PixelColorType.Luminance | PixelColorType.Alpha))
                 {
                     color = PngColorType.GrayscaleWithAlpha;
                     break;
@@ -148,11 +130,10 @@ public class PngMetadata : IFormatMetadata<PngMetadata>
             4 => PngBitDepth.Bit4,
             _ => (bpc <= 8) ? PngBitDepth.Bit8 : PngBitDepth.Bit16,
         };
-        return new()
+        return new PngMetadata
         {
             ColorType = color,
             BitDepth = bitDepth,
-            ColorTable = colorTable,
             RepeatCount = metadata.RepeatCount,
         };
     }
@@ -241,16 +222,31 @@ public class PngMetadata : IFormatMetadata<PngMetadata>
     public FormatConnectingMetadata ToFormatConnectingMetadata()
         => new()
         {
-            ColorTable = this.ColorTable,
             ColorTableMode = FrameColorTableMode.Global,
             PixelTypeInfo = this.GetPixelTypeInfo(),
             RepeatCount = (ushort)Numerics.Clamp(this.RepeatCount, 0, ushort.MaxValue),
         };
 
     /// <inheritdoc/>
-    public void AfterImageApply<TPixel>(Image<TPixel> destination)
+    public void AfterImageApply<TPixel>(Image<TPixel> destination, Matrix4x4 matrix)
         where TPixel : unmanaged, IPixel<TPixel>
     {
+        this.ColorTable = null;
+
+        // If the color type is RGB and we have a transparent color, we need to switch to RGBA
+        // so that we do not incorrectly preserve the obsolete tRNS chunk.
+        if (this.ColorType == PngColorType.Rgb && this.TransparentColor.HasValue)
+        {
+            this.ColorType = PngColorType.RgbWithAlpha;
+            this.TransparentColor = null;
+        }
+
+        // The same applies for Grayscale.
+        if (this.ColorType == PngColorType.Grayscale && this.TransparentColor.HasValue)
+        {
+            this.ColorType = PngColorType.GrayscaleWithAlpha;
+            this.TransparentColor = null;
+        }
     }
 
     /// <inheritdoc/>

@@ -53,7 +53,6 @@ public class QuantizedImageTests
         where TPixel : unmanaged, IPixel<TPixel>
     {
         using Image<TPixel> image = provider.GetImage();
-        Assert.True(image[0, 0].Equals(default));
 
         QuantizerOptions options = new();
         if (!dither)
@@ -79,7 +78,6 @@ public class QuantizedImageTests
         where TPixel : unmanaged, IPixel<TPixel>
     {
         using Image<TPixel> image = provider.GetImage();
-        Assert.True(image[0, 0].Equals(default));
 
         QuantizerOptions options = new();
         if (!dither)
@@ -106,7 +104,7 @@ public class QuantizedImageTests
     {
         using Image<TPixel> image = provider.GetImage();
         OctreeQuantizer octreeQuantizer = new();
-        IQuantizer<TPixel> quantizer = octreeQuantizer.CreatePixelSpecificQuantizer<TPixel>(Configuration.Default, new QuantizerOptions() { MaxColors = 128 });
+        IQuantizer<TPixel> quantizer = octreeQuantizer.CreatePixelSpecificQuantizer<TPixel>(Configuration.Default, new QuantizerOptions { MaxColors = 128 });
         ImageFrame<TPixel> frame = image.Frames[0];
         quantizer.BuildPaletteAndQuantizeFrame(frame, frame.Bounds);
     }

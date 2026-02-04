@@ -49,9 +49,9 @@ internal sealed class Vp8LHistogramSet : IEnumerable<Vp8LHistogram>, IDisposable
         }
     }
 
-    public Vp8LHistogramSet(int capacity) => this.items = new(capacity);
+    public Vp8LHistogramSet(int capacity) => this.items = new List<Vp8LHistogram>(capacity);
 
-    public Vp8LHistogramSet() => this.items = new();
+    public Vp8LHistogramSet() => this.items = new List<Vp8LHistogram>();
 
     public int Count => this.items.Count;
 

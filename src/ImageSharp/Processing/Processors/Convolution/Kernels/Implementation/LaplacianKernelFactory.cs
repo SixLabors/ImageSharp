@@ -19,7 +19,7 @@ internal static class LaplacianKernelFactory
         Guard.MustBeGreaterThanOrEqualTo(length, 3u, nameof(length));
         Guard.IsFalse(length % 2 == 0, nameof(length), "The kernel length must be an odd number.");
 
-        var kernel = new DenseMatrix<float>((int)length);
+        DenseMatrix<float> kernel = new((int)length);
         kernel.Fill(-1);
 
         int mid = (int)(length / 2);

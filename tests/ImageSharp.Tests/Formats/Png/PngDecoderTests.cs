@@ -21,7 +21,7 @@ public partial class PngDecoderTests
     private const PixelTypes TestPixelTypes = PixelTypes.Rgba32 | PixelTypes.RgbaVector | PixelTypes.Argb32;
 
     public static readonly string[] CommonTestImages =
-    {
+    [
         TestImages.Png.Splash,
         TestImages.Png.FilterVar,
 
@@ -35,29 +35,29 @@ public partial class PngDecoderTests
         TestImages.Png.Rgb24BppTrans,
 
         TestImages.Png.Bad.ChunkLength1,
-        TestImages.Png.Bad.ChunkLength2,
-    };
+        TestImages.Png.Bad.ChunkLength2
+    ];
 
     public static readonly string[] TestImagesIssue1014 =
-    {
+    [
         TestImages.Png.Issue1014_1, TestImages.Png.Issue1014_2,
         TestImages.Png.Issue1014_3, TestImages.Png.Issue1014_4,
         TestImages.Png.Issue1014_5, TestImages.Png.Issue1014_6
-    };
+    ];
 
     public static readonly string[] TestImagesIssue1177 =
-    {
+    [
         TestImages.Png.Issue1177_1,
         TestImages.Png.Issue1177_2
-    };
+    ];
 
     public static readonly string[] CorruptedTestImages =
-    {
+    [
         TestImages.Png.Bad.CorruptedChunk,
         TestImages.Png.Bad.ZlibOverflow,
         TestImages.Png.Bad.ZlibOverflow2,
-        TestImages.Png.Bad.ZlibZtxtBadHeader,
-    };
+        TestImages.Png.Bad.ZlibZtxtBadHeader
+    ];
 
     public static readonly TheoryData<string, Type> PixelFormatRange = new()
     {
@@ -79,7 +79,7 @@ public partial class PngDecoderTests
     };
 
     public static readonly string[] MultiFrameTestFiles =
-    {
+    [
         TestImages.Png.APng,
         TestImages.Png.SplitIDatZeroLength,
         TestImages.Png.DisposeNone,
@@ -90,7 +90,7 @@ public partial class PngDecoderTests
         TestImages.Png.BlendOverMultiple,
         TestImages.Png.FrameOffset,
         TestImages.Png.DefaultNotAnimated
-    };
+    ];
 
     [Theory]
     [MemberData(nameof(PixelFormatRange))]
@@ -140,7 +140,7 @@ public partial class PngDecoderTests
     {
         DecoderOptions options = new()
         {
-            TargetSize = new() { Width = 150, Height = 150 }
+            TargetSize = new Size { Width = 150, Height = 150 }
         };
 
         using Image<TPixel> image = provider.GetImage(PngDecoder.Instance, options);
@@ -178,7 +178,7 @@ public partial class PngDecoderTests
 
             DecoderOptions options = new()
             {
-                TargetSize = new() { Width = 150, Height = 150 }
+                TargetSize = new Size { Width = 150, Height = 150 }
             };
 
             using Image<Rgba32> image = provider.GetImage(PngDecoder.Instance, options);
@@ -204,6 +204,22 @@ public partial class PngDecoderTests
         using Image<TPixel> image = provider.GetImage(PngDecoder.Instance);
         image.DebugSave(provider);
         image.CompareToOriginal(provider, ImageComparer.Exact);
+    }
+
+    [Theory]
+    [WithFile(TestImages.Png.Icc.Perceptual, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Png.Icc.PerceptualcLUTOnly, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Png.Icc.SRgbGray, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Png.Icc.SRgbGrayInterlacedRgba32, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Png.Icc.SRgbGrayInterlacedRgba64, PixelTypes.Rgba32)]
+    public void Decode_WhenColorProfileHandlingIsConvert_ApplyIccProfile<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage(PngDecoder.Instance, new DecoderOptions { ColorProfileHandling = ColorProfileHandling.Convert });
+
+        image.DebugSave(provider);
+        image.CompareToReferenceOutput(provider);
+        Assert.Null(image.Metadata.IccProfile);
     }
 
     [Theory]
@@ -389,7 +405,7 @@ public partial class PngDecoderTests
         TestFile testFile = TestFile.Create(imagePath);
         using MemoryStream stream = new(testFile.Bytes, false);
 
-        ImageInfo imageInfo = Image.Identify(new DecoderOptions() { SegmentIntegrityHandling = SegmentIntegrityHandling.IgnoreData }, stream);
+        ImageInfo imageInfo = Image.Identify(new DecoderOptions { SegmentIntegrityHandling = SegmentIntegrityHandling.IgnoreData }, stream);
 
         Assert.NotNull(imageInfo);
         Assert.Equal(expectedPixelSize, imageInfo.PixelType.BitsPerPixel);
@@ -674,7 +690,7 @@ public partial class PngDecoderTests
     public void Binary_PrematureEof()
     {
         PngDecoder decoder = PngDecoder.Instance;
-        PngDecoderOptions options = new() { GeneralOptions = new() { SegmentIntegrityHandling = SegmentIntegrityHandling.IgnoreData } };
+        PngDecoderOptions options = new() { GeneralOptions = new DecoderOptions { SegmentIntegrityHandling = SegmentIntegrityHandling.IgnoreData } };
         using EofHitCounter eofHitCounter = EofHitCounter.RunDecoder(TestImages.Png.Bad.FlagOfGermany0000016446, decoder, options);
 
         // TODO: Try to reduce this to 1.
@@ -719,10 +735,20 @@ public partial class PngDecoderTests
     [Theory]
     [WithFile(TestImages.Png.Issue2752, PixelTypes.Rgba32)]
     public void CanDecodeJustOneFrame<TPixel>(TestImageProvider<TPixel> provider)
-    where TPixel : unmanaged, IPixel<TPixel>
+        where TPixel : unmanaged, IPixel<TPixel>
     {
         DecoderOptions options = new() { MaxFrames = 1 };
         using Image<TPixel> image = provider.GetImage(PngDecoder.Instance, options);
         Assert.Equal(1, image.Frames.Count);
+    }
+
+    [Theory]
+    [WithFile(TestImages.Png.Issue2924, PixelTypes.Rgba32)]
+    public void CanDecode_Issue2924<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage(PngDecoder.Instance);
+        image.DebugSave(provider);
+        image.CompareToReferenceOutput(provider);
     }
 }

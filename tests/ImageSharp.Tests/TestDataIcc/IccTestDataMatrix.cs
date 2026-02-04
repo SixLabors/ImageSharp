@@ -3,16 +3,14 @@
 
 using System.Numerics;
 
-namespace SixLabors.ImageSharp.Tests;
-
-using SixLabors.ImageSharp;
+namespace SixLabors.ImageSharp.Tests.TestDataIcc;
 
 internal static class IccTestDataMatrix
 {
     /// <summary>
     /// 3x3 Matrix
     /// </summary>
-    public static readonly float[,] Single_2DArray_ValGrad =
+    public static readonly float[,] Single2DArrayValGrad =
     {
         { 1, 2, 3 },
         { 4, 5, 6 },
@@ -22,7 +20,7 @@ internal static class IccTestDataMatrix
     /// <summary>
     /// 3x3 Matrix
     /// </summary>
-    public static readonly float[,] Single_2DArray_ValIdentity =
+    public static readonly float[,] Single2DArrayValIdentity =
     {
         { 1, 0, 0 },
         { 0, 1, 0 },
@@ -32,121 +30,121 @@ internal static class IccTestDataMatrix
     /// <summary>
     /// 3x3 Matrix
     /// </summary>
-    public static readonly Matrix4x4 Single_Matrix4x4_ValGrad = new Matrix4x4(1, 2, 3, 0, 4, 5, 6, 0, 7, 8, 9, 0, 0, 0, 0, 1);
+    public static readonly Matrix4x4 SingleMatrix4X4ValGrad = new(1, 2, 3, 0, 4, 5, 6, 0, 7, 8, 9, 0, 0, 0, 0, 1);
 
     /// <summary>
     /// 3x3 Matrix
     /// </summary>
-    public static readonly Matrix4x4 Single_Matrix4x4_ValIdentity = Matrix4x4.Identity;
+    public static readonly Matrix4x4 SingleMatrix4X4ValIdentity = Matrix4x4.Identity;
 
     /// <summary>
     /// 3x3 Matrix
     /// </summary>
-    public static readonly DenseMatrix<float> Single_DenseMatrix_ValGrad = new DenseMatrix<float>(Single_2DArray_ValGrad);
+    public static readonly DenseMatrix<float> SingleDenseMatrixValGrad = new(Single2DArrayValGrad);
 
     /// <summary>
     /// 3x3 Matrix
     /// </summary>
-    public static readonly DenseMatrix<float> Single_DenseMatrix_ValIdentity = new DenseMatrix<float>(Single_2DArray_ValIdentity);
+    public static readonly DenseMatrix<float> SingleDenseMatrixValIdentity = new(Single2DArrayValIdentity);
 
     /// <summary>
     /// 3x3 Matrix
     /// </summary>
-    public static readonly byte[] Fix16_2D_Grad = ArrayHelper.Concat(
-        IccTestDataPrimitives.Fix16_1,
-        IccTestDataPrimitives.Fix16_4,
-        IccTestDataPrimitives.Fix16_7,
-        IccTestDataPrimitives.Fix16_2,
-        IccTestDataPrimitives.Fix16_5,
-        IccTestDataPrimitives.Fix16_8,
-        IccTestDataPrimitives.Fix16_3,
-        IccTestDataPrimitives.Fix16_6,
-        IccTestDataPrimitives.Fix16_9);
+    public static readonly byte[] Fix162DGrad = ArrayHelper.Concat(
+        IccTestDataPrimitives.Fix161,
+        IccTestDataPrimitives.Fix164,
+        IccTestDataPrimitives.Fix167,
+        IccTestDataPrimitives.Fix162,
+        IccTestDataPrimitives.Fix165,
+        IccTestDataPrimitives.Fix168,
+        IccTestDataPrimitives.Fix163,
+        IccTestDataPrimitives.Fix166,
+        IccTestDataPrimitives.Fix169);
 
     /// <summary>
     /// 3x3 Matrix
     /// </summary>
-    public static readonly byte[] Fix16_2D_Identity = ArrayHelper.Concat(
-        IccTestDataPrimitives.Fix16_1,
-        IccTestDataPrimitives.Fix16_0,
-        IccTestDataPrimitives.Fix16_0,
-        IccTestDataPrimitives.Fix16_0,
-        IccTestDataPrimitives.Fix16_1,
-        IccTestDataPrimitives.Fix16_0,
-        IccTestDataPrimitives.Fix16_0,
-        IccTestDataPrimitives.Fix16_0,
-        IccTestDataPrimitives.Fix16_1);
+    public static readonly byte[] Fix162DIdentity = ArrayHelper.Concat(
+        IccTestDataPrimitives.Fix161,
+        IccTestDataPrimitives.Fix160,
+        IccTestDataPrimitives.Fix160,
+        IccTestDataPrimitives.Fix160,
+        IccTestDataPrimitives.Fix161,
+        IccTestDataPrimitives.Fix160,
+        IccTestDataPrimitives.Fix160,
+        IccTestDataPrimitives.Fix160,
+        IccTestDataPrimitives.Fix161);
 
     /// <summary>
     /// 3x3 Matrix
     /// </summary>
-    public static readonly byte[] Single_2D_Grad = ArrayHelper.Concat(
-        IccTestDataPrimitives.Single_1,
-        IccTestDataPrimitives.Single_4,
-        IccTestDataPrimitives.Single_7,
-        IccTestDataPrimitives.Single_2,
-        IccTestDataPrimitives.Single_5,
-        IccTestDataPrimitives.Single_8,
-        IccTestDataPrimitives.Single_3,
-        IccTestDataPrimitives.Single_6,
-        IccTestDataPrimitives.Single_9);
+    public static readonly byte[] Single2DGrad = ArrayHelper.Concat(
+        IccTestDataPrimitives.Single1,
+        IccTestDataPrimitives.Single4,
+        IccTestDataPrimitives.Single7,
+        IccTestDataPrimitives.Single2,
+        IccTestDataPrimitives.Single5,
+        IccTestDataPrimitives.Single8,
+        IccTestDataPrimitives.Single3,
+        IccTestDataPrimitives.Single6,
+        IccTestDataPrimitives.Single9);
 
-    public static readonly object[][] Matrix2D_FloatArrayTestData =
-    {
-        new object[] { Fix16_2D_Grad, 3, 3, false, Single_2DArray_ValGrad },
-        new object[] { Fix16_2D_Identity, 3, 3, false, Single_2DArray_ValIdentity },
-        new object[] { Single_2D_Grad, 3, 3, true, Single_2DArray_ValGrad },
-    };
+    public static readonly object[][] Matrix2DFloatArrayTestData =
+    [
+        [Fix162DGrad, 3, 3, false, Single2DArrayValGrad],
+        [Fix162DIdentity, 3, 3, false, Single2DArrayValIdentity],
+        [Single2DGrad, 3, 3, true, Single2DArrayValGrad]
+    ];
 
-    public static readonly object[][] Matrix2D_DenseMatrixTestData =
-    {
-        new object[] { Fix16_2D_Grad, 3, 3, false, Single_DenseMatrix_ValGrad },
-        new object[] { Fix16_2D_Identity, 3, 3, false, Single_DenseMatrix_ValIdentity },
-        new object[] { Single_2D_Grad, 3, 3, true, Single_DenseMatrix_ValGrad },
-    };
+    public static readonly object[][] Matrix2DDenseMatrixTestData =
+    [
+        [Fix162DGrad, 3, 3, false, SingleDenseMatrixValGrad],
+        [Fix162DIdentity, 3, 3, false, SingleDenseMatrixValIdentity],
+        [Single2DGrad, 3, 3, true, SingleDenseMatrixValGrad]
+    ];
 
-    public static readonly object[][] Matrix2D_Matrix4x4TestData =
-    {
-        new object[] { Fix16_2D_Grad, 3, 3, false, Single_Matrix4x4_ValGrad },
-        new object[] { Fix16_2D_Identity, 3, 3, false, Single_Matrix4x4_ValIdentity },
-        new object[] { Single_2D_Grad, 3, 3, true, Single_Matrix4x4_ValGrad },
-    };
+    public static readonly object[][] Matrix2DMatrix4X4TestData =
+    [
+        [Fix162DGrad, 3, 3, false, SingleMatrix4X4ValGrad],
+        [Fix162DIdentity, 3, 3, false, SingleMatrix4X4ValIdentity],
+        [Single2DGrad, 3, 3, true, SingleMatrix4X4ValGrad]
+    ];
 
     /// <summary>
     /// 3x1 Matrix
     /// </summary>
-    public static readonly float[] Single_1DArray_ValGrad = { 1, 4, 7 };
+    public static readonly float[] Single1DArrayValGrad = [1, 4, 7];
 
     /// <summary>
     /// 3x1 Matrix
     /// </summary>
-    public static readonly Vector3 Single_Vector3_ValGrad = new Vector3(1, 4, 7);
+    public static readonly Vector3 SingleVector3ValGrad = new(1, 4, 7);
 
     /// <summary>
     /// 3x1 Matrix
     /// </summary>
-    public static readonly byte[] Fix16_1D_Grad = ArrayHelper.Concat(
-        IccTestDataPrimitives.Fix16_1,
-        IccTestDataPrimitives.Fix16_4,
-        IccTestDataPrimitives.Fix16_7);
+    public static readonly byte[] Fix161DGrad = ArrayHelper.Concat(
+        IccTestDataPrimitives.Fix161,
+        IccTestDataPrimitives.Fix164,
+        IccTestDataPrimitives.Fix167);
 
     /// <summary>
     /// 3x1 Matrix
     /// </summary>
-    public static readonly byte[] Single_1D_Grad = ArrayHelper.Concat(
-        IccTestDataPrimitives.Single_1,
-        IccTestDataPrimitives.Single_4,
-        IccTestDataPrimitives.Single_7);
+    public static readonly byte[] Single1DGrad = ArrayHelper.Concat(
+        IccTestDataPrimitives.Single1,
+        IccTestDataPrimitives.Single4,
+        IccTestDataPrimitives.Single7);
 
-    public static readonly object[][] Matrix1D_ArrayTestData =
-    {
-        new object[] { Fix16_1D_Grad, 3, false, Single_1DArray_ValGrad },
-        new object[] { Single_1D_Grad, 3, true, Single_1DArray_ValGrad },
-    };
+    public static readonly object[][] Matrix1DArrayTestData =
+    [
+        [Fix161DGrad, 3, false, Single1DArrayValGrad],
+        [Single1DGrad, 3, true, Single1DArrayValGrad]
+    ];
 
-    public static readonly object[][] Matrix1D_Vector3TestData =
-    {
-        new object[] { Fix16_1D_Grad, 3, false, Single_Vector3_ValGrad },
-        new object[] { Single_1D_Grad, 3, true, Single_Vector3_ValGrad },
-    };
+    public static readonly object[][] Matrix1DVector3TestData =
+    [
+        [Fix161DGrad, 3, false, SingleVector3ValGrad],
+        [Single1DGrad, 3, true, SingleVector3ValGrad]
+    ];
 }

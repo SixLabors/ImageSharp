@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.Tests.Processing.Processors.Filters;
 public class OpacityTest
 {
     public static readonly TheoryData<float> AlphaValues
-    = new TheoryData<float>
+    = new()
     {
         20 / 100F,
         80 / 100F

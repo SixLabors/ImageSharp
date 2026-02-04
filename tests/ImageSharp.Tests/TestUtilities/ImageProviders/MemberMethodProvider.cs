@@ -54,7 +54,7 @@ public abstract partial class TestImageProvider<TPixel> : IXunitSerializable
 
         private Func<Image<TPixel>> GetFactory()
         {
-            var declaringType = Type.GetType(this.declaringTypeName);
+            Type declaringType = Type.GetType(this.declaringTypeName);
             MethodInfo m = declaringType.GetMethod(this.methodName);
             Type pixelType = typeof(TPixel);
             Type imgType = typeof(Image<>).MakeGenericType(pixelType);

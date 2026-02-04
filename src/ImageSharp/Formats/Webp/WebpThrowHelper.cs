@@ -18,4 +18,7 @@ internal static class WebpThrowHelper
 
     [DoesNotReturn]
     public static void ThrowInvalidImageDimensions(string errorMessage) => throw new InvalidImageContentException(errorMessage);
+
+    [DoesNotReturn]
+    public static void ThrowDimensionsTooLarge(int width, int height) => throw new ImageFormatException($"Image is too large to encode at {width}x{height} for WEBP format.");
 }

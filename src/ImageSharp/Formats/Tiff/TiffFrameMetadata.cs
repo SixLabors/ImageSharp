@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Numerics;
 using SixLabors.ImageSharp.Formats.Tiff.Constants;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.PixelFormats;
@@ -32,6 +33,11 @@ public class TiffFrameMetadata : IFormatFrameMetadata<TiffFrameMetadata>
         this.InkSet = other.InkSet;
         this.EncodingWidth = other.EncodingWidth;
         this.EncodingHeight = other.EncodingHeight;
+
+        if (other.LocalColorTable?.Length > 0)
+        {
+            this.LocalColorTable = other.LocalColorTable.Value.ToArray();
+        }
     }
 
     /// <summary>
@@ -74,6 +80,11 @@ public class TiffFrameMetadata : IFormatFrameMetadata<TiffFrameMetadata>
     /// </summary>
     public int EncodingHeight { get; set; }
 
+    /// <summary>
+    /// Gets or sets the local color table, if any.
+    /// </summary>
+    public ReadOnlyMemory<Color>? LocalColorTable { get; set; }
+
     /// <inheritdoc/>
     public static TiffFrameMetadata FromFormatConnectingFrameMetadata(FormatConnectingFrameMetadata metadata)
     {
@@ -96,9 +107,11 @@ public class TiffFrameMetadata : IFormatFrameMetadata<TiffFrameMetadata>
         };
 
     /// <inheritdoc/>
-    public void AfterFrameApply<TPixel>(ImageFrame<TPixel> source, ImageFrame<TPixel> destination)
+    public void AfterFrameApply<TPixel>(ImageFrame<TPixel> source, ImageFrame<TPixel> destination, Matrix4x4 matrix)
         where TPixel : unmanaged, IPixel<TPixel>
     {
+        this.LocalColorTable = null;
+
         float ratioX = destination.Width / (float)source.Width;
         float ratioY = destination.Height / (float)source.Height;
         this.EncodingWidth = Scale(this.EncodingWidth, destination.Width, ratioX);

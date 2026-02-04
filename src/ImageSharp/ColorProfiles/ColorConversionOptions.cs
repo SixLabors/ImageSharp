@@ -4,6 +4,7 @@
 using System.Numerics;
 using SixLabors.ImageSharp.ColorProfiles.WorkingSpaces;
 using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 
 namespace SixLabors.ImageSharp.ColorProfiles;
 
@@ -13,11 +14,16 @@ namespace SixLabors.ImageSharp.ColorProfiles;
 public class ColorConversionOptions
 {
     private Matrix4x4 adaptationMatrix;
+    private YCbCrTransform yCbCrTransform;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ColorConversionOptions"/> class.
     /// </summary>
-    public ColorConversionOptions() => this.AdaptationMatrix = KnownChromaticAdaptationMatrices.Bradford;
+    public ColorConversionOptions()
+    {
+        this.AdaptationMatrix = KnownChromaticAdaptationMatrices.Bradford;
+        this.YCbCrTransform = KnownYCbCrMatrices.BT601;
+    }
 
     /// <summary>
     /// Gets the memory allocator.
@@ -27,7 +33,7 @@ public class ColorConversionOptions
     /// <summary>
     /// Gets the source white point used for chromatic adaptation in conversions from/to XYZ color space.
     /// </summary>
-    public CieXyz WhitePoint { get; init; } = KnownIlluminants.D50;
+    public CieXyz SourceWhitePoint { get; init; } = KnownIlluminants.D50;
 
     /// <summary>
     /// Gets the destination white point used for chromatic adaptation in conversions from/to XYZ color space.
@@ -37,12 +43,35 @@ public class ColorConversionOptions
     /// <summary>
     /// Gets the source working space used for companding in conversions from/to XYZ color space.
     /// </summary>
-    public RgbWorkingSpace RgbWorkingSpace { get; init; } = KnownRgbWorkingSpaces.SRgb;
+    public RgbWorkingSpace SourceRgbWorkingSpace { get; init; } = KnownRgbWorkingSpaces.SRgb;
 
     /// <summary>
     /// Gets the destination working space used for companding in conversions from/to XYZ color space.
     /// </summary>
     public RgbWorkingSpace TargetRgbWorkingSpace { get; init; } = KnownRgbWorkingSpaces.SRgb;
+
+    /// <summary>
+    /// Gets the YCbCr matrix to used to perform conversions from/to RGB.
+    /// </summary>
+    public YCbCrTransform YCbCrTransform
+    {
+        get => this.yCbCrTransform;
+        init
+        {
+            this.yCbCrTransform = value;
+            this.TransposedYCbCrTransform = value.Transpose();
+        }
+    }
+
+    /// <summary>
+    /// Gets the source ICC profile.
+    /// </summary>
+    public IccProfile? SourceIccProfile { get; init; }
+
+    /// <summary>
+    /// Gets the target ICC profile.
+    /// </summary>
+    public IccProfile? TargetIccProfile { get; init; }
 
     /// <summary>
     /// Gets the transformation matrix used in conversion to perform chromatic adaptation.
@@ -54,10 +83,12 @@ public class ColorConversionOptions
         init
         {
             this.adaptationMatrix = value;
-            Matrix4x4.Invert(value, out Matrix4x4 inverted);
+            _ = Matrix4x4.Invert(value, out Matrix4x4 inverted);
             this.InverseAdaptationMatrix = inverted;
         }
     }
+
+    internal YCbCrTransform TransposedYCbCrTransform { get; private set; }
 
     internal Matrix4x4 InverseAdaptationMatrix { get; private set; }
 }

@@ -28,7 +28,7 @@ public class TestFormat : IImageFormatConfigurationModule, IImageFormat
         this.Decoder = new TestDecoder(this);
     }
 
-    public List<DecodeOperation> DecodeCalls { get; } = new();
+    public List<DecodeOperation> DecodeCalls { get; } = [];
 
     public TestEncoder Encoder { get; }
 
@@ -38,7 +38,7 @@ public class TestFormat : IImageFormatConfigurationModule, IImageFormat
 
     public MemoryStream CreateStream(byte[] marker = null)
     {
-        var ms = new MemoryStream();
+        MemoryStream ms = new();
         byte[] data = this.header;
         ms.Write(data, 0, data.Length);
         if (marker != null)
@@ -54,7 +54,7 @@ public class TestFormat : IImageFormatConfigurationModule, IImageFormat
     {
         byte[] buffer = new byte[size];
         this.header.CopyTo(buffer, 0);
-        var semaphoreStream = new SemaphoreReadMemoryStream(buffer, waitAfterPosition, notifyWaitPositionReachedSemaphore, continueSemaphore);
+        SemaphoreReadMemoryStream semaphoreStream = new(buffer, waitAfterPosition, notifyWaitPositionReachedSemaphore, continueSemaphore);
         return seeakable ? semaphoreStream : new AsyncStreamWrapper(semaphoreStream, () => false);
     }
 
@@ -103,7 +103,7 @@ public class TestFormat : IImageFormatConfigurationModule, IImageFormat
 
     public string Extension => "test_ext";
 
-    public IEnumerable<string> SupportedExtensions => new[] { "test_ext" };
+    public IEnumerable<string> SupportedExtensions => ["test_ext"];
 
     public int HeaderSize => this.header.Length;
 
@@ -111,7 +111,7 @@ public class TestFormat : IImageFormatConfigurationModule, IImageFormat
 
     public string DefaultMimeType => this.MimeType;
 
-    public IEnumerable<string> MimeTypes => new[] { this.MimeType };
+    public IEnumerable<string> MimeTypes => [this.MimeType];
 
     public IEnumerable<string> FileExtensions => this.SupportedExtensions;
 
@@ -193,7 +193,7 @@ public class TestFormat : IImageFormatConfigurationModule, IImageFormat
 
         public TestDecoder(TestFormat testFormat) => this.testFormat = testFormat;
 
-        public IEnumerable<string> MimeTypes => new[] { this.testFormat.MimeType };
+        public IEnumerable<string> MimeTypes => [this.testFormat.MimeType];
 
         public IEnumerable<string> FileExtensions => this.testFormat.SupportedExtensions;
 
@@ -205,7 +205,7 @@ public class TestFormat : IImageFormatConfigurationModule, IImageFormat
         {
             using Image<TestPixelForAgnosticDecode> image = this.Decode<TestPixelForAgnosticDecode>(this.CreateDefaultSpecializedOptions(options), stream, cancellationToken);
             ImageMetadata metadata = image.Metadata;
-            return new(image.Size, metadata, new List<ImageFrameMetadata>(image.Frames.Select(x => x.Metadata)))
+            return new ImageInfo(image.Size, metadata, new List<ImageFrameMetadata>(image.Frames.Select(x => x.Metadata)))
             {
                 PixelType = metadata.GetDecodedPixelTypeInfo()
             };
@@ -246,7 +246,7 @@ public class TestFormat : IImageFormatConfigurationModule, IImageFormat
 
         public TestEncoder(TestFormat testFormat) => this.testFormat = testFormat;
 
-        public IEnumerable<string> MimeTypes => new[] { this.testFormat.MimeType };
+        public IEnumerable<string> MimeTypes => [this.testFormat.MimeType];
 
         public IEnumerable<string> FileExtensions => this.testFormat.SupportedExtensions;
 

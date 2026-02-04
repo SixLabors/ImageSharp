@@ -98,7 +98,7 @@ public partial struct Short2 : IPixel<Short2>, IPackedVector<uint>
     {
         Vector2 scaled = new Vector2(source.X, source.Y) * 65534F;
         scaled -= new Vector2(32767F);
-        return new() { PackedValue = Pack(scaled) };
+        return new Short2 { PackedValue = Pack(scaled) };
     }
 
     /// <inheritdoc />

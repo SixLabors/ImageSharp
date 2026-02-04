@@ -3,7 +3,7 @@
 
 namespace SixLabors.ImageSharp.Metadata.Profiles.Exif;
 
-internal static partial class ExifValues
+internal static class ExifValues
 {
     public static ExifValue? Create(ExifTagValue tag) => (ExifValue?)CreateValue(tag);
 
@@ -12,573 +12,281 @@ internal static partial class ExifValues
     public static ExifValue? Create(ExifTagValue tag, ExifDataType dataType, ulong numberOfComponents) => Create(tag, dataType, numberOfComponents != 1);
 
     public static ExifValue? Create(ExifTagValue tag, ExifDataType dataType, bool isArray)
-    {
-        switch (dataType)
+        => dataType switch
         {
-            case ExifDataType.Byte:
-                return isArray ? new ExifByteArray(tag, dataType) : new ExifByte(tag, dataType);
-            case ExifDataType.DoubleFloat:
-                return isArray ? new ExifDoubleArray(tag) : new ExifDouble(tag);
-            case ExifDataType.SingleFloat:
-                return isArray ? new ExifFloatArray(tag) : new ExifFloat(tag);
-            case ExifDataType.Long:
-                return isArray ? new ExifLongArray(tag) : new ExifLong(tag);
-            case ExifDataType.Long8:
-                return isArray ? new ExifLong8Array(tag) : new ExifLong8(tag);
-            case ExifDataType.Rational:
-                return isArray ? new ExifRationalArray(tag) : new ExifRational(tag);
-            case ExifDataType.Short:
-                return isArray ? new ExifShortArray(tag) : new ExifShort(tag);
-            case ExifDataType.SignedByte:
-                return isArray ? new ExifSignedByteArray(tag) : new ExifSignedByte(tag);
-            case ExifDataType.SignedLong:
-                return isArray ? new ExifSignedLongArray(tag) : new ExifSignedLong(tag);
-            case ExifDataType.SignedLong8:
-                return isArray ? new ExifSignedLong8Array(tag) : new ExifSignedLong8(tag);
-            case ExifDataType.SignedRational:
-                return isArray ? new ExifSignedRationalArray(tag) : new ExifSignedRational(tag);
-            case ExifDataType.SignedShort:
-                return isArray ? new ExifSignedShortArray(tag) : new ExifSignedShort(tag);
-            case ExifDataType.Ascii:
-                return new ExifString(tag);
-            case ExifDataType.Undefined:
-                return isArray ? new ExifByteArray(tag, dataType) : new ExifByte(tag, dataType);
-            default:
-                return null;
-        }
-    }
+            ExifDataType.Byte => isArray ? new ExifByteArray(tag, dataType) : new ExifByte(tag, dataType),
+            ExifDataType.DoubleFloat => isArray ? new ExifDoubleArray(tag) : new ExifDouble(tag),
+            ExifDataType.SingleFloat => isArray ? new ExifFloatArray(tag) : new ExifFloat(tag),
+            ExifDataType.Long => isArray ? new ExifLongArray(tag) : new ExifLong(tag),
+            ExifDataType.Long8 => isArray ? new ExifLong8Array(tag) : new ExifLong8(tag),
+            ExifDataType.Rational => isArray ? new ExifRationalArray(tag) : new ExifRational(tag),
+            ExifDataType.Short => isArray ? new ExifShortArray(tag) : new ExifShort(tag),
+            ExifDataType.SignedByte => isArray ? new ExifSignedByteArray(tag) : new ExifSignedByte(tag),
+            ExifDataType.SignedLong => isArray ? new ExifSignedLongArray(tag) : new ExifSignedLong(tag),
+            ExifDataType.SignedLong8 => isArray ? new ExifSignedLong8Array(tag) : new ExifSignedLong8(tag),
+            ExifDataType.SignedRational => isArray ? new ExifSignedRationalArray(tag) : new ExifSignedRational(tag),
+            ExifDataType.SignedShort => isArray ? new ExifSignedShortArray(tag) : new ExifSignedShort(tag),
+            ExifDataType.Ascii => new ExifString(tag),
+            ExifDataType.Undefined => isArray ? new ExifByteArray(tag, dataType) : new ExifByte(tag, dataType),
+            _ => null,
+        };
 
     private static object? CreateValue(ExifTagValue tag)
-    {
-        switch (tag)
+        => tag switch
         {
-            case ExifTagValue.FaxProfile:
-                return new ExifByte(ExifTag.FaxProfile, ExifDataType.Byte);
-            case ExifTagValue.ModeNumber:
-                return new ExifByte(ExifTag.ModeNumber, ExifDataType.Byte);
-            case ExifTagValue.GPSAltitudeRef:
-                return new ExifByte(ExifTag.GPSAltitudeRef, ExifDataType.Byte);
-
-            case ExifTagValue.ClipPath:
-                return new ExifByteArray(ExifTag.ClipPath, ExifDataType.Byte);
-            case ExifTagValue.VersionYear:
-                return new ExifByteArray(ExifTag.VersionYear, ExifDataType.Byte);
-            case ExifTagValue.XMP:
-                return new ExifByteArray(ExifTag.XMP, ExifDataType.Byte);
-            case ExifTagValue.CFAPattern2:
-                return new ExifByteArray(ExifTag.CFAPattern2, ExifDataType.Byte);
-            case ExifTagValue.TIFFEPStandardID:
-                return new ExifByteArray(ExifTag.TIFFEPStandardID, ExifDataType.Byte);
-            case ExifTagValue.GPSVersionID:
-                return new ExifByteArray(ExifTag.GPSVersionID, ExifDataType.Byte);
-
-            case ExifTagValue.PixelScale:
-                return new ExifDoubleArray(ExifTag.PixelScale);
-            case ExifTagValue.IntergraphMatrix:
-                return new ExifDoubleArray(ExifTag.IntergraphMatrix);
-            case ExifTagValue.ModelTiePoint:
-                return new ExifDoubleArray(ExifTag.ModelTiePoint);
-            case ExifTagValue.ModelTransform:
-                return new ExifDoubleArray(ExifTag.ModelTransform);
-
-            case ExifTagValue.SubfileType:
-                return new ExifLong(ExifTag.SubfileType);
-            case ExifTagValue.SubIFDOffset:
-                return new ExifLong(ExifTag.SubIFDOffset);
-            case ExifTagValue.GPSIFDOffset:
-                return new ExifLong(ExifTag.GPSIFDOffset);
-            case ExifTagValue.T4Options:
-                return new ExifLong(ExifTag.T4Options);
-            case ExifTagValue.T6Options:
-                return new ExifLong(ExifTag.T6Options);
-            case ExifTagValue.XClipPathUnits:
-                return new ExifLong(ExifTag.XClipPathUnits);
-            case ExifTagValue.YClipPathUnits:
-                return new ExifLong(ExifTag.YClipPathUnits);
-            case ExifTagValue.ProfileType:
-                return new ExifLong(ExifTag.ProfileType);
-            case ExifTagValue.CodingMethods:
-                return new ExifLong(ExifTag.CodingMethods);
-            case ExifTagValue.T82ptions:
-                return new ExifLong(ExifTag.T82ptions);
-            case ExifTagValue.JPEGInterchangeFormat:
-                return new ExifLong(ExifTag.JPEGInterchangeFormat);
-            case ExifTagValue.JPEGInterchangeFormatLength:
-                return new ExifLong(ExifTag.JPEGInterchangeFormatLength);
-            case ExifTagValue.MDFileTag:
-                return new ExifLong(ExifTag.MDFileTag);
-            case ExifTagValue.StandardOutputSensitivity:
-                return new ExifLong(ExifTag.StandardOutputSensitivity);
-            case ExifTagValue.RecommendedExposureIndex:
-                return new ExifLong(ExifTag.RecommendedExposureIndex);
-            case ExifTagValue.ISOSpeed:
-                return new ExifLong(ExifTag.ISOSpeed);
-            case ExifTagValue.ISOSpeedLatitudeyyy:
-                return new ExifLong(ExifTag.ISOSpeedLatitudeyyy);
-            case ExifTagValue.ISOSpeedLatitudezzz:
-                return new ExifLong(ExifTag.ISOSpeedLatitudezzz);
-            case ExifTagValue.FaxRecvParams:
-                return new ExifLong(ExifTag.FaxRecvParams);
-            case ExifTagValue.FaxRecvTime:
-                return new ExifLong(ExifTag.FaxRecvTime);
-            case ExifTagValue.ImageNumber:
-                return new ExifLong(ExifTag.ImageNumber);
-
-            case ExifTagValue.FreeOffsets:
-                return new ExifLongArray(ExifTag.FreeOffsets);
-            case ExifTagValue.FreeByteCounts:
-                return new ExifLongArray(ExifTag.FreeByteCounts);
-            case ExifTagValue.ColorResponseUnit:
-                return new ExifLongArray(ExifTag.ColorResponseUnit);
-            case ExifTagValue.SMinSampleValue:
-                return new ExifLongArray(ExifTag.SMinSampleValue);
-            case ExifTagValue.SMaxSampleValue:
-                return new ExifLongArray(ExifTag.SMaxSampleValue);
-            case ExifTagValue.JPEGQTables:
-                return new ExifLongArray(ExifTag.JPEGQTables);
-            case ExifTagValue.JPEGDCTables:
-                return new ExifLongArray(ExifTag.JPEGDCTables);
-            case ExifTagValue.JPEGACTables:
-                return new ExifLongArray(ExifTag.JPEGACTables);
-            case ExifTagValue.StripRowCounts:
-                return new ExifLongArray(ExifTag.StripRowCounts);
-            case ExifTagValue.IntergraphRegisters:
-                return new ExifLongArray(ExifTag.IntergraphRegisters);
-            case ExifTagValue.SubIFDs:
-                return new ExifLongArray(ExifTag.SubIFDs);
-
-            case ExifTagValue.ImageWidth:
-                return new ExifNumber(ExifTag.ImageWidth);
-            case ExifTagValue.ImageLength:
-                return new ExifNumber(ExifTag.ImageLength);
-            case ExifTagValue.RowsPerStrip:
-                return new ExifNumber(ExifTag.RowsPerStrip);
-            case ExifTagValue.TileWidth:
-                return new ExifNumber(ExifTag.TileWidth);
-            case ExifTagValue.TileLength:
-                return new ExifNumber(ExifTag.TileLength);
-            case ExifTagValue.BadFaxLines:
-                return new ExifNumber(ExifTag.BadFaxLines);
-            case ExifTagValue.ConsecutiveBadFaxLines:
-                return new ExifNumber(ExifTag.ConsecutiveBadFaxLines);
-            case ExifTagValue.PixelXDimension:
-                return new ExifNumber(ExifTag.PixelXDimension);
-            case ExifTagValue.PixelYDimension:
-                return new ExifNumber(ExifTag.PixelYDimension);
-
-            case ExifTagValue.StripByteCounts:
-                return new ExifNumberArray(ExifTag.StripByteCounts);
-            case ExifTagValue.StripOffsets:
-                return new ExifNumberArray(ExifTag.StripOffsets);
-            case ExifTagValue.TileByteCounts:
-                return new ExifNumberArray(ExifTag.TileByteCounts);
-            case ExifTagValue.TileOffsets:
-                return new ExifNumberArray(ExifTag.TileOffsets);
-            case ExifTagValue.ImageLayer:
-                return new ExifNumberArray(ExifTag.ImageLayer);
-
-            case ExifTagValue.XPosition:
-                return new ExifRational(ExifTag.XPosition);
-            case ExifTagValue.YPosition:
-                return new ExifRational(ExifTag.YPosition);
-            case ExifTagValue.XResolution:
-                return new ExifRational(ExifTag.XResolution);
-            case ExifTagValue.YResolution:
-                return new ExifRational(ExifTag.YResolution);
-            case ExifTagValue.BatteryLevel:
-                return new ExifRational(ExifTag.BatteryLevel);
-            case ExifTagValue.ExposureTime:
-                return new ExifRational(ExifTag.ExposureTime);
-            case ExifTagValue.FNumber:
-                return new ExifRational(ExifTag.FNumber);
-            case ExifTagValue.MDScalePixel:
-                return new ExifRational(ExifTag.MDScalePixel);
-            case ExifTagValue.CompressedBitsPerPixel:
-                return new ExifRational(ExifTag.CompressedBitsPerPixel);
-            case ExifTagValue.ApertureValue:
-                return new ExifRational(ExifTag.ApertureValue);
-            case ExifTagValue.MaxApertureValue:
-                return new ExifRational(ExifTag.MaxApertureValue);
-            case ExifTagValue.SubjectDistance:
-                return new ExifRational(ExifTag.SubjectDistance);
-            case ExifTagValue.FocalLength:
-                return new ExifRational(ExifTag.FocalLength);
-            case ExifTagValue.FlashEnergy2:
-                return new ExifRational(ExifTag.FlashEnergy2);
-            case ExifTagValue.FocalPlaneXResolution2:
-                return new ExifRational(ExifTag.FocalPlaneXResolution2);
-            case ExifTagValue.FocalPlaneYResolution2:
-                return new ExifRational(ExifTag.FocalPlaneYResolution2);
-            case ExifTagValue.ExposureIndex2:
-                return new ExifRational(ExifTag.ExposureIndex2);
-            case ExifTagValue.Humidity:
-                return new ExifRational(ExifTag.Humidity);
-            case ExifTagValue.Pressure:
-                return new ExifRational(ExifTag.Pressure);
-            case ExifTagValue.Acceleration:
-                return new ExifRational(ExifTag.Acceleration);
-            case ExifTagValue.FlashEnergy:
-                return new ExifRational(ExifTag.FlashEnergy);
-            case ExifTagValue.FocalPlaneXResolution:
-                return new ExifRational(ExifTag.FocalPlaneXResolution);
-            case ExifTagValue.FocalPlaneYResolution:
-                return new ExifRational(ExifTag.FocalPlaneYResolution);
-            case ExifTagValue.ExposureIndex:
-                return new ExifRational(ExifTag.ExposureIndex);
-            case ExifTagValue.DigitalZoomRatio:
-                return new ExifRational(ExifTag.DigitalZoomRatio);
-            case ExifTagValue.GPSAltitude:
-                return new ExifRational(ExifTag.GPSAltitude);
-            case ExifTagValue.GPSDOP:
-                return new ExifRational(ExifTag.GPSDOP);
-            case ExifTagValue.GPSSpeed:
-                return new ExifRational(ExifTag.GPSSpeed);
-            case ExifTagValue.GPSTrack:
-                return new ExifRational(ExifTag.GPSTrack);
-            case ExifTagValue.GPSImgDirection:
-                return new ExifRational(ExifTag.GPSImgDirection);
-            case ExifTagValue.GPSDestBearing:
-                return new ExifRational(ExifTag.GPSDestBearing);
-            case ExifTagValue.GPSDestDistance:
-                return new ExifRational(ExifTag.GPSDestDistance);
-            case ExifTagValue.GPSHPositioningError:
-                return new ExifRational(ExifTag.GPSHPositioningError);
-
-            case ExifTagValue.WhitePoint:
-                return new ExifRationalArray(ExifTag.WhitePoint);
-            case ExifTagValue.PrimaryChromaticities:
-                return new ExifRationalArray(ExifTag.PrimaryChromaticities);
-            case ExifTagValue.YCbCrCoefficients:
-                return new ExifRationalArray(ExifTag.YCbCrCoefficients);
-            case ExifTagValue.ReferenceBlackWhite:
-                return new ExifRationalArray(ExifTag.ReferenceBlackWhite);
-            case ExifTagValue.GPSLatitude:
-                return new ExifRationalArray(ExifTag.GPSLatitude);
-            case ExifTagValue.GPSLongitude:
-                return new ExifRationalArray(ExifTag.GPSLongitude);
-            case ExifTagValue.GPSTimestamp:
-                return new ExifRationalArray(ExifTag.GPSTimestamp);
-            case ExifTagValue.GPSDestLatitude:
-                return new ExifRationalArray(ExifTag.GPSDestLatitude);
-            case ExifTagValue.GPSDestLongitude:
-                return new ExifRationalArray(ExifTag.GPSDestLongitude);
-            case ExifTagValue.LensSpecification:
-                return new ExifRationalArray(ExifTag.LensSpecification);
-
-            case ExifTagValue.OldSubfileType:
-                return new ExifShort(ExifTag.OldSubfileType);
-            case ExifTagValue.Compression:
-                return new ExifShort(ExifTag.Compression);
-            case ExifTagValue.PhotometricInterpretation:
-                return new ExifShort(ExifTag.PhotometricInterpretation);
-            case ExifTagValue.Thresholding:
-                return new ExifShort(ExifTag.Thresholding);
-            case ExifTagValue.CellWidth:
-                return new ExifShort(ExifTag.CellWidth);
-            case ExifTagValue.CellLength:
-                return new ExifShort(ExifTag.CellLength);
-            case ExifTagValue.FillOrder:
-                return new ExifShort(ExifTag.FillOrder);
-            case ExifTagValue.Orientation:
-                return new ExifShort(ExifTag.Orientation);
-            case ExifTagValue.SamplesPerPixel:
-                return new ExifShort(ExifTag.SamplesPerPixel);
-            case ExifTagValue.PlanarConfiguration:
-                return new ExifShort(ExifTag.PlanarConfiguration);
-            case ExifTagValue.Predictor:
-                return new ExifShort(ExifTag.Predictor);
-            case ExifTagValue.GrayResponseUnit:
-                return new ExifShort(ExifTag.GrayResponseUnit);
-            case ExifTagValue.ResolutionUnit:
-                return new ExifShort(ExifTag.ResolutionUnit);
-            case ExifTagValue.CleanFaxData:
-                return new ExifShort(ExifTag.CleanFaxData);
-            case ExifTagValue.InkSet:
-                return new ExifShort(ExifTag.InkSet);
-            case ExifTagValue.NumberOfInks:
-                return new ExifShort(ExifTag.NumberOfInks);
-            case ExifTagValue.DotRange:
-                return new ExifShort(ExifTag.DotRange);
-            case ExifTagValue.Indexed:
-                return new ExifShort(ExifTag.Indexed);
-            case ExifTagValue.OPIProxy:
-                return new ExifShort(ExifTag.OPIProxy);
-            case ExifTagValue.JPEGProc:
-                return new ExifShort(ExifTag.JPEGProc);
-            case ExifTagValue.JPEGRestartInterval:
-                return new ExifShort(ExifTag.JPEGRestartInterval);
-            case ExifTagValue.YCbCrPositioning:
-                return new ExifShort(ExifTag.YCbCrPositioning);
-            case ExifTagValue.Rating:
-                return new ExifShort(ExifTag.Rating);
-            case ExifTagValue.RatingPercent:
-                return new ExifShort(ExifTag.RatingPercent);
-            case ExifTagValue.ExposureProgram:
-                return new ExifShort(ExifTag.ExposureProgram);
-            case ExifTagValue.Interlace:
-                return new ExifShort(ExifTag.Interlace);
-            case ExifTagValue.SelfTimerMode:
-                return new ExifShort(ExifTag.SelfTimerMode);
-            case ExifTagValue.SensitivityType:
-                return new ExifShort(ExifTag.SensitivityType);
-            case ExifTagValue.MeteringMode:
-                return new ExifShort(ExifTag.MeteringMode);
-            case ExifTagValue.LightSource:
-                return new ExifShort(ExifTag.LightSource);
-            case ExifTagValue.FocalPlaneResolutionUnit2:
-                return new ExifShort(ExifTag.FocalPlaneResolutionUnit2);
-            case ExifTagValue.SensingMethod2:
-                return new ExifShort(ExifTag.SensingMethod2);
-            case ExifTagValue.Flash:
-                return new ExifShort(ExifTag.Flash);
-            case ExifTagValue.ColorSpace:
-                return new ExifShort(ExifTag.ColorSpace);
-            case ExifTagValue.FocalPlaneResolutionUnit:
-                return new ExifShort(ExifTag.FocalPlaneResolutionUnit);
-            case ExifTagValue.SensingMethod:
-                return new ExifShort(ExifTag.SensingMethod);
-            case ExifTagValue.CustomRendered:
-                return new ExifShort(ExifTag.CustomRendered);
-            case ExifTagValue.ExposureMode:
-                return new ExifShort(ExifTag.ExposureMode);
-            case ExifTagValue.WhiteBalance:
-                return new ExifShort(ExifTag.WhiteBalance);
-            case ExifTagValue.FocalLengthIn35mmFilm:
-                return new ExifShort(ExifTag.FocalLengthIn35mmFilm);
-            case ExifTagValue.SceneCaptureType:
-                return new ExifShort(ExifTag.SceneCaptureType);
-            case ExifTagValue.GainControl:
-                return new ExifShort(ExifTag.GainControl);
-            case ExifTagValue.Contrast:
-                return new ExifShort(ExifTag.Contrast);
-            case ExifTagValue.Saturation:
-                return new ExifShort(ExifTag.Saturation);
-            case ExifTagValue.Sharpness:
-                return new ExifShort(ExifTag.Sharpness);
-            case ExifTagValue.SubjectDistanceRange:
-                return new ExifShort(ExifTag.SubjectDistanceRange);
-            case ExifTagValue.GPSDifferential:
-                return new ExifShort(ExifTag.GPSDifferential);
-
-            case ExifTagValue.BitsPerSample:
-                return new ExifShortArray(ExifTag.BitsPerSample);
-            case ExifTagValue.MinSampleValue:
-                return new ExifShortArray(ExifTag.MinSampleValue);
-            case ExifTagValue.MaxSampleValue:
-                return new ExifShortArray(ExifTag.MaxSampleValue);
-            case ExifTagValue.GrayResponseCurve:
-                return new ExifShortArray(ExifTag.GrayResponseCurve);
-            case ExifTagValue.ColorMap:
-                return new ExifShortArray(ExifTag.ColorMap);
-            case ExifTagValue.ExtraSamples:
-                return new ExifShortArray(ExifTag.ExtraSamples);
-            case ExifTagValue.PageNumber:
-                return new ExifShortArray(ExifTag.PageNumber);
-            case ExifTagValue.TransferFunction:
-                return new ExifShortArray(ExifTag.TransferFunction);
-            case ExifTagValue.HalftoneHints:
-                return new ExifShortArray(ExifTag.HalftoneHints);
-            case ExifTagValue.SampleFormat:
-                return new ExifShortArray(ExifTag.SampleFormat);
-            case ExifTagValue.TransferRange:
-                return new ExifShortArray(ExifTag.TransferRange);
-            case ExifTagValue.DefaultImageColor:
-                return new ExifShortArray(ExifTag.DefaultImageColor);
-            case ExifTagValue.JPEGLosslessPredictors:
-                return new ExifShortArray(ExifTag.JPEGLosslessPredictors);
-            case ExifTagValue.JPEGPointTransforms:
-                return new ExifShortArray(ExifTag.JPEGPointTransforms);
-            case ExifTagValue.YCbCrSubsampling:
-                return new ExifShortArray(ExifTag.YCbCrSubsampling);
-            case ExifTagValue.CFARepeatPatternDim:
-                return new ExifShortArray(ExifTag.CFARepeatPatternDim);
-            case ExifTagValue.IntergraphPacketData:
-                return new ExifShortArray(ExifTag.IntergraphPacketData);
-            case ExifTagValue.ISOSpeedRatings:
-                return new ExifShortArray(ExifTag.ISOSpeedRatings);
-            case ExifTagValue.SubjectArea:
-                return new ExifShortArray(ExifTag.SubjectArea);
-            case ExifTagValue.SubjectLocation:
-                return new ExifShortArray(ExifTag.SubjectLocation);
-
-            case ExifTagValue.ShutterSpeedValue:
-                return new ExifSignedRational(ExifTag.ShutterSpeedValue);
-            case ExifTagValue.BrightnessValue:
-                return new ExifSignedRational(ExifTag.BrightnessValue);
-            case ExifTagValue.ExposureBiasValue:
-                return new ExifSignedRational(ExifTag.ExposureBiasValue);
-            case ExifTagValue.AmbientTemperature:
-                return new ExifSignedRational(ExifTag.AmbientTemperature);
-            case ExifTagValue.WaterDepth:
-                return new ExifSignedRational(ExifTag.WaterDepth);
-            case ExifTagValue.CameraElevationAngle:
-                return new ExifSignedRational(ExifTag.CameraElevationAngle);
-
-            case ExifTagValue.Decode:
-                return new ExifSignedRationalArray(ExifTag.Decode);
-
-            case ExifTagValue.TimeZoneOffset:
-                return new ExifSignedShortArray(ExifTag.TimeZoneOffset);
-
-            case ExifTagValue.ImageDescription:
-                return new ExifString(ExifTag.ImageDescription);
-            case ExifTagValue.Make:
-                return new ExifString(ExifTag.Make);
-            case ExifTagValue.Model:
-                return new ExifString(ExifTag.Model);
-            case ExifTagValue.Software:
-                return new ExifString(ExifTag.Software);
-            case ExifTagValue.DateTime:
-                return new ExifString(ExifTag.DateTime);
-            case ExifTagValue.Artist:
-                return new ExifString(ExifTag.Artist);
-            case ExifTagValue.HostComputer:
-                return new ExifString(ExifTag.HostComputer);
-            case ExifTagValue.Copyright:
-                return new ExifString(ExifTag.Copyright);
-            case ExifTagValue.DocumentName:
-                return new ExifString(ExifTag.DocumentName);
-            case ExifTagValue.PageName:
-                return new ExifString(ExifTag.PageName);
-            case ExifTagValue.InkNames:
-                return new ExifString(ExifTag.InkNames);
-            case ExifTagValue.TargetPrinter:
-                return new ExifString(ExifTag.TargetPrinter);
-            case ExifTagValue.ImageID:
-                return new ExifString(ExifTag.ImageID);
-            case ExifTagValue.MDLabName:
-                return new ExifString(ExifTag.MDLabName);
-            case ExifTagValue.MDSampleInfo:
-                return new ExifString(ExifTag.MDSampleInfo);
-            case ExifTagValue.MDPrepDate:
-                return new ExifString(ExifTag.MDPrepDate);
-            case ExifTagValue.MDPrepTime:
-                return new ExifString(ExifTag.MDPrepTime);
-            case ExifTagValue.MDFileUnits:
-                return new ExifString(ExifTag.MDFileUnits);
-            case ExifTagValue.SEMInfo:
-                return new ExifString(ExifTag.SEMInfo);
-            case ExifTagValue.SpectralSensitivity:
-                return new ExifString(ExifTag.SpectralSensitivity);
-            case ExifTagValue.DateTimeOriginal:
-                return new ExifString(ExifTag.DateTimeOriginal);
-            case ExifTagValue.DateTimeDigitized:
-                return new ExifString(ExifTag.DateTimeDigitized);
-            case ExifTagValue.SubsecTime:
-                return new ExifString(ExifTag.SubsecTime);
-            case ExifTagValue.SubsecTimeOriginal:
-                return new ExifString(ExifTag.SubsecTimeOriginal);
-            case ExifTagValue.SubsecTimeDigitized:
-                return new ExifString(ExifTag.SubsecTimeDigitized);
-            case ExifTagValue.RelatedSoundFile:
-                return new ExifString(ExifTag.RelatedSoundFile);
-            case ExifTagValue.FaxSubaddress:
-                return new ExifString(ExifTag.FaxSubaddress);
-            case ExifTagValue.OffsetTime:
-                return new ExifString(ExifTag.OffsetTime);
-            case ExifTagValue.OffsetTimeOriginal:
-                return new ExifString(ExifTag.OffsetTimeOriginal);
-            case ExifTagValue.OffsetTimeDigitized:
-                return new ExifString(ExifTag.OffsetTimeDigitized);
-            case ExifTagValue.SecurityClassification:
-                return new ExifString(ExifTag.SecurityClassification);
-            case ExifTagValue.ImageHistory:
-                return new ExifString(ExifTag.ImageHistory);
-            case ExifTagValue.ImageUniqueID:
-                return new ExifString(ExifTag.ImageUniqueID);
-            case ExifTagValue.OwnerName:
-                return new ExifString(ExifTag.OwnerName);
-            case ExifTagValue.SerialNumber:
-                return new ExifString(ExifTag.SerialNumber);
-            case ExifTagValue.LensMake:
-                return new ExifString(ExifTag.LensMake);
-            case ExifTagValue.LensModel:
-                return new ExifString(ExifTag.LensModel);
-            case ExifTagValue.LensSerialNumber:
-                return new ExifString(ExifTag.LensSerialNumber);
-            case ExifTagValue.GDALMetadata:
-                return new ExifString(ExifTag.GDALMetadata);
-            case ExifTagValue.GDALNoData:
-                return new ExifString(ExifTag.GDALNoData);
-            case ExifTagValue.GPSLatitudeRef:
-                return new ExifString(ExifTag.GPSLatitudeRef);
-            case ExifTagValue.GPSLongitudeRef:
-                return new ExifString(ExifTag.GPSLongitudeRef);
-            case ExifTagValue.GPSSatellites:
-                return new ExifString(ExifTag.GPSSatellites);
-            case ExifTagValue.GPSStatus:
-                return new ExifString(ExifTag.GPSStatus);
-            case ExifTagValue.GPSMeasureMode:
-                return new ExifString(ExifTag.GPSMeasureMode);
-            case ExifTagValue.GPSSpeedRef:
-                return new ExifString(ExifTag.GPSSpeedRef);
-            case ExifTagValue.GPSTrackRef:
-                return new ExifString(ExifTag.GPSTrackRef);
-            case ExifTagValue.GPSImgDirectionRef:
-                return new ExifString(ExifTag.GPSImgDirectionRef);
-            case ExifTagValue.GPSMapDatum:
-                return new ExifString(ExifTag.GPSMapDatum);
-            case ExifTagValue.GPSDestLatitudeRef:
-                return new ExifString(ExifTag.GPSDestLatitudeRef);
-            case ExifTagValue.GPSDestLongitudeRef:
-                return new ExifString(ExifTag.GPSDestLongitudeRef);
-            case ExifTagValue.GPSDestBearingRef:
-                return new ExifString(ExifTag.GPSDestBearingRef);
-            case ExifTagValue.GPSDestDistanceRef:
-                return new ExifString(ExifTag.GPSDestDistanceRef);
-            case ExifTagValue.GPSDateStamp:
-                return new ExifString(ExifTag.GPSDateStamp);
-
-            case ExifTagValue.FileSource:
-                return new ExifByte(ExifTag.FileSource, ExifDataType.Undefined);
-            case ExifTagValue.SceneType:
-                return new ExifByte(ExifTag.SceneType, ExifDataType.Undefined);
-
-            case ExifTagValue.JPEGTables:
-                return new ExifByteArray(ExifTag.JPEGTables, ExifDataType.Undefined);
-            case ExifTagValue.OECF:
-                return new ExifByteArray(ExifTag.OECF, ExifDataType.Undefined);
-            case ExifTagValue.ExifVersion:
-                return new ExifByteArray(ExifTag.ExifVersion, ExifDataType.Undefined);
-            case ExifTagValue.ComponentsConfiguration:
-                return new ExifByteArray(ExifTag.ComponentsConfiguration, ExifDataType.Undefined);
-            case ExifTagValue.MakerNote:
-                return new ExifByteArray(ExifTag.MakerNote, ExifDataType.Undefined);
-            case ExifTagValue.FlashpixVersion:
-                return new ExifByteArray(ExifTag.FlashpixVersion, ExifDataType.Undefined);
-            case ExifTagValue.SpatialFrequencyResponse:
-                return new ExifByteArray(ExifTag.SpatialFrequencyResponse, ExifDataType.Undefined);
-            case ExifTagValue.SpatialFrequencyResponse2:
-                return new ExifByteArray(ExifTag.SpatialFrequencyResponse2, ExifDataType.Undefined);
-            case ExifTagValue.Noise:
-                return new ExifByteArray(ExifTag.Noise, ExifDataType.Undefined);
-            case ExifTagValue.CFAPattern:
-                return new ExifByteArray(ExifTag.CFAPattern, ExifDataType.Undefined);
-            case ExifTagValue.DeviceSettingDescription:
-                return new ExifByteArray(ExifTag.DeviceSettingDescription, ExifDataType.Undefined);
-            case ExifTagValue.ImageSourceData:
-                return new ExifByteArray(ExifTag.ImageSourceData, ExifDataType.Undefined);
-
-            case ExifTagValue.XPTitle:
-                return new ExifUcs2String(ExifTag.XPTitle);
-            case ExifTagValue.XPComment:
-                return new ExifUcs2String(ExifTag.XPComment);
-            case ExifTagValue.XPAuthor:
-                return new ExifUcs2String(ExifTag.XPAuthor);
-            case ExifTagValue.XPKeywords:
-                return new ExifUcs2String(ExifTag.XPKeywords);
-            case ExifTagValue.XPSubject:
-                return new ExifUcs2String(ExifTag.XPSubject);
-
-            case ExifTagValue.UserComment:
-                return new ExifEncodedString(ExifTag.UserComment);
-            case ExifTagValue.GPSProcessingMethod:
-                return new ExifEncodedString(ExifTag.GPSProcessingMethod);
-            case ExifTagValue.GPSAreaInformation:
-                return new ExifEncodedString(ExifTag.GPSAreaInformation);
-
-            default:
-                return null;
-        }
-    }
+            ExifTagValue.FaxProfile => new ExifByte(ExifTag.FaxProfile, ExifDataType.Byte),
+            ExifTagValue.ModeNumber => new ExifByte(ExifTag.ModeNumber, ExifDataType.Byte),
+            ExifTagValue.GPSAltitudeRef => new ExifByte(ExifTag.GPSAltitudeRef, ExifDataType.Byte),
+            ExifTagValue.ClipPath => new ExifByteArray(ExifTag.ClipPath, ExifDataType.Byte),
+            ExifTagValue.VersionYear => new ExifByteArray(ExifTag.VersionYear, ExifDataType.Byte),
+            ExifTagValue.XMP => new ExifByteArray(ExifTag.XMP, ExifDataType.Byte),
+            ExifTagValue.CFAPattern2 => new ExifByteArray(ExifTag.CFAPattern2, ExifDataType.Byte),
+            ExifTagValue.TIFFEPStandardID => new ExifByteArray(ExifTag.TIFFEPStandardID, ExifDataType.Byte),
+            ExifTagValue.GPSVersionID => new ExifByteArray(ExifTag.GPSVersionID, ExifDataType.Byte),
+            ExifTagValue.PixelScale => new ExifDoubleArray(ExifTag.PixelScale),
+            ExifTagValue.IntergraphMatrix => new ExifDoubleArray(ExifTag.IntergraphMatrix),
+            ExifTagValue.ModelTiePoint => new ExifDoubleArray(ExifTag.ModelTiePoint),
+            ExifTagValue.ModelTransform => new ExifDoubleArray(ExifTag.ModelTransform),
+            ExifTagValue.SubfileType => new ExifLong(ExifTag.SubfileType),
+            ExifTagValue.SubIFDOffset => new ExifLong(ExifTag.SubIFDOffset),
+            ExifTagValue.GPSIFDOffset => new ExifLong(ExifTag.GPSIFDOffset),
+            ExifTagValue.T4Options => new ExifLong(ExifTag.T4Options),
+            ExifTagValue.T6Options => new ExifLong(ExifTag.T6Options),
+            ExifTagValue.XClipPathUnits => new ExifLong(ExifTag.XClipPathUnits),
+            ExifTagValue.YClipPathUnits => new ExifLong(ExifTag.YClipPathUnits),
+            ExifTagValue.ProfileType => new ExifLong(ExifTag.ProfileType),
+            ExifTagValue.CodingMethods => new ExifLong(ExifTag.CodingMethods),
+            ExifTagValue.T82ptions => new ExifLong(ExifTag.T82ptions),
+            ExifTagValue.JPEGInterchangeFormat => new ExifLong(ExifTag.JPEGInterchangeFormat),
+            ExifTagValue.JPEGInterchangeFormatLength => new ExifLong(ExifTag.JPEGInterchangeFormatLength),
+            ExifTagValue.MDFileTag => new ExifLong(ExifTag.MDFileTag),
+            ExifTagValue.StandardOutputSensitivity => new ExifLong(ExifTag.StandardOutputSensitivity),
+            ExifTagValue.RecommendedExposureIndex => new ExifLong(ExifTag.RecommendedExposureIndex),
+            ExifTagValue.ISOSpeed => new ExifLong(ExifTag.ISOSpeed),
+            ExifTagValue.ISOSpeedLatitudeyyy => new ExifLong(ExifTag.ISOSpeedLatitudeyyy),
+            ExifTagValue.ISOSpeedLatitudezzz => new ExifLong(ExifTag.ISOSpeedLatitudezzz),
+            ExifTagValue.FaxRecvParams => new ExifLong(ExifTag.FaxRecvParams),
+            ExifTagValue.FaxRecvTime => new ExifLong(ExifTag.FaxRecvTime),
+            ExifTagValue.ImageNumber => new ExifLong(ExifTag.ImageNumber),
+            ExifTagValue.FreeOffsets => new ExifLongArray(ExifTag.FreeOffsets),
+            ExifTagValue.FreeByteCounts => new ExifLongArray(ExifTag.FreeByteCounts),
+            ExifTagValue.ColorResponseUnit => new ExifLongArray(ExifTag.ColorResponseUnit),
+            ExifTagValue.SMinSampleValue => new ExifLongArray(ExifTag.SMinSampleValue),
+            ExifTagValue.SMaxSampleValue => new ExifLongArray(ExifTag.SMaxSampleValue),
+            ExifTagValue.JPEGQTables => new ExifLongArray(ExifTag.JPEGQTables),
+            ExifTagValue.JPEGDCTables => new ExifLongArray(ExifTag.JPEGDCTables),
+            ExifTagValue.JPEGACTables => new ExifLongArray(ExifTag.JPEGACTables),
+            ExifTagValue.StripRowCounts => new ExifLongArray(ExifTag.StripRowCounts),
+            ExifTagValue.IntergraphRegisters => new ExifLongArray(ExifTag.IntergraphRegisters),
+            ExifTagValue.SubIFDs => new ExifLongArray(ExifTag.SubIFDs),
+            ExifTagValue.ImageWidth => new ExifNumber(ExifTag.ImageWidth),
+            ExifTagValue.ImageLength => new ExifNumber(ExifTag.ImageLength),
+            ExifTagValue.RowsPerStrip => new ExifNumber(ExifTag.RowsPerStrip),
+            ExifTagValue.TileWidth => new ExifNumber(ExifTag.TileWidth),
+            ExifTagValue.TileLength => new ExifNumber(ExifTag.TileLength),
+            ExifTagValue.BadFaxLines => new ExifNumber(ExifTag.BadFaxLines),
+            ExifTagValue.ConsecutiveBadFaxLines => new ExifNumber(ExifTag.ConsecutiveBadFaxLines),
+            ExifTagValue.PixelXDimension => new ExifNumber(ExifTag.PixelXDimension),
+            ExifTagValue.PixelYDimension => new ExifNumber(ExifTag.PixelYDimension),
+            ExifTagValue.StripByteCounts => new ExifNumberArray(ExifTag.StripByteCounts),
+            ExifTagValue.StripOffsets => new ExifNumberArray(ExifTag.StripOffsets),
+            ExifTagValue.TileByteCounts => new ExifNumberArray(ExifTag.TileByteCounts),
+            ExifTagValue.TileOffsets => new ExifNumberArray(ExifTag.TileOffsets),
+            ExifTagValue.ImageLayer => new ExifNumberArray(ExifTag.ImageLayer),
+            ExifTagValue.XPosition => new ExifRational(ExifTag.XPosition),
+            ExifTagValue.YPosition => new ExifRational(ExifTag.YPosition),
+            ExifTagValue.XResolution => new ExifRational(ExifTag.XResolution),
+            ExifTagValue.YResolution => new ExifRational(ExifTag.YResolution),
+            ExifTagValue.BatteryLevel => new ExifRational(ExifTag.BatteryLevel),
+            ExifTagValue.ExposureTime => new ExifRational(ExifTag.ExposureTime),
+            ExifTagValue.FNumber => new ExifRational(ExifTag.FNumber),
+            ExifTagValue.MDScalePixel => new ExifRational(ExifTag.MDScalePixel),
+            ExifTagValue.CompressedBitsPerPixel => new ExifRational(ExifTag.CompressedBitsPerPixel),
+            ExifTagValue.ApertureValue => new ExifRational(ExifTag.ApertureValue),
+            ExifTagValue.MaxApertureValue => new ExifRational(ExifTag.MaxApertureValue),
+            ExifTagValue.SubjectDistance => new ExifRational(ExifTag.SubjectDistance),
+            ExifTagValue.FocalLength => new ExifRational(ExifTag.FocalLength),
+            ExifTagValue.FlashEnergy2 => new ExifRational(ExifTag.FlashEnergy2),
+            ExifTagValue.FocalPlaneXResolution2 => new ExifRational(ExifTag.FocalPlaneXResolution2),
+            ExifTagValue.FocalPlaneYResolution2 => new ExifRational(ExifTag.FocalPlaneYResolution2),
+            ExifTagValue.ExposureIndex2 => new ExifRational(ExifTag.ExposureIndex2),
+            ExifTagValue.Humidity => new ExifRational(ExifTag.Humidity),
+            ExifTagValue.Pressure => new ExifRational(ExifTag.Pressure),
+            ExifTagValue.Acceleration => new ExifRational(ExifTag.Acceleration),
+            ExifTagValue.FlashEnergy => new ExifRational(ExifTag.FlashEnergy),
+            ExifTagValue.FocalPlaneXResolution => new ExifRational(ExifTag.FocalPlaneXResolution),
+            ExifTagValue.FocalPlaneYResolution => new ExifRational(ExifTag.FocalPlaneYResolution),
+            ExifTagValue.ExposureIndex => new ExifRational(ExifTag.ExposureIndex),
+            ExifTagValue.DigitalZoomRatio => new ExifRational(ExifTag.DigitalZoomRatio),
+            ExifTagValue.GPSAltitude => new ExifRational(ExifTag.GPSAltitude),
+            ExifTagValue.GPSDOP => new ExifRational(ExifTag.GPSDOP),
+            ExifTagValue.GPSSpeed => new ExifRational(ExifTag.GPSSpeed),
+            ExifTagValue.GPSTrack => new ExifRational(ExifTag.GPSTrack),
+            ExifTagValue.GPSImgDirection => new ExifRational(ExifTag.GPSImgDirection),
+            ExifTagValue.GPSDestBearing => new ExifRational(ExifTag.GPSDestBearing),
+            ExifTagValue.GPSDestDistance => new ExifRational(ExifTag.GPSDestDistance),
+            ExifTagValue.GPSHPositioningError => new ExifRational(ExifTag.GPSHPositioningError),
+            ExifTagValue.WhitePoint => new ExifRationalArray(ExifTag.WhitePoint),
+            ExifTagValue.PrimaryChromaticities => new ExifRationalArray(ExifTag.PrimaryChromaticities),
+            ExifTagValue.YCbCrCoefficients => new ExifRationalArray(ExifTag.YCbCrCoefficients),
+            ExifTagValue.ReferenceBlackWhite => new ExifRationalArray(ExifTag.ReferenceBlackWhite),
+            ExifTagValue.GPSLatitude => new ExifRationalArray(ExifTag.GPSLatitude),
+            ExifTagValue.GPSLongitude => new ExifRationalArray(ExifTag.GPSLongitude),
+            ExifTagValue.GPSTimestamp => new ExifRationalArray(ExifTag.GPSTimestamp),
+            ExifTagValue.GPSDestLatitude => new ExifRationalArray(ExifTag.GPSDestLatitude),
+            ExifTagValue.GPSDestLongitude => new ExifRationalArray(ExifTag.GPSDestLongitude),
+            ExifTagValue.LensSpecification => new ExifRationalArray(ExifTag.LensSpecification),
+            ExifTagValue.OldSubfileType => new ExifShort(ExifTag.OldSubfileType),
+            ExifTagValue.Compression => new ExifShort(ExifTag.Compression),
+            ExifTagValue.PhotometricInterpretation => new ExifShort(ExifTag.PhotometricInterpretation),
+            ExifTagValue.Thresholding => new ExifShort(ExifTag.Thresholding),
+            ExifTagValue.CellWidth => new ExifShort(ExifTag.CellWidth),
+            ExifTagValue.CellLength => new ExifShort(ExifTag.CellLength),
+            ExifTagValue.FillOrder => new ExifShort(ExifTag.FillOrder),
+            ExifTagValue.Orientation => new ExifShort(ExifTag.Orientation),
+            ExifTagValue.SamplesPerPixel => new ExifShort(ExifTag.SamplesPerPixel),
+            ExifTagValue.PlanarConfiguration => new ExifShort(ExifTag.PlanarConfiguration),
+            ExifTagValue.Predictor => new ExifShort(ExifTag.Predictor),
+            ExifTagValue.GrayResponseUnit => new ExifShort(ExifTag.GrayResponseUnit),
+            ExifTagValue.ResolutionUnit => new ExifShort(ExifTag.ResolutionUnit),
+            ExifTagValue.CleanFaxData => new ExifShort(ExifTag.CleanFaxData),
+            ExifTagValue.InkSet => new ExifShort(ExifTag.InkSet),
+            ExifTagValue.NumberOfInks => new ExifShort(ExifTag.NumberOfInks),
+            ExifTagValue.DotRange => new ExifShort(ExifTag.DotRange),
+            ExifTagValue.Indexed => new ExifShort(ExifTag.Indexed),
+            ExifTagValue.OPIProxy => new ExifShort(ExifTag.OPIProxy),
+            ExifTagValue.JPEGProc => new ExifShort(ExifTag.JPEGProc),
+            ExifTagValue.JPEGRestartInterval => new ExifShort(ExifTag.JPEGRestartInterval),
+            ExifTagValue.YCbCrPositioning => new ExifShort(ExifTag.YCbCrPositioning),
+            ExifTagValue.Rating => new ExifShort(ExifTag.Rating),
+            ExifTagValue.RatingPercent => new ExifShort(ExifTag.RatingPercent),
+            ExifTagValue.ExposureProgram => new ExifShort(ExifTag.ExposureProgram),
+            ExifTagValue.Interlace => new ExifShort(ExifTag.Interlace),
+            ExifTagValue.SelfTimerMode => new ExifShort(ExifTag.SelfTimerMode),
+            ExifTagValue.SensitivityType => new ExifShort(ExifTag.SensitivityType),
+            ExifTagValue.MeteringMode => new ExifShort(ExifTag.MeteringMode),
+            ExifTagValue.LightSource => new ExifShort(ExifTag.LightSource),
+            ExifTagValue.FocalPlaneResolutionUnit2 => new ExifShort(ExifTag.FocalPlaneResolutionUnit2),
+            ExifTagValue.SensingMethod2 => new ExifShort(ExifTag.SensingMethod2),
+            ExifTagValue.Flash => new ExifShort(ExifTag.Flash),
+            ExifTagValue.ColorSpace => new ExifShort(ExifTag.ColorSpace),
+            ExifTagValue.FocalPlaneResolutionUnit => new ExifShort(ExifTag.FocalPlaneResolutionUnit),
+            ExifTagValue.SensingMethod => new ExifShort(ExifTag.SensingMethod),
+            ExifTagValue.CustomRendered => new ExifShort(ExifTag.CustomRendered),
+            ExifTagValue.ExposureMode => new ExifShort(ExifTag.ExposureMode),
+            ExifTagValue.WhiteBalance => new ExifShort(ExifTag.WhiteBalance),
+            ExifTagValue.FocalLengthIn35mmFilm => new ExifShort(ExifTag.FocalLengthIn35mmFilm),
+            ExifTagValue.SceneCaptureType => new ExifShort(ExifTag.SceneCaptureType),
+            ExifTagValue.GainControl => new ExifShort(ExifTag.GainControl),
+            ExifTagValue.Contrast => new ExifShort(ExifTag.Contrast),
+            ExifTagValue.Saturation => new ExifShort(ExifTag.Saturation),
+            ExifTagValue.Sharpness => new ExifShort(ExifTag.Sharpness),
+            ExifTagValue.SubjectDistanceRange => new ExifShort(ExifTag.SubjectDistanceRange),
+            ExifTagValue.GPSDifferential => new ExifShort(ExifTag.GPSDifferential),
+            ExifTagValue.BitsPerSample => new ExifShortArray(ExifTag.BitsPerSample),
+            ExifTagValue.MinSampleValue => new ExifShortArray(ExifTag.MinSampleValue),
+            ExifTagValue.MaxSampleValue => new ExifShortArray(ExifTag.MaxSampleValue),
+            ExifTagValue.GrayResponseCurve => new ExifShortArray(ExifTag.GrayResponseCurve),
+            ExifTagValue.ColorMap => new ExifShortArray(ExifTag.ColorMap),
+            ExifTagValue.ExtraSamples => new ExifShortArray(ExifTag.ExtraSamples),
+            ExifTagValue.PageNumber => new ExifShortArray(ExifTag.PageNumber),
+            ExifTagValue.TransferFunction => new ExifShortArray(ExifTag.TransferFunction),
+            ExifTagValue.HalftoneHints => new ExifShortArray(ExifTag.HalftoneHints),
+            ExifTagValue.SampleFormat => new ExifShortArray(ExifTag.SampleFormat),
+            ExifTagValue.TransferRange => new ExifShortArray(ExifTag.TransferRange),
+            ExifTagValue.DefaultImageColor => new ExifShortArray(ExifTag.DefaultImageColor),
+            ExifTagValue.JPEGLosslessPredictors => new ExifShortArray(ExifTag.JPEGLosslessPredictors),
+            ExifTagValue.JPEGPointTransforms => new ExifShortArray(ExifTag.JPEGPointTransforms),
+            ExifTagValue.YCbCrSubsampling => new ExifShortArray(ExifTag.YCbCrSubsampling),
+            ExifTagValue.CFARepeatPatternDim => new ExifShortArray(ExifTag.CFARepeatPatternDim),
+            ExifTagValue.IntergraphPacketData => new ExifShortArray(ExifTag.IntergraphPacketData),
+            ExifTagValue.ISOSpeedRatings => new ExifShortArray(ExifTag.ISOSpeedRatings),
+            ExifTagValue.SubjectArea => new ExifShortArray(ExifTag.SubjectArea),
+            ExifTagValue.SubjectLocation => new ExifShortArray(ExifTag.SubjectLocation),
+            ExifTagValue.ShutterSpeedValue => new ExifSignedRational(ExifTag.ShutterSpeedValue),
+            ExifTagValue.BrightnessValue => new ExifSignedRational(ExifTag.BrightnessValue),
+            ExifTagValue.ExposureBiasValue => new ExifSignedRational(ExifTag.ExposureBiasValue),
+            ExifTagValue.AmbientTemperature => new ExifSignedRational(ExifTag.AmbientTemperature),
+            ExifTagValue.WaterDepth => new ExifSignedRational(ExifTag.WaterDepth),
+            ExifTagValue.CameraElevationAngle => new ExifSignedRational(ExifTag.CameraElevationAngle),
+            ExifTagValue.Decode => new ExifSignedRationalArray(ExifTag.Decode),
+            ExifTagValue.TimeZoneOffset => new ExifSignedShortArray(ExifTag.TimeZoneOffset),
+            ExifTagValue.ImageDescription => new ExifString(ExifTag.ImageDescription),
+            ExifTagValue.Make => new ExifString(ExifTag.Make),
+            ExifTagValue.Model => new ExifString(ExifTag.Model),
+            ExifTagValue.Software => new ExifString(ExifTag.Software),
+            ExifTagValue.DateTime => new ExifString(ExifTag.DateTime),
+            ExifTagValue.Artist => new ExifString(ExifTag.Artist),
+            ExifTagValue.HostComputer => new ExifString(ExifTag.HostComputer),
+            ExifTagValue.Copyright => new ExifString(ExifTag.Copyright),
+            ExifTagValue.DocumentName => new ExifString(ExifTag.DocumentName),
+            ExifTagValue.PageName => new ExifString(ExifTag.PageName),
+            ExifTagValue.InkNames => new ExifString(ExifTag.InkNames),
+            ExifTagValue.TargetPrinter => new ExifString(ExifTag.TargetPrinter),
+            ExifTagValue.ImageID => new ExifString(ExifTag.ImageID),
+            ExifTagValue.MDLabName => new ExifString(ExifTag.MDLabName),
+            ExifTagValue.MDSampleInfo => new ExifString(ExifTag.MDSampleInfo),
+            ExifTagValue.MDPrepDate => new ExifString(ExifTag.MDPrepDate),
+            ExifTagValue.MDPrepTime => new ExifString(ExifTag.MDPrepTime),
+            ExifTagValue.MDFileUnits => new ExifString(ExifTag.MDFileUnits),
+            ExifTagValue.SEMInfo => new ExifString(ExifTag.SEMInfo),
+            ExifTagValue.SpectralSensitivity => new ExifString(ExifTag.SpectralSensitivity),
+            ExifTagValue.DateTimeOriginal => new ExifString(ExifTag.DateTimeOriginal),
+            ExifTagValue.DateTimeDigitized => new ExifString(ExifTag.DateTimeDigitized),
+            ExifTagValue.SubsecTime => new ExifString(ExifTag.SubsecTime),
+            ExifTagValue.SubsecTimeOriginal => new ExifString(ExifTag.SubsecTimeOriginal),
+            ExifTagValue.SubsecTimeDigitized => new ExifString(ExifTag.SubsecTimeDigitized),
+            ExifTagValue.RelatedSoundFile => new ExifString(ExifTag.RelatedSoundFile),
+            ExifTagValue.FaxSubaddress => new ExifString(ExifTag.FaxSubaddress),
+            ExifTagValue.OffsetTime => new ExifString(ExifTag.OffsetTime),
+            ExifTagValue.OffsetTimeOriginal => new ExifString(ExifTag.OffsetTimeOriginal),
+            ExifTagValue.OffsetTimeDigitized => new ExifString(ExifTag.OffsetTimeDigitized),
+            ExifTagValue.SecurityClassification => new ExifString(ExifTag.SecurityClassification),
+            ExifTagValue.ImageHistory => new ExifString(ExifTag.ImageHistory),
+            ExifTagValue.ImageUniqueID => new ExifString(ExifTag.ImageUniqueID),
+            ExifTagValue.OwnerName => new ExifString(ExifTag.OwnerName),
+            ExifTagValue.SerialNumber => new ExifString(ExifTag.SerialNumber),
+            ExifTagValue.LensMake => new ExifString(ExifTag.LensMake),
+            ExifTagValue.LensModel => new ExifString(ExifTag.LensModel),
+            ExifTagValue.LensSerialNumber => new ExifString(ExifTag.LensSerialNumber),
+            ExifTagValue.GDALMetadata => new ExifString(ExifTag.GDALMetadata),
+            ExifTagValue.GDALNoData => new ExifString(ExifTag.GDALNoData),
+            ExifTagValue.GPSLatitudeRef => new ExifString(ExifTag.GPSLatitudeRef),
+            ExifTagValue.GPSLongitudeRef => new ExifString(ExifTag.GPSLongitudeRef),
+            ExifTagValue.GPSSatellites => new ExifString(ExifTag.GPSSatellites),
+            ExifTagValue.GPSStatus => new ExifString(ExifTag.GPSStatus),
+            ExifTagValue.GPSMeasureMode => new ExifString(ExifTag.GPSMeasureMode),
+            ExifTagValue.GPSSpeedRef => new ExifString(ExifTag.GPSSpeedRef),
+            ExifTagValue.GPSTrackRef => new ExifString(ExifTag.GPSTrackRef),
+            ExifTagValue.GPSImgDirectionRef => new ExifString(ExifTag.GPSImgDirectionRef),
+            ExifTagValue.GPSMapDatum => new ExifString(ExifTag.GPSMapDatum),
+            ExifTagValue.GPSDestLatitudeRef => new ExifString(ExifTag.GPSDestLatitudeRef),
+            ExifTagValue.GPSDestLongitudeRef => new ExifString(ExifTag.GPSDestLongitudeRef),
+            ExifTagValue.GPSDestBearingRef => new ExifString(ExifTag.GPSDestBearingRef),
+            ExifTagValue.GPSDestDistanceRef => new ExifString(ExifTag.GPSDestDistanceRef),
+            ExifTagValue.GPSDateStamp => new ExifString(ExifTag.GPSDateStamp),
+            ExifTagValue.FileSource => new ExifByte(ExifTag.FileSource, ExifDataType.Undefined),
+            ExifTagValue.SceneType => new ExifByte(ExifTag.SceneType, ExifDataType.Undefined),
+            ExifTagValue.JPEGTables => new ExifByteArray(ExifTag.JPEGTables, ExifDataType.Undefined),
+            ExifTagValue.OECF => new ExifByteArray(ExifTag.OECF, ExifDataType.Undefined),
+            ExifTagValue.ExifVersion => new ExifByteArray(ExifTag.ExifVersion, ExifDataType.Undefined),
+            ExifTagValue.ComponentsConfiguration => new ExifByteArray(ExifTag.ComponentsConfiguration, ExifDataType.Undefined),
+            ExifTagValue.MakerNote => new ExifByteArray(ExifTag.MakerNote, ExifDataType.Undefined),
+            ExifTagValue.FlashpixVersion => new ExifByteArray(ExifTag.FlashpixVersion, ExifDataType.Undefined),
+            ExifTagValue.SpatialFrequencyResponse => new ExifByteArray(ExifTag.SpatialFrequencyResponse, ExifDataType.Undefined),
+            ExifTagValue.SpatialFrequencyResponse2 => new ExifByteArray(ExifTag.SpatialFrequencyResponse2, ExifDataType.Undefined),
+            ExifTagValue.Noise => new ExifByteArray(ExifTag.Noise, ExifDataType.Undefined),
+            ExifTagValue.CFAPattern => new ExifByteArray(ExifTag.CFAPattern, ExifDataType.Undefined),
+            ExifTagValue.DeviceSettingDescription => new ExifByteArray(ExifTag.DeviceSettingDescription, ExifDataType.Undefined),
+            ExifTagValue.ImageSourceData => new ExifByteArray(ExifTag.ImageSourceData, ExifDataType.Undefined),
+            ExifTagValue.XPTitle => new ExifUcs2String(ExifTag.XPTitle),
+            ExifTagValue.XPComment => new ExifUcs2String(ExifTag.XPComment),
+            ExifTagValue.XPAuthor => new ExifUcs2String(ExifTag.XPAuthor),
+            ExifTagValue.XPKeywords => new ExifUcs2String(ExifTag.XPKeywords),
+            ExifTagValue.XPSubject => new ExifUcs2String(ExifTag.XPSubject),
+            ExifTagValue.UserComment => new ExifEncodedString(ExifTag.UserComment),
+            ExifTagValue.GPSProcessingMethod => new ExifEncodedString(ExifTag.GPSProcessingMethod),
+            ExifTagValue.GPSAreaInformation => new ExifEncodedString(ExifTag.GPSAreaInformation),
+            _ => null,
+        };
 }

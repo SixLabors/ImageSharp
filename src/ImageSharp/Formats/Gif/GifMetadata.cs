@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Numerics;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Gif;
@@ -71,37 +72,19 @@ public class GifMetadata : IFormatMetadata<GifMetadata>
 
     /// <inheritdoc/>
     public static GifMetadata FromFormatConnectingMetadata(FormatConnectingMetadata metadata)
-    {
-        int index = 0;
-        Color background = metadata.BackgroundColor;
-        if (metadata.ColorTable.HasValue)
+        => new()
         {
-            ReadOnlySpan<Color> colorTable = metadata.ColorTable.Value.Span;
-            for (int i = 0; i < colorTable.Length; i++)
-            {
-                if (background != colorTable[i])
-                {
-                    continue;
-                }
-
-                index = i;
-                break;
-            }
-        }
-
-        return new()
-        {
-            GlobalColorTable = metadata.ColorTable,
+            // Do not copy the color table or bit depth.
+            // This will lead to a mismatch when the image is comprised of frames
+            // extracted individually from a multi-frame image.
             ColorTableMode = metadata.ColorTableMode,
             RepeatCount = metadata.RepeatCount,
-            BackgroundColorIndex = (byte)Numerics.Clamp(index, 0, 255),
         };
-    }
 
     /// <inheritdoc/>
     public PixelTypeInfo GetPixelTypeInfo()
     {
-        int bpp = this.GlobalColorTable.HasValue
+        int bpp = this.ColorTableMode == FrameColorTableMode.Global && this.GlobalColorTable.HasValue
             ? Numerics.Clamp(ColorNumerics.GetBitsNeededForColorDepth(this.GlobalColorTable.Value.Length), 1, 8)
             : 8;
 
@@ -114,27 +97,18 @@ public class GifMetadata : IFormatMetadata<GifMetadata>
 
     /// <inheritdoc/>
     public FormatConnectingMetadata ToFormatConnectingMetadata()
-    {
-        Color color = this.GlobalColorTable.HasValue && this.GlobalColorTable.Value.Span.Length > this.BackgroundColorIndex
-            ? this.GlobalColorTable.Value.Span[this.BackgroundColorIndex]
-            : Color.Transparent;
-
-        return new()
+        => new()
         {
             AnimateRootFrame = true,
-            BackgroundColor = color,
-            ColorTable = this.GlobalColorTable,
             ColorTableMode = this.ColorTableMode,
             PixelTypeInfo = this.GetPixelTypeInfo(),
             RepeatCount = this.RepeatCount,
         };
-    }
 
     /// <inheritdoc/>
-    public void AfterImageApply<TPixel>(Image<TPixel> destination)
+    public void AfterImageApply<TPixel>(Image<TPixel> destination, Matrix4x4 matrix)
         where TPixel : unmanaged, IPixel<TPixel>
-    {
-    }
+        => this.GlobalColorTable = null;
 
     /// <inheritdoc/>
     IDeepCloneable IDeepCloneable.DeepClone() => this.DeepClone();

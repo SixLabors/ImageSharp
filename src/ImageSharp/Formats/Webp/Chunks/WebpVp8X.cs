@@ -123,7 +123,10 @@ internal readonly struct WebpVp8X : IEquatable<WebpVp8X>
         long pos = RiffHelper.BeginWriteChunk(stream, (uint)WebpChunkType.Vp8X);
 
         stream.WriteByte(flags);
-        stream.Position += 3; // Reserved bytes
+
+        Span<byte> reserved = stackalloc byte[3];
+        stream.Write(reserved);
+
         WebpChunkParsingUtils.WriteUInt24LittleEndian(stream, this.Width - 1);
         WebpChunkParsingUtils.WriteUInt24LittleEndian(stream, this.Height - 1);
 

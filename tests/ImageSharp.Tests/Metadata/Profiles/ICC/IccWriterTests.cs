@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
+using SixLabors.ImageSharp.Tests.TestDataIcc;
 
 namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Icc;
 
@@ -11,29 +12,20 @@ public class IccWriterTests
     [Fact]
     public void WriteProfile_NoEntries()
     {
-        IccWriter writer = this.CreateWriter();
-
-        var profile = new IccProfile
+        IccProfile profile = new()
         {
-            Header = IccTestDataProfiles.Header_Random_Write
+            Header = IccTestDataProfiles.HeaderRandomWrite
         };
         byte[] output = IccWriter.Write(profile);
 
-        Assert.Equal(IccTestDataProfiles.Header_Random_Array, output);
+        Assert.Equal(IccTestDataProfiles.HeaderRandomArray, output);
     }
 
     [Fact]
     public void WriteProfile_DuplicateEntry()
     {
-        IccWriter writer = this.CreateWriter();
+        byte[] output = IccWriter.Write(IccTestDataProfiles.ProfileRandomVal);
 
-        byte[] output = IccWriter.Write(IccTestDataProfiles.Profile_Random_Val);
-
-        Assert.Equal(IccTestDataProfiles.Profile_Random_Array, output);
-    }
-
-    private IccWriter CreateWriter()
-    {
-        return new IccWriter();
+        Assert.Equal(IccTestDataProfiles.ProfileRandomArray, output);
     }
 }

@@ -59,7 +59,7 @@ public partial class MemoryGroupTests
             this.MemoryAllocator.BufferCapacityInBytes = bufferCapacity;
 
             // Act:
-            using var g = MemoryGroup<T>.Allocate(this.MemoryAllocator, totalLength, bufferAlignment);
+            using MemoryGroup<T> g = MemoryGroup<T>.Allocate(this.MemoryAllocator, totalLength, bufferAlignment);
 
             // Assert:
             ValidateAllocateMemoryGroup(expectedNumberOfBuffers, expectedBufferSize, expectedSizeOfLastBuffer, g);
@@ -83,7 +83,7 @@ public partial class MemoryGroupTests
                 return;
             }
 
-            var pool = new UniformUnmanagedMemoryPool(bufferCapacity, expectedNumberOfBuffers);
+            UniformUnmanagedMemoryPool pool = new(bufferCapacity, expectedNumberOfBuffers);
 
             // Act:
             Assert.True(MemoryGroup<T>.TryAllocate(pool, totalLength, bufferAlignment, AllocationOptions.None, out MemoryGroup<T> g));
@@ -98,7 +98,7 @@ public partial class MemoryGroupTests
         [InlineData(AllocationOptions.Clean)]
         public unsafe void Allocate_FromPool_AllocationOptionsAreApplied(AllocationOptions options)
         {
-            var pool = new UniformUnmanagedMemoryPool(10, 5);
+            UniformUnmanagedMemoryPool pool = new(10, 5);
             UnmanagedMemoryHandle[] buffers = pool.Rent(5);
             foreach (UnmanagedMemoryHandle b in buffers)
             {
@@ -128,7 +128,7 @@ public partial class MemoryGroupTests
             int requestBytes,
             bool shouldSucceed)
         {
-            var pool = new UniformUnmanagedMemoryPool(bufferCapacityBytes, poolCapacity);
+            UniformUnmanagedMemoryPool pool = new(bufferCapacityBytes, poolCapacity);
             int alignmentElements = alignmentBytes / Unsafe.SizeOf<S4>();
             int requestElements = requestBytes / Unsafe.SizeOf<S4>();
 
@@ -194,7 +194,7 @@ public partial class MemoryGroupTests
             HashSet<int> bufferHashes;
 
             int expectedBlockCount = 5;
-            using (var g = MemoryGroup<short>.Allocate(this.MemoryAllocator, 500, 100, allocationOptions))
+            using (MemoryGroup<short> g = MemoryGroup<short>.Allocate(this.MemoryAllocator, 500, 100, allocationOptions))
             {
                 IReadOnlyList<TestMemoryAllocator.AllocationRequest> allocationLog = this.MemoryAllocator.AllocationLog;
                 Assert.Equal(expectedBlockCount, allocationLog.Count);

@@ -4,6 +4,7 @@ on:
   schedule:
     # 2AM every Tuesday/Thursday
     - cron: "0 2 * * 2,4"
+
 jobs:
   Build:
     strategy:
@@ -14,15 +15,14 @@ jobs:
             runtime: -x64
             codecov: true
 
-    runs-on: ${{matrix.options.os}}
+    runs-on: ${{ matrix.options.os }}
 
     steps:
-
       - name: Install libgdi+, which is required for tests running on ubuntu
         if: ${{ contains(matrix.options.os, 'ubuntu') }}
         run: |
-            sudo apt-get update
-            sudo apt-get -y install libgdiplus libgif-dev libglib2.0-dev libcairo2-dev libtiff-dev libexif-dev
+          sudo apt-get update
+          sudo apt-get -y install libgdiplus libgif-dev libglib2.0-dev libcairo2-dev libtiff-dev libexif-dev
 
       - name: Git Config
         shell: bash
@@ -36,16 +36,21 @@ jobs:
           fetch-depth: 0
           submodules: recursive
 
-      # See https://github.com/actions/checkout/issues/165#issuecomment-657673315
-      - name: Git Create LFS FileList
-        run: git lfs ls-files -l | cut -d' ' -f1 | sort > .lfs-assets-id
+      # Deterministic list of LFS object IDs, then compute a portable key:
+      # - `git lfs ls-files -l` lists all tracked LFS objects with their SHA-256
+      # - `awk '{print $1}'` extracts just the SHA field
+      # - `sort` sorts in byte order (hex hashes sort the same everywhere)
+      # This ensures the file content is identical regardless of OS or locale
+      - name: Git Create LFS id list
+        shell: bash
+        run: git lfs ls-files -l | awk '{print $1}' | sort > .lfs-assets-id
 
       - name: Git Setup LFS Cache
         uses: actions/cache@v4
         id: lfs-cache
         with:
           path: .git/lfs
-          key: ${{ runner.os }}-lfs-${{ hashFiles('.lfs-assets-id') }}-v1
+          key: lfs-${{ hashFiles('.lfs-assets-id') }}-v1
 
       - name: Git Pull LFS
         run: git lfs pull
@@ -69,13 +74,13 @@ jobs:
 
       - name: DotNet Build
         shell: pwsh
-        run: ./ci-build.ps1 "${{matrix.options.framework}}"
+        run: ./ci-build.ps1 "${{ matrix.options.framework }}"
         env:
           SIXLABORS_TESTING: True
 
       - name: DotNet Test
         shell: pwsh
-        run: ./ci-test.ps1 "${{matrix.options.os}}" "${{matrix.options.framework}}" "${{matrix.options.runtime}}" "${{matrix.options.codecov}}"
+        run: ./ci-test.ps1 "${{ matrix.options.os }}" "${{ matrix.options.framework }}" "${{ matrix.options.runtime }}" "${{ matrix.options.codecov }}"
         env:
           SIXLABORS_TESTING: True
           XUNIT_PATH: .\tests\ImageSharp.Tests # Required for xunit
@@ -88,7 +93,8 @@ jobs:
           path: tests/Images/ActualOutput/
 
       - name: Codecov Update
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         if: matrix.options.codecov == true && startsWith(github.repository, 'SixLabors')
         with:
           flags: unittests
+          token: ${{ secrets.CODECOV_TOKEN }}

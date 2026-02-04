@@ -34,7 +34,7 @@ public sealed class TgaImageFormatDetector : IImageFormatDetector
             }
 
             // The third byte is the image type.
-            var imageType = (TgaImageType)header[2];
+            TgaImageType imageType = (TgaImageType)header[2];
             if (!imageType.IsValid())
             {
                 return false;

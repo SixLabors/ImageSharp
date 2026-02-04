@@ -12,7 +12,7 @@
   <Choose>
     <When Condition="$(SIXLABORS_TESTING_PREVIEW) == true">
       <PropertyGroup>
-        <TargetFrameworks>net8.0;net9.0</TargetFrameworks>
+        <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
       </PropertyGroup>
     </When>
     <Otherwise>
@@ -32,6 +32,9 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>PixelOperationsTests.Specialized.Generated.tt</DependentUpon>
     </None>
+    <None Update="TestDataIcc\Profiles\*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
   <ItemGroup>
@@ -47,6 +50,7 @@
     <PackageReference Include="runtime.osx.10.10-x64.CoreCompat.System.Drawing" Condition="'$(IsOSX)'=='true'" />
     <PackageReference Include="SharpZipLib" />
     <PackageReference Include="System.Drawing.Common" />
+    <PackageReference Include="Wacton.Unicolour" Version="6.0.0" />
   </ItemGroup>
 
   <ItemGroup>

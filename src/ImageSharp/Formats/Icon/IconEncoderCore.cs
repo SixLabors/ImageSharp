@@ -116,21 +116,21 @@ internal abstract class IconEncoderCore
     [MemberNotNull(nameof(entries))]
     private void InitHeader(Image image)
     {
-        this.fileHeader = new(this.iconFileType, (ushort)image.Frames.Count);
+        this.fileHeader = new IconDir(this.iconFileType, (ushort)image.Frames.Count);
         this.entries = this.iconFileType switch
         {
             IconFileType.ICO =>
-                image.Frames.Select(i =>
-                {
-                    IcoFrameMetadata metadata = i.Metadata.GetIcoMetadata();
-                    return new EncodingFrameMetadata(metadata.Compression, metadata.BmpBitsPerPixel, metadata.ColorTable, metadata.ToIconDirEntry(i.Size));
-                }).ToArray(),
+            [.. image.Frames.Select(i =>
+            {
+                IcoFrameMetadata metadata = i.Metadata.GetIcoMetadata();
+                return new EncodingFrameMetadata(metadata.Compression, metadata.BmpBitsPerPixel, metadata.ColorTable, metadata.ToIconDirEntry(i.Size));
+            })],
             IconFileType.CUR =>
-                image.Frames.Select(i =>
-                {
-                    CurFrameMetadata metadata = i.Metadata.GetCurMetadata();
-                    return new EncodingFrameMetadata(metadata.Compression, metadata.BmpBitsPerPixel, metadata.ColorTable, metadata.ToIconDirEntry(i.Size));
-                }).ToArray(),
+            [.. image.Frames.Select(i =>
+            {
+                CurFrameMetadata metadata = i.Metadata.GetCurMetadata();
+                return new EncodingFrameMetadata(metadata.Compression, metadata.BmpBitsPerPixel, metadata.ColorTable, metadata.ToIconDirEntry(i.Size));
+            })],
             _ => throw new NotSupportedException(),
         };
     }
@@ -149,14 +149,20 @@ internal abstract class IconEncoderCore
 
         if (metadata.ColorTable is null)
         {
-            return new WuQuantizer(new()
+            int count = metadata.Entry.ColorCount;
+            if (count == 0)
             {
-                MaxColors = metadata.Entry.ColorCount
+                count = 256;
+            }
+
+            return new WuQuantizer(new QuantizerOptions
+            {
+                MaxColors = count
             });
         }
 
         // Don't dither if we have a palette. We want to preserve as much information as possible.
-        return new PaletteQuantizer(metadata.ColorTable.Value, new() { Dither = null });
+        return new PaletteQuantizer(metadata.ColorTable.Value, new QuantizerOptions { Dither = null });
     }
 
     internal sealed class EncodingFrameMetadata

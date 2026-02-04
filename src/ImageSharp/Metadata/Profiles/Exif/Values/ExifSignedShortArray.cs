@@ -36,9 +36,9 @@ internal sealed class ExifSignedShortArray : ExifArrayValue<short>
 
         if (value is int intValue)
         {
-            if (intValue >= short.MinValue && intValue <= short.MaxValue)
+            if (intValue is >= short.MinValue and <= short.MaxValue)
             {
-                this.Value = new short[] { (short)intValue };
+                this.Value = [(short)intValue];
             }
 
             return true;
@@ -51,12 +51,12 @@ internal sealed class ExifSignedShortArray : ExifArrayValue<short>
 
     private bool TrySetSignedArray(int[] intArray)
     {
-        if (Array.FindIndex(intArray, x => x < short.MinValue || x > short.MaxValue) > -1)
+        if (Array.FindIndex(intArray, x => x is < short.MinValue or > short.MaxValue) > -1)
         {
             return false;
         }
 
-        var value = new short[intArray.Length];
+        short[] value = new short[intArray.Length];
         for (int i = 0; i < intArray.Length; i++)
         {
             int s = intArray[i];

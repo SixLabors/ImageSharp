@@ -30,15 +30,16 @@ internal sealed class TiffOldJpegSpectralConverter<TPixel> : SpectralConverter<T
     /// <inheritdoc/>
     protected override JpegColorConverterBase GetColorConverter(JpegFrame frame, IRawJpegData jpegData)
     {
-        JpegColorSpace colorSpace = GetJpegColorSpaceFromPhotometricInterpretation(this.photometricInterpretation);
+        JpegColorSpace colorSpace = GetJpegColorSpaceFromPhotometricInterpretation(this.photometricInterpretation, jpegData);
         return JpegColorConverterBase.GetConverter(colorSpace, frame.Precision);
     }
 
-    private static JpegColorSpace GetJpegColorSpaceFromPhotometricInterpretation(TiffPhotometricInterpretation interpretation)
+    private static JpegColorSpace GetJpegColorSpaceFromPhotometricInterpretation(TiffPhotometricInterpretation interpretation, IRawJpegData data)
         => interpretation switch
         {
             // Like libtiff: Always treat the pixel data as YCbCr when the data is compressed with old jpeg compression.
             TiffPhotometricInterpretation.Rgb => JpegColorSpace.YCbCr,
+            TiffPhotometricInterpretation.Separated => data.ColorSpace == JpegColorSpace.Ycck ? JpegColorSpace.TiffYccK : JpegColorSpace.TiffCmyk,
             TiffPhotometricInterpretation.YCbCr => JpegColorSpace.YCbCr,
             _ => throw new InvalidImageContentException($"Invalid tiff photometric interpretation for jpeg encoding: {interpretation}"),
         };

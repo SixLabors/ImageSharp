@@ -30,7 +30,7 @@
   <Choose>
     <When Condition="$(SIXLABORS_TESTING_PREVIEW) == true">
       <PropertyGroup>
-        <TargetFrameworks>net8.0;net9.0</TargetFrameworks>
+        <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
       </PropertyGroup>
     </When>
     <Otherwise>
@@ -51,20 +51,15 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Update="Common\InlineArray.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>InlineArray.tt</DependentUpon>
+    </Compile>
     <Compile Update="Formats\_Generated\ImageMetadataExtensions.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>ImageMetadataExtensions.tt</DependentUpon>
-    </Compile>
-    <Compile Update="Formats\Jpeg\Components\Block8x8F.Generated.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>Block8x8F.Generated.tt</DependentUpon>
-    </Compile>
-    <Compile Update="Formats\Jpeg\Components\Block8x8F.Generated.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>Block8x8F.Generated.tt</DependentUpon>
     </Compile>
     <Compile Update="PixelFormats\PixelImplementations\PixelOperations\Generated\Abgr32.PixelOperations.Generated.cs">
       <DesignTime>True</DesignTime>
@@ -154,17 +149,13 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Update="Common\InlineArray.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>InlineArray.cs</LastGenOutput>
+    </None>
     <None Update="Formats\_Generated\ImageMetadataExtensions.tt">
       <LastGenOutput>ImageMetadataExtensions.cs</LastGenOutput>
       <Generator>TextTemplatingFileGenerator</Generator>
-    </None>
-    <None Update="Formats\Jpeg\Components\Block8x8F.Generated.tt">
-      <Generator>TextTemplatingFileGenerator</Generator>
-      <LastGenOutput>Block8x8F.Generated.cs</LastGenOutput>
-    </None>
-    <None Update="Formats\Jpeg\Components\Block8x8F.Generated.tt">
-      <Generator>TextTemplatingFileGenerator</Generator>
-      <LastGenOutput>Block8x8F.Generated.cs</LastGenOutput>
     </None>
     <None Update="PixelFormats\PixelImplementations\PixelOperations\Generated\Abgr32.PixelOperations.Generated.tt">
       <Generator>TextTemplatingFileGenerator</Generator>

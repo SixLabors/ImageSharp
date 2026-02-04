@@ -16,9 +16,7 @@ public partial class ResizeKernelMapTests
         private readonly ReferenceKernel[] kernels;
 
         public ReferenceKernelMap(ReferenceKernel[] kernels)
-        {
-            this.kernels = kernels;
-        }
+            => this.kernels = kernels;
 
         public int DestinationSize => this.kernels.Length;
 
@@ -28,18 +26,18 @@ public partial class ResizeKernelMapTests
             where TResampler : struct, IResampler
         {
             double ratio = (double)sourceSize / destinationSize;
-            double scale = ratio;
+            double scaleD = ratio;
 
-            if (scale < 1F)
+            if (scaleD < 1)
             {
-                scale = 1F;
+                scaleD = 1;
             }
 
             TolerantMath tolerantMath = TolerantMath.Default;
 
-            double radius = tolerantMath.Ceiling(scale * sampler.Radius);
+            double radius = tolerantMath.Ceiling(scaleD * sampler.Radius);
 
-            var result = new List<ReferenceKernel>();
+            List<ReferenceKernel> result = [];
 
             for (int i = 0; i < destinationSize; i++)
             {
@@ -58,15 +56,14 @@ public partial class ResizeKernelMapTests
                     right = sourceSize - 1;
                 }
 
-                double sum = 0;
+                float sum = 0;
 
-                double[] values = new double[right - left + 1];
+                float[] values = new float[right - left + 1];
 
                 for (int j = left; j <= right; j++)
                 {
-                    double weight = sampler.GetValue((float)((j - center) / scale));
+                    float weight = sampler.GetValue((float)((j - center) / scaleD));
                     sum += weight;
-
                     values[j - left] = weight;
                 }
 
@@ -78,16 +75,14 @@ public partial class ResizeKernelMapTests
                     }
                 }
 
-                float[] floatVals = values.Select(v => (float)v).ToArray();
-
-                result.Add(new ReferenceKernel(left, floatVals));
+                result.Add(new ReferenceKernel(left, values));
             }
 
-            return new ReferenceKernelMap(result.ToArray());
+            return new ReferenceKernelMap([.. result]);
         }
     }
 
-    internal struct ReferenceKernel
+    internal readonly struct ReferenceKernel
     {
         public ReferenceKernel(int left, float[] values)
         {
@@ -102,8 +97,6 @@ public partial class ResizeKernelMapTests
         public int Length => this.Values.Length;
 
         public static implicit operator ReferenceKernel(ResizeKernel orig)
-        {
-            return new ReferenceKernel(orig.StartIndex, orig.Values.ToArray());
-        }
+            => new(orig.StartIndex, orig.Values.ToArray());
     }
 }

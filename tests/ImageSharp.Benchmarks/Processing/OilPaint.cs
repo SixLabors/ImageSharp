@@ -13,7 +13,7 @@ public class OilPaint
     [Benchmark]
     public void DoOilPaint()
     {
-        using Image<RgbaVector> image = new Image<RgbaVector>(1920, 1200, new(127, 191, 255));
+        using Image<RgbaVector> image = new(1920, 1200, new RgbaVector(127, 191, 255));
         image.Mutate(ctx => ctx.OilPaint());
     }
 }

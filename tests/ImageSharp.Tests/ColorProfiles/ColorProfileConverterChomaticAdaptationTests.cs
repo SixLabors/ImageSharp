@@ -26,7 +26,7 @@ public class ColorProfileConverterChomaticAdaptationTests
         Rgb expected = new(r2, g2, b2);
         ColorConversionOptions options = new()
         {
-            RgbWorkingSpace = KnownRgbWorkingSpaces.WideGamutRgb,
+            SourceRgbWorkingSpace = KnownRgbWorkingSpaces.WideGamutRgb,
             TargetRgbWorkingSpace = KnownRgbWorkingSpaces.SRgb
         };
         ColorProfileConverter converter = new(options);
@@ -49,7 +49,7 @@ public class ColorProfileConverterChomaticAdaptationTests
         Rgb expected = new(r2, g2, b2);
         ColorConversionOptions options = new()
         {
-            RgbWorkingSpace = KnownRgbWorkingSpaces.SRgb,
+            SourceRgbWorkingSpace = KnownRgbWorkingSpaces.SRgb,
             TargetRgbWorkingSpace = KnownRgbWorkingSpaces.WideGamutRgb
         };
         ColorProfileConverter converter = new(options);
@@ -71,7 +71,7 @@ public class ColorProfileConverterChomaticAdaptationTests
         CieLab expected = new(l2, a2, b2);
         ColorConversionOptions options = new()
         {
-            WhitePoint = KnownIlluminants.D65,
+            SourceWhitePoint = KnownIlluminants.D65,
             TargetWhitePoint = KnownIlluminants.D50
         };
         ColorProfileConverter converter = new(options);
@@ -93,7 +93,7 @@ public class ColorProfileConverterChomaticAdaptationTests
         CieXyz expected = new(x2, y2, z2);
         ColorConversionOptions options = new()
         {
-            WhitePoint = KnownIlluminants.D65,
+            SourceWhitePoint = KnownIlluminants.D65,
             TargetWhitePoint = KnownIlluminants.D50,
             AdaptationMatrix = KnownChromaticAdaptationMatrices.Bradford
         };
@@ -117,7 +117,7 @@ public class ColorProfileConverterChomaticAdaptationTests
         CieXyz expected = new(x2, y2, z2);
         ColorConversionOptions options = new()
         {
-            WhitePoint = KnownIlluminants.D65,
+            SourceWhitePoint = KnownIlluminants.D65,
             TargetWhitePoint = KnownIlluminants.D50,
             AdaptationMatrix = KnownChromaticAdaptationMatrices.XyzScaling
         };
@@ -141,7 +141,7 @@ public class ColorProfileConverterChomaticAdaptationTests
         HunterLab expected = new(l2, a2, b2);
         ColorConversionOptions options = new()
         {
-            WhitePoint = KnownIlluminants.D65,
+            SourceWhitePoint = KnownIlluminants.D65,
             TargetWhitePoint = KnownIlluminants.D50,
         };
 
@@ -164,7 +164,7 @@ public class ColorProfileConverterChomaticAdaptationTests
         CieLchuv expected = new(l2, c2, h2);
         ColorConversionOptions options = new()
         {
-            WhitePoint = KnownIlluminants.D65,
+            SourceWhitePoint = KnownIlluminants.D65,
             TargetWhitePoint = KnownIlluminants.D50,
             AdaptationMatrix = KnownChromaticAdaptationMatrices.XyzScaling
         };
@@ -187,7 +187,7 @@ public class ColorProfileConverterChomaticAdaptationTests
         CieLch expected = new(l2, c2, h2);
         ColorConversionOptions options = new()
         {
-            WhitePoint = KnownIlluminants.D65,
+            SourceWhitePoint = KnownIlluminants.D65,
             TargetWhitePoint = KnownIlluminants.D50,
             AdaptationMatrix = KnownChromaticAdaptationMatrices.XyzScaling
         };

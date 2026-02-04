@@ -24,14 +24,6 @@ internal enum ExifTagValue
     GPSIFDOffset = 0x8825,
 
     /// <summary>
-    /// Indicates the identification of the Interoperability rule.
-    /// See https://www.awaresystems.be/imaging/tiff/tifftags/privateifd/interoperability/interoperabilityindex.html
-    /// </summary>
-    [ExifTagDescription("R98", "Indicates a file conforming to R98 file specification of Recommended Exif Interoperability Rules (ExifR98) or to DCF basic file stipulated by Design Rule for Camera File System.")]
-    [ExifTagDescription("THM", "Indicates a file conforming to DCF thumbnail file stipulated by Design rule for Camera File System.")]
-    InteroperabilityIndex = 0x0001,
-
-    /// <summary>
     /// A general indication of the kind of data contained in this subfile.
     /// See Section 8: Baseline Fields.
     /// </summary>

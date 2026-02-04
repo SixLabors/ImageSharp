@@ -13,7 +13,7 @@ public static class ArrayHelper
     /// <returns>The concatenated array</returns>
     public static T[] Concat<T>(params T[][] arrays)
     {
-        var result = new T[arrays.Sum(t => t.Length)];
+        T[] result = new T[arrays.Sum(t => t.Length)];
         int offset = 0;
         for (int i = 0; i < arrays.Length; i++)
         {
@@ -33,7 +33,7 @@ public static class ArrayHelper
     /// <returns>The created array filled with the given value</returns>
     public static T[] Fill<T>(T value, int length)
     {
-        var result = new T[length];
+        T[] result = new T[length];
         for (int i = 0; i < length; i++)
         {
             result[i] = value;

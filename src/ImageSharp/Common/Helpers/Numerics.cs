@@ -1080,4 +1080,47 @@ internal static class Numerics
     public static nuint Vector512Count<TVector>(int length)
         where TVector : struct
         => (uint)length / (uint)Vector512<TVector>.Count;
+
+    /// <summary>
+    /// Normalizes the values in a given <see cref="Span{T}"/>.
+    /// </summary>
+    /// <param name="span">The sequence of <see cref="float"/> values to normalize.</param>
+    /// <param name="sum">The sum of the values in <paramref name="span"/>.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void Normalize(Span<float> span, float sum)
+    {
+        if (Vector256.IsHardwareAccelerated)
+        {
+            ref float startRef = ref MemoryMarshal.GetReference(span);
+            ref float endRef = ref Unsafe.Add(ref startRef, span.Length & ~7);
+            Vector256<float> sum256 = Vector256.Create(sum);
+
+            while (Unsafe.IsAddressLessThan(ref startRef, ref endRef))
+            {
+                Unsafe.As<float, Vector256<float>>(ref startRef) /= sum256;
+                startRef = ref Unsafe.Add(ref startRef, (nuint)8);
+            }
+
+            if ((span.Length & 7) >= 4)
+            {
+                Unsafe.As<float, Vector128<float>>(ref startRef) /= sum256.GetLower();
+                startRef = ref Unsafe.Add(ref startRef, (nuint)4);
+            }
+
+            endRef = ref Unsafe.Add(ref startRef, span.Length & 3);
+
+            while (Unsafe.IsAddressLessThan(ref startRef, ref endRef))
+            {
+                startRef /= sum;
+                startRef = ref Unsafe.Add(ref startRef, (nuint)1);
+            }
+        }
+        else
+        {
+            for (int i = 0; i < span.Length; i++)
+            {
+                span[i] /= sum;
+            }
+        }
+    }
 }

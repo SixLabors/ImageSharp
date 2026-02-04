@@ -1,7 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Diagnostics.CodeAnalysis;
+using System.Numerics;
 using SixLabors.ImageSharp.Formats.Cur;
 using SixLabors.ImageSharp.Formats.Ico;
 using SixLabors.ImageSharp.PixelFormats;
@@ -68,12 +68,17 @@ public class AniFrameMetadata : IFormatFrameMetadata<AniFrameMetadata>
     IDeepCloneable IDeepCloneable.DeepClone() => this.DeepClone();
 
     /// <inheritdoc/>
-    public FormatConnectingFrameMetadata ToFormatConnectingFrameMetadata() => new FormatConnectingFrameMetadata() { Duration = TimeSpan.FromSeconds(this.FrameDelay / 60d) };
+    public FormatConnectingFrameMetadata ToFormatConnectingFrameMetadata()
+    {
+        // TODO: Implement. You need to consider encoding width/height.
+        return new() { Duration = TimeSpan.FromSeconds(this.FrameDelay / 60d) };
+    }
 
     /// <inheritdoc/>
-    public void AfterFrameApply<TPixel>(ImageFrame<TPixel> source, ImageFrame<TPixel> destination)
+    public void AfterFrameApply<TPixel>(ImageFrame<TPixel> source, ImageFrame<TPixel> destination, Matrix4x4 matrix)
         where TPixel : unmanaged, IPixel<TPixel>
     {
+        // TODO: Implement. You need to consider encoding width/height.
     }
 
     /// <inheritdoc/>
@@ -83,7 +88,7 @@ public class AniFrameMetadata : IFormatFrameMetadata<AniFrameMetadata>
         EncodingHeight = this.EncodingHeight,
         EncodingWidth = this.EncodingWidth,
         SequenceNumber = this.SequenceNumber,
-        IsIco = this.IsIco,
+        FrameFormat = this.FrameFormat,
         IcoFrameMetadata = this.IcoFrameMetadata?.DeepClone(),
         CurFrameMetadata = this.CurFrameMetadata?.DeepClone(),
 

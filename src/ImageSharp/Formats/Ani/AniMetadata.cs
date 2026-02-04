@@ -1,7 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using SixLabors.ImageSharp.Metadata;
+using System.Numerics;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Ani;
@@ -75,8 +75,8 @@ public class AniMetadata : IFormatMetadata<AniMetadata>
         => throw new NotImplementedException();
 
     /// <inheritdoc/>
-    public void AfterImageApply<TPixel>(Image<TPixel> destination)
-        where TPixel : unmanaged, IPixel<TPixel>
+    public void AfterImageApply<TPixel>(Image<TPixel> destination, Matrix4x4 matrix)
+            where TPixel : unmanaged, IPixel<TPixel>
     {
     }
 

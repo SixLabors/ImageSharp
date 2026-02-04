@@ -78,6 +78,7 @@ internal class AniDecoderCore : ImageDecoderCore
                 {
                     case AniFrameFormat.Ico:
                         IcoFrameMetadata icoFrameMetadata = source.Metadata.GetIcoMetadata();
+
                         // TODO source.Metadata.SetFormatMetadata(IcoFormat.Instance, null);
                         clonedMetadata.IcoFrameMetadata = icoFrameMetadata;
                         clonedMetadata.EncodingWidth = icoFrameMetadata.EncodingWidth;
@@ -85,6 +86,7 @@ internal class AniDecoderCore : ImageDecoderCore
                         break;
                     case AniFrameFormat.Cur:
                         CurFrameMetadata curFrameMetadata = source.Metadata.GetCurMetadata();
+
                         // TODO source.Metadata.SetFormatMetadata(CurFormat.Instance, null);
                         clonedMetadata.CurFrameMetadata = curFrameMetadata;
                         clonedMetadata.EncodingWidth = curFrameMetadata.EncodingWidth;
@@ -198,6 +200,7 @@ internal class AniDecoderCore : ImageDecoderCore
                         {
                             case AniFrameFormat.Ico:
                                 IcoFrameMetadata icoFrameMetadata = frameMetadata.GetIcoMetadata();
+
                                 // TODO source.Metadata.SetFormatMetadata(IcoFormat.Instance, null);
                                 clonedMetadata.IcoFrameMetadata = icoFrameMetadata;
                                 clonedMetadata.EncodingWidth = icoFrameMetadata.EncodingWidth;
@@ -205,6 +208,7 @@ internal class AniDecoderCore : ImageDecoderCore
                                 break;
                             case AniFrameFormat.Cur:
                                 CurFrameMetadata curFrameMetadata = frameMetadata.GetCurMetadata();
+
                                 // TODO source.Metadata.SetFormatMetadata(CurFormat.Instance, null);
                                 clonedMetadata.CurFrameMetadata = curFrameMetadata;
                                 clonedMetadata.EncodingWidth = curFrameMetadata.EncodingWidth;
@@ -218,8 +222,9 @@ internal class AniDecoderCore : ImageDecoderCore
                         return frameMetadata;
                     }));
             }
-            else // BMP
+            else
             {
+                // BMP
                 aniFrameMetadata.EncodingWidth = Narrow(info.Width);
                 aniFrameMetadata.EncodingHeight = Narrow(info.Height);
                 aniFrameMetadata.FrameFormat = type;
@@ -253,6 +258,7 @@ internal class AniDecoderCore : ImageDecoderCore
 
                         switch (dir.Type)
                         {
+                            // TODO: Use Core decoders.
                             case IconFileType.CUR:
                                 info = CurDecoder.Instance.Identify(this.Options, this.currentStream);
                                 type = AniFrameFormat.Cur;
@@ -266,6 +272,7 @@ internal class AniDecoderCore : ImageDecoderCore
                 }
                 else
                 {
+                    // TODO: Use Core decoders.
                     info = BmpDecoder.Instance.Identify(this.Options, this.currentStream);
                     type = AniFrameFormat.Bmp;
                 }

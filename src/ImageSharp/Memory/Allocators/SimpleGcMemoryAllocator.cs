@@ -12,6 +12,32 @@ namespace SixLabors.ImageSharp.Memory;
 /// </summary>
 public sealed class SimpleGcMemoryAllocator : MemoryAllocator
 {
+    /// <summary>
+    /// Initializes a new instance of the <see cref="SimpleGcMemoryAllocator"/> class with default limits.
+    /// </summary>
+    public SimpleGcMemoryAllocator()
+        : this(default)
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="SimpleGcMemoryAllocator"/> class with custom limits.
+    /// </summary>
+    /// <param name="options">The <see cref="MemoryAllocatorOptions"/> to apply.</param>
+    public SimpleGcMemoryAllocator(MemoryAllocatorOptions options)
+    {
+        if (options.AllocationLimitMegabytes.HasValue)
+        {
+            this.MemoryGroupAllocationLimitBytes = options.AllocationLimitMegabytes.Value * 1024L * 1024L;
+            this.SingleBufferAllocationLimitBytes = (int)Math.Min(this.SingleBufferAllocationLimitBytes, this.MemoryGroupAllocationLimitBytes);
+        }
+
+        if (options.AccumulativeAllocationLimitMegabytes.HasValue)
+        {
+            this.AccumulativeAllocationLimitBytes = options.AccumulativeAllocationLimitMegabytes.Value * 1024L * 1024L;
+        }
+    }
+
     /// <inheritdoc />
     protected internal override int GetBufferCapacityInBytes() => int.MaxValue;
 
@@ -29,6 +55,18 @@ public sealed class SimpleGcMemoryAllocator : MemoryAllocator
             InvalidMemoryOperationException.ThrowAllocationOverLimitException(lengthInBytes, this.SingleBufferAllocationLimitBytes);
         }
 
-        return new BasicArrayBuffer<T>(new T[length]);
+        long lengthInBytesLong = (long)lengthInBytes;
+        this.ReserveAllocation(lengthInBytesLong);
+
+        try
+        {
+            IMemoryOwner<T> buffer = new BasicArrayBuffer<T>(new T[length]);
+            return this.TrackAllocation(buffer, lengthInBytes);
+        }
+        catch
+        {
+            this.ReleaseAccumulatedBytes(lengthInBytesLong);
+            throw;
+        }
     }
 }

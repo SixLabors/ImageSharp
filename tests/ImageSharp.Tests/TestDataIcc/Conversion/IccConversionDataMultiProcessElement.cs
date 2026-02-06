@@ -9,15 +9,14 @@ public class IccConversionDataMultiProcessElement
 {
     private static readonly IccMatrixProcessElement Matrix = new(
         new float[,]
-    {
-        { 2, 4, 6 },
-        { 3, 5, 7 },
-    },
-        new float[] { 3, 4, 5 });
+        {
+            { 2, 4, 6 },
+            { 3, 5, 7 },
+        },
+        [3, 4, 5]);
 
     private static readonly IccClut Clut = new(
-        new[]
-        {
+        [
             0.2f, 0.3f,
             0.4f, 0.2f,
 
@@ -28,9 +27,9 @@ public class IccConversionDataMultiProcessElement
             0.42f, 0.52f,
 
             0.23f, 0.33f,
-            0.43f, 0.53f,
-        },
-        new byte[] { 2, 2, 2 },
+            0.43f, 0.53f
+        ],
+        [2, 2, 2],
         IccClutDataType.Float,
         outputChannelCount: 2);
 
@@ -42,39 +41,39 @@ public class IccConversionDataMultiProcessElement
     private static readonly IccCurveSetProcessElement CurveSet1DFormula2 = Create1DSingleCurveSet(FormulaCurveElement2);
     private static readonly IccCurveSetProcessElement CurveSet1DFormula3 = Create1DSingleCurveSet(FormulaCurveElement3);
 
-    private static readonly IccCurveSetProcessElement CurveSet1DFormula1And2 = Create1DMultiCurveSet(new[] { 0.5f }, FormulaCurveElement1, FormulaCurveElement2);
+    private static readonly IccCurveSetProcessElement CurveSet1DFormula1And2 = Create1DMultiCurveSet([0.5f], FormulaCurveElement1, FormulaCurveElement2);
 
     private static readonly IccClutProcessElement ClutElement = new(Clut);
 
     private static IccCurveSetProcessElement Create1DSingleCurveSet(IccCurveSegment segment)
     {
-        IccOneDimensionalCurve curve = new(new float[0], new[] { segment });
-        return new IccCurveSetProcessElement(new[] { curve });
+        IccOneDimensionalCurve curve = new([], [segment]);
+        return new IccCurveSetProcessElement([curve]);
     }
 
     private static IccCurveSetProcessElement Create1DMultiCurveSet(float[] breakPoints, params IccCurveSegment[] segments)
     {
         IccOneDimensionalCurve curve = new(breakPoints, segments);
-        return new IccCurveSetProcessElement(new[] { curve });
+        return new IccCurveSetProcessElement([curve]);
     }
 
     public static object[][] MpeCurveConversionTestData =
-    {
-        new object[] { CurveSet1DFormula1, new[] { 0.51f }, new[] { 0.575982451f } },
-        new object[] { CurveSet1DFormula2, new[] { 0.52f }, new[] { -0.4684991f } },
-        new object[] { CurveSet1DFormula3, new[] { 0.53f }, new[] { 0.86126f } },
+    [
+        [CurveSet1DFormula1, new[] { 0.51f }, new[] { 0.575982451f }],
+        [CurveSet1DFormula2, new[] { 0.52f }, new[] { -0.4684991f }],
+        [CurveSet1DFormula3, new[] { 0.53f }, new[] { 0.86126f }],
 
-        new object[] { CurveSet1DFormula1And2, new[] { 0.31f }, new[] { 0.445982f } },
-        new object[] { CurveSet1DFormula1And2, new[] { 0.61f }, new[] { -0.341274023f } },
-    };
+        [CurveSet1DFormula1And2, new[] { 0.31f }, new[] { 0.445982f }],
+        [CurveSet1DFormula1And2, new[] { 0.61f }, new[] { -0.341274023f }]
+    ];
 
     public static object[][] MpeMatrixConversionTestData =
-    {
-        new object[] { Matrix, new float[] { 2, 4 }, new float[] { 19, 32, 45 } }
-    };
+    [
+        [Matrix, new float[] { 2, 4 }, new float[] { 19, 32, 45 }]
+    ];
 
     public static object[][] MpeClutConversionTestData =
-    {
-        new object[] { ClutElement, new[] { 0.5f, 0.5f, 0.5f }, new[] { 0.5f, 0.5f } }
-    };
+    [
+        [ClutElement, new[] { 0.5f, 0.5f, 0.5f }, new[] { 0.5f, 0.5f }]
+    ];
 }

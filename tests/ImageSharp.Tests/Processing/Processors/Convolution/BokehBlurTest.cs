@@ -47,7 +47,7 @@ public class BokehBlurTest
     public void VerifyComplexComponents()
     {
         // Get the saved components
-        List<Complex64[]> components = new();
+        List<Complex64[]> components = [];
         foreach (Match match in Regex.Matches(Components10x2, @"\[\[(.*?)\]\]", RegexOptions.Singleline))
         {
             string[] values = match.Groups[1].Value.Trim().Split([' '], StringSplitOptions.RemoveEmptyEntries);

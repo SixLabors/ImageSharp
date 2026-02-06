@@ -99,9 +99,9 @@ public partial class MemoryGroupTests : MemoryGroupTestsBase
     [Fact]
     public void Wrap()
     {
-        int[] data0 = { 1, 2, 3, 4 };
-        int[] data1 = { 5, 6, 7, 8 };
-        int[] data2 = { 9, 10 };
+        int[] data0 = [1, 2, 3, 4];
+        int[] data1 = [5, 6, 7, 8];
+        int[] data2 = [9, 10];
         using TestMemoryManager<int> mgr0 = new(data0);
         using TestMemoryManager<int> mgr1 = new(data1);
 
@@ -116,7 +116,7 @@ public partial class MemoryGroupTests : MemoryGroupTestsBase
         Assert.True(group[2].Span.SequenceEqual(data2));
 
         int cnt = 0;
-        int[][] allData = { data0, data1, data2 };
+        int[][] allData = [data0, data1, data2];
         foreach (Memory<int> memory in group)
         {
             Assert.True(memory.Span.SequenceEqual(allData[cnt]));

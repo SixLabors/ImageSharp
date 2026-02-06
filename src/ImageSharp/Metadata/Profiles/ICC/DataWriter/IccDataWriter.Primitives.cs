@@ -189,7 +189,7 @@ internal sealed partial class IccDataWriter
     /// <param name="length">The desired length of the string (including potential null terminator)</param>
     /// <param name="ensureNullTerminator">If True, there will be a \0 added at the end</param>
     /// <returns>the number of bytes written</returns>
-    public int WriteAsciiString(string value, int length, bool ensureNullTerminator)
+    public int WriteAsciiString(string? value, int length, bool ensureNullTerminator)
     {
         if (length == 0)
         {

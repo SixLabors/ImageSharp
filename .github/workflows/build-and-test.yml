@@ -49,7 +49,7 @@ jobs:
         run: echo "lfs_key=$LFS_KEY" >> "$GITHUB_OUTPUT"
 
       - name: Git Setup LFS Cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: .git/lfs
           key: ${{ steps.expose-key.outputs.lfs_key }}
@@ -144,7 +144,7 @@ jobs:
 
       # Use the warmed key from WarmLFS. Do not recompute or recreate .lfs-assets-id here.
       - name: Git Setup LFS Cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: .git/lfs
           key: ${{ needs.WarmLFS.outputs.lfs_key }}
@@ -157,7 +157,7 @@ jobs:
         uses: NuGet/setup-nuget@v2
 
       - name: NuGet Setup Cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         id: nuget-cache
         with:
           path: ~/.nuget
@@ -236,7 +236,7 @@ jobs:
         uses: NuGet/setup-nuget@v2
 
       - name: NuGet Setup Cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         id: nuget-cache
         with:
           path: ~/.nuget

@@ -38,10 +38,13 @@ public abstract class MemoryAllocator
     /// Gets the maximum allowed total allocation size, in bytes, for the current process.
     /// </summary>
     /// <remarks>
-    /// The allocation limit is determined based on the process architecture. For 64-bit processes,
-    /// the limit is higher than for 32-bit processes.
+    /// Defaults to <see cref="long.MaxValue"/>, effectively imposing no limit on total allocations.
+    /// This property can be set to enforce a cap on total memory usage across all allocations made through this allocator instance, providing
+    /// a safeguard against excessive memory consumption.<br/>
+    /// When the cumulative size of active allocations exceeds this limit, an <see cref="InvalidMemoryOperationException"/> will be thrown to
+    /// prevent further allocations and signal that the limit has been breached.
     /// </remarks>
-    internal long AccumulativeAllocationLimitBytes { get; private protected set; } = Environment.Is64BitProcess ? 8L * OneGigabyte : 2L * OneGigabyte;
+    internal long AccumulativeAllocationLimitBytes { get; private protected set; } = long.MaxValue;
 
     /// <summary>
     /// Gets the maximum size, in bytes, that can be allocated for a single buffer.

@@ -71,10 +71,6 @@ internal sealed class UniformUnmanagedMemoryPoolMemoryAllocator : MemoryAllocato
         this.nonPoolAllocator = new UnmanagedMemoryAllocator(unmanagedBufferSizeInBytes);
     }
 
-    // This delegate allows overriding the method returning the available system memory,
-    // so we can test our workaround for https://github.com/dotnet/runtime/issues/65466
-    internal static Func<long> GetTotalAvailableMemoryBytes { get; set; } = () => GC.GetGCMemoryInfo().TotalAvailableMemoryBytes;
-
     /// <inheritdoc />
     protected internal override int GetBufferCapacityInBytes() => this.poolBufferSizeInBytes;
 
@@ -195,20 +191,14 @@ internal sealed class UniformUnmanagedMemoryPoolMemoryAllocator : MemoryAllocato
 
     private static long GetDefaultMaxPoolSizeBytes()
     {
-        // On 64 bit set the pool size to a portion of the total available memory.
-        // https://github.com/dotnet/runtime/issues/55126#issuecomment-876779327
         if (Environment.Is64BitProcess)
         {
-            long total = GetTotalAvailableMemoryBytes();
-
-            // Workaround for https://github.com/dotnet/runtime/issues/65466
-            if (total > 0)
-            {
-                return (long)((ulong)total / 8);
-            }
+            // On 64 bit set the pool size to a portion of the total available memory.
+            GCMemoryInfo info = GC.GetGCMemoryInfo();
+            return info.TotalAvailableMemoryBytes / 8;
         }
 
-        // Stick to a conservative value of 128 Megabytes on other platforms and 32 bit .NET 5.0:
+        // Stick to a conservative value of 128 Megabytes on 32 bit.
         return 128 * OneMegabyte;
     }
 }

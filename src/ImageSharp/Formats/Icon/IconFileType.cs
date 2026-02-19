@@ -16,5 +16,5 @@ internal enum IconFileType : ushort
     /// <summary>
     /// CUR file
     /// </summary>
-    CUR = 2,
+    CUR = 2
 }

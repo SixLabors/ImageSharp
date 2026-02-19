@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace SixLabors.ImageSharp.Formats.Icon;
@@ -52,9 +53,9 @@ internal struct IconDirEntry
     /// </summary>
     public uint ImageOffset;
 
-    public static IconDirEntry Parse(in ReadOnlySpan<byte> data)
-        => MemoryMarshal.Cast<byte, IconDirEntry>(data)[0];
+    public static ref IconDirEntry Parse(in ReadOnlySpan<byte> data)
+        => ref Unsafe.As<byte, IconDirEntry>(ref MemoryMarshal.GetReference(data));
 
-    public readonly unsafe void WriteTo(in Stream stream)
-        => stream.Write(MemoryMarshal.Cast<IconDirEntry, byte>([this]));
+    public readonly void WriteTo(in Stream stream)
+        => stream.Write(MemoryMarshal.AsBytes(MemoryMarshal.CreateReadOnlySpan(in this, 1)));
 }

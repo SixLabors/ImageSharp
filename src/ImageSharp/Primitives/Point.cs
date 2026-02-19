@@ -145,6 +145,24 @@ public struct Point : IEquatable<Point>
         => new(left.X / right, left.Y / right);
 
     /// <summary>
+    /// Shift <see cref="Point"/> to the right by a <see cref="int"/> amount producing <see cref="Point"/>.
+    /// </summary>
+    /// <param name="left">Shifted value of type <see cref="Point"/>.</param>
+    /// <param name="right">Shifted amount of type <see cref="int"/>.</param>
+    /// <returns>Result of type <see cref="Point"/>.</returns>
+    public static Point operator >>(Point left, int right)
+        => new(left.X >> right, left.Y >> right);
+
+    /// <summary>
+    /// Shift <see cref="Point"/> to the left by a <see cref="int"/> amount producing <see cref="Point"/>.
+    /// </summary>
+    /// <param name="left">Shifted value of type <see cref="Point"/>.</param>
+    /// <param name="right">Shifted amount of type <see cref="int"/>.</param>
+    /// <returns>Result of type <see cref="Point"/>.</returns>
+    public static Point operator <<(Point left, int right)
+        => new(left.X << right, left.Y << right);
+
+    /// <summary>
     /// Compares two <see cref="Point"/> objects for equality.
     /// </summary>
     /// <param name="left">The <see cref="Point"/> on the left side of the operand.</param>
@@ -266,6 +284,24 @@ public struct Point : IEquatable<Point>
     /// <param name="point">The <see cref="Point"/> used offset this <see cref="Point"/>.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Offset(Point point) => this.Offset(point.X, point.Y);
+
+    /// <summary>
+    /// Shifts the coordinate value of this <see cref="Point"/> to the right with the specified amount.
+    /// </summary>
+    /// <param name="point">The point to shift.</param>
+    /// <param name="bitCount">The number of bits to shift to the right.</param>
+    /// <returns>The <see cref="Point"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Point ShiftRight(Point point, int bitCount) => new(unchecked(point.X >> bitCount), unchecked(point.Y >> bitCount));
+
+    /// <summary>
+    /// Shifts the coordinate value of this <see cref="Point"/> to the left with the specified amount.
+    /// </summary>
+    /// <param name="point">The point to shift.</param>
+    /// <param name="bitCount">The number of bits to shift to the left.</param>
+    /// <returns>The <see cref="Point"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Point ShiftLeft(Point point, int bitCount) => new(unchecked(point.X << bitCount), unchecked(point.Y << bitCount));
 
     /// <inheritdoc/>
     public override readonly int GetHashCode() => HashCode.Combine(this.X, this.Y);

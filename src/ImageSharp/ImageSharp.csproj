@@ -51,6 +51,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Update="Formats\Heif\Heif4CharCode.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Heif4CharCode.tt</DependentUpon>
+    </Compile>
     <Compile Update="Common\InlineArray.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
@@ -149,6 +154,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Update="Formats\Heif\Heif4CharCode.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>Heif4CharCode.cs</LastGenOutput>
+    </None>
     <None Update="Common\InlineArray.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>InlineArray.cs</LastGenOutput>

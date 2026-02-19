@@ -20,7 +20,7 @@ public class ConfigurationTests
 
     public Configuration DefaultConfiguration { get; }
 
-    private readonly int expectedDefaultConfigurationCount = 11;
+    private readonly int expectedDefaultConfigurationCount = 12;
 
     public ConfigurationTests()
     {

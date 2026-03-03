@@ -609,14 +609,14 @@ public abstract partial class Image
         ImageMetadata metadata)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        Guard.IsFalse(pointer == null, nameof(pointer), "Pointer must be not null");
+        Guard.IsFalse(pointer == null, nameof(pointer), "Pointer must not be null");
         Guard.NotNull(configuration, nameof(configuration));
         Guard.NotNull(metadata, nameof(metadata));
 
         int rowStride = GetPixelRowStrideFromByteStride<TPixel>(width, rowStrideInBytes, nameof(rowStrideInBytes));
         long requiredLength = GetRequiredLength(width, height, rowStride);
 
-        Guard.MustBeLessThanOrEqualTo(requiredLength, int.MaxValue, nameof(height));
+        Guard.MustBeLessThanOrEqualTo(requiredLength, int.MaxValue, nameof(requiredLength));
         Guard.MustBeGreaterThanOrEqualTo(bufferSizeInBytes / Unsafe.SizeOf<TPixel>(), requiredLength, nameof(bufferSizeInBytes));
 
         UnmanagedMemoryManager<TPixel> memoryManager = new(pointer, (int)requiredLength);

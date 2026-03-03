@@ -356,7 +356,7 @@ public sealed class Buffer2D<T> : IDisposable
     /// Thrown when the backing group is discontiguous.
     /// </exception>
     [MethodImpl(InliningOptions.ShortMethod)]
-    internal Span<T> DangerousGetSingleSpan() => this.FastMemoryGroup[0].Span;
+    internal Span<T> DangerousGetSingleSpan() => this.FastMemoryGroup.Single().Span;
 
     /// <summary>
     /// Gets a <see cref="Memory{T}"/> to the backing data of if the backing group consists of a single contiguous memory buffer.
@@ -367,7 +367,7 @@ public sealed class Buffer2D<T> : IDisposable
     /// Thrown when the backing group is discontiguous.
     /// </exception>
     [MethodImpl(InliningOptions.ShortMethod)]
-    internal Memory<T> DangerousGetSingleMemory() => this.FastMemoryGroup[0];
+    internal Memory<T> DangerousGetSingleMemory() => this.FastMemoryGroup.Single();
 
     /// <summary>
     /// Swaps the contents of 'destination' with 'source' if the buffers are owned (1),
@@ -414,5 +414,5 @@ public sealed class Buffer2D<T> : IDisposable
 
     [MethodImpl(InliningOptions.ShortMethod)]
     private static long GetRequiredLength(int width, int height, int stride)
-        => ((long)(height - 1) * stride) + width;
+        => checked(((long)(height - 1) * stride) + width);
 }

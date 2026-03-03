@@ -202,7 +202,7 @@ public partial class ImageTests
         {
             int pixelSize = Unsafe.SizeOf<Rgba32>();
             byte[] sourceBytes = new byte[8 * pixelSize];
-            Span<Rgba32> source = MemoryMarshal.Cast<byte, Rgba32>(sourceBytes);
+            Span<Rgba32> source = MemoryMarshal.Cast<byte, Rgba32>(sourceBytes.AsSpan());
 
             source[0] = new Rgba32(1, 1, 1, 255);
             source[1] = new Rgba32(2, 2, 2, 255);

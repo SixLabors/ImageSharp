@@ -45,7 +45,7 @@ public static class Buffer2DExtensions
         Buffer2DRegion<T> sourceRegion = source.GetRegion(rectangle);
         if (sourceRegion.IsFullBufferArea)
         {
-            sourceRegion.Buffer.FastMemoryGroup.CopyTo(buffer.FastMemoryGroup);
+            sourceRegion.Buffer.CopyTo(buffer);
         }
         else
         {
@@ -81,7 +81,7 @@ public static class Buffer2DExtensions
         CheckColumnRegionsDoNotOverlap(buffer, sourceIndex, destinationIndex, columnCount);
 
         int elementSize = Unsafe.SizeOf<T>();
-        int width = buffer.Width * elementSize;
+        int rowByteStride = buffer.RowStride * elementSize;
         int sOffset = sourceIndex * elementSize;
         int dOffset = destinationIndex * elementSize;
         long count = columnCount * elementSize;
@@ -98,7 +98,7 @@ public static class Buffer2DExtensions
 
                 Buffer.MemoryCopy(sPtr, dPtr, count, count);
 
-                basePtr += width;
+                basePtr += rowByteStride;
             }
         }
     }

@@ -142,6 +142,103 @@ public partial class ImageTests
         }
 
         [Fact]
+        public void WrapMemory_MemoryOfT_Strided_CreatedImageIsCorrect()
+        {
+            Rgba32[] source =
+            [
+                new Rgba32(1, 1, 1, 255),
+                new Rgba32(2, 2, 2, 255),
+                new Rgba32(3, 3, 3, 255),
+                new Rgba32(90, 90, 90, 255),
+                new Rgba32(4, 4, 4, 255),
+                new Rgba32(5, 5, 5, 255),
+                new Rgba32(6, 6, 6, 255),
+                new Rgba32(91, 91, 91, 255)
+            ];
+
+            using Image<Rgba32> image = Image.WrapMemory(source.AsMemory(), width: 3, height: 2, rowStride: 4);
+
+            Assert.Equal(4, image.Frames.RootFrame.PixelBuffer.RowStride);
+            Assert.False(image.DangerousTryGetSinglePixelMemory(out Memory<Rgba32> _));
+            Assert.Equal(source[0], image[0, 0]);
+            Assert.Equal(source[2], image[2, 0]);
+            Assert.Equal(source[4], image[0, 1]);
+            Assert.Equal(source[6], image[2, 1]);
+        }
+
+        [Fact]
+        public void WrapMemory_MemoryOfT_Strided_CopyPixelDataTo_UsesRowStrideLayout()
+        {
+            Rgba32[] source =
+            [
+                new Rgba32(1, 1, 1, 255),
+                new Rgba32(2, 2, 2, 255),
+                new Rgba32(3, 3, 3, 255),
+                new Rgba32(90, 90, 90, 255),
+                new Rgba32(4, 4, 4, 255),
+                new Rgba32(5, 5, 5, 255),
+                new Rgba32(6, 6, 6, 255),
+                new Rgba32(91, 91, 91, 255)
+            ];
+
+            using Image<Rgba32> image = Image.WrapMemory(source.AsMemory(), width: 3, height: 2, rowStride: 4);
+
+            Rgba32 sentinel = new(250, 1, 1, 255);
+            Rgba32[] destination = [sentinel, sentinel, sentinel, sentinel, sentinel, sentinel, sentinel];
+            image.CopyPixelDataTo(destination);
+
+            Assert.Equal(source[0], destination[0]);
+            Assert.Equal(source[1], destination[1]);
+            Assert.Equal(source[2], destination[2]);
+            Assert.Equal(sentinel, destination[3]);
+            Assert.Equal(source[4], destination[4]);
+            Assert.Equal(source[5], destination[5]);
+            Assert.Equal(source[6], destination[6]);
+            Assert.ThrowsAny<ArgumentOutOfRangeException>(() => image.CopyPixelDataTo(new Rgba32[6]));
+        }
+
+        [Fact]
+        public void WrapMemory_MemoryOfByte_Strided_CreatedImageIsCorrect()
+        {
+            int pixelSize = Unsafe.SizeOf<Rgba32>();
+            byte[] sourceBytes = new byte[8 * pixelSize];
+            Span<Rgba32> source = MemoryMarshal.Cast<byte, Rgba32>(sourceBytes);
+
+            source[0] = new Rgba32(1, 1, 1, 255);
+            source[1] = new Rgba32(2, 2, 2, 255);
+            source[2] = new Rgba32(3, 3, 3, 255);
+            source[4] = new Rgba32(4, 4, 4, 255);
+            source[5] = new Rgba32(5, 5, 5, 255);
+            source[6] = new Rgba32(6, 6, 6, 255);
+
+            using Image<Rgba32> image = Image.WrapMemory<Rgba32>(
+                sourceBytes.AsMemory(),
+                width: 3,
+                height: 2,
+                rowStrideInBytes: 4 * pixelSize);
+
+            Assert.Equal(4, image.Frames.RootFrame.PixelBuffer.RowStride);
+            Assert.False(image.DangerousTryGetSinglePixelMemory(out Memory<Rgba32> _));
+            Assert.Equal(source[0], image[0, 0]);
+            Assert.Equal(source[2], image[2, 0]);
+            Assert.Equal(source[4], image[0, 1]);
+            Assert.Equal(source[6], image[2, 1]);
+        }
+
+        [Fact]
+        public void WrapMemory_Strided_InvalidStride_Throws()
+        {
+            Rgba32[] pixelSource = new Rgba32[8];
+            byte[] byteSource = new byte[8 * Unsafe.SizeOf<Rgba32>()];
+
+            Assert.ThrowsAny<ArgumentOutOfRangeException>(() => Image.WrapMemory(pixelSource.AsMemory(), width: 3, height: 2, rowStride: 2));
+            Assert.ThrowsAny<ArgumentException>(() => Image.WrapMemory(pixelSource.AsMemory(0, 6), width: 3, height: 2, rowStride: 4));
+
+            Assert.ThrowsAny<ArgumentException>(() => Image.WrapMemory<Rgba32>(byteSource.AsMemory(), width: 3, height: 2, rowStrideInBytes: (4 * Unsafe.SizeOf<Rgba32>()) - 1));
+            Assert.ThrowsAny<ArgumentException>(() => Image.WrapMemory<Rgba32>(byteSource.AsMemory(0, 6 * Unsafe.SizeOf<Rgba32>()), width: 3, height: 2, rowStrideInBytes: 4 * Unsafe.SizeOf<Rgba32>()));
+        }
+
+        [Fact]
         public void WrapSystemDrawingBitmap_WhenObserved()
         {
             if (ShouldSkipBitmapTest)

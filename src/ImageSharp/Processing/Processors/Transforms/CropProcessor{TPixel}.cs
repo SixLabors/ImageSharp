@@ -53,7 +53,7 @@ internal class CropProcessor<TPixel> : TransformProcessor<TPixel>
             && this.SourceRectangle == this.cropRectangle)
         {
             // the cloned will be blank here copy all the pixel data over
-            source.GetPixelMemoryGroup().CopyTo(destination.GetPixelMemoryGroup());
+            source.PixelBuffer.CopyTo(destination.PixelBuffer);
             return;
         }
 

@@ -91,7 +91,7 @@ public sealed class Image<TPixel> : Image
         Configuration configuration,
         Buffer2D<TPixel> pixelBuffer,
         ImageMetadata metadata)
-        : this(configuration, pixelBuffer.FastMemoryGroup, pixelBuffer.Width, pixelBuffer.Height, metadata)
+        : this(configuration, pixelBuffer.FastMemoryGroup, pixelBuffer.Width, pixelBuffer.Height, pixelBuffer.RowStride, metadata)
     {
     }
 
@@ -110,8 +110,29 @@ public sealed class Image<TPixel> : Image
         int width,
         int height,
         ImageMetadata metadata)
+        : this(configuration, memoryGroup, width, height, width, metadata)
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Image{TPixel}"/> class
+    /// wrapping an external <see cref="MemoryGroup{T}"/>.
+    /// </summary>
+    /// <param name="configuration">The configuration providing initialization code which allows extending the library.</param>
+    /// <param name="memoryGroup">The memory source.</param>
+    /// <param name="width">The width of the image in pixels.</param>
+    /// <param name="height">The height of the image in pixels.</param>
+    /// <param name="rowStride">The number of elements between row starts.</param>
+    /// <param name="metadata">The images metadata.</param>
+    internal Image(
+        Configuration configuration,
+        MemoryGroup<TPixel> memoryGroup,
+        int width,
+        int height,
+        int rowStride,
+        ImageMetadata metadata)
         : base(configuration, TPixel.GetPixelTypeInfo(), metadata, width, height)
-        => this.frames = new ImageFrameCollection<TPixel>(this, width, height, memoryGroup);
+        => this.frames = new ImageFrameCollection<TPixel>(this, width, height, rowStride, memoryGroup);
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Image{TPixel}"/> class
@@ -287,16 +308,24 @@ public sealed class Image<TPixel> : Image
     }
 
     /// <summary>
-    /// Copy image pixels to <paramref name="destination"/>.
+    /// Copy image pixels to <paramref name="destination"/> using the root frame backing row layout.
     /// </summary>
+    /// <remarks>
+    /// Destination length must be at least
+    /// <c>((Height - 1) * Frames.RootFrame.PixelBuffer.RowStride) + Width</c>.
+    /// </remarks>
     /// <param name="destination">The <see cref="Span{TPixel}"/> to copy image pixels to.</param>
-    public void CopyPixelDataTo(Span<TPixel> destination) => this.GetPixelMemoryGroup().CopyTo(destination);
+    public void CopyPixelDataTo(Span<TPixel> destination) => this.Frames.RootFrame.CopyPixelDataTo(destination);
 
     /// <summary>
-    /// Copy image pixels to <paramref name="destination"/>.
+    /// Copy image pixels to <paramref name="destination"/> using the root frame backing row layout.
     /// </summary>
+    /// <remarks>
+    /// Destination length must be at least
+    /// <c>(((Height - 1) * Frames.RootFrame.PixelBuffer.RowStride) + Width) * sizeof(TPixel)</c> bytes.
+    /// </remarks>
     /// <param name="destination">The <see cref="Span{T}"/> of <see cref="byte"/> to copy image pixels to.</param>
-    public void CopyPixelDataTo(Span<byte> destination) => this.GetPixelMemoryGroup().CopyTo(MemoryMarshal.Cast<byte, TPixel>(destination));
+    public void CopyPixelDataTo(Span<byte> destination) => this.Frames.RootFrame.CopyPixelDataTo(destination);
 
     /// <summary>
     /// Gets the representation of the pixels as a <see cref="Memory{T}"/> in the source image's pixel format
@@ -311,17 +340,7 @@ public sealed class Image<TPixel> : Image
     /// <param name="memory">The <see cref="Memory{T}"/> referencing the image buffer.</param>
     /// <returns>The <see cref="bool"/> indicating the success.</returns>
     public bool DangerousTryGetSinglePixelMemory(out Memory<TPixel> memory)
-    {
-        IMemoryGroup<TPixel> mg = this.GetPixelMemoryGroup();
-        if (mg.Count > 1)
-        {
-            memory = default;
-            return false;
-        }
-
-        memory = mg.Single();
-        return true;
-    }
+        => this.Frames.RootFrame.DangerousTryGetSinglePixelMemory(out memory);
 
     /// <summary>
     /// Clones the current image.

@@ -1,6 +1,5 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Metadata;
@@ -31,12 +30,14 @@ internal static class TiffDecoderMetadataCreator
                 // ICC profile data has already been resolved in the frame metadata,
                 // as it is required for color conversion.
                 ImageFrameMetadata frameMetaData = frames[i];
-                if (TryGetIptc(frameMetaData.ExifProfile.Values, out byte[] iptcBytes))
+                DebugGuard.NotNull(frameMetaData.ExifProfile);
+
+                if (TryGetIptc(frameMetaData.ExifProfile.Values, out byte[]? iptcBytes))
                 {
                     frameMetaData.IptcProfile = new IptcProfile(iptcBytes);
                 }
 
-                if (frameMetaData.ExifProfile.TryGetValue(ExifTag.XMP, out IExifValue<byte[]> xmpProfileBytes))
+                if (frameMetaData.ExifProfile.TryGetValue(ExifTag.XMP, out IExifValue<byte[]>? xmpProfileBytes))
                 {
                     frameMetaData.XmpProfile = new XmpProfile(xmpProfileBytes.Value);
                 }
@@ -65,7 +66,7 @@ internal static class TiffDecoderMetadataCreator
         return imageMetaData;
     }
 
-    private static void SetResolution(ImageMetadata imageMetaData, ExifProfile exifProfile)
+    private static void SetResolution(ImageMetadata imageMetaData, ExifProfile? exifProfile)
     {
         imageMetaData.ResolutionUnits = exifProfile != null ? UnitConverter.ExifProfileToResolutionUnit(exifProfile) : PixelResolutionUnit.PixelsPerInch;
 
@@ -74,34 +75,34 @@ internal static class TiffDecoderMetadataCreator
             return;
         }
 
-        if (exifProfile.TryGetValue(ExifTag.XResolution, out IExifValue<Rational> horizontalResolution))
+        if (exifProfile.TryGetValue(ExifTag.XResolution, out IExifValue<Rational>? horizontalResolution))
         {
             imageMetaData.HorizontalResolution = horizontalResolution.Value.ToDouble();
         }
 
-        if (exifProfile.TryGetValue(ExifTag.YResolution, out IExifValue<Rational> verticalResolution))
+        if (exifProfile.TryGetValue(ExifTag.YResolution, out IExifValue<Rational>? verticalResolution))
         {
             imageMetaData.VerticalResolution = verticalResolution.Value.ToDouble();
         }
     }
 
-    private static bool TryGetIptc(IReadOnlyList<IExifValue> exifValues, out byte[] iptcBytes)
+    private static bool TryGetIptc(IReadOnlyList<IExifValue> exifValues, out byte[]? iptcBytes)
     {
         iptcBytes = null;
-        IExifValue iptc = exifValues.FirstOrDefault(f => f.Tag == ExifTag.IPTC);
+        IExifValue? iptc = exifValues.FirstOrDefault(f => f.Tag == ExifTag.IPTC);
 
         if (iptc != null)
         {
             if (iptc.DataType is ExifDataType.Byte or ExifDataType.Undefined)
             {
-                iptcBytes = (byte[])iptc.GetValue();
+                iptcBytes = (byte[]?)iptc.GetValue();
                 return true;
             }
 
             // Some Encoders write the data type of IPTC as long.
             if (iptc.DataType == ExifDataType.Long)
             {
-                uint[] iptcValues = (uint[])iptc.GetValue();
+                uint[] iptcValues = (uint[])iptc.GetValue()!;
                 iptcBytes = new byte[iptcValues.Length * 4];
                 Buffer.BlockCopy(iptcValues, 0, iptcBytes, 0, iptcValues.Length * 4);
                 if (iptcBytes[0] == 0x1c)

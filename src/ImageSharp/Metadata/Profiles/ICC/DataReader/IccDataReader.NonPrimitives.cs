@@ -144,7 +144,7 @@ internal sealed partial class IccDataReader
                 case IccTypeSignature.MultiLocalizedUnicode:
                     return this.ReadMultiLocalizedUnicodeTagDataEntry();
                 case IccTypeSignature.TextDescription:
-                    return (IccMultiLocalizedUnicodeTagDataEntry)this.ReadTextDescriptionTagDataEntry();
+                    return ((IccMultiLocalizedUnicodeTagDataEntry)this.ReadTextDescriptionTagDataEntry())!;
 
                 default:
                     throw new InvalidIccProfileException("Profile description can only have multi-localized Unicode or text description entries");

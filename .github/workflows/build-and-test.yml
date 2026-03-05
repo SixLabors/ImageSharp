@@ -209,7 +209,7 @@ jobs:
           XUNIT_PATH: .\tests\ImageSharp.Tests # Required for xunit
 
       - name: Export Failed Output
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         if: failure()
         with:
           name: actual_output_${{ runner.os }}_${{ matrix.options.framework }}${{ matrix.options.runtime }}.zip

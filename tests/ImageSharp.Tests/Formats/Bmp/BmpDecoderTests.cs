@@ -571,4 +571,27 @@ public class BmpDecoderTests
             });
         Assert.IsType<InvalidMemoryOperationException>(ex.InnerException);
     }
+
+    [Fact]
+    public void BmpDecoder_ThrowsException_Issue3067()
+    {
+        // Construct minimal BMP with bitsPerPixel = 0
+        byte[] bmp = new byte[54];
+        bmp[0] = (byte)'B';
+        bmp[1] = (byte)'M';
+        BitConverter.GetBytes(54).CopyTo(bmp, 2);
+        BitConverter.GetBytes(54).CopyTo(bmp, 10);
+        BitConverter.GetBytes(40).CopyTo(bmp, 14);
+        BitConverter.GetBytes(1).CopyTo(bmp, 18);
+        BitConverter.GetBytes(1).CopyTo(bmp, 22);
+        BitConverter.GetBytes((short)1).CopyTo(bmp, 26);
+        BitConverter.GetBytes((short)0).CopyTo(bmp, 28);  // bitsPerPixel = 0
+
+        using MemoryStream stream = new(bmp);
+
+        Assert.Throws<InvalidImageContentException>(() =>
+        {
+            using Image image = BmpDecoder.Instance.Decode(DecoderOptions.Default, stream);
+        });
+    }
 }

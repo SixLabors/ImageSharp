@@ -126,7 +126,10 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
             switch (this.infoHeader.Compression)
             {
                 case BmpCompression.RGB:
-                    if (this.infoHeader.BitsPerPixel == 32)
+
+                    ushort bitsPerPixel = this.infoHeader.BitsPerPixel;
+
+                    if (bitsPerPixel == 32)
                     {
                         if (this.bmpMetadata.InfoHeaderType == BmpInfoHeaderType.WinVersion3)
                         {
@@ -137,15 +140,15 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
                             this.ReadRgb32Fast(stream, pixels, this.infoHeader.Width, this.infoHeader.Height, inverted);
                         }
                     }
-                    else if (this.infoHeader.BitsPerPixel == 24)
+                    else if (bitsPerPixel == 24)
                     {
                         this.ReadRgb24(stream, pixels, this.infoHeader.Width, this.infoHeader.Height, inverted);
                     }
-                    else if (this.infoHeader.BitsPerPixel == 16)
+                    else if (bitsPerPixel == 16)
                     {
                         this.ReadRgb16(stream, pixels, this.infoHeader.Width, this.infoHeader.Height, inverted);
                     }
-                    else if (this.infoHeader.BitsPerPixel <= 8)
+                    else if (bitsPerPixel is > 0 and <= 8)
                     {
                         this.ReadRgbPalette(
                             stream,
@@ -153,9 +156,13 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
                             palette,
                             this.infoHeader.Width,
                             this.infoHeader.Height,
-                            this.infoHeader.BitsPerPixel,
+                            bitsPerPixel,
                             bytesPerColorMapEntry,
                             inverted);
+                    }
+                    else
+                    {
+                        BmpThrowHelper.ThrowInvalidImageContentException($"Invalid bits per pixel: {bitsPerPixel}");
                     }
 
                     break;

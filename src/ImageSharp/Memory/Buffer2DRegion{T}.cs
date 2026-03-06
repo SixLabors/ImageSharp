@@ -59,9 +59,9 @@ public readonly struct Buffer2DRegion<T>
     public int Height => this.Rectangle.Height;
 
     /// <summary>
-    /// Gets the pixel stride which is equal to the width of <see cref="Buffer"/>.
+    /// Gets the number of elements between row starts in <see cref="Buffer"/>.
     /// </summary>
-    public int Stride => this.Buffer.Width;
+    public int Stride => this.Buffer.RowStride;
 
     /// <summary>
     /// Gets the size of the area.
@@ -146,9 +146,9 @@ public readonly struct Buffer2DRegion<T>
     internal void Clear()
     {
         // Optimization for when the size of the area is the same as the buffer size.
-        if (this.IsFullBufferArea)
+        if (this.IsFullBufferArea && this.Buffer.RowStride == this.Buffer.Width)
         {
-            this.Buffer.FastMemoryGroup.Clear();
+            this.Buffer.Clear(default);
             return;
         }
 
@@ -166,9 +166,9 @@ public readonly struct Buffer2DRegion<T>
     internal void Fill(T value)
     {
         // Optimization for when the size of the area is the same as the buffer size.
-        if (this.IsFullBufferArea)
+        if (this.IsFullBufferArea && this.Buffer.RowStride == this.Buffer.Width)
         {
-            this.Buffer.FastMemoryGroup.Fill(value);
+            this.Buffer.Clear(value);
             return;
         }
 

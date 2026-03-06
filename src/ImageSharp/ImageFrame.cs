@@ -71,7 +71,7 @@ public abstract partial class ImageFrame : IConfigurationProvider, IDisposable
     /// <param name="disposing">Whether to dispose of managed and unmanaged objects.</param>
     protected abstract void Dispose(bool disposing);
 
-    internal abstract void CopyPixelsTo<TDestinationPixel>(MemoryGroup<TDestinationPixel> destination)
+    internal abstract void CopyPixelsTo<TDestinationPixel>(Buffer2D<TDestinationPixel> destination)
         where TDestinationPixel : unmanaged, IPixel<TDestinationPixel>;
 
     /// <summary>

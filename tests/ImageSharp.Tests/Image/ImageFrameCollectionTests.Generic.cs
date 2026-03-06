@@ -64,7 +64,7 @@ public abstract partial class ImageFrameCollectionTests
                     using ImageFrame<Rgba32> addedFrame = this.Collection.AddFrame(Array.Empty<Rgba32>());
                 });
 
-            Assert.StartsWith($"Parameter \"data\" ({typeof(int)}) must be greater than or equal to {100}, was {0}", ex.Message);
+            Assert.StartsWith($"Parameter \"data\" ({typeof(long)}) must be greater than or equal to {100}, was {0}", ex.Message);
         }
 
         [Fact]

@@ -127,7 +127,7 @@ internal partial class LutABCalculator : IVector4Calculator
 
         Guard.IsTrue(
             hasACurve || hasBCurve || hasMCurve || hasMatrix || hasClut,
-            nameof(curveB),
+            "entry",
             "AToB or BToA tag must contain at least one processing element");
 
         if (hasACurve)

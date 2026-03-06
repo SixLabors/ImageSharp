@@ -128,7 +128,7 @@ internal sealed class IccLutAToBTagDataEntry : IccTagDataEntry, IEquatable<IccLu
             && this.OutputChannelCount == other.OutputChannelCount
             && this.Matrix3x3.Equals(other.Matrix3x3)
             && this.Matrix3x1.Equals(other.Matrix3x1)
-            && this.ClutValues.Equals(other.ClutValues)
+            && Equals(this.ClutValues, other.ClutValues)
             && EqualsCurve(this.CurveB, other.CurveB)
             && EqualsCurve(this.CurveM, other.CurveM)
             && EqualsCurve(this.CurveA, other.CurveA);
@@ -168,7 +168,7 @@ internal sealed class IccLutAToBTagDataEntry : IccTagDataEntry, IEquatable<IccLu
             return true;
         }
 
-        if (entryNull)
+        if (thisNull || entryNull)
         {
             return false;
         }

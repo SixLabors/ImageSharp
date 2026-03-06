@@ -589,7 +589,7 @@ public class BmpDecoderTests
 
         using MemoryStream stream = new(bmp);
 
-        InvalidImageContentException ex = Assert.Throws<InvalidImageContentException>(() =>
+        Assert.Throws<InvalidImageContentException>(() =>
         {
             using Image image = BmpDecoder.Instance.Decode(DecoderOptions.Default, stream);
         });

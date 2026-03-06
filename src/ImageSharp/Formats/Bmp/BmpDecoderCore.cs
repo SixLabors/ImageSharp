@@ -130,14 +130,8 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
         Image<TPixel>? image = null;
         try
         {
-            ushort bitsPerPixel = this.infoHeader.BitsPerPixel;
-
-            if (bitsPerPixel is not (1 or 2 or 4 or 8 or 16 or 24 or 32))
-            {
-                BmpThrowHelper.ThrowInvalidImageContentException($"Invalid bits per pixel: {bitsPerPixel}");
-            }
-
             int bytesPerColorMapEntry = this.ReadImageHeaders(stream, out bool inverted, out byte[] palette);
+            ushort bitsPerPixel = this.infoHeader.BitsPerPixel;
 
             image = new Image<TPixel>(this.configuration, this.infoHeader.Width, this.infoHeader.Height, this.metadata);
 
@@ -149,19 +143,23 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
                     this.ReadRgb32Slow(stream, pixels, this.infoHeader.Width, this.infoHeader.Height, inverted);
 
                     break;
+
                 case BmpCompression.RGB when bitsPerPixel is 32:
                     this.ReadRgb32Fast(stream, pixels, this.infoHeader.Width, this.infoHeader.Height, inverted);
 
                     break;
+
                 case BmpCompression.RGB when bitsPerPixel is 24:
                     this.ReadRgb24(stream, pixels, this.infoHeader.Width, this.infoHeader.Height, inverted);
 
                     break;
+
                 case BmpCompression.RGB when bitsPerPixel is 16:
                     this.ReadRgb16(stream, pixels, this.infoHeader.Width, this.infoHeader.Height, inverted);
 
                     break;
-                case BmpCompression.RGB when bitsPerPixel is <= 8 && this.processedAlphaMask:
+
+                case BmpCompression.RGB when bitsPerPixel is > 0 and <= 8 && this.processedAlphaMask:
                     this.ReadRgbPaletteWithAlphaMask(
                         stream,
                         pixels,
@@ -173,7 +171,8 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
                         inverted);
 
                     break;
-                case BmpCompression.RGB when bitsPerPixel is <= 8:
+
+                case BmpCompression.RGB when bitsPerPixel is > 0 and <= 8:
                     this.ReadRgbPalette(
                         stream,
                         pixels,
@@ -184,6 +183,10 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
                         bytesPerColorMapEntry,
                         inverted);
 
+                    break;
+
+                case BmpCompression.RGB when bitsPerPixel is <= 0 or > 32:
+                    BmpThrowHelper.ThrowInvalidImageContentException($"Invalid bits per pixel: {bitsPerPixel}");
                     break;
 
                 case BmpCompression.RLE24:

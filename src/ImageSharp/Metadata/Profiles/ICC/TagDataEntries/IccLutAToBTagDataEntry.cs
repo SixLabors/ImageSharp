@@ -64,44 +64,7 @@ internal sealed class IccLutAToBTagDataEntry : IccTagDataEntry, IEquatable<IccLu
         this.CurveM = curveM;
         this.ClutValues = clutValues;
 
-        if (this.IsAClutMMatrixB())
-        {
-            Guard.IsTrue(this.CurveB.Length == 3, nameof(this.CurveB), $"{nameof(this.CurveB)} must have a length of three");
-            Guard.IsTrue(this.CurveM.Length == 3, nameof(this.CurveM), $"{nameof(this.CurveM)} must have a length of three");
-            Guard.MustBeBetweenOrEqualTo(this.CurveA.Length, 1, 15, nameof(this.CurveA));
-
-            this.InputChannelCount = curveA.Length;
-            this.OutputChannelCount = 3;
-
-            Guard.IsTrue(this.InputChannelCount == clutValues.InputChannelCount, nameof(clutValues), "Input channel count does not match the CLUT size");
-            Guard.IsTrue(this.OutputChannelCount == clutValues.OutputChannelCount, nameof(clutValues), "Output channel count does not match the CLUT size");
-        }
-        else if (this.IsMMatrixB())
-        {
-            Guard.IsTrue(this.CurveB.Length == 3, nameof(this.CurveB), $"{nameof(this.CurveB)} must have a length of three");
-            Guard.IsTrue(this.CurveM.Length == 3, nameof(this.CurveM), $"{nameof(this.CurveM)} must have a length of three");
-
-            this.InputChannelCount = this.OutputChannelCount = 3;
-        }
-        else if (this.IsAClutB())
-        {
-            Guard.MustBeBetweenOrEqualTo(this.CurveA.Length, 1, 15, nameof(this.CurveA));
-            Guard.MustBeBetweenOrEqualTo(this.CurveB.Length, 1, 15, nameof(this.CurveB));
-
-            this.InputChannelCount = curveA.Length;
-            this.OutputChannelCount = curveB.Length;
-
-            Guard.IsTrue(this.InputChannelCount == clutValues.InputChannelCount, nameof(clutValues), "Input channel count does not match the CLUT size");
-            Guard.IsTrue(this.OutputChannelCount == clutValues.OutputChannelCount, nameof(clutValues), "Output channel count does not match the CLUT size");
-        }
-        else if (this.IsB())
-        {
-            this.InputChannelCount = this.OutputChannelCount = this.CurveB.Length;
-        }
-        else
-        {
-            throw new ArgumentException("Invalid combination of values given");
-        }
+        (this.InputChannelCount, this.OutputChannelCount) = this.GetChannelCounts();
     }
 
     /// <summary>
@@ -192,6 +155,9 @@ internal sealed class IccLutAToBTagDataEntry : IccTagDataEntry, IEquatable<IccLu
         return hashCode.ToHashCode();
     }
 
+    /// <summary>
+    /// Compares two curve arrays, treating <see langword="null"/> consistently.
+    /// </summary>
     private static bool EqualsCurve(IccTagDataEntry[] thisCurves, IccTagDataEntry[] entryCurves)
     {
         bool thisNull = thisCurves is null;
@@ -210,27 +176,63 @@ internal sealed class IccLutAToBTagDataEntry : IccTagDataEntry, IEquatable<IccLu
         return thisCurves.SequenceEqual(entryCurves);
     }
 
-    private bool IsAClutMMatrixB()
-        => this.CurveB != null
-        && this.Matrix3x3 != null
-        && this.Matrix3x1 != null
-        && this.CurveM != null
-        && this.ClutValues != null
-        && this.CurveA != null;
+    /// <summary>
+    /// Validates the configured processing stages and derives the external channel counts.
+    /// </summary>
+    /// <remarks>
+    /// Stages are evaluated in ICC <c>mAB</c> order: A, CLUT, M, Matrix, B.
+    /// Sparse pipelines are valid as long as adjacent stages agree on channel counts.
+    /// </remarks>
+    private (int InputChannelCount, int OutputChannelCount) GetChannelCounts()
+    {
+        // There are at most five possible mAB stages: A, CLUT, M, Matrix, and B.
+        List<(int Input, int Output, string Name)> stages = new(5);
 
-    private bool IsMMatrixB()
-        => this.CurveB != null
-        && this.Matrix3x3 != null
-        && this.Matrix3x1 != null
-        && this.CurveM != null;
+        if (this.CurveA != null)
+        {
+            Guard.MustBeBetweenOrEqualTo(this.CurveA.Length, 1, 15, nameof(this.CurveA));
+            stages.Add((this.CurveA.Length, this.CurveA.Length, nameof(this.CurveA)));
+        }
 
-    private bool IsAClutB()
-        => this.CurveB != null
-        && this.ClutValues != null
-        && this.CurveA != null;
+        if (this.ClutValues != null)
+        {
+            stages.Add((this.ClutValues.InputChannelCount, this.ClutValues.OutputChannelCount, nameof(this.ClutValues)));
+        }
 
-    private bool IsB() => this.CurveB != null;
+        if (this.CurveM != null)
+        {
+            Guard.MustBeBetweenOrEqualTo(this.CurveM.Length, 1, 15, nameof(this.CurveM));
+            stages.Add((this.CurveM.Length, this.CurveM.Length, nameof(this.CurveM)));
+        }
 
+        if (this.Matrix3x3 != null || this.Matrix3x1 != null)
+        {
+            Guard.IsTrue(this.Matrix3x3 != null && this.Matrix3x1 != null, nameof(this.Matrix3x3), "Matrix must include both the 3x3 and 3x1 components");
+            stages.Add((3, 3, nameof(this.Matrix3x3)));
+        }
+
+        if (this.CurveB != null)
+        {
+            Guard.MustBeBetweenOrEqualTo(this.CurveB.Length, 1, 15, nameof(this.CurveB));
+            stages.Add((this.CurveB.Length, this.CurveB.Length, nameof(this.CurveB)));
+        }
+
+        Guard.IsTrue(stages.Count > 0, nameof(this.CurveB), "AToB tag must contain at least one processing element");
+
+        for (int i = 1; i < stages.Count; i++)
+        {
+            Guard.IsTrue(
+                stages[i - 1].Output == stages[i].Input,
+                stages[i].Name,
+                $"Output channel count of {stages[i - 1].Name} does not match input channel count of {stages[i].Name}");
+        }
+
+        return (stages[0].Input, stages[^1].Output);
+    }
+
+    /// <summary>
+    /// Verifies that every supplied curve entry is a supported one-dimensional curve type.
+    /// </summary>
     private void VerifyCurve(IccTagDataEntry[] curves, string name)
     {
         if (curves != null)
@@ -240,6 +242,9 @@ internal sealed class IccLutAToBTagDataEntry : IccTagDataEntry, IEquatable<IccLu
         }
     }
 
+    /// <summary>
+    /// Verifies the dimensions of the optional matrix components.
+    /// </summary>
     private static void VerifyMatrix(float[,] matrix3x3, float[] matrix3x1)
     {
         if (matrix3x1 != null)
@@ -254,6 +259,9 @@ internal sealed class IccLutAToBTagDataEntry : IccTagDataEntry, IEquatable<IccLu
         }
     }
 
+    /// <summary>
+    /// Creates the one-dimensional matrix vector when present.
+    /// </summary>
     private static Vector3? CreateMatrix3x1(float[] matrix)
     {
         if (matrix is null)
@@ -264,6 +272,9 @@ internal sealed class IccLutAToBTagDataEntry : IccTagDataEntry, IEquatable<IccLu
         return new Vector3(matrix[0], matrix[1], matrix[2]);
     }
 
+    /// <summary>
+    /// Creates the three-by-three matrix when present.
+    /// </summary>
     private static Matrix4x4? CreateMatrix3x3(float[,] matrix)
     {
         if (matrix is null)

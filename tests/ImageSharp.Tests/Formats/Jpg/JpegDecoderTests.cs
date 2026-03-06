@@ -418,6 +418,21 @@ public partial class JpegDecoderTests
         image.CompareToReferenceOutput(provider);
     }
 
+    [Theory]
+    [WithFile(TestImages.Jpeg.ICC.Issue3064, PixelTypes.Rgba32)]
+    public void Decode_RGB_ICC_Jpeg_Issue3064<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        JpegDecoderOptions options = new()
+        {
+            GeneralOptions = new DecoderOptions { ColorProfileHandling = ColorProfileHandling.Convert }
+        };
+
+        using Image<TPixel> image = provider.GetImage(JpegDecoder.Instance, options);
+        image.DebugSave(provider);
+        image.CompareToReferenceOutput(provider);
+    }
+
     // https://github.com/SixLabors/ImageSharp/issues/2948
     [Theory]
     [WithFile(TestImages.Jpeg.Issues.Issue2948, PixelTypes.Rgb24)]

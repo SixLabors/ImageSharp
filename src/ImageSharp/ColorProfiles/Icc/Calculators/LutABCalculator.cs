@@ -17,67 +17,106 @@ internal partial class LutABCalculator : IVector4Calculator
     private MatrixCalculator matrixCalculator;
     private ClutCalculator clutCalculator;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="LutABCalculator"/> class for an ICC <c>mAB</c> transform.
+    /// </summary>
+    /// <param name="entry">The parsed A-to-B LUT entry.</param>
     public LutABCalculator(IccLutAToBTagDataEntry entry)
     {
         Guard.NotNull(entry, nameof(entry));
         this.Init(entry.CurveA, entry.CurveB, entry.CurveM, entry.Matrix3x1, entry.Matrix3x3, entry.ClutValues);
-        this.type |= CalculationType.AtoB;
+        this.type = CalculationType.AtoB;
     }
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="LutABCalculator"/> class for an ICC <c>mBA</c> transform.
+    /// </summary>
+    /// <param name="entry">The parsed B-to-A LUT entry.</param>
     public LutABCalculator(IccLutBToATagDataEntry entry)
     {
         Guard.NotNull(entry, nameof(entry));
         this.Init(entry.CurveA, entry.CurveB, entry.CurveM, entry.Matrix3x1, entry.Matrix3x3, entry.ClutValues);
-        this.type |= CalculationType.BtoA;
+        this.type = CalculationType.BtoA;
     }
 
+    /// <summary>
+    /// Calculates the transformed value by applying the configured ICC LUT stages in specification order.
+    /// </summary>
+    /// <param name="value">The input value.</param>
+    /// <returns>The transformed value.</returns>
     public Vector4 Calculate(Vector4 value)
     {
         switch (this.type)
         {
-            case CalculationType.Full | CalculationType.AtoB:
-                value = this.curveACalculator.Calculate(value);
-                value = this.clutCalculator.Calculate(value);
-                value = this.curveMCalculator.Calculate(value);
-                value = this.matrixCalculator.Calculate(value);
-                return this.curveBCalculator.Calculate(value);
+            case CalculationType.AtoB:
+                // ICC mAB order: A, CLUT, M, Matrix, B.
+                if (this.curveACalculator != null)
+                {
+                    value = this.curveACalculator.Calculate(value);
+                }
 
-            case CalculationType.Full | CalculationType.BtoA:
-                value = this.curveBCalculator.Calculate(value);
-                value = this.matrixCalculator.Calculate(value);
-                value = this.curveMCalculator.Calculate(value);
-                value = this.clutCalculator.Calculate(value);
-                return this.curveACalculator.Calculate(value);
+                if (this.clutCalculator != null)
+                {
+                    value = this.clutCalculator.Calculate(value);
+                }
 
-            case CalculationType.CurveClut | CalculationType.AtoB:
-                value = this.curveACalculator.Calculate(value);
-                value = this.clutCalculator.Calculate(value);
-                return this.curveBCalculator.Calculate(value);
+                if (this.curveMCalculator != null)
+                {
+                    value = this.curveMCalculator.Calculate(value);
+                }
 
-            case CalculationType.CurveClut | CalculationType.BtoA:
-                value = this.curveBCalculator.Calculate(value);
-                value = this.clutCalculator.Calculate(value);
-                return this.curveACalculator.Calculate(value);
+                if (this.matrixCalculator != null)
+                {
+                    value = this.matrixCalculator.Calculate(value);
+                }
 
-            case CalculationType.CurveMatrix | CalculationType.AtoB:
-                value = this.curveMCalculator.Calculate(value);
-                value = this.matrixCalculator.Calculate(value);
-                return this.curveBCalculator.Calculate(value);
+                if (this.curveBCalculator != null)
+                {
+                    value = this.curveBCalculator.Calculate(value);
+                }
 
-            case CalculationType.CurveMatrix | CalculationType.BtoA:
-                value = this.curveBCalculator.Calculate(value);
-                value = this.matrixCalculator.Calculate(value);
-                return this.curveMCalculator.Calculate(value);
+                return value;
 
-            case CalculationType.SingleCurve | CalculationType.AtoB:
-            case CalculationType.SingleCurve | CalculationType.BtoA:
-                return this.curveBCalculator.Calculate(value);
+            case CalculationType.BtoA:
+                // ICC mBA order: B, Matrix, M, CLUT, A.
+                if (this.curveBCalculator != null)
+                {
+                    value = this.curveBCalculator.Calculate(value);
+                }
+
+                if (this.matrixCalculator != null)
+                {
+                    value = this.matrixCalculator.Calculate(value);
+                }
+
+                if (this.curveMCalculator != null)
+                {
+                    value = this.curveMCalculator.Calculate(value);
+                }
+
+                if (this.clutCalculator != null)
+                {
+                    value = this.clutCalculator.Calculate(value);
+                }
+
+                if (this.curveACalculator != null)
+                {
+                    value = this.curveACalculator.Calculate(value);
+                }
+
+                return value;
 
             default:
                 throw new InvalidOperationException("Invalid calculation type");
         }
     }
 
+    /// <summary>
+    /// Creates calculators for the processing stages present in the LUT entry.
+    /// </summary>
+    /// <remarks>
+    /// The tag entry classes already validate channel continuity, so this method only materializes the available stages.
+    /// </remarks>
     private void Init(IccTagDataEntry[] curveA, IccTagDataEntry[] curveB, IccTagDataEntry[] curveM, Vector3? matrix3x1, Matrix4x4? matrix3x3, IccClut clut)
     {
         bool hasACurve = curveA != null;
@@ -86,26 +125,10 @@ internal partial class LutABCalculator : IVector4Calculator
         bool hasMatrix = matrix3x1 != null && matrix3x3 != null;
         bool hasClut = clut != null;
 
-        if (hasBCurve && hasMatrix && hasMCurve && hasClut && hasACurve)
-        {
-            this.type = CalculationType.Full;
-        }
-        else if (hasBCurve && hasClut && hasACurve)
-        {
-            this.type = CalculationType.CurveClut;
-        }
-        else if (hasBCurve && hasMatrix && hasMCurve)
-        {
-            this.type = CalculationType.CurveMatrix;
-        }
-        else if (hasBCurve)
-        {
-            this.type = CalculationType.SingleCurve;
-        }
-        else
-        {
-            throw new InvalidIccProfileException("AToB or BToA tag has an invalid configuration");
-        }
+        Guard.IsTrue(
+            hasACurve || hasBCurve || hasMCurve || hasMatrix || hasClut,
+            "entry",
+            "AToB or BToA tag must contain at least one processing element");
 
         if (hasACurve)
         {

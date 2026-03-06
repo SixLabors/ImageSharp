@@ -232,6 +232,7 @@ public static class TestImages
             public const string SRgbGray = "Jpg/icc-profiles/sRGB_Gray.jpg";
             public const string Perceptual = "Jpg/icc-profiles/Perceptual.jpg";
             public const string PerceptualcLUTOnly = "Jpg/icc-profiles/Perceptual-cLUT-only.jpg";
+            public const string Issue3064 = "Jpg/icc-profiles/issue-3064.jpg";
         }
 
         public static class Progressive

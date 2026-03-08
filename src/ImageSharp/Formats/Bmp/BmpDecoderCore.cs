@@ -1548,6 +1548,12 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
                     case BmpFileMarkerType.Bitmap:
                         if (this.fileHeader.HasValue)
                         {
+                            if (this.fileHeader.Value.Offset > stream.Length)
+                            {
+                                BmpThrowHelper.ThrowInvalidImageContentException(
+                                    $"Pixel data offset {this.fileHeader.Value.Offset} exceeds file size {stream.Length}.");
+                            }
+
                             colorMapSizeBytes = this.fileHeader.Value.Offset - BmpFileHeader.Size - this.infoHeader.HeaderSize;
                         }
                         else

@@ -6,13 +6,11 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities;
 public class GraphicsOptionsComparer : IEqualityComparer<GraphicsOptions>
 {
     public bool Equals(GraphicsOptions x, GraphicsOptions y)
-    {
-        return x.AlphaCompositionMode == y.AlphaCompositionMode
-            && x.Antialias == y.Antialias
-            && x.AntialiasSubpixelDepth == y.AntialiasSubpixelDepth
-            && x.BlendPercentage == y.BlendPercentage
-            && x.ColorBlendingMode == y.ColorBlendingMode;
-    }
+        => x.AlphaCompositionMode == y.AlphaCompositionMode
+        && x.Antialias == y.Antialias
+        && x.AntialiasThreshold == y.AntialiasThreshold
+        && x.BlendPercentage == y.BlendPercentage
+        && x.ColorBlendingMode == y.ColorBlendingMode;
 
     public int GetHashCode(GraphicsOptions obj) => obj.GetHashCode();
 }

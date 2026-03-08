@@ -418,6 +418,21 @@ public partial class JpegDecoderTests
         image.CompareToReferenceOutput(provider);
     }
 
+    [Theory]
+    [WithFile(TestImages.Jpeg.ICC.Issue3064, PixelTypes.Rgba32)]
+    public void Decode_RGB_ICC_Jpeg_Issue3064<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        JpegDecoderOptions options = new()
+        {
+            GeneralOptions = new DecoderOptions { ColorProfileHandling = ColorProfileHandling.Convert }
+        };
+
+        using Image<TPixel> image = provider.GetImage(JpegDecoder.Instance, options);
+        image.DebugSave(provider);
+        image.CompareToReferenceOutput(provider);
+    }
+
     // https://github.com/SixLabors/ImageSharp/issues/2948
     [Theory]
     [WithFile(TestImages.Jpeg.Issues.Issue2948, PixelTypes.Rgb24)]
@@ -433,4 +448,13 @@ public partial class JpegDecoderTests
     [InlineData(TestImages.Jpeg.Issues.Issue2948)]
     public void Issue2948_No_SOS_Identify_Throws_InvalidImageContentException(string imagePath)
         => Assert.Throws<InvalidImageContentException>(() => _ = Image.Identify(TestFile.Create(imagePath).Bytes));
+
+    [Fact]
+    public void Issue_3071_Decode_TruncatedJpeg_Throws_InvalidImageContentException()
+        => Assert.Throws<InvalidImageContentException>(() =>
+        {
+            // SOI marker (FF D8) + garbage bytes — only 11 bytes
+            byte[] data = [0xFF, 0xD8, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30];
+            using Image<Rgba32> image = Image.Load<Rgba32>(data);
+        });
 }

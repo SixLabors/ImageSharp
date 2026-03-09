@@ -6,7 +6,6 @@ using System.Text;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.PixelFormats;
-using static SixLabors.ImageSharp.Tests.Memory.TestStructs;
 
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests.Formats.Png;
@@ -71,7 +70,7 @@ public partial class PngDecoderTests
             WriteChunk(memStream, chunkName);
             WriteDataChunk(memStream);
 
-            ImageFormatException exception =
+            InvalidImageContentException exception =
                 Assert.Throws<InvalidImageContentException>(() => PngDecoder.Instance.Decode<Rgb24>(DecoderOptions.Default, memStream));
 
             Assert.Equal($"CRC Error. PNG {chunkName} chunk is corrupt!", exception.Message);

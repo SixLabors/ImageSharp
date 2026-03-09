@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Globalization;
+using System.Numerics;
 
 namespace SixLabors.ImageSharp.Tests;
 
@@ -292,6 +293,38 @@ public class RectangleTests
         expectedRect.Offset(p);
         r1.Offset(width, height);
         Assert.Equal(expectedRect, r1);
+    }
+
+    [Fact]
+    public void TransformMatrix4x4_AffineMatchesMatrix3x2()
+    {
+        Rectangle rect = new(10, 20, 100, 50);
+        Matrix3x2 m3 = Matrix3x2.CreateTranslation(5, -3);
+        Matrix4x4 m4 = new(m3);
+
+        RectangleF r3 = Rectangle.Transform(rect, m3);
+        RectangleF r4 = Rectangle.Transform(rect, m4);
+
+        Assert.Equal(r3, r4);
+    }
+
+    [Fact]
+    public void TransformMatrix4x4_Identity()
+    {
+        Rectangle rect = new(10, 20, 100, 50);
+        RectangleF result = Rectangle.Transform(rect, Matrix4x4.Identity);
+
+        Assert.Equal(new RectangleF(10, 20, 100, 50), result);
+    }
+
+    [Fact]
+    public void TransformMatrix4x4_Translation()
+    {
+        Rectangle rect = new(10, 20, 100, 50);
+        Matrix4x4 m = Matrix4x4.CreateTranslation(5, -3, 0);
+        RectangleF result = Rectangle.Transform(rect, m);
+
+        Assert.Equal(new RectangleF(15, 17, 100, 50), result);
     }
 
     [Fact]

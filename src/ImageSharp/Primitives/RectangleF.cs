@@ -242,6 +242,20 @@ public struct RectangleF : IEquatable<RectangleF>
     }
 
     /// <summary>
+    /// Transforms a rectangle by the given 4x4 matrix, applying a projective transform
+    /// flattened into 2D space.
+    /// </summary>
+    /// <param name="rectangle">The source rectangle.</param>
+    /// <param name="matrix">The transformation matrix.</param>
+    /// <returns>A transformed <see cref="RectangleF"/>.</returns>
+    public static RectangleF Transform(RectangleF rectangle, Matrix4x4 matrix)
+    {
+        PointF bottomRight = PointF.Transform(new PointF(rectangle.Right, rectangle.Bottom), matrix);
+        PointF topLeft = PointF.Transform(rectangle.Location, matrix);
+        return new RectangleF(topLeft, new SizeF(bottomRight - topLeft));
+    }
+
+    /// <summary>
     /// Creates a rectangle that represents the union between <paramref name="a"/> and <paramref name="b"/>.
     /// </summary>
     /// <param name="a">The first rectangle.</param>

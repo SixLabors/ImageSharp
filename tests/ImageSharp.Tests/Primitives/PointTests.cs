@@ -174,6 +174,51 @@ public class PointTests
         Assert.Equal(new Point(30, 30), pout);
     }
 
+    [Fact]
+    public void TransformMatrix4x4_AffineMatchesMatrix3x2()
+    {
+        Point p = new(13, 17);
+        Matrix3x2 m3 = Matrix3x2Extensions.CreateRotationDegrees(45, Point.Empty);
+        Matrix4x4 m4 = new(m3);
+
+        Point r3 = Point.Transform(p, m3);
+        Point r4 = Point.Transform(p, m4);
+
+        Assert.Equal(r3, r4);
+    }
+
+    [Fact]
+    public void TransformMatrix4x4_Identity()
+    {
+        Point p = new(42, -17);
+        Point result = Point.Transform(p, Matrix4x4.Identity);
+
+        Assert.Equal(p, result);
+    }
+
+    [Fact]
+    public void TransformMatrix4x4_Translation()
+    {
+        Point p = new(10, 20);
+        Matrix4x4 m = Matrix4x4.CreateTranslation(5, -3, 0);
+        Point result = Point.Transform(p, m);
+
+        Assert.Equal(new Point(15, 17), result);
+    }
+
+    [Fact]
+    public void TransformMatrix4x4_Projective()
+    {
+        Point p = new(100, 50);
+        Matrix4x4 m = Matrix4x4.Identity;
+        m.M14 = 0.005F;
+
+        Point result = Point.Transform(p, m);
+
+        // W = 100*0.005 + 1 = 1.5 => (100/1.5, 50/1.5) => rounded
+        Assert.Equal(Point.Round(new PointF(100F / 1.5F, 50F / 1.5F)), result);
+    }
+
     [Theory]
     [InlineData(int.MaxValue, int.MinValue)]
     [InlineData(int.MinValue, int.MinValue)]

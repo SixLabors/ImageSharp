@@ -138,6 +138,29 @@ public partial class PngDecoderTests
         using Image<Rgba32> image = Image.Load<Rgba32>(stream);
     }
 
+    // https://github.com/SixLabors/ImageSharp/issues/3079
+    [Fact]
+    public void Decode_InternationalText_WithTruncatedDataAfterLanguageTag_DoesNotThrow()
+    {
+        byte[] payload = [137, 80, 78, 71, 13, 10, 26, 10, // PNG signature
+                            0, 0, 0, 13, // chunk length 13 bytes
+                            73, 72, 68, 82, // chunk type IHDR
+                            0, 0, 0, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, // data
+                            55, 110, 249, 36, // checksum
+                            0, 0, 0, 21, // chunk length
+                            105, 84, 88, 116, // chunk type iTXt
+                            73, 110, 116, 101, 114, 110, 97, 116, 105, 111, 110, 97, 108, 50, 0, 0, 0, 114, 117, 115, 0, // truncated data after language tag
+                            225, 200, 214, 33, // crc
+                            0, 0, 0, 10, // chunk length 10 bytes
+                            73, 68, 65, 84, // chunk type IDAT
+                            120, 1, 99, 96, 0, 0, 0, 2, 0, 1, // data
+                            115, 117, 1, 24, // checksum
+                            0, 0, 0, 0, 73, 69, 78, 68, 174, 66, 96, 130]; // end chunk
+
+        using MemoryStream stream = new(payload);
+        using Image<Rgba32> image = Image.Load<Rgba32>(stream);
+    }
+
     private static string GetChunkTypeName(uint value)
     {
         byte[] data = new byte[4];

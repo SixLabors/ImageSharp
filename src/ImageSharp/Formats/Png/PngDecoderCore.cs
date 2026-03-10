@@ -1966,6 +1966,11 @@ internal sealed class PngDecoderCore : ImageDecoderCore
 
         int translatedKeywordStartIdx = langStartIdx + languageLength + 1;
         int translatedKeywordLength = data[translatedKeywordStartIdx..].IndexOf((byte)0);
+        if (translatedKeywordLength < 0)
+        {
+            return;
+        }
+
         string translatedKeyword = PngConstants.TranslatedEncoding.GetString(data.Slice(translatedKeywordStartIdx, translatedKeywordLength));
 
         ReadOnlySpan<byte> keywordBytes = data[..zeroIndexKeyword];

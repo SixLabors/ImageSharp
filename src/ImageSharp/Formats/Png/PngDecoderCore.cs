@@ -1402,26 +1402,31 @@ internal sealed class PngDecoderCore : ImageDecoderCore
             return;
         }
 
-        int zeroIndex = data.IndexOf((byte)0);
-        if (zeroIndex is < PngConstants.MinTextKeywordLength or > PngConstants.MaxTextKeywordLength)
+        int keywordEnd = data.IndexOf((byte)0);
+        if (keywordEnd is < PngConstants.MinTextKeywordLength or > PngConstants.MaxTextKeywordLength)
         {
             return;
         }
 
-        byte compressionMethod = data[zeroIndex + 1];
+        if (keywordEnd < 0 || keywordEnd + 2 > data.Length)
+        {
+            return; // Not enough data for keyword + null + compression method.
+        }
+
+        byte compressionMethod = data[keywordEnd + 1];
         if (compressionMethod != 0)
         {
             // Only compression method 0 is supported (zlib datastream with deflate compression).
             return;
         }
 
-        ReadOnlySpan<byte> keywordBytes = data[..zeroIndex];
+        ReadOnlySpan<byte> keywordBytes = data[..keywordEnd];
         if (!TryReadTextKeyword(keywordBytes, out string name))
         {
             return;
         }
 
-        ReadOnlySpan<byte> compressedData = data[(zeroIndex + 2)..];
+        ReadOnlySpan<byte> compressedData = data[(keywordEnd + 2)..];
 
         if (this.TryDecompressTextData(compressedData, PngConstants.Encoding, out string? uncompressed)
             && !TryReadTextChunkMetadata(baseMetadata, name, uncompressed))

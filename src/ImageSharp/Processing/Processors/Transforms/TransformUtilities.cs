@@ -69,11 +69,17 @@ internal static class TransformUtilities
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector2 ProjectiveTransform2D(float x, float y, Matrix4x4 matrix)
     {
-        // The w component (v4.W) resulting from the transformation can be less than 0 in certain cases,
-        // such as when the point is transformed behind the camera in a perspective projection.
-        // However, in many 2D contexts, negative w values are not meaningful and could cause issues
-        // like flipped or distorted projections. To avoid this, we take the max of w and epsilon to ensure
-        // we don't divide by a very small or negative number, effectively treating any negative w as epsilon.
+        // Transforms the 2D point (x, y) as the homogeneous coordinate (x, y, 0, 1) and
+        // performs the perspective divide (X/W, Y/W) to project back into Cartesian 2D space.
+        //
+        // For affine matrices (M14=0, M24=0, M34=0, M44=1) W is always 1 and the divide
+        // is a no-op, producing the same result as Vector2.Transform(v, Matrix4x4).AsVector2()
+        // (the approach used by .NET 10+).
+        //
+        // For projective matrices (taper, quad distortion) W varies per point and the divide
+        // is essential for correct perspective mapping. W <= 0 means the point has crossed the
+        // vanishing line of the projection; clamping to epsilon avoids division by zero or
+        // negative values that would flip/mirror the output.
         const float epsilon = 0.0000001F;
         Vector4 v4 = Vector4.Transform(new Vector4(x, y, 0, 1F), matrix);
         return new Vector2(v4.X, v4.Y) / MathF.Max(v4.W, epsilon);

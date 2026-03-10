@@ -349,6 +349,16 @@ public class AffineTransformBuilder
     internal static SizeF GetTransformedSize(Rectangle sourceRectangle, Matrix3x2 matrix)
         => TransformUtilities.GetRawTransformedSize(matrix, sourceRectangle.Size);
 
+    /// <summary>
+    /// Clears all accumulated transform matrices, resetting the builder to its initial state.
+    /// </summary>
+    /// <returns>The <see cref="AffineTransformBuilder"/>.</returns>
+    public AffineTransformBuilder Clear()
+    {
+        this.transformMatrixFactories.Clear();
+        return this;
+    }
+
     private static void CheckDegenerate(Matrix3x2 matrix)
     {
         if (TransformUtilities.IsDegenerate(matrix))

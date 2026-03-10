@@ -92,6 +92,29 @@ public partial class PngDecoderTests
         Assert.Equal("pHYs chunk is too short", exception.Message);
     }
 
+    // https://github.com/SixLabors/ImageSharp/issues/3079
+    [Fact]
+    public void Decode_CompressedTxtChunk_WithTruncatedData_DoesNotThrow()
+    {
+        byte[] payload = [137, 80, 78, 71, 13, 10, 26, 10, // PNG signature
+                            0, 0, 0, 13, // chunk length 13 bytes
+                            73, 72, 68, 82, // chunk type IHDR
+                            0, 0, 0, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, // data
+                            55, 110, 249, 36, // checksum
+                            0, 0, 0, 2, // chunk length
+                            122, 84, 88, 116, // chunk type zTXt
+                            1, 0, // truncated data
+                            100, 138, 166, 20, // crc
+                            0, 0, 0, 10, // chunk length 10 bytes
+                            73, 68, 65, 84, // chunk type IDAT
+                            120, 1, 99, 96, 0, 0, 0, 2, 0, 1, // data
+                            115, 117, 1, 24, // checksum
+                            0, 0, 0, 0, 73, 69, 78, 68, 174, 66, 96, 130]; // end chunk
+
+        using MemoryStream stream = new(payload);
+        using Image<Rgba32> image = Image.Load<Rgba32>(stream);
+    }
+
     private static string GetChunkTypeName(uint value)
     {
         byte[] data = new byte[4];

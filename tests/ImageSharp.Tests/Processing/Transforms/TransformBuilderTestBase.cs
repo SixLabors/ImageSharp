@@ -248,6 +248,48 @@ public abstract class TransformBuilderTestBase<TBuilder>
             });
     }
 
+    [Fact]
+    public void Clear_ResetsBuilderToIdentity()
+    {
+        Size size = new(100, 100);
+        Rectangle rectangle = new(Point.Empty, size);
+        Vector2 source = new(10, 20);
+
+        TBuilder builder = this.CreateBuilder();
+
+        // Apply a transform that changes the point.
+        this.AppendScale(builder, new SizeF(2, 3));
+        this.AppendTranslation(builder, new PointF(50, 50));
+        Vector2 transformed = this.Execute(builder, rectangle, source);
+        Assert.NotEqual(source, transformed, Comparer);
+
+        // Clear and verify the builder produces identity behavior.
+        this.ClearBuilder(builder);
+        Vector2 afterClear = this.Execute(builder, rectangle, source);
+        Assert.Equal(source, afterClear, Comparer);
+    }
+
+    [Fact]
+    public void Clear_AllowsReuse()
+    {
+        Size size = new(100, 100);
+        Rectangle rectangle = new(Point.Empty, size);
+        Vector2 source = new(10, 20);
+
+        TBuilder builder = this.CreateBuilder();
+
+        // First transform: scale by 2.
+        this.AppendScale(builder, new SizeF(2, 2));
+        Vector2 scaled = this.Execute(builder, rectangle, source);
+        Assert.Equal(new Vector2(20, 40), scaled, Comparer);
+
+        // Clear and apply a different transform: translate.
+        this.ClearBuilder(builder);
+        this.AppendTranslation(builder, new PointF(5, 10));
+        Vector2 translated = this.Execute(builder, rectangle, source);
+        Assert.Equal(new Vector2(15, 30), translated, Comparer);
+    }
+
     protected abstract TBuilder CreateBuilder();
 
     protected abstract void AppendRotationDegrees(TBuilder builder, float degrees);
@@ -281,6 +323,8 @@ public abstract class TransformBuilderTestBase<TBuilder>
     protected abstract void PrependSkewRadians(TBuilder builder, float radiansX, float radiansY, Vector2 origin);
 
     protected abstract void PrependTranslation(TBuilder builder, PointF translate);
+
+    protected abstract void ClearBuilder(TBuilder builder);
 
     protected abstract Vector2 Execute(TBuilder builder, Rectangle rectangle, Vector2 sourcePoint);
 }

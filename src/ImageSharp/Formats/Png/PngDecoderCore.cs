@@ -1937,6 +1937,11 @@ internal sealed class PngDecoderCore : ImageDecoderCore
             return;
         }
 
+        if (zeroIndexKeyword < 0 || zeroIndexKeyword + 4 > data.Length)
+        {
+            return; // Not enough data for keyword + null + flag + method + language.
+        }
+
         byte compressionFlag = data[zeroIndexKeyword + 1];
         if (compressionFlag is not (0 or 1))
         {

@@ -130,6 +130,6 @@ internal readonly struct WebpVp8X : IEquatable<WebpVp8X>
         WebpChunkParsingUtils.WriteUInt24LittleEndian(stream, this.Width - 1);
         WebpChunkParsingUtils.WriteUInt24LittleEndian(stream, this.Height - 1);
 
-        RiffHelper.EndWriteChunk(stream, pos);
+        RiffHelper.EndWriteChunk(stream, pos, 2);
     }
 }

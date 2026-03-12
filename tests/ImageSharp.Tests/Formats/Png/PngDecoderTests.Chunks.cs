@@ -162,7 +162,7 @@ public partial class PngDecoderTests
     }
 
     [Fact]
-    public void Decode_tRnsChunk_WithAlphaLengthGreaterColorTableLength_ExceptionIsThrown()
+    public void Decode_tRnsChunk_WithAlphaLengthGreaterColorTableLength_ShouldNotThrowException()
     {
         byte[] payload = [137, 80, 78, 71, 13, 10, 26, 10, // PNG signature
                             0, 0, 0, 13, // chunk length 13 bytes
@@ -181,9 +181,7 @@ public partial class PngDecoderTests
                             120, 156, 99, 96, 0, 0, 0, 2, 0, 1, 72, 175, 164, 113]; // alpha.Length > colorTable.Length
 
         using MemoryStream stream = new(payload);
-        InvalidImageContentException exception = Assert.Throws<InvalidImageContentException>(() => Image.Load<Rgba32>(stream));
-
-        Assert.Equal("The tRNS chunk contains more alpha values than there are palette entries.", exception.Message);
+        using Image<Rgba32> image = Image.Load<Rgba32>(stream);
     }
 
     private static string GetChunkTypeName(uint value)

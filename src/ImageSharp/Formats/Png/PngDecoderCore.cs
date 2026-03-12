@@ -1253,10 +1253,10 @@ internal sealed class PngDecoderCore : ImageDecoderCore
         ReadOnlySpan<Rgb24> rgbTable = MemoryMarshal.Cast<byte, Rgb24>(palette);
         Color.FromPixel(rgbTable, colorTable);
 
+        // The tRNS chunk must not contain more alpha values than there are palette entries.
         if (alpha.Length > colorTable.Length)
         {
-            throw new InvalidImageContentException(
-                "The tRNS chunk contains more alpha values than there are palette entries.");
+            alpha = alpha.Slice(0, colorTable.Length);
         }
 
         if (alpha.Length > 0)

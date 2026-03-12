@@ -61,9 +61,7 @@ internal class DefaultImageProcessorContext<TPixel> : IInternalImageProcessingCo
 
     /// <inheritdoc/>
     public IImageProcessingContext ApplyProcessor(IImageProcessor processor)
-    {
-        return this.ApplyProcessor(processor, this.GetCurrentBounds());
-    }
+        => this.ApplyProcessor(processor, this.GetCurrentBounds());
 
     /// <inheritdoc/>
     public IImageProcessingContext ApplyProcessor(IImageProcessor processor, Rectangle rectangle)
@@ -74,11 +72,9 @@ internal class DefaultImageProcessorContext<TPixel> : IInternalImageProcessingCo
             // interim clone if the first processor in the pipeline is a cloning processor.
             if (processor is ICloningImageProcessor cloningImageProcessor)
             {
-                using (ICloningImageProcessor<TPixel> pixelProcessor = cloningImageProcessor.CreatePixelSpecificCloningProcessor(this.Configuration, this.source, rectangle))
-                {
-                    this.destination = pixelProcessor.CloneAndExecute();
-                    return this;
-                }
+                using ICloningImageProcessor<TPixel> pixelProcessor = cloningImageProcessor.CreatePixelSpecificCloningProcessor(this.Configuration, this.source, rectangle);
+                this.destination = pixelProcessor.CloneAndExecute();
+                return this;
             }
 
             // Not a cloning processor? We need to create a clone to operate on.

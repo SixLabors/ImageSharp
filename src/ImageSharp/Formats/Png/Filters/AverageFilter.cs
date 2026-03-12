@@ -169,7 +169,7 @@ internal static class AverageFilter
             Vector256<int> sumAccumulator = Vector256<int>.Zero;
             Vector256<byte> allBitsSet = Avx2.CompareEqual(sumAccumulator, sumAccumulator).AsByte();
 
-            for (nuint xLeft = x - bytesPerPixel; x <= (uint)(scanline.Length - Vector256<byte>.Count); xLeft += (uint)Vector256<byte>.Count)
+            for (nuint xLeft = x - bytesPerPixel; (int)x <= scanline.Length - Vector256<byte>.Count; xLeft += (uint)Vector256<byte>.Count)
             {
                 Vector256<byte> scan = Unsafe.As<byte, Vector256<byte>>(ref Unsafe.Add(ref scanBaseRef, x));
                 Vector256<byte> left = Unsafe.As<byte, Vector256<byte>>(ref Unsafe.Add(ref scanBaseRef, xLeft));
@@ -192,7 +192,7 @@ internal static class AverageFilter
             Vector128<int> sumAccumulator = Vector128<int>.Zero;
             Vector128<byte> allBitsSet = Sse2.CompareEqual(sumAccumulator, sumAccumulator).AsByte();
 
-            for (nuint xLeft = x - bytesPerPixel; x <= (uint)(scanline.Length - Vector128<byte>.Count); xLeft += (uint)Vector128<byte>.Count)
+            for (nuint xLeft = x - bytesPerPixel; (int)x <= scanline.Length - Vector128<byte>.Count; xLeft += (uint)Vector128<byte>.Count)
             {
                 Vector128<byte> scan = Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref scanBaseRef, x));
                 Vector128<byte> left = Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref scanBaseRef, xLeft));

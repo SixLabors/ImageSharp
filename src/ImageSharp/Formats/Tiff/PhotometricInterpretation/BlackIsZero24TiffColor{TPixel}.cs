@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Numerics;
 using SixLabors.ImageSharp.Formats.Tiff.Utils;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
@@ -11,6 +10,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation;
 /// <summary>
 /// Implements the 'BlackIsZero' photometric interpretation for 24-bit grayscale images.
 /// </summary>
+/// <typeparam name="TPixel">The type of pixel format.</typeparam>
 internal class BlackIsZero24TiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
     where TPixel : unmanaged, IPixel<TPixel>
 {
@@ -25,8 +25,6 @@ internal class BlackIsZero24TiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
     /// <inheritdoc/>
     public override void Decode(ReadOnlySpan<byte> data, Buffer2D<TPixel> pixels, int left, int top, int width, int height)
     {
-        var color = default(TPixel);
-        color.FromScaledVector4(Vector4.Zero);
         Span<byte> buffer = stackalloc byte[4];
         int bufferStartIdx = this.isBigEndian ? 1 : 0;
 
@@ -40,10 +38,10 @@ internal class BlackIsZero24TiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
                 for (int x = 0; x < pixelRow.Length; x++)
                 {
                     data.Slice(offset, 3).CopyTo(bufferSpan);
-                    ulong intensity = TiffUtils.ConvertToUIntBigEndian(buffer);
+                    uint intensity = TiffUtilities.ConvertToUIntBigEndian(buffer);
                     offset += 3;
 
-                    pixelRow[x] = TiffUtils.ColorScaleTo24Bit(intensity, color);
+                    pixelRow[x] = TiffUtilities.ColorScaleTo24Bit<TPixel>(intensity);
                 }
             }
             else
@@ -51,10 +49,10 @@ internal class BlackIsZero24TiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
                 for (int x = 0; x < pixelRow.Length; x++)
                 {
                     data.Slice(offset, 3).CopyTo(bufferSpan);
-                    ulong intensity = TiffUtils.ConvertToUIntLittleEndian(buffer);
+                    uint intensity = TiffUtilities.ConvertToUIntLittleEndian(buffer);
                     offset += 3;
 
-                    pixelRow[x] = TiffUtils.ColorScaleTo24Bit(intensity, color);
+                    pixelRow[x] = TiffUtilities.ColorScaleTo24Bit<TPixel>(intensity);
                 }
             }
         }

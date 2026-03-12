@@ -43,21 +43,21 @@ public class Shuffle3Channel
 //
 // |               Method |                Job |                              EnvironmentVariables | Count |      Mean |    Error |   StdDev |    Median | Ratio | RatioSD | Gen 0 | Gen 1 | Gen 2 | Allocated |
 // |--------------------- |------------------- |-------------------------------------------------- |------ |----------:|---------:|---------:|----------:|------:|--------:|------:|------:|------:|----------:|
-// |             Shuffle3 | 1. No HwIntrinsics | COMPlus_EnableHWIntrinsic=0,COMPlus_FeatureSIMD=0 |    96 |  48.46 ns | 1.034 ns | 2.438 ns |  47.46 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+// |             Shuffle3 | 1. No HwIntrinsics | DOTNET_EnableHWIntrinsic=0,DOTNET_FeatureSIMD=0 |    96 |  48.46 ns | 1.034 ns | 2.438 ns |  47.46 ns |  1.00 |    0.00 |     - |     - |     - |         - |
 // |             Shuffle3 |             2. AVX |                                             Empty |    96 |  32.42 ns | 0.537 ns | 0.476 ns |  32.34 ns |  0.66 |    0.04 |     - |     - |     - |         - |
-// |             Shuffle3 |             3. SSE |                               COMPlus_EnableAVX=0 |    96 |  32.51 ns | 0.373 ns | 0.349 ns |  32.56 ns |  0.66 |    0.03 |     - |     - |     - |         - |
+// |             Shuffle3 |             3. SSE |                               DOTNET_EnableAVX=0 |    96 |  32.51 ns | 0.373 ns | 0.349 ns |  32.56 ns |  0.66 |    0.03 |     - |     - |     - |         - |
 // |                      |                    |                                                   |       |           |          |          |           |       |         |       |       |       |           |
-// |             Shuffle3 | 1. No HwIntrinsics | COMPlus_EnableHWIntrinsic=0,COMPlus_FeatureSIMD=0 |   384 | 199.04 ns | 1.512 ns | 1.180 ns | 199.17 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+// |             Shuffle3 | 1. No HwIntrinsics | DOTNET_EnableHWIntrinsic=0,DOTNET_FeatureSIMD=0 |   384 | 199.04 ns | 1.512 ns | 1.180 ns | 199.17 ns |  1.00 |    0.00 |     - |     - |     - |         - |
 // |             Shuffle3 |             2. AVX |                                             Empty |   384 |  71.20 ns | 2.654 ns | 7.784 ns |  69.60 ns |  0.41 |    0.02 |     - |     - |     - |         - |
-// |             Shuffle3 |             3. SSE |                               COMPlus_EnableAVX=0 |   384 |  63.23 ns | 0.569 ns | 0.505 ns |  63.21 ns |  0.32 |    0.00 |     - |     - |     - |         - |
+// |             Shuffle3 |             3. SSE |                               DOTNET_EnableAVX=0 |   384 |  63.23 ns | 0.569 ns | 0.505 ns |  63.21 ns |  0.32 |    0.00 |     - |     - |     - |         - |
 // |                      |                    |                                                   |       |           |          |          |           |       |         |       |       |       |           |
-// |             Shuffle3 | 1. No HwIntrinsics | COMPlus_EnableHWIntrinsic=0,COMPlus_FeatureSIMD=0 |   768 | 391.28 ns | 5.087 ns | 3.972 ns | 391.22 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+// |             Shuffle3 | 1. No HwIntrinsics | DOTNET_EnableHWIntrinsic=0,DOTNET_FeatureSIMD=0 |   768 | 391.28 ns | 5.087 ns | 3.972 ns | 391.22 ns |  1.00 |    0.00 |     - |     - |     - |         - |
 // |             Shuffle3 |             2. AVX |                                             Empty |   768 | 109.12 ns | 2.149 ns | 2.010 ns | 108.66 ns |  0.28 |    0.01 |     - |     - |     - |         - |
-// |             Shuffle3 |             3. SSE |                               COMPlus_EnableAVX=0 |   768 | 106.51 ns | 0.734 ns | 0.613 ns | 106.56 ns |  0.27 |    0.00 |     - |     - |     - |         - |
+// |             Shuffle3 |             3. SSE |                               DOTNET_EnableAVX=0 |   768 | 106.51 ns | 0.734 ns | 0.613 ns | 106.56 ns |  0.27 |    0.00 |     - |     - |     - |         - |
 // |                      |                    |                                                   |       |           |          |          |           |       |         |       |       |       |           |
-// |             Shuffle3 | 1. No HwIntrinsics | COMPlus_EnableHWIntrinsic=0,COMPlus_FeatureSIMD=0 |  1536 | 773.70 ns | 5.516 ns | 4.890 ns | 772.96 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+// |             Shuffle3 | 1. No HwIntrinsics | DOTNET_EnableHWIntrinsic=0,DOTNET_FeatureSIMD=0 |  1536 | 773.70 ns | 5.516 ns | 4.890 ns | 772.96 ns |  1.00 |    0.00 |     - |     - |     - |         - |
 // |             Shuffle3 |             2. AVX |                                             Empty |  1536 | 190.41 ns | 1.090 ns | 0.851 ns | 190.38 ns |  0.25 |    0.00 |     - |     - |     - |         - |
-// |             Shuffle3 |             3. SSE |                               COMPlus_EnableAVX=0 |  1536 | 190.94 ns | 0.985 ns | 0.769 ns | 190.85 ns |  0.25 |    0.00 |     - |     - |     - |         - |
+// |             Shuffle3 |             3. SSE |                               DOTNET_EnableAVX=0 |  1536 | 190.94 ns | 0.985 ns | 0.769 ns | 190.85 ns |  0.25 |    0.00 |     - |     - |     - |         - |
 
 // 2023-02-21
 // ##########
@@ -74,18 +74,18 @@ public class Shuffle3Channel
 
 // |   Method |                Job |                              EnvironmentVariables | Count |      Mean |    Error |   StdDev | Ratio | Gen 0 | Gen 1 | Gen 2 | Allocated |
 // |--------- |------------------- |-------------------------------------------------- |------ |----------:|---------:|---------:|------:|------:|------:|------:|----------:|
-// | Shuffle3 | 1. No HwIntrinsics | COMPlus_EnableHWIntrinsic=0,COMPlus_FeatureSIMD=0 |    96 |  44.55 ns | 0.564 ns | 0.528 ns |  1.00 |     - |     - |     - |         - |
-// | Shuffle3 |             2. SSE |                               COMPlus_EnableAVX=0 |    96 |  15.46 ns | 0.064 ns | 0.060 ns |  0.35 |     - |     - |     - |         - |
+// | Shuffle3 | 1. No HwIntrinsics | DOTNET_EnableHWIntrinsic=0,DOTNET_FeatureSIMD=0 |    96 |  44.55 ns | 0.564 ns | 0.528 ns |  1.00 |     - |     - |     - |         - |
+// | Shuffle3 |             2. SSE |                               DOTNET_EnableAVX=0 |    96 |  15.46 ns | 0.064 ns | 0.060 ns |  0.35 |     - |     - |     - |         - |
 // | Shuffle3 |             3. AVX |                                             Empty |    96 |  15.18 ns | 0.056 ns | 0.053 ns |  0.34 |     - |     - |     - |         - |
 // |          |                    |                                                   |       |           |          |          |       |       |       |       |           |
-// | Shuffle3 | 1. No HwIntrinsics | COMPlus_EnableHWIntrinsic=0,COMPlus_FeatureSIMD=0 |   384 | 155.68 ns | 0.539 ns | 0.504 ns |  1.00 |     - |     - |     - |         - |
-// | Shuffle3 |             2. SSE |                               COMPlus_EnableAVX=0 |   384 |  30.04 ns | 0.100 ns | 0.089 ns |  0.19 |     - |     - |     - |         - |
+// | Shuffle3 | 1. No HwIntrinsics | DOTNET_EnableHWIntrinsic=0,DOTNET_FeatureSIMD=0 |   384 | 155.68 ns | 0.539 ns | 0.504 ns |  1.00 |     - |     - |     - |         - |
+// | Shuffle3 |             2. SSE |                               DOTNET_EnableAVX=0 |   384 |  30.04 ns | 0.100 ns | 0.089 ns |  0.19 |     - |     - |     - |         - |
 // | Shuffle3 |             3. AVX |                                             Empty |   384 |  29.70 ns | 0.061 ns | 0.054 ns |  0.19 |     - |     - |     - |         - |
 // |          |                    |                                                   |       |           |          |          |       |       |       |       |           |
-// | Shuffle3 | 1. No HwIntrinsics | COMPlus_EnableHWIntrinsic=0,COMPlus_FeatureSIMD=0 |   768 | 302.76 ns | 1.023 ns | 0.957 ns |  1.00 |     - |     - |     - |         - |
-// | Shuffle3 |             2. SSE |                               COMPlus_EnableAVX=0 |   768 |  50.24 ns | 0.098 ns | 0.092 ns |  0.17 |     - |     - |     - |         - |
+// | Shuffle3 | 1. No HwIntrinsics | DOTNET_EnableHWIntrinsic=0,DOTNET_FeatureSIMD=0 |   768 | 302.76 ns | 1.023 ns | 0.957 ns |  1.00 |     - |     - |     - |         - |
+// | Shuffle3 |             2. SSE |                               DOTNET_EnableAVX=0 |   768 |  50.24 ns | 0.098 ns | 0.092 ns |  0.17 |     - |     - |     - |         - |
 // | Shuffle3 |             3. AVX |                                             Empty |   768 |  49.28 ns | 0.156 ns | 0.131 ns |  0.16 |     - |     - |     - |         - |
 // |          |                    |                                                   |       |           |          |          |       |       |       |       |           |
-// | Shuffle3 | 1. No HwIntrinsics | COMPlus_EnableHWIntrinsic=0,COMPlus_FeatureSIMD=0 |  1536 | 596.53 ns | 2.675 ns | 2.503 ns |  1.00 |     - |     - |     - |         - |
-// | Shuffle3 |             2. SSE |                               COMPlus_EnableAVX=0 |  1536 |  94.09 ns | 0.312 ns | 0.260 ns |  0.16 |     - |     - |     - |         - |
+// | Shuffle3 | 1. No HwIntrinsics | DOTNET_EnableHWIntrinsic=0,DOTNET_FeatureSIMD=0 |  1536 | 596.53 ns | 2.675 ns | 2.503 ns |  1.00 |     - |     - |     - |         - |
+// | Shuffle3 |             2. SSE |                               DOTNET_EnableAVX=0 |  1536 |  94.09 ns | 0.312 ns | 0.260 ns |  0.16 |     - |     - |     - |         - |
 // | Shuffle3 |             3. AVX |                                             Empty |  1536 |  93.57 ns | 0.196 ns | 0.183 ns |  0.16 |     - |     - |     - |         - |

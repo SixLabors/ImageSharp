@@ -17,17 +17,13 @@ public class PngSmokeTests
     public void GeneralTest<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        // does saving a file then reopening mean both files are identical???
         using Image<TPixel> image = provider.GetImage();
-        using var ms = new MemoryStream();
+        using MemoryStream ms = new();
 
-        // image.Save(provider.Utility.GetTestOutputFileName("bmp"));
         image.Save(ms, new PngEncoder());
         ms.Position = 0;
         using Image<Rgba32> img2 = PngDecoder.Instance.Decode<Rgba32>(DecoderOptions.Default, ms);
-        ImageComparer.Tolerant().VerifySimilarity(image, img2);
-
-        // img2.Save(provider.Utility.GetTestOutputFileName("bmp", "_loaded"), new BmpEncoder());
+        ImageComparer.Exact.VerifySimilarity(image, img2);
     }
 
     [Theory]
@@ -37,12 +33,10 @@ public class PngSmokeTests
     {
         // does saving a file then reopening mean both files are identical???
         using Image<TPixel> image = provider.GetImage();
-        using var ms = new MemoryStream();
+        using MemoryStream ms = new();
 
-        // image.Save(provider.Utility.GetTestOutputFileName("png"));
         image.Mutate(x => x.Resize(100, 100));
 
-        // image.Save(provider.Utility.GetTestOutputFileName("png", "resize"));
         image.Save(ms, new PngEncoder());
         ms.Position = 0;
         using Image<Rgba32> img2 = PngDecoder.Instance.Decode<Rgba32>(DecoderOptions.Default, ms);

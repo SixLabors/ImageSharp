@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Numerics;
+using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Transforms;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Transforms;
@@ -9,11 +10,11 @@ namespace SixLabors.ImageSharp.Tests.Processing.Transforms;
 [Trait("Category", "Processors")]
 public abstract class TransformBuilderTestBase<TBuilder>
 {
-    private static readonly ApproximateFloatComparer Comparer = new ApproximateFloatComparer(1e-6f);
+    private static readonly ApproximateFloatComparer Comparer = new(1e-6f);
 
     public static readonly TheoryData<Vector2, Vector2, Vector2, Vector2> ScaleTranslate_Data =
-        new TheoryData<Vector2, Vector2, Vector2, Vector2>
-            {
+        new()
+        {
                 // scale, translate, source, expectedDest
                 { Vector2.One, Vector2.Zero, Vector2.Zero, Vector2.Zero },
                 { Vector2.One, Vector2.Zero, new Vector2(10, 20), new Vector2(10, 20) },
@@ -28,7 +29,7 @@ public abstract class TransformBuilderTestBase<TBuilder>
 #pragma warning restore SA1300 // Element should begin with upper-case letter
     {
         // These operations should be size-agnostic:
-        var size = new Size(123, 321);
+        Size size = new(123, 321);
         TBuilder builder = this.CreateBuilder();
 
         this.AppendScale(builder, new SizeF(scale));
@@ -39,8 +40,8 @@ public abstract class TransformBuilderTestBase<TBuilder>
     }
 
     public static readonly TheoryData<Vector2, Vector2, Vector2, Vector2> TranslateScale_Data =
-        new TheoryData<Vector2, Vector2, Vector2, Vector2>
-            {
+        new()
+        {
                 // translate, scale, source, expectedDest
                 { Vector2.Zero, Vector2.One, Vector2.Zero, Vector2.Zero },
                 { Vector2.Zero, Vector2.One, new Vector2(10, 20), new Vector2(10, 20) },
@@ -54,7 +55,7 @@ public abstract class TransformBuilderTestBase<TBuilder>
 #pragma warning restore SA1300 // Element should begin with upper-case letter
     {
         // Translate ans scale are size-agnostic:
-        var size = new Size(456, 432);
+        Size size = new(456, 432);
         TBuilder builder = this.CreateBuilder();
 
         this.AppendTranslation(builder, translate);
@@ -69,7 +70,7 @@ public abstract class TransformBuilderTestBase<TBuilder>
     [InlineData(-20, 10)]
     public void LocationOffsetIsPrepended(int locationX, int locationY)
     {
-        var rectangle = new Rectangle(locationX, locationY, 10, 10);
+        Rectangle rectangle = new(locationX, locationY, 10, 10);
         TBuilder builder = this.CreateBuilder();
 
         this.AppendScale(builder, new SizeF(2, 2));
@@ -91,16 +92,16 @@ public abstract class TransformBuilderTestBase<TBuilder>
         float x,
         float y)
     {
-        var size = new Size(width, height);
+        Size size = new(width, height);
         TBuilder builder = this.CreateBuilder();
 
         this.AppendRotationDegrees(builder, degrees);
 
         // TODO: We should also test CreateRotationMatrixDegrees() (and all TransformUtils stuff!) for correctness
-        Matrix3x2 matrix = TransformUtils.CreateRotationMatrixDegrees(degrees, size);
+        Matrix3x2 matrix = TransformUtilities.CreateRotationTransformMatrixDegrees(degrees, size);
 
-        var position = new Vector2(x, y);
-        var expected = Vector2.Transform(position, matrix);
+        Vector2 position = new(x, y);
+        Vector2 expected = Vector2.Transform(position, matrix);
         Vector2 actual = this.Execute(builder, new Rectangle(Point.Empty, size), position);
 
         Assert.Equal(actual, expected, Comparer);
@@ -119,16 +120,16 @@ public abstract class TransformBuilderTestBase<TBuilder>
         float x,
         float y)
     {
-        var size = new Size(width, height);
+        Size size = new(width, height);
         TBuilder builder = this.CreateBuilder();
 
-        var centerPoint = new Vector2(cx, cy);
+        Vector2 centerPoint = new(cx, cy);
         this.AppendRotationDegrees(builder, degrees, centerPoint);
 
-        var matrix = Matrix3x2.CreateRotation(GeometryUtilities.DegreeToRadian(degrees), centerPoint);
+        Matrix3x2 matrix = Matrix3x2.CreateRotation(GeometryUtilities.DegreeToRadian(degrees), centerPoint);
 
-        var position = new Vector2(x, y);
-        var expected = Vector2.Transform(position, matrix);
+        Vector2 position = new(x, y);
+        Vector2 expected = Vector2.Transform(position, matrix);
         Vector2 actual = this.Execute(builder, new Rectangle(Point.Empty, size), position);
 
         Assert.Equal(actual, expected, Comparer);
@@ -146,15 +147,15 @@ public abstract class TransformBuilderTestBase<TBuilder>
         float x,
         float y)
     {
-        var size = new Size(width, height);
+        Size size = new(width, height);
         TBuilder builder = this.CreateBuilder();
 
         this.AppendSkewDegrees(builder, degreesX, degreesY);
 
-        Matrix3x2 matrix = TransformUtils.CreateSkewMatrixDegrees(degreesX, degreesY, size);
+        Matrix3x2 matrix = TransformUtilities.CreateSkewTransformMatrixDegrees(degreesX, degreesY, size);
 
-        var position = new Vector2(x, y);
-        var expected = Vector2.Transform(position, matrix);
+        Vector2 position = new(x, y);
+        Vector2 expected = Vector2.Transform(position, matrix);
         Vector2 actual = this.Execute(builder, new Rectangle(Point.Empty, size), position);
         Assert.Equal(actual, expected, Comparer);
     }
@@ -173,16 +174,16 @@ public abstract class TransformBuilderTestBase<TBuilder>
         float x,
         float y)
     {
-        var size = new Size(width, height);
+        Size size = new(width, height);
         TBuilder builder = this.CreateBuilder();
 
-        var centerPoint = new Vector2(cx, cy);
+        Vector2 centerPoint = new(cx, cy);
         this.AppendSkewDegrees(builder, degreesX, degreesY, centerPoint);
 
-        var matrix = Matrix3x2.CreateSkew(GeometryUtilities.DegreeToRadian(degreesX), GeometryUtilities.DegreeToRadian(degreesY), centerPoint);
+        Matrix3x2 matrix = Matrix3x2.CreateSkew(GeometryUtilities.DegreeToRadian(degreesX), GeometryUtilities.DegreeToRadian(degreesY), centerPoint);
 
-        var position = new Vector2(x, y);
-        var expected = Vector2.Transform(position, matrix);
+        Vector2 position = new(x, y);
+        Vector2 expected = Vector2.Transform(position, matrix);
         Vector2 actual = this.Execute(builder, new Rectangle(Point.Empty, size), position);
 
         Assert.Equal(actual, expected, Comparer);
@@ -191,7 +192,7 @@ public abstract class TransformBuilderTestBase<TBuilder>
     [Fact]
     public void AppendPrependOpposite()
     {
-        var rectangle = new Rectangle(-1, -1, 3, 3);
+        Rectangle rectangle = new(-1, -1, 3, 3);
         TBuilder b1 = this.CreateBuilder();
         TBuilder b2 = this.CreateBuilder();
 
@@ -225,7 +226,7 @@ public abstract class TransformBuilderTestBase<TBuilder>
     [InlineData(-1, 0)]
     public void ThrowsForInvalidSizes(int width, int height)
     {
-        var size = new Size(width, height);
+        Size size = new(width, height);
 
         Assert.ThrowsAny<ArgumentOutOfRangeException>(
             () =>
@@ -245,6 +246,48 @@ public abstract class TransformBuilderTestBase<TBuilder>
                 this.AppendSkewDegrees(builder, 45, 45);
                 this.Execute(builder, new Rectangle(0, 0, 150, 150), Vector2.Zero);
             });
+    }
+
+    [Fact]
+    public void Clear_ResetsBuilderToIdentity()
+    {
+        Size size = new(100, 100);
+        Rectangle rectangle = new(Point.Empty, size);
+        Vector2 source = new(10, 20);
+
+        TBuilder builder = this.CreateBuilder();
+
+        // Apply a transform that changes the point.
+        this.AppendScale(builder, new SizeF(2, 3));
+        this.AppendTranslation(builder, new PointF(50, 50));
+        Vector2 transformed = this.Execute(builder, rectangle, source);
+        Assert.NotEqual(source, transformed, Comparer);
+
+        // Clear and verify the builder produces identity behavior.
+        this.ClearBuilder(builder);
+        Vector2 afterClear = this.Execute(builder, rectangle, source);
+        Assert.Equal(source, afterClear, Comparer);
+    }
+
+    [Fact]
+    public void Clear_AllowsReuse()
+    {
+        Size size = new(100, 100);
+        Rectangle rectangle = new(Point.Empty, size);
+        Vector2 source = new(10, 20);
+
+        TBuilder builder = this.CreateBuilder();
+
+        // First transform: scale by 2.
+        this.AppendScale(builder, new SizeF(2, 2));
+        Vector2 scaled = this.Execute(builder, rectangle, source);
+        Assert.Equal(new Vector2(20, 40), scaled, Comparer);
+
+        // Clear and apply a different transform: translate.
+        this.ClearBuilder(builder);
+        this.AppendTranslation(builder, new PointF(5, 10));
+        Vector2 translated = this.Execute(builder, rectangle, source);
+        Assert.Equal(new Vector2(15, 30), translated, Comparer);
     }
 
     protected abstract TBuilder CreateBuilder();
@@ -280,6 +323,8 @@ public abstract class TransformBuilderTestBase<TBuilder>
     protected abstract void PrependSkewRadians(TBuilder builder, float radiansX, float radiansY, Vector2 origin);
 
     protected abstract void PrependTranslation(TBuilder builder, PointF translate);
+
+    protected abstract void ClearBuilder(TBuilder builder);
 
     protected abstract Vector2 Execute(TBuilder builder, Rectangle rectangle, Vector2 sourcePoint);
 }

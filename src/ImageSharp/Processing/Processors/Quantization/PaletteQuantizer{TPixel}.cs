@@ -17,26 +17,50 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization;
     "Design",
     "CA1001:Types that own disposable fields should be disposable",
     Justification = "https://github.com/dotnet/roslyn-analyzers/issues/6151")]
-internal readonly struct PaletteQuantizer<TPixel> : IQuantizer<TPixel>
+internal struct PaletteQuantizer<TPixel> : IQuantizer<TPixel>
     where TPixel : unmanaged, IPixel<TPixel>
 {
-    private readonly EuclideanPixelMap<TPixel> pixelMap;
+    private readonly PixelMap<TPixel> pixelMap;
+    private int transparencyIndex;
+    private TPixel transparentColor;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="PaletteQuantizer{TPixel}"/> struct.
     /// </summary>
-    /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
+    /// <param name="configuration">The configuration which allows altering default behavior or extending the library.</param>
     /// <param name="options">The quantizer options defining quantization rules.</param>
     /// <param name="palette">The palette to use.</param>
     [MethodImpl(InliningOptions.ShortMethod)]
     public PaletteQuantizer(Configuration configuration, QuantizerOptions options, ReadOnlyMemory<TPixel> palette)
+        : this(configuration, options, palette, -1, default)
+    {
+        Guard.NotNull(configuration, nameof(configuration));
+        Guard.NotNull(options, nameof(options));
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="PaletteQuantizer{TPixel}"/> struct.
+    /// </summary>
+    /// <param name="configuration">The configuration which allows altering default behavior or extending the library.</param>
+    /// <param name="options">The quantizer options defining quantization rules.</param>
+    /// <param name="palette">The palette to use.</param>
+    /// <param name="transparencyIndex">The index of the color in the palette that should be considered as transparent.</param>
+    /// <param name="transparentColor">The color that should be considered as transparent.</param>
+    public PaletteQuantizer(
+        Configuration configuration,
+        QuantizerOptions options,
+        ReadOnlyMemory<TPixel> palette,
+        int transparencyIndex,
+        TPixel transparentColor)
     {
         Guard.NotNull(configuration, nameof(configuration));
         Guard.NotNull(options, nameof(options));
 
         this.Configuration = configuration;
         this.Options = options;
-        this.pixelMap = new EuclideanPixelMap<TPixel>(configuration, palette);
+        this.pixelMap = PixelMapFactory.Create(this.Configuration, palette, options.ColorMatchingMode);
+        this.transparencyIndex = transparencyIndex;
+        this.transparentColor = transparentColor;
     }
 
     /// <inheritdoc/>
@@ -46,24 +70,38 @@ internal readonly struct PaletteQuantizer<TPixel> : IQuantizer<TPixel>
     public QuantizerOptions Options { get; }
 
     /// <inheritdoc/>
-    public ReadOnlyMemory<TPixel> Palette => this.pixelMap.Palette;
+    public readonly ReadOnlyMemory<TPixel> Palette => this.pixelMap.Palette;
 
     /// <inheritdoc/>
     [MethodImpl(InliningOptions.ShortMethod)]
-    public readonly IndexedImageFrame<TPixel> QuantizeFrame(ImageFrame<TPixel> source, Rectangle bounds)
-        => QuantizerUtilities.QuantizeFrame(ref Unsafe.AsRef(this), source, bounds);
-
-    /// <inheritdoc/>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void AddPaletteColors(Buffer2DRegion<TPixel> pixelRegion)
+    public readonly void AddPaletteColors(in Buffer2DRegion<TPixel> pixelRegion)
     {
     }
 
     /// <inheritdoc/>
     [MethodImpl(InliningOptions.ShortMethod)]
-    public readonly byte GetQuantizedColor(TPixel color, out TPixel match)
-        => (byte)this.pixelMap.GetClosestColor(color, out match);
+    public readonly IndexedImageFrame<TPixel> QuantizeFrame(ImageFrame<TPixel> source, Rectangle bounds)
+        => QuantizerUtilities.QuantizeFrame(ref Unsafe.AsRef(in this), source, bounds);
 
     /// <inheritdoc/>
-    public void Dispose() => this.pixelMap.Dispose();
+    [MethodImpl(InliningOptions.ShortMethod)]
+    public readonly byte GetQuantizedColor(TPixel color, out TPixel match)
+    {
+        if (this.transparencyIndex >= 0 && color.Equals(this.transparentColor))
+        {
+            match = this.transparentColor;
+            return (byte)this.transparencyIndex;
+        }
+
+        return (byte)this.pixelMap.GetClosestColor(color, out match);
+    }
+
+    public void SetTransparencyIndex(int transparencyIndex, TPixel transparentColor)
+    {
+        this.transparencyIndex = transparencyIndex;
+        this.transparentColor = transparentColor;
+    }
+
+    /// <inheritdoc/>
+    public readonly void Dispose() => this.pixelMap.Dispose();
 }

@@ -13,10 +13,10 @@ public class QuantizedImageTests
     [Fact]
     public void QuantizersDitherByDefault()
     {
-        var werner = new WernerPaletteQuantizer();
-        var webSafe = new WebSafePaletteQuantizer();
-        var octree = new OctreeQuantizer();
-        var wu = new WuQuantizer();
+        WernerPaletteQuantizer werner = new();
+        WebSafePaletteQuantizer webSafe = new();
+        OctreeQuantizer octree = new();
+        WuQuantizer wu = new();
 
         Assert.NotNull(werner.Options.Dither);
         Assert.NotNull(webSafe.Options.Dither);
@@ -52,27 +52,22 @@ public class QuantizedImageTests
         bool dither)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using (Image<TPixel> image = provider.GetImage())
+        using Image<TPixel> image = provider.GetImage();
+
+        QuantizerOptions options = new();
+        if (!dither)
         {
-            Assert.True(image[0, 0].Equals(default));
+            options.Dither = null;
+        }
 
-            var options = new QuantizerOptions();
-            if (!dither)
-            {
-                options.Dither = null;
-            }
+        OctreeQuantizer quantizer = new(options);
 
-            var quantizer = new OctreeQuantizer(options);
-
-            foreach (ImageFrame<TPixel> frame in image.Frames)
-            {
-                using (IQuantizer<TPixel> frameQuantizer = quantizer.CreatePixelSpecificQuantizer<TPixel>(this.Configuration))
-                using (IndexedImageFrame<TPixel> quantized = frameQuantizer.BuildPaletteAndQuantizeFrame(frame, frame.Bounds()))
-                {
-                    int index = this.GetTransparentIndex(quantized);
-                    Assert.Equal(index, quantized.DangerousGetRowSpan(0)[0]);
-                }
-            }
+        foreach (ImageFrame<TPixel> frame in image.Frames)
+        {
+            using IQuantizer<TPixel> frameQuantizer = quantizer.CreatePixelSpecificQuantizer<TPixel>(this.Configuration);
+            using IndexedImageFrame<TPixel> quantized = frameQuantizer.BuildPaletteAndQuantizeFrame(frame, frame.Bounds);
+            int index = this.GetTransparentIndex(quantized);
+            Assert.Equal(index, quantized.DangerousGetRowSpan(0)[0]);
         }
     }
 
@@ -82,27 +77,22 @@ public class QuantizedImageTests
     public void WuQuantizerYieldsCorrectTransparentPixel<TPixel>(TestImageProvider<TPixel> provider, bool dither)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using (Image<TPixel> image = provider.GetImage())
+        using Image<TPixel> image = provider.GetImage();
+
+        QuantizerOptions options = new();
+        if (!dither)
         {
-            Assert.True(image[0, 0].Equals(default));
+            options.Dither = null;
+        }
 
-            var options = new QuantizerOptions();
-            if (!dither)
-            {
-                options.Dither = null;
-            }
+        WuQuantizer quantizer = new(options);
 
-            var quantizer = new WuQuantizer(options);
-
-            foreach (ImageFrame<TPixel> frame in image.Frames)
-            {
-                using (IQuantizer<TPixel> frameQuantizer = quantizer.CreatePixelSpecificQuantizer<TPixel>(this.Configuration))
-                using (IndexedImageFrame<TPixel> quantized = frameQuantizer.BuildPaletteAndQuantizeFrame(frame, frame.Bounds()))
-                {
-                    int index = this.GetTransparentIndex(quantized);
-                    Assert.Equal(index, quantized.DangerousGetRowSpan(0)[0]);
-                }
-            }
+        foreach (ImageFrame<TPixel> frame in image.Frames)
+        {
+            using IQuantizer<TPixel> frameQuantizer = quantizer.CreatePixelSpecificQuantizer<TPixel>(this.Configuration);
+            using IndexedImageFrame<TPixel> quantized = frameQuantizer.BuildPaletteAndQuantizeFrame(frame, frame.Bounds);
+            int index = this.GetTransparentIndex(quantized);
+            Assert.Equal(index, quantized.DangerousGetRowSpan(0)[0]);
         }
     }
 
@@ -112,13 +102,11 @@ public class QuantizedImageTests
     public void Issue1505<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using (Image<TPixel> image = provider.GetImage())
-        {
-            var octreeQuantizer = new OctreeQuantizer();
-            IQuantizer<TPixel> quantizer = octreeQuantizer.CreatePixelSpecificQuantizer<TPixel>(Configuration.Default, new QuantizerOptions() { MaxColors = 128 });
-            ImageFrame<TPixel> frame = image.Frames[0];
-            quantizer.BuildPaletteAndQuantizeFrame(frame, frame.Bounds());
-        }
+        using Image<TPixel> image = provider.GetImage();
+        OctreeQuantizer octreeQuantizer = new();
+        IQuantizer<TPixel> quantizer = octreeQuantizer.CreatePixelSpecificQuantizer<TPixel>(Configuration.Default, new QuantizerOptions { MaxColors = 128 });
+        ImageFrame<TPixel> frame = image.Frames[0];
+        quantizer.BuildPaletteAndQuantizeFrame(frame, frame.Bounds);
     }
 
     private int GetTransparentIndex<TPixel>(IndexedImageFrame<TPixel> quantized)

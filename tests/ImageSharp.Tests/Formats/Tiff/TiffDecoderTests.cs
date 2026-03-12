@@ -2,7 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 // ReSharper disable InconsistentNaming
-using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics.X86;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Tiff;
 using SixLabors.ImageSharp.Metadata;
@@ -23,7 +23,6 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     public static readonly string[] MultiframeTestImages = Multiframes;
 
     [Theory]
-    [WithFile(MultiframeDifferentSize, PixelTypes.Rgba32)]
     [WithFile(MultiframeDifferentVariants, PixelTypes.Rgba32)]
     [WithFile(Cmyk64BitDeflate, PixelTypes.Rgba32)]
     public void ThrowsNotSupported<TPixel>(TestImageProvider<TPixel> provider)
@@ -89,6 +88,40 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     [WithFile(TiledChunky, PixelTypes.Rgba32)]
     [WithFile(TiledPlanar, PixelTypes.Rgba32)]
     public void TiffDecoder_CanDecode_Tiled<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
+
+    [Theory]
+    [WithFile(TiledRgbaDeflateCompressedWithPredictor, PixelTypes.Rgba32)]
+    [WithFile(TiledRgbDeflateCompressedWithPredictor, PixelTypes.Rgba32)]
+    [WithFile(TiledGrayDeflateCompressedWithPredictor, PixelTypes.Rgba32)]
+    [WithFile(TiledGray16BitLittleEndianDeflateCompressedWithPredictor, PixelTypes.Rgba32)]
+    [WithFile(TiledGray16BitBigEndianDeflateCompressedWithPredictor, PixelTypes.Rgba32)]
+    [WithFile(TiledGray32BitLittleEndianDeflateCompressedWithPredictor, PixelTypes.Rgba32)]
+    [WithFile(TiledGray32BitBigEndianDeflateCompressedWithPredictor, PixelTypes.Rgba32)]
+    [WithFile(TiledRgb48BitLittleEndianDeflateCompressedWithPredictor, PixelTypes.Rgba32)]
+    [WithFile(TiledRgb48BitBigEndianDeflateCompressedWithPredictor, PixelTypes.Rgba32)]
+    [WithFile(TiledRgba64BitLittleEndianDeflateCompressedWithPredictor, PixelTypes.Rgba32)]
+    [WithFile(TiledRgba64BitBigEndianDeflateCompressedWithPredictor, PixelTypes.Rgba32)]
+    [WithFile(TiledRgb96BitLittleEndianDeflateCompressedWithPredictor, PixelTypes.Rgba32)]
+    [WithFile(TiledRgb96BitBigEndianDeflateCompressedWithPredictor, PixelTypes.Rgba32)]
+    public void TiffDecoder_CanDecode_Tiled_Deflate_Compressed<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
+
+    [Theory]
+    [WithFile(TiledRgbaLzwCompressedWithPredictor, PixelTypes.Rgba32)]
+    [WithFile(TiledRgbLzwCompressedWithPredictor, PixelTypes.Rgba32)]
+    [WithFile(TiledGrayLzwCompressedWithPredictor, PixelTypes.Rgba32)]
+    [WithFile(TiledGray16BitLittleEndianLzwCompressedWithPredictor, PixelTypes.Rgba32)]
+    [WithFile(TiledGray16BitBigEndianLzwCompressedWithPredictor, PixelTypes.Rgba32)]
+    [WithFile(TiledGray32BitLittleEndianLzwCompressedWithPredictor, PixelTypes.Rgba32)]
+    [WithFile(TiledGray32BitBigEndianLzwCompressedWithPredictor, PixelTypes.Rgba32)]
+    [WithFile(TiledRgb48BitLittleEndianLzwCompressedWithPredictor, PixelTypes.Rgba32)]
+    [WithFile(TiledRgb48BitBigEndianLzwCompressedWithPredictor, PixelTypes.Rgba32)]
+    [WithFile(TiledRgba64BitLittleEndianLzwCompressedWithPredictor, PixelTypes.Rgba32)]
+    [WithFile(TiledRgba64BitBigEndianLzwCompressedWithPredictor, PixelTypes.Rgba32)]
+    [WithFile(TiledRgb96BitLittleEndianLzwCompressedWithPredictor, PixelTypes.Rgba32)]
+    [WithFile(TiledRgb96BitBigEndianDeflateCompressedWithPredictor, PixelTypes.Rgba32)]
+    public void TiffDecoder_CanDecode_Tiled_Lzw_Compressed<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
 
     [Theory]
@@ -200,11 +233,7 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     [Theory]
     [WithFile(Rgba3BitAssociatedAlpha, PixelTypes.Rgba32)]
     public void TiffDecoder_CanDecode_12Bit_WithAssociatedAlpha<TPixel>(TestImageProvider<TPixel> provider)
-        where TPixel : unmanaged, IPixel<TPixel>
-    {
-
-        TestTiffDecoder(provider, useExactComparer: false, compareTolerance: 0.264F);
-    }
+        where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider, useExactComparer: false, compareTolerance: 0.264F);
 
     [Theory]
     [WithFile(Flower14BitGray, PixelTypes.Rgba32)]
@@ -249,11 +278,7 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     [WithFile(Rgba5BitAssociatedAlpha, PixelTypes.Rgba32)]
     public void TiffDecoder_CanDecode_20Bit_WithAssociatedAlpha<TPixel>(TestImageProvider<TPixel> provider)
 
-        where TPixel : unmanaged, IPixel<TPixel>
-    {
-
-        TestTiffDecoder(provider, useExactComparer: false, compareTolerance: 0.376F);
-    }
+        where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider, useExactComparer: false, compareTolerance: 0.376F);
 
     [Theory]
     [WithFile(FlowerRgb888Contiguous, PixelTypes.Rgba32)]
@@ -268,11 +293,7 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     [Theory]
     [WithFile(Rgba6BitAssociatedAlpha, PixelTypes.Rgba32)]
     public void TiffDecoder_CanDecode_24Bit_WithAssociatedAlpha<TPixel>(TestImageProvider<TPixel> provider)
-        where TPixel : unmanaged, IPixel<TPixel>
-    {
-
-        TestTiffDecoder(provider, useExactComparer: false, compareTolerance: 0.405F);
-    }
+        where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider, useExactComparer: false, compareTolerance: 0.405F);
 
     [Theory]
     [WithFile(Flower24BitGray, PixelTypes.Rgba32)]
@@ -319,14 +340,75 @@ public class TiffDecoderTests : TiffDecoderBaseTester
 
     [Theory]
     [WithFile(Cmyk, PixelTypes.Rgba32)]
+    [WithFile(CmykLzwPredictor, PixelTypes.Rgba32)]
+    [WithFile(CmykJpeg, PixelTypes.Rgba32)]
     public void TiffDecoder_CanDecode_Cmyk<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         // Note: The image from MagickReferenceDecoder does not look right, maybe we are doing something wrong
         // converting the pixel data from Magick.NET to our format with CMYK?
-        using Image<TPixel> image = provider.GetImage();
+        using Image<TPixel> image = provider.GetImage(TiffDecoder.Instance);
         image.DebugSave(provider);
         image.CompareToReferenceOutput(ImageComparer.Exact, provider);
+    }
+
+    [Theory]
+    [WithFile(Icc.PerceptualCmyk, PixelTypes.Rgba32)]
+    [WithFile(Icc.PerceptualCieLab, PixelTypes.Rgba32)]
+    [WithFile(Icc.PerceptualRgb8, PixelTypes.Rgba32)]
+    [WithFile(Icc.PerceptualRgb16, PixelTypes.Rgba32)]
+    public void Decode_WhenColorProfileHandlingIsConvert_ApplyIccProfile<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage(TiffDecoder.Instance, new DecoderOptions { ColorProfileHandling = ColorProfileHandling.Convert });
+
+        image.DebugSave(provider);
+        image.CompareToReferenceOutput(provider);
+        Assert.Null(image.Metadata.IccProfile);
+    }
+
+    [Theory]
+    [WithFile(Issues2454_A, PixelTypes.Rgba32)]
+    [WithFile(Issues2454_B, PixelTypes.Rgba32)]
+    public void TiffDecoder_CanDecode_YccK<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage(TiffDecoder.Instance);
+        image.DebugSave(provider);
+
+        // ARM reports a 0.0000% difference, so we use a tolerant comparer here.
+        image.CompareToReferenceOutput(ImageComparer.TolerantPercentage(0.0001F), provider);
+    }
+
+    [Theory]
+    [WithFile(Issues3031, PixelTypes.Rgba64)]
+    [WithFile(Rgba16BitAssociatedAlphaBigEndian, PixelTypes.Rgba64)]
+    [WithFile(Rgba16BitAssociatedAlphaLittleEndian, PixelTypes.Rgba64)]
+    public void TiffDecoder_CanDecode_64Bit_WithAssociatedAlpha<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage(TiffDecoder.Instance);
+        image.DebugSave(provider);
+
+        image.CompareToReferenceOutput(ImageComparer.Exact, provider);
+    }
+
+    [Theory]
+    [WithFile(Issues2454_A, PixelTypes.Rgba32)]
+    [WithFile(Issues2454_B, PixelTypes.Rgba32)]
+    public void TiffDecoder_CanDecode_YccK_ICC<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        DecoderOptions options = new()
+        {
+            ColorProfileHandling = ColorProfileHandling.Convert,
+        };
+
+        using Image<TPixel> image = provider.GetImage(TiffDecoder.Instance, options);
+        image.DebugSave(provider);
+
+        // Linux reports a 0.0000% difference, so we use a tolerant comparer here.
+        image.CompareToReferenceOutput(ImageComparer.TolerantPercentage(0.0001F), provider);
     }
 
     [Theory]
@@ -362,12 +444,8 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     [Theory]
     [WithFile(Rgba8BitAssociatedAlpha, PixelTypes.Rgba32)]
     public void TiffDecoder_CanDecode_32Bit_WithAssociatedAlpha<TPixel>(TestImageProvider<TPixel> provider)
-        where TPixel : unmanaged, IPixel<TPixel>
-    {
-
         // Note: Using tolerant comparer here, because there is a small difference to the reference decoder probably due to floating point rounding issues.
-        TestTiffDecoder(provider, useExactComparer: false, compareTolerance: 0.004F);
-    }
+        where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider, useExactComparer: false, compareTolerance: 0.004F);
 
     [Theory]
     [WithFile(Flower32BitGrayPredictorBigEndian, PixelTypes.Rgba32)]
@@ -395,11 +473,7 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     [WithFile(Rgba10BitAssociatedAlphaBigEndian, PixelTypes.Rgba32)]
     [WithFile(Rgba10BitAssociatedAlphaLittleEndian, PixelTypes.Rgba32)]
     public void TiffDecoder_CanDecode_40Bit_WithAssociatedAlpha<TPixel>(TestImageProvider<TPixel> provider)
-        where TPixel : unmanaged, IPixel<TPixel>
-    {
-
-        TestTiffDecoder(provider, useExactComparer: false, compareTolerance: 0.247F);
-    }
+        where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider, useExactComparer: false, compareTolerance: 0.247F);
 
     [Theory]
     [WithFile(FlowerRgb141414Contiguous, PixelTypes.Rgba32)]
@@ -426,11 +500,7 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     [WithFile(Rgba12BitAssociatedAlphaBigEndian, PixelTypes.Rgba32)]
     [WithFile(Rgba12BitAssociatedAlphaLittleEndian, PixelTypes.Rgba32)]
     public void TiffDecoder_CanDecode_48Bit_WithAssociatedAlpha<TPixel>(TestImageProvider<TPixel> provider)
-        where TPixel : unmanaged, IPixel<TPixel>
-    {
-
-        TestTiffDecoder(provider, useExactComparer: false, compareTolerance: 0.118F);
-    }
+        where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider, useExactComparer: false, compareTolerance: 0.118F);
 
     [Theory]
     [WithFile(FlowerRgb161616PredictorBigEndian, PixelTypes.Rgba32)]
@@ -448,11 +518,7 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     [WithFile(Rgba14BitAssociatedAlphaBigEndian, PixelTypes.Rgba32)]
     [WithFile(Rgba14BitAssociatedAlphaLittleEndian, PixelTypes.Rgba32)]
     public void TiffDecoder_CanDecode_56Bit_WithAssociatedAlpha<TPixel>(TestImageProvider<TPixel> provider)
-        where TPixel : unmanaged, IPixel<TPixel>
-    {
-
-        TestTiffDecoder(provider, useExactComparer: false, compareTolerance: 0.075F);
-    }
+        where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider, useExactComparer: false, compareTolerance: 0.075F);
 
     [Theory]
     [WithFile(FlowerRgb242424Contiguous, PixelTypes.Rgba32)]
@@ -624,6 +690,16 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     }
 
     [Theory]
+    [WithFile(MultiFrameMipMap, PixelTypes.Rgba32)]
+    public void CanDecode_MultiFrameMipMap<TPixel>(TestImageProvider<TPixel> provider)
+    where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage(TiffDecoder.Instance);
+        Assert.Equal(7, image.Frames.Count);
+        image.DebugSaveMultiFrame(provider);
+    }
+
+    [Theory]
     [WithFile(RgbJpegCompressed, PixelTypes.Rgba32)]
     [WithFile(RgbJpegCompressed2, PixelTypes.Rgba32)]
     [WithFile(RgbWithStripsJpegCompressed, PixelTypes.Rgba32)]
@@ -686,6 +762,62 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     public void TiffDecoder_CanDecode_Fax4CompressedWithStrips<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
 
+    // https://github.com/SixLabors/ImageSharp/issues/2435
+    [Theory]
+    [WithFile(Issues2435, PixelTypes.Rgba32)]
+    public void TiffDecoder_CanDecode_TiledWithNonEqualWidthAndHeight<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
+
+    // https://github.com/SixLabors/ImageSharp/issues/2587
+    [Theory]
+    [WithFile(Issues2587, PixelTypes.Rgba32)]
+    public void TiffDecoder_CanDecode_BiColorWithMissingBitsPerSample<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
+
+    // https://github.com/SixLabors/ImageSharp/issues/2679
+    [Theory]
+    [WithFile(Issues2679, PixelTypes.Rgba32)]
+    public void TiffDecoder_CanDecode_JpegCompressedWithIssue2679<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage(TiffDecoder.Instance);
+
+        // The image is handcrafted to simulate issue 2679. ImageMagick will throw an expection here and wont decode,
+        // so we compare to rererence output instead.
+        image.DebugSave(provider);
+        image.CompareToReferenceOutput(
+            ImageComparer.Exact,
+            provider,
+            appendPixelTypeToFileName: false);
+    }
+
+    [Theory]
+    [WithFile(JpegCompressedGray0000539558, PixelTypes.Rgba32)]
+    public void TiffDecoder_ThrowsException_WithCircular_IFD_Offsets<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+        => Assert.Throws<ImageFormatException>(
+            () =>
+            {
+                using (provider.GetImage(TiffDecoder.Instance))
+                {
+                }
+            });
+
+    [Theory]
+    [WithFile(Tiled0000023664, PixelTypes.Rgba32)]
+    public void TiffDecoder_CanDecode_TiledWithBadZlib<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage(TiffDecoder.Instance);
+
+        // ImageMagick cannot decode this image.
+        image.DebugSave(provider);
+        image.CompareToReferenceOutput(
+            ImageComparer.TolerantPercentage(0.0034F), // NET 10 Uses zlib-ng to decompress, which manages to decode 3 extra pixels.
+            provider,
+            appendPixelTypeToFileName: false);
+    }
+
     [Theory]
     [WithFileCollection(nameof(MultiframeTestImages), PixelTypes.Rgba32)]
     public void DecodeMultiframe<TPixel>(TestImageProvider<TPixel> provider)
@@ -708,7 +840,7 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     {
         DecoderOptions options = new()
         {
-            TargetSize = new() { Width = 150, Height = 150 }
+            TargetSize = new Size { Width = 150, Height = 150 }
         };
 
         using Image<TPixel> image = provider.GetImage(TiffDecoder.Instance, options);
@@ -717,12 +849,23 @@ public class TiffDecoderTests : TiffDecoderBaseTester
 
         image.DebugSave(provider, testOutputDetails: details, appendPixelTypeToFileName: false);
 
-        // Floating point differences result in minor pixel differences.
+        // Floating point differences in FMA used in the ResizeKernel result in minor pixel differences.
         // Output have been manually verified.
+        // For more details see discussion: https://github.com/SixLabors/ImageSharp/pull/1513#issuecomment-763643594
         image.CompareToReferenceOutput(
-            TestEnvironment.OSArchitecture == Architecture.Arm64 ? ImageComparer.TolerantPercentage(0.0006F) : ImageComparer.Exact,
+            Fma.IsSupported ? ImageComparer.Exact : ImageComparer.TolerantPercentage(0.0006F),
             provider,
             testOutputDetails: details,
             appendPixelTypeToFileName: false);
     }
+
+    [Theory]
+    [WithFile(ExtraSamplesUnspecified, PixelTypes.Rgba32)]
+    public void TiffDecoder_CanDecode_ExtraSamplesUnspecified<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
+
+    [Theory]
+    [WithFile(Issue2983, PixelTypes.Rgba32)]
+    public void TiffDecoder_CanDecode_Issue2983<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
 }

@@ -10,11 +10,11 @@ using SDImage = System.Drawing.Image;
 
 namespace SixLabors.ImageSharp.Benchmarks.Codecs;
 
-[Config(typeof(Config.ShortMultiFramework))]
+[Config(typeof(Config.Short))]
 public class EncodePng
 {
     // System.Drawing needs this.
-    private Stream bmpStream;
+    private FileStream bmpStream;
     private SDImage bmpDrawing;
     private Image<Rgba32> bmpCore;
 
@@ -46,15 +46,15 @@ public class EncodePng
     [Benchmark(Baseline = true, Description = "System.Drawing Png")]
     public void PngSystemDrawing()
     {
-        using var memoryStream = new MemoryStream();
+        using MemoryStream memoryStream = new();
         this.bmpDrawing.Save(memoryStream, ImageFormat.Png);
     }
 
     [Benchmark(Description = "ImageSharp Png")]
     public void PngCore()
     {
-        using var memoryStream = new MemoryStream();
-        var encoder = new PngEncoder { FilterMethod = PngFilterMethod.None };
+        using MemoryStream memoryStream = new();
+        PngEncoder encoder = new() { FilterMethod = PngFilterMethod.None };
         this.bmpCore.SaveAsPng(memoryStream, encoder);
     }
 }

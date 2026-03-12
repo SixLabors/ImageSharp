@@ -11,11 +11,11 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation;
 /// <summary>
 /// Implements decoding pixel data with photometric interpretation of type 'YCbCr' with the planar configuration.
 /// </summary>
+/// <typeparam name="TPixel">The type of pixel format.</typeparam>
 internal class YCbCrPlanarTiffColor<TPixel> : TiffBasePlanarColorDecoder<TPixel>
     where TPixel : unmanaged, IPixel<TPixel>
 {
     private readonly YCbCrConverter converter;
-
     private readonly ushort[] ycbcrSubSampling;
 
     public YCbCrPlanarTiffColor(Rational[] referenceBlackAndWhite, Rational[] coefficients, ushort[] ycbcrSubSampling)
@@ -36,13 +36,12 @@ internal class YCbCrPlanarTiffColor<TPixel> : TiffBasePlanarColorDecoder<TPixel>
             ReverseChromaSubSampling(width, height, this.ycbcrSubSampling[0], this.ycbcrSubSampling[1], cbData, crData);
         }
 
-        var color = default(TPixel);
         int offset = 0;
         int widthPadding = 0;
         if (this.ycbcrSubSampling != null)
         {
             // Round to the next integer multiple of horizontalSubSampling.
-            widthPadding = TiffUtils.PaddingToNextInteger(width, this.ycbcrSubSampling[0]);
+            widthPadding = TiffUtilities.PaddingToNextInteger(width, this.ycbcrSubSampling[0]);
         }
 
         for (int y = top; y < top + height; y++)
@@ -51,8 +50,7 @@ internal class YCbCrPlanarTiffColor<TPixel> : TiffBasePlanarColorDecoder<TPixel>
             for (int x = 0; x < pixelRow.Length; x++)
             {
                 Rgba32 rgba = this.converter.ConvertToRgba32(yData[offset], cbData[offset], crData[offset]);
-                color.FromRgba32(rgba);
-                pixelRow[x] = color;
+                pixelRow[x] = TPixel.FromRgba32(rgba);
                 offset++;
             }
 
@@ -64,8 +62,8 @@ internal class YCbCrPlanarTiffColor<TPixel> : TiffBasePlanarColorDecoder<TPixel>
     {
         // If width and height are not multiples of ChromaSubsampleHoriz and ChromaSubsampleVert respectively,
         // then the source data will be padded.
-        width += TiffUtils.PaddingToNextInteger(width, horizontalSubSampling);
-        height += TiffUtils.PaddingToNextInteger(height, verticalSubSampling);
+        width += TiffUtilities.PaddingToNextInteger(width, horizontalSubSampling);
+        height += TiffUtilities.PaddingToNextInteger(height, verticalSubSampling);
 
         for (int row = height - 1; row >= 0; row--)
         {

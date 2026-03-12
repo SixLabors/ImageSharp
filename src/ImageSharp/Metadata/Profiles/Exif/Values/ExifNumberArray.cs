@@ -52,7 +52,6 @@ internal sealed class ExifNumberArray : ExifArrayValue<Number>
             case ushort val:
                 return this.SetSingle(val);
             case int[] array:
-            {
                 // workaround for inconsistent covariance of value-typed arrays
                 if (value.GetType() == typeof(uint[]))
                 {
@@ -60,17 +59,14 @@ internal sealed class ExifNumberArray : ExifArrayValue<Number>
                 }
 
                 return this.SetArray(array);
-            }
 
             case short[] array:
-            {
                 if (value.GetType() == typeof(ushort[]))
                 {
                     return this.SetArray((ushort[])value);
                 }
 
                 return this.SetArray(array);
-            }
         }
 
         return false;
@@ -80,13 +76,13 @@ internal sealed class ExifNumberArray : ExifArrayValue<Number>
 
     private bool SetSingle(Number value)
     {
-        this.Value = new[] { value };
+        this.Value = [value];
         return true;
     }
 
     private bool SetArray(int[] values)
     {
-        var numbers = new Number[values.Length];
+        Number[] numbers = new Number[values.Length];
         for (int i = 0; i < values.Length; i++)
         {
             numbers[i] = values[i];
@@ -98,7 +94,7 @@ internal sealed class ExifNumberArray : ExifArrayValue<Number>
 
     private bool SetArray(uint[] values)
     {
-        var numbers = new Number[values.Length];
+        Number[] numbers = new Number[values.Length];
         for (int i = 0; i < values.Length; i++)
         {
             numbers[i] = values[i];
@@ -110,7 +106,7 @@ internal sealed class ExifNumberArray : ExifArrayValue<Number>
 
     private bool SetArray(short[] values)
     {
-        var numbers = new Number[values.Length];
+        Number[] numbers = new Number[values.Length];
         for (int i = 0; i < values.Length; i++)
         {
             numbers[i] = values[i];
@@ -122,7 +118,7 @@ internal sealed class ExifNumberArray : ExifArrayValue<Number>
 
     private bool SetArray(ushort[] values)
     {
-        var numbers = new Number[values.Length];
+        Number[] numbers = new Number[values.Length];
         for (int i = 0; i < values.Length; i++)
         {
             numbers[i] = values[i];

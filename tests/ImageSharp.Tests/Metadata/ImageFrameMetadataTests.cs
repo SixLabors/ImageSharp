@@ -1,9 +1,11 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
+using SixLabors.ImageSharp.Metadata.Profiles.Iptc;
 using SixLabors.ImageSharp.Metadata.Profiles.Xmp;
 using ExifProfile = SixLabors.ImageSharp.Metadata.Profiles.Exif.ExifProfile;
 using ExifTag = SixLabors.ImageSharp.Metadata.Profiles.Exif.ExifTag;
@@ -20,39 +22,39 @@ public class ImageFrameMetadataTests
     {
         const int frameDelay = 42;
         const int colorTableLength = 128;
-        const GifDisposalMethod disposalMethod = GifDisposalMethod.RestoreToBackground;
+        const FrameDisposalMode disposalMethod = FrameDisposalMode.RestoreToBackground;
 
-        var metaData = new ImageFrameMetadata();
+        ImageFrameMetadata metaData = new();
         GifFrameMetadata gifFrameMetadata = metaData.GetGifMetadata();
         gifFrameMetadata.FrameDelay = frameDelay;
-        gifFrameMetadata.ColorTableLength = colorTableLength;
-        gifFrameMetadata.DisposalMethod = disposalMethod;
+        gifFrameMetadata.LocalColorTable = Enumerable.Repeat(Color.HotPink, colorTableLength).ToArray();
+        gifFrameMetadata.DisposalMode = disposalMethod;
 
-        var clone = new ImageFrameMetadata(metaData);
+        ImageFrameMetadata clone = new(metaData);
         GifFrameMetadata cloneGifFrameMetadata = clone.GetGifMetadata();
 
         Assert.Equal(frameDelay, cloneGifFrameMetadata.FrameDelay);
-        Assert.Equal(colorTableLength, cloneGifFrameMetadata.ColorTableLength);
-        Assert.Equal(disposalMethod, cloneGifFrameMetadata.DisposalMethod);
+        Assert.Equal(colorTableLength, cloneGifFrameMetadata.LocalColorTable.Value.Length);
+        Assert.Equal(disposalMethod, cloneGifFrameMetadata.DisposalMode);
     }
 
     [Fact]
     public void CloneIsDeep()
     {
         // arrange
-        var exifProfile = new ExifProfile();
+        ExifProfile exifProfile = new();
         exifProfile.SetValue(ExifTag.Software, "UnitTest");
         exifProfile.SetValue(ExifTag.Artist, "UnitTest");
-        var xmpProfile = new XmpProfile(new byte[0]);
-        var iccProfile = new IccProfile()
+        XmpProfile xmpProfile = new([]);
+        IccProfile iccProfile = new()
         {
-            Header = new IccProfileHeader()
+            Header = new IccProfileHeader
             {
                 CmmType = "Unittest"
             }
         };
-        var iptcProfile = new ImageSharp.Metadata.Profiles.Iptc.IptcProfile();
-        var metaData = new ImageFrameMetadata()
+        IptcProfile iptcProfile = new();
+        ImageFrameMetadata metaData = new()
         {
             XmpProfile = xmpProfile,
             ExifProfile = exifProfile,
@@ -72,7 +74,7 @@ public class ImageFrameMetadataTests
         Assert.False(metaData.ExifProfile.Equals(clone.ExifProfile));
         Assert.True(metaData.ExifProfile.Values.Count == clone.ExifProfile.Values.Count);
         Assert.False(ReferenceEquals(metaData.XmpProfile, clone.XmpProfile));
-        Assert.True(metaData.XmpProfile.Data.Equals(clone.XmpProfile.Data));
+        Assert.False(ReferenceEquals(metaData.XmpProfile.Data, clone.XmpProfile.Data));
         Assert.False(metaData.GetGifMetadata().Equals(clone.GetGifMetadata()));
         Assert.False(metaData.IccProfile.Equals(clone.IccProfile));
         Assert.False(metaData.IptcProfile.Equals(clone.IptcProfile));

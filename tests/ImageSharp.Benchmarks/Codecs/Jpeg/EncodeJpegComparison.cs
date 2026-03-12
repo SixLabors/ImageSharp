@@ -19,11 +19,6 @@ public class EncodeJpegComparison
 {
     // Big enough, 4:4:4 chroma sampling
     private const string TestImage = TestImages.Jpeg.Baseline.Calliphora;
-
-    // Change/add parameters for extra benchmarks
-    [Params(75, 90, 100)]
-    public int Quality;
-
     private MemoryStream destinationStream;
 
     // ImageSharp
@@ -33,13 +28,17 @@ public class EncodeJpegComparison
     // SkiaSharp
     private SKBitmap imageSkiaSharp;
 
+    // Change/add parameters for extra benchmarks
+    [Params(75, 90, 100)]
+    public int Quality { get; set; }
+
     [GlobalSetup(Target = nameof(BenchmarkImageSharp))]
     public void SetupImageSharp()
     {
         using FileStream imageBinaryStream = File.OpenRead(Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, TestImage));
 
         this.imageImageSharp = Image.Load<Rgba32>(imageBinaryStream);
-        this.encoderImageSharp = new JpegEncoder { Quality = this.Quality, ColorType = JpegEncodingColor.YCbCrRatio420 };
+        this.encoderImageSharp = new JpegEncoder { Quality = this.Quality, ColorType = JpegColorType.YCbCrRatio420 };
 
         this.destinationStream = new MemoryStream();
     }

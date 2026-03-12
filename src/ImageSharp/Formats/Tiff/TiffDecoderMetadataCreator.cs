@@ -5,7 +5,6 @@
 using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
-using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.Metadata.Profiles.Iptc;
 using SixLabors.ImageSharp.Metadata.Profiles.Xmp;
 
@@ -23,12 +22,14 @@ internal static class TiffDecoderMetadataCreator
             TiffThrowHelper.ThrowImageFormatException("Expected at least one frame.");
         }
 
-        ImageMetadata imageMetaData = Create(byteOrder, isBigTiff, frames[0].ExifProfile);
+        ImageMetadata imageMetaData = Create(byteOrder, isBigTiff, frames[0]);
 
         if (!ignoreMetadata)
         {
             for (int i = 0; i < frames.Count; i++)
             {
+                // ICC profile data has already been resolved in the frame metadata,
+                // as it is required for color conversion.
                 ImageFrameMetadata frameMetaData = frames[i];
                 if (TryGetIptc(frameMetaData.ExifProfile.Values, out byte[] iptcBytes))
                 {
@@ -39,25 +40,28 @@ internal static class TiffDecoderMetadataCreator
                 {
                     frameMetaData.XmpProfile = new XmpProfile(xmpProfileBytes.Value);
                 }
-
-                if (frameMetaData.ExifProfile.TryGetValue(ExifTag.IccProfile, out IExifValue<byte[]> iccProfileBytes))
-                {
-                    frameMetaData.IccProfile = new IccProfile(iccProfileBytes.Value);
-                }
             }
         }
 
         return imageMetaData;
     }
 
-    private static ImageMetadata Create(ByteOrder byteOrder, bool isBigTiff, ExifProfile exifProfile)
+    private static ImageMetadata Create(ByteOrder byteOrder, bool isBigTiff, ImageFrameMetadata rootFrameMetadata)
     {
         ImageMetadata imageMetaData = new();
-        SetResolution(imageMetaData, exifProfile);
+        SetResolution(imageMetaData, rootFrameMetadata.ExifProfile);
 
         TiffMetadata tiffMetadata = imageMetaData.GetTiffMetadata();
         tiffMetadata.ByteOrder = byteOrder;
         tiffMetadata.FormatType = isBigTiff ? TiffFormatType.BigTIFF : TiffFormatType.Default;
+
+        TiffFrameMetadata tiffFrameMetadata = rootFrameMetadata.GetTiffMetadata();
+        tiffMetadata.BitsPerPixel = tiffFrameMetadata.BitsPerPixel;
+        tiffMetadata.BitsPerSample = tiffFrameMetadata.BitsPerSample;
+        tiffMetadata.Compression = tiffFrameMetadata.Compression;
+        tiffMetadata.PhotometricInterpretation = tiffFrameMetadata.PhotometricInterpretation;
+        tiffMetadata.Predictor = tiffFrameMetadata.Predictor;
+
         return imageMetaData;
     }
 
@@ -109,7 +113,7 @@ internal static class TiffDecoderMetadataCreator
                     return false;
                 }
 
-                // Probably wrong endianess, swap byte order.
+                // Probably wrong endianness, swap byte order.
                 Span<byte> iptcBytesSpan = iptcBytes.AsSpan();
                 Span<byte> buffer = stackalloc byte[4];
                 for (int i = 0; i < iptcBytes.Length; i += 4)

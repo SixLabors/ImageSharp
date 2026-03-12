@@ -48,8 +48,8 @@ internal sealed class PixelRowDelegateProcessor<TPixel, TDelegate> : ImageProces
     /// <inheritdoc/>
     protected override void OnFrameApply(ImageFrame<TPixel> source)
     {
-        var interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds());
-        var operation = new RowOperation(interest.X, source.PixelBuffer, this.Configuration, this.modifiers, this.rowDelegate);
+        Rectangle interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds);
+        RowOperation operation = new(interest.X, source.PixelBuffer, this.Configuration, this.modifiers, this.rowDelegate);
 
         ParallelRowIterator.IterateRows<RowOperation, Vector4>(
             this.Configuration,
@@ -96,7 +96,7 @@ internal sealed class PixelRowDelegateProcessor<TPixel, TDelegate> : ImageProces
             PixelOperations<TPixel>.Instance.ToVector4(this.configuration, rowSpan, span, this.modifiers);
 
             // Run the user defined pixel shader to the current row of pixels
-            Unsafe.AsRef(this.rowProcessor).Invoke(span, new Point(this.startX, y));
+            Unsafe.AsRef(in this.rowProcessor).Invoke(span, new Point(this.startX, y));
 
             PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, span, rowSpan, this.modifiers);
         }

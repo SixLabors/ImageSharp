@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Tests.PixelFormats;
@@ -38,10 +39,10 @@ public class HalfVector4Tests
     public void HalfVector4_ToScaledVector4()
     {
         // arrange
-        var halfVector4 = new HalfVector4(-Vector4.One);
+        HalfVector4 pixel = new(-Vector4.One);
 
         // act
-        Vector4 actual = halfVector4.ToScaledVector4();
+        Vector4 actual = pixel.ToScaledVector4();
 
         // assert
         Assert.Equal(0, actual.X);
@@ -54,13 +55,12 @@ public class HalfVector4Tests
     public void HalfVector4_FromScaledVector4()
     {
         // arrange
-        var halfVector4 = default(HalfVector4);
         Vector4 scaled = new HalfVector4(-Vector4.One).ToScaledVector4();
-        ulong expected = 13547034390470638592uL;
+        const ulong expected = 13547034390470638592uL;
 
         // act
-        halfVector4.FromScaledVector4(scaled);
-        ulong actual = halfVector4.PackedValue;
+        HalfVector4 pixel = HalfVector4.FromScaledVector4(scaled);
+        ulong actual = pixel.PackedValue;
 
         // assert
         Assert.Equal(expected, actual);
@@ -70,13 +70,30 @@ public class HalfVector4Tests
     public void HalfVector4_FromBgra5551()
     {
         // arrange
-        var halfVector4 = default(HalfVector4);
         Vector4 expected = Vector4.One;
 
         // act
-        halfVector4.FromBgra5551(new Bgra5551(1.0f, 1.0f, 1.0f, 1.0f));
+        HalfVector4 pixel = HalfVector4.FromBgra5551(new Bgra5551(1.0f, 1.0f, 1.0f, 1.0f));
 
         // assert
-        Assert.Equal(expected, halfVector4.ToScaledVector4());
+        Assert.Equal(expected, pixel.ToScaledVector4());
+    }
+
+    [Fact]
+    public void HalfVector4_PixelInformation()
+    {
+        PixelTypeInfo info = HalfVector4.GetPixelTypeInfo();
+        Assert.Equal(Unsafe.SizeOf<HalfVector4>() * 8, info.BitsPerPixel);
+        Assert.Equal(PixelAlphaRepresentation.Unassociated, info.AlphaRepresentation);
+        Assert.Equal(PixelColorType.RGB | PixelColorType.Alpha, info.ColorType);
+
+        PixelComponentInfo componentInfo = info.ComponentInfo.Value;
+        Assert.Equal(4, componentInfo.ComponentCount);
+        Assert.Equal(0, componentInfo.Padding);
+        Assert.Equal(16, componentInfo.GetComponentPrecision(0));
+        Assert.Equal(16, componentInfo.GetComponentPrecision(1));
+        Assert.Equal(16, componentInfo.GetComponentPrecision(2));
+        Assert.Equal(16, componentInfo.GetComponentPrecision(3));
+        Assert.Equal(16, componentInfo.GetMaximumComponentPrecision());
     }
 }

@@ -11,6 +11,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation;
 /// <summary>
 /// Implements the 'WhiteIsZero' photometric interpretation (optimized for bilevel images).
 /// </summary>
+/// <typeparam name="TPixel">The type of pixel format.</typeparam>
 internal class WhiteIsZero1TiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
     where TPixel : unmanaged, IPixel<TPixel>
 {
@@ -18,11 +19,9 @@ internal class WhiteIsZero1TiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
     public override void Decode(ReadOnlySpan<byte> data, Buffer2D<TPixel> pixels, int left, int top, int width, int height)
     {
         nuint offset = 0;
-        var colorBlack = default(TPixel);
-        var colorWhite = default(TPixel);
+        TPixel colorBlack = TPixel.FromRgba32(Color.Black.ToPixel<Rgba32>());
+        TPixel colorWhite = TPixel.FromRgba32(Color.White.ToPixel<Rgba32>());
 
-        colorBlack.FromRgba32(Color.Black);
-        colorWhite.FromRgba32(Color.White);
         ref byte dataRef = ref MemoryMarshal.GetReference(data);
         for (nuint y = (uint)top; y < (uint)(top + height); y++)
         {

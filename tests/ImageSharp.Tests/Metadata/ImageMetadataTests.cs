@@ -16,9 +16,9 @@ public class ImageMetadataTests
     [Fact]
     public void ConstructorImageMetadata()
     {
-        var metaData = new ImageMetadata();
+        ImageMetadata metaData = new();
 
-        var exifProfile = new ExifProfile();
+        ExifProfile exifProfile = new();
 
         metaData.ExifProfile = exifProfile;
         metaData.HorizontalResolution = 4;
@@ -34,7 +34,7 @@ public class ImageMetadataTests
     [Fact]
     public void CloneIsDeep()
     {
-        var metaData = new ImageMetadata
+        ImageMetadata metaData = new()
         {
             ExifProfile = new ExifProfile(),
             HorizontalResolution = 4,
@@ -53,7 +53,7 @@ public class ImageMetadataTests
     [Fact]
     public void HorizontalResolution()
     {
-        var metaData = new ImageMetadata();
+        ImageMetadata metaData = new();
         Assert.Equal(96, metaData.HorizontalResolution);
 
         metaData.HorizontalResolution = 0;
@@ -69,7 +69,7 @@ public class ImageMetadataTests
     [Fact]
     public void VerticalResolution()
     {
-        var metaData = new ImageMetadata();
+        ImageMetadata metaData = new();
         Assert.Equal(96, metaData.VerticalResolution);
 
         metaData.VerticalResolution = 0;
@@ -85,20 +85,19 @@ public class ImageMetadataTests
     [Fact]
     public void SyncProfiles()
     {
-        var exifProfile = new ExifProfile();
+        ExifProfile exifProfile = new();
         exifProfile.SetValue(ExifTag.XResolution, new Rational(200));
         exifProfile.SetValue(ExifTag.YResolution, new Rational(300));
 
-        using (var image = new Image<Rgba32>(1, 1))
-        {
-            image.Metadata.ExifProfile = exifProfile;
-            image.Metadata.HorizontalResolution = 400;
-            image.Metadata.VerticalResolution = 500;
+        using Image<Rgba32> image = new(1, 1);
+        image.Metadata.ExifProfile = exifProfile;
+        image.Metadata.HorizontalResolution = 400;
+        image.Metadata.VerticalResolution = 500;
 
-            image.Metadata.SyncProfiles();
+        using MemoryStream memoryStream = new();
+        image.SaveAsBmp(memoryStream);
 
-            Assert.Equal(400, image.Metadata.ExifProfile.GetValue(ExifTag.XResolution).Value.ToDouble());
-            Assert.Equal(500, image.Metadata.ExifProfile.GetValue(ExifTag.YResolution).Value.ToDouble());
-        }
+        Assert.Equal(400, image.Metadata.ExifProfile.GetValue(ExifTag.XResolution).Value.ToDouble());
+        Assert.Equal(500, image.Metadata.ExifProfile.GetValue(ExifTag.YResolution).Value.ToDouble());
     }
 }

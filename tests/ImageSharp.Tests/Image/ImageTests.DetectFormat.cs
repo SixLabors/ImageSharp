@@ -51,6 +51,10 @@ public partial class ImageTests
         }
 
         [Fact]
+        public void FromBytes_EmptySpan_Throws()
+            => Assert.Throws<UnknownImageFormatException>(() => Image.DetectFormat([]));
+
+        [Fact]
         public void FromFileSystemPath_GlobalConfiguration()
         {
             IImageFormat format = Image.DetectFormat(ActualImagePath);
@@ -114,7 +118,7 @@ public partial class ImageTests
         {
             DecoderOptions options = new()
             {
-                Configuration = new()
+                Configuration = new Configuration()
             };
 
             Assert.Throws<UnknownImageFormatException>(() => Image.DetectFormat(options, this.DataStream));
@@ -145,7 +149,7 @@ public partial class ImageTests
         {
             DecoderOptions options = new()
             {
-                Configuration = new()
+                Configuration = new Configuration()
             };
 
             return Assert.ThrowsAsync<UnknownImageFormatException>(async () => await Image.DetectFormatAsync(options, new AsyncStreamWrapper(this.DataStream, () => false)));

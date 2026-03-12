@@ -1,8 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using SixLabors.ImageSharp.Advanced;
-
 namespace SixLabors.ImageSharp.Formats.Pbm;
 
 /// <summary>
@@ -49,7 +47,7 @@ public sealed class PbmEncoder : ImageEncoder
     /// <inheritdoc/>
     protected override void Encode<TPixel>(Image<TPixel> image, Stream stream, CancellationToken cancellationToken)
     {
-        PbmEncoderCore encoder = new(image.GetConfiguration(), this);
+        PbmEncoderCore encoder = new(image.Configuration, this);
         encoder.Encode(image, stream, cancellationToken);
     }
 }

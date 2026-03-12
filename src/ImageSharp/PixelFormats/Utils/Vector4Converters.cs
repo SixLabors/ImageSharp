@@ -3,7 +3,7 @@
 
 using System.Numerics;
 using System.Runtime.CompilerServices;
-using SixLabors.ImageSharp.ColorSpaces.Companding;
+using SixLabors.ImageSharp.ColorProfiles.Companding;
 
 namespace SixLabors.ImageSharp.PixelFormats.Utils;
 
@@ -12,6 +12,8 @@ internal static partial class Vector4Converters
     /// <summary>
     /// Apply modifiers used requested by ToVector4() conversion.
     /// </summary>
+    /// <param name="vectors">The span of vectors.</param>
+    /// <param name="modifiers">The modifier rule.</param>
     [MethodImpl(InliningOptions.ShortMethod)]
     internal static void ApplyForwardConversionModifiers(Span<Vector4> vectors, PixelConversionModifiers modifiers)
     {
@@ -29,6 +31,8 @@ internal static partial class Vector4Converters
     /// <summary>
     /// Apply modifiers used requested by FromVector4() conversion.
     /// </summary>
+    /// <param name="vectors">The span of vectors.</param>
+    /// <param name="modifiers">The modifier rule.</param>
     [MethodImpl(InliningOptions.ShortMethod)]
     internal static void ApplyBackwardConversionModifiers(Span<Vector4> vectors, PixelConversionModifiers modifiers)
     {

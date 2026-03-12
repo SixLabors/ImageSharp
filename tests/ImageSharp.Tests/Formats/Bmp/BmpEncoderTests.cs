@@ -20,11 +20,11 @@ public class BmpEncoderTests
     private static BmpEncoder BmpEncoder => new();
 
     public static readonly TheoryData<BmpBitsPerPixel> BitsPerPixel =
-    new()
-    {
-        BmpBitsPerPixel.Pixel24,
-        BmpBitsPerPixel.Pixel32
-    };
+        new()
+        {
+            BmpBitsPerPixel.Bit24,
+            BmpBitsPerPixel.Bit32
+        };
 
     public static readonly TheoryData<string, int, int, PixelResolutionUnit> RatioFiles =
     new()
@@ -37,26 +37,29 @@ public class BmpEncoderTests
     public static readonly TheoryData<string, BmpBitsPerPixel> BmpBitsPerPixelFiles =
     new()
     {
-        { Bit1, BmpBitsPerPixel.Pixel1 },
-        { Bit2, BmpBitsPerPixel.Pixel2 },
-        { Bit4, BmpBitsPerPixel.Pixel4 },
-        { Bit8, BmpBitsPerPixel.Pixel8 },
-        { Rgb16, BmpBitsPerPixel.Pixel16 },
-        { Car, BmpBitsPerPixel.Pixel24 },
-        { Bit32Rgb, BmpBitsPerPixel.Pixel32 }
+        { Bit1, BmpBitsPerPixel.Bit1 },
+        { Bit2, BmpBitsPerPixel.Bit2 },
+        { Bit4, BmpBitsPerPixel.Bit4 },
+        { Bit8, BmpBitsPerPixel.Bit8 },
+        { Rgb16, BmpBitsPerPixel.Bit16 },
+        { Car, BmpBitsPerPixel.Bit24 },
+        { Bit32Rgb, BmpBitsPerPixel.Bit32 }
     };
+
+    [Fact]
+    public void BmpEncoderDefaultInstanceHasQuantizer() => Assert.NotNull(BmpEncoder.Quantizer);
 
     [Theory]
     [MemberData(nameof(RatioFiles))]
     public void Encode_PreserveRatio(string imagePath, int xResolution, int yResolution, PixelResolutionUnit resolutionUnit)
     {
-        var testFile = TestFile.Create(imagePath);
+        TestFile testFile = TestFile.Create(imagePath);
         using Image<Rgba32> input = testFile.CreateRgba32Image();
-        using var memStream = new MemoryStream();
+        using MemoryStream memStream = new();
         input.Save(memStream, BmpEncoder);
 
         memStream.Position = 0;
-        using var output = Image.Load<Rgba32>(memStream);
+        using Image<Rgba32> output = Image.Load<Rgba32>(memStream);
         ImageMetadata meta = output.Metadata;
         Assert.Equal(xResolution, meta.HorizontalResolution);
         Assert.Equal(yResolution, meta.VerticalResolution);
@@ -67,13 +70,13 @@ public class BmpEncoderTests
     [MemberData(nameof(BmpBitsPerPixelFiles))]
     public void Encode_PreserveBitsPerPixel(string imagePath, BmpBitsPerPixel bmpBitsPerPixel)
     {
-        var testFile = TestFile.Create(imagePath);
+        TestFile testFile = TestFile.Create(imagePath);
         using Image<Rgba32> input = testFile.CreateRgba32Image();
-        using var memStream = new MemoryStream();
+        using MemoryStream memStream = new();
         input.Save(memStream, BmpEncoder);
 
         memStream.Position = 0;
-        using var output = Image.Load<Rgba32>(memStream);
+        using Image<Rgba32> output = Image.Load<Rgba32>(memStream);
         BmpMetadata meta = output.Metadata.GetBmpMetadata();
 
         Assert.Equal(bmpBitsPerPixel, meta.BitsPerPixel);
@@ -94,61 +97,61 @@ public class BmpEncoderTests
         where TPixel : unmanaged, IPixel<TPixel> => TestBmpEncoderCore(provider, bitsPerPixel);
 
     [Theory]
-    [WithFile(Bit32Rgb, PixelTypes.Rgba32 | PixelTypes.Rgb24, BmpBitsPerPixel.Pixel32)]
-    [WithFile(Bit32Rgba, PixelTypes.Rgba32 | PixelTypes.Rgb24, BmpBitsPerPixel.Pixel32)]
-    [WithFile(WinBmpv4, PixelTypes.Rgba32 | PixelTypes.Rgb24, BmpBitsPerPixel.Pixel32)]
-    [WithFile(WinBmpv5, PixelTypes.Rgba32 | PixelTypes.Rgb24, BmpBitsPerPixel.Pixel32)]
+    [WithFile(Bit32Rgb, PixelTypes.Rgba32 | PixelTypes.Rgb24, BmpBitsPerPixel.Bit32)]
+    [WithFile(Bit32Rgba, PixelTypes.Rgba32 | PixelTypes.Rgb24, BmpBitsPerPixel.Bit32)]
+    [WithFile(WinBmpv4, PixelTypes.Rgba32 | PixelTypes.Rgb24, BmpBitsPerPixel.Bit32)]
+    [WithFile(WinBmpv5, PixelTypes.Rgba32 | PixelTypes.Rgb24, BmpBitsPerPixel.Bit32)]
     public void Encode_32Bit_WithV3Header_Works<TPixel>(TestImageProvider<TPixel> provider, BmpBitsPerPixel bitsPerPixel)
 
         // If supportTransparency is false, a v3 bitmap header will be written.
         where TPixel : unmanaged, IPixel<TPixel> => TestBmpEncoderCore(provider, bitsPerPixel, supportTransparency: false);
 
     [Theory]
-    [WithFile(Bit32Rgb, PixelTypes.Rgba32 | PixelTypes.Rgb24, BmpBitsPerPixel.Pixel32)]
-    [WithFile(Bit32Rgba, PixelTypes.Rgba32 | PixelTypes.Rgb24, BmpBitsPerPixel.Pixel32)]
-    [WithFile(WinBmpv4, PixelTypes.Rgba32 | PixelTypes.Rgb24, BmpBitsPerPixel.Pixel32)]
-    [WithFile(WinBmpv5, PixelTypes.Rgba32 | PixelTypes.Rgb24, BmpBitsPerPixel.Pixel32)]
+    [WithFile(Bit32Rgb, PixelTypes.Rgba32 | PixelTypes.Rgb24, BmpBitsPerPixel.Bit32)]
+    [WithFile(Bit32Rgba, PixelTypes.Rgba32 | PixelTypes.Rgb24, BmpBitsPerPixel.Bit32)]
+    [WithFile(WinBmpv4, PixelTypes.Rgba32 | PixelTypes.Rgb24, BmpBitsPerPixel.Bit32)]
+    [WithFile(WinBmpv5, PixelTypes.Rgba32 | PixelTypes.Rgb24, BmpBitsPerPixel.Bit32)]
     public void Encode_32Bit_WithV4Header_Works<TPixel>(TestImageProvider<TPixel> provider, BmpBitsPerPixel bitsPerPixel)
         where TPixel : unmanaged, IPixel<TPixel> => TestBmpEncoderCore(provider, bitsPerPixel, supportTransparency: true);
 
     [Theory]
-    [WithFile(WinBmpv3, PixelTypes.Rgb24, BmpBitsPerPixel.Pixel24)] // WinBmpv3 is a 24 bits per pixel image.
-    [WithFile(F, PixelTypes.Rgb24, BmpBitsPerPixel.Pixel24)]
+    [WithFile(WinBmpv3, PixelTypes.Rgb24, BmpBitsPerPixel.Bit24)] // WinBmpv3 is a 24 bits per pixel image.
+    [WithFile(F, PixelTypes.Rgb24, BmpBitsPerPixel.Bit24)]
     public void Encode_24Bit_WithV3Header_Works<TPixel>(TestImageProvider<TPixel> provider, BmpBitsPerPixel bitsPerPixel)
         where TPixel : unmanaged, IPixel<TPixel> => TestBmpEncoderCore(provider, bitsPerPixel, supportTransparency: false);
 
     [Theory]
-    [WithFile(WinBmpv3, PixelTypes.Rgb24, BmpBitsPerPixel.Pixel24)]
-    [WithFile(F, PixelTypes.Rgb24, BmpBitsPerPixel.Pixel24)]
+    [WithFile(WinBmpv3, PixelTypes.Rgb24, BmpBitsPerPixel.Bit24)]
+    [WithFile(F, PixelTypes.Rgb24, BmpBitsPerPixel.Bit24)]
     public void Encode_24Bit_WithV4Header_Works<TPixel>(TestImageProvider<TPixel> provider, BmpBitsPerPixel bitsPerPixel)
         where TPixel : unmanaged, IPixel<TPixel> => TestBmpEncoderCore(provider, bitsPerPixel, supportTransparency: true);
 
     [Theory]
-    [WithFile(Rgb16, PixelTypes.Bgra5551, BmpBitsPerPixel.Pixel16)]
-    [WithFile(Bit16, PixelTypes.Bgra5551, BmpBitsPerPixel.Pixel16)]
+    [WithFile(Rgb16, PixelTypes.Bgra5551, BmpBitsPerPixel.Bit16)]
+    [WithFile(Bit16, PixelTypes.Bgra5551, BmpBitsPerPixel.Bit16)]
     public void Encode_16Bit_WithV3Header_Works<TPixel>(TestImageProvider<TPixel> provider, BmpBitsPerPixel bitsPerPixel)
         where TPixel : unmanaged, IPixel<TPixel> => TestBmpEncoderCore(provider, bitsPerPixel, supportTransparency: false);
 
     [Theory]
-    [WithFile(Rgb16, PixelTypes.Bgra5551, BmpBitsPerPixel.Pixel16)]
-    [WithFile(Bit16, PixelTypes.Bgra5551, BmpBitsPerPixel.Pixel16)]
+    [WithFile(Rgb16, PixelTypes.Bgra5551, BmpBitsPerPixel.Bit16)]
+    [WithFile(Bit16, PixelTypes.Bgra5551, BmpBitsPerPixel.Bit16)]
     public void Encode_16Bit_WithV4Header_Works<TPixel>(TestImageProvider<TPixel> provider, BmpBitsPerPixel bitsPerPixel)
         where TPixel : unmanaged, IPixel<TPixel> => TestBmpEncoderCore(provider, bitsPerPixel, supportTransparency: true);
 
     [Theory]
-    [WithFile(WinBmpv5, PixelTypes.Rgba32, BmpBitsPerPixel.Pixel8)]
-    [WithFile(Bit8Palette4, PixelTypes.Rgba32, BmpBitsPerPixel.Pixel8)]
+    [WithFile(WinBmpv5, PixelTypes.Rgba32, BmpBitsPerPixel.Bit8)]
+    [WithFile(Bit8Palette4, PixelTypes.Rgba32, BmpBitsPerPixel.Bit8)]
     public void Encode_8Bit_WithV3Header_Works<TPixel>(TestImageProvider<TPixel> provider, BmpBitsPerPixel bitsPerPixel)
         where TPixel : unmanaged, IPixel<TPixel> => TestBmpEncoderCore(provider, bitsPerPixel, supportTransparency: false);
 
     [Theory]
-    [WithFile(WinBmpv5, PixelTypes.Rgba32, BmpBitsPerPixel.Pixel8)]
-    [WithFile(Bit8Palette4, PixelTypes.Rgba32, BmpBitsPerPixel.Pixel8)]
+    [WithFile(WinBmpv5, PixelTypes.Rgba32, BmpBitsPerPixel.Bit8)]
+    [WithFile(Bit8Palette4, PixelTypes.Rgba32, BmpBitsPerPixel.Bit8)]
     public void Encode_8Bit_WithV4Header_Works<TPixel>(TestImageProvider<TPixel> provider, BmpBitsPerPixel bitsPerPixel)
         where TPixel : unmanaged, IPixel<TPixel> => TestBmpEncoderCore(provider, bitsPerPixel, supportTransparency: true);
 
     [Theory]
-    [WithFile(Bit8Gs, PixelTypes.L8, BmpBitsPerPixel.Pixel8)]
+    [WithFile(Bit8Gs, PixelTypes.L8, BmpBitsPerPixel.Bit8)]
     public void Encode_8BitGray_WithV3Header_Works<TPixel>(TestImageProvider<TPixel> provider, BmpBitsPerPixel bitsPerPixel)
         where TPixel : unmanaged, IPixel<TPixel> =>
         TestBmpEncoderCore(
@@ -157,7 +160,7 @@ public class BmpEncoderTests
             supportTransparency: false);
 
     [Theory]
-    [WithFile(Bit4, PixelTypes.Rgba32, BmpBitsPerPixel.Pixel4)]
+    [WithFile(Bit4, PixelTypes.Rgba32, BmpBitsPerPixel.Bit4)]
     public void Encode_4Bit_WithV3Header_Works<TPixel>(
         TestImageProvider<TPixel> provider,
         BmpBitsPerPixel bitsPerPixel)
@@ -173,7 +176,7 @@ public class BmpEncoderTests
     }
 
     [Theory]
-    [WithFile(Bit4, PixelTypes.Rgba32, BmpBitsPerPixel.Pixel4)]
+    [WithFile(Bit4, PixelTypes.Rgba32, BmpBitsPerPixel.Bit4)]
     public void Encode_4Bit_WithV4Header_Works<TPixel>(
         TestImageProvider<TPixel> provider,
         BmpBitsPerPixel bitsPerPixel)
@@ -189,15 +192,15 @@ public class BmpEncoderTests
     }
 
     [Theory]
-    [WithFile(Bit2, PixelTypes.Rgba32, BmpBitsPerPixel.Pixel2)]
+    [WithFile(Bit2, PixelTypes.Rgba32, BmpBitsPerPixel.Bit2)]
     public void Encode_2Bit_WithV3Header_Works<TPixel>(
         TestImageProvider<TPixel> provider,
         BmpBitsPerPixel bitsPerPixel)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         // arrange
-        var encoder = new BmpEncoder() { BitsPerPixel = bitsPerPixel };
-        using var memoryStream = new MemoryStream();
+        BmpEncoder encoder = new() { BitsPerPixel = bitsPerPixel };
+        using MemoryStream memoryStream = new();
         using Image<TPixel> input = provider.GetImage(BmpDecoder.Instance);
 
         // act
@@ -205,21 +208,21 @@ public class BmpEncoderTests
         memoryStream.Position = 0;
 
         // assert
-        using var actual = Image.Load<TPixel>(memoryStream);
+        using Image<TPixel> actual = Image.Load<TPixel>(memoryStream);
         ImageSimilarityReport similarityReport = ImageComparer.Exact.CompareImagesOrFrames(input, actual);
         Assert.True(similarityReport.IsEmpty, "encoded image does not match reference image");
     }
 
     [Theory]
-    [WithFile(Bit2, PixelTypes.Rgba32, BmpBitsPerPixel.Pixel2)]
+    [WithFile(Bit2, PixelTypes.Rgba32, BmpBitsPerPixel.Bit2)]
     public void Encode_2Bit_WithV4Header_Works<TPixel>(
         TestImageProvider<TPixel> provider,
         BmpBitsPerPixel bitsPerPixel)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         // arrange
-        var encoder = new BmpEncoder() { BitsPerPixel = bitsPerPixel };
-        using var memoryStream = new MemoryStream();
+        BmpEncoder encoder = new() { BitsPerPixel = bitsPerPixel };
+        using MemoryStream memoryStream = new();
         using Image<TPixel> input = provider.GetImage(BmpDecoder.Instance);
 
         // act
@@ -227,27 +230,27 @@ public class BmpEncoderTests
         memoryStream.Position = 0;
 
         // assert
-        using var actual = Image.Load<TPixel>(memoryStream);
+        using Image<TPixel> actual = Image.Load<TPixel>(memoryStream);
         ImageSimilarityReport similarityReport = ImageComparer.Exact.CompareImagesOrFrames(input, actual);
         Assert.True(similarityReport.IsEmpty, "encoded image does not match reference image");
     }
 
     [Theory]
-    [WithFile(Bit1, PixelTypes.Rgba32, BmpBitsPerPixel.Pixel1)]
+    [WithFile(Bit1, PixelTypes.Rgba32, BmpBitsPerPixel.Bit1)]
     public void Encode_1Bit_WithV3Header_Works<TPixel>(
         TestImageProvider<TPixel> provider,
         BmpBitsPerPixel bitsPerPixel)
         where TPixel : unmanaged, IPixel<TPixel> => TestBmpEncoderCore(provider, bitsPerPixel, supportTransparency: false);
 
     [Theory]
-    [WithFile(Bit1, PixelTypes.Rgba32, BmpBitsPerPixel.Pixel1)]
+    [WithFile(Bit1, PixelTypes.Rgba32, BmpBitsPerPixel.Bit1)]
     public void Encode_1Bit_WithV4Header_Works<TPixel>(
         TestImageProvider<TPixel> provider,
         BmpBitsPerPixel bitsPerPixel)
         where TPixel : unmanaged, IPixel<TPixel> => TestBmpEncoderCore(provider, bitsPerPixel, supportTransparency: true);
 
     [Theory]
-    [WithFile(Bit8Gs, PixelTypes.L8, BmpBitsPerPixel.Pixel8)]
+    [WithFile(Bit8Gs, PixelTypes.L8, BmpBitsPerPixel.Bit8)]
     public void Encode_8BitGray_WithV4Header_Works<TPixel>(TestImageProvider<TPixel> provider, BmpBitsPerPixel bitsPerPixel)
         where TPixel : unmanaged, IPixel<TPixel> =>
         TestBmpEncoderCore(
@@ -266,9 +269,9 @@ public class BmpEncoderTests
         }
 
         using Image<TPixel> image = provider.GetImage();
-        var encoder = new BmpEncoder
+        BmpEncoder encoder = new()
         {
-            BitsPerPixel = BmpBitsPerPixel.Pixel8,
+            BitsPerPixel = BmpBitsPerPixel.Bit8,
             Quantizer = new WuQuantizer()
         };
 
@@ -284,7 +287,7 @@ public class BmpEncoderTests
             provider,
             extension: "bmp",
             appendPixelTypeToFileName: false,
-            decoder: new MagickReferenceDecoder(false));
+            decoder: new MagickReferenceDecoder(BmpFormat.Instance, false));
     }
 
     [Theory]
@@ -298,9 +301,9 @@ public class BmpEncoderTests
         }
 
         using Image<TPixel> image = provider.GetImage();
-        var encoder = new BmpEncoder
+        BmpEncoder encoder = new()
         {
-            BitsPerPixel = BmpBitsPerPixel.Pixel8,
+            BitsPerPixel = BmpBitsPerPixel.Bit8,
             Quantizer = new OctreeQuantizer()
         };
         string actualOutputFile = provider.Utility.SaveTestOutputFile(image, "bmp", encoder, appendPixelTypeToFileName: false);
@@ -315,12 +318,12 @@ public class BmpEncoderTests
             provider,
             extension: "bmp",
             appendPixelTypeToFileName: false,
-            decoder: new MagickReferenceDecoder(false));
+            decoder: new MagickReferenceDecoder(BmpFormat.Instance, false));
     }
 
     [Theory]
-    [WithFile(TestImages.Png.GrayAlpha2BitInterlaced, PixelTypes.Rgba32, BmpBitsPerPixel.Pixel32)]
-    [WithFile(Bit32Rgba, PixelTypes.Rgba32, BmpBitsPerPixel.Pixel32)]
+    [WithFile(TestImages.Png.GrayAlpha2BitInterlaced, PixelTypes.Rgba32, BmpBitsPerPixel.Bit32)]
+    [WithFile(Bit32Rgba, PixelTypes.Rgba32, BmpBitsPerPixel.Bit32)]
     public void Encode_PreservesAlpha<TPixel>(TestImageProvider<TPixel> provider, BmpBitsPerPixel bitsPerPixel)
         where TPixel : unmanaged, IPixel<TPixel> => TestBmpEncoderCore(provider, bitsPerPixel, supportTransparency: true);
 
@@ -329,15 +332,15 @@ public class BmpEncoderTests
     public void Encode_PreservesColorProfile<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> input = provider.GetImage(BmpDecoder.Instance, new());
+        using Image<TPixel> input = provider.GetImage(BmpDecoder.Instance, new BmpDecoderOptions());
         ImageSharp.Metadata.Profiles.Icc.IccProfile expectedProfile = input.Metadata.IccProfile;
         byte[] expectedProfileBytes = expectedProfile.ToByteArray();
 
-        using var memStream = new MemoryStream();
+        using MemoryStream memStream = new();
         input.Save(memStream, new BmpEncoder());
 
         memStream.Position = 0;
-        using var output = Image.Load<Rgba32>(memStream);
+        using Image<Rgba32> output = Image.Load<Rgba32>(memStream);
         ImageSharp.Metadata.Profiles.Icc.IccProfile actualProfile = output.Metadata.IccProfile;
         byte[] actualProfileBytes = actualProfile.ToByteArray();
 
@@ -353,7 +356,7 @@ public class BmpEncoderTests
         Exception exception = Record.Exception(() =>
         {
             using Image image = new Image<Rgba32>(width, height);
-            using var memStream = new MemoryStream();
+            using MemoryStream memStream = new();
             image.Save(memStream, BmpEncoder);
         });
 
@@ -361,13 +364,97 @@ public class BmpEncoderTests
     }
 
     [Theory]
-    [WithFile(Car, PixelTypes.Rgba32, BmpBitsPerPixel.Pixel32)]
-    [WithFile(V5Header, PixelTypes.Rgba32, BmpBitsPerPixel.Pixel32)]
+    [WithFile(Car, PixelTypes.Rgba32, BmpBitsPerPixel.Bit32)]
+    [WithFile(V5Header, PixelTypes.Rgba32, BmpBitsPerPixel.Bit32)]
     public void Encode_WorksWithDiscontiguousBuffers<TPixel>(TestImageProvider<TPixel> provider, BmpBitsPerPixel bitsPerPixel)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         provider.LimitAllocatorBufferCapacity().InBytesSqrt(100);
         TestBmpEncoderCore(provider, bitsPerPixel);
+    }
+
+    [Theory]
+    [WithFile(BlackWhitePalletDataMatrix, PixelTypes.Rgb24, BmpBitsPerPixel.Bit1)]
+    public void Encode_Issue2467<TPixel>(TestImageProvider<TPixel> provider, BmpBitsPerPixel bitsPerPixel)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage();
+
+        using MemoryStream reencodedStream = new();
+        BmpEncoder encoder = new()
+        {
+            BitsPerPixel = bitsPerPixel,
+            SupportTransparency = false,
+            Quantizer = KnownQuantizers.Octree
+        };
+        image.SaveAsBmp(reencodedStream, encoder);
+        reencodedStream.Seek(0, SeekOrigin.Begin);
+
+        using Image<TPixel> reencodedImage = Image.Load<TPixel>(reencodedStream);
+
+        reencodedImage.DebugSave(provider);
+
+        reencodedImage.CompareToOriginal(provider);
+    }
+
+    [Fact]
+    public void Encode_WithTransparentColorBehaviorClear_Works()
+    {
+        // arrange
+        using Image<Rgba32> image = new(50, 50);
+        BmpEncoder encoder = new()
+        {
+            BitsPerPixel = BmpBitsPerPixel.Bit32,
+            SupportTransparency = true,
+            TransparentColorMode = TransparentColorMode.Clear,
+        };
+        Rgba32 rgba32 = Color.Blue.ToPixel<Rgba32>();
+        image.ProcessPixelRows(accessor =>
+        {
+            for (int y = 0; y < image.Height; y++)
+            {
+                Span<Rgba32> rowSpan = accessor.GetRowSpan(y);
+
+                // Half of the test image should be transparent.
+                if (y > 25)
+                {
+                    rgba32.A = 0;
+                }
+
+                for (int x = 0; x < image.Width; x++)
+                {
+                    rowSpan[x] = Rgba32.FromRgba32(rgba32);
+                }
+            }
+        });
+
+        // act
+        using MemoryStream memStream = new();
+        image.Save(memStream, encoder);
+
+        // assert
+        memStream.Position = 0;
+        using Image<Rgba32> actual = Image.Load<Rgba32>(memStream);
+        Rgba32 expectedColor = Color.Blue.ToPixel<Rgba32>();
+
+        actual.ProcessPixelRows(accessor =>
+        {
+            Rgba32 transparent = Color.Transparent.ToPixel<Rgba32>();
+            for (int y = 0; y < accessor.Height; y++)
+            {
+                Span<Rgba32> rowSpan = accessor.GetRowSpan(y);
+
+                if (y > 25)
+                {
+                    expectedColor = transparent;
+                }
+
+                for (int x = 0; x < accessor.Width; x++)
+                {
+                    Assert.Equal(expectedColor, rowSpan[x]);
+                }
+            }
+        });
     }
 
     private static void TestBmpEncoderCore<TPixel>(
@@ -382,12 +469,12 @@ public class BmpEncoderTests
         using Image<TPixel> image = provider.GetImage();
 
         // There is no alpha in bmp with less then 32 bits per pixels, so the reference image will be made opaque.
-        if (bitsPerPixel != BmpBitsPerPixel.Pixel32)
+        if (bitsPerPixel != BmpBitsPerPixel.Bit32)
         {
             image.Mutate(c => c.MakeOpaque());
         }
 
-        var encoder = new BmpEncoder
+        BmpEncoder encoder = new()
         {
             BitsPerPixel = bitsPerPixel,
             SupportTransparency = supportTransparency,

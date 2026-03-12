@@ -14,20 +14,17 @@ public partial class PixelOperations<TPixel>
     /// </summary>
     /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations.</param>
     /// <param name="source">The source <see cref="Span{T}"/> of <see cref="Argb32"/> data.</param>
-    /// <param name="destinationPixels">The <see cref="Span{T}"/> to the destination pixels.</param>
-    public virtual void FromArgb32(Configuration configuration, ReadOnlySpan<Argb32> source, Span<TPixel> destinationPixels)
+    /// <param name="destination">The <see cref="Span{T}"/> to the destination pixels.</param>
+    public virtual void FromArgb32(Configuration configuration, ReadOnlySpan<Argb32> source, Span<TPixel> destination)
     {
-        Guard.DestinationShouldNotBeTooShort(source, destinationPixels, nameof(destinationPixels));
+        Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
-        ref Argb32 sourceBaseRef = ref MemoryMarshal.GetReference(source);
-        ref TPixel destBaseRef = ref MemoryMarshal.GetReference(destinationPixels);
+        ref Argb32 sourceBase = ref MemoryMarshal.GetReference(source);
+        ref TPixel destinationBase = ref MemoryMarshal.GetReference(destination);
 
         for (nuint i = 0; i < (uint)source.Length; i++)
         {
-            ref Argb32 sp = ref Unsafe.Add(ref sourceBaseRef, i);
-            ref TPixel dp = ref Unsafe.Add(ref destBaseRef, i);
-
-            dp.FromArgb32(sp);
+            Unsafe.Add(ref destinationBase, i) = TPixel.FromArgb32(Unsafe.Add(ref sourceBase, i));
         }
     }
 
@@ -37,48 +34,45 @@ public partial class PixelOperations<TPixel>
     /// </summary>
     /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations.</param>
     /// <param name="sourceBytes">The <see cref="ReadOnlySpan{T}"/> to the source bytes.</param>
-    /// <param name="destinationPixels">The <see cref="Span{T}"/> to the destination pixels.</param>
+    /// <param name="destination">The <see cref="Span{T}"/> to the destination pixels.</param>
     /// <param name="count">The number of pixels to convert.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void FromArgb32Bytes(Configuration configuration, ReadOnlySpan<byte> sourceBytes, Span<TPixel> destinationPixels, int count)
+    public void FromArgb32Bytes(Configuration configuration, ReadOnlySpan<byte> sourceBytes, Span<TPixel> destination, int count)
     {
-        this.FromArgb32(configuration, MemoryMarshal.Cast<byte, Argb32>(sourceBytes).Slice(0, count), destinationPixels);
+        this.FromArgb32(configuration, MemoryMarshal.Cast<byte, Argb32>(sourceBytes).Slice(0, count), destination);
     }
 
     /// <summary>
-    /// Converts all pixels of the 'sourcePixels` span to a span of <see cref="Argb32"/>-s.
+    /// Converts all pixels of the 'source` span to a span of <see cref="Argb32"/>-s.
     /// </summary>
     /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations</param>
-    /// <param name="sourcePixels">The span of source pixels</param>
-    /// <param name="destinationPixels">The destination span of <see cref="Argb32"/> data.</param>
-    public virtual void ToArgb32(Configuration configuration, ReadOnlySpan<TPixel> sourcePixels, Span<Argb32> destinationPixels)
+    /// <param name="source">The span of source pixels</param>
+    /// <param name="destination">The destination span of <see cref="Argb32"/> data.</param>
+    public virtual void ToArgb32(Configuration configuration, ReadOnlySpan<TPixel> source, Span<Argb32> destination)
     {
-        Guard.DestinationShouldNotBeTooShort(sourcePixels, destinationPixels, nameof(destinationPixels));
+        Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
-        ref TPixel sourceBaseRef = ref MemoryMarshal.GetReference(sourcePixels);
-        ref Argb32 destBaseRef = ref MemoryMarshal.GetReference(destinationPixels);
+        ref TPixel sourceBase = ref MemoryMarshal.GetReference(source);
+        ref Argb32 destinationBase = ref MemoryMarshal.GetReference(destination);
 
-        for (nuint i = 0; i < (uint)sourcePixels.Length; i++)
+        for (nuint i = 0; i < (uint)source.Length; i++)
         {
-            ref TPixel sp = ref Unsafe.Add(ref sourceBaseRef, i);
-            ref Argb32 dp = ref Unsafe.Add(ref destBaseRef, i);
-
-            dp.FromScaledVector4(sp.ToScaledVector4());
+            Unsafe.Add(ref destinationBase, i) = Argb32.FromScaledVector4(Unsafe.Add(ref sourceBase, i).ToScaledVector4());
         }
     }
 
     /// <summary>
     /// A helper for <see cref="ToArgb32(Configuration, ReadOnlySpan{TPixel}, Span{Argb32})"/> that expects a byte span as destination.
-    /// The layout of the data in 'destBytes' must be compatible with <see cref="Argb32"/> layout.
+    /// The layout of the data in 'destination' must be compatible with <see cref="Argb32"/> layout.
     /// </summary>
     /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations</param>
-    /// <param name="sourcePixels">The <see cref="Span{T}"/> to the source pixels.</param>
-    /// <param name="destBytes">The <see cref="Span{T}"/> to the destination bytes.</param>
+    /// <param name="source">The <see cref="Span{T}"/> to the source pixels.</param>
+    /// <param name="destination">The <see cref="Span{T}"/> to the destination bytes.</param>
     /// <param name="count">The number of pixels to convert.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void ToArgb32Bytes(Configuration configuration, ReadOnlySpan<TPixel> sourcePixels, Span<byte> destBytes, int count)
+    public void ToArgb32Bytes(Configuration configuration, ReadOnlySpan<TPixel> source, Span<byte> destination, int count)
     {
-        this.ToArgb32(configuration, sourcePixels.Slice(0, count), MemoryMarshal.Cast<byte, Argb32>(destBytes));
+        this.ToArgb32(configuration, source.Slice(0, count), MemoryMarshal.Cast<byte, Argb32>(destination));
     }
 
     /// <summary>
@@ -86,20 +80,17 @@ public partial class PixelOperations<TPixel>
     /// </summary>
     /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations.</param>
     /// <param name="source">The source <see cref="Span{T}"/> of <see cref="Abgr32"/> data.</param>
-    /// <param name="destinationPixels">The <see cref="Span{T}"/> to the destination pixels.</param>
-    public virtual void FromAbgr32(Configuration configuration, ReadOnlySpan<Abgr32> source, Span<TPixel> destinationPixels)
+    /// <param name="destination">The <see cref="Span{T}"/> to the destination pixels.</param>
+    public virtual void FromAbgr32(Configuration configuration, ReadOnlySpan<Abgr32> source, Span<TPixel> destination)
     {
-        Guard.DestinationShouldNotBeTooShort(source, destinationPixels, nameof(destinationPixels));
+        Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
-        ref Abgr32 sourceBaseRef = ref MemoryMarshal.GetReference(source);
-        ref TPixel destBaseRef = ref MemoryMarshal.GetReference(destinationPixels);
+        ref Abgr32 sourceBase = ref MemoryMarshal.GetReference(source);
+        ref TPixel destinationBase = ref MemoryMarshal.GetReference(destination);
 
         for (nuint i = 0; i < (uint)source.Length; i++)
         {
-            ref Abgr32 sp = ref Unsafe.Add(ref sourceBaseRef, i);
-            ref TPixel dp = ref Unsafe.Add(ref destBaseRef, i);
-
-            dp.FromAbgr32(sp);
+            Unsafe.Add(ref destinationBase, i) = TPixel.FromAbgr32(Unsafe.Add(ref sourceBase, i));
         }
     }
 
@@ -109,48 +100,45 @@ public partial class PixelOperations<TPixel>
     /// </summary>
     /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations.</param>
     /// <param name="sourceBytes">The <see cref="ReadOnlySpan{T}"/> to the source bytes.</param>
-    /// <param name="destinationPixels">The <see cref="Span{T}"/> to the destination pixels.</param>
+    /// <param name="destination">The <see cref="Span{T}"/> to the destination pixels.</param>
     /// <param name="count">The number of pixels to convert.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void FromAbgr32Bytes(Configuration configuration, ReadOnlySpan<byte> sourceBytes, Span<TPixel> destinationPixels, int count)
+    public void FromAbgr32Bytes(Configuration configuration, ReadOnlySpan<byte> sourceBytes, Span<TPixel> destination, int count)
     {
-        this.FromAbgr32(configuration, MemoryMarshal.Cast<byte, Abgr32>(sourceBytes).Slice(0, count), destinationPixels);
+        this.FromAbgr32(configuration, MemoryMarshal.Cast<byte, Abgr32>(sourceBytes).Slice(0, count), destination);
     }
 
     /// <summary>
-    /// Converts all pixels of the 'sourcePixels` span to a span of <see cref="Abgr32"/>-s.
+    /// Converts all pixels of the 'source` span to a span of <see cref="Abgr32"/>-s.
     /// </summary>
     /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations</param>
-    /// <param name="sourcePixels">The span of source pixels</param>
-    /// <param name="destinationPixels">The destination span of <see cref="Abgr32"/> data.</param>
-    public virtual void ToAbgr32(Configuration configuration, ReadOnlySpan<TPixel> sourcePixels, Span<Abgr32> destinationPixels)
+    /// <param name="source">The span of source pixels</param>
+    /// <param name="destination">The destination span of <see cref="Abgr32"/> data.</param>
+    public virtual void ToAbgr32(Configuration configuration, ReadOnlySpan<TPixel> source, Span<Abgr32> destination)
     {
-        Guard.DestinationShouldNotBeTooShort(sourcePixels, destinationPixels, nameof(destinationPixels));
+        Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
-        ref TPixel sourceBaseRef = ref MemoryMarshal.GetReference(sourcePixels);
-        ref Abgr32 destBaseRef = ref MemoryMarshal.GetReference(destinationPixels);
+        ref TPixel sourceBase = ref MemoryMarshal.GetReference(source);
+        ref Abgr32 destinationBase = ref MemoryMarshal.GetReference(destination);
 
-        for (nuint i = 0; i < (uint)sourcePixels.Length; i++)
+        for (nuint i = 0; i < (uint)source.Length; i++)
         {
-            ref TPixel sp = ref Unsafe.Add(ref sourceBaseRef, i);
-            ref Abgr32 dp = ref Unsafe.Add(ref destBaseRef, i);
-
-            dp.FromScaledVector4(sp.ToScaledVector4());
+            Unsafe.Add(ref destinationBase, i) = Abgr32.FromScaledVector4(Unsafe.Add(ref sourceBase, i).ToScaledVector4());
         }
     }
 
     /// <summary>
     /// A helper for <see cref="ToAbgr32(Configuration, ReadOnlySpan{TPixel}, Span{Abgr32})"/> that expects a byte span as destination.
-    /// The layout of the data in 'destBytes' must be compatible with <see cref="Abgr32"/> layout.
+    /// The layout of the data in 'destination' must be compatible with <see cref="Abgr32"/> layout.
     /// </summary>
     /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations</param>
-    /// <param name="sourcePixels">The <see cref="Span{T}"/> to the source pixels.</param>
-    /// <param name="destBytes">The <see cref="Span{T}"/> to the destination bytes.</param>
+    /// <param name="source">The <see cref="Span{T}"/> to the source pixels.</param>
+    /// <param name="destination">The <see cref="Span{T}"/> to the destination bytes.</param>
     /// <param name="count">The number of pixels to convert.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void ToAbgr32Bytes(Configuration configuration, ReadOnlySpan<TPixel> sourcePixels, Span<byte> destBytes, int count)
+    public void ToAbgr32Bytes(Configuration configuration, ReadOnlySpan<TPixel> source, Span<byte> destination, int count)
     {
-        this.ToAbgr32(configuration, sourcePixels.Slice(0, count), MemoryMarshal.Cast<byte, Abgr32>(destBytes));
+        this.ToAbgr32(configuration, source.Slice(0, count), MemoryMarshal.Cast<byte, Abgr32>(destination));
     }
 
     /// <summary>
@@ -158,20 +146,17 @@ public partial class PixelOperations<TPixel>
     /// </summary>
     /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations.</param>
     /// <param name="source">The source <see cref="Span{T}"/> of <see cref="Bgr24"/> data.</param>
-    /// <param name="destinationPixels">The <see cref="Span{T}"/> to the destination pixels.</param>
-    public virtual void FromBgr24(Configuration configuration, ReadOnlySpan<Bgr24> source, Span<TPixel> destinationPixels)
+    /// <param name="destination">The <see cref="Span{T}"/> to the destination pixels.</param>
+    public virtual void FromBgr24(Configuration configuration, ReadOnlySpan<Bgr24> source, Span<TPixel> destination)
     {
-        Guard.DestinationShouldNotBeTooShort(source, destinationPixels, nameof(destinationPixels));
+        Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
-        ref Bgr24 sourceBaseRef = ref MemoryMarshal.GetReference(source);
-        ref TPixel destBaseRef = ref MemoryMarshal.GetReference(destinationPixels);
+        ref Bgr24 sourceBase = ref MemoryMarshal.GetReference(source);
+        ref TPixel destinationBase = ref MemoryMarshal.GetReference(destination);
 
         for (nuint i = 0; i < (uint)source.Length; i++)
         {
-            ref Bgr24 sp = ref Unsafe.Add(ref sourceBaseRef, i);
-            ref TPixel dp = ref Unsafe.Add(ref destBaseRef, i);
-
-            dp.FromBgr24(sp);
+            Unsafe.Add(ref destinationBase, i) = TPixel.FromBgr24(Unsafe.Add(ref sourceBase, i));
         }
     }
 
@@ -181,48 +166,45 @@ public partial class PixelOperations<TPixel>
     /// </summary>
     /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations.</param>
     /// <param name="sourceBytes">The <see cref="ReadOnlySpan{T}"/> to the source bytes.</param>
-    /// <param name="destinationPixels">The <see cref="Span{T}"/> to the destination pixels.</param>
+    /// <param name="destination">The <see cref="Span{T}"/> to the destination pixels.</param>
     /// <param name="count">The number of pixels to convert.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void FromBgr24Bytes(Configuration configuration, ReadOnlySpan<byte> sourceBytes, Span<TPixel> destinationPixels, int count)
+    public void FromBgr24Bytes(Configuration configuration, ReadOnlySpan<byte> sourceBytes, Span<TPixel> destination, int count)
     {
-        this.FromBgr24(configuration, MemoryMarshal.Cast<byte, Bgr24>(sourceBytes).Slice(0, count), destinationPixels);
+        this.FromBgr24(configuration, MemoryMarshal.Cast<byte, Bgr24>(sourceBytes).Slice(0, count), destination);
     }
 
     /// <summary>
-    /// Converts all pixels of the 'sourcePixels` span to a span of <see cref="Bgr24"/>-s.
+    /// Converts all pixels of the 'source` span to a span of <see cref="Bgr24"/>-s.
     /// </summary>
     /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations</param>
-    /// <param name="sourcePixels">The span of source pixels</param>
-    /// <param name="destinationPixels">The destination span of <see cref="Bgr24"/> data.</param>
-    public virtual void ToBgr24(Configuration configuration, ReadOnlySpan<TPixel> sourcePixels, Span<Bgr24> destinationPixels)
+    /// <param name="source">The span of source pixels</param>
+    /// <param name="destination">The destination span of <see cref="Bgr24"/> data.</param>
+    public virtual void ToBgr24(Configuration configuration, ReadOnlySpan<TPixel> source, Span<Bgr24> destination)
     {
-        Guard.DestinationShouldNotBeTooShort(sourcePixels, destinationPixels, nameof(destinationPixels));
+        Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
-        ref TPixel sourceBaseRef = ref MemoryMarshal.GetReference(sourcePixels);
-        ref Bgr24 destBaseRef = ref MemoryMarshal.GetReference(destinationPixels);
+        ref TPixel sourceBase = ref MemoryMarshal.GetReference(source);
+        ref Bgr24 destinationBase = ref MemoryMarshal.GetReference(destination);
 
-        for (nuint i = 0; i < (uint)sourcePixels.Length; i++)
+        for (nuint i = 0; i < (uint)source.Length; i++)
         {
-            ref TPixel sp = ref Unsafe.Add(ref sourceBaseRef, i);
-            ref Bgr24 dp = ref Unsafe.Add(ref destBaseRef, i);
-
-            dp.FromScaledVector4(sp.ToScaledVector4());
+            Unsafe.Add(ref destinationBase, i) = Bgr24.FromScaledVector4(Unsafe.Add(ref sourceBase, i).ToScaledVector4());
         }
     }
 
     /// <summary>
     /// A helper for <see cref="ToBgr24(Configuration, ReadOnlySpan{TPixel}, Span{Bgr24})"/> that expects a byte span as destination.
-    /// The layout of the data in 'destBytes' must be compatible with <see cref="Bgr24"/> layout.
+    /// The layout of the data in 'destination' must be compatible with <see cref="Bgr24"/> layout.
     /// </summary>
     /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations</param>
-    /// <param name="sourcePixels">The <see cref="Span{T}"/> to the source pixels.</param>
-    /// <param name="destBytes">The <see cref="Span{T}"/> to the destination bytes.</param>
+    /// <param name="source">The <see cref="Span{T}"/> to the source pixels.</param>
+    /// <param name="destination">The <see cref="Span{T}"/> to the destination bytes.</param>
     /// <param name="count">The number of pixels to convert.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void ToBgr24Bytes(Configuration configuration, ReadOnlySpan<TPixel> sourcePixels, Span<byte> destBytes, int count)
+    public void ToBgr24Bytes(Configuration configuration, ReadOnlySpan<TPixel> source, Span<byte> destination, int count)
     {
-        this.ToBgr24(configuration, sourcePixels.Slice(0, count), MemoryMarshal.Cast<byte, Bgr24>(destBytes));
+        this.ToBgr24(configuration, source.Slice(0, count), MemoryMarshal.Cast<byte, Bgr24>(destination));
     }
 
     /// <summary>
@@ -230,20 +212,17 @@ public partial class PixelOperations<TPixel>
     /// </summary>
     /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations.</param>
     /// <param name="source">The source <see cref="Span{T}"/> of <see cref="Bgra32"/> data.</param>
-    /// <param name="destinationPixels">The <see cref="Span{T}"/> to the destination pixels.</param>
-    public virtual void FromBgra32(Configuration configuration, ReadOnlySpan<Bgra32> source, Span<TPixel> destinationPixels)
+    /// <param name="destination">The <see cref="Span{T}"/> to the destination pixels.</param>
+    public virtual void FromBgra32(Configuration configuration, ReadOnlySpan<Bgra32> source, Span<TPixel> destination)
     {
-        Guard.DestinationShouldNotBeTooShort(source, destinationPixels, nameof(destinationPixels));
+        Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
-        ref Bgra32 sourceBaseRef = ref MemoryMarshal.GetReference(source);
-        ref TPixel destBaseRef = ref MemoryMarshal.GetReference(destinationPixels);
+        ref Bgra32 sourceBase = ref MemoryMarshal.GetReference(source);
+        ref TPixel destinationBase = ref MemoryMarshal.GetReference(destination);
 
         for (nuint i = 0; i < (uint)source.Length; i++)
         {
-            ref Bgra32 sp = ref Unsafe.Add(ref sourceBaseRef, i);
-            ref TPixel dp = ref Unsafe.Add(ref destBaseRef, i);
-
-            dp.FromBgra32(sp);
+            Unsafe.Add(ref destinationBase, i) = TPixel.FromBgra32(Unsafe.Add(ref sourceBase, i));
         }
     }
 
@@ -253,48 +232,45 @@ public partial class PixelOperations<TPixel>
     /// </summary>
     /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations.</param>
     /// <param name="sourceBytes">The <see cref="ReadOnlySpan{T}"/> to the source bytes.</param>
-    /// <param name="destinationPixels">The <see cref="Span{T}"/> to the destination pixels.</param>
+    /// <param name="destination">The <see cref="Span{T}"/> to the destination pixels.</param>
     /// <param name="count">The number of pixels to convert.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void FromBgra32Bytes(Configuration configuration, ReadOnlySpan<byte> sourceBytes, Span<TPixel> destinationPixels, int count)
+    public void FromBgra32Bytes(Configuration configuration, ReadOnlySpan<byte> sourceBytes, Span<TPixel> destination, int count)
     {
-        this.FromBgra32(configuration, MemoryMarshal.Cast<byte, Bgra32>(sourceBytes).Slice(0, count), destinationPixels);
+        this.FromBgra32(configuration, MemoryMarshal.Cast<byte, Bgra32>(sourceBytes).Slice(0, count), destination);
     }
 
     /// <summary>
-    /// Converts all pixels of the 'sourcePixels` span to a span of <see cref="Bgra32"/>-s.
+    /// Converts all pixels of the 'source` span to a span of <see cref="Bgra32"/>-s.
     /// </summary>
     /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations</param>
-    /// <param name="sourcePixels">The span of source pixels</param>
-    /// <param name="destinationPixels">The destination span of <see cref="Bgra32"/> data.</param>
-    public virtual void ToBgra32(Configuration configuration, ReadOnlySpan<TPixel> sourcePixels, Span<Bgra32> destinationPixels)
+    /// <param name="source">The span of source pixels</param>
+    /// <param name="destination">The destination span of <see cref="Bgra32"/> data.</param>
+    public virtual void ToBgra32(Configuration configuration, ReadOnlySpan<TPixel> source, Span<Bgra32> destination)
     {
-        Guard.DestinationShouldNotBeTooShort(sourcePixels, destinationPixels, nameof(destinationPixels));
+        Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
-        ref TPixel sourceBaseRef = ref MemoryMarshal.GetReference(sourcePixels);
-        ref Bgra32 destBaseRef = ref MemoryMarshal.GetReference(destinationPixels);
+        ref TPixel sourceBase = ref MemoryMarshal.GetReference(source);
+        ref Bgra32 destinationBase = ref MemoryMarshal.GetReference(destination);
 
-        for (nuint i = 0; i < (uint)sourcePixels.Length; i++)
+        for (nuint i = 0; i < (uint)source.Length; i++)
         {
-            ref TPixel sp = ref Unsafe.Add(ref sourceBaseRef, i);
-            ref Bgra32 dp = ref Unsafe.Add(ref destBaseRef, i);
-
-            dp.FromScaledVector4(sp.ToScaledVector4());
+            Unsafe.Add(ref destinationBase, i) = Bgra32.FromScaledVector4(Unsafe.Add(ref sourceBase, i).ToScaledVector4());
         }
     }
 
     /// <summary>
     /// A helper for <see cref="ToBgra32(Configuration, ReadOnlySpan{TPixel}, Span{Bgra32})"/> that expects a byte span as destination.
-    /// The layout of the data in 'destBytes' must be compatible with <see cref="Bgra32"/> layout.
+    /// The layout of the data in 'destination' must be compatible with <see cref="Bgra32"/> layout.
     /// </summary>
     /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations</param>
-    /// <param name="sourcePixels">The <see cref="Span{T}"/> to the source pixels.</param>
-    /// <param name="destBytes">The <see cref="Span{T}"/> to the destination bytes.</param>
+    /// <param name="source">The <see cref="Span{T}"/> to the source pixels.</param>
+    /// <param name="destination">The <see cref="Span{T}"/> to the destination bytes.</param>
     /// <param name="count">The number of pixels to convert.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void ToBgra32Bytes(Configuration configuration, ReadOnlySpan<TPixel> sourcePixels, Span<byte> destBytes, int count)
+    public void ToBgra32Bytes(Configuration configuration, ReadOnlySpan<TPixel> source, Span<byte> destination, int count)
     {
-        this.ToBgra32(configuration, sourcePixels.Slice(0, count), MemoryMarshal.Cast<byte, Bgra32>(destBytes));
+        this.ToBgra32(configuration, source.Slice(0, count), MemoryMarshal.Cast<byte, Bgra32>(destination));
     }
 
     /// <summary>
@@ -302,20 +278,17 @@ public partial class PixelOperations<TPixel>
     /// </summary>
     /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations.</param>
     /// <param name="source">The source <see cref="Span{T}"/> of <see cref="L8"/> data.</param>
-    /// <param name="destinationPixels">The <see cref="Span{T}"/> to the destination pixels.</param>
-    public virtual void FromL8(Configuration configuration, ReadOnlySpan<L8> source, Span<TPixel> destinationPixels)
+    /// <param name="destination">The <see cref="Span{T}"/> to the destination pixels.</param>
+    public virtual void FromL8(Configuration configuration, ReadOnlySpan<L8> source, Span<TPixel> destination)
     {
-        Guard.DestinationShouldNotBeTooShort(source, destinationPixels, nameof(destinationPixels));
+        Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
-        ref L8 sourceBaseRef = ref MemoryMarshal.GetReference(source);
-        ref TPixel destBaseRef = ref MemoryMarshal.GetReference(destinationPixels);
+        ref L8 sourceBase = ref MemoryMarshal.GetReference(source);
+        ref TPixel destinationBase = ref MemoryMarshal.GetReference(destination);
 
         for (nuint i = 0; i < (uint)source.Length; i++)
         {
-            ref L8 sp = ref Unsafe.Add(ref sourceBaseRef, i);
-            ref TPixel dp = ref Unsafe.Add(ref destBaseRef, i);
-
-            dp.FromL8(sp);
+            Unsafe.Add(ref destinationBase, i) = TPixel.FromL8(Unsafe.Add(ref sourceBase, i));
         }
     }
 
@@ -325,48 +298,45 @@ public partial class PixelOperations<TPixel>
     /// </summary>
     /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations.</param>
     /// <param name="sourceBytes">The <see cref="ReadOnlySpan{T}"/> to the source bytes.</param>
-    /// <param name="destinationPixels">The <see cref="Span{T}"/> to the destination pixels.</param>
+    /// <param name="destination">The <see cref="Span{T}"/> to the destination pixels.</param>
     /// <param name="count">The number of pixels to convert.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void FromL8Bytes(Configuration configuration, ReadOnlySpan<byte> sourceBytes, Span<TPixel> destinationPixels, int count)
+    public void FromL8Bytes(Configuration configuration, ReadOnlySpan<byte> sourceBytes, Span<TPixel> destination, int count)
     {
-        this.FromL8(configuration, MemoryMarshal.Cast<byte, L8>(sourceBytes).Slice(0, count), destinationPixels);
+        this.FromL8(configuration, MemoryMarshal.Cast<byte, L8>(sourceBytes).Slice(0, count), destination);
     }
 
     /// <summary>
-    /// Converts all pixels of the 'sourcePixels` span to a span of <see cref="L8"/>-s.
+    /// Converts all pixels of the 'source` span to a span of <see cref="L8"/>-s.
     /// </summary>
     /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations</param>
-    /// <param name="sourcePixels">The span of source pixels</param>
-    /// <param name="destinationPixels">The destination span of <see cref="L8"/> data.</param>
-    public virtual void ToL8(Configuration configuration, ReadOnlySpan<TPixel> sourcePixels, Span<L8> destinationPixels)
+    /// <param name="source">The span of source pixels</param>
+    /// <param name="destination">The destination span of <see cref="L8"/> data.</param>
+    public virtual void ToL8(Configuration configuration, ReadOnlySpan<TPixel> source, Span<L8> destination)
     {
-        Guard.DestinationShouldNotBeTooShort(sourcePixels, destinationPixels, nameof(destinationPixels));
+        Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
-        ref TPixel sourceBaseRef = ref MemoryMarshal.GetReference(sourcePixels);
-        ref L8 destBaseRef = ref MemoryMarshal.GetReference(destinationPixels);
+        ref TPixel sourceBase = ref MemoryMarshal.GetReference(source);
+        ref L8 destinationBase = ref MemoryMarshal.GetReference(destination);
 
-        for (nuint i = 0; i < (uint)sourcePixels.Length; i++)
+        for (nuint i = 0; i < (uint)source.Length; i++)
         {
-            ref TPixel sp = ref Unsafe.Add(ref sourceBaseRef, i);
-            ref L8 dp = ref Unsafe.Add(ref destBaseRef, i);
-
-            dp.FromScaledVector4(sp.ToScaledVector4());
+            Unsafe.Add(ref destinationBase, i) = L8.FromScaledVector4(Unsafe.Add(ref sourceBase, i).ToScaledVector4());
         }
     }
 
     /// <summary>
     /// A helper for <see cref="ToL8(Configuration, ReadOnlySpan{TPixel}, Span{L8})"/> that expects a byte span as destination.
-    /// The layout of the data in 'destBytes' must be compatible with <see cref="L8"/> layout.
+    /// The layout of the data in 'destination' must be compatible with <see cref="L8"/> layout.
     /// </summary>
     /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations</param>
-    /// <param name="sourcePixels">The <see cref="Span{T}"/> to the source pixels.</param>
-    /// <param name="destBytes">The <see cref="Span{T}"/> to the destination bytes.</param>
+    /// <param name="source">The <see cref="Span{T}"/> to the source pixels.</param>
+    /// <param name="destination">The <see cref="Span{T}"/> to the destination bytes.</param>
     /// <param name="count">The number of pixels to convert.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void ToL8Bytes(Configuration configuration, ReadOnlySpan<TPixel> sourcePixels, Span<byte> destBytes, int count)
+    public void ToL8Bytes(Configuration configuration, ReadOnlySpan<TPixel> source, Span<byte> destination, int count)
     {
-        this.ToL8(configuration, sourcePixels.Slice(0, count), MemoryMarshal.Cast<byte, L8>(destBytes));
+        this.ToL8(configuration, source.Slice(0, count), MemoryMarshal.Cast<byte, L8>(destination));
     }
 
     /// <summary>
@@ -374,20 +344,17 @@ public partial class PixelOperations<TPixel>
     /// </summary>
     /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations.</param>
     /// <param name="source">The source <see cref="Span{T}"/> of <see cref="L16"/> data.</param>
-    /// <param name="destinationPixels">The <see cref="Span{T}"/> to the destination pixels.</param>
-    public virtual void FromL16(Configuration configuration, ReadOnlySpan<L16> source, Span<TPixel> destinationPixels)
+    /// <param name="destination">The <see cref="Span{T}"/> to the destination pixels.</param>
+    public virtual void FromL16(Configuration configuration, ReadOnlySpan<L16> source, Span<TPixel> destination)
     {
-        Guard.DestinationShouldNotBeTooShort(source, destinationPixels, nameof(destinationPixels));
+        Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
-        ref L16 sourceBaseRef = ref MemoryMarshal.GetReference(source);
-        ref TPixel destBaseRef = ref MemoryMarshal.GetReference(destinationPixels);
+        ref L16 sourceBase = ref MemoryMarshal.GetReference(source);
+        ref TPixel destinationBase = ref MemoryMarshal.GetReference(destination);
 
         for (nuint i = 0; i < (uint)source.Length; i++)
         {
-            ref L16 sp = ref Unsafe.Add(ref sourceBaseRef, i);
-            ref TPixel dp = ref Unsafe.Add(ref destBaseRef, i);
-
-            dp.FromL16(sp);
+            Unsafe.Add(ref destinationBase, i) = TPixel.FromL16(Unsafe.Add(ref sourceBase, i));
         }
     }
 
@@ -397,48 +364,45 @@ public partial class PixelOperations<TPixel>
     /// </summary>
     /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations.</param>
     /// <param name="sourceBytes">The <see cref="ReadOnlySpan{T}"/> to the source bytes.</param>
-    /// <param name="destinationPixels">The <see cref="Span{T}"/> to the destination pixels.</param>
+    /// <param name="destination">The <see cref="Span{T}"/> to the destination pixels.</param>
     /// <param name="count">The number of pixels to convert.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void FromL16Bytes(Configuration configuration, ReadOnlySpan<byte> sourceBytes, Span<TPixel> destinationPixels, int count)
+    public void FromL16Bytes(Configuration configuration, ReadOnlySpan<byte> sourceBytes, Span<TPixel> destination, int count)
     {
-        this.FromL16(configuration, MemoryMarshal.Cast<byte, L16>(sourceBytes).Slice(0, count), destinationPixels);
+        this.FromL16(configuration, MemoryMarshal.Cast<byte, L16>(sourceBytes).Slice(0, count), destination);
     }
 
     /// <summary>
-    /// Converts all pixels of the 'sourcePixels` span to a span of <see cref="L16"/>-s.
+    /// Converts all pixels of the 'source` span to a span of <see cref="L16"/>-s.
     /// </summary>
     /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations</param>
-    /// <param name="sourcePixels">The span of source pixels</param>
-    /// <param name="destinationPixels">The destination span of <see cref="L16"/> data.</param>
-    public virtual void ToL16(Configuration configuration, ReadOnlySpan<TPixel> sourcePixels, Span<L16> destinationPixels)
+    /// <param name="source">The span of source pixels</param>
+    /// <param name="destination">The destination span of <see cref="L16"/> data.</param>
+    public virtual void ToL16(Configuration configuration, ReadOnlySpan<TPixel> source, Span<L16> destination)
     {
-        Guard.DestinationShouldNotBeTooShort(sourcePixels, destinationPixels, nameof(destinationPixels));
+        Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
-        ref TPixel sourceBaseRef = ref MemoryMarshal.GetReference(sourcePixels);
-        ref L16 destBaseRef = ref MemoryMarshal.GetReference(destinationPixels);
+        ref TPixel sourceBase = ref MemoryMarshal.GetReference(source);
+        ref L16 destinationBase = ref MemoryMarshal.GetReference(destination);
 
-        for (nuint i = 0; i < (uint)sourcePixels.Length; i++)
+        for (nuint i = 0; i < (uint)source.Length; i++)
         {
-            ref TPixel sp = ref Unsafe.Add(ref sourceBaseRef, i);
-            ref L16 dp = ref Unsafe.Add(ref destBaseRef, i);
-
-            dp.FromScaledVector4(sp.ToScaledVector4());
+            Unsafe.Add(ref destinationBase, i) = L16.FromScaledVector4(Unsafe.Add(ref sourceBase, i).ToScaledVector4());
         }
     }
 
     /// <summary>
     /// A helper for <see cref="ToL16(Configuration, ReadOnlySpan{TPixel}, Span{L16})"/> that expects a byte span as destination.
-    /// The layout of the data in 'destBytes' must be compatible with <see cref="L16"/> layout.
+    /// The layout of the data in 'destination' must be compatible with <see cref="L16"/> layout.
     /// </summary>
     /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations</param>
-    /// <param name="sourcePixels">The <see cref="Span{T}"/> to the source pixels.</param>
-    /// <param name="destBytes">The <see cref="Span{T}"/> to the destination bytes.</param>
+    /// <param name="source">The <see cref="Span{T}"/> to the source pixels.</param>
+    /// <param name="destination">The <see cref="Span{T}"/> to the destination bytes.</param>
     /// <param name="count">The number of pixels to convert.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void ToL16Bytes(Configuration configuration, ReadOnlySpan<TPixel> sourcePixels, Span<byte> destBytes, int count)
+    public void ToL16Bytes(Configuration configuration, ReadOnlySpan<TPixel> source, Span<byte> destination, int count)
     {
-        this.ToL16(configuration, sourcePixels.Slice(0, count), MemoryMarshal.Cast<byte, L16>(destBytes));
+        this.ToL16(configuration, source.Slice(0, count), MemoryMarshal.Cast<byte, L16>(destination));
     }
 
     /// <summary>
@@ -446,20 +410,17 @@ public partial class PixelOperations<TPixel>
     /// </summary>
     /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations.</param>
     /// <param name="source">The source <see cref="Span{T}"/> of <see cref="La16"/> data.</param>
-    /// <param name="destinationPixels">The <see cref="Span{T}"/> to the destination pixels.</param>
-    public virtual void FromLa16(Configuration configuration, ReadOnlySpan<La16> source, Span<TPixel> destinationPixels)
+    /// <param name="destination">The <see cref="Span{T}"/> to the destination pixels.</param>
+    public virtual void FromLa16(Configuration configuration, ReadOnlySpan<La16> source, Span<TPixel> destination)
     {
-        Guard.DestinationShouldNotBeTooShort(source, destinationPixels, nameof(destinationPixels));
+        Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
-        ref La16 sourceBaseRef = ref MemoryMarshal.GetReference(source);
-        ref TPixel destBaseRef = ref MemoryMarshal.GetReference(destinationPixels);
+        ref La16 sourceBase = ref MemoryMarshal.GetReference(source);
+        ref TPixel destinationBase = ref MemoryMarshal.GetReference(destination);
 
         for (nuint i = 0; i < (uint)source.Length; i++)
         {
-            ref La16 sp = ref Unsafe.Add(ref sourceBaseRef, i);
-            ref TPixel dp = ref Unsafe.Add(ref destBaseRef, i);
-
-            dp.FromLa16(sp);
+            Unsafe.Add(ref destinationBase, i) = TPixel.FromLa16(Unsafe.Add(ref sourceBase, i));
         }
     }
 
@@ -469,48 +430,45 @@ public partial class PixelOperations<TPixel>
     /// </summary>
     /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations.</param>
     /// <param name="sourceBytes">The <see cref="ReadOnlySpan{T}"/> to the source bytes.</param>
-    /// <param name="destinationPixels">The <see cref="Span{T}"/> to the destination pixels.</param>
+    /// <param name="destination">The <see cref="Span{T}"/> to the destination pixels.</param>
     /// <param name="count">The number of pixels to convert.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void FromLa16Bytes(Configuration configuration, ReadOnlySpan<byte> sourceBytes, Span<TPixel> destinationPixels, int count)
+    public void FromLa16Bytes(Configuration configuration, ReadOnlySpan<byte> sourceBytes, Span<TPixel> destination, int count)
     {
-        this.FromLa16(configuration, MemoryMarshal.Cast<byte, La16>(sourceBytes).Slice(0, count), destinationPixels);
+        this.FromLa16(configuration, MemoryMarshal.Cast<byte, La16>(sourceBytes).Slice(0, count), destination);
     }
 
     /// <summary>
-    /// Converts all pixels of the 'sourcePixels` span to a span of <see cref="La16"/>-s.
+    /// Converts all pixels of the 'source` span to a span of <see cref="La16"/>-s.
     /// </summary>
     /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations</param>
-    /// <param name="sourcePixels">The span of source pixels</param>
-    /// <param name="destinationPixels">The destination span of <see cref="La16"/> data.</param>
-    public virtual void ToLa16(Configuration configuration, ReadOnlySpan<TPixel> sourcePixels, Span<La16> destinationPixels)
+    /// <param name="source">The span of source pixels</param>
+    /// <param name="destination">The destination span of <see cref="La16"/> data.</param>
+    public virtual void ToLa16(Configuration configuration, ReadOnlySpan<TPixel> source, Span<La16> destination)
     {
-        Guard.DestinationShouldNotBeTooShort(sourcePixels, destinationPixels, nameof(destinationPixels));
+        Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
-        ref TPixel sourceBaseRef = ref MemoryMarshal.GetReference(sourcePixels);
-        ref La16 destBaseRef = ref MemoryMarshal.GetReference(destinationPixels);
+        ref TPixel sourceBase = ref MemoryMarshal.GetReference(source);
+        ref La16 destinationBase = ref MemoryMarshal.GetReference(destination);
 
-        for (nuint i = 0; i < (uint)sourcePixels.Length; i++)
+        for (nuint i = 0; i < (uint)source.Length; i++)
         {
-            ref TPixel sp = ref Unsafe.Add(ref sourceBaseRef, i);
-            ref La16 dp = ref Unsafe.Add(ref destBaseRef, i);
-
-            dp.FromScaledVector4(sp.ToScaledVector4());
+            Unsafe.Add(ref destinationBase, i) = La16.FromScaledVector4(Unsafe.Add(ref sourceBase, i).ToScaledVector4());
         }
     }
 
     /// <summary>
     /// A helper for <see cref="ToLa16(Configuration, ReadOnlySpan{TPixel}, Span{La16})"/> that expects a byte span as destination.
-    /// The layout of the data in 'destBytes' must be compatible with <see cref="La16"/> layout.
+    /// The layout of the data in 'destination' must be compatible with <see cref="La16"/> layout.
     /// </summary>
     /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations</param>
-    /// <param name="sourcePixels">The <see cref="Span{T}"/> to the source pixels.</param>
-    /// <param name="destBytes">The <see cref="Span{T}"/> to the destination bytes.</param>
+    /// <param name="source">The <see cref="Span{T}"/> to the source pixels.</param>
+    /// <param name="destination">The <see cref="Span{T}"/> to the destination bytes.</param>
     /// <param name="count">The number of pixels to convert.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void ToLa16Bytes(Configuration configuration, ReadOnlySpan<TPixel> sourcePixels, Span<byte> destBytes, int count)
+    public void ToLa16Bytes(Configuration configuration, ReadOnlySpan<TPixel> source, Span<byte> destination, int count)
     {
-        this.ToLa16(configuration, sourcePixels.Slice(0, count), MemoryMarshal.Cast<byte, La16>(destBytes));
+        this.ToLa16(configuration, source.Slice(0, count), MemoryMarshal.Cast<byte, La16>(destination));
     }
 
     /// <summary>
@@ -518,20 +476,17 @@ public partial class PixelOperations<TPixel>
     /// </summary>
     /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations.</param>
     /// <param name="source">The source <see cref="Span{T}"/> of <see cref="La32"/> data.</param>
-    /// <param name="destinationPixels">The <see cref="Span{T}"/> to the destination pixels.</param>
-    public virtual void FromLa32(Configuration configuration, ReadOnlySpan<La32> source, Span<TPixel> destinationPixels)
+    /// <param name="destination">The <see cref="Span{T}"/> to the destination pixels.</param>
+    public virtual void FromLa32(Configuration configuration, ReadOnlySpan<La32> source, Span<TPixel> destination)
     {
-        Guard.DestinationShouldNotBeTooShort(source, destinationPixels, nameof(destinationPixels));
+        Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
-        ref La32 sourceBaseRef = ref MemoryMarshal.GetReference(source);
-        ref TPixel destBaseRef = ref MemoryMarshal.GetReference(destinationPixels);
+        ref La32 sourceBase = ref MemoryMarshal.GetReference(source);
+        ref TPixel destinationBase = ref MemoryMarshal.GetReference(destination);
 
         for (nuint i = 0; i < (uint)source.Length; i++)
         {
-            ref La32 sp = ref Unsafe.Add(ref sourceBaseRef, i);
-            ref TPixel dp = ref Unsafe.Add(ref destBaseRef, i);
-
-            dp.FromLa32(sp);
+            Unsafe.Add(ref destinationBase, i) = TPixel.FromLa32(Unsafe.Add(ref sourceBase, i));
         }
     }
 
@@ -541,48 +496,45 @@ public partial class PixelOperations<TPixel>
     /// </summary>
     /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations.</param>
     /// <param name="sourceBytes">The <see cref="ReadOnlySpan{T}"/> to the source bytes.</param>
-    /// <param name="destinationPixels">The <see cref="Span{T}"/> to the destination pixels.</param>
+    /// <param name="destination">The <see cref="Span{T}"/> to the destination pixels.</param>
     /// <param name="count">The number of pixels to convert.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void FromLa32Bytes(Configuration configuration, ReadOnlySpan<byte> sourceBytes, Span<TPixel> destinationPixels, int count)
+    public void FromLa32Bytes(Configuration configuration, ReadOnlySpan<byte> sourceBytes, Span<TPixel> destination, int count)
     {
-        this.FromLa32(configuration, MemoryMarshal.Cast<byte, La32>(sourceBytes).Slice(0, count), destinationPixels);
+        this.FromLa32(configuration, MemoryMarshal.Cast<byte, La32>(sourceBytes).Slice(0, count), destination);
     }
 
     /// <summary>
-    /// Converts all pixels of the 'sourcePixels` span to a span of <see cref="La32"/>-s.
+    /// Converts all pixels of the 'source` span to a span of <see cref="La32"/>-s.
     /// </summary>
     /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations</param>
-    /// <param name="sourcePixels">The span of source pixels</param>
-    /// <param name="destinationPixels">The destination span of <see cref="La32"/> data.</param>
-    public virtual void ToLa32(Configuration configuration, ReadOnlySpan<TPixel> sourcePixels, Span<La32> destinationPixels)
+    /// <param name="source">The span of source pixels</param>
+    /// <param name="destination">The destination span of <see cref="La32"/> data.</param>
+    public virtual void ToLa32(Configuration configuration, ReadOnlySpan<TPixel> source, Span<La32> destination)
     {
-        Guard.DestinationShouldNotBeTooShort(sourcePixels, destinationPixels, nameof(destinationPixels));
+        Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
-        ref TPixel sourceBaseRef = ref MemoryMarshal.GetReference(sourcePixels);
-        ref La32 destBaseRef = ref MemoryMarshal.GetReference(destinationPixels);
+        ref TPixel sourceBase = ref MemoryMarshal.GetReference(source);
+        ref La32 destinationBase = ref MemoryMarshal.GetReference(destination);
 
-        for (nuint i = 0; i < (uint)sourcePixels.Length; i++)
+        for (nuint i = 0; i < (uint)source.Length; i++)
         {
-            ref TPixel sp = ref Unsafe.Add(ref sourceBaseRef, i);
-            ref La32 dp = ref Unsafe.Add(ref destBaseRef, i);
-
-            dp.FromScaledVector4(sp.ToScaledVector4());
+            Unsafe.Add(ref destinationBase, i) = La32.FromScaledVector4(Unsafe.Add(ref sourceBase, i).ToScaledVector4());
         }
     }
 
     /// <summary>
     /// A helper for <see cref="ToLa32(Configuration, ReadOnlySpan{TPixel}, Span{La32})"/> that expects a byte span as destination.
-    /// The layout of the data in 'destBytes' must be compatible with <see cref="La32"/> layout.
+    /// The layout of the data in 'destination' must be compatible with <see cref="La32"/> layout.
     /// </summary>
     /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations</param>
-    /// <param name="sourcePixels">The <see cref="Span{T}"/> to the source pixels.</param>
-    /// <param name="destBytes">The <see cref="Span{T}"/> to the destination bytes.</param>
+    /// <param name="source">The <see cref="Span{T}"/> to the source pixels.</param>
+    /// <param name="destination">The <see cref="Span{T}"/> to the destination bytes.</param>
     /// <param name="count">The number of pixels to convert.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void ToLa32Bytes(Configuration configuration, ReadOnlySpan<TPixel> sourcePixels, Span<byte> destBytes, int count)
+    public void ToLa32Bytes(Configuration configuration, ReadOnlySpan<TPixel> source, Span<byte> destination, int count)
     {
-        this.ToLa32(configuration, sourcePixels.Slice(0, count), MemoryMarshal.Cast<byte, La32>(destBytes));
+        this.ToLa32(configuration, source.Slice(0, count), MemoryMarshal.Cast<byte, La32>(destination));
     }
 
     /// <summary>
@@ -590,20 +542,17 @@ public partial class PixelOperations<TPixel>
     /// </summary>
     /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations.</param>
     /// <param name="source">The source <see cref="Span{T}"/> of <see cref="Rgb24"/> data.</param>
-    /// <param name="destinationPixels">The <see cref="Span{T}"/> to the destination pixels.</param>
-    public virtual void FromRgb24(Configuration configuration, ReadOnlySpan<Rgb24> source, Span<TPixel> destinationPixels)
+    /// <param name="destination">The <see cref="Span{T}"/> to the destination pixels.</param>
+    public virtual void FromRgb24(Configuration configuration, ReadOnlySpan<Rgb24> source, Span<TPixel> destination)
     {
-        Guard.DestinationShouldNotBeTooShort(source, destinationPixels, nameof(destinationPixels));
+        Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
-        ref Rgb24 sourceBaseRef = ref MemoryMarshal.GetReference(source);
-        ref TPixel destBaseRef = ref MemoryMarshal.GetReference(destinationPixels);
+        ref Rgb24 sourceBase = ref MemoryMarshal.GetReference(source);
+        ref TPixel destinationBase = ref MemoryMarshal.GetReference(destination);
 
         for (nuint i = 0; i < (uint)source.Length; i++)
         {
-            ref Rgb24 sp = ref Unsafe.Add(ref sourceBaseRef, i);
-            ref TPixel dp = ref Unsafe.Add(ref destBaseRef, i);
-
-            dp.FromRgb24(sp);
+            Unsafe.Add(ref destinationBase, i) = TPixel.FromRgb24(Unsafe.Add(ref sourceBase, i));
         }
     }
 
@@ -613,48 +562,45 @@ public partial class PixelOperations<TPixel>
     /// </summary>
     /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations.</param>
     /// <param name="sourceBytes">The <see cref="ReadOnlySpan{T}"/> to the source bytes.</param>
-    /// <param name="destinationPixels">The <see cref="Span{T}"/> to the destination pixels.</param>
+    /// <param name="destination">The <see cref="Span{T}"/> to the destination pixels.</param>
     /// <param name="count">The number of pixels to convert.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void FromRgb24Bytes(Configuration configuration, ReadOnlySpan<byte> sourceBytes, Span<TPixel> destinationPixels, int count)
+    public void FromRgb24Bytes(Configuration configuration, ReadOnlySpan<byte> sourceBytes, Span<TPixel> destination, int count)
     {
-        this.FromRgb24(configuration, MemoryMarshal.Cast<byte, Rgb24>(sourceBytes).Slice(0, count), destinationPixels);
+        this.FromRgb24(configuration, MemoryMarshal.Cast<byte, Rgb24>(sourceBytes).Slice(0, count), destination);
     }
 
     /// <summary>
-    /// Converts all pixels of the 'sourcePixels` span to a span of <see cref="Rgb24"/>-s.
+    /// Converts all pixels of the 'source` span to a span of <see cref="Rgb24"/>-s.
     /// </summary>
     /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations</param>
-    /// <param name="sourcePixels">The span of source pixels</param>
-    /// <param name="destinationPixels">The destination span of <see cref="Rgb24"/> data.</param>
-    public virtual void ToRgb24(Configuration configuration, ReadOnlySpan<TPixel> sourcePixels, Span<Rgb24> destinationPixels)
+    /// <param name="source">The span of source pixels</param>
+    /// <param name="destination">The destination span of <see cref="Rgb24"/> data.</param>
+    public virtual void ToRgb24(Configuration configuration, ReadOnlySpan<TPixel> source, Span<Rgb24> destination)
     {
-        Guard.DestinationShouldNotBeTooShort(sourcePixels, destinationPixels, nameof(destinationPixels));
+        Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
-        ref TPixel sourceBaseRef = ref MemoryMarshal.GetReference(sourcePixels);
-        ref Rgb24 destBaseRef = ref MemoryMarshal.GetReference(destinationPixels);
+        ref TPixel sourceBase = ref MemoryMarshal.GetReference(source);
+        ref Rgb24 destinationBase = ref MemoryMarshal.GetReference(destination);
 
-        for (nuint i = 0; i < (uint)sourcePixels.Length; i++)
+        for (nuint i = 0; i < (uint)source.Length; i++)
         {
-            ref TPixel sp = ref Unsafe.Add(ref sourceBaseRef, i);
-            ref Rgb24 dp = ref Unsafe.Add(ref destBaseRef, i);
-
-            dp.FromScaledVector4(sp.ToScaledVector4());
+            Unsafe.Add(ref destinationBase, i) = Rgb24.FromScaledVector4(Unsafe.Add(ref sourceBase, i).ToScaledVector4());
         }
     }
 
     /// <summary>
     /// A helper for <see cref="ToRgb24(Configuration, ReadOnlySpan{TPixel}, Span{Rgb24})"/> that expects a byte span as destination.
-    /// The layout of the data in 'destBytes' must be compatible with <see cref="Rgb24"/> layout.
+    /// The layout of the data in 'destination' must be compatible with <see cref="Rgb24"/> layout.
     /// </summary>
     /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations</param>
-    /// <param name="sourcePixels">The <see cref="Span{T}"/> to the source pixels.</param>
-    /// <param name="destBytes">The <see cref="Span{T}"/> to the destination bytes.</param>
+    /// <param name="source">The <see cref="Span{T}"/> to the source pixels.</param>
+    /// <param name="destination">The <see cref="Span{T}"/> to the destination bytes.</param>
     /// <param name="count">The number of pixels to convert.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void ToRgb24Bytes(Configuration configuration, ReadOnlySpan<TPixel> sourcePixels, Span<byte> destBytes, int count)
+    public void ToRgb24Bytes(Configuration configuration, ReadOnlySpan<TPixel> source, Span<byte> destination, int count)
     {
-        this.ToRgb24(configuration, sourcePixels.Slice(0, count), MemoryMarshal.Cast<byte, Rgb24>(destBytes));
+        this.ToRgb24(configuration, source.Slice(0, count), MemoryMarshal.Cast<byte, Rgb24>(destination));
     }
 
     /// <summary>
@@ -662,20 +608,17 @@ public partial class PixelOperations<TPixel>
     /// </summary>
     /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations.</param>
     /// <param name="source">The source <see cref="Span{T}"/> of <see cref="Rgba32"/> data.</param>
-    /// <param name="destinationPixels">The <see cref="Span{T}"/> to the destination pixels.</param>
-    public virtual void FromRgba32(Configuration configuration, ReadOnlySpan<Rgba32> source, Span<TPixel> destinationPixels)
+    /// <param name="destination">The <see cref="Span{T}"/> to the destination pixels.</param>
+    public virtual void FromRgba32(Configuration configuration, ReadOnlySpan<Rgba32> source, Span<TPixel> destination)
     {
-        Guard.DestinationShouldNotBeTooShort(source, destinationPixels, nameof(destinationPixels));
+        Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
-        ref Rgba32 sourceBaseRef = ref MemoryMarshal.GetReference(source);
-        ref TPixel destBaseRef = ref MemoryMarshal.GetReference(destinationPixels);
+        ref Rgba32 sourceBase = ref MemoryMarshal.GetReference(source);
+        ref TPixel destinationBase = ref MemoryMarshal.GetReference(destination);
 
         for (nuint i = 0; i < (uint)source.Length; i++)
         {
-            ref Rgba32 sp = ref Unsafe.Add(ref sourceBaseRef, i);
-            ref TPixel dp = ref Unsafe.Add(ref destBaseRef, i);
-
-            dp.FromRgba32(sp);
+            Unsafe.Add(ref destinationBase, i) = TPixel.FromRgba32(Unsafe.Add(ref sourceBase, i));
         }
     }
 
@@ -685,48 +628,45 @@ public partial class PixelOperations<TPixel>
     /// </summary>
     /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations.</param>
     /// <param name="sourceBytes">The <see cref="ReadOnlySpan{T}"/> to the source bytes.</param>
-    /// <param name="destinationPixels">The <see cref="Span{T}"/> to the destination pixels.</param>
+    /// <param name="destination">The <see cref="Span{T}"/> to the destination pixels.</param>
     /// <param name="count">The number of pixels to convert.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void FromRgba32Bytes(Configuration configuration, ReadOnlySpan<byte> sourceBytes, Span<TPixel> destinationPixels, int count)
+    public void FromRgba32Bytes(Configuration configuration, ReadOnlySpan<byte> sourceBytes, Span<TPixel> destination, int count)
     {
-        this.FromRgba32(configuration, MemoryMarshal.Cast<byte, Rgba32>(sourceBytes).Slice(0, count), destinationPixels);
+        this.FromRgba32(configuration, MemoryMarshal.Cast<byte, Rgba32>(sourceBytes).Slice(0, count), destination);
     }
 
     /// <summary>
-    /// Converts all pixels of the 'sourcePixels` span to a span of <see cref="Rgba32"/>-s.
+    /// Converts all pixels of the 'source` span to a span of <see cref="Rgba32"/>-s.
     /// </summary>
     /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations</param>
-    /// <param name="sourcePixels">The span of source pixels</param>
-    /// <param name="destinationPixels">The destination span of <see cref="Rgba32"/> data.</param>
-    public virtual void ToRgba32(Configuration configuration, ReadOnlySpan<TPixel> sourcePixels, Span<Rgba32> destinationPixels)
+    /// <param name="source">The span of source pixels</param>
+    /// <param name="destination">The destination span of <see cref="Rgba32"/> data.</param>
+    public virtual void ToRgba32(Configuration configuration, ReadOnlySpan<TPixel> source, Span<Rgba32> destination)
     {
-        Guard.DestinationShouldNotBeTooShort(sourcePixels, destinationPixels, nameof(destinationPixels));
+        Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
-        ref TPixel sourceBaseRef = ref MemoryMarshal.GetReference(sourcePixels);
-        ref Rgba32 destBaseRef = ref MemoryMarshal.GetReference(destinationPixels);
+        ref TPixel sourceBase = ref MemoryMarshal.GetReference(source);
+        ref Rgba32 destinationBase = ref MemoryMarshal.GetReference(destination);
 
-        for (nuint i = 0; i < (uint)sourcePixels.Length; i++)
+        for (nuint i = 0; i < (uint)source.Length; i++)
         {
-            ref TPixel sp = ref Unsafe.Add(ref sourceBaseRef, i);
-            ref Rgba32 dp = ref Unsafe.Add(ref destBaseRef, i);
-
-            dp.FromScaledVector4(sp.ToScaledVector4());
+            Unsafe.Add(ref destinationBase, i) = Rgba32.FromScaledVector4(Unsafe.Add(ref sourceBase, i).ToScaledVector4());
         }
     }
 
     /// <summary>
     /// A helper for <see cref="ToRgba32(Configuration, ReadOnlySpan{TPixel}, Span{Rgba32})"/> that expects a byte span as destination.
-    /// The layout of the data in 'destBytes' must be compatible with <see cref="Rgba32"/> layout.
+    /// The layout of the data in 'destination' must be compatible with <see cref="Rgba32"/> layout.
     /// </summary>
     /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations</param>
-    /// <param name="sourcePixels">The <see cref="Span{T}"/> to the source pixels.</param>
-    /// <param name="destBytes">The <see cref="Span{T}"/> to the destination bytes.</param>
+    /// <param name="source">The <see cref="Span{T}"/> to the source pixels.</param>
+    /// <param name="destination">The <see cref="Span{T}"/> to the destination bytes.</param>
     /// <param name="count">The number of pixels to convert.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void ToRgba32Bytes(Configuration configuration, ReadOnlySpan<TPixel> sourcePixels, Span<byte> destBytes, int count)
+    public void ToRgba32Bytes(Configuration configuration, ReadOnlySpan<TPixel> source, Span<byte> destination, int count)
     {
-        this.ToRgba32(configuration, sourcePixels.Slice(0, count), MemoryMarshal.Cast<byte, Rgba32>(destBytes));
+        this.ToRgba32(configuration, source.Slice(0, count), MemoryMarshal.Cast<byte, Rgba32>(destination));
     }
 
     /// <summary>
@@ -734,20 +674,17 @@ public partial class PixelOperations<TPixel>
     /// </summary>
     /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations.</param>
     /// <param name="source">The source <see cref="Span{T}"/> of <see cref="Rgb48"/> data.</param>
-    /// <param name="destinationPixels">The <see cref="Span{T}"/> to the destination pixels.</param>
-    public virtual void FromRgb48(Configuration configuration, ReadOnlySpan<Rgb48> source, Span<TPixel> destinationPixels)
+    /// <param name="destination">The <see cref="Span{T}"/> to the destination pixels.</param>
+    public virtual void FromRgb48(Configuration configuration, ReadOnlySpan<Rgb48> source, Span<TPixel> destination)
     {
-        Guard.DestinationShouldNotBeTooShort(source, destinationPixels, nameof(destinationPixels));
+        Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
-        ref Rgb48 sourceBaseRef = ref MemoryMarshal.GetReference(source);
-        ref TPixel destBaseRef = ref MemoryMarshal.GetReference(destinationPixels);
+        ref Rgb48 sourceBase = ref MemoryMarshal.GetReference(source);
+        ref TPixel destinationBase = ref MemoryMarshal.GetReference(destination);
 
         for (nuint i = 0; i < (uint)source.Length; i++)
         {
-            ref Rgb48 sp = ref Unsafe.Add(ref sourceBaseRef, i);
-            ref TPixel dp = ref Unsafe.Add(ref destBaseRef, i);
-
-            dp.FromRgb48(sp);
+            Unsafe.Add(ref destinationBase, i) = TPixel.FromRgb48(Unsafe.Add(ref sourceBase, i));
         }
     }
 
@@ -757,48 +694,45 @@ public partial class PixelOperations<TPixel>
     /// </summary>
     /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations.</param>
     /// <param name="sourceBytes">The <see cref="ReadOnlySpan{T}"/> to the source bytes.</param>
-    /// <param name="destinationPixels">The <see cref="Span{T}"/> to the destination pixels.</param>
+    /// <param name="destination">The <see cref="Span{T}"/> to the destination pixels.</param>
     /// <param name="count">The number of pixels to convert.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void FromRgb48Bytes(Configuration configuration, ReadOnlySpan<byte> sourceBytes, Span<TPixel> destinationPixels, int count)
+    public void FromRgb48Bytes(Configuration configuration, ReadOnlySpan<byte> sourceBytes, Span<TPixel> destination, int count)
     {
-        this.FromRgb48(configuration, MemoryMarshal.Cast<byte, Rgb48>(sourceBytes).Slice(0, count), destinationPixels);
+        this.FromRgb48(configuration, MemoryMarshal.Cast<byte, Rgb48>(sourceBytes).Slice(0, count), destination);
     }
 
     /// <summary>
-    /// Converts all pixels of the 'sourcePixels` span to a span of <see cref="Rgb48"/>-s.
+    /// Converts all pixels of the 'source` span to a span of <see cref="Rgb48"/>-s.
     /// </summary>
     /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations</param>
-    /// <param name="sourcePixels">The span of source pixels</param>
-    /// <param name="destinationPixels">The destination span of <see cref="Rgb48"/> data.</param>
-    public virtual void ToRgb48(Configuration configuration, ReadOnlySpan<TPixel> sourcePixels, Span<Rgb48> destinationPixels)
+    /// <param name="source">The span of source pixels</param>
+    /// <param name="destination">The destination span of <see cref="Rgb48"/> data.</param>
+    public virtual void ToRgb48(Configuration configuration, ReadOnlySpan<TPixel> source, Span<Rgb48> destination)
     {
-        Guard.DestinationShouldNotBeTooShort(sourcePixels, destinationPixels, nameof(destinationPixels));
+        Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
-        ref TPixel sourceBaseRef = ref MemoryMarshal.GetReference(sourcePixels);
-        ref Rgb48 destBaseRef = ref MemoryMarshal.GetReference(destinationPixels);
+        ref TPixel sourceBase = ref MemoryMarshal.GetReference(source);
+        ref Rgb48 destinationBase = ref MemoryMarshal.GetReference(destination);
 
-        for (nuint i = 0; i < (uint)sourcePixels.Length; i++)
+        for (nuint i = 0; i < (uint)source.Length; i++)
         {
-            ref TPixel sp = ref Unsafe.Add(ref sourceBaseRef, i);
-            ref Rgb48 dp = ref Unsafe.Add(ref destBaseRef, i);
-
-            dp.FromScaledVector4(sp.ToScaledVector4());
+            Unsafe.Add(ref destinationBase, i) = Rgb48.FromScaledVector4(Unsafe.Add(ref sourceBase, i).ToScaledVector4());
         }
     }
 
     /// <summary>
     /// A helper for <see cref="ToRgb48(Configuration, ReadOnlySpan{TPixel}, Span{Rgb48})"/> that expects a byte span as destination.
-    /// The layout of the data in 'destBytes' must be compatible with <see cref="Rgb48"/> layout.
+    /// The layout of the data in 'destination' must be compatible with <see cref="Rgb48"/> layout.
     /// </summary>
     /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations</param>
-    /// <param name="sourcePixels">The <see cref="Span{T}"/> to the source pixels.</param>
-    /// <param name="destBytes">The <see cref="Span{T}"/> to the destination bytes.</param>
+    /// <param name="source">The <see cref="Span{T}"/> to the source pixels.</param>
+    /// <param name="destination">The <see cref="Span{T}"/> to the destination bytes.</param>
     /// <param name="count">The number of pixels to convert.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void ToRgb48Bytes(Configuration configuration, ReadOnlySpan<TPixel> sourcePixels, Span<byte> destBytes, int count)
+    public void ToRgb48Bytes(Configuration configuration, ReadOnlySpan<TPixel> source, Span<byte> destination, int count)
     {
-        this.ToRgb48(configuration, sourcePixels.Slice(0, count), MemoryMarshal.Cast<byte, Rgb48>(destBytes));
+        this.ToRgb48(configuration, source.Slice(0, count), MemoryMarshal.Cast<byte, Rgb48>(destination));
     }
 
     /// <summary>
@@ -806,20 +740,17 @@ public partial class PixelOperations<TPixel>
     /// </summary>
     /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations.</param>
     /// <param name="source">The source <see cref="Span{T}"/> of <see cref="Rgba64"/> data.</param>
-    /// <param name="destinationPixels">The <see cref="Span{T}"/> to the destination pixels.</param>
-    public virtual void FromRgba64(Configuration configuration, ReadOnlySpan<Rgba64> source, Span<TPixel> destinationPixels)
+    /// <param name="destination">The <see cref="Span{T}"/> to the destination pixels.</param>
+    public virtual void FromRgba64(Configuration configuration, ReadOnlySpan<Rgba64> source, Span<TPixel> destination)
     {
-        Guard.DestinationShouldNotBeTooShort(source, destinationPixels, nameof(destinationPixels));
+        Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
-        ref Rgba64 sourceBaseRef = ref MemoryMarshal.GetReference(source);
-        ref TPixel destBaseRef = ref MemoryMarshal.GetReference(destinationPixels);
+        ref Rgba64 sourceBase = ref MemoryMarshal.GetReference(source);
+        ref TPixel destinationBase = ref MemoryMarshal.GetReference(destination);
 
         for (nuint i = 0; i < (uint)source.Length; i++)
         {
-            ref Rgba64 sp = ref Unsafe.Add(ref sourceBaseRef, i);
-            ref TPixel dp = ref Unsafe.Add(ref destBaseRef, i);
-
-            dp.FromRgba64(sp);
+            Unsafe.Add(ref destinationBase, i) = TPixel.FromRgba64(Unsafe.Add(ref sourceBase, i));
         }
     }
 
@@ -829,48 +760,45 @@ public partial class PixelOperations<TPixel>
     /// </summary>
     /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations.</param>
     /// <param name="sourceBytes">The <see cref="ReadOnlySpan{T}"/> to the source bytes.</param>
-    /// <param name="destinationPixels">The <see cref="Span{T}"/> to the destination pixels.</param>
+    /// <param name="destination">The <see cref="Span{T}"/> to the destination pixels.</param>
     /// <param name="count">The number of pixels to convert.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void FromRgba64Bytes(Configuration configuration, ReadOnlySpan<byte> sourceBytes, Span<TPixel> destinationPixels, int count)
+    public void FromRgba64Bytes(Configuration configuration, ReadOnlySpan<byte> sourceBytes, Span<TPixel> destination, int count)
     {
-        this.FromRgba64(configuration, MemoryMarshal.Cast<byte, Rgba64>(sourceBytes).Slice(0, count), destinationPixels);
+        this.FromRgba64(configuration, MemoryMarshal.Cast<byte, Rgba64>(sourceBytes).Slice(0, count), destination);
     }
 
     /// <summary>
-    /// Converts all pixels of the 'sourcePixels` span to a span of <see cref="Rgba64"/>-s.
+    /// Converts all pixels of the 'source` span to a span of <see cref="Rgba64"/>-s.
     /// </summary>
     /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations</param>
-    /// <param name="sourcePixels">The span of source pixels</param>
-    /// <param name="destinationPixels">The destination span of <see cref="Rgba64"/> data.</param>
-    public virtual void ToRgba64(Configuration configuration, ReadOnlySpan<TPixel> sourcePixels, Span<Rgba64> destinationPixels)
+    /// <param name="source">The span of source pixels</param>
+    /// <param name="destination">The destination span of <see cref="Rgba64"/> data.</param>
+    public virtual void ToRgba64(Configuration configuration, ReadOnlySpan<TPixel> source, Span<Rgba64> destination)
     {
-        Guard.DestinationShouldNotBeTooShort(sourcePixels, destinationPixels, nameof(destinationPixels));
+        Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
-        ref TPixel sourceBaseRef = ref MemoryMarshal.GetReference(sourcePixels);
-        ref Rgba64 destBaseRef = ref MemoryMarshal.GetReference(destinationPixels);
+        ref TPixel sourceBase = ref MemoryMarshal.GetReference(source);
+        ref Rgba64 destinationBase = ref MemoryMarshal.GetReference(destination);
 
-        for (nuint i = 0; i < (uint)sourcePixels.Length; i++)
+        for (nuint i = 0; i < (uint)source.Length; i++)
         {
-            ref TPixel sp = ref Unsafe.Add(ref sourceBaseRef, i);
-            ref Rgba64 dp = ref Unsafe.Add(ref destBaseRef, i);
-
-            dp.FromScaledVector4(sp.ToScaledVector4());
+            Unsafe.Add(ref destinationBase, i) = Rgba64.FromScaledVector4(Unsafe.Add(ref sourceBase, i).ToScaledVector4());
         }
     }
 
     /// <summary>
     /// A helper for <see cref="ToRgba64(Configuration, ReadOnlySpan{TPixel}, Span{Rgba64})"/> that expects a byte span as destination.
-    /// The layout of the data in 'destBytes' must be compatible with <see cref="Rgba64"/> layout.
+    /// The layout of the data in 'destination' must be compatible with <see cref="Rgba64"/> layout.
     /// </summary>
     /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations</param>
-    /// <param name="sourcePixels">The <see cref="Span{T}"/> to the source pixels.</param>
-    /// <param name="destBytes">The <see cref="Span{T}"/> to the destination bytes.</param>
+    /// <param name="source">The <see cref="Span{T}"/> to the source pixels.</param>
+    /// <param name="destination">The <see cref="Span{T}"/> to the destination bytes.</param>
     /// <param name="count">The number of pixels to convert.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void ToRgba64Bytes(Configuration configuration, ReadOnlySpan<TPixel> sourcePixels, Span<byte> destBytes, int count)
+    public void ToRgba64Bytes(Configuration configuration, ReadOnlySpan<TPixel> source, Span<byte> destination, int count)
     {
-        this.ToRgba64(configuration, sourcePixels.Slice(0, count), MemoryMarshal.Cast<byte, Rgba64>(destBytes));
+        this.ToRgba64(configuration, source.Slice(0, count), MemoryMarshal.Cast<byte, Rgba64>(destination));
     }
 
     /// <summary>
@@ -878,20 +806,17 @@ public partial class PixelOperations<TPixel>
     /// </summary>
     /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations.</param>
     /// <param name="source">The source <see cref="Span{T}"/> of <see cref="Bgra5551"/> data.</param>
-    /// <param name="destinationPixels">The <see cref="Span{T}"/> to the destination pixels.</param>
-    public virtual void FromBgra5551(Configuration configuration, ReadOnlySpan<Bgra5551> source, Span<TPixel> destinationPixels)
+    /// <param name="destination">The <see cref="Span{T}"/> to the destination pixels.</param>
+    public virtual void FromBgra5551(Configuration configuration, ReadOnlySpan<Bgra5551> source, Span<TPixel> destination)
     {
-        Guard.DestinationShouldNotBeTooShort(source, destinationPixels, nameof(destinationPixels));
+        Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
-        ref Bgra5551 sourceBaseRef = ref MemoryMarshal.GetReference(source);
-        ref TPixel destBaseRef = ref MemoryMarshal.GetReference(destinationPixels);
+        ref Bgra5551 sourceBase = ref MemoryMarshal.GetReference(source);
+        ref TPixel destinationBase = ref MemoryMarshal.GetReference(destination);
 
         for (nuint i = 0; i < (uint)source.Length; i++)
         {
-            ref Bgra5551 sp = ref Unsafe.Add(ref sourceBaseRef, i);
-            ref TPixel dp = ref Unsafe.Add(ref destBaseRef, i);
-
-            dp.FromBgra5551(sp);
+            Unsafe.Add(ref destinationBase, i) = TPixel.FromBgra5551(Unsafe.Add(ref sourceBase, i));
         }
     }
 
@@ -901,47 +826,44 @@ public partial class PixelOperations<TPixel>
     /// </summary>
     /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations.</param>
     /// <param name="sourceBytes">The <see cref="ReadOnlySpan{T}"/> to the source bytes.</param>
-    /// <param name="destinationPixels">The <see cref="Span{T}"/> to the destination pixels.</param>
+    /// <param name="destination">The <see cref="Span{T}"/> to the destination pixels.</param>
     /// <param name="count">The number of pixels to convert.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void FromBgra5551Bytes(Configuration configuration, ReadOnlySpan<byte> sourceBytes, Span<TPixel> destinationPixels, int count)
+    public void FromBgra5551Bytes(Configuration configuration, ReadOnlySpan<byte> sourceBytes, Span<TPixel> destination, int count)
     {
-        this.FromBgra5551(configuration, MemoryMarshal.Cast<byte, Bgra5551>(sourceBytes).Slice(0, count), destinationPixels);
+        this.FromBgra5551(configuration, MemoryMarshal.Cast<byte, Bgra5551>(sourceBytes).Slice(0, count), destination);
     }
 
     /// <summary>
-    /// Converts all pixels of the 'sourcePixels` span to a span of <see cref="Bgra5551"/>-s.
+    /// Converts all pixels of the 'source` span to a span of <see cref="Bgra5551"/>-s.
     /// </summary>
     /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations</param>
-    /// <param name="sourcePixels">The span of source pixels</param>
-    /// <param name="destinationPixels">The destination span of <see cref="Bgra5551"/> data.</param>
-    public virtual void ToBgra5551(Configuration configuration, ReadOnlySpan<TPixel> sourcePixels, Span<Bgra5551> destinationPixels)
+    /// <param name="source">The span of source pixels</param>
+    /// <param name="destination">The destination span of <see cref="Bgra5551"/> data.</param>
+    public virtual void ToBgra5551(Configuration configuration, ReadOnlySpan<TPixel> source, Span<Bgra5551> destination)
     {
-        Guard.DestinationShouldNotBeTooShort(sourcePixels, destinationPixels, nameof(destinationPixels));
+        Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
-        ref TPixel sourceBaseRef = ref MemoryMarshal.GetReference(sourcePixels);
-        ref Bgra5551 destBaseRef = ref MemoryMarshal.GetReference(destinationPixels);
+        ref TPixel sourceBase = ref MemoryMarshal.GetReference(source);
+        ref Bgra5551 destinationBase = ref MemoryMarshal.GetReference(destination);
 
-        for (nuint i = 0; i < (uint)sourcePixels.Length; i++)
+        for (nuint i = 0; i < (uint)source.Length; i++)
         {
-            ref TPixel sp = ref Unsafe.Add(ref sourceBaseRef, i);
-            ref Bgra5551 dp = ref Unsafe.Add(ref destBaseRef, i);
-
-            dp.FromScaledVector4(sp.ToScaledVector4());
+            Unsafe.Add(ref destinationBase, i) = Bgra5551.FromScaledVector4(Unsafe.Add(ref sourceBase, i).ToScaledVector4());
         }
     }
 
     /// <summary>
     /// A helper for <see cref="ToBgra5551(Configuration, ReadOnlySpan{TPixel}, Span{Bgra5551})"/> that expects a byte span as destination.
-    /// The layout of the data in 'destBytes' must be compatible with <see cref="Bgra5551"/> layout.
+    /// The layout of the data in 'destination' must be compatible with <see cref="Bgra5551"/> layout.
     /// </summary>
     /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations</param>
-    /// <param name="sourcePixels">The <see cref="Span{T}"/> to the source pixels.</param>
-    /// <param name="destBytes">The <see cref="Span{T}"/> to the destination bytes.</param>
+    /// <param name="source">The <see cref="Span{T}"/> to the source pixels.</param>
+    /// <param name="destination">The <see cref="Span{T}"/> to the destination bytes.</param>
     /// <param name="count">The number of pixels to convert.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void ToBgra5551Bytes(Configuration configuration, ReadOnlySpan<TPixel> sourcePixels, Span<byte> destBytes, int count)
+    public void ToBgra5551Bytes(Configuration configuration, ReadOnlySpan<TPixel> source, Span<byte> destination, int count)
     {
-        this.ToBgra5551(configuration, sourcePixels.Slice(0, count), MemoryMarshal.Cast<byte, Bgra5551>(destBytes));
+        this.ToBgra5551(configuration, source.Slice(0, count), MemoryMarshal.Cast<byte, Bgra5551>(destination));
     }
 }

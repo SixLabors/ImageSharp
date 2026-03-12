@@ -80,4 +80,11 @@ public class PbmMetadataTests
         Assert.NotNull(bitmapMetadata);
         Assert.Equal(expectedComponentType, bitmapMetadata.ComponentType);
     }
+
+    [Fact]
+    public void Identify_EofInHeader_ThrowsInvalidImageContentException()
+    {
+        byte[] bytes = Convert.FromBase64String("UDEjWAAACQAAAAA=");
+        Assert.Throws<InvalidImageContentException>(() => Image.Identify(bytes));
+    }
 }

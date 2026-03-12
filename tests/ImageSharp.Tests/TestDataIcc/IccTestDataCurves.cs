@@ -3,309 +3,307 @@
 
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 
-namespace SixLabors.ImageSharp.Tests;
+namespace SixLabors.ImageSharp.Tests.TestDataIcc;
 
 internal static class IccTestDataCurves
 {
     /// <summary>
     /// Channels: 3
     /// </summary>
-    public static readonly IccResponseCurve Response_ValGrad = new IccResponseCurve(
+    public static readonly IccResponseCurve ResponseValGrad = new(
         IccCurveMeasurementEncodings.StatusA,
-        new[]
-        {
-            IccTestDataNonPrimitives.XyzNumber_ValVar1,
-            IccTestDataNonPrimitives.XyzNumber_ValVar2,
-            IccTestDataNonPrimitives.XyzNumber_ValVar3
-        },
-        new IccResponseNumber[][]
-        {
-            new IccResponseNumber[] { IccTestDataNonPrimitives.ResponseNumber_Val1, IccTestDataNonPrimitives.ResponseNumber_Val2 },
-            new IccResponseNumber[] { IccTestDataNonPrimitives.ResponseNumber_Val3, IccTestDataNonPrimitives.ResponseNumber_Val4 },
-            new IccResponseNumber[] { IccTestDataNonPrimitives.ResponseNumber_Val5, IccTestDataNonPrimitives.ResponseNumber_Val6 },
-        });
+        [
+            IccTestDataNonPrimitives.XyzNumberValVar1,
+            IccTestDataNonPrimitives.XyzNumberValVar2,
+            IccTestDataNonPrimitives.XyzNumberValVar3
+        ],
+        [
+            [IccTestDataNonPrimitives.ResponseNumberVal1, IccTestDataNonPrimitives.ResponseNumberVal2],
+            [IccTestDataNonPrimitives.ResponseNumberVal3, IccTestDataNonPrimitives.ResponseNumberVal4],
+            [IccTestDataNonPrimitives.ResponseNumberVal5, IccTestDataNonPrimitives.ResponseNumberVal6]
+        ]);
 
     /// <summary>
     /// Channels: 3
     /// </summary>
-    public static readonly byte[] Response_Grad = ArrayHelper.Concat(
+    public static readonly byte[] ResponseGrad = ArrayHelper.Concat(
         new byte[] { 0x53, 0x74, 0x61, 0x41 },
-        IccTestDataPrimitives.UInt32_2,
-        IccTestDataPrimitives.UInt32_2,
-        IccTestDataPrimitives.UInt32_2,
-        IccTestDataNonPrimitives.XyzNumber_Var1,
-        IccTestDataNonPrimitives.XyzNumber_Var2,
-        IccTestDataNonPrimitives.XyzNumber_Var3,
-        IccTestDataNonPrimitives.ResponseNumber_1,
-        IccTestDataNonPrimitives.ResponseNumber_2,
-        IccTestDataNonPrimitives.ResponseNumber_3,
-        IccTestDataNonPrimitives.ResponseNumber_4,
-        IccTestDataNonPrimitives.ResponseNumber_5,
-        IccTestDataNonPrimitives.ResponseNumber_6);
+        IccTestDataPrimitives.UInt322,
+        IccTestDataPrimitives.UInt322,
+        IccTestDataPrimitives.UInt322,
+        IccTestDataNonPrimitives.XyzNumberVar1,
+        IccTestDataNonPrimitives.XyzNumberVar2,
+        IccTestDataNonPrimitives.XyzNumberVar3,
+        IccTestDataNonPrimitives.ResponseNumber1,
+        IccTestDataNonPrimitives.ResponseNumber2,
+        IccTestDataNonPrimitives.ResponseNumber3,
+        IccTestDataNonPrimitives.ResponseNumber4,
+        IccTestDataNonPrimitives.ResponseNumber5,
+        IccTestDataNonPrimitives.ResponseNumber6);
 
     public static readonly object[][] ResponseCurveTestData =
-    {
-        new object[] { Response_Grad, Response_ValGrad, 3 },
-    };
+    [
+        [ResponseGrad, ResponseValGrad, 3]
+    ];
 
-    public static readonly IccParametricCurve Parametric_ValVar1 = new IccParametricCurve(1);
-    public static readonly IccParametricCurve Parametric_ValVar2 = new IccParametricCurve(1, 2, 3);
-    public static readonly IccParametricCurve Parametric_ValVar3 = new IccParametricCurve(1, 2, 3, 4);
-    public static readonly IccParametricCurve Parametric_ValVar4 = new IccParametricCurve(1, 2, 3, 4, 5);
-    public static readonly IccParametricCurve Parametric_ValVar5 = new IccParametricCurve(1, 2, 3, 4, 5, 6, 7);
+    public static readonly IccParametricCurve ParametricValVar1 = new(1);
+    public static readonly IccParametricCurve ParametricValVar2 = new(1, 2, 3);
+    public static readonly IccParametricCurve ParametricValVar3 = new(1, 2, 3, 4);
+    public static readonly IccParametricCurve ParametricValVar4 = new(1, 2, 3, 4, 5);
+    public static readonly IccParametricCurve ParametricValVar5 = new(1, 2, 3, 4, 5, 6, 7);
 
-    public static readonly byte[] Parametric_Var1 = ArrayHelper.Concat(
+    public static readonly byte[] ParametricVar1 = ArrayHelper.Concat(
         new byte[]
         {
             0x00, 0x00,
             0x00, 0x00,
         },
-        IccTestDataPrimitives.Fix16_1);
+        IccTestDataPrimitives.Fix161);
 
-    public static readonly byte[] Parametric_Var2 = ArrayHelper.Concat(
+    public static readonly byte[] ParametricVar2 = ArrayHelper.Concat(
         new byte[]
         {
             0x00, 0x01,
             0x00, 0x00,
         },
-        IccTestDataPrimitives.Fix16_1,
-        IccTestDataPrimitives.Fix16_2,
-        IccTestDataPrimitives.Fix16_3);
+        IccTestDataPrimitives.Fix161,
+        IccTestDataPrimitives.Fix162,
+        IccTestDataPrimitives.Fix163);
 
-    public static readonly byte[] Parametric_Var3 = ArrayHelper.Concat(
+    public static readonly byte[] ParametricVar3 = ArrayHelper.Concat(
         new byte[]
         {
             0x00, 0x02,
             0x00, 0x00,
         },
-        IccTestDataPrimitives.Fix16_1,
-        IccTestDataPrimitives.Fix16_2,
-        IccTestDataPrimitives.Fix16_3,
-        IccTestDataPrimitives.Fix16_4);
+        IccTestDataPrimitives.Fix161,
+        IccTestDataPrimitives.Fix162,
+        IccTestDataPrimitives.Fix163,
+        IccTestDataPrimitives.Fix164);
 
-    public static readonly byte[] Parametric_Var4 = ArrayHelper.Concat(
+    public static readonly byte[] ParametricVar4 = ArrayHelper.Concat(
         new byte[]
         {
             0x00, 0x03,
             0x00, 0x00,
         },
-        IccTestDataPrimitives.Fix16_1,
-        IccTestDataPrimitives.Fix16_2,
-        IccTestDataPrimitives.Fix16_3,
-        IccTestDataPrimitives.Fix16_4,
-        IccTestDataPrimitives.Fix16_5);
+        IccTestDataPrimitives.Fix161,
+        IccTestDataPrimitives.Fix162,
+        IccTestDataPrimitives.Fix163,
+        IccTestDataPrimitives.Fix164,
+        IccTestDataPrimitives.Fix165);
 
-    public static readonly byte[] Parametric_Var5 = ArrayHelper.Concat(
+    public static readonly byte[] ParametricVar5 = ArrayHelper.Concat(
         new byte[]
         {
             0x00, 0x04,
             0x00, 0x00,
         },
-        IccTestDataPrimitives.Fix16_1,
-        IccTestDataPrimitives.Fix16_2,
-        IccTestDataPrimitives.Fix16_3,
-        IccTestDataPrimitives.Fix16_4,
-        IccTestDataPrimitives.Fix16_5,
-        IccTestDataPrimitives.Fix16_6,
-        IccTestDataPrimitives.Fix16_7);
+        IccTestDataPrimitives.Fix161,
+        IccTestDataPrimitives.Fix162,
+        IccTestDataPrimitives.Fix163,
+        IccTestDataPrimitives.Fix164,
+        IccTestDataPrimitives.Fix165,
+        IccTestDataPrimitives.Fix166,
+        IccTestDataPrimitives.Fix167);
 
     public static readonly object[][] ParametricCurveTestData =
-    {
-        new object[] { Parametric_Var1, Parametric_ValVar1 },
-        new object[] { Parametric_Var2, Parametric_ValVar2 },
-        new object[] { Parametric_Var3, Parametric_ValVar3 },
-        new object[] { Parametric_Var4, Parametric_ValVar4 },
-        new object[] { Parametric_Var5, Parametric_ValVar5 },
-    };
+    [
+        [ParametricVar1, ParametricValVar1],
+        [ParametricVar2, ParametricValVar2],
+        [ParametricVar3, ParametricValVar3],
+        [ParametricVar4, ParametricValVar4],
+        [ParametricVar5, ParametricValVar5]
+    ];
 
     // Formula Segment
-    public static readonly IccFormulaCurveElement Formula_ValVar1 = new IccFormulaCurveElement(IccFormulaCurveType.Type1, 1, 2, 3, 4, 0, 0);
-    public static readonly IccFormulaCurveElement Formula_ValVar2 = new IccFormulaCurveElement(IccFormulaCurveType.Type2, 1, 2, 3, 4, 5, 0);
-    public static readonly IccFormulaCurveElement Formula_ValVar3 = new IccFormulaCurveElement(IccFormulaCurveType.Type3, 0, 2, 3, 4, 5, 6);
+    public static readonly IccFormulaCurveElement FormulaValVar1 = new(IccFormulaCurveType.Type1, 1, 2, 3, 4, 0, 0);
+    public static readonly IccFormulaCurveElement FormulaValVar2 = new(IccFormulaCurveType.Type2, 1, 2, 3, 4, 5, 0);
+    public static readonly IccFormulaCurveElement FormulaValVar3 = new(IccFormulaCurveType.Type3, 0, 2, 3, 4, 5, 6);
 
-    public static readonly byte[] Formula_Var1 = ArrayHelper.Concat(
+    public static readonly byte[] FormulaVar1 = ArrayHelper.Concat(
         new byte[]
         {
             0x00, 0x00,
             0x00, 0x00,
         },
-        IccTestDataPrimitives.Single_1,
-        IccTestDataPrimitives.Single_2,
-        IccTestDataPrimitives.Single_3,
-        IccTestDataPrimitives.Single_4);
+        IccTestDataPrimitives.Single1,
+        IccTestDataPrimitives.Single2,
+        IccTestDataPrimitives.Single3,
+        IccTestDataPrimitives.Single4);
 
-    public static readonly byte[] Formula_Var2 = ArrayHelper.Concat(
+    public static readonly byte[] FormulaVar2 = ArrayHelper.Concat(
         new byte[]
         {
             0x00, 0x01,
             0x00, 0x00,
         },
-        IccTestDataPrimitives.Single_1,
-        IccTestDataPrimitives.Single_2,
-        IccTestDataPrimitives.Single_3,
-        IccTestDataPrimitives.Single_4,
-        IccTestDataPrimitives.Single_5);
+        IccTestDataPrimitives.Single1,
+        IccTestDataPrimitives.Single2,
+        IccTestDataPrimitives.Single3,
+        IccTestDataPrimitives.Single4,
+        IccTestDataPrimitives.Single5);
 
-    public static readonly byte[] Formula_Var3 = ArrayHelper.Concat(
+    public static readonly byte[] FormulaVar3 = ArrayHelper.Concat(
         new byte[]
         {
             0x00, 0x02,
             0x00, 0x00,
         },
-        IccTestDataPrimitives.Single_2,
-        IccTestDataPrimitives.Single_3,
-        IccTestDataPrimitives.Single_4,
-        IccTestDataPrimitives.Single_5,
-        IccTestDataPrimitives.Single_6);
+        IccTestDataPrimitives.Single2,
+        IccTestDataPrimitives.Single3,
+        IccTestDataPrimitives.Single4,
+        IccTestDataPrimitives.Single5,
+        IccTestDataPrimitives.Single6);
 
     public static readonly object[][] FormulaCurveSegmentTestData =
-    {
-        new object[] { Formula_Var1, Formula_ValVar1 },
-        new object[] { Formula_Var2, Formula_ValVar2 },
-        new object[] { Formula_Var3, Formula_ValVar3 },
-    };
+    [
+        [FormulaVar1, FormulaValVar1],
+        [FormulaVar2, FormulaValVar2],
+        [FormulaVar3, FormulaValVar3]
+    ];
 
     // Sampled Segment
-    public static readonly IccSampledCurveElement Sampled_ValGrad1 = new IccSampledCurveElement(new float[] { 1, 2, 3, 4, 5, 6, 7, 8, 9 });
-    public static readonly IccSampledCurveElement Sampled_ValGrad2 = new IccSampledCurveElement(new float[] { 9, 8, 7, 6, 5, 4, 3, 2, 1 });
+    public static readonly IccSampledCurveElement SampledValGrad1 = new([1, 2, 3, 4, 5, 6, 7, 8, 9]);
+    public static readonly IccSampledCurveElement SampledValGrad2 = new([9, 8, 7, 6, 5, 4, 3, 2, 1]);
 
-    public static readonly byte[] Sampled_Grad1 = ArrayHelper.Concat(
-        IccTestDataPrimitives.UInt32_9,
-        IccTestDataPrimitives.Single_1,
-        IccTestDataPrimitives.Single_2,
-        IccTestDataPrimitives.Single_3,
-        IccTestDataPrimitives.Single_4,
-        IccTestDataPrimitives.Single_5,
-        IccTestDataPrimitives.Single_6,
-        IccTestDataPrimitives.Single_7,
-        IccTestDataPrimitives.Single_8,
-        IccTestDataPrimitives.Single_9);
+    public static readonly byte[] SampledGrad1 = ArrayHelper.Concat(
+        IccTestDataPrimitives.UInt329,
+        IccTestDataPrimitives.Single1,
+        IccTestDataPrimitives.Single2,
+        IccTestDataPrimitives.Single3,
+        IccTestDataPrimitives.Single4,
+        IccTestDataPrimitives.Single5,
+        IccTestDataPrimitives.Single6,
+        IccTestDataPrimitives.Single7,
+        IccTestDataPrimitives.Single8,
+        IccTestDataPrimitives.Single9);
 
-    public static readonly byte[] Sampled_Grad2 = ArrayHelper.Concat(
-        IccTestDataPrimitives.UInt32_9,
-        IccTestDataPrimitives.Single_9,
-        IccTestDataPrimitives.Single_8,
-        IccTestDataPrimitives.Single_7,
-        IccTestDataPrimitives.Single_6,
-        IccTestDataPrimitives.Single_5,
-        IccTestDataPrimitives.Single_4,
-        IccTestDataPrimitives.Single_3,
-        IccTestDataPrimitives.Single_2,
-        IccTestDataPrimitives.Single_1);
+    public static readonly byte[] SampledGrad2 = ArrayHelper.Concat(
+        IccTestDataPrimitives.UInt329,
+        IccTestDataPrimitives.Single9,
+        IccTestDataPrimitives.Single8,
+        IccTestDataPrimitives.Single7,
+        IccTestDataPrimitives.Single6,
+        IccTestDataPrimitives.Single5,
+        IccTestDataPrimitives.Single4,
+        IccTestDataPrimitives.Single3,
+        IccTestDataPrimitives.Single2,
+        IccTestDataPrimitives.Single1);
 
     public static readonly object[][] SampledCurveSegmentTestData =
-    {
-        new object[] { Sampled_Grad1, Sampled_ValGrad1 },
-        new object[] { Sampled_Grad2, Sampled_ValGrad2 },
-    };
+    [
+        [SampledGrad1, SampledValGrad1],
+        [SampledGrad2, SampledValGrad2]
+    ];
 
-    public static readonly IccCurveSegment Segment_ValFormula1 = Formula_ValVar1;
-    public static readonly IccCurveSegment Segment_ValFormula2 = Formula_ValVar2;
-    public static readonly IccCurveSegment Segment_ValFormula3 = Formula_ValVar3;
-    public static readonly IccCurveSegment Segment_ValSampled1 = Sampled_ValGrad1;
-    public static readonly IccCurveSegment Segment_ValSampled2 = Sampled_ValGrad2;
+    public static readonly IccCurveSegment SegmentValFormula1 = FormulaValVar1;
+    public static readonly IccCurveSegment SegmentValFormula2 = FormulaValVar2;
+    public static readonly IccCurveSegment SegmentValFormula3 = FormulaValVar3;
+    public static readonly IccCurveSegment SegmentValSampled1 = SampledValGrad1;
+    public static readonly IccCurveSegment SegmentValSampled2 = SampledValGrad2;
 
-    public static readonly byte[] Segment_Formula1 = ArrayHelper.Concat(
+    public static readonly byte[] SegmentFormula1 = ArrayHelper.Concat(
         new byte[]
         {
             0x70, 0x61, 0x72, 0x66,
             0x00, 0x00, 0x00, 0x00,
         },
-        Formula_Var1);
+        FormulaVar1);
 
-    public static readonly byte[] Segment_Formula2 = ArrayHelper.Concat(
+    public static readonly byte[] SegmentFormula2 = ArrayHelper.Concat(
         new byte[]
         {
             0x70, 0x61, 0x72, 0x66,
             0x00, 0x00, 0x00, 0x00,
         },
-        Formula_Var2);
+        FormulaVar2);
 
-    public static readonly byte[] Segment_Formula3 = ArrayHelper.Concat(
+    public static readonly byte[] SegmentFormula3 = ArrayHelper.Concat(
         new byte[]
         {
             0x70, 0x61, 0x72, 0x66,
             0x00, 0x00, 0x00, 0x00,
         },
-        Formula_Var3);
+        FormulaVar3);
 
-    public static readonly byte[] Segment_Sampled1 = ArrayHelper.Concat(
+    public static readonly byte[] SegmentSampled1 = ArrayHelper.Concat(
         new byte[]
         {
             0x73, 0x61, 0x6D, 0x66,
             0x00, 0x00, 0x00, 0x00,
         },
-        Sampled_Grad1);
+        SampledGrad1);
 
-    public static readonly byte[] Segment_Sampled2 = ArrayHelper.Concat(
+    public static readonly byte[] SegmentSampled2 = ArrayHelper.Concat(
         new byte[]
         {
             0x73, 0x61, 0x6D, 0x66,
             0x00, 0x00, 0x00, 0x00,
         },
-        Sampled_Grad2);
+        SampledGrad2);
 
     public static readonly object[][] CurveSegmentTestData =
-    {
-        new object[] { Segment_Formula1, Segment_ValFormula1 },
-        new object[] { Segment_Formula2, Segment_ValFormula2 },
-        new object[] { Segment_Formula3, Segment_ValFormula3 },
-        new object[] { Segment_Sampled1, Segment_ValSampled1 },
-        new object[] { Segment_Sampled2, Segment_ValSampled2 },
-    };
+    [
+        [SegmentFormula1, SegmentValFormula1],
+        [SegmentFormula2, SegmentValFormula2],
+        [SegmentFormula3, SegmentValFormula3],
+        [SegmentSampled1, SegmentValSampled1],
+        [SegmentSampled2, SegmentValSampled2]
+    ];
 
-    public static readonly IccOneDimensionalCurve OneDimensional_ValFormula1 = new IccOneDimensionalCurve(
-        new float[] { 0, 1 },
-        new IccCurveSegment[] { Segment_ValFormula1, Segment_ValFormula2, Segment_ValFormula3 });
+    public static readonly IccOneDimensionalCurve OneDimensionalValFormula1 = new(
+        [0, 1],
+        [SegmentValFormula1, SegmentValFormula2, SegmentValFormula3]);
 
-    public static readonly IccOneDimensionalCurve OneDimensional_ValFormula2 = new IccOneDimensionalCurve(
-        new float[] { 0, 1 },
-        new IccCurveSegment[] { Segment_ValFormula3, Segment_ValFormula2, Segment_ValFormula1 });
+    public static readonly IccOneDimensionalCurve OneDimensionalValFormula2 = new(
+        [0, 1],
+        [SegmentValFormula3, SegmentValFormula2, SegmentValFormula1]);
 
-    public static readonly IccOneDimensionalCurve OneDimensional_ValSampled = new IccOneDimensionalCurve(
-        new float[] { 0, 1 },
-        new IccCurveSegment[] { Segment_ValSampled1, Segment_ValSampled2, Segment_ValSampled1 });
+    public static readonly IccOneDimensionalCurve OneDimensionalValSampled = new(
+        [0, 1],
+        [SegmentValSampled1, SegmentValSampled2, SegmentValSampled1]);
 
-    public static readonly byte[] OneDimensional_Formula1 = ArrayHelper.Concat(
+    public static readonly byte[] OneDimensionalFormula1 = ArrayHelper.Concat(
         new byte[]
         {
             0x00, 0x03,
             0x00, 0x00,
         },
-        IccTestDataPrimitives.Single_0,
-        IccTestDataPrimitives.Single_1,
-        Segment_Formula1,
-        Segment_Formula2,
-        Segment_Formula3);
+        IccTestDataPrimitives.Single0,
+        IccTestDataPrimitives.Single1,
+        SegmentFormula1,
+        SegmentFormula2,
+        SegmentFormula3);
 
-    public static readonly byte[] OneDimensional_Formula2 = ArrayHelper.Concat(
+    public static readonly byte[] OneDimensionalFormula2 = ArrayHelper.Concat(
         new byte[]
         {
             0x00, 0x03,
             0x00, 0x00,
         },
-        IccTestDataPrimitives.Single_0,
-        IccTestDataPrimitives.Single_1,
-        Segment_Formula3,
-        Segment_Formula2,
-        Segment_Formula1);
+        IccTestDataPrimitives.Single0,
+        IccTestDataPrimitives.Single1,
+        SegmentFormula3,
+        SegmentFormula2,
+        SegmentFormula1);
 
-    public static readonly byte[] OneDimensional_Sampled = ArrayHelper.Concat(
+    public static readonly byte[] OneDimensionalSampled = ArrayHelper.Concat(
         new byte[]
         {
             0x00, 0x03,
             0x00, 0x00,
         },
-        IccTestDataPrimitives.Single_0,
-        IccTestDataPrimitives.Single_1,
-        Segment_Sampled1,
-        Segment_Sampled2,
-        Segment_Sampled1);
+        IccTestDataPrimitives.Single0,
+        IccTestDataPrimitives.Single1,
+        SegmentSampled1,
+        SegmentSampled2,
+        SegmentSampled1);
 
     public static readonly object[][] OneDimensionalCurveTestData =
-    {
-        new object[] { OneDimensional_Formula1, OneDimensional_ValFormula1 },
-        new object[] { OneDimensional_Formula2, OneDimensional_ValFormula2 },
-        new object[] { OneDimensional_Sampled, OneDimensional_ValSampled },
-    };
+    [
+        [OneDimensionalFormula1, OneDimensionalValFormula1],
+        [OneDimensionalFormula2, OneDimensionalValFormula2],
+        [OneDimensionalSampled, OneDimensionalValSampled]
+    ];
 }

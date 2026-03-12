@@ -47,7 +47,7 @@ internal sealed class LzwEncoder : IDisposable
     /// Mask used when shifting pixel values
     /// </summary>
     private static readonly int[] Masks =
-    {
+    [
         0b0,
         0b1,
         0b11,
@@ -65,7 +65,7 @@ internal sealed class LzwEncoder : IDisposable
         0b11111111111111,
         0b111111111111111,
         0b1111111111111111
-    };
+    ];
 
     /// <summary>
     /// The maximum number of bits/code.
@@ -204,7 +204,7 @@ internal sealed class LzwEncoder : IDisposable
     /// <param name="bitCount">The number of bits</param>
     /// <returns>See <see cref="int"/></returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static int GetMaxcode(int bitCount) => (1 << bitCount) - 1;
+    private static int GetMaxCode(int bitCount) => (1 << bitCount) - 1;
 
     /// <summary>
     /// Add a character to the end of the current packet, and if it is 254 characters,
@@ -257,7 +257,7 @@ internal sealed class LzwEncoder : IDisposable
         // Set up the necessary values
         this.clearFlag = false;
         this.bitCount = this.globalInitialBits;
-        this.maxCode = GetMaxcode(this.bitCount);
+        this.maxCode = GetMaxCode(this.bitCount);
         this.clearCode = 1 << (initialBits - 1);
         this.eofCode = this.clearCode + 1;
         this.freeEntry = this.clearCode + 2;
@@ -383,7 +383,7 @@ internal sealed class LzwEncoder : IDisposable
         {
             if (this.clearFlag)
             {
-                this.maxCode = GetMaxcode(this.bitCount = this.globalInitialBits);
+                this.maxCode = GetMaxCode(this.bitCount = this.globalInitialBits);
                 this.clearFlag = false;
             }
             else
@@ -391,7 +391,7 @@ internal sealed class LzwEncoder : IDisposable
                 ++this.bitCount;
                 this.maxCode = this.bitCount == MaxBits
                     ? MaxMaxCode
-                    : GetMaxcode(this.bitCount);
+                    : GetMaxCode(this.bitCount);
             }
         }
 

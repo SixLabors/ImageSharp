@@ -47,8 +47,7 @@ public abstract class ToRgba32Bytes<TPixel>
         {
             TPixel c = s[i];
             int i4 = i * 4;
-            Rgba32 rgba = default;
-            c.ToRgba32(ref rgba);
+            Rgba32 rgba = c.ToRgba32();
             d[i4] = rgba.R;
             d[i4 + 1] = rgba.G;
             d[i4 + 2] = rgba.B;

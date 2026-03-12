@@ -4,7 +4,6 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
@@ -78,12 +77,12 @@ public sealed class Image<TPixel> : Image
     /// <param name="height">The height of the image in pixels.</param>
     /// <param name="metadata">The images metadata.</param>
     internal Image(Configuration configuration, int width, int height, ImageMetadata? metadata)
-        : base(configuration, PixelTypeInfo.Create<TPixel>(), metadata, width, height)
+        : base(configuration, TPixel.GetPixelTypeInfo(), metadata ?? new ImageMetadata(), width, height)
         => this.frames = new ImageFrameCollection<TPixel>(this, width, height, default(TPixel));
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Image{TPixel}"/> class
-    /// wrapping an external <see cref="Buffer2D{TPixel}"/> pixel bufferx.
+    /// wrapping an external <see cref="Buffer2D{TPixel}"/> pixel buffer.
     /// </summary>
     /// <param name="configuration">The configuration providing initialization code which allows extending the library.</param>
     /// <param name="pixelBuffer">Pixel buffer.</param>
@@ -92,7 +91,7 @@ public sealed class Image<TPixel> : Image
         Configuration configuration,
         Buffer2D<TPixel> pixelBuffer,
         ImageMetadata metadata)
-        : this(configuration, pixelBuffer.FastMemoryGroup, pixelBuffer.Width, pixelBuffer.Height, metadata)
+        : this(configuration, pixelBuffer.FastMemoryGroup, pixelBuffer.Width, pixelBuffer.Height, pixelBuffer.RowStride, metadata)
     {
     }
 
@@ -111,8 +110,29 @@ public sealed class Image<TPixel> : Image
         int width,
         int height,
         ImageMetadata metadata)
-        : base(configuration, PixelTypeInfo.Create<TPixel>(), metadata, width, height)
-        => this.frames = new ImageFrameCollection<TPixel>(this, width, height, memoryGroup);
+        : this(configuration, memoryGroup, width, height, width, metadata)
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Image{TPixel}"/> class
+    /// wrapping an external <see cref="MemoryGroup{T}"/>.
+    /// </summary>
+    /// <param name="configuration">The configuration providing initialization code which allows extending the library.</param>
+    /// <param name="memoryGroup">The memory source.</param>
+    /// <param name="width">The width of the image in pixels.</param>
+    /// <param name="height">The height of the image in pixels.</param>
+    /// <param name="rowStride">The number of elements between row starts.</param>
+    /// <param name="metadata">The images metadata.</param>
+    internal Image(
+        Configuration configuration,
+        MemoryGroup<TPixel> memoryGroup,
+        int width,
+        int height,
+        int rowStride,
+        ImageMetadata metadata)
+        : base(configuration, TPixel.GetPixelTypeInfo(), metadata, width, height)
+        => this.frames = new ImageFrameCollection<TPixel>(this, width, height, rowStride, memoryGroup);
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Image{TPixel}"/> class
@@ -129,7 +149,7 @@ public sealed class Image<TPixel> : Image
         int height,
         TPixel backgroundColor,
         ImageMetadata? metadata)
-        : base(configuration, PixelTypeInfo.Create<TPixel>(), metadata, width, height)
+        : base(configuration, TPixel.GetPixelTypeInfo(), metadata ?? new ImageMetadata(), width, height)
         => this.frames = new ImageFrameCollection<TPixel>(this, width, height, backgroundColor);
 
     /// <summary>
@@ -140,7 +160,7 @@ public sealed class Image<TPixel> : Image
     /// <param name="metadata">The images metadata.</param>
     /// <param name="frames">The frames that will be owned by this image instance.</param>
     internal Image(Configuration configuration, ImageMetadata metadata, IEnumerable<ImageFrame<TPixel>> frames)
-        : base(configuration, PixelTypeInfo.Create<TPixel>(), metadata, ValidateFramesAndGetSize(frames))
+        : base(configuration, TPixel.GetPixelTypeInfo(), metadata, ValidateFramesAndGetSize(frames))
         => this.frames = new ImageFrameCollection<TPixel>(this, frames);
 
     /// <inheritdoc />
@@ -161,7 +181,7 @@ public sealed class Image<TPixel> : Image
     /// <summary>
     /// Gets the root frame.
     /// </summary>
-    private IPixelSource<TPixel> PixelSourceUnsafe => this.frames.RootFrameUnsafe;
+    private ImageFrame<TPixel> PixelSourceUnsafe => this.frames.RootFrameUnsafe;
 
     /// <summary>
     /// Gets or sets the pixel at the specified position.
@@ -288,16 +308,24 @@ public sealed class Image<TPixel> : Image
     }
 
     /// <summary>
-    /// Copy image pixels to <paramref name="destination"/>.
+    /// Copy image pixels to <paramref name="destination"/> using the root frame backing row layout.
     /// </summary>
+    /// <remarks>
+    /// Destination length must be at least
+    /// <c>((Height - 1) * Frames.RootFrame.PixelBuffer.RowStride) + Width</c>.
+    /// </remarks>
     /// <param name="destination">The <see cref="Span{TPixel}"/> to copy image pixels to.</param>
-    public void CopyPixelDataTo(Span<TPixel> destination) => this.GetPixelMemoryGroup().CopyTo(destination);
+    public void CopyPixelDataTo(Span<TPixel> destination) => this.Frames.RootFrame.CopyPixelDataTo(destination);
 
     /// <summary>
-    /// Copy image pixels to <paramref name="destination"/>.
+    /// Copy image pixels to <paramref name="destination"/> using the root frame backing row layout.
     /// </summary>
+    /// <remarks>
+    /// Destination length must be at least
+    /// <c>(((Height - 1) * Frames.RootFrame.PixelBuffer.RowStride) + Width) * sizeof(TPixel)</c> bytes.
+    /// </remarks>
     /// <param name="destination">The <see cref="Span{T}"/> of <see cref="byte"/> to copy image pixels to.</param>
-    public void CopyPixelDataTo(Span<byte> destination) => this.GetPixelMemoryGroup().CopyTo(MemoryMarshal.Cast<byte, TPixel>(destination));
+    public void CopyPixelDataTo(Span<byte> destination) => this.Frames.RootFrame.CopyPixelDataTo(destination);
 
     /// <summary>
     /// Gets the representation of the pixels as a <see cref="Memory{T}"/> in the source image's pixel format
@@ -312,23 +340,13 @@ public sealed class Image<TPixel> : Image
     /// <param name="memory">The <see cref="Memory{T}"/> referencing the image buffer.</param>
     /// <returns>The <see cref="bool"/> indicating the success.</returns>
     public bool DangerousTryGetSinglePixelMemory(out Memory<TPixel> memory)
-    {
-        IMemoryGroup<TPixel> mg = this.GetPixelMemoryGroup();
-        if (mg.Count > 1)
-        {
-            memory = default;
-            return false;
-        }
-
-        memory = mg.Single();
-        return true;
-    }
+        => this.Frames.RootFrame.DangerousTryGetSinglePixelMemory(out memory);
 
     /// <summary>
-    /// Clones the current image
+    /// Clones the current image.
     /// </summary>
     /// <returns>Returns a new image with all the same metadata as the original.</returns>
-    public Image<TPixel> Clone() => this.Clone(this.GetConfiguration());
+    public Image<TPixel> Clone() => this.Clone(this.Configuration);
 
     /// <summary>
     /// Clones the current image with the given configuration.
@@ -396,38 +414,53 @@ public sealed class Image<TPixel> : Image
     }
 
     /// <summary>
-    /// Switches the buffers used by the image and the pixelSource meaning that the Image will "own" the buffer from the pixelSource and the pixelSource will now own the Images buffer.
+    /// Switches the buffers used by the image and the pixel source meaning that the Image will
+    /// "own" the buffer from the pixelSource and the pixel source will now own the Image buffer.
     /// </summary>
-    /// <param name="pixelSource">The pixel source.</param>
-    internal void SwapOrCopyPixelsBuffersFrom(Image<TPixel> pixelSource)
+    /// <param name="source">The pixel source.</param>
+    internal void SwapOrCopyPixelsBuffersFrom(Image<TPixel> source)
     {
-        Guard.NotNull(pixelSource, nameof(pixelSource));
+        Guard.NotNull(source, nameof(source));
 
         this.EnsureNotDisposed();
 
-        ImageFrameCollection<TPixel> sourceFrames = pixelSource.Frames;
+        ImageFrameCollection<TPixel> sourceFrames = source.Frames;
         for (int i = 0; i < this.frames.Count; i++)
         {
             this.frames[i].SwapOrCopyPixelsBufferFrom(sourceFrames[i]);
         }
 
-        this.UpdateSize(pixelSource.Size);
+        this.UpdateSize(source.Size);
+    }
+
+    /// <summary>
+    /// Copies the metadata from the source image.
+    /// </summary>
+    /// <param name="source">The metadata source.</param>
+    internal void CopyMetadataFrom(Image<TPixel> source)
+    {
+        Guard.NotNull(source, nameof(source));
+
+        this.EnsureNotDisposed();
+
+        ImageFrameCollection<TPixel> sourceFrames = source.Frames;
+        for (int i = 0; i < this.frames.Count; i++)
+        {
+            this.frames[i].CopyMetadataFrom(sourceFrames[i]);
+        }
+
+        this.UpdateMetadata(source.Metadata);
     }
 
     private static Size ValidateFramesAndGetSize(IEnumerable<ImageFrame<TPixel>> frames)
     {
         Guard.NotNull(frames, nameof(frames));
 
-        ImageFrame<TPixel>? rootFrame = frames.FirstOrDefault();
+        ImageFrame<TPixel>? rootFrame = frames.FirstOrDefault() ?? throw new ArgumentException("Must not be empty.", nameof(frames));
 
-        if (rootFrame == null)
-        {
-            throw new ArgumentException("Must not be empty.", nameof(frames));
-        }
+        Size rootSize = rootFrame.Size;
 
-        Size rootSize = rootFrame.Size();
-
-        if (frames.Any(f => f.Size() != rootSize))
+        if (frames.Any(f => f.Size != rootSize))
         {
             throw new ArgumentException("The provided frames must be of the same size.", nameof(frames));
         }

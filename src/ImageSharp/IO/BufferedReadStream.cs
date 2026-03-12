@@ -70,6 +70,11 @@ internal sealed class BufferedReadStream : Stream
     }
 
     /// <summary>
+    /// Gets the number indicating the EOF hits occurred while reading from this instance.
+    /// </summary>
+    public int EofHitCount { get; private set; }
+
+    /// <summary>
     /// Gets the size, in bytes, of the underlying buffer.
     /// </summary>
     public int BufferSize
@@ -143,6 +148,7 @@ internal sealed class BufferedReadStream : Stream
     {
         if (this.readerPosition >= this.Length)
         {
+            this.EofHitCount++;
             return -1;
         }
 
@@ -233,20 +239,13 @@ internal sealed class BufferedReadStream : Stream
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public override long Seek(long offset, SeekOrigin origin)
     {
-        switch (origin)
+        this.Position = origin switch
         {
-            case SeekOrigin.Begin:
-                this.Position = offset;
-                break;
-
-            case SeekOrigin.Current:
-                this.Position += offset;
-                break;
-
-            case SeekOrigin.End:
-                this.Position = this.Length - offset;
-                break;
-        }
+            SeekOrigin.Begin => offset,
+            SeekOrigin.Current => this.Position + offset,
+            SeekOrigin.End => this.Length + offset,
+            _ => throw new ArgumentOutOfRangeException(nameof(offset)),
+        };
 
         return this.readerPosition;
     }
@@ -320,7 +319,7 @@ internal sealed class BufferedReadStream : Stream
 
         this.readerPosition += n;
         this.readBufferIndex += n;
-
+        this.CheckEof(n);
         return n;
     }
 
@@ -378,6 +377,7 @@ internal sealed class BufferedReadStream : Stream
 
         this.Position += n;
 
+        this.CheckEof(n);
         return n;
     }
 
@@ -442,6 +442,15 @@ internal sealed class BufferedReadStream : Stream
         else
         {
             Buffer.BlockCopy(this.readBuffer, this.readBufferIndex, buffer, offset, count);
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private void CheckEof(int read)
+    {
+        if (read == 0)
+        {
+            this.EofHitCount++;
         }
     }
 }

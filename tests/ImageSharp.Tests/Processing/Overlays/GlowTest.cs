@@ -45,7 +45,7 @@ public class GlowTest : BaseImageOperationsExtensionTest
     [Fact]
     public void Glow_Rect_GlowProcessorWithDefaultValues()
     {
-        var rect = new Rectangle(12, 123, 43, 65);
+        Rectangle rect = new(12, 123, 43, 65);
         this.operations.Glow(rect);
         GlowProcessor p = this.Verify<GlowProcessor>(rect);
 

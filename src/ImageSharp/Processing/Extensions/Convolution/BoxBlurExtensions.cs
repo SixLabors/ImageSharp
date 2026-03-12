@@ -44,10 +44,10 @@ public static class BoxBlurExtensions
     /// Applies a box blur to the image.
     /// </summary>
     /// <param name="source">The current image processing context.</param>
-    /// <param name="radius">The 'radius' value representing the size of the area to sample.</param>
     /// <param name="rectangle">
     /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
     /// </param>
+    /// <param name="radius">The 'radius' value representing the size of the area to sample.</param>
     /// <param name="borderWrapModeX">
     /// The <see cref="BorderWrappingMode"/> to use when mapping the pixels outside of the border, in X direction.
     /// </param>
@@ -55,9 +55,11 @@ public static class BoxBlurExtensions
     /// The <see cref="BorderWrappingMode"/> to use when mapping the pixels outside of the border, in Y direction.
     /// </param>
     /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
-    public static IImageProcessingContext BoxBlur(this IImageProcessingContext source, int radius, Rectangle rectangle, BorderWrappingMode borderWrapModeX, BorderWrappingMode borderWrapModeY)
-    {
-        var processor = new BoxBlurProcessor(radius, borderWrapModeX, borderWrapModeY);
-        return source.ApplyProcessor(processor, rectangle);
-    }
+    public static IImageProcessingContext BoxBlur(
+        this IImageProcessingContext source,
+        Rectangle rectangle,
+        int radius,
+        BorderWrappingMode borderWrapModeX,
+        BorderWrappingMode borderWrapModeY)
+        => source.ApplyProcessor(new BoxBlurProcessor(radius, borderWrapModeX, borderWrapModeY), rectangle);
 }

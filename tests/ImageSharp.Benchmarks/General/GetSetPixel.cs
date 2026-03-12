@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+#if OS_WINDOWS
 using System.Drawing;
 using BenchmarkDotNet.Attributes;
 using SixLabors.ImageSharp.PixelFormats;
@@ -21,7 +22,8 @@ public class GetSetPixel
     public Rgba32 GetSetImageSharp()
     {
         using Image<Rgba32> image = new(400, 400);
-        image[200, 200] = Color.White;
+        image[200, 200] = Color.White.ToPixel<Rgba32>();
         return image[200, 200];
     }
 }
+#endif

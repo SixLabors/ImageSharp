@@ -4,11 +4,14 @@
 using System.Collections.Concurrent;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Bmp;
+using SixLabors.ImageSharp.Formats.Cur;
 using SixLabors.ImageSharp.Formats.Gif;
+using SixLabors.ImageSharp.Formats.Ico;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Formats.OpenExr;
 using SixLabors.ImageSharp.Formats.Pbm;
 using SixLabors.ImageSharp.Formats.Png;
+using SixLabors.ImageSharp.Formats.Qoi;
 using SixLabors.ImageSharp.Formats.Tga;
 using SixLabors.ImageSharp.Formats.Tiff;
 using SixLabors.ImageSharp.Formats.Webp;
@@ -87,10 +90,7 @@ public sealed class Configuration
         get => this.streamProcessingBufferSize;
         set
         {
-            if (value <= 0)
-            {
-                throw new ArgumentOutOfRangeException(nameof(this.StreamProcessingBufferSize));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(value);
 
             this.streamProcessingBufferSize = value;
         }
@@ -123,7 +123,7 @@ public sealed class Configuration
     /// <summary>
     /// Gets or the <see cref="ImageFormatManager"/> that is currently in use.
     /// </summary>
-    public ImageFormatManager ImageFormatsManager { get; private set; } = new ImageFormatManager();
+    public ImageFormatManager ImageFormatsManager { get; private set; } = new();
 
     /// <summary>
     /// Gets or sets the <see cref="Memory.MemoryAllocator"/> that is currently in use.
@@ -214,6 +214,7 @@ public sealed class Configuration
     /// <see cref="TiffConfigurationModule"/>.
     /// <see cref="WebpConfigurationModule"/>.
     /// <see cref="ExrConfigurationModule"/>.
+    /// <see cref="QoiConfigurationModule"/>.
     /// </summary>
     /// <returns>The default configuration of <see cref="Configuration"/>.</returns>
     internal static Configuration CreateDefaultInstance() => new(
@@ -226,4 +227,7 @@ public sealed class Configuration
             new TiffConfigurationModule(),
             new WebpConfigurationModule(),
             new ExrConfigurationModule());
+            new QoiConfigurationModule(),
+            new IcoConfigurationModule(),
+            new CurConfigurationModule());
 }

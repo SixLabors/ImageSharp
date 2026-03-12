@@ -4,6 +4,7 @@
 using Moq;
 
 using SixLabors.ImageSharp.Formats;
+using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
@@ -34,7 +35,7 @@ public partial class ImageTests
 
         public Configuration LocalConfiguration { get; }
 
-        public TestFormat TestFormat { get; } = new TestFormat();
+        public TestFormat TestFormat { get; } = new();
 
         /// <summary>
         /// Gets the top-level configuration in the context of this test case.
@@ -57,7 +58,7 @@ public partial class ImageTests
             // TODO: Remove all this mocking. It's too complicated and we can now use fakes.
             this.localStreamReturnImageRgba32 = new Image<Rgba32>(1, 1);
             this.localStreamReturnImageAgnostic = new Image<Bgra4444>(1, 1);
-            this.LocalImageInfo = new(new PixelTypeInfo(8), new(1, 1), new ImageMetadata());
+            this.LocalImageInfo = new ImageInfo(new Size(1, 1), new ImageMetadata { DecodedImageFormat = PngFormat.Instance });
 
             this.localImageFormatMock = new Mock<IImageFormat>();
 
@@ -122,6 +123,7 @@ public partial class ImageTests
             Stream StreamFactory() => this.DataStream;
 
             this.LocalFileSystemMock.Setup(x => x.OpenRead(this.MockFilePath)).Returns(StreamFactory);
+            this.LocalFileSystemMock.Setup(x => x.OpenReadAsynchronous(this.MockFilePath)).Returns(StreamFactory);
             this.topLevelFileSystem.AddFile(this.MockFilePath, StreamFactory);
             this.LocalConfiguration.FileSystem = this.LocalFileSystemMock.Object;
             this.TopLevelConfiguration.FileSystem = this.topLevelFileSystem;
@@ -132,6 +134,11 @@ public partial class ImageTests
             // Clean up the global object;
             this.localStreamReturnImageRgba32?.Dispose();
             this.localStreamReturnImageAgnostic?.Dispose();
+
+            if (this.dataStreamLazy.IsValueCreated)
+            {
+                this.dataStreamLazy.Value.Dispose();
+            }
         }
 
         protected virtual Stream CreateStream() => this.TestFormat.CreateStream(this.Marker);

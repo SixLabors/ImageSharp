@@ -1,6 +1,8 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Diagnostics.CodeAnalysis;
+using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Transforms;
 
@@ -11,7 +13,7 @@ namespace SixLabors.ImageSharp.Formats;
 /// </summary>
 public sealed class DecoderOptions
 {
-    private static readonly Lazy<DecoderOptions> LazyOptions = new(() => new());
+    private static readonly Lazy<DecoderOptions> LazyOptions = new(() => new DecoderOptions());
 
     private uint maxFrames = int.MaxValue;
 
@@ -55,5 +57,53 @@ public sealed class DecoderOptions
     /// </summary>
     public uint MaxFrames { get => this.maxFrames; init => this.maxFrames = Math.Clamp(value, 1, int.MaxValue); }
 
+    /// <summary>
+    /// Gets the segment error handling strategy to use during decoding.
+    /// </summary>
+    public SegmentIntegrityHandling SegmentIntegrityHandling { get; init; } = SegmentIntegrityHandling.IgnoreNonCritical;
+
+    /// <summary>
+    /// Gets a value that controls how ICC profiles are handled during decode.
+    /// </summary>
+    public ColorProfileHandling ColorProfileHandling { get; init; }
+
     internal void SetConfiguration(Configuration configuration) => this.configuration = configuration;
+
+    internal bool TryGetIccProfileForColorConversion(IccProfile? profile, [NotNullWhen(true)] out IccProfile? value)
+    {
+        value = null;
+
+        if (profile is null)
+        {
+            return false;
+        }
+
+        if (this.ColorProfileHandling == ColorProfileHandling.Preserve)
+        {
+            return false;
+        }
+
+        if (profile.IsCanonicalSrgbMatrixTrc())
+        {
+            return false;
+        }
+
+        value = profile;
+        return true;
+    }
+
+    internal bool CanRemoveIccProfile(IccProfile? profile)
+    {
+        if (profile is null)
+        {
+            return false;
+        }
+
+        if (this.ColorProfileHandling == ColorProfileHandling.Convert)
+        {
+            return true;
+        }
+
+        return this.ColorProfileHandling == ColorProfileHandling.Compact && profile.IsCanonicalSrgbMatrixTrc();
+    }
 }

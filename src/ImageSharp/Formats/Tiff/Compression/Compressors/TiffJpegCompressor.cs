@@ -29,11 +29,11 @@ internal class TiffJpegCompressor : TiffBaseCompressor
         int pixelCount = rows.Length / 3;
         int width = pixelCount / height;
 
-        using var memoryStream = new MemoryStream();
-        var image = Image.LoadPixelData<Rgb24>(rows, width, height);
+        using MemoryStream memoryStream = new();
+        Image<Rgb24> image = Image.LoadPixelData<Rgb24>(rows, width, height);
         image.Save(memoryStream, new JpegEncoder()
         {
-            ColorType = JpegEncodingColor.Rgb
+            ColorType = JpegColorType.Rgb
         });
         memoryStream.Position = 0;
         memoryStream.WriteTo(this.Output);

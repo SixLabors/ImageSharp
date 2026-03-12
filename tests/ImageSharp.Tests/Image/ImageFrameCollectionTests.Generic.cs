@@ -64,7 +64,7 @@ public abstract partial class ImageFrameCollectionTests
                     using ImageFrame<Rgba32> addedFrame = this.Collection.AddFrame(Array.Empty<Rgba32>());
                 });
 
-            Assert.StartsWith($"Parameter \"data\" ({typeof(int)}) must be greater than or equal to {100}, was {0}", ex.Message);
+            Assert.StartsWith($"Parameter \"data\" ({typeof(long)}) must be greater than or equal to {100}, was {0}", ex.Message);
         }
 
         [Fact]
@@ -102,7 +102,7 @@ public abstract partial class ImageFrameCollectionTests
                     using ImageFrame<Rgba32> imageFrame2 = new(Configuration.Default, 1, 1);
                     new ImageFrameCollection<Rgba32>(
                         this.Image,
-                        new[] { imageFrame1, imageFrame2 });
+                        [imageFrame1, imageFrame2]);
                 });
 
             Assert.StartsWith("Frame must have the same dimensions as the image.", ex.Message);
@@ -114,7 +114,7 @@ public abstract partial class ImageFrameCollectionTests
             using ImageFrame<Rgba32> imageFrame = new(Configuration.Default, 10, 10);
             ImageFrameCollection<Rgba32> collection = new(
                 this.Image,
-                new[] { imageFrame });
+                [imageFrame]);
 
             InvalidOperationException ex = Assert.Throws<InvalidOperationException>(
                 () => collection.RemoveFrame(0));
@@ -128,7 +128,7 @@ public abstract partial class ImageFrameCollectionTests
             using ImageFrame<Rgba32> imageFrame2 = new(Configuration.Default, 10, 10);
             ImageFrameCollection<Rgba32> collection = new(
                 this.Image,
-                new[] { imageFrame1, imageFrame2 });
+                [imageFrame1, imageFrame2]);
 
             collection.RemoveFrame(0);
             Assert.Equal(1, collection.Count);
@@ -141,7 +141,7 @@ public abstract partial class ImageFrameCollectionTests
             using ImageFrame<Rgba32> imageFrame2 = new(Configuration.Default, 10, 10);
             ImageFrameCollection<Rgba32> collection = new(
                 this.Image,
-                new[] { imageFrame1, imageFrame2 });
+                [imageFrame1, imageFrame2]);
 
             Assert.Equal(collection.RootFrame, collection[0]);
         }
@@ -153,7 +153,7 @@ public abstract partial class ImageFrameCollectionTests
             using ImageFrame<Rgba32> imageFrame2 = new(Configuration.Default, 10, 10);
             ImageFrameCollection<Rgba32> collection = new(
                 this.Image,
-                new[] { imageFrame1, imageFrame2 });
+                [imageFrame1, imageFrame2]);
 
             Assert.Equal(2, collection.Count);
         }
@@ -165,7 +165,7 @@ public abstract partial class ImageFrameCollectionTests
             using ImageFrame<Rgba32> imageFrame2 = new(Configuration.Default, 10, 10);
             ImageFrameCollection<Rgba32> collection = new(
                 this.Image,
-                new[] { imageFrame1, imageFrame2 });
+                [imageFrame1, imageFrame2]);
 
             collection.Dispose();
 
@@ -179,7 +179,7 @@ public abstract partial class ImageFrameCollectionTests
             using ImageFrame<Rgba32> imageFrame2 = new(Configuration.Default, 10, 10);
             ImageFrameCollection<Rgba32> collection = new(
                 this.Image,
-                new[] { imageFrame1, imageFrame2 });
+                [imageFrame1, imageFrame2]);
 
             IPixelSource<Rgba32>[] framesSnapShot = collection.OfType<IPixelSource<Rgba32>>().ToArray();
 
@@ -237,7 +237,7 @@ public abstract partial class ImageFrameCollectionTests
             using (this.Image.Frames.CreateFrame(Color.HotPink))
             {
                 Assert.Equal(2, this.Image.Frames.Count);
-                this.Image.Frames[1].ComparePixelBufferTo(Color.HotPink);
+                this.Image.Frames[1].ComparePixelBufferTo(Color.HotPink.ToPixel<Rgba32>());
             }
         }
 

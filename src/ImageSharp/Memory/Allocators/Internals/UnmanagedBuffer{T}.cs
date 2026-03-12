@@ -35,7 +35,7 @@ internal sealed unsafe class UnmanagedBuffer<T> : MemoryManager<T>, IRefCounted
     {
         DebugGuard.NotDisposed(this.disposed == 1, this.GetType().Name);
         DebugGuard.NotDisposed(this.lifetimeGuard.IsDisposed, this.lifetimeGuard.GetType().Name);
-        return new(this.Pointer, this.lengthInElements);
+        return new Span<T>(this.Pointer, this.lengthInElements);
     }
 
     /// <inheritdoc />

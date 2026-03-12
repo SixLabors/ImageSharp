@@ -8,8 +8,8 @@ public class MemoryGroupIndexTests
     [Fact]
     public void Equal()
     {
-        var a = new MemoryGroupIndex(10, 1, 3);
-        var b = new MemoryGroupIndex(10, 1, 3);
+        MemoryGroupIndex a = new(10, 1, 3);
+        MemoryGroupIndex b = new(10, 1, 3);
 
         Assert.True(a.Equals(b));
         Assert.True(a == b);
@@ -21,8 +21,8 @@ public class MemoryGroupIndexTests
     [Fact]
     public void SmallerBufferIndex()
     {
-        var a = new MemoryGroupIndex(10, 3, 3);
-        var b = new MemoryGroupIndex(10, 5, 3);
+        MemoryGroupIndex a = new(10, 3, 3);
+        MemoryGroupIndex b = new(10, 5, 3);
 
         Assert.False(a == b);
         Assert.True(a != b);
@@ -33,8 +33,8 @@ public class MemoryGroupIndexTests
     [Fact]
     public void SmallerElementIndex()
     {
-        var a = new MemoryGroupIndex(10, 3, 3);
-        var b = new MemoryGroupIndex(10, 3, 9);
+        MemoryGroupIndex a = new(10, 3, 3);
+        MemoryGroupIndex b = new(10, 3, 9);
 
         Assert.False(a == b);
         Assert.True(a != b);
@@ -45,7 +45,7 @@ public class MemoryGroupIndexTests
     [Fact]
     public void Increment()
     {
-        var a = new MemoryGroupIndex(10, 3, 3);
+        MemoryGroupIndex a = new(10, 3, 3);
         a += 1;
         Assert.Equal(new MemoryGroupIndex(10, 3, 4), a);
     }
@@ -53,8 +53,8 @@ public class MemoryGroupIndexTests
     [Fact]
     public void Increment_OverflowBuffer()
     {
-        var a = new MemoryGroupIndex(10, 5, 3);
-        var b = new MemoryGroupIndex(10, 5, 9);
+        MemoryGroupIndex a = new(10, 5, 3);
+        MemoryGroupIndex b = new(10, 5, 9);
         a += 8;
         b += 1;
 

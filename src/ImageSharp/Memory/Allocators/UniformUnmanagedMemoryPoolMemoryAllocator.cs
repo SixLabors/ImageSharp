@@ -71,10 +71,6 @@ internal sealed class UniformUnmanagedMemoryPoolMemoryAllocator : MemoryAllocato
         this.nonPoolAllocator = new UnmanagedMemoryAllocator(unmanagedBufferSizeInBytes);
     }
 
-    // This delegate allows overriding the method returning the available system memory,
-    // so we can test our workaround for https://github.com/dotnet/runtime/issues/65466
-    internal static Func<long> GetTotalAvailableMemoryBytes { get; set; } = () => GC.GetGCMemoryInfo().TotalAvailableMemoryBytes;
-
     /// <inheritdoc />
     protected internal override int GetBufferCapacityInBytes() => this.poolBufferSizeInBytes;
 
@@ -83,12 +79,20 @@ internal sealed class UniformUnmanagedMemoryPoolMemoryAllocator : MemoryAllocato
         int length,
         AllocationOptions options = AllocationOptions.None)
     {
-        Guard.MustBeGreaterThanOrEqualTo(length, 0, nameof(length));
-        int lengthInBytes = length * Unsafe.SizeOf<T>();
-
-        if (lengthInBytes <= this.sharedArrayPoolThresholdInBytes)
+        if (length < 0)
         {
-            var buffer = new SharedArrayPoolBuffer<T>(length);
+            InvalidMemoryOperationException.ThrowNegativeAllocationException(length);
+        }
+
+        ulong lengthInBytes = (ulong)length * (ulong)Unsafe.SizeOf<T>();
+        if (lengthInBytes > (ulong)this.SingleBufferAllocationLimitBytes)
+        {
+            InvalidMemoryOperationException.ThrowAllocationOverLimitException(lengthInBytes, this.SingleBufferAllocationLimitBytes);
+        }
+
+        if (lengthInBytes <= (ulong)this.sharedArrayPoolThresholdInBytes)
+        {
+            SharedArrayPoolBuffer<T> buffer = new(length);
             if (options.Has(AllocationOptions.Clean))
             {
                 buffer.GetSpan().Clear();
@@ -97,7 +101,7 @@ internal sealed class UniformUnmanagedMemoryPoolMemoryAllocator : MemoryAllocato
             return buffer;
         }
 
-        if (lengthInBytes <= this.poolBufferSizeInBytes)
+        if (lengthInBytes <= (ulong)this.poolBufferSizeInBytes)
         {
             UnmanagedMemoryHandle mem = this.pool.Rent();
             if (mem.IsValid)
@@ -111,15 +115,15 @@ internal sealed class UniformUnmanagedMemoryPoolMemoryAllocator : MemoryAllocato
     }
 
     /// <inheritdoc />
-    internal override MemoryGroup<T> AllocateGroup<T>(
-        long totalLength,
+    internal override MemoryGroup<T> AllocateGroupCore<T>(
+        long totalLengthInElements,
+        long totalLengthInBytes,
         int bufferAlignment,
         AllocationOptions options = AllocationOptions.None)
     {
-        long totalLengthInBytes = totalLength * Unsafe.SizeOf<T>();
         if (totalLengthInBytes <= this.sharedArrayPoolThresholdInBytes)
         {
-            var buffer = new SharedArrayPoolBuffer<T>((int)totalLength);
+            SharedArrayPoolBuffer<T> buffer = new((int)totalLengthInElements);
             return MemoryGroup<T>.CreateContiguous(buffer, options.Has(AllocationOptions.Clean));
         }
 
@@ -129,38 +133,32 @@ internal sealed class UniformUnmanagedMemoryPoolMemoryAllocator : MemoryAllocato
             UnmanagedMemoryHandle mem = this.pool.Rent();
             if (mem.IsValid)
             {
-                UnmanagedBuffer<T> buffer = this.pool.CreateGuardedBuffer<T>(mem, (int)totalLength, options.Has(AllocationOptions.Clean));
+                UnmanagedBuffer<T> buffer = this.pool.CreateGuardedBuffer<T>(mem, (int)totalLengthInElements, options.Has(AllocationOptions.Clean));
                 return MemoryGroup<T>.CreateContiguous(buffer, options.Has(AllocationOptions.Clean));
             }
         }
 
         // Attempt to rent the whole group from the pool, allocate a group of unmanaged buffers if the attempt fails:
-        if (MemoryGroup<T>.TryAllocate(this.pool, totalLength, bufferAlignment, options, out MemoryGroup<T>? poolGroup))
+        if (MemoryGroup<T>.TryAllocate(this.pool, totalLengthInElements, bufferAlignment, options, out MemoryGroup<T>? poolGroup))
         {
             return poolGroup;
         }
 
-        return MemoryGroup<T>.Allocate(this.nonPoolAllocator, totalLength, bufferAlignment, options);
+        return MemoryGroup<T>.Allocate(this.nonPoolAllocator, totalLengthInElements, bufferAlignment, options);
     }
 
     public override void ReleaseRetainedResources() => this.pool.Release();
 
     private static long GetDefaultMaxPoolSizeBytes()
     {
-        // On 64 bit set the pool size to a portion of the total available memory.
-        // https://github.com/dotnet/runtime/issues/55126#issuecomment-876779327
         if (Environment.Is64BitProcess)
         {
-            long total = GetTotalAvailableMemoryBytes();
-
-            // Workaround for https://github.com/dotnet/runtime/issues/65466
-            if (total > 0)
-            {
-                return (long)((ulong)total / 8);
-            }
+            // On 64 bit set the pool size to a portion of the total available memory.
+            GCMemoryInfo info = GC.GetGCMemoryInfo();
+            return info.TotalAvailableMemoryBytes / 8;
         }
 
-        // Stick to a conservative value of 128 Megabytes on other platforms and 32 bit .NET 5.0:
+        // Stick to a conservative value of 128 Megabytes on 32 bit.
         return 128 * OneMegabyte;
     }
 }

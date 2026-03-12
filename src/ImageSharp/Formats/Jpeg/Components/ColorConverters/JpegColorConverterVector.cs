@@ -36,7 +36,7 @@ internal abstract partial class JpegColorConverterBase
         public override int ElementsPerBatch => Vector<float>.Count;
 
         /// <inheritdoc/>
-        public sealed override void ConvertToRgbInplace(in ComponentValues values)
+        public sealed override void ConvertToRgbInPlace(in ComponentValues values)
         {
             DebugGuard.IsTrue(this.IsAvailable, $"{this.GetType().Name} converter is not supported on current hardware.");
 
@@ -46,7 +46,7 @@ internal abstract partial class JpegColorConverterBase
             int simdCount = length - remainder;
             if (simdCount > 0)
             {
-                this.ConvertToRgbInplaceVectorized(values.Slice(0, simdCount));
+                this.ConvertToRgbInPlaceVectorized(values.Slice(0, simdCount));
             }
 
             // Jpeg images width is always divisible by 8 without a remainder
@@ -56,12 +56,12 @@ internal abstract partial class JpegColorConverterBase
             // remainder pixels
             if (remainder > 0)
             {
-                this.ConvertToRgbInplaceScalarRemainder(values.Slice(simdCount, remainder));
+                this.ConvertToRgbInPlaceScalarRemainder(values.Slice(simdCount, remainder));
             }
         }
 
         /// <inheritdoc/>
-        public sealed override void ConvertFromRgb(in ComponentValues values, Span<float> r, Span<float> g, Span<float> b)
+        public sealed override void ConvertFromRgb(in ComponentValues values, Span<float> rLane, Span<float> gLane, Span<float> bLane)
         {
             DebugGuard.IsTrue(this.IsAvailable, $"{this.GetType().Name} converter is not supported on current hardware.");
 
@@ -73,9 +73,9 @@ internal abstract partial class JpegColorConverterBase
             {
                 this.ConvertFromRgbVectorized(
                     values.Slice(0, simdCount),
-                    r.Slice(0, simdCount),
-                    g.Slice(0, simdCount),
-                    b.Slice(0, simdCount));
+                    rLane[..simdCount],
+                    gLane[..simdCount],
+                    bLane[..simdCount]);
             }
 
             // Jpeg images width is always divisible by 8 without a remainder
@@ -87,25 +87,25 @@ internal abstract partial class JpegColorConverterBase
             {
                 this.ConvertFromRgbScalarRemainder(
                     values.Slice(simdCount, remainder),
-                    r.Slice(simdCount, remainder),
-                    g.Slice(simdCount, remainder),
-                    b.Slice(simdCount, remainder));
+                    rLane.Slice(simdCount, remainder),
+                    gLane.Slice(simdCount, remainder),
+                    bLane.Slice(simdCount, remainder));
             }
         }
 
         /// <summary>
         /// Converts planar jpeg component values in <paramref name="values"/>
-        /// to RGB color space inplace using <see cref="Vector"/> API.
+        /// to RGB color space in place using <see cref="Vector"/> API.
         /// </summary>
-        /// <param name="values">The input/ouptut as a stack-only <see cref="ComponentValues"/> struct</param>
-        protected abstract void ConvertToRgbInplaceVectorized(in ComponentValues values);
+        /// <param name="values">The input/output as a stack-only <see cref="ComponentValues"/> struct</param>
+        protected abstract void ConvertToRgbInPlaceVectorized(in ComponentValues values);
 
         /// <summary>
         /// Converts remainder of the planar jpeg component values after
-        /// conversion in <see cref="ConvertToRgbInplaceVectorized(in ComponentValues)"/>.
+        /// conversion in <see cref="ConvertToRgbInPlaceVectorized(in ComponentValues)"/>.
         /// </summary>
-        /// <param name="values">The input/ouptut as a stack-only <see cref="ComponentValues"/> struct</param>
-        protected abstract void ConvertToRgbInplaceScalarRemainder(in ComponentValues values);
+        /// <param name="values">The input/output as a stack-only <see cref="ComponentValues"/> struct</param>
+        protected abstract void ConvertToRgbInPlaceScalarRemainder(in ComponentValues values);
 
         /// <summary>
         /// Converts RGB lanes to jpeg component values using <see cref="Vector"/> API.

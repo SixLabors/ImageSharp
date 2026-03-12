@@ -355,9 +355,7 @@ internal static partial class PorterDuffFunctions
         where TPixel : unmanaged, IPixel<TPixel>
     {
         opacity = Numerics.Clamp(opacity, 0, 1);
-        TPixel dest = default;
-        dest.FromScaledVector4(NormalSrc(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
-        return dest;
+        return TPixel.FromScaledVector4(NormalSrc(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
     }
 
     /// <summary>
@@ -373,9 +371,7 @@ internal static partial class PorterDuffFunctions
         where TPixel : unmanaged, IPixel<TPixel>
     {
         opacity = Numerics.Clamp(opacity, 0, 1);
-        TPixel dest = default;
-        dest.FromScaledVector4(NormalSrcAtop(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
-        return dest;
+        return TPixel.FromScaledVector4(NormalSrcAtop(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
     }
 
     /// <summary>
@@ -391,9 +387,7 @@ internal static partial class PorterDuffFunctions
         where TPixel : unmanaged, IPixel<TPixel>
     {
         opacity = Numerics.Clamp(opacity, 0, 1);
-        TPixel dest = default;
-        dest.FromScaledVector4(NormalSrcOver(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
-        return dest;
+        return TPixel.FromScaledVector4(NormalSrcOver(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
     }
 
     /// <summary>
@@ -409,9 +403,7 @@ internal static partial class PorterDuffFunctions
         where TPixel : unmanaged, IPixel<TPixel>
     {
         opacity = Numerics.Clamp(opacity, 0, 1);
-        TPixel dest = default;
-        dest.FromScaledVector4(NormalSrcIn(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
-        return dest;
+        return TPixel.FromScaledVector4(NormalSrcIn(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
     }
 
     /// <summary>
@@ -427,9 +419,7 @@ internal static partial class PorterDuffFunctions
         where TPixel : unmanaged, IPixel<TPixel>
     {
         opacity = Numerics.Clamp(opacity, 0, 1);
-        TPixel dest = default;
-        dest.FromScaledVector4(NormalSrcOut(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
-        return dest;
+        return TPixel.FromScaledVector4(NormalSrcOut(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
     }
 
     /// <summary>
@@ -445,9 +435,7 @@ internal static partial class PorterDuffFunctions
         where TPixel : unmanaged, IPixel<TPixel>
     {
         opacity = Numerics.Clamp(opacity, 0, 1);
-        TPixel dest = default;
-        dest.FromScaledVector4(NormalDest(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
-        return dest;
+        return TPixel.FromScaledVector4(NormalDest(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
     }
 
     /// <summary>
@@ -463,9 +451,7 @@ internal static partial class PorterDuffFunctions
         where TPixel : unmanaged, IPixel<TPixel>
     {
         opacity = Numerics.Clamp(opacity, 0, 1);
-        TPixel dest = default;
-        dest.FromScaledVector4(NormalDestAtop(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
-        return dest;
+        return TPixel.FromScaledVector4(NormalDestAtop(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
     }
 
     /// <summary>
@@ -481,9 +467,7 @@ internal static partial class PorterDuffFunctions
         where TPixel : unmanaged, IPixel<TPixel>
     {
         opacity = Numerics.Clamp(opacity, 0, 1);
-        TPixel dest = default;
-        dest.FromScaledVector4(NormalDestOver(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
-        return dest;
+        return TPixel.FromScaledVector4(NormalDestOver(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
     }
 
     /// <summary>
@@ -499,9 +483,7 @@ internal static partial class PorterDuffFunctions
         where TPixel : unmanaged, IPixel<TPixel>
     {
         opacity = Numerics.Clamp(opacity, 0, 1);
-        TPixel dest = default;
-        dest.FromScaledVector4(NormalDestIn(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
-        return dest;
+        return TPixel.FromScaledVector4(NormalDestIn(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
     }
 
     /// <summary>
@@ -517,9 +499,7 @@ internal static partial class PorterDuffFunctions
         where TPixel : unmanaged, IPixel<TPixel>
     {
         opacity = Numerics.Clamp(opacity, 0, 1);
-        TPixel dest = default;
-        dest.FromScaledVector4(NormalDestOut(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
-        return dest;
+        return TPixel.FromScaledVector4(NormalDestOut(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
     }
 
     /// <summary>
@@ -535,9 +515,7 @@ internal static partial class PorterDuffFunctions
         where TPixel : unmanaged, IPixel<TPixel>
     {
         opacity = Numerics.Clamp(opacity, 0, 1);
-        TPixel dest = default;
-        dest.FromScaledVector4(NormalClear(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
-        return dest;
+        return TPixel.FromScaledVector4(NormalClear(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
     }
 
     /// <summary>
@@ -553,9 +531,7 @@ internal static partial class PorterDuffFunctions
         where TPixel : unmanaged, IPixel<TPixel>
     {
         opacity = Numerics.Clamp(opacity, 0, 1);
-        TPixel dest = default;
-        dest.FromScaledVector4(NormalXor(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
-        return dest;
+        return TPixel.FromScaledVector4(NormalXor(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
     }
 
     /// <summary>
@@ -900,9 +876,7 @@ internal static partial class PorterDuffFunctions
         where TPixel : unmanaged, IPixel<TPixel>
     {
         opacity = Numerics.Clamp(opacity, 0, 1);
-        TPixel dest = default;
-        dest.FromScaledVector4(MultiplySrc(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
-        return dest;
+        return TPixel.FromScaledVector4(MultiplySrc(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
     }
 
     /// <summary>
@@ -918,9 +892,7 @@ internal static partial class PorterDuffFunctions
         where TPixel : unmanaged, IPixel<TPixel>
     {
         opacity = Numerics.Clamp(opacity, 0, 1);
-        TPixel dest = default;
-        dest.FromScaledVector4(MultiplySrcAtop(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
-        return dest;
+        return TPixel.FromScaledVector4(MultiplySrcAtop(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
     }
 
     /// <summary>
@@ -936,9 +908,7 @@ internal static partial class PorterDuffFunctions
         where TPixel : unmanaged, IPixel<TPixel>
     {
         opacity = Numerics.Clamp(opacity, 0, 1);
-        TPixel dest = default;
-        dest.FromScaledVector4(MultiplySrcOver(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
-        return dest;
+        return TPixel.FromScaledVector4(MultiplySrcOver(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
     }
 
     /// <summary>
@@ -954,9 +924,7 @@ internal static partial class PorterDuffFunctions
         where TPixel : unmanaged, IPixel<TPixel>
     {
         opacity = Numerics.Clamp(opacity, 0, 1);
-        TPixel dest = default;
-        dest.FromScaledVector4(MultiplySrcIn(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
-        return dest;
+        return TPixel.FromScaledVector4(MultiplySrcIn(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
     }
 
     /// <summary>
@@ -972,9 +940,7 @@ internal static partial class PorterDuffFunctions
         where TPixel : unmanaged, IPixel<TPixel>
     {
         opacity = Numerics.Clamp(opacity, 0, 1);
-        TPixel dest = default;
-        dest.FromScaledVector4(MultiplySrcOut(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
-        return dest;
+        return TPixel.FromScaledVector4(MultiplySrcOut(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
     }
 
     /// <summary>
@@ -990,9 +956,7 @@ internal static partial class PorterDuffFunctions
         where TPixel : unmanaged, IPixel<TPixel>
     {
         opacity = Numerics.Clamp(opacity, 0, 1);
-        TPixel dest = default;
-        dest.FromScaledVector4(MultiplyDest(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
-        return dest;
+        return TPixel.FromScaledVector4(MultiplyDest(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
     }
 
     /// <summary>
@@ -1008,9 +972,7 @@ internal static partial class PorterDuffFunctions
         where TPixel : unmanaged, IPixel<TPixel>
     {
         opacity = Numerics.Clamp(opacity, 0, 1);
-        TPixel dest = default;
-        dest.FromScaledVector4(MultiplyDestAtop(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
-        return dest;
+        return TPixel.FromScaledVector4(MultiplyDestAtop(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
     }
 
     /// <summary>
@@ -1026,9 +988,7 @@ internal static partial class PorterDuffFunctions
         where TPixel : unmanaged, IPixel<TPixel>
     {
         opacity = Numerics.Clamp(opacity, 0, 1);
-        TPixel dest = default;
-        dest.FromScaledVector4(MultiplyDestOver(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
-        return dest;
+        return TPixel.FromScaledVector4(MultiplyDestOver(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
     }
 
     /// <summary>
@@ -1044,9 +1004,7 @@ internal static partial class PorterDuffFunctions
         where TPixel : unmanaged, IPixel<TPixel>
     {
         opacity = Numerics.Clamp(opacity, 0, 1);
-        TPixel dest = default;
-        dest.FromScaledVector4(MultiplyDestIn(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
-        return dest;
+        return TPixel.FromScaledVector4(MultiplyDestIn(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
     }
 
     /// <summary>
@@ -1062,9 +1020,7 @@ internal static partial class PorterDuffFunctions
         where TPixel : unmanaged, IPixel<TPixel>
     {
         opacity = Numerics.Clamp(opacity, 0, 1);
-        TPixel dest = default;
-        dest.FromScaledVector4(MultiplyDestOut(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
-        return dest;
+        return TPixel.FromScaledVector4(MultiplyDestOut(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
     }
 
     /// <summary>
@@ -1080,9 +1036,7 @@ internal static partial class PorterDuffFunctions
         where TPixel : unmanaged, IPixel<TPixel>
     {
         opacity = Numerics.Clamp(opacity, 0, 1);
-        TPixel dest = default;
-        dest.FromScaledVector4(MultiplyClear(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
-        return dest;
+        return TPixel.FromScaledVector4(MultiplyClear(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
     }
 
     /// <summary>
@@ -1098,9 +1052,7 @@ internal static partial class PorterDuffFunctions
         where TPixel : unmanaged, IPixel<TPixel>
     {
         opacity = Numerics.Clamp(opacity, 0, 1);
-        TPixel dest = default;
-        dest.FromScaledVector4(MultiplyXor(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
-        return dest;
+        return TPixel.FromScaledVector4(MultiplyXor(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
     }
 
     /// <summary>
@@ -1445,9 +1397,7 @@ internal static partial class PorterDuffFunctions
         where TPixel : unmanaged, IPixel<TPixel>
     {
         opacity = Numerics.Clamp(opacity, 0, 1);
-        TPixel dest = default;
-        dest.FromScaledVector4(AddSrc(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
-        return dest;
+        return TPixel.FromScaledVector4(AddSrc(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
     }
 
     /// <summary>
@@ -1463,9 +1413,7 @@ internal static partial class PorterDuffFunctions
         where TPixel : unmanaged, IPixel<TPixel>
     {
         opacity = Numerics.Clamp(opacity, 0, 1);
-        TPixel dest = default;
-        dest.FromScaledVector4(AddSrcAtop(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
-        return dest;
+        return TPixel.FromScaledVector4(AddSrcAtop(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
     }
 
     /// <summary>
@@ -1481,9 +1429,7 @@ internal static partial class PorterDuffFunctions
         where TPixel : unmanaged, IPixel<TPixel>
     {
         opacity = Numerics.Clamp(opacity, 0, 1);
-        TPixel dest = default;
-        dest.FromScaledVector4(AddSrcOver(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
-        return dest;
+        return TPixel.FromScaledVector4(AddSrcOver(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
     }
 
     /// <summary>
@@ -1499,9 +1445,7 @@ internal static partial class PorterDuffFunctions
         where TPixel : unmanaged, IPixel<TPixel>
     {
         opacity = Numerics.Clamp(opacity, 0, 1);
-        TPixel dest = default;
-        dest.FromScaledVector4(AddSrcIn(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
-        return dest;
+        return TPixel.FromScaledVector4(AddSrcIn(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
     }
 
     /// <summary>
@@ -1517,9 +1461,7 @@ internal static partial class PorterDuffFunctions
         where TPixel : unmanaged, IPixel<TPixel>
     {
         opacity = Numerics.Clamp(opacity, 0, 1);
-        TPixel dest = default;
-        dest.FromScaledVector4(AddSrcOut(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
-        return dest;
+        return TPixel.FromScaledVector4(AddSrcOut(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
     }
 
     /// <summary>
@@ -1535,9 +1477,7 @@ internal static partial class PorterDuffFunctions
         where TPixel : unmanaged, IPixel<TPixel>
     {
         opacity = Numerics.Clamp(opacity, 0, 1);
-        TPixel dest = default;
-        dest.FromScaledVector4(AddDest(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
-        return dest;
+        return TPixel.FromScaledVector4(AddDest(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
     }
 
     /// <summary>
@@ -1553,9 +1493,7 @@ internal static partial class PorterDuffFunctions
         where TPixel : unmanaged, IPixel<TPixel>
     {
         opacity = Numerics.Clamp(opacity, 0, 1);
-        TPixel dest = default;
-        dest.FromScaledVector4(AddDestAtop(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
-        return dest;
+        return TPixel.FromScaledVector4(AddDestAtop(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
     }
 
     /// <summary>
@@ -1571,9 +1509,7 @@ internal static partial class PorterDuffFunctions
         where TPixel : unmanaged, IPixel<TPixel>
     {
         opacity = Numerics.Clamp(opacity, 0, 1);
-        TPixel dest = default;
-        dest.FromScaledVector4(AddDestOver(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
-        return dest;
+        return TPixel.FromScaledVector4(AddDestOver(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
     }
 
     /// <summary>
@@ -1589,9 +1525,7 @@ internal static partial class PorterDuffFunctions
         where TPixel : unmanaged, IPixel<TPixel>
     {
         opacity = Numerics.Clamp(opacity, 0, 1);
-        TPixel dest = default;
-        dest.FromScaledVector4(AddDestIn(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
-        return dest;
+        return TPixel.FromScaledVector4(AddDestIn(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
     }
 
     /// <summary>
@@ -1607,9 +1541,7 @@ internal static partial class PorterDuffFunctions
         where TPixel : unmanaged, IPixel<TPixel>
     {
         opacity = Numerics.Clamp(opacity, 0, 1);
-        TPixel dest = default;
-        dest.FromScaledVector4(AddDestOut(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
-        return dest;
+        return TPixel.FromScaledVector4(AddDestOut(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
     }
 
     /// <summary>
@@ -1625,9 +1557,7 @@ internal static partial class PorterDuffFunctions
         where TPixel : unmanaged, IPixel<TPixel>
     {
         opacity = Numerics.Clamp(opacity, 0, 1);
-        TPixel dest = default;
-        dest.FromScaledVector4(AddClear(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
-        return dest;
+        return TPixel.FromScaledVector4(AddClear(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
     }
 
     /// <summary>
@@ -1643,9 +1573,7 @@ internal static partial class PorterDuffFunctions
         where TPixel : unmanaged, IPixel<TPixel>
     {
         opacity = Numerics.Clamp(opacity, 0, 1);
-        TPixel dest = default;
-        dest.FromScaledVector4(AddXor(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
-        return dest;
+        return TPixel.FromScaledVector4(AddXor(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
     }
 
     /// <summary>
@@ -1990,9 +1918,7 @@ internal static partial class PorterDuffFunctions
         where TPixel : unmanaged, IPixel<TPixel>
     {
         opacity = Numerics.Clamp(opacity, 0, 1);
-        TPixel dest = default;
-        dest.FromScaledVector4(SubtractSrc(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
-        return dest;
+        return TPixel.FromScaledVector4(SubtractSrc(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
     }
 
     /// <summary>
@@ -2008,9 +1934,7 @@ internal static partial class PorterDuffFunctions
         where TPixel : unmanaged, IPixel<TPixel>
     {
         opacity = Numerics.Clamp(opacity, 0, 1);
-        TPixel dest = default;
-        dest.FromScaledVector4(SubtractSrcAtop(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
-        return dest;
+        return TPixel.FromScaledVector4(SubtractSrcAtop(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
     }
 
     /// <summary>
@@ -2026,9 +1950,7 @@ internal static partial class PorterDuffFunctions
         where TPixel : unmanaged, IPixel<TPixel>
     {
         opacity = Numerics.Clamp(opacity, 0, 1);
-        TPixel dest = default;
-        dest.FromScaledVector4(SubtractSrcOver(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
-        return dest;
+        return TPixel.FromScaledVector4(SubtractSrcOver(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
     }
 
     /// <summary>
@@ -2044,9 +1966,7 @@ internal static partial class PorterDuffFunctions
         where TPixel : unmanaged, IPixel<TPixel>
     {
         opacity = Numerics.Clamp(opacity, 0, 1);
-        TPixel dest = default;
-        dest.FromScaledVector4(SubtractSrcIn(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
-        return dest;
+        return TPixel.FromScaledVector4(SubtractSrcIn(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
     }
 
     /// <summary>
@@ -2062,9 +1982,7 @@ internal static partial class PorterDuffFunctions
         where TPixel : unmanaged, IPixel<TPixel>
     {
         opacity = Numerics.Clamp(opacity, 0, 1);
-        TPixel dest = default;
-        dest.FromScaledVector4(SubtractSrcOut(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
-        return dest;
+        return TPixel.FromScaledVector4(SubtractSrcOut(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
     }
 
     /// <summary>
@@ -2080,9 +1998,7 @@ internal static partial class PorterDuffFunctions
         where TPixel : unmanaged, IPixel<TPixel>
     {
         opacity = Numerics.Clamp(opacity, 0, 1);
-        TPixel dest = default;
-        dest.FromScaledVector4(SubtractDest(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
-        return dest;
+        return TPixel.FromScaledVector4(SubtractDest(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
     }
 
     /// <summary>
@@ -2098,9 +2014,7 @@ internal static partial class PorterDuffFunctions
         where TPixel : unmanaged, IPixel<TPixel>
     {
         opacity = Numerics.Clamp(opacity, 0, 1);
-        TPixel dest = default;
-        dest.FromScaledVector4(SubtractDestAtop(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
-        return dest;
+        return TPixel.FromScaledVector4(SubtractDestAtop(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
     }
 
     /// <summary>
@@ -2116,9 +2030,7 @@ internal static partial class PorterDuffFunctions
         where TPixel : unmanaged, IPixel<TPixel>
     {
         opacity = Numerics.Clamp(opacity, 0, 1);
-        TPixel dest = default;
-        dest.FromScaledVector4(SubtractDestOver(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
-        return dest;
+        return TPixel.FromScaledVector4(SubtractDestOver(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
     }
 
     /// <summary>
@@ -2134,9 +2046,7 @@ internal static partial class PorterDuffFunctions
         where TPixel : unmanaged, IPixel<TPixel>
     {
         opacity = Numerics.Clamp(opacity, 0, 1);
-        TPixel dest = default;
-        dest.FromScaledVector4(SubtractDestIn(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
-        return dest;
+        return TPixel.FromScaledVector4(SubtractDestIn(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
     }
 
     /// <summary>
@@ -2152,9 +2062,7 @@ internal static partial class PorterDuffFunctions
         where TPixel : unmanaged, IPixel<TPixel>
     {
         opacity = Numerics.Clamp(opacity, 0, 1);
-        TPixel dest = default;
-        dest.FromScaledVector4(SubtractDestOut(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
-        return dest;
+        return TPixel.FromScaledVector4(SubtractDestOut(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
     }
 
     /// <summary>
@@ -2170,9 +2078,7 @@ internal static partial class PorterDuffFunctions
         where TPixel : unmanaged, IPixel<TPixel>
     {
         opacity = Numerics.Clamp(opacity, 0, 1);
-        TPixel dest = default;
-        dest.FromScaledVector4(SubtractClear(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
-        return dest;
+        return TPixel.FromScaledVector4(SubtractClear(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
     }
 
     /// <summary>
@@ -2188,9 +2094,7 @@ internal static partial class PorterDuffFunctions
         where TPixel : unmanaged, IPixel<TPixel>
     {
         opacity = Numerics.Clamp(opacity, 0, 1);
-        TPixel dest = default;
-        dest.FromScaledVector4(SubtractXor(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
-        return dest;
+        return TPixel.FromScaledVector4(SubtractXor(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
     }
 
     /// <summary>
@@ -2535,9 +2439,7 @@ internal static partial class PorterDuffFunctions
         where TPixel : unmanaged, IPixel<TPixel>
     {
         opacity = Numerics.Clamp(opacity, 0, 1);
-        TPixel dest = default;
-        dest.FromScaledVector4(ScreenSrc(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
-        return dest;
+        return TPixel.FromScaledVector4(ScreenSrc(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
     }
 
     /// <summary>
@@ -2553,9 +2455,7 @@ internal static partial class PorterDuffFunctions
         where TPixel : unmanaged, IPixel<TPixel>
     {
         opacity = Numerics.Clamp(opacity, 0, 1);
-        TPixel dest = default;
-        dest.FromScaledVector4(ScreenSrcAtop(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
-        return dest;
+        return TPixel.FromScaledVector4(ScreenSrcAtop(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
     }
 
     /// <summary>
@@ -2571,9 +2471,7 @@ internal static partial class PorterDuffFunctions
         where TPixel : unmanaged, IPixel<TPixel>
     {
         opacity = Numerics.Clamp(opacity, 0, 1);
-        TPixel dest = default;
-        dest.FromScaledVector4(ScreenSrcOver(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
-        return dest;
+        return TPixel.FromScaledVector4(ScreenSrcOver(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
     }
 
     /// <summary>
@@ -2589,9 +2487,7 @@ internal static partial class PorterDuffFunctions
         where TPixel : unmanaged, IPixel<TPixel>
     {
         opacity = Numerics.Clamp(opacity, 0, 1);
-        TPixel dest = default;
-        dest.FromScaledVector4(ScreenSrcIn(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
-        return dest;
+        return TPixel.FromScaledVector4(ScreenSrcIn(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
     }
 
     /// <summary>
@@ -2607,9 +2503,7 @@ internal static partial class PorterDuffFunctions
         where TPixel : unmanaged, IPixel<TPixel>
     {
         opacity = Numerics.Clamp(opacity, 0, 1);
-        TPixel dest = default;
-        dest.FromScaledVector4(ScreenSrcOut(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
-        return dest;
+        return TPixel.FromScaledVector4(ScreenSrcOut(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
     }
 
     /// <summary>
@@ -2625,9 +2519,7 @@ internal static partial class PorterDuffFunctions
         where TPixel : unmanaged, IPixel<TPixel>
     {
         opacity = Numerics.Clamp(opacity, 0, 1);
-        TPixel dest = default;
-        dest.FromScaledVector4(ScreenDest(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
-        return dest;
+        return TPixel.FromScaledVector4(ScreenDest(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
     }
 
     /// <summary>
@@ -2643,9 +2535,7 @@ internal static partial class PorterDuffFunctions
         where TPixel : unmanaged, IPixel<TPixel>
     {
         opacity = Numerics.Clamp(opacity, 0, 1);
-        TPixel dest = default;
-        dest.FromScaledVector4(ScreenDestAtop(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
-        return dest;
+        return TPixel.FromScaledVector4(ScreenDestAtop(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
     }
 
     /// <summary>
@@ -2661,9 +2551,7 @@ internal static partial class PorterDuffFunctions
         where TPixel : unmanaged, IPixel<TPixel>
     {
         opacity = Numerics.Clamp(opacity, 0, 1);
-        TPixel dest = default;
-        dest.FromScaledVector4(ScreenDestOver(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
-        return dest;
+        return TPixel.FromScaledVector4(ScreenDestOver(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
     }
 
     /// <summary>
@@ -2679,9 +2567,7 @@ internal static partial class PorterDuffFunctions
         where TPixel : unmanaged, IPixel<TPixel>
     {
         opacity = Numerics.Clamp(opacity, 0, 1);
-        TPixel dest = default;
-        dest.FromScaledVector4(ScreenDestIn(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
-        return dest;
+        return TPixel.FromScaledVector4(ScreenDestIn(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
     }
 
     /// <summary>
@@ -2697,9 +2583,7 @@ internal static partial class PorterDuffFunctions
         where TPixel : unmanaged, IPixel<TPixel>
     {
         opacity = Numerics.Clamp(opacity, 0, 1);
-        TPixel dest = default;
-        dest.FromScaledVector4(ScreenDestOut(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
-        return dest;
+        return TPixel.FromScaledVector4(ScreenDestOut(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
     }
 
     /// <summary>
@@ -2715,9 +2599,7 @@ internal static partial class PorterDuffFunctions
         where TPixel : unmanaged, IPixel<TPixel>
     {
         opacity = Numerics.Clamp(opacity, 0, 1);
-        TPixel dest = default;
-        dest.FromScaledVector4(ScreenClear(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
-        return dest;
+        return TPixel.FromScaledVector4(ScreenClear(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
     }
 
     /// <summary>
@@ -2733,9 +2615,7 @@ internal static partial class PorterDuffFunctions
         where TPixel : unmanaged, IPixel<TPixel>
     {
         opacity = Numerics.Clamp(opacity, 0, 1);
-        TPixel dest = default;
-        dest.FromScaledVector4(ScreenXor(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
-        return dest;
+        return TPixel.FromScaledVector4(ScreenXor(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
     }
 
     /// <summary>
@@ -3080,9 +2960,7 @@ internal static partial class PorterDuffFunctions
         where TPixel : unmanaged, IPixel<TPixel>
     {
         opacity = Numerics.Clamp(opacity, 0, 1);
-        TPixel dest = default;
-        dest.FromScaledVector4(DarkenSrc(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
-        return dest;
+        return TPixel.FromScaledVector4(DarkenSrc(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
     }
 
     /// <summary>
@@ -3098,9 +2976,7 @@ internal static partial class PorterDuffFunctions
         where TPixel : unmanaged, IPixel<TPixel>
     {
         opacity = Numerics.Clamp(opacity, 0, 1);
-        TPixel dest = default;
-        dest.FromScaledVector4(DarkenSrcAtop(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
-        return dest;
+        return TPixel.FromScaledVector4(DarkenSrcAtop(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
     }
 
     /// <summary>
@@ -3116,9 +2992,7 @@ internal static partial class PorterDuffFunctions
         where TPixel : unmanaged, IPixel<TPixel>
     {
         opacity = Numerics.Clamp(opacity, 0, 1);
-        TPixel dest = default;
-        dest.FromScaledVector4(DarkenSrcOver(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
-        return dest;
+        return TPixel.FromScaledVector4(DarkenSrcOver(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
     }
 
     /// <summary>
@@ -3134,9 +3008,7 @@ internal static partial class PorterDuffFunctions
         where TPixel : unmanaged, IPixel<TPixel>
     {
         opacity = Numerics.Clamp(opacity, 0, 1);
-        TPixel dest = default;
-        dest.FromScaledVector4(DarkenSrcIn(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
-        return dest;
+        return TPixel.FromScaledVector4(DarkenSrcIn(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
     }
 
     /// <summary>
@@ -3152,9 +3024,7 @@ internal static partial class PorterDuffFunctions
         where TPixel : unmanaged, IPixel<TPixel>
     {
         opacity = Numerics.Clamp(opacity, 0, 1);
-        TPixel dest = default;
-        dest.FromScaledVector4(DarkenSrcOut(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
-        return dest;
+        return TPixel.FromScaledVector4(DarkenSrcOut(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
     }
 
     /// <summary>
@@ -3170,9 +3040,7 @@ internal static partial class PorterDuffFunctions
         where TPixel : unmanaged, IPixel<TPixel>
     {
         opacity = Numerics.Clamp(opacity, 0, 1);
-        TPixel dest = default;
-        dest.FromScaledVector4(DarkenDest(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
-        return dest;
+        return TPixel.FromScaledVector4(DarkenDest(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
     }
 
     /// <summary>
@@ -3188,9 +3056,7 @@ internal static partial class PorterDuffFunctions
         where TPixel : unmanaged, IPixel<TPixel>
     {
         opacity = Numerics.Clamp(opacity, 0, 1);
-        TPixel dest = default;
-        dest.FromScaledVector4(DarkenDestAtop(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
-        return dest;
+        return TPixel.FromScaledVector4(DarkenDestAtop(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
     }
 
     /// <summary>
@@ -3206,9 +3072,7 @@ internal static partial class PorterDuffFunctions
         where TPixel : unmanaged, IPixel<TPixel>
     {
         opacity = Numerics.Clamp(opacity, 0, 1);
-        TPixel dest = default;
-        dest.FromScaledVector4(DarkenDestOver(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
-        return dest;
+        return TPixel.FromScaledVector4(DarkenDestOver(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
     }
 
     /// <summary>
@@ -3224,9 +3088,7 @@ internal static partial class PorterDuffFunctions
         where TPixel : unmanaged, IPixel<TPixel>
     {
         opacity = Numerics.Clamp(opacity, 0, 1);
-        TPixel dest = default;
-        dest.FromScaledVector4(DarkenDestIn(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
-        return dest;
+        return TPixel.FromScaledVector4(DarkenDestIn(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
     }
 
     /// <summary>
@@ -3242,9 +3104,7 @@ internal static partial class PorterDuffFunctions
         where TPixel : unmanaged, IPixel<TPixel>
     {
         opacity = Numerics.Clamp(opacity, 0, 1);
-        TPixel dest = default;
-        dest.FromScaledVector4(DarkenDestOut(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
-        return dest;
+        return TPixel.FromScaledVector4(DarkenDestOut(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
     }
 
     /// <summary>
@@ -3260,9 +3120,7 @@ internal static partial class PorterDuffFunctions
         where TPixel : unmanaged, IPixel<TPixel>
     {
         opacity = Numerics.Clamp(opacity, 0, 1);
-        TPixel dest = default;
-        dest.FromScaledVector4(DarkenClear(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
-        return dest;
+        return TPixel.FromScaledVector4(DarkenClear(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
     }
 
     /// <summary>
@@ -3278,9 +3136,7 @@ internal static partial class PorterDuffFunctions
         where TPixel : unmanaged, IPixel<TPixel>
     {
         opacity = Numerics.Clamp(opacity, 0, 1);
-        TPixel dest = default;
-        dest.FromScaledVector4(DarkenXor(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
-        return dest;
+        return TPixel.FromScaledVector4(DarkenXor(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
     }
 
     /// <summary>
@@ -3625,9 +3481,7 @@ internal static partial class PorterDuffFunctions
         where TPixel : unmanaged, IPixel<TPixel>
     {
         opacity = Numerics.Clamp(opacity, 0, 1);
-        TPixel dest = default;
-        dest.FromScaledVector4(LightenSrc(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
-        return dest;
+        return TPixel.FromScaledVector4(LightenSrc(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
     }
 
     /// <summary>
@@ -3643,9 +3497,7 @@ internal static partial class PorterDuffFunctions
         where TPixel : unmanaged, IPixel<TPixel>
     {
         opacity = Numerics.Clamp(opacity, 0, 1);
-        TPixel dest = default;
-        dest.FromScaledVector4(LightenSrcAtop(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
-        return dest;
+        return TPixel.FromScaledVector4(LightenSrcAtop(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
     }
 
     /// <summary>
@@ -3661,9 +3513,7 @@ internal static partial class PorterDuffFunctions
         where TPixel : unmanaged, IPixel<TPixel>
     {
         opacity = Numerics.Clamp(opacity, 0, 1);
-        TPixel dest = default;
-        dest.FromScaledVector4(LightenSrcOver(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
-        return dest;
+        return TPixel.FromScaledVector4(LightenSrcOver(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
     }
 
     /// <summary>
@@ -3679,9 +3529,7 @@ internal static partial class PorterDuffFunctions
         where TPixel : unmanaged, IPixel<TPixel>
     {
         opacity = Numerics.Clamp(opacity, 0, 1);
-        TPixel dest = default;
-        dest.FromScaledVector4(LightenSrcIn(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
-        return dest;
+        return TPixel.FromScaledVector4(LightenSrcIn(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
     }
 
     /// <summary>
@@ -3697,9 +3545,7 @@ internal static partial class PorterDuffFunctions
         where TPixel : unmanaged, IPixel<TPixel>
     {
         opacity = Numerics.Clamp(opacity, 0, 1);
-        TPixel dest = default;
-        dest.FromScaledVector4(LightenSrcOut(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
-        return dest;
+        return TPixel.FromScaledVector4(LightenSrcOut(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
     }
 
     /// <summary>
@@ -3715,9 +3561,7 @@ internal static partial class PorterDuffFunctions
         where TPixel : unmanaged, IPixel<TPixel>
     {
         opacity = Numerics.Clamp(opacity, 0, 1);
-        TPixel dest = default;
-        dest.FromScaledVector4(LightenDest(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
-        return dest;
+        return TPixel.FromScaledVector4(LightenDest(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
     }
 
     /// <summary>
@@ -3733,9 +3577,7 @@ internal static partial class PorterDuffFunctions
         where TPixel : unmanaged, IPixel<TPixel>
     {
         opacity = Numerics.Clamp(opacity, 0, 1);
-        TPixel dest = default;
-        dest.FromScaledVector4(LightenDestAtop(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
-        return dest;
+        return TPixel.FromScaledVector4(LightenDestAtop(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
     }
 
     /// <summary>
@@ -3751,9 +3593,7 @@ internal static partial class PorterDuffFunctions
         where TPixel : unmanaged, IPixel<TPixel>
     {
         opacity = Numerics.Clamp(opacity, 0, 1);
-        TPixel dest = default;
-        dest.FromScaledVector4(LightenDestOver(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
-        return dest;
+        return TPixel.FromScaledVector4(LightenDestOver(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
     }
 
     /// <summary>
@@ -3769,9 +3609,7 @@ internal static partial class PorterDuffFunctions
         where TPixel : unmanaged, IPixel<TPixel>
     {
         opacity = Numerics.Clamp(opacity, 0, 1);
-        TPixel dest = default;
-        dest.FromScaledVector4(LightenDestIn(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
-        return dest;
+        return TPixel.FromScaledVector4(LightenDestIn(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
     }
 
     /// <summary>
@@ -3787,9 +3625,7 @@ internal static partial class PorterDuffFunctions
         where TPixel : unmanaged, IPixel<TPixel>
     {
         opacity = Numerics.Clamp(opacity, 0, 1);
-        TPixel dest = default;
-        dest.FromScaledVector4(LightenDestOut(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
-        return dest;
+        return TPixel.FromScaledVector4(LightenDestOut(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
     }
 
     /// <summary>
@@ -3805,9 +3641,7 @@ internal static partial class PorterDuffFunctions
         where TPixel : unmanaged, IPixel<TPixel>
     {
         opacity = Numerics.Clamp(opacity, 0, 1);
-        TPixel dest = default;
-        dest.FromScaledVector4(LightenClear(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
-        return dest;
+        return TPixel.FromScaledVector4(LightenClear(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
     }
 
     /// <summary>
@@ -3823,9 +3657,7 @@ internal static partial class PorterDuffFunctions
         where TPixel : unmanaged, IPixel<TPixel>
     {
         opacity = Numerics.Clamp(opacity, 0, 1);
-        TPixel dest = default;
-        dest.FromScaledVector4(LightenXor(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
-        return dest;
+        return TPixel.FromScaledVector4(LightenXor(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
     }
 
     /// <summary>
@@ -4170,9 +4002,7 @@ internal static partial class PorterDuffFunctions
         where TPixel : unmanaged, IPixel<TPixel>
     {
         opacity = Numerics.Clamp(opacity, 0, 1);
-        TPixel dest = default;
-        dest.FromScaledVector4(OverlaySrc(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
-        return dest;
+        return TPixel.FromScaledVector4(OverlaySrc(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
     }
 
     /// <summary>
@@ -4188,9 +4018,7 @@ internal static partial class PorterDuffFunctions
         where TPixel : unmanaged, IPixel<TPixel>
     {
         opacity = Numerics.Clamp(opacity, 0, 1);
-        TPixel dest = default;
-        dest.FromScaledVector4(OverlaySrcAtop(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
-        return dest;
+        return TPixel.FromScaledVector4(OverlaySrcAtop(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
     }
 
     /// <summary>
@@ -4206,9 +4034,7 @@ internal static partial class PorterDuffFunctions
         where TPixel : unmanaged, IPixel<TPixel>
     {
         opacity = Numerics.Clamp(opacity, 0, 1);
-        TPixel dest = default;
-        dest.FromScaledVector4(OverlaySrcOver(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
-        return dest;
+        return TPixel.FromScaledVector4(OverlaySrcOver(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
     }
 
     /// <summary>
@@ -4224,9 +4050,7 @@ internal static partial class PorterDuffFunctions
         where TPixel : unmanaged, IPixel<TPixel>
     {
         opacity = Numerics.Clamp(opacity, 0, 1);
-        TPixel dest = default;
-        dest.FromScaledVector4(OverlaySrcIn(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
-        return dest;
+        return TPixel.FromScaledVector4(OverlaySrcIn(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
     }
 
     /// <summary>
@@ -4242,9 +4066,7 @@ internal static partial class PorterDuffFunctions
         where TPixel : unmanaged, IPixel<TPixel>
     {
         opacity = Numerics.Clamp(opacity, 0, 1);
-        TPixel dest = default;
-        dest.FromScaledVector4(OverlaySrcOut(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
-        return dest;
+        return TPixel.FromScaledVector4(OverlaySrcOut(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
     }
 
     /// <summary>
@@ -4260,9 +4082,7 @@ internal static partial class PorterDuffFunctions
         where TPixel : unmanaged, IPixel<TPixel>
     {
         opacity = Numerics.Clamp(opacity, 0, 1);
-        TPixel dest = default;
-        dest.FromScaledVector4(OverlayDest(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
-        return dest;
+        return TPixel.FromScaledVector4(OverlayDest(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
     }
 
     /// <summary>
@@ -4278,9 +4098,7 @@ internal static partial class PorterDuffFunctions
         where TPixel : unmanaged, IPixel<TPixel>
     {
         opacity = Numerics.Clamp(opacity, 0, 1);
-        TPixel dest = default;
-        dest.FromScaledVector4(OverlayDestAtop(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
-        return dest;
+        return TPixel.FromScaledVector4(OverlayDestAtop(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
     }
 
     /// <summary>
@@ -4296,9 +4114,7 @@ internal static partial class PorterDuffFunctions
         where TPixel : unmanaged, IPixel<TPixel>
     {
         opacity = Numerics.Clamp(opacity, 0, 1);
-        TPixel dest = default;
-        dest.FromScaledVector4(OverlayDestOver(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
-        return dest;
+        return TPixel.FromScaledVector4(OverlayDestOver(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
     }
 
     /// <summary>
@@ -4314,9 +4130,7 @@ internal static partial class PorterDuffFunctions
         where TPixel : unmanaged, IPixel<TPixel>
     {
         opacity = Numerics.Clamp(opacity, 0, 1);
-        TPixel dest = default;
-        dest.FromScaledVector4(OverlayDestIn(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
-        return dest;
+        return TPixel.FromScaledVector4(OverlayDestIn(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
     }
 
     /// <summary>
@@ -4332,9 +4146,7 @@ internal static partial class PorterDuffFunctions
         where TPixel : unmanaged, IPixel<TPixel>
     {
         opacity = Numerics.Clamp(opacity, 0, 1);
-        TPixel dest = default;
-        dest.FromScaledVector4(OverlayDestOut(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
-        return dest;
+        return TPixel.FromScaledVector4(OverlayDestOut(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
     }
 
     /// <summary>
@@ -4350,9 +4162,7 @@ internal static partial class PorterDuffFunctions
         where TPixel : unmanaged, IPixel<TPixel>
     {
         opacity = Numerics.Clamp(opacity, 0, 1);
-        TPixel dest = default;
-        dest.FromScaledVector4(OverlayClear(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
-        return dest;
+        return TPixel.FromScaledVector4(OverlayClear(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
     }
 
     /// <summary>
@@ -4368,9 +4178,7 @@ internal static partial class PorterDuffFunctions
         where TPixel : unmanaged, IPixel<TPixel>
     {
         opacity = Numerics.Clamp(opacity, 0, 1);
-        TPixel dest = default;
-        dest.FromScaledVector4(OverlayXor(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
-        return dest;
+        return TPixel.FromScaledVector4(OverlayXor(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
     }
 
     /// <summary>
@@ -4715,9 +4523,7 @@ internal static partial class PorterDuffFunctions
         where TPixel : unmanaged, IPixel<TPixel>
     {
         opacity = Numerics.Clamp(opacity, 0, 1);
-        TPixel dest = default;
-        dest.FromScaledVector4(HardLightSrc(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
-        return dest;
+        return TPixel.FromScaledVector4(HardLightSrc(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
     }
 
     /// <summary>
@@ -4733,9 +4539,7 @@ internal static partial class PorterDuffFunctions
         where TPixel : unmanaged, IPixel<TPixel>
     {
         opacity = Numerics.Clamp(opacity, 0, 1);
-        TPixel dest = default;
-        dest.FromScaledVector4(HardLightSrcAtop(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
-        return dest;
+        return TPixel.FromScaledVector4(HardLightSrcAtop(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
     }
 
     /// <summary>
@@ -4751,9 +4555,7 @@ internal static partial class PorterDuffFunctions
         where TPixel : unmanaged, IPixel<TPixel>
     {
         opacity = Numerics.Clamp(opacity, 0, 1);
-        TPixel dest = default;
-        dest.FromScaledVector4(HardLightSrcOver(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
-        return dest;
+        return TPixel.FromScaledVector4(HardLightSrcOver(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
     }
 
     /// <summary>
@@ -4769,9 +4571,7 @@ internal static partial class PorterDuffFunctions
         where TPixel : unmanaged, IPixel<TPixel>
     {
         opacity = Numerics.Clamp(opacity, 0, 1);
-        TPixel dest = default;
-        dest.FromScaledVector4(HardLightSrcIn(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
-        return dest;
+        return TPixel.FromScaledVector4(HardLightSrcIn(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
     }
 
     /// <summary>
@@ -4787,9 +4587,7 @@ internal static partial class PorterDuffFunctions
         where TPixel : unmanaged, IPixel<TPixel>
     {
         opacity = Numerics.Clamp(opacity, 0, 1);
-        TPixel dest = default;
-        dest.FromScaledVector4(HardLightSrcOut(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
-        return dest;
+        return TPixel.FromScaledVector4(HardLightSrcOut(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
     }
 
     /// <summary>
@@ -4805,9 +4603,7 @@ internal static partial class PorterDuffFunctions
         where TPixel : unmanaged, IPixel<TPixel>
     {
         opacity = Numerics.Clamp(opacity, 0, 1);
-        TPixel dest = default;
-        dest.FromScaledVector4(HardLightDest(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
-        return dest;
+        return TPixel.FromScaledVector4(HardLightDest(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
     }
 
     /// <summary>
@@ -4823,9 +4619,7 @@ internal static partial class PorterDuffFunctions
         where TPixel : unmanaged, IPixel<TPixel>
     {
         opacity = Numerics.Clamp(opacity, 0, 1);
-        TPixel dest = default;
-        dest.FromScaledVector4(HardLightDestAtop(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
-        return dest;
+        return TPixel.FromScaledVector4(HardLightDestAtop(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
     }
 
     /// <summary>
@@ -4841,9 +4635,7 @@ internal static partial class PorterDuffFunctions
         where TPixel : unmanaged, IPixel<TPixel>
     {
         opacity = Numerics.Clamp(opacity, 0, 1);
-        TPixel dest = default;
-        dest.FromScaledVector4(HardLightDestOver(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
-        return dest;
+        return TPixel.FromScaledVector4(HardLightDestOver(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
     }
 
     /// <summary>
@@ -4859,9 +4651,7 @@ internal static partial class PorterDuffFunctions
         where TPixel : unmanaged, IPixel<TPixel>
     {
         opacity = Numerics.Clamp(opacity, 0, 1);
-        TPixel dest = default;
-        dest.FromScaledVector4(HardLightDestIn(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
-        return dest;
+        return TPixel.FromScaledVector4(HardLightDestIn(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
     }
 
     /// <summary>
@@ -4877,9 +4667,7 @@ internal static partial class PorterDuffFunctions
         where TPixel : unmanaged, IPixel<TPixel>
     {
         opacity = Numerics.Clamp(opacity, 0, 1);
-        TPixel dest = default;
-        dest.FromScaledVector4(HardLightDestOut(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
-        return dest;
+        return TPixel.FromScaledVector4(HardLightDestOut(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
     }
 
     /// <summary>
@@ -4895,9 +4683,7 @@ internal static partial class PorterDuffFunctions
         where TPixel : unmanaged, IPixel<TPixel>
     {
         opacity = Numerics.Clamp(opacity, 0, 1);
-        TPixel dest = default;
-        dest.FromScaledVector4(HardLightClear(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
-        return dest;
+        return TPixel.FromScaledVector4(HardLightClear(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
     }
 
     /// <summary>
@@ -4913,8 +4699,6 @@ internal static partial class PorterDuffFunctions
         where TPixel : unmanaged, IPixel<TPixel>
     {
         opacity = Numerics.Clamp(opacity, 0, 1);
-        TPixel dest = default;
-        dest.FromScaledVector4(HardLightXor(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
-        return dest;
+        return TPixel.FromScaledVector4(HardLightXor(backdrop.ToScaledVector4(), source.ToScaledVector4(), opacity));
     }
 }

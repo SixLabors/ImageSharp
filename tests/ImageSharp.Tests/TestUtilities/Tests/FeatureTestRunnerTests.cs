@@ -14,9 +14,9 @@ public class FeatureTestRunnerTests
     public static TheoryData<HwIntrinsics, string[]> Intrinsics =>
         new()
         {
-            { HwIntrinsics.DisableAES | HwIntrinsics.AllowAll, new[] { "EnableAES", "AllowAll" } },
-            { HwIntrinsics.DisableHWIntrinsic, new[] { "EnableHWIntrinsic" } },
-            { HwIntrinsics.DisableSSE42 | HwIntrinsics.DisableAVX, new[] { "EnableSSE42", "EnableAVX" } }
+            { HwIntrinsics.DisableAES | HwIntrinsics.AllowAll, ["EnableAES", "AllowAll"] },
+            { HwIntrinsics.DisableHWIntrinsic, ["EnableHWIntrinsic"] },
+            { HwIntrinsics.DisableSSE42 | HwIntrinsics.DisableAVX, ["EnableSSE42", "EnableAVX"] }
         };
 
     [Theory]
@@ -47,7 +47,7 @@ public class FeatureTestRunnerTests
         }
 
         FeatureTestRunner.RunWithHwIntrinsicsFeature(
-            () => Assert.True(Vector.IsHardwareAccelerated),
+            () => Assert.True(Vector.IsHardwareAccelerated, "Vector hardware acceleration should be enabled when AllowAll is specified."),
             HwIntrinsics.AllowAll);
     }
 
@@ -56,21 +56,21 @@ public class FeatureTestRunnerTests
     {
         static void AssertDisabled()
         {
-            Assert.False(Sse.IsSupported);
-            Assert.False(Sse2.IsSupported);
-            Assert.False(Aes.IsSupported);
-            Assert.False(Pclmulqdq.IsSupported);
-            Assert.False(Sse3.IsSupported);
-            Assert.False(Ssse3.IsSupported);
-            Assert.False(Sse41.IsSupported);
-            Assert.False(Sse42.IsSupported);
-            Assert.False(Popcnt.IsSupported);
-            Assert.False(Avx.IsSupported);
-            Assert.False(Fma.IsSupported);
-            Assert.False(Avx2.IsSupported);
-            Assert.False(Bmi1.IsSupported);
-            Assert.False(Bmi2.IsSupported);
-            Assert.False(Lzcnt.IsSupported);
+            Assert.False(Sse.IsSupported, "SSE should be disabled when DisableHWIntrinsic is set.");
+            Assert.False(Sse2.IsSupported, "SSE2 should be disabled when DisableHWIntrinsic is set.");
+            Assert.False(Aes.IsSupported, "AES (x86) should be disabled when DisableHWIntrinsic is set.");
+            Assert.False(Pclmulqdq.IsSupported, "PCLMULQDQ should be disabled when DisableHWIntrinsic is set.");
+            Assert.False(Sse3.IsSupported, "SSE3 should be disabled when DisableHWIntrinsic is set.");
+            Assert.False(Ssse3.IsSupported, "SSSE3 should be disabled when DisableHWIntrinsic is set.");
+            Assert.False(Sse41.IsSupported, "SSE4.1 should be disabled when DisableHWIntrinsic is set.");
+            Assert.False(Sse42.IsSupported, "SSE4.2 should be disabled when DisableHWIntrinsic is set.");
+            Assert.False(Popcnt.IsSupported, "POPCNT should be disabled when DisableHWIntrinsic is set.");
+            Assert.False(Avx.IsSupported, "AVX should be disabled when DisableHWIntrinsic is set.");
+            Assert.False(Fma.IsSupported, "FMA should be disabled when DisableHWIntrinsic is set.");
+            Assert.False(Avx2.IsSupported, "AVX2 should be disabled when DisableHWIntrinsic is set.");
+            Assert.False(Bmi1.IsSupported, "BMI1 should be disabled when DisableHWIntrinsic is set.");
+            Assert.False(Bmi2.IsSupported, "BMI2 should be disabled when DisableHWIntrinsic is set.");
+            Assert.False(Lzcnt.IsSupported, "LZCNT should be disabled when DisableHWIntrinsic is set.");
         }
 
         FeatureTestRunner.RunWithHwIntrinsicsFeature(
@@ -88,90 +88,70 @@ public class FeatureTestRunnerTests
             switch (Enum.Parse<HwIntrinsics>(intrinsic))
             {
                 case HwIntrinsics.DisableHWIntrinsic:
-                    Assert.False(Sse.IsSupported);
-                    Assert.False(Sse2.IsSupported);
-                    Assert.False(Aes.IsSupported);
-                    Assert.False(Pclmulqdq.IsSupported);
-                    Assert.False(Sse3.IsSupported);
-                    Assert.False(Ssse3.IsSupported);
-                    Assert.False(Sse41.IsSupported);
-                    Assert.False(Sse42.IsSupported);
-                    Assert.False(Popcnt.IsSupported);
-                    Assert.False(Avx.IsSupported);
-                    Assert.False(Fma.IsSupported);
-                    Assert.False(Avx2.IsSupported);
-                    Assert.False(Bmi1.IsSupported);
-                    Assert.False(Bmi2.IsSupported);
-                    Assert.False(Lzcnt.IsSupported);
-                    Assert.False(AdvSimd.IsSupported);
-                    Assert.False(System.Runtime.Intrinsics.Arm.Aes.IsSupported);
-                    Assert.False(Crc32.IsSupported);
-                    Assert.False(Dp.IsSupported);
-                    Assert.False(Sha1.IsSupported);
-                    Assert.False(Sha256.IsSupported);
-                    break;
-                case HwIntrinsics.DisableSSE:
-                    Assert.False(Sse.IsSupported);
-                    break;
-                case HwIntrinsics.DisableSSE2:
-                    Assert.False(Sse2.IsSupported);
+                    Assert.False(Sse.IsSupported, "SSE should be disabled when DisableHWIntrinsic is set.");
+                    Assert.False(Sse2.IsSupported, "SSE2 should be disabled when DisableHWIntrinsic is set.");
+                    Assert.False(Aes.IsSupported, "AES (x86) should be disabled when DisableHWIntrinsic is set.");
+                    Assert.False(Pclmulqdq.IsSupported, "PCLMULQDQ should be disabled when DisableHWIntrinsic is set.");
+                    Assert.False(Sse3.IsSupported, "SSE3 should be disabled when DisableHWIntrinsic is set.");
+                    Assert.False(Ssse3.IsSupported, "SSSE3 should be disabled when DisableHWIntrinsic is set.");
+                    Assert.False(Sse41.IsSupported, "SSE4.1 should be disabled when DisableHWIntrinsic is set.");
+                    Assert.False(Sse42.IsSupported, "SSE4.2 should be disabled when DisableHWIntrinsic is set.");
+                    Assert.False(Popcnt.IsSupported, "POPCNT should be disabled when DisableHWIntrinsic is set.");
+                    Assert.False(Avx.IsSupported, "AVX should be disabled when DisableHWIntrinsic is set.");
+                    Assert.False(Fma.IsSupported, "FMA should be disabled when DisableHWIntrinsic is set.");
+                    Assert.False(Avx2.IsSupported, "AVX2 should be disabled when DisableHWIntrinsic is set.");
+                    Assert.False(Bmi1.IsSupported, "BMI1 should be disabled when DisableHWIntrinsic is set.");
+                    Assert.False(Bmi2.IsSupported, "BMI2 should be disabled when DisableHWIntrinsic is set.");
+                    Assert.False(Lzcnt.IsSupported, "LZCNT should be disabled when DisableHWIntrinsic is set.");
+                    Assert.False(AdvSimd.IsSupported, "Arm64 AdvSimd should be disabled when DisableHWIntrinsic is set.");
+                    Assert.False(System.Runtime.Intrinsics.Arm.Aes.IsSupported, "Arm64 AES should be disabled when DisableHWIntrinsic is set.");
+                    Assert.False(Crc32.IsSupported, "Arm64 CRC32 should be disabled when DisableHWIntrinsic is set.");
+                    Assert.False(Dp.IsSupported, "Arm64 DotProd (DP) should be disabled when DisableHWIntrinsic is set.");
+                    Assert.False(Sha1.IsSupported, "Arm64 SHA1 should be disabled when DisableHWIntrinsic is set.");
+                    Assert.False(Sha256.IsSupported, "Arm64 SHA256 should be disabled when DisableHWIntrinsic is set.");
                     break;
                 case HwIntrinsics.DisableAES:
-                    Assert.False(Aes.IsSupported);
-                    break;
-                case HwIntrinsics.DisablePCLMULQDQ:
-                    Assert.False(Pclmulqdq.IsSupported);
-                    break;
-                case HwIntrinsics.DisableSSE3:
-                    Assert.False(Sse3.IsSupported);
-                    break;
-                case HwIntrinsics.DisableSSSE3:
-                    Assert.False(Ssse3.IsSupported);
-                    break;
-                case HwIntrinsics.DisableSSE41:
-                    Assert.False(Sse41.IsSupported);
+                    Assert.False(Aes.IsSupported, "AES (x86) should be disabled when DisableAES is set.");
+#if NET10_0_OR_GREATER
+                    Assert.False(Pclmulqdq.IsSupported, "PCLMULQDQ should be disabled when DisableAES is set (paired disable).");
+#endif
                     break;
                 case HwIntrinsics.DisableSSE42:
-                    Assert.False(Sse42.IsSupported);
-                    break;
-                case HwIntrinsics.DisablePOPCNT:
-                    Assert.False(Popcnt.IsSupported);
+#if NET10_0_OR_GREATER
+                    Assert.False(Sse3.IsSupported, "Sse3 should be disabled.");
+                    Assert.False(Ssse3.IsSupported, "Ssse3 should be disabled.");
+                    Assert.False(Sse41.IsSupported, "Sse41 should be disabled.");
+                    Assert.False(Popcnt.IsSupported, "Popcnt should be disabled.");
+#else
+                    Assert.False(Sse42.IsSupported, "Sse42 should be disabled when DisableSSE42 is set.");
+#endif
                     break;
                 case HwIntrinsics.DisableAVX:
-                    Assert.False(Avx.IsSupported);
-                    break;
-                case HwIntrinsics.DisableFMA:
-                    Assert.False(Fma.IsSupported);
+                    Assert.False(Avx.IsSupported, "AVX should be disabled when DisableAVX is set.");
                     break;
                 case HwIntrinsics.DisableAVX2:
-                    Assert.False(Avx2.IsSupported);
-                    break;
-                case HwIntrinsics.DisableBMI1:
-                    Assert.False(Bmi1.IsSupported);
-                    break;
-                case HwIntrinsics.DisableBMI2:
-                    Assert.False(Bmi2.IsSupported);
-                    break;
-                case HwIntrinsics.DisableLZCNT:
-                    Assert.False(Lzcnt.IsSupported);
-                    break;
-                case HwIntrinsics.DisableArm64AdvSimd:
-                    Assert.False(AdvSimd.IsSupported);
+                    Assert.False(Avx2.IsSupported, "AVX2 should be disabled when DisableAVX2 is set.");
+#if NET10_0_OR_GREATER
+                    Assert.False(Fma.IsSupported, "FMA should be disabled when DisableAVX2 is set (paired disable).");
+                    Assert.False(Bmi1.IsSupported, "BMI1 should be disabled when DisableAVX2 is set (paired disable).");
+                    Assert.False(Bmi2.IsSupported, "BMI2 should be disabled when DisableAVX2 is set (paired disable).");
+                    Assert.False(Lzcnt.IsSupported, "LZCNT should be disabled when DisableAVX2 is set (paired disable).");
+#endif
                     break;
                 case HwIntrinsics.DisableArm64Aes:
-                    Assert.False(System.Runtime.Intrinsics.Arm.Aes.IsSupported);
+                    Assert.False(System.Runtime.Intrinsics.Arm.Aes.IsSupported, "Arm64 AES should be disabled when DisableArm64Aes is set.");
                     break;
                 case HwIntrinsics.DisableArm64Crc32:
-                    Assert.False(Crc32.IsSupported);
+                    Assert.False(Crc32.IsSupported, "Arm64 CRC32 should be disabled when DisableArm64Crc32 is set.");
                     break;
                 case HwIntrinsics.DisableArm64Dp:
-                    Assert.False(Dp.IsSupported);
+                    Assert.False(Dp.IsSupported, "Arm64 DotProd (DP) should be disabled when DisableArm64Dp is set.");
                     break;
                 case HwIntrinsics.DisableArm64Sha1:
-                    Assert.False(Sha1.IsSupported);
+                    Assert.False(Sha1.IsSupported, "Arm64 SHA1 should be disabled when DisableArm64Sha1 is set.");
                     break;
                 case HwIntrinsics.DisableArm64Sha256:
-                    Assert.False(Sha256.IsSupported);
+                    Assert.False(Sha256.IsSupported, "Arm64 SHA256 should be disabled when DisableArm64Sha256 is set.");
                     break;
             }
         }
@@ -189,12 +169,12 @@ public class FeatureTestRunnerTests
         {
             Assert.NotNull(serializable);
             Assert.NotNull(FeatureTestRunner.DeserializeForXunit<FakeSerializable>(serializable));
-            Assert.False(Sse.IsSupported);
+            Assert.False(Sse42.IsSupported, "SSE42 should be disabled when DisableSSE42 is set (sanity check using serializable param overload).");
         }
 
         FeatureTestRunner.RunWithHwIntrinsicsFeature(
             AssertHwIntrinsicsFeatureDisabled,
-            HwIntrinsics.DisableSSE,
+            HwIntrinsics.DisableSSE42,
             new FakeSerializable());
     }
 
@@ -209,90 +189,69 @@ public class FeatureTestRunnerTests
             switch (Enum.Parse<HwIntrinsics>(intrinsic))
             {
                 case HwIntrinsics.DisableHWIntrinsic:
-                    Assert.False(Sse.IsSupported);
-                    Assert.False(Sse2.IsSupported);
-                    Assert.False(Aes.IsSupported);
-                    Assert.False(Pclmulqdq.IsSupported);
-                    Assert.False(Sse3.IsSupported);
-                    Assert.False(Ssse3.IsSupported);
-                    Assert.False(Sse41.IsSupported);
-                    Assert.False(Sse42.IsSupported);
-                    Assert.False(Popcnt.IsSupported);
-                    Assert.False(Avx.IsSupported);
-                    Assert.False(Fma.IsSupported);
-                    Assert.False(Avx2.IsSupported);
-                    Assert.False(Bmi1.IsSupported);
-                    Assert.False(Bmi2.IsSupported);
-                    Assert.False(Lzcnt.IsSupported);
-                    Assert.False(AdvSimd.IsSupported);
-                    Assert.False(System.Runtime.Intrinsics.Arm.Aes.IsSupported);
-                    Assert.False(Crc32.IsSupported);
-                    Assert.False(Dp.IsSupported);
-                    Assert.False(Sha1.IsSupported);
-                    Assert.False(Sha256.IsSupported);
-                    break;
-                case HwIntrinsics.DisableSSE:
-                    Assert.False(Sse.IsSupported);
-                    break;
-                case HwIntrinsics.DisableSSE2:
-                    Assert.False(Sse2.IsSupported);
+                    Assert.False(Sse.IsSupported, "SSE should be disabled when DisableHWIntrinsic is set.");
+                    Assert.False(Sse2.IsSupported, "SSE2 should be disabled when DisableHWIntrinsic is set.");
+                    Assert.False(Aes.IsSupported, "AES (x86) should be disabled when DisableHWIntrinsic is set.");
+                    Assert.False(Pclmulqdq.IsSupported, "PCLMULQDQ should be disabled when DisableHWIntrinsic is set.");
+                    Assert.False(Sse3.IsSupported, "SSE3 should be disabled when DisableHWIntrinsic is set.");
+                    Assert.False(Ssse3.IsSupported, "SSSE3 should be disabled when DisableHWIntrinsic is set.");
+                    Assert.False(Sse41.IsSupported, "SSE4.1 should be disabled when DisableHWIntrinsic is set.");
+                    Assert.False(Sse42.IsSupported, "SSE4.2 should be disabled when DisableHWIntrinsic is set.");
+                    Assert.False(Popcnt.IsSupported, "POPCNT should be disabled when DisableHWIntrinsic is set.");
+                    Assert.False(Avx.IsSupported, "AVX should be disabled when DisableHWIntrinsic is set.");
+                    Assert.False(Fma.IsSupported, "FMA should be disabled when DisableHWIntrinsic is set.");
+                    Assert.False(Avx2.IsSupported, "AVX2 should be disabled when DisableHWIntrinsic is set.");
+                    Assert.False(Bmi1.IsSupported, "BMI1 should be disabled when DisableHWIntrinsic is set.");
+                    Assert.False(Bmi2.IsSupported, "BMI2 should be disabled when DisableHWIntrinsic is set.");
+                    Assert.False(Lzcnt.IsSupported, "LZCNT should be disabled when DisableHWIntrinsic is set.");
+                    Assert.False(AdvSimd.IsSupported, "Arm64 AdvSimd should be disabled when DisableHWIntrinsic is set.");
+                    Assert.False(System.Runtime.Intrinsics.Arm.Aes.IsSupported, "Arm64 AES should be disabled when DisableHWIntrinsic is set.");
+                    Assert.False(Crc32.IsSupported, "Arm64 CRC32 should be disabled when DisableHWIntrinsic is set.");
+                    Assert.False(Dp.IsSupported, "Arm64 DotProd (DP) should be disabled when DisableHWIntrinsic is set.");
+                    Assert.False(Sha1.IsSupported, "Arm64 SHA1 should be disabled when DisableHWIntrinsic is set.");
+                    Assert.False(Sha256.IsSupported, "Arm64 SHA256 should be disabled when DisableHWIntrinsic is set.");
                     break;
                 case HwIntrinsics.DisableAES:
-                    Assert.False(Aes.IsSupported);
-                    break;
-                case HwIntrinsics.DisablePCLMULQDQ:
-                    Assert.False(Pclmulqdq.IsSupported);
-                    break;
-                case HwIntrinsics.DisableSSE3:
-                    Assert.False(Sse3.IsSupported);
-                    break;
-                case HwIntrinsics.DisableSSSE3:
-                    Assert.False(Ssse3.IsSupported);
-                    break;
-                case HwIntrinsics.DisableSSE41:
-                    Assert.False(Sse41.IsSupported);
+                    Assert.False(Aes.IsSupported, "AES (x86) should be disabled when DisableAES is set.");
+#if NET10_0_OR_GREATER
+                    Assert.False(Pclmulqdq.IsSupported, "PCLMULQDQ should be disabled when DisableAES is set (paired disable).");
+#endif
                     break;
                 case HwIntrinsics.DisableSSE42:
-                    Assert.False(Sse42.IsSupported);
-                    break;
-                case HwIntrinsics.DisablePOPCNT:
-                    Assert.False(Popcnt.IsSupported);
+#if NET10_0_OR_GREATER
+                    Assert.False(Sse3.IsSupported, "Sse3 should be disabled.");
+                    Assert.False(Ssse3.IsSupported, "Ssse3 should be disabled.");
+                    Assert.False(Sse41.IsSupported, "Sse41 should be disabled.");
+                    Assert.False(Popcnt.IsSupported, "Popcnt should be disabled.");
+#endif
+                    Assert.False(Sse42.IsSupported, "Sse42 should be disabled when DisableSSE42 is set.");
                     break;
                 case HwIntrinsics.DisableAVX:
-                    Assert.False(Avx.IsSupported);
-                    break;
-                case HwIntrinsics.DisableFMA:
-                    Assert.False(Fma.IsSupported);
+                    Assert.False(Avx.IsSupported, "AVX should be disabled when DisableAVX is set.");
                     break;
                 case HwIntrinsics.DisableAVX2:
-                    Assert.False(Avx2.IsSupported);
-                    break;
-                case HwIntrinsics.DisableBMI1:
-                    Assert.False(Bmi1.IsSupported);
-                    break;
-                case HwIntrinsics.DisableBMI2:
-                    Assert.False(Bmi2.IsSupported);
-                    break;
-                case HwIntrinsics.DisableLZCNT:
-                    Assert.False(Lzcnt.IsSupported);
-                    break;
-                case HwIntrinsics.DisableArm64AdvSimd:
-                    Assert.False(AdvSimd.IsSupported);
+                    Assert.False(Avx2.IsSupported, "AVX2 should be disabled when DisableAVX2 is set.");
+#if NET10_0_OR_GREATER
+                    Assert.False(Fma.IsSupported, "FMA should be disabled when DisableAVX2 is set (paired disable).");
+                    Assert.False(Bmi1.IsSupported, "BMI1 should be disabled when DisableAVX2 is set (paired disable).");
+                    Assert.False(Bmi2.IsSupported, "BMI2 should be disabled when DisableAVX2 is set (paired disable).");
+                    Assert.False(Lzcnt.IsSupported, "LZCNT should be disabled when DisableAVX2 is set (paired disable).");
+#endif
                     break;
                 case HwIntrinsics.DisableArm64Aes:
-                    Assert.False(System.Runtime.Intrinsics.Arm.Aes.IsSupported);
+                    Assert.False(System.Runtime.Intrinsics.Arm.Aes.IsSupported, "Arm64 AES should be disabled when DisableArm64Aes is set.");
                     break;
                 case HwIntrinsics.DisableArm64Crc32:
-                    Assert.False(Crc32.IsSupported);
+                    Assert.False(Crc32.IsSupported, "Arm64 CRC32 should be disabled when DisableArm64Crc32 is set.");
                     break;
                 case HwIntrinsics.DisableArm64Dp:
-                    Assert.False(Dp.IsSupported);
+                    Assert.False(Dp.IsSupported, "Arm64 DotProd (DP) should be disabled when DisableArm64Dp is set.");
                     break;
                 case HwIntrinsics.DisableArm64Sha1:
-                    Assert.False(Sha1.IsSupported);
+                    Assert.False(Sha1.IsSupported, "Arm64 SHA1 should be disabled when DisableArm64Sha1 is set.");
                     break;
                 case HwIntrinsics.DisableArm64Sha256:
-                    Assert.False(Sha256.IsSupported);
+                    Assert.False(Sha256.IsSupported, "Arm64 SHA256 should be disabled when DisableArm64Sha256 is set.");
                     break;
             }
         }

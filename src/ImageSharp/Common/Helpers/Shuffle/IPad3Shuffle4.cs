@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using static SixLabors.ImageSharp.SimdUtils;
@@ -12,24 +13,23 @@ internal interface IPad3Shuffle4 : IComponentShuffle
 {
 }
 
-internal readonly struct DefaultPad3Shuffle4 : IPad3Shuffle4
+internal readonly struct DefaultPad3Shuffle4([ConstantExpected] byte control) : IPad3Shuffle4
 {
-    public DefaultPad3Shuffle4(byte control)
-        => this.Control = control;
-
-    public byte Control { get; }
+    public byte Control { get; } = control;
 
     [MethodImpl(InliningOptions.ShortMethod)]
-    public void ShuffleReduce(ref ReadOnlySpan<byte> source, ref Span<byte> dest)
-        => HwIntrinsics.Pad3Shuffle4Reduce(ref source, ref dest, this.Control);
+    public void ShuffleReduce(ref ReadOnlySpan<byte> source, ref Span<byte> destination)
+#pragma warning disable CA1857 // A constant is expected for the parameter
+        => HwIntrinsics.Pad3Shuffle4Reduce(ref source, ref destination, this.Control);
+#pragma warning restore CA1857 // A constant is expected for the parameter
 
     [MethodImpl(InliningOptions.ShortMethod)]
-    public void RunFallbackShuffle(ReadOnlySpan<byte> source, Span<byte> dest)
+    public void Shuffle(ReadOnlySpan<byte> source, Span<byte> destination)
     {
         ref byte sBase = ref MemoryMarshal.GetReference(source);
-        ref byte dBase = ref MemoryMarshal.GetReference(dest);
+        ref byte dBase = ref MemoryMarshal.GetReference(destination);
 
-        Shuffle.InverseMMShuffle(this.Control, out uint p3, out uint p2, out uint p1, out uint p0);
+        SimdUtils.Shuffle.InverseMMShuffle(this.Control, out uint p3, out uint p2, out uint p1, out uint p0);
 
         Span<byte> temp = stackalloc byte[4];
         ref byte t = ref MemoryMarshal.GetReference(temp);
@@ -51,14 +51,14 @@ internal readonly struct DefaultPad3Shuffle4 : IPad3Shuffle4
 internal readonly struct XYZWPad3Shuffle4 : IPad3Shuffle4
 {
     [MethodImpl(InliningOptions.ShortMethod)]
-    public void ShuffleReduce(ref ReadOnlySpan<byte> source, ref Span<byte> dest)
-        => HwIntrinsics.Pad3Shuffle4Reduce(ref source, ref dest, Shuffle.MMShuffle3210);
+    public void ShuffleReduce(ref ReadOnlySpan<byte> source, ref Span<byte> destination)
+        => HwIntrinsics.Pad3Shuffle4Reduce(ref source, ref destination, SimdUtils.Shuffle.MMShuffle3210);
 
     [MethodImpl(InliningOptions.ShortMethod)]
-    public void RunFallbackShuffle(ReadOnlySpan<byte> source, Span<byte> dest)
+    public void Shuffle(ReadOnlySpan<byte> source, Span<byte> destination)
     {
         ref byte sBase = ref MemoryMarshal.GetReference(source);
-        ref byte dBase = ref MemoryMarshal.GetReference(dest);
+        ref byte dBase = ref MemoryMarshal.GetReference(destination);
 
         ref byte sEnd = ref Unsafe.Add(ref sBase, (uint)source.Length);
         ref byte sLoopEnd = ref Unsafe.Subtract(ref sEnd, 4);

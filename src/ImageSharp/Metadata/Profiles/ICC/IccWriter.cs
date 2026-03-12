@@ -71,7 +71,7 @@ internal sealed class IccWriter
         // (Header size) + (entry count) + (nr of entries) * (size of table entry)
         writer.SetIndex(128 + 4 + (entries.Length * 12));
 
-        List<IccTagTableEntry> table = new();
+        List<IccTagTableEntry> table = [];
         foreach (IGrouping<IccTagDataEntry, IccTagDataEntry> group in grouped)
         {
             writer.WriteTagDataEntry(group.Key, out IccTagTableEntry tableEntry);

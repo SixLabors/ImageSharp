@@ -47,46 +47,40 @@ internal sealed class ExifLong8Array : ExifArrayValue<ulong>
                 return this.SetSingle((ulong)Numerics.Clamp(val, 0, int.MaxValue));
 
             case uint val:
-                return this.SetSingle((ulong)val);
+                return this.SetSingle(val);
 
             case short val:
                 return this.SetSingle((ulong)Numerics.Clamp(val, 0, short.MaxValue));
 
             case ushort val:
-                return this.SetSingle((ulong)val);
+                return this.SetSingle(val);
 
             case long val:
                 return this.SetSingle((ulong)Numerics.Clamp(val, 0, long.MaxValue));
 
             case long[] array:
-            {
                 if (value.GetType() == typeof(ulong[]))
                 {
                     return this.SetArray((ulong[])value);
                 }
 
                 return this.SetArray(array);
-            }
 
             case int[] array:
-            {
                 if (value.GetType() == typeof(uint[]))
                 {
                     return this.SetArray((uint[])value);
                 }
 
                 return this.SetArray(array);
-            }
 
             case short[] array:
-            {
                 if (value.GetType() == typeof(ushort[]))
                 {
                     return this.SetArray((ushort[])value);
                 }
 
                 return this.SetArray(array);
-            }
         }
 
         return false;
@@ -96,13 +90,13 @@ internal sealed class ExifLong8Array : ExifArrayValue<ulong>
 
     private bool SetSingle(ulong value)
     {
-        this.Value = new[] { value };
+        this.Value = [value];
         return true;
     }
 
     private bool SetArray(long[] values)
     {
-        var numbers = new ulong[values.Length];
+        ulong[] numbers = new ulong[values.Length];
         for (int i = 0; i < values.Length; i++)
         {
             numbers[i] = (ulong)(values[i] < 0 ? 0 : values[i]);
@@ -120,7 +114,7 @@ internal sealed class ExifLong8Array : ExifArrayValue<ulong>
 
     private bool SetArray(int[] values)
     {
-        var numbers = new ulong[values.Length];
+        ulong[] numbers = new ulong[values.Length];
         for (int i = 0; i < values.Length; i++)
         {
             numbers[i] = (ulong)Numerics.Clamp(values[i], 0, int.MaxValue);
@@ -132,10 +126,10 @@ internal sealed class ExifLong8Array : ExifArrayValue<ulong>
 
     private bool SetArray(uint[] values)
     {
-        var numbers = new ulong[values.Length];
+        ulong[] numbers = new ulong[values.Length];
         for (int i = 0; i < values.Length; i++)
         {
-            numbers[i] = (ulong)values[i];
+            numbers[i] = values[i];
         }
 
         this.Value = numbers;
@@ -144,7 +138,7 @@ internal sealed class ExifLong8Array : ExifArrayValue<ulong>
 
     private bool SetArray(short[] values)
     {
-        var numbers = new ulong[values.Length];
+        ulong[] numbers = new ulong[values.Length];
         for (int i = 0; i < values.Length; i++)
         {
             numbers[i] = (ulong)Numerics.Clamp(values[i], 0, short.MaxValue);
@@ -156,10 +150,10 @@ internal sealed class ExifLong8Array : ExifArrayValue<ulong>
 
     private bool SetArray(ushort[] values)
     {
-        var numbers = new ulong[values.Length];
+        ulong[] numbers = new ulong[values.Length];
         for (int i = 0; i < values.Length; i++)
         {
-            numbers[i] = (ulong)values[i];
+            numbers[i] = values[i];
         }
 
         this.Value = numbers;

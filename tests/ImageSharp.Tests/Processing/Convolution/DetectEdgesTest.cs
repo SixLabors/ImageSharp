@@ -59,7 +59,7 @@ public class DetectEdgesTest : BaseImageOperationsExtensionTest
     [MemberData(nameof(EdgeDetector2DKernelData))]
     public void DetectEdges_Rect_EdgeDetector2DProcessor_DefaultGrayScale_Set(EdgeDetector2DKernel kernel, bool _)
     {
-        this.operations.DetectEdges(kernel, this.rect);
+        this.operations.DetectEdges(this.rect, kernel);
         EdgeDetector2DProcessor processor = this.Verify<EdgeDetector2DProcessor>(this.rect);
 
         Assert.True(processor.Grayscale);
@@ -81,7 +81,7 @@ public class DetectEdgesTest : BaseImageOperationsExtensionTest
     [MemberData(nameof(EdgeDetector2DKernelData))]
     public void DetectEdges_Rect_EdgeDetector2DProcessorSet(EdgeDetector2DKernel kernel, bool grayscale)
     {
-        this.operations.DetectEdges(kernel, grayscale, this.rect);
+        this.operations.DetectEdges(this.rect, kernel, grayscale);
         EdgeDetector2DProcessor processor = this.Verify<EdgeDetector2DProcessor>(this.rect);
 
         Assert.Equal(grayscale, processor.Grayscale);
@@ -114,7 +114,7 @@ public class DetectEdgesTest : BaseImageOperationsExtensionTest
     [MemberData(nameof(EdgeDetectorKernelData))]
     public void DetectEdges_Rect_EdgeDetectorProcessor_DefaultGrayScale_Set(EdgeDetectorKernel kernel, bool _)
     {
-        this.operations.DetectEdges(kernel, this.rect);
+        this.operations.DetectEdges(this.rect, kernel);
         EdgeDetectorProcessor processor = this.Verify<EdgeDetectorProcessor>(this.rect);
 
         Assert.True(processor.Grayscale);
@@ -136,7 +136,7 @@ public class DetectEdgesTest : BaseImageOperationsExtensionTest
     [MemberData(nameof(EdgeDetectorKernelData))]
     public void DetectEdges_Rect_EdgeDetectorProcessorSet(EdgeDetectorKernel kernel, bool grayscale)
     {
-        this.operations.DetectEdges(kernel, grayscale, this.rect);
+        this.operations.DetectEdges(this.rect, kernel, grayscale);
         EdgeDetectorProcessor processor = this.Verify<EdgeDetectorProcessor>(this.rect);
 
         Assert.Equal(grayscale, processor.Grayscale);
@@ -167,7 +167,7 @@ public class DetectEdgesTest : BaseImageOperationsExtensionTest
     [MemberData(nameof(EdgeDetectorCompassKernelData))]
     public void DetectEdges_Rect_EdgeDetectorCompassProcessor_DefaultGrayScale_Set(EdgeDetectorCompassKernel kernel, bool _)
     {
-        this.operations.DetectEdges(kernel, this.rect);
+        this.operations.DetectEdges(this.rect, kernel);
         EdgeDetectorCompassProcessor processor = this.Verify<EdgeDetectorCompassProcessor>(this.rect);
 
         Assert.True(processor.Grayscale);
@@ -189,7 +189,7 @@ public class DetectEdgesTest : BaseImageOperationsExtensionTest
     [MemberData(nameof(EdgeDetectorCompassKernelData))]
     public void DetectEdges_Rect_EdgeDetectorCompassProcessorSet(EdgeDetectorCompassKernel kernel, bool grayscale)
     {
-        this.operations.DetectEdges(kernel, grayscale, this.rect);
+        this.operations.DetectEdges(this.rect, kernel, grayscale);
         EdgeDetectorCompassProcessor processor = this.Verify<EdgeDetectorCompassProcessor>(this.rect);
 
         Assert.Equal(grayscale, processor.Grayscale);

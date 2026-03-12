@@ -15,7 +15,7 @@ public class TiffEncoderHeaderTests
     public void WriteHeader_WritesValidHeader()
     {
         using MemoryStream stream = new();
-        TiffEncoderCore encoder = new(Encoder, Configuration.Default.MemoryAllocator);
+        TiffEncoderCore encoder = new(Encoder, Configuration.Default);
 
         using (TiffStreamWriter writer = new(stream))
         {
@@ -29,7 +29,7 @@ public class TiffEncoderHeaderTests
     public void WriteHeader_ReturnsFirstIfdMarker()
     {
         using MemoryStream stream = new();
-        TiffEncoderCore encoder = new(Encoder, Configuration.Default.MemoryAllocator);
+        TiffEncoderCore encoder = new(Encoder, Configuration.Default);
 
         using TiffStreamWriter writer = new(stream);
         long firstIfdMarker = TiffEncoderCore.WriteHeader(writer, stackalloc byte[4]);

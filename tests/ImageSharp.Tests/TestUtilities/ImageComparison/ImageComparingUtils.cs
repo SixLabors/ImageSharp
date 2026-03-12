@@ -15,13 +15,10 @@ public static class ImageComparingUtils
         float compareTolerance = 0.01f)
         where TPixel : unmanaged, ImageSharp.PixelFormats.IPixel<TPixel>
     {
-        string path = TestImageProvider<TPixel>.GetFilePathOrNull(provider);
-        if (path == null)
-        {
-            throw new InvalidOperationException("CompareToOriginal() works only with file providers!");
-        }
+        string path = TestImageProvider<TPixel>.GetFilePathOrNull(provider)
+            ?? throw new InvalidOperationException("CompareToOriginal() works only with file providers!");
 
-        var testFile = TestFile.Create(path);
+        TestFile testFile = TestFile.Create(path);
         using Image<Rgba32> magickImage = DecodeWithMagick<Rgba32>(new FileInfo(testFile.FullPath));
         if (useExactComparer)
         {
@@ -38,25 +35,23 @@ public static class ImageComparingUtils
     {
         Configuration configuration = Configuration.Default.Clone();
         configuration.PreferContiguousImageBuffers = true;
-        using (var magickImage = new MagickImage(fileInfo))
+        using MagickImage magickImage = new(fileInfo);
+        magickImage.AutoOrient();
+        Image<TPixel> result = new(configuration, (int)magickImage.Width, (int)magickImage.Height);
+
+        Assert.True(result.DangerousTryGetSinglePixelMemory(out Memory<TPixel> resultPixels));
+
+        using (IUnsafePixelCollection<ushort> pixels = magickImage.GetPixelsUnsafe())
         {
-            magickImage.AutoOrient();
-            var result = new Image<TPixel>(configuration, magickImage.Width, magickImage.Height);
+            byte[] data = pixels.ToByteArray(PixelMapping.RGBA);
 
-            Assert.True(result.DangerousTryGetSinglePixelMemory(out Memory<TPixel> resultPixels));
-
-            using (IUnsafePixelCollection<ushort> pixels = magickImage.GetPixelsUnsafe())
-            {
-                byte[] data = pixels.ToByteArray(PixelMapping.RGBA);
-
-                PixelOperations<TPixel>.Instance.FromRgba32Bytes(
-                    configuration,
-                    data,
-                    resultPixels.Span,
-                    resultPixels.Length);
-            }
-
-            return result;
+            PixelOperations<TPixel>.Instance.FromRgba32Bytes(
+                configuration,
+                data,
+                resultPixels.Span,
+                resultPixels.Length);
         }
+
+        return result;
     }
 }

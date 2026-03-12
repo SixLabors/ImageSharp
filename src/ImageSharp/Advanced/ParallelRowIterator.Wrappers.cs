@@ -51,7 +51,7 @@ public static partial class ParallelRowIterator
             for (int y = yMin; y < yMax; y++)
             {
                 // Skip the safety copy when invoking a potentially impure method on a readonly field
-                Unsafe.AsRef(this.action).Invoke(y);
+                Unsafe.AsRef(in this.action).Invoke(y);
             }
         }
     }
@@ -102,7 +102,7 @@ public static partial class ParallelRowIterator
 
             for (int y = yMin; y < yMax; y++)
             {
-                Unsafe.AsRef(this.action).Invoke(y, span);
+                Unsafe.AsRef(in this.action).Invoke(y, span);
             }
         }
     }
@@ -139,7 +139,7 @@ public static partial class ParallelRowIterator
             }
 
             int yMax = Math.Min(yMin + this.stepY, this.maxY);
-            var rows = new RowInterval(yMin, yMax);
+            RowInterval rows = new(yMin, yMax);
 
             // Skip the safety copy when invoking a potentially impure method on a readonly field
             Unsafe.AsRef(in this.operation).Invoke(in rows);
@@ -185,7 +185,7 @@ public static partial class ParallelRowIterator
             }
 
             int yMax = Math.Min(yMin + this.stepY, this.maxY);
-            var rows = new RowInterval(yMin, yMax);
+            RowInterval rows = new(yMin, yMax);
 
             using IMemoryOwner<TBuffer> buffer = this.allocator.Allocate<TBuffer>(this.bufferLength);
 

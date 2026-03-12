@@ -11,6 +11,8 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization;
 public class PaletteQuantizer : IQuantizer
 {
     private readonly ReadOnlyMemory<Color> colorPalette;
+    private readonly int transparencyIndex;
+    private readonly Color transparentColor;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="PaletteQuantizer"/> class.
@@ -24,15 +26,33 @@ public class PaletteQuantizer : IQuantizer
     /// <summary>
     /// Initializes a new instance of the <see cref="PaletteQuantizer"/> class.
     /// </summary>
-    /// <param name="palette">The color palette.</param>
+    /// <param name="palette">The color palette to use.</param>
     /// <param name="options">The quantizer options defining quantization rules.</param>
     public PaletteQuantizer(ReadOnlyMemory<Color> palette, QuantizerOptions options)
+        : this(palette, options, -1, default)
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="PaletteQuantizer"/> class.
+    /// </summary>
+    /// <param name="palette">The color palette to use.</param>
+    /// <param name="options">The quantizer options defining quantization rules.</param>
+    /// <param name="transparencyIndex">The index of the color in the palette that should be considered as transparent.</param>
+    /// <param name="transparentColor">The color that should be considered as transparent.</param>
+    internal PaletteQuantizer(
+        ReadOnlyMemory<Color> palette,
+        QuantizerOptions options,
+        int transparencyIndex,
+        Color transparentColor)
     {
         Guard.MustBeGreaterThan(palette.Length, 0, nameof(palette));
         Guard.NotNull(options, nameof(options));
 
         this.colorPalette = palette;
         this.Options = options;
+        this.transparencyIndex = transparencyIndex;
+        this.transparentColor = transparentColor;
     }
 
     /// <inheritdoc />
@@ -49,9 +69,10 @@ public class PaletteQuantizer : IQuantizer
     {
         Guard.NotNull(options, nameof(options));
 
-        // Always use the palette length over options since the palette cannot be reduced.
-        TPixel[] palette = new TPixel[this.colorPalette.Length];
-        Color.ToPixel(this.colorPalette.Span, palette.AsSpan());
-        return new PaletteQuantizer<TPixel>(configuration, options, palette);
+        // If the palette is larger than the max colors then we need to trim it down.
+        // treat the buffer as FILO.
+        TPixel[] palette = new TPixel[Math.Min(options.MaxColors, this.colorPalette.Length)];
+        Color.ToPixel(this.colorPalette.Span[..palette.Length], palette.AsSpan());
+        return new PaletteQuantizer<TPixel>(configuration, options, palette, this.transparencyIndex, this.transparentColor.ToPixel<TPixel>());
     }
 }

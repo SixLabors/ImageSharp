@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.Formats.Webp.Chunks;
 using SixLabors.ImageSharp.Formats.Webp.Lossless;
 using SixLabors.ImageSharp.Formats.Webp.Lossy;
 using SixLabors.ImageSharp.Memory;
@@ -11,7 +12,7 @@ namespace SixLabors.ImageSharp.Formats.Webp;
 /// <summary>
 /// Image encoder for writing an image to a stream in the Webp format.
 /// </summary>
-internal sealed class WebpEncoderCore : IImageEncoderInternals
+internal sealed class WebpEncoderCore
 {
     /// <summary>
     /// Used for allocating memory during processing operations.
@@ -53,7 +54,7 @@ internal sealed class WebpEncoderCore : IImageEncoderInternals
     /// Flag indicating whether to preserve the exact RGB values under transparent area. Otherwise, discard this invisible
     /// RGB information for better compression.
     /// </summary>
-    private readonly WebpTransparentColorMode transparentColorMode;
+    private readonly TransparentColorMode transparentColorMode;
 
     /// <summary>
     /// Whether to skip metadata during encoding.
@@ -75,6 +76,19 @@ internal sealed class WebpEncoderCore : IImageEncoderInternals
     /// Defaults to lossy.
     /// </summary>
     private readonly WebpFileFormatType? fileFormat;
+
+    /// <summary>
+    /// The default background color of the canvas when animating.
+    /// This color may be used to fill the unused space on the canvas around the frames,
+    /// as well as the transparent pixels of the first frame.
+    /// The background color is also used when a frame disposal mode is <see cref="FrameDisposalMode.RestoreToBackground"/>.
+    /// </summary>
+    private readonly Color? backgroundColor;
+
+    /// <summary>
+    /// The number of times any animation is repeated.
+    /// </summary>
+    private readonly ushort? repeatCount;
 
     /// <summary>
     /// The global configuration.
@@ -101,6 +115,8 @@ internal sealed class WebpEncoderCore : IImageEncoderInternals
         this.skipMetadata = encoder.SkipMetadata;
         this.nearLossless = encoder.NearLossless;
         this.nearLosslessQuality = encoder.NearLosslessQuality;
+        this.backgroundColor = encoder.BackgroundColor;
+        this.repeatCount = encoder.RepeatCount;
     }
 
     /// <summary>
@@ -116,6 +132,11 @@ internal sealed class WebpEncoderCore : IImageEncoderInternals
         Guard.NotNull(image, nameof(image));
         Guard.NotNull(stream, nameof(stream));
 
+        if (image.Width > WebpConstants.MaxDimension || image.Height > WebpConstants.MaxDimension)
+        {
+            WebpThrowHelper.ThrowDimensionsTooLarge(image.Width, image.Height);
+        }
+
         bool lossless;
         if (this.fileFormat is not null)
         {
@@ -129,7 +150,9 @@ internal sealed class WebpEncoderCore : IImageEncoderInternals
 
         if (lossless)
         {
-            using Vp8LEncoder enc = new(
+            bool hasAnimation = image.Frames.Count > 1;
+
+            using Vp8LEncoder encoder = new(
                 this.memoryAllocator,
                 this.configuration,
                 image.Width,
@@ -140,11 +163,76 @@ internal sealed class WebpEncoderCore : IImageEncoderInternals
                 this.transparentColorMode,
                 this.nearLossless,
                 this.nearLosslessQuality);
-            enc.Encode(image, stream);
+
+            long initialPosition = stream.Position;
+            bool hasAlpha = false;
+            WebpVp8X vp8x = encoder.EncodeHeader(image, stream, hasAnimation, this.repeatCount);
+
+            // Encode the first frame.
+            ImageFrame<TPixel> previousFrame = image.Frames.RootFrame;
+            WebpFrameMetadata frameMetadata = previousFrame.Metadata.GetWebpMetadata();
+
+            cancellationToken.ThrowIfCancellationRequested();
+
+            hasAlpha |= encoder.Encode(previousFrame, previousFrame.Bounds, frameMetadata, stream, hasAnimation);
+
+            if (hasAnimation)
+            {
+                FrameDisposalMode previousDisposal = frameMetadata.DisposalMode;
+
+                // Encode additional frames
+                // This frame is reused to store de-duplicated pixel buffers.
+                using ImageFrame<TPixel> encodingFrame = new(image.Configuration, previousFrame.Size);
+
+                for (int i = 1; i < image.Frames.Count; i++)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+
+                    ImageFrame<TPixel>? prev = previousDisposal == FrameDisposalMode.RestoreToBackground ? null : previousFrame;
+                    ImageFrame<TPixel> currentFrame = image.Frames[i];
+                    ImageFrame<TPixel>? nextFrame = i < image.Frames.Count - 1 ? image.Frames[i + 1] : null;
+
+                    frameMetadata = currentFrame.Metadata.GetWebpMetadata();
+                    bool blend = frameMetadata.BlendMode == FrameBlendMode.Over;
+                    Color background = frameMetadata.DisposalMode == FrameDisposalMode.RestoreToBackground
+                        ? this.backgroundColor ?? Color.Transparent
+                        : Color.Transparent;
+
+                    (bool difference, Rectangle bounds) =
+                        AnimationUtilities.DeDuplicatePixels(
+                            image.Configuration,
+                            prev,
+                            currentFrame,
+                            nextFrame,
+                            encodingFrame,
+                            background,
+                            blend,
+                            ClampingMode.Even);
+
+                    using Vp8LEncoder animatedEncoder = new(
+                        this.memoryAllocator,
+                        this.configuration,
+                        bounds.Width,
+                        bounds.Height,
+                        this.quality,
+                        this.skipMetadata,
+                        this.method,
+                        this.transparentColorMode,
+                        this.nearLossless,
+                        this.nearLosslessQuality);
+
+                    hasAlpha |= animatedEncoder.Encode(encodingFrame, bounds, frameMetadata, stream, hasAnimation);
+
+                    previousFrame = currentFrame;
+                    previousDisposal = frameMetadata.DisposalMode;
+                }
+            }
+
+            encoder.EncodeFooter(image, in vp8x, hasAlpha, stream, initialPosition);
         }
         else
         {
-            using Vp8Encoder enc = new(
+            using Vp8Encoder encoder = new(
                 this.memoryAllocator,
                 this.configuration,
                 image.Width,
@@ -156,7 +244,78 @@ internal sealed class WebpEncoderCore : IImageEncoderInternals
                 this.filterStrength,
                 this.spatialNoiseShaping,
                 this.alphaCompression);
-            enc.Encode(image, stream);
+
+            long initialPosition = stream.Position;
+            bool hasAlpha = false;
+            WebpVp8X vp8x = default;
+            if (image.Frames.Count > 1)
+            {
+                // The alpha flag is updated following encoding.
+                vp8x = encoder.EncodeHeader(image, stream, false, true);
+
+                // Encode the first frame.
+                ImageFrame<TPixel> previousFrame = image.Frames.RootFrame;
+                WebpFrameMetadata frameMetadata = previousFrame.Metadata.GetWebpMetadata();
+                FrameDisposalMode previousDisposal = frameMetadata.DisposalMode;
+
+                hasAlpha |= encoder.EncodeAnimation(previousFrame, stream, previousFrame.Bounds, frameMetadata);
+
+                // Encode additional frames
+                // This frame is reused to store de-duplicated pixel buffers.
+                using ImageFrame<TPixel> encodingFrame = new(image.Configuration, previousFrame.Size);
+
+                for (int i = 1; i < image.Frames.Count; i++)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+
+                    ImageFrame<TPixel>? prev = previousDisposal == FrameDisposalMode.RestoreToBackground ? null : previousFrame;
+                    ImageFrame<TPixel> currentFrame = image.Frames[i];
+                    ImageFrame<TPixel>? nextFrame = i < image.Frames.Count - 1 ? image.Frames[i + 1] : null;
+
+                    frameMetadata = currentFrame.Metadata.GetWebpMetadata();
+                    bool blend = frameMetadata.BlendMode == FrameBlendMode.Over;
+                    Color background = frameMetadata.DisposalMode == FrameDisposalMode.RestoreToBackground
+                        ? this.backgroundColor ?? Color.Transparent
+                        : Color.Transparent;
+
+                    (bool difference, Rectangle bounds) =
+                        AnimationUtilities.DeDuplicatePixels(
+                            image.Configuration,
+                            prev,
+                            currentFrame,
+                            nextFrame,
+                            encodingFrame,
+                            background,
+                            blend,
+                            ClampingMode.Even);
+
+                    using Vp8Encoder animatedEncoder = new(
+                        this.memoryAllocator,
+                        this.configuration,
+                        bounds.Width,
+                        bounds.Height,
+                        this.quality,
+                        this.skipMetadata,
+                        this.method,
+                        this.entropyPasses,
+                        this.filterStrength,
+                        this.spatialNoiseShaping,
+                        this.alphaCompression);
+
+                    hasAlpha |= animatedEncoder.EncodeAnimation(encodingFrame, stream, bounds, frameMetadata);
+
+                    previousFrame = currentFrame;
+                    previousDisposal = frameMetadata.DisposalMode;
+                }
+
+                encoder.EncodeFooter(image, in vp8x, hasAlpha, stream, initialPosition);
+            }
+            else
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                encoder.EncodeStatic(stream, image);
+                encoder.EncodeFooter(image, in vp8x, hasAlpha, stream, initialPosition);
+            }
         }
     }
 }

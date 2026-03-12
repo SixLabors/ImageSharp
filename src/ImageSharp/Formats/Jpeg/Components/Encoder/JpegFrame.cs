@@ -20,7 +20,7 @@ internal sealed class JpegFrame : IDisposable
         this.PixelWidth = image.Width;
         this.PixelHeight = image.Height;
 
-        MemoryAllocator allocator = image.GetConfiguration().MemoryAllocator;
+        MemoryAllocator allocator = image.Configuration.MemoryAllocator;
 
         JpegComponentConfig[] componentConfigs = frameConfig.Components;
         this.Components = new Component[componentConfigs.Length];

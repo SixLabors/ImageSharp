@@ -24,7 +24,7 @@ internal sealed class ExifEncodedString : ExifValue<EncodedString>
 
     protected override string StringValue => this.Value.Text;
 
-    public override bool TrySetValue(object? value)
+    public bool TrySetValue(object? value, ByteOrder order)
     {
         if (base.TrySetValue(value))
         {
@@ -38,7 +38,7 @@ internal sealed class ExifEncodedString : ExifValue<EncodedString>
         }
         else if (value is byte[] buffer)
         {
-            if (ExifEncodedStringHelpers.TryParse(buffer, out EncodedString encodedString))
+            if (ExifEncodedStringHelpers.TryParse(buffer, order, out EncodedString encodedString))
             {
                 this.Value = encodedString;
                 return true;
@@ -47,6 +47,9 @@ internal sealed class ExifEncodedString : ExifValue<EncodedString>
 
         return false;
     }
+
+    public override bool TrySetValue(object? value)
+        => this.TrySetValue(value, ByteOrder.LittleEndian);
 
     public override IExifValue DeepClone() => new ExifEncodedString(this);
 }

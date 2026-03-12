@@ -2,54 +2,53 @@
 // Licensed under the Six Labors Split License.
 
 using System.Globalization;
-using System.Numerics;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 
-namespace SixLabors.ImageSharp.Tests;
+namespace SixLabors.ImageSharp.Tests.TestDataIcc;
 
 internal static class IccTestDataTagDataEntry
 {
-    public static readonly IccTypeSignature TagDataEntryHeader_UnknownVal = IccTypeSignature.Unknown;
-    public static readonly byte[] TagDataEntryHeader_UnknownArr =
-    {
+    public static readonly IccTypeSignature TagDataEntryHeaderUnknownVal = IccTypeSignature.Unknown;
+    public static readonly byte[] TagDataEntryHeaderUnknownArr =
+    [
         0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00,
-    };
+        0x00, 0x00, 0x00, 0x00
+    ];
 
-    public static readonly IccTypeSignature TagDataEntryHeader_MultiLocalizedUnicodeVal = IccTypeSignature.MultiLocalizedUnicode;
-    public static readonly byte[] TagDataEntryHeader_MultiLocalizedUnicodeArr =
-    {
+    public static readonly IccTypeSignature TagDataEntryHeaderMultiLocalizedUnicodeVal = IccTypeSignature.MultiLocalizedUnicode;
+    public static readonly byte[] TagDataEntryHeaderMultiLocalizedUnicodeArr =
+    [
         0x6D, 0x6C, 0x75, 0x63,
-        0x00, 0x00, 0x00, 0x00,
-    };
+        0x00, 0x00, 0x00, 0x00
+    ];
 
-    public static readonly IccTypeSignature TagDataEntryHeader_CurveVal = IccTypeSignature.Curve;
-    public static readonly byte[] TagDataEntryHeader_CurveArr =
-    {
+    public static readonly IccTypeSignature TagDataEntryHeaderCurveVal = IccTypeSignature.Curve;
+    public static readonly byte[] TagDataEntryHeaderCurveArr =
+    [
         0x63, 0x75, 0x72, 0x76,
-        0x00, 0x00, 0x00, 0x00,
-    };
+        0x00, 0x00, 0x00, 0x00
+    ];
 
     public static readonly object[][] TagDataEntryHeaderTestData =
-    {
-        new object[] { TagDataEntryHeader_UnknownArr, TagDataEntryHeader_UnknownVal },
-        new object[] { TagDataEntryHeader_MultiLocalizedUnicodeArr, TagDataEntryHeader_MultiLocalizedUnicodeVal },
-        new object[] { TagDataEntryHeader_CurveArr, TagDataEntryHeader_CurveVal },
-    };
+    [
+        [TagDataEntryHeaderUnknownArr, TagDataEntryHeaderUnknownVal],
+        [TagDataEntryHeaderMultiLocalizedUnicodeArr, TagDataEntryHeaderMultiLocalizedUnicodeVal],
+        [TagDataEntryHeaderCurveArr, TagDataEntryHeaderCurveVal]
+    ];
 
-    public static readonly IccUnknownTagDataEntry Unknown_Val = new(new byte[] { 0x00, 0x01, 0x02, 0x03 });
+    public static readonly IccUnknownTagDataEntry UnknownVal = new([0x00, 0x01, 0x02, 0x03]);
 
-    public static readonly byte[] Unknown_Arr = { 0x00, 0x01, 0x02, 0x03 };
+    public static readonly byte[] UnknownArr = [0x00, 0x01, 0x02, 0x03];
 
     public static readonly object[][] UnknownTagDataEntryTestData =
-    {
-        new object[] { Unknown_Arr, Unknown_Val, 12u },
-    };
+    [
+        [UnknownArr, UnknownVal, 12u]
+    ];
 
-    public static readonly IccChromaticityTagDataEntry Chromaticity_Val1 = new(IccColorantEncoding.ItuRBt709_2);
-    public static readonly byte[] Chromaticity_Arr1 = ArrayHelper.Concat(
-        IccTestDataPrimitives.UInt16_3,
-        IccTestDataPrimitives.UInt16_1,
+    public static readonly IccChromaticityTagDataEntry ChromaticityVal1 = new(IccColorantEncoding.ItuRBt709_2);
+    public static readonly byte[] ChromaticityArr1 = ArrayHelper.Concat(
+        IccTestDataPrimitives.UInt163,
+        IccTestDataPrimitives.UInt161,
         new byte[] { 0x00, 0x00, 0xA3, 0xD7 },  // 0.640
         new byte[] { 0x00, 0x00, 0x54, 0x7B },  // 0.330
         new byte[] { 0x00, 0x00, 0x4C, 0xCD },  // 0.300
@@ -57,190 +56,175 @@ internal static class IccTestDataTagDataEntry
         new byte[] { 0x00, 0x00, 0x26, 0x66 },  // 0.150
         new byte[] { 0x00, 0x00, 0x0F, 0x5C }); // 0.060
 
-    public static readonly IccChromaticityTagDataEntry Chromaticity_Val2 = new(
-        new double[][]
-        {
-            new double[] { 1, 2 },
-            new double[] { 3, 4 },
-        });
+    public static readonly IccChromaticityTagDataEntry ChromaticityVal2 = new(
+    [
+        [1, 2],
+        [3, 4]
+    ]);
 
-    public static readonly byte[] Chromaticity_Arr2 = ArrayHelper.Concat(
-        IccTestDataPrimitives.UInt16_2,
-        IccTestDataPrimitives.UInt16_0,
-        IccTestDataPrimitives.UFix16_1,
-        IccTestDataPrimitives.UFix16_2,
-        IccTestDataPrimitives.UFix16_3,
-        IccTestDataPrimitives.UFix16_4);
+    public static readonly byte[] ChromaticityArr2 = ArrayHelper.Concat(
+        IccTestDataPrimitives.UInt162,
+        IccTestDataPrimitives.UInt160,
+        IccTestDataPrimitives.UFix161,
+        IccTestDataPrimitives.UFix162,
+        IccTestDataPrimitives.UFix163,
+        IccTestDataPrimitives.UFix164);
 
     /// <summary>
     /// <see cref="InvalidIccProfileException"/>: channel count must be 3 for any enum other than <see cref="ColorantEncoding.Unknown"/>
     /// </summary>
-    public static readonly byte[] Chromaticity_ArrInvalid1 = ArrayHelper.Concat(
-        IccTestDataPrimitives.UInt16_5,
-        IccTestDataPrimitives.UInt16_1);
+    public static readonly byte[] ChromaticityArrInvalid1 = ArrayHelper.Concat(
+        IccTestDataPrimitives.UInt165,
+        IccTestDataPrimitives.UInt161);
 
     /// <summary>
     /// <see cref="InvalidIccProfileException"/>: invalid enum value
     /// </summary>
-    public static readonly byte[] Chromaticity_ArrInvalid2 = ArrayHelper.Concat(
-        IccTestDataPrimitives.UInt16_3,
-        IccTestDataPrimitives.UInt16_9);
+    public static readonly byte[] ChromaticityArrInvalid2 = ArrayHelper.Concat(
+        IccTestDataPrimitives.UInt163,
+        IccTestDataPrimitives.UInt169);
 
     public static readonly object[][] ChromaticityTagDataEntryTestData =
-    {
-        new object[] { Chromaticity_Arr1, Chromaticity_Val1 },
-        new object[] { Chromaticity_Arr2, Chromaticity_Val2 },
-    };
+    [
+        [ChromaticityArr1, ChromaticityVal1],
+        [ChromaticityArr2, ChromaticityVal2]
+    ];
 
-    public static readonly IccColorantOrderTagDataEntry ColorantOrder_Val = new(new byte[] { 0x00, 0x01, 0x02 });
-    public static readonly byte[] ColorantOrder_Arr = ArrayHelper.Concat(IccTestDataPrimitives.UInt32_3, new byte[] { 0x00, 0x01, 0x02 });
+    public static readonly IccColorantOrderTagDataEntry ColorantOrderVal = new([0x00, 0x01, 0x02]);
+    public static readonly byte[] ColorantOrderArr = ArrayHelper.Concat(IccTestDataPrimitives.UInt323, new byte[] { 0x00, 0x01, 0x02 });
 
     public static readonly object[][] ColorantOrderTagDataEntryTestData =
-    {
-        new object[] { ColorantOrder_Arr, ColorantOrder_Val },
-    };
+    [
+        [ColorantOrderArr, ColorantOrderVal]
+    ];
 
-    public static readonly IccColorantTableTagDataEntry ColorantTable_Val = new(
-        new IccColorantTableEntry[]
-        {
-            IccTestDataNonPrimitives.ColorantTableEntry_ValRand1,
-            IccTestDataNonPrimitives.ColorantTableEntry_ValRand2
-        });
+    public static readonly IccColorantTableTagDataEntry ColorantTableVal = new(
+    [
+        IccTestDataNonPrimitives.ColorantTableEntryValRand1,
+            IccTestDataNonPrimitives.ColorantTableEntryValRand2
+    ]);
 
-    public static readonly byte[] ColorantTable_Arr = ArrayHelper.Concat(
-        IccTestDataPrimitives.UInt32_2,
-        IccTestDataNonPrimitives.ColorantTableEntry_Rand1,
-        IccTestDataNonPrimitives.ColorantTableEntry_Rand2);
+    public static readonly byte[] ColorantTableArr = ArrayHelper.Concat(
+        IccTestDataPrimitives.UInt322,
+        IccTestDataNonPrimitives.ColorantTableEntryRand1,
+        IccTestDataNonPrimitives.ColorantTableEntryRand2);
 
     public static readonly object[][] ColorantTableTagDataEntryTestData =
-    {
-        new object[] { ColorantTable_Arr, ColorantTable_Val },
-    };
+    [
+        [ColorantTableArr, ColorantTableVal]
+    ];
 
-    public static readonly IccCurveTagDataEntry Curve_Val_0 = new();
-    public static readonly byte[] Curve_Arr_0 = IccTestDataPrimitives.UInt32_0;
+    public static readonly IccCurveTagDataEntry CurveVal0 = new();
+    public static readonly byte[] CurveArr0 = IccTestDataPrimitives.UInt320;
 
-    public static readonly IccCurveTagDataEntry Curve_Val_1 = new(1f);
-    public static readonly byte[] Curve_Arr_1 = ArrayHelper.Concat(
-        IccTestDataPrimitives.UInt32_1,
-        IccTestDataPrimitives.UFix8_1);
+    public static readonly IccCurveTagDataEntry CurveVal1 = new(1f);
+    public static readonly byte[] CurveArr1 = ArrayHelper.Concat(
+        IccTestDataPrimitives.UInt321,
+        IccTestDataPrimitives.UFix81);
 
-    public static readonly IccCurveTagDataEntry Curve_Val_2 = new(new float[] { 1 / 65535f, 2 / 65535f, 3 / 65535f });
-    public static readonly byte[] Curve_Arr_2 = ArrayHelper.Concat(
-        IccTestDataPrimitives.UInt32_3,
-        IccTestDataPrimitives.UInt16_1,
-        IccTestDataPrimitives.UInt16_2,
-        IccTestDataPrimitives.UInt16_3);
+    public static readonly IccCurveTagDataEntry CurveVal2 = new([1 / 65535f, 2 / 65535f, 3 / 65535f]);
+    public static readonly byte[] CurveArr2 = ArrayHelper.Concat(
+        IccTestDataPrimitives.UInt323,
+        IccTestDataPrimitives.UInt161,
+        IccTestDataPrimitives.UInt162,
+        IccTestDataPrimitives.UInt163);
 
     public static readonly object[][] CurveTagDataEntryTestData =
-    {
-        new object[] { Curve_Arr_0, Curve_Val_0 },
-        new object[] { Curve_Arr_1, Curve_Val_1 },
-        new object[] { Curve_Arr_2, Curve_Val_2 },
-    };
+    [
+        [CurveArr0, CurveVal0],
+        [CurveArr1, CurveVal1],
+        [CurveArr2, CurveVal2]
+    ];
 
-    public static readonly IccDataTagDataEntry Data_ValNoASCII = new(
-        new byte[] { 0x01, 0x02, 0x03, 0x04 },
-        false);
+    public static readonly IccDataTagDataEntry DataValNoAscii = new([0x01, 0x02, 0x03, 0x04], false);
 
-    public static readonly byte[] Data_ArrNoASCII =
-    {
+    public static readonly byte[] DataArrNoAscii =
+    [
         0x00, 0x00, 0x00, 0x00,
         0x01, 0x02, 0x03, 0x04
-    };
+    ];
 
-    public static readonly IccDataTagDataEntry Data_ValASCII = new(
-        new byte[] { (byte)'A', (byte)'S', (byte)'C', (byte)'I', (byte)'I' },
-        true);
+    public static readonly IccDataTagDataEntry DataValAscii = new([(byte)'A', (byte)'S', (byte)'C', (byte)'I', (byte)'I'
+    ], true);
 
-    public static readonly byte[] Data_ArrASCII =
-    {
+    public static readonly byte[] DataArrAscii =
+    [
         0x00, 0x00, 0x00, 0x01,
         (byte)'A', (byte)'S', (byte)'C', (byte)'I', (byte)'I'
-    };
+    ];
 
     public static readonly object[][] DataTagDataEntryTestData =
-    {
-        new object[] { Data_ArrNoASCII, Data_ValNoASCII, 16u },
-        new object[] { Data_ArrASCII, Data_ValASCII, 17u },
-    };
+    [
+        [DataArrNoAscii, DataValNoAscii, 16u],
+        [DataArrAscii, DataValAscii, 17u]
+    ];
 
-    public static readonly IccDateTimeTagDataEntry DateTime_Val = new(IccTestDataNonPrimitives.DateTime_ValRand1);
-    public static readonly byte[] DateTime_Arr = IccTestDataNonPrimitives.DateTime_Rand1;
+    public static readonly IccDateTimeTagDataEntry DateTimeVal = new(IccTestDataNonPrimitives.DateTimeValRand1);
+    public static readonly byte[] DateTimeArr = IccTestDataNonPrimitives.DateTimeRand1;
 
     public static readonly object[][] DateTimeTagDataEntryTestData =
-    {
-        new object[] { DateTime_Arr, DateTime_Val },
-    };
+    [
+        [DateTimeArr, DateTimeVal]
+    ];
 
-    public static readonly IccLut16TagDataEntry Lut16_Val = new(
-        new IccLut[] { IccTestDataLut.LUT16_ValGrad, IccTestDataLut.LUT16_ValGrad },
-        IccTestDataLut.CLUT16_ValGrad,
-        new IccLut[] { IccTestDataLut.LUT16_ValGrad, IccTestDataLut.LUT16_ValGrad, IccTestDataLut.LUT16_ValGrad });
+    public static readonly IccLut16TagDataEntry Lut16Val = new(
+        [IccTestDataLut.Lut16ValGrad, IccTestDataLut.Lut16ValGrad],
+        IccTestDataLut.Clut16ValGrad,
+        [IccTestDataLut.Lut16ValGrad, IccTestDataLut.Lut16ValGrad, IccTestDataLut.Lut16ValGrad]);
 
-    public static readonly byte[] Lut16_Arr = ArrayHelper.Concat(
+    public static readonly byte[] Lut16Arr = ArrayHelper.Concat(
         new byte[] { 0x02, 0x03, 0x03, 0x00 },
-        IccTestDataMatrix.Fix16_2D_Identity,
-        new byte[] { 0x00, (byte)IccTestDataLut.LUT16_ValGrad.Values.Length, 0x00, (byte)IccTestDataLut.LUT16_ValGrad.Values.Length },
-        IccTestDataLut.LUT16_Grad,
-        IccTestDataLut.LUT16_Grad,
-        IccTestDataLut.CLUT16_Grad,
-        IccTestDataLut.LUT16_Grad,
-        IccTestDataLut.LUT16_Grad,
-        IccTestDataLut.LUT16_Grad);
+        IccTestDataMatrix.Fix162DIdentity,
+        new byte[] { 0x00, (byte)IccTestDataLut.Lut16ValGrad.Values.Length, 0x00, (byte)IccTestDataLut.Lut16ValGrad.Values.Length },
+        IccTestDataLut.Lut16Grad,
+        IccTestDataLut.Lut16Grad,
+        IccTestDataLut.Clut16Grad,
+        IccTestDataLut.Lut16Grad,
+        IccTestDataLut.Lut16Grad,
+        IccTestDataLut.Lut16Grad);
 
     public static readonly object[][] Lut16TagDataEntryTestData =
-    {
-        new object[] { Lut16_Arr, Lut16_Val },
-    };
+    [
+        [Lut16Arr, Lut16Val]
+    ];
 
-    public static readonly IccLut8TagDataEntry Lut8_Val = new(
-        new IccLut[] { IccTestDataLut.LUT8_ValGrad, IccTestDataLut.LUT8_ValGrad },
-        IccTestDataLut.CLUT8_ValGrad,
-        new IccLut[] { IccTestDataLut.LUT8_ValGrad, IccTestDataLut.LUT8_ValGrad, IccTestDataLut.LUT8_ValGrad });
+    public static readonly IccLut8TagDataEntry Lut8Val = new(
+        [IccTestDataLut.Lut8ValGrad, IccTestDataLut.Lut8ValGrad],
+        IccTestDataLut.Clut8ValGrad,
+        [IccTestDataLut.Lut8ValGrad, IccTestDataLut.Lut8ValGrad, IccTestDataLut.Lut8ValGrad]);
 
-    public static readonly byte[] Lut8_Arr = ArrayHelper.Concat(
+    public static readonly byte[] Lut8Arr = ArrayHelper.Concat(
         new byte[] { 0x02, 0x03, 0x03, 0x00 },
-        IccTestDataMatrix.Fix16_2D_Identity,
-        IccTestDataLut.LUT8_Grad,
-        IccTestDataLut.LUT8_Grad,
-        IccTestDataLut.CLUT8_Grad,
-        IccTestDataLut.LUT8_Grad,
-        IccTestDataLut.LUT8_Grad,
-        IccTestDataLut.LUT8_Grad);
+        IccTestDataMatrix.Fix162DIdentity,
+        IccTestDataLut.Lut8Grad,
+        IccTestDataLut.Lut8Grad,
+        IccTestDataLut.Clut8Grad,
+        IccTestDataLut.Lut8Grad,
+        IccTestDataLut.Lut8Grad,
+        IccTestDataLut.Lut8Grad);
 
-    public static readonly object[][] Lut8TagDataEntryTestData =
-    {
-        new object[] { Lut8_Arr, Lut8_Val },
-    };
+    public static readonly object[][] Lut8TagDataEntryTestData = [[Lut8Arr, Lut8Val]];
 
-    private static readonly byte[] CurveFull_0 = ArrayHelper.Concat(
-        TagDataEntryHeader_CurveArr,
-        Curve_Arr_0);
+    private static readonly byte[] CurveFull0 = ArrayHelper.Concat(TagDataEntryHeaderCurveArr, CurveArr0);
 
-    private static readonly byte[] CurveFull_1 = ArrayHelper.Concat(
-        TagDataEntryHeader_CurveArr,
-        Curve_Arr_1);
+    private static readonly byte[] CurveFull1 = ArrayHelper.Concat(TagDataEntryHeaderCurveArr, CurveArr1);
 
-    private static readonly byte[] CurveFull_2 = ArrayHelper.Concat(
-        TagDataEntryHeader_CurveArr,
-        Curve_Arr_2);
+    private static readonly byte[] CurveFull2 = ArrayHelper.Concat(TagDataEntryHeaderCurveArr, CurveArr2);
 
-    public static readonly IccLutAToBTagDataEntry LutAToB_Val
+    public static readonly IccLutAToBTagDataEntry LutAToBVal
         = new(
-            new IccCurveTagDataEntry[]
-        {
-            Curve_Val_0,
-            Curve_Val_1,
-            Curve_Val_2,
-        },
-            IccTestDataMatrix.Single_2DArray_ValGrad,
-            IccTestDataMatrix.Single_1DArray_ValGrad,
-            new IccCurveTagDataEntry[] { Curve_Val_1, Curve_Val_2, Curve_Val_0 },
-            IccTestDataLut.CLUT_Val16,
-            new IccCurveTagDataEntry[] { Curve_Val_2, Curve_Val_1 });
+            [
+                CurveVal0,
+            CurveVal1,
+            CurveVal2
+            ],
+            IccTestDataMatrix.Single2DArrayValGrad,
+            IccTestDataMatrix.Single1DArrayValGrad,
+            [CurveVal1, CurveVal2, CurveVal0],
+            IccTestDataLut.ClutVal16,
+            [CurveVal2, CurveVal1]);
 
-    public static readonly byte[] LutAToB_Arr = ArrayHelper.Concat(
+    public static readonly byte[] LutAToBArr = ArrayHelper.Concat(
         new byte[] { 0x02, 0x03, 0x00, 0x00 },
         new byte[] { 0x00, 0x00, 0x00, 0x20 },  // b:        32
         new byte[] { 0x00, 0x00, 0x00, 0x50 },  // matrix:   80
@@ -249,51 +233,47 @@ internal static class IccTestDataTagDataEntry
         new byte[] { 0x00, 0x00, 0x00, 0xFC },  // a:        252
 
         // B
-        CurveFull_0,                // 12 bytes
-        CurveFull_1,                // 14 bytes
+        CurveFull0,                // 12 bytes
+        CurveFull1,                // 14 bytes
         new byte[] { 0x00, 0x00 },  // Padding
-        CurveFull_2,                // 18 bytes
+        CurveFull2,                // 18 bytes
         new byte[] { 0x00, 0x00 },  // Padding
 
         // Matrix
-        IccTestDataMatrix.Fix16_2D_Grad,   // 36 bytes
-        IccTestDataMatrix.Fix16_1D_Grad,   // 12 bytes
+        IccTestDataMatrix.Fix162DGrad,   // 36 bytes
+        IccTestDataMatrix.Fix161DGrad,   // 12 bytes
 
         // M
-        CurveFull_1,                // 14 bytes
+        CurveFull1,                // 14 bytes
         new byte[] { 0x00, 0x00 },  // Padding
-        CurveFull_2,                // 18 bytes
+        CurveFull2,                // 18 bytes
         new byte[] { 0x00, 0x00 },  // Padding
-        CurveFull_0,                // 12 bytes
+        CurveFull0,                // 12 bytes
 
         // CLUT
-        IccTestDataLut.CLUT_16,     // 74 bytes
+        IccTestDataLut.Clut16,     // 74 bytes
         new byte[] { 0x00, 0x00 },  // Padding
 
         // A
-        CurveFull_2,                // 18 bytes
+        CurveFull2,                // 18 bytes
         new byte[] { 0x00, 0x00 },  // Padding
-        CurveFull_1,                // 14 bytes
+        CurveFull1,                // 14 bytes
         new byte[] { 0x00, 0x00 }); // Padding
 
-    public static readonly object[][] LutAToBTagDataEntryTestData =
-    {
-        new object[] { LutAToB_Arr, LutAToB_Val },
-    };
+    public static readonly object[][] LutAToBTagDataEntryTestData = [[LutAToBArr, LutAToBVal]];
 
-    public static readonly IccLutBToATagDataEntry LutBToA_Val = new(
-        new[]
-        {
-            Curve_Val_0,
-            Curve_Val_1,
-        },
+    public static readonly IccLutBToATagDataEntry LutBToAVal = new(
+        [
+            CurveVal0,
+            CurveVal1
+        ],
         null,
         null,
         null,
-        IccTestDataLut.CLUT_Val16,
-        new[] { Curve_Val_2, Curve_Val_1, Curve_Val_0 });
+        IccTestDataLut.ClutVal16,
+        [CurveVal2, CurveVal1, CurveVal0]);
 
-    public static readonly byte[] LutBToA_Arr = ArrayHelper.Concat(
+    public static readonly byte[] LutBToAArr = ArrayHelper.Concat(
         new byte[] { 0x02, 0x03, 0x00, 0x00 },
         new byte[] { 0x00, 0x00, 0x00, 0x20 },  // b:        32
         new byte[] { 0x00, 0x00, 0x00, 0x00 },  // matrix:   0
@@ -302,52 +282,52 @@ internal static class IccTestDataTagDataEntry
         new byte[] { 0x00, 0x00, 0x00, 0x88 },  // a:        136
 
         // B
-        CurveFull_0,    // 12 bytes
-        CurveFull_1,    // 14 bytes
+        CurveFull0,    // 12 bytes
+        CurveFull1,    // 14 bytes
         new byte[] { 0x00, 0x00 }, // Padding
 
         // CLUT
-        IccTestDataLut.CLUT_16,     // 74 bytes
+        IccTestDataLut.Clut16,     // 74 bytes
         new byte[] { 0x00, 0x00 },  // Padding
 
         // A
-        CurveFull_2,                // 18 bytes
+        CurveFull2,                // 18 bytes
         new byte[] { 0x00, 0x00 },  // Padding
-        CurveFull_1,                // 14 bytes
+        CurveFull1,                // 14 bytes
         new byte[] { 0x00, 0x00 },  // Padding
-        CurveFull_0); // 12 bytes
+        CurveFull0); // 12 bytes
 
     public static readonly object[][] LutBToATagDataEntryTestData =
-    {
-        new object[] { LutBToA_Arr, LutBToA_Val },
-    };
+    [
+        [LutBToAArr, LutBToAVal]
+    ];
 
-    public static readonly IccMeasurementTagDataEntry Measurement_Val = new(
+    public static readonly IccMeasurementTagDataEntry MeasurementVal = new(
         IccStandardObserver.Cie1931Observer,
-        IccTestDataNonPrimitives.XyzNumber_ValVar1,
+        IccTestDataNonPrimitives.XyzNumberValVar1,
         IccMeasurementGeometry.Degree0ToDOrDTo0,
         1f,
         IccStandardIlluminant.D50);
 
-    public static readonly byte[] Measurement_Arr = ArrayHelper.Concat(
-        IccTestDataPrimitives.UInt32_1,
-        IccTestDataNonPrimitives.XyzNumber_Var1,
-        IccTestDataPrimitives.UInt32_2,
-        IccTestDataPrimitives.UFix16_1,
-        IccTestDataPrimitives.UInt32_1);
+    public static readonly byte[] MeasurementArr = ArrayHelper.Concat(
+        IccTestDataPrimitives.UInt321,
+        IccTestDataNonPrimitives.XyzNumberVar1,
+        IccTestDataPrimitives.UInt322,
+        IccTestDataPrimitives.UFix161,
+        IccTestDataPrimitives.UInt321);
 
     public static readonly object[][] MeasurementTagDataEntryTestData =
-    {
-        new object[] { Measurement_Arr, Measurement_Val },
-    };
+    [
+        [MeasurementArr, MeasurementVal]
+    ];
 
-    private static readonly IccLocalizedString LocalizedString_Rand_enUS = CreateLocalizedString("en", "US", IccTestDataPrimitives.Unicode_ValRand2);
-    private static readonly IccLocalizedString LocalizedString_Rand_deDE = CreateLocalizedString("de", "DE", IccTestDataPrimitives.Unicode_ValRand3);
-    private static readonly IccLocalizedString LocalizedString_Rand2_deDE = CreateLocalizedString("de", "DE", IccTestDataPrimitives.Unicode_ValRand2);
-    private static readonly IccLocalizedString LocalizedString_Rand2_esXL = CreateLocalizedString("es", "XL", IccTestDataPrimitives.Unicode_ValRand2);
-    private static readonly IccLocalizedString LocalizedString_Rand2_xyXL = CreateLocalizedString("xy", "XL", IccTestDataPrimitives.Unicode_ValRand2);
-    private static readonly IccLocalizedString LocalizedString_Rand_en = CreateLocalizedString("en", null, IccTestDataPrimitives.Unicode_ValRand2);
-    private static readonly IccLocalizedString LocalizedString_Rand_Invariant = new(CultureInfo.InvariantCulture, IccTestDataPrimitives.Unicode_ValRand3);
+    private static readonly IccLocalizedString LocalizedStringRandEnUs = CreateLocalizedString("en", "US", IccTestDataPrimitives.UnicodeValRand2);
+    private static readonly IccLocalizedString LocalizedStringRandDeDe = CreateLocalizedString("de", "DE", IccTestDataPrimitives.UnicodeValRand3);
+    private static readonly IccLocalizedString LocalizedStringRand2DeDe = CreateLocalizedString("de", "DE", IccTestDataPrimitives.UnicodeValRand2);
+    private static readonly IccLocalizedString LocalizedStringRand2EsXl = CreateLocalizedString("es", "XL", IccTestDataPrimitives.UnicodeValRand2);
+    private static readonly IccLocalizedString LocalizedStringRand2XyXl = CreateLocalizedString("xy", "XL", IccTestDataPrimitives.UnicodeValRand2);
+    private static readonly IccLocalizedString LocalizedStringRandEn = CreateLocalizedString("en", null, IccTestDataPrimitives.UnicodeValRand2);
+    private static readonly IccLocalizedString LocalizedStringRandInvariant = new(CultureInfo.InvariantCulture, IccTestDataPrimitives.UnicodeValRand3);
 
     private static IccLocalizedString CreateLocalizedString(string language, string country, string text)
     {
@@ -378,42 +358,42 @@ internal static class IccTestDataTagDataEntry
         return new IccLocalizedString(culture, text);
     }
 
-    private static readonly IccLocalizedString[] LocalizedString_RandArr_enUS_deDE = new IccLocalizedString[]
-    {
-        LocalizedString_Rand_enUS,
-        LocalizedString_Rand_deDE,
-    };
+    private static readonly IccLocalizedString[] LocalizedStringRandArrEnUsDeDe =
+    [
+        LocalizedStringRandEnUs,
+        LocalizedStringRandDeDe
+    ];
 
-    private static readonly IccLocalizedString[] LocalizedString_RandArr_en_Invariant = new IccLocalizedString[]
-    {
-        LocalizedString_Rand_en,
-        LocalizedString_Rand_Invariant,
-    };
+    private static readonly IccLocalizedString[] LocalizedStringRandArrEnInvariant =
+    [
+        LocalizedStringRandEn,
+        LocalizedStringRandInvariant
+    ];
 
-    private static readonly IccLocalizedString[] LocalizedString_SameArr_enUS_deDE_esXL_xyXL = new IccLocalizedString[]
-    {
-        LocalizedString_Rand_enUS,
-        LocalizedString_Rand2_deDE,
-        LocalizedString_Rand2_esXL,
-        LocalizedString_Rand2_xyXL,
-    };
+    private static readonly IccLocalizedString[] LocalizedStringSameArrEnUsDeDeEsXlXyXl =
+    [
+        LocalizedStringRandEnUs,
+        LocalizedStringRand2DeDe,
+        LocalizedStringRand2EsXl,
+        LocalizedStringRand2XyXl
+    ];
 
-    public static readonly IccMultiLocalizedUnicodeTagDataEntry MultiLocalizedUnicode_Val = new(LocalizedString_RandArr_enUS_deDE);
-    public static readonly byte[] MultiLocalizedUnicode_Arr = ArrayHelper.Concat(
-        IccTestDataPrimitives.UInt32_2,
+    public static readonly IccMultiLocalizedUnicodeTagDataEntry MultiLocalizedUnicodeVal = new(LocalizedStringRandArrEnUsDeDe);
+    public static readonly byte[] MultiLocalizedUnicodeArr = ArrayHelper.Concat(
+        IccTestDataPrimitives.UInt322,
         new byte[] { 0x00, 0x00, 0x00, 0x0C },  // 12
-        new byte[] { (byte)'e', (byte)'n', (byte)'U', (byte)'S' },
+        [(byte)'e', (byte)'n', (byte)'U', (byte)'S'],
         new byte[] { 0x00, 0x00, 0x00, 0x0C },  // 12
         new byte[] { 0x00, 0x00, 0x00, 0x28 },  // 40
-        new byte[] { (byte)'d', (byte)'e', (byte)'D', (byte)'E' },
+        [(byte)'d', (byte)'e', (byte)'D', (byte)'E'],
         new byte[] { 0x00, 0x00, 0x00, 0x0E },  // 14
         new byte[] { 0x00, 0x00, 0x00, 0x34 },  // 52
-        IccTestDataPrimitives.Unicode_Rand2,
-        IccTestDataPrimitives.Unicode_Rand3);
+        IccTestDataPrimitives.UnicodeRand2,
+        IccTestDataPrimitives.UnicodeRand3);
 
-    public static readonly IccMultiLocalizedUnicodeTagDataEntry MultiLocalizedUnicode_Val2 = new(LocalizedString_RandArr_en_Invariant);
-    public static readonly byte[] MultiLocalizedUnicode_Arr2_Read = ArrayHelper.Concat(
-        IccTestDataPrimitives.UInt32_2,
+    public static readonly IccMultiLocalizedUnicodeTagDataEntry MultiLocalizedUnicodeVal2 = new(LocalizedStringRandArrEnInvariant);
+    public static readonly byte[] MultiLocalizedUnicodeArr2Read = ArrayHelper.Concat(
+        IccTestDataPrimitives.UInt322,
         new byte[] { 0x00, 0x00, 0x00, 0x0C },  // 12
         new byte[] { (byte)'e', (byte)'n', 0x00, 0x00 },
         new byte[] { 0x00, 0x00, 0x00, 0x0C },  // 12
@@ -421,11 +401,11 @@ internal static class IccTestDataTagDataEntry
         new byte[] { 0x00, 0x00, 0x00, 0x00 },
         new byte[] { 0x00, 0x00, 0x00, 0x0E },  // 14
         new byte[] { 0x00, 0x00, 0x00, 0x34 },  // 52
-        IccTestDataPrimitives.Unicode_Rand2,
-        IccTestDataPrimitives.Unicode_Rand3);
+        IccTestDataPrimitives.UnicodeRand2,
+        IccTestDataPrimitives.UnicodeRand3);
 
-    public static readonly byte[] MultiLocalizedUnicode_Arr2_Write = ArrayHelper.Concat(
-        IccTestDataPrimitives.UInt32_2,
+    public static readonly byte[] MultiLocalizedUnicodeArr2Write = ArrayHelper.Concat(
+        IccTestDataPrimitives.UInt322,
         new byte[] { 0x00, 0x00, 0x00, 0x0C },  // 12
         new byte[] { (byte)'e', (byte)'n', 0x00, 0x00 },
         new byte[] { 0x00, 0x00, 0x00, 0x0C },  // 12
@@ -433,393 +413,388 @@ internal static class IccTestDataTagDataEntry
         new byte[] { (byte)'x', (byte)'x', 0x00, 0x00 },
         new byte[] { 0x00, 0x00, 0x00, 0x0E },  // 14
         new byte[] { 0x00, 0x00, 0x00, 0x34 },  // 52
-        IccTestDataPrimitives.Unicode_Rand2,
-        IccTestDataPrimitives.Unicode_Rand3);
+        IccTestDataPrimitives.UnicodeRand2,
+        IccTestDataPrimitives.UnicodeRand3);
 
-    public static readonly IccMultiLocalizedUnicodeTagDataEntry MultiLocalizedUnicode_Val3 = new(LocalizedString_SameArr_enUS_deDE_esXL_xyXL);
-    public static readonly byte[] MultiLocalizedUnicode_Arr3 = ArrayHelper.Concat(
-        IccTestDataPrimitives.UInt32_4,
+    public static readonly IccMultiLocalizedUnicodeTagDataEntry MultiLocalizedUnicodeVal3 = new(LocalizedStringSameArrEnUsDeDeEsXlXyXl);
+    public static readonly byte[] MultiLocalizedUnicodeArr3 = ArrayHelper.Concat(
+        IccTestDataPrimitives.UInt324,
         new byte[] { 0x00, 0x00, 0x00, 0x0C },  // 12
-        new byte[] { (byte)'e', (byte)'n', (byte)'U', (byte)'S' },
-        new byte[] { 0x00, 0x00, 0x00, 0x0C },  // 12
-        new byte[] { 0x00, 0x00, 0x00, 0x40 },  // 64
-        new byte[] { (byte)'d', (byte)'e', (byte)'D', (byte)'E' },
+        [(byte)'e', (byte)'n', (byte)'U', (byte)'S'],
         new byte[] { 0x00, 0x00, 0x00, 0x0C },  // 12
         new byte[] { 0x00, 0x00, 0x00, 0x40 },  // 64
-        new byte[] { (byte)'e', (byte)'s', (byte)'X', (byte)'L' },
+        [(byte)'d', (byte)'e', (byte)'D', (byte)'E'],
         new byte[] { 0x00, 0x00, 0x00, 0x0C },  // 12
         new byte[] { 0x00, 0x00, 0x00, 0x40 },  // 64
-        new byte[] { (byte)'x', (byte)'y', (byte)'X', (byte)'L' },
+        [(byte)'e', (byte)'s', (byte)'X', (byte)'L'],
         new byte[] { 0x00, 0x00, 0x00, 0x0C },  // 12
         new byte[] { 0x00, 0x00, 0x00, 0x40 },  // 64
-        IccTestDataPrimitives.Unicode_Rand2);
+        [(byte)'x', (byte)'y', (byte)'X', (byte)'L'],
+        new byte[] { 0x00, 0x00, 0x00, 0x0C },  // 12
+        new byte[] { 0x00, 0x00, 0x00, 0x40 },  // 64
+        IccTestDataPrimitives.UnicodeRand2);
 
-    public static readonly object[][] MultiLocalizedUnicodeTagDataEntryTestData_Read =
-    {
-        new object[] { MultiLocalizedUnicode_Arr, MultiLocalizedUnicode_Val },
-        new object[] { MultiLocalizedUnicode_Arr2_Read, MultiLocalizedUnicode_Val2 },
-        new object[] { MultiLocalizedUnicode_Arr3, MultiLocalizedUnicode_Val3 },
-    };
+    public static readonly object[][] MultiLocalizedUnicodeTagDataEntryTestDataRead =
+    [
+        [MultiLocalizedUnicodeArr, MultiLocalizedUnicodeVal],
+        [MultiLocalizedUnicodeArr2Read, MultiLocalizedUnicodeVal2],
+        [MultiLocalizedUnicodeArr3, MultiLocalizedUnicodeVal3]
+    ];
 
-    public static readonly object[][] MultiLocalizedUnicodeTagDataEntryTestData_Write =
-    {
-        new object[] { MultiLocalizedUnicode_Arr, MultiLocalizedUnicode_Val },
-        new object[] { MultiLocalizedUnicode_Arr2_Write, MultiLocalizedUnicode_Val2 },
-        new object[] { MultiLocalizedUnicode_Arr3, MultiLocalizedUnicode_Val3 },
-    };
+    public static readonly object[][] MultiLocalizedUnicodeTagDataEntryTestDataWrite =
+    [
+        [MultiLocalizedUnicodeArr, MultiLocalizedUnicodeVal],
+        [MultiLocalizedUnicodeArr2Write, MultiLocalizedUnicodeVal2],
+        [MultiLocalizedUnicodeArr3, MultiLocalizedUnicodeVal3]
+    ];
 
-    public static readonly IccMultiProcessElementsTagDataEntry MultiProcessElements_Val = new(
-        new IccMultiProcessElement[]
-        {
-            IccTestDataMultiProcessElements.MPE_ValCLUT,
-            IccTestDataMultiProcessElements.MPE_ValCLUT,
-        });
+    public static readonly IccMultiProcessElementsTagDataEntry MultiProcessElementsVal = new(
+    [
+        IccTestDataMultiProcessElements.MpeValClut,
+            IccTestDataMultiProcessElements.MpeValClut
+    ]);
 
-    public static readonly byte[] MultiProcessElements_Arr = ArrayHelper.Concat(
-        IccTestDataPrimitives.UInt16_2,
-        IccTestDataPrimitives.UInt16_3,
-        IccTestDataPrimitives.UInt32_2,
+    public static readonly byte[] MultiProcessElementsArr = ArrayHelper.Concat(
+        IccTestDataPrimitives.UInt162,
+        IccTestDataPrimitives.UInt163,
+        IccTestDataPrimitives.UInt322,
         new byte[] { 0x00, 0x00, 0x00, 0x20 },  // 32
         new byte[] { 0x00, 0x00, 0x00, 0x84 },  // 132
         new byte[] { 0x00, 0x00, 0x00, 0xA4 },  // 164
         new byte[] { 0x00, 0x00, 0x00, 0x84 },  // 132
-        IccTestDataMultiProcessElements.MPE_CLUT,
-        IccTestDataMultiProcessElements.MPE_CLUT);
+        IccTestDataMultiProcessElements.MpeClut,
+        IccTestDataMultiProcessElements.MpeClut);
 
     public static readonly object[][] MultiProcessElementsTagDataEntryTestData =
-    {
-        new object[] { MultiProcessElements_Arr, MultiProcessElements_Val },
-    };
+    [
+        [MultiProcessElementsArr, MultiProcessElementsVal]
+    ];
 
-    public static readonly IccNamedColor2TagDataEntry NamedColor2_Val = new(
+    public static readonly IccNamedColor2TagDataEntry NamedColor2Val = new(
         16909060,
         ArrayHelper.Fill('A', 31),
         ArrayHelper.Fill('4', 31),
-        new IccNamedColor[] { IccTestDataNonPrimitives.NamedColor_ValMin, IccTestDataNonPrimitives.NamedColor_ValMin });
+        [IccTestDataNonPrimitives.NamedColorValMin, IccTestDataNonPrimitives.NamedColorValMin]);
 
-    public static readonly byte[] NamedColor2_Arr = ArrayHelper.Concat(
+    public static readonly byte[] NamedColor2Arr = ArrayHelper.Concat(
         new byte[] { 0x01, 0x02, 0x03, 0x04 },
-        IccTestDataPrimitives.UInt32_2,
-        IccTestDataPrimitives.UInt32_3,
+        IccTestDataPrimitives.UInt322,
+        IccTestDataPrimitives.UInt323,
         ArrayHelper.Fill((byte)0x41, 31),
         new byte[] { 0x00 },
         ArrayHelper.Fill((byte)0x34, 31),
         new byte[] { 0x00 },
-        IccTestDataNonPrimitives.NamedColor_Min,
-        IccTestDataNonPrimitives.NamedColor_Min);
+        IccTestDataNonPrimitives.NamedColorMin,
+        IccTestDataNonPrimitives.NamedColorMin);
 
     public static readonly object[][] NamedColor2TagDataEntryTestData =
-    {
-        new object[] { NamedColor2_Arr, NamedColor2_Val },
-    };
+    [
+        [NamedColor2Arr, NamedColor2Val]
+    ];
 
-    public static readonly IccParametricCurveTagDataEntry ParametricCurve_Val = new(IccTestDataCurves.Parametric_ValVar1);
-    public static readonly byte[] ParametricCurve_Arr = IccTestDataCurves.Parametric_Var1;
+    public static readonly IccParametricCurveTagDataEntry ParametricCurveVal = new(IccTestDataCurves.ParametricValVar1);
+    public static readonly byte[] ParametricCurveArr = IccTestDataCurves.ParametricVar1;
 
     public static readonly object[][] ParametricCurveTagDataEntryTestData =
-    {
-        new object[] { ParametricCurve_Arr, ParametricCurve_Val },
-    };
+    [
+        [ParametricCurveArr, ParametricCurveVal]
+    ];
 
-    public static readonly IccProfileSequenceDescTagDataEntry ProfileSequenceDesc_Val = new(
-        new IccProfileDescription[]
-        {
-            IccTestDataNonPrimitives.ProfileDescription_ValRand1,
-            IccTestDataNonPrimitives.ProfileDescription_ValRand1
-        });
+    public static readonly IccProfileSequenceDescTagDataEntry ProfileSequenceDescVal = new(
+    [
+        IccTestDataNonPrimitives.ProfileDescriptionValRand1,
+            IccTestDataNonPrimitives.ProfileDescriptionValRand1
+    ]);
 
-    public static readonly byte[] ProfileSequenceDesc_Arr = ArrayHelper.Concat(
-        IccTestDataPrimitives.UInt32_2,
-        IccTestDataNonPrimitives.ProfileDescription_Rand1,
-        IccTestDataNonPrimitives.ProfileDescription_Rand1);
+    public static readonly byte[] ProfileSequenceDescArr = ArrayHelper.Concat(
+        IccTestDataPrimitives.UInt322,
+        IccTestDataNonPrimitives.ProfileDescriptionRand1,
+        IccTestDataNonPrimitives.ProfileDescriptionRand1);
 
     public static readonly object[][] ProfileSequenceDescTagDataEntryTestData =
-    {
-        new object[] { ProfileSequenceDesc_Arr, ProfileSequenceDesc_Val },
-    };
+    [
+        [ProfileSequenceDescArr, ProfileSequenceDescVal]
+    ];
 
     public static readonly IccProfileSequenceIdentifierTagDataEntry ProfileSequenceIdentifier_Val = new(
-        new IccProfileSequenceIdentifier[]
-        {
-            new IccProfileSequenceIdentifier(IccTestDataNonPrimitives.ProfileId_ValRand, LocalizedString_RandArr_enUS_deDE),
-            new IccProfileSequenceIdentifier(IccTestDataNonPrimitives.ProfileId_ValRand, LocalizedString_RandArr_enUS_deDE),
-        });
+    [
+        new IccProfileSequenceIdentifier(IccTestDataNonPrimitives.ProfileIdValRand, LocalizedStringRandArrEnUsDeDe),
+            new IccProfileSequenceIdentifier(IccTestDataNonPrimitives.ProfileIdValRand, LocalizedStringRandArrEnUsDeDe)
+    ]);
 
-    public static readonly byte[] ProfileSequenceIdentifier_Arr = ArrayHelper.Concat(
-        IccTestDataPrimitives.UInt32_2,
+    public static readonly byte[] ProfileSequenceIdentifierArr = ArrayHelper.Concat(
+        IccTestDataPrimitives.UInt322,
         new byte[] { 0x00, 0x00, 0x00, 0x1C },  // 28
         new byte[] { 0x00, 0x00, 0x00, 0x54 },  // 84
         new byte[] { 0x00, 0x00, 0x00, 0x70 },  // 112
         new byte[] { 0x00, 0x00, 0x00, 0x54 },  // 84
-        IccTestDataNonPrimitives.ProfileId_Rand,        // 16 bytes
-        TagDataEntryHeader_MultiLocalizedUnicodeArr,    // 8  bytes
-        MultiLocalizedUnicode_Arr,                      // 58 bytes
+        IccTestDataNonPrimitives.ProfileIdRand,        // 16 bytes
+        TagDataEntryHeaderMultiLocalizedUnicodeArr,    // 8  bytes
+        MultiLocalizedUnicodeArr,                      // 58 bytes
         new byte[] { 0x00, 0x00 },                      // 2  bytes (padding)
-        IccTestDataNonPrimitives.ProfileId_Rand,
-        TagDataEntryHeader_MultiLocalizedUnicodeArr,
-        MultiLocalizedUnicode_Arr,
+        IccTestDataNonPrimitives.ProfileIdRand,
+        TagDataEntryHeaderMultiLocalizedUnicodeArr,
+        MultiLocalizedUnicodeArr,
         new byte[] { 0x00, 0x00 });
 
     public static readonly object[][] ProfileSequenceIdentifierTagDataEntryTestData =
-    {
-        new object[] { ProfileSequenceIdentifier_Arr, ProfileSequenceIdentifier_Val },
-    };
+    [
+        [ProfileSequenceIdentifierArr, ProfileSequenceIdentifier_Val]
+    ];
 
-    public static readonly IccResponseCurveSet16TagDataEntry ResponseCurveSet16_Val = new(
-        new IccResponseCurve[]
-        {
-            IccTestDataCurves.Response_ValGrad,
-            IccTestDataCurves.Response_ValGrad,
-        });
+    public static readonly IccResponseCurveSet16TagDataEntry ResponseCurveSet16Val = new(
+    [
+        IccTestDataCurves.ResponseValGrad,
+            IccTestDataCurves.ResponseValGrad
+    ]);
 
-    public static readonly byte[] ResponseCurveSet16_Arr = ArrayHelper.Concat(
-        IccTestDataPrimitives.UInt16_3,
-        IccTestDataPrimitives.UInt16_2,
+    public static readonly byte[] ResponseCurveSet16Arr = ArrayHelper.Concat(
+        IccTestDataPrimitives.UInt163,
+        IccTestDataPrimitives.UInt162,
         new byte[] { 0x00, 0x00, 0x00, 0x14 },  // 20
         new byte[] { 0x00, 0x00, 0x00, 0x6C },  // 108
-        IccTestDataCurves.Response_Grad, // 88 bytes
-        IccTestDataCurves.Response_Grad); // 88 bytes
+        IccTestDataCurves.ResponseGrad, // 88 bytes
+        IccTestDataCurves.ResponseGrad); // 88 bytes
 
     public static readonly object[][] ResponseCurveSet16TagDataEntryTestData =
-    {
-        new object[] { ResponseCurveSet16_Arr, ResponseCurveSet16_Val },
-    };
+    [
+        [ResponseCurveSet16Arr, ResponseCurveSet16Val]
+    ];
 
-    public static readonly IccFix16ArrayTagDataEntry Fix16Array_Val = new(new float[] { 1 / 256f, 2 / 256f, 3 / 256f });
-    public static readonly byte[] Fix16Array_Arr = ArrayHelper.Concat(
-        IccTestDataPrimitives.Fix16_1,
-        IccTestDataPrimitives.Fix16_2,
-        IccTestDataPrimitives.Fix16_3);
+    public static readonly IccFix16ArrayTagDataEntry Fix16ArrayVal = new([1 / 256f, 2 / 256f, 3 / 256f]);
+    public static readonly byte[] Fix16ArrayArr = ArrayHelper.Concat(
+        IccTestDataPrimitives.Fix161,
+        IccTestDataPrimitives.Fix162,
+        IccTestDataPrimitives.Fix163);
 
     public static readonly object[][] Fix16ArrayTagDataEntryTestData =
-    {
-        new object[] { Fix16Array_Arr, Fix16Array_Val, 20u },
-    };
+    [
+        [Fix16ArrayArr, Fix16ArrayVal, 20u]
+    ];
 
-    public static readonly IccSignatureTagDataEntry Signature_Val = new("ABCD");
-    public static readonly byte[] Signature_Arr = { 0x41, 0x42, 0x43, 0x44, };
+    public static readonly IccSignatureTagDataEntry SignatureVal = new("ABCD");
+    public static readonly byte[] SignatureArr = [0x41, 0x42, 0x43, 0x44];
 
     public static readonly object[][] SignatureTagDataEntryTestData =
-    {
-        new object[] { Signature_Arr, Signature_Val },
-    };
+    [
+        [SignatureArr, SignatureVal]
+    ];
 
-    public static readonly IccTextTagDataEntry Text_Val = new("ABCD");
-    public static readonly byte[] Text_Arr = { 0x41, 0x42, 0x43, 0x44 };
+    public static readonly IccTextTagDataEntry TextVal = new("ABCD");
+    public static readonly byte[] TextArr = [0x41, 0x42, 0x43, 0x44];
 
     public static readonly object[][] TextTagDataEntryTestData =
-    {
-        new object[] { Text_Arr, Text_Val, 12u },
-    };
+    [
+        [TextArr, TextVal, 12u]
+    ];
 
-    public static readonly IccUFix16ArrayTagDataEntry UFix16Array_Val = new(new float[] { 1, 2, 3 });
-    public static readonly byte[] UFix16Array_Arr = ArrayHelper.Concat(
-        IccTestDataPrimitives.UFix16_1,
-        IccTestDataPrimitives.UFix16_2,
-        IccTestDataPrimitives.UFix16_3);
+    public static readonly IccUFix16ArrayTagDataEntry UFix16ArrayVal = new([1, 2, 3]);
+    public static readonly byte[] UFix16ArrayArr = ArrayHelper.Concat(
+        IccTestDataPrimitives.UFix161,
+        IccTestDataPrimitives.UFix162,
+        IccTestDataPrimitives.UFix163);
 
     public static readonly object[][] UFix16ArrayTagDataEntryTestData =
-    {
-        new object[] { UFix16Array_Arr, UFix16Array_Val, 20u },
-    };
+    [
+        [UFix16ArrayArr, UFix16ArrayVal, 20u]
+    ];
 
-    public static readonly IccUInt16ArrayTagDataEntry UInt16Array_Val = new(new ushort[] { 1, 2, 3 });
-    public static readonly byte[] UInt16Array_Arr = ArrayHelper.Concat(
-        IccTestDataPrimitives.UInt16_1,
-        IccTestDataPrimitives.UInt16_2,
-        IccTestDataPrimitives.UInt16_3);
+    public static readonly IccUInt16ArrayTagDataEntry UInt16ArrayVal = new([1, 2, 3]);
+    public static readonly byte[] UInt16ArrayArr = ArrayHelper.Concat(
+        IccTestDataPrimitives.UInt161,
+        IccTestDataPrimitives.UInt162,
+        IccTestDataPrimitives.UInt163);
 
     public static readonly object[][] UInt16ArrayTagDataEntryTestData =
-    {
-        new object[] { UInt16Array_Arr, UInt16Array_Val, 14u },
-    };
+    [
+        [UInt16ArrayArr, UInt16ArrayVal, 14u]
+    ];
 
-    public static readonly IccUInt32ArrayTagDataEntry UInt32Array_Val = new(new uint[] { 1, 2, 3 });
-    public static readonly byte[] UInt32Array_Arr = ArrayHelper.Concat(
-        IccTestDataPrimitives.UInt32_1,
-        IccTestDataPrimitives.UInt32_2,
-        IccTestDataPrimitives.UInt32_3);
+    public static readonly IccUInt32ArrayTagDataEntry UInt32ArrayVal = new([1, 2, 3]);
+    public static readonly byte[] UInt32ArrayArr = ArrayHelper.Concat(
+        IccTestDataPrimitives.UInt321,
+        IccTestDataPrimitives.UInt322,
+        IccTestDataPrimitives.UInt323);
 
     public static readonly object[][] UInt32ArrayTagDataEntryTestData =
-    {
-        new object[] { UInt32Array_Arr, UInt32Array_Val, 20u },
-    };
+    [
+        [UInt32ArrayArr, UInt32ArrayVal, 20u]
+    ];
 
-    public static readonly IccUInt64ArrayTagDataEntry UInt64Array_Val = new(new ulong[] { 1, 2, 3 });
-    public static readonly byte[] UInt64Array_Arr = ArrayHelper.Concat(
-        IccTestDataPrimitives.UInt64_1,
-        IccTestDataPrimitives.UInt64_2,
-        IccTestDataPrimitives.UInt64_3);
+    public static readonly IccUInt64ArrayTagDataEntry UInt64ArrayVal = new([1, 2, 3]);
+    public static readonly byte[] UInt64ArrayArr = ArrayHelper.Concat(
+        IccTestDataPrimitives.UInt641,
+        IccTestDataPrimitives.UInt642,
+        IccTestDataPrimitives.UInt643);
 
     public static readonly object[][] UInt64ArrayTagDataEntryTestData =
-    {
-        new object[] { UInt64Array_Arr, UInt64Array_Val, 32u },
-    };
+    [
+        [UInt64ArrayArr, UInt64ArrayVal, 32u]
+    ];
 
-    public static readonly IccUInt8ArrayTagDataEntry UInt8Array_Val = new(new byte[] { 1, 2, 3 });
-    public static readonly byte[] UInt8Array_Arr = { 1, 2, 3 };
+    public static readonly IccUInt8ArrayTagDataEntry UInt8ArrayVal = new([1, 2, 3]);
+    public static readonly byte[] UInt8ArrayArr = [1, 2, 3];
 
     public static readonly object[][] UInt8ArrayTagDataEntryTestData =
-    {
-        new object[] { UInt8Array_Arr, UInt8Array_Val, 11u },
-    };
+    [
+        [UInt8ArrayArr, UInt8ArrayVal, 11u]
+    ];
 
-    public static readonly IccViewingConditionsTagDataEntry ViewingConditions_Val = new(
-        IccTestDataNonPrimitives.XyzNumber_ValVar1,
-        IccTestDataNonPrimitives.XyzNumber_ValVar2,
+    public static readonly IccViewingConditionsTagDataEntry ViewingConditionsVal = new(
+        IccTestDataNonPrimitives.XyzNumberValVar1,
+        IccTestDataNonPrimitives.XyzNumberValVar2,
         IccStandardIlluminant.D50);
 
-    public static readonly byte[] ViewingConditions_Arr = ArrayHelper.Concat(
-        IccTestDataNonPrimitives.XyzNumber_Var1,
-        IccTestDataNonPrimitives.XyzNumber_Var2,
-        IccTestDataPrimitives.UInt32_1);
+    public static readonly byte[] ViewingConditionsArr = ArrayHelper.Concat(
+        IccTestDataNonPrimitives.XyzNumberVar1,
+        IccTestDataNonPrimitives.XyzNumberVar2,
+        IccTestDataPrimitives.UInt321);
 
     public static readonly object[][] ViewingConditionsTagDataEntryTestData =
-    {
-        new object[] { ViewingConditions_Arr, ViewingConditions_Val },
-    };
+    [
+        [ViewingConditionsArr, ViewingConditionsVal]
+    ];
 
-    public static readonly IccXyzTagDataEntry XYZ_Val = new(new Vector3[]
-    {
-        IccTestDataNonPrimitives.XyzNumber_ValVar1,
-        IccTestDataNonPrimitives.XyzNumber_ValVar2,
-        IccTestDataNonPrimitives.XyzNumber_ValVar3,
-    });
+    public static readonly IccXyzTagDataEntry XyzVal = new([
+        IccTestDataNonPrimitives.XyzNumberValVar1,
+        IccTestDataNonPrimitives.XyzNumberValVar2,
+        IccTestDataNonPrimitives.XyzNumberValVar3
+    ]);
 
-    public static readonly byte[] XYZ_Arr = ArrayHelper.Concat(
-        IccTestDataNonPrimitives.XyzNumber_Var1,
-        IccTestDataNonPrimitives.XyzNumber_Var2,
-        IccTestDataNonPrimitives.XyzNumber_Var3);
+    public static readonly byte[] XyzArr = ArrayHelper.Concat(
+        IccTestDataNonPrimitives.XyzNumberVar1,
+        IccTestDataNonPrimitives.XyzNumberVar2,
+        IccTestDataNonPrimitives.XyzNumberVar3);
 
     public static readonly object[][] XYZTagDataEntryTestData =
-    {
-        new object[] { XYZ_Arr, XYZ_Val, 44u },
-    };
+    [
+        [XyzArr, XyzVal, 44u]
+    ];
 
-    public static readonly IccTextDescriptionTagDataEntry TextDescription_Val1 = new(
-        IccTestDataPrimitives.Ascii_ValRand,
-        IccTestDataPrimitives.Unicode_ValRand1,
+    public static readonly IccTextDescriptionTagDataEntry TextDescriptionVal1 = new(
+        IccTestDataPrimitives.AsciiValRand,
+        IccTestDataPrimitives.UnicodeValRand1,
         ArrayHelper.Fill('A', 66),
         1701729619,
         2);
 
-    public static readonly byte[] TextDescription_Arr1 = ArrayHelper.Concat(
+    public static readonly byte[] TextDescriptionArr1 = ArrayHelper.Concat(
         new byte[] { 0x00, 0x00, 0x00, 0x0B }, // 11
-        IccTestDataPrimitives.Ascii_Rand,
+        IccTestDataPrimitives.AsciiRand,
         new byte[] { 0x00 }, // Null terminator
         new byte[] { 0x65, 0x6E, 0x55, 0x53 }, // enUS
         new byte[] { 0x00, 0x00, 0x00, 0x0E }, // 14
-        IccTestDataPrimitives.Unicode_Rand1,
+        IccTestDataPrimitives.UnicodeRand1,
         new byte[] { 0x00, 0x00 }, // Null terminator
         new byte[] { 0x00, 0x02, 0x43 }, // 2, 67
         ArrayHelper.Fill((byte)0x41, 66),
         new byte[] { 0x00 }); // Null terminator
 
-    public static readonly IccTextDescriptionTagDataEntry TextDescription_Val2 = new(IccTestDataPrimitives.Ascii_ValRand, null, null, 0, 0);
-    public static readonly byte[] TextDescription_Arr2 = ArrayHelper.Concat(
+    public static readonly IccTextDescriptionTagDataEntry TextDescriptionVal2 = new(IccTestDataPrimitives.AsciiValRand, null, null, 0, 0);
+    public static readonly byte[] TextDescriptionArr2 = ArrayHelper.Concat(
         new byte[] { 0x00, 0x00, 0x00, 0x0B },  // 11
-        IccTestDataPrimitives.Ascii_Rand,
+        IccTestDataPrimitives.AsciiRand,
         new byte[] { 0x00 },                    // Null terminator
-        IccTestDataPrimitives.UInt32_0,
-        IccTestDataPrimitives.UInt32_0,
+        IccTestDataPrimitives.UInt320,
+        IccTestDataPrimitives.UInt320,
         new byte[] { 0x00, 0x00, 0x00 },        // 0, 0
         ArrayHelper.Fill((byte)0x00, 67));
 
     public static readonly object[][] TextDescriptionTagDataEntryTestData =
-    {
-        new object[] { TextDescription_Arr1, TextDescription_Val1 },
-        new object[] { TextDescription_Arr2, TextDescription_Val2 },
-    };
+    [
+        [TextDescriptionArr1, TextDescriptionVal1],
+        [TextDescriptionArr2, TextDescriptionVal2]
+    ];
 
-    public static readonly IccCrdInfoTagDataEntry CrdInfo_Val = new(
-        IccTestDataPrimitives.Ascii_ValRand4,
-        IccTestDataPrimitives.Ascii_ValRand1,
-        IccTestDataPrimitives.Ascii_ValRand2,
-        IccTestDataPrimitives.Ascii_ValRand3,
-        IccTestDataPrimitives.Ascii_ValRand4);
+    public static readonly IccCrdInfoTagDataEntry CrdInfoVal = new(
+        IccTestDataPrimitives.AsciiValRand4,
+        IccTestDataPrimitives.AsciiValRand1,
+        IccTestDataPrimitives.AsciiValRand2,
+        IccTestDataPrimitives.AsciiValRand3,
+        IccTestDataPrimitives.AsciiValRand4);
 
-    public static readonly byte[] CrdInfo_Arr = ArrayHelper.Concat(
-        IccTestDataPrimitives.UInt32_6,
-        IccTestDataPrimitives.Ascii_Rand4,
+    public static readonly byte[] CrdInfoArr = ArrayHelper.Concat(
+        IccTestDataPrimitives.UInt326,
+        IccTestDataPrimitives.AsciiRand4,
         new byte[] { 0 },
-        IccTestDataPrimitives.UInt32_6,
-        IccTestDataPrimitives.Ascii_Rand1,
+        IccTestDataPrimitives.UInt326,
+        IccTestDataPrimitives.AsciiRand1,
         new byte[] { 0 },
-        IccTestDataPrimitives.UInt32_6,
-        IccTestDataPrimitives.Ascii_Rand2,
+        IccTestDataPrimitives.UInt326,
+        IccTestDataPrimitives.AsciiRand2,
         new byte[] { 0 },
-        IccTestDataPrimitives.UInt32_6,
-        IccTestDataPrimitives.Ascii_Rand3,
+        IccTestDataPrimitives.UInt326,
+        IccTestDataPrimitives.AsciiRand3,
         new byte[] { 0 },
-        IccTestDataPrimitives.UInt32_6,
-        IccTestDataPrimitives.Ascii_Rand4,
+        IccTestDataPrimitives.UInt326,
+        IccTestDataPrimitives.AsciiRand4,
         new byte[] { 0 });
 
     public static readonly object[][] CrdInfoTagDataEntryTestData =
-    {
-        new object[] { CrdInfo_Arr, CrdInfo_Val },
-    };
+    [
+        [CrdInfoArr, CrdInfoVal]
+    ];
 
-    public static readonly IccScreeningTagDataEntry Screening_Val = new(
+    public static readonly IccScreeningTagDataEntry ScreeningVal = new(
         IccScreeningFlag.DefaultScreens | IccScreeningFlag.UnitLinesPerCm,
-        new IccScreeningChannel[] { IccTestDataNonPrimitives.ScreeningChannel_ValRand1, IccTestDataNonPrimitives.ScreeningChannel_ValRand2 });
+        [IccTestDataNonPrimitives.ScreeningChannelValRand1, IccTestDataNonPrimitives.ScreeningChannelValRand2]);
 
-    public static readonly byte[] Screening_Arr = ArrayHelper.Concat(
-        IccTestDataPrimitives.Int32_1,
-        IccTestDataPrimitives.UInt32_2,
-        IccTestDataNonPrimitives.ScreeningChannel_Rand1,
-        IccTestDataNonPrimitives.ScreeningChannel_Rand2);
+    public static readonly byte[] ScreeningArr = ArrayHelper.Concat(
+        IccTestDataPrimitives.Int321,
+        IccTestDataPrimitives.UInt322,
+        IccTestDataNonPrimitives.ScreeningChannelRand1,
+        IccTestDataNonPrimitives.ScreeningChannelRand2);
 
     public static readonly object[][] ScreeningTagDataEntryTestData =
-    {
-        new object[] { Screening_Arr, Screening_Val },
-    };
+    [
+        [ScreeningArr, ScreeningVal]
+    ];
 
-    public static readonly IccUcrBgTagDataEntry UcrBg_Val = new(
-        new ushort[] { 3, 4, 6 },
-        new ushort[] { 9, 7, 2, 5 },
-        IccTestDataPrimitives.Ascii_ValRand);
+    public static readonly IccUcrBgTagDataEntry UcrBgVal = new(
+        [3, 4, 6],
+        [9, 7, 2, 5],
+        IccTestDataPrimitives.AsciiValRand);
 
-    public static readonly byte[] UcrBg_Arr = ArrayHelper.Concat(
-        IccTestDataPrimitives.UInt32_3,
-        IccTestDataPrimitives.UInt16_3,
-        IccTestDataPrimitives.UInt16_4,
-        IccTestDataPrimitives.UInt16_6,
-        IccTestDataPrimitives.UInt32_4,
-        IccTestDataPrimitives.UInt16_9,
-        IccTestDataPrimitives.UInt16_7,
-        IccTestDataPrimitives.UInt16_2,
-        IccTestDataPrimitives.UInt16_5,
-        IccTestDataPrimitives.Ascii_Rand,
+    public static readonly byte[] UcrBgArr = ArrayHelper.Concat(
+        IccTestDataPrimitives.UInt323,
+        IccTestDataPrimitives.UInt163,
+        IccTestDataPrimitives.UInt164,
+        IccTestDataPrimitives.UInt166,
+        IccTestDataPrimitives.UInt324,
+        IccTestDataPrimitives.UInt169,
+        IccTestDataPrimitives.UInt167,
+        IccTestDataPrimitives.UInt162,
+        IccTestDataPrimitives.UInt165,
+        IccTestDataPrimitives.AsciiRand,
         new byte[] { 0 });
 
     public static readonly object[][] UcrBgTagDataEntryTestData =
-    {
-        new object[] { UcrBg_Arr, UcrBg_Val, 41 },
-    };
+    [
+        [UcrBgArr, UcrBgVal, 41]
+    ];
 
-    public static readonly IccTagDataEntry TagDataEntry_CurveVal = Curve_Val_2;
-    public static readonly byte[] TagDataEntry_CurveArr = ArrayHelper.Concat(
-        TagDataEntryHeader_CurveArr,
-        Curve_Arr_2,
+    public static readonly IccTagDataEntry TagDataEntryCurveVal = CurveVal2;
+    public static readonly byte[] TagDataEntryCurveArr = ArrayHelper.Concat(
+        TagDataEntryHeaderCurveArr,
+        CurveArr2,
         new byte[] { 0x00, 0x00 }); // padding
 
-    public static readonly IccTagDataEntry TagDataEntry_MultiLocalizedUnicodeVal = MultiLocalizedUnicode_Val;
-    public static readonly byte[] TagDataEntry_MultiLocalizedUnicodeArr = ArrayHelper.Concat(
-        TagDataEntryHeader_MultiLocalizedUnicodeArr,
-        MultiLocalizedUnicode_Arr,
+    public static readonly IccTagDataEntry TagDataEntryMultiLocalizedUnicodeVal = MultiLocalizedUnicodeVal;
+    public static readonly byte[] TagDataEntryMultiLocalizedUnicodeArr = ArrayHelper.Concat(
+        TagDataEntryHeaderMultiLocalizedUnicodeArr,
+        MultiLocalizedUnicodeArr,
         new byte[] { 0x00, 0x00 }); // padding
 
-    public static readonly IccTagTableEntry TagDataEntry_MultiLocalizedUnicodeTable = new(
+    public static readonly IccTagTableEntry TagDataEntryMultiLocalizedUnicodeTable = new(
         IccProfileTag.Unknown,
         0,
-        (uint)TagDataEntry_MultiLocalizedUnicodeArr.Length - 2);
+        (uint)TagDataEntryMultiLocalizedUnicodeArr.Length - 2);
 
-    public static readonly IccTagTableEntry TagDataEntry_CurveTable = new(IccProfileTag.Unknown, 0, (uint)TagDataEntry_CurveArr.Length - 2);
+    public static readonly IccTagTableEntry TagDataEntryCurveTable = new(IccProfileTag.Unknown, 0, (uint)TagDataEntryCurveArr.Length - 2);
 
     public static readonly object[][] TagDataEntryTestData =
-    {
-        new object[] { TagDataEntry_CurveArr, TagDataEntry_CurveVal },
-        new object[] { TagDataEntry_MultiLocalizedUnicodeArr, TagDataEntry_MultiLocalizedUnicodeVal },
-    };
+    [
+        [TagDataEntryCurveArr, TagDataEntryCurveVal],
+        [TagDataEntryMultiLocalizedUnicodeArr, TagDataEntryMultiLocalizedUnicodeVal]
+    ];
 }

@@ -10,14 +10,14 @@ public class OrderedDitherFactoryTests
 {
 #pragma warning disable SA1025 // Code should not contain multiple whitespace in a row
 
-    private static readonly DenseMatrix<uint> Expected2x2Matrix = new DenseMatrix<uint>(
+    private static readonly DenseMatrix<uint> Expected2x2Matrix = new(
     new uint[2, 2]
     {
         { 0, 2 },
         { 3, 1 }
     });
 
-    private static readonly DenseMatrix<uint> Expected3x3Matrix = new DenseMatrix<uint>(
+    private static readonly DenseMatrix<uint> Expected3x3Matrix = new(
     new uint[3, 3]
     {
         { 0, 5, 2 },
@@ -25,7 +25,7 @@ public class OrderedDitherFactoryTests
         { 3, 6, 1 }
     });
 
-    private static readonly DenseMatrix<uint> Expected4x4Matrix = new DenseMatrix<uint>(
+    private static readonly DenseMatrix<uint> Expected4x4Matrix = new(
     new uint[4, 4]
     {
         {  0, 8, 2, 10 },
@@ -34,7 +34,7 @@ public class OrderedDitherFactoryTests
         { 15, 7, 13, 5 }
     });
 
-    private static readonly DenseMatrix<uint> Expected8x8Matrix = new DenseMatrix<uint>(
+    private static readonly DenseMatrix<uint> Expected8x8Matrix = new(
     new uint[8, 8]
     {
         {  0, 32,  8, 40,  2, 34, 10, 42 },

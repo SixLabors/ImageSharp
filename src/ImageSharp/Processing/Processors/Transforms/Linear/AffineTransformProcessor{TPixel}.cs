@@ -18,6 +18,7 @@ internal class AffineTransformProcessor<TPixel> : TransformProcessor<TPixel>, IR
 {
     private readonly Size destinationSize;
     private readonly Matrix3x2 transformMatrix;
+    private readonly Matrix4x4 transformMatrix4x4;
     private readonly IResampler resampler;
     private ImageFrame<TPixel>? source;
     private ImageFrame<TPixel>? destination;
@@ -34,6 +35,7 @@ internal class AffineTransformProcessor<TPixel> : TransformProcessor<TPixel>, IR
     {
         this.destinationSize = definition.DestinationSize;
         this.transformMatrix = definition.TransformMatrix;
+        this.transformMatrix4x4 = new(this.transformMatrix);
         this.resampler = definition.Sampler;
     }
 
@@ -46,6 +48,9 @@ internal class AffineTransformProcessor<TPixel> : TransformProcessor<TPixel>, IR
         this.destination = destination;
         this.resampler.ApplyTransform(this);
     }
+
+    /// <inheritdoc/>
+    protected override Matrix4x4 GetTransformMatrix() => this.transformMatrix4x4;
 
     /// <inheritdoc/>
     public void ApplyTransform<TResampler>(in TResampler sampler)
@@ -61,47 +66,49 @@ internal class AffineTransformProcessor<TPixel> : TransformProcessor<TPixel>, IR
         if (matrix.Equals(Matrix3x2.Identity))
         {
             // The clone will be blank here copy all the pixel data over
-            var interest = Rectangle.Intersect(this.SourceRectangle, destination.Bounds());
+            Rectangle interest = Rectangle.Intersect(this.SourceRectangle, destination.Bounds);
             Buffer2DRegion<TPixel> sourceBuffer = source.PixelBuffer.GetRegion(interest);
-            Buffer2DRegion<TPixel> destbuffer = destination.PixelBuffer.GetRegion(interest);
+            Buffer2DRegion<TPixel> destinationBuffer = destination.PixelBuffer.GetRegion(interest);
             for (int y = 0; y < sourceBuffer.Height; y++)
             {
-                sourceBuffer.DangerousGetRowSpan(y).CopyTo(destbuffer.DangerousGetRowSpan(y));
+                sourceBuffer.DangerousGetRowSpan(y).CopyTo(destinationBuffer.DangerousGetRowSpan(y));
             }
 
             return;
         }
 
-        // Convert from screen to world space.
+        // All matrices are defined in normalized coordinate space so we need to convert to pixel space.
+        // After normalization we need to invert the matrix for correct sampling.
+        matrix = TransformUtilities.NormalizeToPixel(matrix);
         Matrix3x2.Invert(matrix, out matrix);
 
         if (sampler is NearestNeighborResampler)
         {
-            var nnOperation = new NNAffineOperation(
+            NNAffineOperation nnOperation = new(
                 source.PixelBuffer,
-                Rectangle.Intersect(this.SourceRectangle, source.Bounds()),
+                Rectangle.Intersect(this.SourceRectangle, source.Bounds),
                 destination.PixelBuffer,
                 matrix);
 
             ParallelRowIterator.IterateRows(
                 configuration,
-                destination.Bounds(),
+                destination.Bounds,
                 in nnOperation);
 
             return;
         }
 
-        var operation = new AffineOperation<TResampler>(
+        AffineOperation<TResampler> operation = new(
             configuration,
             source.PixelBuffer,
-            Rectangle.Intersect(this.SourceRectangle, source.Bounds()),
+            Rectangle.Intersect(this.SourceRectangle, source.Bounds),
             destination.PixelBuffer,
             in sampler,
             matrix);
 
         ParallelRowIterator.IterateRowIntervals<AffineOperation<TResampler>, Vector4>(
             configuration,
-            destination.Bounds(),
+            destination.Bounds,
             in operation);
     }
 
@@ -128,17 +135,17 @@ internal class AffineTransformProcessor<TPixel> : TransformProcessor<TPixel>, IR
         [MethodImpl(InliningOptions.ShortMethod)]
         public void Invoke(int y)
         {
-            Span<TPixel> destRow = this.destination.DangerousGetRowSpan(y);
+            Span<TPixel> destinationRowSpan = this.destination.DangerousGetRowSpan(y);
 
-            for (int x = 0; x < destRow.Length; x++)
+            for (int x = 0; x < destinationRowSpan.Length; x++)
             {
-                var point = Vector2.Transform(new Vector2(x, y), this.matrix);
+                Vector2 point = Vector2.Transform(new Vector2(x, y), this.matrix);
                 int px = (int)MathF.Round(point.X);
                 int py = (int)MathF.Round(point.Y);
 
                 if (this.bounds.Contains(px, py))
                 {
-                    destRow[x] = this.source.GetElementUnsafe(px, py);
+                    destinationRowSpan[x] = this.source.GetElementUnsafe(px, py);
                 }
             }
         }
@@ -195,16 +202,16 @@ internal class AffineTransformProcessor<TPixel> : TransformProcessor<TPixel>, IR
 
             for (int y = rows.Min; y < rows.Max; y++)
             {
-                Span<TPixel> rowSpan = this.destination.DangerousGetRowSpan(y);
+                Span<TPixel> destinationRowSpan = this.destination.DangerousGetRowSpan(y);
                 PixelOperations<TPixel>.Instance.ToVector4(
                     this.configuration,
-                    rowSpan,
+                    destinationRowSpan,
                     span,
                     PixelConversionModifiers.Scale);
 
                 for (int x = 0; x < span.Length; x++)
                 {
-                    var point = Vector2.Transform(new Vector2(x, y), matrix);
+                    Vector2 point = Vector2.Transform(new Vector2(x, y), matrix);
                     float pY = point.Y;
                     float pX = point.X;
 
@@ -221,13 +228,14 @@ internal class AffineTransformProcessor<TPixel> : TransformProcessor<TPixel>, IR
                     Vector4 sum = Vector4.Zero;
                     for (int yK = top; yK <= bottom; yK++)
                     {
+                        Span<TPixel> sourceRowSpan = this.source.DangerousGetRowSpan(yK);
                         float yWeight = sampler.GetValue(yK - pY);
 
                         for (int xK = left; xK <= right; xK++)
                         {
                             float xWeight = sampler.GetValue(xK - pX);
 
-                            Vector4 current = this.source.GetElementUnsafe(xK, yK).ToScaledVector4();
+                            Vector4 current = sourceRowSpan[xK].ToScaledVector4();
                             Numerics.Premultiply(ref current);
                             sum += current * xWeight * yWeight;
                         }
@@ -240,7 +248,7 @@ internal class AffineTransformProcessor<TPixel> : TransformProcessor<TPixel>, IR
                 PixelOperations<TPixel>.Instance.FromVector4Destructive(
                     this.configuration,
                     span,
-                    rowSpan,
+                    destinationRowSpan,
                     PixelConversionModifiers.Scale);
             }
         }

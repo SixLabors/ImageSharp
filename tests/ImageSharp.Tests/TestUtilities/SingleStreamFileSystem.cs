@@ -13,5 +13,9 @@ internal class SingleStreamFileSystem : IFileSystem
 
     Stream IFileSystem.Create(string path) => this.stream;
 
+    Stream IFileSystem.CreateAsynchronous(string path) => this.stream;
+
     Stream IFileSystem.OpenRead(string path) => this.stream;
+
+    Stream IFileSystem.OpenReadAsynchronous(string path) => this.stream;
 }

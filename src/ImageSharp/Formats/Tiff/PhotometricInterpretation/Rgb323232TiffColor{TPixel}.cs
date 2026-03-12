@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Numerics;
 using SixLabors.ImageSharp.Formats.Tiff.Utils;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
@@ -11,6 +10,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation;
 /// <summary>
 /// Implements the 'RGB' photometric interpretation with 32 bits for each channel.
 /// </summary>
+/// <typeparam name="TPixel">The type of pixel format.</typeparam>
 internal class Rgb323232TiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
     where TPixel : unmanaged, IPixel<TPixel>
 {
@@ -25,8 +25,6 @@ internal class Rgb323232TiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
     /// <inheritdoc/>
     public override void Decode(ReadOnlySpan<byte> data, Buffer2D<TPixel> pixels, int left, int top, int width, int height)
     {
-        var color = default(TPixel);
-        color.FromScaledVector4(Vector4.Zero);
         int offset = 0;
 
         for (int y = top; y < top + height; y++)
@@ -37,32 +35,32 @@ internal class Rgb323232TiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
             {
                 for (int x = 0; x < pixelRow.Length; x++)
                 {
-                    ulong r = TiffUtils.ConvertToUIntBigEndian(data.Slice(offset, 4));
+                    uint r = TiffUtilities.ConvertToUIntBigEndian(data.Slice(offset, 4));
                     offset += 4;
 
-                    ulong g = TiffUtils.ConvertToUIntBigEndian(data.Slice(offset, 4));
+                    uint g = TiffUtilities.ConvertToUIntBigEndian(data.Slice(offset, 4));
                     offset += 4;
 
-                    ulong b = TiffUtils.ConvertToUIntBigEndian(data.Slice(offset, 4));
+                    uint b = TiffUtilities.ConvertToUIntBigEndian(data.Slice(offset, 4));
                     offset += 4;
 
-                    pixelRow[x] = TiffUtils.ColorScaleTo32Bit(r, g, b, color);
+                    pixelRow[x] = TiffUtilities.ColorScaleTo32Bit<TPixel>(r, g, b);
                 }
             }
             else
             {
                 for (int x = 0; x < pixelRow.Length; x++)
                 {
-                    ulong r = TiffUtils.ConvertToUIntLittleEndian(data.Slice(offset, 4));
+                    uint r = TiffUtilities.ConvertToUIntLittleEndian(data.Slice(offset, 4));
                     offset += 4;
 
-                    ulong g = TiffUtils.ConvertToUIntLittleEndian(data.Slice(offset, 4));
+                    uint g = TiffUtilities.ConvertToUIntLittleEndian(data.Slice(offset, 4));
                     offset += 4;
 
-                    ulong b = TiffUtils.ConvertToUIntLittleEndian(data.Slice(offset, 4));
+                    uint b = TiffUtilities.ConvertToUIntLittleEndian(data.Slice(offset, 4));
                     offset += 4;
 
-                    pixelRow[x] = TiffUtils.ColorScaleTo32Bit(r, g, b, color);
+                    pixelRow[x] = TiffUtilities.ColorScaleTo32Bit<TPixel>(r, g, b);
                 }
             }
         }

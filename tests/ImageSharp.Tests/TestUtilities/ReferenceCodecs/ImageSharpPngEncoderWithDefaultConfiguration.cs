@@ -2,7 +2,6 @@
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.Formats.Png;
-using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs;
 
@@ -15,10 +14,7 @@ public sealed class ImageSharpPngEncoderWithDefaultConfiguration : PngEncoder
     /// <inheritdoc/>
     protected override void Encode<TPixel>(Image<TPixel> image, Stream stream, CancellationToken cancellationToken)
     {
-        Configuration configuration = Configuration.Default;
-        MemoryAllocator allocator = configuration.MemoryAllocator;
-
-        using PngEncoderCore encoder = new(allocator, configuration, this);
+        using PngEncoderCore encoder = new(Configuration.Default, this);
         encoder.Encode(image, stream, cancellationToken);
     }
 }

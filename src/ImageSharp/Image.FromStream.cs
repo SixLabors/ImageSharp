@@ -72,7 +72,7 @@ public abstract partial class Image
         => WithSeekableStreamAsync(
             options,
             stream,
-            (s, _) => Task.FromResult(InternalDetectFormat(options.Configuration, s)),
+            async (s, ct) => await InternalDetectFormatAsync(options.Configuration, s, ct).ConfigureAwait(false),
             cancellationToken);
 
     /// <summary>

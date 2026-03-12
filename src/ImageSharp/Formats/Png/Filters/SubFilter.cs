@@ -136,7 +136,7 @@ internal static class SubFilter
             Vector256<byte> zero = Vector256<byte>.Zero;
             Vector256<int> sumAccumulator = Vector256<int>.Zero;
 
-            for (nuint xLeft = x - (uint)bytesPerPixel; x <= (uint)(scanline.Length - Vector256<byte>.Count); xLeft += (uint)Vector256<byte>.Count)
+            for (nuint xLeft = x - (uint)bytesPerPixel; (int)x <= (scanline.Length - Vector256<byte>.Count); xLeft += (uint)Vector256<byte>.Count)
             {
                 Vector256<byte> scan = Unsafe.As<byte, Vector256<byte>>(ref Unsafe.Add(ref scanBaseRef, x));
                 Vector256<byte> prev = Unsafe.As<byte, Vector256<byte>>(ref Unsafe.Add(ref scanBaseRef, xLeft));
@@ -150,11 +150,12 @@ internal static class SubFilter
 
             sum += Numerics.EvenReduceSum(sumAccumulator);
         }
-        else if (Vector.IsHardwareAccelerated)
+        else
+        if (Vector.IsHardwareAccelerated)
         {
             Vector<uint> sumAccumulator = Vector<uint>.Zero;
 
-            for (nuint xLeft = x - (uint)bytesPerPixel; x <= (uint)(scanline.Length - Vector<byte>.Count); xLeft += (uint)Vector<byte>.Count)
+            for (nuint xLeft = x - (uint)bytesPerPixel; (int)x <= (scanline.Length - Vector<byte>.Count); xLeft += (uint)Vector<byte>.Count)
             {
                 Vector<byte> scan = Unsafe.As<byte, Vector<byte>>(ref Unsafe.Add(ref scanBaseRef, x));
                 Vector<byte> prev = Unsafe.As<byte, Vector<byte>>(ref Unsafe.Add(ref scanBaseRef, xLeft));

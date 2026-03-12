@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Numerics;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Processing.Processors;
@@ -48,7 +49,6 @@ public abstract class CloningImageProcessor<TPixel> : ICloningImageProcessor<TPi
         Image<TPixel> clone = this.CreateTarget();
         this.CheckFrameCount(this.Source, clone);
 
-        Configuration configuration = this.Configuration;
         this.BeforeImageApply(clone);
 
         for (int i = 0; i < this.Source.Frames.Count; i++)
@@ -77,9 +77,10 @@ public abstract class CloningImageProcessor<TPixel> : ICloningImageProcessor<TPi
         {
             clone = ((ICloningImageProcessor<TPixel>)this).CloneAndExecute();
 
-            // We now need to move the pixel data/size data from the clone to the source.
+            // We now need to move the pixel data/size data and any metadata from the clone to the source.
             this.CheckFrameCount(this.Source, clone);
             this.Source.SwapOrCopyPixelsBuffersFrom(clone);
+            this.Source.CopyMetadataFrom(clone);
         }
         finally
         {
@@ -132,16 +133,14 @@ public abstract class CloningImageProcessor<TPixel> : ICloningImageProcessor<TPi
     /// <param name="source">The source image. Cannot be null.</param>
     /// <param name="destination">The cloned/destination image. Cannot be null.</param>
     protected virtual void AfterFrameApply(ImageFrame<TPixel> source, ImageFrame<TPixel> destination)
-    {
-    }
+        => destination.Metadata.AfterFrameApply(source, destination, Matrix4x4.Identity);
 
     /// <summary>
     /// This method is called after the process is applied to prepare the processor.
     /// </summary>
     /// <param name="destination">The cloned/destination image. Cannot be null.</param>
     protected virtual void AfterImageApply(Image<TPixel> destination)
-    {
-    }
+        => destination.Metadata.AfterImageApply(destination, Matrix4x4.Identity);
 
     /// <summary>
     /// Disposes the object and frees resources for the Garbage Collector.
@@ -157,7 +156,7 @@ public abstract class CloningImageProcessor<TPixel> : ICloningImageProcessor<TPi
         Size destinationSize = this.GetDestinationSize();
 
         // We will always be creating the clone even for mutate because we may need to resize the canvas.
-        var destinationFrames = new ImageFrame<TPixel>[source.Frames.Count];
+        ImageFrame<TPixel>[] destinationFrames = new ImageFrame<TPixel>[source.Frames.Count];
         for (int i = 0; i < destinationFrames.Length; i++)
         {
             destinationFrames[i] = new ImageFrame<TPixel>(

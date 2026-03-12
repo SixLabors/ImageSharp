@@ -11,7 +11,7 @@ public class Block8x8F_Quantize
 {
     private Block8x8F block = CreateFromScalar(1);
     private Block8x8F quant = CreateFromScalar(1);
-    private Block8x8 result = default;
+    private Block8x8 result;
 
     [Benchmark]
     public short Quantize()

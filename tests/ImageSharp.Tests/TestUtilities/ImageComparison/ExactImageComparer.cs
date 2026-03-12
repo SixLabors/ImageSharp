@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -9,14 +8,14 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 
 public class ExactImageComparer : ImageComparer
 {
-    public static ExactImageComparer Instance { get; } = new ExactImageComparer();
+    public static ExactImageComparer Instance { get; } = new();
 
     public override ImageSimilarityReport<TPixelA, TPixelB> CompareImagesOrFrames<TPixelA, TPixelB>(
         int index,
         ImageFrame<TPixelA> expected,
         ImageFrame<TPixelB> actual)
     {
-        if (expected.Size() != actual.Size())
+        if (expected.Size != actual.Size)
         {
             throw new InvalidOperationException("Calling ImageComparer is invalid when dimensions mismatch!");
         }
@@ -24,11 +23,11 @@ public class ExactImageComparer : ImageComparer
         int width = actual.Width;
 
         // TODO: Comparing through Rgba64 may not be robust enough because of the existence of super high precision pixel types.
-        var aBuffer = new Rgba64[width];
-        var bBuffer = new Rgba64[width];
+        Rgba64[] aBuffer = new Rgba64[width];
+        Rgba64[] bBuffer = new Rgba64[width];
 
-        var differences = new List<PixelDifference>();
-        Configuration configuration = expected.GetConfiguration();
+        List<PixelDifference> differences = [];
+        Configuration configuration = expected.Configuration;
         Buffer2D<TPixelA> expectedBuffer = expected.PixelBuffer;
         Buffer2D<TPixelB> actualBuffer = actual.PixelBuffer;
 
@@ -47,7 +46,7 @@ public class ExactImageComparer : ImageComparer
 
                 if (aPixel != bPixel)
                 {
-                    var diff = new PixelDifference(new Point(x, y), aPixel, bPixel);
+                    PixelDifference diff = new(new Point(x, y), aPixel, bPixel);
                     differences.Add(diff);
                 }
             }

@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Globalization;
 using System.Reflection;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.PixelFormats;
@@ -49,8 +50,8 @@ public class ImagingTestCaseUtility
         }
 
         string fn = appendSourceFileOrDescription
-                        ? Path.GetFileNameWithoutExtension(this.SourceFileOrDescription)
-                        : string.Empty;
+            ? Path.GetFileNameWithoutExtension(this.SourceFileOrDescription)
+            : string.Empty;
 
         if (string.IsNullOrWhiteSpace(extension))
         {
@@ -62,7 +63,7 @@ public class ImagingTestCaseUtility
             extension = ".bmp";
         }
 
-        extension = extension.ToLower();
+        extension = extension.ToLowerInvariant();
 
         if (extension[0] != '.')
         {
@@ -86,7 +87,7 @@ public class ImagingTestCaseUtility
             }
         }
 
-        details = details ?? string.Empty;
+        details ??= string.Empty;
         if (details != string.Empty)
         {
             details = '_' + details;
@@ -171,7 +172,7 @@ public class ImagingTestCaseUtility
 
         encoder ??= TestEnvironment.GetReferenceEncoder(path);
 
-        using (FileStream stream = File.OpenWrite(path))
+        using (FileStream stream = File.Create(path))
         {
             image.Save(stream, encoder);
         }
@@ -179,12 +180,13 @@ public class ImagingTestCaseUtility
         return path;
     }
 
-    public IEnumerable<string> GetTestOutputFileNamesMultiFrame(
+    public IEnumerable<(int Index, string FileName)> GetTestOutputFileNamesMultiFrame(
         int frameCount,
         string extension = null,
         object testOutputDetails = null,
         bool appendPixelTypeToFileName = true,
-        bool appendSourceFileOrDescription = true)
+        bool appendSourceFileOrDescription = true,
+        Func<int, int, bool> predicate = null)
     {
         string baseDir = this.GetTestOutputFileName(string.Empty, testOutputDetails, appendPixelTypeToFileName, appendSourceFileOrDescription);
 
@@ -195,37 +197,39 @@ public class ImagingTestCaseUtility
 
         for (int i = 0; i < frameCount; i++)
         {
-            string filePath = $"{baseDir}/{i:D2}.{extension}";
-            yield return filePath;
+            if (predicate != null && !predicate(i, frameCount))
+            {
+                continue;
+            }
+
+            yield return (i, $"{baseDir}/{i:D2}.{extension}");
         }
     }
 
-    public string[] SaveTestOutputFileMultiFrame<TPixel>(
+    public (int Index, string FileName)[] SaveTestOutputFileMultiFrame<TPixel>(
         Image<TPixel> image,
         string extension = "png",
         IImageEncoder encoder = null,
         object testOutputDetails = null,
-        bool appendPixelTypeToFileName = true)
+        bool appendPixelTypeToFileName = true,
+        Func<int, int, bool> predicate = null)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        encoder = encoder ?? TestEnvironment.GetReferenceEncoder($"foo.{extension}");
+        encoder ??= TestEnvironment.GetReferenceEncoder($"foo.{extension}");
 
-        string[] files = this.GetTestOutputFileNamesMultiFrame(
+        (int Index, string FileName)[] files = this.GetTestOutputFileNamesMultiFrame(
             image.Frames.Count,
             extension,
             testOutputDetails,
-            appendPixelTypeToFileName).ToArray();
+            appendPixelTypeToFileName,
+            predicate: predicate).ToArray();
 
-        for (int i = 0; i < image.Frames.Count; i++)
+        foreach ((int Index, string FileName) file in files)
         {
-            using (Image<TPixel> frameImage = image.Frames.CloneFrame(i))
-            {
-                string filePath = files[i];
-                using (FileStream stream = File.OpenWrite(filePath))
-                {
-                    frameImage.Save(stream, encoder);
-                }
-            }
+            using Image<TPixel> frameImage = image.Frames.CloneFrame(file.Index);
+            string filePath = file.FileName;
+            using FileStream stream = File.Create(filePath);
+            frameImage.Save(stream, encoder);
         }
 
         return files;
@@ -236,20 +240,17 @@ public class ImagingTestCaseUtility
         object testOutputDetails,
         bool appendPixelTypeToFileName,
         bool appendSourceFileOrDescription)
-    {
-        return TestEnvironment.GetReferenceOutputFileName(
+        => TestEnvironment.GetReferenceOutputFileName(
             this.GetTestOutputFileName(extension, testOutputDetails, appendPixelTypeToFileName, appendSourceFileOrDescription));
-    }
 
-    public string[] GetReferenceOutputFileNamesMultiFrame(
+    public (int Index, string FileName)[] GetReferenceOutputFileNamesMultiFrame(
         int frameCount,
         string extension,
         object testOutputDetails,
-        bool appendPixelTypeToFileName = true)
-    {
-        return this.GetTestOutputFileNamesMultiFrame(frameCount, extension, testOutputDetails)
-            .Select(TestEnvironment.GetReferenceOutputFileName).ToArray();
-    }
+        bool appendPixelTypeToFileName = true,
+        Func<int, int, bool> predicate = null)
+        => this.GetTestOutputFileNamesMultiFrame(frameCount, extension, testOutputDetails, appendPixelTypeToFileName, predicate: predicate)
+        .Select(x => (x.Index, TestEnvironment.GetReferenceOutputFileName(x.FileName))).ToArray();
 
     internal void Init(string typeName, string methodName, string outputSubfolderName)
     {
@@ -277,8 +278,7 @@ public class ImagingTestCaseUtility
     where TPixel : unmanaged, IPixel<TPixel>
     {
         TPixel pixel = img[x, y];
-        Rgba64 rgbaPixel = default;
-        rgbaPixel.FromScaledVector4(pixel.ToScaledVector4());
+        Rgba64 rgbaPixel = Rgba64.FromScaledVector4(pixel.ToScaledVector4());
         ushort change = (ushort)Math.Round((perChannelChange / 255F) * 65535F);
 
         if (rgbaPixel.R + perChannelChange <= 255)
@@ -317,7 +317,6 @@ public class ImagingTestCaseUtility
             rgbaPixel.A -= perChannelChange;
         }
 
-        pixel.FromRgba64(rgbaPixel);
-        img[x, y] = pixel;
+        img[x, y] = TPixel.FromRgba64(rgbaPixel);
     }
 }

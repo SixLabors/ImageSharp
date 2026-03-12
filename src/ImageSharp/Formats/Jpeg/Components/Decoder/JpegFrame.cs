@@ -133,7 +133,7 @@ internal sealed class JpegFrame : IDisposable
 
         for (int i = 0; i < this.ComponentCount; i++)
         {
-            IJpegComponent component = this.Components[i];
+            JpegComponent component = this.Components[i];
             component.Init(maxSubFactorH, maxSubFactorV);
         }
     }
@@ -143,7 +143,7 @@ internal sealed class JpegFrame : IDisposable
         bool fullScan = this.Progressive || !this.Interleaved;
         for (int i = 0; i < this.ComponentCount; i++)
         {
-            IJpegComponent component = this.Components[i];
+            JpegComponent component = this.Components[i];
             component.AllocateSpectral(fullScan);
         }
     }

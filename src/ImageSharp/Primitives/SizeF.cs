@@ -67,7 +67,7 @@ public struct SizeF : IEquatable<SizeF>
     /// Gets a value indicating whether this <see cref="SizeF"/> is empty.
     /// </summary>
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public bool IsEmpty => this.Equals(Empty);
+    public readonly bool IsEmpty => this.Equals(Empty);
 
     /// <summary>
     /// Creates a <see cref="Vector2"/> with the coordinates of the specified <see cref="PointF"/>.
@@ -191,7 +191,7 @@ public struct SizeF : IEquatable<SizeF>
     /// <returns>A transformed size.</returns>
     public static SizeF Transform(SizeF size, Matrix3x2 matrix)
     {
-        var v = Vector2.Transform(new Vector2(size.Width, size.Height), matrix);
+        Vector2 v = Vector2.Transform(new Vector2(size.Width, size.Height), matrix);
 
         return new SizeF(v.X, v.Y);
     }
@@ -201,24 +201,24 @@ public struct SizeF : IEquatable<SizeF>
     /// </summary>
     /// <param name="width">The out value for the width.</param>
     /// <param name="height">The out value for the height.</param>
-    public void Deconstruct(out float width, out float height)
+    public readonly void Deconstruct(out float width, out float height)
     {
         width = this.Width;
         height = this.Height;
     }
 
     /// <inheritdoc/>
-    public override int GetHashCode() => HashCode.Combine(this.Width, this.Height);
+    public override readonly int GetHashCode() => HashCode.Combine(this.Width, this.Height);
 
     /// <inheritdoc/>
-    public override string ToString() => $"SizeF [ Width={this.Width}, Height={this.Height} ]";
+    public override readonly string ToString() => $"SizeF [ Width={this.Width}, Height={this.Height} ]";
 
     /// <inheritdoc/>
-    public override bool Equals(object? obj) => obj is SizeF && this.Equals((SizeF)obj);
+    public override readonly bool Equals(object? obj) => obj is SizeF sizeF && this.Equals(sizeF);
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool Equals(SizeF other) => this.Width.Equals(other.Width) && this.Height.Equals(other.Height);
+    public readonly bool Equals(SizeF other) => this.Width.Equals(other.Width) && this.Height.Equals(other.Height);
 
     /// <summary>
     /// Multiplies <see cref="SizeF"/> by a <see cref="float"/> producing <see cref="SizeF"/>.

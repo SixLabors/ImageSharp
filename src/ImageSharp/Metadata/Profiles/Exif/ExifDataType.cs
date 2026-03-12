@@ -4,7 +4,7 @@
 namespace SixLabors.ImageSharp.Metadata.Profiles.Exif;
 
 /// <summary>
-/// Specifies exif data types.
+/// Specifies Exif data types.
 /// </summary>
 public enum ExifDataType
 {

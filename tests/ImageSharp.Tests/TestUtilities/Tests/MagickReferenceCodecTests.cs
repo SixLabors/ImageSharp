@@ -7,14 +7,13 @@ using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs;
 using Xunit.Abstractions;
 
-// ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests.TestUtilities.Tests;
 
 public class MagickReferenceCodecTests
 {
     public MagickReferenceCodecTests(ITestOutputHelper output) => this.Output = output;
 
-    private ITestOutputHelper Output { get; }
+    public ITestOutputHelper Output { get; }
 
     public const PixelTypes PixelTypesToTest32 = PixelTypes.Rgba32 | PixelTypes.Bgra32 | PixelTypes.Rgb24;
 
@@ -32,8 +31,8 @@ public class MagickReferenceCodecTests
     {
         string path = TestFile.GetInputFileFullPath(testImage);
 
-        var magickDecoder = new MagickReferenceDecoder();
-        var sdDecoder = new SystemDrawingReferenceDecoder();
+        MagickReferenceDecoder magickDecoder = MagickReferenceDecoder.Png;
+        SystemDrawingReferenceDecoder sdDecoder = SystemDrawingReferenceDecoder.Png;
 
         ImageComparer comparer = ImageComparer.Exact;
 
@@ -64,11 +63,11 @@ public class MagickReferenceCodecTests
     {
         string path = TestFile.GetInputFileFullPath(testImage);
 
-        var magickDecoder = new MagickReferenceDecoder();
-        var sdDecoder = new SystemDrawingReferenceDecoder();
+        MagickReferenceDecoder magickDecoder = MagickReferenceDecoder.Png;
+        SystemDrawingReferenceDecoder sdDecoder = SystemDrawingReferenceDecoder.Png;
 
-        // 1020 == 4 * 255 (Equivalent to manhattan distance of 1+1+1+1=4 in Rgba32 space)
-        var comparer = ImageComparer.TolerantPercentage(1, 1020);
+        // 1020 == 4 * 255 (Equivalent to Manhattan distance of 1+1+1+1=4 in Rgba32 space)
+        ImageComparer comparer = ImageComparer.TolerantPercentage(1, 1020);
         using FileStream mStream = File.OpenRead(path);
         using FileStream sdStream = File.OpenRead(path);
         using Image<TPixel> mImage = magickDecoder.Decode<TPixel>(DecoderOptions.Default, mStream);

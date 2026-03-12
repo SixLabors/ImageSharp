@@ -30,9 +30,9 @@ internal sealed class ExifByteArray : ExifArrayValue<byte>
 
         if (value is int intValue)
         {
-            if (intValue >= byte.MinValue && intValue <= byte.MaxValue)
+            if (intValue is >= byte.MinValue and <= byte.MaxValue)
             {
-                this.Value = new byte[] { (byte)intValue };
+                this.Value = [(byte)intValue];
             }
 
             return true;

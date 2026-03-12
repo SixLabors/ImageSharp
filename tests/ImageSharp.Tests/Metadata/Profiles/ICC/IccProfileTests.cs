@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
+using SixLabors.ImageSharp.Tests.TestDataIcc;
 
 namespace SixLabors.ImageSharp.Tests.Metadata.Profiles.Icc;
 
@@ -20,8 +21,8 @@ public class IccProfileTests
     [Fact]
     public void CalculateHash_WithByteArray_DoesNotModifyData()
     {
-        byte[] data = IccTestDataProfiles.Profile_Random_Array;
-        var copy = new byte[data.Length];
+        byte[] data = IccTestDataProfiles.ProfileRandomArray;
+        byte[] copy = new byte[data.Length];
         Buffer.BlockCopy(data, 0, copy, 0, data.Length);
 
         IccProfile.CalculateHash(data);
@@ -33,7 +34,7 @@ public class IccProfileTests
     [MemberData(nameof(IccTestDataProfiles.ProfileValidityTestData), MemberType = typeof(IccTestDataProfiles))]
     public void CheckIsValid_WithProfiles_ReturnsValidity(byte[] data, bool expected)
     {
-        var profile = new IccProfile(data);
+        IccProfile profile = new(data);
 
         bool result = profile.CheckIsValid();
 

@@ -19,7 +19,8 @@ internal static class WebpLookupTables
     // Compute susceptibility based on DCT-coeff histograms:
     // the higher, the "easier" the macroblock is to compress.
     public static readonly int[] Vp8DspScan =
-    {
+    [
+
         // Luma
         0 + (0 * WebpConstants.Bps),  4 + (0 * WebpConstants.Bps), 8 + (0 * WebpConstants.Bps), 12 + (0 * WebpConstants.Bps),
         0 + (4 * WebpConstants.Bps),  4 + (4 * WebpConstants.Bps), 8 + (4 * WebpConstants.Bps), 12 + (4 * WebpConstants.Bps),
@@ -28,22 +29,23 @@ internal static class WebpLookupTables
 
         0 + (0 * WebpConstants.Bps),   4 + (0 * WebpConstants.Bps), 0 + (4 * WebpConstants.Bps),  4 + (4 * WebpConstants.Bps), // U
         8 + (0 * WebpConstants.Bps),  12 + (0 * WebpConstants.Bps), 8 + (4 * WebpConstants.Bps), 12 + (4 * WebpConstants.Bps) // V
-    };
+    ];
 
     public static readonly short[] Vp8Scan =
-    {
+    [
+
         // Luma
         0 + (0 * WebpConstants.Bps), 4 + (0 * WebpConstants.Bps), 8 + (0 * WebpConstants.Bps), 12 + (0 * WebpConstants.Bps),
         0 + (4 * WebpConstants.Bps), 4 + (4 * WebpConstants.Bps), 8 + (4 * WebpConstants.Bps), 12 + (4 * WebpConstants.Bps),
         0 + (8 * WebpConstants.Bps), 4 + (8 * WebpConstants.Bps), 8 + (8 * WebpConstants.Bps), 12 + (8 * WebpConstants.Bps),
-        0 + (12 * WebpConstants.Bps), 4 + (12 * WebpConstants.Bps), 8 + (12 * WebpConstants.Bps), 12 + (12 * WebpConstants.Bps),
-    };
+        0 + (12 * WebpConstants.Bps), 4 + (12 * WebpConstants.Bps), 8 + (12 * WebpConstants.Bps), 12 + (12 * WebpConstants.Bps)
+    ];
 
     public static readonly short[] Vp8ScanUv =
-    {
+    [
         0 + (0 * WebpConstants.Bps), 4 + (0 * WebpConstants.Bps), 0 + (4 * WebpConstants.Bps),  4 + (4 * WebpConstants.Bps), // U
         8 + (0 * WebpConstants.Bps), 12 + (0 * WebpConstants.Bps), 8 + (4 * WebpConstants.Bps), 12 + (4 * WebpConstants.Bps) // V
-    };
+    ];
 
     [MethodImpl(InliningOptions.ShortMethod)]
     public static byte Abs0(int x) => Abs0Table[x + 255];
@@ -60,7 +62,7 @@ internal static class WebpLookupTables
     // fixed costs for coding levels, deduce from the coding tree.
     // This is only the part that doesn't depend on the probability state.
     public static readonly short[] Vp8LevelFixedCosts =
-    {
+    [
         0, 256, 256, 256, 256, 432, 618, 630, 731, 640, 640, 828, 901, 948, 1021, 1101, 1174, 1221, 1294, 1042,
         1085, 1115, 1158, 1202, 1245, 1275, 1318, 1337, 1380, 1410, 1453, 1497, 1540, 1570, 1613, 1280, 1295,
         1317, 1332, 1358, 1373, 1395, 1410, 1454, 1469, 1491, 1506, 1532, 1547, 1569, 1584, 1601, 1616, 1638,
@@ -182,7 +184,7 @@ internal static class WebpLookupTables
         7403, 7409, 7429, 7435, 7444, 7450, 7461, 7467, 7476, 7482, 7505, 7511, 7520, 7526, 7537, 7543, 7552,
         7558, 7578, 7584, 7593, 7599, 7610, 7616, 7625, 7631, 7656, 7662, 7671, 7677, 7688, 7694, 7703, 7709,
         7729, 7735, 7744, 7750, 7761
-    };
+    ];
 
     // This table gives, for a given sharpness, the filtering strength to be
     // used (at least) in order to filter a given edge step delta.
@@ -239,8 +241,9 @@ internal static class WebpLookupTables
     };
 
     // This uses C#'s compiler optimization to refer to assembly's static data directly.
-    public static ReadOnlySpan<byte> Norm => new byte[]
-    {
+    public static ReadOnlySpan<byte> Norm =>
+    [
+
         // renorm_sizes[i] = 8 - log2(i)
         7, 6, 6, 5, 5, 5, 5, 4, 4, 4, 4, 4, 4, 4, 4,
         3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
@@ -251,11 +254,12 @@ internal static class WebpLookupTables
         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
         0
-    };
+    ];
 
     // This uses C#'s compiler optimization to refer to assembly's static data directly.
-    public static ReadOnlySpan<byte> NewRange => new byte[]
-    {
+    public static ReadOnlySpan<byte> NewRange =>
+    [
+
         // range = ((range + 1) << kVP8Log2Range[range]) - 1
         127, 127, 191, 127, 159, 191, 223, 127, 143, 159, 175, 191, 207, 223, 239,
         127, 135, 143, 151, 159, 167, 175, 183, 191, 199, 207, 215, 223, 231, 239,
@@ -266,10 +270,10 @@ internal static class WebpLookupTables
         181, 183, 185, 187, 189, 191, 193, 195, 197, 199, 201, 203, 205, 207, 209,
         211, 213, 215, 217, 219, 221, 223, 225, 227, 229, 231, 233, 235, 237, 239,
         241, 243, 245, 247, 249, 251, 253, 127
-    };
+    ];
 
     public static readonly ushort[] Vp8EntropyCost =
-    {
+    [
         1792, 1792, 1792, 1536, 1536, 1408, 1366, 1280, 1280, 1216,
         1178, 1152, 1110, 1076, 1061, 1024, 1024,  992,  968,  951,
         939,  911,  896,  878,  871,  854,  838,  820,  811,  794,
@@ -296,35 +300,35 @@ internal static class WebpLookupTables
         41,   40,   38,   36,   35,   33,   32,   30,   29,   27,
         25,   24,   22,   21,   19,   18,   16,   15,   13,   12,
         10,    9,    7,    6,    4,    3
-    };
+    ];
 
     public static readonly ushort[][] Vp8LevelCodes =
-    {
-        new ushort[] { 0x001, 0x000 }, new ushort[] { 0x007, 0x001 }, new ushort[] { 0x00f, 0x005 },
-        new ushort[] { 0x00f, 0x00d }, new ushort[] { 0x033, 0x003 }, new ushort[] { 0x033, 0x003 }, new ushort[] { 0x033, 0x023 },
-        new ushort[] { 0x033, 0x023 }, new ushort[] { 0x033, 0x023 }, new ushort[] { 0x033, 0x023 }, new ushort[] { 0x0d3, 0x013 },
-        new ushort[] { 0x0d3, 0x013 }, new ushort[] { 0x0d3, 0x013 }, new ushort[] { 0x0d3, 0x013 }, new ushort[] { 0x0d3, 0x013 },
-        new ushort[] { 0x0d3, 0x013 }, new ushort[] { 0x0d3, 0x013 }, new ushort[] { 0x0d3, 0x013 }, new ushort[] { 0x0d3, 0x093 },
-        new ushort[] { 0x0d3, 0x093 }, new ushort[] { 0x0d3, 0x093 }, new ushort[] { 0x0d3, 0x093 }, new ushort[] { 0x0d3, 0x093 },
-        new ushort[] { 0x0d3, 0x093 }, new ushort[] { 0x0d3, 0x093 }, new ushort[] { 0x0d3, 0x093 }, new ushort[] { 0x0d3, 0x093 },
-        new ushort[] { 0x0d3, 0x093 }, new ushort[] { 0x0d3, 0x093 }, new ushort[] { 0x0d3, 0x093 }, new ushort[] { 0x0d3, 0x093 },
-        new ushort[] { 0x0d3, 0x093 }, new ushort[] { 0x0d3, 0x093 }, new ushort[] { 0x0d3, 0x093 }, new ushort[] { 0x153, 0x053 },
-        new ushort[] { 0x153, 0x053 }, new ushort[] { 0x153, 0x053 }, new ushort[] { 0x153, 0x053 }, new ushort[] { 0x153, 0x053 },
-        new ushort[] { 0x153, 0x053 }, new ushort[] { 0x153, 0x053 }, new ushort[] { 0x153, 0x053 }, new ushort[] { 0x153, 0x053 },
-        new ushort[] { 0x153, 0x053 }, new ushort[] { 0x153, 0x053 }, new ushort[] { 0x153, 0x053 }, new ushort[] { 0x153, 0x053 },
-        new ushort[] { 0x153, 0x053 }, new ushort[] { 0x153, 0x053 }, new ushort[] { 0x153, 0x053 }, new ushort[] { 0x153, 0x053 },
-        new ushort[] { 0x153, 0x053 }, new ushort[] { 0x153, 0x053 }, new ushort[] { 0x153, 0x053 }, new ushort[] { 0x153, 0x053 },
-        new ushort[] { 0x153, 0x053 }, new ushort[] { 0x153, 0x053 }, new ushort[] { 0x153, 0x053 }, new ushort[] { 0x153, 0x053 },
-        new ushort[] { 0x153, 0x053 }, new ushort[] { 0x153, 0x053 }, new ushort[] { 0x153, 0x053 }, new ushort[] { 0x153, 0x053 },
-        new ushort[] { 0x153, 0x053 }, new ushort[] { 0x153, 0x053 }, new ushort[] { 0x153, 0x053 }, new ushort[] { 0x153, 0x153 },
-    };
+    [
+        [0x001, 0x000], [0x007, 0x001], [0x00f, 0x005],
+        [0x00f, 0x00d], [0x033, 0x003], [0x033, 0x003], [0x033, 0x023],
+        [0x033, 0x023], [0x033, 0x023], [0x033, 0x023], [0x0d3, 0x013],
+        [0x0d3, 0x013], [0x0d3, 0x013], [0x0d3, 0x013], [0x0d3, 0x013],
+        [0x0d3, 0x013], [0x0d3, 0x013], [0x0d3, 0x013], [0x0d3, 0x093],
+        [0x0d3, 0x093], [0x0d3, 0x093], [0x0d3, 0x093], [0x0d3, 0x093],
+        [0x0d3, 0x093], [0x0d3, 0x093], [0x0d3, 0x093], [0x0d3, 0x093],
+        [0x0d3, 0x093], [0x0d3, 0x093], [0x0d3, 0x093], [0x0d3, 0x093],
+        [0x0d3, 0x093], [0x0d3, 0x093], [0x0d3, 0x093], [0x153, 0x053],
+        [0x153, 0x053], [0x153, 0x053], [0x153, 0x053], [0x153, 0x053],
+        [0x153, 0x053], [0x153, 0x053], [0x153, 0x053], [0x153, 0x053],
+        [0x153, 0x053], [0x153, 0x053], [0x153, 0x053], [0x153, 0x053],
+        [0x153, 0x053], [0x153, 0x053], [0x153, 0x053], [0x153, 0x053],
+        [0x153, 0x053], [0x153, 0x053], [0x153, 0x053], [0x153, 0x053],
+        [0x153, 0x053], [0x153, 0x053], [0x153, 0x053], [0x153, 0x053],
+        [0x153, 0x053], [0x153, 0x053], [0x153, 0x053], [0x153, 0x053],
+        [0x153, 0x053], [0x153, 0x053], [0x153, 0x053], [0x153, 0x153]
+    ];
 
     /// <summary>
     /// Lookup table for small values of log2(int).
     /// </summary>
     public static readonly float[] Log2Table =
-    {
-      0.0000000000000000f, 0.0000000000000000f,
+    [
+        0.0000000000000000f, 0.0000000000000000f,
       1.0000000000000000f, 1.5849625007211560f,
       2.0000000000000000f, 2.3219280948873621f,
       2.5849625007211560f, 2.8073549220576041f,
@@ -452,11 +456,11 @@ internal static class WebpLookupTables
       7.9657842846620869f, 7.9715435539507719f,
       7.9772799234999167f, 7.9829935746943103f,
       7.9886846867721654f, 7.9943534368588577f
-    };
+    ];
 
     public static readonly float[] SLog2Table =
-    {
-      0.00000000f,    0.00000000f,  2.00000000f,   4.75488750f,
+    [
+        0.00000000f,    0.00000000f,  2.00000000f,   4.75488750f,
       8.00000000f,   11.60964047f,  15.50977500f,  19.65148445f,
       24.00000000f,  28.52932501f,  33.21928095f,  38.05374781f,
       43.01955001f,  48.10571634f,  53.30296891f,  58.60335893f,
@@ -520,10 +524,10 @@ internal static class WebpLookupTables
       1935.09991037f, 1944.47629506f, 1953.85856831f, 1963.24670620f,
       1972.64068498f, 1982.04048108f, 1991.44607117f, 2000.85743204f,
       2010.27454072f, 2019.69737440f, 2029.12591044f, 2038.56012640f
-    };
+    ];
 
     public static readonly int[] CodeToPlane =
-    {
+    [
         0x18, 0x07, 0x17, 0x19, 0x28, 0x06, 0x27, 0x29, 0x16, 0x1a,
         0x26, 0x2a, 0x38, 0x05, 0x37, 0x39, 0x15, 0x1b, 0x36, 0x3a,
         0x25, 0x2b, 0x48, 0x04, 0x47, 0x49, 0x14, 0x1c, 0x35, 0x3b,
@@ -536,10 +540,10 @@ internal static class WebpLookupTables
         0x31, 0x3f, 0x63, 0x6d, 0x52, 0x5e, 0x00, 0x74, 0x7c, 0x41,
         0x4f, 0x10, 0x20, 0x62, 0x6e, 0x30, 0x73, 0x7d, 0x51, 0x5f,
         0x40, 0x72, 0x7e, 0x61, 0x6f, 0x50, 0x71, 0x7f, 0x60, 0x70
-    };
+    ];
 
     public static readonly uint[] PlaneToCodeLut =
-    {
+    [
         96,   73,  55,  39,  23,  13,   5,  1,  255, 255, 255, 255, 255, 255, 255, 255,
         101,  78,  58,  42,  26,  16,   8,  2,    0,   3,  9,   17,  27,  43,  59,  79,
         102,  86,  62,  46,  32,  20,  10,  6,    4,   7,  11,  21,  33,  47,  63,  87,
@@ -548,11 +552,11 @@ internal static class WebpLookupTables
         115, 108,  94,  76,  64,  50,  44,  40,  34,  41,  45,  51,  65,  77,  95, 109,
         118, 113, 103,  92,  80,  68,  60,  56,  54,  57,  61,  69,  81,  93, 104, 114,
         119, 116, 111, 106,  97,  88,  84,  74,  72,  75,  85,  89,  98, 107, 112, 117
-    };
+    ];
 
     // 31 ^ clz(i)
-    public static ReadOnlySpan<byte> LogTable8Bit => new byte[]
-    {
+    public static ReadOnlySpan<byte> LogTable8Bit =>
+    [
         0, 0, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3,
         4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
         5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
@@ -569,12 +573,12 @@ internal static class WebpLookupTables
         7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
         7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
         7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7
-    };
+    ];
 
     // Paragraph 14.1
     // This uses C#'s compiler optimization to refer to assembly's static data directly.
-    public static ReadOnlySpan<byte> DcTable => new byte[]
-    {
+    public static ReadOnlySpan<byte> DcTable =>
+    [
         4,     5,   6,   7,   8,   9,  10,  10,
         11,   12,  13,  14,  15,  16,  17,  17,
         18,   19,  20,  20,  21,  21,  22,  22,
@@ -591,11 +595,11 @@ internal static class WebpLookupTables
         104, 106, 108, 110, 112, 114, 116, 118,
         122, 124, 126, 128, 130, 132, 134, 136,
         138, 140, 143, 145, 148, 151, 154, 157
-    };
+    ];
 
     // Paragraph 14.1
     public static readonly ushort[] AcTable =
-    {
+    [
         4,     5,   6,   7,   8,   9,  10,  11,
         12,   13,  14,  15,  16,  17,  18,  19,
         20,   21,  22,  23,  24,  25,  26,  27,
@@ -612,10 +616,10 @@ internal static class WebpLookupTables
         181, 185, 189, 193, 197, 201, 205, 209,
         213, 217, 221, 225, 229, 234, 239, 245,
         249, 254, 259, 264, 269, 274, 279, 284
-    };
+    ];
 
     public static readonly ushort[] AcTable2 =
-    {
+    [
         8,     8,   9,  10,  12,  13,  15,  17,
         18,   20,  21,  23,  24,  26,  27,  29,
         31,   32,  34,  35,  37,  38,  40,  41,
@@ -632,7 +636,7 @@ internal static class WebpLookupTables
         280, 286, 292, 299, 305, 311, 317, 323,
         330, 336, 342, 348, 354, 362, 370, 379,
         385, 393, 401, 409, 416, 424, 432, 440
-    };
+    ];
 
     // Paragraph 13
     public static readonly byte[,,,] CoeffsUpdateProba =
@@ -981,7 +985,7 @@ internal static class WebpLookupTables
     };
 
     public static readonly (int Code, int ExtraBits)[] PrefixEncodeCode =
-    {
+    [
         (0, 0), (0, 0), (1, 0), (2, 0), (3, 0), (4, 1), (4, 1), (5, 1),
         (5, 1), (6, 2), (6, 2), (6, 2), (6, 2), (7, 2), (7, 2), (7, 2),
         (7, 2), (8, 3), (8, 3), (8, 3), (8, 3), (8, 3), (8, 3), (8, 3),
@@ -1045,13 +1049,13 @@ internal static class WebpLookupTables
         (17, 7), (17, 7), (17, 7), (17, 7), (17, 7), (17, 7), (17, 7), (17, 7),
         (17, 7), (17, 7), (17, 7), (17, 7), (17, 7), (17, 7), (17, 7), (17, 7),
         (17, 7), (17, 7), (17, 7), (17, 7), (17, 7), (17, 7), (17, 7), (17, 7),
-        (17, 7), (17, 7), (17, 7), (17, 7), (17, 7), (17, 7), (17, 7), (17, 7),
-    };
+        (17, 7), (17, 7), (17, 7), (17, 7), (17, 7), (17, 7), (17, 7), (17, 7)
+    ];
 
     // This uses C#'s compiler optimization to refer to assembly's static data directly.
-    public static ReadOnlySpan<byte> PrefixEncodeExtraBitsValue => new byte[]
-    {
-       0,  0,  0,  0,  0,  0,  1,  0,  1,  0,  1,  2,  3,  0,  1,  2,  3,
+    public static ReadOnlySpan<byte> PrefixEncodeExtraBitsValue =>
+    [
+        0,  0,  0,  0,  0,  0,  1,  0,  1,  0,  1,  2,  3,  0,  1,  2,  3,
        0,  1,  2,  3,  4,  5,  6,  7,  0,  1,  2,  3,  4,  5,  6,  7,
        0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15,
        0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15,
@@ -1084,7 +1088,7 @@ internal static class WebpLookupTables
        90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104,
        105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117,
        118, 119, 120, 121, 122, 123, 124, 125, 126
-    };
+    ];
 
     // Following table is (1 << AlphaFix) / a. The (v * InvAlpha[a]) >> AlphaFix
     // formula is then equal to v / a in most (99.6%) cases. Note that this table
@@ -1094,7 +1098,7 @@ internal static class WebpLookupTables
     // with ai in [0..255] and pi in [0..1<<GammaFix). The constraint to avoid
     // overflow is: GammaFix + AlphaFix <= 31.
     public static readonly uint[] InvAlpha =
-    {
+    [
         0,  /* alpha = 0 */
         524288, 262144, 174762, 131072, 104857, 87381, 74898, 65536,
         58254, 52428, 47662, 43690, 40329, 37449, 34952, 32768,
@@ -1224,7 +1228,7 @@ internal static class WebpLookupTables
         523, 523, 522, 522, 521, 521, 520, 520,
         519, 519, 518, 518, 517, 517, 516, 516,
         515, 515, 514, 514
-    };
+    ];
 
     static WebpLookupTables()
     {
@@ -1245,8 +1249,8 @@ internal static class WebpLookupTables
     }
 
     // This uses C#'s compiler optimization to refer to assembly's static data directly.
-    private static ReadOnlySpan<byte> Abs0Table => new byte[]
-    {
+    private static ReadOnlySpan<byte> Abs0Table =>
+    [
         0xff, 0xfe, 0xfd, 0xfc, 0xfb, 0xfa, 0xf9, 0xf8, 0xf7, 0xf6, 0xf5, 0xf4, 0xf3, 0xf2, 0xf1, 0xf0, 0xef,
         0xee, 0xed, 0xec, 0xeb, 0xea, 0xe9, 0xe8, 0xe7, 0xe6, 0xe5, 0xe4, 0xe3, 0xe2, 0xe1, 0xe0, 0xdf, 0xde,
         0xdd, 0xdc, 0xdb, 0xda, 0xd9, 0xd8, 0xd7, 0xd6, 0xd5, 0xd4, 0xd3, 0xd2, 0xd1, 0xd0, 0xcf, 0xce, 0xcd,
@@ -1278,11 +1282,11 @@ internal static class WebpLookupTables
         0xdd, 0xde, 0xdf, 0xe0, 0xe1, 0xe2, 0xe3, 0xe4, 0xe5, 0xe6, 0xe7, 0xe8, 0xe9, 0xea, 0xeb, 0xec, 0xed,
         0xee, 0xef, 0xf0, 0xf1, 0xf2, 0xf3, 0xf4, 0xf5, 0xf6, 0xf7, 0xf8, 0xf9, 0xfa, 0xfb, 0xfc, 0xfd, 0xfe,
         0xff
-    };
+    ];
 
     // This uses C#'s compiler optimization to refer to assembly's static data directly.
-    private static ReadOnlySpan<byte> Clip1Table => new byte[]
-    {
+    private static ReadOnlySpan<byte> Clip1Table =>
+    [
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -1329,11 +1333,11 @@ internal static class WebpLookupTables
         0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
         0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
         0xff
-    };
+    ];
 
     // This uses C#'s compiler optimization to refer to assembly's static data directly.
-    private static ReadOnlySpan<sbyte> Sclip1Table => new sbyte[]
-    {
+    private static ReadOnlySpan<sbyte> Sclip1Table =>
+    [
         -128, -128, -128, -128, -128, -128, -128, -128, -128, -128, -128, -128, -128, -128, -128, -128, -128,
         -128, -128, -128, -128, -128, -128, -128, -128, -128, -128, -128, -128, -128, -128, -128, -128, -128,
         -128, -128, -128, -128, -128, -128, -128, -128, -128, -128, -128, -128, -128, -128, -128, -128, -128,
@@ -1441,11 +1445,11 @@ internal static class WebpLookupTables
         127, 127, 127, 127, 127, 127, 127, 127, 127, 127, 127, 127, 127, 127, 127, 127, 127, 127, 127, 127, 127,
         127, 127, 127, 127, 127, 127, 127, 127, 127, 127, 127, 127, 127, 127, 127, 127, 127, 127, 127, 127, 127,
         127, 127, 127, 127, 127, 127, 127, 127, 127
-    };
+    ];
 
     // This uses C#'s compiler optimization to refer to assembly's static data directly.
-    private static ReadOnlySpan<sbyte> Sclip2Table => new sbyte[]
-    {
+    private static ReadOnlySpan<sbyte> Sclip2Table =>
+    [
         -16, -16, -16, -16, -16, -16, -16, -16, -16, -16, -16, -16, -16, -16, -16, -16, -16, -16, -16, -16, -16,
         -16, -16, -16, -16, -16, -16, -16, -16, -16, -16, -16, -16, -16, -16, -16, -16, -16, -16, -16, -16, -16,
         -16, -16, -16, -16, -16, -16, -16, -16, -16, -16, -16, -16, -16, -16, -16, -16, -16, -16, -16, -16, -16,
@@ -1456,214 +1460,214 @@ internal static class WebpLookupTables
         15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15,
         15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15,
         15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15
-    };
+    ];
 
     private static void InitializeModesProbabilities()
     {
         // Paragraph 11.5
-        ModesProba[0, 0] = new byte[] { 231, 120, 48, 89, 115, 113, 120, 152, 112 };
-        ModesProba[0, 1] = new byte[] { 152, 179, 64, 126, 170, 118, 46, 70, 95 };
-        ModesProba[0, 2] = new byte[] { 175, 69, 143, 80, 85, 82, 72, 155, 103 };
-        ModesProba[0, 3] = new byte[] { 56, 58, 10, 171, 218, 189, 17, 13, 152 };
-        ModesProba[0, 4] = new byte[] { 114, 26, 17, 163, 44, 195, 21, 10, 173 };
-        ModesProba[0, 5] = new byte[] { 121, 24, 80, 195, 26, 62, 44, 64, 85 };
-        ModesProba[0, 6] = new byte[] { 144, 71, 10, 38, 171, 213, 144, 34, 26 };
-        ModesProba[0, 7] = new byte[] { 170, 46, 55, 19, 136, 160, 33, 206, 71 };
-        ModesProba[0, 8] = new byte[] { 63, 20, 8, 114, 114, 208, 12, 9, 226 };
-        ModesProba[0, 9] = new byte[] { 81, 40, 11, 96, 182, 84, 29, 16, 36 };
-        ModesProba[1, 0] = new byte[] { 134, 183, 89, 137, 98, 101, 106, 165, 148 };
-        ModesProba[1, 1] = new byte[] { 72, 187, 100, 130, 157, 111, 32, 75, 80 };
-        ModesProba[1, 2] = new byte[] { 66, 102, 167, 99, 74, 62, 40, 234, 128 };
-        ModesProba[1, 3] = new byte[] { 41, 53, 9, 178, 241, 141, 26, 8, 107 };
-        ModesProba[1, 4] = new byte[] { 74, 43, 26, 146, 73, 166, 49, 23, 157 };
-        ModesProba[1, 5] = new byte[] { 65, 38, 105, 160, 51, 52, 31, 115, 128 };
-        ModesProba[1, 6] = new byte[] { 104, 79, 12, 27, 217, 255, 87, 17, 7 };
-        ModesProba[1, 7] = new byte[] { 87, 68, 71, 44, 114, 51, 15, 186, 23 };
-        ModesProba[1, 8] = new byte[] { 47, 41, 14, 110, 182, 183, 21, 17, 194 };
-        ModesProba[1, 9] = new byte[] { 66, 45, 25, 102, 197, 189, 23, 18, 22 };
-        ModesProba[2, 0] = new byte[] { 88, 88, 147, 150, 42, 46, 45, 196, 205 };
-        ModesProba[2, 1] = new byte[] { 43, 97, 183, 117, 85, 38, 35, 179, 61 };
-        ModesProba[2, 2] = new byte[] { 39, 53, 200, 87, 26, 21, 43, 232, 171 };
-        ModesProba[2, 3] = new byte[] { 56, 34, 51, 104, 114, 102, 29, 93, 77 };
-        ModesProba[2, 4] = new byte[] { 39, 28, 85, 171, 58, 165, 90, 98, 64 };
-        ModesProba[2, 5] = new byte[] { 34, 22, 116, 206, 23, 34, 43, 166, 73 };
-        ModesProba[2, 6] = new byte[] { 107, 54, 32, 26, 51, 1, 81, 43, 31 };
-        ModesProba[2, 7] = new byte[] { 68, 25, 106, 22, 64, 171, 36, 225, 114 };
-        ModesProba[2, 8] = new byte[] { 34, 19, 21, 102, 132, 188, 16, 76, 124 };
-        ModesProba[2, 9] = new byte[] { 62, 18, 78, 95, 85, 57, 50, 48, 51 };
-        ModesProba[3, 0] = new byte[] { 193, 101, 35, 159, 215, 111, 89, 46, 111 };
-        ModesProba[3, 1] = new byte[] { 60, 148, 31, 172, 219, 228, 21, 18, 111 };
-        ModesProba[3, 2] = new byte[] { 112, 113, 77, 85, 179, 255, 38, 120, 114 };
-        ModesProba[3, 3] = new byte[] { 40, 42, 1, 196, 245, 209, 10, 25, 109 };
-        ModesProba[3, 4] = new byte[] { 88, 43, 29, 140, 166, 213, 37, 43, 154 };
-        ModesProba[3, 5] = new byte[] { 61, 63, 30, 155, 67, 45, 68, 1, 209 };
-        ModesProba[3, 6] = new byte[] { 100, 80, 8, 43, 154, 1, 51, 26, 71 };
-        ModesProba[3, 7] = new byte[] { 142, 78, 78, 16, 255, 128, 34, 197, 171 };
-        ModesProba[3, 8] = new byte[] { 41, 40, 5, 102, 211, 183, 4, 1, 221 };
-        ModesProba[3, 9] = new byte[] { 51, 50, 17, 168, 209, 192, 23, 25, 82 };
-        ModesProba[4, 0] = new byte[] { 138, 31, 36, 171, 27, 166, 38, 44, 229 };
-        ModesProba[4, 1] = new byte[] { 67, 87, 58, 169, 82, 115, 26, 59, 179 };
-        ModesProba[4, 2] = new byte[] { 63, 59, 90, 180, 59, 166, 93, 73, 154 };
-        ModesProba[4, 3] = new byte[] { 40, 40, 21, 116, 143, 209, 34, 39, 175 };
-        ModesProba[4, 4] = new byte[] { 47, 15, 16, 183, 34, 223, 49, 45, 183 };
-        ModesProba[4, 5] = new byte[] { 46, 17, 33, 183, 6, 98, 15, 32, 183 };
-        ModesProba[4, 6] = new byte[] { 57, 46, 22, 24, 128, 1, 54, 17, 37 };
-        ModesProba[4, 7] = new byte[] { 65, 32, 73, 115, 28, 128, 23, 128, 205 };
-        ModesProba[4, 8] = new byte[] { 40, 3, 9, 115, 51, 192, 18, 6, 223 };
-        ModesProba[4, 9] = new byte[] { 87, 37, 9, 115, 59, 77, 64, 21, 47 };
-        ModesProba[5, 0] = new byte[] { 104, 55, 44, 218, 9, 54, 53, 130, 226 };
-        ModesProba[5, 1] = new byte[] { 64, 90, 70, 205, 40, 41, 23, 26, 57 };
-        ModesProba[5, 2] = new byte[] { 54, 57, 112, 184, 5, 41, 38, 166, 213 };
-        ModesProba[5, 3] = new byte[] { 30, 34, 26, 133, 152, 116, 10, 32, 134 };
-        ModesProba[5, 4] = new byte[] { 39, 19, 53, 221, 26, 114, 32, 73, 255 };
-        ModesProba[5, 5] = new byte[] { 31, 9, 65, 234, 2, 15, 1, 118, 73 };
-        ModesProba[5, 6] = new byte[] { 75, 32, 12, 51, 192, 255, 160, 43, 51 };
-        ModesProba[5, 7] = new byte[] { 88, 31, 35, 67, 102, 85, 55, 186, 85 };
-        ModesProba[5, 8] = new byte[] { 56, 21, 23, 111, 59, 205, 45, 37, 192 };
-        ModesProba[5, 9] = new byte[] { 55, 38, 70, 124, 73, 102, 1, 34, 98 };
-        ModesProba[6, 0] = new byte[] { 125, 98, 42, 88, 104, 85, 117, 175, 82 };
-        ModesProba[6, 1] = new byte[] { 95, 84, 53, 89, 128, 100, 113, 101, 45 };
-        ModesProba[6, 2] = new byte[] { 75, 79, 123, 47, 51, 128, 81, 171, 1 };
-        ModesProba[6, 3] = new byte[] { 57, 17, 5, 71, 102, 57, 53, 41, 49 };
-        ModesProba[6, 4] = new byte[] { 38, 33, 13, 121, 57, 73, 26, 1, 85 };
-        ModesProba[6, 5] = new byte[] { 41, 10, 67, 138, 77, 110, 90, 47, 114 };
-        ModesProba[6, 6] = new byte[] { 115, 21, 2, 10, 102, 255, 166, 23, 6 };
-        ModesProba[6, 7] = new byte[] { 101, 29, 16, 10, 85, 128, 101, 196, 26 };
-        ModesProba[6, 8] = new byte[] { 57, 18, 10, 102, 102, 213, 34, 20, 43 };
-        ModesProba[6, 9] = new byte[] { 117, 20, 15, 36, 163, 128, 68, 1, 26 };
-        ModesProba[7, 0] = new byte[] { 102, 61, 71, 37, 34, 53, 31, 243, 192 };
-        ModesProba[7, 1] = new byte[] { 69, 60, 71, 38, 73, 119, 28, 222, 37 };
-        ModesProba[7, 2] = new byte[] { 68, 45, 128, 34, 1, 47, 11, 245, 171 };
-        ModesProba[7, 3] = new byte[] { 62, 17, 19, 70, 146, 85, 55, 62, 70 };
-        ModesProba[7, 4] = new byte[] { 37, 43, 37, 154, 100, 163, 85, 160, 1 };
-        ModesProba[7, 5] = new byte[] { 63, 9, 92, 136, 28, 64, 32, 201, 85 };
-        ModesProba[7, 6] = new byte[] { 75, 15, 9, 9, 64, 255, 184, 119, 16 };
-        ModesProba[7, 7] = new byte[] { 86, 6, 28, 5, 64, 255, 25, 248, 1 };
-        ModesProba[7, 8] = new byte[] { 56, 8, 17, 132, 137, 255, 55, 116, 128 };
-        ModesProba[7, 9] = new byte[] { 58, 15, 20, 82, 135, 57, 26, 121, 40 };
-        ModesProba[8, 0] = new byte[] { 164, 50, 31, 137, 154, 133, 25, 35, 218 };
-        ModesProba[8, 1] = new byte[] { 51, 103, 44, 131, 131, 123, 31, 6, 158 };
-        ModesProba[8, 2] = new byte[] { 86, 40, 64, 135, 148, 224, 45, 183, 128 };
-        ModesProba[8, 3] = new byte[] { 22, 26, 17, 131, 240, 154, 14, 1, 209 };
-        ModesProba[8, 4] = new byte[] { 45, 16, 21, 91, 64, 222, 7, 1, 197 };
-        ModesProba[8, 5] = new byte[] { 56, 21, 39, 155, 60, 138, 23, 102, 213 };
-        ModesProba[8, 6] = new byte[] { 83, 12, 13, 54, 192, 255, 68, 47, 28 };
-        ModesProba[8, 7] = new byte[] { 85, 26, 85, 85, 128, 128, 32, 146, 171 };
-        ModesProba[8, 8] = new byte[] { 18, 11, 7, 63, 144, 171, 4, 4, 246 };
-        ModesProba[8, 9] = new byte[] { 35, 27, 10, 146, 174, 171, 12, 26, 128 };
-        ModesProba[9, 0] = new byte[] { 190, 80, 35, 99, 180, 80, 126, 54, 45 };
-        ModesProba[9, 1] = new byte[] { 85, 126, 47, 87, 176, 51, 41, 20, 32 };
-        ModesProba[9, 2] = new byte[] { 101, 75, 128, 139, 118, 146, 116, 128, 85 };
-        ModesProba[9, 3] = new byte[] { 56, 41, 15, 176, 236, 85, 37, 9, 62 };
-        ModesProba[9, 4] = new byte[] { 71, 30, 17, 119, 118, 255, 17, 18, 138 };
-        ModesProba[9, 5] = new byte[] { 101, 38, 60, 138, 55, 70, 43, 26, 142 };
-        ModesProba[9, 6] = new byte[] { 146, 36, 19, 30, 171, 255, 97, 27, 20 };
-        ModesProba[9, 7] = new byte[] { 138, 45, 61, 62, 219, 1, 81, 188, 64 };
-        ModesProba[9, 8] = new byte[] { 32, 41, 20, 117, 151, 142, 20, 21, 163 };
-        ModesProba[9, 9] = new byte[] { 112, 19, 12, 61, 195, 128, 48, 4, 24 };
+        ModesProba[0, 0] = [231, 120, 48, 89, 115, 113, 120, 152, 112];
+        ModesProba[0, 1] = [152, 179, 64, 126, 170, 118, 46, 70, 95];
+        ModesProba[0, 2] = [175, 69, 143, 80, 85, 82, 72, 155, 103];
+        ModesProba[0, 3] = [56, 58, 10, 171, 218, 189, 17, 13, 152];
+        ModesProba[0, 4] = [114, 26, 17, 163, 44, 195, 21, 10, 173];
+        ModesProba[0, 5] = [121, 24, 80, 195, 26, 62, 44, 64, 85];
+        ModesProba[0, 6] = [144, 71, 10, 38, 171, 213, 144, 34, 26];
+        ModesProba[0, 7] = [170, 46, 55, 19, 136, 160, 33, 206, 71];
+        ModesProba[0, 8] = [63, 20, 8, 114, 114, 208, 12, 9, 226];
+        ModesProba[0, 9] = [81, 40, 11, 96, 182, 84, 29, 16, 36];
+        ModesProba[1, 0] = [134, 183, 89, 137, 98, 101, 106, 165, 148];
+        ModesProba[1, 1] = [72, 187, 100, 130, 157, 111, 32, 75, 80];
+        ModesProba[1, 2] = [66, 102, 167, 99, 74, 62, 40, 234, 128];
+        ModesProba[1, 3] = [41, 53, 9, 178, 241, 141, 26, 8, 107];
+        ModesProba[1, 4] = [74, 43, 26, 146, 73, 166, 49, 23, 157];
+        ModesProba[1, 5] = [65, 38, 105, 160, 51, 52, 31, 115, 128];
+        ModesProba[1, 6] = [104, 79, 12, 27, 217, 255, 87, 17, 7];
+        ModesProba[1, 7] = [87, 68, 71, 44, 114, 51, 15, 186, 23];
+        ModesProba[1, 8] = [47, 41, 14, 110, 182, 183, 21, 17, 194];
+        ModesProba[1, 9] = [66, 45, 25, 102, 197, 189, 23, 18, 22];
+        ModesProba[2, 0] = [88, 88, 147, 150, 42, 46, 45, 196, 205];
+        ModesProba[2, 1] = [43, 97, 183, 117, 85, 38, 35, 179, 61];
+        ModesProba[2, 2] = [39, 53, 200, 87, 26, 21, 43, 232, 171];
+        ModesProba[2, 3] = [56, 34, 51, 104, 114, 102, 29, 93, 77];
+        ModesProba[2, 4] = [39, 28, 85, 171, 58, 165, 90, 98, 64];
+        ModesProba[2, 5] = [34, 22, 116, 206, 23, 34, 43, 166, 73];
+        ModesProba[2, 6] = [107, 54, 32, 26, 51, 1, 81, 43, 31];
+        ModesProba[2, 7] = [68, 25, 106, 22, 64, 171, 36, 225, 114];
+        ModesProba[2, 8] = [34, 19, 21, 102, 132, 188, 16, 76, 124];
+        ModesProba[2, 9] = [62, 18, 78, 95, 85, 57, 50, 48, 51];
+        ModesProba[3, 0] = [193, 101, 35, 159, 215, 111, 89, 46, 111];
+        ModesProba[3, 1] = [60, 148, 31, 172, 219, 228, 21, 18, 111];
+        ModesProba[3, 2] = [112, 113, 77, 85, 179, 255, 38, 120, 114];
+        ModesProba[3, 3] = [40, 42, 1, 196, 245, 209, 10, 25, 109];
+        ModesProba[3, 4] = [88, 43, 29, 140, 166, 213, 37, 43, 154];
+        ModesProba[3, 5] = [61, 63, 30, 155, 67, 45, 68, 1, 209];
+        ModesProba[3, 6] = [100, 80, 8, 43, 154, 1, 51, 26, 71];
+        ModesProba[3, 7] = [142, 78, 78, 16, 255, 128, 34, 197, 171];
+        ModesProba[3, 8] = [41, 40, 5, 102, 211, 183, 4, 1, 221];
+        ModesProba[3, 9] = [51, 50, 17, 168, 209, 192, 23, 25, 82];
+        ModesProba[4, 0] = [138, 31, 36, 171, 27, 166, 38, 44, 229];
+        ModesProba[4, 1] = [67, 87, 58, 169, 82, 115, 26, 59, 179];
+        ModesProba[4, 2] = [63, 59, 90, 180, 59, 166, 93, 73, 154];
+        ModesProba[4, 3] = [40, 40, 21, 116, 143, 209, 34, 39, 175];
+        ModesProba[4, 4] = [47, 15, 16, 183, 34, 223, 49, 45, 183];
+        ModesProba[4, 5] = [46, 17, 33, 183, 6, 98, 15, 32, 183];
+        ModesProba[4, 6] = [57, 46, 22, 24, 128, 1, 54, 17, 37];
+        ModesProba[4, 7] = [65, 32, 73, 115, 28, 128, 23, 128, 205];
+        ModesProba[4, 8] = [40, 3, 9, 115, 51, 192, 18, 6, 223];
+        ModesProba[4, 9] = [87, 37, 9, 115, 59, 77, 64, 21, 47];
+        ModesProba[5, 0] = [104, 55, 44, 218, 9, 54, 53, 130, 226];
+        ModesProba[5, 1] = [64, 90, 70, 205, 40, 41, 23, 26, 57];
+        ModesProba[5, 2] = [54, 57, 112, 184, 5, 41, 38, 166, 213];
+        ModesProba[5, 3] = [30, 34, 26, 133, 152, 116, 10, 32, 134];
+        ModesProba[5, 4] = [39, 19, 53, 221, 26, 114, 32, 73, 255];
+        ModesProba[5, 5] = [31, 9, 65, 234, 2, 15, 1, 118, 73];
+        ModesProba[5, 6] = [75, 32, 12, 51, 192, 255, 160, 43, 51];
+        ModesProba[5, 7] = [88, 31, 35, 67, 102, 85, 55, 186, 85];
+        ModesProba[5, 8] = [56, 21, 23, 111, 59, 205, 45, 37, 192];
+        ModesProba[5, 9] = [55, 38, 70, 124, 73, 102, 1, 34, 98];
+        ModesProba[6, 0] = [125, 98, 42, 88, 104, 85, 117, 175, 82];
+        ModesProba[6, 1] = [95, 84, 53, 89, 128, 100, 113, 101, 45];
+        ModesProba[6, 2] = [75, 79, 123, 47, 51, 128, 81, 171, 1];
+        ModesProba[6, 3] = [57, 17, 5, 71, 102, 57, 53, 41, 49];
+        ModesProba[6, 4] = [38, 33, 13, 121, 57, 73, 26, 1, 85];
+        ModesProba[6, 5] = [41, 10, 67, 138, 77, 110, 90, 47, 114];
+        ModesProba[6, 6] = [115, 21, 2, 10, 102, 255, 166, 23, 6];
+        ModesProba[6, 7] = [101, 29, 16, 10, 85, 128, 101, 196, 26];
+        ModesProba[6, 8] = [57, 18, 10, 102, 102, 213, 34, 20, 43];
+        ModesProba[6, 9] = [117, 20, 15, 36, 163, 128, 68, 1, 26];
+        ModesProba[7, 0] = [102, 61, 71, 37, 34, 53, 31, 243, 192];
+        ModesProba[7, 1] = [69, 60, 71, 38, 73, 119, 28, 222, 37];
+        ModesProba[7, 2] = [68, 45, 128, 34, 1, 47, 11, 245, 171];
+        ModesProba[7, 3] = [62, 17, 19, 70, 146, 85, 55, 62, 70];
+        ModesProba[7, 4] = [37, 43, 37, 154, 100, 163, 85, 160, 1];
+        ModesProba[7, 5] = [63, 9, 92, 136, 28, 64, 32, 201, 85];
+        ModesProba[7, 6] = [75, 15, 9, 9, 64, 255, 184, 119, 16];
+        ModesProba[7, 7] = [86, 6, 28, 5, 64, 255, 25, 248, 1];
+        ModesProba[7, 8] = [56, 8, 17, 132, 137, 255, 55, 116, 128];
+        ModesProba[7, 9] = [58, 15, 20, 82, 135, 57, 26, 121, 40];
+        ModesProba[8, 0] = [164, 50, 31, 137, 154, 133, 25, 35, 218];
+        ModesProba[8, 1] = [51, 103, 44, 131, 131, 123, 31, 6, 158];
+        ModesProba[8, 2] = [86, 40, 64, 135, 148, 224, 45, 183, 128];
+        ModesProba[8, 3] = [22, 26, 17, 131, 240, 154, 14, 1, 209];
+        ModesProba[8, 4] = [45, 16, 21, 91, 64, 222, 7, 1, 197];
+        ModesProba[8, 5] = [56, 21, 39, 155, 60, 138, 23, 102, 213];
+        ModesProba[8, 6] = [83, 12, 13, 54, 192, 255, 68, 47, 28];
+        ModesProba[8, 7] = [85, 26, 85, 85, 128, 128, 32, 146, 171];
+        ModesProba[8, 8] = [18, 11, 7, 63, 144, 171, 4, 4, 246];
+        ModesProba[8, 9] = [35, 27, 10, 146, 174, 171, 12, 26, 128];
+        ModesProba[9, 0] = [190, 80, 35, 99, 180, 80, 126, 54, 45];
+        ModesProba[9, 1] = [85, 126, 47, 87, 176, 51, 41, 20, 32];
+        ModesProba[9, 2] = [101, 75, 128, 139, 118, 146, 116, 128, 85];
+        ModesProba[9, 3] = [56, 41, 15, 176, 236, 85, 37, 9, 62];
+        ModesProba[9, 4] = [71, 30, 17, 119, 118, 255, 17, 18, 138];
+        ModesProba[9, 5] = [101, 38, 60, 138, 55, 70, 43, 26, 142];
+        ModesProba[9, 6] = [146, 36, 19, 30, 171, 255, 97, 27, 20];
+        ModesProba[9, 7] = [138, 45, 61, 62, 219, 1, 81, 188, 64];
+        ModesProba[9, 8] = [32, 41, 20, 117, 151, 142, 20, 21, 163];
+        ModesProba[9, 9] = [112, 19, 12, 61, 195, 128, 48, 4, 24];
     }
 
     private static void InitializeFixedCostsI4()
     {
-        Vp8FixedCostsI4[0, 0] = new short[] { 40, 1151, 1723, 1874, 2103, 2019, 1628, 1777, 2226, 2137 };
-        Vp8FixedCostsI4[0, 1] = new short[] { 192, 469, 1296, 1308, 1849, 1794, 1781, 1703, 1713, 1522 };
-        Vp8FixedCostsI4[0, 2] = new short[] { 142, 910, 762, 1684, 1849, 1576, 1460, 1305, 1801, 1657 };
-        Vp8FixedCostsI4[0, 3] = new short[] { 559, 641, 1370, 421, 1182, 1569, 1612, 1725, 863, 1007 };
-        Vp8FixedCostsI4[0, 4] = new short[] { 299, 1059, 1256, 1108, 636, 1068, 1581, 1883, 869, 1142 };
-        Vp8FixedCostsI4[0, 5] = new short[] { 277, 1111, 707, 1362, 1089, 672, 1603, 1541, 1545, 1291 };
-        Vp8FixedCostsI4[0, 6] = new short[] { 214, 781, 1609, 1303, 1632, 2229, 726, 1560, 1713, 918 };
-        Vp8FixedCostsI4[0, 7] = new short[] { 152, 1037, 1046, 1759, 1983, 2174, 1358, 742, 1740, 1390 };
-        Vp8FixedCostsI4[0, 8] = new short[] { 512, 1046, 1420, 753, 752, 1297, 1486, 1613, 460, 1207 };
-        Vp8FixedCostsI4[0, 9] = new short[] { 424, 827, 1362, 719, 1462, 1202, 1199, 1476, 1199, 538 };
-        Vp8FixedCostsI4[1, 0] = new short[] { 240, 402, 1134, 1491, 1659, 1505, 1517, 1555, 1979, 2099 };
-        Vp8FixedCostsI4[1, 1] = new short[] { 467, 242, 960, 1232, 1714, 1620, 1834, 1570, 1676, 1391 };
-        Vp8FixedCostsI4[1, 2] = new short[] { 500, 455, 463, 1507, 1699, 1282, 1564, 982, 2114, 2114 };
-        Vp8FixedCostsI4[1, 3] = new short[] { 672, 643, 1372, 331, 1589, 1667, 1453, 1938, 996, 876 };
-        Vp8FixedCostsI4[1, 4] = new short[] { 458, 783, 1037, 911, 738, 968, 1165, 1518, 859, 1033 };
-        Vp8FixedCostsI4[1, 5] = new short[] { 504, 815, 504, 1139, 1219, 719, 1506, 1085, 1268, 1268 };
-        Vp8FixedCostsI4[1, 6] = new short[] { 333, 630, 1445, 1239, 1883, 3672, 799, 1548, 1865, 598 };
-        Vp8FixedCostsI4[1, 7] = new short[] { 399, 644, 746, 1342, 1856, 1350, 1493, 613, 1855, 1015 };
-        Vp8FixedCostsI4[1, 8] = new short[] { 622, 749, 1205, 608, 1066, 1408, 1290, 1406, 546, 971 };
-        Vp8FixedCostsI4[1, 9] = new short[] { 500, 753, 1041, 668, 1230, 1617, 1297, 1425, 1383, 523 };
-        Vp8FixedCostsI4[2, 0] = new short[] { 394, 553, 523, 1502, 1536, 981, 1608, 1142, 1666, 2181 };
-        Vp8FixedCostsI4[2, 1] = new short[] { 655, 430, 375, 1411, 1861, 1220, 1677, 1135, 1978, 1553 };
-        Vp8FixedCostsI4[2, 2] = new short[] { 690, 640, 245, 1954, 2070, 1194, 1528, 982, 1972, 2232 };
-        Vp8FixedCostsI4[2, 3] = new short[] { 559, 834, 741, 867, 1131, 980, 1225, 852, 1092, 784 };
-        Vp8FixedCostsI4[2, 4] = new short[] { 690, 875, 516, 959, 673, 894, 1056, 1190, 1528, 1126 };
-        Vp8FixedCostsI4[2, 5] = new short[] { 740, 951, 384, 1277, 1177, 492, 1579, 1155, 1846, 1513 };
-        Vp8FixedCostsI4[2, 6] = new short[] { 323, 775, 1062, 1776, 3062, 1274, 813, 1188, 1372, 655 };
-        Vp8FixedCostsI4[2, 7] = new short[] { 488, 971, 484, 1767, 1515, 1775, 1115, 503, 1539, 1461 };
-        Vp8FixedCostsI4[2, 8] = new short[] { 740, 1006, 998, 709, 851, 1230, 1337, 788, 741, 721 };
-        Vp8FixedCostsI4[2, 9] = new short[] { 522, 1073, 573, 1045, 1346, 887, 1046, 1146, 1203, 697 };
-        Vp8FixedCostsI4[3, 0] = new short[] { 105, 864, 1442, 1009, 1934, 1840, 1519, 1920, 1673, 1579 };
-        Vp8FixedCostsI4[3, 1] = new short[] { 534, 305, 1193, 683, 1388, 2164, 1802, 1894, 1264, 1170 };
-        Vp8FixedCostsI4[3, 2] = new short[] { 305, 518, 877, 1108, 1426, 3215, 1425, 1064, 1320, 1242 };
-        Vp8FixedCostsI4[3, 3] = new short[] { 683, 732, 1927, 257, 1493, 2048, 1858, 1552, 1055, 947 };
-        Vp8FixedCostsI4[3, 4] = new short[] { 394, 814, 1024, 660, 959, 1556, 1282, 1289, 893, 1047 };
-        Vp8FixedCostsI4[3, 5] = new short[] { 528, 615, 996, 940, 1201, 635, 1094, 2515, 803, 1358 };
-        Vp8FixedCostsI4[3, 6] = new short[] { 347, 614, 1609, 1187, 3133, 1345, 1007, 1339, 1017, 667 };
-        Vp8FixedCostsI4[3, 7] = new short[] { 218, 740, 878, 1605, 3650, 3650, 1345, 758, 1357, 1617 };
-        Vp8FixedCostsI4[3, 8] = new short[] { 672, 750, 1541, 558, 1257, 1599, 1870, 2135, 402, 1087 };
-        Vp8FixedCostsI4[3, 9] = new short[] { 592, 684, 1161, 430, 1092, 1497, 1475, 1489, 1095, 822 };
-        Vp8FixedCostsI4[4, 0] = new short[] { 228, 1056, 1059, 1368, 752, 982, 1512, 1518, 987, 1782 };
-        Vp8FixedCostsI4[4, 1] = new short[] { 494, 514, 818, 942, 965, 892, 1610, 1356, 1048, 1363 };
-        Vp8FixedCostsI4[4, 2] = new short[] { 512, 648, 591, 1042, 761, 991, 1196, 1454, 1309, 1463 };
-        Vp8FixedCostsI4[4, 3] = new short[] { 683, 749, 1043, 676, 841, 1396, 1133, 1138, 654, 939 };
-        Vp8FixedCostsI4[4, 4] = new short[] { 622, 1101, 1126, 994, 361, 1077, 1203, 1318, 877, 1219 };
-        Vp8FixedCostsI4[4, 5] = new short[] { 631, 1068, 857, 1650, 651, 477, 1650, 1419, 828, 1170 };
-        Vp8FixedCostsI4[4, 6] = new short[] { 555, 727, 1068, 1335, 3127, 1339, 820, 1331, 1077, 429 };
-        Vp8FixedCostsI4[4, 7] = new short[] { 504, 879, 624, 1398, 889, 889, 1392, 808, 891, 1406 };
-        Vp8FixedCostsI4[4, 8] = new short[] { 683, 1602, 1289, 977, 578, 983, 1280, 1708, 406, 1122 };
-        Vp8FixedCostsI4[4, 9] = new short[] { 399, 865, 1433, 1070, 1072, 764, 968, 1477, 1223, 678 };
-        Vp8FixedCostsI4[5, 0] = new short[] { 333, 760, 935, 1638, 1010, 529, 1646, 1410, 1472, 2219 };
-        Vp8FixedCostsI4[5, 1] = new short[] { 512, 494, 750, 1160, 1215, 610, 1870, 1868, 1628, 1169 };
-        Vp8FixedCostsI4[5, 2] = new short[] { 572, 646, 492, 1934, 1208, 603, 1580, 1099, 1398, 1995 };
-        Vp8FixedCostsI4[5, 3] = new short[] { 786, 789, 942, 581, 1018, 951, 1599, 1207, 731, 768 };
-        Vp8FixedCostsI4[5, 4] = new short[] { 690, 1015, 672, 1078, 582, 504, 1693, 1438, 1108, 2897 };
-        Vp8FixedCostsI4[5, 5] = new short[] { 768, 1267, 571, 2005, 1243, 244, 2881, 1380, 1786, 1453 };
-        Vp8FixedCostsI4[5, 6] = new short[] { 452, 899, 1293, 903, 1311, 3100, 465, 1311, 1319, 813 };
-        Vp8FixedCostsI4[5, 7] = new short[] { 394, 927, 942, 1103, 1358, 1104, 946, 593, 1363, 1109 };
-        Vp8FixedCostsI4[5, 8] = new short[] { 559, 1005, 1007, 1016, 658, 1173, 1021, 1164, 623, 1028 };
-        Vp8FixedCostsI4[5, 9] = new short[] { 564, 796, 632, 1005, 1014, 863, 2316, 1268, 938, 764 };
-        Vp8FixedCostsI4[6, 0] = new short[] { 266, 606, 1098, 1228, 1497, 1243, 948, 1030, 1734, 1461 };
-        Vp8FixedCostsI4[6, 1] = new short[] { 366, 585, 901, 1060, 1407, 1247, 876, 1134, 1620, 1054 };
-        Vp8FixedCostsI4[6, 2] = new short[] { 452, 565, 542, 1729, 1479, 1479, 1016, 886, 2938, 1150 };
-        Vp8FixedCostsI4[6, 3] = new short[] { 555, 1088, 1533, 950, 1354, 895, 834, 1019, 1021, 496 };
-        Vp8FixedCostsI4[6, 4] = new short[] { 704, 815, 1193, 971, 973, 640, 1217, 2214, 832, 578 };
-        Vp8FixedCostsI4[6, 5] = new short[] { 672, 1245, 579, 871, 875, 774, 872, 1273, 1027, 949 };
-        Vp8FixedCostsI4[6, 6] = new short[] { 296, 1134, 2050, 1784, 1636, 3425, 442, 1550, 2076, 722 };
-        Vp8FixedCostsI4[6, 7] = new short[] { 342, 982, 1259, 1846, 1848, 1848, 622, 568, 1847, 1052 };
-        Vp8FixedCostsI4[6, 8] = new short[] { 555, 1064, 1304, 828, 746, 1343, 1075, 1329, 1078, 494 };
-        Vp8FixedCostsI4[6, 9] = new short[] { 288, 1167, 1285, 1174, 1639, 1639, 833, 2254, 1304, 509 };
-        Vp8FixedCostsI4[7, 0] = new short[] { 342, 719, 767, 1866, 1757, 1270, 1246, 550, 1746, 2151 };
-        Vp8FixedCostsI4[7, 1] = new short[] { 483, 653, 694, 1509, 1459, 1410, 1218, 507, 1914, 1266 };
-        Vp8FixedCostsI4[7, 2] = new short[] { 488, 757, 447, 2979, 1813, 1268, 1654, 539, 1849, 2109 };
-        Vp8FixedCostsI4[7, 3] = new short[] { 522, 1097, 1085, 851, 1365, 1111, 851, 901, 961, 605 };
-        Vp8FixedCostsI4[7, 4] = new short[] { 709, 716, 841, 728, 736, 945, 941, 862, 2845, 1057 };
-        Vp8FixedCostsI4[7, 5] = new short[] { 512, 1323, 500, 1336, 1083, 681, 1342, 717, 1604, 1350 };
-        Vp8FixedCostsI4[7, 6] = new short[] { 452, 1155, 1372, 1900, 1501, 3290, 311, 944, 1919, 922 };
-        Vp8FixedCostsI4[7, 7] = new short[] { 403, 1520, 977, 2132, 1733, 3522, 1076, 276, 3335, 1547 };
-        Vp8FixedCostsI4[7, 8] = new short[] { 559, 1374, 1101, 615, 673, 2462, 974, 795, 984, 984 };
-        Vp8FixedCostsI4[7, 9] = new short[] { 547, 1122, 1062, 812, 1410, 951, 1140, 622, 1268, 651 };
-        Vp8FixedCostsI4[8, 0] = new short[] { 165, 982, 1235, 938, 1334, 1366, 1659, 1578, 964, 1612 };
-        Vp8FixedCostsI4[8, 1] = new short[] { 592, 422, 925, 847, 1139, 1112, 1387, 2036, 861, 1041 };
-        Vp8FixedCostsI4[8, 2] = new short[] { 403, 837, 732, 770, 941, 1658, 1250, 809, 1407, 1407 };
-        Vp8FixedCostsI4[8, 3] = new short[] { 896, 874, 1071, 381, 1568, 1722, 1437, 2192, 480, 1035 };
-        Vp8FixedCostsI4[8, 4] = new short[] { 640, 1098, 1012, 1032, 684, 1382, 1581, 2106, 416, 865 };
-        Vp8FixedCostsI4[8, 5] = new short[] { 559, 1005, 819, 914, 710, 770, 1418, 920, 838, 1435 };
-        Vp8FixedCostsI4[8, 6] = new short[] { 415, 1258, 1245, 870, 1278, 3067, 770, 1021, 1287, 522 };
-        Vp8FixedCostsI4[8, 7] = new short[] { 406, 990, 601, 1009, 1265, 1265, 1267, 759, 1017, 1277 };
-        Vp8FixedCostsI4[8, 8] = new short[] { 968, 1182, 1329, 788, 1032, 1292, 1705, 1714, 203, 1403 };
-        Vp8FixedCostsI4[8, 9] = new short[] { 732, 877, 1279, 471, 901, 1161, 1545, 1294, 755, 755 };
-        Vp8FixedCostsI4[9, 0] = new short[] { 111, 931, 1378, 1185, 1933, 1648, 1148, 1714, 1873, 1307 };
-        Vp8FixedCostsI4[9, 1] = new short[] { 406, 414, 1030, 1023, 1910, 1404, 1313, 1647, 1509, 793 };
-        Vp8FixedCostsI4[9, 2] = new short[] { 342, 640, 575, 1088, 1241, 1349, 1161, 1350, 1756, 1502 };
-        Vp8FixedCostsI4[9, 3] = new short[] { 559, 766, 1185, 357, 1682, 1428, 1329, 1897, 1219, 802 };
-        Vp8FixedCostsI4[9, 4] = new short[] { 473, 909, 1164, 771, 719, 2508, 1427, 1432, 722, 782 };
-        Vp8FixedCostsI4[9, 5] = new short[] { 342, 892, 785, 1145, 1150, 794, 1296, 1550, 973, 1057 };
-        Vp8FixedCostsI4[9, 6] = new short[] { 208, 1036, 1326, 1343, 1606, 3395, 815, 1455, 1618, 712 };
-        Vp8FixedCostsI4[9, 7] = new short[] { 228, 928, 890, 1046, 3499, 1711, 994, 829, 1720, 1318 };
-        Vp8FixedCostsI4[9, 8] = new short[] { 768, 724, 1058, 636, 991, 1075, 1319, 1324, 616, 825 };
-        Vp8FixedCostsI4[9, 9] = new short[] { 305, 1167, 1358, 899, 1587, 1587, 987, 1988, 1332, 501 };
+        Vp8FixedCostsI4[0, 0] = [40, 1151, 1723, 1874, 2103, 2019, 1628, 1777, 2226, 2137];
+        Vp8FixedCostsI4[0, 1] = [192, 469, 1296, 1308, 1849, 1794, 1781, 1703, 1713, 1522];
+        Vp8FixedCostsI4[0, 2] = [142, 910, 762, 1684, 1849, 1576, 1460, 1305, 1801, 1657];
+        Vp8FixedCostsI4[0, 3] = [559, 641, 1370, 421, 1182, 1569, 1612, 1725, 863, 1007];
+        Vp8FixedCostsI4[0, 4] = [299, 1059, 1256, 1108, 636, 1068, 1581, 1883, 869, 1142];
+        Vp8FixedCostsI4[0, 5] = [277, 1111, 707, 1362, 1089, 672, 1603, 1541, 1545, 1291];
+        Vp8FixedCostsI4[0, 6] = [214, 781, 1609, 1303, 1632, 2229, 726, 1560, 1713, 918];
+        Vp8FixedCostsI4[0, 7] = [152, 1037, 1046, 1759, 1983, 2174, 1358, 742, 1740, 1390];
+        Vp8FixedCostsI4[0, 8] = [512, 1046, 1420, 753, 752, 1297, 1486, 1613, 460, 1207];
+        Vp8FixedCostsI4[0, 9] = [424, 827, 1362, 719, 1462, 1202, 1199, 1476, 1199, 538];
+        Vp8FixedCostsI4[1, 0] = [240, 402, 1134, 1491, 1659, 1505, 1517, 1555, 1979, 2099];
+        Vp8FixedCostsI4[1, 1] = [467, 242, 960, 1232, 1714, 1620, 1834, 1570, 1676, 1391];
+        Vp8FixedCostsI4[1, 2] = [500, 455, 463, 1507, 1699, 1282, 1564, 982, 2114, 2114];
+        Vp8FixedCostsI4[1, 3] = [672, 643, 1372, 331, 1589, 1667, 1453, 1938, 996, 876];
+        Vp8FixedCostsI4[1, 4] = [458, 783, 1037, 911, 738, 968, 1165, 1518, 859, 1033];
+        Vp8FixedCostsI4[1, 5] = [504, 815, 504, 1139, 1219, 719, 1506, 1085, 1268, 1268];
+        Vp8FixedCostsI4[1, 6] = [333, 630, 1445, 1239, 1883, 3672, 799, 1548, 1865, 598];
+        Vp8FixedCostsI4[1, 7] = [399, 644, 746, 1342, 1856, 1350, 1493, 613, 1855, 1015];
+        Vp8FixedCostsI4[1, 8] = [622, 749, 1205, 608, 1066, 1408, 1290, 1406, 546, 971];
+        Vp8FixedCostsI4[1, 9] = [500, 753, 1041, 668, 1230, 1617, 1297, 1425, 1383, 523];
+        Vp8FixedCostsI4[2, 0] = [394, 553, 523, 1502, 1536, 981, 1608, 1142, 1666, 2181];
+        Vp8FixedCostsI4[2, 1] = [655, 430, 375, 1411, 1861, 1220, 1677, 1135, 1978, 1553];
+        Vp8FixedCostsI4[2, 2] = [690, 640, 245, 1954, 2070, 1194, 1528, 982, 1972, 2232];
+        Vp8FixedCostsI4[2, 3] = [559, 834, 741, 867, 1131, 980, 1225, 852, 1092, 784];
+        Vp8FixedCostsI4[2, 4] = [690, 875, 516, 959, 673, 894, 1056, 1190, 1528, 1126];
+        Vp8FixedCostsI4[2, 5] = [740, 951, 384, 1277, 1177, 492, 1579, 1155, 1846, 1513];
+        Vp8FixedCostsI4[2, 6] = [323, 775, 1062, 1776, 3062, 1274, 813, 1188, 1372, 655];
+        Vp8FixedCostsI4[2, 7] = [488, 971, 484, 1767, 1515, 1775, 1115, 503, 1539, 1461];
+        Vp8FixedCostsI4[2, 8] = [740, 1006, 998, 709, 851, 1230, 1337, 788, 741, 721];
+        Vp8FixedCostsI4[2, 9] = [522, 1073, 573, 1045, 1346, 887, 1046, 1146, 1203, 697];
+        Vp8FixedCostsI4[3, 0] = [105, 864, 1442, 1009, 1934, 1840, 1519, 1920, 1673, 1579];
+        Vp8FixedCostsI4[3, 1] = [534, 305, 1193, 683, 1388, 2164, 1802, 1894, 1264, 1170];
+        Vp8FixedCostsI4[3, 2] = [305, 518, 877, 1108, 1426, 3215, 1425, 1064, 1320, 1242];
+        Vp8FixedCostsI4[3, 3] = [683, 732, 1927, 257, 1493, 2048, 1858, 1552, 1055, 947];
+        Vp8FixedCostsI4[3, 4] = [394, 814, 1024, 660, 959, 1556, 1282, 1289, 893, 1047];
+        Vp8FixedCostsI4[3, 5] = [528, 615, 996, 940, 1201, 635, 1094, 2515, 803, 1358];
+        Vp8FixedCostsI4[3, 6] = [347, 614, 1609, 1187, 3133, 1345, 1007, 1339, 1017, 667];
+        Vp8FixedCostsI4[3, 7] = [218, 740, 878, 1605, 3650, 3650, 1345, 758, 1357, 1617];
+        Vp8FixedCostsI4[3, 8] = [672, 750, 1541, 558, 1257, 1599, 1870, 2135, 402, 1087];
+        Vp8FixedCostsI4[3, 9] = [592, 684, 1161, 430, 1092, 1497, 1475, 1489, 1095, 822];
+        Vp8FixedCostsI4[4, 0] = [228, 1056, 1059, 1368, 752, 982, 1512, 1518, 987, 1782];
+        Vp8FixedCostsI4[4, 1] = [494, 514, 818, 942, 965, 892, 1610, 1356, 1048, 1363];
+        Vp8FixedCostsI4[4, 2] = [512, 648, 591, 1042, 761, 991, 1196, 1454, 1309, 1463];
+        Vp8FixedCostsI4[4, 3] = [683, 749, 1043, 676, 841, 1396, 1133, 1138, 654, 939];
+        Vp8FixedCostsI4[4, 4] = [622, 1101, 1126, 994, 361, 1077, 1203, 1318, 877, 1219];
+        Vp8FixedCostsI4[4, 5] = [631, 1068, 857, 1650, 651, 477, 1650, 1419, 828, 1170];
+        Vp8FixedCostsI4[4, 6] = [555, 727, 1068, 1335, 3127, 1339, 820, 1331, 1077, 429];
+        Vp8FixedCostsI4[4, 7] = [504, 879, 624, 1398, 889, 889, 1392, 808, 891, 1406];
+        Vp8FixedCostsI4[4, 8] = [683, 1602, 1289, 977, 578, 983, 1280, 1708, 406, 1122];
+        Vp8FixedCostsI4[4, 9] = [399, 865, 1433, 1070, 1072, 764, 968, 1477, 1223, 678];
+        Vp8FixedCostsI4[5, 0] = [333, 760, 935, 1638, 1010, 529, 1646, 1410, 1472, 2219];
+        Vp8FixedCostsI4[5, 1] = [512, 494, 750, 1160, 1215, 610, 1870, 1868, 1628, 1169];
+        Vp8FixedCostsI4[5, 2] = [572, 646, 492, 1934, 1208, 603, 1580, 1099, 1398, 1995];
+        Vp8FixedCostsI4[5, 3] = [786, 789, 942, 581, 1018, 951, 1599, 1207, 731, 768];
+        Vp8FixedCostsI4[5, 4] = [690, 1015, 672, 1078, 582, 504, 1693, 1438, 1108, 2897];
+        Vp8FixedCostsI4[5, 5] = [768, 1267, 571, 2005, 1243, 244, 2881, 1380, 1786, 1453];
+        Vp8FixedCostsI4[5, 6] = [452, 899, 1293, 903, 1311, 3100, 465, 1311, 1319, 813];
+        Vp8FixedCostsI4[5, 7] = [394, 927, 942, 1103, 1358, 1104, 946, 593, 1363, 1109];
+        Vp8FixedCostsI4[5, 8] = [559, 1005, 1007, 1016, 658, 1173, 1021, 1164, 623, 1028];
+        Vp8FixedCostsI4[5, 9] = [564, 796, 632, 1005, 1014, 863, 2316, 1268, 938, 764];
+        Vp8FixedCostsI4[6, 0] = [266, 606, 1098, 1228, 1497, 1243, 948, 1030, 1734, 1461];
+        Vp8FixedCostsI4[6, 1] = [366, 585, 901, 1060, 1407, 1247, 876, 1134, 1620, 1054];
+        Vp8FixedCostsI4[6, 2] = [452, 565, 542, 1729, 1479, 1479, 1016, 886, 2938, 1150];
+        Vp8FixedCostsI4[6, 3] = [555, 1088, 1533, 950, 1354, 895, 834, 1019, 1021, 496];
+        Vp8FixedCostsI4[6, 4] = [704, 815, 1193, 971, 973, 640, 1217, 2214, 832, 578];
+        Vp8FixedCostsI4[6, 5] = [672, 1245, 579, 871, 875, 774, 872, 1273, 1027, 949];
+        Vp8FixedCostsI4[6, 6] = [296, 1134, 2050, 1784, 1636, 3425, 442, 1550, 2076, 722];
+        Vp8FixedCostsI4[6, 7] = [342, 982, 1259, 1846, 1848, 1848, 622, 568, 1847, 1052];
+        Vp8FixedCostsI4[6, 8] = [555, 1064, 1304, 828, 746, 1343, 1075, 1329, 1078, 494];
+        Vp8FixedCostsI4[6, 9] = [288, 1167, 1285, 1174, 1639, 1639, 833, 2254, 1304, 509];
+        Vp8FixedCostsI4[7, 0] = [342, 719, 767, 1866, 1757, 1270, 1246, 550, 1746, 2151];
+        Vp8FixedCostsI4[7, 1] = [483, 653, 694, 1509, 1459, 1410, 1218, 507, 1914, 1266];
+        Vp8FixedCostsI4[7, 2] = [488, 757, 447, 2979, 1813, 1268, 1654, 539, 1849, 2109];
+        Vp8FixedCostsI4[7, 3] = [522, 1097, 1085, 851, 1365, 1111, 851, 901, 961, 605];
+        Vp8FixedCostsI4[7, 4] = [709, 716, 841, 728, 736, 945, 941, 862, 2845, 1057];
+        Vp8FixedCostsI4[7, 5] = [512, 1323, 500, 1336, 1083, 681, 1342, 717, 1604, 1350];
+        Vp8FixedCostsI4[7, 6] = [452, 1155, 1372, 1900, 1501, 3290, 311, 944, 1919, 922];
+        Vp8FixedCostsI4[7, 7] = [403, 1520, 977, 2132, 1733, 3522, 1076, 276, 3335, 1547];
+        Vp8FixedCostsI4[7, 8] = [559, 1374, 1101, 615, 673, 2462, 974, 795, 984, 984];
+        Vp8FixedCostsI4[7, 9] = [547, 1122, 1062, 812, 1410, 951, 1140, 622, 1268, 651];
+        Vp8FixedCostsI4[8, 0] = [165, 982, 1235, 938, 1334, 1366, 1659, 1578, 964, 1612];
+        Vp8FixedCostsI4[8, 1] = [592, 422, 925, 847, 1139, 1112, 1387, 2036, 861, 1041];
+        Vp8FixedCostsI4[8, 2] = [403, 837, 732, 770, 941, 1658, 1250, 809, 1407, 1407];
+        Vp8FixedCostsI4[8, 3] = [896, 874, 1071, 381, 1568, 1722, 1437, 2192, 480, 1035];
+        Vp8FixedCostsI4[8, 4] = [640, 1098, 1012, 1032, 684, 1382, 1581, 2106, 416, 865];
+        Vp8FixedCostsI4[8, 5] = [559, 1005, 819, 914, 710, 770, 1418, 920, 838, 1435];
+        Vp8FixedCostsI4[8, 6] = [415, 1258, 1245, 870, 1278, 3067, 770, 1021, 1287, 522];
+        Vp8FixedCostsI4[8, 7] = [406, 990, 601, 1009, 1265, 1265, 1267, 759, 1017, 1277];
+        Vp8FixedCostsI4[8, 8] = [968, 1182, 1329, 788, 1032, 1292, 1705, 1714, 203, 1403];
+        Vp8FixedCostsI4[8, 9] = [732, 877, 1279, 471, 901, 1161, 1545, 1294, 755, 755];
+        Vp8FixedCostsI4[9, 0] = [111, 931, 1378, 1185, 1933, 1648, 1148, 1714, 1873, 1307];
+        Vp8FixedCostsI4[9, 1] = [406, 414, 1030, 1023, 1910, 1404, 1313, 1647, 1509, 793];
+        Vp8FixedCostsI4[9, 2] = [342, 640, 575, 1088, 1241, 1349, 1161, 1350, 1756, 1502];
+        Vp8FixedCostsI4[9, 3] = [559, 766, 1185, 357, 1682, 1428, 1329, 1897, 1219, 802];
+        Vp8FixedCostsI4[9, 4] = [473, 909, 1164, 771, 719, 2508, 1427, 1432, 722, 782];
+        Vp8FixedCostsI4[9, 5] = [342, 892, 785, 1145, 1150, 794, 1296, 1550, 973, 1057];
+        Vp8FixedCostsI4[9, 6] = [208, 1036, 1326, 1343, 1606, 3395, 815, 1455, 1618, 712];
+        Vp8FixedCostsI4[9, 7] = [228, 928, 890, 1046, 3499, 1711, 994, 829, 1720, 1318];
+        Vp8FixedCostsI4[9, 8] = [768, 724, 1058, 636, 991, 1075, 1319, 1324, 616, 825];
+        Vp8FixedCostsI4[9, 9] = [305, 1167, 1358, 899, 1587, 1587, 987, 1988, 1332, 501];
     }
 }

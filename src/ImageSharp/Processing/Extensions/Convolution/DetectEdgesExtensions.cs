@@ -16,8 +16,8 @@ public static class DetectEdgesExtensions
     /// </summary>
     /// <param name="source">The current image processing context.</param>
     /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
-    public static IImageProcessingContext DetectEdges(this IImageProcessingContext source) =>
-        DetectEdges(source, KnownEdgeDetectorKernels.Sobel);
+    public static IImageProcessingContext DetectEdges(this IImageProcessingContext source)
+        => DetectEdges(source, KnownEdgeDetectorKernels.Sobel);
 
     /// <summary>
     /// Detects any edges within the image.
@@ -28,10 +28,8 @@ public static class DetectEdgesExtensions
     /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
     /// </param>
     /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
-    public static IImageProcessingContext DetectEdges(
-        this IImageProcessingContext source,
-        Rectangle rectangle) =>
-        DetectEdges(source, KnownEdgeDetectorKernels.Sobel, rectangle);
+    public static IImageProcessingContext DetectEdges(this IImageProcessingContext source, Rectangle rectangle)
+        => DetectEdges(source, rectangle, KnownEdgeDetectorKernels.Sobel);
 
     /// <summary>
     /// Detects any edges within the image operating in grayscale mode.
@@ -39,10 +37,8 @@ public static class DetectEdgesExtensions
     /// <param name="source">The current image processing context.</param>
     /// <param name="kernel">The 2D edge detector kernel.</param>
     /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
-    public static IImageProcessingContext DetectEdges(
-        this IImageProcessingContext source,
-        EdgeDetector2DKernel kernel) =>
-        DetectEdges(source, kernel, true);
+    public static IImageProcessingContext DetectEdges(this IImageProcessingContext source, EdgeDetector2DKernel kernel)
+        => DetectEdges(source, kernel, true);
 
     /// <summary>
     /// Detects any edges within the image using a <see cref="EdgeDetector2DKernel"/>.
@@ -57,49 +53,41 @@ public static class DetectEdgesExtensions
         this IImageProcessingContext source,
         EdgeDetector2DKernel kernel,
         bool grayscale)
-    {
-        var processor = new EdgeDetector2DProcessor(kernel, grayscale);
-        source.ApplyProcessor(processor);
-        return source;
-    }
+        => source.ApplyProcessor(new EdgeDetector2DProcessor(kernel, grayscale));
 
     /// <summary>
     /// Detects any edges within the image operating in grayscale mode.
     /// </summary>
     /// <param name="source">The current image processing context.</param>
-    /// <param name="kernel">The 2D edge detector kernel.</param>
     /// <param name="rectangle">
     /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
     /// </param>
+    /// <param name="kernel">The 2D edge detector kernel.</param>
     /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
     public static IImageProcessingContext DetectEdges(
         this IImageProcessingContext source,
-        EdgeDetector2DKernel kernel,
-        Rectangle rectangle) =>
-        DetectEdges(source, kernel, true, rectangle);
+        Rectangle rectangle,
+        EdgeDetector2DKernel kernel)
+        => DetectEdges(source, rectangle, kernel, true);
 
     /// <summary>
     /// Detects any edges within the image using a <see cref="EdgeDetector2DKernel"/>.
     /// </summary>
     /// <param name="source">The current image processing context.</param>
+    /// <param name="rectangle">
+    /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
+    /// </param>
     /// <param name="kernel">The 2D edge detector kernel.</param>
     /// <param name="grayscale">
     /// Whether to convert the image to grayscale before performing edge detection.
     /// </param>
-    /// <param name="rectangle">
-    /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
-    /// </param>
     /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
     public static IImageProcessingContext DetectEdges(
         this IImageProcessingContext source,
+        Rectangle rectangle,
         EdgeDetector2DKernel kernel,
-        bool grayscale,
-        Rectangle rectangle)
-    {
-        var processor = new EdgeDetector2DProcessor(kernel, grayscale);
-        source.ApplyProcessor(processor, rectangle);
-        return source;
-    }
+        bool grayscale)
+        => source.ApplyProcessor(new EdgeDetector2DProcessor(kernel, grayscale), rectangle);
 
     /// <summary>
     /// Detects any edges within the image operating in grayscale mode.
@@ -107,10 +95,8 @@ public static class DetectEdgesExtensions
     /// <param name="source">The current image processing context.</param>
     /// <param name="kernel">The edge detector kernel.</param>
     /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
-    public static IImageProcessingContext DetectEdges(
-        this IImageProcessingContext source,
-        EdgeDetectorKernel kernel) =>
-        DetectEdges(source, kernel, true);
+    public static IImageProcessingContext DetectEdges(this IImageProcessingContext source, EdgeDetectorKernel kernel)
+        => DetectEdges(source, kernel, true);
 
     /// <summary>
     /// Detects any edges within the image using a <see cref="EdgeDetectorKernel"/>.
@@ -125,66 +111,56 @@ public static class DetectEdgesExtensions
         this IImageProcessingContext source,
         EdgeDetectorKernel kernel,
         bool grayscale)
-    {
-        var processor = new EdgeDetectorProcessor(kernel, grayscale);
-        source.ApplyProcessor(processor);
-        return source;
-    }
+        => source.ApplyProcessor(new EdgeDetectorProcessor(kernel, grayscale));
 
     /// <summary>
     /// Detects any edges within the image operating in grayscale mode.
     /// </summary>
     /// <param name="source">The current image processing context.</param>
-    /// <param name="kernel">The edge detector kernel.</param>
     /// <param name="rectangle">
     /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
     /// </param>
+    /// <param name="kernel">The edge detector kernel.</param>
     /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
     public static IImageProcessingContext DetectEdges(
         this IImageProcessingContext source,
-        EdgeDetectorKernel kernel,
-        Rectangle rectangle) =>
-        DetectEdges(source, kernel, true, rectangle);
+        Rectangle rectangle,
+        EdgeDetectorKernel kernel)
+        => DetectEdges(source, rectangle, kernel, true);
 
     /// <summary>
     /// Detects any edges within the image using a <see cref="EdgeDetectorKernel"/>.
     /// </summary>
     /// <param name="source">The current image processing context.</param>
+    /// <param name="rectangle">
+    /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
+    /// </param>
     /// <param name="kernel">The edge detector kernel.</param>
     /// <param name="grayscale">
     /// Whether to convert the image to grayscale before performing edge detection.
     /// </param>
-    /// <param name="rectangle">
-    /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
-    /// </param>
     /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
     public static IImageProcessingContext DetectEdges(
         this IImageProcessingContext source,
+        Rectangle rectangle,
         EdgeDetectorKernel kernel,
-        bool grayscale,
-        Rectangle rectangle)
-    {
-        var processor = new EdgeDetectorProcessor(kernel, grayscale);
-        source.ApplyProcessor(processor, rectangle);
-        return source;
-    }
+        bool grayscale)
+        => source.ApplyProcessor(new EdgeDetectorProcessor(kernel, grayscale), rectangle);
 
     /// <summary>
     /// Detects any edges within the image operating in grayscale mode.
     /// </summary>
     /// <param name="source">The current image processing context.</param>
-    /// <param name="kernel">Thecompass edge detector kernel.</param>
+    /// <param name="kernel">The compass edge detector kernel.</param>
     /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
-    public static IImageProcessingContext DetectEdges(
-        this IImageProcessingContext source,
-        EdgeDetectorCompassKernel kernel) =>
-        DetectEdges(source, kernel, true);
+    public static IImageProcessingContext DetectEdges(this IImageProcessingContext source, EdgeDetectorCompassKernel kernel)
+        => DetectEdges(source, kernel, true);
 
     /// <summary>
     /// Detects any edges within the image using a <see cref="EdgeDetectorCompassKernel"/>.
     /// </summary>
     /// <param name="source">The current image processing context.</param>
-    /// <param name="kernel">Thecompass edge detector kernel.</param>
+    /// <param name="kernel">The compass edge detector kernel.</param>
     /// <param name="grayscale">
     /// Whether to convert the image to grayscale before performing edge detection.
     /// </param>
@@ -193,47 +169,39 @@ public static class DetectEdgesExtensions
         this IImageProcessingContext source,
         EdgeDetectorCompassKernel kernel,
         bool grayscale)
-    {
-        var processor = new EdgeDetectorCompassProcessor(kernel, grayscale);
-        source.ApplyProcessor(processor);
-        return source;
-    }
+        => source.ApplyProcessor(new EdgeDetectorCompassProcessor(kernel, grayscale));
 
     /// <summary>
     /// Detects any edges within the image operating in grayscale mode.
     /// </summary>
     /// <param name="source">The current image processing context.</param>
-    /// <param name="kernel">Thecompass edge detector kernel.</param>
     /// <param name="rectangle">
     /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
     /// </param>
+    /// <param name="kernel">The compass edge detector kernel.</param>
     /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
     public static IImageProcessingContext DetectEdges(
         this IImageProcessingContext source,
-        EdgeDetectorCompassKernel kernel,
-        Rectangle rectangle) =>
-        DetectEdges(source, kernel, true, rectangle);
+        Rectangle rectangle,
+        EdgeDetectorCompassKernel kernel)
+        => DetectEdges(source, rectangle, kernel, true);
 
     /// <summary>
     /// Detects any edges within the image using a <see cref="EdgeDetectorCompassKernel"/>.
     /// </summary>
     /// <param name="source">The current image processing context.</param>
-    /// <param name="kernel">Thecompass edge detector kernel.</param>
-    /// <param name="grayscale">
-    /// Whether to convert the image to grayscale before performing edge detection.
-    /// </param>
     /// <param name="rectangle">
     /// The <see cref="Rectangle"/> structure that specifies the portion of the image object to alter.
+    /// </param>
+    /// <param name="kernel">The compass edge detector kernel.</param>
+    /// <param name="grayscale">
+    /// Whether to convert the image to grayscale before performing edge detection.
     /// </param>
     /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
     public static IImageProcessingContext DetectEdges(
         this IImageProcessingContext source,
+        Rectangle rectangle,
         EdgeDetectorCompassKernel kernel,
-        bool grayscale,
-        Rectangle rectangle)
-    {
-        var processor = new EdgeDetectorCompassProcessor(kernel, grayscale);
-        source.ApplyProcessor(processor, rectangle);
-        return source;
-    }
+        bool grayscale)
+        => source.ApplyProcessor(new EdgeDetectorCompassProcessor(kernel, grayscale), rectangle);
 }

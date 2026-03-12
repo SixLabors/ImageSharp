@@ -8,20 +8,18 @@ SixLabors.ImageSharp
 <div align="center">
 
 [![Build Status](https://img.shields.io/github/actions/workflow/status/SixLabors/ImageSharp/build-and-test.yml?branch=main)](https://github.com/SixLabors/ImageSharp/actions)
-[![Code coverage](https://codecov.io/gh/SixLabors/ImageSharp/branch/main/graph/badge.svg)](https://codecov.io/gh/SixLabors/ImageSharp)
+[![codecov](https://codecov.io/gh/SixLabors/ImageSharp/graph/badge.svg?token=g2WJwz770q)](https://codecov.io/gh/SixLabors/ImageSharp)
 [![License: Six Labors Split](https://img.shields.io/badge/license-Six%20Labors%20Split-%23e30183)](https://github.com/SixLabors/ImageSharp/blob/main/LICENSE)
-[![Twitter](https://img.shields.io/twitter/url/http/shields.io.svg?style=flat&logo=twitter)](https://twitter.com/intent/tweet?hashtags=imagesharp,dotnet,oss&text=ImageSharp.+A+new+cross-platform+2D+graphics+API+in+C%23&url=https%3a%2f%2fgithub.com%2fSixLabors%2fImageSharp&via=sixlabors)
 
 </div>
 
-### **ImageSharp** is a new, fully featured, fully managed, cross-platform, 2D graphics API. 
+### **ImageSharp** is a high-performance, fully managed, cross-platform 2D graphics API.
 
-ImageSharp is a new, fully featured, fully managed, cross-platform, 2D graphics library. 
-Designed to simplify image processing, ImageSharp brings you an incredibly powerful yet beautifully simple API.
+ImageSharp is a mature, fully featured, high-performance image processing and graphics library for .NET, built for workloads across device, cloud, and embedded/IoT scenarios.
 
-ImageSharp is designed from the ground up to be flexible and extensible. The library provides API endpoints for common image processing operations and the building blocks to allow for the development of additional operations.
+Designed from the ground up to balance performance, portability, and ease of use, ImageSharp provides a powerful yet approachable API for common image processing tasks, along with the low-level building blocks needed to extend the library for specialized workflows.
 
-Built against [.NET 6](https://docs.microsoft.com/en-us/dotnet/standard/net-standard), ImageSharp can be used in device, cloud, and embedded/IoT scenarios.
+Built against [.NET 8](https://docs.microsoft.com/en-us/dotnet/standard/net-standard), ImageSharp can be used in device, cloud, and embedded/IoT scenarios.
 
 
 ## License
@@ -64,7 +62,7 @@ If you prefer, you can compile ImageSharp yourself (please do and help!)
 
 - Using [Visual Studio 2022](https://visualstudio.microsoft.com/vs/)
   - Make sure you have the latest version installed
-  - Make sure you have [the .NET 7 SDK](https://www.microsoft.com/net/core#windows) installed
+  - Make sure you have [the .NET 8 SDK](https://www.microsoft.com/net/core#windows) installed
 
 Alternatively, you can work from command line and/or with a lightweight editor on **both Linux/Unix and Windows**:
 
@@ -101,6 +99,8 @@ git submodule update --init --recursive
 
 Please... Spread the word, contribute algorithms, submit performance improvements, unit tests, no input is too little. Make sure to read our [Contribution Guide](https://github.com/SixLabors/ImageSharp/blob/main/.github/CONTRIBUTING.md) before opening a PR.
 
+Useful tools for development and links to specifications can be found in our wikipage: [Useful-tools-and-links](https://github.com/SixLabors/ImageSharp/wiki/Useful-tools-and-links).
+
 ## The ImageSharp Team
 
 - [James Jackson-South](https://github.com/jimbobsquarepants)
@@ -109,6 +109,11 @@ Please... Spread the word, contribute algorithms, submit performance improvement
 - [Scott Williams](https://github.com/tocsoft)
 - [Brian Popow](https://github.com/brianpopow)
 
+---
 
+<div>
+  <a href="https://www.jetbrains.com/?from=ImageSharp" align="right"><img src="https://resources.jetbrains.com/storage/products/company/brand/logos/jb_beam.svg" alt="JetBrains" class="logo-footer" width="72" align="left"></a>
+  <br/>
 
-
+  Special thanks to [JetBrains](https://www.jetbrains.com/?from=ImageSharp) for supporting us with open-source licenses for their IDEs.
+</div>

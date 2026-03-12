@@ -16,26 +16,26 @@ public interface IQuantizer<TPixel> : IDisposable
     /// <summary>
     /// Gets the configuration.
     /// </summary>
-    Configuration Configuration { get; }
+    public Configuration Configuration { get; }
 
     /// <summary>
     /// Gets the quantizer options defining quantization rules.
     /// </summary>
-    QuantizerOptions Options { get; }
+    public QuantizerOptions Options { get; }
 
     /// <summary>
     /// Gets the quantized color palette.
     /// </summary>
     /// <exception cref="InvalidOperationException">
-    /// The palette has not been built via <see cref="AddPaletteColors"/>.
+    /// The palette has not been built via <see cref="AddPaletteColors(in Buffer2DRegion{TPixel})"/>.
     /// </exception>
-    ReadOnlyMemory<TPixel> Palette { get; }
+    public ReadOnlyMemory<TPixel> Palette { get; }
 
     /// <summary>
     /// Adds colors to the quantized palette from the given pixel source.
     /// </summary>
     /// <param name="pixelRegion">The <see cref="Buffer2DRegion{T}"/> of source pixels to register.</param>
-    void AddPaletteColors(Buffer2DRegion<TPixel> pixelRegion);
+    public void AddPaletteColors(in Buffer2DRegion<TPixel> pixelRegion);
 
     /// <summary>
     /// Quantizes an image frame and return the resulting output pixels.
@@ -46,10 +46,10 @@ public interface IQuantizer<TPixel> : IDisposable
     /// A <see cref="IndexedImageFrame{TPixel}"/> representing a quantized version of the source frame pixels.
     /// </returns>
     /// <remarks>
-    /// Only executes the second (quantization) step. The palette has to be built by calling <see cref="AddPaletteColors"/>.
-    /// To run both steps, use <see cref="QuantizerUtilities.BuildPaletteAndQuantizeFrame{TPixel}"/>.
+    /// Only executes the second (quantization) step. The palette has to be built by calling <see cref="AddPaletteColors(in Buffer2DRegion{TPixel})"/>.
+    /// To run both steps, use <see cref="QuantizerUtilities.BuildPaletteAndQuantizeFrame{TPixel}(IQuantizer{TPixel}, ImageFrame{TPixel}, Rectangle)"/>.
     /// </remarks>
-    IndexedImageFrame<TPixel> QuantizeFrame(ImageFrame<TPixel> source, Rectangle bounds);
+    public IndexedImageFrame<TPixel> QuantizeFrame(ImageFrame<TPixel> source, Rectangle bounds);
 
     /// <summary>
     /// Returns the index and color from the quantized palette corresponding to the given color.
@@ -57,7 +57,7 @@ public interface IQuantizer<TPixel> : IDisposable
     /// <param name="color">The color to match.</param>
     /// <param name="match">The matched color.</param>
     /// <returns>The <see cref="byte"/> index.</returns>
-    byte GetQuantizedColor(TPixel color, out TPixel match);
+    public byte GetQuantizedColor(TPixel color, out TPixel match);
 
     // TODO: Enable bulk operations.
     // void GetQuantizedColors(ReadOnlySpan<TPixel> colors, ReadOnlySpan<TPixel> palette, Span<byte> indices, Span<TPixel> matches);

@@ -17,15 +17,19 @@ public class SimpleGcMemoryAllocatorTests
         }
     }
 
-    protected SimpleGcMemoryAllocator MemoryAllocator { get; } = new SimpleGcMemoryAllocator();
+    protected SimpleGcMemoryAllocator MemoryAllocator { get; } = new();
+
+    public static TheoryData<int> InvalidLengths { get; set; } = new()
+    {
+        { -1 },
+        { (1 << 30) + 1 }
+    };
 
     [Theory]
-    [InlineData(-1)]
-    public void Allocate_IncorrectAmount_ThrowsCorrect_ArgumentOutOfRangeException(int length)
-    {
-        ArgumentOutOfRangeException ex = Assert.Throws<ArgumentOutOfRangeException>(() => this.MemoryAllocator.Allocate<BigStruct>(length));
-        Assert.Equal("length", ex.ParamName);
-    }
+    [MemberData(nameof(InvalidLengths))]
+    public void Allocate_IncorrectAmount_ThrowsCorrect_InvalidMemoryOperationException(int length)
+        => Assert.Throws<InvalidMemoryOperationException>(
+            () => this.MemoryAllocator.Allocate<BigStruct>(length));
 
     [Fact]
     public unsafe void Allocate_MemoryIsPinnableMultipleTimes()

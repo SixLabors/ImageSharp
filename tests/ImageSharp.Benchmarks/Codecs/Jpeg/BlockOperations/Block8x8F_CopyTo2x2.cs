@@ -185,15 +185,15 @@ public class Block8x8F_CopyTo2x2
         ref Vector2 dBottomLeft = ref Unsafe.Add(ref dTopLeft, (uint)destStride);
         ref Vector2 dBottomRight = ref Unsafe.Add(ref dBottomLeft, 4);
 
-        var xLeft = new Vector2(sLeft.X);
-        var yLeft = new Vector2(sLeft.Y);
-        var zLeft = new Vector2(sLeft.Z);
-        var wLeft = new Vector2(sLeft.W);
+        Vector2 xLeft = new(sLeft.X);
+        Vector2 yLeft = new(sLeft.Y);
+        Vector2 zLeft = new(sLeft.Z);
+        Vector2 wLeft = new(sLeft.W);
 
-        var xRight = new Vector2(sRight.X);
-        var yRight = new Vector2(sRight.Y);
-        var zRight = new Vector2(sRight.Z);
-        var wRight = new Vector2(sRight.W);
+        Vector2 xRight = new(sRight.X);
+        Vector2 yRight = new(sRight.Y);
+        Vector2 zRight = new(sRight.Z);
+        Vector2 wRight = new(sRight.W);
 
         dTopLeft = xLeft;
         Unsafe.Add(ref dTopLeft, 1) = yLeft;
@@ -245,15 +245,15 @@ public class Block8x8F_CopyTo2x2
         ref Vector2 dBottomLeft = ref Unsafe.Add(ref dTopLeft, (uint)destStride);
         ref Vector2 dBottomRight = ref Unsafe.Add(ref dBottomLeft, 4);
 
-        var xLeft = new Vector4(sLeft.X);
-        var yLeft = new Vector4(sLeft.Y);
-        var zLeft = new Vector4(sLeft.Z);
-        var wLeft = new Vector4(sLeft.W);
+        Vector4 xLeft = new(sLeft.X);
+        Vector4 yLeft = new(sLeft.Y);
+        Vector4 zLeft = new(sLeft.Z);
+        Vector4 wLeft = new(sLeft.W);
 
-        var xRight = new Vector4(sRight.X);
-        var yRight = new Vector4(sRight.Y);
-        var zRight = new Vector4(sRight.Z);
-        var wRight = new Vector4(sRight.W);
+        Vector4 xRight = new(sRight.X);
+        Vector4 yRight = new(sRight.Y);
+        Vector4 zRight = new(sRight.Z);
+        Vector4 wRight = new(sRight.W);
 
         Unsafe.As<Vector2, Vector4>(ref dTopLeft) = xLeft;
         Unsafe.As<Vector2, Vector4>(ref Unsafe.Add(ref dTopLeft, 1)) = yLeft;
@@ -303,15 +303,15 @@ public class Block8x8F_CopyTo2x2
         ref Vector2 dTopLeft = ref Unsafe.Add(ref destBase, (uint)(2 * row * destStride));
         ref Vector2 dBottomLeft = ref Unsafe.Add(ref dTopLeft, (uint)destStride);
 
-        var xLeft = new Vector4(sLeft.X);
-        var yLeft = new Vector4(sLeft.Y);
-        var zLeft = new Vector4(sLeft.Z);
-        var wLeft = new Vector4(sLeft.W);
+        Vector4 xLeft = new(sLeft.X);
+        Vector4 yLeft = new(sLeft.Y);
+        Vector4 zLeft = new(sLeft.Z);
+        Vector4 wLeft = new(sLeft.W);
 
-        var xRight = new Vector4(sRight.X);
-        var yRight = new Vector4(sRight.Y);
-        var zRight = new Vector4(sRight.Z);
-        var wRight = new Vector2(sRight.W);
+        Vector4 xRight = new(sRight.X);
+        Vector4 yRight = new(sRight.Y);
+        Vector4 zRight = new(sRight.Z);
+        Vector2 wRight = new(sRight.W);
 
         Unsafe.As<Vector2, Vector4>(ref dTopLeft) = xLeft;
         Unsafe.As<Vector2, Vector4>(ref Unsafe.Add(ref dTopLeft, 1)) = yLeft;
@@ -362,25 +362,25 @@ public class Block8x8F_CopyTo2x2
         ref Vector4 dTopLeft = ref Unsafe.As<Vector2, Vector4>(ref Unsafe.Add(ref destBase, (uint)offset));
         ref Vector4 dBottomLeft = ref Unsafe.As<Vector2, Vector4>(ref Unsafe.Add(ref destBase, (uint)(offset + destStride)));
 
-        var xyLeft = new Vector4(sLeft.X)
+        Vector4 xyLeft = new(sLeft.X)
         {
             Z = sLeft.Y,
             W = sLeft.Y
         };
 
-        var zwLeft = new Vector4(sLeft.Z)
+        Vector4 zwLeft = new(sLeft.Z)
         {
             Z = sLeft.W,
             W = sLeft.W
         };
 
-        var xyRight = new Vector4(sRight.X)
+        Vector4 xyRight = new(sRight.X)
         {
             Z = sRight.Y,
             W = sRight.Y
         };
 
-        var zwRight = new Vector4(sRight.Z)
+        Vector4 zwRight = new(sRight.Z)
         {
             Z = sRight.W,
             W = sRight.W

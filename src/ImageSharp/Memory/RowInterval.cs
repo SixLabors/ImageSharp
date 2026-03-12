@@ -79,7 +79,7 @@ public readonly struct RowInterval : IEquatable<RowInterval>
     /// <inheritdoc />
     public override string ToString() => $"RowInterval [{this.Min}->{this.Max}]";
 
-    internal RowInterval Slice(int start) => new RowInterval(this.Min + start, this.Max);
+    internal RowInterval Slice(int start) => new(this.Min + start, this.Max);
 
-    internal RowInterval Slice(int start, int length) => new RowInterval(this.Min + start, this.Min + start + length);
+    internal RowInterval Slice(int start, int length) => new(this.Min + start, this.Min + start + length);
 }

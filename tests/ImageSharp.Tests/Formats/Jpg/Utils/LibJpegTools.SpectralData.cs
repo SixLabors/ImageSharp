@@ -14,11 +14,11 @@ internal static partial class LibJpegTools
     /// </summary>
     public class SpectralData : IEquatable<SpectralData>
     {
-        public int ComponentCount { get; private set; }
+        public int ComponentCount { get; }
 
-        public LibJpegTools.ComponentData[] Components { get; private set; }
+        public ComponentData[] Components { get; }
 
-        internal SpectralData(LibJpegTools.ComponentData[] components)
+        internal SpectralData(ComponentData[] components)
         {
             this.ComponentCount = components.Length;
             this.Components = components;
@@ -31,16 +31,16 @@ internal static partial class LibJpegTools
                 return null;
             }
 
-            LibJpegTools.ComponentData c0 = this.Components[0];
-            LibJpegTools.ComponentData c1 = this.Components[1];
-            LibJpegTools.ComponentData c2 = this.Components[2];
+            ComponentData c0 = this.Components[0];
+            ComponentData c1 = this.Components[1];
+            ComponentData c2 = this.Components[2];
 
             if (c0.Size != c1.Size || c1.Size != c2.Size)
             {
                 return null;
             }
 
-            var result = new Image<Rgba32>(c0.WidthInBlocks * 8, c0.HeightInBlocks * 8);
+            Image<Rgba32> result = new(c0.WidthInBlocks * 8, c0.HeightInBlocks * 8);
 
             for (int by = 0; by < c0.HeightInBlocks; by++)
             {
@@ -55,17 +55,13 @@ internal static partial class LibJpegTools
 
         internal void WriteToImage(int bx, int by, Image<Rgba32> image)
         {
-            LibJpegTools.ComponentData c0 = this.Components[0];
-            LibJpegTools.ComponentData c1 = this.Components[1];
-            LibJpegTools.ComponentData c2 = this.Components[2];
+            ComponentData c0 = this.Components[0];
+            ComponentData c1 = this.Components[1];
+            ComponentData c2 = this.Components[2];
 
             Block8x8 block0 = c0.SpectralBlocks[bx, by];
             Block8x8 block1 = c1.SpectralBlocks[bx, by];
             Block8x8 block2 = c2.SpectralBlocks[bx, by];
-
-            float d0 = c0.MaxVal - c0.MinVal;
-            float d1 = c1.MaxVal - c1.MinVal;
-            float d2 = c2.MaxVal - c2.MinVal;
 
             for (int y = 0; y < 8; y++)
             {
@@ -75,9 +71,8 @@ internal static partial class LibJpegTools
                     float val1 = c0.GetBlockValue(block1, x, y);
                     float val2 = c0.GetBlockValue(block2, x, y);
 
-                    var v = new Vector4(val0, val1, val2, 1);
-                    Rgba32 color = default;
-                    color.FromVector4(v);
+                    Vector4 v = new(val0, val1, val2, 1);
+                    Rgba32 color = Rgba32.FromVector4(v);
 
                     int yy = (by * 8) + y;
                     int xx = (bx * 8) + x;
@@ -105,8 +100,8 @@ internal static partial class LibJpegTools
 
             for (int i = 0; i < this.ComponentCount; i++)
             {
-                LibJpegTools.ComponentData a = this.Components[i];
-                LibJpegTools.ComponentData b = other.Components[i];
+                ComponentData a = this.Components[i];
+                ComponentData b = other.Components[i];
                 if (!a.Equals(b))
                 {
                     return false;
@@ -116,10 +111,7 @@ internal static partial class LibJpegTools
             return true;
         }
 
-        public override bool Equals(object obj)
-        {
-            return obj is SpectralData other && this.Equals(other);
-        }
+        public override bool Equals(object obj) => obj is SpectralData other && this.Equals(other);
 
         public override int GetHashCode()
         {
@@ -139,9 +131,6 @@ internal static partial class LibJpegTools
             return left.Equals(right);
         }
 
-        public static bool operator !=(SpectralData left, SpectralData right)
-        {
-            return !(left == right);
-        }
+        public static bool operator !=(SpectralData left, SpectralData right) => !(left == right);
     }
 }

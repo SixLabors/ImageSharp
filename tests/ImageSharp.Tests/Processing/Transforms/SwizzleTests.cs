@@ -18,8 +18,7 @@ public class SwizzleTests : BaseImageOperationsExtensionTest
 
         public Size DestinationSize { get; }
 
-        public Point Transform(Point point)
-            => new Point(point.Y, point.X);
+        public Point Transform(Point point) => new(point.Y, point.X);
     }
 
     [Fact]

@@ -57,13 +57,7 @@ internal class SharedArrayPoolBuffer<T> : ManagedBufferBase<T>, IRefCounted
 
     [Conditional("DEBUG")]
     [MemberNotNull(nameof(Array))]
-    private void CheckDisposed()
-    {
-        if (this.Array == null)
-        {
-            throw new ObjectDisposedException("SharedArrayPoolBuffer");
-        }
-    }
+    private void CheckDisposed() => ObjectDisposedException.ThrowIf(this.Array == null, this.Array);
 
     private sealed class LifetimeGuard : RefCountedMemoryLifetimeGuard
     {

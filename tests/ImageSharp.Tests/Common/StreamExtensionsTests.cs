@@ -10,7 +10,7 @@ public class StreamExtensionsTests
     [InlineData(-1)]
     public void Skip_CountZeroOrLower_PositionNotChanged(int count)
     {
-        using (var memStream = new MemoryStream(5))
+        using (MemoryStream memStream = new(5))
         {
             memStream.Position = 4;
             memStream.Skip(count);
@@ -22,7 +22,7 @@ public class StreamExtensionsTests
     [Fact]
     public void Skip_SeekableStream_SeekIsCalled()
     {
-        using (var seekableStream = new SeekableStream(4))
+        using (SeekableStream seekableStream = new(4))
         {
             seekableStream.Skip(4);
 
@@ -34,7 +34,7 @@ public class StreamExtensionsTests
     [Fact]
     public void Skip_NonSeekableStream_BytesAreRead()
     {
-        using (var nonSeekableStream = new NonSeekableStream())
+        using (NonSeekableStream nonSeekableStream = new())
         {
             nonSeekableStream.Skip(5);
 
@@ -49,7 +49,7 @@ public class StreamExtensionsTests
     [Fact]
     public void Skip_EofStream_NoExceptionIsThrown()
     {
-        using (var eofStream = new EofStream(7))
+        using (EofStream eofStream = new(7))
         {
             eofStream.Skip(7);
 
@@ -79,7 +79,7 @@ public class StreamExtensionsTests
     {
         public override bool CanSeek => false;
 
-        public List<int> Counts = new List<int>();
+        public List<int> Counts = new();
 
         public NonSeekableStream()
             : base(4)

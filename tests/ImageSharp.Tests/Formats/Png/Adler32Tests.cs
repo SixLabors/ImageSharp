@@ -30,7 +30,7 @@ public class Adler32Tests
     {
         // arrange
         byte[] data = GetBuffer(length);
-        var adler = new SharpAdler32();
+        SharpAdler32 adler = new();
         adler.Update(data);
         long expected = adler.Value;
 
@@ -60,7 +60,7 @@ public class Adler32Tests
 
     private static void RunCalculateAdlerTest()
     {
-        int[] testData = { 0, 8, 215, 1024, 1024 + 15, 2034, 4096 };
+        int[] testData = [0, 8, 215, 1024, 1024 + 15, 2034, 4096];
         for (int i = 0; i < testData.Length; i++)
         {
             CalculateAdlerAndCompareToReference(testData[i]);

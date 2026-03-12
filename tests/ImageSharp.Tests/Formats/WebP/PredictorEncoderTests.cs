@@ -24,7 +24,7 @@ public class PredictorEncoderTests
 
     [Fact]
     public void ColorSpaceTransform_WithPeakImage_WithoutSSE41_Works()
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ColorSpaceTransform_WithPeakImage_ProducesExpectedData, HwIntrinsics.DisableSSE41);
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ColorSpaceTransform_WithPeakImage_ProducesExpectedData, HwIntrinsics.DisableHWIntrinsic);
 
     [Fact]
     public void ColorSpaceTransform_WithBikeImage_WithHardwareIntrinsics_Works()
@@ -32,7 +32,7 @@ public class PredictorEncoderTests
 
     [Fact]
     public void ColorSpaceTransform_WithBikeImage_WithoutSSE41_Works()
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ColorSpaceTransform_WithBikeImage_ProducesExpectedData, HwIntrinsics.DisableSSE41);
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ColorSpaceTransform_WithBikeImage_ProducesExpectedData, HwIntrinsics.DisableHWIntrinsic);
 
     [Fact]
     public void ColorSpaceTransform_WithBikeImage_WithoutAvx2_Works()
@@ -43,7 +43,7 @@ public class PredictorEncoderTests
     {
         // arrange
         uint[] expectedData =
-        {
+        [
             4278191104, 4278191104, 4278191104, 4278191104, 4278191104, 4278191104, 4278191104, 4294577152,
             4294707200, 4294707200, 4294707200, 4294707200, 4294837248, 4294837248, 4293926912, 4294316544,
             4278191104, 4278191104, 4294837248, 4294837248, 4280287232, 4280350720, 4294447104, 4294707200,
@@ -76,11 +76,11 @@ public class PredictorEncoderTests
             4280287232, 4280287232, 4280287232, 4280287232, 4280287232, 4279503872, 4279503872, 4280288256,
             4280287232, 4280287232, 4280287232, 4280287232, 4280287232, 4280287232, 4280287232, 4280287232,
             4280287232, 4280287232, 4280287232, 4280287232, 4280287232, 4280287232, 4280287232, 4280287232
-        };
+        ];
 
         // Convert image pixels to bgra array.
         byte[] imgBytes = File.ReadAllBytes(TestImageFullPath(TestImages.Webp.Peak));
-        using var image = Image.Load<Rgba32>(imgBytes);
+        using Image<Rgba32> image = Image.Load<Rgba32>(imgBytes);
         uint[] bgra = ToBgra(image);
 
         const int colorTransformBits = 3;
@@ -100,17 +100,17 @@ public class PredictorEncoderTests
     {
         // arrange
         uint[] expectedData =
-        {
+        [
             4278714368, 4278192876, 4278198304, 4278198304, 4278190304, 4278190080, 4278190080, 4278198272,
             4278197760, 4278198816, 4278197794, 4278197774, 4278190080, 4278190080, 4278198816, 4278197281,
             4278197280, 4278197792, 4278200353, 4278191343, 4278190304, 4294713873, 4278198784, 4294844416,
             4278201578, 4278200044, 4278191343, 4278190288, 4294705200, 4294717139, 4278203628, 4278201064,
             4278201586, 4278197792, 4279240909
-        };
+        ];
 
         // Convert image pixels to bgra array.
         byte[] imgBytes = File.ReadAllBytes(TestImageFullPath(TestImages.Webp.Lossy.BikeSmall));
-        using var image = Image.Load<Rgba32>(imgBytes);
+        using Image<Rgba32> image = Image.Load<Rgba32>(imgBytes);
         uint[] bgra = ToBgra(image);
 
         const int colorTransformBits = 4;
@@ -149,10 +149,8 @@ public class PredictorEncoderTests
     private static Bgra32 ToBgra32<TPixel>(TPixel color)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        Rgba32 rgba = default;
-        color.ToRgba32(ref rgba);
-        var bgra = new Bgra32(rgba.R, rgba.G, rgba.B, rgba.A);
-        return bgra;
+        Rgba32 rgba = color.ToRgba32();
+        return new Bgra32(rgba.R, rgba.G, rgba.B, rgba.A);
     }
 
     private static string TestImageFullPath(string path)

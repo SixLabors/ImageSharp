@@ -15,7 +15,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Tiff;
 [Trait("Format", "Tiff")]
 public abstract class TiffEncoderBaseTester
 {
-    protected static readonly IImageDecoder ReferenceDecoder = new MagickReferenceDecoder();
+    protected static readonly IImageDecoder ReferenceDecoder = new MagickReferenceDecoder(TiffFormat.Instance);
 
     protected static void TestStripLength<TPixel>(
         TestImageProvider<TPixel> provider,
@@ -26,18 +26,18 @@ public abstract class TiffEncoderBaseTester
         where TPixel : unmanaged, IPixel<TPixel>
     {
         // arrange
-        var tiffEncoder = new TiffEncoder() { PhotometricInterpretation = photometricInterpretation, Compression = compression };
+        TiffEncoder tiffEncoder = new() { PhotometricInterpretation = photometricInterpretation, Compression = compression };
         using Image<TPixel> input = provider.GetImage();
-        using var memStream = new MemoryStream();
+        using MemoryStream memStream = new();
         TiffFrameMetadata inputMeta = input.Frames.RootFrame.Metadata.GetTiffMetadata();
-        TiffCompression inputCompression = inputMeta.Compression ?? TiffCompression.None;
+        TiffCompression inputCompression = inputMeta.Compression;
 
         // act
         input.Save(memStream, tiffEncoder);
 
         // assert
         memStream.Position = 0;
-        using var output = Image.Load<Rgba32>(memStream);
+        using Image<Rgba32> output = Image.Load<Rgba32>(memStream);
         ExifProfile exifProfileOutput = output.Frames.RootFrame.Metadata.ExifProfile;
         TiffFrameMetadata outputMeta = output.Frames.RootFrame.Metadata.GetTiffMetadata();
         ImageFrame<Rgba32> rootFrame = output.Frames.RootFrame;
@@ -48,7 +48,6 @@ public abstract class TiffEncoderBaseTester
         Number[] stripByteCounts = exifProfileOutput.GetValue(ExifTag.StripByteCounts)?.Value;
         Assert.NotNull(stripByteCounts);
         Assert.True(stripByteCounts.Length > 1);
-        Assert.NotNull(outputMeta.BitsPerPixel);
 
         foreach (Number sz in stripByteCounts)
         {
@@ -90,7 +89,7 @@ public abstract class TiffEncoderBaseTester
         where TPixel : unmanaged, IPixel<TPixel>
     {
         using Image<TPixel> image = provider.GetImage();
-        var encoder = new TiffEncoder
+        TiffEncoder encoder = new()
         {
             PhotometricInterpretation = photometricInterpretation,
             BitsPerPixel = bitsPerPixel,

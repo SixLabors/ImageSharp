@@ -36,8 +36,13 @@ internal static class MemoryGroupExtensions
 
     /// <summary>
     /// Returns a slice that is expected to be within the bounds of a single buffer.
-    /// Otherwise <see cref="ArgumentOutOfRangeException"/> is thrown.
     /// </summary>
+    /// <typeparam name="T">The type of element.</typeparam>
+    /// <param name="group">The group.</param>
+    /// <param name="start">The start index of the slice.</param>
+    /// <param name="length">The length of the slice.</param>
+    /// <exception cref="ArgumentOutOfRangeException">Slice is out of bounds.</exception>
+    /// <returns>The <see cref="MemoryGroup{T}"/> slice.</returns>
     internal static Memory<T> GetBoundedMemorySlice<T>(this IMemoryGroup<T> group, long start, int length)
         where T : struct
     {
@@ -66,127 +71,158 @@ internal static class MemoryGroupExtensions
         return memory.Slice(bufferStart, length);
     }
 
-    internal static void CopyTo<T>(this IMemoryGroup<T> source, Span<T> target)
+    /// <summary>
+    /// Copies a 2D logical region from <paramref name="source"/> into <paramref name="target"/>
+    /// using the provided source and target strides.
+    /// </summary>
+    /// <typeparam name="T">The element type.</typeparam>
+    /// <param name="source">The source memory group.</param>
+    /// <param name="sourceStride">Elements between source row starts.</param>
+    /// <param name="target">The destination span.</param>
+    /// <param name="targetStride">Elements between destination row starts.</param>
+    /// <param name="width">The logical row width to copy.</param>
+    /// <param name="height">The number of rows to copy.</param>
+    internal static void CopyTo<T>(
+        this IMemoryGroup<T> source,
+        int sourceStride,
+        Span<T> target,
+        int targetStride,
+        int width,
+        int height)
         where T : struct
     {
         Guard.NotNull(source, nameof(source));
-        Guard.MustBeGreaterThanOrEqualTo(target.Length, source.TotalLength, nameof(target));
+        Guard.MustBeGreaterThanOrEqualTo(width, 0, nameof(width));
+        Guard.MustBeGreaterThanOrEqualTo(height, 0, nameof(height));
+        Guard.MustBeGreaterThanOrEqualTo(sourceStride, width, nameof(sourceStride));
+        Guard.MustBeGreaterThanOrEqualTo(targetStride, width, nameof(targetStride));
 
-        var cur = new MemoryGroupCursor<T>(source);
-        long position = 0;
-        while (position < source.TotalLength)
+        long sourceRequired = height == 0 ? 0 : checked(((long)(height - 1) * sourceStride) + width);
+        long targetRequired = height == 0 ? 0 : checked(((long)(height - 1) * targetStride) + width);
+        Guard.MustBeGreaterThanOrEqualTo(source.TotalLength, sourceRequired, nameof(source));
+        Guard.MustBeGreaterThanOrEqualTo(target.Length, targetRequired, nameof(target));
+
+        if (width == 0 || height == 0)
         {
-            int fwd = Math.Min(cur.LookAhead(), target.Length);
-            cur.GetSpan(fwd).CopyTo(target);
+            return;
+        }
 
-            cur.Forward(fwd);
-            target = target[fwd..];
-            position += fwd;
+        MemoryGroupCursor<T> sourceCursor = new(source);
+        int sourceSkip = sourceStride - width;
+
+        for (int y = 0; y < height; y++)
+        {
+            int rowStart = checked(y * targetStride);
+            Span<T> destinationRow = target.Slice(rowStart, width);
+            CopyFromCursorToSpan(ref sourceCursor, destinationRow);
+
+            // Trailing padding after the last row is optional, so only skip between rows.
+            if (y < height - 1)
+            {
+                ForwardCursor(ref sourceCursor, sourceSkip);
+            }
         }
     }
 
-    internal static void CopyTo<T>(this Span<T> source, IMemoryGroup<T> target)
-        where T : struct
-        => CopyTo((ReadOnlySpan<T>)source, target);
-
-    internal static void CopyTo<T>(this ReadOnlySpan<T> source, IMemoryGroup<T> target)
-        where T : struct
-    {
-        Guard.NotNull(target, nameof(target));
-        Guard.MustBeGreaterThanOrEqualTo(target.TotalLength, source.Length, nameof(target));
-
-        var cur = new MemoryGroupCursor<T>(target);
-
-        while (!source.IsEmpty)
-        {
-            int fwd = Math.Min(cur.LookAhead(), source.Length);
-            source[..fwd].CopyTo(cur.GetSpan(fwd));
-            cur.Forward(fwd);
-            source = source[fwd..];
-        }
-    }
-
-    internal static void CopyTo<T>(this IMemoryGroup<T>? source, IMemoryGroup<T>? target)
+    /// <summary>
+    /// Copies a 2D logical region from <paramref name="source"/> into <paramref name="target"/>
+    /// using the provided source and target strides.
+    /// </summary>
+    /// <typeparam name="T">The element type.</typeparam>
+    /// <param name="source">The source memory group.</param>
+    /// <param name="sourceStride">Elements between source row starts.</param>
+    /// <param name="target">The destination memory group.</param>
+    /// <param name="targetStride">Elements between destination row starts.</param>
+    /// <param name="width">The logical row width to copy.</param>
+    /// <param name="height">The number of rows to copy.</param>
+    internal static void CopyTo<T>(
+        this IMemoryGroup<T> source,
+        int sourceStride,
+        IMemoryGroup<T> target,
+        int targetStride,
+        int width,
+        int height)
         where T : struct
     {
         Guard.NotNull(source, nameof(source));
         Guard.NotNull(target, nameof(target));
         Guard.IsTrue(source.IsValid, nameof(source), "Source group must be valid.");
         Guard.IsTrue(target.IsValid, nameof(target), "Target group must be valid.");
-        Guard.MustBeLessThanOrEqualTo(source.TotalLength, target.TotalLength, "Destination buffer too short!");
+        Guard.MustBeGreaterThanOrEqualTo(width, 0, nameof(width));
+        Guard.MustBeGreaterThanOrEqualTo(height, 0, nameof(height));
+        Guard.MustBeGreaterThanOrEqualTo(sourceStride, width, nameof(sourceStride));
+        Guard.MustBeGreaterThanOrEqualTo(targetStride, width, nameof(targetStride));
 
-        if (source.IsEmpty())
+        long sourceRequired = height == 0 ? 0 : checked(((long)(height - 1) * sourceStride) + width);
+        long targetRequired = height == 0 ? 0 : checked(((long)(height - 1) * targetStride) + width);
+        Guard.MustBeGreaterThanOrEqualTo(source.TotalLength, sourceRequired, nameof(source));
+        Guard.MustBeGreaterThanOrEqualTo(target.TotalLength, targetRequired, nameof(target));
+
+        if (width == 0 || height == 0)
         {
             return;
         }
 
-        long position = 0;
-        var srcCur = new MemoryGroupCursor<T>(source);
-        var trgCur = new MemoryGroupCursor<T>(target);
+        MemoryGroupCursor<T> sourceCursor = new(source);
+        MemoryGroupCursor<T> targetCursor = new(target);
+        int sourceSkip = sourceStride - width;
+        int targetSkip = targetStride - width;
 
-        while (position < source.TotalLength)
+        for (int y = 0; y < height; y++)
         {
-            int fwd = Math.Min(srcCur.LookAhead(), trgCur.LookAhead());
-            Span<T> srcSpan = srcCur.GetSpan(fwd);
-            Span<T> trgSpan = trgCur.GetSpan(fwd);
-            srcSpan.CopyTo(trgSpan);
+            CopyFromCursorToCursor(ref sourceCursor, ref targetCursor, width);
 
-            srcCur.Forward(fwd);
-            trgCur.Forward(fwd);
-            position += fwd;
+            // Trailing padding after the last row is optional, so only skip between rows.
+            if (y < height - 1)
+            {
+                ForwardCursor(ref sourceCursor, sourceSkip);
+                ForwardCursor(ref targetCursor, targetSkip);
+            }
         }
     }
 
-    internal static void TransformTo<TSource, TTarget>(
-        this IMemoryGroup<TSource> source,
-        IMemoryGroup<TTarget> target,
-        TransformItemsDelegate<TSource, TTarget> transform)
-        where TSource : struct
-        where TTarget : struct
-    {
-        Guard.NotNull(source, nameof(source));
-        Guard.NotNull(target, nameof(target));
-        Guard.NotNull(transform, nameof(transform));
-        Guard.IsTrue(source.IsValid, nameof(source), "Source group must be valid.");
-        Guard.IsTrue(target.IsValid, nameof(target), "Target group must be valid.");
-        Guard.MustBeLessThanOrEqualTo(source.TotalLength, target.TotalLength, "Destination buffer too short!");
-
-        if (source.IsEmpty())
-        {
-            return;
-        }
-
-        long position = 0;
-        var srcCur = new MemoryGroupCursor<TSource>(source);
-        var trgCur = new MemoryGroupCursor<TTarget>(target);
-
-        while (position < source.TotalLength)
-        {
-            int fwd = Math.Min(srcCur.LookAhead(), trgCur.LookAhead());
-            Span<TSource> srcSpan = srcCur.GetSpan(fwd);
-            Span<TTarget> trgSpan = trgCur.GetSpan(fwd);
-            transform(srcSpan, trgSpan);
-
-            srcCur.Forward(fwd);
-            trgCur.Forward(fwd);
-            position += fwd;
-        }
-    }
-
-    internal static void TransformInplace<T>(
-        this IMemoryGroup<T> memoryGroup,
-        TransformItemsInplaceDelegate<T> transform)
+    private static void CopyFromCursorToCursor<T>(
+        ref MemoryGroupCursor<T> source,
+        ref MemoryGroupCursor<T> target,
+        int count)
         where T : struct
     {
-        foreach (Memory<T> memory in memoryGroup)
+        int remaining = count;
+        while (remaining > 0)
         {
-            transform(memory.Span);
+            int fwd = Math.Min(remaining, Math.Min(source.LookAhead(), target.LookAhead()));
+            source.GetSpan(fwd).CopyTo(target.GetSpan(fwd));
+            source.Forward(fwd);
+            target.Forward(fwd);
+            remaining -= fwd;
         }
     }
 
-    internal static bool IsEmpty<T>(this IMemoryGroup<T> group)
+    private static void CopyFromCursorToSpan<T>(ref MemoryGroupCursor<T> source, Span<T> target)
         where T : struct
-        => group.Count == 0;
+    {
+        int remaining = target.Length;
+        while (remaining > 0)
+        {
+            int copied = target.Length - remaining;
+            int fwd = Math.Min(remaining, source.LookAhead());
+            source.GetSpan(fwd).CopyTo(target[copied..]);
+            source.Forward(fwd);
+            remaining -= fwd;
+        }
+    }
+
+    private static void ForwardCursor<T>(ref MemoryGroupCursor<T> cursor, int steps)
+        where T : struct
+    {
+        int remaining = steps;
+        while (remaining > 0)
+        {
+            int fwd = Math.Min(remaining, cursor.LookAhead());
+            cursor.Forward(fwd);
+            remaining -= fwd;
+        }
+    }
 
     private struct MemoryGroupCursor<T>
         where T : struct

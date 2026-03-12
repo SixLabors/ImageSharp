@@ -147,20 +147,20 @@ public readonly struct TiffBitsPerSample : IEquatable<TiffBitsPerSample>
     {
         if (this.Channel1 == 0)
         {
-            return new[] { this.Channel0 };
+            return [this.Channel0];
         }
 
         if (this.Channel2 == 0)
         {
-            return new[] { this.Channel0, this.Channel1 };
+            return [this.Channel0, this.Channel1];
         }
 
         if (this.Channel3 == 0)
         {
-            return new[] { this.Channel0, this.Channel1, this.Channel2 };
+            return [this.Channel0, this.Channel1, this.Channel2];
         }
 
-        return new[] { this.Channel0, this.Channel1, this.Channel2, this.Channel3 };
+        return [this.Channel0, this.Channel1, this.Channel2, this.Channel3];
     }
 
     /// <summary>

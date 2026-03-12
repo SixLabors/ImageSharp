@@ -22,6 +22,9 @@ internal struct JpegBitReader
     // Whether there is no more good data to pull from the stream for the current mcu.
     private bool badData;
 
+    // How many times have we hit the eof.
+    private int eofHitCount;
+
     public JpegBitReader(BufferedReadStream stream)
     {
         this.stream = stream;
@@ -31,6 +34,7 @@ internal struct JpegBitReader
         this.MarkerPosition = 0;
         this.badData = false;
         this.NoData = false;
+        this.eofHitCount = 0;
     }
 
     /// <summary>
@@ -72,13 +76,13 @@ internal struct JpegBitReader
     /// Whether a RST marker has been detected, I.E. One that is between RST0 and RST7
     /// </summary>
     [MethodImpl(InliningOptions.ShortMethod)]
-    public bool HasRestartMarker() => HasRestart(this.Marker);
+    public readonly bool HasRestartMarker() => HasRestart(this.Marker);
 
     /// <summary>
     /// Whether a bad marker has been detected, I.E. One that is not between RST0 and RST7
     /// </summary>
     [MethodImpl(InliningOptions.ShortMethod)]
-    public bool HasBadMarker() => this.Marker != JpegConstants.Markers.XFF && !this.HasRestartMarker();
+    public readonly bool HasBadMarker() => this.Marker != JpegConstants.Markers.XFF && !this.HasRestartMarker();
 
     [MethodImpl(InliningOptions.AlwaysInline)]
     public void FillBuffer()
@@ -128,7 +132,7 @@ internal struct JpegBitReader
     public int GetBits(int nbits) => (int)ExtractBits(this.data, this.remainingBits -= nbits, nbits);
 
     [MethodImpl(InliningOptions.ShortMethod)]
-    public int PeekBits(int nbits) => (int)ExtractBits(this.data, this.remainingBits - nbits, nbits);
+    public readonly int PeekBits(int nbits) => (int)ExtractBits(this.data, this.remainingBits - nbits, nbits);
 
     [MethodImpl(InliningOptions.AlwaysInline)]
     private static ulong ExtractBits(ulong value, int offset, int size) => (value >> offset) & (ulong)((1 << size) - 1);
@@ -212,13 +216,23 @@ internal struct JpegBitReader
     private int ReadStream()
     {
         int value = this.badData ? 0 : this.stream.ReadByte();
-        if (value == -1)
+
+        // We've encountered the end of the file stream which means there's no EOI marker or the marker has been read
+        // during decoding of the SOS marker.
+        // When reading individual bits 'badData' simply means we have hit a marker, When data is '0' and the stream is exhausted
+        // we know we have hit the EOI and completed decoding the scan buffer.
+        if (value == -1 || (this.badData && this.data == 0 && this.stream.Position >= this.stream.Length))
         {
-            // We've encountered the end of the file stream which means there's no EOI marker
+            // We've hit the end of the file stream more times than allowed which means there's no EOI marker
             // in the image or the SOS marker has the wrong dimensions set.
-            this.badData = true;
-            this.NoData = true;
-            value = 0;
+            if (this.eofHitCount > JpegConstants.Huffman.FetchLoop)
+            {
+                this.badData = true;
+                this.NoData = true;
+                value = 0;
+            }
+
+            this.eofHitCount++;
         }
 
         return value;

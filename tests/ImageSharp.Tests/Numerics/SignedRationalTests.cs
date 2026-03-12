@@ -14,15 +14,15 @@ public class SignedRationalTests
     [Fact]
     public void AreEqual()
     {
-        var r1 = new SignedRational(3, 2);
-        var r2 = new SignedRational(3, 2);
+        SignedRational r1 = new(3, 2);
+        SignedRational r2 = new(3, 2);
 
         Assert.Equal(r1, r2);
         Assert.True(r1 == r2);
 
-        var r3 = new SignedRational(7.55);
-        var r4 = new SignedRational(755, 100);
-        var r5 = new SignedRational(151, 20);
+        SignedRational r3 = new(7.55);
+        SignedRational r4 = new(755, 100);
+        SignedRational r5 = new(151, 20);
 
         Assert.Equal(r3, r4);
         Assert.Equal(r4, r5);
@@ -34,8 +34,8 @@ public class SignedRationalTests
     [Fact]
     public void AreNotEqual()
     {
-        var first = new SignedRational(0, 100);
-        var second = new SignedRational(100, 100);
+        SignedRational first = new(0, 100);
+        SignedRational second = new(100, 100);
 
         Assert.NotEqual(first, second);
         Assert.True(first != second);
@@ -47,7 +47,7 @@ public class SignedRationalTests
     [Fact]
     public void ConstructorAssignsProperties()
     {
-        var rational = new SignedRational(7, -55);
+        SignedRational rational = new(7, -55);
         Assert.Equal(7, rational.Numerator);
         Assert.Equal(-55, rational.Denominator);
 
@@ -75,15 +75,15 @@ public class SignedRationalTests
     [Fact]
     public void Fraction()
     {
-        var first = new SignedRational(1.0 / 1600);
-        var second = new SignedRational(1.0 / 1600, true);
+        SignedRational first = new(1.0 / 1600);
+        SignedRational second = new(1.0 / 1600, true);
         Assert.False(first.Equals(second));
     }
 
     [Fact]
     public void ToDouble()
     {
-        var rational = new SignedRational(0, 0);
+        SignedRational rational = new(0, 0);
         Assert.Equal(double.NaN, rational.ToDouble());
 
         rational = new SignedRational(2, 0);
@@ -96,7 +96,7 @@ public class SignedRationalTests
     [Fact]
     public void ToStringRepresentation()
     {
-        var rational = new SignedRational(0, 0);
+        SignedRational rational = new(0, 0);
         Assert.Equal("[ Indeterminate ]", rational.ToString());
 
         rational = new SignedRational(double.PositiveInfinity);

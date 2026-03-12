@@ -2,12 +2,14 @@
 // Licensed under the Six Labors Split License.
 
 using System.Buffers.Binary;
+using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Formats.Webp.BitReader;
 using SixLabors.ImageSharp.Formats.Webp.Lossy;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
+using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.Metadata.Profiles.Xmp;
 
 namespace SixLabors.ImageSharp.Formats.Webp;
@@ -17,6 +19,10 @@ internal static class WebpChunkParsingUtils
     /// <summary>
     /// Reads the header of a lossy webp image.
     /// </summary>
+    /// <param name="memoryAllocator">The memory allocator.</param>
+    /// <param name="stream">The buffered read stream.</param>
+    /// <param name="buffer">The scratch buffer to use while reading.</param>
+    /// <param name="features">The webp features to parse.</param>
     /// <returns>Information about this webp image.</returns>
     public static WebpImageInfo ReadVp8Header(MemoryAllocator memoryAllocator, BufferedReadStream stream, Span<byte> buffer, WebpFeatures features)
     {
@@ -77,7 +83,7 @@ internal static class WebpChunkParsingUtils
             WebpThrowHelper.ThrowInvalidImageContentException("Not enough data to read the VP8 magic bytes");
         }
 
-        if (!buffer.Slice(0, 3).SequenceEqual(WebpConstants.Vp8HeaderMagicBytes))
+        if (!buffer[..3].SequenceEqual(WebpConstants.Vp8HeaderMagicBytes))
         {
             WebpThrowHelper.ThrowImageFormatException("VP8 magic bytes not found");
         }
@@ -91,7 +97,7 @@ internal static class WebpChunkParsingUtils
         uint tmp = BinaryPrimitives.ReadUInt16LittleEndian(buffer);
         uint width = tmp & 0x3fff;
         sbyte xScale = (sbyte)(tmp >> 6);
-        tmp = BinaryPrimitives.ReadUInt16LittleEndian(buffer.Slice(2));
+        tmp = BinaryPrimitives.ReadUInt16LittleEndian(buffer[2..]);
         uint height = tmp & 0x3fff;
         sbyte yScale = (sbyte)(tmp >> 6);
         remaining -= 7;
@@ -105,29 +111,25 @@ internal static class WebpChunkParsingUtils
             WebpThrowHelper.ThrowImageFormatException("bad partition length");
         }
 
-        var vp8FrameHeader = new Vp8FrameHeader()
+        Vp8FrameHeader vp8FrameHeader = new()
         {
             KeyFrame = true,
             Profile = (sbyte)version,
             PartitionLength = partitionLength
         };
 
-        var bitReader = new Vp8BitReader(
-            stream,
-            remaining,
-            memoryAllocator,
-            partitionLength)
-        {
-            Remaining = remaining
-        };
+        Vp8BitReader bitReader = new(stream, remaining, memoryAllocator, partitionLength) { Remaining = remaining };
 
-        return new WebpImageInfo()
+        return new WebpImageInfo
         {
+            DataSize = dataSize,
             Width = width,
             Height = height,
             XScale = xScale,
             YScale = yScale,
-            BitsPerPixel = features?.Alpha == true ? WebpBitsPerPixel.Pixel32 : WebpBitsPerPixel.Pixel24,
+
+            // Vp8 header can be parsed during the processing of the Vp8X header.
+            BitsPerPixel = features?.Alpha == true ? WebpBitsPerPixel.Bit32 : WebpBitsPerPixel.Bit24,
             IsLossless = false,
             Features = features,
             Vp8Profile = (sbyte)version,
@@ -139,13 +141,16 @@ internal static class WebpChunkParsingUtils
     /// <summary>
     /// Reads the header of a lossless webp image.
     /// </summary>
-    /// <returns>Information about this image.</returns>
+    /// <param name="memoryAllocator">The memory allocator.</param>
+    /// <param name="stream">The buffered read stream.</param>
+    /// <param name="buffer">The scratch buffer to use while reading.</param>
+    /// <param name="features">The webp features to parse.</param>
     public static WebpImageInfo ReadVp8LHeader(MemoryAllocator memoryAllocator, BufferedReadStream stream, Span<byte> buffer, WebpFeatures features)
     {
         // VP8 data size.
         uint imageDataSize = ReadChunkSize(stream, buffer);
 
-        var bitReader = new Vp8LBitReader(stream, imageDataSize, memoryAllocator);
+        Vp8LBitReader bitReader = new(stream, imageDataSize, memoryAllocator);
 
         // One byte signature, should be 0x2f.
         uint signature = bitReader.ReadValue(8);
@@ -163,8 +168,8 @@ internal static class WebpChunkParsingUtils
         }
 
         // The alphaIsUsed flag should be set to 0 when all alpha values are 255 in the picture, and 1 otherwise.
-        // TODO: this flag value is not used yet
-        bool alphaIsUsed = bitReader.ReadBit();
+        // Alpha may have already been set by the VP8X chunk.
+        features.Alpha |= bitReader.ReadBit();
 
         // The next 3 bits are the version. The version number is a 3 bit code that must be set to 0.
         // Any other value should be treated as an error.
@@ -174,11 +179,12 @@ internal static class WebpChunkParsingUtils
             WebpThrowHelper.ThrowNotSupportedException($"Unexpected version number {version} found in VP8L header");
         }
 
-        return new WebpImageInfo()
+        return new WebpImageInfo
         {
+            DataSize = imageDataSize,
             Width = width,
             Height = height,
-            BitsPerPixel = WebpBitsPerPixel.Pixel32,
+            BitsPerPixel = features.Alpha ? WebpBitsPerPixel.Bit32 : WebpBitsPerPixel.Bit24,
             IsLossless = true,
             Features = features,
             Vp8LBitReader = bitReader
@@ -194,6 +200,9 @@ internal static class WebpChunkParsingUtils
     /// - An optional 'ALPH' chunk with alpha channel data.
     /// After the image header, image data will follow. After that optional image metadata chunks (EXIF and XMP) can follow.
     /// </summary>
+    /// <param name="stream">The buffered read stream.</param>
+    /// <param name="buffer">The scratch buffer to use while reading.</param>
+    /// <param name="features">The webp features to parse.</param>
     /// <returns>Information about this webp image.</returns>
     public static WebpImageInfo ReadVp8XHeader(BufferedReadStream stream, Span<byte> buffer, WebpFeatures features)
     {
@@ -224,27 +233,24 @@ internal static class WebpChunkParsingUtils
         features.Animation = (imageFeatures & (1 << 1)) != 0;
 
         // 3 reserved bytes should follow which are supposed to be zero.
+        // No other decoder actually checks this though.
         stream.Read(buffer, 0, 3);
-        if (buffer[0] != 0 || buffer[1] != 0 || buffer[2] != 0)
-        {
-            WebpThrowHelper.ThrowImageFormatException("reserved bytes should be zero");
-        }
 
         // 3 bytes for the width.
-        uint width = ReadUnsignedInt24Bit(stream, buffer) + 1;
+        uint width = ReadUInt24LittleEndian(stream, buffer) + 1;
 
         // 3 bytes for the height.
-        uint height = ReadUnsignedInt24Bit(stream, buffer) + 1;
+        uint height = ReadUInt24LittleEndian(stream, buffer) + 1;
 
         // Read all the chunks in the order they occur.
-        var info = new WebpImageInfo()
+        return new WebpImageInfo
         {
             Width = width,
             Height = height,
             Features = features
-        };
 
-        return info;
+            // Additional properties are set during the parsing of the VP8 or VP8L headers.
+        };
     }
 
     /// <summary>
@@ -253,7 +259,10 @@ internal static class WebpChunkParsingUtils
     /// <param name="stream">The stream to read from.</param>
     /// <param name="buffer">The buffer to store the read data into.</param>
     /// <returns>A unsigned 24 bit integer.</returns>
-    public static uint ReadUnsignedInt24Bit(BufferedReadStream stream, Span<byte> buffer)
+    /// <exception cref="ImageFormatException">
+    /// Thrown if the input stream is not valid.
+    /// </exception>
+    public static uint ReadUInt24LittleEndian(Stream stream, Span<byte> buffer)
     {
         if (stream.Read(buffer, 0, 3) == 3)
         {
@@ -261,7 +270,31 @@ internal static class WebpChunkParsingUtils
             return BinaryPrimitives.ReadUInt32LittleEndian(buffer);
         }
 
-        throw new ImageFormatException("Invalid Webp data, could not read unsigned integer.");
+        throw new ImageFormatException("Invalid Webp data, could not read unsigned 24 bit integer.");
+    }
+
+    /// <summary>
+    /// Writes a unsigned 24 bit integer.
+    /// </summary>
+    /// <param name="stream">The stream to write to.</param>
+    /// <param name="data">The uint24 data to write.</param>
+    /// <exception cref="InvalidDataException">
+    /// Thrown if the data is not a valid unsigned 24 bit integer.
+    /// </exception>
+    public static unsafe void WriteUInt24LittleEndian(Stream stream, uint data)
+    {
+        if (data >= 1 << 24)
+        {
+            throw new InvalidDataException($"Invalid data, {data} is not a unsigned 24 bit integer.");
+        }
+
+        uint* ptr = &data;
+        byte* b = (byte*)ptr;
+
+        // Write the data in little endian.
+        stream.WriteByte(b[0]);
+        stream.WriteByte(b[1]);
+        stream.WriteByte(b[2]);
     }
 
     /// <summary>
@@ -270,18 +303,24 @@ internal static class WebpChunkParsingUtils
     /// </summary>
     /// <param name="stream">The stream to read the data from.</param>
     /// <param name="buffer">Buffer to store the data read from the stream.</param>
+    /// <param name="required">If true, the chunk size is required to be read, otherwise it can be skipped.</param>
     /// <returns>The chunk size in bytes.</returns>
-    public static uint ReadChunkSize(BufferedReadStream stream, Span<byte> buffer)
+    /// <exception cref="ImageFormatException">Thrown if the input stream is not valid.</exception>
+    public static uint ReadChunkSize(Stream stream, Span<byte> buffer, bool required = true)
     {
-        DebugGuard.IsTrue(buffer.Length == 4, "buffer has wrong length");
-
-        if (stream.Read(buffer) == 4)
+        if (stream.Read(buffer) is 4)
         {
             uint chunkSize = BinaryPrimitives.ReadUInt32LittleEndian(buffer);
-            return (chunkSize % 2 == 0) ? chunkSize : chunkSize + 1;
+            return chunkSize % 2 is 0 ? chunkSize : chunkSize + 1;
         }
 
-        throw new ImageFormatException("Invalid Webp data, could not read chunk size.");
+        if (required)
+        {
+            throw new ImageFormatException("Invalid Webp data, could not read chunk size.");
+        }
+
+        // Return the size of the remaining data in the stream.
+        return (uint)(stream.Length - stream.Position);
     }
 
     /// <summary>
@@ -294,14 +333,13 @@ internal static class WebpChunkParsingUtils
     /// </exception>
     public static WebpChunkType ReadChunkType(BufferedReadStream stream, Span<byte> buffer)
     {
-        DebugGuard.IsTrue(buffer.Length == 4, "buffer has wrong length");
-
         if (stream.Read(buffer) == 4)
         {
-            var chunkType = (WebpChunkType)BinaryPrimitives.ReadUInt32BigEndian(buffer);
-            return chunkType;
+            return (WebpChunkType)BinaryPrimitives.ReadUInt32BigEndian(buffer);
         }
 
+        // While we ignore unknown chunks we still need a to be a ble to read a chunk type
+        // known or otherwise from the stream.
         throw new ImageFormatException("Invalid Webp data, could not read chunk type.");
     }
 
@@ -310,54 +348,190 @@ internal static class WebpChunkParsingUtils
     /// If there are more such chunks, readers MAY ignore all except the first one.
     /// Also, a file may possibly contain both 'EXIF' and 'XMP ' chunks.
     /// </summary>
-    public static void ParseOptionalChunks(BufferedReadStream stream, WebpChunkType chunkType, ImageMetadata metadata, bool ignoreMetaData, Span<byte> buffer)
+    /// <param name="stream">The stream to read the data from.</param>
+    /// <param name="chunkType">The chunk type to parse.</param>
+    /// <param name="metadata">The image metadata to write to.</param>
+    /// <param name="ignoreMetadata">If true, metadata will be ignored.</param>
+    /// <param name="segmentIntegrityHandling">Indicates how to handle segment integrity issues.</param>
+    /// <param name="buffer">Buffer to store the data read from the stream.</param>
+    public static void ParseOptionalChunks(
+        BufferedReadStream stream,
+        WebpChunkType chunkType,
+        ImageMetadata metadata,
+        bool ignoreMetadata,
+        SegmentIntegrityHandling segmentIntegrityHandling,
+        Span<byte> buffer)
     {
         long streamLength = stream.Length;
         while (stream.Position < streamLength)
         {
-            uint chunkLength = ReadChunkSize(stream, buffer);
-
-            if (ignoreMetaData)
-            {
-                stream.Skip((int)chunkLength);
-            }
-
-            int bytesRead;
             switch (chunkType)
             {
+                case WebpChunkType.Iccp:
+                    ReadIccProfile(stream, metadata, ignoreMetadata, segmentIntegrityHandling, buffer);
+                    break;
+
                 case WebpChunkType.Exif:
-                    byte[] exifData = new byte[chunkLength];
-                    bytesRead = stream.Read(exifData, 0, (int)chunkLength);
-                    if (bytesRead != chunkLength)
-                    {
-                        WebpThrowHelper.ThrowImageFormatException("Could not read enough data for the EXIF profile");
-                    }
-
-                    if (metadata.ExifProfile != null)
-                    {
-                        metadata.ExifProfile = new ExifProfile(exifData);
-                    }
-
+                    ReadExifProfile(stream, metadata, ignoreMetadata, segmentIntegrityHandling, buffer);
                     break;
                 case WebpChunkType.Xmp:
-                    byte[] xmpData = new byte[chunkLength];
-                    bytesRead = stream.Read(xmpData, 0, (int)chunkLength);
-                    if (bytesRead != chunkLength)
-                    {
-                        WebpThrowHelper.ThrowImageFormatException("Could not read enough data for the XMP profile");
-                    }
-
-                    if (metadata.XmpProfile != null)
-                    {
-                        metadata.XmpProfile = new XmpProfile(xmpData);
-                    }
-
+                    ReadXmpProfile(stream, metadata, ignoreMetadata, segmentIntegrityHandling, buffer);
                     break;
                 default:
+
+                    // Ignore unknown chunks.
+                    // These must always fall after the image data so we are safe to always skip them.
+                    uint chunkLength = ReadChunkSize(stream, buffer, false);
                     stream.Skip((int)chunkLength);
                     break;
             }
         }
+    }
+
+    /// <summary>
+    /// Reads the ICCP chunk from the stream.
+    /// </summary>
+    /// <param name="stream">The stream to decode from.</param>
+    /// <param name="metadata">The image metadata.</param>
+    /// <param name="ignoreMetadata">If true, metadata will be ignored.</param>
+    /// <param name="segmentIntegrityHandling">Indicates how to handle segment integrity issues.</param>
+    /// <param name="buffer">Temporary buffer.</param>
+    public static void ReadIccProfile(
+        BufferedReadStream stream,
+        ImageMetadata metadata,
+        bool ignoreMetadata,
+        SegmentIntegrityHandling segmentIntegrityHandling,
+        Span<byte> buffer)
+    {
+        // While ICC profiles are optional, an invalid ICC profile cannot be ignored as it must precede the image data
+        // and since we canot determine its size to allow skipping without reading the chunk size, we have to throw if it's invalid.
+        // Hence we do not consider segment integrity handling here.
+        uint iccpChunkSize = ReadChunkSize(stream, buffer);
+        if (ignoreMetadata || metadata.IccProfile != null)
+        {
+            stream.Skip((int)iccpChunkSize);
+        }
+        else
+        {
+            bool ignoreNone = segmentIntegrityHandling == SegmentIntegrityHandling.IgnoreNone;
+            byte[] iccpData = new byte[iccpChunkSize];
+            int bytesRead = stream.Read(iccpData, 0, (int)iccpChunkSize);
+
+            // We have the size but the profile is invalid if we cannot read enough data.
+            // Use the segment integrity handling to determine if we throw.
+            if (bytesRead != iccpChunkSize && ignoreNone)
+            {
+                WebpThrowHelper.ThrowInvalidImageContentException("Not enough data to read the iccp chunk");
+            }
+
+            IccProfile profile = new(iccpData);
+            if (profile.CheckIsValid())
+            {
+                metadata.IccProfile = profile;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Reads the EXIF profile from the stream.
+    /// </summary>
+    /// <param name="stream">The stream to decode from.</param>
+    /// <param name="metadata">The image metadata.</param>
+    /// <param name="ignoreMetadata">If true, metadata will be ignored.</param>
+    /// <param name="segmentIntegrityHandling">Indicates how to handle segment integrity issues.</param>
+    /// <param name="buffer">Temporary buffer.</param>
+    public static void ReadExifProfile(
+        BufferedReadStream stream,
+        ImageMetadata metadata,
+        bool ignoreMetadata,
+        SegmentIntegrityHandling segmentIntegrityHandling,
+        Span<byte> buffer)
+    {
+        bool ignoreNone = segmentIntegrityHandling == SegmentIntegrityHandling.IgnoreNone;
+        uint exifChunkSize = ReadChunkSize(stream, buffer, ignoreNone);
+        if (ignoreMetadata || metadata.ExifProfile != null)
+        {
+            stream.Skip((int)exifChunkSize);
+        }
+        else
+        {
+            byte[] exifData = new byte[exifChunkSize];
+            int bytesRead = stream.Read(exifData, 0, (int)exifChunkSize);
+            if (bytesRead != exifChunkSize)
+            {
+                if (ignoreNone)
+                {
+                    WebpThrowHelper.ThrowImageFormatException("Could not read enough data for the EXIF profile");
+                }
+
+                return;
+            }
+
+            ExifProfile exifProfile = new(exifData);
+
+            // Set the resolution from the metadata.
+            double horizontalValue = GetExifResolutionValue(exifProfile, ExifTag.XResolution);
+            double verticalValue = GetExifResolutionValue(exifProfile, ExifTag.YResolution);
+
+            if (horizontalValue > 0 && verticalValue > 0)
+            {
+                metadata.HorizontalResolution = horizontalValue;
+                metadata.VerticalResolution = verticalValue;
+                metadata.ResolutionUnits = UnitConverter.ExifProfileToResolutionUnit(exifProfile);
+            }
+
+            metadata.ExifProfile = exifProfile;
+        }
+    }
+
+    /// <summary>
+    /// Reads the XMP profile the stream.
+    /// </summary>
+    /// <param name="stream">The stream to decode from.</param>
+    /// <param name="metadata">The image metadata.</param>
+    /// <param name="ignoreMetadata">If true, metadata will be ignored.</param>
+    /// <param name="segmentIntegrityHandling">Indicates how to handle segment integrity issues.</param>
+    /// <param name="buffer">Temporary buffer.</param>
+    public static void ReadXmpProfile(
+        BufferedReadStream stream,
+        ImageMetadata metadata,
+        bool ignoreMetadata,
+        SegmentIntegrityHandling segmentIntegrityHandling,
+        Span<byte> buffer)
+    {
+        bool ignoreNone = segmentIntegrityHandling == SegmentIntegrityHandling.IgnoreNone;
+
+        uint xmpChunkSize = ReadChunkSize(stream, buffer, ignoreNone);
+        if (ignoreMetadata || metadata.XmpProfile != null)
+        {
+            stream.Skip((int)xmpChunkSize);
+        }
+        else
+        {
+            byte[] xmpData = new byte[xmpChunkSize];
+            int bytesRead = stream.Read(xmpData, 0, (int)xmpChunkSize);
+            if (bytesRead != xmpChunkSize)
+            {
+                if (ignoreNone)
+                {
+                    WebpThrowHelper.ThrowImageFormatException("Could not read enough data for the XMP profile");
+                }
+
+                return;
+            }
+
+            metadata.XmpProfile = new XmpProfile(xmpData);
+        }
+    }
+
+    private static double GetExifResolutionValue(ExifProfile exifProfile, ExifTag<Rational> tag)
+    {
+        if (exifProfile.TryGetValue(tag, out IExifValue<Rational>? resolution))
+        {
+            return resolution.Value.ToDouble();
+        }
+
+        return 0;
     }
 
     /// <summary>

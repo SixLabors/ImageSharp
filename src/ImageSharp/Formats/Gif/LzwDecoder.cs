@@ -3,7 +3,6 @@
 
 using System.Buffers;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 
@@ -20,6 +19,11 @@ internal sealed class LzwDecoder : IDisposable
     private const int MaxStackSize = 4096;
 
     /// <summary>
+    /// The maximum bits for a lzw code.
+    /// </summary>
+    private const int MaximumLzwBits = 12;
+
+    /// <summary>
     /// The null code.
     /// </summary>
     private const int NullCode = -1;
@@ -32,17 +36,36 @@ internal sealed class LzwDecoder : IDisposable
     /// <summary>
     /// The prefix buffer.
     /// </summary>
-    private readonly IMemoryOwner<int> prefix;
+    private readonly IMemoryOwner<int> prefixOwner;
 
     /// <summary>
     /// The suffix buffer.
     /// </summary>
-    private readonly IMemoryOwner<int> suffix;
+    private readonly IMemoryOwner<int> suffixOwner;
+
+    /// <summary>
+    /// The scratch buffer for reading data blocks.
+    /// </summary>
+    private readonly IMemoryOwner<byte> bufferOwner;
 
     /// <summary>
     /// The pixel stack buffer.
     /// </summary>
-    private readonly IMemoryOwner<int> pixelStack;
+    private readonly IMemoryOwner<int> pixelStackOwner;
+    private readonly int minCodeSize;
+    private readonly int clearCode;
+    private readonly int endCode;
+    private int code;
+    private int codeSize;
+    private int codeMask;
+    private int availableCode;
+    private int oldCode = NullCode;
+    private int bits;
+    private int top;
+    private int count;
+    private int bufferIndex;
+    private int data;
+    private int first;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="LzwDecoder"/> class
@@ -50,90 +73,95 @@ internal sealed class LzwDecoder : IDisposable
     /// </summary>
     /// <param name="memoryAllocator">The <see cref="MemoryAllocator"/> to use for buffer allocations.</param>
     /// <param name="stream">The stream to read from.</param>
+    /// <param name="minCodeSize">The minimum code size.</param>
     /// <exception cref="ArgumentNullException"><paramref name="stream"/> is null.</exception>
-    public LzwDecoder(MemoryAllocator memoryAllocator, BufferedReadStream stream)
+    public LzwDecoder(MemoryAllocator memoryAllocator, BufferedReadStream stream, int minCodeSize)
     {
         this.stream = stream ?? throw new ArgumentNullException(nameof(stream));
+        Guard.IsTrue(IsValidMinCodeSize(minCodeSize), nameof(minCodeSize), "Invalid minimum code size.");
 
-        this.prefix = memoryAllocator.Allocate<int>(MaxStackSize, AllocationOptions.Clean);
-        this.suffix = memoryAllocator.Allocate<int>(MaxStackSize, AllocationOptions.Clean);
-        this.pixelStack = memoryAllocator.Allocate<int>(MaxStackSize + 1, AllocationOptions.Clean);
+        this.prefixOwner = memoryAllocator.Allocate<int>(MaxStackSize, AllocationOptions.Clean);
+        this.suffixOwner = memoryAllocator.Allocate<int>(MaxStackSize, AllocationOptions.Clean);
+        this.pixelStackOwner = memoryAllocator.Allocate<int>(MaxStackSize + 1, AllocationOptions.Clean);
+        this.bufferOwner = memoryAllocator.Allocate<byte>(byte.MaxValue, AllocationOptions.None);
+        this.minCodeSize = minCodeSize;
+
+        // Calculate the clear code. The value of the clear code is 2 ^ minCodeSize
+        this.clearCode = 1 << minCodeSize;
+        this.codeSize = minCodeSize + 1;
+        this.codeMask = (1 << this.codeSize) - 1;
+        this.endCode = this.clearCode + 1;
+        this.availableCode = this.clearCode + 2;
+
+        // Fill the suffix buffer with the initial values represented by the number of colors.
+        Span<int> suffix = this.suffixOwner.GetSpan()[..this.clearCode];
+        int i;
+        for (i = 0; i < suffix.Length; i++)
+        {
+            suffix[i] = i;
+        }
+
+        this.code = i;
     }
 
     /// <summary>
-    /// Decodes and decompresses all pixel indices from the stream, assigning the pixel values to the buffer.
+    /// Gets a value indicating whether the minimum code size is valid.
     /// </summary>
-    /// <param name="minCodeSize">Minimum code size of the data.</param>
-    /// <param name="pixels">The pixel array to decode to.</param>
-    public void DecodePixels(int minCodeSize, Buffer2D<byte> pixels)
+    /// <param name="minCodeSize">The minimum code size.</param>
+    /// <returns>
+    /// <see langword="true"/> if the minimum code size is valid; otherwise, <see langword="false"/>.
+    /// </returns>
+    public static bool IsValidMinCodeSize(int minCodeSize)
     {
-        // Calculate the clear code. The value of the clear code is 2 ^ minCodeSize
-        int clearCode = 1 << minCodeSize;
-
         // It is possible to specify a larger LZW minimum code size than the palette length in bits
         // which may leave a gap in the codes where no colors are assigned.
         // http://www.matthewflickinger.com/lab/whatsinagif/lzw_image_data.asp#lzw_compression
-        if (minCodeSize < 2 || clearCode > MaxStackSize)
+        if (minCodeSize < 2 || minCodeSize > MaximumLzwBits || 1 << minCodeSize > MaxStackSize)
         {
             // Don't attempt to decode the frame indices.
             // Theoretically we could determine a min code size from the length of the provided
             // color palette but we won't bother since the image is most likely corrupted.
-            GifThrowHelper.ThrowInvalidImageContentException("Gif Image does not contain a valid LZW minimum code.");
+            return false;
         }
 
-        // The resulting index table length.
-        int width = pixels.Width;
-        int height = pixels.Height;
-        int length = width * height;
+        return true;
+    }
 
-        int codeSize = minCodeSize + 1;
+    /// <summary>
+    /// Decodes and decompresses all pixel indices for a single row from the stream, assigning the pixel values to the buffer.
+    /// </summary>
+    /// <param name="indices">The pixel indices array to decode to.</param>
+    public void DecodePixelRow(Span<byte> indices)
+    {
+        indices.Clear();
 
-        // Calculate the end code
-        int endCode = clearCode + 1;
+        // Get span values from the owners.
+        Span<int> prefix = this.prefixOwner.GetSpan();
+        Span<int> suffix = this.suffixOwner.GetSpan();
+        Span<int> pixelStack = this.pixelStackOwner.GetSpan();
+        Span<byte> buffer = this.bufferOwner.GetSpan();
 
-        // Calculate the available code.
-        int availableCode = clearCode + 2;
+        // Cache frequently accessed instance fields into locals.
+        // This helps avoid repeated field loads inside the tight loop.
+        BufferedReadStream stream = this.stream;
+        int top = this.top;
+        int bits = this.bits;
+        int codeSize = this.codeSize;
+        int codeMask = this.codeMask;
+        int minCodeSize = this.minCodeSize;
+        int availableCode = this.availableCode;
+        int oldCode = this.oldCode;
+        int first = this.first;
+        int data = this.data;
+        int count = this.count;
+        int bufferIndex = this.bufferIndex;
+        int code = this.code;
+        int clearCode = this.clearCode;
+        int endCode = this.endCode;
 
-        // Jillzhangs Code see: http://giflib.codeplex.com/
-        // Adapted from John Cristy's ImageMagick.
-        int code;
-        int oldCode = NullCode;
-        int codeMask = (1 << codeSize) - 1;
-        int bits = 0;
-
-        int top = 0;
-        int count = 0;
-        int bi = 0;
-        int xyz = 0;
-
-        int data = 0;
-        int first = 0;
-
-        ref int prefixRef = ref MemoryMarshal.GetReference(this.prefix.GetSpan());
-        ref int suffixRef = ref MemoryMarshal.GetReference(this.suffix.GetSpan());
-        ref int pixelStackRef = ref MemoryMarshal.GetReference(this.pixelStack.GetSpan());
-
-        for (code = 0; code < clearCode; code++)
+        int i = 0;
+        while (i < indices.Length)
         {
-            Unsafe.Add(ref suffixRef, (uint)code) = (byte)code;
-        }
-
-        Span<byte> buffer = stackalloc byte[byte.MaxValue];
-
-        int y = 0;
-        int x = 0;
-        int rowMax = width;
-        ref byte pixelsRowRef = ref MemoryMarshal.GetReference(pixels.DangerousGetRowSpan(y));
-        while (xyz < length)
-        {
-            // Reset row reference.
-            if (xyz == rowMax)
-            {
-                x = 0;
-                pixelsRowRef = ref MemoryMarshal.GetReference(pixels.DangerousGetRowSpan(++y));
-                rowMax = (y * width) + width;
-            }
-
             if (top == 0)
             {
                 if (bits < codeSize)
@@ -142,19 +170,18 @@ internal sealed class LzwDecoder : IDisposable
                     if (count == 0)
                     {
                         // Read a new data block.
-                        count = this.ReadBlock(buffer);
+                        count = ReadBlock(stream, buffer);
                         if (count == 0)
                         {
                             break;
                         }
 
-                        bi = 0;
+                        bufferIndex = 0;
                     }
 
-                    data += buffer[bi] << bits;
-
+                    data += buffer[bufferIndex] << bits;
                     bits += 8;
-                    bi++;
+                    bufferIndex++;
                     count--;
                     continue;
                 }
@@ -182,7 +209,7 @@ internal sealed class LzwDecoder : IDisposable
 
                 if (oldCode == NullCode)
                 {
-                    Unsafe.Add(ref pixelStackRef, (uint)top++) = Unsafe.Add(ref suffixRef, (uint)code);
+                    pixelStack[top++] = suffix[code];
                     oldCode = code;
                     first = code;
                     continue;
@@ -191,27 +218,26 @@ internal sealed class LzwDecoder : IDisposable
                 int inCode = code;
                 if (code == availableCode)
                 {
-                    Unsafe.Add(ref pixelStackRef, (uint)top++) = (byte)first;
-
+                    pixelStack[top++] = first;
                     code = oldCode;
                 }
 
-                while (code > clearCode)
+                while (code > clearCode && top < MaxStackSize)
                 {
-                    Unsafe.Add(ref pixelStackRef, (uint)top++) = Unsafe.Add(ref suffixRef, (uint)code);
-                    code = Unsafe.Add(ref prefixRef, (uint)code);
+                    pixelStack[top++] = suffix[code];
+                    code = prefix[code];
                 }
 
-                int suffixCode = Unsafe.Add(ref suffixRef, (uint)code);
+                int suffixCode = suffix[code];
                 first = suffixCode;
-                Unsafe.Add(ref pixelStackRef, (uint)top++) = suffixCode;
+                pixelStack[top++] = suffixCode;
 
-                // Fix for Gifs that have "deferred clear code" as per here :
+                // Fix for GIFs that have "deferred clear code" as per:
                 // https://bugzilla.mozilla.org/show_bug.cgi?id=55918
                 if (availableCode < MaxStackSize)
                 {
-                    Unsafe.Add(ref prefixRef, (uint)availableCode) = oldCode;
-                    Unsafe.Add(ref suffixRef, (uint)availableCode) = first;
+                    prefix[availableCode] = oldCode;
+                    suffix[availableCode] = first;
                     availableCode++;
                     if (availableCode == codeMask + 1 && availableCode < MaxStackSize)
                     {
@@ -226,67 +252,56 @@ internal sealed class LzwDecoder : IDisposable
             // Pop a pixel off the pixel stack.
             top--;
 
-            // Clear missing pixels
-            xyz++;
-            Unsafe.Add(ref pixelsRowRef, (uint)x++) = (byte)Unsafe.Add(ref pixelStackRef, (uint)top);
+            // Clear missing pixels.
+            indices[i++] = (byte)pixelStack[top];
         }
+
+        // Write back the local values to the instance fields.
+        this.top = top;
+        this.bits = bits;
+        this.codeSize = codeSize;
+        this.codeMask = codeMask;
+        this.availableCode = availableCode;
+        this.oldCode = oldCode;
+        this.first = first;
+        this.data = data;
+        this.count = count;
+        this.bufferIndex = bufferIndex;
+        this.code = code;
     }
 
     /// <summary>
     /// Decodes and decompresses all pixel indices from the stream allowing skipping of the data.
     /// </summary>
-    /// <param name="minCodeSize">Minimum code size of the data.</param>
     /// <param name="length">The resulting index table length.</param>
-    public void SkipIndices(int minCodeSize, int length)
+    public void SkipIndices(int length)
     {
-        // Calculate the clear code. The value of the clear code is 2 ^ minCodeSize
-        int clearCode = 1 << minCodeSize;
+        // Get span values from the owners.
+        Span<int> prefix = this.prefixOwner.GetSpan();
+        Span<int> suffix = this.suffixOwner.GetSpan();
+        Span<int> pixelStack = this.pixelStackOwner.GetSpan();
+        Span<byte> buffer = this.bufferOwner.GetSpan();
 
-        // It is possible to specify a larger LZW minimum code size than the palette length in bits
-        // which may leave a gap in the codes where no colors are assigned.
-        // http://www.matthewflickinger.com/lab/whatsinagif/lzw_image_data.asp#lzw_compression
-        if (minCodeSize < 2 || clearCode > MaxStackSize)
-        {
-            // Don't attempt to decode the frame indices.
-            // Theoretically we could determine a min code size from the length of the provided
-            // color palette but we won't bother since the image is most likely corrupted.
-            GifThrowHelper.ThrowInvalidImageContentException("Gif Image does not contain a valid LZW minimum code.");
-        }
+        // Cache frequently accessed instance fields into locals.
+        // This helps avoid repeated field loads inside the tight loop.
+        BufferedReadStream stream = this.stream;
+        int top = this.top;
+        int bits = this.bits;
+        int codeSize = this.codeSize;
+        int codeMask = this.codeMask;
+        int minCodeSize = this.minCodeSize;
+        int availableCode = this.availableCode;
+        int oldCode = this.oldCode;
+        int first = this.first;
+        int data = this.data;
+        int count = this.count;
+        int bufferIndex = this.bufferIndex;
+        int code = this.code;
+        int clearCode = this.clearCode;
+        int endCode = this.endCode;
 
-        int codeSize = minCodeSize + 1;
-
-        // Calculate the end code
-        int endCode = clearCode + 1;
-
-        // Calculate the available code.
-        int availableCode = clearCode + 2;
-
-        // Jillzhangs Code see: http://giflib.codeplex.com/
-        // Adapted from John Cristy's ImageMagick.
-        int code;
-        int oldCode = NullCode;
-        int codeMask = (1 << codeSize) - 1;
-        int bits = 0;
-
-        int top = 0;
-        int count = 0;
-        int bi = 0;
-        int xyz = 0;
-
-        int data = 0;
-        int first = 0;
-
-        ref int prefixRef = ref MemoryMarshal.GetReference(this.prefix.GetSpan());
-        ref int suffixRef = ref MemoryMarshal.GetReference(this.suffix.GetSpan());
-        ref int pixelStackRef = ref MemoryMarshal.GetReference(this.pixelStack.GetSpan());
-
-        for (code = 0; code < clearCode; code++)
-        {
-            Unsafe.Add(ref suffixRef, (uint)code) = (byte)code;
-        }
-
-        Span<byte> buffer = stackalloc byte[byte.MaxValue];
-        while (xyz < length)
+        int i = 0;
+        while (i < length)
         {
             if (top == 0)
             {
@@ -296,19 +311,18 @@ internal sealed class LzwDecoder : IDisposable
                     if (count == 0)
                     {
                         // Read a new data block.
-                        count = this.ReadBlock(buffer);
+                        count = ReadBlock(stream, buffer);
                         if (count == 0)
                         {
                             break;
                         }
 
-                        bi = 0;
+                        bufferIndex = 0;
                     }
 
-                    data += buffer[bi] << bits;
-
+                    data += buffer[bufferIndex] << bits;
                     bits += 8;
-                    bi++;
+                    bufferIndex++;
                     count--;
                     continue;
                 }
@@ -336,7 +350,7 @@ internal sealed class LzwDecoder : IDisposable
 
                 if (oldCode == NullCode)
                 {
-                    Unsafe.Add(ref pixelStackRef, (uint)top++) = Unsafe.Add(ref suffixRef, (uint)code);
+                    pixelStack[top++] = suffix[code];
                     oldCode = code;
                     first = code;
                     continue;
@@ -345,27 +359,26 @@ internal sealed class LzwDecoder : IDisposable
                 int inCode = code;
                 if (code == availableCode)
                 {
-                    Unsafe.Add(ref pixelStackRef, (uint)top++) = (byte)first;
-
+                    pixelStack[top++] = first;
                     code = oldCode;
                 }
 
-                while (code > clearCode)
+                while (code > clearCode && top < MaxStackSize)
                 {
-                    Unsafe.Add(ref pixelStackRef, (uint)top++) = Unsafe.Add(ref suffixRef, (uint)code);
-                    code = Unsafe.Add(ref prefixRef, (uint)code);
+                    pixelStack[top++] = suffix[code];
+                    code = prefix[code];
                 }
 
-                int suffixCode = Unsafe.Add(ref suffixRef, (uint)code);
+                int suffixCode = suffix[code];
                 first = suffixCode;
-                Unsafe.Add(ref pixelStackRef, (uint)top++) = suffixCode;
+                pixelStack[top++] = suffixCode;
 
-                // Fix for Gifs that have "deferred clear code" as per here :
+                // Fix for GIFs that have "deferred clear code" as per:
                 // https://bugzilla.mozilla.org/show_bug.cgi?id=55918
                 if (availableCode < MaxStackSize)
                 {
-                    Unsafe.Add(ref prefixRef, (uint)availableCode) = oldCode;
-                    Unsafe.Add(ref suffixRef, (uint)availableCode) = first;
+                    prefix[availableCode] = oldCode;
+                    suffix[availableCode] = first;
                     availableCode++;
                     if (availableCode == codeMask + 1 && availableCode < MaxStackSize)
                     {
@@ -380,30 +393,44 @@ internal sealed class LzwDecoder : IDisposable
             // Pop a pixel off the pixel stack.
             top--;
 
-            // Clear missing pixels
-            xyz++;
+            // Skip missing pixels.
+            i++;
         }
+
+        // Write back the local values to the instance fields.
+        this.top = top;
+        this.bits = bits;
+        this.codeSize = codeSize;
+        this.codeMask = codeMask;
+        this.availableCode = availableCode;
+        this.oldCode = oldCode;
+        this.first = first;
+        this.data = data;
+        this.count = count;
+        this.bufferIndex = bufferIndex;
+        this.code = code;
     }
 
     /// <summary>
     /// Reads the next data block from the stream. A data block begins with a byte,
     /// which defines the size of the block, followed by the block itself.
     /// </summary>
+    /// <param name="stream">The stream to read from.</param>
     /// <param name="buffer">The buffer to store the block in.</param>
     /// <returns>
     /// The <see cref="int"/>.
     /// </returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private int ReadBlock(Span<byte> buffer)
+    private static int ReadBlock(BufferedReadStream stream, Span<byte> buffer)
     {
-        int bufferSize = this.stream.ReadByte();
+        int bufferSize = stream.ReadByte();
 
         if (bufferSize < 1)
         {
             return 0;
         }
 
-        int count = this.stream.Read(buffer, 0, bufferSize);
+        int count = stream.Read(buffer, 0, bufferSize);
 
         return count != bufferSize ? 0 : bufferSize;
     }
@@ -411,8 +438,9 @@ internal sealed class LzwDecoder : IDisposable
     /// <inheritdoc />
     public void Dispose()
     {
-        this.prefix.Dispose();
-        this.suffix.Dispose();
-        this.pixelStack.Dispose();
+        this.prefixOwner.Dispose();
+        this.suffixOwner.Dispose();
+        this.pixelStackOwner.Dispose();
+        this.bufferOwner.Dispose();
     }
 }

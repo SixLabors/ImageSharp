@@ -21,139 +21,139 @@ internal static partial class Vector4Converters
     {
         [MethodImpl(InliningOptions.ShortMethod)]
         public static void FromVector4<TPixel>(
-            Span<Vector4> sourceVectors,
-            Span<TPixel> destPixels,
+            Span<Vector4> source,
+            Span<TPixel> destination,
             PixelConversionModifiers modifiers)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            Guard.DestinationShouldNotBeTooShort(sourceVectors, destPixels, nameof(destPixels));
+            Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
-            UnsafeFromVector4(sourceVectors, destPixels, modifiers);
+            UnsafeFromVector4(source, destination, modifiers);
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
         public static void ToVector4<TPixel>(
-            ReadOnlySpan<TPixel> sourcePixels,
-            Span<Vector4> destVectors,
+            ReadOnlySpan<TPixel> source,
+            Span<Vector4> destination,
             PixelConversionModifiers modifiers)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            Guard.DestinationShouldNotBeTooShort(sourcePixels, destVectors, nameof(destVectors));
+            Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
-            UnsafeToVector4(sourcePixels, destVectors, modifiers);
+            UnsafeToVector4(source, destination, modifiers);
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
         public static void UnsafeFromVector4<TPixel>(
-            Span<Vector4> sourceVectors,
-            Span<TPixel> destPixels,
+            Span<Vector4> source,
+            Span<TPixel> destination,
             PixelConversionModifiers modifiers)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            ApplyBackwardConversionModifiers(sourceVectors, modifiers);
+            ApplyBackwardConversionModifiers(source, modifiers);
 
             if (modifiers.IsDefined(PixelConversionModifiers.Scale))
             {
-                UnsafeFromScaledVector4Core(sourceVectors, destPixels);
+                UnsafeFromScaledVector4Core(source, destination);
             }
             else
             {
-                UnsafeFromVector4Core(sourceVectors, destPixels);
+                UnsafeFromVector4Core(source, destination);
             }
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
         public static void UnsafeToVector4<TPixel>(
-            ReadOnlySpan<TPixel> sourcePixels,
-            Span<Vector4> destVectors,
+            ReadOnlySpan<TPixel> source,
+            Span<Vector4> destination,
             PixelConversionModifiers modifiers)
             where TPixel : unmanaged, IPixel<TPixel>
         {
             if (modifiers.IsDefined(PixelConversionModifiers.Scale))
             {
-                UnsafeToScaledVector4Core(sourcePixels, destVectors);
+                UnsafeToScaledVector4Core(source, destination);
             }
             else
             {
-                UnsafeToVector4Core(sourcePixels, destVectors);
+                UnsafeToVector4Core(source, destination);
             }
 
-            ApplyForwardConversionModifiers(destVectors, modifiers);
+            ApplyForwardConversionModifiers(destination, modifiers);
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
         private static void UnsafeFromVector4Core<TPixel>(
-            ReadOnlySpan<Vector4> sourceVectors,
-            Span<TPixel> destPixels)
+            ReadOnlySpan<Vector4> source,
+            Span<TPixel> destination)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            ref Vector4 sourceStart = ref MemoryMarshal.GetReference(sourceVectors);
-            ref Vector4 sourceEnd = ref Unsafe.Add(ref sourceStart, (uint)sourceVectors.Length);
-            ref TPixel destRef = ref MemoryMarshal.GetReference(destPixels);
+            ref Vector4 sourceStart = ref MemoryMarshal.GetReference(source);
+            ref Vector4 sourceEnd = ref Unsafe.Add(ref sourceStart, (uint)source.Length);
+            ref TPixel destinationBase = ref MemoryMarshal.GetReference(destination);
 
             while (Unsafe.IsAddressLessThan(ref sourceStart, ref sourceEnd))
             {
-                destRef.FromVector4(sourceStart);
+                destinationBase = TPixel.FromVector4(sourceStart);
 
                 sourceStart = ref Unsafe.Add(ref sourceStart, 1);
-                destRef = ref Unsafe.Add(ref destRef, 1);
+                destinationBase = ref Unsafe.Add(ref destinationBase, 1);
             }
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
         private static void UnsafeToVector4Core<TPixel>(
-            ReadOnlySpan<TPixel> sourcePixels,
-            Span<Vector4> destVectors)
+            ReadOnlySpan<TPixel> source,
+            Span<Vector4> destination)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            ref TPixel sourceStart = ref MemoryMarshal.GetReference(sourcePixels);
-            ref TPixel sourceEnd = ref Unsafe.Add(ref sourceStart, (uint)sourcePixels.Length);
-            ref Vector4 destRef = ref MemoryMarshal.GetReference(destVectors);
+            ref TPixel sourceStart = ref MemoryMarshal.GetReference(source);
+            ref TPixel sourceEnd = ref Unsafe.Add(ref sourceStart, (uint)source.Length);
+            ref Vector4 destinationBase = ref MemoryMarshal.GetReference(destination);
 
             while (Unsafe.IsAddressLessThan(ref sourceStart, ref sourceEnd))
             {
-                destRef = sourceStart.ToVector4();
+                destinationBase = sourceStart.ToVector4();
 
                 sourceStart = ref Unsafe.Add(ref sourceStart, 1);
-                destRef = ref Unsafe.Add(ref destRef, 1);
+                destinationBase = ref Unsafe.Add(ref destinationBase, 1);
             }
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
         private static void UnsafeFromScaledVector4Core<TPixel>(
-            ReadOnlySpan<Vector4> sourceVectors,
-            Span<TPixel> destinationColors)
+            ReadOnlySpan<Vector4> source,
+            Span<TPixel> destination)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            ref Vector4 sourceStart = ref MemoryMarshal.GetReference(sourceVectors);
-            ref Vector4 sourceEnd = ref Unsafe.Add(ref sourceStart, (uint)sourceVectors.Length);
-            ref TPixel destRef = ref MemoryMarshal.GetReference(destinationColors);
+            ref Vector4 sourceStart = ref MemoryMarshal.GetReference(source);
+            ref Vector4 sourceEnd = ref Unsafe.Add(ref sourceStart, (uint)source.Length);
+            ref TPixel destinationBase = ref MemoryMarshal.GetReference(destination);
 
             while (Unsafe.IsAddressLessThan(ref sourceStart, ref sourceEnd))
             {
-                destRef.FromScaledVector4(sourceStart);
+                destinationBase = TPixel.FromScaledVector4(sourceStart);
 
                 sourceStart = ref Unsafe.Add(ref sourceStart, 1);
-                destRef = ref Unsafe.Add(ref destRef, 1);
+                destinationBase = ref Unsafe.Add(ref destinationBase, 1);
             }
         }
 
         [MethodImpl(InliningOptions.ShortMethod)]
         private static void UnsafeToScaledVector4Core<TPixel>(
-            ReadOnlySpan<TPixel> sourceColors,
-            Span<Vector4> destinationVectors)
+            ReadOnlySpan<TPixel> source,
+            Span<Vector4> destination)
             where TPixel : unmanaged, IPixel<TPixel>
         {
-            ref TPixel sourceStart = ref MemoryMarshal.GetReference(sourceColors);
-            ref TPixel sourceEnd = ref Unsafe.Add(ref sourceStart, (uint)sourceColors.Length);
-            ref Vector4 destRef = ref MemoryMarshal.GetReference(destinationVectors);
+            ref TPixel sourceStart = ref MemoryMarshal.GetReference(source);
+            ref TPixel sourceEnd = ref Unsafe.Add(ref sourceStart, (uint)source.Length);
+            ref Vector4 destinationBase = ref MemoryMarshal.GetReference(destination);
 
             while (Unsafe.IsAddressLessThan(ref sourceStart, ref sourceEnd))
             {
-                destRef = sourceStart.ToScaledVector4();
+                destinationBase = sourceStart.ToScaledVector4();
 
                 sourceStart = ref Unsafe.Add(ref sourceStart, 1);
-                destRef = ref Unsafe.Add(ref destRef, 1);
+                destinationBase = ref Unsafe.Add(ref destinationBase, 1);
             }
         }
     }

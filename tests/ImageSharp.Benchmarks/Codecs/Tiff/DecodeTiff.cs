@@ -15,7 +15,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs;
 
 [MarkdownExporter]
 [HtmlExporter]
-[Config(typeof(Config.ShortMultiFramework))]
+[Config(typeof(Config.Short))]
 public class DecodeTiff
 {
     private string prevImage;

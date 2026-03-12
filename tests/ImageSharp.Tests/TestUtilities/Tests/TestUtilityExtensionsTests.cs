@@ -21,20 +21,17 @@ public class TestUtilityExtensionsTests
     public static Image<TPixel> CreateTestImage<TPixel>()
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        var image = new Image<TPixel>(10, 10);
+        Image<TPixel> image = new(10, 10);
 
         Buffer2D<TPixel> pixels = image.GetRootFramePixelBuffer();
         for (int i = 0; i < 10; i++)
         {
             for (int j = 0; j < 10; j++)
             {
-                var v = new Vector4(i, j, 0, 1);
+                Vector4 v = new(i, j, 0, 1);
                 v /= 10;
 
-                var color = default(TPixel);
-                color.FromVector4(v);
-
-                pixels[i, j] = color;
+                pixels[i, j] = TPixel.FromVector4(v);
             }
         }
 

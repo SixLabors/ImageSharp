@@ -33,10 +33,12 @@ internal static partial class DebugGuard
     [Conditional("DEBUG")]
     public static void NotDisposed(bool isDisposed, string objectName)
     {
+#pragma warning disable CA1513
         if (isDisposed)
         {
             throw new ObjectDisposedException(objectName);
         }
+#pragma warning restore CA1513
     }
 
     /// <summary>

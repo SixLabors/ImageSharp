@@ -13,8 +13,8 @@ using Xunit;
 using Xunit.Abstractions;
 <#+
     private static readonly string[] UnassociatedAlphaPixelTypes =
-    {
-        "A8",
+        [
+            "A8",
         "Argb32",
         "Abgr32",
         "Bgra32",
@@ -31,13 +31,13 @@ using Xunit.Abstractions;
         "Rgba64",
         "RgbaVector",
         "Short4"
-    };
+            ];
 
-    private static readonly string[] AssociatedAlphaPixelTypes = Array.Empty<string>();
+    private static readonly string[] AssociatedAlphaPixelTypes = [];
 
     private static readonly string[] CommonPixelTypes =
-    {
-        "A8",
+        [
+            "A8",
         "Argb32",
         "Abgr32",
         "Bgr24",
@@ -65,12 +65,12 @@ using Xunit.Abstractions;
         "Rgba64",
         "RgbaVector",
         "Short2",
-        "Short4",
-    };
+        "Short4"
+            ];
 
     void GenerateSpecializedClass(string pixelType, string alpha)
     {#>
-    
+
     public partial class <#=pixelType#>_OperationsTests : PixelOperationsTests<<#=pixelType#>>
     {
         public <#=pixelType#>_OperationsTests(ITestOutputHelper output)
@@ -78,15 +78,10 @@ using Xunit.Abstractions;
         {
         }
 
-        protected override PixelOperations<<#=pixelType#>> Operations => <#=pixelType#>.PixelOperations.Instance;
-
-        [Fact]
-        public void IsSpecialImplementation() => Assert.IsType<<#=pixelType#>.PixelOperations>(PixelOperations<<#=pixelType#>>.Instance);
-
         [Fact]
         public void PixelTypeInfoHasCorrectAlphaRepresentation()
         {
-            var alphaRepresentation = this.Operations.GetPixelTypeInfo().AlphaRepresentation;
+            var alphaRepresentation = <#=pixelType#>.GetPixelTypeInfo().AlphaRepresentation;
             Assert.Equal(<#=alpha#>, alphaRepresentation);
         }
     }

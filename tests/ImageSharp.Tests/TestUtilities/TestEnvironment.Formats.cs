@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Diagnostics.CodeAnalysis;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.Formats.Gif;
@@ -9,6 +8,7 @@ using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Formats.OpenExr;
 using SixLabors.ImageSharp.Formats.Pbm;
 using SixLabors.ImageSharp.Formats.Png;
+using SixLabors.ImageSharp.Formats.Qoi;
 using SixLabors.ImageSharp.Formats.Tga;
 using SixLabors.ImageSharp.Formats.Tiff;
 using SixLabors.ImageSharp.Formats.Webp;
@@ -65,6 +65,7 @@ public static partial class TestEnvironment
             new WebpConfigurationModule(),
             new TiffConfigurationModule(),
             new ExrConfigurationModule());
+            new QoiConfigurationModule());
 
         IImageEncoder pngEncoder = IsWindows ? SystemDrawingReferenceEncoder.Png : new ImageSharpPngEncoderWithDefaultConfiguration();
         IImageEncoder bmpEncoder = IsWindows ? SystemDrawingReferenceEncoder.Bmp : new BmpEncoder();
@@ -72,13 +73,13 @@ public static partial class TestEnvironment
         // Magick codecs should work on all platforms.
         cfg.ConfigureCodecs(
             PngFormat.Instance,
-            MagickReferenceDecoder.Instance,
+            MagickReferenceDecoder.Png,
             pngEncoder,
             new PngImageFormatDetector());
 
         cfg.ConfigureCodecs(
             BmpFormat.Instance,
-            IsWindows ? SystemDrawingReferenceDecoder.Instance : MagickReferenceDecoder.Instance,
+            IsWindows ? SystemDrawingReferenceDecoder.Bmp : MagickReferenceDecoder.Bmp,
             bmpEncoder,
             new BmpImageFormatDetector());
 

@@ -36,14 +36,12 @@ internal sealed class PixelRowDelegateProcessor : IImageProcessor
     /// <inheritdoc />
     public IImageProcessor<TPixel> CreatePixelSpecificProcessor<TPixel>(Configuration configuration, Image<TPixel> source, Rectangle sourceRectangle)
         where TPixel : unmanaged, IPixel<TPixel>
-    {
-        return new PixelRowDelegateProcessor<TPixel, PixelRowDelegate>(
+        => new PixelRowDelegateProcessor<TPixel, PixelRowDelegate>(
             new PixelRowDelegate(this.PixelRowOperation),
             configuration,
             this.Modifiers,
             source,
             sourceRectangle);
-    }
 
     /// <summary>
     /// A <see langword="struct"/> implementing the row processing logic for <see cref="PixelRowDelegateProcessor"/>.
@@ -54,9 +52,7 @@ internal sealed class PixelRowDelegateProcessor : IImageProcessor
 
         [MethodImpl(InliningOptions.ShortMethod)]
         public PixelRowDelegate(PixelRowOperation pixelRowOperation)
-        {
-            this.pixelRowOperation = pixelRowOperation;
-        }
+            => this.pixelRowOperation = pixelRowOperation;
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]

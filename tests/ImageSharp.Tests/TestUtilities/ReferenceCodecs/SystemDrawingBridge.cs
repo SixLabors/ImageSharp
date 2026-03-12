@@ -27,7 +27,7 @@ public static class SystemDrawingBridge
         int w = bmp.Width;
         int h = bmp.Height;
 
-        var fullRect = new System.Drawing.Rectangle(0, 0, w, h);
+        System.Drawing.Rectangle fullRect = new(0, 0, w, h);
 
         if (bmp.PixelFormat != PixelFormat.Format32bppArgb)
         {
@@ -37,7 +37,7 @@ public static class SystemDrawingBridge
         }
 
         BitmapData data = bmp.LockBits(fullRect, ImageLockMode.ReadWrite, bmp.PixelFormat);
-        var image = new Image<TPixel>(w, h);
+        Image<TPixel> image = new(w, h);
         try
         {
             byte* sourcePtrBase = (byte*)data.Scan0;
@@ -45,7 +45,7 @@ public static class SystemDrawingBridge
             long sourceRowByteCount = data.Stride;
             long destRowByteCount = w * sizeof(Bgra32);
 
-            Configuration configuration = image.GetConfiguration();
+            Configuration configuration = image.Configuration;
             image.ProcessPixelRows(accessor =>
             {
                 using IMemoryOwner<Bgra32> workBuffer = Configuration.Default.MemoryAllocator.Allocate<Bgra32>(w);
@@ -86,7 +86,7 @@ public static class SystemDrawingBridge
         int w = bmp.Width;
         int h = bmp.Height;
 
-        var fullRect = new System.Drawing.Rectangle(0, 0, w, h);
+        System.Drawing.Rectangle fullRect = new(0, 0, w, h);
 
         if (bmp.PixelFormat != PixelFormat.Format24bppRgb)
         {
@@ -96,7 +96,7 @@ public static class SystemDrawingBridge
         }
 
         BitmapData data = bmp.LockBits(fullRect, ImageLockMode.ReadWrite, bmp.PixelFormat);
-        var image = new Image<TPixel>(w, h);
+        Image<TPixel> image = new(w, h);
         try
         {
             byte* sourcePtrBase = (byte*)data.Scan0;
@@ -104,7 +104,7 @@ public static class SystemDrawingBridge
             long sourceRowByteCount = data.Stride;
             long destRowByteCount = w * sizeof(Bgr24);
 
-            Configuration configuration = image.GetConfiguration();
+            Configuration configuration = image.Configuration;
             Buffer2D<TPixel> imageBuffer = image.Frames.RootFrame.PixelBuffer;
 
             using (IMemoryOwner<Bgr24> workBuffer = Configuration.Default.MemoryAllocator.Allocate<Bgr24>(w))
@@ -134,12 +134,12 @@ public static class SystemDrawingBridge
     internal static unsafe Bitmap To32bppArgbSystemDrawingBitmap<TPixel>(Image<TPixel> image)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        Configuration configuration = image.GetConfiguration();
+        Configuration configuration = image.Configuration;
         int w = image.Width;
         int h = image.Height;
 
-        var resultBitmap = new Bitmap(w, h, PixelFormat.Format32bppArgb);
-        var fullRect = new System.Drawing.Rectangle(0, 0, w, h);
+        Bitmap resultBitmap = new(w, h, PixelFormat.Format32bppArgb);
+        System.Drawing.Rectangle fullRect = new(0, 0, w, h);
         BitmapData data = resultBitmap.LockBits(fullRect, ImageLockMode.ReadWrite, resultBitmap.PixelFormat);
         try
         {
@@ -148,7 +148,7 @@ public static class SystemDrawingBridge
             long sourceRowByteCount = w * sizeof(Bgra32);
             image.ProcessPixelRows(accessor =>
             {
-                using IMemoryOwner<Bgra32> workBuffer = image.GetConfiguration().MemoryAllocator.Allocate<Bgra32>(w);
+                using IMemoryOwner<Bgra32> workBuffer = image.Configuration.MemoryAllocator.Allocate<Bgra32>(w);
                 fixed (Bgra32* sourcePtr = &workBuffer.GetReference())
                 {
                     for (int y = 0; y < h; y++)

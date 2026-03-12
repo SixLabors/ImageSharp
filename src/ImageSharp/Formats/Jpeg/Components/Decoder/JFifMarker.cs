@@ -71,7 +71,9 @@ internal readonly struct JFifMarker : IEquatable<JFifMarker>
     /// <param name="marker">The marker to return.</param>
     public static bool TryParse(ReadOnlySpan<byte> bytes, out JFifMarker marker)
     {
-        if (ProfileResolver.IsProfile(bytes, ProfileResolver.JFifMarker))
+        // Some images incorrectly use JFXX as the App0 marker (Issue 2478)
+        if (ProfileResolver.IsProfile(bytes, ProfileResolver.JFifMarker)
+            || ProfileResolver.IsProfile(bytes, ProfileResolver.JFxxMarker))
         {
             byte majorVersion = bytes[5];
             byte minorVersion = bytes[6];

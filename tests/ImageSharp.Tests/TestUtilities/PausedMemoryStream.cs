@@ -6,9 +6,10 @@ using System.Buffers;
 namespace SixLabors.ImageSharp.Tests.TestUtilities;
 
 /// <summary>
-/// <see cref="PausedMemoryStream"/> is a variant of <see cref="PausedStream"/> that derives from <see cref="MemoryStream"/> instead of encapsulating it.
-/// It is used to test decoder REacellation without relying on of our standard prefetching of arbitrary streams to <see cref="ImageSharp.IO.ChunkedMemoryStream"/>
-/// on asynchronous path.
+/// <see cref="PausedMemoryStream"/> is a variant of <see cref="PausedStream"/> that derives from
+/// <see cref="MemoryStream"/> instead of encapsulating it.
+/// It is used to test decoder cancellation without relying on of our standard prefetching of arbitrary streams
+/// to <see cref="ImageSharp.IO.ChunkedMemoryStream"/> on asynchronous path.
 /// </summary>
 public class PausedMemoryStream : MemoryStream, IPausedStream
 {
@@ -108,11 +109,11 @@ public class PausedMemoryStream : MemoryStream, IPausedStream
 
     public override bool CanWrite => base.CanWrite;
 
-    public override void Flush() => this.Await(() => base.Flush());
+    public override void Flush() => this.Await(base.Flush);
 
     public override int Read(byte[] buffer, int offset, int count) => this.Await(() => base.Read(buffer, offset, count));
 
-    public override long Seek(long offset, SeekOrigin origin) => this.Await(() => base.Seek(offset, origin));
+    public override long Seek(long offset, SeekOrigin loc) => this.Await(() => base.Seek(offset, loc));
 
     public override void SetLength(long value) => this.Await(() => base.SetLength(value));
 
@@ -124,7 +125,7 @@ public class PausedMemoryStream : MemoryStream, IPausedStream
 
     public override void WriteByte(byte value) => this.Await(() => base.WriteByte(value));
 
-    public override int ReadByte() => this.Await(() => base.ReadByte());
+    public override int ReadByte() => this.Await(base.ReadByte);
 
     public override void CopyTo(Stream destination, int bufferSize)
     {

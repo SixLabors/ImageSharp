@@ -21,7 +21,7 @@ public class UnmanagedBufferTests
     [Fact]
     public void Allocate_CreatesValidBuffer()
     {
-        using var buffer = UnmanagedBuffer<int>.Allocate(10);
+        using UnmanagedBuffer<int> buffer = UnmanagedBuffer<int>.Allocate(10);
         Span<int> span = buffer.GetSpan();
         Assert.Equal(10, span.Length);
         span[9] = 123;
@@ -35,7 +35,7 @@ public class UnmanagedBufferTests
 
         static void RunTest()
         {
-            var buffer = UnmanagedBuffer<int>.Allocate(10);
+            UnmanagedBuffer<int> buffer = UnmanagedBuffer<int>.Allocate(10);
             Assert.Equal(1, UnmanagedMemoryHandle.TotalOutstandingHandles);
             Span<int> span = buffer.GetSpan();
 
@@ -76,10 +76,10 @@ public class UnmanagedBufferTests
 
         static List<UnmanagedBuffer<byte>> FillList(int countInner)
         {
-            var l = new List<UnmanagedBuffer<byte>>();
+            List<UnmanagedBuffer<byte>> l = new();
             for (int i = 0; i < countInner; i++)
             {
-                var h = UnmanagedBuffer<byte>.Allocate(42);
+                UnmanagedBuffer<byte> h = UnmanagedBuffer<byte>.Allocate(42);
                 l.Add(h);
             }
 

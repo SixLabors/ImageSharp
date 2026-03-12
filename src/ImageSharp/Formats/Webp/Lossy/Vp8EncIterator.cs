@@ -36,12 +36,12 @@ internal class Vp8EncIterator
     /// Array to record the position of the top sample to pass to the prediction functions.
     /// </summary>
     private readonly byte[] vp8TopLeftI4 =
-    {
+    [
         17, 21, 25, 29,
         13, 17, 21, 25,
         9,  13, 17, 21,
         5,   9, 13, 17
-    };
+    ];
 
     private int currentMbIdx;
 
@@ -49,6 +49,11 @@ internal class Vp8EncIterator
     private int yTopIdx;
 
     private int uvTopIdx;
+
+    public Vp8EncIterator(Vp8Encoder enc)
+        : this(enc.YTop, enc.UvTop, enc.Nz, enc.MbInfo, enc.Preds, enc.TopDerr, enc.Mbw, enc.Mbh)
+    {
+    }
 
     public Vp8EncIterator(byte[] yTop, byte[] uvTop, uint[] nz, Vp8MacroBlockInfo[] mb, byte[] preds, sbyte[] topDerr, int mbw, int mbh)
     {

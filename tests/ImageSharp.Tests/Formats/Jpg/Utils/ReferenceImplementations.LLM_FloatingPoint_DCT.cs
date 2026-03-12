@@ -208,8 +208,8 @@ internal static partial class ReferenceImplementations
             /*y[0] = c0 + c1;
             y[4] = c0 - c1;*/
 
-            var w0 = new Vector4(0.541196f);
-            var w1 = new Vector4(1.306563f);
+            Vector4 w0 = new(0.541196f);
+            Vector4 w1 = new(1.306563f);
 
             _mm_store_ps(d, 16, (w0 * c2) + (w1 * c3));
 
@@ -242,7 +242,7 @@ internal static partial class ReferenceImplementations
             _mm_store_ps(d, 40, c3 - c1);
 
             // y[5] = c3 - c1; y[3] = c0 - c2;
-            var invsqrt2 = new Vector4(0.707107f);
+            Vector4 invsqrt2 = new(0.707107f);
             c0 = (c0 + c2) * invsqrt2;
             c3 = (c3 + c1) * invsqrt2;
 
@@ -272,7 +272,7 @@ internal static partial class ReferenceImplementations
 
             FDCT2D8x4_32f(temp.Slice(4), d.Slice(4));
 
-            var c = new Vector4(0.1250f);
+            Vector4 c = new(0.1250f);
 
 #pragma warning disable SA1107 // Code should not contain multiple statements on one line
             _mm_store_ps(d, 0, _mm_load_ps(d, 0) * c); d = d.Slice(4); // 0
@@ -318,29 +318,29 @@ internal static partial class ReferenceImplementations
         // Accurate variants of constants from:
         // https://github.com/mozilla/mozjpeg/blob/master/simd/jfdctint-altivec.c
 #pragma warning disable SA1309 // Field names should not begin with underscore
-        private static readonly Vector4 _1_175876 = new Vector4(1.175875602f);
+        private static readonly Vector4 _1_175876 = new(1.175875602f);
 
-        private static readonly Vector4 _1_961571 = new Vector4(-1.961570560f);
+        private static readonly Vector4 _1_961571 = new(-1.961570560f);
 
-        private static readonly Vector4 _0_390181 = new Vector4(-0.390180644f);
+        private static readonly Vector4 _0_390181 = new(-0.390180644f);
 
-        private static readonly Vector4 _0_899976 = new Vector4(-0.899976223f);
+        private static readonly Vector4 _0_899976 = new(-0.899976223f);
 
-        private static readonly Vector4 _2_562915 = new Vector4(-2.562915447f);
+        private static readonly Vector4 _2_562915 = new(-2.562915447f);
 
-        private static readonly Vector4 _0_298631 = new Vector4(0.298631336f);
+        private static readonly Vector4 _0_298631 = new(0.298631336f);
 
-        private static readonly Vector4 _2_053120 = new Vector4(2.053119869f);
+        private static readonly Vector4 _2_053120 = new(2.053119869f);
 
-        private static readonly Vector4 _3_072711 = new Vector4(3.072711026f);
+        private static readonly Vector4 _3_072711 = new(3.072711026f);
 
-        private static readonly Vector4 _1_501321 = new Vector4(1.501321110f);
+        private static readonly Vector4 _1_501321 = new(1.501321110f);
 
-        private static readonly Vector4 _0_541196 = new Vector4(0.541196100f);
+        private static readonly Vector4 _0_541196 = new(0.541196100f);
 
-        private static readonly Vector4 _1_847759 = new Vector4(-1.847759065f);
+        private static readonly Vector4 _1_847759 = new(-1.847759065f);
 
-        private static readonly Vector4 _0_765367 = new Vector4(0.765366865f);
+        private static readonly Vector4 _0_765367 = new(0.765366865f);
 #pragma warning restore SA1309 // Field names should not begin with underscore
 
         /// <summary>

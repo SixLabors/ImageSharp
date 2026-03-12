@@ -140,7 +140,7 @@ internal partial struct Block8x8
     /// <inheritdoc />
     public override string ToString()
     {
-        var sb = new StringBuilder();
+        StringBuilder sb = new();
         sb.Append('[');
         for (int i = 0; i < Size; i++)
         {
@@ -211,10 +211,10 @@ internal partial struct Block8x8
     }
 
     /// <summary>
-    /// Transpose the block inplace.
+    /// Transpose the block in place.
     /// </summary>
     [MethodImpl(InliningOptions.ShortMethod)]
-    public void TransposeInplace()
+    public void TransposeInPlace()
     {
         ref short elemRef = ref Unsafe.As<Block8x8, short>(ref this);
 

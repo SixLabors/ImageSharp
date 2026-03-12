@@ -13,43 +13,6 @@ namespace SixLabors.ImageSharp.Benchmarks.General.PixelConversion;
 
 public class PixelConversion_ConvertFromVector4
 {
-    [StructLayout(LayoutKind.Sequential)]
-    private struct TestRgbaVector : ITestPixel<TestRgbaVector>
-    {
-        private Vector4 v;
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void FromVector4(Vector4 p)
-        {
-            this.v = p;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void FromVector4(ref Vector4 p)
-        {
-            this.v = p;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Vector4 ToVector4() => this.v;
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void CopyToVector4(ref Vector4 dest)
-        {
-            dest = this.v;
-        }
-
-        public void FromRgba32(Rgba32 source) => throw new System.NotImplementedException();
-
-        public void FromRgba32(ref Rgba32 source) => throw new System.NotImplementedException();
-
-        public void FromBytes(byte r, byte g, byte b, byte a) => throw new System.NotImplementedException();
-
-        public Rgba32 ToRgba32() => throw new System.NotImplementedException();
-
-        public void CopyToRgba32(ref Rgba32 dest) => throw new System.NotImplementedException();
-    }
-
     private struct ConversionRunner<T>
         where T : struct, ITestPixel<T>
     {

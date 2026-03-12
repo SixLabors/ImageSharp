@@ -11,6 +11,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Binarization;
 /// <summary>
 /// Performs Bradley Adaptive Threshold filter against an image.
 /// </summary>
+/// <typeparam name="TPixel">The pixel format.</typeparam>
 internal class AdaptiveThresholdProcessor<TPixel> : ImageProcessor<TPixel>
     where TPixel : unmanaged, IPixel<TPixel>
 {
@@ -30,7 +31,7 @@ internal class AdaptiveThresholdProcessor<TPixel> : ImageProcessor<TPixel>
     /// <inheritdoc/>
     protected override void OnFrameApply(ImageFrame<TPixel> source)
     {
-        var interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds());
+        Rectangle interest = Rectangle.Intersect(this.SourceRectangle, source.Bounds);
 
         Configuration configuration = this.Configuration;
         TPixel upper = this.definition.Upper.ToPixel<TPixel>();
@@ -97,19 +98,23 @@ internal class AdaptiveThresholdProcessor<TPixel> : ImageProcessor<TPixel>
             Span<TPixel> rowSpan = this.source.DangerousGetRowSpan(y).Slice(this.startX, span.Length);
             PixelOperations<TPixel>.Instance.ToL8(this.configuration, rowSpan, span);
 
+            int startY = this.startY;
             int maxX = this.bounds.Width - 1;
             int maxY = this.bounds.Height - 1;
+            int clusterSize = this.clusterSize;
+            float thresholdLimit = this.thresholdLimit;
+            Buffer2D<ulong> image = this.intImage;
             for (int x = 0; x < rowSpan.Length; x++)
             {
-                int x1 = Math.Clamp(x - this.clusterSize + 1, 0, maxX);
-                int x2 = Math.Min(x + this.clusterSize + 1, maxX);
-                int y1 = Math.Clamp(y - this.startY - this.clusterSize + 1, 0, maxY);
-                int y2 = Math.Min(y - this.startY + this.clusterSize + 1, maxY);
+                int x1 = Math.Clamp(x - clusterSize + 1, 0, maxX);
+                int x2 = Math.Min(x + clusterSize + 1, maxX);
+                int y1 = Math.Clamp(y - startY - clusterSize + 1, 0, maxY);
+                int y2 = Math.Min(y - startY + clusterSize + 1, maxY);
 
                 uint count = (uint)((x2 - x1) * (y2 - y1));
-                ulong sum = Math.Min(this.intImage[x2, y2] - this.intImage[x1, y2] - this.intImage[x2, y1] + this.intImage[x1, y1], ulong.MaxValue);
+                ulong sum = Math.Min(image[x2, y2] - image[x1, y2] - image[x2, y1] + image[x1, y1], ulong.MaxValue);
 
-                if (span[x].PackedValue * count <= sum * this.thresholdLimit)
+                if (span[x].PackedValue * count <= sum * thresholdLimit)
                 {
                     rowSpan[x] = this.lower;
                 }

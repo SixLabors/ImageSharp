@@ -1,10 +1,12 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
 namespace SixLabors.ImageSharp.Metadata.Profiles.Exif;
 
+[DebuggerDisplay("{Tag} = {IsArray?\"[..]\":ToString(),nq} ({GetType().Name,nq})")]
 internal abstract class ExifValue : IExifValue, IEquatable<ExifTag>
 {
     protected ExifValue(ExifTag tag) => this.Tag = tag;

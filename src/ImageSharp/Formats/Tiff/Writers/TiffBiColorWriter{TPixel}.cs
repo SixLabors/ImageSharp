@@ -21,11 +21,16 @@ internal sealed class TiffBiColorWriter<TPixel> : TiffBaseColorWriter<TPixel>
 
     private IMemoryOwner<byte> bitStrip;
 
-    public TiffBiColorWriter(ImageFrame<TPixel> image, MemoryAllocator memoryAllocator, Configuration configuration, TiffEncoderEntriesCollector entriesCollector)
-        : base(image, memoryAllocator, configuration, entriesCollector)
+    public TiffBiColorWriter(
+        ImageFrame<TPixel> image,
+        Size encodingSize,
+        MemoryAllocator memoryAllocator,
+        Configuration configuration,
+        TiffEncoderEntriesCollector entriesCollector)
+        : base(image, encodingSize, memoryAllocator, configuration, entriesCollector)
     {
         // Convert image to black and white.
-        this.imageBlackWhite = new Image<TPixel>(configuration, new ImageMetadata(), new[] { image.Clone() });
+        this.imageBlackWhite = new Image<TPixel>(configuration, new ImageMetadata(), [image.Clone()]);
         this.imageBlackWhite.Mutate(img => img.BinaryDither(KnownDitherings.FloydSteinberg));
     }
 
@@ -35,9 +40,9 @@ internal sealed class TiffBiColorWriter<TPixel> : TiffBaseColorWriter<TPixel>
     /// <inheritdoc/>
     protected override void EncodeStrip(int y, int height, TiffBaseCompressor compressor)
     {
-        int width = this.Image.Width;
+        int width = this.Width;
 
-        if (compressor.Method == TiffCompression.CcittGroup3Fax || compressor.Method == TiffCompression.Ccitt1D || compressor.Method == TiffCompression.CcittGroup4Fax)
+        if (compressor.Method is TiffCompression.CcittGroup3Fax or TiffCompression.Ccitt1D or TiffCompression.CcittGroup4Fax)
         {
             // Special case for T4BitCompressor.
             int stripPixels = width * height;
@@ -77,9 +82,9 @@ internal sealed class TiffBiColorWriter<TPixel> : TiffBaseColorWriter<TPixel>
                 int bitIndex = 0;
                 int byteIndex = 0;
                 Span<byte> outputRow = rows[(outputRowIdx * this.BytesPerRow)..];
-                Span<TPixel> pixelsBlackWhiteRow = blackWhiteBuffer.DangerousGetRowSpan(row);
+                Span<TPixel> pixelsBlackWhiteRow = blackWhiteBuffer.DangerousGetRowSpan(row)[..width];
                 PixelOperations<TPixel>.Instance.ToL8Bytes(this.Configuration, pixelsBlackWhiteRow, pixelAsGraySpan, width);
-                for (int x = 0; x < this.Image.Width; x++)
+                for (int x = 0; x < this.Width; x++)
                 {
                     int shift = 7 - bitIndex;
                     if (pixelAsGraySpan[x] == 255)

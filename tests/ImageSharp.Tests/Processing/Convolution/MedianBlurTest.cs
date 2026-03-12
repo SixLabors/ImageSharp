@@ -13,7 +13,7 @@ public class MedianBlurTest : BaseImageOperationsExtensionTest
     public void Median_radius_MedianProcessorDefaultsSet()
     {
         this.operations.MedianBlur(3, true);
-        var processor = this.Verify<MedianBlurProcessor>();
+        MedianBlurProcessor processor = this.Verify<MedianBlurProcessor>();
 
         Assert.Equal(3, processor.Radius);
         Assert.True(processor.PreserveAlpha);
@@ -22,8 +22,8 @@ public class MedianBlurTest : BaseImageOperationsExtensionTest
     [Fact]
     public void Median_radius_rect_MedianProcessorDefaultsSet()
     {
-        this.operations.MedianBlur(5, false, this.rect);
-        var processor = this.Verify<MedianBlurProcessor>(this.rect);
+        this.operations.MedianBlur(this.rect, 5, false);
+        MedianBlurProcessor processor = this.Verify<MedianBlurProcessor>(this.rect);
 
         Assert.Equal(5, processor.Radius);
         Assert.False(processor.PreserveAlpha);

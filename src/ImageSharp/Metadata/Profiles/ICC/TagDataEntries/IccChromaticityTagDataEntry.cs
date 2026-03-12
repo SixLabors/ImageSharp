@@ -112,33 +112,33 @@ internal sealed class IccChromaticityTagDataEntry : IccTagDataEntry, IEquatable<
         switch (colorantType)
         {
             case IccColorantEncoding.EbuTech3213E:
-                return new[]
-                {
-                    new[] { 0.640, 0.330 },
-                    new[] { 0.290, 0.600 },
-                    new[] { 0.150, 0.060 },
-                };
+                return
+                [
+                    [0.640, 0.330],
+                    [0.290, 0.600],
+                    [0.150, 0.060]
+                ];
             case IccColorantEncoding.ItuRBt709_2:
-                return new[]
-                {
-                    new[] { 0.640, 0.330 },
-                    new[] { 0.300, 0.600 },
-                    new[] { 0.150, 0.060 },
-                };
+                return
+                [
+                    [0.640, 0.330],
+                    [0.300, 0.600],
+                    [0.150, 0.060]
+                ];
             case IccColorantEncoding.P22:
-                return new[]
-                {
-                    new[] { 0.625, 0.340 },
-                    new[] { 0.280, 0.605 },
-                    new[] { 0.155, 0.070 },
-                };
+                return
+                [
+                    [0.625, 0.340],
+                    [0.280, 0.605],
+                    [0.155, 0.070]
+                ];
             case IccColorantEncoding.SmpteRp145:
-                return new[]
-                {
-                    new[] { 0.630, 0.340 },
-                    new[] { 0.310, 0.595 },
-                    new[] { 0.155, 0.070 },
-                };
+                return
+                [
+                    [0.630, 0.340],
+                    [0.310, 0.595],
+                    [0.155, 0.070]
+                ];
             default:
                 throw new ArgumentException("Unrecognized colorant encoding");
         }

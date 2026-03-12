@@ -10,6 +10,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation;
 /// <summary>
 /// Implements the 'RGB' photometric interpretation with 32 bits for each channel.
 /// </summary>
+/// <typeparam name="TPixel">The type of pixel format.</typeparam>
 internal class RgbFloat323232TiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
     where TPixel : unmanaged, IPixel<TPixel>
 {
@@ -24,8 +25,6 @@ internal class RgbFloat323232TiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
     /// <inheritdoc/>
     public override void Decode(ReadOnlySpan<byte> data, Buffer2D<TPixel> pixels, int left, int top, int width, int height)
     {
-        var color = default(TPixel);
-        color.FromScaledVector4(Vector4.Zero);
         int offset = 0;
         Span<byte> buffer = stackalloc byte[4];
 
@@ -52,9 +51,7 @@ internal class RgbFloat323232TiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
                     float b = BitConverter.ToSingle(buffer);
                     offset += 4;
 
-                    var colorVector = new Vector4(r, g, b, 1.0f);
-                    color.FromScaledVector4(colorVector);
-                    pixelRow[x] = color;
+                    pixelRow[x] = TPixel.FromScaledVector4(new Vector4(r, g, b, 1f));
                 }
             }
             else
@@ -70,9 +67,7 @@ internal class RgbFloat323232TiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
                     float b = BitConverter.ToSingle(data.Slice(offset, 4));
                     offset += 4;
 
-                    var colorVector = new Vector4(r, g, b, 1.0f);
-                    color.FromScaledVector4(colorVector);
-                    pixelRow[x] = color;
+                    pixelRow[x] = TPixel.FromScaledVector4(new Vector4(r, g, b, 1f));
                 }
             }
         }

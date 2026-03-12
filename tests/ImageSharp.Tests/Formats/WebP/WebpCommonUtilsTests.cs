@@ -23,7 +23,7 @@ public class WebpCommonUtilsTests
 
     [Fact]
     public void CheckNonOpaque_WithOpaquePixels_WithoutSse2_Works()
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunCheckNoneOpaqueWithOpaquePixelsTest, HwIntrinsics.DisableSSE2);
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunCheckNoneOpaqueWithOpaquePixelsTest, HwIntrinsics.DisableHWIntrinsic);
 
     [Fact]
     public void CheckNonOpaque_WithOpaquePixels_WithoutAvx2_Works()
@@ -35,7 +35,7 @@ public class WebpCommonUtilsTests
 
     [Fact]
     public void CheckNonOpaque_WithNoneOpaquePixels_WithoutSse2_Works()
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunCheckNoneOpaqueWithNoneOpaquePixelsTest, HwIntrinsics.DisableSSE2);
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunCheckNoneOpaqueWithNoneOpaquePixelsTest, HwIntrinsics.DisableHWIntrinsic);
 
     [Fact]
     public void CheckNonOpaque_WithNoneOpaquePixels_WithoutAvx2_Works()
@@ -45,7 +45,7 @@ public class WebpCommonUtilsTests
     {
         // arrange
         byte[] rowBytes =
-        {
+        [
             122, 120, 101, 255,
             171, 165, 151, 255,
             209, 208, 210, 255,
@@ -104,9 +104,9 @@ public class WebpCommonUtilsTests
             171, 165, 151, 0,
             209, 208, 210, 100,
             174, 183, 189, 255,
-            148, 158, 158, 255,
-        };
-        Span<Bgra32> row = MemoryMarshal.Cast<byte, Bgra32>(rowBytes);
+            148, 158, 158, 255
+        ];
+        ReadOnlySpan<Bgra32> row = MemoryMarshal.Cast<byte, Bgra32>(rowBytes);
 
         bool noneOpaque;
         for (int length = 8; length < row.Length; length += 8)
@@ -127,7 +127,7 @@ public class WebpCommonUtilsTests
     {
         // arrange
         byte[] rowBytes =
-        {
+        [
             122, 120, 101, 255,
             171, 165, 151, 255,
             209, 208, 210, 255,
@@ -186,9 +186,9 @@ public class WebpCommonUtilsTests
             171, 165, 151, 255,
             209, 208, 210, 255,
             174, 183, 189, 255,
-            148, 158, 158, 255,
-        };
-        Span<Bgra32> row = MemoryMarshal.Cast<byte, Bgra32>(rowBytes);
+            148, 158, 158, 255
+        ];
+        ReadOnlySpan<Bgra32> row = MemoryMarshal.Cast<byte, Bgra32>(rowBytes);
 
         bool noneOpaque;
         for (int length = 8; length < row.Length; length += 8)

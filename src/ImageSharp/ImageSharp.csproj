@@ -13,6 +13,7 @@
     <PackageTags>Image Resize Crop Gif Jpg Jpeg Bitmap Pbm Png Tga Tiff WebP NetCore</PackageTags>
     <Description>A new, fully featured, fully managed, cross-platform, 2D graphics API for .NET</Description>
     <Configurations>Debug;Release</Configurations>
+    <IsTrimmable>true</IsTrimmable>
   </PropertyGroup>
 
   <!--  This enables the nullable analysis and treats all nullable warnings as error-->
@@ -22,21 +23,19 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <!--Bump to V3 prior to tagged release.-->
-    <MinVerMinimumMajorMinor>3.0</MinVerMinimumMajorMinor>
+    <!--Bump to v4.0 prior to tagged release.-->
+    <MinVerMinimumMajorMinor>4.0</MinVerMinimumMajorMinor>
   </PropertyGroup>
 
   <Choose>
     <When Condition="$(SIXLABORS_TESTING_PREVIEW) == true">
       <PropertyGroup>
-        <TargetFrameworks>net7.0;net6.0</TargetFrameworks>
-        <IsTrimmable>true</IsTrimmable>
+        <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
       </PropertyGroup>
     </When>
     <Otherwise>
       <PropertyGroup>
-        <TargetFrameworks>net6.0</TargetFrameworks>
-        <IsTrimmable>true</IsTrimmable>
+        <TargetFrameworks>net8.0</TargetFrameworks>
       </PropertyGroup>
     </Otherwise>
   </Choose>
@@ -48,15 +47,19 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Update="Formats\Jpeg\Components\Block8x8F.Generated.cs">
+    <PackageReference Include="System.IO.Hashing" Version="8.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Update="Common\InlineArray.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
-      <DependentUpon>Block8x8F.Generated.tt</DependentUpon>
+      <DependentUpon>InlineArray.tt</DependentUpon>
     </Compile>
-    <Compile Update="Formats\Jpeg\Components\Block8x8F.Generated.cs">
+    <Compile Update="Formats\_Generated\ImageMetadataExtensions.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
-      <DependentUpon>Block8x8F.Generated.tt</DependentUpon>
+      <DependentUpon>ImageMetadataExtensions.tt</DependentUpon>
     </Compile>
     <Compile Update="PixelFormats\PixelImplementations\PixelOperations\Generated\Abgr32.PixelOperations.Generated.cs">
       <DesignTime>True</DesignTime>
@@ -138,7 +141,7 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>PorterDuffFunctions.Generated.tt</DependentUpon>
     </Compile>
-    <Compile Update="Formats\ImageExtensions.Save.cs">
+    <Compile Update="Formats\_Generated\ImageExtensions.Save.cs">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
       <DependentUpon>ImageExtensions.Save.tt</DependentUpon>
@@ -146,13 +149,13 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="Formats\Jpeg\Components\Block8x8F.Generated.tt">
+    <None Update="Common\InlineArray.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
-      <LastGenOutput>Block8x8F.Generated.cs</LastGenOutput>
+      <LastGenOutput>InlineArray.cs</LastGenOutput>
     </None>
-    <None Update="Formats\Jpeg\Components\Block8x8F.Generated.tt">
+    <None Update="Formats\_Generated\ImageMetadataExtensions.tt">
+      <LastGenOutput>ImageMetadataExtensions.cs</LastGenOutput>
       <Generator>TextTemplatingFileGenerator</Generator>
-      <LastGenOutput>Block8x8F.Generated.cs</LastGenOutput>
     </None>
     <None Update="PixelFormats\PixelImplementations\PixelOperations\Generated\Abgr32.PixelOperations.Generated.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
@@ -218,7 +221,7 @@
       <LastGenOutput>DefaultPixelBlenders.Generated.cs</LastGenOutput>
       <Generator>TextTemplatingFileGenerator</Generator>
     </None>
-    <None Update="Formats\ImageExtensions.Save.tt">
+    <None Update="Formats\_Generated\ImageExtensions.Save.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>ImageExtensions.Save.cs</LastGenOutput>
     </None>

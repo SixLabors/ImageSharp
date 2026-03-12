@@ -22,5 +22,11 @@ internal enum TiffExtraSampleType
     /// The extra data is unassociated alpha data is transparency information that logically exists independent of an image;
     /// it is commonly called a soft matte.
     /// </summary>
-    UnassociatedAlphaData = 2
+    UnassociatedAlphaData = 2,
+
+    /// <summary>
+    /// A CorelDRAW-specific value observed in damaged files, indicating unassociated alpha.
+    /// Not part of the official TIFF specification; patched in ImageSharp for compatibility.
+    /// </summary>
+    CorelDrawUnassociatedAlphaData = 999,
 }

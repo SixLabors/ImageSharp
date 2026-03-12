@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Tests.PixelFormats;
@@ -12,7 +13,7 @@ public class Rgb48Tests
     [Fact]
     public void Rgb48_Values()
     {
-        var rgb = new Rgba64(5243, 9830, 19660, 29491);
+        Rgba64 rgb = new(5243, 9830, 19660, 29491);
 
         Assert.Equal(5243, rgb.R);
         Assert.Equal(9830, rgb.G);
@@ -32,13 +33,12 @@ public class Rgb48Tests
     public void Rgb48_FromScaledVector4()
     {
         // arrange
-        var pixel = default(Rgb48);
-        var short3 = new Rgb48(ushort.MaxValue, ushort.MaxValue, ushort.MaxValue);
-        var expected = new Rgb48(ushort.MaxValue, ushort.MaxValue, ushort.MaxValue);
+        Rgb48 short3 = new(ushort.MaxValue, ushort.MaxValue, ushort.MaxValue);
+        Rgb48 expected = new(ushort.MaxValue, ushort.MaxValue, ushort.MaxValue);
 
         // act
         Vector4 scaled = short3.ToScaledVector4();
-        pixel.FromScaledVector4(scaled);
+        Rgb48 pixel = Rgb48.FromScaledVector4(scaled);
 
         // assert
         Assert.Equal(expected, pixel);
@@ -48,12 +48,11 @@ public class Rgb48Tests
     public void Rgb48_ToRgba32()
     {
         // arrange
-        var rgba48 = new Rgb48(5140, 9766, 19532);
-        var expected = new Rgba32(20, 38, 76, 255);
+        Rgb48 rgba48 = new(5140, 9766, 19532);
+        Rgba32 expected = new(20, 38, 76, 255);
 
         // act
-        Rgba32 actual = default;
-        rgba48.ToRgba32(ref actual);
+        Rgba32 actual = rgba48.ToRgba32();
 
         // assert
         Assert.Equal(expected, actual);
@@ -63,15 +62,31 @@ public class Rgb48Tests
     public void Rgb48_FromBgra5551()
     {
         // arrange
-        var rgb = default(Rgb48);
-        ushort expected = ushort.MaxValue;
+        const ushort expected = ushort.MaxValue;
 
         // act
-        rgb.FromBgra5551(new Bgra5551(1.0f, 1.0f, 1.0f, 1.0f));
+        Rgb48 rgb = Rgb48.FromBgra5551(new Bgra5551(1f, 1f, 1f, 1f));
 
         // assert
         Assert.Equal(expected, rgb.R);
         Assert.Equal(expected, rgb.G);
         Assert.Equal(expected, rgb.B);
+    }
+
+    [Fact]
+    public void Rgb48_PixelInformation()
+    {
+        PixelTypeInfo info = Rgb48.GetPixelTypeInfo();
+        Assert.Equal(Unsafe.SizeOf<Rgb48>() * 8, info.BitsPerPixel);
+        Assert.Equal(PixelAlphaRepresentation.None, info.AlphaRepresentation);
+        Assert.Equal(PixelColorType.RGB, info.ColorType);
+
+        PixelComponentInfo componentInfo = info.ComponentInfo.Value;
+        Assert.Equal(3, componentInfo.ComponentCount);
+        Assert.Equal(0, componentInfo.Padding);
+        Assert.Equal(16, componentInfo.GetComponentPrecision(0));
+        Assert.Equal(16, componentInfo.GetComponentPrecision(1));
+        Assert.Equal(16, componentInfo.GetComponentPrecision(2));
+        Assert.Equal(16, componentInfo.GetMaximumComponentPrecision());
     }
 }

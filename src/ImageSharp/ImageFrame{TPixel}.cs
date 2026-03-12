@@ -25,6 +25,16 @@ public sealed class ImageFrame<TPixel> : ImageFrame, IPixelSource<TPixel>
     /// Initializes a new instance of the <see cref="ImageFrame{TPixel}" /> class.
     /// </summary>
     /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
+    /// <param name="size">The <see cref="Size"/> of the frame.</param>
+    internal ImageFrame(Configuration configuration, Size size)
+        : this(configuration, size.Width, size.Height, new ImageFrameMetadata())
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ImageFrame{TPixel}" /> class.
+    /// </summary>
+    /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
     /// <param name="width">The width of the image in pixels.</param>
     /// <param name="height">The height of the image in pixels.</param>
     internal ImageFrame(Configuration configuration, int width, int height)
@@ -56,7 +66,7 @@ public sealed class ImageFrame<TPixel> : ImageFrame, IPixelSource<TPixel>
         Guard.MustBeGreaterThan(width, 0, nameof(width));
         Guard.MustBeGreaterThan(height, 0, nameof(height));
 
-        this.PixelBuffer = this.GetConfiguration().MemoryAllocator.Allocate2D<TPixel>(
+        this.PixelBuffer = this.Configuration.MemoryAllocator.Allocate2D<TPixel>(
             width,
             height,
             configuration.PreferContiguousImageBuffers,
@@ -89,7 +99,7 @@ public sealed class ImageFrame<TPixel> : ImageFrame, IPixelSource<TPixel>
         Guard.MustBeGreaterThan(width, 0, nameof(width));
         Guard.MustBeGreaterThan(height, 0, nameof(height));
 
-        this.PixelBuffer = this.GetConfiguration().MemoryAllocator.Allocate2D<TPixel>(
+        this.PixelBuffer = this.Configuration.MemoryAllocator.Allocate2D<TPixel>(
             width,
             height,
             configuration.PreferContiguousImageBuffers);
@@ -104,7 +114,20 @@ public sealed class ImageFrame<TPixel> : ImageFrame, IPixelSource<TPixel>
     /// <param name="height">The height of the image in pixels.</param>
     /// <param name="memorySource">The memory source.</param>
     internal ImageFrame(Configuration configuration, int width, int height, MemoryGroup<TPixel> memorySource)
-        : this(configuration, width, height, memorySource, new ImageFrameMetadata())
+        : this(configuration, width, height, width, memorySource, new ImageFrameMetadata())
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ImageFrame{TPixel}" /> class wrapping an existing buffer.
+    /// </summary>
+    /// <param name="configuration">The configuration providing initialization code which allows extending the library.</param>
+    /// <param name="width">The width of the image in pixels.</param>
+    /// <param name="height">The height of the image in pixels.</param>
+    /// <param name="rowStride">The number of elements between row starts.</param>
+    /// <param name="memorySource">The memory source.</param>
+    internal ImageFrame(Configuration configuration, int width, int height, int rowStride, MemoryGroup<TPixel> memorySource)
+        : this(configuration, width, height, rowStride, memorySource, new ImageFrameMetadata())
     {
     }
 
@@ -117,12 +140,26 @@ public sealed class ImageFrame<TPixel> : ImageFrame, IPixelSource<TPixel>
     /// <param name="memorySource">The memory source.</param>
     /// <param name="metadata">The metadata.</param>
     internal ImageFrame(Configuration configuration, int width, int height, MemoryGroup<TPixel> memorySource, ImageFrameMetadata metadata)
+        : this(configuration, width, height, width, memorySource, metadata)
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ImageFrame{TPixel}" /> class wrapping an existing buffer.
+    /// </summary>
+    /// <param name="configuration">The configuration providing initialization code which allows extending the library.</param>
+    /// <param name="width">The width of the image in pixels.</param>
+    /// <param name="height">The height of the image in pixels.</param>
+    /// <param name="rowStride">The number of elements between row starts.</param>
+    /// <param name="memorySource">The memory source.</param>
+    /// <param name="metadata">The metadata.</param>
+    internal ImageFrame(Configuration configuration, int width, int height, int rowStride, MemoryGroup<TPixel> memorySource, ImageFrameMetadata metadata)
         : base(configuration, width, height, metadata)
     {
         Guard.MustBeGreaterThan(width, 0, nameof(width));
         Guard.MustBeGreaterThan(height, 0, nameof(height));
 
-        this.PixelBuffer = new Buffer2D<TPixel>(memorySource, width, height);
+        this.PixelBuffer = new Buffer2D<TPixel>(memorySource, width, height, rowStride);
     }
 
     /// <summary>
@@ -136,11 +173,11 @@ public sealed class ImageFrame<TPixel> : ImageFrame, IPixelSource<TPixel>
         Guard.NotNull(configuration, nameof(configuration));
         Guard.NotNull(source, nameof(source));
 
-        this.PixelBuffer = this.GetConfiguration().MemoryAllocator.Allocate2D<TPixel>(
+        this.PixelBuffer = this.Configuration.MemoryAllocator.Allocate2D<TPixel>(
             source.PixelBuffer.Width,
             source.PixelBuffer.Height,
             configuration.PreferContiguousImageBuffers);
-        source.PixelBuffer.FastMemoryGroup.CopyTo(this.PixelBuffer.FastMemoryGroup);
+        source.PixelBuffer.CopyTo(this.PixelBuffer);
     }
 
     /// <inheritdoc/>
@@ -260,16 +297,23 @@ public sealed class ImageFrame<TPixel> : ImageFrame, IPixelSource<TPixel>
     }
 
     /// <summary>
-    /// Copy image pixels to <paramref name="destination"/>.
+    /// Copy image pixels to <paramref name="destination"/> using the backing row layout.
     /// </summary>
+    /// <remarks>
+    /// Destination length must be at least <c>((Height - 1) * PixelBuffer.RowStride) + Width</c>.
+    /// </remarks>
     /// <param name="destination">The <see cref="Span{TPixel}"/> to copy image pixels to.</param>
-    public void CopyPixelDataTo(Span<TPixel> destination) => this.GetPixelMemoryGroup().CopyTo(destination);
+    public void CopyPixelDataTo(Span<TPixel> destination) => this.PixelBuffer.CopyTo(destination);
 
     /// <summary>
-    /// Copy image pixels to <paramref name="destination"/>.
+    /// Copy image pixels to <paramref name="destination"/> using the backing row layout.
     /// </summary>
+    /// <remarks>
+    /// Destination length must be at least
+    /// <c>(((Height - 1) * PixelBuffer.RowStride) + Width) * sizeof(TPixel)</c> bytes.
+    /// </remarks>
     /// <param name="destination">The <see cref="Span{T}"/> of <see cref="byte"/> to copy image pixels to.</param>
-    public void CopyPixelDataTo(Span<byte> destination) => this.GetPixelMemoryGroup().CopyTo(MemoryMarshal.Cast<byte, TPixel>(destination));
+    public void CopyPixelDataTo(Span<byte> destination) => this.PixelBuffer.CopyTo(MemoryMarshal.Cast<byte, TPixel>(destination));
 
     /// <summary>
     /// Gets the representation of the pixels as a <see cref="Memory{T}"/> in the source image's pixel format
@@ -284,17 +328,7 @@ public sealed class ImageFrame<TPixel> : ImageFrame, IPixelSource<TPixel>
     /// <param name="memory">The <see cref="Memory{T}"/> referencing the image buffer.</param>
     /// <returns>The <see cref="bool"/> indicating the success.</returns>
     public bool DangerousTryGetSinglePixelMemory(out Memory<TPixel> memory)
-    {
-        IMemoryGroup<TPixel> mg = this.GetPixelMemoryGroup();
-        if (mg.Count > 1)
-        {
-            memory = default;
-            return false;
-        }
-
-        memory = mg.Single();
-        return true;
-    }
+        => this.PixelBuffer.DangerousTryGetSingleMemory(out memory);
 
     /// <summary>
     /// Gets a reference to the pixel at the specified position.
@@ -312,24 +346,36 @@ public sealed class ImageFrame<TPixel> : ImageFrame, IPixelSource<TPixel>
     /// <exception cref="ArgumentException">ImageFrame{TPixel}.CopyTo(): target must be of the same size!</exception>
     internal void CopyTo(Buffer2D<TPixel> target)
     {
-        if (this.Size() != target.Size())
+        if (this.Size != target.Size())
         {
             throw new ArgumentException("ImageFrame<TPixel>.CopyTo(): target must be of the same size!", nameof(target));
         }
 
-        this.PixelBuffer.FastMemoryGroup.CopyTo(target.FastMemoryGroup);
+        this.PixelBuffer.CopyTo(target);
     }
 
     /// <summary>
-    /// Switches the buffers used by the image and the pixelSource meaning that the Image will "own" the buffer from the pixelSource and the pixelSource will now own the Images buffer.
+    /// Switches the buffers used by the image and the pixel source meaning that the Image will "own" the buffer
+    /// from the pixelSource and the pixel source will now own the Image buffer.
     /// </summary>
-    /// <param name="pixelSource">The pixel source.</param>
-    internal void SwapOrCopyPixelsBufferFrom(ImageFrame<TPixel> pixelSource)
+    /// <param name="source">The pixel source.</param>
+    internal void SwapOrCopyPixelsBufferFrom(ImageFrame<TPixel> source)
     {
-        Guard.NotNull(pixelSource, nameof(pixelSource));
+        Guard.NotNull(source, nameof(source));
 
-        Buffer2D<TPixel>.SwapOrCopyContent(this.PixelBuffer, pixelSource.PixelBuffer);
+        Buffer2D<TPixel>.SwapOrCopyContent(this.PixelBuffer, source.PixelBuffer);
         this.UpdateSize(this.PixelBuffer.Size());
+    }
+
+    /// <summary>
+    /// Copies the metadata from the source image.
+    /// </summary>
+    /// <param name="source">The metadata source.</param>
+    internal void CopyMetadataFrom(ImageFrame<TPixel> source)
+    {
+        Guard.NotNull(source, nameof(source));
+
+        this.UpdateMetadata(source.Metadata);
     }
 
     /// <inheritdoc/>
@@ -348,20 +394,32 @@ public sealed class ImageFrame<TPixel> : ImageFrame, IPixelSource<TPixel>
         this.isDisposed = true;
     }
 
-    internal override void CopyPixelsTo<TDestinationPixel>(MemoryGroup<TDestinationPixel> destination)
+    internal override void CopyPixelsTo<TDestinationPixel>(Buffer2D<TDestinationPixel> destination)
     {
+        Guard.NotNull(destination, nameof(destination));
+        Guard.IsTrue(
+            destination.Width == this.Width && destination.Height == this.Height,
+            nameof(destination),
+            "Destination buffer must have the same dimensions as the source frame.");
+
         if (typeof(TPixel) == typeof(TDestinationPixel))
         {
-            this.PixelBuffer.FastMemoryGroup.TransformTo(destination, (s, d) =>
+            for (int y = 0; y < this.Height; y++)
             {
-                Span<TPixel> d1 = MemoryMarshal.Cast<TDestinationPixel, TPixel>(d);
-                s.CopyTo(d1);
-            });
+                Span<TPixel> sourceRow = this.PixelBuffer.DangerousGetRowSpan(y);
+                Span<TDestinationPixel> destinationRow = destination.DangerousGetRowSpan(y);
+                sourceRow.CopyTo(MemoryMarshal.Cast<TDestinationPixel, TPixel>(destinationRow));
+            }
+
             return;
         }
 
-        this.PixelBuffer.FastMemoryGroup.TransformTo(destination, (s, d)
-            => PixelOperations<TPixel>.Instance.To(this.GetConfiguration(), s, d));
+        for (int y = 0; y < this.Height; y++)
+        {
+            Span<TPixel> sourceRow = this.PixelBuffer.DangerousGetRowSpan(y);
+            Span<TDestinationPixel> destinationRow = destination.DangerousGetRowSpan(y);
+            PixelOperations<TPixel>.Instance.To(this.Configuration, sourceRow, destinationRow);
+        }
     }
 
     /// <inheritdoc/>
@@ -371,7 +429,7 @@ public sealed class ImageFrame<TPixel> : ImageFrame, IPixelSource<TPixel>
     /// Clones the current instance.
     /// </summary>
     /// <returns>The <see cref="ImageFrame{TPixel}"/></returns>
-    internal ImageFrame<TPixel> Clone() => this.Clone(this.GetConfiguration());
+    internal ImageFrame<TPixel> Clone() => this.Clone(this.Configuration);
 
     /// <summary>
     /// Clones the current instance.
@@ -386,7 +444,7 @@ public sealed class ImageFrame<TPixel> : ImageFrame, IPixelSource<TPixel>
     /// <typeparam name="TPixel2">The pixel format.</typeparam>
     /// <returns>The <see cref="ImageFrame{TPixel2}"/></returns>
     internal ImageFrame<TPixel2>? CloneAs<TPixel2>()
-        where TPixel2 : unmanaged, IPixel<TPixel2> => this.CloneAs<TPixel2>(this.GetConfiguration());
+        where TPixel2 : unmanaged, IPixel<TPixel2> => this.CloneAs<TPixel2>(this.Configuration);
 
     /// <summary>
     /// Returns a copy of the image frame in the given pixel format.
@@ -407,7 +465,7 @@ public sealed class ImageFrame<TPixel> : ImageFrame, IPixelSource<TPixel>
 
         ParallelRowIterator.IterateRowIntervals(
             configuration,
-            this.Bounds(),
+            this.Bounds,
             in operation);
 
         return target;
@@ -419,16 +477,7 @@ public sealed class ImageFrame<TPixel> : ImageFrame, IPixelSource<TPixel>
     /// <param name="value">The value to initialize the bitmap with.</param>
     internal void Clear(TPixel value)
     {
-        MemoryGroup<TPixel> group = this.PixelBuffer.FastMemoryGroup;
-
-        if (value.Equals(default))
-        {
-            group.Clear();
-        }
-        else
-        {
-            group.Fill(value);
-        }
+        this.PixelBuffer.Clear(value);
     }
 
     [MethodImpl(InliningOptions.ShortMethod)]

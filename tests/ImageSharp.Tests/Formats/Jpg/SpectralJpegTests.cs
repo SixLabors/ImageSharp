@@ -6,6 +6,7 @@ using SixLabors.ImageSharp.Formats.Jpeg.Components;
 using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.Formats.Jpg.Utils;
 using Xunit.Abstractions;
@@ -21,19 +22,19 @@ public class SpectralJpegTests
     private ITestOutputHelper Output { get; }
 
     public static readonly string[] BaselineTestJpegs =
-        {
-            TestImages.Jpeg.Baseline.Calliphora, TestImages.Jpeg.Baseline.Cmyk, TestImages.Jpeg.Baseline.Jpeg400,
+    [
+        TestImages.Jpeg.Baseline.Calliphora, TestImages.Jpeg.Baseline.Cmyk, TestImages.Jpeg.Baseline.Jpeg400,
             TestImages.Jpeg.Baseline.Jpeg444, TestImages.Jpeg.Baseline.Testorig420,
             TestImages.Jpeg.Baseline.Jpeg420Small, TestImages.Jpeg.Baseline.Bad.BadEOF,
             TestImages.Jpeg.Baseline.MultiScanBaselineCMYK
-        };
+    ];
 
     public static readonly string[] ProgressiveTestJpegs =
-        {
-            TestImages.Jpeg.Progressive.Fb, TestImages.Jpeg.Progressive.Progress,
+    [
+        TestImages.Jpeg.Progressive.Fb, TestImages.Jpeg.Progressive.Progress,
             TestImages.Jpeg.Progressive.Festzug, TestImages.Jpeg.Progressive.Bad.BadEOF,
-            TestImages.Jpeg.Progressive.Bad.ExifUndefType,
-        };
+            TestImages.Jpeg.Progressive.Bad.ExifUndefType
+    ];
 
     public static readonly string[] AllTestJpegs = BaselineTestJpegs.Concat(ProgressiveTestJpegs).ToArray();
 
@@ -46,13 +47,13 @@ public class SpectralJpegTests
         byte[] sourceBytes = TestFile.Create(provider.SourceFileOrDescription).Bytes;
         JpegDecoderOptions option = new();
 
-        using var decoder = new JpegDecoderCore(option);
-        using var ms = new MemoryStream(sourceBytes);
-        using var bufferedStream = new BufferedReadStream(Configuration.Default, ms);
+        using JpegDecoderCore decoder = new(option);
+        using MemoryStream ms = new(sourceBytes);
+        using BufferedReadStream bufferedStream = new(Configuration.Default, ms);
 
         // internal scan decoder which we substitute to assert spectral correctness
-        var debugConverter = new DebugSpectralConverter<TPixel>();
-        var scanDecoder = new HuffmanScanDecoder(bufferedStream, debugConverter, cancellationToken: default);
+        DebugSpectralConverter<TPixel> debugConverter = new();
+        HuffmanScanDecoder scanDecoder = new(bufferedStream, debugConverter, cancellationToken: default);
 
         // This would parse entire image
         decoder.ParseStream(bufferedStream, debugConverter, cancellationToken: default);
@@ -76,12 +77,12 @@ public class SpectralJpegTests
         byte[] sourceBytes = TestFile.Create(provider.SourceFileOrDescription).Bytes;
         JpegDecoderOptions options = new();
 
-        using var decoder = new JpegDecoderCore(options);
-        using var ms = new MemoryStream(sourceBytes);
-        using var bufferedStream = new BufferedReadStream(Configuration.Default, ms);
+        using JpegDecoderCore decoder = new(options);
+        using MemoryStream ms = new(sourceBytes);
+        using BufferedReadStream bufferedStream = new(Configuration.Default, ms);
 
         // internal scan decoder which we substitute to assert spectral correctness
-        var debugConverter = new DebugSpectralConverter<TPixel>();
+        DebugSpectralConverter<TPixel> debugConverter = new();
 
         // This would parse entire image
         decoder.ParseStream(bufferedStream, debugConverter, cancellationToken: default);
@@ -164,7 +165,7 @@ public class SpectralJpegTests
             }
         }
 
-        public override void ConvertStrideBaseline()
+        public override void ConvertStrideBaseline(IccProfile iccProfile)
         {
             // This would be called only for baseline non-interleaved images
             // We must copy spectral strides here
@@ -197,7 +198,7 @@ public class SpectralJpegTests
 
         public override void PrepareForDecoding()
         {
-            var spectralComponents = new LibJpegTools.ComponentData[this.frame.ComponentCount];
+            LibJpegTools.ComponentData[] spectralComponents = new LibJpegTools.ComponentData[this.frame.ComponentCount];
             for (int i = 0; i < spectralComponents.Length; i++)
             {
                 JpegComponent component = this.frame.Components[i];

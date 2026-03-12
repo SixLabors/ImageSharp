@@ -2,7 +2,6 @@
 // Licensed under the Six Labors Split License.
 
 using System.Buffers.Text;
-using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Pbm;
@@ -10,7 +9,7 @@ namespace SixLabors.ImageSharp.Formats.Pbm;
 /// <summary>
 /// Image encoder for writing an image to a stream as a PGM, PBM, PPM or PAM bitmap.
 /// </summary>
-internal sealed class PbmEncoderCore : IImageEncoderInternals
+internal sealed class PbmEncoderCore
 {
     private const byte NewLine = (byte)'\n';
     private const byte Space = (byte)' ';
@@ -69,8 +68,7 @@ internal sealed class PbmEncoderCore : IImageEncoderInternals
 
         byte signature = this.DeduceSignature();
         this.WriteHeader(stream, signature, image.Size);
-
-        this.WritePixels(stream, image.Frames.RootFrame);
+        this.WritePixels(stream, image.Frames.RootFrame, cancellationToken);
 
         stream.Flush();
     }
@@ -78,7 +76,7 @@ internal sealed class PbmEncoderCore : IImageEncoderInternals
     private void SanitizeAndSetEncoderOptions<TPixel>(Image<TPixel> image)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        this.configuration = image.GetConfiguration();
+        this.configuration = image.Configuration;
         PbmMetadata metadata = image.Metadata.GetPbmMetadata();
         this.encoding = this.encoder.Encoding ?? metadata.Encoding;
         this.colorType = this.encoder.ColorType ?? metadata.ColorType;
@@ -168,16 +166,29 @@ internal sealed class PbmEncoderCore : IImageEncoderInternals
     /// <param name="image">
     /// The <see cref="ImageFrame{TPixel}"/> containing pixel data.
     /// </param>
-    private void WritePixels<TPixel>(Stream stream, ImageFrame<TPixel> image)
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+    private void WritePixels<TPixel>(Stream stream, ImageFrame<TPixel> image, CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         if (this.encoding == PbmEncoding.Plain)
         {
-            PlainEncoder.WritePixels(this.configuration, stream, image, this.colorType, this.componentType);
+            PlainEncoder.WritePixels(
+                this.configuration,
+                stream,
+                image,
+                this.colorType,
+                this.componentType,
+                cancellationToken);
         }
         else
         {
-            BinaryEncoder.WritePixels(this.configuration, stream, image, this.colorType, this.componentType);
+            BinaryEncoder.WritePixels(
+                this.configuration,
+                stream,
+                image,
+                this.colorType,
+                this.componentType,
+                cancellationToken);
         }
     }
 }

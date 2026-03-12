@@ -77,11 +77,11 @@ public class DrawImageTests
         PngEncoder encoder;
         if (provider.PixelType == PixelTypes.Rgba64)
         {
-            encoder = new() { BitDepth = PngBitDepth.Bit16 };
+            encoder = new PngEncoder { BitDepth = PngBitDepth.Bit16 };
         }
         else
         {
-            encoder = new();
+            encoder = new PngEncoder();
         }
 
         image.DebugSave(provider, testInfo, encoder: encoder);
@@ -119,7 +119,7 @@ public class DrawImageTests
     public void WorksWithDifferentLocations(TestImageProvider<Rgba32> provider, int x, int y)
     {
         using Image<Rgba32> background = provider.GetImage();
-        using Image<Rgba32> overlay = new(50, 50, Color.Black.ToRgba32());
+        using Image<Rgba32> overlay = new(50, 50, Color.Black.ToPixel<Rgba32>());
 
         background.Mutate(c => c.DrawImage(overlay, new Point(x, y), PixelColorBlendingMode.Normal, 1F));
 
@@ -144,7 +144,7 @@ public class DrawImageTests
     public void WorksWithDifferentBounds(TestImageProvider<Rgba32> provider, int width, int height)
     {
         using Image<Rgba32> background = provider.GetImage();
-        using Image<Rgba32> overlay = new(50, 50, Color.Black.ToRgba32());
+        using Image<Rgba32> overlay = new(50, 50, Color.Black.ToPixel<Rgba32>());
 
         background.Mutate(c => c.DrawImage(overlay, new Rectangle(0, 0, width, height), PixelColorBlendingMode.Normal, 1F));
 
@@ -190,18 +190,124 @@ public class DrawImageTests
     }
 
     [Theory]
-    [WithSolidFilledImages(100, 100, 255, 255, 255, PixelTypes.Rgba32, -30, -30)]
-    [WithSolidFilledImages(100, 100, 255, 255, 255, PixelTypes.Rgba32, 130, -30)]
-    [WithSolidFilledImages(100, 100, 255, 255, 255, PixelTypes.Rgba32, 130, 130)]
-    [WithSolidFilledImages(100, 100, 255, 255, 255, PixelTypes.Rgba32, -30, 130)]
-    public void NonOverlappingImageThrows(TestImageProvider<Rgba32> provider, int x, int y)
+    [WithFile(TestImages.Png.Issue2447, PixelTypes.Rgba32)]
+    public void Issue2447_A<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<Rgba32> background = provider.GetImage();
-        using Image<Rgba32> overlay = new(Configuration.Default, 10, 10, Color.Black);
-        ImageProcessingException ex = Assert.Throws<ImageProcessingException>(Test);
+        using Image<TPixel> foreground = provider.GetImage();
+        using Image<Rgba32> background = new(100, 100, new Rgba32(0, 255, 255));
 
-        Assert.Contains("does not overlap", ex.ToString());
+        background.Mutate(c => c.DrawImage(foreground, new Point(64, 10), new Rectangle(32, 32, 32, 32), 1F));
 
-        void Test() => background.Mutate(context => context.DrawImage(overlay, new Point(x, y), new GraphicsOptions()));
+        background.DebugSave(
+            provider,
+            appendPixelTypeToFileName: false,
+            appendSourceFileOrDescription: false);
+
+        background.CompareToReferenceOutput(
+            provider,
+            appendPixelTypeToFileName: false,
+            appendSourceFileOrDescription: false);
+    }
+
+    [Theory]
+    [WithFile(TestImages.Png.Issue2447, PixelTypes.Rgba32)]
+    public void Issue2447_B<TPixel>(TestImageProvider<TPixel> provider)
+    where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> foreground = provider.GetImage();
+        using Image<Rgba32> background = new(100, 100, new Rgba32(0, 255, 255));
+
+        background.Mutate(c => c.DrawImage(foreground, new Point(10, 10), new Rectangle(320, 128, 32, 32), 1F));
+
+        background.DebugSave(
+            provider,
+            appendPixelTypeToFileName: false,
+            appendSourceFileOrDescription: false);
+
+        background.CompareToReferenceOutput(
+            provider,
+            appendPixelTypeToFileName: false,
+            appendSourceFileOrDescription: false);
+    }
+
+    [Theory]
+    [WithFile(TestImages.Png.Issue2447, PixelTypes.Rgba32)]
+    public void Issue2447_C<TPixel>(TestImageProvider<TPixel> provider)
+    where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> foreground = provider.GetImage();
+        using Image<Rgba32> background = new(100, 100, new Rgba32(0, 255, 255));
+
+        background.Mutate(c => c.DrawImage(foreground, new Point(10, 10), new Rectangle(32, 32, 32, 32), 1F));
+
+        background.DebugSave(
+            provider,
+            appendPixelTypeToFileName: false,
+            appendSourceFileOrDescription: false);
+
+        background.CompareToReferenceOutput(
+            provider,
+            appendPixelTypeToFileName: false,
+            appendSourceFileOrDescription: false);
+    }
+
+    [Theory]
+    [WithFile(TestImages.Png.Issue2447, PixelTypes.Rgba32)]
+    public void Issue2608_NegOffset<TPixel>(TestImageProvider<TPixel> provider)
+    where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> foreground = provider.GetImage();
+        using Image<Rgba32> background = new(100, 100, new Rgba32(0, 255, 255));
+
+        background.Mutate(c => c.DrawImage(foreground, new Point(-10, -10), new Rectangle(32, 32, 32, 32), 1F));
+
+        background.DebugSave(
+            provider,
+            appendPixelTypeToFileName: false,
+            appendSourceFileOrDescription: false);
+
+        background.CompareToReferenceOutput(
+            provider,
+            appendPixelTypeToFileName: false,
+            appendSourceFileOrDescription: false);
+    }
+
+    [Theory]
+    [WithFile(TestImages.Png.Issue2447, PixelTypes.Rgba32)]
+    public void Issue2603<TPixel>(TestImageProvider<TPixel> provider)
+    where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> foreground = provider.GetImage();
+        using Image<Rgba32> background = new(100, 100, new Rgba32(0, 255, 255));
+
+        background.Mutate(c => c.DrawImage(foreground, new Point(80, 80), new Rectangle(32, 32, 32, 32), 1F));
+
+        background.DebugSave(
+            provider,
+            appendPixelTypeToFileName: false,
+            appendSourceFileOrDescription: false);
+
+        background.CompareToReferenceOutput(
+            provider,
+            appendPixelTypeToFileName: false,
+            appendSourceFileOrDescription: false);
+    }
+
+    [Theory]
+    [WithFile(TestImages.Gif.Giphy, PixelTypes.Rgba32)]
+    public void DrawImageAnimatedForegroundRepeatCount<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> background = provider.GetImage();
+        using Image<TPixel> foreground = Image.Load<TPixel>(TestFile.Create(TestImages.Gif.Giphy).Bytes);
+
+        Size size = new(foreground.Width / 4, foreground.Height / 4);
+        foreground.Mutate(x => x.Resize(size.Width, size.Height, KnownResamplers.Bicubic));
+
+        background.Mutate(x => x.DrawImage(foreground, Point.Empty, 1F, 0));
+
+        background.DebugSaveMultiFrame(provider);
+        background.CompareToReferenceOutputMultiFrame(provider, ImageComparer.TolerantPercentage(0.01f));
     }
 }

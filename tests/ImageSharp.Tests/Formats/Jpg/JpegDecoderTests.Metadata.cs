@@ -8,6 +8,7 @@ using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Tests.TestUtilities;
 
 // ReSharper disable InconsistentNaming
@@ -145,14 +146,14 @@ public partial class JpegDecoderTests
     }
 
     [Theory]
-    [InlineData(TestImages.Jpeg.Baseline.Floorplan, JpegEncodingColor.Luminance)]
-    [InlineData(TestImages.Jpeg.Baseline.Jpeg420Small, JpegEncodingColor.YCbCrRatio420)]
-    [InlineData(TestImages.Jpeg.Baseline.Jpeg444, JpegEncodingColor.YCbCrRatio444)]
-    [InlineData(TestImages.Jpeg.Baseline.JpegRgb, JpegEncodingColor.Rgb)]
-    [InlineData(TestImages.Jpeg.Baseline.Cmyk, JpegEncodingColor.Cmyk)]
-    [InlineData(TestImages.Jpeg.Baseline.Jpeg410, JpegEncodingColor.YCbCrRatio410)]
-    [InlineData(TestImages.Jpeg.Baseline.Jpeg411, JpegEncodingColor.YCbCrRatio411)]
-    public void Identify_DetectsCorrectColorType(string imagePath, JpegEncodingColor expectedColorType)
+    [InlineData(TestImages.Jpeg.Baseline.Floorplan, JpegColorType.Luminance)]
+    [InlineData(TestImages.Jpeg.Baseline.Jpeg420Small, JpegColorType.YCbCrRatio420)]
+    [InlineData(TestImages.Jpeg.Baseline.Jpeg444, JpegColorType.YCbCrRatio444)]
+    [InlineData(TestImages.Jpeg.Baseline.JpegRgb, JpegColorType.Rgb)]
+    [InlineData(TestImages.Jpeg.Baseline.Cmyk, JpegColorType.Cmyk)]
+    [InlineData(TestImages.Jpeg.Baseline.Jpeg410, JpegColorType.YCbCrRatio410)]
+    [InlineData(TestImages.Jpeg.Baseline.Jpeg411, JpegColorType.YCbCrRatio411)]
+    public void Identify_DetectsCorrectColorType(string imagePath, JpegColorType expectedColorType)
     {
         TestFile testFile = TestFile.Create(imagePath);
         using MemoryStream stream = new(testFile.Bytes, false);
@@ -162,12 +163,12 @@ public partial class JpegDecoderTests
     }
 
     [Theory]
-    [WithFile(TestImages.Jpeg.Baseline.Floorplan, PixelTypes.Rgb24, JpegEncodingColor.Luminance)]
-    [WithFile(TestImages.Jpeg.Baseline.Jpeg420Small, PixelTypes.Rgb24, JpegEncodingColor.YCbCrRatio420)]
-    [WithFile(TestImages.Jpeg.Baseline.Jpeg444, PixelTypes.Rgb24, JpegEncodingColor.YCbCrRatio444)]
-    [WithFile(TestImages.Jpeg.Baseline.JpegRgb, PixelTypes.Rgb24, JpegEncodingColor.Rgb)]
-    [WithFile(TestImages.Jpeg.Baseline.Cmyk, PixelTypes.Rgb24, JpegEncodingColor.Cmyk)]
-    public void Decode_DetectsCorrectColorType<TPixel>(TestImageProvider<TPixel> provider, JpegEncodingColor expectedColorType)
+    [WithFile(TestImages.Jpeg.Baseline.Floorplan, PixelTypes.Rgb24, JpegColorType.Luminance)]
+    [WithFile(TestImages.Jpeg.Baseline.Jpeg420Small, PixelTypes.Rgb24, JpegColorType.YCbCrRatio420)]
+    [WithFile(TestImages.Jpeg.Baseline.Jpeg444, PixelTypes.Rgb24, JpegColorType.YCbCrRatio444)]
+    [WithFile(TestImages.Jpeg.Baseline.JpegRgb, PixelTypes.Rgb24, JpegColorType.Rgb)]
+    [WithFile(TestImages.Jpeg.Baseline.Cmyk, PixelTypes.Rgb24, JpegColorType.Cmyk)]
+    public void Decode_DetectsCorrectColorType<TPixel>(TestImageProvider<TPixel> provider, JpegColorType expectedColorType)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         using Image<TPixel> image = provider.GetImage(JpegDecoder.Instance);
@@ -423,6 +424,86 @@ public partial class JpegDecoderTests
         using Image image = Image.Load(TestFile.GetInputFileFullPath(TestImages.Jpeg.Baseline.Calliphora_EncodedStrings));
         ExifProfile exif = image.Metadata.ExifProfile;
         VerifyEncodedStrings(exif);
+    }
+
+    [Theory]
+    [WithFile(TestImages.Jpeg.Issues.Issue2067_CommentMarker, PixelTypes.Rgba32)]
+    public void JpegDecoder_DecodeMetadataComment<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        string expectedComment = "TEST COMMENT";
+        using Image<TPixel> image = provider.GetImage(JpegDecoder.Instance);
+        JpegMetadata metadata = image.Metadata.GetJpegMetadata();
+
+        Assert.Equal(1, metadata.Comments.Count);
+        Assert.Equal(expectedComment, metadata.Comments.ElementAtOrDefault(0).ToString());
+        image.DebugSave(provider);
+        image.CompareToOriginal(provider);
+    }
+
+    // https://github.com/SixLabors/ImageSharp/issues/2758
+    [Theory]
+    [WithFile(TestImages.Jpeg.Issues.Issue2758, PixelTypes.L8)]
+    public void Issue2758_DecodeWorks<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage(JpegDecoder.Instance);
+
+        Assert.Equal(59787, image.Width);
+        Assert.Equal(511, image.Height);
+
+        JpegMetadata meta = image.Metadata.GetJpegMetadata();
+
+        // Quality determination should be between 1-100.
+        Assert.Equal(15, meta.LuminanceQuality);
+        Assert.Equal(1, meta.ChrominanceQuality);
+
+        // We want to test the encoder to ensure the determined values can be encoded but not by encoding
+        // the full size image as it would be too slow.
+        // We will crop the image to a smaller size and then encode it.
+        image.Mutate(x => x.Crop(new Rectangle(0, 0, 100, 100)));
+
+        using MemoryStream ms = new();
+        image.Save(ms, new JpegEncoder());
+    }
+
+    // https://github.com/SixLabors/ImageSharp/issues/2857
+    [Theory]
+    [WithFile(TestImages.Jpeg.Issues.Issue2857, PixelTypes.Rgb24)]
+    public void Issue2857_SubSubIfds<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage(JpegDecoder.Instance);
+
+        Assert.Equal(5616, image.Width);
+        Assert.Equal(3744, image.Height);
+
+        JpegMetadata meta = image.Metadata.GetJpegMetadata();
+        Assert.Equal(92, meta.LuminanceQuality);
+        Assert.Equal(93, meta.ChrominanceQuality);
+
+        ExifProfile exifProfile = image.Metadata.ExifProfile;
+        Assert.NotNull(exifProfile);
+
+        using MemoryStream ms = new();
+        bool hasThumbnail = exifProfile.TryCreateThumbnail(out _);
+        Assert.False(hasThumbnail);
+
+        Assert.Equal("BilderBox - Erwin Wodicka / wodicka@aon.at", exifProfile.GetValue(ExifTag.Copyright).Value);
+        Assert.Equal("Adobe Photoshop CS3 Windows", exifProfile.GetValue(ExifTag.Software).Value);
+
+        Assert.Equal("Carers; seniors; caregiver; senior care; retirement home; hands; old; elderly; elderly caregiver; elder care; elderly care; geriatric care; nursing home; age; old age care; outpatient; needy; health care; home nurse; home care; sick; retirement; medical; mobile; the elderly; nursing department; nursing treatment; nursing; care services; nursing services; nursing care; nursing allowance; nursing homes; home nursing; care category; nursing class; care; nursing shortage; nursing patient care staff\0", exifProfile.GetValue(ExifTag.XPKeywords).Value);
+
+        Assert.Equal(
+            new EncodedString(EncodedString.CharacterCode.ASCII, "StockSubmitter|Miscellaneous||Miscellaneous$|00|0000330000000110000000000000000|22$@NA_1005010.460@145$$@Miscellaneous.Miscellaneous$$@$@26$$@$@$@$@205$@$@$@$@$@$@$@$@$@43$@$@$@$$@Miscellaneous.Miscellaneous$$@90$$@22$@$@$@$@$@$@$|||"),
+            exifProfile.GetValue(ExifTag.UserComment).Value);
+
+        // the profile contains 4 duplicated UserComment
+        Assert.Equal(1, exifProfile.Values.Count(t => t.Tag == ExifTag.UserComment));
+
+        image.Mutate(x => x.Crop(new Rectangle(0, 0, 100, 100)));
+
+        image.Save(ms, new JpegEncoder());
     }
 
     private static void VerifyEncodedStrings(ExifProfile exif)

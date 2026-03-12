@@ -10,10 +10,13 @@ using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
+using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
 using SixLabors.ImageSharp.Formats.Pbm;
 using SixLabors.ImageSharp.Formats.Png;
+using SixLabors.ImageSharp.Formats.Qoi;
 using SixLabors.ImageSharp.Formats.Tga;
 using SixLabors.ImageSharp.Formats.Tiff;
+using SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors;
 using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
@@ -129,15 +132,17 @@ internal static class AotCompilerTools
         AotCompileImageDecoderInternals<TPixel>();
         AotCompileImageEncoders<TPixel>();
         AotCompileImageDecoders<TPixel>();
+        AotCompileSpectralConverter<TPixel>();
         AotCompileImageProcessors<TPixel>();
         AotCompileGenericImageProcessors<TPixel>();
         AotCompileResamplers<TPixel>();
         AotCompileQuantizers<TPixel>();
         AotCompilePixelSamplingStrategys<TPixel>();
+        AotCompilePixelMaps<TPixel>();
         AotCompileDithers<TPixel>();
         AotCompileMemoryManagers<TPixel>();
 
-        Unsafe.SizeOf<TPixel>();
+        _ = Unsafe.SizeOf<TPixel>();
 
         // TODO: Do the discovery work to figure out what works and what doesn't.
     }
@@ -195,39 +200,41 @@ internal static class AotCompilerTools
             => default(DefaultImageOperationsProviderFactory).CreateImageProcessingContext<TPixel>(default, default, default);
 
     /// <summary>
-    /// This method pre-seeds the all <see cref="IImageEncoderInternals"/> in the AoT compiler.
+    /// This method pre-seeds the all core encoders in the AoT compiler.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
     [Preserve]
     private static void AotCompileImageEncoderInternals<TPixel>()
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        default(WebpEncoderCore).Encode<TPixel>(default, default, default);
         default(BmpEncoderCore).Encode<TPixel>(default, default, default);
         default(GifEncoderCore).Encode<TPixel>(default, default, default);
         default(JpegEncoderCore).Encode<TPixel>(default, default, default);
         default(PbmEncoderCore).Encode<TPixel>(default, default, default);
         default(PngEncoderCore).Encode<TPixel>(default, default, default);
+        default(QoiEncoderCore).Encode<TPixel>(default, default, default);
         default(TgaEncoderCore).Encode<TPixel>(default, default, default);
         default(TiffEncoderCore).Encode<TPixel>(default, default, default);
+        default(WebpEncoderCore).Encode<TPixel>(default, default, default);
     }
 
     /// <summary>
-    /// This method pre-seeds the all <see cref="IImageDecoderInternals"/> in the AoT compiler.
+    /// This method pre-seeds the all <see cref="ImageDecoderCore"/> in the AoT compiler.
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
     [Preserve]
     private static void AotCompileImageDecoderInternals<TPixel>()
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        default(WebpDecoderCore).Decode<TPixel>(default, default);
-        default(BmpDecoderCore).Decode<TPixel>(default, default);
-        default(GifDecoderCore).Decode<TPixel>(default, default);
-        default(JpegDecoderCore).Decode<TPixel>(default, default);
-        default(PbmDecoderCore).Decode<TPixel>(default, default);
-        default(PngDecoderCore).Decode<TPixel>(default, default);
-        default(TgaDecoderCore).Decode<TPixel>(default, default);
-        default(TiffDecoderCore).Decode<TPixel>(default, default);
+        default(BmpDecoderCore).Decode<TPixel>(default, default, default);
+        default(GifDecoderCore).Decode<TPixel>(default, default, default);
+        default(JpegDecoderCore).Decode<TPixel>(default, default, default);
+        default(PbmDecoderCore).Decode<TPixel>(default, default, default);
+        default(PngDecoderCore).Decode<TPixel>(default, default, default);
+        default(QoiDecoderCore).Decode<TPixel>(default, default, default);
+        default(TgaDecoderCore).Decode<TPixel>(default, default, default);
+        default(TiffDecoderCore).Decode<TPixel>(default, default, default);
+        default(WebpDecoderCore).Decode<TPixel>(default, default, default);
     }
 
     /// <summary>
@@ -264,6 +271,17 @@ internal static class AotCompilerTools
         AotCompileImageDecoder<TPixel, PngDecoder>();
         AotCompileImageDecoder<TPixel, TgaDecoder>();
         AotCompileImageDecoder<TPixel, TiffDecoder>();
+    }
+
+    [Preserve]
+    private static void AotCompileSpectralConverter<TPixel>()
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        default(SpectralConverter<TPixel>).GetPixelBuffer(default, default);
+        default(GrayJpegSpectralConverter<TPixel>).GetPixelBuffer(default, default);
+        default(RgbJpegSpectralConverter<TPixel>).GetPixelBuffer(default, default);
+        default(TiffJpegSpectralConverter<TPixel>).GetPixelBuffer(default, default);
+        default(TiffOldJpegSpectralConverter<TPixel>).GetPixelBuffer(default, default);
     }
 
     /// <summary>
@@ -495,6 +513,20 @@ internal static class AotCompilerTools
         default(DefaultPixelSamplingStrategy).EnumeratePixelRegions(default(ImageFrame<TPixel>));
         default(ExtensivePixelSamplingStrategy).EnumeratePixelRegions(default(Image<TPixel>));
         default(ExtensivePixelSamplingStrategy).EnumeratePixelRegions(default(ImageFrame<TPixel>));
+    }
+
+    /// <summary>
+    /// This method pre-seeds the all <see cref="IColorIndexCache{T}" /> in the AoT compiler.
+    /// </summary>
+    /// <typeparam name="TPixel">The pixel format.</typeparam>
+    [Preserve]
+    private static void AotCompilePixelMaps<TPixel>()
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        default(EuclideanPixelMap<TPixel, HybridCache>).GetClosestColor(default, out _);
+        default(EuclideanPixelMap<TPixel, AccurateCache>).GetClosestColor(default, out _);
+        default(EuclideanPixelMap<TPixel, CoarseCache>).GetClosestColor(default, out _);
+        default(EuclideanPixelMap<TPixel, NullCache>).GetClosestColor(default, out _);
     }
 
     /// <summary>

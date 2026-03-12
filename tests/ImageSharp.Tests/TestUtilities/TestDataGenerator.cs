@@ -20,7 +20,7 @@ internal static class TestDataGenerator
     /// <returns>The <see cref="float[]"/>.</returns>
     public static float[] GenerateRandomFloatArray(this Random rnd, int length, float minVal, float maxVal)
     {
-        var values = new float[length];
+        float[] values = new float[length];
 
         RandomFill(rnd, values, minVal, maxVal);
 
@@ -45,7 +45,7 @@ internal static class TestDataGenerator
     /// <returns>The <see cref="Vector4[]"/>.</returns>
     public static Vector4[] GenerateRandomVectorArray(this Random rnd, int length, float minVal, float maxVal)
     {
-        var values = new Vector4[length];
+        Vector4[] values = new Vector4[length];
 
         for (int i = 0; i < length; i++)
         {
@@ -69,7 +69,7 @@ internal static class TestDataGenerator
     /// <returns>The <see cref="float[]"/>.</returns>
     public static float[] GenerateRandomRoundedFloatArray(this Random rnd, int length, float minVal, float maxVal)
     {
-        var values = new float[length];
+        float[] values = new float[length];
 
         for (int i = 0; i < length; i++)
         {
@@ -87,14 +87,14 @@ internal static class TestDataGenerator
     /// <returns>The <see cref="byte[]"/>.</returns>
     public static byte[] GenerateRandomByteArray(this Random rnd, int length)
     {
-        var values = new byte[length];
+        byte[] values = new byte[length];
         rnd.NextBytes(values);
         return values;
     }
 
     public static short[] GenerateRandomInt16Array(this Random rnd, int length, short minVal, short maxVal)
     {
-        var values = new short[length];
+        short[] values = new short[length];
         for (int i = 0; i < values.Length; i++)
         {
             values[i] = (short)rnd.Next(minVal, maxVal);

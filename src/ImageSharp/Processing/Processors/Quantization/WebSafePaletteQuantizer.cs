@@ -6,7 +6,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Quantization;
 /// <summary>
 /// A palette quantizer consisting of web safe colors as defined in the CSS Color Module Level 4.
 /// </summary>
-public class WebSafePaletteQuantizer : PaletteQuantizer
+public sealed class WebSafePaletteQuantizer : PaletteQuantizer
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="WebSafePaletteQuantizer" /> class.

@@ -16,7 +16,6 @@ using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.Metadata.Profiles.Iptc;
 using SixLabors.ImageSharp.Metadata.Profiles.Xmp;
-using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg;
 
@@ -25,7 +24,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg;
 /// Originally ported from <see href="https://github.com/mozilla/pdf.js/blob/master/src/core/jpg.js"/>
 /// with additional fixes for both performance and common encoding errors.
 /// </summary>
-internal sealed class JpegDecoderCore : IRawJpegData, IImageDecoderInternals
+internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
 {
     /// <summary>
     /// Whether the image has an EXIF marker.
@@ -73,6 +72,11 @@ internal sealed class JpegDecoderCore : IRawJpegData, IImageDecoderInternals
     private bool hasAdobeMarker;
 
     /// <summary>
+    /// Whether the image has a SOS marker.
+    /// </summary>
+    private bool hasSOSMarker;
+
+    /// <summary>
     /// Contains information about the JFIF marker.
     /// </summary>
     private JFifMarker jFif;
@@ -116,25 +120,21 @@ internal sealed class JpegDecoderCore : IRawJpegData, IImageDecoderInternals
     /// Initializes a new instance of the <see cref="JpegDecoderCore"/> class.
     /// </summary>
     /// <param name="options">The decoder options.</param>
-    public JpegDecoderCore(JpegDecoderOptions options)
+    /// <param name="iccProfile">The ICC profile to use for color conversion.</param>
+    public JpegDecoderCore(JpegDecoderOptions options, IccProfile iccProfile = null)
+        : base(options.GeneralOptions)
     {
-        this.Options = options.GeneralOptions;
         this.resizeMode = options.ResizeMode;
         this.configuration = options.GeneralOptions.Configuration;
         this.skipMetadata = options.GeneralOptions.SkipMetadata;
+        this.SetIccMetadata(iccProfile);
     }
 
     /// <summary>
     /// Gets the only supported precisions
     /// </summary>
     // Refers to assembly's static data segment, no allocation occurs.
-    private static ReadOnlySpan<byte> SupportedPrecisions => new byte[] { 8, 12 };
-
-    /// <inheritdoc />
-    public DecoderOptions Options { get; }
-
-    /// <inheritdoc/>
-    public Size Dimensions => this.Frame.PixelSize;
+    private static ReadOnlySpan<byte> SupportedPrecisions => [8, 12];
 
     /// <summary>
     /// Gets the frame
@@ -198,27 +198,40 @@ internal sealed class JpegDecoderCore : IRawJpegData, IImageDecoderInternals
     }
 
     /// <inheritdoc/>
-    public Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
-        where TPixel : unmanaged, IPixel<TPixel>
+    protected override Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
     {
         using SpectralConverter<TPixel> spectralConverter = new(this.configuration, this.resizeMode == JpegDecoderResizeMode.ScaleOnly ? null : this.Options.TargetSize);
         this.ParseStream(stream, spectralConverter, cancellationToken);
+
+        if (!this.hasSOSMarker)
+        {
+            JpegThrowHelper.ThrowInvalidImageContentException("Missing SOS marker.");
+        }
+
         this.InitExifProfile();
         this.InitIccProfile();
         this.InitIptcProfile();
         this.InitXmpProfile();
         this.InitDerivedMetadataProperties();
 
+        _ = this.Options.TryGetIccProfileForColorConversion(this.Metadata.IccProfile, out IccProfile profile);
+
         return new Image<TPixel>(
             this.configuration,
-            spectralConverter.GetPixelBuffer(cancellationToken),
+            spectralConverter.GetPixelBuffer(profile, cancellationToken),
             this.Metadata);
     }
 
     /// <inheritdoc/>
-    public ImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken)
+    protected override ImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken)
     {
         this.ParseStream(stream, spectralConverter: null, cancellationToken);
+
+        if (!this.hasSOSMarker)
+        {
+            JpegThrowHelper.ThrowInvalidImageContentException("Missing SOS marker.");
+        }
+
         this.InitExifProfile();
         this.InitIccProfile();
         this.InitIptcProfile();
@@ -226,7 +239,7 @@ internal sealed class JpegDecoderCore : IRawJpegData, IImageDecoderInternals
         this.InitDerivedMetadataProperties();
 
         Size pixelSize = this.Frame.PixelSize;
-        return new ImageInfo(new PixelTypeInfo(this.Frame.BitsPerPixel), new(pixelSize.Width, pixelSize.Height), this.Metadata);
+        return new ImageInfo(new Size(pixelSize.Width, pixelSize.Height), this.Metadata);
     }
 
     /// <summary>
@@ -237,7 +250,7 @@ internal sealed class JpegDecoderCore : IRawJpegData, IImageDecoderInternals
     /// <param name="scanDecoder">The scan decoder.</param>
     public void LoadTables(byte[] tableBytes, IJpegScanDecoder scanDecoder)
     {
-        this.Metadata = new ImageMetadata();
+        this.Metadata ??= new ImageMetadata();
         this.QuantizationTables = new Block8x8F[4];
         this.scanDecoder = scanDecoder;
         if (tableBytes.Length < 4)
@@ -320,7 +333,7 @@ internal sealed class JpegDecoderCore : IRawJpegData, IImageDecoderInternals
 
         this.scanDecoder ??= new HuffmanScanDecoder(stream, spectralConverter, cancellationToken);
 
-        this.Metadata = new ImageMetadata();
+        this.Metadata ??= new ImageMetadata();
 
         Span<byte> markerBuffer = stackalloc byte[2];
 
@@ -407,6 +420,8 @@ internal sealed class JpegDecoderCore : IRawJpegData, IImageDecoderInternals
                         break;
 
                     case JpegConstants.Markers.SOS:
+
+                        this.hasSOSMarker = true;
                         if (!metadataOnly)
                         {
                             this.ProcessStartOfScanMarker(stream, markerContentByteSize);
@@ -480,8 +495,10 @@ internal sealed class JpegDecoderCore : IRawJpegData, IImageDecoderInternals
                         break;
 
                     case JpegConstants.Markers.APP15:
-                    case JpegConstants.Markers.COM:
                         stream.Skip(markerContentByteSize);
+                        break;
+                    case JpegConstants.Markers.COM:
+                        this.ProcessComMarker(stream, markerContentByteSize);
                         break;
 
                     case JpegConstants.Markers.DAC:
@@ -502,6 +519,11 @@ internal sealed class JpegDecoderCore : IRawJpegData, IImageDecoderInternals
             fileMarker = FindNextFileMarker(stream);
         }
 
+        if (!metadataOnly && this.Frame is null)
+        {
+            JpegThrowHelper.ThrowInvalidImageContentException("No readable SOFn (Start Of Frame) marker found.");
+        }
+
         this.Metadata.GetJpegMetadata().Interleaved = this.Frame.Interleaved;
     }
 
@@ -513,6 +535,25 @@ internal sealed class JpegDecoderCore : IRawJpegData, IImageDecoderInternals
         // Set large fields to null.
         this.Frame = null;
         this.scanDecoder = null;
+    }
+
+    /// <summary>
+    /// Assigns COM marker bytes to comment property
+    /// </summary>
+    /// <param name="stream">The input stream.</param>
+    /// <param name="markerContentByteSize">The remaining bytes in the segment block.</param>
+    private void ProcessComMarker(BufferedReadStream stream, int markerContentByteSize)
+    {
+        char[] chars = new char[markerContentByteSize];
+        JpegMetadata metadata = this.Metadata.GetFormatMetadata(JpegFormat.Instance);
+
+        for (int i = 0; i < markerContentByteSize; i++)
+        {
+            int read = stream.ReadByte();
+            chars[i] = (char)read;
+        }
+
+        metadata.Comments.Add(new JpegComData(chars));
     }
 
     /// <summary>
@@ -582,58 +623,58 @@ internal sealed class JpegDecoderCore : IRawJpegData, IImageDecoderInternals
     /// Returns the jpeg color type based on the colorspace and subsampling used.
     /// </summary>
     /// <returns>Jpeg color type.</returns>
-    private JpegEncodingColor DeduceJpegColorType()
+    private JpegColorType DeduceJpegColorType()
     {
         switch (this.ColorSpace)
         {
             case JpegColorSpace.Grayscale:
-                return JpegEncodingColor.Luminance;
+                return JpegColorType.Luminance;
 
             case JpegColorSpace.RGB:
-                return JpegEncodingColor.Rgb;
+                return JpegColorType.Rgb;
 
             case JpegColorSpace.YCbCr:
                 if (this.Frame.Components[0].HorizontalSamplingFactor == 1 && this.Frame.Components[0].VerticalSamplingFactor == 1 &&
                     this.Frame.Components[1].HorizontalSamplingFactor == 1 && this.Frame.Components[1].VerticalSamplingFactor == 1 &&
                     this.Frame.Components[2].HorizontalSamplingFactor == 1 && this.Frame.Components[2].VerticalSamplingFactor == 1)
                 {
-                    return JpegEncodingColor.YCbCrRatio444;
+                    return JpegColorType.YCbCrRatio444;
                 }
                 else if (this.Frame.Components[0].HorizontalSamplingFactor == 2 && this.Frame.Components[0].VerticalSamplingFactor == 1 &&
                     this.Frame.Components[1].HorizontalSamplingFactor == 1 && this.Frame.Components[1].VerticalSamplingFactor == 1 &&
                     this.Frame.Components[2].HorizontalSamplingFactor == 1 && this.Frame.Components[2].VerticalSamplingFactor == 1)
                 {
-                    return JpegEncodingColor.YCbCrRatio422;
+                    return JpegColorType.YCbCrRatio422;
                 }
                 else if (this.Frame.Components[0].HorizontalSamplingFactor == 2 && this.Frame.Components[0].VerticalSamplingFactor == 2 &&
                     this.Frame.Components[1].HorizontalSamplingFactor == 1 && this.Frame.Components[1].VerticalSamplingFactor == 1 &&
                     this.Frame.Components[2].HorizontalSamplingFactor == 1 && this.Frame.Components[2].VerticalSamplingFactor == 1)
                 {
-                    return JpegEncodingColor.YCbCrRatio420;
+                    return JpegColorType.YCbCrRatio420;
                 }
                 else if (this.Frame.Components[0].HorizontalSamplingFactor == 4 && this.Frame.Components[0].VerticalSamplingFactor == 1 &&
                          this.Frame.Components[1].HorizontalSamplingFactor == 1 && this.Frame.Components[1].VerticalSamplingFactor == 1 &&
                          this.Frame.Components[2].HorizontalSamplingFactor == 1 && this.Frame.Components[2].VerticalSamplingFactor == 1)
                 {
-                    return JpegEncodingColor.YCbCrRatio411;
+                    return JpegColorType.YCbCrRatio411;
                 }
                 else if (this.Frame.Components[0].HorizontalSamplingFactor == 4 && this.Frame.Components[0].VerticalSamplingFactor == 2 &&
                          this.Frame.Components[1].HorizontalSamplingFactor == 1 && this.Frame.Components[1].VerticalSamplingFactor == 1 &&
                          this.Frame.Components[2].HorizontalSamplingFactor == 1 && this.Frame.Components[2].VerticalSamplingFactor == 1)
                 {
-                    return JpegEncodingColor.YCbCrRatio410;
+                    return JpegColorType.YCbCrRatio410;
                 }
                 else
                 {
-                    return JpegEncodingColor.YCbCrRatio420;
+                    return JpegColorType.YCbCrRatio420;
                 }
 
             case JpegColorSpace.Cmyk:
-                return JpegEncodingColor.Cmyk;
+                return JpegColorType.Cmyk;
             case JpegColorSpace.Ycck:
-                return JpegEncodingColor.Ycck;
+                return JpegColorType.Ycck;
             default:
-                return JpegEncodingColor.YCbCrRatio420;
+                return JpegColorType.YCbCrRatio420;
         }
     }
 
@@ -653,13 +694,23 @@ internal sealed class JpegDecoderCore : IRawJpegData, IImageDecoderInternals
     /// </summary>
     private void InitIccProfile()
     {
-        if (this.hasIcc)
+        if (this.hasIcc && this.Metadata.IccProfile == null)
         {
             IccProfile profile = new(this.iccData);
             if (profile.CheckIsValid())
             {
                 this.Metadata.IccProfile = profile;
             }
+        }
+    }
+
+    private void SetIccMetadata(IccProfile profile)
+    {
+        if (!this.skipMetadata && profile?.CheckIsValid() == true)
+        {
+            this.hasIcc = true;
+            this.Metadata ??= new ImageMetadata();
+            this.Metadata.IccProfile = profile;
         }
     }
 
@@ -753,10 +804,7 @@ internal sealed class JpegDecoderCore : IRawJpegData, IImageDecoderInternals
         Span<byte> temp = stackalloc byte[2 * 16 * 4];
 
         stream.Read(temp, 0, JFifMarker.Length);
-        if (!JFifMarker.TryParse(temp, out this.jFif))
-        {
-            JpegThrowHelper.ThrowNotSupportedException("Unknown App0 Marker - Expected JFIF.");
-        }
+        _ = JFifMarker.TryParse(temp, out this.jFif);
 
         remaining -= JFifMarker.Length;
 
@@ -1219,6 +1267,7 @@ internal sealed class JpegDecoderCore : IRawJpegData, IImageDecoderInternals
         }
 
         this.Frame = new JpegFrame(frameMarker, precision, frameWidth, frameHeight, componentCount);
+        this.Dimensions = new Size(frameWidth, frameHeight);
         this.Metadata.GetJpegMetadata().Progressive = this.Frame.Progressive;
 
         remaining -= length;
@@ -1461,7 +1510,7 @@ internal sealed class JpegDecoderCore : IRawJpegData, IImageDecoderInternals
 
             this.Frame.ComponentOrder[i / 2] = (byte)componentIndex;
 
-            IJpegComponent component = this.Frame.Components[componentIndex];
+            JpegComponent component = this.Frame.Components[componentIndex];
 
             // 1 byte: Huffman table selectors.
             // 4 bits - dc
@@ -1501,7 +1550,9 @@ internal sealed class JpegDecoderCore : IRawJpegData, IImageDecoderInternals
             arithmeticScanDecoder.InitDecodingTables(this.arithmeticDecodingTables);
         }
 
-        this.scanDecoder.ParseEntropyCodedData(selectorsCount);
+        this.InitIccProfile();
+        _ = this.Options.TryGetIccProfileForColorConversion(this.Metadata.IccProfile, out IccProfile profile);
+        this.scanDecoder.ParseEntropyCodedData(selectorsCount, profile);
     }
 
     /// <summary>

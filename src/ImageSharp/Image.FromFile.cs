@@ -72,7 +72,7 @@ public abstract partial class Image
     {
         Guard.NotNull(options, nameof(options));
 
-        using Stream stream = options.Configuration.FileSystem.OpenRead(path);
+        await using Stream stream = options.Configuration.FileSystem.OpenReadAsynchronous(path);
         return await DetectFormatAsync(options, stream, cancellationToken).ConfigureAwait(false);
     }
 
@@ -144,7 +144,7 @@ public abstract partial class Image
         CancellationToken cancellationToken = default)
     {
         Guard.NotNull(options, nameof(options));
-        using Stream stream = options.Configuration.FileSystem.OpenRead(path);
+        await using Stream stream = options.Configuration.FileSystem.OpenReadAsynchronous(path);
         return await IdentifyAsync(options, stream, cancellationToken).ConfigureAwait(false);
     }
 
@@ -214,7 +214,7 @@ public abstract partial class Image
         string path,
         CancellationToken cancellationToken = default)
     {
-        using Stream stream = options.Configuration.FileSystem.OpenRead(path);
+        await using Stream stream = options.Configuration.FileSystem.OpenReadAsynchronous(path);
         return await LoadAsync(options, stream, cancellationToken).ConfigureAwait(false);
     }
 
@@ -291,7 +291,7 @@ public abstract partial class Image
         Guard.NotNull(options, nameof(options));
         Guard.NotNull(path, nameof(path));
 
-        using Stream stream = options.Configuration.FileSystem.OpenRead(path);
+        await using Stream stream = options.Configuration.FileSystem.OpenReadAsynchronous(path);
         return await LoadAsync<TPixel>(options, stream, cancellationToken).ConfigureAwait(false);
     }
 }

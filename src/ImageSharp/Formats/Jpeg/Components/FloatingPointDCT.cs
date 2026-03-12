@@ -4,7 +4,7 @@
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Runtime.Intrinsics.X86;
+using System.Runtime.Intrinsics;
 
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components;
@@ -49,8 +49,8 @@ internal static partial class FloatingPointDCT
     /// </code>
     /// </para>
     /// </remarks>
-    private static readonly float[] AdjustmentCoefficients = new float[]
-    {
+    private static readonly float[] AdjustmentCoefficients =
+    [
         1f, 1.3870399f, 1.306563f, 1.1758755f, 1f, 0.78569496f, 0.5411961f, 0.27589938f,
         1.3870399f, 1.9238797f, 1.812255f, 1.6309863f, 1.3870399f, 1.0897902f, 0.7506606f, 0.38268346f,
         1.306563f, 1.812255f, 1.707107f, 1.5363555f, 1.306563f, 1.02656f, 0.7071068f, 0.36047992f,
@@ -58,8 +58,8 @@ internal static partial class FloatingPointDCT
         1f, 1.3870399f, 1.306563f, 1.1758755f, 1f, 0.78569496f, 0.5411961f, 0.27589938f,
         0.78569496f, 1.0897902f, 1.02656f, 0.9238795f, 0.78569496f, 0.61731654f, 0.42521507f, 0.21677275f,
         0.5411961f, 0.7506606f, 0.7071068f, 0.63637924f, 0.5411961f, 0.42521507f, 0.29289323f, 0.14931567f,
-        0.27589938f, 0.38268346f, 0.36047992f, 0.32442334f, 0.27589938f, 0.21677275f, 0.14931567f, 0.076120466f,
-    };
+        0.27589938f, 0.38268346f, 0.36047992f, 0.32442334f, 0.27589938f, 0.21677275f, 0.14931567f, 0.076120466f
+    ];
 
     /// <summary>
     /// Adjusts given quantization table for usage with <see cref="TransformIDCT"/>.
@@ -77,7 +77,7 @@ internal static partial class FloatingPointDCT
 
         // Spectral macroblocks are transposed before quantization
         // so we must transpose quantization table
-        quantTable.TransposeInplace();
+        quantTable.TransposeInPlace();
     }
 
     /// <summary>
@@ -97,11 +97,11 @@ internal static partial class FloatingPointDCT
         // Spectral macroblocks are not transposed before quantization
         // Transpose is done after quantization at zig-zag stage
         // so we must transpose quantization table
-        quantTable.TransposeInplace();
+        quantTable.TransposeInPlace();
     }
 
     /// <summary>
-    /// Apply 2D floating point IDCT inplace.
+    /// Apply 2D floating point IDCT in place.
     /// </summary>
     /// <remarks>
     /// Input block must be dequantized with quantization table
@@ -110,9 +110,9 @@ internal static partial class FloatingPointDCT
     /// <param name="block">Input block.</param>
     public static void TransformIDCT(ref Block8x8F block)
     {
-        if (Avx.IsSupported)
+        if (Vector256.IsHardwareAccelerated)
         {
-            IDCT8x8_Avx(ref block);
+            IDCT8x8_Vector256(ref block);
         }
         else
         {
@@ -121,7 +121,7 @@ internal static partial class FloatingPointDCT
     }
 
     /// <summary>
-    /// Apply 2D floating point IDCT inplace.
+    /// Apply 2D floating point IDCT in place.
     /// </summary>
     /// <remarks>
     /// Input block must be quantized after this method with quantization
@@ -130,9 +130,9 @@ internal static partial class FloatingPointDCT
     /// <param name="block">Input block.</param>
     public static void TransformFDCT(ref Block8x8F block)
     {
-        if (Avx.IsSupported)
+        if (Vector256.IsHardwareAccelerated)
         {
-            FDCT8x8_Avx(ref block);
+            FDCT8x8_Vector256(ref block);
         }
         else
         {
@@ -155,7 +155,7 @@ internal static partial class FloatingPointDCT
         IDCT8x4_Vector4(ref transposedBlock.V0R);
 
         // Second pass - process rows
-        transposedBlock.TransposeInplace();
+        transposedBlock.TransposeInPlace();
         IDCT8x4_Vector4(ref transposedBlock.V0L);
         IDCT8x4_Vector4(ref transposedBlock.V0R);
 
@@ -225,7 +225,7 @@ internal static partial class FloatingPointDCT
         FDCT8x4_Vector4(ref block.V0R);
 
         // Second pass - process rows
-        block.TransposeInplace();
+        block.TransposeInPlace();
         FDCT8x4_Vector4(ref block.V0L);
         FDCT8x4_Vector4(ref block.V0R);
 

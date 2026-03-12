@@ -3,9 +3,12 @@
 
 // ReSharper disable InconsistentNaming
 using SixLabors.ImageSharp.Formats;
+using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.Formats.Png;
+using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Quantization;
 using SixLabors.ImageSharp.Tests.TestUtilities;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
@@ -85,11 +88,11 @@ public partial class PngEncoderTests
         80, 100, 120, 230
     };
 
-    public static readonly PngInterlaceMode[] InterlaceMode = new[]
-    {
+    public static readonly PngInterlaceMode[] InterlaceMode =
+    [
         PngInterlaceMode.None,
         PngInterlaceMode.Adam7
-    };
+    ];
 
     public static readonly TheoryData<string, int, int, PixelResolutionUnit> RatioFiles =
     new()
@@ -98,6 +101,9 @@ public partial class PngEncoderTests
         { TestImages.Png.Ratio1x4, 1, 4, PixelResolutionUnit.AspectRatio },
         { TestImages.Png.Ratio4x1, 4, 1, PixelResolutionUnit.AspectRatio }
     };
+
+    [Fact]
+    public void PngEncoderDefaultInstanceHasNullQuantizer() => Assert.Null(PngEncoder.Quantizer);
 
     [Theory]
     [WithFile(TestImages.Png.Palette8Bpp, nameof(PngColorTypes), PixelTypes.Rgba32)]
@@ -129,8 +135,8 @@ public partial class PngEncoderTests
                 PngFilterMethod.Adaptive,
                 PngBitDepth.Bit8,
                 interlaceMode,
-                appendPixelType: true,
-                appendPngColorType: true);
+                appendPngColorType: true,
+                appendPixelType: true);
         }
     }
 
@@ -249,49 +255,6 @@ public partial class PngEncoderTests
     }
 
     [Theory]
-    [WithBlankImages(1, 1, PixelTypes.A8, PngColorType.GrayscaleWithAlpha, PngBitDepth.Bit8)]
-    [WithBlankImages(1, 1, PixelTypes.Argb32, PngColorType.RgbWithAlpha, PngBitDepth.Bit8)]
-    [WithBlankImages(1, 1, PixelTypes.Bgr565, PngColorType.RgbWithAlpha, PngBitDepth.Bit8)]
-    [WithBlankImages(1, 1, PixelTypes.Bgra4444, PngColorType.RgbWithAlpha, PngBitDepth.Bit8)]
-    [WithBlankImages(1, 1, PixelTypes.Byte4, PngColorType.RgbWithAlpha, PngBitDepth.Bit8)]
-    [WithBlankImages(1, 1, PixelTypes.HalfSingle, PngColorType.RgbWithAlpha, PngBitDepth.Bit8)]
-    [WithBlankImages(1, 1, PixelTypes.HalfVector2, PngColorType.RgbWithAlpha, PngBitDepth.Bit8)]
-    [WithBlankImages(1, 1, PixelTypes.HalfVector4, PngColorType.RgbWithAlpha, PngBitDepth.Bit8)]
-    [WithBlankImages(1, 1, PixelTypes.NormalizedByte2, PngColorType.RgbWithAlpha, PngBitDepth.Bit8)]
-    [WithBlankImages(1, 1, PixelTypes.NormalizedByte4, PngColorType.RgbWithAlpha, PngBitDepth.Bit8)]
-    [WithBlankImages(1, 1, PixelTypes.NormalizedShort4, PngColorType.RgbWithAlpha, PngBitDepth.Bit8)]
-    [WithBlankImages(1, 1, PixelTypes.Rg32, PngColorType.RgbWithAlpha, PngBitDepth.Bit8)]
-    [WithBlankImages(1, 1, PixelTypes.Rgba1010102, PngColorType.RgbWithAlpha, PngBitDepth.Bit8)]
-    [WithBlankImages(1, 1, PixelTypes.Rgba32, PngColorType.RgbWithAlpha, PngBitDepth.Bit8)]
-    [WithBlankImages(1, 1, PixelTypes.RgbaVector, PngColorType.RgbWithAlpha, PngBitDepth.Bit16)]
-    [WithBlankImages(1, 1, PixelTypes.Short2, PngColorType.RgbWithAlpha, PngBitDepth.Bit8)]
-    [WithBlankImages(1, 1, PixelTypes.Short4, PngColorType.RgbWithAlpha, PngBitDepth.Bit8)]
-    [WithBlankImages(1, 1, PixelTypes.Rgb24, PngColorType.Rgb, PngBitDepth.Bit8)]
-    [WithBlankImages(1, 1, PixelTypes.Bgr24, PngColorType.Rgb, PngBitDepth.Bit8)]
-    [WithBlankImages(1, 1, PixelTypes.Bgra32, PngColorType.RgbWithAlpha, PngBitDepth.Bit8)]
-    [WithBlankImages(1, 1, PixelTypes.Rgb48, PngColorType.Rgb, PngBitDepth.Bit16)]
-    [WithBlankImages(1, 1, PixelTypes.Rgba64, PngColorType.RgbWithAlpha, PngBitDepth.Bit16)]
-    [WithBlankImages(1, 1, PixelTypes.Bgra5551, PngColorType.RgbWithAlpha, PngBitDepth.Bit8)]
-    [WithBlankImages(1, 1, PixelTypes.L8, PngColorType.Grayscale, PngBitDepth.Bit8)]
-    [WithBlankImages(1, 1, PixelTypes.L16, PngColorType.Grayscale, PngBitDepth.Bit16)]
-    [WithBlankImages(1, 1, PixelTypes.La16, PngColorType.GrayscaleWithAlpha, PngBitDepth.Bit8)]
-    [WithBlankImages(1, 1, PixelTypes.La32, PngColorType.GrayscaleWithAlpha, PngBitDepth.Bit16)]
-    public void InfersColorTypeAndBitDepth<TPixel>(TestImageProvider<TPixel> provider, PngColorType pngColorType, PngBitDepth pngBitDepth)
-        where TPixel : unmanaged, IPixel<TPixel>
-    {
-        using Stream stream = new MemoryStream();
-        PngEncoder.Encode(provider.GetImage(), stream);
-
-        stream.Seek(0, SeekOrigin.Begin);
-
-        using Image image = PngDecoder.Instance.Decode(DecoderOptions.Default, stream);
-
-        PngMetadata metadata = image.Metadata.GetPngMetadata();
-        Assert.Equal(pngColorType, metadata.ColorType);
-        Assert.Equal(pngBitDepth, metadata.BitDepth);
-    }
-
-    [Theory]
     [WithFile(TestImages.Png.Palette8Bpp, nameof(PaletteLargeOnly), PixelTypes.Rgba32)]
     public void PaletteColorType_WuQuantizer<TPixel>(TestImageProvider<TPixel> provider, int paletteSize)
         where TPixel : unmanaged, IPixel<TPixel>
@@ -321,13 +284,13 @@ public partial class PngEncoderTests
         where TPixel : unmanaged, IPixel<TPixel>
     {
         using Image<TPixel> image = provider.GetImage();
-        using var ms = new MemoryStream();
+        using MemoryStream ms = new();
         image.Save(ms, PngEncoder);
 
         byte[] data = ms.ToArray().Take(8).ToArray();
         byte[] expected =
-        {
-                0x89, // Set the high bit.
+        [
+            0x89, // Set the high bit.
                 0x50, // P
                 0x4E, // N
                 0x47, // G
@@ -335,7 +298,7 @@ public partial class PngEncoderTests
                 0x0A, // Line ending CRLF
                 0x1A, // EOF
                 0x0A // LF
-        };
+        ];
 
         Assert.Equal(expected, data);
     }
@@ -344,13 +307,13 @@ public partial class PngEncoderTests
     [MemberData(nameof(RatioFiles))]
     public void Encode_PreserveRatio(string imagePath, int xResolution, int yResolution, PixelResolutionUnit resolutionUnit)
     {
-        var testFile = TestFile.Create(imagePath);
+        TestFile testFile = TestFile.Create(imagePath);
         using Image<Rgba32> input = testFile.CreateRgba32Image();
-        using var memStream = new MemoryStream();
+        using MemoryStream memStream = new();
         input.Save(memStream, PngEncoder);
 
         memStream.Position = 0;
-        using var output = Image.Load<Rgba32>(memStream);
+        using Image<Rgba32> output = Image.Load<Rgba32>(memStream);
         ImageMetadata meta = output.Metadata;
         Assert.Equal(xResolution, meta.HorizontalResolution);
         Assert.Equal(yResolution, meta.VerticalResolution);
@@ -361,13 +324,13 @@ public partial class PngEncoderTests
     [MemberData(nameof(PngBitDepthFiles))]
     public void Encode_PreserveBits(string imagePath, PngBitDepth pngBitDepth)
     {
-        var testFile = TestFile.Create(imagePath);
+        TestFile testFile = TestFile.Create(imagePath);
         using Image<Rgba32> input = testFile.CreateRgba32Image();
-        using var memStream = new MemoryStream();
+        using MemoryStream memStream = new();
         input.Save(memStream, PngEncoder);
 
         memStream.Position = 0;
-        using var output = Image.Load<Rgba32>(memStream);
+        using Image<Rgba32> output = Image.Load<Rgba32>(memStream);
         PngMetadata meta = output.Metadata.GetPngMetadata();
 
         Assert.Equal(pngBitDepth, meta.BitDepth);
@@ -377,21 +340,21 @@ public partial class PngEncoderTests
     [InlineData(PngColorType.Palette)]
     [InlineData(PngColorType.RgbWithAlpha)]
     [InlineData(PngColorType.GrayscaleWithAlpha)]
-    public void Encode_WithPngTransparentColorBehaviorClear_Works(PngColorType colorType)
+    public void Encode_WithTransparentColorBehaviorClear_Works(PngColorType colorType)
     {
         // arrange
-        var image = new Image<Rgba32>(50, 50);
-        var encoder = new PngEncoder()
+        using Image<Rgba32> image = new(50, 50);
+        PngEncoder encoder = new()
         {
-            TransparentColorMode = PngTransparentColorMode.Clear,
+            TransparentColorMode = TransparentColorMode.Clear,
             ColorType = colorType
         };
-        Rgba32 rgba32 = Color.Blue;
+        Rgba32 rgba32 = Color.Blue.ToPixel<Rgba32>();
         image.ProcessPixelRows(accessor =>
         {
             for (int y = 0; y < image.Height; y++)
             {
-                System.Span<Rgba32> rowSpan = accessor.GetRowSpan(y);
+                Span<Rgba32> rowSpan = accessor.GetRowSpan(y);
 
                 // Half of the test image should be transparent.
                 if (y > 25)
@@ -401,19 +364,19 @@ public partial class PngEncoderTests
 
                 for (int x = 0; x < image.Width; x++)
                 {
-                    rowSpan[x].FromRgba32(rgba32);
+                    rowSpan[x] = Rgba32.FromRgba32(rgba32);
                 }
             }
         });
 
         // act
-        using var memStream = new MemoryStream();
+        using MemoryStream memStream = new();
         image.Save(memStream, encoder);
 
         // assert
         memStream.Position = 0;
-        using var actual = Image.Load<Rgba32>(memStream);
-        Rgba32 expectedColor = Color.Blue;
+        using Image<Rgba32> actual = Image.Load<Rgba32>(memStream);
+        Rgba32 expectedColor = Color.Blue.ToPixel<Rgba32>();
         if (colorType is PngColorType.Grayscale or PngColorType.GrayscaleWithAlpha)
         {
             byte luminance = ColorNumerics.Get8BitBT709Luminance(expectedColor.R, expectedColor.G, expectedColor.B);
@@ -422,13 +385,14 @@ public partial class PngEncoderTests
 
         actual.ProcessPixelRows(accessor =>
         {
+            Rgba32 transparent = Color.Transparent.ToPixel<Rgba32>();
             for (int y = 0; y < accessor.Height; y++)
             {
-                System.Span<Rgba32> rowSpan = accessor.GetRowSpan(y);
+                Span<Rgba32> rowSpan = accessor.GetRowSpan(y);
 
                 if (y > 25)
                 {
-                    expectedColor = Color.Transparent;
+                    expectedColor = transparent;
                 }
 
                 for (int x = 0; x < accessor.Width; x++)
@@ -440,50 +404,174 @@ public partial class PngEncoderTests
     }
 
     [Theory]
+    [WithFile(TestImages.Png.APng, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Png.DefaultNotAnimated, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Png.FrameOffset, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Png.Issue2882, PixelTypes.Rgba32)]
+    public void Encode_APng<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage(PngDecoder.Instance);
+        using MemoryStream memStream = new();
+        image.Save(memStream, PngEncoder);
+        memStream.Position = 0;
+
+        image.DebugSave(provider: provider, encoder: PngEncoder, null, false);
+
+        using Image<Rgba32> output = Image.Load<Rgba32>(memStream);
+
+        // Some loss from original, due to palette matching accuracy.
+        ImageComparer.TolerantPercentage(0.172F).VerifySimilarity(output, image);
+
+        Assert.Equal(image.Frames.Count, output.Frames.Count);
+
+        PngMetadata originalMetadata = image.Metadata.GetPngMetadata();
+        PngMetadata outputMetadata = output.Metadata.GetPngMetadata();
+
+        Assert.Equal(originalMetadata.RepeatCount, outputMetadata.RepeatCount);
+        Assert.Equal(originalMetadata.AnimateRootFrame, outputMetadata.AnimateRootFrame);
+
+        for (int i = 0; i < image.Frames.Count; i++)
+        {
+            PngFrameMetadata originalFrameMetadata = image.Frames[i].Metadata.GetPngMetadata();
+            PngFrameMetadata outputFrameMetadata = output.Frames[i].Metadata.GetPngMetadata();
+
+            Assert.Equal(originalFrameMetadata.FrameDelay, outputFrameMetadata.FrameDelay);
+            Assert.Equal(originalFrameMetadata.BlendMode, outputFrameMetadata.BlendMode);
+            Assert.Equal(originalFrameMetadata.DisposalMode, outputFrameMetadata.DisposalMode);
+        }
+    }
+
+    [Theory]
+    [WithFile(TestImages.Gif.Leo, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Gif.Issues.Issue2866, PixelTypes.Rgba32)]
+    public void Encode_AnimatedFormatTransform_FromGif<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        if (TestEnvironment.RunsOnCI && !TestEnvironment.IsWindows)
+        {
+            return;
+        }
+
+        using Image<TPixel> image = provider.GetImage(GifDecoder.Instance);
+
+        // Save the image for visual inspection.
+        provider.Utility.SaveTestOutputFile(image, "png", PngEncoder, "animated");
+
+        // Now compare the debug output with the reference output.
+        // We do this because the transcoding encoding is lossy and encoding will lead to differences.
+        // From the unencoded image, we can see that the image is visually the same.
+        static bool Predicate(int i, int _) => i % 8 == 0; // Image has many frames, only compare a selection of them.
+        image.CompareDebugOutputToReferenceOutputMultiFrame(provider, ImageComparer.Exact, extension: "png", encoder: PngEncoder, predicate: Predicate);
+
+        // Now save the image and load it again to compare the metadata.
+        using MemoryStream memStream = new();
+        image.Save(memStream, PngEncoder);
+        memStream.Position = 0;
+
+        using Image<TPixel> encoded = Image.Load<TPixel>(memStream);
+        GifMetadata gif = image.Metadata.GetGifMetadata();
+        PngMetadata png = encoded.Metadata.GetPngMetadata();
+
+        Assert.Equal(gif.RepeatCount, png.RepeatCount);
+
+        for (int i = 0; i < image.Frames.Count; i++)
+        {
+            GifFrameMetadata gifF = image.Frames[i].Metadata.GetGifMetadata();
+            PngFrameMetadata pngF = encoded.Frames[i].Metadata.GetPngMetadata();
+
+            Assert.Equal(gifF.FrameDelay, (int)(pngF.FrameDelay.ToDouble() * 100));
+
+            switch (gifF.DisposalMode)
+            {
+                case FrameDisposalMode.RestoreToBackground:
+                    Assert.Equal(FrameDisposalMode.RestoreToBackground, pngF.DisposalMode);
+                    break;
+                case FrameDisposalMode.RestoreToPrevious:
+                    Assert.Equal(FrameDisposalMode.RestoreToPrevious, pngF.DisposalMode);
+                    break;
+                case FrameDisposalMode.Unspecified:
+                case FrameDisposalMode.DoNotDispose:
+                default:
+                    Assert.Equal(FrameDisposalMode.DoNotDispose, pngF.DisposalMode);
+                    break;
+            }
+        }
+    }
+
+    [Theory]
+    [WithFile(TestImages.Webp.Lossless.Animated, PixelTypes.Rgba32)]
+    public void Encode_AnimatedFormatTransform_FromWebp<TPixel>(TestImageProvider<TPixel> provider)
+    where TPixel : unmanaged, IPixel<TPixel>
+    {
+        if (TestEnvironment.RunsOnCI && !TestEnvironment.IsWindows)
+        {
+            return;
+        }
+
+        using Image<TPixel> image = provider.GetImage(WebpDecoder.Instance);
+
+        using MemoryStream memStream = new();
+        image.Save(memStream, PngEncoder);
+        memStream.Position = 0;
+
+        using Image<TPixel> output = Image.Load<TPixel>(memStream);
+        ImageComparer.Exact.VerifySimilarity(output, image);
+
+        WebpMetadata webp = image.Metadata.GetWebpMetadata();
+        PngMetadata png = output.Metadata.GetPngMetadata();
+
+        Assert.Equal(webp.RepeatCount, png.RepeatCount);
+
+        for (int i = 0; i < image.Frames.Count; i++)
+        {
+            WebpFrameMetadata webpF = image.Frames[i].Metadata.GetWebpMetadata();
+            PngFrameMetadata pngF = output.Frames[i].Metadata.GetPngMetadata();
+
+            Assert.Equal(webpF.FrameDelay, (uint)(pngF.FrameDelay.ToDouble() * 1000));
+
+            switch (webpF.BlendMode)
+            {
+                case FrameBlendMode.Source:
+                    Assert.Equal(FrameBlendMode.Source, pngF.BlendMode);
+                    break;
+                case FrameBlendMode.Over:
+                default:
+                    Assert.Equal(FrameBlendMode.Over, pngF.BlendMode);
+                    break;
+            }
+
+            switch (webpF.DisposalMode)
+            {
+                case FrameDisposalMode.RestoreToBackground:
+                    Assert.Equal(FrameDisposalMode.RestoreToBackground, pngF.DisposalMode);
+                    break;
+                case FrameDisposalMode.DoNotDispose:
+                default:
+                    Assert.Equal(FrameDisposalMode.DoNotDispose, pngF.DisposalMode);
+                    break;
+            }
+        }
+    }
+
+    [Theory]
     [MemberData(nameof(PngTrnsFiles))]
     public void Encode_PreserveTrns(string imagePath, PngBitDepth pngBitDepth, PngColorType pngColorType)
     {
-        var testFile = TestFile.Create(imagePath);
+        TestFile testFile = TestFile.Create(imagePath);
         using Image<Rgba32> input = testFile.CreateRgba32Image();
         PngMetadata inMeta = input.Metadata.GetPngMetadata();
-        Assert.True(inMeta.HasTransparency);
+        Assert.True(inMeta.TransparentColor.HasValue);
 
-        using var memStream = new MemoryStream();
+        using MemoryStream memStream = new();
         input.Save(memStream, PngEncoder);
         memStream.Position = 0;
-        using var output = Image.Load<Rgba32>(memStream);
+        using Image<Rgba32> output = Image.Load<Rgba32>(memStream);
         PngMetadata outMeta = output.Metadata.GetPngMetadata();
-        Assert.True(outMeta.HasTransparency);
-
-        switch (pngColorType)
-        {
-            case PngColorType.Grayscale:
-                if (pngBitDepth.Equals(PngBitDepth.Bit16))
-                {
-                    Assert.True(outMeta.TransparentL16.HasValue);
-                    Assert.Equal(inMeta.TransparentL16, outMeta.TransparentL16);
-                }
-                else
-                {
-                    Assert.True(outMeta.TransparentL8.HasValue);
-                    Assert.Equal(inMeta.TransparentL8, outMeta.TransparentL8);
-                }
-
-                break;
-            case PngColorType.Rgb:
-                if (pngBitDepth.Equals(PngBitDepth.Bit16))
-                {
-                    Assert.True(outMeta.TransparentRgb48.HasValue);
-                    Assert.Equal(inMeta.TransparentRgb48, outMeta.TransparentRgb48);
-                }
-                else
-                {
-                    Assert.True(outMeta.TransparentRgb24.HasValue);
-                    Assert.Equal(inMeta.TransparentRgb24, outMeta.TransparentRgb24);
-                }
-
-                break;
-        }
+        Assert.True(outMeta.TransparentColor.HasValue);
+        Assert.Equal(inMeta.TransparentColor, outMeta.TransparentColor);
+        Assert.Equal(pngBitDepth, outMeta.BitDepth);
+        Assert.Equal(pngColorType, outMeta.ColorType);
     }
 
     [Theory]
@@ -501,8 +589,8 @@ public partial class PngEncoderTests
                 PngFilterMethod.Adaptive,
                 PngBitDepth.Bit8,
                 interlaceMode,
-                appendPixelType: true,
-                appendPngColorType: true);
+                appendPngColorType: true,
+                appendPixelType: true);
         }
     }
 
@@ -523,14 +611,14 @@ public partial class PngEncoderTests
                     PngFilterMethod.Adaptive,
                     PngBitDepth.Bit8,
                     interlaceMode,
-                    appendPixelType: true,
-                    appendPngColorType: true);
+                    appendPngColorType: true,
+                    appendPixelType: true);
             }
         }
 
         FeatureTestRunner.RunWithHwIntrinsicsFeature(
             RunTest,
-            HwIntrinsics.DisableSSSE3,
+            HwIntrinsics.DisableHWIntrinsic,
             provider);
     }
 
@@ -538,11 +626,74 @@ public partial class PngEncoderTests
     public void EncodeFixesInvalidOptions()
     {
         // https://github.com/SixLabors/ImageSharp/issues/935
-        using var ms = new MemoryStream();
-        var testFile = TestFile.Create(TestImages.Png.Issue935);
+        using MemoryStream ms = new();
+        TestFile testFile = TestFile.Create(TestImages.Png.Issue935);
         using Image<Rgba32> image = testFile.CreateRgba32Image(PngDecoder.Instance);
 
         image.Save(ms, new PngEncoder { ColorType = PngColorType.RgbWithAlpha });
+    }
+
+    // https://github.com/SixLabors/ImageSharp/issues/2469
+    [Theory]
+    [WithFile(TestImages.Png.Issue2469, PixelTypes.Rgba32)]
+    public void Issue2469_Quantized_Encode_Artifacts<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage(PngDecoder.Instance);
+        PngEncoder encoder = new() { BitDepth = PngBitDepth.Bit8, ColorType = PngColorType.Palette };
+
+        string actualOutputFile = provider.Utility.SaveTestOutputFile(image, "png", encoder);
+        using Image<Rgba32> encoded = Image.Load<Rgba32>(actualOutputFile);
+        encoded.CompareToReferenceOutput(ImageComparer.Exact, provider);
+    }
+
+    // https://github.com/SixLabors/ImageSharp/issues/2668
+    [Theory]
+    [WithFile(TestImages.Png.Issue2668, PixelTypes.Rgba32)]
+    public void Issue2668_Quantized_Encode_Alpha<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage(PngDecoder.Instance);
+        image.Mutate(x => x.Resize(100, 100));
+
+        PngEncoder encoder = new() { BitDepth = PngBitDepth.Bit8, ColorType = PngColorType.Palette };
+
+        string actualOutputFile = provider.Utility.SaveTestOutputFile(image, "png", encoder);
+        using Image<Rgba32> encoded = Image.Load<Rgba32>(actualOutputFile);
+        encoded.CompareToReferenceOutput(ImageComparer.Exact, provider);
+    }
+
+    [Fact]
+    public void Issue_2862()
+    {
+        // Create a grayscale palette (or any other palette with colors that are very close to each other):
+        Rgba32[] palette = [.. Enumerable.Range(0, 256).Select(i => new Rgba32((byte)i, (byte)i, (byte)i))];
+
+        using Image<Rgba32> image = new(254, 4);
+        for (int y = 0; y < image.Height; y++)
+        {
+            for (int x = 0; x < image.Width; x++)
+            {
+                image[x, y] = palette[x];
+            }
+        }
+
+        PaletteQuantizer quantizer = new(
+            palette.Select(Color.FromPixel).ToArray(),
+            new QuantizerOptions { ColorMatchingMode = ColorMatchingMode.Hybrid });
+
+        using MemoryStream ms = new();
+        image.Save(ms, new PngEncoder
+        {
+            ColorType = PngColorType.Palette,
+            BitDepth = PngBitDepth.Bit8,
+            Quantizer = quantizer
+        });
+
+        ms.Position = 0;
+
+        using Image<Rgba32> encoded = Image.Load<Rgba32>(ms);
+        ImageComparer.Exact.VerifySimilarity(image, encoded);
     }
 
     private static void TestPngEncoderCore<TPixel>(
@@ -563,7 +714,7 @@ public partial class PngEncoderTests
             where TPixel : unmanaged, IPixel<TPixel>
     {
         using Image<TPixel> image = provider.GetImage();
-        var encoder = new PngEncoder
+        PngEncoder encoder = new()
         {
             ColorType = pngColorType,
             FilterMethod = pngFilterMethod,
@@ -581,7 +732,7 @@ public partial class PngEncoderTests
         string pngBitDepthInfo = appendPngBitDepth ? bitDepth.ToString() : string.Empty;
         string pngInterlaceModeInfo = interlaceMode != PngInterlaceMode.None ? $"_{interlaceMode}" : string.Empty;
 
-        string debugInfo = $"{pngColorTypeInfo}{pngFilterMethodInfo}{compressionLevelInfo}{paletteSizeInfo}{pngBitDepthInfo}{pngInterlaceModeInfo}";
+        string debugInfo = pngColorTypeInfo + pngFilterMethodInfo + compressionLevelInfo + paletteSizeInfo + pngBitDepthInfo + pngInterlaceModeInfo;
 
         string actualOutputFile = provider.Utility.SaveTestOutputFile(image, "png", encoder, debugInfo, appendPixelType);
 

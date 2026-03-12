@@ -1,12 +1,15 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Numerics;
+using SixLabors.ImageSharp.PixelFormats;
+
 namespace SixLabors.ImageSharp.Formats.Gif;
 
 /// <summary>
 /// Provides Gif specific metadata information for the image.
 /// </summary>
-public class GifMetadata : IDeepCloneable
+public class GifMetadata : IFormatMetadata<GifMetadata>
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="GifMetadata"/> class.
@@ -23,7 +26,12 @@ public class GifMetadata : IDeepCloneable
     {
         this.RepeatCount = other.RepeatCount;
         this.ColorTableMode = other.ColorTableMode;
-        this.GlobalColorTableLength = other.GlobalColorTableLength;
+        this.BackgroundColorIndex = other.BackgroundColorIndex;
+
+        if (other.GlobalColorTable?.Length > 0)
+        {
+            this.GlobalColorTable = other.GlobalColorTable.Value.ToArray();
+        }
 
         for (int i = 0; i < other.Comments.Count; i++)
         {
@@ -42,19 +50,69 @@ public class GifMetadata : IDeepCloneable
     /// <summary>
     /// Gets or sets the color table mode.
     /// </summary>
-    public GifColorTableMode ColorTableMode { get; set; }
+    public FrameColorTableMode ColorTableMode { get; set; }
 
     /// <summary>
-    /// Gets or sets the length of the global color table if present.
+    /// Gets or sets the global color table, if any.
+    /// The underlying pixel format is represented by <see cref="Rgb24"/>.
     /// </summary>
-    public int GlobalColorTableLength { get; set; }
+    public ReadOnlyMemory<Color>? GlobalColorTable { get; set; }
+
+    /// <summary>
+    /// Gets or sets the index at the <see cref="GlobalColorTable"/> for the background color.
+    /// The background color is the color used for those pixels on the screen that are not covered by an image.
+    /// </summary>
+    public byte BackgroundColorIndex { get; set; }
 
     /// <summary>
     /// Gets or sets the collection of comments about the graphics, credits, descriptions or any
     /// other type of non-control and non-graphic data.
     /// </summary>
-    public IList<string> Comments { get; set; } = new List<string>();
+    public IList<string> Comments { get; set; } = [];
 
     /// <inheritdoc/>
-    public IDeepCloneable DeepClone() => new GifMetadata(this);
+    public static GifMetadata FromFormatConnectingMetadata(FormatConnectingMetadata metadata)
+        => new()
+        {
+            // Do not copy the color table or bit depth.
+            // This will lead to a mismatch when the image is comprised of frames
+            // extracted individually from a multi-frame image.
+            ColorTableMode = metadata.ColorTableMode,
+            RepeatCount = metadata.RepeatCount,
+        };
+
+    /// <inheritdoc/>
+    public PixelTypeInfo GetPixelTypeInfo()
+    {
+        int bpp = this.ColorTableMode == FrameColorTableMode.Global && this.GlobalColorTable.HasValue
+            ? Numerics.Clamp(ColorNumerics.GetBitsNeededForColorDepth(this.GlobalColorTable.Value.Length), 1, 8)
+            : 8;
+
+        return new PixelTypeInfo(bpp)
+        {
+            ColorType = PixelColorType.Indexed,
+            ComponentInfo = PixelComponentInfo.Create(1, bpp, bpp),
+        };
+    }
+
+    /// <inheritdoc/>
+    public FormatConnectingMetadata ToFormatConnectingMetadata()
+        => new()
+        {
+            AnimateRootFrame = true,
+            ColorTableMode = this.ColorTableMode,
+            PixelTypeInfo = this.GetPixelTypeInfo(),
+            RepeatCount = this.RepeatCount,
+        };
+
+    /// <inheritdoc/>
+    public void AfterImageApply<TPixel>(Image<TPixel> destination, Matrix4x4 matrix)
+        where TPixel : unmanaged, IPixel<TPixel>
+        => this.GlobalColorTable = null;
+
+    /// <inheritdoc/>
+    IDeepCloneable IDeepCloneable.DeepClone() => this.DeepClone();
+
+    /// <inheritdoc/>
+    public GifMetadata DeepClone() => new(this);
 }

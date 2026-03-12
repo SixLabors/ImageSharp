@@ -12,12 +12,12 @@
   <Choose>
     <When Condition="$(SIXLABORS_TESTING_PREVIEW) == true">
       <PropertyGroup>
-        <TargetFrameworks>net7.0;net6.0</TargetFrameworks>
+        <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
       </PropertyGroup>
     </When>
     <Otherwise>
       <PropertyGroup>
-        <TargetFrameworks>net6.0</TargetFrameworks>
+        <TargetFrameworks>net8.0</TargetFrameworks>
       </PropertyGroup>
     </Otherwise>
   </Choose>
@@ -32,10 +32,17 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>PixelOperationsTests.Specialized.Generated.tt</DependentUpon>
     </None>
+    <None Update="TestDataIcc\Profiles\*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="BenchmarkDotNet" />
+    <!--
+        Do not update or consolidate BenchmarkDotNet.
+        https://github.com/dotnet/arcade/issues/8483
+      -->
+    <PackageReference Include="BenchmarkDotNet" Version="0.13.0" />
     <PackageReference Include="Magick.NET-Q16-AnyCPU" />
     <PackageReference Include="Microsoft.DotNet.RemoteExecutor" />
     <PackageReference Include="Microsoft.DotNet.XUnitExtensions" />
@@ -43,6 +50,7 @@
     <PackageReference Include="runtime.osx.10.10-x64.CoreCompat.System.Drawing" Condition="'$(IsOSX)'=='true'" />
     <PackageReference Include="SharpZipLib" />
     <PackageReference Include="System.Drawing.Common" />
+    <PackageReference Include="Wacton.Unicolour" Version="6.0.0" />
   </ItemGroup>
 
   <ItemGroup>
@@ -54,6 +62,9 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="TestFonts\SixLaborsSampleAB.woff">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestDataWebp\Vp8Residual.bin">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="xunit.runner.json">

@@ -7,6 +7,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
+using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Formats.Webp.BitReader;
 using SixLabors.ImageSharp.Formats.Webp.Lossless;
 using SixLabors.ImageSharp.Memory;
@@ -181,7 +182,7 @@ internal class AlphaDecoder : IDisposable
         else
         {
             this.LosslessDecoder.DecodeImageData(this.Vp8LDec, this.Vp8LDec.Pixels.Memory.Span);
-            this.ExtractAlphaRows(this.Vp8LDec);
+            this.ExtractAlphaRows(this.Vp8LDec, this.Width);
         }
     }
 
@@ -255,14 +256,15 @@ internal class AlphaDecoder : IDisposable
     /// Once the image-stream is decoded into ARGB color values, the transparency information will be extracted from the green channel of the ARGB quadruplet.
     /// </summary>
     /// <param name="dec">The VP8L decoder.</param>
-    private void ExtractAlphaRows(Vp8LDecoder dec)
+    /// <param name="width">The image width.</param>
+    private void ExtractAlphaRows(Vp8LDecoder dec, int width)
     {
         int numRowsToProcess = dec.Height;
-        int width = dec.Width;
         Span<uint> input = dec.Pixels.Memory.Span;
         Span<byte> output = this.Alpha.Memory.Span;
 
         // Extract alpha (which is stored in the green plane).
+        // the final width (!= dec->width_)
         int pixelCount = width * numRowsToProcess;
         WebpLosslessDecoder.ApplyInverseTransforms(dec, input, this.memoryAllocator);
         ExtractGreen(input, output, pixelCount);
@@ -311,32 +313,28 @@ internal class AlphaDecoder : IDisposable
 
     private static void HorizontalUnfilter(Span<byte> prev, Span<byte> input, Span<byte> dst, int width)
     {
-        if (Sse2.IsSupported)
+        if (Vector128.IsHardwareAccelerated && width >= 9)
         {
             dst[0] = (byte)(input[0] + (prev.IsEmpty ? 0 : prev[0]));
-            if (width <= 1)
-            {
-                return;
-            }
-
             nuint i;
             Vector128<int> last = Vector128<int>.Zero.WithElement(0, dst[0]);
             ref byte srcRef = ref MemoryMarshal.GetReference(input);
             ref byte dstRef = ref MemoryMarshal.GetReference(dst);
+
             for (i = 1; i <= (uint)width - 8; i += 8)
             {
                 Vector128<long> a0 = Vector128.Create(Unsafe.As<byte, long>(ref Unsafe.Add(ref srcRef, i)), 0);
-                Vector128<byte> a1 = Sse2.Add(a0.AsByte(), last.AsByte());
-                Vector128<byte> a2 = Sse2.ShiftLeftLogical128BitLane(a1, 1);
-                Vector128<byte> a3 = Sse2.Add(a1, a2);
-                Vector128<byte> a4 = Sse2.ShiftLeftLogical128BitLane(a3, 2);
-                Vector128<byte> a5 = Sse2.Add(a3, a4);
-                Vector128<byte> a6 = Sse2.ShiftLeftLogical128BitLane(a5, 4);
-                Vector128<byte> a7 = Sse2.Add(a5, a6);
+                Vector128<byte> a1 = a0.AsByte() + last.AsByte();
+                Vector128<byte> a2 = Vector128_.ShiftLeftBytesInVector(a1, 1);
+                Vector128<byte> a3 = a1 + a2;
+                Vector128<byte> a4 = Vector128_.ShiftLeftBytesInVector(a3, 2);
+                Vector128<byte> a5 = a3 + a4;
+                Vector128<byte> a6 = Vector128_.ShiftLeftBytesInVector(a5, 4);
+                Vector128<byte> a7 = a5 + a6;
 
                 ref byte outputRef = ref Unsafe.Add(ref dstRef, i);
                 Unsafe.As<byte, Vector64<byte>>(ref outputRef) = a7.GetLower();
-                last = Sse2.ShiftRightLogical(a7.AsInt64(), 56).AsInt32();
+                last = Vector128.ShiftRightLogical(a7.AsInt64(), 56).AsInt32();
             }
 
             for (; i < (uint)width; ++i)
@@ -363,7 +361,7 @@ internal class AlphaDecoder : IDisposable
         {
             HorizontalUnfilter(null, input, dst, width);
         }
-        else if (Avx2.IsSupported)
+        else if (Vector256.IsHardwareAccelerated)
         {
             ref byte inputRef = ref MemoryMarshal.GetReference(input);
             ref byte prevRef = ref MemoryMarshal.GetReference(prev);
@@ -375,7 +373,7 @@ internal class AlphaDecoder : IDisposable
             {
                 Vector256<int> a0 = Unsafe.As<byte, Vector256<int>>(ref Unsafe.Add(ref inputRef, i));
                 Vector256<int> b0 = Unsafe.As<byte, Vector256<int>>(ref Unsafe.Add(ref prevRef, i));
-                Vector256<byte> c0 = Avx2.Add(a0.AsByte(), b0.AsByte());
+                Vector256<byte> c0 = a0.AsByte() + b0.AsByte();
                 ref byte outputRef = ref Unsafe.Add(ref dstRef, i);
                 Unsafe.As<byte, Vector256<byte>>(ref outputRef) = c0;
             }

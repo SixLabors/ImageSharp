@@ -15,10 +15,10 @@ public class BmpMetadataTests
     public void CloneIsDeep()
     {
         BmpMetadata meta = new()
-        { BitsPerPixel = BmpBitsPerPixel.Pixel24, InfoHeaderType = BmpInfoHeaderType.Os2Version2 };
-        BmpMetadata clone = (BmpMetadata)meta.DeepClone();
+        { BitsPerPixel = BmpBitsPerPixel.Bit24, InfoHeaderType = BmpInfoHeaderType.Os2Version2 };
+        BmpMetadata clone = meta.DeepClone();
 
-        clone.BitsPerPixel = BmpBitsPerPixel.Pixel32;
+        clone.BitsPerPixel = BmpBitsPerPixel.Bit32;
         clone.InfoHeaderType = BmpInfoHeaderType.WinVersion2;
 
         Assert.False(meta.BitsPerPixel.Equals(clone.BitsPerPixel));

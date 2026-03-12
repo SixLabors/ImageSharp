@@ -8,105 +8,67 @@ using System.Numerics;
 namespace SixLabors.ImageSharp.Metadata.Profiles.Icc;
 
 /// <summary>
-/// Provides methods to read ICC data types
+/// Provides methods to read ICC data types.
 /// </summary>
 internal sealed partial class IccDataReader
 {
     /// <summary>
-    /// Reads a tag data entry
+    /// Reads a tag data entry.
     /// </summary>
-    /// <param name="info">The table entry with reading information</param>
-    /// <returns>the tag data entry</returns>
+    /// <param name="info">The table entry with reading information.</param>
+    /// <returns>The tag data entry.</returns>
     public IccTagDataEntry ReadTagDataEntry(IccTagTableEntry info)
     {
         this.currentIndex = (int)info.Offset;
-        IccTypeSignature type = this.ReadTagDataEntryHeader();
-
-        switch (type)
+        return this.ReadTagDataEntryHeader() switch
         {
-            case IccTypeSignature.Chromaticity:
-                return this.ReadChromaticityTagDataEntry();
-            case IccTypeSignature.ColorantOrder:
-                return this.ReadColorantOrderTagDataEntry();
-            case IccTypeSignature.ColorantTable:
-                return this.ReadColorantTableTagDataEntry();
-            case IccTypeSignature.Curve:
-                return this.ReadCurveTagDataEntry();
-            case IccTypeSignature.Data:
-                return this.ReadDataTagDataEntry(info.DataSize);
-            case IccTypeSignature.DateTime:
-                return this.ReadDateTimeTagDataEntry();
-            case IccTypeSignature.Lut16:
-                return this.ReadLut16TagDataEntry();
-            case IccTypeSignature.Lut8:
-                return this.ReadLut8TagDataEntry();
-            case IccTypeSignature.LutAToB:
-                return this.ReadLutAtoBTagDataEntry();
-            case IccTypeSignature.LutBToA:
-                return this.ReadLutBtoATagDataEntry();
-            case IccTypeSignature.Measurement:
-                return this.ReadMeasurementTagDataEntry();
-            case IccTypeSignature.MultiLocalizedUnicode:
-                return this.ReadMultiLocalizedUnicodeTagDataEntry();
-            case IccTypeSignature.MultiProcessElements:
-                return this.ReadMultiProcessElementsTagDataEntry();
-            case IccTypeSignature.NamedColor2:
-                return this.ReadNamedColor2TagDataEntry();
-            case IccTypeSignature.ParametricCurve:
-                return this.ReadParametricCurveTagDataEntry();
-            case IccTypeSignature.ProfileSequenceDesc:
-                return this.ReadProfileSequenceDescTagDataEntry();
-            case IccTypeSignature.ProfileSequenceIdentifier:
-                return this.ReadProfileSequenceIdentifierTagDataEntry();
-            case IccTypeSignature.ResponseCurveSet16:
-                return this.ReadResponseCurveSet16TagDataEntry();
-            case IccTypeSignature.S15Fixed16Array:
-                return this.ReadFix16ArrayTagDataEntry(info.DataSize);
-            case IccTypeSignature.Signature:
-                return this.ReadSignatureTagDataEntry();
-            case IccTypeSignature.Text:
-                return this.ReadTextTagDataEntry(info.DataSize);
-            case IccTypeSignature.U16Fixed16Array:
-                return this.ReadUFix16ArrayTagDataEntry(info.DataSize);
-            case IccTypeSignature.UInt16Array:
-                return this.ReadUInt16ArrayTagDataEntry(info.DataSize);
-            case IccTypeSignature.UInt32Array:
-                return this.ReadUInt32ArrayTagDataEntry(info.DataSize);
-            case IccTypeSignature.UInt64Array:
-                return this.ReadUInt64ArrayTagDataEntry(info.DataSize);
-            case IccTypeSignature.UInt8Array:
-                return this.ReadUInt8ArrayTagDataEntry(info.DataSize);
-            case IccTypeSignature.ViewingConditions:
-                return this.ReadViewingConditionsTagDataEntry();
-            case IccTypeSignature.Xyz:
-                return this.ReadXyzTagDataEntry(info.DataSize);
+            IccTypeSignature.Chromaticity => this.ReadChromaticityTagDataEntry(),
+            IccTypeSignature.ColorantOrder => this.ReadColorantOrderTagDataEntry(),
+            IccTypeSignature.ColorantTable => this.ReadColorantTableTagDataEntry(),
+            IccTypeSignature.Curve => this.ReadCurveTagDataEntry(),
+            IccTypeSignature.Data => this.ReadDataTagDataEntry(info.DataSize),
+            IccTypeSignature.DateTime => this.ReadDateTimeTagDataEntry(),
+            IccTypeSignature.Lut16 => this.ReadLut16TagDataEntry(),
+            IccTypeSignature.Lut8 => this.ReadLut8TagDataEntry(),
+            IccTypeSignature.LutAToB => this.ReadLutAtoBTagDataEntry(),
+            IccTypeSignature.LutBToA => this.ReadLutBtoATagDataEntry(),
+            IccTypeSignature.Measurement => this.ReadMeasurementTagDataEntry(),
+            IccTypeSignature.MultiLocalizedUnicode => this.ReadMultiLocalizedUnicodeTagDataEntry(),
+            IccTypeSignature.MultiProcessElements => this.ReadMultiProcessElementsTagDataEntry(),
+            IccTypeSignature.NamedColor2 => this.ReadNamedColor2TagDataEntry(),
+            IccTypeSignature.ParametricCurve => this.ReadParametricCurveTagDataEntry(),
+            IccTypeSignature.ProfileSequenceDesc => this.ReadProfileSequenceDescTagDataEntry(),
+            IccTypeSignature.ProfileSequenceIdentifier => this.ReadProfileSequenceIdentifierTagDataEntry(),
+            IccTypeSignature.ResponseCurveSet16 => this.ReadResponseCurveSet16TagDataEntry(),
+            IccTypeSignature.S15Fixed16Array => this.ReadFix16ArrayTagDataEntry(info.DataSize),
+            IccTypeSignature.Signature => this.ReadSignatureTagDataEntry(),
+            IccTypeSignature.Text => this.ReadTextTagDataEntry(info.DataSize),
+            IccTypeSignature.U16Fixed16Array => this.ReadUFix16ArrayTagDataEntry(info.DataSize),
+            IccTypeSignature.UInt16Array => this.ReadUInt16ArrayTagDataEntry(info.DataSize),
+            IccTypeSignature.UInt32Array => this.ReadUInt32ArrayTagDataEntry(info.DataSize),
+            IccTypeSignature.UInt64Array => this.ReadUInt64ArrayTagDataEntry(info.DataSize),
+            IccTypeSignature.UInt8Array => this.ReadUInt8ArrayTagDataEntry(info.DataSize),
+            IccTypeSignature.ViewingConditions => this.ReadViewingConditionsTagDataEntry(),
+            IccTypeSignature.Xyz => this.ReadXyzTagDataEntry(info.DataSize),
 
             // V2 Types:
-            case IccTypeSignature.TextDescription:
-                return this.ReadTextDescriptionTagDataEntry();
-            case IccTypeSignature.CrdInfo:
-                return this.ReadCrdInfoTagDataEntry();
-            case IccTypeSignature.Screening:
-                return this.ReadScreeningTagDataEntry();
-            case IccTypeSignature.UcrBg:
-                return this.ReadUcrBgTagDataEntry(info.DataSize);
+            IccTypeSignature.TextDescription => this.ReadTextDescriptionTagDataEntry(),
+            IccTypeSignature.CrdInfo => this.ReadCrdInfoTagDataEntry(),
+            IccTypeSignature.Screening => this.ReadScreeningTagDataEntry(),
+            IccTypeSignature.UcrBg => this.ReadUcrBgTagDataEntry(info.DataSize),
 
             // Unsupported or unknown
-            case IccTypeSignature.DeviceSettings:
-            case IccTypeSignature.NamedColor:
-            case IccTypeSignature.Unknown:
-            default:
-                return this.ReadUnknownTagDataEntry(info.DataSize);
-        }
+            _ => this.ReadUnknownTagDataEntry(info.DataSize),
+        };
     }
 
     /// <summary>
     /// Reads the header of a <see cref="IccTagDataEntry"/>
     /// </summary>
-    /// <returns>The read signature</returns>
+    /// <returns>The read signature.</returns>
     public IccTypeSignature ReadTagDataEntryHeader()
     {
-        var type = (IccTypeSignature)this.ReadUInt32();
+        IccTypeSignature type = (IccTypeSignature)this.ReadUInt32();
         this.AddIndex(4); // 4 bytes are not used
         return type;
     }
@@ -114,7 +76,7 @@ internal sealed partial class IccDataReader
     /// <summary>
     /// Reads the header of a <see cref="IccTagDataEntry"/> and checks if it's the expected value
     /// </summary>
-    /// <param name="expected">expected value to check against</param>
+    /// <param name="expected">The expected value to check against.</param>
     public void ReadCheckTagDataEntryHeader(IccTypeSignature expected)
     {
         IccTypeSignature type = this.ReadTagDataEntryHeader();
@@ -127,8 +89,8 @@ internal sealed partial class IccDataReader
     /// <summary>
     /// Reads a <see cref="IccTagDataEntry"/> with an unknown <see cref="IccTypeSignature"/>
     /// </summary>
-    /// <param name="size">The size of the entry in bytes</param>
-    /// <returns>The read entry</returns>
+    /// <param name="size">The size of the entry in bytes.</param>
+    /// <returns>The read entry.</returns>
     public IccUnknownTagDataEntry ReadUnknownTagDataEntry(uint size)
     {
         int count = (int)size - 8;  // 8 is the tag header size
@@ -138,13 +100,13 @@ internal sealed partial class IccDataReader
     /// <summary>
     /// Reads a <see cref="IccChromaticityTagDataEntry"/>
     /// </summary>
-    /// <returns>The read entry</returns>
+    /// <returns>The read entry.</returns>
     public IccChromaticityTagDataEntry ReadChromaticityTagDataEntry()
     {
         ushort channelCount = this.ReadUInt16();
-        var colorant = (IccColorantEncoding)this.ReadUInt16();
+        IccColorantEncoding colorant = (IccColorantEncoding)this.ReadUInt16();
 
-        if (Enum.IsDefined(typeof(IccColorantEncoding), colorant) && colorant != IccColorantEncoding.Unknown)
+        if (Enum.IsDefined(colorant) && colorant != IccColorantEncoding.Unknown)
         {
             // The type is known and so are the values (they are constant)
             // channelCount should always be 3 but it doesn't really matter if it's not
@@ -152,11 +114,11 @@ internal sealed partial class IccDataReader
         }
         else
         {
-            // The type is not know, so the values need be read
+            // The type is not know, so the values need be read.
             double[][] values = new double[channelCount][];
             for (int i = 0; i < channelCount; i++)
             {
-                values[i] = new double[] { this.ReadUFix16(), this.ReadUFix16() };
+                values[i] = [this.ReadUFix16(), this.ReadUFix16()];
             }
 
             return new IccChromaticityTagDataEntry(values);
@@ -166,7 +128,7 @@ internal sealed partial class IccDataReader
     /// <summary>
     /// Reads a <see cref="IccColorantOrderTagDataEntry"/>
     /// </summary>
-    /// <returns>The read entry</returns>
+    /// <returns>The read entry.</returns>
     public IccColorantOrderTagDataEntry ReadColorantOrderTagDataEntry()
     {
         uint colorantCount = this.ReadUInt32();
@@ -177,11 +139,11 @@ internal sealed partial class IccDataReader
     /// <summary>
     /// Reads a <see cref="IccColorantTableTagDataEntry"/>
     /// </summary>
-    /// <returns>The read entry</returns>
+    /// <returns>The read entry.</returns>
     public IccColorantTableTagDataEntry ReadColorantTableTagDataEntry()
     {
         uint colorantCount = this.ReadUInt32();
-        var cdata = new IccColorantTableEntry[colorantCount];
+        IccColorantTableEntry[] cdata = new IccColorantTableEntry[colorantCount];
         for (int i = 0; i < colorantCount; i++)
         {
             cdata[i] = this.ReadColorantTableEntry();
@@ -193,7 +155,7 @@ internal sealed partial class IccDataReader
     /// <summary>
     /// Reads a <see cref="IccCurveTagDataEntry"/>
     /// </summary>
-    /// <returns>The read entry</returns>
+    /// <returns>The read entry.</returns>
     public IccCurveTagDataEntry ReadCurveTagDataEntry()
     {
         uint pointCount = this.ReadUInt32();
@@ -222,7 +184,7 @@ internal sealed partial class IccDataReader
     /// <summary>
     /// Reads a <see cref="IccDataTagDataEntry"/>
     /// </summary>
-    /// <param name="size">The size of the entry in bytes</param>
+    /// <param name="size">The size of the entry in bytes.</param>
     /// <returns>The read entry</returns>
     public IccDataTagDataEntry ReadDataTagDataEntry(uint size)
     {
@@ -240,16 +202,13 @@ internal sealed partial class IccDataReader
     /// <summary>
     /// Reads a <see cref="IccDateTimeTagDataEntry"/>
     /// </summary>
-    /// <returns>The read entry</returns>
-    public IccDateTimeTagDataEntry ReadDateTimeTagDataEntry()
-    {
-        return new IccDateTimeTagDataEntry(this.ReadDateTime());
-    }
+    /// <returns>The read entry.</returns>
+    public IccDateTimeTagDataEntry ReadDateTimeTagDataEntry() => new(this.ReadDateTime());
 
     /// <summary>
     /// Reads a <see cref="IccLut16TagDataEntry"/>
     /// </summary>
-    /// <returns>The read entry</returns>
+    /// <returns>The read entry.</returns>
     public IccLut16TagDataEntry ReadLut16TagDataEntry()
     {
         byte inChCount = this.data[this.AddIndex(1)];
@@ -263,7 +222,7 @@ internal sealed partial class IccDataReader
         ushort outTableCount = this.ReadUInt16();
 
         // Input LUT
-        var inValues = new IccLut[inChCount];
+        IccLut[] inValues = new IccLut[inChCount];
         byte[] gridPointCount = new byte[inChCount];
         for (int i = 0; i < inChCount; i++)
         {
@@ -275,7 +234,7 @@ internal sealed partial class IccDataReader
         IccClut clut = this.ReadClut16(inChCount, outChCount, gridPointCount);
 
         // Output LUT
-        var outValues = new IccLut[outChCount];
+        IccLut[] outValues = new IccLut[outChCount];
         for (int i = 0; i < outChCount; i++)
         {
             outValues[i] = this.ReadLut16(outTableCount);
@@ -287,7 +246,7 @@ internal sealed partial class IccDataReader
     /// <summary>
     /// Reads a <see cref="IccLut8TagDataEntry"/>
     /// </summary>
-    /// <returns>The read entry</returns>
+    /// <returns>The read entry.</returns>
     public IccLut8TagDataEntry ReadLut8TagDataEntry()
     {
         byte inChCount = this.data[this.AddIndex(1)];
@@ -298,7 +257,7 @@ internal sealed partial class IccDataReader
         float[,] matrix = this.ReadMatrix(3, 3, false);
 
         // Input LUT
-        var inValues = new IccLut[inChCount];
+        IccLut[] inValues = new IccLut[inChCount];
         byte[] gridPointCount = new byte[inChCount];
         for (int i = 0; i < inChCount; i++)
         {
@@ -310,7 +269,7 @@ internal sealed partial class IccDataReader
         IccClut clut = this.ReadClut8(inChCount, outChCount, gridPointCount);
 
         // Output LUT
-        var outValues = new IccLut[outChCount];
+        IccLut[] outValues = new IccLut[outChCount];
         for (int i = 0; i < outChCount; i++)
         {
             outValues[i] = this.ReadLut8();
@@ -322,7 +281,7 @@ internal sealed partial class IccDataReader
     /// <summary>
     /// Reads a <see cref="IccLutAToBTagDataEntry"/>
     /// </summary>
-    /// <returns>The read entry</returns>
+    /// <returns>The read entry.</returns>
     public IccLutAToBTagDataEntry ReadLutAtoBTagDataEntry()
     {
         int start = this.currentIndex - 8; // 8 is the tag header size
@@ -381,7 +340,7 @@ internal sealed partial class IccDataReader
     /// <summary>
     /// Reads a <see cref="IccLutBToATagDataEntry"/>
     /// </summary>
-    /// <returns>The read entry</returns>
+    /// <returns>The read entry.</returns>
     public IccLutBToATagDataEntry ReadLutBtoATagDataEntry()
     {
         int start = this.currentIndex - 8; // 8 is the tag header size
@@ -440,30 +399,27 @@ internal sealed partial class IccDataReader
     /// <summary>
     /// Reads a <see cref="IccMeasurementTagDataEntry"/>
     /// </summary>
-    /// <returns>The read entry</returns>
-    public IccMeasurementTagDataEntry ReadMeasurementTagDataEntry()
-    {
-        return new IccMeasurementTagDataEntry(
+    /// <returns>The read entry.</returns>
+    public IccMeasurementTagDataEntry ReadMeasurementTagDataEntry() => new(
             observer: (IccStandardObserver)this.ReadUInt32(),
             xyzBacking: this.ReadXyzNumber(),
             geometry: (IccMeasurementGeometry)this.ReadUInt32(),
             flare: this.ReadUFix16(),
             illuminant: (IccStandardIlluminant)this.ReadUInt32());
-    }
 
     /// <summary>
     /// Reads a <see cref="IccMultiLocalizedUnicodeTagDataEntry"/>
     /// </summary>
-    /// <returns>The read entry</returns>
+    /// <returns>The read entry.</returns>
     public IccMultiLocalizedUnicodeTagDataEntry ReadMultiLocalizedUnicodeTagDataEntry()
     {
         int start = this.currentIndex - 8; // 8 is the tag header size
         uint recordCount = this.ReadUInt32();
 
         this.ReadUInt32();  // Record size (always 12)
-        var text = new IccLocalizedString[recordCount];
+        IccLocalizedString[] text = new IccLocalizedString[recordCount];
 
-        var culture = new CultureInfo[recordCount];
+        CultureInfo[] culture = new CultureInfo[recordCount];
         uint[] length = new uint[recordCount];
         uint[] offset = new uint[recordCount];
 
@@ -485,7 +441,7 @@ internal sealed partial class IccDataReader
 
         return new IccMultiLocalizedUnicodeTagDataEntry(text);
 
-        CultureInfo ReadCulture(string language, string country)
+        static CultureInfo ReadCulture(string language, string country)
         {
             if (string.IsNullOrWhiteSpace(language))
             {
@@ -519,7 +475,7 @@ internal sealed partial class IccDataReader
     /// <summary>
     /// Reads a <see cref="IccMultiProcessElementsTagDataEntry"/>
     /// </summary>
-    /// <returns>The read entry</returns>
+    /// <returns>The read entry.</returns>
     public IccMultiProcessElementsTagDataEntry ReadMultiProcessElementsTagDataEntry()
     {
         int start = this.currentIndex - 8;
@@ -528,13 +484,13 @@ internal sealed partial class IccDataReader
         this.ReadUInt16();
         uint elementCount = this.ReadUInt32();
 
-        var positionTable = new IccPositionNumber[elementCount];
+        IccPositionNumber[] positionTable = new IccPositionNumber[elementCount];
         for (int i = 0; i < elementCount; i++)
         {
             positionTable[i] = this.ReadPositionNumber();
         }
 
-        var elements = new IccMultiProcessElement[elementCount];
+        IccMultiProcessElement[] elements = new IccMultiProcessElement[elementCount];
         for (int i = 0; i < elementCount; i++)
         {
             this.currentIndex = (int)positionTable[i].Offset + start;
@@ -547,7 +503,7 @@ internal sealed partial class IccDataReader
     /// <summary>
     /// Reads a <see cref="IccNamedColor2TagDataEntry"/>
     /// </summary>
-    /// <returns>The read entry</returns>
+    /// <returns>The read entry.</returns>
     public IccNamedColor2TagDataEntry ReadNamedColor2TagDataEntry()
     {
         int vendorFlag = this.ReadInt32();
@@ -556,7 +512,7 @@ internal sealed partial class IccDataReader
         string prefix = this.ReadAsciiString(32);
         string suffix = this.ReadAsciiString(32);
 
-        var colors = new IccNamedColor[colorCount];
+        IccNamedColor[] colors = new IccNamedColor[colorCount];
         for (int i = 0; i < colorCount; i++)
         {
             colors[i] = this.ReadNamedColor(coordCount);
@@ -569,19 +525,16 @@ internal sealed partial class IccDataReader
     /// Reads a <see cref="IccParametricCurveTagDataEntry"/>
     /// </summary>
     /// <returns>The read entry</returns>
-    public IccParametricCurveTagDataEntry ReadParametricCurveTagDataEntry()
-    {
-        return new IccParametricCurveTagDataEntry(this.ReadParametricCurve());
-    }
+    public IccParametricCurveTagDataEntry ReadParametricCurveTagDataEntry() => new(this.ReadParametricCurve());
 
     /// <summary>
     /// Reads a <see cref="IccProfileSequenceDescTagDataEntry"/>
     /// </summary>
-    /// <returns>The read entry</returns>
+    /// <returns>The read entry.</returns>
     public IccProfileSequenceDescTagDataEntry ReadProfileSequenceDescTagDataEntry()
     {
         uint count = this.ReadUInt32();
-        var description = new IccProfileDescription[count];
+        IccProfileDescription[] description = new IccProfileDescription[count];
         for (int i = 0; i < count; i++)
         {
             description[i] = this.ReadProfileDescription();
@@ -593,18 +546,18 @@ internal sealed partial class IccDataReader
     /// <summary>
     /// Reads a <see cref="IccProfileSequenceIdentifierTagDataEntry"/>
     /// </summary>
-    /// <returns>The read entry</returns>
+    /// <returns>The read entry.</returns>
     public IccProfileSequenceIdentifierTagDataEntry ReadProfileSequenceIdentifierTagDataEntry()
     {
         int start = this.currentIndex - 8; // 8 is the tag header size
         uint count = this.ReadUInt32();
-        var table = new IccPositionNumber[count];
+        IccPositionNumber[] table = new IccPositionNumber[count];
         for (int i = 0; i < count; i++)
         {
             table[i] = this.ReadPositionNumber();
         }
 
-        var entries = new IccProfileSequenceIdentifier[count];
+        IccProfileSequenceIdentifier[] entries = new IccProfileSequenceIdentifier[count];
         for (int i = 0; i < count; i++)
         {
             this.currentIndex = (int)(start + table[i].Offset);
@@ -620,7 +573,7 @@ internal sealed partial class IccDataReader
     /// <summary>
     /// Reads a <see cref="IccResponseCurveSet16TagDataEntry"/>
     /// </summary>
-    /// <returns>The read entry</returns>
+    /// <returns>The read entry.</returns>
     public IccResponseCurveSet16TagDataEntry ReadResponseCurveSet16TagDataEntry()
     {
         int start = this.currentIndex - 8; // 8 is the tag header size
@@ -633,7 +586,7 @@ internal sealed partial class IccDataReader
             offset[i] = this.ReadUInt32();
         }
 
-        var curves = new IccResponseCurve[measurementCount];
+        IccResponseCurve[] curves = new IccResponseCurve[measurementCount];
         for (int i = 0; i < measurementCount; i++)
         {
             this.currentIndex = (int)(start + offset[i]);
@@ -646,8 +599,8 @@ internal sealed partial class IccDataReader
     /// <summary>
     /// Reads a <see cref="IccFix16ArrayTagDataEntry"/>
     /// </summary>
-    /// <param name="size">The size of the entry in bytes</param>
-    /// <returns>The read entry</returns>
+    /// <param name="size">The size of the entry in bytes.</param>
+    /// <returns>The read entry.</returns>
     public IccFix16ArrayTagDataEntry ReadFix16ArrayTagDataEntry(uint size)
     {
         uint count = (size - 8) / 4;
@@ -663,27 +616,21 @@ internal sealed partial class IccDataReader
     /// <summary>
     /// Reads a <see cref="IccSignatureTagDataEntry"/>
     /// </summary>
-    /// <returns>The read entry</returns>
-    public IccSignatureTagDataEntry ReadSignatureTagDataEntry()
-    {
-        return new IccSignatureTagDataEntry(this.ReadAsciiString(4));
-    }
+    /// <returns>The read entry.</returns>
+    public IccSignatureTagDataEntry ReadSignatureTagDataEntry() => new(this.ReadAsciiString(4));
 
     /// <summary>
     /// Reads a <see cref="IccTextTagDataEntry"/>
     /// </summary>
-    /// <param name="size">The size of the entry in bytes</param>
-    /// <returns>The read entry</returns>
-    public IccTextTagDataEntry ReadTextTagDataEntry(uint size)
-    {
-        return new IccTextTagDataEntry(this.ReadAsciiString((int)size - 8)); // 8 is the tag header size
-    }
+    /// <param name="size">The size of the entry in bytes.</param>
+    /// <returns>The read entry.</returns>
+    public IccTextTagDataEntry ReadTextTagDataEntry(uint size) => new(this.ReadAsciiString((int)size - 8)); // 8 is the tag header size
 
     /// <summary>
     /// Reads a <see cref="IccUFix16ArrayTagDataEntry"/>
     /// </summary>
-    /// <param name="size">The size of the entry in bytes</param>
-    /// <returns>The read entry</returns>
+    /// <param name="size">The size of the entry in bytes.</param>
+    /// <returns>The read entry.</returns>
     public IccUFix16ArrayTagDataEntry ReadUFix16ArrayTagDataEntry(uint size)
     {
         uint count = (size - 8) / 4;
@@ -699,8 +646,8 @@ internal sealed partial class IccDataReader
     /// <summary>
     /// Reads a <see cref="IccUInt16ArrayTagDataEntry"/>
     /// </summary>
-    /// <param name="size">The size of the entry in bytes</param>
-    /// <returns>The read entry</returns>
+    /// <param name="size">The size of the entry in bytes.</param>
+    /// <returns>The read entry.</returns>
     public IccUInt16ArrayTagDataEntry ReadUInt16ArrayTagDataEntry(uint size)
     {
         uint count = (size - 8) / 2;
@@ -716,8 +663,8 @@ internal sealed partial class IccDataReader
     /// <summary>
     /// Reads a <see cref="IccUInt32ArrayTagDataEntry"/>
     /// </summary>
-    /// <param name="size">The size of the entry in bytes</param>
-    /// <returns>The read entry</returns>
+    /// <param name="size">The size of the entry in bytes.</param>
+    /// <returns>The read entry.</returns>
     public IccUInt32ArrayTagDataEntry ReadUInt32ArrayTagDataEntry(uint size)
     {
         uint count = (size - 8) / 4;
@@ -733,8 +680,8 @@ internal sealed partial class IccDataReader
     /// <summary>
     /// Reads a <see cref="IccUInt64ArrayTagDataEntry"/>
     /// </summary>
-    /// <param name="size">The size of the entry in bytes</param>
-    /// <returns>The read entry</returns>
+    /// <param name="size">The size of the entry in bytes.</param>
+    /// <returns>The read entry.</returns>
     public IccUInt64ArrayTagDataEntry ReadUInt64ArrayTagDataEntry(uint size)
     {
         uint count = (size - 8) / 8;
@@ -750,8 +697,8 @@ internal sealed partial class IccDataReader
     /// <summary>
     /// Reads a <see cref="IccUInt8ArrayTagDataEntry"/>
     /// </summary>
-    /// <param name="size">The size of the entry in bytes</param>
-    /// <returns>The read entry</returns>
+    /// <param name="size">The size of the entry in bytes.</param>
+    /// <returns>The read entry.</returns>
     public IccUInt8ArrayTagDataEntry ReadUInt8ArrayTagDataEntry(uint size)
     {
         int count = (int)size - 8; // 8 is the tag header size
@@ -763,24 +710,21 @@ internal sealed partial class IccDataReader
     /// <summary>
     /// Reads a <see cref="IccViewingConditionsTagDataEntry"/>
     /// </summary>
-    /// <returns>The read entry</returns>
-    public IccViewingConditionsTagDataEntry ReadViewingConditionsTagDataEntry()
-    {
-        return new IccViewingConditionsTagDataEntry(
+    /// <returns>The read entry.</returns>
+    public IccViewingConditionsTagDataEntry ReadViewingConditionsTagDataEntry() => new(
             illuminantXyz: this.ReadXyzNumber(),
             surroundXyz: this.ReadXyzNumber(),
             illuminant: (IccStandardIlluminant)this.ReadUInt32());
-    }
 
     /// <summary>
     /// Reads a <see cref="IccXyzTagDataEntry"/>
     /// </summary>
-    /// <param name="size">The size of the entry in bytes</param>
-    /// <returns>The read entry</returns>
+    /// <param name="size">The size of the entry in bytes.</param>
+    /// <returns>The read entry.</returns>
     public IccXyzTagDataEntry ReadXyzTagDataEntry(uint size)
     {
         uint count = (size - 8) / 12;
-        var arrayData = new Vector3[count];
+        Vector3[] arrayData = new Vector3[count];
         for (int i = 0; i < count; i++)
         {
             arrayData[i] = this.ReadXyzNumber();
@@ -792,7 +736,7 @@ internal sealed partial class IccDataReader
     /// <summary>
     /// Reads a <see cref="IccTextDescriptionTagDataEntry"/>
     /// </summary>
-    /// <returns>The read entry</returns>
+    /// <returns>The read entry.</returns>
     public IccTextDescriptionTagDataEntry ReadTextDescriptionTagDataEntry()
     {
         string unicodeValue, scriptcodeValue;
@@ -832,7 +776,7 @@ internal sealed partial class IccDataReader
     /// <summary>
     /// Reads a <see cref="IccTextDescriptionTagDataEntry"/>
     /// </summary>
-    /// <returns>The read entry</returns>
+    /// <returns>The read entry.</returns>
     public IccCrdInfoTagDataEntry ReadCrdInfoTagDataEntry()
     {
         uint productNameCount = this.ReadUInt32();
@@ -856,12 +800,12 @@ internal sealed partial class IccDataReader
     /// <summary>
     /// Reads a <see cref="IccScreeningTagDataEntry"/>
     /// </summary>
-    /// <returns>The read entry</returns>
+    /// <returns>The read entry.</returns>
     public IccScreeningTagDataEntry ReadScreeningTagDataEntry()
     {
-        var flags = (IccScreeningFlag)this.ReadInt32();
+        IccScreeningFlag flags = (IccScreeningFlag)this.ReadInt32();
         uint channelCount = this.ReadUInt32();
-        var channels = new IccScreeningChannel[channelCount];
+        IccScreeningChannel[] channels = new IccScreeningChannel[channelCount];
         for (int i = 0; i < channels.Length; i++)
         {
             channels[i] = this.ReadScreeningChannel();
@@ -873,7 +817,7 @@ internal sealed partial class IccDataReader
     /// <summary>
     /// Reads a <see cref="IccUcrBgTagDataEntry"/>
     /// </summary>
-    /// <param name="size">The size of the entry in bytes</param>
+    /// <param name="size">The size of the entry in bytes.</param>
     /// <returns>The read entry</returns>
     public IccUcrBgTagDataEntry ReadUcrBgTagDataEntry(uint size)
     {

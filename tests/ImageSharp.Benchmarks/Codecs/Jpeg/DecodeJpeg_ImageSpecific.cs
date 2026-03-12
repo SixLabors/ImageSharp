@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg;
 /// <summary>
 /// Image-specific Jpeg benchmarks
 /// </summary>
-[Config(typeof(Config.ShortMultiFramework))]
+[Config(typeof(Config.Short))]
 public class DecodeJpeg_ImageSpecific
 {
     private byte[] jpegBytes;
@@ -35,26 +35,21 @@ public class DecodeJpeg_ImageSpecific
 
     [GlobalSetup]
     public void ReadImages()
-    {
-        if (this.jpegBytes == null)
-        {
-            this.jpegBytes = File.ReadAllBytes(this.TestImageFullPath);
-        }
-    }
+        => this.jpegBytes ??= File.ReadAllBytes(this.TestImageFullPath);
 
     [Benchmark(Baseline = true)]
     public SDSize SystemDrawing()
     {
-        using var memoryStream = new MemoryStream(this.jpegBytes);
-        using var image = SDImage.FromStream(memoryStream);
+        using MemoryStream memoryStream = new(this.jpegBytes);
+        using SDImage image = SDImage.FromStream(memoryStream);
         return image.Size;
     }
 
     [Benchmark]
     public Size ImageSharp()
     {
-        using var memoryStream = new MemoryStream(this.jpegBytes);
-        using var image = Image.Load(new DecoderOptions() { SkipMetadata = true }, memoryStream);
+        using MemoryStream memoryStream = new(this.jpegBytes);
+        using Image image = Image.Load(new DecoderOptions { SkipMetadata = true }, memoryStream);
         return new Size(image.Width, image.Height);
     }
 

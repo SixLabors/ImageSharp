@@ -43,30 +43,10 @@ internal struct WuQuantizer<TPixel> : IQuantizer<TPixel>
     // The following two variables determine the amount of bits to preserve when calculating the histogram.
     // Reducing the value of these numbers the granularity of the color maps produced, making it much faster
     // and using much less memory but potentially less accurate. Current results are very good though!
-
-    /// <summary>
-    /// The index bits. 6 in original code.
-    /// </summary>
     private const int IndexBits = 5;
-
-    /// <summary>
-    /// The index alpha bits. 3 in original code.
-    /// </summary>
     private const int IndexAlphaBits = 5;
-
-    /// <summary>
-    /// The index count.
-    /// </summary>
     private const int IndexCount = (1 << IndexBits) + 1;
-
-    /// <summary>
-    /// The index alpha count.
-    /// </summary>
     private const int IndexAlphaCount = (1 << IndexAlphaBits) + 1;
-
-    /// <summary>
-    /// The table length. Now 1185921. originally 2471625.
-    /// </summary>
     private const int TableLength = IndexCount * IndexCount * IndexCount * IndexAlphaCount;
 
     private readonly IMemoryOwner<Moment> momentsOwner;
@@ -75,14 +55,14 @@ internal struct WuQuantizer<TPixel> : IQuantizer<TPixel>
     private ReadOnlyMemory<TPixel> palette;
     private int maxColors;
     private readonly Box[] colorCube;
-    private EuclideanPixelMap<TPixel>? pixelMap;
+    private PixelMap<TPixel>? pixelMap;
     private readonly bool isDithering;
     private bool isDisposed;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="WuQuantizer{TPixel}"/> struct.
     /// </summary>
-    /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
+    /// <param name="configuration">The configuration which allows altering default behavior or extending the library.</param>
     /// <param name="options">The quantizer options defining quantization rules.</param>
     [MethodImpl(InliningOptions.ShortMethod)]
     public WuQuantizer(Configuration configuration, QuantizerOptions options)
@@ -101,7 +81,7 @@ internal struct WuQuantizer<TPixel> : IQuantizer<TPixel>
         this.isDisposed = false;
         this.pixelMap = default;
         this.palette = default;
-        this.isDithering = this.isDithering = this.Options.Dither is not null;
+        this.isDithering = this.Options.Dither is not null;
     }
 
     /// <inheritdoc/>
@@ -115,70 +95,86 @@ internal struct WuQuantizer<TPixel> : IQuantizer<TPixel>
     {
         get
         {
-            QuantizerUtilities.CheckPaletteState(in this.palette);
+            if (this.palette.IsEmpty)
+            {
+                this.ResolvePalette();
+                QuantizerUtilities.CheckPaletteState(in this.palette);
+            }
+
             return this.palette;
         }
     }
 
     /// <inheritdoc/>
-    public void AddPaletteColors(Buffer2DRegion<TPixel> pixelRegion)
+    public readonly void AddPaletteColors(in Buffer2DRegion<TPixel> pixelRegion)
     {
-        Rectangle bounds = pixelRegion.Rectangle;
-        Buffer2D<TPixel> source = pixelRegion.Buffer;
+        PixelRowDelegate pixelRowDelegate = new(ref Unsafe.AsRef(in this));
+        QuantizerUtilities.AddPaletteColors<WuQuantizer<TPixel>, TPixel, Rgba32, PixelRowDelegate>(
+            ref Unsafe.AsRef(in this),
+            in pixelRegion,
+            in pixelRowDelegate);
+    }
 
-        this.Build3DHistogram(source, bounds);
+    /// <summary>
+    /// Once all histogram data has been accumulated, this method computes the moments,
+    /// splits the color cube, and resolves the final palette from the accumulated histogram.
+    /// </summary>
+    private void ResolvePalette()
+    {
+        // Calculate the cumulative moments from the accumulated histogram.
         this.Get3DMoments(this.memoryAllocator);
+
+        // Partition the histogram into color cubes.
         this.BuildCube();
 
-        // Slice again since maxColors has been updated since the buffer was created.
+        // Compute the palette colors from the resolved cubes.
         Span<TPixel> paletteSpan = this.paletteOwner.GetSpan()[..this.maxColors];
         ReadOnlySpan<Moment> momentsSpan = this.momentsOwner.GetSpan();
+
+        float transparencyThreshold = this.Options.TransparencyThreshold;
         for (int k = 0; k < paletteSpan.Length; k++)
         {
             this.Mark(ref this.colorCube[k], (byte)k);
-
             Moment moment = Volume(ref this.colorCube[k], momentsSpan);
-
             if (moment.Weight > 0)
             {
-                ref TPixel color = ref paletteSpan[k];
-                color.FromScaledVector4(moment.Normalize());
+                Vector4 normalized = moment.Normalize();
+                if (normalized.W < transparencyThreshold)
+                {
+                    normalized = Vector4.Zero;
+                }
+
+                paletteSpan[k] = TPixel.FromScaledVector4(normalized);
             }
         }
 
-        ReadOnlyMemory<TPixel> result = this.paletteOwner.Memory[..paletteSpan.Length];
-        if (this.isDithering)
+        // Update the palette to the new computed colors.
+        this.palette = this.paletteOwner.Memory[..paletteSpan.Length];
+
+        // Create the pixel map if dithering is enabled.
+        if (this.isDithering && this.pixelMap is null)
         {
-            // When called multiple times by QuantizerUtilities.BuildPalette
-            // this prevents memory churn caused by reallocation.
-            if (this.pixelMap is null)
-            {
-                this.pixelMap = new EuclideanPixelMap<TPixel>(this.Configuration, result);
-            }
-            else
-            {
-                this.pixelMap.Clear(result);
-            }
+            this.pixelMap = PixelMapFactory.Create(this.Configuration, this.palette, this.Options.ColorMatchingMode);
         }
-
-        this.palette = result;
     }
 
     /// <inheritdoc/>
     [MethodImpl(InliningOptions.ShortMethod)]
     public readonly IndexedImageFrame<TPixel> QuantizeFrame(ImageFrame<TPixel> source, Rectangle bounds)
-        => QuantizerUtilities.QuantizeFrame(ref Unsafe.AsRef(this), source, bounds);
+        => QuantizerUtilities.QuantizeFrame(ref Unsafe.AsRef(in this), source, bounds);
 
     /// <inheritdoc/>
     public readonly byte GetQuantizedColor(TPixel color, out TPixel match)
     {
+        // Due to the addition of new colors by dithering that are not part of the original histogram,
+        // the color cube might not match the correct color.
+        // In this case, we must use the pixel map to get the closest color.
         if (this.isDithering)
         {
             return (byte)this.pixelMap!.GetClosestColor(color, out match);
         }
 
-        Rgba32 rgba = default;
-        color.ToRgba32(ref rgba);
+        Rgba32 rgba = color.ToRgba32();
 
         const int shift = 8 - IndexBits;
         int r = rgba.R >> shift;
@@ -189,7 +185,7 @@ internal struct WuQuantizer<TPixel> : IQuantizer<TPixel>
         ReadOnlySpan<byte> tagSpan = this.tagsOwner.GetSpan();
         byte index = tagSpan[GetPaletteIndex(r + 1, g + 1, b + 1, a + 1)];
         ref TPixel paletteRef = ref MemoryMarshal.GetReference(this.palette.Span);
-        match = Unsafe.Add(ref paletteRef, index);
+        match = Unsafe.Add(ref paletteRef, (nuint)index);
         return index;
     }
 
@@ -360,32 +356,19 @@ internal struct WuQuantizer<TPixel> : IQuantizer<TPixel>
     /// <summary>
     /// Builds a 3-D color histogram of <c>counts, r/g/b, c^2</c>.
     /// </summary>
-    /// <param name="source">The source data.</param>
-    /// <param name="bounds">The bounds within the source image to quantize.</param>
-    private void Build3DHistogram(Buffer2D<TPixel> source, Rectangle bounds)
+    /// <param name="pixels">The source pixel data.</param>
+    private readonly void Build3DHistogram(ReadOnlySpan<Rgba32> pixels)
     {
-        Span<Moment> momentSpan = this.momentsOwner.GetSpan();
-
-        // Build up the 3-D color histogram
-        using IMemoryOwner<Rgba32> buffer = this.memoryAllocator.Allocate<Rgba32>(bounds.Width);
-        Span<Rgba32> bufferSpan = buffer.GetSpan();
-
-        for (int y = bounds.Top; y < bounds.Bottom; y++)
+        Span<Moment> moments = this.momentsOwner.GetSpan();
+        for (int x = 0; x < pixels.Length; x++)
         {
-            Span<TPixel> row = source.DangerousGetRowSpan(y).Slice(bounds.Left, bounds.Width);
-            PixelOperations<TPixel>.Instance.ToRgba32(this.Configuration, row, bufferSpan);
+            Rgba32 rgba = pixels[x];
+            int r = (rgba.R >> (8 - IndexBits)) + 1;
+            int g = (rgba.G >> (8 - IndexBits)) + 1;
+            int b = (rgba.B >> (8 - IndexBits)) + 1;
+            int a = (rgba.A >> (8 - IndexAlphaBits)) + 1;
 
-            for (int x = 0; x < bufferSpan.Length; x++)
-            {
-                Rgba32 rgba = bufferSpan[x];
-
-                int r = (rgba.R >> (8 - IndexBits)) + 1;
-                int g = (rgba.G >> (8 - IndexBits)) + 1;
-                int b = (rgba.B >> (8 - IndexBits)) + 1;
-                int a = (rgba.A >> (8 - IndexAlphaBits)) + 1;
-
-                momentSpan[GetPaletteIndex(r, g, b, a)] += rgba;
-            }
+            moments[GetPaletteIndex(r, g, b, a)] += rgba;
         }
     }
 
@@ -393,7 +376,7 @@ internal struct WuQuantizer<TPixel> : IQuantizer<TPixel>
     /// Converts the histogram into moments so that we can rapidly calculate the sums of the above quantities over any desired box.
     /// </summary>
     /// <param name="allocator">The memory allocator used for allocating buffers.</param>
-    private void Get3DMoments(MemoryAllocator allocator)
+    private readonly void Get3DMoments(MemoryAllocator allocator)
     {
         using IMemoryOwner<Moment> volume = allocator.Allocate<Moment>(IndexCount * IndexAlphaCount);
         using IMemoryOwner<Moment> area = allocator.Allocate<Moment>(IndexAlphaCount);
@@ -462,7 +445,7 @@ internal struct WuQuantizer<TPixel> : IQuantizer<TPixel>
     /// </summary>
     /// <param name="cube">The cube.</param>
     /// <returns>The <see cref="float"/>.</returns>
-    private double Variance(ref Box cube)
+    private readonly double Variance(ref Box cube)
     {
         ReadOnlySpan<Moment> momentSpan = this.momentsOwner.GetSpan();
 
@@ -503,7 +486,7 @@ internal struct WuQuantizer<TPixel> : IQuantizer<TPixel>
     /// <param name="cut">The cutting point.</param>
     /// <param name="whole">The whole moment.</param>
     /// <returns>The <see cref="float"/>.</returns>
-    private float Maximize(ref Box cube, int direction, int first, int last, out int cut, Moment whole)
+    private readonly float Maximize(ref Box cube, int direction, int first, int last, out int cut, Moment whole)
     {
         ReadOnlySpan<Moment> momentSpan = this.momentsOwner.GetSpan();
         Moment bottom = Bottom(ref cube, direction, momentSpan);
@@ -549,7 +532,7 @@ internal struct WuQuantizer<TPixel> : IQuantizer<TPixel>
     /// <param name="set1">The first set.</param>
     /// <param name="set2">The second set.</param>
     /// <returns>Returns a value indicating whether the box has been split.</returns>
-    private bool Cut(ref Box set1, ref Box set2)
+    private readonly bool Cut(ref Box set1, ref Box set2)
     {
         ReadOnlySpan<Moment> momentSpan = this.momentsOwner.GetSpan();
         Moment whole = Volume(ref set1, momentSpan);
@@ -634,7 +617,7 @@ internal struct WuQuantizer<TPixel> : IQuantizer<TPixel>
     /// </summary>
     /// <param name="cube">The cube.</param>
     /// <param name="label">A label.</param>
-    private void Mark(ref Box cube, byte label)
+    private readonly void Mark(ref Box cube, byte label)
     {
         Span<byte> tagSpan = this.tagsOwner.GetSpan();
 
@@ -896,5 +879,14 @@ internal struct WuQuantizer<TPixel> : IQuantizer<TPixel>
             hash.Add(this.Volume);
             return hash.ToHashCode();
         }
+    }
+
+    private readonly struct PixelRowDelegate : IQuantizingPixelRowDelegate<Rgba32>
+    {
+        private readonly WuQuantizer<TPixel> quantizer;
+
+        public PixelRowDelegate(ref WuQuantizer<TPixel> quantizer) => this.quantizer = quantizer;
+
+        public void Invoke(ReadOnlySpan<Rgba32> row, int rowIndex) => this.quantizer.Build3DHistogram(row);
     }
 }

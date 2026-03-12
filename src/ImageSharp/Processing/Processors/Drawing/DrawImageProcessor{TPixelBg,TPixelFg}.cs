@@ -18,39 +18,58 @@ internal class DrawImageProcessor<TPixelBg, TPixelFg> : ImageProcessor<TPixelBg>
     where TPixelFg : unmanaged, IPixel<TPixelFg>
 {
     /// <summary>
+    /// Counts how many times <see cref="OnFrameApply"/> has been called for this processor instance.
+    /// Used to select the current foreground frame.
+    /// </summary>
+    private int foregroundFrameCounter;
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="DrawImageProcessor{TPixelBg, TPixelFg}"/> class.
     /// </summary>
     /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
-    /// <param name="image">The foreground <see cref="Image{TPixelFg}"/> to blend with the currently processing image.</param>
-    /// <param name="source">The source <see cref="Image{TPixelBg}"/> for the current processor instance.</param>
-    /// <param name="sourceRectangle">The source area to process for the current processor instance.</param>
-    /// <param name="location">The location to draw the blended image.</param>
+    /// <param name="foregroundImage">The foreground <see cref="Image{TPixelFg}"/> to blend with the currently processing image.</param>
+    /// <param name="backgroundImage">The source <see cref="Image{TPixelBg}"/> for the current processor instance.</param>
+    /// <param name="backgroundLocation">The location to draw the blended image.</param>
+    /// <param name="foregroundRectangle">The source area to process for the current processor instance.</param>
     /// <param name="colorBlendingMode">The blending mode to use when drawing the image.</param>
-    /// <param name="alphaCompositionMode">The Alpha blending mode to use when drawing the image.</param>
+    /// <param name="alphaCompositionMode">The alpha blending mode to use when drawing the image.</param>
     /// <param name="opacity">The opacity of the image to blend. Must be between 0 and 1.</param>
+    /// <param name="foregroundRepeatCount">
+    /// The number of times the foreground frames are allowed to loop while applying this processor across successive frames.
+    /// A value of 0 means loop indefinitely.
+    /// </param>
     public DrawImageProcessor(
         Configuration configuration,
-        Image<TPixelFg> image,
-        Image<TPixelBg> source,
-        Rectangle sourceRectangle,
-        Point location,
+        Image<TPixelFg> foregroundImage,
+        Image<TPixelBg> backgroundImage,
+        Point backgroundLocation,
+        Rectangle foregroundRectangle,
         PixelColorBlendingMode colorBlendingMode,
         PixelAlphaCompositionMode alphaCompositionMode,
-        float opacity)
-        : base(configuration, source, sourceRectangle)
+        float opacity,
+        int foregroundRepeatCount)
+        : base(configuration, backgroundImage, backgroundImage.Bounds)
     {
+        Guard.MustBeGreaterThanOrEqualTo(foregroundRepeatCount, 0, nameof(foregroundRepeatCount));
         Guard.MustBeBetweenOrEqualTo(opacity, 0, 1, nameof(opacity));
 
-        this.Image = image;
+        this.ForegroundImage = foregroundImage;
+        this.ForegroundRectangle = foregroundRectangle;
         this.Opacity = opacity;
         this.Blender = PixelOperations<TPixelBg>.Instance.GetPixelBlender(colorBlendingMode, alphaCompositionMode);
-        this.Location = location;
+        this.BackgroundLocation = backgroundLocation;
+        this.ForegroundRepeatCount = foregroundRepeatCount;
     }
 
     /// <summary>
     /// Gets the image to blend
     /// </summary>
-    public Image<TPixelFg> Image { get; }
+    public Image<TPixelFg> ForegroundImage { get; }
+
+    /// <summary>
+    /// Gets the rectangular portion of the foreground image to draw.
+    /// </summary>
+    public Rectangle ForegroundRectangle { get; }
 
     /// <summary>
     /// Gets the opacity of the image to blend
@@ -65,44 +84,78 @@ internal class DrawImageProcessor<TPixelBg, TPixelFg> : ImageProcessor<TPixelBg>
     /// <summary>
     /// Gets the location to draw the blended image
     /// </summary>
-    public Point Location { get; }
+    public Point BackgroundLocation { get; }
+
+    /// <summary>
+    /// Gets the number of times the foreground frames are allowed to loop while applying this processor across
+    /// successive frames. A value of 0 means loop indefinitely.
+    /// </summary>
+    public int ForegroundRepeatCount { get; }
 
     /// <inheritdoc/>
     protected override void OnFrameApply(ImageFrame<TPixelBg> source)
     {
-        Rectangle sourceRectangle = this.SourceRectangle;
-        Configuration configuration = this.Configuration;
+        // Align the bounds so that both the source and targets are the same width and height for blending.
+        // We ensure that negative locations are subtracted from both bounds so that foreground images can partially overlap.
+        Rectangle foregroundRectangle = this.ForegroundRectangle;
 
-        Image<TPixelFg> targetImage = this.Image;
-        PixelBlender<TPixelBg> blender = this.Blender;
-        int locationY = this.Location.Y;
+        // Sanitize the location so that we don't try and sample outside the image.
+        int left = this.BackgroundLocation.X;
+        int top = this.BackgroundLocation.Y;
 
-        // Align start/end positions.
-        Rectangle bounds = targetImage.Bounds;
-
-        int minX = Math.Max(this.Location.X, sourceRectangle.X);
-        int maxX = Math.Min(this.Location.X + bounds.Width, sourceRectangle.Right);
-        int targetX = minX - this.Location.X;
-
-        int minY = Math.Max(this.Location.Y, sourceRectangle.Y);
-        int maxY = Math.Min(this.Location.Y + bounds.Height, sourceRectangle.Bottom);
-
-        int width = maxX - minX;
-
-        Rectangle workingRect = Rectangle.FromLTRB(minX, minY, maxX, maxY);
-
-        // Not a valid operation because rectangle does not overlap with this image.
-        if (workingRect.Width <= 0 || workingRect.Height <= 0)
+        if (this.BackgroundLocation.X < 0)
         {
-            throw new ImageProcessingException(
-                "Cannot draw image because the source image does not overlap the target image.");
+            foregroundRectangle.Width += this.BackgroundLocation.X;
+            foregroundRectangle.X -= this.BackgroundLocation.X;
+            left = 0;
         }
 
-        DrawImageProcessor<TPixelBg, TPixelFg>.RowOperation operation = new(source.PixelBuffer, targetImage.Frames.RootFrame.PixelBuffer, blender, configuration, minX, width, locationY, targetX, this.Opacity);
+        if (this.BackgroundLocation.Y < 0)
+        {
+            foregroundRectangle.Height += this.BackgroundLocation.Y;
+            foregroundRectangle.Y -= this.BackgroundLocation.Y;
+            top = 0;
+        }
+
+        // Clamp the height/width to the available space left to prevent overflowing
+        foregroundRectangle.Width = Math.Min(source.Width - left, foregroundRectangle.Width);
+        foregroundRectangle.Height = Math.Min(source.Height - top, foregroundRectangle.Height);
+        foregroundRectangle = Rectangle.Intersect(foregroundRectangle, this.ForegroundImage.Bounds);
+
+        int width = foregroundRectangle.Width;
+        int height = foregroundRectangle.Height;
+        if (width <= 0 || height <= 0)
+        {
+            // Nothing to do, return.
+            return;
+        }
+
+        // Sanitize the dimensions so that we don't try and sample outside the image.
+        Rectangle backgroundRectangle = Rectangle.Intersect(new Rectangle(left, top, width, height), this.SourceRectangle);
+        Configuration configuration = this.Configuration;
+        int currentFrameIndex = this.foregroundFrameCounter % this.ForegroundImage.Frames.Count;
+
+        RowOperation operation =
+            new(
+                configuration,
+                source.PixelBuffer,
+                this.ForegroundImage.Frames[currentFrameIndex].PixelBuffer,
+                backgroundRectangle,
+                foregroundRectangle,
+                this.Blender,
+                this.Opacity);
+
         ParallelRowIterator.IterateRows(
             configuration,
-            workingRect,
+            new Rectangle(0, 0, foregroundRectangle.Width, foregroundRectangle.Height),
             in operation);
+
+        // The repeat count only affects how the foreground frame advances across successive background frames.
+        // When exhausted, the selected foreground frame stops advancing.
+        if (this.ForegroundRepeatCount is 0 || this.foregroundFrameCounter / this.ForegroundImage.Frames.Count < this.ForegroundRepeatCount)
+        {
+            this.foregroundFrameCounter++;
+        }
     }
 
     /// <summary>
@@ -110,36 +163,30 @@ internal class DrawImageProcessor<TPixelBg, TPixelFg> : ImageProcessor<TPixelBg>
     /// </summary>
     private readonly struct RowOperation : IRowOperation
     {
-        private readonly Buffer2D<TPixelBg> source;
-        private readonly Buffer2D<TPixelFg> target;
+        private readonly Buffer2D<TPixelBg> background;
+        private readonly Buffer2D<TPixelFg> foreground;
         private readonly PixelBlender<TPixelBg> blender;
         private readonly Configuration configuration;
-        private readonly int minX;
-        private readonly int width;
-        private readonly int locationY;
-        private readonly int targetX;
+        private readonly Rectangle foregroundRectangle;
+        private readonly Rectangle backgroundRectangle;
         private readonly float opacity;
 
         [MethodImpl(InliningOptions.ShortMethod)]
         public RowOperation(
-            Buffer2D<TPixelBg> source,
-            Buffer2D<TPixelFg> target,
-            PixelBlender<TPixelBg> blender,
             Configuration configuration,
-            int minX,
-            int width,
-            int locationY,
-            int targetX,
+            Buffer2D<TPixelBg> background,
+            Buffer2D<TPixelFg> foreground,
+            Rectangle backgroundRectangle,
+            Rectangle foregroundRectangle,
+            PixelBlender<TPixelBg> blender,
             float opacity)
         {
-            this.source = source;
-            this.target = target;
-            this.blender = blender;
             this.configuration = configuration;
-            this.minX = minX;
-            this.width = width;
-            this.locationY = locationY;
-            this.targetX = targetX;
+            this.background = background;
+            this.foreground = foreground;
+            this.backgroundRectangle = backgroundRectangle;
+            this.foregroundRectangle = foregroundRectangle;
+            this.blender = blender;
             this.opacity = opacity;
         }
 
@@ -147,8 +194,8 @@ internal class DrawImageProcessor<TPixelBg, TPixelFg> : ImageProcessor<TPixelBg>
         [MethodImpl(InliningOptions.ShortMethod)]
         public void Invoke(int y)
         {
-            Span<TPixelBg> background = this.source.DangerousGetRowSpan(y).Slice(this.minX, this.width);
-            Span<TPixelFg> foreground = this.target.DangerousGetRowSpan(y - this.locationY).Slice(this.targetX, this.width);
+            Span<TPixelBg> background = this.background.DangerousGetRowSpan(y + this.backgroundRectangle.Top).Slice(this.backgroundRectangle.Left, this.backgroundRectangle.Width);
+            Span<TPixelFg> foreground = this.foreground.DangerousGetRowSpan(y + this.foregroundRectangle.Top).Slice(this.foregroundRectangle.Left, this.foregroundRectangle.Width);
             this.blender.Blend<TPixelFg>(this.configuration, background, background, foreground, this.opacity);
         }
     }

@@ -16,24 +16,23 @@ public class GeneralFormatTests
     /// A collection made up of one file for each image format.
     /// </summary>
     public static readonly IEnumerable<string> DefaultFiles =
-        new[]
-        {
-            TestImages.Bmp.Car,
+    [
+        TestImages.Bmp.Car,
             TestImages.Jpeg.Baseline.Calliphora,
             TestImages.Png.Splash,
             TestImages.Gif.Trans
-        };
+    ];
 
     /// <summary>
     /// The collection of image files to test against.
     /// </summary>
-    protected static readonly List<TestFile> Files = new()
-    {
+    protected static readonly List<TestFile> Files =
+    [
         TestFile.Create(TestImages.Jpeg.Baseline.Calliphora),
         TestFile.Create(TestImages.Bmp.Car),
         TestFile.Create(TestImages.Png.Splash),
-        TestFile.Create(TestImages.Gif.Rings),
-    };
+        TestFile.Create(TestImages.Gif.Rings)
+    ];
 
     [Theory]
     [WithFileCollection(nameof(DefaultFiles), PixelTypes.Rgba32)]
@@ -151,7 +150,7 @@ public class GeneralFormatTests
     private static IQuantizer GetQuantizer(string name)
     {
         PropertyInfo property = typeof(KnownQuantizers).GetTypeInfo().GetProperty(name);
-        return (IQuantizer)property.GetMethod.Invoke(null, Array.Empty<object>());
+        return (IQuantizer)property.GetMethod.Invoke(null, []);
     }
 
     [Fact]
@@ -162,37 +161,37 @@ public class GeneralFormatTests
         foreach (TestFile file in Files)
         {
             using Image<Rgba32> image = file.CreateRgba32Image();
-            using (FileStream output = File.OpenWrite(Path.Combine(path, $"{file.FileNameWithoutExtension}.bmp")))
+            using (FileStream output = File.Create(Path.Combine(path, $"{file.FileNameWithoutExtension}.bmp")))
             {
                 image.SaveAsBmp(output);
             }
 
-            using (FileStream output = File.OpenWrite(Path.Combine(path, $"{file.FileNameWithoutExtension}.jpg")))
+            using (FileStream output = File.Create(Path.Combine(path, $"{file.FileNameWithoutExtension}.jpg")))
             {
                 image.SaveAsJpeg(output);
             }
 
-            using (FileStream output = File.OpenWrite(Path.Combine(path, $"{file.FileNameWithoutExtension}.pbm")))
+            using (FileStream output = File.Create(Path.Combine(path, $"{file.FileNameWithoutExtension}.pbm")))
             {
                 image.SaveAsPbm(output);
             }
 
-            using (FileStream output = File.OpenWrite(Path.Combine(path, $"{file.FileNameWithoutExtension}.png")))
+            using (FileStream output = File.Create(Path.Combine(path, $"{file.FileNameWithoutExtension}.png")))
             {
                 image.SaveAsPng(output);
             }
 
-            using (FileStream output = File.OpenWrite(Path.Combine(path, $"{file.FileNameWithoutExtension}.gif")))
+            using (FileStream output = File.Create(Path.Combine(path, $"{file.FileNameWithoutExtension}.gif")))
             {
                 image.SaveAsGif(output);
             }
 
-            using (FileStream output = File.OpenWrite(Path.Combine(path, $"{file.FileNameWithoutExtension}.tga")))
+            using (FileStream output = File.Create(Path.Combine(path, $"{file.FileNameWithoutExtension}.tga")))
             {
                 image.SaveAsTga(output);
             }
 
-            using (FileStream output = File.OpenWrite(Path.Combine(path, $"{file.FileNameWithoutExtension}.tiff")))
+            using (FileStream output = File.Create(Path.Combine(path, $"{file.FileNameWithoutExtension}.tiff")))
             {
                 image.SaveAsTiff(output);
             }

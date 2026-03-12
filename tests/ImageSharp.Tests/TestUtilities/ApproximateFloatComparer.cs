@@ -4,7 +4,6 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 using System.Runtime.Intrinsics;
-using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Tests;
 
@@ -14,7 +13,6 @@ namespace SixLabors.ImageSharp.Tests;
 internal readonly struct ApproximateFloatComparer :
     IEqualityComparer<float>,
     IEqualityComparer<Vector2>,
-    IEqualityComparer<IPixel>,
     IEqualityComparer<Vector4>,
     IEqualityComparer<ColorMatrix>,
     IEqualityComparer<Vector256<float>>
@@ -46,13 +44,6 @@ internal readonly struct ApproximateFloatComparer :
     /// <inheritdoc/>
     public int GetHashCode(Vector2 obj)
         => obj.GetHashCode();
-
-    /// <inheritdoc/>
-    public bool Equals(IPixel x, IPixel y)
-        => this.Equals(x.ToScaledVector4(), y.ToScaledVector4());
-
-    public int GetHashCode(IPixel obj)
-        => obj.ToScaledVector4().GetHashCode();
 
     /// <inheritdoc/>
     public bool Equals(Vector4 x, Vector4 y)

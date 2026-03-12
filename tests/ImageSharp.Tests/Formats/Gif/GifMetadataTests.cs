@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using Microsoft.CodeAnalysis;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.Metadata;
@@ -34,20 +33,21 @@ public class GifMetadataTests
         GifMetadata meta = new()
         {
             RepeatCount = 1,
-            ColorTableMode = GifColorTableMode.Global,
-            GlobalColorTableLength = 2,
-            Comments = new List<string> { "Foo" }
+            ColorTableMode = FrameColorTableMode.Global,
+            GlobalColorTable = new[] { Color.Black, Color.White },
+            Comments = ["Foo"]
         };
 
         GifMetadata clone = (GifMetadata)meta.DeepClone();
 
         clone.RepeatCount = 2;
-        clone.ColorTableMode = GifColorTableMode.Local;
-        clone.GlobalColorTableLength = 1;
+        clone.ColorTableMode = FrameColorTableMode.Local;
+        clone.GlobalColorTable = new[] { Color.Black };
 
         Assert.False(meta.RepeatCount.Equals(clone.RepeatCount));
         Assert.False(meta.ColorTableMode.Equals(clone.ColorTableMode));
-        Assert.False(meta.GlobalColorTableLength.Equals(clone.GlobalColorTableLength));
+        Assert.False(meta.GlobalColorTable.Value.Length == clone.GlobalColorTable.Value.Length);
+        Assert.Equal(1, clone.GlobalColorTable.Value.Length);
         Assert.False(meta.Comments.Equals(clone.Comments));
         Assert.True(meta.Comments.SequenceEqual(clone.Comments));
     }
@@ -126,7 +126,7 @@ public class GifMetadataTests
     public async Task Identify_VerifyRatioAsync(string imagePath, int xResolution, int yResolution, PixelResolutionUnit resolutionUnit)
     {
         TestFile testFile = TestFile.Create(imagePath);
-        using MemoryStream stream = new(testFile.Bytes, false);
+        await using MemoryStream stream = new(testFile.Bytes, false);
         ImageInfo image = await GifDecoder.Instance.IdentifyAsync(DecoderOptions.Default, stream);
         ImageMetadata meta = image.Metadata;
         Assert.Equal(xResolution, meta.HorizontalResolution);
@@ -152,7 +152,7 @@ public class GifMetadataTests
     public async Task Decode_VerifyRatioAsync(string imagePath, int xResolution, int yResolution, PixelResolutionUnit resolutionUnit)
     {
         TestFile testFile = TestFile.Create(imagePath);
-        using MemoryStream stream = new(testFile.Bytes, false);
+        await using MemoryStream stream = new(testFile.Bytes, false);
         using Image<Rgba32> image = await GifDecoder.Instance.DecodeAsync<Rgba32>(DecoderOptions.Default, stream);
         ImageMetadata meta = image.Metadata;
         Assert.Equal(xResolution, meta.HorizontalResolution);
@@ -183,14 +183,14 @@ public class GifMetadataTests
     }
 
     [Theory]
-    [InlineData(TestImages.Gif.Cheers, 93, GifColorTableMode.Global, 256, 4, GifDisposalMethod.NotDispose)]
+    [InlineData(TestImages.Gif.Cheers, 93, FrameColorTableMode.Global, 256, 4, FrameDisposalMode.DoNotDispose)]
     public void Identify_Frames(
         string imagePath,
         int framesCount,
-        GifColorTableMode colorTableMode,
+        FrameColorTableMode colorTableMode,
         int globalColorTableLength,
         int frameDelay,
-        GifDisposalMethod disposalMethod)
+        FrameDisposalMode disposalMethod)
     {
         TestFile testFile = TestFile.Create(imagePath);
         using MemoryStream stream = new(testFile.Bytes, false);
@@ -205,8 +205,33 @@ public class GifMetadataTests
         GifFrameMetadata gifFrameMetadata = imageInfo.FrameMetadataCollection[imageInfo.FrameMetadataCollection.Count - 1].GetGifMetadata();
 
         Assert.Equal(colorTableMode, gifFrameMetadata.ColorTableMode);
-        Assert.Equal(globalColorTableLength, gifFrameMetadata.ColorTableLength);
+
+        if (colorTableMode == FrameColorTableMode.Global)
+        {
+            Assert.Equal(globalColorTableLength, gifMetadata.GlobalColorTable.Value.Length);
+        }
+
         Assert.Equal(frameDelay, gifFrameMetadata.FrameDelay);
-        Assert.Equal(disposalMethod, gifFrameMetadata.DisposalMethod);
+        Assert.Equal(disposalMethod, gifFrameMetadata.DisposalMode);
+    }
+
+    [Theory]
+    [InlineData(TestImages.Gif.Issues.BadMaxLzwBits, 8)]
+    [InlineData(TestImages.Gif.Issues.Issue2012BadMinCode, 1)]
+    public void Identify_Frames_Bad_Lzw(string imagePath, int framesCount)
+    {
+        TestFile testFile = TestFile.Create(imagePath);
+        using MemoryStream stream = new(testFile.Bytes, false);
+
+        ImageInfo imageInfo = Image.Identify(stream);
+
+        Assert.NotNull(imageInfo);
+        GifMetadata gifMetadata = imageInfo.Metadata.GetGifMetadata();
+        Assert.NotNull(gifMetadata);
+
+        Assert.Equal(framesCount, imageInfo.FrameMetadataCollection.Count);
+        GifFrameMetadata gifFrameMetadata = imageInfo.FrameMetadataCollection[imageInfo.FrameMetadataCollection.Count - 1].GetGifMetadata();
+
+        Assert.NotNull(gifFrameMetadata);
     }
 }

@@ -5,7 +5,6 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
-using System.Runtime.Intrinsics.Arm;
 using System.Runtime.Intrinsics.X86;
 
 namespace SixLabors.ImageSharp;
@@ -62,6 +61,12 @@ internal static class Numerics
     public static nint Modulo4(nint x) => x & 3;
 
     /// <summary>
+    /// Calculates <paramref name="x"/> % 4
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static nuint Modulo4(nuint x) => x & 3;
+
+    /// <summary>
     /// Calculates <paramref name="x"/> % 8
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -72,6 +77,30 @@ internal static class Numerics
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static nint Modulo8(nint x) => x & 7;
+
+    /// <summary>
+    /// Calculates <paramref name="x"/> % 64
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static int Modulo64(int x) => x & 63;
+
+    /// <summary>
+    /// Calculates <paramref name="x"/> % 64
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static nint Modulo64(nint x) => x & 63;
+
+    /// <summary>
+    /// Calculates <paramref name="x"/> % 256
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static int Modulo256(int x) => x & 255;
+
+    /// <summary>
+    /// Calculates <paramref name="x"/> % 256
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static nint Modulo256(nint x) => x & 255;
 
     /// <summary>
     /// Fast (x mod m) calculator, with the restriction that
@@ -111,6 +140,14 @@ internal static class Numerics
     /// <returns>The number <paramref name="x" /> raised to the power of 3.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static float Pow3(float x) => x * x * x;
+
+    /// <summary>
+    /// Returns a specified number raised to the power of 3
+    /// </summary>
+    /// <param name="x">A double-precision floating-point number</param>
+    /// <returns>The number <paramref name="x" /> raised to the power of 3.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static double Pow3(double x) => x * x * x;
 
     /// <summary>
     /// Implementation of 1D Gaussian G(x) function
@@ -433,8 +470,8 @@ internal static class Numerics
         where T : unmanaged
     {
         ref T sRef = ref MemoryMarshal.GetReference(span);
-        var vmin = new Vector<T>(min);
-        var vmax = new Vector<T>(max);
+        Vector<T> vmin = new(min);
+        Vector<T> vmax = new(max);
 
         nint n = (nint)(uint)span.Length / Vector<T>.Count;
         nint m = Modulo4(n);
@@ -619,7 +656,7 @@ internal static class Numerics
             return Sse.Shuffle(value.AsVector128(), value.AsVector128(), ShuffleAlphaControl).AsVector4();
         }
 
-        return new(value.W);
+        return new Vector4(value.W);
     }
 
     /// <summary>
@@ -689,12 +726,12 @@ internal static class Numerics
             ref Vector128<float> vectors128Ref = ref Unsafe.As<Vector4, Vector128<float>>(ref MemoryMarshal.GetReference(vectors));
             ref Vector128<float> vectors128End = ref Unsafe.Add(ref vectors128Ref, (uint)vectors.Length);
 
-            var v128_341 = Vector128.Create(341);
+            Vector128<int> v128_341 = Vector128.Create(341);
             Vector128<int> v128_negativeZero = Vector128.Create(-0.0f).AsInt32();
             Vector128<int> v128_one = Vector128.Create(1.0f).AsInt32();
 
-            var v128_13rd = Vector128.Create(1 / 3f);
-            var v128_23rds = Vector128.Create(2 / 3f);
+            Vector128<float> v128_13rd = Vector128.Create(1 / 3f);
+            Vector128<float> v128_23rds = Vector128.Create(2 / 3f);
 
             while (Unsafe.IsAddressLessThan(ref vectors128Ref, ref vectors128End))
             {
@@ -853,23 +890,6 @@ internal static class Numerics
     /// <param name="accumulator">The accumulator to reduce.</param>
     /// <returns>The sum of all elements.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static int ReduceSum(Vector128<int> accumulator)
-    {
-        // Add odd to even.
-        Vector128<int> vsum = Sse2.Add(accumulator, Sse2.Shuffle(accumulator, 0b_11_11_01_01));
-
-        // Add high to low.
-        vsum = Sse2.Add(vsum, Sse2.Shuffle(vsum, 0b_11_10_11_10));
-
-        return Sse2.ConvertToInt32(vsum);
-    }
-
-    /// <summary>
-    /// Reduces elements of the vector into one sum.
-    /// </summary>
-    /// <param name="accumulator">The accumulator to reduce.</param>
-    /// <returns>The sum of all elements.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static int ReduceSum(Vector256<int> accumulator)
     {
         // Add upper lane to lower lane.
@@ -882,25 +902,6 @@ internal static class Numerics
         vsum = Sse2.Add(vsum, Sse2.Shuffle(vsum, 0b_11_10_11_10));
 
         return Sse2.ConvertToInt32(vsum);
-    }
-
-    /// <summary>
-    /// Reduces elements of the vector into one sum.
-    /// </summary>
-    /// <param name="accumulator">The accumulator to reduce.</param>
-    /// <returns>The sum of all elements.</returns>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public static int ReduceSumArm(Vector128<uint> accumulator)
-    {
-        if (AdvSimd.Arm64.IsSupported)
-        {
-            Vector64<uint> sum = AdvSimd.Arm64.AddAcross(accumulator);
-            return (int)AdvSimd.Extract(sum, 0);
-        }
-
-        Vector128<ulong> sum2 = AdvSimd.AddPairwiseWidening(accumulator);
-        Vector64<uint> sum3 = AdvSimd.Add(sum2.GetLower().AsUInt32(), sum2.GetUpper().AsUInt32());
-        return (int)AdvSimd.Extract(sum3, 0);
     }
 
     /// <summary>
@@ -1006,6 +1007,26 @@ internal static class Numerics
     /// <typeparam name="TVector">The type of the vector.</typeparam>
     /// <param name="span">The given span.</param>
     /// <returns>Count of vectors that safely fit into the span.</returns>
+    public static nuint Vector512Count<TVector>(this Span<byte> span)
+        where TVector : struct
+        => (uint)span.Length / (uint)Vector512<TVector>.Count;
+
+    /// <summary>
+    /// Gets the count of vectors that safely fit into the given span.
+    /// </summary>
+    /// <typeparam name="TVector">The type of the vector.</typeparam>
+    /// <param name="span">The given span.</param>
+    /// <returns>Count of vectors that safely fit into the span.</returns>
+    public static nuint Vector512Count<TVector>(this ReadOnlySpan<byte> span)
+        where TVector : struct
+        => (uint)span.Length / (uint)Vector512<TVector>.Count;
+
+    /// <summary>
+    /// Gets the count of vectors that safely fit into the given span.
+    /// </summary>
+    /// <typeparam name="TVector">The type of the vector.</typeparam>
+    /// <param name="span">The given span.</param>
+    /// <returns>Count of vectors that safely fit into the span.</returns>
     public static nuint VectorCount<TVector>(this Span<float> span)
         where TVector : struct
         => (uint)span.Length / (uint)Vector<TVector>.Count;
@@ -1039,4 +1060,67 @@ internal static class Numerics
     public static nuint Vector256Count<TVector>(int length)
         where TVector : struct
         => (uint)length / (uint)Vector256<TVector>.Count;
+
+    /// <summary>
+    /// Gets the count of vectors that safely fit into the given span.
+    /// </summary>
+    /// <typeparam name="TVector">The type of the vector.</typeparam>
+    /// <param name="span">The given span.</param>
+    /// <returns>Count of vectors that safely fit into the span.</returns>
+    public static nuint Vector512Count<TVector>(this Span<float> span)
+        where TVector : struct
+        => (uint)span.Length / (uint)Vector512<TVector>.Count;
+
+    /// <summary>
+    /// Gets the count of vectors that safely fit into length.
+    /// </summary>
+    /// <typeparam name="TVector">The type of the vector.</typeparam>
+    /// <param name="length">The given length.</param>
+    /// <returns>Count of vectors that safely fit into the length.</returns>
+    public static nuint Vector512Count<TVector>(int length)
+        where TVector : struct
+        => (uint)length / (uint)Vector512<TVector>.Count;
+
+    /// <summary>
+    /// Normalizes the values in a given <see cref="Span{T}"/>.
+    /// </summary>
+    /// <param name="span">The sequence of <see cref="float"/> values to normalize.</param>
+    /// <param name="sum">The sum of the values in <paramref name="span"/>.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void Normalize(Span<float> span, float sum)
+    {
+        if (Vector256.IsHardwareAccelerated)
+        {
+            ref float startRef = ref MemoryMarshal.GetReference(span);
+            ref float endRef = ref Unsafe.Add(ref startRef, span.Length & ~7);
+            Vector256<float> sum256 = Vector256.Create(sum);
+
+            while (Unsafe.IsAddressLessThan(ref startRef, ref endRef))
+            {
+                Unsafe.As<float, Vector256<float>>(ref startRef) /= sum256;
+                startRef = ref Unsafe.Add(ref startRef, (nuint)8);
+            }
+
+            if ((span.Length & 7) >= 4)
+            {
+                Unsafe.As<float, Vector128<float>>(ref startRef) /= sum256.GetLower();
+                startRef = ref Unsafe.Add(ref startRef, (nuint)4);
+            }
+
+            endRef = ref Unsafe.Add(ref startRef, span.Length & 3);
+
+            while (Unsafe.IsAddressLessThan(ref startRef, ref endRef))
+            {
+                startRef /= sum;
+                startRef = ref Unsafe.Add(ref startRef, (nuint)1);
+            }
+        }
+        else
+        {
+            for (int i = 0; i < span.Length; i++)
+            {
+                span[i] /= sum;
+            }
+        }
+    }
 }

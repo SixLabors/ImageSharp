@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Tests.PixelFormats;
@@ -15,10 +16,10 @@ public class Argb32Tests
     [Fact]
     public void AreEqual()
     {
-        var color1 = new Argb32(0.0f, 0.0f, 0.0f, 0.0f);
-        var color2 = new Argb32(new Vector4(0.0f));
-        var color3 = new Argb32(new Vector4(1.0f, 0.0f, 1.0f, 1.0f));
-        var color4 = new Argb32(1.0f, 0.0f, 1.0f, 1.0f);
+        Argb32 color1 = new(0.0f, 0.0f, 0.0f, 0.0f);
+        Argb32 color2 = new(new Vector4(0.0f));
+        Argb32 color3 = new(new Vector4(1f, 0.0f, 1f, 1f));
+        Argb32 color4 = new(1f, 0.0f, 1f, 1f);
 
         Assert.Equal(color1, color2);
         Assert.Equal(color3, color4);
@@ -30,10 +31,10 @@ public class Argb32Tests
     [Fact]
     public void AreNotEqual()
     {
-        var color1 = new Argb32(0.0f, 0.0f, 0.0f, 0.0f);
-        var color2 = new Argb32(new Vector4(1.0f));
-        var color3 = new Argb32(new Vector4(1.0f, 0.0f, 0.0f, 1.0f));
-        var color4 = new Argb32(1.0f, 1.0f, 0.0f, 1.0f);
+        Argb32 color1 = new(0.0f, 0.0f, 0.0f, 0.0f);
+        Argb32 color2 = new(new Vector4(1f));
+        Argb32 color3 = new(new Vector4(1f, 0.0f, 0.0f, 1f));
+        Argb32 color4 = new(1f, 1f, 0.0f, 1f);
 
         Assert.NotEqual(color1, color2);
         Assert.NotEqual(color3, color4);
@@ -45,25 +46,25 @@ public class Argb32Tests
     [Fact]
     public void ConstructorAssignsProperties()
     {
-        var color1 = new Argb32(1, .1f, .133f, .864f);
+        Argb32 color1 = new(1, .1f, .133f, .864f);
         Assert.Equal(255, color1.R);
         Assert.Equal((byte)Math.Round(.1f * 255), color1.G);
         Assert.Equal((byte)Math.Round(.133f * 255), color1.B);
         Assert.Equal((byte)Math.Round(.864f * 255), color1.A);
 
-        var color2 = new Argb32(1, .1f, .133f);
+        Argb32 color2 = new(1, .1f, .133f);
         Assert.Equal(255, color2.R);
         Assert.Equal(Math.Round(.1f * 255), color2.G);
         Assert.Equal(Math.Round(.133f * 255), color2.B);
         Assert.Equal(255, color2.A);
 
-        var color4 = new Argb32(new Vector3(1, .1f, .133f));
+        Argb32 color4 = new(new Vector3(1, .1f, .133f));
         Assert.Equal(255, color4.R);
         Assert.Equal(Math.Round(.1f * 255), color4.G);
         Assert.Equal(Math.Round(.133f * 255), color4.B);
         Assert.Equal(255, color4.A);
 
-        var color5 = new Argb32(new Vector4(1, .1f, .133f, .5f));
+        Argb32 color5 = new(new Vector4(1, .1f, .133f, .5f));
         Assert.Equal(255, color5.R);
         Assert.Equal(Math.Round(.1f * 255), color5.G);
         Assert.Equal(Math.Round(.133f * 255), color5.B);
@@ -93,7 +94,7 @@ public class Argb32Tests
     public void Argb32_ToScaledVector4()
     {
         // arrange
-        var argb = new Argb32(Vector4.One);
+        Argb32 argb = new(Vector4.One);
 
         // act
         Vector4 actual = argb.ToScaledVector4();
@@ -110,11 +111,10 @@ public class Argb32Tests
     {
         // arrange
         Vector4 scaled = new Argb32(Vector4.One).ToScaledVector4();
-        var pixel = default(Argb32);
-        uint expected = 0xFFFFFFFF;
+        const uint expected = 0xFFFFFFFF;
 
         // act
-        pixel.FromScaledVector4(scaled);
+        Argb32 pixel = Argb32.FromScaledVector4(scaled);
         uint actual = pixel.PackedValue;
 
         // assert
@@ -125,11 +125,10 @@ public class Argb32Tests
     public void Argb32_FromBgra5551()
     {
         // arrange
-        var argb = default(Argb32);
-        uint expected = uint.MaxValue;
+        const uint expected = uint.MaxValue;
 
         // act
-        argb.FromBgra5551(new Bgra5551(1.0f, 1.0f, 1.0f, 1.0f));
+        Argb32 argb = Argb32.FromBgra5551(new Bgra5551(1f, 1f, 1f, 1f));
 
         // assert
         Assert.Equal(expected, argb.PackedValue);
@@ -140,5 +139,23 @@ public class Argb32Tests
     {
         Assert.Equal(Vector4.Zero, new Argb32(Vector4.One * -1234.0f).ToVector4());
         Assert.Equal(Vector4.One, new Argb32(Vector4.One * +1234.0f).ToVector4());
+    }
+
+    [Fact]
+    public void Argb32_PixelInformation()
+    {
+        PixelTypeInfo info = Argb32.GetPixelTypeInfo();
+        Assert.Equal(Unsafe.SizeOf<Argb32>() * 8, info.BitsPerPixel);
+        Assert.Equal(PixelAlphaRepresentation.Unassociated, info.AlphaRepresentation);
+        Assert.Equal(PixelColorType.Alpha | PixelColorType.RGB, info.ColorType);
+
+        PixelComponentInfo componentInfo = info.ComponentInfo.Value;
+        Assert.Equal(4, componentInfo.ComponentCount);
+        Assert.Equal(0, componentInfo.Padding);
+        Assert.Equal(8, componentInfo.GetComponentPrecision(0));
+        Assert.Equal(8, componentInfo.GetComponentPrecision(1));
+        Assert.Equal(8, componentInfo.GetComponentPrecision(2));
+        Assert.Equal(8, componentInfo.GetComponentPrecision(3));
+        Assert.Equal(8, componentInfo.GetMaximumComponentPrecision());
     }
 }

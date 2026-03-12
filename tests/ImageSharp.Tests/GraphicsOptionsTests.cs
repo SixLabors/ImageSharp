@@ -8,12 +8,12 @@ namespace SixLabors.ImageSharp.Tests;
 
 public class GraphicsOptionsTests
 {
-    private static readonly GraphicsOptionsComparer GraphicsOptionsComparer = new GraphicsOptionsComparer();
-    private readonly GraphicsOptions newGraphicsOptions = new GraphicsOptions();
+    private static readonly GraphicsOptionsComparer GraphicsOptionsComparer = new();
+    private readonly GraphicsOptions newGraphicsOptions = new();
     private readonly GraphicsOptions cloneGraphicsOptions = new GraphicsOptions().DeepClone();
 
     [Fact]
-    public void CloneGraphicsOptionsIsNotNull() => Assert.True(this.cloneGraphicsOptions != null);
+    public void CloneGraphicsOptionsIsNotNull() => Assert.NotNull(this.cloneGraphicsOptions);
 
     [Fact]
     public void DefaultGraphicsOptionsAntialias()
@@ -23,45 +23,45 @@ public class GraphicsOptionsTests
     }
 
     [Fact]
-    public void DefaultGraphicsOptionsAntialiasSuppixelDepth()
+    public void DefaultGraphicsOptionsAntialiasThreshold()
     {
-        const int Expected = 16;
-        Assert.Equal(Expected, this.newGraphicsOptions.AntialiasSubpixelDepth);
-        Assert.Equal(Expected, this.cloneGraphicsOptions.AntialiasSubpixelDepth);
+        const float expected = .5F;
+        Assert.Equal(expected, this.newGraphicsOptions.AntialiasThreshold);
+        Assert.Equal(expected, this.cloneGraphicsOptions.AntialiasThreshold);
     }
 
     [Fact]
     public void DefaultGraphicsOptionsBlendPercentage()
     {
-        const float Expected = 1F;
-        Assert.Equal(Expected, this.newGraphicsOptions.BlendPercentage);
-        Assert.Equal(Expected, this.cloneGraphicsOptions.BlendPercentage);
+        const float expected = 1F;
+        Assert.Equal(expected, this.newGraphicsOptions.BlendPercentage);
+        Assert.Equal(expected, this.cloneGraphicsOptions.BlendPercentage);
     }
 
     [Fact]
     public void DefaultGraphicsOptionsColorBlendingMode()
     {
-        const PixelColorBlendingMode Expected = PixelColorBlendingMode.Normal;
-        Assert.Equal(Expected, this.newGraphicsOptions.ColorBlendingMode);
-        Assert.Equal(Expected, this.cloneGraphicsOptions.ColorBlendingMode);
+        const PixelColorBlendingMode expected = PixelColorBlendingMode.Normal;
+        Assert.Equal(expected, this.newGraphicsOptions.ColorBlendingMode);
+        Assert.Equal(expected, this.cloneGraphicsOptions.ColorBlendingMode);
     }
 
     [Fact]
     public void DefaultGraphicsOptionsAlphaCompositionMode()
     {
-        const PixelAlphaCompositionMode Expected = PixelAlphaCompositionMode.SrcOver;
-        Assert.Equal(Expected, this.newGraphicsOptions.AlphaCompositionMode);
-        Assert.Equal(Expected, this.cloneGraphicsOptions.AlphaCompositionMode);
+        const PixelAlphaCompositionMode expected = PixelAlphaCompositionMode.SrcOver;
+        Assert.Equal(expected, this.newGraphicsOptions.AlphaCompositionMode);
+        Assert.Equal(expected, this.cloneGraphicsOptions.AlphaCompositionMode);
     }
 
     [Fact]
     public void NonDefaultClone()
     {
-        var expected = new GraphicsOptions
+        GraphicsOptions expected = new()
         {
             AlphaCompositionMode = PixelAlphaCompositionMode.DestAtop,
             Antialias = false,
-            AntialiasSubpixelDepth = 23,
+            AntialiasThreshold = .33F,
             BlendPercentage = .25F,
             ColorBlendingMode = PixelColorBlendingMode.HardLight,
         };
@@ -74,12 +74,12 @@ public class GraphicsOptionsTests
     [Fact]
     public void CloneIsDeep()
     {
-        var expected = new GraphicsOptions();
+        GraphicsOptions expected = new();
         GraphicsOptions actual = expected.DeepClone();
 
         actual.AlphaCompositionMode = PixelAlphaCompositionMode.DestAtop;
         actual.Antialias = false;
-        actual.AntialiasSubpixelDepth = 23;
+        actual.AntialiasThreshold = .67F;
         actual.BlendPercentage = .25F;
         actual.ColorBlendingMode = PixelColorBlendingMode.HardLight;
 

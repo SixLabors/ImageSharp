@@ -2,7 +2,6 @@
 // Licensed under the Six Labors Split License.
 
 using System.Runtime.CompilerServices;
-using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -58,7 +57,7 @@ public class TolerantImageComparer : ImageComparer
 
     public override ImageSimilarityReport<TPixelA, TPixelB> CompareImagesOrFrames<TPixelA, TPixelB>(int index, ImageFrame<TPixelA> expected, ImageFrame<TPixelB> actual)
     {
-        if (expected.Size() != actual.Size())
+        if (expected.Size != actual.Size)
         {
             throw new InvalidOperationException("Calling ImageComparer is invalid when dimensions mismatch!");
         }
@@ -66,13 +65,13 @@ public class TolerantImageComparer : ImageComparer
         int width = actual.Width;
 
         // TODO: Comparing through Rgba64 may not robust enough because of the existence of super high precision pixel types.
-        var aBuffer = new Rgba64[width];
-        var bBuffer = new Rgba64[width];
+        Rgba64[] aBuffer = new Rgba64[width];
+        Rgba64[] bBuffer = new Rgba64[width];
 
         float totalDifference = 0F;
 
-        var differences = new List<PixelDifference>();
-        Configuration configuration = expected.GetConfiguration();
+        List<PixelDifference> differences = [];
+        Configuration configuration = expected.Configuration;
         Buffer2D<TPixelA> expectedBuffer = expected.PixelBuffer;
         Buffer2D<TPixelB> actualBuffer = actual.PixelBuffer;
 
@@ -90,7 +89,7 @@ public class TolerantImageComparer : ImageComparer
 
                 if (d > this.PerPixelManhattanThreshold)
                 {
-                    var diff = new PixelDifference(new Point(x, y), aBuffer[x], bBuffer[x]);
+                    PixelDifference diff = new(new Point(x, y), aBuffer[x], bBuffer[x]);
                     differences.Add(diff);
 
                     totalDifference += d;

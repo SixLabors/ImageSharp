@@ -13,14 +13,14 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities;
 /// </summary>
 internal class BasicSerializer : IXunitSerializationInfo
 {
-    private readonly Dictionary<string, string> map = new Dictionary<string, string>();
+    private readonly Dictionary<string, string> map = [];
 
     public const char Separator = ':';
 
     private string DumpToString(Type type)
     {
-        using var ms = new MemoryStream();
-        using var writer = new StreamWriter(ms);
+        using MemoryStream ms = new();
+        using StreamWriter writer = new(ms);
         writer.WriteLine(type.FullName);
         foreach (KeyValuePair<string, string> kv in this.map)
         {
@@ -29,16 +29,16 @@ internal class BasicSerializer : IXunitSerializationInfo
 
         writer.Flush();
         byte[] data = ms.ToArray();
-        return System.Convert.ToBase64String(data);
+        return Convert.ToBase64String(data);
     }
 
     private Type LoadDump(string dump)
     {
-        byte[] data = System.Convert.FromBase64String(dump);
+        byte[] data = Convert.FromBase64String(dump);
 
-        using var ms = new MemoryStream(data);
-        using var reader = new StreamReader(ms);
-        var type = Type.GetType(reader.ReadLine());
+        using MemoryStream ms = new(data);
+        using StreamReader reader = new(ms);
+        Type type = Type.GetType(reader.ReadLine());
         for (string s = reader.ReadLine(); s != null; s = reader.ReadLine())
         {
             string[] kv = s.Split(Separator);
@@ -50,7 +50,7 @@ internal class BasicSerializer : IXunitSerializationInfo
 
     public static string Serialize(IXunitSerializable serializable)
     {
-        var serializer = new BasicSerializer();
+        BasicSerializer serializer = new();
         serializable.Serialize(serializer);
         return serializer.DumpToString(serializable.GetType());
     }
@@ -58,10 +58,10 @@ internal class BasicSerializer : IXunitSerializationInfo
     public static T Deserialize<T>(string dump)
         where T : IXunitSerializable
     {
-        var serializer = new BasicSerializer();
+        BasicSerializer serializer = new();
         Type type = serializer.LoadDump(dump);
 
-        var result = (T)Activator.CreateInstance(type);
+        T result = (T)Activator.CreateInstance(type);
         result.Deserialize(serializer);
         return result;
     }

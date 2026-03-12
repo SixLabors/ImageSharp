@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.PixelFormats;
 
 // ReSharper disable InconsistentNaming
@@ -24,8 +25,8 @@ public class L8Tests
     [Fact]
     public void AreEqual()
     {
-        var color1 = new L8(100);
-        var color2 = new L8(100);
+        L8 color1 = new(100);
+        L8 color2 = new(100);
 
         Assert.Equal(color1, color2);
     }
@@ -33,8 +34,8 @@ public class L8Tests
     [Fact]
     public void AreNotEqual()
     {
-        var color1 = new L8(100);
-        var color2 = new L8(200);
+        L8 color1 = new(100);
+        L8 color2 = new(200);
 
         Assert.NotEqual(color1, color2);
     }
@@ -43,13 +44,12 @@ public class L8Tests
     public void L8_FromScaledVector4()
     {
         // Arrange
-        L8 gray = default;
         const byte expected = 128;
         Vector4 scaled = new L8(expected).ToScaledVector4();
 
         // Act
-        gray.FromScaledVector4(scaled);
-        byte actual = gray.PackedValue;
+        L8 pixel = L8.FromScaledVector4(scaled);
+        byte actual = pixel.PackedValue;
 
         // Assert
         Assert.Equal(expected, actual);
@@ -60,10 +60,10 @@ public class L8Tests
     public void L8_ToScaledVector4(byte input)
     {
         // Arrange
-        var gray = new L8(input);
+        L8 pixel = new(input);
 
         // Act
-        Vector4 actual = gray.ToScaledVector4();
+        Vector4 actual = pixel.ToScaledVector4();
 
         // Assert
         float scaledInput = input / 255F;
@@ -78,12 +78,11 @@ public class L8Tests
     public void L8_FromVector4(byte luminance)
     {
         // Arrange
-        L8 gray = default;
-        var vector = new L8(luminance).ToVector4();
+        Vector4 vector = new L8(luminance).ToVector4();
 
         // Act
-        gray.FromVector4(vector);
-        byte actual = gray.PackedValue;
+        L8 pixel = L8.FromVector4(vector);
+        byte actual = pixel.PackedValue;
 
         // Assert
         Assert.Equal(luminance, actual);
@@ -94,10 +93,10 @@ public class L8Tests
     public void L8_ToVector4(byte input)
     {
         // Arrange
-        var gray = new L8(input);
+        L8 pixel = new(input);
 
         // Act
-        var actual = gray.ToVector4();
+        Vector4 actual = pixel.ToVector4();
 
         // Assert
         float scaledInput = input / 255F;
@@ -112,12 +111,11 @@ public class L8Tests
     public void L8_FromRgba32(byte rgb)
     {
         // Arrange
-        L8 gray = default;
         byte expected = ColorNumerics.Get8BitBT709Luminance(rgb, rgb, rgb);
 
         // Act
-        gray.FromRgba32(new Rgba32(rgb, rgb, rgb));
-        byte actual = gray.PackedValue;
+        L8 pixel = L8.FromRgba32(new Rgba32(rgb, rgb, rgb));
+        byte actual = pixel.PackedValue;
 
         // Assert
         Assert.Equal(expected, actual);
@@ -128,11 +126,10 @@ public class L8Tests
     public void L8_ToRgba32(byte luminance)
     {
         // Arrange
-        var gray = new L8(luminance);
+        L8 pixel = new(luminance);
 
         // Act
-        Rgba32 actual = default;
-        gray.ToRgba32(ref actual);
+        Rgba32 actual = pixel.ToRgba32();
 
         // Assert
         Assert.Equal(luminance, actual.R);
@@ -145,11 +142,10 @@ public class L8Tests
     public void L8_FromBgra5551()
     {
         // arrange
-        var grey = default(L8);
-        byte expected = byte.MaxValue;
+        const byte expected = byte.MaxValue;
 
         // act
-        grey.FromBgra5551(new Bgra5551(1.0f, 1.0f, 1.0f, 1.0f));
+        L8 grey = L8.FromBgra5551(new Bgra5551(1f, 1f, 1f, 1f));
 
         // assert
         Assert.Equal(expected, grey.PackedValue);
@@ -164,13 +160,11 @@ public class L8Tests
         [MemberData(nameof(LuminanceData))]
         public void L8_FromRgba32_IsInverseOf_ToRgba32(byte luminance)
         {
-            var original = new L8(luminance);
+            L8 original = new(luminance);
 
-            Rgba32 rgba = default;
-            original.ToRgba32(ref rgba);
+            Rgba32 rgba = original.ToRgba32();
 
-            L8 mirror = default;
-            mirror.FromRgba32(rgba);
+            L8 mirror = L8.FromRgba32(rgba);
 
             Assert.Equal(original, mirror);
         }
@@ -179,13 +173,10 @@ public class L8Tests
         [MemberData(nameof(LuminanceData))]
         public void Rgba32_ToL8_IsInverseOf_L8_ToRgba32(byte luminance)
         {
-            var original = new L8(luminance);
+            L8 original = new(luminance);
 
-            Rgba32 rgba = default;
-            original.ToRgba32(ref rgba);
-
-            L8 mirror = default;
-            mirror.FromRgba32(rgba);
+            Rgba32 rgba = original.ToRgba32();
+            L8 mirror = L8.FromRgba32(rgba);
 
             Assert.Equal(original, mirror);
         }
@@ -194,13 +185,12 @@ public class L8Tests
         [MemberData(nameof(LuminanceData))]
         public void ToVector4_IsRgba32Compatible(byte luminance)
         {
-            var original = new L8(luminance);
+            L8 original = new(luminance);
 
-            Rgba32 rgba = default;
-            original.ToRgba32(ref rgba);
+            Rgba32 rgba = original.ToRgba32();
 
-            var l8Vector = original.ToVector4();
-            var rgbaVector = original.ToVector4();
+            Vector4 l8Vector = original.ToVector4();
+            Vector4 rgbaVector = rgba.ToVector4();
 
             Assert.Equal(l8Vector, rgbaVector, new ApproximateFloatComparer(1e-5f));
         }
@@ -209,15 +199,13 @@ public class L8Tests
         [MemberData(nameof(LuminanceData))]
         public void FromVector4_IsRgba32Compatible(byte luminance)
         {
-            var original = new L8(luminance);
+            L8 original = new(luminance);
 
-            Rgba32 rgba = default;
-            original.ToRgba32(ref rgba);
+            Rgba32 rgba = original.ToRgba32();
 
-            var rgbaVector = original.ToVector4();
+            Vector4 rgbaVector = rgba.ToVector4();
 
-            L8 mirror = default;
-            mirror.FromVector4(rgbaVector);
+            L8 mirror = L8.FromVector4(rgbaVector);
 
             Assert.Equal(original, mirror);
         }
@@ -226,10 +214,9 @@ public class L8Tests
         [MemberData(nameof(LuminanceData))]
         public void ToScaledVector4_IsRgba32Compatible(byte luminance)
         {
-            var original = new L8(luminance);
+            L8 original = new(luminance);
 
-            Rgba32 rgba = default;
-            original.ToRgba32(ref rgba);
+            Rgba32 rgba = original.ToRgba32();
 
             Vector4 l8Vector = original.ToScaledVector4();
             Vector4 rgbaVector = original.ToScaledVector4();
@@ -241,17 +228,30 @@ public class L8Tests
         [MemberData(nameof(LuminanceData))]
         public void FromScaledVector4_IsRgba32Compatible(byte luminance)
         {
-            var original = new L8(luminance);
+            L8 original = new(luminance);
 
-            Rgba32 rgba = default;
-            original.ToRgba32(ref rgba);
+            Rgba32 rgba = original.ToRgba32();
 
-            Vector4 rgbaVector = original.ToScaledVector4();
+            Vector4 rgbaVector = rgba.ToScaledVector4();
 
-            L8 mirror = default;
-            mirror.FromScaledVector4(rgbaVector);
+            L8 mirror = L8.FromScaledVector4(rgbaVector);
 
             Assert.Equal(original, mirror);
+        }
+
+        [Fact]
+        public void L8_PixelInformation()
+        {
+            PixelTypeInfo info = L8.GetPixelTypeInfo();
+            Assert.Equal(Unsafe.SizeOf<L8>() * 8, info.BitsPerPixel);
+            Assert.Equal(PixelAlphaRepresentation.None, info.AlphaRepresentation);
+            Assert.Equal(PixelColorType.Luminance, info.ColorType);
+
+            PixelComponentInfo componentInfo = info.ComponentInfo.Value;
+            Assert.Equal(1, componentInfo.ComponentCount);
+            Assert.Equal(0, componentInfo.Padding);
+            Assert.Equal(8, componentInfo.GetComponentPrecision(0));
+            Assert.Equal(8, componentInfo.GetMaximumComponentPrecision());
         }
     }
 }

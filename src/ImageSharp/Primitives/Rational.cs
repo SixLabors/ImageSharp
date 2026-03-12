@@ -70,7 +70,7 @@ public readonly struct Rational : IEquatable<Rational>
     /// <param name="bestPrecision">Whether to use the best possible precision when parsing the value.</param>
     public Rational(double value, bool bestPrecision)
     {
-        var rational = LongRational.FromDouble(Math.Abs(value), bestPrecision);
+        LongRational rational = LongRational.FromDouble(Math.Abs(value), bestPrecision);
 
         this.Numerator = (uint)rational.Numerator;
         this.Denominator = (uint)rational.Denominator;
@@ -109,7 +109,7 @@ public readonly struct Rational : IEquatable<Rational>
     /// <returns>
     /// The <see cref="Rational"/>.
     /// </returns>
-    public static Rational FromDouble(double value) => new Rational(value, false);
+    public static Rational FromDouble(double value) => new(value, false);
 
     /// <summary>
     /// Converts the specified <see cref="double"/> to an instance of this type.
@@ -119,24 +119,19 @@ public readonly struct Rational : IEquatable<Rational>
     /// <returns>
     /// The <see cref="Rational"/>.
     /// </returns>
-    public static Rational FromDouble(double value, bool bestPrecision) => new Rational(value, bestPrecision);
+    public static Rational FromDouble(double value, bool bestPrecision) => new(value, bestPrecision);
 
     /// <inheritdoc/>
     public override bool Equals(object? obj) => obj is Rational other && this.Equals(other);
 
     /// <inheritdoc/>
     public bool Equals(Rational other)
-    {
-        var left = new LongRational(this.Numerator, this.Denominator);
-        var right = new LongRational(other.Numerator, other.Denominator);
-
-        return left.Equals(right);
-    }
+        => this.Numerator == other.Numerator && this.Denominator == other.Denominator;
 
     /// <inheritdoc/>
     public override int GetHashCode()
     {
-        var self = new LongRational(this.Numerator, this.Denominator);
+        LongRational self = new(this.Numerator, this.Denominator);
         return self.GetHashCode();
     }
 
@@ -169,7 +164,7 @@ public readonly struct Rational : IEquatable<Rational>
     /// <returns>The <see cref="string"/></returns>
     public string ToString(IFormatProvider provider)
     {
-        var rational = new LongRational(this.Numerator, this.Denominator);
+        LongRational rational = new(this.Numerator, this.Denominator);
         return rational.ToString(provider);
     }
 }

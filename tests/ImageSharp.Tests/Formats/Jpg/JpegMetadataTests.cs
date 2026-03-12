@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Collections.ObjectModel;
 using SixLabors.ImageSharp.Formats.Jpeg;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Jpg;
@@ -11,10 +12,10 @@ public class JpegMetadataTests
     [Fact]
     public void CloneIsDeep()
     {
-        var meta = new JpegMetadata { ColorType = JpegEncodingColor.Luminance };
-        var clone = (JpegMetadata)meta.DeepClone();
+        JpegMetadata meta = new() { ColorType = JpegColorType.Luminance };
+        JpegMetadata clone = (JpegMetadata)meta.DeepClone();
 
-        clone.ColorType = JpegEncodingColor.YCbCrRatio420;
+        clone.ColorType = JpegColorType.YCbCrRatio420;
 
         Assert.False(meta.ColorType.Equals(clone.ColorType));
     }
@@ -22,7 +23,7 @@ public class JpegMetadataTests
     [Fact]
     public void Quality_DefaultQuality()
     {
-        var meta = new JpegMetadata();
+        JpegMetadata meta = new();
 
         Assert.Equal(meta.Quality, ImageSharp.Formats.Jpeg.Components.Quantization.DefaultQualityFactor);
     }
@@ -32,7 +33,7 @@ public class JpegMetadataTests
     {
         int quality = 50;
 
-        var meta = new JpegMetadata { LuminanceQuality = quality };
+        JpegMetadata meta = new() { LuminanceQuality = quality };
 
         Assert.Equal(meta.Quality, quality);
     }
@@ -42,7 +43,7 @@ public class JpegMetadataTests
     {
         int quality = 50;
 
-        var meta = new JpegMetadata { LuminanceQuality = quality, ChrominanceQuality = quality };
+        JpegMetadata meta = new() { LuminanceQuality = quality, ChrominanceQuality = quality };
 
         Assert.Equal(meta.Quality, quality);
     }
@@ -53,8 +54,29 @@ public class JpegMetadataTests
         int qualityLuma = 50;
         int qualityChroma = 30;
 
-        var meta = new JpegMetadata { LuminanceQuality = qualityLuma, ChrominanceQuality = qualityChroma };
+        JpegMetadata meta = new() { LuminanceQuality = qualityLuma, ChrominanceQuality = qualityChroma };
 
         Assert.Equal(meta.Quality, qualityLuma);
+    }
+
+    [Fact]
+    public void Comment_EmptyComment()
+    {
+        JpegMetadata meta = new();
+
+        Assert.True(Array.Empty<JpegComData>().SequenceEqual(meta.Comments));
+    }
+
+    [Fact]
+    public void Comment_OnlyComment()
+    {
+        string comment = "test comment";
+        Collection<string> expectedCollection = new() { comment };
+
+        JpegMetadata meta = new();
+        meta.Comments.Add(JpegComData.FromString(comment));
+
+        Assert.Equal(1, meta.Comments.Count);
+        Assert.True(expectedCollection.FirstOrDefault() == meta.Comments.FirstOrDefault().ToString());
     }
 }

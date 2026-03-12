@@ -1,7 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -20,16 +20,16 @@ public abstract partial class ImageFrameCollectionTests
         public void AddFrame_OfDifferentPixelType()
         {
             using (Image<Bgra32> sourceImage = new(
-                this.Image.GetConfiguration(),
+                this.Image.Configuration,
                 this.Image.Width,
                 this.Image.Height,
-                Color.Blue))
+                Color.Blue.ToPixel<Bgra32>()))
             {
                 this.Collection.AddFrame(sourceImage.Frames.RootFrame);
             }
 
             Rgba32[] expectedAllBlue =
-                Enumerable.Repeat((Rgba32)Color.Blue, this.Image.Width * this.Image.Height).ToArray();
+                Enumerable.Repeat(Color.Blue.ToPixel<Rgba32>(), this.Image.Width * this.Image.Height).ToArray();
 
             Assert.Equal(2, this.Collection.Count);
             ImageFrame<Rgba32> actualFrame = (ImageFrame<Rgba32>)this.Collection[1];
@@ -41,16 +41,16 @@ public abstract partial class ImageFrameCollectionTests
         public void InsertFrame_OfDifferentPixelType()
         {
             using (Image<Bgra32> sourceImage = new(
-                this.Image.GetConfiguration(),
+                this.Image.Configuration,
                 this.Image.Width,
                 this.Image.Height,
-                Color.Blue))
+                Color.Blue.ToPixel<Bgra32>()))
             {
                 this.Collection.InsertFrame(0, sourceImage.Frames.RootFrame);
             }
 
             Rgba32[] expectedAllBlue =
-                Enumerable.Repeat((Rgba32)Color.Blue, this.Image.Width * this.Image.Height).ToArray();
+                Enumerable.Repeat(Color.Blue.ToPixel<Rgba32>(), this.Image.Width * this.Image.Height).ToArray();
 
             Assert.Equal(2, this.Collection.Count);
             ImageFrame<Rgba32> actualFrame = (ImageFrame<Rgba32>)this.Collection[0];
@@ -177,7 +177,7 @@ public abstract partial class ImageFrameCollectionTests
 
             ImageFrame<Rgba32> frame = (ImageFrame<Rgba32>)this.Image.Frames[1];
 
-            frame.ComparePixelBufferTo(Color.HotPink);
+            frame.ComparePixelBufferTo(Color.HotPink.ToPixel<Rgba32>());
         }
 
         [Fact]
@@ -247,7 +247,7 @@ public abstract partial class ImageFrameCollectionTests
         {
             Image<Rgba32> image = new(Configuration.Default, 10, 10);
             ImageFrameCollection<Rgba32> frameCollection = image.Frames;
-            Rgba32[] rgba32Array = Array.Empty<Rgba32>();
+            Rgba32[] rgba32Array = [];
 
             image.Dispose(); // this should invalidate underlying collection as well
 
@@ -278,7 +278,8 @@ public abstract partial class ImageFrameCollectionTests
             where TPixel : unmanaged, IPixel<TPixel>
         {
             using Image source = provider.GetImage();
-            using Image<TPixel> dest = new(source.GetConfiguration(), source.Width, source.Height);
+            using Image<TPixel> dest = new(source.Configuration, source.Width, source.Height);
+
             // Giphy.gif has 5 frames
             ImportFrameAs<Bgra32>(source.Frames, dest.Frames, 0);
             ImportFrameAs<Argb32>(source.Frames, dest.Frames, 1);
@@ -289,7 +290,7 @@ public abstract partial class ImageFrameCollectionTests
             // Drop the original empty root frame:
             dest.Frames.RemoveFrame(0);
 
-            dest.DebugSave(provider, appendSourceFileOrDescription: false, extension: "gif");
+            dest.DebugSave(provider, extension: "gif", appendSourceFileOrDescription: false);
             dest.CompareToOriginal(provider);
 
             for (int i = 0; i < 5; i++)
@@ -312,9 +313,13 @@ public abstract partial class ImageFrameCollectionTests
             GifFrameMetadata aData = a.Metadata.GetGifMetadata();
             GifFrameMetadata bData = b.Metadata.GetGifMetadata();
 
-            Assert.Equal(aData.DisposalMethod, bData.DisposalMethod);
+            Assert.Equal(aData.DisposalMode, bData.DisposalMode);
             Assert.Equal(aData.FrameDelay, bData.FrameDelay);
-            Assert.Equal(aData.ColorTableLength, bData.ColorTableLength);
+
+            if (aData.ColorTableMode == FrameColorTableMode.Local && bData.ColorTableMode == FrameColorTableMode.Local)
+            {
+                Assert.Equal(aData.LocalColorTable.Value.Length, bData.LocalColorTable.Value.Length);
+            }
         }
     }
 }

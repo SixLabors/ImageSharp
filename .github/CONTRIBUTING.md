@@ -29,7 +29,6 @@
 #### **Running tests and Debugging**
 
 * Expected test output is pulled in as a submodule from the [ImageSharp.Tests.Images repository](https://github.com/SixLabors/Imagesharp.Tests.Images/tree/main/ReferenceOutput). To succesfully run tests, make sure that you have updated the submodules!
-* Debugging (running tests in Debug mode) is only supported on .NET Core 2.1+, because of JIT Code Generation bugs like [dotnet/coreclr#16443](https://github.com/dotnet/coreclr/issues/16443) or [dotnet/coreclr#20657](https://github.com/dotnet/coreclr/issues/20657)
 
 #### **Do you have questions about consuming the library or the source code?**
 
@@ -37,7 +36,6 @@
 
 #### Code of Conduct  
 This project has adopted the code of conduct defined by the [Contributor Covenant](https://contributor-covenant.org/) to clarify expected behavior in our community.
-For more information, see the [.NET Foundation Code of Conduct](https://dotnetfoundation.org/code-of-conduct).
 
 And please remember. SixLabors.ImageSharp is the work of a very, very, small number of developers who struggle balancing time to contribute to the project with family time and work commitments. We encourage you to pitch in and help make our vision of simple accessible image processing available to all. Open Source can only exist with your help.
 

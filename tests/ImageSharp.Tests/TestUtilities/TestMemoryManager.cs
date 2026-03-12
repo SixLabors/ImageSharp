@@ -34,7 +34,7 @@ public class TestMemoryManager<T> : MemoryManager<T>
 
     public static TestMemoryManager<T> CreateAsCopyOf(Span<T> copyThisBuffer)
     {
-        var pixelArray = new T[copyThisBuffer.Length];
+        T[] pixelArray = new T[copyThisBuffer.Length];
         copyThisBuffer.CopyTo(pixelArray);
         return new TestMemoryManager<T>(pixelArray);
     }

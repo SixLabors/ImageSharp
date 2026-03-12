@@ -11,6 +11,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation;
 /// <summary>
 /// Implements the 'RGB' photometric interpretation with alpha channel (for all bit depths).
 /// </summary>
+/// <typeparam name="TPixel">The type of pixel format.</typeparam>
 internal class RgbaTiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
     where TPixel : unmanaged, IPixel<TPixel>
 {
@@ -50,9 +51,7 @@ internal class RgbaTiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
     /// <inheritdoc/>
     public override void Decode(ReadOnlySpan<byte> data, Buffer2D<TPixel> pixels, int left, int top, int width, int height)
     {
-        var color = default(TPixel);
-
-        var bitReader = new BitReader(data);
+        BitReader bitReader = new(data);
 
         bool hasAssociatedAlpha = this.extraSamplesType.HasValue && this.extraSamplesType == TiffExtraSampleType.AssociatedAlphaData;
 
@@ -66,15 +65,14 @@ internal class RgbaTiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
                 float b = bitReader.ReadBits(this.bitsPerSampleB) / this.bFactor;
                 float a = bitReader.ReadBits(this.bitsPerSampleB) / this.aFactor;
 
-                var vec = new Vector4(r, g, b, a);
+                Vector4 vector = new(r, g, b, a);
                 if (hasAssociatedAlpha)
                 {
-                    pixelRow[x] = TiffUtils.UnPremultiply(ref vec, color);
+                    pixelRow[x] = TiffUtilities.UnPremultiply<TPixel>(ref vector);
                 }
                 else
                 {
-                    color.FromScaledVector4(vec);
-                    pixelRow[x] = color;
+                    pixelRow[x] = TPixel.FromScaledVector4(vector);
                 }
             }
 

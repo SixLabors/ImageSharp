@@ -21,14 +21,7 @@ public class IntegralImageTests : BaseImageOperationsExtensionTest
         Buffer2D<ulong> integralBuffer = image.CalculateIntegralImage();
 
         // Assert:
-        VerifySumValues(provider, integralBuffer, (Rgba32 pixel) =>
-        {
-            L8 outputPixel = default;
-
-            outputPixel.FromRgba32(pixel);
-
-            return outputPixel.PackedValue;
-        });
+        VerifySumValues(provider, integralBuffer, (Rgba32 pixel) => L8.FromRgba32(pixel).PackedValue);
     }
 
     [Theory]
@@ -45,14 +38,7 @@ public class IntegralImageTests : BaseImageOperationsExtensionTest
         Buffer2D<ulong> integralBuffer = image.CalculateIntegralImage(interest);
 
         // Assert:
-        VerifySumValues(provider, integralBuffer, interest, (Rgba32 pixel) =>
-        {
-            L8 outputPixel = default;
-
-            outputPixel.FromRgba32(pixel);
-
-            return outputPixel.PackedValue;
-        });
+        VerifySumValues(provider, integralBuffer, interest, (Rgba32 pixel) => L8.FromRgba32(pixel).PackedValue);
     }
 
     [Theory]
@@ -88,7 +74,7 @@ public class IntegralImageTests : BaseImageOperationsExtensionTest
     private static void VerifySumValues<TPixel>(
         TestImageProvider<TPixel> provider,
         Buffer2D<ulong> integralBuffer,
-        System.Func<TPixel, ulong> getPixel)
+        Func<TPixel, ulong> getPixel)
         where TPixel : unmanaged, IPixel<TPixel>
         => VerifySumValues(provider, integralBuffer, integralBuffer.Bounds(), getPixel);
 
@@ -96,7 +82,7 @@ public class IntegralImageTests : BaseImageOperationsExtensionTest
         TestImageProvider<TPixel> provider,
         Buffer2D<ulong> integralBuffer,
         Rectangle bounds,
-        System.Func<TPixel, ulong> getPixel)
+        Func<TPixel, ulong> getPixel)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         Buffer2DRegion<TPixel> image = provider.GetImage().GetRootFramePixelBuffer().GetRegion(bounds);

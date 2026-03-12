@@ -83,20 +83,21 @@ internal abstract partial class MemoryGroup<T> : IMemoryGroup<T>, IDisposable
     {
         int bufferCapacityInBytes = allocator.GetBufferCapacityInBytes();
         Guard.NotNull(allocator, nameof(allocator));
-        Guard.MustBeGreaterThanOrEqualTo(totalLengthInElements, 0, nameof(totalLengthInElements));
-        Guard.MustBeGreaterThanOrEqualTo(bufferAlignmentInElements, 0, nameof(bufferAlignmentInElements));
+
+        if (totalLengthInElements < 0)
+        {
+            InvalidMemoryOperationException.ThrowNegativeAllocationException(totalLengthInElements);
+        }
 
         int blockCapacityInElements = bufferCapacityInBytes / ElementSize;
-
-        if (bufferAlignmentInElements > blockCapacityInElements)
+        if (bufferAlignmentInElements < 0 || bufferAlignmentInElements > blockCapacityInElements)
         {
-            throw new InvalidMemoryOperationException(
-                $"The buffer capacity of the provided MemoryAllocator is insufficient for the requested buffer alignment: {bufferAlignmentInElements}.");
+            InvalidMemoryOperationException.ThrowInvalidAlignmentException(bufferAlignmentInElements);
         }
 
         if (totalLengthInElements == 0)
         {
-            var buffers0 = new IMemoryOwner<T>[1] { allocator.Allocate<T>(0, options) };
+            IMemoryOwner<T>[] buffers0 = [allocator.Allocate<T>(0, options)];
             return new Owned(buffers0, 0, 0, true);
         }
 
@@ -119,7 +120,7 @@ internal abstract partial class MemoryGroup<T> : IMemoryGroup<T>, IDisposable
             bufferCount++;
         }
 
-        var buffers = new IMemoryOwner<T>[bufferCount];
+        IMemoryOwner<T>[] buffers = new IMemoryOwner<T>[bufferCount];
         for (int i = 0; i < buffers.Length - 1; i++)
         {
             buffers[i] = allocator.Allocate<T>(bufferLength, options);
@@ -141,7 +142,7 @@ internal abstract partial class MemoryGroup<T> : IMemoryGroup<T>, IDisposable
         }
 
         int length = buffer.Memory.Length;
-        var buffers = new IMemoryOwner<T>[1] { buffer };
+        IMemoryOwner<T>[] buffers = [buffer];
         return new Owned(buffers, length, length, true);
     }
 

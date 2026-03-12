@@ -125,7 +125,7 @@ internal class Vp8LBitEntropy
     /// <summary>
     /// Get the entropy for the distribution 'X'.
     /// </summary>
-    public void BitsEntropyUnrefined(uint[] x, int length, Vp8LStreaks stats)
+    public void BitsEntropyUnrefined(Span<uint> x, int length, Vp8LStreaks stats)
     {
         int i;
         int iPrev = 0;
@@ -147,7 +147,7 @@ internal class Vp8LBitEntropy
         this.Entropy += LosslessUtils.FastSLog2(this.Sum);
     }
 
-    public void GetCombinedEntropyUnrefined(uint[] x, uint[] y, int length, Vp8LStreaks stats)
+    public void GetCombinedEntropyUnrefined(Span<uint> x, Span<uint> y, int length, Vp8LStreaks stats)
     {
         int i;
         int iPrev = 0;
@@ -169,7 +169,7 @@ internal class Vp8LBitEntropy
         this.Entropy += LosslessUtils.FastSLog2(this.Sum);
     }
 
-    public void GetEntropyUnrefined(uint[] x, int length, Vp8LStreaks stats)
+    public void GetEntropyUnrefined(Span<uint> x, int length, Vp8LStreaks stats)
     {
         int i;
         int iPrev = 0;

@@ -26,7 +26,7 @@ public static partial class ParallelRowIterator
     public static void IterateRows<T>(Configuration configuration, Rectangle rectangle, in T operation)
         where T : struct, IRowOperation
     {
-        var parallelSettings = ParallelExecutionSettings.FromConfiguration(configuration);
+        ParallelExecutionSettings parallelSettings = ParallelExecutionSettings.FromConfiguration(configuration);
         IterateRows(rectangle, in parallelSettings, in operation);
     }
 
@@ -50,7 +50,7 @@ public static partial class ParallelRowIterator
         int width = rectangle.Width;
         int height = rectangle.Height;
 
-        int maxSteps = DivideCeil(width * height, parallelSettings.MinimumPixelsProcessedPerTask);
+        int maxSteps = DivideCeil(width * (long)height, parallelSettings.MinimumPixelsProcessedPerTask);
         int numOfSteps = Math.Min(parallelSettings.MaxDegreeOfParallelism, maxSteps);
 
         // Avoid TPL overhead in this trivial case:
@@ -58,15 +58,15 @@ public static partial class ParallelRowIterator
         {
             for (int y = top; y < bottom; y++)
             {
-                Unsafe.AsRef(operation).Invoke(y);
+                Unsafe.AsRef(in operation).Invoke(y);
             }
 
             return;
         }
 
         int verticalStep = DivideCeil(rectangle.Height, numOfSteps);
-        var parallelOptions = new ParallelOptions { MaxDegreeOfParallelism = numOfSteps };
-        var wrappingOperation = new RowOperationWrapper<T>(top, bottom, verticalStep, in operation);
+        ParallelOptions parallelOptions = new() { MaxDegreeOfParallelism = numOfSteps };
+        RowOperationWrapper<T> wrappingOperation = new(top, bottom, verticalStep, in operation);
 
         Parallel.For(
             0,
@@ -88,7 +88,7 @@ public static partial class ParallelRowIterator
         where T : struct, IRowOperation<TBuffer>
         where TBuffer : unmanaged
     {
-        var parallelSettings = ParallelExecutionSettings.FromConfiguration(configuration);
+        ParallelExecutionSettings parallelSettings = ParallelExecutionSettings.FromConfiguration(configuration);
         IterateRows<T, TBuffer>(rectangle, in parallelSettings, in operation);
     }
 
@@ -115,10 +115,10 @@ public static partial class ParallelRowIterator
         int width = rectangle.Width;
         int height = rectangle.Height;
 
-        int maxSteps = DivideCeil(width * height, parallelSettings.MinimumPixelsProcessedPerTask);
+        int maxSteps = DivideCeil(width * (long)height, parallelSettings.MinimumPixelsProcessedPerTask);
         int numOfSteps = Math.Min(parallelSettings.MaxDegreeOfParallelism, maxSteps);
         MemoryAllocator allocator = parallelSettings.MemoryAllocator;
-        int bufferLength = Unsafe.AsRef(operation).GetRequiredBufferLength(rectangle);
+        int bufferLength = Unsafe.AsRef(in operation).GetRequiredBufferLength(rectangle);
 
         // Avoid TPL overhead in this trivial case:
         if (numOfSteps == 1)
@@ -128,15 +128,15 @@ public static partial class ParallelRowIterator
 
             for (int y = top; y < bottom; y++)
             {
-                Unsafe.AsRef(operation).Invoke(y, span);
+                Unsafe.AsRef(in operation).Invoke(y, span);
             }
 
             return;
         }
 
         int verticalStep = DivideCeil(height, numOfSteps);
-        var parallelOptions = new ParallelOptions { MaxDegreeOfParallelism = numOfSteps };
-        var wrappingOperation = new RowOperationWrapper<T, TBuffer>(top, bottom, verticalStep, bufferLength, allocator, in operation);
+        ParallelOptions parallelOptions = new() { MaxDegreeOfParallelism = numOfSteps };
+        RowOperationWrapper<T, TBuffer> wrappingOperation = new(top, bottom, verticalStep, bufferLength, allocator, in operation);
 
         Parallel.For(
             0,
@@ -156,7 +156,7 @@ public static partial class ParallelRowIterator
     public static void IterateRowIntervals<T>(Configuration configuration, Rectangle rectangle, in T operation)
         where T : struct, IRowIntervalOperation
     {
-        var parallelSettings = ParallelExecutionSettings.FromConfiguration(configuration);
+        ParallelExecutionSettings parallelSettings = ParallelExecutionSettings.FromConfiguration(configuration);
         IterateRowIntervals(rectangle, in parallelSettings, in operation);
     }
 
@@ -180,20 +180,20 @@ public static partial class ParallelRowIterator
         int width = rectangle.Width;
         int height = rectangle.Height;
 
-        int maxSteps = DivideCeil(width * height, parallelSettings.MinimumPixelsProcessedPerTask);
+        int maxSteps = DivideCeil(width * (long)height, parallelSettings.MinimumPixelsProcessedPerTask);
         int numOfSteps = Math.Min(parallelSettings.MaxDegreeOfParallelism, maxSteps);
 
         // Avoid TPL overhead in this trivial case:
         if (numOfSteps == 1)
         {
-            var rows = new RowInterval(top, bottom);
+            RowInterval rows = new(top, bottom);
             Unsafe.AsRef(in operation).Invoke(in rows);
             return;
         }
 
         int verticalStep = DivideCeil(rectangle.Height, numOfSteps);
-        var parallelOptions = new ParallelOptions { MaxDegreeOfParallelism = numOfSteps };
-        var wrappingOperation = new RowIntervalOperationWrapper<T>(top, bottom, verticalStep, in operation);
+        ParallelOptions parallelOptions = new() { MaxDegreeOfParallelism = numOfSteps };
+        RowIntervalOperationWrapper<T> wrappingOperation = new(top, bottom, verticalStep, in operation);
 
         Parallel.For(
             0,
@@ -215,7 +215,7 @@ public static partial class ParallelRowIterator
         where T : struct, IRowIntervalOperation<TBuffer>
         where TBuffer : unmanaged
     {
-        var parallelSettings = ParallelExecutionSettings.FromConfiguration(configuration);
+        ParallelExecutionSettings parallelSettings = ParallelExecutionSettings.FromConfiguration(configuration);
         IterateRowIntervals<T, TBuffer>(rectangle, in parallelSettings, in operation);
     }
 
@@ -242,25 +242,25 @@ public static partial class ParallelRowIterator
         int width = rectangle.Width;
         int height = rectangle.Height;
 
-        int maxSteps = DivideCeil(width * height, parallelSettings.MinimumPixelsProcessedPerTask);
+        int maxSteps = DivideCeil(width * (long)height, parallelSettings.MinimumPixelsProcessedPerTask);
         int numOfSteps = Math.Min(parallelSettings.MaxDegreeOfParallelism, maxSteps);
         MemoryAllocator allocator = parallelSettings.MemoryAllocator;
-        int bufferLength = Unsafe.AsRef(operation).GetRequiredBufferLength(rectangle);
+        int bufferLength = Unsafe.AsRef(in operation).GetRequiredBufferLength(rectangle);
 
         // Avoid TPL overhead in this trivial case:
         if (numOfSteps == 1)
         {
-            var rows = new RowInterval(top, bottom);
+            RowInterval rows = new(top, bottom);
             using IMemoryOwner<TBuffer> buffer = allocator.Allocate<TBuffer>(bufferLength);
 
-            Unsafe.AsRef(operation).Invoke(in rows, buffer.Memory.Span);
+            Unsafe.AsRef(in operation).Invoke(in rows, buffer.Memory.Span);
 
             return;
         }
 
         int verticalStep = DivideCeil(height, numOfSteps);
-        var parallelOptions = new ParallelOptions { MaxDegreeOfParallelism = numOfSteps };
-        var wrappingOperation = new RowIntervalOperationWrapper<T, TBuffer>(top, bottom, verticalStep, bufferLength, allocator, in operation);
+        ParallelOptions parallelOptions = new() { MaxDegreeOfParallelism = numOfSteps };
+        RowIntervalOperationWrapper<T, TBuffer> wrappingOperation = new(top, bottom, verticalStep, bufferLength, allocator, in operation);
 
         Parallel.For(
             0,
@@ -270,7 +270,7 @@ public static partial class ParallelRowIterator
     }
 
     [MethodImpl(InliningOptions.ShortMethod)]
-    private static int DivideCeil(int dividend, int divisor) => 1 + ((dividend - 1) / divisor);
+    private static int DivideCeil(long dividend, int divisor) => (int)Math.Min(1 + ((dividend - 1) / divisor), int.MaxValue);
 
     private static void ValidateRectangle(Rectangle rectangle)
     {

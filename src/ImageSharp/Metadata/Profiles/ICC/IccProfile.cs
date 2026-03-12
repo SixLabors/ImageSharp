@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Icc;
 /// <summary>
 /// Represents an ICC profile
 /// </summary>
-public sealed class IccProfile : IDeepCloneable<IccProfile>
+public sealed partial class IccProfile : IDeepCloneable<IccProfile>
 {
     /// <summary>
     /// The byte array to read the ICC profile from
@@ -110,8 +110,8 @@ public sealed class IccProfile : IDeepCloneable<IccProfile>
         // need to copy some values because they need to be zero for the hashing
         Span<byte> temp = stackalloc byte[24];
         data.AsSpan(profileFlagPos, 4).CopyTo(temp);
-        data.AsSpan(renderingIntentPos, 4).CopyTo(temp.Slice(4));
-        data.AsSpan(profileIdPos, 16).CopyTo(temp.Slice(8));
+        data.AsSpan(renderingIntentPos, 4).CopyTo(temp[4..]);
+        data.AsSpan(profileIdPos, 16).CopyTo(temp[8..]);
 
         try
         {
@@ -131,7 +131,7 @@ public sealed class IccProfile : IDeepCloneable<IccProfile>
         }
         finally
         {
-            temp.Slice(0, 4).CopyTo(data.AsSpan(profileFlagPos));
+            temp[..4].CopyTo(data.AsSpan(profileFlagPos));
             temp.Slice(4, 4).CopyTo(data.AsSpan(renderingIntentPos));
             temp.Slice(8, 16).CopyTo(data.AsSpan(profileIdPos));
         }
@@ -155,11 +155,10 @@ public sealed class IccProfile : IDeepCloneable<IccProfile>
         }
 
         return arrayValid &&
-               Enum.IsDefined(typeof(IccColorSpaceType), this.Header.DataColorSpace) &&
-               Enum.IsDefined(typeof(IccColorSpaceType), this.Header.ProfileConnectionSpace) &&
-               Enum.IsDefined(typeof(IccRenderingIntent), this.Header.RenderingIntent) &&
-               this.Header.Size >= minSize &&
-               this.Header.Size < maxSize;
+               Enum.IsDefined(this.Header.DataColorSpace) &&
+               Enum.IsDefined(this.Header.ProfileConnectionSpace) &&
+               Enum.IsDefined(this.Header.RenderingIntent) &&
+               this.Header.Size is >= minSize and < maxSize;
     }
 
     /// <summary>
@@ -175,7 +174,6 @@ public sealed class IccProfile : IDeepCloneable<IccProfile>
             return copy;
         }
 
-        IccWriter writer = new();
         return IccWriter.Write(this);
     }
 
@@ -192,7 +190,6 @@ public sealed class IccProfile : IDeepCloneable<IccProfile>
             return;
         }
 
-        IccReader reader = new();
         this.header = IccReader.ReadHeader(this.data);
     }
 
@@ -205,11 +202,10 @@ public sealed class IccProfile : IDeepCloneable<IccProfile>
 
         if (this.data is null)
         {
-            this.entries = Array.Empty<IccTagDataEntry>();
+            this.entries = [];
             return;
         }
 
-        IccReader reader = new();
         this.entries = IccReader.ReadTagData(this.data);
     }
 }

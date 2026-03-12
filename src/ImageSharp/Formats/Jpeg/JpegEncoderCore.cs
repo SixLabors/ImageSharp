@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 #nullable disable
 
+using System.Buffers;
 using System.Buffers.Binary;
 using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
@@ -18,13 +19,16 @@ namespace SixLabors.ImageSharp.Formats.Jpeg;
 /// <summary>
 /// Image encoder for writing an image to a stream as a jpeg.
 /// </summary>
-internal sealed unsafe partial class JpegEncoderCore : IImageEncoderInternals
+internal sealed unsafe partial class JpegEncoderCore
 {
     /// <summary>
     /// The available encodable frame configs.
     /// </summary>
     private static readonly JpegFrameConfig[] FrameConfigs = CreateFrameConfigs();
 
+    /// <summary>
+    /// The current calling encoder.
+    /// </summary>
     private readonly JpegEncoder encoder;
 
     /// <summary>
@@ -54,7 +58,7 @@ internal sealed unsafe partial class JpegEncoderCore : IImageEncoderInternals
         Guard.NotNull(image, nameof(image));
         Guard.NotNull(stream, nameof(stream));
 
-        if (image.Width >= JpegConstants.MaxLength || image.Height >= JpegConstants.MaxLength)
+        if (image.Width > JpegConstants.MaxLength || image.Height > JpegConstants.MaxLength)
         {
             JpegThrowHelper.ThrowDimensionsTooLarge(image.Width, image.Height);
         }
@@ -68,7 +72,7 @@ internal sealed unsafe partial class JpegEncoderCore : IImageEncoderInternals
         JpegMetadata jpegMetadata = metadata.GetJpegMetadata();
         JpegFrameConfig frameConfig = this.GetFrameConfig(jpegMetadata);
 
-        bool interleaved = this.encoder.Interleaved ?? jpegMetadata.Interleaved ?? true;
+        bool interleaved = this.encoder.Interleaved ?? jpegMetadata.Interleaved;
         using JpegFrame frame = new(image, frameConfig, interleaved);
 
         // Write the Start Of Image marker.
@@ -89,15 +93,21 @@ internal sealed unsafe partial class JpegEncoderCore : IImageEncoderInternals
         // Write Exif, XMP, ICC and IPTC profiles
         this.WriteProfiles(metadata, buffer);
 
+        // Write comments
+        this.WriteComments(image.Configuration, jpegMetadata);
+
         // Write the image dimensions.
         this.WriteStartOfFrame(image.Width, image.Height, frameConfig, buffer);
 
         // Write the Huffman tables.
-        HuffmanScanEncoder scanEncoder = new(frame.BlocksPerMcu, stream);
+        HuffmanScanEncoder scanEncoder = new(frame.BlocksPerMcu, this.encoder.RestartInterval, stream);
         this.WriteDefineHuffmanTables(frameConfig.HuffmanTables, scanEncoder, buffer);
 
         // Write the quantization tables.
         this.WriteDefineQuantizationTables(frameConfig.QuantizationTables, this.encoder.Quality, jpegMetadata, buffer);
+
+        // Write define restart interval
+        this.WriteDri(this.encoder.RestartInterval, buffer);
 
         // Write scans with actual pixel data
         using SpectralConverter<TPixel> spectralConverter = new(frame, image, this.QuantizationTables);
@@ -168,6 +178,51 @@ internal sealed unsafe partial class JpegEncoderCore : IImageEncoderInternals
     }
 
     /// <summary>
+    /// Writes the COM tags.
+    /// </summary>
+    /// <param name="configuration">The configuration.</param>
+    /// <param name="metadata">The image metadata.</param>
+    private void WriteComments(Configuration configuration, JpegMetadata metadata)
+    {
+        if (metadata.Comments.Count == 0)
+        {
+            return;
+        }
+
+        const int maxCommentLength = 65533;
+        using IMemoryOwner<byte> bufferOwner = configuration.MemoryAllocator.Allocate<byte>(maxCommentLength);
+        Span<byte> buffer = bufferOwner.Memory.Span;
+        foreach (JpegComData comment in metadata.Comments)
+        {
+            int totalLength = comment.Value.Length;
+            if (totalLength == 0)
+            {
+                continue;
+            }
+
+            // Loop through and split the comment into multiple comments if the comment length
+            // is greater than the maximum allowed length.
+            while (totalLength > 0)
+            {
+                int currentLength = Math.Min(totalLength, maxCommentLength);
+
+                // Write the marker header.
+                this.WriteMarkerHeader(JpegConstants.Markers.COM, currentLength + 2, buffer);
+
+                ReadOnlySpan<char> commentValue = comment.Value.Span.Slice(comment.Value.Length - totalLength, currentLength);
+                for (int i = 0; i < commentValue.Length; i++)
+                {
+                    buffer[i] = (byte)commentValue[i];
+                }
+
+                // Write the comment.
+                this.outputStream.Write(buffer, 0, currentLength);
+                totalLength -= currentLength;
+            }
+        }
+    }
+
+    /// <summary>
     /// Writes the Define Huffman Table marker and tables.
     /// </summary>
     /// <param name="tableConfigs">The table configuration.</param>
@@ -176,10 +231,7 @@ internal sealed unsafe partial class JpegEncoderCore : IImageEncoderInternals
     /// <exception cref="ArgumentNullException"><paramref name="tableConfigs"/> is <see langword="null"/>.</exception>
     private void WriteDefineHuffmanTables(JpegHuffmanTableConfig[] tableConfigs, HuffmanScanEncoder scanEncoder, Span<byte> buffer)
     {
-        if (tableConfigs is null)
-        {
-            throw new ArgumentNullException(nameof(tableConfigs));
-        }
+        ArgumentNullException.ThrowIfNull(tableConfigs);
 
         int markerlen = 2;
 
@@ -378,6 +430,25 @@ internal sealed unsafe partial class JpegEncoderCore : IImageEncoderInternals
     }
 
     /// <summary>
+    /// Writes the DRI marker
+    /// </summary>
+    /// <param name="restartInterval">Numbers of MCUs between restart markers.</param>
+    /// <param name="buffer">Temporary buffer.</param>
+    private void WriteDri(int restartInterval, Span<byte> buffer)
+    {
+        if (restartInterval <= 0)
+        {
+            return;
+        }
+
+        this.WriteMarkerHeader(JpegConstants.Markers.DRI, 4, buffer);
+
+        buffer[1] = (byte)(restartInterval & 0xff);
+        buffer[0] = (byte)(restartInterval >> 8);
+        this.outputStream.Write(buffer, 0, 2);
+    }
+
+    /// <summary>
     /// Writes the App1 header.
     /// </summary>
     /// <param name="app1Length">The length of the data the app1 marker contains.</param>
@@ -490,17 +561,11 @@ internal sealed unsafe partial class JpegEncoderCore : IImageEncoderInternals
     /// <param name="buffer">Temporary buffer.</param>
     private void WriteProfiles(ImageMetadata metadata, Span<byte> buffer)
     {
-        if (metadata is null)
-        {
-            return;
-        }
-
         // For compatibility, place the profiles in the following order:
         // - APP1 EXIF
         // - APP1 XMP
         // - APP2 ICC
         // - APP13 IPTC
-        metadata.SyncProfiles();
         this.WriteExifProfile(metadata.ExifProfile, buffer);
         this.WriteXmpProfile(metadata.XmpProfile, buffer);
         this.WriteIccProfile(metadata.IccProfile, buffer);
@@ -520,7 +585,8 @@ internal sealed unsafe partial class JpegEncoderCore : IImageEncoderInternals
 
         // Length (high byte, low byte), 8 + components * 3.
         int markerlen = 8 + (3 * components.Length);
-        this.WriteMarkerHeader(JpegConstants.Markers.SOF0, markerlen, buffer);
+        byte marker = this.encoder.Progressive ? JpegConstants.Markers.SOF2 : JpegConstants.Markers.SOF0;
+        this.WriteMarkerHeader(marker, markerlen, buffer);
         buffer[5] = (byte)components.Length;
         buffer[0] = 8; // Data Precision. 8 for now, 12 and 16 bit jpegs not supported
         buffer[1] = (byte)(height >> 8);
@@ -554,7 +620,17 @@ internal sealed unsafe partial class JpegEncoderCore : IImageEncoderInternals
     /// </summary>
     /// <param name="components">The collecction of component configuration items.</param>
     /// <param name="buffer">Temporary buffer.</param>
-    private void WriteStartOfScan(Span<JpegComponentConfig> components, Span<byte> buffer)
+    private void WriteStartOfScan(Span<JpegComponentConfig> components, Span<byte> buffer) =>
+        this.WriteStartOfScan(components, buffer, 0x00, 0x3f);
+
+    /// <summary>
+    /// Writes the StartOfScan marker.
+    /// </summary>
+    /// <param name="components">The collecction of component configuration items.</param>
+    /// <param name="buffer">Temporary buffer.</param>
+    /// <param name="spectralStart">Start of spectral selection</param>
+    /// <param name="spectralEnd">End of spectral selection</param>
+    private void WriteStartOfScan(Span<JpegComponentConfig> components, Span<byte> buffer, byte spectralStart, byte spectralEnd)
     {
         // Write the SOS (Start Of Scan) marker "\xff\xda" followed by 12 bytes:
         // - the marker length "\x00\x0c",
@@ -587,8 +663,8 @@ internal sealed unsafe partial class JpegEncoderCore : IImageEncoderInternals
             buffer[i2 + 6] = (byte)tableSelectors;
         }
 
-        buffer[sosSize - 1] = 0x00; // Ss - Start of spectral selection.
-        buffer[sosSize] = 0x3f; // Se - End of spectral selection.
+        buffer[sosSize - 1] = spectralStart; // Ss - Start of spectral selection.
+        buffer[sosSize] = spectralEnd; // Se - End of spectral selection.
         buffer[sosSize + 1] = 0x00; // Ah + Ah (Successive approximation bit position high + low)
         this.outputStream.Write(buffer, 0, sosSize + 2);
     }
@@ -623,7 +699,14 @@ internal sealed unsafe partial class JpegEncoderCore : IImageEncoderInternals
         CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        if (frame.Components.Length == 1)
+        if (this.encoder.Progressive)
+        {
+            frame.AllocateComponents(fullScan: true);
+            spectralConverter.ConvertFull();
+
+            this.WriteProgressiveScans<TPixel>(frame, frameConfig, encoder, buffer, cancellationToken);
+        }
+        else if (frame.Components.Length == 1)
         {
             frame.AllocateComponents(fullScan: false);
 
@@ -647,6 +730,50 @@ internal sealed unsafe partial class JpegEncoderCore : IImageEncoderInternals
             {
                 this.WriteStartOfScan(components.Slice(i, 1), buffer);
                 encoder.EncodeScanBaseline(frame.Components[i], cancellationToken);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Writes the progressive scans
+    /// </summary>
+    /// <typeparam name="TPixel">The type of pixel format.</typeparam>
+    /// <param name="frame">The current frame.</param>
+    /// <param name="frameConfig">The frame configuration.</param>
+    /// <param name="encoder">The scan encoder.</param>
+    /// <param name="buffer">Temporary buffer.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    private void WriteProgressiveScans<TPixel>(
+        JpegFrame frame,
+        JpegFrameConfig frameConfig,
+        HuffmanScanEncoder encoder,
+        Span<byte> buffer,
+        CancellationToken cancellationToken)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        Span<JpegComponentConfig> components = frameConfig.Components;
+
+        // Phase 1: DC scan
+        for (int i = 0; i < frame.Components.Length; i++)
+        {
+            this.WriteStartOfScan(components.Slice(i, 1), buffer, 0x00, 0x00);
+
+            encoder.EncodeDcScan(frame.Components[i], cancellationToken);
+        }
+
+        // Phase 2: AC scans
+        int acScans = this.encoder.ProgressiveScans - 1;
+        int valuesPerScan = 64 / acScans;
+        for (int scan = 0; scan < acScans; scan++)
+        {
+            int start = Math.Max(1, scan * valuesPerScan);
+            int end = scan == acScans - 1 ? 64 : (scan + 1) * valuesPerScan;
+
+            for (int i = 0; i < components.Length; i++)
+            {
+                this.WriteStartOfScan(components.Slice(i, 1), buffer, (byte)start, (byte)(end - 1));
+
+                encoder.EncodeAcScan(frame.Components[i], start, end, cancellationToken);
             }
         }
     }
@@ -731,7 +858,7 @@ internal sealed unsafe partial class JpegEncoderCore : IImageEncoderInternals
 
     private JpegFrameConfig GetFrameConfig(JpegMetadata metadata)
     {
-        JpegEncodingColor color = this.encoder.ColorType ?? metadata.ColorType ?? JpegEncodingColor.YCbCrRatio420;
+        JpegColorType color = this.encoder.ColorType ?? metadata.ColorType;
         JpegFrameConfig frameConfig = Array.Find(
             FrameConfigs,
             cfg => cfg.EncodingColor == color);

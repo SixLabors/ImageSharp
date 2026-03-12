@@ -38,11 +38,11 @@ public abstract class ColorConversionBenchmark
         float minVal = 0f,
         float maxVal = 255f)
     {
-        var rnd = new Random(42);
-        var buffers = new Buffer2D<float>[componentCount];
+        Random rnd = new(42);
+        Buffer2D<float>[] buffers = new Buffer2D<float>[componentCount];
         for (int i = 0; i < componentCount; i++)
         {
-            var values = new float[inputBufferLength];
+            float[] values = new float[inputBufferLength];
 
             for (int j = 0; j < inputBufferLength; j++)
             {

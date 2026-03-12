@@ -1,7 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics.X86;
 using Microsoft.DotNet.RemoteExecutor;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Tga;
@@ -723,10 +723,8 @@ public class TgaDecoderTests
     {
         using (Image<TPixel> image = provider.GetImage(TgaDecoder.Instance))
         {
-            // Using here the reference output instead of the the reference decoder,
-            // because the reference decoder does not ignore the alpha data here.
             image.DebugSave(provider);
-            image.CompareToReferenceOutput(ImageComparer.Exact, provider);
+            ImageComparingUtils.CompareWithReferenceDecoder(provider, image);
         }
     }
 
@@ -751,7 +749,7 @@ public class TgaDecoderTests
     {
         DecoderOptions options = new()
         {
-            TargetSize = new() { Width = 150, Height = 150 }
+            TargetSize = new Size { Width = 150, Height = 150 }
         };
 
         using Image<TPixel> image = provider.GetImage(TgaDecoder.Instance, options);
@@ -760,13 +758,27 @@ public class TgaDecoderTests
 
         image.DebugSave(provider, testOutputDetails: details, appendPixelTypeToFileName: false);
 
-        // Floating point differences result in minor pixel differences.
+        // Floating point differences in FMA used in the ResizeKernel result in minor pixel differences.
         // Output have been manually verified.
+        // For more details see discussion: https://github.com/SixLabors/ImageSharp/pull/1513#issuecomment-763643594
         image.CompareToReferenceOutput(
-            ImageComparer.TolerantPercentage(TestEnvironment.OSArchitecture == Architecture.Arm64 ? 0.0016F : 0.0001F),
+            ImageComparer.TolerantPercentage(Fma.IsSupported ? 0.0001F : 0.0016F),
             provider,
             testOutputDetails: details,
             appendPixelTypeToFileName: false);
+    }
+
+    // https://github.com/SixLabors/ImageSharp/issues/2629
+    [Theory]
+    [WithFile(Issue2629, PixelTypes.Rgba32)]
+    public void TgaDecoder_CanDecode_Issue2629<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using (Image<TPixel> image = provider.GetImage(TgaDecoder.Instance))
+        {
+            image.DebugSave(provider);
+            ImageComparingUtils.CompareWithReferenceDecoder(provider, image);
+        }
     }
 
     [Theory]

@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors;
 /// </summary>
 public class LzwString
 {
-    private static readonly LzwString Empty = new LzwString(0, 0, 0, null);
+    private static readonly LzwString Empty = new(0, 0, 0, null);
 
     private readonly LzwString previous;
     private readonly byte value;
@@ -69,25 +69,33 @@ public class LzwString
             return 0;
         }
 
-        if (this.Length == 1)
+        int available = buffer.Length - offset;
+        if (available <= 0)
         {
-            buffer[offset] = this.value;
-            return 1;
+            return 0;
+        }
+
+        int numToWrite = this.Length;
+        if (numToWrite > available)
+        {
+            numToWrite = available;
         }
 
         LzwString e = this;
-        int endIdx = this.Length - 1;
-        if (endIdx >= buffer.Length)
+
+        // if string is too long, skip bytes at the end
+        int toSkip = this.Length - numToWrite;
+        for (int i = 0; i < toSkip; i++)
         {
-            TiffThrowHelper.ThrowImageFormatException("Error reading lzw compressed stream. Either pixel buffer to write to is to small or code length is invalid!");
+            e = e.previous;
         }
 
-        for (int i = endIdx; i >= 0; i--)
+        for (int i = numToWrite - 1; i >= 0; i--)
         {
             buffer[offset + i] = e.value;
             e = e.previous;
         }
 
-        return this.Length;
+        return numToWrite;
     }
 }

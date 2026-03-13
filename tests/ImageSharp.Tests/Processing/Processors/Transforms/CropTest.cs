@@ -35,7 +35,7 @@ public class CropTest
     {
         using Image<TPixel> image = provider.GetImage();
 
-        image.Metadata.ExifProfile = new();
+        image.Metadata.ExifProfile = new ExifProfile();
         image.Metadata.ExifProfile.SetValue(ExifTag.SubjectLocation, [5, 15]);
         image.Metadata.ExifProfile.SetValue(ExifTag.SubjectArea, [5, 15, 50, 50]);
 

@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Buffers;
+using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Memory.Internals;
 
 namespace SixLabors.ImageSharp.Memory;
@@ -19,13 +20,26 @@ internal class UnmanagedMemoryAllocator : MemoryAllocator
     protected internal override int GetBufferCapacityInBytes() => this.bufferCapacityInBytes;
 
     public override IMemoryOwner<T> Allocate<T>(int length, AllocationOptions options = AllocationOptions.None)
+        where T : struct
     {
-        UnmanagedBuffer<T> buffer = UnmanagedBuffer<T>.Allocate(length);
-        if (options.Has(AllocationOptions.Clean))
-        {
-            buffer.GetSpan().Clear();
-        }
+        ulong lengthInBytes = (ulong)length * (ulong)Unsafe.SizeOf<T>();
+        long lengthInBytesLong = (long)lengthInBytes;
+        this.ReserveAllocation(lengthInBytesLong);
 
-        return buffer;
+        try
+        {
+            UnmanagedBuffer<T> buffer = UnmanagedBuffer<T>.Allocate(length);
+            if (options.Has(AllocationOptions.Clean))
+            {
+                buffer.GetSpan().Clear();
+            }
+
+            return this.TrackAllocation(buffer, lengthInBytes);
+        }
+        catch
+        {
+            this.ReleaseAccumulatedBytes(lengthInBytesLong);
+            throw;
+        }
     }
 }

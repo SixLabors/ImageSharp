@@ -59,7 +59,7 @@ public class ImageExtensionsTest
     public async Task SaveAsExrAsync_Path_Encoder()
     {
         string dir = TestEnvironment.CreateOutputDirectory(nameof(ImageExtensions));
-        string file = Path.Combine(dir, "SaveAsExrAsync_Path_Encoder.tiff");
+        string file = Path.Combine(dir, "SaveAsExrAsync_Path_Encoder.exr");
 
         using (Image<Rgba32> image = new(10, 10))
         {

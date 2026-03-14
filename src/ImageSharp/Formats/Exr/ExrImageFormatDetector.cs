@@ -3,7 +3,6 @@
 
 using System.Buffers.Binary;
 using System.Diagnostics.CodeAnalysis;
-using SixLabors.ImageSharp.Formats.Qoi;
 
 namespace SixLabors.ImageSharp.Formats.Exr;
 
@@ -29,7 +28,7 @@ public sealed class ExrImageFormatDetector : IImageFormatDetector
     /// <inheritdoc/>
     public bool TryDetectFormat(ReadOnlySpan<byte> header, [NotNullWhen(true)] out IImageFormat? format)
     {
-        format = this.IsSupportedFileFormat(header) ? QoiFormat.Instance : null;
+        format = this.IsSupportedFileFormat(header) ? ExrFormat.Instance : null;
         return format != null;
     }
 }

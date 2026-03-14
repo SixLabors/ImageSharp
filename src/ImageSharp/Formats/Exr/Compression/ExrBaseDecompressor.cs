@@ -4,7 +4,7 @@
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 
-namespace SixLabors.ImageSharp.Formats.OpenExr.Compression;
+namespace SixLabors.ImageSharp.Formats.Exr.Compression;
 
 internal abstract class ExrBaseDecompressor : ExrBaseCompression
 {

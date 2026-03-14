@@ -4,7 +4,7 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 
-namespace SixLabors.ImageSharp.Formats.OpenExr;
+namespace SixLabors.ImageSharp.Formats.Exr;
 
 [DebuggerDisplay("Name: {ChannelName}, PixelType: {PixelType}")]
 [StructLayout(LayoutKind.Sequential, Pack = 1)]

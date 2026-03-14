@@ -6,7 +6,7 @@ using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 
-namespace SixLabors.ImageSharp.Formats.OpenExr.Compression.Decompressors;
+namespace SixLabors.ImageSharp.Formats.Exr.Compression.Decompressors;
 
 internal class B44Compression : ExrBaseDecompressor
 {

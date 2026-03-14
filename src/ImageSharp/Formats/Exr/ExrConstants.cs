@@ -1,7 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-namespace SixLabors.ImageSharp.Formats.OpenExr;
+namespace SixLabors.ImageSharp.Formats.Exr;
 
 /// <summary>
 /// Defines constants relating to OpenExr images.

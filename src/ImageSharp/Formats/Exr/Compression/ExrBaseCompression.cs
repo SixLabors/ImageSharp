@@ -3,7 +3,7 @@
 
 using SixLabors.ImageSharp.Memory;
 
-namespace SixLabors.ImageSharp.Formats.OpenExr.Compression;
+namespace SixLabors.ImageSharp.Formats.Exr.Compression;
 
 internal abstract class ExrBaseCompression : IDisposable
 {

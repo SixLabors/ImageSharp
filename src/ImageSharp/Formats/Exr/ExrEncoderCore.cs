@@ -6,12 +6,12 @@ using System.Buffers.Binary;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Threading.Channels;
-using SixLabors.ImageSharp.Formats.OpenExr.Compression;
+using SixLabors.ImageSharp.Formats.Exr.Compression;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
 
-namespace SixLabors.ImageSharp.Formats.OpenExr;
+namespace SixLabors.ImageSharp.Formats.Exr;
 
 /// <summary>
 /// Image encoder for writing an image to a stream in the OpenExr format.

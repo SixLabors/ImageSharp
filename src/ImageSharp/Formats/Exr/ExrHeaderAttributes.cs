@@ -1,9 +1,9 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using SixLabors.ImageSharp.Formats.OpenExr.Compression;
+using SixLabors.ImageSharp.Formats.Exr.Compression;
 
-namespace SixLabors.ImageSharp.Formats.OpenExr;
+namespace SixLabors.ImageSharp.Formats.Exr;
 
 internal class ExrHeaderAttributes
 {

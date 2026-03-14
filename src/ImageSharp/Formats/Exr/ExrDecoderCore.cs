@@ -6,13 +6,13 @@ using System.Buffers;
 using System.Buffers.Binary;
 using System.Runtime.CompilerServices;
 using System.Text;
-using SixLabors.ImageSharp.Formats.OpenExr.Compression;
+using SixLabors.ImageSharp.Formats.Exr.Compression;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
 
-namespace SixLabors.ImageSharp.Formats.OpenExr;
+namespace SixLabors.ImageSharp.Formats.Exr;
 
 /// <summary>
 /// Performs the OpenExr decoding operation.

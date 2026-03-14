@@ -2,7 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.Formats;
-using SixLabors.ImageSharp.Formats.OpenExr;
+using SixLabors.ImageSharp.Formats.Exr;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Exr;
@@ -109,7 +109,7 @@ public class ImageExtensionsTest
 
         using (Image<Rgba32> image = new(10, 10))
         {
-            image.SaveAsTiff(memoryStream, new ExrEncoder());
+            image.SaveAsExr(memoryStream, new ExrEncoder());
         }
 
         memoryStream.Position = 0;

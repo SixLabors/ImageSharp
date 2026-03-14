@@ -8,7 +8,7 @@ using SixLabors.ImageSharp.Formats.Cur;
 using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.Formats.Ico;
 using SixLabors.ImageSharp.Formats.Jpeg;
-using SixLabors.ImageSharp.Formats.OpenExr;
+using SixLabors.ImageSharp.Formats.Exr;
 using SixLabors.ImageSharp.Formats.Pbm;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Formats.Qoi;

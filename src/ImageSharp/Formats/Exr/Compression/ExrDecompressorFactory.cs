@@ -1,10 +1,10 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using SixLabors.ImageSharp.Formats.OpenExr.Compression.Decompressors;
+using SixLabors.ImageSharp.Formats.Exr.Compression.Decompressors;
 using SixLabors.ImageSharp.Memory;
 
-namespace SixLabors.ImageSharp.Formats.OpenExr.Compression;
+namespace SixLabors.ImageSharp.Formats.Exr.Compression;
 
 internal static class ExrDecompressorFactory
 {

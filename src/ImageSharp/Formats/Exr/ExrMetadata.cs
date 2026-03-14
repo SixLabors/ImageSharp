@@ -4,7 +4,7 @@
 using System.Numerics;
 using SixLabors.ImageSharp.PixelFormats;
 
-namespace SixLabors.ImageSharp.Formats.OpenExr;
+namespace SixLabors.ImageSharp.Formats.Exr;
 
 /// <summary>
 /// Provides OpenExr specific metadata information for the image.

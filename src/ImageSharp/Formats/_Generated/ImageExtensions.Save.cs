@@ -13,7 +13,7 @@ using SixLabors.ImageSharp.Formats.Qoi;
 using SixLabors.ImageSharp.Formats.Tga;
 using SixLabors.ImageSharp.Formats.Tiff;
 using SixLabors.ImageSharp.Formats.Webp;
-using SixLabors.ImageSharp.Formats.OpenExr;
+using SixLabors.ImageSharp.Formats.Exr;
 
 namespace SixLabors.ImageSharp;
 

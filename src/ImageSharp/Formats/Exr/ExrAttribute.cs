@@ -3,7 +3,7 @@
 
 using System.Diagnostics;
 
-namespace SixLabors.ImageSharp.Formats.OpenExr;
+namespace SixLabors.ImageSharp.Formats.Exr;
 
 [DebuggerDisplay("Name: {Name}, Type: {Type}, Length: {Length}")]
 internal class ExrAttribute

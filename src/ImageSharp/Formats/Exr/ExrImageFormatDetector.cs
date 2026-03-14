@@ -5,7 +5,7 @@ using System.Buffers.Binary;
 using System.Diagnostics.CodeAnalysis;
 using SixLabors.ImageSharp.Formats.Qoi;
 
-namespace SixLabors.ImageSharp.Formats.OpenExr;
+namespace SixLabors.ImageSharp.Formats.Exr;
 
 /// <summary>
 /// Detects OpenExr file headers.

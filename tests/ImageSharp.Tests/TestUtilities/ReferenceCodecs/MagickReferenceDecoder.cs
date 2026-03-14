@@ -6,6 +6,7 @@ using ImageMagick;
 using ImageMagick.Formats;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Bmp;
+using SixLabors.ImageSharp.Formats.Exr;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Formats.Tiff;
@@ -41,6 +42,8 @@ public class MagickReferenceDecoder : ImageDecoder
     public static MagickReferenceDecoder Tiff { get; } = new(TiffFormat.Instance);
 
     public static MagickReferenceDecoder WebP { get; } = new(WebpFormat.Instance);
+
+    public static MagickReferenceDecoder Exr { get; } = new(ExrFormat.Instance);
 
     protected override Image<TPixel> Decode<TPixel>(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
     {
@@ -118,6 +121,7 @@ public class MagickReferenceDecoder : ImageDecoder
             PixelType = metadata.GetDecodedPixelTypeInfo()
         };
     }
+
     private static void FromRgba32Bytes<TPixel>(
         Configuration configuration,
         Span<byte> rgbaBytes,

@@ -3,6 +3,7 @@
 
 using SixLabors.ImageSharp.Formats.Exr;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Exr;
 
@@ -10,6 +11,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Exr;
 [ValidateDisposedMemoryAllocations]
 public class ExrDecoderTests
 {
+    private static MagickReferenceDecoder ReferenceDecoder => MagickReferenceDecoder.Exr;
+
     [Theory]
     [WithFile(TestImages.Exr.Uncompressed, PixelTypes.Rgba32)]
     public void ExrDecoder_CanDecode_Uncompressed<TPixel>(TestImageProvider<TPixel> provider)
@@ -17,7 +20,7 @@ public class ExrDecoderTests
     {
         using Image<TPixel> image = provider.GetImage(ExrDecoder.Instance);
         image.DebugSave(provider);
-        image.CompareToOriginal(provider);
+        image.CompareToOriginal(provider, ReferenceDecoder);
     }
 
     [Theory]
@@ -27,7 +30,7 @@ public class ExrDecoderTests
     {
         using Image<TPixel> image = provider.GetImage(ExrDecoder.Instance);
         image.DebugSave(provider);
-        image.CompareToOriginal(provider);
+        image.CompareToOriginal(provider, ReferenceDecoder);
     }
 
     [Theory]
@@ -37,7 +40,7 @@ public class ExrDecoderTests
     {
         using Image<TPixel> image = provider.GetImage(ExrDecoder.Instance);
         image.DebugSave(provider);
-        image.CompareToOriginal(provider);
+        image.CompareToOriginal(provider, ReferenceDecoder);
     }
 
     [Theory]
@@ -47,7 +50,7 @@ public class ExrDecoderTests
     {
         using Image<TPixel> image = provider.GetImage(ExrDecoder.Instance);
         image.DebugSave(provider);
-        image.CompareToOriginal(provider);
+        image.CompareToOriginal(provider, ReferenceDecoder);
     }
 
     [Theory]
@@ -57,6 +60,6 @@ public class ExrDecoderTests
     {
         using Image<TPixel> image = provider.GetImage(ExrDecoder.Instance);
         image.DebugSave(provider);
-        image.CompareToOriginal(provider);
+        image.CompareToOriginal(provider, ReferenceDecoder);
     }
 }

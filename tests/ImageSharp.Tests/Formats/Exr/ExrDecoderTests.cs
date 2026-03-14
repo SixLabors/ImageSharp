@@ -10,14 +10,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Exr;
 [ValidateDisposedMemoryAllocations]
 public class ExrDecoderTests
 {
-    private static ExrDecoder ExrDecoder => new();
-
     [Theory]
     [WithFile(TestImages.Exr.Uncompressed, PixelTypes.Rgba32)]
     public void ExrDecoder_CanDecode_Uncompressed<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> image = provider.GetImage(ExrDecoder);
+        using Image<TPixel> image = provider.GetImage(ExrDecoder.Instance);
         image.DebugSave(provider);
         image.CompareToOriginal(provider);
     }
@@ -27,7 +25,7 @@ public class ExrDecoderTests
     public void ExrDecoder_CanDecode_ZipCompressed<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> image = provider.GetImage(ExrDecoder);
+        using Image<TPixel> image = provider.GetImage(ExrDecoder.Instance);
         image.DebugSave(provider);
         image.CompareToOriginal(provider);
     }
@@ -37,7 +35,7 @@ public class ExrDecoderTests
     public void ExrDecoder_CanDecode_ZipsCompressed<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> image = provider.GetImage(ExrDecoder);
+        using Image<TPixel> image = provider.GetImage(ExrDecoder.Instance);
         image.DebugSave(provider);
         image.CompareToOriginal(provider);
     }
@@ -47,7 +45,7 @@ public class ExrDecoderTests
     public void ExrDecoder_CanDecode_RunLengthCompressed<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> image = provider.GetImage(ExrDecoder);
+        using Image<TPixel> image = provider.GetImage(ExrDecoder.Instance);
         image.DebugSave(provider);
         image.CompareToOriginal(provider);
     }
@@ -57,7 +55,7 @@ public class ExrDecoderTests
     public void ExrDecoder_CanDecode_B44Compressed<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> image = provider.GetImage(ExrDecoder);
+        using Image<TPixel> image = provider.GetImage(ExrDecoder.Instance);
         image.DebugSave(provider);
         image.CompareToOriginal(provider);
     }

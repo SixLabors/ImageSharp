@@ -226,7 +226,7 @@ public sealed class Configuration
             new TgaConfigurationModule(),
             new TiffConfigurationModule(),
             new WebpConfigurationModule(),
-            new ExrConfigurationModule());
+            new ExrConfigurationModule(),
             new QoiConfigurationModule(),
             new IcoConfigurationModule(),
             new CurConfigurationModule());

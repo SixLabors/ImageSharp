@@ -11,56 +11,126 @@ namespace SixLabors.ImageSharp.Tests.Formats.Exr;
 public class ImageExtensionsTest
 {
     [Fact]
+    public void SaveAsExr_Path()
+    {
+        string dir = TestEnvironment.CreateOutputDirectory(nameof(ImageExtensionsTest));
+        string file = Path.Combine(dir, "SaveAsExr_Path.exr");
+
+        using (Image<Rgba32> image = new(10, 10))
+        {
+            image.SaveAsExr(file);
+        }
+
+        IImageFormat format = Image.DetectFormat(file);
+        Assert.True(format is ExrFormat);
+    }
+
+    [Fact]
+    public async Task SaveAsExrAsync_Path()
+    {
+        string dir = TestEnvironment.CreateOutputDirectory(nameof(ImageExtensionsTest));
+        string file = Path.Combine(dir, "SaveAsExrAsync_Path.exr");
+
+        using (Image<Rgba32> image = new(10, 10))
+        {
+            await image.SaveAsExrAsync(file);
+        }
+
+        IImageFormat format = Image.DetectFormat(file);
+        Assert.True(format is ExrFormat);
+    }
+
+    [Fact]
+    public void SaveAsExr_Path_Encoder()
+    {
+        string dir = TestEnvironment.CreateOutputDirectory(nameof(ImageExtensions));
+        string file = Path.Combine(dir, "SaveAsExr_Path_Encoder.exr");
+
+        using (Image<Rgba32> image = new(10, 10))
+        {
+            image.SaveAsExr(file, new ExrEncoder());
+        }
+
+        IImageFormat format = Image.DetectFormat(file);
+        Assert.True(format is ExrFormat);
+    }
+
+    [Fact]
+    public async Task SaveAsExrAsync_Path_Encoder()
+    {
+        string dir = TestEnvironment.CreateOutputDirectory(nameof(ImageExtensions));
+        string file = Path.Combine(dir, "SaveAsExrAsync_Path_Encoder.tiff");
+
+        using (Image<Rgba32> image = new(10, 10))
+        {
+            await image.SaveAsExrAsync(file, new ExrEncoder());
+        }
+
+        IImageFormat format = Image.DetectFormat(file);
+        Assert.True(format is ExrFormat);
+    }
+
+    [Fact]
     public void SaveAsExr_Stream()
     {
-        using var memoryStream = new MemoryStream();
+        using MemoryStream memoryStream = new();
 
-        using (var image = new Image<Rgba32>(10, 10))
+        using (Image<Rgba32> image = new(10, 10))
         {
-            image.SaveAsOpenExr(memoryStream, new ExrEncoder());
+            image.SaveAsExr(memoryStream);
         }
 
         memoryStream.Position = 0;
 
-        using (Image.Load(memoryStream, out IImageFormat mime))
+        IImageFormat format = Image.DetectFormat(memoryStream);
+        Assert.True(format is ExrFormat);
+    }
+
+    [Fact]
+    public async Task SaveAsExrAsync_StreamAsync()
+    {
+        using MemoryStream memoryStream = new();
+
+        using (Image<Rgba32> image = new(10, 10))
         {
-            Assert.Equal("image/x-exr", mime.DefaultMimeType);
+            await image.SaveAsExrAsync(memoryStream);
         }
+
+        memoryStream.Position = 0;
+
+        IImageFormat format = Image.DetectFormat(memoryStream);
+        Assert.True(format is ExrFormat);
     }
 
     [Fact]
     public void SaveAsExr_Stream_Encoder()
     {
-        using var memoryStream = new MemoryStream();
+        using MemoryStream memoryStream = new();
 
-        using (var image = new Image<Rgba32>(10, 10))
+        using (Image<Rgba32> image = new(10, 10))
         {
-            image.SaveAsOpenExr(memoryStream, new ExrEncoder());
+            image.SaveAsTiff(memoryStream, new ExrEncoder());
         }
 
         memoryStream.Position = 0;
 
-        using (Image.Load(memoryStream, out IImageFormat mime))
-        {
-            Assert.Equal("image/x-exr", mime.DefaultMimeType);
-        }
+        IImageFormat format = Image.DetectFormat(memoryStream);
+        Assert.True(format is ExrFormat);
     }
 
     [Fact]
     public async Task SaveAsExrAsync_Stream_Encoder()
     {
-        using var memoryStream = new MemoryStream();
+        using MemoryStream memoryStream = new();
 
-        using (var image = new Image<Rgba32>(10, 10))
+        using (Image<Rgba32> image = new(10, 10))
         {
-            await image.SaveAsOpenExrAsync(memoryStream, new ExrEncoder());
+            await image.SaveAsExrAsync(memoryStream, new ExrEncoder());
         }
 
         memoryStream.Position = 0;
 
-        using (Image.Load(memoryStream, out IImageFormat mime))
-        {
-            Assert.Equal("image/x-exr", mime.DefaultMimeType);
-        }
+        IImageFormat format = Image.DetectFormat(memoryStream);
+        Assert.True(format is ExrFormat);
     }
 }

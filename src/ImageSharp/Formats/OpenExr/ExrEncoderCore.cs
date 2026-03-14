@@ -5,6 +5,7 @@ using System.Buffers;
 using System.Buffers.Binary;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Threading.Channels;
 using SixLabors.ImageSharp.Formats.OpenExr.Compression;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
@@ -15,7 +16,7 @@ namespace SixLabors.ImageSharp.Formats.OpenExr;
 /// <summary>
 /// Image encoder for writing an image to a stream in the OpenExr format.
 /// </summary>
-internal sealed class ExrEncoderCore : IImageEncoderInternals
+internal sealed class ExrEncoderCore
 {
     /// <summary>
     /// Reusable buffer.
@@ -28,6 +29,16 @@ internal sealed class ExrEncoderCore : IImageEncoderInternals
     private readonly MemoryAllocator memoryAllocator;
 
     /// <summary>
+    /// The global configuration.
+    /// </summary>
+    private Configuration configuration;
+
+    /// <summary>
+    /// The encoder with options.
+    /// </summary>
+    private readonly ExrEncoder encoder;
+
+    /// <summary>
     /// The pixel type of the image.
     /// </summary>
     private ExrPixelType? pixelType;
@@ -35,12 +46,14 @@ internal sealed class ExrEncoderCore : IImageEncoderInternals
     /// <summary>
     /// Initializes a new instance of the <see cref="ExrEncoderCore"/> class.
     /// </summary>
-    /// <param name="options">The encoder options.</param>
+    /// <param name="encoder">The encoder with options.</param>
+    /// <param name="configuration">The configuration.</param>    
     /// <param name="memoryAllocator">The memory manager.</param>
-    public ExrEncoderCore(IExrEncoderOptions options, MemoryAllocator memoryAllocator)
+    public ExrEncoderCore(ExrEncoder encoder, Configuration configuration, MemoryAllocator memoryAllocator)
     {
+        this.configuration = configuration;
+        this.encoder = encoder;
         this.memoryAllocator = memoryAllocator;
-        this.pixelType = options.PixelType;
     }
 
     /// <summary>
@@ -63,22 +76,28 @@ internal sealed class ExrEncoderCore : IImageEncoderInternals
         this.pixelType ??= exrMetadata.PixelType;
         int width = image.Width;
         int height = image.Height;
-        var header = new ExrHeaderAttributes()
-        {
-            Compression = ExrCompressionType.None,
-            AspectRatio = 1.0f,
-            DataWindow = new ExrBox2i(0, 0, width - 1, height - 1),
-            DisplayWindow = new ExrBox2i(0, 0, width - 1, height - 1),
-            LineOrder = ExrLineOrder.IncreasingY,
-            ScreenWindowCenter = new PointF(0.0f, 0.0f),
-            ScreenWindowWidth = 1,
-            Channels = new List<ExrChannelInfo>()
-            {
-                new(ExrConstants.ChannelNames.Blue, this.pixelType.Value, 0, 1, 1),
-                new(ExrConstants.ChannelNames.Green, this.pixelType.Value, 0, 1, 1),
-                new(ExrConstants.ChannelNames.Red, this.pixelType.Value, 0, 1, 1),
-            }
-        };
+        ExrCompressionType compression = ExrCompressionType.None;
+        float aspectRatio = 1.0f;
+        ExrBox2i dataWindow = new(0, 0, width - 1, height - 1);
+        ExrBox2i displayWindow = new(0, 0, width - 1, height - 1);
+        ExrLineOrder lineOrder = ExrLineOrder.IncreasingY;
+        PointF screenWindowCenter = new(0.0f, 0.0f);
+        int screenWindowWidth = 1;
+        List<ExrChannelInfo> channels =
+        [
+            new(ExrConstants.ChannelNames.Blue, this.pixelType.Value, 0, 1, 1),
+            new(ExrConstants.ChannelNames.Green, this.pixelType.Value, 0, 1, 1),
+            new(ExrConstants.ChannelNames.Red, this.pixelType.Value, 0, 1, 1),
+        ];
+        ExrHeaderAttributes header = new(
+            channels,
+            compression,
+            dataWindow,
+            displayWindow,
+            lineOrder,
+            aspectRatio,
+            screenWindowWidth,
+            screenWindowCenter);
 
         // Write magick bytes.
         BinaryPrimitives.WriteInt32LittleEndian(this.buffer, ExrConstants.MagickBytes);
@@ -171,7 +190,7 @@ internal sealed class ExrEncoderCore : IImageEncoderInternals
             for (int x = 0; x < width; x++)
             {
                 Vector4 vector4 = pixelRowSpan[x].ToVector4();
-                rgb.FromVector4(vector4);
+                Rgb96.FromVector4(vector4);
 
                 redBuffer[x] = rgb.R;
                 greenBuffer[x] = rgb.G;
@@ -193,13 +212,13 @@ internal sealed class ExrEncoderCore : IImageEncoderInternals
     private void WriteHeader(Stream stream, ExrHeaderAttributes header)
     {
         this.WriteChannels(stream, header.Channels);
-        this.WriteCompression(stream, header.Compression.Value);
-        this.WriteDataWindow(stream, header.DataWindow.Value);
-        this.WriteDisplayWindow(stream, header.DisplayWindow.Value);
-        this.WritePixelAspectRatio(stream, header.AspectRatio.Value);
-        this.WriteLineOrder(stream, header.LineOrder.Value);
-        this.WriteScreenWindowCenter(stream, header.ScreenWindowCenter.Value);
-        this.WriteScreenWindowWidth(stream, header.ScreenWindowWidth.Value);
+        this.WriteCompression(stream, header.Compression);
+        this.WriteDataWindow(stream, header.DataWindow);
+        this.WriteDisplayWindow(stream, header.DisplayWindow);
+        this.WritePixelAspectRatio(stream, header.AspectRatio);
+        this.WriteLineOrder(stream, header.LineOrder);
+        this.WriteScreenWindowCenter(stream, header.ScreenWindowCenter);
+        this.WriteScreenWindowWidth(stream, header.ScreenWindowWidth);
         stream.WriteByte(0);
     }
 

@@ -8,39 +8,41 @@ namespace SixLabors.ImageSharp.Formats.OpenExr;
 /// <summary>
 /// Image decoder for generating an image out of a OpenExr stream.
 /// </summary>
-public class ExrDecoder : IImageDecoderSpecialized<ExrDecoderOptions>
+public class ExrDecoder : ImageDecoder
 {
-    /// <inheritdoc/>
-    IImageInfo IImageInfoDetector.Identify(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
+    private ExrDecoder()
     {
-        Guard.NotNull(options, nameof(options));
-        Guard.NotNull(stream, nameof(stream));
-
-        return new ExrDecoderCore(new() { GeneralOptions = options }).Identify(options.Configuration, stream, cancellationToken);
     }
 
-    /// <inheritdoc/>
-    Image<TPixel> IImageDecoder.Decode<TPixel>(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
-        => ((IImageDecoderSpecialized<ExrDecoderOptions>)this).Decode<TPixel>(new() { GeneralOptions = options }, stream, cancellationToken);
+    /// <summary>
+    /// Gets the shared instance.
+    /// </summary>
+    public static ExrDecoder Instance { get; } = new();
 
     /// <inheritdoc/>
-    Image IImageDecoder.Decode(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
-        => ((IImageDecoderSpecialized<ExrDecoderOptions>)this).Decode(new() { GeneralOptions = options }, stream, cancellationToken);
-
-    /// <inheritdoc/>
-    Image<TPixel> IImageDecoderSpecialized<ExrDecoderOptions>.Decode<TPixel>(ExrDecoderOptions options, Stream stream, CancellationToken cancellationToken)
+    protected override ImageInfo Identify(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
     {
         Guard.NotNull(options, nameof(options));
         Guard.NotNull(stream, nameof(stream));
 
-        Image<TPixel> image = new ExrDecoderCore(options).Decode<TPixel>(options.GeneralOptions.Configuration, stream, cancellationToken);
+        return new ExrDecoderCore(new ExrDecoderOptions { GeneralOptions = options }).Identify(options.Configuration, stream, cancellationToken);
+    }
 
-        ImageDecoderUtilities.Resize(options.GeneralOptions, image);
+    //// <inheritdoc/>
+    protected override Image<TPixel> Decode<TPixel>(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
+    {
+        Guard.NotNull(options, nameof(options));
+        Guard.NotNull(stream, nameof(stream));
+
+        ExrDecoderCore decoder = new(new ExrDecoderOptions { GeneralOptions = options });
+        Image<TPixel> image = decoder.Decode<TPixel>(options.Configuration, stream, cancellationToken);
+
+        ScaleToTargetSize(options, image);
 
         return image;
     }
 
     /// <inheritdoc/>
-    Image IImageDecoderSpecialized<ExrDecoderOptions>.Decode(ExrDecoderOptions options, Stream stream, CancellationToken cancellationToken)
-        => ((IImageDecoderSpecialized<ExrDecoderOptions>)this).Decode<Rgba32>(options, stream, cancellationToken);
+    protected override Image Decode(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
+        => this.Decode<Rgba32>(options, stream, cancellationToken);
 }

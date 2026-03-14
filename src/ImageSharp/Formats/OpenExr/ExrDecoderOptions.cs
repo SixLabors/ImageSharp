@@ -9,5 +9,5 @@ namespace SixLabors.ImageSharp.Formats.OpenExr;
 public sealed class ExrDecoderOptions : ISpecializedDecoderOptions
 {
     /// <inheritdoc/>
-    public DecoderOptions GeneralOptions { get; set; } = new();
+    public DecoderOptions GeneralOptions { get; init; } = new();
 }

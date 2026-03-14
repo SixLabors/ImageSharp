@@ -1,12 +1,15 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Numerics;
+using SixLabors.ImageSharp.PixelFormats;
+
 namespace SixLabors.ImageSharp.Formats.OpenExr;
 
 /// <summary>
 /// Provides OpenExr specific metadata information for the image.
 /// </summary>
-public class ExrMetadata : IDeepCloneable
+public class ExrMetadata : IFormatMetadata<ExrMetadata>
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="ExrMetadata"/> class.
@@ -26,6 +29,17 @@ public class ExrMetadata : IDeepCloneable
     /// </summary>
     public ExrPixelType PixelType { get; set; } = ExrPixelType.Float;
 
+    public static ExrMetadata FromFormatConnectingMetadata(FormatConnectingMetadata metadata) => throw new NotImplementedException();
+
+    public void AfterImageApply<TPixel>(Image<TPixel> destination, Matrix4x4 matrix)
+        where TPixel : unmanaged, IPixel<TPixel> => throw new NotImplementedException();
+
     /// <inheritdoc/>
     public IDeepCloneable DeepClone() => new ExrMetadata(this);
+
+    public PixelTypeInfo GetPixelTypeInfo() => throw new NotImplementedException();
+
+    public FormatConnectingMetadata ToFormatConnectingMetadata() => throw new NotImplementedException();
+
+    ExrMetadata IDeepCloneable<ExrMetadata>.DeepClone() => throw new NotImplementedException();
 }

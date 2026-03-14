@@ -14,6 +14,7 @@ using SixLabors.ImageSharp.Formats.Qoi;
 using SixLabors.ImageSharp.Formats.Tga;
 using SixLabors.ImageSharp.Formats.Tiff;
 using SixLabors.ImageSharp.Formats.Webp;
+using SixLabors.ImageSharp.Formats.OpenExr;
 
 namespace SixLabors.ImageSharp;
 
@@ -241,6 +242,26 @@ public static class ImageMetadataExtensions
     /// <param name="source">The image metadata.</param>
     /// <returns>The new <see cref="WebpMetadata"/></returns>
     public static WebpMetadata CloneWebpMetadata(this ImageMetadata source) => source.CloneFormatMetadata(WebpFormat.Instance);
+
+    /// <summary>
+    /// Gets the <see cref="ExrMetadata"/> from <paramref name="source"/>.<br/>
+    /// If none is found, an instance is created either by conversion from the decoded image format metadata
+    /// or the requested format default constructor.
+    /// This instance will be added to the metadata for future requests.
+    /// </summary>
+    /// <param name="source">The image metadata.</param>
+    /// <returns>
+    /// The <see cref="ExrMetadata"/>
+    /// </returns>
+    public static ExrMetadata GetExrMetadata(this ImageMetadata source) => source.GetFormatMetadata(ExrFormat.Instance);
+
+    /// <summary>
+    /// Creates a new cloned instance of <see cref="ExrMetadata"/> from the <paramref name="source"/>.
+    /// The instance is created via <see cref="GetExrMetadata(ImageMetadata)"/>
+    /// </summary>
+    /// <param name="source">The image metadata.</param>
+    /// <returns>The new <see cref="ExrMetadata"/></returns>
+    public static ExrMetadata CloneExrMetadata(this ImageMetadata source) => source.CloneFormatMetadata(ExrFormat.Instance);
 
 
     /// <summary>

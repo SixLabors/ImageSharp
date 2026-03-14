@@ -2,6 +2,8 @@
 // Licensed under the Six Labors Split License.
 
 using System.Buffers.Binary;
+using System.Diagnostics.CodeAnalysis;
+using SixLabors.ImageSharp.Formats.Qoi;
 
 namespace SixLabors.ImageSharp.Formats.OpenExr;
 
@@ -13,9 +15,6 @@ public sealed class ExrImageFormatDetector : IImageFormatDetector
     /// <inheritdoc/>
     public int HeaderSize => 4;
 
-    /// <inheritdoc/>
-    public IImageFormat DetectFormat(ReadOnlySpan<byte> header) => this.IsSupportedFileFormat(header) ? ExrFormat.Instance : null;
-
     private bool IsSupportedFileFormat(ReadOnlySpan<byte> header)
     {
         if (header.Length >= this.HeaderSize)
@@ -25,5 +24,12 @@ public sealed class ExrImageFormatDetector : IImageFormatDetector
         }
 
         return false;
+    }
+
+    /// <inheritdoc/>
+    public bool TryDetectFormat(ReadOnlySpan<byte> header, [NotNullWhen(true)] out IImageFormat? format)
+    {
+        format = this.IsSupportedFileFormat(header) ? QoiFormat.Instance : null;
+        return format != null;
     }
 }

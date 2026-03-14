@@ -1,5 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
+#nullable disable
 
 using System.Buffers;
 using System.Buffers.Binary;
@@ -16,7 +17,7 @@ namespace SixLabors.ImageSharp.Formats.OpenExr;
 /// <summary>
 /// Performs the OpenExr decoding operation.
 /// </summary>
-internal sealed class ExrDecoderCore : IImageDecoderInternals
+internal sealed class ExrDecoderCore : ImageDecoderCore
 {
     /// <summary>
     /// Reusable buffer.
@@ -43,14 +44,11 @@ internal sealed class ExrDecoderCore : IImageDecoderInternals
     /// </summary>
     /// <param name="options">The options.</param>
     public ExrDecoderCore(ExrDecoderOptions options)
+        : base(options.GeneralOptions)
     {
-        this.Options = options.GeneralOptions;
         this.configuration = options.GeneralOptions.Configuration;
         this.memoryAllocator = this.configuration.MemoryAllocator;
     }
-
-    /// <inheritdoc />
-    public DecoderOptions Options { get; }
 
     /// <summary>
     /// Gets the dimensions of the image.
@@ -84,8 +82,7 @@ internal sealed class ExrDecoderCore : IImageDecoderInternals
     private ExrHeaderAttributes HeaderAttributes { get; set; }
 
     /// <inheritdoc />
-    public Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
-        where TPixel : unmanaged, IPixel<TPixel>
+    protected override Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
     {
         this.ReadExrHeader(stream);
         if (!this.IsSupportedCompression())
@@ -162,7 +159,7 @@ internal sealed class ExrDecoderCore : IImageDecoderInternals
                 for (int x = 0; x < width; x++)
                 {
                     HalfVector4 pixelValue = new(redPixelData[x], greenPixelData[x], bluePixelData[x], hasAlpha ? alphaPixelData[x] : 1.0f);
-                    color.FromVector4(pixelValue.ToVector4());
+                    TPixel.FromVector4(pixelValue.ToVector4());
                     pixelRow[x] = color;
                 }
             }
@@ -219,7 +216,7 @@ internal sealed class ExrDecoderCore : IImageDecoderInternals
                 for (int x = 0; x < width; x++)
                 {
                     Rgba128 pixelValue = new(redPixelData[x], greenPixelData[x], bluePixelData[x], hasAlpha ? alphaPixelData[x] : uint.MaxValue);
-                    color.FromVector4(pixelValue.ToVector4());
+                    TPixel.FromVector4(pixelValue.ToVector4());
                     pixelRow[x] = color;
                 }
             }
@@ -366,13 +363,13 @@ internal sealed class ExrDecoderCore : IImageDecoderInternals
     }
 
     /// <inheritdoc />
-    public IImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken)
+    protected override ImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken)
     {
         ExrHeaderAttributes header = this.ReadExrHeader(stream);
 
         int bitsPerPixel = this.CalculateBitsPerPixel();
 
-        return new ImageInfo(new PixelTypeInfo(bitsPerPixel), this.Width, this.Height, new ImageMetadata());
+        return new ImageInfo(new Size((int)header.ScreenWindowWidth, (int)header.AspectRatio), this.metadata);
     }
 
     private int CalculateBitsPerPixel()
@@ -430,15 +427,10 @@ internal sealed class ExrDecoderCore : IImageDecoderInternals
 
         this.HeaderAttributes = this.ParseHeaderAttributes(stream);
 
-        if (!this.HeaderAttributes.IsValid())
-        {
-            ExrThrowHelper.ThrowInvalidImageHeader();
-        }
-
-        this.Width = this.HeaderAttributes.DataWindow.Value.XMax - this.HeaderAttributes.DataWindow.Value.XMin + 1;
-        this.Height = this.HeaderAttributes.DataWindow.Value.YMax - this.HeaderAttributes.DataWindow.Value.YMin + 1;
+        this.Width = this.HeaderAttributes.DataWindow.XMax - this.HeaderAttributes.DataWindow.XMin + 1;
+        this.Height = this.HeaderAttributes.DataWindow.YMax - this.HeaderAttributes.DataWindow.YMin + 1;
         this.Channels = this.HeaderAttributes.Channels;
-        this.Compression = this.HeaderAttributes.Compression.GetValueOrDefault();
+        this.Compression = this.HeaderAttributes.Compression;
 
         this.metadata = new ImageMetadata();
 
@@ -448,50 +440,54 @@ internal sealed class ExrDecoderCore : IImageDecoderInternals
     private ExrHeaderAttributes ParseHeaderAttributes(BufferedReadStream stream)
     {
         ExrAttribute attribute = this.ReadAttribute(stream);
-        ExrHeaderAttributes header = new();
 
+        IList<ExrChannelInfo> channels = null;
+        ExrBox2i? dataWindow = null;
+        ExrCompressionType? compression = null;
+        ExrBox2i? displayWindow = null;
+        ExrLineOrder? lineOrder = null;
+        float? aspectRatio = null;
+        float? screenWindowCenterX = null;
+        float? screenWindowCenterY = null;
+        float? screenWindowWidth = null;
+        uint? tileXSize = null;
+        uint? tileYSize = null;
+        int? chunkCount = null;
         while (!attribute.Equals(ExrAttribute.EmptyAttribute))
         {
             switch (attribute.Name)
             {
                 case ExrConstants.AttributeNames.Channels:
-                    IList<ExrChannelInfo> channels = this.ReadChannelList(stream, attribute.Length);
-                    header.Channels = channels;
+                    channels = this.ReadChannelList(stream, attribute.Length);
                     break;
                 case ExrConstants.AttributeNames.Compression:
-                    header.Compression = (ExrCompressionType)stream.ReadByte();
+                    compression = (ExrCompressionType)stream.ReadByte();
                     break;
                 case ExrConstants.AttributeNames.DataWindow:
-                    ExrBox2i dataWindow = this.ReadBoxInteger(stream);
-                    header.DataWindow = dataWindow;
+                    dataWindow = this.ReadBoxInteger(stream);
                     break;
                 case ExrConstants.AttributeNames.DisplayWindow:
-                    ExrBox2i displayWindow = this.ReadBoxInteger(stream);
-                    header.DisplayWindow = displayWindow;
+                    displayWindow = this.ReadBoxInteger(stream);
                     break;
                 case ExrConstants.AttributeNames.LineOrder:
-                    ExrLineOrder lineOrder = (ExrLineOrder)stream.ReadByte();
-                    header.LineOrder = lineOrder;
+                    lineOrder = (ExrLineOrder)stream.ReadByte();
                     break;
                 case ExrConstants.AttributeNames.PixelAspectRatio:
-                    float aspectRatio = stream.ReadSingle(this.buffer);
-                    header.AspectRatio = aspectRatio;
+                    aspectRatio = stream.ReadSingle(this.buffer);
                     break;
                 case ExrConstants.AttributeNames.ScreenWindowCenter:
-                    float screenWindowCenterX = stream.ReadSingle(this.buffer);
-                    float screenWindowCenterY = stream.ReadSingle(this.buffer);
-                    header.ScreenWindowCenter = new PointF(screenWindowCenterX, screenWindowCenterY);
+                    screenWindowCenterX = stream.ReadSingle(this.buffer);
+                    screenWindowCenterY = stream.ReadSingle(this.buffer);
                     break;
                 case ExrConstants.AttributeNames.ScreenWindowWidth:
-                    float screenWindowWidth = stream.ReadSingle(this.buffer);
-                    header.ScreenWindowWidth = screenWindowWidth;
+                    screenWindowWidth = stream.ReadSingle(this.buffer);
                     break;
                 case ExrConstants.AttributeNames.Tiles:
-                    header.TileXSize = this.ReadUnsignedInteger(stream);
-                    header.TileYSize = this.ReadUnsignedInteger(stream);
+                    tileXSize = this.ReadUnsignedInteger(stream);
+                    tileYSize = this.ReadUnsignedInteger(stream);
                     break;
                 case ExrConstants.AttributeNames.ChunkCount:
-                    header.ChunkCount = this.ReadSignedInteger(stream);
+                    chunkCount = this.ReadSignedInteger(stream);
                     break;
                 default:
                     // Skip unknown attribute bytes.
@@ -502,6 +498,18 @@ internal sealed class ExrDecoderCore : IImageDecoderInternals
             attribute = this.ReadAttribute(stream);
         }
 
+        ExrHeaderAttributes header = new(
+            channels,
+            compression.Value,
+            dataWindow.Value,
+            displayWindow.Value,
+            lineOrder.Value,
+            aspectRatio.Value,
+            screenWindowWidth.Value,
+            new PointF(screenWindowCenterX.Value, screenWindowCenterY.Value),
+            tileXSize,
+            tileYSize,
+            chunkCount);
         return header;
     }
 

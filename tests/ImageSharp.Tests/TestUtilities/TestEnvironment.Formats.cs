@@ -64,7 +64,7 @@ public static partial class TestEnvironment
             new TgaConfigurationModule(),
             new WebpConfigurationModule(),
             new TiffConfigurationModule(),
-            new ExrConfigurationModule());
+            new ExrConfigurationModule(),
             new QoiConfigurationModule());
 
         IImageEncoder pngEncoder = IsWindows ? SystemDrawingReferenceEncoder.Png : new ImageSharpPngEncoderWithDefaultConfiguration();

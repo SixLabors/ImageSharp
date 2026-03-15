@@ -14,7 +14,7 @@ public class ExrDecoderTests
     private static MagickReferenceDecoder ReferenceDecoder => MagickReferenceDecoder.Exr;
 
     [Theory]
-    [InlineData(TestImages.Exr.Uncompressed, 803, 1197)]
+    [InlineData(TestImages.Exr.Uncompressed, 199, 297)]
     public void ExrDecoder_Identify_DetectsCorrectWidthAndHeight<TPixel>(string imagePath, int expectedWidth, int expectedHeight)
     {
         TestFile testFile = TestFile.Create(imagePath);
@@ -27,7 +27,27 @@ public class ExrDecoderTests
 
     [Theory]
     [WithFile(TestImages.Exr.Uncompressed, PixelTypes.Rgba32)]
-    public void ExrDecoder_CanDecode_Uncompressed<TPixel>(TestImageProvider<TPixel> provider)
+    public void ExrDecoder_CanDecode_Uncompressed_RGBA<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage(ExrDecoder.Instance);
+        image.DebugSave(provider);
+        image.CompareToOriginal(provider, ReferenceDecoder);
+    }
+
+    [Theory]
+    [WithFile(TestImages.Exr.Rgb, PixelTypes.Rgba32)]
+    public void ExrDecoder_CanDecode_Rgb<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage(ExrDecoder.Instance);
+        image.DebugSave(provider);
+        image.CompareToOriginal(provider, ReferenceDecoder);
+    }
+
+    [Theory]
+    [WithFile(TestImages.Exr.Gray, PixelTypes.Rgba32)]
+    public void ExrDecoder_CanDecode_Gray<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         using Image<TPixel> image = provider.GetImage(ExrDecoder.Instance);

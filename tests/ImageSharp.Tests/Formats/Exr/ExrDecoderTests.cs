@@ -14,6 +14,18 @@ public class ExrDecoderTests
     private static MagickReferenceDecoder ReferenceDecoder => MagickReferenceDecoder.Exr;
 
     [Theory]
+    [InlineData(TestImages.Exr.Uncompressed, 803, 1197)]
+    public void ExrDecoder_Identify_DetectsCorrectWidthAndHeight<TPixel>(string imagePath, int expectedWidth, int expectedHeight)
+    {
+        TestFile testFile = TestFile.Create(imagePath);
+        using MemoryStream stream = new(testFile.Bytes, false);
+        ImageInfo imageInfo = Image.Identify(stream);
+        Assert.NotNull(imageInfo);
+        Assert.Equal(expectedWidth, imageInfo.Width);
+        Assert.Equal(expectedHeight, imageInfo.Height);
+    }
+
+    [Theory]
     [WithFile(TestImages.Exr.Uncompressed, PixelTypes.Rgba32)]
     public void ExrDecoder_CanDecode_Uncompressed<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>

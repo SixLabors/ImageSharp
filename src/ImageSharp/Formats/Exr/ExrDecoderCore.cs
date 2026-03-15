@@ -75,10 +75,19 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
     /// </summary>
     private ExrCompressionType Compression { get; set; }
 
+    /// <summary>
+    /// Gets or sets the image data type, either RGB, RGBA or gray.
+    /// </summary>
     private ExrImageDataType ImageDataType { get; set; }
 
+    /// <summary>
+    /// Gets or sets the image type, either ScanLine or tiled.
+    /// </summary>
     private ExrImageType ImageType { get; set; }
 
+    /// <summary>
+    /// Gets or sets the header attributes.
+    /// </summary>
     private ExrHeaderAttributes HeaderAttributes { get; set; }
 
     /// <inheritdoc />
@@ -134,7 +143,6 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
 
         using ExrBaseDecompressor decompressor = ExrDecompressorFactory.Create(this.Compression, this.memoryAllocator, bytesPerBlock, width, height, rowsPerBlock, channelCount);
 
-        TPixel color = default;
         for (uint y = 0; y < height; y += rowsPerBlock)
         {
             ulong rowOffset = this.ReadUnsignedLong(stream);
@@ -368,7 +376,7 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
 
         int bitsPerPixel = this.CalculateBitsPerPixel();
 
-        return new ImageInfo(new Size((int)header.ScreenWindowWidth, (int)header.AspectRatio), this.metadata);
+        return new ImageInfo(new Size(header.DataWindow.XMax, header.DataWindow.YMax), this.metadata);
     }
 
     private int CalculateBitsPerPixel()

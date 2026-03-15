@@ -159,8 +159,7 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
                 for (int x = 0; x < width; x++)
                 {
                     HalfVector4 pixelValue = new(redPixelData[x], greenPixelData[x], bluePixelData[x], hasAlpha ? alphaPixelData[x] : 1.0f);
-                    TPixel.FromVector4(pixelValue.ToVector4());
-                    pixelRow[x] = color;
+                    pixelRow[x] = TPixel.FromVector4(pixelValue.ToVector4());
                 }
             }
 

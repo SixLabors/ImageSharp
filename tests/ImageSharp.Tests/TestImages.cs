@@ -1390,5 +1390,6 @@ public static class TestImages
         public const string B44 = "Exr/Calliphora_b44.exr";
         public const string Rgb = "Exr/Calliphora_rgb.exr";
         public const string Gray = "Exr/Calliphora_gray.exr";
+        public const string UncompressedFloatRgb = "Exr/rgb_float32_uncompressed.exr";
     }
 }

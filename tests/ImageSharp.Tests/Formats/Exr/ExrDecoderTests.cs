@@ -27,7 +27,17 @@ public class ExrDecoderTests
 
     [Theory]
     [WithFile(TestImages.Exr.Uncompressed, PixelTypes.Rgba32)]
-    public void ExrDecoder_CanDecode_Uncompressed_RGBA<TPixel>(TestImageProvider<TPixel> provider)
+    public void ExrDecoder_CanDecode_Uncompressed_Rgba_ExrPixelType_Half<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage(ExrDecoder.Instance);
+        image.DebugSave(provider);
+        image.CompareToOriginal(provider, ReferenceDecoder);
+    }
+
+    [Theory]
+    [WithFile(TestImages.Exr.UncompressedFloatRgb, PixelTypes.Rgba32)]
+    public void ExrDecoder_CanDecode_Uncompressed_Rgb_ExrPixelType_Float<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         using Image<TPixel> image = provider.GetImage(ExrDecoder.Instance);

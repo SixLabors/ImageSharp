@@ -46,6 +46,16 @@ public class ExrDecoderTests
     }
 
     [Theory]
+    [WithFile(TestImages.Exr.UncompressedUintRgb, PixelTypes.Rgba32)]
+    public void ExrDecoder_CanDecode_Uncompressed_Rgb_ExrPixelType_Uint<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage(ExrDecoder.Instance);
+        image.DebugSave(provider);
+        image.CompareToOriginal(provider, ReferenceDecoder);
+    }
+
+    [Theory]
     [WithFile(TestImages.Exr.Rgb, PixelTypes.Rgba32)]
     public void ExrDecoder_CanDecode_Rgb<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>

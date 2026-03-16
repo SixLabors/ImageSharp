@@ -21,45 +21,45 @@ jobs:
         isARM:
           - ${{ contains(github.event.pull_request.labels.*.name, 'arch:arm32') || contains(github.event.pull_request.labels.*.name, 'arch:arm64') }}
         options:
-          - os: ubuntu-latest
+          # - os: ubuntu-latest
+          #   framework: net7.0
+          #   sdk: 7.0.x
+          #   sdk-preview: true
+          #   runtime: -x64
+          #   codecov: false
+          - os: macos-26
             framework: net7.0
             sdk: 7.0.x
             sdk-preview: true
             runtime: -x64
             codecov: false
-          - os: macos-13 # macos-latest runs on arm64 runners where libgdiplus is unavailable
-            framework: net7.0
-            sdk: 7.0.x
-            sdk-preview: true
-            runtime: -x64
-            codecov: false
-          - os: windows-latest
-            framework: net7.0
-            sdk: 7.0.x
-            sdk-preview: true
-            runtime: -x64
-            codecov: false
-          - os: buildjet-4vcpu-ubuntu-2204-arm
-            framework: net7.0
-            sdk: 7.0.x
-            sdk-preview: true
-            runtime: -x64
-            codecov: false
-          - os: ubuntu-latest
+          # - os: windows-latest
+          #   framework: net7.0
+          #   sdk: 7.0.x
+          #   sdk-preview: true
+          #   runtime: -x64
+          #   codecov: false
+          # - os: buildjet-4vcpu-ubuntu-2204-arm
+          #   framework: net7.0
+          #   sdk: 7.0.x
+          #   sdk-preview: true
+          #   runtime: -x64
+          #   codecov: false
+          # - os: ubuntu-latest
+          #   framework: net6.0
+          #   sdk: 6.0.x
+          #   runtime: -x64
+          #   codecov: false
+          - os: macos-26
             framework: net6.0
             sdk: 6.0.x
             runtime: -x64
             codecov: false
-          - os: macos-13 # macos-latest runs on arm64 runners where libgdiplus is unavailable
-            framework: net6.0
-            sdk: 6.0.x
-            runtime: -x64
-            codecov: false
-          - os: windows-latest
-            framework: net6.0
-            sdk: 6.0.x
-            runtime: -x64
-            codecov: false
+          # - os: windows-latest
+          #   framework: net6.0
+          #   sdk: 6.0.x
+          #   runtime: -x64
+          #   codecov: false
         exclude:
           - isARM: false
             options:
@@ -73,6 +73,18 @@ jobs:
         run: |
             sudo apt-get update
             sudo apt-get -y install libgdiplus libgif-dev libglib2.0-dev libcairo2-dev libtiff-dev libexif-dev
+
+      - name: Install libgdi+, which is required for tests running on macos
+        if: ${{ contains(matrix.options.os, 'macos-26') }}
+        run: |
+          brew update
+          brew install mono-libgdiplus
+          # Create symlinks to make libgdiplus discoverable
+          sudo mkdir -p /usr/local/lib
+          sudo ln -sf $(brew --prefix)/lib/libgdiplus.dylib /usr/local/lib/libgdiplus.dylib
+          # Verify installation
+          ls -la $(brew --prefix)/lib/libgdiplus* || echo "libgdiplus not found in brew prefix"
+          ls -la /usr/local/lib/libgdiplus* || echo "libgdiplus not found in /usr/local/lib"
 
       - name: Git Config
         shell: bash

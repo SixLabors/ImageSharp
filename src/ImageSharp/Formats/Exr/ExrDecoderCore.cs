@@ -4,7 +4,9 @@
 
 using System.Buffers;
 using System.Buffers.Binary;
+using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.Intrinsics;
 using System.Text;
 using SixLabors.ImageSharp.Formats.Exr.Compression;
 using SixLabors.ImageSharp.IO;
@@ -19,6 +21,9 @@ namespace SixLabors.ImageSharp.Formats.Exr;
 /// </summary>
 internal sealed class ExrDecoderCore : ImageDecoderCore
 {
+    private const float Scale32Bit = 1f / 0xFFFFFFFF;
+    private static readonly Vector4 Scale32BitVector = Vector128.Create(Scale32Bit, Scale32Bit, Scale32Bit, 1f).AsVector4();
+
     /// <summary>
     /// Reusable buffer.
     /// </summary>
@@ -196,7 +201,6 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
 
         using ExrBaseDecompressor decompressor = ExrDecompressorFactory.Create(this.Compression, this.memoryAllocator, bytesPerBlock, width, height, rowsPerBlock, channelCount);
 
-        TPixel color = default;
         for (uint y = 0; y < height; y += rowsPerBlock)
         {
             ulong rowOffset = this.ReadUnsignedLong(stream);
@@ -222,9 +226,7 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
 
                 for (int x = 0; x < width; x++)
                 {
-                    Rgba128 pixelValue = new(redPixelData[x], greenPixelData[x], bluePixelData[x], hasAlpha ? alphaPixelData[x] : uint.MaxValue);
-                    TPixel.FromVector4(pixelValue.ToVector4());
-                    pixelRow[x] = color;
+                    pixelRow[x] = ColorScaleTo32Bit<TPixel>(redPixelData[x], greenPixelData[x], bluePixelData[x], hasAlpha ? alphaPixelData[x] : uint.MaxValue);
                 }
             }
         }
@@ -799,4 +801,9 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
 
         return BinaryPrimitives.ReadInt32LittleEndian(this.buffer);
     }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static TPixel ColorScaleTo32Bit<TPixel>(uint r, uint g, uint b, uint a)
+        where TPixel : unmanaged, IPixel<TPixel>
+        => TPixel.FromScaledVector4(new Vector4(r, g, b, a) * Scale32Bit);
 }

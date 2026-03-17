@@ -22,7 +22,7 @@ jobs:
             sdk-preview: true
             runtime: -x64
             codecov: false
-          - os: macos-13 # macos-latest runs on arm64 runners
+          - os: macos-26-intel
             framework: net6.0
             sdk: 6.0.x
             sdk-preview: true
@@ -38,7 +38,7 @@ jobs:
             framework: net5.0
             runtime: -x64
             codecov: false
-          - os: macos-13 # macos-latest runs on arm64 runners
+          - os: macos-26-intel
             framework: net5.0
             runtime: -x64
             codecov: false
@@ -50,7 +50,7 @@ jobs:
             framework: netcoreapp3.1
             runtime: -x64
             codecov: false
-          - os: macos-13 # macos-latest runs on arm64 runners
+          - os: macos-26-intel
             framework: netcoreapp3.1
             runtime: -x64
             codecov: false
@@ -77,11 +77,12 @@ jobs:
       - name: Install Ubuntu prerequisites
         if: ${{ contains(matrix.options.os, 'ubuntu') }}
         run: |
-          # libssl 1.1 (required by old .NET runtimes)
-          wget http://archive.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.1_1.1.0g-2ubuntu4_amd64.deb
-          sudo dpkg -i libssl1.1_1.1.0g-2ubuntu4_amd64.deb
+          # libssl 1.1 (required by old .NET runtimes, not in Ubuntu 22.04+ repos)
+          wget http://archive.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.1_1.1.1f-1ubuntu2_amd64.deb
+          sudo dpkg -i libssl1.1_1.1.1f-1ubuntu2_amd64.deb
 
           # libgdiplus
+          sudo apt-get update
           sudo apt-get -y install libgdiplus libgif-dev libglib2.0-dev libcairo2-dev libtiff-dev libexif-dev
 
       - name: Git Config

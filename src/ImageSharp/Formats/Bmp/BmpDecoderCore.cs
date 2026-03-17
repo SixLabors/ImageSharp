@@ -1377,6 +1377,12 @@ namespace SixLabors.ImageSharp.Formats.Bmp
                     switch (this.fileMarkerType)
                     {
                         case BmpFileMarkerType.Bitmap:
+                            if (this.fileHeader.Offset > stream.Length)
+                            {
+                                BmpThrowHelper.ThrowInvalidImageContentException(
+                                    $"Pixel data offset {this.fileHeader.Offset} exceeds file size {stream.Length}.");
+                            }
+
                             colorMapSizeBytes = this.fileHeader.Offset - BmpFileHeader.Size - this.infoHeader.HeaderSize;
                             int colorCountForBitDepth = ColorNumerics.GetColorCountForBitDepth(this.infoHeader.BitsPerPixel);
                             bytesPerColorMapEntry = colorMapSizeBytes / colorCountForBitDepth;

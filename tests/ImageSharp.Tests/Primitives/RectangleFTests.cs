@@ -287,6 +287,19 @@ public class RectangleFTests
     }
 
     [Fact]
+    public void TransformMatrix4x4_RotationReturnsBoundingBox()
+    {
+        RectangleF rect = new(10, 20, 100, 50);
+        Matrix4x4 m = Matrix4x4.CreateRotationZ(MathF.PI / 2F);
+        RectangleF result = RectangleF.Transform(rect, m);
+
+        Assert.Equal(-70F, result.X, 4);
+        Assert.Equal(10F, result.Y, 4);
+        Assert.Equal(50F, result.Width, 4);
+        Assert.Equal(100F, result.Height, 4);
+    }
+
+    [Fact]
     public void ToStringTest()
     {
         RectangleF r = new(5, 5.1F, 1.3F, 1);

@@ -233,7 +233,8 @@ public struct Point : IEquatable<Point>
     /// <param name="matrix">The transformation matrix used.</param>
     /// <returns>The transformed <see cref="PointF"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Point Transform(Point point, Matrix3x2 matrix) => Round(Vector2.Transform(new Vector2(point.X, point.Y), matrix));
+    public static PointF Transform(Point point, Matrix3x2 matrix)
+        => Vector2.Transform(new Vector2(point.X, point.Y), matrix);
 
     /// <summary>
     /// Transforms a point by a specified 4x4 matrix, applying a projective transform
@@ -241,10 +242,10 @@ public struct Point : IEquatable<Point>
     /// </summary>
     /// <param name="point">The point to transform.</param>
     /// <param name="matrix">The transformation matrix used.</param>
-    /// <returns>The transformed <see cref="Point"/>.</returns>
+    /// <returns>The transformed <see cref="PointF"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Point Transform(Point point, Matrix4x4 matrix)
-        => Round(TransformUtilities.ProjectiveTransform2D(point.X, point.Y, matrix));
+    public static PointF Transform(Point point, Matrix4x4 matrix)
+        => TransformUtilities.ProjectiveTransform2D(point.X, point.Y, matrix);
 
     /// <summary>
     /// Deconstructs this point into two integers.

@@ -219,7 +219,7 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
                 for (int channelIdx = 0; channelIdx < this.Channels.Count; channelIdx++)
                 {
                     ExrChannelInfo channel = this.Channels[channelIdx];
-                    offset += this.ReadUnsignedIntChannelData(stream, channel, decompressedPixelData, redPixelData, greenPixelData, bluePixelData, alphaPixelData, width);
+                    offset += this.ReadUnsignedIntChannelData(stream, channel, decompressedPixelData.Slice(offset), redPixelData, greenPixelData, bluePixelData, alphaPixelData, width);
                 }
 
                 stream.Position = nextRowOffsetPosition;

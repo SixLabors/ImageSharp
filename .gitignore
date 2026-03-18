@@ -227,3 +227,5 @@ artifacts/
 #lfs
 hooks/**
 lfs/**
+
+.dotnet

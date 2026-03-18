@@ -519,6 +519,11 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
             fileMarker = FindNextFileMarker(stream);
         }
 
+        if (!metadataOnly && this.Frame is null)
+        {
+            JpegThrowHelper.ThrowInvalidImageContentException("No readable SOFn (Start Of Frame) marker found.");
+        }
+
         this.Metadata.GetJpegMetadata().Interleaved = this.Frame.Interleaved;
     }
 

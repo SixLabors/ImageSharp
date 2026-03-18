@@ -448,4 +448,13 @@ public partial class JpegDecoderTests
     [InlineData(TestImages.Jpeg.Issues.Issue2948)]
     public void Issue2948_No_SOS_Identify_Throws_InvalidImageContentException(string imagePath)
         => Assert.Throws<InvalidImageContentException>(() => _ = Image.Identify(TestFile.Create(imagePath).Bytes));
+
+    [Fact]
+    public void Issue_3071_Decode_TruncatedJpeg_Throws_InvalidImageContentException()
+        => Assert.Throws<InvalidImageContentException>(() =>
+        {
+            // SOI marker (FF D8) + garbage bytes — only 11 bytes
+            byte[] data = [0xFF, 0xD8, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30];
+            using Image<Rgba32> image = Image.Load<Rgba32>(data);
+        });
 }

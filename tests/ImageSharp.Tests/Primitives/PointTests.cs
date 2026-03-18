@@ -159,9 +159,10 @@ public class PointTests
         Point p = new(13, 17);
         Matrix3x2 matrix = Matrix3x2Extensions.CreateRotationDegrees(45, Point.Empty);
 
-        Point pout = Point.Transform(p, matrix);
+        PointF pout = Point.Transform(p, matrix);
 
-        Assert.Equal(new Point(-3, 21), pout);
+        Assert.Equal(-2.828427F, pout.X, 4);
+        Assert.Equal(21.213203F, pout.Y, 4);
     }
 
     [Fact]
@@ -170,8 +171,56 @@ public class PointTests
         Point p = new(13, 17);
         Matrix3x2 matrix = Matrix3x2Extensions.CreateSkewDegrees(45, 45, Point.Empty);
 
-        Point pout = Point.Transform(p, matrix);
-        Assert.Equal(new Point(30, 30), pout);
+        PointF pout = Point.Transform(p, matrix);
+        Assert.Equal(30F, pout.X, 4);
+        Assert.Equal(30F, pout.Y, 4);
+    }
+
+    [Fact]
+    public void TransformMatrix4x4_AffineMatchesMatrix3x2()
+    {
+        Point p = new(13, 17);
+        Matrix3x2 m3 = Matrix3x2Extensions.CreateRotationDegrees(45, Point.Empty);
+        Matrix4x4 m4 = new(m3);
+
+        PointF r3 = Point.Transform(p, m3);
+        PointF r4 = Point.Transform(p, m4);
+
+        Assert.Equal(r3, r4);
+    }
+
+    [Fact]
+    public void TransformMatrix4x4_Identity()
+    {
+        Point p = new(42, -17);
+        PointF result = Point.Transform(p, Matrix4x4.Identity);
+
+        Assert.Equal((PointF)p, result);
+    }
+
+    [Fact]
+    public void TransformMatrix4x4_Translation()
+    {
+        Point p = new(10, 20);
+        Matrix4x4 m = Matrix4x4.CreateTranslation(5, -3, 0);
+        PointF result = Point.Transform(p, m);
+
+        Assert.Equal(15F, result.X, 4);
+        Assert.Equal(17F, result.Y, 4);
+    }
+
+    [Fact]
+    public void TransformMatrix4x4_Projective()
+    {
+        Point p = new(100, 50);
+        Matrix4x4 m = Matrix4x4.Identity;
+        m.M14 = 0.005F;
+
+        PointF result = Point.Transform(p, m);
+
+        // W = 100*0.005 + 1 = 1.5 => (100/1.5, 50/1.5)
+        Assert.Equal(100F / 1.5F, result.X, 4);
+        Assert.Equal(50F / 1.5F, result.Y, 4);
     }
 
     [Theory]

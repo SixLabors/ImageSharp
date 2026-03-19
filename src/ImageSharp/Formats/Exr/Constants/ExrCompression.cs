@@ -1,9 +1,12 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-namespace SixLabors.ImageSharp.Formats.Exr.Compression;
+namespace SixLabors.ImageSharp.Formats.Exr.Constants;
 
-internal enum ExrCompressionType
+/// <summary>
+/// Enumeration representing the compression formats defined by the EXR file-format.
+/// </summary>
+public enum ExrCompression
 {
     /// <summary>
     /// Pixel data is not compressed.

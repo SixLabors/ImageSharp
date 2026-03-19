@@ -79,7 +79,7 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
     /// <summary>
     /// Gets or sets the compression method.
     /// </summary>
-    private ExrCompressionType Compression { get; set; }
+    private ExrCompression Compression { get; set; }
 
     /// <summary>
     /// Gets or sets the image data type, either RGB, RGBA or gray.
@@ -453,7 +453,7 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
 
         IList<ExrChannelInfo> channels = null;
         ExrBox2i? dataWindow = null;
-        ExrCompressionType? compression = null;
+        ExrCompression? compression = null;
         ExrBox2i? displayWindow = null;
         ExrLineOrder? lineOrder = null;
         float? aspectRatio = null;
@@ -471,7 +471,7 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
                     channels = this.ReadChannelList(stream, attribute.Length);
                     break;
                 case ExrConstants.AttributeNames.Compression:
-                    compression = (ExrCompressionType)stream.ReadByte();
+                    compression = (ExrCompression)stream.ReadByte();
                     break;
                 case ExrConstants.AttributeNames.DataWindow:
                     dataWindow = this.ReadBoxInteger(stream);
@@ -648,11 +648,11 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
     {
         switch (this.Compression)
         {
-            case ExrCompressionType.None:
-            case ExrCompressionType.Zip:
-            case ExrCompressionType.Zips:
-            case ExrCompressionType.RunLengthEncoded:
-            case ExrCompressionType.B44:
+            case ExrCompression.None:
+            case ExrCompression.Zip:
+            case ExrCompression.Zips:
+            case ExrCompression.RunLengthEncoded:
+            case ExrCompression.B44:
                 return true;
         }
 
@@ -757,12 +757,12 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
     {
         switch (this.Compression)
         {
-            case ExrCompressionType.Zip:
-            case ExrCompressionType.Pxr24:
+            case ExrCompression.Zip:
+            case ExrCompression.Pxr24:
                 return 16;
-            case ExrCompressionType.B44:
-            case ExrCompressionType.B44A:
-            case ExrCompressionType.Piz:
+            case ExrCompression.B44:
+            case ExrCompression.B44A:
+            case ExrCompression.Piz:
                 return 32;
 
             default:

@@ -15,6 +15,11 @@ public sealed class ExrEncoder : ImageEncoder
     /// </summary>
     public ExrPixelType? PixelType { get; set; }
 
+    /// <summary>
+    /// Gets the compression type to use.
+    /// </summary>
+    public ExrCompression? Compression { get; init; }
+
     /// <inheritdoc />
     protected override void Encode<TPixel>(Image<TPixel> image, Stream stream, CancellationToken cancellationToken)
     {

@@ -8,8 +8,8 @@ namespace SixLabors.ImageSharp.Formats.Exr.Compression;
 
 internal abstract class ExrBaseDecompressor : ExrBaseCompression
 {
-    protected ExrBaseDecompressor(MemoryAllocator allocator, uint bytePerRow)
-        : base(allocator, bytePerRow)
+    protected ExrBaseDecompressor(MemoryAllocator allocator, uint bytesPerBlock)
+        : base(allocator, bytesPerBlock)
     {
     }
 

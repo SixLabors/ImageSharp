@@ -19,7 +19,7 @@ internal class RunLengthCompression : ExrBaseDecompressor
     public override void Decompress(BufferedReadStream stream, uint compressedBytes, Span<byte> buffer)
     {
         Span<byte> uncompressed = this.tmpBuffer.GetSpan();
-        int maxLength = (int)this.UncompressedBytes;
+        int maxLength = (int)this.BytesPerBlock;
         int offset = 0;
         while (compressedBytes > 0)
         {
@@ -63,8 +63,8 @@ internal class RunLengthCompression : ExrBaseDecompressor
             }
         }
 
-        Reconstruct(uncompressed, this.UncompressedBytes);
-        Interleave(uncompressed, this.UncompressedBytes, buffer);
+        Reconstruct(uncompressed, this.BytesPerBlock);
+        Interleave(uncompressed, this.BytesPerBlock, buffer);
     }
 
     private static byte ReadNextByte(BufferedReadStream stream)

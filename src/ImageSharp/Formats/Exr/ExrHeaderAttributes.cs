@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using SixLabors.ImageSharp.Formats.Exr.Compression;
 using SixLabors.ImageSharp.Formats.Exr.Constants;
 
 namespace SixLabors.ImageSharp.Formats.Exr;
@@ -10,7 +9,7 @@ internal class ExrHeaderAttributes
 {
     public ExrHeaderAttributes(
         IList<ExrChannelInfo> channels,
-        ExrCompressionType compression,
+        ExrCompression compression,
         ExrBox2i dataWindow,
         ExrBox2i displayWindow,
         ExrLineOrder lineOrder,
@@ -36,7 +35,7 @@ internal class ExrHeaderAttributes
 
     public IList<ExrChannelInfo> Channels { get; set; }
 
-    public ExrCompressionType Compression { get; set; }
+    public ExrCompression Compression { get; set; }
 
     public ExrBox2i DataWindow { get; set; }
 

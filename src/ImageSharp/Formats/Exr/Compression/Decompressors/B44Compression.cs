@@ -24,8 +24,8 @@ internal class B44Compression : ExrBaseDecompressor
 
     private IMemoryOwner<ushort> tmpBuffer;
 
-    public B44Compression(MemoryAllocator allocator, uint uncompressedBytes, int width, int height, uint rowsPerBlock, int channelCount)
-        : base(allocator, uncompressedBytes)
+    public B44Compression(MemoryAllocator allocator, uint bytesPerBlock, int width, int height, uint rowsPerBlock, int channelCount)
+        : base(allocator, bytesPerBlock)
     {
         this.width = width;
         this.height = height;

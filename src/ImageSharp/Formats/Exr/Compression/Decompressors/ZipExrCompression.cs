@@ -13,8 +13,8 @@ internal class ZipExrCompression : ExrBaseDecompressor
 {
     private readonly IMemoryOwner<byte> tmpBuffer;
 
-    public ZipExrCompression(MemoryAllocator allocator, uint uncompressedBytes)
-        : base(allocator, uncompressedBytes) => this.tmpBuffer = allocator.Allocate<byte>((int)uncompressedBytes);
+    public ZipExrCompression(MemoryAllocator allocator, uint bytesPerBlock)
+        : base(allocator, bytesPerBlock) => this.tmpBuffer = allocator.Allocate<byte>((int)bytesPerBlock);
 
     public override void Decompress(BufferedReadStream stream, uint compressedBytes, Span<byte> buffer)
     {
@@ -28,7 +28,7 @@ internal class ZipExrCompression : ExrBaseDecompressor
                        int left = (int)(compressedBytes - (stream.Position - pos));
                        return left > 0 ? left : 0;
                    });
-        inflateStream.AllocateNewBytes((int)this.UncompressedBytes, true);
+        inflateStream.AllocateNewBytes((int)this.BytesPerBlock, true);
         DeflateStream dataStream = inflateStream.CompressedStream!;
 
         int totalRead = 0;

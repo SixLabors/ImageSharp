@@ -6,7 +6,6 @@ using System.Buffers.Binary;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Threading.Channels;
-using SixLabors.ImageSharp.Formats.Exr.Compression;
 using SixLabors.ImageSharp.Formats.Exr.Constants;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
@@ -77,7 +76,7 @@ internal sealed class ExrEncoderCore
         this.pixelType ??= exrMetadata.PixelType;
         int width = image.Width;
         int height = image.Height;
-        ExrCompressionType compression = ExrCompressionType.None;
+        ExrCompression compression = ExrCompression.None;
         float aspectRatio = 1.0f;
         ExrBox2i dataWindow = new(0, 0, width - 1, height - 1);
         ExrBox2i displayWindow = new(0, 0, width - 1, height - 1);
@@ -311,7 +310,7 @@ internal sealed class ExrEncoderCore
         stream.WriteByte(0);
     }
 
-    private void WriteCompression(Stream stream, ExrCompressionType compression)
+    private void WriteCompression(Stream stream, ExrCompression compression)
     {
         this.WriteAttributeInformation(stream, ExrConstants.AttributeNames.Compression, ExrConstants.AttibuteTypes.Compression, 1);
         stream.WriteByte((byte)compression);

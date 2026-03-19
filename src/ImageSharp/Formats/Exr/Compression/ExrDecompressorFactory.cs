@@ -2,26 +2,27 @@
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.Formats.Exr.Compression.Decompressors;
+using SixLabors.ImageSharp.Formats.Exr.Constants;
 using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Exr.Compression;
 
 internal static class ExrDecompressorFactory
 {
-    public static ExrBaseDecompressor Create(ExrCompressionType method, MemoryAllocator memoryAllocator, uint uncompressedBytes, int width, int height, uint rowsPerBlock, int channelCount)
+    public static ExrBaseDecompressor Create(ExrCompression method, MemoryAllocator memoryAllocator, uint bytesPerBlock, int width, int height, uint rowsPerBlock, int channelCount)
     {
         switch (method)
         {
-            case ExrCompressionType.None:
-                return new NoneExrCompression(memoryAllocator, uncompressedBytes);
-            case ExrCompressionType.Zips:
-                return new ZipExrCompression(memoryAllocator, uncompressedBytes);
-            case ExrCompressionType.Zip:
-                return new ZipExrCompression(memoryAllocator, uncompressedBytes);
-            case ExrCompressionType.RunLengthEncoded:
-                return new RunLengthCompression(memoryAllocator, uncompressedBytes);
-            case ExrCompressionType.B44:
-                return new B44Compression(memoryAllocator, uncompressedBytes, width, height, rowsPerBlock, channelCount);
+            case ExrCompression.None:
+                return new NoneExrCompression(memoryAllocator, bytesPerBlock);
+            case ExrCompression.Zips:
+                return new ZipExrCompression(memoryAllocator, bytesPerBlock);
+            case ExrCompression.Zip:
+                return new ZipExrCompression(memoryAllocator, bytesPerBlock);
+            case ExrCompression.RunLengthEncoded:
+                return new RunLengthCompression(memoryAllocator, bytesPerBlock);
+            case ExrCompression.B44:
+                return new B44Compression(memoryAllocator, bytesPerBlock, width, height, rowsPerBlock, channelCount);
             default:
                 throw ExrThrowHelper.NotSupportedDecompressor(nameof(method));
         }

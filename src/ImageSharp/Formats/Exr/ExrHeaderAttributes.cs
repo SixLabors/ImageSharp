@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.Formats.Exr.Compression;
+using SixLabors.ImageSharp.Formats.Exr.Constants;
 
 namespace SixLabors.ImageSharp.Formats.Exr;
 

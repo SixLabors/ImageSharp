@@ -7,6 +7,7 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Threading.Channels;
 using SixLabors.ImageSharp.Formats.Exr.Compression;
+using SixLabors.ImageSharp.Formats.Exr.Constants;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;

@@ -3,6 +3,7 @@
 
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using SixLabors.ImageSharp.Formats.Exr.Constants;
 
 namespace SixLabors.ImageSharp.Formats.Exr;
 

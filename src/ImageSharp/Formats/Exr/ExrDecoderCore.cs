@@ -9,6 +9,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
 using System.Text;
 using SixLabors.ImageSharp.Formats.Exr.Compression;
+using SixLabors.ImageSharp.Formats.Exr.Constants;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;

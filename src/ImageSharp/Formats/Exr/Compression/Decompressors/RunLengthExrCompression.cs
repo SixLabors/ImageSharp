@@ -7,13 +7,13 @@ using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Exr.Compression.Decompressors;
 
-internal class RunLengthCompression : ExrBaseDecompressor
+internal class RunLengthExrCompression : ExrBaseDecompressor
 {
     private readonly IMemoryOwner<byte> tmpBuffer;
 
     private readonly ushort[] s = new ushort[16];
 
-    public RunLengthCompression(MemoryAllocator allocator, uint uncompressedBytes)
+    public RunLengthExrCompression(MemoryAllocator allocator, uint uncompressedBytes)
         : base(allocator, uncompressedBytes) => this.tmpBuffer = allocator.Allocate<byte>((int)uncompressedBytes);
 
     public override void Decompress(BufferedReadStream stream, uint compressedBytes, Span<byte> buffer)

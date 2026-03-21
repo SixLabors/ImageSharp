@@ -12,13 +12,20 @@ internal static class ExrCompressorFactory
 {
     public static ExrBaseCompressor Create(
         ExrCompression method,
-        Stream output,
         MemoryAllocator allocator,
+        Stream output,
         int width,
-        DeflateCompressionLevel compressionLevel)
+        int height,
+        uint bytesPerBlock,
+        uint rowsPerBlock,
+        int channelCount,
+        DeflateCompressionLevel compressionLevel = DeflateCompressionLevel.DefaultCompression)
     {
         switch (method)
         {
+            case ExrCompression.None:
+                return new NoneExrCompressor(output, allocator, bytesPerBlock);
+
             default:
                 throw ExrThrowHelper.NotSupportedCompressor(method.ToString());
         }

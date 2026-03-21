@@ -7,13 +7,13 @@ using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Exr.Compression.Compressors;
 
-internal class ZipCompressor : ExrBaseCompressor
+internal class ZipExrCompressor : ExrBaseCompressor
 {
     private readonly DeflateCompressionLevel compressionLevel;
 
     private readonly MemoryStream memoryStream = new();
 
-    public ZipCompressor(Stream output, MemoryAllocator allocator, uint bytesPerBlock, DeflateCompressionLevel compressionLevel)
+    public ZipExrCompressor(Stream output, MemoryAllocator allocator, uint bytesPerBlock, DeflateCompressionLevel compressionLevel)
         : base(output, allocator, bytesPerBlock)
         => this.compressionLevel = compressionLevel;
 
@@ -21,7 +21,7 @@ internal class ZipCompressor : ExrBaseCompressor
     public override ExrCompression Method => ExrCompression.Zip;
 
     /// <inheritdoc/>
-    public override void Initialize(int rowsPerStrip)
+    public override void Initialize(int rowsPerBlock)
     {
     }
 

@@ -8,7 +8,7 @@ using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Exr.Compression.Decompressors;
 
-internal class B44Compression : ExrBaseDecompressor
+internal class B44ExrCompression : ExrBaseDecompressor
 {
     private readonly int width;
 
@@ -24,7 +24,7 @@ internal class B44Compression : ExrBaseDecompressor
 
     private IMemoryOwner<ushort> tmpBuffer;
 
-    public B44Compression(MemoryAllocator allocator, uint bytesPerBlock, int width, int height, uint rowsPerBlock, int channelCount)
+    public B44ExrCompression(MemoryAllocator allocator, uint bytesPerBlock, int width, int height, uint rowsPerBlock, int channelCount)
         : base(allocator, bytesPerBlock)
     {
         this.width = width;

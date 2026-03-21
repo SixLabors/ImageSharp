@@ -9,7 +9,14 @@ namespace SixLabors.ImageSharp.Formats.Exr.Compression;
 
 internal static class ExrDecompressorFactory
 {
-    public static ExrBaseDecompressor Create(ExrCompression method, MemoryAllocator memoryAllocator, uint bytesPerBlock, int width, int height, uint rowsPerBlock, int channelCount)
+    public static ExrBaseDecompressor Create(
+        ExrCompression method,
+        MemoryAllocator memoryAllocator,
+        int width,
+        int height,
+        uint bytesPerBlock,
+        uint rowsPerBlock,
+        int channelCount)
     {
         switch (method)
         {
@@ -20,9 +27,9 @@ internal static class ExrDecompressorFactory
             case ExrCompression.Zip:
                 return new ZipExrCompression(memoryAllocator, bytesPerBlock);
             case ExrCompression.RunLengthEncoded:
-                return new RunLengthCompression(memoryAllocator, bytesPerBlock);
+                return new RunLengthExrCompression(memoryAllocator, bytesPerBlock);
             case ExrCompression.B44:
-                return new B44Compression(memoryAllocator, bytesPerBlock, width, height, rowsPerBlock, channelCount);
+                return new B44ExrCompression(memoryAllocator, bytesPerBlock, width, height, rowsPerBlock, channelCount);
             default:
                 throw ExrThrowHelper.NotSupportedDecompressor(nameof(method));
         }

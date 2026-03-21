@@ -31,8 +31,8 @@ internal abstract class ExrBaseCompressor : ExrBaseCompression
     /// <summary>
     /// Does any initialization required for the compression.
     /// </summary>
-    /// <param name="rowsPerStrip">The number of rows per strip.</param>
-    public abstract void Initialize(int rowsPerStrip);
+    /// <param name="rowsPerBlock">The number of rows per block.</param>
+    public abstract void Initialize(int rowsPerBlock);
 
     /// <summary>
     /// Compresses a strip of the image.

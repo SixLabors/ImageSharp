@@ -5,7 +5,7 @@ using System.Buffers;
 using System.Buffers.Binary;
 using System.Numerics;
 using System.Runtime.CompilerServices;
-using System.Threading.Channels;
+using SixLabors.ImageSharp.Formats.Exr.Compression;
 using SixLabors.ImageSharp.Formats.Exr.Constants;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
@@ -47,7 +47,7 @@ internal sealed class ExrEncoderCore
     /// Initializes a new instance of the <see cref="ExrEncoderCore"/> class.
     /// </summary>
     /// <param name="encoder">The encoder with options.</param>
-    /// <param name="configuration">The configuration.</param>    
+    /// <param name="configuration">The configuration.</param>
     /// <param name="memoryAllocator">The memory manager.</param>
     public ExrEncoderCore(ExrEncoder encoder, Configuration configuration, MemoryAllocator memoryAllocator)
     {
@@ -126,7 +126,7 @@ internal sealed class ExrEncoderCore
         {
             case ExrPixelType.Half:
             case ExrPixelType.Float:
-                this.EncodeFloatingPointPixelData(stream, pixels, width, height, rowSizeBytes);
+                this.EncodeFloatingPointPixelData(stream, pixels, width, height, rowSizeBytes, channels, compression);
                 break;
             case ExrPixelType.UnsignedInt:
                 this.EncodeUnsignedIntPixelData(stream, pixels, width, height, rowSizeBytes);
@@ -134,26 +134,31 @@ internal sealed class ExrEncoderCore
         }
     }
 
-    private void EncodeFloatingPointPixelData<TPixel>(Stream stream, Buffer2D<TPixel> pixels, int width, int height, uint rowSizeBytes)
+    private void EncodeFloatingPointPixelData<TPixel>(
+        Stream stream,
+        Buffer2D<TPixel> pixels,
+        int width,
+        int height,
+        uint rowSizeBytes,
+        List<ExrChannelInfo> channels,
+        ExrCompression compression)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using IMemoryOwner<float> rgbBuffer = this.memoryAllocator.Allocate<float>(width * 3);
+        uint bytesPerRow = this.CalculateBytesPerRow(channels, (uint)width);
+        uint rowsPerBlock = this.RowsPerBlock(compression);
+        uint bytesPerBlock = bytesPerRow * rowsPerBlock;
+        int channelCount = channels.Count;
+
+        using IMemoryOwner<float> rgbBuffer = this.memoryAllocator.Allocate<float>(width * 3, AllocationOptions.Clean);
+        using IMemoryOwner<byte> blockBuffer = this.memoryAllocator.Allocate<byte>((int)bytesPerBlock, AllocationOptions.Clean);
         Span<float> redBuffer = rgbBuffer.GetSpan().Slice(0, width);
         Span<float> greenBuffer = rgbBuffer.GetSpan().Slice(width, width);
         Span<float> blueBuffer = rgbBuffer.GetSpan().Slice(width * 2, width);
 
+        using ExrBaseCompressor compressor = ExrCompressorFactory.Create(compression, this.memoryAllocator, stream, width, height, bytesPerBlock, rowsPerBlock, channelCount);
+
         for (int y = 0; y < height; y++)
         {
-            Span<TPixel> pixelRowSpan = pixels.DangerousGetRowSpan(y);
-
-            for (int x = 0; x < width; x++)
-            {
-                var vector4 = pixelRowSpan[x].ToVector4();
-                redBuffer[x] = vector4.X;
-                greenBuffer[x] = vector4.Y;
-                blueBuffer[x] = vector4.Z;
-            }
-
             // Write row index.
             BinaryPrimitives.WriteUInt32LittleEndian(this.buffer, (uint)y);
             stream.Write(this.buffer.AsSpan(0, 4));
@@ -162,15 +167,27 @@ internal sealed class ExrEncoderCore
             BinaryPrimitives.WriteUInt32LittleEndian(this.buffer, rowSizeBytes);
             stream.Write(this.buffer.AsSpan(0, 4));
 
+            Span<TPixel> pixelRowSpan = pixels.DangerousGetRowSpan(y);
+
+            for (int x = 0; x < width; x++)
+            {
+                Vector4 vector4 = pixelRowSpan[x].ToVector4();
+                redBuffer[x] = vector4.X;
+                greenBuffer[x] = vector4.Y;
+                blueBuffer[x] = vector4.Z;
+            }
+
             switch (this.pixelType)
             {
                 case ExrPixelType.Float:
-                    this.WriteSingleRow(stream, width, blueBuffer, greenBuffer, redBuffer);
+                    this.WriteSingleRow(blockBuffer.GetSpan(), width, blueBuffer, greenBuffer, redBuffer);
                     break;
                 case ExrPixelType.Half:
-                    this.WriteHalfSingleRow(stream, width, blueBuffer, greenBuffer, redBuffer);
+                    this.WriteHalfSingleRow(blockBuffer.GetSpan(), width, blueBuffer, greenBuffer, redBuffer);
                     break;
             }
+
+            compressor.CompressStrip(blockBuffer.GetSpan(), 1);
         }
     }
 
@@ -237,6 +254,50 @@ internal sealed class ExrEncoderCore
         for (int x = 0; x < width; x++)
         {
             this.WriteSingle(stream, redBuffer[x]);
+        }
+    }
+
+    private void WriteSingleRow(Span<byte> buffer, int width, Span<float> blueBuffer, Span<float> greenBuffer, Span<float> redBuffer)
+    {
+        int offset = 0;
+        for (int x = 0; x < width; x++)
+        {
+            this.WriteSingle(buffer.Slice(offset), blueBuffer[x]);
+            offset += 4;
+        }
+
+        for (int x = 0; x < width; x++)
+        {
+            this.WriteSingle(buffer.Slice(offset), greenBuffer[x]);
+            offset += 4;
+        }
+
+        for (int x = 0; x < width; x++)
+        {
+            this.WriteSingle(buffer.Slice(offset), redBuffer[x]);
+            offset += 4;
+        }
+    }
+
+    private void WriteHalfSingleRow(Span<byte> buffer, int width, Span<float> blueBuffer, Span<float> greenBuffer, Span<float> redBuffer)
+    {
+        int offset = 0;
+        for (int x = 0; x < width; x++)
+        {
+            this.WriteHalfSingle(buffer.Slice(offset), blueBuffer[x]);
+            offset += 2;
+        }
+
+        for (int x = 0; x < width; x++)
+        {
+            this.WriteHalfSingle(buffer.Slice(offset), greenBuffer[x]);
+            offset += 2;
+        }
+
+        for (int x = 0; x < width; x++)
+        {
+            this.WriteHalfSingle(buffer.Slice(offset), redBuffer[x]);
+            offset += 2;
         }
     }
 
@@ -421,6 +482,12 @@ internal sealed class ExrEncoderCore
     }
 
     [MethodImpl(InliningOptions.ShortMethod)]
+    private unsafe void WriteSingle(Span<byte> buffer, float value)
+    {
+        BinaryPrimitives.WriteInt32LittleEndian(buffer, *(int*)&value);
+    }
+
+    [MethodImpl(InliningOptions.ShortMethod)]
     private void WriteHalfSingle(Stream stream, float value)
     {
         ushort valueAsShort = HalfTypeHelper.Pack(value);
@@ -428,10 +495,62 @@ internal sealed class ExrEncoderCore
         stream.Write(this.buffer.AsSpan(0, 2));
     }
 
+
+    [MethodImpl(InliningOptions.ShortMethod)]
+    private void WriteHalfSingle(Span<byte> buffer, float value)
+    {
+        ushort valueAsShort = HalfTypeHelper.Pack(value);
+        BinaryPrimitives.WriteUInt16LittleEndian(this.buffer, valueAsShort);
+    }
+
     [MethodImpl(InliningOptions.ShortMethod)]
     private void WriteUnsignedInt(Stream stream, uint value)
     {
         BinaryPrimitives.WriteUInt32LittleEndian(this.buffer, value);
         stream.Write(this.buffer.AsSpan(0, 4));
+    }
+
+    // TODO: avoid code duplication: This code is duplicate in the decoder.
+    private uint CalculateBytesPerRow(List<ExrChannelInfo> channels, uint width)
+    {
+        uint bytesPerRow = 0;
+        foreach (ExrChannelInfo channelInfo in channels)
+        {
+            if (channelInfo.ChannelName.Equals("A", StringComparison.Ordinal)
+                || channelInfo.ChannelName.Equals("R", StringComparison.Ordinal)
+                || channelInfo.ChannelName.Equals("G", StringComparison.Ordinal)
+                || channelInfo.ChannelName.Equals("B", StringComparison.Ordinal)
+                || channelInfo.ChannelName.Equals("Y", StringComparison.Ordinal))
+            {
+                if (channelInfo.PixelType == ExrPixelType.Half)
+                {
+                    bytesPerRow += 2 * width;
+                }
+                else
+                {
+                    bytesPerRow += 4 * width;
+                }
+            }
+        }
+
+        return bytesPerRow;
+    }
+
+    // TODO: avoid code duplication: This code is duplicate in the decoder.
+    private uint RowsPerBlock(ExrCompression compression)
+    {
+        switch (compression)
+        {
+            case ExrCompression.Zip:
+            case ExrCompression.Pxr24:
+                return 16;
+            case ExrCompression.B44:
+            case ExrCompression.B44A:
+            case ExrCompression.Piz:
+                return 32;
+
+            default:
+                return 1;
+        }
     }
 }

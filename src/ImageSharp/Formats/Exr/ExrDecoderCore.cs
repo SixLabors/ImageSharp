@@ -147,7 +147,7 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
         Span<float> bluePixelData = rowBuffer.GetSpan().Slice(width * 2, width);
         Span<float> alphaPixelData = rowBuffer.GetSpan().Slice(width * 3, width);
 
-        using ExrBaseDecompressor decompressor = ExrDecompressorFactory.Create(this.Compression, this.memoryAllocator, bytesPerBlock, width, height, rowsPerBlock, channelCount);
+        using ExrBaseDecompressor decompressor = ExrDecompressorFactory.Create(this.Compression, this.memoryAllocator, width, height, bytesPerBlock, rowsPerBlock, channelCount);
 
         for (uint y = 0; y < height; y += rowsPerBlock)
         {
@@ -200,7 +200,7 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
         Span<uint> bluePixelData = rowBuffer.GetSpan().Slice(width * 2, width);
         Span<uint> alphaPixelData = rowBuffer.GetSpan().Slice(width * 3, width);
 
-        using ExrBaseDecompressor decompressor = ExrDecompressorFactory.Create(this.Compression, this.memoryAllocator, bytesPerBlock, width, height, rowsPerBlock, channelCount);
+        using ExrBaseDecompressor decompressor = ExrDecompressorFactory.Create(this.Compression, this.memoryAllocator, width, height, bytesPerBlock, rowsPerBlock, channelCount);
 
         for (uint y = 0; y < height; y += rowsPerBlock)
         {

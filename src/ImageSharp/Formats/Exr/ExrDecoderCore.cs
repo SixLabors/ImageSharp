@@ -53,7 +53,7 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
         : base(options.GeneralOptions)
     {
         this.configuration = options.GeneralOptions.Configuration;
-        this.memoryAllocator = this.configuration.MemoryAllocator;
+        this.memoryAllocator = this.configuration.MemoryAllocator;        
     }
 
     /// <summary>

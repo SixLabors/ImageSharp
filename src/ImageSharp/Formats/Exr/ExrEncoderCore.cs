@@ -5,6 +5,7 @@ using System.Buffers;
 using System.Buffers.Binary;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Threading.Channels;
 using SixLabors.ImageSharp.Formats.Exr.Compression;
 using SixLabors.ImageSharp.Formats.Exr.Constants;
 using SixLabors.ImageSharp.Memory;
@@ -54,7 +55,13 @@ internal sealed class ExrEncoderCore
         this.configuration = configuration;
         this.encoder = encoder;
         this.memoryAllocator = memoryAllocator;
+        this.Compression = encoder.Compression ?? ExrCompression.None;
     }
+
+    /// <summary>
+    /// Gets or sets the compression implementation to use when encoding the image.
+    /// </summary>
+    internal ExrCompression Compression { get; set; }
 
     /// <summary>
     /// Encodes the image to the specified stream from the <see cref="ImageFrame{TPixel}"/>.
@@ -76,7 +83,6 @@ internal sealed class ExrEncoderCore
         this.pixelType ??= exrMetadata.PixelType;
         int width = image.Width;
         int height = image.Height;
-        ExrCompression compression = ExrCompression.None;
         float aspectRatio = 1.0f;
         ExrBox2i dataWindow = new(0, 0, width - 1, height - 1);
         ExrBox2i displayWindow = new(0, 0, width - 1, height - 1);
@@ -91,7 +97,7 @@ internal sealed class ExrEncoderCore
         ];
         ExrHeaderAttributes header = new(
             channels,
-            compression,
+            this.Compression,
             dataWindow,
             displayWindow,
             lineOrder,
@@ -115,31 +121,40 @@ internal sealed class ExrEncoderCore
         // Write EXR header.
         this.WriteHeader(stream, header);
 
-        // Write offsets to each pixel row.
+        // Next is offsets table to each pixel row, which will be written after the pixel data was written.
         int bytesPerChannel = this.pixelType == ExrPixelType.Half ? 2 : 4;
         int numberOfChannels = 3;
         uint rowSizeBytes = (uint)(width * numberOfChannels * bytesPerChannel);
-        this.WriteRowOffsets(stream, height, rowSizeBytes);
+        ulong startOfRowOffsetData = (ulong)stream.Position;
+        stream.Position += 8 * height;
 
         // Write pixel data.
         switch (this.pixelType)
         {
             case ExrPixelType.Half:
             case ExrPixelType.Float:
-                this.EncodeFloatingPointPixelData(stream, pixels, width, height, rowSizeBytes, channels, compression);
+            {
+                ulong[] rowOffsets = this.EncodeFloatingPointPixelData(stream, pixels, width, height, channels, this.Compression);
+                stream.Position = (long)startOfRowOffsetData;
+                this.WriteRowOffsets(stream, height, rowOffsets);
                 break;
+            }
+
             case ExrPixelType.UnsignedInt:
-                this.EncodeUnsignedIntPixelData(stream, pixels, width, height, rowSizeBytes);
+            {
+                ulong[] rowOffsets = this.EncodeUnsignedIntPixelData(stream, pixels, width, height, channels, this.Compression);
+                stream.Position = (long)startOfRowOffsetData;
+                this.WriteRowOffsets(stream, height, rowOffsets);
                 break;
+            }
         }
     }
 
-    private void EncodeFloatingPointPixelData<TPixel>(
+    private ulong[] EncodeFloatingPointPixelData<TPixel>(
         Stream stream,
         Buffer2D<TPixel> pixels,
         int width,
         int height,
-        uint rowSizeBytes,
         List<ExrChannelInfo> channels,
         ExrCompression compression)
         where TPixel : unmanaged, IPixel<TPixel>
@@ -150,24 +165,26 @@ internal sealed class ExrEncoderCore
         int channelCount = channels.Count;
 
         using IMemoryOwner<float> rgbBuffer = this.memoryAllocator.Allocate<float>(width * 3, AllocationOptions.Clean);
-        using IMemoryOwner<byte> blockBuffer = this.memoryAllocator.Allocate<byte>((int)bytesPerBlock, AllocationOptions.Clean);
+        using IMemoryOwner<byte> rowBlockBuffer = this.memoryAllocator.Allocate<byte>((int)bytesPerBlock, AllocationOptions.Clean);
         Span<float> redBuffer = rgbBuffer.GetSpan().Slice(0, width);
         Span<float> greenBuffer = rgbBuffer.GetSpan().Slice(width, width);
         Span<float> blueBuffer = rgbBuffer.GetSpan().Slice(width * 2, width);
 
         using ExrBaseCompressor compressor = ExrCompressorFactory.Create(compression, this.memoryAllocator, stream, width, height, bytesPerBlock, rowsPerBlock, channelCount);
 
+        ulong[] rowOffsets = new ulong[height];
         for (int y = 0; y < height; y++)
         {
+            rowOffsets[y] = (ulong)stream.Position;
+
             // Write row index.
             BinaryPrimitives.WriteUInt32LittleEndian(this.buffer, (uint)y);
             stream.Write(this.buffer.AsSpan(0, 4));
 
-            // Write pixel row data size.
-            BinaryPrimitives.WriteUInt32LittleEndian(this.buffer, rowSizeBytes);
-            stream.Write(this.buffer.AsSpan(0, 4));
-
+            // At this point, it is not yet known how mcuh bytes the compressed data will take up, keep stream position.
+            long pixelDataSizePos = stream.Position;
             Span<TPixel> pixelRowSpan = pixels.DangerousGetRowSpan(y);
+            stream.Position = pixelDataSizePos + 4;
 
             for (int x = 0; x < width; x++)
             {
@@ -177,32 +194,67 @@ internal sealed class ExrEncoderCore
                 blueBuffer[x] = vector4.Z;
             }
 
+            // Write pixel data to buffer.
             switch (this.pixelType)
             {
                 case ExrPixelType.Float:
-                    this.WriteSingleRow(blockBuffer.GetSpan(), width, blueBuffer, greenBuffer, redBuffer);
+                    this.WriteSingleRow(rowBlockBuffer.GetSpan(), width, blueBuffer, greenBuffer, redBuffer);
                     break;
                 case ExrPixelType.Half:
-                    this.WriteHalfSingleRow(blockBuffer.GetSpan(), width, blueBuffer, greenBuffer, redBuffer);
+                    this.WriteHalfSingleRow(rowBlockBuffer.GetSpan(), width, blueBuffer, greenBuffer, redBuffer);
                     break;
             }
 
-            compressor.CompressStrip(blockBuffer.GetSpan(), 1);
+            // Write compressed pixel row data to stream.
+            uint compressedBytes = compressor.CompressRowBlock(rowBlockBuffer.GetSpan(), 1);
+            long positionAfterPixelData = stream.Position;
+
+            // Write pixel row data size.
+            BinaryPrimitives.WriteUInt32LittleEndian(this.buffer, compressedBytes);
+            stream.Position = pixelDataSizePos;
+            stream.Write(this.buffer.AsSpan(0, 4));
+            stream.Position = positionAfterPixelData;
         }
+
+        return rowOffsets;
     }
 
-    private void EncodeUnsignedIntPixelData<TPixel>(Stream stream, Buffer2D<TPixel> pixels, int width, int height, uint rowSizeBytes)
+    private ulong[] EncodeUnsignedIntPixelData<TPixel>(
+        Stream stream,
+        Buffer2D<TPixel> pixels,
+        int width,
+        int height,
+        List<ExrChannelInfo> channels,
+        ExrCompression compression)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using IMemoryOwner<uint> rgbBuffer = this.memoryAllocator.Allocate<uint>(width * 3);
+        uint bytesPerRow = this.CalculateBytesPerRow(channels, (uint)width);
+        uint rowsPerBlock = this.RowsPerBlock(compression);
+        uint bytesPerBlock = bytesPerRow * rowsPerBlock;
+        int channelCount = channels.Count;
+
+        using IMemoryOwner<uint> rgbBuffer = this.memoryAllocator.Allocate<uint>(width * 3, AllocationOptions.Clean);
+        using IMemoryOwner<byte> rowBlockBuffer = this.memoryAllocator.Allocate<byte>((int)bytesPerBlock, AllocationOptions.Clean);
         Span<uint> redBuffer = rgbBuffer.GetSpan().Slice(0, width);
         Span<uint> greenBuffer = rgbBuffer.GetSpan().Slice(width, width);
         Span<uint> blueBuffer = rgbBuffer.GetSpan().Slice(width * 2, width);
 
+        using ExrBaseCompressor compressor = ExrCompressorFactory.Create(compression, this.memoryAllocator, stream, width, height, bytesPerBlock, rowsPerBlock, channelCount);
+
         Rgb96 rgb = default;
+        ulong[] rowOffsets = new ulong[height];
         for (int y = 0; y < height; y++)
         {
+            rowOffsets[y] = (ulong)stream.Position;
+
+            // Write row index.
+            BinaryPrimitives.WriteUInt32LittleEndian(this.buffer, (uint)y);
+            stream.Write(this.buffer.AsSpan(0, 4));
+
+            // At this point, it is not yet known how mcuh bytes the compressed data will take up, keep stream position.
+            long pixelDataSizePos = stream.Position;
             Span<TPixel> pixelRowSpan = pixels.DangerousGetRowSpan(y);
+            stream.Position = pixelDataSizePos + 4;
 
             for (int x = 0; x < width; x++)
             {
@@ -214,16 +266,21 @@ internal sealed class ExrEncoderCore
                 blueBuffer[x] = rgb.B;
             }
 
-            // Write row index.
-            BinaryPrimitives.WriteUInt32LittleEndian(this.buffer, (uint)y);
-            stream.Write(this.buffer.AsSpan(0, 4));
+            // Write row data to buffer.
+            this.WriteUnsignedIntRow(rowBlockBuffer.GetSpan(), width, blueBuffer, greenBuffer, redBuffer);
+
+            // Write pixel row data compressed to the stream.
+            uint compressedBytes = compressor.CompressRowBlock(rowBlockBuffer.GetSpan(), 1);
+            long positionAfterPixelData = stream.Position;
 
             // Write pixel row data size.
-            BinaryPrimitives.WriteUInt32LittleEndian(this.buffer, rowSizeBytes);
+            BinaryPrimitives.WriteUInt32LittleEndian(this.buffer, compressedBytes);
+            stream.Position = pixelDataSizePos;
             stream.Write(this.buffer.AsSpan(0, 4));
-
-            this.WriteUnsignedIntRow(stream, width, blueBuffer, greenBuffer, redBuffer);
+            stream.Position = positionAfterPixelData;
         }
+
+        return rowOffsets;
     }
 
     private void WriteHeader(Stream stream, ExrHeaderAttributes header)
@@ -237,24 +294,6 @@ internal sealed class ExrEncoderCore
         this.WriteScreenWindowCenter(stream, header.ScreenWindowCenter);
         this.WriteScreenWindowWidth(stream, header.ScreenWindowWidth);
         stream.WriteByte(0);
-    }
-
-    private void WriteSingleRow(Stream stream, int width, Span<float> blueBuffer, Span<float> greenBuffer, Span<float> redBuffer)
-    {
-        for (int x = 0; x < width; x++)
-        {
-            this.WriteSingle(stream, blueBuffer[x]);
-        }
-
-        for (int x = 0; x < width; x++)
-        {
-            this.WriteSingle(stream, greenBuffer[x]);
-        }
-
-        for (int x = 0; x < width; x++)
-        {
-            this.WriteSingle(stream, redBuffer[x]);
-        }
     }
 
     private void WriteSingleRow(Span<byte> buffer, int width, Span<float> blueBuffer, Span<float> greenBuffer, Span<float> redBuffer)
@@ -301,51 +340,36 @@ internal sealed class ExrEncoderCore
         }
     }
 
-    private void WriteHalfSingleRow(Stream stream, int width, Span<float> blueBuffer, Span<float> greenBuffer, Span<float> redBuffer)
+    private void WriteUnsignedIntRow(Span<byte> buffer, int width, Span<uint> blueBuffer, Span<uint> greenBuffer, Span<uint> redBuffer)
     {
+        int offset = 0;
         for (int x = 0; x < width; x++)
         {
-            this.WriteHalfSingle(stream, blueBuffer[x]);
+            this.WriteUnsignedInt(buffer.Slice(offset), blueBuffer[x]);
+            offset += 4;
         }
 
         for (int x = 0; x < width; x++)
         {
-            this.WriteHalfSingle(stream, greenBuffer[x]);
+            this.WriteUnsignedInt(buffer.Slice(offset), greenBuffer[x]);
+            offset += 4;
         }
 
         for (int x = 0; x < width; x++)
         {
-            this.WriteHalfSingle(stream, redBuffer[x]);
+            this.WriteUnsignedInt(buffer.Slice(offset), redBuffer[x]);
+            offset += 4;
         }
     }
 
-    private void WriteUnsignedIntRow(Stream stream, int width, Span<uint> blueBuffer, Span<uint> greenBuffer, Span<uint> redBuffer)
+    private void WriteRowOffsets(Stream stream, int height, ulong[] rowOffsets)
     {
-        for (int x = 0; x < width; x++)
-        {
-            this.WriteUnsignedInt(stream, blueBuffer[x]);
-        }
-
-        for (int x = 0; x < width; x++)
-        {
-            this.WriteUnsignedInt(stream, greenBuffer[x]);
-        }
-
-        for (int x = 0; x < width; x++)
-        {
-            this.WriteUnsignedInt(stream, redBuffer[x]);
-        }
-    }
-
-    private void WriteRowOffsets(Stream stream, int height, uint rowSizeBytes)
-    {
-        ulong startOfPixelData = (ulong)stream.Position + (8 * (ulong)height);
-        ulong offset = startOfPixelData;
+        ulong startOfRowOffsetData = (ulong)stream.Position;
+        ulong offset = startOfRowOffsetData;
         for (int i = 0; i < height; i++)
         {
-            BinaryPrimitives.WriteUInt64LittleEndian(this.buffer, offset);
+            BinaryPrimitives.WriteUInt64LittleEndian(this.buffer, rowOffsets[i]);
             stream.Write(this.buffer);
-            offset += 4 + 4 + rowSizeBytes;
         }
     }
 
@@ -482,19 +506,7 @@ internal sealed class ExrEncoderCore
     }
 
     [MethodImpl(InliningOptions.ShortMethod)]
-    private unsafe void WriteSingle(Span<byte> buffer, float value)
-    {
-        BinaryPrimitives.WriteInt32LittleEndian(buffer, *(int*)&value);
-    }
-
-    [MethodImpl(InliningOptions.ShortMethod)]
-    private void WriteHalfSingle(Stream stream, float value)
-    {
-        ushort valueAsShort = HalfTypeHelper.Pack(value);
-        BinaryPrimitives.WriteUInt16LittleEndian(this.buffer, valueAsShort);
-        stream.Write(this.buffer.AsSpan(0, 2));
-    }
-
+    private unsafe void WriteSingle(Span<byte> buffer, float value) => BinaryPrimitives.WriteInt32LittleEndian(buffer, *(int*)&value);
 
     [MethodImpl(InliningOptions.ShortMethod)]
     private void WriteHalfSingle(Span<byte> buffer, float value)
@@ -509,6 +521,9 @@ internal sealed class ExrEncoderCore
         BinaryPrimitives.WriteUInt32LittleEndian(this.buffer, value);
         stream.Write(this.buffer.AsSpan(0, 4));
     }
+
+    [MethodImpl(InliningOptions.ShortMethod)]
+    private void WriteUnsignedInt(Span<byte> buffer, uint value) => BinaryPrimitives.WriteUInt32LittleEndian(buffer, value);
 
     // TODO: avoid code duplication: This code is duplicate in the decoder.
     private uint CalculateBytesPerRow(List<ExrChannelInfo> channels, uint width)

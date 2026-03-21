@@ -22,7 +22,11 @@ internal class NoneExrCompressor : ExrBaseCompressor
     }
 
     /// <inheritdoc/>
-    public override void CompressStrip(Span<byte> rows, int height) => this.Output.Write(rows);
+    public override uint CompressRowBlock(Span<byte> rows, int height)
+    {
+        this.Output.Write(rows);
+        return (uint)rows.Length;
+    }
 
     /// <inheritdoc/>
     protected override void Dispose(bool disposing)

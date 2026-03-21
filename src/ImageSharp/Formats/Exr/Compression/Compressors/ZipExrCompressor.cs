@@ -26,7 +26,7 @@ internal class ZipExrCompressor : ExrBaseCompressor
     }
 
     /// <inheritdoc/>
-    public override void CompressStrip(Span<byte> rows, int height)
+    public override uint CompressRowBlock(Span<byte> rows, int height)
     {
         this.memoryStream.Seek(0, SeekOrigin.Begin);
         using (ZlibDeflateStream stream = new(this.Allocator, this.memoryStream, this.compressionLevel))
@@ -38,6 +38,7 @@ internal class ZipExrCompressor : ExrBaseCompressor
         int size = (int)this.memoryStream.Position;
         byte[] buffer = this.memoryStream.GetBuffer();
         this.Output.Write(buffer, 0, size);
+        return (uint)buffer.Length;
     }
 
     /// <inheritdoc/>

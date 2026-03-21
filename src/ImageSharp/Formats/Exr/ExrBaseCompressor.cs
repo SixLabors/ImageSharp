@@ -35,9 +35,10 @@ internal abstract class ExrBaseCompressor : ExrBaseCompression
     public abstract void Initialize(int rowsPerBlock);
 
     /// <summary>
-    /// Compresses a strip of the image.
+    /// Compresses a block of rows of the image.
     /// </summary>
     /// <param name="rows">Image rows to compress.</param>
     /// <param name="height">Image height.</param>
-    public abstract void CompressStrip(Span<byte> rows, int height);
+    /// <returns>Number of bytes of of the compressed data.</returns>
+    public abstract uint CompressRowBlock(Span<byte> rows, int height);
 }

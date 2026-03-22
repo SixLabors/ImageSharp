@@ -11,7 +11,7 @@ internal class ZipExrCompressor : ExrBaseCompressor
 {
     private readonly DeflateCompressionLevel compressionLevel;
 
-    private readonly MemoryStream memoryStream = new();
+    private MemoryStream memoryStream = new();
 
     public ZipExrCompressor(Stream output, MemoryAllocator allocator, uint bytesPerBlock, DeflateCompressionLevel compressionLevel)
         : base(output, allocator, bytesPerBlock)
@@ -28,6 +28,25 @@ internal class ZipExrCompressor : ExrBaseCompressor
     /// <inheritdoc/>
     public override uint CompressRowBlock(Span<byte> rows, int height)
     {
+        // Re-oder pixel values.
+        int n = rows.Length;
+        int t1 = 0;
+        int t2 = (n + 1) >> 1;
+        for (int i = 0; i < n; i++)
+        {
+            bool isOdd = (i & 1) == 1;
+            rows[isOdd ? t2++ : t1++] = rows[i];
+        }
+
+        // Predictor.
+        byte p = rows[0];
+        for (int i = 1; i < rows.Length; i++)
+        {
+            int d = (rows[i] - p + 128 + 256) & 255;
+            p = rows[i];
+            rows[i] = (byte)d;
+        }
+
         this.memoryStream.Seek(0, SeekOrigin.Begin);
         using (ZlibDeflateStream stream = new(this.Allocator, this.memoryStream, this.compressionLevel))
         {
@@ -38,7 +57,9 @@ internal class ZipExrCompressor : ExrBaseCompressor
         int size = (int)this.memoryStream.Position;
         byte[] buffer = this.memoryStream.GetBuffer();
         this.Output.Write(buffer, 0, size);
-        return (uint)buffer.Length;
+
+        this.memoryStream = new();
+        return (uint)size;
     }
 
     /// <inheritdoc/>

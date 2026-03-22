@@ -25,7 +25,7 @@ internal static class ExrCompressorFactory
         {
             case ExrCompression.None:
                 return new NoneExrCompressor(output, allocator, bytesPerBlock);
-            case ExrCompression.Zip:
+            case ExrCompression.Zips:
                 return new ZipExrCompressor(output, allocator, bytesPerBlock, compressionLevel);
 
             default:

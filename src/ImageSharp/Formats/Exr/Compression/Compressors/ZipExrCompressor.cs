@@ -13,9 +13,14 @@ internal class ZipExrCompressor : ExrBaseCompressor
 
     private MemoryStream memoryStream = new();
 
+    private readonly System.Buffers.IMemoryOwner<byte> buffer;
+
     public ZipExrCompressor(Stream output, MemoryAllocator allocator, uint bytesPerBlock, DeflateCompressionLevel compressionLevel)
         : base(output, allocator, bytesPerBlock)
-        => this.compressionLevel = compressionLevel;
+    {
+        this.compressionLevel = compressionLevel;
+        this.buffer = allocator.Allocate<byte>((int)bytesPerBlock);
+    }
 
     /// <inheritdoc/>
     public override ExrCompression Method => ExrCompression.Zip;
@@ -30,27 +35,29 @@ internal class ZipExrCompressor : ExrBaseCompressor
     {
         // Re-oder pixel values.
         int n = rows.Length;
+        Span<byte> reordered = this.buffer.GetSpan();
         int t1 = 0;
         int t2 = (n + 1) >> 1;
         for (int i = 0; i < n; i++)
         {
             bool isOdd = (i & 1) == 1;
-            rows[isOdd ? t2++ : t1++] = rows[i];
+            reordered[isOdd ? t2++ : t1++] = rows[i];
         }
 
         // Predictor.
-        byte p = rows[0];
+        Span<byte> predicted = reordered;
+        byte p = predicted[0];
         for (int i = 1; i < rows.Length; i++)
         {
-            int d = (rows[i] - p + 128 + 256) & 255;
-            p = rows[i];
-            rows[i] = (byte)d;
+            int d = (predicted[i] - p + 128 + 256) & 255;
+            p = predicted[i];
+            predicted[i] = (byte)d;
         }
 
         this.memoryStream.Seek(0, SeekOrigin.Begin);
         using (ZlibDeflateStream stream = new(this.Allocator, this.memoryStream, this.compressionLevel))
         {
-            stream.Write(rows);
+            stream.Write(predicted);
             stream.Flush();
         }
 

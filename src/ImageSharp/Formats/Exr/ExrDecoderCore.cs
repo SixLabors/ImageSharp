@@ -142,7 +142,7 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
         using IMemoryOwner<float> rowBuffer = this.memoryAllocator.Allocate<float>(width * 4);
         using IMemoryOwner<byte> decompressedPixelDataBuffer = this.memoryAllocator.Allocate<byte>((int)bytesPerBlock);
         Span<byte> decompressedPixelData = decompressedPixelDataBuffer.GetSpan();
-        Span<float> redPixelData = rowBuffer.GetSpan().Slice(0, width);
+        Span<float> redPixelData = rowBuffer.GetSpan()[..width];
         Span<float> greenPixelData = rowBuffer.GetSpan().Slice(width, width);
         Span<float> bluePixelData = rowBuffer.GetSpan().Slice(width * 2, width);
         Span<float> alphaPixelData = rowBuffer.GetSpan().Slice(width * 3, width);
@@ -195,7 +195,7 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
         using IMemoryOwner<uint> rowBuffer = this.memoryAllocator.Allocate<uint>(width * 4);
         using IMemoryOwner<byte> decompressedPixelDataBuffer = this.memoryAllocator.Allocate<byte>((int)bytesPerBlock);
         Span<byte> decompressedPixelData = decompressedPixelDataBuffer.GetSpan();
-        Span<uint> redPixelData = rowBuffer.GetSpan().Slice(0, width);
+        Span<uint> redPixelData = rowBuffer.GetSpan()[..width];
         Span<uint> greenPixelData = rowBuffer.GetSpan().Slice(width, width);
         Span<uint> bluePixelData = rowBuffer.GetSpan().Slice(width * 2, width);
         Span<uint> alphaPixelData = rowBuffer.GetSpan().Slice(width * 3, width);

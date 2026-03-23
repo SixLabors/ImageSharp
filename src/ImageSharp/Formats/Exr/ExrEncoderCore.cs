@@ -172,41 +172,47 @@ internal sealed class ExrEncoderCore
         using ExrBaseCompressor compressor = ExrCompressorFactory.Create(compression, this.memoryAllocator, stream, bytesPerBlock, bytesPerRow);
 
         ulong[] rowOffsets = new ulong[height];
-        for (int y = 0; y < height; y++)
+        for (uint y = 0; y < height; y += rowsPerBlock)
         {
             rowOffsets[y] = (ulong)stream.Position;
 
             // Write row index.
-            BinaryPrimitives.WriteUInt32LittleEndian(this.buffer, (uint)y);
+            BinaryPrimitives.WriteUInt32LittleEndian(this.buffer, y);
             stream.Write(this.buffer.AsSpan(0, 4));
 
             // At this point, it is not yet known how much bytes the compressed data will take up, keep stream position.
             long pixelDataSizePos = stream.Position;
-            Span<TPixel> pixelRowSpan = pixels.DangerousGetRowSpan(y);
             stream.Position = pixelDataSizePos + 4;
 
-            for (int x = 0; x < width; x++)
+            uint rowsInBlockCount = 0;
+            for (uint rowIndex = y; rowIndex < y + rowsPerBlock && rowIndex < height; rowIndex++)
             {
-                Vector4 vector4 = pixelRowSpan[x].ToVector4();
-                redBuffer[x] = vector4.X;
-                greenBuffer[x] = vector4.Y;
-                blueBuffer[x] = vector4.Z;
-            }
+                Span<TPixel> pixelRowSpan = pixels.DangerousGetRowSpan((int)rowIndex);
+                for (int x = 0; x < width; x++)
+                {
+                    Vector4 vector4 = pixelRowSpan[x].ToVector4();
+                    redBuffer[x] = vector4.X;
+                    greenBuffer[x] = vector4.Y;
+                    blueBuffer[x] = vector4.Z;
+                }
 
-            // Write pixel data to buffer.
-            Span<byte> rowBlockSpan = rowBlockBuffer.GetSpan();
-            switch (this.pixelType)
-            {
-                case ExrPixelType.Float:
-                    this.WriteSingleRow(rowBlockSpan, width, blueBuffer, greenBuffer, redBuffer);
-                    break;
-                case ExrPixelType.Half:
-                    this.WriteHalfSingleRow(rowBlockSpan, width, blueBuffer, greenBuffer, redBuffer);
-                    break;
+                // Write pixel data to row block buffer.
+                Span<byte> rowBlockSpan = rowBlockBuffer.GetSpan().Slice((int)(rowsInBlockCount * bytesPerRow), (int)bytesPerRow);
+                switch (this.pixelType)
+                {
+                    case ExrPixelType.Float:
+                        this.WriteSingleRow(rowBlockSpan, width, blueBuffer, greenBuffer, redBuffer);
+                        break;
+                    case ExrPixelType.Half:
+                        this.WriteHalfSingleRow(rowBlockSpan, width, blueBuffer, greenBuffer, redBuffer);
+                        break;
+                }
+
+                rowsInBlockCount++;
             }
 
             // Write compressed pixel row data to the stream.
-            uint compressedBytes = compressor.CompressRowBlock(rowBlockSpan, (int)rowsPerBlock);
+            uint compressedBytes = compressor.CompressRowBlock(rowBlockBuffer.GetSpan(), (int)rowsInBlockCount);
             long positionAfterPixelData = stream.Position;
 
             // Write pixel row data size.
@@ -243,34 +249,40 @@ internal sealed class ExrEncoderCore
 
         Rgb96 rgb = default;
         ulong[] rowOffsets = new ulong[height];
-        for (int y = 0; y < height; y++)
+        for (uint y = 0; y < height; y += rowsPerBlock)
         {
             rowOffsets[y] = (ulong)stream.Position;
 
             // Write row index.
-            BinaryPrimitives.WriteUInt32LittleEndian(this.buffer, (uint)y);
+            BinaryPrimitives.WriteUInt32LittleEndian(this.buffer, y);
             stream.Write(this.buffer.AsSpan(0, 4));
 
             // At this point, it is not yet known how much bytes the compressed data will take up, keep stream position.
             long pixelDataSizePos = stream.Position;
-            Span<TPixel> pixelRowSpan = pixels.DangerousGetRowSpan(y);
             stream.Position = pixelDataSizePos + 4;
 
-            for (int x = 0; x < width; x++)
+            uint rowsInBlockCount = 0;
+            for (uint rowIndex = y; rowIndex < y + rowsPerBlock && rowIndex < height; rowIndex++)
             {
-                Vector4 vector4 = pixelRowSpan[x].ToVector4();
-                Rgb96.FromVector4(vector4);
+                Span<TPixel> pixelRowSpan = pixels.DangerousGetRowSpan((int)rowIndex);
+                for (int x = 0; x < width; x++)
+                {
+                    Vector4 vector4 = pixelRowSpan[x].ToVector4();
+                    Rgb96.FromVector4(vector4);
 
-                redBuffer[x] = rgb.R;
-                greenBuffer[x] = rgb.G;
-                blueBuffer[x] = rgb.B;
+                    redBuffer[x] = rgb.R;
+                    greenBuffer[x] = rgb.G;
+                    blueBuffer[x] = rgb.B;
+                }
+
+                // Write row data to row block buffer.
+                Span<byte> rowBlockSpan = rowBlockBuffer.GetSpan().Slice((int)(rowsInBlockCount * bytesPerRow), (int)bytesPerRow);
+                this.WriteUnsignedIntRow(rowBlockSpan, width, blueBuffer, greenBuffer, redBuffer);
+                rowsInBlockCount++;
             }
 
-            // Write row data to buffer.
-            this.WriteUnsignedIntRow(rowBlockBuffer.GetSpan(), width, blueBuffer, greenBuffer, redBuffer);
-
             // Write pixel row data compressed to the stream.
-            uint compressedBytes = compressor.CompressRowBlock(rowBlockBuffer.GetSpan(), 1);
+            uint compressedBytes = compressor.CompressRowBlock(rowBlockBuffer.GetSpan(), (int)rowsInBlockCount);
             long positionAfterPixelData = stream.Position;
 
             // Write pixel row data size.

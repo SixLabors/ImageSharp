@@ -29,8 +29,8 @@ internal class ZipExrCompressor : ExrBaseCompressor
     public override uint CompressRowBlock(Span<byte> rows, int rowCount)
     {
         // Re-oder pixel values.
-        int n = rows.Length;
-        Span<byte> reordered = this.buffer.GetSpan();
+        Span<byte> reordered = this.buffer.GetSpan()[..(int)(rowCount * this.BytesPerRow)];
+        int n = reordered.Length;
         int t1 = 0;
         int t2 = (n + 1) >> 1;
         for (int i = 0; i < n; i++)
@@ -42,7 +42,7 @@ internal class ZipExrCompressor : ExrBaseCompressor
         // Predictor.
         Span<byte> predicted = reordered;
         byte p = predicted[0];
-        for (int i = 1; i < rows.Length; i++)
+        for (int i = 1; i < predicted.Length; i++)
         {
             int d = (predicted[i] - p + 128 + 256) & 255;
             p = predicted[i];

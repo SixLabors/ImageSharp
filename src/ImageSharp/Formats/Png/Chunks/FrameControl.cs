@@ -147,7 +147,13 @@ internal readonly struct FrameControl
     /// <param name="data">The data to parse.</param>
     /// <returns>The parsed fcTL.</returns>
     public static FrameControl Parse(ReadOnlySpan<byte> data)
-        => new(
+    {
+        if (data.Length < Size)
+        {
+            PngThrowHelper.ThrowInvalidImageContentException("The Frame Control Chunk does not contain enough data!");
+        }
+
+        return new(
             sequenceNumber: BinaryPrimitives.ReadUInt32BigEndian(data[..4]),
             width: BinaryPrimitives.ReadUInt32BigEndian(data[4..8]),
             height: BinaryPrimitives.ReadUInt32BigEndian(data[8..12]),
@@ -157,4 +163,5 @@ internal readonly struct FrameControl
             delayDenominator: BinaryPrimitives.ReadUInt16BigEndian(data[22..24]),
             disposalMode: (FrameDisposalMode)(data[24] + 1),
             blendMode: (FrameBlendMode)data[25]);
+    }
 }

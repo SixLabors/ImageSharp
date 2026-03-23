@@ -12,28 +12,26 @@ internal class B44ExrCompression : ExrBaseDecompressor
 {
     private readonly int width;
 
-    private readonly int height;
-
     private readonly uint rowsPerBlock;
 
     private readonly int channelCount;
 
-    private byte[] scratch = new byte[14];
+    private readonly byte[] scratch = new byte[14];
 
     private ushort[] s = new ushort[16];
 
-    private IMemoryOwner<ushort> tmpBuffer;
+    private readonly IMemoryOwner<ushort> tmpBuffer;
 
-    public B44ExrCompression(MemoryAllocator allocator, uint bytesPerBlock, int width, int height, uint rowsPerBlock, int channelCount)
-        : base(allocator, bytesPerBlock)
+    public B44ExrCompression(MemoryAllocator allocator, uint bytesPerBlock, uint bytesPerRow, uint rowsPerBlock, int width, int channelCount)
+        : base(allocator, bytesPerBlock, bytesPerRow)
     {
         this.width = width;
-        this.height = height;
         this.rowsPerBlock = rowsPerBlock;
         this.channelCount = channelCount;
         this.tmpBuffer = allocator.Allocate<ushort>((int)(width * rowsPerBlock * channelCount));
     }
 
+    /// <inheritdoc/>
     public override void Decompress(BufferedReadStream stream, uint compressedBytes, Span<byte> buffer)
     {
         Span<ushort> outputBuffer = MemoryMarshal.Cast<byte, ushort>(buffer);
@@ -187,5 +185,6 @@ internal class B44ExrCompression : ExrBaseDecompressor
         }
     }
 
+    /// <inheritdoc/>
     protected override void Dispose(bool disposing) => this.tmpBuffer.Dispose();
 }

@@ -14,19 +14,18 @@ internal static class ExrCompressorFactory
         ExrCompression method,
         MemoryAllocator allocator,
         Stream output,
-        int width,
-        int height,
         uint bytesPerBlock,
-        uint rowsPerBlock,
-        int channelCount,
+        uint bytesPerRow,
         DeflateCompressionLevel compressionLevel = DeflateCompressionLevel.DefaultCompression)
     {
         switch (method)
         {
             case ExrCompression.None:
-                return new NoneExrCompressor(output, allocator, bytesPerBlock);
+                return new NoneExrCompressor(output, allocator, bytesPerBlock, bytesPerRow);
             case ExrCompression.Zips:
-                return new ZipExrCompressor(output, allocator, bytesPerBlock, compressionLevel);
+                return new ZipExrCompressor(output, allocator, bytesPerBlock, bytesPerRow, compressionLevel);
+            case ExrCompression.Zip:
+                return new ZipExrCompressor(output, allocator, bytesPerBlock, bytesPerRow, compressionLevel);
 
             default:
                 throw ExrThrowHelper.NotSupportedCompressor(method.ToString());

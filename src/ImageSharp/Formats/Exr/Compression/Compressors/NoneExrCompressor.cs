@@ -8,8 +8,8 @@ namespace SixLabors.ImageSharp.Formats.Exr.Compression.Compressors;
 
 internal class NoneExrCompressor : ExrBaseCompressor
 {
-    public NoneExrCompressor(Stream output, MemoryAllocator allocator, uint bytesPerBlock)
-        : base(output, allocator, bytesPerBlock)
+    public NoneExrCompressor(Stream output, MemoryAllocator allocator, uint bytesPerBlock, uint bytesPerRow)
+        : base(output, allocator, bytesPerBlock, bytesPerRow)
     {
     }
 
@@ -17,12 +17,7 @@ internal class NoneExrCompressor : ExrBaseCompressor
     public override ExrCompression Method => ExrCompression.Zip;
 
     /// <inheritdoc/>
-    public override void Initialize(int rowsPerBlock)
-    {
-    }
-
-    /// <inheritdoc/>
-    public override uint CompressRowBlock(Span<byte> rows, int height)
+    public override uint CompressRowBlock(Span<byte> rows, int rowCount)
     {
         this.Output.Write(rows);
         return (uint)rows.Length;

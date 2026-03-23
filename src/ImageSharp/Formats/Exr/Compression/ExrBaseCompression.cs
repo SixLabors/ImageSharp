@@ -9,10 +9,11 @@ internal abstract class ExrBaseCompression : IDisposable
 {
     private bool isDisposed;
 
-    protected ExrBaseCompression(MemoryAllocator allocator, uint bytesPerBlock)
+    protected ExrBaseCompression(MemoryAllocator allocator, uint bytesPerBlock, uint bytesPerRow)
     {
         this.Allocator = allocator;
         this.BytesPerBlock = bytesPerBlock;
+        this.BytesPerRow = bytesPerRow;
     }
 
     /// <summary>
@@ -28,7 +29,7 @@ internal abstract class ExrBaseCompression : IDisposable
     /// <summary>
     /// Gets the bytes per row.
     /// </summary>
-    public int BytesPerRow { get; }
+    public uint BytesPerRow { get; }
 
     /// <summary>
     /// Gets the uncompressed bytes per block.

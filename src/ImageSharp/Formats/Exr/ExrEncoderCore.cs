@@ -5,7 +5,6 @@ using System.Buffers;
 using System.Buffers.Binary;
 using System.Numerics;
 using System.Runtime.CompilerServices;
-using System.Threading.Channels;
 using SixLabors.ImageSharp.Formats.Exr.Compression;
 using SixLabors.ImageSharp.Formats.Exr.Constants;
 using SixLabors.ImageSharp.Memory;
@@ -32,7 +31,7 @@ internal sealed class ExrEncoderCore
     /// <summary>
     /// The global configuration.
     /// </summary>
-    private Configuration configuration;
+    private readonly Configuration configuration;
 
     /// <summary>
     /// The encoder with options.
@@ -170,7 +169,7 @@ internal sealed class ExrEncoderCore
         Span<float> greenBuffer = rgbBuffer.GetSpan().Slice(width, width);
         Span<float> blueBuffer = rgbBuffer.GetSpan().Slice(width * 2, width);
 
-        using ExrBaseCompressor compressor = ExrCompressorFactory.Create(compression, this.memoryAllocator, stream, width, height, bytesPerBlock, rowsPerBlock, channelCount);
+        using ExrBaseCompressor compressor = ExrCompressorFactory.Create(compression, this.memoryAllocator, stream, bytesPerBlock, bytesPerRow);
 
         ulong[] rowOffsets = new ulong[height];
         for (int y = 0; y < height; y++)
@@ -181,7 +180,7 @@ internal sealed class ExrEncoderCore
             BinaryPrimitives.WriteUInt32LittleEndian(this.buffer, (uint)y);
             stream.Write(this.buffer.AsSpan(0, 4));
 
-            // At this point, it is not yet known how mcuh bytes the compressed data will take up, keep stream position.
+            // At this point, it is not yet known how much bytes the compressed data will take up, keep stream position.
             long pixelDataSizePos = stream.Position;
             Span<TPixel> pixelRowSpan = pixels.DangerousGetRowSpan(y);
             stream.Position = pixelDataSizePos + 4;
@@ -195,18 +194,19 @@ internal sealed class ExrEncoderCore
             }
 
             // Write pixel data to buffer.
+            Span<byte> rowBlockSpan = rowBlockBuffer.GetSpan();
             switch (this.pixelType)
             {
                 case ExrPixelType.Float:
-                    this.WriteSingleRow(rowBlockBuffer.GetSpan(), width, blueBuffer, greenBuffer, redBuffer);
+                    this.WriteSingleRow(rowBlockSpan, width, blueBuffer, greenBuffer, redBuffer);
                     break;
                 case ExrPixelType.Half:
-                    this.WriteHalfSingleRow(rowBlockBuffer.GetSpan(), width, blueBuffer, greenBuffer, redBuffer);
+                    this.WriteHalfSingleRow(rowBlockSpan, width, blueBuffer, greenBuffer, redBuffer);
                     break;
             }
 
-            // Write compressed pixel row data to stream.
-            uint compressedBytes = compressor.CompressRowBlock(rowBlockBuffer.GetSpan(), 1);
+            // Write compressed pixel row data to the stream.
+            uint compressedBytes = compressor.CompressRowBlock(rowBlockSpan, (int)rowsPerBlock);
             long positionAfterPixelData = stream.Position;
 
             // Write pixel row data size.
@@ -239,7 +239,7 @@ internal sealed class ExrEncoderCore
         Span<uint> greenBuffer = rgbBuffer.GetSpan().Slice(width, width);
         Span<uint> blueBuffer = rgbBuffer.GetSpan().Slice(width * 2, width);
 
-        using ExrBaseCompressor compressor = ExrCompressorFactory.Create(compression, this.memoryAllocator, stream, width, height, bytesPerBlock, rowsPerBlock, channelCount);
+        using ExrBaseCompressor compressor = ExrCompressorFactory.Create(compression, this.memoryAllocator, stream, bytesPerBlock, bytesPerRow);
 
         Rgb96 rgb = default;
         ulong[] rowOffsets = new ulong[height];
@@ -251,7 +251,7 @@ internal sealed class ExrEncoderCore
             BinaryPrimitives.WriteUInt32LittleEndian(this.buffer, (uint)y);
             stream.Write(this.buffer.AsSpan(0, 4));
 
-            // At this point, it is not yet known how mcuh bytes the compressed data will take up, keep stream position.
+            // At this point, it is not yet known how much bytes the compressed data will take up, keep stream position.
             long pixelDataSizePos = stream.Position;
             Span<TPixel> pixelRowSpan = pixels.DangerousGetRowSpan(y);
             stream.Position = pixelDataSizePos + 4;

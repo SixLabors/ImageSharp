@@ -13,9 +13,10 @@ internal class ZipExrCompression : ExrBaseDecompressor
 {
     private readonly IMemoryOwner<byte> tmpBuffer;
 
-    public ZipExrCompression(MemoryAllocator allocator, uint bytesPerBlock)
-        : base(allocator, bytesPerBlock) => this.tmpBuffer = allocator.Allocate<byte>((int)bytesPerBlock);
+    public ZipExrCompression(MemoryAllocator allocator, uint bytesPerBlock, uint bytesPerRow)
+        : base(allocator, bytesPerBlock, bytesPerRow) => this.tmpBuffer = allocator.Allocate<byte>((int)bytesPerBlock);
 
+    /// <inheritdoc/>
     public override void Decompress(BufferedReadStream stream, uint compressedBytes, Span<byte> buffer)
     {
         Span<byte> uncompressed = this.tmpBuffer.GetSpan();
@@ -52,5 +53,6 @@ internal class ZipExrCompression : ExrBaseDecompressor
         Interleave(uncompressed, (uint)totalRead, buffer);
     }
 
+    /// <inheritdoc/>
     protected override void Dispose(bool disposing) => this.tmpBuffer.Dispose();
 }

@@ -15,8 +15,8 @@ internal class ZipExrCompressor : ExrBaseCompressor
 
     private readonly System.Buffers.IMemoryOwner<byte> buffer;
 
-    public ZipExrCompressor(Stream output, MemoryAllocator allocator, uint bytesPerBlock, DeflateCompressionLevel compressionLevel)
-        : base(output, allocator, bytesPerBlock)
+    public ZipExrCompressor(Stream output, MemoryAllocator allocator, uint bytesPerBlock, uint bytesPerRow, DeflateCompressionLevel compressionLevel)
+        : base(output, allocator, bytesPerBlock, bytesPerRow)
     {
         this.compressionLevel = compressionLevel;
         this.buffer = allocator.Allocate<byte>((int)bytesPerBlock);
@@ -26,12 +26,7 @@ internal class ZipExrCompressor : ExrBaseCompressor
     public override ExrCompression Method => ExrCompression.Zip;
 
     /// <inheritdoc/>
-    public override void Initialize(int rowsPerBlock)
-    {
-    }
-
-    /// <inheritdoc/>
-    public override uint CompressRowBlock(Span<byte> rows, int height)
+    public override uint CompressRowBlock(Span<byte> rows, int rowCount)
     {
         // Re-oder pixel values.
         int n = rows.Length;

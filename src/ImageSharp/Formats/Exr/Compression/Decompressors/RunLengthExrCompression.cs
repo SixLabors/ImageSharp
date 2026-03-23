@@ -13,9 +13,10 @@ internal class RunLengthExrCompression : ExrBaseDecompressor
 
     private readonly ushort[] s = new ushort[16];
 
-    public RunLengthExrCompression(MemoryAllocator allocator, uint uncompressedBytes)
-        : base(allocator, uncompressedBytes) => this.tmpBuffer = allocator.Allocate<byte>((int)uncompressedBytes);
+    public RunLengthExrCompression(MemoryAllocator allocator, uint bytesPerBlock, uint bytesPerRow)
+        : base(allocator, bytesPerBlock, bytesPerRow) => this.tmpBuffer = allocator.Allocate<byte>((int)bytesPerBlock);
 
+    /// <inheritdoc/>
     public override void Decompress(BufferedReadStream stream, uint compressedBytes, Span<byte> buffer)
     {
         Span<byte> uncompressed = this.tmpBuffer.GetSpan();
@@ -78,5 +79,6 @@ internal class RunLengthExrCompression : ExrBaseDecompressor
         return (byte)nextByte;
     }
 
+    /// <inheritdoc/>
     protected override void Dispose(bool disposing) => this.tmpBuffer.Dispose();
 }

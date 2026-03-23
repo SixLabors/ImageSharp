@@ -13,9 +13,10 @@ internal abstract class ExrBaseCompressor : ExrBaseCompression
     /// </summary>
     /// <param name="output">The output stream to write the compressed image to.</param>
     /// <param name="allocator">The memory allocator.</param>
-    /// <param name="bytesPerBlock">Bytes per block.</param>
-    protected ExrBaseCompressor(Stream output, MemoryAllocator allocator, uint bytesPerBlock)
-        : base(allocator, bytesPerBlock)
+    /// <param name="bytesPerBlock">Bytes per row block.</param>
+    /// <param name="bytesPerRow">Bytes per pixel row.</param>
+    protected ExrBaseCompressor(Stream output, MemoryAllocator allocator, uint bytesPerBlock, uint bytesPerRow)
+        : base(allocator, bytesPerBlock, bytesPerRow)
         => this.Output = output;
 
     /// <summary>
@@ -29,16 +30,10 @@ internal abstract class ExrBaseCompressor : ExrBaseCompression
     public Stream Output { get; }
 
     /// <summary>
-    /// Does any initialization required for the compression.
-    /// </summary>
-    /// <param name="rowsPerBlock">The number of rows per block.</param>
-    public abstract void Initialize(int rowsPerBlock);
-
-    /// <summary>
     /// Compresses a block of rows of the image.
     /// </summary>
     /// <param name="rows">Image rows to compress.</param>
-    /// <param name="height">Image height.</param>
+    /// <param name="rowCount">The number of rows to compress.</param>
     /// <returns>Number of bytes of of the compressed data.</returns>
-    public abstract uint CompressRowBlock(Span<byte> rows, int height);
+    public abstract uint CompressRowBlock(Span<byte> rows, int rowCount);
 }

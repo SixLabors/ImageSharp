@@ -13,23 +13,23 @@ internal static class ExrDecompressorFactory
         ExrCompression method,
         MemoryAllocator memoryAllocator,
         int width,
-        int height,
         uint bytesPerBlock,
+        uint bytesPerRow,
         uint rowsPerBlock,
         int channelCount)
     {
         switch (method)
         {
             case ExrCompression.None:
-                return new NoneExrCompression(memoryAllocator, bytesPerBlock);
+                return new NoneExrCompression(memoryAllocator, bytesPerBlock, bytesPerRow);
             case ExrCompression.Zips:
-                return new ZipExrCompression(memoryAllocator, bytesPerBlock);
+                return new ZipExrCompression(memoryAllocator, bytesPerBlock, bytesPerRow);
             case ExrCompression.Zip:
-                return new ZipExrCompression(memoryAllocator, bytesPerBlock);
+                return new ZipExrCompression(memoryAllocator, bytesPerBlock, bytesPerRow);
             case ExrCompression.RunLengthEncoded:
-                return new RunLengthExrCompression(memoryAllocator, bytesPerBlock);
+                return new RunLengthExrCompression(memoryAllocator, bytesPerBlock, bytesPerRow);
             case ExrCompression.B44:
-                return new B44ExrCompression(memoryAllocator, bytesPerBlock, width, height, rowsPerBlock, channelCount);
+                return new B44ExrCompression(memoryAllocator, bytesPerBlock, bytesPerRow, rowsPerBlock, width, channelCount);
             default:
                 throw ExrThrowHelper.NotSupportedDecompressor(nameof(method));
         }

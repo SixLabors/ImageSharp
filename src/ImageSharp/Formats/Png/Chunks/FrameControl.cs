@@ -150,7 +150,7 @@ internal readonly struct FrameControl
     {
         if (data.Length < Size)
         {
-            PngThrowHelper.ThrowInvalidImageContentException("The Frame Control Chunk does not contain enough data!");
+            PngThrowHelper.ThrowInvalidImageContentException("The frame control chunk does not contain enough data!");
         }
 
         return new(

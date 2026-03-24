@@ -165,7 +165,7 @@ internal sealed class ExrEncoderCore
 
         using IMemoryOwner<float> rgbBuffer = this.memoryAllocator.Allocate<float>(width * 3, AllocationOptions.Clean);
         using IMemoryOwner<byte> rowBlockBuffer = this.memoryAllocator.Allocate<byte>((int)bytesPerBlock, AllocationOptions.Clean);
-        Span<float> redBuffer = rgbBuffer.GetSpan().Slice(0, width);
+        Span<float> redBuffer = rgbBuffer.GetSpan()[..width];
         Span<float> greenBuffer = rgbBuffer.GetSpan().Slice(width, width);
         Span<float> blueBuffer = rgbBuffer.GetSpan().Slice(width * 2, width);
 

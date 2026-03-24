@@ -11,7 +11,7 @@ internal class ZipExrCompressor : ExrBaseCompressor
 {
     private readonly DeflateCompressionLevel compressionLevel;
 
-    private readonly MemoryStream memoryStream = new();
+    private readonly MemoryStream memoryStream;
 
     private readonly System.Buffers.IMemoryOwner<byte> buffer;
 
@@ -20,6 +20,7 @@ internal class ZipExrCompressor : ExrBaseCompressor
     {
         this.compressionLevel = compressionLevel;
         this.buffer = allocator.Allocate<byte>((int)bytesPerBlock);
+        this.memoryStream = new();
     }
 
     /// <inheritdoc/>

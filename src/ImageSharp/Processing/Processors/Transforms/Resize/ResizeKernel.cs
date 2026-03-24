@@ -5,7 +5,7 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
-using System.Runtime.Intrinsics.X86;
+using SixLabors.ImageSharp.Common.Helpers;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Transforms;
 
@@ -14,17 +14,33 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms;
 /// </summary>
 internal readonly unsafe struct ResizeKernel
 {
+    /// <summary>
+    /// The buffer with the convolution factors.
+    /// Note that when FMA is supported, this is of size 4x that reported in <see cref="Length"/>.
+    /// </summary>
     private readonly float* bufferPtr;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ResizeKernel"/> struct.
     /// </summary>
+    /// <param name="startIndex">The starting index for the destination row.</param>
+    /// <param name="bufferPtr">The pointer to the buffer with the convolution factors.</param>
+    /// <param name="length">The length of the kernel.</param>
     [MethodImpl(InliningOptions.ShortMethod)]
     internal ResizeKernel(int startIndex, float* bufferPtr, int length)
     {
         this.StartIndex = startIndex;
         this.bufferPtr = bufferPtr;
         this.Length = length;
+    }
+
+    /// <summary>
+    /// Gets a value indicating whether vectorization is supported.
+    /// </summary>
+    public static bool IsHardwareAccelerated
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => Vector256.IsHardwareAccelerated;
     }
 
     /// <summary>
@@ -53,7 +69,15 @@ internal readonly unsafe struct ResizeKernel
     public Span<float> Values
     {
         [MethodImpl(InliningOptions.ShortMethod)]
-        get => new(this.bufferPtr, this.Length);
+        get
+        {
+            if (Vector256.IsHardwareAccelerated)
+            {
+                return new(this.bufferPtr, this.Length * 4);
+            }
+
+            return new(this.bufferPtr, this.Length);
+        }
     }
 
     /// <summary>
@@ -68,73 +92,45 @@ internal readonly unsafe struct ResizeKernel
     [MethodImpl(InliningOptions.ShortMethod)]
     public Vector4 ConvolveCore(ref Vector4 rowStartRef)
     {
-        if (Avx2.IsSupported && Fma.IsSupported)
+        if (IsHardwareAccelerated)
         {
             float* bufferStart = this.bufferPtr;
-            float* bufferEnd = bufferStart + (this.Length & ~3);
+            ref Vector4 rowEndRef = ref Unsafe.Add(ref rowStartRef, this.Length & ~3);
             Vector256<float> result256_0 = Vector256<float>.Zero;
             Vector256<float> result256_1 = Vector256<float>.Zero;
-            ReadOnlySpan<byte> maskBytes =
-            [
-                0, 0, 0, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 0, 0, 0, 0,
-                1, 0, 0, 0, 1, 0, 0, 0,
-                1, 0, 0, 0, 1, 0, 0, 0
-            ];
-            Vector256<int> mask = Unsafe.ReadUnaligned<Vector256<int>>(ref MemoryMarshal.GetReference(maskBytes));
 
-            while (bufferStart < bufferEnd)
+            while (Unsafe.IsAddressLessThan(ref rowStartRef, ref rowEndRef))
             {
-                // It is important to use a single expression here so that the JIT will correctly use vfmadd231ps
-                // for the FMA operation, and execute it directly on the target register and reading directly from
-                // memory for the first parameter. This skips initializing a SIMD register, and an extra copy.
-                // The code below should compile in the following assembly on .NET 5 x64:
-                //
-                // vmovsd xmm2, [rax]               ; load *(double*)bufferStart into xmm2 as [ab, _]
-                // vpermps ymm2, ymm1, ymm2         ; permute as a float YMM register to [a, a, a, a, b, b, b, b]
-                // vfmadd231ps ymm0, ymm2, [r8]     ; result256_0 = FMA(pixels, factors) + result256_0
-                //
-                // For tracking the codegen issue with FMA, see: https://github.com/dotnet/runtime/issues/12212.
-                // Additionally, we're also unrolling two computations per each loop iterations to leverage the
-                // fact that most CPUs have two ports to schedule multiply operations for FMA instructions.
-                result256_0 = Fma.MultiplyAdd(
-                    Unsafe.As<Vector4, Vector256<float>>(ref rowStartRef),
-                    Avx2.PermuteVar8x32(Vector256.CreateScalarUnsafe(*(double*)bufferStart).AsSingle(), mask),
-                    result256_0);
+                Vector256<float> pixels256_0 = Unsafe.As<Vector4, Vector256<float>>(ref rowStartRef);
+                Vector256<float> pixels256_1 = Unsafe.As<Vector4, Vector256<float>>(ref Unsafe.Add(ref rowStartRef, (nuint)2));
 
-                result256_1 = Fma.MultiplyAdd(
-                    Unsafe.As<Vector4, Vector256<float>>(ref Unsafe.Add(ref rowStartRef, 2)),
-                    Avx2.PermuteVar8x32(Vector256.CreateScalarUnsafe(*(double*)(bufferStart + 2)).AsSingle(), mask),
-                    result256_1);
+                result256_0 = Vector256_.MultiplyAdd(result256_0, Vector256.Load(bufferStart), pixels256_0);
+                result256_1 = Vector256_.MultiplyAdd(result256_1, Vector256.Load(bufferStart + 8), pixels256_1);
 
-                bufferStart += 4;
-                rowStartRef = ref Unsafe.Add(ref rowStartRef, 4);
+                bufferStart += 16;
+                rowStartRef = ref Unsafe.Add(ref rowStartRef, (nuint)4);
             }
 
-            result256_0 = Avx.Add(result256_0, result256_1);
+            result256_0 += result256_1;
 
             if ((this.Length & 3) >= 2)
             {
-                result256_0 = Fma.MultiplyAdd(
-                    Unsafe.As<Vector4, Vector256<float>>(ref rowStartRef),
-                    Avx2.PermuteVar8x32(Vector256.CreateScalarUnsafe(*(double*)bufferStart).AsSingle(), mask),
-                    result256_0);
+                Vector256<float> pixels256_0 = Unsafe.As<Vector4, Vector256<float>>(ref rowStartRef);
+                result256_0 = Vector256_.MultiplyAdd(result256_0, Vector256.Load(bufferStart), pixels256_0);
 
-                bufferStart += 2;
-                rowStartRef = ref Unsafe.Add(ref rowStartRef, 2);
+                bufferStart += 8;
+                rowStartRef = ref Unsafe.Add(ref rowStartRef, (nuint)2);
             }
 
-            Vector128<float> result128 = Sse.Add(result256_0.GetLower(), result256_0.GetUpper());
+            Vector128<float> result128 = result256_0.GetLower() + result256_0.GetUpper();
 
             if ((this.Length & 1) != 0)
             {
-                result128 = Fma.MultiplyAdd(
-                    Unsafe.As<Vector4, Vector128<float>>(ref rowStartRef),
-                    Vector128.Create(*bufferStart),
-                    result128);
+                Vector128<float> pixels128 = Unsafe.As<Vector4, Vector128<float>>(ref rowStartRef);
+                result128 = Vector128_.MultiplyAdd(result128, Vector128.Load(bufferStart), pixels128);
             }
 
-            return *(Vector4*)&result128;
+            return result128.AsVector4();
         }
         else
         {
@@ -149,7 +145,7 @@ internal readonly unsafe struct ResizeKernel
                 result += rowStartRef * *bufferStart;
 
                 bufferStart++;
-                rowStartRef = ref Unsafe.Add(ref rowStartRef, 1);
+                rowStartRef = ref Unsafe.Add(ref rowStartRef, (nuint)1);
             }
 
             return result;
@@ -160,17 +156,32 @@ internal readonly unsafe struct ResizeKernel
     /// Copy the contents of <see cref="ResizeKernel"/> altering <see cref="StartIndex"/>
     /// to the value <paramref name="left"/>.
     /// </summary>
+    /// <param name="left">The new value for <see cref="StartIndex"/>.</param>
     [MethodImpl(InliningOptions.ShortMethod)]
     internal ResizeKernel AlterLeftValue(int left)
         => new(left, this.bufferPtr, this.Length);
 
-    internal void Fill(Span<double> values)
+    internal void FillOrCopyAndExpand(Span<float> values)
     {
         DebugGuard.IsTrue(values.Length == this.Length, nameof(values), "ResizeKernel.Fill: values.Length != this.Length!");
 
-        for (int i = 0; i < this.Length; i++)
+        if (IsHardwareAccelerated)
         {
-            this.Values[i] = (float)values[i];
+            Vector4* bufferStart = (Vector4*)this.bufferPtr;
+            ref float valuesStart = ref MemoryMarshal.GetReference(values);
+            ref float valuesEnd = ref Unsafe.Add(ref valuesStart, values.Length);
+
+            while (Unsafe.IsAddressLessThan(ref valuesStart, ref valuesEnd))
+            {
+                *bufferStart = new Vector4(valuesStart);
+
+                bufferStart++;
+                valuesStart = ref Unsafe.Add(ref valuesStart, (nuint)1);
+            }
+        }
+        else
+        {
+            values.CopyTo(this.Values);
         }
     }
 }

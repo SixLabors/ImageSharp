@@ -79,6 +79,34 @@ public class XmpProfileTests
     }
 
     [Fact]
+    public void XmpProfile_CtorFromXDocument_Works()
+    {
+        // arrange
+        XDocument document = CreateMinimalXDocument();
+
+        // act
+        XmpProfile profile = new(document);
+
+        // assert
+        XmpProfileContainsExpectedValues(profile);
+    }
+
+    [Fact]
+    public void XmpProfile_ToXDocument_ReturnsValidDocument()
+    {
+        // arrange
+        XmpProfile profile = CreateMinimalXmlProfile();
+
+        // act
+        XDocument document = profile.ToXDocument();
+
+        // assert
+        Assert.NotNull(document);
+        Assert.Equal("xmpmeta", document.Root.Name.LocalName);
+        Assert.Equal("adobe:ns:meta/", document.Root.Name.NamespaceName);
+    }
+
+    [Fact]
     public void XmpProfile_ToFromByteArray_ReturnsClone()
     {
         // arrange
@@ -97,11 +125,11 @@ public class XmpProfileTests
     {
         // arrange
         XmpProfile profile = CreateMinimalXmlProfile();
-        byte[] original = profile.ToByteArray();
+        byte[] original = profile.Data;
 
         // act
         XmpProfile clone = profile.DeepClone();
-        byte[] actual = clone.ToByteArray();
+        byte[] actual = clone.Data;
 
         // assert
         Assert.False(ReferenceEquals(original, actual));
@@ -218,7 +246,7 @@ public class XmpProfileTests
     private static void XmpProfileContainsExpectedValues(XmpProfile xmp)
     {
         Assert.NotNull(xmp);
-        XDocument document = xmp.GetDocument();
+        XDocument document = xmp.ToXDocument();
         Assert.NotNull(document);
         Assert.Equal("xmpmeta", document.Root.Name.LocalName);
         Assert.Equal("adobe:ns:meta/", document.Root.Name.NamespaceName);
@@ -231,6 +259,8 @@ public class XmpProfileTests
         XmpProfile profile = new(data);
         return profile;
     }
+
+    private static XDocument CreateMinimalXDocument() => CreateMinimalXmlProfile().ToXDocument();
 
     private static Image<Rgba32> WriteAndRead(Image<Rgba32> image, IImageEncoder encoder)
     {

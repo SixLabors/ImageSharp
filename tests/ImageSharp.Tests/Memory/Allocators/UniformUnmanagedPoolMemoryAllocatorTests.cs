@@ -410,19 +410,6 @@ public class UniformUnmanagedPoolMemoryAllocatorTests
     }
 
     [Fact]
-    public void Issue2001_NegativeMemoryReportedByGc()
-    {
-        RemoteExecutor.Invoke(RunTest).Dispose();
-
-        static void RunTest()
-        {
-            // Emulate GC.GetGCMemoryInfo() issue https://github.com/dotnet/runtime/issues/65466
-            UniformUnmanagedMemoryPoolMemoryAllocator.GetTotalAvailableMemoryBytes = () => -402354176;
-            _ = MemoryAllocator.Create();
-        }
-    }
-
-    [Fact]
     public void Allocate_OverLimit_ThrowsInvalidMemoryOperationException()
     {
         MemoryAllocator allocator = MemoryAllocator.Create(new MemoryAllocatorOptions

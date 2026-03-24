@@ -397,6 +397,16 @@ public class ProjectiveTransformBuilder
     internal static SizeF GetTransformedSize(Rectangle sourceRectangle, Matrix4x4 matrix)
         => TransformUtilities.GetRawTransformedSize(matrix, sourceRectangle.Size);
 
+    /// <summary>
+    /// Clears all accumulated transform matrices, resetting the builder to its initial state.
+    /// </summary>
+    /// <returns>The <see cref="ProjectiveTransformBuilder"/>.</returns>
+    public ProjectiveTransformBuilder Clear()
+    {
+        this.transformMatrixFactories.Clear();
+        return this;
+    }
+
     private static void CheckDegenerate(Matrix4x4 matrix)
     {
         if (TransformUtilities.IsDegenerate(matrix))

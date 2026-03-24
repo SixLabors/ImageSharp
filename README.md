@@ -8,18 +8,16 @@ SixLabors.ImageSharp
 <div align="center">
 
 [![Build Status](https://img.shields.io/github/actions/workflow/status/SixLabors/ImageSharp/build-and-test.yml?branch=main)](https://github.com/SixLabors/ImageSharp/actions)
-[![Code coverage](https://codecov.io/gh/SixLabors/ImageSharp/branch/main/graph/badge.svg)](https://codecov.io/gh/SixLabors/ImageSharp)
+[![codecov](https://codecov.io/gh/SixLabors/ImageSharp/graph/badge.svg?token=g2WJwz770q)](https://codecov.io/gh/SixLabors/ImageSharp)
 [![License: Six Labors Split](https://img.shields.io/badge/license-Six%20Labors%20Split-%23e30183)](https://github.com/SixLabors/ImageSharp/blob/main/LICENSE)
-[![Twitter](https://img.shields.io/twitter/url/http/shields.io.svg?style=flat&logo=twitter)](https://twitter.com/intent/tweet?hashtags=imagesharp,dotnet,oss&text=ImageSharp.+A+new+cross-platform+2D+graphics+API+in+C%23&url=https%3a%2f%2fgithub.com%2fSixLabors%2fImageSharp&via=sixlabors)
 
 </div>
 
-### **ImageSharp** is a new, fully featured, fully managed, cross-platform, 2D graphics API. 
+### **ImageSharp** is a high-performance, fully managed, cross-platform 2D graphics API.
 
-ImageSharp is a new, fully featured, fully managed, cross-platform, 2D graphics library. 
-Designed to simplify image processing, ImageSharp brings you an incredibly powerful yet beautifully simple API.
+ImageSharp is a mature, fully featured, high-performance image processing and graphics library for .NET, built for workloads across device, cloud, and embedded/IoT scenarios.
 
-ImageSharp is designed from the ground up to be flexible and extensible. The library provides API endpoints for common image processing operations and the building blocks to allow for the development of additional operations.
+Designed from the ground up to balance performance, portability, and ease of use, ImageSharp provides a powerful yet approachable API for common image processing tasks, along with the low-level building blocks needed to extend the library for specialized workflows.
 
 Built against [.NET 8](https://docs.microsoft.com/en-us/dotnet/standard/net-standard), ImageSharp can be used in device, cloud, and embedded/IoT scenarios.
 

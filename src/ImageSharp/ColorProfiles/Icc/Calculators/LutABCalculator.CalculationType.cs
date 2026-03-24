@@ -5,14 +5,19 @@ namespace SixLabors.ImageSharp.ColorProfiles.Conversion.Icc;
 
 internal partial class LutABCalculator
 {
+    /// <summary>
+    /// Identifies the transform direction for the configured LUT calculator.
+    /// </summary>
     private enum CalculationType
     {
-        AtoB = 1 << 3,
-        BtoA = 1 << 4,
+        /// <summary>
+        /// Converts from device space to PCS using ICC <c>mAB</c> stage order.
+        /// </summary>
+        AtoB,
 
-        SingleCurve = 1,
-        CurveMatrix = 2,
-        CurveClut = 3,
-        Full = 4,
+        /// <summary>
+        /// Converts from PCS to device space using ICC <c>mBA</c> stage order.
+        /// </summary>
+        BtoA,
     }
 }

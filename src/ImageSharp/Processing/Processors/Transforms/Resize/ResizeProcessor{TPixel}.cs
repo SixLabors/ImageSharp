@@ -91,7 +91,7 @@ internal class ResizeProcessor<TPixel> : TransformProcessor<TPixel>, IResampling
                 ImageFrame<TPixel> destinationFrame = destination.Frames[i];
 
                 // The cloned will be blank here copy all the pixel data over
-                sourceFrame.GetPixelMemoryGroup().CopyTo(destinationFrame.GetPixelMemoryGroup());
+                sourceFrame.PixelBuffer.CopyTo(destinationFrame.PixelBuffer);
             }
 
             return;

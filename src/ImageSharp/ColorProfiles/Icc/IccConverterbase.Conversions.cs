@@ -60,7 +60,7 @@ internal abstract partial class IccConverterBase
             IccLut16TagDataEntry lut16 => new LutEntryCalculator(lut16),
             IccLutAToBTagDataEntry lutAtoB => new LutABCalculator(lutAtoB),
             IccLutBToATagDataEntry lutBtoA => new LutABCalculator(lutBtoA),
-            _ => throw new InvalidIccProfileException("Invalid entry."),
+            _ => throw new InvalidIccProfileException($"Invalid entry {tag}."),
         };
 
     private static IVector4Calculator InitD(IccProfile profile, IccProfileTag tag)

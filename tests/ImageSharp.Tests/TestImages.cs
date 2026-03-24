@@ -62,6 +62,7 @@ public static class TestImages
         public const string TestPattern31x31HalfTransparent = "Png/testpattern31x31-halftransparent.png";
         public const string XmpColorPalette = "Png/xmp-colorpalette.png";
         public const string AdamHeadsHlg = "Png/adamHeadsHLG.png";
+        public const string IptcMetadata = "Png/iptc-profile.png";
 
         // Animated
         // https://philip.html5.org/tests/apng/tests.html
@@ -231,6 +232,7 @@ public static class TestImages
             public const string SRgbGray = "Jpg/icc-profiles/sRGB_Gray.jpg";
             public const string Perceptual = "Jpg/icc-profiles/Perceptual.jpg";
             public const string PerceptualcLUTOnly = "Jpg/icc-profiles/Perceptual-cLUT-only.jpg";
+            public const string Issue3064 = "Jpg/icc-profiles/issue-3064.jpg";
         }
 
         public static class Progressive
@@ -900,6 +902,12 @@ public static class TestImages
         public const string AlphaBlend2 = "Webp/alpha-blend-2.webp";
         public const string AlphaBlend3 = "Webp/alpha-blend-3.webp";
         public const string AlphaBlend4 = "Webp/alpha-blend-4.webp";
+
+        public static class Icc
+        {
+            public const string Perceptual = "Webp/icc-profiles/Perceptual.webp";
+            public const string PerceptualcLUTOnly = "Webp/icc-profiles/Perceptual-cLUT-only.webp";
+        }
     }
 
     public static class Tiff
@@ -1187,6 +1195,14 @@ public static class TestImages
         ];
 
         public static readonly string[] Metadata = [SampleMetadata];
+
+        public static class Icc
+        {
+            public const string PerceptualCmyk = "Tiff/icc-profiles/Perceptual_CMYK.tiff";
+            public const string PerceptualCieLab = "Tiff/icc-profiles/Perceptual_CIELAB.tiff";
+            public const string PerceptualRgb8 = "Tiff/icc-profiles/Perceptual_RGB8.tiff";
+            public const string PerceptualRgb16 = "Tiff/icc-profiles/Perceptual_RGB16.tiff";
+        }
     }
 
     public static class BigTiff

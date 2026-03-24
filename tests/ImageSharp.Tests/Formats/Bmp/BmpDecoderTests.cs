@@ -571,4 +571,56 @@ public class BmpDecoderTests
             });
         Assert.IsType<InvalidMemoryOperationException>(ex.InnerException);
     }
+
+    // https://github.com/SixLabors/ImageSharp/issues/3067
+    [Fact]
+    public void BmpDecoder_ThrowsException_Issue3067()
+    {
+        // Construct minimal BMP with bitsPerPixel = 0
+        byte[] bmp = new byte[54];
+        bmp[0] = (byte)'B';
+        bmp[1] = (byte)'M';
+        BitConverter.GetBytes(54).CopyTo(bmp, 2);
+        BitConverter.GetBytes(54).CopyTo(bmp, 10);
+        BitConverter.GetBytes(40).CopyTo(bmp, 14);
+        BitConverter.GetBytes(1).CopyTo(bmp, 18);
+        BitConverter.GetBytes(1).CopyTo(bmp, 22);
+        BitConverter.GetBytes((short)1).CopyTo(bmp, 26);
+        BitConverter.GetBytes((short)0).CopyTo(bmp, 28);  // bitsPerPixel = 0
+
+        using MemoryStream stream = new(bmp);
+
+        Assert.Throws<InvalidImageContentException>(() =>
+        {
+            using Image image = BmpDecoder.Instance.Decode(DecoderOptions.Default, stream);
+        });
+    }
+
+    // https://github.com/SixLabors/ImageSharp/issues/3074
+    [Fact]
+    public void BmpDecoder_ThrowsException_Issue3074()
+    {
+        // Crafted BMP: pixel data offset = 0x7FFFFFFF, actual file = 35 bytes
+        byte[] data =
+        [
+            0x42, 0x4D,                         // "BM" signature
+            0x3A, 0x00, 0x00, 0x00,             // file size: 58
+            0x00, 0x00, 0x00, 0x00,             // reserved
+            0xFF, 0xFF, 0xFF, 0x7F,             // pixel offset: 0x7FFFFFFF (2,147,483,647)
+            0x28, 0x00, 0x00, 0x00,             // DIB header size: 40
+            0x01, 0x00, 0x00, 0x00,             // width: 1
+            0x01, 0xFF, 0x00, 0x00,             // height: 65281
+            0x01, 0x00,                         // color planes: 1
+            0x08, 0x00,                         // bits per pixel: 8
+            0x00, 0x00, 0x00, 0x00,             // compression: RGB
+            0x00, 0x00, 0x00 // (truncated)
+        ];
+
+        using MemoryStream stream = new(data);
+
+        Assert.Throws<InvalidImageContentException>(() =>
+        {
+            using Image<Rgba32> image = Image.Load<Rgba32>(stream);
+        });
+    }
 }

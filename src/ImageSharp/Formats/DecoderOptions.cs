@@ -78,12 +78,12 @@ public sealed class DecoderOptions
             return false;
         }
 
-        if (profile.IsCanonicalSrgbMatrixTrc())
+        if (this.ColorProfileHandling == ColorProfileHandling.Preserve)
         {
             return false;
         }
 
-        if (this.ColorProfileHandling == ColorProfileHandling.Preserve)
+        if (profile.IsCanonicalSrgbMatrixTrc())
         {
             return false;
         }
@@ -99,11 +99,11 @@ public sealed class DecoderOptions
             return false;
         }
 
-        if (this.ColorProfileHandling == ColorProfileHandling.Compact && profile.IsCanonicalSrgbMatrixTrc())
+        if (this.ColorProfileHandling == ColorProfileHandling.Convert)
         {
             return true;
         }
 
-        return this.ColorProfileHandling == ColorProfileHandling.Convert;
+        return this.ColorProfileHandling == ColorProfileHandling.Compact && profile.IsCanonicalSrgbMatrixTrc();
     }
 }

@@ -152,5 +152,74 @@ public partial class Buffer2DTests
             Assert.Equal(color, source.MemoryGroup[0].Span[10]);
             Assert.NotEqual(color, dest.MemoryGroup[0].Span[10]);
         }
+
+        [Fact]
+        public void WhenDestIsNotMemoryOwner_DifferentSizeSameTotal_PackedLayout_ShouldCopy()
+        {
+            int[] data = new int[6];
+            using TestMemoryManager<int> destOwner = new(data);
+            using Buffer2D<int> dest = new(MemoryGroup<int>.Wrap(destOwner.Memory), 2, 3);
+            using Buffer2D<int> source = this.memoryAllocator.Allocate2D<int>(3, 2, AllocationOptions.Clean);
+
+            source[0, 0] = 1;
+            source[1, 0] = 2;
+            source[2, 0] = 3;
+            source[0, 1] = 4;
+            source[1, 1] = 5;
+            source[2, 1] = 6;
+
+            bool swap = Buffer2D<int>.SwapOrCopyContent(dest, source);
+
+            Assert.False(swap);
+            Assert.Equal(new Size(3, 2), dest.Size());
+            Assert.Equal(6, dest[2, 1]);
+        }
+
+        [Fact]
+        public void WhenDestIsNotMemoryOwner_DifferentSizeSameTotal_StridedLayout_ShouldCopy()
+        {
+            int[] data = new int[5];
+            using Buffer2D<int> dest = Buffer2D<int>.WrapMemory(data.AsMemory(), width: 2, height: 2, stride: 3);
+            using Buffer2D<int> source = this.memoryAllocator.Allocate2D<int>(1, 5, AllocationOptions.Clean);
+
+            source[0, 0] = 1;
+            source[0, 1] = 2;
+            source[0, 2] = 3;
+            source[0, 3] = 4;
+            source[0, 4] = 5;
+
+            bool swap = Buffer2D<int>.SwapOrCopyContent(dest, source);
+
+            Assert.False(swap);
+            Assert.Equal(new Size(1, 5), dest.Size());
+            Assert.Equal(1, dest[0, 0]);
+            Assert.Equal(2, dest[0, 1]);
+            Assert.Equal(3, dest[0, 2]);
+            Assert.Equal(4, dest[0, 3]);
+            Assert.Equal(5, dest[0, 4]);
+        }
+
+        [Fact]
+        public void WhenDestIsNotMemoryOwner_DifferentSizeDifferentTotal_ButBothLayoutsFit_ShouldCopy()
+        {
+            int[] data = new int[5];
+            using TestMemoryManager<int> destOwner = new(data);
+            using Buffer2D<int> dest = new(MemoryGroup<int>.Wrap(destOwner.Memory), 1, 3);
+            using Buffer2D<int> source = this.memoryAllocator.Allocate2D<int>(2, 2, AllocationOptions.Clean);
+
+            source[0, 0] = 1;
+            source[1, 0] = 2;
+            source[0, 1] = 3;
+            source[1, 1] = 4;
+
+            bool swap = Buffer2D<int>.SwapOrCopyContent(dest, source);
+
+            Assert.False(swap);
+            Assert.Equal(new Size(2, 2), dest.Size());
+            Assert.Equal(1, dest[0, 0]);
+            Assert.Equal(2, dest[1, 0]);
+            Assert.Equal(3, dest[0, 1]);
+            Assert.Equal(4, dest[1, 1]);
+        }
     }
 }

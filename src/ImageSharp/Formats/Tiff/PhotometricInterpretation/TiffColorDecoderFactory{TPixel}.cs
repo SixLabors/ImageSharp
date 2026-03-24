@@ -3,6 +3,7 @@
 
 using SixLabors.ImageSharp.Formats.Tiff.Compression;
 using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Tiff.PhotometricInterpretation;
@@ -11,6 +12,8 @@ internal static class TiffColorDecoderFactory<TPixel>
     where TPixel : unmanaged, IPixel<TPixel>
 {
     public static TiffBaseColorDecoder<TPixel> Create(
+        ImageFrameMetadata metadata,
+        DecoderOptions options,
         Configuration configuration,
         MemoryAllocator memoryAllocator,
         TiffColorType colorType,
@@ -384,7 +387,7 @@ internal static class TiffColorDecoderFactory<TPixel>
 
             case TiffColorType.PaletteColor:
                 DebugGuard.NotNull(colorMap, "colorMap");
-                return new PaletteTiffColor<TPixel>(bitsPerSample, colorMap);
+                return new PaletteTiffColor<TPixel>(bitsPerSample, colorMap, extraSampleType);
 
             case TiffColorType.YCbCr:
                 DebugGuard.IsTrue(
@@ -396,13 +399,20 @@ internal static class TiffColorDecoderFactory<TPixel>
                 return new YCbCrTiffColor<TPixel>(memoryAllocator, referenceBlackAndWhite, ycbcrCoefficients, ycbcrSubSampling);
 
             case TiffColorType.CieLab:
-                DebugGuard.IsTrue(
-                    bitsPerSample.Channels == 3
-                    && bitsPerSample.Channel2 == 8
-                    && bitsPerSample.Channel1 == 8
-                    && bitsPerSample.Channel0 == 8,
-                    "bitsPerSample");
-                return new CieLabTiffColor<TPixel>();
+
+                DebugGuard.IsTrue(bitsPerSample.Channels == 3, "bitsPerSample");
+
+                if (bitsPerSample.Channel0 == 8)
+                {
+                    return new CieLab8TiffColor<TPixel>();
+                }
+
+                return new CieLab16TiffColor<TPixel>(
+                    configuration,
+                    options,
+                    metadata,
+                    memoryAllocator,
+                    byteOrder == ByteOrder.BigEndian);
 
             case TiffColorType.Cmyk:
                 DebugGuard.IsTrue(
@@ -412,7 +422,7 @@ internal static class TiffColorDecoderFactory<TPixel>
                     && bitsPerSample.Channel1 == 8
                     && bitsPerSample.Channel0 == 8,
                     "bitsPerSample");
-                return new CmykTiffColor<TPixel>(compression);
+                return new CmykTiffColor<TPixel>(compression, configuration, options, metadata, memoryAllocator);
 
             default:
                 throw TiffThrowHelper.InvalidColorType(colorType.ToString());
@@ -420,6 +430,10 @@ internal static class TiffColorDecoderFactory<TPixel>
     }
 
     public static TiffBasePlanarColorDecoder<TPixel> CreatePlanar(
+        ImageFrameMetadata metadata,
+        DecoderOptions options,
+        Configuration configuration,
+        MemoryAllocator allocator,
         TiffColorType colorType,
         TiffBitsPerSample bitsPerSample,
         TiffExtraSampleType? extraSampleType,
@@ -443,7 +457,14 @@ internal static class TiffColorDecoderFactory<TPixel>
                 return new YCbCrPlanarTiffColor<TPixel>(referenceBlackAndWhite, ycbcrCoefficients, ycbcrSubSampling);
 
             case TiffColorType.CieLabPlanar:
-                return new CieLabPlanarTiffColor<TPixel>();
+                return bitsPerSample.Channel0 == 8
+                    ? new CieLab8PlanarTiffColor<TPixel>()
+                    : new CieLab16PlanarTiffColor<TPixel>(
+                        configuration,
+                        options,
+                        metadata,
+                        allocator,
+                        byteOrder == ByteOrder.BigEndian);
 
             case TiffColorType.Rgb161616Planar:
                 DebugGuard.IsTrue(colorMap == null, "colorMap");

@@ -30,7 +30,7 @@ internal class ZipExrCompression : ExrBaseDecompressor
                        return left > 0 ? left : 0;
                    });
         inflateStream.AllocateNewBytes((int)this.BytesPerBlock, true);
-        DeflateStream dataStream = inflateStream.CompressedStream!;
+        using DeflateStream dataStream = inflateStream.CompressedStream!;
 
         int totalRead = 0;
         while (totalRead < buffer.Length)

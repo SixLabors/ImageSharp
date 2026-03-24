@@ -11,7 +11,7 @@ internal class ZipExrCompressor : ExrBaseCompressor
 {
     private readonly DeflateCompressionLevel compressionLevel;
 
-    private MemoryStream memoryStream = new();
+    private readonly MemoryStream memoryStream = new();
 
     private readonly System.Buffers.IMemoryOwner<byte> buffer;
 
@@ -60,12 +60,17 @@ internal class ZipExrCompressor : ExrBaseCompressor
         byte[] buffer = this.memoryStream.GetBuffer();
         this.Output.Write(buffer, 0, size);
 
-        this.memoryStream = new();
+        // Reset memory stream for next pixel row.
+        this.memoryStream.Seek(0, SeekOrigin.Begin);
+        this.memoryStream.SetLength(0);
+
         return (uint)size;
     }
 
     /// <inheritdoc/>
     protected override void Dispose(bool disposing)
     {
+        this.buffer.Dispose();
+        this.memoryStream?.Dispose();
     }
 }

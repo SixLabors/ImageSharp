@@ -132,8 +132,8 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
         where TPixel : unmanaged, IPixel<TPixel>
     {
         bool hasAlpha = this.HasAlpha();
-        uint bytesPerRow = this.CalculateBytesPerRow((uint)this.Width);
-        uint rowsPerBlock = this.RowsPerBlock();
+        uint bytesPerRow = ExrUtils.CalculateBytesPerRow(this.Channels, (uint)this.Width);
+        uint rowsPerBlock = ExrUtils.RowsPerBlock(this.Compression);
         uint bytesPerBlock = bytesPerRow * rowsPerBlock;
         int width = this.Width;
         int height = this.Height;
@@ -185,8 +185,8 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
         where TPixel : unmanaged, IPixel<TPixel>
     {
         bool hasAlpha = this.HasAlpha();
-        uint bytesPerRow = this.CalculateBytesPerRow((uint)this.Width);
-        uint rowsPerBlock = this.RowsPerBlock();
+        uint bytesPerRow = ExrUtils.CalculateBytesPerRow(this.Channels, (uint)this.Width);
+        uint rowsPerBlock = ExrUtils.RowsPerBlock(this.Compression);
         uint bytesPerBlock = bytesPerRow * rowsPerBlock;
         int width = this.Width;
         int height = this.Height;
@@ -726,48 +726,6 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
         }
 
         return false;
-    }
-
-    private uint CalculateBytesPerRow(uint width)
-    {
-        uint bytesPerRow = 0;
-        foreach (ExrChannelInfo channelInfo in this.Channels)
-        {
-            if (channelInfo.ChannelName.Equals("A", StringComparison.Ordinal)
-                || channelInfo.ChannelName.Equals("R", StringComparison.Ordinal)
-                || channelInfo.ChannelName.Equals("G", StringComparison.Ordinal)
-                || channelInfo.ChannelName.Equals("B", StringComparison.Ordinal)
-                || channelInfo.ChannelName.Equals("Y", StringComparison.Ordinal))
-            {
-                if (channelInfo.PixelType == ExrPixelType.Half)
-                {
-                    bytesPerRow += 2 * width;
-                }
-                else
-                {
-                    bytesPerRow += 4 * width;
-                }
-            }
-        }
-
-        return bytesPerRow;
-    }
-
-    private uint RowsPerBlock()
-    {
-        switch (this.Compression)
-        {
-            case ExrCompression.Zip:
-            case ExrCompression.Pxr24:
-                return 16;
-            case ExrCompression.B44:
-            case ExrCompression.B44A:
-            case ExrCompression.Piz:
-                return 32;
-
-            default:
-                return 1;
-        }
     }
 
     private ulong ReadUnsignedLong(BufferedReadStream stream)

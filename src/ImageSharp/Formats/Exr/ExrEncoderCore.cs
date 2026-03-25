@@ -158,8 +158,8 @@ internal sealed class ExrEncoderCore
         ExrCompression compression)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        uint bytesPerRow = this.CalculateBytesPerRow(channels, (uint)width);
-        uint rowsPerBlock = this.RowsPerBlock(compression);
+        uint bytesPerRow = ExrUtils.CalculateBytesPerRow(channels, (uint)width);
+        uint rowsPerBlock = ExrUtils.RowsPerBlock(compression);
         uint bytesPerBlock = bytesPerRow * rowsPerBlock;
         int channelCount = channels.Count;
 
@@ -234,8 +234,8 @@ internal sealed class ExrEncoderCore
         ExrCompression compression)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        uint bytesPerRow = this.CalculateBytesPerRow(channels, (uint)width);
-        uint rowsPerBlock = this.RowsPerBlock(compression);
+        uint bytesPerRow = ExrUtils.CalculateBytesPerRow(channels, (uint)width);
+        uint rowsPerBlock = ExrUtils.RowsPerBlock(compression);
         uint bytesPerBlock = bytesPerRow * rowsPerBlock;
         int channelCount = channels.Count;
 
@@ -335,19 +335,19 @@ internal sealed class ExrEncoderCore
         int offset = 0;
         for (int x = 0; x < width; x++)
         {
-            this.WriteHalfSingle(buffer.Slice(offset), blueBuffer[x]);
+            WriteHalfSingle(buffer.Slice(offset), blueBuffer[x]);
             offset += 2;
         }
 
         for (int x = 0; x < width; x++)
         {
-            this.WriteHalfSingle(buffer.Slice(offset), greenBuffer[x]);
+            WriteHalfSingle(buffer.Slice(offset), greenBuffer[x]);
             offset += 2;
         }
 
         for (int x = 0; x < width; x++)
         {
-            this.WriteHalfSingle(buffer.Slice(offset), redBuffer[x]);
+            WriteHalfSingle(buffer.Slice(offset), redBuffer[x]);
             offset += 2;
         }
     }
@@ -357,19 +357,19 @@ internal sealed class ExrEncoderCore
         int offset = 0;
         for (int x = 0; x < width; x++)
         {
-            this.WriteUnsignedInt(buffer.Slice(offset), blueBuffer[x]);
+            WriteUnsignedInt(buffer.Slice(offset), blueBuffer[x]);
             offset += 4;
         }
 
         for (int x = 0; x < width; x++)
         {
-            this.WriteUnsignedInt(buffer.Slice(offset), greenBuffer[x]);
+            WriteUnsignedInt(buffer.Slice(offset), greenBuffer[x]);
             offset += 4;
         }
 
         for (int x = 0; x < width; x++)
         {
-            this.WriteUnsignedInt(buffer.Slice(offset), redBuffer[x]);
+            WriteUnsignedInt(buffer.Slice(offset), redBuffer[x]);
             offset += 4;
         }
     }
@@ -521,10 +521,10 @@ internal sealed class ExrEncoderCore
     private unsafe void WriteSingle(Span<byte> buffer, float value) => BinaryPrimitives.WriteInt32LittleEndian(buffer, *(int*)&value);
 
     [MethodImpl(InliningOptions.ShortMethod)]
-    private void WriteHalfSingle(Span<byte> buffer, float value)
+    private static void WriteHalfSingle(Span<byte> buffer, float value)
     {
         ushort valueAsShort = HalfTypeHelper.Pack(value);
-        BinaryPrimitives.WriteUInt16LittleEndian(this.buffer, valueAsShort);
+        BinaryPrimitives.WriteUInt16LittleEndian(buffer, valueAsShort);
     }
 
     [MethodImpl(InliningOptions.ShortMethod)]
@@ -535,49 +535,5 @@ internal sealed class ExrEncoderCore
     }
 
     [MethodImpl(InliningOptions.ShortMethod)]
-    private void WriteUnsignedInt(Span<byte> buffer, uint value) => BinaryPrimitives.WriteUInt32LittleEndian(buffer, value);
-
-    // TODO: avoid code duplication: This code is duplicate in the decoder.
-    private uint CalculateBytesPerRow(List<ExrChannelInfo> channels, uint width)
-    {
-        uint bytesPerRow = 0;
-        foreach (ExrChannelInfo channelInfo in channels)
-        {
-            if (channelInfo.ChannelName.Equals("A", StringComparison.Ordinal)
-                || channelInfo.ChannelName.Equals("R", StringComparison.Ordinal)
-                || channelInfo.ChannelName.Equals("G", StringComparison.Ordinal)
-                || channelInfo.ChannelName.Equals("B", StringComparison.Ordinal)
-                || channelInfo.ChannelName.Equals("Y", StringComparison.Ordinal))
-            {
-                if (channelInfo.PixelType == ExrPixelType.Half)
-                {
-                    bytesPerRow += 2 * width;
-                }
-                else
-                {
-                    bytesPerRow += 4 * width;
-                }
-            }
-        }
-
-        return bytesPerRow;
-    }
-
-    // TODO: avoid code duplication: This code is duplicate in the decoder.
-    private uint RowsPerBlock(ExrCompression compression)
-    {
-        switch (compression)
-        {
-            case ExrCompression.Zip:
-            case ExrCompression.Pxr24:
-                return 16;
-            case ExrCompression.B44:
-            case ExrCompression.B44A:
-            case ExrCompression.Piz:
-                return 32;
-
-            default:
-                return 1;
-        }
-    }
+    private static void WriteUnsignedInt(Span<byte> buffer, uint value) => BinaryPrimitives.WriteUInt32LittleEndian(buffer, value);
 }

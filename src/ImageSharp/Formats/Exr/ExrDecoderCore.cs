@@ -149,7 +149,8 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
 
         using ExrBaseDecompressor decompressor = ExrDecompressorFactory.Create(this.Compression, this.memoryAllocator, width, bytesPerBlock, bytesPerRow, rowsPerBlock, channelCount);
 
-        for (uint y = 0; y < height; y += rowsPerBlock)
+        int decodedRows = 0;
+        while (decodedRows < height)
         {
             ulong rowOffset = this.ReadUnsignedLong(stream);
             long nextRowOffsetPosition = stream.Position;
@@ -175,6 +176,8 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
                     HalfVector4 pixelValue = new(redPixelData[x], greenPixelData[x], bluePixelData[x], hasAlpha ? alphaPixelData[x] : 1.0f);
                     pixelRow[x] = TPixel.FromVector4(pixelValue.ToVector4());
                 }
+
+                decodedRows++;
             }
 
             stream.Position = nextRowOffsetPosition;
@@ -202,7 +205,8 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
 
         using ExrBaseDecompressor decompressor = ExrDecompressorFactory.Create(this.Compression, this.memoryAllocator, width, bytesPerBlock, bytesPerRow, rowsPerBlock, channelCount);
 
-        for (uint y = 0; y < height; y += rowsPerBlock)
+        int decodedRows = 0;
+        while (decodedRows < height)
         {
             ulong rowOffset = this.ReadUnsignedLong(stream);
             long nextRowOffsetPosition = stream.Position;
@@ -223,13 +227,15 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
                     offset += this.ReadUnsignedIntChannelData(stream, channel, decompressedPixelData.Slice(offset), redPixelData, greenPixelData, bluePixelData, alphaPixelData, width);
                 }
 
-                stream.Position = nextRowOffsetPosition;
-
                 for (int x = 0; x < width; x++)
                 {
                     pixelRow[x] = ColorScaleTo32Bit<TPixel>(redPixelData[x], greenPixelData[x], bluePixelData[x], hasAlpha ? alphaPixelData[x] : uint.MaxValue);
                 }
+
+                decodedRows++;
             }
+
+            stream.Position = nextRowOffsetPosition;
         }
     }
 

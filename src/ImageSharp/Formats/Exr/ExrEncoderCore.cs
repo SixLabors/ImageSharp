@@ -201,10 +201,10 @@ internal sealed class ExrEncoderCore
                 switch (this.pixelType)
                 {
                     case ExrPixelType.Float:
-                        this.WriteSingleRow(rowBlockSpan, width, blueBuffer, greenBuffer, redBuffer);
+                        WriteSingleRow(rowBlockSpan, width, blueBuffer, greenBuffer, redBuffer);
                         break;
                     case ExrPixelType.Half:
-                        this.WriteHalfSingleRow(rowBlockSpan, width, blueBuffer, greenBuffer, redBuffer);
+                        WriteHalfSingleRow(rowBlockSpan, width, blueBuffer, greenBuffer, redBuffer);
                         break;
                 }
 
@@ -277,7 +277,7 @@ internal sealed class ExrEncoderCore
 
                 // Write row data to row block buffer.
                 Span<byte> rowBlockSpan = rowBlockBuffer.GetSpan().Slice((int)(rowsInBlockCount * bytesPerRow), (int)bytesPerRow);
-                this.WriteUnsignedIntRow(rowBlockSpan, width, blueBuffer, greenBuffer, redBuffer);
+                WriteUnsignedIntRow(rowBlockSpan, width, blueBuffer, greenBuffer, redBuffer);
                 rowsInBlockCount++;
             }
 
@@ -308,68 +308,68 @@ internal sealed class ExrEncoderCore
         stream.WriteByte(0);
     }
 
-    private void WriteSingleRow(Span<byte> buffer, int width, Span<float> blueBuffer, Span<float> greenBuffer, Span<float> redBuffer)
+    private static void WriteSingleRow(Span<byte> buffer, int width, Span<float> blueBuffer, Span<float> greenBuffer, Span<float> redBuffer)
     {
         int offset = 0;
         for (int x = 0; x < width; x++)
         {
-            this.WriteSingle(buffer.Slice(offset), blueBuffer[x]);
+            WriteSingleToBuffer(buffer.Slice(offset, 4), blueBuffer[x]);
             offset += 4;
         }
 
         for (int x = 0; x < width; x++)
         {
-            this.WriteSingle(buffer.Slice(offset), greenBuffer[x]);
+            WriteSingleToBuffer(buffer.Slice(offset, 4), greenBuffer[x]);
             offset += 4;
         }
 
         for (int x = 0; x < width; x++)
         {
-            this.WriteSingle(buffer.Slice(offset), redBuffer[x]);
+            WriteSingleToBuffer(buffer.Slice(offset, 4), redBuffer[x]);
             offset += 4;
         }
     }
 
-    private void WriteHalfSingleRow(Span<byte> buffer, int width, Span<float> blueBuffer, Span<float> greenBuffer, Span<float> redBuffer)
+    private static void WriteHalfSingleRow(Span<byte> buffer, int width, Span<float> blueBuffer, Span<float> greenBuffer, Span<float> redBuffer)
     {
         int offset = 0;
         for (int x = 0; x < width; x++)
         {
-            WriteHalfSingle(buffer.Slice(offset), blueBuffer[x]);
+            WriteHalfSingleToBuffer(buffer.Slice(offset, 2), blueBuffer[x]);
             offset += 2;
         }
 
         for (int x = 0; x < width; x++)
         {
-            WriteHalfSingle(buffer.Slice(offset), greenBuffer[x]);
+            WriteHalfSingleToBuffer(buffer.Slice(offset, 2), greenBuffer[x]);
             offset += 2;
         }
 
         for (int x = 0; x < width; x++)
         {
-            WriteHalfSingle(buffer.Slice(offset), redBuffer[x]);
+            WriteHalfSingleToBuffer(buffer.Slice(offset, 2), redBuffer[x]);
             offset += 2;
         }
     }
 
-    private void WriteUnsignedIntRow(Span<byte> buffer, int width, Span<uint> blueBuffer, Span<uint> greenBuffer, Span<uint> redBuffer)
+    private static void WriteUnsignedIntRow(Span<byte> buffer, int width, Span<uint> blueBuffer, Span<uint> greenBuffer, Span<uint> redBuffer)
     {
         int offset = 0;
         for (int x = 0; x < width; x++)
         {
-            WriteUnsignedInt(buffer.Slice(offset), blueBuffer[x]);
+            WriteUnsignedIntToBuffer(buffer.Slice(offset, 4), blueBuffer[x]);
             offset += 4;
         }
 
         for (int x = 0; x < width; x++)
         {
-            WriteUnsignedInt(buffer.Slice(offset), greenBuffer[x]);
+            WriteUnsignedIntToBuffer(buffer.Slice(offset, 4), greenBuffer[x]);
             offset += 4;
         }
 
         for (int x = 0; x < width; x++)
         {
-            WriteUnsignedInt(buffer.Slice(offset), redBuffer[x]);
+            WriteUnsignedIntToBuffer(buffer.Slice(offset, 4), redBuffer[x]);
             offset += 4;
         }
     }
@@ -518,22 +518,15 @@ internal sealed class ExrEncoderCore
     }
 
     [MethodImpl(InliningOptions.ShortMethod)]
-    private unsafe void WriteSingle(Span<byte> buffer, float value) => BinaryPrimitives.WriteInt32LittleEndian(buffer, *(int*)&value);
+    private static unsafe void WriteSingleToBuffer(Span<byte> buffer, float value) => BinaryPrimitives.WriteInt32LittleEndian(buffer, *(int*)&value);
 
     [MethodImpl(InliningOptions.ShortMethod)]
-    private static void WriteHalfSingle(Span<byte> buffer, float value)
+    private static void WriteHalfSingleToBuffer(Span<byte> buffer, float value)
     {
         ushort valueAsShort = HalfTypeHelper.Pack(value);
         BinaryPrimitives.WriteUInt16LittleEndian(buffer, valueAsShort);
     }
 
     [MethodImpl(InliningOptions.ShortMethod)]
-    private void WriteUnsignedInt(Stream stream, uint value)
-    {
-        BinaryPrimitives.WriteUInt32LittleEndian(this.buffer, value);
-        stream.Write(this.buffer.AsSpan(0, 4));
-    }
-
-    [MethodImpl(InliningOptions.ShortMethod)]
-    private static void WriteUnsignedInt(Span<byte> buffer, uint value) => BinaryPrimitives.WriteUInt32LittleEndian(buffer, value);
+    private static void WriteUnsignedIntToBuffer(Span<byte> buffer, uint value) => BinaryPrimitives.WriteUInt32LittleEndian(buffer, value);
 }

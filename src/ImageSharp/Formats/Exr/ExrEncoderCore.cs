@@ -133,7 +133,7 @@ internal sealed class ExrEncoderCore
             case ExrPixelType.Half:
             case ExrPixelType.Float:
             {
-                ulong[] rowOffsets = this.EncodeFloatingPointPixelData(stream, pixels, width, height, channels, this.Compression);
+                ulong[] rowOffsets = this.EncodeFloatingPointPixelData(stream, pixels, width, height, channels, this.Compression, cancellationToken);
                 stream.Position = (long)startOfRowOffsetData;
                 this.WriteRowOffsets(stream, height, rowOffsets);
                 break;
@@ -141,7 +141,7 @@ internal sealed class ExrEncoderCore
 
             case ExrPixelType.UnsignedInt:
             {
-                ulong[] rowOffsets = this.EncodeUnsignedIntPixelData(stream, pixels, width, height, channels, this.Compression);
+                ulong[] rowOffsets = this.EncodeUnsignedIntPixelData(stream, pixels, width, height, channels, this.Compression, cancellationToken);
                 stream.Position = (long)startOfRowOffsetData;
                 this.WriteRowOffsets(stream, height, rowOffsets);
                 break;
@@ -155,7 +155,8 @@ internal sealed class ExrEncoderCore
         int width,
         int height,
         List<ExrChannelInfo> channels,
-        ExrCompression compression)
+        ExrCompression compression,
+        CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         uint bytesPerRow = ExrUtils.CalculateBytesPerRow(channels, (uint)width);
@@ -220,6 +221,8 @@ internal sealed class ExrEncoderCore
             stream.Position = pixelDataSizePos;
             stream.Write(this.buffer.AsSpan(0, 4));
             stream.Position = positionAfterPixelData;
+
+            cancellationToken.ThrowIfCancellationRequested();
         }
 
         return rowOffsets;
@@ -231,7 +234,8 @@ internal sealed class ExrEncoderCore
         int width,
         int height,
         List<ExrChannelInfo> channels,
-        ExrCompression compression)
+        ExrCompression compression,
+        CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         uint bytesPerRow = ExrUtils.CalculateBytesPerRow(channels, (uint)width);
@@ -290,6 +294,8 @@ internal sealed class ExrEncoderCore
             stream.Position = pixelDataSizePos;
             stream.Write(this.buffer.AsSpan(0, 4));
             stream.Position = positionAfterPixelData;
+
+            cancellationToken.ThrowIfCancellationRequested();
         }
 
         return rowOffsets;

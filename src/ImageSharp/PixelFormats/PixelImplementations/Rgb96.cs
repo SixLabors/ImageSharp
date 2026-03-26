@@ -15,7 +15,7 @@ namespace SixLabors.ImageSharp.PixelFormats;
 /// </para>
 /// </summary>
 [StructLayout(LayoutKind.Sequential)]
-public partial struct Rgb96 : IPixel<Rgb96>
+public partial struct Rgb96 : IPixel<Rgb96>, IEquatable<Rgb96>
 {
     private const float InvMax = 1.0f / uint.MaxValue;
 
@@ -74,60 +74,106 @@ public partial struct Rgb96 : IPixel<Rgb96>
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Vector4 ToScaledVector4() => this.ToVector4();
+    public readonly Vector4 ToScaledVector4() => this.ToVector4();
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Vector4 ToVector4() => new(
+    public readonly Vector4 ToVector4() => new(
             this.R * InvMax,
             this.G * InvMax,
             this.B * InvMax,
             1.0f);
 
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static PixelOperations<Rgb96> CreatePixelOperations() => new();
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Rgb96 FromScaledVector4(Vector4 source) => FromVector4(source);
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Rgb96 FromVector4(Vector4 source) => FromVector4(source);
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Rgb96 FromAbgr32(Abgr32 source) => new(source.R, source.G, source.B);
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Rgb96 FromArgb32(Argb32 source) => new(source.R, source.G, source.B);
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Rgb96 FromBgra5551(Bgra5551 source) => FromScaledVector4(source.ToScaledVector4());
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Rgb96 FromBgr24(Bgr24 source) => new(source.R, source.G, source.B);
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Rgb96 FromBgra32(Bgra32 source) => new(source.R, source.G, source.B);
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Rgb96 FromL8(L8 source)
+    {
+        ushort rgb = ColorNumerics.From8BitTo16Bit(source.PackedValue);
+        return new Rgb96(rgb, rgb, rgb);
+    }
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Rgb96 FromL16(L16 source) => new(source.PackedValue, source.PackedValue, source.PackedValue);
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Rgb96 FromLa16(La16 source) => new(source.PackedValue, source.PackedValue, source.PackedValue);
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Rgb96 FromLa32(La32 source) => new(source.L, source.L, source.L);
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Rgb96 FromRgb24(Rgb24 source) => new(source.R, source.G, source.B);
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Rgb96 FromRgba32(Rgba32 source) => new(source.R, source.G, source.B);
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Rgb96 FromRgb48(Rgb48 source) => new(source.R, source.G, source.B);
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Rgb96 FromRgba64(Rgba64 source) => new(source.R, source.G, source.B);
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static PixelTypeInfo GetPixelTypeInfo() => PixelTypeInfo.Create<Rgb96>(
+            PixelComponentInfo.Create<Rgb96>(4, 16, 16, 16),
+            PixelColorType.RGB,
+            PixelAlphaRepresentation.None);
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly Rgba32 ToRgba32() => Rgba32.FromRgb96(this);
+
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public override int GetHashCode() => HashCode.Combine(this.R, this.G, this.B);
+    public override readonly int GetHashCode() => HashCode.Combine(this.R, this.G, this.B);
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool Equals(Rgb96 other) => this.R.Equals(other.R) && this.G.Equals(other.G) && this.B.Equals(other.B);
+    public readonly bool Equals(Rgb96 other) => this.R.Equals(other.R) && this.G.Equals(other.G) && this.B.Equals(other.B);
 
     /// <inheritdoc />
-    public override string ToString() => FormattableString.Invariant($"Rgb96({this.R}, {this.G}, {this.B})");
+    public override readonly string ToString() => FormattableString.Invariant($"Rgb96({this.R}, {this.G}, {this.B})");
 
-    public static PixelOperations<Rgb96> CreatePixelOperations() => throw new NotImplementedException();
-
-    public static Rgb96 FromScaledVector4(Vector4 source) => throw new NotImplementedException();
-
-    public static Rgb96 FromVector4(Vector4 source) => throw new NotImplementedException();
-
-    public static Rgb96 FromAbgr32(Abgr32 source) => throw new NotImplementedException();
-
-    public static Rgb96 FromArgb32(Argb32 source) => throw new NotImplementedException();
-
-    public static Rgb96 FromBgra5551(Bgra5551 source) => throw new NotImplementedException();
-
-    public static Rgb96 FromBgr24(Bgr24 source) => throw new NotImplementedException();
-
-    public static Rgb96 FromBgra32(Bgra32 source) => throw new NotImplementedException();
-
-    public static Rgb96 FromL8(L8 source) => throw new NotImplementedException();
-
-    public static Rgb96 FromL16(L16 source) => throw new NotImplementedException();
-
-    public static Rgb96 FromLa16(La16 source) => throw new NotImplementedException();
-
-    public static Rgb96 FromLa32(La32 source) => throw new NotImplementedException();
-
-    public static Rgb96 FromRgb24(Rgb24 source) => throw new NotImplementedException();
-
-    public static Rgb96 FromRgba32(Rgba32 source) => throw new NotImplementedException();
-
-    public static Rgb96 FromRgb48(Rgb48 source) => throw new NotImplementedException();
-
-    public static Rgb96 FromRgba64(Rgba64 source) => throw new NotImplementedException();
-
-    public static PixelTypeInfo GetPixelTypeInfo() => throw new NotImplementedException();
-
-    public Rgba32 ToRgba32() => throw new NotImplementedException();
+    /// <inheritdoc/>
+    public override readonly bool Equals(object? obj) => obj is Rgb96 rgb && rgb.R == this.R && rgb.G == this.G && rgb.B == this.B;
 }

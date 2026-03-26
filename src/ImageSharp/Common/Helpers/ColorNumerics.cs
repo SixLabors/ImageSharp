@@ -12,6 +12,8 @@ namespace SixLabors.ImageSharp;
 /// </summary>
 internal static class ColorNumerics
 {
+    private const float Scale32Bit = 1f / 0xFFFFFFFF;
+
     /// <summary>
     /// Vector for converting pixel to gray value as specified by
     /// ITU-R Recommendation BT.709.
@@ -131,6 +133,15 @@ internal static class ColorNumerics
         //
         //    (V * 255 + 32895) >> 16
         (byte)(((component * 255) + 32895) >> 16);
+
+    /// <summary>
+    /// Scales a value from an 32 bit <see cref="uint"/> to
+    /// an 8 bit <see cref="byte"/> equivalent.
+    /// </summary>
+    /// <param name="component">The 32 bit component value.</param>
+    /// <returns>The <see cref="byte"/> value.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static byte From32BitTo8Bit(uint component) => (byte)(component * Scale32Bit);
 
     /// <summary>
     /// Scales a value from an 8 bit <see cref="byte"/> to

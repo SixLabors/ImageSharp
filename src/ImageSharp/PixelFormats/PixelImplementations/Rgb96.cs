@@ -155,7 +155,7 @@ public partial struct Rgb96 : IPixel<Rgb96>, IEquatable<Rgb96>
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static PixelTypeInfo GetPixelTypeInfo() => PixelTypeInfo.Create<Rgb96>(
-            PixelComponentInfo.Create<Rgb96>(4, 16, 16, 16),
+            PixelComponentInfo.Create<Rgb96>(3, 32, 32, 32),
             PixelColorType.RGB,
             PixelAlphaRepresentation.None);
 
@@ -168,12 +168,12 @@ public partial struct Rgb96 : IPixel<Rgb96>, IEquatable<Rgb96>
     public override readonly int GetHashCode() => HashCode.Combine(this.R, this.G, this.B);
 
     /// <inheritdoc />
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly bool Equals(Rgb96 other) => this.R.Equals(other.R) && this.G.Equals(other.G) && this.B.Equals(other.B);
-
-    /// <inheritdoc />
     public override readonly string ToString() => FormattableString.Invariant($"Rgb96({this.R}, {this.G}, {this.B})");
 
     /// <inheritdoc/>
     public override readonly bool Equals(object? obj) => obj is Rgb96 rgb && rgb.R == this.R && rgb.G == this.G && rgb.B == this.B;
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly bool Equals(Rgb96 other) => this.R.Equals(other.R) && this.G.Equals(other.G) && this.B.Equals(other.B);
 }

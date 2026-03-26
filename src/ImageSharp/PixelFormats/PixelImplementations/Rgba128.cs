@@ -15,7 +15,7 @@ namespace SixLabors.ImageSharp.PixelFormats;
 /// </para>
 /// </summary>
 [StructLayout(LayoutKind.Sequential)]
-public partial struct Rgba128 : IPixel<Rgba128>
+public partial struct Rgba128 : IPixel<Rgba128>, IEquatable<Rgba128>
 {
     private const float InvMax = 1.0f / uint.MaxValue;
 
@@ -81,58 +81,87 @@ public partial struct Rgba128 : IPixel<Rgba128>
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Vector4 ToVector4() => new(
+    public readonly Vector4 ToVector4() => new(
             this.R * InvMax,
             this.G * InvMax,
             this.B * InvMax,
             this.A * InvMax);
 
-    /// <inheritdoc />
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public override int GetHashCode() => HashCode.Combine(this.R, this.G, this.B, this.A);
+    /// <inheritdoc/>
+    public static PixelOperations<Rgba128> CreatePixelOperations() => new();
+
+    /// <inheritdoc/>
+    public static Rgba128 FromScaledVector4(Vector4 source) => FromVector4(source);
+
+    /// <inheritdoc/>
+    public static Rgba128 FromVector4(Vector4 source) => FromVector4(source);
+
+    /// <inheritdoc/>
+    public static Rgba128 FromAbgr32(Abgr32 source) => new(source.R, source.G, source.B, source.A);
+
+    /// <inheritdoc/>
+    public static Rgba128 FromArgb32(Argb32 source) => new(source.R, source.G, source.B, source.A);
+
+    /// <inheritdoc/>
+    public static Rgba128 FromBgra5551(Bgra5551 source) => FromScaledVector4(source.ToScaledVector4());
+
+    /// <inheritdoc/>
+    public static Rgba128 FromBgr24(Bgr24 source) => new(source.R, source.G, source.B, uint.MaxValue);
+
+    /// <inheritdoc/>
+    public static Rgba128 FromBgra32(Bgra32 source) => new(source.R, source.G, source.B, source.A);
+
+    /// <inheritdoc/>
+    public static Rgba128 FromL8(L8 source)
+    {
+        ushort rgb = ColorNumerics.From8BitTo16Bit(source.PackedValue);
+        return new Rgba128(rgb, rgb, rgb, rgb);
+    }
+
+    /// <inheritdoc/>
+    public static Rgba128 FromL16(L16 source) => new(source.PackedValue, source.PackedValue, source.PackedValue, source.PackedValue);
+
+    /// <inheritdoc/>
+    public static Rgba128 FromLa16(La16 source) => new(source.PackedValue, source.PackedValue, source.PackedValue, source.PackedValue);
+
+    /// <inheritdoc/>
+    public static Rgba128 FromLa32(La32 source) => new(source.L, source.L, source.L, source.L);
+
+    /// <inheritdoc/>
+    public static Rgba128 FromRgb24(Rgb24 source) => new(source.R, source.G, source.B, uint.MaxValue);
+
+    /// <inheritdoc/>
+    public static Rgba128 FromRgba32(Rgba32 source) => new(source.R, source.G, source.B, source.A);
+
+    /// <inheritdoc/>
+    public static Rgba128 FromRgb48(Rgb48 source) => new(source.R, source.G, source.B, uint.MaxValue);
+
+    /// <inheritdoc/>
+    public static Rgba128 FromRgba64(Rgba64 source) => new(source.R, source.G, source.B, source.A);
+
+    /// <inheritdoc/>
+    public static PixelTypeInfo GetPixelTypeInfo() => PixelTypeInfo.Create<Rgba128>(
+            PixelComponentInfo.Create<Rgba128>(4, 32, 32, 32),
+            PixelColorType.RGB,
+            PixelAlphaRepresentation.Unassociated);
+
+    /// <inheritdoc/>
+    public readonly Rgba32 ToRgba32() => throw new NotImplementedException();
+
+    /// <inheritdoc/>
+    public readonly Vector4 ToScaledVector4() => throw new NotImplementedException();
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool Equals(Rgba128 other) => this.R.Equals(other.R) && this.G.Equals(other.G) && this.B.Equals(other.B) && this.A.Equals(other.A);
+    public override readonly int GetHashCode() => HashCode.Combine(this.R, this.G, this.B, this.A);
 
     /// <inheritdoc />
-    public override string ToString() => FormattableString.Invariant($"Rgba128({this.R}, {this.G}, {this.B}, {this.A})");
+    public override readonly string ToString() => FormattableString.Invariant($"Rgba128({this.R}, {this.G}, {this.B}, {this.A})");
 
-    public static PixelOperations<Rgba128> CreatePixelOperations() => throw new NotImplementedException();
+    /// <inheritdoc/>
+    public override readonly bool Equals(object? obj) => obj is Rgba128 rgb && rgb.R == this.R && rgb.G == this.G && rgb.B == this.B && rgb.A == this.A;
 
-    public static Rgba128 FromScaledVector4(Vector4 source) => throw new NotImplementedException();
-
-    public static Rgba128 FromVector4(Vector4 source) => throw new NotImplementedException();
-
-    public static Rgba128 FromAbgr32(Abgr32 source) => throw new NotImplementedException();
-
-    public static Rgba128 FromArgb32(Argb32 source) => throw new NotImplementedException();
-
-    public static Rgba128 FromBgra5551(Bgra5551 source) => throw new NotImplementedException();
-
-    public static Rgba128 FromBgr24(Bgr24 source) => throw new NotImplementedException();
-
-    public static Rgba128 FromBgra32(Bgra32 source) => throw new NotImplementedException();
-
-    public static Rgba128 FromL8(L8 source) => throw new NotImplementedException();
-
-    public static Rgba128 FromL16(L16 source) => throw new NotImplementedException();
-
-    public static Rgba128 FromLa16(La16 source) => throw new NotImplementedException();
-
-    public static Rgba128 FromLa32(La32 source) => throw new NotImplementedException();
-
-    public static Rgba128 FromRgb24(Rgb24 source) => throw new NotImplementedException();
-
-    public static Rgba128 FromRgba32(Rgba32 source) => throw new NotImplementedException();
-
-    public static Rgba128 FromRgb48(Rgb48 source) => throw new NotImplementedException();
-
-    public static Rgba128 FromRgba64(Rgba64 source) => throw new NotImplementedException();
-
-    public static PixelTypeInfo GetPixelTypeInfo() => throw new NotImplementedException();
-
-    public Rgba32 ToRgba32() => throw new NotImplementedException();
-
-    public Vector4 ToScaledVector4() => throw new NotImplementedException();
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly bool Equals(Rgba128 other) => this.R.Equals(other.R) && this.G.Equals(other.G) && this.B.Equals(other.B) && this.A.Equals(other.A);
 }

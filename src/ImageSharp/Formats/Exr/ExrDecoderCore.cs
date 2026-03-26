@@ -115,10 +115,10 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
         {
             case ExrPixelType.Half:
             case ExrPixelType.Float:
-                this.DecodeFloatingPointPixelData(stream, pixels);
+                this.DecodeFloatingPointPixelData(stream, pixels, cancellationToken);
                 break;
             case ExrPixelType.UnsignedInt:
-                this.DecodeUnsignedIntPixelData(stream, pixels);
+                this.DecodeUnsignedIntPixelData(stream, pixels, cancellationToken);
                 break;
             default:
                 ExrThrowHelper.ThrowNotSupported("Pixel type is not supported");
@@ -128,7 +128,7 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
         return image;
     }
 
-    private void DecodeFloatingPointPixelData<TPixel>(BufferedReadStream stream, Buffer2D<TPixel> pixels)
+    private void DecodeFloatingPointPixelData<TPixel>(BufferedReadStream stream, Buffer2D<TPixel> pixels, CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         bool hasAlpha = this.HasAlpha();
@@ -168,7 +168,7 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
                 for (int channelIdx = 0; channelIdx < this.Channels.Count; channelIdx++)
                 {
                     ExrChannelInfo channel = this.Channels[channelIdx];
-                    offset += ReadFloatChannelData(stream, channel, decompressedPixelData.Slice(offset), redPixelData, greenPixelData, bluePixelData, alphaPixelData, width);
+                    offset += ReadFloatChannelData(stream, channel, decompressedPixelData[offset..], redPixelData, greenPixelData, bluePixelData, alphaPixelData, width);
                 }
 
                 for (int x = 0; x < width; x++)
@@ -181,10 +181,12 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
             }
 
             stream.Position = nextRowOffsetPosition;
+
+            cancellationToken.ThrowIfCancellationRequested();
         }
     }
 
-    private void DecodeUnsignedIntPixelData<TPixel>(BufferedReadStream stream, Buffer2D<TPixel> pixels)
+    private void DecodeUnsignedIntPixelData<TPixel>(BufferedReadStream stream, Buffer2D<TPixel> pixels, CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         bool hasAlpha = this.HasAlpha();
@@ -236,6 +238,8 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
             }
 
             stream.Position = nextRowOffsetPosition;
+
+            cancellationToken.ThrowIfCancellationRequested();
         }
     }
 

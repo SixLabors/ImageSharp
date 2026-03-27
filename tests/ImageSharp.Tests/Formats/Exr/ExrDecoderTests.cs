@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.Formats.Exr;
+using SixLabors.ImageSharp.Formats.Exr.Constants;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs;
@@ -21,9 +22,23 @@ public class ExrDecoderTests
         TestFile testFile = TestFile.Create(imagePath);
         using MemoryStream stream = new(testFile.Bytes, false);
         ImageInfo imageInfo = Image.Identify(stream);
+
         Assert.NotNull(imageInfo);
         Assert.Equal(expectedWidth, imageInfo.Width);
         Assert.Equal(expectedHeight, imageInfo.Height);
+    }
+
+    [Theory]
+    [InlineData(TestImages.Exr.Uncompressed)]
+    public void ExrDecoder_Identify_DetectsCorrectPixelType<TPixel>(string imagePath)
+    {
+        TestFile testFile = TestFile.Create(imagePath);
+        using MemoryStream stream = new(testFile.Bytes, false);
+        ImageInfo imageInfo = Image.Identify(stream);
+        ExrMetadata exrMetaData = imageInfo.Metadata.GetExrMetadata();
+
+        Assert.NotNull(imageInfo);
+        Assert.Equal(ExrPixelType.Float, exrMetaData.PixelType);
     }
 
     [Theory]
@@ -32,8 +47,10 @@ public class ExrDecoderTests
         where TPixel : unmanaged, IPixel<TPixel>
     {
         using Image<TPixel> image = provider.GetImage(ExrDecoder.Instance);
+        ExrMetadata exrMetaData = image.Metadata.GetExrMetadata();
         image.DebugSave(provider);
         image.CompareToOriginal(provider, ImageComparer.Exact, ReferenceDecoder);
+        Assert.Equal(ExrPixelType.Half, exrMetaData.PixelType);
     }
 
     [Theory]
@@ -42,10 +59,12 @@ public class ExrDecoderTests
         where TPixel : unmanaged, IPixel<TPixel>
     {
         using Image<TPixel> image = provider.GetImage(ExrDecoder.Instance);
+        ExrMetadata exrMetaData = image.Metadata.GetExrMetadata();
         image.DebugSave(provider);
 
         // There is a 0,0059% difference to the Reference decoder.
         image.CompareToOriginal(provider, ImageComparer.Tolerant(0.0005f), ReferenceDecoder);
+        Assert.Equal(ExrPixelType.Float, exrMetaData.PixelType);
     }
 
     [Theory]
@@ -54,10 +73,12 @@ public class ExrDecoderTests
         where TPixel : unmanaged, IPixel<TPixel>
     {
         using Image<TPixel> image = provider.GetImage(ExrDecoder.Instance);
+        ExrMetadata exrMetaData = image.Metadata.GetExrMetadata();
         image.DebugSave(provider);
 
         // Compare to referene output, since the reference decoder does not support this pixel type.
         image.CompareToReferenceOutput(provider);
+        Assert.Equal(ExrPixelType.UnsignedInt, exrMetaData.PixelType);
     }
 
     [Theory]

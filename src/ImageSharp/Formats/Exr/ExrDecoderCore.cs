@@ -44,6 +44,11 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
     private ImageMetadata metadata;
 
     /// <summary>
+    /// The exr specific metadata.
+    /// </summary>
+    private ExrMetadata exrMetadata;
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="ExrDecoderCore"/> class.
     /// </summary>
     /// <param name="options">The options.</param>
@@ -75,6 +80,11 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
     private ExrCompression Compression { get; set; }
 
     /// <summary>
+    /// Gets or sets the pixel type.
+    /// </summary>
+    private ExrPixelType PixelType { get; set; }
+
+    /// <summary>
     /// Gets or sets the header attributes.
     /// </summary>
     private ExrHeaderAttributes HeaderAttributes { get; set; }
@@ -88,12 +98,10 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
             ExrThrowHelper.ThrowNotSupported($"Compression {this.Compression} is not yet supported");
         }
 
-        ExrPixelType pixelType = this.ValidateChannels();
-
         Image<TPixel> image = new(this.configuration, this.Width, this.Height, this.metadata);
         Buffer2D<TPixel> pixels = image.GetRootFramePixelBuffer();
 
-        switch (pixelType)
+        switch (this.PixelType)
         {
             case ExrPixelType.Half:
             case ExrPixelType.Float:
@@ -422,8 +430,12 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
         this.Height = this.HeaderAttributes.DataWindow.YMax - this.HeaderAttributes.DataWindow.YMin + 1;
         this.Channels = this.HeaderAttributes.Channels;
         this.Compression = this.HeaderAttributes.Compression;
+        this.PixelType = this.ValidateChannels();
 
         this.metadata = new ImageMetadata();
+
+        this.exrMetadata = this.metadata.GetExrMetadata();
+        this.exrMetadata.PixelType = this.PixelType;
 
         return this.HeaderAttributes;
     }

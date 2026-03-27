@@ -33,7 +33,7 @@ public class ExrDecoderTests
     {
         using Image<TPixel> image = provider.GetImage(ExrDecoder.Instance);
         image.DebugSave(provider);
-        image.CompareToOriginal(provider, ReferenceDecoder);
+        image.CompareToOriginal(provider, ImageComparer.Exact, ReferenceDecoder);
     }
 
     [Theory]
@@ -67,7 +67,7 @@ public class ExrDecoderTests
     {
         using Image<TPixel> image = provider.GetImage(ExrDecoder.Instance);
         image.DebugSave(provider);
-        image.CompareToOriginal(provider, ReferenceDecoder);
+        image.CompareToOriginal(provider, ImageComparer.Exact, ReferenceDecoder);
     }
 
     [Theory]
@@ -77,7 +77,7 @@ public class ExrDecoderTests
     {
         using Image<TPixel> image = provider.GetImage(ExrDecoder.Instance);
         image.DebugSave(provider);
-        image.CompareToOriginal(provider, ReferenceDecoder);
+        image.CompareToOriginal(provider, ImageComparer.Exact, ReferenceDecoder);
     }
 
     [Theory]
@@ -87,7 +87,7 @@ public class ExrDecoderTests
     {
         using Image<TPixel> image = provider.GetImage(ExrDecoder.Instance);
         image.DebugSave(provider);
-        image.CompareToOriginal(provider, ReferenceDecoder);
+        image.CompareToOriginal(provider, ImageComparer.Exact, ReferenceDecoder);
     }
 
     [Theory]
@@ -97,7 +97,7 @@ public class ExrDecoderTests
     {
         using Image<TPixel> image = provider.GetImage(ExrDecoder.Instance);
         image.DebugSave(provider);
-        image.CompareToOriginal(provider, ReferenceDecoder);
+        image.CompareToOriginal(provider, ImageComparer.Exact, ReferenceDecoder);
     }
 
     [Theory]
@@ -107,7 +107,7 @@ public class ExrDecoderTests
     {
         using Image<TPixel> image = provider.GetImage(ExrDecoder.Instance);
         image.DebugSave(provider);
-        image.CompareToOriginal(provider, ReferenceDecoder);
+        image.CompareToOriginal(provider, ImageComparer.Exact, ReferenceDecoder);
     }
 
     [Theory]

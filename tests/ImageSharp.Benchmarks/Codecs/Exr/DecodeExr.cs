@@ -34,7 +34,7 @@ public class DecodeExr
     }
 
     [Benchmark(Description = "Magick Exr")]
-    public int ExrImageMagick()
+    public uint ExrImageMagick()
     {
         MagickReadSettings settings = new() { Format = MagickFormat.Exr };
         using MemoryStream memoryStream = new(this.imageBytes);

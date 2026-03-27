@@ -52,7 +52,9 @@ public class ExrDecoderTests
     {
         using Image<TPixel> image = provider.GetImage(ExrDecoder.Instance);
         image.DebugSave(provider);
-        image.CompareToOriginal(provider, ReferenceDecoder);
+
+        // Compare to referene output, since the reference decoder does not support this pixel type.
+        image.CompareToReferenceOutput(provider);
     }
 
     [Theory]

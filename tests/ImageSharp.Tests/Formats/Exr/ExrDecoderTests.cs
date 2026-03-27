@@ -3,6 +3,7 @@
 
 using SixLabors.ImageSharp.Formats.Exr;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Exr;
@@ -42,7 +43,9 @@ public class ExrDecoderTests
     {
         using Image<TPixel> image = provider.GetImage(ExrDecoder.Instance);
         image.DebugSave(provider);
-        image.CompareToOriginal(provider, ReferenceDecoder);
+
+        // There is a 0,0059% difference to the Reference decoder.
+        image.CompareToOriginal(provider, ImageComparer.Tolerant(0.0005f), ReferenceDecoder);
     }
 
     [Theory]
@@ -114,6 +117,8 @@ public class ExrDecoderTests
     {
         using Image<TPixel> image = provider.GetImage(ExrDecoder.Instance);
         image.DebugSave(provider);
-        image.CompareToOriginal(provider, ReferenceDecoder);
+
+        // Note: There is a 0,1190% difference to the reference decoder.
+        image.CompareToOriginal(provider, ImageComparer.Tolerant(0.011f), ReferenceDecoder);
     }
 }

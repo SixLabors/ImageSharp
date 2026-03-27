@@ -28,7 +28,7 @@ public class ExrDecoder : ImageDecoder
         return new ExrDecoderCore(new ExrDecoderOptions { GeneralOptions = options }).Identify(options.Configuration, stream, cancellationToken);
     }
 
-    //// <inheritdoc/>
+    /// <inheritdoc/>
     protected override Image<TPixel> Decode<TPixel>(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
     {
         Guard.NotNull(options, nameof(options));

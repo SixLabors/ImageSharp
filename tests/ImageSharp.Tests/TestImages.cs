@@ -1383,6 +1383,7 @@ public static class TestImages
 
     public static class Exr
     {
+        public const string Benchamrk = "Exr/Calliphora_benchmark.exr";
         public const string Uncompressed = "Exr/Calliphora_uncompressed.exr";
         public const string UncompressedFloatRgb = "Exr/rgb_float32_uncompressed.exr";
         public const string UncompressedUintRgb = "Exr/rgb_uint32_uncompressed.exr";

@@ -318,6 +318,7 @@ public partial struct Rgba32 : IPixel<Rgba32>, IPackedVector<uint>
     /// Initializes the pixel instance from an <see cref="Rgb96"/> value.
     /// </summary>
     /// <param name="source">The <see cref="Rgb96"/> value.</param>
+    /// <returns>The pixel value as Rgba32.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Rgba32 FromRgb96(Rgb96 source)
         => new()

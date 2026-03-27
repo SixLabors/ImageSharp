@@ -6,7 +6,6 @@ using System.Buffers;
 using System.Buffers.Binary;
 using System.Numerics;
 using System.Runtime.CompilerServices;
-using System.Runtime.Intrinsics;
 using System.Text;
 using SixLabors.ImageSharp.Formats.Exr.Compression;
 using SixLabors.ImageSharp.Formats.Exr.Constants;
@@ -23,7 +22,6 @@ namespace SixLabors.ImageSharp.Formats.Exr;
 internal sealed class ExrDecoderCore : ImageDecoderCore
 {
     private const float Scale32Bit = 1f / 0xFFFFFFFF;
-    private static readonly Vector4 Scale32BitVector = Vector128.Create(Scale32Bit, Scale32Bit, Scale32Bit, 1f).AsVector4();
 
     /// <summary>
     /// Reusable buffer.
@@ -57,11 +55,6 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
     }
 
     /// <summary>
-    /// Gets the dimensions of the image.
-    /// </summary>
-    public Size Dimensions => new(this.Width, this.Height);
-
-    /// <summary>
     /// Gets or sets the image width.
     /// </summary>
     private int Width { get; set; }
@@ -82,16 +75,6 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
     private ExrCompression Compression { get; set; }
 
     /// <summary>
-    /// Gets or sets the image data type, either RGB, RGBA or gray.
-    /// </summary>
-    private ExrImageDataType ImageDataType { get; set; }
-
-    /// <summary>
-    /// Gets or sets the image type, either ScanLine or tiled.
-    /// </summary>
-    private ExrImageType ImageType { get; set; }
-
-    /// <summary>
     /// Gets or sets the header attributes.
     /// </summary>
     private ExrHeaderAttributes HeaderAttributes { get; set; }
@@ -106,7 +89,6 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
         }
 
         ExrPixelType pixelType = this.ValidateChannels();
-        this.ReadImageDataType();
 
         Image<TPixel> image = new(this.configuration, this.Width, this.Height, this.metadata);
         Buffer2D<TPixel> pixels = image.GetRootFramePixelBuffer();
@@ -226,7 +208,7 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
                 for (int channelIdx = 0; channelIdx < this.Channels.Count; channelIdx++)
                 {
                     ExrChannelInfo channel = this.Channels[channelIdx];
-                    offset += this.ReadUnsignedIntChannelData(stream, channel, decompressedPixelData.Slice(offset), redPixelData, greenPixelData, bluePixelData, alphaPixelData, width);
+                    offset += this.ReadUnsignedIntChannelData(stream, channel, decompressedPixelData[offset..], redPixelData, greenPixelData, bluePixelData, alphaPixelData, width);
                 }
 
                 for (int x = 0; x < width; x++)
@@ -320,29 +302,18 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
         }
     }
 
-    private static int ReadChannelData(ExrChannelInfo channel, Span<byte> decompressedPixelData, Span<float> pixelData, int width)
+    private static int ReadChannelData(ExrChannelInfo channel, Span<byte> decompressedPixelData, Span<float> pixelData, int width) => channel.PixelType switch
     {
-        switch (channel.PixelType)
-        {
-            case ExrPixelType.Half:
-                return ReadPixelRowChannelHalfSingle(decompressedPixelData, pixelData, width);
-            case ExrPixelType.Float:
-                return ReadPixelRowChannelSingle(decompressedPixelData, pixelData, width);
-        }
+        ExrPixelType.Half => ReadPixelRowChannelHalfSingle(decompressedPixelData, pixelData, width),
+        ExrPixelType.Float => ReadPixelRowChannelSingle(decompressedPixelData, pixelData, width),
+        _ => 0,
+    };
 
-        return 0;
-    }
-
-    private static int ReadChannelData(ExrChannelInfo channel, Span<byte> decompressedPixelData, Span<uint> pixelData, int width)
+    private static int ReadChannelData(ExrChannelInfo channel, Span<byte> decompressedPixelData, Span<uint> pixelData, int width) => channel.PixelType switch
     {
-        switch (channel.PixelType)
-        {
-            case ExrPixelType.UnsignedInt:
-                return ReadPixelRowChannelUnsignedInt(decompressedPixelData, pixelData, width);
-        }
-
-        return 0;
-    }
+        ExrPixelType.UnsignedInt => ReadPixelRowChannelUnsignedInt(decompressedPixelData, pixelData, width),
+        _ => 0,
+    };
 
     private static int ReadPixelRowChannelHalfSingle(Span<byte> decompressedPixelData, Span<float> channelData, int width)
     {
@@ -442,7 +413,7 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
         byte flagsByte2 = (byte)stream.ReadByte();
         if ((flagsByte0 & (1 << 1)) != 0)
         {
-            this.ImageType = ExrImageType.Tiled;
+            ExrThrowHelper.ThrowNotSupported("Decoding tiled exr images is not supported yet!");
         }
 
         this.HeaderAttributes = this.ParseHeaderAttributes(stream);
@@ -560,7 +531,7 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
 
     private List<ExrChannelInfo> ReadChannelList(BufferedReadStream stream, int attributeSize)
     {
-        List<ExrChannelInfo> channels = new();
+        List<ExrChannelInfo> channels = [];
         while (attributeSize > 1)
         {
             ExrChannelInfo channelInfo = this.ReadChannelInfo(stream, out int bytesRead);
@@ -654,76 +625,11 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
         return pixelType.Value;
     }
 
-    private bool IsSupportedCompression()
+    private bool IsSupportedCompression() => this.Compression switch
     {
-        switch (this.Compression)
-        {
-            case ExrCompression.None:
-            case ExrCompression.Zip:
-            case ExrCompression.Zips:
-            case ExrCompression.RunLengthEncoded:
-            case ExrCompression.B44:
-                return true;
-        }
-
-        return false;
-    }
-
-    private void ReadImageDataType()
-    {
-        bool hasRedChannel = false;
-        bool hasGreenChannel = false;
-        bool hasBlueChannel = false;
-        bool hasAlphaChannel = false;
-        bool hasLuminance = false;
-        foreach (ExrChannelInfo channelInfo in this.Channels)
-        {
-            if (channelInfo.ChannelName.Equals("A", StringComparison.Ordinal))
-            {
-                hasAlphaChannel = true;
-            }
-
-            if (channelInfo.ChannelName.Equals("R", StringComparison.Ordinal))
-            {
-                hasRedChannel = true;
-            }
-
-            if (channelInfo.ChannelName.Equals("G", StringComparison.Ordinal))
-            {
-                hasGreenChannel = true;
-            }
-
-            if (channelInfo.ChannelName.Equals("B", StringComparison.Ordinal))
-            {
-                hasBlueChannel = true;
-            }
-
-            if (channelInfo.ChannelName.Equals("Y", StringComparison.Ordinal))
-            {
-                hasLuminance = true;
-            }
-        }
-
-        if (hasRedChannel && hasGreenChannel && hasBlueChannel && hasAlphaChannel)
-        {
-            this.ImageDataType = ExrImageDataType.Rgba;
-            return;
-        }
-
-        if (hasRedChannel && hasGreenChannel && hasBlueChannel)
-        {
-            this.ImageDataType = ExrImageDataType.Rgb;
-            return;
-        }
-
-        if (hasLuminance && this.Channels.Count == 1)
-        {
-            this.ImageDataType = ExrImageDataType.Gray;
-            return;
-        }
-
-        ExrThrowHelper.ThrowNotSupported("The image contains channels, which are not supported!");
-    }
+        ExrCompression.None or ExrCompression.Zip or ExrCompression.Zips or ExrCompression.RunLengthEncoded or ExrCompression.B44 => true,
+        _ => false,
+    };
 
     private bool HasAlpha()
     {

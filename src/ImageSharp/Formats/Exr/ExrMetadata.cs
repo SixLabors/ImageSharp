@@ -30,17 +30,22 @@ public class ExrMetadata : IFormatMetadata<ExrMetadata>
     /// </summary>
     public ExrPixelType PixelType { get; set; } = ExrPixelType.Float;
 
+    /// <inheritdoc/>
     public static ExrMetadata FromFormatConnectingMetadata(FormatConnectingMetadata metadata) => throw new NotImplementedException();
 
+    /// <inheritdoc/>
     public void AfterImageApply<TPixel>(Image<TPixel> destination, Matrix4x4 matrix)
         where TPixel : unmanaged, IPixel<TPixel> => throw new NotImplementedException();
 
     /// <inheritdoc/>
     public IDeepCloneable DeepClone() => new ExrMetadata(this);
 
+    /// <inheritdoc/>
     public PixelTypeInfo GetPixelTypeInfo() => throw new NotImplementedException();
 
+    /// <inheritdoc/>
     public FormatConnectingMetadata ToFormatConnectingMetadata() => throw new NotImplementedException();
 
+    /// <inheritdoc/>
     ExrMetadata IDeepCloneable<ExrMetadata>.DeepClone() => throw new NotImplementedException();
 }

@@ -30,7 +30,20 @@ public class ExrDecoderTests
 
     [Theory]
     [InlineData(TestImages.Exr.Uncompressed)]
-    public void ExrDecoder_Identify_DetectsCorrectPixelType<TPixel>(string imagePath)
+    public void ExrDecoder_Identify_DetectsCorrectPixelType_Half<TPixel>(string imagePath)
+    {
+        TestFile testFile = TestFile.Create(imagePath);
+        using MemoryStream stream = new(testFile.Bytes, false);
+        ImageInfo imageInfo = Image.Identify(stream);
+        ExrMetadata exrMetaData = imageInfo.Metadata.GetExrMetadata();
+
+        Assert.NotNull(imageInfo);
+        Assert.Equal(ExrPixelType.Half, exrMetaData.PixelType);
+    }
+
+    [Theory]
+    [InlineData(TestImages.Exr.UncompressedFloatRgb)]
+    public void ExrDecoder_Identify_DetectsCorrectPixelType_Float<TPixel>(string imagePath)
     {
         TestFile testFile = TestFile.Create(imagePath);
         using MemoryStream stream = new(testFile.Bytes, false);
@@ -39,6 +52,19 @@ public class ExrDecoderTests
 
         Assert.NotNull(imageInfo);
         Assert.Equal(ExrPixelType.Float, exrMetaData.PixelType);
+    }
+
+    [Theory]
+    [InlineData(TestImages.Exr.UncompressedUintRgb)]
+    public void ExrDecoder_Identify_DetectsCorrectPixelType_Int<TPixel>(string imagePath)
+    {
+        TestFile testFile = TestFile.Create(imagePath);
+        using MemoryStream stream = new(testFile.Bytes, false);
+        ImageInfo imageInfo = Image.Identify(stream);
+        ExrMetadata exrMetaData = imageInfo.Metadata.GetExrMetadata();
+
+        Assert.NotNull(imageInfo);
+        Assert.Equal(ExrPixelType.UnsignedInt, exrMetaData.PixelType);
     }
 
     [Theory]

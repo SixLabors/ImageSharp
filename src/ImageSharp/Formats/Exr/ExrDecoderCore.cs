@@ -80,6 +80,11 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
     private ExrCompression Compression { get; set; }
 
     /// <summary>
+    /// Gets or sets the image data type, either RGB, RGBA or gray.
+    /// </summary>
+    private ExrImageDataType ImageDataType { get; set; }
+
+    /// <summary>
     /// Gets or sets the pixel type.
     /// </summary>
     private ExrPixelType PixelType { get; set; }
@@ -403,6 +408,59 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
         return pixelType;
     }
 
+    private ExrImageDataType ReadImageDataType()
+    {
+        bool hasRedChannel = false;
+        bool hasGreenChannel = false;
+        bool hasBlueChannel = false;
+        bool hasAlphaChannel = false;
+        bool hasLuminance = false;
+        foreach (ExrChannelInfo channelInfo in this.Channels)
+        {
+            if (channelInfo.ChannelName.Equals("A", StringComparison.Ordinal))
+            {
+                hasAlphaChannel = true;
+            }
+
+            if (channelInfo.ChannelName.Equals("R", StringComparison.Ordinal))
+            {
+                hasRedChannel = true;
+            }
+
+            if (channelInfo.ChannelName.Equals("G", StringComparison.Ordinal))
+            {
+                hasGreenChannel = true;
+            }
+
+            if (channelInfo.ChannelName.Equals("B", StringComparison.Ordinal))
+            {
+                hasBlueChannel = true;
+            }
+
+            if (channelInfo.ChannelName.Equals("Y", StringComparison.Ordinal))
+            {
+                hasLuminance = true;
+            }
+        }
+
+        if (hasRedChannel && hasGreenChannel && hasBlueChannel && hasAlphaChannel)
+        {
+            return ExrImageDataType.Rgba;
+        }
+
+        if (hasRedChannel && hasGreenChannel && hasBlueChannel)
+        {
+            return ExrImageDataType.Rgb;
+        }
+
+        if (hasLuminance && this.Channels.Count == 1)
+        {
+            return ExrImageDataType.Gray;
+        }
+
+        return ExrImageDataType.Unknown;
+    }
+
     private ExrHeaderAttributes ReadExrHeader(BufferedReadStream stream)
     {
         // Skip over the magick bytes, we already know its an EXR image.
@@ -431,11 +489,13 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
         this.Channels = this.HeaderAttributes.Channels;
         this.Compression = this.HeaderAttributes.Compression;
         this.PixelType = this.ValidateChannels();
+        this.ImageDataType = this.ReadImageDataType();
 
         this.metadata = new ImageMetadata();
 
         this.exrMetadata = this.metadata.GetExrMetadata();
         this.exrMetadata.PixelType = this.PixelType;
+        this.exrMetadata.ImageDataType = this.ImageDataType;
 
         return this.HeaderAttributes;
     }

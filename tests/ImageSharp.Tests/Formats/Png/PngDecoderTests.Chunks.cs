@@ -92,6 +92,22 @@ public partial class PngDecoderTests
         Assert.Equal("pHYs chunk is too short", exception.Message);
     }
 
+    // https://github.com/SixLabors/ImageSharp/issues/3093
+    [Fact]
+    public void Decode_TruncatedFrameControlChunk_ExceptionIsThrown()
+    {
+        // PNG signature + truncated frame control chunk
+        byte[] payload = Convert.FromHexString(
+            "89504e470d0a1a0a424d3a00000000007f000000000028030405060000000100" +
+            "000101002000000000000000000000000000ff00006663544cff190000000000" +
+            "010000424d000100000101002000000000");
+
+        using MemoryStream stream = new(payload);
+        InvalidImageContentException exception = Assert.Throws<InvalidImageContentException>(() => Image.Load<Rgba32>(stream));
+
+        Assert.Equal("The frame control chunk does not contain enough data!", exception.Message);
+    }
+
     // https://github.com/SixLabors/ImageSharp/issues/3079
     [Fact]
     public void Decode_CompressedTxtChunk_WithTruncatedData_DoesNotThrow()

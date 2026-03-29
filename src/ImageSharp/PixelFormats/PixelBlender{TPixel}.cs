@@ -65,6 +65,39 @@ public abstract class PixelBlender<TPixel>
     }
 
     /// <summary>
+    /// Blends a row against a constant source color.
+    /// </summary>
+    /// <param name="configuration"><see cref="Configuration"/> to use internally</param>
+    /// <param name="destination">the destination span</param>
+    /// <param name="background">the background span</param>
+    /// <param name="source">the source color</param>
+    /// <param name="amount">
+    /// A value between 0 and 1 indicating the weight of the second source vector.
+    /// At amount = 0, "background" is returned, at amount = 1, "source" is returned.
+    /// </param>
+    public void Blend(
+        Configuration configuration,
+        Span<TPixel> destination,
+        ReadOnlySpan<TPixel> background,
+        TPixel source,
+        float amount)
+    {
+        int maxLength = destination.Length;
+        Guard.MustBeGreaterThanOrEqualTo(background.Length, maxLength, nameof(background.Length));
+        Guard.MustBeBetweenOrEqualTo(amount, 0, 1, nameof(amount));
+
+        using IMemoryOwner<Vector4> buffer = configuration.MemoryAllocator.Allocate<Vector4>(maxLength * 2);
+        Span<Vector4> destinationVectors = buffer.Slice(0, maxLength);
+        Span<Vector4> backgroundVectors = buffer.Slice(maxLength, maxLength);
+
+        PixelOperations<TPixel>.Instance.ToVector4(configuration, background[..maxLength], backgroundVectors, PixelConversionModifiers.Scale);
+
+        this.BlendFunction(destinationVectors, backgroundVectors, source.ToScaledVector4(), amount);
+
+        PixelOperations<TPixel>.Instance.FromVector4Destructive(configuration, destinationVectors[..maxLength], destination, PixelConversionModifiers.Scale);
+    }
+
+    /// <summary>
     /// Blends 2 rows together
     /// </summary>
     /// <param name="configuration"><see cref="Configuration"/> to use internally</param>
@@ -122,6 +155,39 @@ public abstract class PixelBlender<TPixel>
     }
 
     /// <summary>
+    /// Blends a row against a constant source color.
+    /// </summary>
+    /// <param name="configuration"><see cref="Configuration"/> to use internally</param>
+    /// <param name="destination">the destination span</param>
+    /// <param name="background">the background span</param>
+    /// <param name="source">the source color</param>
+    /// <param name="amount">
+    /// A span with values between 0 and 1 indicating the weight of the second source vector.
+    /// At amount = 0, "background" is returned, at amount = 1, "source" is returned.
+    /// </param>
+    public void Blend(
+        Configuration configuration,
+        Span<TPixel> destination,
+        ReadOnlySpan<TPixel> background,
+        TPixel source,
+        ReadOnlySpan<float> amount)
+    {
+        int maxLength = destination.Length;
+        Guard.MustBeGreaterThanOrEqualTo(background.Length, maxLength, nameof(background.Length));
+        Guard.MustBeGreaterThanOrEqualTo(amount.Length, maxLength, nameof(amount.Length));
+
+        using IMemoryOwner<Vector4> buffer = configuration.MemoryAllocator.Allocate<Vector4>(maxLength * 2);
+        Span<Vector4> destinationVectors = buffer.Slice(0, maxLength);
+        Span<Vector4> backgroundVectors = buffer.Slice(maxLength, maxLength);
+
+        PixelOperations<TPixel>.Instance.ToVector4(configuration, background[..maxLength], backgroundVectors, PixelConversionModifiers.Scale);
+
+        this.BlendFunction(destinationVectors, backgroundVectors, source.ToScaledVector4(), amount);
+
+        PixelOperations<TPixel>.Instance.FromVector4Destructive(configuration, destinationVectors[..maxLength], destination, PixelConversionModifiers.Scale);
+    }
+
+    /// <summary>
     /// Blend 2 rows together.
     /// </summary>
     /// <param name="destination">destination span</param>
@@ -138,6 +204,22 @@ public abstract class PixelBlender<TPixel>
         float amount);
 
     /// <summary>
+    /// Blend a row against a constant source color.
+    /// </summary>
+    /// <param name="destination">destination span</param>
+    /// <param name="background">the background span</param>
+    /// <param name="source">the source color vector</param>
+    /// <param name="amount">
+    /// A value between 0 and 1 indicating the weight of the second source vector.
+    /// At amount = 0, "background" is returned, at amount = 1, "source" is returned.
+    /// </param>
+    protected abstract void BlendFunction(
+        Span<Vector4> destination,
+        ReadOnlySpan<Vector4> background,
+        Vector4 source,
+        float amount);
+
+    /// <summary>
     /// Blend 2 rows together.
     /// </summary>
     /// <param name="destination">destination span</param>
@@ -151,5 +233,21 @@ public abstract class PixelBlender<TPixel>
         Span<Vector4> destination,
         ReadOnlySpan<Vector4> background,
         ReadOnlySpan<Vector4> source,
+        ReadOnlySpan<float> amount);
+
+    /// <summary>
+    /// Blend a row against a constant source color.
+    /// </summary>
+    /// <param name="destination">destination span</param>
+    /// <param name="background">the background span</param>
+    /// <param name="source">the source color vector</param>
+    /// <param name="amount">
+    /// A span with values between 0 and 1 indicating the weight of the second source vector.
+    /// At amount = 0, "background" is returned, at amount = 1, "source" is returned.
+    /// </param>
+    protected abstract void BlendFunction(
+        Span<Vector4> destination,
+        ReadOnlySpan<Vector4> background,
+        Vector4 source,
         ReadOnlySpan<float> amount);
 }

@@ -35,6 +35,11 @@ public class ExrMetadata : IFormatMetadata<ExrMetadata>
     /// </summary>
     public ExrImageDataType ImageDataType { get; set; } = ExrImageDataType.Unknown;
 
+    /// <summary>
+    /// Gets or sets the compression method.
+    /// </summary>
+    public ExrCompression Compression { get; set; } = ExrCompression.None;
+
     /// <inheritdoc/>
     public PixelTypeInfo GetPixelTypeInfo()
     {
@@ -92,7 +97,7 @@ public class ExrMetadata : IFormatMetadata<ExrMetadata>
     /// <inheritdoc/>
     public FormatConnectingMetadata ToFormatConnectingMetadata() => new()
     {
-        EncodingType = EncodingType.Lossless,
+        EncodingType = this.Compression is ExrCompression.B44 or ExrCompression.B44A or ExrCompression.Pxr24 ? EncodingType.Lossy : EncodingType.Lossless,
         PixelTypeInfo = this.GetPixelTypeInfo()
     };
 

@@ -496,6 +496,7 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
         this.exrMetadata = this.metadata.GetExrMetadata();
         this.exrMetadata.PixelType = this.PixelType;
         this.exrMetadata.ImageDataType = this.ImageDataType;
+        this.exrMetadata.Compression = this.Compression;
 
         return this.HeaderAttributes;
     }

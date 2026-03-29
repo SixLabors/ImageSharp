@@ -13,14 +13,16 @@ public class ExrMetadataTests
     public void CloneIsDeep()
     {
         ExrMetadata meta = new()
-        { ImageDataType = ExrImageDataType.Rgb, PixelType = ExrPixelType.Half };
+        { ImageDataType = ExrImageDataType.Rgb, PixelType = ExrPixelType.Half, Compression = ExrCompression.None };
         ExrMetadata clone = (ExrMetadata)meta.DeepClone();
 
         clone.ImageDataType = ExrImageDataType.Gray;
         clone.PixelType = ExrPixelType.Float;
+        clone.Compression = ExrCompression.Zip;
 
         Assert.False(meta.ImageDataType.Equals(clone.ImageDataType));
         Assert.False(meta.PixelType.Equals(clone.PixelType));
+        Assert.False(meta.Compression.Equals(clone.Compression));
     }
 
     [Theory]
@@ -66,5 +68,21 @@ public class ExrMetadataTests
         ExrMetadata metadata = imageInfo.Metadata.GetExrMetadata();
         Assert.NotNull(metadata);
         Assert.Equal(expectedImageDataType, metadata.ImageDataType);
+    }
+
+    [Theory]
+    [InlineData(TestImages.Exr.UncompressedRgba, ExrCompression.None)]
+    [InlineData(TestImages.Exr.B44, ExrCompression.B44)]
+    [InlineData(TestImages.Exr.Rle, ExrCompression.RunLengthEncoded)]
+    public void Identify_DetectsCorrectCompression(string imagePath, ExrCompression expectedCompression)
+    {
+        TestFile testFile = TestFile.Create(imagePath);
+        using MemoryStream stream = new(testFile.Bytes, false);
+        ImageInfo imageInfo = Image.Identify(stream);
+
+        Assert.NotNull(imageInfo);
+        ExrMetadata metadata = imageInfo.Metadata.GetExrMetadata();
+        Assert.NotNull(metadata);
+        Assert.Equal(expectedCompression, metadata.Compression);
     }
 }

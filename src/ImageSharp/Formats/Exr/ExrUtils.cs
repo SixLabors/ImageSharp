@@ -7,6 +7,12 @@ namespace SixLabors.ImageSharp.Formats.Exr;
 
 internal static class ExrUtils
 {
+    /// <summary>
+    /// Calcualtes the required bytes for a pixel row.
+    /// </summary>
+    /// <param name="channels">The image channels array.</param>
+    /// <param name="width">The width in pixels of a row.</param>
+    /// <returns>The number of bytes per row.</returns>
     public static uint CalculateBytesPerRow(IList<ExrChannelInfo> channels, uint width)
     {
         uint bytesPerRow = 0;
@@ -32,6 +38,11 @@ internal static class ExrUtils
         return bytesPerRow;
     }
 
+    /// <summary>
+    /// Determines how many pixel rows there are in a block. This varies depending on the compression used.
+    /// </summary>
+    /// <param name="compression">The compression used.</param>
+    /// <returns>Pixel rows in a block.</returns>
     public static uint RowsPerBlock(ExrCompression compression) => compression switch
     {
         ExrCompression.Zip or ExrCompression.Pxr24 => 16,

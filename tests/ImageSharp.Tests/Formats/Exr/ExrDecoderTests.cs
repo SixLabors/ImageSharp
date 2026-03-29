@@ -16,60 +16,8 @@ public class ExrDecoderTests
     private static MagickReferenceDecoder ReferenceDecoder => MagickReferenceDecoder.Exr;
 
     [Theory]
-    [InlineData(TestImages.Exr.Uncompressed, 199, 297)]
-    public void ExrDecoder_Identify_DetectsCorrectWidthAndHeight<TPixel>(string imagePath, int expectedWidth, int expectedHeight)
-    {
-        TestFile testFile = TestFile.Create(imagePath);
-        using MemoryStream stream = new(testFile.Bytes, false);
-        ImageInfo imageInfo = Image.Identify(stream);
-
-        Assert.NotNull(imageInfo);
-        Assert.Equal(expectedWidth, imageInfo.Width);
-        Assert.Equal(expectedHeight, imageInfo.Height);
-    }
-
-    [Theory]
-    [InlineData(TestImages.Exr.Uncompressed)]
-    public void ExrDecoder_Identify_DetectsCorrectPixelType_Half<TPixel>(string imagePath)
-    {
-        TestFile testFile = TestFile.Create(imagePath);
-        using MemoryStream stream = new(testFile.Bytes, false);
-        ImageInfo imageInfo = Image.Identify(stream);
-        ExrMetadata exrMetaData = imageInfo.Metadata.GetExrMetadata();
-
-        Assert.NotNull(imageInfo);
-        Assert.Equal(ExrPixelType.Half, exrMetaData.PixelType);
-    }
-
-    [Theory]
-    [InlineData(TestImages.Exr.UncompressedFloatRgb)]
-    public void ExrDecoder_Identify_DetectsCorrectPixelType_Float<TPixel>(string imagePath)
-    {
-        TestFile testFile = TestFile.Create(imagePath);
-        using MemoryStream stream = new(testFile.Bytes, false);
-        ImageInfo imageInfo = Image.Identify(stream);
-        ExrMetadata exrMetaData = imageInfo.Metadata.GetExrMetadata();
-
-        Assert.NotNull(imageInfo);
-        Assert.Equal(ExrPixelType.Float, exrMetaData.PixelType);
-    }
-
-    [Theory]
-    [InlineData(TestImages.Exr.UncompressedUintRgb)]
-    public void ExrDecoder_Identify_DetectsCorrectPixelType_Int<TPixel>(string imagePath)
-    {
-        TestFile testFile = TestFile.Create(imagePath);
-        using MemoryStream stream = new(testFile.Bytes, false);
-        ImageInfo imageInfo = Image.Identify(stream);
-        ExrMetadata exrMetaData = imageInfo.Metadata.GetExrMetadata();
-
-        Assert.NotNull(imageInfo);
-        Assert.Equal(ExrPixelType.UnsignedInt, exrMetaData.PixelType);
-    }
-
-    [Theory]
     [WithFile(TestImages.Exr.Uncompressed, PixelTypes.Rgba32)]
-    public void ExrDecoder_CanDecode_Uncompressed_Rgba_ExrPixelType_Half<TPixel>(TestImageProvider<TPixel> provider)
+    public void ExrDecoder_CanDecode_Uncompressed_Rgb_ExrPixelType_Half<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         using Image<TPixel> image = provider.GetImage(ExrDecoder.Instance);

@@ -89,20 +89,25 @@ public class ExrMetadata : IFormatMetadata<ExrMetadata>
         };
     }
 
+    /// <inheritdoc/>
+    public FormatConnectingMetadata ToFormatConnectingMetadata() => new()
+    {
+        EncodingType = EncodingType.Lossless,
+        PixelTypeInfo = this.GetPixelTypeInfo()
+    };
 
     /// <inheritdoc/>
-    public void AfterImageApply<TPixel>(Image<TPixel> destination, Matrix4x4 matrix)
-        where TPixel : unmanaged, IPixel<TPixel> => throw new NotImplementedException();
+    public static ExrMetadata FromFormatConnectingMetadata(FormatConnectingMetadata metadata) => new() { PixelType = ExrPixelType.Half };
 
     /// <inheritdoc/>
-    public FormatConnectingMetadata ToFormatConnectingMetadata() => throw new NotImplementedException();
-
-    /// <inheritdoc/>
-    public static ExrMetadata FromFormatConnectingMetadata(FormatConnectingMetadata metadata) => throw new NotImplementedException();
-
-    /// <inheritdoc/>
-    ExrMetadata IDeepCloneable<ExrMetadata>.DeepClone() => throw new NotImplementedException();
+    ExrMetadata IDeepCloneable<ExrMetadata>.DeepClone() => new(this);
 
     /// <inheritdoc/>
     public IDeepCloneable DeepClone() => new ExrMetadata(this);
+
+    /// <inheritdoc/>
+    public void AfterImageApply<TPixel>(Image<TPixel> destination, Matrix4x4 matrix)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+    }
 }

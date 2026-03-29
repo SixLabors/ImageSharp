@@ -21,7 +21,7 @@ public class DecodeExr
 
     private string TestImageFullPath => Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, this.TestImage);
 
-    [Params(TestImages.Exr.Benchamrk)]
+    [Params(TestImages.Exr.Benchmark)]
     public string TestImage { get; set; }
 
     [GlobalSetup]

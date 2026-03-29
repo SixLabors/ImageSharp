@@ -562,6 +562,41 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
             attribute = this.ReadAttribute(stream);
         }
 
+        if (!displayWindow.HasValue)
+        {
+            ExrThrowHelper.ThrowInvalidImageContentException("Invalid exr image header, the displayWindow attribute is missing!");
+        }
+
+        if (!dataWindow.HasValue)
+        {
+            ExrThrowHelper.ThrowInvalidImageContentException("Invalid exr image header, the dataWindow attribute is missing!");
+        }
+
+        if (channels is null)
+        {
+            ExrThrowHelper.ThrowInvalidImageContentException("Invalid exr image header, the channels attribute is missing!");
+        }
+
+        if (!compression.HasValue)
+        {
+            ExrThrowHelper.ThrowInvalidImageContentException("Invalid exr image header, the compression attribute is missing!");
+        }
+
+        if (!lineOrder.HasValue)
+        {
+            ExrThrowHelper.ThrowInvalidImageContentException("Invalid exr image header, the lineOrder attribute is missing!");
+        }
+
+        if (!screenWindowWidth.HasValue)
+        {
+            ExrThrowHelper.ThrowInvalidImageContentException("Invalid exr image header, the screenWindowWidth attribute is missing!");
+        }
+
+        if (!screenWindowCenterX.HasValue || !screenWindowCenterY.HasValue)
+        {
+            ExrThrowHelper.ThrowInvalidImageContentException("Invalid exr image header, the screenWindowCenter attribute is missing!");
+        }
+
         ExrHeaderAttributes header = new(
             channels,
             compression.Value,

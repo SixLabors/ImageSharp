@@ -18,7 +18,7 @@ internal class B44ExrCompression : ExrBaseDecompressor
 
     private readonly byte[] scratch = new byte[14];
 
-    private ushort[] s = new ushort[16];
+    private readonly ushort[] s = new ushort[16];
 
     private readonly IMemoryOwner<ushort> tmpBuffer;
 

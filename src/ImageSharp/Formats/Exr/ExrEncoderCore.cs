@@ -122,8 +122,6 @@ internal sealed class ExrEncoderCore
 
         // Next is offsets table to each pixel row, which will be written after the pixel data was written.
         int bytesPerChannel = this.pixelType == ExrPixelType.Half ? 2 : 4;
-        int numberOfChannels = 3;
-        uint rowSizeBytes = (uint)(width * numberOfChannels * bytesPerChannel);
         ulong startOfRowOffsetData = (ulong)stream.Position;
         stream.Position += 8 * height;
 
@@ -162,7 +160,6 @@ internal sealed class ExrEncoderCore
         uint bytesPerRow = ExrUtils.CalculateBytesPerRow(channels, (uint)width);
         uint rowsPerBlock = ExrUtils.RowsPerBlock(compression);
         uint bytesPerBlock = bytesPerRow * rowsPerBlock;
-        int channelCount = channels.Count;
 
         using IMemoryOwner<float> rgbBuffer = this.memoryAllocator.Allocate<float>(width * 3, AllocationOptions.Clean);
         using IMemoryOwner<byte> rowBlockBuffer = this.memoryAllocator.Allocate<byte>((int)bytesPerBlock, AllocationOptions.Clean);

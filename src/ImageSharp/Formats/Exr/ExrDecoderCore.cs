@@ -371,28 +371,7 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
     {
         ExrHeaderAttributes header = this.ReadExrHeader(stream);
 
-        int bitsPerPixel = this.CalculateBitsPerPixel();
-
         return new ImageInfo(new Size(header.DataWindow.XMax, header.DataWindow.YMax), this.metadata);
-    }
-
-    private int CalculateBitsPerPixel()
-    {
-        int bitsPerPixel = 0;
-        for (int i = 0; i < this.Channels.Count; i++)
-        {
-            ExrChannelInfo channel = this.Channels[0];
-            if (channel.PixelType is ExrPixelType.Float or ExrPixelType.UnsignedInt)
-            {
-                bitsPerPixel += 32;
-            }
-            else if (channel.PixelType == ExrPixelType.Half)
-            {
-                bitsPerPixel += 16;
-            }
-        }
-
-        return bitsPerPixel;
     }
 
     private ExrPixelType ValidateChannels()
@@ -475,8 +454,8 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
 
         // Next three bytes contain info's about the image.
         byte flagsByte0 = (byte)stream.ReadByte();
-        byte flagsByte1 = (byte)stream.ReadByte();
-        byte flagsByte2 = (byte)stream.ReadByte();
+        stream.ReadByte();
+        stream.ReadByte();
         if ((flagsByte0 & (1 << 1)) != 0)
         {
             ExrThrowHelper.ThrowNotSupported("Decoding tiled exr images is not supported yet!");
@@ -587,6 +566,11 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
             ExrThrowHelper.ThrowInvalidImageContentException("Invalid exr image header, the lineOrder attribute is missing!");
         }
 
+        if (!aspectRatio.HasValue)
+        {
+            ExrThrowHelper.ThrowInvalidImageContentException("Invalid exr image header, the aspectRatio attribute is missing!");
+        }
+
         if (!screenWindowWidth.HasValue)
         {
             ExrThrowHelper.ThrowInvalidImageContentException("Invalid exr image header, the screenWindowWidth attribute is missing!");
@@ -648,7 +632,7 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
         }
 
         // Last byte should be a null byte.
-        int byteRead = stream.ReadByte();
+        stream.ReadByte();
 
         return channels;
     }
@@ -662,9 +646,11 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
         bytesRead += 4;
 
         byte pLinear = (byte)stream.ReadByte();
-        byte reserved0 = (byte)stream.ReadByte();
-        byte reserved1 = (byte)stream.ReadByte();
-        byte reserved2 = (byte)stream.ReadByte();
+
+        // Next 3 bytes are reserved bytes and not use.
+        stream.ReadByte();
+        stream.ReadByte();
+        stream.ReadByte();
         bytesRead += 4;
 
         int xSampling = this.ReadSignedInteger(stream);

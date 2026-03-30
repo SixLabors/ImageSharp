@@ -6,7 +6,7 @@ using System.Diagnostics;
 namespace SixLabors.ImageSharp.Formats.Exr;
 
 [DebuggerDisplay("xMin: {XMin}, yMin: {YMin}, xMax: {XMax}, yMax: {YMax}")]
-internal struct ExrBox2i
+internal readonly struct ExrBox2i
 {
     public ExrBox2i(int xMin, int yMin, int xMax, int yMax)
     {

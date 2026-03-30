@@ -91,13 +91,22 @@ public class BmpDecoderTests
     {
         using Image<TPixel> image = provider.GetImage(BmpDecoder.Instance);
         image.DebugSave(provider);
-        image.CompareToOriginal(provider);
+        image.CompareToReferenceOutput(provider);
     }
 
     [Theory]
     [WithFile(Bit16Inverted, PixelTypes.Rgba32)]
+    public void BmpDecoder_CanDecode_16Bit_Inverted<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage(BmpDecoder.Instance);
+        image.DebugSave(provider);
+        image.CompareToReferenceOutput(provider);
+    }
+
+    [Theory]
     [WithFile(Bit8Inverted, PixelTypes.Rgba32)]
-    public void BmpDecoder_CanDecode_Inverted<TPixel>(TestImageProvider<TPixel> provider)
+    public void BmpDecoder_CanDecode_8Bit_Inverted<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         using Image<TPixel> image = provider.GetImage(BmpDecoder.Instance);
@@ -156,7 +165,7 @@ public class BmpDecoderTests
     {
         using Image<TPixel> image = provider.GetImage(BmpDecoder.Instance);
         image.DebugSave(provider);
-        image.CompareToOriginal(provider);
+        image.CompareToOriginal(provider, new SystemDrawingReferenceDecoder(BmpFormat.Instance));
     }
 
     [Theory]
@@ -186,12 +195,12 @@ public class BmpDecoderTests
     public void BmpDecoder_CanDecode_RunLengthEncoded_4Bit_WithDelta<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        RleSkippedPixelHandling skippedPixelHandling = TestEnvironment.IsWindows ? RleSkippedPixelHandling.Black : RleSkippedPixelHandling.FirstColorOfPalette;
+        RleSkippedPixelHandling skippedPixelHandling = RleSkippedPixelHandling.Black;
         BmpDecoderOptions options = new() { RleSkippedPixelHandling = skippedPixelHandling };
 
         using Image<TPixel> image = provider.GetImage(BmpDecoder.Instance, options);
         image.DebugSave(provider);
-        image.CompareToOriginal(provider);
+        image.CompareToReferenceOutput(provider);
     }
 
     [Theory]

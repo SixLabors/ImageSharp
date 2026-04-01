@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Buffers;
+using System.Numerics;
 using SixLabors.ImageSharp.Formats.Webp.Chunks;
 using SixLabors.ImageSharp.Formats.Webp.Lossless;
 using SixLabors.ImageSharp.Formats.Webp.Lossy;
@@ -456,15 +457,21 @@ internal class WebpAnimationDecoder : IDisposable
             // The destination frame has already been prepopulated with the pixel data from the previous frame
             // so blending will leave the desired result which takes into consideration restoration to the
             // background color within the restore area.
-            PixelBlender<TPixel> blender =
-                PixelOperations<TPixel>.Instance.GetPixelBlender(PixelColorBlendingMode.Normal, PixelAlphaCompositionMode.SrcOver);
+            PixelBlender<TPixel> blender = PixelOperations<TPixel>.Instance.GetPixelBlender(
+                PixelColorBlendingMode.Normal,
+                PixelAlphaCompositionMode.SrcOver);
+
+            // By using a dedicated vector span we can avoid per-row pool allocations in PixelBlender.Blend
+            // We need 3 Vector4 values per pixel to store the background, foreground, and result pixels for blending.
+            using IMemoryOwner<Vector4> workingBufferOwner = imageFrame.Configuration.MemoryAllocator.Allocate<Vector4>(restoreArea.Width * 3);
+            Span<Vector4> workingBuffer = workingBufferOwner.GetSpan();
 
             for (int y = 0; y < restoreArea.Height; y++)
             {
                 Span<TPixel> framePixelRow = imageFramePixels.DangerousGetRowSpan(y);
                 Span<TPixel> decodedPixelRow = decodedImageFrame.DangerousGetRowSpan(y)[..restoreArea.Width];
 
-                blender.Blend<TPixel>(imageFrame.Configuration, framePixelRow, framePixelRow, decodedPixelRow, 1f);
+                blender.Blend<TPixel>(imageFrame.Configuration, framePixelRow, framePixelRow, decodedPixelRow, 1f, workingBuffer);
             }
 
             return;

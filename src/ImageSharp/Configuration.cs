@@ -5,6 +5,7 @@ using System.Collections.Concurrent;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.Formats.Cur;
+using SixLabors.ImageSharp.Formats.Exr;
 using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.Formats.Ico;
 using SixLabors.ImageSharp.Formats.Jpeg;
@@ -212,6 +213,7 @@ public sealed class Configuration
     /// <see cref="TgaConfigurationModule"/>.
     /// <see cref="TiffConfigurationModule"/>.
     /// <see cref="WebpConfigurationModule"/>.
+    /// <see cref="ExrConfigurationModule"/>.
     /// <see cref="QoiConfigurationModule"/>.
     /// </summary>
     /// <returns>The default configuration of <see cref="Configuration"/>.</returns>
@@ -224,6 +226,7 @@ public sealed class Configuration
             new TgaConfigurationModule(),
             new TiffConfigurationModule(),
             new WebpConfigurationModule(),
+            new ExrConfigurationModule(),
             new QoiConfigurationModule(),
             new IcoConfigurationModule(),
             new CurConfigurationModule());

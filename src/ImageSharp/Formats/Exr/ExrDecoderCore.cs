@@ -516,14 +516,14 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
                     lineOrder = (ExrLineOrder)stream.ReadByte();
                     break;
                 case ExrConstants.AttributeNames.PixelAspectRatio:
-                    aspectRatio = stream.ReadSingle(this.buffer);
+                    aspectRatio = this.ReadSingle(stream);
                     break;
                 case ExrConstants.AttributeNames.ScreenWindowCenter:
-                    screenWindowCenterX = stream.ReadSingle(this.buffer);
-                    screenWindowCenterY = stream.ReadSingle(this.buffer);
+                    screenWindowCenterX = this.ReadSingle(stream);
+                    screenWindowCenterY = this.ReadSingle(stream);
                     break;
                 case ExrConstants.AttributeNames.ScreenWindowWidth:
-                    screenWindowWidth = stream.ReadSingle(this.buffer);
+                    screenWindowWidth = this.ReadSingle(stream);
                     break;
                 case ExrConstants.AttributeNames.Tiles:
                     tileXSize = this.ReadUnsignedInteger(stream);
@@ -738,37 +738,70 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
         return false;
     }
 
+    /// <summary>
+    /// Reads a unsigned long value from the stream.
+    /// </summary>
+    /// <param name="stream">The stream to read the data from.</param>
+    /// <returns>The unsigned long value.</returns>
     private ulong ReadUnsignedLong(BufferedReadStream stream)
     {
         int bytesRead = stream.Read(this.buffer, 0, 8);
         if (bytesRead != 8)
         {
-            ExrThrowHelper.ThrowInvalidImageContentException("Could not read enough data from the stream!");
+            ExrThrowHelper.ThrowInvalidImageContentException("Not enough data to read a unsigned long from the stream!");
         }
 
         return BinaryPrimitives.ReadUInt64LittleEndian(this.buffer);
     }
 
+    /// <summary>
+    /// Reads a unsigned integer value from the stream.
+    /// </summary>
+    /// <param name="stream">The stream to read the data from.</param>
+    /// <returns>The integer value.</returns>
     private uint ReadUnsignedInteger(BufferedReadStream stream)
     {
         int bytesRead = stream.Read(this.buffer, 0, 4);
         if (bytesRead != 4)
         {
-            ExrThrowHelper.ThrowInvalidImageContentException("Could not read enough data from the stream!");
+            ExrThrowHelper.ThrowInvalidImageContentException("Not enough data to read a unsigned int from the stream!");
         }
 
         return BinaryPrimitives.ReadUInt32LittleEndian(this.buffer);
     }
 
+    /// <summary>
+    /// Reads a signed integer value from the stream.
+    /// </summary>
+    /// <param name="stream">The stream to read the data from.</param>
+    /// <returns>The integer value.</returns>
     private int ReadSignedInteger(BufferedReadStream stream)
     {
         int bytesRead = stream.Read(this.buffer, 0, 4);
         if (bytesRead != 4)
         {
-            ExrThrowHelper.ThrowInvalidImageContentException("Could not read enough data from the stream!");
+            ExrThrowHelper.ThrowInvalidImageContentException("Not enough data to read a signed int from the stream!");
         }
 
         return BinaryPrimitives.ReadInt32LittleEndian(this.buffer);
+    }
+
+    /// <summary>
+    /// Reads a float value from the stream.
+    /// </summary>
+    /// <param name="stream">The stream to read the data from.</param>
+    /// <returns>The float value.</returns>
+    private float ReadSingle(BufferedReadStream stream)
+    {
+        int bytesRead = stream.Read(this.buffer, 0, 4);
+        if (bytesRead != 4)
+        {
+            ExrThrowHelper.ThrowInvalidImageContentException("Not enough data to read a float value from the stream!");
+        }
+
+        int intValue = BinaryPrimitives.ReadInt32BigEndian(this.buffer);
+
+        return Unsafe.As<int, float>(ref intValue);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

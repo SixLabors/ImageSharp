@@ -3,6 +3,7 @@
 
 using System.Buffers;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace SixLabors.ImageSharp.IO;
 
@@ -22,10 +23,14 @@ internal sealed class BufferedReadStream : Stream
 
     private readonly unsafe byte* pinnedReadBuffer;
 
-    // Index within our buffer, not reader position.
+    /// <summary>
+    /// Index within our buffer, not reader position.
+    /// </summary>
     private int readBufferIndex;
 
-    // Matches what the stream position would be without buffering
+    /// <summary>
+    /// Matches what the stream position would be without buffering
+    /// </summary>
     private long readerPosition;
 
     private bool isDisposed;
@@ -192,6 +197,49 @@ internal sealed class BufferedReadStream : Stream
         }
 
         return this.ReadToBufferViaCopyFast(buffer);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public bool TryReadUnmanaged<T>(out T result)
+        where T : unmanaged
+    {
+        this.cancellationToken.ThrowIfCancellationRequested();
+
+        int size = Unsafe.SizeOf<T>();
+
+        if (size > this.BufferSize)
+        {
+            Span<byte> span = stackalloc byte[size];
+            if (this.ReadToBufferDirectSlow(span) != size)
+            {
+                result = default;
+                return false;
+            }
+
+            result = MemoryMarshal.Read<T>(span);
+        }
+        else
+        {
+            if ((uint)this.readBufferIndex > (uint)(this.BufferSize - size))
+            {
+                this.FillReadBuffer();
+            }
+
+            if (this.GetCopyCount(size) != size)
+            {
+                this.EofHitCount++;
+                result = default;
+                return false;
+            }
+
+            Span<byte> span = this.readBuffer.AsSpan(this.readBufferIndex, size);
+
+            this.readerPosition += size;
+            this.readBufferIndex += size;
+            result = MemoryMarshal.Read<T>(span);
+        }
+
+        return true;
     }
 
     /// <inheritdoc/>

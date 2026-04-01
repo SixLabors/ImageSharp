@@ -517,10 +517,28 @@ internal static class Numerics
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Premultiply(ref Vector4 source)
     {
-        // Load into a local variable to prevent accessing the source from memory multiple times.
-        Vector4 src = source;
-        Vector4 alpha = PermuteW(src);
-        source = WithW(src * alpha, alpha);
+        if (Sse41.IsSupported)
+        {
+            Vector128<float> v = source.AsVector128();
+            Vector128<float> alpha = Sse.Shuffle(v, v, ShuffleAlphaControl);
+            Vector128<float> multiplied = Sse.Multiply(v, alpha);
+            source = Sse41.Insert(multiplied, v, 0b11_11_0000).AsVector4();
+            return;
+        }
+
+        if (Sse.IsSupported)
+        {
+            Vector128<float> v = source.AsVector128();
+            Vector128<float> alpha = Sse.Shuffle(v, v, ShuffleAlphaControl);
+            Vector128<float> multiplied = Sse.Multiply(v, alpha);
+            Vector128<float> tmp = Sse.Shuffle(v, multiplied, 0b00_10_00_11);
+            source = Sse.Shuffle(multiplied, tmp, 0b00_10_01_00).AsVector4();
+            return;
+        }
+
+        float a = source.W;
+        source *= new Vector4(a);
+        source.W = a;
     }
 
     /// <summary>
@@ -571,8 +589,43 @@ internal static class Numerics
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void UnPremultiply(ref Vector4 source)
     {
-        Vector4 alpha = PermuteW(source);
-        UnPremultiply(ref source, alpha);
+        if (Sse41.IsSupported)
+        {
+            Vector128<float> v = source.AsVector128();
+            Vector128<float> alpha = Sse.Shuffle(v, v, ShuffleAlphaControl);
+            if (Sse.MoveMask(Sse.CompareEqual(alpha, Vector128<float>.Zero)) == 0xF)
+            {
+                return;
+            }
+
+            Vector128<float> divided = Sse.Divide(v, alpha);
+            source = Sse41.Insert(divided, v, 0b11_11_0000).AsVector4();
+            return;
+        }
+
+        if (Sse.IsSupported)
+        {
+            Vector128<float> v = source.AsVector128();
+            Vector128<float> alpha = Sse.Shuffle(v, v, ShuffleAlphaControl);
+            if (Sse.MoveMask(Sse.CompareEqual(alpha, Vector128<float>.Zero)) == 0xF)
+            {
+                return;
+            }
+
+            Vector128<float> divided = Sse.Divide(v, alpha);
+            Vector128<float> tmp = Sse.Shuffle(v, divided, 0b00_10_00_11);
+            source = Sse.Shuffle(divided, tmp, 0b00_10_01_00).AsVector4();
+            return;
+        }
+
+        float a = source.W;
+        if (a == 0)
+        {
+            return;
+        }
+
+        source /= new Vector4(a);
+        source.W = a;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -583,8 +636,6 @@ internal static class Numerics
             return;
         }
 
-        // Divide source by alpha if alpha is nonzero, otherwise set all components to match the source value
-        // Blend the result with the alpha vector to ensure that the alpha component is unchanged
         source = WithW(source / alpha, alpha);
     }
 

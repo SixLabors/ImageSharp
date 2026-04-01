@@ -68,7 +68,7 @@ public static partial class ParallelRowIterator
         ParallelOptions parallelOptions = new() { MaxDegreeOfParallelism = numOfSteps };
         RowOperationWrapper<T> wrappingOperation = new(top, bottom, verticalStep, in operation);
 
-        Parallel.For(
+        _ = Parallel.For(
             0,
             numOfSteps,
             parallelOptions,
@@ -138,7 +138,7 @@ public static partial class ParallelRowIterator
         ParallelOptions parallelOptions = new() { MaxDegreeOfParallelism = numOfSteps };
         RowOperationWrapper<T, TBuffer> wrappingOperation = new(top, bottom, verticalStep, bufferLength, allocator, in operation);
 
-        Parallel.For(
+        _ = Parallel.For(
             0,
             numOfSteps,
             parallelOptions,
@@ -195,7 +195,7 @@ public static partial class ParallelRowIterator
         ParallelOptions parallelOptions = new() { MaxDegreeOfParallelism = numOfSteps };
         RowIntervalOperationWrapper<T> wrappingOperation = new(top, bottom, verticalStep, in operation);
 
-        Parallel.For(
+        _ = Parallel.For(
             0,
             numOfSteps,
             parallelOptions,
@@ -262,7 +262,7 @@ public static partial class ParallelRowIterator
         ParallelOptions parallelOptions = new() { MaxDegreeOfParallelism = numOfSteps };
         RowIntervalOperationWrapper<T, TBuffer> wrappingOperation = new(top, bottom, verticalStep, bufferLength, allocator, in operation);
 
-        Parallel.For(
+        _ = Parallel.For(
             0,
             numOfSteps,
             parallelOptions,

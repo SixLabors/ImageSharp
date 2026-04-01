@@ -411,6 +411,18 @@ public partial class PngDecoderTests
         Assert.Equal(expectedPixelSize, imageInfo.PixelType.BitsPerPixel);
     }
 
+    [Fact]
+    public void Identify_AnimatedPng_ReadsFrameCountCorrectly()
+    {
+        TestFile testFile = TestFile.Create(TestImages.Png.AnimatedFrameCount);
+
+        using MemoryStream stream = new(testFile.Bytes, false);
+        ImageInfo imageInfo = Image.Identify(stream);
+
+        Assert.NotNull(imageInfo);
+        Assert.Equal(50, imageInfo.FrameMetadataCollection.Count);
+    }
+
     [Theory]
     [WithFile(TestImages.Png.Bad.MissingDataChunk, PixelTypes.Rgba32)]
     public void Decode_MissingDataChunk_ThrowsException<TPixel>(TestImageProvider<TPixel> provider)

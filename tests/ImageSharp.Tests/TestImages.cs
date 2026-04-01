@@ -76,6 +76,7 @@ public static class TestImages
         public const string BlendOverMultiple = "Png/animated/21-blend-over-multiple.png";
         public const string FrameOffset = "Png/animated/frame-offset.png";
         public const string DefaultNotAnimated = "Png/animated/default-not-animated.png";
+        public const string AnimatedFrameCount = "Png/animated/issue-animated-frame-count.png";
         public const string Issue2666 = "Png/issues/Issue_2666.png";
         public const string Issue2882 = "Png/issues/Issue_2882.png";
 

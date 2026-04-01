@@ -2,7 +2,6 @@
 // Licensed under the Six Labors Split License.
 
 using System.Buffers;
-using System.Buffers.Binary;
 using System.Runtime.CompilerServices;
 
 namespace SixLabors.ImageSharp.IO;

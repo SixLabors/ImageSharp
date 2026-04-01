@@ -454,11 +454,16 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
 
         // Next three bytes contain info's about the image.
         byte flagsByte0 = (byte)stream.ReadByte();
-        stream.ReadByte();
-        stream.ReadByte();
         if ((flagsByte0 & (1 << 1)) != 0)
         {
             ExrThrowHelper.ThrowNotSupported("Decoding tiled exr images is not supported yet!");
+        }
+
+        // Discard the next two bytes.
+        int bytesRead = stream.Read(this.buffer, 0, 2);
+        if (bytesRead != 2)
+        {
+            ExrThrowHelper.ThrowInvalidImageContentException("Could not read enough data for exr file!");
         }
 
         this.HeaderAttributes = this.ParseHeaderAttributes(stream);
@@ -632,7 +637,10 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
         }
 
         // Last byte should be a null byte.
-        stream.ReadByte();
+        if (stream.ReadByte() == -1)
+        {
+            ExrThrowHelper.ThrowInvalidImageContentException("Could not read enough data to read exr channel list!");
+        }
 
         return channels;
     }
@@ -648,9 +656,11 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
         byte pLinear = (byte)stream.ReadByte();
 
         // Next 3 bytes are reserved bytes and not use.
-        stream.ReadByte();
-        stream.ReadByte();
-        stream.ReadByte();
+        if (stream.Read(this.buffer, 0, 3) != 3)
+        {
+            ExrThrowHelper.ThrowInvalidImageContentException("Could not read enough data to read exr channel info!");
+        }
+
         bytesRead += 4;
 
         int xSampling = this.ReadSignedInteger(stream);

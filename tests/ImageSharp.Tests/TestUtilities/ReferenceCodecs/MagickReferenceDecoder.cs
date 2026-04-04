@@ -58,14 +58,14 @@ public class MagickReferenceDecoder : ImageDecoder
 
         MagickReadSettings settings = new()
         {
-            FrameCount = (int)options.MaxFrames
+            FrameCount = options.MaxFrames
         };
         settings.SetDefines(bmpReadDefines);
         settings.SetDefines(pngReadDefines);
 
         using MagickImageCollection magickImageCollection = new(stream, settings);
-        int imageWidth = magickImageCollection.Max(x => x.Width);
-        int imageHeight = magickImageCollection.Max(x => x.Height);
+        int imageWidth = (int)magickImageCollection.Max(x => x.Width);
+        int imageHeight = (int)magickImageCollection.Max(x => x.Height);
 
         List<ImageFrame<TPixel>> framesList = [];
         foreach (IMagickImage<ushort> magicFrame in magickImageCollection)
@@ -74,10 +74,10 @@ public class MagickReferenceDecoder : ImageDecoder
             framesList.Add(frame);
 
             Buffer2DRegion<TPixel> buffer = frame.PixelBuffer.GetRegion(
-                imageWidth - magicFrame.Width,
-                imageHeight - magicFrame.Height,
-                magicFrame.Width,
-                magicFrame.Height);
+                imageWidth - (int)magicFrame.Width,
+                imageHeight - (int)magicFrame.Height,
+                (int)magicFrame.Width,
+                (int)magicFrame.Height);
 
             using IUnsafePixelCollection<ushort> pixels = magicFrame.GetPixelsUnsafe();
             if (magicFrame.Depth is 12 or 10 or 8 or 6 or 5 or 4 or 3 or 2 or 1)

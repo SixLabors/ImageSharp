@@ -14,7 +14,7 @@ namespace SixLabors.ImageSharp.Tests.ProfilingSandbox;
 
 public class Program
 {
-    private class ConsoleOutput : ITestOutputHelper
+    private sealed class ConsoleOutput : ITestOutputHelper
     {
         public void WriteLine(string message) => Console.WriteLine(message);
 
@@ -33,7 +33,8 @@ public class Program
         try
         {
             // LoadResizeSaveParallelMemoryStress.Run(args);
-            ParallelProcessingStress.Run(args);
+            ParallelProcessingStress.RunExperiment(args);
+            // ParallelProcessingStress.Run(args);
         }
         catch (Exception ex)
         {

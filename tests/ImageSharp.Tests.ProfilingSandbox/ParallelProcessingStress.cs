@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Diagnostics;
+using System.Globalization;
 using System.Text;
 using CommandLine;
 using CommandLine.Text;
@@ -10,13 +11,13 @@ using SixLabors.ImageSharp.Processing;
 
 namespace SixLabors.ImageSharp.Tests.ProfilingSandbox;
 
-public class ParallelProcessingStress
+public sealed partial class ParallelProcessingStress
 {
     private CommandLineOptions options;
     private Configuration configuration;
     private ulong totalKiloPixels;
 
-    public static Stats Run(string[] args)
+    public static void Run(string[] args)
     {
         CommandLineOptions options = null;
         if (args.Length > 0)
@@ -24,13 +25,13 @@ public class ParallelProcessingStress
             options = CommandLineOptions.Parse(args);
             if (options == null)
             {
-                return null;
+                return;
             }
         }
 
         options ??= new CommandLineOptions();
         ParallelProcessingStress stress = new(options.Normalize());
-        return stress.Run();
+        stress.Run();
     }
 
     private ParallelProcessingStress(CommandLineOptions options)
@@ -66,7 +67,7 @@ public class ParallelProcessingStress
         stopwatch.Stop();
 
         double totalMegaPixels = this.totalKiloPixels / 1000.0;
-        Stats stats = new(stopwatch, totalMegaPixels, systemOptions.MaxDegreeOfParallelism);
+        Stats stats = new(stopwatch.ElapsedMilliseconds, totalMegaPixels, systemOptions.MaxDegreeOfParallelism);
         Console.WriteLine(stats.GetMarkdown());
         return stats;
     }
@@ -96,7 +97,7 @@ public class ParallelProcessingStress
         return image.Width * image.Height;
     }
 
-    public record Stats
+    private sealed record Stats
     {
         public double TotalSeconds { get; }
 
@@ -106,10 +107,10 @@ public class ParallelProcessingStress
 
         public double MegapixelsPerSecPerCpu { get; }
 
-        public Stats(Stopwatch sw, double totalMegapixels, int cpuCount)
+        public Stats(long elapsedMilliseconds, double totalMegapixels, int cpuCount)
         {
             this.TotalMegapixels = totalMegapixels;
-            this.TotalSeconds = sw.ElapsedMilliseconds / 1000.0;
+            this.TotalSeconds = elapsedMilliseconds / 1000.0;
             this.MegapixelsPerSec = totalMegapixels / this.TotalSeconds;
             this.MegapixelsPerSecPerCpu = this.MegapixelsPerSec / cpuCount;
         }
@@ -117,16 +118,19 @@ public class ParallelProcessingStress
         public string GetMarkdown()
         {
             StringBuilder bld = new();
-            bld.AppendLine($"| {nameof(this.TotalSeconds)} | {nameof(this.MegapixelsPerSec)} | {nameof(this.MegapixelsPerSecPerCpu)} |");
             bld.AppendLine(
+                CultureInfo.InvariantCulture,
+                $"| {nameof(this.TotalSeconds)} | {nameof(this.MegapixelsPerSec)} | {nameof(this.MegapixelsPerSecPerCpu)} |");
+            bld.AppendLine(
+                CultureInfo.InvariantCulture,
                 $"| {L(nameof(this.TotalSeconds))} | {L(nameof(this.MegapixelsPerSec))} | {L(nameof(this.MegapixelsPerSecPerCpu))} |");
 
             bld.Append("| ");
-            bld.AppendFormat(F(nameof(this.TotalSeconds)), this.TotalSeconds);
+            bld.AppendFormat(CultureInfo.InvariantCulture, F(nameof(this.TotalSeconds)), this.TotalSeconds);
             bld.Append(" | ");
-            bld.AppendFormat(F(nameof(this.MegapixelsPerSec)), this.MegapixelsPerSec);
+            bld.AppendFormat(CultureInfo.InvariantCulture, F(nameof(this.MegapixelsPerSec)), this.MegapixelsPerSec);
             bld.Append(" | ");
-            bld.AppendFormat(F(nameof(this.MegapixelsPerSecPerCpu)), this.MegapixelsPerSecPerCpu);
+            bld.AppendFormat(CultureInfo.InvariantCulture, F(nameof(this.MegapixelsPerSecPerCpu)), this.MegapixelsPerSecPerCpu);
             bld.AppendLine(" |");
 
             return bld.ToString();
@@ -136,9 +140,13 @@ public class ParallelProcessingStress
         }
     }
 
-    private enum Method { Edges, Crop }
+    public enum Method
+    {
+        Edges,
+        Crop
+    }
 
-    private class CommandLineOptions
+    private sealed class CommandLineOptions
     {
         [Option('m', "method", Required = false, Default = Method.Edges, HelpText = "The stress test method to run (Edges, Crop)")]
         public Method Method { get; set; } = Method.Edges;

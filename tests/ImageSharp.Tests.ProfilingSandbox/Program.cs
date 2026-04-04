@@ -32,20 +32,16 @@ public class Program
     {
         try
         {
-            LoadResizeSaveParallelMemoryStress.Run(args);
+            // LoadResizeSaveParallelMemoryStress.Run(args);
+            ParallelProcessingStress.Run(args);
         }
         catch (Exception ex)
         {
             Console.WriteLine(ex);
         }
 
-        // RunJpegEncoderProfilingTests();
-        // RunJpegColorProfilingTests();
-        // RunDecodeJpegProfilingTests();
         // RunToVector4ProfilingTest();
         // RunResizeProfilingTest();
-
-        // Console.ReadLine();
     }
 
     private static Version GetNetCoreVersion()

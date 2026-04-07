@@ -752,7 +752,7 @@ internal static partial class SimdUtils
         /// Implementation is based on MagicScaler code:
         /// https://github.com/saucecontrol/PhotoSauce/blob/b5811908041200488aa18fdfd17df5fc457415dc/src/MagicScaler/Magic/Processors/ConvertersFloat.cs#L80-L182
         /// </remarks>
-        internal static unsafe void ByteToNormalizedFloat(
+        internal static void ByteToNormalizedFloat(
             ReadOnlySpan<byte> source,
             Span<float> destination)
         {
@@ -1172,8 +1172,10 @@ internal static partial class SimdUtils
             Vector256<byte> rgb, rg, bx;
             Vector256<float> r, g, b;
 
+            // Each iteration consumes 8 Rgb24 pixels (24 bytes) but starts with a 32-byte load,
+            // so we need 3 extra pixels of addressable slack beyond the vectorized chunk.
             const int bytesPerRgbStride = 24;
-            nuint count = (uint)source.Length / 8;
+            nuint count = source.Length > 3 ? (uint)(source.Length - 3) / 8 : 0;
             for (nuint i = 0; i < count; i++)
             {
                 rgb = Avx2.PermuteVar8x32(Unsafe.AddByteOffset(ref rgbByteSpan, (uint)(bytesPerRgbStride * i)).AsUInt32(), extractToLanesMask).AsByte();
@@ -1193,10 +1195,10 @@ internal static partial class SimdUtils
             }
 
             int sliceCount = (int)(count * 8);
-            redChannel = redChannel.Slice(sliceCount);
-            greenChannel = greenChannel.Slice(sliceCount);
-            blueChannel = blueChannel.Slice(sliceCount);
-            source = source.Slice(sliceCount);
+            redChannel = redChannel[sliceCount..];
+            greenChannel = greenChannel[sliceCount..];
+            blueChannel = blueChannel[sliceCount..];
+            source = source[sliceCount..];
         }
     }
 }

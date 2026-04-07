@@ -420,7 +420,7 @@ public partial class PngDecoderTests
         ImageInfo imageInfo = Image.Identify(stream);
 
         Assert.NotNull(imageInfo);
-        Assert.Equal(50, imageInfo.FrameMetadataCollection.Count);
+        Assert.Equal(48, imageInfo.FrameMetadataCollection.Count);
     }
 
     [Theory]

@@ -523,10 +523,8 @@ internal static class AotCompilerTools
     private static void AotCompilePixelMaps<TPixel>()
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        default(EuclideanPixelMap<TPixel, HybridCache>).GetClosestColor(default, out _);
         default(EuclideanPixelMap<TPixel, AccurateCache>).GetClosestColor(default, out _);
         default(EuclideanPixelMap<TPixel, CoarseCache>).GetClosestColor(default, out _);
-        default(EuclideanPixelMap<TPixel, NullCache>).GetClosestColor(default, out _);
     }
 
     /// <summary>

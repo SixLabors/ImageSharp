@@ -368,7 +368,7 @@ public struct OctreeQuantizer<TPixel> : IQuantizer<TPixel>
         public void Dispose() => this.nodesOwner.Dispose();
 
         [StructLayout(LayoutKind.Sequential)]
-        internal unsafe struct OctreeNode
+        internal struct OctreeNode
         {
             public bool Leaf;
             public int PixelCount;

@@ -113,9 +113,9 @@ internal class SpectralConverter<TPixel> : SpectralConverter, IDisposable
             Span<TPixel> sourceRow = this.pixelBuffer.DangerousGetRowSpan(srcIndex);
             PixelOperations<TPixel>.Instance.UnpackIntoRgbPlanes(rLane, gLane, bLane, sourceRow);
 
-            rLane.Slice(paddingStartIndex).Fill(rLane[paddingStartIndex - 1]);
-            gLane.Slice(paddingStartIndex).Fill(gLane[paddingStartIndex - 1]);
-            bLane.Slice(paddingStartIndex).Fill(bLane[paddingStartIndex - 1]);
+            rLane.Slice(paddingStartIndex, paddedPixelsCount).Fill(rLane[paddingStartIndex - 1]);
+            gLane.Slice(paddingStartIndex, paddedPixelsCount).Fill(gLane[paddingStartIndex - 1]);
+            bLane.Slice(paddingStartIndex, paddedPixelsCount).Fill(bLane[paddingStartIndex - 1]);
 
             // Convert from rgb24 to target pixel type
             var values = new JpegColorConverterBase.ComponentValues(this.componentProcessors, y);

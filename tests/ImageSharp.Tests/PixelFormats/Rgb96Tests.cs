@@ -297,7 +297,10 @@ public class Rgb96Tests
         Assert.Equal(PixelAlphaRepresentation.None, info.AlphaRepresentation);
         Assert.Equal(PixelColorType.RGB, info.ColorType);
 
-        PixelComponentInfo componentInfo = info.ComponentInfo.Value;
+        PixelComponentInfo? maybeComponentInfo = info.ComponentInfo;
+        Assert.NotNull(maybeComponentInfo);
+        PixelComponentInfo componentInfo = maybeComponentInfo.Value;
+
         Assert.Equal(3, componentInfo.ComponentCount);
         Assert.Equal(0, componentInfo.Padding);
         Assert.Equal(32, componentInfo.GetComponentPrecision(0));

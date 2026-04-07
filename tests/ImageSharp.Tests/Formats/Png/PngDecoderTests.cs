@@ -423,6 +423,30 @@ public partial class PngDecoderTests
         Assert.Equal(48, imageInfo.FrameMetadataCollection.Count);
     }
 
+    [Fact]
+    public void Identify_AnimatedPngWithMaxFrames_ReadsFrameCountCorrectly()
+    {
+        TestFile testFile = TestFile.Create(TestImages.Png.AnimatedFrameCount);
+
+        using MemoryStream stream = new(testFile.Bytes, false);
+        ImageInfo imageInfo = Image.Identify(new DecoderOptions { MaxFrames = 40 }, stream);
+
+        Assert.NotNull(imageInfo);
+        Assert.Equal(40, imageInfo.FrameMetadataCollection.Count);
+    }
+
+    [Fact]
+    public void Load_AnimatedPngWithMaxFrames_ReadsFrameCountCorrectly()
+    {
+        TestFile testFile = TestFile.Create(TestImages.Png.AnimatedFrameCount);
+
+        using MemoryStream stream = new(testFile.Bytes, false);
+        using Image image = Image.Load(new DecoderOptions { MaxFrames = 40 }, stream);
+
+        Assert.NotNull(image);
+        Assert.Equal(40, image.Frames.Count);
+    }
+
     [Theory]
     [InlineData(1)]
     [InlineData(2)]

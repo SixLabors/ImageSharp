@@ -214,7 +214,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                             break;
                         case PngChunkType.FrameData:
                         {
-                            if (frameCount >= this.maxFrames)
+                            if (frameCount > this.maxFrames)
                             {
                                 goto EOF;
                             }
@@ -275,7 +275,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                                 previousFrameControl = currentFrameControl;
                             }
 
-                            if (frameCount >= this.maxFrames)
+                            if (frameCount > this.maxFrames)
                             {
                                 goto EOF;
                             }
@@ -402,7 +402,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                             break;
                         case PngChunkType.FrameControl:
                             ++frameCount;
-                            if (frameCount >= this.maxFrames)
+                            if (frameCount > this.maxFrames)
                             {
                                 break;
                             }
@@ -411,8 +411,12 @@ internal sealed class PngDecoderCore : ImageDecoderCore
 
                             break;
                         case PngChunkType.FrameData:
-                            if (frameCount >= this.maxFrames)
+                            if (frameCount > this.maxFrames)
                             {
+                                // Must skip the chunk data even when we've hit maxFrames, because TryReadChunk
+                                // restores the stream position to the start of the fdAT data after CRC validation.
+                                this.SkipChunkDataAndCrc(chunk);
+                                this.SkipRemainingFrameDataChunks(buffer);
                                 break;
                             }
 

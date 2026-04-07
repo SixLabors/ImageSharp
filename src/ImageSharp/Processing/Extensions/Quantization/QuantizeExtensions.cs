@@ -12,12 +12,12 @@ namespace SixLabors.ImageSharp.Processing;
 public static class QuantizeExtensions
 {
     /// <summary>
-    /// Applies quantization to the image using the <see cref="OctreeQuantizer"/>.
+    /// Applies quantization to the image using the <see cref="HexadecatreeQuantizer"/>.
     /// </summary>
     /// <param name="source">The current image processing context.</param>
     /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
     public static IImageProcessingContext Quantize(this IImageProcessingContext source) =>
-        Quantize(source, KnownQuantizers.Octree);
+        Quantize(source, KnownQuantizers.Hexadecatree);
 
     /// <summary>
     /// Applies quantization to the image.
@@ -29,7 +29,7 @@ public static class QuantizeExtensions
         source.ApplyProcessor(new QuantizeProcessor(quantizer));
 
     /// <summary>
-    /// Applies quantization to the image using the <see cref="OctreeQuantizer"/>.
+    /// Applies quantization to the image using the <see cref="HexadecatreeQuantizer"/>.
     /// </summary>
     /// <param name="source">The current image processing context.</param>
     /// <param name="rectangle">
@@ -37,7 +37,7 @@ public static class QuantizeExtensions
     /// </param>
     /// <returns>The <see cref="IImageProcessingContext"/>.</returns>
     public static IImageProcessingContext Quantize(this IImageProcessingContext source, Rectangle rectangle) =>
-        Quantize(source, KnownQuantizers.Octree, rectangle);
+        Quantize(source, KnownQuantizers.Hexadecatree, rectangle);
 
     /// <summary>
     /// Applies quantization to the image.

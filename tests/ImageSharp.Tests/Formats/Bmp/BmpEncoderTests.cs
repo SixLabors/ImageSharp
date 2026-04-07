@@ -292,7 +292,7 @@ public class BmpEncoderTests
 
     [Theory]
     [WithFile(Bit32Rgb, PixelTypes.Rgba32)]
-    public void Encode_8BitColor_WithOctreeQuantizer<TPixel>(TestImageProvider<TPixel> provider)
+    public void Encode_8BitColor_WithHexadecatreeQuantizer<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         if (!TestEnvironment.Is64BitProcess)
@@ -304,7 +304,7 @@ public class BmpEncoderTests
         BmpEncoder encoder = new()
         {
             BitsPerPixel = BmpBitsPerPixel.Bit8,
-            Quantizer = new OctreeQuantizer()
+            Quantizer = new HexadecatreeQuantizer()
         };
         string actualOutputFile = provider.Utility.SaveTestOutputFile(image, "bmp", encoder, appendPixelTypeToFileName: false);
 
@@ -385,7 +385,7 @@ public class BmpEncoderTests
         {
             BitsPerPixel = bitsPerPixel,
             SupportTransparency = false,
-            Quantizer = KnownQuantizers.Octree
+            Quantizer = KnownQuantizers.Hexadecatree
         };
         image.SaveAsBmp(reencodedStream, encoder);
         reencodedStream.Seek(0, SeekOrigin.Begin);
@@ -478,7 +478,7 @@ public class BmpEncoderTests
         {
             BitsPerPixel = bitsPerPixel,
             SupportTransparency = supportTransparency,
-            Quantizer = quantizer ?? KnownQuantizers.Octree
+            Quantizer = quantizer ?? KnownQuantizers.Hexadecatree
         };
 
         // Does DebugSave & load reference CompareToReferenceInput():

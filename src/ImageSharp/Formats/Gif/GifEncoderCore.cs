@@ -117,7 +117,7 @@ internal sealed class GifEncoderCore
 
         if (globalQuantizer is null)
         {
-            // Is this a gif with color information. If so use that, otherwise use octree.
+            // Is this a gif with color information. If so use that, otherwise use the adaptive hexadecatree quantizer.
             if (gifMetadata.ColorTableMode == FrameColorTableMode.Global && gifMetadata.GlobalColorTable?.Length > 0)
             {
                 int ti = GetTransparentIndex(quantized, frameMetadata);
@@ -132,12 +132,12 @@ internal sealed class GifEncoderCore
                 }
                 else
                 {
-                    globalQuantizer = new OctreeQuantizer(options);
+                    globalQuantizer = new HexadecatreeQuantizer(options);
                 }
             }
             else
             {
-                globalQuantizer = new OctreeQuantizer(options);
+                globalQuantizer = new HexadecatreeQuantizer(options);
             }
         }
 

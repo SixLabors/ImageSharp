@@ -63,8 +63,12 @@ public class ImageInfo
     public int Height => this.Size.Height;
 
     /// <summary>
-    /// Gets the number of frames in the image.
+    /// Gets the number of frame metadata entries available for the image.
     /// </summary>
+    /// <remarks>
+    /// This value is the same as <see cref="FrameMetadataCollection"/> count and may be <c>0</c> when frame
+    /// metadata was not populated by the decoder.
+    /// </remarks>
     public int FrameCount => this.FrameMetadataCollection.Count;
 
     /// <summary>
@@ -73,8 +77,12 @@ public class ImageInfo
     public ImageMetadata Metadata { get; }
 
     /// <summary>
-    /// Gets the collection of metadata associated with individual image frames.
+    /// Gets the metadata associated with the decoded image frames, if available.
     /// </summary>
+    /// <remarks>
+    /// For multi-frame formats, decoders populate one entry per decoded frame. For single-frame formats, this
+    /// collection is typically empty.
+    /// </remarks>
     public IReadOnlyList<ImageFrameMetadata> FrameMetadataCollection { get; }
 
     /// <summary>
@@ -86,4 +94,24 @@ public class ImageInfo
     /// Gets the bounds of the image.
     /// </summary>
     public Rectangle Bounds => new(Point.Empty, this.Size);
+
+    /// <summary>
+    /// Gets the total number of bytes required to store the image pixels in memory.
+    /// </summary>
+    /// <remarks>
+    /// This reports the in-memory size of the pixel data represented by this <see cref="ImageInfo"/>, not the
+    /// encoded size of the image file. The value is computed from the image dimensions and
+    /// <see cref="PixelType"/>. When <see cref="FrameMetadataCollection"/> contains decoded frame metadata, the
+    /// per-frame size is multiplied by that count. Otherwise, the value is the in-memory size of the single
+    /// image frame represented by this <see cref="ImageInfo"/>.
+    /// </remarks>
+    /// <returns>The total number of bytes required to store the image pixels in memory.</returns>
+    public long GetPixelMemorySize()
+    {
+        int count = this.FrameMetadataCollection.Count > 0
+            ? this.FrameMetadataCollection.Count
+            : 1;
+
+        return (long)this.Size.Width * this.Size.Height * (this.PixelType.BitsPerPixel / 8) * count;
+    }
 }

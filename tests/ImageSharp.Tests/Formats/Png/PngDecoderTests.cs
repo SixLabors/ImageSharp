@@ -411,6 +411,91 @@ public partial class PngDecoderTests
         Assert.Equal(expectedPixelSize, imageInfo.PixelType.BitsPerPixel);
     }
 
+    [Fact]
+    public void Identify_AnimatedPng_ReadsFrameCountCorrectly()
+    {
+        TestFile testFile = TestFile.Create(TestImages.Png.AnimatedFrameCount);
+
+        using MemoryStream stream = new(testFile.Bytes, false);
+        ImageInfo imageInfo = Image.Identify(stream);
+
+        Assert.NotNull(imageInfo);
+        Assert.Equal(48, imageInfo.FrameMetadataCollection.Count);
+    }
+
+    [Fact]
+    public void Identify_AnimatedPngWithMaxFrames_ReadsFrameCountCorrectly()
+    {
+        TestFile testFile = TestFile.Create(TestImages.Png.AnimatedFrameCount);
+
+        using MemoryStream stream = new(testFile.Bytes, false);
+        ImageInfo imageInfo = Image.Identify(new DecoderOptions { MaxFrames = 40 }, stream);
+
+        Assert.NotNull(imageInfo);
+        Assert.Equal(40, imageInfo.FrameMetadataCollection.Count);
+    }
+
+    [Fact]
+    public void Load_AnimatedPngWithMaxFrames_ReadsFrameCountCorrectly()
+    {
+        TestFile testFile = TestFile.Create(TestImages.Png.AnimatedFrameCount);
+
+        using MemoryStream stream = new(testFile.Bytes, false);
+        using Image image = Image.Load(new DecoderOptions { MaxFrames = 40 }, stream);
+
+        Assert.NotNull(image);
+        Assert.Equal(40, image.Frames.Count);
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(5)]
+    [InlineData(10)]
+    [InlineData(100)]
+    public void Identify_AnimatedPng_FrameCount_MatchesDecode(int frameCount)
+    {
+        using Image<Rgba32> image = new(10, 10, Color.Red.ToPixel<Rgba32>());
+        for (int i = 1; i < frameCount; i++)
+        {
+            using ImageFrame<Rgba32> frame = new(Configuration.Default, 10, 10);
+            image.Frames.AddFrame(frame);
+        }
+
+        using MemoryStream stream = new();
+        image.Save(stream, new PngEncoder());
+        stream.Position = 0;
+
+        ImageInfo imageInfo = Image.Identify(stream);
+
+        Assert.NotNull(imageInfo);
+        Assert.Equal(frameCount, imageInfo.FrameMetadataCollection.Count);
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(5)]
+    [InlineData(10)]
+    [InlineData(100)]
+    public void Decode_AnimatedPng_FrameCount(int frameCount)
+    {
+        using Image<Rgba32> image = new(10, 10, Color.Red.ToPixel<Rgba32>());
+        for (int i = 1; i < frameCount; i++)
+        {
+            using ImageFrame<Rgba32> frame = new(Configuration.Default, 10, 10);
+            image.Frames.AddFrame(frame);
+        }
+
+        using MemoryStream stream = new();
+        image.Save(stream, new PngEncoder());
+        stream.Position = 0;
+
+        using Image<Rgba32> decoded = Image.Load<Rgba32>(stream);
+
+        Assert.Equal(frameCount, decoded.Frames.Count);
+    }
+
     [Theory]
     [WithFile(TestImages.Png.Bad.MissingDataChunk, PixelTypes.Rgba32)]
     public void Decode_MissingDataChunk_ThrowsException<TPixel>(TestImageProvider<TPixel> provider)

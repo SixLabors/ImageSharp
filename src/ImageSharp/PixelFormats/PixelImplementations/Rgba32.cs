@@ -325,7 +325,8 @@ public partial struct Rgba32 : IPixel<Rgba32>, IPackedVector<uint>
         {
             R = ColorNumerics.From32BitTo8Bit(source.R),
             G = ColorNumerics.From32BitTo8Bit(source.G),
-            B = ColorNumerics.From32BitTo8Bit(source.B)
+            B = ColorNumerics.From32BitTo8Bit(source.B),
+            A = byte.MaxValue
         };
 
     /// <summary>

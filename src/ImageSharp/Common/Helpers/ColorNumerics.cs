@@ -12,8 +12,6 @@ namespace SixLabors.ImageSharp;
 /// </summary>
 internal static class ColorNumerics
 {
-    private const float Scale32Bit = 1f / 0xFFFFFFFF;
-
     /// <summary>
     /// Vector for converting pixel to gray value as specified by
     /// ITU-R Recommendation BT.709.
@@ -141,7 +139,7 @@ internal static class ColorNumerics
     /// <param name="component">The 32 bit component value.</param>
     /// <returns>The <see cref="byte"/> value.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static byte From32BitTo8Bit(uint component) => (byte)(component * Scale32Bit);
+    public static byte From32BitTo8Bit(uint component) => (byte)(component >> 24);
 
     /// <summary>
     /// Scales a value from an 8 bit <see cref="byte"/> to
@@ -152,6 +150,26 @@ internal static class ColorNumerics
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ushort From8BitTo16Bit(byte component)
         => (ushort)(component * 257);
+
+    /// <summary>
+    /// Scales a value from an 16 bit <see cref="byte"/> to
+    /// an 16 bit <see cref="uint"/> equivalent.
+    /// </summary>
+    /// <param name="component">The 16 bit component value.</param>
+    /// <returns>The 32 bit <see cref="uint"/></returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static uint From16BitTo32Bit(ushort component)
+        => (uint)(component * 65537);
+
+    /// <summary>
+    /// Scales a value from an 8 bit <see cref="byte"/> to
+    /// an 32 bit <see cref="ushort"/> equivalent.
+    /// </summary>
+    /// <param name="component">The 8 bit component value.</param>
+    /// <returns>The 32 bit <see cref="uint"/></returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static uint From8BitTo32Bit(byte component)
+        => (uint)(component * 16843009);
 
     /// <summary>
     /// Returns how many bits are required to store the specified number of colors.

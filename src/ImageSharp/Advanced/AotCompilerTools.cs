@@ -54,7 +54,7 @@ internal static class AotCompilerTools
     /// <remarks>
     /// This method doesn't actually do anything but serves an important purpose...
     /// If you are running ImageSharp on iOS and try to call SaveAsGif, it will throw an exception:
-    /// "Attempting to JIT compile method... OctreeFrameQuantizer.ConstructPalette... while running in aot-only mode."
+    /// "Attempting to JIT compile method... HexadecatreeQuantizer.ConstructPalette... while running in aot-only mode."
     /// The reason this happens is the SaveAsGif method makes heavy use of generics, which are too confusing for the AoT
     /// compiler used on Xamarin.iOS. It spins up the JIT compiler to try and figure it out, but that is an illegal op on
     /// iOS so it bombs out.
@@ -479,7 +479,7 @@ internal static class AotCompilerTools
     private static void AotCompileQuantizers<TPixel>()
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        AotCompileQuantizer<TPixel, OctreeQuantizer>();
+        AotCompileQuantizer<TPixel, HexadecatreeQuantizer>();
         AotCompileQuantizer<TPixel, PaletteQuantizer>();
         AotCompileQuantizer<TPixel, WebSafePaletteQuantizer>();
         AotCompileQuantizer<TPixel, WernerPaletteQuantizer>();
@@ -549,8 +549,8 @@ internal static class AotCompilerTools
         where TPixel : unmanaged, IPixel<TPixel>
         where TDither : struct, IDither
     {
-        OctreeQuantizer<TPixel> octree = default;
-        default(TDither).ApplyQuantizationDither<OctreeQuantizer<TPixel>, TPixel>(ref octree, default, default, default);
+        HexadecatreeQuantizer<TPixel> hexadecatree = default;
+        default(TDither).ApplyQuantizationDither<HexadecatreeQuantizer<TPixel>, TPixel>(ref hexadecatree, default, default, default);
 
         PaletteQuantizer<TPixel> palette = default;
         default(TDither).ApplyQuantizationDither<PaletteQuantizer<TPixel>, TPixel>(ref palette, default, default, default);

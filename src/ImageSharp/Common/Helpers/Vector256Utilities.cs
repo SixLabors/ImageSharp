@@ -116,6 +116,28 @@ internal static class Vector256_
     }
 
     /// <summary>
+    /// Performs a multiplication and a negated addition of the <see cref="Vector256{Single}"/>.
+    /// </summary>
+    /// <remarks>ret = va - (vm0 * vm1)</remarks>
+    /// <param name="va">The vector to add to the negated intermediate result.</param>
+    /// <param name="vm0">The first vector to multiply.</param>
+    /// <param name="vm1">The second vector to multiply.</param>
+    /// <returns>The <see cref="Vector256{T}"/>.</returns>
+    [MethodImpl(InliningOptions.ShortMethod)]
+    public static Vector256<float> MultiplyAddNegated(
+        Vector256<float> va,
+        Vector256<float> vm0,
+        Vector256<float> vm1)
+    {
+        if (Fma.IsSupported)
+        {
+            return Fma.MultiplyAddNegated(vm0, vm1, va);
+        }
+
+        return va - (vm0 * vm1);
+    }
+
+    /// <summary>
     /// Performs a multiplication and a subtraction of the <see cref="Vector256{Single}"/>.
     /// </summary>
     /// <remarks>ret = (vm0 * vm1) - vs</remarks>

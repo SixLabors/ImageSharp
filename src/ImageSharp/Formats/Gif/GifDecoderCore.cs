@@ -468,7 +468,7 @@ internal sealed class GifDecoderCore : ImageDecoderCore
             int length = this.currentLocalColorTableSize = this.imageDescriptor.LocalColorTableSize * 3;
             this.currentLocalColorTable ??= this.configuration.MemoryAllocator.Allocate<byte>(768, AllocationOptions.Clean);
             stream.Read(this.currentLocalColorTable.GetSpan()[..length]);
-            rawColorTable = this.currentLocalColorTable!.GetSpan()[..length];
+            rawColorTable = this.currentLocalColorTable.GetSpan()[..length];
         }
         else if (this.globalColorTable != null)
         {

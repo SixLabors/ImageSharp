@@ -19,7 +19,7 @@ public partial struct Rgba128 : IPixel<Rgba128>, IEquatable<Rgba128>
 {
     private const float InvMax = 1.0f / uint.MaxValue;
 
-    private const double Max = uint.MaxValue;
+    private const float Max = uint.MaxValue;
 
     /// <summary>
     /// Gets the red component.
@@ -94,62 +94,86 @@ public partial struct Rgba128 : IPixel<Rgba128>, IEquatable<Rgba128>
     public static Rgba128 FromScaledVector4(Vector4 source) => FromVector4(source);
 
     /// <inheritdoc/>
-    public static Rgba128 FromVector4(Vector4 source) => FromVector4(source);
+    public static Rgba128 FromVector4(Vector4 source)
+    {
+        source = Numerics.Clamp(source, Vector4.Zero, Vector4.One) * Max;
+        return new Rgba128((uint)MathF.Round(source.X), (uint)MathF.Round(source.Y), (uint)MathF.Round(source.Z), (uint)MathF.Round(source.W));
+    }
 
     /// <inheritdoc/>
-    public static Rgba128 FromAbgr32(Abgr32 source) => new(source.R, source.G, source.B, source.A);
+    public static Rgba128 FromAbgr32(Abgr32 source)
+        => new(ColorNumerics.From8BitTo32Bit(source.R), ColorNumerics.From8BitTo32Bit(source.G), ColorNumerics.From8BitTo32Bit(source.B), ColorNumerics.From8BitTo32Bit(source.A));
 
     /// <inheritdoc/>
-    public static Rgba128 FromArgb32(Argb32 source) => new(source.R, source.G, source.B, source.A);
+    public static Rgba128 FromArgb32(Argb32 source)
+        => new(ColorNumerics.From8BitTo32Bit(source.R), ColorNumerics.From8BitTo32Bit(source.G), ColorNumerics.From8BitTo32Bit(source.B), ColorNumerics.From8BitTo32Bit(source.A));
 
     /// <inheritdoc/>
     public static Rgba128 FromBgra5551(Bgra5551 source) => FromScaledVector4(source.ToScaledVector4());
 
     /// <inheritdoc/>
-    public static Rgba128 FromBgr24(Bgr24 source) => new(source.R, source.G, source.B, uint.MaxValue);
+    public static Rgba128 FromBgr24(Bgr24 source)
+        => new(ColorNumerics.From8BitTo32Bit(source.R), ColorNumerics.From8BitTo32Bit(source.G), ColorNumerics.From8BitTo32Bit(source.B), uint.MaxValue);
 
     /// <inheritdoc/>
-    public static Rgba128 FromBgra32(Bgra32 source) => new(source.R, source.G, source.B, source.A);
+    public static Rgba128 FromBgra32(Bgra32 source)
+        => new(ColorNumerics.From8BitTo32Bit(source.R), ColorNumerics.From8BitTo32Bit(source.G), ColorNumerics.From8BitTo32Bit(source.B), ColorNumerics.From8BitTo32Bit(source.A));
 
     /// <inheritdoc/>
     public static Rgba128 FromL8(L8 source)
     {
-        ushort rgb = ColorNumerics.From8BitTo16Bit(source.PackedValue);
+        uint rgb = ColorNumerics.From8BitTo32Bit(source.PackedValue);
         return new Rgba128(rgb, rgb, rgb, rgb);
     }
 
     /// <inheritdoc/>
-    public static Rgba128 FromL16(L16 source) => new(source.PackedValue, source.PackedValue, source.PackedValue, source.PackedValue);
+    public static Rgba128 FromL16(L16 source)
+    {
+        uint rgb = ColorNumerics.From16BitTo32Bit(source.PackedValue);
+        return new(rgb, rgb, rgb, rgb);
+    }
 
     /// <inheritdoc/>
-    public static Rgba128 FromLa16(La16 source) => new(source.PackedValue, source.PackedValue, source.PackedValue, source.PackedValue);
+    public static Rgba128 FromLa16(La16 source)
+    {
+        uint rgb = ColorNumerics.From8BitTo32Bit((byte)source.PackedValue);
+        return new(rgb, rgb, rgb, rgb);
+    }
 
     /// <inheritdoc/>
-    public static Rgba128 FromLa32(La32 source) => new(source.L, source.L, source.L, source.L);
+    public static Rgba128 FromLa32(La32 source)
+    {
+        uint rgb = ColorNumerics.From16BitTo32Bit(source.L);
+        return new(rgb, rgb, rgb, rgb);
+    }
 
     /// <inheritdoc/>
-    public static Rgba128 FromRgb24(Rgb24 source) => new(source.R, source.G, source.B, uint.MaxValue);
+    public static Rgba128 FromRgb24(Rgb24 source)
+        => new(ColorNumerics.From8BitTo32Bit(source.R), ColorNumerics.From8BitTo32Bit(source.G), ColorNumerics.From8BitTo32Bit(source.B), uint.MaxValue);
 
     /// <inheritdoc/>
-    public static Rgba128 FromRgba32(Rgba32 source) => new(source.R, source.G, source.B, source.A);
+    public static Rgba128 FromRgba32(Rgba32 source)
+        => new(ColorNumerics.From8BitTo32Bit(source.R), ColorNumerics.From8BitTo32Bit(source.G), ColorNumerics.From8BitTo32Bit(source.B), ColorNumerics.From8BitTo32Bit(source.A));
 
     /// <inheritdoc/>
-    public static Rgba128 FromRgb48(Rgb48 source) => new(source.R, source.G, source.B, uint.MaxValue);
+    public static Rgba128 FromRgb48(Rgb48 source)
+        => new(ColorNumerics.From16BitTo32Bit(source.R), ColorNumerics.From16BitTo32Bit(source.G), ColorNumerics.From16BitTo32Bit(source.B), uint.MaxValue);
 
     /// <inheritdoc/>
-    public static Rgba128 FromRgba64(Rgba64 source) => new(source.R, source.G, source.B, source.A);
+    public static Rgba128 FromRgba64(Rgba64 source)
+        => new(ColorNumerics.From16BitTo32Bit(source.R), ColorNumerics.From16BitTo32Bit(source.G), ColorNumerics.From16BitTo32Bit(source.B), ColorNumerics.From16BitTo32Bit(source.A));
 
     /// <inheritdoc/>
     public static PixelTypeInfo GetPixelTypeInfo() => PixelTypeInfo.Create<Rgba128>(
-            PixelComponentInfo.Create<Rgba128>(4, 32, 32, 32),
-            PixelColorType.RGB,
+            PixelComponentInfo.Create<Rgba128>(4, 32, 32, 32, 32),
+            PixelColorType.RGB | PixelColorType.Alpha,
             PixelAlphaRepresentation.Unassociated);
 
     /// <inheritdoc/>
-    public readonly Rgba32 ToRgba32() => throw new NotImplementedException();
+    public readonly Rgba32 ToRgba32() => Rgba32.FromRgba128(this);
 
     /// <inheritdoc/>
-    public readonly Vector4 ToScaledVector4() => throw new NotImplementedException();
+    public readonly Vector4 ToScaledVector4() => this.ToVector4();
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

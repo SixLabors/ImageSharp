@@ -690,7 +690,7 @@ internal static class Numerics
     /// </summary>
     /// <param name="vectors">The span of vectors</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static unsafe void CubePowOnXYZ(Span<Vector4> vectors)
+    public static void CubePowOnXYZ(Span<Vector4> vectors)
     {
         ref Vector4 baseRef = ref MemoryMarshal.GetReference(vectors);
         ref Vector4 endRef = ref Unsafe.Add(ref baseRef, (uint)vectors.Length);

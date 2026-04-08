@@ -89,7 +89,34 @@ var blenders = new []{
         {
             amount = Numerics.Clamp(amount, 0, 1);
 
-            if (Avx2.IsSupported && destination.Length >= 2)
+            if (Avx512F.IsSupported && destination.Length >= 4)
+            {
+                // Divide by 4 as 4 elements per Vector4 and 16 per Vector512<float>
+                ref Vector512<float> destinationBase = ref Unsafe.As<Vector4, Vector512<float>>(ref MemoryMarshal.GetReference(destination));
+                ref Vector512<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 4u);
+
+                ref Vector512<float> backgroundBase = ref Unsafe.As<Vector4, Vector512<float>>(ref MemoryMarshal.GetReference(background));
+                ref Vector512<float> sourceBase = ref Unsafe.As<Vector4, Vector512<float>>(ref MemoryMarshal.GetReference(source));
+                Vector512<float> opacity = Vector512.Create(amount);
+
+                while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
+                {
+                    destinationBase = PorterDuffFunctions.<#=blender_composer#>(backgroundBase, sourceBase, opacity);
+                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
+                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
+                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                }
+
+                int remainder = Numerics.Modulo4(destination.Length);
+                if (remainder != 0)
+                {
+                    for (int i = destination.Length - remainder; i < destination.Length; i++)
+                    {
+                        destination[i] = PorterDuffFunctions.<#=blender_composer#>(background[i], source[i], amount);
+                    }
+                }
+            }
+            else if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
@@ -128,7 +155,37 @@ var blenders = new []{
         {
             amount = Numerics.Clamp(amount, 0, 1);
 
-            if (Avx2.IsSupported && destination.Length >= 2)
+            if (Avx512F.IsSupported && destination.Length >= 4)
+            {
+                // Divide by 4 as 4 elements per Vector4 and 16 per Vector512<float>
+                ref Vector512<float> destinationBase = ref Unsafe.As<Vector4, Vector512<float>>(ref MemoryMarshal.GetReference(destination));
+                ref Vector512<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 4u);
+
+                ref Vector512<float> backgroundBase = ref Unsafe.As<Vector4, Vector512<float>>(ref MemoryMarshal.GetReference(background));
+                Vector512<float> sourceBase = Vector512.Create(
+                    source.X, source.Y, source.Z, source.W,
+                    source.X, source.Y, source.Z, source.W,
+                    source.X, source.Y, source.Z, source.W,
+                    source.X, source.Y, source.Z, source.W);
+                Vector512<float> opacity = Vector512.Create(amount);
+
+                while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
+                {
+                    destinationBase = PorterDuffFunctions.<#=blender_composer#>(backgroundBase, sourceBase, opacity);
+                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
+                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
+                }
+
+                int remainder = Numerics.Modulo4(destination.Length);
+                if (remainder != 0)
+                {
+                    for (int i = destination.Length - remainder; i < destination.Length; i++)
+                    {
+                        destination[i] = PorterDuffFunctions.<#=blender_composer#>(background[i], source, amount);
+                    }
+                }
+            }
+            else if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
@@ -164,7 +221,51 @@ var blenders = new []{
         /// <inheritdoc />
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, ReadOnlySpan<float> amount)
         {
-            if (Avx2.IsSupported && destination.Length >= 2)
+            if (Avx512F.IsSupported && destination.Length >= 4)
+            {
+                // Divide by 4 as 4 elements per Vector4 and 16 per Vector512<float>
+                ref Vector512<float> destinationBase = ref Unsafe.As<Vector4, Vector512<float>>(ref MemoryMarshal.GetReference(destination));
+                ref Vector512<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 4u);
+
+                ref Vector512<float> backgroundBase = ref Unsafe.As<Vector4, Vector512<float>>(ref MemoryMarshal.GetReference(background));
+                ref Vector512<float> sourceBase = ref Unsafe.As<Vector4, Vector512<float>>(ref MemoryMarshal.GetReference(source));
+                ref float amountBase = ref MemoryMarshal.GetReference(amount);
+
+                Vector512<float> vOne = Vector512.Create(1F);
+
+                while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
+                {
+                    float amount0 = amountBase;
+                    float amount1 = Unsafe.Add(ref amountBase, 1);
+                    float amount2 = Unsafe.Add(ref amountBase, 2);
+                    float amount3 = Unsafe.Add(ref amountBase, 3);
+
+                    // We need to create a Vector512<float> containing the current four amount values
+                    // taking up each quarter of the Vector512<float> and then clamp them.
+                    Vector512<float> opacity = Vector512.Create(
+                        amount0, amount0, amount0, amount0,
+                        amount1, amount1, amount1, amount1,
+                        amount2, amount2, amount2, amount2,
+                        amount3, amount3, amount3, amount3);
+                    opacity = Vector512.Min(Vector512.Max(Vector512<float>.Zero, opacity), vOne);
+
+                    destinationBase = PorterDuffFunctions.<#=blender_composer#>(backgroundBase, sourceBase, opacity);
+                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
+                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
+                    sourceBase = ref Unsafe.Add(ref sourceBase, 1);
+                    amountBase = ref Unsafe.Add(ref amountBase, 4);
+                }
+
+                int remainder = Numerics.Modulo4(destination.Length);
+                if (remainder != 0)
+                {
+                    for (int i = destination.Length - remainder; i < destination.Length; i++)
+                    {
+                        destination[i] = PorterDuffFunctions.<#=blender_composer#>(background[i], source[i], Numerics.Clamp(amount[i], 0, 1F));
+                    }
+                }
+            }
+            else if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));
@@ -211,7 +312,54 @@ var blenders = new []{
         /// <inheritdoc />
         protected override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, Vector4 source, ReadOnlySpan<float> amount)
         {
-            if (Avx2.IsSupported && destination.Length >= 2)
+            if (Avx512F.IsSupported && destination.Length >= 4)
+            {
+                // Divide by 4 as 4 elements per Vector4 and 16 per Vector512<float>
+                ref Vector512<float> destinationBase = ref Unsafe.As<Vector4, Vector512<float>>(ref MemoryMarshal.GetReference(destination));
+                ref Vector512<float> destinationLast = ref Unsafe.Add(ref destinationBase, (uint)destination.Length / 4u);
+
+                ref Vector512<float> backgroundBase = ref Unsafe.As<Vector4, Vector512<float>>(ref MemoryMarshal.GetReference(background));
+                ref float amountBase = ref MemoryMarshal.GetReference(amount);
+
+                Vector512<float> sourceBase = Vector512.Create(
+                    source.X, source.Y, source.Z, source.W,
+                    source.X, source.Y, source.Z, source.W,
+                    source.X, source.Y, source.Z, source.W,
+                    source.X, source.Y, source.Z, source.W);
+                Vector512<float> vOne = Vector512.Create(1F);
+
+                while (Unsafe.IsAddressLessThan(ref destinationBase, ref destinationLast))
+                {
+                    float amount0 = amountBase;
+                    float amount1 = Unsafe.Add(ref amountBase, 1);
+                    float amount2 = Unsafe.Add(ref amountBase, 2);
+                    float amount3 = Unsafe.Add(ref amountBase, 3);
+
+                    // We need to create a Vector512<float> containing the current four amount values
+                    // taking up each quarter of the Vector512<float> and then clamp them.
+                    Vector512<float> opacity = Vector512.Create(
+                        amount0, amount0, amount0, amount0,
+                        amount1, amount1, amount1, amount1,
+                        amount2, amount2, amount2, amount2,
+                        amount3, amount3, amount3, amount3);
+                    opacity = Vector512.Min(Vector512.Max(Vector512<float>.Zero, opacity), vOne);
+
+                    destinationBase = PorterDuffFunctions.<#=blender_composer#>(backgroundBase, sourceBase, opacity);
+                    destinationBase = ref Unsafe.Add(ref destinationBase, 1);
+                    backgroundBase = ref Unsafe.Add(ref backgroundBase, 1);
+                    amountBase = ref Unsafe.Add(ref amountBase, 4);
+                }
+
+                int remainder = Numerics.Modulo4(destination.Length);
+                if (remainder != 0)
+                {
+                    for (int i = destination.Length - remainder; i < destination.Length; i++)
+                    {
+                        destination[i] = PorterDuffFunctions.<#=blender_composer#>(background[i], source, Numerics.Clamp(amount[i], 0, 1F));
+                    }
+                }
+            }
+            else if (Avx2.IsSupported && destination.Length >= 2)
             {
                 // Divide by 2 as 4 elements per Vector4 and 8 per Vector256<float>
                 ref Vector256<float> destinationBase = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference(destination));

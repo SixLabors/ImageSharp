@@ -602,51 +602,6 @@ internal static partial class SimdUtils
         }
 
         /// <summary>
-        /// Performs a multiplication and an addition of the <see cref="Vector256{Single}"/>.
-        /// TODO: Fix. The arguments are in a different order to the FMA intrinsic.
-        /// </summary>
-        /// <remarks>ret = (vm0 * vm1) + va</remarks>
-        /// <param name="va">The vector to add to the intermediate result.</param>
-        /// <param name="vm0">The first vector to multiply.</param>
-        /// <param name="vm1">The second vector to multiply.</param>
-        /// <returns>The <see cref="Vector256{T}"/>.</returns>
-        [MethodImpl(InliningOptions.AlwaysInline)]
-        public static Vector256<float> MultiplyAdd(
-            Vector256<float> va,
-            Vector256<float> vm0,
-            Vector256<float> vm1)
-        {
-            if (Fma.IsSupported)
-            {
-                return Fma.MultiplyAdd(vm1, vm0, va);
-            }
-
-            return va + (vm0 * vm1);
-        }
-
-        /// <summary>
-        /// Performs a multiplication and a negated addition of the <see cref="Vector256{Single}"/>.
-        /// </summary>
-        /// <remarks>ret = c - (a * b)</remarks>
-        /// <param name="a">The first vector to multiply.</param>
-        /// <param name="b">The second vector to multiply.</param>
-        /// <param name="c">The vector to add negated to the intermediate result.</param>
-        /// <returns>The <see cref="Vector256{T}"/>.</returns>
-        [MethodImpl(InliningOptions.ShortMethod)]
-        public static Vector256<float> MultiplyAddNegated(
-            Vector256<float> a,
-            Vector256<float> b,
-            Vector256<float> c)
-        {
-            if (Fma.IsSupported)
-            {
-                return Fma.MultiplyAddNegated(a, b, c);
-            }
-
-            return Avx.Subtract(c, Avx.Multiply(a, b));
-        }
-
-        /// <summary>
         /// Blend packed 8-bit integers from <paramref name="left"/> and <paramref name="right"/> using <paramref name="mask"/>.
         /// The high bit of each corresponding <paramref name="mask"/> byte determines the selection.
         /// If the high bit is set the element of <paramref name="left"/> is selected.

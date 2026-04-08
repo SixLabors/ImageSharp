@@ -37,7 +37,7 @@ internal static partial class PorterDuffFunctions
     /// <returns>The <see cref="Vector256{Single}"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> NormalSrc(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
-        => Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl);
+        => Avx.Blend(source, source * opacity, BlendAlphaControl);
 
     /// <summary>
     /// Returns the result of the "NormalSrcAtop" compositing equation.
@@ -64,7 +64,7 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> NormalSrcAtop(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
     {
-        source = Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl);
+        source = Avx.Blend(source, source * opacity, BlendAlphaControl);
 
         return Atop(backdrop, source, Normal(backdrop, source));
     }
@@ -94,7 +94,7 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> NormalSrcOver(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
     {
-        source = Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl);
+        source = Avx.Blend(source, source * opacity, BlendAlphaControl);
 
         return Over(backdrop, source, Normal(backdrop, source));
     }
@@ -123,7 +123,7 @@ internal static partial class PorterDuffFunctions
     /// <returns>The <see cref="Vector256{Single}"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> NormalSrcIn(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
-        => In(backdrop, Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl));
+        => In(backdrop, Avx.Blend(source, source * opacity, BlendAlphaControl));
 
     /// <summary>
     /// Returns the result of the "NormalSrcOut" compositing equation.
@@ -149,7 +149,7 @@ internal static partial class PorterDuffFunctions
     /// <returns>The <see cref="Vector256{Single}"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> NormalSrcOut(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
-        => Out(backdrop, Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl));
+        => Out(backdrop, Avx.Blend(source, source * opacity, BlendAlphaControl));
 
     /// <summary>
     /// Returns the result of the "NormalDest" compositing equation.
@@ -202,7 +202,7 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> NormalDestAtop(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
     {
-        source = Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl);
+        source = Avx.Blend(source, source * opacity, BlendAlphaControl);
 
         return Atop(source, backdrop, Normal(source, backdrop));
     }
@@ -232,7 +232,7 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> NormalDestOver(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
     {
-        source = Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl);
+        source = Avx.Blend(source, source * opacity, BlendAlphaControl);
 
         return Over(source, backdrop, Normal(source, backdrop));
     }
@@ -261,7 +261,7 @@ internal static partial class PorterDuffFunctions
     /// <returns>The <see cref="Vector256{Single}"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> NormalDestIn(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
-        => In(Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl), backdrop);
+        => In(Avx.Blend(source, source * opacity, BlendAlphaControl), backdrop);
 
     /// <summary>
     /// Returns the result of the "NormalDestOut" compositing equation.
@@ -287,7 +287,7 @@ internal static partial class PorterDuffFunctions
     /// <returns>The <see cref="Vector256{Single}"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> NormalDestOut(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
-        => Out(Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl), backdrop);
+        => Out(Avx.Blend(source, source * opacity, BlendAlphaControl), backdrop);
 
     /// <summary>
     /// Returns the result of the "NormalXor" compositing equation.
@@ -313,7 +313,7 @@ internal static partial class PorterDuffFunctions
     /// <returns>The <see cref="Vector256{Single}"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> NormalXor(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
-        => Xor(backdrop, Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl));
+        => Xor(backdrop, Avx.Blend(source, source * opacity, BlendAlphaControl));
 
     /// <summary>
     /// Returns the result of the "NormalClear" compositing equation.
@@ -339,7 +339,7 @@ internal static partial class PorterDuffFunctions
     /// <returns>The <see cref="Vector256{Single}"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> NormalClear(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
-        => Clear(backdrop, Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl));
+        => Clear(backdrop, Avx.Blend(source, source * opacity, BlendAlphaControl));
 
 
     /// <summary>
@@ -558,7 +558,7 @@ internal static partial class PorterDuffFunctions
     /// <returns>The <see cref="Vector256{Single}"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> MultiplySrc(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
-        => Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl);
+        => Avx.Blend(source, source * opacity, BlendAlphaControl);
 
     /// <summary>
     /// Returns the result of the "MultiplySrcAtop" compositing equation.
@@ -585,7 +585,7 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> MultiplySrcAtop(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
     {
-        source = Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl);
+        source = Avx.Blend(source, source * opacity, BlendAlphaControl);
 
         return Atop(backdrop, source, Multiply(backdrop, source));
     }
@@ -615,7 +615,7 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> MultiplySrcOver(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
     {
-        source = Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl);
+        source = Avx.Blend(source, source * opacity, BlendAlphaControl);
 
         return Over(backdrop, source, Multiply(backdrop, source));
     }
@@ -644,7 +644,7 @@ internal static partial class PorterDuffFunctions
     /// <returns>The <see cref="Vector256{Single}"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> MultiplySrcIn(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
-        => In(backdrop, Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl));
+        => In(backdrop, Avx.Blend(source, source * opacity, BlendAlphaControl));
 
     /// <summary>
     /// Returns the result of the "MultiplySrcOut" compositing equation.
@@ -670,7 +670,7 @@ internal static partial class PorterDuffFunctions
     /// <returns>The <see cref="Vector256{Single}"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> MultiplySrcOut(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
-        => Out(backdrop, Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl));
+        => Out(backdrop, Avx.Blend(source, source * opacity, BlendAlphaControl));
 
     /// <summary>
     /// Returns the result of the "MultiplyDest" compositing equation.
@@ -723,7 +723,7 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> MultiplyDestAtop(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
     {
-        source = Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl);
+        source = Avx.Blend(source, source * opacity, BlendAlphaControl);
 
         return Atop(source, backdrop, Multiply(source, backdrop));
     }
@@ -753,7 +753,7 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> MultiplyDestOver(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
     {
-        source = Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl);
+        source = Avx.Blend(source, source * opacity, BlendAlphaControl);
 
         return Over(source, backdrop, Multiply(source, backdrop));
     }
@@ -782,7 +782,7 @@ internal static partial class PorterDuffFunctions
     /// <returns>The <see cref="Vector256{Single}"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> MultiplyDestIn(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
-        => In(Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl), backdrop);
+        => In(Avx.Blend(source, source * opacity, BlendAlphaControl), backdrop);
 
     /// <summary>
     /// Returns the result of the "MultiplyDestOut" compositing equation.
@@ -808,7 +808,7 @@ internal static partial class PorterDuffFunctions
     /// <returns>The <see cref="Vector256{Single}"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> MultiplyDestOut(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
-        => Out(Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl), backdrop);
+        => Out(Avx.Blend(source, source * opacity, BlendAlphaControl), backdrop);
 
     /// <summary>
     /// Returns the result of the "MultiplyXor" compositing equation.
@@ -834,7 +834,7 @@ internal static partial class PorterDuffFunctions
     /// <returns>The <see cref="Vector256{Single}"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> MultiplyXor(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
-        => Xor(backdrop, Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl));
+        => Xor(backdrop, Avx.Blend(source, source * opacity, BlendAlphaControl));
 
     /// <summary>
     /// Returns the result of the "MultiplyClear" compositing equation.
@@ -860,7 +860,7 @@ internal static partial class PorterDuffFunctions
     /// <returns>The <see cref="Vector256{Single}"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> MultiplyClear(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
-        => Clear(backdrop, Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl));
+        => Clear(backdrop, Avx.Blend(source, source * opacity, BlendAlphaControl));
 
 
     /// <summary>
@@ -1079,7 +1079,7 @@ internal static partial class PorterDuffFunctions
     /// <returns>The <see cref="Vector256{Single}"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> AddSrc(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
-        => Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl);
+        => Avx.Blend(source, source * opacity, BlendAlphaControl);
 
     /// <summary>
     /// Returns the result of the "AddSrcAtop" compositing equation.
@@ -1106,7 +1106,7 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> AddSrcAtop(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
     {
-        source = Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl);
+        source = Avx.Blend(source, source * opacity, BlendAlphaControl);
 
         return Atop(backdrop, source, Add(backdrop, source));
     }
@@ -1136,7 +1136,7 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> AddSrcOver(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
     {
-        source = Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl);
+        source = Avx.Blend(source, source * opacity, BlendAlphaControl);
 
         return Over(backdrop, source, Add(backdrop, source));
     }
@@ -1165,7 +1165,7 @@ internal static partial class PorterDuffFunctions
     /// <returns>The <see cref="Vector256{Single}"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> AddSrcIn(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
-        => In(backdrop, Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl));
+        => In(backdrop, Avx.Blend(source, source * opacity, BlendAlphaControl));
 
     /// <summary>
     /// Returns the result of the "AddSrcOut" compositing equation.
@@ -1191,7 +1191,7 @@ internal static partial class PorterDuffFunctions
     /// <returns>The <see cref="Vector256{Single}"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> AddSrcOut(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
-        => Out(backdrop, Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl));
+        => Out(backdrop, Avx.Blend(source, source * opacity, BlendAlphaControl));
 
     /// <summary>
     /// Returns the result of the "AddDest" compositing equation.
@@ -1244,7 +1244,7 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> AddDestAtop(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
     {
-        source = Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl);
+        source = Avx.Blend(source, source * opacity, BlendAlphaControl);
 
         return Atop(source, backdrop, Add(source, backdrop));
     }
@@ -1274,7 +1274,7 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> AddDestOver(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
     {
-        source = Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl);
+        source = Avx.Blend(source, source * opacity, BlendAlphaControl);
 
         return Over(source, backdrop, Add(source, backdrop));
     }
@@ -1303,7 +1303,7 @@ internal static partial class PorterDuffFunctions
     /// <returns>The <see cref="Vector256{Single}"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> AddDestIn(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
-        => In(Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl), backdrop);
+        => In(Avx.Blend(source, source * opacity, BlendAlphaControl), backdrop);
 
     /// <summary>
     /// Returns the result of the "AddDestOut" compositing equation.
@@ -1329,7 +1329,7 @@ internal static partial class PorterDuffFunctions
     /// <returns>The <see cref="Vector256{Single}"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> AddDestOut(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
-        => Out(Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl), backdrop);
+        => Out(Avx.Blend(source, source * opacity, BlendAlphaControl), backdrop);
 
     /// <summary>
     /// Returns the result of the "AddXor" compositing equation.
@@ -1355,7 +1355,7 @@ internal static partial class PorterDuffFunctions
     /// <returns>The <see cref="Vector256{Single}"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> AddXor(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
-        => Xor(backdrop, Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl));
+        => Xor(backdrop, Avx.Blend(source, source * opacity, BlendAlphaControl));
 
     /// <summary>
     /// Returns the result of the "AddClear" compositing equation.
@@ -1381,7 +1381,7 @@ internal static partial class PorterDuffFunctions
     /// <returns>The <see cref="Vector256{Single}"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> AddClear(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
-        => Clear(backdrop, Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl));
+        => Clear(backdrop, Avx.Blend(source, source * opacity, BlendAlphaControl));
 
 
     /// <summary>
@@ -1600,7 +1600,7 @@ internal static partial class PorterDuffFunctions
     /// <returns>The <see cref="Vector256{Single}"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> SubtractSrc(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
-        => Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl);
+        => Avx.Blend(source, source * opacity, BlendAlphaControl);
 
     /// <summary>
     /// Returns the result of the "SubtractSrcAtop" compositing equation.
@@ -1627,7 +1627,7 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> SubtractSrcAtop(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
     {
-        source = Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl);
+        source = Avx.Blend(source, source * opacity, BlendAlphaControl);
 
         return Atop(backdrop, source, Subtract(backdrop, source));
     }
@@ -1657,7 +1657,7 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> SubtractSrcOver(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
     {
-        source = Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl);
+        source = Avx.Blend(source, source * opacity, BlendAlphaControl);
 
         return Over(backdrop, source, Subtract(backdrop, source));
     }
@@ -1686,7 +1686,7 @@ internal static partial class PorterDuffFunctions
     /// <returns>The <see cref="Vector256{Single}"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> SubtractSrcIn(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
-        => In(backdrop, Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl));
+        => In(backdrop, Avx.Blend(source, source * opacity, BlendAlphaControl));
 
     /// <summary>
     /// Returns the result of the "SubtractSrcOut" compositing equation.
@@ -1712,7 +1712,7 @@ internal static partial class PorterDuffFunctions
     /// <returns>The <see cref="Vector256{Single}"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> SubtractSrcOut(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
-        => Out(backdrop, Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl));
+        => Out(backdrop, Avx.Blend(source, source * opacity, BlendAlphaControl));
 
     /// <summary>
     /// Returns the result of the "SubtractDest" compositing equation.
@@ -1765,7 +1765,7 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> SubtractDestAtop(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
     {
-        source = Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl);
+        source = Avx.Blend(source, source * opacity, BlendAlphaControl);
 
         return Atop(source, backdrop, Subtract(source, backdrop));
     }
@@ -1795,7 +1795,7 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> SubtractDestOver(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
     {
-        source = Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl);
+        source = Avx.Blend(source, source * opacity, BlendAlphaControl);
 
         return Over(source, backdrop, Subtract(source, backdrop));
     }
@@ -1824,7 +1824,7 @@ internal static partial class PorterDuffFunctions
     /// <returns>The <see cref="Vector256{Single}"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> SubtractDestIn(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
-        => In(Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl), backdrop);
+        => In(Avx.Blend(source, source * opacity, BlendAlphaControl), backdrop);
 
     /// <summary>
     /// Returns the result of the "SubtractDestOut" compositing equation.
@@ -1850,7 +1850,7 @@ internal static partial class PorterDuffFunctions
     /// <returns>The <see cref="Vector256{Single}"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> SubtractDestOut(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
-        => Out(Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl), backdrop);
+        => Out(Avx.Blend(source, source * opacity, BlendAlphaControl), backdrop);
 
     /// <summary>
     /// Returns the result of the "SubtractXor" compositing equation.
@@ -1876,7 +1876,7 @@ internal static partial class PorterDuffFunctions
     /// <returns>The <see cref="Vector256{Single}"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> SubtractXor(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
-        => Xor(backdrop, Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl));
+        => Xor(backdrop, Avx.Blend(source, source * opacity, BlendAlphaControl));
 
     /// <summary>
     /// Returns the result of the "SubtractClear" compositing equation.
@@ -1902,7 +1902,7 @@ internal static partial class PorterDuffFunctions
     /// <returns>The <see cref="Vector256{Single}"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> SubtractClear(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
-        => Clear(backdrop, Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl));
+        => Clear(backdrop, Avx.Blend(source, source * opacity, BlendAlphaControl));
 
 
     /// <summary>
@@ -2121,7 +2121,7 @@ internal static partial class PorterDuffFunctions
     /// <returns>The <see cref="Vector256{Single}"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> ScreenSrc(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
-        => Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl);
+        => Avx.Blend(source, source * opacity, BlendAlphaControl);
 
     /// <summary>
     /// Returns the result of the "ScreenSrcAtop" compositing equation.
@@ -2148,7 +2148,7 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> ScreenSrcAtop(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
     {
-        source = Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl);
+        source = Avx.Blend(source, source * opacity, BlendAlphaControl);
 
         return Atop(backdrop, source, Screen(backdrop, source));
     }
@@ -2178,7 +2178,7 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> ScreenSrcOver(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
     {
-        source = Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl);
+        source = Avx.Blend(source, source * opacity, BlendAlphaControl);
 
         return Over(backdrop, source, Screen(backdrop, source));
     }
@@ -2207,7 +2207,7 @@ internal static partial class PorterDuffFunctions
     /// <returns>The <see cref="Vector256{Single}"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> ScreenSrcIn(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
-        => In(backdrop, Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl));
+        => In(backdrop, Avx.Blend(source, source * opacity, BlendAlphaControl));
 
     /// <summary>
     /// Returns the result of the "ScreenSrcOut" compositing equation.
@@ -2233,7 +2233,7 @@ internal static partial class PorterDuffFunctions
     /// <returns>The <see cref="Vector256{Single}"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> ScreenSrcOut(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
-        => Out(backdrop, Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl));
+        => Out(backdrop, Avx.Blend(source, source * opacity, BlendAlphaControl));
 
     /// <summary>
     /// Returns the result of the "ScreenDest" compositing equation.
@@ -2286,7 +2286,7 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> ScreenDestAtop(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
     {
-        source = Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl);
+        source = Avx.Blend(source, source * opacity, BlendAlphaControl);
 
         return Atop(source, backdrop, Screen(source, backdrop));
     }
@@ -2316,7 +2316,7 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> ScreenDestOver(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
     {
-        source = Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl);
+        source = Avx.Blend(source, source * opacity, BlendAlphaControl);
 
         return Over(source, backdrop, Screen(source, backdrop));
     }
@@ -2345,7 +2345,7 @@ internal static partial class PorterDuffFunctions
     /// <returns>The <see cref="Vector256{Single}"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> ScreenDestIn(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
-        => In(Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl), backdrop);
+        => In(Avx.Blend(source, source * opacity, BlendAlphaControl), backdrop);
 
     /// <summary>
     /// Returns the result of the "ScreenDestOut" compositing equation.
@@ -2371,7 +2371,7 @@ internal static partial class PorterDuffFunctions
     /// <returns>The <see cref="Vector256{Single}"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> ScreenDestOut(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
-        => Out(Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl), backdrop);
+        => Out(Avx.Blend(source, source * opacity, BlendAlphaControl), backdrop);
 
     /// <summary>
     /// Returns the result of the "ScreenXor" compositing equation.
@@ -2397,7 +2397,7 @@ internal static partial class PorterDuffFunctions
     /// <returns>The <see cref="Vector256{Single}"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> ScreenXor(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
-        => Xor(backdrop, Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl));
+        => Xor(backdrop, Avx.Blend(source, source * opacity, BlendAlphaControl));
 
     /// <summary>
     /// Returns the result of the "ScreenClear" compositing equation.
@@ -2423,7 +2423,7 @@ internal static partial class PorterDuffFunctions
     /// <returns>The <see cref="Vector256{Single}"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> ScreenClear(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
-        => Clear(backdrop, Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl));
+        => Clear(backdrop, Avx.Blend(source, source * opacity, BlendAlphaControl));
 
 
     /// <summary>
@@ -2642,7 +2642,7 @@ internal static partial class PorterDuffFunctions
     /// <returns>The <see cref="Vector256{Single}"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> DarkenSrc(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
-        => Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl);
+        => Avx.Blend(source, source * opacity, BlendAlphaControl);
 
     /// <summary>
     /// Returns the result of the "DarkenSrcAtop" compositing equation.
@@ -2669,7 +2669,7 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> DarkenSrcAtop(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
     {
-        source = Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl);
+        source = Avx.Blend(source, source * opacity, BlendAlphaControl);
 
         return Atop(backdrop, source, Darken(backdrop, source));
     }
@@ -2699,7 +2699,7 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> DarkenSrcOver(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
     {
-        source = Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl);
+        source = Avx.Blend(source, source * opacity, BlendAlphaControl);
 
         return Over(backdrop, source, Darken(backdrop, source));
     }
@@ -2728,7 +2728,7 @@ internal static partial class PorterDuffFunctions
     /// <returns>The <see cref="Vector256{Single}"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> DarkenSrcIn(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
-        => In(backdrop, Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl));
+        => In(backdrop, Avx.Blend(source, source * opacity, BlendAlphaControl));
 
     /// <summary>
     /// Returns the result of the "DarkenSrcOut" compositing equation.
@@ -2754,7 +2754,7 @@ internal static partial class PorterDuffFunctions
     /// <returns>The <see cref="Vector256{Single}"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> DarkenSrcOut(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
-        => Out(backdrop, Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl));
+        => Out(backdrop, Avx.Blend(source, source * opacity, BlendAlphaControl));
 
     /// <summary>
     /// Returns the result of the "DarkenDest" compositing equation.
@@ -2807,7 +2807,7 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> DarkenDestAtop(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
     {
-        source = Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl);
+        source = Avx.Blend(source, source * opacity, BlendAlphaControl);
 
         return Atop(source, backdrop, Darken(source, backdrop));
     }
@@ -2837,7 +2837,7 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> DarkenDestOver(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
     {
-        source = Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl);
+        source = Avx.Blend(source, source * opacity, BlendAlphaControl);
 
         return Over(source, backdrop, Darken(source, backdrop));
     }
@@ -2866,7 +2866,7 @@ internal static partial class PorterDuffFunctions
     /// <returns>The <see cref="Vector256{Single}"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> DarkenDestIn(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
-        => In(Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl), backdrop);
+        => In(Avx.Blend(source, source * opacity, BlendAlphaControl), backdrop);
 
     /// <summary>
     /// Returns the result of the "DarkenDestOut" compositing equation.
@@ -2892,7 +2892,7 @@ internal static partial class PorterDuffFunctions
     /// <returns>The <see cref="Vector256{Single}"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> DarkenDestOut(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
-        => Out(Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl), backdrop);
+        => Out(Avx.Blend(source, source * opacity, BlendAlphaControl), backdrop);
 
     /// <summary>
     /// Returns the result of the "DarkenXor" compositing equation.
@@ -2918,7 +2918,7 @@ internal static partial class PorterDuffFunctions
     /// <returns>The <see cref="Vector256{Single}"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> DarkenXor(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
-        => Xor(backdrop, Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl));
+        => Xor(backdrop, Avx.Blend(source, source * opacity, BlendAlphaControl));
 
     /// <summary>
     /// Returns the result of the "DarkenClear" compositing equation.
@@ -2944,7 +2944,7 @@ internal static partial class PorterDuffFunctions
     /// <returns>The <see cref="Vector256{Single}"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> DarkenClear(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
-        => Clear(backdrop, Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl));
+        => Clear(backdrop, Avx.Blend(source, source * opacity, BlendAlphaControl));
 
 
     /// <summary>
@@ -3163,7 +3163,7 @@ internal static partial class PorterDuffFunctions
     /// <returns>The <see cref="Vector256{Single}"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> LightenSrc(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
-        => Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl);
+        => Avx.Blend(source, source * opacity, BlendAlphaControl);
 
     /// <summary>
     /// Returns the result of the "LightenSrcAtop" compositing equation.
@@ -3190,7 +3190,7 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> LightenSrcAtop(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
     {
-        source = Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl);
+        source = Avx.Blend(source, source * opacity, BlendAlphaControl);
 
         return Atop(backdrop, source, Lighten(backdrop, source));
     }
@@ -3220,7 +3220,7 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> LightenSrcOver(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
     {
-        source = Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl);
+        source = Avx.Blend(source, source * opacity, BlendAlphaControl);
 
         return Over(backdrop, source, Lighten(backdrop, source));
     }
@@ -3249,7 +3249,7 @@ internal static partial class PorterDuffFunctions
     /// <returns>The <see cref="Vector256{Single}"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> LightenSrcIn(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
-        => In(backdrop, Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl));
+        => In(backdrop, Avx.Blend(source, source * opacity, BlendAlphaControl));
 
     /// <summary>
     /// Returns the result of the "LightenSrcOut" compositing equation.
@@ -3275,7 +3275,7 @@ internal static partial class PorterDuffFunctions
     /// <returns>The <see cref="Vector256{Single}"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> LightenSrcOut(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
-        => Out(backdrop, Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl));
+        => Out(backdrop, Avx.Blend(source, source * opacity, BlendAlphaControl));
 
     /// <summary>
     /// Returns the result of the "LightenDest" compositing equation.
@@ -3328,7 +3328,7 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> LightenDestAtop(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
     {
-        source = Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl);
+        source = Avx.Blend(source, source * opacity, BlendAlphaControl);
 
         return Atop(source, backdrop, Lighten(source, backdrop));
     }
@@ -3358,7 +3358,7 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> LightenDestOver(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
     {
-        source = Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl);
+        source = Avx.Blend(source, source * opacity, BlendAlphaControl);
 
         return Over(source, backdrop, Lighten(source, backdrop));
     }
@@ -3387,7 +3387,7 @@ internal static partial class PorterDuffFunctions
     /// <returns>The <see cref="Vector256{Single}"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> LightenDestIn(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
-        => In(Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl), backdrop);
+        => In(Avx.Blend(source, source * opacity, BlendAlphaControl), backdrop);
 
     /// <summary>
     /// Returns the result of the "LightenDestOut" compositing equation.
@@ -3413,7 +3413,7 @@ internal static partial class PorterDuffFunctions
     /// <returns>The <see cref="Vector256{Single}"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> LightenDestOut(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
-        => Out(Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl), backdrop);
+        => Out(Avx.Blend(source, source * opacity, BlendAlphaControl), backdrop);
 
     /// <summary>
     /// Returns the result of the "LightenXor" compositing equation.
@@ -3439,7 +3439,7 @@ internal static partial class PorterDuffFunctions
     /// <returns>The <see cref="Vector256{Single}"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> LightenXor(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
-        => Xor(backdrop, Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl));
+        => Xor(backdrop, Avx.Blend(source, source * opacity, BlendAlphaControl));
 
     /// <summary>
     /// Returns the result of the "LightenClear" compositing equation.
@@ -3465,7 +3465,7 @@ internal static partial class PorterDuffFunctions
     /// <returns>The <see cref="Vector256{Single}"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> LightenClear(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
-        => Clear(backdrop, Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl));
+        => Clear(backdrop, Avx.Blend(source, source * opacity, BlendAlphaControl));
 
 
     /// <summary>
@@ -3684,7 +3684,7 @@ internal static partial class PorterDuffFunctions
     /// <returns>The <see cref="Vector256{Single}"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> OverlaySrc(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
-        => Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl);
+        => Avx.Blend(source, source * opacity, BlendAlphaControl);
 
     /// <summary>
     /// Returns the result of the "OverlaySrcAtop" compositing equation.
@@ -3711,7 +3711,7 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> OverlaySrcAtop(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
     {
-        source = Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl);
+        source = Avx.Blend(source, source * opacity, BlendAlphaControl);
 
         return Atop(backdrop, source, Overlay(backdrop, source));
     }
@@ -3741,7 +3741,7 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> OverlaySrcOver(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
     {
-        source = Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl);
+        source = Avx.Blend(source, source * opacity, BlendAlphaControl);
 
         return Over(backdrop, source, Overlay(backdrop, source));
     }
@@ -3770,7 +3770,7 @@ internal static partial class PorterDuffFunctions
     /// <returns>The <see cref="Vector256{Single}"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> OverlaySrcIn(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
-        => In(backdrop, Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl));
+        => In(backdrop, Avx.Blend(source, source * opacity, BlendAlphaControl));
 
     /// <summary>
     /// Returns the result of the "OverlaySrcOut" compositing equation.
@@ -3796,7 +3796,7 @@ internal static partial class PorterDuffFunctions
     /// <returns>The <see cref="Vector256{Single}"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> OverlaySrcOut(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
-        => Out(backdrop, Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl));
+        => Out(backdrop, Avx.Blend(source, source * opacity, BlendAlphaControl));
 
     /// <summary>
     /// Returns the result of the "OverlayDest" compositing equation.
@@ -3849,7 +3849,7 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> OverlayDestAtop(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
     {
-        source = Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl);
+        source = Avx.Blend(source, source * opacity, BlendAlphaControl);
 
         return Atop(source, backdrop, Overlay(source, backdrop));
     }
@@ -3879,7 +3879,7 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> OverlayDestOver(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
     {
-        source = Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl);
+        source = Avx.Blend(source, source * opacity, BlendAlphaControl);
 
         return Over(source, backdrop, Overlay(source, backdrop));
     }
@@ -3908,7 +3908,7 @@ internal static partial class PorterDuffFunctions
     /// <returns>The <see cref="Vector256{Single}"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> OverlayDestIn(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
-        => In(Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl), backdrop);
+        => In(Avx.Blend(source, source * opacity, BlendAlphaControl), backdrop);
 
     /// <summary>
     /// Returns the result of the "OverlayDestOut" compositing equation.
@@ -3934,7 +3934,7 @@ internal static partial class PorterDuffFunctions
     /// <returns>The <see cref="Vector256{Single}"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> OverlayDestOut(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
-        => Out(Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl), backdrop);
+        => Out(Avx.Blend(source, source * opacity, BlendAlphaControl), backdrop);
 
     /// <summary>
     /// Returns the result of the "OverlayXor" compositing equation.
@@ -3960,7 +3960,7 @@ internal static partial class PorterDuffFunctions
     /// <returns>The <see cref="Vector256{Single}"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> OverlayXor(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
-        => Xor(backdrop, Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl));
+        => Xor(backdrop, Avx.Blend(source, source * opacity, BlendAlphaControl));
 
     /// <summary>
     /// Returns the result of the "OverlayClear" compositing equation.
@@ -3986,7 +3986,7 @@ internal static partial class PorterDuffFunctions
     /// <returns>The <see cref="Vector256{Single}"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> OverlayClear(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
-        => Clear(backdrop, Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl));
+        => Clear(backdrop, Avx.Blend(source, source * opacity, BlendAlphaControl));
 
 
     /// <summary>
@@ -4205,7 +4205,7 @@ internal static partial class PorterDuffFunctions
     /// <returns>The <see cref="Vector256{Single}"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> HardLightSrc(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
-        => Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl);
+        => Avx.Blend(source, source * opacity, BlendAlphaControl);
 
     /// <summary>
     /// Returns the result of the "HardLightSrcAtop" compositing equation.
@@ -4232,7 +4232,7 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> HardLightSrcAtop(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
     {
-        source = Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl);
+        source = Avx.Blend(source, source * opacity, BlendAlphaControl);
 
         return Atop(backdrop, source, HardLight(backdrop, source));
     }
@@ -4262,7 +4262,7 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> HardLightSrcOver(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
     {
-        source = Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl);
+        source = Avx.Blend(source, source * opacity, BlendAlphaControl);
 
         return Over(backdrop, source, HardLight(backdrop, source));
     }
@@ -4291,7 +4291,7 @@ internal static partial class PorterDuffFunctions
     /// <returns>The <see cref="Vector256{Single}"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> HardLightSrcIn(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
-        => In(backdrop, Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl));
+        => In(backdrop, Avx.Blend(source, source * opacity, BlendAlphaControl));
 
     /// <summary>
     /// Returns the result of the "HardLightSrcOut" compositing equation.
@@ -4317,7 +4317,7 @@ internal static partial class PorterDuffFunctions
     /// <returns>The <see cref="Vector256{Single}"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> HardLightSrcOut(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
-        => Out(backdrop, Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl));
+        => Out(backdrop, Avx.Blend(source, source * opacity, BlendAlphaControl));
 
     /// <summary>
     /// Returns the result of the "HardLightDest" compositing equation.
@@ -4370,7 +4370,7 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> HardLightDestAtop(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
     {
-        source = Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl);
+        source = Avx.Blend(source, source * opacity, BlendAlphaControl);
 
         return Atop(source, backdrop, HardLight(source, backdrop));
     }
@@ -4400,7 +4400,7 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> HardLightDestOver(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
     {
-        source = Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl);
+        source = Avx.Blend(source, source * opacity, BlendAlphaControl);
 
         return Over(source, backdrop, HardLight(source, backdrop));
     }
@@ -4429,7 +4429,7 @@ internal static partial class PorterDuffFunctions
     /// <returns>The <see cref="Vector256{Single}"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> HardLightDestIn(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
-        => In(Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl), backdrop);
+        => In(Avx.Blend(source, source * opacity, BlendAlphaControl), backdrop);
 
     /// <summary>
     /// Returns the result of the "HardLightDestOut" compositing equation.
@@ -4455,7 +4455,7 @@ internal static partial class PorterDuffFunctions
     /// <returns>The <see cref="Vector256{Single}"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> HardLightDestOut(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
-        => Out(Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl), backdrop);
+        => Out(Avx.Blend(source, source * opacity, BlendAlphaControl), backdrop);
 
     /// <summary>
     /// Returns the result of the "HardLightXor" compositing equation.
@@ -4481,7 +4481,7 @@ internal static partial class PorterDuffFunctions
     /// <returns>The <see cref="Vector256{Single}"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> HardLightXor(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
-        => Xor(backdrop, Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl));
+        => Xor(backdrop, Avx.Blend(source, source * opacity, BlendAlphaControl));
 
     /// <summary>
     /// Returns the result of the "HardLightClear" compositing equation.
@@ -4507,7 +4507,7 @@ internal static partial class PorterDuffFunctions
     /// <returns>The <see cref="Vector256{Single}"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> HardLightClear(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
-        => Clear(backdrop, Avx.Blend(source, Avx.Multiply(source, opacity), BlendAlphaControl));
+        => Clear(backdrop, Avx.Blend(source, source * opacity, BlendAlphaControl));
 
 
     /// <summary>

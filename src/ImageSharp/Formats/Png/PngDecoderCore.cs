@@ -214,7 +214,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                             break;
                         case PngChunkType.FrameData:
                         {
-                            if (frameCount >= this.maxFrames)
+                            if (frameCount > this.maxFrames)
                             {
                                 goto EOF;
                             }
@@ -275,7 +275,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                                 previousFrameControl = currentFrameControl;
                             }
 
-                            if (frameCount >= this.maxFrames)
+                            if (frameCount > this.maxFrames)
                             {
                                 goto EOF;
                             }
@@ -402,7 +402,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                             break;
                         case PngChunkType.FrameControl:
                             ++frameCount;
-                            if (frameCount >= this.maxFrames)
+                            if (frameCount > this.maxFrames)
                             {
                                 break;
                             }
@@ -411,8 +411,12 @@ internal sealed class PngDecoderCore : ImageDecoderCore
 
                             break;
                         case PngChunkType.FrameData:
-                            if (frameCount >= this.maxFrames)
+                            if (frameCount > this.maxFrames)
                             {
+                                // Must skip the chunk data even when we've hit maxFrames, because TryReadChunk
+                                // restores the stream position to the start of the fdAT data after CRC validation.
+                                this.SkipChunkDataAndCrc(chunk);
+                                this.SkipRemainingFrameDataChunks(buffer);
                                 break;
                             }
 
@@ -428,9 +432,10 @@ internal sealed class PngDecoderCore : ImageDecoderCore
 
                             InitializeFrameMetadata(framesMetadata, currentFrameControl.Value);
 
-                            // Skip sequence number
-                            this.currentStream.Skip(4);
+                            // Skip data for this and all remaining FrameData chunks belonging to the same frame
+                            // (comparable to how Decode consumes them via ReadScanlines + ReadNextFrameDataChunk).
                             this.SkipChunkDataAndCrc(chunk);
+                            this.SkipRemainingFrameDataChunks(buffer);
                             break;
                         case PngChunkType.Data:
 
@@ -2091,6 +2096,31 @@ internal sealed class PngDecoderCore : ImageDecoderCore
         }
 
         return 0;
+    }
+
+    /// <summary>
+    /// Skips any remaining <see cref="PngChunkType.FrameData"/> chunks belonging to the current frame.
+    /// This mirrors how <see cref="ReadNextFrameDataChunk"/> is used during decoding:
+    /// consecutive fdAT chunks are consumed until a non-fdAT chunk is encountered,
+    /// which is stored in <see cref="nextChunk"/> for the next iteration.
+    /// </summary>
+    /// <param name="buffer">Temporary buffer.</param>
+    private void SkipRemainingFrameDataChunks(Span<byte> buffer)
+    {
+        while (this.TryReadChunk(buffer, out PngChunk chunk))
+        {
+            if (chunk.Type is PngChunkType.FrameData)
+            {
+                chunk.Data?.Dispose();
+                this.SkipChunkDataAndCrc(chunk);
+            }
+            else
+            {
+                // Not a FrameData chunk; store it so the next TryReadChunk call returns it.
+                this.nextChunk = chunk;
+                return;
+            }
+        }
     }
 
     /// <summary>

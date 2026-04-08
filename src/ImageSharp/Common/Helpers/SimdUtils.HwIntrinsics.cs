@@ -602,28 +602,6 @@ internal static partial class SimdUtils
         }
 
         /// <summary>
-        /// Performs a multiplication and a negated addition of the <see cref="Vector256{Single}"/>.
-        /// </summary>
-        /// <remarks>ret = va - (vm0 * vm1)</remarks>
-        /// <param name="va">The vector to add to the negated intermediate result.</param>
-        /// <param name="vm0">The first vector to multiply.</param>
-        /// <param name="vm1">The second vector to multiply.</param>
-        /// <returns>The <see cref="Vector256{T}"/>.</returns>
-        [MethodImpl(InliningOptions.ShortMethod)]
-        public static Vector256<float> MultiplyAddNegated(
-            Vector256<float> va,
-            Vector256<float> vm0,
-            Vector256<float> vm1)
-        {
-            if (Fma.IsSupported)
-            {
-                return Fma.MultiplyAddNegated(vm0, vm1, va);
-            }
-
-            return Avx.Subtract(va, Avx.Multiply(vm0, vm1));
-        }
-
-        /// <summary>
         /// Blend packed 8-bit integers from <paramref name="left"/> and <paramref name="right"/> using <paramref name="mask"/>.
         /// The high bit of each corresponding <paramref name="mask"/> byte determines the selection.
         /// If the high bit is set the element of <paramref name="left"/> is selected.

@@ -46,6 +46,16 @@ internal static partial class PorterDuffFunctions
         => source;
 
     /// <summary>
+    /// Returns the result of the "Normal" compositing equation.
+    /// </summary>
+    /// <param name="backdrop">The backdrop vector.</param>
+    /// <param name="source">The source vector.</param>
+    /// <returns>The <see cref="Vector512{Single}"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<float> Normal(Vector512<float> backdrop, Vector512<float> source)
+        => source;
+
+    /// <summary>
     /// Returns the result of the "Multiply" compositing equation.
     /// </summary>
     /// <param name="backdrop">The backdrop vector.</param>
@@ -63,6 +73,16 @@ internal static partial class PorterDuffFunctions
     /// <returns>The <see cref="Vector256{Single}"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> Multiply(Vector256<float> backdrop, Vector256<float> source)
+        => backdrop * source;
+
+    /// <summary>
+    /// Returns the result of the "Multiply" compositing equation.
+    /// </summary>
+    /// <param name="backdrop">The backdrop vector.</param>
+    /// <param name="source">The source vector.</param>
+    /// <returns>The <see cref="Vector512{Single}"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<float> Multiply(Vector512<float> backdrop, Vector512<float> source)
         => backdrop * source;
 
     /// <summary>
@@ -86,6 +106,16 @@ internal static partial class PorterDuffFunctions
         => Vector256.Min(Vector256.Create(1F), backdrop + source);
 
     /// <summary>
+    /// Returns the result of the "Add" compositing equation.
+    /// </summary>
+    /// <param name="backdrop">The backdrop vector.</param>
+    /// <param name="source">The source vector.</param>
+    /// <returns>The <see cref="Vector512{Single}"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<float> Add(Vector512<float> backdrop, Vector512<float> source)
+        => Vector512.Min(Vector512.Create(1F), backdrop + source);
+
+    /// <summary>
     /// Returns the result of the "Subtract" compositing equation.
     /// </summary>
     /// <param name="backdrop">The backdrop vector.</param>
@@ -104,6 +134,16 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> Subtract(Vector256<float> backdrop, Vector256<float> source)
         => Vector256.Max(Vector256<float>.Zero, backdrop - source);
+
+    /// <summary>
+    /// Returns the result of the "Subtract" compositing equation.
+    /// </summary>
+    /// <param name="backdrop">The backdrop vector.</param>
+    /// <param name="source">The source vector.</param>
+    /// <returns>The <see cref="Vector512{Single}"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<float> Subtract(Vector512<float> backdrop, Vector512<float> source)
+        => Vector512.Max(Vector512<float>.Zero, backdrop - source);
 
     /// <summary>
     /// Returns the result of the "Screen" compositing equation.
@@ -129,6 +169,19 @@ internal static partial class PorterDuffFunctions
     }
 
     /// <summary>
+    /// Returns the result of the "Screen" compositing equation.
+    /// </summary>
+    /// <param name="backdrop">The backdrop vector.</param>
+    /// <param name="source">The source vector.</param>
+    /// <returns>The <see cref="Vector512{Single}"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<float> Screen(Vector512<float> backdrop, Vector512<float> source)
+    {
+        Vector512<float> vOne = Vector512.Create(1F);
+        return Vector512_.MultiplyAddNegated(vOne, vOne - backdrop, vOne - source);
+    }
+
+    /// <summary>
     /// Returns the result of the "Darken" compositing equation.
     /// </summary>
     /// <param name="backdrop">The backdrop vector.</param>
@@ -149,6 +202,16 @@ internal static partial class PorterDuffFunctions
         => Vector256.Min(backdrop, source);
 
     /// <summary>
+    /// Returns the result of the "Darken" compositing equation.
+    /// </summary>
+    /// <param name="backdrop">The backdrop vector.</param>
+    /// <param name="source">The source vector.</param>
+    /// <returns>The <see cref="Vector512{Single}"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<float> Darken(Vector512<float> backdrop, Vector512<float> source)
+        => Vector512.Min(backdrop, source);
+
+    /// <summary>
     /// Returns the result of the "Lighten" compositing equation.
     /// </summary>
     /// <param name="backdrop">The backdrop vector.</param>
@@ -166,6 +229,16 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> Lighten(Vector256<float> backdrop, Vector256<float> source)
         => Vector256.Max(backdrop, source);
+
+    /// <summary>
+    /// Returns the result of the "Lighten" compositing equation.
+    /// </summary>
+    /// <param name="backdrop">The backdrop vector.</param>
+    /// <param name="source">The source vector.</param>
+    /// <returns>The <see cref="Vector512{Single}"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<float> Lighten(Vector512<float> backdrop, Vector512<float> source)
+        => Vector512.Max(backdrop, source);
 
     /// <summary>
     /// Returns the result of the "Overlay" compositing equation.
@@ -194,6 +267,19 @@ internal static partial class PorterDuffFunctions
     {
         Vector256<float> color = OverlayValueFunction(backdrop, source);
         return Vector256.Min(Vector256.Create(1F), Avx.Blend(color, Vector256<float>.Zero, BlendAlphaControl));
+    }
+
+    /// <summary>
+    /// Returns the result of the "Overlay" compositing equation.
+    /// </summary>
+    /// <param name="backdrop">The backdrop vector.</param>
+    /// <param name="source">The source vector.</param>
+    /// <returns>The <see cref="Vector512{Single}"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<float> Overlay(Vector512<float> backdrop, Vector512<float> source)
+    {
+        Vector512<float> color = OverlayValueFunction(backdrop, source);
+        return Vector512.Min(Vector512.Create(1F), Vector512.ConditionalSelect(AlphaMask512(), Vector512<float>.Zero, color));
     }
 
     /// <summary>
@@ -226,6 +312,19 @@ internal static partial class PorterDuffFunctions
     }
 
     /// <summary>
+    /// Returns the result of the "HardLight" compositing equation.
+    /// </summary>
+    /// <param name="backdrop">The backdrop vector.</param>
+    /// <param name="source">The source vector.</param>
+    /// <returns>The <see cref="Vector512{Single}"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<float> HardLight(Vector512<float> backdrop, Vector512<float> source)
+    {
+        Vector512<float> color = OverlayValueFunction(source, backdrop);
+        return Vector512.Min(Vector512.Create(1F), Vector512.ConditionalSelect(AlphaMask512(), Vector512<float>.Zero, color));
+    }
+
+    /// <summary>
     /// Helper function for Overlay and HardLight modes
     /// </summary>
     /// <param name="backdrop">Backdrop color element</param>
@@ -251,6 +350,24 @@ internal static partial class PorterDuffFunctions
         Vector256<float> right = Vector256_.MultiplyAddNegated(vOne, vOneMinusSource + vOneMinusSource, vOne - backdrop);
         Vector256<float> cmp = Avx.CompareGreaterThan(backdrop, Vector256.Create(.5F));
         return Avx.BlendVariable(left, right, cmp);
+    }
+
+    /// <summary>
+    /// Helper function for Overlay and HardLight modes
+    /// </summary>
+    /// <param name="backdrop">Backdrop color element</param>
+    /// <param name="source">Source color element</param>
+    /// <returns>Overlay value</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<float> OverlayValueFunction(Vector512<float> backdrop, Vector512<float> source)
+    {
+        Vector512<float> vOne = Vector512.Create(1F);
+        Vector512<float> left = (backdrop + backdrop) * source;
+
+        Vector512<float> vOneMinusSource = vOne - source;
+        Vector512<float> right = Vector512_.MultiplyAddNegated(vOne, vOneMinusSource + vOneMinusSource, vOne - backdrop);
+        Vector512<float> cmp = Avx512F.CompareGreaterThan(backdrop, Vector512.Create(.5F));
+        return Vector512.ConditionalSelect(cmp, right, left);
     }
 
     /// <summary>
@@ -313,6 +430,36 @@ internal static partial class PorterDuffFunctions
     }
 
     /// <summary>
+    /// Returns the result of the "Over" compositing equation.
+    /// </summary>
+    /// <param name="destination">The destination vector.</param>
+    /// <param name="source">The source vector.</param>
+    /// <param name="blend">The amount to blend. Range 0..1</param>
+    /// <returns>The <see cref="Vector512{Single}"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<float> Over(Vector512<float> destination, Vector512<float> source, Vector512<float> blend)
+    {
+        // calculate weights
+        Vector512<float> sW = Vector512_.ShuffleNative(source, ShuffleAlphaControl);
+        Vector512<float> dW = Vector512_.ShuffleNative(destination, ShuffleAlphaControl);
+
+        Vector512<float> blendW = sW * dW;
+        Vector512<float> dstW = dW - blendW;
+        Vector512<float> srcW = sW - blendW;
+
+        // calculate final alpha
+        Vector512<float> alpha = dstW + sW;
+
+        // calculate final color
+        Vector512<float> color = destination * dstW;
+        color = Vector512_.MultiplyAdd(color, source, srcW);
+        color = Vector512_.MultiplyAdd(color, blend, blendW);
+
+        // unpremultiply
+        return Numerics.UnPremultiply(color, alpha);
+    }
+
+    /// <summary>
     /// Returns the result of the "Atop" compositing equation.
     /// </summary>
     /// <param name="destination">The destination vector.</param>
@@ -366,6 +513,31 @@ internal static partial class PorterDuffFunctions
     }
 
     /// <summary>
+    /// Returns the result of the "Atop" compositing equation.
+    /// </summary>
+    /// <param name="destination">The destination vector.</param>
+    /// <param name="source">The source vector.</param>
+    /// <param name="blend">The amount to blend. Range 0..1</param>
+    /// <returns>The <see cref="Vector512{Single}"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<float> Atop(Vector512<float> destination, Vector512<float> source, Vector512<float> blend)
+    {
+        // calculate final alpha
+        Vector512<float> alpha = Vector512_.ShuffleNative(destination, ShuffleAlphaControl);
+
+        // calculate weights
+        Vector512<float> sW = Vector512_.ShuffleNative(source, ShuffleAlphaControl);
+        Vector512<float> blendW = sW * alpha;
+        Vector512<float> dstW = alpha - blendW;
+
+        // calculate final color
+        Vector512<float> color = Vector512_.MultiplyAdd(blend * blendW, destination, dstW);
+
+        // unpremultiply
+        return Numerics.UnPremultiply(color, alpha);
+    }
+
+    /// <summary>
     /// Returns the result of the "In" compositing equation.
     /// </summary>
     /// <param name="destination">The destination vector.</param>
@@ -403,6 +575,25 @@ internal static partial class PorterDuffFunctions
     }
 
     /// <summary>
+    /// Returns the result of the "In" compositing equation.
+    /// </summary>
+    /// <param name="destination">The destination vector.</param>
+    /// <param name="source">The source vector.</param>
+    /// <returns>The <see cref="Vector512{Single}"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<float> In(Vector512<float> destination, Vector512<float> source)
+    {
+        // calculate alpha
+        Vector512<float> alpha = Vector512_.ShuffleNative(source * destination, ShuffleAlphaControl);
+
+        // premultiply
+        Vector512<float> color = source * alpha;
+
+        // unpremultiply
+        return Numerics.UnPremultiply(color, alpha);
+    }
+
+    /// <summary>
     /// Returns the result of the "Out" compositing equation.
     /// </summary>
     /// <param name="destination">The destination vector.</param>
@@ -434,6 +625,25 @@ internal static partial class PorterDuffFunctions
 
         // premultiply
         Vector256<float> color = source * alpha;
+
+        // unpremultiply
+        return Numerics.UnPremultiply(color, alpha);
+    }
+
+    /// <summary>
+    /// Returns the result of the "Out" compositing equation.
+    /// </summary>
+    /// <param name="destination">The destination vector.</param>
+    /// <param name="source">The source vector.</param>
+    /// <returns>The <see cref="Vector512{Single}"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<float> Out(Vector512<float> destination, Vector512<float> source)
+    {
+        // calculate alpha
+        Vector512<float> alpha = Vector512_.ShuffleNative(source * (Vector512.Create(1F) - destination), ShuffleAlphaControl);
+
+        // premultiply
+        Vector512<float> color = source * alpha;
 
         // unpremultiply
         return Numerics.UnPremultiply(color, alpha);
@@ -487,9 +697,41 @@ internal static partial class PorterDuffFunctions
         return Numerics.UnPremultiply(color, alpha);
     }
 
+    /// <summary>
+    /// Returns the result of the "XOr" compositing equation.
+    /// </summary>
+    /// <param name="destination">The destination vector.</param>
+    /// <param name="source">The source vector.</param>
+    /// <returns>The <see cref="Vector512{Single}"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<float> Xor(Vector512<float> destination, Vector512<float> source)
+    {
+        // calculate weights
+        Vector512<float> sW = Vector512_.ShuffleNative(source, ShuffleAlphaControl);
+        Vector512<float> dW = Vector512_.ShuffleNative(destination, ShuffleAlphaControl);
+
+        Vector512<float> vOne = Vector512.Create(1F);
+        Vector512<float> srcW = vOne - dW;
+        Vector512<float> dstW = vOne - sW;
+
+        // calculate alpha
+        Vector512<float> alpha = Vector512_.MultiplyAdd(dW * dstW, sW, srcW);
+        Vector512<float> color = Vector512_.MultiplyAdd((dW * destination) * dstW, sW * source, srcW);
+
+        // unpremultiply
+        return Numerics.UnPremultiply(color, alpha);
+    }
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Vector4 Clear(Vector4 backdrop, Vector4 source) => Vector4.Zero;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Vector256<float> Clear(Vector256<float> backdrop, Vector256<float> source) => Vector256<float>.Zero;
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static Vector512<float> Clear(Vector512<float> backdrop, Vector512<float> source) => Vector512<float>.Zero;
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static Vector512<float> AlphaMask512()
+        => Vector512.Create(0, 0, 0, -1, 0, 0, 0, -1, 0, 0, 0, -1, 0, 0, 0, -1).AsSingle();
 }

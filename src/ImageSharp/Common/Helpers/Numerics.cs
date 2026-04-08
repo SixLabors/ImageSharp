@@ -643,6 +643,20 @@ internal static class Numerics
         return Avx.Blend(result, alpha, BlendAlphaControl);
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<float> UnPremultiply(Vector512<float> source, Vector512<float> alpha)
+    {
+        // Check if alpha is zero to avoid division by zero
+        Vector512<float> zeroMask = Vector512.Equals(alpha, Vector512<float>.Zero);
+
+        // Divide source by alpha if alpha is nonzero, otherwise set all components to match the source value
+        Vector512<float> result = Vector512.ConditionalSelect(zeroMask, source, source / alpha);
+
+        // Blend the result with the alpha vector to ensure that the alpha component is unchanged
+        Vector512<float> alphaMask = Vector512.Create(0, 0, 0, -1, 0, 0, 0, -1, 0, 0, 0, -1, 0, 0, 0, -1).AsSingle();
+        return Vector512.ConditionalSelect(alphaMask, alpha, result);
+    }
+
     /// <summary>
     /// Permutes the given vector return a new instance with all the values set to <see cref="Vector4.W"/>.
     /// </summary>

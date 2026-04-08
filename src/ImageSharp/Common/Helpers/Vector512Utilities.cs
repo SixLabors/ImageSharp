@@ -88,6 +88,21 @@ internal static class Vector512_
         => Avx512F.FusedMultiplyAdd(vm0, vm1, va);
 
     /// <summary>
+    /// Performs a multiplication and a negated addition of the <see cref="Vector512{Single}"/>.
+    /// </summary>
+    /// <remarks>ret = va - (vm0 * vm1)</remarks>
+    /// <param name="va">The vector to add to the negated intermediate result.</param>
+    /// <param name="vm0">The first vector to multiply.</param>
+    /// <param name="vm1">The second vector to multiply.</param>
+    /// <returns>The <see cref="Vector512{T}"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<float> MultiplyAddNegated(
+        Vector512<float> va,
+        Vector512<float> vm0,
+        Vector512<float> vm1)
+        => Avx512F.FusedMultiplyAddNegated(vm0, vm1, va);
+
+    /// <summary>
     /// Restricts a vector between a minimum and a maximum value.
     /// </summary>
     /// <typeparam name="T">The type of the elements in the vector.</typeparam>

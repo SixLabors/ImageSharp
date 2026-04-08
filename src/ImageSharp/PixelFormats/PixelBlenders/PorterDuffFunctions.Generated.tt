@@ -50,6 +50,17 @@ internal static partial class PorterDuffFunctions
         => Avx.Blend(source, source * opacity, BlendAlphaControl);
 
     /// <summary>
+    /// Returns the result of the "<#=blender#>Src compositing equation.
+    /// </summary>
+    /// <param name="backdrop">The backdrop vector.</param>
+    /// <param name="source">The source vector.</param>
+    /// <param name="opacity">The source opacity. Range 0..1</param>
+    /// <returns>The <see cref="Vector512{Single}"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<float> <#=blender#>Src(Vector512<float> backdrop, Vector512<float> source, Vector512<float> opacity)
+        => Avx512F.BlendVariable(source, source * opacity, AlphaMask512());
+
+    /// <summary>
     /// Returns the result of the "<#=blender#>SrcAtop" compositing equation.
     /// </summary>
     /// <param name="backdrop">The backdrop vector.</param>
@@ -75,6 +86,21 @@ internal static partial class PorterDuffFunctions
     public static Vector256<float> <#=blender#>SrcAtop(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
     {
         source = Avx.Blend(source, source * opacity, BlendAlphaControl);
+
+        return Atop(backdrop, source, <#=blender#>(backdrop, source));
+    }
+
+    /// <summary>
+    /// Returns the result of the "<#=blender#>SrcAtop" compositing equation.
+    /// </summary>
+    /// <param name="backdrop">The backdrop vector.</param>
+    /// <param name="source">The source vector.</param>
+    /// <param name="opacity">The source opacity. Range 0..1</param>
+    /// <returns>The <see cref="Vector512{Single}"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<float> <#=blender#>SrcAtop(Vector512<float> backdrop, Vector512<float> source, Vector512<float> opacity)
+    {
+        source = Avx512F.BlendVariable(source, source * opacity, AlphaMask512());
 
         return Atop(backdrop, source, <#=blender#>(backdrop, source));
     }
@@ -110,6 +136,21 @@ internal static partial class PorterDuffFunctions
     }
 
     /// <summary>
+    /// Returns the result of the "<#=blender#>SrcOver" compositing equation.
+    /// </summary>
+    /// <param name="backdrop">The backdrop vector.</param>
+    /// <param name="source">The source vector.</param>
+    /// <param name="opacity">The source opacity. Range 0..1</param>
+    /// <returns>The <see cref="Vector512{Single}"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<float> <#=blender#>SrcOver(Vector512<float> backdrop, Vector512<float> source, Vector512<float> opacity)
+    {
+        source = Avx512F.BlendVariable(source, source * opacity, AlphaMask512());
+
+        return Over(backdrop, source, <#=blender#>(backdrop, source));
+    }
+
+    /// <summary>
     /// Returns the result of the "<#=blender#>SrcIn" compositing equation.
     /// </summary>
     /// <param name="backdrop">The backdrop vector.</param>
@@ -134,6 +175,17 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> <#=blender#>SrcIn(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
         => In(backdrop, Avx.Blend(source, source * opacity, BlendAlphaControl));
+
+    /// <summary>
+    /// Returns the result of the "<#=blender#>SrcIn" compositing equation.
+    /// </summary>
+    /// <param name="backdrop">The backdrop vector.</param>
+    /// <param name="source">The source vector.</param>
+    /// <param name="opacity">The source opacity. Range 0..1</param>
+    /// <returns>The <see cref="Vector512{Single}"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<float> <#=blender#>SrcIn(Vector512<float> backdrop, Vector512<float> source, Vector512<float> opacity)
+        => In(backdrop, Avx512F.BlendVariable(source, source * opacity, AlphaMask512()));
 
     /// <summary>
     /// Returns the result of the "<#=blender#>SrcOut" compositing equation.
@@ -162,6 +214,17 @@ internal static partial class PorterDuffFunctions
         => Out(backdrop, Avx.Blend(source, source * opacity, BlendAlphaControl));
 
     /// <summary>
+    /// Returns the result of the "<#=blender#>SrcOut" compositing equation.
+    /// </summary>
+    /// <param name="backdrop">The backdrop vector.</param>
+    /// <param name="source">The source vector.</param>
+    /// <param name="opacity">The source opacity. Range 0..1</param>
+    /// <returns>The <see cref="Vector512{Single}"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<float> <#=blender#>SrcOut(Vector512<float> backdrop, Vector512<float> source, Vector512<float> opacity)
+        => Out(backdrop, Avx512F.BlendVariable(source, source * opacity, AlphaMask512()));
+
+    /// <summary>
     /// Returns the result of the "<#=blender#>Dest" compositing equation.
     /// </summary>
     /// <param name="backdrop">The backdrop vector.</param>
@@ -183,6 +246,19 @@ internal static partial class PorterDuffFunctions
     /// <returns>The <see cref="Vector256{Single}"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> <#=blender#>Dest(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
+    {
+        return backdrop;
+    }
+
+    /// <summary>
+    /// Returns the result of the "<#=blender#>Dest" compositing equation.
+    /// </summary>
+    /// <param name="backdrop">The backdrop vector.</param>
+    /// <param name="source">The source vector.</param>
+    /// <param name="opacity">The source opacity. Range 0..1</param>
+    /// <returns>The <see cref="Vector512{Single}"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<float> <#=blender#>Dest(Vector512<float> backdrop, Vector512<float> source, Vector512<float> opacity)
     {
         return backdrop;
     }
@@ -218,6 +294,21 @@ internal static partial class PorterDuffFunctions
     }
 
     /// <summary>
+    /// Returns the result of the "<#=blender#>DestAtop" compositing equation.
+    /// </summary>
+    /// <param name="backdrop">The backdrop vector.</param>
+    /// <param name="source">The source vector.</param>
+    /// <param name="opacity">The source opacity. Range 0..1</param>
+    /// <returns>The <see cref="Vector512{Single}"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<float> <#=blender#>DestAtop(Vector512<float> backdrop, Vector512<float> source, Vector512<float> opacity)
+    {
+        source = Avx512F.BlendVariable(source, source * opacity, AlphaMask512());
+
+        return Atop(source, backdrop, <#=blender#>(source, backdrop));
+    }
+
+    /// <summary>
     /// Returns the result of the "<#=blender#>DestOver" compositing equation.
     /// </summary>
     /// <param name="backdrop">The backdrop vector.</param>
@@ -243,6 +334,21 @@ internal static partial class PorterDuffFunctions
     public static Vector256<float> <#=blender#>DestOver(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
     {
         source = Avx.Blend(source, source * opacity, BlendAlphaControl);
+
+        return Over(source, backdrop, <#=blender#>(source, backdrop));
+    }
+
+    /// <summary>
+    /// Returns the result of the "<#=blender#>DestOver" compositing equation.
+    /// </summary>
+    /// <param name="backdrop">The backdrop vector.</param>
+    /// <param name="source">The source vector.</param>
+    /// <param name="opacity">The source opacity. Range 0..1</param>
+    /// <returns>The <see cref="Vector512{Single}"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<float> <#=blender#>DestOver(Vector512<float> backdrop, Vector512<float> source, Vector512<float> opacity)
+    {
+        source = Avx512F.BlendVariable(source, source * opacity, AlphaMask512());
 
         return Over(source, backdrop, <#=blender#>(source, backdrop));
     }
@@ -274,6 +380,17 @@ internal static partial class PorterDuffFunctions
         => In(Avx.Blend(source, source * opacity, BlendAlphaControl), backdrop);
 
     /// <summary>
+    /// Returns the result of the "<#=blender#>DestIn" compositing equation.
+    /// </summary>
+    /// <param name="backdrop">The backdrop vector.</param>
+    /// <param name="source">The source vector.</param>
+    /// <param name="opacity">The source opacity. Range 0..1</param>
+    /// <returns>The <see cref="Vector512{Single}"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<float> <#=blender#>DestIn(Vector512<float> backdrop, Vector512<float> source, Vector512<float> opacity)
+        => In(Avx512F.BlendVariable(source, source * opacity, AlphaMask512()), backdrop);
+
+    /// <summary>
     /// Returns the result of the "<#=blender#>DestOut" compositing equation.
     /// </summary>
     /// <param name="backdrop">The backdrop vector.</param>
@@ -298,6 +415,17 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> <#=blender#>DestOut(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
         => Out(Avx.Blend(source, source * opacity, BlendAlphaControl), backdrop);
+
+    /// <summary>
+    /// Returns the result of the "<#=blender#>DestOut" compositing equation.
+    /// </summary>
+    /// <param name="backdrop">The backdrop vector.</param>
+    /// <param name="source">The source vector.</param>
+    /// <param name="opacity">The source opacity. Range 0..1</param>
+    /// <returns>The <see cref="Vector512{Single}"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<float> <#=blender#>DestOut(Vector512<float> backdrop, Vector512<float> source, Vector512<float> opacity)
+        => Out(Avx512F.BlendVariable(source, source * opacity, AlphaMask512()), backdrop);
 
     /// <summary>
     /// Returns the result of the "<#=blender#>Xor" compositing equation.
@@ -326,6 +454,17 @@ internal static partial class PorterDuffFunctions
         => Xor(backdrop, Avx.Blend(source, source * opacity, BlendAlphaControl));
 
     /// <summary>
+    /// Returns the result of the "<#=blender#>Xor" compositing equation.
+    /// </summary>
+    /// <param name="backdrop">The backdrop vector.</param>
+    /// <param name="source">The source vector.</param>
+    /// <param name="opacity">The source opacity. Range 0..1</param>
+    /// <returns>The <see cref="Vector512{Single}"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<float> <#=blender#>Xor(Vector512<float> backdrop, Vector512<float> source, Vector512<float> opacity)
+        => Xor(backdrop, Avx512F.BlendVariable(source, source * opacity, AlphaMask512()));
+
+    /// <summary>
     /// Returns the result of the "<#=blender#>Clear" compositing equation.
     /// </summary>
     /// <param name="backdrop">The backdrop vector.</param>
@@ -350,6 +489,17 @@ internal static partial class PorterDuffFunctions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<float> <#=blender#>Clear(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
         => Clear(backdrop, Avx.Blend(source, source * opacity, BlendAlphaControl));
+
+    /// <summary>
+    /// Returns the result of the "<#=blender#>Clear" compositing equation.
+    /// </summary>
+    /// <param name="backdrop">The backdrop vector.</param>
+    /// <param name="source">The source vector.</param>
+    /// <param name="opacity">The source opacity. Range 0..1</param>
+    /// <returns>The <see cref="Vector512{Single}"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<float> <#=blender#>Clear(Vector512<float> backdrop, Vector512<float> source, Vector512<float> opacity)
+        => Clear(backdrop, Avx512F.BlendVariable(source, source * opacity, AlphaMask512()));
 
 <#} #>
 

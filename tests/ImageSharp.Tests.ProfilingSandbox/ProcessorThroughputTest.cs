@@ -2,8 +2,6 @@
 // Licensed under the Six Labors Split License.
 
 using System.Diagnostics;
-using System.Globalization;
-using System.Text;
 using CommandLine;
 using CommandLine.Text;
 using SixLabors.ImageSharp.PixelFormats;
@@ -11,30 +9,14 @@ using SixLabors.ImageSharp.Processing;
 
 namespace SixLabors.ImageSharp.Tests.ProfilingSandbox;
 
-public sealed partial class ParallelProcessingStress
+public sealed class ProcessorThroughputTest
 {
+    private const ulong CountingUnit = 1;
     private CommandLineOptions options;
     private Configuration configuration;
-    private ulong totalKiloPixels;
+    private ulong totalPixelsInUnit;
 
-    public static void Run(string[] args)
-    {
-        CommandLineOptions options = null;
-        if (args.Length > 0)
-        {
-            options = CommandLineOptions.Parse(args);
-            if (options == null)
-            {
-                return;
-            }
-        }
-
-        options ??= new CommandLineOptions();
-        ParallelProcessingStress stress = new(options.Normalize());
-        stress.Run();
-    }
-
-    private ParallelProcessingStress(CommandLineOptions options)
+    private ProcessorThroughputTest(CommandLineOptions options)
     {
         this.options = options;
         this.configuration = Configuration.Default.Clone();
@@ -43,42 +25,99 @@ public sealed partial class ParallelProcessingStress
             : Environment.ProcessorCount;
     }
 
-    private Stats Run()
+    public static Task RunAsync(string[] args)
     {
-        ParallelOptions systemOptions = new() { MaxDegreeOfParallelism = this.options.SystemParallelism };
+        CommandLineOptions options = null;
+        if (args.Length > 0)
+        {
+            options = CommandLineOptions.Parse(args);
+            if (options == null)
+            {
+                return Task.CompletedTask;
+            }
+        }
+
+        options ??= new CommandLineOptions();
+        return new ProcessorThroughputTest(options.Normalize())
+            .RunAsync();
+    }
+
+    private async Task RunAsync()
+    {
+        SemaphoreSlim semaphore = new(this.options.ConcurrentRequests);
+        Console.WriteLine(this.options.Method);
         Func<int> action = this.options.Method switch
         {
             Method.Crop => this.Crop,
             _ => this.DetectEdges,
         };
+
+        Console.WriteLine(this.options);
         Console.WriteLine($"Running {this.options.Method} for {this.options.Seconds} seconds ...");
-        Stopwatch stopwatch = Stopwatch.StartNew();
         TimeSpan runFor = TimeSpan.FromSeconds(this.options.Seconds);
-        Parallel.ForEach(InfiniteSequence(), systemOptions, (_, state) =>
+
+        // inFlight starts at 1 to represent the dispatch loop itself
+        int inFlight = 1;
+        TaskCompletionSource drainTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        Stopwatch stopwatch = Stopwatch.StartNew();
+        while (stopwatch.Elapsed < runFor && !drainTcs.Task.IsCompleted)
         {
-            ulong kiloPixels = (ulong)action() / 1000;
-            Interlocked.Add(ref this.totalKiloPixels, kiloPixels);
+            await semaphore.WaitAsync();
 
             if (stopwatch.Elapsed >= runFor)
             {
-                state.Stop();
+                semaphore.Release();
+                break;
             }
-        });
+
+            Interlocked.Increment(ref inFlight);
+
+            _ = ProcessImage();
+
+            async Task ProcessImage()
+            {
+                try
+                {
+                    if (stopwatch.Elapsed >= runFor || drainTcs.Task.IsCompleted)
+                    {
+                        return;
+                    }
+
+                    await Task.Yield(); // "emulate IO", i.e., make sure the processing code is async
+                    ulong pixels = (ulong)action() / CountingUnit;
+                    Interlocked.Add(ref this.totalPixelsInUnit, pixels);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine(ex);
+                    drainTcs.TrySetException(ex);
+                }
+                finally
+                {
+                    semaphore.Release();
+                    if (Interlocked.Decrement(ref inFlight) == 0)
+                    {
+                        drainTcs.TrySetResult();
+                    }
+                }
+            }
+        }
+
+        // Release the dispatch loop's own count; if no work is in flight, this completes immediately
+        if (Interlocked.Decrement(ref inFlight) == 0)
+        {
+            drainTcs.TrySetResult();
+        }
+
+        await drainTcs.Task;
         stopwatch.Stop();
 
-        double totalMegaPixels = this.totalKiloPixels / 1000.0;
-        Stats stats = new(stopwatch.ElapsedMilliseconds, totalMegaPixels, systemOptions.MaxDegreeOfParallelism);
-        Console.WriteLine(stats.GetMarkdown());
-        return stats;
-    }
-
-    private static IEnumerable<long> InfiniteSequence()
-    {
-        long i = 0;
-        while (true)
-        {
-            yield return i++;
-        }
+        double totalMegaPixels = this.totalPixelsInUnit * (double)CountingUnit / 1_000_000.0;
+        double totalSeconds = stopwatch.ElapsedMilliseconds / 1000.0;
+        double megapixelsPerSec = totalMegaPixels / totalSeconds;
+        Console.WriteLine($"TotalSeconds: {totalSeconds:F2}");
+        Console.WriteLine($"MegaPixelsPerSec: {megapixelsPerSec:F2}");
     }
 
     private int DetectEdges()
@@ -97,50 +136,7 @@ public sealed partial class ParallelProcessingStress
         return image.Width * image.Height;
     }
 
-    private sealed record Stats
-    {
-        public double TotalSeconds { get; }
-
-        public double TotalMegapixels { get; }
-
-        public double MegapixelsPerSec { get; }
-
-        public double MegapixelsPerSecPerCpu { get; }
-
-        public Stats(long elapsedMilliseconds, double totalMegapixels, int cpuCount)
-        {
-            this.TotalMegapixels = totalMegapixels;
-            this.TotalSeconds = elapsedMilliseconds / 1000.0;
-            this.MegapixelsPerSec = totalMegapixels / this.TotalSeconds;
-            this.MegapixelsPerSecPerCpu = this.MegapixelsPerSec / cpuCount;
-        }
-
-        public string GetMarkdown()
-        {
-            StringBuilder bld = new();
-            bld.AppendLine(
-                CultureInfo.InvariantCulture,
-                $"| {nameof(this.TotalSeconds)} | {nameof(this.MegapixelsPerSec)} | {nameof(this.MegapixelsPerSecPerCpu)} |");
-            bld.AppendLine(
-                CultureInfo.InvariantCulture,
-                $"| {L(nameof(this.TotalSeconds))} | {L(nameof(this.MegapixelsPerSec))} | {L(nameof(this.MegapixelsPerSecPerCpu))} |");
-
-            bld.Append("| ");
-            bld.AppendFormat(CultureInfo.InvariantCulture, F(nameof(this.TotalSeconds)), this.TotalSeconds);
-            bld.Append(" | ");
-            bld.AppendFormat(CultureInfo.InvariantCulture, F(nameof(this.MegapixelsPerSec)), this.MegapixelsPerSec);
-            bld.Append(" | ");
-            bld.AppendFormat(CultureInfo.InvariantCulture, F(nameof(this.MegapixelsPerSecPerCpu)), this.MegapixelsPerSecPerCpu);
-            bld.AppendLine(" |");
-
-            return bld.ToString();
-
-            static string L(string header) => new('-', header.Length);
-            static string F(string column) => $"{{0,{column.Length}:f3}}";
-        }
-    }
-
-    public enum Method
+    private enum Method
     {
         Edges,
         Crop
@@ -154,8 +150,8 @@ public sealed partial class ParallelProcessingStress
         [Option('p', "processor-parallelism", Required = false, Default = -1, HelpText = "Level of parallelism for the image processor")]
         public int ProcessorParallelism { get; set; } = -1;
 
-        [Option('t', "system-parallelism", Required = false, Default = -1, HelpText = "Level of parallelism for the outer loop")]
-        public int SystemParallelism { get; set; } = -1;
+        [Option('c', "concurrent-requests", Required = false, Default = -1, HelpText = "Number of concurrent in-flight requests")]
+        public int ConcurrentRequests { get; set; } = -1;
 
         [Option('w', "width", Required = false, Default = 4000, HelpText = "Width of the test image")]
         public int Width { get; set; } = 4000;
@@ -167,10 +163,10 @@ public sealed partial class ParallelProcessingStress
         public int Seconds { get; set; } = 5;
 
         public override string ToString() => string.Join(
-            Environment.NewLine,
+            "|",
             $"method: {this.Method}",
             $"processor-parallelism: {this.ProcessorParallelism}",
-            $"system-parallelism: {this.SystemParallelism}",
+            $"concurrent-requests: {this.ConcurrentRequests}",
             $"width: {this.Width}",
             $"height: {this.Height}",
             $"seconds: {this.Seconds}");
@@ -182,9 +178,9 @@ public sealed partial class ParallelProcessingStress
                 this.ProcessorParallelism = Environment.ProcessorCount;
             }
 
-            if (this.SystemParallelism < 0)
+            if (this.ConcurrentRequests < 0)
             {
-                this.SystemParallelism = Environment.ProcessorCount;
+                this.ConcurrentRequests = Environment.ProcessorCount;
             }
 
             return this;

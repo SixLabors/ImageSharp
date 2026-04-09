@@ -13,7 +13,7 @@ using Xunit.Abstractions;
 // LoadResizeSaveParallelMemoryStress.Run(args);
 // ParallelProcessingStress.RunExperiment(args);
 // ParallelProcessingStress.Run(args);
-await ProcessorThroughputTest.RunAsync(args);
+await ProcessorThroughputBenchmark.RunAsync(args);
 
 // RunToVector4ProfilingTest();
 // RunResizeProfilingTest();

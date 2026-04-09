@@ -9,14 +9,14 @@ using SixLabors.ImageSharp.Processing;
 
 namespace SixLabors.ImageSharp.Tests.ProfilingSandbox;
 
-public sealed class ProcessorThroughputTest
+public sealed class ProcessorThroughputBenchmark
 {
     private const ulong CountingUnit = 1;
     private CommandLineOptions options;
     private Configuration configuration;
     private ulong totalPixelsInUnit;
 
-    private ProcessorThroughputTest(CommandLineOptions options)
+    private ProcessorThroughputBenchmark(CommandLineOptions options)
     {
         this.options = options;
         this.configuration = Configuration.Default.Clone();
@@ -38,7 +38,7 @@ public sealed class ProcessorThroughputTest
         }
 
         options ??= new CommandLineOptions();
-        return new ProcessorThroughputTest(options.Normalize())
+        return new ProcessorThroughputBenchmark(options.Normalize())
             .RunAsync();
     }
 

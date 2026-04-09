@@ -49,7 +49,12 @@ public sealed class ProcessorThroughputTest
         Func<int> action = this.options.Method switch
         {
             Method.Crop => this.Crop,
-            _ => this.DetectEdges,
+            Method.Edges => this.DetectEdges,
+            Method.DrawImage => this.DrawImage,
+            Method.BinaryThreshold => this.BinaryThreshold,
+            Method.Histogram => this.Histogram,
+            Method.OilPaint => this.OilPaint,
+            _ => throw new NotImplementedException(),
         };
 
         Console.WriteLine(this.options);
@@ -120,6 +125,13 @@ public sealed class ProcessorThroughputTest
         Console.WriteLine($"MegaPixelsPerSec: {megapixelsPerSec:F2}");
     }
 
+    private int OilPaint()
+    {
+        using Image<Rgba32> image = new(this.options.Width, this.options.Height);
+        image.Mutate(this.configuration, x => x.OilPaint());
+        return image.Width * image.Height;
+    }
+
     private int DetectEdges()
     {
         using Image<Rgba32> image = new(this.options.Width, this.options.Height);
@@ -136,10 +148,36 @@ public sealed class ProcessorThroughputTest
         return image.Width * image.Height;
     }
 
+    private int DrawImage()
+    {
+        using Image<Rgba32> image = new(this.options.Width, this.options.Height);
+        using Image<Rgba32> foreground = new(this.options.Width, this.options.Height);
+        image.Mutate(c => c.DrawImage(foreground, 0.5f));
+        return image.Width * image.Height;
+    }
+
+    private int BinaryThreshold()
+    {
+        using Image<Rgba32> image = new(this.options.Width, this.options.Height);
+        image.Mutate(c => c.BinaryThreshold(0.5f));
+        return image.Width * image.Height;
+    }
+
+    private int Histogram()
+    {
+        using Image<Rgba32> image = new(this.options.Width, this.options.Height);
+        image.Mutate(c => c.HistogramEqualization());
+        return image.Width * image.Height;
+    }
+
     private enum Method
     {
         Edges,
-        Crop
+        Crop,
+        DrawImage,
+        BinaryThreshold,
+        Histogram,
+        OilPaint
     }
 
     private sealed class CommandLineOptions

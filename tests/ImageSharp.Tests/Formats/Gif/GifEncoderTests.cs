@@ -115,7 +115,7 @@ public class GifEncoderTests
         GifEncoder encoder = new()
         {
             ColorTableMode = FrameColorTableMode.Global,
-            Quantizer = new OctreeQuantizer(new QuantizerOptions { Dither = null })
+            Quantizer = new HexadecatreeQuantizer(new QuantizerOptions { Dither = null })
         };
 
         // Always save as we need to compare the encoded output.
@@ -124,7 +124,7 @@ public class GifEncoderTests
         encoder = new GifEncoder
         {
             ColorTableMode = FrameColorTableMode.Local,
-            Quantizer = new OctreeQuantizer(new QuantizerOptions { Dither = null }),
+            Quantizer = new HexadecatreeQuantizer(new QuantizerOptions { Dither = null }),
         };
 
         provider.Utility.SaveTestOutputFile(image, "gif", encoder, "local");
@@ -191,7 +191,7 @@ public class GifEncoderTests
         GifEncoder encoder = new()
         {
             ColorTableMode = colorMode,
-            Quantizer = new OctreeQuantizer(new QuantizerOptions { MaxColors = maxColors })
+            Quantizer = new HexadecatreeQuantizer(new QuantizerOptions { MaxColors = maxColors })
         };
 
         image.Save(outStream, encoder);

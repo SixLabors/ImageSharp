@@ -15,14 +15,8 @@ public enum ColorMatchingMode
     Coarse,
 
     /// <summary>
-    /// Enables an exact color match cache for the first 512 unique colors encountered,
-    /// falling back to coarse matching thereafter.
-    /// </summary>
-    Hybrid,
-
-    /// <summary>
-    /// Performs exact color matching without any caching optimizations.
-    /// This is the slowest but most accurate matching strategy.
+    /// Performs exact color matching using a bounded exact-match cache with eviction.
+    /// This preserves exact color matching while accelerating repeated colors.
     /// </summary>
     Exact
 }

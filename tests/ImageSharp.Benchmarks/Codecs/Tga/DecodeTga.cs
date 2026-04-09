@@ -31,7 +31,7 @@ public class DecodeTga
     {
         MagickReadSettings settings = new() { Format = MagickFormat.Tga };
         using MagickImage image = new(new MemoryStream(this.data), settings);
-        return image.Width;
+        return (int)image.Width;
     }
 
     [Benchmark(Description = "ImageSharp Tga")]

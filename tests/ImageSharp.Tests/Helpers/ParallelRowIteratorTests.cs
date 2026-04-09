@@ -13,6 +13,7 @@ namespace SixLabors.ImageSharp.Tests.Helpers;
 
 public class ParallelRowIteratorTests
 {
+    public delegate void BufferedRowAction<T>(int y, Span<T> span);
     public delegate void RowIntervalAction<T>(RowInterval rows, Span<T> span);
 
     private readonly ITestOutputHelper output;
@@ -200,6 +201,47 @@ public class ParallelRowIteratorTests
         Assert.Equal(expectedData, actualData);
     }
 
+    [Fact]
+    public void IterateRows_MaxDegreeOfParallelismMinusOne_ShouldVisitAllRows()
+    {
+        ParallelExecutionSettings parallelSettings = new(
+            -1,
+            10,
+            Configuration.Default.MemoryAllocator);
+
+        Rectangle rectangle = new(0, 0, 10, 10);
+        int[] actualData = new int[rectangle.Height];
+
+        void RowAction(int y) => actualData[y]++;
+
+        TestRowActionOperation operation = new(RowAction);
+
+        ParallelRowIterator.IterateRows(
+            rectangle,
+            in parallelSettings,
+            in operation);
+
+        Assert.Equal(Enumerable.Repeat(1, rectangle.Height), actualData);
+    }
+
+    [Fact]
+    public void IterateRowsWithTempBuffer_DefaultSettingsRequireInitialization()
+    {
+        ParallelExecutionSettings parallelSettings = default;
+        Rectangle rect = new(0, 0, 10, 10);
+
+        void RowAction(int y, Span<Rgba32> memory)
+        {
+        }
+
+        TestRowOperation<Rgba32> operation = new(RowAction);
+
+        ArgumentOutOfRangeException ex = Assert.Throws<ArgumentOutOfRangeException>(
+            () => ParallelRowIterator.IterateRows<TestRowOperation<Rgba32>, Rgba32>(rect, in parallelSettings, in operation));
+
+        Assert.Contains(nameof(ParallelExecutionSettings.MaxDegreeOfParallelism), ex.Message);
+    }
+
     public static TheoryData<int, int, int, int, int, int, int> IterateRows_WithEffectiveMinimumPixelsLimit_Data =
         new()
         {
@@ -294,6 +336,53 @@ public class ParallelRowIteratorTests
             in operation);
 
         Assert.Equal(expectedNumberOfSteps, actualNumberOfSteps);
+    }
+
+    [Fact]
+    public void IterateRowIntervalsWithTempBuffer_MaxDegreeOfParallelismMinusOne_ShouldVisitAllRows()
+    {
+        ParallelExecutionSettings parallelSettings = new(
+            -1,
+            10,
+            Configuration.Default.MemoryAllocator);
+
+        Rectangle rectangle = new(0, 0, 10, 10);
+        int[] actualData = new int[rectangle.Height];
+
+        void RowAction(RowInterval rows, Span<Vector4> buffer)
+        {
+            for (int y = rows.Min; y < rows.Max; y++)
+            {
+                actualData[y]++;
+            }
+        }
+
+        TestRowIntervalOperation<Vector4> operation = new(RowAction);
+
+        ParallelRowIterator.IterateRowIntervals<TestRowIntervalOperation<Vector4>, Vector4>(
+            rectangle,
+            in parallelSettings,
+            in operation);
+
+        Assert.Equal(Enumerable.Repeat(1, rectangle.Height), actualData);
+    }
+
+    [Fact]
+    public void IterateRows_DefaultSettingsRequireInitialization()
+    {
+        ParallelExecutionSettings parallelSettings = default;
+        Rectangle rect = new(0, 0, 10, 10);
+
+        void RowAction(int y)
+        {
+        }
+
+        TestRowActionOperation operation = new(RowAction);
+
+        ArgumentOutOfRangeException ex = Assert.Throws<ArgumentOutOfRangeException>(
+            () => ParallelRowIterator.IterateRows(rect, in parallelSettings, in operation));
+
+        Assert.Contains(nameof(ParallelExecutionSettings.MaxDegreeOfParallelism), ex.Message);
     }
 
     public static readonly TheoryData<int, int, int, int, int, int, int> IterateRectangularBuffer_Data =
@@ -443,6 +532,32 @@ public class ParallelRowIteratorTests
                 this.MaxY.Value = Math.Max(y, this.MaxY.Value);
             }
         }
+    }
+
+    private readonly struct TestRowActionOperation : IRowOperation
+    {
+        private readonly Action<int> action;
+
+        public TestRowActionOperation(Action<int> action)
+            => this.action = action;
+
+        public void Invoke(int y)
+            => this.action(y);
+    }
+
+    private readonly struct TestRowOperation<TBuffer> : IRowOperation<TBuffer>
+        where TBuffer : unmanaged
+    {
+        private readonly BufferedRowAction<TBuffer> action;
+
+        public TestRowOperation(BufferedRowAction<TBuffer> action)
+            => this.action = action;
+
+        public int GetRequiredBufferLength(Rectangle bounds)
+            => bounds.Width;
+
+        public void Invoke(int y, Span<TBuffer> span)
+            => this.action(y, span);
     }
 
     private readonly struct TestRowIntervalOperation : IRowIntervalOperation

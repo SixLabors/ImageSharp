@@ -18,8 +18,8 @@ public class PorterDuffBulkVsSingleVector
     [GlobalSetup]
     public void Setup()
     {
-        this.backdrop = new Vector4[8 * 20];
-        this.source = new Vector4[8 * 20];
+        this.backdrop = new Vector4[8 * 40];
+        this.source = new Vector4[8 * 40];
 
         FillRandom(this.backdrop);
         FillRandom(this.source);
@@ -49,7 +49,7 @@ public class PorterDuffBulkVsSingleVector
         return result;
     }
 
-    [Benchmark(Description = "Avx")]
+    [Benchmark(Description = "Avx2")]
     public Vector256<float> OverlayValueFunction_Avx()
     {
         ref Vector256<float> backdrop = ref Unsafe.As<Vector4, Vector256<float>>(ref MemoryMarshal.GetReference<Vector4>(this.backdrop));
@@ -58,6 +58,23 @@ public class PorterDuffBulkVsSingleVector
         Vector256<float> result = default;
         Vector256<float> opacity = Vector256.Create(.5F);
         int count = this.backdrop.Length / 2;
+        for (nuint i = 0; i < (uint)count; i++)
+        {
+            result = PorterDuffFunctions.NormalSrcOver(Unsafe.Add(ref backdrop, i), Unsafe.Add(ref source, i), opacity);
+        }
+
+        return result;
+    }
+
+    [Benchmark(Description = "Avx512")]
+    public Vector512<float> OverlayValueFunction_Avx512()
+    {
+        ref Vector512<float> backdrop = ref Unsafe.As<Vector4, Vector512<float>>(ref MemoryMarshal.GetReference<Vector4>(this.backdrop));
+        ref Vector512<float> source = ref Unsafe.As<Vector4, Vector512<float>>(ref MemoryMarshal.GetReference<Vector4>(this.source));
+
+        Vector512<float> result = default;
+        Vector512<float> opacity = Vector512.Create(.5F);
+        int count = this.backdrop.Length / 4;
         for (nuint i = 0; i < (uint)count; i++)
         {
             result = PorterDuffFunctions.NormalSrcOver(Unsafe.Add(ref backdrop, i), Unsafe.Add(ref source, i), opacity);

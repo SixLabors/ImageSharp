@@ -18,7 +18,10 @@ public readonly struct ParallelExecutionSettings
     /// <summary>
     /// Initializes a new instance of the <see cref="ParallelExecutionSettings"/> struct.
     /// </summary>
-    /// <param name="maxDegreeOfParallelism">The value used for initializing <see cref="ParallelOptions.MaxDegreeOfParallelism"/> when using TPL.</param>
+    /// <param name="maxDegreeOfParallelism">
+    /// The value used for initializing <see cref="ParallelOptions.MaxDegreeOfParallelism"/> when using TPL.
+    /// Set to <c>-1</c> to leave the degree of parallelism unbounded.
+    /// </param>
     /// <param name="minimumPixelsProcessedPerTask">The value for <see cref="MinimumPixelsProcessedPerTask"/>.</param>
     /// <param name="memoryAllocator">The <see cref="MemoryAllocator"/>.</param>
     public ParallelExecutionSettings(
@@ -44,7 +47,10 @@ public readonly struct ParallelExecutionSettings
     /// <summary>
     /// Initializes a new instance of the <see cref="ParallelExecutionSettings"/> struct.
     /// </summary>
-    /// <param name="maxDegreeOfParallelism">The value used for initializing <see cref="ParallelOptions.MaxDegreeOfParallelism"/> when using TPL.</param>
+    /// <param name="maxDegreeOfParallelism">
+    /// The value used for initializing <see cref="ParallelOptions.MaxDegreeOfParallelism"/> when using TPL.
+    /// Set to <c>-1</c> to leave the degree of parallelism unbounded.
+    /// </param>
     /// <param name="memoryAllocator">The <see cref="MemoryAllocator"/>.</param>
     public ParallelExecutionSettings(int maxDegreeOfParallelism, MemoryAllocator memoryAllocator)
         : this(maxDegreeOfParallelism, DefaultMinimumPixelsProcessedPerTask, memoryAllocator)
@@ -58,6 +64,7 @@ public readonly struct ParallelExecutionSettings
 
     /// <summary>
     /// Gets the value used for initializing <see cref="ParallelOptions.MaxDegreeOfParallelism"/> when using TPL.
+    /// A value of <c>-1</c> leaves the degree of parallelism unbounded.
     /// </summary>
     public int MaxDegreeOfParallelism { get; }
 

@@ -54,4 +54,34 @@ public class ImageInfoTests
         Assert.Equal(meta, info.Metadata);
         Assert.Equal(frameMetadata.Count, info.FrameMetadataCollection.Count);
     }
+
+    [Fact]
+    public void GetPixelMemorySize_UsesSingleFrameWhenFrameMetadataIsEmpty()
+    {
+        const int width = 10;
+        const int height = 20;
+
+        ImageMetadata meta = new() { DecodedImageFormat = PngFormat.Instance };
+        meta.GetPngMetadata();
+
+        ImageInfo info = new(new Size(width, height), meta);
+
+        Assert.Equal(width * height * 4, info.GetPixelMemorySize());
+    }
+
+    [Fact]
+    public void GetPixelMemorySize_UsesFrameMetadataCountWhenAvailable()
+    {
+        const int width = 10;
+        const int height = 20;
+        IReadOnlyList<ImageFrameMetadata> frameMetadata = [new(), new(), new()];
+
+        ImageMetadata meta = new() { DecodedImageFormat = PngFormat.Instance };
+        meta.GetPngMetadata();
+
+        ImageInfo info = new(new Size(width, height), meta, frameMetadata);
+
+        Assert.Equal(width * height * 4 * frameMetadata.Count, info.GetPixelMemorySize());
+    }
+
 }

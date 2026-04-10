@@ -11,7 +11,6 @@ namespace SixLabors.ImageSharp.Tests.ProfilingSandbox;
 
 public sealed class ProcessorThroughputBenchmark
 {
-    private const ulong CountingUnit = 1;
     private readonly CommandLineOptions options;
     private readonly Configuration configuration;
     private ulong totalPixelsInUnit;
@@ -90,7 +89,7 @@ public sealed class ProcessorThroughputBenchmark
                     }
 
                     await Task.Yield(); // "emulate IO", i.e., make sure the processing code is async
-                    ulong pixels = (ulong)action() / CountingUnit;
+                    ulong pixels = (ulong)action();
                     Interlocked.Add(ref this.totalPixelsInUnit, pixels);
                 }
                 catch (Exception ex)
@@ -118,7 +117,7 @@ public sealed class ProcessorThroughputBenchmark
         await drainTcs.Task;
         stopwatch.Stop();
 
-        double totalMegaPixels = this.totalPixelsInUnit * (double)CountingUnit / 1_000_000.0;
+        double totalMegaPixels = this.totalPixelsInUnit / 1_000_000.0;
         double totalSeconds = stopwatch.ElapsedMilliseconds / 1000.0;
         double megapixelsPerSec = totalMegaPixels / totalSeconds;
         Console.WriteLine($"TotalSeconds: {totalSeconds:F2}");

@@ -29,7 +29,7 @@ public enum JpegKind
 }
 
 [SupportedOSPlatform("windows")]
-public sealed class LoadResizeSaveStressRunner
+public class LoadResizeSaveStressRunner
 {
     private const int Quality = 75;
 
@@ -250,10 +250,10 @@ public sealed class LoadResizeSaveStressRunner
     public void MagickResize(string input)
     {
         using MagickImage image = new(input);
-        this.LogImageProcessed((int)image.Width, (int)image.Height);
+        this.LogImageProcessed(image.Width, image.Height);
 
         // Resize it to fit a 150x150 square
-        image.Resize((uint)this.ThumbnailSize, (uint)this.ThumbnailSize);
+        image.Resize(this.ThumbnailSize, this.ThumbnailSize);
 
         // Reduce the size of the file
         image.Strip();

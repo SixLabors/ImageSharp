@@ -47,7 +47,7 @@ public class DecodeWebp
         MagickReadSettings settings = new() { Format = MagickFormat.WebP };
         using MemoryStream memoryStream = new(this.webpLossyBytes);
         using MagickImage image = new(memoryStream, settings);
-        return (int)image.Width;
+        return image.Width;
     }
 
     [Benchmark(Description = "ImageSharp Lossy Webp")]
@@ -55,7 +55,7 @@ public class DecodeWebp
     {
         using MemoryStream memoryStream = new(this.webpLossyBytes);
         using Image<Rgba32> image = Image.Load<Rgba32>(memoryStream);
-        return (int)image.Height;
+        return image.Height;
     }
 
     [Benchmark(Description = "Magick Lossless Webp")]
@@ -65,7 +65,7 @@ public class DecodeWebp
         { Format = MagickFormat.WebP };
         using MemoryStream memoryStream = new(this.webpLossyBytes);
         using MagickImage image = new(memoryStream, settings);
-        return (int)image.Width;
+        return image.Width;
     }
 
     [Benchmark(Description = "ImageSharp Lossless Webp")]

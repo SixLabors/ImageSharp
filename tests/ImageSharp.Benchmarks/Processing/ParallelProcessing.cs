@@ -11,6 +11,7 @@ namespace SixLabors.ImageSharp.Benchmarks;
 public class ParallelProcessing
 {
     private Image<Rgba32> image;
+    private Image<Rgba32> foreground;
     private Configuration configuration;
 
     public static IEnumerable<int> MaxDegreeOfParallelismValues()
@@ -34,12 +35,16 @@ public class ParallelProcessing
     public void Setup()
     {
         this.image = new Image<Rgba32>(2048, 2048);
+        this.foreground = new Image<Rgba32>(2048, 2048);
         this.configuration = Configuration.Default.Clone();
         this.configuration.MaxDegreeOfParallelism = this.MaxDegreeOfParallelism;
     }
 
     [Benchmark]
     public void DetectEdges() => this.image.Mutate(this.configuration, x => x.DetectEdges());
+
+    [Benchmark]
+    public void DrawImage() => this.image.Mutate(this.configuration, x => x.DrawImage(this.foreground, 0.5f));
 
     [Benchmark]
     public void Crop()
@@ -52,5 +57,9 @@ public class ParallelProcessing
     }
 
     [GlobalCleanup]
-    public void Cleanup() => this.image.Dispose();
+    public void Cleanup()
+    {
+        this.image.Dispose();
+        this.foreground.Dispose();
+    }
 }

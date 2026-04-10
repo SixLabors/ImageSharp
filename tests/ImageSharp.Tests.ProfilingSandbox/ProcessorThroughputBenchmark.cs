@@ -13,7 +13,7 @@ public sealed class ProcessorThroughputBenchmark
 {
     private readonly CommandLineOptions options;
     private readonly Configuration configuration;
-    private ulong totalPixelsInUnit;
+    private ulong totalProcessedPixels;
 
     private ProcessorThroughputBenchmark(CommandLineOptions options)
     {
@@ -90,7 +90,7 @@ public sealed class ProcessorThroughputBenchmark
 
                     await Task.Yield(); // "emulate IO", i.e., make sure the processing code is async
                     ulong pixels = (ulong)action();
-                    Interlocked.Add(ref this.totalPixelsInUnit, pixels);
+                    Interlocked.Add(ref this.totalProcessedPixels, pixels);
                 }
                 catch (Exception ex)
                 {
@@ -117,7 +117,7 @@ public sealed class ProcessorThroughputBenchmark
         await drainTcs.Task;
         stopwatch.Stop();
 
-        double totalMegaPixels = this.totalPixelsInUnit / 1_000_000.0;
+        double totalMegaPixels = this.totalProcessedPixels / 1_000_000.0;
         double totalSeconds = stopwatch.ElapsedMilliseconds / 1000.0;
         double megapixelsPerSec = totalMegaPixels / totalSeconds;
         Console.WriteLine($"TotalSeconds: {totalSeconds:F2}");

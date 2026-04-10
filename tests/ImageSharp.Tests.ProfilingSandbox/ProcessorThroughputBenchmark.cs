@@ -12,8 +12,8 @@ namespace SixLabors.ImageSharp.Tests.ProfilingSandbox;
 public sealed class ProcessorThroughputBenchmark
 {
     private const ulong CountingUnit = 1;
-    private CommandLineOptions options;
-    private Configuration configuration;
+    private readonly CommandLineOptions options;
+    private readonly Configuration configuration;
     private ulong totalPixelsInUnit;
 
     private ProcessorThroughputBenchmark(CommandLineOptions options)

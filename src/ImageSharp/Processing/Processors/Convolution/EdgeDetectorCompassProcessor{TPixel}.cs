@@ -83,11 +83,15 @@ internal class EdgeDetectorCompassProcessor<TPixel> : ImageProcessor<TPixel>
                 processor.Apply(pass);
             }
 
+            // Convolution is memory-bandwidth-bound with low arithmetic intensity.
+            // Parallelization degrades performance due to cache line contention from
+            // overlapping source row reads. See #3111.
             RowOperation operation = new(source.PixelBuffer, pass.PixelBuffer, interest);
-            ParallelRowIterator.IterateRows(
-                this.Configuration,
-                interest,
-                in operation);
+
+            for (int y = interest.Top; y < interest.Bottom; y++)
+            {
+                operation.Invoke(y);
+            }
         }
     }
 

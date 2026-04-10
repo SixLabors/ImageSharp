@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Buffers;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -106,6 +107,12 @@ internal class Convolution2PassProcessor<TPixel> : ImageProcessor<TPixel>
 
         mapXY.BuildSamplingOffsetMap(this.KernelX.Length, this.KernelX.Length, interest, this.BorderWrapModeX, this.BorderWrapModeY);
 
+        MemoryAllocator allocator = this.Configuration.MemoryAllocator;
+
+        // Convolution is memory-bandwidth-bound with low arithmetic intensity.
+        // Parallelization degrades performance due to cache line contention from
+        // overlapping source row reads. See #3111.
+
         // Horizontal convolution
         HorizontalConvolutionRowOperation horizontalOperation = new(
             interest,
@@ -116,10 +123,15 @@ internal class Convolution2PassProcessor<TPixel> : ImageProcessor<TPixel>
             this.Configuration,
             this.PreserveAlpha);
 
-        ParallelRowIterator.IterateRows<HorizontalConvolutionRowOperation, Vector4>(
-            this.Configuration,
-            interest,
-            in horizontalOperation);
+        using (IMemoryOwner<Vector4> hBuffer = allocator.Allocate<Vector4>(horizontalOperation.GetRequiredBufferLength(interest)))
+        {
+            Span<Vector4> hSpan = hBuffer.Memory.Span;
+
+            for (int y = interest.Top; y < interest.Bottom; y++)
+            {
+                horizontalOperation.Invoke(y, hSpan);
+            }
+        }
 
         // Vertical convolution
         VerticalConvolutionRowOperation verticalOperation = new(
@@ -131,10 +143,15 @@ internal class Convolution2PassProcessor<TPixel> : ImageProcessor<TPixel>
             this.Configuration,
             this.PreserveAlpha);
 
-        ParallelRowIterator.IterateRows<VerticalConvolutionRowOperation, Vector4>(
-            this.Configuration,
-            interest,
-            in verticalOperation);
+        using (IMemoryOwner<Vector4> vBuffer = allocator.Allocate<Vector4>(verticalOperation.GetRequiredBufferLength(interest)))
+        {
+            Span<Vector4> vSpan = vBuffer.Memory.Span;
+
+            for (int y = interest.Top; y < interest.Bottom; y++)
+            {
+                verticalOperation.Invoke(y, vSpan);
+            }
+        }
     }
 
     /// <summary>

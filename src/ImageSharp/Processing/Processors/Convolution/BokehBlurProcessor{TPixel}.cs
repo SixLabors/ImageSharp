@@ -1,10 +1,12 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Buffers;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.ColorProfiles.Companding;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Processors.Convolution.Parameters;
@@ -77,22 +79,36 @@ internal class BokehBlurProcessor<TPixel> : ImageProcessor<TPixel>
     {
         Rectangle sourceRectangle = Rectangle.Intersect(this.SourceRectangle, source.Bounds);
 
+        MemoryAllocator allocator = this.Configuration.MemoryAllocator;
+
+        // Convolution is memory-bandwidth-bound with low arithmetic intensity.
+        // Parallelization degrades performance due to cache line contention from
+        // overlapping source row reads. See #3111.
+
         // Preliminary gamma highlight pass
         if (this.gamma == 3F)
         {
             ApplyGamma3ExposureRowOperation gammaOperation = new(sourceRectangle, source.PixelBuffer, this.Configuration);
-            ParallelRowIterator.IterateRows<ApplyGamma3ExposureRowOperation, Vector4>(
-                this.Configuration,
-                sourceRectangle,
-                in gammaOperation);
+
+            using IMemoryOwner<Vector4> gammaBuffer = allocator.Allocate<Vector4>(gammaOperation.GetRequiredBufferLength(sourceRectangle));
+            Span<Vector4> gammaSpan = gammaBuffer.Memory.Span;
+
+            for (int y = sourceRectangle.Top; y < sourceRectangle.Bottom; y++)
+            {
+                gammaOperation.Invoke(y, gammaSpan);
+            }
         }
         else
         {
             ApplyGammaExposureRowOperation gammaOperation = new(sourceRectangle, source.PixelBuffer, this.Configuration, this.gamma);
-            ParallelRowIterator.IterateRows<ApplyGammaExposureRowOperation, Vector4>(
-                this.Configuration,
-                sourceRectangle,
-                in gammaOperation);
+
+            using IMemoryOwner<Vector4> gammaBuffer = allocator.Allocate<Vector4>(gammaOperation.GetRequiredBufferLength(sourceRectangle));
+            Span<Vector4> gammaSpan = gammaBuffer.Memory.Span;
+
+            for (int y = sourceRectangle.Top; y < sourceRectangle.Bottom; y++)
+            {
+                gammaOperation.Invoke(y, gammaSpan);
+            }
         }
 
         // Create a 0-filled buffer to use to store the result of the component convolutions
@@ -105,18 +121,20 @@ internal class BokehBlurProcessor<TPixel> : ImageProcessor<TPixel>
         if (this.gamma == 3F)
         {
             ApplyInverseGamma3ExposureRowOperation operation = new(sourceRectangle, source.PixelBuffer, processingBuffer, this.Configuration);
-            ParallelRowIterator.IterateRows(
-                this.Configuration,
-                sourceRectangle,
-                in operation);
+
+            for (int y = sourceRectangle.Top; y < sourceRectangle.Bottom; y++)
+            {
+                operation.Invoke(y);
+            }
         }
         else
         {
-            ApplyInverseGammaExposureRowOperation operation = new(sourceRectangle, source.PixelBuffer, processingBuffer, this.Configuration, 1 / this.gamma);
-            ParallelRowIterator.IterateRows(
-                this.Configuration,
-                sourceRectangle,
-                in operation);
+            ApplyInverseGammaExposureRowOperation operation = new(sourceRectangle, source.PixelBuffer, processingBuffer, this.Configuration, this.gamma);
+
+            for (int y = sourceRectangle.Top; y < sourceRectangle.Bottom; y++)
+            {
+                operation.Invoke(y);
+            }
         }
     }
 
@@ -169,10 +187,15 @@ internal class BokehBlurProcessor<TPixel> : ImageProcessor<TPixel>
                 kernel,
                 configuration);
 
-            ParallelRowIterator.IterateRows<FirstPassConvolutionRowOperation, Vector4>(
-                configuration,
-                sourceRectangle,
-                in horizontalOperation);
+            using (IMemoryOwner<Vector4> hBuffer = configuration.MemoryAllocator.Allocate<Vector4>(horizontalOperation.GetRequiredBufferLength(sourceRectangle)))
+            {
+                Span<Vector4> hSpan = hBuffer.Memory.Span;
+
+                for (int y = sourceRectangle.Top; y < sourceRectangle.Bottom; y++)
+                {
+                    horizontalOperation.Invoke(y, hSpan);
+                }
+            }
 
             // Vertical 1D convolutions to accumulate the partial results on the target buffer
             BokehBlurProcessor.SecondPassConvolutionRowOperation verticalOperation = new(
@@ -184,10 +207,10 @@ internal class BokehBlurProcessor<TPixel> : ImageProcessor<TPixel>
                 parameters.Z,
                 parameters.W);
 
-            ParallelRowIterator.IterateRows(
-                configuration,
-                sourceRectangle,
-                in verticalOperation);
+            for (int y = sourceRectangle.Top; y < sourceRectangle.Bottom; y++)
+            {
+                verticalOperation.Invoke(y);
+            }
         }
     }
 
@@ -305,15 +328,9 @@ internal class BokehBlurProcessor<TPixel> : ImageProcessor<TPixel>
         {
             Span<TPixel> targetRowSpan = this.targetPixels.DangerousGetRowSpan(y)[this.bounds.X..];
             PixelOperations<TPixel>.Instance.ToVector4(this.configuration, targetRowSpan[..span.Length], span, PixelConversionModifiers.Premultiply);
-            ref Vector4 baseRef = ref MemoryMarshal.GetReference(span);
 
-            for (int x = 0; x < this.bounds.Width; x++)
-            {
-                ref Vector4 v = ref Unsafe.Add(ref baseRef, (uint)x);
-                v.X = MathF.Pow(v.X, this.gamma);
-                v.Y = MathF.Pow(v.Y, this.gamma);
-                v.Z = MathF.Pow(v.Z, this.gamma);
-            }
+            // Input is premultiplied [0,1] so the LUT is safe here.
+            GammaCompanding.Expand(span[..this.bounds.Width], this.gamma);
 
             PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, span, targetRowSpan);
         }
@@ -367,7 +384,7 @@ internal class BokehBlurProcessor<TPixel> : ImageProcessor<TPixel>
         private readonly Buffer2D<TPixel> targetPixels;
         private readonly Buffer2D<Vector4> sourceValues;
         private readonly Configuration configuration;
-        private readonly float inverseGamma;
+        private readonly float gamma;
 
         [MethodImpl(InliningOptions.ShortMethod)]
         public ApplyInverseGammaExposureRowOperation(
@@ -375,36 +392,26 @@ internal class BokehBlurProcessor<TPixel> : ImageProcessor<TPixel>
             Buffer2D<TPixel> targetPixels,
             Buffer2D<Vector4> sourceValues,
             Configuration configuration,
-            float inverseGamma)
+            float gamma)
         {
             this.bounds = bounds;
             this.targetPixels = targetPixels;
             this.sourceValues = sourceValues;
             this.configuration = configuration;
-            this.inverseGamma = inverseGamma;
+            this.gamma = gamma;
         }
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
         public void Invoke(int y)
         {
-            Vector4 low = Vector4.Zero;
-            Vector4 high = new(float.PositiveInfinity, float.PositiveInfinity, float.PositiveInfinity, float.PositiveInfinity);
-
             Span<TPixel> targetPixelSpan = this.targetPixels.DangerousGetRowSpan(y)[this.bounds.X..];
-            Span<Vector4> sourceRowSpan = this.sourceValues.DangerousGetRowSpan(y)[this.bounds.X..];
-            ref Vector4 sourceRef = ref MemoryMarshal.GetReference(sourceRowSpan);
+            Span<Vector4> sourceRowSpan = this.sourceValues.DangerousGetRowSpan(y).Slice(this.bounds.X, this.bounds.Width);
 
-            for (int x = 0; x < this.bounds.Width; x++)
-            {
-                ref Vector4 v = ref Unsafe.Add(ref sourceRef, (uint)x);
-                Vector4 clamp = Numerics.Clamp(v, low, high);
-                v.X = MathF.Pow(clamp.X, this.inverseGamma);
-                v.Y = MathF.Pow(clamp.Y, this.inverseGamma);
-                v.Z = MathF.Pow(clamp.Z, this.inverseGamma);
-            }
+            Numerics.Clamp(MemoryMarshal.Cast<Vector4, float>(sourceRowSpan), 0, 1F);
+            GammaCompanding.Compress(sourceRowSpan, this.gamma);
 
-            PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, sourceRowSpan[..this.bounds.Width], targetPixelSpan, PixelConversionModifiers.Premultiply);
+            PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, sourceRowSpan, targetPixelSpan, PixelConversionModifiers.Premultiply);
         }
     }
 
@@ -433,17 +440,16 @@ internal class BokehBlurProcessor<TPixel> : ImageProcessor<TPixel>
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public unsafe void Invoke(int y)
+        public void Invoke(int y)
         {
             Span<Vector4> sourceRowSpan = this.sourceValues.DangerousGetRowSpan(y).Slice(this.bounds.X, this.bounds.Width);
-            ref Vector4 sourceRef = ref MemoryMarshal.GetReference(sourceRowSpan);
 
-            Numerics.Clamp(MemoryMarshal.Cast<Vector4, float>(sourceRowSpan), 0, float.PositiveInfinity);
+            Numerics.Clamp(MemoryMarshal.Cast<Vector4, float>(sourceRowSpan), 0, 1F);
             Numerics.CubeRootOnXYZ(sourceRowSpan);
 
             Span<TPixel> targetPixelSpan = this.targetPixels.DangerousGetRowSpan(y)[this.bounds.X..];
 
-            PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, sourceRowSpan[..this.bounds.Width], targetPixelSpan, PixelConversionModifiers.Premultiply);
+            PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, sourceRowSpan, targetPixelSpan, PixelConversionModifiers.Premultiply);
         }
     }
 }

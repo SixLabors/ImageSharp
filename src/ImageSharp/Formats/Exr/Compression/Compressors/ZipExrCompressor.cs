@@ -2,7 +2,6 @@
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.Compression.Zlib;
-using SixLabors.ImageSharp.Formats.Exr.Constants;
 using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Exr.Compression.Compressors;
@@ -22,9 +21,6 @@ internal class ZipExrCompressor : ExrBaseCompressor
         this.buffer = allocator.Allocate<byte>((int)bytesPerBlock);
         this.memoryStream = new();
     }
-
-    /// <inheritdoc/>
-    public override ExrCompression Method => ExrCompression.Zip;
 
     /// <inheritdoc/>
     public override uint CompressRowBlock(Span<byte> rows, int rowCount)

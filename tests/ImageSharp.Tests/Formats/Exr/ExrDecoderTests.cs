@@ -56,6 +56,20 @@ public class ExrDecoderTests
     }
 
     [Theory]
+    [WithFile(TestImages.Exr.UintRgba, PixelTypes.Rgba32)]
+    public void ExrDecoder_CanDecode_Uncompressed_Rgba_ExrPixelType_Uint<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage(ExrDecoder.Instance);
+        ExrMetadata exrMetaData = image.Metadata.GetExrMetadata();
+        image.DebugSave(provider);
+
+        // Compare to referene output, since the reference decoder does not support this pixel type.
+        image.CompareToReferenceOutput(provider);
+        Assert.Equal(ExrPixelType.UnsignedInt, exrMetaData.PixelType);
+    }
+
+    [Theory]
     [WithFile(TestImages.Exr.Rgb, PixelTypes.Rgba32)]
     public void ExrDecoder_CanDecode_Rgb<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>

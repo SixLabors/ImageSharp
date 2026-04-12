@@ -1389,6 +1389,7 @@ public static class TestImages
         public const string UncompressedRgba = "Exr/Calliphora_uncompressed_rgba.exr";
         public const string UncompressedFloatRgb = "Exr/rgb_float32_uncompressed.exr";
         public const string UncompressedUintRgb = "Exr/Calliphora_uint32_uncompressed.exr";
+        public const string UintRgba = "Exr/rgba_uint_zip_compressed.exr";
         public const string Zip = "Exr/Calliphora_zip.exr";
         public const string Zips = "Exr/Calliphora_zips.exr";
         public const string Rle = "Exr/Calliphora_rle.exr";

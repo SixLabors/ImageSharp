@@ -4,7 +4,6 @@
 
 using System.Buffers;
 using System.Buffers.Binary;
-using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Text;
 using SixLabors.ImageSharp.Formats.Exr.Compression;
@@ -21,8 +20,6 @@ namespace SixLabors.ImageSharp.Formats.Exr;
 /// </summary>
 internal sealed class ExrDecoderCore : ImageDecoderCore
 {
-    private const float Scale32Bit = 1f / 0xFFFFFFFF;
-
     /// <summary>
     /// Reusable buffer.
     /// </summary>
@@ -814,9 +811,4 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
 
         return Unsafe.As<int, float>(ref intValue);
     }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static TPixel ColorScaleTo32Bit<TPixel>(uint r, uint g, uint b, uint a)
-        where TPixel : unmanaged, IPixel<TPixel>
-        => TPixel.FromScaledVector4(new Vector4(r, g, b, a) * Scale32Bit);
 }

@@ -267,7 +267,7 @@ internal sealed class ExrEncoderCore
                 for (int x = 0; x < width; x++)
                 {
                     Vector4 vector4 = pixelRowSpan[x].ToVector4();
-                    Rgb96.FromVector4(vector4);
+                    rgb = Rgb96.FromVector4(vector4);
 
                     redBuffer[x] = rgb.R;
                     greenBuffer[x] = rgb.G;

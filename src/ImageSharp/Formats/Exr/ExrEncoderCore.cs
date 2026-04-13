@@ -90,6 +90,7 @@ internal sealed class ExrEncoderCore
         int screenWindowWidth = 1;
         List<ExrChannelInfo> channels =
         [
+            new(ExrConstants.ChannelNames.Alpha, this.pixelType.Value, 0, 1, 1),
             new(ExrConstants.ChannelNames.Blue, this.pixelType.Value, 0, 1, 1),
             new(ExrConstants.ChannelNames.Green, this.pixelType.Value, 0, 1, 1),
             new(ExrConstants.ChannelNames.Red, this.pixelType.Value, 0, 1, 1),
@@ -160,11 +161,12 @@ internal sealed class ExrEncoderCore
         uint rowsPerBlock = ExrUtils.RowsPerBlock(compression);
         uint bytesPerBlock = bytesPerRow * rowsPerBlock;
 
-        using IMemoryOwner<float> rgbBuffer = this.memoryAllocator.Allocate<float>(width * 3, AllocationOptions.Clean);
+        using IMemoryOwner<float> rgbBuffer = this.memoryAllocator.Allocate<float>(width * 4, AllocationOptions.Clean);
         using IMemoryOwner<byte> rowBlockBuffer = this.memoryAllocator.Allocate<byte>((int)bytesPerBlock, AllocationOptions.Clean);
         Span<float> redBuffer = rgbBuffer.GetSpan()[..width];
         Span<float> greenBuffer = rgbBuffer.GetSpan().Slice(width, width);
         Span<float> blueBuffer = rgbBuffer.GetSpan().Slice(width * 2, width);
+        Span<float> alphaBuffer = rgbBuffer.GetSpan().Slice(width * 3, width);
 
         using ExrBaseCompressor compressor = ExrCompressorFactory.Create(compression, this.memoryAllocator, stream, bytesPerBlock, bytesPerRow);
 
@@ -191,6 +193,7 @@ internal sealed class ExrEncoderCore
                     redBuffer[x] = vector4.X;
                     greenBuffer[x] = vector4.Y;
                     blueBuffer[x] = vector4.Z;
+                    alphaBuffer[x] = vector4.W;
                 }
 
                 // Write pixel data to row block buffer.
@@ -198,10 +201,10 @@ internal sealed class ExrEncoderCore
                 switch (this.pixelType)
                 {
                     case ExrPixelType.Float:
-                        WriteSingleRow(rowBlockSpan, width, blueBuffer, greenBuffer, redBuffer);
+                        WriteSingleRow(rowBlockSpan, width, alphaBuffer, blueBuffer, greenBuffer, redBuffer);
                         break;
                     case ExrPixelType.Half:
-                        WriteHalfSingleRow(rowBlockSpan, width, blueBuffer, greenBuffer, redBuffer);
+                        WriteHalfSingleRow(rowBlockSpan, width, alphaBuffer, blueBuffer, greenBuffer, redBuffer);
                         break;
                 }
 
@@ -238,15 +241,16 @@ internal sealed class ExrEncoderCore
         uint rowsPerBlock = ExrUtils.RowsPerBlock(compression);
         uint bytesPerBlock = bytesPerRow * rowsPerBlock;
 
-        using IMemoryOwner<uint> rgbBuffer = this.memoryAllocator.Allocate<uint>(width * 3, AllocationOptions.Clean);
+        using IMemoryOwner<uint> rgbBuffer = this.memoryAllocator.Allocate<uint>(width * 4, AllocationOptions.Clean);
         using IMemoryOwner<byte> rowBlockBuffer = this.memoryAllocator.Allocate<byte>((int)bytesPerBlock, AllocationOptions.Clean);
         Span<uint> redBuffer = rgbBuffer.GetSpan()[..width];
         Span<uint> greenBuffer = rgbBuffer.GetSpan().Slice(width, width);
         Span<uint> blueBuffer = rgbBuffer.GetSpan().Slice(width * 2, width);
+        Span<uint> alphaBuffer = rgbBuffer.GetSpan().Slice(width * 3, width);
 
         using ExrBaseCompressor compressor = ExrCompressorFactory.Create(compression, this.memoryAllocator, stream, bytesPerBlock, bytesPerRow);
 
-        Rgb96 rgb = default;
+        Rgba128 rgb = default;
         ulong[] rowOffsets = new ulong[height];
         for (uint y = 0; y < height; y += rowsPerBlock)
         {
@@ -267,16 +271,17 @@ internal sealed class ExrEncoderCore
                 for (int x = 0; x < width; x++)
                 {
                     Vector4 vector4 = pixelRowSpan[x].ToVector4();
-                    rgb = Rgb96.FromVector4(vector4);
+                    rgb = Rgba128.FromVector4(vector4);
 
                     redBuffer[x] = rgb.R;
                     greenBuffer[x] = rgb.G;
                     blueBuffer[x] = rgb.B;
+                    alphaBuffer[x] = rgb.A;
                 }
 
                 // Write row data to row block buffer.
                 Span<byte> rowBlockSpan = rowBlockBuffer.GetSpan().Slice((int)(rowsInBlockCount * bytesPerRow), (int)bytesPerRow);
-                WriteUnsignedIntRow(rowBlockSpan, width, blueBuffer, greenBuffer, redBuffer);
+                WriteUnsignedIntRow(rowBlockSpan, width, alphaBuffer, blueBuffer, greenBuffer, redBuffer);
                 rowsInBlockCount++;
             }
 
@@ -309,9 +314,15 @@ internal sealed class ExrEncoderCore
         stream.WriteByte(0);
     }
 
-    private static void WriteSingleRow(Span<byte> buffer, int width, Span<float> blueBuffer, Span<float> greenBuffer, Span<float> redBuffer)
+    private static void WriteSingleRow(Span<byte> buffer, int width, Span<float> alphaBuffer, Span<float> blueBuffer, Span<float> greenBuffer, Span<float> redBuffer)
     {
         int offset = 0;
+        for (int x = 0; x < width; x++)
+        {
+            WriteSingleToBuffer(buffer.Slice(offset, 4), alphaBuffer[x]);
+            offset += 4;
+        }
+
         for (int x = 0; x < width; x++)
         {
             WriteSingleToBuffer(buffer.Slice(offset, 4), blueBuffer[x]);
@@ -331,9 +342,15 @@ internal sealed class ExrEncoderCore
         }
     }
 
-    private static void WriteHalfSingleRow(Span<byte> buffer, int width, Span<float> blueBuffer, Span<float> greenBuffer, Span<float> redBuffer)
+    private static void WriteHalfSingleRow(Span<byte> buffer, int width, Span<float> alphaBuffer, Span<float> blueBuffer, Span<float> greenBuffer, Span<float> redBuffer)
     {
         int offset = 0;
+        for (int x = 0; x < width; x++)
+        {
+            WriteHalfSingleToBuffer(buffer.Slice(offset, 2), alphaBuffer[x]);
+            offset += 2;
+        }
+
         for (int x = 0; x < width; x++)
         {
             WriteHalfSingleToBuffer(buffer.Slice(offset, 2), blueBuffer[x]);
@@ -353,9 +370,15 @@ internal sealed class ExrEncoderCore
         }
     }
 
-    private static void WriteUnsignedIntRow(Span<byte> buffer, int width, Span<uint> blueBuffer, Span<uint> greenBuffer, Span<uint> redBuffer)
+    private static void WriteUnsignedIntRow(Span<byte> buffer, int width, Span<uint> alphaBuffer, Span<uint> blueBuffer, Span<uint> greenBuffer, Span<uint> redBuffer)
     {
         int offset = 0;
+        for (int x = 0; x < width; x++)
+        {
+            WriteUnsignedIntToBuffer(buffer.Slice(offset, 4), alphaBuffer[x]);
+            offset += 4;
+        }
+
         for (int x = 0; x < width; x++)
         {
             WriteUnsignedIntToBuffer(buffer.Slice(offset, 4), blueBuffer[x]);

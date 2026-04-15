@@ -6,6 +6,7 @@ using CommandLine;
 using CommandLine.Text;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.Processing.Processors.Convolution;
 
 namespace SixLabors.ImageSharp.Tests.ProfilingSandbox;
 
@@ -49,6 +50,7 @@ public sealed class ProcessorThroughputBenchmark
         {
             Method.Crop => this.Crop,
             Method.Edges => this.DetectEdges,
+            Method.EdgesCompass => this.EdgesCompass,
             Method.DrawImage => this.DrawImage,
             Method.BinaryThreshold => this.BinaryThreshold,
             Method.Histogram => this.Histogram,
@@ -139,6 +141,13 @@ public sealed class ProcessorThroughputBenchmark
         return image.Width * image.Height;
     }
 
+    private int EdgesCompass()
+    {
+        using Image<Rgba32> image = new(this.options.Width, this.options.Height);
+        image.Mutate(this.configuration, x => x.DetectEdges(EdgeDetectorCompassKernel.Kirsch));
+        return image.Width * image.Height;
+    }
+
     private int Crop()
     {
         using Image<Rgba32> image = new(this.options.Width, this.options.Height);
@@ -180,6 +189,7 @@ public sealed class ProcessorThroughputBenchmark
     private enum Method
     {
         Edges,
+        EdgesCompass,
         Crop,
         DrawImage,
         BinaryThreshold,

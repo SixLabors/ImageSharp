@@ -8,27 +8,32 @@ using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Exr.Compression;
 
+/// <summary>
+/// Factory class for creating a compressor for EXR image data.
+/// </summary>
 internal static class ExrCompressorFactory
 {
+    /// <summary>
+    /// Creates the specified exr data compressor.
+    /// </summary>
+    /// <param name="method">The compression method.</param>
+    /// <param name="allocator">The memory allocator.</param>
+    /// <param name="output">The output stream.</param>
+    /// <param name="bytesPerBlock">The bytes per block.</param>
+    /// <param name="bytesPerRow">The bytes per row.</param>
+    /// <param name="compressionLevel">The deflate compression level.</param>
+    /// <returns>A compressor for EXR image data.</returns>
     public static ExrBaseCompressor Create(
         ExrCompression method,
         MemoryAllocator allocator,
         Stream output,
         uint bytesPerBlock,
         uint bytesPerRow,
-        DeflateCompressionLevel compressionLevel = DeflateCompressionLevel.DefaultCompression)
-    {
-        switch (method)
+        DeflateCompressionLevel compressionLevel = DeflateCompressionLevel.DefaultCompression) => method switch
         {
-            case ExrCompression.None:
-                return new NoneExrCompressor(output, allocator, bytesPerBlock, bytesPerRow);
-            case ExrCompression.Zips:
-                return new ZipExrCompressor(output, allocator, bytesPerBlock, bytesPerRow, compressionLevel);
-            case ExrCompression.Zip:
-                return new ZipExrCompressor(output, allocator, bytesPerBlock, bytesPerRow, compressionLevel);
-
-            default:
-                throw ExrThrowHelper.NotSupportedCompressor(method.ToString());
-        }
-    }
+            ExrCompression.None => new NoneExrCompressor(output, allocator, bytesPerBlock, bytesPerRow),
+            ExrCompression.Zips => new ZipExrCompressor(output, allocator, bytesPerBlock, bytesPerRow, compressionLevel),
+            ExrCompression.Zip => new ZipExrCompressor(output, allocator, bytesPerBlock, bytesPerRow, compressionLevel),
+            _ => throw ExrThrowHelper.NotSupportedCompressor(method.ToString()),
+        };
 }

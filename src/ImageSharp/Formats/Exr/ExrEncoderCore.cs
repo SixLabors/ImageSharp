@@ -147,6 +147,18 @@ internal sealed class ExrEncoderCore
         }
     }
 
+    /// <summary>
+    /// Encodes and writes pixel data with float pixel data to the stream.
+    /// </summary>
+    /// <typeparam name="TPixel">The type of the pixels.</typeparam>
+    /// <param name="stream">The stream to write to.</param>
+    /// <param name="pixels">The pixel bufer.</param>
+    /// <param name="width">The width of the image in pixels.</param>
+    /// <param name="height">The height of the image in pixels.</param>
+    /// <param name="channels">The imagechannels.</param>
+    /// <param name="compression">The compression to use.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The array of pixel row offsets.</returns>
     private ulong[] EncodeFloatingPointPixelData<TPixel>(
         Stream stream,
         Buffer2D<TPixel> pixels,
@@ -227,6 +239,18 @@ internal sealed class ExrEncoderCore
         return rowOffsets;
     }
 
+    /// <summary>
+    /// Encodes and writes pixel data with the unsigned int pixel type to the stream.
+    /// </summary>
+    /// <typeparam name="TPixel">The type of the pixels.</typeparam>
+    /// <param name="stream">The stream to write to.</param>
+    /// <param name="pixels">The pixel bufer.</param>
+    /// <param name="width">The width of the image in pixels.</param>
+    /// <param name="height">The height of the image in pixels.</param>
+    /// <param name="channels">The imagechannels.</param>
+    /// <param name="compression">The compression to use.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The array of pixel row offsets.</returns>
     private ulong[] EncodeUnsignedIntPixelData<TPixel>(
         Stream stream,
         Buffer2D<TPixel> pixels,
@@ -301,6 +325,11 @@ internal sealed class ExrEncoderCore
         return rowOffsets;
     }
 
+    /// <summary>
+    /// Writes the image header to the stream.
+    /// </summary>
+    /// <param name="stream">The stream to write to.</param>
+    /// <param name="header">The header.</param>
     private void WriteHeader(Stream stream, ExrHeaderAttributes header)
     {
         this.WriteChannels(stream, header.Channels);
@@ -314,6 +343,15 @@ internal sealed class ExrEncoderCore
         stream.WriteByte(0);
     }
 
+    /// <summary>
+    /// Writes a row of pixels with the FLOAT pixel type to a buffer.
+    /// </summary>
+    /// <param name="buffer">The buffer to write to.</param>
+    /// <param name="width">The width of a row in pixels.</param>
+    /// <param name="alphaBuffer">The alpha channel buffer.</param>
+    /// <param name="blueBuffer">The blue channel buffer.</param>
+    /// <param name="greenBuffer">The green channel buffer.</param>
+    /// <param name="redBuffer">The red channel buffer.</param>
     private static void WriteSingleRow(Span<byte> buffer, int width, Span<float> alphaBuffer, Span<float> blueBuffer, Span<float> greenBuffer, Span<float> redBuffer)
     {
         int offset = 0;
@@ -342,6 +380,15 @@ internal sealed class ExrEncoderCore
         }
     }
 
+    /// <summary>
+    /// Writes a row of pixels with the HALF pixel type to a buffer.
+    /// </summary>
+    /// <param name="buffer">The buffer to write to.</param>
+    /// <param name="width">The width of a row in pixels.</param>
+    /// <param name="alphaBuffer">The alpha channel buffer.</param>
+    /// <param name="blueBuffer">The blue channel buffer.</param>
+    /// <param name="greenBuffer">The green channel buffer.</param>
+    /// <param name="redBuffer">The red channel buffer.</param>
     private static void WriteHalfSingleRow(Span<byte> buffer, int width, Span<float> alphaBuffer, Span<float> blueBuffer, Span<float> greenBuffer, Span<float> redBuffer)
     {
         int offset = 0;
@@ -370,6 +417,15 @@ internal sealed class ExrEncoderCore
         }
     }
 
+    /// <summary>
+    /// Writes a row of pixels with unsigned int pixel data to a buffer.
+    /// </summary>
+    /// <param name="buffer">The buffer to write to.</param>
+    /// <param name="width">The width of the row in pixels.</param>
+    /// <param name="alphaBuffer">The alpha channel buffer.</param>
+    /// <param name="blueBuffer">The blue channel buffer.</param>
+    /// <param name="greenBuffer">The green channel buffer.</param>
+    /// <param name="redBuffer">The red channel buffer.</param>
     private static void WriteUnsignedIntRow(Span<byte> buffer, int width, Span<uint> alphaBuffer, Span<uint> blueBuffer, Span<uint> greenBuffer, Span<uint> redBuffer)
     {
         int offset = 0;
@@ -398,6 +454,12 @@ internal sealed class ExrEncoderCore
         }
     }
 
+    /// <summary>
+    /// Writes the row offsets to the stream.
+    /// </summary>
+    /// <param name="stream">The stream to write to.</param>
+    /// <param name="height">The height in pixels of the image.</param>
+    /// <param name="rowOffsets">The row offsets.</param>
     private void WriteRowOffsets(Stream stream, int height, ulong[] rowOffsets)
     {
         for (int i = 0; i < height; i++)
@@ -407,6 +469,11 @@ internal sealed class ExrEncoderCore
         }
     }
 
+    /// <summary>
+    /// Writes the channel infos to the stream.
+    /// </summary>
+    /// <param name="stream">The stream to write to.</param>
+    /// <param name="channels">The channels.</param>
     private void WriteChannels(Stream stream, IList<ExrChannelInfo> channels)
     {
         int attributeSize = 0;
@@ -429,62 +496,11 @@ internal sealed class ExrEncoderCore
         stream.WriteByte(0);
     }
 
-    private void WriteCompression(Stream stream, ExrCompression compression)
-    {
-        this.WriteAttributeInformation(stream, ExrConstants.AttributeNames.Compression, ExrConstants.AttibuteTypes.Compression, 1);
-        stream.WriteByte((byte)compression);
-    }
-
-    private void WritePixelAspectRatio(Stream stream, float aspectRatio)
-    {
-        this.WriteAttributeInformation(stream, ExrConstants.AttributeNames.PixelAspectRatio, ExrConstants.AttibuteTypes.Float, 4);
-        this.WriteSingle(stream, aspectRatio);
-    }
-
-    private void WriteLineOrder(Stream stream, ExrLineOrder lineOrder)
-    {
-        this.WriteAttributeInformation(stream, ExrConstants.AttributeNames.LineOrder, ExrConstants.AttibuteTypes.LineOrder, 1);
-        stream.WriteByte((byte)lineOrder);
-    }
-
-    private void WriteScreenWindowCenter(Stream stream, PointF screenWindowCenter)
-    {
-        this.WriteAttributeInformation(stream, ExrConstants.AttributeNames.ScreenWindowCenter, ExrConstants.AttibuteTypes.TwoFloat, 8);
-        this.WriteSingle(stream, screenWindowCenter.X);
-        this.WriteSingle(stream, screenWindowCenter.Y);
-    }
-
-    private void WriteScreenWindowWidth(Stream stream, float screenWindowWidth)
-    {
-        this.WriteAttributeInformation(stream, ExrConstants.AttributeNames.ScreenWindowWidth, ExrConstants.AttibuteTypes.Float, 4);
-        this.WriteSingle(stream, screenWindowWidth);
-    }
-
-    private void WriteDataWindow(Stream stream, ExrBox2i dataWindow)
-    {
-        this.WriteAttributeInformation(stream, ExrConstants.AttributeNames.DataWindow, ExrConstants.AttibuteTypes.BoxInt, 16);
-        this.WriteBoxInteger(stream, dataWindow);
-    }
-
-    private void WriteDisplayWindow(Stream stream, ExrBox2i displayWindow)
-    {
-        this.WriteAttributeInformation(stream, ExrConstants.AttributeNames.DisplayWindow, ExrConstants.AttibuteTypes.BoxInt, 16);
-        this.WriteBoxInteger(stream, displayWindow);
-    }
-
-    private void WriteAttributeInformation(Stream stream, string name, string type, int size)
-    {
-        // Write attribute name.
-        WriteString(stream, name);
-
-        // Write attribute type.
-        WriteString(stream, type);
-
-        // Write attribute size.
-        BinaryPrimitives.WriteUInt32LittleEndian(this.buffer, (uint)size);
-        stream.Write(this.buffer.AsSpan(0, 4));
-    }
-
+    /// <summary>
+    /// Writes info about a single channel to the stream.
+    /// </summary>
+    /// <param name="stream">The stream to write to.</param>
+    /// <param name="channelInfo">The channel information.</param>
     private void WriteChannelInfo(Stream stream, ExrChannelInfo channelInfo)
     {
         WriteString(stream, channelInfo.ChannelName);
@@ -492,7 +508,7 @@ internal sealed class ExrEncoderCore
         BinaryPrimitives.WriteInt32LittleEndian(this.buffer, (int)channelInfo.PixelType);
         stream.Write(this.buffer.AsSpan(0, 4));
 
-        stream.WriteByte(channelInfo.PLinear);
+        stream.WriteByte(channelInfo.Linear);
 
         // Next 3 bytes are reserved and will set to zero.
         stream.WriteByte(0);
@@ -506,6 +522,109 @@ internal sealed class ExrEncoderCore
         stream.Write(this.buffer.AsSpan(0, 4));
     }
 
+    /// <summary>
+    /// Writes the compression type to the stream.
+    /// </summary>
+    /// <param name="stream">The stream to write to.</param>
+    /// <param name="compression">The compression type.</param>
+    private void WriteCompression(Stream stream, ExrCompression compression)
+    {
+        this.WriteAttributeInformation(stream, ExrConstants.AttributeNames.Compression, ExrConstants.AttibuteTypes.Compression, 1);
+        stream.WriteByte((byte)compression);
+    }
+
+    /// <summary>
+    /// Writes the pixel aspect ratio to the stream.
+    /// </summary>
+    /// <param name="stream">The stream to write to.</param>
+    /// <param name="aspectRatio">The aspect ratio.</param>
+    private void WritePixelAspectRatio(Stream stream, float aspectRatio)
+    {
+        this.WriteAttributeInformation(stream, ExrConstants.AttributeNames.PixelAspectRatio, ExrConstants.AttibuteTypes.Float, 4);
+        this.WriteSingle(stream, aspectRatio);
+    }
+
+    /// <summary>
+    /// Writes the line order to the stream.
+    /// </summary>
+    /// <param name="stream">The stream to write to.</param>
+    /// <param name="lineOrder">The line order.</param>
+    private void WriteLineOrder(Stream stream, ExrLineOrder lineOrder)
+    {
+        this.WriteAttributeInformation(stream, ExrConstants.AttributeNames.LineOrder, ExrConstants.AttibuteTypes.LineOrder, 1);
+        stream.WriteByte((byte)lineOrder);
+    }
+
+    /// <summary>
+    /// Writes the screen window center to the stream.
+    /// </summary>
+    /// <param name="stream">The stream to write to.</param>
+    /// <param name="screenWindowCenter">The screen window center.</param>
+    private void WriteScreenWindowCenter(Stream stream, PointF screenWindowCenter)
+    {
+        this.WriteAttributeInformation(stream, ExrConstants.AttributeNames.ScreenWindowCenter, ExrConstants.AttibuteTypes.TwoFloat, 8);
+        this.WriteSingle(stream, screenWindowCenter.X);
+        this.WriteSingle(stream, screenWindowCenter.Y);
+    }
+
+    /// <summary>
+    /// Writes the screen width to the stream.
+    /// </summary>
+    /// <param name="stream">The stream to write to.</param>
+    /// <param name="screenWindowWidth">Width of the screen window.</param>
+    private void WriteScreenWindowWidth(Stream stream, float screenWindowWidth)
+    {
+        this.WriteAttributeInformation(stream, ExrConstants.AttributeNames.ScreenWindowWidth, ExrConstants.AttibuteTypes.Float, 4);
+        this.WriteSingle(stream, screenWindowWidth);
+    }
+
+    /// <summary>
+    /// Writes the data window to the stream.
+    /// </summary>
+    /// <param name="stream">The stream to write to.</param>
+    /// <param name="dataWindow">The data window.</param>
+    private void WriteDataWindow(Stream stream, ExrBox2i dataWindow)
+    {
+        this.WriteAttributeInformation(stream, ExrConstants.AttributeNames.DataWindow, ExrConstants.AttibuteTypes.BoxInt, 16);
+        this.WriteBoxInteger(stream, dataWindow);
+    }
+
+    /// <summary>
+    /// Writes the display window to the stream.
+    /// </summary>
+    /// <param name="stream">The stream to write to.</param>
+    /// <param name="displayWindow">The display window.</param>
+    private void WriteDisplayWindow(Stream stream, ExrBox2i displayWindow)
+    {
+        this.WriteAttributeInformation(stream, ExrConstants.AttributeNames.DisplayWindow, ExrConstants.AttibuteTypes.BoxInt, 16);
+        this.WriteBoxInteger(stream, displayWindow);
+    }
+
+    /// <summary>
+    /// Writes attribute information to the stream.
+    /// </summary>
+    /// <param name="stream">The stream to write to.</param>
+    /// <param name="name">The name of the attribute.</param>
+    /// <param name="type">The type of the attribute.</param>
+    /// <param name="size">The size in bytes of the attribute.</param>
+    private void WriteAttributeInformation(Stream stream, string name, string type, int size)
+    {
+        // Write attribute name.
+        WriteString(stream, name);
+
+        // Write attribute type.
+        WriteString(stream, type);
+
+        // Write attribute size.
+        BinaryPrimitives.WriteUInt32LittleEndian(this.buffer, (uint)size);
+        stream.Write(this.buffer.AsSpan(0, 4));
+    }
+
+    /// <summary>
+    /// Writes a string to the stream.
+    /// </summary>
+    /// <param name="stream">The stream to write to.</param>
+    /// <param name="str">The string to write.</param>
     private static void WriteString(Stream stream, string str)
     {
         foreach (char c in str)
@@ -517,6 +636,11 @@ internal sealed class ExrEncoderCore
         stream.WriteByte(0);
     }
 
+    /// <summary>
+    /// Writes box struct with xmin, xmax, ymin and y max to the stream.
+    /// </summary>
+    /// <param name="stream">The stream to write to.</param>
+    /// <param name="box">The box to write.</param>
     private void WriteBoxInteger(Stream stream, ExrBox2i box)
     {
         BinaryPrimitives.WriteInt32LittleEndian(this.buffer, box.XMin);
@@ -532,6 +656,11 @@ internal sealed class ExrEncoderCore
         stream.Write(this.buffer.AsSpan(0, 4));
     }
 
+    /// <summary>
+    /// Writes 32 bit float value to the stream.
+    /// </summary>
+    /// <param name="stream">The stream to write to.</param>
+    /// <param name="value">The float value to write.</param>
     [MethodImpl(InliningOptions.ShortMethod)]
     private unsafe void WriteSingle(Stream stream, float value)
     {
@@ -539,9 +668,19 @@ internal sealed class ExrEncoderCore
         stream.Write(this.buffer.AsSpan(0, 4));
     }
 
+    /// <summary>
+    /// Writes a 32 bit float value to a buffer.
+    /// </summary>
+    /// <param name="buffer">The buffer to write to.</param>
+    /// <param name="value">The float value to write.</param>
     [MethodImpl(InliningOptions.ShortMethod)]
     private static unsafe void WriteSingleToBuffer(Span<byte> buffer, float value) => BinaryPrimitives.WriteInt32LittleEndian(buffer, *(int*)&value);
 
+    /// <summary>
+    /// Writes a 16 bit float value to a buffer.
+    /// </summary>
+    /// <param name="buffer">The buffer to write to.</param>
+    /// <param name="value">The float value to write.</param>
     [MethodImpl(InliningOptions.ShortMethod)]
     private static void WriteHalfSingleToBuffer(Span<byte> buffer, float value)
     {
@@ -549,6 +688,11 @@ internal sealed class ExrEncoderCore
         BinaryPrimitives.WriteUInt16LittleEndian(buffer, valueAsShort);
     }
 
+    /// <summary>
+    /// Writes one unsigned int to a buffer.
+    /// </summary>
+    /// <param name="buffer">The buffer to write to.</param>
+    /// <param name="value">The uint value to write.</param>
     [MethodImpl(InliningOptions.ShortMethod)]
     private static void WriteUnsignedIntToBuffer(Span<byte> buffer, uint value) => BinaryPrimitives.WriteUInt32LittleEndian(buffer, value);
 }

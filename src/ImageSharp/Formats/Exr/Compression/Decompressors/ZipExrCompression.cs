@@ -9,10 +9,19 @@ using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Exr.Compression.Decompressors;
 
+/// <summary>
+/// Implementation of zhe Zip decompressor for EXR image data.
+/// </summary>
 internal class ZipExrCompression : ExrBaseDecompressor
 {
     private readonly IMemoryOwner<byte> tmpBuffer;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ZipExrCompression" /> class.
+    /// </summary>
+    /// <param name="allocator">The memory allocator.</param>
+    /// <param name="bytesPerBlock">The bytes per pixel row block.</param>
+    /// <param name="bytesPerRow">The bytes per pixel row.</param>
     public ZipExrCompression(MemoryAllocator allocator, uint bytesPerBlock, uint bytesPerRow)
         : base(allocator, bytesPerBlock, bytesPerRow) => this.tmpBuffer = allocator.Allocate<byte>((int)bytesPerBlock);
 
@@ -46,7 +55,7 @@ internal class ZipExrCompression : ExrBaseDecompressor
 
         if (totalRead == 0)
         {
-            ExrThrowHelper.ThrowInvalidImageContentException("Could not read zip compressed image data!");
+            ExrThrowHelper.ThrowInvalidImageContentException("Could not read enough data for zip compressed image data!");
         }
 
         Reconstruct(uncompressed, (uint)totalRead);

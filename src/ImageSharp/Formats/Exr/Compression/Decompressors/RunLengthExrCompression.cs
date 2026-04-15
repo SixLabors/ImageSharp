@@ -7,12 +7,21 @@ using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Exr.Compression.Decompressors;
 
+/// <summary>
+/// Implementation of RLE decompressor for EXR images.
+/// </summary>
 internal class RunLengthExrCompression : ExrBaseDecompressor
 {
     private readonly IMemoryOwner<byte> tmpBuffer;
 
     private readonly ushort[] s = new ushort[16];
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="RunLengthExrCompression" /> class.
+    /// </summary>
+    /// <param name="allocator">The memory allocator.</param>
+    /// <param name="bytesPerBlock">The bytes per pixel row block.</param>
+    /// <param name="bytesPerRow">The bytes per row.</param>
     public RunLengthExrCompression(MemoryAllocator allocator, uint bytesPerBlock, uint bytesPerRow)
         : base(allocator, bytesPerBlock, bytesPerRow) => this.tmpBuffer = allocator.Allocate<byte>((int)bytesPerBlock);
 
@@ -68,12 +77,17 @@ internal class RunLengthExrCompression : ExrBaseDecompressor
         Interleave(uncompressed, this.BytesPerBlock, buffer);
     }
 
+    /// <summary>
+    /// Reads the next byte from the stream.
+    /// </summary>
+    /// <param name="stream">The stream.</param>
+    /// <returns>The next byte.</returns>
     private static byte ReadNextByte(BufferedReadStream stream)
     {
         int nextByte = stream.ReadByte();
         if (nextByte == -1)
         {
-            ExrThrowHelper.ThrowInvalidImageContentException("Not enough data to decompress RLE image!");
+            ExrThrowHelper.ThrowInvalidImageContentException("Not enough data to decompress RLE encoded EXR image!");
         }
 
         return (byte)nextByte;

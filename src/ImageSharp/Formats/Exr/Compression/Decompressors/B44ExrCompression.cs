@@ -8,6 +8,9 @@ using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Exr.Compression.Decompressors;
 
+/// <summary>
+/// Implementation of B44 decompressor for EXR image data.
+/// </summary>
 internal class B44ExrCompression : ExrBaseDecompressor
 {
     private readonly int width;
@@ -22,6 +25,15 @@ internal class B44ExrCompression : ExrBaseDecompressor
 
     private readonly IMemoryOwner<ushort> tmpBuffer;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="B44ExrCompression" /> class.
+    /// </summary>
+    /// <param name="allocator">The memory allocator.</param>
+    /// <param name="bytesPerBlock">The bytes per pixel row block.</param>
+    /// <param name="bytesPerRow">The bytes per row.</param>
+    /// <param name="rowsPerBlock">The rows per block.</param>
+    /// <param name="width">The width of a pixel row in pixels.</param>
+    /// <param name="channelCount">The number of channels of the image.</param>
     public B44ExrCompression(MemoryAllocator allocator, uint bytesPerBlock, uint bytesPerRow, uint rowsPerBlock, int width, int channelCount)
         : base(allocator, bytesPerBlock, bytesPerRow)
     {
@@ -57,7 +69,7 @@ internal class B44ExrCompression : ExrBaseDecompressor
                     int bytesRead = stream.Read(this.scratch, 0, 3);
                     if (bytesRead == 0)
                     {
-                        ExrThrowHelper.ThrowInvalidImageContentException("Could not read enough data from the stream");
+                        ExrThrowHelper.ThrowInvalidImageContentException("Could not read enough data from the stream!");
                     }
 
                     if (this.scratch[2] >= 13 << 2)
@@ -70,7 +82,7 @@ internal class B44ExrCompression : ExrBaseDecompressor
                         bytesRead = stream.Read(this.scratch, 3, 11);
                         if (bytesRead == 0)
                         {
-                            ExrThrowHelper.ThrowInvalidImageContentException("Could not read enough data from the stream");
+                            ExrThrowHelper.ThrowInvalidImageContentException("Could not read enough data from the stream!");
                         }
 
                         Unpack14(this.scratch, this.s);
@@ -80,22 +92,22 @@ internal class B44ExrCompression : ExrBaseDecompressor
                     int n = x + 3 < this.width ? 4 : this.width - x;
                     if (y + 3 < this.rowsPerBlock)
                     {
-                        this.s.AsSpan(0, n).CopyTo(row0.Slice(rowOffset));
-                        this.s.AsSpan(4, n).CopyTo(row1.Slice(rowOffset));
-                        this.s.AsSpan(8, n).CopyTo(row2.Slice(rowOffset));
-                        this.s.AsSpan(12, n).CopyTo(row3.Slice(rowOffset));
+                        this.s.AsSpan(0, n).CopyTo(row0[rowOffset..]);
+                        this.s.AsSpan(4, n).CopyTo(row1[rowOffset..]);
+                        this.s.AsSpan(8, n).CopyTo(row2[rowOffset..]);
+                        this.s.AsSpan(12, n).CopyTo(row3[rowOffset..]);
                     }
                     else
                     {
-                        this.s.AsSpan(0, n).CopyTo(row0.Slice(rowOffset));
+                        this.s.AsSpan(0, n).CopyTo(row0[rowOffset..]);
                         if (y + 1 < this.rowsPerBlock)
                         {
-                            this.s.AsSpan(4, n).CopyTo(row1.Slice(rowOffset));
+                            this.s.AsSpan(4, n).CopyTo(row1[rowOffset..]);
                         }
 
                         if (y + 2 < this.rowsPerBlock)
                         {
-                            this.s.AsSpan(8, n).CopyTo(row2.Slice(rowOffset));
+                            this.s.AsSpan(8, n).CopyTo(row2[rowOffset..]);
                         }
                     }
 
@@ -117,7 +129,7 @@ internal class B44ExrCompression : ExrBaseDecompressor
         {
             for (int i = 0; i < this.channelCount; i++)
             {
-                decompressed.Slice(offsetDecompressed + (i * blockSize), this.width).CopyTo(outputBuffer.Slice(offsetOutput));
+                decompressed.Slice(offsetDecompressed + (i * blockSize), this.width).CopyTo(outputBuffer[offsetOutput..]);
                 offsetOutput += this.width;
             }
 
@@ -125,7 +137,11 @@ internal class B44ExrCompression : ExrBaseDecompressor
         }
     }
 
-    // Unpack a 14-byte block into 4 by 4 16-bit pixels.
+    /// <summary>
+    /// Unpack a 14-byte block into 4 by 4 16-bit pixels.
+    /// </summary>
+    /// <param name="b">The source byte data to unpack.</param>
+    /// <param name="s">Destintation buffer.</param>
     private static void Unpack14(Span<byte> b, Span<ushort> s)
     {
         s[0] = (ushort)((b[0] << 8) | b[1]);
@@ -165,7 +181,11 @@ internal class B44ExrCompression : ExrBaseDecompressor
         }
     }
 
-    // Unpack a 3-byte block into 4 by 4 identical 16-bit pixels.
+    /// <summary>
+    /// // Unpack a 3-byte block into 4 by 4 identical 16-bit pixels.
+    /// </summary>
+    /// <param name="b">The source byte data to unpack.</param>
+    /// <param name="s">The destination buffer.</param>
     private static void Unpack3(Span<byte> b, Span<ushort> s)
     {
         s[0] = (ushort)((b[0] << 8) | b[1]);

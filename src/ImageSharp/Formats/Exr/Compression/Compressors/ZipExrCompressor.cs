@@ -6,6 +6,9 @@ using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Exr.Compression.Compressors;
 
+/// <summary>
+/// Compressor for EXR image data using the ZIP compression.
+/// </summary>
 internal class ZipExrCompressor : ExrBaseCompressor
 {
     private readonly DeflateCompressionLevel compressionLevel;
@@ -14,6 +17,14 @@ internal class ZipExrCompressor : ExrBaseCompressor
 
     private readonly System.Buffers.IMemoryOwner<byte> buffer;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ZipExrCompressor"/> class.
+    /// </summary>
+    /// <param name="output">The stream to write the compressed data to.</param>
+    /// <param name="allocator">The memory allocator.</param>
+    /// <param name="bytesPerBlock">The bytes per block.</param>
+    /// <param name="bytesPerRow">The bytes per row.</param>
+    /// <param name="compressionLevel">The compression level for deflate compression.</param>
     public ZipExrCompressor(Stream output, MemoryAllocator allocator, uint bytesPerBlock, uint bytesPerRow, DeflateCompressionLevel compressionLevel)
         : base(output, allocator, bytesPerBlock, bytesPerRow)
     {

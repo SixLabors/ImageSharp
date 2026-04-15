@@ -11,6 +11,20 @@ namespace SixLabors.ImageSharp.Formats.Exr;
 /// </summary>
 internal class ExrHeaderAttributes
 {
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ExrHeaderAttributes" /> class.
+    /// </summary>
+    /// <param name="channels">The image channels.</param>
+    /// <param name="compression">The compression used.</param>
+    /// <param name="dataWindow">The data window.</param>
+    /// <param name="displayWindow">The display window.</param>
+    /// <param name="lineOrder">The line order.</param>
+    /// <param name="aspectRatio">The aspect ratio.</param>
+    /// <param name="screenWindowWidth">Width of the screen window.</param>
+    /// <param name="screenWindowCenter">The screen window center.</param>
+    /// <param name="tileXSize">Size of the tile in x dimension.</param>
+    /// <param name="tileYSize">Size of the tile in y dimension.</param>
+    /// <param name="chunkCount">The chunk count.</param>
     public ExrHeaderAttributes(
         IList<ExrChannelInfo> channels,
         ExrCompression compression,

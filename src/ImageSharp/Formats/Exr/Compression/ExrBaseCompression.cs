@@ -5,10 +5,19 @@ using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Exr.Compression;
 
+/// <summary>
+/// Base class for EXR compression.
+/// </summary>
 internal abstract class ExrBaseCompression : IDisposable
 {
     private bool isDisposed;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ExrBaseCompression" /> class.
+    /// </summary>
+    /// <param name="allocator">The memory allocator.</param>
+    /// <param name="bytesPerBlock">The bytes per block.</param>
+    /// <param name="bytesPerRow">The bytes per row.</param>
     protected ExrBaseCompression(MemoryAllocator allocator, uint bytesPerBlock, uint bytesPerRow)
     {
         this.Allocator = allocator;

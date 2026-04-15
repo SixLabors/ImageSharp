@@ -120,6 +120,21 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
         return image;
     }
 
+    /// <inheritdoc />
+    protected override ImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken)
+    {
+        ExrHeaderAttributes header = this.ReadExrHeader(stream);
+
+        return new ImageInfo(new Size(header.DataWindow.XMax, header.DataWindow.YMax), this.metadata);
+    }
+
+    /// <summary>
+    /// Decodes image data with floating point pixel data.
+    /// </summary>
+    /// <typeparam name="TPixel">The type of the pixels.</typeparam>
+    /// <param name="stream">The stream to read from.</param>
+    /// <param name="pixels">The pixel buffer.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
     private void DecodeFloatingPointPixelData<TPixel>(BufferedReadStream stream, Buffer2D<TPixel> pixels, CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
@@ -178,6 +193,13 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
         }
     }
 
+    /// <summary>
+    /// Decodes image data with unsigned int pixel data.
+    /// </summary>
+    /// <typeparam name="TPixel">The type of the pixels.</typeparam>
+    /// <param name="stream">The stream to read from.</param>
+    /// <param name="pixels">The pixel buffer.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
     private void DecodeUnsignedIntPixelData<TPixel>(BufferedReadStream stream, Buffer2D<TPixel> pixels, CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
@@ -236,6 +258,18 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
         }
     }
 
+    /// <summary>
+    /// Reads float image channel data.
+    /// </summary>
+    /// <param name="stream">The stream to read from.</param>
+    /// <param name="channel">The channel info.</param>
+    /// <param name="decompressedPixelData">The decompressed pixel data.</param>
+    /// <param name="redPixelData">The red channel pixel data.</param>
+    /// <param name="greenPixelData">The green channel pixel data.</param>
+    /// <param name="bluePixelData">The blue channel pixel data.</param>
+    /// <param name="alphaPixelData">The alpha channel pixel data.</param>
+    /// <param name="width">The width of a row in pixels.</param>
+    /// <returns>The bytes read.</returns>
     private static int ReadFloatChannelData(
         BufferedReadStream stream,
         ExrChannelInfo channel,
@@ -275,6 +309,18 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
         }
     }
 
+    /// <summary>
+    /// Reads UINT image channel data.
+    /// </summary>
+    /// <param name="stream">The stream to read from.</param>
+    /// <param name="channel">The channel info.</param>
+    /// <param name="decompressedPixelData">The decompressed pixel data.</param>
+    /// <param name="redPixelData">The red channel pixel data.</param>
+    /// <param name="greenPixelData">The green channel pixel data.</param>
+    /// <param name="bluePixelData">The blue channel pixel data.</param>
+    /// <param name="alphaPixelData">The alpha channel pixel data.</param>
+    /// <param name="width">The width of a row in pixels.</param>
+    /// <returns>The bytes read.</returns>
     private int ReadUnsignedIntChannelData(
         BufferedReadStream stream,
         ExrChannelInfo channel,
@@ -313,6 +359,14 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
         }
     }
 
+    /// <summary>
+    /// Reads the channel data for pixel type HALF or FLOAT.
+    /// </summary>
+    /// <param name="channel">The channel info.</param>
+    /// <param name="decompressedPixelData">The decompressed pixel data.</param>
+    /// <param name="pixelData">The pixel data as float.</param>
+    /// <param name="width">The width in pixel of a row.</param>
+    /// <returns>The bytes read.</returns>
     private static int ReadChannelData(ExrChannelInfo channel, Span<byte> decompressedPixelData, Span<float> pixelData, int width) => channel.PixelType switch
     {
         ExrPixelType.Half => ReadPixelRowChannelHalfSingle(decompressedPixelData, pixelData, width),
@@ -320,12 +374,27 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
         _ => 0,
     };
 
+    /// <summary>
+    /// Reads the channel data for pixel type UINT.
+    /// </summary>
+    /// <param name="channel">The channel info.</param>
+    /// <param name="decompressedPixelData">The decompressed pixel data.</param>
+    /// <param name="pixelData">The pixel data as uint.</param>
+    /// <param name="width">The width in pixels.</param>
+    /// <returns>The bytes read.</returns>
     private static int ReadChannelData(ExrChannelInfo channel, Span<byte> decompressedPixelData, Span<uint> pixelData, int width) => channel.PixelType switch
     {
         ExrPixelType.UnsignedInt => ReadPixelRowChannelUnsignedInt(decompressedPixelData, pixelData, width),
         _ => 0,
     };
 
+    /// <summary>
+    /// Reads a pixel row with the pixel data being 16 bit half values.
+    /// </summary>
+    /// <param name="decompressedPixelData">The decompressed pixel data.</param>
+    /// <param name="channelData">The channel data as float.</param>
+    /// <param name="width">The width of a row in pixels.</param>
+    /// <returns>The bytes read.</returns>
     private static int ReadPixelRowChannelHalfSingle(Span<byte> decompressedPixelData, Span<float> channelData, int width)
     {
         int offset = 0;
@@ -339,6 +408,13 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
         return offset;
     }
 
+    /// <summary>
+    /// Reads a pixel row with 32 bit float pixel data.
+    /// </summary>
+    /// <param name="decompressedPixelData">The decompressed pixel data.</param>
+    /// <param name="channelData">The pixel data as float.</param>
+    /// <param name="width">The width in pixels of a row.</param>
+    /// <returns>The bytes read.</returns>
     private static int ReadPixelRowChannelSingle(Span<byte> decompressedPixelData, Span<float> channelData, int width)
     {
         int offset = 0;
@@ -352,6 +428,13 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
         return offset;
     }
 
+    /// <summary>
+    /// Reads a pixel row with the pixel typ UINT.
+    /// </summary>
+    /// <param name="decompressedPixelData">The decompressed pixel bytes.</param>
+    /// <param name="channelData">The uint pixel data.</param>
+    /// <param name="width">The width of a row in pixels.</param>
+    /// <returns>The bytes read.</returns>
     private static int ReadPixelRowChannelUnsignedInt(Span<byte> decompressedPixelData, Span<uint> channelData, int width)
     {
         int offset = 0;
@@ -364,14 +447,10 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
         return offset;
     }
 
-    /// <inheritdoc />
-    protected override ImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken)
-    {
-        ExrHeaderAttributes header = this.ReadExrHeader(stream);
-
-        return new ImageInfo(new Size(header.DataWindow.XMax, header.DataWindow.YMax), this.metadata);
-    }
-
+    /// <summary>
+    /// Validates that all image channels have the same type and are among the supported pixel types.
+    /// </summary>
+    /// <returns>The pixel type.</returns>
     private ExrPixelType ValidateChannels()
     {
         if (this.Channels.Count == 0)
@@ -380,12 +459,42 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
         }
 
         // Find pixel the type of any channel which is R, G, B or A.
-        ExrPixelType pixelType = this.FindPixelType();
+        ExrPixelType? pixelType = null;
+        for (int i = 0; i < this.Channels.Count; i++)
+        {
+            if (this.Channels[i].ChannelName.Equals(ExrConstants.ChannelNames.Blue, StringComparison.Ordinal) ||
+                this.Channels[i].ChannelName.Equals(ExrConstants.ChannelNames.Green, StringComparison.Ordinal) ||
+                this.Channels[i].ChannelName.Equals(ExrConstants.ChannelNames.Red, StringComparison.Ordinal) ||
+                this.Channels[i].ChannelName.Equals(ExrConstants.ChannelNames.Alpha, StringComparison.Ordinal) ||
+                this.Channels[i].ChannelName.Equals(ExrConstants.ChannelNames.Luminance, StringComparison.Ordinal))
+            {
+                if (!pixelType.HasValue)
+                {
+                    pixelType = this.Channels[i].PixelType;
+                }
+                else
+                {
+                    if (pixelType != this.Channels[i].PixelType)
+                    {
+                        ExrThrowHelper.ThrowNotSupported("Pixel channel data is expected to be the same for all channels.");
+                    }
+                }
+            }
+        }
 
-        return pixelType;
+        if (!pixelType.HasValue)
+        {
+            ExrThrowHelper.ThrowNotSupported("Pixel channel data is unknown! Only R, G, B, A and Y are supported.");
+        }
+
+        return pixelType.Value;
     }
 
-    private ExrImageDataType ReadImageDataType()
+    /// <summary>
+    /// Determines the type image from the channel information.
+    /// </summary>
+    /// <returns>The image data type.</returns>
+    private ExrImageDataType DetermineImageDataType()
     {
         bool hasRedChannel = false;
         bool hasGreenChannel = false;
@@ -438,6 +547,12 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
         return ExrImageDataType.Unknown;
     }
 
+    /// <summary>
+    /// Reads the exr image header.
+    /// <see href="https://openexr.com/en/latest/OpenEXRFileLayout.html#header-attributes-all-files/"/>
+    /// </summary>
+    /// <param name="stream">The stream.</param>
+    /// <returns>The image header attributes.</returns>
     private ExrHeaderAttributes ReadExrHeader(BufferedReadStream stream)
     {
         // Skip over the magick bytes, we already know its an EXR image.
@@ -471,7 +586,7 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
         this.Channels = this.HeaderAttributes.Channels;
         this.Compression = this.HeaderAttributes.Compression;
         this.PixelType = this.ValidateChannels();
-        this.ImageDataType = this.ReadImageDataType();
+        this.ImageDataType = this.DetermineImageDataType();
 
         this.metadata = new ImageMetadata();
 
@@ -483,6 +598,11 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
         return this.HeaderAttributes;
     }
 
+    /// <summary>
+    /// Parses the image header attributes.
+    /// </summary>
+    /// <param name="stream">The stream to read from.</param>
+    /// <returns>The image header attributes.</returns>
     private ExrHeaderAttributes ParseHeaderAttributes(BufferedReadStream stream)
     {
         ExrAttribute attribute = this.ReadAttribute(stream);
@@ -599,6 +719,11 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
         return header;
     }
 
+    /// <summary>
+    /// Reads a attrbute from the stream, which consist of a name, a type and a size in bytes.
+    /// </summary>
+    /// <param name="stream">The stream to read from.</param>
+    /// <returns>A attribute.</returns>
     private ExrAttribute ReadAttribute(BufferedReadStream stream)
     {
         string attributeName = ReadString(stream);
@@ -608,12 +733,16 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
         }
 
         string attributeType = ReadString(stream);
-
         int attributeSize = this.ReadSignedInteger(stream);
 
         return new ExrAttribute(attributeName, attributeType, attributeSize);
     }
 
+    /// <summary>
+    /// Reads a box attribute, which is a xMin, xMax and yMin, yMax value.
+    /// </summary>
+    /// <param name="stream">The stream to reaad from.</param>
+    /// <returns>A box struct.</returns>
     private ExrBox2i ReadBoxInteger(BufferedReadStream stream)
     {
         int xMin = this.ReadSignedInteger(stream);
@@ -624,6 +753,12 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
         return new ExrBox2i(xMin, yMin, xMax, yMax);
     }
 
+    /// <summary>
+    /// Reads the channel list from the stream.
+    /// </summary>
+    /// <param name="stream">The stream to read from.</param>
+    /// <param name="attributeSize">The size in bytes of the channel list attribute.</param>
+    /// <returns>The channel list.</returns>
     private List<ExrChannelInfo> ReadChannelList(BufferedReadStream stream, int attributeSize)
     {
         List<ExrChannelInfo> channels = [];
@@ -637,12 +772,18 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
         // Last byte should be a null byte.
         if (stream.ReadByte() == -1)
         {
-            ExrThrowHelper.ThrowInvalidImageContentException("Could not read enough data to read exr channel list!");
+            ExrThrowHelper.ThrowInvalidImageContentException("Could not read enough data to read the exr channel list!");
         }
 
         return channels;
     }
 
+    /// <summary>
+    /// Reads the channel information from the stream.
+    /// </summary>
+    /// <param name="stream">The stream to read from.</param>
+    /// <param name="bytesRead">The bytes read.</param>
+    /// <returns>Channel info.</returns>
     private ExrChannelInfo ReadChannelInfo(BufferedReadStream stream, out int bytesRead)
     {
         string channelName = ReadString(stream);
@@ -670,6 +811,11 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
         return new ExrChannelInfo(channelName, pixelType, pLinear, xSampling, ySampling);
     }
 
+    /// <summary>
+    /// Reads a the string from the stream.
+    /// </summary>
+    /// <param name="stream">The stream to read from.</param>
+    /// <returns>A string.</returns>
     private static string ReadString(BufferedReadStream stream)
     {
         StringBuilder str = new();
@@ -694,45 +840,20 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
         return str.ToString();
     }
 
-    private ExrPixelType FindPixelType()
-    {
-        ExrPixelType? pixelType = null;
-        for (int i = 0; i < this.Channels.Count; i++)
-        {
-            if (this.Channels[i].ChannelName.Equals(ExrConstants.ChannelNames.Blue, StringComparison.Ordinal) ||
-                this.Channels[i].ChannelName.Equals(ExrConstants.ChannelNames.Green, StringComparison.Ordinal) ||
-                this.Channels[i].ChannelName.Equals(ExrConstants.ChannelNames.Red, StringComparison.Ordinal) ||
-                this.Channels[i].ChannelName.Equals(ExrConstants.ChannelNames.Alpha, StringComparison.Ordinal) ||
-                this.Channels[i].ChannelName.Equals(ExrConstants.ChannelNames.Luminance, StringComparison.Ordinal))
-            {
-                if (!pixelType.HasValue)
-                {
-                    pixelType = this.Channels[i].PixelType;
-                }
-                else
-                {
-                    if (pixelType != this.Channels[i].PixelType)
-                    {
-                        ExrThrowHelper.ThrowNotSupported("Pixel channel data is expected to be the same for all channels.");
-                    }
-                }
-            }
-        }
-
-        if (!pixelType.HasValue)
-        {
-            ExrThrowHelper.ThrowNotSupported("Pixel channel data is unknown! Only R, G, B, A and Y are supported.");
-        }
-
-        return pixelType.Value;
-    }
-
+    /// <summary>
+    /// Determines whether the compression is supported.
+    /// </summary>
+    /// <returns> True if the compression is supported; otherwise, false>. </returns>
     private bool IsSupportedCompression() => this.Compression switch
     {
         ExrCompression.None or ExrCompression.Zip or ExrCompression.Zips or ExrCompression.RunLengthEncoded or ExrCompression.B44 => true,
         _ => false,
     };
 
+    /// <summary>
+    /// Determines whether this image  has alpha channel.
+    /// </summary>
+    /// <returns> True if this image has a alpha channel; otherwise, false. </returns>
     private bool HasAlpha()
     {
         foreach (ExrChannelInfo channelInfo in this.Channels)

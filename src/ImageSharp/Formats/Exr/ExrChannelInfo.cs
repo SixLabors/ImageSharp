@@ -36,7 +36,6 @@ internal readonly struct ExrChannelInfo
     /// </summary>
     public string ChannelName { get; }
 
-
     /// <summary>
     /// Gets the type of the pixel data.
     /// </summary>

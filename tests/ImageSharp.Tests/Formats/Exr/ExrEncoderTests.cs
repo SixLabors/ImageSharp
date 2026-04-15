@@ -17,6 +17,28 @@ public class ExrEncoderTests
     protected static readonly IImageDecoder ReferenceDecoder = new MagickReferenceDecoder(ExrFormat.Instance);
 
     [Theory]
+    [InlineData(null, ExrPixelType.Half)]
+    [InlineData(ExrPixelType.Float, ExrPixelType.Float)]
+    [InlineData(ExrPixelType.Half, ExrPixelType.Half)]
+    [InlineData(ExrPixelType.UnsignedInt, ExrPixelType.UnsignedInt)]
+    public void EncoderOptions_SetPixelType_Works(ExrPixelType? pixelType, ExrPixelType? expectedPixelType)
+    {
+        // arrange
+        ExrEncoder exrEncoder = new() { PixelType = pixelType };
+        using Image input = new Image<Rgb24>(10, 10);
+        using MemoryStream memStream = new();
+
+        // act
+        input.Save(memStream, exrEncoder);
+
+        // assert
+        memStream.Position = 0;
+        using Image<Rgba32> output = Image.Load<Rgba32>(memStream);
+        ExrMetadata exrMetaData = output.Metadata.GetExrMetadata();
+        Assert.Equal(expectedPixelType, exrMetaData.PixelType);
+    }
+
+    [Theory]
     [WithFile(TestImages.Exr.Uncompressed, PixelTypes.Rgba32)]
     public void ExrEncoder_WithNoCompression_Works<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel> => TestExrEncoderCore(provider, "NoCompression", compression: ExrCompression.None);

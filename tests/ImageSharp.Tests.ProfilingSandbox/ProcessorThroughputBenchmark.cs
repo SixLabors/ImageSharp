@@ -53,6 +53,7 @@ public sealed class ProcessorThroughputBenchmark
             Method.BinaryThreshold => this.BinaryThreshold,
             Method.Histogram => this.Histogram,
             Method.OilPaint => this.OilPaint,
+            Method.GaussianBlur => this.GaussianBlur,
             _ => throw new NotImplementedException(),
         };
 
@@ -151,21 +152,28 @@ public sealed class ProcessorThroughputBenchmark
     {
         using Image<Rgba32> image = new(this.options.Width, this.options.Height);
         using Image<Rgba32> foreground = new(this.options.Width, this.options.Height);
-        image.Mutate(c => c.DrawImage(foreground, 0.5f));
+        image.Mutate(this.configuration, c => c.DrawImage(foreground, 0.5f));
         return image.Width * image.Height;
     }
 
     private int BinaryThreshold()
     {
         using Image<Rgba32> image = new(this.options.Width, this.options.Height);
-        image.Mutate(c => c.BinaryThreshold(0.5f));
+        image.Mutate(this.configuration, c => c.BinaryThreshold(0.5f));
         return image.Width * image.Height;
     }
 
     private int Histogram()
     {
         using Image<Rgba32> image = new(this.options.Width, this.options.Height);
-        image.Mutate(c => c.HistogramEqualization());
+        image.Mutate(this.configuration, c => c.HistogramEqualization());
+        return image.Width * image.Height;
+    }
+
+    private int GaussianBlur()
+    {
+        using Image<Rgba32> image = new(this.options.Width, this.options.Height);
+        image.Mutate(this.configuration, c => c.GaussianBlur());
         return image.Width * image.Height;
     }
 
@@ -176,7 +184,8 @@ public sealed class ProcessorThroughputBenchmark
         DrawImage,
         BinaryThreshold,
         Histogram,
-        OilPaint
+        OilPaint,
+        GaussianBlur,
     }
 
     private sealed class CommandLineOptions

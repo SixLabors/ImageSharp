@@ -55,6 +55,7 @@ internal sealed class ExrEncoderCore
         this.encoder = encoder;
         this.memoryAllocator = memoryAllocator;
         this.Compression = encoder.Compression ?? ExrCompression.None;
+        this.pixelType = encoder.PixelType;
     }
 
     /// <summary>

@@ -20,7 +20,7 @@ public readonly struct ParallelExecutionSettings
     /// </summary>
     /// <param name="maxDegreeOfParallelism">
     /// The value used for initializing <see cref="ParallelOptions.MaxDegreeOfParallelism"/> when using TPL.
-    /// Set to <c>-1</c> to leave the degree of parallelism unbounded.
+    /// If set to <c>-1</c>, there is no limit on the number of concurrently running operations.
     /// </param>
     /// <param name="minimumPixelsProcessedPerTask">The value for <see cref="MinimumPixelsProcessedPerTask"/>.</param>
     /// <param name="memoryAllocator">The <see cref="MemoryAllocator"/>.</param>
@@ -31,7 +31,7 @@ public readonly struct ParallelExecutionSettings
     {
         // Shall be compatible with ParallelOptions.MaxDegreeOfParallelism:
         // https://docs.microsoft.com/en-us/dotnet/api/system.threading.tasks.paralleloptions.maxdegreeofparallelism
-        if (maxDegreeOfParallelism == 0 || maxDegreeOfParallelism < -1)
+        if (maxDegreeOfParallelism is 0 or < -1)
         {
             throw new ArgumentOutOfRangeException(nameof(maxDegreeOfParallelism));
         }
@@ -49,7 +49,7 @@ public readonly struct ParallelExecutionSettings
     /// </summary>
     /// <param name="maxDegreeOfParallelism">
     /// The value used for initializing <see cref="ParallelOptions.MaxDegreeOfParallelism"/> when using TPL.
-    /// Set to <c>-1</c> to leave the degree of parallelism unbounded.
+    /// If set to <c>-1</c>, there is no limit on the number of concurrently running operations.
     /// </param>
     /// <param name="memoryAllocator">The <see cref="MemoryAllocator"/>.</param>
     public ParallelExecutionSettings(int maxDegreeOfParallelism, MemoryAllocator memoryAllocator)
@@ -64,7 +64,7 @@ public readonly struct ParallelExecutionSettings
 
     /// <summary>
     /// Gets the value used for initializing <see cref="ParallelOptions.MaxDegreeOfParallelism"/> when using TPL.
-    /// A value of <c>-1</c> leaves the degree of parallelism unbounded.
+    /// A value of <c>-1</c> means there is no limit on the number of concurrently running operations.
     /// </summary>
     public int MaxDegreeOfParallelism { get; }
 
@@ -93,12 +93,10 @@ public readonly struct ParallelExecutionSettings
     }
 
     /// <summary>
-    /// Get the default <see cref="SixLabors.ImageSharp.Advanced.ParallelExecutionSettings"/> for a <see cref="SixLabors.ImageSharp.Configuration"/>
+    /// Get the default <see cref="ParallelExecutionSettings"/> for a <see cref="Configuration"/>
     /// </summary>
     /// <param name="configuration">The <see cref="Configuration"/>.</param>
     /// <returns>The <see cref="ParallelExecutionSettings"/>.</returns>
     public static ParallelExecutionSettings FromConfiguration(Configuration configuration)
-    {
-        return new ParallelExecutionSettings(configuration.MaxDegreeOfParallelism, configuration.MemoryAllocator);
-    }
+        => new(configuration.MaxDegreeOfParallelism, configuration.MemoryAllocator);
 }

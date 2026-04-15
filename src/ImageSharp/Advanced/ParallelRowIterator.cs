@@ -44,7 +44,6 @@ public static partial class ParallelRowIterator
         where T : struct, IRowOperation
     {
         ValidateRectangle(rectangle);
-        ValidateSettings(parallelSettings);
 
         int top = rectangle.Top;
         int bottom = rectangle.Bottom;
@@ -109,7 +108,6 @@ public static partial class ParallelRowIterator
         where TBuffer : unmanaged
     {
         ValidateRectangle(rectangle);
-        ValidateSettings(parallelSettings);
 
         int top = rectangle.Top;
         int bottom = rectangle.Bottom;
@@ -174,7 +172,6 @@ public static partial class ParallelRowIterator
         where T : struct, IRowIntervalOperation
     {
         ValidateRectangle(rectangle);
-        ValidateSettings(parallelSettings);
 
         int top = rectangle.Top;
         int bottom = rectangle.Bottom;
@@ -236,7 +233,6 @@ public static partial class ParallelRowIterator
         where TBuffer : unmanaged
     {
         ValidateRectangle(rectangle);
-        ValidateSettings(parallelSettings);
 
         int top = rectangle.Top;
         int bottom = rectangle.Bottom;
@@ -314,36 +310,5 @@ public static partial class ParallelRowIterator
             rectangle.Height,
             0,
             $"{nameof(rectangle)}.{nameof(rectangle.Height)}");
-    }
-
-    /// <summary>
-    /// Validates the supplied <see cref="ParallelExecutionSettings"/>.
-    /// </summary>
-    /// <param name="parallelSettings">The execution settings.</param>
-    /// <exception cref="ArgumentOutOfRangeException">
-    /// Thrown when <see cref="ParallelExecutionSettings.MaxDegreeOfParallelism"/> or
-    /// <see cref="ParallelExecutionSettings.MinimumPixelsProcessedPerTask"/> is invalid.
-    /// </exception>
-    /// <exception cref="ArgumentNullException">
-    /// Thrown when <see cref="ParallelExecutionSettings.MemoryAllocator"/> is null.
-    /// This also guards the public <see cref="ParallelExecutionSettings"/> default value, which bypasses constructor validation.
-    /// </exception>
-    private static void ValidateSettings(in ParallelExecutionSettings parallelSettings)
-    {
-        // ParallelExecutionSettings is a public struct, so callers can pass default and bypass constructor validation.
-        if (parallelSettings.MaxDegreeOfParallelism is 0 or < -1)
-        {
-            throw new ArgumentOutOfRangeException(
-                $"{nameof(parallelSettings)}.{nameof(ParallelExecutionSettings.MaxDegreeOfParallelism)}");
-        }
-
-        Guard.MustBeGreaterThan(
-            parallelSettings.MinimumPixelsProcessedPerTask,
-            0,
-            $"{nameof(parallelSettings)}.{nameof(ParallelExecutionSettings.MinimumPixelsProcessedPerTask)}");
-
-        Guard.NotNull(
-            parallelSettings.MemoryAllocator,
-            $"{nameof(parallelSettings)}.{nameof(ParallelExecutionSettings.MemoryAllocator)}");
     }
 }

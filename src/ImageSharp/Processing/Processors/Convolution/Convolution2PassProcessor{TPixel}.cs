@@ -123,15 +123,10 @@ internal class Convolution2PassProcessor<TPixel> : ImageProcessor<TPixel>
             this.Configuration,
             this.PreserveAlpha);
 
-        using (IMemoryOwner<Vector4> hBuffer = allocator.Allocate<Vector4>(horizontalOperation.GetRequiredBufferLength(interest)))
-        {
-            Span<Vector4> hSpan = hBuffer.Memory.Span;
-
-            for (int y = interest.Top; y < interest.Bottom; y++)
-            {
-                horizontalOperation.Invoke(y, hSpan);
-            }
-        }
+        ParallelRowIterator.IterateRows<HorizontalConvolutionRowOperation, Vector4>(
+                    this.Configuration,
+                    interest,
+                    in horizontalOperation);
 
         // Vertical convolution
         VerticalConvolutionRowOperation verticalOperation = new(
@@ -143,15 +138,10 @@ internal class Convolution2PassProcessor<TPixel> : ImageProcessor<TPixel>
             this.Configuration,
             this.PreserveAlpha);
 
-        using (IMemoryOwner<Vector4> vBuffer = allocator.Allocate<Vector4>(verticalOperation.GetRequiredBufferLength(interest)))
-        {
-            Span<Vector4> vSpan = vBuffer.Memory.Span;
-
-            for (int y = interest.Top; y < interest.Bottom; y++)
-            {
-                verticalOperation.Invoke(y, vSpan);
-            }
-        }
+        ParallelRowIterator.IterateRows<VerticalConvolutionRowOperation, Vector4>(
+            this.Configuration,
+            interest,
+            in verticalOperation);
     }
 
     /// <summary>

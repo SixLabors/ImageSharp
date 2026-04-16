@@ -315,7 +315,7 @@ internal class Vp8LEncoder : IDisposable
 
         if (hasAnimation)
         {
-            RiffHelper.EndWriteChunk(stream, prevPosition);
+            RiffHelper.EndWriteChunk(stream, prevPosition, 2);
         }
 
         return hasAlpha;

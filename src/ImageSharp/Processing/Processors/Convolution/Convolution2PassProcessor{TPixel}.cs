@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Buffers;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -106,8 +105,6 @@ internal class Convolution2PassProcessor<TPixel> : ImageProcessor<TPixel>
         using KernelSamplingMap mapXY = new(this.Configuration.MemoryAllocator);
 
         mapXY.BuildSamplingOffsetMap(this.KernelX.Length, this.KernelX.Length, interest, this.BorderWrapModeX, this.BorderWrapModeY);
-
-        MemoryAllocator allocator = this.Configuration.MemoryAllocator;
 
         // Horizontal convolution
         HorizontalConvolutionRowOperation horizontalOperation = new(

@@ -75,7 +75,7 @@ public class Rgb96Tests
     public void Rgb96_ToRgba32()
     {
         // arrange
-        Rgb96 rgb96 = new((uint)(uint.MaxValue * 0.1f), uint.MaxValue / 2, uint.MaxValue);
+        Rgb96 rgb96 = new((uint)(uint.MaxValue * 0.1), uint.MaxValue / 2, uint.MaxValue);
         Rgba32 expected = new(25, 127, 255, 255);
 
         // act

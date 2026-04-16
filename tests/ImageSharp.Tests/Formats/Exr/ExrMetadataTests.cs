@@ -1,8 +1,10 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Exr;
 using SixLabors.ImageSharp.Formats.Exr.Constants;
+using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Exr;
 
@@ -84,5 +86,33 @@ public class ExrMetadataTests
         ExrMetadata metadata = imageInfo.Metadata.GetExrMetadata();
         Assert.NotNull(metadata);
         Assert.Equal(expectedCompression, metadata.Compression);
+    }
+
+    [Theory]
+    [InlineData(PixelColorType.Binary, 1, ExrImageDataType.Unknown, ExrPixelType.Half)]
+    [InlineData(PixelColorType.Indexed, 8, ExrImageDataType.Unknown, ExrPixelType.Half)]
+    [InlineData(PixelColorType.Luminance, 16, ExrImageDataType.Gray, ExrPixelType.Half)]
+    [InlineData(PixelColorType.RGB, 48, ExrImageDataType.Rgb, ExrPixelType.Float)]
+    [InlineData(PixelColorType.BGR, 48, ExrImageDataType.Rgb, ExrPixelType.Float)]
+    [InlineData(PixelColorType.RGB | PixelColorType.Alpha, 64, ExrImageDataType.Rgba, ExrPixelType.Float)]
+    [InlineData(PixelColorType.BGR | PixelColorType.Alpha, 64, ExrImageDataType.Rgba, ExrPixelType.Float)]
+    [InlineData(PixelColorType.Luminance | PixelColorType.Alpha, 32, ExrImageDataType.Rgba, ExrPixelType.Float)]
+    [InlineData(PixelColorType.YCbCr, 48, ExrImageDataType.Unknown, ExrPixelType.Float)]
+    [InlineData(PixelColorType.CMYK, 64, ExrImageDataType.Unknown, ExrPixelType.Float)]
+    [InlineData(PixelColorType.YCCK, 64, ExrImageDataType.Unknown, ExrPixelType.Float)]
+    public void FromFormatConnectingMetadata_ConvertColorTypeAsExpected(PixelColorType pixelColorType, int bitsPerPixel, ExrImageDataType expectedImageDataType, ExrPixelType expectedPixelType)
+    {
+        FormatConnectingMetadata formatConnectingMetadata = new()
+        {
+            PixelTypeInfo = new PixelTypeInfo(bitsPerPixel)
+            {
+                ColorType = pixelColorType,
+            },
+        };
+
+        ExrMetadata actual = ExrMetadata.FromFormatConnectingMetadata(formatConnectingMetadata);
+
+        Assert.Equal(expectedImageDataType, actual.ImageDataType);
+        Assert.Equal(expectedPixelType, actual.PixelType);
     }
 }

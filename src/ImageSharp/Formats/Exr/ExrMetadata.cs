@@ -95,14 +95,52 @@ public class ExrMetadata : IFormatMetadata<ExrMetadata>
     }
 
     /// <inheritdoc/>
-    public FormatConnectingMetadata ToFormatConnectingMetadata() => new()
+    public FormatConnectingMetadata ToFormatConnectingMetadata()
     {
-        EncodingType = this.Compression is ExrCompression.B44 or ExrCompression.B44A or ExrCompression.Pxr24 ? EncodingType.Lossy : EncodingType.Lossless,
-        PixelTypeInfo = this.GetPixelTypeInfo()
-    };
+        EncodingType type = this.Compression is ExrCompression.B44 or ExrCompression.B44A or ExrCompression.Pxr24
+            ? EncodingType.Lossy
+            : EncodingType.Lossless;
+
+        return new()
+        {
+            EncodingType = type,
+            PixelTypeInfo = this.GetPixelTypeInfo()
+        };
+    }
 
     /// <inheritdoc/>
-    public static ExrMetadata FromFormatConnectingMetadata(FormatConnectingMetadata metadata) => new() { PixelType = ExrPixelType.Half };
+    public static ExrMetadata FromFormatConnectingMetadata(FormatConnectingMetadata metadata)
+    {
+        PixelTypeInfo pixelTypeInfo = metadata.PixelTypeInfo;
+        PixelComponentInfo? info = pixelTypeInfo.ComponentInfo;
+        PixelColorType colorType = pixelTypeInfo.ColorType;
+
+        int bitsPerComponent = info?.GetMaximumComponentPrecision()
+            ?? (pixelTypeInfo.BitsPerPixel <= 16 ? 16 : 32);
+
+        int componentCount = info?.ComponentCount ?? 0;
+        ExrImageDataType imageDataType = colorType switch
+        {
+            PixelColorType.Luminance => ExrImageDataType.Gray,
+            PixelColorType.RGB or PixelColorType.BGR => ExrImageDataType.Rgb,
+            PixelColorType.RGB | PixelColorType.Alpha
+                or PixelColorType.BGR | PixelColorType.Alpha
+                or PixelColorType.Luminance | PixelColorType.Alpha => ExrImageDataType.Rgba,
+            _ => componentCount switch
+            {
+                >= 4 => ExrImageDataType.Rgba,
+                >= 3 => ExrImageDataType.Rgb,
+                1 => ExrImageDataType.Gray,
+                _ => ExrImageDataType.Unknown,
+            }
+        };
+
+        return new()
+        {
+            PixelType = bitsPerComponent <= 16 ? ExrPixelType.Half : ExrPixelType.Float,
+            ImageDataType = imageDataType,
+        };
+    }
 
     /// <inheritdoc/>
     ExrMetadata IDeepCloneable<ExrMetadata>.DeepClone() => new(this);

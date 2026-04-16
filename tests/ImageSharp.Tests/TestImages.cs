@@ -1381,4 +1381,20 @@ public static class TestImages
         public const string CurReal = "Icon/cur_real.cur";
         public const string CurFake = "Icon/cur_fake.ico";
     }
+
+    public static class Exr
+    {
+        public const string Benchmark = "Exr/Calliphora_benchmark.exr";
+        public const string Uncompressed = "Exr/Calliphora_uncompressed.exr";
+        public const string UncompressedRgba = "Exr/Calliphora_uncompressed_rgba.exr";
+        public const string UncompressedFloatRgb = "Exr/rgb_float32_uncompressed.exr";
+        public const string UncompressedUintRgb = "Exr/Calliphora_uint32_uncompressed.exr";
+        public const string UintRgba = "Exr/rgba_uint_uncompressed.exr";
+        public const string Zip = "Exr/Calliphora_zip.exr";
+        public const string Zips = "Exr/Calliphora_zips.exr";
+        public const string Rle = "Exr/Calliphora_rle.exr";
+        public const string B44 = "Exr/Calliphora_b44.exr";
+        public const string Rgb = "Exr/Calliphora_rgb.exr";
+        public const string Gray = "Exr/Calliphora_gray.exr";
+    }
 }

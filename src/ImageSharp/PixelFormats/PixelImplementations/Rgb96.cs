@@ -19,7 +19,12 @@ public partial struct Rgb96 : IPixel<Rgb96>, IEquatable<Rgb96>
 {
     private const float InvMax = 1.0f / uint.MaxValue;
 
-    private const float Max = uint.MaxValue;
+    // Use double here because at this magnitude a float cannot represent all 32-bit
+    // integer values exactly. A float only has 24 bits of precision, so around
+    // uint.MaxValue it can only represent multiples of 256 and will round
+    // 4294967295 up to 4294967296. Double has 53 bits of precision and can
+    // represent all uint values exactly, avoiding precision loss before scaling.
+    private const double Max = uint.MaxValue;
 
     /// <summary>
     /// Gets the red component.
@@ -96,8 +101,11 @@ public partial struct Rgb96 : IPixel<Rgb96>, IEquatable<Rgb96>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Rgb96 FromVector4(Vector4 source)
     {
-        source = Numerics.Clamp(source, Vector4.Zero, Vector4.One) * Max;
-        return new Rgb96((uint)MathF.Round(source.X), (uint)MathF.Round(source.Y), (uint)MathF.Round(source.Z));
+        source = Numerics.Clamp(source, Vector4.Zero, Vector4.One);
+        return new Rgb96(
+            (uint)Math.Round(source.X * Max),
+            (uint)Math.Round(source.Y * Max),
+            (uint)Math.Round(source.Z * Max));
     }
 
     /// <inheritdoc/>

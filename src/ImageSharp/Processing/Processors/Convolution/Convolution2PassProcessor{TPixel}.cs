@@ -109,10 +109,6 @@ internal class Convolution2PassProcessor<TPixel> : ImageProcessor<TPixel>
 
         MemoryAllocator allocator = this.Configuration.MemoryAllocator;
 
-        // Convolution is memory-bandwidth-bound with low arithmetic intensity.
-        // Parallelization degrades performance due to cache line contention from
-        // overlapping source row reads. See #3111.
-
         // Horizontal convolution
         HorizontalConvolutionRowOperation horizontalOperation = new(
             interest,
@@ -124,9 +120,9 @@ internal class Convolution2PassProcessor<TPixel> : ImageProcessor<TPixel>
             this.PreserveAlpha);
 
         ParallelRowIterator.IterateRows<HorizontalConvolutionRowOperation, Vector4>(
-                    this.Configuration,
-                    interest,
-                    in horizontalOperation);
+            this.Configuration,
+            interest,
+            in horizontalOperation);
 
         // Vertical convolution
         VerticalConvolutionRowOperation verticalOperation = new(

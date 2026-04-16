@@ -97,7 +97,7 @@ internal static class ColorNumerics
     /// Scales a value from a 16 bit <see cref="ushort"/> to an
     /// 8 bit <see cref="byte"/> equivalent.
     /// </summary>
-    /// <param name="component">The 8 bit component value.</param>
+    /// <param name="component">The 16 bit component value.</param>
     /// <returns>The <see cref="byte"/></returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static byte From16BitTo8Bit(ushort component) =>
@@ -133,6 +133,49 @@ internal static class ColorNumerics
         (byte)(((component * 255) + 32895) >> 16);
 
     /// <summary>
+    /// Scales a value from a 32 bit <see cref="uint"/> to an
+    /// 8 bit <see cref="byte"/> equivalent.
+    /// </summary>
+    /// <param name="component">The 32 bit component value.</param>
+    /// <returns>The <see cref="byte"/> value.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static byte From32BitTo8Bit(uint component) =>
+
+        // To scale to 8 bits from a 32-bit value V the required value is:
+        //
+        //    (V * 255) / 4294967295
+        //
+        // Since:
+        //
+        //    4294967295 = 255 * 16843009
+        //
+        // this reduces exactly to:
+        //
+        //    V / 16843009
+        //
+        // To round to nearest using integer arithmetic we add half the divisor
+        // before dividing:
+        //
+        //    (V + 16843009 / 2) / 16843009
+        //
+        // where:
+        //
+        //    16843009 / 2 = 8421504.5
+        //
+        // Using 8421504 ensures correct round-to-nearest behaviour:
+        //
+        //    8421504 -> 0
+        //    8421505 -> 1
+        //
+        // The addition must be performed in 64-bit to avoid overflow for large
+        // input values (for example uint.MaxValue).
+        //
+        // Final exact integer implementation:
+        //
+        //    ((ulong)V + 8421504) / 16843009
+        (byte)((component + 8421504UL) / 16843009UL);
+
+    /// <summary>
     /// Scales a value from an 8 bit <see cref="byte"/> to
     /// an 16 bit <see cref="ushort"/> equivalent.
     /// </summary>
@@ -141,6 +184,26 @@ internal static class ColorNumerics
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ushort From8BitTo16Bit(byte component)
         => (ushort)(component * 257);
+
+    /// <summary>
+    /// Scales a value from an 16 bit <see cref="byte"/> to
+    /// an 16 bit <see cref="uint"/> equivalent.
+    /// </summary>
+    /// <param name="component">The 16 bit component value.</param>
+    /// <returns>The 32 bit <see cref="uint"/></returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static uint From16BitTo32Bit(ushort component)
+        => (uint)(component * 65537);
+
+    /// <summary>
+    /// Scales a value from an 8 bit <see cref="byte"/> to
+    /// an 32 bit <see cref="ushort"/> equivalent.
+    /// </summary>
+    /// <param name="component">The 8 bit component value.</param>
+    /// <returns>The 32 bit <see cref="uint"/></returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static uint From8BitTo32Bit(byte component)
+        => (uint)(component * 16843009);
 
     /// <summary>
     /// Returns how many bits are required to store the specified number of colors.

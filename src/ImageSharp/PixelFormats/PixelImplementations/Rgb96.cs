@@ -1,0 +1,203 @@
+// Copyright (c) Six Labors.
+// Licensed under the Six Labors Split License.
+
+using System.Numerics;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+
+namespace SixLabors.ImageSharp.PixelFormats;
+
+/// <summary>
+/// Pixel type containing three 32-bit unsigned normalized values ranging from 0 to 4294967295.
+/// The color components are stored in red, green, blue.
+/// <para>
+/// Ranges from [0, 0, 0] to [1, 1, 1] in vector form.
+/// </para>
+/// </summary>
+[StructLayout(LayoutKind.Sequential)]
+public partial struct Rgb96 : IPixel<Rgb96>, IEquatable<Rgb96>
+{
+    private const float InvMax = 1.0f / uint.MaxValue;
+
+    // Use double here because at this magnitude a float cannot represent all 32-bit
+    // integer values exactly. A float only has 24 bits of precision, so around
+    // uint.MaxValue it can only represent multiples of 256 and will round
+    // 4294967295 up to 4294967296. Double has 53 bits of precision and can
+    // represent all uint values exactly, avoiding precision loss before scaling.
+    private const double Max = uint.MaxValue;
+
+    /// <summary>
+    /// Gets the red component.
+    /// </summary>
+    public uint R;
+
+    /// <summary>
+    /// Gets the green component.
+    /// </summary>
+    public uint G;
+
+    /// <summary>
+    /// Gets the blue component.
+    /// </summary>
+    public uint B;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Rgb96"/> struct.
+    /// </summary>
+    /// <param name="r">The red component.</param>
+    /// <param name="g">The green component.</param>
+    /// <param name="b">The blue component.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Rgb96(uint r, uint g, uint b)
+    {
+        this.R = r;
+        this.G = g;
+        this.B = b;
+    }
+
+    /// <summary>
+    /// Compares two <see cref="Rgb96"/> objects for equality.
+    /// </summary>
+    /// <param name="left">The <see cref="Rgb96"/> on the left side of the operand.</param>
+    /// <returns>
+    /// True if the <paramref name="left"/> parameter is equal to the <paramref name="right"/> parameter; otherwise, false.
+    /// </returns>
+    /// <param name="right">The <see cref="Rgb96"/> on the right side of the operand.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool operator ==(Rgb96 left, Rgb96 right) => left.Equals(right);
+
+    /// <summary>
+    /// Compares two <see cref="Rgb96"/> objects for equality.
+    /// </summary>
+    /// <param name="left">The <see cref="Rgb96"/> on the left side of the operand.</param>
+    /// <param name="right">The <see cref="Rgb96"/> on the right side of the operand.</param>
+    /// <returns>
+    /// True if the <paramref name="left"/> parameter is not equal to the <paramref name="right"/> parameter; otherwise, false.
+    /// </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool operator !=(Rgb96 left, Rgb96 right) => !left.Equals(right);
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly Vector4 ToScaledVector4() => this.ToVector4();
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly Vector4 ToVector4() => new(
+            this.R * InvMax,
+            this.G * InvMax,
+            this.B * InvMax,
+            1.0f);
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static PixelOperations<Rgb96> CreatePixelOperations() => new();
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Rgb96 FromScaledVector4(Vector4 source) => FromVector4(source);
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Rgb96 FromVector4(Vector4 source)
+    {
+        source = Numerics.Clamp(source, Vector4.Zero, Vector4.One);
+        return new Rgb96(
+            (uint)Math.Round(source.X * Max),
+            (uint)Math.Round(source.Y * Max),
+            (uint)Math.Round(source.Z * Max));
+    }
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Rgb96 FromAbgr32(Abgr32 source) => new(ColorNumerics.From8BitTo32Bit(source.R), ColorNumerics.From8BitTo32Bit(source.G), ColorNumerics.From8BitTo32Bit(source.B));
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Rgb96 FromArgb32(Argb32 source) => new(ColorNumerics.From8BitTo32Bit(source.R), ColorNumerics.From8BitTo32Bit(source.G), ColorNumerics.From8BitTo32Bit(source.B));
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Rgb96 FromBgra5551(Bgra5551 source) => FromScaledVector4(source.ToScaledVector4());
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Rgb96 FromBgr24(Bgr24 source) => new(ColorNumerics.From8BitTo32Bit(source.R), ColorNumerics.From8BitTo32Bit(source.G), ColorNumerics.From8BitTo32Bit(source.B));
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Rgb96 FromBgra32(Bgra32 source) => new(ColorNumerics.From8BitTo32Bit(source.R), ColorNumerics.From8BitTo32Bit(source.G), ColorNumerics.From8BitTo32Bit(source.B));
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Rgb96 FromL8(L8 source)
+    {
+        uint rgb = ColorNumerics.From8BitTo32Bit(source.PackedValue);
+        return new Rgb96(rgb, rgb, rgb);
+    }
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Rgb96 FromL16(L16 source)
+    {
+        uint rgb = ColorNumerics.From16BitTo32Bit(source.PackedValue);
+        return new(rgb, rgb, rgb);
+    }
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Rgb96 FromLa16(La16 source)
+    {
+        uint rgb = ColorNumerics.From8BitTo32Bit((byte)source.PackedValue);
+        return new(rgb, rgb, rgb);
+    }
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Rgb96 FromLa32(La32 source)
+    {
+        uint rgb = ColorNumerics.From16BitTo32Bit(source.L);
+        return new(rgb, rgb, rgb);
+    }
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Rgb96 FromRgb24(Rgb24 source) => new(ColorNumerics.From8BitTo32Bit(source.R), ColorNumerics.From8BitTo32Bit(source.G), ColorNumerics.From8BitTo32Bit(source.B));
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Rgb96 FromRgba32(Rgba32 source) => new(ColorNumerics.From8BitTo32Bit(source.R), ColorNumerics.From8BitTo32Bit(source.G), ColorNumerics.From8BitTo32Bit(source.B));
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Rgb96 FromRgb48(Rgb48 source) => new(ColorNumerics.From16BitTo32Bit(source.R), ColorNumerics.From16BitTo32Bit(source.G), ColorNumerics.From16BitTo32Bit(source.B));
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Rgb96 FromRgba64(Rgba64 source) => new(ColorNumerics.From16BitTo32Bit(source.R), ColorNumerics.From16BitTo32Bit(source.G), ColorNumerics.From16BitTo32Bit(source.B));
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static PixelTypeInfo GetPixelTypeInfo() => PixelTypeInfo.Create<Rgb96>(
+            PixelComponentInfo.Create<Rgb96>(3, 32, 32, 32),
+            PixelColorType.RGB,
+            PixelAlphaRepresentation.None);
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly Rgba32 ToRgba32() => Rgba32.FromRgb96(this);
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public override readonly int GetHashCode() => HashCode.Combine(this.R, this.G, this.B);
+
+    /// <inheritdoc />
+    public override readonly string ToString() => FormattableString.Invariant($"Rgb96({this.R}, {this.G}, {this.B})");
+
+    /// <inheritdoc/>
+    public override readonly bool Equals(object? obj) => obj is Rgb96 rgb && rgb.R == this.R && rgb.G == this.G && rgb.B == this.B;
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly bool Equals(Rgb96 other) => this.R.Equals(other.R) && this.G.Equals(other.G) && this.B.Equals(other.B);
+}

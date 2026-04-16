@@ -27,7 +27,7 @@ public class DecodeTga
         => this.data = File.ReadAllBytes(this.TestImageFullPath);
 
     [Benchmark(Baseline = true, Description = "ImageMagick Tga")]
-    public int TgaImageMagick()
+    public uint TgaImageMagick()
     {
         MagickReadSettings settings = new() { Format = MagickFormat.Tga };
         using MagickImage image = new(new MemoryStream(this.data), settings);

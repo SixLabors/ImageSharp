@@ -91,13 +91,22 @@ public class BmpDecoderTests
     {
         using Image<TPixel> image = provider.GetImage(BmpDecoder.Instance);
         image.DebugSave(provider);
-        image.CompareToOriginal(provider);
+        image.CompareToReferenceOutput(provider);
     }
 
     [Theory]
     [WithFile(Bit16Inverted, PixelTypes.Rgba32)]
+    public void BmpDecoder_CanDecode_16Bit_Inverted<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage(BmpDecoder.Instance);
+        image.DebugSave(provider);
+        image.CompareToReferenceOutput(provider);
+    }
+
+    [Theory]
     [WithFile(Bit8Inverted, PixelTypes.Rgba32)]
-    public void BmpDecoder_CanDecode_Inverted<TPixel>(TestImageProvider<TPixel> provider)
+    public void BmpDecoder_CanDecode_8Bit_Inverted<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         using Image<TPixel> image = provider.GetImage(BmpDecoder.Instance);
@@ -156,7 +165,7 @@ public class BmpDecoderTests
     {
         using Image<TPixel> image = provider.GetImage(BmpDecoder.Instance);
         image.DebugSave(provider);
-        image.CompareToOriginal(provider);
+        image.CompareToOriginal(provider, new SystemDrawingReferenceDecoder(BmpFormat.Instance));
     }
 
     [Theory]
@@ -186,12 +195,12 @@ public class BmpDecoderTests
     public void BmpDecoder_CanDecode_RunLengthEncoded_4Bit_WithDelta<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        RleSkippedPixelHandling skippedPixelHandling = TestEnvironment.IsWindows ? RleSkippedPixelHandling.Black : RleSkippedPixelHandling.FirstColorOfPalette;
+        RleSkippedPixelHandling skippedPixelHandling = RleSkippedPixelHandling.Black;
         BmpDecoderOptions options = new() { RleSkippedPixelHandling = skippedPixelHandling };
 
         using Image<TPixel> image = provider.GetImage(BmpDecoder.Instance, options);
         image.DebugSave(provider);
-        image.CompareToOriginal(provider);
+        image.CompareToReferenceOutput(provider);
     }
 
     [Theory]
@@ -224,8 +233,8 @@ public class BmpDecoderTests
         }
     }
 
+    // An RLE-compressed image that uses “delta” codes, to skip over some pixels.
     [Theory]
-    [WithFile(RLE8Cut, PixelTypes.Rgba32)]
     [WithFile(RLE8Delta, PixelTypes.Rgba32)]
     public void BmpDecoder_CanDecode_RunLengthEncoded_8Bit_WithDelta_MagickRefDecoder<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
@@ -236,11 +245,21 @@ public class BmpDecoderTests
         image.CompareToOriginal(provider, MagickReferenceDecoder.Png);
     }
 
+    // An RLE-compressed image that uses “delta” codes, and early EOL & EOBMP markers, to skip over some pixels.
+    [Theory]
+    [WithFile(RLE8Cut, PixelTypes.Rgba32)]
+    public void BmpDecoder_CanDecode_RunLengthEncoded_8Bit_WithDeltaAndEOL_MagickRefDecoder<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        BmpDecoderOptions options = new() { RleSkippedPixelHandling = RleSkippedPixelHandling.FirstColorOfPalette };
+        using Image<TPixel> image = provider.GetImage(BmpDecoder.Instance, options);
+        image.DebugSave(provider);
+        image.CompareToReferenceOutput(provider);
+    }
+
     [Theory]
     [WithFile(RLE8, PixelTypes.Rgba32, false)]
-    [WithFile(RLE8Inverted, PixelTypes.Rgba32, false)]
     [WithFile(RLE8, PixelTypes.Rgba32, true)]
-    [WithFile(RLE8Inverted, PixelTypes.Rgba32, true)]
     public void BmpDecoder_CanDecode_RunLengthEncoded_8Bit<TPixel>(TestImageProvider<TPixel> provider, bool enforceDiscontiguousBuffers)
         where TPixel : unmanaged, IPixel<TPixel>
     {
@@ -253,6 +272,25 @@ public class BmpDecoderTests
         using Image<TPixel> image = provider.GetImage(BmpDecoder.Instance, options);
         image.DebugSave(provider);
         image.CompareToOriginal(provider, MagickReferenceDecoder.Png);
+    }
+
+    [Theory]
+    [WithFile(RLE8Inverted, PixelTypes.Rgba32, false)]
+    [WithFile(RLE8Inverted, PixelTypes.Rgba32, true)]
+    public void BmpDecoder_CanDecode_RunLengthEncoded_8Bit_Inverted<TPixel>(TestImageProvider<TPixel> provider, bool enforceDiscontiguousBuffers)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        if (enforceDiscontiguousBuffers)
+        {
+            provider.LimitAllocatorBufferCapacity().InBytesSqrt(400);
+        }
+
+        BmpDecoderOptions options = new() { RleSkippedPixelHandling = RleSkippedPixelHandling.FirstColorOfPalette };
+        using Image<TPixel> image = provider.GetImage(BmpDecoder.Instance, options);
+        image.DebugSave(provider);
+
+        // The Reference decoder does not support decoding compressed bmp which are inverted (with negative height).
+        image.CompareToReferenceOutput(provider);
     }
 
     [Theory]

@@ -73,8 +73,8 @@ internal abstract partial class MemoryGroup<T>
                 result[i] = currentBuffer;
             }
 
-            ObservedBuffer lastBuffer = ObservedBuffer.Create(pooledBuffers[pooledBuffers.Length - 1], sizeOfLastBuffer, options);
-            result[result.Length - 1] = lastBuffer;
+            ObservedBuffer lastBuffer = ObservedBuffer.Create(pooledBuffers[^1], sizeOfLastBuffer, options);
+            result[^1] = lastBuffer;
             return result;
         }
 
@@ -155,6 +155,7 @@ internal abstract partial class MemoryGroup<T>
                 }
             }
 
+            this.ReleaseAllocationTracking();
             this.memoryOwners = null;
             this.IsValid = false;
             this.groupLifetimeGuard = null;

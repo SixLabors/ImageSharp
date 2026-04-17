@@ -39,23 +39,23 @@ internal partial struct Block8x8F
 #pragma warning restore SA1310 // Field names should not contain underscore
 
     /// <summary>
-    /// <see cref="Vector256{Single}"/> version of <see cref="NormalizeColorsInPlace(float)"/> and <see cref="RoundInPlace()"/>.
+    /// <see cref="Vector256{Single}"/> version of <see cref="NormalizeColorsInPlace(float)"/>.
     /// </summary>
     /// <param name="maximum">The maximum value to normalize to.</param>
     [MethodImpl(InliningOptions.ShortMethod)]
-    public void NormalizeColorsAndRoundInPlaceVector256(float maximum)
+    public void NormalizeColorsInPlaceVector256(float maximum)
     {
         Vector256<float> max = Vector256.Create(maximum);
         Vector256<float> off = Vector256.Ceiling(max * .5F);
 
-        this.V256_0 = NormalizeAndRoundVector256(this.V256_0, off, max);
-        this.V256_1 = NormalizeAndRoundVector256(this.V256_1, off, max);
-        this.V256_2 = NormalizeAndRoundVector256(this.V256_2, off, max);
-        this.V256_3 = NormalizeAndRoundVector256(this.V256_3, off, max);
-        this.V256_4 = NormalizeAndRoundVector256(this.V256_4, off, max);
-        this.V256_5 = NormalizeAndRoundVector256(this.V256_5, off, max);
-        this.V256_6 = NormalizeAndRoundVector256(this.V256_6, off, max);
-        this.V256_7 = NormalizeAndRoundVector256(this.V256_7, off, max);
+        this.V256_0 = NormalizeVector256(this.V256_0, off, max);
+        this.V256_1 = NormalizeVector256(this.V256_1, off, max);
+        this.V256_2 = NormalizeVector256(this.V256_2, off, max);
+        this.V256_3 = NormalizeVector256(this.V256_3, off, max);
+        this.V256_4 = NormalizeVector256(this.V256_4, off, max);
+        this.V256_5 = NormalizeVector256(this.V256_5, off, max);
+        this.V256_6 = NormalizeVector256(this.V256_6, off, max);
+        this.V256_7 = NormalizeVector256(this.V256_7, off, max);
     }
 
     /// <summary>
@@ -95,10 +95,10 @@ internal partial struct Block8x8F
     }
 
     [MethodImpl(InliningOptions.ShortMethod)]
-    private static Vector256<float> NormalizeAndRoundVector256(Vector256<float> value, Vector256<float> off, Vector256<float> max)
-        => Vector256_.RoundToNearestInteger(Vector256_.Clamp(value + off, Vector256<float>.Zero, max));
+    private static Vector256<float> NormalizeVector256(Vector256<float> value, Vector256<float> off, Vector256<float> max)
+        => Vector256_.Clamp(value + off, Vector256<float>.Zero, max);
 
-    private static unsafe void MultiplyIntoInt16Vector256(ref Block8x8F a, ref Block8x8F b, ref Block8x8 dest)
+    private static void MultiplyIntoInt16Vector256(ref Block8x8F a, ref Block8x8F b, ref Block8x8 dest)
     {
         DebugGuard.IsTrue(Vector256.IsHardwareAccelerated, "Vector256 support is required to run this operation!");
 

@@ -63,16 +63,56 @@ internal sealed class DownScalingComponentProcessor8 : ComponentProcessor
             return;
         }
 
-        if (horizontalScale == 2 && verticalScale == 2)
+        if (horizontalScale == 2 && verticalScale == 1)
         {
-            destRef = value;
-            Unsafe.Add(ref destRef, 1) = value;
-            Unsafe.Add(ref destRef, 0 + (uint)destStrideWidth) = value;
-            Unsafe.Add(ref destRef, 1 + (uint)destStrideWidth) = value;
+            CopyTo2x1Scale(value, ref destRef);
             return;
         }
 
-        // TODO: Optimize: implement all cases with scale-specific, loopless code!
+        if (horizontalScale == 1 && verticalScale == 2)
+        {
+            CopyTo1x2Scale(value, ref destRef, (uint)destStrideWidth);
+            return;
+        }
+
+        if (horizontalScale == 2 && verticalScale == 2)
+        {
+            CopyTo2x2Scale(value, ref destRef, (uint)destStrideWidth);
+            return;
+        }
+
+        if (horizontalScale == 4 && verticalScale == 1)
+        {
+            CopyTo4x1Scale(value, ref destRef);
+            return;
+        }
+
+        if (horizontalScale == 4 && verticalScale == 2)
+        {
+            CopyTo4x2Scale(value, ref destRef, (uint)destStrideWidth);
+            return;
+        }
+
+        if (horizontalScale == 1 && verticalScale == 4)
+        {
+            CopyTo1x4Scale(value, ref destRef, (uint)destStrideWidth);
+            return;
+        }
+
+        if (horizontalScale == 2 && verticalScale == 4)
+        {
+            CopyTo2x4Scale(value, ref destRef, (uint)destStrideWidth);
+            return;
+        }
+
+        if (horizontalScale == 4 && verticalScale == 4)
+        {
+            CopyTo4x4Scale(value, ref destRef, (uint)destStrideWidth);
+            return;
+        }
+
+        // The common 1x, 2x, and 4x integral scales are specialized above.
+        // Uncommon legal factor-3 scales use the generic fallback.
         for (nuint y = 0; y < (uint)verticalScale; y++)
         {
             for (nuint x = 0; x < (uint)horizontalScale; x++)
@@ -82,5 +122,109 @@ internal sealed class DownScalingComponentProcessor8 : ComponentProcessor
 
             destRef = ref Unsafe.Add(ref destRef, (uint)destStrideWidth);
         }
+    }
+
+    /// <summary>
+    /// Writes a single source value to two horizontally adjacent samples.
+    /// </summary>
+    [MethodImpl(InliningOptions.ShortMethod)]
+    private static void CopyTo2x1Scale(float value, ref float areaOrigin)
+    {
+        areaOrigin = value;
+        Unsafe.Add(ref areaOrigin, 1u) = value;
+    }
+
+    /// <summary>
+    /// Writes a single source value to two vertically adjacent samples.
+    /// </summary>
+    [MethodImpl(InliningOptions.ShortMethod)]
+    private static void CopyTo1x2Scale(float value, ref float areaOrigin, uint areaStride)
+    {
+        areaOrigin = value;
+        Unsafe.Add(ref areaOrigin, areaStride) = value;
+    }
+
+    /// <summary>
+    /// Writes a single source value to a 2x2 rectangle.
+    /// </summary>
+    [MethodImpl(InliningOptions.ShortMethod)]
+    private static void CopyTo2x2Scale(float value, ref float areaOrigin, uint areaStride)
+    {
+        areaOrigin = value;
+        Unsafe.Add(ref areaOrigin, 1u) = value;
+        Unsafe.Add(ref areaOrigin, areaStride) = value;
+        Unsafe.Add(ref areaOrigin, areaStride + 1u) = value;
+    }
+
+    /// <summary>
+    /// Writes a single source value to four horizontally adjacent samples.
+    /// </summary>
+    [MethodImpl(InliningOptions.ShortMethod)]
+    private static void CopyTo4x1Scale(float value, ref float areaOrigin)
+    {
+        areaOrigin = value;
+        Unsafe.Add(ref areaOrigin, 1u) = value;
+        Unsafe.Add(ref areaOrigin, 2u) = value;
+        Unsafe.Add(ref areaOrigin, 3u) = value;
+    }
+
+    /// <summary>
+    /// Writes a single source value to a 4x2 rectangle.
+    /// </summary>
+    [MethodImpl(InliningOptions.ShortMethod)]
+    private static void CopyTo4x2Scale(float value, ref float areaOrigin, uint areaStride)
+    {
+        CopyTo4x1Scale(value, ref areaOrigin);
+
+        ref float nextRow = ref Unsafe.Add(ref areaOrigin, areaStride);
+        CopyTo4x1Scale(value, ref nextRow);
+    }
+
+    /// <summary>
+    /// Writes a single source value to four vertically adjacent samples.
+    /// </summary>
+    [MethodImpl(InliningOptions.ShortMethod)]
+    private static void CopyTo1x4Scale(float value, ref float areaOrigin, uint areaStride)
+    {
+        areaOrigin = value;
+        Unsafe.Add(ref areaOrigin, areaStride) = value;
+        Unsafe.Add(ref areaOrigin, areaStride * 2u) = value;
+        Unsafe.Add(ref areaOrigin, areaStride * 3u) = value;
+    }
+
+    /// <summary>
+    /// Writes a single source value to a 2x4 rectangle.
+    /// </summary>
+    [MethodImpl(InliningOptions.ShortMethod)]
+    private static void CopyTo2x4Scale(float value, ref float areaOrigin, uint areaStride)
+    {
+        CopyTo2x1Scale(value, ref areaOrigin);
+
+        ref float row1 = ref Unsafe.Add(ref areaOrigin, areaStride);
+        CopyTo2x1Scale(value, ref row1);
+
+        ref float row2 = ref Unsafe.Add(ref areaOrigin, areaStride * 2u);
+        CopyTo2x1Scale(value, ref row2);
+
+        ref float row3 = ref Unsafe.Add(ref areaOrigin, areaStride * 3u);
+        CopyTo2x1Scale(value, ref row3);
+    }
+
+    /// <summary>
+    /// Writes a single source value to a 4x4 rectangle.
+    /// </summary>
+    [MethodImpl(InliningOptions.ShortMethod)]
+    private static void CopyTo4x4Scale(float value, ref float areaOrigin, uint areaStride)
+    {
+        CopyTo4x1Scale(value, ref areaOrigin);
+
+        ref float row1 = ref Unsafe.Add(ref areaOrigin, areaStride);
+        CopyTo4x1Scale(value, ref row1);
+
+        ref float row2 = ref Unsafe.Add(ref areaOrigin, areaStride * 2u);
+        CopyTo4x1Scale(value, ref row2);
+
+        ref float row3 = ref Unsafe.Add(ref areaOrigin, areaStride * 3u);
+        CopyTo4x1Scale(value, ref row3);
     }
 }

@@ -315,6 +315,36 @@ public partial struct Rgba32 : IPixel<Rgba32>, IPackedVector<uint>
         };
 
     /// <summary>
+    /// Initializes the pixel instance from an <see cref="Rgb96"/> value.
+    /// </summary>
+    /// <param name="source">The <see cref="Rgb96"/> value.</param>
+    /// <returns>The pixel value as Rgba32.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Rgba32 FromRgb96(Rgb96 source)
+        => new()
+        {
+            R = ColorNumerics.From32BitTo8Bit(source.R),
+            G = ColorNumerics.From32BitTo8Bit(source.G),
+            B = ColorNumerics.From32BitTo8Bit(source.B),
+            A = byte.MaxValue
+        };
+
+    /// <summary>
+    /// Initializes the pixel instance from an <see cref="Rgba128"/> value.
+    /// </summary>
+    /// <param name="source">The <see cref="Rgba128"/> value.</param>
+    /// <returns>The pixel value as Rgba32.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Rgba32 FromRgba128(Rgba128 source)
+        => new()
+        {
+            R = ColorNumerics.From32BitTo8Bit(source.R),
+            G = ColorNumerics.From32BitTo8Bit(source.G),
+            B = ColorNumerics.From32BitTo8Bit(source.B),
+            A = ColorNumerics.From32BitTo8Bit(source.A),
+        };
+
+    /// <summary>
     /// Converts the value of this instance to a hexadecimal string.
     /// </summary>
     /// <returns>A hexadecimal string representation of the value.</returns>

@@ -14,7 +14,8 @@
         "Qoi",
         "Tga",
         "Tiff",
-        "Webp"
+        "Webp",
+        "Exr"
         ];
 
     private static readonly string[] frameFormats = [

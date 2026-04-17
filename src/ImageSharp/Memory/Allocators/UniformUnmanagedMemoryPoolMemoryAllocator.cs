@@ -92,13 +92,24 @@ internal sealed class UniformUnmanagedMemoryPoolMemoryAllocator : MemoryAllocato
 
         if (lengthInBytes <= (ulong)this.sharedArrayPoolThresholdInBytes)
         {
-            SharedArrayPoolBuffer<T> buffer = new(length);
-            if (options.Has(AllocationOptions.Clean))
-            {
-                buffer.GetSpan().Clear();
-            }
+            long lengthInBytesLong = (long)lengthInBytes;
+            this.ReserveAllocation(lengthInBytesLong);
 
-            return buffer;
+            try
+            {
+                SharedArrayPoolBuffer<T> buffer = new(length);
+                if (options.Has(AllocationOptions.Clean))
+                {
+                    buffer.GetSpan().Clear();
+                }
+
+                return this.TrackAllocation(buffer, lengthInBytes);
+            }
+            catch
+            {
+                this.ReleaseAccumulatedBytes(lengthInBytesLong);
+                throw;
+            }
         }
 
         if (lengthInBytes <= (ulong)this.poolBufferSizeInBytes)
@@ -106,12 +117,38 @@ internal sealed class UniformUnmanagedMemoryPoolMemoryAllocator : MemoryAllocato
             UnmanagedMemoryHandle mem = this.pool.Rent();
             if (mem.IsValid)
             {
-                UnmanagedBuffer<T> buffer = this.pool.CreateGuardedBuffer<T>(mem, length, options.Has(AllocationOptions.Clean));
-                return buffer;
+                long lengthInBytesLong = (long)lengthInBytes;
+                this.ReserveAllocation(lengthInBytesLong);
+
+                try
+                {
+                    UnmanagedBuffer<T> buffer = this.pool.CreateGuardedBuffer<T>(mem, length, options.Has(AllocationOptions.Clean));
+                    return this.TrackAllocation(buffer, lengthInBytes);
+                }
+                catch
+                {
+                    this.ReleaseAccumulatedBytes(lengthInBytesLong);
+                    throw;
+                }
             }
         }
 
-        return this.nonPoolAllocator.Allocate<T>(length, options);
+        long nonPooledLengthInBytesLong = (long)lengthInBytes;
+        this.ReserveAllocation(nonPooledLengthInBytesLong);
+
+        try
+        {
+            using (this.nonPoolAllocator.SuppressTracking())
+            {
+                IMemoryOwner<T> nonPooled = this.nonPoolAllocator.Allocate<T>(length, options);
+                return this.TrackAllocation(nonPooled, lengthInBytes);
+            }
+        }
+        catch
+        {
+            this.ReleaseAccumulatedBytes(nonPooledLengthInBytesLong);
+            throw;
+        }
     }
 
     /// <inheritdoc />
@@ -144,7 +181,10 @@ internal sealed class UniformUnmanagedMemoryPoolMemoryAllocator : MemoryAllocato
             return poolGroup;
         }
 
-        return MemoryGroup<T>.Allocate(this.nonPoolAllocator, totalLengthInElements, bufferAlignment, options);
+        using (this.nonPoolAllocator.SuppressTracking())
+        {
+            return MemoryGroup<T>.Allocate(this.nonPoolAllocator, totalLengthInElements, bufferAlignment, options);
+        }
     }
 
     public override void ReleaseRetainedResources() => this.pool.Release();

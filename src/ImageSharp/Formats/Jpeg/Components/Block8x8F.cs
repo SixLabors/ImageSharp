@@ -132,7 +132,7 @@ internal partial struct Block8x8F : IEquatable<Block8x8F>
     /// </summary>
     /// <param name="dest">Destination</param>
     [MethodImpl(InliningOptions.ShortMethod)]
-    public void ScaledCopyTo(float[] dest)
+    public readonly void ScaledCopyTo(float[] dest)
     {
         DebugGuard.MustBeGreaterThanOrEqualTo(dest.Length, Size, "dest is too small");
 

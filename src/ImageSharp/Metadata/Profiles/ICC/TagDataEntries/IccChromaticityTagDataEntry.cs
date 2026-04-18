@@ -140,7 +140,7 @@ internal sealed class IccChromaticityTagDataEntry : IccTagDataEntry, IEquatable<
                     [0.155, 0.070]
                 ];
             default:
-                throw new ArgumentException("Unrecognized colorant encoding");
+                throw new InvalidIccProfileException("Unrecognized colorant encoding");
         }
     }
 

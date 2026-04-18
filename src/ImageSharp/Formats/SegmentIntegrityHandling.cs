@@ -1,30 +1,26 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 namespace SixLabors.ImageSharp.Formats;
 
 /// <summary>
-/// Specifies how to handle validation of errors in different segments of encoded image files.
+/// Specifies how to handle validation of recoverable errors in ancillary and image data segments.
+/// Structural errors that prevent safe decoding remain fatal regardless of the selected mode.
 /// </summary>
 public enum SegmentIntegrityHandling
 {
     /// <summary>
-    /// Do not ignore any errors.
+    /// Do not ignore any recoverable ancillary or image data segment errors.
     /// </summary>
-    IgnoreNone,
+    Strict = 0,
 
     /// <summary>
-    /// Ignore errors in non-critical segments of the encoded image.
+    /// Ignore recoverable errors in ancillary segments, such as optional metadata.
     /// </summary>
-    IgnoreNonCritical,
+    IgnoreAncillary = 1,
 
     /// <summary>
-    /// Ignore errors in data segments (e.g., image data, metadata).
+    /// Ignore recoverable errors in image data segments in addition to ancillary segments.
     /// </summary>
-    IgnoreData,
-
-    /// <summary>
-    /// Ignore errors in all segments.
-    /// </summary>
-    IgnoreAll
+    IgnoreImageData = 2,
 }

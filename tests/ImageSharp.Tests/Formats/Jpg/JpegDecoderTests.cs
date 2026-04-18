@@ -467,4 +467,61 @@ public partial class JpegDecoderTests
         using Image<TPixel> image = provider.GetImage(JpegDecoder.Instance);
         image.DebugSave(provider);
     }
+
+    [Fact]
+    public void Identify_MalformedApp13Segment_IgnoresNonCriticalErrorsByDefault()
+    {
+        ImageInfo info = Image.Identify(CreateJpegWithMalformedApp13Segment());
+        Assert.True(info.Width > 0);
+        Assert.True(info.Height > 0);
+    }
+
+    [Fact]
+    public void Decode_MalformedApp13Segment_IgnoresNonCriticalErrorsByDefault()
+    {
+        using Image<Rgba32> image = Image.Load<Rgba32>(CreateJpegWithMalformedApp13Segment());
+        Assert.True(image.Width > 0);
+        Assert.True(image.Height > 0);
+    }
+
+    [Fact]
+    public void Identify_MalformedApp13Segment_ThrowsWithStrict()
+    {
+        DecoderOptions options = new() { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
+        Assert.Throws<InvalidImageContentException>(() => Image.Identify(options, CreateJpegWithMalformedApp13Segment()));
+    }
+
+    [Fact]
+    public void Decode_MalformedApp13Segment_ThrowsWithStrict()
+    {
+        DecoderOptions options = new() { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
+        Assert.Throws<InvalidImageContentException>(() =>
+        {
+            using Image<Rgba32> image = Image.Load<Rgba32>(options, CreateJpegWithMalformedApp13Segment());
+        });
+    }
+
+    private static byte[] CreateJpegWithMalformedApp13Segment()
+    {
+        byte[] source = TestFile.Create(TestImages.Jpeg.Baseline.Calliphora).Bytes;
+
+        // This APP13 segment starts with the valid "Photoshop 3.0\0" identifier, but the remaining
+        // payload does not begin with the required "8BIM" image resource block signature.
+        byte[] malformedApp13 =
+        [
+            0xFF, 0xED,
+            0x00, 0x1D,
+            (byte)'P', (byte)'h', (byte)'o', (byte)'t', (byte)'o', (byte)'s', (byte)'h', (byte)'o', (byte)'p', (byte)' ', (byte)'3', (byte)'.', (byte)'0', 0x00,
+            (byte)'B', (byte)'a', (byte)'d', (byte)'R', (byte)'e', (byte)'s', (byte)'o', (byte)'u', (byte)'r', (byte)'c', (byte)'e', (byte)'!', (byte)'!'
+        ];
+
+        byte[] payload = new byte[source.Length + malformedApp13.Length];
+        payload[0] = source[0];
+        payload[1] = source[1];
+
+        Buffer.BlockCopy(malformedApp13, 0, payload, 2, malformedApp13.Length);
+        Buffer.BlockCopy(source, 2, payload, 2 + malformedApp13.Length, source.Length - 2);
+
+        return payload;
+    }
 }

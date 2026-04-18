@@ -801,17 +801,45 @@ internal sealed class PngDecoderCore : ImageDecoderCore
         CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
+        using IMemoryOwner<TPixel>? blendMemory = frameControl.BlendMode == FrameBlendMode.Over
+            ? this.memoryAllocator.Allocate<TPixel>(imageFrame.Width, AllocationOptions.Clean)
+            : null;
+
+        this.ExecuteImageDataSegmentAction(() => this.DecodePixelDataCore(
+            frameControl,
+            compressedStream,
+            imageFrame,
+            pngMetadata,
+            blendMemory,
+            cancellationToken));
+
+        this.hasImageData = true;
+    }
+
+    /// <summary>
+    /// Decodes the raw pixel data row by row.
+    /// </summary>
+    /// <typeparam name="TPixel">The pixel format.</typeparam>
+    /// <param name="frameControl">The frame control.</param>
+    /// <param name="compressedStream">The compressed pixel data stream.</param>
+    /// <param name="imageFrame">The image frame to decode to.</param>
+    /// <param name="pngMetadata">The png metadata.</param>
+    /// <param name="blendMemory">The optional row blending buffer.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    private void DecodePixelDataCore<TPixel>(
+        FrameControl frameControl,
+        DeflateStream compressedStream,
+        ImageFrame<TPixel> imageFrame,
+        PngMetadata pngMetadata,
+        IMemoryOwner<TPixel>? blendMemory,
+        CancellationToken cancellationToken)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
         int currentRow = (int)frameControl.YOffset;
         int currentRowBytesRead = 0;
         int height = (int)frameControl.YMax;
 
-        IMemoryOwner<TPixel>? blendMemory = null;
-        Span<TPixel> blendRowBuffer = [];
-        if (frameControl.BlendMode == FrameBlendMode.Over)
-        {
-            blendMemory = this.memoryAllocator.Allocate<TPixel>(imageFrame.Width, AllocationOptions.Clean);
-            blendRowBuffer = blendMemory.Memory.Span;
-        }
+        Span<TPixel> blendRowBuffer = blendMemory is null ? [] : blendMemory.Memory.Span;
 
         while (currentRow < height)
         {
@@ -855,11 +883,6 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                     break;
 
                 default:
-                    if (this.segmentIntegrityHandling is SegmentIntegrityHandling.IgnoreData or SegmentIntegrityHandling.IgnoreAll)
-                    {
-                        goto EXIT;
-                    }
-
                     PngThrowHelper.ThrowUnknownFilter();
                     break;
             }
@@ -870,8 +893,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
         }
 
         EXIT:
-        this.hasImageData = true;
-        blendMemory?.Dispose();
+        return;
     }
 
     /// <summary>
@@ -891,6 +913,41 @@ internal sealed class PngDecoderCore : ImageDecoderCore
         CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
+        using IMemoryOwner<TPixel>? blendMemory = frameControl.BlendMode == FrameBlendMode.Over
+            ? this.memoryAllocator.Allocate<TPixel>(imageFrame.Width, AllocationOptions.Clean)
+            : null;
+
+        FrameControl frameControlCopy = frameControl;
+        this.ExecuteImageDataSegmentAction(() => this.DecodeInterlacedPixelDataCore(
+            frameControlCopy,
+            compressedStream,
+            imageFrame,
+            pngMetadata,
+            blendMemory,
+            cancellationToken));
+
+        this.hasImageData = true;
+    }
+
+    /// <summary>
+    /// Decodes the raw interlaced pixel data row by row.
+    /// </summary>
+    /// <typeparam name="TPixel">The pixel format.</typeparam>
+    /// <param name="frameControl">The frame control.</param>
+    /// <param name="compressedStream">The compressed pixel data stream.</param>
+    /// <param name="imageFrame">The current image frame.</param>
+    /// <param name="pngMetadata">The png metadata.</param>
+    /// <param name="blendMemory">The optional row blending buffer.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    private void DecodeInterlacedPixelDataCore<TPixel>(
+        FrameControl frameControl,
+        DeflateStream compressedStream,
+        ImageFrame<TPixel> imageFrame,
+        PngMetadata pngMetadata,
+        IMemoryOwner<TPixel>? blendMemory,
+        CancellationToken cancellationToken)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
         int currentRow = Adam7.FirstRow[0] + (int)frameControl.YOffset;
         int currentRowBytesRead = 0;
         int pass = 0;
@@ -899,13 +956,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
 
         Buffer2D<TPixel> imageBuffer = imageFrame.PixelBuffer;
 
-        IMemoryOwner<TPixel>? blendMemory = null;
-        Span<TPixel> blendRowBuffer = [];
-        if (frameControl.BlendMode == FrameBlendMode.Over)
-        {
-            blendMemory = this.memoryAllocator.Allocate<TPixel>(imageFrame.Width, AllocationOptions.Clean);
-            blendRowBuffer = blendMemory.Memory.Span;
-        }
+        Span<TPixel> blendRowBuffer = blendMemory is null ? [] : blendMemory.Memory.Span;
 
         while (true)
         {
@@ -962,11 +1013,6 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                         break;
 
                     default:
-                        if (this.segmentIntegrityHandling is SegmentIntegrityHandling.IgnoreData or SegmentIntegrityHandling.IgnoreAll)
-                        {
-                            goto EXIT;
-                        }
-
                         PngThrowHelper.ThrowUnknownFilter();
                         break;
                 }
@@ -1002,8 +1048,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
         }
 
         EXIT:
-        this.hasImageData = true;
-        blendMemory?.Dispose();
+        return;
     }
 
     /// <summary>

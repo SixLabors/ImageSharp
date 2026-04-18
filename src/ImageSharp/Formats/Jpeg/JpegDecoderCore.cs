@@ -208,11 +208,7 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
             JpegThrowHelper.ThrowInvalidImageContentException("Missing SOS marker.");
         }
 
-        this.InitExifProfile();
-        this.InitIccProfile();
-        this.InitIptcProfile();
-        this.InitXmpProfile();
-        this.InitDerivedMetadataProperties();
+        this.InitializeMetadataProfiles();
 
         _ = this.Options.TryGetIccProfileForColorConversion(this.Metadata.IccProfile, out IccProfile profile);
 
@@ -232,11 +228,7 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
             JpegThrowHelper.ThrowInvalidImageContentException("Missing SOS marker.");
         }
 
-        this.InitExifProfile();
-        this.InitIccProfile();
-        this.InitIptcProfile();
-        this.InitXmpProfile();
-        this.InitDerivedMetadataProperties();
+        this.InitializeMetadataProfiles();
 
         Size pixelSize = this.Frame.PixelSize;
         return new ImageInfo(new Size(pixelSize.Width, pixelSize.Height), this.Metadata);
@@ -711,6 +703,10 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
             {
                 this.Metadata.IccProfile = profile;
             }
+            else
+            {
+                throw new InvalidIccProfileException("Invalid ICC profile.");
+            }
         }
     }
 
@@ -782,6 +778,18 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
     }
 
     /// <summary>
+    /// Initializes decoded metadata profiles using the configured ancillary segment handling policy.
+    /// </summary>
+    private void InitializeMetadataProfiles()
+    {
+        this.ExecuteAncillarySegmentAction(this.InitExifProfile);
+        this.ExecuteAncillarySegmentAction(this.InitIccProfile);
+        this.ExecuteAncillarySegmentAction(this.InitIptcProfile);
+        this.ExecuteAncillarySegmentAction(this.InitXmpProfile);
+        this.ExecuteAncillarySegmentAction(this.InitDerivedMetadataProperties);
+    }
+
+    /// <summary>
     /// Extends the profile with additional data.
     /// </summary>
     /// <param name="profile">The profile data array.</param>
@@ -804,7 +812,16 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
         // We can only decode JFif identifiers.
         // Some images contain multiple JFIF markers (Issue 1932) so we check to see
         // if it's already been read.
-        if (remaining < JFifMarker.Length || (!this.jFif.Equals(default)))
+        if (remaining < JFifMarker.Length)
+        {
+            this.ThrowOrIgnoreNonStrictSegmentError("Bad App0 Marker length.");
+
+            // Skip the application header length
+            stream.Skip(remaining);
+            return;
+        }
+
+        if (!this.jFif.Equals(default))
         {
             // Skip the application header length
             stream.Skip(remaining);
@@ -814,7 +831,10 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
         Span<byte> temp = stackalloc byte[2 * 16 * 4];
 
         stream.Read(temp, 0, JFifMarker.Length);
-        _ = JFifMarker.TryParse(temp, out this.jFif);
+        if (!JFifMarker.TryParse(temp, out this.jFif))
+        {
+            this.ThrowOrIgnoreNonStrictSegmentError("Invalid App0 marker.");
+        }
 
         remaining -= JFifMarker.Length;
 
@@ -823,7 +843,9 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
         {
             if (stream.Position + remaining >= stream.Length)
             {
-                JpegThrowHelper.ThrowInvalidImageContentException("Bad App0 Marker length.");
+                this.ThrowOrIgnoreNonStrictSegmentError("Bad App0 Marker length.");
+                stream.Skip(remaining);
+                return;
             }
 
             stream.Skip(remaining);
@@ -839,7 +861,16 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
     {
         const int exifMarkerLength = 6;
         const int xmpMarkerLength = 29;
-        if (remaining < exifMarkerLength || this.skipMetadata)
+        if (remaining < exifMarkerLength)
+        {
+            this.ThrowOrIgnoreNonStrictSegmentError("Bad App1 Marker length.");
+
+            // Skip the application header length.
+            stream.Skip(remaining);
+            return;
+        }
+
+        if (this.skipMetadata)
         {
             // Skip the application header length.
             stream.Skip(remaining);
@@ -848,7 +879,9 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
 
         if (stream.Position + remaining >= stream.Length)
         {
-            JpegThrowHelper.ThrowInvalidImageContentException("Bad App1 Marker length.");
+            this.ThrowOrIgnoreNonStrictSegmentError("Bad App1 Marker length.");
+            stream.Skip(remaining);
+            return;
         }
 
         Span<byte> temp = stackalloc byte[2 * 16 * 4];
@@ -879,8 +912,10 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
         if (ProfileResolver.IsProfile(temp, ProfileResolver.XmpMarker[..exifMarkerLength]))
         {
             const int remainingXmpMarkerBytes = xmpMarkerLength - exifMarkerLength;
-            if (remaining < remainingXmpMarkerBytes || this.skipMetadata)
+            if (remaining < remainingXmpMarkerBytes)
             {
+                this.ThrowOrIgnoreNonStrictSegmentError("Bad App1 Marker length.");
+
                 // Skip the application header length.
                 stream.Skip(remaining);
                 return;
@@ -906,6 +941,10 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
 
                 remaining = 0;
             }
+            else
+            {
+                this.ThrowOrIgnoreNonStrictSegmentError("Invalid App1 marker.");
+            }
         }
 
         // Skip over any remaining bytes of this header.
@@ -921,7 +960,15 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
     {
         // Length is 14 though we only need to check 12.
         const int icclength = 14;
-        if (remaining < icclength || this.skipMetadata)
+        if (remaining < icclength)
+        {
+            this.ThrowOrIgnoreNonStrictSegmentError("Bad App2 Marker length.");
+
+            stream.Skip(remaining);
+            return;
+        }
+
+        if (this.skipMetadata)
         {
             stream.Skip(remaining);
             return;
@@ -962,7 +1009,15 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
     /// <param name="remaining">The remaining bytes in the segment block.</param>
     private void ProcessApp13Marker(BufferedReadStream stream, int remaining)
     {
-        if (remaining < ProfileResolver.AdobePhotoshopApp13Marker.Length || this.skipMetadata)
+        if (remaining < ProfileResolver.AdobePhotoshopApp13Marker.Length)
+        {
+            this.ThrowOrIgnoreNonStrictSegmentError("Bad App13 Marker length.");
+
+            stream.Skip(remaining);
+            return;
+        }
+
+        if (this.skipMetadata)
         {
             stream.Skip(remaining);
             return;
@@ -980,6 +1035,7 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
             {
                 if (!ProfileResolver.IsProfile(blockDataSpan[..4], ProfileResolver.AdobeImageResourceBlockMarker))
                 {
+                    this.ThrowOrIgnoreNonStrictSegmentError("Invalid App13 marker.");
                     return;
                 }
 
@@ -996,6 +1052,9 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
                         this.iptcData = blockDataSpan.Slice(dataStartIdx, resourceDataSize).ToArray();
                         break;
                     }
+
+                    this.ThrowOrIgnoreNonStrictSegmentError("Invalid App13 marker.");
+                    return;
                 }
                 else
                 {
@@ -1005,6 +1064,7 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
                     if (blockDataSpan.Length < dataStartIdx + resourceDataSize)
                     {
                         // Not enough data or the resource data size is wrong.
+                        this.ThrowOrIgnoreNonStrictSegmentError("Invalid App13 marker.");
                         break;
                     }
 
@@ -1099,6 +1159,8 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
         const int markerLength = AdobeMarker.Length;
         if (remaining < markerLength)
         {
+            this.ThrowOrIgnoreNonStrictSegmentError("Bad App14 Marker length.");
+
             // Skip the application header length
             stream.Skip(remaining);
             return;
@@ -1112,6 +1174,10 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
         if (AdobeMarker.TryParse(temp, out this.adobe))
         {
             this.hasAdobeMarker = true;
+        }
+        else
+        {
+            this.ThrowOrIgnoreNonStrictSegmentError("Invalid App14 marker.");
         }
 
         if (remaining > 0)
@@ -1568,7 +1634,7 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
             arithmeticScanDecoder.InitDecodingTables(this.arithmeticDecodingTables);
         }
 
-        this.InitIccProfile();
+        this.ExecuteAncillarySegmentAction(this.InitIccProfile);
         _ = this.Options.TryGetIccProfileForColorConversion(this.Metadata.IccProfile, out IccProfile profile);
         this.scanDecoder.ParseEntropyCodedData(selectorsCount, profile);
     }

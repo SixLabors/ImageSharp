@@ -1,8 +1,11 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Bmp;
+using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Tests.TestUtilities;
 using static SixLabors.ImageSharp.Tests.TestImages.Bmp;
 
 // ReSharper disable InconsistentNaming
@@ -46,7 +49,7 @@ public class BmpMetadataTests
     }
 
     [Theory]
-    [WithFile(IccProfile, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Bmp.IccProfile, PixelTypes.Rgba32)]
     public void Decoder_CanReadColorProfile<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
@@ -56,4 +59,40 @@ public class BmpMetadataTests
         Assert.NotNull(metaData.IccProfile);
         Assert.Equal(16, metaData.IccProfile.Entries.Length);
     }
+
+    [Fact]
+    public void Identify_MalformedIccProfile_IgnoresNonCriticalErrorsByDefault()
+    {
+        ImageInfo info = Image.Identify(CreateBmpWithMalformedIccProfile());
+        Assert.Equal(1, info.Width);
+        Assert.Equal(1, info.Height);
+    }
+
+    [Fact]
+    public void Decode_MalformedIccProfile_IgnoresNonCriticalErrorsByDefault()
+    {
+        using Image<Rgba32> image = Image.Load<Rgba32>(CreateBmpWithMalformedIccProfile());
+        Assert.Equal(1, image.Width);
+        Assert.Equal(1, image.Height);
+    }
+
+    [Fact]
+    public void Identify_MalformedIccProfile_ThrowsWithStrict()
+    {
+        DecoderOptions options = new() { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
+        Assert.Throws<InvalidIccProfileException>(() => Image.Identify(options, CreateBmpWithMalformedIccProfile()));
+    }
+
+    [Fact]
+    public void Decode_MalformedIccProfile_ThrowsWithStrict()
+    {
+        DecoderOptions options = new() { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
+        Assert.Throws<InvalidIccProfileException>(() =>
+        {
+            using Image<Rgba32> image = Image.Load<Rgba32>(options, CreateBmpWithMalformedIccProfile());
+        });
+    }
+
+    private static byte[] CreateBmpWithMalformedIccProfile()
+        => CorruptedMetadataImageFactory.CreateImageWithMalformedIccProfile(new BmpEncoder());
 }

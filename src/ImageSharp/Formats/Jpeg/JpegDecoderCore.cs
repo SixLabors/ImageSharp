@@ -385,7 +385,11 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
                     case JpegConstants.Markers.SOF1:
                     case JpegConstants.Markers.SOF2:
 
-                        this.ProcessStartOfFrameMarker(stream, markerContentByteSize, fileMarker, ComponentType.Huffman, metadataOnly);
+                        if (!this.ProcessStartOfFrameMarker(stream, markerContentByteSize, fileMarker, ComponentType.Huffman, metadataOnly))
+                        {
+                            return;
+                        }
+
                         break;
 
                     case JpegConstants.Markers.SOF9:
@@ -398,7 +402,11 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
                             this.scanDecoder.ResetInterval = this.resetInterval.Value;
                         }
 
-                        this.ProcessStartOfFrameMarker(stream, markerContentByteSize, fileMarker, ComponentType.Arithmetic, metadataOnly);
+                        if (!this.ProcessStartOfFrameMarker(stream, markerContentByteSize, fileMarker, ComponentType.Arithmetic, metadataOnly))
+                        {
+                            return;
+                        }
+
                         break;
 
                     case JpegConstants.Markers.SOF5:
@@ -429,7 +437,9 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
                         }
 
                         // It's highly unlikely that APPn related data will be found after the SOS marker
-                        // We should have gathered everything we need by now.
+                        // So we can stop parsing here and return the metadata we have parsed so far, instead
+                        // of trying to parse any APPn markers after the SOS marker and risking running out of
+                        // memory or other exceptions.
                         return;
 
                     case JpegConstants.Markers.DHT:
@@ -1212,13 +1222,19 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
     /// <param name="frameMarker">The current frame marker.</param>
     /// <param name="decodingComponentType">The jpeg decoding component type.</param>
     /// <param name="metadataOnly">Whether to parse metadata only.</param>
-    private void ProcessStartOfFrameMarker(BufferedReadStream stream, int remaining, in JpegFileMarker frameMarker, ComponentType decodingComponentType, bool metadataOnly)
+    private bool ProcessStartOfFrameMarker(BufferedReadStream stream, int remaining, in JpegFileMarker frameMarker, ComponentType decodingComponentType, bool metadataOnly)
     {
         if (this.Frame != null)
         {
-            if (metadataOnly)
+            // If we have found the SOS marker, we can stop parsing as we have all
+            // the information we need to decode the image.
+            // It's possible that there are APPn related markers after the SOS marker,
+            // but it's highly unlikely and we would be better off stopping parsing
+            // and decoding the image instead of trying to parse those APPn markers
+            // and risking running out of memory or other exceptions.
+            if (this.hasSOSMarker)
             {
-                return;
+                return false;
             }
 
             JpegThrowHelper.ThrowInvalidImageContentException("Multiple SOF markers. Only single frame jpegs supported.");
@@ -1351,6 +1367,8 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
             this.Frame.Init(maxH, maxV);
             this.scanDecoder.InjectFrameData(this.Frame, this);
         }
+
+        return true;
     }
 
     /// <summary>

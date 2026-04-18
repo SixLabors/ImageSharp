@@ -457,4 +457,14 @@ public partial class JpegDecoderTests
             byte[] data = [0xFF, 0xD8, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30];
             using Image<Rgba32> image = Image.Load<Rgba32>(data);
         });
+
+    // https://github.com/SixLabors/ImageSharp/issues/3118
+    [Theory]
+    [WithFile(TestImages.Jpeg.Issues.Issue3118, PixelTypes.Rgb24)]
+    public void Issue3118_Multiple_SOF_WithSOS_DoesNotThrow<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage(JpegDecoder.Instance);
+        image.DebugSave(provider);
+    }
 }

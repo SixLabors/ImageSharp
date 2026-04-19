@@ -113,6 +113,14 @@ internal sealed class DownScalingComponentProcessor8 : ComponentProcessor
 
         // The common 1x, 2x, and 4x integral scales are specialized above.
         // Uncommon legal factor-3 scales use the generic fallback.
+        CopyArbitraryScale(value, ref destRef, destStrideWidth, horizontalScale, verticalScale);
+    }
+
+    [MethodImpl(InliningOptions.ColdPath)]
+    private static float CopyArbitraryScale(float value, ref float destRef, int destStrideWidth, int horizontalScale, int verticalScale)
+    {
+        // The common 1x, 2x, and 4x integral scales are specialized above.
+        // Uncommon legal factor-3 scales use the generic fallback.
         for (nuint y = 0; y < (uint)verticalScale; y++)
         {
             for (nuint x = 0; x < (uint)horizontalScale; x++)
@@ -122,6 +130,8 @@ internal sealed class DownScalingComponentProcessor8 : ComponentProcessor
 
             destRef = ref Unsafe.Add(ref destRef, (uint)destStrideWidth);
         }
+
+        return destRef;
     }
 
     /// <summary>

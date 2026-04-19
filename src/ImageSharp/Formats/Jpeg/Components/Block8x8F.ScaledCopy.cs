@@ -14,7 +14,7 @@ internal partial struct Block8x8F
     public void ScaledCopyFrom(ref float areaOrigin, int areaStride) =>
         CopyFrom1x1Scale(ref Unsafe.As<float, byte>(ref areaOrigin), ref Unsafe.As<Block8x8F, byte>(ref this), areaStride);
 
-    [MethodImpl(InliningOptions.ShortMethod)]
+    [MethodImpl(InliningOptions.ColdPath)]
     public void ScaledCopyTo(ref float areaOrigin, int areaStride, int horizontalScale, int verticalScale)
     {
         if (horizontalScale == 1 && verticalScale == 1)

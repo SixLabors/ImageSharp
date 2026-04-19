@@ -24,7 +24,7 @@ internal class SharedArrayPoolBuffer<T> : ManagedBufferBase<T>, IRefCounted
 
     public byte[]? Array { get; private set; }
 
-    protected override void Dispose(bool disposing)
+    protected override void DisposeCore(bool disposing)
     {
         if (this.Array == null)
         {

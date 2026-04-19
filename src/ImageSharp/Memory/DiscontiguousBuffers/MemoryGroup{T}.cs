@@ -21,10 +21,8 @@ internal abstract partial class MemoryGroup<T> : IMemoryGroup<T>, IDisposable
 {
     private static readonly int ElementSize = Unsafe.SizeOf<T>();
 
+    private AllocationTrackingState allocationTracking;
     private MemoryGroupSpanCache memoryGroupSpanCache;
-    private MemoryAllocator? trackingAllocator;
-    private long trackingLengthInBytes;
-    private int trackingReleased;
 
     private MemoryGroup(int bufferLength, long totalLength)
     {
@@ -64,11 +62,8 @@ internal abstract partial class MemoryGroup<T> : IMemoryGroup<T>, IDisposable
     /// Intended for one-time initialization after the group has been created; callers should avoid changing
     /// tracking state concurrently with disposal.
     /// </remarks>
-    internal void AttachAllocationTracking(MemoryAllocator allocator, long lengthInBytes)
-    {
-        this.trackingAllocator = allocator;
-        this.trackingLengthInBytes = lengthInBytes;
-    }
+    internal void AttachAllocationTracking(MemoryAllocator allocator, long lengthInBytes) =>
+        this.allocationTracking.Attach(allocator, lengthInBytes);
 
     /// <summary>
     /// Releases any resources or tracking information associated with allocation tracking for this instance.
@@ -77,14 +72,7 @@ internal abstract partial class MemoryGroup<T> : IMemoryGroup<T>, IDisposable
     /// This method is intended to be called when allocation tracking is no longer needed. It is safe
     /// to call multiple times; subsequent calls after the first have no effect, even when called concurrently.
     /// </remarks>
-    internal void ReleaseAllocationTracking()
-    {
-        if (Interlocked.Exchange(ref this.trackingReleased, 1) == 0 && this.trackingAllocator != null)
-        {
-            this.trackingAllocator.ReleaseAccumulatedBytes(this.trackingLengthInBytes);
-            this.trackingAllocator = null;
-        }
-    }
+    internal void ReleaseAllocationTracking() => this.allocationTracking.Release();
 
     /// <inheritdoc />
     IEnumerator<Memory<T>> IEnumerable<Memory<T>>.GetEnumerator()

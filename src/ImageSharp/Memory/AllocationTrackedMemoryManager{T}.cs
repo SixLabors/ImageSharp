@@ -17,9 +17,7 @@ namespace SixLabors.ImageSharp.Memory;
 public abstract class AllocationTrackedMemoryManager<T> : MemoryManager<T>
     where T : struct
 {
-    private MemoryAllocator? trackingAllocator;
-    private long trackingLengthInBytes;
-    private int trackingReleased;
+    private AllocationTrackingState allocationTracking;
 
     /// <summary>
     /// Releases resources held by the concrete tracked owner.
@@ -51,10 +49,7 @@ public abstract class AllocationTrackedMemoryManager<T> : MemoryManager<T>
     /// Derived allocators should not call it themselves; they only construct the concrete owner.
     /// </remarks>
     internal void AttachAllocationTracking(MemoryAllocator allocator, long lengthInBytes)
-    {
-        this.trackingAllocator = allocator;
-        this.trackingLengthInBytes = lengthInBytes;
-    }
+        => this.allocationTracking.Attach(allocator, lengthInBytes);
 
     /// <summary>
     /// Releases any tracked allocation bytes associated with this instance.
@@ -62,12 +57,5 @@ public abstract class AllocationTrackedMemoryManager<T> : MemoryManager<T>
     /// <remarks>
     /// Calling this more than once is safe; only the first call after tracking has been attached releases bytes.
     /// </remarks>
-    private void ReleaseAllocationTracking()
-    {
-        if (Interlocked.Exchange(ref this.trackingReleased, 1) == 0 && this.trackingAllocator != null)
-        {
-            this.trackingAllocator.ReleaseAccumulatedBytes(this.trackingLengthInBytes);
-            this.trackingAllocator = null;
-        }
-    }
+    private void ReleaseAllocationTracking() => this.allocationTracking.Release();
 }

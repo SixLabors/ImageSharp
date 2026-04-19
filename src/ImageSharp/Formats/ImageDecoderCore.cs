@@ -56,6 +56,7 @@ internal abstract class ImageDecoderCore
             or InvalidOperationException
             or NotSupportedException)
         {
+            // Intentionally ignored in non-strict segment integrity modes.
         }
     }
 
@@ -82,6 +83,7 @@ internal abstract class ImageDecoderCore
             or InvalidOperationException
             or NotSupportedException)
         {
+            // Intentionally ignored when image data integrity handling is set to IgnoreImageData.
         }
     }
 

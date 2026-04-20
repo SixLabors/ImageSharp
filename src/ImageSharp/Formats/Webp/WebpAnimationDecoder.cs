@@ -375,7 +375,7 @@ internal class WebpAnimationDecoder : IDisposable
     private void ReadOptionalChunk(
         BufferedReadStream stream,
         WebpChunkType chunkType,
-        ImageMetadata metadata,
+        ImageMetadata imageMetadata,
         bool ignoreMetadata)
     {
         switch (chunkType)
@@ -384,13 +384,13 @@ internal class WebpAnimationDecoder : IDisposable
 
                 // While ICC profiles are optional, an invalid ICC profile cannot be ignored because it must
                 // precede the frame data, and we cannot safely skip it without successfully reading its size.
-                WebpChunkParsingUtils.ReadIccProfile(stream, metadata, ignoreMetadata);
+                WebpChunkParsingUtils.ReadIccProfile(stream, imageMetadata, ignoreMetadata);
                 break;
             case WebpChunkType.Exif:
-                this.executeAncillarySegmentAction(() => WebpChunkParsingUtils.ReadExifProfile(stream, metadata, ignoreMetadata));
+                this.executeAncillarySegmentAction(() => WebpChunkParsingUtils.ReadExifProfile(stream, imageMetadata, ignoreMetadata));
                 break;
             case WebpChunkType.Xmp:
-                this.executeAncillarySegmentAction(() => WebpChunkParsingUtils.ReadXmpProfile(stream, metadata, ignoreMetadata));
+                this.executeAncillarySegmentAction(() => WebpChunkParsingUtils.ReadXmpProfile(stream, imageMetadata, ignoreMetadata));
                 break;
         }
     }

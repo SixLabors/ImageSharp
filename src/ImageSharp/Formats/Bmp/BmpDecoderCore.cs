@@ -1470,9 +1470,9 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
     /// Reads the embedded ICC profile from the BMP V5 info header.
     /// </summary>
     /// <param name="stream">The <see cref="BufferedReadStream"/> containing image data.</param>
-    /// <param name="metadata">The image metadata.</param>
+    /// <param name="imageMetadata">The image metadata.</param>
     /// <param name="infoHeaderStart">The stream position where the info header begins.</param>
-    private void ReadIccProfile(BufferedReadStream stream, ImageMetadata metadata, long infoHeaderStart)
+    private void ReadIccProfile(BufferedReadStream stream, ImageMetadata imageMetadata, long infoHeaderStart)
     {
         byte[] iccProfileData = new byte[this.infoHeader.ProfileSize];
         stream.Position = infoHeaderStart + this.infoHeader.ProfileData;
@@ -1485,7 +1485,7 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
         IccProfile profile = new(iccProfileData);
         if (profile.CheckIsValid())
         {
-            metadata.IccProfile = profile;
+            imageMetadata.IccProfile = profile;
         }
         else
         {

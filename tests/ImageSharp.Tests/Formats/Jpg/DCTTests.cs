@@ -193,7 +193,7 @@ public static class DCTTests
             {
                 for (int x = 0; x < 4; x++)
                 {
-                    AssertScaledElementEquality(expectedSpan.Slice((y * 16) + (x * 2)), actualSpan.Slice((y * 8) + x));
+                    AssertScaledElementEquality(expectedSpan[((y * 16) + (x * 2))..], actualSpan[((y * 8) + x)..]);
                 }
             }
 
@@ -210,7 +210,7 @@ public static class DCTTests
                     }
                 }
 
-                average2x2 = MathF.Round(average2x2 / 4f);
+                average2x2 /= 4f;
 
                 Assert.Equal((int)average2x2, (int)actual[0]);
             }
@@ -254,7 +254,7 @@ public static class DCTTests
             {
                 for (int x = 0; x < 2; x++)
                 {
-                    AssertScaledElementEquality(expectedSpan.Slice((y * 32) + (x * 4)), actualSpan.Slice((y * 8) + x));
+                    AssertScaledElementEquality(expectedSpan[((y * 32) + (x * 4))..], actualSpan[((y * 8) + x)..]);
                 }
             }
 
@@ -271,7 +271,7 @@ public static class DCTTests
                     }
                 }
 
-                average4x4 = MathF.Round(average4x4 / 16f);
+                average4x4 /= 16f;
 
                 Assert.Equal((int)average4x4, (int)actual[0]);
             }
@@ -311,7 +311,7 @@ public static class DCTTests
                 NormalizationValue,
                 MaxOutputValue);
 
-            float expected = MathF.Round(Numerics.Clamp(expectedDest[0] + NormalizationValue, 0, MaxOutputValue));
+            float expected = Numerics.Clamp(expectedDest[0] + NormalizationValue, 0, MaxOutputValue);
 
             Assert.Equal((int)actual, (int)expected);
         }

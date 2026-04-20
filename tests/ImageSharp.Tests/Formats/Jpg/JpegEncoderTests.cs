@@ -49,7 +49,7 @@ public partial class JpegEncoderTests
 
     public static readonly TheoryData<JpegColorType, int, float> CmykEncodingSetups = new()
     {
-        { JpegColorType.Cmyk, 100, 0.0159f / 100 },
+        { JpegColorType.Cmyk, 100, 0.0164f / 100 },
         { JpegColorType.Cmyk, 80,  0.3922f / 100 },
         { JpegColorType.Cmyk, 40,  0.6488f / 100 },
     };

@@ -53,10 +53,10 @@ internal sealed class DirectComponentProcessor : ComponentProcessor
                 // Convert from spectral to color
                 FloatingPointDCT.TransformIDCT(ref workspaceBlock);
 
-                // To conform better to libjpeg we actually NEED TO loose precision here.
-                // This is because they store blocks as Int16 between all the operations.
-                // To be "more accurate", we need to emulate this by rounding!
-                workspaceBlock.NormalizeColorsAndRoundInPlace(maximumValue);
+                // Normalize into the component sample range without quantizing away
+                // fractional precision. The later color conversion / final pack stage
+                // performs the only rounding we actually need for output samples.
+                workspaceBlock.NormalizeColorsInPlace(maximumValue);
 
                 // Write to color buffer acording to sampling factors
                 int xColorBufferStart = xBlock * this.BlockAreaSize.Width;

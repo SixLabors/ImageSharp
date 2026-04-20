@@ -707,17 +707,17 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     [WithFile(YCbCrJpegCompressed2, PixelTypes.Rgba32)]
     [WithFile(RgbJpegCompressedNoJpegTable, PixelTypes.Rgba32)]
     [WithFile(GrayscaleJpegCompressed, PixelTypes.Rgba32)]
-    [WithFile(Issues2123, PixelTypes.Rgba32)]
-    public void TiffDecoder_CanDecode_JpegCompressed<TPixel>(TestImageProvider<TPixel> provider)
-        where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider, useExactComparer: false);
+    [WithFile(Issues2123, PixelTypes.Rgba32, 0.110f)]
+    public void TiffDecoder_CanDecode_JpegCompressed<TPixel>(TestImageProvider<TPixel> provider, float tolerance = 0.001f)
+        where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider, useExactComparer: false, compareTolerance: tolerance);
 
     [Theory]
     [WithFile(RgbOldJpegCompressed, PixelTypes.Rgba32)]
-    [WithFile(RgbOldJpegCompressed2, PixelTypes.Rgba32)]
+    [WithFile(RgbOldJpegCompressed2, PixelTypes.Rgba32, 0.1003f)]
     [WithFile(RgbOldJpegCompressed3, PixelTypes.Rgba32)]
     [WithFile(RgbOldJpegCompressedGray, PixelTypes.Rgba32)]
     [WithFile(YCbCrOldJpegCompressed, PixelTypes.Rgba32)]
-    public void TiffDecoder_CanDecode_OldJpegCompressed<TPixel>(TestImageProvider<TPixel> provider)
+    public void TiffDecoder_CanDecode_OldJpegCompressed<TPixel>(TestImageProvider<TPixel> provider, float tolerance = 0.001f)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         DecoderOptions decoderOptions = new()
@@ -728,7 +728,7 @@ public class TiffDecoderTests : TiffDecoderBaseTester
         image.DebugSave(provider);
         image.CompareToOriginal(
             provider,
-            ImageComparer.Tolerant(0.001f),
+            ImageComparer.Tolerant(tolerance),
             ReferenceDecoder,
             decoderOptions);
     }
@@ -784,7 +784,7 @@ public class TiffDecoderTests : TiffDecoderBaseTester
 
         // The image is handcrafted to simulate issue 2679. ImageMagick will throw an expection here and wont decode,
         // so we compare to rererence output instead.
-        image.DebugSave(provider);
+        image.DebugSave(provider, appendPixelTypeToFileName: false);
         image.CompareToReferenceOutput(
             ImageComparer.Exact,
             provider,

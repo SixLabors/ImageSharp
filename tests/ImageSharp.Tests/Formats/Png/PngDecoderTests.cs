@@ -405,7 +405,7 @@ public partial class PngDecoderTests
         TestFile testFile = TestFile.Create(imagePath);
         using MemoryStream stream = new(testFile.Bytes, false);
 
-        ImageInfo imageInfo = Image.Identify(new DecoderOptions { SegmentIntegrityHandling = SegmentIntegrityHandling.IgnoreData }, stream);
+        ImageInfo imageInfo = Image.Identify(new DecoderOptions { SegmentIntegrityHandling = SegmentIntegrityHandling.IgnoreImageData }, stream);
 
         Assert.NotNull(imageInfo);
         Assert.Equal(expectedPixelSize, imageInfo.PixelType.BitsPerPixel);
@@ -594,7 +594,7 @@ public partial class PngDecoderTests
     public void Decode_InvalidDataChunkCrc_IgnoreCrcErrors<TPixel>(TestImageProvider<TPixel> provider, bool compare)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> image = provider.GetImage(PngDecoder.Instance, new DecoderOptions() { SegmentIntegrityHandling = SegmentIntegrityHandling.IgnoreData });
+        using Image<TPixel> image = provider.GetImage(PngDecoder.Instance, new DecoderOptions() { SegmentIntegrityHandling = SegmentIntegrityHandling.IgnoreImageData });
 
         image.DebugSave(provider);
         if (compare)
@@ -775,7 +775,7 @@ public partial class PngDecoderTests
     public void Binary_PrematureEof()
     {
         PngDecoder decoder = PngDecoder.Instance;
-        PngDecoderOptions options = new() { GeneralOptions = new DecoderOptions { SegmentIntegrityHandling = SegmentIntegrityHandling.IgnoreData } };
+        PngDecoderOptions options = new() { GeneralOptions = new DecoderOptions { SegmentIntegrityHandling = SegmentIntegrityHandling.IgnoreImageData } };
         using EofHitCounter eofHitCounter = EofHitCounter.RunDecoder(TestImages.Png.Bad.FlagOfGermany0000016446, decoder, options);
 
         // TODO: Try to reduce this to 1.

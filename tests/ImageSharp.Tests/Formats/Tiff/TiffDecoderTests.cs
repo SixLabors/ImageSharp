@@ -6,7 +6,9 @@ using System.Runtime.Intrinsics.X86;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Tiff;
 using SixLabors.ImageSharp.Metadata;
+using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Tests.TestUtilities;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using static SixLabors.ImageSharp.Tests.TestImages.Tiff;
 
@@ -868,4 +870,40 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     [WithFile(Issue2983, PixelTypes.Rgba32)]
     public void TiffDecoder_CanDecode_Issue2983<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
+
+    [Fact]
+    public void Identify_MalformedIccProfile_IgnoresNonCriticalErrorsByDefault()
+    {
+        ImageInfo info = Image.Identify(CreateTiffWithMalformedIccProfile());
+        Assert.Equal(1, info.Width);
+        Assert.Equal(1, info.Height);
+    }
+
+    [Fact]
+    public void Decode_MalformedIccProfile_IgnoresNonCriticalErrorsByDefault()
+    {
+        using Image<Rgba32> image = Image.Load<Rgba32>(CreateTiffWithMalformedIccProfile());
+        Assert.Equal(1, image.Width);
+        Assert.Equal(1, image.Height);
+    }
+
+    [Fact]
+    public void Identify_MalformedIccProfile_ThrowsWithStrict()
+    {
+        DecoderOptions options = new() { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
+        Assert.Throws<InvalidIccProfileException>(() => Image.Identify(options, CreateTiffWithMalformedIccProfile()));
+    }
+
+    [Fact]
+    public void Decode_MalformedIccProfile_ThrowsWithStrict()
+    {
+        DecoderOptions options = new() { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
+        Assert.Throws<InvalidIccProfileException>(() =>
+        {
+            using Image<Rgba32> image = Image.Load<Rgba32>(options, CreateTiffWithMalformedIccProfile());
+        });
+    }
+
+    private static byte[] CreateTiffWithMalformedIccProfile()
+        => CorruptedMetadataImageFactory.CreateImageWithMalformedIccProfile(new TiffEncoder());
 }

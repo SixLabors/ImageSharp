@@ -60,7 +60,7 @@ public sealed class DecoderOptions
     /// <summary>
     /// Gets the segment error handling strategy to use during decoding.
     /// </summary>
-    public SegmentIntegrityHandling SegmentIntegrityHandling { get; init; } = SegmentIntegrityHandling.IgnoreNonCritical;
+    public SegmentIntegrityHandling SegmentIntegrityHandling { get; init; } = SegmentIntegrityHandling.IgnoreAncillary;
 
     /// <summary>
     /// Gets a value that controls how ICC profiles are handled during decode.

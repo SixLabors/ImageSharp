@@ -146,10 +146,10 @@ internal sealed class GifDecoderCore : ImageDecoderCore
                             this.ReadGraphicalControlExtension(stream);
                             break;
                         case GifConstants.CommentLabel:
-                            this.ReadComments(stream);
+                            this.ExecuteAncillarySegmentAction(() => this.ReadComments(stream));
                             break;
                         case GifConstants.ApplicationExtensionLabel:
-                            this.ReadApplicationExtension(stream);
+                            this.ExecuteAncillarySegmentAction(() => this.ReadApplicationExtension(stream));
                             break;
                         case GifConstants.PlainTextLabel:
                             SkipBlock(stream); // Not supported by any known decoder.
@@ -226,10 +226,10 @@ internal sealed class GifDecoderCore : ImageDecoderCore
                             this.ReadGraphicalControlExtension(stream);
                             break;
                         case GifConstants.CommentLabel:
-                            this.ReadComments(stream);
+                            this.ExecuteAncillarySegmentAction(() => this.ReadComments(stream));
                             break;
                         case GifConstants.ApplicationExtensionLabel:
-                            this.ReadApplicationExtension(stream);
+                            this.ExecuteAncillarySegmentAction(() => this.ReadApplicationExtension(stream));
                             break;
                         case GifConstants.PlainTextLabel:
                             SkipBlock(stream); // Not supported by any known decoder.
@@ -264,6 +264,13 @@ internal sealed class GifDecoderCore : ImageDecoderCore
         if (this.logicalScreenDescriptor.Width == 0 && this.logicalScreenDescriptor.Height == 0)
         {
             GifThrowHelper.ThrowNoHeader();
+        }
+
+        // Ignoring a malformed ancillary extension must not let identify succeed for a file
+        // that never contained any readable image frame data.
+        if (previousFrame is null)
+        {
+            GifThrowHelper.ThrowNoData();
         }
 
         return new ImageInfo(
@@ -331,51 +338,128 @@ internal sealed class GifDecoderCore : ImageDecoderCore
     private void ReadApplicationExtension(BufferedReadStream stream)
     {
         int appLength = stream.ReadByte();
+        if (appLength == -1)
+        {
+            GifThrowHelper.ThrowInvalidImageContentException("Unexpected end of stream while reading gif application extension");
+        }
+
+        if (appLength != GifConstants.ApplicationBlockSize)
+        {
+            this.ThrowOrIgnoreNonStrictSegmentError($"Gif application extension length '{appLength}' is invalid");
+            SkipBlock(stream, appLength);
+            return;
+        }
 
         // If the length is 11 then it's a valid extension and most likely
         // a NETSCAPE, XMP or ANIMEXTS extension. We want the loop count from this.
         long position = stream.Position;
-        if (appLength == GifConstants.ApplicationBlockSize)
+        int bytesRead = stream.Read(this.buffer.Span, 0, GifConstants.ApplicationBlockSize);
+        if (bytesRead != GifConstants.ApplicationBlockSize)
         {
-            stream.Read(this.buffer.Span, 0, GifConstants.ApplicationBlockSize);
-            bool isXmp = this.buffer.Span.StartsWith(GifConstants.XmpApplicationIdentificationBytes);
-            if (isXmp && !this.skipMetadata)
-            {
-                GifXmpApplicationExtension extension = GifXmpApplicationExtension.Read(stream, this.memoryAllocator);
-                if (extension.Data.Length > 0)
-                {
-                    this.metadata!.XmpProfile = new XmpProfile(extension.Data);
-                }
-                else
-                {
-                    // Reset the stream position and continue.
-                    stream.Position = position;
-                    SkipBlock(stream, appLength);
-                }
+            GifThrowHelper.ThrowInvalidImageContentException("Unexpected end of stream while reading gif application extension");
+        }
 
-                return;
-            }
-
-            int subBlockSize = stream.ReadByte();
-
-            // TODO: There's also a NETSCAPE buffer extension.
-            // http://www.vurdalakov.net/misc/gif/netscape-buffering-application-extension
-            if (subBlockSize == GifConstants.NetscapeLoopingSubBlockSize)
-            {
-                stream.Read(this.buffer.Span, 0, GifConstants.NetscapeLoopingSubBlockSize);
-                this.gifMetadata!.RepeatCount = GifNetscapeLoopingApplicationExtension.Parse(this.buffer.Span[1..]).RepeatCount;
-                stream.Skip(1); // Skip the terminator.
-                return;
-            }
-
-            // Could be something else not supported yet.
-            // Skip the subblock and terminator.
-            SkipBlock(stream, subBlockSize);
-
+        bool isXmp = this.buffer.Span.StartsWith(GifConstants.XmpApplicationIdentificationBytes);
+        if (isXmp)
+        {
+            this.ReadXmpApplicationExtension(stream, position, appLength);
             return;
         }
 
-        SkipBlock(stream, appLength); // Not supported by any known decoder.
+        int subBlockSize = stream.ReadByte();
+        if (subBlockSize == -1)
+        {
+            GifThrowHelper.ThrowInvalidImageContentException("Unexpected end of stream while reading gif application extension");
+        }
+
+        // TODO: There's also a NETSCAPE buffer extension.
+        // http://www.vurdalakov.net/misc/gif/netscape-buffering-application-extension
+        if (subBlockSize == GifConstants.NetscapeLoopingSubBlockSize)
+        {
+            this.ReadNetscapeApplicationExtension(stream);
+            return;
+        }
+
+        // Could be something else not supported yet.
+        // Skip the subblock and terminator.
+        SkipBlock(stream, subBlockSize);
+    }
+
+    /// <summary>
+    /// Reads the GIF XMP application extension.
+    /// </summary>
+    /// <param name="stream">The <see cref="BufferedReadStream"/> containing image data.</param>
+    /// <param name="applicationPosition">The stream position where the application identifier begins.</param>
+    /// <param name="appLength">The application block length.</param>
+    private void ReadXmpApplicationExtension(BufferedReadStream stream, long applicationPosition, int appLength)
+    {
+        if (this.skipMetadata)
+        {
+            stream.Position = applicationPosition;
+            SkipBlock(stream, appLength);
+            return;
+        }
+
+        bool completed = false;
+        this.ExecuteAncillarySegmentAction(
+            () =>
+        {
+            this.ReadXmpApplicationExtensionData(stream, applicationPosition, appLength);
+            completed = true;
+        });
+
+        if (!completed)
+        {
+            stream.Position = applicationPosition;
+            SkipBlock(stream, appLength);
+        }
+    }
+
+    /// <summary>
+    /// Reads the GIF XMP application extension data.
+    /// </summary>
+    /// <param name="stream">The <see cref="BufferedReadStream"/> containing image data.</param>
+    /// <param name="applicationPosition">The stream position where the application identifier begins.</param>
+    /// <param name="appLength">The application block length.</param>
+    private void ReadXmpApplicationExtensionData(BufferedReadStream stream, long applicationPosition, int appLength)
+    {
+        GifXmpApplicationExtension extension = GifXmpApplicationExtension.Read(stream, this.memoryAllocator);
+        if (extension.Data.Length > 0)
+        {
+            this.metadata!.XmpProfile = new XmpProfile(extension.Data);
+            return;
+        }
+
+        stream.Position = applicationPosition;
+        SkipBlock(stream, appLength);
+    }
+
+    /// <summary>
+    /// Reads the GIF NETSCAPE looping application extension.
+    /// </summary>
+    /// <param name="stream">The <see cref="BufferedReadStream"/> containing image data.</param>
+    private void ReadNetscapeApplicationExtension(BufferedReadStream stream) =>
+        this.ExecuteAncillarySegmentAction(() => this.ReadNetscapeApplicationExtensionData(stream));
+
+    /// <summary>
+    /// Reads the GIF NETSCAPE looping application extension data.
+    /// </summary>
+    /// <param name="stream">The <see cref="BufferedReadStream"/> containing image data.</param>
+    private void ReadNetscapeApplicationExtensionData(BufferedReadStream stream)
+    {
+        int bytesRead = stream.Read(this.buffer.Span, 0, GifConstants.NetscapeLoopingSubBlockSize);
+        if (bytesRead != GifConstants.NetscapeLoopingSubBlockSize)
+        {
+            throw new InvalidImageContentException("Unexpected end of stream while reading gif application extension");
+        }
+
+        this.gifMetadata!.RepeatCount = GifNetscapeLoopingApplicationExtension.Parse(this.buffer.Span[1..]).RepeatCount;
+
+        int terminator = stream.ReadByte();
+        if (terminator == -1)
+        {
+            throw new InvalidImageContentException("Unexpected end of stream while reading gif application extension");
+        }
     }
 
     /// <summary>
@@ -428,7 +512,12 @@ internal sealed class GifDecoderCore : ImageDecoderCore
             using IMemoryOwner<byte> commentsBuffer = this.memoryAllocator.Allocate<byte>(length);
             Span<byte> commentsSpan = commentsBuffer.GetSpan();
 
-            stream.Read(commentsSpan);
+            int bytesRead = stream.Read(commentsSpan);
+            if (bytesRead != length)
+            {
+                GifThrowHelper.ThrowInvalidImageContentException("Unexpected end of stream while reading gif comment");
+            }
+
             string commentPart = GifConstants.Encoding.GetString(commentsSpan);
             stringBuilder.Append(commentPart);
         }

@@ -1431,12 +1431,8 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
             this.infoHeader = BmpInfoHeader.ParseV5(buffer);
             if (this.infoHeader.ProfileData != 0 && this.infoHeader.ProfileSize != 0)
             {
-                // Read color profile.
                 long streamPosition = stream.Position;
-                byte[] iccProfileData = new byte[this.infoHeader.ProfileSize];
-                stream.Position = infoHeaderStart + this.infoHeader.ProfileData;
-                stream.Read(iccProfileData);
-                this.metadata.IccProfile = new IccProfile(iccProfileData);
+                this.ExecuteAncillarySegmentAction(() => this.ReadIccProfile(stream, this.metadata, infoHeaderStart));
                 stream.Position = streamPosition;
             }
         }
@@ -1468,6 +1464,33 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
         this.bmpMetadata.BitsPerPixel = (BmpBitsPerPixel)bitsPerPixel;
 
         this.Dimensions = new Size(this.infoHeader.Width, this.infoHeader.Height);
+    }
+
+    /// <summary>
+    /// Reads the embedded ICC profile from the BMP V5 info header.
+    /// </summary>
+    /// <param name="stream">The <see cref="BufferedReadStream"/> containing image data.</param>
+    /// <param name="imageMetadata">The image metadata.</param>
+    /// <param name="infoHeaderStart">The stream position where the info header begins.</param>
+    private void ReadIccProfile(BufferedReadStream stream, ImageMetadata imageMetadata, long infoHeaderStart)
+    {
+        byte[] iccProfileData = new byte[this.infoHeader.ProfileSize];
+        stream.Position = infoHeaderStart + this.infoHeader.ProfileData;
+
+        if (stream.Read(iccProfileData) != iccProfileData.Length)
+        {
+            BmpThrowHelper.ThrowInvalidImageContentException("Not enough data to read BMP ICC profile.");
+        }
+
+        IccProfile profile = new(iccProfileData);
+        if (profile.CheckIsValid())
+        {
+            imageMetadata.IccProfile = profile;
+        }
+        else
+        {
+            throw new InvalidIccProfileException("Invalid BMP ICC profile.");
+        }
     }
 
     /// <summary>

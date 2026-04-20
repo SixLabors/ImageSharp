@@ -200,4 +200,32 @@ public class WebpMetaDataTests
         });
         Assert.Null(ex);
     }
+
+    [Fact]
+    public void Identify_InvalidExifChunk_IgnoresNonCriticalErrorsByDefault()
+    {
+        using MemoryStream stream = new(TestFile.Create(TestImages.Webp.Lossy.WithExifNotEnoughData).Bytes, false);
+        ImageInfo info = Image.Identify(stream);
+        Assert.True(info.Width > 0);
+        Assert.True(info.Height > 0);
+    }
+
+    [Fact]
+    public void Identify_InvalidExifChunk_ThrowsWithStrict()
+    {
+        DecoderOptions options = new() { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
+        using MemoryStream stream = new(TestFile.Create(TestImages.Webp.Lossy.WithExifNotEnoughData).Bytes, false);
+        Assert.Throws<InvalidImageContentException>(() => Image.Identify(options, stream));
+    }
+
+    [Fact]
+    public void Decode_InvalidExifChunk_ThrowsWithStrict()
+    {
+        DecoderOptions options = new() { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
+        using MemoryStream stream = new(TestFile.Create(TestImages.Webp.Lossy.WithExifNotEnoughData).Bytes, false);
+        Assert.Throws<InvalidImageContentException>(() =>
+        {
+            using Image<Rgba32> image = Image.Load<Rgba32>(options, stream);
+        });
+    }
 }

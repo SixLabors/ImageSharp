@@ -34,6 +34,74 @@ internal abstract class ImageDecoderCore
     public Size Dimensions { get; protected internal set; }
 
     /// <summary>
+    /// Executes a known ancillary segment parsing action using the configured integrity policy.
+    /// </summary>
+    /// <param name="action">The action.</param>
+    protected void ExecuteAncillarySegmentAction(Action action)
+    {
+        if (this.Options.SegmentIntegrityHandling is SegmentIntegrityHandling.Strict)
+        {
+            action();
+            return;
+        }
+
+        try
+        {
+            action();
+        }
+        catch (Exception ex) when (ex
+            is ImageFormatException
+            or InvalidIccProfileException
+            or InvalidImageContentException
+            or InvalidOperationException
+            or NotSupportedException)
+        {
+            // Intentionally ignored in non-strict segment integrity modes.
+        }
+    }
+
+    /// <summary>
+    /// Executes a known image data segment parsing action using the configured integrity policy.
+    /// </summary>
+    /// <param name="action">The action.</param>
+    protected void ExecuteImageDataSegmentAction(Action action)
+    {
+        if (this.Options.SegmentIntegrityHandling is not SegmentIntegrityHandling.IgnoreImageData)
+        {
+            action();
+            return;
+        }
+
+        try
+        {
+            action();
+        }
+        catch (Exception ex) when (ex
+            is ImageFormatException
+            or InvalidIccProfileException
+            or InvalidImageContentException
+            or InvalidOperationException
+            or NotSupportedException)
+        {
+            // Intentionally ignored when image data integrity handling is set to IgnoreImageData.
+        }
+    }
+
+    /// <summary>
+    /// Throws unless the decoder is running in a non-strict segment integrity mode.
+    /// Use this only from within <see cref="ExecuteAncillarySegmentAction"/> when local control flow
+    /// must continue after the error.
+    /// </summary>
+    /// <param name="message">The exception message.</param>
+    protected void ThrowOrIgnoreNonStrictSegmentError(string message)
+    {
+        if (this.Options.SegmentIntegrityHandling is SegmentIntegrityHandling.Strict)
+        {
+            throw new InvalidImageContentException(message);
+        }
+    }
+
+    /// <summary>
     /// Reads the raw image information from the specified stream.
     /// </summary>
     /// <param name="configuration">The shared configuration.</param>

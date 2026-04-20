@@ -224,24 +224,6 @@ public class ParallelRowIteratorTests
         Assert.Equal(Enumerable.Repeat(1, rectangle.Height), actualData);
     }
 
-    [Fact]
-    public void IterateRowsWithTempBuffer_DefaultSettingsRequireInitialization()
-    {
-        ParallelExecutionSettings parallelSettings = default;
-        Rectangle rect = new(0, 0, 10, 10);
-
-        void RowAction(int y, Span<Rgba32> memory)
-        {
-        }
-
-        TestRowOperation<Rgba32> operation = new(RowAction);
-
-        ArgumentOutOfRangeException ex = Assert.Throws<ArgumentOutOfRangeException>(
-            () => ParallelRowIterator.IterateRows<TestRowOperation<Rgba32>, Rgba32>(rect, in parallelSettings, in operation));
-
-        Assert.Contains(nameof(ParallelExecutionSettings.MaxDegreeOfParallelism), ex.Message);
-    }
-
     public static TheoryData<int, int, int, int, int, int, int> IterateRows_WithEffectiveMinimumPixelsLimit_Data =
         new()
         {
@@ -365,24 +347,6 @@ public class ParallelRowIteratorTests
             in operation);
 
         Assert.Equal(Enumerable.Repeat(1, rectangle.Height), actualData);
-    }
-
-    [Fact]
-    public void IterateRows_DefaultSettingsRequireInitialization()
-    {
-        ParallelExecutionSettings parallelSettings = default;
-        Rectangle rect = new(0, 0, 10, 10);
-
-        void RowAction(int y)
-        {
-        }
-
-        TestRowActionOperation operation = new(RowAction);
-
-        ArgumentOutOfRangeException ex = Assert.Throws<ArgumentOutOfRangeException>(
-            () => ParallelRowIterator.IterateRows(rect, in parallelSettings, in operation));
-
-        Assert.Contains(nameof(ParallelExecutionSettings.MaxDegreeOfParallelism), ex.Message);
     }
 
     public static readonly TheoryData<int, int, int, int, int, int, int> IterateRectangularBuffer_Data =

@@ -65,8 +65,9 @@ public sealed class Configuration
     /// <summary>
     /// Gets or sets the maximum number of concurrent tasks enabled in ImageSharp algorithms
     /// configured with this <see cref="Configuration"/> instance.
-    /// Set to <c>-1</c> to leave the degree of parallelism unbounded.
-    /// Initialized with <see cref="Environment.ProcessorCount"/> by default.
+    /// A positive value limits the number of concurrent operations to the set value.
+    /// If set to <c>-1</c>, there is no limit on the number of concurrently running operations.
+    /// Defaults to <see cref="Environment.ProcessorCount"/>.
     /// </summary>
     public int MaxDegreeOfParallelism
     {

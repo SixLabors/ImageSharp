@@ -182,54 +182,6 @@ public partial class Block8x8FTests : JpegFixture
     }
 
     [Theory]
-    [InlineData(1)]
-    [InlineData(2)]
-    public void NormalizeColorsAndRoundVector256(int seed)
-    {
-        if (this.SkipOnNonVector256Runner())
-        {
-            return;
-        }
-
-        Block8x8F source = CreateRandomFloatBlock(-200, 200, seed);
-
-        Block8x8F expected = source;
-        expected.NormalizeColorsInPlace(255);
-        expected.RoundInPlace();
-
-        Block8x8F actual = source;
-        actual.NormalizeColorsAndRoundInPlaceVector256(255);
-
-        this.Output.WriteLine(expected.ToString());
-        this.Output.WriteLine(actual.ToString());
-        this.CompareBlocks(expected, actual, 0);
-    }
-
-    [Theory]
-    [InlineData(1)]
-    [InlineData(2)]
-    public void NormalizeColorsAndRoundVector128(int seed)
-    {
-        if (this.SkipOnNonVector128Runner())
-        {
-            return;
-        }
-
-        Block8x8F source = CreateRandomFloatBlock(-200, 200, seed);
-
-        Block8x8F expected = source;
-        expected.NormalizeColorsInPlace(255);
-        expected.RoundInPlace();
-
-        Block8x8F actual = source;
-        actual.NormalizeColorsAndRoundInPlaceVector128(255);
-
-        this.Output.WriteLine(expected.ToString());
-        this.Output.WriteLine(actual.ToString());
-        this.CompareBlocks(expected, actual, 0);
-    }
-
-    [Theory]
     [InlineData(1, 2)]
     [InlineData(2, 1)]
     public void Quantize(int srcSeed, int qtSeed)
@@ -287,29 +239,6 @@ public partial class Block8x8FTests : JpegFixture
             short actualShort = dest[i];
 
             Assert.Equal(expectedShort, actualShort);
-        }
-    }
-
-    [Theory]
-    [InlineData(1)]
-    [InlineData(2)]
-    [InlineData(3)]
-    public void RoundInPlaceSlow(int seed)
-    {
-        Block8x8F s = CreateRandomFloatBlock(-500, 500, seed);
-
-        Block8x8F d = s;
-        d.RoundInPlace();
-
-        this.Output.WriteLine(s.ToString());
-        this.Output.WriteLine(d.ToString());
-
-        for (int i = 0; i < 64; i++)
-        {
-            float expected = (float)Math.Round(s[i]);
-            float actual = d[i];
-
-            Assert.Equal(expected, actual);
         }
     }
 

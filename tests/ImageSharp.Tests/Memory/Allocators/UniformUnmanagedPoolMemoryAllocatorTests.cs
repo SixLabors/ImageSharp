@@ -16,8 +16,8 @@ public class UniformUnmanagedPoolMemoryAllocatorTests
 {
     public class BufferTests1 : BufferTestSuite
     {
-        private static MemoryAllocator CreateMemoryAllocator() =>
-            new UniformUnmanagedMemoryPoolMemoryAllocator(
+        private static UniformUnmanagedMemoryPoolMemoryAllocator CreateMemoryAllocator() =>
+            new(
                 sharedArrayPoolThresholdInBytes: 1024,
                 poolBufferSizeInBytes: 2048,
                 maxPoolSizeInBytes: 2048 * 4,
@@ -31,8 +31,8 @@ public class UniformUnmanagedPoolMemoryAllocatorTests
 
     public class BufferTests2 : BufferTestSuite
     {
-        private static MemoryAllocator CreateMemoryAllocator() =>
-            new UniformUnmanagedMemoryPoolMemoryAllocator(
+        private static UniformUnmanagedMemoryPoolMemoryAllocator CreateMemoryAllocator() =>
+            new(
                 sharedArrayPoolThresholdInBytes: 512,
                 poolBufferSizeInBytes: 1024,
                 maxPoolSizeInBytes: 1024 * 4,
@@ -179,8 +179,8 @@ public class UniformUnmanagedPoolMemoryAllocatorTests
             g1.Dispose();
 
             // Do some unmanaged allocations to make sure new non-pooled unmanaged allocations will grab different memory:
-            IntPtr dummy1 = Marshal.AllocHGlobal((IntPtr)B(8));
-            IntPtr dummy2 = Marshal.AllocHGlobal((IntPtr)B(8));
+            IntPtr dummy1 = Marshal.AllocHGlobal(checked((IntPtr)B(8)));
+            IntPtr dummy2 = Marshal.AllocHGlobal(checked((IntPtr)B(8)));
 
             using MemoryGroup<byte> g2 = allocator.AllocateGroup<byte>(B(8), 1024);
             using MemoryGroup<byte> g3 = allocator.AllocateGroup<byte>(B(8), 1024);
@@ -431,6 +431,50 @@ public class UniformUnmanagedPoolMemoryAllocatorTests
         const int oneMb = 1 << 20;
         allocator.AllocateGroup<byte>(4 * oneMb, 1024).Dispose(); // Should work
         Assert.Throws<InvalidMemoryOperationException>(() => allocator.AllocateGroup<byte>(5 * oneMb, 1024));
+    }
+
+    [Fact]
+    public void Allocate_AccumulativeLimit_ReleasesOnOwnerDispose()
+    {
+        MemoryAllocator allocator = MemoryAllocator.Create(new MemoryAllocatorOptions
+        {
+            AccumulativeAllocationLimitMegabytes = 1
+        });
+        const int oneMb = 1 << 20;
+
+        // Reserve the full limit with a single owner.
+        IMemoryOwner<byte> b0 = allocator.Allocate<byte>(oneMb);
+
+        // Additional allocation should exceed the limit while the owner is live.
+        Assert.Throws<InvalidMemoryOperationException>(() => allocator.Allocate<byte>(1));
+
+        // Disposing the owner releases the reservation.
+        b0.Dispose();
+
+        // Allocation should succeed after the reservation is released.
+        allocator.Allocate<byte>(oneMb).Dispose();
+    }
+
+    [Fact]
+    public void AllocateGroup_AccumulativeLimit_ReleasesOnGroupDispose()
+    {
+        MemoryAllocator allocator = MemoryAllocator.Create(new MemoryAllocatorOptions
+        {
+            AccumulativeAllocationLimitMegabytes = 1
+        });
+        const int oneMb = 1 << 20;
+
+        // Reserve the full limit with a single group.
+        MemoryGroup<byte> g0 = allocator.AllocateGroup<byte>(oneMb, 1024);
+
+        // Additional allocation should exceed the limit while the group is live.
+        Assert.Throws<InvalidMemoryOperationException>(() => allocator.AllocateGroup<byte>(1, 1024));
+
+        // Disposing the group releases the reservation.
+        g0.Dispose();
+
+        // Allocation should succeed after the reservation is released.
+        allocator.AllocateGroup<byte>(oneMb, 1024).Dispose();
     }
 
     [ConditionalFact(typeof(Environment), nameof(Environment.Is64BitProcess))]

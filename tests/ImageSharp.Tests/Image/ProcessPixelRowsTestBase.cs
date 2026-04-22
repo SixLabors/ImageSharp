@@ -313,7 +313,7 @@ public abstract class ProcessPixelRowsTestBase
 
         protected internal override int GetBufferCapacityInBytes() => int.MaxValue;
 
-        public override IMemoryOwner<T> Allocate<T>(int length, AllocationOptions options = AllocationOptions.None) =>
-            this.buffers.Pop() as IMemoryOwner<T>;
+        protected override AllocationTrackedMemoryManager<T> AllocateCore<T>(int length, AllocationOptions options = AllocationOptions.None) =>
+            this.buffers.Pop() as AllocationTrackedMemoryManager<T>;
     }
 }

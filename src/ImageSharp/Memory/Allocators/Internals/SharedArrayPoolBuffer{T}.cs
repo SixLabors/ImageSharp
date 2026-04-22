@@ -13,7 +13,7 @@ internal class SharedArrayPoolBuffer<T> : ManagedBufferBase<T>, IRefCounted
     where T : struct
 {
     private readonly int lengthInBytes;
-    private LifetimeGuard lifetimeGuard;
+    private readonly LifetimeGuard lifetimeGuard;
 
     public SharedArrayPoolBuffer(int lengthInElements)
     {

@@ -10,7 +10,6 @@ public struct MemoryAllocatorOptions
 {
     private int? maximumPoolSizeMegabytes;
     private int? allocationLimitMegabytes;
-    private int? accumulativeAllocationLimitMegabytes;
 
     /// <summary>
     /// Gets or sets a value defining the maximum size of the <see cref="MemoryAllocator"/>'s internal memory pool
@@ -18,7 +17,7 @@ public struct MemoryAllocatorOptions
     /// </summary>
     public int? MaximumPoolSizeMegabytes
     {
-        readonly get => this.maximumPoolSizeMegabytes;
+        get => this.maximumPoolSizeMegabytes;
         set
         {
             if (value.HasValue)
@@ -36,7 +35,7 @@ public struct MemoryAllocatorOptions
     /// </summary>
     public int? AllocationLimitMegabytes
     {
-        readonly get => this.allocationLimitMegabytes;
+        get => this.allocationLimitMegabytes;
         set
         {
             if (value.HasValue)
@@ -45,31 +44,6 @@ public struct MemoryAllocatorOptions
             }
 
             this.allocationLimitMegabytes = value;
-        }
-    }
-
-    /// <summary>
-    /// Gets or sets a value defining the maximum total size that can be allocated by the allocator in Megabytes.
-    /// <see langword="null"/> means platform default: 2GB on 32-bit processes, 8GB on 64-bit processes.
-    /// </summary>
-    public int? AccumulativeAllocationLimitMegabytes
-    {
-        readonly get => this.accumulativeAllocationLimitMegabytes;
-        set
-        {
-            if (value.HasValue)
-            {
-                Guard.MustBeGreaterThan(value.Value, 0, nameof(this.AccumulativeAllocationLimitMegabytes));
-                if (this.AllocationLimitMegabytes.HasValue)
-                {
-                    Guard.MustBeGreaterThanOrEqualTo(
-                        value.Value,
-                        this.AllocationLimitMegabytes.Value,
-                        nameof(this.AccumulativeAllocationLimitMegabytes));
-                }
-            }
-
-            this.accumulativeAllocationLimitMegabytes = value;
         }
     }
 }

@@ -14,7 +14,7 @@ public class PorterDuffFunctionsTestsTPixel
     private static Span<T> AsSpan<T>(T value)
         where T : struct
     {
-        return new Span<T>(new[] { value });
+        return new Span<T>([value]);
     }
 
     private static T[] CreateFilledArray<T>(T value)

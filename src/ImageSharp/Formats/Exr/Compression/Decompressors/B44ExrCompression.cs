@@ -72,6 +72,7 @@ internal class B44ExrCompression : ExrBaseDecompressor
                         ExrThrowHelper.ThrowInvalidImageContentException("Could not read enough data from the stream!");
                     }
 
+                    // Check if 3-byte encoded flat field.
                     if (this.scratch[2] >= 13 << 2)
                     {
                         Unpack3(this.scratch, this.s);

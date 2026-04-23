@@ -846,7 +846,7 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
     /// <returns> True if the compression is supported; otherwise, false>. </returns>
     private bool IsSupportedCompression() => this.Compression switch
     {
-        ExrCompression.None or ExrCompression.Zip or ExrCompression.Zips or ExrCompression.RunLengthEncoded or ExrCompression.B44 => true,
+        ExrCompression.None or ExrCompression.Zip or ExrCompression.Zips or ExrCompression.RunLengthEncoded or ExrCompression.B44 or ExrCompression.Pxr24 => true,
         _ => false,
     };
 

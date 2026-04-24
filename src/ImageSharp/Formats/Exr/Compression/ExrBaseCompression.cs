@@ -18,11 +18,13 @@ internal abstract class ExrBaseCompression : IDisposable
     /// <param name="allocator">The memory allocator.</param>
     /// <param name="bytesPerBlock">The bytes per block.</param>
     /// <param name="bytesPerRow">The bytes per row.</param>
-    protected ExrBaseCompression(MemoryAllocator allocator, uint bytesPerBlock, uint bytesPerRow)
+    /// <param name="width">The number of pixels of a row.</param>
+    protected ExrBaseCompression(MemoryAllocator allocator, uint bytesPerBlock, uint bytesPerRow, int width)
     {
         this.Allocator = allocator;
         this.BytesPerBlock = bytesPerBlock;
         this.BytesPerRow = bytesPerRow;
+        this.Width = width;
     }
 
     /// <summary>

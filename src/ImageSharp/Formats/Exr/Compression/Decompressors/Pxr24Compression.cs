@@ -10,6 +10,9 @@ using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Exr.Compression.Decompressors;
 
+/// <summary>
+/// Implementation of PXR24 decompressor for EXR image data.
+/// </summary>
 internal class Pxr24Compression : ExrBaseDecompressor
 {
     private readonly IMemoryOwner<byte> tmpBuffer;
@@ -18,20 +21,20 @@ internal class Pxr24Compression : ExrBaseDecompressor
 
     private readonly int channelCount;
 
-    private readonly int width;
-
     /// <summary>
     /// Initializes a new instance of the <see cref="Pxr24Compression" /> class.
     /// </summary>
     /// <param name="allocator">The memory allocator.</param>
     /// <param name="bytesPerBlock">The bytes per pixel row block.</param>
     /// <param name="bytesPerRow">The bytes per pixel row.</param>
+    /// <param name="rowsPerBlock">The pixel rows per block.</param>
+    /// <param name="width">The witdh of one row in pixels.</param>
+    /// <param name="channelCount">The number of channels for a pixel.</param>
     public Pxr24Compression(MemoryAllocator allocator, uint bytesPerBlock, uint bytesPerRow, uint rowsPerBlock, int width, int channelCount)
-        : base(allocator, bytesPerBlock, bytesPerRow)
+        : base(allocator, bytesPerBlock, bytesPerRow, width)
     {
         this.tmpBuffer = allocator.Allocate<byte>((int)bytesPerBlock);
         this.rowsPerBlock = rowsPerBlock;
-        this.width = width;
         this.channelCount = channelCount;
     }
 
@@ -76,11 +79,11 @@ internal class Pxr24Compression : ExrBaseDecompressor
             for (int c = 0; c < this.channelCount; c++)
             {
                 int offsetT1 = lastIn;
-                lastIn += this.width;
+                lastIn += this.Width;
                 int offsetT2 = lastIn;
-                lastIn += this.width;
+                lastIn += this.Width;
                 uint pixel = 0;
-                for (int x = 0; x < this.width; x++)
+                for (int x = 0; x < this.Width; x++)
                 {
                     uint t1 = uncompressed[offsetT1];
                     uint t2 = uncompressed[offsetT2];

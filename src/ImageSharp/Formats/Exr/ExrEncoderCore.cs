@@ -181,7 +181,7 @@ internal sealed class ExrEncoderCore
         Span<float> blueBuffer = rgbBuffer.GetSpan().Slice(width * 2, width);
         Span<float> alphaBuffer = rgbBuffer.GetSpan().Slice(width * 3, width);
 
-        using ExrBaseCompressor compressor = ExrCompressorFactory.Create(compression, this.memoryAllocator, stream, bytesPerBlock, bytesPerRow);
+        using ExrBaseCompressor compressor = ExrCompressorFactory.Create(compression, this.memoryAllocator, stream, bytesPerBlock, bytesPerRow, width);
 
         ulong[] rowOffsets = new ulong[height];
         for (uint y = 0; y < height; y += rowsPerBlock)
@@ -273,7 +273,7 @@ internal sealed class ExrEncoderCore
         Span<uint> blueBuffer = rgbBuffer.GetSpan().Slice(width * 2, width);
         Span<uint> alphaBuffer = rgbBuffer.GetSpan().Slice(width * 3, width);
 
-        using ExrBaseCompressor compressor = ExrCompressorFactory.Create(compression, this.memoryAllocator, stream, bytesPerBlock, bytesPerRow);
+        using ExrBaseCompressor compressor = ExrCompressorFactory.Create(compression, this.memoryAllocator, stream, bytesPerBlock, bytesPerRow, width);
 
         Rgba128 rgb = default;
         ulong[] rowOffsets = new ulong[height];

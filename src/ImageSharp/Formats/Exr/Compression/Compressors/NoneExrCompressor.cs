@@ -17,8 +17,9 @@ internal class NoneExrCompressor : ExrBaseCompressor
     /// <param name="allocator">The memory allocator.</param>
     /// <param name="bytesPerBlock">Bytes per row block.</param>
     /// <param name="bytesPerRow">Bytes per pixel row.</param>
-    public NoneExrCompressor(Stream output, MemoryAllocator allocator, uint bytesPerBlock, uint bytesPerRow)
-        : base(output, allocator, bytesPerBlock, bytesPerRow)
+    /// <param name="width">The witdh of one row in pixels.</param>
+    public NoneExrCompressor(Stream output, MemoryAllocator allocator, uint bytesPerBlock, uint bytesPerRow, int width)
+        : base(output, allocator, bytesPerBlock, bytesPerRow, width)
     {
     }
 

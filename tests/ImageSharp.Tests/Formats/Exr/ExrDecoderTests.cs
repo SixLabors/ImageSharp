@@ -120,6 +120,16 @@ public class ExrDecoderTests
     }
 
     [Theory]
+    [WithFile(TestImages.Exr.Pxr24Half, PixelTypes.Rgba32)]
+    public void ExrDecoder_CanDecode_Pxr24Compressed<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage(ExrDecoder.Instance);
+        image.DebugSave(provider);
+        image.CompareToOriginal(provider, ImageComparer.Exact, ReferenceDecoder);
+    }
+
+    [Theory]
     [WithFile(TestImages.Exr.B44, PixelTypes.Rgba32)]
     public void ExrDecoder_CanDecode_B44Compressed<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>

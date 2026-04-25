@@ -5,6 +5,7 @@ using System.Buffers;
 using System.IO.Compression;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Compression.Zlib;
+using SixLabors.ImageSharp.Formats.Exr.Constants;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 
@@ -21,6 +22,8 @@ internal class Pxr24Compression : ExrBaseDecompressor
 
     private readonly int channelCount;
 
+    private readonly ExrPixelType pixelType;
+
     /// <summary>
     /// Initializes a new instance of the <see cref="Pxr24Compression" /> class.
     /// </summary>
@@ -30,12 +33,14 @@ internal class Pxr24Compression : ExrBaseDecompressor
     /// <param name="rowsPerBlock">The pixel rows per block.</param>
     /// <param name="width">The witdh of one row in pixels.</param>
     /// <param name="channelCount">The number of channels for a pixel.</param>
-    public Pxr24Compression(MemoryAllocator allocator, uint bytesPerBlock, uint bytesPerRow, uint rowsPerBlock, int width, int channelCount)
+    /// <param name="pixelType">The pixel type.</param>
+    public Pxr24Compression(MemoryAllocator allocator, uint bytesPerBlock, uint bytesPerRow, uint rowsPerBlock, int width, int channelCount, ExrPixelType pixelType)
         : base(allocator, bytesPerBlock, bytesPerRow, width)
     {
         this.tmpBuffer = allocator.Allocate<byte>((int)bytesPerBlock);
         this.rowsPerBlock = rowsPerBlock;
         this.channelCount = channelCount;
+        this.pixelType = pixelType;
     }
 
     /// <inheritdoc/>
@@ -78,23 +83,94 @@ internal class Pxr24Compression : ExrBaseDecompressor
         {
             for (int c = 0; c < this.channelCount; c++)
             {
-                int offsetT1 = lastIn;
-                lastIn += this.Width;
-                int offsetT2 = lastIn;
-                lastIn += this.Width;
-                uint pixel = 0;
-                for (int x = 0; x < this.Width; x++)
+                switch (this.pixelType)
                 {
-                    uint t1 = uncompressed[offsetT1];
-                    uint t2 = uncompressed[offsetT2];
-                    uint diff = (t1 << 8) | t2;
+                    case ExrPixelType.UnsignedInt:
+                    {
+                        int offsetT0 = lastIn;
+                        lastIn += this.Width;
+                        int offsetT1 = lastIn;
+                        lastIn += this.Width;
+                        int offsetT2 = lastIn;
+                        lastIn += this.Width;
+                        int offsetT3 = lastIn;
+                        lastIn += this.Width;
 
-                    pixel += diff;
-                    outputBuffer[outputOffset] = (ushort)pixel;
+                        uint pixel = 0;
+                        for (int x = 0; x < this.Width; x++)
+                        {
+                            uint t0 = uncompressed[offsetT0];
+                            uint t1 = uncompressed[offsetT1];
+                            uint t2 = uncompressed[offsetT2];
+                            uint t3 = uncompressed[offsetT3];
+                            uint diff = (t0 << 24) | (t1 << 16) | (t2 << 8) | t3;
 
-                    offsetT1++;
-                    offsetT2++;
-                    outputOffset++;
+                            pixel += diff;
+                            outputBuffer[outputOffset] = (ushort)pixel;
+
+                            offsetT0++;
+                            offsetT1++;
+                            offsetT2++;
+                            offsetT3++;
+                            outputOffset++;
+                        }
+
+                        break;
+                    }
+
+                    case ExrPixelType.Half:
+                    {
+                        int offsetT0 = lastIn;
+                        lastIn += this.Width;
+                        int offsetT1 = lastIn;
+                        lastIn += this.Width;
+
+                        uint pixel = 0;
+                        for (int x = 0; x < this.Width; x++)
+                        {
+                            uint t0 = uncompressed[offsetT0];
+                            uint t1 = uncompressed[offsetT1];
+                            uint diff = (t0 << 8) | t1;
+
+                            pixel += diff;
+                            outputBuffer[outputOffset] = (ushort)pixel;
+
+                            offsetT0++;
+                            offsetT1++;
+                            outputOffset++;
+                        }
+
+                        break;
+                    }
+
+                    case ExrPixelType.Float:
+                    {
+                        int offsetT0 = lastIn;
+                        lastIn += this.Width;
+                        int offsetT1 = lastIn;
+                        lastIn += this.Width;
+                        int offsetT2 = lastIn;
+                        lastIn += this.Width;
+
+                        uint pixel = 0;
+                        for (int x = 0; x < this.Width; x++)
+                        {
+                            uint t0 = uncompressed[offsetT0];
+                            uint t1 = uncompressed[offsetT1];
+                            uint t2 = uncompressed[offsetT2];
+                            uint diff = (t0 << 24) | (t1 << 16) | (t2 << 8);
+
+                            pixel += diff;
+                            outputBuffer[outputOffset] = (ushort)pixel;
+
+                            offsetT0++;
+                            offsetT1++;
+                            offsetT2++;
+                            outputOffset++;
+                        }
+
+                        break;
+                    }
                 }
             }
         }

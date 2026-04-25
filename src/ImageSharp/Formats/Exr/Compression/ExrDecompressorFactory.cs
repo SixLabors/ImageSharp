@@ -30,14 +30,15 @@ internal static class ExrDecompressorFactory
         uint bytesPerBlock,
         uint bytesPerRow,
         uint rowsPerBlock,
-        int channelCount) => method switch
+        int channelCount,
+        ExrPixelType pixelType) => method switch
         {
             ExrCompression.None => new NoneExrCompression(memoryAllocator, bytesPerBlock, bytesPerRow, width),
             ExrCompression.Zips => new ZipExrCompression(memoryAllocator, bytesPerBlock, bytesPerRow, width),
             ExrCompression.Zip => new ZipExrCompression(memoryAllocator, bytesPerBlock, bytesPerRow, width),
             ExrCompression.RunLengthEncoded => new RunLengthExrCompression(memoryAllocator, bytesPerBlock, bytesPerRow, width),
             ExrCompression.B44 => new B44ExrCompression(memoryAllocator, bytesPerBlock, bytesPerRow, rowsPerBlock, width, channelCount),
-            ExrCompression.Pxr24 => new Pxr24Compression(memoryAllocator, bytesPerBlock, bytesPerRow, rowsPerBlock, width, channelCount),
+            ExrCompression.Pxr24 => new Pxr24Compression(memoryAllocator, bytesPerBlock, bytesPerRow, rowsPerBlock, width, channelCount, pixelType),
             _ => throw ExrThrowHelper.NotSupportedDecompressor(nameof(method)),
         };
 }

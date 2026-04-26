@@ -121,6 +121,7 @@ public class ExrDecoderTests
 
     [Theory]
     [WithFile(TestImages.Exr.Pxr24Half, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Exr.Pxr24Float, PixelTypes.Rgba32)]
     public void ExrDecoder_CanDecode_Pxr24Compressed<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {

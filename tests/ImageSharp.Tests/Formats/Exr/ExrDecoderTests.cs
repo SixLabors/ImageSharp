@@ -36,8 +36,7 @@ public class ExrDecoderTests
         ExrMetadata exrMetaData = image.Metadata.GetExrMetadata();
         image.DebugSave(provider);
 
-        // There is a 0,0059% difference to the Reference decoder.
-        image.CompareToOriginal(provider, ImageComparer.Tolerant(0.0005f), ReferenceDecoder);
+        image.CompareToOriginal(provider, ImageComparer.Exact, ReferenceDecoder);
         Assert.Equal(ExrPixelType.Float, exrMetaData.PixelType);
     }
 

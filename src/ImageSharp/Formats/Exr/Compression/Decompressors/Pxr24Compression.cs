@@ -47,7 +47,9 @@ internal class Pxr24Compression : ExrBaseDecompressor
     public override void Decompress(BufferedReadStream stream, uint compressedBytes, Span<byte> buffer)
     {
         Span<byte> uncompressed = this.tmpBuffer.GetSpan();
-        Span<ushort> outputBuffer = MemoryMarshal.Cast<byte, ushort>(buffer);
+        Span<ushort> outputBufferHalf = MemoryMarshal.Cast<byte, ushort>(buffer);
+        Span<uint> outputBufferFloat = MemoryMarshal.Cast<byte, uint>(buffer);
+        Span<uint> outputBufferUint = MemoryMarshal.Cast<byte, uint>(buffer);
 
         long pos = stream.Position;
         using ZlibInflateStream inflateStream = new(
@@ -106,7 +108,7 @@ internal class Pxr24Compression : ExrBaseDecompressor
                             uint diff = (t0 << 24) | (t1 << 16) | (t2 << 8) | t3;
 
                             pixel += diff;
-                            outputBuffer[outputOffset] = (ushort)pixel;
+                            outputBufferUint[outputOffset] = pixel;
 
                             offsetT0++;
                             offsetT1++;
@@ -133,7 +135,7 @@ internal class Pxr24Compression : ExrBaseDecompressor
                             uint diff = (t0 << 8) | t1;
 
                             pixel += diff;
-                            outputBuffer[outputOffset] = (ushort)pixel;
+                            outputBufferHalf[outputOffset] = (ushort)pixel;
 
                             offsetT0++;
                             offsetT1++;
@@ -161,7 +163,7 @@ internal class Pxr24Compression : ExrBaseDecompressor
                             uint diff = (t0 << 24) | (t1 << 16) | (t2 << 8);
 
                             pixel += diff;
-                            outputBuffer[outputOffset] = (ushort)pixel;
+                            outputBufferFloat[outputOffset] = pixel;
 
                             offsetT0++;
                             offsetT1++;

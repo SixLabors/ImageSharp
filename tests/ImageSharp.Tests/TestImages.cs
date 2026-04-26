@@ -1397,6 +1397,7 @@ public static class TestImages
         public const string B44 = "Exr/Calliphora_b44.exr";
         public const string Pxr24Half = "Exr/Calliphora_half_pxr24.exr";
         public const string Pxr24Float = "Exr/Calliphora_float_pxr24.exr";
+        public const string Pxr24Uint = "Exr/Calliphora_uint_pxr24.exr";
         public const string Rgb = "Exr/Calliphora_rgb.exr";
         public const string Gray = "Exr/Calliphora_gray.exr";
     }

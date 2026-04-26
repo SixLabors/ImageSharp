@@ -131,6 +131,18 @@ public class ExrDecoderTests
     }
 
     [Theory]
+    [WithFile(TestImages.Exr.Pxr24Uint, PixelTypes.Rgba32)]
+    public void ExrDecoder_CanDecode_Pxr24Compressed_ExrPixelType_Uint<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage(ExrDecoder.Instance);
+        image.DebugSave(provider);
+
+        // Compare to Reference here instead using the reference decoder, since uint pixel type is not supported by the Reference decoder.
+        image.CompareToReferenceOutput(provider);
+    }
+
+    [Theory]
     [WithFile(TestImages.Exr.B44, PixelTypes.Rgba32)]
     public void ExrDecoder_CanDecode_B44Compressed<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>

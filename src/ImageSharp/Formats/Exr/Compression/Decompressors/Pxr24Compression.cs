@@ -2,9 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Buffers;
-using System.IO.Compression;
 using System.Runtime.InteropServices;
-using SixLabors.ImageSharp.Compression.Zlib;
 using SixLabors.ImageSharp.Formats.Exr.Constants;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
@@ -17,8 +15,6 @@ namespace SixLabors.ImageSharp.Formats.Exr.Compression.Decompressors;
 internal class Pxr24Compression : ExrBaseDecompressor
 {
     private readonly IMemoryOwner<byte> tmpBuffer;
-
-    private readonly uint rowsPerBlock;
 
     private readonly int channelCount;
 
@@ -35,10 +31,9 @@ internal class Pxr24Compression : ExrBaseDecompressor
     /// <param name="channelCount">The number of channels for a pixel.</param>
     /// <param name="pixelType">The pixel type.</param>
     public Pxr24Compression(MemoryAllocator allocator, uint bytesPerBlock, uint bytesPerRow, uint rowsPerBlock, int width, int channelCount, ExrPixelType pixelType)
-        : base(allocator, bytesPerBlock, bytesPerRow, width)
+        : base(allocator, bytesPerBlock, bytesPerRow, rowsPerBlock, width)
     {
         this.tmpBuffer = allocator.Allocate<byte>((int)bytesPerBlock);
-        this.rowsPerBlock = rowsPerBlock;
         this.channelCount = channelCount;
         this.pixelType = pixelType;
     }
@@ -56,7 +51,7 @@ internal class Pxr24Compression : ExrBaseDecompressor
 
         int lastIn = 0;
         int outputOffset = 0;
-        for (int y = 0; y < this.rowsPerBlock; y++)
+        for (int y = 0; y < this.RowsPerBlock; y++)
         {
             for (int c = 0; c < this.channelCount; c++)
             {

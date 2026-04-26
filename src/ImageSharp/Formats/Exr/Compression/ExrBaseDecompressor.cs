@@ -19,9 +19,10 @@ internal abstract class ExrBaseDecompressor : ExrBaseCompression
     /// <param name="allocator">The memory allocator.</param>
     /// <param name="bytesPerBlock">The bytes per row block.</param>
     /// <param name="bytesPerRow">The bytes per row.</param>
+    /// <param name="rowsPerBlock">The pixel rows per block.</param>
     /// <param name="width">The number of pixels per row.</param>
-    protected ExrBaseDecompressor(MemoryAllocator allocator, uint bytesPerBlock, uint bytesPerRow, int width)
-        : base(allocator, bytesPerBlock, bytesPerRow, width)
+    protected ExrBaseDecompressor(MemoryAllocator allocator, uint bytesPerBlock, uint bytesPerRow, uint rowsPerBlock, int width)
+        : base(allocator, bytesPerBlock, bytesPerRow, rowsPerBlock, width)
     {
     }
 

@@ -13,8 +13,6 @@ namespace SixLabors.ImageSharp.Formats.Exr.Compression.Decompressors;
 /// </summary>
 internal class B44ExrCompression : ExrBaseDecompressor
 {
-    private readonly uint rowsPerBlock;
-
     private readonly int channelCount;
 
     private readonly byte[] scratch = new byte[14];
@@ -29,13 +27,12 @@ internal class B44ExrCompression : ExrBaseDecompressor
     /// <param name="allocator">The memory allocator.</param>
     /// <param name="bytesPerBlock">The bytes per pixel row block.</param>
     /// <param name="bytesPerRow">The bytes per row.</param>
-    /// <param name="rowsPerBlock">The rows per block.</param>
+    /// <param name="rowsPerBlock">The pixel rows per block.</param>
     /// <param name="width">The width of a pixel row in pixels.</param>
     /// <param name="channelCount">The number of channels of the image.</param>
     public B44ExrCompression(MemoryAllocator allocator, uint bytesPerBlock, uint bytesPerRow, uint rowsPerBlock, int width, int channelCount)
-        : base(allocator, bytesPerBlock, bytesPerRow, width)
+        : base(allocator, bytesPerBlock, bytesPerRow, rowsPerBlock, width)
     {
-        this.rowsPerBlock = rowsPerBlock;
         this.channelCount = channelCount;
         this.tmpBuffer = allocator.Allocate<ushort>((int)(width * rowsPerBlock * channelCount));
     }
@@ -49,7 +46,7 @@ internal class B44ExrCompression : ExrBaseDecompressor
         int bytesLeft = (int)compressedBytes;
         for (int i = 0; i < this.channelCount && bytesLeft > 0; i++)
         {
-            for (int y = 0; y < this.rowsPerBlock; y += 4)
+            for (int y = 0; y < this.RowsPerBlock; y += 4)
             {
                 Span<ushort> row0 = decompressed.Slice(outputOffset, this.Width);
                 outputOffset += this.Width;
@@ -88,7 +85,7 @@ internal class B44ExrCompression : ExrBaseDecompressor
                     }
 
                     int n = x + 3 < this.Width ? 4 : this.Width - x;
-                    if (y + 3 < this.rowsPerBlock)
+                    if (y + 3 < this.RowsPerBlock)
                     {
                         this.s.AsSpan(0, n).CopyTo(row0[rowOffset..]);
                         this.s.AsSpan(4, n).CopyTo(row1[rowOffset..]);
@@ -98,12 +95,12 @@ internal class B44ExrCompression : ExrBaseDecompressor
                     else
                     {
                         this.s.AsSpan(0, n).CopyTo(row0[rowOffset..]);
-                        if (y + 1 < this.rowsPerBlock)
+                        if (y + 1 < this.RowsPerBlock)
                         {
                             this.s.AsSpan(4, n).CopyTo(row1[rowOffset..]);
                         }
 
-                        if (y + 2 < this.rowsPerBlock)
+                        if (y + 2 < this.RowsPerBlock)
                         {
                             this.s.AsSpan(8, n).CopyTo(row2[rowOffset..]);
                         }
@@ -122,8 +119,8 @@ internal class B44ExrCompression : ExrBaseDecompressor
         // Rearrange the decompressed data such that the data for each scan line form a contiguous block.
         int offsetDecompressed = 0;
         int offsetOutput = 0;
-        int blockSize = (int)(this.Width * this.rowsPerBlock);
-        for (int y = 0; y < this.rowsPerBlock; y++)
+        int blockSize = (int)(this.Width * this.RowsPerBlock);
+        for (int y = 0; y < this.RowsPerBlock; y++)
         {
             for (int i = 0; i < this.channelCount; i++)
             {

@@ -2,8 +2,6 @@
 // Licensed under the Six Labors Split License.
 
 using System.Buffers;
-using System.IO.Compression;
-using SixLabors.ImageSharp.Compression.Zlib;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 
@@ -22,9 +20,10 @@ internal class ZipExrCompression : ExrBaseDecompressor
     /// <param name="allocator">The memory allocator.</param>
     /// <param name="bytesPerBlock">The bytes per pixel row block.</param>
     /// <param name="bytesPerRow">The bytes per pixel row.</param>
+    /// <param name="rowsPerBlock">The pixel rows per block.</param>
     /// <param name="width">The witdh of one row in pixels.</param>
-    public ZipExrCompression(MemoryAllocator allocator, uint bytesPerBlock, uint bytesPerRow, int width)
-        : base(allocator, bytesPerBlock, bytesPerRow, width) => this.tmpBuffer = allocator.Allocate<byte>((int)bytesPerBlock);
+    public ZipExrCompression(MemoryAllocator allocator, uint bytesPerBlock, uint bytesPerRow, uint rowsPerBlock, int width)
+        : base(allocator, bytesPerBlock, bytesPerRow, rowsPerBlock, width) => this.tmpBuffer = allocator.Allocate<byte>((int)bytesPerBlock);
 
     /// <inheritdoc/>
     public override void Decompress(BufferedReadStream stream, uint compressedBytes, Span<byte> buffer)

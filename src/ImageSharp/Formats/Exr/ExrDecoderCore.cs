@@ -154,7 +154,15 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
         Span<float> bluePixelData = rowBuffer.GetSpan().Slice(width * 2, width);
         Span<float> alphaPixelData = rowBuffer.GetSpan().Slice(width * 3, width);
 
-        using ExrBaseDecompressor decompressor = ExrDecompressorFactory.Create(this.Compression, this.memoryAllocator, width, bytesPerBlock, bytesPerRow, rowsPerBlock, channelCount);
+        using ExrBaseDecompressor decompressor = ExrDecompressorFactory.Create(
+            this.Compression,
+            this.memoryAllocator,
+            width,
+            bytesPerBlock,
+            bytesPerRow,
+            rowsPerBlock,
+            channelCount,
+            this.PixelType);
 
         int decodedRows = 0;
         while (decodedRows < height)
@@ -219,7 +227,15 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
         Span<uint> bluePixelData = rowBuffer.GetSpan().Slice(width * 2, width);
         Span<uint> alphaPixelData = rowBuffer.GetSpan().Slice(width * 3, width);
 
-        using ExrBaseDecompressor decompressor = ExrDecompressorFactory.Create(this.Compression, this.memoryAllocator, width, bytesPerBlock, bytesPerRow, rowsPerBlock, channelCount);
+        using ExrBaseDecompressor decompressor = ExrDecompressorFactory.Create(
+            this.Compression,
+            this.memoryAllocator,
+            width,
+            bytesPerBlock,
+            bytesPerRow,
+            rowsPerBlock,
+            channelCount,
+            this.PixelType);
 
         int decodedRows = 0;
         while (decodedRows < height)
@@ -846,7 +862,7 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
     /// <returns> True if the compression is supported; otherwise, false>. </returns>
     private bool IsSupportedCompression() => this.Compression switch
     {
-        ExrCompression.None or ExrCompression.Zip or ExrCompression.Zips or ExrCompression.RunLengthEncoded or ExrCompression.B44 => true,
+        ExrCompression.None or ExrCompression.Zip or ExrCompression.Zips or ExrCompression.RunLengthEncoded or ExrCompression.B44 or ExrCompression.Pxr24 => true,
         _ => false,
     };
 

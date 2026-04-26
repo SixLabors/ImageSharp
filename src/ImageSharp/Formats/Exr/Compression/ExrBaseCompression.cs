@@ -18,11 +18,15 @@ internal abstract class ExrBaseCompression : IDisposable
     /// <param name="allocator">The memory allocator.</param>
     /// <param name="bytesPerBlock">The bytes per block.</param>
     /// <param name="bytesPerRow">The bytes per row.</param>
-    protected ExrBaseCompression(MemoryAllocator allocator, uint bytesPerBlock, uint bytesPerRow)
+    /// <param name="rowsPerBlock">The number of pixel rows per block.</param>
+    /// <param name="width">The number of pixels of a row.</param>
+    protected ExrBaseCompression(MemoryAllocator allocator, uint bytesPerBlock, uint bytesPerRow, uint rowsPerBlock, int width)
     {
         this.Allocator = allocator;
         this.BytesPerBlock = bytesPerBlock;
         this.BytesPerRow = bytesPerRow;
+        this.RowsPerBlock = rowsPerBlock;
+        this.Width = width;
     }
 
     /// <summary>
@@ -44,6 +48,11 @@ internal abstract class ExrBaseCompression : IDisposable
     /// Gets the uncompressed bytes per block.
     /// </summary>
     public uint BytesPerBlock { get; }
+
+    /// <summary>
+    /// Gets the number of pixel rows per block.
+    /// </summary>
+    public uint RowsPerBlock { get; }
 
     /// <summary>
     /// Gets the image width.

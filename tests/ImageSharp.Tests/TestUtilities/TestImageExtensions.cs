@@ -505,7 +505,7 @@ public static class TestImageExtensions
     public static void CompareBuffers<T>(Buffer2D<T> expected, Buffer2D<T> actual)
         where T : struct, IEquatable<T>
     {
-        Assert.True(expected.Size() == actual.Size(), "Buffer sizes are not equal!");
+        Assert.True(expected.Size == actual.Size, "Buffer sizes are not equal!");
 
         for (int y = 0; y < expected.Height; y++)
         {

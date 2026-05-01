@@ -71,6 +71,19 @@ public abstract partial class ImageFrame : IConfigurationProvider, IDisposable
     /// <param name="disposing">Whether to dispose of managed and unmanaged objects.</param>
     protected abstract void Dispose(bool disposing);
 
+    /// <summary>
+    /// Accepts a <see cref="IImageFrameVisitor"/>.
+    /// Implemented by <see cref="ImageFrame{TPixel}"/> invoking <see cref="IImageFrameVisitor.Visit{TPixel}"/>
+    /// with the pixel type of the image.
+    /// </summary>
+    /// <param name="visitor">The visitor.</param>
+    internal abstract void Accept(IImageFrameVisitor visitor);
+
+    /// <summary>
+    /// Copies the pixel data of the image frame to a <see cref="Buffer2D{TDestinationPixel}"/> of a specific pixel type.
+    /// </summary>
+    /// <typeparam name="TDestinationPixel">The pixel type of the destination buffer.</typeparam>
+    /// <param name="destination">The buffer to copy the pixel data to.</param>
     internal abstract void CopyPixelsTo<TDestinationPixel>(Buffer2D<TDestinationPixel> destination)
         where TDestinationPixel : unmanaged, IPixel<TDestinationPixel>;
 

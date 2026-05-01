@@ -77,6 +77,15 @@ public static class AdvancedImageExtensions
         => source.AcceptAsync(visitor, cancellationToken);
 
     /// <summary>
+    /// Accepts a <see cref="IImageVisitor"/> to implement a double-dispatch pattern in order to
+    /// apply pixel-specific operations on non-generic <see cref="Image"/> instances
+    /// </summary>
+    /// <param name="source">The source image frame.</param>
+    /// <param name="visitor">The image visitor.</param>
+    public static void AcceptVisitor(this ImageFrame source, IImageFrameVisitor visitor)
+        => source.Accept(visitor);
+
+    /// <summary>
     /// Gets the representation of the pixels as a <see cref="IMemoryGroup{T}"/> containing the backing pixel data of the image
     /// stored in row major order, as a list of contiguous <see cref="Memory{T}"/> blocks in the source image's pixel format.
     /// </summary>

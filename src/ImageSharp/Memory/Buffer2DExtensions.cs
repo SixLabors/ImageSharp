@@ -104,59 +104,39 @@ public static class Buffer2DExtensions
     }
 
     /// <summary>
-    /// Returns a <see cref="Rectangle"/> representing the full area of the buffer.
-    /// </summary>
-    /// <typeparam name="T">The element type</typeparam>
-    /// <param name="buffer">The <see cref="Buffer2D{T}"/></param>
-    /// <returns>The <see cref="Rectangle"/></returns>
-    internal static Rectangle FullRectangle<T>(this Buffer2D<T> buffer)
-        where T : struct
-        => new(0, 0, buffer.Width, buffer.Height);
-
-    /// <summary>
-    /// Return a <see cref="Buffer2DRegion{T}"/> to the subregion represented by 'rectangle'
+    /// Return a <see cref="Buffer2DRegion{T}"/> to the subregion represented by <paramref name="rectangle"/>.
     /// </summary>
     /// <typeparam name="T">The element type</typeparam>
     /// <param name="buffer">The <see cref="Buffer2D{T}"/></param>
     /// <param name="rectangle">The rectangle subregion</param>
     /// <returns>The <see cref="Buffer2DRegion{T}"/></returns>
-    internal static Buffer2DRegion<T> GetRegion<T>(this Buffer2D<T> buffer, Rectangle rectangle)
+    public static Buffer2DRegion<T> GetRegion<T>(this Buffer2D<T> buffer, Rectangle rectangle)
         where T : unmanaged =>
         new(buffer, rectangle);
 
-    internal static Buffer2DRegion<T> GetRegion<T>(this Buffer2D<T> buffer, int x, int y, int width, int height)
+    /// <summary>
+    /// Return a <see cref="Buffer2DRegion{T}"/> to the specified area of <paramref name="buffer"/>.
+    /// </summary>
+    /// <typeparam name="T">The element type.</typeparam>
+    /// <param name="buffer">The <see cref="Buffer2D{T}"/>.</param>
+    /// <param name="x">The X coordinate of the region.</param>
+    /// <param name="y">The Y coordinate of the region.</param>
+    /// <param name="width">The region width.</param>
+    /// <param name="height">The region height.</param>
+    /// <returns>The <see cref="Buffer2DRegion{T}"/>.</returns>
+    public static Buffer2DRegion<T> GetRegion<T>(this Buffer2D<T> buffer, int x, int y, int width, int height)
         where T : unmanaged =>
         new(buffer, new Rectangle(x, y, width, height));
 
     /// <summary>
-    /// Return a <see cref="Buffer2DRegion{T}"/> to the whole area of 'buffer'
+    /// Return a <see cref="Buffer2DRegion{T}"/> to the whole area of <paramref name="buffer"/>.
     /// </summary>
     /// <typeparam name="T">The element type</typeparam>
     /// <param name="buffer">The <see cref="Buffer2D{T}"/></param>
     /// <returns>The <see cref="Buffer2DRegion{T}"/></returns>
-    internal static Buffer2DRegion<T> GetRegion<T>(this Buffer2D<T> buffer)
+    public static Buffer2DRegion<T> GetRegion<T>(this Buffer2D<T> buffer)
         where T : unmanaged =>
         new(buffer);
-
-    /// <summary>
-    /// Returns the size of the buffer.
-    /// </summary>
-    /// <typeparam name="T">The element type</typeparam>
-    /// <param name="buffer">The <see cref="Buffer2D{T}"/></param>
-    /// <returns>The <see cref="Size{T}"/> of the buffer</returns>
-    internal static Size Size<T>(this Buffer2D<T> buffer)
-        where T : struct =>
-        new(buffer.Width, buffer.Height);
-
-    /// <summary>
-    /// Gets the bounds of the buffer.
-    /// </summary>
-    /// <typeparam name="T">The element type</typeparam>
-    /// <param name="buffer">The <see cref="Buffer2D{T}"/></param>
-    /// <returns>The <see cref="Rectangle"/></returns>
-    internal static Rectangle Bounds<T>(this Buffer2D<T> buffer)
-        where T : struct =>
-        new(0, 0, buffer.Width, buffer.Height);
 
     [Conditional("DEBUG")]
     private static void CheckColumnRegionsDoNotOverlap<T>(

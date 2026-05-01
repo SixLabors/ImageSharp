@@ -119,7 +119,7 @@ public class SpectralJpegTests
             this.Output.WriteLine($"Component{i}: [total: {total} | average: {average}]");
             averageDifference += average;
             totalDifference += total;
-            Size s = libJpegComponent.SpectralBlocks.Size();
+            Size s = libJpegComponent.SpectralBlocks.Size;
             tolerance += s.Width * s.Height;
         }
 

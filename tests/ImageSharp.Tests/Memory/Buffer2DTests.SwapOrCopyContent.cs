@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.Memory;
@@ -15,26 +15,24 @@ public partial class Buffer2DTests
         [Fact]
         public void SwapOrCopyContent_WhenBothAllocated()
         {
-            using (Buffer2D<int> a = this.memoryAllocator.Allocate2D<int>(10, 5, AllocationOptions.Clean))
-            using (Buffer2D<int> b = this.memoryAllocator.Allocate2D<int>(3, 7, AllocationOptions.Clean))
-            {
-                a[1, 3] = 666;
-                b[1, 3] = 444;
+            using Buffer2D<int> a = this.memoryAllocator.Allocate2D<int>(10, 5, AllocationOptions.Clean);
+            using Buffer2D<int> b = this.memoryAllocator.Allocate2D<int>(3, 7, AllocationOptions.Clean);
+            a[1, 3] = 666;
+            b[1, 3] = 444;
 
-                Memory<int> aa = a.FastMemoryGroup.Single();
-                Memory<int> bb = b.FastMemoryGroup.Single();
+            Memory<int> aa = a.FastMemoryGroup.Single();
+            Memory<int> bb = b.FastMemoryGroup.Single();
 
-                Buffer2D<int>.SwapOrCopyContent(a, b);
+            Buffer2D<int>.SwapOrCopyContent(a, b);
 
-                Assert.Equal(bb, a.FastMemoryGroup.Single());
-                Assert.Equal(aa, b.FastMemoryGroup.Single());
+            Assert.Equal(bb, a.FastMemoryGroup.Single());
+            Assert.Equal(aa, b.FastMemoryGroup.Single());
 
-                Assert.Equal(new Size(3, 7), a.Size());
-                Assert.Equal(new Size(10, 5), b.Size());
+            Assert.Equal(new Size(3, 7), a.Size);
+            Assert.Equal(new Size(10, 5), b.Size);
 
-                Assert.Equal(666, b[1, 3]);
-                Assert.Equal(444, a[1, 3]);
-            }
+            Assert.Equal(666, b[1, 3]);
+            Assert.Equal(444, a[1, 3]);
         }
 
         [Fact]
@@ -171,7 +169,7 @@ public partial class Buffer2DTests
             bool swap = Buffer2D<int>.SwapOrCopyContent(dest, source);
 
             Assert.False(swap);
-            Assert.Equal(new Size(3, 2), dest.Size());
+            Assert.Equal(new Size(3, 2), dest.Size);
             Assert.Equal(6, dest[2, 1]);
         }
 
@@ -191,7 +189,7 @@ public partial class Buffer2DTests
             bool swap = Buffer2D<int>.SwapOrCopyContent(dest, source);
 
             Assert.False(swap);
-            Assert.Equal(new Size(1, 5), dest.Size());
+            Assert.Equal(new Size(1, 5), dest.Size);
             Assert.Equal(1, dest[0, 0]);
             Assert.Equal(2, dest[0, 1]);
             Assert.Equal(3, dest[0, 2]);
@@ -215,7 +213,7 @@ public partial class Buffer2DTests
             bool swap = Buffer2D<int>.SwapOrCopyContent(dest, source);
 
             Assert.False(swap);
-            Assert.Equal(new Size(2, 2), dest.Size());
+            Assert.Equal(new Size(2, 2), dest.Size);
             Assert.Equal(1, dest[0, 0]);
             Assert.Equal(2, dest[1, 0]);
             Assert.Equal(3, dest[0, 1]);

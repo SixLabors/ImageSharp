@@ -76,7 +76,7 @@ public class IntegralImageTests : BaseImageOperationsExtensionTest
         Buffer2D<ulong> integralBuffer,
         Func<TPixel, ulong> getPixel)
         where TPixel : unmanaged, IPixel<TPixel>
-        => VerifySumValues(provider, integralBuffer, integralBuffer.Bounds(), getPixel);
+        => VerifySumValues(provider, integralBuffer, integralBuffer.Bounds, getPixel);
 
     private static void VerifySumValues<TPixel>(
         TestImageProvider<TPixel> provider,

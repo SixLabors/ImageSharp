@@ -52,7 +52,7 @@ internal abstract class ExrBaseDecompressor : ExrBaseCompression
                        int left = (int)(compressedBytes - (stream.Position - pos));
                        return left > 0 ? left : 0;
                    });
-        inflateStream.AllocateNewBytes((int)uncompressedBytes, true);
+        inflateStream.AllocateNewBytes((int)compressedBytes, true);
         using DeflateStream dataStream = inflateStream.CompressedStream!;
 
         int totalRead = 0;
@@ -69,7 +69,7 @@ internal abstract class ExrBaseDecompressor : ExrBaseCompression
 
         if (totalRead == 0)
         {
-            ExrThrowHelper.ThrowInvalidImageContentException("Could not read enough data for zip compressed image data!");
+            ExrThrowHelper.ThrowInvalidImageContentException("Could not read enough data for zip compressed EXR image data!");
         }
 
         return totalRead;

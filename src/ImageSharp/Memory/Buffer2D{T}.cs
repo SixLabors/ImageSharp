@@ -39,20 +39,30 @@ public sealed class Buffer2D<T> : IDisposable
         Guard.MustBeGreaterThanOrEqualTo(rowStride, width, nameof(rowStride));
 
         this.FastMemoryGroup = memoryGroup;
-        this.Width = width;
-        this.Height = height;
+        this.Size = new Size(width, height);
         this.RowStride = rowStride;
     }
 
     /// <summary>
     /// Gets the width.
     /// </summary>
-    public int Width { get; private set; }
+    public int Width => this.Size.Width;
 
     /// <summary>
     /// Gets the height.
     /// </summary>
-    public int Height { get; private set; }
+    public int Height => this.Size.Height;
+
+    /// <summary>
+    /// Gets the size of the buffer.
+    /// </summary>
+    public Size Size { get; private set; }
+
+    /// <summary>
+    /// Gets the bounds of the buffer.
+    /// </summary>
+    /// <returns>The <see cref="Rectangle"/></returns>
+    public Rectangle Bounds => new(0, 0, this.Width, this.Height);
 
     /// <summary>
     /// Gets the number of elements between row starts in the backing memory.
@@ -402,8 +412,7 @@ public sealed class Buffer2D<T> : IDisposable
             source.CopyTo(destination);
         }
 
-        (destination.Width, source.Width) = (source.Width, destination.Width);
-        (destination.Height, source.Height) = (source.Height, destination.Height);
+        (destination.Size, source.Size) = (source.Size, destination.Size);
         (destination.RowStride, source.RowStride) = (source.RowStride, destination.RowStride);
         return swapped;
     }

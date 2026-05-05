@@ -1,6 +1,8 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.IO.Compression;
+using SixLabors.ImageSharp.Compression.Zlib;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 
@@ -17,8 +19,10 @@ internal abstract class ExrBaseDecompressor : ExrBaseCompression
     /// <param name="allocator">The memory allocator.</param>
     /// <param name="bytesPerBlock">The bytes per row block.</param>
     /// <param name="bytesPerRow">The bytes per row.</param>
-    protected ExrBaseDecompressor(MemoryAllocator allocator, uint bytesPerBlock, uint bytesPerRow)
-        : base(allocator, bytesPerBlock, bytesPerRow)
+    /// <param name="rowsPerBlock">The pixel rows per block.</param>
+    /// <param name="width">The number of pixels per row.</param>
+    protected ExrBaseDecompressor(MemoryAllocator allocator, uint bytesPerBlock, uint bytesPerRow, uint rowsPerBlock, int width)
+        : base(allocator, bytesPerBlock, bytesPerRow, rowsPerBlock, width)
     {
     }
 
@@ -29,6 +33,47 @@ internal abstract class ExrBaseDecompressor : ExrBaseCompression
     /// <param name="compressedBytes">The compressed bytes.</param>
     /// <param name="buffer">The buffer to write the decompressed data to.</param>
     public abstract void Decompress(BufferedReadStream stream, uint compressedBytes, Span<byte> buffer);
+
+    /// <summary>
+    /// Decompresses zip compressed data.
+    /// </summary>
+    /// <param name="stream">The buffered stream to decompress.</param>
+    /// <param name="compressedBytes">The compressed bytes.</param>
+    /// <param name="uncompressed">The buffer to write the uncompressed data to.</param>
+    /// <param name="uncompressedBytes">The uncompressed bytes.</param>
+    /// <returns>The total bytes read from the stream.</returns>
+    protected static int UndoZipCompression(BufferedReadStream stream, uint compressedBytes, Span<byte> uncompressed, uint uncompressedBytes)
+    {
+        long pos = stream.Position;
+        using ZlibInflateStream inflateStream = new(
+                   stream,
+                   () =>
+                   {
+                       int left = (int)(compressedBytes - (stream.Position - pos));
+                       return left > 0 ? left : 0;
+                   });
+        inflateStream.AllocateNewBytes((int)compressedBytes, true);
+        using DeflateStream dataStream = inflateStream.CompressedStream!;
+
+        int totalRead = 0;
+        while (totalRead < uncompressedBytes)
+        {
+            int bytesRead = dataStream.Read(uncompressed, totalRead, (int)uncompressedBytes - totalRead);
+            if (bytesRead <= 0)
+            {
+                break;
+            }
+
+            totalRead += bytesRead;
+        }
+
+        if (totalRead == 0)
+        {
+            ExrThrowHelper.ThrowInvalidImageContentException("Could not read enough data for zip compressed EXR image data!");
+        }
+
+        return totalRead;
+    }
 
     /// <summary>
     /// Integrate over all differences to the previous value in order to

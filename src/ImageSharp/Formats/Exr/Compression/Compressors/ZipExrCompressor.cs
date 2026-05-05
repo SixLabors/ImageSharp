@@ -24,9 +24,11 @@ internal class ZipExrCompressor : ExrBaseCompressor
     /// <param name="allocator">The memory allocator.</param>
     /// <param name="bytesPerBlock">The bytes per block.</param>
     /// <param name="bytesPerRow">The bytes per row.</param>
+    /// <param name="rowsPerBlock">The pixel rows per block.</param>
+    /// <param name="width">The witdh of one row in pixels.</param>
     /// <param name="compressionLevel">The compression level for deflate compression.</param>
-    public ZipExrCompressor(Stream output, MemoryAllocator allocator, uint bytesPerBlock, uint bytesPerRow, DeflateCompressionLevel compressionLevel)
-        : base(output, allocator, bytesPerBlock, bytesPerRow)
+    public ZipExrCompressor(Stream output, MemoryAllocator allocator, uint bytesPerBlock, uint bytesPerRow, uint rowsPerBlock, int width, DeflateCompressionLevel compressionLevel)
+        : base(output, allocator, bytesPerBlock, bytesPerRow, rowsPerBlock, width)
     {
         this.compressionLevel = compressionLevel;
         this.buffer = allocator.Allocate<byte>((int)bytesPerBlock);

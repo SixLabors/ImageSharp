@@ -36,8 +36,7 @@ public class ExrDecoderTests
         ExrMetadata exrMetaData = image.Metadata.GetExrMetadata();
         image.DebugSave(provider);
 
-        // There is a 0,0059% difference to the Reference decoder.
-        image.CompareToOriginal(provider, ImageComparer.Tolerant(0.0005f), ReferenceDecoder);
+        image.CompareToOriginal(provider, ImageComparer.Exact, ReferenceDecoder);
         Assert.Equal(ExrPixelType.Float, exrMetaData.PixelType);
     }
 
@@ -117,6 +116,29 @@ public class ExrDecoderTests
         using Image<TPixel> image = provider.GetImage(ExrDecoder.Instance);
         image.DebugSave(provider);
         image.CompareToOriginal(provider, ImageComparer.Exact, ReferenceDecoder);
+    }
+
+    [Theory]
+    [WithFile(TestImages.Exr.Pxr24Half, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Exr.Pxr24Float, PixelTypes.Rgba32)]
+    public void ExrDecoder_CanDecode_Pxr24Compressed<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage(ExrDecoder.Instance);
+        image.DebugSave(provider);
+        image.CompareToOriginal(provider, ImageComparer.Exact, ReferenceDecoder);
+    }
+
+    [Theory]
+    [WithFile(TestImages.Exr.Pxr24Uint, PixelTypes.Rgba32)]
+    public void ExrDecoder_CanDecode_Pxr24Compressed_ExrPixelType_Uint<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage(ExrDecoder.Instance);
+        image.DebugSave(provider);
+
+        // Compare to Reference here instead using the reference decoder, since uint pixel type is not supported by the Reference decoder.
+        image.CompareToReferenceOutput(provider);
     }
 
     [Theory]

@@ -59,7 +59,7 @@ internal sealed class ResizeWorker<TPixel> : IDisposable
     {
         this.configuration = configuration;
         this.source = source;
-        this.sourceRectangle = source.Rectangle;
+        this.sourceRectangle = source.Bounds;
         this.conversionModifiers = conversionModifiers;
         this.horizontalKernelMap = horizontalKernelMap;
         this.verticalKernelMap = verticalKernelMap;

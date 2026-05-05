@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.Memory.Internals;
 /// Provides a base class for <see cref="IMemoryOwner{T}"/> implementations by implementing pinning logic for <see cref="MemoryManager{T}"/> adaption.
 /// </summary>
 /// <typeparam name="T">The element type.</typeparam>
-internal abstract class ManagedBufferBase<T> : MemoryManager<T>
+internal abstract class ManagedBufferBase<T> : AllocationTrackedMemoryManager<T>
     where T : struct
 {
     private GCHandle pinHandle;

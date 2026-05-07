@@ -303,7 +303,7 @@ internal sealed class GifEncoderCore
         this.WriteGraphicalControlExtension(metadata, stream);
 
         Buffer2D<byte> indices = ((IPixelSource)quantized).PixelBuffer;
-        Rectangle interest = indices.FullRectangle();
+        Rectangle interest = indices.Bounds;
         bool useLocal = this.colorTableMode == FrameColorTableMode.Local || (metadata.ColorTableMode == FrameColorTableMode.Local);
         int bitDepth = ColorNumerics.GetBitsNeededForColorDepth(quantized.Palette.Length);
 

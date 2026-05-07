@@ -14,16 +14,16 @@ internal class RunLengthExrCompression : ExrBaseDecompressor
 {
     private readonly IMemoryOwner<byte> tmpBuffer;
 
-    private readonly ushort[] s = new ushort[16];
-
     /// <summary>
     /// Initializes a new instance of the <see cref="RunLengthExrCompression" /> class.
     /// </summary>
     /// <param name="allocator">The memory allocator.</param>
     /// <param name="bytesPerBlock">The bytes per pixel row block.</param>
     /// <param name="bytesPerRow">The bytes per row.</param>
-    public RunLengthExrCompression(MemoryAllocator allocator, uint bytesPerBlock, uint bytesPerRow)
-        : base(allocator, bytesPerBlock, bytesPerRow) => this.tmpBuffer = allocator.Allocate<byte>((int)bytesPerBlock);
+    /// <param name="rowsPerBlock">The pixel rows per block.</param>
+    /// <param name="width">The witdh of one row in pixels.</param>
+    public RunLengthExrCompression(MemoryAllocator allocator, uint bytesPerBlock, uint bytesPerRow, uint rowsPerBlock, int width)
+        : base(allocator, bytesPerBlock, bytesPerRow, rowsPerBlock, width) => this.tmpBuffer = allocator.Allocate<byte>((int)bytesPerBlock);
 
     /// <inheritdoc/>
     public override void Decompress(BufferedReadStream stream, uint compressedBytes, Span<byte> buffer)

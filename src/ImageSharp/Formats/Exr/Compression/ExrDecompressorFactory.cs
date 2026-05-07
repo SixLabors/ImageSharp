@@ -22,6 +22,7 @@ internal static class ExrDecompressorFactory
     /// <param name="bytesPerRow">The bytes per row.</param>
     /// <param name="rowsPerBlock">The rows per block.</param>
     /// <param name="channelCount">The number of image channels.</param>
+    /// <param name="pixelType">The pixel type.</param>
     /// <returns>Decompressor for EXR image data.</returns>
     public static ExrBaseDecompressor Create(
         ExrCompression method,
@@ -30,13 +31,15 @@ internal static class ExrDecompressorFactory
         uint bytesPerBlock,
         uint bytesPerRow,
         uint rowsPerBlock,
-        int channelCount) => method switch
+        int channelCount,
+        ExrPixelType pixelType) => method switch
         {
-            ExrCompression.None => new NoneExrCompression(memoryAllocator, bytesPerBlock, bytesPerRow),
-            ExrCompression.Zips => new ZipExrCompression(memoryAllocator, bytesPerBlock, bytesPerRow),
-            ExrCompression.Zip => new ZipExrCompression(memoryAllocator, bytesPerBlock, bytesPerRow),
-            ExrCompression.RunLengthEncoded => new RunLengthExrCompression(memoryAllocator, bytesPerBlock, bytesPerRow),
+            ExrCompression.None => new NoneExrCompression(memoryAllocator, bytesPerBlock, bytesPerRow, rowsPerBlock, width),
+            ExrCompression.Zips => new ZipExrCompression(memoryAllocator, bytesPerBlock, bytesPerRow, rowsPerBlock, width),
+            ExrCompression.Zip => new ZipExrCompression(memoryAllocator, bytesPerBlock, bytesPerRow, rowsPerBlock, width),
+            ExrCompression.RunLengthEncoded => new RunLengthExrCompression(memoryAllocator, bytesPerBlock, bytesPerRow, rowsPerBlock, width),
             ExrCompression.B44 => new B44ExrCompression(memoryAllocator, bytesPerBlock, bytesPerRow, rowsPerBlock, width, channelCount),
+            ExrCompression.Pxr24 => new Pxr24Compression(memoryAllocator, bytesPerBlock, bytesPerRow, rowsPerBlock, width, channelCount, pixelType),
             _ => throw ExrThrowHelper.NotSupportedDecompressor(nameof(method)),
         };
 }

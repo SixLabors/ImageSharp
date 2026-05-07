@@ -2,8 +2,6 @@
 // Licensed under the Six Labors Split License.
 
 using System.Buffers;
-using System.IO.Compression;
-using SixLabors.ImageSharp.Compression.Zlib;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 
@@ -22,41 +20,18 @@ internal class ZipExrCompression : ExrBaseDecompressor
     /// <param name="allocator">The memory allocator.</param>
     /// <param name="bytesPerBlock">The bytes per pixel row block.</param>
     /// <param name="bytesPerRow">The bytes per pixel row.</param>
-    public ZipExrCompression(MemoryAllocator allocator, uint bytesPerBlock, uint bytesPerRow)
-        : base(allocator, bytesPerBlock, bytesPerRow) => this.tmpBuffer = allocator.Allocate<byte>((int)bytesPerBlock);
+    /// <param name="rowsPerBlock">The pixel rows per block.</param>
+    /// <param name="width">The witdh of one row in pixels.</param>
+    public ZipExrCompression(MemoryAllocator allocator, uint bytesPerBlock, uint bytesPerRow, uint rowsPerBlock, int width)
+        : base(allocator, bytesPerBlock, bytesPerRow, rowsPerBlock, width) => this.tmpBuffer = allocator.Allocate<byte>((int)bytesPerBlock);
 
     /// <inheritdoc/>
     public override void Decompress(BufferedReadStream stream, uint compressedBytes, Span<byte> buffer)
     {
         Span<byte> uncompressed = this.tmpBuffer.GetSpan();
 
-        long pos = stream.Position;
-        using ZlibInflateStream inflateStream = new(
-                   stream,
-                   () =>
-                   {
-                       int left = (int)(compressedBytes - (stream.Position - pos));
-                       return left > 0 ? left : 0;
-                   });
-        inflateStream.AllocateNewBytes((int)this.BytesPerBlock, true);
-        using DeflateStream dataStream = inflateStream.CompressedStream!;
-
-        int totalRead = 0;
-        while (totalRead < buffer.Length)
-        {
-            int bytesRead = dataStream.Read(uncompressed, totalRead, buffer.Length - totalRead);
-            if (bytesRead <= 0)
-            {
-                break;
-            }
-
-            totalRead += bytesRead;
-        }
-
-        if (totalRead == 0)
-        {
-            ExrThrowHelper.ThrowInvalidImageContentException("Could not read enough data for zip compressed image data!");
-        }
+        uint uncompressedBytes = (uint)buffer.Length;
+        int totalRead = UndoZipCompression(stream, compressedBytes, uncompressed, uncompressedBytes);
 
         Reconstruct(uncompressed, (uint)totalRead);
         Interleave(uncompressed, (uint)totalRead, buffer);

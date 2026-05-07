@@ -21,6 +21,8 @@ internal static class ExrCompressorFactory
     /// <param name="output">The output stream.</param>
     /// <param name="bytesPerBlock">The bytes per block.</param>
     /// <param name="bytesPerRow">The bytes per row.</param>
+    /// <param name="rowsPerBlock">The pixel rows per block.</param>
+    /// <param name="width">The witdh of one row in pixels.</param>
     /// <param name="compressionLevel">The deflate compression level.</param>
     /// <returns>A compressor for EXR image data.</returns>
     public static ExrBaseCompressor Create(
@@ -29,11 +31,13 @@ internal static class ExrCompressorFactory
         Stream output,
         uint bytesPerBlock,
         uint bytesPerRow,
+        uint rowsPerBlock,
+        int width,
         DeflateCompressionLevel compressionLevel = DeflateCompressionLevel.DefaultCompression) => method switch
         {
-            ExrCompression.None => new NoneExrCompressor(output, allocator, bytesPerBlock, bytesPerRow),
-            ExrCompression.Zips => new ZipExrCompressor(output, allocator, bytesPerBlock, bytesPerRow, compressionLevel),
-            ExrCompression.Zip => new ZipExrCompressor(output, allocator, bytesPerBlock, bytesPerRow, compressionLevel),
+            ExrCompression.None => new NoneExrCompressor(output, allocator, bytesPerBlock, bytesPerRow, rowsPerBlock, width),
+            ExrCompression.Zips => new ZipExrCompressor(output, allocator, bytesPerBlock, bytesPerRow, rowsPerBlock, width, compressionLevel),
+            ExrCompression.Zip => new ZipExrCompressor(output, allocator, bytesPerBlock, bytesPerRow, rowsPerBlock, width, compressionLevel),
             _ => throw ExrThrowHelper.NotSupportedCompressor(method.ToString()),
         };
 }

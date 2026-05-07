@@ -339,6 +339,10 @@ public sealed class ImageFrame<TPixel> : ImageFrame, IPixelSource<TPixel>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal ref TPixel GetPixelReference(int x, int y) => ref this.PixelBuffer[x, y];
 
+    /// <inheritdoc />
+    internal override void Accept(IImageFrameVisitor visitor)
+        => visitor.Visit(this);
+
     /// <summary>
     /// Copies the pixels to a <see cref="Buffer2D{TPixel}"/> of the same size.
     /// </summary>
@@ -346,7 +350,7 @@ public sealed class ImageFrame<TPixel> : ImageFrame, IPixelSource<TPixel>
     /// <exception cref="ArgumentException">ImageFrame{TPixel}.CopyTo(): target must be of the same size!</exception>
     internal void CopyTo(Buffer2D<TPixel> target)
     {
-        if (this.Size != target.Size())
+        if (this.Size != target.Size)
         {
             throw new ArgumentException("ImageFrame<TPixel>.CopyTo(): target must be of the same size!", nameof(target));
         }
@@ -363,8 +367,8 @@ public sealed class ImageFrame<TPixel> : ImageFrame, IPixelSource<TPixel>
     {
         Guard.NotNull(source, nameof(source));
 
-        Buffer2D<TPixel>.SwapOrCopyContent(this.PixelBuffer, source.PixelBuffer);
-        this.UpdateSize(this.PixelBuffer.Size());
+        _ = Buffer2D<TPixel>.SwapOrCopyContent(this.PixelBuffer, source.PixelBuffer);
+        this.UpdateSize(this.PixelBuffer.Size);
     }
 
     /// <summary>
@@ -475,10 +479,7 @@ public sealed class ImageFrame<TPixel> : ImageFrame, IPixelSource<TPixel>
     /// Clears the bitmap.
     /// </summary>
     /// <param name="value">The value to initialize the bitmap with.</param>
-    internal void Clear(TPixel value)
-    {
-        this.PixelBuffer.Clear(value);
-    }
+    internal void Clear(TPixel value) => this.PixelBuffer.Clear(value);
 
     [MethodImpl(InliningOptions.ShortMethod)]
     private void VerifyCoords(int x, int y)

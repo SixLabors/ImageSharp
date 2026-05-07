@@ -17,7 +17,7 @@ public class BufferAreaTests
         Buffer2DRegion<int> area = new(buffer, rectangle);
 
         Assert.Equal(buffer, area.Buffer);
-        Assert.Equal(rectangle, area.Rectangle);
+        Assert.Equal(rectangle, area.Bounds);
     }
 
     private Buffer2D<int> CreateTestBuffer(int w, int h)
@@ -90,7 +90,7 @@ public class BufferAreaTests
         Rectangle expectedRect = new(10, 12, 5, 5);
 
         Assert.Equal(buffer, area1.Buffer);
-        Assert.Equal(expectedRect, area1.Rectangle);
+        Assert.Equal(expectedRect, area1.Bounds);
 
         int value00 = (12 * 100) + 10;
         Assert.Equal(value00, area1[0, 0]);
@@ -147,9 +147,9 @@ public class BufferAreaTests
         Assert.Equal(0, buffer[5, 5]);
         Assert.Equal(0, buffer[14, 14]);
 
-        for (int y = region.Rectangle.Y; y < region.Rectangle.Bottom; y++)
+        for (int y = region.Bounds.Y; y < region.Bounds.Bottom; y++)
         {
-            Span<int> span = buffer.DangerousGetRowSpan(y).Slice(region.Rectangle.X, region.Width);
+            Span<int> span = buffer.DangerousGetRowSpan(y).Slice(region.Bounds.X, region.Width);
             Assert.True(span.SequenceEqual(new int[region.Width]));
         }
     }

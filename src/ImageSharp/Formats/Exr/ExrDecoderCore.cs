@@ -139,9 +139,14 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
         where TPixel : unmanaged, IPixel<TPixel>
     {
         bool hasAlpha = this.HasAlpha();
-        uint bytesPerRow = ExrUtils.CalculateBytesPerRow(this.Channels, (uint)this.Width);
+        ulong bytesPerRow = ExrUtils.CalculateBytesPerRow(this.Channels, (uint)this.Width);
         uint rowsPerBlock = ExrUtils.RowsPerBlock(this.Compression);
-        uint bytesPerBlock = bytesPerRow * rowsPerBlock;
+        ulong bytesPerBlock = bytesPerRow * rowsPerBlock;
+        if (bytesPerBlock > int.MaxValue)
+        {
+            ExrThrowHelper.ThrowInvalidImageContentException("EXR block size exceeds the maximum allowed size.");
+        }
+
         int width = this.Width;
         int height = this.Height;
         int channelCount = this.Channels.Count;
@@ -158,8 +163,8 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
             this.Compression,
             this.memoryAllocator,
             width,
-            bytesPerBlock,
-            bytesPerRow,
+            (uint)bytesPerBlock,
+            (uint)bytesPerRow,
             rowsPerBlock,
             channelCount,
             this.PixelType);
@@ -169,6 +174,11 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
         {
             ulong rowOffset = this.ReadUnsignedLong(stream);
             long nextRowOffsetPosition = stream.Position;
+
+            if (rowOffset >= (ulong)stream.Length)
+            {
+                ExrThrowHelper.ThrowInvalidImageContentException("EXR row offset is outside the bounds of the stream.");
+            }
 
             stream.Position = (long)rowOffset;
             uint rowStartIndex = this.ReadUnsignedInteger(stream);
@@ -212,9 +222,14 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
         where TPixel : unmanaged, IPixel<TPixel>
     {
         bool hasAlpha = this.HasAlpha();
-        uint bytesPerRow = ExrUtils.CalculateBytesPerRow(this.Channels, (uint)this.Width);
+        ulong bytesPerRow = ExrUtils.CalculateBytesPerRow(this.Channels, (uint)this.Width);
         uint rowsPerBlock = ExrUtils.RowsPerBlock(this.Compression);
-        uint bytesPerBlock = bytesPerRow * rowsPerBlock;
+        ulong bytesPerBlock = bytesPerRow * rowsPerBlock;
+        if (bytesPerBlock > int.MaxValue)
+        {
+            ExrThrowHelper.ThrowInvalidImageContentException("EXR block size exceeds the maximum allowed size.");
+        }
+
         int width = this.Width;
         int height = this.Height;
         int channelCount = this.Channels.Count;
@@ -231,8 +246,8 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
             this.Compression,
             this.memoryAllocator,
             width,
-            bytesPerBlock,
-            bytesPerRow,
+            (uint)bytesPerBlock,
+            (uint)bytesPerRow,
             rowsPerBlock,
             channelCount,
             this.PixelType);
@@ -242,6 +257,11 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
         {
             ulong rowOffset = this.ReadUnsignedLong(stream);
             long nextRowOffsetPosition = stream.Position;
+
+            if (rowOffset >= (ulong)stream.Length)
+            {
+                ExrThrowHelper.ThrowInvalidImageContentException("EXR row offset is outside the bounds of the stream.");
+            }
 
             stream.Position = (long)rowOffset;
             uint rowStartIndex = this.ReadUnsignedInteger(stream);
@@ -597,8 +617,21 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
 
         this.HeaderAttributes = this.ParseHeaderAttributes(stream);
 
-        this.Width = this.HeaderAttributes.DataWindow.XMax - this.HeaderAttributes.DataWindow.XMin + 1;
-        this.Height = this.HeaderAttributes.DataWindow.YMax - this.HeaderAttributes.DataWindow.YMin + 1;
+        ExrBox2i dataWindow = this.HeaderAttributes.DataWindow;
+        if (dataWindow.XMax < dataWindow.XMin || dataWindow.YMax < dataWindow.YMin)
+        {
+            ExrThrowHelper.ThrowInvalidImageContentException("EXR DataWindow max values must be greater than or equal to min values.");
+        }
+
+        long width = (long)dataWindow.XMax - dataWindow.XMin + 1;
+        long height = (long)dataWindow.YMax - dataWindow.YMin + 1;
+        if (width > int.MaxValue || height > int.MaxValue)
+        {
+            ExrThrowHelper.ThrowInvalidImageContentException("EXR DataWindow dimensions exceed the maximum allowed size.");
+        }
+
+        this.Width = (int)width;
+        this.Height = (int)height;
         this.Channels = this.HeaderAttributes.Channels;
         this.Compression = this.HeaderAttributes.Compression;
         this.PixelType = this.ValidateChannels();

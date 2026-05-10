@@ -170,7 +170,7 @@ internal sealed class ExrEncoderCore
         CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        uint bytesPerRow = ExrUtils.CalculateBytesPerRow(channels, (uint)width);
+        uint bytesPerRow = (uint)ExrUtils.CalculateBytesPerRow(channels, (uint)width);
         uint rowsPerBlock = ExrUtils.RowsPerBlock(compression);
         uint bytesPerBlock = bytesPerRow * rowsPerBlock;
 
@@ -262,7 +262,7 @@ internal sealed class ExrEncoderCore
         CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        uint bytesPerRow = ExrUtils.CalculateBytesPerRow(channels, (uint)width);
+        uint bytesPerRow = (uint)ExrUtils.CalculateBytesPerRow(channels, (uint)width);
         uint rowsPerBlock = ExrUtils.RowsPerBlock(compression);
         uint bytesPerBlock = bytesPerRow * rowsPerBlock;
 

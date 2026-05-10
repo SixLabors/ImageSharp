@@ -91,6 +91,11 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
     /// </summary>
     private ExrHeaderAttributes HeaderAttributes { get; set; }
 
+    /// <summary>
+    /// Gets or sets the earliest valid stream position for a scanline chunk.
+    /// </summary>
+    private long MinimumChunkOffset { get; set; }
+
     /// <inheritdoc />
     protected override Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
     {
@@ -175,11 +180,7 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
             ulong rowOffset = this.ReadUnsignedLong(stream);
             long nextRowOffsetPosition = stream.Position;
 
-            if (rowOffset >= (ulong)stream.Length)
-            {
-                ExrThrowHelper.ThrowInvalidImageContentException("EXR row offset is outside the bounds of the stream.");
-            }
-
+            this.ValidateChunkOffset(rowOffset, stream);
             stream.Position = (long)rowOffset;
             uint rowStartIndex = this.ReadUnsignedInteger(stream);
 
@@ -258,11 +259,7 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
             ulong rowOffset = this.ReadUnsignedLong(stream);
             long nextRowOffsetPosition = stream.Position;
 
-            if (rowOffset >= (ulong)stream.Length)
-            {
-                ExrThrowHelper.ThrowInvalidImageContentException("EXR row offset is outside the bounds of the stream.");
-            }
-
+            this.ValidateChunkOffset(rowOffset, stream);
             stream.Position = (long)rowOffset;
             uint rowStartIndex = this.ReadUnsignedInteger(stream);
 
@@ -634,6 +631,9 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
         this.Height = (int)height;
         this.Channels = this.HeaderAttributes.Channels;
         this.Compression = this.HeaderAttributes.Compression;
+        uint rowsPerBlock = ExrUtils.RowsPerBlock(this.Compression);
+        long chunkCount = (this.Height + (long)rowsPerBlock - 1) / rowsPerBlock;
+        this.MinimumChunkOffset = stream.Position + (chunkCount * sizeof(ulong));
         this.PixelType = this.ValidateChannels();
         this.ImageDataType = this.DetermineImageDataType();
 
@@ -898,6 +898,19 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
         ExrCompression.None or ExrCompression.Zip or ExrCompression.Zips or ExrCompression.RunLengthEncoded or ExrCompression.B44 or ExrCompression.Pxr24 => true,
         _ => false,
     };
+
+    /// <summary>
+    /// Validates a scanline chunk offset read from the EXR offset table.
+    /// </summary>
+    /// <param name="chunkOffset">The chunk offset to validate.</param>
+    /// <param name="stream">The stream containing the image data.</param>
+    private void ValidateChunkOffset(ulong chunkOffset, BufferedReadStream stream)
+    {
+        if (chunkOffset < (ulong)this.MinimumChunkOffset || chunkOffset >= (ulong)stream.Length)
+        {
+            ExrThrowHelper.ThrowInvalidImageContentException("EXR chunk offset is outside the bounds of the stream.");
+        }
+    }
 
     /// <summary>
     /// Determines whether this image  has alpha channel.

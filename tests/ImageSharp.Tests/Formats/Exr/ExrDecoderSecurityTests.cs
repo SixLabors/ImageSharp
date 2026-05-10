@@ -43,7 +43,7 @@ public class ExrDecoderSecurityTests
     }
 
     /// <summary>
-    /// EXR-2 — EXR Row Offset Table Unvalidated Seek (DoS / data integrity)
+    /// EXR-2 — EXR Row Offset Table Unvalidated Seek (DoS)
     ///
     /// Row offsets are read from the file and used unconditionally to seek the stream:
     ///   ulong rowOffset = this.ReadUnsignedLong(stream);
@@ -71,6 +71,37 @@ public class ExrDecoderSecurityTests
         byte[] data = BuildMinimalExr(
             xMin: 0, yMin: 0, xMax: 1, yMax: 1,
             rowOffsetTableAppend: invalidOffsets);
+
+        using var stream = new MemoryStream(data);
+        Assert.Throws<InvalidImageContentException>(
+            () => ExrDecoder.Instance.Decode<Rgba32>(DecoderOptions.Default, stream));
+    }
+
+    [Fact]
+    public void Decode_CraftedRowOffsets_IntoHeader_Throws()
+    {
+        // Offset 0 points back into the EXR file header and must be rejected
+        // before the decoder seeks to attacker-controlled non-pixel data.
+        byte[] headerOffsets = new byte[16];
+
+        byte[] data = BuildMinimalExr(
+            xMin: 0, yMin: 0, xMax: 1, yMax: 1,
+            rowOffsetTableAppend: headerOffsets);
+
+        using var stream = new MemoryStream(data);
+        Assert.Throws<InvalidImageContentException>(
+            () => ExrDecoder.Instance.Decode<Rgba32>(DecoderOptions.Default, stream));
+    }
+
+    [Fact]
+    public void Decode_CraftedRowOffsets_IntoOffsetTable_Throws()
+    {
+        byte[] data = BuildMinimalExr(
+            xMin: 0, yMin: 0, xMax: 1, yMax: 1,
+            rowOffsetTableAppend: new byte[16]);
+
+        // Point the first row offset at the second row offset entry.
+        BinaryPrimitives.WriteUInt64LittleEndian(data.AsSpan(data.Length - 16), (ulong)(data.Length - 8));
 
         using var stream = new MemoryStream(data);
         Assert.Throws<InvalidImageContentException>(

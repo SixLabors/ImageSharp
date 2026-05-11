@@ -477,6 +477,37 @@ public class UniformUnmanagedPoolMemoryAllocatorTests
         allocator.AllocateGroup<byte>(oneMb, 1024).Dispose();
     }
 
+    [Fact]
+    public void AllocateGroup_AccumulativeLimit_NonPoolFallback_TracksOncePerGroup()
+    {
+        // Configure the pool with zero capacity so multi-segment requests bypass both the
+        // single-buffer-from-pool path and MemoryGroup<T>.TryAllocate(pool, ...) and fall
+        // through to MemoryGroup<T>.Allocate(nonPoolAllocator, ...). The unmanaged segment
+        // size is small enough that the request must span multiple segments, which is the
+        // path where per-segment double-counting could regress.
+        UniformUnmanagedMemoryPoolMemoryAllocator allocator = new(
+            sharedArrayPoolThresholdInBytes: 64 * 1024,
+            poolBufferSizeInBytes: 128 * 1024,
+            maxPoolSizeInBytes: 0,
+            unmanagedBufferSizeInBytes: 256 * 1024,
+            new MemoryAllocatorOptions { AccumulativeAllocationLimitMegabytes = 1 });
+
+        // 768 KB exceeds the pool buffer size, so the request takes the multi-segment
+        // non-pool fallback (three 256 KB segments). If tracking double-counted (group
+        // plus each segment), reservation would be 768 KB + 768 KB = 1.5 MB and exceed
+        // the 1 MB limit on allocation itself.
+        MemoryGroup<byte> g = allocator.AllocateGroup<byte>(768 * 1024, 1024);
+        Assert.True(g.Count > 1, "Test setup must exercise the multi-segment fallback path.");
+
+        // Reservation should be exactly 768 KB; another 512 KB would push to 1.25 MB and throw.
+        Assert.Throws<InvalidMemoryOperationException>(() => allocator.Allocate<byte>(512 * 1024));
+
+        g.Dispose();
+
+        // After disposal the reservation is fully released; a second equivalent group succeeds.
+        allocator.AllocateGroup<byte>(768 * 1024, 1024).Dispose();
+    }
+
     [ConditionalFact(typeof(Environment), nameof(Environment.Is64BitProcess))]
     public void MemoryAllocator_Create_SetHighLimit()
     {

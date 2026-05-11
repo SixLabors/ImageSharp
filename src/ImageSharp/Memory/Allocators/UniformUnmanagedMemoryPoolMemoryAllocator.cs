@@ -70,6 +70,15 @@ internal sealed class UniformUnmanagedMemoryPoolMemoryAllocator : MemoryAllocato
         this.nonPoolAllocator = new UnmanagedMemoryAllocator(unmanagedBufferSizeInBytes);
     }
 
+    internal UniformUnmanagedMemoryPoolMemoryAllocator(
+        int sharedArrayPoolThresholdInBytes,
+        int poolBufferSizeInBytes,
+        long maxPoolSizeInBytes,
+        int unmanagedBufferSizeInBytes,
+        MemoryAllocatorOptions options)
+        : this(sharedArrayPoolThresholdInBytes, poolBufferSizeInBytes, maxPoolSizeInBytes, unmanagedBufferSizeInBytes)
+        => this.ApplyOptions(options);
+
     /// <inheritdoc />
     protected internal override int GetBufferCapacityInBytes() => this.poolBufferSizeInBytes;
 

@@ -83,18 +83,26 @@ public abstract class MemoryAllocator
     public static MemoryAllocator Create(MemoryAllocatorOptions options)
     {
         UniformUnmanagedMemoryPoolMemoryAllocator allocator = new(options.MaximumPoolSizeMegabytes);
+        allocator.ApplyOptions(options);
+        return allocator;
+    }
+
+    /// <summary>
+    /// Applies the supplied <see cref="MemoryAllocatorOptions"/> to this instance.
+    /// </summary>
+    /// <param name="options">The options to apply. Properties left as <see langword="null"/> are ignored.</param>
+    private protected void ApplyOptions(MemoryAllocatorOptions options)
+    {
         if (options.AllocationLimitMegabytes.HasValue)
         {
-            allocator.MemoryGroupAllocationLimitBytes = options.AllocationLimitMegabytes.Value * 1024L * 1024L;
-            allocator.SingleBufferAllocationLimitBytes = (int)Math.Min(allocator.SingleBufferAllocationLimitBytes, allocator.MemoryGroupAllocationLimitBytes);
+            this.MemoryGroupAllocationLimitBytes = options.AllocationLimitMegabytes.Value * 1024L * 1024L;
+            this.SingleBufferAllocationLimitBytes = (int)Math.Min(this.SingleBufferAllocationLimitBytes, this.MemoryGroupAllocationLimitBytes);
         }
 
         if (options.AccumulativeAllocationLimitMegabytes.HasValue)
         {
-            allocator.AccumulativeAllocationLimitBytes = options.AccumulativeAllocationLimitMegabytes.Value * 1024L * 1024L;
+            this.AccumulativeAllocationLimitBytes = options.AccumulativeAllocationLimitMegabytes.Value * 1024L * 1024L;
         }
-
-        return allocator;
     }
 
     /// <summary>

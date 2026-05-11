@@ -102,8 +102,8 @@ internal abstract partial class MemoryGroup<T> : IMemoryGroup<T>, IDisposable
         int bufferAlignmentInElements,
         AllocationOptions options = AllocationOptions.None)
     {
-        int bufferCapacityInBytes = allocator.GetBufferCapacityInBytes();
         Guard.NotNull(allocator, nameof(allocator));
+        int bufferCapacityInBytes = allocator.GetBufferCapacityInBytes();
 
         if (totalLengthInElements < 0)
         {

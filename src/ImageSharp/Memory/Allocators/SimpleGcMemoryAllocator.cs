@@ -22,19 +22,7 @@ public sealed class SimpleGcMemoryAllocator : MemoryAllocator
     /// Initializes a new instance of the <see cref="SimpleGcMemoryAllocator"/> class with custom limits.
     /// </summary>
     /// <param name="options">The <see cref="MemoryAllocatorOptions"/> to apply.</param>
-    public SimpleGcMemoryAllocator(MemoryAllocatorOptions options)
-    {
-        if (options.AllocationLimitMegabytes.HasValue)
-        {
-            this.MemoryGroupAllocationLimitBytes = options.AllocationLimitMegabytes.Value * 1024L * 1024L;
-            this.SingleBufferAllocationLimitBytes = (int)Math.Min(this.SingleBufferAllocationLimitBytes, this.MemoryGroupAllocationLimitBytes);
-        }
-
-        if (options.AccumulativeAllocationLimitMegabytes.HasValue)
-        {
-            this.AccumulativeAllocationLimitBytes = options.AccumulativeAllocationLimitMegabytes.Value * 1024L * 1024L;
-        }
-    }
+    public SimpleGcMemoryAllocator(MemoryAllocatorOptions options) => this.ApplyOptions(options);
 
     /// <inheritdoc />
     protected internal override int GetBufferCapacityInBytes() => int.MaxValue;

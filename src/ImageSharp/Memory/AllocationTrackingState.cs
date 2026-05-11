@@ -21,6 +21,12 @@ internal struct AllocationTrackingState
     /// </summary>
     /// <param name="allocator">The allocator that owns the reservation.</param>
     /// <param name="lengthInBytes">The reserved allocation size, in bytes.</param>
+    /// <remarks>
+    /// Must complete-before the owning object's reference is observable to any other thread.
+    /// <see cref="MemoryAllocator"/> guarantees this by attaching synchronously on the allocating
+    /// thread before returning the owner; reference publication then provides the release fence
+    /// that makes these field writes visible to a subsequent <see cref="Release"/> on another thread.
+    /// </remarks>
     internal void Attach(MemoryAllocator allocator, long lengthInBytes)
     {
         this.allocator = allocator;

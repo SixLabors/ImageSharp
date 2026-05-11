@@ -56,7 +56,7 @@ jobs:
         run: git lfs pull
 
       - name: NuGet Install
-        uses: NuGet/setup-nuget@v2
+        uses: NuGet/setup-nuget@v4
 
       - name: NuGet Setup Cache
         uses: actions/cache@v5
@@ -93,7 +93,7 @@ jobs:
           path: tests/Images/ActualOutput/
 
       - name: Codecov Update
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v6
         if: matrix.options.codecov == true && startsWith(github.repository, 'SixLabors')
         with:
           flags: unittests

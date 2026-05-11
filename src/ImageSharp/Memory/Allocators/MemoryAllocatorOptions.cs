@@ -49,8 +49,9 @@ public struct MemoryAllocatorOptions
     }
 
     /// <summary>
-    /// Gets or sets a value defining the maximum total size that can be allocated by the allocator in Megabytes.
-    /// <see langword="null"/> means platform default: 2GB on 32-bit processes, 8GB on 64-bit processes.
+    /// Gets or sets a value defining the maximum cumulative size, in Megabytes, of all active allocations made
+    /// through the created <see cref="MemoryAllocator"/> instance.
+    /// <see langword="null"/> (the default) imposes no limit on the cumulative total.
     /// </summary>
     public int? AccumulativeAllocationLimitMegabytes
     {

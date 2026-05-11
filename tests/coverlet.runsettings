@@ -9,7 +9,7 @@
             <DataCollector friendlyName="XPlat code coverage">
                 <Configuration>
                     <Format>lcov</Format>
-                    <Include>[SixLabors.*]*</Include>
+                    <Include>[SixLabors.ImageSharp*]*</Include>
                     <UseSourceLink>true</UseSourceLink>
                 </Configuration>
             </DataCollector>

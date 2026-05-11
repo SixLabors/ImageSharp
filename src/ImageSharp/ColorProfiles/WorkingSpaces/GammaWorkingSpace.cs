@@ -62,6 +62,7 @@ public sealed class GammaWorkingSpace : RgbWorkingSpace
 
     /// <inheritdoc/>
     public override int GetHashCode() => HashCode.Combine(
+        typeof(GammaWorkingSpace),
         this.WhitePoint,
         this.ChromaticityCoordinates,
         this.Gamma);

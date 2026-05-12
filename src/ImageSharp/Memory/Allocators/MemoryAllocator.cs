@@ -102,27 +102,15 @@ public abstract class MemoryAllocator
     /// <param name="length">Size of the buffer to allocate.</param>
     /// <param name="options">The allocation options.</param>
     /// <returns>A buffer of values of type <typeparamref name="T"/>.</returns>
-    /// <exception cref="ArgumentOutOfRangeException">When length is negative.</exception>
-    /// <exception cref="InvalidMemoryOperationException">When length is over the capacity of the allocator.</exception>
+    /// <exception cref="InvalidMemoryOperationException">When length is negative or over the capacity of the allocator.</exception>
     public IMemoryOwner<T> Allocate<T>(int length, AllocationOptions options = AllocationOptions.None)
         where T : struct
     {
-        if (length < 0)
-        {
-            InvalidMemoryOperationException.ThrowNegativeAllocationException(length);
-        }
-
-        ulong lengthInBytes = (ulong)length * (ulong)Unsafe.SizeOf<T>();
-        if (lengthInBytes > (ulong)this.SingleBufferAllocationLimitBytes)
-        {
-            InvalidMemoryOperationException.ThrowAllocationOverLimitException(lengthInBytes, this.SingleBufferAllocationLimitBytes);
-        }
-
-        long lengthInBytesLong = (long)lengthInBytes;
-        bool shouldTrack = lengthInBytesLong != 0;
+        long lengthInBytes = this.GetValidatedAllocationLengthInBytes<T>(length);
+        bool shouldTrack = this.AccumulativeAllocationLimitBytes != long.MaxValue && lengthInBytes != 0;
         if (shouldTrack)
         {
-            this.ReserveAllocation(lengthInBytesLong);
+            this.ReserveAllocation(lengthInBytes);
         }
 
         try
@@ -130,7 +118,7 @@ public abstract class MemoryAllocator
             AllocationTrackedMemoryManager<T> owner = this.AllocateCore<T>(length, options);
             if (shouldTrack)
             {
-                owner.AttachAllocationTracking(this, lengthInBytesLong);
+                owner.AttachAllocationTracking(this, lengthInBytes);
             }
 
             return owner;
@@ -139,7 +127,7 @@ public abstract class MemoryAllocator
         {
             if (shouldTrack)
             {
-                this.ReleaseAccumulatedBytes(lengthInBytesLong);
+                this.ReleaseAccumulatedBytes(lengthInBytes);
             }
 
             throw;
@@ -199,7 +187,7 @@ public abstract class MemoryAllocator
         }
 
         long totalLengthInBytesLong = (long)totalLengthInBytes;
-        bool shouldTrack = totalLengthInBytesLong != 0;
+        bool shouldTrack = this.AccumulativeAllocationLimitBytes != long.MaxValue && totalLengthInBytesLong != 0;
         if (shouldTrack)
         {
             this.ReserveAllocation(totalLengthInBytesLong);
@@ -238,12 +226,38 @@ public abstract class MemoryAllocator
     /// <param name="options">The allocation options.</param>
     /// <returns>A segment owner for the requested buffer length.</returns>
     /// <remarks>
-    /// The default implementation uses <see cref="Allocate{T}(int, AllocationOptions)"/>. Built-in allocators
-    /// can override this to supply raw segment owners when group construction must bypass nested tracking.
+    /// The default implementation validates the segment size then calls <see cref="AllocateCore{T}(int, AllocationOptions)"/>
+    /// directly so group construction can reserve and release the total allocation once.
     /// </remarks>
     internal virtual IMemoryOwner<T> AllocateGroupBuffer<T>(int length, AllocationOptions options = AllocationOptions.None)
         where T : struct
-        => this.AllocateCore<T>(length, options);
+    {
+        _ = this.GetValidatedAllocationLengthInBytes<T>(length);
+        return this.AllocateCore<T>(length, options);
+    }
+
+    /// <summary>
+    /// Returns the validated allocation length in bytes.
+    /// </summary>
+    /// <typeparam name="T">Type of the data stored in the buffer.</typeparam>
+    /// <param name="length">Size of the buffer to allocate.</param>
+    /// <returns>The allocation length in bytes.</returns>
+    private long GetValidatedAllocationLengthInBytes<T>(int length)
+        where T : struct
+    {
+        if (length < 0)
+        {
+            InvalidMemoryOperationException.ThrowNegativeAllocationException(length);
+        }
+
+        ulong lengthInBytes = (ulong)length * (ulong)Unsafe.SizeOf<T>();
+        if (lengthInBytes > (ulong)this.SingleBufferAllocationLimitBytes)
+        {
+            InvalidMemoryOperationException.ThrowAllocationOverLimitException(lengthInBytes, this.SingleBufferAllocationLimitBytes);
+        }
+
+        return (long)lengthInBytes;
+    }
 
     /// <summary>
     /// Reserves accumulative allocation bytes before creating the underlying buffer.
@@ -260,7 +274,7 @@ public abstract class MemoryAllocator
         if (total > this.AccumulativeAllocationLimitBytes)
         {
             _ = Interlocked.Add(ref this.accumulativeAllocatedBytes, -lengthInBytes);
-            InvalidMemoryOperationException.ThrowAllocationOverLimitException((ulong)lengthInBytes, this.AccumulativeAllocationLimitBytes);
+            InvalidMemoryOperationException.ThrowAccumulativeAllocationOverLimitException(lengthInBytes, total, this.AccumulativeAllocationLimitBytes);
         }
     }
 

@@ -35,8 +35,14 @@ public abstract class AllocationTrackedMemoryManager<T> : MemoryManager<T>
     /// <inheritdoc />
     protected sealed override void Dispose(bool disposing)
     {
-        this.DisposeCore(disposing);
-        this.ReleaseAllocationTracking();
+        try
+        {
+            this.DisposeCore(disposing);
+        }
+        finally
+        {
+            this.ReleaseAllocationTracking();
+        }
     }
 
     /// <summary>

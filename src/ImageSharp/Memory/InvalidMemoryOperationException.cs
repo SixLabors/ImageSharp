@@ -39,4 +39,9 @@ public class InvalidMemoryOperationException : InvalidOperationException
     [DoesNotReturn]
     internal static void ThrowAllocationOverLimitException(ulong length, long limit) =>
             throw new InvalidMemoryOperationException($"Attempted to allocate a buffer of length={length} that exceeded the limit {limit}.");
+
+    [DoesNotReturn]
+    internal static void ThrowAccumulativeAllocationOverLimitException(long requestedLength, long totalLength, long limit) =>
+            throw new InvalidMemoryOperationException(
+                $"Attempted to allocate a buffer of length={requestedLength} that would increase the cumulative allocation size to {totalLength}, exceeding the limit {limit}.");
 }

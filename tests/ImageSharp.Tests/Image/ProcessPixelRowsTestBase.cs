@@ -313,7 +313,15 @@ public abstract class ProcessPixelRowsTestBase
 
         protected internal override int GetBufferCapacityInBytes() => int.MaxValue;
 
-        protected override AllocationTrackedMemoryManager<T> AllocateCore<T>(int length, AllocationOptions options = AllocationOptions.None) =>
-            this.buffers.Pop() as AllocationTrackedMemoryManager<T>;
+        protected override AllocationTrackedMemoryManager<T> AllocateCore<T>(int length, AllocationOptions options = AllocationOptions.None)
+        {
+            object buffer = this.buffers.Pop();
+            if (buffer is AllocationTrackedMemoryManager<T> trackedBuffer)
+            {
+                return trackedBuffer;
+            }
+
+            throw new InvalidMemoryOperationException("The requested buffer type does not match the mock allocator buffer type.");
+        }
     }
 }

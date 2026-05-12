@@ -22,10 +22,6 @@ internal class UnmanagedMemoryAllocator : MemoryAllocator
         where T : struct
         => AllocateBuffer<T>(length, options);
 
-    internal override IMemoryOwner<T> AllocateGroupBuffer<T>(int length, AllocationOptions options = AllocationOptions.None)
-        where T : struct
-        => AllocateBuffer<T>(length, options);
-
     // The pooled allocator uses this internal entry point when it needs a raw unmanaged owner without
     // nesting another allocator-level reservation cycle around the fallback allocation.
     internal static UnmanagedBuffer<T> AllocateBuffer<T>(int length, AllocationOptions options = AllocationOptions.None)

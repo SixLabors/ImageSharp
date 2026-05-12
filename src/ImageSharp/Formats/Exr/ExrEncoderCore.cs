@@ -170,9 +170,13 @@ internal sealed class ExrEncoderCore
         CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        uint bytesPerRow = (uint)ExrUtils.CalculateBytesPerRow(channels, (uint)width);
+        ulong bytesPerRow = ExrUtils.CalculateBytesPerRow(channels, (uint)width);
         uint rowsPerBlock = ExrUtils.RowsPerBlock(compression);
-        uint bytesPerBlock = bytesPerRow * rowsPerBlock;
+        ulong bytesPerBlock = bytesPerRow * rowsPerBlock;
+        if (bytesPerRow > uint.MaxValue || bytesPerBlock > int.MaxValue)
+        {
+            throw new ImageFormatException("Image is too large to encode in EXR format.");
+        }
 
         using IMemoryOwner<float> rgbBuffer = this.memoryAllocator.Allocate<float>(width * 4, AllocationOptions.Clean);
         using IMemoryOwner<byte> rowBlockBuffer = this.memoryAllocator.Allocate<byte>((int)bytesPerBlock, AllocationOptions.Clean);
@@ -181,7 +185,7 @@ internal sealed class ExrEncoderCore
         Span<float> blueBuffer = rgbBuffer.GetSpan().Slice(width * 2, width);
         Span<float> alphaBuffer = rgbBuffer.GetSpan().Slice(width * 3, width);
 
-        using ExrBaseCompressor compressor = ExrCompressorFactory.Create(compression, this.memoryAllocator, stream, bytesPerBlock, bytesPerRow, rowsPerBlock, width);
+        using ExrBaseCompressor compressor = ExrCompressorFactory.Create(compression, this.memoryAllocator, stream, (uint)bytesPerBlock, (uint)bytesPerRow, rowsPerBlock, width);
 
         ulong[] rowOffsets = new ulong[height];
         for (uint y = 0; y < height; y += rowsPerBlock)
@@ -262,9 +266,13 @@ internal sealed class ExrEncoderCore
         CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        uint bytesPerRow = (uint)ExrUtils.CalculateBytesPerRow(channels, (uint)width);
+        ulong bytesPerRow = ExrUtils.CalculateBytesPerRow(channels, (uint)width);
         uint rowsPerBlock = ExrUtils.RowsPerBlock(compression);
-        uint bytesPerBlock = bytesPerRow * rowsPerBlock;
+        ulong bytesPerBlock = bytesPerRow * rowsPerBlock;
+        if (bytesPerRow > uint.MaxValue || bytesPerBlock > int.MaxValue)
+        {
+            throw new ImageFormatException("Image is too large to encode in EXR format.");
+        }
 
         using IMemoryOwner<uint> rgbBuffer = this.memoryAllocator.Allocate<uint>(width * 4, AllocationOptions.Clean);
         using IMemoryOwner<byte> rowBlockBuffer = this.memoryAllocator.Allocate<byte>((int)bytesPerBlock, AllocationOptions.Clean);
@@ -273,7 +281,7 @@ internal sealed class ExrEncoderCore
         Span<uint> blueBuffer = rgbBuffer.GetSpan().Slice(width * 2, width);
         Span<uint> alphaBuffer = rgbBuffer.GetSpan().Slice(width * 3, width);
 
-        using ExrBaseCompressor compressor = ExrCompressorFactory.Create(compression, this.memoryAllocator, stream, bytesPerBlock, bytesPerRow, rowsPerBlock, width);
+        using ExrBaseCompressor compressor = ExrCompressorFactory.Create(compression, this.memoryAllocator, stream, (uint)bytesPerBlock, (uint)bytesPerRow, rowsPerBlock, width);
 
         Rgba128 rgb = default;
         ulong[] rowOffsets = new ulong[height];

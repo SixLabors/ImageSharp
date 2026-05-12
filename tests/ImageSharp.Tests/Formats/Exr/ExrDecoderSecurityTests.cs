@@ -13,6 +13,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Exr;
 /// The EXR decoder was merged to main but not yet included in a tagged NuGet release.
 /// Each test demonstrates a crafted-input crash present in the unfixed code.
 /// </summary>
+[Trait("Format", "Exr")]
+[ValidateDisposedMemoryAllocations]
 public class ExrDecoderSecurityTests
 {
     /// <summary>
@@ -109,29 +111,50 @@ public class ExrDecoderSecurityTests
     }
 
     /// <summary>
-    /// EXR-3 — EXR bytesPerBlock uint Overflow Chain (DoS)
+    /// EXR-3 — Oversized EXR RGBA row sizing is rejected as invalid image content.
     ///
-    /// CalculateBytesPerRow is computed in ulong (fixed), and if the result exceeds
-    /// int.MaxValue the decoder throws InvalidImageContentException. With 4 RGBA HALF
-    /// channels and Width = 2^29:
-    ///   bytesPerRow = 4 × 2 × 2^29 = 2^32 (> int.MaxValue)
-    ///   → InvalidImageContentException before any allocation
+    /// With 4 RGBA HALF channels and Width = 2^29, the decoded row staging and
+    /// bytes-per-row arithmetic both exceed the supported buffer sizing limits.
+    /// The decoder must reject this as InvalidImageContentException before any allocation.
     ///
     /// Affected file:
     ///   src/ImageSharp/Formats/Exr/ExrDecoderCore.cs lines 142–150, 215–223
     ///   src/ImageSharp/Formats/Exr/ExrUtils.cs CalculateBytesPerRow
     /// </summary>
     [Fact]
-    public void Decode_BytesPerBlockUintOverflow_Throws()
+    public void Decode_RgbaRowSizingExceedsBufferLimits_Throws()
     {
-        // 4 RGBA HALF channels, Width = 2^29:
-        //   bytesPerRow = 4 × 2 × 536870912 = 4294967296 > int.MaxValue
-        //   → InvalidImageContentException from the block-size guard
+        // 4 RGBA HALF channels at this width cannot be represented by the decoder's
+        // int-sized row staging or block buffers.
         byte[] data = BuildMinimalRgbaExr(xMin: 0, yMin: 0, xMax: 536870911, yMax: 0);
 
         using var stream = new MemoryStream(data);
         Assert.Throws<InvalidImageContentException>(
             () => ExrDecoder.Instance.Decode<Rgba32>(DecoderOptions.Default, stream));
+    }
+
+    [Fact]
+    public void Decode_DataWindowWidthExceedsRowBufferLimit_Throws()
+    {
+        // A single HALF channel keeps bytesPerBlock below int.MaxValue, but the decoder
+        // still stages four color planes and must reject widths that overflow width × 4.
+        byte[] data = BuildMinimalExr(xMin: 0, yMin: 0, xMax: int.MaxValue / 4, yMax: 0);
+
+        using var stream = new MemoryStream(data);
+        Assert.Throws<InvalidImageContentException>(
+            () => ExrDecoder.Instance.Decode<Rgba32>(DecoderOptions.Default, stream));
+    }
+
+    [Fact]
+    public void Identify_RowOffsetTableExceedsStream_Throws()
+    {
+        // Identify parses the header only, so this verifies the offset table bound is
+        // validated before scanline decoding reads from the table.
+        byte[] data = BuildMinimalExr(xMin: 0, yMin: 0, xMax: 1, yMax: 1);
+
+        using var stream = new MemoryStream(data);
+        Assert.Throws<InvalidImageContentException>(
+            () => ExrDecoder.Instance.Identify(DecoderOptions.Default, stream));
     }
 
     // -------------------------------------------------------------------------
@@ -144,7 +167,7 @@ public class ExrDecoderSecurityTests
 
     private static byte[] BuildMinimalExr(
         int xMin, int yMin, int xMax, int yMax,
-        byte[]? rowOffsetTableAppend = null)
+        byte[] rowOffsetTableAppend = null)
     {
         // channels: single "R" HALF channel with xSampling=1, ySampling=1
         // Layout per ReadChannelInfo: name\0 (2) + pixelType (4) + pLinear+reserved (4)
@@ -198,7 +221,7 @@ public class ExrDecoderSecurityTests
     private static byte[] BuildExrWithChannels(
         int xMin, int yMin, int xMax, int yMax,
         byte[] channelData,
-        byte[]? rowOffsetTableAppend = null)
+        byte[] rowOffsetTableAppend = null)
     {
         using var ms = new MemoryStream();
         using var bw = new BinaryWriter(ms, System.Text.Encoding.ASCII, leaveOpen: true);

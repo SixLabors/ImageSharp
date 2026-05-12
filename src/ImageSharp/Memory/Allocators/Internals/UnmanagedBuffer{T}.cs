@@ -31,7 +31,7 @@ internal sealed unsafe class UnmanagedBuffer<T> : AllocationTrackedMemoryManager
 
     public void* Pointer => this.lifetimeGuard.Handle.Pointer;
 
-    internal override void AttachAllocationTracking(MemoryAllocator allocator, long lengthInBytes)
+    protected internal override void AttachAllocationTracking(MemoryAllocator allocator, long lengthInBytes)
         => this.lifetimeGuard.AttachAllocationTracking(allocator, lengthInBytes);
 
     public override Span<T> GetSpan()

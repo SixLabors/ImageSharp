@@ -24,7 +24,7 @@ internal class SharedArrayPoolBuffer<T> : ManagedBufferBase<T>, IRefCounted
 
     public byte[]? Array { get; private set; }
 
-    internal override void AttachAllocationTracking(MemoryAllocator allocator, long lengthInBytes)
+    protected internal override void AttachAllocationTracking(MemoryAllocator allocator, long lengthInBytes)
         => this.lifetimeGuard.AttachAllocationTracking(allocator, lengthInBytes);
 
     protected override void DisposeCore(bool disposing)

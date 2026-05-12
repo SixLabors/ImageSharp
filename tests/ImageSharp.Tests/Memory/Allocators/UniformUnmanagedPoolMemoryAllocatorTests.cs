@@ -323,7 +323,7 @@ public class UniformUnmanagedPoolMemoryAllocatorTests
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private static void AllocateGroupAndForget(UniformUnmanagedMemoryPoolMemoryAllocator allocator, int length)
+    private static void AllocateGroupAndForget(MemoryAllocator allocator, int length)
     {
         // Allocate a group and drop the reference without disposing.
         // The test relies on the group's finalizer to return the rented memory to the pool.
@@ -387,8 +387,34 @@ public class UniformUnmanagedPoolMemoryAllocatorTests
         }
     }
 
+    [Theory]
+    [InlineData(1)] // SharedArrayPoolBuffer<T>
+    [InlineData(2)] // UniformUnmanagedMemoryPool buffer
+    public void Allocate_AccumulativeLimit_Finalization_ReleasesOwnerReservation(int megabytes)
+    {
+        RemoteExecutor.Invoke(RunTest, megabytes.ToString(CultureInfo.InvariantCulture)).Dispose();
+
+        static void RunTest(string megabytesStr)
+        {
+            int megabytesInner = int.Parse(megabytesStr, CultureInfo.InvariantCulture);
+            int length = megabytesInner * (1 << 20);
+            MemoryAllocator allocator = MemoryAllocator.Create(new MemoryAllocatorOptions
+            {
+                AccumulativeAllocationLimitMegabytes = megabytesInner
+            });
+
+            AllocateSingleAndForget(allocator, length);
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+
+            allocator.Allocate<byte>(length).Dispose();
+        }
+    }
+
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private static void AllocateSingleAndForget(UniformUnmanagedMemoryPoolMemoryAllocator allocator, int length)
+    private static void AllocateSingleAndForget(MemoryAllocator allocator, int length)
     {
         // Allocate and intentionally do not dispose.
         IMemoryOwner<byte> g = allocator.Allocate<byte>(length);
@@ -407,6 +433,30 @@ public class UniformUnmanagedPoolMemoryAllocatorTests
         }
 
         g = null;
+    }
+
+    [Fact]
+    public void AllocateGroup_AccumulativeLimit_Finalization_ReleasesGroupReservation()
+    {
+        RemoteExecutor.Invoke(RunTest).Dispose();
+
+        static void RunTest()
+        {
+            const int megabytes = 5;
+            int length = megabytes * (1 << 20);
+            MemoryAllocator allocator = MemoryAllocator.Create(new MemoryAllocatorOptions
+            {
+                AccumulativeAllocationLimitMegabytes = megabytes
+            });
+
+            AllocateGroupAndForget(allocator, length);
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+
+            allocator.AllocateGroup<byte>(length, 1024).Dispose();
+        }
     }
 
     [Fact]

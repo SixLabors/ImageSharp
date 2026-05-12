@@ -13,7 +13,6 @@ public abstract class MemoryAllocator
 {
     private const int OneGigabyte = 1 << 30;
     private long accumulativeAllocatedBytes;
-    private int trackingSuppressionCount;
 
     /// <summary>
     /// Gets the default platform-specific global <see cref="MemoryAllocator"/> instance that
@@ -53,15 +52,6 @@ public abstract class MemoryAllocator
     /// The single buffer allocation limit is set to 1 GB by default.
     /// </remarks>
     internal int SingleBufferAllocationLimitBytes { get; private protected set; } = OneGigabyte;
-
-    /// <summary>
-    /// Gets a value indicating whether accumulative allocation tracking is currently suppressed for this instance.
-    /// </summary>
-    /// <remarks>
-    /// This is used internally when an outer allocator or memory group reservation already owns the tracked bytes
-    /// and nested allocations must not reserve or release them a second time.
-    /// </remarks>
-    private bool IsTrackingSuppressed => Volatile.Read(ref this.trackingSuppressionCount) > 0;
 
     /// <summary>
     /// Gets the length of the largest contiguous buffer that can be handled by this allocator instance in bytes.
@@ -129,7 +119,7 @@ public abstract class MemoryAllocator
         }
 
         long lengthInBytesLong = (long)lengthInBytes;
-        bool shouldTrack = !this.IsTrackingSuppressed && lengthInBytesLong != 0;
+        bool shouldTrack = lengthInBytesLong != 0;
         if (shouldTrack)
         {
             this.ReserveAllocation(lengthInBytesLong);
@@ -209,33 +199,30 @@ public abstract class MemoryAllocator
         }
 
         long totalLengthInBytesLong = (long)totalLengthInBytes;
-        bool shouldTrack = !this.IsTrackingSuppressed && totalLengthInBytesLong != 0;
+        bool shouldTrack = totalLengthInBytesLong != 0;
         if (shouldTrack)
         {
             this.ReserveAllocation(totalLengthInBytesLong);
         }
 
-        using (this.SuppressTracking())
+        try
         {
-            try
+            MemoryGroup<T> group = this.AllocateGroupCore<T>(totalLength, totalLengthInBytesLong, bufferAlignment, options);
+            if (shouldTrack)
             {
-                MemoryGroup<T> group = this.AllocateGroupCore<T>(totalLength, totalLengthInBytesLong, bufferAlignment, options);
-                if (shouldTrack)
-                {
-                    group.AttachAllocationTracking(this, totalLengthInBytesLong);
-                }
-
-                return group;
+                group.AttachAllocationTracking(this, totalLengthInBytesLong);
             }
-            catch
+
+            return group;
+        }
+        catch
+        {
+            if (shouldTrack)
             {
-                if (shouldTrack)
-                {
-                    this.ReleaseAccumulatedBytes(totalLengthInBytesLong);
-                }
-
-                throw;
+                this.ReleaseAccumulatedBytes(totalLengthInBytesLong);
             }
+
+            throw;
         }
     }
 
@@ -256,7 +243,7 @@ public abstract class MemoryAllocator
     /// </remarks>
     internal virtual IMemoryOwner<T> AllocateGroupBuffer<T>(int length, AllocationOptions options = AllocationOptions.None)
         where T : struct
-        => this.Allocate<T>(length, options);
+        => this.AllocateCore<T>(length, options);
 
     /// <summary>
     /// Reserves accumulative allocation bytes before creating the underlying buffer.
@@ -264,7 +251,7 @@ public abstract class MemoryAllocator
     /// <param name="lengthInBytes">The number of bytes to reserve.</param>
     private void ReserveAllocation(long lengthInBytes)
     {
-        if (this.IsTrackingSuppressed || lengthInBytes <= 0)
+        if (lengthInBytes <= 0)
         {
             return;
         }
@@ -289,38 +276,5 @@ public abstract class MemoryAllocator
         }
 
         _ = Interlocked.Add(ref this.accumulativeAllocatedBytes, -lengthInBytes);
-    }
-
-    /// <summary>
-    /// Suppresses accumulative allocation tracking for the lifetime of the returned scope.
-    /// </summary>
-    /// <returns>A scope that restores tracking when disposed.</returns>
-    /// <remarks>
-    /// Returning the concrete scope type keeps nested allocator calls allocation-free on the hot path
-    /// while preserving the same using-pattern at call sites.
-    /// </remarks>
-    private TrackingSuppressionScope SuppressTracking() => new(this);
-
-    /// <summary>
-    /// Temporarily suppresses accumulative allocation tracking within a scope.
-    /// </summary>
-    private struct TrackingSuppressionScope : IDisposable
-    {
-        private MemoryAllocator? allocator;
-
-        public TrackingSuppressionScope(MemoryAllocator allocator)
-        {
-            this.allocator = allocator;
-            _ = Interlocked.Increment(ref allocator.trackingSuppressionCount);
-        }
-
-        public void Dispose()
-        {
-            if (this.allocator != null)
-            {
-                _ = Interlocked.Decrement(ref this.allocator.trackingSuppressionCount);
-                this.allocator = null;
-            }
-        }
     }
 }

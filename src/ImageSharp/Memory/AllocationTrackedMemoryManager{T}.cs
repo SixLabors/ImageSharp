@@ -48,7 +48,7 @@ public abstract class AllocationTrackedMemoryManager<T> : MemoryManager<T>
     /// <see cref="MemoryAllocator"/> calls this exactly once after <c>AllocateCore</c> returns.
     /// Derived allocators should not call it themselves; they only construct the concrete owner.
     /// </remarks>
-    internal void AttachAllocationTracking(MemoryAllocator allocator, long lengthInBytes)
+    internal virtual void AttachAllocationTracking(MemoryAllocator allocator, long lengthInBytes)
         => this.allocationTracking.Attach(allocator, lengthInBytes);
 
     /// <summary>

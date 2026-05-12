@@ -62,7 +62,7 @@ internal abstract partial class MemoryGroup<T> : IMemoryGroup<T>, IDisposable
     /// Intended for one-time initialization after the group has been created; callers should avoid changing
     /// tracking state concurrently with disposal.
     /// </remarks>
-    internal void AttachAllocationTracking(MemoryAllocator allocator, long lengthInBytes) =>
+    internal virtual void AttachAllocationTracking(MemoryAllocator allocator, long lengthInBytes) =>
         this.allocationTracking.Attach(allocator, lengthInBytes);
 
     /// <summary>

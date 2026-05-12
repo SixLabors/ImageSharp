@@ -60,6 +60,27 @@ internal abstract partial class MemoryGroup<T>
             }
         }
 
+        internal override void AttachAllocationTracking(MemoryAllocator allocator, long lengthInBytes)
+        {
+            if (this.groupLifetimeGuard != null)
+            {
+                // Pool-owned multi-buffer groups recover leaked handles through the group guard finalizer.
+                this.groupLifetimeGuard.AttachAllocationTracking(allocator, lengthInBytes);
+                return;
+            }
+
+            IMemoryOwner<T>[]? memoryOwners = this.memoryOwners;
+            if (memoryOwners?.Length == 1 && memoryOwners[0] is AllocationTrackedMemoryManager<T> trackedOwner)
+            {
+                // Single-buffer groups should release tracking with the buffer owner when that owner has
+                // a more precise lifetime, such as an existing pooled-resource finalizer.
+                trackedOwner.AttachAllocationTracking(allocator, lengthInBytes);
+                return;
+            }
+
+            base.AttachAllocationTracking(allocator, lengthInBytes);
+        }
+
         private static IMemoryOwner<T>[] CreateBuffers(
             UnmanagedMemoryHandle[] pooledBuffers,
             int bufferLength,

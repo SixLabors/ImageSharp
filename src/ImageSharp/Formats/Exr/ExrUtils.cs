@@ -13,9 +13,9 @@ internal static class ExrUtils
     /// <param name="channels">The image channels array.</param>
     /// <param name="width">The width in pixels of a row.</param>
     /// <returns>The number of bytes per row.</returns>
-    public static uint CalculateBytesPerRow(IList<ExrChannelInfo> channels, uint width)
+    public static ulong CalculateBytesPerRow(IList<ExrChannelInfo> channels, uint width)
     {
-        uint bytesPerRow = 0;
+        ulong bytesPerRow = 0;
         foreach (ExrChannelInfo channelInfo in channels)
         {
             if (channelInfo.ChannelName.Equals("A", StringComparison.Ordinal)
@@ -26,11 +26,11 @@ internal static class ExrUtils
             {
                 if (channelInfo.PixelType == ExrPixelType.Half)
                 {
-                    bytesPerRow += 2 * width;
+                    bytesPerRow += 2UL * width;
                 }
                 else
                 {
-                    bytesPerRow += 4 * width;
+                    bytesPerRow += 4UL * width;
                 }
             }
         }

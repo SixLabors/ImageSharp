@@ -152,7 +152,7 @@ public static class DCTTests
             FeatureTestRunner.RunWithHwIntrinsicsFeature(
                 RunTest,
                 seed,
-                HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+                HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
         }
 
         [Theory]
@@ -359,7 +359,7 @@ public static class DCTTests
             FeatureTestRunner.RunWithHwIntrinsicsFeature(
                 RunTest,
                 seed,
-                HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+                HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
         }
     }
 }

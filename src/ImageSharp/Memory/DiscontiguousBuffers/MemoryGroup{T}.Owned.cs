@@ -78,6 +78,37 @@ internal abstract partial class MemoryGroup<T>
                 return;
             }
 
+            if (memoryOwners?.Length > 1)
+            {
+                foreach (IMemoryOwner<T> memoryOwner in memoryOwners)
+                {
+                    if (memoryOwner is not AllocationTrackedMemoryManager<T>)
+                    {
+                        // Splitting is only valid when every segment can own its reservation. A single
+                        // untracked segment makes the whole group ineligible, and this preflight has
+                        // not attached anything yet, so the entire group can fall back immediately.
+                        base.AttachAllocationTracking(allocator, lengthInBytes);
+                        return;
+                    }
+                }
+
+                // Non-pool multi-buffer groups have no group-level finalizer, so each segment carries
+                // its own share of the reservation through the segment owner or its lifetime guard.
+                long remainingLengthInBytes = lengthInBytes;
+                int lastOwnerIndex = memoryOwners.Length - 1;
+                for (int i = 0; i < lastOwnerIndex; i++)
+                {
+                    trackedOwner = (AllocationTrackedMemoryManager<T>)memoryOwners[i];
+                    long ownerLengthInBytes = (long)trackedOwner.Memory.Length * Unsafe.SizeOf<T>();
+                    trackedOwner.AttachAllocationTracking(allocator, ownerLengthInBytes);
+                    remainingLengthInBytes -= ownerLengthInBytes;
+                }
+
+                trackedOwner = (AllocationTrackedMemoryManager<T>)memoryOwners[lastOwnerIndex];
+                trackedOwner.AttachAllocationTracking(allocator, remainingLengthInBytes);
+                return;
+            }
+
             base.AttachAllocationTracking(allocator, lengthInBytes);
         }
 

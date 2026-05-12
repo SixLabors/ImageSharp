@@ -34,13 +34,13 @@ public abstract class MemoryAllocator
     internal long MemoryGroupAllocationLimitBytes { get; private protected set; } = Environment.Is64BitProcess ? 4L * OneGigabyte : OneGigabyte;
 
     /// <summary>
-    /// Gets the maximum cumulative size, in bytes, of all active allocations made through this allocator instance.
+    /// Gets the maximum accumulative size, in bytes, of all active allocations made through this allocator instance.
     /// </summary>
     /// <remarks>
-    /// Defaults to <see cref="long.MaxValue"/>, effectively imposing no limit on the cumulative total.
+    /// Defaults to <see cref="long.MaxValue"/>, effectively imposing no limit on the accumulative total.
     /// When set, this provides a safeguard against excessive memory consumption by capping the combined size of
     /// outstanding allocations issued by this instance.<br/>
-    /// When the cumulative size of active allocations exceeds this limit, an <see cref="InvalidMemoryOperationException"/> will be thrown to
+    /// When the accumulative size of active allocations exceeds this limit, an <see cref="InvalidMemoryOperationException"/> will be thrown to
     /// prevent further allocations and signal that the limit has been breached.
     /// </remarks>
     internal long AccumulativeAllocationLimitBytes { get; private protected set; } = long.MaxValue;

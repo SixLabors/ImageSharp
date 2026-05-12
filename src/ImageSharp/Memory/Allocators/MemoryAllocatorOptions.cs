@@ -42,6 +42,13 @@ public struct MemoryAllocatorOptions
             if (value.HasValue)
             {
                 Guard.MustBeGreaterThan(value.Value, 0, nameof(this.AllocationLimitMegabytes));
+                if (this.AccumulativeAllocationLimitMegabytes.HasValue)
+                {
+                    Guard.MustBeLessThanOrEqualTo(
+                        value.Value,
+                        this.AccumulativeAllocationLimitMegabytes.Value,
+                        nameof(this.AllocationLimitMegabytes));
+                }
             }
 
             this.allocationLimitMegabytes = value;
@@ -49,9 +56,9 @@ public struct MemoryAllocatorOptions
     }
 
     /// <summary>
-    /// Gets or sets a value defining the maximum cumulative size, in Megabytes, of all active allocations made
+    /// Gets or sets a value defining the maximum accumulative size, in Megabytes, of all active allocations made
     /// through the created <see cref="MemoryAllocator"/> instance.
-    /// <see langword="null"/> (the default) imposes no limit on the cumulative total.
+    /// <see langword="null"/> (the default) imposes no limit on the accumulative total.
     /// </summary>
     public int? AccumulativeAllocationLimitMegabytes
     {

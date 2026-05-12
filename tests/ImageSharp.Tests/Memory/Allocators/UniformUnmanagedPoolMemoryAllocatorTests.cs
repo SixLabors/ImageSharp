@@ -558,6 +558,32 @@ public class UniformUnmanagedPoolMemoryAllocatorTests
         allocator.AllocateGroup<byte>(768 * 1024, 1024).Dispose();
     }
 
+    [Fact]
+    public void AllocateGroup_AccumulativeLimit_NonPoolFallback_Finalization_ReleasesGroupReservation()
+    {
+        RemoteExecutor.Invoke(RunTest).Dispose();
+
+        static void RunTest()
+        {
+            UniformUnmanagedMemoryPoolMemoryAllocator allocator = new(
+                sharedArrayPoolThresholdInBytes: 64 * 1024,
+                poolBufferSizeInBytes: 128 * 1024,
+                maxPoolSizeInBytes: 0,
+                unmanagedBufferSizeInBytes: 256 * 1024,
+                new MemoryAllocatorOptions { AccumulativeAllocationLimitMegabytes = 1 });
+
+            // This exercises the non-pool multi-segment fallback, where reservation ownership has
+            // to follow the finalizable segment guards because the MemoryGroup itself has no finalizer.
+            AllocateGroupAndForget(allocator, 768 * 1024);
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+
+            allocator.AllocateGroup<byte>(768 * 1024, 1024).Dispose();
+        }
+    }
+
     [ConditionalFact(typeof(Environment), nameof(Environment.Is64BitProcess))]
     public void MemoryAllocator_Create_SetHighLimit()
     {

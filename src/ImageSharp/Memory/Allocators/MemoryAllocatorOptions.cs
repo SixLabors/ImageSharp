@@ -10,6 +10,7 @@ public struct MemoryAllocatorOptions
 {
     private int? maximumPoolSizeMegabytes;
     private int? allocationLimitMegabytes;
+    private int? accumulativeAllocationLimitMegabytes;
 
     /// <summary>
     /// Gets or sets a value defining the maximum size of the <see cref="MemoryAllocator"/>'s internal memory pool
@@ -17,7 +18,7 @@ public struct MemoryAllocatorOptions
     /// </summary>
     public int? MaximumPoolSizeMegabytes
     {
-        get => this.maximumPoolSizeMegabytes;
+        readonly get => this.maximumPoolSizeMegabytes;
         set
         {
             if (value.HasValue)
@@ -35,15 +36,48 @@ public struct MemoryAllocatorOptions
     /// </summary>
     public int? AllocationLimitMegabytes
     {
-        get => this.allocationLimitMegabytes;
+        readonly get => this.allocationLimitMegabytes;
         set
         {
             if (value.HasValue)
             {
                 Guard.MustBeGreaterThan(value.Value, 0, nameof(this.AllocationLimitMegabytes));
+                if (this.AccumulativeAllocationLimitMegabytes.HasValue)
+                {
+                    Guard.MustBeLessThanOrEqualTo(
+                        value.Value,
+                        this.AccumulativeAllocationLimitMegabytes.Value,
+                        nameof(this.AllocationLimitMegabytes));
+                }
             }
 
             this.allocationLimitMegabytes = value;
+        }
+    }
+
+    /// <summary>
+    /// Gets or sets a value defining the maximum accumulative size, in Megabytes, of all active allocations made
+    /// through the created <see cref="MemoryAllocator"/> instance.
+    /// <see langword="null"/> (the default) imposes no limit on the accumulative total.
+    /// </summary>
+    public int? AccumulativeAllocationLimitMegabytes
+    {
+        readonly get => this.accumulativeAllocationLimitMegabytes;
+        set
+        {
+            if (value.HasValue)
+            {
+                Guard.MustBeGreaterThan(value.Value, 0, nameof(this.AccumulativeAllocationLimitMegabytes));
+                if (this.AllocationLimitMegabytes.HasValue)
+                {
+                    Guard.MustBeGreaterThanOrEqualTo(
+                        value.Value,
+                        this.AllocationLimitMegabytes.Value,
+                        nameof(this.AccumulativeAllocationLimitMegabytes));
+                }
+            }
+
+            this.accumulativeAllocationLimitMegabytes = value;
         }
     }
 }

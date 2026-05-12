@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Buffers;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Memory.Internals;
 
@@ -71,26 +70,25 @@ internal sealed class UniformUnmanagedMemoryPoolMemoryAllocator : MemoryAllocato
         this.nonPoolAllocator = new UnmanagedMemoryAllocator(unmanagedBufferSizeInBytes);
     }
 
+    internal UniformUnmanagedMemoryPoolMemoryAllocator(
+        int sharedArrayPoolThresholdInBytes,
+        int poolBufferSizeInBytes,
+        long maxPoolSizeInBytes,
+        int unmanagedBufferSizeInBytes,
+        MemoryAllocatorOptions options)
+        : this(sharedArrayPoolThresholdInBytes, poolBufferSizeInBytes, maxPoolSizeInBytes, unmanagedBufferSizeInBytes)
+        => this.ApplyOptions(options);
+
     /// <inheritdoc />
     protected internal override int GetBufferCapacityInBytes() => this.poolBufferSizeInBytes;
 
     /// <inheritdoc />
-    public override IMemoryOwner<T> Allocate<T>(
+    protected override AllocationTrackedMemoryManager<T> AllocateCore<T>(
         int length,
         AllocationOptions options = AllocationOptions.None)
     {
-        if (length < 0)
-        {
-            InvalidMemoryOperationException.ThrowNegativeAllocationException(length);
-        }
-
-        ulong lengthInBytes = (ulong)length * (ulong)Unsafe.SizeOf<T>();
-        if (lengthInBytes > (ulong)this.SingleBufferAllocationLimitBytes)
-        {
-            InvalidMemoryOperationException.ThrowAllocationOverLimitException(lengthInBytes, this.SingleBufferAllocationLimitBytes);
-        }
-
-        if (lengthInBytes <= (ulong)this.sharedArrayPoolThresholdInBytes)
+        int lengthInBytes = length * Unsafe.SizeOf<T>();
+        if (lengthInBytes <= this.sharedArrayPoolThresholdInBytes)
         {
             SharedArrayPoolBuffer<T> buffer = new(length);
             if (options.Has(AllocationOptions.Clean))
@@ -101,17 +99,16 @@ internal sealed class UniformUnmanagedMemoryPoolMemoryAllocator : MemoryAllocato
             return buffer;
         }
 
-        if (lengthInBytes <= (ulong)this.poolBufferSizeInBytes)
+        if (lengthInBytes <= this.poolBufferSizeInBytes)
         {
             UnmanagedMemoryHandle mem = this.pool.Rent();
             if (mem.IsValid)
             {
-                UnmanagedBuffer<T> buffer = this.pool.CreateGuardedBuffer<T>(mem, length, options.Has(AllocationOptions.Clean));
-                return buffer;
+                return this.pool.CreateGuardedBuffer<T>(mem, length, options.Has(AllocationOptions.Clean));
             }
         }
 
-        return this.nonPoolAllocator.Allocate<T>(length, options);
+        return UnmanagedMemoryAllocator.AllocateBuffer<T>(length, options);
     }
 
     /// <inheritdoc />

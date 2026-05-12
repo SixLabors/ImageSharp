@@ -16,8 +16,8 @@ public class UniformUnmanagedPoolMemoryAllocatorTests
 {
     public class BufferTests1 : BufferTestSuite
     {
-        private static MemoryAllocator CreateMemoryAllocator() =>
-            new UniformUnmanagedMemoryPoolMemoryAllocator(
+        private static UniformUnmanagedMemoryPoolMemoryAllocator CreateMemoryAllocator() =>
+            new(
                 sharedArrayPoolThresholdInBytes: 1024,
                 poolBufferSizeInBytes: 2048,
                 maxPoolSizeInBytes: 2048 * 4,
@@ -31,8 +31,8 @@ public class UniformUnmanagedPoolMemoryAllocatorTests
 
     public class BufferTests2 : BufferTestSuite
     {
-        private static MemoryAllocator CreateMemoryAllocator() =>
-            new UniformUnmanagedMemoryPoolMemoryAllocator(
+        private static UniformUnmanagedMemoryPoolMemoryAllocator CreateMemoryAllocator() =>
+            new(
                 sharedArrayPoolThresholdInBytes: 512,
                 poolBufferSizeInBytes: 1024,
                 maxPoolSizeInBytes: 1024 * 4,
@@ -179,8 +179,8 @@ public class UniformUnmanagedPoolMemoryAllocatorTests
             g1.Dispose();
 
             // Do some unmanaged allocations to make sure new non-pooled unmanaged allocations will grab different memory:
-            IntPtr dummy1 = Marshal.AllocHGlobal((IntPtr)B(8));
-            IntPtr dummy2 = Marshal.AllocHGlobal((IntPtr)B(8));
+            IntPtr dummy1 = Marshal.AllocHGlobal(checked((IntPtr)B(8)));
+            IntPtr dummy2 = Marshal.AllocHGlobal(checked((IntPtr)B(8)));
 
             using MemoryGroup<byte> g2 = allocator.AllocateGroup<byte>(B(8), 1024);
             using MemoryGroup<byte> g3 = allocator.AllocateGroup<byte>(B(8), 1024);
@@ -323,7 +323,7 @@ public class UniformUnmanagedPoolMemoryAllocatorTests
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private static void AllocateGroupAndForget(UniformUnmanagedMemoryPoolMemoryAllocator allocator, int length)
+    private static void AllocateGroupAndForget(MemoryAllocator allocator, int length)
     {
         // Allocate a group and drop the reference without disposing.
         // The test relies on the group's finalizer to return the rented memory to the pool.
@@ -387,8 +387,34 @@ public class UniformUnmanagedPoolMemoryAllocatorTests
         }
     }
 
+    [Theory]
+    [InlineData(1)] // SharedArrayPoolBuffer<T>
+    [InlineData(2)] // UniformUnmanagedMemoryPool buffer
+    public void Allocate_AccumulativeLimit_Finalization_ReleasesOwnerReservation(int megabytes)
+    {
+        RemoteExecutor.Invoke(RunTest, megabytes.ToString(CultureInfo.InvariantCulture)).Dispose();
+
+        static void RunTest(string megabytesStr)
+        {
+            int megabytesInner = int.Parse(megabytesStr, CultureInfo.InvariantCulture);
+            int length = megabytesInner * (1 << 20);
+            MemoryAllocator allocator = MemoryAllocator.Create(new MemoryAllocatorOptions
+            {
+                AccumulativeAllocationLimitMegabytes = megabytesInner
+            });
+
+            AllocateSingleAndForget(allocator, length);
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+
+            allocator.Allocate<byte>(length).Dispose();
+        }
+    }
+
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private static void AllocateSingleAndForget(UniformUnmanagedMemoryPoolMemoryAllocator allocator, int length)
+    private static void AllocateSingleAndForget(MemoryAllocator allocator, int length)
     {
         // Allocate and intentionally do not dispose.
         IMemoryOwner<byte> g = allocator.Allocate<byte>(length);
@@ -407,6 +433,30 @@ public class UniformUnmanagedPoolMemoryAllocatorTests
         }
 
         g = null;
+    }
+
+    [Fact]
+    public void AllocateGroup_AccumulativeLimit_Finalization_ReleasesGroupReservation()
+    {
+        RemoteExecutor.Invoke(RunTest).Dispose();
+
+        static void RunTest()
+        {
+            const int megabytes = 5;
+            int length = megabytes * (1 << 20);
+            MemoryAllocator allocator = MemoryAllocator.Create(new MemoryAllocatorOptions
+            {
+                AccumulativeAllocationLimitMegabytes = megabytes
+            });
+
+            AllocateGroupAndForget(allocator, length);
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+
+            allocator.AllocateGroup<byte>(length, 1024).Dispose();
+        }
     }
 
     [Fact]
@@ -431,6 +481,107 @@ public class UniformUnmanagedPoolMemoryAllocatorTests
         const int oneMb = 1 << 20;
         allocator.AllocateGroup<byte>(4 * oneMb, 1024).Dispose(); // Should work
         Assert.Throws<InvalidMemoryOperationException>(() => allocator.AllocateGroup<byte>(5 * oneMb, 1024));
+    }
+
+    [Fact]
+    public void Allocate_AccumulativeLimit_ReleasesOnOwnerDispose()
+    {
+        MemoryAllocator allocator = MemoryAllocator.Create(new MemoryAllocatorOptions
+        {
+            AccumulativeAllocationLimitMegabytes = 1
+        });
+        const int oneMb = 1 << 20;
+
+        // Reserve the full limit with a single owner.
+        IMemoryOwner<byte> b0 = allocator.Allocate<byte>(oneMb);
+
+        // Additional allocation should exceed the limit while the owner is live.
+        Assert.Throws<InvalidMemoryOperationException>(() => allocator.Allocate<byte>(1));
+
+        // Disposing the owner releases the reservation.
+        b0.Dispose();
+
+        // Allocation should succeed after the reservation is released.
+        allocator.Allocate<byte>(oneMb).Dispose();
+    }
+
+    [Fact]
+    public void AllocateGroup_AccumulativeLimit_ReleasesOnGroupDispose()
+    {
+        MemoryAllocator allocator = MemoryAllocator.Create(new MemoryAllocatorOptions
+        {
+            AccumulativeAllocationLimitMegabytes = 1
+        });
+        const int oneMb = 1 << 20;
+
+        // Reserve the full limit with a single group.
+        MemoryGroup<byte> g0 = allocator.AllocateGroup<byte>(oneMb, 1024);
+
+        // Additional allocation should exceed the limit while the group is live.
+        Assert.Throws<InvalidMemoryOperationException>(() => allocator.AllocateGroup<byte>(1, 1024));
+
+        // Disposing the group releases the reservation.
+        g0.Dispose();
+
+        // Allocation should succeed after the reservation is released.
+        allocator.AllocateGroup<byte>(oneMb, 1024).Dispose();
+    }
+
+    [Fact]
+    public void AllocateGroup_AccumulativeLimit_NonPoolFallback_TracksOncePerGroup()
+    {
+        // Configure the pool with zero capacity so multi-segment requests bypass both the
+        // single-buffer-from-pool path and MemoryGroup<T>.TryAllocate(pool, ...) and fall
+        // through to MemoryGroup<T>.Allocate(nonPoolAllocator, ...). The unmanaged segment
+        // size is small enough that the request must span multiple segments, which is the
+        // path where per-segment double-counting could regress.
+        UniformUnmanagedMemoryPoolMemoryAllocator allocator = new(
+            sharedArrayPoolThresholdInBytes: 64 * 1024,
+            poolBufferSizeInBytes: 128 * 1024,
+            maxPoolSizeInBytes: 0,
+            unmanagedBufferSizeInBytes: 256 * 1024,
+            new MemoryAllocatorOptions { AccumulativeAllocationLimitMegabytes = 1 });
+
+        // 768 KB exceeds the pool buffer size, so the request takes the multi-segment
+        // non-pool fallback (three 256 KB segments). If tracking double-counted (group
+        // plus each segment), reservation would be 768 KB + 768 KB = 1.5 MB and exceed
+        // the 1 MB limit on allocation itself.
+        MemoryGroup<byte> g = allocator.AllocateGroup<byte>(768 * 1024, 1024);
+        Assert.True(g.Count > 1, "Test setup must exercise the multi-segment fallback path.");
+
+        // Reservation should be exactly 768 KB; another 512 KB would push to 1.25 MB and throw.
+        Assert.Throws<InvalidMemoryOperationException>(() => allocator.Allocate<byte>(512 * 1024));
+
+        g.Dispose();
+
+        // After disposal the reservation is fully released; a second equivalent group succeeds.
+        allocator.AllocateGroup<byte>(768 * 1024, 1024).Dispose();
+    }
+
+    [Fact]
+    public void AllocateGroup_AccumulativeLimit_NonPoolFallback_Finalization_ReleasesGroupReservation()
+    {
+        RemoteExecutor.Invoke(RunTest).Dispose();
+
+        static void RunTest()
+        {
+            UniformUnmanagedMemoryPoolMemoryAllocator allocator = new(
+                sharedArrayPoolThresholdInBytes: 64 * 1024,
+                poolBufferSizeInBytes: 128 * 1024,
+                maxPoolSizeInBytes: 0,
+                unmanagedBufferSizeInBytes: 256 * 1024,
+                new MemoryAllocatorOptions { AccumulativeAllocationLimitMegabytes = 1 });
+
+            // This exercises the non-pool multi-segment fallback, where reservation ownership has
+            // to follow the finalizable segment guards because the MemoryGroup itself has no finalizer.
+            AllocateGroupAndForget(allocator, 768 * 1024);
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+
+            allocator.AllocateGroup<byte>(768 * 1024, 1024).Dispose();
+        }
     }
 
     [ConditionalFact(typeof(Environment), nameof(Environment.Is64BitProcess))]

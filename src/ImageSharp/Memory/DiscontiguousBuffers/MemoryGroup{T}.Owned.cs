@@ -60,6 +60,58 @@ internal abstract partial class MemoryGroup<T>
             }
         }
 
+        internal override void AttachAllocationTracking(MemoryAllocator allocator, long lengthInBytes)
+        {
+            if (this.groupLifetimeGuard != null)
+            {
+                // Pool-owned multi-buffer groups recover leaked handles through the group guard finalizer.
+                this.groupLifetimeGuard.AttachAllocationTracking(allocator, lengthInBytes);
+                return;
+            }
+
+            IMemoryOwner<T>[]? memoryOwners = this.memoryOwners;
+            if (memoryOwners?.Length == 1 && memoryOwners[0] is AllocationTrackedMemoryManager<T> trackedOwner)
+            {
+                // Single-buffer groups should release tracking with the buffer owner when that owner has
+                // a more precise lifetime, such as an existing pooled-resource finalizer.
+                trackedOwner.AttachAllocationTracking(allocator, lengthInBytes);
+                return;
+            }
+
+            if (memoryOwners?.Length > 1)
+            {
+                foreach (IMemoryOwner<T> memoryOwner in memoryOwners)
+                {
+                    if (memoryOwner is not AllocationTrackedMemoryManager<T>)
+                    {
+                        // Splitting is only valid when every segment can own its reservation. A single
+                        // untracked segment makes the whole group ineligible, and this preflight has
+                        // not attached anything yet, so the entire group can fall back immediately.
+                        base.AttachAllocationTracking(allocator, lengthInBytes);
+                        return;
+                    }
+                }
+
+                // Non-pool multi-buffer groups have no group-level finalizer, so each segment carries
+                // its own share of the reservation through the segment owner or its lifetime guard.
+                long remainingLengthInBytes = lengthInBytes;
+                int lastOwnerIndex = memoryOwners.Length - 1;
+                for (int i = 0; i < lastOwnerIndex; i++)
+                {
+                    trackedOwner = (AllocationTrackedMemoryManager<T>)memoryOwners[i];
+                    long ownerLengthInBytes = (long)trackedOwner.Memory.Length * Unsafe.SizeOf<T>();
+                    trackedOwner.AttachAllocationTracking(allocator, ownerLengthInBytes);
+                    remainingLengthInBytes -= ownerLengthInBytes;
+                }
+
+                trackedOwner = (AllocationTrackedMemoryManager<T>)memoryOwners[lastOwnerIndex];
+                trackedOwner.AttachAllocationTracking(allocator, remainingLengthInBytes);
+                return;
+            }
+
+            base.AttachAllocationTracking(allocator, lengthInBytes);
+        }
+
         private static IMemoryOwner<T>[] CreateBuffers(
             UnmanagedMemoryHandle[] pooledBuffers,
             int bufferLength,
@@ -73,8 +125,8 @@ internal abstract partial class MemoryGroup<T>
                 result[i] = currentBuffer;
             }
 
-            ObservedBuffer lastBuffer = ObservedBuffer.Create(pooledBuffers[pooledBuffers.Length - 1], sizeOfLastBuffer, options);
-            result[result.Length - 1] = lastBuffer;
+            ObservedBuffer lastBuffer = ObservedBuffer.Create(pooledBuffers[^1], sizeOfLastBuffer, options);
+            result[^1] = lastBuffer;
             return result;
         }
 
@@ -155,6 +207,7 @@ internal abstract partial class MemoryGroup<T>
                 }
             }
 
+            this.ReleaseAllocationTracking();
             this.memoryOwners = null;
             this.IsValid = false;
             this.groupLifetimeGuard = null;

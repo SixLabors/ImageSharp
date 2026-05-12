@@ -91,6 +91,11 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
     /// </summary>
     private ExrHeaderAttributes HeaderAttributes { get; set; }
 
+    /// <summary>
+    /// Gets or sets the earliest valid stream position for a scanline chunk.
+    /// </summary>
+    private long MinimumChunkOffset { get; set; }
+
     /// <inheritdoc />
     protected override Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
     {
@@ -100,24 +105,33 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
             ExrThrowHelper.ThrowNotSupported($"Compression {this.Compression} is not yet supported");
         }
 
-        Image<TPixel> image = new(this.configuration, this.Width, this.Height, this.metadata);
-        Buffer2D<TPixel> pixels = image.GetRootFramePixelBuffer();
-
-        switch (this.PixelType)
+        Image<TPixel> image = null;
+        try
         {
-            case ExrPixelType.Half:
-            case ExrPixelType.Float:
-                this.DecodeFloatingPointPixelData(stream, pixels, cancellationToken);
-                break;
-            case ExrPixelType.UnsignedInt:
-                this.DecodeUnsignedIntPixelData(stream, pixels, cancellationToken);
-                break;
-            default:
-                ExrThrowHelper.ThrowNotSupported("Pixel type is not supported");
-                break;
-        }
+            image = new Image<TPixel>(this.configuration, this.Width, this.Height, this.metadata);
+            Buffer2D<TPixel> pixels = image.GetRootFramePixelBuffer();
 
-        return image;
+            switch (this.PixelType)
+            {
+                case ExrPixelType.Half:
+                case ExrPixelType.Float:
+                    this.DecodeFloatingPointPixelData(stream, pixels, cancellationToken);
+                    break;
+                case ExrPixelType.UnsignedInt:
+                    this.DecodeUnsignedIntPixelData(stream, pixels, cancellationToken);
+                    break;
+                default:
+                    ExrThrowHelper.ThrowNotSupported("Pixel type is not supported");
+                    break;
+            }
+
+            return image;
+        }
+        catch
+        {
+            image?.Dispose();
+            throw;
+        }
     }
 
     /// <inheritdoc />
@@ -139,9 +153,14 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
         where TPixel : unmanaged, IPixel<TPixel>
     {
         bool hasAlpha = this.HasAlpha();
-        uint bytesPerRow = ExrUtils.CalculateBytesPerRow(this.Channels, (uint)this.Width);
+        ulong bytesPerRow = ExrUtils.CalculateBytesPerRow(this.Channels, (uint)this.Width);
         uint rowsPerBlock = ExrUtils.RowsPerBlock(this.Compression);
-        uint bytesPerBlock = bytesPerRow * rowsPerBlock;
+        ulong bytesPerBlock = bytesPerRow * rowsPerBlock;
+        if (bytesPerBlock > int.MaxValue)
+        {
+            ExrThrowHelper.ThrowInvalidImageContentException("EXR block size exceeds the maximum allowed size.");
+        }
+
         int width = this.Width;
         int height = this.Height;
         int channelCount = this.Channels.Count;
@@ -158,8 +177,8 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
             this.Compression,
             this.memoryAllocator,
             width,
-            bytesPerBlock,
-            bytesPerRow,
+            (uint)bytesPerBlock,
+            (uint)bytesPerRow,
             rowsPerBlock,
             channelCount,
             this.PixelType);
@@ -170,6 +189,7 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
             ulong rowOffset = this.ReadUnsignedLong(stream);
             long nextRowOffsetPosition = stream.Position;
 
+            this.ValidateChunkOffset(rowOffset, stream);
             stream.Position = (long)rowOffset;
             uint rowStartIndex = this.ReadUnsignedInteger(stream);
 
@@ -212,9 +232,14 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
         where TPixel : unmanaged, IPixel<TPixel>
     {
         bool hasAlpha = this.HasAlpha();
-        uint bytesPerRow = ExrUtils.CalculateBytesPerRow(this.Channels, (uint)this.Width);
+        ulong bytesPerRow = ExrUtils.CalculateBytesPerRow(this.Channels, (uint)this.Width);
         uint rowsPerBlock = ExrUtils.RowsPerBlock(this.Compression);
-        uint bytesPerBlock = bytesPerRow * rowsPerBlock;
+        ulong bytesPerBlock = bytesPerRow * rowsPerBlock;
+        if (bytesPerBlock > int.MaxValue)
+        {
+            ExrThrowHelper.ThrowInvalidImageContentException("EXR block size exceeds the maximum allowed size.");
+        }
+
         int width = this.Width;
         int height = this.Height;
         int channelCount = this.Channels.Count;
@@ -231,8 +256,8 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
             this.Compression,
             this.memoryAllocator,
             width,
-            bytesPerBlock,
-            bytesPerRow,
+            (uint)bytesPerBlock,
+            (uint)bytesPerRow,
             rowsPerBlock,
             channelCount,
             this.PixelType);
@@ -243,6 +268,7 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
             ulong rowOffset = this.ReadUnsignedLong(stream);
             long nextRowOffsetPosition = stream.Position;
 
+            this.ValidateChunkOffset(rowOffset, stream);
             stream.Position = (long)rowOffset;
             uint rowStartIndex = this.ReadUnsignedInteger(stream);
 
@@ -597,10 +623,38 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
 
         this.HeaderAttributes = this.ParseHeaderAttributes(stream);
 
-        this.Width = this.HeaderAttributes.DataWindow.XMax - this.HeaderAttributes.DataWindow.XMin + 1;
-        this.Height = this.HeaderAttributes.DataWindow.YMax - this.HeaderAttributes.DataWindow.YMin + 1;
+        ExrBox2i dataWindow = this.HeaderAttributes.DataWindow;
+        if (dataWindow.XMax < dataWindow.XMin || dataWindow.YMax < dataWindow.YMin)
+        {
+            ExrThrowHelper.ThrowInvalidImageContentException("EXR DataWindow max values must be greater than or equal to min values.");
+        }
+
+        long width = (long)dataWindow.XMax - dataWindow.XMin + 1;
+        long height = (long)dataWindow.YMax - dataWindow.YMin + 1;
+
+        // Decoding stages each row as four color planes, so the width must be bounded
+        // before later width * 4 buffer sizing can overflow.
+        if (width > int.MaxValue / 4 || height > int.MaxValue)
+        {
+            ExrThrowHelper.ThrowInvalidImageContentException("EXR DataWindow dimensions exceed the maximum allowed size.");
+        }
+
+        this.Width = (int)width;
+        this.Height = (int)height;
         this.Channels = this.HeaderAttributes.Channels;
         this.Compression = this.HeaderAttributes.Compression;
+        uint rowsPerBlock = ExrUtils.RowsPerBlock(this.Compression);
+        long chunkCount = (this.Height + (long)rowsPerBlock - 1) / rowsPerBlock;
+        long offsetTableByteCount = chunkCount * sizeof(ulong);
+
+        // The scanline offset table sits between the header and pixel chunks; proving it
+        // fits in the stream keeps all later chunk offsets on the pixel-data side.
+        if (stream.Position > stream.Length || offsetTableByteCount > stream.Length - stream.Position)
+        {
+            ExrThrowHelper.ThrowInvalidImageContentException("EXR chunk offset table is outside the bounds of the stream.");
+        }
+
+        this.MinimumChunkOffset = stream.Position + offsetTableByteCount;
         this.PixelType = this.ValidateChannels();
         this.ImageDataType = this.DetermineImageDataType();
 
@@ -865,6 +919,19 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
         ExrCompression.None or ExrCompression.Zip or ExrCompression.Zips or ExrCompression.RunLengthEncoded or ExrCompression.B44 or ExrCompression.Pxr24 => true,
         _ => false,
     };
+
+    /// <summary>
+    /// Validates a scanline chunk offset read from the EXR offset table.
+    /// </summary>
+    /// <param name="chunkOffset">The chunk offset to validate.</param>
+    /// <param name="stream">The stream containing the image data.</param>
+    private void ValidateChunkOffset(ulong chunkOffset, BufferedReadStream stream)
+    {
+        if (chunkOffset < (ulong)this.MinimumChunkOffset || chunkOffset >= (ulong)stream.Length)
+        {
+            ExrThrowHelper.ThrowInvalidImageContentException("EXR chunk offset is outside the bounds of the stream.");
+        }
+    }
 
     /// <summary>
     /// Determines whether this image  has alpha channel.

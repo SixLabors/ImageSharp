@@ -439,7 +439,7 @@ public enum HwIntrinsics : long
     DisableSSE42 = 1L << 1,
     DisableAVX = 1L << 2,
     DisableAVX2 = 1L << 3,
-    DisableAVX512 = 1L << 4,
+    DisableAVX512F = 1L << 4,
     DisableAVX512v2 = 1L << 5,
     DisableAVX512v3 = 1L << 6,
     DisableAVX10v1 = 1L << 7,

@@ -219,7 +219,7 @@ public partial class Block8x8FTests : JpegFixture
             RunTest,
             srcSeed,
             qtSeed,
-            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
     }
 
     [Fact]
@@ -391,7 +391,7 @@ public partial class Block8x8FTests : JpegFixture
         // 3. DisableAvx2 - call fallback code of float implementation
         FeatureTestRunner.RunWithHwIntrinsicsFeature(
             RunTest,
-            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
     }
 
     [Theory]

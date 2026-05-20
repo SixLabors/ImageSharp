@@ -71,11 +71,14 @@ public abstract class ImageDataAttributeBase : DataAttribute
                 object obj = accessor();
                 if (obj is IEnumerable<object> memberItems)
                 {
-                    addedRows = memberItems.Select(x => x as object[]);
-                    if (addedRows.Any(x => x == null))
+                    // In xunit.v3, TheoryData<T...> yields ITheoryDataRow, not object[].
+                    // Call GetData() to unpack the row's values.
+                    addedRows = memberItems.Select(x =>
                     {
-                        addedRows = memberItems.Select(x => new[] { x });
-                    }
+                        if (x is ITheoryDataRow row) return row.GetData();
+                        if (x is object[] arr) return arr;
+                        return new[] { x };
+                    });
                 }
             }
         }

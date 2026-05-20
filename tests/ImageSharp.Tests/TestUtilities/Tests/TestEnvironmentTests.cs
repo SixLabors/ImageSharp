@@ -120,7 +120,7 @@ public class TestEnvironmentTests
     // https://github.com/SixLabors/ImageSharp/blob/381dff8640b721a34b1227c970fcf6ad6c5e3e72/ci-test.ps1#L30
     public static bool IsNot32BitNetFramework = !TestEnvironment.IsFramework || TestEnvironment.Is64BitProcess;
 
-    [Fact(SkipUnless = nameof(IsNot32BitNetFramework))]
+    [Fact(Skip = "Not supported on 32-bit .NET Framework", SkipUnless = nameof(IsNot32BitNetFramework))]
     public void RemoteExecutor_FailingRemoteTestShouldFailLocalTest()
     {
         static void FailingCode()

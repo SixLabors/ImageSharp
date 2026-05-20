@@ -4,6 +4,7 @@
 using SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations;
 using SixLabors.ImageSharp.Tests.ProfilingBenchmarks;
 using SixLabors.ImageSharp.Tests.ProfilingSandbox;
+using Xunit;
 
 // in this file, comments are used for disabling stuff for local execution
 #pragma warning disable SA1515
@@ -31,7 +32,12 @@ static void RunToVector4ProfilingTest()
 
 sealed class ConsoleOutput : ITestOutputHelper
 {
+    public void Write(string message) => Console.Write(message);
+
+    public void Write(string format, params object[] args) => Console.Write(format, args);
+
     public void WriteLine(string message) => Console.WriteLine(message);
 
     public void WriteLine(string format, params object[] args) => Console.WriteLine(format, args);
+    public string Output { get; }
 }

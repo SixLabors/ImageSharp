@@ -240,7 +240,7 @@ public partial class UniformUnmanagedMemoryPoolTests
     public static readonly bool IsNotMacOS = !TestEnvironment.IsMacOS;
 
     // TODO: Investigate macOS failures
-    [Theory(SkipUnless = nameof(IsNotMacOS))]
+    [Theory(Skip = "Skipped on macOS", SkipUnless = nameof(IsNotMacOS))]
     [InlineData(false)]
     [InlineData(true)]
     public void RentReturnRelease_SubsequentRentReturnsDifferentHandles(bool multiple)

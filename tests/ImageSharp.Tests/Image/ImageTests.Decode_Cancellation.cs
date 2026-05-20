@@ -58,7 +58,7 @@ public partial class ImageTests
         public static TheoryData<bool, string, double> LoadData { get; } = CreateLoadData();
 
         // TODO: Figure out cancellation failures on Linux
-        [Theory(SkipType = typeof(TestEnvironment), SkipUnless = nameof(TestEnvironment.IsWindows))]
+        [Theory(Skip = "Skipped on non-Windows platforms", SkipType = typeof(TestEnvironment), SkipUnless = nameof(TestEnvironment.IsWindows))]
         [MemberData(nameof(LoadData))]
         public async Task LoadAsync_IsCancellable(bool useMemoryStream, string file, double percentageOfStreamReadToCancel)
         {

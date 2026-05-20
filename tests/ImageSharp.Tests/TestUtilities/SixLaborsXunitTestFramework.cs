@@ -13,6 +13,6 @@ public class SixLaborsXunitTestFramework : XunitTestFramework
 {
     public SixLaborsXunitTestFramework()
     {
-        Console.WriteLine(HostEnvironmentInfo.GetInformation());
+        Console.Error.WriteLine(HostEnvironmentInfo.GetInformation());
     }
 }

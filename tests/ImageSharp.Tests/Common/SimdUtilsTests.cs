@@ -7,7 +7,6 @@ using System.Runtime.Intrinsics.Arm;
 using System.Runtime.Intrinsics.X86;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.TestUtilities;
-using Xunit.Abstractions;
 
 namespace SixLabors.ImageSharp.Tests.Common;
 

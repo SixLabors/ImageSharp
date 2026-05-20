@@ -6,7 +6,6 @@ using SixLabors.ImageSharp.ColorProfiles;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using Wacton.Unicolour;
 using Wacton.Unicolour.Icc;
-using Xunit.Abstractions;
 using Rgb = SixLabors.ImageSharp.ColorProfiles.Rgb;
 
 namespace SixLabors.ImageSharp.Tests.ColorProfiles.Icc;

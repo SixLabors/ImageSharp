@@ -2,7 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Numerics;
-using Xunit.Abstractions;
+using Xunit.Sdk;
 
 namespace SixLabors.ImageSharp.Tests.TestUtilities;
 

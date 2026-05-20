@@ -21,7 +21,6 @@
     <PackageReference Update="Colourful" Version="3.2.0" />
     <PackageReference Update="Magick.NET-Q16-AnyCPU" Version="14.11.1" />
     <PackageReference Update="Microsoft.DotNet.RemoteExecutor" Version="10.0.0-beta.25563.105" />
-    <PackageReference Update="Microsoft.DotNet.XUnitExtensions" Version="8.0.0-beta.23580.1" />
     <PackageReference Update="Moq" Version="4.20.72" />
     <PackageReference Update="NetVips" Version="3.0.0" />
     <PackageReference Update="NetVips.Native" Version="8.16.0" />

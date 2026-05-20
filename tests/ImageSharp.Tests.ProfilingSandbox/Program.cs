@@ -4,7 +4,6 @@
 using SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations;
 using SixLabors.ImageSharp.Tests.ProfilingBenchmarks;
 using SixLabors.ImageSharp.Tests.ProfilingSandbox;
-using Xunit.Abstractions;
 
 // in this file, comments are used for disabling stuff for local execution
 #pragma warning disable SA1515

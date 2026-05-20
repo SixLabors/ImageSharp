@@ -74,79 +74,79 @@ public class QuantizerTests
     = new()
     {
         // Known uses error diffusion by default.
-        KnownQuantizers.Hexadecatree,
-        KnownQuantizers.WebSafe,
-        KnownQuantizers.Werner,
-        KnownQuantizers.Wu,
-        new HexadecatreeQuantizer(NoDitherOptions),
-        new WebSafePaletteQuantizer(NoDitherOptions),
-        new WernerPaletteQuantizer(NoDitherOptions),
-        new WuQuantizer(NoDitherOptions),
-        new HexadecatreeQuantizer(OrderedDitherOptions),
-        new WebSafePaletteQuantizer(OrderedDitherOptions),
-        new WernerPaletteQuantizer(OrderedDitherOptions),
-        new WuQuantizer(OrderedDitherOptions)
+        (IQuantizer)KnownQuantizers.Hexadecatree,
+        (IQuantizer)KnownQuantizers.WebSafe,
+        (IQuantizer)KnownQuantizers.Werner,
+        (IQuantizer)KnownQuantizers.Wu,
+        (IQuantizer)new HexadecatreeQuantizer(NoDitherOptions),
+        (IQuantizer)new WebSafePaletteQuantizer(NoDitherOptions),
+        (IQuantizer)new WernerPaletteQuantizer(NoDitherOptions),
+        (IQuantizer)new WuQuantizer(NoDitherOptions),
+        (IQuantizer)new HexadecatreeQuantizer(OrderedDitherOptions),
+        (IQuantizer)new WebSafePaletteQuantizer(OrderedDitherOptions),
+        (IQuantizer)new WernerPaletteQuantizer(OrderedDitherOptions),
+        (IQuantizer)new WuQuantizer(OrderedDitherOptions)
     };
 
     public static readonly TheoryData<IQuantizer> DitherScaleQuantizers
     = new()
     {
-        new HexadecatreeQuantizer(Diffuser0_ScaleDitherOptions),
-        new WebSafePaletteQuantizer(Diffuser0_ScaleDitherOptions),
-        new WernerPaletteQuantizer(Diffuser0_ScaleDitherOptions),
-        new WuQuantizer(Diffuser0_ScaleDitherOptions),
+        (IQuantizer)new HexadecatreeQuantizer(Diffuser0_ScaleDitherOptions),
+        (IQuantizer)new WebSafePaletteQuantizer(Diffuser0_ScaleDitherOptions),
+        (IQuantizer)new WernerPaletteQuantizer(Diffuser0_ScaleDitherOptions),
+        (IQuantizer)new WuQuantizer(Diffuser0_ScaleDitherOptions),
 
-        new HexadecatreeQuantizer(Diffuser0_25_ScaleDitherOptions),
-        new WebSafePaletteQuantizer(Diffuser0_25_ScaleDitherOptions),
-        new WernerPaletteQuantizer(Diffuser0_25_ScaleDitherOptions),
-        new WuQuantizer(Diffuser0_25_ScaleDitherOptions),
+        (IQuantizer)new HexadecatreeQuantizer(Diffuser0_25_ScaleDitherOptions),
+        (IQuantizer)new WebSafePaletteQuantizer(Diffuser0_25_ScaleDitherOptions),
+        (IQuantizer)new WernerPaletteQuantizer(Diffuser0_25_ScaleDitherOptions),
+        (IQuantizer)new WuQuantizer(Diffuser0_25_ScaleDitherOptions),
 
-        new HexadecatreeQuantizer(Diffuser0_5_ScaleDitherOptions),
-        new WebSafePaletteQuantizer(Diffuser0_5_ScaleDitherOptions),
-        new WernerPaletteQuantizer(Diffuser0_5_ScaleDitherOptions),
-        new WuQuantizer(Diffuser0_5_ScaleDitherOptions),
+        (IQuantizer)new HexadecatreeQuantizer(Diffuser0_5_ScaleDitherOptions),
+        (IQuantizer)new WebSafePaletteQuantizer(Diffuser0_5_ScaleDitherOptions),
+        (IQuantizer)new WernerPaletteQuantizer(Diffuser0_5_ScaleDitherOptions),
+        (IQuantizer)new WuQuantizer(Diffuser0_5_ScaleDitherOptions),
 
-        new HexadecatreeQuantizer(Diffuser0_75_ScaleDitherOptions),
-        new WebSafePaletteQuantizer(Diffuser0_75_ScaleDitherOptions),
-        new WernerPaletteQuantizer(Diffuser0_75_ScaleDitherOptions),
-        new WuQuantizer(Diffuser0_75_ScaleDitherOptions),
+        (IQuantizer)new HexadecatreeQuantizer(Diffuser0_75_ScaleDitherOptions),
+        (IQuantizer)new WebSafePaletteQuantizer(Diffuser0_75_ScaleDitherOptions),
+        (IQuantizer)new WernerPaletteQuantizer(Diffuser0_75_ScaleDitherOptions),
+        (IQuantizer)new WuQuantizer(Diffuser0_75_ScaleDitherOptions),
 
-        new HexadecatreeQuantizer(DiffuserDitherOptions),
-        new WebSafePaletteQuantizer(DiffuserDitherOptions),
-        new WernerPaletteQuantizer(DiffuserDitherOptions),
-        new WuQuantizer(DiffuserDitherOptions),
+        (IQuantizer)new HexadecatreeQuantizer(DiffuserDitherOptions),
+        (IQuantizer)new WebSafePaletteQuantizer(DiffuserDitherOptions),
+        (IQuantizer)new WernerPaletteQuantizer(DiffuserDitherOptions),
+        (IQuantizer)new WuQuantizer(DiffuserDitherOptions),
 
-        new HexadecatreeQuantizer(Ordered0_ScaleDitherOptions),
-        new WebSafePaletteQuantizer(Ordered0_ScaleDitherOptions),
-        new WernerPaletteQuantizer(Ordered0_ScaleDitherOptions),
-        new WuQuantizer(Ordered0_ScaleDitherOptions),
+        (IQuantizer)new HexadecatreeQuantizer(Ordered0_ScaleDitherOptions),
+        (IQuantizer)new WebSafePaletteQuantizer(Ordered0_ScaleDitherOptions),
+        (IQuantizer)new WernerPaletteQuantizer(Ordered0_ScaleDitherOptions),
+        (IQuantizer)new WuQuantizer(Ordered0_ScaleDitherOptions),
 
-        new HexadecatreeQuantizer(Ordered0_25_ScaleDitherOptions),
-        new WebSafePaletteQuantizer(Ordered0_25_ScaleDitherOptions),
-        new WernerPaletteQuantizer(Ordered0_25_ScaleDitherOptions),
-        new WuQuantizer(Ordered0_25_ScaleDitherOptions),
+        (IQuantizer)new HexadecatreeQuantizer(Ordered0_25_ScaleDitherOptions),
+        (IQuantizer)new WebSafePaletteQuantizer(Ordered0_25_ScaleDitherOptions),
+        (IQuantizer)new WernerPaletteQuantizer(Ordered0_25_ScaleDitherOptions),
+        (IQuantizer)new WuQuantizer(Ordered0_25_ScaleDitherOptions),
 
-        new HexadecatreeQuantizer(Ordered0_5_ScaleDitherOptions),
-        new WebSafePaletteQuantizer(Ordered0_5_ScaleDitherOptions),
-        new WernerPaletteQuantizer(Ordered0_5_ScaleDitherOptions),
-        new WuQuantizer(Ordered0_5_ScaleDitherOptions),
+        (IQuantizer)new HexadecatreeQuantizer(Ordered0_5_ScaleDitherOptions),
+        (IQuantizer)new WebSafePaletteQuantizer(Ordered0_5_ScaleDitherOptions),
+        (IQuantizer)new WernerPaletteQuantizer(Ordered0_5_ScaleDitherOptions),
+        (IQuantizer)new WuQuantizer(Ordered0_5_ScaleDitherOptions),
 
-        new HexadecatreeQuantizer(Ordered0_75_ScaleDitherOptions),
-        new WebSafePaletteQuantizer(Ordered0_75_ScaleDitherOptions),
-        new WernerPaletteQuantizer(Ordered0_75_ScaleDitherOptions),
-        new WuQuantizer(Ordered0_75_ScaleDitherOptions),
+        (IQuantizer)new HexadecatreeQuantizer(Ordered0_75_ScaleDitherOptions),
+        (IQuantizer)new WebSafePaletteQuantizer(Ordered0_75_ScaleDitherOptions),
+        (IQuantizer)new WernerPaletteQuantizer(Ordered0_75_ScaleDitherOptions),
+        (IQuantizer)new WuQuantizer(Ordered0_75_ScaleDitherOptions),
 
-        new HexadecatreeQuantizer(OrderedDitherOptions),
-        new WebSafePaletteQuantizer(OrderedDitherOptions),
-        new WernerPaletteQuantizer(OrderedDitherOptions),
-        new WuQuantizer(OrderedDitherOptions),
+        (IQuantizer)new HexadecatreeQuantizer(OrderedDitherOptions),
+        (IQuantizer)new WebSafePaletteQuantizer(OrderedDitherOptions),
+        (IQuantizer)new WernerPaletteQuantizer(OrderedDitherOptions),
+        (IQuantizer)new WuQuantizer(OrderedDitherOptions),
     };
 
     public static readonly TheoryData<IDither> DefaultInstanceDitherers
         = new()
         {
-            default(ErrorDither),
-            default(OrderedDither)
+            (IDither)default(ErrorDither),
+            (IDither)default(OrderedDither)
         };
 
     private static readonly ImageComparer ValidatorComparer = ImageComparer.TolerantPercentage(0.05F);

@@ -10,7 +10,6 @@ using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.Common;
 using SixLabors.ImageSharp.Tests.TestUtilities;
-using Xunit.Abstractions;
 
 namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations;
 
@@ -315,35 +314,35 @@ public abstract class PixelOperationsTests<TPixel> : MeasureFixture
 
     public static readonly TheoryData<object> Generic_To_Data = new()
     {
-        new TestPixel<A8>(),
-        new TestPixel<Abgr32>(),
-        new TestPixel<Argb32>(),
-        new TestPixel<Bgr24>(),
-        new TestPixel<Bgr565>(),
-        new TestPixel<Bgra32>(),
-        new TestPixel<Bgra4444>(),
-        new TestPixel<Bgra5551>(),
-        new TestPixel<Byte4>(),
-        new TestPixel<HalfSingle>(),
-        new TestPixel<HalfVector2>(),
-        new TestPixel<HalfVector4>(),
-        new TestPixel<L16>(),
-        new TestPixel<L8>(),
-        new TestPixel<La16>(),
-        new TestPixel<La32>(),
-        new TestPixel<NormalizedByte2>(),
-        new TestPixel<NormalizedByte4>(),
-        new TestPixel<NormalizedShort2>(),
-        new TestPixel<NormalizedShort4>(),
-        new TestPixel<Rg32>(),
-        new TestPixel<Rgb24>(),
-        new TestPixel<Rgb48>(),
-        new TestPixel<Rgba1010102>(),
-        new TestPixel<Rgba32>(),
-        new TestPixel<Rgba64>(),
-        new TestPixel<RgbaVector>(),
-        new TestPixel<Short2>(),
-        new TestPixel<Short4>(),
+        (object)new TestPixel<A8>(),
+        (object)new TestPixel<Abgr32>(),
+        (object)new TestPixel<Argb32>(),
+        (object)new TestPixel<Bgr24>(),
+        (object)new TestPixel<Bgr565>(),
+        (object)new TestPixel<Bgra32>(),
+        (object)new TestPixel<Bgra4444>(),
+        (object)new TestPixel<Bgra5551>(),
+        (object)new TestPixel<Byte4>(),
+        (object)new TestPixel<HalfSingle>(),
+        (object)new TestPixel<HalfVector2>(),
+        (object)new TestPixel<HalfVector4>(),
+        (object)new TestPixel<L16>(),
+        (object)new TestPixel<L8>(),
+        (object)new TestPixel<La16>(),
+        (object)new TestPixel<La32>(),
+        (object)new TestPixel<NormalizedByte2>(),
+        (object)new TestPixel<NormalizedByte4>(),
+        (object)new TestPixel<NormalizedShort2>(),
+        (object)new TestPixel<NormalizedShort4>(),
+        (object)new TestPixel<Rg32>(),
+        (object)new TestPixel<Rgb24>(),
+        (object)new TestPixel<Rgb48>(),
+        (object)new TestPixel<Rgba1010102>(),
+        (object)new TestPixel<Rgba32>(),
+        (object)new TestPixel<Rgba64>(),
+        (object)new TestPixel<RgbaVector>(),
+        (object)new TestPixel<Short2>(),
+        (object)new TestPixel<Short4>(),
     };
 
     [Theory]

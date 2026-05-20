@@ -6,8 +6,8 @@ using System.Reflection;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
+using Xunit.Sdk;
 
-using Xunit.Abstractions;
 
 namespace SixLabors.ImageSharp.Tests;
 

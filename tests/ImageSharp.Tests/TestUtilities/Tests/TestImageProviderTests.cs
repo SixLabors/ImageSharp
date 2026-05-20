@@ -8,7 +8,6 @@ using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs;
-using Xunit.Abstractions;
 
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests;
@@ -17,14 +16,14 @@ public class TestImageProviderTests
 {
     public static readonly TheoryData<object> BasicData = new()
     {
-        TestImageProvider<Rgba32>.Blank(10, 20),
-        TestImageProvider<HalfVector4>.Blank(10, 20),
+        (object)TestImageProvider<Rgba32>.Blank(10, 20),
+        (object)TestImageProvider<HalfVector4>.Blank(10, 20),
     };
 
     public static readonly TheoryData<object> FileData = new()
     {
-        TestImageProvider<Rgba32>.File(TestImages.Bmp.Car),
-        TestImageProvider<HalfVector4>.File(TestImages.Bmp.F)
+        (object)TestImageProvider<Rgba32>.File(TestImages.Bmp.Car),
+        (object)TestImageProvider<HalfVector4>.File(TestImages.Bmp.F)
     };
 
     public static string[] AllBmpFiles = [TestImages.Bmp.F, TestImages.Bmp.Bit8];

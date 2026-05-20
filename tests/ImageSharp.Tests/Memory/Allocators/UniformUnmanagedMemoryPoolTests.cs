@@ -5,7 +5,6 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Microsoft.DotNet.RemoteExecutor;
 using SixLabors.ImageSharp.Memory.Internals;
-using Xunit.Abstractions;
 
 namespace SixLabors.ImageSharp.Tests.Memory.Allocators;
 
@@ -241,7 +240,7 @@ public partial class UniformUnmanagedMemoryPoolTests
     public static readonly bool IsNotMacOS = !TestEnvironment.IsMacOS;
 
     // TODO: Investigate macOS failures
-    [ConditionalTheory(nameof(IsNotMacOS))]
+    [Theory(SkipUnless = nameof(IsNotMacOS))]
     [InlineData(false)]
     [InlineData(true)]
     public void RentReturnRelease_SubsequentRentReturnsDifferentHandles(bool multiple)

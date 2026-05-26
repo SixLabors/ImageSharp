@@ -990,7 +990,11 @@ internal sealed class GifDecoderCore : ImageDecoderCore
 
         byte index = this.logicalScreenDescriptor.BackgroundColorIndex;
         this.backgroundColorIndex = index;
-        this.gifMetadata.BackgroundColorIndex = index;
+        ReadOnlyMemory<Color>? globalColorTable = this.gifMetadata.GlobalColorTable;
+        if (globalColorTable.HasValue && index < globalColorTable.Value.Length)
+        {
+            this.gifMetadata.BackgroundColor = globalColorTable.Value.Span[index];
+        }
     }
 
     private unsafe struct ScratchBuffer

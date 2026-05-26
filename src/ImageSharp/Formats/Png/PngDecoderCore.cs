@@ -2509,33 +2509,34 @@ internal sealed class PngDecoderCore : ImageDecoderCore
     {
         if (colorType == PngColorType.RgbWithAlpha)
         {
-            for (int i = 0; i + 3 < scanline.Length; i += 4)
+            Span<Rgba32> pixels = MemoryMarshal.Cast<byte, Rgba32>(scanline);
+            for (int i = 0; i < pixels.Length; i++)
             {
-                byte b = scanline[i];
-                byte g = scanline[i + 1];
-                byte r = scanline[i + 2];
-                byte a = scanline[i + 3];
+                ref Rgba32 p = ref pixels[i];
+                byte r = p.B;
+                byte g = p.G;
+                byte b = p.R;
+                byte a = p.A;
 
-                if (a is not 0 and not 255)
+                if (a is not 0 and not byte.MaxValue)
                 {
                     // Reverse: c' = c * a / 255  =>  c = round(c' * 255 / a)
                     int half = a >> 1;
-                    r = (byte)Math.Min(255, ((r * 255) + half) / a);
-                    g = (byte)Math.Min(255, ((g * 255) + half) / a);
-                    b = (byte)Math.Min(255, ((b * 255) + half) / a);
+                    r = (byte)Math.Min(byte.MaxValue, ((r * byte.MaxValue) + half) / a);
+                    g = (byte)Math.Min(byte.MaxValue, ((g * byte.MaxValue) + half) / a);
+                    b = (byte)Math.Min(byte.MaxValue, ((b * byte.MaxValue) + half) / a);
                 }
 
-                scanline[i] = r;
-                scanline[i + 1] = g;
-                scanline[i + 2] = b;
-                scanline[i + 3] = a;
+                p = new Rgba32(r, g, b, a);
             }
         }
         else if (colorType == PngColorType.Rgb)
         {
-            for (int i = 0; i + 2 < scanline.Length; i += 3)
+            Span<Rgb24> pixels = MemoryMarshal.Cast<byte, Rgb24>(scanline);
+            for (int i = 0; i < pixels.Length; i++)
             {
-                (scanline[i], scanline[i + 2]) = (scanline[i + 2], scanline[i]);
+                ref Rgb24 p = ref pixels[i];
+                (p.R, p.B) = (p.B, p.R);
             }
         }
     }

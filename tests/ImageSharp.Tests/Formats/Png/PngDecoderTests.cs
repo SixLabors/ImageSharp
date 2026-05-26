@@ -718,8 +718,8 @@ public partial class PngDecoderTests
     [WithFile(TestImages.Png.Cgbi.Issue410, PixelTypes.Rgba32)]
     [WithFile(TestImages.Png.Cgbi.Colors, PixelTypes.Rgba32)]
     [WithFile(TestImages.Png.Cgbi.Clocks, PixelTypes.Rgba32)]
-    [WithFile(TestImages.Png.Cgbi.Flecks, PixelTypes.Rgba32)]
     [WithFile(TestImages.Png.Cgbi.Screen, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Png.Cgbi.Flecks, PixelTypes.Rgb24)]
     public void Decode_AppleCgBI<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
@@ -731,6 +731,7 @@ public partial class PngDecoderTests
     [Theory]
     [InlineData(TestImages.Png.Cgbi.Colors, 120, 120)]
     [InlineData(TestImages.Png.Cgbi.Issue410, 42, 26)]
+    [InlineData(TestImages.Png.Cgbi.Flecks, 510, 512)]
     public void Identify_AppleCgBI(string imagePath, int expectedWidth, int expectedHeight)
     {
         TestFile testFile = TestFile.Create(imagePath);

@@ -53,11 +53,18 @@ internal sealed class ZlibInflateStream : Stream
     private readonly Func<int> getData;
 
     /// <summary>
+    /// When true, the inflated payload is treated as a raw DEFLATE stream with no zlib
+    /// CMF/FLG header (and no Adler-32 trailer). This is required to decode IDATs in
+    /// Apple's proprietary CgBI PNG variant.
+    /// </summary>
+    private readonly bool noHeader;
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="ZlibInflateStream"/> class.
     /// </summary>
     /// <param name="innerStream">The inner raw stream.</param>
     public ZlibInflateStream(BufferedReadStream innerStream)
-        : this(innerStream, GetDataNoOp)
+        : this(innerStream, GetDataNoOp, noHeader: false)
     {
     }
 
@@ -67,9 +74,23 @@ internal sealed class ZlibInflateStream : Stream
     /// <param name="innerStream">The inner raw stream.</param>
     /// <param name="getData">A delegate to get more data from the inner stream.</param>
     public ZlibInflateStream(BufferedReadStream innerStream, Func<int> getData)
+        : this(innerStream, getData, noHeader: false)
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ZlibInflateStream"/> class.
+    /// </summary>
+    /// <param name="innerStream">The inner raw stream.</param>
+    /// <param name="getData">A delegate to get more data from the inner stream.</param>
+    /// <param name="noHeader">
+    /// When <see langword="true"/>, the payload is treated as raw DEFLATE with no zlib header.
+    /// </param>
+    public ZlibInflateStream(BufferedReadStream innerStream, Func<int> getData, bool noHeader)
     {
         this.innerStream = innerStream;
         this.getData = getData;
+        this.noHeader = noHeader;
     }
 
     /// <inheritdoc/>
@@ -210,6 +231,14 @@ internal sealed class ZlibInflateStream : Stream
     [MemberNotNullWhen(true, nameof(CompressedStream))]
     private bool InitializeInflateStream(bool isCriticalChunk)
     {
+        // Apple CgBI IDATs omit the zlib CMF/FLG header and the Adler-32 trailer,
+        // wrapping a raw DEFLATE payload directly. Skip the header parsing in that mode.
+        if (this.noHeader)
+        {
+            this.CompressedStream = new DeflateStream(this, CompressionMode.Decompress, true);
+            return true;
+        }
+
         // Read the zlib header : http://tools.ietf.org/html/rfc1950
         // CMF(Compression Method and flags)
         // This byte is divided into a 4 - bit compression method and a

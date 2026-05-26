@@ -177,6 +177,17 @@ public static class TestImages
             public const string PerceptualcLUTOnly = "Png/icc-profiles/Perceptual-cLUT-only.png";
         }
 
+        public static class Cgbi
+        {
+            public const string Colors = "Png/cgbi/colors.png";
+            public const string Clocks = "Png/cgbi/clocks.png";
+            public const string Flecks = "Png/cgbi/flecks.png";
+            public const string Screen = "Png/cgbi/screen.png";
+
+            // Issue 410: https://github.com/SixLabors/ImageSharp/issues/410
+            public const string Issue410 = "Png/issues/Issue_410.png";
+        }
+
         public static class Bad
         {
             public const string MissingDataChunk = "Png/xdtn0g01.png";
@@ -198,9 +209,6 @@ public static class TestImages
 
             // Issue 1047: https://github.com/SixLabors/ImageSharp/issues/1047
             public const string Issue1047_BadEndChunk = "Png/issues/Issue_1047.png";
-
-            // Issue 410: https://github.com/SixLabors/ImageSharp/issues/410
-            public const string Issue410_MalformedApplePng = "Png/issues/Issue_410.png";
 
             // Bad bit depth.
             public const string BitDepthZero = "Png/xd0n2c08.png";

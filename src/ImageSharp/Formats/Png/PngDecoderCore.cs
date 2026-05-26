@@ -138,6 +138,13 @@ internal sealed class PngDecoderCore : ImageDecoderCore
     private bool hasImageData;
 
     /// <summary>
+    /// Whether this is an Apple CgBI PNG. CgBI files store IDATs as raw DEFLATE
+    /// (no zlib header/Adler-32) and pixels as premultiplied BGRA, so they need
+    /// extra inversion steps to round-trip back to standard PNG semantics.
+    /// </summary>
+    private bool isCgbi;
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="PngDecoderCore"/> class.
     /// </summary>
     /// <param name="options">The decoder options.</param>
@@ -314,7 +321,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                         case PngChunkType.End:
                             goto EOF;
                         case PngChunkType.ProprietaryApple:
-                            PngThrowHelper.ThrowInvalidChunkType("Proprietary Apple PNG detected! This PNG file is not conform to the specification and cannot be decoded.");
+                            this.isCgbi = true;
                             break;
                     }
                 }
@@ -516,6 +523,10 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                             break;
                         case PngChunkType.End:
                             goto EOF;
+
+                        case PngChunkType.ProprietaryApple:
+                            this.isCgbi = true;
+                            break;
 
                         default:
                             if (this.colorMetadataOnly)
@@ -766,7 +777,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
         CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using ZlibInflateStream inflateStream = new(this.currentStream, getData);
+        using ZlibInflateStream inflateStream = new(this.currentStream, getData, noHeader: this.isCgbi);
         if (!inflateStream.AllocateNewBytes(chunkLength, !this.hasImageData))
         {
             return;
@@ -885,6 +896,11 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                 default:
                     PngThrowHelper.ThrowUnknownFilter();
                     break;
+            }
+
+            if (this.isCgbi)
+            {
+                ApplyCgbiTransform(scanSpan[1..], this.pngColorType);
             }
 
             this.ProcessDefilteredScanline(frameControl, currentRow, scanSpan, imageFrame, pngMetadata, blendRowBuffer);
@@ -1015,6 +1031,11 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                     default:
                         PngThrowHelper.ThrowUnknownFilter();
                         break;
+                }
+
+                if (this.isCgbi)
+                {
+                    ApplyCgbiTransform(scanSpan[1..], this.pngColorType);
                 }
 
                 Span<TPixel> rowSpan = imageBuffer.DangerousGetRowSpan(currentRow);
@@ -2470,4 +2491,52 @@ internal sealed class PngDecoderCore : ImageDecoderCore
 
     private void SwapScanlineBuffers()
         => (this.scanline, this.previousScanline) = (this.previousScanline, this.scanline);
+
+    /// <summary>
+    /// Applies the inverse of Apple's CgBI pixel mangling to a defiltered scanline.
+    /// CgBI PNGs are emitted by <c>pngcrush -iphone</c> with channel order swapped
+    /// from RGB(A) to BGR(A) and RGB samples premultiplied by alpha. This converts
+    /// the bytes back to standard PNG semantics in place so the existing scanline
+    /// processors can consume them unchanged. CgBI is only emitted for 8-bit
+    /// truecolor (with or without alpha); other color types are left alone.
+    /// </summary>
+    /// <remarks>
+    /// See https://theapplewiki.com/wiki/PNG_CgBI_Format
+    /// </remarks>
+    /// <param name="scanline">The defiltered pixel bytes (without the leading filter byte).</param>
+    /// <param name="colorType">The PNG color type from IHDR.</param>
+    private static void ApplyCgbiTransform(Span<byte> scanline, PngColorType colorType)
+    {
+        if (colorType == PngColorType.RgbWithAlpha)
+        {
+            for (int i = 0; i + 3 < scanline.Length; i += 4)
+            {
+                byte b = scanline[i];
+                byte g = scanline[i + 1];
+                byte r = scanline[i + 2];
+                byte a = scanline[i + 3];
+
+                if (a is not 0 and not 255)
+                {
+                    // Reverse: c' = c * a / 255  =>  c = round(c' * 255 / a)
+                    int half = a >> 1;
+                    r = (byte)Math.Min(255, ((r * 255) + half) / a);
+                    g = (byte)Math.Min(255, ((g * 255) + half) / a);
+                    b = (byte)Math.Min(255, ((b * 255) + half) / a);
+                }
+
+                scanline[i] = r;
+                scanline[i + 1] = g;
+                scanline[i + 2] = b;
+                scanline[i + 3] = a;
+            }
+        }
+        else if (colorType == PngColorType.Rgb)
+        {
+            for (int i = 0; i + 2 < scanline.Length; i += 3)
+            {
+                (scanline[i], scanline[i + 2]) = (scanline[i + 2], scanline[i]);
+            }
+        }
+    }
 }

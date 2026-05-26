@@ -79,6 +79,9 @@ public static class TestImages
         public const string AnimatedFrameCount = "Png/animated/issue-animated-frame-count.png";
         public const string Issue2666 = "Png/issues/Issue_2666.png";
         public const string Issue2882 = "Png/issues/Issue_2882.png";
+        public const string Issue396Dragon = "Png/issues/Issue_396_dragon.png";
+        public const string Issue396Hand1 = "Png/issues/Issue_396_hand_1.png";
+        public const string Issue396Hand2 = "Png/issues/Issue_396_hand_2.png";
 
         // Filtered test images from http://www.schaik.com/pngsuite/pngsuite_fil_png.html
         public const string Filter0 = "Png/filter0.png";

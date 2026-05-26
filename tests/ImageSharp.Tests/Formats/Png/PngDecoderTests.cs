@@ -729,6 +729,22 @@ public partial class PngDecoderTests
     }
 
     [Theory]
+    [InlineData(TestImages.Png.Cgbi.Colors, 120, 120)]
+    [InlineData(TestImages.Png.Cgbi.Issue410, 42, 26)]
+    public void Identify_AppleCgBI(string imagePath, int expectedWidth, int expectedHeight)
+    {
+        TestFile testFile = TestFile.Create(imagePath);
+        using MemoryStream stream = new(testFile.Bytes, false);
+
+        ImageInfo imageInfo = Image.Identify(stream);
+
+        Assert.NotNull(imageInfo);
+        Assert.Equal(PngFormat.Instance, imageInfo.Metadata.DecodedImageFormat);
+        Assert.Equal(expectedWidth, imageInfo.Width);
+        Assert.Equal(expectedHeight, imageInfo.Height);
+    }
+
+    [Theory]
     [WithFile(TestImages.Png.Splash, PixelTypes.Rgba32)]
     [WithFile(TestImages.Png.Bike, PixelTypes.Rgba32)]
     public void PngDecoder_DegenerateMemoryRequest_ShouldTranslateTo_ImageFormatException<TPixel>(TestImageProvider<TPixel> provider)

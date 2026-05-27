@@ -58,56 +58,50 @@ internal sealed class ChunkedReadStream : Stream
     /// <inheritdoc/>
     public override int ReadByte()
     {
-        this.currentDataRemaining--;
-        return this.innerStream.ReadByte();
+        if (this.currentDataRemaining is 0)
+        {
+            this.currentDataRemaining = this.getData();
+            if (this.currentDataRemaining is 0)
+            {
+                return -1;
+            }
+        }
+
+        int value = this.innerStream.ReadByte();
+        if (value is not -1)
+        {
+            this.currentDataRemaining--;
+        }
+
+        return value;
     }
 
     /// <inheritdoc/>
     public override int Read(byte[] buffer, int offset, int count)
     {
-        if (this.currentDataRemaining is 0)
+        // Decrement currentDataRemaining only by bytes actually returned by
+        // innerStream.Read; a short read otherwise underflows the segment
+        // counter and triggers getData() before the segment is truly drained.
+        int totalBytesRead = 0;
+        while (totalBytesRead < count)
         {
-            // Current segment is exhausted; ask the caller for the next one.
-            this.currentDataRemaining = this.getData();
-
             if (this.currentDataRemaining is 0)
             {
-                return 0;
+                this.currentDataRemaining = this.getData();
+                if (this.currentDataRemaining is 0)
+                {
+                    break;
+                }
             }
-        }
 
-        int bytesToRead = Math.Min(count, this.currentDataRemaining);
-        this.currentDataRemaining -= bytesToRead;
-        int totalBytesRead = this.innerStream.Read(buffer, offset, bytesToRead);
-        long innerStreamLength = this.innerStream.Length;
-
-        // Keep reading data until we've reached the end of the stream or filled the buffer.
-        int bytesRead = 0;
-        offset += totalBytesRead;
-        while (this.currentDataRemaining is 0 && totalBytesRead < count)
-        {
-            this.currentDataRemaining = this.getData();
-
-            if (this.currentDataRemaining is 0)
+            int bytesToRead = Math.Min(count - totalBytesRead, this.currentDataRemaining);
+            int bytesRead = this.innerStream.Read(buffer, offset + totalBytesRead, bytesToRead);
+            if (bytesRead is 0)
             {
-                return totalBytesRead;
+                break;
             }
 
-            offset += bytesRead;
-
-            if (offset >= innerStreamLength || offset >= count)
-            {
-                return totalBytesRead;
-            }
-
-            bytesToRead = Math.Min(count - totalBytesRead, this.currentDataRemaining);
-            this.currentDataRemaining -= bytesToRead;
-            bytesRead = this.innerStream.Read(buffer, offset, bytesToRead);
-            if (bytesRead == 0)
-            {
-                return totalBytesRead;
-            }
-
+            this.currentDataRemaining -= bytesRead;
             totalBytesRead += bytesRead;
         }
 

@@ -1431,6 +1431,22 @@ internal sealed class PngDecoderCore : ImageDecoderCore
 
         this.pngColorType = this.header.ColorType;
         this.Dimensions = new Size(this.header.Width, this.header.Height);
+
+        // Apple's pngcrush emits the CgBI chunk before IHDR, so the header
+        // compatibility check is deferred until both chunks have been seen.
+        if (this.isCgbi)
+        {
+            ThrowIfInvalidCgbiContent(this.header);
+        }
+    }
+
+    private static void ThrowIfInvalidCgbiContent(in PngHeader header)
+    {
+        if (header.BitDepth != 8 || (header.ColorType is not PngColorType.Rgb and not PngColorType.RgbWithAlpha))
+        {
+            PngThrowHelper.ThrowInvalidImageContentException(
+                $"CgBI is only supported for 8-bit truecolor images. Was bit depth '{header.BitDepth}', color type '{header.ColorType}'.");
+        }
     }
 
     /// <summary>

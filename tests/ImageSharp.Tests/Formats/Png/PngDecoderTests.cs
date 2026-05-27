@@ -714,26 +714,57 @@ public partial class PngDecoderTests
         Assert.Contains(metadata.ColorTable.Value.ToArray(), x => x.ToPixel<Rgba32>().A < 255);
     }
 
-    // https://github.com/SixLabors/ImageSharp/issues/410
     [Theory]
-    [WithFile(TestImages.Png.Bad.Issue410_MalformedApplePng, PixelTypes.Rgba32)]
-    public void Issue410_MalformedApplePng<TPixel>(TestImageProvider<TPixel> provider)
+    [WithFile(TestImages.Png.Cgbi.Issue410, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Png.Cgbi.Colors, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Png.Cgbi.Clocks, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Png.Cgbi.Screen, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Png.Cgbi.Flecks, PixelTypes.Rgb24)]
+    public void Decode_AppleCgBI<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
-    {
-        Exception ex = Record.Exception(
-            () =>
-            {
-                using Image<TPixel> image = provider.GetImage(PngDecoder.Instance);
-                image.DebugSave(provider);
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            RunDecodeAppleCgbi,
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX2 | HwIntrinsics.DisableHWIntrinsic,
+            provider,
+            provider.PixelType.ToString());
 
-                // We don't have another x-plat reference decoder that can be compared for this image.
-                if (TestEnvironment.IsWindows)
-                {
-                    image.CompareToOriginal(provider, ImageComparer.Exact, SystemDrawingReferenceDecoder.Png);
-                }
-            });
-        Assert.NotNull(ex);
-        Assert.Contains("Proprietary Apple PNG detected!", ex.Message);
+    private static void RunDecodeAppleCgbi(string providerDump, string pixelType)
+    {
+        if (Enum.Parse<PixelTypes>(pixelType) == PixelTypes.Rgb24)
+        {
+            TestImageProvider<Rgb24> provider =
+                FeatureTestRunner.DeserializeForXunit<TestImageProvider<Rgb24>>(providerDump);
+
+            using Image<Rgb24> image = provider.GetImage(PngDecoder.Instance);
+            image.DebugSave(provider);
+            image.CompareToReferenceOutput(provider, ImageComparer.Exact);
+
+            return;
+        }
+
+        TestImageProvider<Rgba32> rgbaProvider =
+            FeatureTestRunner.DeserializeForXunit<TestImageProvider<Rgba32>>(providerDump);
+
+        using Image<Rgba32> rgbaImage = rgbaProvider.GetImage(PngDecoder.Instance);
+        rgbaImage.DebugSave(rgbaProvider);
+        rgbaImage.CompareToReferenceOutput(rgbaProvider, ImageComparer.Exact);
+    }
+
+    [Theory]
+    [InlineData(TestImages.Png.Cgbi.Colors, 120, 120)]
+    [InlineData(TestImages.Png.Cgbi.Issue410, 42, 26)]
+    [InlineData(TestImages.Png.Cgbi.Flecks, 510, 512)]
+    public void Identify_AppleCgBI(string imagePath, int expectedWidth, int expectedHeight)
+    {
+        TestFile testFile = TestFile.Create(imagePath);
+        using MemoryStream stream = new(testFile.Bytes, false);
+
+        ImageInfo imageInfo = Image.Identify(stream);
+
+        Assert.NotNull(imageInfo);
+        Assert.Equal(PngFormat.Instance, imageInfo.Metadata.DecodedImageFormat);
+        Assert.Equal(expectedWidth, imageInfo.Width);
+        Assert.Equal(expectedHeight, imageInfo.Height);
     }
 
     [Theory]

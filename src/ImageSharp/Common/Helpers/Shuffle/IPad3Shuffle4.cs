@@ -31,19 +31,23 @@ internal readonly struct DefaultPad3Shuffle4([ConstantExpected] byte control) : 
 
         SimdUtils.Shuffle.InverseMMShuffle(this.Control, out uint p3, out uint p2, out uint p1, out uint p0);
 
-        Span<byte> temp = stackalloc byte[4];
-        ref byte t = ref MemoryMarshal.GetReference(temp);
-        ref uint tu = ref Unsafe.As<byte, uint>(ref t);
-
         for (nuint i = 0, j = 0; i < (uint)source.Length; i += 3, j += 4)
         {
-            ref byte s = ref Unsafe.Add(ref sBase, i);
-            tu = Unsafe.As<byte, uint>(ref s) | 0xFF000000;
+            // Expanding 3-byte pixels to 4 bytes can overwrite the next source
+            // triplet when spans overlap. Assemble the padded pixel first, then
+            // shuffle from the staged uint.
+            uint packed =
+                Unsafe.Add(ref sBase, i + 0u) |
+                ((uint)Unsafe.Add(ref sBase, i + 1u) << 8) |
+                ((uint)Unsafe.Add(ref sBase, i + 2u) << 16) |
+                0xFF000000;
 
-            Unsafe.Add(ref dBase, j + 0) = Unsafe.Add(ref t, p0);
-            Unsafe.Add(ref dBase, j + 1) = Unsafe.Add(ref t, p1);
-            Unsafe.Add(ref dBase, j + 2) = Unsafe.Add(ref t, p2);
-            Unsafe.Add(ref dBase, j + 3) = Unsafe.Add(ref t, p3);
+            ref byte pBase = ref Unsafe.As<uint, byte>(ref packed);
+
+            Unsafe.Add(ref dBase, j + 0u) = Unsafe.Add(ref pBase, p0);
+            Unsafe.Add(ref dBase, j + 1u) = Unsafe.Add(ref pBase, p1);
+            Unsafe.Add(ref dBase, j + 2u) = Unsafe.Add(ref pBase, p2);
+            Unsafe.Add(ref dBase, j + 3u) = Unsafe.Add(ref pBase, p3);
         }
     }
 }
@@ -65,7 +69,12 @@ internal readonly struct XYZWPad3Shuffle4 : IPad3Shuffle4
 
         while (Unsafe.IsAddressLessThan(ref sBase, ref sLoopEnd))
         {
-            Unsafe.As<byte, uint>(ref dBase) = Unsafe.As<byte, uint>(ref sBase) | 0xFF000000;
+            // The fast scalar path reads one extra byte past the source triplet.
+            // Keep that widened read in a local before writing the expanded pixel
+            // so overlapping destinations cannot change what was read.
+            uint packed = Unsafe.As<byte, uint>(ref sBase) | 0xFF000000;
+
+            Unsafe.As<byte, uint>(ref dBase) = packed;
 
             sBase = ref Unsafe.Add(ref sBase, 3);
             dBase = ref Unsafe.Add(ref dBase, 4);
@@ -73,10 +82,15 @@ internal readonly struct XYZWPad3Shuffle4 : IPad3Shuffle4
 
         while (Unsafe.IsAddressLessThan(ref sBase, ref sEnd))
         {
-            Unsafe.Add(ref dBase, 0) = Unsafe.Add(ref sBase, 0);
-            Unsafe.Add(ref dBase, 1) = Unsafe.Add(ref sBase, 1);
-            Unsafe.Add(ref dBase, 2) = Unsafe.Add(ref sBase, 2);
-            Unsafe.Add(ref dBase, 3) = byte.MaxValue;
+            // The final triplet cannot use the widened read above, so assemble
+            // the same padded uint byte-by-byte before the overlapping store.
+            uint packed =
+                Unsafe.Add(ref sBase, 0u) |
+                ((uint)Unsafe.Add(ref sBase, 1u) << 8) |
+                ((uint)Unsafe.Add(ref sBase, 2u) << 16) |
+                0xFF000000;
+
+            Unsafe.As<byte, uint>(ref dBase) = packed;
 
             sBase = ref Unsafe.Add(ref sBase, 3);
             dBase = ref Unsafe.Add(ref dBase, 4);

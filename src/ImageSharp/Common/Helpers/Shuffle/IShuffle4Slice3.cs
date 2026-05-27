@@ -33,9 +33,15 @@ internal readonly struct DefaultShuffle4Slice3([ConstantExpected] byte control) 
 
         for (nuint i = 0, j = 0; i < (uint)destination.Length; i += 3, j += 4)
         {
-            Unsafe.Add(ref dBase, i + 0) = Unsafe.Add(ref sBase, p0 + j);
-            Unsafe.Add(ref dBase, i + 1) = Unsafe.Add(ref sBase, p1 + j);
-            Unsafe.Add(ref dBase, i + 2) = Unsafe.Add(ref sBase, p2 + j);
+            // Shrinking 4-byte pixels to 3 bytes can still be called in-place by
+            // tail code. Read the complete source pixel first, then write only
+            // the requested channels into the destination triplet.
+            uint packed = Unsafe.As<byte, uint>(ref Unsafe.Add(ref sBase, j));
+            ref byte pBase = ref Unsafe.As<uint, byte>(ref packed);
+
+            Unsafe.Add(ref dBase, i + 0u) = Unsafe.Add(ref pBase, p0);
+            Unsafe.Add(ref dBase, i + 1u) = Unsafe.Add(ref pBase, p1);
+            Unsafe.Add(ref dBase, i + 2u) = Unsafe.Add(ref pBase, p2);
         }
     }
 }
@@ -61,10 +67,18 @@ internal readonly struct XYZWShuffle4Slice3 : IShuffle4Slice3
 
         while (Unsafe.IsAddressLessThan(ref sBase, ref sLoopEnd))
         {
-            Unsafe.Add(ref dBase, 0) = Unsafe.As<uint, Byte3>(ref Unsafe.Add(ref sBase, 0));
-            Unsafe.Add(ref dBase, 1) = Unsafe.As<uint, Byte3>(ref Unsafe.Add(ref sBase, 1));
-            Unsafe.Add(ref dBase, 2) = Unsafe.As<uint, Byte3>(ref Unsafe.Add(ref sBase, 2));
-            Unsafe.Add(ref dBase, 3) = Unsafe.As<uint, Byte3>(ref Unsafe.Add(ref sBase, 3));
+            // Stage the four source pixels before the 3-byte stores. Even
+            // though this path preserves XYZ order, the packed loads must happen
+            // before destination writes when the spans overlap.
+            uint packed0 = Unsafe.Add(ref sBase, 0u);
+            uint packed1 = Unsafe.Add(ref sBase, 1u);
+            uint packed2 = Unsafe.Add(ref sBase, 2u);
+            uint packed3 = Unsafe.Add(ref sBase, 3u);
+
+            Unsafe.Add(ref dBase, 0u) = Unsafe.As<uint, Byte3>(ref packed0);
+            Unsafe.Add(ref dBase, 1u) = Unsafe.As<uint, Byte3>(ref packed1);
+            Unsafe.Add(ref dBase, 2u) = Unsafe.As<uint, Byte3>(ref packed2);
+            Unsafe.Add(ref dBase, 3u) = Unsafe.As<uint, Byte3>(ref packed3);
 
             sBase = ref Unsafe.Add(ref sBase, 4);
             dBase = ref Unsafe.Add(ref dBase, 4);
@@ -72,7 +86,11 @@ internal readonly struct XYZWShuffle4Slice3 : IShuffle4Slice3
 
         while (Unsafe.IsAddressLessThan(ref sBase, ref sEnd))
         {
-            Unsafe.Add(ref dBase, 0) = Unsafe.As<uint, Byte3>(ref Unsafe.Add(ref sBase, 0));
+            // Same overlap rule as the unrolled loop: take the 4-byte source
+            // pixel before storing the 3-byte destination value.
+            uint packed = Unsafe.Add(ref sBase, 0u);
+
+            Unsafe.Add(ref dBase, 0u) = Unsafe.As<uint, Byte3>(ref packed);
 
             sBase = ref Unsafe.Add(ref sBase, 1);
             dBase = ref Unsafe.Add(ref dBase, 1);

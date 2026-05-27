@@ -722,10 +722,32 @@ public partial class PngDecoderTests
     [WithFile(TestImages.Png.Cgbi.Flecks, PixelTypes.Rgb24)]
     public void Decode_AppleCgBI<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            RunDecodeAppleCgbi,
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX2 | HwIntrinsics.DisableHWIntrinsic,
+            provider,
+            provider.PixelType.ToString());
+
+    private static void RunDecodeAppleCgbi(string providerDump, string pixelType)
     {
-        using Image<TPixel> image = provider.GetImage(PngDecoder.Instance);
-        image.DebugSave(provider);
-        image.CompareToReferenceOutput(provider, ImageComparer.Exact);
+        if (Enum.Parse<PixelTypes>(pixelType) == PixelTypes.Rgb24)
+        {
+            TestImageProvider<Rgb24> provider =
+                FeatureTestRunner.DeserializeForXunit<TestImageProvider<Rgb24>>(providerDump);
+
+            using Image<Rgb24> image = provider.GetImage(PngDecoder.Instance);
+            image.DebugSave(provider);
+            image.CompareToReferenceOutput(provider, ImageComparer.Exact);
+
+            return;
+        }
+
+        TestImageProvider<Rgba32> rgbaProvider =
+            FeatureTestRunner.DeserializeForXunit<TestImageProvider<Rgba32>>(providerDump);
+
+        using Image<Rgba32> rgbaImage = rgbaProvider.GetImage(PngDecoder.Instance);
+        rgbaImage.DebugSave(rgbaProvider);
+        rgbaImage.CompareToReferenceOutput(rgbaProvider, ImageComparer.Exact);
     }
 
     [Theory]

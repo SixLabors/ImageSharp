@@ -26,13 +26,14 @@ internal static class PngCgbiProcessor
 {
     // Per-pixel byte indices that swap CgBI's BGRA layout to Rgba32's RGBA.
     // MMShuffle3012 expands to [2, 1, 0, 3] per 4-byte pixel; the same 64-byte
-    // sequence seeds all three shuffle masks (V128/V256 ctors take the leading
-    // 16/32 bytes).
-    private static readonly Vector128<byte> BgraToRgbaShuffle128 = Vector128.Create(BuildShuffleBytes());
+    // sequence seeds all three shuffle masks (Vector128/256 take a leading slice).
+    private static readonly byte[] BgraToRgbaShuffleBytes = BuildShuffleBytes();
 
-    private static readonly Vector256<byte> BgraToRgbaShuffle256 = Vector256.Create(BuildShuffleBytes());
+    private static readonly Vector128<byte> BgraToRgbaShuffle128 = Vector128.Create(new ReadOnlySpan<byte>(BgraToRgbaShuffleBytes, 0, Vector128<byte>.Count));
 
-    private static readonly Vector512<byte> BgraToRgbaShuffle512 = Vector512.Create(BuildShuffleBytes());
+    private static readonly Vector256<byte> BgraToRgbaShuffle256 = Vector256.Create(new ReadOnlySpan<byte>(BgraToRgbaShuffleBytes, 0, Vector256<byte>.Count));
+
+    private static readonly Vector512<byte> BgraToRgbaShuffle512 = Vector512.Create(BgraToRgbaShuffleBytes);
 
     /// <summary>
     /// Applies the inverse of Apple's CgBI pixel mangling to a defiltered scanline in place.

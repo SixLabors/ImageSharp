@@ -767,7 +767,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
     /// <param name="chunkLength">The length of the chunk that containing the compressed scanline data.</param>
     /// <param name="image"> The pixel data.</param>
     /// <param name="pngMetadata">The png metadata</param>
-    /// <param name="getData">A delegate to get more data from the inner stream for <see cref="ZlibInflateStream"/>.</param>
+    /// <param name="getData">A delegate to get more data from the inner stream when chunk boundaries are crossed.</param>
     /// <param name="frameControl">The frame control</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     private void ReadScanlines<TPixel>(
@@ -779,14 +779,34 @@ internal sealed class PngDecoderCore : ImageDecoderCore
         CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using ZlibInflateStream inflateStream = new(this.currentStream, getData, noHeader: this.isCgbi);
+        // CgBI IDATs wrap a raw DEFLATE payload directly (no zlib CMF/FLG header
+        // and no Adler-32 trailer); skip the zlib header parser entirely.
+        if (this.isCgbi)
+        {
+            using ChunkedReadStream segmentStream = new(this.currentStream, getData);
+            segmentStream.SetCurrentSegmentLength(chunkLength);
+            using DeflateStream cgbiDataStream = new(segmentStream, CompressionMode.Decompress, leaveOpen: true);
+            this.DecodeFromDeflate(cgbiDataStream, image, pngMetadata, frameControl, cancellationToken);
+            return;
+        }
+
+        using ZlibInflateStream inflateStream = new(this.currentStream, getData);
         if (!inflateStream.AllocateNewBytes(chunkLength, !this.hasImageData))
         {
             return;
         }
 
-        DeflateStream dataStream = inflateStream.CompressedStream!;
+        this.DecodeFromDeflate(inflateStream.CompressedStream!, image, pngMetadata, frameControl, cancellationToken);
+    }
 
+    private void DecodeFromDeflate<TPixel>(
+        DeflateStream dataStream,
+        ImageFrame<TPixel> image,
+        PngMetadata pngMetadata,
+        in FrameControl frameControl,
+        CancellationToken cancellationToken)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
         if (this.header.InterlaceMethod is PngInterlaceMode.Adam7)
         {
             this.DecodeInterlacedPixelData(frameControl, dataStream, image, pngMetadata, cancellationToken);

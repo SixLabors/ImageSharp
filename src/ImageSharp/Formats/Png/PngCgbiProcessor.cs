@@ -47,17 +47,17 @@ internal static class PngCgbiProcessor
             Span<Rgba32> pixels = MemoryMarshal.Cast<byte, Rgba32>(scanline);
             int i = 0;
 
-            if (Vector512.IsHardwareAccelerated && pixels.Length >= 16)
+            if (Vector512.IsHardwareAccelerated && pixels.Length >= Vector512<int>.Count)
             {
                 i = ApplyTransformVector512(scanline, pixels.Length);
             }
 
-            if (Vector256.IsHardwareAccelerated && Avx2.IsSupported && (pixels.Length - i) >= 8)
+            if (Vector256.IsHardwareAccelerated && Avx2.IsSupported && (pixels.Length - i) >= Vector256<int>.Count)
             {
                 i = ApplyTransformVector256(scanline, i, pixels.Length);
             }
 
-            if (Vector128.IsHardwareAccelerated && (pixels.Length - i) >= 4)
+            if (Vector128.IsHardwareAccelerated && (pixels.Length - i) >= Vector128<int>.Count)
             {
                 i = ApplyTransformVector128(scanline, i, pixels.Length);
             }
@@ -106,11 +106,9 @@ internal static class PngCgbiProcessor
 
         Vector512<int> zero = Vector512<int>.Zero;
         Vector512<int> one = Vector512<int>.One;
-        Vector512<int> byteMask = Vector512.Create(0xFF);
-        Vector512<int> opaque = Vector512.Create(0xFF);
         Vector512<int> byteMax = Vector512.Create((int)byte.MaxValue);
 
-        for (; i <= pixelCount - 16; i += 16)
+        for (; i <= pixelCount - Vector512<int>.Count; i += Vector512<int>.Count)
         {
             ref byte blockRef = ref Unsafe.Add(ref scanlineRef, i * Unsafe.SizeOf<Rgba32>());
             Vector512<byte> bgra = Unsafe.ReadUnaligned<Vector512<byte>>(ref blockRef);
@@ -121,11 +119,11 @@ internal static class PngCgbiProcessor
             // Fully transparent and fully opaque pixels are identity cases for
             // unpremultiplication. Masking them keeps the scalar behavior and lets
             // safeAlpha avoid dividing by zero for alpha == 0.
-            Vector512<int> partialMask = ~(Vector512.Equals(alpha, zero) | Vector512.Equals(alpha, opaque));
+            Vector512<int> partialMask = ~(Vector512.Equals(alpha, zero) | Vector512.Equals(alpha, byteMax));
 
-            Vector512<int> r = packed & byteMask;
-            Vector512<int> g = Vector512.ShiftRightLogical(packed, 8) & byteMask;
-            Vector512<int> b = Vector512.ShiftRightLogical(packed, 16) & byteMask;
+            Vector512<int> r = packed & byteMax;
+            Vector512<int> g = Vector512.ShiftRightLogical(packed, 8) & byteMax;
+            Vector512<int> b = Vector512.ShiftRightLogical(packed, 16) & byteMax;
 
             Vector512<int> safeAlpha = Vector512.ConditionalSelect(partialMask, alpha, one);
             Vector512<int> halfAlpha = Vector512.ShiftRightLogical(safeAlpha, 1);
@@ -180,11 +178,9 @@ internal static class PngCgbiProcessor
 
         Vector256<int> zero = Vector256<int>.Zero;
         Vector256<int> one = Vector256<int>.One;
-        Vector256<int> byteMask = Vector256.Create(0xFF);
-        Vector256<int> opaque = Vector256.Create(0xFF);
         Vector256<int> byteMax = Vector256.Create((int)byte.MaxValue);
 
-        for (; i <= pixelCount - 8; i += 8)
+        for (; i <= pixelCount - Vector256<int>.Count; i += Vector256<int>.Count)
         {
             ref byte blockRef = ref Unsafe.Add(ref scanlineRef, i * Unsafe.SizeOf<Rgba32>());
             Vector256<byte> bgra = Unsafe.ReadUnaligned<Vector256<byte>>(ref blockRef);
@@ -195,11 +191,11 @@ internal static class PngCgbiProcessor
             // Fully transparent and fully opaque pixels are identity cases for
             // unpremultiplication. Masking them keeps the scalar behavior and lets
             // safeAlpha avoid dividing by zero for alpha == 0.
-            Vector256<int> partialMask = ~(Vector256.Equals(alpha, zero) | Vector256.Equals(alpha, opaque));
+            Vector256<int> partialMask = ~(Vector256.Equals(alpha, zero) | Vector256.Equals(alpha, byteMax));
 
-            Vector256<int> r = packed & byteMask;
-            Vector256<int> g = Vector256.ShiftRightLogical(packed, 8) & byteMask;
-            Vector256<int> b = Vector256.ShiftRightLogical(packed, 16) & byteMask;
+            Vector256<int> r = packed & byteMax;
+            Vector256<int> g = Vector256.ShiftRightLogical(packed, 8) & byteMax;
+            Vector256<int> b = Vector256.ShiftRightLogical(packed, 16) & byteMax;
 
             Vector256<int> safeAlpha = Vector256.ConditionalSelect(partialMask, alpha, one);
             Vector256<int> halfAlpha = Vector256.ShiftRightLogical(safeAlpha, 1);
@@ -251,11 +247,9 @@ internal static class PngCgbiProcessor
 
         Vector128<int> zero = Vector128<int>.Zero;
         Vector128<int> one = Vector128<int>.One;
-        Vector128<int> byteMask = Vector128.Create(0xFF);
-        Vector128<int> opaque = Vector128.Create(0xFF);
         Vector128<int> byteMax = Vector128.Create((int)byte.MaxValue);
 
-        for (; i <= pixelCount - 4; i += 4)
+        for (; i <= pixelCount - Vector128<int>.Count; i += Vector128<int>.Count)
         {
             ref byte blockRef = ref Unsafe.Add(ref scanlineRef, i * Unsafe.SizeOf<Rgba32>());
             Vector128<byte> bgra = Unsafe.ReadUnaligned<Vector128<byte>>(ref blockRef);
@@ -266,11 +260,11 @@ internal static class PngCgbiProcessor
             // Fully transparent and fully opaque pixels are identity cases for
             // unpremultiplication. Masking them keeps the scalar behavior and lets
             // safeAlpha avoid dividing by zero for alpha == 0.
-            Vector128<int> partialMask = ~(Vector128.Equals(alpha, zero) | Vector128.Equals(alpha, opaque));
+            Vector128<int> partialMask = ~(Vector128.Equals(alpha, zero) | Vector128.Equals(alpha, byteMax));
 
-            Vector128<int> r = packed & byteMask;
-            Vector128<int> g = Vector128.ShiftRightLogical(packed, 8) & byteMask;
-            Vector128<int> b = Vector128.ShiftRightLogical(packed, 16) & byteMask;
+            Vector128<int> r = packed & byteMax;
+            Vector128<int> g = Vector128.ShiftRightLogical(packed, 8) & byteMax;
+            Vector128<int> b = Vector128.ShiftRightLogical(packed, 16) & byteMax;
 
             Vector128<int> safeAlpha = Vector128.ConditionalSelect(partialMask, alpha, one);
             Vector128<int> halfAlpha = Vector128.ShiftRightLogical(safeAlpha, 1);
@@ -315,9 +309,10 @@ internal static class PngCgbiProcessor
 
     private static byte[] BuildShuffleBytes()
     {
-        byte[] bytes = new byte[64];
+        byte[] bytes = new byte[Vector512<byte>.Count];
         Span<byte> span = bytes;
         Shuffle.MMShuffleSpan(ref span, Shuffle.MMShuffle3012);
+
         return bytes;
     }
 }

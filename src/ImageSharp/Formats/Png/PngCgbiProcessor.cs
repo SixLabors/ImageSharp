@@ -47,10 +47,7 @@ internal static class PngCgbiProcessor
             Span<Rgba32> pixels = MemoryMarshal.Cast<byte, Rgba32>(scanline);
             int i = 0;
 
-            // Avx512BW is required for the per-byte vpshufb. Without it, ShuffleNative
-            // falls back to a software cross-lane shuffle that is slower than the V256
-            // path, so skip V512 entirely on Avx512F-only hosts.
-            if (Vector512.IsHardwareAccelerated && Avx512BW.IsSupported && pixels.Length >= 16)
+            if (Vector512.IsHardwareAccelerated && pixels.Length >= 16)
             {
                 i = ApplyTransformVector512(scanline, pixels.Length);
             }
@@ -102,8 +99,9 @@ internal static class PngCgbiProcessor
         ref byte scanlineRef = ref MemoryMarshal.GetReference(scanline);
         int i = 0;
 
-        // The mask only swaps bytes inside each 4-byte pixel, so it is correct
-        // for the per-lane Avx512BW.Shuffle that ShuffleNative selects here.
+        // Indices stay within their own 4-byte pixel, so the per-pixel pattern
+        // is also valid under the per-128-bit-lane vpshufb that ShuffleNative
+        // selects on AVX-512BW hosts.
         Vector512<byte> shuffleMask = BgraToRgbaShuffle512;
 
         Vector512<int> zero = Vector512<int>.Zero;

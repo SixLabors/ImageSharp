@@ -129,20 +129,20 @@ internal static class PngCgbiProcessor
             Vector512<int> halfAlpha = Vector512.ShiftRightLogical(safeAlpha, 1);
             Vector512<float> safeAlphaF = Vector512.ConvertToSingle(safeAlpha);
 
-            // The scalar path computes ((c * 255) + (a >> 1)) / a with integer
-            // division. Floor the positive quotient before converting so SIMD does
-            // not use the default round-to-nearest conversion and drift by one.
+            // ConvertToInt32 truncates toward zero (cvttps2dq / fcvtzs); since
+            // every quotient here is non-negative, that matches the scalar
+            // ((c * 255) + (a >> 1)) / a integer-division floor.
             Vector512<int> unpremultipliedR = Vector512.Min(
                 byteMax,
-                Vector512.ConvertToInt32(Vector512.Floor(Vector512.ConvertToSingle((r * byteMax) + halfAlpha) / safeAlphaF)));
+                Vector512.ConvertToInt32(Vector512.ConvertToSingle((r * byteMax) + halfAlpha) / safeAlphaF));
 
             Vector512<int> unpremultipliedG = Vector512.Min(
                 byteMax,
-                Vector512.ConvertToInt32(Vector512.Floor(Vector512.ConvertToSingle((g * byteMax) + halfAlpha) / safeAlphaF)));
+                Vector512.ConvertToInt32(Vector512.ConvertToSingle((g * byteMax) + halfAlpha) / safeAlphaF));
 
             Vector512<int> unpremultipliedB = Vector512.Min(
                 byteMax,
-                Vector512.ConvertToInt32(Vector512.Floor(Vector512.ConvertToSingle((b * byteMax) + halfAlpha) / safeAlphaF)));
+                Vector512.ConvertToInt32(Vector512.ConvertToSingle((b * byteMax) + halfAlpha) / safeAlphaF));
 
             // ConditionalSelect applies the expensive unpremultiply only to pixels
             // where alpha is between 1 and 254; alpha 0 and 255 lanes keep the
@@ -201,20 +201,20 @@ internal static class PngCgbiProcessor
             Vector256<int> halfAlpha = Vector256.ShiftRightLogical(safeAlpha, 1);
             Vector256<float> safeAlphaF = Vector256.ConvertToSingle(safeAlpha);
 
-            // The scalar path computes ((c * 255) + (a >> 1)) / a with integer
-            // division. Floor the positive quotient before converting so SIMD does
-            // not use the default round-to-nearest conversion and drift by one.
+            // ConvertToInt32 truncates toward zero (cvttps2dq / fcvtzs); since
+            // every quotient here is non-negative, that matches the scalar
+            // ((c * 255) + (a >> 1)) / a integer-division floor.
             Vector256<int> unpremultipliedR = Vector256.Min(
                 byteMax,
-                Vector256.ConvertToInt32(Vector256.Floor(Vector256.ConvertToSingle((r * byteMax) + halfAlpha) / safeAlphaF)));
+                Vector256.ConvertToInt32(Vector256.ConvertToSingle((r * byteMax) + halfAlpha) / safeAlphaF));
 
             Vector256<int> unpremultipliedG = Vector256.Min(
                 byteMax,
-                Vector256.ConvertToInt32(Vector256.Floor(Vector256.ConvertToSingle((g * byteMax) + halfAlpha) / safeAlphaF)));
+                Vector256.ConvertToInt32(Vector256.ConvertToSingle((g * byteMax) + halfAlpha) / safeAlphaF));
 
             Vector256<int> unpremultipliedB = Vector256.Min(
                 byteMax,
-                Vector256.ConvertToInt32(Vector256.Floor(Vector256.ConvertToSingle((b * byteMax) + halfAlpha) / safeAlphaF)));
+                Vector256.ConvertToInt32(Vector256.ConvertToSingle((b * byteMax) + halfAlpha) / safeAlphaF));
 
             // ConditionalSelect applies the expensive unpremultiply only to pixels
             // where alpha is between 1 and 254; alpha 0 and 255 lanes keep the
@@ -270,20 +270,20 @@ internal static class PngCgbiProcessor
             Vector128<int> halfAlpha = Vector128.ShiftRightLogical(safeAlpha, 1);
             Vector128<float> safeAlphaF = Vector128.ConvertToSingle(safeAlpha);
 
-            // The scalar path computes ((c * 255) + (a >> 1)) / a with integer
-            // division. Floor the positive quotient before converting so SIMD does
-            // not use the default round-to-nearest conversion and drift by one.
+            // ConvertToInt32 truncates toward zero (cvttps2dq / fcvtzs); since
+            // every quotient here is non-negative, that matches the scalar
+            // ((c * 255) + (a >> 1)) / a integer-division floor.
             Vector128<int> unpremultipliedR = Vector128.Min(
                 byteMax,
-                Vector128.ConvertToInt32(Vector128.Floor(Vector128.ConvertToSingle((r * byteMax) + halfAlpha) / safeAlphaF)));
+                Vector128.ConvertToInt32(Vector128.ConvertToSingle((r * byteMax) + halfAlpha) / safeAlphaF));
 
             Vector128<int> unpremultipliedG = Vector128.Min(
                 byteMax,
-                Vector128.ConvertToInt32(Vector128.Floor(Vector128.ConvertToSingle((g * byteMax) + halfAlpha) / safeAlphaF)));
+                Vector128.ConvertToInt32(Vector128.ConvertToSingle((g * byteMax) + halfAlpha) / safeAlphaF));
 
             Vector128<int> unpremultipliedB = Vector128.Min(
                 byteMax,
-                Vector128.ConvertToInt32(Vector128.Floor(Vector128.ConvertToSingle((b * byteMax) + halfAlpha) / safeAlphaF)));
+                Vector128.ConvertToInt32(Vector128.ConvertToSingle((b * byteMax) + halfAlpha) / safeAlphaF));
 
             // ConditionalSelect applies the expensive unpremultiply only to pixels
             // where alpha is between 1 and 254; alpha 0 and 255 lanes keep the

@@ -344,6 +344,40 @@ public abstract class PixelOperationsTests<TPixel> : MeasureFixture
         (object)new TestPixel<Short2>(),
         (object)new TestPixel<Short4>(),
     };
+    public static readonly TheoryData<object> Generic_To_Data = new(
+        new object[]
+        {
+            new TestPixel<A8>(),
+            new TestPixel<Abgr32>(),
+            new TestPixel<Argb32>(),
+            new TestPixel<Bgr24>(),
+            new TestPixel<Bgr565>(),
+            new TestPixel<Bgra32>(),
+            new TestPixel<Bgra4444>(),
+            new TestPixel<Bgra5551>(),
+            new TestPixel<Byte4>(),
+            new TestPixel<HalfSingle>(),
+            new TestPixel<HalfVector2>(),
+            new TestPixel<HalfVector4>(),
+            new TestPixel<L16>(),
+            new TestPixel<L8>(),
+            new TestPixel<La16>(),
+            new TestPixel<La32>(),
+            new TestPixel<NormalizedByte2>(),
+            new TestPixel<NormalizedByte4>(),
+            new TestPixel<NormalizedShort2>(),
+            new TestPixel<NormalizedShort4>(),
+            new TestPixel<Rg32>(),
+            new TestPixel<Rgb24>(),
+            new TestPixel<Rgb48>(),
+            new TestPixel<Rgba1010102>(),
+            new TestPixel<Rgba32>(),
+            new TestPixel<Rgba64>(),
+            new TestPixel<RgbaVector>(),
+            new TestPixel<Short2>(),
+            new TestPixel<Short4>(),
+        }
+    );
 
     [Theory]
     [MemberData(nameof(Generic_To_Data))]

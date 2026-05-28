@@ -28,7 +28,9 @@ internal class BasicSerializer : IXunitSerializationInfo
         foreach (KeyValuePair<string, (string str, Type t)> kv in this.map)
         {
             // Format: key:TypeAssemblyQualifiedName:value
-            writer.WriteLine($"{kv.Key}{Separator}{kv.Value.t.AssemblyQualifiedName}{Separator}{kv.Value.str}");
+            writer.WriteLine(
+                $"{kv.Key}{Separator}{kv.Value.t.AssemblyQualifiedName}{Separator}{kv.Value.str}"
+            );
         }
 
         writer.Flush();
@@ -44,17 +46,12 @@ internal class BasicSerializer : IXunitSerializationInfo
         Type type = Type.GetType(reader.ReadLine());
         for (string s = reader.ReadLine(); s != null; s = reader.ReadLine())
         {
-            // Format: key:TypeAQN:value  (3 parts max to preserve ':' inside value)
+            // Format: key:TypeAssemblyQualifiedName:value
             string[] parts = s.Split(Separator, 3);
             if (parts.Length == 3)
             {
                 Type valueType = Type.GetType(parts[1]) ?? typeof(string);
                 this.map[parts[0]] = (parts[2], valueType);
-            }
-            else if (parts.Length == 2)
-            {
-                // Legacy two-part format: key:value (no type info)
-                this.map[parts[0]] = (parts[1], typeof(string));
             }
         }
 

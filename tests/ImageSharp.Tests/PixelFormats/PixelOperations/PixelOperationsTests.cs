@@ -312,38 +312,6 @@ public abstract class PixelOperationsTests<TPixel> : MeasureFixture
             (s, d) => this.Operations.ToVector4(this.Configuration, s, d.GetSpan()));
     }
 
-    public static readonly TheoryData<object> Generic_To_Data = new()
-    {
-        (object)new TestPixel<A8>(),
-        (object)new TestPixel<Abgr32>(),
-        (object)new TestPixel<Argb32>(),
-        (object)new TestPixel<Bgr24>(),
-        (object)new TestPixel<Bgr565>(),
-        (object)new TestPixel<Bgra32>(),
-        (object)new TestPixel<Bgra4444>(),
-        (object)new TestPixel<Bgra5551>(),
-        (object)new TestPixel<Byte4>(),
-        (object)new TestPixel<HalfSingle>(),
-        (object)new TestPixel<HalfVector2>(),
-        (object)new TestPixel<HalfVector4>(),
-        (object)new TestPixel<L16>(),
-        (object)new TestPixel<L8>(),
-        (object)new TestPixel<La16>(),
-        (object)new TestPixel<La32>(),
-        (object)new TestPixel<NormalizedByte2>(),
-        (object)new TestPixel<NormalizedByte4>(),
-        (object)new TestPixel<NormalizedShort2>(),
-        (object)new TestPixel<NormalizedShort4>(),
-        (object)new TestPixel<Rg32>(),
-        (object)new TestPixel<Rgb24>(),
-        (object)new TestPixel<Rgb48>(),
-        (object)new TestPixel<Rgba1010102>(),
-        (object)new TestPixel<Rgba32>(),
-        (object)new TestPixel<Rgba64>(),
-        (object)new TestPixel<RgbaVector>(),
-        (object)new TestPixel<Short2>(),
-        (object)new TestPixel<Short4>(),
-    };
     public static readonly TheoryData<object> Generic_To_Data = new(
         new object[]
         {

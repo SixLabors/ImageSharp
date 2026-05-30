@@ -584,7 +584,7 @@ public class UniformUnmanagedPoolMemoryAllocatorTests
         }
     }
 
-    [Fact(Skip = "Requires 64-bit process", SkipType = typeof(Environment), SkipUnless = nameof(Environment.Is64BitProcess))]
+    [ConditionalFact(typeof(Environment), nameof(Environment.Is64BitProcess))]
     public void MemoryAllocator_Create_SetHighLimit()
     {
         RemoteExecutor.Invoke(RunTest).Dispose();

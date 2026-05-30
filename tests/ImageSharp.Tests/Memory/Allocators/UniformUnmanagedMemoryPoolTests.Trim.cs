@@ -57,7 +57,7 @@ public partial class UniformUnmanagedMemoryPoolTests
 
             // TODO: Investigate failures on macOS. All handles are released after GC.
             // (It seems to happen more consistently on .NET 6.)
-            [Fact(Skip = "Skipped on macOS", SkipUnless = nameof(IsNotMacOS))]
+            [ConditionalFact(nameof(IsNotMacOS))]
             public void MultiplePoolInstances_TrimPeriodElapsed_AllAreTrimmed()
             {
                 if (!TestEnvironment.RunsOnCI)

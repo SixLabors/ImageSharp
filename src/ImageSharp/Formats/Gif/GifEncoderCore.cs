@@ -361,7 +361,10 @@ internal sealed class GifEncoderCore
                 : Color.Transparent;
 
         // Deduplicate and quantize the frame capturing only required parts.
-        (bool difference, Rectangle bounds) =
+        // Pixels matching the previous frame are replaced with the transparent placeholder.
+        // When the entire frame matches there is no captured difference, but every pixel is
+        // still a placeholder, so a transparent index is always required for additional frames.
+        (_, Rectangle bounds) =
             AnimationUtilities.DeDuplicatePixels(
                 this.configuration,
                 previous,
@@ -378,7 +381,7 @@ internal sealed class GifEncoderCore
                 bounds,
                 metadata,
                 useLocal,
-                difference,
+                true,
                 transparencyIndex,
                 background);
 
@@ -403,7 +406,7 @@ internal sealed class GifEncoderCore
         Rectangle bounds,
         GifFrameMetadata metadata,
         bool useLocal,
-        bool hasDuplicates,
+        bool requiresTransparency,
         int transparencyIndex,
         Color transparentColor)
         where TPixel : unmanaged, IPixel<TPixel>
@@ -417,9 +420,11 @@ internal sealed class GifEncoderCore
                 // We can use the color data from the decoded metadata here.
                 // We avoid dithering by default to preserve the original colors.
                 ReadOnlyMemory<Color> palette = metadata.LocalColorTable.Value;
-                if (hasDuplicates && !metadata.HasTransparency)
+                if (requiresTransparency && !metadata.HasTransparency)
                 {
-                    // Duplicates were captured but the metadata does not have transparency.
+                    // The frame was de-duplicated against the previous frame, replacing matching
+                    // pixels with the transparent placeholder, but the metadata does not yet carry
+                    // a transparent index. Reserve one so those pixels encode as transparent.
                     metadata.HasTransparency = true;
 
                     if (palette.Length < 256)
@@ -480,7 +485,7 @@ internal sealed class GifEncoderCore
 
                 metadata.TransparencyIndex = ClampIndex(derivedTransparencyIndex);
 
-                if (hasDuplicates)
+                if (requiresTransparency)
                 {
                     metadata.HasTransparency = true;
                 }
@@ -492,11 +497,19 @@ internal sealed class GifEncoderCore
             // Individual frames, though using the shared palette, can use a different transparent index
             // to represent transparency.
 
-            // A difference was captured but the metadata does not have transparency.
-            if (hasDuplicates && !metadata.HasTransparency)
+            // The frame was de-duplicated against the previous frame, replacing matching pixels with
+            // the transparent placeholder. When the whole frame matches there is no captured difference,
+            // yet every pixel is still a placeholder, so we must always reserve a transparent index here;
+            // otherwise the placeholder pixels are matched to the nearest (typically darkest) palette color.
+            if (requiresTransparency && !metadata.HasTransparency)
             {
                 metadata.HasTransparency = true;
-                transparencyIndex = globalFrameQuantizer.Palette.Length;
+
+                // Normally we pad one index past the palette so the (out of range) value is treated as
+                // transparent by decoders without growing the color table. A full 256-color palette leaves
+                // no room to pad within the 8-bit index space (index 256 wraps to 0 when written and exceeds
+                // the maximum GIF bit depth), so reuse the last in-range index for transparency instead.
+                transparencyIndex = Math.Min(globalFrameQuantizer.Palette.Length, byte.MaxValue);
                 metadata.TransparencyIndex = ClampIndex(transparencyIndex);
             }
 

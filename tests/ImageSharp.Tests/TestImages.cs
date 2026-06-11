@@ -618,6 +618,7 @@ public static class TestImages
             public const string Issue2859_B = "Gif/issues/issue_2859_B.gif";
             public const string Issue2953 = "Gif/issues/issue_2953.gif";
             public const string Issue2980 = "Gif/issues/issue_2980.gif";
+            public const string Issue3142 = "Gif/issues/issue_3142.gif";
         }
 
         public static readonly string[] Animated =
@@ -639,7 +640,8 @@ public static class TestImages
             Issues.BadDescriptorWidth,
             Issues.Issue1530,
             Bit18RGBCube,
-            Global256NoTrans
+            Global256NoTrans,
+            Issues.Issue3142
         ];
     }
 

@@ -120,34 +120,42 @@ public class PngCgbiProcessorTests
         Assert.True(vectorTail.SequenceEqual(inputTail));
     }
 
+    /// <summary>
+    /// Builds synthetic input for tests. Produces inputs that exercise all three alpha cases.
+    /// </summary>
+    /// <returns>Channel values laid out as a defiltered CgBI scanline in premultiplied BGRA order</returns>
     private static byte[] CreateBgraScanline(int pixelCount)
     {
-        // Deterministic mix of edge cases (a=0, a=255, partial alpha) and varied channels.
+        // The distinct strides keep the channels from being equal to each other or constant across pixels
+        // So a bug that e.g. swaps two channels or reuses one channel's value doesn't accidentally pass
+        const int alphaCaseCount = 7;
+        const int redStride = 13;
+        const int greenStride = 29;
+        const int blueStride = 53;
+
         byte[] bytes = new byte[pixelCount * 4];
         for (int p = 0; p < pixelCount; p++)
         {
-            byte a = (p % 7) switch
+            // Cycling alpha through [0..255], and an odd partial value every pixel rotation
+            // ensures all three branches get covered within any scanline of 3 or more pixels
+            byte a = (p % alphaCaseCount) switch
             {
                 0 => byte.MinValue,
                 1 => byte.MaxValue,
-                _ => (byte)((((p * 37) + 23) & 0xFF) | 1) // never zero
+                _ => (byte)(((p * 37) + 23) | 1) // Produce a spread of alpha values and make sure to never get 0
             };
 
-            // CgBI premultiplied BGRA: c' = c * a / 255
-            byte r = (byte)((p * 13) & 0xFF);
-            byte g = (byte)((p * 29) & 0xFF);
-            byte b = (byte)((p * 53) & 0xFF);
-            r = (byte)((r * a) / byte.MaxValue);
-            g = (byte)((g * a) / byte.MaxValue);
-            b = (byte)((b * a) / byte.MaxValue);
-
-            bytes[(p * 4) + 0] = b;
-            bytes[(p * 4) + 1] = g;
-            bytes[(p * 4) + 2] = r;
-            bytes[(p * 4) + 3] = a;
+            int offset = p * 4;
+            bytes[offset + 0] = Premultiply((byte)(p * blueStride), a);
+            bytes[offset + 1] = Premultiply((byte)(p * greenStride), a);
+            bytes[offset + 2] = Premultiply((byte)(p * redStride), a);
+            bytes[offset + 3] = a;
         }
 
         return bytes;
+
+        // CgBI stores channels premultiplied by alpha
+        static byte Premultiply(byte channel, byte alpha) => (byte)(channel * alpha / byte.MaxValue);
     }
 
     private static void ApplyCgbiTransformScalarReference(Span<byte> scanline)

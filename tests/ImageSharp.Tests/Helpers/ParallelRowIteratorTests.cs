@@ -7,7 +7,6 @@ using Castle.Core.Configuration;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
-using Xunit.Abstractions;
 
 namespace SixLabors.ImageSharp.Tests.Helpers;
 

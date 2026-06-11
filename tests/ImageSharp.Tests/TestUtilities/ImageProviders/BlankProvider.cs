@@ -2,8 +2,8 @@
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.PixelFormats;
+using Xunit.Sdk;
 
-using Xunit.Abstractions;
 
 namespace SixLabors.ImageSharp.Tests;
 

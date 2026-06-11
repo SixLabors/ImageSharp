@@ -43,8 +43,8 @@ public class DitherTests
     public static readonly TheoryData<IDither> DefaultInstanceDitherers
         = new()
         {
-            default(ErrorDither),
-            default(OrderedDither)
+            (IDither)default(ErrorDither),
+            (IDither)default(OrderedDither)
         };
 
     private static readonly ImageComparer ValidatorComparer = ImageComparer.TolerantPercentage(0.05f);

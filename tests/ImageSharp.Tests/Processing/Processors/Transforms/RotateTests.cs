@@ -15,7 +15,7 @@ public class RotateTests
     public static readonly TheoryData<float> RotateAngles
         = new()
         {
-            50, -50, 170, -170
+            50f, -50f, 170f, -170f
         };
 
     public static readonly TheoryData<RotateMode> RotateEnumValues

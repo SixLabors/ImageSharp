@@ -2,22 +2,19 @@
 // Licensed under the Six Labors Split License.
 
 using Microsoft.DotNet.RemoteExecutor;
-
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs;
-using Xunit.Abstractions;
 
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests;
 
 public class TestEnvironmentTests
 {
-    public TestEnvironmentTests(ITestOutputHelper output)
-        => this.Output = output;
+    public TestEnvironmentTests(ITestOutputHelper output) => this.Output = output;
 
     private ITestOutputHelper Output { get; }
 
@@ -28,21 +25,24 @@ public class TestEnvironmentTests
     }
 
     [Fact]
-    public void SolutionDirectoryFullPath()
-        => this.CheckPath(TestEnvironment.SolutionDirectoryFullPath);
+    public void SolutionDirectoryFullPath() =>
+        this.CheckPath(TestEnvironment.SolutionDirectoryFullPath);
 
     [Fact]
-    public void InputImagesDirectoryFullPath()
-        => this.CheckPath(TestEnvironment.InputImagesDirectoryFullPath);
+    public void InputImagesDirectoryFullPath() =>
+        this.CheckPath(TestEnvironment.InputImagesDirectoryFullPath);
 
     [Fact]
-    public void ExpectedOutputDirectoryFullPath()
-        => this.CheckPath(TestEnvironment.ReferenceOutputDirectoryFullPath);
+    public void ExpectedOutputDirectoryFullPath() =>
+        this.CheckPath(TestEnvironment.ReferenceOutputDirectoryFullPath);
 
     [Fact]
     public void GetReferenceOutputFileName()
     {
-        string actual = Path.Combine(TestEnvironment.ActualOutputDirectoryFullPath, @"foo\bar\lol.jpeg");
+        string actual = Path.Combine(
+            TestEnvironment.ActualOutputDirectoryFullPath,
+            @"foo\bar\lol.jpeg"
+        );
         string expected = TestEnvironment.GetReferenceOutputFileName(actual);
 
         this.Output.WriteLine(expected);
@@ -55,7 +55,10 @@ public class TestEnvironmentTests
     [InlineData("lol/Baz.JPG", typeof(JpegEncoder))]
     [InlineData("lol/Baz.gif", typeof(GifEncoder))]
     [InlineData("lol/foobar.webp", typeof(WebpEncoder))]
-    public void GetReferenceEncoder_ReturnsCorrectEncoders_Windows(string fileName, Type expectedEncoderType)
+    public void GetReferenceEncoder_ReturnsCorrectEncoders_Windows(
+        string fileName,
+        Type expectedEncoderType
+    )
     {
         if (!TestEnvironment.IsWindows)
         {
@@ -72,7 +75,10 @@ public class TestEnvironmentTests
     [InlineData("lol/Baz.JPG", typeof(JpegDecoder))]
     [InlineData("lol/Baz.gif", typeof(GifDecoder))]
     [InlineData("lol/foobar.webp", typeof(WebpDecoder))]
-    public void GetReferenceDecoder_ReturnsCorrectDecoders_Windows(string fileName, Type expectedDecoderType)
+    public void GetReferenceDecoder_ReturnsCorrectDecoders_Windows(
+        string fileName,
+        Type expectedDecoderType
+    )
     {
         if (!TestEnvironment.IsWindows)
         {
@@ -89,7 +95,10 @@ public class TestEnvironmentTests
     [InlineData("lol/Baz.JPG", typeof(JpegEncoder))]
     [InlineData("lol/Baz.gif", typeof(GifEncoder))]
     [InlineData("lol/foobar.webp", typeof(WebpEncoder))]
-    public void GetReferenceEncoder_ReturnsCorrectEncoders_Linux(string fileName, Type expectedEncoderType)
+    public void GetReferenceEncoder_ReturnsCorrectEncoders_Linux(
+        string fileName,
+        Type expectedEncoderType
+    )
     {
         if (!TestEnvironment.IsLinux)
         {
@@ -106,7 +115,10 @@ public class TestEnvironmentTests
     [InlineData("lol/Baz.JPG", typeof(JpegDecoder))]
     [InlineData("lol/Baz.gif", typeof(GifDecoder))]
     [InlineData("lol/foobar.webp", typeof(WebpDecoder))]
-    public void GetReferenceDecoder_ReturnsCorrectDecoders_Linux(string fileName, Type expectedDecoderType)
+    public void GetReferenceDecoder_ReturnsCorrectDecoders_Linux(
+        string fileName,
+        Type expectedDecoderType
+    )
     {
         if (!TestEnvironment.IsLinux)
         {
@@ -119,9 +131,13 @@ public class TestEnvironmentTests
 
     // RemoteExecutor does not work with "dotnet xunit" used to run tests on 32 bit .NET Framework:
     // https://github.com/SixLabors/ImageSharp/blob/381dff8640b721a34b1227c970fcf6ad6c5e3e72/ci-test.ps1#L30
-    public static bool IsNot32BitNetFramework = !TestEnvironment.IsFramework || TestEnvironment.Is64BitProcess;
+    public static bool IsNot32BitNetFramework =>
+        !TestEnvironment.IsFramework || TestEnvironment.Is64BitProcess;
 
-    [ConditionalFact(nameof(IsNot32BitNetFramework))]
+    [Fact(
+        Skip = "Not supported on 32-bit .NET Framework",
+        SkipUnless = nameof(IsNot32BitNetFramework)
+    )]
     public void RemoteExecutor_FailingRemoteTestShouldFailLocalTest()
     {
         static void FailingCode()
@@ -129,6 +145,8 @@ public class TestEnvironmentTests
             Assert.False(true);
         }
 
-        Assert.ThrowsAny<RemoteExecutionException>(() => RemoteExecutor.Invoke(FailingCode).Dispose());
+        Assert.ThrowsAny<RemoteExecutionException>(() =>
+            RemoteExecutor.Invoke(FailingCode).Dispose()
+        );
     }
 }

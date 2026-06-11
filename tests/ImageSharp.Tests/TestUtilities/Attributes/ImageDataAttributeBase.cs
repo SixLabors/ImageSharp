@@ -3,6 +3,7 @@
 
 using System.Reflection;
 using Xunit.Sdk;
+using Xunit.v3;
 
 namespace SixLabors.ImageSharp.Tests;
 
@@ -42,11 +43,22 @@ public abstract class ImageDataAttributeBase : DataAttribute
     /// </summary>
     public Type MemberType { get; set; }
 
+    /// <inheritdoc/>
+    public override bool SupportsDiscoveryEnumeration() => true;
+
+    /// <inheritdoc/>
+    public override ValueTask<IReadOnlyCollection<ITheoryDataRow?>> GetData(MethodInfo testMethod, DisposalTracker disposalTracker)
+    {
+        IEnumerable<object[]> rows = this.GetDataRows(testMethod);
+        IReadOnlyCollection<ITheoryDataRow?> result = rows.Select(row => ConvertDataRow(row)).ToList();
+        return new ValueTask<IReadOnlyCollection<ITheoryDataRow?>>(result);
+    }
+
     /// <summary>Returns the data to be used to test the theory.</summary>
     /// <param name="testMethod">The method that is being tested</param>
     /// <returns>One or more sets of theory data. Each invocation of the test method
     /// is represented by a single object array.</returns>
-    public override IEnumerable<object[]> GetData(MethodInfo testMethod)
+    private IEnumerable<object[]> GetDataRows(MethodInfo testMethod)
     {
         IEnumerable<object[]> addedRows = Enumerable.Empty<object[]>().ToArray();
         if (!string.IsNullOrWhiteSpace(this.MemberName))
@@ -59,11 +71,14 @@ public abstract class ImageDataAttributeBase : DataAttribute
                 object obj = accessor();
                 if (obj is IEnumerable<object> memberItems)
                 {
-                    addedRows = memberItems.Select(x => x as object[]);
-                    if (addedRows.Any(x => x == null))
+                    // In xunit.v3, TheoryData<T...> yields ITheoryDataRow, not object[].
+                    // Call GetData() to unpack the row's values.
+                    addedRows = memberItems.Select(x =>
                     {
-                        addedRows = memberItems.Select(x => new[] { x });
-                    }
+                        if (x is ITheoryDataRow row) return row.GetData();
+                        if (x is object[] arr) return arr;
+                        return new[] { x };
+                    });
                 }
             }
         }

@@ -3,22 +3,16 @@
 
 using BenchmarkDotNet.Environments;
 using SixLabors.ImageSharp.Tests.TestUtilities;
-using Xunit.Abstractions;
-using Xunit.Sdk;
+using Xunit.v3;
 
-[assembly: Xunit.TestFramework(SixLaborsXunitTestFramework.Type, SixLaborsXunitTestFramework.Assembly)]
+[assembly: Xunit.TestFramework(typeof(SixLaborsXunitTestFramework))]
 
 namespace SixLabors.ImageSharp.Tests.TestUtilities;
 
 public class SixLaborsXunitTestFramework : XunitTestFramework
 {
-    public const string Type = "SixLabors.ImageSharp.Tests.TestUtilities.SixLaborsXunitTestFramework";
-    public const string Assembly = "SixLabors.ImageSharp.Tests";
-
-    public SixLaborsXunitTestFramework(IMessageSink messageSink)
-        : base(messageSink)
+    public SixLaborsXunitTestFramework()
     {
-        DiagnosticMessage message = new(HostEnvironmentInfo.GetInformation());
-        messageSink.OnMessage(message);
+        Console.Error.WriteLine(HostEnvironmentInfo.GetInformation());
     }
 }

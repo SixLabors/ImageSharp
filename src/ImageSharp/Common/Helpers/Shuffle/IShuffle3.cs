@@ -33,9 +33,19 @@ internal readonly struct DefaultShuffle3([ConstantExpected] byte control) : IShu
 
         for (nuint i = 0; i < (uint)source.Length; i += 3)
         {
-            Unsafe.Add(ref dBase, i + 0) = Unsafe.Add(ref sBase, p0 + i);
-            Unsafe.Add(ref dBase, i + 1) = Unsafe.Add(ref sBase, p1 + i);
-            Unsafe.Add(ref dBase, i + 2) = Unsafe.Add(ref sBase, p2 + i);
+            // The scalar remainder can run in-place after the vector body. Load
+            // the full 3-byte pixel into a register-sized value before stores so
+            // channel swaps cannot corrupt later reads from the same pixel.
+            uint packed =
+                Unsafe.Add(ref sBase, i + 0u) |
+                ((uint)Unsafe.Add(ref sBase, i + 1u) << 8) |
+                ((uint)Unsafe.Add(ref sBase, i + 2u) << 16);
+
+            ref byte pBase = ref Unsafe.As<uint, byte>(ref packed);
+
+            Unsafe.Add(ref dBase, i + 0u) = Unsafe.Add(ref pBase, p0);
+            Unsafe.Add(ref dBase, i + 1u) = Unsafe.Add(ref pBase, p1);
+            Unsafe.Add(ref dBase, i + 2u) = Unsafe.Add(ref pBase, p2);
         }
     }
 }

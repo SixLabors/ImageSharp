@@ -123,6 +123,19 @@ public class PbmDecoderTests
             appendPixelTypeToFileName: false);
     }
 
+    [Theory]
+    [InlineData("P2")]
+    [InlineData("P3")]
+    [InlineData("P5")]
+    [InlineData("P6")]
+    public void Decode_MaxPixelValueZero_ThrowsInvalidImageContentException(string magic)
+    {
+        byte[] bytes = Encoding.ASCII.GetBytes($"{magic} 1 1 0\n0");
+        using MemoryStream stream = new(bytes);
+
+        Assert.Throws<InvalidImageContentException>(() => Image.Load<Rgba32>(stream));
+    }
+
     [Fact]
     public void PlainText_PrematureEof()
     {

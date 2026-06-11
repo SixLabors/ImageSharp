@@ -392,11 +392,11 @@ public struct HexadecatreeQuantizer<TPixel> : IQuantizer<TPixel>
         internal struct Node
         {
             public bool Leaf;
-            public int PixelCount;
-            public int Red;
-            public int Green;
-            public int Blue;
-            public int Alpha;
+            public long PixelCount;
+            public long Red;
+            public long Green;
+            public long Blue;
+            public long Alpha;
             public short PaletteIndex;
             public short NextReducibleIndex;
             private InlineArray16<short> children;
@@ -510,12 +510,13 @@ public struct HexadecatreeQuantizer<TPixel> : IQuantizer<TPixel>
                     return;
                 }
 
-                // Now merge the (presumably reduced) children.
-                int pixelCount = 0;
-                int sumRed = 0;
-                int sumGreen = 0;
-                int sumBlue = 0;
-                int sumAlpha = 0;
+                // Allocation fallback can accumulate samples on an interior node. Seed the merge
+                // with this node's own sums so reduction preserves those samples with its children.
+                long pixelCount = this.PixelCount;
+                long sumRed = this.Red;
+                long sumGreen = this.Green;
+                long sumBlue = this.Blue;
+                long sumAlpha = this.Alpha;
                 Span<short> children = this.Children;
 
                 for (int i = 0; i < children.Length; i++)
@@ -524,7 +525,7 @@ public struct HexadecatreeQuantizer<TPixel> : IQuantizer<TPixel>
                     if (childIndex != -1)
                     {
                         ref Node child = ref tree.Nodes[childIndex];
-                        int pixels = child.PixelCount;
+                        long pixels = child.PixelCount;
                         sumRed += child.Red;
                         sumGreen += child.Green;
                         sumBlue += child.Blue;

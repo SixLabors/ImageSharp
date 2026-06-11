@@ -182,6 +182,16 @@ public readonly partial struct OrderedDither : IDither, IEquatable<OrderedDither
         where TPixel : unmanaged, IPixel<TPixel>
     {
         Rgba32 rgba = source.ToRgba32();
+
+        // Leave fully transparent pixels untouched. They carry no visible color (a decoder shows
+        // whatever is behind them), so perturbing them is meaningless and, for indexed transparency,
+        // nudges them off the exact transparent color so they are matched to the nearest opaque
+        // palette entry instead of being kept transparent.
+        if (rgba.A == 0)
+        {
+            return source;
+        }
+
         Unsafe.SkipInit(out Rgba32 attempt);
 
         float factor = spread * this.thresholdMatrix[y % this.modulusY, x % this.modulusX] * scale;

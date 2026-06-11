@@ -3,6 +3,7 @@
 
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
@@ -150,10 +151,15 @@ internal static partial class SimdUtils
 
         for (nuint i = 0; i < (uint)source.Length; i += 4)
         {
-            Unsafe.Add(ref dBase, i + 0) = Unsafe.Add(ref sBase, p0 + i);
-            Unsafe.Add(ref dBase, i + 1) = Unsafe.Add(ref sBase, p1 + i);
-            Unsafe.Add(ref dBase, i + 2) = Unsafe.Add(ref sBase, p2 + i);
-            Unsafe.Add(ref dBase, i + 3) = Unsafe.Add(ref sBase, p3 + i);
+            // Stage the scalar tail in a local Vector4 so p0..p3 index source
+            // values that were captured before any overlapping destination writes.
+            Vector4 v = Unsafe.As<float, Vector4>(ref Unsafe.Add(ref sBase, i));
+            ref float pBase = ref Unsafe.As<Vector4, float>(ref v);
+
+            Unsafe.Add(ref dBase, i + 0u) = Unsafe.Add(ref pBase, p0);
+            Unsafe.Add(ref dBase, i + 1u) = Unsafe.Add(ref pBase, p1);
+            Unsafe.Add(ref dBase, i + 2u) = Unsafe.Add(ref pBase, p2);
+            Unsafe.Add(ref dBase, i + 3u) = Unsafe.Add(ref pBase, p3);
         }
     }
 

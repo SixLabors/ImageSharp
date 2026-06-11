@@ -79,6 +79,9 @@ public static class TestImages
         public const string AnimatedFrameCount = "Png/animated/issue-animated-frame-count.png";
         public const string Issue2666 = "Png/issues/Issue_2666.png";
         public const string Issue2882 = "Png/issues/Issue_2882.png";
+        public const string Issue396Dragon = "Png/issues/Issue_396_dragon.png";
+        public const string Issue396Hand1 = "Png/issues/Issue_396_hand_1.png";
+        public const string Issue396Hand2 = "Png/issues/Issue_396_hand_2.png";
 
         // Filtered test images from http://www.schaik.com/pngsuite/pngsuite_fil_png.html
         public const string Filter0 = "Png/filter0.png";
@@ -177,6 +180,17 @@ public static class TestImages
             public const string PerceptualcLUTOnly = "Png/icc-profiles/Perceptual-cLUT-only.png";
         }
 
+        public static class Cgbi
+        {
+            public const string Colors = "Png/cgbi/colors.png";
+            public const string Clocks = "Png/cgbi/clocks.png";
+            public const string Flecks = "Png/cgbi/flecks.png";
+            public const string Screen = "Png/cgbi/screen.png";
+
+            // Issue 410: https://github.com/SixLabors/ImageSharp/issues/410
+            public const string Issue410 = "Png/issues/Issue_410.png";
+        }
+
         public static class Bad
         {
             public const string MissingDataChunk = "Png/xdtn0g01.png";
@@ -198,9 +212,6 @@ public static class TestImages
 
             // Issue 1047: https://github.com/SixLabors/ImageSharp/issues/1047
             public const string Issue1047_BadEndChunk = "Png/issues/Issue_1047.png";
-
-            // Issue 410: https://github.com/SixLabors/ImageSharp/issues/410
-            public const string Issue410_MalformedApplePng = "Png/issues/Issue_410.png";
 
             // Bad bit depth.
             public const string BitDepthZero = "Png/xd0n2c08.png";
@@ -603,6 +614,7 @@ public static class TestImages
             public const string Issue2859_B = "Gif/issues/issue_2859_B.gif";
             public const string Issue2953 = "Gif/issues/issue_2953.gif";
             public const string Issue2980 = "Gif/issues/issue_2980.gif";
+            public const string Issue3142 = "Gif/issues/issue_3142.gif";
         }
 
         public static readonly string[] Animated =
@@ -624,7 +636,8 @@ public static class TestImages
             Issues.BadDescriptorWidth,
             Issues.Issue1530,
             Bit18RGBCube,
-            Global256NoTrans
+            Global256NoTrans,
+            Issues.Issue3142
         ];
     }
 

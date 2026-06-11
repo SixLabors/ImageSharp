@@ -35,10 +35,16 @@ internal readonly struct DefaultShuffle4([ConstantExpected] byte control) : IShu
 
         for (nuint i = 0; i < (uint)source.Length; i += 4)
         {
-            Unsafe.Add(ref dBase, i + 0) = Unsafe.Add(ref sBase, p0 + i);
-            Unsafe.Add(ref dBase, i + 1) = Unsafe.Add(ref sBase, p1 + i);
-            Unsafe.Add(ref dBase, i + 2) = Unsafe.Add(ref sBase, p2 + i);
-            Unsafe.Add(ref dBase, i + 3) = Unsafe.Add(ref sBase, p3 + i);
+            // The generic path may be used with source and destination pointing
+            // at the same pixel. Load all channels first so subsequent stores
+            // index only staged bytes, matching the specialized uint shuffles.
+            uint packed = Unsafe.As<byte, uint>(ref Unsafe.Add(ref sBase, i));
+            ref byte pBase = ref Unsafe.As<uint, byte>(ref packed);
+
+            Unsafe.Add(ref dBase, i + 0u) = Unsafe.Add(ref pBase, p0);
+            Unsafe.Add(ref dBase, i + 1u) = Unsafe.Add(ref pBase, p1);
+            Unsafe.Add(ref dBase, i + 2u) = Unsafe.Add(ref pBase, p2);
+            Unsafe.Add(ref dBase, i + 3u) = Unsafe.Add(ref pBase, p3);
         }
     }
 }

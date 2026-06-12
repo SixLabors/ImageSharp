@@ -189,6 +189,10 @@ public static class TestImages
 
             // Issue 410: https://github.com/SixLabors/ImageSharp/issues/410
             public const string Issue410 = "Png/issues/Issue_410.png";
+
+            // Synthetic fixtures derived from colors.png to exercise CgBI validation.
+            public const string BitDepth16 = "Png/cgbi/colors-cgbi-bitdepth16.png";
+            public const string Palette = "Png/cgbi/colors-cgbi-palette.png";
         }
 
         public static class Bad

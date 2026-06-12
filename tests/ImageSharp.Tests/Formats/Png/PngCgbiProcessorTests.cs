@@ -4,6 +4,7 @@
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Tests.TestUtilities;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Png;
 
@@ -24,10 +25,14 @@ public class PngCgbiProcessorTests
     [InlineData(32)]
     [InlineData(33)]
     [InlineData(64)]
-    public void ApplyTransform_RgbWithAlpha_MatchesScalar(int pixelCount)
+    public void ApplyTransform_RgbWithAlpha_MatchesScalar(int pixelCount) =>
+        FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            serialized => AssertApplyTransformMatchesScalar(FeatureTestRunner.Deserialize<int>(serialized)),
+            pixelCount,
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+
+    private static void AssertApplyTransformMatchesScalar(int pixelCount)
     {
-        // Drives the full V512/V256/V128/scalar dispatch, so it covers each
-        // path that is hardware-accelerated on the host plus the scalar tail.
         byte[] input = CreateBgraScanline(pixelCount);
         byte[] processorOutput = (byte[])input.Clone();
         byte[] scalarOutput = (byte[])input.Clone();
@@ -36,88 +41,6 @@ public class PngCgbiProcessorTests
         ApplyCgbiTransformScalarReference(scalarOutput);
 
         Assert.Equal(scalarOutput, processorOutput);
-    }
-
-    [Theory]
-    [InlineData(0)]
-    [InlineData(1)]
-    [InlineData(3)]
-    [InlineData(4)]
-    [InlineData(7)]
-    [InlineData(8)]
-    [InlineData(15)]
-    [InlineData(16)]
-    [InlineData(17)]
-    [InlineData(31)]
-    [InlineData(32)]
-    [InlineData(33)]
-    [InlineData(64)]
-    public void ApplyTransformVector512_MatchesScalar(int pixelCount) =>
-        // Vector512 uses Vector512_.ShuffleNative which falls back to the software
-        // Vector512.Shuffle when Avx512BW is unavailable, so the body runs regardless
-        // of whether Vector512 is hardware-accelerated on the host.
-        AssertVectorMatchesScalar(
-            pixelCount,
-            scanline => PngCgbiProcessor.ApplyTransformVector512(scanline, scanline.Length / 4),
-            blockSize: 16);
-
-    [Theory]
-    [InlineData(0)]
-    [InlineData(1)]
-    [InlineData(3)]
-    [InlineData(4)]
-    [InlineData(7)]
-    [InlineData(8)]
-    [InlineData(15)]
-    [InlineData(16)]
-    [InlineData(17)]
-    [InlineData(31)]
-    [InlineData(32)]
-    [InlineData(64)]
-    public void ApplyTransformVector256_MatchesScalar(int pixelCount) => AssertVectorMatchesScalar(
-            pixelCount,
-            scanline => PngCgbiProcessor.ApplyTransformVector256(scanline, 0, scanline.Length / 4),
-            blockSize: 8);
-
-    [Theory]
-    [InlineData(0)]
-    [InlineData(1)]
-    [InlineData(3)]
-    [InlineData(4)]
-    [InlineData(7)]
-    [InlineData(8)]
-    [InlineData(15)]
-    [InlineData(16)]
-    [InlineData(64)]
-    public void ApplyTransformVector128_MatchesScalar(int pixelCount) => AssertVectorMatchesScalar(
-            pixelCount,
-            scanline => PngCgbiProcessor.ApplyTransformVector128(scanline, 0, scanline.Length / 4),
-            blockSize: 4);
-
-    private static void AssertVectorMatchesScalar(int pixelCount, Func<byte[], int> applyVector, int blockSize)
-    {
-        byte[] input = CreateBgraScanline(pixelCount);
-        byte[] vectorOutput = (byte[])input.Clone();
-        byte[] scalarOutput = (byte[])input.Clone();
-
-        int processed = applyVector(vectorOutput);
-
-        int expectedProcessed = (pixelCount / blockSize) * blockSize;
-        Assert.Equal(expectedProcessed, processed);
-
-        // The vector path is responsible for whole blocks only; remaining pixels are
-        // handled by the scalar tail in ApplyTransform. Run the scalar reference
-        // over every pixel and compare the prefix the vector path actually wrote.
-        ApplyCgbiTransformScalarReference(scalarOutput);
-
-        Span<byte> vectorProcessed = vectorOutput.AsSpan(0, processed * 4);
-        Span<byte> scalarProcessed = scalarOutput.AsSpan(0, processed * 4);
-        Assert.True(vectorProcessed.SequenceEqual(scalarProcessed), $"Mismatch at pixelCount={pixelCount}");
-
-        // Pixels past the vector's processed prefix must be untouched.
-        Span<byte> vectorTail = vectorOutput.AsSpan(processed * 4);
-        Span<byte> inputTail = input.AsSpan(processed * 4);
-        Assert.True(vectorTail.SequenceEqual(inputTail));
     }
 
     /// <summary>

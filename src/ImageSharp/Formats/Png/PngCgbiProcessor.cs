@@ -95,7 +95,7 @@ internal static class PngCgbiProcessor
         pixel = new Rgba32(r, g, b, a);
     }
 
-    internal static int ApplyTransformVector512(Span<byte> scanline, int pixelCount)
+    private static int ApplyTransformVector512(Span<byte> scanline, int pixelCount)
     {
         ref byte scanlineRef = ref MemoryMarshal.GetReference(scanline);
         int i = 0;
@@ -167,7 +167,7 @@ internal static class PngCgbiProcessor
         return i;
     }
 
-    internal static int ApplyTransformVector256(Span<byte> scanline, int startPixel, int pixelCount)
+    private static int ApplyTransformVector256(Span<byte> scanline, int startPixel, int pixelCount)
     {
         ref byte scanlineRef = ref MemoryMarshal.GetReference(scanline);
         int i = startPixel;
@@ -239,7 +239,7 @@ internal static class PngCgbiProcessor
         return i;
     }
 
-    internal static int ApplyTransformVector128(Span<byte> scanline, int startPixel, int pixelCount)
+    private static int ApplyTransformVector128(Span<byte> scanline, int startPixel, int pixelCount)
     {
         ref byte scanlineRef = ref MemoryMarshal.GetReference(scanline);
         int i = startPixel;

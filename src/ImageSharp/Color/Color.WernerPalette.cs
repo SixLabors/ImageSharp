@@ -127,6 +127,10 @@ public partial struct Color
         ParseHex("#8b7859"),
         ParseHex("#9b856b"),
         ParseHex("#766051"),
-        ParseHex("#453b32")
+        ParseHex("#453b32"),
+
+        // Werner does not define a transparent color, but we need to add one to
+        // make the palette work with the rest of the library.
+        Transparent
     ];
 }

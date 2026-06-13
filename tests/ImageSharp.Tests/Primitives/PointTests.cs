@@ -4,7 +4,7 @@
 using System.Globalization;
 using System.Numerics;
 
-namespace SixLabors.ImageSharp.Tests;
+namespace SixLabors.ImageSharp.Tests.Primitives;
 
 public class PointTests
 {
@@ -110,6 +110,27 @@ public class PointTests
         Assert.Equal(subExpected, p - s);
         Assert.Equal(addExpected, Point.Add(p, s));
         Assert.Equal(subExpected, Point.Subtract(p, s));
+    }
+
+    [Theory]
+    [InlineData(int.MaxValue, int.MaxValue, 5)]
+    [InlineData(int.MinValue, int.MinValue, 4)]
+    [InlineData(int.MaxValue, int.MaxValue, 2)]
+    [InlineData(0, 0, 3)]
+    public void ShiftTest(int x, int y, int s)
+    {
+        Point rightExpected, leftExpected, p = new Point(x, y);
+
+        unchecked
+        {
+            rightExpected = new Point(x >> s, y >> s);
+            leftExpected = new Point(x << s, y << s);
+        }
+
+        Assert.Equal(rightExpected, p >> s);
+        Assert.Equal(leftExpected, p << s);
+        Assert.Equal(rightExpected, Point.ShiftRight(p, s));
+        Assert.Equal(leftExpected, Point.ShiftLeft(p, s));
     }
 
     [Theory]

@@ -1,8 +1,8 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
-#nullable disable
 
 using System.Buffers;
+using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Png;
 
@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.Formats.Png;
 /// </summary>
 internal readonly struct PngChunk
 {
-    public PngChunk(int length, PngChunkType type, IMemoryOwner<byte> data = null)
+    public PngChunk(int length, PngChunkType type, IMemoryOwner<byte>? data = null)
     {
         this.Length = length;
         this.Type = type;
@@ -36,7 +36,16 @@ internal readonly struct PngChunk
     /// Gets the data bytes appropriate to the chunk type, if any.
     /// This field can be of zero length or null.
     /// </summary>
-    public IMemoryOwner<byte> Data { get; }
+    public IMemoryOwner<byte>? Data { get; }
+
+    public ReadOnlySpan<byte> DataSpan
+    {
+        get
+        {
+            DebugGuard.NotNull(this.Data);
+            return this.Data.GetSpan();
+        }
+    }
 
     /// <summary>
     /// Gets a value indicating whether the given chunk is critical to decoding

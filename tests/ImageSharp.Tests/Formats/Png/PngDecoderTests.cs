@@ -768,6 +768,28 @@ public partial class PngDecoderTests
     }
 
     [Theory]
+    [InlineData(TestImages.Png.Cgbi.BitDepth16)]
+    [InlineData(TestImages.Png.Cgbi.Palette)]
+    public void Identify_CgBI_IncompatibleHeader_ThrowsInvalidImageContentException(string imagePath)
+    {
+        TestFile testFile = TestFile.Create(imagePath);
+        using MemoryStream stream = new(testFile.Bytes, false);
+        InvalidImageContentException ex = Assert.Throws<InvalidImageContentException>(() => Image.Identify(stream));
+        Assert.Contains("CgBI is only supported for 8-bit truecolor images", ex.Message);
+    }
+
+    [Theory]
+    [WithFile(TestImages.Png.Cgbi.BitDepth16, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Png.Cgbi.Palette, PixelTypes.Rgba32)]
+    public void Decode_CgBI_IncompatibleHeader_ThrowsInvalidImageContentException<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        InvalidImageContentException ex = Assert.Throws<InvalidImageContentException>(
+            () => { using Image<TPixel> image = provider.GetImage(PngDecoder.Instance); });
+        Assert.Contains("CgBI is only supported for 8-bit truecolor images", ex.Message);
+    }
+
+    [Theory]
     [WithFile(TestImages.Png.Splash, PixelTypes.Rgba32)]
     [WithFile(TestImages.Png.Bike, PixelTypes.Rgba32)]
     public void PngDecoder_DegenerateMemoryRequest_ShouldTranslateTo_ImageFormatException<TPixel>(TestImageProvider<TPixel> provider)

@@ -7,6 +7,7 @@ using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.Formats.Cur;
 using SixLabors.ImageSharp.Formats.Exr;
 using SixLabors.ImageSharp.Formats.Gif;
+using SixLabors.ImageSharp.Formats.Heif;
 using SixLabors.ImageSharp.Formats.Ico;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Formats.Pbm;
@@ -217,6 +218,7 @@ public sealed class Configuration
     /// <see cref="WebpConfigurationModule"/>.
     /// <see cref="ExrConfigurationModule"/>.
     /// <see cref="QoiConfigurationModule"/>.
+    /// <see cref="HeifConfigurationModule"/>.
     /// </summary>
     /// <returns>The default configuration of <see cref="Configuration"/>.</returns>
     internal static Configuration CreateDefaultInstance() => new(
@@ -230,6 +232,7 @@ public sealed class Configuration
             new WebpConfigurationModule(),
             new ExrConfigurationModule(),
             new QoiConfigurationModule(),
+            new HeifConfigurationModule(),
             new IcoConfigurationModule(),
             new CurConfigurationModule());
 }

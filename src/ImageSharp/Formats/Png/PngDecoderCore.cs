@@ -324,6 +324,11 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                             goto EOF;
                         case PngChunkType.ProprietaryApple:
                             this.isCgbi = true;
+                            if (!Equals(this.header, default(PngHeader)))
+                            {
+                                ThrowIfInvalidCgbiContent(this.header);
+                            }
+
                             break;
                     }
                 }
@@ -528,6 +533,11 @@ internal sealed class PngDecoderCore : ImageDecoderCore
 
                         case PngChunkType.ProprietaryApple:
                             this.isCgbi = true;
+                            if (!Equals(this.header, default(PngHeader)))
+                            {
+                                ThrowIfInvalidCgbiContent(this.header);
+                            }
+
                             break;
 
                         default:
@@ -1431,6 +1441,20 @@ internal sealed class PngDecoderCore : ImageDecoderCore
 
         this.pngColorType = this.header.ColorType;
         this.Dimensions = new Size(this.header.Width, this.header.Height);
+
+        if (this.isCgbi)
+        {
+            ThrowIfInvalidCgbiContent(this.header);
+        }
+    }
+
+    private static void ThrowIfInvalidCgbiContent(in PngHeader header)
+    {
+        if (header.BitDepth != 8 || (header.ColorType is not PngColorType.Rgb and not PngColorType.RgbWithAlpha))
+        {
+            PngThrowHelper.ThrowInvalidImageContentException(
+                $"CgBI is only supported for 8-bit truecolor images. Was bit depth '{header.BitDepth}', color type '{header.ColorType}'.");
+        }
     }
 
     /// <summary>

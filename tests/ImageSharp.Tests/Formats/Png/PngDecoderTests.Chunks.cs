@@ -108,6 +108,29 @@ public partial class PngDecoderTests
         Assert.Equal("The frame control chunk does not contain enough data!", exception.Message);
     }
 
+    [Fact]
+    public void Decode_CgbiAfterHeaderWithUnsupportedColorType_ThrowsException()
+    {
+        byte[] header = Raw1X1PngIhdrAndpHYs.ToArray();
+        header[25] = 0;
+        header[29] = 0x3A;
+        header[30] = 0x7E;
+        header[31] = 0x9B;
+        header[32] = 0x55;
+
+        byte[] payload = [.. header, 0, 0, 0, 0, 67, 103, 66, 73, 40, 50, 33, 217, .. Raw1X1PngIdatAndIend];
+
+        using MemoryStream decodeStream = new(payload);
+        InvalidImageContentException decodeException = Assert.Throws<InvalidImageContentException>(
+            () => Image.Load<Rgba32>(decodeStream));
+        Assert.Equal("CgBI is only supported for 8-bit truecolor images. Was bit depth '8', color type 'Grayscale'.", decodeException.Message);
+
+        using MemoryStream identifyStream = new(payload);
+        InvalidImageContentException identifyException = Assert.Throws<InvalidImageContentException>(
+            () => Image.Identify(identifyStream));
+        Assert.Equal(decodeException.Message, identifyException.Message);
+    }
+
     // https://github.com/SixLabors/ImageSharp/issues/3079
     [Fact]
     public void Decode_CompressedTxtChunk_WithTruncatedData_DoesNotThrow()

@@ -303,50 +303,30 @@ public partial class SimdUtilsTests
         {
             int size = FeatureTestRunner.Deserialize<int>(serialized);
 
-            // These cannot be expressed as a theory as you cannot
-            // use RemoteExecutor within generic methods nor pass
-            // IShuffle4 to the generic utils method.
-            WXYZShuffle4 wxyz = default;
             TestShuffleByte4Channel(
                 size,
-                (s, d) => SimdUtils.Shuffle4(s.Span, d.Span, wxyz),
+                (s, d) => SimdUtils.Shuffle4<WXYZShuffle4>(s.Span, d.Span),
                 SimdUtils.Shuffle.MMShuffle2103);
 
-            WZYXShuffle4 wzyx = default;
             TestShuffleByte4Channel(
                 size,
-                (s, d) => SimdUtils.Shuffle4(s.Span, d.Span, wzyx),
+                (s, d) => SimdUtils.Shuffle4<WZYXShuffle4>(s.Span, d.Span),
                 SimdUtils.Shuffle.MMShuffle0123);
 
-            YZWXShuffle4 yzwx = default;
             TestShuffleByte4Channel(
                 size,
-                (s, d) => SimdUtils.Shuffle4(s.Span, d.Span, yzwx),
+                (s, d) => SimdUtils.Shuffle4<YZWXShuffle4>(s.Span, d.Span),
                 SimdUtils.Shuffle.MMShuffle0321);
 
-            ZYXWShuffle4 zyxw = default;
             TestShuffleByte4Channel(
                 size,
-                (s, d) => SimdUtils.Shuffle4(s.Span, d.Span, zyxw),
+                (s, d) => SimdUtils.Shuffle4<ZYXWShuffle4>(s.Span, d.Span),
                 SimdUtils.Shuffle.MMShuffle3012);
 
-            DefaultShuffle4 xwyz = new(SimdUtils.Shuffle.MMShuffle2130);
             TestShuffleByte4Channel(
                 size,
-                (s, d) => SimdUtils.Shuffle4(s.Span, d.Span, xwyz),
-                xwyz.Control);
-
-            DefaultShuffle4 yyyy = new(SimdUtils.Shuffle.MMShuffle1111);
-            TestShuffleByte4Channel(
-                size,
-                (s, d) => SimdUtils.Shuffle4(s.Span, d.Span, yyyy),
-                yyyy.Control);
-
-            DefaultShuffle4 wwww = new(SimdUtils.Shuffle.MMShuffle3333);
-            TestShuffleByte4Channel(
-                size,
-                (s, d) => SimdUtils.Shuffle4(s.Span, d.Span, wwww),
-                wwww.Control);
+                (s, d) => SimdUtils.Shuffle4<XWZYShuffle4>(s.Span, d.Span),
+                SimdUtils.Shuffle.MMShuffle1230);
         }
 
         FeatureTestRunner.RunWithHwIntrinsicsFeature(
@@ -363,32 +343,10 @@ public partial class SimdUtilsTests
         {
             int size = FeatureTestRunner.Deserialize<int>(serialized);
 
-            // These cannot be expressed as a theory as you cannot
-            // use RemoteExecutor within generic methods nor pass
-            // IShuffle3 to the generic utils method.
-            DefaultShuffle3 zyx = new(SimdUtils.Shuffle.MMShuffle3012);
             TestShuffleByte3Channel(
                 size,
-                (s, d) => SimdUtils.Shuffle3(s.Span, d.Span, zyx),
-                zyx.Control);
-
-            DefaultShuffle3 xyz = new(SimdUtils.Shuffle.MMShuffle3210);
-            TestShuffleByte3Channel(
-                size,
-                (s, d) => SimdUtils.Shuffle3(s.Span, d.Span, xyz),
-                xyz.Control);
-
-            DefaultShuffle3 yyy = new(SimdUtils.Shuffle.MMShuffle3111);
-            TestShuffleByte3Channel(
-                size,
-                (s, d) => SimdUtils.Shuffle3(s.Span, d.Span, yyy),
-                yyy.Control);
-
-            DefaultShuffle3 zzz = new(SimdUtils.Shuffle.MMShuffle3222);
-            TestShuffleByte3Channel(
-                size,
-                (s, d) => SimdUtils.Shuffle3(s.Span, d.Span, zzz),
-                zzz.Control);
+                (s, d) => SimdUtils.Shuffle3<ZYXShuffle3>(s.Span, d.Span),
+                SimdUtils.Shuffle.MMShuffle3012);
         }
 
         FeatureTestRunner.RunWithHwIntrinsicsFeature(
@@ -405,32 +363,25 @@ public partial class SimdUtilsTests
         {
             int size = FeatureTestRunner.Deserialize<int>(serialized);
 
-            // These cannot be expressed as a theory as you cannot
-            // use RemoteExecutor within generic methods nor pass
-            // IPad3Shuffle4 to the generic utils method.
-            XYZWPad3Shuffle4 xyzw = default;
             TestPad3Shuffle4Channel(
                 size,
-                (s, d) => SimdUtils.Pad3Shuffle4(s.Span, d.Span, xyzw),
+                (s, d) => SimdUtils.Pad3Shuffle4<XYZWPad3Shuffle4>(s.Span, d.Span),
                 SimdUtils.Shuffle.MMShuffle3210);
 
-            DefaultPad3Shuffle4 xwyz = new(SimdUtils.Shuffle.MMShuffle2130);
             TestPad3Shuffle4Channel(
                 size,
-                (s, d) => SimdUtils.Pad3Shuffle4(s.Span, d.Span, xwyz),
-                xwyz.Control);
+                (s, d) => SimdUtils.Pad3Shuffle4<WXYZPad3Shuffle4>(s.Span, d.Span),
+                SimdUtils.Shuffle.MMShuffle2103);
 
-            DefaultPad3Shuffle4 yyyy = new(SimdUtils.Shuffle.MMShuffle1111);
             TestPad3Shuffle4Channel(
                 size,
-                (s, d) => SimdUtils.Pad3Shuffle4(s.Span, d.Span, yyyy),
-                yyyy.Control);
+                (s, d) => SimdUtils.Pad3Shuffle4<WZYXPad3Shuffle4>(s.Span, d.Span),
+                SimdUtils.Shuffle.MMShuffle0123);
 
-            DefaultPad3Shuffle4 wwww = new(SimdUtils.Shuffle.MMShuffle3333);
             TestPad3Shuffle4Channel(
                 size,
-                (s, d) => SimdUtils.Pad3Shuffle4(s.Span, d.Span, wwww),
-                wwww.Control);
+                (s, d) => SimdUtils.Pad3Shuffle4<ZYXWPad3Shuffle4>(s.Span, d.Span),
+                SimdUtils.Shuffle.MMShuffle3012);
         }
 
         FeatureTestRunner.RunWithHwIntrinsicsFeature(
@@ -447,32 +398,25 @@ public partial class SimdUtilsTests
         {
             int size = FeatureTestRunner.Deserialize<int>(serialized);
 
-            // These cannot be expressed as a theory as you cannot
-            // use RemoteExecutor within generic methods nor pass
-            // IShuffle4Slice3 to the generic utils method.
-            XYZWShuffle4Slice3 xyzw = default;
             TestShuffle4Slice3Channel(
                 size,
-                (s, d) => SimdUtils.Shuffle4Slice3(s.Span, d.Span, xyzw),
+                (s, d) => SimdUtils.Shuffle4Slice3<XYZWShuffle4Slice3>(s.Span, d.Span),
                 SimdUtils.Shuffle.MMShuffle3210);
 
-            DefaultShuffle4Slice3 xwyz = new(SimdUtils.Shuffle.MMShuffle2130);
             TestShuffle4Slice3Channel(
                 size,
-                (s, d) => SimdUtils.Shuffle4Slice3(s.Span, d.Span, xwyz),
-                xwyz.Control);
+                (s, d) => SimdUtils.Shuffle4Slice3<YZWXShuffle4Slice3>(s.Span, d.Span),
+                SimdUtils.Shuffle.MMShuffle0321);
 
-            DefaultShuffle4Slice3 yyyy = new(SimdUtils.Shuffle.MMShuffle1111);
             TestShuffle4Slice3Channel(
                 size,
-                (s, d) => SimdUtils.Shuffle4Slice3(s.Span, d.Span, yyyy),
-                yyyy.Control);
+                (s, d) => SimdUtils.Shuffle4Slice3<WZYXShuffle4Slice3>(s.Span, d.Span),
+                SimdUtils.Shuffle.MMShuffle0123);
 
-            DefaultShuffle4Slice3 wwww = new(SimdUtils.Shuffle.MMShuffle3333);
             TestShuffle4Slice3Channel(
                 size,
-                (s, d) => SimdUtils.Shuffle4Slice3(s.Span, d.Span, wwww),
-                wwww.Control);
+                (s, d) => SimdUtils.Shuffle4Slice3<ZYXWShuffle4Slice3>(s.Span, d.Span),
+                SimdUtils.Shuffle.MMShuffle3012);
         }
 
         FeatureTestRunner.RunWithHwIntrinsicsFeature(

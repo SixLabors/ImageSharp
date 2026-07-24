@@ -791,42 +791,104 @@ public class PixelBlenderTests
         ExerciseBlender(blender, background, source);
     }
 
+    /// <summary>
+    /// Exercises every bulk overload across vector-width boundaries and compares it with single-pixel composition.
+    /// </summary>
+    /// <typeparam name="TPixel">The pixel format.</typeparam>
+    /// <param name="blender">The blender under test.</param>
+    /// <param name="background">The background pixel.</param>
+    /// <param name="source">The source pixel.</param>
     private static void ExerciseBlender<TPixel>(PixelBlender<TPixel> blender, TPixel background, TPixel source)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        float[] amount = [1F, 1F, 1F, 1F];
-        float[] coverage = [1F, 1F, 1F, 1F];
+        const float amount = .625F;
 
-        TPixel expected = blender.Blend(background, source, 1F);
+        float[] amounts = [0F, .125F, .375F, .625F, .875F, 1F, .5F];
+        float[] coverage = [1F, .8F, .6F, .4F, .2F, 0F, .5F];
 
-        TPixel[] destination = new TPixel[4];
-        TPixel[] backgroundSpan = [background, background, background, background];
-        TPixel[] sourceSpan = [source, source, source, source];
+        // Seven pixels exercise one AVX-512 batch plus three tails, or three AVX2 batches plus one tail.
+        TPixel[] destination = new TPixel[7];
+        TPixel[] expected = new TPixel[7];
+        TPixel[] backgroundSpan = [background, background, background, background, background, background, background];
+        TPixel[] sourceSpan = [source, source, source, source, source, source, source];
         Vector4[] sourceSpanBuffer = new Vector4[destination.Length * 3];
         Vector4[] constantSourceBuffer = new Vector4[destination.Length * 2];
 
-        blender.Blend<TPixel>(Configuration.Default, destination, backgroundSpan, sourceSpan, 1F, sourceSpanBuffer);
-        Assert.All(destination, x => Assert.Equal(expected, x));
+        Array.Fill(expected, blender.Blend(background, source, amount));
 
-        blender.Blend(Configuration.Default, destination, backgroundSpan, source, 1F, constantSourceBuffer);
-        Assert.All(destination, x => Assert.Equal(expected, x));
-
-        blender.Blend(Configuration.Default, destination, backgroundSpan, sourceSpan, amount, sourceSpanBuffer);
-        Assert.All(destination, x => Assert.Equal(expected, x));
+        blender.Blend<TPixel>(Configuration.Default, destination, backgroundSpan, sourceSpan, amount, sourceSpanBuffer);
+        Assert.Equal(expected, destination);
 
         blender.Blend(Configuration.Default, destination, backgroundSpan, source, amount, constantSourceBuffer);
-        Assert.All(destination, x => Assert.Equal(expected, x));
+        Assert.Equal(expected, destination);
 
-        blender.BlendWithCoverage<TPixel>(Configuration.Default, destination, backgroundSpan, sourceSpan, 1F, coverage, sourceSpanBuffer);
-        Assert.All(destination, x => Assert.Equal(expected, x));
+        for (int i = 0; i < expected.Length; i++)
+        {
+            expected[i] = blender.Blend(background, source, amounts[i]);
+        }
 
-        blender.BlendWithCoverage(Configuration.Default, destination, backgroundSpan, source, 1F, coverage, constantSourceBuffer);
-        Assert.All(destination, x => Assert.Equal(expected, x));
+        blender.Blend(Configuration.Default, destination, backgroundSpan, sourceSpan, amounts, sourceSpanBuffer);
+        Assert.Equal(expected, destination);
 
-        blender.BlendWithCoverage(Configuration.Default, destination, backgroundSpan, sourceSpan, amount, coverage, sourceSpanBuffer);
-        Assert.All(destination, x => Assert.Equal(expected, x));
+        blender.Blend(Configuration.Default, destination, backgroundSpan, source, amounts, constantSourceBuffer);
+        Assert.Equal(expected, destination);
+
+        for (int i = 0; i < expected.Length; i++)
+        {
+            expected[i] = BlendWithCoverageScalar(blender, background, source, amount, coverage[i]);
+        }
+
+        blender.BlendWithCoverage<TPixel>(Configuration.Default, destination, backgroundSpan, sourceSpan, amount, coverage, sourceSpanBuffer);
+        Assert.Equal(expected, destination);
 
         blender.BlendWithCoverage(Configuration.Default, destination, backgroundSpan, source, amount, coverage, constantSourceBuffer);
-        Assert.All(destination, x => Assert.Equal(expected, x));
+        Assert.Equal(expected, destination);
+
+        for (int i = 0; i < expected.Length; i++)
+        {
+            expected[i] = BlendWithCoverageScalar(blender, background, source, amounts[i], coverage[i]);
+        }
+
+        blender.BlendWithCoverage(Configuration.Default, destination, backgroundSpan, sourceSpan, amounts, coverage, sourceSpanBuffer);
+        Assert.Equal(expected, destination);
+
+        blender.BlendWithCoverage(Configuration.Default, destination, backgroundSpan, source, amounts, coverage, constantSourceBuffer);
+        Assert.Equal(expected, destination);
+    }
+
+    /// <summary>
+    /// Computes a one-pixel coverage result through the scalar remainder path.
+    /// </summary>
+    /// <typeparam name="TPixel">The pixel format.</typeparam>
+    /// <param name="blender">The blender under test.</param>
+    /// <param name="background">The background pixel.</param>
+    /// <param name="source">The source pixel.</param>
+    /// <param name="amount">The source opacity.</param>
+    /// <param name="coverage">The pixel coverage.</param>
+    /// <returns>The blended pixel.</returns>
+    private static TPixel BlendWithCoverageScalar<TPixel>(
+        PixelBlender<TPixel> blender,
+        TPixel background,
+        TPixel source,
+        float amount,
+        float coverage)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        Span<TPixel> destination = stackalloc TPixel[1];
+        Span<TPixel> backgroundSpan = stackalloc TPixel[1] { background };
+        Span<TPixel> sourceSpan = stackalloc TPixel[1] { source };
+        Span<float> coverageSpan = stackalloc float[1] { coverage };
+        Span<Vector4> buffer = stackalloc Vector4[3];
+
+        blender.BlendWithCoverage<TPixel>(
+            Configuration.Default,
+            destination,
+            backgroundSpan,
+            sourceSpan,
+            amount,
+            coverageSpan,
+            buffer);
+
+        return destination[0];
     }
 }

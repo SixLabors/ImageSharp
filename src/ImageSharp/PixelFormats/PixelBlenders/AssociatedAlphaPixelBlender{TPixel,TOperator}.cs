@@ -9,10 +9,24 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders;
 /// Provides the vector representation used to blend pixels that store associated alpha.
 /// </summary>
 /// <typeparam name="TPixel">The associated-alpha pixel format.</typeparam>
-internal abstract class AssociatedAlphaPixelBlender<TPixel> : PixelBlender<TPixel>
+/// <typeparam name="TOperator">The Porter-Duff equation.</typeparam>
+internal abstract class AssociatedAlphaPixelBlender<TPixel, TOperator> : PixelBlender<TPixel, TOperator>
     where TPixel : unmanaged, IPixel<TPixel>
+    where TOperator : struct, IPixelBlenderOperator
 {
     private static readonly PixelOperations<TPixel> Operations = PixelOperations<TPixel>.Instance;
+
+    /// <inheritdoc />
+    public sealed override TPixel Blend(TPixel background, TPixel source, float amount)
+    {
+        // Associated RGB and alpha must remain in their stored representation throughout composition.
+        Vector4 result = TOperator.Invoke(
+            background.ToAssociatedScaledVector4(),
+            source.ToAssociatedScaledVector4(),
+            Numerics.Clamp(amount, 0, 1F));
+
+        return TPixel.FromAssociatedScaledVector4(result);
+    }
 
     /// <inheritdoc />
     protected override void ToBlendVector4<TPixelSource>(

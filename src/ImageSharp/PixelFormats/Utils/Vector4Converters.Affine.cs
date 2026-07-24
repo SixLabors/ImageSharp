@@ -16,7 +16,7 @@ internal static partial class Vector4Converters
     /// <param name="vectors">The vectors to transform in place.</param>
     /// <param name="multiplier">The component-wise multiplier.</param>
     /// <param name="offset">The component-wise offset applied after multiplication.</param>
-    internal static void MultiplyThenAdd(Span<Vector4> vectors, Vector4 multiplier, Vector4 offset)
+    public static void MultiplyThenAdd(Span<Vector4> vectors, Vector4 multiplier, Vector4 offset)
         => Apply(vectors, new MultiplyThenAddOperator(multiplier, offset));
 
     /// <summary>
@@ -25,7 +25,7 @@ internal static partial class Vector4Converters
     /// <param name="vectors">The vectors to transform in place.</param>
     /// <param name="offset">The component-wise offset applied before division.</param>
     /// <param name="divisor">The component-wise divisor.</param>
-    internal static void AddThenDivide(Span<Vector4> vectors, Vector4 offset, Vector4 divisor)
+    public static void AddThenDivide(Span<Vector4> vectors, Vector4 offset, Vector4 divisor)
         => Apply(vectors, new AddThenDivideOperator(offset, divisor));
 
     /// <summary>

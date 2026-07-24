@@ -19,14 +19,14 @@ internal interface IShuffle4 : IComponentShuffle
     /// </summary>
     /// <param name="source">The source pixels.</param>
     /// <returns>The reordered pixels.</returns>
-    static abstract Vector256<byte> Invoke(Vector256<byte> source);
+    public static abstract Vector256<byte> Invoke(Vector256<byte> source);
 
     /// <summary>
     /// Reorders the packed pixels in a 512-bit vector.
     /// </summary>
     /// <param name="source">The source pixels.</param>
     /// <returns>The reordered pixels.</returns>
-    static abstract Vector512<byte> Invoke(Vector512<byte> source);
+    public static abstract Vector512<byte> Invoke(Vector512<byte> source);
 }
 
 /// <summary>

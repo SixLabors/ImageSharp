@@ -16,22 +16,22 @@ internal interface IPngFilterOperator
     /// <summary>
     /// Gets the filter type written to the leading result byte.
     /// </summary>
-    static abstract FilterType Type { get; }
+    public static abstract FilterType Type { get; }
 
     /// <summary>
     /// Gets a value indicating whether the predictor reads the left component.
     /// </summary>
-    static abstract bool UsesLeft { get; }
+    public static abstract bool UsesLeft { get; }
 
     /// <summary>
     /// Gets a value indicating whether the predictor reads the above component.
     /// </summary>
-    static abstract bool UsesAbove { get; }
+    public static abstract bool UsesAbove { get; }
 
     /// <summary>
     /// Gets a value indicating whether the predictor reads the upper-left component.
     /// </summary>
-    static abstract bool UsesUpperLeft { get; }
+    public static abstract bool UsesUpperLeft { get; }
 
     /// <summary>
     /// Filters one byte from its PNG neighborhood.
@@ -41,7 +41,7 @@ internal interface IPngFilterOperator
     /// <param name="above">The corresponding component in the preceding scanline.</param>
     /// <param name="upperLeft">The preceding component in the preceding scanline.</param>
     /// <returns>The filtered residual.</returns>
-    static abstract byte Invoke(byte scan, byte left, byte above, byte upperLeft);
+    public static abstract byte Invoke(byte scan, byte left, byte above, byte upperLeft);
 
     /// <summary>
     /// Filters sixteen byte lanes from their PNG neighborhoods.
@@ -51,7 +51,7 @@ internal interface IPngFilterOperator
     /// <param name="above">The corresponding components in the preceding scanline.</param>
     /// <param name="upperLeft">The preceding components in the preceding scanline.</param>
     /// <returns>The filtered residuals.</returns>
-    static abstract Vector128<byte> Invoke(
+    public static abstract Vector128<byte> Invoke(
         Vector128<byte> scan,
         Vector128<byte> left,
         Vector128<byte> above,
@@ -65,7 +65,7 @@ internal interface IPngFilterOperator
     /// <param name="above">The corresponding components in the preceding scanline.</param>
     /// <param name="upperLeft">The preceding components in the preceding scanline.</param>
     /// <returns>The filtered residuals.</returns>
-    static abstract Vector256<byte> Invoke(
+    public static abstract Vector256<byte> Invoke(
         Vector256<byte> scan,
         Vector256<byte> left,
         Vector256<byte> above,
@@ -79,7 +79,7 @@ internal interface IPngFilterOperator
     /// <param name="above">The corresponding components in the preceding scanline.</param>
     /// <param name="upperLeft">The preceding components in the preceding scanline.</param>
     /// <returns>The filtered residuals.</returns>
-    static abstract Vector512<byte> Invoke(
+    public static abstract Vector512<byte> Invoke(
         Vector512<byte> scan,
         Vector512<byte> left,
         Vector512<byte> above,

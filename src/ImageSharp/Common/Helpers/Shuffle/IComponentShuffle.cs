@@ -15,12 +15,12 @@ internal interface IComponentShuffle
     /// </summary>
     /// <param name="source">The source components, with the first component in the least-significant byte.</param>
     /// <returns>The reordered packed components.</returns>
-    static abstract uint Invoke(uint source);
+    public static abstract uint Invoke(uint source);
 
     /// <summary>
     /// Reorders the packed pixels in a 128-bit vector.
     /// </summary>
     /// <param name="source">The source pixels.</param>
     /// <returns>The reordered pixels.</returns>
-    static abstract Vector128<byte> Invoke(Vector128<byte> source);
+    public static abstract Vector128<byte> Invoke(Vector128<byte> source);
 }

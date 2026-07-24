@@ -23,12 +23,12 @@ internal abstract partial class JpegColorConverterBase
         /// <summary>
         /// Gets the JPEG color space handled by the operator.
         /// </summary>
-        static abstract JpegColorSpace ColorSpace { get; }
+        public static abstract JpegColorSpace ColorSpace { get; }
 
         /// <summary>
         /// Gets the number of component planes used by the color space.
         /// </summary>
-        static abstract int ComponentCount { get; }
+        public static abstract int ComponentCount { get; }
 
         /// <summary>
         /// Converts one JPEG sample to normalized RGB.
@@ -40,7 +40,7 @@ internal abstract partial class JpegColorConverterBase
         /// <param name="maximumValue">The maximum component value for the configured precision.</param>
         /// <param name="halfValue">The midpoint component value for the configured precision.</param>
         /// <param name="scale">The reciprocal of <paramref name="maximumValue"/>.</param>
-        static abstract void ConvertToRgb(
+        public static abstract void ConvertToRgb(
             ref float c0,
             ref float c1,
             ref float c2,
@@ -59,7 +59,7 @@ internal abstract partial class JpegColorConverterBase
         /// <param name="maximumValue">The maximum component value for the configured precision.</param>
         /// <param name="halfValue">The midpoint component value for the configured precision.</param>
         /// <param name="scale">The reciprocal of <paramref name="maximumValue"/> in every lane.</param>
-        static abstract void ConvertToRgb(
+        public static abstract void ConvertToRgb(
             ref Vector128<float> c0,
             ref Vector128<float> c1,
             ref Vector128<float> c2,
@@ -78,7 +78,7 @@ internal abstract partial class JpegColorConverterBase
         /// <param name="maximumValue">The maximum component value for the configured precision.</param>
         /// <param name="halfValue">The midpoint component value for the configured precision.</param>
         /// <param name="scale">The reciprocal of <paramref name="maximumValue"/> in every lane.</param>
-        static abstract void ConvertToRgb(
+        public static abstract void ConvertToRgb(
             ref Vector256<float> c0,
             ref Vector256<float> c1,
             ref Vector256<float> c2,
@@ -97,7 +97,7 @@ internal abstract partial class JpegColorConverterBase
         /// <param name="maximumValue">The maximum component value for the configured precision.</param>
         /// <param name="halfValue">The midpoint component value for the configured precision.</param>
         /// <param name="scale">The reciprocal of <paramref name="maximumValue"/> in every lane.</param>
-        static abstract void ConvertToRgb(
+        public static abstract void ConvertToRgb(
             ref Vector512<float> c0,
             ref Vector512<float> c1,
             ref Vector512<float> c2,
@@ -119,7 +119,7 @@ internal abstract partial class JpegColorConverterBase
         /// <param name="c1">The second converted component.</param>
         /// <param name="c2">The third converted component.</param>
         /// <param name="c3">The fourth converted component, if used.</param>
-        static abstract void ConvertFromRgb(
+        public static abstract void ConvertFromRgb(
             float r,
             float g,
             float b,
@@ -144,7 +144,7 @@ internal abstract partial class JpegColorConverterBase
         /// <param name="c1">The second converted component lanes.</param>
         /// <param name="c2">The third converted component lanes.</param>
         /// <param name="c3">The fourth converted component lanes, if used.</param>
-        static abstract void ConvertFromRgb(
+        public static abstract void ConvertFromRgb(
             Vector128<float> r,
             Vector128<float> g,
             Vector128<float> b,
@@ -169,7 +169,7 @@ internal abstract partial class JpegColorConverterBase
         /// <param name="c1">The second converted component lanes.</param>
         /// <param name="c2">The third converted component lanes.</param>
         /// <param name="c3">The fourth converted component lanes, if used.</param>
-        static abstract void ConvertFromRgb(
+        public static abstract void ConvertFromRgb(
             Vector256<float> r,
             Vector256<float> g,
             Vector256<float> b,
@@ -194,7 +194,7 @@ internal abstract partial class JpegColorConverterBase
         /// <param name="c1">The second converted component lanes.</param>
         /// <param name="c2">The third converted component lanes.</param>
         /// <param name="c3">The fourth converted component lanes, if used.</param>
-        static abstract void ConvertFromRgb(
+        public static abstract void ConvertFromRgb(
             Vector512<float> r,
             Vector512<float> g,
             Vector512<float> b,
@@ -213,7 +213,7 @@ internal abstract partial class JpegColorConverterBase
         /// <param name="profile">The source ICC profile.</param>
         /// <param name="values">The component values to convert.</param>
         /// <param name="maximumValue">The maximum component value for the configured precision.</param>
-        static abstract void ConvertToRgbInPlaceWithIcc(
+        public static abstract void ConvertToRgbInPlaceWithIcc(
             Configuration configuration,
             IccProfile profile,
             in ComponentValues values,

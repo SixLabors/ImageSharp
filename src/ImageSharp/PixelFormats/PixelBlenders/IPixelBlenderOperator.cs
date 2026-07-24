@@ -18,7 +18,7 @@ internal interface IPixelBlenderOperator
     /// <param name="source">The source RGBA lanes.</param>
     /// <param name="amount">The source opacity in the range 0 through 1.</param>
     /// <returns>The blended RGBA lanes.</returns>
-    static abstract Vector4 Invoke(Vector4 background, Vector4 source, float amount);
+    public static abstract Vector4 Invoke(Vector4 background, Vector4 source, float amount);
 
     /// <summary>
     /// Blends two pixels represented by two consecutive groups of four RGBA lanes.
@@ -27,7 +27,7 @@ internal interface IPixelBlenderOperator
     /// <param name="source">The source RGBA lanes.</param>
     /// <param name="amount">The source opacity repeated across each pixel's four lanes.</param>
     /// <returns>The blended RGBA lanes.</returns>
-    static abstract Vector256<float> Invoke(
+    public static abstract Vector256<float> Invoke(
         Vector256<float> background,
         Vector256<float> source,
         Vector256<float> amount);
@@ -39,7 +39,7 @@ internal interface IPixelBlenderOperator
     /// <param name="source">The source RGBA lanes.</param>
     /// <param name="amount">The source opacity repeated across each pixel's four lanes.</param>
     /// <returns>The blended RGBA lanes.</returns>
-    static abstract Vector512<float> Invoke(
+    public static abstract Vector512<float> Invoke(
         Vector512<float> background,
         Vector512<float> source,
         Vector512<float> amount);

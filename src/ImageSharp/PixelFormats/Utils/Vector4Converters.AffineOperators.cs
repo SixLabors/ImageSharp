@@ -19,28 +19,28 @@ internal static partial class Vector4Converters
         /// </summary>
         /// <param name="source">The source components.</param>
         /// <returns>The transformed components.</returns>
-        Vector4 Invoke(Vector4 source);
+        public Vector4 Invoke(Vector4 source);
 
         /// <summary>
         /// Transforms one pixel represented by the four single-precision lanes in a 128-bit register.
         /// </summary>
         /// <param name="source">The source components.</param>
         /// <returns>The transformed components.</returns>
-        Vector128<float> Invoke(Vector128<float> source);
+        public Vector128<float> Invoke(Vector128<float> source);
 
         /// <summary>
         /// Transforms two pixels represented by the eight single-precision lanes in a 256-bit register.
         /// </summary>
         /// <param name="source">The source components.</param>
         /// <returns>The transformed components.</returns>
-        Vector256<float> Invoke(Vector256<float> source);
+        public Vector256<float> Invoke(Vector256<float> source);
 
         /// <summary>
         /// Transforms four pixels represented by the sixteen single-precision lanes in a 512-bit register.
         /// </summary>
         /// <param name="source">The source components.</param>
         /// <returns>The transformed components.</returns>
-        Vector512<float> Invoke(Vector512<float> source);
+        public Vector512<float> Invoke(Vector512<float> source);
     }
 
     /// <summary>

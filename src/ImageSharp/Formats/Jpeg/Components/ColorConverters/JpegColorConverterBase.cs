@@ -248,161 +248,50 @@ internal abstract partial class JpegColorConverterBase
     /// Returns the <see cref="JpegColorConverterBase"/>s for the YCbCr colorspace.
     /// </summary>
     /// <param name="precision">The precision in bits.</param>
-    private static JpegColorConverterBase GetYCbCrConverter(int precision)
-    {
-        if (JpegColorConverterVector512.IsSupported)
-        {
-            return new YCbCrVector512(precision);
-        }
-
-        if (JpegColorConverterVector256.IsSupported)
-        {
-            return new YCbCrVector256(precision);
-        }
-
-        if (JpegColorConverterVector128.IsSupported)
-        {
-            return new YCbCrVector128(precision);
-        }
-
-        return new YCbCrScalar(precision);
-    }
+    private static JpegColorConverter<YCbCrOperator> GetYCbCrConverter(int precision)
+        => new JpegColorConverter<YCbCrOperator>(precision);
 
     /// <summary>
     /// Returns the <see cref="JpegColorConverterBase"/>s for the YccK colorspace.
     /// </summary>
     /// <param name="precision">The precision in bits.</param>
-    private static JpegColorConverterBase GetYccKConverter(int precision)
-    {
-        if (JpegColorConverterVector512.IsSupported)
-        {
-            return new YccKVector512(precision);
-        }
-
-        if (JpegColorConverterVector256.IsSupported)
-        {
-            return new YccKVector256(precision);
-        }
-
-        if (JpegColorConverterVector128.IsSupported)
-        {
-            return new YccKVector128(precision);
-        }
-
-        return new YccKScalar(precision);
-    }
+    private static JpegColorConverter<YccKOperator> GetYccKConverter(int precision)
+        => new JpegColorConverter<YccKOperator>(precision);
 
     /// <summary>
     /// Returns the <see cref="JpegColorConverterBase"/>s for the CMYK colorspace.
     /// </summary>
     /// <param name="precision">The precision in bits.</param>
-    private static JpegColorConverterBase GetCmykConverter(int precision)
-    {
-        if (JpegColorConverterVector512.IsSupported)
-        {
-            return new CmykVector512(precision);
-        }
-
-        if (JpegColorConverterVector256.IsSupported)
-        {
-            return new CmykVector256(precision);
-        }
-
-        if (JpegColorConverterVector128.IsSupported)
-        {
-            return new CmykVector128(precision);
-        }
-
-        return new CmykScalar(precision);
-    }
+    private static JpegColorConverter<CmykOperator> GetCmykConverter(int precision)
+        => new JpegColorConverter<CmykOperator>(precision);
 
     /// <summary>
     /// Returns the <see cref="JpegColorConverterBase"/>s for the gray scale colorspace.
     /// </summary>
     /// <param name="precision">The precision in bits.</param>
-    private static JpegColorConverterBase GetGrayScaleConverter(int precision)
-    {
-        if (JpegColorConverterVector512.IsSupported)
-        {
-            return new GrayScaleVector512(precision);
-        }
-
-        if (JpegColorConverterVector256.IsSupported)
-        {
-            return new GrayScaleVector256(precision);
-        }
-
-        if (JpegColorConverterVector128.IsSupported)
-        {
-            return new GrayScaleVector128(precision);
-        }
-
-        return new GrayScaleScalar(precision);
-    }
+    private static JpegColorConverter<GrayScaleOperator> GetGrayScaleConverter(int precision)
+        => new JpegColorConverter<GrayScaleOperator>(precision);
 
     /// <summary>
     /// Returns the <see cref="JpegColorConverterBase"/>s for the RGB colorspace.
     /// </summary>
     /// <param name="precision">The precision in bits.</param>
-    private static JpegColorConverterBase GetRgbConverter(int precision)
-    {
-        if (JpegColorConverterVector512.IsSupported)
-        {
-            return new RgbVector512(precision);
-        }
+    private static JpegColorConverter<RgbOperator> GetRgbConverter(int precision)
+        => new JpegColorConverter<RgbOperator>(precision);
 
-        if (JpegColorConverterVector256.IsSupported)
-        {
-            return new RgbVector256(precision);
-        }
+    /// <summary>
+    /// Returns the <see cref="JpegColorConverterBase"/> for non-inverted TIFF CMYK.
+    /// </summary>
+    /// <param name="precision">The precision in bits.</param>
+    private static JpegColorConverter<TiffCmykOperator> GetTiffCmykConverter(int precision)
+        => new JpegColorConverter<TiffCmykOperator>(precision);
 
-        if (JpegColorConverterVector128.IsSupported)
-        {
-            return new RgbVector128(precision);
-        }
-
-        return new RgbScalar(precision);
-    }
-
-    private static JpegColorConverterBase GetTiffCmykConverter(int precision)
-    {
-        if (JpegColorConverterVector512.IsSupported)
-        {
-            return new TiffCmykVector512(precision);
-        }
-
-        if (JpegColorConverterVector256.IsSupported)
-        {
-            return new TiffCmykVector256(precision);
-        }
-
-        if (JpegColorConverterVector128.IsSupported)
-        {
-            return new TiffCmykVector128(precision);
-        }
-
-        return new TiffCmykScalar(precision);
-    }
-
-    private static JpegColorConverterBase GetTiffYccKConverter(int precision)
-    {
-        if (JpegColorConverterVector512.IsSupported)
-        {
-            return new TiffYccKVector512(precision);
-        }
-
-        if (JpegColorConverterVector256.IsSupported)
-        {
-            return new TiffYccKVector256(precision);
-        }
-
-        if (JpegColorConverterVector128.IsSupported)
-        {
-            return new TiffYccKVector128(precision);
-        }
-
-        return new TiffYccKScalar(precision);
-    }
+    /// <summary>
+    /// Returns the <see cref="JpegColorConverterBase"/> for non-inverted TIFF YccK.
+    /// </summary>
+    /// <param name="precision">The precision in bits.</param>
+    private static JpegColorConverter<TiffYccKOperator> GetTiffYccKConverter(int precision)
+        => new JpegColorConverter<TiffYccKOperator>(precision);
 
     /// <summary>
     /// A stack-only struct to reference the input buffers using <see cref="ReadOnlySpan{T}"/>-s.

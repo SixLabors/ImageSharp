@@ -69,6 +69,7 @@
     <PackageReference Include="SharpZipLib" />
     <PackageReference Include="SkiaSharp" />
     <PackageReference Include="System.Drawing.Common" />
+    <PackageReference Include="System.Numerics.Tensors" Version="10.0.0" Condition="'$(TargetFramework)' == 'net10.0'" />
   </ItemGroup>
 
   <!-- Exclude benchmarks using internals, in case of unsigned benchmark execution: -->

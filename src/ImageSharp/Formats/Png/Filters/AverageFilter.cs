@@ -140,98 +140,12 @@ internal static class AverageFilter
     /// <param name="sum">The sum of the total variance of the filtered row.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Encode(ReadOnlySpan<byte> scanline, ReadOnlySpan<byte> previousScanline, Span<byte> result, uint bytesPerPixel, out int sum)
-    {
-        DebugGuard.MustBeSameSized(scanline, previousScanline, nameof(scanline));
-        DebugGuard.MustBeSizedAtLeast(result, scanline, nameof(result));
-
-        ref byte scanBaseRef = ref MemoryMarshal.GetReference(scanline);
-        ref byte prevBaseRef = ref MemoryMarshal.GetReference(previousScanline);
-        ref byte resultBaseRef = ref MemoryMarshal.GetReference(result);
-        sum = 0;
-
-        // Average(x) = Raw(x) - floor((Raw(x-bpp)+Prior(x))/2)
-        resultBaseRef = (byte)FilterType.Average;
-
-        nuint x = 0;
-        for (; x < bytesPerPixel; /* Note: ++x happens in the body to avoid one add operation */)
-        {
-            byte scan = Unsafe.Add(ref scanBaseRef, x);
-            byte above = Unsafe.Add(ref prevBaseRef, x);
-            ++x;
-            ref byte res = ref Unsafe.Add(ref resultBaseRef, x);
-            res = (byte)(scan - (above >> 1));
-            sum += Numerics.Abs(unchecked((sbyte)res));
-        }
-
-        if (Avx2.IsSupported)
-        {
-            Vector256<byte> zero = Vector256<byte>.Zero;
-            Vector256<int> sumAccumulator = Vector256<int>.Zero;
-            Vector256<byte> allBitsSet = Avx2.CompareEqual(sumAccumulator, sumAccumulator).AsByte();
-
-            for (nuint xLeft = x - bytesPerPixel; (int)x <= scanline.Length - Vector256<byte>.Count; xLeft += (uint)Vector256<byte>.Count)
-            {
-                Vector256<byte> scan = Unsafe.As<byte, Vector256<byte>>(ref Unsafe.Add(ref scanBaseRef, x));
-                Vector256<byte> left = Unsafe.As<byte, Vector256<byte>>(ref Unsafe.Add(ref scanBaseRef, xLeft));
-                Vector256<byte> above = Unsafe.As<byte, Vector256<byte>>(ref Unsafe.Add(ref prevBaseRef, x));
-
-                Vector256<byte> avg = Avx2.Xor(Avx2.Average(Avx2.Xor(left, allBitsSet), Avx2.Xor(above, allBitsSet)), allBitsSet);
-                Vector256<byte> res = Avx2.Subtract(scan, avg);
-
-                Unsafe.As<byte, Vector256<byte>>(ref Unsafe.Add(ref resultBaseRef, x + 1)) = res; // +1 to skip filter type
-                x += (uint)Vector256<byte>.Count;
-
-                sumAccumulator = Avx2.Add(sumAccumulator, Avx2.SumAbsoluteDifferences(Avx2.Abs(res.AsSByte()), zero).AsInt32());
-            }
-
-            sum += Numerics.EvenReduceSum(sumAccumulator);
-        }
-        else if (Sse2.IsSupported)
-        {
-            Vector128<byte> zero = Vector128<byte>.Zero;
-            Vector128<int> sumAccumulator = Vector128<int>.Zero;
-            Vector128<byte> allBitsSet = Sse2.CompareEqual(sumAccumulator, sumAccumulator).AsByte();
-
-            for (nuint xLeft = x - bytesPerPixel; (int)x <= scanline.Length - Vector128<byte>.Count; xLeft += (uint)Vector128<byte>.Count)
-            {
-                Vector128<byte> scan = Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref scanBaseRef, x));
-                Vector128<byte> left = Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref scanBaseRef, xLeft));
-                Vector128<byte> above = Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref prevBaseRef, x));
-
-                Vector128<byte> avg = Sse2.Xor(Sse2.Average(Sse2.Xor(left, allBitsSet), Sse2.Xor(above, allBitsSet)), allBitsSet);
-                Vector128<byte> res = Sse2.Subtract(scan, avg);
-
-                Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref resultBaseRef, x + 1)) = res; // +1 to skip filter type
-                x += (uint)Vector128<byte>.Count;
-
-                Vector128<byte> absRes;
-                if (Ssse3.IsSupported)
-                {
-                    absRes = Ssse3.Abs(res.AsSByte());
-                }
-                else
-                {
-                    Vector128<sbyte> mask = Sse2.CompareGreaterThan(zero.AsSByte(), res.AsSByte());
-                    absRes = Sse2.Xor(Sse2.Add(res.AsSByte(), mask), mask).AsByte();
-                }
-
-                sumAccumulator = Sse2.Add(sumAccumulator, Sse2.SumAbsoluteDifferences(absRes, zero).AsInt32());
-            }
-
-            sum += Numerics.EvenReduceSum(sumAccumulator);
-        }
-
-        for (nuint xLeft = x - bytesPerPixel; x < (uint)scanline.Length; ++xLeft /* Note: ++x happens in the body to avoid one add operation */)
-        {
-            byte scan = Unsafe.Add(ref scanBaseRef, x);
-            byte left = Unsafe.Add(ref scanBaseRef, xLeft);
-            byte above = Unsafe.Add(ref prevBaseRef, x);
-            ++x;
-            ref byte res = ref Unsafe.Add(ref resultBaseRef, x);
-            res = (byte)(scan - Average(left, above));
-            sum += Numerics.Abs(unchecked((sbyte)res));
-        }
-    }
+        => PngFilterEncoder.Encode<AverageFilterOperator>(
+            scanline,
+            previousScanline,
+            result,
+            bytesPerPixel,
+            out sum);
 
     /// <summary>
     /// Calculates the average value of two bytes

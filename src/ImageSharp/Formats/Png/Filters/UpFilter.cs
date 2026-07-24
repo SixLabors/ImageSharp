@@ -1,11 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Numerics;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using System.Runtime.Intrinsics;
-using System.Runtime.Intrinsics.X86;
 using SixLabors.ImageSharp.Common.Helpers;
 
 namespace SixLabors.ImageSharp.Formats.Png.Filters;
@@ -40,69 +36,10 @@ internal static class UpFilter
     /// <param name="sum">The sum of the total variance of the filtered row.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Encode(ReadOnlySpan<byte> scanline, ReadOnlySpan<byte> previousScanline, Span<byte> result, out int sum)
-    {
-        DebugGuard.MustBeSameSized(scanline, previousScanline, nameof(scanline));
-        DebugGuard.MustBeSizedAtLeast(result, scanline, nameof(result));
-
-        ref byte scanBaseRef = ref MemoryMarshal.GetReference(scanline);
-        ref byte prevBaseRef = ref MemoryMarshal.GetReference(previousScanline);
-        ref byte resultBaseRef = ref MemoryMarshal.GetReference(result);
-        sum = 0;
-
-        // Up(x) = Raw(x) - Prior(x)
-        resultBaseRef = (byte)FilterType.Up;
-
-        nuint x = 0;
-
-        if (Avx2.IsSupported)
-        {
-            Vector256<byte> zero = Vector256<byte>.Zero;
-            Vector256<int> sumAccumulator = Vector256<int>.Zero;
-
-            for (; (int)x <= scanline.Length - Vector256<byte>.Count;)
-            {
-                Vector256<byte> scan = Unsafe.As<byte, Vector256<byte>>(ref Unsafe.Add(ref scanBaseRef, x));
-                Vector256<byte> above = Unsafe.As<byte, Vector256<byte>>(ref Unsafe.Add(ref prevBaseRef, x));
-
-                Vector256<byte> res = Avx2.Subtract(scan, above);
-                Unsafe.As<byte, Vector256<byte>>(ref Unsafe.Add(ref resultBaseRef, x + 1)) = res; // +1 to skip filter type
-                x += (uint)Vector256<byte>.Count;
-
-                sumAccumulator = Avx2.Add(sumAccumulator, Avx2.SumAbsoluteDifferences(Avx2.Abs(res.AsSByte()), zero).AsInt32());
-            }
-
-            sum += Numerics.EvenReduceSum(sumAccumulator);
-        }
-        else if (Vector.IsHardwareAccelerated)
-        {
-            Vector<uint> sumAccumulator = Vector<uint>.Zero;
-
-            for (; (int)x <= scanline.Length - Vector<byte>.Count;)
-            {
-                Vector<byte> scan = Unsafe.As<byte, Vector<byte>>(ref Unsafe.Add(ref scanBaseRef, x));
-                Vector<byte> above = Unsafe.As<byte, Vector<byte>>(ref Unsafe.Add(ref prevBaseRef, x));
-
-                Vector<byte> res = scan - above;
-                Unsafe.As<byte, Vector<byte>>(ref Unsafe.Add(ref resultBaseRef, x + 1)) = res; // +1 to skip filter type
-                x += (uint)Vector<byte>.Count;
-
-                Numerics.Accumulate(ref sumAccumulator, Vector.AsVectorByte(Vector.Abs(Vector.AsVectorSByte(res))));
-            }
-
-            for (int i = 0; i < Vector<uint>.Count; i++)
-            {
-                sum += (int)sumAccumulator[i];
-            }
-        }
-
-        for (; x < (uint)scanline.Length; /* Note: ++x happens in the body to avoid one add operation */)
-        {
-            byte scan = Unsafe.Add(ref scanBaseRef, x);
-            byte above = Unsafe.Add(ref prevBaseRef, x);
-            ++x;
-            ref byte res = ref Unsafe.Add(ref resultBaseRef, x);
-            res = (byte)(scan - above);
-            sum += Numerics.Abs(unchecked((sbyte)res));
-        }
-    }
+        => PngFilterEncoder.Encode<UpFilterOperator>(
+            scanline,
+            previousScanline,
+            result,
+            0,
+            out sum);
 }

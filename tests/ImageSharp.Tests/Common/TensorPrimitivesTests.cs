@@ -2,16 +2,14 @@
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.Common.Helpers;
+using SixLabors.ImageSharp.Tests.TestUtilities;
 
 namespace SixLabors.ImageSharp.Tests.Common;
 
 public class TensorPrimitivesTests
 {
-    /// <summary>
-    /// Gets lengths that exercise scalar execution, every SIMD width, overlapping tails, and the unrolled loop.
-    /// </summary>
-    public static TheoryData<int> SpanLengths => new()
-    {
+    private static readonly int[] SpanLengthValues =
+    [
         0,
         1,
         3,
@@ -33,7 +31,52 @@ public class TensorPrimitivesTests
         128,
         129,
         2048
-    };
+    ];
+
+    /// <summary>
+    /// Gets lengths that exercise scalar execution, every SIMD width, overlapping tails, and the unrolled loop.
+    /// </summary>
+    public static TheoryData<int> SpanLengths => new(SpanLengthValues);
+
+    /// <summary>
+    /// Verifies every compatibility operation while forcing the supported SIMD feature tiers in isolated processes.
+    /// </summary>
+    [Fact]
+    public void OperationsMatchScalarFormulasAcrossHardwareIntrinsicFeatures()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            RunOperationsAcrossHardwareIntrinsicFeatures,
+            HwIntrinsics.AllowAll
+                | HwIntrinsics.DisableAVX512F
+                | HwIntrinsics.DisableAVX
+                | HwIntrinsics.DisableArm64Sve
+                | HwIntrinsics.DisableHWIntrinsic);
+
+    /// <summary>
+    /// Runs the TensorPrimitives compatibility assertions inside a process configured for one hardware-intrinsic tier.
+    /// </summary>
+    private static void RunOperationsAcrossHardwareIntrinsicFeatures()
+    {
+        TensorPrimitivesTests tests = new();
+
+        // Reuse the focused assertions so the remote feature matrix cannot drift from the normal test coverage.
+        foreach (int length in SpanLengthValues)
+        {
+            tests.AddByteMatchesScalarFormula(length);
+            tests.AddUInt32MatchesScalarFormula(length);
+            tests.AddScalarInt32MatchesScalarFormula(length);
+            tests.NegateSingleMatchesScalarFormula(length);
+            tests.NegateDoubleMatchesScalarFormula(length);
+            tests.ClampInt32MatchesScalarFormula(length);
+            tests.ClampSingleMatchesRuntimeFormula(length);
+            tests.DivideSingleMatchesScalarFormula(length);
+            tests.MaxSingleMatchesRuntimeFormula(length);
+            tests.MultiplySingleMatchesScalarFormula(length);
+            tests.NormalizeMatchesScalarFormula(length);
+        }
+
+        tests.ClampSinglePreservesRuntimeSpecialValueSemantics();
+        tests.ClampDoublePreservesRuntimeSpecialValueSemantics();
+    }
 
     /// <summary>
     /// Verifies that byte addition wraps modulo 256 and supports either input as the in-place destination.
@@ -151,6 +194,42 @@ public class TensorPrimitivesTests
 
         TensorPrimitives_.Negate<float>(source, source);
         AssertSingleBitsEqual(expected, source);
+    }
+
+    /// <summary>
+    /// Verifies that double-precision negation preserves the scalar operator's exact bit-level behavior.
+    /// </summary>
+    /// <param name="length">The input length.</param>
+    [Theory]
+    [MemberData(nameof(SpanLengths))]
+    public void NegateDoubleMatchesScalarFormula(int length)
+    {
+        double[] values =
+        {
+            double.NaN,
+            -0D,
+            0D,
+            -1D,
+            1D,
+            double.NegativeInfinity,
+            double.PositiveInfinity
+        };
+
+        double[] source = new double[length];
+        double[] expected = new double[length];
+
+        for (int i = 0; i < source.Length; i++)
+        {
+            source[i] = values[i % values.Length];
+            expected[i] = -source[i];
+        }
+
+        double[] destination = new double[length];
+        TensorPrimitives_.Negate<double>(source, destination);
+        AssertDoubleBitsEqual(expected, destination);
+
+        TensorPrimitives_.Negate<double>(source, source);
+        AssertDoubleBitsEqual(expected, source);
     }
 
     /// <summary>

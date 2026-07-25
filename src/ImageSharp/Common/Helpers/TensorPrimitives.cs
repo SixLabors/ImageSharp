@@ -16,7 +16,7 @@ namespace SixLabors.ImageSharp.Common.Helpers;
 /// implementation when ImageSharp no longer supports target frameworks that predate it.
 /// </remarks>
 #pragma warning disable SA1649 // File name should match first type name
-internal static class TensorPrimitives_
+internal static partial class TensorPrimitives_
 #pragma warning restore SA1649 // File name should match first type name
 {
     /// <summary>

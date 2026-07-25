@@ -41,6 +41,41 @@ public class ConvolutionProcessorHelpersTest
         }
     }
 
+    /// <summary>
+    /// Verifies that Gaussian sharpening preserves the scalar kernel formula across scalar and SIMD lengths.
+    /// </summary>
+    /// <param name="radius">The kernel radius.</param>
+    [Theory]
+    [InlineData(1)]
+    [InlineData(3)]
+    [InlineData(9)]
+    [InlineData(32)]
+    [InlineData(80)]
+    public void VerifyGaussianSharpenKernel(int radius)
+    {
+        int kernelSize = (radius * 2) + 1;
+        float sigma = radius / 3F;
+        float[] expected = new float[kernelSize];
+        float sum = 0F;
+
+        for (int i = 0; i < kernelSize; i++)
+        {
+            float value = Numerics.Gaussian(i - radius, sigma);
+            expected[i] = value;
+            sum += value;
+        }
+
+        for (int i = 0; i < kernelSize; i++)
+        {
+            expected[i] = i == radius ? (2F * sum) - expected[i] : -expected[i];
+            expected[i] /= sum;
+        }
+
+        float[] actual = ConvolutionProcessorHelpers.CreateGaussianSharpenKernel(kernelSize, sigma);
+
+        Assert.Equal(expected, actual);
+    }
+
     [Fact]
     public void VerifyNonSeparableMatrix()
     {

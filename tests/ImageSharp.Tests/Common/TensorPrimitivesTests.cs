@@ -118,6 +118,42 @@ public class TensorPrimitivesTests
     }
 
     /// <summary>
+    /// Verifies that floating-point negation preserves the scalar operator's exact bit-level behavior.
+    /// </summary>
+    /// <param name="length">The input length.</param>
+    [Theory]
+    [MemberData(nameof(SpanLengths))]
+    public void NegateSingleMatchesScalarFormula(int length)
+    {
+        float[] values =
+        {
+            float.NaN,
+            -0F,
+            0F,
+            -1F,
+            1F,
+            float.NegativeInfinity,
+            float.PositiveInfinity
+        };
+
+        float[] source = new float[length];
+        float[] expected = new float[length];
+
+        for (int i = 0; i < source.Length; i++)
+        {
+            source[i] = values[i % values.Length];
+            expected[i] = -source[i];
+        }
+
+        float[] destination = new float[length];
+        TensorPrimitives_.Negate<float>(source, destination);
+        AssertSingleBitsEqual(expected, destination);
+
+        TensorPrimitives_.Negate<float>(source, source);
+        AssertSingleBitsEqual(expected, source);
+    }
+
+    /// <summary>
     /// Verifies that integer clamping produces identical results for separate and in-place destinations.
     /// </summary>
     /// <param name="length">The input length.</param>

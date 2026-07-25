@@ -5,6 +5,7 @@ using System.Collections.Concurrent;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using SixLabors.ImageSharp.Common.Helpers;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Convolution.Parameters;
 
@@ -209,13 +210,11 @@ internal static class BokehBlurKernelDataProvider
         for (int i = 0; i < kernelsSpan.Length; i++)
         {
             ref Complex64[] kernelsRef = ref Unsafe.Add(ref baseKernelsRef, (uint)i);
-            int length = kernelsRef.Length;
-            ref Complex64 valueRef = ref MemoryMarshal.GetArrayDataReference(kernelsRef);
 
-            for (int j = 0; j < length; j++)
-            {
-                Unsafe.Add(ref valueRef, (uint)j) *= scalar;
-            }
+            // Complex64 stores each value as adjacent real and imaginary floats. Multiplying that flattened
+            // float span scales both parts independently, which is exactly complex multiplication by a real scalar.
+            Span<float> values = MemoryMarshal.Cast<Complex64, float>(kernelsRef);
+            TensorPrimitives_.Multiply(values, scalar, values);
         }
     }
 }

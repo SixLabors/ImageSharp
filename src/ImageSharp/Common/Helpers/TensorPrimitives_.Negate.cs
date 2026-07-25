@@ -76,12 +76,11 @@ internal static partial class TensorPrimitives_
         ref T destinationRef = ref MemoryMarshal.GetReference(destination);
         nuint length = (uint)x.Length;
 
-        // The dispatch matches the other compatibility pipelines: AVX-512 is reserved for large spans because
-        // its setup cost is not recovered by the short image-processing buffers that dominate ImageSharp.
+        // Runtime main selects the widest supported pipeline once one complete vector is available.
         if (TOperator.Vectorizable
             && Vector512.IsHardwareAccelerated
             && Vector512<T>.IsSupported
-            && length >= 512)
+            && length >= (uint)Vector512<T>.Count)
         {
             InvokeUnaryVectorized512<T, TOperator>(ref xRef, ref destinationRef, length);
             return;

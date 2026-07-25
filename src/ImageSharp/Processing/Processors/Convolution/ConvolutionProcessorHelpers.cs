@@ -37,11 +37,8 @@ internal static class ConvolutionProcessorHelpers
             kernel[i] = gx;
         }
 
-        // Normalize kernel so that the sum of all weights equals 1
-        for (int i = 0; i < size; i++)
-        {
-            kernel[i] /= sum;
-        }
+        // Divide every weight by the accumulated Gaussian sum so the kernel has unit response.
+        TensorPrimitives_.Divide<float>(kernel, sum, kernel);
 
         return kernel;
     }
@@ -76,11 +73,8 @@ internal static class ConvolutionProcessorHelpers
         // center while adding twice the Gaussian sum so the complete kernel retains unit response.
         kernel[midpointRounded] = (2F * sum) - midpointValue;
 
-        // Normalize kernel so that the sum of all weights equals 1
-        for (int i = 0; i < size; i++)
-        {
-            kernel[i] /= sum;
-        }
+        // Sharpening changes signs but preserves the Gaussian sum, so the same divisor produces unit response.
+        TensorPrimitives_.Divide<float>(kernel, sum, kernel);
 
         return kernel;
     }

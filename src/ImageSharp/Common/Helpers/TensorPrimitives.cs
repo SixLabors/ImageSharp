@@ -204,15 +204,15 @@ internal static partial class TensorPrimitives_
         ref T yRef = ref MemoryMarshal.GetReference(y);
         ref T destinationRef = ref MemoryMarshal.GetReference(destination);
         nuint length = (uint)x.Length;
+        nuint vector512Threshold = Unsafe.SizeOf<T>() == 1 ? (uint)Vector512<T>.Count : 512;
 
-        // AVX-512 setup only pays off for larger multi-byte inputs. Byte addition remains on AVX2 because direct
-        // PNG/WebP measurements show that its higher lane count does not recover the wider dispatch cost.
+        // Match the runtime's AVX-512 selection for byte-sized elements once one complete vector is available.
+        // Wider elements retain the measured crossover point where their 512-bit setup cost becomes worthwhile.
         // Each pipeline preloads its final inputs when a tail overlaps so same-start in-place operation remains correct.
         if (TOperator.Vectorizable
             && Vector512.IsHardwareAccelerated
             && Vector512<T>.IsSupported
-            && Unsafe.SizeOf<T>() > 1
-            && length >= 512)
+            && length >= vector512Threshold)
         {
             InvokeVectorized512<T, TOperator>(ref xRef, ref yRef, ref destinationRef, length);
             return;

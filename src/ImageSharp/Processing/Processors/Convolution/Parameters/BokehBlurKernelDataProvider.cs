@@ -213,7 +213,7 @@ internal static class BokehBlurKernelDataProvider
 
             // Complex64 stores each value as adjacent real and imaginary floats. Multiplying that flattened
             // float span scales both parts independently, which is exactly complex multiplication by a real scalar.
-            Span<float> values = MemoryMarshal.Cast<Complex64, float>(kernelsRef);
+            Span<float> values = MemoryMarshal.Cast<Complex64, float>(kernelsRef.AsSpan());
             TensorPrimitives_.Multiply(values, scalar, values);
         }
     }

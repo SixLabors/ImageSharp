@@ -103,6 +103,7 @@ internal abstract partial class JpegColorConverterBase
             // CMYK extraction supplies inverted chromatic samples and K. Reflecting the first three results
             // reconstructs the chromatic RGB that YCbCr encodes, while K passes through untouched.
             CmykOperator.ConvertFromRgb(r, g, b, maximumValue, halfValue, scale, out float c, out float m, out float y, out c3);
+
             YCbCrOperator.ConvertFromRgb(maximumValue - c, maximumValue - m, maximumValue - y, maximumValue, halfValue, scale, out c0, out c1, out c2, out _);
         }
 
@@ -112,6 +113,7 @@ internal abstract partial class JpegColorConverterBase
         {
             // Static constrained calls inline both stages, keeping four pixels in registers without materializing CMYK planes.
             CmykOperator.ConvertFromRgb(r, g, b, maximumValue, halfValue, scale, out Vector128<float> c, out Vector128<float> m, out Vector128<float> y, out c3);
+
             YCbCrOperator.ConvertFromRgb(maximumValue - c, maximumValue - m, maximumValue - y, maximumValue, halfValue, scale, out c0, out c1, out c2, out _);
         }
 
@@ -121,6 +123,7 @@ internal abstract partial class JpegColorConverterBase
         {
             // Eight pixels flow through CMYK extraction and YCbCr projection entirely in YMM registers.
             CmykOperator.ConvertFromRgb(r, g, b, maximumValue, halfValue, scale, out Vector256<float> c, out Vector256<float> m, out Vector256<float> y, out c3);
+
             YCbCrOperator.ConvertFromRgb(maximumValue - c, maximumValue - m, maximumValue - y, maximumValue, halfValue, scale, out c0, out c1, out c2, out _);
         }
 
@@ -130,6 +133,7 @@ internal abstract partial class JpegColorConverterBase
         {
             // Sixteen pixels flow through both mathematical stages in registers without materializing intermediate planes.
             CmykOperator.ConvertFromRgb(r, g, b, maximumValue, halfValue, scale, out Vector512<float> c, out Vector512<float> m, out Vector512<float> y, out c3);
+
             YCbCrOperator.ConvertFromRgb(maximumValue - c, maximumValue - m, maximumValue - y, maximumValue, halfValue, scale, out c0, out c1, out c2, out _);
         }
 

@@ -17,8 +17,7 @@ public class JpegColorConverterTests
     private const float FromRgbTolerance = 0.01F;
 
     // Independent model checks compare normalized colors at one tenth of a byte-domain sample.
-    private static readonly ApproximateColorProfileComparer ColorSpaceComparer =
-        new(epsilon: ColorProfileTolerance);
+    private static readonly ApproximateColorProfileComparer ColorSpaceComparer = new(epsilon: ColorProfileTolerance);
 
     /// <summary>
     /// Verifies that unsupported color spaces are rejected by the converter factory.
@@ -77,27 +76,13 @@ public class JpegColorConverterTests
     /// <param name="colorSpace">The JPEG color space.</param>
     /// <param name="expectedType">The expected closed converter type.</param>
     [Theory]
-    [InlineData(
-        JpegColorSpace.Grayscale,
-        typeof(JpegColorConverterBase.JpegColorConverter<JpegColorConverterBase.GrayScaleOperator>))]
-    [InlineData(
-        JpegColorSpace.RGB,
-        typeof(JpegColorConverterBase.JpegColorConverter<JpegColorConverterBase.RgbOperator>))]
-    [InlineData(
-        JpegColorSpace.Cmyk,
-        typeof(JpegColorConverterBase.JpegColorConverter<JpegColorConverterBase.CmykOperator>))]
-    [InlineData(
-        JpegColorSpace.YCbCr,
-        typeof(JpegColorConverterBase.JpegColorConverter<JpegColorConverterBase.YCbCrOperator>))]
-    [InlineData(
-        JpegColorSpace.Ycck,
-        typeof(JpegColorConverterBase.JpegColorConverter<JpegColorConverterBase.YccKOperator>))]
-    [InlineData(
-        JpegColorSpace.TiffCmyk,
-        typeof(JpegColorConverterBase.JpegColorConverter<JpegColorConverterBase.TiffCmykOperator>))]
-    [InlineData(
-        JpegColorSpace.TiffYccK,
-        typeof(JpegColorConverterBase.JpegColorConverter<JpegColorConverterBase.TiffYccKOperator>))]
+    [InlineData(JpegColorSpace.Grayscale, typeof(JpegColorConverterBase.JpegColorConverter<JpegColorConverterBase.GrayScaleOperator>))]
+    [InlineData(JpegColorSpace.RGB, typeof(JpegColorConverterBase.JpegColorConverter<JpegColorConverterBase.RgbOperator>))]
+    [InlineData(JpegColorSpace.Cmyk, typeof(JpegColorConverterBase.JpegColorConverter<JpegColorConverterBase.CmykOperator>))]
+    [InlineData(JpegColorSpace.YCbCr, typeof(JpegColorConverterBase.JpegColorConverter<JpegColorConverterBase.YCbCrOperator>))]
+    [InlineData(JpegColorSpace.Ycck, typeof(JpegColorConverterBase.JpegColorConverter<JpegColorConverterBase.YccKOperator>))]
+    [InlineData(JpegColorSpace.TiffCmyk, typeof(JpegColorConverterBase.JpegColorConverter<JpegColorConverterBase.TiffCmykOperator>))]
+    [InlineData(JpegColorSpace.TiffYccK, typeof(JpegColorConverterBase.JpegColorConverter<JpegColorConverterBase.TiffYccKOperator>))]
     internal void GetConverterReturnsClosedOperatorConverter(JpegColorSpace colorSpace, Type expectedType)
     {
         JpegColorConverterBase converter = JpegColorConverterBase.GetConverter(colorSpace, 8);
@@ -152,10 +137,7 @@ public class JpegColorConverterTests
     [InlineData(JpegColorSpace.TiffCmyk, 4, 12)]
     [InlineData(JpegColorSpace.TiffYccK, 4, 8)]
     [InlineData(JpegColorSpace.TiffYccK, 4, 12)]
-    internal void OperatorTraversalMatchesScalarDefinition(
-        JpegColorSpace colorSpace,
-        int componentCount,
-        int precision)
+    internal void OperatorTraversalMatchesScalarDefinition(JpegColorSpace colorSpace, int componentCount, int precision)
     {
         switch (colorSpace)
         {
@@ -191,9 +173,7 @@ public class JpegColorConverterTests
     /// </summary>
     [Fact]
     public void OperatorTraversalMatchesScalarWithoutHardwareIntrinsics()
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
-            RunWithoutHardwareIntrinsics,
-            HwIntrinsics.DisableHWIntrinsic);
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(RunWithoutHardwareIntrinsics, HwIntrinsics.DisableHWIntrinsic);
 
     /// <summary>
     /// Verifies TIFF YccK encoding against the canonical normalized color-profile conversion.
@@ -264,8 +244,7 @@ public class JpegColorConverterTests
     private static void ValidateOperator<TOperator>(int componentCount, int precision)
         where TOperator : struct, JpegColorConverterBase.IJpegColorConverterOperator
     {
-        JpegColorConverterBase converter =
-            new JpegColorConverterBase.JpegColorConverter<TOperator>(precision);
+        JpegColorConverterBase converter = new JpegColorConverterBase.JpegColorConverter<TOperator>(precision);
         int[] lengths = [1, 3, 4, 7, 8, 15, 16, 31, 32, 40, 64, 128];
 
         // Adjacent values around 4/8/16 lanes verify every prefix, mixed-width tail, and scalar remainder.
@@ -284,11 +263,7 @@ public class JpegColorConverterTests
     /// <param name="length">The number of samples to convert.</param>
     /// <param name="componentCount">The number of source component planes.</param>
     /// <param name="precision">The JPEG sample precision.</param>
-    private static void ValidateConversionToRgb<TOperator>(
-        JpegColorConverterBase converter,
-        int length,
-        int componentCount,
-        int precision)
+    private static void ValidateConversionToRgb<TOperator>(JpegColorConverterBase converter, int length, int componentCount, int precision)
         where TOperator : struct, JpegColorConverterBase.IJpegColorConverterOperator
     {
         JpegColorConverterBase.ComponentValues expected = CreateRandomValues(length, componentCount, precision);
@@ -326,11 +301,7 @@ public class JpegColorConverterTests
     /// <param name="length">The number of samples to convert.</param>
     /// <param name="componentCount">The number of destination component planes.</param>
     /// <param name="precision">The JPEG sample precision.</param>
-    private static void ValidateConversionFromRgb<TOperator>(
-        JpegColorConverterBase converter,
-        int length,
-        int componentCount,
-        int precision)
+    private static void ValidateConversionFromRgb<TOperator>(JpegColorConverterBase converter, int length, int componentCount, int precision)
         where TOperator : struct, JpegColorConverterBase.IJpegColorConverterOperator
     {
         JpegColorConverterBase.ComponentValues expected = CreateRandomValues(length, componentCount, precision);
@@ -345,17 +316,7 @@ public class JpegColorConverterTests
 
         for (int i = 0; i < length; i++)
         {
-            TOperator.ConvertFromRgb(
-                r[i],
-                g[i],
-                b[i],
-                maximumValue,
-                halfValue,
-                scale,
-                out expected.Component0[i],
-                out float c1,
-                out float c2,
-                out float c3);
+            TOperator.ConvertFromRgb(r[i], g[i], b[i], maximumValue, halfValue, scale, out expected.Component0[i], out float c1, out float c2, out float c3);
 
             if (componentCount >= 2)
             {
@@ -399,10 +360,7 @@ public class JpegColorConverterTests
     /// <param name="componentCount">The number of independent component planes.</param>
     /// <param name="precision">The JPEG sample precision and deterministic random seed.</param>
     /// <returns>The generated component planes.</returns>
-    private static JpegColorConverterBase.ComponentValues CreateRandomValues(
-        int length,
-        int componentCount,
-        int precision)
+    private static JpegColorConverterBase.ComponentValues CreateRandomValues(int length, int componentCount, int precision)
     {
         Random random = new(precision);
         float maximumValue = MathF.Pow(2, precision) - 1;
@@ -449,11 +407,7 @@ public class JpegColorConverterTests
     /// <param name="source">The unmodified source component planes.</param>
     /// <param name="actual">The converted RGB planes.</param>
     /// <param name="index">The sample index.</param>
-    private static void AssertColorModelDefinition(
-        JpegColorSpace colorSpace,
-        in JpegColorConverterBase.ComponentValues source,
-        in JpegColorConverterBase.ComponentValues actual,
-        int index)
+    private static void AssertColorModelDefinition(JpegColorSpace colorSpace, in JpegColorConverterBase.ComponentValues source, in JpegColorConverterBase.ComponentValues actual, int index)
     {
         float c0 = source.Component0[index];
         float c1 = source.Component1[index];
@@ -468,18 +422,12 @@ public class JpegColorConverterTests
                 expected = new Rgb(luminance, luminance, luminance);
                 break;
             case JpegColorSpace.RGB:
-                expected = new Rgb(
-                    c0 / MaxColorChannelValue,
-                    c1 / MaxColorChannelValue,
-                    c2 / MaxColorChannelValue);
+                expected = new Rgb(c0 / MaxColorChannelValue, c1 / MaxColorChannelValue, c2 / MaxColorChannelValue);
 
                 break;
             case JpegColorSpace.Cmyk:
                 c3 = source.Component3[index] / MaxColorChannelValue;
-                expected = new Rgb(
-                    c0 * c3 / MaxColorChannelValue,
-                    c1 * c3 / MaxColorChannelValue,
-                    c2 * c3 / MaxColorChannelValue);
+                expected = new Rgb(c0 * c3 / MaxColorChannelValue, c1 * c3 / MaxColorChannelValue, c2 * c3 / MaxColorChannelValue);
 
                 break;
             case JpegColorSpace.YCbCr:
@@ -487,10 +435,7 @@ public class JpegColorConverterTests
                 c2 -= 128F;
 
                 // JPEG applies the BT.601 matrix in the integer sample domain and rounds before normalization.
-                expected = new Rgb(
-                    MathF.Round(c0 + (1.402F * c2), MidpointRounding.AwayFromZero) / MaxColorChannelValue,
-                    MathF.Round(c0 - (0.344136F * c1) - (0.714136F * c2), MidpointRounding.AwayFromZero) / MaxColorChannelValue,
-                    MathF.Round(c0 + (1.772F * c1), MidpointRounding.AwayFromZero) / MaxColorChannelValue);
+                expected = new Rgb(MathF.Round(c0 + (1.402F * c2), MidpointRounding.AwayFromZero) / MaxColorChannelValue, MathF.Round(c0 - (0.344136F * c1) - (0.714136F * c2), MidpointRounding.AwayFromZero) / MaxColorChannelValue, MathF.Round(c0 + (1.772F * c1), MidpointRounding.AwayFromZero) / MaxColorChannelValue);
 
                 break;
             case JpegColorSpace.Ycck:
@@ -499,10 +444,7 @@ public class JpegColorConverterTests
                 c3 = source.Component3[index] / MaxColorChannelValue;
 
                 // Adobe YccK reconstructs inverted RGB first, then applies the normalized black component.
-                expected = new Rgb(
-                    (MaxColorChannelValue - MathF.Round(c0 + (1.402F * c2), MidpointRounding.AwayFromZero)) * c3 / MaxColorChannelValue,
-                    (MaxColorChannelValue - MathF.Round(c0 - (0.344136F * c1) - (0.714136F * c2), MidpointRounding.AwayFromZero)) * c3 / MaxColorChannelValue,
-                    (MaxColorChannelValue - MathF.Round(c0 + (1.772F * c1), MidpointRounding.AwayFromZero)) * c3 / MaxColorChannelValue);
+                expected = new Rgb((MaxColorChannelValue - MathF.Round(c0 + (1.402F * c2), MidpointRounding.AwayFromZero)) * c3 / MaxColorChannelValue, (MaxColorChannelValue - MathF.Round(c0 - (0.344136F * c1) - (0.714136F * c2), MidpointRounding.AwayFromZero)) * c3 / MaxColorChannelValue, (MaxColorChannelValue - MathF.Round(c0 + (1.772F * c1), MidpointRounding.AwayFromZero)) * c3 / MaxColorChannelValue);
 
                 break;
             default:
@@ -513,12 +455,9 @@ public class JpegColorConverterTests
         // Color-space comparison intentionally clamps both sides because JPEG reconstruction can overshoot
         // the normalized RGB gamut and saturation belongs to the eventual pixel conversion.
         Rgb clampedExpected = Rgb.Clamp(expected);
-        Rgb clampedActual = Rgb.Clamp(
-            new Rgb(actual.Component0[index], actual.Component1[index], actual.Component2[index]));
+        Rgb clampedActual = Rgb.Clamp(new Rgb(actual.Component0[index], actual.Component1[index], actual.Component2[index]));
 
-        Assert.True(
-            ColorSpaceComparer.Equals(clampedExpected, clampedActual),
-            $"Colors {clampedExpected} and {clampedActual} are not equal at index {index}.");
+        Assert.True(ColorSpaceComparer.Equals(clampedExpected, clampedActual), $"Colors {clampedExpected} and {clampedActual} are not equal at index {index}.");
     }
 
     /// <summary>

@@ -2,9 +2,6 @@
 // Licensed under the Six Labors Split License.
 #nullable disable
 
-using System.Numerics;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 
@@ -100,124 +97,6 @@ internal abstract partial class JpegColorConverterBase
     /// <param name="gLane">Green colors lane.</param>
     /// <param name="bLane">Blue colors lane.</param>
     public abstract void ConvertFromRgb(in ComponentValues values, Span<float> rLane, Span<float> gLane, Span<float> bLane);
-
-    public static void PackedNormalizeInterleave3(
-        ReadOnlySpan<float> xLane,
-        ReadOnlySpan<float> yLane,
-        ReadOnlySpan<float> zLane,
-        Span<float> packed,
-        float scale)
-    {
-        DebugGuard.IsTrue(packed.Length % 3 == 0, "Packed length must be divisible by 3.");
-        DebugGuard.IsTrue(yLane.Length == xLane.Length, nameof(yLane), "Channels must be of same size!");
-        DebugGuard.IsTrue(zLane.Length == xLane.Length, nameof(zLane), "Channels must be of same size!");
-        DebugGuard.MustBeLessThanOrEqualTo(packed.Length / 3, xLane.Length, nameof(packed));
-
-        // TODO: Investigate SIMD version of this.
-        ref float xLaneRef = ref MemoryMarshal.GetReference(xLane);
-        ref float yLaneRef = ref MemoryMarshal.GetReference(yLane);
-        ref float zLaneRef = ref MemoryMarshal.GetReference(zLane);
-        ref float packedRef = ref MemoryMarshal.GetReference(packed);
-
-        for (nuint i = 0; i < (nuint)xLane.Length; i++)
-        {
-            nuint baseIdx = i * 3;
-            Unsafe.Add(ref packedRef, baseIdx) = Unsafe.Add(ref xLaneRef, i) * scale;
-            Unsafe.Add(ref packedRef, baseIdx + 1) = Unsafe.Add(ref yLaneRef, i) * scale;
-            Unsafe.Add(ref packedRef, baseIdx + 2) = Unsafe.Add(ref zLaneRef, i) * scale;
-        }
-    }
-
-    public static void UnpackDeinterleave3(
-        ReadOnlySpan<Vector3> packed,
-        Span<float> xLane,
-        Span<float> yLane,
-        Span<float> zLane)
-    {
-        DebugGuard.IsTrue(packed.Length == xLane.Length, nameof(packed), "Channels must be of same size!");
-        DebugGuard.IsTrue(yLane.Length == xLane.Length, nameof(yLane), "Channels must be of same size!");
-        DebugGuard.IsTrue(zLane.Length == xLane.Length, nameof(zLane), "Channels must be of same size!");
-
-        // TODO: Investigate SIMD version of this.
-        ref float packedRef = ref MemoryMarshal.GetReference(MemoryMarshal.Cast<Vector3, float>(packed));
-        ref float xLaneRef = ref MemoryMarshal.GetReference(xLane);
-        ref float yLaneRef = ref MemoryMarshal.GetReference(yLane);
-        ref float zLaneRef = ref MemoryMarshal.GetReference(zLane);
-
-        for (nuint i = 0; i < (nuint)packed.Length; i++)
-        {
-            nuint baseIdx = i * 3;
-            Unsafe.Add(ref xLaneRef, i) = Unsafe.Add(ref packedRef, baseIdx);
-            Unsafe.Add(ref yLaneRef, i) = Unsafe.Add(ref packedRef, baseIdx + 1);
-            Unsafe.Add(ref zLaneRef, i) = Unsafe.Add(ref packedRef, baseIdx + 2);
-        }
-    }
-
-    public static void PackedNormalizeInterleave4(
-        ReadOnlySpan<float> xLane,
-        ReadOnlySpan<float> yLane,
-        ReadOnlySpan<float> zLane,
-        ReadOnlySpan<float> wLane,
-        Span<float> packed,
-        float maxValue)
-    {
-        DebugGuard.IsTrue(packed.Length % 4 == 0, "Packed length must be divisible by 4.");
-        DebugGuard.IsTrue(yLane.Length == xLane.Length, nameof(yLane), "Channels must be of same size!");
-        DebugGuard.IsTrue(zLane.Length == xLane.Length, nameof(zLane), "Channels must be of same size!");
-        DebugGuard.IsTrue(wLane.Length == xLane.Length, nameof(wLane), "Channels must be of same size!");
-        DebugGuard.MustBeLessThanOrEqualTo(packed.Length / 4, xLane.Length, nameof(packed));
-
-        float scale = 1F / maxValue;
-
-        // TODO: Investigate SIMD version of this.
-        ref float xLaneRef = ref MemoryMarshal.GetReference(xLane);
-        ref float yLaneRef = ref MemoryMarshal.GetReference(yLane);
-        ref float zLaneRef = ref MemoryMarshal.GetReference(zLane);
-        ref float wLaneRef = ref MemoryMarshal.GetReference(wLane);
-        ref float packedRef = ref MemoryMarshal.GetReference(packed);
-
-        for (nuint i = 0; i < (nuint)xLane.Length; i++)
-        {
-            nuint baseIdx = i * 4;
-            Unsafe.Add(ref packedRef, baseIdx) = Unsafe.Add(ref xLaneRef, i) * scale;
-            Unsafe.Add(ref packedRef, baseIdx + 1) = Unsafe.Add(ref yLaneRef, i) * scale;
-            Unsafe.Add(ref packedRef, baseIdx + 2) = Unsafe.Add(ref zLaneRef, i) * scale;
-            Unsafe.Add(ref packedRef, baseIdx + 3) = Unsafe.Add(ref wLaneRef, i) * scale;
-        }
-    }
-
-    public static void PackedInvertNormalizeInterleave4(
-        ReadOnlySpan<float> xLane,
-        ReadOnlySpan<float> yLane,
-        ReadOnlySpan<float> zLane,
-        ReadOnlySpan<float> wLane,
-        Span<float> packed,
-        float maxValue)
-    {
-        DebugGuard.IsTrue(packed.Length % 4 == 0, "Packed length must be divisible by 4.");
-        DebugGuard.IsTrue(yLane.Length == xLane.Length, nameof(yLane), "Channels must be of same size!");
-        DebugGuard.IsTrue(zLane.Length == xLane.Length, nameof(zLane), "Channels must be of same size!");
-        DebugGuard.IsTrue(wLane.Length == xLane.Length, nameof(wLane), "Channels must be of same size!");
-        DebugGuard.MustBeLessThanOrEqualTo(packed.Length / 4, xLane.Length, nameof(packed));
-
-        float scale = 1F / maxValue;
-
-        // TODO: Investigate SIMD version of this.
-        ref float xLaneRef = ref MemoryMarshal.GetReference(xLane);
-        ref float yLaneRef = ref MemoryMarshal.GetReference(yLane);
-        ref float zLaneRef = ref MemoryMarshal.GetReference(zLane);
-        ref float wLaneRef = ref MemoryMarshal.GetReference(wLane);
-        ref float packedRef = ref MemoryMarshal.GetReference(packed);
-
-        for (nuint i = 0; i < (nuint)xLane.Length; i++)
-        {
-            nuint baseIdx = i * 4;
-            Unsafe.Add(ref packedRef, baseIdx) = (maxValue - Unsafe.Add(ref xLaneRef, i)) * scale;
-            Unsafe.Add(ref packedRef, baseIdx + 1) = (maxValue - Unsafe.Add(ref yLaneRef, i)) * scale;
-            Unsafe.Add(ref packedRef, baseIdx + 2) = (maxValue - Unsafe.Add(ref zLaneRef, i)) * scale;
-            Unsafe.Add(ref packedRef, baseIdx + 3) = (maxValue - Unsafe.Add(ref wLaneRef, i)) * scale;
-        }
-    }
 
     /// <summary>
     /// Returns the <see cref="JpegColorConverterBase"/>s for all supported color spaces and precisions.
@@ -382,6 +261,14 @@ internal abstract partial class JpegColorConverterBase
             this.Component3 = this.ComponentCount > 3 ? processors[3].GetColorBufferRowSpan(row) : [];
         }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ComponentValues"/> struct from explicitly supplied planar spans.
+        /// </summary>
+        /// <param name="componentCount">The number of populated component planes.</param>
+        /// <param name="c0">The first component plane.</param>
+        /// <param name="c1">The second component plane, if present.</param>
+        /// <param name="c2">The third component plane, if present.</param>
+        /// <param name="c3">The fourth component plane, if present.</param>
         internal ComponentValues(
             int componentCount,
             Span<float> c0,
@@ -396,6 +283,12 @@ internal abstract partial class JpegColorConverterBase
             this.Component3 = c3;
         }
 
+        /// <summary>
+        /// Creates a view over the same component planes for the requested sample range.
+        /// </summary>
+        /// <param name="start">The zero-based sample offset.</param>
+        /// <param name="length">The number of samples in each returned plane.</param>
+        /// <returns>The sliced component values.</returns>
         public ComponentValues Slice(int start, int length)
         {
             Span<float> c0 = this.Component0.Slice(start, length);

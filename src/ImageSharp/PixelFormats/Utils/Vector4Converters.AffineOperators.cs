@@ -73,9 +73,7 @@ internal static partial class Vector4Converters
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Vector4 Invoke(Vector4 source)
         {
-            Vector128<float> result =
-                (source.AsVector128() * this.multiplier.GetLower().GetLower())
-                + this.offset.GetLower().GetLower();
+            Vector128<float> result = (source.AsVector128() * this.multiplier.GetLower().GetLower()) + this.offset.GetLower().GetLower();
 
             return result.AsVector4();
         }
@@ -126,9 +124,7 @@ internal static partial class Vector4Converters
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Vector4 Invoke(Vector4 source)
         {
-            Vector128<float> result =
-                (source.AsVector128() + this.offset.GetLower().GetLower())
-                / this.divisor.GetLower().GetLower();
+            Vector128<float> result = (source.AsVector128() + this.offset.GetLower().GetLower()) / this.divisor.GetLower().GetLower();
 
             return result.AsVector4();
         }

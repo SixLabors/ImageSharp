@@ -9,8 +9,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg;
 [Config(typeof(Config.Short))]
 public class GrayScaleColorConversion : ColorConversionBenchmark
 {
-    private readonly JpegColorConverterBase converter =
-        JpegColorConverterBase.GetConverter(JpegColorSpace.Grayscale, 8);
+    private readonly JpegColorConverterBase converter = JpegColorConverterBase.GetConverter(JpegColorSpace.Grayscale, 8);
 
     /// <summary>
     /// Initializes a new instance of the <see cref="GrayScaleColorConversion"/> class.

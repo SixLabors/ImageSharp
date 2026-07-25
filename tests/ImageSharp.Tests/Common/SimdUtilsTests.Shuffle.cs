@@ -303,30 +303,15 @@ public partial class SimdUtilsTests
         {
             int size = FeatureTestRunner.Deserialize<int>(serialized);
 
-            TestShuffleByte4Channel(
-                size,
-                (s, d) => SimdUtils.Shuffle4<WXYZShuffle4>(s.Span, d.Span),
-                SimdUtils.Shuffle.MMShuffle2103);
+            TestShuffleByte4Channel(size, (s, d) => SimdUtils.Shuffle4<WXYZShuffle4>(s.Span, d.Span), SimdUtils.Shuffle.MMShuffle2103);
 
-            TestShuffleByte4Channel(
-                size,
-                (s, d) => SimdUtils.Shuffle4<WZYXShuffle4>(s.Span, d.Span),
-                SimdUtils.Shuffle.MMShuffle0123);
+            TestShuffleByte4Channel(size, (s, d) => SimdUtils.Shuffle4<WZYXShuffle4>(s.Span, d.Span), SimdUtils.Shuffle.MMShuffle0123);
 
-            TestShuffleByte4Channel(
-                size,
-                (s, d) => SimdUtils.Shuffle4<YZWXShuffle4>(s.Span, d.Span),
-                SimdUtils.Shuffle.MMShuffle0321);
+            TestShuffleByte4Channel(size, (s, d) => SimdUtils.Shuffle4<YZWXShuffle4>(s.Span, d.Span), SimdUtils.Shuffle.MMShuffle0321);
 
-            TestShuffleByte4Channel(
-                size,
-                (s, d) => SimdUtils.Shuffle4<ZYXWShuffle4>(s.Span, d.Span),
-                SimdUtils.Shuffle.MMShuffle3012);
+            TestShuffleByte4Channel(size, (s, d) => SimdUtils.Shuffle4<ZYXWShuffle4>(s.Span, d.Span), SimdUtils.Shuffle.MMShuffle3012);
 
-            TestShuffleByte4Channel(
-                size,
-                (s, d) => SimdUtils.Shuffle4<XWZYShuffle4>(s.Span, d.Span),
-                SimdUtils.Shuffle.MMShuffle1230);
+            TestShuffleByte4Channel(size, (s, d) => SimdUtils.Shuffle4<XWZYShuffle4>(s.Span, d.Span), SimdUtils.Shuffle.MMShuffle1230);
         }
 
         FeatureTestRunner.RunWithHwIntrinsicsFeature(
@@ -343,10 +328,7 @@ public partial class SimdUtilsTests
         {
             int size = FeatureTestRunner.Deserialize<int>(serialized);
 
-            TestShuffleByte3Channel(
-                size,
-                (s, d) => SimdUtils.Shuffle3<ZYXShuffle3>(s.Span, d.Span),
-                SimdUtils.Shuffle.MMShuffle3012);
+            TestShuffleByte3Channel(size, (s, d) => SimdUtils.Shuffle3<ZYXShuffle3>(s.Span, d.Span), SimdUtils.Shuffle.MMShuffle3012);
         }
 
         FeatureTestRunner.RunWithHwIntrinsicsFeature(
@@ -363,25 +345,13 @@ public partial class SimdUtilsTests
         {
             int size = FeatureTestRunner.Deserialize<int>(serialized);
 
-            TestPad3Shuffle4Channel(
-                size,
-                (s, d) => SimdUtils.Pad3Shuffle4<XYZWPad3Shuffle4>(s.Span, d.Span),
-                SimdUtils.Shuffle.MMShuffle3210);
+            TestPad3Shuffle4Channel(size, (s, d) => SimdUtils.Pad3Shuffle4<XYZWPad3Shuffle4>(s.Span, d.Span), SimdUtils.Shuffle.MMShuffle3210);
 
-            TestPad3Shuffle4Channel(
-                size,
-                (s, d) => SimdUtils.Pad3Shuffle4<WXYZPad3Shuffle4>(s.Span, d.Span),
-                SimdUtils.Shuffle.MMShuffle2103);
+            TestPad3Shuffle4Channel(size, (s, d) => SimdUtils.Pad3Shuffle4<WXYZPad3Shuffle4>(s.Span, d.Span), SimdUtils.Shuffle.MMShuffle2103);
 
-            TestPad3Shuffle4Channel(
-                size,
-                (s, d) => SimdUtils.Pad3Shuffle4<WZYXPad3Shuffle4>(s.Span, d.Span),
-                SimdUtils.Shuffle.MMShuffle0123);
+            TestPad3Shuffle4Channel(size, (s, d) => SimdUtils.Pad3Shuffle4<WZYXPad3Shuffle4>(s.Span, d.Span), SimdUtils.Shuffle.MMShuffle0123);
 
-            TestPad3Shuffle4Channel(
-                size,
-                (s, d) => SimdUtils.Pad3Shuffle4<ZYXWPad3Shuffle4>(s.Span, d.Span),
-                SimdUtils.Shuffle.MMShuffle3012);
+            TestPad3Shuffle4Channel(size, (s, d) => SimdUtils.Pad3Shuffle4<ZYXWPad3Shuffle4>(s.Span, d.Span), SimdUtils.Shuffle.MMShuffle3012);
         }
 
         FeatureTestRunner.RunWithHwIntrinsicsFeature(
@@ -398,25 +368,13 @@ public partial class SimdUtilsTests
         {
             int size = FeatureTestRunner.Deserialize<int>(serialized);
 
-            TestShuffle4Slice3Channel(
-                size,
-                (s, d) => SimdUtils.Shuffle4Slice3<XYZWShuffle4Slice3>(s.Span, d.Span),
-                SimdUtils.Shuffle.MMShuffle3210);
+            TestShuffle4Slice3Channel(size, (s, d) => SimdUtils.Shuffle4Slice3<XYZWShuffle4Slice3>(s.Span, d.Span), SimdUtils.Shuffle.MMShuffle3210);
 
-            TestShuffle4Slice3Channel(
-                size,
-                (s, d) => SimdUtils.Shuffle4Slice3<YZWXShuffle4Slice3>(s.Span, d.Span),
-                SimdUtils.Shuffle.MMShuffle0321);
+            TestShuffle4Slice3Channel(size, (s, d) => SimdUtils.Shuffle4Slice3<YZWXShuffle4Slice3>(s.Span, d.Span), SimdUtils.Shuffle.MMShuffle0321);
 
-            TestShuffle4Slice3Channel(
-                size,
-                (s, d) => SimdUtils.Shuffle4Slice3<WZYXShuffle4Slice3>(s.Span, d.Span),
-                SimdUtils.Shuffle.MMShuffle0123);
+            TestShuffle4Slice3Channel(size, (s, d) => SimdUtils.Shuffle4Slice3<WZYXShuffle4Slice3>(s.Span, d.Span), SimdUtils.Shuffle.MMShuffle0123);
 
-            TestShuffle4Slice3Channel(
-                size,
-                (s, d) => SimdUtils.Shuffle4Slice3<ZYXWShuffle4Slice3>(s.Span, d.Span),
-                SimdUtils.Shuffle.MMShuffle3012);
+            TestShuffle4Slice3Channel(size, (s, d) => SimdUtils.Shuffle4Slice3<ZYXWShuffle4Slice3>(s.Span, d.Span), SimdUtils.Shuffle.MMShuffle3012);
         }
 
         FeatureTestRunner.RunWithHwIntrinsicsFeature(

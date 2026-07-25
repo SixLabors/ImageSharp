@@ -3,8 +3,8 @@
 
 using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
-using System.Runtime.Intrinsics.Arm;
 using System.Runtime.Intrinsics.X86;
+using SixLabors.ImageSharp.Common.Helpers;
 
 namespace SixLabors.ImageSharp.Formats.Png.Filters;
 
@@ -51,11 +51,7 @@ internal interface IPngFilterOperator
     /// <param name="above">The corresponding components in the preceding scanline.</param>
     /// <param name="upperLeft">The preceding components in the preceding scanline.</param>
     /// <returns>The filtered residuals.</returns>
-    public static abstract Vector128<byte> Invoke(
-        Vector128<byte> scan,
-        Vector128<byte> left,
-        Vector128<byte> above,
-        Vector128<byte> upperLeft);
+    public static abstract Vector128<byte> Invoke(Vector128<byte> scan, Vector128<byte> left, Vector128<byte> above, Vector128<byte> upperLeft);
 
     /// <summary>
     /// Filters thirty-two byte lanes from their PNG neighborhoods.
@@ -65,11 +61,7 @@ internal interface IPngFilterOperator
     /// <param name="above">The corresponding components in the preceding scanline.</param>
     /// <param name="upperLeft">The preceding components in the preceding scanline.</param>
     /// <returns>The filtered residuals.</returns>
-    public static abstract Vector256<byte> Invoke(
-        Vector256<byte> scan,
-        Vector256<byte> left,
-        Vector256<byte> above,
-        Vector256<byte> upperLeft);
+    public static abstract Vector256<byte> Invoke(Vector256<byte> scan, Vector256<byte> left, Vector256<byte> above, Vector256<byte> upperLeft);
 
     /// <summary>
     /// Filters sixty-four byte lanes from their PNG neighborhoods.
@@ -79,11 +71,7 @@ internal interface IPngFilterOperator
     /// <param name="above">The corresponding components in the preceding scanline.</param>
     /// <param name="upperLeft">The preceding components in the preceding scanline.</param>
     /// <returns>The filtered residuals.</returns>
-    public static abstract Vector512<byte> Invoke(
-        Vector512<byte> scan,
-        Vector512<byte> left,
-        Vector512<byte> above,
-        Vector512<byte> upperLeft);
+    public static abstract Vector512<byte> Invoke(Vector512<byte> scan, Vector512<byte> left, Vector512<byte> above, Vector512<byte> upperLeft);
 }
 
 /// <summary>
@@ -109,29 +97,17 @@ internal readonly struct SubFilterOperator : IPngFilterOperator
 
     /// <inheritdoc />
     [MethodImpl(InliningOptions.AlwaysInline)]
-    public static Vector128<byte> Invoke(
-        Vector128<byte> scan,
-        Vector128<byte> left,
-        Vector128<byte> above,
-        Vector128<byte> upperLeft)
+    public static Vector128<byte> Invoke(Vector128<byte> scan, Vector128<byte> left, Vector128<byte> above, Vector128<byte> upperLeft)
         => scan - left;
 
     /// <inheritdoc />
     [MethodImpl(InliningOptions.AlwaysInline)]
-    public static Vector256<byte> Invoke(
-        Vector256<byte> scan,
-        Vector256<byte> left,
-        Vector256<byte> above,
-        Vector256<byte> upperLeft)
+    public static Vector256<byte> Invoke(Vector256<byte> scan, Vector256<byte> left, Vector256<byte> above, Vector256<byte> upperLeft)
         => scan - left;
 
     /// <inheritdoc />
     [MethodImpl(InliningOptions.AlwaysInline)]
-    public static Vector512<byte> Invoke(
-        Vector512<byte> scan,
-        Vector512<byte> left,
-        Vector512<byte> above,
-        Vector512<byte> upperLeft)
+    public static Vector512<byte> Invoke(Vector512<byte> scan, Vector512<byte> left, Vector512<byte> above, Vector512<byte> upperLeft)
         => scan - left;
 }
 
@@ -158,29 +134,17 @@ internal readonly struct UpFilterOperator : IPngFilterOperator
 
     /// <inheritdoc />
     [MethodImpl(InliningOptions.AlwaysInline)]
-    public static Vector128<byte> Invoke(
-        Vector128<byte> scan,
-        Vector128<byte> left,
-        Vector128<byte> above,
-        Vector128<byte> upperLeft)
+    public static Vector128<byte> Invoke(Vector128<byte> scan, Vector128<byte> left, Vector128<byte> above, Vector128<byte> upperLeft)
         => scan - above;
 
     /// <inheritdoc />
     [MethodImpl(InliningOptions.AlwaysInline)]
-    public static Vector256<byte> Invoke(
-        Vector256<byte> scan,
-        Vector256<byte> left,
-        Vector256<byte> above,
-        Vector256<byte> upperLeft)
+    public static Vector256<byte> Invoke(Vector256<byte> scan, Vector256<byte> left, Vector256<byte> above, Vector256<byte> upperLeft)
         => scan - above;
 
     /// <inheritdoc />
     [MethodImpl(InliningOptions.AlwaysInline)]
-    public static Vector512<byte> Invoke(
-        Vector512<byte> scan,
-        Vector512<byte> left,
-        Vector512<byte> above,
-        Vector512<byte> upperLeft)
+    public static Vector512<byte> Invoke(Vector512<byte> scan, Vector512<byte> left, Vector512<byte> above, Vector512<byte> upperLeft)
         => scan - above;
 }
 
@@ -208,11 +172,7 @@ internal readonly struct AverageFilterOperator : IPngFilterOperator
 
     /// <inheritdoc />
     [MethodImpl(InliningOptions.AlwaysInline)]
-    public static Vector128<byte> Invoke(
-        Vector128<byte> scan,
-        Vector128<byte> left,
-        Vector128<byte> above,
-        Vector128<byte> upperLeft)
+    public static Vector128<byte> Invoke(Vector128<byte> scan, Vector128<byte> left, Vector128<byte> above, Vector128<byte> upperLeft)
     {
         Vector128<byte> average;
 
@@ -239,20 +199,18 @@ internal readonly struct AverageFilterOperator : IPngFilterOperator
 
     /// <inheritdoc />
     [MethodImpl(InliningOptions.AlwaysInline)]
-    public static Vector256<byte> Invoke(
-        Vector256<byte> scan,
-        Vector256<byte> left,
-        Vector256<byte> above,
-        Vector256<byte> upperLeft)
+    public static Vector256<byte> Invoke(Vector256<byte> scan, Vector256<byte> left, Vector256<byte> above, Vector256<byte> upperLeft)
+
+        // VPAVGB rounds (left + above) / 2 upward. Complementing both inputs and
+        // the result changes that to the truncated average required by PNG.
         => scan - ~Avx2.Average(~left, ~above);
 
     /// <inheritdoc />
     [MethodImpl(InliningOptions.AlwaysInline)]
-    public static Vector512<byte> Invoke(
-        Vector512<byte> scan,
-        Vector512<byte> left,
-        Vector512<byte> above,
-        Vector512<byte> upperLeft)
+    public static Vector512<byte> Invoke(Vector512<byte> scan, Vector512<byte> left, Vector512<byte> above, Vector512<byte> upperLeft)
+
+        // AVX-512BW retains VPAVGB's upward rounding, so use the same complement
+        // identity as AVX2 to obtain floor((left + above) / 2) in every byte lane.
         => scan - ~Avx512BW.Average(~left, ~above);
 }
 
@@ -283,20 +241,14 @@ internal readonly struct PaethFilterOperator : IPngFilterOperator
         int distanceUpperLeft = Numerics.Abs(p - upperLeft);
 
         // PNG resolves equal distances in left, above, upper-left order.
-        byte predictor = distanceLeft <= distanceAbove && distanceLeft <= distanceUpperLeft
-            ? left
-            : distanceAbove <= distanceUpperLeft ? above : upperLeft;
+        byte predictor = distanceLeft <= distanceAbove && distanceLeft <= distanceUpperLeft ? left : distanceAbove <= distanceUpperLeft ? above : upperLeft;
 
         return (byte)(scan - predictor);
     }
 
     /// <inheritdoc />
     [MethodImpl(InliningOptions.AlwaysInline)]
-    public static Vector128<byte> Invoke(
-        Vector128<byte> scan,
-        Vector128<byte> left,
-        Vector128<byte> above,
-        Vector128<byte> upperLeft)
+    public static Vector128<byte> Invoke(Vector128<byte> scan, Vector128<byte> left, Vector128<byte> above, Vector128<byte> upperLeft)
     {
         Vector128<byte> predictor = Predict(left, above, upperLeft);
         return scan - predictor;
@@ -304,11 +256,7 @@ internal readonly struct PaethFilterOperator : IPngFilterOperator
 
     /// <inheritdoc />
     [MethodImpl(InliningOptions.AlwaysInline)]
-    public static Vector256<byte> Invoke(
-        Vector256<byte> scan,
-        Vector256<byte> left,
-        Vector256<byte> above,
-        Vector256<byte> upperLeft)
+    public static Vector256<byte> Invoke(Vector256<byte> scan, Vector256<byte> left, Vector256<byte> above, Vector256<byte> upperLeft)
     {
         Vector256<byte> predictor = Predict(left, above, upperLeft);
         return scan - predictor;
@@ -316,11 +264,7 @@ internal readonly struct PaethFilterOperator : IPngFilterOperator
 
     /// <inheritdoc />
     [MethodImpl(InliningOptions.AlwaysInline)]
-    public static Vector512<byte> Invoke(
-        Vector512<byte> scan,
-        Vector512<byte> left,
-        Vector512<byte> above,
-        Vector512<byte> upperLeft)
+    public static Vector512<byte> Invoke(Vector512<byte> scan, Vector512<byte> left, Vector512<byte> above, Vector512<byte> upperLeft)
     {
         Vector512<byte> predictor = Predict(left, above, upperLeft);
         return scan - predictor;
@@ -329,196 +273,151 @@ internal readonly struct PaethFilterOperator : IPngFilterOperator
     /// <summary>
     /// Selects the nearest Paeth neighbor for sixteen independent byte lanes.
     /// </summary>
+    /// <param name="left">The reconstructed component immediately before each current component.</param>
+    /// <param name="above">The reconstructed component immediately above each current component.</param>
+    /// <param name="upperLeft">The reconstructed component diagonally above and before each current component.</param>
+    /// <returns>The selected Paeth predictor for each byte lane.</returns>
     [MethodImpl(InliningOptions.AlwaysInline)]
-    private static Vector128<byte> Predict(
-        Vector128<byte> left,
-        Vector128<byte> above,
-        Vector128<byte> upperLeft)
+    private static Vector128<byte> Predict(Vector128<byte> left, Vector128<byte> above, Vector128<byte> upperLeft)
     {
-        Vector128<byte> aboveMinusUpper = SubtractSaturate(above, upperLeft);
-        Vector128<byte> leftMinusUpper = SubtractSaturate(left, upperLeft);
-        Vector128<byte> distanceLeft = SubtractSaturate(upperLeft, above) | aboveMinusUpper;
-        Vector128<byte> distanceAbove = SubtractSaturate(upperLeft, left) | leftMinusUpper;
+        // For p = left + above - upperLeft, the Paeth distances simplify to:
+        //   distanceLeft  = |above - upperLeft|
+        //   distanceAbove = |left - upperLeft|
+        // Computing both unsigned subtraction directions and OR-ing them obtains
+        // each absolute difference without widening the byte lanes.
+        Vector128<byte> aboveMinusUpper = Vector128_.SubtractSaturate(above, upperLeft);
+        Vector128<byte> leftMinusUpper = Vector128_.SubtractSaturate(left, upperLeft);
+        Vector128<byte> distanceLeft = Vector128_.SubtractSaturate(upperLeft, above) | aboveMinusUpper;
+        Vector128<byte> distanceAbove = Vector128_.SubtractSaturate(upperLeft, left) | leftMinusUpper;
 
-        return SelectPredictor(
-            left,
-            above,
-            upperLeft,
-            aboveMinusUpper,
-            leftMinusUpper,
-            distanceLeft,
-            distanceAbove);
+        return SelectPredictor(left, above, upperLeft, aboveMinusUpper, leftMinusUpper, distanceLeft, distanceAbove);
     }
 
     /// <summary>
     /// Selects the nearest Paeth neighbor for thirty-two independent byte lanes.
     /// </summary>
+    /// <param name="left">The reconstructed component immediately before each current component.</param>
+    /// <param name="above">The reconstructed component immediately above each current component.</param>
+    /// <param name="upperLeft">The reconstructed component diagonally above and before each current component.</param>
+    /// <returns>The selected Paeth predictor for each byte lane.</returns>
     [MethodImpl(InliningOptions.AlwaysInline)]
-    private static Vector256<byte> Predict(
-        Vector256<byte> left,
-        Vector256<byte> above,
-        Vector256<byte> upperLeft)
+    private static Vector256<byte> Predict(Vector256<byte> left, Vector256<byte> above, Vector256<byte> upperLeft)
     {
-        Vector256<byte> aboveMinusUpper = Avx2.SubtractSaturate(above, upperLeft);
-        Vector256<byte> leftMinusUpper = Avx2.SubtractSaturate(left, upperLeft);
-        Vector256<byte> distanceLeft = Avx2.SubtractSaturate(upperLeft, above) | aboveMinusUpper;
-        Vector256<byte> distanceAbove = Avx2.SubtractSaturate(upperLeft, left) | leftMinusUpper;
+        // Apply the same Paeth identities as the 128-bit path to thirty-two lanes.
+        // Saturating subtraction in both directions forms the absolute differences
+        // without widening, preserving one predictor result per source byte.
+        Vector256<byte> aboveMinusUpper = Vector256_.SubtractSaturate(above, upperLeft);
+        Vector256<byte> leftMinusUpper = Vector256_.SubtractSaturate(left, upperLeft);
+        Vector256<byte> distanceLeft = Vector256_.SubtractSaturate(upperLeft, above) | aboveMinusUpper;
+        Vector256<byte> distanceAbove = Vector256_.SubtractSaturate(upperLeft, left) | leftMinusUpper;
 
-        return SelectPredictor(
-            left,
-            above,
-            upperLeft,
-            aboveMinusUpper,
-            leftMinusUpper,
-            distanceLeft,
-            distanceAbove);
+        return SelectPredictor(left, above, upperLeft, aboveMinusUpper, leftMinusUpper, distanceLeft, distanceAbove);
     }
 
     /// <summary>
     /// Selects the nearest Paeth neighbor for sixty-four independent byte lanes.
     /// </summary>
+    /// <param name="left">The reconstructed component immediately before each current component.</param>
+    /// <param name="above">The reconstructed component immediately above each current component.</param>
+    /// <param name="upperLeft">The reconstructed component diagonally above and before each current component.</param>
+    /// <returns>The selected Paeth predictor for each byte lane.</returns>
     [MethodImpl(InliningOptions.AlwaysInline)]
-    private static Vector512<byte> Predict(
-        Vector512<byte> left,
-        Vector512<byte> above,
-        Vector512<byte> upperLeft)
+    private static Vector512<byte> Predict(Vector512<byte> left, Vector512<byte> above, Vector512<byte> upperLeft)
     {
-        Vector512<byte> aboveMinusUpper = Avx512BW.SubtractSaturate(above, upperLeft);
-        Vector512<byte> leftMinusUpper = Avx512BW.SubtractSaturate(left, upperLeft);
-        Vector512<byte> distanceLeft = Avx512BW.SubtractSaturate(upperLeft, above) | aboveMinusUpper;
-        Vector512<byte> distanceAbove = Avx512BW.SubtractSaturate(upperLeft, left) | leftMinusUpper;
+        // Apply the same byte-lane Paeth identities to sixty-four AVX-512BW lanes.
+        // No cross-lane operation is required because every component has its own
+        // left, above, and upper-left inputs at the matching vector index.
+        Vector512<byte> aboveMinusUpper = Vector512_.SubtractSaturate(above, upperLeft);
+        Vector512<byte> leftMinusUpper = Vector512_.SubtractSaturate(left, upperLeft);
+        Vector512<byte> distanceLeft = Vector512_.SubtractSaturate(upperLeft, above) | aboveMinusUpper;
+        Vector512<byte> distanceAbove = Vector512_.SubtractSaturate(upperLeft, left) | leftMinusUpper;
 
-        return SelectPredictor(
-            left,
-            above,
-            upperLeft,
-            aboveMinusUpper,
-            leftMinusUpper,
-            distanceLeft,
-            distanceAbove);
+        return SelectPredictor(left, above, upperLeft, aboveMinusUpper, leftMinusUpper, distanceLeft, distanceAbove);
     }
 
     /// <summary>
     /// Applies Paeth distance and tie-breaking rules to sixteen lanes.
     /// </summary>
+    /// <param name="left">The left-neighbor candidates.</param>
+    /// <param name="above">The above-neighbor candidates.</param>
+    /// <param name="upperLeft">The upper-left-neighbor candidates.</param>
+    /// <param name="aboveMinusUpper">The saturated differences from above to upper-left.</param>
+    /// <param name="leftMinusUpper">The saturated differences from left to upper-left.</param>
+    /// <param name="distanceLeft">The Paeth distances for the left candidates.</param>
+    /// <param name="distanceAbove">The Paeth distances for the above candidates.</param>
+    /// <returns>The selected Paeth predictor for each byte lane.</returns>
     [MethodImpl(InliningOptions.AlwaysInline)]
-    private static Vector128<byte> SelectPredictor(
-        Vector128<byte> left,
-        Vector128<byte> above,
-        Vector128<byte> upperLeft,
-        Vector128<byte> aboveMinusUpper,
-        Vector128<byte> leftMinusUpper,
-        Vector128<byte> distanceLeft,
-        Vector128<byte> distanceAbove)
+    private static Vector128<byte> SelectPredictor(Vector128<byte> left, Vector128<byte> above, Vector128<byte> upperLeft, Vector128<byte> aboveMinusUpper, Vector128<byte> leftMinusUpper, Vector128<byte> distanceLeft, Vector128<byte> distanceAbove)
     {
-        Vector128<byte> sameDirection = Vector128.Equals(
-            Vector128.Equals(aboveMinusUpper, Vector128<byte>.Zero),
-            Vector128.Equals(leftMinusUpper, Vector128<byte>.Zero));
+        Vector128<byte> sameDirection = Vector128.Equals(Vector128.Equals(aboveMinusUpper, Vector128<byte>.Zero), Vector128.Equals(leftMinusUpper, Vector128<byte>.Zero));
 
-        Vector128<byte> distanceUpper = sameDirection
-            | SubtractSaturate(distanceAbove, distanceLeft)
-            | SubtractSaturate(distanceLeft, distanceAbove);
+        // If left and above lie on the same side of upper-left, distanceUpper is
+        // their summed distance and cannot beat either neighbor; the all-bits mask
+        // excludes upper-left. On opposite sides, that distance is the absolute
+        // difference between distanceLeft and distanceAbove.
+        Vector128<byte> distanceUpper = sameDirection | Vector128_.SubtractSaturate(distanceAbove, distanceLeft) | Vector128_.SubtractSaturate(distanceLeft, distanceAbove);
 
+        // Equality selects above before upper-left, implementing PNG's second tie rule.
         Vector128<byte> minimumAboveUpper = Vector128.Min(distanceUpper, distanceAbove);
-        Vector128<byte> aboveOrUpper = Vector128.ConditionalSelect(
-            Vector128.Equals(minimumAboveUpper, distanceAbove),
-            above,
-            upperLeft);
+        Vector128<byte> aboveOrUpper = Vector128.ConditionalSelect(Vector128.Equals(minimumAboveUpper, distanceAbove), above, upperLeft);
 
         // Applying the left comparison last preserves PNG's left-first tie rule.
-        return Vector128.ConditionalSelect(
-            Vector128.Equals(Vector128.Min(minimumAboveUpper, distanceLeft), distanceLeft),
-            left,
-            aboveOrUpper);
+        return Vector128.ConditionalSelect(Vector128.Equals(Vector128.Min(minimumAboveUpper, distanceLeft), distanceLeft), left, aboveOrUpper);
     }
 
     /// <summary>
     /// Applies Paeth distance and tie-breaking rules to thirty-two lanes.
     /// </summary>
+    /// <param name="left">The left-neighbor candidates.</param>
+    /// <param name="above">The above-neighbor candidates.</param>
+    /// <param name="upperLeft">The upper-left-neighbor candidates.</param>
+    /// <param name="aboveMinusUpper">The saturated differences from above to upper-left.</param>
+    /// <param name="leftMinusUpper">The saturated differences from left to upper-left.</param>
+    /// <param name="distanceLeft">The Paeth distances for the left candidates.</param>
+    /// <param name="distanceAbove">The Paeth distances for the above candidates.</param>
+    /// <returns>The selected Paeth predictor for each byte lane.</returns>
     [MethodImpl(InliningOptions.AlwaysInline)]
-    private static Vector256<byte> SelectPredictor(
-        Vector256<byte> left,
-        Vector256<byte> above,
-        Vector256<byte> upperLeft,
-        Vector256<byte> aboveMinusUpper,
-        Vector256<byte> leftMinusUpper,
-        Vector256<byte> distanceLeft,
-        Vector256<byte> distanceAbove)
+    private static Vector256<byte> SelectPredictor(Vector256<byte> left, Vector256<byte> above, Vector256<byte> upperLeft, Vector256<byte> aboveMinusUpper, Vector256<byte> leftMinusUpper, Vector256<byte> distanceLeft, Vector256<byte> distanceAbove)
     {
-        Vector256<byte> sameDirection = Vector256.Equals(
-            Vector256.Equals(aboveMinusUpper, Vector256<byte>.Zero),
-            Vector256.Equals(leftMinusUpper, Vector256<byte>.Zero));
+        Vector256<byte> sameDirection = Vector256.Equals(Vector256.Equals(aboveMinusUpper, Vector256<byte>.Zero), Vector256.Equals(leftMinusUpper, Vector256<byte>.Zero));
 
-        Vector256<byte> distanceUpper = sameDirection
-            | Avx2.SubtractSaturate(distanceAbove, distanceLeft)
-            | Avx2.SubtractSaturate(distanceLeft, distanceAbove);
+        // Exclude upper-left when its distance is the non-minimal sum; otherwise
+        // compute its distance as the absolute difference of the two known distances.
+        Vector256<byte> distanceUpper = sameDirection | Vector256_.SubtractSaturate(distanceAbove, distanceLeft) | Vector256_.SubtractSaturate(distanceLeft, distanceAbove);
 
+        // Select above on equality, then select left on equality to preserve PNG's
+        // required left, above, upper-left tie order in every byte lane.
         Vector256<byte> minimumAboveUpper = Vector256.Min(distanceUpper, distanceAbove);
-        Vector256<byte> aboveOrUpper = Vector256.ConditionalSelect(
-            Vector256.Equals(minimumAboveUpper, distanceAbove),
-            above,
-            upperLeft);
+        Vector256<byte> aboveOrUpper = Vector256.ConditionalSelect(Vector256.Equals(minimumAboveUpper, distanceAbove), above, upperLeft);
 
-        return Vector256.ConditionalSelect(
-            Vector256.Equals(Vector256.Min(minimumAboveUpper, distanceLeft), distanceLeft),
-            left,
-            aboveOrUpper);
+        return Vector256.ConditionalSelect(Vector256.Equals(Vector256.Min(minimumAboveUpper, distanceLeft), distanceLeft), left, aboveOrUpper);
     }
 
     /// <summary>
     /// Applies Paeth distance and tie-breaking rules to sixty-four lanes.
     /// </summary>
+    /// <param name="left">The left-neighbor candidates.</param>
+    /// <param name="above">The above-neighbor candidates.</param>
+    /// <param name="upperLeft">The upper-left-neighbor candidates.</param>
+    /// <param name="aboveMinusUpper">The saturated differences from above to upper-left.</param>
+    /// <param name="leftMinusUpper">The saturated differences from left to upper-left.</param>
+    /// <param name="distanceLeft">The Paeth distances for the left candidates.</param>
+    /// <param name="distanceAbove">The Paeth distances for the above candidates.</param>
+    /// <returns>The selected Paeth predictor for each byte lane.</returns>
     [MethodImpl(InliningOptions.AlwaysInline)]
-    private static Vector512<byte> SelectPredictor(
-        Vector512<byte> left,
-        Vector512<byte> above,
-        Vector512<byte> upperLeft,
-        Vector512<byte> aboveMinusUpper,
-        Vector512<byte> leftMinusUpper,
-        Vector512<byte> distanceLeft,
-        Vector512<byte> distanceAbove)
+    private static Vector512<byte> SelectPredictor(Vector512<byte> left, Vector512<byte> above, Vector512<byte> upperLeft, Vector512<byte> aboveMinusUpper, Vector512<byte> leftMinusUpper, Vector512<byte> distanceLeft, Vector512<byte> distanceAbove)
     {
-        Vector512<byte> sameDirection = Vector512.Equals(
-            Vector512.Equals(aboveMinusUpper, Vector512<byte>.Zero),
-            Vector512.Equals(leftMinusUpper, Vector512<byte>.Zero));
+        Vector512<byte> sameDirection = Vector512.Equals(Vector512.Equals(aboveMinusUpper, Vector512<byte>.Zero), Vector512.Equals(leftMinusUpper, Vector512<byte>.Zero));
 
-        Vector512<byte> distanceUpper = sameDirection
-            | Avx512BW.SubtractSaturate(distanceAbove, distanceLeft)
-            | Avx512BW.SubtractSaturate(distanceLeft, distanceAbove);
+        // Exclude upper-left when its distance is the non-minimal sum; otherwise
+        // compute its distance as the absolute difference of the two known distances.
+        Vector512<byte> distanceUpper = sameDirection | Vector512_.SubtractSaturate(distanceAbove, distanceLeft) | Vector512_.SubtractSaturate(distanceLeft, distanceAbove);
 
+        // Select above on equality, then select left on equality to preserve PNG's
+        // required left, above, upper-left tie order in every byte lane.
         Vector512<byte> minimumAboveUpper = Vector512.Min(distanceUpper, distanceAbove);
-        Vector512<byte> aboveOrUpper = Vector512.ConditionalSelect(
-            Vector512.Equals(minimumAboveUpper, distanceAbove),
-            above,
-            upperLeft);
+        Vector512<byte> aboveOrUpper = Vector512.ConditionalSelect(Vector512.Equals(minimumAboveUpper, distanceAbove), above, upperLeft);
 
-        return Vector512.ConditionalSelect(
-            Vector512.Equals(Vector512.Min(minimumAboveUpper, distanceLeft), distanceLeft),
-            left,
-            aboveOrUpper);
-    }
-
-    /// <summary>
-    /// Performs an unsigned saturating subtraction using the active 128-bit instruction set.
-    /// </summary>
-    /// <param name="left">The minuend lanes.</param>
-    /// <param name="right">The subtrahend lanes.</param>
-    /// <returns>The saturated lane-wise differences.</returns>
-    [MethodImpl(InliningOptions.AlwaysInline)]
-    private static Vector128<byte> SubtractSaturate(Vector128<byte> left, Vector128<byte> right)
-    {
-        if (Sse2.IsSupported)
-        {
-            return Sse2.SubtractSaturate(left, right);
-        }
-
-        if (AdvSimd.IsSupported)
-        {
-            return AdvSimd.SubtractSaturate(left, right);
-        }
-
-        // Subtracting the smaller operand produces max(left - right, 0) without
-        // requiring a backend-specific saturating-subtract instruction.
-        return left - Vector128.Min(left, right);
+        return Vector512.ConditionalSelect(Vector512.Equals(Vector512.Min(minimumAboveUpper, distanceLeft), distanceLeft), left, aboveOrUpper);
     }
 }

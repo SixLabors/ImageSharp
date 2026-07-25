@@ -331,7 +331,7 @@ internal abstract unsafe class Vp8LHistogram
         {
             if (b.IsUsed(0))
             {
-                AddVector(this.Literal, b.Literal, output.Literal, literalSize);
+                TensorPrimitives_.Add(this.Literal[..literalSize], b.Literal[..literalSize], output.Literal[..literalSize]);
             }
             else
             {
@@ -354,7 +354,7 @@ internal abstract unsafe class Vp8LHistogram
         {
             if (b.IsUsed(1))
             {
-                AddVector(this.Red, b.Red, output.Red, size);
+                TensorPrimitives_.Add(this.Red[..size], b.Red[..size], output.Red[..size]);
             }
             else
             {
@@ -377,7 +377,7 @@ internal abstract unsafe class Vp8LHistogram
         {
             if (b.IsUsed(2))
             {
-                AddVector(this.Blue, b.Blue, output.Blue, size);
+                TensorPrimitives_.Add(this.Blue[..size], b.Blue[..size], output.Blue[..size]);
             }
             else
             {
@@ -400,7 +400,7 @@ internal abstract unsafe class Vp8LHistogram
         {
             if (b.IsUsed(3))
             {
-                AddVector(this.Alpha, b.Alpha, output.Alpha, size);
+                TensorPrimitives_.Add(this.Alpha[..size], b.Alpha[..size], output.Alpha[..size]);
             }
             else
             {
@@ -423,7 +423,7 @@ internal abstract unsafe class Vp8LHistogram
         {
             if (b.IsUsed(4))
             {
-                AddVector(this.Distance, b.Distance, output.Distance, size);
+                TensorPrimitives_.Add(this.Distance[..size], b.Distance[..size], output.Distance[..size]);
             }
             else
             {
@@ -534,14 +534,6 @@ internal abstract unsafe class Vp8LHistogram
         return cost;
     }
 
-    private static void AddVector(Span<uint> a, Span<uint> b, Span<uint> output, int count)
-    {
-        DebugGuard.MustBeGreaterThanOrEqualTo(a.Length, count, nameof(a.Length));
-        DebugGuard.MustBeGreaterThanOrEqualTo(b.Length, count, nameof(b.Length));
-        DebugGuard.MustBeGreaterThanOrEqualTo(output.Length, count, nameof(output.Length));
-
-        TensorPrimitives_.Add(a[..count], b[..count], output[..count]);
-    }
 }
 
 internal sealed unsafe class OwnedVp8LHistogram : Vp8LHistogram, IDisposable

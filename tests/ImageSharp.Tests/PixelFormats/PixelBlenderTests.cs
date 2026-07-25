@@ -866,12 +866,7 @@ public class PixelBlenderTests
     /// <param name="amount">The source opacity.</param>
     /// <param name="coverage">The pixel coverage.</param>
     /// <returns>The blended pixel.</returns>
-    private static TPixel BlendWithCoverageScalar<TPixel>(
-        PixelBlender<TPixel> blender,
-        TPixel background,
-        TPixel source,
-        float amount,
-        float coverage)
+    private static TPixel BlendWithCoverageScalar<TPixel>(PixelBlender<TPixel> blender, TPixel background, TPixel source, float amount, float coverage)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         Span<TPixel> destination = stackalloc TPixel[1];
@@ -880,14 +875,7 @@ public class PixelBlenderTests
         Span<float> coverageSpan = stackalloc float[1] { coverage };
         Span<Vector4> buffer = stackalloc Vector4[3];
 
-        blender.BlendWithCoverage<TPixel>(
-            Configuration.Default,
-            destination,
-            backgroundSpan,
-            sourceSpan,
-            amount,
-            coverageSpan,
-            buffer);
+        blender.BlendWithCoverage<TPixel>(Configuration.Default, destination, backgroundSpan, sourceSpan, amount, coverageSpan, buffer);
 
         return destination[0];
     }

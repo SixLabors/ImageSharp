@@ -130,6 +130,26 @@ internal static class Vector512_
     }
 
     /// <summary>
+    /// Subtracts packed unsigned 8-bit integers in <paramref name="right"/> from
+    /// <paramref name="left"/>, saturating negative lane results to zero.
+    /// </summary>
+    /// <param name="left">The vector from which <paramref name="right"/> is subtracted.</param>
+    /// <param name="right">The vector to subtract from <paramref name="left"/>.</param>
+    /// <returns>The element-wise saturated differences.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<byte> SubtractSaturate(Vector512<byte> left, Vector512<byte> right)
+    {
+        if (Avx512BW.IsSupported)
+        {
+            return Avx512BW.SubtractSaturate(left, right);
+        }
+
+        // This mirrors the .NET 10 portable implementation: recursively processing both
+        // 256-bit halves preserves lane order and lets each half select its available ISA.
+        return Vector512.Create(Vector256_.SubtractSaturate(left.GetLower(), right.GetLower()), Vector256_.SubtractSaturate(left.GetUpper(), right.GetUpper()));
+    }
+
+    /// <summary>
     /// Performs a multiplication and a negated addition of the <see cref="Vector512{Single}"/>.
     /// </summary>
     /// <remarks>ret = va - (vm0 * vm1)</remarks>

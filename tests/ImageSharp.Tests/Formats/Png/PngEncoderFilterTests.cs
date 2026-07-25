@@ -63,9 +63,7 @@ public class PngEncoderFilterTests : MeasureFixture
             data.TestFilter();
         }
 
-        FeatureTestRunner.RunWithHwIntrinsicsFeature(
-            RunTest,
-            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX2);
+        FeatureTestRunner.RunWithHwIntrinsicsFeature(RunTest, HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX2);
     }
 
     [Fact]
@@ -213,12 +211,7 @@ public class PngEncoderFilterTests : MeasureFixture
     /// </summary>
     [Fact]
     public void EncodeMatchesReferencesAcrossRegisterBoundaries()
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
-            AssertEncodersMatchReferences,
-            HwIntrinsics.AllowAll
-            | HwIntrinsics.DisableAVX512F
-            | HwIntrinsics.DisableAVX2
-            | HwIntrinsics.DisableHWIntrinsic);
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(AssertEncodersMatchReferences, HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX2 | HwIntrinsics.DisableHWIntrinsic);
 
     /// <summary>
     /// Compares every filter with its independent scalar reference across SIMD boundaries and pixel strides.
@@ -243,29 +236,13 @@ public class PngEncoderFilterTests : MeasureFixture
                 random.NextBytes(scanline);
                 random.NextBytes(previousScanline);
 
-                AssertFilterMatchesReference(
-                    PngFilterMethod.Sub,
-                    scanline,
-                    previousScanline,
-                    bytesPerPixel);
+                AssertFilterMatchesReference(PngFilterMethod.Sub, scanline, previousScanline, bytesPerPixel);
 
-                AssertFilterMatchesReference(
-                    PngFilterMethod.Up,
-                    scanline,
-                    previousScanline,
-                    bytesPerPixel);
+                AssertFilterMatchesReference(PngFilterMethod.Up, scanline, previousScanline, bytesPerPixel);
 
-                AssertFilterMatchesReference(
-                    PngFilterMethod.Average,
-                    scanline,
-                    previousScanline,
-                    bytesPerPixel);
+                AssertFilterMatchesReference(PngFilterMethod.Average, scanline, previousScanline, bytesPerPixel);
 
-                AssertFilterMatchesReference(
-                    PngFilterMethod.Paeth,
-                    scanline,
-                    previousScanline,
-                    bytesPerPixel);
+                AssertFilterMatchesReference(PngFilterMethod.Paeth, scanline, previousScanline, bytesPerPixel);
             }
         }
     }
@@ -277,11 +254,7 @@ public class PngEncoderFilterTests : MeasureFixture
     /// <param name="scanline">The current scanline.</param>
     /// <param name="previousScanline">The preceding scanline.</param>
     /// <param name="bytesPerPixel">The component distance between adjacent pixels.</param>
-    private static void AssertFilterMatchesReference(
-        PngFilterMethod filter,
-        byte[] scanline,
-        byte[] previousScanline,
-        int bytesPerPixel)
+    private static void AssertFilterMatchesReference(PngFilterMethod filter, byte[] scanline, byte[] previousScanline, int bytesPerPixel)
     {
         byte[] expected = new byte[scanline.Length + 1];
         byte[] actual = new byte[scanline.Length + 1];
@@ -301,36 +274,16 @@ public class PngEncoderFilterTests : MeasureFixture
                 break;
 
             case PngFilterMethod.Average:
-                ReferenceImplementations.EncodeAverageFilter(
-                    scanline,
-                    previousScanline,
-                    expected,
-                    bytesPerPixel,
-                    out expectedSum);
+                ReferenceImplementations.EncodeAverageFilter(scanline, previousScanline, expected, bytesPerPixel, out expectedSum);
 
-                AverageFilter.Encode(
-                    scanline,
-                    previousScanline,
-                    actual,
-                    (uint)bytesPerPixel,
-                    out actualSum);
+                AverageFilter.Encode(scanline, previousScanline, actual, (uint)bytesPerPixel, out actualSum);
 
                 break;
 
             case PngFilterMethod.Paeth:
-                ReferenceImplementations.EncodePaethFilter(
-                    scanline,
-                    previousScanline,
-                    expected,
-                    bytesPerPixel,
-                    out expectedSum);
+                ReferenceImplementations.EncodePaethFilter(scanline, previousScanline, expected, bytesPerPixel, out expectedSum);
 
-                PaethFilter.Encode(
-                    scanline,
-                    previousScanline,
-                    actual,
-                    bytesPerPixel,
-                    out actualSum);
+                PaethFilter.Encode(scanline, previousScanline, actual, bytesPerPixel, out actualSum);
 
                 break;
 

@@ -9,8 +9,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg;
 [Config(typeof(Config.Short))]
 public class YCbCrColorConversion : ColorConversionBenchmark
 {
-    private readonly JpegColorConverterBase converter =
-        JpegColorConverterBase.GetConverter(JpegColorSpace.YCbCr, 8);
+    private readonly JpegColorConverterBase converter = JpegColorConverterBase.GetConverter(JpegColorSpace.YCbCr, 8);
 
     /// <summary>
     /// Initializes a new instance of the <see cref="YCbCrColorConversion"/> class.

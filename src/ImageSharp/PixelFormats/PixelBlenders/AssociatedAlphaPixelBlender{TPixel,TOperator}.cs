@@ -20,10 +20,7 @@ internal abstract class AssociatedAlphaPixelBlender<TPixel, TOperator> : PixelBl
     public sealed override TPixel Blend(TPixel background, TPixel source, float amount)
     {
         // Associated RGB and alpha must remain in their stored representation throughout composition.
-        Vector4 result = TOperator.Invoke(
-            background.ToAssociatedScaledVector4(),
-            source.ToAssociatedScaledVector4(),
-            Numerics.Clamp(amount, 0, 1F));
+        Vector4 result = TOperator.Invoke(background.ToAssociatedScaledVector4(), source.ToAssociatedScaledVector4(), Numerics.Clamp(amount, 0, 1F));
 
         return TPixel.FromAssociatedScaledVector4(result);
     }

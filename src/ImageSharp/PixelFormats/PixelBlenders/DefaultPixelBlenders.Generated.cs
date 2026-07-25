@@ -22,17 +22,11 @@ internal static class DefaultPixelBlenderOperators
             => PorterDuffFunctions.NormalSrc(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector256<float> Invoke(
-            Vector256<float> background,
-            Vector256<float> source,
-            Vector256<float> amount)
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
             => PorterDuffFunctions.NormalSrc(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector512<float> Invoke(
-            Vector512<float> background,
-            Vector512<float> source,
-            Vector512<float> amount)
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
             => PorterDuffFunctions.NormalSrc(background, source, amount);
     }
 
@@ -46,17 +40,11 @@ internal static class DefaultPixelBlenderOperators
             => PorterDuffFunctions.MultiplySrc(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector256<float> Invoke(
-            Vector256<float> background,
-            Vector256<float> source,
-            Vector256<float> amount)
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
             => PorterDuffFunctions.MultiplySrc(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector512<float> Invoke(
-            Vector512<float> background,
-            Vector512<float> source,
-            Vector512<float> amount)
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
             => PorterDuffFunctions.MultiplySrc(background, source, amount);
     }
 
@@ -70,17 +58,11 @@ internal static class DefaultPixelBlenderOperators
             => PorterDuffFunctions.AddSrc(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector256<float> Invoke(
-            Vector256<float> background,
-            Vector256<float> source,
-            Vector256<float> amount)
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
             => PorterDuffFunctions.AddSrc(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector512<float> Invoke(
-            Vector512<float> background,
-            Vector512<float> source,
-            Vector512<float> amount)
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
             => PorterDuffFunctions.AddSrc(background, source, amount);
     }
 
@@ -94,17 +76,11 @@ internal static class DefaultPixelBlenderOperators
             => PorterDuffFunctions.SubtractSrc(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector256<float> Invoke(
-            Vector256<float> background,
-            Vector256<float> source,
-            Vector256<float> amount)
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
             => PorterDuffFunctions.SubtractSrc(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector512<float> Invoke(
-            Vector512<float> background,
-            Vector512<float> source,
-            Vector512<float> amount)
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
             => PorterDuffFunctions.SubtractSrc(background, source, amount);
     }
 
@@ -118,17 +94,11 @@ internal static class DefaultPixelBlenderOperators
             => PorterDuffFunctions.ScreenSrc(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector256<float> Invoke(
-            Vector256<float> background,
-            Vector256<float> source,
-            Vector256<float> amount)
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
             => PorterDuffFunctions.ScreenSrc(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector512<float> Invoke(
-            Vector512<float> background,
-            Vector512<float> source,
-            Vector512<float> amount)
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
             => PorterDuffFunctions.ScreenSrc(background, source, amount);
     }
 
@@ -142,17 +112,11 @@ internal static class DefaultPixelBlenderOperators
             => PorterDuffFunctions.DarkenSrc(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector256<float> Invoke(
-            Vector256<float> background,
-            Vector256<float> source,
-            Vector256<float> amount)
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
             => PorterDuffFunctions.DarkenSrc(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector512<float> Invoke(
-            Vector512<float> background,
-            Vector512<float> source,
-            Vector512<float> amount)
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
             => PorterDuffFunctions.DarkenSrc(background, source, amount);
     }
 
@@ -166,17 +130,11 @@ internal static class DefaultPixelBlenderOperators
             => PorterDuffFunctions.LightenSrc(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector256<float> Invoke(
-            Vector256<float> background,
-            Vector256<float> source,
-            Vector256<float> amount)
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
             => PorterDuffFunctions.LightenSrc(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector512<float> Invoke(
-            Vector512<float> background,
-            Vector512<float> source,
-            Vector512<float> amount)
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
             => PorterDuffFunctions.LightenSrc(background, source, amount);
     }
 
@@ -190,17 +148,11 @@ internal static class DefaultPixelBlenderOperators
             => PorterDuffFunctions.OverlaySrc(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector256<float> Invoke(
-            Vector256<float> background,
-            Vector256<float> source,
-            Vector256<float> amount)
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
             => PorterDuffFunctions.OverlaySrc(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector512<float> Invoke(
-            Vector512<float> background,
-            Vector512<float> source,
-            Vector512<float> amount)
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
             => PorterDuffFunctions.OverlaySrc(background, source, amount);
     }
 
@@ -214,17 +166,11 @@ internal static class DefaultPixelBlenderOperators
             => PorterDuffFunctions.HardLightSrc(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector256<float> Invoke(
-            Vector256<float> background,
-            Vector256<float> source,
-            Vector256<float> amount)
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
             => PorterDuffFunctions.HardLightSrc(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector512<float> Invoke(
-            Vector512<float> background,
-            Vector512<float> source,
-            Vector512<float> amount)
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
             => PorterDuffFunctions.HardLightSrc(background, source, amount);
     }
 
@@ -238,17 +184,11 @@ internal static class DefaultPixelBlenderOperators
             => PorterDuffFunctions.NormalSrcAtop(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector256<float> Invoke(
-            Vector256<float> background,
-            Vector256<float> source,
-            Vector256<float> amount)
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
             => PorterDuffFunctions.NormalSrcAtop(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector512<float> Invoke(
-            Vector512<float> background,
-            Vector512<float> source,
-            Vector512<float> amount)
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
             => PorterDuffFunctions.NormalSrcAtop(background, source, amount);
     }
 
@@ -262,17 +202,11 @@ internal static class DefaultPixelBlenderOperators
             => PorterDuffFunctions.MultiplySrcAtop(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector256<float> Invoke(
-            Vector256<float> background,
-            Vector256<float> source,
-            Vector256<float> amount)
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
             => PorterDuffFunctions.MultiplySrcAtop(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector512<float> Invoke(
-            Vector512<float> background,
-            Vector512<float> source,
-            Vector512<float> amount)
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
             => PorterDuffFunctions.MultiplySrcAtop(background, source, amount);
     }
 
@@ -286,17 +220,11 @@ internal static class DefaultPixelBlenderOperators
             => PorterDuffFunctions.AddSrcAtop(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector256<float> Invoke(
-            Vector256<float> background,
-            Vector256<float> source,
-            Vector256<float> amount)
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
             => PorterDuffFunctions.AddSrcAtop(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector512<float> Invoke(
-            Vector512<float> background,
-            Vector512<float> source,
-            Vector512<float> amount)
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
             => PorterDuffFunctions.AddSrcAtop(background, source, amount);
     }
 
@@ -310,17 +238,11 @@ internal static class DefaultPixelBlenderOperators
             => PorterDuffFunctions.SubtractSrcAtop(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector256<float> Invoke(
-            Vector256<float> background,
-            Vector256<float> source,
-            Vector256<float> amount)
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
             => PorterDuffFunctions.SubtractSrcAtop(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector512<float> Invoke(
-            Vector512<float> background,
-            Vector512<float> source,
-            Vector512<float> amount)
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
             => PorterDuffFunctions.SubtractSrcAtop(background, source, amount);
     }
 
@@ -334,17 +256,11 @@ internal static class DefaultPixelBlenderOperators
             => PorterDuffFunctions.ScreenSrcAtop(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector256<float> Invoke(
-            Vector256<float> background,
-            Vector256<float> source,
-            Vector256<float> amount)
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
             => PorterDuffFunctions.ScreenSrcAtop(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector512<float> Invoke(
-            Vector512<float> background,
-            Vector512<float> source,
-            Vector512<float> amount)
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
             => PorterDuffFunctions.ScreenSrcAtop(background, source, amount);
     }
 
@@ -358,17 +274,11 @@ internal static class DefaultPixelBlenderOperators
             => PorterDuffFunctions.DarkenSrcAtop(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector256<float> Invoke(
-            Vector256<float> background,
-            Vector256<float> source,
-            Vector256<float> amount)
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
             => PorterDuffFunctions.DarkenSrcAtop(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector512<float> Invoke(
-            Vector512<float> background,
-            Vector512<float> source,
-            Vector512<float> amount)
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
             => PorterDuffFunctions.DarkenSrcAtop(background, source, amount);
     }
 
@@ -382,17 +292,11 @@ internal static class DefaultPixelBlenderOperators
             => PorterDuffFunctions.LightenSrcAtop(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector256<float> Invoke(
-            Vector256<float> background,
-            Vector256<float> source,
-            Vector256<float> amount)
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
             => PorterDuffFunctions.LightenSrcAtop(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector512<float> Invoke(
-            Vector512<float> background,
-            Vector512<float> source,
-            Vector512<float> amount)
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
             => PorterDuffFunctions.LightenSrcAtop(background, source, amount);
     }
 
@@ -406,17 +310,11 @@ internal static class DefaultPixelBlenderOperators
             => PorterDuffFunctions.OverlaySrcAtop(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector256<float> Invoke(
-            Vector256<float> background,
-            Vector256<float> source,
-            Vector256<float> amount)
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
             => PorterDuffFunctions.OverlaySrcAtop(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector512<float> Invoke(
-            Vector512<float> background,
-            Vector512<float> source,
-            Vector512<float> amount)
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
             => PorterDuffFunctions.OverlaySrcAtop(background, source, amount);
     }
 
@@ -430,17 +328,11 @@ internal static class DefaultPixelBlenderOperators
             => PorterDuffFunctions.HardLightSrcAtop(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector256<float> Invoke(
-            Vector256<float> background,
-            Vector256<float> source,
-            Vector256<float> amount)
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
             => PorterDuffFunctions.HardLightSrcAtop(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector512<float> Invoke(
-            Vector512<float> background,
-            Vector512<float> source,
-            Vector512<float> amount)
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
             => PorterDuffFunctions.HardLightSrcAtop(background, source, amount);
     }
 
@@ -454,17 +346,11 @@ internal static class DefaultPixelBlenderOperators
             => PorterDuffFunctions.NormalSrcOver(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector256<float> Invoke(
-            Vector256<float> background,
-            Vector256<float> source,
-            Vector256<float> amount)
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
             => PorterDuffFunctions.NormalSrcOver(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector512<float> Invoke(
-            Vector512<float> background,
-            Vector512<float> source,
-            Vector512<float> amount)
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
             => PorterDuffFunctions.NormalSrcOver(background, source, amount);
     }
 
@@ -478,17 +364,11 @@ internal static class DefaultPixelBlenderOperators
             => PorterDuffFunctions.MultiplySrcOver(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector256<float> Invoke(
-            Vector256<float> background,
-            Vector256<float> source,
-            Vector256<float> amount)
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
             => PorterDuffFunctions.MultiplySrcOver(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector512<float> Invoke(
-            Vector512<float> background,
-            Vector512<float> source,
-            Vector512<float> amount)
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
             => PorterDuffFunctions.MultiplySrcOver(background, source, amount);
     }
 
@@ -502,17 +382,11 @@ internal static class DefaultPixelBlenderOperators
             => PorterDuffFunctions.AddSrcOver(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector256<float> Invoke(
-            Vector256<float> background,
-            Vector256<float> source,
-            Vector256<float> amount)
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
             => PorterDuffFunctions.AddSrcOver(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector512<float> Invoke(
-            Vector512<float> background,
-            Vector512<float> source,
-            Vector512<float> amount)
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
             => PorterDuffFunctions.AddSrcOver(background, source, amount);
     }
 
@@ -526,17 +400,11 @@ internal static class DefaultPixelBlenderOperators
             => PorterDuffFunctions.SubtractSrcOver(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector256<float> Invoke(
-            Vector256<float> background,
-            Vector256<float> source,
-            Vector256<float> amount)
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
             => PorterDuffFunctions.SubtractSrcOver(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector512<float> Invoke(
-            Vector512<float> background,
-            Vector512<float> source,
-            Vector512<float> amount)
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
             => PorterDuffFunctions.SubtractSrcOver(background, source, amount);
     }
 
@@ -550,17 +418,11 @@ internal static class DefaultPixelBlenderOperators
             => PorterDuffFunctions.ScreenSrcOver(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector256<float> Invoke(
-            Vector256<float> background,
-            Vector256<float> source,
-            Vector256<float> amount)
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
             => PorterDuffFunctions.ScreenSrcOver(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector512<float> Invoke(
-            Vector512<float> background,
-            Vector512<float> source,
-            Vector512<float> amount)
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
             => PorterDuffFunctions.ScreenSrcOver(background, source, amount);
     }
 
@@ -574,17 +436,11 @@ internal static class DefaultPixelBlenderOperators
             => PorterDuffFunctions.DarkenSrcOver(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector256<float> Invoke(
-            Vector256<float> background,
-            Vector256<float> source,
-            Vector256<float> amount)
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
             => PorterDuffFunctions.DarkenSrcOver(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector512<float> Invoke(
-            Vector512<float> background,
-            Vector512<float> source,
-            Vector512<float> amount)
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
             => PorterDuffFunctions.DarkenSrcOver(background, source, amount);
     }
 
@@ -598,17 +454,11 @@ internal static class DefaultPixelBlenderOperators
             => PorterDuffFunctions.LightenSrcOver(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector256<float> Invoke(
-            Vector256<float> background,
-            Vector256<float> source,
-            Vector256<float> amount)
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
             => PorterDuffFunctions.LightenSrcOver(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector512<float> Invoke(
-            Vector512<float> background,
-            Vector512<float> source,
-            Vector512<float> amount)
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
             => PorterDuffFunctions.LightenSrcOver(background, source, amount);
     }
 
@@ -622,17 +472,11 @@ internal static class DefaultPixelBlenderOperators
             => PorterDuffFunctions.OverlaySrcOver(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector256<float> Invoke(
-            Vector256<float> background,
-            Vector256<float> source,
-            Vector256<float> amount)
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
             => PorterDuffFunctions.OverlaySrcOver(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector512<float> Invoke(
-            Vector512<float> background,
-            Vector512<float> source,
-            Vector512<float> amount)
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
             => PorterDuffFunctions.OverlaySrcOver(background, source, amount);
     }
 
@@ -646,17 +490,11 @@ internal static class DefaultPixelBlenderOperators
             => PorterDuffFunctions.HardLightSrcOver(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector256<float> Invoke(
-            Vector256<float> background,
-            Vector256<float> source,
-            Vector256<float> amount)
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
             => PorterDuffFunctions.HardLightSrcOver(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector512<float> Invoke(
-            Vector512<float> background,
-            Vector512<float> source,
-            Vector512<float> amount)
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
             => PorterDuffFunctions.HardLightSrcOver(background, source, amount);
     }
 
@@ -670,17 +508,11 @@ internal static class DefaultPixelBlenderOperators
             => PorterDuffFunctions.NormalSrcIn(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector256<float> Invoke(
-            Vector256<float> background,
-            Vector256<float> source,
-            Vector256<float> amount)
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
             => PorterDuffFunctions.NormalSrcIn(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector512<float> Invoke(
-            Vector512<float> background,
-            Vector512<float> source,
-            Vector512<float> amount)
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
             => PorterDuffFunctions.NormalSrcIn(background, source, amount);
     }
 
@@ -694,17 +526,11 @@ internal static class DefaultPixelBlenderOperators
             => PorterDuffFunctions.MultiplySrcIn(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector256<float> Invoke(
-            Vector256<float> background,
-            Vector256<float> source,
-            Vector256<float> amount)
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
             => PorterDuffFunctions.MultiplySrcIn(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector512<float> Invoke(
-            Vector512<float> background,
-            Vector512<float> source,
-            Vector512<float> amount)
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
             => PorterDuffFunctions.MultiplySrcIn(background, source, amount);
     }
 
@@ -718,17 +544,11 @@ internal static class DefaultPixelBlenderOperators
             => PorterDuffFunctions.AddSrcIn(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector256<float> Invoke(
-            Vector256<float> background,
-            Vector256<float> source,
-            Vector256<float> amount)
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
             => PorterDuffFunctions.AddSrcIn(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector512<float> Invoke(
-            Vector512<float> background,
-            Vector512<float> source,
-            Vector512<float> amount)
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
             => PorterDuffFunctions.AddSrcIn(background, source, amount);
     }
 
@@ -742,17 +562,11 @@ internal static class DefaultPixelBlenderOperators
             => PorterDuffFunctions.SubtractSrcIn(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector256<float> Invoke(
-            Vector256<float> background,
-            Vector256<float> source,
-            Vector256<float> amount)
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
             => PorterDuffFunctions.SubtractSrcIn(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector512<float> Invoke(
-            Vector512<float> background,
-            Vector512<float> source,
-            Vector512<float> amount)
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
             => PorterDuffFunctions.SubtractSrcIn(background, source, amount);
     }
 
@@ -766,17 +580,11 @@ internal static class DefaultPixelBlenderOperators
             => PorterDuffFunctions.ScreenSrcIn(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector256<float> Invoke(
-            Vector256<float> background,
-            Vector256<float> source,
-            Vector256<float> amount)
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
             => PorterDuffFunctions.ScreenSrcIn(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector512<float> Invoke(
-            Vector512<float> background,
-            Vector512<float> source,
-            Vector512<float> amount)
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
             => PorterDuffFunctions.ScreenSrcIn(background, source, amount);
     }
 
@@ -790,17 +598,11 @@ internal static class DefaultPixelBlenderOperators
             => PorterDuffFunctions.DarkenSrcIn(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector256<float> Invoke(
-            Vector256<float> background,
-            Vector256<float> source,
-            Vector256<float> amount)
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
             => PorterDuffFunctions.DarkenSrcIn(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector512<float> Invoke(
-            Vector512<float> background,
-            Vector512<float> source,
-            Vector512<float> amount)
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
             => PorterDuffFunctions.DarkenSrcIn(background, source, amount);
     }
 
@@ -814,17 +616,11 @@ internal static class DefaultPixelBlenderOperators
             => PorterDuffFunctions.LightenSrcIn(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector256<float> Invoke(
-            Vector256<float> background,
-            Vector256<float> source,
-            Vector256<float> amount)
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
             => PorterDuffFunctions.LightenSrcIn(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector512<float> Invoke(
-            Vector512<float> background,
-            Vector512<float> source,
-            Vector512<float> amount)
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
             => PorterDuffFunctions.LightenSrcIn(background, source, amount);
     }
 
@@ -838,17 +634,11 @@ internal static class DefaultPixelBlenderOperators
             => PorterDuffFunctions.OverlaySrcIn(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector256<float> Invoke(
-            Vector256<float> background,
-            Vector256<float> source,
-            Vector256<float> amount)
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
             => PorterDuffFunctions.OverlaySrcIn(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector512<float> Invoke(
-            Vector512<float> background,
-            Vector512<float> source,
-            Vector512<float> amount)
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
             => PorterDuffFunctions.OverlaySrcIn(background, source, amount);
     }
 
@@ -862,17 +652,11 @@ internal static class DefaultPixelBlenderOperators
             => PorterDuffFunctions.HardLightSrcIn(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector256<float> Invoke(
-            Vector256<float> background,
-            Vector256<float> source,
-            Vector256<float> amount)
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
             => PorterDuffFunctions.HardLightSrcIn(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector512<float> Invoke(
-            Vector512<float> background,
-            Vector512<float> source,
-            Vector512<float> amount)
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
             => PorterDuffFunctions.HardLightSrcIn(background, source, amount);
     }
 
@@ -886,17 +670,11 @@ internal static class DefaultPixelBlenderOperators
             => PorterDuffFunctions.NormalSrcOut(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector256<float> Invoke(
-            Vector256<float> background,
-            Vector256<float> source,
-            Vector256<float> amount)
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
             => PorterDuffFunctions.NormalSrcOut(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector512<float> Invoke(
-            Vector512<float> background,
-            Vector512<float> source,
-            Vector512<float> amount)
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
             => PorterDuffFunctions.NormalSrcOut(background, source, amount);
     }
 
@@ -910,17 +688,11 @@ internal static class DefaultPixelBlenderOperators
             => PorterDuffFunctions.MultiplySrcOut(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector256<float> Invoke(
-            Vector256<float> background,
-            Vector256<float> source,
-            Vector256<float> amount)
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
             => PorterDuffFunctions.MultiplySrcOut(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector512<float> Invoke(
-            Vector512<float> background,
-            Vector512<float> source,
-            Vector512<float> amount)
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
             => PorterDuffFunctions.MultiplySrcOut(background, source, amount);
     }
 
@@ -934,17 +706,11 @@ internal static class DefaultPixelBlenderOperators
             => PorterDuffFunctions.AddSrcOut(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector256<float> Invoke(
-            Vector256<float> background,
-            Vector256<float> source,
-            Vector256<float> amount)
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
             => PorterDuffFunctions.AddSrcOut(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector512<float> Invoke(
-            Vector512<float> background,
-            Vector512<float> source,
-            Vector512<float> amount)
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
             => PorterDuffFunctions.AddSrcOut(background, source, amount);
     }
 
@@ -958,17 +724,11 @@ internal static class DefaultPixelBlenderOperators
             => PorterDuffFunctions.SubtractSrcOut(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector256<float> Invoke(
-            Vector256<float> background,
-            Vector256<float> source,
-            Vector256<float> amount)
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
             => PorterDuffFunctions.SubtractSrcOut(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector512<float> Invoke(
-            Vector512<float> background,
-            Vector512<float> source,
-            Vector512<float> amount)
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
             => PorterDuffFunctions.SubtractSrcOut(background, source, amount);
     }
 
@@ -982,17 +742,11 @@ internal static class DefaultPixelBlenderOperators
             => PorterDuffFunctions.ScreenSrcOut(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector256<float> Invoke(
-            Vector256<float> background,
-            Vector256<float> source,
-            Vector256<float> amount)
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
             => PorterDuffFunctions.ScreenSrcOut(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector512<float> Invoke(
-            Vector512<float> background,
-            Vector512<float> source,
-            Vector512<float> amount)
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
             => PorterDuffFunctions.ScreenSrcOut(background, source, amount);
     }
 
@@ -1006,17 +760,11 @@ internal static class DefaultPixelBlenderOperators
             => PorterDuffFunctions.DarkenSrcOut(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector256<float> Invoke(
-            Vector256<float> background,
-            Vector256<float> source,
-            Vector256<float> amount)
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
             => PorterDuffFunctions.DarkenSrcOut(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector512<float> Invoke(
-            Vector512<float> background,
-            Vector512<float> source,
-            Vector512<float> amount)
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
             => PorterDuffFunctions.DarkenSrcOut(background, source, amount);
     }
 
@@ -1030,17 +778,11 @@ internal static class DefaultPixelBlenderOperators
             => PorterDuffFunctions.LightenSrcOut(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector256<float> Invoke(
-            Vector256<float> background,
-            Vector256<float> source,
-            Vector256<float> amount)
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
             => PorterDuffFunctions.LightenSrcOut(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector512<float> Invoke(
-            Vector512<float> background,
-            Vector512<float> source,
-            Vector512<float> amount)
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
             => PorterDuffFunctions.LightenSrcOut(background, source, amount);
     }
 
@@ -1054,17 +796,11 @@ internal static class DefaultPixelBlenderOperators
             => PorterDuffFunctions.OverlaySrcOut(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector256<float> Invoke(
-            Vector256<float> background,
-            Vector256<float> source,
-            Vector256<float> amount)
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
             => PorterDuffFunctions.OverlaySrcOut(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector512<float> Invoke(
-            Vector512<float> background,
-            Vector512<float> source,
-            Vector512<float> amount)
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
             => PorterDuffFunctions.OverlaySrcOut(background, source, amount);
     }
 
@@ -1078,17 +814,11 @@ internal static class DefaultPixelBlenderOperators
             => PorterDuffFunctions.HardLightSrcOut(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector256<float> Invoke(
-            Vector256<float> background,
-            Vector256<float> source,
-            Vector256<float> amount)
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
             => PorterDuffFunctions.HardLightSrcOut(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector512<float> Invoke(
-            Vector512<float> background,
-            Vector512<float> source,
-            Vector512<float> amount)
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
             => PorterDuffFunctions.HardLightSrcOut(background, source, amount);
     }
 
@@ -1102,17 +832,11 @@ internal static class DefaultPixelBlenderOperators
             => PorterDuffFunctions.NormalDest(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector256<float> Invoke(
-            Vector256<float> background,
-            Vector256<float> source,
-            Vector256<float> amount)
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
             => PorterDuffFunctions.NormalDest(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector512<float> Invoke(
-            Vector512<float> background,
-            Vector512<float> source,
-            Vector512<float> amount)
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
             => PorterDuffFunctions.NormalDest(background, source, amount);
     }
 
@@ -1126,17 +850,11 @@ internal static class DefaultPixelBlenderOperators
             => PorterDuffFunctions.MultiplyDest(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector256<float> Invoke(
-            Vector256<float> background,
-            Vector256<float> source,
-            Vector256<float> amount)
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
             => PorterDuffFunctions.MultiplyDest(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector512<float> Invoke(
-            Vector512<float> background,
-            Vector512<float> source,
-            Vector512<float> amount)
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
             => PorterDuffFunctions.MultiplyDest(background, source, amount);
     }
 
@@ -1150,17 +868,11 @@ internal static class DefaultPixelBlenderOperators
             => PorterDuffFunctions.AddDest(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector256<float> Invoke(
-            Vector256<float> background,
-            Vector256<float> source,
-            Vector256<float> amount)
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
             => PorterDuffFunctions.AddDest(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector512<float> Invoke(
-            Vector512<float> background,
-            Vector512<float> source,
-            Vector512<float> amount)
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
             => PorterDuffFunctions.AddDest(background, source, amount);
     }
 
@@ -1174,17 +886,11 @@ internal static class DefaultPixelBlenderOperators
             => PorterDuffFunctions.SubtractDest(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector256<float> Invoke(
-            Vector256<float> background,
-            Vector256<float> source,
-            Vector256<float> amount)
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
             => PorterDuffFunctions.SubtractDest(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector512<float> Invoke(
-            Vector512<float> background,
-            Vector512<float> source,
-            Vector512<float> amount)
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
             => PorterDuffFunctions.SubtractDest(background, source, amount);
     }
 
@@ -1198,17 +904,11 @@ internal static class DefaultPixelBlenderOperators
             => PorterDuffFunctions.ScreenDest(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector256<float> Invoke(
-            Vector256<float> background,
-            Vector256<float> source,
-            Vector256<float> amount)
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
             => PorterDuffFunctions.ScreenDest(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector512<float> Invoke(
-            Vector512<float> background,
-            Vector512<float> source,
-            Vector512<float> amount)
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
             => PorterDuffFunctions.ScreenDest(background, source, amount);
     }
 
@@ -1222,17 +922,11 @@ internal static class DefaultPixelBlenderOperators
             => PorterDuffFunctions.DarkenDest(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector256<float> Invoke(
-            Vector256<float> background,
-            Vector256<float> source,
-            Vector256<float> amount)
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
             => PorterDuffFunctions.DarkenDest(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector512<float> Invoke(
-            Vector512<float> background,
-            Vector512<float> source,
-            Vector512<float> amount)
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
             => PorterDuffFunctions.DarkenDest(background, source, amount);
     }
 
@@ -1246,17 +940,11 @@ internal static class DefaultPixelBlenderOperators
             => PorterDuffFunctions.LightenDest(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector256<float> Invoke(
-            Vector256<float> background,
-            Vector256<float> source,
-            Vector256<float> amount)
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
             => PorterDuffFunctions.LightenDest(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector512<float> Invoke(
-            Vector512<float> background,
-            Vector512<float> source,
-            Vector512<float> amount)
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
             => PorterDuffFunctions.LightenDest(background, source, amount);
     }
 
@@ -1270,17 +958,11 @@ internal static class DefaultPixelBlenderOperators
             => PorterDuffFunctions.OverlayDest(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector256<float> Invoke(
-            Vector256<float> background,
-            Vector256<float> source,
-            Vector256<float> amount)
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
             => PorterDuffFunctions.OverlayDest(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector512<float> Invoke(
-            Vector512<float> background,
-            Vector512<float> source,
-            Vector512<float> amount)
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
             => PorterDuffFunctions.OverlayDest(background, source, amount);
     }
 
@@ -1294,17 +976,11 @@ internal static class DefaultPixelBlenderOperators
             => PorterDuffFunctions.HardLightDest(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector256<float> Invoke(
-            Vector256<float> background,
-            Vector256<float> source,
-            Vector256<float> amount)
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
             => PorterDuffFunctions.HardLightDest(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector512<float> Invoke(
-            Vector512<float> background,
-            Vector512<float> source,
-            Vector512<float> amount)
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
             => PorterDuffFunctions.HardLightDest(background, source, amount);
     }
 
@@ -1318,17 +994,11 @@ internal static class DefaultPixelBlenderOperators
             => PorterDuffFunctions.NormalDestAtop(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector256<float> Invoke(
-            Vector256<float> background,
-            Vector256<float> source,
-            Vector256<float> amount)
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
             => PorterDuffFunctions.NormalDestAtop(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector512<float> Invoke(
-            Vector512<float> background,
-            Vector512<float> source,
-            Vector512<float> amount)
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
             => PorterDuffFunctions.NormalDestAtop(background, source, amount);
     }
 
@@ -1342,17 +1012,11 @@ internal static class DefaultPixelBlenderOperators
             => PorterDuffFunctions.MultiplyDestAtop(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector256<float> Invoke(
-            Vector256<float> background,
-            Vector256<float> source,
-            Vector256<float> amount)
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
             => PorterDuffFunctions.MultiplyDestAtop(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector512<float> Invoke(
-            Vector512<float> background,
-            Vector512<float> source,
-            Vector512<float> amount)
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
             => PorterDuffFunctions.MultiplyDestAtop(background, source, amount);
     }
 
@@ -1366,17 +1030,11 @@ internal static class DefaultPixelBlenderOperators
             => PorterDuffFunctions.AddDestAtop(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector256<float> Invoke(
-            Vector256<float> background,
-            Vector256<float> source,
-            Vector256<float> amount)
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
             => PorterDuffFunctions.AddDestAtop(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector512<float> Invoke(
-            Vector512<float> background,
-            Vector512<float> source,
-            Vector512<float> amount)
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
             => PorterDuffFunctions.AddDestAtop(background, source, amount);
     }
 
@@ -1390,17 +1048,11 @@ internal static class DefaultPixelBlenderOperators
             => PorterDuffFunctions.SubtractDestAtop(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector256<float> Invoke(
-            Vector256<float> background,
-            Vector256<float> source,
-            Vector256<float> amount)
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
             => PorterDuffFunctions.SubtractDestAtop(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector512<float> Invoke(
-            Vector512<float> background,
-            Vector512<float> source,
-            Vector512<float> amount)
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
             => PorterDuffFunctions.SubtractDestAtop(background, source, amount);
     }
 
@@ -1414,17 +1066,11 @@ internal static class DefaultPixelBlenderOperators
             => PorterDuffFunctions.ScreenDestAtop(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector256<float> Invoke(
-            Vector256<float> background,
-            Vector256<float> source,
-            Vector256<float> amount)
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
             => PorterDuffFunctions.ScreenDestAtop(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector512<float> Invoke(
-            Vector512<float> background,
-            Vector512<float> source,
-            Vector512<float> amount)
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
             => PorterDuffFunctions.ScreenDestAtop(background, source, amount);
     }
 
@@ -1438,17 +1084,11 @@ internal static class DefaultPixelBlenderOperators
             => PorterDuffFunctions.DarkenDestAtop(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector256<float> Invoke(
-            Vector256<float> background,
-            Vector256<float> source,
-            Vector256<float> amount)
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
             => PorterDuffFunctions.DarkenDestAtop(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector512<float> Invoke(
-            Vector512<float> background,
-            Vector512<float> source,
-            Vector512<float> amount)
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
             => PorterDuffFunctions.DarkenDestAtop(background, source, amount);
     }
 
@@ -1462,17 +1102,11 @@ internal static class DefaultPixelBlenderOperators
             => PorterDuffFunctions.LightenDestAtop(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector256<float> Invoke(
-            Vector256<float> background,
-            Vector256<float> source,
-            Vector256<float> amount)
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
             => PorterDuffFunctions.LightenDestAtop(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector512<float> Invoke(
-            Vector512<float> background,
-            Vector512<float> source,
-            Vector512<float> amount)
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
             => PorterDuffFunctions.LightenDestAtop(background, source, amount);
     }
 
@@ -1486,17 +1120,11 @@ internal static class DefaultPixelBlenderOperators
             => PorterDuffFunctions.OverlayDestAtop(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector256<float> Invoke(
-            Vector256<float> background,
-            Vector256<float> source,
-            Vector256<float> amount)
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
             => PorterDuffFunctions.OverlayDestAtop(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector512<float> Invoke(
-            Vector512<float> background,
-            Vector512<float> source,
-            Vector512<float> amount)
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
             => PorterDuffFunctions.OverlayDestAtop(background, source, amount);
     }
 
@@ -1510,17 +1138,11 @@ internal static class DefaultPixelBlenderOperators
             => PorterDuffFunctions.HardLightDestAtop(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector256<float> Invoke(
-            Vector256<float> background,
-            Vector256<float> source,
-            Vector256<float> amount)
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
             => PorterDuffFunctions.HardLightDestAtop(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector512<float> Invoke(
-            Vector512<float> background,
-            Vector512<float> source,
-            Vector512<float> amount)
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
             => PorterDuffFunctions.HardLightDestAtop(background, source, amount);
     }
 
@@ -1534,17 +1156,11 @@ internal static class DefaultPixelBlenderOperators
             => PorterDuffFunctions.NormalDestOver(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector256<float> Invoke(
-            Vector256<float> background,
-            Vector256<float> source,
-            Vector256<float> amount)
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
             => PorterDuffFunctions.NormalDestOver(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector512<float> Invoke(
-            Vector512<float> background,
-            Vector512<float> source,
-            Vector512<float> amount)
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
             => PorterDuffFunctions.NormalDestOver(background, source, amount);
     }
 
@@ -1558,17 +1174,11 @@ internal static class DefaultPixelBlenderOperators
             => PorterDuffFunctions.MultiplyDestOver(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector256<float> Invoke(
-            Vector256<float> background,
-            Vector256<float> source,
-            Vector256<float> amount)
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
             => PorterDuffFunctions.MultiplyDestOver(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector512<float> Invoke(
-            Vector512<float> background,
-            Vector512<float> source,
-            Vector512<float> amount)
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
             => PorterDuffFunctions.MultiplyDestOver(background, source, amount);
     }
 
@@ -1582,17 +1192,11 @@ internal static class DefaultPixelBlenderOperators
             => PorterDuffFunctions.AddDestOver(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector256<float> Invoke(
-            Vector256<float> background,
-            Vector256<float> source,
-            Vector256<float> amount)
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
             => PorterDuffFunctions.AddDestOver(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector512<float> Invoke(
-            Vector512<float> background,
-            Vector512<float> source,
-            Vector512<float> amount)
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
             => PorterDuffFunctions.AddDestOver(background, source, amount);
     }
 
@@ -1606,17 +1210,11 @@ internal static class DefaultPixelBlenderOperators
             => PorterDuffFunctions.SubtractDestOver(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector256<float> Invoke(
-            Vector256<float> background,
-            Vector256<float> source,
-            Vector256<float> amount)
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
             => PorterDuffFunctions.SubtractDestOver(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector512<float> Invoke(
-            Vector512<float> background,
-            Vector512<float> source,
-            Vector512<float> amount)
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
             => PorterDuffFunctions.SubtractDestOver(background, source, amount);
     }
 
@@ -1630,17 +1228,11 @@ internal static class DefaultPixelBlenderOperators
             => PorterDuffFunctions.ScreenDestOver(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector256<float> Invoke(
-            Vector256<float> background,
-            Vector256<float> source,
-            Vector256<float> amount)
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
             => PorterDuffFunctions.ScreenDestOver(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector512<float> Invoke(
-            Vector512<float> background,
-            Vector512<float> source,
-            Vector512<float> amount)
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
             => PorterDuffFunctions.ScreenDestOver(background, source, amount);
     }
 
@@ -1654,17 +1246,11 @@ internal static class DefaultPixelBlenderOperators
             => PorterDuffFunctions.DarkenDestOver(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector256<float> Invoke(
-            Vector256<float> background,
-            Vector256<float> source,
-            Vector256<float> amount)
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
             => PorterDuffFunctions.DarkenDestOver(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector512<float> Invoke(
-            Vector512<float> background,
-            Vector512<float> source,
-            Vector512<float> amount)
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
             => PorterDuffFunctions.DarkenDestOver(background, source, amount);
     }
 
@@ -1678,17 +1264,11 @@ internal static class DefaultPixelBlenderOperators
             => PorterDuffFunctions.LightenDestOver(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector256<float> Invoke(
-            Vector256<float> background,
-            Vector256<float> source,
-            Vector256<float> amount)
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
             => PorterDuffFunctions.LightenDestOver(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector512<float> Invoke(
-            Vector512<float> background,
-            Vector512<float> source,
-            Vector512<float> amount)
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
             => PorterDuffFunctions.LightenDestOver(background, source, amount);
     }
 
@@ -1702,17 +1282,11 @@ internal static class DefaultPixelBlenderOperators
             => PorterDuffFunctions.OverlayDestOver(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector256<float> Invoke(
-            Vector256<float> background,
-            Vector256<float> source,
-            Vector256<float> amount)
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
             => PorterDuffFunctions.OverlayDestOver(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector512<float> Invoke(
-            Vector512<float> background,
-            Vector512<float> source,
-            Vector512<float> amount)
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
             => PorterDuffFunctions.OverlayDestOver(background, source, amount);
     }
 
@@ -1726,17 +1300,11 @@ internal static class DefaultPixelBlenderOperators
             => PorterDuffFunctions.HardLightDestOver(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector256<float> Invoke(
-            Vector256<float> background,
-            Vector256<float> source,
-            Vector256<float> amount)
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
             => PorterDuffFunctions.HardLightDestOver(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector512<float> Invoke(
-            Vector512<float> background,
-            Vector512<float> source,
-            Vector512<float> amount)
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
             => PorterDuffFunctions.HardLightDestOver(background, source, amount);
     }
 
@@ -1750,17 +1318,11 @@ internal static class DefaultPixelBlenderOperators
             => PorterDuffFunctions.NormalDestIn(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector256<float> Invoke(
-            Vector256<float> background,
-            Vector256<float> source,
-            Vector256<float> amount)
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
             => PorterDuffFunctions.NormalDestIn(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector512<float> Invoke(
-            Vector512<float> background,
-            Vector512<float> source,
-            Vector512<float> amount)
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
             => PorterDuffFunctions.NormalDestIn(background, source, amount);
     }
 
@@ -1774,17 +1336,11 @@ internal static class DefaultPixelBlenderOperators
             => PorterDuffFunctions.MultiplyDestIn(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector256<float> Invoke(
-            Vector256<float> background,
-            Vector256<float> source,
-            Vector256<float> amount)
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
             => PorterDuffFunctions.MultiplyDestIn(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector512<float> Invoke(
-            Vector512<float> background,
-            Vector512<float> source,
-            Vector512<float> amount)
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
             => PorterDuffFunctions.MultiplyDestIn(background, source, amount);
     }
 
@@ -1798,17 +1354,11 @@ internal static class DefaultPixelBlenderOperators
             => PorterDuffFunctions.AddDestIn(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector256<float> Invoke(
-            Vector256<float> background,
-            Vector256<float> source,
-            Vector256<float> amount)
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
             => PorterDuffFunctions.AddDestIn(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector512<float> Invoke(
-            Vector512<float> background,
-            Vector512<float> source,
-            Vector512<float> amount)
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
             => PorterDuffFunctions.AddDestIn(background, source, amount);
     }
 
@@ -1822,17 +1372,11 @@ internal static class DefaultPixelBlenderOperators
             => PorterDuffFunctions.SubtractDestIn(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector256<float> Invoke(
-            Vector256<float> background,
-            Vector256<float> source,
-            Vector256<float> amount)
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
             => PorterDuffFunctions.SubtractDestIn(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector512<float> Invoke(
-            Vector512<float> background,
-            Vector512<float> source,
-            Vector512<float> amount)
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
             => PorterDuffFunctions.SubtractDestIn(background, source, amount);
     }
 
@@ -1846,17 +1390,11 @@ internal static class DefaultPixelBlenderOperators
             => PorterDuffFunctions.ScreenDestIn(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector256<float> Invoke(
-            Vector256<float> background,
-            Vector256<float> source,
-            Vector256<float> amount)
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
             => PorterDuffFunctions.ScreenDestIn(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector512<float> Invoke(
-            Vector512<float> background,
-            Vector512<float> source,
-            Vector512<float> amount)
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
             => PorterDuffFunctions.ScreenDestIn(background, source, amount);
     }
 
@@ -1870,17 +1408,11 @@ internal static class DefaultPixelBlenderOperators
             => PorterDuffFunctions.DarkenDestIn(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector256<float> Invoke(
-            Vector256<float> background,
-            Vector256<float> source,
-            Vector256<float> amount)
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
             => PorterDuffFunctions.DarkenDestIn(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector512<float> Invoke(
-            Vector512<float> background,
-            Vector512<float> source,
-            Vector512<float> amount)
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
             => PorterDuffFunctions.DarkenDestIn(background, source, amount);
     }
 
@@ -1894,17 +1426,11 @@ internal static class DefaultPixelBlenderOperators
             => PorterDuffFunctions.LightenDestIn(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector256<float> Invoke(
-            Vector256<float> background,
-            Vector256<float> source,
-            Vector256<float> amount)
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
             => PorterDuffFunctions.LightenDestIn(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector512<float> Invoke(
-            Vector512<float> background,
-            Vector512<float> source,
-            Vector512<float> amount)
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
             => PorterDuffFunctions.LightenDestIn(background, source, amount);
     }
 
@@ -1918,17 +1444,11 @@ internal static class DefaultPixelBlenderOperators
             => PorterDuffFunctions.OverlayDestIn(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector256<float> Invoke(
-            Vector256<float> background,
-            Vector256<float> source,
-            Vector256<float> amount)
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
             => PorterDuffFunctions.OverlayDestIn(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector512<float> Invoke(
-            Vector512<float> background,
-            Vector512<float> source,
-            Vector512<float> amount)
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
             => PorterDuffFunctions.OverlayDestIn(background, source, amount);
     }
 
@@ -1942,17 +1462,11 @@ internal static class DefaultPixelBlenderOperators
             => PorterDuffFunctions.HardLightDestIn(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector256<float> Invoke(
-            Vector256<float> background,
-            Vector256<float> source,
-            Vector256<float> amount)
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
             => PorterDuffFunctions.HardLightDestIn(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector512<float> Invoke(
-            Vector512<float> background,
-            Vector512<float> source,
-            Vector512<float> amount)
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
             => PorterDuffFunctions.HardLightDestIn(background, source, amount);
     }
 
@@ -1966,17 +1480,11 @@ internal static class DefaultPixelBlenderOperators
             => PorterDuffFunctions.NormalDestOut(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector256<float> Invoke(
-            Vector256<float> background,
-            Vector256<float> source,
-            Vector256<float> amount)
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
             => PorterDuffFunctions.NormalDestOut(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector512<float> Invoke(
-            Vector512<float> background,
-            Vector512<float> source,
-            Vector512<float> amount)
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
             => PorterDuffFunctions.NormalDestOut(background, source, amount);
     }
 
@@ -1990,17 +1498,11 @@ internal static class DefaultPixelBlenderOperators
             => PorterDuffFunctions.MultiplyDestOut(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector256<float> Invoke(
-            Vector256<float> background,
-            Vector256<float> source,
-            Vector256<float> amount)
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
             => PorterDuffFunctions.MultiplyDestOut(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector512<float> Invoke(
-            Vector512<float> background,
-            Vector512<float> source,
-            Vector512<float> amount)
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
             => PorterDuffFunctions.MultiplyDestOut(background, source, amount);
     }
 
@@ -2014,17 +1516,11 @@ internal static class DefaultPixelBlenderOperators
             => PorterDuffFunctions.AddDestOut(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector256<float> Invoke(
-            Vector256<float> background,
-            Vector256<float> source,
-            Vector256<float> amount)
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
             => PorterDuffFunctions.AddDestOut(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector512<float> Invoke(
-            Vector512<float> background,
-            Vector512<float> source,
-            Vector512<float> amount)
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
             => PorterDuffFunctions.AddDestOut(background, source, amount);
     }
 
@@ -2038,17 +1534,11 @@ internal static class DefaultPixelBlenderOperators
             => PorterDuffFunctions.SubtractDestOut(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector256<float> Invoke(
-            Vector256<float> background,
-            Vector256<float> source,
-            Vector256<float> amount)
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
             => PorterDuffFunctions.SubtractDestOut(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector512<float> Invoke(
-            Vector512<float> background,
-            Vector512<float> source,
-            Vector512<float> amount)
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
             => PorterDuffFunctions.SubtractDestOut(background, source, amount);
     }
 
@@ -2062,17 +1552,11 @@ internal static class DefaultPixelBlenderOperators
             => PorterDuffFunctions.ScreenDestOut(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector256<float> Invoke(
-            Vector256<float> background,
-            Vector256<float> source,
-            Vector256<float> amount)
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
             => PorterDuffFunctions.ScreenDestOut(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector512<float> Invoke(
-            Vector512<float> background,
-            Vector512<float> source,
-            Vector512<float> amount)
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
             => PorterDuffFunctions.ScreenDestOut(background, source, amount);
     }
 
@@ -2086,17 +1570,11 @@ internal static class DefaultPixelBlenderOperators
             => PorterDuffFunctions.DarkenDestOut(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector256<float> Invoke(
-            Vector256<float> background,
-            Vector256<float> source,
-            Vector256<float> amount)
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
             => PorterDuffFunctions.DarkenDestOut(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector512<float> Invoke(
-            Vector512<float> background,
-            Vector512<float> source,
-            Vector512<float> amount)
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
             => PorterDuffFunctions.DarkenDestOut(background, source, amount);
     }
 
@@ -2110,17 +1588,11 @@ internal static class DefaultPixelBlenderOperators
             => PorterDuffFunctions.LightenDestOut(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector256<float> Invoke(
-            Vector256<float> background,
-            Vector256<float> source,
-            Vector256<float> amount)
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
             => PorterDuffFunctions.LightenDestOut(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector512<float> Invoke(
-            Vector512<float> background,
-            Vector512<float> source,
-            Vector512<float> amount)
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
             => PorterDuffFunctions.LightenDestOut(background, source, amount);
     }
 
@@ -2134,17 +1606,11 @@ internal static class DefaultPixelBlenderOperators
             => PorterDuffFunctions.OverlayDestOut(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector256<float> Invoke(
-            Vector256<float> background,
-            Vector256<float> source,
-            Vector256<float> amount)
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
             => PorterDuffFunctions.OverlayDestOut(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector512<float> Invoke(
-            Vector512<float> background,
-            Vector512<float> source,
-            Vector512<float> amount)
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
             => PorterDuffFunctions.OverlayDestOut(background, source, amount);
     }
 
@@ -2158,17 +1624,11 @@ internal static class DefaultPixelBlenderOperators
             => PorterDuffFunctions.HardLightDestOut(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector256<float> Invoke(
-            Vector256<float> background,
-            Vector256<float> source,
-            Vector256<float> amount)
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
             => PorterDuffFunctions.HardLightDestOut(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector512<float> Invoke(
-            Vector512<float> background,
-            Vector512<float> source,
-            Vector512<float> amount)
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
             => PorterDuffFunctions.HardLightDestOut(background, source, amount);
     }
 
@@ -2182,17 +1642,11 @@ internal static class DefaultPixelBlenderOperators
             => PorterDuffFunctions.NormalClear(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector256<float> Invoke(
-            Vector256<float> background,
-            Vector256<float> source,
-            Vector256<float> amount)
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
             => PorterDuffFunctions.NormalClear(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector512<float> Invoke(
-            Vector512<float> background,
-            Vector512<float> source,
-            Vector512<float> amount)
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
             => PorterDuffFunctions.NormalClear(background, source, amount);
     }
 
@@ -2206,17 +1660,11 @@ internal static class DefaultPixelBlenderOperators
             => PorterDuffFunctions.MultiplyClear(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector256<float> Invoke(
-            Vector256<float> background,
-            Vector256<float> source,
-            Vector256<float> amount)
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
             => PorterDuffFunctions.MultiplyClear(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector512<float> Invoke(
-            Vector512<float> background,
-            Vector512<float> source,
-            Vector512<float> amount)
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
             => PorterDuffFunctions.MultiplyClear(background, source, amount);
     }
 
@@ -2230,17 +1678,11 @@ internal static class DefaultPixelBlenderOperators
             => PorterDuffFunctions.AddClear(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector256<float> Invoke(
-            Vector256<float> background,
-            Vector256<float> source,
-            Vector256<float> amount)
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
             => PorterDuffFunctions.AddClear(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector512<float> Invoke(
-            Vector512<float> background,
-            Vector512<float> source,
-            Vector512<float> amount)
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
             => PorterDuffFunctions.AddClear(background, source, amount);
     }
 
@@ -2254,17 +1696,11 @@ internal static class DefaultPixelBlenderOperators
             => PorterDuffFunctions.SubtractClear(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector256<float> Invoke(
-            Vector256<float> background,
-            Vector256<float> source,
-            Vector256<float> amount)
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
             => PorterDuffFunctions.SubtractClear(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector512<float> Invoke(
-            Vector512<float> background,
-            Vector512<float> source,
-            Vector512<float> amount)
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
             => PorterDuffFunctions.SubtractClear(background, source, amount);
     }
 
@@ -2278,17 +1714,11 @@ internal static class DefaultPixelBlenderOperators
             => PorterDuffFunctions.ScreenClear(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector256<float> Invoke(
-            Vector256<float> background,
-            Vector256<float> source,
-            Vector256<float> amount)
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
             => PorterDuffFunctions.ScreenClear(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector512<float> Invoke(
-            Vector512<float> background,
-            Vector512<float> source,
-            Vector512<float> amount)
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
             => PorterDuffFunctions.ScreenClear(background, source, amount);
     }
 
@@ -2302,17 +1732,11 @@ internal static class DefaultPixelBlenderOperators
             => PorterDuffFunctions.DarkenClear(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector256<float> Invoke(
-            Vector256<float> background,
-            Vector256<float> source,
-            Vector256<float> amount)
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
             => PorterDuffFunctions.DarkenClear(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector512<float> Invoke(
-            Vector512<float> background,
-            Vector512<float> source,
-            Vector512<float> amount)
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
             => PorterDuffFunctions.DarkenClear(background, source, amount);
     }
 
@@ -2326,17 +1750,11 @@ internal static class DefaultPixelBlenderOperators
             => PorterDuffFunctions.LightenClear(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector256<float> Invoke(
-            Vector256<float> background,
-            Vector256<float> source,
-            Vector256<float> amount)
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
             => PorterDuffFunctions.LightenClear(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector512<float> Invoke(
-            Vector512<float> background,
-            Vector512<float> source,
-            Vector512<float> amount)
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
             => PorterDuffFunctions.LightenClear(background, source, amount);
     }
 
@@ -2350,17 +1768,11 @@ internal static class DefaultPixelBlenderOperators
             => PorterDuffFunctions.OverlayClear(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector256<float> Invoke(
-            Vector256<float> background,
-            Vector256<float> source,
-            Vector256<float> amount)
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
             => PorterDuffFunctions.OverlayClear(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector512<float> Invoke(
-            Vector512<float> background,
-            Vector512<float> source,
-            Vector512<float> amount)
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
             => PorterDuffFunctions.OverlayClear(background, source, amount);
     }
 
@@ -2374,17 +1786,11 @@ internal static class DefaultPixelBlenderOperators
             => PorterDuffFunctions.HardLightClear(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector256<float> Invoke(
-            Vector256<float> background,
-            Vector256<float> source,
-            Vector256<float> amount)
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
             => PorterDuffFunctions.HardLightClear(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector512<float> Invoke(
-            Vector512<float> background,
-            Vector512<float> source,
-            Vector512<float> amount)
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
             => PorterDuffFunctions.HardLightClear(background, source, amount);
     }
 
@@ -2398,17 +1804,11 @@ internal static class DefaultPixelBlenderOperators
             => PorterDuffFunctions.NormalXor(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector256<float> Invoke(
-            Vector256<float> background,
-            Vector256<float> source,
-            Vector256<float> amount)
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
             => PorterDuffFunctions.NormalXor(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector512<float> Invoke(
-            Vector512<float> background,
-            Vector512<float> source,
-            Vector512<float> amount)
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
             => PorterDuffFunctions.NormalXor(background, source, amount);
     }
 
@@ -2422,17 +1822,11 @@ internal static class DefaultPixelBlenderOperators
             => PorterDuffFunctions.MultiplyXor(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector256<float> Invoke(
-            Vector256<float> background,
-            Vector256<float> source,
-            Vector256<float> amount)
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
             => PorterDuffFunctions.MultiplyXor(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector512<float> Invoke(
-            Vector512<float> background,
-            Vector512<float> source,
-            Vector512<float> amount)
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
             => PorterDuffFunctions.MultiplyXor(background, source, amount);
     }
 
@@ -2446,17 +1840,11 @@ internal static class DefaultPixelBlenderOperators
             => PorterDuffFunctions.AddXor(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector256<float> Invoke(
-            Vector256<float> background,
-            Vector256<float> source,
-            Vector256<float> amount)
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
             => PorterDuffFunctions.AddXor(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector512<float> Invoke(
-            Vector512<float> background,
-            Vector512<float> source,
-            Vector512<float> amount)
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
             => PorterDuffFunctions.AddXor(background, source, amount);
     }
 
@@ -2470,17 +1858,11 @@ internal static class DefaultPixelBlenderOperators
             => PorterDuffFunctions.SubtractXor(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector256<float> Invoke(
-            Vector256<float> background,
-            Vector256<float> source,
-            Vector256<float> amount)
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
             => PorterDuffFunctions.SubtractXor(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector512<float> Invoke(
-            Vector512<float> background,
-            Vector512<float> source,
-            Vector512<float> amount)
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
             => PorterDuffFunctions.SubtractXor(background, source, amount);
     }
 
@@ -2494,17 +1876,11 @@ internal static class DefaultPixelBlenderOperators
             => PorterDuffFunctions.ScreenXor(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector256<float> Invoke(
-            Vector256<float> background,
-            Vector256<float> source,
-            Vector256<float> amount)
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
             => PorterDuffFunctions.ScreenXor(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector512<float> Invoke(
-            Vector512<float> background,
-            Vector512<float> source,
-            Vector512<float> amount)
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
             => PorterDuffFunctions.ScreenXor(background, source, amount);
     }
 
@@ -2518,17 +1894,11 @@ internal static class DefaultPixelBlenderOperators
             => PorterDuffFunctions.DarkenXor(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector256<float> Invoke(
-            Vector256<float> background,
-            Vector256<float> source,
-            Vector256<float> amount)
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
             => PorterDuffFunctions.DarkenXor(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector512<float> Invoke(
-            Vector512<float> background,
-            Vector512<float> source,
-            Vector512<float> amount)
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
             => PorterDuffFunctions.DarkenXor(background, source, amount);
     }
 
@@ -2542,17 +1912,11 @@ internal static class DefaultPixelBlenderOperators
             => PorterDuffFunctions.LightenXor(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector256<float> Invoke(
-            Vector256<float> background,
-            Vector256<float> source,
-            Vector256<float> amount)
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
             => PorterDuffFunctions.LightenXor(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector512<float> Invoke(
-            Vector512<float> background,
-            Vector512<float> source,
-            Vector512<float> amount)
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
             => PorterDuffFunctions.LightenXor(background, source, amount);
     }
 
@@ -2566,17 +1930,11 @@ internal static class DefaultPixelBlenderOperators
             => PorterDuffFunctions.OverlayXor(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector256<float> Invoke(
-            Vector256<float> background,
-            Vector256<float> source,
-            Vector256<float> amount)
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
             => PorterDuffFunctions.OverlayXor(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector512<float> Invoke(
-            Vector512<float> background,
-            Vector512<float> source,
-            Vector512<float> amount)
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
             => PorterDuffFunctions.OverlayXor(background, source, amount);
     }
 
@@ -2590,17 +1948,11 @@ internal static class DefaultPixelBlenderOperators
             => PorterDuffFunctions.HardLightXor(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector256<float> Invoke(
-            Vector256<float> background,
-            Vector256<float> source,
-            Vector256<float> amount)
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
             => PorterDuffFunctions.HardLightXor(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector512<float> Invoke(
-            Vector512<float> background,
-            Vector512<float> source,
-            Vector512<float> amount)
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
             => PorterDuffFunctions.HardLightXor(background, source, amount);
     }
 

@@ -192,12 +192,7 @@ internal static class PaethFilter
     /// <param name="sum">The sum of the total variance of the filtered row.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Encode(ReadOnlySpan<byte> scanline, ReadOnlySpan<byte> previousScanline, Span<byte> result, int bytesPerPixel, out int sum)
-        => PngFilterEncoder.Encode<PaethFilterOperator>(
-            scanline,
-            previousScanline,
-            result,
-            (uint)bytesPerPixel,
-            out sum);
+        => PngFilterEncoder.Encode<PaethFilterOperator>(scanline, previousScanline, result, (uint)bytesPerPixel, out sum);
 
     /// <summary>
     /// Computes a simple linear function of the three neighboring pixels (left, above, upper left), then chooses

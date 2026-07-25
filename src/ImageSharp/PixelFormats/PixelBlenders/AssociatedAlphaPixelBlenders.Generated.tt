@@ -66,17 +66,11 @@ foreach (var composer in composers)
             => AssociatedAlphaPorterDuffFunctions.<#= blenderComposer #>(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector256<float> Invoke(
-            Vector256<float> background,
-            Vector256<float> source,
-            Vector256<float> amount)
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
             => AssociatedAlphaPorterDuffFunctions.<#= blenderComposer #>(background, source, amount);
 
         /// <inheritdoc />
-        public static Vector512<float> Invoke(
-            Vector512<float> background,
-            Vector512<float> source,
-            Vector512<float> amount)
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
             => AssociatedAlphaPorterDuffFunctions.<#= blenderComposer #>(background, source, amount);
     }
 

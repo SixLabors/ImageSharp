@@ -36,10 +36,8 @@ internal static class UpFilter
     /// <param name="sum">The sum of the total variance of the filtered row.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Encode(ReadOnlySpan<byte> scanline, ReadOnlySpan<byte> previousScanline, Span<byte> result, out int sum)
-        => PngFilterEncoder.Encode<UpFilterOperator>(
-            scanline,
-            previousScanline,
-            result,
-            0,
-            out sum);
+
+        // Up never reads a left neighbor, so bytesPerPixel is deliberately zero in
+        // the shared traversal and no unsigned left offset is evaluated.
+        => PngFilterEncoder.Encode<UpFilterOperator>(scanline, previousScanline, result, 0, out sum);
 }

@@ -140,12 +140,7 @@ internal static class AverageFilter
     /// <param name="sum">The sum of the total variance of the filtered row.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Encode(ReadOnlySpan<byte> scanline, ReadOnlySpan<byte> previousScanline, Span<byte> result, uint bytesPerPixel, out int sum)
-        => PngFilterEncoder.Encode<AverageFilterOperator>(
-            scanline,
-            previousScanline,
-            result,
-            bytesPerPixel,
-            out sum);
+        => PngFilterEncoder.Encode<AverageFilterOperator>(scanline, previousScanline, result, bytesPerPixel, out sum);
 
     /// <summary>
     /// Calculates the average value of two bytes

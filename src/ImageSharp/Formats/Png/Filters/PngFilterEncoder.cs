@@ -25,12 +25,7 @@ internal static class PngFilterEncoder
     // Inlining closes every static interface call over TOperator. The JIT can then remove
     // source loads ignored by simpler predictors and specialize the active register widths.
     [MethodImpl(InliningOptions.AlwaysInline)]
-    public static void Encode<TOperator>(
-        ReadOnlySpan<byte> scanline,
-        ReadOnlySpan<byte> previousScanline,
-        Span<byte> result,
-        uint bytesPerPixel,
-        out int sum)
+    public static void Encode<TOperator>(ReadOnlySpan<byte> scanline, ReadOnlySpan<byte> previousScanline, Span<byte> result, uint bytesPerPixel, out int sum)
         where TOperator : struct, IPngFilterOperator
     {
         DebugGuard.MustBeSameSized(scanline, previousScanline, nameof(scanline));
@@ -51,11 +46,7 @@ internal static class PngFilterEncoder
         {
             byte above = TOperator.UsesAbove ? Unsafe.Add(ref previousBaseRef, x) : (byte)0;
 
-            byte filtered = TOperator.Invoke(
-                Unsafe.Add(ref scanBaseRef, x),
-                0,
-                above,
-                0);
+            byte filtered = TOperator.Invoke(Unsafe.Add(ref scanBaseRef, x), 0, above, 0);
 
             Unsafe.Add(ref resultBaseRef, x + 1) = filtered;
             sum += Numerics.Abs(unchecked((sbyte)filtered));
@@ -76,28 +67,19 @@ internal static class PngFilterEncoder
                 // four input vectors retain the scan/left/above/upper-left PNG layout.
                 // Operator usage flags are constants after generic specialization, so
                 // unused predictors do not retain even fault-preserving probe loads.
-                Vector512<byte> left = TOperator.UsesLeft
-                    ? Unsafe.As<byte, Vector512<byte>>(ref Unsafe.Add(ref scanBaseRef, xLeft))
-                    : default;
-                Vector512<byte> above = TOperator.UsesAbove
-                    ? Unsafe.As<byte, Vector512<byte>>(ref Unsafe.Add(ref previousBaseRef, x))
-                    : default;
-                Vector512<byte> upperLeft = TOperator.UsesUpperLeft
-                    ? Unsafe.As<byte, Vector512<byte>>(ref Unsafe.Add(ref previousBaseRef, xLeft))
-                    : default;
+                Vector512<byte> left = TOperator.UsesLeft ? Unsafe.As<byte, Vector512<byte>>(ref Unsafe.Add(ref scanBaseRef, xLeft)) : default;
+                Vector512<byte> above = TOperator.UsesAbove ? Unsafe.As<byte, Vector512<byte>>(ref Unsafe.Add(ref previousBaseRef, x)) : default;
+                Vector512<byte> upperLeft = TOperator.UsesUpperLeft ? Unsafe.As<byte, Vector512<byte>>(ref Unsafe.Add(ref previousBaseRef, xLeft)) : default;
 
-                Vector512<byte> filtered = TOperator.Invoke(
-                    Unsafe.As<byte, Vector512<byte>>(ref Unsafe.Add(ref scanBaseRef, x)),
-                    left,
-                    above,
-                    upperLeft);
+                Vector512<byte> filtered = TOperator.Invoke(Unsafe.As<byte, Vector512<byte>>(ref Unsafe.Add(ref scanBaseRef, x)), left, above, upperLeft);
 
                 Unsafe.As<byte, Vector512<byte>>(ref Unsafe.Add(ref resultBaseRef, x + 1)) = filtered;
                 x += (uint)Vector512<byte>.Count;
 
-                // PNG scores each residual as abs((sbyte)residual). VPSADBW sums eight
-                // byte lanes into every other 32-bit lane without widening each byte.
-                Vector512<byte> absolute = Avx512BW.Abs(filtered.AsSByte());
+                // Vector512.Abs lowers to VPABSB under the surrounding AVX-512BW guard.
+                // Reinterpreting the signed result preserves -128's 0x80 bit pattern as
+                // the unsigned magnitude 128 consumed by VPSADBW.
+                Vector512<byte> absolute = Vector512.Abs(filtered.AsSByte()).AsByte();
                 sum512 += Avx512BW.SumAbsoluteDifferences(absolute, Vector512<byte>.Zero).AsUInt32();
             }
 
@@ -114,29 +96,26 @@ internal static class PngFilterEncoder
 
             for (nuint xLeft = x - bytesPerPixel; (int)x <= oneRegisterFromEnd; xLeft += (uint)Vector256<byte>.Count)
             {
-                Vector256<byte> left = TOperator.UsesLeft
-                    ? Unsafe.As<byte, Vector256<byte>>(ref Unsafe.Add(ref scanBaseRef, xLeft))
-                    : default;
-                Vector256<byte> above = TOperator.UsesAbove
-                    ? Unsafe.As<byte, Vector256<byte>>(ref Unsafe.Add(ref previousBaseRef, x))
-                    : default;
-                Vector256<byte> upperLeft = TOperator.UsesUpperLeft
-                    ? Unsafe.As<byte, Vector256<byte>>(ref Unsafe.Add(ref previousBaseRef, xLeft))
-                    : default;
+                // Thirty-two byte lanes preserve the same scan/left/above/upper-left
+                // correspondence as the 512-bit path. Closed operator flags remove
+                // unused loads when the predictor does not consume that neighbor.
+                Vector256<byte> left = TOperator.UsesLeft ? Unsafe.As<byte, Vector256<byte>>(ref Unsafe.Add(ref scanBaseRef, xLeft)) : default;
+                Vector256<byte> above = TOperator.UsesAbove ? Unsafe.As<byte, Vector256<byte>>(ref Unsafe.Add(ref previousBaseRef, x)) : default;
+                Vector256<byte> upperLeft = TOperator.UsesUpperLeft ? Unsafe.As<byte, Vector256<byte>>(ref Unsafe.Add(ref previousBaseRef, xLeft)) : default;
 
-                Vector256<byte> filtered = TOperator.Invoke(
-                    Unsafe.As<byte, Vector256<byte>>(ref Unsafe.Add(ref scanBaseRef, x)),
-                    left,
-                    above,
-                    upperLeft);
+                Vector256<byte> filtered = TOperator.Invoke(Unsafe.As<byte, Vector256<byte>>(ref Unsafe.Add(ref scanBaseRef, x)), left, above, upperLeft);
 
                 Unsafe.As<byte, Vector256<byte>>(ref Unsafe.Add(ref resultBaseRef, x + 1)) = filtered;
                 x += (uint)Vector256<byte>.Count;
 
-                Vector256<byte> absolute = Avx2.Abs(filtered.AsSByte());
+                // Vector256.Abs lowers to VPABSB under the surrounding AVX2 guard.
+                // Reinterpreting the signed result preserves -128's 0x80 bit pattern as
+                // the unsigned magnitude 128 consumed by VPSADBW.
+                Vector256<byte> absolute = Vector256.Abs(filtered.AsSByte()).AsByte();
                 sum256 += Avx2.SumAbsoluteDifferences(absolute, Vector256<byte>.Zero).AsUInt32();
             }
 
+            // Fold both 128-bit halves into the shared four-lane accumulator.
             sum128 += sum256.GetLower() + sum256.GetUpper();
         }
 
@@ -146,29 +125,24 @@ internal static class PngFilterEncoder
 
             for (nuint xLeft = x - bytesPerPixel; (int)x <= oneRegisterFromEnd; xLeft += (uint)Vector128<byte>.Count)
             {
-                Vector128<byte> left = TOperator.UsesLeft
-                    ? Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref scanBaseRef, xLeft))
-                    : default;
-                Vector128<byte> above = TOperator.UsesAbove
-                    ? Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref previousBaseRef, x))
-                    : default;
-                Vector128<byte> upperLeft = TOperator.UsesUpperLeft
-                    ? Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref previousBaseRef, xLeft))
-                    : default;
+                // The final vector width handles sixteen more components with the
+                // same lane-wise neighborhood layout before the scalar remainder.
+                Vector128<byte> left = TOperator.UsesLeft ? Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref scanBaseRef, xLeft)) : default;
+                Vector128<byte> above = TOperator.UsesAbove ? Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref previousBaseRef, x)) : default;
+                Vector128<byte> upperLeft = TOperator.UsesUpperLeft ? Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref previousBaseRef, xLeft)) : default;
 
-                Vector128<byte> filtered = TOperator.Invoke(
-                    Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref scanBaseRef, x)),
-                    left,
-                    above,
-                    upperLeft);
+                Vector128<byte> filtered = TOperator.Invoke(Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref scanBaseRef, x)), left, above, upperLeft);
 
                 Unsafe.As<byte, Vector128<byte>>(ref Unsafe.Add(ref resultBaseRef, x + 1)) = filtered;
                 x += (uint)Vector128<byte>.Count;
 
+                // AccumulateAbsolute selects the available x86 or portable widening
+                // reduction while preserving the same unsigned 32-bit partial sums.
                 sum128 = AccumulateAbsolute(sum128, filtered);
             }
         }
 
+        // Reduce the four partial lanes before adding individually scored tail bytes.
         sum += unchecked((int)Vector128.Sum(sum128));
 
         for (nuint xLeft = x - bytesPerPixel; x < (uint)scanline.Length; xLeft++, x++)
@@ -177,11 +151,7 @@ internal static class PngFilterEncoder
             byte above = TOperator.UsesAbove ? Unsafe.Add(ref previousBaseRef, x) : (byte)0;
             byte upperLeft = TOperator.UsesUpperLeft ? Unsafe.Add(ref previousBaseRef, xLeft) : (byte)0;
 
-            byte filtered = TOperator.Invoke(
-                Unsafe.Add(ref scanBaseRef, x),
-                left,
-                above,
-                upperLeft);
+            byte filtered = TOperator.Invoke(Unsafe.Add(ref scanBaseRef, x), left, above, upperLeft);
 
             Unsafe.Add(ref resultBaseRef, x + 1) = filtered;
             sum += Numerics.Abs(unchecked((sbyte)filtered));
@@ -197,27 +167,16 @@ internal static class PngFilterEncoder
     [MethodImpl(InliningOptions.AlwaysInline)]
     private static Vector128<uint> AccumulateAbsolute(Vector128<uint> accumulator, Vector128<byte> residuals)
     {
+        // The generic absolute-value intrinsic selects PABSB where available and
+        // preserves -128's 0x80 bit pattern as the unsigned magnitude 128.
+        Vector128<byte> absolute = Vector128.Abs(residuals.AsSByte()).AsByte();
+
         if (Sse2.IsSupported)
         {
-            Vector128<byte> absolute;
-
-            if (Ssse3.IsSupported)
-            {
-                absolute = Ssse3.Abs(residuals.AsSByte());
-            }
-            else
-            {
-                // SSE2 has no packed signed-byte absolute instruction. The sign mask
-                // implements (value + mask) XOR mask, including -128 -> 128.
-                Vector128<sbyte> mask = Sse2.CompareGreaterThan(Vector128<sbyte>.Zero, residuals.AsSByte());
-                absolute = Sse2.Xor(Sse2.Add(residuals.AsSByte(), mask), mask).AsByte();
-            }
-
             return accumulator + Sse2.SumAbsoluteDifferences(absolute, Vector128<byte>.Zero).AsUInt32();
         }
 
-        Vector128<byte> absoluteArm = Vector128.Abs(residuals.AsSByte()).AsByte();
-        (Vector128<ushort> lower16, Vector128<ushort> upper16) = Vector128.Widen(absoluteArm);
+        (Vector128<ushort> lower16, Vector128<ushort> upper16) = Vector128.Widen(absolute);
         (Vector128<uint> lower0, Vector128<uint> lower1) = Vector128.Widen(lower16);
         (Vector128<uint> upper0, Vector128<uint> upper1) = Vector128.Widen(upper16);
 

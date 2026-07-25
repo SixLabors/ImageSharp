@@ -52,8 +52,7 @@ internal static partial class Vector4Converters
 
             for (; index <= oneRegisterFromEnd; index += vectorsPerRegister)
             {
-                ref Vector512<float> vector = ref Unsafe.As<Vector4, Vector512<float>>(
-                    ref Unsafe.Add(ref vectorBase, (uint)index));
+                ref Vector512<float> vector = ref Unsafe.As<Vector4, Vector512<float>>(ref Unsafe.Add(ref vectorBase, (uint)index));
 
                 vector = transform.Invoke(vector);
             }
@@ -66,8 +65,7 @@ internal static partial class Vector4Converters
 
             for (; index <= oneRegisterFromEnd; index += vectorsPerRegister)
             {
-                ref Vector256<float> vector = ref Unsafe.As<Vector4, Vector256<float>>(
-                    ref Unsafe.Add(ref vectorBase, (uint)index));
+                ref Vector256<float> vector = ref Unsafe.As<Vector4, Vector256<float>>(ref Unsafe.Add(ref vectorBase, (uint)index));
 
                 vector = transform.Invoke(vector);
             }
@@ -79,8 +77,7 @@ internal static partial class Vector4Converters
             // consumes every remaining complete pixel and leaves no scalar remainder.
             for (; index < vectors.Length; index++)
             {
-                ref Vector128<float> vector = ref Unsafe.As<Vector4, Vector128<float>>(
-                    ref Unsafe.Add(ref vectorBase, (uint)index));
+                ref Vector128<float> vector = ref Unsafe.As<Vector4, Vector128<float>>(ref Unsafe.Add(ref vectorBase, (uint)index));
 
                 vector = transform.Invoke(vector);
             }

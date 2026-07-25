@@ -67,22 +67,17 @@ internal static partial class SimdUtils
             {
                 // Four independent vectors amortize loop control and expose enough work for the CPU
                 // to overlap loads, byte shuffles, and stores without changing pixel ordering.
-                TShuffle.Invoke(Vector512.LoadUnsafe(ref sourceBase, (nuint)i))
-                    .StoreUnsafe(ref destinationBase, (nuint)i);
-                TShuffle.Invoke(Vector512.LoadUnsafe(ref sourceBase, (nuint)(i + Vector512<byte>.Count)))
-                    .StoreUnsafe(ref destinationBase, (nuint)(i + Vector512<byte>.Count));
-                TShuffle.Invoke(Vector512.LoadUnsafe(ref sourceBase, (nuint)(i + (Vector512<byte>.Count * 2))))
-                    .StoreUnsafe(ref destinationBase, (nuint)(i + (Vector512<byte>.Count * 2)));
-                TShuffle.Invoke(Vector512.LoadUnsafe(ref sourceBase, (nuint)(i + (Vector512<byte>.Count * 3))))
-                    .StoreUnsafe(ref destinationBase, (nuint)(i + (Vector512<byte>.Count * 3)));
+                TShuffle.Invoke(Vector512.LoadUnsafe(ref sourceBase, (nuint)i)).StoreUnsafe(ref destinationBase, (nuint)i);
+                TShuffle.Invoke(Vector512.LoadUnsafe(ref sourceBase, (nuint)(i + Vector512<byte>.Count))).StoreUnsafe(ref destinationBase, (nuint)(i + Vector512<byte>.Count));
+                TShuffle.Invoke(Vector512.LoadUnsafe(ref sourceBase, (nuint)(i + (Vector512<byte>.Count * 2)))).StoreUnsafe(ref destinationBase, (nuint)(i + (Vector512<byte>.Count * 2)));
+                TShuffle.Invoke(Vector512.LoadUnsafe(ref sourceBase, (nuint)(i + (Vector512<byte>.Count * 3)))).StoreUnsafe(ref destinationBase, (nuint)(i + (Vector512<byte>.Count * 3)));
             }
 
             int oneVectorFromEnd = length - Vector512<byte>.Count;
 
             for (; i <= oneVectorFromEnd; i += Vector512<byte>.Count)
             {
-                TShuffle.Invoke(Vector512.LoadUnsafe(ref sourceBase, (nuint)i))
-                    .StoreUnsafe(ref destinationBase, (nuint)i);
+                TShuffle.Invoke(Vector512.LoadUnsafe(ref sourceBase, (nuint)i)).StoreUnsafe(ref destinationBase, (nuint)i);
             }
         }
 
@@ -92,22 +87,17 @@ internal static partial class SimdUtils
 
             for (; i <= fourVectorsFromEnd; i += Vector256<byte>.Count * 4)
             {
-                TShuffle.Invoke(Vector256.LoadUnsafe(ref sourceBase, (nuint)i))
-                    .StoreUnsafe(ref destinationBase, (nuint)i);
-                TShuffle.Invoke(Vector256.LoadUnsafe(ref sourceBase, (nuint)(i + Vector256<byte>.Count)))
-                    .StoreUnsafe(ref destinationBase, (nuint)(i + Vector256<byte>.Count));
-                TShuffle.Invoke(Vector256.LoadUnsafe(ref sourceBase, (nuint)(i + (Vector256<byte>.Count * 2))))
-                    .StoreUnsafe(ref destinationBase, (nuint)(i + (Vector256<byte>.Count * 2)));
-                TShuffle.Invoke(Vector256.LoadUnsafe(ref sourceBase, (nuint)(i + (Vector256<byte>.Count * 3))))
-                    .StoreUnsafe(ref destinationBase, (nuint)(i + (Vector256<byte>.Count * 3)));
+                TShuffle.Invoke(Vector256.LoadUnsafe(ref sourceBase, (nuint)i)).StoreUnsafe(ref destinationBase, (nuint)i);
+                TShuffle.Invoke(Vector256.LoadUnsafe(ref sourceBase, (nuint)(i + Vector256<byte>.Count))).StoreUnsafe(ref destinationBase, (nuint)(i + Vector256<byte>.Count));
+                TShuffle.Invoke(Vector256.LoadUnsafe(ref sourceBase, (nuint)(i + (Vector256<byte>.Count * 2)))).StoreUnsafe(ref destinationBase, (nuint)(i + (Vector256<byte>.Count * 2)));
+                TShuffle.Invoke(Vector256.LoadUnsafe(ref sourceBase, (nuint)(i + (Vector256<byte>.Count * 3)))).StoreUnsafe(ref destinationBase, (nuint)(i + (Vector256<byte>.Count * 3)));
             }
 
             int oneVectorFromEnd = length - Vector256<byte>.Count;
 
             for (; i <= oneVectorFromEnd; i += Vector256<byte>.Count)
             {
-                TShuffle.Invoke(Vector256.LoadUnsafe(ref sourceBase, (nuint)i))
-                    .StoreUnsafe(ref destinationBase, (nuint)i);
+                TShuffle.Invoke(Vector256.LoadUnsafe(ref sourceBase, (nuint)i)).StoreUnsafe(ref destinationBase, (nuint)i);
             }
         }
 
@@ -117,22 +107,17 @@ internal static partial class SimdUtils
 
             for (; i <= fourVectorsFromEnd; i += Vector128<byte>.Count * 4)
             {
-                TShuffle.Invoke(Vector128.LoadUnsafe(ref sourceBase, (nuint)i))
-                    .StoreUnsafe(ref destinationBase, (nuint)i);
-                TShuffle.Invoke(Vector128.LoadUnsafe(ref sourceBase, (nuint)(i + Vector128<byte>.Count)))
-                    .StoreUnsafe(ref destinationBase, (nuint)(i + Vector128<byte>.Count));
-                TShuffle.Invoke(Vector128.LoadUnsafe(ref sourceBase, (nuint)(i + (Vector128<byte>.Count * 2))))
-                    .StoreUnsafe(ref destinationBase, (nuint)(i + (Vector128<byte>.Count * 2)));
-                TShuffle.Invoke(Vector128.LoadUnsafe(ref sourceBase, (nuint)(i + (Vector128<byte>.Count * 3))))
-                    .StoreUnsafe(ref destinationBase, (nuint)(i + (Vector128<byte>.Count * 3)));
+                TShuffle.Invoke(Vector128.LoadUnsafe(ref sourceBase, (nuint)i)).StoreUnsafe(ref destinationBase, (nuint)i);
+                TShuffle.Invoke(Vector128.LoadUnsafe(ref sourceBase, (nuint)(i + Vector128<byte>.Count))).StoreUnsafe(ref destinationBase, (nuint)(i + Vector128<byte>.Count));
+                TShuffle.Invoke(Vector128.LoadUnsafe(ref sourceBase, (nuint)(i + (Vector128<byte>.Count * 2)))).StoreUnsafe(ref destinationBase, (nuint)(i + (Vector128<byte>.Count * 2)));
+                TShuffle.Invoke(Vector128.LoadUnsafe(ref sourceBase, (nuint)(i + (Vector128<byte>.Count * 3)))).StoreUnsafe(ref destinationBase, (nuint)(i + (Vector128<byte>.Count * 3)));
             }
 
             int oneVectorFromEnd = length - Vector128<byte>.Count;
 
             for (; i <= oneVectorFromEnd; i += Vector128<byte>.Count)
             {
-                TShuffle.Invoke(Vector128.LoadUnsafe(ref sourceBase, (nuint)i))
-                    .StoreUnsafe(ref destinationBase, (nuint)i);
+                TShuffle.Invoke(Vector128.LoadUnsafe(ref sourceBase, (nuint)i)).StoreUnsafe(ref destinationBase, (nuint)i);
             }
         }
 
@@ -167,15 +152,17 @@ internal static partial class SimdUtils
 
         if (Vector128.IsHardwareAccelerated)
         {
-            // Each group contains sixteen XYZ pixels in three registers. The pad mask expands
-            // four triplets per register to XYZW, with 0x80 selecting zero for the temporary W lane.
-            Vector128<byte> padMask = Vector128.Create(
-                (byte)0, 1, 2, 0x80, 3, 4, 5, 0x80, 6, 7, 8, 0x80, 9, 10, 11, 0x80);
+            // Each group contains sixteen XYZ pixels in three registers. For a register beginning
+            // [X0,Y0,Z0,X1,Y1,Z1,...], the indices [0,1,2,0x80,3,4,5,0x80,...]
+            // produce four [X,Y,Z,0] pixels. Index 0x80 selects zero on the native byte-shuffle
+            // instructions and on the portable helper, creating a temporary W lane for TShuffle.
+            Vector128<byte> padMask = Vector128.Create((byte)0, 1, 2, 0x80, 3, 4, 5, 0x80, 6, 7, 8, 0x80, 9, 10, 11, 0x80);
 
-            // After the operator has reordered padded pixels, these masks remove every temporary
-            // W lane and repack the four registers into three contiguous XYZ destination registers.
-            Vector128<byte> sliceMask = Vector128.Create(
-                (byte)0, 1, 2, 4, 5, 6, 8, 9, 10, 12, 13, 14, 0x80, 0x80, 0x80, 0x80);
+            // After TShuffle places the retained components in bytes 0..2 of each four-byte pixel,
+            // [0,1,2,4,5,6,8,9,10,12,13,14] packs four triplets into twelve bytes. Rotating that
+            // mask by twelve positions moves the packed bytes four positions right. Alternating the
+            // two alignments lets AlignRight stitch four twelve-byte results into three full registers.
+            Vector128<byte> sliceMask = Vector128.Create((byte)0, 1, 2, 4, 5, 6, 8, 9, 10, 12, 13, 14, 0x80, 0x80, 0x80, 0x80);
             Vector128<byte> sliceEndMask = Vector128_.AlignRight(sliceMask, sliceMask, 12);
             ref Vector128<byte> sourceVectors = ref Unsafe.As<byte, Vector128<byte>>(ref sourceBase);
             ref Vector128<byte> destinationVectors = ref Unsafe.As<byte, Vector128<byte>>(ref destinationBase);
@@ -284,10 +271,13 @@ internal static partial class SimdUtils
 
         if (Vector128.IsHardwareAccelerated)
         {
-            // The fixed mask expands four XYZ triplets to four XYZW pixels. The zeroed W bytes
-            // are then filled with opaque alpha before the selected operator reorders each pixel.
-            Vector128<byte> padMask = Vector128.Create(
-                (byte)0, 1, 2, 0x80, 3, 4, 5, 0x80, 6, 7, 8, 0x80, 9, 10, 11, 0x80);
+            // For source bytes [X0,Y0,Z0,X1,Y1,Z1,...], the indices
+            // [0,1,2,0x80,3,4,5,0x80,...] form four [X,Y,Z,0] pixels. The native
+            // and portable shuffle paths both interpret 0x80 as a zero-producing index.
+            Vector128<byte> padMask = Vector128.Create((byte)0, 1, 2, 0x80, 3, 4, 5, 0x80, 6, 7, 8, 0x80, 9, 10, 11, 0x80);
+
+            // The broadcast ulong has 0xFF in bytes 3 and 7; repeating it across 128 bits
+            // fills W at byte positions 3, 7, 11, and 15 without modifying X, Y, or Z.
             Vector128<byte> opaqueAlpha = Vector128.Create(0xFF000000FF000000UL).AsByte();
             ref Vector128<byte> sourceVectors = ref Unsafe.As<byte, Vector128<byte>>(ref sourceBase);
             ref Vector128<byte> destinationVectors = ref Unsafe.As<byte, Vector128<byte>>(ref destinationBase);
@@ -366,10 +356,14 @@ internal static partial class SimdUtils
 
         if (Vector128.IsHardwareAccelerated)
         {
-            // Each operator first places the three retained components in the low bytes of every
-            // four-byte pixel. These masks then delete the fourth byte and compact sixteen pixels.
-            Vector128<byte> sliceMask = Vector128.Create(
-                (byte)0, 1, 2, 4, 5, 6, 8, 9, 10, 12, 13, 14, 0x80, 0x80, 0x80, 0x80);
+            // Each operator first places the retained components in bytes 0..2 of every four-byte
+            // pixel. The indices [0,1,2,4,5,6,8,9,10,12,13,14] delete each fourth byte and
+            // pack four triplets into the low twelve bytes. Indices 0x80 zero the unused bytes.
+            Vector128<byte> sliceMask = Vector128.Create((byte)0, 1, 2, 4, 5, 6, 8, 9, 10, 12, 13, 14, 0x80, 0x80, 0x80, 0x80);
+
+            // Rotating the mask by twelve moves its packed result four bytes right. Alternating
+            // shifted and unshifted results gives AlignRight the overlap needed to concatenate
+            // four twelve-byte groups into three complete destination registers.
             Vector128<byte> sliceEndMask = Vector128_.AlignRight(sliceMask, sliceMask, 12);
             ref Vector128<byte> sourceVectors = ref Unsafe.As<byte, Vector128<byte>>(ref sourceBase);
             ref Vector128<byte> destinationVectors = ref Unsafe.As<byte, Vector128<byte>>(ref destinationBase);
@@ -377,8 +371,7 @@ internal static partial class SimdUtils
             nuint sourceVectorIndex = 0;
             nuint destinationVectorIndex = 0;
 
-            for (; sourceVectorIndex + 3 < sourceVectorCount;
-                sourceVectorIndex += 4, destinationVectorIndex += 3)
+            for (; sourceVectorIndex + 3 < sourceVectorCount; sourceVectorIndex += 4, destinationVectorIndex += 3)
             {
                 // Load and transform all sixteen source pixels before writing the shorter output group.
                 // This preserves forward progress when source and destination begin at the same address.
@@ -413,8 +406,7 @@ internal static partial class SimdUtils
             {
                 // The operator arranges the three retained components at the front of each pixel.
                 // One fixed shuffle then compacts four pixels into the low twelve vector bytes.
-                Vector128<byte> result = TShuffle.Invoke(
-                    Vector128.LoadUnsafe(ref sourceBase, (nuint)sourceOffset));
+                Vector128<byte> result = TShuffle.Invoke(Vector128.LoadUnsafe(ref sourceBase, (nuint)sourceOffset));
 
                 result = Vector128_.ShuffleNative(result, sliceMask);
 

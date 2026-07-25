@@ -9,8 +9,7 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg;
 [Config(typeof(Config.Short))]
 public class CmykColorConversion : ColorConversionBenchmark
 {
-    private readonly JpegColorConverterBase converter =
-        JpegColorConverterBase.GetConverter(JpegColorSpace.Cmyk, 8);
+    private readonly JpegColorConverterBase converter = JpegColorConverterBase.GetConverter(JpegColorSpace.Cmyk, 8);
 
     /// <summary>
     /// Initializes a new instance of the <see cref="CmykColorConversion"/> class.

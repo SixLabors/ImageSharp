@@ -660,6 +660,8 @@ internal static class ColorProfileConverterExtensionsIcc
 
     private static void ClipNegative(Span<Vector4> source)
     {
+        // Vector4 values are contiguous floats, so flattening preserves the component order
+        // while allowing one shared tensor traversal to process every channel and SIMD tail.
         Span<float> values = MemoryMarshal.Cast<Vector4, float>(source);
         TensorPrimitives_.Max(values, 0F, values);
     }
@@ -680,10 +682,9 @@ internal static class ColorProfileConverterExtensionsIcc
 
     private static void LabToLab(Span<Vector4> source, Span<Vector4> destination, [ConstantExpected] float scale)
     {
-        TensorPrimitives_.Multiply(
-            MemoryMarshal.Cast<Vector4, float>(source),
-            scale,
-            MemoryMarshal.Cast<Vector4, float>(destination));
+        // Reinterpreting both spans exposes all four components to one multiplication traversal;
+        // the source and destination retain their original Vector4 boundaries after the operation.
+        TensorPrimitives_.Multiply(MemoryMarshal.Cast<Vector4, float>(source), scale, MemoryMarshal.Cast<Vector4, float>(destination));
     }
 
     private class ConversionParams

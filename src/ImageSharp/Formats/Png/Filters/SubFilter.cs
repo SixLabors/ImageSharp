@@ -102,7 +102,7 @@ internal static class SubFilter
     }
 
     /// <summary>
-    /// Encodes a scanline with the sup filter applied.
+    /// Encodes a scanline with the sub filter applied.
     /// </summary>
     /// <param name="scanline">The scanline to encode.</param>
     /// <param name="result">The filtered scanline result.</param>
@@ -110,10 +110,8 @@ internal static class SubFilter
     /// <param name="sum">The sum of the total variance of the filtered row.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Encode(ReadOnlySpan<byte> scanline, Span<byte> result, int bytesPerPixel, out int sum)
-        => PngFilterEncoder.Encode<SubFilterOperator>(
-            scanline,
-            scanline,
-            result,
-            (uint)bytesPerPixel,
-            out sum);
+
+        // Sub does not consume an above neighbor, so the shared traversal may alias
+        // the unused previous-row argument to the current row without an extra buffer.
+        => PngFilterEncoder.Encode<SubFilterOperator>(scanline, scanline, result, (uint)bytesPerPixel, out sum);
 }

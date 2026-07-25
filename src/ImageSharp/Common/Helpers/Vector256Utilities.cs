@@ -495,9 +495,9 @@ internal static class Vector256_
             return Avx2.SubtractSaturate(left, right);
         }
 
-        return Vector256.Create(
-            Vector128_.SubtractSaturate(left.GetLower(), right.GetLower()),
-            Vector128_.SubtractSaturate(left.GetUpper(), right.GetUpper()));
+        // The .NET 10 portable implementation applies the same saturated operation to
+        // both 128-bit halves, allowing each half to select its native instruction set.
+        return Vector256.Create(Vector128_.SubtractSaturate(left.GetLower(), right.GetLower()), Vector128_.SubtractSaturate(left.GetUpper(), right.GetUpper()));
     }
 
     /// <summary>

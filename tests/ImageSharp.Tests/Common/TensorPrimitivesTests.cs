@@ -91,6 +91,33 @@ public class TensorPrimitivesTests
     }
 
     /// <summary>
+    /// Verifies that scalar integer addition produces identical results for separate and in-place destinations.
+    /// </summary>
+    /// <param name="length">The input length.</param>
+    [Theory]
+    [MemberData(nameof(SpanLengths))]
+    public void AddScalarInt32MatchesScalarFormula(int length)
+    {
+        int[] source = new int[length];
+        int[] expected = new int[length];
+        const int addend = 17;
+
+        for (int i = 0; i < length; i++)
+        {
+            source[i] = (i * 37) - 200;
+            expected[i] = source[i] + addend;
+        }
+
+        int[] destination = new int[length];
+        TensorPrimitives_.Add(source, addend, destination);
+        Assert.Equal(expected, destination);
+
+        int[] inPlace = (int[])source.Clone();
+        TensorPrimitives_.Add(inPlace, addend, inPlace);
+        Assert.Equal(expected, inPlace);
+    }
+
+    /// <summary>
     /// Verifies that integer clamping produces identical results for separate and in-place destinations.
     /// </summary>
     /// <param name="length">The input length.</param>

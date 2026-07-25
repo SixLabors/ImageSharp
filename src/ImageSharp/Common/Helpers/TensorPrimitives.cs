@@ -138,6 +138,18 @@ internal static class TensorPrimitives_
         => InvokeSpanSpanIntoSpan<T, AddOperator<T>>(x, y, destination);
 
     /// <summary>
+    /// Computes the element-wise sum of the values in <paramref name="x"/> and the scalar <paramref name="y"/>.
+    /// </summary>
+    /// <typeparam name="T">The element type.</typeparam>
+    /// <param name="x">The first addends.</param>
+    /// <param name="y">The scalar second addend.</param>
+    /// <param name="destination">The destination for the sums.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void Add<T>(ReadOnlySpan<T> x, T y, Span<T> destination)
+        where T : IAdditionOperators<T, T, T>, IAdditiveIdentity<T, T>
+        => InvokeSpanScalarIntoSpan<T, AddOperator<T>>(x, y, destination);
+
+    /// <summary>
     /// Computes the element-wise result of dividing the values in <paramref name="x"/> by <paramref name="y"/>.
     /// </summary>
     /// <typeparam name="T">The element type.</typeparam>

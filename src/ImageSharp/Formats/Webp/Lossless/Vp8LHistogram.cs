@@ -533,7 +533,6 @@ internal abstract unsafe class Vp8LHistogram
 
         return cost;
     }
-
 }
 
 internal sealed unsafe class OwnedVp8LHistogram : Vp8LHistogram, IDisposable

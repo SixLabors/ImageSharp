@@ -9,40 +9,25 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg;
 [Config(typeof(Config.Short))]
 public class RgbColorConversion : ColorConversionBenchmark
 {
+    private readonly JpegColorConverterBase converter =
+        JpegColorConverterBase.GetConverter(JpegColorSpace.RGB, 8);
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="RgbColorConversion"/> class.
+    /// </summary>
     public RgbColorConversion()
         : base(3)
     {
     }
 
-    [Benchmark(Baseline = true)]
-    public void Scalar()
-    {
-        JpegColorConverterBase.ComponentValues values = new(this.Input, 0);
-
-        new JpegColorConverterBase.RgbScalar(8).ConvertToRgbInPlace(values);
-    }
-
+    /// <summary>
+    /// Converts one RGB component row through the adaptive operator traversal.
+    /// </summary>
     [Benchmark]
-    public void SimdVector128()
+    public void ConvertToRgb()
     {
         JpegColorConverterBase.ComponentValues values = new(this.Input, 0);
 
-        new JpegColorConverterBase.RgbVector128(8).ConvertToRgbInPlace(values);
-    }
-
-    [Benchmark]
-    public void SimdVector256()
-    {
-        JpegColorConverterBase.ComponentValues values = new(this.Input, 0);
-
-        new JpegColorConverterBase.RgbVector256(8).ConvertToRgbInPlace(values);
-    }
-
-    [Benchmark]
-    public void SimdVector512()
-    {
-        JpegColorConverterBase.ComponentValues values = new(this.Input, 0);
-
-        new JpegColorConverterBase.RgbVector512(8).ConvertToRgbInPlace(values);
+        this.converter.ConvertToRgbInPlace(values);
     }
 }

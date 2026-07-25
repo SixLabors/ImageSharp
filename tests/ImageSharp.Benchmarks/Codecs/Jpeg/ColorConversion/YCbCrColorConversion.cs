@@ -9,40 +9,25 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg;
 [Config(typeof(Config.Short))]
 public class YCbCrColorConversion : ColorConversionBenchmark
 {
+    private readonly JpegColorConverterBase converter =
+        JpegColorConverterBase.GetConverter(JpegColorSpace.YCbCr, 8);
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="YCbCrColorConversion"/> class.
+    /// </summary>
     public YCbCrColorConversion()
         : base(3)
     {
     }
 
+    /// <summary>
+    /// Converts one YCbCr component row through the adaptive operator traversal.
+    /// </summary>
     [Benchmark]
-    public void Scalar()
+    public void ConvertToRgb()
     {
         JpegColorConverterBase.ComponentValues values = new(this.Input, 0);
 
-        new JpegColorConverterBase.YCbCrScalar(8).ConvertToRgbInPlace(values);
-    }
-
-    [Benchmark]
-    public void SimdVector128()
-    {
-        JpegColorConverterBase.ComponentValues values = new(this.Input, 0);
-
-        new JpegColorConverterBase.YCbCrVector128(8).ConvertToRgbInPlace(values);
-    }
-
-    [Benchmark]
-    public void SimdVector256()
-    {
-        JpegColorConverterBase.ComponentValues values = new(this.Input, 0);
-
-        new JpegColorConverterBase.YCbCrVector256(8).ConvertToRgbInPlace(values);
-    }
-
-    [Benchmark]
-    public void SimdVector512()
-    {
-        JpegColorConverterBase.ComponentValues values = new(this.Input, 0);
-
-        new JpegColorConverterBase.YCbCrVector512(8).ConvertToRgbInPlace(values);
+        this.converter.ConvertToRgbInPlace(values);
     }
 }

@@ -56,18 +56,4 @@ public class Vector4AffineTransformAssembly
     [Benchmark]
     public void AddThenDivide()
         => Vector4Converters.AddThenDivide(this.vectors, Offset, Divisor);
-
-    /// <summary>
-    /// Executes the multiply-then-add traversal being replaced for assembly comparison.
-    /// </summary>
-    [Benchmark]
-    public void BaselineMultiplyThenAdd()
-        => Vector4AffineTransform.BaselineMultiplyThenAdd(this.vectors, Multiplier, Offset);
-
-    /// <summary>
-    /// Executes the add-then-divide traversal being replaced for assembly comparison.
-    /// </summary>
-    [Benchmark]
-    public void BaselineAddThenDivide()
-        => Vector4AffineTransform.BaselineAddThenDivide(this.vectors, Offset, Divisor);
 }

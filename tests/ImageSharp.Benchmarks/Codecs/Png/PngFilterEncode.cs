@@ -8,7 +8,7 @@ using SixLabors.ImageSharp.Formats.Png.Filters;
 namespace SixLabors.ImageSharp.Benchmarks.Codecs.Png;
 
 /// <summary>
-/// Compares the shared PNG map/reduce traversal with the filter-specific traversals it replaces.
+/// Measures the shared PNG filter map/reduce traversal.
 /// </summary>
 [Config(typeof(Config.Short))]
 public class PngFilterEncode
@@ -17,8 +17,7 @@ public class PngFilterEncode
 
     private byte[] scanline;
     private byte[] previousScanline;
-    private byte[] currentResult;
-    private byte[] baselineResult;
+    private byte[] result;
 
     /// <summary>
     /// Gets or sets the filter evaluated by each invocation.
@@ -33,15 +32,14 @@ public class PngFilterEncode
     public int Count { get; set; }
 
     /// <summary>
-    /// Creates deterministic non-uniform inputs and independent result buffers.
+    /// Creates deterministic non-uniform inputs and a result buffer.
     /// </summary>
     [GlobalSetup]
     public void Setup()
     {
         this.scanline = new byte[this.Count];
         this.previousScanline = new byte[this.Count];
-        this.currentResult = new byte[this.Count + 1];
-        this.baselineResult = new byte[this.Count + 1];
+        this.result = new byte[this.Count + 1];
 
         Random random = new(12345678);
         random.NextBytes(this.scanline);
@@ -49,109 +47,53 @@ public class PngFilterEncode
     }
 
     /// <summary>
-    /// Executes the operator-driven map/reduce traversal.
+    /// Executes the shared operator-driven map/reduce traversal.
     /// </summary>
     /// <returns>The filter variance sum.</returns>
     [Benchmark]
-    public int Current()
+    public int Encode()
         => this.Filter switch
         {
-            PngFilterMethod.Sub => this.EncodeSubCurrent(),
-            PngFilterMethod.Up => this.EncodeUpCurrent(),
-            PngFilterMethod.Average => this.EncodeAverageCurrent(),
-            PngFilterMethod.Paeth => this.EncodePaethCurrent(),
+            PngFilterMethod.Sub => this.EncodeSub(),
+            PngFilterMethod.Up => this.EncodeUp(),
+            PngFilterMethod.Average => this.EncodeAverage(),
+            PngFilterMethod.Paeth => this.EncodePaeth(),
             _ => throw new InvalidOperationException()
         };
 
     /// <summary>
-    /// Executes the filter-specific traversal being replaced.
-    /// </summary>
-    /// <returns>The filter variance sum.</returns>
-    [Benchmark(Baseline = true)]
-    public int Baseline()
-    {
-        int sum;
-
-        switch (this.Filter)
-        {
-            case PngFilterMethod.Sub:
-                PngFilterEncodeBaseline.EncodeSub(
-                    this.scanline,
-                    this.baselineResult,
-                    BytesPerPixel,
-                    out sum);
-
-                break;
-
-            case PngFilterMethod.Up:
-                PngFilterEncodeBaseline.EncodeUp(
-                    this.scanline,
-                    this.previousScanline,
-                    this.baselineResult,
-                    out sum);
-
-                break;
-
-            case PngFilterMethod.Average:
-                PngFilterEncodeBaseline.EncodeAverage(
-                    this.scanline,
-                    this.previousScanline,
-                    this.baselineResult,
-                    BytesPerPixel,
-                    out sum);
-
-                break;
-
-            case PngFilterMethod.Paeth:
-                PngFilterEncodeBaseline.EncodePaeth(
-                    this.scanline,
-                    this.previousScanline,
-                    this.baselineResult,
-                    BytesPerPixel,
-                    out sum);
-
-                break;
-
-            default:
-                throw new InvalidOperationException();
-        }
-
-        return sum;
-    }
-
-    /// <summary>
     /// Executes the current Sub encoder.
     /// </summary>
-    private int EncodeSubCurrent()
+    private int EncodeSub()
     {
-        SubFilter.Encode(this.scanline, this.currentResult, BytesPerPixel, out int sum);
+        SubFilter.Encode(this.scanline, this.result, BytesPerPixel, out int sum);
         return sum;
     }
 
     /// <summary>
     /// Executes the current Up encoder.
     /// </summary>
-    private int EncodeUpCurrent()
+    private int EncodeUp()
     {
-        UpFilter.Encode(this.scanline, this.previousScanline, this.currentResult, out int sum);
+        UpFilter.Encode(this.scanline, this.previousScanline, this.result, out int sum);
         return sum;
     }
 
     /// <summary>
     /// Executes the current Average encoder.
     /// </summary>
-    private int EncodeAverageCurrent()
+    private int EncodeAverage()
     {
-        AverageFilter.Encode(this.scanline, this.previousScanline, this.currentResult, BytesPerPixel, out int sum);
+        AverageFilter.Encode(this.scanline, this.previousScanline, this.result, BytesPerPixel, out int sum);
         return sum;
     }
 
     /// <summary>
     /// Executes the current Paeth encoder.
     /// </summary>
-    private int EncodePaethCurrent()
+    private int EncodePaeth()
     {
-        PaethFilter.Encode(this.scanline, this.previousScanline, this.currentResult, BytesPerPixel, out int sum);
+        PaethFilter.Encode(this.scanline, this.previousScanline, this.result, BytesPerPixel, out int sum);
         return sum;
     }
 }

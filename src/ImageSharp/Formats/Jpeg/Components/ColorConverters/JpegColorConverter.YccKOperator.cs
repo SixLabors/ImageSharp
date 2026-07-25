@@ -1,8 +1,13 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Buffers;
+using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
+using SixLabors.ImageSharp.ColorProfiles;
+using SixLabors.ImageSharp.ColorProfiles.Icc;
 using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 
@@ -32,9 +37,9 @@ internal abstract partial class JpegColorConverterBase
 
             // YccK first reconstructs inverted RGB in the integer sample domain. Rounding must occur before
             // subtracting from max and applying K because changing that order changes encoded JPEG semantics.
-            c0 = (maximumValue - MathF.Round(y + (YCbCrScalar.RCrMult * cr), MidpointRounding.AwayFromZero)) * scaledK;
-            c1 = (maximumValue - MathF.Round(y - (YCbCrScalar.GCbMult * cb) - (YCbCrScalar.GCrMult * cr), MidpointRounding.AwayFromZero)) * scaledK;
-            c2 = (maximumValue - MathF.Round(y + (YCbCrScalar.BCbMult * cb), MidpointRounding.AwayFromZero)) * scaledK;
+            c0 = (maximumValue - MathF.Round(y + (YCbCrOperator.RCrMult * cr), MidpointRounding.AwayFromZero)) * scaledK;
+            c1 = (maximumValue - MathF.Round(y - (YCbCrOperator.GCbMult * cb) - (YCbCrOperator.GCrMult * cr), MidpointRounding.AwayFromZero)) * scaledK;
+            c2 = (maximumValue - MathF.Round(y + (YCbCrOperator.BCbMult * cb), MidpointRounding.AwayFromZero)) * scaledK;
         }
 
         /// <inheritdoc/>
@@ -47,9 +52,9 @@ internal abstract partial class JpegColorConverterBase
             Vector128<float> scaledK = c3 * scale * scale;
 
             // Four lanes reconstruct YCbCr concurrently; each rounded result is inverted and modulated by its K lane.
-            Vector128<float> r = Vector128_.MultiplyAddEstimate(cr, Vector128.Create(YCbCrScalar.RCrMult), y);
-            Vector128<float> g = Vector128_.MultiplyAddEstimate(cr, Vector128.Create(-YCbCrScalar.GCrMult), Vector128_.MultiplyAddEstimate(cb, Vector128.Create(-YCbCrScalar.GCbMult), y));
-            Vector128<float> b = Vector128_.MultiplyAddEstimate(cb, Vector128.Create(YCbCrScalar.BCbMult), y);
+            Vector128<float> r = Vector128_.MultiplyAddEstimate(cr, Vector128.Create(YCbCrOperator.RCrMult), y);
+            Vector128<float> g = Vector128_.MultiplyAddEstimate(cr, Vector128.Create(-YCbCrOperator.GCrMult), Vector128_.MultiplyAddEstimate(cb, Vector128.Create(-YCbCrOperator.GCbMult), y));
+            Vector128<float> b = Vector128_.MultiplyAddEstimate(cb, Vector128.Create(YCbCrOperator.BCbMult), y);
             c0 = (maximumValue - Vector128_.RoundToNearestInteger(r)) * scaledK;
             c1 = (maximumValue - Vector128_.RoundToNearestInteger(g)) * scaledK;
             c2 = (maximumValue - Vector128_.RoundToNearestInteger(b)) * scaledK;
@@ -65,9 +70,9 @@ internal abstract partial class JpegColorConverterBase
             Vector256<float> scaledK = c3 * scale * scale;
 
             // Eight lanes retain planar alignment from Y/Cb/Cr/K through normalized RGB.
-            Vector256<float> r = Vector256_.MultiplyAddEstimate(cr, Vector256.Create(YCbCrScalar.RCrMult), y);
-            Vector256<float> g = Vector256_.MultiplyAddEstimate(cr, Vector256.Create(-YCbCrScalar.GCrMult), Vector256_.MultiplyAddEstimate(cb, Vector256.Create(-YCbCrScalar.GCbMult), y));
-            Vector256<float> b = Vector256_.MultiplyAddEstimate(cb, Vector256.Create(YCbCrScalar.BCbMult), y);
+            Vector256<float> r = Vector256_.MultiplyAddEstimate(cr, Vector256.Create(YCbCrOperator.RCrMult), y);
+            Vector256<float> g = Vector256_.MultiplyAddEstimate(cr, Vector256.Create(-YCbCrOperator.GCrMult), Vector256_.MultiplyAddEstimate(cb, Vector256.Create(-YCbCrOperator.GCbMult), y));
+            Vector256<float> b = Vector256_.MultiplyAddEstimate(cb, Vector256.Create(YCbCrOperator.BCbMult), y);
             c0 = (maximumValue - Vector256_.RoundToNearestInteger(r)) * scaledK;
             c1 = (maximumValue - Vector256_.RoundToNearestInteger(g)) * scaledK;
             c2 = (maximumValue - Vector256_.RoundToNearestInteger(b)) * scaledK;
@@ -83,9 +88,9 @@ internal abstract partial class JpegColorConverterBase
             Vector512<float> scaledK = c3 * scale * scale;
 
             // Sixteen lanes use the same matrix, rounding, inversion, and K modulation order as scalar code.
-            Vector512<float> r = Vector512_.MultiplyAddEstimate(cr, Vector512.Create(YCbCrScalar.RCrMult), y);
-            Vector512<float> g = Vector512_.MultiplyAddEstimate(cr, Vector512.Create(-YCbCrScalar.GCrMult), Vector512_.MultiplyAddEstimate(cb, Vector512.Create(-YCbCrScalar.GCbMult), y));
-            Vector512<float> b = Vector512_.MultiplyAddEstimate(cb, Vector512.Create(YCbCrScalar.BCbMult), y);
+            Vector512<float> r = Vector512_.MultiplyAddEstimate(cr, Vector512.Create(YCbCrOperator.RCrMult), y);
+            Vector512<float> g = Vector512_.MultiplyAddEstimate(cr, Vector512.Create(-YCbCrOperator.GCrMult), Vector512_.MultiplyAddEstimate(cb, Vector512.Create(-YCbCrOperator.GCbMult), y));
+            Vector512<float> b = Vector512_.MultiplyAddEstimate(cb, Vector512.Create(YCbCrOperator.BCbMult), y);
             c0 = (maximumValue - Vector512_.RoundToNearestInteger(r)) * scaledK;
             c1 = (maximumValue - Vector512_.RoundToNearestInteger(g)) * scaledK;
             c2 = (maximumValue - Vector512_.RoundToNearestInteger(b)) * scaledK;
@@ -130,6 +135,31 @@ internal abstract partial class JpegColorConverterBase
 
         /// <inheritdoc/>
         public static void ConvertToRgbInPlaceWithIcc(Configuration configuration, IccProfile profile, in ComponentValues values, float maximumValue)
-            => YccKScalar.ConvertToRgbInPlaceWithIcc(configuration, profile, values, maximumValue);
+        {
+            using IMemoryOwner<float> memoryOwner = configuration.MemoryAllocator.Allocate<float>(values.Component0.Length * 4);
+            Span<float> packed = memoryOwner.Memory.Span;
+            Span<float> c0 = values.Component0;
+            Span<float> c1 = values.Component1;
+            Span<float> c2 = values.Component2;
+            Span<float> c3 = values.Component3;
+
+            // Adobe-style JPEG YccK is inverted; normalize it before applying the format-defined YccK-to-CMYK transform.
+            PackedInvertNormalizeInterleave4(c0, c1, c2, c3, packed, maximumValue);
+
+            ColorProfileConverter converter = new();
+            Span<Cmyk> source = MemoryMarshal.Cast<float, Cmyk>(packed);
+            converter.Convert<YccK, Cmyk>(MemoryMarshal.Cast<Cmyk, YccK>(source), source);
+
+            Span<Rgb> destination = MemoryMarshal.Cast<float, Rgb>(packed)[..source.Length];
+            ColorConversionOptions options = new()
+            {
+                SourceIccProfile = profile,
+                TargetIccProfile = CompactSrgbV4Profile.Profile,
+            };
+
+            converter = new ColorProfileConverter(options);
+            converter.Convert<Cmyk, Rgb>(source, destination);
+            UnpackDeinterleave3(MemoryMarshal.Cast<float, Vector3>(packed)[..source.Length], c0, c1, c2);
+        }
     }
 }

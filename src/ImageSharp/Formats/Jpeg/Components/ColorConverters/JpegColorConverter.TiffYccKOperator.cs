@@ -1,8 +1,13 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Buffers;
+using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
+using SixLabors.ImageSharp.ColorProfiles;
+using SixLabors.ImageSharp.ColorProfiles.Icc;
 using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 
@@ -34,9 +39,9 @@ internal abstract partial class JpegColorConverterBase
 
             // TIFF YccK is non-inverted: decode normalized YCbCr without integer rounding, then let the
             // remaining light after K modulate all three channels.
-            c0 = (y + (YCbCrScalar.RCrMult * cr)) * k;
-            c1 = (y - (YCbCrScalar.GCbMult * cb) - (YCbCrScalar.GCrMult * cr)) * k;
-            c2 = (y + (YCbCrScalar.BCbMult * cb)) * k;
+            c0 = (y + (YCbCrOperator.RCrMult * cr)) * k;
+            c1 = (y - (YCbCrOperator.GCbMult * cb) - (YCbCrOperator.GCrMult * cr)) * k;
+            c2 = (y + (YCbCrOperator.BCbMult * cb)) * k;
         }
 
         /// <inheritdoc/>
@@ -49,9 +54,9 @@ internal abstract partial class JpegColorConverterBase
             Vector128<float> k = Vector128<float>.One - (c3 * scale);
 
             // Four lanes apply the non-rounded YCbCr matrix before their lane-aligned K modulation.
-            c0 = Vector128_.MultiplyAddEstimate(cr, Vector128.Create(YCbCrScalar.RCrMult), y) * k;
-            c1 = Vector128_.MultiplyAddEstimate(cr, Vector128.Create(-YCbCrScalar.GCrMult), Vector128_.MultiplyAddEstimate(cb, Vector128.Create(-YCbCrScalar.GCbMult), y)) * k;
-            c2 = Vector128_.MultiplyAddEstimate(cb, Vector128.Create(YCbCrScalar.BCbMult), y) * k;
+            c0 = Vector128_.MultiplyAddEstimate(cr, Vector128.Create(YCbCrOperator.RCrMult), y) * k;
+            c1 = Vector128_.MultiplyAddEstimate(cr, Vector128.Create(-YCbCrOperator.GCrMult), Vector128_.MultiplyAddEstimate(cb, Vector128.Create(-YCbCrOperator.GCbMult), y)) * k;
+            c2 = Vector128_.MultiplyAddEstimate(cb, Vector128.Create(YCbCrOperator.BCbMult), y) * k;
         }
 
         /// <inheritdoc/>
@@ -64,9 +69,9 @@ internal abstract partial class JpegColorConverterBase
             Vector256<float> k = Vector256<float>.One - (c3 * scale);
 
             // Eight lanes apply the non-rounded YCbCr matrix before their lane-aligned K modulation.
-            c0 = Vector256_.MultiplyAddEstimate(cr, Vector256.Create(YCbCrScalar.RCrMult), y) * k;
-            c1 = Vector256_.MultiplyAddEstimate(cr, Vector256.Create(-YCbCrScalar.GCrMult), Vector256_.MultiplyAddEstimate(cb, Vector256.Create(-YCbCrScalar.GCbMult), y)) * k;
-            c2 = Vector256_.MultiplyAddEstimate(cb, Vector256.Create(YCbCrScalar.BCbMult), y) * k;
+            c0 = Vector256_.MultiplyAddEstimate(cr, Vector256.Create(YCbCrOperator.RCrMult), y) * k;
+            c1 = Vector256_.MultiplyAddEstimate(cr, Vector256.Create(-YCbCrOperator.GCrMult), Vector256_.MultiplyAddEstimate(cb, Vector256.Create(-YCbCrOperator.GCbMult), y)) * k;
+            c2 = Vector256_.MultiplyAddEstimate(cb, Vector256.Create(YCbCrOperator.BCbMult), y) * k;
         }
 
         /// <inheritdoc/>
@@ -79,9 +84,9 @@ internal abstract partial class JpegColorConverterBase
             Vector512<float> k = Vector512<float>.One - (c3 * scale);
 
             // Sixteen lanes apply the non-rounded YCbCr matrix before their lane-aligned K modulation.
-            c0 = Vector512_.MultiplyAddEstimate(cr, Vector512.Create(YCbCrScalar.RCrMult), y) * k;
-            c1 = Vector512_.MultiplyAddEstimate(cr, Vector512.Create(-YCbCrScalar.GCrMult), Vector512_.MultiplyAddEstimate(cb, Vector512.Create(-YCbCrScalar.GCbMult), y)) * k;
-            c2 = Vector512_.MultiplyAddEstimate(cb, Vector512.Create(YCbCrScalar.BCbMult), y) * k;
+            c0 = Vector512_.MultiplyAddEstimate(cr, Vector512.Create(YCbCrOperator.RCrMult), y) * k;
+            c1 = Vector512_.MultiplyAddEstimate(cr, Vector512.Create(-YCbCrOperator.GCrMult), Vector512_.MultiplyAddEstimate(cb, Vector512.Create(-YCbCrOperator.GCbMult), y)) * k;
+            c2 = Vector512_.MultiplyAddEstimate(cb, Vector512.Create(YCbCrOperator.BCbMult), y) * k;
         }
 
         /// <inheritdoc/>
@@ -182,6 +187,31 @@ internal abstract partial class JpegColorConverterBase
 
         /// <inheritdoc/>
         public static void ConvertToRgbInPlaceWithIcc(Configuration configuration, IccProfile profile, in ComponentValues values, float maximumValue)
-            => TiffYccKScalar.ConvertToRgbInPlaceWithIcc(configuration, profile, values, maximumValue);
+        {
+            using IMemoryOwner<float> memoryOwner = configuration.MemoryAllocator.Allocate<float>(values.Component0.Length * 4);
+            Span<float> packed = memoryOwner.Memory.Span;
+            Span<float> c0 = values.Component0;
+            Span<float> c1 = values.Component1;
+            Span<float> c2 = values.Component2;
+            Span<float> c3 = values.Component3;
+
+            // TIFF YccK is non-inverted, so normalize directly before converting its JPEG-specific model to CMYK.
+            PackedNormalizeInterleave4(c0, c1, c2, c3, packed, maximumValue);
+
+            ColorProfileConverter converter = new();
+            Span<Cmyk> source = MemoryMarshal.Cast<float, Cmyk>(packed);
+            converter.Convert<YccK, Cmyk>(MemoryMarshal.Cast<Cmyk, YccK>(source), source);
+
+            Span<Rgb> destination = MemoryMarshal.Cast<float, Rgb>(packed)[..source.Length];
+            ColorConversionOptions options = new()
+            {
+                SourceIccProfile = profile,
+                TargetIccProfile = CompactSrgbV4Profile.Profile,
+            };
+
+            converter = new ColorProfileConverter(options);
+            converter.Convert<Cmyk, Rgb>(source, destination);
+            UnpackDeinterleave3(MemoryMarshal.Cast<float, Vector3>(packed)[..source.Length], c0, c1, c2);
+        }
     }
 }

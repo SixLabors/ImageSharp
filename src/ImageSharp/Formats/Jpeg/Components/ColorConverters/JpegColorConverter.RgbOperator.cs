@@ -1,8 +1,13 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Buffers;
+using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
+using SixLabors.ImageSharp.ColorProfiles;
+using SixLabors.ImageSharp.ColorProfiles.Icc;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components;
@@ -179,6 +184,26 @@ internal abstract partial class JpegColorConverterBase
             IccProfile profile,
             in ComponentValues values,
             float maximumValue)
-            => RgbScalar.ConvertToRgbInPlaceWithIcc(configuration, profile, values, maximumValue);
+        {
+            using IMemoryOwner<float> memoryOwner = configuration.MemoryAllocator.Allocate<float>(values.Component0.Length * 3);
+            Span<float> packed = memoryOwner.Memory.Span;
+            Span<float> c0 = values.Component0;
+            Span<float> c1 = values.Component1;
+            Span<float> c2 = values.Component2;
+
+            // JPEG planes use the integer sample domain, while ICC RGB values are normalized and interleaved.
+            PackedNormalizeInterleave3(c0, c1, c2, packed, 1F / maximumValue);
+
+            Span<Rgb> rgb = MemoryMarshal.Cast<float, Rgb>(packed);
+            ColorConversionOptions options = new()
+            {
+                SourceIccProfile = profile,
+                TargetIccProfile = CompactSrgbV4Profile.Profile,
+            };
+
+            ColorProfileConverter converter = new(options);
+            converter.Convert<Rgb, Rgb>(rgb, rgb);
+            UnpackDeinterleave3(MemoryMarshal.Cast<float, Vector3>(packed)[..rgb.Length], c0, c1, c2);
+        }
     }
 }

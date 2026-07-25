@@ -7,7 +7,7 @@ using SixLabors.ImageSharp.Formats.Png.Filters;
 namespace SixLabors.ImageSharp.Benchmarks.Codecs.Png;
 
 /// <summary>
-/// Exposes every normalized PNG filter and retained baseline for assembly comparison.
+/// Exposes every normalized PNG filter for assembly inspection.
 /// </summary>
 [Config(typeof(Config.Analysis))]
 public class PngFilterEncodeAssembly
@@ -17,8 +17,7 @@ public class PngFilterEncodeAssembly
 
     private byte[] scanline;
     private byte[] previousScanline;
-    private byte[] currentResult;
-    private byte[] baselineResult;
+    private byte[] result;
 
     /// <summary>
     /// Creates inputs whose suffix exercises 512-, 256-, and 128-bit register widths.
@@ -28,8 +27,7 @@ public class PngFilterEncodeAssembly
     {
         this.scanline = new byte[Count];
         this.previousScanline = new byte[Count];
-        this.currentResult = new byte[Count + 1];
-        this.baselineResult = new byte[Count + 1];
+        this.result = new byte[Count + 1];
 
         Random random = new(12345678);
         random.NextBytes(this.scanline);
@@ -41,64 +39,26 @@ public class PngFilterEncodeAssembly
     /// </summary>
     [Benchmark]
     public void Sub()
-        => SubFilter.Encode(this.scanline, this.currentResult, BytesPerPixel, out _);
+        => SubFilter.Encode(this.scanline, this.result, BytesPerPixel, out _);
 
     /// <summary>
     /// Executes the normalized Up encoder.
     /// </summary>
     [Benchmark]
     public void Up()
-        => UpFilter.Encode(this.scanline, this.previousScanline, this.currentResult, out _);
+        => UpFilter.Encode(this.scanline, this.previousScanline, this.result, out _);
 
     /// <summary>
     /// Executes the normalized Average encoder.
     /// </summary>
     [Benchmark]
     public void Average()
-        => AverageFilter.Encode(this.scanline, this.previousScanline, this.currentResult, BytesPerPixel, out _);
+        => AverageFilter.Encode(this.scanline, this.previousScanline, this.result, BytesPerPixel, out _);
 
     /// <summary>
     /// Executes the normalized Paeth encoder.
     /// </summary>
     [Benchmark]
     public void Paeth()
-        => PaethFilter.Encode(this.scanline, this.previousScanline, this.currentResult, BytesPerPixel, out _);
-
-    /// <summary>
-    /// Executes the retained Sub encoder.
-    /// </summary>
-    [Benchmark]
-    public void BaselineSub()
-        => PngFilterEncodeBaseline.EncodeSub(this.scanline, this.baselineResult, BytesPerPixel, out _);
-
-    /// <summary>
-    /// Executes the retained Up encoder.
-    /// </summary>
-    [Benchmark]
-    public void BaselineUp()
-        => PngFilterEncodeBaseline.EncodeUp(this.scanline, this.previousScanline, this.baselineResult, out _);
-
-    /// <summary>
-    /// Executes the retained Average encoder.
-    /// </summary>
-    [Benchmark]
-    public void BaselineAverage()
-        => PngFilterEncodeBaseline.EncodeAverage(
-            this.scanline,
-            this.previousScanline,
-            this.baselineResult,
-            BytesPerPixel,
-            out _);
-
-    /// <summary>
-    /// Executes the retained Paeth encoder.
-    /// </summary>
-    [Benchmark]
-    public void BaselinePaeth()
-        => PngFilterEncodeBaseline.EncodePaeth(
-            this.scanline,
-            this.previousScanline,
-            this.baselineResult,
-            BytesPerPixel,
-            out _);
+        => PaethFilter.Encode(this.scanline, this.previousScanline, this.result, BytesPerPixel, out _);
 }

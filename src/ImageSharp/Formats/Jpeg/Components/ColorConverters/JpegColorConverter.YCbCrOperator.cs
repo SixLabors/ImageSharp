@@ -1,8 +1,13 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Buffers;
+using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
+using SixLabors.ImageSharp.ColorProfiles;
+using SixLabors.ImageSharp.ColorProfiles.Icc;
 using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 
@@ -15,6 +20,26 @@ internal abstract partial class JpegColorConverterBase
     /// </summary>
     internal readonly struct YCbCrOperator : IJpegColorConverterOperator
     {
+        /// <summary>
+        /// The BT.601 red contribution from centered Cr.
+        /// </summary>
+        public const float RCrMult = 1.402F;
+
+        /// <summary>
+        /// The BT.601 green contribution from centered Cb.
+        /// </summary>
+        public const float GCbMult = (float)(0.114 * 1.772 / 0.587);
+
+        /// <summary>
+        /// The BT.601 green contribution from centered Cr.
+        /// </summary>
+        public const float GCrMult = (float)(0.299 * 1.402 / 0.587);
+
+        /// <summary>
+        /// The BT.601 blue contribution from centered Cb.
+        /// </summary>
+        public const float BCbMult = 1.772F;
+
         /// <inheritdoc/>
         public static JpegColorSpace ColorSpace => JpegColorSpace.YCbCr;
 
@@ -40,9 +65,9 @@ internal abstract partial class JpegColorConverterBase
             // the BT.601 matrix, then integer-domain RGB is rounded away from zero and normalized
             // to [nominally] 0..1. Values intentionally remain unclamped because quantizing RGB into the
             // destination pixel format owns saturation; retaining overshoot avoids discarding color information.
-            c0 = MathF.Round(y + (YCbCrScalar.RCrMult * cr), MidpointRounding.AwayFromZero) * scale;
-            c1 = MathF.Round(y - (YCbCrScalar.GCbMult * cb) - (YCbCrScalar.GCrMult * cr), MidpointRounding.AwayFromZero) * scale;
-            c2 = MathF.Round(y + (YCbCrScalar.BCbMult * cb), MidpointRounding.AwayFromZero) * scale;
+            c0 = MathF.Round(y + (RCrMult * cr), MidpointRounding.AwayFromZero) * scale;
+            c1 = MathF.Round(y - (GCbMult * cb) - (GCrMult * cr), MidpointRounding.AwayFromZero) * scale;
+            c2 = MathF.Round(y + (BCbMult * cb), MidpointRounding.AwayFromZero) * scale;
         }
 
         /// <inheritdoc/>
@@ -63,12 +88,12 @@ internal abstract partial class JpegColorConverterBase
             // Lanes are four independent Y/Cb/Cr samples. MultiplyAddEstimate maps to FMA where available:
             // R uses Cr, B uses Cb, and G subtracts both chroma contributions. Rounding occurs in the sample
             // domain before the common normalization scale so all precisions use integer JPEG sample semantics.
-            Vector128<float> r = Vector128_.MultiplyAddEstimate(cr, Vector128.Create(YCbCrScalar.RCrMult), y);
+            Vector128<float> r = Vector128_.MultiplyAddEstimate(cr, Vector128.Create(RCrMult), y);
             Vector128<float> g = Vector128_.MultiplyAddEstimate(
                 cr,
-                Vector128.Create(-YCbCrScalar.GCrMult),
-                Vector128_.MultiplyAddEstimate(cb, Vector128.Create(-YCbCrScalar.GCbMult), y));
-            Vector128<float> b = Vector128_.MultiplyAddEstimate(cb, Vector128.Create(YCbCrScalar.BCbMult), y);
+                Vector128.Create(-GCrMult),
+                Vector128_.MultiplyAddEstimate(cb, Vector128.Create(-GCbMult), y));
+            Vector128<float> b = Vector128_.MultiplyAddEstimate(cb, Vector128.Create(BCbMult), y);
 
             c0 = Vector128_.RoundToNearestInteger(r) * scale;
             c1 = Vector128_.RoundToNearestInteger(g) * scale;
@@ -93,12 +118,12 @@ internal abstract partial class JpegColorConverterBase
             // These eight lanes have the same layout and BT.601 arithmetic as the Vector128 overload.
             // Keeping an explicit overload allows the JIT to emit native YMM operations without a width
             // switch or decomposing the vector into smaller values.
-            Vector256<float> r = Vector256_.MultiplyAddEstimate(cr, Vector256.Create(YCbCrScalar.RCrMult), y);
+            Vector256<float> r = Vector256_.MultiplyAddEstimate(cr, Vector256.Create(RCrMult), y);
             Vector256<float> g = Vector256_.MultiplyAddEstimate(
                 cr,
-                Vector256.Create(-YCbCrScalar.GCrMult),
-                Vector256_.MultiplyAddEstimate(cb, Vector256.Create(-YCbCrScalar.GCbMult), y));
-            Vector256<float> b = Vector256_.MultiplyAddEstimate(cb, Vector256.Create(YCbCrScalar.BCbMult), y);
+                Vector256.Create(-GCrMult),
+                Vector256_.MultiplyAddEstimate(cb, Vector256.Create(-GCbMult), y));
+            Vector256<float> b = Vector256_.MultiplyAddEstimate(cb, Vector256.Create(BCbMult), y);
 
             c0 = Vector256_.RoundToNearestInteger(r) * scale;
             c1 = Vector256_.RoundToNearestInteger(g) * scale;
@@ -123,12 +148,12 @@ internal abstract partial class JpegColorConverterBase
             // Sixteen independent samples occupy the ZMM lanes. The explicit constants are broadcasts;
             // assembly inspection verifies the JIT hoists them from the loop and retains fused operations.
             // The formula and rounding order remain identical to the narrower overloads.
-            Vector512<float> r = Vector512_.MultiplyAddEstimate(cr, Vector512.Create(YCbCrScalar.RCrMult), y);
+            Vector512<float> r = Vector512_.MultiplyAddEstimate(cr, Vector512.Create(RCrMult), y);
             Vector512<float> g = Vector512_.MultiplyAddEstimate(
                 cr,
-                Vector512.Create(-YCbCrScalar.GCrMult),
-                Vector512_.MultiplyAddEstimate(cb, Vector512.Create(-YCbCrScalar.GCbMult), y));
-            Vector512<float> b = Vector512_.MultiplyAddEstimate(cb, Vector512.Create(YCbCrScalar.BCbMult), y);
+                Vector512.Create(-GCrMult),
+                Vector512_.MultiplyAddEstimate(cb, Vector512.Create(-GCbMult), y));
+            Vector512<float> b = Vector512_.MultiplyAddEstimate(cb, Vector512.Create(BCbMult), y);
 
             c0 = Vector512_.RoundToNearestInteger(r) * scale;
             c1 = Vector512_.RoundToNearestInteger(g) * scale;
@@ -258,6 +283,30 @@ internal abstract partial class JpegColorConverterBase
             IccProfile profile,
             in ComponentValues values,
             float maximumValue)
-            => YCbCrScalar.ConvertToRgbInPlaceWithIcc(configuration, profile, values, maximumValue);
+        {
+            using IMemoryOwner<float> memoryOwner = configuration.MemoryAllocator.Allocate<float>(values.Component0.Length * 3);
+            Span<float> packed = memoryOwner.Memory.Span;
+            Span<float> c0 = values.Component0;
+            Span<float> c1 = values.Component1;
+            Span<float> c2 = values.Component2;
+
+            // ICC profiles rarely expose YCbCr transforms, so BT.601 first produces RGB in the profile's source space.
+            PackedNormalizeInterleave3(c0, c1, c2, packed, 1F / maximumValue);
+
+            ColorProfileConverter converter = new();
+            Span<YCbCr> source = MemoryMarshal.Cast<float, YCbCr>(packed);
+            Span<Rgb> destination = MemoryMarshal.Cast<float, Rgb>(packed);
+            converter.Convert<YCbCr, Rgb>(source, destination);
+
+            ColorConversionOptions options = new()
+            {
+                SourceIccProfile = profile,
+                TargetIccProfile = CompactSrgbV4Profile.Profile,
+            };
+
+            converter = new ColorProfileConverter(options);
+            converter.Convert<Rgb, Rgb>(destination, destination);
+            UnpackDeinterleave3(MemoryMarshal.Cast<float, Vector3>(packed)[..source.Length], c0, c1, c2);
+        }
     }
 }

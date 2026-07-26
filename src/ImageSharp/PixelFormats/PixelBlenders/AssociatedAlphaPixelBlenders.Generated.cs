@@ -18,6 +18,9 @@ internal static class AssociatedAlphaPixelBlenderOperators
     public readonly struct NormalSrc : IPixelBlenderOperator
     {
         /// <inheritdoc />
+        public static bool IsAssociatedAlpha => true;
+
+        /// <inheritdoc />
         public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
             => AssociatedAlphaPorterDuffFunctions.NormalSrc(background, source, amount);
 
@@ -35,6 +38,9 @@ internal static class AssociatedAlphaPixelBlenderOperators
     /// </summary>
     public readonly struct MultiplySrc : IPixelBlenderOperator
     {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => true;
+
         /// <inheritdoc />
         public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
             => AssociatedAlphaPorterDuffFunctions.MultiplySrc(background, source, amount);
@@ -54,6 +60,9 @@ internal static class AssociatedAlphaPixelBlenderOperators
     public readonly struct AddSrc : IPixelBlenderOperator
     {
         /// <inheritdoc />
+        public static bool IsAssociatedAlpha => true;
+
+        /// <inheritdoc />
         public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
             => AssociatedAlphaPorterDuffFunctions.AddSrc(background, source, amount);
 
@@ -71,6 +80,9 @@ internal static class AssociatedAlphaPixelBlenderOperators
     /// </summary>
     public readonly struct SubtractSrc : IPixelBlenderOperator
     {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => true;
+
         /// <inheritdoc />
         public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
             => AssociatedAlphaPorterDuffFunctions.SubtractSrc(background, source, amount);
@@ -90,6 +102,9 @@ internal static class AssociatedAlphaPixelBlenderOperators
     public readonly struct ScreenSrc : IPixelBlenderOperator
     {
         /// <inheritdoc />
+        public static bool IsAssociatedAlpha => true;
+
+        /// <inheritdoc />
         public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
             => AssociatedAlphaPorterDuffFunctions.ScreenSrc(background, source, amount);
 
@@ -107,6 +122,9 @@ internal static class AssociatedAlphaPixelBlenderOperators
     /// </summary>
     public readonly struct DarkenSrc : IPixelBlenderOperator
     {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => true;
+
         /// <inheritdoc />
         public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
             => AssociatedAlphaPorterDuffFunctions.DarkenSrc(background, source, amount);
@@ -126,6 +144,9 @@ internal static class AssociatedAlphaPixelBlenderOperators
     public readonly struct LightenSrc : IPixelBlenderOperator
     {
         /// <inheritdoc />
+        public static bool IsAssociatedAlpha => true;
+
+        /// <inheritdoc />
         public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
             => AssociatedAlphaPorterDuffFunctions.LightenSrc(background, source, amount);
 
@@ -143,6 +164,9 @@ internal static class AssociatedAlphaPixelBlenderOperators
     /// </summary>
     public readonly struct OverlaySrc : IPixelBlenderOperator
     {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => true;
+
         /// <inheritdoc />
         public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
             => AssociatedAlphaPorterDuffFunctions.OverlaySrc(background, source, amount);
@@ -162,6 +186,9 @@ internal static class AssociatedAlphaPixelBlenderOperators
     public readonly struct HardLightSrc : IPixelBlenderOperator
     {
         /// <inheritdoc />
+        public static bool IsAssociatedAlpha => true;
+
+        /// <inheritdoc />
         public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
             => AssociatedAlphaPorterDuffFunctions.HardLightSrc(background, source, amount);
 
@@ -179,6 +206,9 @@ internal static class AssociatedAlphaPixelBlenderOperators
     /// </summary>
     public readonly struct NormalSrcAtop : IPixelBlenderOperator
     {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => true;
+
         /// <inheritdoc />
         public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
             => AssociatedAlphaPorterDuffFunctions.NormalSrcAtop(background, source, amount);
@@ -198,6 +228,9 @@ internal static class AssociatedAlphaPixelBlenderOperators
     public readonly struct MultiplySrcAtop : IPixelBlenderOperator
     {
         /// <inheritdoc />
+        public static bool IsAssociatedAlpha => true;
+
+        /// <inheritdoc />
         public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
             => AssociatedAlphaPorterDuffFunctions.MultiplySrcAtop(background, source, amount);
 
@@ -215,6 +248,9 @@ internal static class AssociatedAlphaPixelBlenderOperators
     /// </summary>
     public readonly struct AddSrcAtop : IPixelBlenderOperator
     {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => true;
+
         /// <inheritdoc />
         public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
             => AssociatedAlphaPorterDuffFunctions.AddSrcAtop(background, source, amount);
@@ -234,6 +270,9 @@ internal static class AssociatedAlphaPixelBlenderOperators
     public readonly struct SubtractSrcAtop : IPixelBlenderOperator
     {
         /// <inheritdoc />
+        public static bool IsAssociatedAlpha => true;
+
+        /// <inheritdoc />
         public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
             => AssociatedAlphaPorterDuffFunctions.SubtractSrcAtop(background, source, amount);
 
@@ -251,6 +290,9 @@ internal static class AssociatedAlphaPixelBlenderOperators
     /// </summary>
     public readonly struct ScreenSrcAtop : IPixelBlenderOperator
     {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => true;
+
         /// <inheritdoc />
         public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
             => AssociatedAlphaPorterDuffFunctions.ScreenSrcAtop(background, source, amount);
@@ -270,6 +312,9 @@ internal static class AssociatedAlphaPixelBlenderOperators
     public readonly struct DarkenSrcAtop : IPixelBlenderOperator
     {
         /// <inheritdoc />
+        public static bool IsAssociatedAlpha => true;
+
+        /// <inheritdoc />
         public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
             => AssociatedAlphaPorterDuffFunctions.DarkenSrcAtop(background, source, amount);
 
@@ -287,6 +332,9 @@ internal static class AssociatedAlphaPixelBlenderOperators
     /// </summary>
     public readonly struct LightenSrcAtop : IPixelBlenderOperator
     {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => true;
+
         /// <inheritdoc />
         public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
             => AssociatedAlphaPorterDuffFunctions.LightenSrcAtop(background, source, amount);
@@ -306,6 +354,9 @@ internal static class AssociatedAlphaPixelBlenderOperators
     public readonly struct OverlaySrcAtop : IPixelBlenderOperator
     {
         /// <inheritdoc />
+        public static bool IsAssociatedAlpha => true;
+
+        /// <inheritdoc />
         public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
             => AssociatedAlphaPorterDuffFunctions.OverlaySrcAtop(background, source, amount);
 
@@ -323,6 +374,9 @@ internal static class AssociatedAlphaPixelBlenderOperators
     /// </summary>
     public readonly struct HardLightSrcAtop : IPixelBlenderOperator
     {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => true;
+
         /// <inheritdoc />
         public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
             => AssociatedAlphaPorterDuffFunctions.HardLightSrcAtop(background, source, amount);
@@ -342,6 +396,9 @@ internal static class AssociatedAlphaPixelBlenderOperators
     public readonly struct NormalSrcOver : IPixelBlenderOperator
     {
         /// <inheritdoc />
+        public static bool IsAssociatedAlpha => true;
+
+        /// <inheritdoc />
         public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
             => AssociatedAlphaPorterDuffFunctions.NormalSrcOver(background, source, amount);
 
@@ -359,6 +416,9 @@ internal static class AssociatedAlphaPixelBlenderOperators
     /// </summary>
     public readonly struct MultiplySrcOver : IPixelBlenderOperator
     {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => true;
+
         /// <inheritdoc />
         public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
             => AssociatedAlphaPorterDuffFunctions.MultiplySrcOver(background, source, amount);
@@ -378,6 +438,9 @@ internal static class AssociatedAlphaPixelBlenderOperators
     public readonly struct AddSrcOver : IPixelBlenderOperator
     {
         /// <inheritdoc />
+        public static bool IsAssociatedAlpha => true;
+
+        /// <inheritdoc />
         public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
             => AssociatedAlphaPorterDuffFunctions.AddSrcOver(background, source, amount);
 
@@ -395,6 +458,9 @@ internal static class AssociatedAlphaPixelBlenderOperators
     /// </summary>
     public readonly struct SubtractSrcOver : IPixelBlenderOperator
     {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => true;
+
         /// <inheritdoc />
         public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
             => AssociatedAlphaPorterDuffFunctions.SubtractSrcOver(background, source, amount);
@@ -414,6 +480,9 @@ internal static class AssociatedAlphaPixelBlenderOperators
     public readonly struct ScreenSrcOver : IPixelBlenderOperator
     {
         /// <inheritdoc />
+        public static bool IsAssociatedAlpha => true;
+
+        /// <inheritdoc />
         public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
             => AssociatedAlphaPorterDuffFunctions.ScreenSrcOver(background, source, amount);
 
@@ -431,6 +500,9 @@ internal static class AssociatedAlphaPixelBlenderOperators
     /// </summary>
     public readonly struct DarkenSrcOver : IPixelBlenderOperator
     {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => true;
+
         /// <inheritdoc />
         public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
             => AssociatedAlphaPorterDuffFunctions.DarkenSrcOver(background, source, amount);
@@ -450,6 +522,9 @@ internal static class AssociatedAlphaPixelBlenderOperators
     public readonly struct LightenSrcOver : IPixelBlenderOperator
     {
         /// <inheritdoc />
+        public static bool IsAssociatedAlpha => true;
+
+        /// <inheritdoc />
         public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
             => AssociatedAlphaPorterDuffFunctions.LightenSrcOver(background, source, amount);
 
@@ -467,6 +542,9 @@ internal static class AssociatedAlphaPixelBlenderOperators
     /// </summary>
     public readonly struct OverlaySrcOver : IPixelBlenderOperator
     {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => true;
+
         /// <inheritdoc />
         public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
             => AssociatedAlphaPorterDuffFunctions.OverlaySrcOver(background, source, amount);
@@ -486,6 +564,9 @@ internal static class AssociatedAlphaPixelBlenderOperators
     public readonly struct HardLightSrcOver : IPixelBlenderOperator
     {
         /// <inheritdoc />
+        public static bool IsAssociatedAlpha => true;
+
+        /// <inheritdoc />
         public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
             => AssociatedAlphaPorterDuffFunctions.HardLightSrcOver(background, source, amount);
 
@@ -503,6 +584,9 @@ internal static class AssociatedAlphaPixelBlenderOperators
     /// </summary>
     public readonly struct NormalSrcIn : IPixelBlenderOperator
     {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => true;
+
         /// <inheritdoc />
         public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
             => AssociatedAlphaPorterDuffFunctions.NormalSrcIn(background, source, amount);
@@ -522,6 +606,9 @@ internal static class AssociatedAlphaPixelBlenderOperators
     public readonly struct MultiplySrcIn : IPixelBlenderOperator
     {
         /// <inheritdoc />
+        public static bool IsAssociatedAlpha => true;
+
+        /// <inheritdoc />
         public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
             => AssociatedAlphaPorterDuffFunctions.MultiplySrcIn(background, source, amount);
 
@@ -539,6 +626,9 @@ internal static class AssociatedAlphaPixelBlenderOperators
     /// </summary>
     public readonly struct AddSrcIn : IPixelBlenderOperator
     {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => true;
+
         /// <inheritdoc />
         public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
             => AssociatedAlphaPorterDuffFunctions.AddSrcIn(background, source, amount);
@@ -558,6 +648,9 @@ internal static class AssociatedAlphaPixelBlenderOperators
     public readonly struct SubtractSrcIn : IPixelBlenderOperator
     {
         /// <inheritdoc />
+        public static bool IsAssociatedAlpha => true;
+
+        /// <inheritdoc />
         public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
             => AssociatedAlphaPorterDuffFunctions.SubtractSrcIn(background, source, amount);
 
@@ -575,6 +668,9 @@ internal static class AssociatedAlphaPixelBlenderOperators
     /// </summary>
     public readonly struct ScreenSrcIn : IPixelBlenderOperator
     {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => true;
+
         /// <inheritdoc />
         public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
             => AssociatedAlphaPorterDuffFunctions.ScreenSrcIn(background, source, amount);
@@ -594,6 +690,9 @@ internal static class AssociatedAlphaPixelBlenderOperators
     public readonly struct DarkenSrcIn : IPixelBlenderOperator
     {
         /// <inheritdoc />
+        public static bool IsAssociatedAlpha => true;
+
+        /// <inheritdoc />
         public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
             => AssociatedAlphaPorterDuffFunctions.DarkenSrcIn(background, source, amount);
 
@@ -611,6 +710,9 @@ internal static class AssociatedAlphaPixelBlenderOperators
     /// </summary>
     public readonly struct LightenSrcIn : IPixelBlenderOperator
     {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => true;
+
         /// <inheritdoc />
         public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
             => AssociatedAlphaPorterDuffFunctions.LightenSrcIn(background, source, amount);
@@ -630,6 +732,9 @@ internal static class AssociatedAlphaPixelBlenderOperators
     public readonly struct OverlaySrcIn : IPixelBlenderOperator
     {
         /// <inheritdoc />
+        public static bool IsAssociatedAlpha => true;
+
+        /// <inheritdoc />
         public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
             => AssociatedAlphaPorterDuffFunctions.OverlaySrcIn(background, source, amount);
 
@@ -647,6 +752,9 @@ internal static class AssociatedAlphaPixelBlenderOperators
     /// </summary>
     public readonly struct HardLightSrcIn : IPixelBlenderOperator
     {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => true;
+
         /// <inheritdoc />
         public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
             => AssociatedAlphaPorterDuffFunctions.HardLightSrcIn(background, source, amount);
@@ -666,6 +774,9 @@ internal static class AssociatedAlphaPixelBlenderOperators
     public readonly struct NormalSrcOut : IPixelBlenderOperator
     {
         /// <inheritdoc />
+        public static bool IsAssociatedAlpha => true;
+
+        /// <inheritdoc />
         public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
             => AssociatedAlphaPorterDuffFunctions.NormalSrcOut(background, source, amount);
 
@@ -683,6 +794,9 @@ internal static class AssociatedAlphaPixelBlenderOperators
     /// </summary>
     public readonly struct MultiplySrcOut : IPixelBlenderOperator
     {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => true;
+
         /// <inheritdoc />
         public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
             => AssociatedAlphaPorterDuffFunctions.MultiplySrcOut(background, source, amount);
@@ -702,6 +816,9 @@ internal static class AssociatedAlphaPixelBlenderOperators
     public readonly struct AddSrcOut : IPixelBlenderOperator
     {
         /// <inheritdoc />
+        public static bool IsAssociatedAlpha => true;
+
+        /// <inheritdoc />
         public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
             => AssociatedAlphaPorterDuffFunctions.AddSrcOut(background, source, amount);
 
@@ -719,6 +836,9 @@ internal static class AssociatedAlphaPixelBlenderOperators
     /// </summary>
     public readonly struct SubtractSrcOut : IPixelBlenderOperator
     {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => true;
+
         /// <inheritdoc />
         public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
             => AssociatedAlphaPorterDuffFunctions.SubtractSrcOut(background, source, amount);
@@ -738,6 +858,9 @@ internal static class AssociatedAlphaPixelBlenderOperators
     public readonly struct ScreenSrcOut : IPixelBlenderOperator
     {
         /// <inheritdoc />
+        public static bool IsAssociatedAlpha => true;
+
+        /// <inheritdoc />
         public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
             => AssociatedAlphaPorterDuffFunctions.ScreenSrcOut(background, source, amount);
 
@@ -755,6 +878,9 @@ internal static class AssociatedAlphaPixelBlenderOperators
     /// </summary>
     public readonly struct DarkenSrcOut : IPixelBlenderOperator
     {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => true;
+
         /// <inheritdoc />
         public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
             => AssociatedAlphaPorterDuffFunctions.DarkenSrcOut(background, source, amount);
@@ -774,6 +900,9 @@ internal static class AssociatedAlphaPixelBlenderOperators
     public readonly struct LightenSrcOut : IPixelBlenderOperator
     {
         /// <inheritdoc />
+        public static bool IsAssociatedAlpha => true;
+
+        /// <inheritdoc />
         public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
             => AssociatedAlphaPorterDuffFunctions.LightenSrcOut(background, source, amount);
 
@@ -791,6 +920,9 @@ internal static class AssociatedAlphaPixelBlenderOperators
     /// </summary>
     public readonly struct OverlaySrcOut : IPixelBlenderOperator
     {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => true;
+
         /// <inheritdoc />
         public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
             => AssociatedAlphaPorterDuffFunctions.OverlaySrcOut(background, source, amount);
@@ -810,6 +942,9 @@ internal static class AssociatedAlphaPixelBlenderOperators
     public readonly struct HardLightSrcOut : IPixelBlenderOperator
     {
         /// <inheritdoc />
+        public static bool IsAssociatedAlpha => true;
+
+        /// <inheritdoc />
         public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
             => AssociatedAlphaPorterDuffFunctions.HardLightSrcOut(background, source, amount);
 
@@ -827,6 +962,9 @@ internal static class AssociatedAlphaPixelBlenderOperators
     /// </summary>
     public readonly struct NormalDest : IPixelBlenderOperator
     {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => true;
+
         /// <inheritdoc />
         public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
             => AssociatedAlphaPorterDuffFunctions.NormalDest(background, source, amount);
@@ -846,6 +984,9 @@ internal static class AssociatedAlphaPixelBlenderOperators
     public readonly struct MultiplyDest : IPixelBlenderOperator
     {
         /// <inheritdoc />
+        public static bool IsAssociatedAlpha => true;
+
+        /// <inheritdoc />
         public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
             => AssociatedAlphaPorterDuffFunctions.MultiplyDest(background, source, amount);
 
@@ -863,6 +1004,9 @@ internal static class AssociatedAlphaPixelBlenderOperators
     /// </summary>
     public readonly struct AddDest : IPixelBlenderOperator
     {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => true;
+
         /// <inheritdoc />
         public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
             => AssociatedAlphaPorterDuffFunctions.AddDest(background, source, amount);
@@ -882,6 +1026,9 @@ internal static class AssociatedAlphaPixelBlenderOperators
     public readonly struct SubtractDest : IPixelBlenderOperator
     {
         /// <inheritdoc />
+        public static bool IsAssociatedAlpha => true;
+
+        /// <inheritdoc />
         public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
             => AssociatedAlphaPorterDuffFunctions.SubtractDest(background, source, amount);
 
@@ -899,6 +1046,9 @@ internal static class AssociatedAlphaPixelBlenderOperators
     /// </summary>
     public readonly struct ScreenDest : IPixelBlenderOperator
     {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => true;
+
         /// <inheritdoc />
         public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
             => AssociatedAlphaPorterDuffFunctions.ScreenDest(background, source, amount);
@@ -918,6 +1068,9 @@ internal static class AssociatedAlphaPixelBlenderOperators
     public readonly struct DarkenDest : IPixelBlenderOperator
     {
         /// <inheritdoc />
+        public static bool IsAssociatedAlpha => true;
+
+        /// <inheritdoc />
         public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
             => AssociatedAlphaPorterDuffFunctions.DarkenDest(background, source, amount);
 
@@ -935,6 +1088,9 @@ internal static class AssociatedAlphaPixelBlenderOperators
     /// </summary>
     public readonly struct LightenDest : IPixelBlenderOperator
     {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => true;
+
         /// <inheritdoc />
         public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
             => AssociatedAlphaPorterDuffFunctions.LightenDest(background, source, amount);
@@ -954,6 +1110,9 @@ internal static class AssociatedAlphaPixelBlenderOperators
     public readonly struct OverlayDest : IPixelBlenderOperator
     {
         /// <inheritdoc />
+        public static bool IsAssociatedAlpha => true;
+
+        /// <inheritdoc />
         public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
             => AssociatedAlphaPorterDuffFunctions.OverlayDest(background, source, amount);
 
@@ -971,6 +1130,9 @@ internal static class AssociatedAlphaPixelBlenderOperators
     /// </summary>
     public readonly struct HardLightDest : IPixelBlenderOperator
     {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => true;
+
         /// <inheritdoc />
         public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
             => AssociatedAlphaPorterDuffFunctions.HardLightDest(background, source, amount);
@@ -990,6 +1152,9 @@ internal static class AssociatedAlphaPixelBlenderOperators
     public readonly struct NormalDestAtop : IPixelBlenderOperator
     {
         /// <inheritdoc />
+        public static bool IsAssociatedAlpha => true;
+
+        /// <inheritdoc />
         public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
             => AssociatedAlphaPorterDuffFunctions.NormalDestAtop(background, source, amount);
 
@@ -1007,6 +1172,9 @@ internal static class AssociatedAlphaPixelBlenderOperators
     /// </summary>
     public readonly struct MultiplyDestAtop : IPixelBlenderOperator
     {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => true;
+
         /// <inheritdoc />
         public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
             => AssociatedAlphaPorterDuffFunctions.MultiplyDestAtop(background, source, amount);
@@ -1026,6 +1194,9 @@ internal static class AssociatedAlphaPixelBlenderOperators
     public readonly struct AddDestAtop : IPixelBlenderOperator
     {
         /// <inheritdoc />
+        public static bool IsAssociatedAlpha => true;
+
+        /// <inheritdoc />
         public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
             => AssociatedAlphaPorterDuffFunctions.AddDestAtop(background, source, amount);
 
@@ -1043,6 +1214,9 @@ internal static class AssociatedAlphaPixelBlenderOperators
     /// </summary>
     public readonly struct SubtractDestAtop : IPixelBlenderOperator
     {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => true;
+
         /// <inheritdoc />
         public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
             => AssociatedAlphaPorterDuffFunctions.SubtractDestAtop(background, source, amount);
@@ -1062,6 +1236,9 @@ internal static class AssociatedAlphaPixelBlenderOperators
     public readonly struct ScreenDestAtop : IPixelBlenderOperator
     {
         /// <inheritdoc />
+        public static bool IsAssociatedAlpha => true;
+
+        /// <inheritdoc />
         public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
             => AssociatedAlphaPorterDuffFunctions.ScreenDestAtop(background, source, amount);
 
@@ -1079,6 +1256,9 @@ internal static class AssociatedAlphaPixelBlenderOperators
     /// </summary>
     public readonly struct DarkenDestAtop : IPixelBlenderOperator
     {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => true;
+
         /// <inheritdoc />
         public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
             => AssociatedAlphaPorterDuffFunctions.DarkenDestAtop(background, source, amount);
@@ -1098,6 +1278,9 @@ internal static class AssociatedAlphaPixelBlenderOperators
     public readonly struct LightenDestAtop : IPixelBlenderOperator
     {
         /// <inheritdoc />
+        public static bool IsAssociatedAlpha => true;
+
+        /// <inheritdoc />
         public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
             => AssociatedAlphaPorterDuffFunctions.LightenDestAtop(background, source, amount);
 
@@ -1115,6 +1298,9 @@ internal static class AssociatedAlphaPixelBlenderOperators
     /// </summary>
     public readonly struct OverlayDestAtop : IPixelBlenderOperator
     {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => true;
+
         /// <inheritdoc />
         public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
             => AssociatedAlphaPorterDuffFunctions.OverlayDestAtop(background, source, amount);
@@ -1134,6 +1320,9 @@ internal static class AssociatedAlphaPixelBlenderOperators
     public readonly struct HardLightDestAtop : IPixelBlenderOperator
     {
         /// <inheritdoc />
+        public static bool IsAssociatedAlpha => true;
+
+        /// <inheritdoc />
         public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
             => AssociatedAlphaPorterDuffFunctions.HardLightDestAtop(background, source, amount);
 
@@ -1151,6 +1340,9 @@ internal static class AssociatedAlphaPixelBlenderOperators
     /// </summary>
     public readonly struct NormalDestOver : IPixelBlenderOperator
     {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => true;
+
         /// <inheritdoc />
         public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
             => AssociatedAlphaPorterDuffFunctions.NormalDestOver(background, source, amount);
@@ -1170,6 +1362,9 @@ internal static class AssociatedAlphaPixelBlenderOperators
     public readonly struct MultiplyDestOver : IPixelBlenderOperator
     {
         /// <inheritdoc />
+        public static bool IsAssociatedAlpha => true;
+
+        /// <inheritdoc />
         public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
             => AssociatedAlphaPorterDuffFunctions.MultiplyDestOver(background, source, amount);
 
@@ -1187,6 +1382,9 @@ internal static class AssociatedAlphaPixelBlenderOperators
     /// </summary>
     public readonly struct AddDestOver : IPixelBlenderOperator
     {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => true;
+
         /// <inheritdoc />
         public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
             => AssociatedAlphaPorterDuffFunctions.AddDestOver(background, source, amount);
@@ -1206,6 +1404,9 @@ internal static class AssociatedAlphaPixelBlenderOperators
     public readonly struct SubtractDestOver : IPixelBlenderOperator
     {
         /// <inheritdoc />
+        public static bool IsAssociatedAlpha => true;
+
+        /// <inheritdoc />
         public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
             => AssociatedAlphaPorterDuffFunctions.SubtractDestOver(background, source, amount);
 
@@ -1223,6 +1424,9 @@ internal static class AssociatedAlphaPixelBlenderOperators
     /// </summary>
     public readonly struct ScreenDestOver : IPixelBlenderOperator
     {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => true;
+
         /// <inheritdoc />
         public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
             => AssociatedAlphaPorterDuffFunctions.ScreenDestOver(background, source, amount);
@@ -1242,6 +1446,9 @@ internal static class AssociatedAlphaPixelBlenderOperators
     public readonly struct DarkenDestOver : IPixelBlenderOperator
     {
         /// <inheritdoc />
+        public static bool IsAssociatedAlpha => true;
+
+        /// <inheritdoc />
         public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
             => AssociatedAlphaPorterDuffFunctions.DarkenDestOver(background, source, amount);
 
@@ -1259,6 +1466,9 @@ internal static class AssociatedAlphaPixelBlenderOperators
     /// </summary>
     public readonly struct LightenDestOver : IPixelBlenderOperator
     {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => true;
+
         /// <inheritdoc />
         public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
             => AssociatedAlphaPorterDuffFunctions.LightenDestOver(background, source, amount);
@@ -1278,6 +1488,9 @@ internal static class AssociatedAlphaPixelBlenderOperators
     public readonly struct OverlayDestOver : IPixelBlenderOperator
     {
         /// <inheritdoc />
+        public static bool IsAssociatedAlpha => true;
+
+        /// <inheritdoc />
         public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
             => AssociatedAlphaPorterDuffFunctions.OverlayDestOver(background, source, amount);
 
@@ -1295,6 +1508,9 @@ internal static class AssociatedAlphaPixelBlenderOperators
     /// </summary>
     public readonly struct HardLightDestOver : IPixelBlenderOperator
     {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => true;
+
         /// <inheritdoc />
         public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
             => AssociatedAlphaPorterDuffFunctions.HardLightDestOver(background, source, amount);
@@ -1314,6 +1530,9 @@ internal static class AssociatedAlphaPixelBlenderOperators
     public readonly struct NormalDestIn : IPixelBlenderOperator
     {
         /// <inheritdoc />
+        public static bool IsAssociatedAlpha => true;
+
+        /// <inheritdoc />
         public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
             => AssociatedAlphaPorterDuffFunctions.NormalDestIn(background, source, amount);
 
@@ -1331,6 +1550,9 @@ internal static class AssociatedAlphaPixelBlenderOperators
     /// </summary>
     public readonly struct MultiplyDestIn : IPixelBlenderOperator
     {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => true;
+
         /// <inheritdoc />
         public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
             => AssociatedAlphaPorterDuffFunctions.MultiplyDestIn(background, source, amount);
@@ -1350,6 +1572,9 @@ internal static class AssociatedAlphaPixelBlenderOperators
     public readonly struct AddDestIn : IPixelBlenderOperator
     {
         /// <inheritdoc />
+        public static bool IsAssociatedAlpha => true;
+
+        /// <inheritdoc />
         public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
             => AssociatedAlphaPorterDuffFunctions.AddDestIn(background, source, amount);
 
@@ -1367,6 +1592,9 @@ internal static class AssociatedAlphaPixelBlenderOperators
     /// </summary>
     public readonly struct SubtractDestIn : IPixelBlenderOperator
     {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => true;
+
         /// <inheritdoc />
         public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
             => AssociatedAlphaPorterDuffFunctions.SubtractDestIn(background, source, amount);
@@ -1386,6 +1614,9 @@ internal static class AssociatedAlphaPixelBlenderOperators
     public readonly struct ScreenDestIn : IPixelBlenderOperator
     {
         /// <inheritdoc />
+        public static bool IsAssociatedAlpha => true;
+
+        /// <inheritdoc />
         public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
             => AssociatedAlphaPorterDuffFunctions.ScreenDestIn(background, source, amount);
 
@@ -1403,6 +1634,9 @@ internal static class AssociatedAlphaPixelBlenderOperators
     /// </summary>
     public readonly struct DarkenDestIn : IPixelBlenderOperator
     {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => true;
+
         /// <inheritdoc />
         public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
             => AssociatedAlphaPorterDuffFunctions.DarkenDestIn(background, source, amount);
@@ -1422,6 +1656,9 @@ internal static class AssociatedAlphaPixelBlenderOperators
     public readonly struct LightenDestIn : IPixelBlenderOperator
     {
         /// <inheritdoc />
+        public static bool IsAssociatedAlpha => true;
+
+        /// <inheritdoc />
         public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
             => AssociatedAlphaPorterDuffFunctions.LightenDestIn(background, source, amount);
 
@@ -1439,6 +1676,9 @@ internal static class AssociatedAlphaPixelBlenderOperators
     /// </summary>
     public readonly struct OverlayDestIn : IPixelBlenderOperator
     {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => true;
+
         /// <inheritdoc />
         public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
             => AssociatedAlphaPorterDuffFunctions.OverlayDestIn(background, source, amount);
@@ -1458,6 +1698,9 @@ internal static class AssociatedAlphaPixelBlenderOperators
     public readonly struct HardLightDestIn : IPixelBlenderOperator
     {
         /// <inheritdoc />
+        public static bool IsAssociatedAlpha => true;
+
+        /// <inheritdoc />
         public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
             => AssociatedAlphaPorterDuffFunctions.HardLightDestIn(background, source, amount);
 
@@ -1475,6 +1718,9 @@ internal static class AssociatedAlphaPixelBlenderOperators
     /// </summary>
     public readonly struct NormalDestOut : IPixelBlenderOperator
     {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => true;
+
         /// <inheritdoc />
         public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
             => AssociatedAlphaPorterDuffFunctions.NormalDestOut(background, source, amount);
@@ -1494,6 +1740,9 @@ internal static class AssociatedAlphaPixelBlenderOperators
     public readonly struct MultiplyDestOut : IPixelBlenderOperator
     {
         /// <inheritdoc />
+        public static bool IsAssociatedAlpha => true;
+
+        /// <inheritdoc />
         public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
             => AssociatedAlphaPorterDuffFunctions.MultiplyDestOut(background, source, amount);
 
@@ -1511,6 +1760,9 @@ internal static class AssociatedAlphaPixelBlenderOperators
     /// </summary>
     public readonly struct AddDestOut : IPixelBlenderOperator
     {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => true;
+
         /// <inheritdoc />
         public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
             => AssociatedAlphaPorterDuffFunctions.AddDestOut(background, source, amount);
@@ -1530,6 +1782,9 @@ internal static class AssociatedAlphaPixelBlenderOperators
     public readonly struct SubtractDestOut : IPixelBlenderOperator
     {
         /// <inheritdoc />
+        public static bool IsAssociatedAlpha => true;
+
+        /// <inheritdoc />
         public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
             => AssociatedAlphaPorterDuffFunctions.SubtractDestOut(background, source, amount);
 
@@ -1547,6 +1802,9 @@ internal static class AssociatedAlphaPixelBlenderOperators
     /// </summary>
     public readonly struct ScreenDestOut : IPixelBlenderOperator
     {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => true;
+
         /// <inheritdoc />
         public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
             => AssociatedAlphaPorterDuffFunctions.ScreenDestOut(background, source, amount);
@@ -1566,6 +1824,9 @@ internal static class AssociatedAlphaPixelBlenderOperators
     public readonly struct DarkenDestOut : IPixelBlenderOperator
     {
         /// <inheritdoc />
+        public static bool IsAssociatedAlpha => true;
+
+        /// <inheritdoc />
         public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
             => AssociatedAlphaPorterDuffFunctions.DarkenDestOut(background, source, amount);
 
@@ -1583,6 +1844,9 @@ internal static class AssociatedAlphaPixelBlenderOperators
     /// </summary>
     public readonly struct LightenDestOut : IPixelBlenderOperator
     {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => true;
+
         /// <inheritdoc />
         public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
             => AssociatedAlphaPorterDuffFunctions.LightenDestOut(background, source, amount);
@@ -1602,6 +1866,9 @@ internal static class AssociatedAlphaPixelBlenderOperators
     public readonly struct OverlayDestOut : IPixelBlenderOperator
     {
         /// <inheritdoc />
+        public static bool IsAssociatedAlpha => true;
+
+        /// <inheritdoc />
         public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
             => AssociatedAlphaPorterDuffFunctions.OverlayDestOut(background, source, amount);
 
@@ -1619,6 +1886,9 @@ internal static class AssociatedAlphaPixelBlenderOperators
     /// </summary>
     public readonly struct HardLightDestOut : IPixelBlenderOperator
     {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => true;
+
         /// <inheritdoc />
         public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
             => AssociatedAlphaPorterDuffFunctions.HardLightDestOut(background, source, amount);
@@ -1638,6 +1908,9 @@ internal static class AssociatedAlphaPixelBlenderOperators
     public readonly struct NormalClear : IPixelBlenderOperator
     {
         /// <inheritdoc />
+        public static bool IsAssociatedAlpha => true;
+
+        /// <inheritdoc />
         public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
             => AssociatedAlphaPorterDuffFunctions.NormalClear(background, source, amount);
 
@@ -1655,6 +1928,9 @@ internal static class AssociatedAlphaPixelBlenderOperators
     /// </summary>
     public readonly struct MultiplyClear : IPixelBlenderOperator
     {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => true;
+
         /// <inheritdoc />
         public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
             => AssociatedAlphaPorterDuffFunctions.MultiplyClear(background, source, amount);
@@ -1674,6 +1950,9 @@ internal static class AssociatedAlphaPixelBlenderOperators
     public readonly struct AddClear : IPixelBlenderOperator
     {
         /// <inheritdoc />
+        public static bool IsAssociatedAlpha => true;
+
+        /// <inheritdoc />
         public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
             => AssociatedAlphaPorterDuffFunctions.AddClear(background, source, amount);
 
@@ -1691,6 +1970,9 @@ internal static class AssociatedAlphaPixelBlenderOperators
     /// </summary>
     public readonly struct SubtractClear : IPixelBlenderOperator
     {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => true;
+
         /// <inheritdoc />
         public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
             => AssociatedAlphaPorterDuffFunctions.SubtractClear(background, source, amount);
@@ -1710,6 +1992,9 @@ internal static class AssociatedAlphaPixelBlenderOperators
     public readonly struct ScreenClear : IPixelBlenderOperator
     {
         /// <inheritdoc />
+        public static bool IsAssociatedAlpha => true;
+
+        /// <inheritdoc />
         public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
             => AssociatedAlphaPorterDuffFunctions.ScreenClear(background, source, amount);
 
@@ -1727,6 +2012,9 @@ internal static class AssociatedAlphaPixelBlenderOperators
     /// </summary>
     public readonly struct DarkenClear : IPixelBlenderOperator
     {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => true;
+
         /// <inheritdoc />
         public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
             => AssociatedAlphaPorterDuffFunctions.DarkenClear(background, source, amount);
@@ -1746,6 +2034,9 @@ internal static class AssociatedAlphaPixelBlenderOperators
     public readonly struct LightenClear : IPixelBlenderOperator
     {
         /// <inheritdoc />
+        public static bool IsAssociatedAlpha => true;
+
+        /// <inheritdoc />
         public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
             => AssociatedAlphaPorterDuffFunctions.LightenClear(background, source, amount);
 
@@ -1763,6 +2054,9 @@ internal static class AssociatedAlphaPixelBlenderOperators
     /// </summary>
     public readonly struct OverlayClear : IPixelBlenderOperator
     {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => true;
+
         /// <inheritdoc />
         public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
             => AssociatedAlphaPorterDuffFunctions.OverlayClear(background, source, amount);
@@ -1782,6 +2076,9 @@ internal static class AssociatedAlphaPixelBlenderOperators
     public readonly struct HardLightClear : IPixelBlenderOperator
     {
         /// <inheritdoc />
+        public static bool IsAssociatedAlpha => true;
+
+        /// <inheritdoc />
         public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
             => AssociatedAlphaPorterDuffFunctions.HardLightClear(background, source, amount);
 
@@ -1799,6 +2096,9 @@ internal static class AssociatedAlphaPixelBlenderOperators
     /// </summary>
     public readonly struct NormalXor : IPixelBlenderOperator
     {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => true;
+
         /// <inheritdoc />
         public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
             => AssociatedAlphaPorterDuffFunctions.NormalXor(background, source, amount);
@@ -1818,6 +2118,9 @@ internal static class AssociatedAlphaPixelBlenderOperators
     public readonly struct MultiplyXor : IPixelBlenderOperator
     {
         /// <inheritdoc />
+        public static bool IsAssociatedAlpha => true;
+
+        /// <inheritdoc />
         public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
             => AssociatedAlphaPorterDuffFunctions.MultiplyXor(background, source, amount);
 
@@ -1835,6 +2138,9 @@ internal static class AssociatedAlphaPixelBlenderOperators
     /// </summary>
     public readonly struct AddXor : IPixelBlenderOperator
     {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => true;
+
         /// <inheritdoc />
         public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
             => AssociatedAlphaPorterDuffFunctions.AddXor(background, source, amount);
@@ -1854,6 +2160,9 @@ internal static class AssociatedAlphaPixelBlenderOperators
     public readonly struct SubtractXor : IPixelBlenderOperator
     {
         /// <inheritdoc />
+        public static bool IsAssociatedAlpha => true;
+
+        /// <inheritdoc />
         public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
             => AssociatedAlphaPorterDuffFunctions.SubtractXor(background, source, amount);
 
@@ -1871,6 +2180,9 @@ internal static class AssociatedAlphaPixelBlenderOperators
     /// </summary>
     public readonly struct ScreenXor : IPixelBlenderOperator
     {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => true;
+
         /// <inheritdoc />
         public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
             => AssociatedAlphaPorterDuffFunctions.ScreenXor(background, source, amount);
@@ -1890,6 +2202,9 @@ internal static class AssociatedAlphaPixelBlenderOperators
     public readonly struct DarkenXor : IPixelBlenderOperator
     {
         /// <inheritdoc />
+        public static bool IsAssociatedAlpha => true;
+
+        /// <inheritdoc />
         public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
             => AssociatedAlphaPorterDuffFunctions.DarkenXor(background, source, amount);
 
@@ -1907,6 +2222,9 @@ internal static class AssociatedAlphaPixelBlenderOperators
     /// </summary>
     public readonly struct LightenXor : IPixelBlenderOperator
     {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => true;
+
         /// <inheritdoc />
         public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
             => AssociatedAlphaPorterDuffFunctions.LightenXor(background, source, amount);
@@ -1926,6 +2244,9 @@ internal static class AssociatedAlphaPixelBlenderOperators
     public readonly struct OverlayXor : IPixelBlenderOperator
     {
         /// <inheritdoc />
+        public static bool IsAssociatedAlpha => true;
+
+        /// <inheritdoc />
         public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
             => AssociatedAlphaPorterDuffFunctions.OverlayXor(background, source, amount);
 
@@ -1943,6 +2264,9 @@ internal static class AssociatedAlphaPixelBlenderOperators
     /// </summary>
     public readonly struct HardLightXor : IPixelBlenderOperator
     {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => true;
+
         /// <inheritdoc />
         public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
             => AssociatedAlphaPorterDuffFunctions.HardLightXor(background, source, amount);
@@ -1966,1299 +2290,543 @@ internal static partial class AssociatedAlphaPixelBlenders<TPixel>
     where TPixel : unmanaged, IPixel<TPixel>
 {
     /// <summary>
-    /// Blends pixels with the "NormalSrc" composition equation.
-    /// </summary>
-    public sealed class NormalSrc :
-        AssociatedAlphaPixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.NormalSrc>
-    {
-        /// <summary>
-        /// Gets the shared blender instance.
-        /// </summary>
-        public static NormalSrc Instance { get; } = new();
-    }
+    /// Gets the shared blender for the "NormalSrc" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> NormalSrc => PixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.NormalSrc>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "MultiplySrc" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> MultiplySrc => PixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.MultiplySrc>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "AddSrc" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> AddSrc => PixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.AddSrc>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "SubtractSrc" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> SubtractSrc => PixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.SubtractSrc>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "ScreenSrc" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> ScreenSrc => PixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.ScreenSrc>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "DarkenSrc" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> DarkenSrc => PixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.DarkenSrc>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "LightenSrc" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> LightenSrc => PixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.LightenSrc>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "OverlaySrc" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> OverlaySrc => PixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.OverlaySrc>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "HardLightSrc" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> HardLightSrc => PixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.HardLightSrc>.Instance;
 
     /// <summary>
-    /// Blends pixels with the "MultiplySrc" composition equation.
-    /// </summary>
-    public sealed class MultiplySrc :
-        AssociatedAlphaPixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.MultiplySrc>
-    {
-        /// <summary>
-        /// Gets the shared blender instance.
-        /// </summary>
-        public static MultiplySrc Instance { get; } = new();
-    }
+    /// Gets the shared blender for the "NormalSrcAtop" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> NormalSrcAtop => PixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.NormalSrcAtop>.Instance;
 
     /// <summary>
-    /// Blends pixels with the "AddSrc" composition equation.
-    /// </summary>
-    public sealed class AddSrc :
-        AssociatedAlphaPixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.AddSrc>
-    {
-        /// <summary>
-        /// Gets the shared blender instance.
-        /// </summary>
-        public static AddSrc Instance { get; } = new();
-    }
+    /// Gets the shared blender for the "MultiplySrcAtop" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> MultiplySrcAtop => PixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.MultiplySrcAtop>.Instance;
 
     /// <summary>
-    /// Blends pixels with the "SubtractSrc" composition equation.
-    /// </summary>
-    public sealed class SubtractSrc :
-        AssociatedAlphaPixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.SubtractSrc>
-    {
-        /// <summary>
-        /// Gets the shared blender instance.
-        /// </summary>
-        public static SubtractSrc Instance { get; } = new();
-    }
+    /// Gets the shared blender for the "AddSrcAtop" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> AddSrcAtop => PixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.AddSrcAtop>.Instance;
 
     /// <summary>
-    /// Blends pixels with the "ScreenSrc" composition equation.
-    /// </summary>
-    public sealed class ScreenSrc :
-        AssociatedAlphaPixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.ScreenSrc>
-    {
-        /// <summary>
-        /// Gets the shared blender instance.
-        /// </summary>
-        public static ScreenSrc Instance { get; } = new();
-    }
+    /// Gets the shared blender for the "SubtractSrcAtop" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> SubtractSrcAtop => PixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.SubtractSrcAtop>.Instance;
 
     /// <summary>
-    /// Blends pixels with the "DarkenSrc" composition equation.
-    /// </summary>
-    public sealed class DarkenSrc :
-        AssociatedAlphaPixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.DarkenSrc>
-    {
-        /// <summary>
-        /// Gets the shared blender instance.
-        /// </summary>
-        public static DarkenSrc Instance { get; } = new();
-    }
+    /// Gets the shared blender for the "ScreenSrcAtop" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> ScreenSrcAtop => PixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.ScreenSrcAtop>.Instance;
 
     /// <summary>
-    /// Blends pixels with the "LightenSrc" composition equation.
-    /// </summary>
-    public sealed class LightenSrc :
-        AssociatedAlphaPixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.LightenSrc>
-    {
-        /// <summary>
-        /// Gets the shared blender instance.
-        /// </summary>
-        public static LightenSrc Instance { get; } = new();
-    }
+    /// Gets the shared blender for the "DarkenSrcAtop" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> DarkenSrcAtop => PixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.DarkenSrcAtop>.Instance;
 
     /// <summary>
-    /// Blends pixels with the "OverlaySrc" composition equation.
-    /// </summary>
-    public sealed class OverlaySrc :
-        AssociatedAlphaPixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.OverlaySrc>
-    {
-        /// <summary>
-        /// Gets the shared blender instance.
-        /// </summary>
-        public static OverlaySrc Instance { get; } = new();
-    }
+    /// Gets the shared blender for the "LightenSrcAtop" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> LightenSrcAtop => PixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.LightenSrcAtop>.Instance;
 
     /// <summary>
-    /// Blends pixels with the "HardLightSrc" composition equation.
-    /// </summary>
-    public sealed class HardLightSrc :
-        AssociatedAlphaPixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.HardLightSrc>
-    {
-        /// <summary>
-        /// Gets the shared blender instance.
-        /// </summary>
-        public static HardLightSrc Instance { get; } = new();
-    }
+    /// Gets the shared blender for the "OverlaySrcAtop" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> OverlaySrcAtop => PixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.OverlaySrcAtop>.Instance;
 
     /// <summary>
-    /// Blends pixels with the "NormalSrcAtop" composition equation.
-    /// </summary>
-    public sealed class NormalSrcAtop :
-        AssociatedAlphaPixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.NormalSrcAtop>
-    {
-        /// <summary>
-        /// Gets the shared blender instance.
-        /// </summary>
-        public static NormalSrcAtop Instance { get; } = new();
-    }
+    /// Gets the shared blender for the "HardLightSrcAtop" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> HardLightSrcAtop => PixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.HardLightSrcAtop>.Instance;
 
     /// <summary>
-    /// Blends pixels with the "MultiplySrcAtop" composition equation.
-    /// </summary>
-    public sealed class MultiplySrcAtop :
-        AssociatedAlphaPixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.MultiplySrcAtop>
-    {
-        /// <summary>
-        /// Gets the shared blender instance.
-        /// </summary>
-        public static MultiplySrcAtop Instance { get; } = new();
-    }
+    /// Gets the shared blender for the "NormalSrcOver" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> NormalSrcOver => PixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.NormalSrcOver>.Instance;
 
     /// <summary>
-    /// Blends pixels with the "AddSrcAtop" composition equation.
-    /// </summary>
-    public sealed class AddSrcAtop :
-        AssociatedAlphaPixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.AddSrcAtop>
-    {
-        /// <summary>
-        /// Gets the shared blender instance.
-        /// </summary>
-        public static AddSrcAtop Instance { get; } = new();
-    }
+    /// Gets the shared blender for the "MultiplySrcOver" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> MultiplySrcOver => PixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.MultiplySrcOver>.Instance;
 
     /// <summary>
-    /// Blends pixels with the "SubtractSrcAtop" composition equation.
-    /// </summary>
-    public sealed class SubtractSrcAtop :
-        AssociatedAlphaPixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.SubtractSrcAtop>
-    {
-        /// <summary>
-        /// Gets the shared blender instance.
-        /// </summary>
-        public static SubtractSrcAtop Instance { get; } = new();
-    }
+    /// Gets the shared blender for the "AddSrcOver" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> AddSrcOver => PixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.AddSrcOver>.Instance;
 
     /// <summary>
-    /// Blends pixels with the "ScreenSrcAtop" composition equation.
-    /// </summary>
-    public sealed class ScreenSrcAtop :
-        AssociatedAlphaPixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.ScreenSrcAtop>
-    {
-        /// <summary>
-        /// Gets the shared blender instance.
-        /// </summary>
-        public static ScreenSrcAtop Instance { get; } = new();
-    }
+    /// Gets the shared blender for the "SubtractSrcOver" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> SubtractSrcOver => PixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.SubtractSrcOver>.Instance;
 
     /// <summary>
-    /// Blends pixels with the "DarkenSrcAtop" composition equation.
-    /// </summary>
-    public sealed class DarkenSrcAtop :
-        AssociatedAlphaPixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.DarkenSrcAtop>
-    {
-        /// <summary>
-        /// Gets the shared blender instance.
-        /// </summary>
-        public static DarkenSrcAtop Instance { get; } = new();
-    }
+    /// Gets the shared blender for the "ScreenSrcOver" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> ScreenSrcOver => PixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.ScreenSrcOver>.Instance;
 
     /// <summary>
-    /// Blends pixels with the "LightenSrcAtop" composition equation.
-    /// </summary>
-    public sealed class LightenSrcAtop :
-        AssociatedAlphaPixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.LightenSrcAtop>
-    {
-        /// <summary>
-        /// Gets the shared blender instance.
-        /// </summary>
-        public static LightenSrcAtop Instance { get; } = new();
-    }
+    /// Gets the shared blender for the "DarkenSrcOver" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> DarkenSrcOver => PixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.DarkenSrcOver>.Instance;
 
     /// <summary>
-    /// Blends pixels with the "OverlaySrcAtop" composition equation.
-    /// </summary>
-    public sealed class OverlaySrcAtop :
-        AssociatedAlphaPixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.OverlaySrcAtop>
-    {
-        /// <summary>
-        /// Gets the shared blender instance.
-        /// </summary>
-        public static OverlaySrcAtop Instance { get; } = new();
-    }
+    /// Gets the shared blender for the "LightenSrcOver" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> LightenSrcOver => PixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.LightenSrcOver>.Instance;
 
     /// <summary>
-    /// Blends pixels with the "HardLightSrcAtop" composition equation.
-    /// </summary>
-    public sealed class HardLightSrcAtop :
-        AssociatedAlphaPixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.HardLightSrcAtop>
-    {
-        /// <summary>
-        /// Gets the shared blender instance.
-        /// </summary>
-        public static HardLightSrcAtop Instance { get; } = new();
-    }
+    /// Gets the shared blender for the "OverlaySrcOver" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> OverlaySrcOver => PixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.OverlaySrcOver>.Instance;
 
     /// <summary>
-    /// Blends pixels with the "NormalSrcOver" composition equation.
-    /// </summary>
-    public sealed class NormalSrcOver :
-        AssociatedAlphaPixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.NormalSrcOver>
-    {
-        /// <summary>
-        /// Gets the shared blender instance.
-        /// </summary>
-        public static NormalSrcOver Instance { get; } = new();
-    }
+    /// Gets the shared blender for the "HardLightSrcOver" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> HardLightSrcOver => PixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.HardLightSrcOver>.Instance;
 
     /// <summary>
-    /// Blends pixels with the "MultiplySrcOver" composition equation.
-    /// </summary>
-    public sealed class MultiplySrcOver :
-        AssociatedAlphaPixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.MultiplySrcOver>
-    {
-        /// <summary>
-        /// Gets the shared blender instance.
-        /// </summary>
-        public static MultiplySrcOver Instance { get; } = new();
-    }
+    /// Gets the shared blender for the "NormalSrcIn" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> NormalSrcIn => PixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.NormalSrcIn>.Instance;
 
     /// <summary>
-    /// Blends pixels with the "AddSrcOver" composition equation.
-    /// </summary>
-    public sealed class AddSrcOver :
-        AssociatedAlphaPixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.AddSrcOver>
-    {
-        /// <summary>
-        /// Gets the shared blender instance.
-        /// </summary>
-        public static AddSrcOver Instance { get; } = new();
-    }
+    /// Gets the shared blender for the "MultiplySrcIn" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> MultiplySrcIn => PixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.MultiplySrcIn>.Instance;
 
     /// <summary>
-    /// Blends pixels with the "SubtractSrcOver" composition equation.
-    /// </summary>
-    public sealed class SubtractSrcOver :
-        AssociatedAlphaPixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.SubtractSrcOver>
-    {
-        /// <summary>
-        /// Gets the shared blender instance.
-        /// </summary>
-        public static SubtractSrcOver Instance { get; } = new();
-    }
+    /// Gets the shared blender for the "AddSrcIn" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> AddSrcIn => PixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.AddSrcIn>.Instance;
 
     /// <summary>
-    /// Blends pixels with the "ScreenSrcOver" composition equation.
-    /// </summary>
-    public sealed class ScreenSrcOver :
-        AssociatedAlphaPixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.ScreenSrcOver>
-    {
-        /// <summary>
-        /// Gets the shared blender instance.
-        /// </summary>
-        public static ScreenSrcOver Instance { get; } = new();
-    }
+    /// Gets the shared blender for the "SubtractSrcIn" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> SubtractSrcIn => PixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.SubtractSrcIn>.Instance;
 
     /// <summary>
-    /// Blends pixels with the "DarkenSrcOver" composition equation.
-    /// </summary>
-    public sealed class DarkenSrcOver :
-        AssociatedAlphaPixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.DarkenSrcOver>
-    {
-        /// <summary>
-        /// Gets the shared blender instance.
-        /// </summary>
-        public static DarkenSrcOver Instance { get; } = new();
-    }
+    /// Gets the shared blender for the "ScreenSrcIn" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> ScreenSrcIn => PixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.ScreenSrcIn>.Instance;
 
     /// <summary>
-    /// Blends pixels with the "LightenSrcOver" composition equation.
-    /// </summary>
-    public sealed class LightenSrcOver :
-        AssociatedAlphaPixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.LightenSrcOver>
-    {
-        /// <summary>
-        /// Gets the shared blender instance.
-        /// </summary>
-        public static LightenSrcOver Instance { get; } = new();
-    }
+    /// Gets the shared blender for the "DarkenSrcIn" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> DarkenSrcIn => PixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.DarkenSrcIn>.Instance;
 
     /// <summary>
-    /// Blends pixels with the "OverlaySrcOver" composition equation.
-    /// </summary>
-    public sealed class OverlaySrcOver :
-        AssociatedAlphaPixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.OverlaySrcOver>
-    {
-        /// <summary>
-        /// Gets the shared blender instance.
-        /// </summary>
-        public static OverlaySrcOver Instance { get; } = new();
-    }
+    /// Gets the shared blender for the "LightenSrcIn" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> LightenSrcIn => PixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.LightenSrcIn>.Instance;
 
     /// <summary>
-    /// Blends pixels with the "HardLightSrcOver" composition equation.
-    /// </summary>
-    public sealed class HardLightSrcOver :
-        AssociatedAlphaPixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.HardLightSrcOver>
-    {
-        /// <summary>
-        /// Gets the shared blender instance.
-        /// </summary>
-        public static HardLightSrcOver Instance { get; } = new();
-    }
+    /// Gets the shared blender for the "OverlaySrcIn" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> OverlaySrcIn => PixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.OverlaySrcIn>.Instance;
 
     /// <summary>
-    /// Blends pixels with the "NormalSrcIn" composition equation.
-    /// </summary>
-    public sealed class NormalSrcIn :
-        AssociatedAlphaPixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.NormalSrcIn>
-    {
-        /// <summary>
-        /// Gets the shared blender instance.
-        /// </summary>
-        public static NormalSrcIn Instance { get; } = new();
-    }
+    /// Gets the shared blender for the "HardLightSrcIn" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> HardLightSrcIn => PixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.HardLightSrcIn>.Instance;
 
     /// <summary>
-    /// Blends pixels with the "MultiplySrcIn" composition equation.
-    /// </summary>
-    public sealed class MultiplySrcIn :
-        AssociatedAlphaPixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.MultiplySrcIn>
-    {
-        /// <summary>
-        /// Gets the shared blender instance.
-        /// </summary>
-        public static MultiplySrcIn Instance { get; } = new();
-    }
+    /// Gets the shared blender for the "NormalSrcOut" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> NormalSrcOut => PixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.NormalSrcOut>.Instance;
 
     /// <summary>
-    /// Blends pixels with the "AddSrcIn" composition equation.
-    /// </summary>
-    public sealed class AddSrcIn :
-        AssociatedAlphaPixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.AddSrcIn>
-    {
-        /// <summary>
-        /// Gets the shared blender instance.
-        /// </summary>
-        public static AddSrcIn Instance { get; } = new();
-    }
+    /// Gets the shared blender for the "MultiplySrcOut" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> MultiplySrcOut => PixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.MultiplySrcOut>.Instance;
 
     /// <summary>
-    /// Blends pixels with the "SubtractSrcIn" composition equation.
-    /// </summary>
-    public sealed class SubtractSrcIn :
-        AssociatedAlphaPixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.SubtractSrcIn>
-    {
-        /// <summary>
-        /// Gets the shared blender instance.
-        /// </summary>
-        public static SubtractSrcIn Instance { get; } = new();
-    }
+    /// Gets the shared blender for the "AddSrcOut" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> AddSrcOut => PixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.AddSrcOut>.Instance;
 
     /// <summary>
-    /// Blends pixels with the "ScreenSrcIn" composition equation.
-    /// </summary>
-    public sealed class ScreenSrcIn :
-        AssociatedAlphaPixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.ScreenSrcIn>
-    {
-        /// <summary>
-        /// Gets the shared blender instance.
-        /// </summary>
-        public static ScreenSrcIn Instance { get; } = new();
-    }
+    /// Gets the shared blender for the "SubtractSrcOut" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> SubtractSrcOut => PixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.SubtractSrcOut>.Instance;
 
     /// <summary>
-    /// Blends pixels with the "DarkenSrcIn" composition equation.
-    /// </summary>
-    public sealed class DarkenSrcIn :
-        AssociatedAlphaPixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.DarkenSrcIn>
-    {
-        /// <summary>
-        /// Gets the shared blender instance.
-        /// </summary>
-        public static DarkenSrcIn Instance { get; } = new();
-    }
+    /// Gets the shared blender for the "ScreenSrcOut" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> ScreenSrcOut => PixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.ScreenSrcOut>.Instance;
 
     /// <summary>
-    /// Blends pixels with the "LightenSrcIn" composition equation.
-    /// </summary>
-    public sealed class LightenSrcIn :
-        AssociatedAlphaPixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.LightenSrcIn>
-    {
-        /// <summary>
-        /// Gets the shared blender instance.
-        /// </summary>
-        public static LightenSrcIn Instance { get; } = new();
-    }
+    /// Gets the shared blender for the "DarkenSrcOut" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> DarkenSrcOut => PixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.DarkenSrcOut>.Instance;
 
     /// <summary>
-    /// Blends pixels with the "OverlaySrcIn" composition equation.
-    /// </summary>
-    public sealed class OverlaySrcIn :
-        AssociatedAlphaPixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.OverlaySrcIn>
-    {
-        /// <summary>
-        /// Gets the shared blender instance.
-        /// </summary>
-        public static OverlaySrcIn Instance { get; } = new();
-    }
+    /// Gets the shared blender for the "LightenSrcOut" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> LightenSrcOut => PixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.LightenSrcOut>.Instance;
 
     /// <summary>
-    /// Blends pixels with the "HardLightSrcIn" composition equation.
-    /// </summary>
-    public sealed class HardLightSrcIn :
-        AssociatedAlphaPixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.HardLightSrcIn>
-    {
-        /// <summary>
-        /// Gets the shared blender instance.
-        /// </summary>
-        public static HardLightSrcIn Instance { get; } = new();
-    }
+    /// Gets the shared blender for the "OverlaySrcOut" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> OverlaySrcOut => PixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.OverlaySrcOut>.Instance;
 
     /// <summary>
-    /// Blends pixels with the "NormalSrcOut" composition equation.
-    /// </summary>
-    public sealed class NormalSrcOut :
-        AssociatedAlphaPixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.NormalSrcOut>
-    {
-        /// <summary>
-        /// Gets the shared blender instance.
-        /// </summary>
-        public static NormalSrcOut Instance { get; } = new();
-    }
+    /// Gets the shared blender for the "HardLightSrcOut" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> HardLightSrcOut => PixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.HardLightSrcOut>.Instance;
 
     /// <summary>
-    /// Blends pixels with the "MultiplySrcOut" composition equation.
-    /// </summary>
-    public sealed class MultiplySrcOut :
-        AssociatedAlphaPixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.MultiplySrcOut>
-    {
-        /// <summary>
-        /// Gets the shared blender instance.
-        /// </summary>
-        public static MultiplySrcOut Instance { get; } = new();
-    }
+    /// Gets the shared blender for the "NormalDest" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> NormalDest => PixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.NormalDest>.Instance;
 
     /// <summary>
-    /// Blends pixels with the "AddSrcOut" composition equation.
-    /// </summary>
-    public sealed class AddSrcOut :
-        AssociatedAlphaPixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.AddSrcOut>
-    {
-        /// <summary>
-        /// Gets the shared blender instance.
-        /// </summary>
-        public static AddSrcOut Instance { get; } = new();
-    }
+    /// Gets the shared blender for the "MultiplyDest" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> MultiplyDest => PixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.MultiplyDest>.Instance;
 
     /// <summary>
-    /// Blends pixels with the "SubtractSrcOut" composition equation.
-    /// </summary>
-    public sealed class SubtractSrcOut :
-        AssociatedAlphaPixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.SubtractSrcOut>
-    {
-        /// <summary>
-        /// Gets the shared blender instance.
-        /// </summary>
-        public static SubtractSrcOut Instance { get; } = new();
-    }
+    /// Gets the shared blender for the "AddDest" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> AddDest => PixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.AddDest>.Instance;
 
     /// <summary>
-    /// Blends pixels with the "ScreenSrcOut" composition equation.
-    /// </summary>
-    public sealed class ScreenSrcOut :
-        AssociatedAlphaPixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.ScreenSrcOut>
-    {
-        /// <summary>
-        /// Gets the shared blender instance.
-        /// </summary>
-        public static ScreenSrcOut Instance { get; } = new();
-    }
+    /// Gets the shared blender for the "SubtractDest" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> SubtractDest => PixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.SubtractDest>.Instance;
 
     /// <summary>
-    /// Blends pixels with the "DarkenSrcOut" composition equation.
-    /// </summary>
-    public sealed class DarkenSrcOut :
-        AssociatedAlphaPixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.DarkenSrcOut>
-    {
-        /// <summary>
-        /// Gets the shared blender instance.
-        /// </summary>
-        public static DarkenSrcOut Instance { get; } = new();
-    }
+    /// Gets the shared blender for the "ScreenDest" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> ScreenDest => PixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.ScreenDest>.Instance;
 
     /// <summary>
-    /// Blends pixels with the "LightenSrcOut" composition equation.
-    /// </summary>
-    public sealed class LightenSrcOut :
-        AssociatedAlphaPixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.LightenSrcOut>
-    {
-        /// <summary>
-        /// Gets the shared blender instance.
-        /// </summary>
-        public static LightenSrcOut Instance { get; } = new();
-    }
+    /// Gets the shared blender for the "DarkenDest" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> DarkenDest => PixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.DarkenDest>.Instance;
 
     /// <summary>
-    /// Blends pixels with the "OverlaySrcOut" composition equation.
-    /// </summary>
-    public sealed class OverlaySrcOut :
-        AssociatedAlphaPixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.OverlaySrcOut>
-    {
-        /// <summary>
-        /// Gets the shared blender instance.
-        /// </summary>
-        public static OverlaySrcOut Instance { get; } = new();
-    }
+    /// Gets the shared blender for the "LightenDest" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> LightenDest => PixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.LightenDest>.Instance;
 
     /// <summary>
-    /// Blends pixels with the "HardLightSrcOut" composition equation.
-    /// </summary>
-    public sealed class HardLightSrcOut :
-        AssociatedAlphaPixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.HardLightSrcOut>
-    {
-        /// <summary>
-        /// Gets the shared blender instance.
-        /// </summary>
-        public static HardLightSrcOut Instance { get; } = new();
-    }
+    /// Gets the shared blender for the "OverlayDest" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> OverlayDest => PixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.OverlayDest>.Instance;
 
     /// <summary>
-    /// Blends pixels with the "NormalDest" composition equation.
-    /// </summary>
-    public sealed class NormalDest :
-        AssociatedAlphaPixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.NormalDest>
-    {
-        /// <summary>
-        /// Gets the shared blender instance.
-        /// </summary>
-        public static NormalDest Instance { get; } = new();
-    }
+    /// Gets the shared blender for the "HardLightDest" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> HardLightDest => PixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.HardLightDest>.Instance;
 
     /// <summary>
-    /// Blends pixels with the "MultiplyDest" composition equation.
-    /// </summary>
-    public sealed class MultiplyDest :
-        AssociatedAlphaPixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.MultiplyDest>
-    {
-        /// <summary>
-        /// Gets the shared blender instance.
-        /// </summary>
-        public static MultiplyDest Instance { get; } = new();
-    }
+    /// Gets the shared blender for the "NormalDestAtop" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> NormalDestAtop => PixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.NormalDestAtop>.Instance;
 
     /// <summary>
-    /// Blends pixels with the "AddDest" composition equation.
-    /// </summary>
-    public sealed class AddDest :
-        AssociatedAlphaPixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.AddDest>
-    {
-        /// <summary>
-        /// Gets the shared blender instance.
-        /// </summary>
-        public static AddDest Instance { get; } = new();
-    }
+    /// Gets the shared blender for the "MultiplyDestAtop" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> MultiplyDestAtop => PixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.MultiplyDestAtop>.Instance;
 
     /// <summary>
-    /// Blends pixels with the "SubtractDest" composition equation.
-    /// </summary>
-    public sealed class SubtractDest :
-        AssociatedAlphaPixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.SubtractDest>
-    {
-        /// <summary>
-        /// Gets the shared blender instance.
-        /// </summary>
-        public static SubtractDest Instance { get; } = new();
-    }
+    /// Gets the shared blender for the "AddDestAtop" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> AddDestAtop => PixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.AddDestAtop>.Instance;
 
     /// <summary>
-    /// Blends pixels with the "ScreenDest" composition equation.
-    /// </summary>
-    public sealed class ScreenDest :
-        AssociatedAlphaPixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.ScreenDest>
-    {
-        /// <summary>
-        /// Gets the shared blender instance.
-        /// </summary>
-        public static ScreenDest Instance { get; } = new();
-    }
+    /// Gets the shared blender for the "SubtractDestAtop" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> SubtractDestAtop => PixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.SubtractDestAtop>.Instance;
 
     /// <summary>
-    /// Blends pixels with the "DarkenDest" composition equation.
-    /// </summary>
-    public sealed class DarkenDest :
-        AssociatedAlphaPixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.DarkenDest>
-    {
-        /// <summary>
-        /// Gets the shared blender instance.
-        /// </summary>
-        public static DarkenDest Instance { get; } = new();
-    }
+    /// Gets the shared blender for the "ScreenDestAtop" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> ScreenDestAtop => PixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.ScreenDestAtop>.Instance;
 
     /// <summary>
-    /// Blends pixels with the "LightenDest" composition equation.
-    /// </summary>
-    public sealed class LightenDest :
-        AssociatedAlphaPixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.LightenDest>
-    {
-        /// <summary>
-        /// Gets the shared blender instance.
-        /// </summary>
-        public static LightenDest Instance { get; } = new();
-    }
+    /// Gets the shared blender for the "DarkenDestAtop" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> DarkenDestAtop => PixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.DarkenDestAtop>.Instance;
 
     /// <summary>
-    /// Blends pixels with the "OverlayDest" composition equation.
-    /// </summary>
-    public sealed class OverlayDest :
-        AssociatedAlphaPixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.OverlayDest>
-    {
-        /// <summary>
-        /// Gets the shared blender instance.
-        /// </summary>
-        public static OverlayDest Instance { get; } = new();
-    }
+    /// Gets the shared blender for the "LightenDestAtop" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> LightenDestAtop => PixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.LightenDestAtop>.Instance;
 
     /// <summary>
-    /// Blends pixels with the "HardLightDest" composition equation.
-    /// </summary>
-    public sealed class HardLightDest :
-        AssociatedAlphaPixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.HardLightDest>
-    {
-        /// <summary>
-        /// Gets the shared blender instance.
-        /// </summary>
-        public static HardLightDest Instance { get; } = new();
-    }
+    /// Gets the shared blender for the "OverlayDestAtop" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> OverlayDestAtop => PixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.OverlayDestAtop>.Instance;
 
     /// <summary>
-    /// Blends pixels with the "NormalDestAtop" composition equation.
-    /// </summary>
-    public sealed class NormalDestAtop :
-        AssociatedAlphaPixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.NormalDestAtop>
-    {
-        /// <summary>
-        /// Gets the shared blender instance.
-        /// </summary>
-        public static NormalDestAtop Instance { get; } = new();
-    }
+    /// Gets the shared blender for the "HardLightDestAtop" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> HardLightDestAtop => PixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.HardLightDestAtop>.Instance;
 
     /// <summary>
-    /// Blends pixels with the "MultiplyDestAtop" composition equation.
-    /// </summary>
-    public sealed class MultiplyDestAtop :
-        AssociatedAlphaPixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.MultiplyDestAtop>
-    {
-        /// <summary>
-        /// Gets the shared blender instance.
-        /// </summary>
-        public static MultiplyDestAtop Instance { get; } = new();
-    }
+    /// Gets the shared blender for the "NormalDestOver" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> NormalDestOver => PixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.NormalDestOver>.Instance;
 
     /// <summary>
-    /// Blends pixels with the "AddDestAtop" composition equation.
-    /// </summary>
-    public sealed class AddDestAtop :
-        AssociatedAlphaPixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.AddDestAtop>
-    {
-        /// <summary>
-        /// Gets the shared blender instance.
-        /// </summary>
-        public static AddDestAtop Instance { get; } = new();
-    }
+    /// Gets the shared blender for the "MultiplyDestOver" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> MultiplyDestOver => PixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.MultiplyDestOver>.Instance;
 
     /// <summary>
-    /// Blends pixels with the "SubtractDestAtop" composition equation.
-    /// </summary>
-    public sealed class SubtractDestAtop :
-        AssociatedAlphaPixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.SubtractDestAtop>
-    {
-        /// <summary>
-        /// Gets the shared blender instance.
-        /// </summary>
-        public static SubtractDestAtop Instance { get; } = new();
-    }
+    /// Gets the shared blender for the "AddDestOver" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> AddDestOver => PixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.AddDestOver>.Instance;
 
     /// <summary>
-    /// Blends pixels with the "ScreenDestAtop" composition equation.
-    /// </summary>
-    public sealed class ScreenDestAtop :
-        AssociatedAlphaPixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.ScreenDestAtop>
-    {
-        /// <summary>
-        /// Gets the shared blender instance.
-        /// </summary>
-        public static ScreenDestAtop Instance { get; } = new();
-    }
+    /// Gets the shared blender for the "SubtractDestOver" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> SubtractDestOver => PixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.SubtractDestOver>.Instance;
 
     /// <summary>
-    /// Blends pixels with the "DarkenDestAtop" composition equation.
-    /// </summary>
-    public sealed class DarkenDestAtop :
-        AssociatedAlphaPixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.DarkenDestAtop>
-    {
-        /// <summary>
-        /// Gets the shared blender instance.
-        /// </summary>
-        public static DarkenDestAtop Instance { get; } = new();
-    }
+    /// Gets the shared blender for the "ScreenDestOver" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> ScreenDestOver => PixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.ScreenDestOver>.Instance;
 
     /// <summary>
-    /// Blends pixels with the "LightenDestAtop" composition equation.
-    /// </summary>
-    public sealed class LightenDestAtop :
-        AssociatedAlphaPixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.LightenDestAtop>
-    {
-        /// <summary>
-        /// Gets the shared blender instance.
-        /// </summary>
-        public static LightenDestAtop Instance { get; } = new();
-    }
+    /// Gets the shared blender for the "DarkenDestOver" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> DarkenDestOver => PixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.DarkenDestOver>.Instance;
 
     /// <summary>
-    /// Blends pixels with the "OverlayDestAtop" composition equation.
-    /// </summary>
-    public sealed class OverlayDestAtop :
-        AssociatedAlphaPixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.OverlayDestAtop>
-    {
-        /// <summary>
-        /// Gets the shared blender instance.
-        /// </summary>
-        public static OverlayDestAtop Instance { get; } = new();
-    }
+    /// Gets the shared blender for the "LightenDestOver" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> LightenDestOver => PixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.LightenDestOver>.Instance;
 
     /// <summary>
-    /// Blends pixels with the "HardLightDestAtop" composition equation.
-    /// </summary>
-    public sealed class HardLightDestAtop :
-        AssociatedAlphaPixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.HardLightDestAtop>
-    {
-        /// <summary>
-        /// Gets the shared blender instance.
-        /// </summary>
-        public static HardLightDestAtop Instance { get; } = new();
-    }
+    /// Gets the shared blender for the "OverlayDestOver" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> OverlayDestOver => PixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.OverlayDestOver>.Instance;
 
     /// <summary>
-    /// Blends pixels with the "NormalDestOver" composition equation.
-    /// </summary>
-    public sealed class NormalDestOver :
-        AssociatedAlphaPixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.NormalDestOver>
-    {
-        /// <summary>
-        /// Gets the shared blender instance.
-        /// </summary>
-        public static NormalDestOver Instance { get; } = new();
-    }
+    /// Gets the shared blender for the "HardLightDestOver" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> HardLightDestOver => PixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.HardLightDestOver>.Instance;
 
     /// <summary>
-    /// Blends pixels with the "MultiplyDestOver" composition equation.
-    /// </summary>
-    public sealed class MultiplyDestOver :
-        AssociatedAlphaPixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.MultiplyDestOver>
-    {
-        /// <summary>
-        /// Gets the shared blender instance.
-        /// </summary>
-        public static MultiplyDestOver Instance { get; } = new();
-    }
+    /// Gets the shared blender for the "NormalDestIn" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> NormalDestIn => PixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.NormalDestIn>.Instance;
 
     /// <summary>
-    /// Blends pixels with the "AddDestOver" composition equation.
-    /// </summary>
-    public sealed class AddDestOver :
-        AssociatedAlphaPixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.AddDestOver>
-    {
-        /// <summary>
-        /// Gets the shared blender instance.
-        /// </summary>
-        public static AddDestOver Instance { get; } = new();
-    }
+    /// Gets the shared blender for the "MultiplyDestIn" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> MultiplyDestIn => PixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.MultiplyDestIn>.Instance;
 
     /// <summary>
-    /// Blends pixels with the "SubtractDestOver" composition equation.
-    /// </summary>
-    public sealed class SubtractDestOver :
-        AssociatedAlphaPixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.SubtractDestOver>
-    {
-        /// <summary>
-        /// Gets the shared blender instance.
-        /// </summary>
-        public static SubtractDestOver Instance { get; } = new();
-    }
+    /// Gets the shared blender for the "AddDestIn" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> AddDestIn => PixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.AddDestIn>.Instance;
 
     /// <summary>
-    /// Blends pixels with the "ScreenDestOver" composition equation.
-    /// </summary>
-    public sealed class ScreenDestOver :
-        AssociatedAlphaPixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.ScreenDestOver>
-    {
-        /// <summary>
-        /// Gets the shared blender instance.
-        /// </summary>
-        public static ScreenDestOver Instance { get; } = new();
-    }
+    /// Gets the shared blender for the "SubtractDestIn" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> SubtractDestIn => PixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.SubtractDestIn>.Instance;
 
     /// <summary>
-    /// Blends pixels with the "DarkenDestOver" composition equation.
-    /// </summary>
-    public sealed class DarkenDestOver :
-        AssociatedAlphaPixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.DarkenDestOver>
-    {
-        /// <summary>
-        /// Gets the shared blender instance.
-        /// </summary>
-        public static DarkenDestOver Instance { get; } = new();
-    }
+    /// Gets the shared blender for the "ScreenDestIn" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> ScreenDestIn => PixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.ScreenDestIn>.Instance;
 
     /// <summary>
-    /// Blends pixels with the "LightenDestOver" composition equation.
-    /// </summary>
-    public sealed class LightenDestOver :
-        AssociatedAlphaPixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.LightenDestOver>
-    {
-        /// <summary>
-        /// Gets the shared blender instance.
-        /// </summary>
-        public static LightenDestOver Instance { get; } = new();
-    }
+    /// Gets the shared blender for the "DarkenDestIn" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> DarkenDestIn => PixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.DarkenDestIn>.Instance;
 
     /// <summary>
-    /// Blends pixels with the "OverlayDestOver" composition equation.
-    /// </summary>
-    public sealed class OverlayDestOver :
-        AssociatedAlphaPixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.OverlayDestOver>
-    {
-        /// <summary>
-        /// Gets the shared blender instance.
-        /// </summary>
-        public static OverlayDestOver Instance { get; } = new();
-    }
+    /// Gets the shared blender for the "LightenDestIn" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> LightenDestIn => PixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.LightenDestIn>.Instance;
 
     /// <summary>
-    /// Blends pixels with the "HardLightDestOver" composition equation.
-    /// </summary>
-    public sealed class HardLightDestOver :
-        AssociatedAlphaPixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.HardLightDestOver>
-    {
-        /// <summary>
-        /// Gets the shared blender instance.
-        /// </summary>
-        public static HardLightDestOver Instance { get; } = new();
-    }
+    /// Gets the shared blender for the "OverlayDestIn" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> OverlayDestIn => PixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.OverlayDestIn>.Instance;
 
     /// <summary>
-    /// Blends pixels with the "NormalDestIn" composition equation.
-    /// </summary>
-    public sealed class NormalDestIn :
-        AssociatedAlphaPixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.NormalDestIn>
-    {
-        /// <summary>
-        /// Gets the shared blender instance.
-        /// </summary>
-        public static NormalDestIn Instance { get; } = new();
-    }
+    /// Gets the shared blender for the "HardLightDestIn" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> HardLightDestIn => PixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.HardLightDestIn>.Instance;
 
     /// <summary>
-    /// Blends pixels with the "MultiplyDestIn" composition equation.
-    /// </summary>
-    public sealed class MultiplyDestIn :
-        AssociatedAlphaPixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.MultiplyDestIn>
-    {
-        /// <summary>
-        /// Gets the shared blender instance.
-        /// </summary>
-        public static MultiplyDestIn Instance { get; } = new();
-    }
+    /// Gets the shared blender for the "NormalDestOut" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> NormalDestOut => PixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.NormalDestOut>.Instance;
 
     /// <summary>
-    /// Blends pixels with the "AddDestIn" composition equation.
-    /// </summary>
-    public sealed class AddDestIn :
-        AssociatedAlphaPixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.AddDestIn>
-    {
-        /// <summary>
-        /// Gets the shared blender instance.
-        /// </summary>
-        public static AddDestIn Instance { get; } = new();
-    }
+    /// Gets the shared blender for the "MultiplyDestOut" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> MultiplyDestOut => PixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.MultiplyDestOut>.Instance;
 
     /// <summary>
-    /// Blends pixels with the "SubtractDestIn" composition equation.
-    /// </summary>
-    public sealed class SubtractDestIn :
-        AssociatedAlphaPixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.SubtractDestIn>
-    {
-        /// <summary>
-        /// Gets the shared blender instance.
-        /// </summary>
-        public static SubtractDestIn Instance { get; } = new();
-    }
+    /// Gets the shared blender for the "AddDestOut" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> AddDestOut => PixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.AddDestOut>.Instance;
 
     /// <summary>
-    /// Blends pixels with the "ScreenDestIn" composition equation.
-    /// </summary>
-    public sealed class ScreenDestIn :
-        AssociatedAlphaPixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.ScreenDestIn>
-    {
-        /// <summary>
-        /// Gets the shared blender instance.
-        /// </summary>
-        public static ScreenDestIn Instance { get; } = new();
-    }
+    /// Gets the shared blender for the "SubtractDestOut" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> SubtractDestOut => PixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.SubtractDestOut>.Instance;
 
     /// <summary>
-    /// Blends pixels with the "DarkenDestIn" composition equation.
-    /// </summary>
-    public sealed class DarkenDestIn :
-        AssociatedAlphaPixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.DarkenDestIn>
-    {
-        /// <summary>
-        /// Gets the shared blender instance.
-        /// </summary>
-        public static DarkenDestIn Instance { get; } = new();
-    }
+    /// Gets the shared blender for the "ScreenDestOut" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> ScreenDestOut => PixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.ScreenDestOut>.Instance;
 
     /// <summary>
-    /// Blends pixels with the "LightenDestIn" composition equation.
-    /// </summary>
-    public sealed class LightenDestIn :
-        AssociatedAlphaPixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.LightenDestIn>
-    {
-        /// <summary>
-        /// Gets the shared blender instance.
-        /// </summary>
-        public static LightenDestIn Instance { get; } = new();
-    }
+    /// Gets the shared blender for the "DarkenDestOut" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> DarkenDestOut => PixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.DarkenDestOut>.Instance;
 
     /// <summary>
-    /// Blends pixels with the "OverlayDestIn" composition equation.
-    /// </summary>
-    public sealed class OverlayDestIn :
-        AssociatedAlphaPixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.OverlayDestIn>
-    {
-        /// <summary>
-        /// Gets the shared blender instance.
-        /// </summary>
-        public static OverlayDestIn Instance { get; } = new();
-    }
+    /// Gets the shared blender for the "LightenDestOut" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> LightenDestOut => PixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.LightenDestOut>.Instance;
 
     /// <summary>
-    /// Blends pixels with the "HardLightDestIn" composition equation.
-    /// </summary>
-    public sealed class HardLightDestIn :
-        AssociatedAlphaPixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.HardLightDestIn>
-    {
-        /// <summary>
-        /// Gets the shared blender instance.
-        /// </summary>
-        public static HardLightDestIn Instance { get; } = new();
-    }
+    /// Gets the shared blender for the "OverlayDestOut" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> OverlayDestOut => PixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.OverlayDestOut>.Instance;
 
     /// <summary>
-    /// Blends pixels with the "NormalDestOut" composition equation.
-    /// </summary>
-    public sealed class NormalDestOut :
-        AssociatedAlphaPixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.NormalDestOut>
-    {
-        /// <summary>
-        /// Gets the shared blender instance.
-        /// </summary>
-        public static NormalDestOut Instance { get; } = new();
-    }
+    /// Gets the shared blender for the "HardLightDestOut" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> HardLightDestOut => PixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.HardLightDestOut>.Instance;
 
     /// <summary>
-    /// Blends pixels with the "MultiplyDestOut" composition equation.
-    /// </summary>
-    public sealed class MultiplyDestOut :
-        AssociatedAlphaPixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.MultiplyDestOut>
-    {
-        /// <summary>
-        /// Gets the shared blender instance.
-        /// </summary>
-        public static MultiplyDestOut Instance { get; } = new();
-    }
+    /// Gets the shared blender for the "NormalClear" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> NormalClear => PixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.NormalClear>.Instance;
 
     /// <summary>
-    /// Blends pixels with the "AddDestOut" composition equation.
-    /// </summary>
-    public sealed class AddDestOut :
-        AssociatedAlphaPixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.AddDestOut>
-    {
-        /// <summary>
-        /// Gets the shared blender instance.
-        /// </summary>
-        public static AddDestOut Instance { get; } = new();
-    }
+    /// Gets the shared blender for the "MultiplyClear" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> MultiplyClear => PixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.MultiplyClear>.Instance;
 
     /// <summary>
-    /// Blends pixels with the "SubtractDestOut" composition equation.
-    /// </summary>
-    public sealed class SubtractDestOut :
-        AssociatedAlphaPixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.SubtractDestOut>
-    {
-        /// <summary>
-        /// Gets the shared blender instance.
-        /// </summary>
-        public static SubtractDestOut Instance { get; } = new();
-    }
+    /// Gets the shared blender for the "AddClear" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> AddClear => PixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.AddClear>.Instance;
 
     /// <summary>
-    /// Blends pixels with the "ScreenDestOut" composition equation.
-    /// </summary>
-    public sealed class ScreenDestOut :
-        AssociatedAlphaPixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.ScreenDestOut>
-    {
-        /// <summary>
-        /// Gets the shared blender instance.
-        /// </summary>
-        public static ScreenDestOut Instance { get; } = new();
-    }
+    /// Gets the shared blender for the "SubtractClear" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> SubtractClear => PixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.SubtractClear>.Instance;
 
     /// <summary>
-    /// Blends pixels with the "DarkenDestOut" composition equation.
-    /// </summary>
-    public sealed class DarkenDestOut :
-        AssociatedAlphaPixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.DarkenDestOut>
-    {
-        /// <summary>
-        /// Gets the shared blender instance.
-        /// </summary>
-        public static DarkenDestOut Instance { get; } = new();
-    }
+    /// Gets the shared blender for the "ScreenClear" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> ScreenClear => PixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.ScreenClear>.Instance;
 
     /// <summary>
-    /// Blends pixels with the "LightenDestOut" composition equation.
-    /// </summary>
-    public sealed class LightenDestOut :
-        AssociatedAlphaPixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.LightenDestOut>
-    {
-        /// <summary>
-        /// Gets the shared blender instance.
-        /// </summary>
-        public static LightenDestOut Instance { get; } = new();
-    }
+    /// Gets the shared blender for the "DarkenClear" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> DarkenClear => PixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.DarkenClear>.Instance;
 
     /// <summary>
-    /// Blends pixels with the "OverlayDestOut" composition equation.
-    /// </summary>
-    public sealed class OverlayDestOut :
-        AssociatedAlphaPixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.OverlayDestOut>
-    {
-        /// <summary>
-        /// Gets the shared blender instance.
-        /// </summary>
-        public static OverlayDestOut Instance { get; } = new();
-    }
+    /// Gets the shared blender for the "LightenClear" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> LightenClear => PixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.LightenClear>.Instance;
 
     /// <summary>
-    /// Blends pixels with the "HardLightDestOut" composition equation.
-    /// </summary>
-    public sealed class HardLightDestOut :
-        AssociatedAlphaPixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.HardLightDestOut>
-    {
-        /// <summary>
-        /// Gets the shared blender instance.
-        /// </summary>
-        public static HardLightDestOut Instance { get; } = new();
-    }
+    /// Gets the shared blender for the "OverlayClear" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> OverlayClear => PixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.OverlayClear>.Instance;
 
     /// <summary>
-    /// Blends pixels with the "NormalClear" composition equation.
-    /// </summary>
-    public sealed class NormalClear :
-        AssociatedAlphaPixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.NormalClear>
-    {
-        /// <summary>
-        /// Gets the shared blender instance.
-        /// </summary>
-        public static NormalClear Instance { get; } = new();
-    }
+    /// Gets the shared blender for the "HardLightClear" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> HardLightClear => PixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.HardLightClear>.Instance;
 
     /// <summary>
-    /// Blends pixels with the "MultiplyClear" composition equation.
-    /// </summary>
-    public sealed class MultiplyClear :
-        AssociatedAlphaPixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.MultiplyClear>
-    {
-        /// <summary>
-        /// Gets the shared blender instance.
-        /// </summary>
-        public static MultiplyClear Instance { get; } = new();
-    }
+    /// Gets the shared blender for the "NormalXor" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> NormalXor => PixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.NormalXor>.Instance;
 
     /// <summary>
-    /// Blends pixels with the "AddClear" composition equation.
-    /// </summary>
-    public sealed class AddClear :
-        AssociatedAlphaPixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.AddClear>
-    {
-        /// <summary>
-        /// Gets the shared blender instance.
-        /// </summary>
-        public static AddClear Instance { get; } = new();
-    }
+    /// Gets the shared blender for the "MultiplyXor" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> MultiplyXor => PixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.MultiplyXor>.Instance;
 
     /// <summary>
-    /// Blends pixels with the "SubtractClear" composition equation.
-    /// </summary>
-    public sealed class SubtractClear :
-        AssociatedAlphaPixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.SubtractClear>
-    {
-        /// <summary>
-        /// Gets the shared blender instance.
-        /// </summary>
-        public static SubtractClear Instance { get; } = new();
-    }
+    /// Gets the shared blender for the "AddXor" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> AddXor => PixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.AddXor>.Instance;
 
     /// <summary>
-    /// Blends pixels with the "ScreenClear" composition equation.
-    /// </summary>
-    public sealed class ScreenClear :
-        AssociatedAlphaPixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.ScreenClear>
-    {
-        /// <summary>
-        /// Gets the shared blender instance.
-        /// </summary>
-        public static ScreenClear Instance { get; } = new();
-    }
+    /// Gets the shared blender for the "SubtractXor" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> SubtractXor => PixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.SubtractXor>.Instance;
 
     /// <summary>
-    /// Blends pixels with the "DarkenClear" composition equation.
-    /// </summary>
-    public sealed class DarkenClear :
-        AssociatedAlphaPixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.DarkenClear>
-    {
-        /// <summary>
-        /// Gets the shared blender instance.
-        /// </summary>
-        public static DarkenClear Instance { get; } = new();
-    }
+    /// Gets the shared blender for the "ScreenXor" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> ScreenXor => PixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.ScreenXor>.Instance;
 
     /// <summary>
-    /// Blends pixels with the "LightenClear" composition equation.
-    /// </summary>
-    public sealed class LightenClear :
-        AssociatedAlphaPixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.LightenClear>
-    {
-        /// <summary>
-        /// Gets the shared blender instance.
-        /// </summary>
-        public static LightenClear Instance { get; } = new();
-    }
+    /// Gets the shared blender for the "DarkenXor" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> DarkenXor => PixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.DarkenXor>.Instance;
 
     /// <summary>
-    /// Blends pixels with the "OverlayClear" composition equation.
-    /// </summary>
-    public sealed class OverlayClear :
-        AssociatedAlphaPixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.OverlayClear>
-    {
-        /// <summary>
-        /// Gets the shared blender instance.
-        /// </summary>
-        public static OverlayClear Instance { get; } = new();
-    }
+    /// Gets the shared blender for the "LightenXor" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> LightenXor => PixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.LightenXor>.Instance;
 
     /// <summary>
-    /// Blends pixels with the "HardLightClear" composition equation.
-    /// </summary>
-    public sealed class HardLightClear :
-        AssociatedAlphaPixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.HardLightClear>
-    {
-        /// <summary>
-        /// Gets the shared blender instance.
-        /// </summary>
-        public static HardLightClear Instance { get; } = new();
-    }
+    /// Gets the shared blender for the "OverlayXor" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> OverlayXor => PixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.OverlayXor>.Instance;
 
     /// <summary>
-    /// Blends pixels with the "NormalXor" composition equation.
-    /// </summary>
-    public sealed class NormalXor :
-        AssociatedAlphaPixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.NormalXor>
-    {
-        /// <summary>
-        /// Gets the shared blender instance.
-        /// </summary>
-        public static NormalXor Instance { get; } = new();
-    }
-
-    /// <summary>
-    /// Blends pixels with the "MultiplyXor" composition equation.
-    /// </summary>
-    public sealed class MultiplyXor :
-        AssociatedAlphaPixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.MultiplyXor>
-    {
-        /// <summary>
-        /// Gets the shared blender instance.
-        /// </summary>
-        public static MultiplyXor Instance { get; } = new();
-    }
-
-    /// <summary>
-    /// Blends pixels with the "AddXor" composition equation.
-    /// </summary>
-    public sealed class AddXor :
-        AssociatedAlphaPixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.AddXor>
-    {
-        /// <summary>
-        /// Gets the shared blender instance.
-        /// </summary>
-        public static AddXor Instance { get; } = new();
-    }
-
-    /// <summary>
-    /// Blends pixels with the "SubtractXor" composition equation.
-    /// </summary>
-    public sealed class SubtractXor :
-        AssociatedAlphaPixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.SubtractXor>
-    {
-        /// <summary>
-        /// Gets the shared blender instance.
-        /// </summary>
-        public static SubtractXor Instance { get; } = new();
-    }
-
-    /// <summary>
-    /// Blends pixels with the "ScreenXor" composition equation.
-    /// </summary>
-    public sealed class ScreenXor :
-        AssociatedAlphaPixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.ScreenXor>
-    {
-        /// <summary>
-        /// Gets the shared blender instance.
-        /// </summary>
-        public static ScreenXor Instance { get; } = new();
-    }
-
-    /// <summary>
-    /// Blends pixels with the "DarkenXor" composition equation.
-    /// </summary>
-    public sealed class DarkenXor :
-        AssociatedAlphaPixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.DarkenXor>
-    {
-        /// <summary>
-        /// Gets the shared blender instance.
-        /// </summary>
-        public static DarkenXor Instance { get; } = new();
-    }
-
-    /// <summary>
-    /// Blends pixels with the "LightenXor" composition equation.
-    /// </summary>
-    public sealed class LightenXor :
-        AssociatedAlphaPixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.LightenXor>
-    {
-        /// <summary>
-        /// Gets the shared blender instance.
-        /// </summary>
-        public static LightenXor Instance { get; } = new();
-    }
-
-    /// <summary>
-    /// Blends pixels with the "OverlayXor" composition equation.
-    /// </summary>
-    public sealed class OverlayXor :
-        AssociatedAlphaPixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.OverlayXor>
-    {
-        /// <summary>
-        /// Gets the shared blender instance.
-        /// </summary>
-        public static OverlayXor Instance { get; } = new();
-    }
-
-    /// <summary>
-    /// Blends pixels with the "HardLightXor" composition equation.
-    /// </summary>
-    public sealed class HardLightXor :
-        AssociatedAlphaPixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.HardLightXor>
-    {
-        /// <summary>
-        /// Gets the shared blender instance.
-        /// </summary>
-        public static HardLightXor Instance { get; } = new();
-    }
+    /// Gets the shared blender for the "HardLightXor" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> HardLightXor => PixelBlender<TPixel, AssociatedAlphaPixelBlenderOperators.HardLightXor>.Instance;
 
 }

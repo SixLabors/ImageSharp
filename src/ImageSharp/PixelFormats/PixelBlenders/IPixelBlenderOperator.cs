@@ -12,6 +12,11 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders;
 internal interface IPixelBlenderOperator
 {
     /// <summary>
+    /// Gets a value indicating whether pixel conversion uses associated-alpha vectors.
+    /// </summary>
+    public static abstract bool IsAssociatedAlpha { get; }
+
+    /// <summary>
     /// Blends one pixel represented by four RGBA lanes.
     /// </summary>
     /// <param name="background">The background RGBA lanes.</param>

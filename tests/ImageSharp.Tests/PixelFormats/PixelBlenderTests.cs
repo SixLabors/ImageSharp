@@ -13,24 +13,24 @@ public class PixelBlenderTests
 {
     public static TheoryData<object, Type, PixelColorBlendingMode> BlenderMappings = new()
     {
-        { new TestPixel<Rgba32>(), typeof(DefaultPixelBlenders<Rgba32>.NormalSrcOver), PixelColorBlendingMode.Normal },
-        { new TestPixel<Rgba32>(), typeof(DefaultPixelBlenders<Rgba32>.ScreenSrcOver), PixelColorBlendingMode.Screen },
-        { new TestPixel<Rgba32>(), typeof(DefaultPixelBlenders<Rgba32>.HardLightSrcOver), PixelColorBlendingMode.HardLight },
-        { new TestPixel<Rgba32>(), typeof(DefaultPixelBlenders<Rgba32>.OverlaySrcOver), PixelColorBlendingMode.Overlay },
-        { new TestPixel<Rgba32>(), typeof(DefaultPixelBlenders<Rgba32>.DarkenSrcOver), PixelColorBlendingMode.Darken },
-        { new TestPixel<Rgba32>(), typeof(DefaultPixelBlenders<Rgba32>.LightenSrcOver), PixelColorBlendingMode.Lighten },
-        { new TestPixel<Rgba32>(), typeof(DefaultPixelBlenders<Rgba32>.AddSrcOver), PixelColorBlendingMode.Add },
-        { new TestPixel<Rgba32>(), typeof(DefaultPixelBlenders<Rgba32>.SubtractSrcOver), PixelColorBlendingMode.Subtract },
-        { new TestPixel<Rgba32>(), typeof(DefaultPixelBlenders<Rgba32>.MultiplySrcOver), PixelColorBlendingMode.Multiply },
-        { new TestPixel<RgbaVector>(), typeof(DefaultPixelBlenders<RgbaVector>.NormalSrcOver), PixelColorBlendingMode.Normal },
-        { new TestPixel<RgbaVector>(), typeof(DefaultPixelBlenders<RgbaVector>.ScreenSrcOver), PixelColorBlendingMode.Screen },
-        { new TestPixel<RgbaVector>(), typeof(DefaultPixelBlenders<RgbaVector>.HardLightSrcOver), PixelColorBlendingMode.HardLight },
-        { new TestPixel<RgbaVector>(), typeof(DefaultPixelBlenders<RgbaVector>.OverlaySrcOver), PixelColorBlendingMode.Overlay },
-        { new TestPixel<RgbaVector>(), typeof(DefaultPixelBlenders<RgbaVector>.DarkenSrcOver), PixelColorBlendingMode.Darken },
-        { new TestPixel<RgbaVector>(), typeof(DefaultPixelBlenders<RgbaVector>.LightenSrcOver), PixelColorBlendingMode.Lighten },
-        { new TestPixel<RgbaVector>(), typeof(DefaultPixelBlenders<RgbaVector>.AddSrcOver), PixelColorBlendingMode.Add },
-        { new TestPixel<RgbaVector>(), typeof(DefaultPixelBlenders<RgbaVector>.SubtractSrcOver), PixelColorBlendingMode.Subtract },
-        { new TestPixel<RgbaVector>(), typeof(DefaultPixelBlenders<RgbaVector>.MultiplySrcOver), PixelColorBlendingMode.Multiply },
+        { new TestPixel<Rgba32>(), DefaultPixelBlenders<Rgba32>.NormalSrcOver.GetType(), PixelColorBlendingMode.Normal },
+        { new TestPixel<Rgba32>(), DefaultPixelBlenders<Rgba32>.ScreenSrcOver.GetType(), PixelColorBlendingMode.Screen },
+        { new TestPixel<Rgba32>(), DefaultPixelBlenders<Rgba32>.HardLightSrcOver.GetType(), PixelColorBlendingMode.HardLight },
+        { new TestPixel<Rgba32>(), DefaultPixelBlenders<Rgba32>.OverlaySrcOver.GetType(), PixelColorBlendingMode.Overlay },
+        { new TestPixel<Rgba32>(), DefaultPixelBlenders<Rgba32>.DarkenSrcOver.GetType(), PixelColorBlendingMode.Darken },
+        { new TestPixel<Rgba32>(), DefaultPixelBlenders<Rgba32>.LightenSrcOver.GetType(), PixelColorBlendingMode.Lighten },
+        { new TestPixel<Rgba32>(), DefaultPixelBlenders<Rgba32>.AddSrcOver.GetType(), PixelColorBlendingMode.Add },
+        { new TestPixel<Rgba32>(), DefaultPixelBlenders<Rgba32>.SubtractSrcOver.GetType(), PixelColorBlendingMode.Subtract },
+        { new TestPixel<Rgba32>(), DefaultPixelBlenders<Rgba32>.MultiplySrcOver.GetType(), PixelColorBlendingMode.Multiply },
+        { new TestPixel<RgbaVector>(), DefaultPixelBlenders<RgbaVector>.NormalSrcOver.GetType(), PixelColorBlendingMode.Normal },
+        { new TestPixel<RgbaVector>(), DefaultPixelBlenders<RgbaVector>.ScreenSrcOver.GetType(), PixelColorBlendingMode.Screen },
+        { new TestPixel<RgbaVector>(), DefaultPixelBlenders<RgbaVector>.HardLightSrcOver.GetType(), PixelColorBlendingMode.HardLight },
+        { new TestPixel<RgbaVector>(), DefaultPixelBlenders<RgbaVector>.OverlaySrcOver.GetType(), PixelColorBlendingMode.Overlay },
+        { new TestPixel<RgbaVector>(), DefaultPixelBlenders<RgbaVector>.DarkenSrcOver.GetType(), PixelColorBlendingMode.Darken },
+        { new TestPixel<RgbaVector>(), DefaultPixelBlenders<RgbaVector>.LightenSrcOver.GetType(), PixelColorBlendingMode.Lighten },
+        { new TestPixel<RgbaVector>(), DefaultPixelBlenders<RgbaVector>.AddSrcOver.GetType(), PixelColorBlendingMode.Add },
+        { new TestPixel<RgbaVector>(), DefaultPixelBlenders<RgbaVector>.SubtractSrcOver.GetType(), PixelColorBlendingMode.Subtract },
+        { new TestPixel<RgbaVector>(), DefaultPixelBlenders<RgbaVector>.MultiplySrcOver.GetType(), PixelColorBlendingMode.Multiply },
     };
 
     public static TheoryData<PixelColorBlendingMode, PixelAlphaCompositionMode, Type> BlenderModeMappings
@@ -42,158 +42,158 @@ public class PixelBlenderTests
             AddBlenderModeMappings(
                 data,
                 PixelAlphaCompositionMode.Clear,
-                typeof(DefaultPixelBlenders<Rgba32>.NormalClear),
-                typeof(DefaultPixelBlenders<Rgba32>.MultiplyClear),
-                typeof(DefaultPixelBlenders<Rgba32>.AddClear),
-                typeof(DefaultPixelBlenders<Rgba32>.SubtractClear),
-                typeof(DefaultPixelBlenders<Rgba32>.ScreenClear),
-                typeof(DefaultPixelBlenders<Rgba32>.DarkenClear),
-                typeof(DefaultPixelBlenders<Rgba32>.LightenClear),
-                typeof(DefaultPixelBlenders<Rgba32>.OverlayClear),
-                typeof(DefaultPixelBlenders<Rgba32>.HardLightClear));
+                DefaultPixelBlenders<Rgba32>.NormalClear.GetType(),
+                DefaultPixelBlenders<Rgba32>.MultiplyClear.GetType(),
+                DefaultPixelBlenders<Rgba32>.AddClear.GetType(),
+                DefaultPixelBlenders<Rgba32>.SubtractClear.GetType(),
+                DefaultPixelBlenders<Rgba32>.ScreenClear.GetType(),
+                DefaultPixelBlenders<Rgba32>.DarkenClear.GetType(),
+                DefaultPixelBlenders<Rgba32>.LightenClear.GetType(),
+                DefaultPixelBlenders<Rgba32>.OverlayClear.GetType(),
+                DefaultPixelBlenders<Rgba32>.HardLightClear.GetType());
 
             AddBlenderModeMappings(
                 data,
                 PixelAlphaCompositionMode.Xor,
-                typeof(DefaultPixelBlenders<Rgba32>.NormalXor),
-                typeof(DefaultPixelBlenders<Rgba32>.MultiplyXor),
-                typeof(DefaultPixelBlenders<Rgba32>.AddXor),
-                typeof(DefaultPixelBlenders<Rgba32>.SubtractXor),
-                typeof(DefaultPixelBlenders<Rgba32>.ScreenXor),
-                typeof(DefaultPixelBlenders<Rgba32>.DarkenXor),
-                typeof(DefaultPixelBlenders<Rgba32>.LightenXor),
-                typeof(DefaultPixelBlenders<Rgba32>.OverlayXor),
-                typeof(DefaultPixelBlenders<Rgba32>.HardLightXor));
+                DefaultPixelBlenders<Rgba32>.NormalXor.GetType(),
+                DefaultPixelBlenders<Rgba32>.MultiplyXor.GetType(),
+                DefaultPixelBlenders<Rgba32>.AddXor.GetType(),
+                DefaultPixelBlenders<Rgba32>.SubtractXor.GetType(),
+                DefaultPixelBlenders<Rgba32>.ScreenXor.GetType(),
+                DefaultPixelBlenders<Rgba32>.DarkenXor.GetType(),
+                DefaultPixelBlenders<Rgba32>.LightenXor.GetType(),
+                DefaultPixelBlenders<Rgba32>.OverlayXor.GetType(),
+                DefaultPixelBlenders<Rgba32>.HardLightXor.GetType());
 
             AddBlenderModeMappings(
                 data,
                 PixelAlphaCompositionMode.Src,
-                typeof(DefaultPixelBlenders<Rgba32>.NormalSrc),
-                typeof(DefaultPixelBlenders<Rgba32>.MultiplySrc),
-                typeof(DefaultPixelBlenders<Rgba32>.AddSrc),
-                typeof(DefaultPixelBlenders<Rgba32>.SubtractSrc),
-                typeof(DefaultPixelBlenders<Rgba32>.ScreenSrc),
-                typeof(DefaultPixelBlenders<Rgba32>.DarkenSrc),
-                typeof(DefaultPixelBlenders<Rgba32>.LightenSrc),
-                typeof(DefaultPixelBlenders<Rgba32>.OverlaySrc),
-                typeof(DefaultPixelBlenders<Rgba32>.HardLightSrc));
+                DefaultPixelBlenders<Rgba32>.NormalSrc.GetType(),
+                DefaultPixelBlenders<Rgba32>.MultiplySrc.GetType(),
+                DefaultPixelBlenders<Rgba32>.AddSrc.GetType(),
+                DefaultPixelBlenders<Rgba32>.SubtractSrc.GetType(),
+                DefaultPixelBlenders<Rgba32>.ScreenSrc.GetType(),
+                DefaultPixelBlenders<Rgba32>.DarkenSrc.GetType(),
+                DefaultPixelBlenders<Rgba32>.LightenSrc.GetType(),
+                DefaultPixelBlenders<Rgba32>.OverlaySrc.GetType(),
+                DefaultPixelBlenders<Rgba32>.HardLightSrc.GetType());
 
             AddBlenderModeMappings(
                 data,
                 PixelAlphaCompositionMode.SrcAtop,
-                typeof(DefaultPixelBlenders<Rgba32>.NormalSrcAtop),
-                typeof(DefaultPixelBlenders<Rgba32>.MultiplySrcAtop),
-                typeof(DefaultPixelBlenders<Rgba32>.AddSrcAtop),
-                typeof(DefaultPixelBlenders<Rgba32>.SubtractSrcAtop),
-                typeof(DefaultPixelBlenders<Rgba32>.ScreenSrcAtop),
-                typeof(DefaultPixelBlenders<Rgba32>.DarkenSrcAtop),
-                typeof(DefaultPixelBlenders<Rgba32>.LightenSrcAtop),
-                typeof(DefaultPixelBlenders<Rgba32>.OverlaySrcAtop),
-                typeof(DefaultPixelBlenders<Rgba32>.HardLightSrcAtop));
+                DefaultPixelBlenders<Rgba32>.NormalSrcAtop.GetType(),
+                DefaultPixelBlenders<Rgba32>.MultiplySrcAtop.GetType(),
+                DefaultPixelBlenders<Rgba32>.AddSrcAtop.GetType(),
+                DefaultPixelBlenders<Rgba32>.SubtractSrcAtop.GetType(),
+                DefaultPixelBlenders<Rgba32>.ScreenSrcAtop.GetType(),
+                DefaultPixelBlenders<Rgba32>.DarkenSrcAtop.GetType(),
+                DefaultPixelBlenders<Rgba32>.LightenSrcAtop.GetType(),
+                DefaultPixelBlenders<Rgba32>.OverlaySrcAtop.GetType(),
+                DefaultPixelBlenders<Rgba32>.HardLightSrcAtop.GetType());
 
             AddBlenderModeMappings(
                 data,
                 PixelAlphaCompositionMode.SrcIn,
-                typeof(DefaultPixelBlenders<Rgba32>.NormalSrcIn),
-                typeof(DefaultPixelBlenders<Rgba32>.MultiplySrcIn),
-                typeof(DefaultPixelBlenders<Rgba32>.AddSrcIn),
-                typeof(DefaultPixelBlenders<Rgba32>.SubtractSrcIn),
-                typeof(DefaultPixelBlenders<Rgba32>.ScreenSrcIn),
-                typeof(DefaultPixelBlenders<Rgba32>.DarkenSrcIn),
-                typeof(DefaultPixelBlenders<Rgba32>.LightenSrcIn),
-                typeof(DefaultPixelBlenders<Rgba32>.OverlaySrcIn),
-                typeof(DefaultPixelBlenders<Rgba32>.HardLightSrcIn));
+                DefaultPixelBlenders<Rgba32>.NormalSrcIn.GetType(),
+                DefaultPixelBlenders<Rgba32>.MultiplySrcIn.GetType(),
+                DefaultPixelBlenders<Rgba32>.AddSrcIn.GetType(),
+                DefaultPixelBlenders<Rgba32>.SubtractSrcIn.GetType(),
+                DefaultPixelBlenders<Rgba32>.ScreenSrcIn.GetType(),
+                DefaultPixelBlenders<Rgba32>.DarkenSrcIn.GetType(),
+                DefaultPixelBlenders<Rgba32>.LightenSrcIn.GetType(),
+                DefaultPixelBlenders<Rgba32>.OverlaySrcIn.GetType(),
+                DefaultPixelBlenders<Rgba32>.HardLightSrcIn.GetType());
 
             AddBlenderModeMappings(
                 data,
                 PixelAlphaCompositionMode.SrcOut,
-                typeof(DefaultPixelBlenders<Rgba32>.NormalSrcOut),
-                typeof(DefaultPixelBlenders<Rgba32>.MultiplySrcOut),
-                typeof(DefaultPixelBlenders<Rgba32>.AddSrcOut),
-                typeof(DefaultPixelBlenders<Rgba32>.SubtractSrcOut),
-                typeof(DefaultPixelBlenders<Rgba32>.ScreenSrcOut),
-                typeof(DefaultPixelBlenders<Rgba32>.DarkenSrcOut),
-                typeof(DefaultPixelBlenders<Rgba32>.LightenSrcOut),
-                typeof(DefaultPixelBlenders<Rgba32>.OverlaySrcOut),
-                typeof(DefaultPixelBlenders<Rgba32>.HardLightSrcOut));
+                DefaultPixelBlenders<Rgba32>.NormalSrcOut.GetType(),
+                DefaultPixelBlenders<Rgba32>.MultiplySrcOut.GetType(),
+                DefaultPixelBlenders<Rgba32>.AddSrcOut.GetType(),
+                DefaultPixelBlenders<Rgba32>.SubtractSrcOut.GetType(),
+                DefaultPixelBlenders<Rgba32>.ScreenSrcOut.GetType(),
+                DefaultPixelBlenders<Rgba32>.DarkenSrcOut.GetType(),
+                DefaultPixelBlenders<Rgba32>.LightenSrcOut.GetType(),
+                DefaultPixelBlenders<Rgba32>.OverlaySrcOut.GetType(),
+                DefaultPixelBlenders<Rgba32>.HardLightSrcOut.GetType());
 
             AddBlenderModeMappings(
                 data,
                 PixelAlphaCompositionMode.Dest,
-                typeof(DefaultPixelBlenders<Rgba32>.NormalDest),
-                typeof(DefaultPixelBlenders<Rgba32>.MultiplyDest),
-                typeof(DefaultPixelBlenders<Rgba32>.AddDest),
-                typeof(DefaultPixelBlenders<Rgba32>.SubtractDest),
-                typeof(DefaultPixelBlenders<Rgba32>.ScreenDest),
-                typeof(DefaultPixelBlenders<Rgba32>.DarkenDest),
-                typeof(DefaultPixelBlenders<Rgba32>.LightenDest),
-                typeof(DefaultPixelBlenders<Rgba32>.OverlayDest),
-                typeof(DefaultPixelBlenders<Rgba32>.HardLightDest));
+                DefaultPixelBlenders<Rgba32>.NormalDest.GetType(),
+                DefaultPixelBlenders<Rgba32>.MultiplyDest.GetType(),
+                DefaultPixelBlenders<Rgba32>.AddDest.GetType(),
+                DefaultPixelBlenders<Rgba32>.SubtractDest.GetType(),
+                DefaultPixelBlenders<Rgba32>.ScreenDest.GetType(),
+                DefaultPixelBlenders<Rgba32>.DarkenDest.GetType(),
+                DefaultPixelBlenders<Rgba32>.LightenDest.GetType(),
+                DefaultPixelBlenders<Rgba32>.OverlayDest.GetType(),
+                DefaultPixelBlenders<Rgba32>.HardLightDest.GetType());
 
             AddBlenderModeMappings(
                 data,
                 PixelAlphaCompositionMode.DestAtop,
-                typeof(DefaultPixelBlenders<Rgba32>.NormalDestAtop),
-                typeof(DefaultPixelBlenders<Rgba32>.MultiplyDestAtop),
-                typeof(DefaultPixelBlenders<Rgba32>.AddDestAtop),
-                typeof(DefaultPixelBlenders<Rgba32>.SubtractDestAtop),
-                typeof(DefaultPixelBlenders<Rgba32>.ScreenDestAtop),
-                typeof(DefaultPixelBlenders<Rgba32>.DarkenDestAtop),
-                typeof(DefaultPixelBlenders<Rgba32>.LightenDestAtop),
-                typeof(DefaultPixelBlenders<Rgba32>.OverlayDestAtop),
-                typeof(DefaultPixelBlenders<Rgba32>.HardLightDestAtop));
+                DefaultPixelBlenders<Rgba32>.NormalDestAtop.GetType(),
+                DefaultPixelBlenders<Rgba32>.MultiplyDestAtop.GetType(),
+                DefaultPixelBlenders<Rgba32>.AddDestAtop.GetType(),
+                DefaultPixelBlenders<Rgba32>.SubtractDestAtop.GetType(),
+                DefaultPixelBlenders<Rgba32>.ScreenDestAtop.GetType(),
+                DefaultPixelBlenders<Rgba32>.DarkenDestAtop.GetType(),
+                DefaultPixelBlenders<Rgba32>.LightenDestAtop.GetType(),
+                DefaultPixelBlenders<Rgba32>.OverlayDestAtop.GetType(),
+                DefaultPixelBlenders<Rgba32>.HardLightDestAtop.GetType());
 
             AddBlenderModeMappings(
                 data,
                 PixelAlphaCompositionMode.DestIn,
-                typeof(DefaultPixelBlenders<Rgba32>.NormalDestIn),
-                typeof(DefaultPixelBlenders<Rgba32>.MultiplyDestIn),
-                typeof(DefaultPixelBlenders<Rgba32>.AddDestIn),
-                typeof(DefaultPixelBlenders<Rgba32>.SubtractDestIn),
-                typeof(DefaultPixelBlenders<Rgba32>.ScreenDestIn),
-                typeof(DefaultPixelBlenders<Rgba32>.DarkenDestIn),
-                typeof(DefaultPixelBlenders<Rgba32>.LightenDestIn),
-                typeof(DefaultPixelBlenders<Rgba32>.OverlayDestIn),
-                typeof(DefaultPixelBlenders<Rgba32>.HardLightDestIn));
+                DefaultPixelBlenders<Rgba32>.NormalDestIn.GetType(),
+                DefaultPixelBlenders<Rgba32>.MultiplyDestIn.GetType(),
+                DefaultPixelBlenders<Rgba32>.AddDestIn.GetType(),
+                DefaultPixelBlenders<Rgba32>.SubtractDestIn.GetType(),
+                DefaultPixelBlenders<Rgba32>.ScreenDestIn.GetType(),
+                DefaultPixelBlenders<Rgba32>.DarkenDestIn.GetType(),
+                DefaultPixelBlenders<Rgba32>.LightenDestIn.GetType(),
+                DefaultPixelBlenders<Rgba32>.OverlayDestIn.GetType(),
+                DefaultPixelBlenders<Rgba32>.HardLightDestIn.GetType());
 
             AddBlenderModeMappings(
                 data,
                 PixelAlphaCompositionMode.DestOut,
-                typeof(DefaultPixelBlenders<Rgba32>.NormalDestOut),
-                typeof(DefaultPixelBlenders<Rgba32>.MultiplyDestOut),
-                typeof(DefaultPixelBlenders<Rgba32>.AddDestOut),
-                typeof(DefaultPixelBlenders<Rgba32>.SubtractDestOut),
-                typeof(DefaultPixelBlenders<Rgba32>.ScreenDestOut),
-                typeof(DefaultPixelBlenders<Rgba32>.DarkenDestOut),
-                typeof(DefaultPixelBlenders<Rgba32>.LightenDestOut),
-                typeof(DefaultPixelBlenders<Rgba32>.OverlayDestOut),
-                typeof(DefaultPixelBlenders<Rgba32>.HardLightDestOut));
+                DefaultPixelBlenders<Rgba32>.NormalDestOut.GetType(),
+                DefaultPixelBlenders<Rgba32>.MultiplyDestOut.GetType(),
+                DefaultPixelBlenders<Rgba32>.AddDestOut.GetType(),
+                DefaultPixelBlenders<Rgba32>.SubtractDestOut.GetType(),
+                DefaultPixelBlenders<Rgba32>.ScreenDestOut.GetType(),
+                DefaultPixelBlenders<Rgba32>.DarkenDestOut.GetType(),
+                DefaultPixelBlenders<Rgba32>.LightenDestOut.GetType(),
+                DefaultPixelBlenders<Rgba32>.OverlayDestOut.GetType(),
+                DefaultPixelBlenders<Rgba32>.HardLightDestOut.GetType());
 
             AddBlenderModeMappings(
                 data,
                 PixelAlphaCompositionMode.DestOver,
-                typeof(DefaultPixelBlenders<Rgba32>.NormalDestOver),
-                typeof(DefaultPixelBlenders<Rgba32>.MultiplyDestOver),
-                typeof(DefaultPixelBlenders<Rgba32>.AddDestOver),
-                typeof(DefaultPixelBlenders<Rgba32>.SubtractDestOver),
-                typeof(DefaultPixelBlenders<Rgba32>.ScreenDestOver),
-                typeof(DefaultPixelBlenders<Rgba32>.DarkenDestOver),
-                typeof(DefaultPixelBlenders<Rgba32>.LightenDestOver),
-                typeof(DefaultPixelBlenders<Rgba32>.OverlayDestOver),
-                typeof(DefaultPixelBlenders<Rgba32>.HardLightDestOver));
+                DefaultPixelBlenders<Rgba32>.NormalDestOver.GetType(),
+                DefaultPixelBlenders<Rgba32>.MultiplyDestOver.GetType(),
+                DefaultPixelBlenders<Rgba32>.AddDestOver.GetType(),
+                DefaultPixelBlenders<Rgba32>.SubtractDestOver.GetType(),
+                DefaultPixelBlenders<Rgba32>.ScreenDestOver.GetType(),
+                DefaultPixelBlenders<Rgba32>.DarkenDestOver.GetType(),
+                DefaultPixelBlenders<Rgba32>.LightenDestOver.GetType(),
+                DefaultPixelBlenders<Rgba32>.OverlayDestOver.GetType(),
+                DefaultPixelBlenders<Rgba32>.HardLightDestOver.GetType());
 
             AddBlenderModeMappings(
                 data,
                 PixelAlphaCompositionMode.SrcOver,
-                typeof(DefaultPixelBlenders<Rgba32>.NormalSrcOver),
-                typeof(DefaultPixelBlenders<Rgba32>.MultiplySrcOver),
-                typeof(DefaultPixelBlenders<Rgba32>.AddSrcOver),
-                typeof(DefaultPixelBlenders<Rgba32>.SubtractSrcOver),
-                typeof(DefaultPixelBlenders<Rgba32>.ScreenSrcOver),
-                typeof(DefaultPixelBlenders<Rgba32>.DarkenSrcOver),
-                typeof(DefaultPixelBlenders<Rgba32>.LightenSrcOver),
-                typeof(DefaultPixelBlenders<Rgba32>.OverlaySrcOver),
-                typeof(DefaultPixelBlenders<Rgba32>.HardLightSrcOver));
+                DefaultPixelBlenders<Rgba32>.NormalSrcOver.GetType(),
+                DefaultPixelBlenders<Rgba32>.MultiplySrcOver.GetType(),
+                DefaultPixelBlenders<Rgba32>.AddSrcOver.GetType(),
+                DefaultPixelBlenders<Rgba32>.SubtractSrcOver.GetType(),
+                DefaultPixelBlenders<Rgba32>.ScreenSrcOver.GetType(),
+                DefaultPixelBlenders<Rgba32>.DarkenSrcOver.GetType(),
+                DefaultPixelBlenders<Rgba32>.LightenSrcOver.GetType(),
+                DefaultPixelBlenders<Rgba32>.OverlaySrcOver.GetType(),
+                DefaultPixelBlenders<Rgba32>.HardLightSrcOver.GetType());
 
             return data;
         }
@@ -246,7 +246,7 @@ public class PixelBlenderTests
     [Fact]
     public void Blend_WithConstantSourceAndSingleAmount()
     {
-        PixelBlender<Rgba32> blender = new DefaultPixelBlenders<Rgba32>.NormalSrcOver();
+        PixelBlender<Rgba32> blender = DefaultPixelBlenders<Rgba32>.NormalSrcOver;
         Rgba32[] destination = new Rgba32[2];
         Rgba32[] background =
         [
@@ -265,7 +265,7 @@ public class PixelBlenderTests
     [Fact]
     public void Blend_WithConstantSourceSingleAmountAndWorkingBuffer()
     {
-        PixelBlender<Rgba32> blender = new DefaultPixelBlenders<Rgba32>.NormalSrcOver();
+        PixelBlender<Rgba32> blender = DefaultPixelBlenders<Rgba32>.NormalSrcOver;
         Rgba32[] destination = new Rgba32[2];
         Rgba32[] background =
         [
@@ -285,7 +285,7 @@ public class PixelBlenderTests
     [Fact]
     public void Blend_WithConstantSourceAndAmountSpan()
     {
-        PixelBlender<Rgba32> blender = new DefaultPixelBlenders<Rgba32>.NormalSrcOver();
+        PixelBlender<Rgba32> blender = DefaultPixelBlenders<Rgba32>.NormalSrcOver;
         Rgba32[] destination = new Rgba32[2];
         Rgba32[] background =
         [
@@ -305,7 +305,7 @@ public class PixelBlenderTests
     [Fact]
     public void Blend_WithConstantSourceAmountSpanAndWorkingBuffer()
     {
-        PixelBlender<Rgba32> blender = new DefaultPixelBlenders<Rgba32>.NormalSrcOver();
+        PixelBlender<Rgba32> blender = DefaultPixelBlenders<Rgba32>.NormalSrcOver;
         Rgba32[] destination = new Rgba32[2];
         Rgba32[] background =
         [
@@ -326,7 +326,7 @@ public class PixelBlenderTests
     [Fact]
     public void Blend_WithSourceSpanAmountSpanAndWorkingBuffer()
     {
-        PixelBlender<Rgba32> blender = new DefaultPixelBlenders<Rgba32>.NormalSrcOver();
+        PixelBlender<Rgba32> blender = DefaultPixelBlenders<Rgba32>.NormalSrcOver;
         Rgba32[] destination = new Rgba32[2];
         Rgba32[] background =
         [
@@ -352,7 +352,7 @@ public class PixelBlenderTests
     [Fact]
     public void BlendWithCoverage_WithConstantSourceAndSingleAmount()
     {
-        PixelBlender<Rgba32> blender = new DefaultPixelBlenders<Rgba32>.NormalSrc();
+        PixelBlender<Rgba32> blender = DefaultPixelBlenders<Rgba32>.NormalSrc;
         Rgba32[] destination = new Rgba32[3];
         Rgba32[] background =
         [
@@ -374,7 +374,7 @@ public class PixelBlenderTests
     [Fact]
     public void BlendWithCoverage_WithConstantSourceSingleAmountAndWorkingBuffer()
     {
-        PixelBlender<Rgba32> blender = new DefaultPixelBlenders<Rgba32>.NormalSrc();
+        PixelBlender<Rgba32> blender = DefaultPixelBlenders<Rgba32>.NormalSrc;
         Rgba32[] destination = new Rgba32[3];
         Rgba32[] background =
         [
@@ -397,7 +397,7 @@ public class PixelBlenderTests
     [Fact]
     public void BlendWithCoverage_WithSourceSpanAndSingleAmount()
     {
-        PixelBlender<Rgba32> blender = new DefaultPixelBlenders<Rgba32>.NormalSrc();
+        PixelBlender<Rgba32> blender = DefaultPixelBlenders<Rgba32>.NormalSrc;
         Rgba32[] destination = new Rgba32[3];
         Rgba32[] background =
         [
@@ -425,7 +425,7 @@ public class PixelBlenderTests
     [Fact]
     public void BlendWithCoverage_WithSourceSpanSingleAmountAndWorkingBuffer()
     {
-        PixelBlender<Rgba32> blender = new DefaultPixelBlenders<Rgba32>.NormalSrc();
+        PixelBlender<Rgba32> blender = DefaultPixelBlenders<Rgba32>.NormalSrc;
         Rgba32[] destination = new Rgba32[3];
         Rgba32[] background =
         [
@@ -454,7 +454,7 @@ public class PixelBlenderTests
     [Fact]
     public void BlendWithCoverage_WithConstantSourceAndAmountSpan()
     {
-        PixelBlender<Rgba32> blender = new DefaultPixelBlenders<Rgba32>.NormalSrc();
+        PixelBlender<Rgba32> blender = DefaultPixelBlenders<Rgba32>.NormalSrc;
         Rgba32[] destination = new Rgba32[3];
         Rgba32[] background =
         [
@@ -477,7 +477,7 @@ public class PixelBlenderTests
     [Fact]
     public void BlendWithCoverage_WithConstantSourceAmountSpanAndWorkingBuffer()
     {
-        PixelBlender<Rgba32> blender = new DefaultPixelBlenders<Rgba32>.NormalSrc();
+        PixelBlender<Rgba32> blender = DefaultPixelBlenders<Rgba32>.NormalSrc;
         Rgba32[] destination = new Rgba32[3];
         Rgba32[] background =
         [
@@ -501,7 +501,7 @@ public class PixelBlenderTests
     [Fact]
     public void BlendWithCoverage_WithSourceSpanAndAmountSpan()
     {
-        PixelBlender<Rgba32> blender = new DefaultPixelBlenders<Rgba32>.NormalSrc();
+        PixelBlender<Rgba32> blender = DefaultPixelBlenders<Rgba32>.NormalSrc;
         Rgba32[] destination = new Rgba32[3];
         Rgba32[] background =
         [
@@ -530,7 +530,7 @@ public class PixelBlenderTests
     [Fact]
     public void BlendWithCoverage_WithSourceSpanAmountSpanAndWorkingBuffer()
     {
-        PixelBlender<Rgba32> blender = new DefaultPixelBlenders<Rgba32>.NormalSrc();
+        PixelBlender<Rgba32> blender = DefaultPixelBlenders<Rgba32>.NormalSrc;
         Rgba32[] destination = new Rgba32[3];
         Rgba32[] background =
         [

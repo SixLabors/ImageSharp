@@ -13,10 +13,75 @@ namespace SixLabors.ImageSharp.PixelFormats.PixelBlenders;
 /// </summary>
 /// <typeparam name="TPixel">The destination pixel format.</typeparam>
 /// <typeparam name="TOperator">The Porter-Duff equation.</typeparam>
-internal abstract class PixelBlender<TPixel, TOperator> : PixelBlender<TPixel>
+internal sealed class PixelBlender<TPixel, TOperator> : PixelBlender<TPixel>
     where TPixel : unmanaged, IPixel<TPixel>
     where TOperator : struct, IPixelBlenderOperator
 {
+    /// <summary>
+    /// Initializes a new instance of the <see cref="PixelBlender{TPixel, TOperator}"/> class.
+    /// </summary>
+    private PixelBlender()
+    {
+    }
+
+    /// <summary>
+    /// Gets the shared blender instance for this exact pixel and equation combination.
+    /// </summary>
+    // Keeping the singleton on the already-required closed blender type preserves per-mode lazy initialization
+    // without introducing another NativeAOT holder type or eagerly allocating every blender for a pixel format.
+    public static PixelBlender<TPixel> Instance { get; } = new PixelBlender<TPixel, TOperator>();
+
+    /// <inheritdoc />
+    public override TPixel Blend(TPixel background, TPixel source, float amount)
+    {
+        // The operator type uniquely determines the alpha representation. NativeAOT therefore needs only the
+        // pixel/operator closure, while the JIT can remove this static choice from the generated hot path.
+        Vector4 backgroundVector = TOperator.IsAssociatedAlpha
+            ? background.ToAssociatedScaledVector4()
+            : background.ToUnassociatedScaledVector4();
+        Vector4 sourceVector = TOperator.IsAssociatedAlpha
+            ? source.ToAssociatedScaledVector4()
+            : source.ToUnassociatedScaledVector4();
+
+        Vector4 result = TOperator.Invoke(backgroundVector, sourceVector, Numerics.Clamp(amount, 0, 1F));
+
+        return TOperator.IsAssociatedAlpha
+            ? TPixel.FromAssociatedScaledVector4(result)
+            : TPixel.FromUnassociatedScaledVector4(result);
+    }
+
+    /// <inheritdoc />
+    protected sealed override void ToBlendVector4<TPixelSource>(
+        Configuration configuration,
+        ReadOnlySpan<TPixelSource> source,
+        Span<Vector4> destination)
+    {
+        PixelConversionModifiers modifiers = TOperator.IsAssociatedAlpha
+            ? PixelConversionModifiers.Scale | PixelConversionModifiers.Premultiply
+            : PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply;
+
+        PixelOperations<TPixelSource>.Instance.ToVector4(configuration, source, destination, modifiers);
+    }
+
+    /// <inheritdoc />
+    protected sealed override Vector4 ToBlendVector4(TPixel source)
+        => TOperator.IsAssociatedAlpha
+            ? source.ToAssociatedScaledVector4()
+            : source.ToUnassociatedScaledVector4();
+
+    /// <inheritdoc />
+    protected sealed override void FromBlendVector4(
+        Configuration configuration,
+        Span<Vector4> source,
+        Span<TPixel> destination)
+    {
+        PixelConversionModifiers modifiers = TOperator.IsAssociatedAlpha
+            ? PixelConversionModifiers.Scale | PixelConversionModifiers.Premultiply
+            : PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply;
+
+        PixelOperations<TPixel>.Instance.FromVector4Destructive(configuration, source, destination, modifiers);
+    }
+
     /// <inheritdoc />
     protected sealed override void BlendFunction(Span<Vector4> destination, ReadOnlySpan<Vector4> background, ReadOnlySpan<Vector4> source, float amount)
     {
@@ -517,24 +582,5 @@ internal abstract class PixelBlender<TPixel, TOperator> : PixelBlender<TPixel>
 
         // Amount and coverage share the same public 0..1 contract and therefore the same packed clamp.
         return Vector512.Min(Vector512.Max(Vector512<float>.Zero, result), Vector512.Create(1F));
-    }
-}
-
-/// <summary>
-/// Applies a statically selected Porter-Duff equation to straight-alpha pixels.
-/// </summary>
-/// <typeparam name="TPixel">The straight-alpha pixel format.</typeparam>
-/// <typeparam name="TOperator">The Porter-Duff equation.</typeparam>
-internal abstract class DefaultPixelBlender<TPixel, TOperator> : PixelBlender<TPixel, TOperator>
-    where TPixel : unmanaged, IPixel<TPixel>
-    where TOperator : struct, IPixelBlenderOperator
-{
-    /// <inheritdoc />
-    public sealed override TPixel Blend(TPixel background, TPixel source, float amount)
-    {
-        // The operator consumes the same unassociated, scaled representation used by the bulk conversion path.
-        Vector4 result = TOperator.Invoke(background.ToUnassociatedScaledVector4(), source.ToUnassociatedScaledVector4(), Numerics.Clamp(amount, 0, 1F));
-
-        return TPixel.FromUnassociatedScaledVector4(result);
     }
 }

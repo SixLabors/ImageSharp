@@ -62,6 +62,9 @@ foreach (var composer in composers)
     public readonly struct <#= blenderComposer #> : IPixelBlenderOperator
     {
         /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
         public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
             => PorterDuffFunctions.<#= blenderComposer #>(background, source, amount);
 
@@ -95,16 +98,9 @@ foreach (var composer in composers)
         var blenderComposer = $"{blender}{composer}";
 #>
     /// <summary>
-    /// Blends pixels with the "<#= blenderComposer #>" composition equation.
+    /// Gets the shared blender for the "<#= blenderComposer #>" composition equation.
     /// </summary>
-    public sealed class <#= blenderComposer #> :
-        DefaultPixelBlender<TPixel, DefaultPixelBlenderOperators.<#= blenderComposer #>>
-    {
-        /// <summary>
-        /// Gets the shared blender instance.
-        /// </summary>
-        public static <#= blenderComposer #> Instance { get; } = new();
-    }
+    public static PixelBlender<TPixel> <#= blenderComposer #> => PixelBlender<TPixel, DefaultPixelBlenderOperators.<#= blenderComposer #>>.Instance;
 
 <#
     }

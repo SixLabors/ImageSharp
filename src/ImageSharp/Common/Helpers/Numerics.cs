@@ -329,22 +329,7 @@ internal static class Numerics
     /// <param name="max">The maximum inclusive value.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Clamp(Span<byte> span, byte min, byte max)
-    {
-        Span<byte> remainder = span[ClampReduce(span, min, max)..];
-
-        if (remainder.Length > 0)
-        {
-            ref byte remainderStart = ref MemoryMarshal.GetReference(remainder);
-            ref byte remainderEnd = ref Unsafe.Add(ref remainderStart, (uint)remainder.Length);
-
-            while (Unsafe.IsAddressLessThan(ref remainderStart, ref remainderEnd))
-            {
-                remainderStart = Clamp(remainderStart, min, max);
-
-                remainderStart = ref Unsafe.Add(ref remainderStart, 1);
-            }
-        }
-    }
+        => TensorPrimitives_.Clamp(span, min, max, span);
 
     /// <summary>
     /// Clamps the span values to the inclusive range of min and max.
@@ -354,22 +339,7 @@ internal static class Numerics
     /// <param name="max">The maximum inclusive value.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Clamp(Span<uint> span, uint min, uint max)
-    {
-        Span<uint> remainder = span[ClampReduce(span, min, max)..];
-
-        if (remainder.Length > 0)
-        {
-            ref uint remainderStart = ref MemoryMarshal.GetReference(remainder);
-            ref uint remainderEnd = ref Unsafe.Add(ref remainderStart, (uint)remainder.Length);
-
-            while (Unsafe.IsAddressLessThan(ref remainderStart, ref remainderEnd))
-            {
-                remainderStart = Clamp(remainderStart, min, max);
-
-                remainderStart = ref Unsafe.Add(ref remainderStart, 1);
-            }
-        }
-    }
+        => TensorPrimitives_.Clamp(span, min, max, span);
 
     /// <summary>
     /// Clamps the span values to the inclusive range of min and max.
@@ -379,22 +349,7 @@ internal static class Numerics
     /// <param name="max">The maximum inclusive value.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Clamp(Span<int> span, int min, int max)
-    {
-        Span<int> remainder = span[ClampReduce(span, min, max)..];
-
-        if (remainder.Length > 0)
-        {
-            ref int remainderStart = ref MemoryMarshal.GetReference(remainder);
-            ref int remainderEnd = ref Unsafe.Add(ref remainderStart, (uint)remainder.Length);
-
-            while (Unsafe.IsAddressLessThan(ref remainderStart, ref remainderEnd))
-            {
-                remainderStart = Clamp(remainderStart, min, max);
-
-                remainderStart = ref Unsafe.Add(ref remainderStart, 1);
-            }
-        }
-    }
+        => TensorPrimitives_.Clamp(span, min, max, span);
 
     /// <summary>
     /// Clamps the span values to the inclusive range of min and max.
@@ -404,22 +359,7 @@ internal static class Numerics
     /// <param name="max">The maximum inclusive value.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Clamp(Span<float> span, float min, float max)
-    {
-        Span<float> remainder = span[ClampReduce(span, min, max)..];
-
-        if (remainder.Length > 0)
-        {
-            ref float remainderStart = ref MemoryMarshal.GetReference(remainder);
-            ref float remainderEnd = ref Unsafe.Add(ref remainderStart, (uint)remainder.Length);
-
-            while (Unsafe.IsAddressLessThan(ref remainderStart, ref remainderEnd))
-            {
-                remainderStart = Clamp(remainderStart, min, max);
-
-                remainderStart = ref Unsafe.Add(ref remainderStart, 1);
-            }
-        }
-    }
+        => TensorPrimitives_.Clamp(span, min, max, span);
 
     /// <summary>
     /// Clamps the span values to the inclusive range of min and max.
@@ -429,87 +369,7 @@ internal static class Numerics
     /// <param name="max">The maximum inclusive value.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Clamp(Span<double> span, double min, double max)
-    {
-        Span<double> remainder = span[ClampReduce(span, min, max)..];
-
-        if (remainder.Length > 0)
-        {
-            ref double remainderStart = ref MemoryMarshal.GetReference(remainder);
-            ref double remainderEnd = ref Unsafe.Add(ref remainderStart, (uint)remainder.Length);
-
-            while (Unsafe.IsAddressLessThan(ref remainderStart, ref remainderEnd))
-            {
-                remainderStart = Clamp(remainderStart, min, max);
-
-                remainderStart = ref Unsafe.Add(ref remainderStart, 1);
-            }
-        }
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static int ClampReduce<T>(Span<T> span, T min, T max)
-        where T : unmanaged
-    {
-        if (Vector.IsHardwareAccelerated && span.Length >= Vector<T>.Count)
-        {
-            int remainder = ModuloP2(span.Length, Vector<T>.Count);
-            int adjustedCount = span.Length - remainder;
-
-            if (adjustedCount > 0)
-            {
-                ClampImpl(span[..adjustedCount], min, max);
-            }
-
-            return adjustedCount;
-        }
-
-        return 0;
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void ClampImpl<T>(Span<T> span, T min, T max)
-        where T : unmanaged
-    {
-        ref T sRef = ref MemoryMarshal.GetReference(span);
-        Vector<T> vmin = new(min);
-        Vector<T> vmax = new(max);
-
-        nint n = (nint)(uint)span.Length / Vector<T>.Count;
-        nint m = Modulo4(n);
-        nint u = n - m;
-
-        ref Vector<T> vs0 = ref Unsafe.As<T, Vector<T>>(ref MemoryMarshal.GetReference(span));
-        ref Vector<T> vs1 = ref Unsafe.Add(ref vs0, 1);
-        ref Vector<T> vs2 = ref Unsafe.Add(ref vs0, 2);
-        ref Vector<T> vs3 = ref Unsafe.Add(ref vs0, 3);
-        ref Vector<T> vsEnd = ref Unsafe.Add(ref vs0, u);
-
-        while (Unsafe.IsAddressLessThan(ref vs0, ref vsEnd))
-        {
-            vs0 = Vector.Min(Vector.Max(vmin, vs0), vmax);
-            vs1 = Vector.Min(Vector.Max(vmin, vs1), vmax);
-            vs2 = Vector.Min(Vector.Max(vmin, vs2), vmax);
-            vs3 = Vector.Min(Vector.Max(vmin, vs3), vmax);
-
-            vs0 = ref Unsafe.Add(ref vs0, 4);
-            vs1 = ref Unsafe.Add(ref vs1, 4);
-            vs2 = ref Unsafe.Add(ref vs2, 4);
-            vs3 = ref Unsafe.Add(ref vs3, 4);
-        }
-
-        if (m > 0)
-        {
-            vs0 = ref vsEnd;
-            vsEnd = ref Unsafe.Add(ref vsEnd, m);
-
-            while (Unsafe.IsAddressLessThan(ref vs0, ref vsEnd))
-            {
-                vs0 = Vector.Min(Vector.Max(vmin, vs0), vmax);
-
-                vs0 = ref Unsafe.Add(ref vs0, 1);
-            }
-        }
-    }
+        => TensorPrimitives_.Clamp(span, min, max, span);
 
     /// <summary>
     /// Pre-multiplies the "x", "y", "z" components of a vector by its "w" component leaving the "w" component intact.
@@ -1210,39 +1070,5 @@ internal static class Numerics
     /// <param name="sum">The sum of the values in <paramref name="span"/>.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Normalize(Span<float> span, float sum)
-    {
-        if (Vector256.IsHardwareAccelerated)
-        {
-            ref float startRef = ref MemoryMarshal.GetReference(span);
-            ref float endRef = ref Unsafe.Add(ref startRef, span.Length & ~7);
-            Vector256<float> sum256 = Vector256.Create(sum);
-
-            while (Unsafe.IsAddressLessThan(ref startRef, ref endRef))
-            {
-                Unsafe.As<float, Vector256<float>>(ref startRef) /= sum256;
-                startRef = ref Unsafe.Add(ref startRef, (nuint)8);
-            }
-
-            if ((span.Length & 7) >= 4)
-            {
-                Unsafe.As<float, Vector128<float>>(ref startRef) /= sum256.GetLower();
-                startRef = ref Unsafe.Add(ref startRef, (nuint)4);
-            }
-
-            endRef = ref Unsafe.Add(ref startRef, span.Length & 3);
-
-            while (Unsafe.IsAddressLessThan(ref startRef, ref endRef))
-            {
-                startRef /= sum;
-                startRef = ref Unsafe.Add(ref startRef, (nuint)1);
-            }
-        }
-        else
-        {
-            for (int i = 0; i < span.Length; i++)
-            {
-                span[i] /= sum;
-            }
-        }
-    }
+        => TensorPrimitives_.Divide(span, sum, span);
 }

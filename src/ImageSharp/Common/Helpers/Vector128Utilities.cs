@@ -1296,22 +1296,9 @@ internal static class Vector128_
             return PackedSimd.SubtractSaturate(left, right);
         }
 
-        // Widen inputs to 16-bit
-        (Vector128<ushort> leftLo, Vector128<ushort> leftHi) = Vector128.Widen(left);
-        (Vector128<ushort> rightLo, Vector128<ushort> rightHi) = Vector128.Widen(right);
-
-        // Subtract
-        Vector128<ushort> diffLo = leftLo - rightLo;
-        Vector128<ushort> diffHi = leftHi - rightHi;
-
-        // Clamp to signed 8-bit range
-        Vector128<ushort> max = Vector128.Create((ushort)byte.MaxValue);
-
-        diffLo = Clamp(diffLo, Vector128<ushort>.Zero, max);
-        diffHi = Clamp(diffHi, Vector128<ushort>.Zero, max);
-
-        // Narrow back to bytes
-        return Vector128.Narrow(diffLo, diffHi);
+        // Subtracting the smaller operand implements the .NET 10 unsigned contract:
+        // lanes where right exceeds left subtract left from itself and therefore saturate at zero.
+        return left - Vector128.Min(left, right);
     }
 
     /// <summary>

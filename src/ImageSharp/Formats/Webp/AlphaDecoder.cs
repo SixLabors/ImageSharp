@@ -361,34 +361,10 @@ internal class AlphaDecoder : IDisposable
         {
             HorizontalUnfilter(null, input, dst, width);
         }
-        else if (Vector256.IsHardwareAccelerated)
-        {
-            ref byte inputRef = ref MemoryMarshal.GetReference(input);
-            ref byte prevRef = ref MemoryMarshal.GetReference(prev);
-            ref byte dstRef = ref MemoryMarshal.GetReference(dst);
-
-            nuint i;
-            int maxPos = width & ~31;
-            for (i = 0; i < (uint)maxPos; i += 32)
-            {
-                Vector256<int> a0 = Unsafe.As<byte, Vector256<int>>(ref Unsafe.Add(ref inputRef, i));
-                Vector256<int> b0 = Unsafe.As<byte, Vector256<int>>(ref Unsafe.Add(ref prevRef, i));
-                Vector256<byte> c0 = a0.AsByte() + b0.AsByte();
-                ref byte outputRef = ref Unsafe.Add(ref dstRef, i);
-                Unsafe.As<byte, Vector256<byte>>(ref outputRef) = c0;
-            }
-
-            for (; i < (uint)width; i++)
-            {
-                Unsafe.Add(ref dstRef, i) = (byte)(Unsafe.Add(ref prevRef, i) + Unsafe.Add(ref inputRef, i));
-            }
-        }
         else
         {
-            for (int i = 0; i < width; i++)
-            {
-                dst[i] = (byte)(prev[i] + input[i]);
-            }
+            // Byte addition intentionally wraps modulo 256, matching the WebP alpha predictor.
+            TensorPrimitives_.Add(input[..width], prev[..width], dst[..width]);
         }
     }
 

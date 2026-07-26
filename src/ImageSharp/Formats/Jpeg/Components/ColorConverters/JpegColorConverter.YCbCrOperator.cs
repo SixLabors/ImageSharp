@@ -1,15 +1,9 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Buffers;
-using System.Numerics;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
-using SixLabors.ImageSharp.ColorProfiles;
-using SixLabors.ImageSharp.ColorProfiles.Icc;
 using SixLabors.ImageSharp.Common.Helpers;
-using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components;
 
@@ -171,34 +165,6 @@ internal abstract partial class JpegColorConverterBase
             c1 = halfValue + Vector512_.MultiplyAddEstimate(Vector512.Create(-0.168736F), r, Vector512_.MultiplyAddEstimate(Vector512.Create(-0.331264F), g, Vector512.Create(0.5F) * b));
             c2 = halfValue + Vector512_.MultiplyAddEstimate(Vector512.Create(0.5F), r, Vector512_.MultiplyAddEstimate(Vector512.Create(-0.418688F), g, Vector512.Create(-0.081312F) * b));
             c3 = default;
-        }
-
-        /// <inheritdoc/>
-        public static void ConvertToRgbInPlaceWithIcc(Configuration configuration, IccProfile profile, in ComponentValues values, float maximumValue)
-        {
-            using IMemoryOwner<float> memoryOwner = configuration.MemoryAllocator.Allocate<float>(values.Component0.Length * 3);
-            Span<float> packed = memoryOwner.Memory.Span;
-            Span<float> c0 = values.Component0;
-            Span<float> c1 = values.Component1;
-            Span<float> c2 = values.Component2;
-
-            // ICC profiles rarely expose YCbCr transforms, so BT.601 first produces RGB in the profile's source space.
-            PackedNormalizeInterleave3(c0, c1, c2, packed, 1F / maximumValue);
-
-            ColorProfileConverter converter = new();
-            Span<YCbCr> source = MemoryMarshal.Cast<float, YCbCr>(packed);
-            Span<Rgb> destination = MemoryMarshal.Cast<float, Rgb>(packed);
-            converter.Convert<YCbCr, Rgb>(source, destination);
-
-            ColorConversionOptions options = new()
-            {
-                SourceIccProfile = profile,
-                TargetIccProfile = CompactSrgbV4Profile.Profile,
-            };
-
-            converter = new ColorProfileConverter(options);
-            converter.Convert<Rgb, Rgb>(destination, destination);
-            UnpackDeinterleave3(MemoryMarshal.Cast<float, Vector3>(packed)[..source.Length], c0, c1, c2);
         }
     }
 }

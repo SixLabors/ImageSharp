@@ -2,8 +2,11 @@
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.ColorProfiles;
+using SixLabors.ImageSharp.ColorProfiles.Icc;
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
+using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.Tests.ColorProfiles;
+using SixLabors.ImageSharp.Tests.ColorProfiles.Icc;
 using SixLabors.ImageSharp.Tests.TestUtilities;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Jpg;
@@ -165,6 +168,133 @@ public class JpegColorConverterTests
             default:
                 Assert.Fail($"Unexpected JPEG color space: {colorSpace}.");
                 break;
+        }
+    }
+
+    /// <summary>
+    /// Verifies the flattened ICC traversal against independently composed color-model and profile conversions.
+    /// </summary>
+    /// <param name="colorSpace">The JPEG color space.</param>
+    /// <param name="componentCount">The number of component planes owned by the color model.</param>
+    /// <param name="precision">The JPEG sample precision.</param>
+    [Theory]
+    [InlineData(JpegColorSpace.Grayscale, 1, 8)]
+    [InlineData(JpegColorSpace.Grayscale, 1, 12)]
+    [InlineData(JpegColorSpace.RGB, 3, 8)]
+    [InlineData(JpegColorSpace.RGB, 3, 12)]
+    [InlineData(JpegColorSpace.YCbCr, 3, 8)]
+    [InlineData(JpegColorSpace.YCbCr, 3, 12)]
+    [InlineData(JpegColorSpace.Cmyk, 4, 8)]
+    [InlineData(JpegColorSpace.Cmyk, 4, 12)]
+    [InlineData(JpegColorSpace.Ycck, 4, 8)]
+    [InlineData(JpegColorSpace.Ycck, 4, 12)]
+    [InlineData(JpegColorSpace.TiffCmyk, 4, 8)]
+    [InlineData(JpegColorSpace.TiffCmyk, 4, 12)]
+    [InlineData(JpegColorSpace.TiffYccK, 4, 8)]
+    [InlineData(JpegColorSpace.TiffYccK, 4, 12)]
+    internal void ConvertToRgbWithIccMatchesColorProfileDefinition(JpegColorSpace colorSpace, int componentCount, int precision)
+    {
+        const int length = 8;
+        JpegColorConverterBase.ComponentValues source = CreateRandomValues(length, componentCount, precision);
+        JpegColorConverterBase.ComponentValues actual = CreateRandomValues(length, componentCount, precision);
+        JpegColorConverterBase converter = JpegColorConverterBase.GetConverter(colorSpace, precision);
+
+        // YccK and CMYK profiles describe the conventional CMYK values produced after JPEG inversion
+        // and any YccK model transform. Three-component models use an RGB profile, while grayscale
+        // needs a one-channel profile so the profile's declared data space agrees with the Y input.
+        IccProfile profile = colorSpace switch
+        {
+            JpegColorSpace.Grayscale => CreateGrayProfile(),
+            JpegColorSpace.Cmyk or JpegColorSpace.Ycck or JpegColorSpace.TiffCmyk or JpegColorSpace.TiffYccK
+                => TestIccProfiles.GetProfile(TestIccProfiles.Fogra39),
+            _ => CompactSrgbV4Profile.Profile,
+        };
+
+        converter.ConvertToRgbInPlaceWithIcc(Configuration.Default, actual, profile);
+        ColorConversionOptions options = new()
+        {
+            SourceIccProfile = profile,
+            TargetIccProfile = CompactSrgbV4Profile.Profile,
+        };
+
+        ColorProfileConverter profileConverter = new(options);
+        ColorProfileConverter modelConverter = new();
+        float maximumValue = MathF.Pow(2, precision) - 1;
+        Rgb[] grayscaleExpected = null;
+
+        if (colorSpace == JpegColorSpace.Grayscale)
+        {
+            // The profile converter has distinct scalar and span entry points. Production converts the complete
+            // grayscale row, so the independent reference must exercise that same public span contract.
+            Y[] luminance = new Y[length];
+            grayscaleExpected = new Rgb[length];
+
+            for (int i = 0; i < length; i++)
+            {
+                luminance[i] = new Y(source.Component0[i] / maximumValue);
+            }
+
+            profileConverter.Convert<Y, Rgb>(luminance, grayscaleExpected);
+        }
+
+        for (int i = 0; i < length; i++)
+        {
+            float c0 = source.Component0[i] / maximumValue;
+            float c1 = componentCount >= 2 ? source.Component1[i] / maximumValue : 0;
+            float c2 = componentCount >= 3 ? source.Component2[i] / maximumValue : 0;
+            float c3 = componentCount == 4 ? source.Component3[i] / maximumValue : 0;
+            Rgb expected;
+
+            switch (colorSpace)
+            {
+                case JpegColorSpace.Grayscale:
+                    expected = grayscaleExpected[i];
+                    break;
+
+                case JpegColorSpace.RGB:
+                    expected = profileConverter.Convert<Rgb, Rgb>(new Rgb(c0, c1, c2));
+                    break;
+
+                case JpegColorSpace.YCbCr:
+                    Rgb rgb = modelConverter.Convert<YCbCr, Rgb>(new YCbCr(c0, c1, c2));
+                    expected = profileConverter.Convert<Rgb, Rgb>(rgb);
+                    break;
+
+                case JpegColorSpace.Cmyk:
+                    expected = profileConverter.Convert<Cmyk, Rgb>(new Cmyk(1F - c0, 1F - c1, 1F - c2, 1F - c3));
+                    break;
+
+                case JpegColorSpace.Ycck:
+                    Cmyk cmyk = modelConverter.Convert<YccK, Cmyk>(new YccK(1F - c0, 1F - c1, 1F - c2, 1F - c3));
+                    expected = profileConverter.Convert<Cmyk, Rgb>(cmyk);
+                    break;
+
+                case JpegColorSpace.TiffCmyk:
+                    expected = profileConverter.Convert<Cmyk, Rgb>(new Cmyk(c0, c1, c2, c3));
+                    break;
+
+                case JpegColorSpace.TiffYccK:
+                    Cmyk tiffCmyk = modelConverter.Convert<YccK, Cmyk>(new YccK(c0, c1, c2, c3));
+                    expected = profileConverter.Convert<Cmyk, Rgb>(tiffCmyk);
+                    break;
+
+                default:
+                    Assert.Fail($"Unexpected JPEG color space: {colorSpace}.");
+                    return;
+            }
+
+            if (colorSpace == JpegColorSpace.Grayscale)
+            {
+                // Grayscale exposes one physical component plane through all three component views. Deinterleaving
+                // therefore leaves the final blue write in that plane, matching the established converter contract.
+                Assert.Equal(expected.B, actual.Component0[i], ToRgbTolerance);
+            }
+            else
+            {
+                Assert.Equal(expected.R, actual.Component0[i], ToRgbTolerance);
+                Assert.Equal(expected.G, actual.Component1[i], ToRgbTolerance);
+                Assert.Equal(expected.B, actual.Component2[i], ToRgbTolerance);
+            }
         }
     }
 
@@ -398,6 +528,27 @@ public class JpegColorConverterTests
         }
 
         return values;
+    }
+
+    /// <summary>
+    /// Creates an identity-transfer grayscale profile for the one-channel ICC test path.
+    /// </summary>
+    /// <returns>The grayscale ICC profile.</returns>
+    private static IccProfile CreateGrayProfile()
+    {
+        IccProfileHeader header = new()
+        {
+            Class = IccProfileClass.InputDevice,
+            DataColorSpace = IccColorSpaceType.Gray,
+            ProfileConnectionSpace = IccColorSpaceType.CieXyz,
+            RenderingIntent = IccRenderingIntent.MediaRelativeColorimetric,
+            Version = new IccVersion(4, 3, 0),
+        };
+
+        // An empty ICC curve is the standard identity transfer function. Tagging it as GrayTrc gives
+        // the profile converter a complete one-channel device-to-PCS path without test-only LUT data.
+        IccTagDataEntry[] entries = [new IccCurveTagDataEntry(IccProfileTag.GrayTrc)];
+        return new IccProfile(header, entries);
     }
 
     /// <summary>

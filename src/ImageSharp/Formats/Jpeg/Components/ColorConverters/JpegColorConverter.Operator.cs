@@ -5,7 +5,6 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using SixLabors.ImageSharp.Common.Helpers;
-using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components;
 
@@ -137,15 +136,6 @@ internal abstract partial class JpegColorConverterBase
         /// <param name="c2">The third converted component lanes.</param>
         /// <param name="c3">The fourth converted component lanes, if used.</param>
         public static abstract void ConvertFromRgb(Vector512<float> r, Vector512<float> g, Vector512<float> b, Vector512<float> maximumValue, Vector512<float> halfValue, Vector512<float> scale, out Vector512<float> c0, out Vector512<float> c1, out Vector512<float> c2, out Vector512<float> c3);
-
-        /// <summary>
-        /// Converts JPEG component values to RGB using the supplied ICC profile.
-        /// </summary>
-        /// <param name="configuration">The configuration used to allocate temporary storage.</param>
-        /// <param name="profile">The source ICC profile.</param>
-        /// <param name="values">The component values to convert.</param>
-        /// <param name="maximumValue">The maximum component value for the configured precision.</param>
-        public static abstract void ConvertToRgbInPlaceWithIcc(Configuration configuration, IccProfile profile, in ComponentValues values, float maximumValue);
     }
 
     /// <summary>
@@ -284,10 +274,6 @@ internal abstract partial class JpegColorConverterBase
                 TOperator.ConvertToRgb(ref Unsafe.Add(ref c0Base, i), ref Unsafe.Add(ref c1Base, i), ref Unsafe.Add(ref c2Base, i), c3, this.MaximumValue, this.HalfValue, scale);
             }
         }
-
-        /// <inheritdoc/>
-        public override void ConvertToRgbInPlaceWithIcc(Configuration configuration, in ComponentValues values, IccProfile profile)
-            => TOperator.ConvertToRgbInPlaceWithIcc(configuration, profile, values, this.MaximumValue);
 
         /// <inheritdoc/>
         public override void ConvertFromRgb(in ComponentValues values, Span<float> rLane, Span<float> gLane, Span<float> bLane)

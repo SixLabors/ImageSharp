@@ -3,7 +3,6 @@
 #nullable disable
 
 using SixLabors.ImageSharp.Memory;
-using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components;
 
@@ -80,14 +79,6 @@ internal abstract partial class JpegColorConverterBase
     /// </summary>
     /// <param name="values">The input/output as a stack-only <see cref="ComponentValues"/> struct</param>
     public abstract void ConvertToRgbInPlace(in ComponentValues values);
-
-    /// <summary>
-    /// Converts planar jpeg component values in <paramref name="values"/> to RGB color space in-place using the given ICC profile.
-    /// </summary>
-    /// <param name="configuration">The configuration instance to use for the conversion.</param>
-    /// <param name="values">The input/output as a stack-only <see cref="ComponentValues"/> struct.</param>
-    /// <param name="profile">The ICC profile to use for the conversion.</param>
-    public abstract void ConvertToRgbInPlaceWithIcc(Configuration configuration, in ComponentValues values, IccProfile profile);
 
     /// <summary>
     /// Converts RGB lanes to jpeg component values.

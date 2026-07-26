@@ -1,8 +1,8 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Buffers;
 using System.Numerics;
-using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -79,10 +79,16 @@ internal class Convolution2DProcessor<TPixel> : ImageProcessor<TPixel>
                 this.Configuration,
                 this.PreserveAlpha);
 
-            ParallelRowIterator.IterateRows<Convolution2DRowOperation<TPixel>, Vector4>(
-                this.Configuration,
-                interest,
-                in operation);
+            // Convolution is memory-bandwidth-bound with low arithmetic intensity.
+            // Parallelization degrades performance due to cache line contention from
+            // overlapping source row reads. See #3111.
+            using IMemoryOwner<Vector4> buffer = allocator.Allocate<Vector4>(operation.GetRequiredBufferLength(interest));
+            Span<Vector4> span = buffer.Memory.Span;
+
+            for (int y = interest.Top; y < interest.Bottom; y++)
+            {
+                operation.Invoke(y, span);
+            }
         }
 
         Buffer2D<TPixel>.SwapOrCopyContent(source.PixelBuffer, targetPixels);

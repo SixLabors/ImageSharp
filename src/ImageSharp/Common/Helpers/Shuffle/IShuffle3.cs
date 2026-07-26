@@ -1,41 +1,38 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using static SixLabors.ImageSharp.SimdUtils;
+using System.Runtime.Intrinsics;
+using SixLabors.ImageSharp.Common.Helpers;
 
 namespace SixLabors.ImageSharp;
 
-/// <inheritdoc/>
+/// <summary>
+/// Identifies a stateless three-component shuffle operator.
+/// </summary>
 internal interface IShuffle3 : IComponentShuffle
 {
 }
 
-internal readonly struct DefaultShuffle3([ConstantExpected] byte control) : IShuffle3
+/// <summary>
+/// Reorders XYZ components to ZYX.
+/// </summary>
+internal readonly struct ZYXShuffle3 : IShuffle3
 {
-    public byte Control { get; } = control;
-
+    /// <inheritdoc />
     [MethodImpl(InliningOptions.ShortMethod)]
-    public void ShuffleReduce(ref ReadOnlySpan<byte> source, ref Span<byte> destination)
-#pragma warning disable CA1857 // A constant is expected for the parameter
-        => HwIntrinsics.Shuffle3Reduce(ref source, ref destination, this.Control);
-#pragma warning restore CA1857 // A constant is expected for the parameter
+    public static uint Invoke(uint source)
 
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void Shuffle(ReadOnlySpan<byte> source, Span<byte> destination)
-    {
-        ref byte sBase = ref MemoryMarshal.GetReference(source);
-        ref byte dBase = ref MemoryMarshal.GetReference(destination);
+        // The scalar tail is staged as XYZW with an unused W byte. Reusing the four-component
+        // ZYXW operator produces ZYX in the low three bytes consumed by the caller.
+        => ZYXWShuffle4.Invoke(source);
 
-        SimdUtils.Shuffle.InverseMMShuffle(this.Control, out _, out uint p2, out uint p1, out uint p0);
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector128<byte> Invoke(Vector128<byte> source)
 
-        for (nuint i = 0; i < (uint)source.Length; i += 3)
-        {
-            Unsafe.Add(ref dBase, i + 0) = Unsafe.Add(ref sBase, p0 + i);
-            Unsafe.Add(ref dBase, i + 1) = Unsafe.Add(ref sBase, p1 + i);
-            Unsafe.Add(ref dBase, i + 2) = Unsafe.Add(ref sBase, p2 + i);
-        }
-    }
+        // Each four-byte group is a temporary XYZW pixel created by the shuffle pipeline.
+        // Selecting [2, 1, 0, 3] produces ZYXW, and offsets 4, 8, and 12 repeat that
+        // permutation for the next pixels. The pipeline subsequently discards every W byte.
+        => Vector128_.ShuffleNative(source, Vector128.Create((byte)2, 1, 0, 3, 6, 5, 4, 7, 10, 9, 8, 11, 14, 13, 12, 15));
 }

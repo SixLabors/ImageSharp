@@ -11,6 +11,7 @@ namespace SixLabors.ImageSharp.Memory.Internals;
 /// </summary>
 internal abstract class RefCountedMemoryLifetimeGuard : IDisposable
 {
+    private AllocationTrackingState allocationTracking;
     private int refCount = 1;
     private int disposed;
     private int released;
@@ -37,6 +38,14 @@ internal abstract class RefCountedMemoryLifetimeGuard : IDisposable
     public void AddRef() => Interlocked.Increment(ref this.refCount);
 
     public void ReleaseRef() => this.ReleaseRef(false);
+
+    /// <summary>
+    /// Attaches allocator reservation tracking to this lifetime guard.
+    /// </summary>
+    /// <param name="allocator">The allocator that owns the reservation.</param>
+    /// <param name="lengthInBytes">The reserved allocation size, in bytes.</param>
+    public void AttachAllocationTracking(MemoryAllocator allocator, long lengthInBytes)
+        => this.allocationTracking.Attach(allocator, lengthInBytes);
 
     public void Dispose()
     {
@@ -69,6 +78,10 @@ internal abstract class RefCountedMemoryLifetimeGuard : IDisposable
                 }
 
                 this.Release();
+
+                // Guard-backed resources can be recovered by finalization, so their allocator
+                // reservation must follow the guard's actual release point instead of the owner object.
+                this.allocationTracking.Release();
             }
         }
     }

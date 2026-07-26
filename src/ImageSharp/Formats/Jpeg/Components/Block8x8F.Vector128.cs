@@ -13,31 +13,31 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components;
 internal partial struct Block8x8F
 {
     /// <summary>
-    /// <see cref="Vector128{Single}"/> version of <see cref="NormalizeColorsInPlace(float)"/> and <see cref="RoundInPlace()"/>.
+    /// <see cref="Vector128{Single}"/> version of <see cref="NormalizeColorsInPlace(float)"/>.
     /// </summary>
     /// <param name="maximum">The maximum value to normalize to.</param>
     [MethodImpl(InliningOptions.ShortMethod)]
-    public void NormalizeColorsAndRoundInPlaceVector128(float maximum)
+    public void NormalizeColorsInPlaceVector128(float maximum)
     {
         Vector128<float> max = Vector128.Create(maximum);
         Vector128<float> off = Vector128.Ceiling(max * .5F);
 
-        this.V0L = NormalizeAndRoundVector128(this.V0L.AsVector128(), off, max).AsVector4();
-        this.V0R = NormalizeAndRoundVector128(this.V0R.AsVector128(), off, max).AsVector4();
-        this.V1L = NormalizeAndRoundVector128(this.V1L.AsVector128(), off, max).AsVector4();
-        this.V1R = NormalizeAndRoundVector128(this.V1R.AsVector128(), off, max).AsVector4();
-        this.V2L = NormalizeAndRoundVector128(this.V2L.AsVector128(), off, max).AsVector4();
-        this.V2R = NormalizeAndRoundVector128(this.V2R.AsVector128(), off, max).AsVector4();
-        this.V3L = NormalizeAndRoundVector128(this.V3L.AsVector128(), off, max).AsVector4();
-        this.V3R = NormalizeAndRoundVector128(this.V3R.AsVector128(), off, max).AsVector4();
-        this.V4L = NormalizeAndRoundVector128(this.V4L.AsVector128(), off, max).AsVector4();
-        this.V4R = NormalizeAndRoundVector128(this.V4R.AsVector128(), off, max).AsVector4();
-        this.V5L = NormalizeAndRoundVector128(this.V5L.AsVector128(), off, max).AsVector4();
-        this.V5R = NormalizeAndRoundVector128(this.V5R.AsVector128(), off, max).AsVector4();
-        this.V6L = NormalizeAndRoundVector128(this.V6L.AsVector128(), off, max).AsVector4();
-        this.V6R = NormalizeAndRoundVector128(this.V6R.AsVector128(), off, max).AsVector4();
-        this.V7L = NormalizeAndRoundVector128(this.V7L.AsVector128(), off, max).AsVector4();
-        this.V7R = NormalizeAndRoundVector128(this.V7R.AsVector128(), off, max).AsVector4();
+        this.V0L = NormalizeVector128(this.V0L.AsVector128(), off, max).AsVector4();
+        this.V0R = NormalizeVector128(this.V0R.AsVector128(), off, max).AsVector4();
+        this.V1L = NormalizeVector128(this.V1L.AsVector128(), off, max).AsVector4();
+        this.V1R = NormalizeVector128(this.V1R.AsVector128(), off, max).AsVector4();
+        this.V2L = NormalizeVector128(this.V2L.AsVector128(), off, max).AsVector4();
+        this.V2R = NormalizeVector128(this.V2R.AsVector128(), off, max).AsVector4();
+        this.V3L = NormalizeVector128(this.V3L.AsVector128(), off, max).AsVector4();
+        this.V3R = NormalizeVector128(this.V3R.AsVector128(), off, max).AsVector4();
+        this.V4L = NormalizeVector128(this.V4L.AsVector128(), off, max).AsVector4();
+        this.V4R = NormalizeVector128(this.V4R.AsVector128(), off, max).AsVector4();
+        this.V5L = NormalizeVector128(this.V5L.AsVector128(), off, max).AsVector4();
+        this.V5R = NormalizeVector128(this.V5R.AsVector128(), off, max).AsVector4();
+        this.V6L = NormalizeVector128(this.V6L.AsVector128(), off, max).AsVector4();
+        this.V6R = NormalizeVector128(this.V6R.AsVector128(), off, max).AsVector4();
+        this.V7L = NormalizeVector128(this.V7L.AsVector128(), off, max).AsVector4();
+        this.V7R = NormalizeVector128(this.V7R.AsVector128(), off, max).AsVector4();
     }
 
     /// <summary>
@@ -71,8 +71,8 @@ internal partial struct Block8x8F
     }
 
     [MethodImpl(InliningOptions.ShortMethod)]
-    private static Vector128<float> NormalizeAndRoundVector128(Vector128<float> value, Vector128<float> off, Vector128<float> max)
-        => Vector128_.RoundToNearestInteger(Vector128_.Clamp(value + off, Vector128<float>.Zero, max));
+    private static Vector128<float> NormalizeVector128(Vector128<float> value, Vector128<float> off, Vector128<float> max)
+        => Vector128_.Clamp(value + off, Vector128<float>.Zero, max);
 
     private static void MultiplyIntoInt16Vector128(ref Block8x8F a, ref Block8x8F b, ref Block8x8 dest)
     {

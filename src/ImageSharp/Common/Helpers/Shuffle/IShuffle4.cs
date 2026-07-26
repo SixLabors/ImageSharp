@@ -2,177 +2,287 @@
 // Licensed under the Six Labors Split License.
 
 using System.Buffers.Binary;
-using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using static SixLabors.ImageSharp.SimdUtils;
+using System.Runtime.Intrinsics;
+using SixLabors.ImageSharp.Common.Helpers;
 
 namespace SixLabors.ImageSharp;
 
-/// <inheritdoc/>
+/// <summary>
+/// Defines a stateless operation over one packed four-component pixel.
+/// </summary>
 internal interface IShuffle4 : IComponentShuffle
 {
-}
+    /// <summary>
+    /// Reorders the packed pixels in a 256-bit vector.
+    /// </summary>
+    /// <param name="source">The source pixels.</param>
+    /// <returns>The reordered pixels.</returns>
+    public static abstract Vector256<byte> Invoke(Vector256<byte> source);
 
-internal readonly struct DefaultShuffle4([ConstantExpected] byte control) : IShuffle4
-{
-    public byte Control { get; } = control;
+    /// <summary>
+    /// Reorders the packed pixels in a 512-bit vector.
+    /// </summary>
+    /// <param name="source">The source pixels.</param>
+    /// <returns>The reordered pixels.</returns>
+    public static abstract Vector512<byte> Invoke(Vector512<byte> source);
 
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void ShuffleReduce(ref ReadOnlySpan<byte> source, ref Span<byte> destination)
-#pragma warning disable CA1857 // A constant is expected for the parameter
-        => HwIntrinsics.Shuffle4Reduce(ref source, ref destination, this.Control);
-#pragma warning restore CA1857 // A constant is expected for the parameter
-
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void Shuffle(ReadOnlySpan<byte> source, Span<byte> destination)
+    /// <summary>
+    /// Expands one 128-bit lane mask into absolute indices for a 512-bit shuffle.
+    /// </summary>
+    /// <param name="laneMask">The indices, from zero through fifteen, for one 128-bit lane.</param>
+    /// <returns>The corresponding absolute indices for all four 128-bit lanes.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<byte> ExpandLaneMask(Vector128<byte> laneMask)
     {
-        ref byte sBase = ref MemoryMarshal.GetReference(source);
-        ref byte dBase = ref MemoryMarshal.GetReference(destination);
+        // A 512-bit vector contains four 128-bit lanes, and each lane contains four packed
+        // XYZW pixels. The supplied mask addresses bytes 0..15 in the first lane. The managed
+        // Vector512.Shuffle fallback addresses the complete 64-byte vector, so the same
+        // permutation must address bytes 16..31, 32..47, and 48..63 in the remaining lanes.
+        //
+        // AVX-512BW VPSHUFB instead interprets indices independently within each 128-bit lane
+        // and uses only the low four bits to select a byte. Adding the lane offsets therefore
+        // satisfies the managed absolute-index contract without changing the native lane-local
+        // permutation.
+        Vector128<byte> lane1 = laneMask + Vector128.Create((byte)16);
+        Vector128<byte> lane2 = laneMask + Vector128.Create((byte)32);
+        Vector128<byte> lane3 = laneMask + Vector128.Create((byte)48);
 
-        SimdUtils.Shuffle.InverseMMShuffle(this.Control, out uint p3, out uint p2, out uint p1, out uint p0);
-
-        for (nuint i = 0; i < (uint)source.Length; i += 4)
-        {
-            Unsafe.Add(ref dBase, i + 0) = Unsafe.Add(ref sBase, p0 + i);
-            Unsafe.Add(ref dBase, i + 1) = Unsafe.Add(ref sBase, p1 + i);
-            Unsafe.Add(ref dBase, i + 2) = Unsafe.Add(ref sBase, p2 + i);
-            Unsafe.Add(ref dBase, i + 3) = Unsafe.Add(ref sBase, p3 + i);
-        }
+        return Vector512.Create(Vector256.Create(laneMask, lane1), Vector256.Create(lane2, lane3));
     }
 }
 
+/// <summary>
+/// Reorders XYZW components to WXYZ.
+/// </summary>
 internal readonly struct WXYZShuffle4 : IShuffle4
 {
+    /// <inheritdoc />
     [MethodImpl(InliningOptions.ShortMethod)]
-    public void ShuffleReduce(ref ReadOnlySpan<byte> source, ref Span<byte> destination)
-        => HwIntrinsics.Shuffle4Reduce(ref source, ref destination, SimdUtils.Shuffle.MMShuffle2103);
+    public static uint Invoke(uint source)
 
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void Shuffle(ReadOnlySpan<byte> source, Span<byte> destination)
+        // source          = [W Z Y X]
+        // ROTL(8, source) = [Z Y X W]
+        => BitOperations.RotateLeft(source, 8);
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector128<byte> Invoke(Vector128<byte> source)
+        => Vector128_.ShuffleNative(source, CreateLaneMask());
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<byte> Invoke(Vector256<byte> source)
     {
-        ref uint sBase = ref Unsafe.As<byte, uint>(ref MemoryMarshal.GetReference(source));
-        ref uint dBase = ref Unsafe.As<byte, uint>(ref MemoryMarshal.GetReference(destination));
-        uint n = (uint)source.Length / 4;
-
-        for (nuint i = 0; i < n; i++)
-        {
-            uint packed = Unsafe.Add(ref sBase, i);
-
-            // packed          = [W Z Y X]
-            // ROTL(8, packed) = [Z Y X W]
-            Unsafe.Add(ref dBase, i) = (packed << 8) | (packed >> 24);
-        }
+        // AVX2 byte shuffles select within 128-bit lanes, so both halves use the same pixel-local indices.
+        Vector128<byte> mask = CreateLaneMask();
+        return Vector256_.ShufflePerLane(source, Vector256.Create(mask, mask));
     }
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<byte> Invoke(Vector512<byte> source)
+
+        // Expand the four-pixel lane permutation across all four 128-bit lanes.
+        => Vector512_.ShuffleNative(source, IShuffle4.ExpandLaneMask(CreateLaneMask()));
+
+    /// <summary>
+    /// Creates the indices that rotate each XYZW pixel to WXYZ within one 128-bit lane.
+    /// </summary>
+    /// <returns>The pixel-local byte shuffle indices.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static Vector128<byte> CreateLaneMask()
+
+        // Each four-byte group is one XYZW pixel. Selecting [3, 0, 1, 2] produces
+        // WXYZ, and offsets 4, 8, and 12 repeat that permutation for the next pixels.
+        => Vector128.Create((byte)3, 0, 1, 2, 7, 4, 5, 6, 11, 8, 9, 10, 15, 12, 13, 14);
 }
 
+/// <summary>
+/// Reorders XYZW components to WZYX.
+/// </summary>
 internal readonly struct WZYXShuffle4 : IShuffle4
 {
+    /// <inheritdoc />
     [MethodImpl(InliningOptions.ShortMethod)]
-    public void ShuffleReduce(ref ReadOnlySpan<byte> source, ref Span<byte> destination)
-        => HwIntrinsics.Shuffle4Reduce(ref source, ref destination, SimdUtils.Shuffle.MMShuffle0123);
+    public static uint Invoke(uint source)
 
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void Shuffle(ReadOnlySpan<byte> source, Span<byte> destination)
+        // source          = [W Z Y X]
+        // REVERSE(source) = [X Y Z W]
+        => BinaryPrimitives.ReverseEndianness(source);
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector128<byte> Invoke(Vector128<byte> source)
+        => Vector128_.ShuffleNative(source, CreateLaneMask());
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<byte> Invoke(Vector256<byte> source)
     {
-        ref uint sBase = ref Unsafe.As<byte, uint>(ref MemoryMarshal.GetReference(source));
-        ref uint dBase = ref Unsafe.As<byte, uint>(ref MemoryMarshal.GetReference(destination));
-        uint n = (uint)source.Length / 4;
-
-        for (nuint i = 0; i < n; i++)
-        {
-            uint packed = Unsafe.Add(ref sBase, i);
-
-            // packed              = [W Z Y X]
-            // REVERSE(packedArgb) = [X Y Z W]
-            Unsafe.Add(ref dBase, i) = BinaryPrimitives.ReverseEndianness(packed);
-        }
+        // AVX2 byte shuffles select within 128-bit lanes, so both halves use the same pixel-local indices.
+        Vector128<byte> mask = CreateLaneMask();
+        return Vector256_.ShufflePerLane(source, Vector256.Create(mask, mask));
     }
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<byte> Invoke(Vector512<byte> source)
+
+        // Expand the four-pixel lane permutation across all four 128-bit lanes.
+        => Vector512_.ShuffleNative(source, IShuffle4.ExpandLaneMask(CreateLaneMask()));
+
+    /// <summary>
+    /// Creates the indices that reverse each XYZW pixel to WZYX within one 128-bit lane.
+    /// </summary>
+    /// <returns>The pixel-local byte shuffle indices.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static Vector128<byte> CreateLaneMask()
+
+        // Each four-byte group is one XYZW pixel. Selecting [3, 2, 1, 0] produces
+        // WZYX, and offsets 4, 8, and 12 repeat that reversal for the next pixels.
+        => Vector128.Create((byte)3, 2, 1, 0, 7, 6, 5, 4, 11, 10, 9, 8, 15, 14, 13, 12);
 }
 
+/// <summary>
+/// Reorders XYZW components to YZWX.
+/// </summary>
 internal readonly struct YZWXShuffle4 : IShuffle4
 {
+    /// <inheritdoc />
     [MethodImpl(InliningOptions.ShortMethod)]
-    public void ShuffleReduce(ref ReadOnlySpan<byte> source, ref Span<byte> destination)
-        => HwIntrinsics.Shuffle4Reduce(ref source, ref destination, SimdUtils.Shuffle.MMShuffle0321);
+    public static uint Invoke(uint source)
 
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void Shuffle(ReadOnlySpan<byte> source, Span<byte> destination)
+        // source          = [W Z Y X]
+        // ROTR(8, source) = [X W Z Y]
+        => BitOperations.RotateRight(source, 8);
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector128<byte> Invoke(Vector128<byte> source)
+        => Vector128_.ShuffleNative(source, CreateLaneMask());
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<byte> Invoke(Vector256<byte> source)
     {
-        ref uint sBase = ref Unsafe.As<byte, uint>(ref MemoryMarshal.GetReference(source));
-        ref uint dBase = ref Unsafe.As<byte, uint>(ref MemoryMarshal.GetReference(destination));
-        uint n = (uint)source.Length / 4;
-
-        for (nuint i = 0; i < n; i++)
-        {
-            uint packed = Unsafe.Add(ref sBase, i);
-
-            // packed              = [W Z Y X]
-            // ROTR(8, packedArgb) = [Y Z W X]
-            Unsafe.Add(ref dBase, i) = BitOperations.RotateRight(packed, 8);
-        }
+        // AVX2 byte shuffles select within 128-bit lanes, so both halves use the same pixel-local indices.
+        Vector128<byte> mask = CreateLaneMask();
+        return Vector256_.ShufflePerLane(source, Vector256.Create(mask, mask));
     }
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<byte> Invoke(Vector512<byte> source)
+
+        // Expand the four-pixel lane permutation across all four 128-bit lanes.
+        => Vector512_.ShuffleNative(source, IShuffle4.ExpandLaneMask(CreateLaneMask()));
+
+    /// <summary>
+    /// Creates the indices that rotate each XYZW pixel to YZWX within one 128-bit lane.
+    /// </summary>
+    /// <returns>The pixel-local byte shuffle indices.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static Vector128<byte> CreateLaneMask()
+
+        // Each four-byte group is one XYZW pixel. Selecting [1, 2, 3, 0] produces
+        // YZWX, and offsets 4, 8, and 12 repeat that rotation for the next pixels.
+        => Vector128.Create((byte)1, 2, 3, 0, 5, 6, 7, 4, 9, 10, 11, 8, 13, 14, 15, 12);
 }
 
+/// <summary>
+/// Reorders XYZW components to ZYXW.
+/// </summary>
 internal readonly struct ZYXWShuffle4 : IShuffle4
 {
+    /// <inheritdoc />
     [MethodImpl(InliningOptions.ShortMethod)]
-    public void ShuffleReduce(ref ReadOnlySpan<byte> source, ref Span<byte> destination)
-        => HwIntrinsics.Shuffle4Reduce(ref source, ref destination, SimdUtils.Shuffle.MMShuffle3012);
+    public static uint Invoke(uint source)
 
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void Shuffle(ReadOnlySpan<byte> source, Span<byte> destination)
+        // source                     = [W Z Y X]
+        // source & 0xFF00FF00        = [W 0 Y 0]
+        // ROTL(source & 0x00FF00FF)  = [0 X 0 Z]
+        // combined                   = [W X Y Z]
+        => (source & 0xFF00FF00) | BitOperations.RotateLeft(source & 0x00FF00FF, 16);
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector128<byte> Invoke(Vector128<byte> source)
+        => Vector128_.ShuffleNative(source, CreateLaneMask());
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<byte> Invoke(Vector256<byte> source)
     {
-        ref uint sBase = ref Unsafe.As<byte, uint>(ref MemoryMarshal.GetReference(source));
-        ref uint dBase = ref Unsafe.As<byte, uint>(ref MemoryMarshal.GetReference(destination));
-        uint n = (uint)source.Length / 4;
-
-        for (nuint i = 0; i < n; i++)
-        {
-            uint packed = Unsafe.Add(ref sBase, i);
-
-            // packed              = [W Z Y X]
-            // tmp1                = [W 0 Y 0]
-            // tmp2                = [0 Z 0 X]
-            // tmp3=ROTL(16, tmp2) = [0 X 0 Z]
-            // tmp1 + tmp3         = [W X Y Z]
-            uint tmp1 = packed & 0xFF00FF00;
-            uint tmp2 = packed & 0x00FF00FF;
-            uint tmp3 = BitOperations.RotateLeft(tmp2, 16);
-
-            Unsafe.Add(ref dBase, i) = tmp1 + tmp3;
-        }
+        // AVX2 byte shuffles select within 128-bit lanes, so both halves use the same pixel-local indices.
+        Vector128<byte> mask = CreateLaneMask();
+        return Vector256_.ShufflePerLane(source, Vector256.Create(mask, mask));
     }
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<byte> Invoke(Vector512<byte> source)
+
+        // Expand the four-pixel lane permutation across all four 128-bit lanes.
+        => Vector512_.ShuffleNative(source, IShuffle4.ExpandLaneMask(CreateLaneMask()));
+
+    /// <summary>
+    /// Creates the indices that exchange X and Z in each XYZW pixel within one 128-bit lane.
+    /// </summary>
+    /// <returns>The pixel-local byte shuffle indices.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static Vector128<byte> CreateLaneMask()
+
+        // Each four-byte group is one XYZW pixel. Selecting [2, 1, 0, 3] exchanges
+        // X and Z to produce ZYXW, with offsets 4, 8, and 12 covering the next pixels.
+        => Vector128.Create((byte)2, 1, 0, 3, 6, 5, 4, 7, 10, 9, 8, 11, 14, 13, 12, 15);
 }
 
+/// <summary>
+/// Reorders XYZW components to XWZY.
+/// </summary>
 internal readonly struct XWZYShuffle4 : IShuffle4
 {
+    /// <inheritdoc />
     [MethodImpl(InliningOptions.ShortMethod)]
-    public void ShuffleReduce(ref ReadOnlySpan<byte> source, ref Span<byte> destination)
-        => HwIntrinsics.Shuffle4Reduce(ref source, ref destination, SimdUtils.Shuffle.MMShuffle1230);
+    public static uint Invoke(uint source)
 
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void Shuffle(ReadOnlySpan<byte> source, Span<byte> destination)
+        // source                     = [W Z Y X]
+        // source & 0x00FF00FF        = [0 Z 0 X]
+        // ROTL(source & 0xFF00FF00)  = [Y 0 W 0]
+        // combined                   = [Y Z W X]
+        => (source & 0x00FF00FF) | BitOperations.RotateLeft(source & 0xFF00FF00, 16);
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector128<byte> Invoke(Vector128<byte> source)
+        => Vector128_.ShuffleNative(source, CreateLaneMask());
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<byte> Invoke(Vector256<byte> source)
     {
-        ref uint sBase = ref Unsafe.As<byte, uint>(ref MemoryMarshal.GetReference(source));
-        ref uint dBase = ref Unsafe.As<byte, uint>(ref MemoryMarshal.GetReference(destination));
-        uint n = (uint)source.Length / 4;
-
-        for (nuint i = 0; i < n; i++)
-        {
-            uint packed = Unsafe.Add(ref sBase, i);
-
-            // packed              = [W Z Y X]
-            // tmp1                = [0 Z 0 X]
-            // tmp2                = [W 0 Y 0]
-            // tmp3=ROTL(16, tmp2) = [Y 0 W 0]
-            // tmp1 + tmp3         = [Y Z W X]
-            uint tmp1 = packed & 0x00FF00FF;
-            uint tmp2 = packed & 0xFF00FF00;
-            uint tmp3 = BitOperations.RotateLeft(tmp2, 16);
-
-            Unsafe.Add(ref dBase, i) = tmp1 + tmp3;
-        }
+        // AVX2 byte shuffles select within 128-bit lanes, so both halves use the same pixel-local indices.
+        Vector128<byte> mask = CreateLaneMask();
+        return Vector256_.ShufflePerLane(source, Vector256.Create(mask, mask));
     }
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<byte> Invoke(Vector512<byte> source)
+
+        // Expand the four-pixel lane permutation across all four 128-bit lanes.
+        => Vector512_.ShuffleNative(source, IShuffle4.ExpandLaneMask(CreateLaneMask()));
+
+    /// <summary>
+    /// Creates the indices that exchange Y and W in each XYZW pixel within one 128-bit lane.
+    /// </summary>
+    /// <returns>The pixel-local byte shuffle indices.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static Vector128<byte> CreateLaneMask()
+
+        // Each four-byte group is one XYZW pixel. Selecting [0, 3, 2, 1] exchanges
+        // Y and W to produce XWZY, with offsets 4, 8, and 12 covering the next pixels.
+        => Vector128.Create((byte)0, 3, 2, 1, 4, 7, 6, 5, 8, 11, 10, 9, 12, 15, 14, 13);
 }

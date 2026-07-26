@@ -31,23 +31,23 @@ internal abstract partial class MemoryGroup<T>
 
         /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public override MemoryGroupEnumerator<T> GetEnumerator()
-        {
-            return new MemoryGroupEnumerator<T>(this);
-        }
+        public override MemoryGroupEnumerator<T> GetEnumerator() => new(this);
 
         /// <inheritdoc/>
         IEnumerator<Memory<T>> IEnumerable<Memory<T>>.GetEnumerator()
-        {
+
             /* The runtime sees the Array class as if it implemented the
              * type-generic collection interfaces explicitly, so here we
              * can just cast the source array to IList<Memory<T>> (or to
              * an equivalent type), and invoke the generic GetEnumerator
              * method directly from that interface reference. This saves
              * having to create our own iterator block here. */
-            return ((IList<Memory<T>>)this.source).GetEnumerator();
-        }
+            => ((IList<Memory<T>>)this.source).GetEnumerator();
 
-        public override void Dispose() => this.View.Invalidate();
+        public override void Dispose()
+        {
+            this.View.Invalidate();
+            this.ReleaseAllocationTracking();
+        }
     }
 }

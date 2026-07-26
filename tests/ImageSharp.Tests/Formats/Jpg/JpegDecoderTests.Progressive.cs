@@ -21,7 +21,7 @@ public partial class JpegDecoderTests
         where TPixel : unmanaged, IPixel<TPixel>
     {
         using Image<TPixel> image = provider.GetImage(JpegDecoder.Instance);
-        image.DebugSave(provider);
+        image.DebugSave(provider, appendPixelTypeToFileName: false);
 
         provider.Utility.TestName = DecodeProgressiveJpegOutputName;
         image.CompareToReferenceOutput(

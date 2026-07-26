@@ -155,6 +155,11 @@ internal sealed class PbmDecoderCore : ImageDecoderCore
                 ThrowPrematureEof();
             }
 
+            if (this.maxPixelValue <= 0 || this.maxPixelValue >= 65536)
+            {
+                throw new InvalidImageContentException("Invalid max pixel value.");
+            }
+
             if (this.maxPixelValue > 255)
             {
                 this.componentType = PbmComponentType.Short;

@@ -60,32 +60,109 @@ internal static class Vector512_
         => Avx512F.ConvertToVector512Int32(vector);
 
     /// <summary>
+    /// Converts all values in <paramref name="vector"/> to signed 32-bit integers, rounding midpoint values away from zero.
+    /// </summary>
+    /// <param name="vector">The values to convert.</param>
+    /// <returns>The converted integer values.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<int> ConvertToInt32RoundAwayFromZero(Vector512<float> vector)
+    {
+        // The x86 conversion truncates, so adding one half with each lane's sign implements round-to-nearest with midpoint values away from zero.
+        Vector512<float> half = Vector512.Create(.5F) | (vector & Vector512.Create(-0F));
+        return Avx512F.ConvertToVector512Int32WithTruncation(vector + half);
+    }
+
+    /// <summary>
     /// Rounds all values in <paramref name="vector"/> to the nearest integer
     /// following <see cref="MidpointRounding.ToEven"/> semantics.
     /// </summary>
-    /// <param name="vector">The vector</param>
+    /// <param name="vector">The vector.</param>
+    /// <returns>The vector with each value rounded to the nearest integer.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector512<float> RoundToNearestInteger(Vector512<float> vector)
 
-          // imm8 = 0b1000:
-          //   imm8[7:4] = 0b0000 -> preserve 0 fractional bits (round to whole numbers)
-          //   imm8[3:0] = 0b1000 -> _MM_FROUND_TO_NEAREST_INT | _MM_FROUND_NO_EXC (round to nearest even, suppress exceptions)
-          => Avx512F.RoundScale(vector, 0b0000_1000);
+        // imm8 = 0b1000:
+        //   imm8[7:4] = 0b0000 -> preserve 0 fractional bits (round to whole numbers)
+        //   imm8[3:0] = 0b1000 -> _MM_FROUND_TO_NEAREST_INT | _MM_FROUND_NO_EXC (round to nearest even, suppress exceptions)
+        => Avx512F.RoundScale(vector, 0b0000_1000);
 
     /// <summary>
-    /// Performs a multiplication and an addition of the <see cref="Vector512{Single}"/>.
+    /// Computes an estimate of (<paramref name="left"/> * <paramref name="right"/>) + <paramref name="addend"/>.
     /// </summary>
-    /// <remarks>ret = (vm0 * vm1) + va</remarks>
-    /// <param name="va">The vector to add to the intermediate result.</param>
+    /// <param name="left">The first vector to multiply.</param>
+    /// <param name="right">The second vector to multiply.</param>
+    /// <param name="addend">The vector to add to the product.</param>
+    /// <returns>An estimate of the multiplication and addition result.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<float> MultiplyAddEstimate(Vector512<float> left, Vector512<float> right, Vector512<float> addend)
+    {
+        if (Avx512F.IsSupported)
+        {
+            return Avx512F.FusedMultiplyAdd(left, right, addend);
+        }
+
+        Vector256<float> lower = Vector256_.MultiplyAddEstimate(left.GetLower(), right.GetLower(), addend.GetLower());
+        Vector256<float> upper = Vector256_.MultiplyAddEstimate(left.GetUpper(), right.GetUpper(), addend.GetUpper());
+
+        return Vector512.Create(lower, upper);
+    }
+
+    /// <summary>
+    /// Computes (<paramref name="left"/> * <paramref name="right"/>) + <paramref name="addend"/>, rounded as one ternary operation.
+    /// </summary>
+    /// <param name="left">The first vector to multiply.</param>
+    /// <param name="right">The second vector to multiply.</param>
+    /// <param name="addend">The vector to add to the product.</param>
+    /// <returns>The fused multiplication and addition result.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<float> FusedMultiplyAdd(Vector512<float> left, Vector512<float> right, Vector512<float> addend)
+    {
+        if (Avx512F.IsSupported)
+        {
+            return Avx512F.FusedMultiplyAdd(left, right, addend);
+        }
+
+        // Match the runtime fallback by recursively applying the same fused contract to both halves.
+        Vector256<float> lower = Vector256_.FusedMultiplyAdd(left.GetLower(), right.GetLower(), addend.GetLower());
+        Vector256<float> upper = Vector256_.FusedMultiplyAdd(left.GetUpper(), right.GetUpper(), addend.GetUpper());
+
+        return Vector512.Create(lower, upper);
+    }
+
+    /// <summary>
+    /// Subtracts packed unsigned 8-bit integers in <paramref name="right"/> from
+    /// <paramref name="left"/>, saturating negative lane results to zero.
+    /// </summary>
+    /// <param name="left">The vector from which <paramref name="right"/> is subtracted.</param>
+    /// <param name="right">The vector to subtract from <paramref name="left"/>.</param>
+    /// <returns>The element-wise saturated differences.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<byte> SubtractSaturate(Vector512<byte> left, Vector512<byte> right)
+    {
+        if (Avx512BW.IsSupported)
+        {
+            return Avx512BW.SubtractSaturate(left, right);
+        }
+
+        // This mirrors the .NET 10 portable implementation: recursively processing both
+        // 256-bit halves preserves lane order and lets each half select its available ISA.
+        return Vector512.Create(Vector256_.SubtractSaturate(left.GetLower(), right.GetLower()), Vector256_.SubtractSaturate(left.GetUpper(), right.GetUpper()));
+    }
+
+    /// <summary>
+    /// Performs a multiplication and a negated addition of the <see cref="Vector512{Single}"/>.
+    /// </summary>
+    /// <remarks>ret = va - (vm0 * vm1)</remarks>
+    /// <param name="va">The vector to add to the negated intermediate result.</param>
     /// <param name="vm0">The first vector to multiply.</param>
     /// <param name="vm1">The second vector to multiply.</param>
-    /// <returns>The <see cref="Vector256{T}"/>.</returns>
+    /// <returns>The <see cref="Vector512{T}"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector512<float> MultiplyAdd(
+    public static Vector512<float> MultiplyAddNegated(
         Vector512<float> va,
         Vector512<float> vm0,
         Vector512<float> vm1)
-        => Avx512F.FusedMultiplyAdd(vm0, vm1, va);
+        => Avx512F.FusedMultiplyAddNegated(vm0, vm1, va);
 
     /// <summary>
     /// Restricts a vector between a minimum and a maximum value.

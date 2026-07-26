@@ -2,9 +2,12 @@
 // Licensed under the Six Labors Split License.
 
 using System.Collections.Concurrent;
+using System.Diagnostics.CodeAnalysis;
+using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.Formats.Cur;
+using SixLabors.ImageSharp.Formats.Exr;
 using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.Formats.Ico;
 using SixLabors.ImageSharp.Formats.Jpeg;
@@ -37,6 +40,9 @@ public sealed class Configuration
     /// <summary>
     /// Initializes a new instance of the <see cref="Configuration" /> class.
     /// </summary>
+    // Every image operation requires a Configuration. Attaching the dependency to its constructors keeps the compile-only
+    // seed graph visible to modern .NET trimmers without executing that graph or adding module-initialization work.
+    [DynamicDependency(nameof(AotCompilerTools.SeedPixelOperations), typeof(AotCompilerTools))]
     public Configuration()
     {
     }
@@ -45,6 +51,8 @@ public sealed class Configuration
     /// Initializes a new instance of the <see cref="Configuration" /> class.
     /// </summary>
     /// <param name="configurationModules">A collection of configuration modules to register.</param>
+    // The default Configuration is created through this overload, while callers may use either constructor.
+    [DynamicDependency(nameof(AotCompilerTools.SeedPixelOperations), typeof(AotCompilerTools))]
     public Configuration(params IImageFormatConfigurationModule[] configurationModules)
     {
         if (configurationModules != null)
@@ -64,7 +72,9 @@ public sealed class Configuration
     /// <summary>
     /// Gets or sets the maximum number of concurrent tasks enabled in ImageSharp algorithms
     /// configured with this <see cref="Configuration"/> instance.
-    /// Initialized with <see cref="Environment.ProcessorCount"/> by default.
+    /// A positive value limits the number of concurrent operations to the set value.
+    /// If set to <c>-1</c>, there is no limit on the number of concurrently running operations.
+    /// Defaults to <see cref="Environment.ProcessorCount"/>.
     /// </summary>
     public int MaxDegreeOfParallelism
     {
@@ -212,6 +222,7 @@ public sealed class Configuration
     /// <see cref="TgaConfigurationModule"/>.
     /// <see cref="TiffConfigurationModule"/>.
     /// <see cref="WebpConfigurationModule"/>.
+    /// <see cref="ExrConfigurationModule"/>.
     /// <see cref="QoiConfigurationModule"/>.
     /// </summary>
     /// <returns>The default configuration of <see cref="Configuration"/>.</returns>
@@ -224,6 +235,7 @@ public sealed class Configuration
             new TgaConfigurationModule(),
             new TiffConfigurationModule(),
             new WebpConfigurationModule(),
+            new ExrConfigurationModule(),
             new QoiConfigurationModule(),
             new IcoConfigurationModule(),
             new CurConfigurationModule());

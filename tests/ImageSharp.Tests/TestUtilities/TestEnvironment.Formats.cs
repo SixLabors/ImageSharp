@@ -3,6 +3,7 @@
 
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Bmp;
+using SixLabors.ImageSharp.Formats.Exr;
 using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Formats.Pbm;
@@ -63,12 +64,13 @@ public static partial class TestEnvironment
             new TgaConfigurationModule(),
             new WebpConfigurationModule(),
             new TiffConfigurationModule(),
+            new ExrConfigurationModule(),
             new QoiConfigurationModule());
 
         IImageEncoder pngEncoder = IsWindows ? SystemDrawingReferenceEncoder.Png : new ImageSharpPngEncoderWithDefaultConfiguration();
         IImageEncoder bmpEncoder = IsWindows ? SystemDrawingReferenceEncoder.Bmp : new BmpEncoder();
 
-        // Magick codecs should work on all platforms
+        // Magick codecs should work on all platforms.
         cfg.ConfigureCodecs(
             PngFormat.Instance,
             MagickReferenceDecoder.Png,

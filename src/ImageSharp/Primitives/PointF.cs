@@ -4,6 +4,7 @@
 using System.ComponentModel;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using SixLabors.ImageSharp.Processing.Processors.Transforms;
 
 namespace SixLabors.ImageSharp;
 
@@ -245,6 +246,17 @@ public struct PointF : IEquatable<PointF>
     /// <returns>The transformed <see cref="PointF"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static PointF Transform(PointF point, Matrix3x2 matrix) => Vector2.Transform(point, matrix);
+
+    /// <summary>
+    /// Transforms a point by a specified 4x4 matrix, applying a projective transform
+    /// flattened into 2D space.
+    /// </summary>
+    /// <param name="point">The point to transform.</param>
+    /// <param name="matrix">The transformation matrix used.</param>
+    /// <returns>The transformed <see cref="PointF"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static PointF Transform(PointF point, Matrix4x4 matrix)
+        => TransformUtilities.ProjectiveTransform2D(point.X, point.Y, matrix);
 
     /// <summary>
     /// Deconstructs this point into two floats.

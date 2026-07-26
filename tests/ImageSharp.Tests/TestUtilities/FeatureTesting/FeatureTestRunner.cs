@@ -439,7 +439,7 @@ public enum HwIntrinsics : long
     DisableSSE42 = 1L << 1,
     DisableAVX = 1L << 2,
     DisableAVX2 = 1L << 3,
-    DisableAVX512 = 1L << 4,
+    DisableAVX512F = 1L << 4,
     DisableAVX512v2 = 1L << 5,
     DisableAVX512v3 = 1L << 6,
     DisableAVX10v1 = 1L << 7,
@@ -455,6 +455,7 @@ public enum HwIntrinsics : long
     DisableVAES = 1L << 17,
     DisableWAITPKG = 1L << 18,
     DisableX86Serialize = 1 << 19,
+
     // Arm64
     DisableArm64Aes = 1L << 20,
     DisableArm64Atomics = 1L << 21,
@@ -466,6 +467,7 @@ public enum HwIntrinsics : long
     DisableArm64Sha256 = 1L << 27,
     DisableArm64Sve = 1L << 28,
     DisableArm64Sve2 = 1L << 29,
+
     // RISC-V64
     DisableRiscV64Zba = 1L << 30,
     DisableRiscV64Zbb = 1L << 31,

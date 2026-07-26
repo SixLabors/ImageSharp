@@ -4,7 +4,6 @@
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Cur;
 using SixLabors.ImageSharp.Formats.Ico;
-using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using static SixLabors.ImageSharp.Tests.TestImages.Cur;
@@ -120,12 +119,6 @@ public class CurEncoderTests
 
                 for (int x = 0; x < accessor.Width; x++)
                 {
-                    if (expectedColor != rowSpan[x])
-                    {
-                        int xx = 0;
-                    }
-
-
                     Assert.Equal(expectedColor, rowSpan[x]);
                 }
             }

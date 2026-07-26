@@ -116,7 +116,7 @@ internal sealed class BmpEncoderCore
         this.bitsPerPixel = encoder.BitsPerPixel;
 
         // TODO: Use a palette quantizer if supplied.
-        this.quantizer = encoder.Quantizer ?? KnownQuantizers.Octree;
+        this.quantizer = encoder.Quantizer ?? KnownQuantizers.Hexadecatree;
         this.pixelSamplingStrategy = encoder.PixelSamplingStrategy;
         this.transparentColorMode = encoder.TransparentColorMode;
         this.infoHeaderType = encoder.SupportTransparency ? BmpInfoHeaderType.WinVersion4 : BmpInfoHeaderType.WinVersion3;

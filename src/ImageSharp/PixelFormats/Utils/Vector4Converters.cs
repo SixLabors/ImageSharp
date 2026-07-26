@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp.PixelFormats.Utils;
 internal static partial class Vector4Converters
 {
     /// <summary>
-    /// Apply modifiers used requested by ToVector4() conversion.
+    /// Applies the modifiers requested by ToVector4() conversion.
     /// </summary>
     /// <param name="vectors">The span of vectors.</param>
     /// <param name="modifiers">The modifier rule.</param>
@@ -29,7 +29,7 @@ internal static partial class Vector4Converters
     }
 
     /// <summary>
-    /// Apply modifiers used requested by FromVector4() conversion.
+    /// Applies the modifiers requested by FromVector4() conversion.
     /// </summary>
     /// <param name="vectors">The span of vectors.</param>
     /// <param name="modifiers">The modifier rule.</param>

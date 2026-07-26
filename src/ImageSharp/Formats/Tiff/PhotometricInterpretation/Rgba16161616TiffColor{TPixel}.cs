@@ -5,6 +5,7 @@
 
 using System.Buffers;
 using System.Numerics;
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Tiff.Utils;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
@@ -96,16 +97,21 @@ internal class Rgba16161616TiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
                 Span<TPixel> pixelRow = pixels.DangerousGetRowSpan(y).Slice(left, width);
                 int byteCount = pixelRow.Length * 8;
 
-                PixelOperations<TPixel>.Instance.FromRgba64Bytes(
-                    this.configuration,
-                    data.Slice(offset, byteCount),
-                    pixelRow,
-                    pixelRow.Length);
-
                 if (hasAssociatedAlpha)
                 {
-                    PixelOperations<TPixel>.Instance.ToVector4(this.configuration, pixelRow, vectorsSpan);
-                    PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, vectorsSpan, pixelRow, PixelConversionModifiers.Premultiply | PixelConversionModifiers.Scale);
+                    // This little-endian branch can view the interleaved samples as Rgba64. The values are already associated, so
+                    // the Rgba64 operation performs only unpacking and normalization before the destination consumes that representation.
+                    ReadOnlySpan<Rgba64> associatedSamples = MemoryMarshal.Cast<byte, Rgba64>(data.Slice(offset, byteCount));
+                    PixelOperations<Rgba64>.Instance.ToVector4(this.configuration, associatedSamples, vectorsSpan, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
+                    PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, vectorsSpan, pixelRow, PixelConversionModifiers.Scale | PixelConversionModifiers.Premultiply);
+                }
+                else
+                {
+                    PixelOperations<TPixel>.Instance.FromRgba64Bytes(
+                        this.configuration,
+                        data.Slice(offset, byteCount),
+                        pixelRow,
+                        pixelRow.Length);
                 }
 
                 offset += byteCount;

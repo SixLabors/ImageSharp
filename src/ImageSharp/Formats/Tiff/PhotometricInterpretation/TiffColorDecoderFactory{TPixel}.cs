@@ -383,7 +383,7 @@ internal static class TiffColorDecoderFactory<TPixel>
                     && bitsPerSample.Channel0 == 32,
                     "bitsPerSample");
                 DebugGuard.IsTrue(colorMap == null, "colorMap");
-                return new RgbaFloat32323232TiffColor<TPixel>(isBigEndian: byteOrder == ByteOrder.BigEndian);
+                return new RgbaFloat32323232TiffColor<TPixel>(byteOrder == ByteOrder.BigEndian, extraSampleType);
 
             case TiffColorType.PaletteColor:
                 DebugGuard.NotNull(colorMap, "colorMap");

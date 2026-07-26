@@ -96,13 +96,16 @@ internal class EntropyCropProcessor<TPixel> : ImageProcessor<TPixel>
         int height = bitmap.Height;
         Point topLeft = default;
         Point bottomRight = default;
+
+        // BinaryThresholdProcessor produces opaque black and white, so association no longer affects the components. Scaled vectors still normalize pixel formats whose native vectors use another range.
         Func<ImageFrame<TPixel>, int, int, float, bool> delegateFunc = channel switch
         {
-            RgbaComponent.R => (pixels, x, y, b) => MathF.Abs(pixels[x, y].ToVector4().X - b) > Constants.Epsilon,
-            RgbaComponent.G => (pixels, x, y, b) => MathF.Abs(pixels[x, y].ToVector4().Y - b) > Constants.Epsilon,
-            RgbaComponent.B => (pixels, x, y, b) => MathF.Abs(pixels[x, y].ToVector4().Z - b) > Constants.Epsilon,
-            _ => (pixels, x, y, b) => MathF.Abs(pixels[x, y].ToVector4().W - b) > Constants.Epsilon,
+            RgbaComponent.R => (pixels, x, y, b) => MathF.Abs(pixels[x, y].ToUnassociatedScaledVector4().X - b) > Constants.Epsilon,
+            RgbaComponent.G => (pixels, x, y, b) => MathF.Abs(pixels[x, y].ToUnassociatedScaledVector4().Y - b) > Constants.Epsilon,
+            RgbaComponent.B => (pixels, x, y, b) => MathF.Abs(pixels[x, y].ToUnassociatedScaledVector4().Z - b) > Constants.Epsilon,
+            _ => (pixels, x, y, b) => MathF.Abs(pixels[x, y].ToUnassociatedScaledVector4().W - b) > Constants.Epsilon,
         };
+
         int GetMinY(ImageFrame<TPixel> pixels)
         {
             for (int y = 0; y < height; y++)

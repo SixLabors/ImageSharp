@@ -35,7 +35,7 @@ internal class CieLab8PlanarTiffColor<TPixel> : TiffBasePlanarColorDecoder<TPixe
             {
                 CieLab lab = new((l[offset] & 0xFF) * 100f * Inv255, (sbyte)a[offset], (sbyte)b[offset]);
                 Rgb rgb = ColorProfileConverter.Convert<CieLab, Rgb>(in lab);
-                pixelRow[x] = TPixel.FromScaledVector4(new Vector4(rgb.R, rgb.G, rgb.B, 1.0f));
+                pixelRow[x] = TPixel.FromUnassociatedScaledVector4(new Vector4(rgb.R, rgb.G, rgb.B, 1.0f));
 
                 offset++;
             }

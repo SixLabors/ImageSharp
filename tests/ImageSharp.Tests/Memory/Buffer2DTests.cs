@@ -50,17 +50,11 @@ public partial class Buffer2DTests
     [InlineData(Big, 1, 0)]
     [InlineData(60, 42, 0)]
     [InlineData(3, 0, 0)]
-    public unsafe void Construct_Empty(int bufferCapacity, int width, int height)
+    public unsafe void Construct_Empty_Throws(int bufferCapacity, int width, int height)
     {
         this.MemoryAllocator.BufferCapacityInBytes = sizeof(TestStructs.Foo) * bufferCapacity;
 
-        using (Buffer2D<TestStructs.Foo> buffer = this.MemoryAllocator.Allocate2D<TestStructs.Foo>(width, height))
-        {
-            Assert.Equal(width, buffer.Width);
-            Assert.Equal(height, buffer.Height);
-            Assert.Equal(0, buffer.FastMemoryGroup.TotalLength);
-            Assert.Equal(0, buffer.DangerousGetSingleSpan().Length);
-        }
+        Assert.Throws<ArgumentOutOfRangeException>(() => this.MemoryAllocator.Allocate2D<TestStructs.Foo>(width, height));
     }
 
     [Theory]
@@ -339,25 +333,47 @@ public partial class Buffer2DTests
         Assert.NotSame(mgBefore, buffer1.MemoryGroup);
     }
 
-    public static TheoryData<Size> InvalidLengths { get; set; } = new()
+    public static TheoryData<Size> InvalidDimensions { get; set; } = new()
     {
         { new Size(-1, -1) },
+        { new Size(0, 1) },
+        { new Size(1, 0) },
+        { new Size(0, 0) }
+    };
+
+    public static TheoryData<Size> OverflowDimensions { get; set; } = new()
+    {
         { new Size(32768, 32769) },
         { new Size(32769, 32768) }
     };
 
     [Theory]
-    [MemberData(nameof(InvalidLengths))]
-    public void Allocate_IncorrectAmount_ThrowsCorrect_InvalidMemoryOperationException(Size size)
+    [MemberData(nameof(InvalidDimensions))]
+    public void Allocate_InvalidDimensions_ThrowsArgumentOutOfRangeException(Size size)
+        => Assert.Throws<ArgumentOutOfRangeException>(() => this.MemoryAllocator.Allocate2D<Rgba32>(size.Width, size.Height));
+
+    [Theory]
+    [MemberData(nameof(InvalidDimensions))]
+    public void Allocate_InvalidDimensions_SizeOverload_ThrowsArgumentOutOfRangeException(Size size)
+        => Assert.Throws<ArgumentOutOfRangeException>(() => this.MemoryAllocator.Allocate2D<Rgba32>(new Size(size)));
+
+    [Theory]
+    [MemberData(nameof(InvalidDimensions))]
+    public void Allocate_InvalidDimensions_OverAligned_ThrowsArgumentOutOfRangeException(Size size)
+        => Assert.Throws<ArgumentOutOfRangeException>(() => this.MemoryAllocator.Allocate2DOveraligned<Rgba32>(size.Width, size.Height, 1));
+
+    [Theory]
+    [MemberData(nameof(OverflowDimensions))]
+    public void Allocate_OverflowDimensions_ThrowsInvalidMemoryOperationException(Size size)
         => Assert.Throws<InvalidMemoryOperationException>(() => this.MemoryAllocator.Allocate2D<Rgba32>(size.Width, size.Height));
 
     [Theory]
-    [MemberData(nameof(InvalidLengths))]
-    public void Allocate_IncorrectAmount_ThrowsCorrect_InvalidMemoryOperationException_Size(Size size)
+    [MemberData(nameof(OverflowDimensions))]
+    public void Allocate_OverflowDimensions_SizeOverload_ThrowsInvalidMemoryOperationException(Size size)
         => Assert.Throws<InvalidMemoryOperationException>(() => this.MemoryAllocator.Allocate2D<Rgba32>(new Size(size)));
 
     [Theory]
-    [MemberData(nameof(InvalidLengths))]
-    public void Allocate_IncorrectAmount_ThrowsCorrect_InvalidMemoryOperationException_OverAligned(Size size)
+    [MemberData(nameof(OverflowDimensions))]
+    public void Allocate_OverflowDimensions_OverAligned_ThrowsInvalidMemoryOperationException(Size size)
         => Assert.Throws<InvalidMemoryOperationException>(() => this.MemoryAllocator.Allocate2DOveraligned<Rgba32>(size.Width, size.Height, 1));
 }

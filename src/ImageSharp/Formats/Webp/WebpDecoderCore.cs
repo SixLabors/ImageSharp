@@ -52,8 +52,6 @@ internal sealed class WebpDecoderCore : ImageDecoderCore, IDisposable
     /// </summary>
     private readonly BackgroundColorHandling backgroundColorHandling;
 
-    private readonly SegmentIntegrityHandling segmentIntegrityHandling;
-
     /// <summary>
     /// Initializes a new instance of the <see cref="WebpDecoderCore"/> class.
     /// </summary>
@@ -62,7 +60,6 @@ internal sealed class WebpDecoderCore : ImageDecoderCore, IDisposable
         : base(options.GeneralOptions)
     {
         this.backgroundColorHandling = options.BackgroundColorHandling;
-        this.segmentIntegrityHandling = options.GeneralOptions.SegmentIntegrityHandling;
         this.configuration = options.GeneralOptions.Configuration;
         this.skipMetadata = options.GeneralOptions.SkipMetadata;
         this.maxFrames = options.GeneralOptions.MaxFrames;
@@ -90,7 +87,7 @@ internal sealed class WebpDecoderCore : ImageDecoderCore, IDisposable
                         this.maxFrames,
                         this.skipMetadata,
                         this.backgroundColorHandling,
-                        this.segmentIntegrityHandling);
+                        this.ExecuteAncillarySegmentAction);
 
                     return animationDecoder.Decode<TPixel>(stream, this.webImageInfo.Features, this.webImageInfo.Width, this.webImageInfo.Height, fileSize);
                 }
@@ -149,7 +146,7 @@ internal sealed class WebpDecoderCore : ImageDecoderCore, IDisposable
                     this.maxFrames,
                     this.skipMetadata,
                     this.backgroundColorHandling,
-                    this.segmentIntegrityHandling);
+                    this.ExecuteAncillarySegmentAction);
 
                 return animationDecoder.Identify(
                     stream,
@@ -278,19 +275,21 @@ internal sealed class WebpDecoderCore : ImageDecoderCore, IDisposable
         Span<byte> buffer)
     {
         bool ignoreMetadata = this.skipMetadata;
-        SegmentIntegrityHandling integrityHandling = this.segmentIntegrityHandling;
         switch (chunkType)
         {
             case WebpChunkType.Iccp:
-                WebpChunkParsingUtils.ReadIccProfile(stream, metadata, ignoreMetadata, integrityHandling, buffer);
+
+                // While ICC profiles are optional, an invalid ICC profile cannot be ignored because it must
+                // precede the image data, and we cannot safely skip it without successfully reading its size.
+                WebpChunkParsingUtils.ReadIccProfile(stream, metadata, ignoreMetadata);
                 break;
 
             case WebpChunkType.Exif:
-                WebpChunkParsingUtils.ReadExifProfile(stream, metadata, ignoreMetadata, integrityHandling, buffer);
+                this.ExecuteAncillarySegmentAction(() => WebpChunkParsingUtils.ReadExifProfile(stream, metadata, ignoreMetadata));
                 break;
 
             case WebpChunkType.Xmp:
-                WebpChunkParsingUtils.ReadXmpProfile(stream, metadata, ignoreMetadata, integrityHandling, buffer);
+                this.ExecuteAncillarySegmentAction(() => WebpChunkParsingUtils.ReadXmpProfile(stream, metadata, ignoreMetadata));
                 break;
 
             case WebpChunkType.AnimationParameter:
@@ -320,7 +319,6 @@ internal sealed class WebpDecoderCore : ImageDecoderCore, IDisposable
     private void ParseOptionalChunks(BufferedReadStream stream, ImageMetadata metadata, WebpFeatures features, Span<byte> buffer)
     {
         bool ignoreMetadata = this.skipMetadata;
-        SegmentIntegrityHandling integrityHandling = this.segmentIntegrityHandling;
 
         if (ignoreMetadata || (!features.ExifProfile && !features.XmpMetaData))
         {
@@ -334,11 +332,11 @@ internal sealed class WebpDecoderCore : ImageDecoderCore, IDisposable
             WebpChunkType chunkType = WebpChunkParsingUtils.ReadChunkType(stream, buffer);
             if (chunkType == WebpChunkType.Exif && metadata.ExifProfile == null)
             {
-                WebpChunkParsingUtils.ReadExifProfile(stream, metadata, ignoreMetadata, integrityHandling, buffer);
+                this.ExecuteAncillarySegmentAction(() => WebpChunkParsingUtils.ReadExifProfile(stream, metadata, ignoreMetadata));
             }
             else if (chunkType == WebpChunkType.Xmp && metadata.XmpProfile == null)
             {
-                WebpChunkParsingUtils.ReadXmpProfile(stream, metadata, ignoreMetadata, integrityHandling, buffer);
+                this.ExecuteAncillarySegmentAction(() => WebpChunkParsingUtils.ReadXmpProfile(stream, metadata, ignoreMetadata));
             }
             else
             {

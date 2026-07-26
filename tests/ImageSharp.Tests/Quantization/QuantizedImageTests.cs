@@ -15,12 +15,12 @@ public class QuantizedImageTests
     {
         WernerPaletteQuantizer werner = new();
         WebSafePaletteQuantizer webSafe = new();
-        OctreeQuantizer octree = new();
+        HexadecatreeQuantizer hexadecatree = new();
         WuQuantizer wu = new();
 
         Assert.NotNull(werner.Options.Dither);
         Assert.NotNull(webSafe.Options.Dither);
-        Assert.NotNull(octree.Options.Dither);
+        Assert.NotNull(hexadecatree.Options.Dither);
         Assert.NotNull(wu.Options.Dither);
 
         using (IQuantizer<Rgba32> quantizer = werner.CreatePixelSpecificQuantizer<Rgba32>(this.Configuration))
@@ -33,7 +33,7 @@ public class QuantizedImageTests
             Assert.NotNull(quantizer.Options.Dither);
         }
 
-        using (IQuantizer<Rgba32> quantizer = octree.CreatePixelSpecificQuantizer<Rgba32>(this.Configuration))
+        using (IQuantizer<Rgba32> quantizer = hexadecatree.CreatePixelSpecificQuantizer<Rgba32>(this.Configuration))
         {
             Assert.NotNull(quantizer.Options.Dither);
         }
@@ -47,7 +47,7 @@ public class QuantizedImageTests
     [Theory]
     [WithFile(TestImages.Gif.Giphy, PixelTypes.Rgba32, true)]
     [WithFile(TestImages.Gif.Giphy, PixelTypes.Rgba32, false)]
-    public void OctreeQuantizerYieldsCorrectTransparentPixel<TPixel>(
+    public void HexadecatreeQuantizerYieldsCorrectTransparentPixel<TPixel>(
         TestImageProvider<TPixel> provider,
         bool dither)
         where TPixel : unmanaged, IPixel<TPixel>
@@ -60,7 +60,7 @@ public class QuantizedImageTests
             options.Dither = null;
         }
 
-        OctreeQuantizer quantizer = new(options);
+        HexadecatreeQuantizer quantizer = new(options);
 
         foreach (ImageFrame<TPixel> frame in image.Frames)
         {
@@ -103,8 +103,8 @@ public class QuantizedImageTests
         where TPixel : unmanaged, IPixel<TPixel>
     {
         using Image<TPixel> image = provider.GetImage();
-        OctreeQuantizer octreeQuantizer = new();
-        IQuantizer<TPixel> quantizer = octreeQuantizer.CreatePixelSpecificQuantizer<TPixel>(Configuration.Default, new QuantizerOptions { MaxColors = 128 });
+        HexadecatreeQuantizer hexadecatreeQuantizer = new();
+        IQuantizer<TPixel> quantizer = hexadecatreeQuantizer.CreatePixelSpecificQuantizer<TPixel>(Configuration.Default, new QuantizerOptions { MaxColors = 128 });
         ImageFrame<TPixel> frame = image.Frames[0];
         quantizer.BuildPaletteAndQuantizeFrame(frame, frame.Bounds);
     }

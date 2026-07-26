@@ -418,6 +418,21 @@ public partial class JpegDecoderTests
         image.CompareToReferenceOutput(provider);
     }
 
+    [Theory]
+    [WithFile(TestImages.Jpeg.ICC.Issue3064, PixelTypes.Rgba32)]
+    public void Decode_RGB_ICC_Jpeg_Issue3064<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        JpegDecoderOptions options = new()
+        {
+            GeneralOptions = new DecoderOptions { ColorProfileHandling = ColorProfileHandling.Convert }
+        };
+
+        using Image<TPixel> image = provider.GetImage(JpegDecoder.Instance, options);
+        image.DebugSave(provider);
+        image.CompareToReferenceOutput(provider);
+    }
+
     // https://github.com/SixLabors/ImageSharp/issues/2948
     [Theory]
     [WithFile(TestImages.Jpeg.Issues.Issue2948, PixelTypes.Rgb24)]
@@ -433,4 +448,80 @@ public partial class JpegDecoderTests
     [InlineData(TestImages.Jpeg.Issues.Issue2948)]
     public void Issue2948_No_SOS_Identify_Throws_InvalidImageContentException(string imagePath)
         => Assert.Throws<InvalidImageContentException>(() => _ = Image.Identify(TestFile.Create(imagePath).Bytes));
+
+    [Fact]
+    public void Issue_3071_Decode_TruncatedJpeg_Throws_InvalidImageContentException()
+        => Assert.Throws<InvalidImageContentException>(() =>
+        {
+            // SOI marker (FF D8) + garbage bytes — only 11 bytes
+            byte[] data = [0xFF, 0xD8, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30];
+            using Image<Rgba32> image = Image.Load<Rgba32>(data);
+        });
+
+    // https://github.com/SixLabors/ImageSharp/issues/3118
+    [Theory]
+    [WithFile(TestImages.Jpeg.Issues.Issue3118, PixelTypes.Rgb24)]
+    public void Issue3118_Multiple_SOF_WithSOS_DoesNotThrow<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage(JpegDecoder.Instance);
+        image.DebugSave(provider);
+    }
+
+    [Fact]
+    public void Identify_MalformedApp13Segment_IgnoresNonCriticalErrorsByDefault()
+    {
+        ImageInfo info = Image.Identify(CreateJpegWithMalformedApp13Segment());
+        Assert.True(info.Width > 0);
+        Assert.True(info.Height > 0);
+    }
+
+    [Fact]
+    public void Decode_MalformedApp13Segment_IgnoresNonCriticalErrorsByDefault()
+    {
+        using Image<Rgba32> image = Image.Load<Rgba32>(CreateJpegWithMalformedApp13Segment());
+        Assert.True(image.Width > 0);
+        Assert.True(image.Height > 0);
+    }
+
+    [Fact]
+    public void Identify_MalformedApp13Segment_ThrowsWithStrict()
+    {
+        DecoderOptions options = new() { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
+        Assert.Throws<InvalidImageContentException>(() => Image.Identify(options, CreateJpegWithMalformedApp13Segment()));
+    }
+
+    [Fact]
+    public void Decode_MalformedApp13Segment_ThrowsWithStrict()
+    {
+        DecoderOptions options = new() { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
+        Assert.Throws<InvalidImageContentException>(() =>
+        {
+            using Image<Rgba32> image = Image.Load<Rgba32>(options, CreateJpegWithMalformedApp13Segment());
+        });
+    }
+
+    private static byte[] CreateJpegWithMalformedApp13Segment()
+    {
+        byte[] source = TestFile.Create(TestImages.Jpeg.Baseline.Calliphora).Bytes;
+
+        // This APP13 segment starts with the valid "Photoshop 3.0\0" identifier, but the remaining
+        // payload does not begin with the required "8BIM" image resource block signature.
+        byte[] malformedApp13 =
+        [
+            0xFF, 0xED,
+            0x00, 0x1D,
+            (byte)'P', (byte)'h', (byte)'o', (byte)'t', (byte)'o', (byte)'s', (byte)'h', (byte)'o', (byte)'p', (byte)' ', (byte)'3', (byte)'.', (byte)'0', 0x00,
+            (byte)'B', (byte)'a', (byte)'d', (byte)'R', (byte)'e', (byte)'s', (byte)'o', (byte)'u', (byte)'r', (byte)'c', (byte)'e', (byte)'!', (byte)'!'
+        ];
+
+        byte[] payload = new byte[source.Length + malformedApp13.Length];
+        payload[0] = source[0];
+        payload[1] = source[1];
+
+        Buffer.BlockCopy(malformedApp13, 0, payload, 2, malformedApp13.Length);
+        Buffer.BlockCopy(source, 2, payload, 2 + malformedApp13.Length, source.Length - 2);
+
+        return payload;
+    }
 }

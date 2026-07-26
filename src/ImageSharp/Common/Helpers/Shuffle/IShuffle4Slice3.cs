@@ -1,85 +1,106 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using static SixLabors.ImageSharp.SimdUtils;
+using System.Runtime.Intrinsics;
+using SixLabors.ImageSharp.Common.Helpers;
 
 namespace SixLabors.ImageSharp;
 
-/// <inheritdoc/>
+/// <summary>
+/// Defines a stateless operation that reorders four packed components before retaining three.
+/// </summary>
 internal interface IShuffle4Slice3 : IComponentShuffle
 {
 }
 
-internal readonly struct DefaultShuffle4Slice3([ConstantExpected] byte control) : IShuffle4Slice3
-{
-    public byte Control { get; } = control;
-
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void ShuffleReduce(ref ReadOnlySpan<byte> source, ref Span<byte> destination)
-#pragma warning disable CA1857 // A constant is expected for the parameter
-        => HwIntrinsics.Shuffle4Slice3Reduce(ref source, ref destination, this.Control);
-#pragma warning restore CA1857 // A constant is expected for the parameter
-
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void Shuffle(ReadOnlySpan<byte> source, Span<byte> destination)
-    {
-        ref byte sBase = ref MemoryMarshal.GetReference(source);
-        ref byte dBase = ref MemoryMarshal.GetReference(destination);
-
-        SimdUtils.Shuffle.InverseMMShuffle(this.Control, out _, out uint p2, out uint p1, out uint p0);
-
-        for (nuint i = 0, j = 0; i < (uint)destination.Length; i += 3, j += 4)
-        {
-            Unsafe.Add(ref dBase, i + 0) = Unsafe.Add(ref sBase, p0 + j);
-            Unsafe.Add(ref dBase, i + 1) = Unsafe.Add(ref sBase, p1 + j);
-            Unsafe.Add(ref dBase, i + 2) = Unsafe.Add(ref sBase, p2 + j);
-        }
-    }
-}
-
+/// <summary>
+/// Preserves XYZ order and discards W.
+/// </summary>
 internal readonly struct XYZWShuffle4Slice3 : IShuffle4Slice3
 {
+    /// <inheritdoc />
     [MethodImpl(InliningOptions.ShortMethod)]
-    public void ShuffleReduce(ref ReadOnlySpan<byte> source, ref Span<byte> destination)
-        => HwIntrinsics.Shuffle4Slice3Reduce(ref source, ref destination, SimdUtils.Shuffle.MMShuffle3210);
+    public static uint Invoke(uint source) => source;
 
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public void Shuffle(ReadOnlySpan<byte> source, Span<byte> destination)
-    {
-        ref uint sBase = ref Unsafe.As<byte, uint>(ref MemoryMarshal.GetReference(source));
-        ref Byte3 dBase = ref Unsafe.As<byte, Byte3>(ref MemoryMarshal.GetReference(destination));
-
-        nint n = (nint)(uint)source.Length / 4;
-        nint m = Numerics.Modulo4(n);
-        nint u = n - m;
-
-        ref uint sLoopEnd = ref Unsafe.Add(ref sBase, u);
-        ref uint sEnd = ref Unsafe.Add(ref sBase, n);
-
-        while (Unsafe.IsAddressLessThan(ref sBase, ref sLoopEnd))
-        {
-            Unsafe.Add(ref dBase, 0) = Unsafe.As<uint, Byte3>(ref Unsafe.Add(ref sBase, 0));
-            Unsafe.Add(ref dBase, 1) = Unsafe.As<uint, Byte3>(ref Unsafe.Add(ref sBase, 1));
-            Unsafe.Add(ref dBase, 2) = Unsafe.As<uint, Byte3>(ref Unsafe.Add(ref sBase, 2));
-            Unsafe.Add(ref dBase, 3) = Unsafe.As<uint, Byte3>(ref Unsafe.Add(ref sBase, 3));
-
-            sBase = ref Unsafe.Add(ref sBase, 4);
-            dBase = ref Unsafe.Add(ref dBase, 4);
-        }
-
-        while (Unsafe.IsAddressLessThan(ref sBase, ref sEnd))
-        {
-            Unsafe.Add(ref dBase, 0) = Unsafe.As<uint, Byte3>(ref Unsafe.Add(ref sBase, 0));
-
-            sBase = ref Unsafe.Add(ref sBase, 1);
-            dBase = ref Unsafe.Add(ref dBase, 1);
-        }
-    }
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector128<byte> Invoke(Vector128<byte> source) => source;
 }
 
+/// <summary>
+/// Reorders XYZW components to YZW before discarding X.
+/// </summary>
+internal readonly struct YZWXShuffle4Slice3 : IShuffle4Slice3
+{
+    /// <inheritdoc />
+    [MethodImpl(InliningOptions.ShortMethod)]
+    public static uint Invoke(uint source)
+
+        // Reuse the four-component rotation; the caller stores only the low YZW
+        // bytes and therefore discards the rotated X byte.
+        => YZWXShuffle4.Invoke(source);
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector128<byte> Invoke(Vector128<byte> source)
+
+        // Each four-byte group is an XYZW pixel. Selecting [1, 2, 3, 0] produces
+        // YZWX, and offsets 4, 8, and 12 repeat that rotation for the next pixels.
+        // The surrounding pipeline subsequently removes every fourth byte.
+        => Vector128_.ShuffleNative(source, Vector128.Create((byte)1, 2, 3, 0, 5, 6, 7, 4, 9, 10, 11, 8, 13, 14, 15, 12));
+}
+
+/// <summary>
+/// Reorders XYZW components to WZY before discarding X.
+/// </summary>
+internal readonly struct WZYXShuffle4Slice3 : IShuffle4Slice3
+{
+    /// <inheritdoc />
+    [MethodImpl(InliningOptions.ShortMethod)]
+    public static uint Invoke(uint source)
+
+        // Reuse the four-component reversal; the caller stores only the low WZY
+        // bytes and therefore discards the reversed X byte.
+        => WZYXShuffle4.Invoke(source);
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector128<byte> Invoke(Vector128<byte> source)
+
+        // Each four-byte group is an XYZW pixel. Selecting [3, 2, 1, 0] produces
+        // WZYX, and offsets 4, 8, and 12 repeat that reversal for the next pixels.
+        // The surrounding pipeline subsequently removes every fourth byte.
+        => Vector128_.ShuffleNative(source, Vector128.Create((byte)3, 2, 1, 0, 7, 6, 5, 4, 11, 10, 9, 8, 15, 14, 13, 12));
+}
+
+/// <summary>
+/// Reorders XYZW components to ZYX before discarding W.
+/// </summary>
+internal readonly struct ZYXWShuffle4Slice3 : IShuffle4Slice3
+{
+    /// <inheritdoc />
+    [MethodImpl(InliningOptions.ShortMethod)]
+    public static uint Invoke(uint source)
+
+        // Reuse the four-component exchange; the caller stores only the low ZYX
+        // bytes and therefore discards the preserved W byte.
+        => ZYXWShuffle4.Invoke(source);
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector128<byte> Invoke(Vector128<byte> source)
+
+        // Each four-byte group is an XYZW pixel. Selecting [2, 1, 0, 3] produces
+        // ZYXW, and offsets 4, 8, and 12 repeat that exchange for the next pixels.
+        // The surrounding pipeline subsequently removes every fourth byte.
+        => Vector128_.ShuffleNative(source, Vector128.Create((byte)2, 1, 0, 3, 6, 5, 4, 7, 10, 9, 8, 11, 14, 13, 12, 15));
+}
+
+/// <summary>
+/// Represents one tightly packed three-byte value for scalar four-to-three component writes.
+/// </summary>
 [StructLayout(LayoutKind.Explicit, Size = 3)]
 internal readonly struct Byte3
 {

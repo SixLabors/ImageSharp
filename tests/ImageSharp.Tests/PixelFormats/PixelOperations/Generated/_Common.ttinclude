@@ -29,32 +29,47 @@ using Xunit.Abstractions;
         "Rgba1010102",
         "Rgba32",
         "Rgba64",
+        "RgbaHalf",
         "RgbaVector",
         "Short4"
             ];
 
-    private static readonly string[] AssociatedAlphaPixelTypes = [];
+    private static readonly string[] AssociatedAlphaPixelTypes =
+        [
+            "Argb32P",
+        "Abgr32P",
+        "Bgra32P",
+        "HalfVector4P",
+        "NormalizedByte4P",
+        "Rgba32P",
+        "RgbaHalfP"
+            ];
 
     private static readonly string[] CommonPixelTypes =
         [
             "A8",
         "Argb32",
+        "Argb32P",
         "Abgr32",
+        "Abgr32P",
         "Bgr24",
         "Bgr565",
         "Bgra32",
+        "Bgra32P",
         "Bgra4444",
         "Bgra5551",
         "Byte4",
         "HalfSingle",
         "HalfVector2",
         "HalfVector4",
+        "HalfVector4P",
         "L16",
         "L8",
         "La16",
         "La32",
         "NormalizedByte2",
         "NormalizedByte4",
+        "NormalizedByte4P",
         "NormalizedShort2",
         "NormalizedShort4",
         "Rg32",
@@ -62,7 +77,10 @@ using Xunit.Abstractions;
         "Rgb48",
         "Rgba1010102",
         "Rgba32",
+        "Rgba32P",
         "Rgba64",
+        "RgbaHalf",
+        "RgbaHalfP",
         "RgbaVector",
         "Short2",
         "Short4"

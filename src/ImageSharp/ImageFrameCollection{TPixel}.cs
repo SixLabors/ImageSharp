@@ -27,11 +27,16 @@ public sealed class ImageFrameCollection<TPixel> : ImageFrameCollection, IEnumer
     }
 
     internal ImageFrameCollection(Image<TPixel> parent, int width, int height, MemoryGroup<TPixel> memorySource)
+        : this(parent, width, height, width, memorySource)
+    {
+    }
+
+    internal ImageFrameCollection(Image<TPixel> parent, int width, int height, int rowStride, MemoryGroup<TPixel> memorySource)
     {
         this.parent = parent ?? throw new ArgumentNullException(nameof(parent));
 
         // Frames are already cloned within the caller
-        this.frames.Add(new ImageFrame<TPixel>(parent.Configuration, width, height, memorySource));
+        this.frames.Add(new ImageFrame<TPixel>(parent.Configuration, width, height, rowStride, memorySource));
     }
 
     internal ImageFrameCollection(Image<TPixel> parent, IEnumerable<ImageFrame<TPixel>> frames)
@@ -416,7 +421,7 @@ public sealed class ImageFrameCollection<TPixel> : ImageFrameCollection, IEnumer
             this.parent.Configuration,
             source.Size,
             source.Metadata.DeepClone());
-        source.CopyPixelsTo(result.PixelBuffer.FastMemoryGroup);
+        source.CopyPixelsTo(result.PixelBuffer);
         return result;
     }
 }

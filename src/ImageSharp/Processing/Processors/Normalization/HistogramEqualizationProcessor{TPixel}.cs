@@ -4,6 +4,7 @@
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Normalization;
@@ -115,10 +116,7 @@ internal abstract class HistogramEqualizationProcessor<TPixel> : ImageProcessor<
         int addToEachBin = sumOverClip > 0 ? (int)MathF.Floor(sumOverClip / this.luminanceLevelsFloat) : 0;
         if (addToEachBin > 0)
         {
-            for (nuint i = 0; i < (uint)histogram.Length; i++)
-            {
-                Unsafe.Add(ref histogramBase, i) += addToEachBin;
-            }
+            TensorPrimitives_.Add(histogram, addToEachBin, histogram);
         }
 
         int residual = sumOverClip - (addToEachBin * this.LuminanceLevels);
@@ -142,7 +140,8 @@ internal abstract class HistogramEqualizationProcessor<TPixel> : ImageProcessor<
     public static int GetLuminance(TPixel sourcePixel, int luminanceLevels)
     {
         // TODO: We need a bulk per span equivalent.
-        Vector4 vector = sourcePixel.ToVector4();
-        return ColorNumerics.GetBT709Luminance(ref vector, luminanceLevels);
+        // Histogram bins describe logical color, so storage alpha association must not scale luminance.
+        Vector4 vector = sourcePixel.ToUnassociatedScaledVector4();
+        return ColorNumerics.GetBT709Luminance(vector, luminanceLevels);
     }
 }

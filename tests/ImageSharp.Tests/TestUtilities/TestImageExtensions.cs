@@ -505,7 +505,7 @@ public static class TestImageExtensions
     public static void CompareBuffers<T>(Buffer2D<T> expected, Buffer2D<T> actual)
         where T : struct, IEquatable<T>
     {
-        Assert.True(expected.Size() == actual.Size(), "Buffer sizes are not equal!");
+        Assert.True(expected.Size == actual.Size, "Buffer sizes are not equal!");
 
         for (int y = 0; y < expected.Height; y++)
         {
@@ -826,14 +826,17 @@ public static class TestImageExtensions
                 for (int y = rows.Min; y < rows.Max; y++)
                 {
                     Span<TPixel> rowSpan = this.source.DangerousGetRowSpan(y).Slice(this.bounds.Left, this.bounds.Width);
-                    PixelOperations<TPixel>.Instance.ToVector4(this.configuration, rowSpan, span, PixelConversionModifiers.Scale);
+                    PixelOperations<TPixel>.Instance.ToVector4(this.configuration, rowSpan, span, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
+
                     for (int i = 0; i < span.Length; i++)
                     {
                         ref Vector4 v = ref span[i];
                         v.W = 1F;
                     }
 
-                    PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, span, rowSpan, PixelConversionModifiers.Scale);
+                    // Changing opacity must operate on logical RGB. The representation-aware bulk conversion prevents associated
+                    // formats from retaining the darker RGB values that belonged to the old alpha.
+                    PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, span, rowSpan, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
                 }
             }
         }

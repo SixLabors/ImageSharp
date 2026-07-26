@@ -5,8 +5,8 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
-using System.Runtime.Intrinsics.Arm;
 using System.Runtime.Intrinsics.X86;
+using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Encoder;
@@ -116,52 +116,9 @@ internal class ComponentProcessor : IDisposable
         }
 
         static void SumVertical(Span<float> target, Span<float> source)
-        {
-            if (Avx.IsSupported)
-            {
-                ref Vector256<float> targetVectorRef = ref Unsafe.As<float, Vector256<float>>(ref MemoryMarshal.GetReference(target));
-                ref Vector256<float> sourceVectorRef = ref Unsafe.As<float, Vector256<float>>(ref MemoryMarshal.GetReference(source));
 
-                // Spans are guaranteed to be multiple of 8 so no extra 'remainder' steps are needed
-                DebugGuard.IsTrue(source.Length % 8 == 0, "source must be multiple of 8");
-                nuint count = source.Vector256Count<float>();
-                for (nuint i = 0; i < count; i++)
-                {
-                    Unsafe.Add(ref targetVectorRef, i) = Avx.Add(Unsafe.Add(ref targetVectorRef, i), Unsafe.Add(ref sourceVectorRef, i));
-                }
-            }
-            else if (AdvSimd.IsSupported)
-            {
-                ref Vector128<float> targetVectorRef = ref Unsafe.As<float, Vector128<float>>(ref MemoryMarshal.GetReference(target));
-                ref Vector128<float> sourceVectorRef = ref Unsafe.As<float, Vector128<float>>(ref MemoryMarshal.GetReference(source));
-
-                // Spans are guaranteed to be multiple of 8 so no extra 'remainder' steps are needed
-                DebugGuard.IsTrue(source.Length % 8 == 0, "source must be multiple of 8");
-                nuint count = source.Vector128Count<float>();
-                for (nuint i = 0; i < count; i++)
-                {
-                    Unsafe.Add(ref targetVectorRef, i) = AdvSimd.Add(Unsafe.Add(ref targetVectorRef, i), Unsafe.Add(ref sourceVectorRef, i));
-                }
-            }
-            else
-            {
-                ref Vector<float> targetVectorRef = ref Unsafe.As<float, Vector<float>>(ref MemoryMarshal.GetReference(target));
-                ref Vector<float> sourceVectorRef = ref Unsafe.As<float, Vector<float>>(ref MemoryMarshal.GetReference(source));
-
-                nuint count = source.VectorCount<float>();
-                for (nuint i = 0; i < count; i++)
-                {
-                    Unsafe.Add(ref targetVectorRef, i) += Unsafe.Add(ref sourceVectorRef, i);
-                }
-
-                ref float targetRef = ref MemoryMarshal.GetReference(target);
-                ref float sourceRef = ref MemoryMarshal.GetReference(source);
-                for (nuint i = count * (uint)Vector<float>.Count; i < (uint)source.Length; i++)
-                {
-                    Unsafe.Add(ref targetRef, i) += Unsafe.Add(ref sourceRef, i);
-                }
-            }
-        }
+            // Exact destination overlap is supported, so each accumulated row remains in target.
+            => TensorPrimitives_.Add(target, source, target);
 
         static void SumHorizontal(Span<float> target, int factor)
         {
@@ -209,50 +166,8 @@ internal class ComponentProcessor : IDisposable
         }
 
         static void MultiplyToAverage(Span<float> target, float multiplier)
-        {
-            if (Avx.IsSupported)
-            {
-                ref Vector256<float> targetVectorRef = ref Unsafe.As<float, Vector256<float>>(ref MemoryMarshal.GetReference(target));
 
-                // Spans are guaranteed to be multiple of 8 so no extra 'remainder' steps are needed
-                DebugGuard.IsTrue(target.Length % 8 == 0, "target must be multiple of 8");
-                nuint count = target.Vector256Count<float>();
-                Vector256<float> multiplierVector = Vector256.Create(multiplier);
-                for (nuint i = 0; i < count; i++)
-                {
-                    Unsafe.Add(ref targetVectorRef, i) = Avx.Multiply(Unsafe.Add(ref targetVectorRef, i), multiplierVector);
-                }
-            }
-            else if (AdvSimd.IsSupported)
-            {
-                ref Vector128<float> targetVectorRef = ref Unsafe.As<float, Vector128<float>>(ref MemoryMarshal.GetReference(target));
-
-                // Spans are guaranteed to be multiple of 8 so no extra 'remainder' steps are needed
-                DebugGuard.IsTrue(target.Length % 8 == 0, "target must be multiple of 8");
-                nuint count = target.Vector128Count<float>();
-                Vector128<float> multiplierVector = Vector128.Create(multiplier);
-                for (nuint i = 0; i < count; i++)
-                {
-                    Unsafe.Add(ref targetVectorRef, i) = AdvSimd.Multiply(Unsafe.Add(ref targetVectorRef, i), multiplierVector);
-                }
-            }
-            else
-            {
-                ref Vector<float> targetVectorRef = ref Unsafe.As<float, Vector<float>>(ref MemoryMarshal.GetReference(target));
-
-                nuint count = target.VectorCount<float>();
-                Vector<float> multiplierVector = new(multiplier);
-                for (nuint i = 0; i < count; i++)
-                {
-                    Unsafe.Add(ref targetVectorRef, i) *= multiplierVector;
-                }
-
-                ref float targetRef = ref MemoryMarshal.GetReference(target);
-                for (nuint i = count * (uint)Vector<float>.Count; i < (uint)target.Length; i++)
-                {
-                    Unsafe.Add(ref targetRef, i) *= multiplier;
-                }
-            }
-        }
+            // Apply the subsampling reciprocal in place after all contributing rows have been summed.
+            => TensorPrimitives_.Multiply(target, multiplier, target);
     }
 }

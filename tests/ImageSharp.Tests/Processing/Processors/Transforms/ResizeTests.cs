@@ -3,6 +3,7 @@
 
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using SixLabors.ImageSharp.ColorProfiles.Companding;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
@@ -226,6 +227,72 @@ public class ResizeTests
             details,
             appendPixelTypeToFileName: false,
             appendSourceFileOrDescription: false);
+    }
+
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public void Resize_AppliesAlphaOptionsForUnassociatedPixels(bool compand, bool premultiplyAlpha)
+        => AssertResizeAlphaOptions<NormalizedByte4>(compand, premultiplyAlpha);
+
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public void Resize_AppliesAlphaOptionsForAssociatedPixels(bool compand, bool premultiplyAlpha)
+        => AssertResizeAlphaOptions<NormalizedByte4P>(compand, premultiplyAlpha);
+
+    private static void AssertResizeAlphaOptions<TPixel>(bool compand, bool premultiplyAlpha)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = new(2, 1);
+        image[0, 0] = TPixel.FromUnassociatedScaledVector4(new Vector4(0.9F, 0.2F, 0.1F, 0.8F));
+        image[1, 0] = TPixel.FromUnassociatedScaledVector4(new Vector4(0.1F, 0.8F, 0.6F, 0.2F));
+
+        // Read the stored pixels back through the scalar contract so the oracle includes the source format's actual quantization.
+        Vector4 expectedVector = image[0, 0].ToUnassociatedScaledVector4();
+        Vector4 second = image[1, 0].ToUnassociatedScaledVector4();
+
+        if (compand)
+        {
+            expectedVector = SRgbCompanding.Expand(expectedVector);
+            second = SRgbCompanding.Expand(second);
+        }
+
+        if (premultiplyAlpha)
+        {
+            Numerics.Premultiply(ref expectedVector);
+            Numerics.Premultiply(ref second);
+        }
+
+        expectedVector = (expectedVector + second) / 2F;
+
+        if (premultiplyAlpha)
+        {
+            Numerics.UnPremultiply(ref expectedVector);
+        }
+
+        if (compand)
+        {
+            expectedVector = SRgbCompanding.Compress(expectedVector);
+        }
+
+        TPixel expected = TPixel.FromUnassociatedScaledVector4(expectedVector);
+        ResizeOptions options = new()
+        {
+            Size = new Size(1, 1),
+            Mode = ResizeMode.Stretch,
+            Sampler = KnownResamplers.Box,
+            Compand = compand,
+            PremultiplyAlpha = premultiplyAlpha
+        };
+
+        image.Mutate(context => context.Resize(options));
+
+        Assert.Equal(expected, image[0, 0]);
     }
 
     [Theory]
@@ -630,6 +697,20 @@ public class ResizeTests
             x => x.Resize(30, 30),
             appendPixelTypeToFileName: false,
             appendSourceFileOrDescription: false);
+    }
+
+    [Theory]
+    [InlineData(1024)]
+    [InlineData(2048)]
+    public void Issue3156_CanResizeLargeSquareToSinglePixel(int length)
+    {
+        Rgba32 white = Color.White.ToPixel<Rgba32>();
+        using Image<Rgba32> image = new(length, length, white);
+
+        image.Mutate(x => x.Resize(1, 1));
+
+        Assert.Equal(new Size(1, 1), image.Size);
+        Assert.Equal(white, image[0, 0]);
     }
 
     [Theory]

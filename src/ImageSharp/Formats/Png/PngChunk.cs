@@ -43,11 +43,11 @@ internal readonly struct PngChunk
     /// </summary>
     /// <param name="handling">The segment handling behavior.</param>
     public bool IsCritical(SegmentIntegrityHandling handling)
-        => handling switch
+        => this.Type switch
         {
-            SegmentIntegrityHandling.IgnoreNone => true,
-            SegmentIntegrityHandling.IgnoreNonCritical => this.Type is PngChunkType.Header or PngChunkType.Palette or PngChunkType.Data or PngChunkType.FrameData,
-            SegmentIntegrityHandling.IgnoreData => this.Type is PngChunkType.Header or PngChunkType.Palette,
-            _ => false,
+            PngChunkType.Header => true,
+            PngChunkType.Palette => true,
+            PngChunkType.Data or PngChunkType.FrameData => handling < SegmentIntegrityHandling.IgnoreImageData,
+            _ => handling < SegmentIntegrityHandling.IgnoreAncillary,
         };
 }

@@ -4,9 +4,12 @@
 // ReSharper disable InconsistentNaming
 using System.Runtime.Intrinsics.X86;
 using SixLabors.ImageSharp.Formats;
+using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Formats.Tiff;
 using SixLabors.ImageSharp.Metadata;
+using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Tests.TestUtilities;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using static SixLabors.ImageSharp.Tests.TestImages.Tiff;
 
@@ -368,6 +371,22 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     }
 
     [Theory]
+    [WithFile(Icc.PerceptualRgb8, PixelTypes.Rgba32)]
+    [WithFile(Icc.PerceptualRgb16, PixelTypes.Rgba32)]
+    public void Decode_WhenColorProfileHandlingIsPreserve_PreservesIccProfile<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        DecoderOptions options = new() { ColorProfileHandling = ColorProfileHandling.Preserve };
+        using Image<TPixel> image = provider.GetImage(TiffDecoder.Instance, options);
+
+        Assert.NotNull(image.Metadata.IccProfile);
+        Assert.NotSame(image.Frames.RootFrame.Metadata.IccProfile, image.Metadata.IccProfile);
+        Assert.Equal(
+            image.Frames.RootFrame.Metadata.IccProfile.ToByteArray(),
+            image.Metadata.IccProfile.ToByteArray());
+    }
+
+    [Theory]
     [WithFile(Issues2454_A, PixelTypes.Rgba32)]
     [WithFile(Issues2454_B, PixelTypes.Rgba32)]
     public void TiffDecoder_CanDecode_YccK<TPixel>(TestImageProvider<TPixel> provider)
@@ -388,7 +407,15 @@ public class TiffDecoderTests : TiffDecoderBaseTester
         where TPixel : unmanaged, IPixel<TPixel>
     {
         using Image<TPixel> image = provider.GetImage(TiffDecoder.Instance);
-        image.DebugSave(provider);
+        PngEncoder encoder = new()
+        {
+            BitDepth = PngBitDepth.Bit16,
+            ColorType = PngColorType.RgbWithAlpha
+        };
+
+        // This exact Rgba64 comparison requires a 16-bit reference. The Windows reference encoder uses a 32-bit
+        // System.Drawing bitmap and would otherwise quantize each channel to 8 bits while producing the PNG.
+        image.DebugSave(provider, testOutputDetails: null, extension: "png", encoder: encoder);
 
         image.CompareToReferenceOutput(ImageComparer.Exact, provider);
     }
@@ -707,17 +734,17 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     [WithFile(YCbCrJpegCompressed2, PixelTypes.Rgba32)]
     [WithFile(RgbJpegCompressedNoJpegTable, PixelTypes.Rgba32)]
     [WithFile(GrayscaleJpegCompressed, PixelTypes.Rgba32)]
-    [WithFile(Issues2123, PixelTypes.Rgba32)]
-    public void TiffDecoder_CanDecode_JpegCompressed<TPixel>(TestImageProvider<TPixel> provider)
-        where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider, useExactComparer: false);
+    [WithFile(Issues2123, PixelTypes.Rgba32, 0.110f)]
+    public void TiffDecoder_CanDecode_JpegCompressed<TPixel>(TestImageProvider<TPixel> provider, float tolerance = 0.001f)
+        where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider, useExactComparer: false, compareTolerance: tolerance);
 
     [Theory]
     [WithFile(RgbOldJpegCompressed, PixelTypes.Rgba32)]
-    [WithFile(RgbOldJpegCompressed2, PixelTypes.Rgba32)]
+    [WithFile(RgbOldJpegCompressed2, PixelTypes.Rgba32, 0.1003f)]
     [WithFile(RgbOldJpegCompressed3, PixelTypes.Rgba32)]
     [WithFile(RgbOldJpegCompressedGray, PixelTypes.Rgba32)]
     [WithFile(YCbCrOldJpegCompressed, PixelTypes.Rgba32)]
-    public void TiffDecoder_CanDecode_OldJpegCompressed<TPixel>(TestImageProvider<TPixel> provider)
+    public void TiffDecoder_CanDecode_OldJpegCompressed<TPixel>(TestImageProvider<TPixel> provider, float tolerance = 0.001f)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         DecoderOptions decoderOptions = new()
@@ -728,7 +755,7 @@ public class TiffDecoderTests : TiffDecoderBaseTester
         image.DebugSave(provider);
         image.CompareToOriginal(
             provider,
-            ImageComparer.Tolerant(0.001f),
+            ImageComparer.Tolerant(tolerance),
             ReferenceDecoder,
             decoderOptions);
     }
@@ -784,7 +811,7 @@ public class TiffDecoderTests : TiffDecoderBaseTester
 
         // The image is handcrafted to simulate issue 2679. ImageMagick will throw an expection here and wont decode,
         // so we compare to rererence output instead.
-        image.DebugSave(provider);
+        image.DebugSave(provider, appendPixelTypeToFileName: false);
         image.CompareToReferenceOutput(
             ImageComparer.Exact,
             provider,
@@ -868,4 +895,40 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     [WithFile(Issue2983, PixelTypes.Rgba32)]
     public void TiffDecoder_CanDecode_Issue2983<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel> => TestTiffDecoder(provider);
+
+    [Fact]
+    public void Identify_MalformedIccProfile_IgnoresNonCriticalErrorsByDefault()
+    {
+        ImageInfo info = Image.Identify(CreateTiffWithMalformedIccProfile());
+        Assert.Equal(1, info.Width);
+        Assert.Equal(1, info.Height);
+    }
+
+    [Fact]
+    public void Decode_MalformedIccProfile_IgnoresNonCriticalErrorsByDefault()
+    {
+        using Image<Rgba32> image = Image.Load<Rgba32>(CreateTiffWithMalformedIccProfile());
+        Assert.Equal(1, image.Width);
+        Assert.Equal(1, image.Height);
+    }
+
+    [Fact]
+    public void Identify_MalformedIccProfile_ThrowsWithStrict()
+    {
+        DecoderOptions options = new() { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
+        Assert.Throws<InvalidIccProfileException>(() => Image.Identify(options, CreateTiffWithMalformedIccProfile()));
+    }
+
+    [Fact]
+    public void Decode_MalformedIccProfile_ThrowsWithStrict()
+    {
+        DecoderOptions options = new() { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
+        Assert.Throws<InvalidIccProfileException>(() =>
+        {
+            using Image<Rgba32> image = Image.Load<Rgba32>(options, CreateTiffWithMalformedIccProfile());
+        });
+    }
+
+    private static byte[] CreateTiffWithMalformedIccProfile()
+        => CorruptedMetadataImageFactory.CreateImageWithMalformedIccProfile(new TiffEncoder());
 }

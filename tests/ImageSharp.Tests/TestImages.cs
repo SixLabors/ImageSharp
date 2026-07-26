@@ -76,8 +76,12 @@ public static class TestImages
         public const string BlendOverMultiple = "Png/animated/21-blend-over-multiple.png";
         public const string FrameOffset = "Png/animated/frame-offset.png";
         public const string DefaultNotAnimated = "Png/animated/default-not-animated.png";
+        public const string AnimatedFrameCount = "Png/animated/issue-animated-frame-count.png";
         public const string Issue2666 = "Png/issues/Issue_2666.png";
         public const string Issue2882 = "Png/issues/Issue_2882.png";
+        public const string Issue396Dragon = "Png/issues/Issue_396_dragon.png";
+        public const string Issue396Hand1 = "Png/issues/Issue_396_hand_1.png";
+        public const string Issue396Hand2 = "Png/issues/Issue_396_hand_2.png";
 
         // Filtered test images from http://www.schaik.com/pngsuite/pngsuite_fil_png.html
         public const string Filter0 = "Png/filter0.png";
@@ -176,6 +180,21 @@ public static class TestImages
             public const string PerceptualcLUTOnly = "Png/icc-profiles/Perceptual-cLUT-only.png";
         }
 
+        public static class Cgbi
+        {
+            public const string Colors = "Png/cgbi/colors.png";
+            public const string Clocks = "Png/cgbi/clocks.png";
+            public const string Flecks = "Png/cgbi/flecks.png";
+            public const string Screen = "Png/cgbi/screen.png";
+
+            // Issue 410: https://github.com/SixLabors/ImageSharp/issues/410
+            public const string Issue410 = "Png/issues/Issue_410.png";
+
+            // Synthetic fixtures derived from colors.png to exercise CgBI validation.
+            public const string BitDepth16 = "Png/cgbi/colors-cgbi-bitdepth16.png";
+            public const string Palette = "Png/cgbi/colors-cgbi-palette.png";
+        }
+
         public static class Bad
         {
             public const string MissingDataChunk = "Png/xdtn0g01.png";
@@ -197,9 +216,6 @@ public static class TestImages
 
             // Issue 1047: https://github.com/SixLabors/ImageSharp/issues/1047
             public const string Issue1047_BadEndChunk = "Png/issues/Issue_1047.png";
-
-            // Issue 410: https://github.com/SixLabors/ImageSharp/issues/410
-            public const string Issue410_MalformedApplePng = "Png/issues/Issue_410.png";
 
             // Bad bit depth.
             public const string BitDepthZero = "Png/xd0n2c08.png";
@@ -232,6 +248,7 @@ public static class TestImages
             public const string SRgbGray = "Jpg/icc-profiles/sRGB_Gray.jpg";
             public const string Perceptual = "Jpg/icc-profiles/Perceptual.jpg";
             public const string PerceptualcLUTOnly = "Jpg/icc-profiles/Perceptual-cLUT-only.jpg";
+            public const string Issue3064 = "Jpg/icc-profiles/issue-3064.jpg";
         }
 
         public static class Progressive
@@ -359,6 +376,7 @@ public static class TestImages
             public const string Issue2758 = "Jpg/issues/issue-2758.jpg";
             public const string Issue2857 = "Jpg/issues/issue-2857-subsub-ifds.jpg";
             public const string Issue2948 = "Jpg/issues/issue-2948-sos.jpg";
+            public const string Issue3118 = "Jpg/issues/issue3118-multiple-sof.jpg";
 
             public static class Fuzz
             {
@@ -600,6 +618,7 @@ public static class TestImages
             public const string Issue2859_B = "Gif/issues/issue_2859_B.gif";
             public const string Issue2953 = "Gif/issues/issue_2953.gif";
             public const string Issue2980 = "Gif/issues/issue_2980.gif";
+            public const string Issue3142 = "Gif/issues/issue_3142.gif";
         }
 
         public static readonly string[] Animated =
@@ -621,7 +640,8 @@ public static class TestImages
             Issues.BadDescriptorWidth,
             Issues.Issue1530,
             Bit18RGBCube,
-            Global256NoTrans
+            Global256NoTrans,
+            Issues.Issue3142
         ];
     }
 
@@ -1385,5 +1405,24 @@ public static class TestImages
         public const string Work = "Ani/Work.ani";
         public const string MultiFramesInEveryIconChunk = "Ani/aero_busy.ani";
         public const string Help = "Ani/Help.ani";
+    }
+
+    public static class Exr
+    {
+        public const string Benchmark = "Exr/Calliphora_benchmark.exr";
+        public const string Uncompressed = "Exr/Calliphora_uncompressed.exr";
+        public const string UncompressedRgba = "Exr/Calliphora_uncompressed_rgba.exr";
+        public const string UncompressedFloatRgb = "Exr/Calliphora_float_uncompressed.exr";
+        public const string UncompressedUintRgb = "Exr/Calliphora_uint32_uncompressed.exr";
+        public const string UintRgba = "Exr/rgba_uint_uncompressed.exr";
+        public const string Zip = "Exr/Calliphora_zip.exr";
+        public const string Zips = "Exr/Calliphora_zips.exr";
+        public const string Rle = "Exr/Calliphora_rle.exr";
+        public const string B44 = "Exr/Calliphora_b44.exr";
+        public const string Pxr24Half = "Exr/Calliphora_half_pxr24.exr";
+        public const string Pxr24Float = "Exr/Calliphora_float_pxr24.exr";
+        public const string Pxr24Uint = "Exr/Calliphora_uint_pxr24.exr";
+        public const string Rgb = "Exr/Calliphora_rgb.exr";
+        public const string Gray = "Exr/Calliphora_gray.exr";
     }
 }

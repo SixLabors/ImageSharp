@@ -204,12 +204,19 @@ public class IcoDecoderTests
     }
 
     [Theory]
-    [WithFile(InvalidAll, PixelTypes.Rgba32)]
     [WithFile(InvalidBpp, PixelTypes.Rgba32)]
+    public void InvalidThrows_InvalidImageContentException(TestImageProvider<Rgba32> provider)
+        => Assert.Throws<InvalidImageContentException>(() =>
+        {
+            using Image<Rgba32> image = provider.GetImage(IcoDecoder.Instance);
+        });
+
+    [Theory]
+    [WithFile(InvalidAll, PixelTypes.Rgba32)]
     [WithFile(InvalidCompression, PixelTypes.Rgba32)]
     [WithFile(InvalidRLE4, PixelTypes.Rgba32)]
     [WithFile(InvalidRLE8, PixelTypes.Rgba32)]
-    public void InvalidTest(TestImageProvider<Rgba32> provider)
+    public void InvalidThows_NotSupportedException(TestImageProvider<Rgba32> provider)
         => Assert.Throws<NotSupportedException>(() =>
         {
             using Image<Rgba32> image = provider.GetImage(IcoDecoder.Instance);

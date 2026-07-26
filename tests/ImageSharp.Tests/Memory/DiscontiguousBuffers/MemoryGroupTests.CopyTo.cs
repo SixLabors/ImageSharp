@@ -9,100 +9,74 @@ public partial class MemoryGroupTests
 {
     public class CopyTo : MemoryGroupTestsBase
     {
-        public static readonly TheoryData<int, int, int, int> WhenSourceBufferIsShorterOrEqual_Data =
-            CopyAndTransformData;
-
-        [Theory]
-        [MemberData(nameof(WhenSourceBufferIsShorterOrEqual_Data))]
-        public void WhenSourceBufferIsShorterOrEqual(int srcTotal, int srcBufLen, int trgTotal, int trgBufLen)
+        [Fact]
+        public void GroupToSpan_StridedSource_DoesNotRequireTrailingPadding()
         {
-            using MemoryGroup<int> src = this.CreateTestGroup(srcTotal, srcBufLen, true);
-            using MemoryGroup<int> trg = this.CreateTestGroup(trgTotal, trgBufLen, false);
+            using MemoryGroup<int> src = this.CreateTestGroup(totalLength: 7, bufferLength: 4, fillSequence: true);
+            int[] trg = new int[6];
 
-            src.CopyTo(trg);
+            src.CopyTo(
+                sourceStride: 4,
+                trg,
+                targetStride: 3,
+                width: 3,
+                height: 2);
 
-            int pos = 0;
-            MemoryGroupIndex i = src.MinIndex();
-            MemoryGroupIndex j = trg.MinIndex();
-            for (; i < src.MaxIndex(); i += 1, j += 1, pos++)
-            {
-                int a = src.GetElementAt(i);
-                int b = trg.GetElementAt(j);
-
-                Assert.True(a == b, $"Mismatch @ {pos} Expected: {a} Actual: {b}");
-            }
+            Assert.Equal(new[] { 1, 2, 3, 5, 6, 7 }, trg);
         }
 
         [Fact]
-        public void WhenTargetBufferTooShort_Throws()
+        public void GroupToGroup_StridedCopy_DoesNotRequireTrailingPadding()
         {
-            using MemoryGroup<int> src = this.CreateTestGroup(10, 20, true);
-            using MemoryGroup<int> trg = this.CreateTestGroup(5, 20, false);
+            using MemoryGroup<int> src = this.CreateTestGroup(totalLength: 11, bufferLength: 5, fillSequence: true);
+            using MemoryGroup<int> trg = this.CreateTestGroup(totalLength: 13, bufferLength: 6, fillSequence: false);
 
-            Assert.Throws<ArgumentOutOfRangeException>(() => src.CopyTo(trg));
+            src.CopyTo(
+                sourceStride: 4,
+                trg,
+                targetStride: 5,
+                width: 3,
+                height: 3);
+
+            Assert.Equal(1, GetElementAtLinearIndex(trg, 0));
+            Assert.Equal(2, GetElementAtLinearIndex(trg, 1));
+            Assert.Equal(3, GetElementAtLinearIndex(trg, 2));
+            Assert.Equal(5, GetElementAtLinearIndex(trg, 5));
+            Assert.Equal(6, GetElementAtLinearIndex(trg, 6));
+            Assert.Equal(7, GetElementAtLinearIndex(trg, 7));
+            Assert.Equal(9, GetElementAtLinearIndex(trg, 10));
+            Assert.Equal(10, GetElementAtLinearIndex(trg, 11));
+            Assert.Equal(11, GetElementAtLinearIndex(trg, 12));
         }
 
-        [Theory]
-        [InlineData(30, 10, 40)]
-        [InlineData(42, 23, 42)]
-        [InlineData(1, 3, 10)]
-        [InlineData(0, 4, 0)]
-        public void GroupToSpan_Success(long totalLength, int bufferLength, int spanLength)
+        [Fact]
+        public void GroupToSpan_StridedSource_HeightOne()
         {
-            using MemoryGroup<int> src = this.CreateTestGroup(totalLength, bufferLength, true);
-            int[] trg = new int[spanLength];
-            src.CopyTo(trg);
+            using MemoryGroup<int> src = this.CreateTestGroup(totalLength: 3, bufferLength: 2, fillSequence: true);
+            int[] trg = new int[3];
 
-            int expected = 1;
-            foreach (int val in trg.AsSpan().Slice(0, (int)totalLength))
+            src.CopyTo(
+                sourceStride: 8,
+                trg,
+                targetStride: 3,
+                width: 3,
+                height: 1);
+
+            Assert.Equal(new[] { 1, 2, 3 }, trg);
+        }
+
+        private static int GetElementAtLinearIndex(MemoryGroup<int> group, int index)
+        {
+            int pos = 0;
+            for (MemoryGroupIndex i = group.MinIndex(); i < group.MaxIndex(); i += 1, pos++)
             {
-                Assert.Equal(expected, val);
-                expected++;
-            }
-        }
-
-        [Theory]
-        [InlineData(20, 7, 19)]
-        [InlineData(2, 1, 1)]
-        public void GroupToSpan_OutOfRange(long totalLength, int bufferLength, int spanLength)
-        {
-            using MemoryGroup<int> src = this.CreateTestGroup(totalLength, bufferLength, true);
-            int[] trg = new int[spanLength];
-            Assert.ThrowsAny<ArgumentOutOfRangeException>(() => src.CopyTo(trg));
-        }
-
-        [Theory]
-        [InlineData(30, 35, 10)]
-        [InlineData(42, 23, 42)]
-        [InlineData(10, 3, 1)]
-        [InlineData(0, 3, 0)]
-        public void SpanToGroup_Success(long totalLength, int bufferLength, int spanLength)
-        {
-            int[] src = new int[spanLength];
-            for (int i = 0; i < src.Length; i++)
-            {
-                src[i] = i + 1;
+                if (pos == index)
+                {
+                    return group.GetElementAt(i);
+                }
             }
 
-            using MemoryGroup<int> trg = this.CreateTestGroup(totalLength, bufferLength);
-            src.AsSpan().CopyTo(trg);
-
-            int position = 0;
-            for (MemoryGroupIndex i = trg.MinIndex(); position < spanLength; i += 1, position++)
-            {
-                int expected = position + 1;
-                Assert.Equal(expected, trg.GetElementAt(i));
-            }
-        }
-
-        [Theory]
-        [InlineData(10, 3, 11)]
-        [InlineData(0, 3, 1)]
-        public void SpanToGroup_OutOfRange(long totalLength, int bufferLength, int spanLength)
-        {
-            int[] src = new int[spanLength];
-            using MemoryGroup<int> trg = this.CreateTestGroup(totalLength, bufferLength, true);
-            Assert.ThrowsAny<ArgumentOutOfRangeException>(() => src.AsSpan().CopyTo(trg));
+            throw new ArgumentOutOfRangeException(nameof(index));
         }
     }
 }

@@ -289,7 +289,19 @@ internal class TiffDecoderCore : ImageDecoderCore
             // We resolve the ICC profile early so that we can use it for color conversion if needed.
             if (tags.TryGetValue(ExifTag.IccProfile, out IExifValue<byte[]> iccProfileBytes))
             {
-                imageFrameMetaData.IccProfile = new IccProfile(iccProfileBytes.Value);
+                this.ExecuteAncillarySegmentAction(
+                    () =>
+                    {
+                        IccProfile profile = new(iccProfileBytes.Value);
+                        if (profile.CheckIsValid())
+                        {
+                            imageFrameMetaData.IccProfile = profile;
+                        }
+                        else
+                        {
+                            throw new InvalidIccProfileException("Invalid TIFF ICC profile.");
+                        }
+                    });
             }
         }
 

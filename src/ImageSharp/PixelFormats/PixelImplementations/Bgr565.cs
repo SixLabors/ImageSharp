@@ -7,14 +7,12 @@ using System.Runtime.CompilerServices;
 namespace SixLabors.ImageSharp.PixelFormats;
 
 /// <summary>
-/// Packed pixel type containing unsigned normalized values ranging from 0 to 1.
+/// Packed pixel type containing three unsigned normalized values.
 /// The x and z components use 5 bits, and the y component uses 6 bits.
-/// <para>
-/// Ranges from [0, 0, 0, 1] to [1, 1, 1, 1] in vector form.
-/// </para>
 /// </summary>
 /// <remarks>
-/// Initializes a new instance of the <see cref="Bgr565"/> struct.
+/// <see cref="ToVector4"/> and scaled vector conversions return color components in <c>[0, 1]</c> with an implicit
+/// alpha of <c>1</c>. The storage layout matches <c>DXGI_FORMAT_B5G6R5_UNORM</c>.
 /// </remarks>
 /// <param name="vector">
 /// The vector containing the components for the packed value.
@@ -74,6 +72,48 @@ public partial struct Bgr565(Vector3 vector) : IPixel<Bgr565>, IPackedVector<ush
 
     /// <inheritdoc />
     public static PixelOperations<Bgr565> CreatePixelOperations() => new PixelOperations();
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly Vector4 ToUnassociatedScaledVector4() => this.ToScaledVector4();
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly Vector4 ToAssociatedScaledVector4() => this.ToScaledVector4();
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly Vector4 ToUnassociatedVector4() => this.ToVector4();
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly Vector4 ToAssociatedVector4() => this.ToVector4();
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Bgr565 FromUnassociatedScaledVector4(Vector4 source) => FromScaledVector4(source);
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Bgr565 FromAssociatedScaledVector4(Vector4 source)
+    {
+        // The destination has implicit alpha one, but associated input must be restored before its alpha is discarded.
+        Numerics.UnPremultiply(ref source);
+        return FromScaledVector4(source);
+    }
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Bgr565 FromUnassociatedVector4(Vector4 source) => FromVector4(source);
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Bgr565 FromAssociatedVector4(Vector4 source)
+    {
+        // The destination has implicit alpha one, but associated input must be restored before its alpha is discarded.
+        Numerics.UnPremultiply(ref source);
+        return FromVector4(source);
+    }
 
     /// <inheritdoc />
     public readonly Rgba32 ToRgba32() => Rgba32.FromScaledVector4(this.ToScaledVector4());

@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Buffers;
+using System.Numerics;
 using SixLabors.ImageSharp.Formats.Webp.Chunks;
 using SixLabors.ImageSharp.Formats.Webp.Lossless;
 using SixLabors.ImageSharp.Formats.Webp.Lossy;
@@ -63,9 +64,9 @@ internal class WebpAnimationDecoder : IDisposable
     private readonly BackgroundColorHandling backgroundColorHandling;
 
     /// <summary>
-    /// How to handle validation of errors in different segments of encoded image files.
+    /// Executes a known ancillary segment parsing action using the configured integrity policy.
     /// </summary>
-    private readonly SegmentIntegrityHandling segmentIntegrityHandling;
+    private readonly Action<Action> executeAncillarySegmentAction;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="WebpAnimationDecoder"/> class.
@@ -75,21 +76,21 @@ internal class WebpAnimationDecoder : IDisposable
     /// <param name="maxFrames">The maximum number of frames to decode. Inclusive.</param>
     /// <param name="skipMetadata">Whether to skip metadata.</param>
     /// <param name="backgroundColorHandling">The flag to decide how to handle the background color in the Animation Chunk.</param>
-    /// <param name="segmentIntegrityHandling">How to handle validation of errors in different segments of encoded image files.</param>
+    /// <param name="executeAncillarySegmentAction">Executes a known ancillary segment parsing action using the configured integrity policy.</param>
     public WebpAnimationDecoder(
         MemoryAllocator memoryAllocator,
         Configuration configuration,
         uint maxFrames,
         bool skipMetadata,
         BackgroundColorHandling backgroundColorHandling,
-        SegmentIntegrityHandling segmentIntegrityHandling)
+        Action<Action> executeAncillarySegmentAction)
     {
         this.memoryAllocator = memoryAllocator;
         this.configuration = configuration;
         this.maxFrames = maxFrames;
         this.skipMetadata = skipMetadata;
         this.backgroundColorHandling = backgroundColorHandling;
-        this.segmentIntegrityHandling = segmentIntegrityHandling;
+        this.executeAncillarySegmentAction = executeAncillarySegmentAction;
     }
 
     /// <summary>
@@ -117,7 +118,6 @@ internal class WebpAnimationDecoder : IDisposable
             : features.AnimationBackgroundColor!.Value;
 
         bool ignoreMetadata = this.skipMetadata;
-        SegmentIntegrityHandling segmentIntegrityHandling = this.segmentIntegrityHandling;
         Span<byte> buffer = stackalloc byte[4];
         uint frameCount = 0;
         int remainingBytes = (int)completeDataSize;
@@ -138,13 +138,7 @@ internal class WebpAnimationDecoder : IDisposable
                 case WebpChunkType.Iccp:
                 case WebpChunkType.Xmp:
                 case WebpChunkType.Exif:
-                    WebpChunkParsingUtils.ParseOptionalChunks(
-                        stream,
-                        chunkType,
-                        this.metadata,
-                        ignoreMetadata,
-                        segmentIntegrityHandling,
-                        buffer);
+                    this.ReadOptionalChunk(stream, chunkType, this.metadata, ignoreMetadata);
                     break;
                 default:
 
@@ -195,7 +189,6 @@ internal class WebpAnimationDecoder : IDisposable
         TPixel backgroundPixel = backgroundColor.ToPixel<TPixel>();
 
         bool ignoreMetadata = this.skipMetadata;
-        SegmentIntegrityHandling segmentIntegrityHandling = this.segmentIntegrityHandling;
         Span<byte> buffer = stackalloc byte[4];
         uint frameCount = 0;
         int remainingBytes = (int)completeDataSize;
@@ -222,7 +215,7 @@ internal class WebpAnimationDecoder : IDisposable
                 case WebpChunkType.Iccp:
                 case WebpChunkType.Xmp:
                 case WebpChunkType.Exif:
-                    WebpChunkParsingUtils.ParseOptionalChunks(stream, chunkType, image!.Metadata, ignoreMetadata, segmentIntegrityHandling, buffer);
+                    this.ReadOptionalChunk(stream, chunkType, image!.Metadata, ignoreMetadata);
                     break;
                 default:
 
@@ -379,6 +372,29 @@ internal class WebpAnimationDecoder : IDisposable
         frameMetadata.DisposalMode = frameData.DisposalMethod;
     }
 
+    private void ReadOptionalChunk(
+        BufferedReadStream stream,
+        WebpChunkType chunkType,
+        ImageMetadata imageMetadata,
+        bool ignoreMetadata)
+    {
+        switch (chunkType)
+        {
+            case WebpChunkType.Iccp:
+
+                // While ICC profiles are optional, an invalid ICC profile cannot be ignored because it must
+                // precede the frame data, and we cannot safely skip it without successfully reading its size.
+                WebpChunkParsingUtils.ReadIccProfile(stream, imageMetadata, ignoreMetadata);
+                break;
+            case WebpChunkType.Exif:
+                this.executeAncillarySegmentAction(() => WebpChunkParsingUtils.ReadExifProfile(stream, imageMetadata, ignoreMetadata));
+                break;
+            case WebpChunkType.Xmp:
+                this.executeAncillarySegmentAction(() => WebpChunkParsingUtils.ReadXmpProfile(stream, imageMetadata, ignoreMetadata));
+                break;
+        }
+    }
+
     /// <summary>
     /// Reads the ALPH chunk data.
     /// </summary>
@@ -456,15 +472,21 @@ internal class WebpAnimationDecoder : IDisposable
             // The destination frame has already been prepopulated with the pixel data from the previous frame
             // so blending will leave the desired result which takes into consideration restoration to the
             // background color within the restore area.
-            PixelBlender<TPixel> blender =
-                PixelOperations<TPixel>.Instance.GetPixelBlender(PixelColorBlendingMode.Normal, PixelAlphaCompositionMode.SrcOver);
+            PixelBlender<TPixel> blender = PixelOperations<TPixel>.Instance.GetPixelBlender(
+                PixelColorBlendingMode.Normal,
+                PixelAlphaCompositionMode.SrcOver);
+
+            // By using a dedicated vector span we can avoid per-row pool allocations in PixelBlender.Blend
+            // We need 3 Vector4 values per pixel to store the background, foreground, and result pixels for blending.
+            using IMemoryOwner<Vector4> workingBufferOwner = imageFrame.Configuration.MemoryAllocator.Allocate<Vector4>(restoreArea.Width * 3);
+            Span<Vector4> workingBuffer = workingBufferOwner.GetSpan();
 
             for (int y = 0; y < restoreArea.Height; y++)
             {
                 Span<TPixel> framePixelRow = imageFramePixels.DangerousGetRowSpan(y);
                 Span<TPixel> decodedPixelRow = decodedImageFrame.DangerousGetRowSpan(y)[..restoreArea.Width];
 
-                blender.Blend<TPixel>(imageFrame.Configuration, framePixelRow, framePixelRow, decodedPixelRow, 1f);
+                blender.Blend<TPixel>(imageFrame.Configuration, framePixelRow, framePixelRow, decodedPixelRow, 1f, workingBuffer);
             }
 
             return;

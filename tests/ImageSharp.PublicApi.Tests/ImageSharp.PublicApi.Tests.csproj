@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <AssemblyName>SixLabors.ImageSharp.PublicApi.Tests</AssemblyName>
+    <RootNamespace>SixLabors.ImageSharp.PublicApi.Tests</RootNamespace>
+    <Configurations>Debug;Release</Configurations>
+  </PropertyGroup>
+
+  <Choose>
+    <When Condition="$(SIXLABORS_TESTING_PREVIEW) == true">
+      <PropertyGroup>
+        <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+      </PropertyGroup>
+    </When>
+    <Otherwise>
+      <PropertyGroup>
+        <TargetFrameworks>net8.0</TargetFrameworks>
+      </PropertyGroup>
+    </Otherwise>
+  </Choose>
+
+</Project>

@@ -236,9 +236,39 @@ public struct RectangleF : IEquatable<RectangleF>
     /// <returns>A transformed <see cref="RectangleF"/>.</returns>
     public static RectangleF Transform(RectangleF rectangle, Matrix3x2 matrix)
     {
-        PointF bottomRight = PointF.Transform(new PointF(rectangle.Right, rectangle.Bottom), matrix);
         PointF topLeft = PointF.Transform(rectangle.Location, matrix);
-        return new RectangleF(topLeft, new SizeF(bottomRight - topLeft));
+        PointF topRight = PointF.Transform(new PointF(rectangle.Right, rectangle.Top), matrix);
+        PointF bottomLeft = PointF.Transform(new PointF(rectangle.Left, rectangle.Bottom), matrix);
+        PointF bottomRight = PointF.Transform(new PointF(rectangle.Right, rectangle.Bottom), matrix);
+
+        float left = MathF.Min(MathF.Min(topLeft.X, topRight.X), MathF.Min(bottomLeft.X, bottomRight.X));
+        float top = MathF.Min(MathF.Min(topLeft.Y, topRight.Y), MathF.Min(bottomLeft.Y, bottomRight.Y));
+        float right = MathF.Max(MathF.Max(topLeft.X, topRight.X), MathF.Max(bottomLeft.X, bottomRight.X));
+        float bottom = MathF.Max(MathF.Max(topLeft.Y, topRight.Y), MathF.Max(bottomLeft.Y, bottomRight.Y));
+
+        return FromLTRB(left, top, right, bottom);
+    }
+
+    /// <summary>
+    /// Transforms a rectangle by the given 4x4 matrix, applying a projective transform
+    /// flattened into 2D space.
+    /// </summary>
+    /// <param name="rectangle">The source rectangle.</param>
+    /// <param name="matrix">The transformation matrix.</param>
+    /// <returns>A transformed <see cref="RectangleF"/>.</returns>
+    public static RectangleF Transform(RectangleF rectangle, Matrix4x4 matrix)
+    {
+        PointF topLeft = PointF.Transform(rectangle.Location, matrix);
+        PointF topRight = PointF.Transform(new PointF(rectangle.Right, rectangle.Top), matrix);
+        PointF bottomLeft = PointF.Transform(new PointF(rectangle.Left, rectangle.Bottom), matrix);
+        PointF bottomRight = PointF.Transform(new PointF(rectangle.Right, rectangle.Bottom), matrix);
+
+        float left = MathF.Min(MathF.Min(topLeft.X, topRight.X), MathF.Min(bottomLeft.X, bottomRight.X));
+        float top = MathF.Min(MathF.Min(topLeft.Y, topRight.Y), MathF.Min(bottomLeft.Y, bottomRight.Y));
+        float right = MathF.Max(MathF.Max(topLeft.X, topRight.X), MathF.Max(bottomLeft.X, bottomRight.X));
+        float bottom = MathF.Max(MathF.Max(topLeft.Y, topRight.Y), MathF.Max(bottomLeft.Y, bottomRight.Y));
+
+        return FromLTRB(left, top, right, bottom);
     }
 
     /// <summary>

@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.PixelFormats;
@@ -73,13 +74,11 @@ public abstract partial class PixelConverterTests
         }
 
         internal static void To<TSourcePixel, TDestinationPixel>(
-            Configuration configuration,
             ReadOnlySpan<TSourcePixel> sourcePixels,
             Span<TDestinationPixel> destinationPixels)
             where TSourcePixel : unmanaged, IPixel<TSourcePixel>
             where TDestinationPixel : unmanaged, IPixel<TDestinationPixel>
         {
-            Guard.NotNull(configuration, nameof(configuration));
             Guard.DestinationShouldNotBeTooShort(sourcePixels, destinationPixels, nameof(destinationPixels));
 
             int count = sourcePixels.Length;
@@ -92,13 +91,14 @@ public abstract partial class PixelConverterTests
                 return;
             }
 
-            // Normal conversion
+            // Scalar source and destination boundaries are the reference for the bulk operation: each format owns any representation conversion and destination quantization it requires.
             ref TDestinationPixel destRef = ref MemoryMarshal.GetReference(destinationPixels);
             for (int i = 0; i < count; i++)
             {
                 ref TSourcePixel sp = ref Unsafe.Add(ref sourceRef, i);
                 ref TDestinationPixel dp = ref Unsafe.Add(ref destRef, i);
-                dp = TDestinationPixel.FromScaledVector4(sp.ToScaledVector4());
+                Vector4 vector = sp.ToUnassociatedScaledVector4();
+                dp = TDestinationPixel.FromUnassociatedScaledVector4(vector);
             }
         }
     }

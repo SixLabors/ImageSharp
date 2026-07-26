@@ -36,6 +36,20 @@ public partial class ColorTests
         }
 
         [Fact]
+        public void Rgba32P()
+        {
+            Rgba32P source = new(64, 32, 16, 128);
+
+            // Act:
+            Color color = Color.FromPixel(source);
+
+            // Assert:
+            Assert.Equal(PixelAlphaRepresentation.Associated, color.AlphaRepresentation);
+            Assert.Equal(source.ToScaledVector4(), color.ToScaledVector4());
+            Assert.Equal(source, color.ToPixel<Rgba32P>());
+        }
+
+        [Fact]
         public void Argb32()
         {
             Argb32 source = new(1, 22, 33, 231);

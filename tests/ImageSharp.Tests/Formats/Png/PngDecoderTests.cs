@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Buffers.Binary;
 using System.Runtime.Intrinsics.X86;
 using Microsoft.DotNet.RemoteExecutor;
 using SixLabors.ImageSharp.Formats;
@@ -405,10 +406,95 @@ public partial class PngDecoderTests
         TestFile testFile = TestFile.Create(imagePath);
         using MemoryStream stream = new(testFile.Bytes, false);
 
-        ImageInfo imageInfo = Image.Identify(new DecoderOptions { SegmentIntegrityHandling = SegmentIntegrityHandling.IgnoreData }, stream);
+        ImageInfo imageInfo = Image.Identify(new DecoderOptions { SegmentIntegrityHandling = SegmentIntegrityHandling.IgnoreImageData }, stream);
 
         Assert.NotNull(imageInfo);
         Assert.Equal(expectedPixelSize, imageInfo.PixelType.BitsPerPixel);
+    }
+
+    [Fact]
+    public void Identify_AnimatedPng_ReadsFrameCountCorrectly()
+    {
+        TestFile testFile = TestFile.Create(TestImages.Png.AnimatedFrameCount);
+
+        using MemoryStream stream = new(testFile.Bytes, false);
+        ImageInfo imageInfo = Image.Identify(stream);
+
+        Assert.NotNull(imageInfo);
+        Assert.Equal(48, imageInfo.FrameMetadataCollection.Count);
+    }
+
+    [Fact]
+    public void Identify_AnimatedPngWithMaxFrames_ReadsFrameCountCorrectly()
+    {
+        TestFile testFile = TestFile.Create(TestImages.Png.AnimatedFrameCount);
+
+        using MemoryStream stream = new(testFile.Bytes, false);
+        ImageInfo imageInfo = Image.Identify(new DecoderOptions { MaxFrames = 40 }, stream);
+
+        Assert.NotNull(imageInfo);
+        Assert.Equal(40, imageInfo.FrameMetadataCollection.Count);
+    }
+
+    [Fact]
+    public void Load_AnimatedPngWithMaxFrames_ReadsFrameCountCorrectly()
+    {
+        TestFile testFile = TestFile.Create(TestImages.Png.AnimatedFrameCount);
+
+        using MemoryStream stream = new(testFile.Bytes, false);
+        using Image image = Image.Load(new DecoderOptions { MaxFrames = 40 }, stream);
+
+        Assert.NotNull(image);
+        Assert.Equal(40, image.Frames.Count);
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(5)]
+    [InlineData(10)]
+    [InlineData(100)]
+    public void Identify_AnimatedPng_FrameCount_MatchesDecode(int frameCount)
+    {
+        using Image<Rgba32> image = new(10, 10, Color.Red.ToPixel<Rgba32>());
+        for (int i = 1; i < frameCount; i++)
+        {
+            using ImageFrame<Rgba32> frame = new(Configuration.Default, 10, 10);
+            image.Frames.AddFrame(frame);
+        }
+
+        using MemoryStream stream = new();
+        image.Save(stream, new PngEncoder());
+        stream.Position = 0;
+
+        ImageInfo imageInfo = Image.Identify(stream);
+
+        Assert.NotNull(imageInfo);
+        Assert.Equal(frameCount, imageInfo.FrameMetadataCollection.Count);
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(5)]
+    [InlineData(10)]
+    [InlineData(100)]
+    public void Decode_AnimatedPng_FrameCount(int frameCount)
+    {
+        using Image<Rgba32> image = new(10, 10, Color.Red.ToPixel<Rgba32>());
+        for (int i = 1; i < frameCount; i++)
+        {
+            using ImageFrame<Rgba32> frame = new(Configuration.Default, 10, 10);
+            image.Frames.AddFrame(frame);
+        }
+
+        using MemoryStream stream = new();
+        image.Save(stream, new PngEncoder());
+        stream.Position = 0;
+
+        using Image<Rgba32> decoded = Image.Load<Rgba32>(stream);
+
+        Assert.Equal(frameCount, decoded.Frames.Count);
     }
 
     [Theory]
@@ -509,7 +595,7 @@ public partial class PngDecoderTests
     public void Decode_InvalidDataChunkCrc_IgnoreCrcErrors<TPixel>(TestImageProvider<TPixel> provider, bool compare)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Image<TPixel> image = provider.GetImage(PngDecoder.Instance, new DecoderOptions() { SegmentIntegrityHandling = SegmentIntegrityHandling.IgnoreData });
+        using Image<TPixel> image = provider.GetImage(PngDecoder.Instance, new DecoderOptions() { SegmentIntegrityHandling = SegmentIntegrityHandling.IgnoreImageData });
 
         image.DebugSave(provider);
         if (compare)
@@ -629,26 +715,133 @@ public partial class PngDecoderTests
         Assert.Contains(metadata.ColorTable.Value.ToArray(), x => x.ToPixel<Rgba32>().A < 255);
     }
 
-    // https://github.com/SixLabors/ImageSharp/issues/410
     [Theory]
-    [WithFile(TestImages.Png.Bad.Issue410_MalformedApplePng, PixelTypes.Rgba32)]
-    public void Issue410_MalformedApplePng<TPixel>(TestImageProvider<TPixel> provider)
+    [WithFile(TestImages.Png.Cgbi.Issue410, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Png.Cgbi.Colors, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Png.Cgbi.Clocks, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Png.Cgbi.Screen, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Png.Cgbi.Flecks, PixelTypes.Rgb24)]
+    public void Decode_AppleCgBI<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            RunDecodeAppleCgbi,
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX2 | HwIntrinsics.DisableHWIntrinsic,
+            provider,
+            provider.PixelType.ToString());
+
+    private static void RunDecodeAppleCgbi(string providerDump, string pixelType)
+    {
+        if (Enum.Parse<PixelTypes>(pixelType) == PixelTypes.Rgb24)
+        {
+            TestImageProvider<Rgb24> provider =
+                FeatureTestRunner.DeserializeForXunit<TestImageProvider<Rgb24>>(providerDump);
+
+            using Image<Rgb24> image = provider.GetImage(PngDecoder.Instance);
+            image.DebugSave(provider);
+            image.CompareToReferenceOutput(provider, ImageComparer.Exact);
+
+            return;
+        }
+
+        TestImageProvider<Rgba32> rgbaProvider =
+            FeatureTestRunner.DeserializeForXunit<TestImageProvider<Rgba32>>(providerDump);
+
+        using Image<Rgba32> rgbaImage = rgbaProvider.GetImage(PngDecoder.Instance);
+        rgbaImage.DebugSave(rgbaProvider);
+        rgbaImage.CompareToReferenceOutput(rgbaProvider, ImageComparer.Exact);
+    }
+
+    [Theory]
+    [InlineData(TestImages.Png.Cgbi.Colors, 120, 120)]
+    [InlineData(TestImages.Png.Cgbi.Issue410, 42, 26)]
+    [InlineData(TestImages.Png.Cgbi.Flecks, 510, 512)]
+    public void Identify_AppleCgBI(string imagePath, int expectedWidth, int expectedHeight)
+    {
+        TestFile testFile = TestFile.Create(imagePath);
+        using MemoryStream stream = new(testFile.Bytes, false);
+
+        ImageInfo imageInfo = Image.Identify(stream);
+
+        Assert.NotNull(imageInfo);
+        Assert.Equal(PngFormat.Instance, imageInfo.Metadata.DecodedImageFormat);
+        Assert.Equal(expectedWidth, imageInfo.Width);
+        Assert.Equal(expectedHeight, imageInfo.Height);
+    }
+
+    [Theory]
+    [InlineData(TestImages.Png.Cgbi.BitDepth16)]
+    [InlineData(TestImages.Png.Cgbi.Palette)]
+    public void Identify_CgBI_IncompatibleHeader_ThrowsInvalidImageContentException(string imagePath)
+    {
+        TestFile testFile = TestFile.Create(imagePath);
+        using MemoryStream stream = new(testFile.Bytes, false);
+        InvalidImageContentException ex = Assert.Throws<InvalidImageContentException>(() => Image.Identify(stream));
+        Assert.Contains("CgBI is only supported for 8-bit truecolor images", ex.Message);
+    }
+
+    [Theory]
+    [WithFile(TestImages.Png.Cgbi.BitDepth16, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Png.Cgbi.Palette, PixelTypes.Rgba32)]
+    public void Decode_CgBI_IncompatibleHeader_ThrowsInvalidImageContentException<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        Exception ex = Record.Exception(
-            () =>
-            {
-                using Image<TPixel> image = provider.GetImage(PngDecoder.Instance);
-                image.DebugSave(provider);
+        InvalidImageContentException ex = Assert.Throws<InvalidImageContentException>(
+            () => { using Image<TPixel> image = provider.GetImage(PngDecoder.Instance); });
+        Assert.Contains("CgBI is only supported for 8-bit truecolor images", ex.Message);
+    }
 
-                // We don't have another x-plat reference decoder that can be compared for this image.
-                if (TestEnvironment.IsWindows)
-                {
-                    image.CompareToOriginal(provider, ImageComparer.Exact, SystemDrawingReferenceDecoder.Png);
-                }
-            });
-        Assert.NotNull(ex);
-        Assert.Contains("Proprietary Apple PNG detected!", ex.Message);
+    [Theory]
+    [InlineData(TestImages.Png.Cgbi.BitDepth16)]
+    [InlineData(TestImages.Png.Cgbi.Palette)]
+    public void Identify_CgBI_AfterHeader_IncompatibleHeader_ThrowsInvalidImageContentException(string imagePath)
+    {
+        TestFile testFile = TestFile.Create(imagePath);
+        byte[] reordered = MoveFirstPngChunkAfterSecond(testFile.Bytes);
+        using MemoryStream stream = new(reordered, false);
+
+        InvalidImageContentException ex = Assert.Throws<InvalidImageContentException>(() => Image.Identify(stream));
+        Assert.Contains("CgBI is only supported for 8-bit truecolor images", ex.Message);
+    }
+
+    [Theory]
+    [InlineData(TestImages.Png.Cgbi.BitDepth16)]
+    [InlineData(TestImages.Png.Cgbi.Palette)]
+    public void Decode_CgBI_AfterHeader_IncompatibleHeader_ThrowsInvalidImageContentException(string imagePath)
+    {
+        TestFile testFile = TestFile.Create(imagePath);
+        byte[] reordered = MoveFirstPngChunkAfterSecond(testFile.Bytes);
+        using MemoryStream stream = new(reordered, false);
+
+        InvalidImageContentException ex = Assert.Throws<InvalidImageContentException>(
+            () => { using Image<Rgba32> image = PngDecoder.Instance.Decode<Rgba32>(DecoderOptions.Default, stream); });
+        Assert.Contains("CgBI is only supported for 8-bit truecolor images", ex.Message);
+    }
+
+    /// <summary>
+    /// Moves the first PNG chunk after the second while preserving each chunk's data and CRC.
+    /// </summary>
+    /// <param name="source">A PNG whose first two chunks should be exchanged.</param>
+    /// <returns>A copy of the PNG with its first two chunks exchanged.</returns>
+    private static byte[] MoveFirstPngChunkAfterSecond(byte[] source)
+    {
+        const int signatureLength = 8;
+        const int chunkOverheadLength = 12;
+
+        int firstChunkLength = BinaryPrimitives.ReadInt32BigEndian(source.AsSpan(signatureLength, 4)) + chunkOverheadLength;
+        int secondChunkOffset = signatureLength + firstChunkLength;
+        int secondChunkLength = BinaryPrimitives.ReadInt32BigEndian(source.AsSpan(secondChunkOffset, 4)) + chunkOverheadLength;
+        byte[] reordered = new byte[source.Length];
+
+        source.AsSpan(0, signatureLength).CopyTo(reordered);
+        source.AsSpan(secondChunkOffset, secondChunkLength).CopyTo(reordered.AsSpan(signatureLength));
+        source.AsSpan(signatureLength, firstChunkLength).CopyTo(reordered.AsSpan(signatureLength + secondChunkLength));
+
+        // Chunk CRCs cover only each chunk's type and data, so moving complete chunks
+        // leaves both checksums valid and isolates ordering as the tested behavior.
+        source.AsSpan(secondChunkOffset + secondChunkLength)
+            .CopyTo(reordered.AsSpan(signatureLength + secondChunkLength + firstChunkLength));
+
+        return reordered;
     }
 
     [Theory]
@@ -690,7 +883,7 @@ public partial class PngDecoderTests
     public void Binary_PrematureEof()
     {
         PngDecoder decoder = PngDecoder.Instance;
-        PngDecoderOptions options = new() { GeneralOptions = new DecoderOptions { SegmentIntegrityHandling = SegmentIntegrityHandling.IgnoreData } };
+        PngDecoderOptions options = new() { GeneralOptions = new DecoderOptions { SegmentIntegrityHandling = SegmentIntegrityHandling.IgnoreImageData } };
         using EofHitCounter eofHitCounter = EofHitCounter.RunDecoder(TestImages.Png.Bad.FlagOfGermany0000016446, decoder, options);
 
         // TODO: Try to reduce this to 1.

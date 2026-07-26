@@ -7,7 +7,6 @@ using System.Runtime.InteropServices;
 using BenchmarkDotNet.Attributes;
 
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Tuples;
 
 namespace SixLabors.ImageSharp.Benchmarks.General.PixelConversion;
 
@@ -225,8 +224,8 @@ public class PixelConversion_Rgba32_To_Bgra32
     // [Benchmark]
     public void Bitops_Simd()
     {
-        ref Octet<uint> sBase = ref Unsafe.As<Rgba32, Octet<uint>>(ref this.source[0]);
-        ref Octet<uint> dBase = ref Unsafe.As<Bgra32, Octet<uint>>(ref this.dest[0]);
+        ref InlineArray8<uint> sBase = ref Unsafe.As<Rgba32, InlineArray8<uint>>(ref this.source[0]);
+        ref InlineArray8<uint> dBase = ref Unsafe.As<Bgra32, InlineArray8<uint>>(ref this.dest[0]);
 
         for (nuint i = 0; i < (uint)this.Count / 8; i++)
         {
@@ -249,9 +248,9 @@ public class PixelConversion_Rgba32_To_Bgra32
 #pragma warning restore SA1132 // Do not combine fields
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void BitopsSimdImpl(ref Octet<uint> s, ref Octet<uint> d)
+    private static void BitopsSimdImpl(ref InlineArray8<uint> s, ref InlineArray8<uint> d)
     {
-        Vector<uint> sVec = Unsafe.As<Octet<uint>, Vector<uint>>(ref s);
+        Vector<uint> sVec = Unsafe.As<InlineArray8<uint>, Vector<uint>>(ref s);
         Vector<uint> aMask = new(0xFF00FF00);
         Vector<uint> bMask = new(0x00FF00FF);
 
@@ -274,7 +273,7 @@ public class PixelConversion_Rgba32_To_Bgra32
         Vector<uint> cc = Unsafe.As<C, Vector<uint>>(ref c);
         Vector<uint> dd = aa + cc;
 
-        d = Unsafe.As<Vector<uint>, Octet<uint>>(ref dd);
+        d = Unsafe.As<Vector<uint>, InlineArray8<uint>>(ref dd);
     }
 
     // [Benchmark]

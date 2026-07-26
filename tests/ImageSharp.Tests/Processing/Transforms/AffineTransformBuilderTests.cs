@@ -58,6 +58,9 @@ public class AffineTransformBuilderTests : TransformBuilderTestBase<AffineTransf
     protected override void PrependTranslation(AffineTransformBuilder builder, PointF translate)
         => builder.PrependTranslation(translate);
 
+    protected override void ClearBuilder(AffineTransformBuilder builder)
+        => builder.Clear();
+
     protected override Vector2 Execute(
         AffineTransformBuilder builder,
         Rectangle rectangle,

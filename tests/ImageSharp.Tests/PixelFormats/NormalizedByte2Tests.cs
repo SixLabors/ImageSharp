@@ -4,6 +4,7 @@
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Tests.TestUtilities;
 
 namespace SixLabors.ImageSharp.Tests.PixelFormats;
 
@@ -27,6 +28,42 @@ public class NormalizedByte2Tests
         Assert.Equal(-Vector2.One, new NormalizedByte2(-Vector2.One).ToVector2());
         Assert.Equal(Vector2.One, new NormalizedByte2(Vector2.One * 1234.0f).ToVector2());
         Assert.Equal(-Vector2.One, new NormalizedByte2(Vector2.One * -1234.0f).ToVector2());
+    }
+
+    [Fact]
+    public void NormalizedByte2_MinimumStorageCodeDecodesAsNegativeOne() =>
+        FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            AssertNormalizedByte2MinimumStorageCodeDecodesAsNegativeOne,
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+
+    private static void AssertNormalizedByte2MinimumStorageCodeDecodesAsNegativeOne()
+    {
+        NormalizedByte2 pixel = new() { PackedValue = 0x8080 };
+        Vector4 expectedNative = new(-1F, -1F, 0F, 1F);
+        Vector4 expectedScaled = new(0F, 0F, 0F, 1F);
+
+        Assert.Equal(expectedNative, pixel.ToVector4());
+        Assert.Equal(expectedScaled, pixel.ToScaledVector4());
+
+        NormalizedByte2[] source = new NormalizedByte2[17];
+        Vector4[] native = new Vector4[source.Length];
+        Vector4[] scaled = new Vector4[source.Length];
+        Array.Fill(source, pixel);
+
+        PixelOperations<NormalizedByte2>.Instance.ToVector4(Configuration.Default, source, native);
+        PixelOperations<NormalizedByte2>.Instance.ToVector4(Configuration.Default, source, scaled, PixelConversionModifiers.Scale);
+
+        for (int i = 0; i < source.Length; i++)
+        {
+            Assert.Equal(expectedNative, native[i]);
+            Assert.Equal(expectedScaled, scaled[i]);
+        }
+
+        Vector4[] destructiveSource = new Vector4[source.Length];
+        Array.Fill(destructiveSource, expectedScaled);
+        NormalizedByte2[] actualPixels = new NormalizedByte2[source.Length];
+        PixelOperations<NormalizedByte2>.Instance.FromVector4Destructive(Configuration.Default, destructiveSource, actualPixels, PixelConversionModifiers.Scale);
+        Assert.All(actualPixels, actual => Assert.Equal((ushort)0x8181, actual.PackedValue));
     }
 
     [Fact]

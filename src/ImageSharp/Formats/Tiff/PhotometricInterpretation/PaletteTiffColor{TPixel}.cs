@@ -97,7 +97,7 @@ internal class PaletteTiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
                     Vector4 color = this.vectorPallete[index];
                     color.W = alpha;
 
-                    pixelRow[x] = TPixel.FromScaledVector4(color);
+                    pixelRow[x] = TPixel.FromUnassociatedScaledVector4(color);
 
                     // Best-effort palette update for downstream conversions.
                     // This is intentionally "last writer wins" with no per-pixel branch.
@@ -163,7 +163,7 @@ internal class PaletteTiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
             float r = colorMap[rOffset + i] * InvMax;
             float g = colorMap[gOffset + i] * InvMax;
             float b = colorMap[bOffset + i] * InvMax;
-            palette[i] = TPixel.FromScaledVector4(new Vector4(r, g, b, 1f));
+            palette[i] = TPixel.FromUnassociatedScaledVector4(new Vector4(r, g, b, 1f));
         }
 
         return palette;

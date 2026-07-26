@@ -308,10 +308,36 @@ internal static class Vector128_
     }
 
     /// <summary>
+    /// Converts all values in <paramref name="vector"/> to signed 32-bit integers, rounding midpoint values away from zero.
+    /// </summary>
+    /// <param name="vector">The values to convert.</param>
+    /// <returns>The converted integer values.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector128<int> ConvertToInt32RoundAwayFromZero(Vector128<float> vector)
+    {
+        if (Sse2.IsSupported)
+        {
+            // The x86 conversion truncates, so adding one half with each lane's sign implements round-to-nearest with midpoint values away from zero.
+            Vector128<float> x86Adjustment = Vector128.Create(.5F) | (vector & Vector128.Create(-0F));
+            return Sse2.ConvertToVector128Int32WithTruncation(vector + x86Adjustment);
+        }
+
+        if (AdvSimd.IsSupported)
+        {
+            return AdvSimd.ConvertToInt32RoundAwayFromZero(vector);
+        }
+
+        Vector128<float> sign = vector & Vector128.Create(-0F);
+        Vector128<float> fallbackAdjustment = Vector128.Create(.5F) | sign;
+        return Vector128.ConvertToInt32(vector + fallbackAdjustment);
+    }
+
+    /// <summary>
     /// Rounds all values in <paramref name="vector"/> to the nearest integer
     /// following <see cref="MidpointRounding.ToEven"/> semantics.
     /// </summary>
-    /// <param name="vector">The vector</param>
+    /// <param name="vector">The vector.</param>
+    /// <returns>The vector with each value rounded to the nearest integer.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector128<float> RoundToNearestInteger(Vector128<float> vector)
     {
@@ -338,30 +364,58 @@ internal static class Vector128_
     }
 
     /// <summary>
-    /// Performs a multiplication and an addition of the <see cref="Vector128{Single}"/>.
+    /// Computes an estimate of (<paramref name="left"/> * <paramref name="right"/>) + <paramref name="addend"/>.
     /// </summary>
-    /// <remarks>ret = (vm0 * vm1) + va</remarks>
-    /// <param name="va">The vector to add to the intermediate result.</param>
-    /// <param name="vm0">The first vector to multiply.</param>
-    /// <param name="vm1">The second vector to multiply.</param>
-    /// <returns>The <see cref="Vector256{T}"/>.</returns>
+    /// <param name="left">The first vector to multiply.</param>
+    /// <param name="right">The second vector to multiply.</param>
+    /// <param name="addend">The vector to add to the product.</param>
+    /// <returns>An estimate of the multiplication and addition result.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector128<float> MultiplyAdd(
-        Vector128<float> va,
-        Vector128<float> vm0,
-        Vector128<float> vm1)
+    public static Vector128<float> MultiplyAddEstimate(Vector128<float> left, Vector128<float> right, Vector128<float> addend)
     {
         if (Fma.IsSupported)
         {
-            return Fma.MultiplyAdd(vm1, vm0, va);
+            return Fma.MultiplyAdd(left, right, addend);
         }
 
         if (AdvSimd.IsSupported)
         {
-            return AdvSimd.FusedMultiplyAdd(va, vm0, vm1);
+            return AdvSimd.FusedMultiplyAdd(addend, left, right);
         }
 
-        return va + (vm0 * vm1);
+        return (left * right) + addend;
+    }
+
+    /// <summary>
+    /// Computes (<paramref name="left"/> * <paramref name="right"/>) + <paramref name="addend"/>, rounded as one ternary operation.
+    /// </summary>
+    /// <param name="left">The first vector to multiply.</param>
+    /// <param name="right">The second vector to multiply.</param>
+    /// <param name="addend">The vector to add to the product.</param>
+    /// <returns>The fused multiplication and addition result.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector128<float> FusedMultiplyAdd(Vector128<float> left, Vector128<float> right, Vector128<float> addend)
+    {
+        if (Fma.IsSupported)
+        {
+            return Fma.MultiplyAdd(left, right, addend);
+        }
+
+        if (AdvSimd.IsSupported)
+        {
+            return AdvSimd.FusedMultiplyAdd(addend, left, right);
+        }
+
+        // WebAssembly SIMD has no exact fused multiply-add, so match the runtime fallback by preserving fused rounding per element.
+        Vector64<float> lower = Vector64.Create(
+            MathF.FusedMultiplyAdd(left.GetElement(0), right.GetElement(0), addend.GetElement(0)),
+            MathF.FusedMultiplyAdd(left.GetElement(1), right.GetElement(1), addend.GetElement(1)));
+
+        Vector64<float> upper = Vector64.Create(
+            MathF.FusedMultiplyAdd(left.GetElement(2), right.GetElement(2), addend.GetElement(2)),
+            MathF.FusedMultiplyAdd(left.GetElement(3), right.GetElement(3), addend.GetElement(3)));
+
+        return Vector128.Create(lower, upper);
     }
 
     /// <summary>
@@ -1242,22 +1296,9 @@ internal static class Vector128_
             return PackedSimd.SubtractSaturate(left, right);
         }
 
-        // Widen inputs to 16-bit
-        (Vector128<ushort> leftLo, Vector128<ushort> leftHi) = Vector128.Widen(left);
-        (Vector128<ushort> rightLo, Vector128<ushort> rightHi) = Vector128.Widen(right);
-
-        // Subtract
-        Vector128<ushort> diffLo = leftLo - rightLo;
-        Vector128<ushort> diffHi = leftHi - rightHi;
-
-        // Clamp to signed 8-bit range
-        Vector128<ushort> max = Vector128.Create((ushort)byte.MaxValue);
-
-        diffLo = Clamp(diffLo, Vector128<ushort>.Zero, max);
-        diffHi = Clamp(diffHi, Vector128<ushort>.Zero, max);
-
-        // Narrow back to bytes
-        return Vector128.Narrow(diffLo, diffHi);
+        // Subtracting the smaller operand implements the .NET 10 unsigned contract:
+        // lanes where right exceeds left subtract left from itself and therefore saturate at zero.
+        return left - Vector128.Min(left, right);
     }
 
     /// <summary>

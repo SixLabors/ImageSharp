@@ -74,15 +74,15 @@ public class QuantizerTests
     = new()
     {
         // Known uses error diffusion by default.
-        KnownQuantizers.Octree,
+        KnownQuantizers.Hexadecatree,
         KnownQuantizers.WebSafe,
         KnownQuantizers.Werner,
         KnownQuantizers.Wu,
-        new OctreeQuantizer(NoDitherOptions),
+        new HexadecatreeQuantizer(NoDitherOptions),
         new WebSafePaletteQuantizer(NoDitherOptions),
         new WernerPaletteQuantizer(NoDitherOptions),
         new WuQuantizer(NoDitherOptions),
-        new OctreeQuantizer(OrderedDitherOptions),
+        new HexadecatreeQuantizer(OrderedDitherOptions),
         new WebSafePaletteQuantizer(OrderedDitherOptions),
         new WernerPaletteQuantizer(OrderedDitherOptions),
         new WuQuantizer(OrderedDitherOptions)
@@ -91,52 +91,52 @@ public class QuantizerTests
     public static readonly TheoryData<IQuantizer> DitherScaleQuantizers
     = new()
     {
-        new OctreeQuantizer(Diffuser0_ScaleDitherOptions),
+        new HexadecatreeQuantizer(Diffuser0_ScaleDitherOptions),
         new WebSafePaletteQuantizer(Diffuser0_ScaleDitherOptions),
         new WernerPaletteQuantizer(Diffuser0_ScaleDitherOptions),
         new WuQuantizer(Diffuser0_ScaleDitherOptions),
 
-        new OctreeQuantizer(Diffuser0_25_ScaleDitherOptions),
+        new HexadecatreeQuantizer(Diffuser0_25_ScaleDitherOptions),
         new WebSafePaletteQuantizer(Diffuser0_25_ScaleDitherOptions),
         new WernerPaletteQuantizer(Diffuser0_25_ScaleDitherOptions),
         new WuQuantizer(Diffuser0_25_ScaleDitherOptions),
 
-        new OctreeQuantizer(Diffuser0_5_ScaleDitherOptions),
+        new HexadecatreeQuantizer(Diffuser0_5_ScaleDitherOptions),
         new WebSafePaletteQuantizer(Diffuser0_5_ScaleDitherOptions),
         new WernerPaletteQuantizer(Diffuser0_5_ScaleDitherOptions),
         new WuQuantizer(Diffuser0_5_ScaleDitherOptions),
 
-        new OctreeQuantizer(Diffuser0_75_ScaleDitherOptions),
+        new HexadecatreeQuantizer(Diffuser0_75_ScaleDitherOptions),
         new WebSafePaletteQuantizer(Diffuser0_75_ScaleDitherOptions),
         new WernerPaletteQuantizer(Diffuser0_75_ScaleDitherOptions),
         new WuQuantizer(Diffuser0_75_ScaleDitherOptions),
 
-        new OctreeQuantizer(DiffuserDitherOptions),
+        new HexadecatreeQuantizer(DiffuserDitherOptions),
         new WebSafePaletteQuantizer(DiffuserDitherOptions),
         new WernerPaletteQuantizer(DiffuserDitherOptions),
         new WuQuantizer(DiffuserDitherOptions),
 
-        new OctreeQuantizer(Ordered0_ScaleDitherOptions),
+        new HexadecatreeQuantizer(Ordered0_ScaleDitherOptions),
         new WebSafePaletteQuantizer(Ordered0_ScaleDitherOptions),
         new WernerPaletteQuantizer(Ordered0_ScaleDitherOptions),
         new WuQuantizer(Ordered0_ScaleDitherOptions),
 
-        new OctreeQuantizer(Ordered0_25_ScaleDitherOptions),
+        new HexadecatreeQuantizer(Ordered0_25_ScaleDitherOptions),
         new WebSafePaletteQuantizer(Ordered0_25_ScaleDitherOptions),
         new WernerPaletteQuantizer(Ordered0_25_ScaleDitherOptions),
         new WuQuantizer(Ordered0_25_ScaleDitherOptions),
 
-        new OctreeQuantizer(Ordered0_5_ScaleDitherOptions),
+        new HexadecatreeQuantizer(Ordered0_5_ScaleDitherOptions),
         new WebSafePaletteQuantizer(Ordered0_5_ScaleDitherOptions),
         new WernerPaletteQuantizer(Ordered0_5_ScaleDitherOptions),
         new WuQuantizer(Ordered0_5_ScaleDitherOptions),
 
-        new OctreeQuantizer(Ordered0_75_ScaleDitherOptions),
+        new HexadecatreeQuantizer(Ordered0_75_ScaleDitherOptions),
         new WebSafePaletteQuantizer(Ordered0_75_ScaleDitherOptions),
         new WernerPaletteQuantizer(Ordered0_75_ScaleDitherOptions),
         new WuQuantizer(Ordered0_75_ScaleDitherOptions),
 
-        new OctreeQuantizer(OrderedDitherOptions),
+        new HexadecatreeQuantizer(OrderedDitherOptions),
         new WebSafePaletteQuantizer(OrderedDitherOptions),
         new WernerPaletteQuantizer(OrderedDitherOptions),
         new WuQuantizer(OrderedDitherOptions),

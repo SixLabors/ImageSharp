@@ -7,11 +7,13 @@ using System.Runtime.CompilerServices;
 namespace SixLabors.ImageSharp.PixelFormats;
 
 /// <summary>
-/// Packed pixel type containing a single 16 bit floating point value.
-/// <para>
-/// Ranges from [-1, 0, 0, 1] to [1, 0, 0, 1] in vector form.
-/// </para>
+/// Packed pixel type containing a single IEEE 754 binary16 floating-point value.
 /// </summary>
+/// <remarks>
+/// <see cref="ToVector4"/> returns the stored IEEE 754 binary16 value directly. Scaled vector conversions normalize
+/// the finite range <c>[-65504, 65504]</c> to <c>[0, 1]</c>. The packed representation is binary-compatible with
+/// <c>DXGI_FORMAT_R16_FLOAT</c>.
+/// </remarks>
 public partial struct HalfSingle : IPixel<HalfSingle>, IPackedVector<ushort>
 {
     /// <summary>
@@ -53,9 +55,8 @@ public partial struct HalfSingle : IPixel<HalfSingle>, IPackedVector<ushort>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly Vector4 ToScaledVector4()
     {
-        float single = this.ToSingle() + 1F;
-        single /= 2F;
-        return new Vector4(single, 0, 0, 1F);
+        float scaled = HalfTypeHelper.ToScaled(this.ToSingle());
+        return new Vector4(scaled, 0, 0, 1F);
     }
 
     /// <inheritdoc />
@@ -72,15 +73,52 @@ public partial struct HalfSingle : IPixel<HalfSingle>, IPackedVector<ushort>
     /// <inheritdoc />
     public static PixelOperations<HalfSingle> CreatePixelOperations() => new PixelOperations();
 
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly Vector4 ToUnassociatedScaledVector4() => this.ToScaledVector4();
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly Vector4 ToAssociatedScaledVector4() => this.ToScaledVector4();
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly Vector4 ToUnassociatedVector4() => this.ToVector4();
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly Vector4 ToAssociatedVector4() => this.ToVector4();
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static HalfSingle FromUnassociatedScaledVector4(Vector4 source) => FromScaledVector4(source);
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static HalfSingle FromAssociatedScaledVector4(Vector4 source)
+    {
+        // The destination has implicit alpha one, but associated input must be restored before its alpha is discarded.
+        Numerics.UnPremultiply(ref source);
+        return FromScaledVector4(source);
+    }
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static HalfSingle FromUnassociatedVector4(Vector4 source) => FromVector4(source);
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static HalfSingle FromAssociatedVector4(Vector4 source)
+    {
+        // This format has no native alpha component: X uses the binary16 finite range, while W remains the source opacity.
+        source.X = HalfTypeHelper.ToScaled(source.X);
+        return FromAssociatedScaledVector4(source);
+    }
+
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static HalfSingle FromScaledVector4(Vector4 source)
-    {
-        float scaled = source.X;
-        scaled *= 2F;
-        scaled--;
-        return new HalfSingle { PackedValue = HalfTypeHelper.Pack(scaled) };
-    }
+        => new() { PackedValue = HalfTypeHelper.Pack(HalfTypeHelper.FromScaled(source.X)) };
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

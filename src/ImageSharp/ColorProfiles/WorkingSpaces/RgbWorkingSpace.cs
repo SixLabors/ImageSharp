@@ -70,8 +70,10 @@ public abstract class RgbWorkingSpace
             return true;
         }
 
-        if (obj is RgbWorkingSpace other)
+        if (obj.GetType() == this.GetType())
         {
+            RgbWorkingSpace other = (RgbWorkingSpace)obj;
+
             return this.WhitePoint.Equals(other.WhitePoint)
                 && this.ChromaticityCoordinates.Equals(other.ChromaticityCoordinates);
         }
@@ -81,5 +83,5 @@ public abstract class RgbWorkingSpace
 
     /// <inheritdoc/>
     public override int GetHashCode()
-        => HashCode.Combine(this.WhitePoint, this.ChromaticityCoordinates);
+        => HashCode.Combine(this.GetType(), this.WhitePoint, this.ChromaticityCoordinates);
 }

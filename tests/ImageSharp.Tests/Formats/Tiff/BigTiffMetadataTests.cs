@@ -89,6 +89,21 @@ public class BigTiffMetadataTests
     }
 
     [Fact]
+    public void ExifLong8Array_CanWriteValuesAsLong()
+    {
+        ExifLong8Array long8 = new(ExifTagValue.StripOffsets);
+        Assert.True(long8.TrySetValue(new long[] { 1, uint.MaxValue }));
+        Assert.Equal(ExifDataType.Long, long8.DataType);
+
+        byte[] buffer = new byte[8];
+        int written = ExifWriter.WriteValue(long8, buffer, 0);
+
+        Assert.Equal(buffer.Length, written);
+        Assert.Equal(1U, BinaryPrimitives.ReadUInt32LittleEndian(buffer));
+        Assert.Equal(uint.MaxValue, BinaryPrimitives.ReadUInt32LittleEndian(buffer.AsSpan(4)));
+    }
+
+    [Fact]
     public void ExifSignedLong8Array()
     {
         ExifSignedLong8Array long8 = new(ExifTagValue.StripOffsets);

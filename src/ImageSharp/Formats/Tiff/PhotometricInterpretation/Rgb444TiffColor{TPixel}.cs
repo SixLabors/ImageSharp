@@ -30,7 +30,7 @@ internal class Rgb444TiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
                 byte b = (byte)((data[offset] & 0xF0) >> 4);
 
                 Bgra4444 bgra = new() { PackedValue = ToBgraPackedValue(b, g, r) };
-                pixelRow[x] = TPixel.FromScaledVector4(bgra.ToScaledVector4());
+                pixelRow[x] = TPixel.FromUnassociatedScaledVector4(bgra.ToUnassociatedScaledVector4());
                 if (x + 1 >= pixelRow.Length)
                 {
                     offset++;
@@ -44,7 +44,7 @@ internal class Rgb444TiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
                 offset++;
 
                 bgra.PackedValue = ToBgraPackedValue(b, g, r);
-                pixelRow[x + 1] = TPixel.FromScaledVector4(bgra.ToScaledVector4());
+                pixelRow[x + 1] = TPixel.FromUnassociatedScaledVector4(bgra.ToUnassociatedScaledVector4());
             }
         }
     }

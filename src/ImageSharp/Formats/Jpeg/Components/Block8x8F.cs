@@ -132,7 +132,7 @@ internal partial struct Block8x8F : IEquatable<Block8x8F>
     /// </summary>
     /// <param name="dest">Destination</param>
     [MethodImpl(InliningOptions.ShortMethod)]
-    public unsafe void ScaledCopyTo(float[] dest)
+    public readonly void ScaledCopyTo(float[] dest)
     {
         DebugGuard.MustBeGreaterThanOrEqualTo(dest.Length, Size, "dest is too small");
 
@@ -193,7 +193,7 @@ internal partial struct Block8x8F : IEquatable<Block8x8F>
     /// </summary>
     /// <param name="other">The other block.</param>
     [MethodImpl(InliningOptions.ShortMethod)]
-    public unsafe void MultiplyInPlace(ref Block8x8F other)
+    public void MultiplyInPlace(ref Block8x8F other)
     {
         if (Vector256.IsHardwareAccelerated)
         {
@@ -324,62 +324,43 @@ internal partial struct Block8x8F : IEquatable<Block8x8F>
     }
 
     /// <summary>
-    /// Level shift by +maximum/2, clip to [0..maximum], and round all the values in the block.
-    /// </summary>
-    /// <param name="maximum">The maximum value.</param>
-    public void NormalizeColorsAndRoundInPlace(float maximum)
-    {
-        if (Vector256.IsHardwareAccelerated)
-        {
-            this.NormalizeColorsAndRoundInPlaceVector256(maximum);
-        }
-        else if (Vector128.IsHardwareAccelerated)
-        {
-            this.NormalizeColorsAndRoundInPlaceVector128(maximum);
-        }
-        else
-        {
-            this.NormalizeColorsInPlace(maximum);
-            this.RoundInPlace();
-        }
-    }
-
-    /// <summary>
     /// Level shift by +maximum/2, clip to [0, maximum]
     /// </summary>
     /// <param name="maximum">The maximum value to normalize to.</param>
     public void NormalizeColorsInPlace(float maximum)
     {
-        Vector4 min = Vector4.Zero;
-        Vector4 max = new(maximum);
-        Vector4 off = new(MathF.Ceiling(maximum * 0.5F));
-
-        this.V0L = Vector4.Clamp(this.V0L + off, min, max);
-        this.V0R = Vector4.Clamp(this.V0R + off, min, max);
-        this.V1L = Vector4.Clamp(this.V1L + off, min, max);
-        this.V1R = Vector4.Clamp(this.V1R + off, min, max);
-        this.V2L = Vector4.Clamp(this.V2L + off, min, max);
-        this.V2R = Vector4.Clamp(this.V2R + off, min, max);
-        this.V3L = Vector4.Clamp(this.V3L + off, min, max);
-        this.V3R = Vector4.Clamp(this.V3R + off, min, max);
-        this.V4L = Vector4.Clamp(this.V4L + off, min, max);
-        this.V4R = Vector4.Clamp(this.V4R + off, min, max);
-        this.V5L = Vector4.Clamp(this.V5L + off, min, max);
-        this.V5R = Vector4.Clamp(this.V5R + off, min, max);
-        this.V6L = Vector4.Clamp(this.V6L + off, min, max);
-        this.V6R = Vector4.Clamp(this.V6R + off, min, max);
-        this.V7L = Vector4.Clamp(this.V7L + off, min, max);
-        this.V7R = Vector4.Clamp(this.V7R + off, min, max);
-    }
-
-    /// <summary>
-    /// Rounds all values in the block.
-    /// </summary>
-    public void RoundInPlace()
-    {
-        for (int i = 0; i < Size; i++)
+        if (Vector256.IsHardwareAccelerated)
         {
-            this[i] = MathF.Round(this[i]);
+            this.NormalizeColorsInPlaceVector256(maximum);
+            return;
+        }
+        else if (Vector128.IsHardwareAccelerated)
+        {
+            this.NormalizeColorsInPlaceVector128(maximum);
+            return;
+        }
+        else
+        {
+            Vector4 min = Vector4.Zero;
+            Vector4 max = new(maximum);
+            Vector4 off = new(MathF.Ceiling(maximum * 0.5F));
+
+            this.V0L = Vector4.Clamp(this.V0L + off, min, max);
+            this.V0R = Vector4.Clamp(this.V0R + off, min, max);
+            this.V1L = Vector4.Clamp(this.V1L + off, min, max);
+            this.V1R = Vector4.Clamp(this.V1R + off, min, max);
+            this.V2L = Vector4.Clamp(this.V2L + off, min, max);
+            this.V2R = Vector4.Clamp(this.V2R + off, min, max);
+            this.V3L = Vector4.Clamp(this.V3L + off, min, max);
+            this.V3R = Vector4.Clamp(this.V3R + off, min, max);
+            this.V4L = Vector4.Clamp(this.V4L + off, min, max);
+            this.V4R = Vector4.Clamp(this.V4R + off, min, max);
+            this.V5L = Vector4.Clamp(this.V5L + off, min, max);
+            this.V5R = Vector4.Clamp(this.V5R + off, min, max);
+            this.V6L = Vector4.Clamp(this.V6L + off, min, max);
+            this.V6R = Vector4.Clamp(this.V6R + off, min, max);
+            this.V7L = Vector4.Clamp(this.V7L + off, min, max);
+            this.V7R = Vector4.Clamp(this.V7R + off, min, max);
         }
     }
 
@@ -533,7 +514,7 @@ internal partial struct Block8x8F : IEquatable<Block8x8F>
     }
 
     /// <inheritdoc />
-    public bool Equals(Block8x8F other)
+    public readonly bool Equals(Block8x8F other)
         => this.V0L == other.V0L
         && this.V0R == other.V0R
         && this.V1L == other.V1L

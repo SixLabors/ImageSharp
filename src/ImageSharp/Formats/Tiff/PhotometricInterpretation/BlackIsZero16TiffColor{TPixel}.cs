@@ -34,7 +34,7 @@ internal class BlackIsZero16TiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
     public override void Decode(ReadOnlySpan<byte> data, Buffer2D<TPixel> pixels, int left, int top, int width, int height)
     {
         L16 l16 = TiffUtilities.L16Default;
-        TPixel color = TPixel.FromScaledVector4(Vector4.Zero);
+        TPixel color = TPixel.FromUnassociatedScaledVector4(Vector4.Zero);
 
         int offset = 0;
         for (int y = top; y < top + height; y++)

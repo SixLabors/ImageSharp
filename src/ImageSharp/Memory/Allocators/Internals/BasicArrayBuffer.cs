@@ -47,7 +47,7 @@ internal class BasicArrayBuffer<T> : ManagedBufferBase<T>
     public override Span<T> GetSpan() => this.Array.AsSpan(0, this.Length);
 
     /// <inheritdoc />
-    protected override void Dispose(bool disposing)
+    protected override void DisposeCore(bool disposing)
     {
     }
 

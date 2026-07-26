@@ -7,11 +7,12 @@ using System.Runtime.CompilerServices;
 namespace SixLabors.ImageSharp.PixelFormats;
 
 /// <summary>
-/// Packed pixel type containing unsigned normalized values, ranging from 0 to 1, using 4 bits each for x, y, z, and w.
-/// <para>
-/// Ranges from [0, 0, 0, 0] to [1, 1, 1, 1] in vector form.
-/// </para>
+/// Packed pixel type containing four unsigned normalized values using 4 bits per component.
 /// </summary>
+/// <remarks>
+/// <see cref="ToVector4"/> and scaled vector conversions return all components in <c>[0, 1]</c>. The storage layout matches
+/// <c>DXGI_FORMAT_B4G4R4A4_UNORM</c>.
+/// </remarks>
 public partial struct Bgra4444 : IPixel<Bgra4444>, IPackedVector<ushort>
 {
     /// <summary>
@@ -87,6 +88,47 @@ public partial struct Bgra4444 : IPixel<Bgra4444>, IPackedVector<ushort>
 
     /// <inheritdoc />
     public static PixelOperations<Bgra4444> CreatePixelOperations() => new PixelOperations();
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly Vector4 ToUnassociatedScaledVector4() => this.ToScaledVector4();
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly Vector4 ToAssociatedScaledVector4()
+    {
+        Vector4 vector = this.ToScaledVector4();
+        Numerics.Premultiply(ref vector);
+        return vector;
+    }
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly Vector4 ToUnassociatedVector4() => this.ToVector4();
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly Vector4 ToAssociatedVector4() => this.ToAssociatedScaledVector4();
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Bgra4444 FromUnassociatedScaledVector4(Vector4 source) => FromScaledVector4(source);
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Bgra4444 FromAssociatedScaledVector4(Vector4 source)
+    {
+        Numerics.UnPremultiply(ref source);
+        return FromScaledVector4(source);
+    }
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Bgra4444 FromUnassociatedVector4(Vector4 source) => FromVector4(source);
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Bgra4444 FromAssociatedVector4(Vector4 source) => FromAssociatedScaledVector4(source);
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

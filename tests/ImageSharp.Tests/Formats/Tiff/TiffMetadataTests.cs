@@ -11,6 +11,7 @@ using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.Metadata.Profiles.Iptc;
 using SixLabors.ImageSharp.Metadata.Profiles.Xmp;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Tests.TestDataIcc;
 using SixLabors.ImageSharp.Tests.TestUtilities;
 using static SixLabors.ImageSharp.Tests.TestImages.Tiff;
 
@@ -149,13 +150,22 @@ public class TiffMetadataTests
         Assert.NotNull(meta);
         if (ignoreMetadata)
         {
+            Assert.Null(image.Metadata.XmpProfile);
+            Assert.Null(image.Metadata.ExifProfile);
             Assert.Null(rootFrameMetaData.XmpProfile);
             Assert.Null(rootFrameMetaData.ExifProfile);
         }
         else
         {
+            Assert.NotNull(image.Metadata.XmpProfile);
+            Assert.NotNull(image.Metadata.ExifProfile);
             Assert.NotNull(rootFrameMetaData.XmpProfile);
             Assert.NotNull(rootFrameMetaData.ExifProfile);
+
+            Assert.NotSame(rootFrameMetaData.XmpProfile, image.Metadata.XmpProfile);
+            Assert.NotSame(rootFrameMetaData.ExifProfile, image.Metadata.ExifProfile);
+            Assert.Equal(rootFrameMetaData.XmpProfile.Data, image.Metadata.XmpProfile.Data);
+            Assert.Equal(rootFrameMetaData.ExifProfile.ToByteArray(), image.Metadata.ExifProfile.ToByteArray());
             Assert.Equal(2596, rootFrameMetaData.XmpProfile.Data.Length); // padding bytes are trimmed
             Assert.Equal(25, rootFrameMetaData.ExifProfile.Values.Count);
         }
@@ -170,6 +180,10 @@ public class TiffMetadataTests
 
         IptcProfile iptcProfile = image.Frames.RootFrame.Metadata.IptcProfile;
         Assert.NotNull(iptcProfile);
+        Assert.NotNull(image.Metadata.IptcProfile);
+        Assert.NotSame(iptcProfile, image.Metadata.IptcProfile);
+        Assert.Equal(iptcProfile.Data, image.Metadata.IptcProfile.Data);
+
         IptcValue byline = iptcProfile.Values.FirstOrDefault(data => data.Tag == IptcTag.Byline);
         Assert.NotNull(byline);
         Assert.Equal("Studio Mantyniemi", byline.Value);
@@ -335,8 +349,7 @@ public class TiffMetadataTests
         iptcProfile.SetValue(IptcTag.Name, "Test name");
         rootFrameInput.Metadata.IptcProfile = iptcProfile;
 
-        IccProfileHeader iccProfileHeader = new() { Class = IccProfileClass.ColorSpace };
-        IccProfile iccProfile = new();
+        IccProfile iccProfile = new(IccTestDataProfiles.ProfileRandomArray);
         rootFrameInput.Metadata.IccProfile = iccProfile;
 
         TiffFrameMetadata frameMetaInput = rootFrameInput.Metadata.GetTiffMetadata();

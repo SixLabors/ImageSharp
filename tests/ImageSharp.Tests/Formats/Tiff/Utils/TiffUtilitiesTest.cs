@@ -20,6 +20,26 @@ public class TiffUtilitiesTest
         Assert.Equal(default, actual);
     }
 
+    [Fact]
+    public void ColorScaleTo24BitPremultiplied_WithZeroAlpha_ReturnsDefaultPixel()
+    {
+        Rgba64 unassociated = TiffUtilities.ColorScaleTo24BitPremultiplied<Rgba64>(0x123456, 0x654321, 0xABCDEF, 0);
+        Rgba32P associated = TiffUtilities.ColorScaleTo24BitPremultiplied<Rgba32P>(0x123456, 0x654321, 0xABCDEF, 0);
+
+        Assert.Equal(default, unassociated);
+        Assert.Equal(default, associated);
+    }
+
+    [Fact]
+    public void ColorScaleTo32BitPremultiplied_WithZeroAlpha_ReturnsDefaultPixel()
+    {
+        Rgba64 unassociated = TiffUtilities.ColorScaleTo32BitPremultiplied<Rgba64>(0x12345678, 0x654321AB, 0xABCDEF12, 0);
+        Rgba32P associated = TiffUtilities.ColorScaleTo32BitPremultiplied<Rgba32P>(0x12345678, 0x654321AB, 0xABCDEF12, 0);
+
+        Assert.Equal(default, unassociated);
+        Assert.Equal(default, associated);
+    }
+
     [Theory]
     [InlineData(65535, 65535, 65535, 65535, 65535, 65535, 65535, 65535)]
     [InlineData(32767, 0, 0, 65535, 32767, 0, 0, 65535)]
@@ -36,9 +56,11 @@ public class TiffUtilitiesTest
     [InlineData(32766, 0, 0, 32766, 65535, 0, 0, 32766)] // Red, 50% Alpha
     [InlineData(0, 32766, 0, 32766, 0, 65535, 0, 32766)] // Green, 50% Alpha
     [InlineData(0, 0, 32766, 32766, 0, 0, 65535, 32766)] // Blue, 50% Alpha
-    [InlineData(8191, 0, 0, 16383, 32765, 0, 0, 16383)] // Red, 25% Alpha
-    [InlineData(0, 8191, 0, 16383, 0, 32765, 0, 16383)] // Green, 25% Alpha
-    [InlineData(0, 0, 8191, 16383, 0, 0, 32765, 16383)] // Blue, 25% Alpha
+    /* The exact 25% result lies below the 16-bit midpoint by less than one float ULP. The Vector4 conversion therefore
+       reaches the midpoint and applies the established round-to-even contract without requiring a comparison tolerance. */
+    [InlineData(8191, 0, 0, 16383, 32766, 0, 0, 16383)] // Red, 25% Alpha
+    [InlineData(0, 8191, 0, 16383, 0, 32766, 0, 16383)] // Green, 25% Alpha
+    [InlineData(0, 0, 8191, 16383, 0, 0, 32766, 16383)] // Blue, 25% Alpha
     [InlineData(8191, 0, 0, 0, 0, 0, 0, 0)] // Red, 0% Alpha
     [InlineData(0, 8191, 0, 0, 0, 0, 0, 0)] // Green, 0% Alpha
     [InlineData(0, 0, 8191, 0, 0, 0, 0, 0)] // Blue, 0% Alpha

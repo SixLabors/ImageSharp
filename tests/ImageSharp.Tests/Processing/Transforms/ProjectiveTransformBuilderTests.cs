@@ -55,6 +55,9 @@ public class ProjectiveTransformBuilderTests : TransformBuilderTestBase<Projecti
     protected override void PrependRotationRadians(ProjectiveTransformBuilder builder, float radians, Vector2 origin) =>
         builder.PrependRotationRadians(radians, origin);
 
+    protected override void ClearBuilder(ProjectiveTransformBuilder builder)
+        => builder.Clear();
+
     protected override Vector2 Execute(
         ProjectiveTransformBuilder builder,
         Rectangle rectangle,

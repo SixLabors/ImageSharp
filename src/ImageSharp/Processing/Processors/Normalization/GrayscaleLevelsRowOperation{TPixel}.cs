@@ -51,13 +51,13 @@ internal readonly struct GrayscaleLevelsRowOperation<TPixel> : IRowOperation<Vec
         ref int histogramBase = ref MemoryMarshal.GetReference(this.histogramBuffer.GetSpan());
         int levels = this.luminanceLevels;
 
-        Span<TPixel> pixelRow = this.source.DangerousGetRowSpan(y);
-        PixelOperations<TPixel>.Instance.ToVector4(this.configuration, pixelRow, vectorBuffer);
+        Span<TPixel> pixelRow = this.source.DangerousGetRowSpan(y).Slice(this.bounds.X, this.bounds.Width);
+        PixelOperations<TPixel>.Instance.ToVector4(this.configuration, pixelRow, vectorBuffer, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
 
         for (int x = 0; x < this.bounds.Width; x++)
         {
             Vector4 vector = Unsafe.Add(ref vectorRef, (uint)x);
-            int luminance = ColorNumerics.GetBT709Luminance(ref vector, levels);
+            int luminance = ColorNumerics.GetBT709Luminance(vector, levels);
             Interlocked.Increment(ref Unsafe.Add(ref histogramBase, (uint)luminance));
         }
     }

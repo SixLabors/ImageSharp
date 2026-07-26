@@ -133,6 +133,69 @@ public class PointFTests
         Assert.Equal(new PointF(30, 30), pout);
     }
 
+    [Fact]
+    public void TransformMatrix4x4_AffineMatchesMatrix3x2()
+    {
+        PointF p = new(13, 17);
+        Matrix3x2 m3 = Matrix3x2Extensions.CreateRotationDegrees(45, PointF.Empty);
+        Matrix4x4 m4 = new(m3);
+
+        PointF r3 = PointF.Transform(p, m3);
+        PointF r4 = PointF.Transform(p, m4);
+
+        Assert.Equal(r3.X, r4.X, ApproximateFloatComparer);
+        Assert.Equal(r3.Y, r4.Y, ApproximateFloatComparer);
+    }
+
+    [Fact]
+    public void TransformMatrix4x4_Identity()
+    {
+        PointF p = new(42.5F, -17.3F);
+        PointF result = PointF.Transform(p, Matrix4x4.Identity);
+
+        Assert.Equal(p.X, result.X, ApproximateFloatComparer);
+        Assert.Equal(p.Y, result.Y, ApproximateFloatComparer);
+    }
+
+    [Fact]
+    public void TransformMatrix4x4_Translation()
+    {
+        PointF p = new(10, 20);
+        Matrix4x4 m = Matrix4x4.CreateTranslation(5, -3, 0);
+        PointF result = PointF.Transform(p, m);
+
+        Assert.Equal(15F, result.X, ApproximateFloatComparer);
+        Assert.Equal(17F, result.Y, ApproximateFloatComparer);
+    }
+
+    [Fact]
+    public void TransformMatrix4x4_Scale()
+    {
+        PointF p = new(10, 20);
+        Matrix4x4 m = Matrix4x4.CreateScale(2, 3, 1);
+        PointF result = PointF.Transform(p, m);
+
+        Assert.Equal(20F, result.X, ApproximateFloatComparer);
+        Assert.Equal(60F, result.Y, ApproximateFloatComparer);
+    }
+
+    [Fact]
+    public void TransformMatrix4x4_Projective()
+    {
+        // A taper matrix with M14 != 0 produces W != 1, requiring perspective divide.
+        PointF p = new(100, 50);
+        Matrix4x4 m = Matrix4x4.Identity;
+        m.M14 = 0.005F; // perspective component
+
+        PointF result = PointF.Transform(p, m);
+
+        // W = x*M14 + M44 = 100*0.005 + 1 = 1.5
+        // X = x*M11 + M41 = 100, Y = y*M22 + M42 = 50
+        // result = (100/1.5, 50/1.5)
+        Assert.Equal(100F / 1.5F, result.X, ApproximateFloatComparer);
+        Assert.Equal(50F / 1.5F, result.Y, ApproximateFloatComparer);
+    }
+
     [Theory]
     [InlineData(float.MaxValue, float.MinValue)]
     [InlineData(float.MinValue, float.MaxValue)]

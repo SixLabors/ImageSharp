@@ -138,6 +138,13 @@ internal sealed class PngDecoderCore : ImageDecoderCore
     private bool hasImageData;
 
     /// <summary>
+    /// Whether this is an Apple CgBI PNG. CgBI files store IDATs as raw DEFLATE
+    /// (no zlib header/Adler-32) and pixels as premultiplied BGRA, so they need
+    /// extra inversion steps to round-trip back to standard PNG semantics.
+    /// </summary>
+    private bool isCgbi;
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="PngDecoderCore"/> class.
     /// </summary>
     /// <param name="options">The decoder options.</param>
@@ -214,7 +221,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                             break;
                         case PngChunkType.FrameData:
                         {
-                            if (frameCount >= this.maxFrames)
+                            if (frameCount > this.maxFrames)
                             {
                                 goto EOF;
                             }
@@ -275,7 +282,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                                 previousFrameControl = currentFrameControl;
                             }
 
-                            if (frameCount >= this.maxFrames)
+                            if (frameCount > this.maxFrames)
                             {
                                 goto EOF;
                             }
@@ -314,7 +321,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                         case PngChunkType.End:
                             goto EOF;
                         case PngChunkType.ProprietaryApple:
-                            PngThrowHelper.ThrowInvalidChunkType("Proprietary Apple PNG detected! This PNG file is not conform to the specification and cannot be decoded.");
+                            this.ReadCgbiChunk();
                             break;
                     }
                 }
@@ -402,7 +409,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                             break;
                         case PngChunkType.FrameControl:
                             ++frameCount;
-                            if (frameCount >= this.maxFrames)
+                            if (frameCount > this.maxFrames)
                             {
                                 break;
                             }
@@ -411,8 +418,12 @@ internal sealed class PngDecoderCore : ImageDecoderCore
 
                             break;
                         case PngChunkType.FrameData:
-                            if (frameCount >= this.maxFrames)
+                            if (frameCount > this.maxFrames)
                             {
+                                // Must skip the chunk data even when we've hit maxFrames, because TryReadChunk
+                                // restores the stream position to the start of the fdAT data after CRC validation.
+                                this.SkipChunkDataAndCrc(chunk);
+                                this.SkipRemainingFrameDataChunks(buffer);
                                 break;
                             }
 
@@ -428,9 +439,10 @@ internal sealed class PngDecoderCore : ImageDecoderCore
 
                             InitializeFrameMetadata(framesMetadata, currentFrameControl.Value);
 
-                            // Skip sequence number
-                            this.currentStream.Skip(4);
+                            // Skip data for this and all remaining FrameData chunks belonging to the same frame
+                            // (comparable to how Decode consumes them via ReadScanlines + ReadNextFrameDataChunk).
                             this.SkipChunkDataAndCrc(chunk);
+                            this.SkipRemainingFrameDataChunks(buffer);
                             break;
                         case PngChunkType.Data:
 
@@ -511,6 +523,10 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                             break;
                         case PngChunkType.End:
                             goto EOF;
+
+                        case PngChunkType.ProprietaryApple:
+                            this.ReadCgbiChunk();
+                            break;
 
                         default:
                             if (this.colorMetadataOnly)
@@ -749,7 +765,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
     /// <param name="chunkLength">The length of the chunk that containing the compressed scanline data.</param>
     /// <param name="image"> The pixel data.</param>
     /// <param name="pngMetadata">The png metadata</param>
-    /// <param name="getData">A delegate to get more data from the inner stream for <see cref="ZlibInflateStream"/>.</param>
+    /// <param name="getData">A delegate to get more data from the inner stream when chunk boundaries are crossed.</param>
     /// <param name="frameControl">The frame control</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     private void ReadScanlines<TPixel>(
@@ -761,14 +777,34 @@ internal sealed class PngDecoderCore : ImageDecoderCore
         CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using ZlibInflateStream inflateStream = new(this.currentStream, getData);
+        // CgBI IDATs wrap a raw DEFLATE payload directly (no zlib CMF/FLG header
+        // and no Adler-32 trailer); skip the zlib header parser entirely.
+        if (this.isCgbi)
+        {
+            using ChunkedReadStream segmentStream = new(this.currentStream, getData);
+            segmentStream.SetCurrentSegmentLength(chunkLength);
+            using DeflateStream cgbiDataStream = new(segmentStream, CompressionMode.Decompress, leaveOpen: true);
+            this.DecodeFromDeflate(cgbiDataStream, image, pngMetadata, frameControl, cancellationToken);
+            return;
+        }
+
+        using ZlibInflateReader inflateStream = new(this.currentStream, getData);
         if (!inflateStream.AllocateNewBytes(chunkLength, !this.hasImageData))
         {
             return;
         }
 
-        DeflateStream dataStream = inflateStream.CompressedStream!;
+        this.DecodeFromDeflate(inflateStream.CompressedStream!, image, pngMetadata, frameControl, cancellationToken);
+    }
 
+    private void DecodeFromDeflate<TPixel>(
+        DeflateStream dataStream,
+        ImageFrame<TPixel> image,
+        PngMetadata pngMetadata,
+        in FrameControl frameControl,
+        CancellationToken cancellationToken)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
         if (this.header.InterlaceMethod is PngInterlaceMode.Adam7)
         {
             this.DecodeInterlacedPixelData(frameControl, dataStream, image, pngMetadata, cancellationToken);
@@ -796,17 +832,45 @@ internal sealed class PngDecoderCore : ImageDecoderCore
         CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
+        using IMemoryOwner<TPixel>? blendMemory = frameControl.BlendMode == FrameBlendMode.Over
+            ? this.memoryAllocator.Allocate<TPixel>(imageFrame.Width, AllocationOptions.Clean)
+            : null;
+
+        this.ExecuteImageDataSegmentAction(() => this.DecodePixelDataCore(
+            frameControl,
+            compressedStream,
+            imageFrame,
+            pngMetadata,
+            blendMemory,
+            cancellationToken));
+
+        this.hasImageData = true;
+    }
+
+    /// <summary>
+    /// Decodes the raw pixel data row by row.
+    /// </summary>
+    /// <typeparam name="TPixel">The pixel format.</typeparam>
+    /// <param name="frameControl">The frame control.</param>
+    /// <param name="compressedStream">The compressed pixel data stream.</param>
+    /// <param name="imageFrame">The image frame to decode to.</param>
+    /// <param name="pngMetadata">The png metadata.</param>
+    /// <param name="blendMemory">The optional row blending buffer.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    private void DecodePixelDataCore<TPixel>(
+        FrameControl frameControl,
+        DeflateStream compressedStream,
+        ImageFrame<TPixel> imageFrame,
+        PngMetadata pngMetadata,
+        IMemoryOwner<TPixel>? blendMemory,
+        CancellationToken cancellationToken)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
         int currentRow = (int)frameControl.YOffset;
         int currentRowBytesRead = 0;
         int height = (int)frameControl.YMax;
 
-        IMemoryOwner<TPixel>? blendMemory = null;
-        Span<TPixel> blendRowBuffer = [];
-        if (frameControl.BlendMode == FrameBlendMode.Over)
-        {
-            blendMemory = this.memoryAllocator.Allocate<TPixel>(imageFrame.Width, AllocationOptions.Clean);
-            blendRowBuffer = blendMemory.Memory.Span;
-        }
+        Span<TPixel> blendRowBuffer = blendMemory is null ? [] : blendMemory.Memory.Span;
 
         while (currentRow < height)
         {
@@ -850,13 +914,13 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                     break;
 
                 default:
-                    if (this.segmentIntegrityHandling is SegmentIntegrityHandling.IgnoreData or SegmentIntegrityHandling.IgnoreAll)
-                    {
-                        goto EXIT;
-                    }
-
                     PngThrowHelper.ThrowUnknownFilter();
                     break;
+            }
+
+            if (this.isCgbi)
+            {
+                PngCgbiProcessor.ApplyTransform(this.configuration, scanSpan[1..], this.pngColorType);
             }
 
             this.ProcessDefilteredScanline(frameControl, currentRow, scanSpan, imageFrame, pngMetadata, blendRowBuffer);
@@ -865,8 +929,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
         }
 
         EXIT:
-        this.hasImageData = true;
-        blendMemory?.Dispose();
+        return;
     }
 
     /// <summary>
@@ -886,6 +949,41 @@ internal sealed class PngDecoderCore : ImageDecoderCore
         CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
+        using IMemoryOwner<TPixel>? blendMemory = frameControl.BlendMode == FrameBlendMode.Over
+            ? this.memoryAllocator.Allocate<TPixel>(imageFrame.Width, AllocationOptions.Clean)
+            : null;
+
+        FrameControl frameControlCopy = frameControl;
+        this.ExecuteImageDataSegmentAction(() => this.DecodeInterlacedPixelDataCore(
+            frameControlCopy,
+            compressedStream,
+            imageFrame,
+            pngMetadata,
+            blendMemory,
+            cancellationToken));
+
+        this.hasImageData = true;
+    }
+
+    /// <summary>
+    /// Decodes the raw interlaced pixel data row by row.
+    /// </summary>
+    /// <typeparam name="TPixel">The pixel format.</typeparam>
+    /// <param name="frameControl">The frame control.</param>
+    /// <param name="compressedStream">The compressed pixel data stream.</param>
+    /// <param name="imageFrame">The current image frame.</param>
+    /// <param name="pngMetadata">The png metadata.</param>
+    /// <param name="blendMemory">The optional row blending buffer.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    private void DecodeInterlacedPixelDataCore<TPixel>(
+        FrameControl frameControl,
+        DeflateStream compressedStream,
+        ImageFrame<TPixel> imageFrame,
+        PngMetadata pngMetadata,
+        IMemoryOwner<TPixel>? blendMemory,
+        CancellationToken cancellationToken)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
         int currentRow = Adam7.FirstRow[0] + (int)frameControl.YOffset;
         int currentRowBytesRead = 0;
         int pass = 0;
@@ -894,13 +992,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
 
         Buffer2D<TPixel> imageBuffer = imageFrame.PixelBuffer;
 
-        IMemoryOwner<TPixel>? blendMemory = null;
-        Span<TPixel> blendRowBuffer = [];
-        if (frameControl.BlendMode == FrameBlendMode.Over)
-        {
-            blendMemory = this.memoryAllocator.Allocate<TPixel>(imageFrame.Width, AllocationOptions.Clean);
-            blendRowBuffer = blendMemory.Memory.Span;
-        }
+        Span<TPixel> blendRowBuffer = blendMemory is null ? [] : blendMemory.Memory.Span;
 
         while (true)
         {
@@ -957,13 +1049,13 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                         break;
 
                     default:
-                        if (this.segmentIntegrityHandling is SegmentIntegrityHandling.IgnoreData or SegmentIntegrityHandling.IgnoreAll)
-                        {
-                            goto EXIT;
-                        }
-
                         PngThrowHelper.ThrowUnknownFilter();
                         break;
+                }
+
+                if (this.isCgbi)
+                {
+                    PngCgbiProcessor.ApplyTransform(this.configuration, scanSpan[1..], this.pngColorType);
                 }
 
                 Span<TPixel> rowSpan = imageBuffer.DangerousGetRowSpan(currentRow);
@@ -997,8 +1089,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
         }
 
         EXIT:
-        this.hasImageData = true;
-        blendMemory?.Dispose();
+        return;
     }
 
     /// <summary>
@@ -1253,6 +1344,12 @@ internal sealed class PngDecoderCore : ImageDecoderCore
         ReadOnlySpan<Rgb24> rgbTable = MemoryMarshal.Cast<byte, Rgb24>(palette);
         Color.FromPixel(rgbTable, colorTable);
 
+        // The tRNS chunk must not contain more alpha values than there are palette entries.
+        if (alpha.Length > colorTable.Length)
+        {
+            alpha = alpha.Slice(0, colorTable.Length);
+        }
+
         if (alpha.Length > 0)
         {
             // The alpha chunk may contain as many transparency entries as there are palette entries
@@ -1352,6 +1449,37 @@ internal sealed class PngDecoderCore : ImageDecoderCore
 
         this.pngColorType = this.header.ColorType;
         this.Dimensions = new Size(this.header.Width, this.header.Height);
+
+        // Apple's pngcrush emits the CgBI chunk before IHDR, so the header
+        // compatibility check is deferred until both chunks have been seen.
+        if (this.isCgbi)
+        {
+            ThrowIfInvalidCgbiContent(this.header);
+        }
+    }
+
+    /// <summary>
+    /// Marks the image as CgBI and validates a header that has already been read.
+    /// </summary>
+    private void ReadCgbiChunk()
+    {
+        this.isCgbi = true;
+
+        // Although Apple's pngcrush normally writes CgBI before IHDR, accepting the
+        // reverse order must apply the same compatibility validation.
+        if (!Equals(this.header, default(PngHeader)))
+        {
+            ThrowIfInvalidCgbiContent(this.header);
+        }
+    }
+
+    private static void ThrowIfInvalidCgbiContent(in PngHeader header)
+    {
+        if (header.BitDepth != 8 || (header.ColorType is not PngColorType.Rgb and not PngColorType.RgbWithAlpha))
+        {
+            PngThrowHelper.ThrowInvalidImageContentException(
+                $"CgBI is only supported for 8-bit truecolor images. Was bit depth '{header.BitDepth}', color type '{header.ColorType}'.");
+        }
     }
 
     /// <summary>
@@ -1402,26 +1530,31 @@ internal sealed class PngDecoderCore : ImageDecoderCore
             return;
         }
 
-        int zeroIndex = data.IndexOf((byte)0);
-        if (zeroIndex is < PngConstants.MinTextKeywordLength or > PngConstants.MaxTextKeywordLength)
+        int keywordEnd = data.IndexOf((byte)0);
+        if (keywordEnd is < PngConstants.MinTextKeywordLength or > PngConstants.MaxTextKeywordLength)
         {
             return;
         }
 
-        byte compressionMethod = data[zeroIndex + 1];
+        if (keywordEnd < 0 || keywordEnd + 2 > data.Length)
+        {
+            return; // Not enough data for keyword + null + compression method.
+        }
+
+        byte compressionMethod = data[keywordEnd + 1];
         if (compressionMethod != 0)
         {
             // Only compression method 0 is supported (zlib datastream with deflate compression).
             return;
         }
 
-        ReadOnlySpan<byte> keywordBytes = data[..zeroIndex];
+        ReadOnlySpan<byte> keywordBytes = data[..keywordEnd];
         if (!TryReadTextKeyword(keywordBytes, out string name))
         {
             return;
         }
 
-        ReadOnlySpan<byte> compressedData = data[(zeroIndex + 2)..];
+        ReadOnlySpan<byte> compressedData = data[(keywordEnd + 2)..];
 
         if (this.TryDecompressTextData(compressedData, PngConstants.Encoding, out string? uncompressed)
             && !TryReadTextChunkMetadata(baseMetadata, name, uncompressed))
@@ -1834,7 +1967,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
             using MemoryStream memoryStreamOutput = new(compressedData.Length);
             using UnmanagedMemoryStream memoryStreamInput = new(compressedDataBase, compressedData.Length);
             using BufferedReadStream bufferedStream = new(this.configuration, memoryStreamInput);
-            using ZlibInflateStream inflateStream = new(bufferedStream);
+            using ZlibInflateReader inflateStream = new(bufferedStream);
 
             Span<byte> destUncompressedData = destBuffer.GetSpan();
             if (!inflateStream.AllocateNewBytes(compressedData.Length, false))
@@ -1932,6 +2065,11 @@ internal sealed class PngDecoderCore : ImageDecoderCore
             return;
         }
 
+        if (zeroIndexKeyword < 0 || zeroIndexKeyword + 4 > data.Length)
+        {
+            return; // Not enough data for keyword + null + flag + method + language.
+        }
+
         byte compressionFlag = data[zeroIndexKeyword + 1];
         if (compressionFlag is not (0 or 1))
         {
@@ -1956,6 +2094,11 @@ internal sealed class PngDecoderCore : ImageDecoderCore
 
         int translatedKeywordStartIdx = langStartIdx + languageLength + 1;
         int translatedKeywordLength = data[translatedKeywordStartIdx..].IndexOf((byte)0);
+        if (translatedKeywordLength < 0)
+        {
+            return;
+        }
+
         string translatedKeyword = PngConstants.TranslatedEncoding.GetString(data.Slice(translatedKeywordStartIdx, translatedKeywordLength));
 
         ReadOnlySpan<byte> keywordBytes = data[..zeroIndexKeyword];
@@ -2070,6 +2213,31 @@ internal sealed class PngDecoderCore : ImageDecoderCore
         }
 
         return 0;
+    }
+
+    /// <summary>
+    /// Skips any remaining <see cref="PngChunkType.FrameData"/> chunks belonging to the current frame.
+    /// This mirrors how <see cref="ReadNextFrameDataChunk"/> is used during decoding:
+    /// consecutive fdAT chunks are consumed until a non-fdAT chunk is encountered,
+    /// which is stored in <see cref="nextChunk"/> for the next iteration.
+    /// </summary>
+    /// <param name="buffer">Temporary buffer.</param>
+    private void SkipRemainingFrameDataChunks(Span<byte> buffer)
+    {
+        while (this.TryReadChunk(buffer, out PngChunk chunk))
+        {
+            if (chunk.Type is PngChunkType.FrameData)
+            {
+                chunk.Data?.Dispose();
+                this.SkipChunkDataAndCrc(chunk);
+            }
+            else
+            {
+                // Not a FrameData chunk; store it so the next TryReadChunk call returns it.
+                this.nextChunk = chunk;
+                return;
+            }
+        }
     }
 
     /// <summary>

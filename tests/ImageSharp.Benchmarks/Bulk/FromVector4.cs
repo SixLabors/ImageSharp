@@ -14,7 +14,6 @@ using SixLabors.ImageSharp.PixelFormats;
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Benchmarks.Bulk;
 
-[Config(typeof(Config.Short))]
 public abstract class FromVector4<TPixel>
     where TPixel : unmanaged, IPixel<TPixel>
 {
@@ -62,14 +61,21 @@ public abstract class FromVector4<TPixel>
         => PixelOperations<TPixel>.Instance.FromVector4Destructive(this.Configuration, this.Source.GetSpan(), this.Destination.GetSpan());
 }
 
+[Config(typeof(Config.Short))]
 public class FromVector4Rgba32 : FromVector4<Rgba32>
 {
+    /// <summary>
+    /// Measures the raw SIMD kernel that converts normalized RGBA vector components to bytes.
+    /// </summary>
     [Benchmark]
     public void UseHwIntrinsics()
     {
         Span<float> sBytes = MemoryMarshal.Cast<Vector4, float>(this.Source.GetSpan());
         Span<byte> dFloats = MemoryMarshal.Cast<Rgba32, byte>(this.Destination.GetSpan());
 
+        // Four components per pixel make every configured count divisible by the supported 128-, 256-, and 512-bit
+        // byte-vector widths. Calling the block kernel directly therefore excludes PixelOperations contract handling
+        // and the general conversion wrapper's remainder dispatch, establishing the lower bound for the SIMD conversion.
         SimdUtils.HwIntrinsics.NormalizedFloatToByteSaturate(sBytes, dFloats);
     }
 
@@ -121,36 +127,45 @@ public class FromVector4Rgba32 : FromVector4<Rgba32>
     }
 
     /*
-    BenchmarkDotNet v0.13.10, Windows 11 (10.0.22631.3085/23H2/2023Update/SunValley3)
-    11th Gen Intel Core i7-11370H 3.30GHz, 1 CPU, 8 logical and 4 physical cores
-    .NET SDK 8.0.200-preview.23624.5
-      [Host]     : .NET 8.0.1 (8.0.123.58001), X64 RyuJIT AVX2
-      Job-YJYLLR : .NET 8.0.1 (8.0.123.58001), X64 RyuJIT AVX2
+    BenchmarkDotNet v0.15.8, Windows 11 (10.0.26200.8737/25H2/2025Update/HudsonValley2)
+    AMD RYZEN AI MAX+ 395 w/ Radeon 8060S 3.00GHz, 1 CPU, 32 logical and 16 physical cores
+    .NET 8.0.28, X64 RyuJIT x86-64-v4
 
-    Runtime=.NET 8.0  Arguments=/p:DebugType=portable  IterationCount=3
-    LaunchCount=1  WarmupCount=3
+    | Method                      | Count | Mean        | Error      | StdDev    | Ratio | RatioSD | Allocated |
+    |---------------------------- |------ |------------:|-----------:|----------:|------:|--------:|----------:|
+    | PixelOperations_Base        | 64    |    60.19 ns |  32.376 ns |  1.775 ns |  1.00 |    0.04 |         - |
+    | PixelOperations_Specialized | 64    |    22.94 ns |  66.082 ns |  3.622 ns |  0.38 |    0.05 |         - |
+    | UseHwIntrinsics             | 64    |    10.64 ns |   9.535 ns |  0.523 ns |  0.18 |    0.01 |         - |
+    | UseAvx2_Grouped             | 64    |    11.69 ns |   0.997 ns |  0.055 ns |  0.19 |    0.01 |         - |
+    | PixelOperations_Base        | 256   |   232.65 ns |  37.948 ns |  2.080 ns |  1.00 |    0.01 |         - |
+    | PixelOperations_Specialized | 256   |    33.75 ns |   3.906 ns |  0.214 ns |  0.15 |    0.00 |         - |
+    | UseHwIntrinsics             | 256   |    21.91 ns |   2.732 ns |  0.150 ns |  0.09 |    0.00 |         - |
+    | UseAvx2_Grouped             | 256   |    24.84 ns |   5.333 ns |  0.292 ns |  0.11 |    0.00 |         - |
+    | PixelOperations_Base        | 2048  | 1,500.98 ns | 951.510 ns | 52.155 ns |  1.00 |    0.04 |         - |
+    | PixelOperations_Specialized | 2048  |   156.21 ns |  65.074 ns |  3.567 ns |  0.10 |    0.00 |         - |
+    | UseHwIntrinsics             | 2048  |   144.38 ns |  40.947 ns |  2.244 ns |  0.10 |    0.00 |         - |
+    | UseAvx2_Grouped             | 2048  |   189.80 ns |  54.098 ns |  2.965 ns |  0.13 |    0.00 |         - |
+    */
+}
 
-    | Method                      | Count | Mean        | Error        | StdDev     | Ratio | RatioSD | Allocated | Alloc Ratio |
-    |---------------------------- |------ |------------:|-------------:|-----------:|------:|--------:|----------:|------------:|
-    | PixelOperations_Base        | 64    |   114.80 ns |    16.459 ns |   0.902 ns |  1.00 |    0.00 |         - |          NA |
-    | PixelOperations_Specialized | 64    |    28.91 ns |    80.482 ns |   4.411 ns |  0.25 |    0.04 |         - |          NA |
-    | FallbackIntrinsics128       | 64    |   133.60 ns |    23.750 ns |   1.302 ns |  1.16 |    0.02 |         - |          NA |
-    | ExtendedIntrinsic           | 64    |    40.11 ns |    10.183 ns |   0.558 ns |  0.35 |    0.01 |         - |          NA |
-    | UseHwIntrinsics             | 64    |    14.71 ns |     4.860 ns |   0.266 ns |  0.13 |    0.00 |         - |          NA |
-    | UseAvx2_Grouped             | 64    |    20.23 ns |    11.619 ns |   0.637 ns |  0.18 |    0.00 |         - |          NA |
-    |                             |       |             |              |            |       |         |           |             |
-    | PixelOperations_Base        | 256   |   387.94 ns |    31.591 ns |   1.732 ns |  1.00 |    0.00 |         - |          NA |
-    | PixelOperations_Specialized | 256   |    50.93 ns |    22.388 ns |   1.227 ns |  0.13 |    0.00 |         - |          NA |
-    | FallbackIntrinsics128       | 256   |   509.72 ns |   249.926 ns |  13.699 ns |  1.31 |    0.04 |         - |          NA |
-    | ExtendedIntrinsic           | 256   |   140.32 ns |     9.353 ns |   0.513 ns |  0.36 |    0.00 |         - |          NA |
-    | UseHwIntrinsics             | 256   |    41.99 ns |    16.000 ns |   0.877 ns |  0.11 |    0.00 |         - |          NA |
-    | UseAvx2_Grouped             | 256   |    63.81 ns |     2.360 ns |   0.129 ns |  0.16 |    0.00 |         - |          NA |
-    |                             |       |             |              |            |       |         |           |             |
-    | PixelOperations_Base        | 2048  | 2,979.49 ns | 2,023.706 ns | 110.926 ns |  1.00 |    0.00 |         - |          NA |
-    | PixelOperations_Specialized | 2048  |   326.19 ns |    19.077 ns |   1.046 ns |  0.11 |    0.00 |         - |          NA |
-    | FallbackIntrinsics128       | 2048  | 3,885.95 ns |   411.078 ns |  22.533 ns |  1.31 |    0.05 |         - |          NA |
-    | ExtendedIntrinsic           | 2048  | 1,078.58 ns |   136.960 ns |   7.507 ns |  0.36 |    0.01 |         - |          NA |
-    | UseHwIntrinsics             | 2048  |   312.07 ns |    68.662 ns |   3.764 ns |  0.10 |    0.00 |         - |          NA |
-    | UseAvx2_Grouped             | 2048  |   451.83 ns |    41.742 ns |   2.288 ns |  0.15 |    0.01 |         - |          NA |
+/// <summary>
+/// Measures bulk conversion from <see cref="Vector4"/> values to premultiplied <see cref="Bgra32P"/> pixels.
+/// </summary>
+[Config(typeof(Config.Analysis))]
+public class FromVector4Bgra32P : FromVector4<Bgra32P>
+{
+    /*
+    BenchmarkDotNet v0.15.8, Windows 11 (10.0.26200.8737/25H2/2025Update/HudsonValley2)
+    AMD RYZEN AI MAX+ 395 w/ Radeon 8060S 3.00GHz, 1 CPU, 32 logical and 16 physical cores
+    .NET 8.0.28, X64 RyuJIT x86-64-v4
+
+    | Method                      | Count | Mean        | Error    | StdDev    | Ratio | Code Size | Allocated |
+    |---------------------------- |------ |------------:|---------:|----------:|------:|----------:|----------:|
+    | PixelOperations_Base        | 64    |    53.35 ns | 0.208 ns |  0.311 ns |  1.00 |   1,152 B |         - |
+    | PixelOperations_Specialized | 64    |    46.61 ns | 0.195 ns |  0.280 ns |  0.87 |   2,975 B |         - |
+    | PixelOperations_Base        | 256   |   212.11 ns | 0.719 ns |  1.076 ns |  1.00 |   1,152 B |         - |
+    | PixelOperations_Specialized | 256   |    77.12 ns | 0.824 ns |  1.233 ns |  0.36 |   2,992 B |         - |
+    | PixelOperations_Base        | 2048  | 1,435.87 ns | 9.402 ns | 13.781 ns |  1.00 |   1,152 B |         - |
+    | PixelOperations_Specialized | 2048  |   250.89 ns | 9.354 ns | 13.416 ns |  0.17 |   2,992 B |         - |
     */
 }

@@ -13,7 +13,7 @@ public sealed class BmpEncoder : QuantizingImageEncoder
     /// <summary>
     /// Initializes a new instance of the <see cref="BmpEncoder"/> class.
     /// </summary>
-    public BmpEncoder() => this.Quantizer = KnownQuantizers.Octree;
+    public BmpEncoder() => this.Quantizer = KnownQuantizers.Hexadecatree;
 
     /// <summary>
     /// Gets the number of bits per pixel.

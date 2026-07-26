@@ -63,16 +63,16 @@ internal class RgbaTiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
                 float r = bitReader.ReadBits(this.bitsPerSampleR) / this.rFactor;
                 float g = bitReader.ReadBits(this.bitsPerSampleG) / this.gFactor;
                 float b = bitReader.ReadBits(this.bitsPerSampleB) / this.bFactor;
-                float a = bitReader.ReadBits(this.bitsPerSampleB) / this.aFactor;
+                float a = bitReader.ReadBits(this.bitsPerSampleA) / this.aFactor;
 
                 Vector4 vector = new(r, g, b, a);
                 if (hasAssociatedAlpha)
                 {
-                    pixelRow[x] = TiffUtilities.UnPremultiply<TPixel>(ref vector);
+                    pixelRow[x] = TPixel.FromAssociatedScaledVector4(vector);
                 }
                 else
                 {
-                    pixelRow[x] = TPixel.FromScaledVector4(vector);
+                    pixelRow[x] = TPixel.FromUnassociatedScaledVector4(vector);
                 }
             }
 

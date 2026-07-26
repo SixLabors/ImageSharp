@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
@@ -145,7 +146,7 @@ internal class DrawImageProcessor<TPixelBg, TPixelFg> : ImageProcessor<TPixelBg>
                 this.Blender,
                 this.Opacity);
 
-        ParallelRowIterator.IterateRows(
+        ParallelRowIterator.IterateRows<RowOperation, Vector4>(
             configuration,
             new Rectangle(0, 0, foregroundRectangle.Width, foregroundRectangle.Height),
             in operation);
@@ -161,7 +162,7 @@ internal class DrawImageProcessor<TPixelBg, TPixelFg> : ImageProcessor<TPixelBg>
     /// <summary>
     /// A <see langword="struct"/> implementing the draw logic for <see cref="DrawImageProcessor{TPixelBg,TPixelFg}"/>.
     /// </summary>
-    private readonly struct RowOperation : IRowOperation
+    private readonly struct RowOperation : IRowOperation<Vector4>
     {
         private readonly Buffer2D<TPixelBg> background;
         private readonly Buffer2D<TPixelFg> foreground;
@@ -191,12 +192,19 @@ internal class DrawImageProcessor<TPixelBg, TPixelFg> : ImageProcessor<TPixelBg>
         }
 
         /// <inheritdoc/>
+        public int GetRequiredBufferLength(Rectangle bounds)
+
+            // By using a dedicated vector span we can avoid per-row pool allocations in PixelBlender.Blend
+            // We need 3 Vector4 values per pixel to store the background, foreground, and result pixels for blending.
+            => 3 * bounds.Width;
+
+        /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void Invoke(int y)
+        public void Invoke(int y, Span<Vector4> span)
         {
             Span<TPixelBg> background = this.background.DangerousGetRowSpan(y + this.backgroundRectangle.Top).Slice(this.backgroundRectangle.Left, this.backgroundRectangle.Width);
             Span<TPixelFg> foreground = this.foreground.DangerousGetRowSpan(y + this.foregroundRectangle.Top).Slice(this.foregroundRectangle.Left, this.foregroundRectangle.Width);
-            this.blender.Blend<TPixelFg>(this.configuration, background, background, foreground, this.opacity);
+            this.blender.Blend<TPixelFg>(this.configuration, background, background, foreground, this.opacity, span);
         }
     }
 }

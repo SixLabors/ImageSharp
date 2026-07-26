@@ -20,82 +20,46 @@ internal sealed partial class IccDataReader
     public IccTagDataEntry ReadTagDataEntry(IccTagTableEntry info)
     {
         this.currentIndex = (int)info.Offset;
-        switch (this.ReadTagDataEntryHeader())
+        return this.ReadTagDataEntryHeader() switch
         {
-            case IccTypeSignature.Chromaticity:
-                return this.ReadChromaticityTagDataEntry();
-            case IccTypeSignature.ColorantOrder:
-                return this.ReadColorantOrderTagDataEntry();
-            case IccTypeSignature.ColorantTable:
-                return this.ReadColorantTableTagDataEntry();
-            case IccTypeSignature.Curve:
-                return this.ReadCurveTagDataEntry();
-            case IccTypeSignature.Data:
-                return this.ReadDataTagDataEntry(info.DataSize);
-            case IccTypeSignature.DateTime:
-                return this.ReadDateTimeTagDataEntry();
-            case IccTypeSignature.Lut16:
-                return this.ReadLut16TagDataEntry();
-            case IccTypeSignature.Lut8:
-                return this.ReadLut8TagDataEntry();
-            case IccTypeSignature.LutAToB:
-                return this.ReadLutAtoBTagDataEntry();
-            case IccTypeSignature.LutBToA:
-                return this.ReadLutBtoATagDataEntry();
-            case IccTypeSignature.Measurement:
-                return this.ReadMeasurementTagDataEntry();
-            case IccTypeSignature.MultiLocalizedUnicode:
-                return this.ReadMultiLocalizedUnicodeTagDataEntry();
-            case IccTypeSignature.MultiProcessElements:
-                return this.ReadMultiProcessElementsTagDataEntry();
-            case IccTypeSignature.NamedColor2:
-                return this.ReadNamedColor2TagDataEntry();
-            case IccTypeSignature.ParametricCurve:
-                return this.ReadParametricCurveTagDataEntry();
-            case IccTypeSignature.ProfileSequenceDesc:
-                return this.ReadProfileSequenceDescTagDataEntry();
-            case IccTypeSignature.ProfileSequenceIdentifier:
-                return this.ReadProfileSequenceIdentifierTagDataEntry();
-            case IccTypeSignature.ResponseCurveSet16:
-                return this.ReadResponseCurveSet16TagDataEntry();
-            case IccTypeSignature.S15Fixed16Array:
-                return this.ReadFix16ArrayTagDataEntry(info.DataSize);
-            case IccTypeSignature.Signature:
-                return this.ReadSignatureTagDataEntry();
-            case IccTypeSignature.Text:
-                return this.ReadTextTagDataEntry(info.DataSize);
-            case IccTypeSignature.U16Fixed16Array:
-                return this.ReadUFix16ArrayTagDataEntry(info.DataSize);
-            case IccTypeSignature.UInt16Array:
-                return this.ReadUInt16ArrayTagDataEntry(info.DataSize);
-            case IccTypeSignature.UInt32Array:
-                return this.ReadUInt32ArrayTagDataEntry(info.DataSize);
-            case IccTypeSignature.UInt64Array:
-                return this.ReadUInt64ArrayTagDataEntry(info.DataSize);
-            case IccTypeSignature.UInt8Array:
-                return this.ReadUInt8ArrayTagDataEntry(info.DataSize);
-            case IccTypeSignature.ViewingConditions:
-                return this.ReadViewingConditionsTagDataEntry();
-            case IccTypeSignature.Xyz:
-                return this.ReadXyzTagDataEntry(info.DataSize);
+            IccTypeSignature.Chromaticity => this.ReadChromaticityTagDataEntry(),
+            IccTypeSignature.ColorantOrder => this.ReadColorantOrderTagDataEntry(),
+            IccTypeSignature.ColorantTable => this.ReadColorantTableTagDataEntry(),
+            IccTypeSignature.Curve => this.ReadCurveTagDataEntry(),
+            IccTypeSignature.Data => this.ReadDataTagDataEntry(info.DataSize),
+            IccTypeSignature.DateTime => this.ReadDateTimeTagDataEntry(),
+            IccTypeSignature.Lut16 => this.ReadLut16TagDataEntry(),
+            IccTypeSignature.Lut8 => this.ReadLut8TagDataEntry(),
+            IccTypeSignature.LutAToB => this.ReadLutAtoBTagDataEntry(),
+            IccTypeSignature.LutBToA => this.ReadLutBtoATagDataEntry(),
+            IccTypeSignature.Measurement => this.ReadMeasurementTagDataEntry(),
+            IccTypeSignature.MultiLocalizedUnicode => this.ReadMultiLocalizedUnicodeTagDataEntry(),
+            IccTypeSignature.MultiProcessElements => this.ReadMultiProcessElementsTagDataEntry(),
+            IccTypeSignature.NamedColor2 => this.ReadNamedColor2TagDataEntry(),
+            IccTypeSignature.ParametricCurve => this.ReadParametricCurveTagDataEntry(),
+            IccTypeSignature.ProfileSequenceDesc => this.ReadProfileSequenceDescTagDataEntry(),
+            IccTypeSignature.ProfileSequenceIdentifier => this.ReadProfileSequenceIdentifierTagDataEntry(),
+            IccTypeSignature.ResponseCurveSet16 => this.ReadResponseCurveSet16TagDataEntry(),
+            IccTypeSignature.S15Fixed16Array => this.ReadFix16ArrayTagDataEntry(info.DataSize),
+            IccTypeSignature.Signature => this.ReadSignatureTagDataEntry(),
+            IccTypeSignature.Text => this.ReadTextTagDataEntry(info.DataSize),
+            IccTypeSignature.U16Fixed16Array => this.ReadUFix16ArrayTagDataEntry(info.DataSize),
+            IccTypeSignature.UInt16Array => this.ReadUInt16ArrayTagDataEntry(info.DataSize),
+            IccTypeSignature.UInt32Array => this.ReadUInt32ArrayTagDataEntry(info.DataSize),
+            IccTypeSignature.UInt64Array => this.ReadUInt64ArrayTagDataEntry(info.DataSize),
+            IccTypeSignature.UInt8Array => this.ReadUInt8ArrayTagDataEntry(info.DataSize),
+            IccTypeSignature.ViewingConditions => this.ReadViewingConditionsTagDataEntry(),
+            IccTypeSignature.Xyz => this.ReadXyzTagDataEntry(info.DataSize),
 
             // V2 Types:
-            case IccTypeSignature.TextDescription:
-                return this.ReadTextDescriptionTagDataEntry();
-            case IccTypeSignature.CrdInfo:
-                return this.ReadCrdInfoTagDataEntry();
-            case IccTypeSignature.Screening:
-                return this.ReadScreeningTagDataEntry();
-            case IccTypeSignature.UcrBg:
-                return this.ReadUcrBgTagDataEntry(info.DataSize);
+            IccTypeSignature.TextDescription => this.ReadTextDescriptionTagDataEntry(),
+            IccTypeSignature.CrdInfo => this.ReadCrdInfoTagDataEntry(),
+            IccTypeSignature.Screening => this.ReadScreeningTagDataEntry(),
+            IccTypeSignature.UcrBg => this.ReadUcrBgTagDataEntry(info.DataSize),
 
             // Unsupported or unknown
-            case IccTypeSignature.DeviceSettings:
-            case IccTypeSignature.NamedColor:
-            case IccTypeSignature.Unknown:
-            default:
-                return this.ReadUnknownTagDataEntry(info.DataSize);
-        }
+            _ => this.ReadUnknownTagDataEntry(info.DataSize),
+        };
     }
 
     /// <summary>
@@ -477,7 +441,7 @@ internal sealed partial class IccDataReader
 
         return new IccMultiLocalizedUnicodeTagDataEntry(text);
 
-        CultureInfo ReadCulture(string language, string country)
+        static CultureInfo ReadCulture(string language, string country)
         {
             if (string.IsNullOrWhiteSpace(language))
             {

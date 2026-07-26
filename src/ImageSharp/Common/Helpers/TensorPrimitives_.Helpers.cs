@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -110,6 +111,47 @@ internal static partial class TensorPrimitives_
     }
 
     /// <summary>
+    /// Validates that an input and destination are either disjoint or begin at the same memory location.
+    /// </summary>
+    /// <typeparam name="T">The element type.</typeparam>
+    /// <param name="input">The input values.</param>
+    /// <param name="destination">The destination values.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void ValidateInputOutputSpanNonOverlapping<T>(ReadOnlySpan<T> input, Span<T> destination)
+    {
+        // Runtime TensorPrimitives permits exact same-start overlap for in-place operation. A shifted overlap is
+        // rejected because forward SIMD stores could overwrite input elements before a later load consumes them.
+        if (!Unsafe.AreSame(ref MemoryMarshal.GetReference(input), ref MemoryMarshal.GetReference(destination))
+            && input.Overlaps(destination))
+        {
+            ThrowInputAndDestinationSpanMustNotOverlap();
+        }
+    }
+
+    /// <summary>
+    /// Throws when input spans do not have the same length.
+    /// </summary>
+    [DoesNotReturn]
+    private static void ThrowSpansMustHaveSameLength()
+        => throw new ArgumentException("Input span arguments must all have the same length.");
+
+    /// <summary>
+    /// Throws when the destination cannot hold every result.
+    /// </summary>
+    [DoesNotReturn]
+    private static void ThrowDestinationTooShort()
+        => throw new ArgumentException("Destination is too short.", "destination");
+
+    /// <summary>
+    /// Throws when an input and destination overlap without beginning at the same memory location.
+    /// </summary>
+    [DoesNotReturn]
+    private static void ThrowInputAndDestinationSpanMustNotOverlap()
+        => throw new ArgumentException(
+            "The destination span may only overlap with an input span if the two spans start at the same memory location.",
+            "destination");
+
+    /// <summary>
     /// Performs an element-wise binary operation between two spans.
     /// </summary>
     /// <typeparam name="T">The element type.</typeparam>
@@ -124,6 +166,19 @@ internal static partial class TensorPrimitives_
         Span<T> destination)
         where TOperator : struct, IBinaryOperator<T>
     {
+        if (x.Length != y.Length)
+        {
+            ThrowSpansMustHaveSameLength();
+        }
+
+        if (x.Length > destination.Length)
+        {
+            ThrowDestinationTooShort();
+        }
+
+        ValidateInputOutputSpanNonOverlapping(x, destination);
+        ValidateInputOutputSpanNonOverlapping(y, destination);
+
         ref T xRef = ref MemoryMarshal.GetReference(x);
         ref T yRef = ref MemoryMarshal.GetReference(y);
         ref T destinationRef = ref MemoryMarshal.GetReference(destination);
@@ -173,6 +228,13 @@ internal static partial class TensorPrimitives_
         Span<T> destination)
         where TOperator : struct, IBinaryOperator<T>
     {
+        if (x.Length > destination.Length)
+        {
+            ThrowDestinationTooShort();
+        }
+
+        ValidateInputOutputSpanNonOverlapping(x, destination);
+
         ref T xRef = ref MemoryMarshal.GetReference(x);
         ref T destinationRef = ref MemoryMarshal.GetReference(destination);
         nuint length = (uint)x.Length;
@@ -220,6 +282,13 @@ internal static partial class TensorPrimitives_
         Span<T> destination)
         where TOperator : struct, IBinaryOperator<T>
     {
+        if (x.Length > destination.Length)
+        {
+            ThrowDestinationTooShort();
+        }
+
+        ValidateInputOutputSpanNonOverlapping(x, destination);
+
         ref T xRef = ref MemoryMarshal.GetReference(x);
         ref T destinationRef = ref MemoryMarshal.GetReference(destination);
         nuint length = (uint)x.Length;
@@ -282,6 +351,13 @@ internal static partial class TensorPrimitives_
         Span<T> destination)
         where TOperator : struct, ITernaryOperator<T>
     {
+        if (x.Length > destination.Length)
+        {
+            ThrowDestinationTooShort();
+        }
+
+        ValidateInputOutputSpanNonOverlapping(x, destination);
+
         ref T xRef = ref MemoryMarshal.GetReference(x);
         ref T destinationRef = ref MemoryMarshal.GetReference(destination);
         nuint length = (uint)x.Length;

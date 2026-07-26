@@ -18,6 +18,10 @@ internal static partial class TensorPrimitives_
     /// <param name="min">The inclusive lower bound.</param>
     /// <param name="max">The inclusive upper bound.</param>
     /// <param name="destination">The destination for the clamped values.</param>
+    /// <exception cref="ArgumentException"><paramref name="destination"/> is shorter than <paramref name="x"/>.</exception>
+    /// <exception cref="ArgumentException">
+    /// <paramref name="x"/> and <paramref name="destination"/> overlap without beginning at the same memory location.
+    /// </exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Clamp<T>(ReadOnlySpan<T> x, T min, T max, Span<T> destination)
         where T : INumber<T>

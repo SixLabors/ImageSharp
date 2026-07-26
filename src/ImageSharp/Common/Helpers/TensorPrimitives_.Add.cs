@@ -16,6 +16,11 @@ internal static partial class TensorPrimitives_
     /// <param name="x">The first addends.</param>
     /// <param name="y">The second addends.</param>
     /// <param name="destination">The destination for the sums.</param>
+    /// <exception cref="ArgumentException"><paramref name="x"/> and <paramref name="y"/> do not have the same length.</exception>
+    /// <exception cref="ArgumentException"><paramref name="destination"/> is shorter than the input spans.</exception>
+    /// <exception cref="ArgumentException">
+    /// An input and <paramref name="destination"/> overlap without beginning at the same memory location.
+    /// </exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Add<T>(ReadOnlySpan<T> x, ReadOnlySpan<T> y, Span<T> destination)
         where T : IAdditionOperators<T, T, T>, IAdditiveIdentity<T, T>
@@ -28,6 +33,10 @@ internal static partial class TensorPrimitives_
     /// <param name="x">The first addends.</param>
     /// <param name="y">The scalar second addend.</param>
     /// <param name="destination">The destination for the sums.</param>
+    /// <exception cref="ArgumentException"><paramref name="destination"/> is shorter than <paramref name="x"/>.</exception>
+    /// <exception cref="ArgumentException">
+    /// <paramref name="x"/> and <paramref name="destination"/> overlap without beginning at the same memory location.
+    /// </exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Add<T>(ReadOnlySpan<T> x, T y, Span<T> destination)
         where T : IAdditionOperators<T, T, T>, IAdditiveIdentity<T, T>

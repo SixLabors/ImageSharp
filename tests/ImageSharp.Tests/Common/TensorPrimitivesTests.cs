@@ -52,6 +52,88 @@ public class TensorPrimitivesTests
                 | HwIntrinsics.DisableHWIntrinsic);
 
     /// <summary>
+    /// Verifies that span-to-span operations require equal input lengths before accessing either input.
+    /// </summary>
+    [Fact]
+    public void AddSpanSpanRejectsMismatchedInputLengths()
+    {
+        ArgumentException exception = Assert.Throws<ArgumentException>(
+            () => TensorPrimitives_.Add<int>(new int[4], new int[3], new int[4]));
+
+        Assert.Null(exception.ParamName);
+    }
+
+    /// <summary>
+    /// Verifies that every operation rejects a destination that cannot hold all input elements.
+    /// </summary>
+    [Fact]
+    public void OperationsRejectShortDestinations()
+    {
+        int[] integers = new int[4];
+        float[] singles = new float[4];
+
+        Assert.Equal("destination", Assert.Throws<ArgumentException>(() => TensorPrimitives_.Add<int>(integers, integers, new int[3])).ParamName);
+        Assert.Equal("destination", Assert.Throws<ArgumentException>(() => TensorPrimitives_.Add<int>(integers, 1, new int[3])).ParamName);
+        Assert.Equal("destination", Assert.Throws<ArgumentException>(() => TensorPrimitives_.Multiply<float>(singles, 2F, new float[3])).ParamName);
+        Assert.Equal("destination", Assert.Throws<ArgumentException>(() => TensorPrimitives_.Divide<float>(singles, 2F, new float[3])).ParamName);
+        Assert.Equal("destination", Assert.Throws<ArgumentException>(() => TensorPrimitives_.Max<float>(singles, 2F, new float[3])).ParamName);
+        Assert.Equal("destination", Assert.Throws<ArgumentException>(() => TensorPrimitives_.Clamp<float>(singles, 0F, 1F, new float[3])).ParamName);
+        Assert.Equal("destination", Assert.Throws<ArgumentException>(() => TensorPrimitives_.Negate<float>(singles, new float[3])).ParamName);
+    }
+
+    /// <summary>
+    /// Verifies that every operation rejects shifted input and destination overlap.
+    /// </summary>
+    [Fact]
+    public void OperationsRejectShiftedOverlap()
+    {
+        int[] integers = new int[5];
+        int[] separateIntegers = new int[4];
+        float[] singles = new float[5];
+
+        // Both inputs need independent validation because either one may alias a shifted destination.
+        Assert.Equal(
+            "destination",
+            Assert.Throws<ArgumentException>(
+                () => TensorPrimitives_.Add<int>(integers.AsSpan(0, 4), separateIntegers, integers.AsSpan(1, 4))).ParamName);
+
+        Assert.Equal(
+            "destination",
+            Assert.Throws<ArgumentException>(
+                () => TensorPrimitives_.Add<int>(separateIntegers, integers.AsSpan(0, 4), integers.AsSpan(1, 4))).ParamName);
+
+        Assert.Equal(
+            "destination",
+            Assert.Throws<ArgumentException>(
+                () => TensorPrimitives_.Add<int>(integers.AsSpan(0, 4), 1, integers.AsSpan(1, 4))).ParamName);
+
+        Assert.Equal(
+            "destination",
+            Assert.Throws<ArgumentException>(
+                () => TensorPrimitives_.Multiply<float>(singles.AsSpan(0, 4), 2F, singles.AsSpan(1, 4))).ParamName);
+
+        Assert.Equal(
+            "destination",
+            Assert.Throws<ArgumentException>(
+                () => TensorPrimitives_.Divide<float>(singles.AsSpan(0, 4), 2F, singles.AsSpan(1, 4))).ParamName);
+
+        Assert.Equal(
+            "destination",
+            Assert.Throws<ArgumentException>(
+                () => TensorPrimitives_.Max<float>(singles.AsSpan(0, 4), 2F, singles.AsSpan(1, 4))).ParamName);
+
+        Assert.Equal(
+            "destination",
+            Assert.Throws<ArgumentException>(
+                () => TensorPrimitives_.Clamp<float>(singles.AsSpan(0, 4), 0F, 1F, singles.AsSpan(1, 4))).ParamName);
+
+        Assert.Equal(
+            "destination",
+            Assert.Throws<ArgumentException>(
+                () => TensorPrimitives_.Negate<float>(singles.AsSpan(0, 4), singles.AsSpan(1, 4))).ParamName);
+    }
+
+    /// <summary>
     /// Runs the TensorPrimitives compatibility assertions inside a process configured for one hardware-intrinsic tier.
     /// </summary>
     private static void RunOperationsAcrossHardwareIntrinsicFeatures()

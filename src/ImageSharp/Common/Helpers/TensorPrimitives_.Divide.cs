@@ -16,6 +16,10 @@ internal static partial class TensorPrimitives_
     /// <param name="x">The dividend values.</param>
     /// <param name="y">The divisor.</param>
     /// <param name="destination">The destination for the quotient values.</param>
+    /// <exception cref="ArgumentException"><paramref name="destination"/> is shorter than <paramref name="x"/>.</exception>
+    /// <exception cref="ArgumentException">
+    /// <paramref name="x"/> and <paramref name="destination"/> overlap without beginning at the same memory location.
+    /// </exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Divide<T>(ReadOnlySpan<T> x, T y, Span<T> destination)
         where T : IDivisionOperators<T, T, T>

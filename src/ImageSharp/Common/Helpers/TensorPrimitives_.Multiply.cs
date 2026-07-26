@@ -16,6 +16,10 @@ internal static partial class TensorPrimitives_
     /// <param name="x">The multiplicands.</param>
     /// <param name="y">The multiplier.</param>
     /// <param name="destination">The destination for the products.</param>
+    /// <exception cref="ArgumentException"><paramref name="destination"/> is shorter than <paramref name="x"/>.</exception>
+    /// <exception cref="ArgumentException">
+    /// <paramref name="x"/> and <paramref name="destination"/> overlap without beginning at the same memory location.
+    /// </exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Multiply<T>(ReadOnlySpan<T> x, T y, Span<T> destination)
         where T : IMultiplyOperators<T, T, T>, IMultiplicativeIdentity<T, T>

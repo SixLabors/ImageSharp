@@ -56,6 +56,10 @@ internal static partial class TensorPrimitives_
     /// <typeparam name="T">The element type.</typeparam>
     /// <param name="x">The values to negate.</param>
     /// <param name="destination">The destination for the negated values.</param>
+    /// <exception cref="ArgumentException"><paramref name="destination"/> is shorter than <paramref name="x"/>.</exception>
+    /// <exception cref="ArgumentException">
+    /// <paramref name="x"/> and <paramref name="destination"/> overlap without beginning at the same memory location.
+    /// </exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Negate<T>(ReadOnlySpan<T> x, Span<T> destination)
         where T : IUnaryNegationOperators<T, T>
@@ -72,6 +76,13 @@ internal static partial class TensorPrimitives_
     private static void InvokeSpanIntoSpan<T, TOperator>(ReadOnlySpan<T> x, Span<T> destination)
         where TOperator : struct, IUnaryOperator<T>
     {
+        if (x.Length > destination.Length)
+        {
+            ThrowDestinationTooShort();
+        }
+
+        ValidateInputOutputSpanNonOverlapping(x, destination);
+
         ref T xRef = ref MemoryMarshal.GetReference(x);
         ref T destinationRef = ref MemoryMarshal.GetReference(destination);
         nuint length = (uint)x.Length;

@@ -24,7 +24,7 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
     /// <summary>
     /// Reusable buffer.
     /// </summary>
-    private readonly byte[] buffer = new byte[8];
+    private InlineArray8<byte> buffer;
 
     /// <summary>
     /// Used for allocating memory during processing operations.

@@ -24,7 +24,7 @@ internal class Vp8LEncoder : IDisposable
     /// <summary>
     /// Scratch buffer to reduce allocations.
     /// </summary>
-    private ScratchBuffer scratch;  // mutable struct, don't make readonly
+    private InlineArray256<int> scratch; // mutable struct, don't make readonly
 
     private readonly int[][] histoArgb = [new int[256], new int[256], new int[256], new int[256]];
 
@@ -315,7 +315,7 @@ internal class Vp8LEncoder : IDisposable
 
         if (hasAnimation)
         {
-            RiffHelper.EndWriteChunk(stream, prevPosition, 2);
+            RiffHelper.EndWriteChunk(stream, prevPosition);
         }
 
         return hasAlpha;
@@ -803,7 +803,7 @@ internal class Vp8LEncoder : IDisposable
         int transformWidth = LosslessUtils.SubSampleSize(width, colorTransformBits);
         int transformHeight = LosslessUtils.SubSampleSize(height, colorTransformBits);
 
-        PredictorEncoder.ColorSpaceTransform(width, height, colorTransformBits, this.quality, this.EncodedData.GetSpan(), this.TransformData.GetSpan(), this.scratch.Span);
+        PredictorEncoder.ColorSpaceTransform(width, height, colorTransformBits, this.quality, this.EncodedData.GetSpan(), this.TransformData.GetSpan(), this.scratch);
 
         this.bitWriter.PutBits(WebpConstants.TransformPresent, 1);
         this.bitWriter.PutBits((uint)Vp8LTransformType.CrossColorTransform, 2);
@@ -876,7 +876,7 @@ internal class Vp8LEncoder : IDisposable
     private void StoreHuffmanCode(Span<HuffmanTree> huffTree, HuffmanTreeToken[] tokens, HuffmanTreeCode huffmanCode)
     {
         int count = 0;
-        Span<int> symbols = this.scratch.Span[..2];
+        Span<int> symbols = this.scratch[..2];
         symbols.Clear();
         const int maxBits = 8;
         const int maxSymbol = 1 << maxBits;
@@ -1914,16 +1914,5 @@ internal class Vp8LEncoder : IDisposable
         }
 
         this.HashChain.Dispose();
-    }
-
-    /// <summary>
-    /// Scratch buffer to reduce allocations.
-    /// </summary>
-    private unsafe struct ScratchBuffer
-    {
-        private const int Size = 256;
-        private fixed int scratch[Size];
-
-        public Span<int> Span => MemoryMarshal.CreateSpan(ref this.scratch[0], Size);
     }
 }

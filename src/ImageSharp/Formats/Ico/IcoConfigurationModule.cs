@@ -1,12 +1,10 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using SixLabors.ImageSharp.Formats.Icon;
-
 namespace SixLabors.ImageSharp.Formats.Ico;
 
 /// <summary>
-/// Registers the image encoders, decoders and mime type detectors for the Ico format.
+/// Registers the image encoder, decoder, and format detector for the ICO format.
 /// </summary>
 public sealed class IcoConfigurationModule : IImageFormatConfigurationModule
 {
@@ -15,6 +13,6 @@ public sealed class IcoConfigurationModule : IImageFormatConfigurationModule
     {
         configuration.ImageFormatsManager.SetEncoder(IcoFormat.Instance, new IcoEncoder());
         configuration.ImageFormatsManager.SetDecoder(IcoFormat.Instance, IcoDecoder.Instance);
-        configuration.ImageFormatsManager.AddImageFormatDetector(new IconImageFormatDetector());
+        configuration.ImageFormatsManager.AddImageFormatDetector(new IcoImageFormatDetector());
     }
 }

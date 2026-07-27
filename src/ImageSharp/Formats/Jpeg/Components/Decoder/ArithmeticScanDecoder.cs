@@ -55,7 +55,7 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
     private ArithmeticDecodingTable[] acDecodingTables;
 
     // Don't make this a ReadOnlySpan<byte>, as the values need to get updated.
-    private readonly byte[] fixedBin = [113, 0, 0, 0];
+    private InlineArray4<byte> fixedBin;
 
     private readonly CancellationToken cancellationToken;
 
@@ -194,6 +194,9 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
         this.spectralConverter = converter;
         this.cancellationToken = cancellationToken;
 
+        // Inline storage is zero-initialized with the decoder; only the arithmetic probability state starts nonzero.
+        this.fixedBin[0] = 113;
+
         this.c = 0;
         this.a = 0;
         this.ct = -16; // Force reading 2 initial bytes to fill C.
@@ -233,7 +236,7 @@ internal class ArithmeticScanDecoder : IJpegScanDecoder
         }
     }
 
-    private ref byte GetFixedBinReference() => ref MemoryMarshal.GetArrayDataReference(this.fixedBin);
+    private ref byte GetFixedBinReference() => ref this.fixedBin[0];
 
     /// <inheritdoc/>
     public void ParseEntropyCodedData(int scanComponentCount, IccProfile iccProfile)

@@ -100,7 +100,7 @@ internal abstract class BitWriterBase
         bool hasAnimation)
     {
         // Write file size later
-        RiffHelper.BeginWriteRiff(stream, WebpConstants.WebpFormTypeFourCc);
+        RiffHelper.BeginWriteRiffFile(stream, WebpConstants.WebpFourCc);
 
         // Write VP8X, header if necessary.
         WebpVp8X vp8x = default;
@@ -151,7 +151,7 @@ internal abstract class BitWriterBase
             RiffHelper.WriteChunk(stream, (uint)WebpChunkType.Xmp, xmpProfile.Data);
         }
 
-        RiffHelper.EndWriteVp8X(stream, in vp8x, updateVp8x, initialPosition);
+        RiffHelper.EndWriteRiffFile(stream, in vp8x, updateVp8x, initialPosition);
     }
 
     /// <summary>
@@ -189,7 +189,7 @@ internal abstract class BitWriterBase
 
         stream.WriteByte(flags);
         stream.Write(dataBytes);
-        RiffHelper.EndWriteChunk(stream, pos, 2);
+        RiffHelper.EndWriteChunk(stream, pos);
     }
 
     /// <summary>

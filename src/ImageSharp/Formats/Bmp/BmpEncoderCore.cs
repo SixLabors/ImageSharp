@@ -138,17 +138,30 @@ internal sealed class BmpEncoderCore
         Guard.NotNull(image, nameof(image));
         Guard.NotNull(stream, nameof(stream));
 
-        // Stream may not at 0.
+        this.Encode(image.Frames.RootFrame, image.Metadata, stream, cancellationToken);
+    }
+
+    /// <summary>
+    /// Encodes a source frame using the supplied image metadata.
+    /// </summary>
+    /// <typeparam name="TPixel">The pixel format.</typeparam>
+    /// <param name="frame">The source frame.</param>
+    /// <param name="metadata">The source image metadata.</param>
+    /// <param name="stream">The destination stream.</param>
+    /// <param name="cancellationToken">The token to request cancellation.</param>
+    internal void Encode<TPixel>(ImageFrame<TPixel> frame, ImageMetadata metadata, Stream stream, CancellationToken cancellationToken)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        // Nested ANI/ICO/CUR encoding starts inside a parent stream, so all later profile offsets use this local base.
         long basePosition = stream.Position;
 
-        Configuration configuration = image.Configuration;
-        ImageMetadata metadata = image.Metadata;
+        Configuration configuration = frame.Configuration;
         BmpMetadata bmpMetadata = metadata.GetBmpMetadata();
         this.bitsPerPixel ??= bmpMetadata.BitsPerPixel;
 
         ushort bpp = (ushort)this.bitsPerPixel;
-        int bytesPerLine = (int)(4 * ((((uint)image.Width * bpp) + 31) / 32));
-        this.padding = bytesPerLine - (int)(image.Width * (bpp / 8F));
+        int bytesPerLine = (int)(4 * ((((uint)frame.Width * bpp) + 31) / 32));
+        this.padding = bytesPerLine - (int)(frame.Width * (bpp / 8F));
 
         int colorPaletteSize = this.bitsPerPixel switch
         {
@@ -176,25 +189,25 @@ internal sealed class BmpEncoderCore
             _ => BmpInfoHeader.SizeV3
         };
 
-        // for ico/cur encoder.
-        int height = image.Height;
+        // ICO/CUR DIB headers include the XOR bitmap and following AND mask in one doubled height.
+        int height = frame.Height;
         if (this.isDoubleHeight)
         {
             height <<= 1;
         }
 
-        BmpInfoHeader infoHeader = this.CreateBmpInfoHeader(image.Width, height, infoHeaderSize, bpp, bytesPerLine, metadata, iccProfileData);
+        BmpInfoHeader infoHeader = this.CreateBmpInfoHeader(frame.Width, height, infoHeaderSize, bpp, bytesPerLine, metadata, iccProfileData);
 
         Span<byte> buffer = stackalloc byte[infoHeaderSize];
 
-        // For ico/cur encoder.
+        // ICO/CUR resources contain a DIB directly; standalone BMP files additionally require BITMAPFILEHEADER.
         if (!this.skipFileHeader)
         {
             WriteBitmapFileHeader(stream, infoHeaderSize, colorPaletteSize, iccProfileSize, infoHeader, buffer);
         }
 
         this.WriteBitmapInfoHeader(stream, infoHeader, buffer, infoHeaderSize);
-        this.WriteImage(configuration, stream, image, cancellationToken);
+        this.WriteImage(configuration, stream, frame, cancellationToken);
         WriteColorProfile(stream, iccProfileData, buffer, basePosition);
 
         stream.Flush();
@@ -348,15 +361,11 @@ internal sealed class BmpEncoderCore
     /// <typeparam name="TPixel">The pixel format.</typeparam>
     /// <param name="configuration">The global configuration.</param>
     /// <param name="stream">The <see cref="Stream"/> to write to.</param>
-    /// <param name="image">
+    /// <param name="frame">
     /// The <see cref="ImageFrame{TPixel}"/> containing pixel data.
     /// </param>
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
-    private void WriteImage<TPixel>(
-        Configuration configuration,
-        Stream stream,
-        Image<TPixel> image,
-        CancellationToken cancellationToken)
+    private void WriteImage<TPixel>(Configuration configuration, Stream stream, ImageFrame<TPixel> frame, CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         ImageFrame<TPixel>? clonedFrame = null;
@@ -367,11 +376,11 @@ internal sealed class BmpEncoderCore
             int bpp = this.bitsPerPixel != null ? (int)this.bitsPerPixel : 32;
             if (bpp > 8 && EncodingUtilities.ShouldReplaceTransparentPixels<TPixel>(this.transparentColorMode))
             {
-                clonedFrame = image.Frames.RootFrame.Clone();
+                clonedFrame = frame.Clone();
                 EncodingUtilities.ReplaceTransparentPixels(clonedFrame);
             }
 
-            ImageFrame<TPixel> encodingFrame = clonedFrame ?? image.Frames.RootFrame;
+            ImageFrame<TPixel> encodingFrame = clonedFrame ?? frame;
             Buffer2D<TPixel> pixels = encodingFrame.PixelBuffer;
 
             switch (this.bitsPerPixel)
@@ -864,9 +873,16 @@ internal sealed class BmpEncoderCore
         stream.WriteByte(indices);
     }
 
+    /// <summary>
+    /// Writes the bottom-up 1-bit transparency mask required by an ICO/CUR bitmap resource.
+    /// </summary>
+    /// <typeparam name="TPixel">The source pixel type.</typeparam>
+    /// <param name="stream">The destination stream.</param>
+    /// <param name="encodingFrame">The source frame.</param>
     private static void ProcessedAlphaMask<TPixel>(Stream stream, ImageFrame<TPixel> encodingFrame)
-         where TPixel : unmanaged, IPixel<TPixel>
+          where TPixel : unmanaged, IPixel<TPixel>
     {
+        // Each byte represents eight pixels and every scanline is padded to a 4-byte DIB boundary.
         int arrayWidth = encodingFrame.Width / 8;
         int padding = arrayWidth % 4;
         if (padding is not 0)
@@ -875,6 +891,9 @@ internal sealed class BmpEncoderCore
         }
 
         Span<byte> mask = stackalloc byte[arrayWidth];
+        Span<byte> paddingBytes = stackalloc byte[3];
+        paddingBytes.Clear();
+
         for (int y = encodingFrame.Height - 1; y >= 0; y--)
         {
             mask.Clear();
@@ -891,12 +910,21 @@ internal sealed class BmpEncoderCore
             }
 
             stream.Write(mask);
-            stream.Skip(padding);
+
+            // Alpha-mask rows are DWORD-aligned, and the final row padding must extend the stream.
+            stream.Write(paddingBytes[..padding]);
         }
     }
 
+    /// <summary>
+    /// Sets one most-significant-bit-first transparency flag in an ICO/CUR AND-mask byte.
+    /// </summary>
+    /// <typeparam name="TPixel">The source pixel type.</typeparam>
+    /// <param name="pixel">The source pixel.</param>
+    /// <param name="mask">The destination mask byte.</param>
+    /// <param name="index">The pixel index within the byte.</param>
     private static void WriteAlphaMask<TPixel>(in TPixel pixel, ref byte mask, in int index)
-         where TPixel : unmanaged, IPixel<TPixel>
+          where TPixel : unmanaged, IPixel<TPixel>
     {
         Rgba32 rgba = pixel.ToRgba32();
         if (rgba.A is 0)

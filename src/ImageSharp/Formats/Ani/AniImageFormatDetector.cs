@@ -2,17 +2,23 @@
 // Licensed under the Six Labors Split License.
 
 using System.Diagnostics.CodeAnalysis;
-using SixLabors.ImageSharp.Formats.Webp;
 
 namespace SixLabors.ImageSharp.Formats.Ani;
 
 /// <summary>
-/// Detects ico file headers.
+/// Detects ANI file headers.
 /// </summary>
-public class AniImageFormatDetector : IImageFormatDetector
+public sealed class AniImageFormatDetector : IImageFormatDetector
 {
+    /// <summary>
+    /// Initializes a new instance of the <see cref="AniImageFormatDetector"/> class.
+    /// </summary>
+    public AniImageFormatDetector()
+    {
+    }
+
     /// <inheritdoc/>
-    public int HeaderSize => RiffOrListChunkHeader.HeaderSize;
+    public int HeaderSize => AniConstants.RiffHeaderSize;
 
     /// <inheritdoc/>
     public bool TryDetectFormat(ReadOnlySpan<byte> header, [NotNullWhen(true)] out IImageFormat? format)
@@ -21,10 +27,13 @@ public class AniImageFormatDetector : IImageFormatDetector
         return format is not null;
     }
 
+    /// <summary>
+    /// Determines whether the supplied header is a RIFF container with the ANI "ACON" form type.
+    /// </summary>
+    /// <param name="header">The candidate file header.</param>
+    /// <returns><see langword="true"/> when the header identifies ANI data.</returns>
     private bool IsSupportedFileFormat(ReadOnlySpan<byte> header)
-        => header.Length >= this.HeaderSize && RiffOrListChunkHeader.Parse(header) is
-        {
-            IsRiff: true,
-            FormType: AniConstants.AniFourCc
-        };
+        => header.Length >= this.HeaderSize
+        && header[..4].SequenceEqual(AniConstants.RiffFourCc)
+        && header.Slice(8, 4).SequenceEqual(AniConstants.AniFormTypeFourCc);
 }

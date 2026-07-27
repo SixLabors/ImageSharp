@@ -10,8 +10,5 @@ public sealed class IcoEncoder : QuantizingImageEncoder
 {
     /// <inheritdoc/>
     protected override void Encode<TPixel>(Image<TPixel> image, Stream stream, CancellationToken cancellationToken)
-    {
-        IcoEncoderCore encoderCore = new(this);
-        encoderCore.Encode(image, stream, cancellationToken);
-    }
+        => new IcoEncoderCore(this).Encode(image, stream, cancellationToken);
 }

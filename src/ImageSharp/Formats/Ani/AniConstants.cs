@@ -3,25 +3,43 @@
 
 namespace SixLabors.ImageSharp.Formats.Ani;
 
+/// <summary>
+/// Defines constants used by the ANI format.
+/// </summary>
 internal static class AniConstants
 {
     /// <summary>
-    /// Gets the header bytes identifying an ani.
+    /// The number of bytes in the RIFF identifier, size, and form type.
     /// </summary>
-    public const uint AniFourCc = 0x41_43_4F_4E;
+    public const int RiffHeaderSize = 12;
 
     /// <summary>
-    /// The list of mime types that equate to an ani.
+    /// The number of bytes in a RIFF chunk identifier and size.
+    /// </summary>
+    public const int ChunkHeaderSize = 8;
+
+    /// <summary>
+    /// The number of bytes required to identify an embedded ICO or CUR resource.
+    /// </summary>
+    public const int IconDirHeaderSize = 6;
+
+    /// <summary>
+    /// The list of MIME types that identify ANI data.
     /// </summary>
     public static readonly IEnumerable<string> MimeTypes = ["application/x-navi-animation"];
 
     /// <summary>
-    /// The list of file extensions that equate to an ani.
+    /// The list of file extensions that identify ANI data.
     /// </summary>
     public static readonly IEnumerable<string> FileExtensions = ["ani"];
 
     /// <summary>
-    /// Gets the header bytes identifying an ani.
+    /// Gets the RIFF container identifier.
+    /// </summary>
+    public static ReadOnlySpan<byte> RiffFourCc => "RIFF"u8;
+
+    /// <summary>
+    /// Gets the ANI RIFF form type.
     /// </summary>
     public static ReadOnlySpan<byte> AniFormTypeFourCc => "ACON"u8;
 }

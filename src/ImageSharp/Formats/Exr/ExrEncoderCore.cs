@@ -21,7 +21,7 @@ internal sealed class ExrEncoderCore
     /// <summary>
     /// Reusable buffer.
     /// </summary>
-    private readonly byte[] buffer = new byte[8];
+    private InlineArray8<byte> buffer;
 
     /// <summary>
     /// Used for allocating memory during processing operations.
@@ -108,7 +108,7 @@ internal sealed class ExrEncoderCore
 
         // Write magick bytes.
         BinaryPrimitives.WriteInt32LittleEndian(this.buffer, ExrConstants.MagickBytes);
-        stream.Write(this.buffer.AsSpan(0, 4));
+        stream.Write(this.buffer[..4]);
 
         // Version number.
         this.buffer[0] = 2;
@@ -117,7 +117,7 @@ internal sealed class ExrEncoderCore
         this.buffer[1] = 0;
         this.buffer[2] = 0;
         this.buffer[3] = 0;
-        stream.Write(this.buffer.AsSpan(0, 4));
+        stream.Write(this.buffer[..4]);
 
         // Write EXR header.
         this.WriteHeader(stream, header);
@@ -194,7 +194,7 @@ internal sealed class ExrEncoderCore
 
             // Write row index.
             BinaryPrimitives.WriteUInt32LittleEndian(this.buffer, y);
-            stream.Write(this.buffer.AsSpan(0, 4));
+            stream.Write(this.buffer[..4]);
 
             // At this point, it is not yet known how much bytes the compressed data will take up, keep stream position.
             long pixelDataSizePos = stream.Position;
@@ -237,7 +237,7 @@ internal sealed class ExrEncoderCore
             // Write pixel row data size.
             BinaryPrimitives.WriteUInt32LittleEndian(this.buffer, compressedBytes);
             stream.Position = pixelDataSizePos;
-            stream.Write(this.buffer.AsSpan(0, 4));
+            stream.Write(this.buffer[..4]);
             stream.Position = positionAfterPixelData;
 
             cancellationToken.ThrowIfCancellationRequested();
@@ -293,7 +293,7 @@ internal sealed class ExrEncoderCore
 
             // Write row index.
             BinaryPrimitives.WriteUInt32LittleEndian(this.buffer, y);
-            stream.Write(this.buffer.AsSpan(0, 4));
+            stream.Write(this.buffer[..4]);
 
             // At this point, it is not yet known how much bytes the compressed data will take up, keep stream position.
             long pixelDataSizePos = stream.Position;
@@ -328,7 +328,7 @@ internal sealed class ExrEncoderCore
             // Write pixel row data size.
             BinaryPrimitives.WriteUInt32LittleEndian(this.buffer, compressedBytes);
             stream.Position = pixelDataSizePos;
-            stream.Write(this.buffer.AsSpan(0, 4));
+            stream.Write(this.buffer[..4]);
             stream.Position = positionAfterPixelData;
 
             cancellationToken.ThrowIfCancellationRequested();
@@ -518,7 +518,7 @@ internal sealed class ExrEncoderCore
         WriteString(stream, channelInfo.ChannelName);
 
         BinaryPrimitives.WriteInt32LittleEndian(this.buffer, (int)channelInfo.PixelType);
-        stream.Write(this.buffer.AsSpan(0, 4));
+        stream.Write(this.buffer[..4]);
 
         stream.WriteByte(channelInfo.Linear);
 
@@ -528,10 +528,10 @@ internal sealed class ExrEncoderCore
         stream.WriteByte(0);
 
         BinaryPrimitives.WriteInt32LittleEndian(this.buffer, channelInfo.XSampling);
-        stream.Write(this.buffer.AsSpan(0, 4));
+        stream.Write(this.buffer[..4]);
 
         BinaryPrimitives.WriteInt32LittleEndian(this.buffer, channelInfo.YSampling);
-        stream.Write(this.buffer.AsSpan(0, 4));
+        stream.Write(this.buffer[..4]);
     }
 
     /// <summary>
@@ -629,7 +629,7 @@ internal sealed class ExrEncoderCore
 
         // Write attribute size.
         BinaryPrimitives.WriteUInt32LittleEndian(this.buffer, (uint)size);
-        stream.Write(this.buffer.AsSpan(0, 4));
+        stream.Write(this.buffer[..4]);
     }
 
     /// <summary>
@@ -656,16 +656,16 @@ internal sealed class ExrEncoderCore
     private void WriteBoxInteger(Stream stream, ExrBox2i box)
     {
         BinaryPrimitives.WriteInt32LittleEndian(this.buffer, box.XMin);
-        stream.Write(this.buffer.AsSpan(0, 4));
+        stream.Write(this.buffer[..4]);
 
         BinaryPrimitives.WriteInt32LittleEndian(this.buffer, box.YMin);
-        stream.Write(this.buffer.AsSpan(0, 4));
+        stream.Write(this.buffer[..4]);
 
         BinaryPrimitives.WriteInt32LittleEndian(this.buffer, box.XMax);
-        stream.Write(this.buffer.AsSpan(0, 4));
+        stream.Write(this.buffer[..4]);
 
         BinaryPrimitives.WriteInt32LittleEndian(this.buffer, box.YMax);
-        stream.Write(this.buffer.AsSpan(0, 4));
+        stream.Write(this.buffer[..4]);
     }
 
     /// <summary>
@@ -677,7 +677,7 @@ internal sealed class ExrEncoderCore
     private unsafe void WriteSingle(Stream stream, float value)
     {
         BinaryPrimitives.WriteInt32LittleEndian(this.buffer, *(int*)&value);
-        stream.Write(this.buffer.AsSpan(0, 4));
+        stream.Write(this.buffer[..4]);
     }
 
     /// <summary>

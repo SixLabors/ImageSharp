@@ -13,7 +13,12 @@ namespace SixLabors.ImageSharp.Formats.Webp.Lossy;
 /// </summary>
 internal class Vp8Decoder : IDisposable
 {
+    private const int UpsamplingBufferSize = (14 * 32) + 15;
+
     private Vp8MacroBlock leftMacroBlock;
+
+    // Vector upsampling needs 15 bytes of left padding, 128 interleaved UV bytes, two 128-byte BGR rows, and two 32-byte luma rows.
+    private readonly IMemoryOwner<byte> upsamplingBuffer;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Vp8Decoder"/> class.
@@ -74,6 +79,7 @@ internal class Vp8Decoder : IDisposable
         this.TmpYBuffer = memoryAllocator.Allocate<byte>((int)width);
         this.TmpUBuffer = memoryAllocator.Allocate<byte>((int)width);
         this.TmpVBuffer = memoryAllocator.Allocate<byte>((int)width);
+        this.upsamplingBuffer = memoryAllocator.Allocate<byte>(UpsamplingBufferSize);
         this.Pixels = memoryAllocator.Allocate<byte>((int)(width * height * 4), AllocationOptions.Clean);
 
 #if DEBUG
@@ -239,6 +245,11 @@ internal class Vp8Decoder : IDisposable
     public IMemoryOwner<byte> Pixels { get; }
 
     /// <summary>
+    /// Gets the reusable workspace used while upsampling YUV rows.
+    /// </summary>
+    public Span<byte> UpsamplingBuffer => this.upsamplingBuffer.Memory.Span[..UpsamplingBufferSize];
+
+    /// <summary>
     /// Gets or sets filter info.
     /// </summary>
     public Vp8FilterInfo[] FilterInfo { get; set; }
@@ -339,6 +350,7 @@ internal class Vp8Decoder : IDisposable
         this.TmpYBuffer.Dispose();
         this.TmpUBuffer.Dispose();
         this.TmpVBuffer.Dispose();
+        this.upsamplingBuffer.Dispose();
         this.Pixels.Dispose();
     }
 }

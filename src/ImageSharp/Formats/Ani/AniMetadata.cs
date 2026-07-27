@@ -7,7 +7,7 @@ using SixLabors.ImageSharp.PixelFormats;
 namespace SixLabors.ImageSharp.Formats.Ani;
 
 /// <summary>
-/// Provides Ani specific metadata information for the image.
+/// Provides ANI-specific metadata for an image.
 /// </summary>
 public class AniMetadata : IFormatMetadata<AniMetadata>
 {
@@ -19,90 +19,116 @@ public class AniMetadata : IFormatMetadata<AniMetadata>
     }
 
     /// <summary>
-    /// Gets or sets the width of frames in the animation.
+    /// Initializes a new instance of the <see cref="AniMetadata"/> class by copying another instance.
+    /// </summary>
+    /// <param name="other">The metadata to copy.</param>
+    private AniMetadata(AniMetadata other)
+    {
+        this.Width = other.Width;
+        this.Height = other.Height;
+        this.BitCount = other.BitCount;
+        this.Planes = other.Planes;
+        this.DisplayRate = other.DisplayRate;
+        this.Flags = other.Flags;
+        this.Name = other.Name;
+        this.Artist = other.Artist;
+    }
+
+    /// <summary>
+    /// Gets or sets the frame width declared by the ANI header.
     /// </summary>
     /// <remarks>
-    /// Remains zero when <see cref="Flags"/> has flag <see cref="AniHeaderFlags.IsIcon"/>
+    /// Icon-based ANI files commonly store zero because each embedded resource declares its own dimensions.
     /// </remarks>
     public uint Width { get; set; }
 
     /// <summary>
-    /// Gets or sets the height of frames in the animation.
+    /// Gets or sets the frame height declared by the ANI header.
     /// </summary>
     /// <remarks>
-    /// Remains zero when <see cref="Flags"/> has flag <see cref="AniHeaderFlags.IsIcon"/>
+    /// Icon-based ANI files commonly store zero because each embedded resource declares its own dimensions.
     /// </remarks>
     public uint Height { get; set; }
 
     /// <summary>
-    /// Gets or sets the number of bits per pixel.
+    /// Gets or sets the bits per pixel declared by the ANI header.
     /// </summary>
     /// <remarks>
-    /// Remains zero when <see cref="Flags"/> has flag <see cref="AniHeaderFlags.IsIcon"/>
+    /// Bitmap-based ANI files use this value to describe their raw frame data. Icon-based files commonly store zero
+    /// because each embedded ICO or CUR entry declares its own pixel layout.
     /// </remarks>
     public uint BitCount { get; set; }
 
     /// <summary>
-    /// Gets or sets the number of frames in the animation.
+    /// Gets or sets the color-plane count declared by the ANI header.
     /// </summary>
     /// <remarks>
-    /// Remains zero when <see cref="Flags"/> has flag <see cref="AniHeaderFlags.IsIcon"/>
+    /// Bitmap-based ANI files use one plane. Icon-based files commonly store zero because this header field is reserved
+    /// when the embedded resources are ICO or CUR data.
     /// </remarks>
     public uint Planes { get; set; }
 
     /// <summary>
-    /// Gets or sets the default display rate of frames in the animation.
+    /// Gets or sets the default frame display rate in sixtieths of a second.
     /// </summary>
     public uint DisplayRate { get; set; }
 
     /// <summary>
-    /// Gets or sets the flags for the ANI header.
+    /// Gets or sets the ANI header flags.
     /// </summary>
-    public AniHeaderFlags Flags { get; set; }
+    public AniHeaderFlags Flags { get; set; } = AniHeaderFlags.IsIcon;
 
     /// <summary>
-    /// Gets or sets the name of the ANI file.
+    /// Gets or sets the animation name.
     /// </summary>
     public string? Name { get; set; }
 
     /// <summary>
-    /// Gets or sets the artist of the ANI file.
+    /// Gets or sets the animation artist.
     /// </summary>
     public string? Artist { get; set; }
 
     /// <inheritdoc/>
     public static AniMetadata FromFormatConnectingMetadata(FormatConnectingMetadata metadata)
-        => throw new NotImplementedException();
+        => new()
+        {
+            BitCount = (uint)metadata.PixelTypeInfo.BitsPerPixel,
+            Planes = 1,
+            Flags = AniHeaderFlags.IsIcon
+        };
+
+    /// <inheritdoc/>
+    public PixelTypeInfo GetPixelTypeInfo()
+    {
+        // Icon-based files are allowed to leave the global bit depth unspecified. Their embedded
+        // ICO/CUR metadata carries the exact value, while 32-bit is the least lossy conversion default.
+        int bitsPerPixel = this.BitCount is > 0 and <= 32 ? (int)this.BitCount : 32;
+        return new PixelTypeInfo(bitsPerPixel);
+    }
+
+    /// <inheritdoc/>
+    public FormatConnectingMetadata ToFormatConnectingMetadata()
+        => new()
+        {
+            AnimateRootFrame = true,
+            EncodingType = EncodingType.Lossless,
+            PixelTypeInfo = this.GetPixelTypeInfo()
+        };
 
     /// <inheritdoc/>
     public void AfterImageApply<TPixel>(Image<TPixel> destination, Matrix4x4 matrix)
-            where TPixel : unmanaged, IPixel<TPixel>
+        where TPixel : unmanaged, IPixel<TPixel>
     {
+        if (!this.Flags.HasFlag(AniHeaderFlags.IsIcon))
+        {
+            this.Width = (uint)destination.Width;
+            this.Height = (uint)destination.Height;
+        }
     }
 
     /// <inheritdoc/>
     IDeepCloneable IDeepCloneable.DeepClone() => this.DeepClone();
 
     /// <inheritdoc/>
-    public PixelTypeInfo GetPixelTypeInfo()
-        => throw new NotImplementedException();
-
-    /// <inheritdoc/>
-    public FormatConnectingMetadata ToFormatConnectingMetadata()
-        => throw new NotImplementedException();
-
-    /// <inheritdoc/>
-    public AniMetadata DeepClone() => new()
-    {
-        Width = this.Width,
-        Height = this.Height,
-        BitCount = this.BitCount,
-        Planes = this.Planes,
-        DisplayRate = this.DisplayRate,
-        Flags = this.Flags,
-        Name = this.Name,
-        Artist = this.Artist
-
-        // TODO IconFrames
-    };
+    public AniMetadata DeepClone() => new(this);
 }

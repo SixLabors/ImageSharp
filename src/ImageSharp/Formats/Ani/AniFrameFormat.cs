@@ -6,20 +6,20 @@ namespace SixLabors.ImageSharp.Formats.Ani;
 /// <summary>
 /// Specifies the format of the frame data.
 /// </summary>
-public enum AniFrameFormat
+public enum AniFrameFormat : byte
 {
     /// <summary>
-    /// The frame data is in ICO format.
-    /// </summary>
-    Ico = 1,
-
-    /// <summary>
-    /// The frame data is in CUR format.
+    /// The frame resource is encoded as a Windows cursor.
     /// </summary>
     Cur,
 
     /// <summary>
-    /// The frame data is in BMP format.
+    /// The frame resource is encoded as a Windows icon.
+    /// </summary>
+    Ico,
+
+    /// <summary>
+    /// The frame resource is encoded as a Windows bitmap.
     /// </summary>
     Bmp
 }

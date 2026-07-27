@@ -4,10 +4,17 @@
 namespace SixLabors.ImageSharp.Formats.Ani;
 
 /// <summary>
-/// Registers the image encoders, decoders and mime type detectors for the bmp format.
+/// Describes the ANI image format.
 /// </summary>
 public sealed class AniFormat : IImageFormat<AniMetadata, AniFrameMetadata>
 {
+    /// <summary>
+    /// Prevents a default instance of the <see cref="AniFormat"/> class from being created.
+    /// </summary>
+    private AniFormat()
+    {
+    }
+
     /// <summary>
     /// Gets the shared instance.
     /// </summary>

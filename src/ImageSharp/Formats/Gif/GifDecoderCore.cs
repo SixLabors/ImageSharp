@@ -22,7 +22,7 @@ internal sealed class GifDecoderCore : ImageDecoderCore
     /// <summary>
     /// The temp buffer used to reduce allocations.
     /// </summary>
-    private ScratchBuffer buffer;   // mutable struct, don't make readonly
+    private InlineArray16<byte> buffer; // mutable struct, don't make readonly
 
     /// <summary>
     /// The global color table.
@@ -285,13 +285,13 @@ internal sealed class GifDecoderCore : ImageDecoderCore
     /// <param name="stream">The <see cref="BufferedReadStream"/> containing image data.</param>
     private void ReadGraphicalControlExtension(BufferedReadStream stream)
     {
-        int bytesRead = stream.Read(this.buffer.Span, 0, 6);
+        int bytesRead = stream.Read(this.buffer, 0, 6);
         if (bytesRead != 6)
         {
             GifThrowHelper.ThrowInvalidImageContentException("Not enough data to read the graphic control extension");
         }
 
-        this.graphicsControlExtension = GifGraphicControlExtension.Parse(this.buffer.Span);
+        this.graphicsControlExtension = GifGraphicControlExtension.Parse(this.buffer);
     }
 
     /// <summary>
@@ -300,13 +300,13 @@ internal sealed class GifDecoderCore : ImageDecoderCore
     /// <param name="stream">The <see cref="BufferedReadStream"/> containing image data.</param>
     private void ReadImageDescriptor(BufferedReadStream stream)
     {
-        int bytesRead = stream.Read(this.buffer.Span, 0, 9);
+        int bytesRead = stream.Read(this.buffer, 0, 9);
         if (bytesRead != 9)
         {
             GifThrowHelper.ThrowInvalidImageContentException("Not enough data to read the image descriptor");
         }
 
-        this.imageDescriptor = GifImageDescriptor.Parse(this.buffer.Span);
+        this.imageDescriptor = GifImageDescriptor.Parse(this.buffer);
         if (this.imageDescriptor.Height == 0 || this.imageDescriptor.Width == 0)
         {
             GifThrowHelper.ThrowInvalidImageContentException("Width or height should not be 0");
@@ -321,13 +321,13 @@ internal sealed class GifDecoderCore : ImageDecoderCore
     /// <param name="stream">The <see cref="BufferedReadStream"/> containing image data.</param>
     private void ReadLogicalScreenDescriptor(BufferedReadStream stream)
     {
-        int bytesRead = stream.Read(this.buffer.Span, 0, 7);
+        int bytesRead = stream.Read(this.buffer, 0, 7);
         if (bytesRead != 7)
         {
             GifThrowHelper.ThrowInvalidImageContentException("Not enough data to read the logical screen descriptor");
         }
 
-        this.logicalScreenDescriptor = GifLogicalScreenDescriptor.Parse(this.buffer.Span);
+        this.logicalScreenDescriptor = GifLogicalScreenDescriptor.Parse(this.buffer);
     }
 
     /// <summary>
@@ -353,13 +353,13 @@ internal sealed class GifDecoderCore : ImageDecoderCore
         // If the length is 11 then it's a valid extension and most likely
         // a NETSCAPE, XMP or ANIMEXTS extension. We want the loop count from this.
         long position = stream.Position;
-        int bytesRead = stream.Read(this.buffer.Span, 0, GifConstants.ApplicationBlockSize);
+        int bytesRead = stream.Read(this.buffer, 0, GifConstants.ApplicationBlockSize);
         if (bytesRead != GifConstants.ApplicationBlockSize)
         {
             GifThrowHelper.ThrowInvalidImageContentException("Unexpected end of stream while reading gif application extension");
         }
 
-        bool isXmp = this.buffer.Span.StartsWith(GifConstants.XmpApplicationIdentificationBytes);
+        bool isXmp = ((ReadOnlySpan<byte>)this.buffer).StartsWith(GifConstants.XmpApplicationIdentificationBytes);
         if (isXmp)
         {
             this.ReadXmpApplicationExtension(stream, position, appLength);
@@ -447,13 +447,13 @@ internal sealed class GifDecoderCore : ImageDecoderCore
     /// <param name="stream">The <see cref="BufferedReadStream"/> containing image data.</param>
     private void ReadNetscapeApplicationExtensionData(BufferedReadStream stream)
     {
-        int bytesRead = stream.Read(this.buffer.Span, 0, GifConstants.NetscapeLoopingSubBlockSize);
+        int bytesRead = stream.Read(this.buffer, 0, GifConstants.NetscapeLoopingSubBlockSize);
         if (bytesRead != GifConstants.NetscapeLoopingSubBlockSize)
         {
             throw new InvalidImageContentException("Unexpected end of stream while reading gif application extension");
         }
 
-        this.gifMetadata!.RepeatCount = GifNetscapeLoopingApplicationExtension.Parse(this.buffer.Span[1..]).RepeatCount;
+        this.gifMetadata!.RepeatCount = GifNetscapeLoopingApplicationExtension.Parse(this.buffer[1..]).RepeatCount;
 
         int terminator = stream.ReadByte();
         if (terminator == -1)
@@ -995,13 +995,5 @@ internal sealed class GifDecoderCore : ImageDecoderCore
         {
             this.gifMetadata.BackgroundColor = globalColorTable.Value.Span[index];
         }
-    }
-
-    private unsafe struct ScratchBuffer
-    {
-        private const int Size = 16;
-        private fixed byte scratch[Size];
-
-        public Span<byte> Span => MemoryMarshal.CreateSpan(ref this.scratch[0], Size);
     }
 }

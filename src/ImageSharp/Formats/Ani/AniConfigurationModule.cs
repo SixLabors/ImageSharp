@@ -4,14 +4,21 @@
 namespace SixLabors.ImageSharp.Formats.Ani;
 
 /// <summary>
-/// Registers the image encoders, decoders and mime type detectors for the Ico format.
+/// Registers the image encoder, decoder, and format detector for the ANI format.
 /// </summary>
 public sealed class AniConfigurationModule : IImageFormatConfigurationModule
 {
+    /// <summary>
+    /// Initializes a new instance of the <see cref="AniConfigurationModule"/> class.
+    /// </summary>
+    public AniConfigurationModule()
+    {
+    }
+
     /// <inheritdoc/>
     public void Configure(Configuration configuration)
     {
-        // configuration.ImageFormatsManager.SetEncoder(AniFormat.Instance, new AniEncoder());
+        configuration.ImageFormatsManager.SetEncoder(AniFormat.Instance, new AniEncoder());
         configuration.ImageFormatsManager.SetDecoder(AniFormat.Instance, AniDecoder.Instance);
         configuration.ImageFormatsManager.AddImageFormatDetector(new AniImageFormatDetector());
     }

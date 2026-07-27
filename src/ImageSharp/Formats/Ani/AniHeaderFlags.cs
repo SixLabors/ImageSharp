@@ -10,12 +10,12 @@ namespace SixLabors.ImageSharp.Formats.Ani;
 public enum AniHeaderFlags : uint
 {
     /// <summary>
-    /// If set, the ANI file's "icon" chunk contains an ICO or CUR file, otherwise it contains a BMP file.
+    /// The "icon" chunks contain ICO or CUR resources. Without this flag, they contain BMP resources.
     /// </summary>
     IsIcon = 1,
 
     /// <summary>
-    /// If set, the ANI file contains a "seq " chunk.
+    /// The ANI file contains a "seq " chunk that maps animation steps to frame resources.
     /// </summary>
-    ContainsSeq = 2
+    ContainsSequence = 2
 }

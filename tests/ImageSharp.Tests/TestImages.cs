@@ -1400,6 +1400,13 @@ public static class TestImages
         public const string CurFake = "Icon/cur_fake.ico";
     }
 
+    public static class Ani
+    {
+        public const string Work = "Ani/Work.ani";
+        public const string MultiFramesInEveryIconChunk = "Ani/aero_busy.ani";
+        public const string Help = "Ani/Help.ani";
+    }
+
     public static class Exr
     {
         public const string Benchmark = "Exr/Calliphora_benchmark.exr";

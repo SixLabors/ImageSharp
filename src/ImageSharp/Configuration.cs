@@ -5,6 +5,7 @@ using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Formats;
+using SixLabors.ImageSharp.Formats.Ani;
 using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.Formats.Cur;
 using SixLabors.ImageSharp.Formats.Exr;
@@ -224,6 +225,7 @@ public sealed class Configuration
     /// <see cref="WebpConfigurationModule"/>.
     /// <see cref="ExrConfigurationModule"/>.
     /// <see cref="QoiConfigurationModule"/>.
+    /// <see cref="AniConfigurationModule"/>.
     /// </summary>
     /// <returns>The default configuration of <see cref="Configuration"/>.</returns>
     internal static Configuration CreateDefaultInstance() => new(
@@ -238,5 +240,6 @@ public sealed class Configuration
             new ExrConfigurationModule(),
             new QoiConfigurationModule(),
             new IcoConfigurationModule(),
-            new CurConfigurationModule());
+            new CurConfigurationModule(),
+            new AniConfigurationModule());
 }

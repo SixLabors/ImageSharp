@@ -1,6 +1,8 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Buffers.Binary;
+using System.Numerics;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.Formats.Ico;
@@ -14,6 +16,15 @@ namespace SixLabors.ImageSharp.Tests.Formats.Icon.Ico;
 [ValidateDisposedMemoryAllocations]
 public class IcoDecoderTests
 {
+    [Fact]
+    public void IcoDetector_RejectsCur()
+    {
+        TestFile file = TestFile.Create(TestImages.Cur.WindowsMouse);
+        IcoImageFormatDetector detector = new();
+
+        Assert.False(detector.TryDetectFormat(file.Bytes, out _));
+    }
+
     [Theory]
     [WithFile(Flutter, PixelTypes.Rgba32)]
     public void IcoDecoder_Decode(TestImageProvider<Rgba32> provider)
@@ -304,6 +315,43 @@ public class IcoDecoderTests
         ImageInfo imageInfo = Image.Identify(new DecoderOptions { MaxFrames = 1 }, stream);
 
         Assert.Single(imageInfo.FrameMetadataCollection);
+    }
+
+    [Fact]
+    public void TruncatedEntry_FollowsImageDataIntegrityHandling()
+    {
+        byte[] data = TestFile.Create(Flutter).Bytes.ToArray();
+        ushort entryCount = BinaryPrimitives.ReadUInt16LittleEndian(data.AsSpan(4));
+        Assert.True(entryCount > 1);
+
+        // Limit the first resource below the PNG signature length. A bounded child decoder must not read into following data.
+        BinaryPrimitives.WriteUInt32LittleEndian(data.AsSpan(IconDir.Size + 8), 4);
+
+        using MemoryStream defaultStream = new(data, false);
+        Assert.Throws<InvalidImageContentException>(() => IcoDecoder.Instance.Decode<Rgba32>(DecoderOptions.Default, defaultStream));
+
+        DecoderOptions ignore = new() { SegmentIntegrityHandling = SegmentIntegrityHandling.IgnoreImageData };
+
+        using MemoryStream decodeStream = new(data, false);
+        using Image<Rgba32> image = IcoDecoder.Instance.Decode<Rgba32>(ignore, decodeStream);
+        Assert.Equal(entryCount - 1, image.Frames.Count);
+
+        using MemoryStream identifyStream = new(data, false);
+        ImageInfo info = IcoDecoder.Instance.Identify(ignore, identifyStream);
+        Assert.Equal(entryCount - 1, info.FrameMetadataCollection.Count);
+    }
+
+    [Fact]
+    public void IcoFrameMetadata_ScalesZeroEncodingDimensionsFrom256()
+    {
+        using Image<Rgba32> source = new(256, 256);
+        using Image<Rgba32> destination = new(128, 128);
+        IcoFrameMetadata metadata = new() { EncodingWidth = 0, EncodingHeight = 0 };
+
+        metadata.AfterFrameApply(source.Frames.RootFrame, destination.Frames.RootFrame, Matrix4x4.Identity);
+
+        Assert.Equal((byte)128, metadata.EncodingWidth);
+        Assert.Equal((byte)128, metadata.EncodingHeight);
     }
 
     [Theory]

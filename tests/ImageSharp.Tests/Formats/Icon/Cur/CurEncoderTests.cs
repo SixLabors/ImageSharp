@@ -2,9 +2,12 @@
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.Formats;
+using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.Formats.Cur;
 using SixLabors.ImageSharp.Formats.Ico;
+using SixLabors.ImageSharp.Formats.Icon;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing.Processors.Quantization;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using static SixLabors.ImageSharp.Tests.TestImages.Cur;
 using static SixLabors.ImageSharp.Tests.TestImages.Ico;
@@ -123,5 +126,38 @@ public class CurEncoderTests
                 }
             }
         });
+    }
+
+    [Fact]
+    public void Encode_UsesBitmapDepthInsteadOfHotspotForQuantizerSelection()
+    {
+        using Image<Rgba32> image = new(32, 1);
+        for (int x = 0; x < image.Width; x++)
+        {
+            image[x, 0] = new Rgba32((byte)(x * 8), (byte)(255 - (x * 8)), (byte)(x * 4));
+        }
+
+        CurFrameMetadata metadata = image.Frames.RootFrame.Metadata.GetCurMetadata();
+        metadata.Compression = IconFrameCompression.Bmp;
+        metadata.BmpBitsPerPixel = BmpBitsPerPixel.Bit8;
+        metadata.HotspotY = 32;
+
+        CurEncoder encoder = new()
+        {
+            Quantizer = new WuQuantizer(new QuantizerOptions { MaxColors = 2 })
+        };
+
+        using MemoryStream stream = new();
+        image.Save(stream, encoder);
+        stream.Position = 0;
+
+        using Image<Rgba32> decoded = Image.Load<Rgba32>(stream);
+        HashSet<Rgba32> colors = [];
+        for (int x = 0; x < decoded.Width; x++)
+        {
+            colors.Add(decoded[x, 0]);
+        }
+
+        Assert.InRange(colors.Count, 1, 2);
     }
 }

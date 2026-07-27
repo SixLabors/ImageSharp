@@ -14,13 +14,6 @@ namespace SixLabors.ImageSharp.Compression.Zlib;
 /// </summary>
 internal sealed class ZlibInflateReader : IDisposable
 {
-    /// <summary>
-    /// Used to read the Adler-32 and Crc-32 checksums.
-    /// We don't actually use this for anything so it doesn't
-    /// have to be threadsafe.
-    /// </summary>
-    private static readonly byte[] ChecksumBuffer = new byte[4];
-
     private readonly ChunkedReadStream segmentStream;
 
     public ZlibInflateReader(BufferedReadStream innerStream)
@@ -112,7 +105,9 @@ internal sealed class ZlibInflateReader : IDisposable
         {
             // We don't need this for inflate so simply skip by the next four bytes.
             // https://tools.ietf.org/html/rfc1950#page-6
-            if (this.segmentStream.Read(ChecksumBuffer, 0, 4) != 4)
+            InlineArray4<byte> checksumBuffer = default;
+
+            if (this.segmentStream.Read(checksumBuffer) != 4)
             {
                 return false;
             }

@@ -77,13 +77,14 @@ internal sealed class ChunkedReadStream : Stream
     }
 
     /// <inheritdoc/>
-    public override int Read(byte[] buffer, int offset, int count)
+    public override int Read(byte[] buffer, int offset, int count) => this.Read(buffer.AsSpan(offset, count));
+
+    /// <inheritdoc/>
+    public override int Read(Span<byte> buffer)
     {
-        // Decrement currentDataRemaining only by bytes actually returned by
-        // innerStream.Read; a short read otherwise underflows the segment
-        // counter and triggers getData() before the segment is truly drained.
+        // Decrement currentDataRemaining only by bytes actually returned by innerStream.Read; a short read otherwise advances segments too early.
         int totalBytesRead = 0;
-        while (totalBytesRead < count)
+        while (totalBytesRead < buffer.Length)
         {
             if (this.currentDataRemaining is 0)
             {
@@ -94,8 +95,8 @@ internal sealed class ChunkedReadStream : Stream
                 }
             }
 
-            int bytesToRead = Math.Min(count - totalBytesRead, this.currentDataRemaining);
-            int bytesRead = this.innerStream.Read(buffer, offset + totalBytesRead, bytesToRead);
+            int bytesToRead = Math.Min(buffer.Length - totalBytesRead, this.currentDataRemaining);
+            int bytesRead = this.innerStream.Read(buffer.Slice(totalBytesRead, bytesToRead));
             if (bytesRead is 0)
             {
                 break;

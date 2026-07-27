@@ -6,10 +6,13 @@ using SixLabors.ImageSharp.PixelFormats;
 namespace SixLabors.ImageSharp.Formats.Ico;
 
 /// <summary>
-/// Decoder for generating an image out of a ico encoded stream.
+/// Decoder for generating an image from an ICO encoded stream.
 /// </summary>
 public sealed class IcoDecoder : ImageDecoder
 {
+    /// <summary>
+    /// Initializes a new instance of the <see cref="IcoDecoder"/> class.
+    /// </summary>
     private IcoDecoder()
     {
     }
@@ -34,7 +37,7 @@ public sealed class IcoDecoder : ImageDecoder
 
     /// <inheritdoc/>
     protected override Image Decode(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
-            => this.Decode<Rgba32>(options, stream, cancellationToken);
+        => this.Decode<Rgba32>(options, stream, cancellationToken);
 
     /// <inheritdoc/>
     protected override ImageInfo Identify(DecoderOptions options, Stream stream, CancellationToken cancellationToken)

@@ -4,17 +4,17 @@
 namespace SixLabors.ImageSharp.Formats.Icon;
 
 /// <summary>
-/// Ico file type
+/// Identifies the type stored in an ICO or CUR directory header.
 /// </summary>
 internal enum IconFileType : ushort
 {
     /// <summary>
-    /// ICO file
+    /// A Windows icon file.
     /// </summary>
     ICO = 1,
 
     /// <summary>
-    /// CUR file
+    /// A Windows cursor file.
     /// </summary>
-    CUR = 2,
+    CUR = 2
 }

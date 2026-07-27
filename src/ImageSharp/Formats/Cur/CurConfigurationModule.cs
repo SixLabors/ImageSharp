@@ -1,12 +1,10 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using SixLabors.ImageSharp.Formats.Icon;
-
 namespace SixLabors.ImageSharp.Formats.Cur;
 
 /// <summary>
-/// Registers the image encoders, decoders and mime type detectors for the Ico format.
+/// Registers the image encoder, decoder, and format detector for the CUR format.
 /// </summary>
 public sealed class CurConfigurationModule : IImageFormatConfigurationModule
 {
@@ -15,6 +13,6 @@ public sealed class CurConfigurationModule : IImageFormatConfigurationModule
     {
         configuration.ImageFormatsManager.SetEncoder(CurFormat.Instance, new CurEncoder());
         configuration.ImageFormatsManager.SetDecoder(CurFormat.Instance, CurDecoder.Instance);
-        configuration.ImageFormatsManager.AddImageFormatDetector(new IconImageFormatDetector());
+        configuration.ImageFormatsManager.AddImageFormatDetector(new CurImageFormatDetector());
     }
 }

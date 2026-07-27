@@ -890,7 +890,7 @@ internal sealed class BmpEncoderCore
           where TPixel : unmanaged, IPixel<TPixel>
     {
         // Each byte represents eight pixels and every scanline is padded to a 4-byte DIB boundary.
-        int arrayWidth = encodingFrame.Width / 8;
+        int arrayWidth = (encodingFrame.Width + 7) / 8;
         int padding = arrayWidth % 4;
         if (padding is not 0)
         {
@@ -910,7 +910,9 @@ internal sealed class BmpEncoderCore
             {
                 int x = i * 8;
 
-                for (int j = 0; j < 8; j++)
+                // The final byte can represent fewer than eight pixels when the image width is not byte-aligned.
+                int pixelCount = Math.Min(8, encodingFrame.Width - x);
+                for (int j = 0; j < pixelCount; j++)
                 {
                     WriteAlphaMask(row[x + j], ref mask[i], j);
                 }

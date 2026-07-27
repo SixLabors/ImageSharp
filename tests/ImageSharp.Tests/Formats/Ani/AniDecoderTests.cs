@@ -145,4 +145,66 @@ public class AniDecoderTests
         DecoderOptions strict = new() { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
         Assert.Throws<InvalidImageContentException>(() => AniDecoder.Instance.Decode<Rgba32>(strict, strictStream));
     }
+
+    /// <summary>
+    /// Verifies that oversized control arrays are rejected before allocation and follow ancillary integrity handling.
+    /// </summary>
+    /// <param name="sequence"><see langword="true"/> to append a sequence chunk; otherwise, a rate chunk.</param>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void AniDecoder_OversizedControlChunk_FollowsIntegrityHandling(bool sequence)
+    {
+        byte[] source = TestFile.Create(Help).Bytes.ToArray();
+        int chunkOffset = (source.Length + 1) & ~1;
+        int payloadSize = AniConstants.MaxAncillaryChunkSize + sizeof(uint);
+        byte[] data = new byte[chunkOffset + AniConstants.ChunkHeaderSize + payloadSize];
+        source.CopyTo(data, 0);
+
+        ReadOnlySpan<byte> identifier = sequence ? "seq "u8 : "rate"u8;
+        identifier.CopyTo(data.AsSpan(chunkOffset));
+        BinaryPrimitives.WriteUInt32LittleEndian(data.AsSpan(chunkOffset + sizeof(uint)), (uint)payloadSize);
+        BinaryPrimitives.WriteUInt32LittleEndian(data.AsSpan(sizeof(uint)), (uint)data.Length - AniConstants.ChunkHeaderSize);
+
+        using MemoryStream defaultStream = new(data, false);
+        using Image<Rgba32> image = AniDecoder.Instance.Decode<Rgba32>(DecoderOptions.Default, defaultStream);
+
+        Assert.Equal(4, image.Frames.Count);
+
+        using MemoryStream strictStream = new(data, false);
+        DecoderOptions strict = new() { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
+        Assert.Throws<InvalidImageContentException>(() => AniDecoder.Instance.Decode<Rgba32>(strict, strictStream));
+    }
+
+    /// <summary>
+    /// Verifies that oversized information text is rejected before allocation and follows ancillary integrity handling.
+    /// </summary>
+    [Fact]
+    public void AniDecoder_OversizedInformationText_FollowsIntegrityHandling()
+    {
+        byte[] source = TestFile.Create(Help).Bytes.ToArray();
+        int listOffset = (source.Length + 1) & ~1;
+        int textSize = AniConstants.MaxAncillaryChunkSize + 1;
+        int paddedTextSize = textSize + (textSize & 1);
+        int listSize = sizeof(uint) + AniConstants.ChunkHeaderSize + paddedTextSize;
+        byte[] data = new byte[listOffset + AniConstants.ChunkHeaderSize + listSize];
+        source.CopyTo(data, 0);
+
+        "LIST"u8.CopyTo(data.AsSpan(listOffset));
+        BinaryPrimitives.WriteUInt32LittleEndian(data.AsSpan(listOffset + sizeof(uint)), (uint)listSize);
+        "INFO"u8.CopyTo(data.AsSpan(listOffset + AniConstants.ChunkHeaderSize));
+        int textOffset = listOffset + AniConstants.ChunkHeaderSize + sizeof(uint);
+        "INAM"u8.CopyTo(data.AsSpan(textOffset));
+        BinaryPrimitives.WriteUInt32LittleEndian(data.AsSpan(textOffset + sizeof(uint)), (uint)textSize);
+        BinaryPrimitives.WriteUInt32LittleEndian(data.AsSpan(sizeof(uint)), (uint)data.Length - AniConstants.ChunkHeaderSize);
+
+        using MemoryStream defaultStream = new(data, false);
+        using Image<Rgba32> image = AniDecoder.Instance.Decode<Rgba32>(DecoderOptions.Default, defaultStream);
+
+        Assert.Equal(4, image.Frames.Count);
+
+        using MemoryStream strictStream = new(data, false);
+        DecoderOptions strict = new() { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
+        Assert.Throws<InvalidImageContentException>(() => AniDecoder.Instance.Decode<Rgba32>(strict, strictStream));
+    }
 }

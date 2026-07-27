@@ -24,6 +24,15 @@ internal static class AniConstants
     public const int IconDirHeaderSize = 6;
 
     /// <summary>
+    /// The maximum number of bytes retained from an ancillary chunk.
+    /// </summary>
+    /// <remarks>
+    /// Control arrays and information strings come from untrusted input. Bounding them independently of the allocator
+    /// prevents a physically large RIFF chunk from consuming an unreasonable amount of memory.
+    /// </remarks>
+    public const int MaxAncillaryChunkSize = 8 * 1024 * 1024;
+
+    /// <summary>
     /// The list of MIME types that identify ANI data.
     /// </summary>
     public static readonly IEnumerable<string> MimeTypes = ["application/x-navi-animation"];

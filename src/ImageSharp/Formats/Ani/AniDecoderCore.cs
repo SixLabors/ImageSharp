@@ -411,6 +411,14 @@ internal sealed class AniDecoderCore : ImageDecoderCore, IDisposable
             return;
         }
 
+        // MaxFrames controls retained animation steps, but its default is intentionally unbounded. Apply a separate
+        // byte limit before allocation so an oversized control chunk follows ancillary integrity handling.
+        if (chunkSize > AniConstants.MaxAncillaryChunkSize)
+        {
+            this.ThrowOrIgnoreNonStrictSegmentError($"The ANI {description} chunk is too large.");
+            return;
+        }
+
         int count = (int)Math.Min(chunkSize / sizeof(uint), this.Options.MaxFrames);
         if (count is 0)
         {
@@ -494,7 +502,8 @@ internal sealed class AniDecoderCore : ImageDecoderCore, IDisposable
     {
         value = null;
 
-        if (chunkSize > int.MaxValue)
+        // INFO text is optional metadata. Reject or skip oversized values before renting their backing buffer.
+        if (chunkSize > AniConstants.MaxAncillaryChunkSize)
         {
             this.ThrowOrIgnoreNonStrictSegmentError("The ANI information text chunk is too large.");
             return false;

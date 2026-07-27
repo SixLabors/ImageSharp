@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.Formats;
+using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.Formats.Cur;
 using SixLabors.ImageSharp.Formats.Ico;
 using SixLabors.ImageSharp.Formats.Icon;
@@ -140,5 +141,35 @@ public class IcoEncoderTests
 
         Assert.NotNull(decoded.Metadata.ExifProfile);
         Assert.Equal(image.Metadata.ExifProfile.Values, decoded.Metadata.ExifProfile.Values);
+    }
+
+    /// <summary>
+    /// Verifies that the final partial AND-mask byte contains every pixel when the bitmap width is not byte-aligned.
+    /// </summary>
+    /// <param name="width">The bitmap width to encode.</param>
+    [Theory]
+    [InlineData(1)]
+    [InlineData(7)]
+    [InlineData(9)]
+    [InlineData(15)]
+    public void BmpEntry_WritesPartialAlphaMaskByte(int width)
+    {
+        using Image<Rgba32> image = new(width, 1, Color.Red.ToPixel<Rgba32>());
+        image[width - 1, 0] = Color.Transparent.ToPixel<Rgba32>();
+
+        IcoFrameMetadata metadata = image.Frames.RootFrame.Metadata.GetIcoMetadata();
+        metadata.Compression = IconFrameCompression.Bmp;
+        metadata.BmpBitsPerPixel = BmpBitsPerPixel.Bit32;
+
+        using MemoryStream stream = new();
+        image.Save(stream, Encoder);
+
+        // These widths produce one DWORD-aligned mask row at the end of the bitmap resource.
+        ReadOnlySpan<byte> mask = stream.GetBuffer().AsSpan(checked((int)stream.Length) - sizeof(uint), sizeof(uint));
+        int pixelIndex = width - 1;
+        int byteIndex = pixelIndex / 8;
+        int bitIndex = pixelIndex % 8;
+
+        Assert.Equal((byte)(0b10000000 >> bitIndex), mask[byteIndex]);
     }
 }

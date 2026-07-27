@@ -102,6 +102,11 @@ internal sealed class BmpEncoderCore
     /// <inheritdoc cref="BmpDecoderOptions.SkipFileHeader"/>
     private readonly bool skipFileHeader;
 
+    /// <summary>
+    /// Whether optional image metadata should be omitted.
+    /// </summary>
+    private readonly bool skipMetadata;
+
     /// <inheritdoc cref="BmpDecoderOptions.UseDoubleHeight"/>
     private readonly bool isDoubleHeight;
 
@@ -122,6 +127,7 @@ internal sealed class BmpEncoderCore
         this.infoHeaderType = encoder.SupportTransparency ? BmpInfoHeaderType.WinVersion4 : BmpInfoHeaderType.WinVersion3;
         this.processedAlphaMask = encoder.ProcessedAlphaMask;
         this.skipFileHeader = encoder.SkipFileHeader;
+        this.skipMetadata = encoder.SkipMetadata;
         this.isDoubleHeight = encoder.UseDoubleHeight;
     }
 
@@ -174,7 +180,7 @@ internal sealed class BmpEncoderCore
 
         byte[]? iccProfileData = null;
         int iccProfileSize = 0;
-        if (metadata.IccProfile != null)
+        if (!this.skipMetadata && metadata.IccProfile != null)
         {
             this.infoHeaderType = BmpInfoHeaderType.WinVersion5;
             iccProfileData = metadata.IccProfile.ToByteArray();
@@ -229,7 +235,8 @@ internal sealed class BmpEncoderCore
         int hResolution = 0;
         int vResolution = 0;
 
-        if (metadata.ResolutionUnits != PixelResolutionUnit.AspectRatio
+        if (!this.skipMetadata
+            && metadata.ResolutionUnits != PixelResolutionUnit.AspectRatio
             && metadata.HorizontalResolution > 0
             && metadata.VerticalResolution > 0)
         {

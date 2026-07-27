@@ -4,6 +4,8 @@
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Cur;
 using SixLabors.ImageSharp.Formats.Ico;
+using SixLabors.ImageSharp.Formats.Icon;
+using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using static SixLabors.ImageSharp.Tests.TestImages.Cur;
@@ -120,5 +122,23 @@ public class IcoEncoderTests
                 }
             }
         });
+    }
+
+    [Fact]
+    public void PngEntry_PreservesExifProfile()
+    {
+        using Image<Rgba32> image = new(16, 16);
+        image.Metadata.ExifProfile = new ExifProfile();
+        image.Metadata.ExifProfile.SetValue(ExifTag.Software, "ImageSharp");
+        image.Frames.RootFrame.Metadata.GetIcoMetadata().Compression = IconFrameCompression.Png;
+
+        using MemoryStream stream = new();
+        image.Save(stream, Encoder);
+
+        stream.Position = 0;
+        using Image<Rgba32> decoded = Image.Load<Rgba32>(stream);
+
+        Assert.NotNull(decoded.Metadata.ExifProfile);
+        Assert.Equal(image.Metadata.ExifProfile.Values, decoded.Metadata.ExifProfile.Values);
     }
 }

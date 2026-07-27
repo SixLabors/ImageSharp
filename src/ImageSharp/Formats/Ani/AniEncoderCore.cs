@@ -54,10 +54,21 @@ internal sealed class AniEncoderCore
         AniFrameMetadata firstMetadata = image.Frames.RootFrame.Metadata.GetAniMetadata();
         AniFrameFormat firstFormat = firstMetadata.FrameFormat;
         bool bitmapResources = firstFormat is AniFrameFormat.Bmp;
+        bool writeSequence = imageMetadata.Flags.HasFlag(AniHeaderFlags.ContainsSequence);
         uint displayRate = firstMetadata.FrameDelay is 0 ? imageMetadata.DisplayRate : firstMetadata.FrameDelay;
         bool hasVariableRates = false;
         int groupCount = 0;
         int maxGroupSize = 1;
+
+        if (bitmapResources && imageMetadata.BitCount is not (0 or 1 or 2 or 4 or 8 or 16 or 24 or 32))
+        {
+            throw new ImageFormatException("ANI bitmap resources require a supported bit depth.");
+        }
+
+        if (bitmapResources && imageMetadata.Planes is not (0 or 1))
+        {
+            throw new ImageFormatException("ANI bitmap resources require exactly one color plane.");
+        }
 
         // This validation pass derives the fixed ANI header and largest icon directory without allocating a grouping graph.
         // Encoding repeats the linear grouping scan below, trading a cheap pass for zero per-group collections.
@@ -65,6 +76,12 @@ internal sealed class AniEncoderCore
         {
             AniFrameMetadata metadata = image.Frames[frameIndex].Metadata.GetAniMetadata();
             int groupSize = 1;
+
+            if (metadata.FrameFormat is not (AniFrameFormat.Ico or AniFrameFormat.Cur or AniFrameFormat.Bmp))
+            {
+                // FrameFormat is public metadata and therefore must be validated before any container bytes are written.
+                throw new ImageFormatException("ANI contains an unsupported embedded frame format.");
+            }
 
             // Positive sequence numbers group adjacent resolution variants; non-positive values form independent steps.
             if (metadata.SequenceNumber > 0)
@@ -118,9 +135,9 @@ internal sealed class AniEncoderCore
             Width = bitmapResources ? imageMetadata.Width is 0 ? (uint)image.Width : imageMetadata.Width : 0,
             Height = bitmapResources ? imageMetadata.Height is 0 ? (uint)image.Height : imageMetadata.Height : 0,
             BitCount = bitmapResources ? imageMetadata.BitCount is 0 ? 32U : imageMetadata.BitCount : 0,
-            Planes = bitmapResources ? imageMetadata.Planes is 0 ? 1U : imageMetadata.Planes : 0,
+            Planes = bitmapResources ? 1U : 0,
             DisplayRate = displayRate,
-            Flags = bitmapResources ? 0 : AniHeaderFlags.IsIcon
+            Flags = (bitmapResources ? 0 : AniHeaderFlags.IsIcon) | (writeSequence ? AniHeaderFlags.ContainsSequence : 0)
         };
 
         // One allocator-owned directory buffer is sliced and reused for every icon resource; its capacity is the largest group.
@@ -130,6 +147,11 @@ internal sealed class AniEncoderCore
         // ImageEncoder guarantees a seekable destination, allowing direct nested encoding and RIFF size backpatching.
         long riffSizePosition = this.BeginContainer(stream, AniConstants.RiffFourCc, AniConstants.AniFormTypeFourCc);
         this.WriteHeader(stream, header);
+
+        if (writeSequence)
+        {
+            this.WriteSequence(stream, groupCount);
+        }
 
         if (hasVariableRates)
         {
@@ -179,6 +201,27 @@ internal sealed class AniEncoderCore
         Span<byte> data = this.buffer;
         header.WriteTo(data);
         stream.Write(data);
+        this.EndChunk(stream, sizePosition);
+    }
+
+    /// <summary>
+    /// Writes an identity sequence table when the source metadata declares an explicit sequence.
+    /// </summary>
+    /// <param name="stream">The destination stream.</param>
+    /// <param name="stepCount">The number of animation steps.</param>
+    private void WriteSequence(Stream stream, int stepCount)
+    {
+        long sizePosition = this.BeginChunk(stream, "seq "u8);
+        Span<byte> value = this.buffer[..sizeof(uint)];
+
+        // Decoding expands source resource references into presentation order. Encoding writes those expanded steps as
+        // distinct resources, so an identity table preserves the explicit-sequence flag without changing playback.
+        for (uint i = 0; i < stepCount; i++)
+        {
+            BinaryPrimitives.WriteUInt32LittleEndian(value, i);
+            stream.Write(value);
+        }
+
         this.EndChunk(stream, sizePosition);
     }
 
@@ -291,6 +334,7 @@ internal sealed class AniEncoderCore
                     {
                         PixelSamplingStrategy = this.encoder.PixelSamplingStrategy,
                         Quantizer = this.encoder.Quantizer,
+                        SkipMetadata = this.encoder.SkipMetadata,
                         TransparentColorMode = this.encoder.TransparentColorMode
                     });
 
@@ -302,6 +346,7 @@ internal sealed class AniEncoderCore
                     {
                         PixelSamplingStrategy = this.encoder.PixelSamplingStrategy,
                         Quantizer = this.encoder.Quantizer,
+                        SkipMetadata = this.encoder.SkipMetadata,
                         TransparentColorMode = this.encoder.TransparentColorMode
                     });
 
@@ -318,6 +363,7 @@ internal sealed class AniEncoderCore
                         PixelSamplingStrategy = this.encoder.PixelSamplingStrategy,
                         Quantizer = this.encoder.Quantizer,
                         SkipFileHeader = true,
+                        SkipMetadata = this.encoder.SkipMetadata,
                         SupportTransparency = bitCount is 32,
                         TransparentColorMode = this.encoder.TransparentColorMode
                     };

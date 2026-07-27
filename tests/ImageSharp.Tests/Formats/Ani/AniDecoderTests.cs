@@ -9,7 +9,7 @@ using static SixLabors.ImageSharp.Tests.TestImages.Ani;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Ani;
 
-[Trait("format", "Ani")]
+[Trait("Format", "Ani")]
 [ValidateDisposedMemoryAllocations]
 public class AniDecoderTests
 {

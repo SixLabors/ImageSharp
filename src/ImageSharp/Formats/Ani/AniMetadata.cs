@@ -60,11 +60,11 @@ public class AniMetadata : IFormatMetadata<AniMetadata>
     public uint BitCount { get; set; }
 
     /// <summary>
-    /// Gets or sets the color-plane count declared by the ANI header.
+    /// Gets or sets the number of independently addressable color planes declared by the ANI header.
     /// </summary>
     /// <remarks>
-    /// Bitmap-based ANI files use one plane. Icon-based files commonly store zero because this header field is reserved
-    /// when the embedded resources are ICO or CUR data.
+    /// Bitmap-based ANI files use the Windows DIB plane value, which must be one. Icon-based ANI files use zero because
+    /// each embedded ICO or CUR entry describes its own pixel layout. No other values are defined by the format.
     /// </remarks>
     public uint Planes { get; set; }
 

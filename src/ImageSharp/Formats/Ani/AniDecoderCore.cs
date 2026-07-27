@@ -310,7 +310,7 @@ internal sealed class AniDecoderCore : ImageDecoderCore, IDisposable
         ReadExactly(stream, data, "ANI header");
         this.header = AniHeader.Parse(data);
 
-        if (this.header.BytesInHeader < AniHeader.Size)
+        if (this.header.BytesInHeader < AniHeader.Size || this.header.BytesInHeader > chunkSize)
         {
             throw new InvalidImageContentException("The ANI animation header declares an invalid size.");
         }
@@ -412,6 +412,12 @@ internal sealed class AniDecoderCore : ImageDecoderCore, IDisposable
         }
 
         int count = (int)Math.Min(chunkSize / sizeof(uint), this.Options.MaxFrames);
+        if (count is 0)
+        {
+            this.ThrowOrIgnoreNonStrictSegmentError($"The ANI {description} chunk does not contain any values.");
+            return;
+        }
+
         IMemoryOwner<uint> valuesOwner;
         bool replaceOwner;
 
@@ -532,70 +538,101 @@ internal sealed class AniDecoderCore : ImageDecoderCore, IDisposable
         bool hasSequence = this.sequence is not null;
         int decodedResourceCount = 0;
         int maxDecodedResources = (int)this.Options.MaxFrames;
-        uint lastRequiredResource = 0;
+        IMemoryOwner<uint>? sortedSequenceOwner = null;
 
-        if (hasSequence)
+        try
         {
-            if (sequence.IsEmpty)
+            ReadOnlySpan<uint> requiredResources = sequence;
+            if (hasSequence)
             {
-                return;
-            }
-
-            // Only resources referenced by the retained sequence steps can contribute to the bounded output frame set.
-            for (int i = 0; i < sequence.Length; i++)
-            {
-                lastRequiredResource = Math.Max(lastRequiredResource, sequence[i]);
-            }
-        }
-
-        foreach ((long start, long end) in this.frameLists)
-        {
-            stream.Position = start;
-
-            while (stream.Position + AniConstants.ChunkHeaderSize <= end)
-            {
-                AniRiffChunkHeader chunk = this.ReadChunkHeader(stream);
-                long dataStart = stream.Position;
-                long dataEnd = GetChunkDataEnd(stream, chunk.Size, end);
-
-                if ((AniFrameChunkType)chunk.FourCc is AniFrameChunkType.Icon)
+                bool isSorted = true;
+                for (int i = 1; i < sequence.Length; i++)
                 {
-                    int resourceIndex = resources.Count;
-
-                    // Sequence entries index the physical resource table, so ignored corrupt resources retain an empty slot.
-                    resources.Add(null);
-
-                    // Unsequenced resources are consumed in physical order; sequenced files need only the referenced indices.
-                    bool shouldDecode = !hasSequence || sequence.Contains((uint)resourceIndex);
-                    if (shouldDecode)
+                    if (sequence[i] < sequence[i - 1])
                     {
-                        this.ExecuteImageDataSegmentAction(() =>
-                        {
-                            // Child decoders may seek according to embedded offsets; the bounded view prevents crossing the icon chunk.
-                            frameStream.Reset(dataStart, chunk.Size);
-                            AniFrameFormat format = this.GetFrameFormat(frameStream);
-
-                            // Format probing consumes the directory prefix, while the selected child decoder requires the complete resource.
-                            frameStream.Position = 0;
-                            resources[resourceIndex] = (format, action(format, frameStream));
-                        });
-
-                        if (resources[resourceIndex] is not null)
-                        {
-                            decodedResourceCount++;
-                        }
-                    }
-
-                    // Every decoded resource contributes at least one output frame, while a sequence cannot reference later indices.
-                    if ((!hasSequence && decodedResourceCount == maxDecodedResources)
-                        || (hasSequence && (uint)resourceIndex == lastRequiredResource))
-                    {
-                        return;
+                        isSorted = false;
+                        break;
                     }
                 }
 
-                stream.Position = GetPaddedEnd(dataEnd, chunk.Size, end);
+                if (!isSorted)
+                {
+                    // Playback order can reference resources arbitrarily. A sorted allocator-owned copy turns the physical
+                    // resource scan into a linear merge instead of searching the complete sequence for every icon chunk.
+                    sortedSequenceOwner = this.Options.Configuration.MemoryAllocator.Allocate<uint>(sequence.Length);
+                    Span<uint> sortedSequence = sortedSequenceOwner.GetSpan();
+                    sequence.CopyTo(sortedSequence);
+                    sortedSequence.Sort();
+                    requiredResources = sortedSequence;
+                }
             }
+
+            int requiredResourceIndex = 0;
+            uint lastRequiredResource = hasSequence ? requiredResources[^1] : 0;
+
+            foreach ((long start, long end) in this.frameLists)
+            {
+                stream.Position = start;
+
+                while (stream.Position + AniConstants.ChunkHeaderSize <= end)
+                {
+                    AniRiffChunkHeader chunk = this.ReadChunkHeader(stream);
+                    long dataStart = stream.Position;
+                    long dataEnd = GetChunkDataEnd(stream, chunk.Size, end);
+
+                    if ((AniFrameChunkType)chunk.FourCc is AniFrameChunkType.Icon)
+                    {
+                        int resourceIndex = resources.Count;
+
+                        // Sequence entries index the physical resource table, so ignored corrupt resources retain an empty slot.
+                        resources.Add(null);
+
+                        if (hasSequence)
+                        {
+                            while (requiredResourceIndex < requiredResources.Length && requiredResources[requiredResourceIndex] < (uint)resourceIndex)
+                            {
+                                requiredResourceIndex++;
+                            }
+                        }
+
+                        // Unsequenced resources are consumed in physical order; sequenced files need only the referenced indices.
+                        bool shouldDecode = !hasSequence
+                            || (requiredResourceIndex < requiredResources.Length && requiredResources[requiredResourceIndex] == (uint)resourceIndex);
+
+                        if (shouldDecode)
+                        {
+                            this.ExecuteImageDataSegmentAction(() =>
+                            {
+                                // Child decoders may seek according to embedded offsets; the bounded view prevents crossing the icon chunk.
+                                frameStream.Reset(dataStart, chunk.Size);
+                                AniFrameFormat format = this.GetFrameFormat(frameStream);
+
+                                // Format probing consumes the directory prefix, while the selected child decoder requires the complete resource.
+                                frameStream.Position = 0;
+                                resources[resourceIndex] = (format, action(format, frameStream));
+                            });
+
+                            if (resources[resourceIndex] is not null)
+                            {
+                                decodedResourceCount++;
+                            }
+                        }
+
+                        // Every decoded resource contributes at least one output frame, while a sequence cannot reference later indices.
+                        if ((!hasSequence && decodedResourceCount == maxDecodedResources)
+                            || (hasSequence && (uint)resourceIndex == lastRequiredResource))
+                        {
+                            return;
+                        }
+                    }
+
+                    stream.Position = GetPaddedEnd(dataEnd, chunk.Size, end);
+                }
+            }
+        }
+        finally
+        {
+            sortedSequenceOwner?.Dispose();
         }
     }
 

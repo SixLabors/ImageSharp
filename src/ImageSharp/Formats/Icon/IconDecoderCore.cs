@@ -78,7 +78,8 @@ internal abstract class IconDecoderCore : ImageDecoderCore
                 throw new InvalidImageContentException("The icon file does not contain any decodable image entries.");
             }
 
-            ImageMetadata metadata = new();
+            // General profiles belong to the icon result even though the first successfully decoded child image is temporary.
+            ImageMetadata metadata = decodedEntries[0].Image.Metadata.DeepClone();
             BmpMetadata? bmpMetadata = null;
             PngMetadata? pngMetadata = null;
             ImageFrame<TPixel>[] frames = new ImageFrame<TPixel>[decodedCount];
@@ -93,7 +94,7 @@ internal abstract class IconDecoderCore : ImageDecoderCore
                     Image<TPixel> decoded = decodedEntries[i].Image;
                     ref IconDirEntry entry = ref this.entries[decodedEntries[i].EntryIndex];
                     ImageFrame<TPixel> source = decoded.Frames.RootFrameUnsafe;
-                    ImageFrame<TPixel> target = new(this.Options.Configuration, this.Dimensions);
+                    ImageFrame<TPixel> target = new(this.Options.Configuration, this.Dimensions, source.Metadata.DeepClone());
                     frames[i] = target;
                     initializedFrameCount++;
 
@@ -109,8 +110,6 @@ internal abstract class IconDecoderCore : ImageDecoderCore
                         {
                             pngMetadata = decoded.Metadata.GetPngMetadata();
                         }
-
-                        target.Metadata.SetFormatMetadata(PngFormat.Instance, source.Metadata.GetPngMetadata());
                     }
                     else
                     {
@@ -194,7 +193,21 @@ internal abstract class IconDecoderCore : ImageDecoderCore
 
                 bool isPng = flag.SequenceEqual(PngConstants.HeaderBytes);
                 ImageInfo frameInfo = this.GetDecoder(isPng).Identify(this.Options.Configuration, frameStream, cancellationToken);
-                ImageFrameMetadata frameMetadata = new();
+                ImageFrameMetadata frameMetadata = frameInfo.FrameMetadataCollection.Count is 0 ? new ImageFrameMetadata() : frameInfo.FrameMetadataCollection[0].DeepClone();
+
+                if (frameCount is 0)
+                {
+                    // The container has one image-level metadata object, so the first valid entry supplies general profiles and resolution.
+                    ImageMetadata sourceMetadata = frameInfo.Metadata;
+                    metadata.HorizontalResolution = sourceMetadata.HorizontalResolution;
+                    metadata.VerticalResolution = sourceMetadata.VerticalResolution;
+                    metadata.ResolutionUnits = sourceMetadata.ResolutionUnits;
+                    metadata.ExifProfile = sourceMetadata.ExifProfile?.DeepClone();
+                    metadata.IccProfile = sourceMetadata.IccProfile?.DeepClone();
+                    metadata.IptcProfile = sourceMetadata.IptcProfile?.DeepClone();
+                    metadata.XmpProfile = sourceMetadata.XmpProfile?.DeepClone();
+                    metadata.CicpProfile = sourceMetadata.CicpProfile?.DeepClone();
+                }
 
                 if (isPng)
                 {
@@ -202,8 +215,6 @@ internal abstract class IconDecoderCore : ImageDecoderCore
                     {
                         pngMetadata = frameInfo.Metadata.GetPngMetadata();
                     }
-
-                    frameMetadata.SetFormatMetadata(PngFormat.Instance, frameInfo.FrameMetadataCollection[0].GetPngMetadata());
                 }
                 else
                 {

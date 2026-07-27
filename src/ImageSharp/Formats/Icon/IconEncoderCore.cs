@@ -5,6 +5,7 @@ using System.Buffers;
 using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing.Processors.Quantization;
 
@@ -116,62 +117,90 @@ internal abstract class IconEncoderCore
                 height = frame.Height;
             }
 
-            long imageStart = stream.Position;
-            entries[i].Entry.ImageOffset = checked((uint)(imageStart - basePosition));
-
-            // ANI flattens variants onto a common canvas, while an icon entry can encode a smaller rectangle.
-            // Child encoders consume Image, so an isolated cropped image is required to prevent encoding the padded canvas.
-            using Image<TPixel> encodingFrame = new(image.Configuration, width, height);
-            for (int y = 0; y < height; y++)
+            if (width > frame.Width || height > frame.Height)
             {
-                frame.PixelBuffer.DangerousGetRowSpan(y)[..width].CopyTo(encodingFrame.GetRootFramePixelBuffer().DangerousGetRowSpan(y));
+                // EncodingWidth and EncodingHeight are public metadata, so reject a crop that exceeds the source frame here.
+                throw new ImageFormatException("The icon encoding dimensions exceed the source frame dimensions.");
             }
 
+            long imageStart = stream.Position;
+            entries[i].Entry.ImageOffset = checked((uint)(imageStart - basePosition));
             ref EncodingFrameMetadata encodingMetadata = ref entries[i];
+            Image<TPixel>? encodingImage = null;
 
-            // Compression and bitmap depth are per-entry, so the concrete encoder configuration must be selected per frame.
-            switch (encodingMetadata.Compression)
+            try
             {
-                case IconFrameCompression.Bmp:
-                {
-                    BmpEncoder bmpEncoder = new()
-                    {
-                        Quantizer = this.GetQuantizer(encodingMetadata, colorTable),
-                        ProcessedAlphaMask = true,
-                        UseDoubleHeight = true,
-                        SkipFileHeader = true,
-                        SupportTransparency = false,
-                        TransparentColorMode = this.encoder.TransparentColorMode,
-                        PixelSamplingStrategy = this.encoder.PixelSamplingStrategy,
-                        BitsPerPixel = encodingMetadata.BmpBitsPerPixel,
-                        SkipMetadata = this.encoder.SkipMetadata
-                    };
+                bool requiresCrop = width != frame.Width || height != frame.Height;
+                bool requiresIsolatedImage = encodingMetadata.Compression is IconFrameCompression.Png && image.Frames.Count > 1;
 
-                    BmpEncoderCore bmpEncoderCore = new(bmpEncoder, image.Configuration.MemoryAllocator);
-                    bmpEncoderCore.Encode(encodingFrame, stream, cancellationToken);
-                    break;
+                if (requiresCrop || requiresIsolatedImage)
+                {
+                    // PNG accepts Image rather than ImageFrame, and ANI variants may occupy only part of their common canvas.
+                    // Allocate only for those cases; full-sized BMP frames can be encoded directly from their existing storage.
+                    ImageMetadata? metadata = this.encoder.SkipMetadata || encodingMetadata.Compression is not IconFrameCompression.Png ? null : image.Metadata.DeepClone();
+                    encodingImage = new Image<TPixel>(image.Configuration, width, height, metadata);
+
+                    for (int y = 0; y < height; y++)
+                    {
+                        frame.PixelBuffer.DangerousGetRowSpan(y)[..width].CopyTo(encodingImage.GetRootFramePixelBuffer().DangerousGetRowSpan(y));
+                    }
+
+                    if (!this.encoder.SkipMetadata && encodingMetadata.Compression is IconFrameCompression.Png)
+                    {
+                        encodingImage.Frames.RootFrame.Metadata.SetFormatMetadata(PngFormat.Instance, frame.Metadata.GetPngMetadata().DeepClone());
+                    }
                 }
 
-                case IconFrameCompression.Png:
+                ImageFrame<TPixel> sourceFrame = encodingImage?.Frames.RootFrame ?? frame;
+
+                // Compression and bitmap depth are per-entry, so the concrete encoder configuration must be selected per frame.
+                switch (encodingMetadata.Compression)
                 {
-                    PngEncoder pngEncoder = new()
+                    case IconFrameCompression.Bmp:
                     {
-                        // Only 32bit Png supported.
-                        // https://devblogs.microsoft.com/oldnewthing/20101022-00/?p=12473
-                        BitDepth = PngBitDepth.Bit8,
-                        ColorType = PngColorType.RgbWithAlpha,
-                        TransparentColorMode = this.encoder.TransparentColorMode,
-                        CompressionLevel = PngCompressionLevel.BestCompression,
-                        SkipMetadata = this.encoder.SkipMetadata
-                    };
+                        BmpEncoder bmpEncoder = new()
+                        {
+                            Quantizer = this.GetQuantizer(encodingMetadata, colorTable),
+                            ProcessedAlphaMask = true,
+                            UseDoubleHeight = true,
+                            SkipFileHeader = true,
+                            SupportTransparency = false,
+                            TransparentColorMode = this.encoder.TransparentColorMode,
+                            PixelSamplingStrategy = this.encoder.PixelSamplingStrategy,
+                            BitsPerPixel = encodingMetadata.BmpBitsPerPixel,
+                            SkipMetadata = this.encoder.SkipMetadata
+                        };
 
-                    using PngEncoderCore pngEncoderCore = new(image.Configuration, pngEncoder);
-                    pngEncoderCore.Encode(encodingFrame, stream, cancellationToken);
-                    break;
+                        BmpEncoderCore bmpEncoderCore = new(bmpEncoder, image.Configuration.MemoryAllocator);
+                        bmpEncoderCore.Encode(sourceFrame, image.Metadata, stream, cancellationToken);
+                        break;
+                    }
+
+                    case IconFrameCompression.Png:
+                    {
+                        PngEncoder pngEncoder = new()
+                        {
+                            // Only 32bit Png supported.
+                            // https://devblogs.microsoft.com/oldnewthing/20101022-00/?p=12473
+                            BitDepth = PngBitDepth.Bit8,
+                            ColorType = PngColorType.RgbWithAlpha,
+                            TransparentColorMode = this.encoder.TransparentColorMode,
+                            CompressionLevel = PngCompressionLevel.BestCompression,
+                            SkipMetadata = this.encoder.SkipMetadata
+                        };
+
+                        using PngEncoderCore pngEncoderCore = new(image.Configuration, pngEncoder);
+                        pngEncoderCore.Encode(encodingImage ?? image, stream, cancellationToken);
+                        break;
+                    }
+
+                    default:
+                        throw new NotSupportedException();
                 }
-
-                default:
-                    throw new NotSupportedException();
+            }
+            finally
+            {
+                encodingImage?.Dispose();
             }
 
             encodingMetadata.Entry.BytesInRes = checked((uint)(stream.Position - imageStart));

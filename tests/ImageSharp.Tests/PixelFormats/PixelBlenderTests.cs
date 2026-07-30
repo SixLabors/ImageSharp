@@ -244,6 +244,102 @@ public class PixelBlenderTests
     }
 
     [Fact]
+    public void AssociatedBlendWithCoverageAppliesCoverageToColorAndAlpha() =>
+        FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            RunAssociatedBlendWithCoverageAppliesCoverageToColorAndAlpha,
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+
+    [Fact]
+    public void BlendWithCoverageMatchesAcrossAlphaRepresentations() =>
+        FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            RunBlendWithCoverageMatchesAcrossAlphaRepresentations,
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+
+    private static void RunAssociatedBlendWithCoverageAppliesCoverageToColorAndAlpha()
+    {
+        PixelBlender<Rgba32P> blender = PixelOperations<Rgba32P>.Instance.GetPixelBlender(PixelColorBlendingMode.Normal, PixelAlphaCompositionMode.SrcOver);
+        Rgba32P source = Rgba32P.FromRgba32(new Rgba32(37, 211, 89, 173));
+        Vector4 sourceScaled = source.ToScaledVector4();
+
+        // Seven pixels exercise one AVX-512 batch plus three tails, or three AVX2 batches plus one tail.
+        float[] coverage = [1F, .8F, .6F, .4F, .2F, 0F, .5F];
+        float[] amounts = [1F, 1F, 1F, 1F, 1F, 1F, 1F];
+        Rgba32P[] background = new Rgba32P[7];
+        Rgba32P[] sourceSpan = [source, source, source, source, source, source, source];
+        Rgba32P[] destination = new Rgba32P[7];
+        Rgba32P[] expected = new Rgba32P[7];
+        Vector4[] sourceSpanBuffer = new Vector4[destination.Length * 3];
+        Vector4[] constantSourceBuffer = new Vector4[destination.Length * 2];
+
+        // Compositing over transparency reduces source-over to the source itself, so coverage must
+        // scale the associated color and alpha lanes together: the premultiplied source times coverage.
+        // An unassociated coverage lerp instead premultiplies and unassociates around the mix, which
+        // cancels coverage out of the color lanes entirely at zero backdrop alpha.
+        for (int i = 0; i < expected.Length; i++)
+        {
+            expected[i] = Rgba32P.FromScaledVector4(sourceScaled * coverage[i]);
+        }
+
+        blender.BlendWithCoverage<Rgba32P>(Configuration.Default, destination, background, sourceSpan, 1F, coverage, sourceSpanBuffer);
+        Assert.Equal(expected, destination);
+
+        blender.BlendWithCoverage(Configuration.Default, destination, background, source, 1F, coverage, constantSourceBuffer);
+        Assert.Equal(expected, destination);
+
+        blender.BlendWithCoverage<Rgba32P>(Configuration.Default, destination, background, sourceSpan, amounts, coverage, sourceSpanBuffer);
+        Assert.Equal(expected, destination);
+
+        blender.BlendWithCoverage(Configuration.Default, destination, background, source, amounts, coverage, constantSourceBuffer);
+        Assert.Equal(expected, destination);
+    }
+
+    private static void RunBlendWithCoverageMatchesAcrossAlphaRepresentations()
+    {
+        PixelBlender<Rgba32> straightBlender = PixelOperations<Rgba32>.Instance.GetPixelBlender(PixelColorBlendingMode.Normal, PixelAlphaCompositionMode.SrcOver);
+        PixelBlender<Rgba32P> associatedBlender = PixelOperations<Rgba32P>.Instance.GetPixelBlender(PixelColorBlendingMode.Normal, PixelAlphaCompositionMode.SrcOver);
+
+        Rgba32[] background =
+        [
+            new(0, 0, 0, 0),
+            new(29, 83, 137, 107),
+            new(255, 255, 255, 255),
+            new(220, 80, 40, 160),
+            new(10, 20, 30, 40),
+            new(40, 200, 100, 192),
+            new(180, 160, 20, 128),
+        ];
+
+        Rgba32 source = new(37, 211, 89, 173);
+        float[] coverage = [1F, .8F, .6F, .4F, .2F, 0F, .5F];
+
+        Rgba32[] straightDestination = new Rgba32[background.Length];
+        Rgba32P[] associatedDestination = new Rgba32P[background.Length];
+        Rgba32P[] associatedBackground = new Rgba32P[background.Length];
+        Vector4[] workingBuffer = new Vector4[background.Length * 2];
+
+        for (int i = 0; i < background.Length; i++)
+        {
+            associatedBackground[i] = Rgba32P.FromRgba32(background[i]);
+        }
+
+        straightBlender.BlendWithCoverage(Configuration.Default, straightDestination, background, source, 1F, coverage, workingBuffer);
+        associatedBlender.BlendWithCoverage(Configuration.Default, associatedDestination, associatedBackground, Rgba32P.FromRgba32(source), 1F, coverage, workingBuffer);
+
+        // Both destinations must describe the same composite: canonical associated bytes may differ
+        // by one quantization step per channel while alpha is representation-independent.
+        for (int i = 0; i < background.Length; i++)
+        {
+            Rgba32P expected = Rgba32P.FromRgba32(straightDestination[i]);
+            Rgba32P actual = associatedDestination[i];
+
+            Assert.True(Math.Abs(expected.R - actual.R) <= 1, $"[{i}] expected {expected}, actual {actual}");
+            Assert.True(Math.Abs(expected.G - actual.G) <= 1, $"[{i}] expected {expected}, actual {actual}");
+            Assert.True(Math.Abs(expected.B - actual.B) <= 1, $"[{i}] expected {expected}, actual {actual}");
+            Assert.Equal(expected.A, actual.A);
+        }
+    }
+
+    [Fact]
     public void Blend_WithConstantSourceAndSingleAmount()
     {
         PixelBlender<Rgba32> blender = DefaultPixelBlenders<Rgba32>.NormalSrcOver;

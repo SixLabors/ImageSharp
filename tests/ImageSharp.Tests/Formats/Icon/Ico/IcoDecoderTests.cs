@@ -341,6 +341,32 @@ public class IcoDecoderTests
         Assert.Equal(entryCount - 1, info.FrameMetadataCollection.Count);
     }
 
+    /// <summary>
+    /// Verifies that a non-empty resource cannot begin at the exclusive end of its containing icon stream.
+    /// </summary>
+    [Fact]
+    public void EntryAtEndOfStream_ThrowsInvalidResourceRange()
+    {
+        byte[] data = TestFile.Create(Bpp32Size1x1).Bytes.ToArray();
+        Assert.Equal(1, BinaryPrimitives.ReadUInt16LittleEndian(data.AsSpan(4)));
+
+        // ImageOffset is the final DWORD in the sole directory entry. The stream length is an exclusive boundary,
+        // so accepting this value would create an empty child stream despite the entry declaring non-empty data.
+        BinaryPrimitives.WriteUInt32LittleEndian(data.AsSpan(IconDir.Size + 12), (uint)data.Length);
+
+        using MemoryStream decodeStream = new(data, false);
+        InvalidImageContentException decodeException = Assert.Throws<InvalidImageContentException>(
+            () => IcoDecoder.Instance.Decode<Rgba32>(DecoderOptions.Default, decodeStream));
+
+        Assert.Equal("The icon directory contains an invalid image resource range.", decodeException.Message);
+
+        using MemoryStream identifyStream = new(data, false);
+        InvalidImageContentException identifyException = Assert.Throws<InvalidImageContentException>(
+            () => IcoDecoder.Instance.Identify(DecoderOptions.Default, identifyStream));
+
+        Assert.Equal("The icon directory contains an invalid image resource range.", identifyException.Message);
+    }
+
     [Fact]
     public void IcoFrameMetadata_ScalesZeroEncodingDimensionsFrom256()
     {

@@ -344,11 +344,11 @@ internal abstract class IconDecoderCore : ImageDecoderCore
         long available = stream.Length - basePosition;
         uint directorySize = (uint)(IconDir.Size + (this.fileHeader.Count * IconDirEntry.Size));
 
-        // Offsets are relative to the icon resource and must not point into its directory or beyond its containing stream.
+        // Offsets are relative to the icon resource and must not point into its directory or at or beyond its containing stream.
         if (entry.Reserved is not 0
             || entry.BytesInRes is 0
             || entry.ImageOffset < directorySize
-            || entry.ImageOffset > available)
+            || entry.ImageOffset >= available)
         {
             throw new InvalidImageContentException("The icon directory contains an invalid image resource range.");
         }

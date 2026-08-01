@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
@@ -19,7 +18,7 @@ internal sealed class JxlAcStrategyRow
         {
             ReadOnlySpan<byte> span = this.row.Span;
 
-            Debug.Assert(x * 8 < span.Length, "Too many bytes of memory were requested");
+            DebugGuard.MustBeLessThan(x * 8, span.Length, "x overflows");
 
             ref byte first = ref MemoryMarshal.GetReference(span);
             JxlAcStrategyType strategy = (JxlAcStrategyType)(Unsafe.Add(ref Unsafe.As<byte, int>(ref first), x) >> 1);

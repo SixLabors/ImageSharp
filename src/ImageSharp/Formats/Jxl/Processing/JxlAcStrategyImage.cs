@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Diagnostics;
 using SixLabors.ImageSharp.Formats.Jxl.Memory.ImageTypes;
 
 namespace SixLabors.ImageSharp.Formats.Jxl.Processing;
@@ -81,9 +80,7 @@ internal sealed class JxlAcStrategyImage : IDisposable
 
                 if (check && rowSpan[pos] != Invalid)
                 {
-                    Debug.Fail("Invalid AC strategy. Blocks overlap.");
-
-                    return false;
+                    throw new InvalidOperationException("Invalid AC strategy. Blocks overlap.");
                 }
 
                 rowSpan[pos] = (byte)(rawTypeTimes2 | ((iy | ix) == 0 ? 1 : 0));
@@ -95,12 +92,13 @@ internal sealed class JxlAcStrategyImage : IDisposable
 
     public bool Set(int x, int y, JxlAcStrategyType type)
     {
-#if DEBUG
         JxlAcStrategy strategy = new(type);
 
-        Debug.Assert(y + strategy.CoveredBlocksY <= this.layers!.YSize, "Invalid range");
-        Debug.Assert(x + strategy.CoveredBlocksX <= this.layers.XSize, "Invalid range");
-#endif
+        if (y + strategy.CoveredBlocksX > this.layers!.YSize ||
+            x + strategy.CoveredBlocksX > this.layers.XSize)
+        {
+            throw new InvalidOperationException("Invalid range");
+        }
 
         return this.SetNoBoundsChecks(x, y, type, check: false);
     }

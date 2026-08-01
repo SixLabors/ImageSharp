@@ -1,10 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Diagnostics;
 using System.Runtime.CompilerServices;
-
-#pragma warning disable SA1405 // Debug.Assert should provide message text
 
 namespace SixLabors.ImageSharp.Formats.Jxl.Processing;
 
@@ -38,15 +35,20 @@ internal static class JxlAcContext
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static int ZeroDensityContext(int nonZeroesLeft, int k, int coveredBlocks, int log2CoveredBlocks, int prev)
     {
-        Debug.Assert((1 << log2CoveredBlocks) == coveredBlocks);
+        DebugGuard.IsTrue((1 << log2CoveredBlocks) == coveredBlocks, "log2CoveredBlocks must be equal to Log2(coveredBlocks)");
 
         nonZeroesLeft = (nonZeroesLeft + coveredBlocks - 1) >> log2CoveredBlocks;
         k >>= log2CoveredBlocks;
 
-        Debug.Assert(k > 0);
-        Debug.Assert(k < 64);
-        Debug.Assert(nonZeroesLeft > 0);
-        Debug.Assert(nonZeroesLeft < 64);
+        if (k is < 0 or >= 64)
+        {
+            throw new InvalidOperationException("k must be within range of 0..63 inclusive");
+        }
+
+        if (nonZeroesLeft is <= 0 or >= 64)
+        {
+            throw new InvalidOperationException("nonZeroesLeft must be within range of 1..63 inclusive");
+        }
 
         return ((CoefficientNumNonzeroContext[nonZeroesLeft] + CoefficientFrequencyContext[k]) * 2) + prev;
     }

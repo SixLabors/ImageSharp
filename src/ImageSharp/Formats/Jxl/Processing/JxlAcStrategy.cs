@@ -1,12 +1,9 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using static SixLabors.ImageSharp.Formats.Jxl.Processing.JxlFrameDimensions;
-
-#pragma warning disable SA1405 // Debug.Assert should provide message text
 
 namespace SixLabors.ImageSharp.Formats.Jxl.Processing;
 
@@ -37,8 +34,6 @@ internal struct JxlAcStrategy
     {
         this.Strategy = strategy;
         this.isFirst = isFirst;
-
-        Debug.Assert(this.IsMultiblock);
     }
 
     public JxlAcStrategy(JxlAcStrategyType strategy)

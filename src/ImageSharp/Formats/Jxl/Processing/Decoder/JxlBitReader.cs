@@ -2,7 +2,6 @@
 // Licensed under the Six Labors Split License.
 
 using System.Buffers.Binary;
-using System.Diagnostics;
 
 namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Decoder;
 
@@ -72,7 +71,7 @@ internal sealed class JxlBitReader(ReadOnlyMemory<byte> bytes)
 
     private ulong ReadBits64Core(uint n, bool peek = false)
     {
-        Debug.Assert(n <= 64, "Too many bits to pack into ulong");
+        DebugGuard.MustBeLessThanOrEqualTo(n, 64u, nameof(n));
         this.MaybeRefill();
 
         if (this.IsEndOfStream)
@@ -117,7 +116,7 @@ internal sealed class JxlBitReader(ReadOnlyMemory<byte> bytes)
 
     private uint ReadBits32Core(uint n, bool peek = false)
     {
-        Debug.Assert(n <= 32, "Too many bits to pack into uint");
+        DebugGuard.MustBeLessThanOrEqualTo(n, 32u, nameof(n));
         this.MaybeRefill();
 
         if (this.IsEndOfStream)

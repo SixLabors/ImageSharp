@@ -2,7 +2,6 @@
 // Licensed under the Six Labors Split License.
 
 using System.Buffers;
-using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
@@ -76,8 +75,8 @@ internal class JxlPlaneBase : IDisposable
             return false;
         }
 
-        Debug.Assert(x <= this.OriginalXSize, "ShrinkTo cannot expand memory");
-        Debug.Assert(y <= this.OriginalYSize, "ShrinkTo cannot expand memory");
+        DebugGuard.MustBeLessThanOrEqualTo(x, this.OriginalXSize, nameof(x));
+        DebugGuard.MustBeLessThanOrEqualTo(y, this.OriginalYSize, nameof(y));
 
         this.XSize = x;
         this.YSize = y;
@@ -88,10 +87,9 @@ internal class JxlPlaneBase : IDisposable
     protected Span<T> GetRowBase<T>(int y)
         where T : unmanaged
     {
-        Debug.Assert(y < this.YSize, "Attempted to access out-of-bounds Y coordinate");
+        DebugGuard.MustBeLessThan(y, this.YSize, nameof(y));
 
         Span<byte> row = this.Bytes.Span[(y * this.BytesPerRow)..];
-
         return MemoryMarshal.Cast<byte, T>(row);
     }
 

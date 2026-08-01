@@ -2,7 +2,6 @@
 // Licensed under the Six Labors Split License.
 
 using System.Buffers;
-using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
 namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Splines;
@@ -139,9 +138,7 @@ internal sealed class JxlQuantizedSpline : IDisposable
 
         if (!this.ValidateSplinePointPos(px, py))
         {
-            Debug.Fail("Spline points out of range");
-
-            return false;
+            throw new InvalidOperationException("Spline points out of range");
         }
 
         int currentX = (int)px;
@@ -165,18 +162,15 @@ internal sealed class JxlQuantizedSpline : IDisposable
             currentDx += point.First;
             currentDy += point.Second;
             manhattanDistance = Math.Abs(currentDx) + Math.Abs(currentDy);
+
             if (manhattanDistance > areaLimit)
             {
-                Debug.Fail("Manhattan distance is too large");
-
-                return false;
+                throw new InvalidOperationException("Manhattan distance is too large");
             }
 
             if (!ValidateSplinePointPos(currentDx, currentDy))
             {
-                Debug.Fail("Delta points out of range");
-
-                return false;
+                throw new InvalidOperationException("Delta points out of range");
             }
 
             currentX += currentDx;
@@ -184,9 +178,7 @@ internal sealed class JxlQuantizedSpline : IDisposable
 
             if (!ValidateSplinePointPos(currentX, currentY))
             {
-                Debug.Fail("Current points out of range");
-
-                return false;
+                throw new InvalidOperationException("Current points out of range");
             }
 
             controlPoints[i + 1] = new(currentX, currentY);
@@ -239,9 +231,7 @@ internal sealed class JxlQuantizedSpline : IDisposable
         totalEstimatedAreaReached = widthEstimate * manhattanDistance;
         if (totalEstimatedAreaReached > areaLimit)
         {
-            Debug.Fail("Total estimated area is too large");
-
-            return false;
+            throw new InvalidOperationException("Total estimated area is too large");
         }
 
         return true;
@@ -258,18 +248,14 @@ internal sealed class JxlQuantizedSpline : IDisposable
         int numControlPoints = decoder.ReadHybridUnsignedInteger(NumControlPointsContext, br, contextMap);
         if (numControlPoints > maxControlPoints)
         {
-            Debug.Fail("Too many control points");
-
-            return false;
+            throw new InvalidOperationException("Too many control points");
         }
 
         totalControlPoints += numControlPoints;
 
         if (totalControlPoints >= maxControlPoints)
         {
-            Debug.Fail("Too many control points");
-
-            return false;
+            throw new InvalidOperationException("Too many control points");
         }
 
         this.ResizeControlPoints(configuration, numControlPoints);
@@ -289,9 +275,7 @@ internal sealed class JxlQuantizedSpline : IDisposable
             if (controlPoint.First >= deltaLimit || controlPoint.First <= -deltaLimit ||
                 controlPoint.Second >= deltaLimit || controlPoint.Second <= -deltaLimit)
             {
-                Debug.Fail("Spline delta-delta is out of bounds");
-
-                return false;
+                throw new InvalidOperationException("Spline delta-delta is out of bounds");
             }
         }
 
@@ -319,9 +303,7 @@ internal sealed class JxlQuantizedSpline : IDisposable
                 dct[i] = UnpackSigned(decoder.ReadHybridUnsignedInteger(DctContext, br, contextMap));
                 if (dct[i] == invalidCoefficient)
                 {
-                    Debug.Fail("The DCT coefficient is invalid");
-
-                    return false;
+                    throw new InvalidOperationException("The DCT coefficient is invalid");
                 }
             }
 

@@ -4,7 +4,7 @@
 using System.Runtime.InteropServices;
 
 #pragma warning disable IDE0044 // Add readonly modifier
-#pragma warning disable IDE0051 // Remove unused private members
+#pragma warning disable IDE0052 // Remove unread private members
 
 namespace SixLabors.ImageSharp.Formats.Jxl.Processing;
 

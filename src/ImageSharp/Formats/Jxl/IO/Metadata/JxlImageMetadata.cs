@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Diagnostics;
 using SixLabors.ImageSharp.Formats.Jxl.Cms;
 using SixLabors.ImageSharp.Formats.Jxl.Fields;
 
@@ -49,7 +48,10 @@ internal sealed class JxlImageMetadata : IJxlFields
         {
             float intensityTarget = this.ToneMapping?.IntensityTarget ?? 0f;
 
-            Debug.Assert(intensityTarget != 0f, "Intensity target should be present");
+            if (intensityTarget == 0f)
+            {
+                throw new InvalidOperationException("Intensity target should be present");
+            }
 
             return intensityTarget;
         }

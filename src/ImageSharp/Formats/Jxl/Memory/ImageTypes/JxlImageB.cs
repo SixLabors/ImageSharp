@@ -1,8 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Diagnostics;
-
 namespace SixLabors.ImageSharp.Formats.Jxl.Memory.ImageTypes;
 
 /// <summary>
@@ -25,7 +23,7 @@ internal sealed class JxlImageB : JxlPlane<byte>
 
     public Memory<byte> GetRowBytesMemory(int y)
     {
-        Debug.Assert(y < this.YSize, "Attempted to access out-of-bounds Y coordinate");
+        DebugGuard.MustBeLessThan(y, this.YSize, nameof(y));
 
         Memory<byte> row = this.Bytes[(y * this.BytesPerRow)..];
 

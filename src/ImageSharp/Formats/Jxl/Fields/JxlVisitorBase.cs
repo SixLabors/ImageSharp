@@ -1,10 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Diagnostics;
-
-#pragma warning disable SA1405 // Debug.Assert should provide message text
-
 namespace SixLabors.ImageSharp.Formats.Jxl.Fields;
 
 internal class JxlVisitorBase : JxlVisitor
@@ -26,14 +22,18 @@ internal class JxlVisitorBase : JxlVisitor
 
         if (visited)
         {
-            // TODO: use DebugGuard
-            Debug.Assert(!this.extensionStates.IsBegun || this.extensionStates.IsEnded);
+            if (!(!this.extensionStates.IsBegun || this.extensionStates.IsEnded))
+            {
+                throw new InvalidOperationException("Invalid extension state");
+            }
         }
 
         this.extensionStates.Pop();
 
-        // TODO: use DebugGuard
-        Debug.Assert(this.depth != 0);
+        if (this.depth == 0)
+        {
+            throw new InvalidOperationException("Depth must not be 0");
+        }
         this.depth--;
 
         return visited;
@@ -47,8 +47,10 @@ internal class JxlVisitorBase : JxlVisitor
             return false;
         }
 
-        // TODO: use DebugGuard
-        Debug.Assert(bits <= 1u);
+        if (bits > 1u)
+        {
+            throw new InvalidOperationException("Invalid bits");
+        }
 
         value = bits == 1u;
 

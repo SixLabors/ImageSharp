@@ -1,7 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using SixLabors.ImageSharp.Formats.Jxl.IO;
+using SixLabors.ImageSharp.Formats.Jxl.Processing.Decoder;
 
 namespace SixLabors.ImageSharp.Formats.Jxl.Fields;
 

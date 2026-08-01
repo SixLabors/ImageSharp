@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Diagnostics;
 using SixLabors.ImageSharp.Formats.Jxl.Fields;
 
 namespace SixLabors.ImageSharp.Formats.Jxl.IO.Entropy;
@@ -15,7 +14,10 @@ internal sealed class JxlAnsHybridUIntConfiguration : IJxlFields
         this.MsbInToken = msbInToken;
         this.LsbInToken = lsbInToken;
 
-        Debug.Assert(splitExponent >= msbInToken + lsbInToken, "Split exponent should be < msbInToken + lsbInToken");
+        if (splitExponent < msbInToken + lsbInToken)
+        {
+            throw new InvalidOperationException("Split exponent should be < msbInToken + lsbInToken");
+        }
     }
 
     public uint SplitExponent { get; set; }

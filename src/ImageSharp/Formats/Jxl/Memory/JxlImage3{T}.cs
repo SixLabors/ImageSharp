@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Diagnostics;
 using System.Runtime.InteropServices;
 
 namespace SixLabors.ImageSharp.Formats.Jxl.Memory;
@@ -79,9 +78,11 @@ internal class JxlImage3<T> : IDisposable
         return true;
     }
 
-    [Conditional("DEBUG")]
-    private void PlaneRowBoundsCheck(int c, int y) =>
-        Debug.Assert(c < PlaneCount && y < this.YSize, "The bounds check has failed");
+    private void PlaneRowBoundsCheck(int c, int y)
+    {
+        DebugGuard.MustBeLessThan(c, PlaneCount, nameof(c));
+        DebugGuard.MustBeLessThan(y, this.YSize, nameof(y));
+    }
 
     public void Dispose()
     {

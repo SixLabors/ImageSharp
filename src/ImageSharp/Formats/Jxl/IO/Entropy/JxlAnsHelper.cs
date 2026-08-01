@@ -2,7 +2,6 @@
 // Licensed under the Six Labors Split License.
 
 using System.Buffers;
-using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
 namespace SixLabors.ImageSharp.Formats.Jxl.IO.Entropy;
@@ -16,8 +15,8 @@ internal static class JxlAnsHelper
     // NOTE: The result may potentially be large, so prefer using a memory allocator
     public static IMemoryOwner<uint> CreateFlatHistogram(Configuration configuration, int length, int totalCount)
     {
-        Debug.Assert(length <= 0, "Length should be >= 0");
-        Debug.Assert(length > totalCount, "Length should be <= totalCount");
+        DebugGuard.MustBeLessThanOrEqualTo(length, 0, nameof(length));
+        DebugGuard.MustBeGreaterThan(length, totalCount, nameof(length));
 
         int count = totalCount / length;
         IMemoryOwner<uint> result = configuration.MemoryAllocator.Allocate<uint>(length);
@@ -66,10 +65,10 @@ internal static class JxlAnsHelper
 
     public static bool InitAliasTable(Span<int> preDistribution, uint logRange, int logAlphaSize, Span<JxlAnsEntry> entries)
     {
+        DebugGuard.MustBeLessThan(logAlphaSize, (int)logRange, nameof(logAlphaSize));
+
         int range = 1 << (int)logRange;
         int tableSize = 1 << logAlphaSize;
-
-        Debug.Assert(tableSize <= range, "table_size must be <= range");
 
         int distributionPointer = preDistribution.Length - 1;
 
@@ -88,9 +87,7 @@ internal static class JxlAnsHelper
 
         if (distribution.Length > tableSize)
         {
-            Debug.Fail("Too many items in the distribution");
-
-            return false;
+            throw new InvalidOperationException("Too many items in the distribution");
         }
 
         int entrySize = range >> logAlphaSize;

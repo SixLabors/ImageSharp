@@ -2,8 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Buffers;
-using System.Diagnostics;
-using SixLabors.ImageSharp.Formats.Jxl.IO;
+using SixLabors.ImageSharp.Formats.Jxl.IO.Entropy;
 
 namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Decoder;
 
@@ -100,9 +99,8 @@ internal static class JxlAnsReader
             {
                 if (symbols[0] == symbols[1])
                 {
-                    Debug.Fail("Corrupt data");
                     counts.Dispose();
-                    return null;
+                    throw new InvalidOperationException("The data is corrupt");
                 }
 
                 countsSpan[(int)symbols[0]] = reader.ReadBits32((uint)precisionBits);
@@ -142,9 +140,7 @@ internal static class JxlAnsReader
 
             if (shift > JxlAnsConstants.AnsLogTableSize + 1)
             {
-                Debug.Fail("Invalid shift");
-
-                return null;
+                throw new InvalidOperationException("Invalid shift");
             }
 
             uint length = DecodeVariableLengthUint8(reader) + 3u;
@@ -192,16 +188,14 @@ internal static class JxlAnsReader
 
             if (omitPos < 0)
             {
-                Debug.Fail("The histogram is corrupt or invalid.");
                 counts.Dispose();
-                return null;
+                throw new InvalidOperationException("The histogram is corrupt or invalid.");
             }
 
             if (omitPos + 1 < length && logCounts[omitPos + 1] == JxlAnsConstants.AnsLogTableSize)
             {
-                Debug.Fail("The histogram is corrupt or invalid.");
                 counts.Dispose();
-                return null;
+                throw new InvalidOperationException("The histogram is corrupt or invalid.");
             }
 
             int previous = 0;
@@ -246,9 +240,8 @@ internal static class JxlAnsReader
 
             if (countsSpan[omitPos] <= 0)
             {
-                Debug.Fail("The histogram count is incorrect.");
                 counts.Dispose();
-                return null;
+                throw new InvalidOperationException("The histogram count is incorrect.");
             }
         }
 

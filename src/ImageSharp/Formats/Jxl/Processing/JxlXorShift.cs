@@ -7,6 +7,8 @@ namespace SixLabors.ImageSharp.Formats.Jxl.Processing;
 
 internal sealed class JxlXorShift
 {
+    public const int Generators = 8;
+
     private readonly ulong[] s0 = new ulong[8];
     private readonly ulong[] s1 = new ulong[8];
 

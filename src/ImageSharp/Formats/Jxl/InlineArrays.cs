@@ -14,6 +14,15 @@ internal struct InlineArray3<T>
 }
 
 /// <summary>
+/// Used by JxlOpsinParameters
+/// </summary>
+[InlineArray(36)]
+internal struct InlineArray36<T>
+{
+    private T first;
+}
+
+/// <summary>
 /// Used by JxlCustomTransformData
 /// </summary>
 [InlineArray(15)]

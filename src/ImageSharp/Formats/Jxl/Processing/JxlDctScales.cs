@@ -5,7 +5,7 @@ namespace SixLabors.ImageSharp.Formats.Jxl.Processing;
 
 /// <summary>
 /// Read-only cosine lookups for the Discrete Cosine Transform (DCT),
-/// a mathematical function used for quantization.
+/// a mathematical function used for quantization and coefficient reordering.
 /// </summary>
 internal static class JxlDctScales
 {

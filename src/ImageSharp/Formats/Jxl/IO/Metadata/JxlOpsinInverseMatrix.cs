@@ -12,9 +12,13 @@ internal sealed class JxlOpsinInverseMatrix : IJxlFields
 
     public JxlMatrix3x3F InverseMatrix { get; set; }
 
-    public InlineArray3<float> OpsinBiases { get; set; }
+    // Prefer arrays so we can set values like this:
+    //      JxlOpsinInverseMatrix m = ...;
+    //      m.OpsinBiases[0] = 1f;
+    // An InlineArray can't do that.
+    public float[] OpsinBiases { get; set; } = new float[3];
 
-    public InlineArray4<float> QuantBiases { get; set; }
+    public float[] QuantBiases { get; set; } = new float[4];
 
     public bool Visit(JxlVisitor visitor) => throw new NotImplementedException();
 }

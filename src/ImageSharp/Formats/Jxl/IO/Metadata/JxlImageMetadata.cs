@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Diagnostics;
+using SixLabors.ImageSharp.Formats.Jxl.Cms;
 using SixLabors.ImageSharp.Formats.Jxl.Fields;
 
 namespace SixLabors.ImageSharp.Formats.Jxl.IO.Metadata;
@@ -122,6 +123,27 @@ internal sealed class JxlImageMetadata : IJxlFields
         }
 
         this.Modular16BitBufferSufficient = bits <= 12;
+    }
+
+    public void SetIntensityTarget()
+    {
+        JxlCustomTransferFunction? tf = this.ColorEncoding?.TransferFunction;
+
+        if (tf is not null)
+        {
+            if (tf.Value.IsPq)
+            {
+                this.SetIntensityTarget(10000);
+            }
+            else if (tf.Value.IsHlg)
+            {
+                this.SetIntensityTarget(1000);
+            }
+            else
+            {
+                this.SetIntensityTarget(DefaultIntensityTarget);
+            }
+        }
     }
 
     public bool Visit(JxlVisitor visitor) => throw new NotImplementedException();

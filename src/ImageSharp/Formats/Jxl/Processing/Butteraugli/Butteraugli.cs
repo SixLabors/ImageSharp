@@ -36,10 +36,10 @@ internal static class Butteraugli
 
     private const float IntensityTargetNormalizationHack = 0.79079917404f;
 
-    private static readonly float InternalGoodQualityThreshold =
+    private const float InternalGoodQualityThreshold =
         17.83f * IntensityTargetNormalizationHack;
 
-    private static readonly float GlobalScale =
+    private const float GlobalScale =
         1.0f / InternalGoodQualityThreshold;
 
     public static ReadOnlySpan<double> Wmul =>

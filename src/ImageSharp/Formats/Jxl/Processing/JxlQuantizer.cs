@@ -51,12 +51,12 @@ internal sealed class JxlQuantizer
     /// <summary>
     /// Represents the multipliers for the DC coefficients.
     /// </summary>
-    private readonly float[] mulDc = new float[4];
+    private readonly InlineArray4<float> mulDc;
 
     /// <summary>
     /// Represents the inverse multipliers for the DC coefficients.
     /// </summary>
-    private readonly float[] inverseMulDc = new float[4];
+    private readonly InlineArray4<float> inverseMulDc;
 
     /// <summary>
     /// Global scale
@@ -86,7 +86,7 @@ internal sealed class JxlQuantizer
     /// <summary>
     /// The zero bias.
     /// </summary>
-    private readonly float[] zeroBias = new float[3];
+    private readonly InlineArray3<float> zeroBias;
 
     /// <summary>
     /// The dequant matrices.

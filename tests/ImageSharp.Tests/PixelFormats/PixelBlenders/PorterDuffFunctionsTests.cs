@@ -497,7 +497,8 @@ public class PorterDuffFunctionsTests
     }
 
     /// <summary>
-    /// Creates serializable vector test data without relying on the legacy convenience constructor's channel assignments.
+    /// Creates serializable vector test data without relying on <see cref="TestVector4.TestVector4(float, float, float, float)"/>,
+    /// which assigns <c>Z</c> from <c>X</c> and can hide channel-specific regressions.
     /// </summary>
     /// <param name="x">The X component.</param>
     /// <param name="y">The Y component.</param>

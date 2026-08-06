@@ -7,11 +7,10 @@ namespace SixLabors.ImageSharp;
 
 /// <summary>
 /// Provides configuration for controlling how graphics operations are rendered,
-/// including antialiasing, pixel blending, alpha composition, and coverage thresholding.
+/// including antialiasing, pixel blending, and alpha composition.
 /// </summary>
 public class GraphicsOptions : IDeepCloneable<GraphicsOptions>
 {
-    private float antialiasThreshold = .5F;
     private float blendPercentage = 1F;
 
     /// <summary>
@@ -25,7 +24,6 @@ public class GraphicsOptions : IDeepCloneable<GraphicsOptions>
     {
         this.AlphaCompositionMode = source.AlphaCompositionMode;
         this.Antialias = source.Antialias;
-        this.AntialiasThreshold = source.AntialiasThreshold;
         this.BlendPercentage = source.BlendPercentage;
         this.ColorBlendingMode = source.ColorBlendingMode;
     }
@@ -33,28 +31,9 @@ public class GraphicsOptions : IDeepCloneable<GraphicsOptions>
     /// <summary>
     /// Gets or sets a value indicating whether antialiasing should be applied.
     /// When <see langword="true"/>, edges are rendered with smooth sub-pixel coverage.
-    /// When <see langword="false"/>, coverage is snapped to binary (fully opaque or fully transparent)
-    /// using <see cref="AntialiasThreshold"/> as the cutoff.
     /// Defaults to <see langword="true"/>.
     /// </summary>
     public bool Antialias { get; set; } = true;
-
-    /// <summary>
-    /// Gets or sets the coverage threshold used when <see cref="Antialias"/> is <see langword="false"/>.
-    /// Pixels with antialiased coverage above this value are rendered as fully opaque;
-    /// pixels below are discarded. Valid range is 0 to 1. Lower values preserve more
-    /// thin features at small sizes. Defaults to <c>0.5F</c>.
-    /// </summary>
-    public float AntialiasThreshold
-    {
-        get => this.antialiasThreshold;
-
-        set
-        {
-            Guard.MustBeBetweenOrEqualTo(value, 0F, 1F, nameof(this.AntialiasThreshold));
-            this.antialiasThreshold = value;
-        }
-    }
 
     /// <summary>
     /// Gets or sets the blending percentage applied to the drawing operation.

@@ -8,7 +8,6 @@ public class GraphicsOptionsComparer : IEqualityComparer<GraphicsOptions>
     public bool Equals(GraphicsOptions x, GraphicsOptions y)
         => x.AlphaCompositionMode == y.AlphaCompositionMode
         && x.Antialias == y.Antialias
-        && x.AntialiasThreshold == y.AntialiasThreshold
         && x.BlendPercentage == y.BlendPercentage
         && x.ColorBlendingMode == y.ColorBlendingMode;
 

@@ -2,7 +2,6 @@
 // Licensed under the Six Labors Split License.
 
 using System.Runtime.CompilerServices;
-using System.Security.Principal;
 using SixLabors.ImageSharp.Formats.Jxl.IO.Entropy;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Decoder;
 
@@ -62,7 +61,7 @@ internal static class JxlCoefficientOrder
         Span<uint> temp = stackalloc uint[size * 2];
         temp.Clear();
 
-        uint end = reader.ReadHybridUnsignedInteger(CoeffOrderContext((int)size), bitReader, contextMap) + skip;
+        uint end = reader.ReadHybridUnsignedInteger(CoeffOrderContext((uint)size), bitReader, contextMap) + skip;
 
         if (end > size)
         {

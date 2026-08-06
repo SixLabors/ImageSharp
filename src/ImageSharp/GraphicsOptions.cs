@@ -31,6 +31,7 @@ public class GraphicsOptions : IDeepCloneable<GraphicsOptions>
     /// <summary>
     /// Gets or sets a value indicating whether antialiasing should be applied.
     /// When <see langword="true"/>, edges are rendered with smooth sub-pixel coverage.
+    /// When <see langword="false"/>, coverage is snapped to binary (fully opaque or fully transparent).
     /// Defaults to <see langword="true"/>.
     /// </summary>
     public bool Antialias { get; set; } = true;

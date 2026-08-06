@@ -52,4 +52,49 @@ public enum PixelColorBlendingMode
     /// Multiplies or screens the colors, depending on the source value.
     /// </summary>
     HardLight,
+
+    /// <summary>
+    /// Brightens the backdrop color to reflect the source color.
+    /// </summary>
+    ColorDodge,
+
+    /// <summary>
+    /// Darkens the backdrop color to reflect the source color.
+    /// </summary>
+    ColorBurn,
+
+    /// <summary>
+    /// Darkens or lightens the colors, depending on the source color.
+    /// </summary>
+    SoftLight,
+
+    /// <summary>
+    /// Subtracts the darker color from the lighter color.
+    /// </summary>
+    Difference,
+
+    /// <summary>
+    /// Produces an effect similar to Difference with lower contrast.
+    /// </summary>
+    Exclusion,
+
+    /// <summary>
+    /// Uses the hue of the source color with the saturation and luminosity of the backdrop color.
+    /// </summary>
+    Hue,
+
+    /// <summary>
+    /// Uses the saturation of the source color with the hue and luminosity of the backdrop color.
+    /// </summary>
+    Saturation,
+
+    /// <summary>
+    /// Uses the hue and saturation of the source color with the luminosity of the backdrop color.
+    /// </summary>
+    Color,
+
+    /// <summary>
+    /// Uses the luminosity of the source color with the hue and saturation of the backdrop color.
+    /// </summary>
+    Luminosity,
 }

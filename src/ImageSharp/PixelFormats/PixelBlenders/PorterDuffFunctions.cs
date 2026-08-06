@@ -325,6 +325,252 @@ internal static partial class PorterDuffFunctions
     }
 
     /// <summary>
+    /// Returns the result of the "ColorDodge" compositing equation.
+    /// </summary>
+    /// <param name="backdrop">The backdrop vector.</param>
+    /// <param name="source">The source vector.</param>
+    /// <returns>The blended color.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector4 ColorDodge(Vector4 backdrop, Vector4 source)
+        => new(
+            ColorDodgeValue(backdrop.X, source.X),
+            ColorDodgeValue(backdrop.Y, source.Y),
+            ColorDodgeValue(backdrop.Z, source.Z),
+            0F);
+
+    /// <inheritdoc cref="ColorDodge(Vector4, Vector4)" />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<float> ColorDodge(Vector256<float> backdrop, Vector256<float> source)
+    {
+        Vector256<float> one = Vector256.Create(1F);
+        Vector256<float> result = Vector256.Min(one, backdrop / (one - source));
+
+        // The explicit singular cases avoid the undefined 0 / 0 result while preserving the order required by the specification.
+        result = Avx.BlendVariable(result, one, Avx.CompareEqual(source, one));
+        result = Avx.BlendVariable(result, Vector256<float>.Zero, Avx.CompareEqual(backdrop, Vector256<float>.Zero));
+        return Avx.Blend(result, Vector256<float>.Zero, BlendAlphaControl);
+    }
+
+    /// <inheritdoc cref="ColorDodge(Vector4, Vector4)" />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<float> ColorDodge(Vector512<float> backdrop, Vector512<float> source)
+    {
+        Vector512<float> one = Vector512.Create(1F);
+        Vector512<float> result = Vector512.Min(one, backdrop / (one - source));
+        result = Vector512.ConditionalSelect(Vector512.Equals(source, one), one, result);
+        result = Vector512.ConditionalSelect(Vector512.Equals(backdrop, Vector512<float>.Zero), Vector512<float>.Zero, result);
+        return Vector512.ConditionalSelect(AlphaMask512(), Vector512<float>.Zero, result);
+    }
+
+    /// <summary>
+    /// Returns the result of the "ColorBurn" compositing equation.
+    /// </summary>
+    /// <param name="backdrop">The backdrop vector.</param>
+    /// <param name="source">The source vector.</param>
+    /// <returns>The blended color.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector4 ColorBurn(Vector4 backdrop, Vector4 source)
+        => new(
+            ColorBurnValue(backdrop.X, source.X),
+            ColorBurnValue(backdrop.Y, source.Y),
+            ColorBurnValue(backdrop.Z, source.Z),
+            0F);
+
+    /// <inheritdoc cref="ColorBurn(Vector4, Vector4)" />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<float> ColorBurn(Vector256<float> backdrop, Vector256<float> source)
+    {
+        Vector256<float> one = Vector256.Create(1F);
+        Vector256<float> result = one - Vector256.Min(one, (one - backdrop) / source);
+
+        // As with ColorDodge, resolve the branch singularities explicitly so transparent lanes never produce NaN.
+        result = Avx.BlendVariable(result, Vector256<float>.Zero, Avx.CompareEqual(source, Vector256<float>.Zero));
+        result = Avx.BlendVariable(result, one, Avx.CompareEqual(backdrop, one));
+        return Avx.Blend(result, Vector256<float>.Zero, BlendAlphaControl);
+    }
+
+    /// <inheritdoc cref="ColorBurn(Vector4, Vector4)" />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<float> ColorBurn(Vector512<float> backdrop, Vector512<float> source)
+    {
+        Vector512<float> one = Vector512.Create(1F);
+        Vector512<float> result = one - Vector512.Min(one, (one - backdrop) / source);
+        result = Vector512.ConditionalSelect(Vector512.Equals(source, Vector512<float>.Zero), Vector512<float>.Zero, result);
+        result = Vector512.ConditionalSelect(Vector512.Equals(backdrop, one), one, result);
+        return Vector512.ConditionalSelect(AlphaMask512(), Vector512<float>.Zero, result);
+    }
+
+    /// <summary>
+    /// Returns the result of the "SoftLight" compositing equation.
+    /// </summary>
+    /// <param name="backdrop">The backdrop vector.</param>
+    /// <param name="source">The source vector.</param>
+    /// <returns>The blended color.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector4 SoftLight(Vector4 backdrop, Vector4 source)
+        => new(
+            SoftLightValue(backdrop.X, source.X),
+            SoftLightValue(backdrop.Y, source.Y),
+            SoftLightValue(backdrop.Z, source.Z),
+            0F);
+
+    /// <inheritdoc cref="SoftLight(Vector4, Vector4)" />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<float> SoftLight(Vector256<float> backdrop, Vector256<float> source)
+    {
+        Vector256<float> one = Vector256.Create(1F);
+        Vector256<float> two = Vector256.Create(2F);
+        Vector256<float> dark = backdrop - ((one - (two * source)) * backdrop * (one - backdrop));
+        Vector256<float> polynomial = ((((Vector256.Create(16F) * backdrop) - Vector256.Create(12F)) * backdrop) + Vector256.Create(4F)) * backdrop;
+        Vector256<float> d = Avx.BlendVariable(polynomial, Avx.Sqrt(backdrop), Avx.CompareGreaterThan(backdrop, Vector256.Create(.25F)));
+        Vector256<float> light = backdrop + (((two * source) - one) * (d - backdrop));
+        Vector256<float> result = Avx.BlendVariable(dark, light, Avx.CompareGreaterThan(source, Vector256.Create(.5F)));
+        return Avx.Blend(result, Vector256<float>.Zero, BlendAlphaControl);
+    }
+
+    /// <inheritdoc cref="SoftLight(Vector4, Vector4)" />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<float> SoftLight(Vector512<float> backdrop, Vector512<float> source)
+    {
+        Vector512<float> one = Vector512.Create(1F);
+        Vector512<float> two = Vector512.Create(2F);
+        Vector512<float> dark = backdrop - ((one - (two * source)) * backdrop * (one - backdrop));
+        Vector512<float> polynomial = ((((Vector512.Create(16F) * backdrop) - Vector512.Create(12F)) * backdrop) + Vector512.Create(4F)) * backdrop;
+        Vector512<float> d = Vector512.ConditionalSelect(Avx512F.CompareGreaterThan(backdrop, Vector512.Create(.25F)), Vector512.Sqrt(backdrop), polynomial);
+        Vector512<float> light = backdrop + (((two * source) - one) * (d - backdrop));
+        Vector512<float> result = Vector512.ConditionalSelect(Avx512F.CompareGreaterThan(source, Vector512.Create(.5F)), light, dark);
+        return Vector512.ConditionalSelect(AlphaMask512(), Vector512<float>.Zero, result);
+    }
+
+    /// <summary>
+    /// Returns the result of the "Difference" compositing equation.
+    /// </summary>
+    /// <param name="backdrop">The backdrop vector.</param>
+    /// <param name="source">The source vector.</param>
+    /// <returns>The blended color.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector4 Difference(Vector4 backdrop, Vector4 source)
+        => Vector4.Abs(backdrop - source);
+
+    /// <inheritdoc cref="Difference(Vector4, Vector4)" />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<float> Difference(Vector256<float> backdrop, Vector256<float> source)
+        => Vector256.Abs(backdrop - source);
+
+    /// <inheritdoc cref="Difference(Vector4, Vector4)" />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<float> Difference(Vector512<float> backdrop, Vector512<float> source)
+        => Vector512.Abs(backdrop - source);
+
+    /// <summary>
+    /// Returns the result of the "Exclusion" compositing equation.
+    /// </summary>
+    /// <param name="backdrop">The backdrop vector.</param>
+    /// <param name="source">The source vector.</param>
+    /// <returns>The blended color.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector4 Exclusion(Vector4 backdrop, Vector4 source)
+        => backdrop + source - (2F * backdrop * source);
+
+    /// <inheritdoc cref="Exclusion(Vector4, Vector4)" />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<float> Exclusion(Vector256<float> backdrop, Vector256<float> source)
+        => backdrop + source - (Vector256.Create(2F) * backdrop * source);
+
+    /// <inheritdoc cref="Exclusion(Vector4, Vector4)" />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<float> Exclusion(Vector512<float> backdrop, Vector512<float> source)
+        => backdrop + source - (Vector512.Create(2F) * backdrop * source);
+
+    /// <summary>
+    /// Returns the result of the "Hue" compositing equation.
+    /// </summary>
+    /// <param name="backdrop">The backdrop vector.</param>
+    /// <param name="source">The source vector.</param>
+    /// <returns>The blended color.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector4 Hue(Vector4 backdrop, Vector4 source)
+        => SetLuminosity(SetSaturation(source, Saturation(backdrop)), Luminosity(backdrop));
+
+    /// <inheritdoc cref="Hue(Vector4, Vector4)" />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<float> Hue(Vector256<float> backdrop, Vector256<float> source)
+        => Vector256.Create(
+            Hue(backdrop.GetLower().AsVector4(), source.GetLower().AsVector4()).AsVector128(),
+            Hue(backdrop.GetUpper().AsVector4(), source.GetUpper().AsVector4()).AsVector128());
+
+    /// <inheritdoc cref="Hue(Vector4, Vector4)" />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<float> Hue(Vector512<float> backdrop, Vector512<float> source)
+        => Vector512.Create(Hue(backdrop.GetLower(), source.GetLower()), Hue(backdrop.GetUpper(), source.GetUpper()));
+
+    /// <summary>
+    /// Returns the result of the "Saturation" compositing equation.
+    /// </summary>
+    /// <param name="backdrop">The backdrop vector.</param>
+    /// <param name="source">The source vector.</param>
+    /// <returns>The blended color.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector4 Saturation(Vector4 backdrop, Vector4 source)
+        => SetLuminosity(SetSaturation(backdrop, Saturation(source)), Luminosity(backdrop));
+
+    /// <inheritdoc cref="Saturation(Vector4, Vector4)" />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<float> Saturation(Vector256<float> backdrop, Vector256<float> source)
+        => Vector256.Create(
+            Saturation(backdrop.GetLower().AsVector4(), source.GetLower().AsVector4()).AsVector128(),
+            Saturation(backdrop.GetUpper().AsVector4(), source.GetUpper().AsVector4()).AsVector128());
+
+    /// <inheritdoc cref="Saturation(Vector4, Vector4)" />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<float> Saturation(Vector512<float> backdrop, Vector512<float> source)
+        => Vector512.Create(Saturation(backdrop.GetLower(), source.GetLower()), Saturation(backdrop.GetUpper(), source.GetUpper()));
+
+    /// <summary>
+    /// Returns the result of the "Color" compositing equation.
+    /// </summary>
+    /// <param name="backdrop">The backdrop vector.</param>
+    /// <param name="source">The source vector.</param>
+    /// <returns>The blended color.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector4 Color(Vector4 backdrop, Vector4 source)
+        => SetLuminosity(source, Luminosity(backdrop));
+
+    /// <inheritdoc cref="Color(Vector4, Vector4)" />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<float> Color(Vector256<float> backdrop, Vector256<float> source)
+        => Vector256.Create(
+            Color(backdrop.GetLower().AsVector4(), source.GetLower().AsVector4()).AsVector128(),
+            Color(backdrop.GetUpper().AsVector4(), source.GetUpper().AsVector4()).AsVector128());
+
+    /// <inheritdoc cref="Color(Vector4, Vector4)" />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<float> Color(Vector512<float> backdrop, Vector512<float> source)
+        => Vector512.Create(Color(backdrop.GetLower(), source.GetLower()), Color(backdrop.GetUpper(), source.GetUpper()));
+
+    /// <summary>
+    /// Returns the result of the "Luminosity" compositing equation.
+    /// </summary>
+    /// <param name="backdrop">The backdrop vector.</param>
+    /// <param name="source">The source vector.</param>
+    /// <returns>The blended color.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector4 Luminosity(Vector4 backdrop, Vector4 source)
+        => SetLuminosity(backdrop, Luminosity(source));
+
+    /// <inheritdoc cref="Luminosity(Vector4, Vector4)" />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<float> Luminosity(Vector256<float> backdrop, Vector256<float> source)
+        => Vector256.Create(
+            Luminosity(backdrop.GetLower().AsVector4(), source.GetLower().AsVector4()).AsVector128(),
+            Luminosity(backdrop.GetUpper().AsVector4(), source.GetUpper().AsVector4()).AsVector128());
+
+    /// <inheritdoc cref="Luminosity(Vector4, Vector4)" />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<float> Luminosity(Vector512<float> backdrop, Vector512<float> source)
+        => Vector512.Create(Luminosity(backdrop.GetLower(), source.GetLower()), Luminosity(backdrop.GetUpper(), source.GetUpper()));
+
+    /// <summary>
     /// Applies raster coverage to a Porter-Duff composition result.
     /// </summary>
     /// <param name="backdrop">The backdrop vector.</param>
@@ -383,6 +629,113 @@ internal static partial class PorterDuffFunctions
         Vector512<float> result = Vector512_.MultiplyAddEstimate(sourcePremultiplied - backdropPremultiplied, coverage, backdropPremultiplied);
 
         return Numerics.UnPremultiply(result, Vector512_.ShuffleNative(result, ShuffleAlphaControl));
+    }
+
+    /// <summary>
+    /// Calculates one ColorDodge component, including the singular cases defined by the blending model.
+    /// </summary>
+    /// <param name="backdrop">The backdrop component.</param>
+    /// <param name="source">The source component.</param>
+    /// <returns>The blended component.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static float ColorDodgeValue(float backdrop, float source)
+        => backdrop == 0F ? 0F : source == 1F ? 1F : MathF.Min(1F, backdrop / (1F - source));
+
+    /// <summary>
+    /// Calculates one ColorBurn component, including the singular cases defined by the blending model.
+    /// </summary>
+    /// <param name="backdrop">The backdrop component.</param>
+    /// <param name="source">The source component.</param>
+    /// <returns>The blended component.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static float ColorBurnValue(float backdrop, float source)
+        => backdrop == 1F ? 1F : source == 0F ? 0F : 1F - MathF.Min(1F, (1F - backdrop) / source);
+
+    /// <summary>
+    /// Calculates one SoftLight component.
+    /// </summary>
+    /// <param name="backdrop">The backdrop component.</param>
+    /// <param name="source">The source component.</param>
+    /// <returns>The blended component.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static float SoftLightValue(float backdrop, float source)
+    {
+        if (source <= .5F)
+        {
+            return backdrop - ((1F - (2F * source)) * backdrop * (1F - backdrop));
+        }
+
+        // The cubic segment joins the square-root segment smoothly while avoiding its steep slope near zero.
+        float d = backdrop <= .25F
+            ? (((((16F * backdrop) - 12F) * backdrop) + 4F) * backdrop)
+            : MathF.Sqrt(backdrop);
+
+        return backdrop + (((2F * source) - 1F) * (d - backdrop));
+    }
+
+    /// <summary>
+    /// Calculates the saturation of an RGB color.
+    /// </summary>
+    /// <param name="color">The color.</param>
+    /// <returns>The difference between the maximum and minimum RGB components.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static float Saturation(Vector4 color)
+        => MathF.Max(color.X, MathF.Max(color.Y, color.Z)) - MathF.Min(color.X, MathF.Min(color.Y, color.Z));
+
+    /// <summary>
+    /// Calculates the luminosity of an RGB color.
+    /// </summary>
+    /// <param name="color">The color.</param>
+    /// <returns>The weighted RGB luminosity.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static float Luminosity(Vector4 color)
+        => (.3F * color.X) + (.59F * color.Y) + (.11F * color.Z);
+
+    /// <summary>
+    /// Replaces the saturation of an RGB color while retaining its channel ordering.
+    /// </summary>
+    /// <param name="color">The color.</param>
+    /// <param name="saturation">The required saturation.</param>
+    /// <returns>The adjusted color.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static Vector4 SetSaturation(Vector4 color, float saturation)
+    {
+        float minimum = MathF.Min(color.X, MathF.Min(color.Y, color.Z));
+        float range = MathF.Max(color.X, MathF.Max(color.Y, color.Z)) - minimum;
+        if (range == 0F)
+        {
+            return Vector4.Zero;
+        }
+
+        // Translating the minimum to zero and scaling the range is equivalent to the specification's ordered-channel construction.
+        return (color - new Vector4(minimum)) * (saturation / range);
+    }
+
+    /// <summary>
+    /// Replaces the luminosity of an RGB color and clips the result to the representable gamut.
+    /// </summary>
+    /// <param name="color">The color.</param>
+    /// <param name="luminosity">The required luminosity.</param>
+    /// <returns>The adjusted color.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static Vector4 SetLuminosity(Vector4 color, float luminosity)
+    {
+        color += new Vector4(luminosity - Luminosity(color));
+
+        float minimum = MathF.Min(color.X, MathF.Min(color.Y, color.Z));
+        if (minimum < 0F)
+        {
+            // Pull every component toward the requested luminosity by the same ratio so hue is preserved.
+            color = new Vector4(luminosity) + ((color - new Vector4(luminosity)) * (luminosity / (luminosity - minimum)));
+        }
+
+        float maximum = MathF.Max(color.X, MathF.Max(color.Y, color.Z));
+        if (maximum > 1F)
+        {
+            color = new Vector4(luminosity) + ((color - new Vector4(luminosity)) * ((1F - luminosity) / (maximum - luminosity)));
+        }
+
+        return Numerics.WithW(color, Vector4.Zero);
     }
 
     /// <summary>
@@ -781,6 +1134,57 @@ internal static partial class PorterDuffFunctions
 
         // unpremultiply
         return Numerics.UnPremultiply(color, alpha);
+    }
+
+    /// <summary>
+    /// Returns the result of the "Plus" compositing equation.
+    /// </summary>
+    /// <param name="destination">The destination vector.</param>
+    /// <param name="source">The source vector.</param>
+    /// <param name="blend">The blended source and destination color.</param>
+    /// <returns>The composition result.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector4 Plus(Vector4 destination, Vector4 source, Vector4 blend)
+    {
+        Vector4 sourceAlpha = Numerics.PermuteW(source);
+        Vector4 destinationAlpha = Numerics.PermuteW(destination);
+        Vector4 overlap = sourceAlpha * destinationAlpha;
+
+        // Plus retains both non-overlapping regions and uses the selected blend mode in their overlap.
+        Vector4 color = (destination * destinationAlpha) + (source * (sourceAlpha - overlap)) + (blend * overlap);
+        Vector4 alpha = Vector4.Min(Vector4.One, sourceAlpha + destinationAlpha);
+        color = Vector4.Min(Vector4.One, color);
+
+        Numerics.UnPremultiply(ref color, alpha);
+        return color;
+    }
+
+    /// <inheritdoc cref="Plus(Vector4, Vector4, Vector4)" />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<float> Plus(Vector256<float> destination, Vector256<float> source, Vector256<float> blend)
+    {
+        Vector256<float> one = Vector256.Create(1F);
+        Vector256<float> sourceAlpha = Avx.Permute(source, ShuffleAlphaControl);
+        Vector256<float> destinationAlpha = Avx.Permute(destination, ShuffleAlphaControl);
+        Vector256<float> overlap = sourceAlpha * destinationAlpha;
+        Vector256<float> color = (destination * destinationAlpha) + (source * (sourceAlpha - overlap)) + (blend * overlap);
+        Vector256<float> alpha = Vector256.Min(one, sourceAlpha + destinationAlpha);
+
+        return Numerics.UnPremultiply(Vector256.Min(one, color), alpha);
+    }
+
+    /// <inheritdoc cref="Plus(Vector4, Vector4, Vector4)" />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<float> Plus(Vector512<float> destination, Vector512<float> source, Vector512<float> blend)
+    {
+        Vector512<float> one = Vector512.Create(1F);
+        Vector512<float> sourceAlpha = Vector512_.ShuffleNative(source, ShuffleAlphaControl);
+        Vector512<float> destinationAlpha = Vector512_.ShuffleNative(destination, ShuffleAlphaControl);
+        Vector512<float> overlap = sourceAlpha * destinationAlpha;
+        Vector512<float> color = (destination * destinationAlpha) + (source * (sourceAlpha - overlap)) + (blend * overlap);
+        Vector512<float> alpha = Vector512.Min(one, sourceAlpha + destinationAlpha);
+
+        return Numerics.UnPremultiply(Vector512.Min(one, color), alpha);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

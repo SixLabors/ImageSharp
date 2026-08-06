@@ -465,6 +465,51 @@ internal static partial class PorterDuffFunctions
         => Xor(backdrop, Avx512F.BlendVariable(source, source * opacity, AlphaMask512()));
 
     /// <summary>
+    /// Returns the result of the "<#=blender#>Plus" compositing equation.
+    /// </summary>
+    /// <param name="backdrop">The backdrop vector.</param>
+    /// <param name="source">The source vector.</param>
+    /// <param name="opacity">The source opacity. Range 0..1</param>
+    /// <returns>The <see cref="Vector4"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector4 <#=blender#>Plus(Vector4 backdrop, Vector4 source, float opacity)
+    {
+        source = Numerics.WithW(source, source * opacity);
+
+        return Plus(backdrop, source, <#=blender#>(backdrop, source));
+    }
+
+    /// <summary>
+    /// Returns the result of the "<#=blender#>Plus" compositing equation.
+    /// </summary>
+    /// <param name="backdrop">The backdrop vector.</param>
+    /// <param name="source">The source vector.</param>
+    /// <param name="opacity">The source opacity. Range 0..1</param>
+    /// <returns>The <see cref="Vector256{Single}"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<float> <#=blender#>Plus(Vector256<float> backdrop, Vector256<float> source, Vector256<float> opacity)
+    {
+        source = Avx.Blend(source, source * opacity, BlendAlphaControl);
+
+        return Plus(backdrop, source, <#=blender#>(backdrop, source));
+    }
+
+    /// <summary>
+    /// Returns the result of the "<#=blender#>Plus" compositing equation.
+    /// </summary>
+    /// <param name="backdrop">The backdrop vector.</param>
+    /// <param name="source">The source vector.</param>
+    /// <param name="opacity">The source opacity. Range 0..1</param>
+    /// <returns>The <see cref="Vector512{Single}"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<float> <#=blender#>Plus(Vector512<float> backdrop, Vector512<float> source, Vector512<float> opacity)
+    {
+        source = Avx512F.BlendVariable(source, source * opacity, AlphaMask512());
+
+        return Plus(backdrop, source, <#=blender#>(backdrop, source));
+    }
+
+    /// <summary>
     /// Returns the result of the "<#=blender#>Clear" compositing equation.
     /// </summary>
     /// <param name="backdrop">The backdrop vector.</param>
@@ -535,6 +580,7 @@ var composers = new []{
     "DestOut",
     "Clear",
     "Xor",
+    "Plus",
 };
 
 var blenders = new []{
@@ -546,7 +592,16 @@ var blenders = new []{
     "Darken",
     "Lighten",
     "Overlay",
-    "HardLight"
+    "HardLight",
+    "ColorDodge",
+    "ColorBurn",
+    "SoftLight",
+    "Difference",
+    "Exclusion",
+    "Hue",
+    "Saturation",
+    "Color",
+    "Luminosity",
 };
 
 foreach(var blender in blenders)

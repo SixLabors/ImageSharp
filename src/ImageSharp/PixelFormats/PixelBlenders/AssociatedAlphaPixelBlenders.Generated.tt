@@ -29,6 +29,7 @@ var composers = new []
     "DestOut",
     "Clear",
     "Xor",
+    "Plus",
 };
 
 var blenders = new []
@@ -42,6 +43,15 @@ var blenders = new []
     "Lighten",
     "Overlay",
     "HardLight",
+    "ColorDodge",
+    "ColorBurn",
+    "SoftLight",
+    "Difference",
+    "Exclusion",
+    "Hue",
+    "Saturation",
+    "Color",
+    "Luminosity",
 };
 #>
 /// <summary>

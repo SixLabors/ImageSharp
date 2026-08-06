@@ -281,6 +281,384 @@ internal static partial class AssociatedAlphaPorterDuffFunctions
     }
 
     /// <summary>
+    /// Calculates the associated overlap term for ColorDodge blending.
+    /// </summary>
+    /// <param name="backdrop">The associated backdrop vector.</param>
+    /// <param name="source">The associated source vector.</param>
+    /// <returns>The associated overlap term.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector4 ColorDodge(Vector4 backdrop, Vector4 source)
+    {
+        Vector4 backdropAlpha = Numerics.PermuteW(backdrop);
+        Vector4 sourceAlpha = Numerics.PermuteW(source);
+        Vector4 unassociatedBackdrop = backdrop;
+        Vector4 unassociatedSource = source;
+
+        // This blend equation is defined in straight RGB, so recover each color before scaling the result by the overlap alpha.
+        Numerics.UnPremultiply(ref unassociatedBackdrop);
+        Numerics.UnPremultiply(ref unassociatedSource);
+        return PorterDuffFunctions.ColorDodge(unassociatedBackdrop, unassociatedSource) * backdropAlpha * sourceAlpha;
+    }
+
+    /// <inheritdoc cref="ColorDodge(Vector4, Vector4)" />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<float> ColorDodge(Vector256<float> backdrop, Vector256<float> source)
+    {
+        Vector256<float> backdropAlpha = Avx.Permute(backdrop, ShuffleAlphaControl);
+        Vector256<float> sourceAlpha = Avx.Permute(source, ShuffleAlphaControl);
+        Vector256<float> unassociatedBackdrop = Numerics.UnPremultiply(backdrop, backdropAlpha);
+        Vector256<float> unassociatedSource = Numerics.UnPremultiply(source, sourceAlpha);
+        return PorterDuffFunctions.ColorDodge(unassociatedBackdrop, unassociatedSource) * backdropAlpha * sourceAlpha;
+    }
+
+    /// <inheritdoc cref="ColorDodge(Vector4, Vector4)" />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<float> ColorDodge(Vector512<float> backdrop, Vector512<float> source)
+    {
+        Vector512<float> backdropAlpha = Vector512_.ShuffleNative(backdrop, ShuffleAlphaControl);
+        Vector512<float> sourceAlpha = Vector512_.ShuffleNative(source, ShuffleAlphaControl);
+        Vector512<float> unassociatedBackdrop = Numerics.UnPremultiply(backdrop, backdropAlpha);
+        Vector512<float> unassociatedSource = Numerics.UnPremultiply(source, sourceAlpha);
+        return PorterDuffFunctions.ColorDodge(unassociatedBackdrop, unassociatedSource) * backdropAlpha * sourceAlpha;
+    }
+
+    /// <summary>
+    /// Calculates the associated overlap term for ColorBurn blending.
+    /// </summary>
+    /// <param name="backdrop">The associated backdrop vector.</param>
+    /// <param name="source">The associated source vector.</param>
+    /// <returns>The associated overlap term.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector4 ColorBurn(Vector4 backdrop, Vector4 source)
+    {
+        Vector4 backdropAlpha = Numerics.PermuteW(backdrop);
+        Vector4 sourceAlpha = Numerics.PermuteW(source);
+        Vector4 unassociatedBackdrop = backdrop;
+        Vector4 unassociatedSource = source;
+
+        // This blend equation is defined in straight RGB, so recover each color before scaling the result by the overlap alpha.
+        Numerics.UnPremultiply(ref unassociatedBackdrop);
+        Numerics.UnPremultiply(ref unassociatedSource);
+        return PorterDuffFunctions.ColorBurn(unassociatedBackdrop, unassociatedSource) * backdropAlpha * sourceAlpha;
+    }
+
+    /// <inheritdoc cref="ColorBurn(Vector4, Vector4)" />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<float> ColorBurn(Vector256<float> backdrop, Vector256<float> source)
+    {
+        Vector256<float> backdropAlpha = Avx.Permute(backdrop, ShuffleAlphaControl);
+        Vector256<float> sourceAlpha = Avx.Permute(source, ShuffleAlphaControl);
+        Vector256<float> unassociatedBackdrop = Numerics.UnPremultiply(backdrop, backdropAlpha);
+        Vector256<float> unassociatedSource = Numerics.UnPremultiply(source, sourceAlpha);
+        return PorterDuffFunctions.ColorBurn(unassociatedBackdrop, unassociatedSource) * backdropAlpha * sourceAlpha;
+    }
+
+    /// <inheritdoc cref="ColorBurn(Vector4, Vector4)" />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<float> ColorBurn(Vector512<float> backdrop, Vector512<float> source)
+    {
+        Vector512<float> backdropAlpha = Vector512_.ShuffleNative(backdrop, ShuffleAlphaControl);
+        Vector512<float> sourceAlpha = Vector512_.ShuffleNative(source, ShuffleAlphaControl);
+        Vector512<float> unassociatedBackdrop = Numerics.UnPremultiply(backdrop, backdropAlpha);
+        Vector512<float> unassociatedSource = Numerics.UnPremultiply(source, sourceAlpha);
+        return PorterDuffFunctions.ColorBurn(unassociatedBackdrop, unassociatedSource) * backdropAlpha * sourceAlpha;
+    }
+
+    /// <summary>
+    /// Calculates the associated overlap term for SoftLight blending.
+    /// </summary>
+    /// <param name="backdrop">The associated backdrop vector.</param>
+    /// <param name="source">The associated source vector.</param>
+    /// <returns>The associated overlap term.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector4 SoftLight(Vector4 backdrop, Vector4 source)
+    {
+        Vector4 backdropAlpha = Numerics.PermuteW(backdrop);
+        Vector4 sourceAlpha = Numerics.PermuteW(source);
+        Vector4 unassociatedBackdrop = backdrop;
+        Vector4 unassociatedSource = source;
+
+        // This blend equation is defined in straight RGB, so recover each color before scaling the result by the overlap alpha.
+        Numerics.UnPremultiply(ref unassociatedBackdrop);
+        Numerics.UnPremultiply(ref unassociatedSource);
+        return PorterDuffFunctions.SoftLight(unassociatedBackdrop, unassociatedSource) * backdropAlpha * sourceAlpha;
+    }
+
+    /// <inheritdoc cref="SoftLight(Vector4, Vector4)" />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<float> SoftLight(Vector256<float> backdrop, Vector256<float> source)
+    {
+        Vector256<float> backdropAlpha = Avx.Permute(backdrop, ShuffleAlphaControl);
+        Vector256<float> sourceAlpha = Avx.Permute(source, ShuffleAlphaControl);
+        Vector256<float> unassociatedBackdrop = Numerics.UnPremultiply(backdrop, backdropAlpha);
+        Vector256<float> unassociatedSource = Numerics.UnPremultiply(source, sourceAlpha);
+        return PorterDuffFunctions.SoftLight(unassociatedBackdrop, unassociatedSource) * backdropAlpha * sourceAlpha;
+    }
+
+    /// <inheritdoc cref="SoftLight(Vector4, Vector4)" />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<float> SoftLight(Vector512<float> backdrop, Vector512<float> source)
+    {
+        Vector512<float> backdropAlpha = Vector512_.ShuffleNative(backdrop, ShuffleAlphaControl);
+        Vector512<float> sourceAlpha = Vector512_.ShuffleNative(source, ShuffleAlphaControl);
+        Vector512<float> unassociatedBackdrop = Numerics.UnPremultiply(backdrop, backdropAlpha);
+        Vector512<float> unassociatedSource = Numerics.UnPremultiply(source, sourceAlpha);
+        return PorterDuffFunctions.SoftLight(unassociatedBackdrop, unassociatedSource) * backdropAlpha * sourceAlpha;
+    }
+
+    /// <summary>
+    /// Calculates the associated overlap term for Difference blending.
+    /// </summary>
+    /// <param name="backdrop">The associated backdrop vector.</param>
+    /// <param name="source">The associated source vector.</param>
+    /// <returns>The associated overlap term.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector4 Difference(Vector4 backdrop, Vector4 source)
+    {
+        Vector4 backdropAlpha = Numerics.PermuteW(backdrop);
+        Vector4 sourceAlpha = Numerics.PermuteW(source);
+        Vector4 unassociatedBackdrop = backdrop;
+        Vector4 unassociatedSource = source;
+
+        // This blend equation is defined in straight RGB, so recover each color before scaling the result by the overlap alpha.
+        Numerics.UnPremultiply(ref unassociatedBackdrop);
+        Numerics.UnPremultiply(ref unassociatedSource);
+        return PorterDuffFunctions.Difference(unassociatedBackdrop, unassociatedSource) * backdropAlpha * sourceAlpha;
+    }
+
+    /// <inheritdoc cref="Difference(Vector4, Vector4)" />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<float> Difference(Vector256<float> backdrop, Vector256<float> source)
+    {
+        Vector256<float> backdropAlpha = Avx.Permute(backdrop, ShuffleAlphaControl);
+        Vector256<float> sourceAlpha = Avx.Permute(source, ShuffleAlphaControl);
+        Vector256<float> unassociatedBackdrop = Numerics.UnPremultiply(backdrop, backdropAlpha);
+        Vector256<float> unassociatedSource = Numerics.UnPremultiply(source, sourceAlpha);
+        return PorterDuffFunctions.Difference(unassociatedBackdrop, unassociatedSource) * backdropAlpha * sourceAlpha;
+    }
+
+    /// <inheritdoc cref="Difference(Vector4, Vector4)" />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<float> Difference(Vector512<float> backdrop, Vector512<float> source)
+    {
+        Vector512<float> backdropAlpha = Vector512_.ShuffleNative(backdrop, ShuffleAlphaControl);
+        Vector512<float> sourceAlpha = Vector512_.ShuffleNative(source, ShuffleAlphaControl);
+        Vector512<float> unassociatedBackdrop = Numerics.UnPremultiply(backdrop, backdropAlpha);
+        Vector512<float> unassociatedSource = Numerics.UnPremultiply(source, sourceAlpha);
+        return PorterDuffFunctions.Difference(unassociatedBackdrop, unassociatedSource) * backdropAlpha * sourceAlpha;
+    }
+
+    /// <summary>
+    /// Calculates the associated overlap term for Exclusion blending.
+    /// </summary>
+    /// <param name="backdrop">The associated backdrop vector.</param>
+    /// <param name="source">The associated source vector.</param>
+    /// <returns>The associated overlap term.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector4 Exclusion(Vector4 backdrop, Vector4 source)
+    {
+        Vector4 backdropAlpha = Numerics.PermuteW(backdrop);
+        Vector4 sourceAlpha = Numerics.PermuteW(source);
+        Vector4 unassociatedBackdrop = backdrop;
+        Vector4 unassociatedSource = source;
+
+        // This blend equation is defined in straight RGB, so recover each color before scaling the result by the overlap alpha.
+        Numerics.UnPremultiply(ref unassociatedBackdrop);
+        Numerics.UnPremultiply(ref unassociatedSource);
+        return PorterDuffFunctions.Exclusion(unassociatedBackdrop, unassociatedSource) * backdropAlpha * sourceAlpha;
+    }
+
+    /// <inheritdoc cref="Exclusion(Vector4, Vector4)" />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<float> Exclusion(Vector256<float> backdrop, Vector256<float> source)
+    {
+        Vector256<float> backdropAlpha = Avx.Permute(backdrop, ShuffleAlphaControl);
+        Vector256<float> sourceAlpha = Avx.Permute(source, ShuffleAlphaControl);
+        Vector256<float> unassociatedBackdrop = Numerics.UnPremultiply(backdrop, backdropAlpha);
+        Vector256<float> unassociatedSource = Numerics.UnPremultiply(source, sourceAlpha);
+        return PorterDuffFunctions.Exclusion(unassociatedBackdrop, unassociatedSource) * backdropAlpha * sourceAlpha;
+    }
+
+    /// <inheritdoc cref="Exclusion(Vector4, Vector4)" />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<float> Exclusion(Vector512<float> backdrop, Vector512<float> source)
+    {
+        Vector512<float> backdropAlpha = Vector512_.ShuffleNative(backdrop, ShuffleAlphaControl);
+        Vector512<float> sourceAlpha = Vector512_.ShuffleNative(source, ShuffleAlphaControl);
+        Vector512<float> unassociatedBackdrop = Numerics.UnPremultiply(backdrop, backdropAlpha);
+        Vector512<float> unassociatedSource = Numerics.UnPremultiply(source, sourceAlpha);
+        return PorterDuffFunctions.Exclusion(unassociatedBackdrop, unassociatedSource) * backdropAlpha * sourceAlpha;
+    }
+
+    /// <summary>
+    /// Calculates the associated overlap term for Hue blending.
+    /// </summary>
+    /// <param name="backdrop">The associated backdrop vector.</param>
+    /// <param name="source">The associated source vector.</param>
+    /// <returns>The associated overlap term.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector4 Hue(Vector4 backdrop, Vector4 source)
+    {
+        Vector4 backdropAlpha = Numerics.PermuteW(backdrop);
+        Vector4 sourceAlpha = Numerics.PermuteW(source);
+        Vector4 unassociatedBackdrop = backdrop;
+        Vector4 unassociatedSource = source;
+
+        // This blend equation is defined in straight RGB, so recover each color before scaling the result by the overlap alpha.
+        Numerics.UnPremultiply(ref unassociatedBackdrop);
+        Numerics.UnPremultiply(ref unassociatedSource);
+        return PorterDuffFunctions.Hue(unassociatedBackdrop, unassociatedSource) * backdropAlpha * sourceAlpha;
+    }
+
+    /// <inheritdoc cref="Hue(Vector4, Vector4)" />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<float> Hue(Vector256<float> backdrop, Vector256<float> source)
+    {
+        Vector256<float> backdropAlpha = Avx.Permute(backdrop, ShuffleAlphaControl);
+        Vector256<float> sourceAlpha = Avx.Permute(source, ShuffleAlphaControl);
+        Vector256<float> unassociatedBackdrop = Numerics.UnPremultiply(backdrop, backdropAlpha);
+        Vector256<float> unassociatedSource = Numerics.UnPremultiply(source, sourceAlpha);
+        return PorterDuffFunctions.Hue(unassociatedBackdrop, unassociatedSource) * backdropAlpha * sourceAlpha;
+    }
+
+    /// <inheritdoc cref="Hue(Vector4, Vector4)" />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<float> Hue(Vector512<float> backdrop, Vector512<float> source)
+    {
+        Vector512<float> backdropAlpha = Vector512_.ShuffleNative(backdrop, ShuffleAlphaControl);
+        Vector512<float> sourceAlpha = Vector512_.ShuffleNative(source, ShuffleAlphaControl);
+        Vector512<float> unassociatedBackdrop = Numerics.UnPremultiply(backdrop, backdropAlpha);
+        Vector512<float> unassociatedSource = Numerics.UnPremultiply(source, sourceAlpha);
+        return PorterDuffFunctions.Hue(unassociatedBackdrop, unassociatedSource) * backdropAlpha * sourceAlpha;
+    }
+
+    /// <summary>
+    /// Calculates the associated overlap term for Saturation blending.
+    /// </summary>
+    /// <param name="backdrop">The associated backdrop vector.</param>
+    /// <param name="source">The associated source vector.</param>
+    /// <returns>The associated overlap term.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector4 Saturation(Vector4 backdrop, Vector4 source)
+    {
+        Vector4 backdropAlpha = Numerics.PermuteW(backdrop);
+        Vector4 sourceAlpha = Numerics.PermuteW(source);
+        Vector4 unassociatedBackdrop = backdrop;
+        Vector4 unassociatedSource = source;
+
+        // This blend equation is defined in straight RGB, so recover each color before scaling the result by the overlap alpha.
+        Numerics.UnPremultiply(ref unassociatedBackdrop);
+        Numerics.UnPremultiply(ref unassociatedSource);
+        return PorterDuffFunctions.Saturation(unassociatedBackdrop, unassociatedSource) * backdropAlpha * sourceAlpha;
+    }
+
+    /// <inheritdoc cref="Saturation(Vector4, Vector4)" />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<float> Saturation(Vector256<float> backdrop, Vector256<float> source)
+    {
+        Vector256<float> backdropAlpha = Avx.Permute(backdrop, ShuffleAlphaControl);
+        Vector256<float> sourceAlpha = Avx.Permute(source, ShuffleAlphaControl);
+        Vector256<float> unassociatedBackdrop = Numerics.UnPremultiply(backdrop, backdropAlpha);
+        Vector256<float> unassociatedSource = Numerics.UnPremultiply(source, sourceAlpha);
+        return PorterDuffFunctions.Saturation(unassociatedBackdrop, unassociatedSource) * backdropAlpha * sourceAlpha;
+    }
+
+    /// <inheritdoc cref="Saturation(Vector4, Vector4)" />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<float> Saturation(Vector512<float> backdrop, Vector512<float> source)
+    {
+        Vector512<float> backdropAlpha = Vector512_.ShuffleNative(backdrop, ShuffleAlphaControl);
+        Vector512<float> sourceAlpha = Vector512_.ShuffleNative(source, ShuffleAlphaControl);
+        Vector512<float> unassociatedBackdrop = Numerics.UnPremultiply(backdrop, backdropAlpha);
+        Vector512<float> unassociatedSource = Numerics.UnPremultiply(source, sourceAlpha);
+        return PorterDuffFunctions.Saturation(unassociatedBackdrop, unassociatedSource) * backdropAlpha * sourceAlpha;
+    }
+
+    /// <summary>
+    /// Calculates the associated overlap term for Color blending.
+    /// </summary>
+    /// <param name="backdrop">The associated backdrop vector.</param>
+    /// <param name="source">The associated source vector.</param>
+    /// <returns>The associated overlap term.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector4 Color(Vector4 backdrop, Vector4 source)
+    {
+        Vector4 backdropAlpha = Numerics.PermuteW(backdrop);
+        Vector4 sourceAlpha = Numerics.PermuteW(source);
+        Vector4 unassociatedBackdrop = backdrop;
+        Vector4 unassociatedSource = source;
+
+        // This blend equation is defined in straight RGB, so recover each color before scaling the result by the overlap alpha.
+        Numerics.UnPremultiply(ref unassociatedBackdrop);
+        Numerics.UnPremultiply(ref unassociatedSource);
+        return PorterDuffFunctions.Color(unassociatedBackdrop, unassociatedSource) * backdropAlpha * sourceAlpha;
+    }
+
+    /// <inheritdoc cref="Color(Vector4, Vector4)" />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<float> Color(Vector256<float> backdrop, Vector256<float> source)
+    {
+        Vector256<float> backdropAlpha = Avx.Permute(backdrop, ShuffleAlphaControl);
+        Vector256<float> sourceAlpha = Avx.Permute(source, ShuffleAlphaControl);
+        Vector256<float> unassociatedBackdrop = Numerics.UnPremultiply(backdrop, backdropAlpha);
+        Vector256<float> unassociatedSource = Numerics.UnPremultiply(source, sourceAlpha);
+        return PorterDuffFunctions.Color(unassociatedBackdrop, unassociatedSource) * backdropAlpha * sourceAlpha;
+    }
+
+    /// <inheritdoc cref="Color(Vector4, Vector4)" />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<float> Color(Vector512<float> backdrop, Vector512<float> source)
+    {
+        Vector512<float> backdropAlpha = Vector512_.ShuffleNative(backdrop, ShuffleAlphaControl);
+        Vector512<float> sourceAlpha = Vector512_.ShuffleNative(source, ShuffleAlphaControl);
+        Vector512<float> unassociatedBackdrop = Numerics.UnPremultiply(backdrop, backdropAlpha);
+        Vector512<float> unassociatedSource = Numerics.UnPremultiply(source, sourceAlpha);
+        return PorterDuffFunctions.Color(unassociatedBackdrop, unassociatedSource) * backdropAlpha * sourceAlpha;
+    }
+
+    /// <summary>
+    /// Calculates the associated overlap term for Luminosity blending.
+    /// </summary>
+    /// <param name="backdrop">The associated backdrop vector.</param>
+    /// <param name="source">The associated source vector.</param>
+    /// <returns>The associated overlap term.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector4 Luminosity(Vector4 backdrop, Vector4 source)
+    {
+        Vector4 backdropAlpha = Numerics.PermuteW(backdrop);
+        Vector4 sourceAlpha = Numerics.PermuteW(source);
+        Vector4 unassociatedBackdrop = backdrop;
+        Vector4 unassociatedSource = source;
+
+        // This blend equation is defined in straight RGB, so recover each color before scaling the result by the overlap alpha.
+        Numerics.UnPremultiply(ref unassociatedBackdrop);
+        Numerics.UnPremultiply(ref unassociatedSource);
+        return PorterDuffFunctions.Luminosity(unassociatedBackdrop, unassociatedSource) * backdropAlpha * sourceAlpha;
+    }
+
+    /// <inheritdoc cref="Luminosity(Vector4, Vector4)" />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<float> Luminosity(Vector256<float> backdrop, Vector256<float> source)
+    {
+        Vector256<float> backdropAlpha = Avx.Permute(backdrop, ShuffleAlphaControl);
+        Vector256<float> sourceAlpha = Avx.Permute(source, ShuffleAlphaControl);
+        Vector256<float> unassociatedBackdrop = Numerics.UnPremultiply(backdrop, backdropAlpha);
+        Vector256<float> unassociatedSource = Numerics.UnPremultiply(source, sourceAlpha);
+        return PorterDuffFunctions.Luminosity(unassociatedBackdrop, unassociatedSource) * backdropAlpha * sourceAlpha;
+    }
+
+    /// <inheritdoc cref="Luminosity(Vector4, Vector4)" />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<float> Luminosity(Vector512<float> backdrop, Vector512<float> source)
+    {
+        Vector512<float> backdropAlpha = Vector512_.ShuffleNative(backdrop, ShuffleAlphaControl);
+        Vector512<float> sourceAlpha = Vector512_.ShuffleNative(source, ShuffleAlphaControl);
+        Vector512<float> unassociatedBackdrop = Numerics.UnPremultiply(backdrop, backdropAlpha);
+        Vector512<float> unassociatedSource = Numerics.UnPremultiply(source, sourceAlpha);
+        return PorterDuffFunctions.Luminosity(unassociatedBackdrop, unassociatedSource) * backdropAlpha * sourceAlpha;
+    }
+
+    /// <summary>
     /// Composites an associated source over an associated destination without a color-blending function.
     /// </summary>
     /// <param name="destination">The associated destination vector.</param>
@@ -308,6 +686,77 @@ internal static partial class AssociatedAlphaPorterDuffFunctions
     {
         Vector512<float> sourceAlpha = Vector512_.ShuffleNative(source, ShuffleAlphaControl);
         return source + (destination * (Vector512.Create(1F) - sourceAlpha));
+    }
+
+    /// <summary>
+    /// Adds associated source and destination vectors without a color-blending function.
+    /// </summary>
+    /// <param name="destination">The associated destination vector.</param>
+    /// <param name="source">The associated source vector.</param>
+    /// <returns>The clamped associated composition result.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector4 PlusNormal(Vector4 destination, Vector4 source)
+    {
+        Vector4 alpha = Vector4.Min(Vector4.One, Numerics.PermuteW(source) + Numerics.PermuteW(destination));
+        return Numerics.WithW(Vector4.Min(Vector4.One, destination + source), alpha);
+    }
+
+    /// <inheritdoc cref="PlusNormal(Vector4, Vector4)" />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<float> PlusNormal(Vector256<float> destination, Vector256<float> source)
+    {
+        Vector256<float> one = Vector256.Create(1F);
+        Vector256<float> alpha = Vector256.Min(one, Avx.Permute(source, ShuffleAlphaControl) + Avx.Permute(destination, ShuffleAlphaControl));
+        return Avx.Blend(Vector256.Min(one, destination + source), alpha, BlendAlphaControl);
+    }
+
+    /// <inheritdoc cref="PlusNormal(Vector4, Vector4)" />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<float> PlusNormal(Vector512<float> destination, Vector512<float> source)
+    {
+        Vector512<float> one = Vector512.Create(1F);
+        Vector512<float> alpha = Vector512.Min(one, Vector512_.ShuffleNative(source, ShuffleAlphaControl) + Vector512_.ShuffleNative(destination, ShuffleAlphaControl));
+        return Vector512.ConditionalSelect(AlphaMask512(), alpha, Vector512.Min(one, destination + source));
+    }
+
+    /// <summary>
+    /// Adds associated source and destination vectors using a color-blended overlap term.
+    /// </summary>
+    /// <param name="destination">The associated destination vector.</param>
+    /// <param name="source">The associated source vector.</param>
+    /// <param name="overlap">The associated overlap term produced by the color-blending function.</param>
+    /// <returns>The clamped associated composition result.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector4 Plus(Vector4 destination, Vector4 source, Vector4 overlap)
+    {
+        Vector4 destinationAlpha = Numerics.PermuteW(destination);
+        Vector4 alpha = Vector4.Min(Vector4.One, Numerics.PermuteW(source) + destinationAlpha);
+
+        // The blended source contributes straight source color outside the destination and the blend result in the overlap.
+        Vector4 result = destination + (source * (Vector4.One - destinationAlpha)) + overlap;
+        return Numerics.WithW(Vector4.Min(Vector4.One, result), alpha);
+    }
+
+    /// <inheritdoc cref="Plus(Vector4, Vector4, Vector4)" />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<float> Plus(Vector256<float> destination, Vector256<float> source, Vector256<float> overlap)
+    {
+        Vector256<float> one = Vector256.Create(1F);
+        Vector256<float> destinationAlpha = Avx.Permute(destination, ShuffleAlphaControl);
+        Vector256<float> alpha = Vector256.Min(one, Avx.Permute(source, ShuffleAlphaControl) + destinationAlpha);
+        Vector256<float> result = destination + (source * (one - destinationAlpha)) + overlap;
+        return Avx.Blend(Vector256.Min(one, result), alpha, BlendAlphaControl);
+    }
+
+    /// <inheritdoc cref="Plus(Vector4, Vector4, Vector4)" />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<float> Plus(Vector512<float> destination, Vector512<float> source, Vector512<float> overlap)
+    {
+        Vector512<float> one = Vector512.Create(1F);
+        Vector512<float> destinationAlpha = Vector512_.ShuffleNative(destination, ShuffleAlphaControl);
+        Vector512<float> alpha = Vector512.Min(one, Vector512_.ShuffleNative(source, ShuffleAlphaControl) + destinationAlpha);
+        Vector512<float> result = destination + (source * (one - destinationAlpha)) + overlap;
+        return Vector512.ConditionalSelect(AlphaMask512(), alpha, Vector512.Min(one, result));
     }
 
     /// <summary>

@@ -73,6 +73,7 @@ internal static partial class AssociatedAlphaPorterDuffFunctions
         "DestOut",
         "Clear",
         "Xor",
+        "Plus",
     };
 
     private static readonly string[] Blenders =
@@ -86,6 +87,15 @@ internal static partial class AssociatedAlphaPorterDuffFunctions
         "Lighten",
         "Overlay",
         "HardLight",
+        "ColorDodge",
+        "ColorBurn",
+        "SoftLight",
+        "Difference",
+        "Exclusion",
+        "Hue",
+        "Saturation",
+        "Color",
+        "Luminosity",
     };
 
     private static readonly string[] VectorTypes =
@@ -131,6 +141,10 @@ internal static partial class AssociatedAlphaPorterDuffFunctions
                 return "Out(source, backdrop)";
             case "Clear":
                 return zero;
+            case "Plus":
+                return normal
+                    ? "PlusNormal(backdrop, source)"
+                    : $"Plus(backdrop, source, {blender}(backdrop, source))";
             default:
                 return "Xor(backdrop, source)";
         }

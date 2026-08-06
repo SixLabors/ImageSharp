@@ -42,6 +42,15 @@ public partial class PixelOperations<TPixel>
                     case PixelColorBlendingMode.Lighten: return DefaultPixelBlenders<TPixel>.LightenClear;
                     case PixelColorBlendingMode.Overlay: return DefaultPixelBlenders<TPixel>.OverlayClear;
                     case PixelColorBlendingMode.HardLight: return DefaultPixelBlenders<TPixel>.HardLightClear;
+                    case PixelColorBlendingMode.ColorDodge: return DefaultPixelBlenders<TPixel>.ColorDodgeClear;
+                    case PixelColorBlendingMode.ColorBurn: return DefaultPixelBlenders<TPixel>.ColorBurnClear;
+                    case PixelColorBlendingMode.SoftLight: return DefaultPixelBlenders<TPixel>.SoftLightClear;
+                    case PixelColorBlendingMode.Difference: return DefaultPixelBlenders<TPixel>.DifferenceClear;
+                    case PixelColorBlendingMode.Exclusion: return DefaultPixelBlenders<TPixel>.ExclusionClear;
+                    case PixelColorBlendingMode.Hue: return DefaultPixelBlenders<TPixel>.HueClear;
+                    case PixelColorBlendingMode.Saturation: return DefaultPixelBlenders<TPixel>.SaturationClear;
+                    case PixelColorBlendingMode.Color: return DefaultPixelBlenders<TPixel>.ColorClear;
+                    case PixelColorBlendingMode.Luminosity: return DefaultPixelBlenders<TPixel>.LuminosityClear;
                     case PixelColorBlendingMode.Normal:
                     default: return DefaultPixelBlenders<TPixel>.NormalClear;
                 }
@@ -57,6 +66,15 @@ public partial class PixelOperations<TPixel>
                     case PixelColorBlendingMode.Lighten: return DefaultPixelBlenders<TPixel>.LightenXor;
                     case PixelColorBlendingMode.Overlay: return DefaultPixelBlenders<TPixel>.OverlayXor;
                     case PixelColorBlendingMode.HardLight: return DefaultPixelBlenders<TPixel>.HardLightXor;
+                    case PixelColorBlendingMode.ColorDodge: return DefaultPixelBlenders<TPixel>.ColorDodgeXor;
+                    case PixelColorBlendingMode.ColorBurn: return DefaultPixelBlenders<TPixel>.ColorBurnXor;
+                    case PixelColorBlendingMode.SoftLight: return DefaultPixelBlenders<TPixel>.SoftLightXor;
+                    case PixelColorBlendingMode.Difference: return DefaultPixelBlenders<TPixel>.DifferenceXor;
+                    case PixelColorBlendingMode.Exclusion: return DefaultPixelBlenders<TPixel>.ExclusionXor;
+                    case PixelColorBlendingMode.Hue: return DefaultPixelBlenders<TPixel>.HueXor;
+                    case PixelColorBlendingMode.Saturation: return DefaultPixelBlenders<TPixel>.SaturationXor;
+                    case PixelColorBlendingMode.Color: return DefaultPixelBlenders<TPixel>.ColorXor;
+                    case PixelColorBlendingMode.Luminosity: return DefaultPixelBlenders<TPixel>.LuminosityXor;
                     case PixelColorBlendingMode.Normal:
                     default: return DefaultPixelBlenders<TPixel>.NormalXor;
                 }
@@ -72,6 +90,15 @@ public partial class PixelOperations<TPixel>
                     case PixelColorBlendingMode.Lighten: return DefaultPixelBlenders<TPixel>.LightenSrc;
                     case PixelColorBlendingMode.Overlay: return DefaultPixelBlenders<TPixel>.OverlaySrc;
                     case PixelColorBlendingMode.HardLight: return DefaultPixelBlenders<TPixel>.HardLightSrc;
+                    case PixelColorBlendingMode.ColorDodge: return DefaultPixelBlenders<TPixel>.ColorDodgeSrc;
+                    case PixelColorBlendingMode.ColorBurn: return DefaultPixelBlenders<TPixel>.ColorBurnSrc;
+                    case PixelColorBlendingMode.SoftLight: return DefaultPixelBlenders<TPixel>.SoftLightSrc;
+                    case PixelColorBlendingMode.Difference: return DefaultPixelBlenders<TPixel>.DifferenceSrc;
+                    case PixelColorBlendingMode.Exclusion: return DefaultPixelBlenders<TPixel>.ExclusionSrc;
+                    case PixelColorBlendingMode.Hue: return DefaultPixelBlenders<TPixel>.HueSrc;
+                    case PixelColorBlendingMode.Saturation: return DefaultPixelBlenders<TPixel>.SaturationSrc;
+                    case PixelColorBlendingMode.Color: return DefaultPixelBlenders<TPixel>.ColorSrc;
+                    case PixelColorBlendingMode.Luminosity: return DefaultPixelBlenders<TPixel>.LuminositySrc;
                     case PixelColorBlendingMode.Normal:
                     default: return DefaultPixelBlenders<TPixel>.NormalSrc;
                 }
@@ -87,6 +114,15 @@ public partial class PixelOperations<TPixel>
                     case PixelColorBlendingMode.Lighten: return DefaultPixelBlenders<TPixel>.LightenSrcAtop;
                     case PixelColorBlendingMode.Overlay: return DefaultPixelBlenders<TPixel>.OverlaySrcAtop;
                     case PixelColorBlendingMode.HardLight: return DefaultPixelBlenders<TPixel>.HardLightSrcAtop;
+                    case PixelColorBlendingMode.ColorDodge: return DefaultPixelBlenders<TPixel>.ColorDodgeSrcAtop;
+                    case PixelColorBlendingMode.ColorBurn: return DefaultPixelBlenders<TPixel>.ColorBurnSrcAtop;
+                    case PixelColorBlendingMode.SoftLight: return DefaultPixelBlenders<TPixel>.SoftLightSrcAtop;
+                    case PixelColorBlendingMode.Difference: return DefaultPixelBlenders<TPixel>.DifferenceSrcAtop;
+                    case PixelColorBlendingMode.Exclusion: return DefaultPixelBlenders<TPixel>.ExclusionSrcAtop;
+                    case PixelColorBlendingMode.Hue: return DefaultPixelBlenders<TPixel>.HueSrcAtop;
+                    case PixelColorBlendingMode.Saturation: return DefaultPixelBlenders<TPixel>.SaturationSrcAtop;
+                    case PixelColorBlendingMode.Color: return DefaultPixelBlenders<TPixel>.ColorSrcAtop;
+                    case PixelColorBlendingMode.Luminosity: return DefaultPixelBlenders<TPixel>.LuminositySrcAtop;
                     case PixelColorBlendingMode.Normal:
                     default: return DefaultPixelBlenders<TPixel>.NormalSrcAtop;
                 }
@@ -102,6 +138,15 @@ public partial class PixelOperations<TPixel>
                     case PixelColorBlendingMode.Lighten: return DefaultPixelBlenders<TPixel>.LightenSrcIn;
                     case PixelColorBlendingMode.Overlay: return DefaultPixelBlenders<TPixel>.OverlaySrcIn;
                     case PixelColorBlendingMode.HardLight: return DefaultPixelBlenders<TPixel>.HardLightSrcIn;
+                    case PixelColorBlendingMode.ColorDodge: return DefaultPixelBlenders<TPixel>.ColorDodgeSrcIn;
+                    case PixelColorBlendingMode.ColorBurn: return DefaultPixelBlenders<TPixel>.ColorBurnSrcIn;
+                    case PixelColorBlendingMode.SoftLight: return DefaultPixelBlenders<TPixel>.SoftLightSrcIn;
+                    case PixelColorBlendingMode.Difference: return DefaultPixelBlenders<TPixel>.DifferenceSrcIn;
+                    case PixelColorBlendingMode.Exclusion: return DefaultPixelBlenders<TPixel>.ExclusionSrcIn;
+                    case PixelColorBlendingMode.Hue: return DefaultPixelBlenders<TPixel>.HueSrcIn;
+                    case PixelColorBlendingMode.Saturation: return DefaultPixelBlenders<TPixel>.SaturationSrcIn;
+                    case PixelColorBlendingMode.Color: return DefaultPixelBlenders<TPixel>.ColorSrcIn;
+                    case PixelColorBlendingMode.Luminosity: return DefaultPixelBlenders<TPixel>.LuminositySrcIn;
                     case PixelColorBlendingMode.Normal:
                     default: return DefaultPixelBlenders<TPixel>.NormalSrcIn;
                 }
@@ -117,6 +162,15 @@ public partial class PixelOperations<TPixel>
                     case PixelColorBlendingMode.Lighten: return DefaultPixelBlenders<TPixel>.LightenSrcOut;
                     case PixelColorBlendingMode.Overlay: return DefaultPixelBlenders<TPixel>.OverlaySrcOut;
                     case PixelColorBlendingMode.HardLight: return DefaultPixelBlenders<TPixel>.HardLightSrcOut;
+                    case PixelColorBlendingMode.ColorDodge: return DefaultPixelBlenders<TPixel>.ColorDodgeSrcOut;
+                    case PixelColorBlendingMode.ColorBurn: return DefaultPixelBlenders<TPixel>.ColorBurnSrcOut;
+                    case PixelColorBlendingMode.SoftLight: return DefaultPixelBlenders<TPixel>.SoftLightSrcOut;
+                    case PixelColorBlendingMode.Difference: return DefaultPixelBlenders<TPixel>.DifferenceSrcOut;
+                    case PixelColorBlendingMode.Exclusion: return DefaultPixelBlenders<TPixel>.ExclusionSrcOut;
+                    case PixelColorBlendingMode.Hue: return DefaultPixelBlenders<TPixel>.HueSrcOut;
+                    case PixelColorBlendingMode.Saturation: return DefaultPixelBlenders<TPixel>.SaturationSrcOut;
+                    case PixelColorBlendingMode.Color: return DefaultPixelBlenders<TPixel>.ColorSrcOut;
+                    case PixelColorBlendingMode.Luminosity: return DefaultPixelBlenders<TPixel>.LuminositySrcOut;
                     case PixelColorBlendingMode.Normal:
                     default: return DefaultPixelBlenders<TPixel>.NormalSrcOut;
                 }
@@ -132,6 +186,15 @@ public partial class PixelOperations<TPixel>
                     case PixelColorBlendingMode.Lighten: return DefaultPixelBlenders<TPixel>.LightenDest;
                     case PixelColorBlendingMode.Overlay: return DefaultPixelBlenders<TPixel>.OverlayDest;
                     case PixelColorBlendingMode.HardLight: return DefaultPixelBlenders<TPixel>.HardLightDest;
+                    case PixelColorBlendingMode.ColorDodge: return DefaultPixelBlenders<TPixel>.ColorDodgeDest;
+                    case PixelColorBlendingMode.ColorBurn: return DefaultPixelBlenders<TPixel>.ColorBurnDest;
+                    case PixelColorBlendingMode.SoftLight: return DefaultPixelBlenders<TPixel>.SoftLightDest;
+                    case PixelColorBlendingMode.Difference: return DefaultPixelBlenders<TPixel>.DifferenceDest;
+                    case PixelColorBlendingMode.Exclusion: return DefaultPixelBlenders<TPixel>.ExclusionDest;
+                    case PixelColorBlendingMode.Hue: return DefaultPixelBlenders<TPixel>.HueDest;
+                    case PixelColorBlendingMode.Saturation: return DefaultPixelBlenders<TPixel>.SaturationDest;
+                    case PixelColorBlendingMode.Color: return DefaultPixelBlenders<TPixel>.ColorDest;
+                    case PixelColorBlendingMode.Luminosity: return DefaultPixelBlenders<TPixel>.LuminosityDest;
                     case PixelColorBlendingMode.Normal:
                     default: return DefaultPixelBlenders<TPixel>.NormalDest;
                 }
@@ -147,6 +210,15 @@ public partial class PixelOperations<TPixel>
                     case PixelColorBlendingMode.Lighten: return DefaultPixelBlenders<TPixel>.LightenDestAtop;
                     case PixelColorBlendingMode.Overlay: return DefaultPixelBlenders<TPixel>.OverlayDestAtop;
                     case PixelColorBlendingMode.HardLight: return DefaultPixelBlenders<TPixel>.HardLightDestAtop;
+                    case PixelColorBlendingMode.ColorDodge: return DefaultPixelBlenders<TPixel>.ColorDodgeDestAtop;
+                    case PixelColorBlendingMode.ColorBurn: return DefaultPixelBlenders<TPixel>.ColorBurnDestAtop;
+                    case PixelColorBlendingMode.SoftLight: return DefaultPixelBlenders<TPixel>.SoftLightDestAtop;
+                    case PixelColorBlendingMode.Difference: return DefaultPixelBlenders<TPixel>.DifferenceDestAtop;
+                    case PixelColorBlendingMode.Exclusion: return DefaultPixelBlenders<TPixel>.ExclusionDestAtop;
+                    case PixelColorBlendingMode.Hue: return DefaultPixelBlenders<TPixel>.HueDestAtop;
+                    case PixelColorBlendingMode.Saturation: return DefaultPixelBlenders<TPixel>.SaturationDestAtop;
+                    case PixelColorBlendingMode.Color: return DefaultPixelBlenders<TPixel>.ColorDestAtop;
+                    case PixelColorBlendingMode.Luminosity: return DefaultPixelBlenders<TPixel>.LuminosityDestAtop;
                     case PixelColorBlendingMode.Normal:
                     default: return DefaultPixelBlenders<TPixel>.NormalDestAtop;
                 }
@@ -162,6 +234,15 @@ public partial class PixelOperations<TPixel>
                     case PixelColorBlendingMode.Lighten: return DefaultPixelBlenders<TPixel>.LightenDestIn;
                     case PixelColorBlendingMode.Overlay: return DefaultPixelBlenders<TPixel>.OverlayDestIn;
                     case PixelColorBlendingMode.HardLight: return DefaultPixelBlenders<TPixel>.HardLightDestIn;
+                    case PixelColorBlendingMode.ColorDodge: return DefaultPixelBlenders<TPixel>.ColorDodgeDestIn;
+                    case PixelColorBlendingMode.ColorBurn: return DefaultPixelBlenders<TPixel>.ColorBurnDestIn;
+                    case PixelColorBlendingMode.SoftLight: return DefaultPixelBlenders<TPixel>.SoftLightDestIn;
+                    case PixelColorBlendingMode.Difference: return DefaultPixelBlenders<TPixel>.DifferenceDestIn;
+                    case PixelColorBlendingMode.Exclusion: return DefaultPixelBlenders<TPixel>.ExclusionDestIn;
+                    case PixelColorBlendingMode.Hue: return DefaultPixelBlenders<TPixel>.HueDestIn;
+                    case PixelColorBlendingMode.Saturation: return DefaultPixelBlenders<TPixel>.SaturationDestIn;
+                    case PixelColorBlendingMode.Color: return DefaultPixelBlenders<TPixel>.ColorDestIn;
+                    case PixelColorBlendingMode.Luminosity: return DefaultPixelBlenders<TPixel>.LuminosityDestIn;
                     case PixelColorBlendingMode.Normal:
                     default: return DefaultPixelBlenders<TPixel>.NormalDestIn;
                 }
@@ -177,6 +258,15 @@ public partial class PixelOperations<TPixel>
                     case PixelColorBlendingMode.Lighten: return DefaultPixelBlenders<TPixel>.LightenDestOut;
                     case PixelColorBlendingMode.Overlay: return DefaultPixelBlenders<TPixel>.OverlayDestOut;
                     case PixelColorBlendingMode.HardLight: return DefaultPixelBlenders<TPixel>.HardLightDestOut;
+                    case PixelColorBlendingMode.ColorDodge: return DefaultPixelBlenders<TPixel>.ColorDodgeDestOut;
+                    case PixelColorBlendingMode.ColorBurn: return DefaultPixelBlenders<TPixel>.ColorBurnDestOut;
+                    case PixelColorBlendingMode.SoftLight: return DefaultPixelBlenders<TPixel>.SoftLightDestOut;
+                    case PixelColorBlendingMode.Difference: return DefaultPixelBlenders<TPixel>.DifferenceDestOut;
+                    case PixelColorBlendingMode.Exclusion: return DefaultPixelBlenders<TPixel>.ExclusionDestOut;
+                    case PixelColorBlendingMode.Hue: return DefaultPixelBlenders<TPixel>.HueDestOut;
+                    case PixelColorBlendingMode.Saturation: return DefaultPixelBlenders<TPixel>.SaturationDestOut;
+                    case PixelColorBlendingMode.Color: return DefaultPixelBlenders<TPixel>.ColorDestOut;
+                    case PixelColorBlendingMode.Luminosity: return DefaultPixelBlenders<TPixel>.LuminosityDestOut;
                     case PixelColorBlendingMode.Normal:
                     default: return DefaultPixelBlenders<TPixel>.NormalDestOut;
                 }
@@ -192,8 +282,41 @@ public partial class PixelOperations<TPixel>
                     case PixelColorBlendingMode.Lighten: return DefaultPixelBlenders<TPixel>.LightenDestOver;
                     case PixelColorBlendingMode.Overlay: return DefaultPixelBlenders<TPixel>.OverlayDestOver;
                     case PixelColorBlendingMode.HardLight: return DefaultPixelBlenders<TPixel>.HardLightDestOver;
+                    case PixelColorBlendingMode.ColorDodge: return DefaultPixelBlenders<TPixel>.ColorDodgeDestOver;
+                    case PixelColorBlendingMode.ColorBurn: return DefaultPixelBlenders<TPixel>.ColorBurnDestOver;
+                    case PixelColorBlendingMode.SoftLight: return DefaultPixelBlenders<TPixel>.SoftLightDestOver;
+                    case PixelColorBlendingMode.Difference: return DefaultPixelBlenders<TPixel>.DifferenceDestOver;
+                    case PixelColorBlendingMode.Exclusion: return DefaultPixelBlenders<TPixel>.ExclusionDestOver;
+                    case PixelColorBlendingMode.Hue: return DefaultPixelBlenders<TPixel>.HueDestOver;
+                    case PixelColorBlendingMode.Saturation: return DefaultPixelBlenders<TPixel>.SaturationDestOver;
+                    case PixelColorBlendingMode.Color: return DefaultPixelBlenders<TPixel>.ColorDestOver;
+                    case PixelColorBlendingMode.Luminosity: return DefaultPixelBlenders<TPixel>.LuminosityDestOver;
                     case PixelColorBlendingMode.Normal:
                     default: return DefaultPixelBlenders<TPixel>.NormalDestOver;
+                }
+
+            case PixelAlphaCompositionMode.Plus:
+                switch (colorMode)
+                {
+                    case PixelColorBlendingMode.Multiply: return DefaultPixelBlenders<TPixel>.MultiplyPlus;
+                    case PixelColorBlendingMode.Add: return DefaultPixelBlenders<TPixel>.AddPlus;
+                    case PixelColorBlendingMode.Subtract: return DefaultPixelBlenders<TPixel>.SubtractPlus;
+                    case PixelColorBlendingMode.Screen: return DefaultPixelBlenders<TPixel>.ScreenPlus;
+                    case PixelColorBlendingMode.Darken: return DefaultPixelBlenders<TPixel>.DarkenPlus;
+                    case PixelColorBlendingMode.Lighten: return DefaultPixelBlenders<TPixel>.LightenPlus;
+                    case PixelColorBlendingMode.Overlay: return DefaultPixelBlenders<TPixel>.OverlayPlus;
+                    case PixelColorBlendingMode.HardLight: return DefaultPixelBlenders<TPixel>.HardLightPlus;
+                    case PixelColorBlendingMode.ColorDodge: return DefaultPixelBlenders<TPixel>.ColorDodgePlus;
+                    case PixelColorBlendingMode.ColorBurn: return DefaultPixelBlenders<TPixel>.ColorBurnPlus;
+                    case PixelColorBlendingMode.SoftLight: return DefaultPixelBlenders<TPixel>.SoftLightPlus;
+                    case PixelColorBlendingMode.Difference: return DefaultPixelBlenders<TPixel>.DifferencePlus;
+                    case PixelColorBlendingMode.Exclusion: return DefaultPixelBlenders<TPixel>.ExclusionPlus;
+                    case PixelColorBlendingMode.Hue: return DefaultPixelBlenders<TPixel>.HuePlus;
+                    case PixelColorBlendingMode.Saturation: return DefaultPixelBlenders<TPixel>.SaturationPlus;
+                    case PixelColorBlendingMode.Color: return DefaultPixelBlenders<TPixel>.ColorPlus;
+                    case PixelColorBlendingMode.Luminosity: return DefaultPixelBlenders<TPixel>.LuminosityPlus;
+                    case PixelColorBlendingMode.Normal:
+                    default: return DefaultPixelBlenders<TPixel>.NormalPlus;
                 }
 
             case PixelAlphaCompositionMode.SrcOver:
@@ -208,6 +331,15 @@ public partial class PixelOperations<TPixel>
                     case PixelColorBlendingMode.Lighten: return DefaultPixelBlenders<TPixel>.LightenSrcOver;
                     case PixelColorBlendingMode.Overlay: return DefaultPixelBlenders<TPixel>.OverlaySrcOver;
                     case PixelColorBlendingMode.HardLight: return DefaultPixelBlenders<TPixel>.HardLightSrcOver;
+                    case PixelColorBlendingMode.ColorDodge: return DefaultPixelBlenders<TPixel>.ColorDodgeSrcOver;
+                    case PixelColorBlendingMode.ColorBurn: return DefaultPixelBlenders<TPixel>.ColorBurnSrcOver;
+                    case PixelColorBlendingMode.SoftLight: return DefaultPixelBlenders<TPixel>.SoftLightSrcOver;
+                    case PixelColorBlendingMode.Difference: return DefaultPixelBlenders<TPixel>.DifferenceSrcOver;
+                    case PixelColorBlendingMode.Exclusion: return DefaultPixelBlenders<TPixel>.ExclusionSrcOver;
+                    case PixelColorBlendingMode.Hue: return DefaultPixelBlenders<TPixel>.HueSrcOver;
+                    case PixelColorBlendingMode.Saturation: return DefaultPixelBlenders<TPixel>.SaturationSrcOver;
+                    case PixelColorBlendingMode.Color: return DefaultPixelBlenders<TPixel>.ColorSrcOver;
+                    case PixelColorBlendingMode.Luminosity: return DefaultPixelBlenders<TPixel>.LuminositySrcOver;
                     case PixelColorBlendingMode.Normal:
                     default: return DefaultPixelBlenders<TPixel>.NormalSrcOver;
                 }

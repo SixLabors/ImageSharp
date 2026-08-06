@@ -202,6 +202,195 @@ internal static class DefaultPixelBlenderOperators
     }
 
     /// <summary>
+    /// Applies the "ColorDodgeSrc" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct ColorDodgeSrc : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.ColorDodgeSrc(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.ColorDodgeSrc(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.ColorDodgeSrc(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "ColorBurnSrc" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct ColorBurnSrc : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.ColorBurnSrc(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.ColorBurnSrc(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.ColorBurnSrc(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "SoftLightSrc" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct SoftLightSrc : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.SoftLightSrc(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.SoftLightSrc(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.SoftLightSrc(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "DifferenceSrc" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct DifferenceSrc : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.DifferenceSrc(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.DifferenceSrc(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.DifferenceSrc(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "ExclusionSrc" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct ExclusionSrc : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.ExclusionSrc(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.ExclusionSrc(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.ExclusionSrc(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "HueSrc" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct HueSrc : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.HueSrc(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.HueSrc(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.HueSrc(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "SaturationSrc" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct SaturationSrc : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.SaturationSrc(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.SaturationSrc(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.SaturationSrc(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "ColorSrc" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct ColorSrc : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.ColorSrc(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.ColorSrc(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.ColorSrc(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "LuminositySrc" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct LuminositySrc : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.LuminositySrc(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.LuminositySrc(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.LuminositySrc(background, source, amount);
+    }
+
+    /// <summary>
     /// Applies the "NormalSrcAtop" straight-alpha composition equation.
     /// </summary>
     public readonly struct NormalSrcAtop : IPixelBlenderOperator
@@ -388,6 +577,195 @@ internal static class DefaultPixelBlenderOperators
         /// <inheritdoc />
         public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
             => PorterDuffFunctions.HardLightSrcAtop(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "ColorDodgeSrcAtop" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct ColorDodgeSrcAtop : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.ColorDodgeSrcAtop(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.ColorDodgeSrcAtop(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.ColorDodgeSrcAtop(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "ColorBurnSrcAtop" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct ColorBurnSrcAtop : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.ColorBurnSrcAtop(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.ColorBurnSrcAtop(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.ColorBurnSrcAtop(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "SoftLightSrcAtop" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct SoftLightSrcAtop : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.SoftLightSrcAtop(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.SoftLightSrcAtop(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.SoftLightSrcAtop(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "DifferenceSrcAtop" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct DifferenceSrcAtop : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.DifferenceSrcAtop(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.DifferenceSrcAtop(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.DifferenceSrcAtop(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "ExclusionSrcAtop" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct ExclusionSrcAtop : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.ExclusionSrcAtop(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.ExclusionSrcAtop(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.ExclusionSrcAtop(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "HueSrcAtop" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct HueSrcAtop : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.HueSrcAtop(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.HueSrcAtop(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.HueSrcAtop(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "SaturationSrcAtop" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct SaturationSrcAtop : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.SaturationSrcAtop(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.SaturationSrcAtop(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.SaturationSrcAtop(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "ColorSrcAtop" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct ColorSrcAtop : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.ColorSrcAtop(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.ColorSrcAtop(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.ColorSrcAtop(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "LuminositySrcAtop" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct LuminositySrcAtop : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.LuminositySrcAtop(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.LuminositySrcAtop(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.LuminositySrcAtop(background, source, amount);
     }
 
     /// <summary>
@@ -580,6 +958,195 @@ internal static class DefaultPixelBlenderOperators
     }
 
     /// <summary>
+    /// Applies the "ColorDodgeSrcOver" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct ColorDodgeSrcOver : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.ColorDodgeSrcOver(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.ColorDodgeSrcOver(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.ColorDodgeSrcOver(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "ColorBurnSrcOver" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct ColorBurnSrcOver : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.ColorBurnSrcOver(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.ColorBurnSrcOver(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.ColorBurnSrcOver(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "SoftLightSrcOver" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct SoftLightSrcOver : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.SoftLightSrcOver(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.SoftLightSrcOver(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.SoftLightSrcOver(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "DifferenceSrcOver" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct DifferenceSrcOver : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.DifferenceSrcOver(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.DifferenceSrcOver(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.DifferenceSrcOver(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "ExclusionSrcOver" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct ExclusionSrcOver : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.ExclusionSrcOver(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.ExclusionSrcOver(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.ExclusionSrcOver(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "HueSrcOver" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct HueSrcOver : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.HueSrcOver(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.HueSrcOver(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.HueSrcOver(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "SaturationSrcOver" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct SaturationSrcOver : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.SaturationSrcOver(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.SaturationSrcOver(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.SaturationSrcOver(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "ColorSrcOver" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct ColorSrcOver : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.ColorSrcOver(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.ColorSrcOver(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.ColorSrcOver(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "LuminositySrcOver" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct LuminositySrcOver : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.LuminositySrcOver(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.LuminositySrcOver(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.LuminositySrcOver(background, source, amount);
+    }
+
+    /// <summary>
     /// Applies the "NormalSrcIn" straight-alpha composition equation.
     /// </summary>
     public readonly struct NormalSrcIn : IPixelBlenderOperator
@@ -766,6 +1333,195 @@ internal static class DefaultPixelBlenderOperators
         /// <inheritdoc />
         public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
             => PorterDuffFunctions.HardLightSrcIn(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "ColorDodgeSrcIn" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct ColorDodgeSrcIn : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.ColorDodgeSrcIn(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.ColorDodgeSrcIn(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.ColorDodgeSrcIn(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "ColorBurnSrcIn" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct ColorBurnSrcIn : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.ColorBurnSrcIn(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.ColorBurnSrcIn(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.ColorBurnSrcIn(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "SoftLightSrcIn" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct SoftLightSrcIn : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.SoftLightSrcIn(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.SoftLightSrcIn(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.SoftLightSrcIn(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "DifferenceSrcIn" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct DifferenceSrcIn : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.DifferenceSrcIn(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.DifferenceSrcIn(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.DifferenceSrcIn(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "ExclusionSrcIn" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct ExclusionSrcIn : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.ExclusionSrcIn(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.ExclusionSrcIn(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.ExclusionSrcIn(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "HueSrcIn" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct HueSrcIn : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.HueSrcIn(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.HueSrcIn(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.HueSrcIn(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "SaturationSrcIn" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct SaturationSrcIn : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.SaturationSrcIn(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.SaturationSrcIn(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.SaturationSrcIn(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "ColorSrcIn" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct ColorSrcIn : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.ColorSrcIn(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.ColorSrcIn(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.ColorSrcIn(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "LuminositySrcIn" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct LuminositySrcIn : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.LuminositySrcIn(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.LuminositySrcIn(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.LuminositySrcIn(background, source, amount);
     }
 
     /// <summary>
@@ -958,6 +1714,195 @@ internal static class DefaultPixelBlenderOperators
     }
 
     /// <summary>
+    /// Applies the "ColorDodgeSrcOut" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct ColorDodgeSrcOut : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.ColorDodgeSrcOut(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.ColorDodgeSrcOut(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.ColorDodgeSrcOut(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "ColorBurnSrcOut" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct ColorBurnSrcOut : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.ColorBurnSrcOut(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.ColorBurnSrcOut(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.ColorBurnSrcOut(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "SoftLightSrcOut" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct SoftLightSrcOut : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.SoftLightSrcOut(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.SoftLightSrcOut(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.SoftLightSrcOut(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "DifferenceSrcOut" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct DifferenceSrcOut : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.DifferenceSrcOut(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.DifferenceSrcOut(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.DifferenceSrcOut(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "ExclusionSrcOut" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct ExclusionSrcOut : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.ExclusionSrcOut(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.ExclusionSrcOut(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.ExclusionSrcOut(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "HueSrcOut" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct HueSrcOut : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.HueSrcOut(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.HueSrcOut(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.HueSrcOut(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "SaturationSrcOut" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct SaturationSrcOut : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.SaturationSrcOut(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.SaturationSrcOut(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.SaturationSrcOut(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "ColorSrcOut" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct ColorSrcOut : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.ColorSrcOut(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.ColorSrcOut(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.ColorSrcOut(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "LuminositySrcOut" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct LuminositySrcOut : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.LuminositySrcOut(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.LuminositySrcOut(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.LuminositySrcOut(background, source, amount);
+    }
+
+    /// <summary>
     /// Applies the "NormalDest" straight-alpha composition equation.
     /// </summary>
     public readonly struct NormalDest : IPixelBlenderOperator
@@ -1144,6 +2089,195 @@ internal static class DefaultPixelBlenderOperators
         /// <inheritdoc />
         public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
             => PorterDuffFunctions.HardLightDest(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "ColorDodgeDest" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct ColorDodgeDest : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.ColorDodgeDest(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.ColorDodgeDest(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.ColorDodgeDest(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "ColorBurnDest" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct ColorBurnDest : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.ColorBurnDest(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.ColorBurnDest(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.ColorBurnDest(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "SoftLightDest" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct SoftLightDest : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.SoftLightDest(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.SoftLightDest(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.SoftLightDest(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "DifferenceDest" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct DifferenceDest : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.DifferenceDest(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.DifferenceDest(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.DifferenceDest(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "ExclusionDest" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct ExclusionDest : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.ExclusionDest(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.ExclusionDest(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.ExclusionDest(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "HueDest" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct HueDest : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.HueDest(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.HueDest(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.HueDest(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "SaturationDest" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct SaturationDest : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.SaturationDest(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.SaturationDest(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.SaturationDest(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "ColorDest" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct ColorDest : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.ColorDest(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.ColorDest(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.ColorDest(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "LuminosityDest" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct LuminosityDest : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.LuminosityDest(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.LuminosityDest(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.LuminosityDest(background, source, amount);
     }
 
     /// <summary>
@@ -1336,6 +2470,195 @@ internal static class DefaultPixelBlenderOperators
     }
 
     /// <summary>
+    /// Applies the "ColorDodgeDestAtop" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct ColorDodgeDestAtop : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.ColorDodgeDestAtop(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.ColorDodgeDestAtop(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.ColorDodgeDestAtop(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "ColorBurnDestAtop" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct ColorBurnDestAtop : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.ColorBurnDestAtop(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.ColorBurnDestAtop(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.ColorBurnDestAtop(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "SoftLightDestAtop" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct SoftLightDestAtop : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.SoftLightDestAtop(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.SoftLightDestAtop(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.SoftLightDestAtop(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "DifferenceDestAtop" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct DifferenceDestAtop : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.DifferenceDestAtop(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.DifferenceDestAtop(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.DifferenceDestAtop(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "ExclusionDestAtop" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct ExclusionDestAtop : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.ExclusionDestAtop(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.ExclusionDestAtop(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.ExclusionDestAtop(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "HueDestAtop" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct HueDestAtop : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.HueDestAtop(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.HueDestAtop(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.HueDestAtop(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "SaturationDestAtop" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct SaturationDestAtop : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.SaturationDestAtop(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.SaturationDestAtop(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.SaturationDestAtop(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "ColorDestAtop" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct ColorDestAtop : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.ColorDestAtop(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.ColorDestAtop(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.ColorDestAtop(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "LuminosityDestAtop" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct LuminosityDestAtop : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.LuminosityDestAtop(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.LuminosityDestAtop(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.LuminosityDestAtop(background, source, amount);
+    }
+
+    /// <summary>
     /// Applies the "NormalDestOver" straight-alpha composition equation.
     /// </summary>
     public readonly struct NormalDestOver : IPixelBlenderOperator
@@ -1522,6 +2845,195 @@ internal static class DefaultPixelBlenderOperators
         /// <inheritdoc />
         public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
             => PorterDuffFunctions.HardLightDestOver(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "ColorDodgeDestOver" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct ColorDodgeDestOver : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.ColorDodgeDestOver(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.ColorDodgeDestOver(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.ColorDodgeDestOver(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "ColorBurnDestOver" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct ColorBurnDestOver : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.ColorBurnDestOver(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.ColorBurnDestOver(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.ColorBurnDestOver(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "SoftLightDestOver" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct SoftLightDestOver : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.SoftLightDestOver(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.SoftLightDestOver(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.SoftLightDestOver(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "DifferenceDestOver" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct DifferenceDestOver : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.DifferenceDestOver(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.DifferenceDestOver(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.DifferenceDestOver(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "ExclusionDestOver" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct ExclusionDestOver : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.ExclusionDestOver(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.ExclusionDestOver(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.ExclusionDestOver(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "HueDestOver" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct HueDestOver : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.HueDestOver(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.HueDestOver(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.HueDestOver(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "SaturationDestOver" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct SaturationDestOver : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.SaturationDestOver(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.SaturationDestOver(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.SaturationDestOver(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "ColorDestOver" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct ColorDestOver : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.ColorDestOver(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.ColorDestOver(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.ColorDestOver(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "LuminosityDestOver" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct LuminosityDestOver : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.LuminosityDestOver(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.LuminosityDestOver(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.LuminosityDestOver(background, source, amount);
     }
 
     /// <summary>
@@ -1714,6 +3226,195 @@ internal static class DefaultPixelBlenderOperators
     }
 
     /// <summary>
+    /// Applies the "ColorDodgeDestIn" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct ColorDodgeDestIn : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.ColorDodgeDestIn(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.ColorDodgeDestIn(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.ColorDodgeDestIn(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "ColorBurnDestIn" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct ColorBurnDestIn : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.ColorBurnDestIn(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.ColorBurnDestIn(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.ColorBurnDestIn(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "SoftLightDestIn" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct SoftLightDestIn : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.SoftLightDestIn(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.SoftLightDestIn(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.SoftLightDestIn(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "DifferenceDestIn" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct DifferenceDestIn : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.DifferenceDestIn(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.DifferenceDestIn(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.DifferenceDestIn(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "ExclusionDestIn" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct ExclusionDestIn : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.ExclusionDestIn(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.ExclusionDestIn(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.ExclusionDestIn(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "HueDestIn" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct HueDestIn : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.HueDestIn(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.HueDestIn(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.HueDestIn(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "SaturationDestIn" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct SaturationDestIn : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.SaturationDestIn(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.SaturationDestIn(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.SaturationDestIn(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "ColorDestIn" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct ColorDestIn : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.ColorDestIn(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.ColorDestIn(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.ColorDestIn(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "LuminosityDestIn" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct LuminosityDestIn : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.LuminosityDestIn(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.LuminosityDestIn(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.LuminosityDestIn(background, source, amount);
+    }
+
+    /// <summary>
     /// Applies the "NormalDestOut" straight-alpha composition equation.
     /// </summary>
     public readonly struct NormalDestOut : IPixelBlenderOperator
@@ -1900,6 +3601,195 @@ internal static class DefaultPixelBlenderOperators
         /// <inheritdoc />
         public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
             => PorterDuffFunctions.HardLightDestOut(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "ColorDodgeDestOut" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct ColorDodgeDestOut : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.ColorDodgeDestOut(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.ColorDodgeDestOut(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.ColorDodgeDestOut(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "ColorBurnDestOut" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct ColorBurnDestOut : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.ColorBurnDestOut(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.ColorBurnDestOut(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.ColorBurnDestOut(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "SoftLightDestOut" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct SoftLightDestOut : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.SoftLightDestOut(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.SoftLightDestOut(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.SoftLightDestOut(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "DifferenceDestOut" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct DifferenceDestOut : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.DifferenceDestOut(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.DifferenceDestOut(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.DifferenceDestOut(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "ExclusionDestOut" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct ExclusionDestOut : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.ExclusionDestOut(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.ExclusionDestOut(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.ExclusionDestOut(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "HueDestOut" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct HueDestOut : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.HueDestOut(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.HueDestOut(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.HueDestOut(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "SaturationDestOut" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct SaturationDestOut : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.SaturationDestOut(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.SaturationDestOut(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.SaturationDestOut(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "ColorDestOut" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct ColorDestOut : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.ColorDestOut(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.ColorDestOut(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.ColorDestOut(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "LuminosityDestOut" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct LuminosityDestOut : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.LuminosityDestOut(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.LuminosityDestOut(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.LuminosityDestOut(background, source, amount);
     }
 
     /// <summary>
@@ -2092,6 +3982,195 @@ internal static class DefaultPixelBlenderOperators
     }
 
     /// <summary>
+    /// Applies the "ColorDodgeClear" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct ColorDodgeClear : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.ColorDodgeClear(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.ColorDodgeClear(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.ColorDodgeClear(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "ColorBurnClear" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct ColorBurnClear : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.ColorBurnClear(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.ColorBurnClear(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.ColorBurnClear(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "SoftLightClear" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct SoftLightClear : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.SoftLightClear(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.SoftLightClear(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.SoftLightClear(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "DifferenceClear" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct DifferenceClear : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.DifferenceClear(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.DifferenceClear(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.DifferenceClear(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "ExclusionClear" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct ExclusionClear : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.ExclusionClear(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.ExclusionClear(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.ExclusionClear(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "HueClear" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct HueClear : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.HueClear(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.HueClear(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.HueClear(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "SaturationClear" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct SaturationClear : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.SaturationClear(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.SaturationClear(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.SaturationClear(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "ColorClear" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct ColorClear : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.ColorClear(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.ColorClear(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.ColorClear(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "LuminosityClear" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct LuminosityClear : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.LuminosityClear(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.LuminosityClear(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.LuminosityClear(background, source, amount);
+    }
+
+    /// <summary>
     /// Applies the "NormalXor" straight-alpha composition equation.
     /// </summary>
     public readonly struct NormalXor : IPixelBlenderOperator
@@ -2280,6 +4359,573 @@ internal static class DefaultPixelBlenderOperators
             => PorterDuffFunctions.HardLightXor(background, source, amount);
     }
 
+    /// <summary>
+    /// Applies the "ColorDodgeXor" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct ColorDodgeXor : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.ColorDodgeXor(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.ColorDodgeXor(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.ColorDodgeXor(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "ColorBurnXor" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct ColorBurnXor : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.ColorBurnXor(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.ColorBurnXor(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.ColorBurnXor(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "SoftLightXor" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct SoftLightXor : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.SoftLightXor(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.SoftLightXor(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.SoftLightXor(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "DifferenceXor" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct DifferenceXor : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.DifferenceXor(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.DifferenceXor(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.DifferenceXor(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "ExclusionXor" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct ExclusionXor : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.ExclusionXor(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.ExclusionXor(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.ExclusionXor(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "HueXor" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct HueXor : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.HueXor(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.HueXor(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.HueXor(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "SaturationXor" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct SaturationXor : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.SaturationXor(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.SaturationXor(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.SaturationXor(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "ColorXor" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct ColorXor : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.ColorXor(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.ColorXor(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.ColorXor(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "LuminosityXor" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct LuminosityXor : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.LuminosityXor(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.LuminosityXor(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.LuminosityXor(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "NormalPlus" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct NormalPlus : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.NormalPlus(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.NormalPlus(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.NormalPlus(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "MultiplyPlus" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct MultiplyPlus : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.MultiplyPlus(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.MultiplyPlus(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.MultiplyPlus(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "AddPlus" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct AddPlus : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.AddPlus(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.AddPlus(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.AddPlus(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "SubtractPlus" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct SubtractPlus : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.SubtractPlus(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.SubtractPlus(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.SubtractPlus(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "ScreenPlus" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct ScreenPlus : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.ScreenPlus(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.ScreenPlus(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.ScreenPlus(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "DarkenPlus" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct DarkenPlus : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.DarkenPlus(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.DarkenPlus(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.DarkenPlus(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "LightenPlus" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct LightenPlus : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.LightenPlus(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.LightenPlus(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.LightenPlus(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "OverlayPlus" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct OverlayPlus : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.OverlayPlus(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.OverlayPlus(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.OverlayPlus(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "HardLightPlus" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct HardLightPlus : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.HardLightPlus(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.HardLightPlus(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.HardLightPlus(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "ColorDodgePlus" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct ColorDodgePlus : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.ColorDodgePlus(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.ColorDodgePlus(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.ColorDodgePlus(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "ColorBurnPlus" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct ColorBurnPlus : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.ColorBurnPlus(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.ColorBurnPlus(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.ColorBurnPlus(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "SoftLightPlus" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct SoftLightPlus : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.SoftLightPlus(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.SoftLightPlus(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.SoftLightPlus(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "DifferencePlus" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct DifferencePlus : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.DifferencePlus(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.DifferencePlus(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.DifferencePlus(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "ExclusionPlus" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct ExclusionPlus : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.ExclusionPlus(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.ExclusionPlus(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.ExclusionPlus(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "HuePlus" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct HuePlus : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.HuePlus(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.HuePlus(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.HuePlus(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "SaturationPlus" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct SaturationPlus : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.SaturationPlus(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.SaturationPlus(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.SaturationPlus(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "ColorPlus" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct ColorPlus : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.ColorPlus(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.ColorPlus(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.ColorPlus(background, source, amount);
+    }
+
+    /// <summary>
+    /// Applies the "LuminosityPlus" straight-alpha composition equation.
+    /// </summary>
+    public readonly struct LuminosityPlus : IPixelBlenderOperator
+    {
+        /// <inheritdoc />
+        public static bool IsAssociatedAlpha => false;
+
+        /// <inheritdoc />
+        public static Vector4 Invoke(Vector4 background, Vector4 source, float amount)
+            => PorterDuffFunctions.LuminosityPlus(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector256<float> Invoke(Vector256<float> background, Vector256<float> source, Vector256<float> amount)
+            => PorterDuffFunctions.LuminosityPlus(background, source, amount);
+
+        /// <inheritdoc />
+        public static Vector512<float> Invoke(Vector512<float> background, Vector512<float> source, Vector512<float> amount)
+            => PorterDuffFunctions.LuminosityPlus(background, source, amount);
+    }
+
 }
 
 /// <summary>
@@ -2335,6 +4981,51 @@ internal static class DefaultPixelBlenders<TPixel>
     public static PixelBlender<TPixel> HardLightSrc => PixelBlender<TPixel, DefaultPixelBlenderOperators.HardLightSrc>.Instance;
 
     /// <summary>
+    /// Gets the shared blender for the "ColorDodgeSrc" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> ColorDodgeSrc => PixelBlender<TPixel, DefaultPixelBlenderOperators.ColorDodgeSrc>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "ColorBurnSrc" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> ColorBurnSrc => PixelBlender<TPixel, DefaultPixelBlenderOperators.ColorBurnSrc>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "SoftLightSrc" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> SoftLightSrc => PixelBlender<TPixel, DefaultPixelBlenderOperators.SoftLightSrc>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "DifferenceSrc" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> DifferenceSrc => PixelBlender<TPixel, DefaultPixelBlenderOperators.DifferenceSrc>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "ExclusionSrc" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> ExclusionSrc => PixelBlender<TPixel, DefaultPixelBlenderOperators.ExclusionSrc>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "HueSrc" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> HueSrc => PixelBlender<TPixel, DefaultPixelBlenderOperators.HueSrc>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "SaturationSrc" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> SaturationSrc => PixelBlender<TPixel, DefaultPixelBlenderOperators.SaturationSrc>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "ColorSrc" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> ColorSrc => PixelBlender<TPixel, DefaultPixelBlenderOperators.ColorSrc>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "LuminositySrc" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> LuminositySrc => PixelBlender<TPixel, DefaultPixelBlenderOperators.LuminositySrc>.Instance;
+
+    /// <summary>
     /// Gets the shared blender for the "NormalSrcAtop" composition equation.
     /// </summary>
     public static PixelBlender<TPixel> NormalSrcAtop => PixelBlender<TPixel, DefaultPixelBlenderOperators.NormalSrcAtop>.Instance;
@@ -2378,6 +5069,51 @@ internal static class DefaultPixelBlenders<TPixel>
     /// Gets the shared blender for the "HardLightSrcAtop" composition equation.
     /// </summary>
     public static PixelBlender<TPixel> HardLightSrcAtop => PixelBlender<TPixel, DefaultPixelBlenderOperators.HardLightSrcAtop>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "ColorDodgeSrcAtop" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> ColorDodgeSrcAtop => PixelBlender<TPixel, DefaultPixelBlenderOperators.ColorDodgeSrcAtop>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "ColorBurnSrcAtop" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> ColorBurnSrcAtop => PixelBlender<TPixel, DefaultPixelBlenderOperators.ColorBurnSrcAtop>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "SoftLightSrcAtop" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> SoftLightSrcAtop => PixelBlender<TPixel, DefaultPixelBlenderOperators.SoftLightSrcAtop>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "DifferenceSrcAtop" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> DifferenceSrcAtop => PixelBlender<TPixel, DefaultPixelBlenderOperators.DifferenceSrcAtop>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "ExclusionSrcAtop" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> ExclusionSrcAtop => PixelBlender<TPixel, DefaultPixelBlenderOperators.ExclusionSrcAtop>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "HueSrcAtop" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> HueSrcAtop => PixelBlender<TPixel, DefaultPixelBlenderOperators.HueSrcAtop>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "SaturationSrcAtop" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> SaturationSrcAtop => PixelBlender<TPixel, DefaultPixelBlenderOperators.SaturationSrcAtop>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "ColorSrcAtop" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> ColorSrcAtop => PixelBlender<TPixel, DefaultPixelBlenderOperators.ColorSrcAtop>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "LuminositySrcAtop" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> LuminositySrcAtop => PixelBlender<TPixel, DefaultPixelBlenderOperators.LuminositySrcAtop>.Instance;
 
     /// <summary>
     /// Gets the shared blender for the "NormalSrcOver" composition equation.
@@ -2425,6 +5161,51 @@ internal static class DefaultPixelBlenders<TPixel>
     public static PixelBlender<TPixel> HardLightSrcOver => PixelBlender<TPixel, DefaultPixelBlenderOperators.HardLightSrcOver>.Instance;
 
     /// <summary>
+    /// Gets the shared blender for the "ColorDodgeSrcOver" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> ColorDodgeSrcOver => PixelBlender<TPixel, DefaultPixelBlenderOperators.ColorDodgeSrcOver>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "ColorBurnSrcOver" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> ColorBurnSrcOver => PixelBlender<TPixel, DefaultPixelBlenderOperators.ColorBurnSrcOver>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "SoftLightSrcOver" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> SoftLightSrcOver => PixelBlender<TPixel, DefaultPixelBlenderOperators.SoftLightSrcOver>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "DifferenceSrcOver" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> DifferenceSrcOver => PixelBlender<TPixel, DefaultPixelBlenderOperators.DifferenceSrcOver>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "ExclusionSrcOver" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> ExclusionSrcOver => PixelBlender<TPixel, DefaultPixelBlenderOperators.ExclusionSrcOver>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "HueSrcOver" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> HueSrcOver => PixelBlender<TPixel, DefaultPixelBlenderOperators.HueSrcOver>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "SaturationSrcOver" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> SaturationSrcOver => PixelBlender<TPixel, DefaultPixelBlenderOperators.SaturationSrcOver>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "ColorSrcOver" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> ColorSrcOver => PixelBlender<TPixel, DefaultPixelBlenderOperators.ColorSrcOver>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "LuminositySrcOver" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> LuminositySrcOver => PixelBlender<TPixel, DefaultPixelBlenderOperators.LuminositySrcOver>.Instance;
+
+    /// <summary>
     /// Gets the shared blender for the "NormalSrcIn" composition equation.
     /// </summary>
     public static PixelBlender<TPixel> NormalSrcIn => PixelBlender<TPixel, DefaultPixelBlenderOperators.NormalSrcIn>.Instance;
@@ -2468,6 +5249,51 @@ internal static class DefaultPixelBlenders<TPixel>
     /// Gets the shared blender for the "HardLightSrcIn" composition equation.
     /// </summary>
     public static PixelBlender<TPixel> HardLightSrcIn => PixelBlender<TPixel, DefaultPixelBlenderOperators.HardLightSrcIn>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "ColorDodgeSrcIn" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> ColorDodgeSrcIn => PixelBlender<TPixel, DefaultPixelBlenderOperators.ColorDodgeSrcIn>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "ColorBurnSrcIn" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> ColorBurnSrcIn => PixelBlender<TPixel, DefaultPixelBlenderOperators.ColorBurnSrcIn>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "SoftLightSrcIn" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> SoftLightSrcIn => PixelBlender<TPixel, DefaultPixelBlenderOperators.SoftLightSrcIn>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "DifferenceSrcIn" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> DifferenceSrcIn => PixelBlender<TPixel, DefaultPixelBlenderOperators.DifferenceSrcIn>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "ExclusionSrcIn" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> ExclusionSrcIn => PixelBlender<TPixel, DefaultPixelBlenderOperators.ExclusionSrcIn>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "HueSrcIn" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> HueSrcIn => PixelBlender<TPixel, DefaultPixelBlenderOperators.HueSrcIn>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "SaturationSrcIn" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> SaturationSrcIn => PixelBlender<TPixel, DefaultPixelBlenderOperators.SaturationSrcIn>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "ColorSrcIn" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> ColorSrcIn => PixelBlender<TPixel, DefaultPixelBlenderOperators.ColorSrcIn>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "LuminositySrcIn" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> LuminositySrcIn => PixelBlender<TPixel, DefaultPixelBlenderOperators.LuminositySrcIn>.Instance;
 
     /// <summary>
     /// Gets the shared blender for the "NormalSrcOut" composition equation.
@@ -2515,6 +5341,51 @@ internal static class DefaultPixelBlenders<TPixel>
     public static PixelBlender<TPixel> HardLightSrcOut => PixelBlender<TPixel, DefaultPixelBlenderOperators.HardLightSrcOut>.Instance;
 
     /// <summary>
+    /// Gets the shared blender for the "ColorDodgeSrcOut" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> ColorDodgeSrcOut => PixelBlender<TPixel, DefaultPixelBlenderOperators.ColorDodgeSrcOut>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "ColorBurnSrcOut" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> ColorBurnSrcOut => PixelBlender<TPixel, DefaultPixelBlenderOperators.ColorBurnSrcOut>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "SoftLightSrcOut" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> SoftLightSrcOut => PixelBlender<TPixel, DefaultPixelBlenderOperators.SoftLightSrcOut>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "DifferenceSrcOut" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> DifferenceSrcOut => PixelBlender<TPixel, DefaultPixelBlenderOperators.DifferenceSrcOut>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "ExclusionSrcOut" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> ExclusionSrcOut => PixelBlender<TPixel, DefaultPixelBlenderOperators.ExclusionSrcOut>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "HueSrcOut" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> HueSrcOut => PixelBlender<TPixel, DefaultPixelBlenderOperators.HueSrcOut>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "SaturationSrcOut" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> SaturationSrcOut => PixelBlender<TPixel, DefaultPixelBlenderOperators.SaturationSrcOut>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "ColorSrcOut" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> ColorSrcOut => PixelBlender<TPixel, DefaultPixelBlenderOperators.ColorSrcOut>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "LuminositySrcOut" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> LuminositySrcOut => PixelBlender<TPixel, DefaultPixelBlenderOperators.LuminositySrcOut>.Instance;
+
+    /// <summary>
     /// Gets the shared blender for the "NormalDest" composition equation.
     /// </summary>
     public static PixelBlender<TPixel> NormalDest => PixelBlender<TPixel, DefaultPixelBlenderOperators.NormalDest>.Instance;
@@ -2558,6 +5429,51 @@ internal static class DefaultPixelBlenders<TPixel>
     /// Gets the shared blender for the "HardLightDest" composition equation.
     /// </summary>
     public static PixelBlender<TPixel> HardLightDest => PixelBlender<TPixel, DefaultPixelBlenderOperators.HardLightDest>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "ColorDodgeDest" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> ColorDodgeDest => PixelBlender<TPixel, DefaultPixelBlenderOperators.ColorDodgeDest>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "ColorBurnDest" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> ColorBurnDest => PixelBlender<TPixel, DefaultPixelBlenderOperators.ColorBurnDest>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "SoftLightDest" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> SoftLightDest => PixelBlender<TPixel, DefaultPixelBlenderOperators.SoftLightDest>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "DifferenceDest" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> DifferenceDest => PixelBlender<TPixel, DefaultPixelBlenderOperators.DifferenceDest>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "ExclusionDest" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> ExclusionDest => PixelBlender<TPixel, DefaultPixelBlenderOperators.ExclusionDest>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "HueDest" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> HueDest => PixelBlender<TPixel, DefaultPixelBlenderOperators.HueDest>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "SaturationDest" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> SaturationDest => PixelBlender<TPixel, DefaultPixelBlenderOperators.SaturationDest>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "ColorDest" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> ColorDest => PixelBlender<TPixel, DefaultPixelBlenderOperators.ColorDest>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "LuminosityDest" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> LuminosityDest => PixelBlender<TPixel, DefaultPixelBlenderOperators.LuminosityDest>.Instance;
 
     /// <summary>
     /// Gets the shared blender for the "NormalDestAtop" composition equation.
@@ -2605,6 +5521,51 @@ internal static class DefaultPixelBlenders<TPixel>
     public static PixelBlender<TPixel> HardLightDestAtop => PixelBlender<TPixel, DefaultPixelBlenderOperators.HardLightDestAtop>.Instance;
 
     /// <summary>
+    /// Gets the shared blender for the "ColorDodgeDestAtop" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> ColorDodgeDestAtop => PixelBlender<TPixel, DefaultPixelBlenderOperators.ColorDodgeDestAtop>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "ColorBurnDestAtop" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> ColorBurnDestAtop => PixelBlender<TPixel, DefaultPixelBlenderOperators.ColorBurnDestAtop>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "SoftLightDestAtop" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> SoftLightDestAtop => PixelBlender<TPixel, DefaultPixelBlenderOperators.SoftLightDestAtop>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "DifferenceDestAtop" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> DifferenceDestAtop => PixelBlender<TPixel, DefaultPixelBlenderOperators.DifferenceDestAtop>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "ExclusionDestAtop" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> ExclusionDestAtop => PixelBlender<TPixel, DefaultPixelBlenderOperators.ExclusionDestAtop>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "HueDestAtop" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> HueDestAtop => PixelBlender<TPixel, DefaultPixelBlenderOperators.HueDestAtop>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "SaturationDestAtop" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> SaturationDestAtop => PixelBlender<TPixel, DefaultPixelBlenderOperators.SaturationDestAtop>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "ColorDestAtop" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> ColorDestAtop => PixelBlender<TPixel, DefaultPixelBlenderOperators.ColorDestAtop>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "LuminosityDestAtop" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> LuminosityDestAtop => PixelBlender<TPixel, DefaultPixelBlenderOperators.LuminosityDestAtop>.Instance;
+
+    /// <summary>
     /// Gets the shared blender for the "NormalDestOver" composition equation.
     /// </summary>
     public static PixelBlender<TPixel> NormalDestOver => PixelBlender<TPixel, DefaultPixelBlenderOperators.NormalDestOver>.Instance;
@@ -2648,6 +5609,51 @@ internal static class DefaultPixelBlenders<TPixel>
     /// Gets the shared blender for the "HardLightDestOver" composition equation.
     /// </summary>
     public static PixelBlender<TPixel> HardLightDestOver => PixelBlender<TPixel, DefaultPixelBlenderOperators.HardLightDestOver>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "ColorDodgeDestOver" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> ColorDodgeDestOver => PixelBlender<TPixel, DefaultPixelBlenderOperators.ColorDodgeDestOver>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "ColorBurnDestOver" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> ColorBurnDestOver => PixelBlender<TPixel, DefaultPixelBlenderOperators.ColorBurnDestOver>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "SoftLightDestOver" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> SoftLightDestOver => PixelBlender<TPixel, DefaultPixelBlenderOperators.SoftLightDestOver>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "DifferenceDestOver" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> DifferenceDestOver => PixelBlender<TPixel, DefaultPixelBlenderOperators.DifferenceDestOver>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "ExclusionDestOver" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> ExclusionDestOver => PixelBlender<TPixel, DefaultPixelBlenderOperators.ExclusionDestOver>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "HueDestOver" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> HueDestOver => PixelBlender<TPixel, DefaultPixelBlenderOperators.HueDestOver>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "SaturationDestOver" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> SaturationDestOver => PixelBlender<TPixel, DefaultPixelBlenderOperators.SaturationDestOver>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "ColorDestOver" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> ColorDestOver => PixelBlender<TPixel, DefaultPixelBlenderOperators.ColorDestOver>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "LuminosityDestOver" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> LuminosityDestOver => PixelBlender<TPixel, DefaultPixelBlenderOperators.LuminosityDestOver>.Instance;
 
     /// <summary>
     /// Gets the shared blender for the "NormalDestIn" composition equation.
@@ -2695,6 +5701,51 @@ internal static class DefaultPixelBlenders<TPixel>
     public static PixelBlender<TPixel> HardLightDestIn => PixelBlender<TPixel, DefaultPixelBlenderOperators.HardLightDestIn>.Instance;
 
     /// <summary>
+    /// Gets the shared blender for the "ColorDodgeDestIn" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> ColorDodgeDestIn => PixelBlender<TPixel, DefaultPixelBlenderOperators.ColorDodgeDestIn>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "ColorBurnDestIn" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> ColorBurnDestIn => PixelBlender<TPixel, DefaultPixelBlenderOperators.ColorBurnDestIn>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "SoftLightDestIn" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> SoftLightDestIn => PixelBlender<TPixel, DefaultPixelBlenderOperators.SoftLightDestIn>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "DifferenceDestIn" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> DifferenceDestIn => PixelBlender<TPixel, DefaultPixelBlenderOperators.DifferenceDestIn>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "ExclusionDestIn" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> ExclusionDestIn => PixelBlender<TPixel, DefaultPixelBlenderOperators.ExclusionDestIn>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "HueDestIn" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> HueDestIn => PixelBlender<TPixel, DefaultPixelBlenderOperators.HueDestIn>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "SaturationDestIn" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> SaturationDestIn => PixelBlender<TPixel, DefaultPixelBlenderOperators.SaturationDestIn>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "ColorDestIn" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> ColorDestIn => PixelBlender<TPixel, DefaultPixelBlenderOperators.ColorDestIn>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "LuminosityDestIn" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> LuminosityDestIn => PixelBlender<TPixel, DefaultPixelBlenderOperators.LuminosityDestIn>.Instance;
+
+    /// <summary>
     /// Gets the shared blender for the "NormalDestOut" composition equation.
     /// </summary>
     public static PixelBlender<TPixel> NormalDestOut => PixelBlender<TPixel, DefaultPixelBlenderOperators.NormalDestOut>.Instance;
@@ -2738,6 +5789,51 @@ internal static class DefaultPixelBlenders<TPixel>
     /// Gets the shared blender for the "HardLightDestOut" composition equation.
     /// </summary>
     public static PixelBlender<TPixel> HardLightDestOut => PixelBlender<TPixel, DefaultPixelBlenderOperators.HardLightDestOut>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "ColorDodgeDestOut" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> ColorDodgeDestOut => PixelBlender<TPixel, DefaultPixelBlenderOperators.ColorDodgeDestOut>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "ColorBurnDestOut" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> ColorBurnDestOut => PixelBlender<TPixel, DefaultPixelBlenderOperators.ColorBurnDestOut>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "SoftLightDestOut" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> SoftLightDestOut => PixelBlender<TPixel, DefaultPixelBlenderOperators.SoftLightDestOut>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "DifferenceDestOut" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> DifferenceDestOut => PixelBlender<TPixel, DefaultPixelBlenderOperators.DifferenceDestOut>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "ExclusionDestOut" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> ExclusionDestOut => PixelBlender<TPixel, DefaultPixelBlenderOperators.ExclusionDestOut>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "HueDestOut" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> HueDestOut => PixelBlender<TPixel, DefaultPixelBlenderOperators.HueDestOut>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "SaturationDestOut" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> SaturationDestOut => PixelBlender<TPixel, DefaultPixelBlenderOperators.SaturationDestOut>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "ColorDestOut" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> ColorDestOut => PixelBlender<TPixel, DefaultPixelBlenderOperators.ColorDestOut>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "LuminosityDestOut" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> LuminosityDestOut => PixelBlender<TPixel, DefaultPixelBlenderOperators.LuminosityDestOut>.Instance;
 
     /// <summary>
     /// Gets the shared blender for the "NormalClear" composition equation.
@@ -2785,6 +5881,51 @@ internal static class DefaultPixelBlenders<TPixel>
     public static PixelBlender<TPixel> HardLightClear => PixelBlender<TPixel, DefaultPixelBlenderOperators.HardLightClear>.Instance;
 
     /// <summary>
+    /// Gets the shared blender for the "ColorDodgeClear" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> ColorDodgeClear => PixelBlender<TPixel, DefaultPixelBlenderOperators.ColorDodgeClear>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "ColorBurnClear" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> ColorBurnClear => PixelBlender<TPixel, DefaultPixelBlenderOperators.ColorBurnClear>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "SoftLightClear" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> SoftLightClear => PixelBlender<TPixel, DefaultPixelBlenderOperators.SoftLightClear>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "DifferenceClear" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> DifferenceClear => PixelBlender<TPixel, DefaultPixelBlenderOperators.DifferenceClear>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "ExclusionClear" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> ExclusionClear => PixelBlender<TPixel, DefaultPixelBlenderOperators.ExclusionClear>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "HueClear" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> HueClear => PixelBlender<TPixel, DefaultPixelBlenderOperators.HueClear>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "SaturationClear" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> SaturationClear => PixelBlender<TPixel, DefaultPixelBlenderOperators.SaturationClear>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "ColorClear" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> ColorClear => PixelBlender<TPixel, DefaultPixelBlenderOperators.ColorClear>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "LuminosityClear" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> LuminosityClear => PixelBlender<TPixel, DefaultPixelBlenderOperators.LuminosityClear>.Instance;
+
+    /// <summary>
     /// Gets the shared blender for the "NormalXor" composition equation.
     /// </summary>
     public static PixelBlender<TPixel> NormalXor => PixelBlender<TPixel, DefaultPixelBlenderOperators.NormalXor>.Instance;
@@ -2828,5 +5969,140 @@ internal static class DefaultPixelBlenders<TPixel>
     /// Gets the shared blender for the "HardLightXor" composition equation.
     /// </summary>
     public static PixelBlender<TPixel> HardLightXor => PixelBlender<TPixel, DefaultPixelBlenderOperators.HardLightXor>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "ColorDodgeXor" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> ColorDodgeXor => PixelBlender<TPixel, DefaultPixelBlenderOperators.ColorDodgeXor>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "ColorBurnXor" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> ColorBurnXor => PixelBlender<TPixel, DefaultPixelBlenderOperators.ColorBurnXor>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "SoftLightXor" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> SoftLightXor => PixelBlender<TPixel, DefaultPixelBlenderOperators.SoftLightXor>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "DifferenceXor" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> DifferenceXor => PixelBlender<TPixel, DefaultPixelBlenderOperators.DifferenceXor>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "ExclusionXor" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> ExclusionXor => PixelBlender<TPixel, DefaultPixelBlenderOperators.ExclusionXor>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "HueXor" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> HueXor => PixelBlender<TPixel, DefaultPixelBlenderOperators.HueXor>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "SaturationXor" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> SaturationXor => PixelBlender<TPixel, DefaultPixelBlenderOperators.SaturationXor>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "ColorXor" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> ColorXor => PixelBlender<TPixel, DefaultPixelBlenderOperators.ColorXor>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "LuminosityXor" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> LuminosityXor => PixelBlender<TPixel, DefaultPixelBlenderOperators.LuminosityXor>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "NormalPlus" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> NormalPlus => PixelBlender<TPixel, DefaultPixelBlenderOperators.NormalPlus>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "MultiplyPlus" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> MultiplyPlus => PixelBlender<TPixel, DefaultPixelBlenderOperators.MultiplyPlus>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "AddPlus" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> AddPlus => PixelBlender<TPixel, DefaultPixelBlenderOperators.AddPlus>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "SubtractPlus" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> SubtractPlus => PixelBlender<TPixel, DefaultPixelBlenderOperators.SubtractPlus>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "ScreenPlus" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> ScreenPlus => PixelBlender<TPixel, DefaultPixelBlenderOperators.ScreenPlus>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "DarkenPlus" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> DarkenPlus => PixelBlender<TPixel, DefaultPixelBlenderOperators.DarkenPlus>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "LightenPlus" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> LightenPlus => PixelBlender<TPixel, DefaultPixelBlenderOperators.LightenPlus>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "OverlayPlus" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> OverlayPlus => PixelBlender<TPixel, DefaultPixelBlenderOperators.OverlayPlus>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "HardLightPlus" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> HardLightPlus => PixelBlender<TPixel, DefaultPixelBlenderOperators.HardLightPlus>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "ColorDodgePlus" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> ColorDodgePlus => PixelBlender<TPixel, DefaultPixelBlenderOperators.ColorDodgePlus>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "ColorBurnPlus" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> ColorBurnPlus => PixelBlender<TPixel, DefaultPixelBlenderOperators.ColorBurnPlus>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "SoftLightPlus" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> SoftLightPlus => PixelBlender<TPixel, DefaultPixelBlenderOperators.SoftLightPlus>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "DifferencePlus" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> DifferencePlus => PixelBlender<TPixel, DefaultPixelBlenderOperators.DifferencePlus>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "ExclusionPlus" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> ExclusionPlus => PixelBlender<TPixel, DefaultPixelBlenderOperators.ExclusionPlus>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "HuePlus" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> HuePlus => PixelBlender<TPixel, DefaultPixelBlenderOperators.HuePlus>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "SaturationPlus" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> SaturationPlus => PixelBlender<TPixel, DefaultPixelBlenderOperators.SaturationPlus>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "ColorPlus" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> ColorPlus => PixelBlender<TPixel, DefaultPixelBlenderOperators.ColorPlus>.Instance;
+
+    /// <summary>
+    /// Gets the shared blender for the "LuminosityPlus" composition equation.
+    /// </summary>
+    public static PixelBlender<TPixel> LuminosityPlus => PixelBlender<TPixel, DefaultPixelBlenderOperators.LuminosityPlus>.Instance;
 
 }

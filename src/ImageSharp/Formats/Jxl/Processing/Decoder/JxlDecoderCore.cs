@@ -73,7 +73,7 @@ internal sealed class JxlDecoderCore : ImageDecoderCore
     /// <returns>Boolean indicating whether the coordinates are out of bounds</returns>
     private static bool IsOutOfBounds(int a, int b, int size)
     {
-        int position = a + b;
+        long position = a + b;
 
         return position > size || position < a;
     }

@@ -55,6 +55,8 @@ internal static class JxlCoefficientOrder
 
     public static bool ReadPermutation(int skip, int size, Span<int> order, JxlBitReader bitReader, JxlAnsSymbolReader reader, Span<byte> contextMap)
     {
+        DebugGuard.MustBeLessThanOrEqualTo(size, 65536, nameof(size));
+
         Span<uint> lehmer = stackalloc uint[size];
         lehmer.Clear();
 

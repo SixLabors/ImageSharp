@@ -46,6 +46,13 @@ internal class JxlImage3<T> : IDisposable
         return rowSpan;
     }
 
+    public Span<T> PlaneRow(Rectangle rectangle, int c, int y)
+    {
+        DebugGuard.MustBeGreaterThanOrEqualTo(y + rectangle.Top, 0, nameof(y));
+
+        return this.PlaneRow(c, y + rectangle.Top)[rectangle.Left..];
+    }
+
     public JxlPlane<T> Plane(int index) => this.planes[index];
 
     public void Swap(JxlImage3<T> other)

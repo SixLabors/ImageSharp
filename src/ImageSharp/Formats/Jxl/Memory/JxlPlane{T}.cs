@@ -36,6 +36,17 @@ internal class JxlPlane<T> : JxlPlaneBase
 
     public Span<T> GetRow(int y) => this.GetRowBase<T>(y);
 
+    public Span<T> GetRow(Rectangle rectangle, int y)
+    {
+        DebugGuard.MustBeGreaterThanOrEqualTo(y + rectangle.Top, 0, nameof(y));
+
+        return this.GetRow(y + rectangle.Top)[rectangle.Left..];
+    }
+
+    public bool IsRectangleInside(Rectangle rectangle) => rectangle.Contains(this.GetRectangle());
+
+    public Rectangle GetRectangle() => new(0, 0, this.XSize, this.YSize);
+
     /// <summary>
     /// Fills everything in this image with 0.
     /// </summary>

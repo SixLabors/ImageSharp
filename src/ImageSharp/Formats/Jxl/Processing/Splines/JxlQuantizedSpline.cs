@@ -3,6 +3,7 @@
 
 using System.Buffers;
 using System.Runtime.CompilerServices;
+using SixLabors.ImageSharp.Formats.Jxl.Processing.Decoder;
 
 namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Splines;
 
@@ -269,8 +270,8 @@ internal sealed class JxlQuantizedSpline : IDisposable
         {
             ref JxlControlPoint controlPoint = ref controlPoints[i];
 
-            controlPoint.First = UnpackSigned(decoder.ReadHybridUnsignedInteger(ControlPointsContext, br, contextMap));
-            controlPoint.Second = UnpackSigned(decoder.ReadHybridUnsignedInteger(ControlPointsContext, br, contextMap));
+            controlPoint.First = JxlPackSigned.UnpackSigned(decoder.ReadHybridUnsignedInteger(ControlPointsContext, br, contextMap));
+            controlPoint.Second = JxlPackSigned.UnpackSigned(decoder.ReadHybridUnsignedInteger(ControlPointsContext, br, contextMap));
 
             if (controlPoint.First >= deltaLimit || controlPoint.First <= -deltaLimit ||
                 controlPoint.Second >= deltaLimit || controlPoint.Second <= -deltaLimit)
@@ -300,7 +301,7 @@ internal sealed class JxlQuantizedSpline : IDisposable
 
             for (int i = 0; i < 32; i++)
             {
-                dct[i] = UnpackSigned(decoder.ReadHybridUnsignedInteger(DctContext, br, contextMap));
+                dct[i] = JxlPackSigned.UnpackSigned(decoder.ReadHybridUnsignedInteger(DctContext, br, contextMap));
                 if (dct[i] == invalidCoefficient)
                 {
                     throw new InvalidOperationException("The DCT coefficient is invalid");

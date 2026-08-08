@@ -11,4 +11,9 @@ internal sealed class JxlImage3F : JxlImage3<float>
     public JxlImage3F()
     {
     }
+
+    public JxlImage3F(Configuration configuration, int xSize, int ySize)
+        : base(configuration, xSize, ySize)
+    {
+    }
 }

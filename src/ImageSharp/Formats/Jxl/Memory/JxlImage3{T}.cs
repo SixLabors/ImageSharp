@@ -17,6 +17,9 @@ internal class JxlImage3<T> : IDisposable
     {
     }
 
+    public JxlImage3(Configuration configuration, int xSize, int ySize)
+        => this.Allocate(configuration, xSize, ySize);
+
     public JxlImage3(JxlImage3<T> other)
     {
         for (int i = 0; i < PlaneCount; i++)
@@ -54,15 +57,15 @@ internal class JxlImage3<T> : IDisposable
     }
 
     public static JxlImage3<T> Create(Configuration configuration, int xSize, int ySize)
+        => new(configuration, xSize, ySize);
+
+    public void Allocate(Configuration configuration, int xSize, int ySize)
     {
         JxlPlane<T> plane0 = JxlPlane<T>.Create(configuration, xSize, ySize);
         JxlPlane<T> plane1 = JxlPlane<T>.Create(configuration, xSize, ySize);
         JxlPlane<T> plane2 = JxlPlane<T>.Create(configuration, xSize, ySize);
 
-        return new JxlImage3<T>()
-        {
-            planes = [plane0, plane1, plane2]
-        };
+        this.planes = [plane0, plane1, plane2];
     }
 
     public bool ShrinkTo(int x, int y)

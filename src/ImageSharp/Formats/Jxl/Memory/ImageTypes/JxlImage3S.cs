@@ -11,4 +11,9 @@ internal sealed class JxlImage3S : JxlImage3<short>
     public JxlImage3S()
     {
     }
+
+    public JxlImage3S(Configuration configuration, int xSize, int ySize)
+        : base(configuration, xSize, ySize)
+    {
+    }
 }

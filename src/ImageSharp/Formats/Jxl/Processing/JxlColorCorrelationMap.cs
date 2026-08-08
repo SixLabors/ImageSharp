@@ -19,7 +19,7 @@ internal sealed class JxlColorCorrelationMap
 
     public bool DecodeDc(JxlBitReader reader) => this.Base.DecodeDc(reader);
 
-    public static JxlColorCorrelationMap Create(Configuration configuration, int width, int height, bool xyb)
+    public static JxlColorCorrelationMap Create(Configuration configuration, int width, int height, bool xyb = true)
     {
         JxlColorCorrelationMap map = new();
 

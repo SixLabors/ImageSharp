@@ -155,7 +155,7 @@ internal static class JxlAnsReader
                 return counts;
             }
 
-            int upperBoundLog = FloorLog2Nonzero(JxlAnsConstants.AnsLogTableSize + 1);
+            int upperBoundLog = JxlMath.FloorLog2Nonzero(JxlAnsConstants.AnsLogTableSize + 1);
             int log = 0;
 
             for (; log < upperBoundLog; log++)

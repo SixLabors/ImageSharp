@@ -94,7 +94,6 @@ internal struct JxlAcStrategy
     private static void CoefficientOrderAndLookup(JxlAcStrategy strategy, bool isLookup, Span<int> output)
     {
         // TODO: CoefficientLayout
-        // TODO: CeilLog2Nonzero
         int cx = strategy.CoveredBlocksX;
         int cy = strategy.CoveredBlocksY;
 
@@ -102,7 +101,7 @@ internal struct JxlAcStrategy
 
         int xs = cx / cy;
         int xsm = xs - 1;
-        int xss = CeilLog2Nonzero(xs);
+        int xss = JxlMath.CeilLog2Nonzero(xs);
         int cur = cx * cy;
 
         for (int i = 0; i < cx * BlockDimensions; i++)

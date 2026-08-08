@@ -216,7 +216,7 @@ internal sealed class JxlQuantizedSpline : IDisposable
         color[2] += (long)MathF.Ceiling(MathF.Abs(yToB)) * color[1];
 
         long maxColor = Math.Max(color[1], Math.Max(color[0], color[2]));
-        long logColor = Math.Max(1L, (long)CeilLog2Nonzero(1L + maxColor));
+        long logColor = Math.Max(1L, JxlMath.CeilLog2Nonzero(1L + maxColor));
         float weightLimit = MathF.Ceiling(MathF.Sqrt((float)areaLimit / logColor) / MathF.Max(1, manhattanDistance));
 
         for (int i = 0; i < 32; i++)

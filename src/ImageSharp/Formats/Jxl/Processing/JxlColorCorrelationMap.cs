@@ -23,7 +23,7 @@ internal sealed class JxlColorCorrelationMap
     {
         JxlColorCorrelationMap map = new();
 
-        (int xBlocks, int yBlocks) = (DivCeil(width, JxlChromaFromLuma.ColorTileDimension), DivCeil(height, JxlChromaFromLuma.ColorTileDimension));
+        (int xBlocks, int yBlocks) = (JxlMath.DivCeil(width, JxlChromaFromLuma.ColorTileDimension), JxlMath.DivCeil(height, JxlChromaFromLuma.ColorTileDimension));
 
         map.YToXMap = new JxlImageSB(configuration, xBlocks, yBlocks);
         map.YToBMap = new JxlImageSB(configuration, xBlocks, yBlocks);

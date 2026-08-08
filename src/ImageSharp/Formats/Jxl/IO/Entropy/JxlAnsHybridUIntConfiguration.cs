@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.Formats.Jxl.Fields;
+using SixLabors.ImageSharp.Formats.Jxl.Processing;
 
 namespace SixLabors.ImageSharp.Formats.Jxl.IO.Entropy;
 
@@ -40,7 +41,7 @@ internal sealed class JxlAnsHybridUIntConfiguration : IJxlFields
         }
         else
         {
-            uint n = FloorLog2Nonzero(value);
+            uint n = JxlMath.FloorLog2Nonzero(value);
             uint m = value - (1u << (int)n);
 
             unchecked

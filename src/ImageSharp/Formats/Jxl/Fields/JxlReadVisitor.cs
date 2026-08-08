@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.Formats.Jxl.Processing;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Decoder;
 
 namespace SixLabors.ImageSharp.Formats.Jxl.Fields;
@@ -56,13 +57,13 @@ internal sealed class JxlReadVisitor(JxlBitReader reader) : JxlVisitorBase
 
         for (ulong remainingExtensions = extensions; remainingExtensions != 0; remainingExtensions &= remainingExtensions - 1)
         {
-            int idxExtension = Num0BitsBelowLS1BitNonzero(remainingExtensions);
+            ulong idxExtension = JxlMath.Num0BitsBelowLS1Bit_Nonzero(remainingExtensions);
             if (!this.U64(0, ref this.extensionBits[idxExtension]))
             {
                 return false;
             }
 
-            if (!SafeAdd(this.totalExtensionBits, this.extensionBits[idxExtension], ref this.totalExtensionBits))
+            if (!JxlMath.SafeAdd(this.totalExtensionBits, this.extensionBits[idxExtension], ref this.totalExtensionBits))
             {
                 DebugGuard.IsTrue(false, "Extension bits overflow; the codestream is not valid");
 
@@ -94,7 +95,7 @@ internal sealed class JxlReadVisitor(JxlBitReader reader) : JxlVisitorBase
         long bitsRead = reader.TotalBitsConsumed;
 
         long end = 0;
-        if (!SafeAdd(this.posAfterExtSize, this.totalExtensionBits, ref end))
+        if (!JxlMath.SafeAdd(this.posAfterExtSize, this.totalExtensionBits, ref end))
         {
             DebugGuard.IsTrue(false, "Invalid extension size.");
 

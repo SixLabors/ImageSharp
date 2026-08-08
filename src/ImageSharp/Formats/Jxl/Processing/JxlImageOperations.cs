@@ -464,7 +464,7 @@ internal static class JxlImageOperations
     /// <returns>A new downsampled image. It can later be disposed.</returns>
     public static JxlImageF? DownsampleImage(Configuration configuration, JxlImageF image, int factor)
     {
-        JxlImageF downsampled = JxlImageF.Create(
+        JxlImageF downsampled = new(
             configuration,
             JxlMath.DivCeil(image.XSize, factor) + JxlFrameDimensions.BlockDimensions,
             JxlMath.DivCeil(image.YSize, factor) + JxlFrameDimensions.BlockDimensions);
@@ -492,7 +492,7 @@ internal static class JxlImageOperations
             return null;
         }
 
-        JxlImage3F downsampled = JxlImage3F.Create(
+        JxlImage3F downsampled = new(
             configuration,
             JxlMath.DivCeil(opsin.XSize, factor) + JxlFrameDimensions.BlockDimensions,
             JxlMath.DivCeil(opsin.YSize, factor) + JxlFrameDimensions.BlockDimensions);

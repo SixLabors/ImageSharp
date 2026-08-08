@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.Formats.Jxl.Processing;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Decoder;
 
 namespace SixLabors.ImageSharp.Formats.Jxl.Fields;
@@ -72,7 +73,7 @@ internal static class JxlU32Coder
     /// </summary>
     public static bool ChooseSelector(in JxlU32Enc enc, uint value, ref uint selector, ref int totalBits)
     {
-        int bitsRequired = 32 - Num0BitsAboveMS1Bit(value);
+        int bitsRequired = 32 - JxlMath.Num0BitsAboveMS1Bit(value);
 
         if (bitsRequired > 32)
         {

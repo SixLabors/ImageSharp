@@ -1,8 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Runtime.CompilerServices;
-
 namespace SixLabors.ImageSharp.Formats.Jxl.Processing;
 
 internal sealed class JxlFrameDimensions
@@ -18,10 +16,10 @@ internal sealed class JxlFrameDimensions
         this.DcGroupDimension = this.GroupDimension * BlockDimensions;
         this.XSizeUpsampled = xSizePixel;
         this.YSizeUpsampled = ySizePixel;
-        this.XSize = DivCeil(xSizePixel, upsampling);
-        this.YSize = DivCeil(ySizePixel, upsampling);
-        this.XSizeBlocks = DivCeil(this.XSize, BlockDimensions << maxHorizontalShift) << maxHorizontalShift;
-        this.YSizeBlocks = DivCeil(this.YSize, BlockDimensions << maxVerticalShift) << maxVerticalShift;
+        this.XSize = JxlMath.DivCeil(xSizePixel, upsampling);
+        this.YSize = JxlMath.DivCeil(ySizePixel, upsampling);
+        this.XSizeBlocks = JxlMath.DivCeil(this.XSize, BlockDimensions << maxHorizontalShift) << maxHorizontalShift;
+        this.YSizeBlocks = JxlMath.DivCeil(this.YSize, BlockDimensions << maxVerticalShift) << maxVerticalShift;
         this.XSizePadded = this.XSizeBlocks * BlockDimensions;
         this.YSizePadded = this.YSizeBlocks * BlockDimensions;
 
@@ -33,10 +31,10 @@ internal sealed class JxlFrameDimensions
 
         this.XSizeUpsampledPadded = this.XSizePadded * upsampling;
         this.YSizeUpsampledPadded = this.YSizePadded * upsampling;
-        this.XSizeGroups = DivCeil(this.XSize, GroupDimensions);
-        this.YSizeGroups = DivCeil(this.YSize, GroupDimensions);
-        this.XSizeDcGroups = DivCeil(this.XSizeBlocks, GroupDimensions);
-        this.YSizeDcGroups = DivCeil(this.YSizeBlocks, GroupDimensions);
+        this.XSizeGroups = JxlMath.DivCeil(this.XSize, GroupDimensions);
+        this.YSizeGroups = JxlMath.DivCeil(this.YSize, GroupDimensions);
+        this.XSizeDcGroups = JxlMath.DivCeil(this.XSizeBlocks, GroupDimensions);
+        this.YSizeDcGroups = JxlMath.DivCeil(this.YSizeBlocks, GroupDimensions);
         this.NumGroups = this.XSizeGroups * this.YSizeGroups;
         this.NumDcGroups = this.XSizeDcGroups * this.YSizeDcGroups;
     }
@@ -76,7 +74,4 @@ internal sealed class JxlFrameDimensions
     public int GroupDimension { get; set; }
 
     public int DcGroupDimension { get; set; }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static int DivCeil(int x, int y) => x / y;
 }

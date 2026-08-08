@@ -141,10 +141,10 @@ internal sealed class JxlHuffmanDecoder
     /// <returns>Status of the operation</returns>
     public static bool ReadSimpleCode(int alphabetSize, JxlBitReader br, Span<JxlHuffmanCode> table)
     {
-        int maxBits = (alphabetSize > 1) ? FloorLog2Nonzero(alphabetSize - 1) + 1 : 0;
+        int maxBits = (alphabetSize > 1) ? JxlMath.FloorLog2Nonzero(alphabetSize - 1) + 1 : 0;
         uint symbolCount = br.ReadBits32(2u) + 1u;
 
-        Span<ushort> symbols = stackalloc ushort[4];
+        scoped Span<ushort> symbols = stackalloc ushort[4];
         symbols.Clear();    // Clearing is necessary. Not every value will be initialized.
 
         for (int i = 0; i < symbolCount; i++)

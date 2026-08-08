@@ -52,7 +52,7 @@ internal static class JxlLehmerCode
             return false;
         }
 
-        int log2n = CeilLog2Nonzero(n);
+        int log2n = JxlMath.CeilLog2Nonzero(n);
         int paddedN = 1 << log2n;
 
         for (int i = 0; i < paddedN; i++)

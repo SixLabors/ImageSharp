@@ -7,6 +7,7 @@ using SixLabors.ImageSharp.Formats.Pbm;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.TestUtilities;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
+using SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs;
 using static SixLabors.ImageSharp.Tests.TestImages.Pbm;
 
 // ReSharper disable InconsistentNaming
@@ -26,6 +27,7 @@ public class PbmDecoderTests
     [InlineData(RgbPlain, PbmColorType.Rgb, PbmComponentType.Byte)]
     [InlineData(RgbPlainMagick, PbmColorType.Rgb, PbmComponentType.Byte)]
     [InlineData(RgbBinary, PbmColorType.Rgb, PbmComponentType.Byte)]
+    [InlineData(RgbBinaryWide, PbmColorType.Rgb, PbmComponentType.Short)]
     public void ImageLoadCanDecode(string imagePath, PbmColorType expectedColorType, PbmComponentType expectedComponentType)
     {
         // Arrange
@@ -91,6 +93,7 @@ public class PbmDecoderTests
     [WithFile(RgbPlain, PixelTypes.Rgb24, "ppm")]
     [WithFile(RgbPlainNormalized, PixelTypes.Rgb24, "ppm")]
     [WithFile(RgbBinary, PixelTypes.Rgb24, "ppm")]
+    [WithFile(RgbBinaryWide, PixelTypes.Rgb48, "ppm")]
     public void DecodeReferenceImage<TPixel>(TestImageProvider<TPixel> provider, string extension)
         where TPixel : unmanaged, IPixel<TPixel>
     {
@@ -99,6 +102,65 @@ public class PbmDecoderTests
 
         bool isGrayscale = extension is "pgm" or "pbm";
         image.CompareToReferenceOutput(provider, grayscale: isGrayscale);
+    }
+
+    [Theory]
+    [WithFile(GrayscaleBinaryWide, PixelTypes.Rgb48)]
+    [WithFile(RgbBinaryWide, PixelTypes.Rgb48)]
+    public void Decode_WideBinary_MatchesReferenceDecoder<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage(PbmDecoder.Instance);
+        image.CompareToOriginal(provider, ImageComparer.Exact, new MagickReferenceDecoder(PbmFormat.Instance));
+    }
+
+    [Fact]
+    public void Decode_WideBinaryGrayscale_SamplesAreBigEndian()
+    {
+        // Per the Netpbm specification, 16-bit samples store the most significant byte first.
+        byte[] header = Encoding.ASCII.GetBytes("P5\n2 1\n65535\n");
+        byte[] samples = [0x80, 0x00, 0x00, 0x80];
+        byte[] data = [.. header, .. samples];
+
+        using Image<L16> image = Image.Load<L16>(data);
+
+        Assert.Equal(0x8000, image[0, 0].PackedValue);
+        Assert.Equal(0x0080, image[1, 0].PackedValue);
+    }
+
+    [Fact]
+    public void Decode_WideBinaryRgb_SamplesAreBigEndian()
+    {
+        // Per the Netpbm specification, 16-bit samples store the most significant byte first.
+        byte[] header = Encoding.ASCII.GetBytes("P6\n1 1\n65535\n");
+        byte[] samples = [0x81, 0xB5, 0x84, 0x91, 0x86, 0x71];
+        byte[] data = [.. header, .. samples];
+
+        using Image<Rgb48> image = Image.Load<Rgb48>(data);
+
+        Assert.Equal(new Rgb48(0x81B5, 0x8491, 0x8671), image[0, 0]);
+    }
+
+    [Fact]
+    public void Decode_NonStandardByteMaxPixelValue_UpscalesToFullRange()
+    {
+        byte[] data = Encoding.ASCII.GetBytes("P2\n1 1\n100\n100");
+
+        using Image<L8> image = Image.Load<L8>(data);
+
+        Assert.Equal(255, image[0, 0].PackedValue);
+    }
+
+    [Fact]
+    public void Decode_NonStandardShortMaxPixelValue_UpscalesToFullRange()
+    {
+        byte[] header = Encoding.ASCII.GetBytes("P5\n1 1\n1000\n");
+        byte[] samples = [0x03, 0xE8];
+        byte[] data = [.. header, .. samples];
+
+        using Image<L16> image = Image.Load<L16>(data);
+
+        Assert.Equal(65535, image[0, 0].PackedValue);
     }
 
     [Theory]

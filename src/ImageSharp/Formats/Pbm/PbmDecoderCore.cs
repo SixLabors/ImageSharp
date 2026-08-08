@@ -53,9 +53,7 @@ internal sealed class PbmDecoderCore : ImageDecoderCore
     /// <param name="options">The decoder options.</param>
     public PbmDecoderCore(DecoderOptions options)
         : base(options)
-    {
-        this.configuration = options.Configuration;
-    }
+        => this.configuration = options.Configuration;
 
     /// <inheritdoc/>
     protected override Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
@@ -205,7 +203,7 @@ internal sealed class PbmDecoderCore : ImageDecoderCore
         where TPixel : unmanaged, IPixel<TPixel>
     {
         int maxAllocationValue = this.componentType == PbmComponentType.Short ? 65535 : 255;
-        float factor = maxAllocationValue / this.maxPixelValue;
+        float factor = maxAllocationValue / (float)this.maxPixelValue;
         image.Mutate(x => x.Brightness(factor));
     }
 

@@ -6,6 +6,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Formats;
+using SixLabors.ImageSharp.Formats.Ani;
 using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.Formats.Cur;
 using SixLabors.ImageSharp.Formats.Exr;
@@ -235,7 +236,7 @@ internal static class AotCompilerTools
         PixelOperations<TPixel> operations = PixelOperations<TPixel>.Instance;
 
         _ = operations.GetPixelTypeInfo();
-        _ = operations.GetPixelBlender(default(GraphicsOptions));
+        _ = operations.GetPixelBlender(default);
         _ = operations.GetPixelBlender(default, default);
         operations.FromVector4Destructive(default, default, default);
         operations.FromVector4Destructive(default, default, default, default);
@@ -289,7 +290,7 @@ internal static class AotCompilerTools
     /// </summary>
     /// <typeparam name="TPixel">The pixel format.</typeparam>
     [Preserve]
-    private static unsafe void AotCompileImage<TPixel>()
+    private static void AotCompileImage<TPixel>()
         where TPixel : unmanaged, IPixel<TPixel>
     {
         Image<TPixel> img = default;
@@ -354,6 +355,7 @@ internal static class AotCompilerTools
     private static void AotCompileImageEncoderInternals<TPixel>()
         where TPixel : unmanaged, IPixel<TPixel>
     {
+        default(AniEncoderCore).Encode<TPixel>(default, default, default);
         default(BmpEncoderCore).Encode<TPixel>(default, default, default);
         default(CurEncoderCore).Encode<TPixel>(default, default, default);
         default(ExrEncoderCore).Encode<TPixel>(default, default, default);
@@ -376,6 +378,7 @@ internal static class AotCompilerTools
     private static void AotCompileImageDecoderInternals<TPixel>()
         where TPixel : unmanaged, IPixel<TPixel>
     {
+        default(AniDecoderCore).Decode<TPixel>(default, default, default);
         default(BmpDecoderCore).Decode<TPixel>(default, default, default);
         default(CurDecoderCore).Decode<TPixel>(default, default, default);
         default(ExrDecoderCore).Decode<TPixel>(default, default, default);

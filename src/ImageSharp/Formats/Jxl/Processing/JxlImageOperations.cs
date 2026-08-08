@@ -46,6 +46,47 @@ internal static class JxlImageOperations
             return false;
         }
 
-        
+        if (!from.IsRectangleInside(rectFrom))
+        {
+            return false;
+        }
+
+        if (!to.IsRectangleInside(rectTo))
+        {
+            return false;
+        }
+
+        if (rectFrom.Width == 0)
+        {
+            return true;
+        }
+
+        for (int y = 0; y < rectFrom.Height; y++)
+        {
+            Span<T> rowFrom = from.GetRow(rectFrom, y);
+            Span<T> rowTo = to.GetRow(rectTo, y);
+            rowFrom.CopyTo(rowTo);
+        }
+
+        return true;
+    }
+
+    public static bool CopyImageTo<T>(Rectangle rectFrom, JxlImage3<T> from, Rectangle rectTo, JxlImage3<T> to)
+        where T : unmanaged
+    {
+        if (rectFrom != rectTo)
+        {
+            return false;
+        }
+
+        for (int plane = 0; plane < 3; plane++)
+        {
+            if (!CopyImageTo(rectFrom, from.Plane(plane), rectTo, to.Plane(plane)))
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 }

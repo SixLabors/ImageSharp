@@ -28,8 +28,8 @@ internal sealed class JxlColorCorrelationMap
         map.YToXMap = new JxlImageSB(configuration, xBlocks, yBlocks);
         map.YToBMap = new JxlImageSB(configuration, xBlocks, yBlocks);
 
-        ZeroFillImage(map.YToXMap);
-        ZeroFillImage(map.YToBMap);
+        map.YToXMap.Clear();
+        map.YToBMap.Clear();
 
         if (!xyb)
         {

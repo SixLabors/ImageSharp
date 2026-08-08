@@ -2069,7 +2069,7 @@ internal static class Butteraugli
         }
 
         using JxlPlane<float> blockDiffDc = JxlImageF.Create(configuration, xSize, ySize);
-        blockDiffDc.ZeroFill();
+        blockDiffDc.Clear();
 
         // LF/DC
         using (JxlImage3F lf0 = new(configuration, xSize, ySize))
@@ -2109,7 +2109,7 @@ internal static class Butteraugli
         }
 
         using JxlImageF blockDiffAc = new(configuration, xSize, ySize);
-        blockDiffAc.ZeroFill();
+        blockDiffAc.Clear();
 
         using (JxlImageF diffs = new(configuration, xSize, ySize))
         {

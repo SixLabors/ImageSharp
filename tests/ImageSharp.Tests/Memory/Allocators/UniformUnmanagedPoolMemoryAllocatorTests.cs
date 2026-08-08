@@ -484,6 +484,42 @@ public class UniformUnmanagedPoolMemoryAllocatorTests
     }
 
     [Fact]
+    public void Allocate_OverSingleBufferLimit_ThrowsInvalidMemoryOperationException()
+    {
+        MemoryAllocator allocator = MemoryAllocator.Create(new MemoryAllocatorOptions
+        {
+            SingleBufferAllocationLimitMegabytes = 2
+        });
+        const int oneMb = 1 << 20;
+        allocator.Allocate<byte>(2 * oneMb).Dispose(); // Should work
+        Assert.Throws<InvalidMemoryOperationException>(() => allocator.Allocate<byte>(3 * oneMb));
+
+        // The group limit is unchanged, so the same size still allocates as a discontiguous group.
+        allocator.AllocateGroup<byte>(3 * oneMb, 1024).Dispose();
+    }
+
+    [ConditionalFact(typeof(Environment), nameof(Environment.Is64BitProcess))]
+    public void MemoryAllocator_Create_RaisesSingleBufferLimit()
+    {
+        MemoryAllocator allocator = MemoryAllocator.Create(new MemoryAllocatorOptions
+        {
+            SingleBufferAllocationLimitMegabytes = 2047
+        });
+
+        Assert.Equal(2047L * 1024 * 1024, (long)allocator.SingleBufferAllocationLimitBytes);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    [InlineData(2048)]
+    public void MemoryAllocatorOptions_InvalidSingleBufferLimit_Throws(int value)
+    {
+        MemoryAllocatorOptions options = default;
+        Assert.Throws<ArgumentOutOfRangeException>(() => options.SingleBufferAllocationLimitMegabytes = value);
+    }
+
+    [Fact]
     public void Allocate_AccumulativeLimit_ReleasesOnOwnerDispose()
     {
         MemoryAllocator allocator = MemoryAllocator.Create(new MemoryAllocatorOptions

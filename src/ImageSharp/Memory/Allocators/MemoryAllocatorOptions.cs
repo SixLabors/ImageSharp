@@ -8,9 +8,15 @@ namespace SixLabors.ImageSharp.Memory;
 /// </summary>
 public struct MemoryAllocatorOptions
 {
+    /// <summary>
+    /// The largest single-buffer limit, in Megabytes, that still fits <see cref="int.MaxValue"/> bytes.
+    /// </summary>
+    private const int MaxSingleBufferAllocationLimitMegabytes = 2047;
+
     private int? maximumPoolSizeMegabytes;
     private int? allocationLimitMegabytes;
     private int? accumulativeAllocationLimitMegabytes;
+    private int? singleBufferAllocationLimitMegabytes;
 
     /// <summary>
     /// Gets or sets a value defining the maximum size of the <see cref="MemoryAllocator"/>'s internal memory pool
@@ -52,6 +58,36 @@ public struct MemoryAllocatorOptions
             }
 
             this.allocationLimitMegabytes = value;
+        }
+    }
+
+    /// <summary>
+    /// Gets or sets a value defining the maximum size, in Megabytes, of a single contiguous buffer
+    /// that the created <see cref="MemoryAllocator"/> can allocate.
+    /// <see langword="null"/> means the default of 1 GB.
+    /// </summary>
+    /// <remarks>
+    /// This limit applies to contiguous buffers, including image buffers requested through
+    /// <see cref="Configuration.PreferContiguousImageBuffers"/>. A single contiguous buffer can never exceed
+    /// <see cref="int.MaxValue"/> bytes, so the largest accepted value is 2047. The applied limit is also
+    /// capped to <see cref="AllocationLimitMegabytes"/> because a single buffer can never be larger
+    /// than the total allocation limit.
+    /// </remarks>
+    public int? SingleBufferAllocationLimitMegabytes
+    {
+        readonly get => this.singleBufferAllocationLimitMegabytes;
+        set
+        {
+            if (value.HasValue)
+            {
+                Guard.MustBeGreaterThan(value.Value, 0, nameof(this.SingleBufferAllocationLimitMegabytes));
+                Guard.MustBeLessThanOrEqualTo(
+                    value.Value,
+                    MaxSingleBufferAllocationLimitMegabytes,
+                    nameof(this.SingleBufferAllocationLimitMegabytes));
+            }
+
+            this.singleBufferAllocationLimitMegabytes = value;
         }
     }
 

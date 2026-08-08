@@ -1,6 +1,8 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.Formats.Jxl.Processing;
+
 namespace SixLabors.ImageSharp.Formats.Jxl.Memory;
 
 // NOTE: Do not seal this class.
@@ -33,4 +35,9 @@ internal class JxlPlane<T> : JxlPlaneBase
     }
 
     public Span<T> GetRow(int y) => this.GetRowBase<T>(y);
+
+    /// <summary>
+    /// Fills everything in this image with 0.
+    /// </summary>
+    public void Clear() => JxlImageOperations.ZeroFillImage(this);
 }

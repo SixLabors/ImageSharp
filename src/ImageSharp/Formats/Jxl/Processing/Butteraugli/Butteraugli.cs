@@ -726,7 +726,7 @@ internal static class Butteraugli
         return true;
     }
 
-    public static void DeallocateHFAndUHF(JxlImageF[] hf, JxlImageF[] uhf)
+    public static void DeallocateHFAndUHF(InlineArray2<JxlImageF> hf, InlineArray2<JxlImageF> uhf)
     {
         for (int i = 0; i < 2; i++)
         {
@@ -1424,8 +1424,8 @@ internal static class Butteraugli
     }
 
     public static void CombineChannelsForMasking(
-        JxlImageF[] hf,
-        JxlImageF[] uhf,
+        InlineArray2<JxlImageF> hf,
+        InlineArray2<JxlImageF> uhf,
         JxlImageF output)
     {
         // Only X and Y components are involved in masking.
@@ -2157,8 +2157,8 @@ internal static class Butteraugli
         image0.Dispose();
         image1.Dispose();
 
-        JxlImageF[] uhf0 = new JxlImageF[2];
-        JxlImageF[] uhf1 = new JxlImageF[2];
+        InlineArray2<JxlImageF> uhf0 = default;
+        InlineArray2<JxlImageF> uhf1 = default;
 
         if (!SeparateHFAndUHF(parameters, hf0, uhf0, blurTemp))
         {

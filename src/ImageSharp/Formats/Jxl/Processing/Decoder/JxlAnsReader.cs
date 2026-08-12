@@ -103,8 +103,7 @@ internal static class JxlAnsReader
 
         if (isSimpleCode)
         {
-            Span<uint> symbols = stackalloc uint[2];
-            symbols.Clear();
+            Span<uint> symbols = [0, 0];
 
             uint maxSymbol = 0u;
             uint symCount = reader.ReadBits32(1u) + 1u;

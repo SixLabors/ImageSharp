@@ -10,6 +10,16 @@ namespace SixLabors.ImageSharp.Formats.Jxl.Processing;
 internal static class JxlDctScales
 {
     /// <summary>
+    /// Square root of 2.
+    /// </summary>
+    public const float Sqrt2 = 1.41421356237f;
+
+    /// <summary>
+    /// Square root of 0.5.
+    /// </summary>
+    public const float Sqrt05 = 0.70710678118f;
+
+    /// <summary>
     /// Gets 8x1 DCT resample scales.
     /// </summary>
     public static ReadOnlySpan<float> ResampleScales8_1 =>
@@ -358,4 +368,21 @@ internal static class JxlDctScales
         9.058751453879703f,  11.644627325175037f, 16.300023088031555f,
         27.163977662448232f, 81.48784219222516f,
     ];
+
+    /// <summary>
+    /// Returns DCT multipliers for size <paramref name="n"/>.
+    /// </summary>
+    /// <param name="n">The multiplier size</param>
+    /// <returns>DCT multipliers for the given size.</returns>
+    public static ReadOnlySpan<float> GetMultipliers(int n) => n switch
+    {
+        4 => Multipliers4,
+        8 => Multipliers8,
+        16 => Multipliers16,
+        32 => Multipliers32,
+        64 => Multipliers64,
+        128 => Multipliers128,
+        256 => Multipliers256,
+        _ => []
+    };
 }

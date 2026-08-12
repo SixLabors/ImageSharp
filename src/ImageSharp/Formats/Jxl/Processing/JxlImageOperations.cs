@@ -346,15 +346,19 @@ internal static class JxlImageOperations
     {
         DebugGuard.MustBeGreaterThan(xSize, 0, nameof(xSize));
 
-        while (x < 0 || x >= xSize)
+        while (true)
         {
             if (x < 0)
             {
                 x = -x - 1;
             }
-            else
+            else if (x >= xSize)
             {
                 x = (2 * xSize) - 1 - x;
+            }
+            else
+            {
+                break;
             }
         }
 

@@ -269,8 +269,9 @@ internal sealed class JxlHuffmanDecoder
             return ReadSimpleCode(alphabetSize, br, this.Table);
         }
 
-        // The alphabet size is at most 256
-        Span<byte> codeLengths = stackalloc byte[alphabetSize];
+        DebugGuard.MustBeLessThanOrEqualTo(alphabetSize, 256, nameof(alphabetSize));
+
+        Span<byte> codeLengths = stackalloc byte[256].Slice(0, alphabetSize);
         codeLengths.Clear();    // Zero-initialized in reference software
 
         Span<byte> codeLengthCodeLengths = stackalloc byte[CodeLengthCodes];

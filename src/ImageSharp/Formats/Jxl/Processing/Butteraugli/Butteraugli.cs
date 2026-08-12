@@ -42,11 +42,11 @@ internal static class Butteraugli
     private const float GlobalScale =
         1.0f / InternalGoodQualityThreshold;
 
-    public static ReadOnlySpan<double> Wmul =>
+    public static ReadOnlySpan<float> Wmul =>
     [
-        400.0,         1.50815703118,  0,
-        2150.0,        10.6195433239,  16.2176043152,
-        29.2353797994, 0.844626970982, 0.703646627719,
+        400.0f,         1.50815703118f,  0f,
+        2150.0f,        10.6195433239f,  16.2176043152f,
+        29.2353797994f, 0.844626970982f, 0.703646627719f,
     ];
 
     public static ReadOnlySpan<float> ComputeKernel(float sigma)
@@ -55,7 +55,11 @@ internal static class Butteraugli
         float scaler = -1.0f / (2.0f * sigma * sigma);
         int diff = Math.Max(1, (int)(m * MathF.Abs(sigma)));
 
-        // Use new because there's only up to 3 elements
+        // If sigma is very large we should not return a 'new float[]' allocation.
+        // This guard is temporary so we can verify the range of the number of elements.
+        // TODO: remove guard if the value doesn't exceed the limit for many JXL files
+        DebugGuard.MustBeLessThanOrEqualTo(sigma, 32f, nameof(sigma));
+
         float[] kernel = new float[(2 * diff) + 1];
 
         for (int i = -diff; i <= diff; i++)
@@ -536,7 +540,7 @@ internal static class Butteraugli
         Configuration configuration,
         in ButteraugliParameters parameters,
         JxlImage3F mf,
-        JxlImageF[] hf,
+        ref InlineArray2<JxlImageF> hf,
         BlurTemp blurTemp)
     {
         const float sigmaHf = 3.22489901262f;
@@ -2095,8 +2099,8 @@ internal static class Butteraugli
             }
         }
 
-        JxlImageF[] hf0 = new JxlImageF[2];
-        JxlImageF[] hf1 = new JxlImageF[2];
+        InlineArray2<JxlImageF> hf0 = default;
+        InlineArray2<JxlImageF> hf1 = default;
 
         if (!SeparateMfAndHf(parameters, image0, hf0, blurTemp))
         {

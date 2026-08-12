@@ -7,6 +7,15 @@ using System.Runtime.CompilerServices;
 
 namespace SixLabors.ImageSharp.Formats.Jxl;
 
+/// <summary>
+/// Used by Butteraugli
+/// </summary>
+[InlineArray(2)]
+internal struct InlineArray2<T>
+{
+    private T first;
+}
+
 [InlineArray(3)]
 internal struct InlineArray3<T>
 {

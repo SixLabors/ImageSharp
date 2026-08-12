@@ -38,7 +38,6 @@ internal sealed class JxlQuantizedSpline : IDisposable
     {
         this.memoryOwner?.Dispose();
         this.ControlPoints = Memory<JxlControlPoint>.Empty;
-        GC.SuppressFinalize(this);
     }
 
     public void ReserveControlPoints(Configuration configuration, int n)

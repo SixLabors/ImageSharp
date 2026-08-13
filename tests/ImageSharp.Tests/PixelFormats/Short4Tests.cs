@@ -4,6 +4,7 @@
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Tests.TestUtilities;
 
 namespace SixLabors.ImageSharp.Tests.PixelFormats;
 
@@ -38,32 +39,44 @@ public class Short4Tests
     [Fact]
     public void Short4_ToScaledVector4()
     {
-        // arrange
-        Short4 short4 = new(Vector4.One * 0x7FFF);
-
-        // act
-        Vector4 actual = short4.ToScaledVector4();
-
-        // assert
-        Assert.Equal(1, actual.X);
-        Assert.Equal(1, actual.Y);
-        Assert.Equal(1, actual.Z);
-        Assert.Equal(1, actual.W);
+        Assert.Equal(Vector4.One, new Short4(Vector4.One * short.MaxValue).ToScaledVector4());
+        Assert.Equal(Vector4.Zero, new Short4(Vector4.One * short.MinValue).ToScaledVector4());
     }
 
     [Fact]
     public void Short4_FromScaledVector4()
     {
-        // arrange
-        Short4 short4 = new(Vector4.One * 0x7FFF);
-        Vector4 scaled = short4.ToScaledVector4();
-        const long expected = 0x7FFF7FFF7FFF7FFF;
+        Assert.Equal(0x8000800080008000UL, Short4.FromScaledVector4(Vector4.Zero).PackedValue);
+        Assert.Equal(0x7FFF7FFF7FFF7FFFUL, Short4.FromScaledVector4(Vector4.One).PackedValue);
+    }
 
-        // act
-        Short4 pixel = Short4.FromScaledVector4(scaled);
+    [Fact]
+    public void Short4_BulkScaledConversionsCoverFullSignedRange() =>
+        FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            AssertShort4BulkScaledConversionsCoverFullSignedRange,
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
 
-        // assert
-        Assert.Equal((ulong)expected, pixel.PackedValue);
+    private static void AssertShort4BulkScaledConversionsCoverFullSignedRange()
+    {
+        const int length = 17;
+        Short4[] source = new Short4[length];
+        Vector4[] expectedVectors = new Vector4[length];
+
+        for (int i = 0; i < length; i++)
+        {
+            bool minimum = (i & 1) == 0;
+            source[i].PackedValue = minimum ? 0x8000800080008000UL : 0x7FFF7FFF7FFF7FFFUL;
+            expectedVectors[i] = minimum ? Vector4.Zero : Vector4.One;
+        }
+
+        Vector4[] actualVectors = new Vector4[length];
+        PixelOperations<Short4>.Instance.ToVector4(Configuration.Default, source, actualVectors, PixelConversionModifiers.Scale);
+        Assert.Equal(expectedVectors, actualVectors);
+
+        Vector4[] destructiveSource = [.. expectedVectors];
+        Short4[] actualPixels = new Short4[length];
+        PixelOperations<Short4>.Instance.FromVector4Destructive(Configuration.Default, destructiveSource, actualPixels, PixelConversionModifiers.Scale);
+        Assert.Equal(source, actualPixels);
     }
 
     [Fact]

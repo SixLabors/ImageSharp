@@ -18,7 +18,7 @@ public class ColorNumericsTests
         Vector4 vector = new(x, y, z, 0.0f);
 
         // act
-        int actual = ColorNumerics.GetBT709Luminance(ref vector, luminanceLevels);
+        int actual = ColorNumerics.GetBT709Luminance(vector, luminanceLevels);
 
         // assert
         Assert.Equal(expected, actual);

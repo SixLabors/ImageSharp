@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Buffers.Binary;
 using System.Runtime.Intrinsics.X86;
 using Microsoft.DotNet.RemoteExecutor;
 using SixLabors.ImageSharp.Formats;
@@ -765,6 +766,82 @@ public partial class PngDecoderTests
         Assert.Equal(PngFormat.Instance, imageInfo.Metadata.DecodedImageFormat);
         Assert.Equal(expectedWidth, imageInfo.Width);
         Assert.Equal(expectedHeight, imageInfo.Height);
+    }
+
+    [Theory]
+    [InlineData(TestImages.Png.Cgbi.BitDepth16)]
+    [InlineData(TestImages.Png.Cgbi.Palette)]
+    public void Identify_CgBI_IncompatibleHeader_ThrowsInvalidImageContentException(string imagePath)
+    {
+        TestFile testFile = TestFile.Create(imagePath);
+        using MemoryStream stream = new(testFile.Bytes, false);
+        InvalidImageContentException ex = Assert.Throws<InvalidImageContentException>(() => Image.Identify(stream));
+        Assert.Contains("CgBI is only supported for 8-bit truecolor images", ex.Message);
+    }
+
+    [Theory]
+    [WithFile(TestImages.Png.Cgbi.BitDepth16, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Png.Cgbi.Palette, PixelTypes.Rgba32)]
+    public void Decode_CgBI_IncompatibleHeader_ThrowsInvalidImageContentException<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        InvalidImageContentException ex = Assert.Throws<InvalidImageContentException>(
+            () => { using Image<TPixel> image = provider.GetImage(PngDecoder.Instance); });
+        Assert.Contains("CgBI is only supported for 8-bit truecolor images", ex.Message);
+    }
+
+    [Theory]
+    [InlineData(TestImages.Png.Cgbi.BitDepth16)]
+    [InlineData(TestImages.Png.Cgbi.Palette)]
+    public void Identify_CgBI_AfterHeader_IncompatibleHeader_ThrowsInvalidImageContentException(string imagePath)
+    {
+        TestFile testFile = TestFile.Create(imagePath);
+        byte[] reordered = MoveFirstPngChunkAfterSecond(testFile.Bytes);
+        using MemoryStream stream = new(reordered, false);
+
+        InvalidImageContentException ex = Assert.Throws<InvalidImageContentException>(() => Image.Identify(stream));
+        Assert.Contains("CgBI is only supported for 8-bit truecolor images", ex.Message);
+    }
+
+    [Theory]
+    [InlineData(TestImages.Png.Cgbi.BitDepth16)]
+    [InlineData(TestImages.Png.Cgbi.Palette)]
+    public void Decode_CgBI_AfterHeader_IncompatibleHeader_ThrowsInvalidImageContentException(string imagePath)
+    {
+        TestFile testFile = TestFile.Create(imagePath);
+        byte[] reordered = MoveFirstPngChunkAfterSecond(testFile.Bytes);
+        using MemoryStream stream = new(reordered, false);
+
+        InvalidImageContentException ex = Assert.Throws<InvalidImageContentException>(
+            () => { using Image<Rgba32> image = PngDecoder.Instance.Decode<Rgba32>(DecoderOptions.Default, stream); });
+        Assert.Contains("CgBI is only supported for 8-bit truecolor images", ex.Message);
+    }
+
+    /// <summary>
+    /// Moves the first PNG chunk after the second while preserving each chunk's data and CRC.
+    /// </summary>
+    /// <param name="source">A PNG whose first two chunks should be exchanged.</param>
+    /// <returns>A copy of the PNG with its first two chunks exchanged.</returns>
+    private static byte[] MoveFirstPngChunkAfterSecond(byte[] source)
+    {
+        const int signatureLength = 8;
+        const int chunkOverheadLength = 12;
+
+        int firstChunkLength = BinaryPrimitives.ReadInt32BigEndian(source.AsSpan(signatureLength, 4)) + chunkOverheadLength;
+        int secondChunkOffset = signatureLength + firstChunkLength;
+        int secondChunkLength = BinaryPrimitives.ReadInt32BigEndian(source.AsSpan(secondChunkOffset, 4)) + chunkOverheadLength;
+        byte[] reordered = new byte[source.Length];
+
+        source.AsSpan(0, signatureLength).CopyTo(reordered);
+        source.AsSpan(secondChunkOffset, secondChunkLength).CopyTo(reordered.AsSpan(signatureLength));
+        source.AsSpan(signatureLength, firstChunkLength).CopyTo(reordered.AsSpan(signatureLength + secondChunkLength));
+
+        // Chunk CRCs cover only each chunk's type and data, so moving complete chunks
+        // leaves both checksums valid and isolates ordering as the tested behavior.
+        source.AsSpan(secondChunkOffset + secondChunkLength)
+            .CopyTo(reordered.AsSpan(signatureLength + secondChunkLength + firstChunkLength));
+
+        return reordered;
     }
 
     [Theory]

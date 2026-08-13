@@ -8,6 +8,9 @@ namespace SixLabors.ImageSharp.Formats.Icon;
 [StructLayout(LayoutKind.Sequential, Pack = 1, Size = Size)]
 internal struct IconDirEntry
 {
+    /// <summary>
+    /// The serialized directory-entry size in bytes.
+    /// </summary>
     public const int Size = (4 * sizeof(byte)) + (2 * sizeof(ushort)) + (2 * sizeof(uint));
 
     /// <summary>
@@ -16,7 +19,7 @@ internal struct IconDirEntry
     public byte Width;
 
     /// <summary>
-    /// Specifies image height in pixels. Can be any number between 0 and 255. Value 0 means image height is 256 pixels.[
+    /// Specifies image height in pixels. Can be any number between 0 and 255. Value 0 means image height is 256 pixels.
     /// </summary>
     public byte Height;
 
@@ -43,7 +46,7 @@ internal struct IconDirEntry
     public ushort BitCount;
 
     /// <summary>
-    /// Specifies the size of the image's data in bytes
+    /// Specifies the size of the image's data in bytes.
     /// </summary>
     public uint BytesInRes;
 
@@ -52,9 +55,18 @@ internal struct IconDirEntry
     /// </summary>
     public uint ImageOffset;
 
-    public static IconDirEntry Parse(in ReadOnlySpan<byte> data)
+    /// <summary>
+    /// Parses an icon directory entry from its byte representation.
+    /// </summary>
+    /// <param name="data">The icon directory entry data.</param>
+    /// <returns>The parsed icon directory entry.</returns>
+    public static IconDirEntry Parse(ReadOnlySpan<byte> data)
         => MemoryMarshal.Cast<byte, IconDirEntry>(data)[0];
 
-    public readonly unsafe void WriteTo(in Stream stream)
+    /// <summary>
+    /// Writes the icon directory entry to the destination stream.
+    /// </summary>
+    /// <param name="stream">The destination stream.</param>
+    public readonly void WriteTo(Stream stream)
         => stream.Write(MemoryMarshal.Cast<IconDirEntry, byte>([this]));
 }

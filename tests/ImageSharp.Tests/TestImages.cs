@@ -189,6 +189,10 @@ public static class TestImages
 
             // Issue 410: https://github.com/SixLabors/ImageSharp/issues/410
             public const string Issue410 = "Png/issues/Issue_410.png";
+
+            // Synthetic fixtures derived from colors.png to exercise CgBI validation.
+            public const string BitDepth16 = "Png/cgbi/colors-cgbi-bitdepth16.png";
+            public const string Palette = "Png/cgbi/colors-cgbi-palette.png";
         }
 
         public static class Bad
@@ -1253,6 +1257,7 @@ public static class TestImages
         public const string GrayscalePlainNormalized = "Pbm/grayscale_plain_normalized.pgm";
         public const string GrayscalePlainMagick = "Pbm/grayscale_plain_magick.pgm";
         public const string RgbBinary = "Pbm/00000_00000.ppm";
+        public const string RgbBinaryWide = "Pbm/rgb_binary_wide.ppm";
         public const string RgbBinaryPrematureEof = "Pbm/00000_00000_premature_eof.ppm";
         public const string RgbPlain = "Pbm/rgb_plain.ppm";
         public const string RgbPlainNormalized = "Pbm/rgb_plain_normalized.ppm";
@@ -1394,6 +1399,13 @@ public static class TestImages
         public const string WindowsMouse = "Icon/aero_arrow.cur";
         public const string CurReal = "Icon/cur_real.cur";
         public const string CurFake = "Icon/cur_fake.ico";
+    }
+
+    public static class Ani
+    {
+        public const string Work = "Ani/Work.ani";
+        public const string MultiFramesInEveryIconChunk = "Ani/aero_busy.ani";
+        public const string Help = "Ani/Help.ani";
     }
 
     public static class Exr

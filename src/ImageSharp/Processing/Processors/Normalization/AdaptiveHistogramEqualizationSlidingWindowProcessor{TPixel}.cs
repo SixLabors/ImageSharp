@@ -194,7 +194,7 @@ internal class AdaptiveHistogramEqualizationSlidingWindowProcessor<TPixel> : His
             int idx = 0;
             for (int dx = x; dx < x + tileWidth; dx++)
             {
-                rowPixels[idx] = source[Numerics.Abs(dx), y].ToVector4();
+                rowPixels[idx] = source[Numerics.Abs(dx), y].ToUnassociatedScaledVector4();
                 idx++;
             }
 
@@ -209,11 +209,11 @@ internal class AdaptiveHistogramEqualizationSlidingWindowProcessor<TPixel> : His
                 if (dx >= source.Width)
                 {
                     int diff = dx - source.Width;
-                    rowPixels[idx] = source[dx - diff - 1, y].ToVector4();
+                    rowPixels[idx] = source[dx - diff - 1, y].ToUnassociatedScaledVector4();
                 }
                 else
                 {
-                    rowPixels[idx] = source[dx, y].ToVector4();
+                    rowPixels[idx] = source[dx, y].ToUnassociatedScaledVector4();
                 }
 
                 idx++;
@@ -242,7 +242,7 @@ internal class AdaptiveHistogramEqualizationSlidingWindowProcessor<TPixel> : His
         int y,
         int tileWidth,
         Configuration configuration)
-        => PixelOperations<TPixel>.Instance.ToVector4(configuration, source.DangerousGetRowSpan(y).Slice(start: x, length: tileWidth), rowPixels);
+        => PixelOperations<TPixel>.Instance.ToVector4(configuration, source.DangerousGetRowSpan(y).Slice(start: x, length: tileWidth), rowPixels, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
 
     /// <summary>
     /// Adds a column of grey values to the histogram.
@@ -256,7 +256,7 @@ internal class AdaptiveHistogramEqualizationSlidingWindowProcessor<TPixel> : His
     {
         for (nuint idx = 0; idx < (uint)length; idx++)
         {
-            int luminance = ColorNumerics.GetBT709Luminance(ref Unsafe.Add(ref greyValuesBase, idx), luminanceLevels);
+            int luminance = ColorNumerics.GetBT709Luminance(Unsafe.Add(ref greyValuesBase, idx), luminanceLevels);
             Unsafe.Add(ref histogramBase, (uint)luminance)++;
         }
     }
@@ -273,7 +273,7 @@ internal class AdaptiveHistogramEqualizationSlidingWindowProcessor<TPixel> : His
     {
         for (nuint idx = 0; idx < (uint)length; idx++)
         {
-            int luminance = ColorNumerics.GetBT709Luminance(ref Unsafe.Add(ref greyValuesBase, idx), luminanceLevels);
+            int luminance = ColorNumerics.GetBT709Luminance(Unsafe.Add(ref greyValuesBase, idx), luminanceLevels);
             Unsafe.Add(ref histogramBase, (uint)luminance)--;
         }
     }
@@ -381,9 +381,11 @@ internal class AdaptiveHistogramEqualizationSlidingWindowProcessor<TPixel> : His
                     float numberOfPixelsMinusCdfMin = this.swInfos.PixelInTile - cdfMin;
 
                     // Map the current pixel to the new equalized value.
-                    int luminance = GetLuminance(this.source[x, y], this.processor.LuminanceLevels);
+                    Vector4 vector = this.source[x, y].ToUnassociatedScaledVector4();
+                    int luminance = ColorNumerics.GetBT709Luminance(vector, this.processor.LuminanceLevels);
                     float luminanceEqualized = Unsafe.Add(ref cdfBase, (uint)luminance) / numberOfPixelsMinusCdfMin;
-                    this.targetPixels[x, y] = TPixel.FromVector4(new Vector4(luminanceEqualized, luminanceEqualized, luminanceEqualized, this.source[x, y].ToVector4().W));
+                    vector.X = vector.Y = vector.Z = luminanceEqualized;
+                    this.targetPixels[x, y] = TPixel.FromUnassociatedScaledVector4(vector);
 
                     // Remove top most row from the histogram, mirroring rows which exceeds the borders.
                     if (this.useFastPath)

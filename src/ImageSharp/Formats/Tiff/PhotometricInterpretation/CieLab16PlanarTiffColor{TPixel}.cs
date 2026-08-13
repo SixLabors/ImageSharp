@@ -109,7 +109,7 @@ internal class CieLab16PlanarTiffColor<TPixel> : TiffBasePlanarColorDecoder<TPix
                 // Convert CIE Lab -> Rgb -> Vector4 -> TPixel
                 this.colorProfileConverter.Convert<CieLab, Rgb>(cieLabRow, rgbRow);
                 Rgb.ToScaledVector4(rgbRow, vectorRow);
-                PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, vectorRow, pixelRow, PixelConversionModifiers.Scale);
+                PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, vectorRow, pixelRow, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
             }
 
             return;
@@ -138,7 +138,7 @@ internal class CieLab16PlanarTiffColor<TPixel> : TiffBasePlanarColorDecoder<TPix
             // Convert CIE Lab -> Rgb -> Vector4 -> TPixel
             this.colorProfileConverter.Convert<CieLab, Rgb>(cieLabRow, rgbRow);
             Rgb.ToScaledVector4(rgbRow, vectorRow);
-            PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, vectorRow, pixelRow, PixelConversionModifiers.Scale);
+            PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, vectorRow, pixelRow, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
         }
     }
 }

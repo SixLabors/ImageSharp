@@ -541,7 +541,7 @@ internal sealed class GifEncoderCore
         int index = -1;
         if (quantized != null)
         {
-            TPixel transparentPixel = TPixel.FromScaledVector4(Vector4.Zero);
+            TPixel transparentPixel = TPixel.FromUnassociatedScaledVector4(Vector4.Zero);
             ReadOnlySpan<TPixel> palette = quantized.Palette.Span;
 
             // Transparent pixels are much more likely to be found at the end of a palette.

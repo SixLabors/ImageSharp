@@ -7,13 +7,21 @@ using SixLabors.ImageSharp.Metadata;
 
 namespace SixLabors.ImageSharp.Formats.Ico;
 
+/// <summary>
+/// Decodes ICO containers and maps directory metadata to ICO metadata.
+/// </summary>
 internal sealed class IcoDecoderCore : IconDecoderCore
 {
+    /// <summary>
+    /// Initializes a new instance of the <see cref="IcoDecoderCore"/> class.
+    /// </summary>
+    /// <param name="options">The decoder options.</param>
     public IcoDecoderCore(DecoderOptions options)
-        : base(options)
+        : base(options, IconFileType.ICO)
     {
     }
 
+    /// <inheritdoc/>
     protected override void SetFrameMetadata(
         ImageMetadata imageMetadata,
         ImageFrameMetadata frameMetadata,
@@ -31,10 +39,10 @@ internal sealed class IcoDecoderCore : IconDecoderCore
 
         if (index == 0)
         {
-            IcoMetadata curMetadata = imageMetadata.GetIcoMetadata();
-            curMetadata.Compression = compression;
-            curMetadata.BmpBitsPerPixel = bitsPerPixel;
-            curMetadata.ColorTable = colorTable;
+            IcoMetadata icoMetadata = imageMetadata.GetIcoMetadata();
+            icoMetadata.Compression = compression;
+            icoMetadata.BmpBitsPerPixel = bitsPerPixel;
+            icoMetadata.ColorTable = colorTable;
         }
     }
 }

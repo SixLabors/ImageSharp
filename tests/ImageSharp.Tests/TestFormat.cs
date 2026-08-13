@@ -271,6 +271,18 @@ public class TestFormat : IImageFormatConfigurationModule, IImageFormat
 
         public readonly Vector4 ToVector4() => default;
 
+        /// <inheritdoc />
+        public readonly Vector4 ToUnassociatedScaledVector4() => default;
+
+        /// <inheritdoc />
+        public readonly Vector4 ToAssociatedScaledVector4() => default;
+
+        /// <inheritdoc />
+        public readonly Vector4 ToUnassociatedVector4() => default;
+
+        /// <inheritdoc />
+        public readonly Vector4 ToAssociatedVector4() => default;
+
         public static PixelTypeInfo GetPixelTypeInfo()
             => PixelTypeInfo.Create<TestPixelForAgnosticDecode>(
                 PixelComponentInfo.Create<TestPixelForAgnosticDecode>(2, 8, 8),
@@ -282,6 +294,18 @@ public class TestFormat : IImageFormatConfigurationModule, IImageFormat
         public static TestPixelForAgnosticDecode FromScaledVector4(Vector4 vector) => default;
 
         public static TestPixelForAgnosticDecode FromVector4(Vector4 vector) => default;
+
+        /// <inheritdoc />
+        public static TestPixelForAgnosticDecode FromUnassociatedScaledVector4(Vector4 source) => default;
+
+        /// <inheritdoc />
+        public static TestPixelForAgnosticDecode FromAssociatedScaledVector4(Vector4 source) => default;
+
+        /// <inheritdoc />
+        public static TestPixelForAgnosticDecode FromUnassociatedVector4(Vector4 source) => default;
+
+        /// <inheritdoc />
+        public static TestPixelForAgnosticDecode FromAssociatedVector4(Vector4 source) => default;
 
         public static TestPixelForAgnosticDecode FromAbgr32(Abgr32 source) => default;
 

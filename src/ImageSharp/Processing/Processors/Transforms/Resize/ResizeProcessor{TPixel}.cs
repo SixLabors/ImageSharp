@@ -189,16 +189,6 @@ internal class ResizeProcessor<TPixel> : TransformProcessor<TPixel>, IResampling
             in operation);
     }
 
-    private static PixelConversionModifiers GetModifiers(bool compand, bool premultiplyAlpha)
-    {
-        if (premultiplyAlpha)
-        {
-            return PixelConversionModifiers.Premultiply.ApplyCompanding(compand);
-        }
-
-        return PixelConversionModifiers.None.ApplyCompanding(compand);
-    }
-
     private static void ApplyResizeFrameTransform(
         Configuration configuration,
         ImageFrame<TPixel> source,
@@ -211,12 +201,9 @@ internal class ResizeProcessor<TPixel> : TransformProcessor<TPixel>, IResampling
         bool compand,
         bool premultiplyAlpha)
     {
-        PixelAlphaRepresentation? alphaRepresentation = PixelOperations<TPixel>.Instance.GetPixelTypeInfo().AlphaRepresentation;
-
-        // Premultiply only if alpha representation is unknown or Unassociated:
-        bool needsPremultiplication = alphaRepresentation == null || alphaRepresentation.Value == PixelAlphaRepresentation.Unassociated;
-        premultiplyAlpha &= needsPremultiplication;
-        PixelConversionModifiers conversionModifiers = GetModifiers(compand, premultiplyAlpha);
+        // Resampling uses normalized vectors and interpolates them in the alpha representation selected by the processor options.
+        PixelConversionModifiers alphaModifier = premultiplyAlpha ? PixelConversionModifiers.Premultiply : PixelConversionModifiers.UnPremultiply;
+        PixelConversionModifiers conversionModifiers = (PixelConversionModifiers.Scale | alphaModifier).ApplyCompanding(compand);
 
         Buffer2DRegion<TPixel> sourceRegion = source.PixelBuffer.GetRegion(sourceRectangle);
 

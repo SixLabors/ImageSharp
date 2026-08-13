@@ -4,6 +4,7 @@
 // ReSharper disable InconsistentNaming
 using System.Runtime.Intrinsics.X86;
 using SixLabors.ImageSharp.Formats;
+using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Formats.Tiff;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
@@ -370,6 +371,22 @@ public class TiffDecoderTests : TiffDecoderBaseTester
     }
 
     [Theory]
+    [WithFile(Icc.PerceptualRgb8, PixelTypes.Rgba32)]
+    [WithFile(Icc.PerceptualRgb16, PixelTypes.Rgba32)]
+    public void Decode_WhenColorProfileHandlingIsPreserve_PreservesIccProfile<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        DecoderOptions options = new() { ColorProfileHandling = ColorProfileHandling.Preserve };
+        using Image<TPixel> image = provider.GetImage(TiffDecoder.Instance, options);
+
+        Assert.NotNull(image.Metadata.IccProfile);
+        Assert.NotSame(image.Frames.RootFrame.Metadata.IccProfile, image.Metadata.IccProfile);
+        Assert.Equal(
+            image.Frames.RootFrame.Metadata.IccProfile.ToByteArray(),
+            image.Metadata.IccProfile.ToByteArray());
+    }
+
+    [Theory]
     [WithFile(Issues2454_A, PixelTypes.Rgba32)]
     [WithFile(Issues2454_B, PixelTypes.Rgba32)]
     public void TiffDecoder_CanDecode_YccK<TPixel>(TestImageProvider<TPixel> provider)
@@ -390,7 +407,15 @@ public class TiffDecoderTests : TiffDecoderBaseTester
         where TPixel : unmanaged, IPixel<TPixel>
     {
         using Image<TPixel> image = provider.GetImage(TiffDecoder.Instance);
-        image.DebugSave(provider);
+        PngEncoder encoder = new()
+        {
+            BitDepth = PngBitDepth.Bit16,
+            ColorType = PngColorType.RgbWithAlpha
+        };
+
+        // This exact Rgba64 comparison requires a 16-bit reference. The Windows reference encoder uses a 32-bit
+        // System.Drawing bitmap and would otherwise quantize each channel to 8 bits while producing the PNG.
+        image.DebugSave(provider, testOutputDetails: null, extension: "png", encoder: encoder);
 
         image.CompareToReferenceOutput(ImageComparer.Exact, provider);
     }

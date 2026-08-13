@@ -7,7 +7,6 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.PixelFormats.Utils;
-
 namespace SixLabors.ImageSharp.PixelFormats;
 
 /// <content>
@@ -45,7 +44,7 @@ public partial struct Rgb24
             Span<Rgb24> destination,
             PixelConversionModifiers modifiers)
         {
-            Vector4Converters.RgbaCompatible.FromVector4(configuration, this, sourceVectors, destination, modifiers.Remove(PixelConversionModifiers.Scale | PixelConversionModifiers.Premultiply));
+            Vector4Converters.RgbaCompatible.FromVector4(configuration, this, sourceVectors, destination, modifiers.Remove(PixelConversionModifiers.Scale));
         }
 
         /// <inheritdoc />

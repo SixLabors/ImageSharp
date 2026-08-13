@@ -403,6 +403,13 @@ internal sealed class ExifWriter
                     return WriteUInt32((uint)longNumber, destination, offset);
                 }
 
+                // ExifLong8Array retains ulong storage but reports Long when every value fits
+                // in 32 bits, allowing BigTIFF offsets to be serialized by classic EXIF writers.
+                if (value is ulong long8Value)
+                {
+                    return WriteUInt32((uint)long8Value, destination, offset);
+                }
+
                 return WriteUInt32((uint)value, destination, offset);
             case ExifDataType.Long8:
                 return WriteUInt64((ulong)value, destination, offset);

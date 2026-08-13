@@ -40,72 +40,67 @@ internal static class TiffUtilities
     public static TPixel ColorFromRgba64Premultiplied<TPixel>(ushort r, ushort g, ushort b, ushort a)
         where TPixel : unmanaged, IPixel<TPixel>
     {
+        // TIFF 6.0 requires associated RGB to be interpreted as zero when alpha is zero. Enforce that codec contract here
+        // while leaving the general associated-alpha conversion contract free to preserve hidden RGB for formats such as EXR.
         if (a == 0)
         {
-            return TPixel.FromRgba64(default);
+            return TPixel.FromAssociatedScaledVector4(Vector4.Zero);
         }
 
-        float scale = 65535f / a;
-        ushort ur = (ushort)Math.Min(r * scale, 65535);
-        ushort ug = (ushort)Math.Min(g * scale, 65535);
-        ushort ub = (ushort)Math.Min(b * scale, 65535);
-
-        return TPixel.FromRgba64(new Rgba64(ur, ug, ub, a));
+        // TIFF marks these samples as already associated. Passing that representation directly avoids an unassociate/reassociate
+        // round trip for associated destinations while unassociated formats perform the required conversion in their pixel contract.
+        return TPixel.FromAssociatedScaledVector4(new Vector4(r, g, b, a) / ushort.MaxValue);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static TPixel ColorScaleTo24Bit<TPixel>(uint r, uint g, uint b)
         where TPixel : unmanaged, IPixel<TPixel>
-        => TPixel.FromScaledVector4(new Vector4(r, g, b, 1f) * Scale24BitVector);
+        => TPixel.FromUnassociatedScaledVector4(new Vector4(r, g, b, 1f) * Scale24BitVector);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static TPixel ColorScaleTo24Bit<TPixel>(uint r, uint g, uint b, uint a)
         where TPixel : unmanaged, IPixel<TPixel>
-        => TPixel.FromScaledVector4(new Vector4(r, g, b, a) * Scale24Bit);
+        => TPixel.FromUnassociatedScaledVector4(new Vector4(r, g, b, a) * Scale24Bit);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static TPixel ColorScaleTo24BitPremultiplied<TPixel>(uint r, uint g, uint b, uint a)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        Vector4 colorVector = new Vector4(r, g, b, a) * Scale24Bit;
-        return UnPremultiply<TPixel>(ref colorVector);
+        // TIFF 6.0 assigns no color to a fully transparent associated sample, even when malformed input stores nonzero RGB.
+        return a == 0
+            ? TPixel.FromAssociatedScaledVector4(Vector4.Zero)
+            : TPixel.FromAssociatedScaledVector4(new Vector4(r, g, b, a) * Scale24Bit);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static TPixel ColorScaleTo32Bit<TPixel>(uint r, uint g, uint b)
         where TPixel : unmanaged, IPixel<TPixel>
-        => TPixel.FromScaledVector4(new Vector4(r, g, b, 1f) * Scale32BitVector);
+        => TPixel.FromUnassociatedScaledVector4(new Vector4(r, g, b, 1f) * Scale32BitVector);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static TPixel ColorScaleTo32Bit<TPixel>(uint r, uint g, uint b, uint a)
         where TPixel : unmanaged, IPixel<TPixel>
-        => TPixel.FromScaledVector4(new Vector4(r, g, b, a) * Scale32Bit);
+        => TPixel.FromUnassociatedScaledVector4(new Vector4(r, g, b, a) * Scale32Bit);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static TPixel ColorScaleTo32BitPremultiplied<TPixel>(uint r, uint g, uint b, uint a)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        Vector4 vector = new Vector4(r, g, b, a) * Scale32Bit;
-        return UnPremultiply<TPixel>(ref vector);
+        // TIFF 6.0 assigns no color to a fully transparent associated sample, even when malformed input stores nonzero RGB.
+        return a == 0
+            ? TPixel.FromAssociatedScaledVector4(Vector4.Zero)
+            : TPixel.FromAssociatedScaledVector4(new Vector4(r, g, b, a) * Scale32Bit);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static TPixel ColorScaleTo24Bit<TPixel>(uint intensity)
         where TPixel : unmanaged, IPixel<TPixel>
-        => TPixel.FromScaledVector4(new Vector4(intensity, intensity, intensity, 1f) * Scale24BitVector);
+        => TPixel.FromUnassociatedScaledVector4(new Vector4(intensity, intensity, intensity, 1f) * Scale24BitVector);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static TPixel ColorScaleTo32Bit<TPixel>(uint intensity)
         where TPixel : unmanaged, IPixel<TPixel>
-        => TPixel.FromScaledVector4(new Vector4(intensity, intensity, intensity, 1f) * Scale32BitVector);
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static TPixel UnPremultiply<TPixel>(ref Vector4 vector)
-        where TPixel : unmanaged, IPixel<TPixel>
-    {
-        Numerics.UnPremultiply(ref vector);
-        return TPixel.FromScaledVector4(vector);
-    }
+        => TPixel.FromUnassociatedScaledVector4(new Vector4(intensity, intensity, intensity, 1f) * Scale32BitVector);
 
     /// <summary>
     /// Finds the padding needed to round 'valueToRoundUp' to the next integer multiple of subSampling value.

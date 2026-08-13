@@ -78,6 +78,8 @@ internal readonly struct Convolution2DRowOperation<TPixel> : IRowOperation<Vecto
         Convolution2DState state = new(in this.kernelMatrixY, in this.kernelMatrixX, this.map);
         ref int sampleRowBase = ref state.GetSampleRow((uint)(y - this.bounds.Y));
 
+        // Alpha is preserved separately, so filter straight color and restore the source alpha after combining the kernels.
+
         // Clear the target buffers for each row run.
         targetYBuffer.Clear();
         targetXBuffer.Clear();
@@ -92,7 +94,7 @@ internal readonly struct Convolution2DRowOperation<TPixel> : IRowOperation<Vecto
             // Get the precalculated source sample row for this kernel row and copy to our buffer.
             int sampleY = Unsafe.Add(ref sampleRowBase, kY);
             sourceRow = this.sourcePixels.DangerousGetRowSpan(sampleY).Slice(boundsX, boundsWidth);
-            PixelOperations<TPixel>.Instance.ToVector4(this.configuration, sourceRow, sourceBuffer);
+            PixelOperations<TPixel>.Instance.ToVector4(this.configuration, sourceRow, sourceBuffer, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
 
             ref Vector4 sourceBase = ref MemoryMarshal.GetReference(sourceBuffer);
 
@@ -115,7 +117,7 @@ internal readonly struct Convolution2DRowOperation<TPixel> : IRowOperation<Vecto
         // Now we need to combine the values and copy the original alpha values
         // from the source row.
         sourceRow = this.sourcePixels.DangerousGetRowSpan(y).Slice(boundsX, boundsWidth);
-        PixelOperations<TPixel>.Instance.ToVector4(this.configuration, sourceRow, sourceBuffer);
+        PixelOperations<TPixel>.Instance.ToVector4(this.configuration, sourceRow, sourceBuffer, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
 
         for (nuint x = 0; x < (uint)sourceRow.Length; x++)
         {
@@ -128,7 +130,7 @@ internal readonly struct Convolution2DRowOperation<TPixel> : IRowOperation<Vecto
         }
 
         Span<TPixel> targetRowSpan = this.targetPixels.DangerousGetRowSpan(y).Slice(boundsX, boundsWidth);
-        PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, targetYBuffer, targetRowSpan);
+        PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, targetYBuffer, targetRowSpan, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -144,6 +146,8 @@ internal readonly struct Convolution2DRowOperation<TPixel> : IRowOperation<Vecto
         Convolution2DState state = new(in this.kernelMatrixY, in this.kernelMatrixX, this.map);
         ref int sampleRowBase = ref state.GetSampleRow((uint)(y - this.bounds.Y));
 
+        // Alpha participates in this convolution, so filter associated color to keep RGB weighted by coverage throughout the kernel.
+
         // Clear the target buffers for each row run.
         targetYBuffer.Clear();
         targetXBuffer.Clear();
@@ -157,9 +161,8 @@ internal readonly struct Convolution2DRowOperation<TPixel> : IRowOperation<Vecto
             // Get the precalculated source sample row for this kernel row and copy to our buffer.
             int sampleY = Unsafe.Add(ref sampleRowBase, kY);
             Span<TPixel> sourceRow = this.sourcePixels.DangerousGetRowSpan(sampleY).Slice(boundsX, boundsWidth);
-            PixelOperations<TPixel>.Instance.ToVector4(this.configuration, sourceRow, sourceBuffer);
+            PixelOperations<TPixel>.Instance.ToVector4(this.configuration, sourceRow, sourceBuffer, PixelConversionModifiers.Scale | PixelConversionModifiers.Premultiply);
 
-            Numerics.Premultiply(sourceBuffer);
             ref Vector4 sourceBase = ref MemoryMarshal.GetReference(sourceBuffer);
 
             for (uint x = 0; x < (uint)sourceBuffer.Length; x++)
@@ -186,11 +189,12 @@ internal readonly struct Convolution2DRowOperation<TPixel> : IRowOperation<Vecto
             Vector4 vectorX = Unsafe.Add(ref targetBaseX, x);
 
             target = Vector4.SquareRoot((vectorX * vectorX) + (vectorY * vectorY));
+
+            // Independent color and alpha gradients can produce RGB greater than alpha. Restore the associated-vector invariant before either storage representation receives the result.
+            Numerics.ClampRgbToAlpha(ref target);
         }
 
-        Numerics.UnPremultiply(targetYBuffer);
-
         Span<TPixel> targetRow = this.targetPixels.DangerousGetRowSpan(y).Slice(boundsX, boundsWidth);
-        PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, targetYBuffer, targetRow);
+        PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, targetYBuffer, targetRow, PixelConversionModifiers.Scale | PixelConversionModifiers.Premultiply);
     }
 }

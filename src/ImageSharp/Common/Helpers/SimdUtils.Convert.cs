@@ -41,11 +41,29 @@ internal static partial class SimdUtils
     {
         DebugGuard.IsTrue(source.Length == destination.Length, nameof(source), "Input spans must be of same length!");
 
-        HwIntrinsics.NormalizedFloatToByteSaturateReduce(ref source, ref destination);
+        HwIntrinsics.FloatToByteSaturateReduce(ref source, ref destination, byte.MaxValue);
 
         if (source.Length > 0)
         {
-            ConvertNormalizedFloatToByteRemainder(source, destination);
+            ConvertFloatToByteRemainder(source, destination, byte.MaxValue);
+        }
+    }
+
+    /// <summary>
+    /// Converts byte-magnitude floating-point values to bytes using saturating round-to-nearest with midpoint values away from zero.
+    /// </summary>
+    /// <param name="source">The source byte magnitudes.</param>
+    /// <param name="destination">The destination bytes.</param>
+    [MethodImpl(InliningOptions.ShortMethod)]
+    internal static void FloatToByteSaturate(ReadOnlySpan<float> source, Span<byte> destination)
+    {
+        DebugGuard.IsTrue(source.Length == destination.Length, nameof(source), "Input spans must be of same length!");
+
+        HwIntrinsics.FloatToByteSaturateReduce(ref source, ref destination, 1F);
+
+        if (source.Length > 0)
+        {
+            ConvertFloatToByteRemainder(source, destination, 1F);
         }
     }
 
@@ -57,22 +75,23 @@ internal static partial class SimdUtils
 
         for (int i = 0; i < source.Length; i++)
         {
-            Unsafe.Add(ref dBase, (uint)i) = Unsafe.Add(ref sBase, (uint)i) / 255f;
+            // Match the SIMD conversion so one span cannot contain different float representations of the same byte value.
+            Unsafe.Add(ref dBase, (uint)i) = Unsafe.Add(ref sBase, (uint)i) / (float)byte.MaxValue;
         }
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private static void ConvertNormalizedFloatToByteRemainder(ReadOnlySpan<float> source, Span<byte> destination)
+    private static void ConvertFloatToByteRemainder(ReadOnlySpan<float> source, Span<byte> destination, float scale)
     {
         ref float sBase = ref MemoryMarshal.GetReference(source);
         ref byte dBase = ref MemoryMarshal.GetReference(destination);
 
         for (int i = 0; i < source.Length; i++)
         {
-            Unsafe.Add(ref dBase, (uint)i) = ConvertToByte(Unsafe.Add(ref sBase, (uint)i));
+            Unsafe.Add(ref dBase, (uint)i) = ConvertToByte(Unsafe.Add(ref sBase, (uint)i), scale);
         }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static byte ConvertToByte(float f) => (byte)Numerics.Clamp((f * 255f) + 0.5f, 0, 255f);
+    private static byte ConvertToByte(float value, float scale) => (byte)Numerics.Clamp((value * scale) + .5F, 0, byte.MaxValue);
 }

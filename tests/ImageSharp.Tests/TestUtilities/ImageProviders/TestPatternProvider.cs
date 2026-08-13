@@ -158,15 +158,17 @@ public abstract partial class TestImageProvider<TPixel> : IXunitSerializable
             int bottom = pixels.Height;
             int height = (int)Math.Ceiling(pixels.Height / 6f);
 
-            Vector4 red = Color.Red.ToPixel<TPixel>().ToVector4(); // use real color so we can see how it translates in the test pattern
-            Vector4 green = Color.Green.ToPixel<TPixel>().ToVector4(); // use real color so we can see how it translates in the test pattern
-            Vector4 blue = Color.Blue.ToPixel<TPixel>().ToVector4(); // use real color so we can see how it translates in the test pattern
+            // Round-trip the primaries through TPixel so this fixture still demonstrates the format's color quantization, while
+            // keeping the working vectors unassociated because the loop replaces alpha independently of RGB.
+            Vector4 red = Color.Red.ToPixel<TPixel>().ToUnassociatedScaledVector4();
+            Vector4 green = Color.Green.ToPixel<TPixel>().ToUnassociatedScaledVector4();
+            Vector4 blue = Color.Blue.ToPixel<TPixel>().ToUnassociatedScaledVector4();
 
             for (int x = left; x < right; x++)
             {
                 blue.W = red.W = green.W = x / (float)right;
 
-                TPixel c = TPixel.FromVector4(red);
+                TPixel c = TPixel.FromUnassociatedScaledVector4(red);
                 int topBand = top;
                 for (int y = topBand; y < top + height; y++)
                 {
@@ -174,14 +176,14 @@ public abstract partial class TestImageProvider<TPixel> : IXunitSerializable
                 }
 
                 topBand += height;
-                c = TPixel.FromVector4(green);
+                c = TPixel.FromUnassociatedScaledVector4(green);
                 for (int y = topBand; y < topBand + height; y++)
                 {
                     pixels[x, y] = c;
                 }
 
                 topBand += height;
-                c = TPixel.FromVector4(blue);
+                c = TPixel.FromUnassociatedScaledVector4(blue);
                 for (int y = topBand; y < bottom; y++)
                 {
                     pixels[x, y] = c;

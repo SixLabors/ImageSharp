@@ -26,7 +26,7 @@ internal static class ColorNumerics
     /// The number of luminance levels (256 for 8 bit, 65536 for 16 bit grayscale images).
     /// </param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static int GetBT709Luminance(ref Vector4 vector, int luminanceLevels)
+    public static int GetBT709Luminance(Vector4 vector, int luminanceLevels)
         => (int)MathF.Round(Vector4.Dot(vector, Bt709) * (luminanceLevels - 1));
 
     /// <summary>

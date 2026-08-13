@@ -11,6 +11,11 @@ public class NumericsTests
 
     private readonly ApproximateFloatComparer approximateFloatComparer = new(1e-6f);
 
+    /// <summary>
+    /// Gets lengths that straddle the Vector4 block boundaries used by the 128-, 256-, and 512-bit kernels.
+    /// </summary>
+    public static TheoryData<int> AssociationSpanLengths => new() { 0, 1, 2, 3, 4, 5, 7, 8, 9, 15, 16, 17, 31, 32, 33, 63 };
+
     [Theory]
     [InlineData(0)]
     [InlineData(1)]
@@ -156,14 +161,23 @@ public class NumericsTests
     }
 
     [Theory]
-    [InlineData(0)]
-    [InlineData(1)]
-    [InlineData(30)]
-    [InlineData(63)]
+    [MemberData(nameof(AssociationSpanLengths))]
     public void PremultiplyVectorSpan(int length)
     {
         Random rnd = new(42);
         Vector4[] source = rnd.GenerateRandomVectorArray(length, 0, 1);
+
+        for (int i = 0; i < source.Length; i++)
+        {
+            // Exact zero and one exercise the special alpha boundaries alongside the random fractional values.
+            source[i].W = i % 5 switch
+            {
+                0 => 0F,
+                1 => 1F,
+                _ => source[i].W
+            };
+        }
+
         Vector4[] expected = source.Select(v =>
         {
             Numerics.Premultiply(ref v);
@@ -173,17 +187,32 @@ public class NumericsTests
         Numerics.Premultiply(source);
 
         Assert.Equal(expected, source, this.approximateFloatComparer);
+
+        for (int i = 0; i < source.Length; i++)
+        {
+            // Alpha is storage metadata here and must survive each SIMD width without any floating-point transformation.
+            Assert.Equal(BitConverter.SingleToInt32Bits(expected[i].W), BitConverter.SingleToInt32Bits(source[i].W));
+        }
     }
 
     [Theory]
-    [InlineData(0)]
-    [InlineData(1)]
-    [InlineData(30)]
-    [InlineData(63)]
+    [MemberData(nameof(AssociationSpanLengths))]
     public void UnPremultiplyVectorSpan(int length)
     {
         Random rnd = new(42);
         Vector4[] source = rnd.GenerateRandomVectorArray(length, 0, 1);
+
+        for (int i = 0; i < source.Length; i++)
+        {
+            // A zero alpha preserves the complete source vector by contract; one also verifies the identity case.
+            source[i].W = i % 5 switch
+            {
+                0 => 0F,
+                1 => 1F,
+                _ => source[i].W
+            };
+        }
+
         Vector4[] expected = source.Select(v =>
         {
             Numerics.UnPremultiply(ref v);
@@ -193,6 +222,12 @@ public class NumericsTests
         Numerics.UnPremultiply(source);
 
         Assert.Equal(expected, source, this.approximateFloatComparer);
+
+        for (int i = 0; i < source.Length; i++)
+        {
+            // Alpha is the divisor and must still survive each SIMD width without any floating-point transformation.
+            Assert.Equal(BitConverter.SingleToInt32Bits(expected[i].W), BitConverter.SingleToInt32Bits(source[i].W));
+        }
     }
 
     [Theory]

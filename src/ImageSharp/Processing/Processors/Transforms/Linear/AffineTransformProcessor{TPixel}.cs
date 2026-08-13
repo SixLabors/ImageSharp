@@ -199,15 +199,14 @@ internal class AffineTransformProcessor<TPixel> : TransformProcessor<TPixel>, IR
             int maxY = this.bounds.Bottom - 1;
             int minX = this.bounds.X;
             int maxX = this.bounds.Right - 1;
+            PixelOperations<TPixel> pixelOperations = PixelOperations<TPixel>.Instance;
 
             for (int y = rows.Min; y < rows.Max; y++)
             {
                 Span<TPixel> destinationRowSpan = this.destination.DangerousGetRowSpan(y);
-                PixelOperations<TPixel>.Instance.ToVector4(
-                    this.configuration,
-                    destinationRowSpan,
-                    span,
-                    PixelConversionModifiers.Scale);
+
+                // The temporary row is reused, so clear values for out-of-bounds samples that skip the resampling loop below.
+                span.Clear();
 
                 for (int x = 0; x < span.Length; x++)
                 {
@@ -225,6 +224,7 @@ internal class AffineTransformProcessor<TPixel> : TransformProcessor<TPixel>, IR
                         continue;
                     }
 
+                    // Resampling interpolates color with coverage, so use associated vectors to prevent transparent RGB from bleeding into visible edges.
                     Vector4 sum = Vector4.Zero;
                     for (int yK = top; yK <= bottom; yK++)
                     {
@@ -235,8 +235,7 @@ internal class AffineTransformProcessor<TPixel> : TransformProcessor<TPixel>, IR
                         {
                             float xWeight = sampler.GetValue(xK - pX);
 
-                            Vector4 current = sourceRowSpan[xK].ToScaledVector4();
-                            Numerics.Premultiply(ref current);
+                            Vector4 current = sourceRowSpan[xK].ToAssociatedScaledVector4();
                             sum += current * xWeight * yWeight;
                         }
                     }
@@ -244,12 +243,7 @@ internal class AffineTransformProcessor<TPixel> : TransformProcessor<TPixel>, IR
                     span[x] = sum;
                 }
 
-                Numerics.UnPremultiply(span);
-                PixelOperations<TPixel>.Instance.FromVector4Destructive(
-                    this.configuration,
-                    span,
-                    destinationRowSpan,
-                    PixelConversionModifiers.Scale);
+                pixelOperations.FromVector4Destructive(this.configuration, span, destinationRowSpan, PixelConversionModifiers.Scale | PixelConversionModifiers.Premultiply);
             }
         }
     }

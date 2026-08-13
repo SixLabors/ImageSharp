@@ -6,32 +6,38 @@ using SixLabors.ImageSharp.ColorProfiles.Companding;
 namespace SixLabors.ImageSharp.PixelFormats;
 
 /// <summary>
-/// Flags responsible to select additional operations which could be efficiently applied in
+/// Specifies vector representation transformations applied by
 /// <see cref="PixelOperations{TPixel}.ToVector4(Configuration,ReadOnlySpan{TPixel},Span{System.Numerics.Vector4},PixelConversionModifiers)"/>
-/// or
+/// and
 /// <see cref="PixelOperations{TPixel}.FromVector4Destructive(Configuration,Span{System.Numerics.Vector4},Span{TPixel},PixelConversionModifiers)"/>
-/// knowing the pixel type.
+/// during bulk pixel conversion.
 /// </summary>
 [Flags]
 public enum PixelConversionModifiers
 {
     /// <summary>
-    /// No special operation is selected
+    /// Preserves the pixel format's native numeric range and alpha representation.
     /// </summary>
     None = 0,
 
     /// <summary>
-    /// Select <see cref="IPixel.ToScaledVector4"/> and <see cref="IPixel{T}.FromScaledVector4"/> instead the standard (non scaled) variants.
+    /// Requests the scaled numeric range represented by <see cref="IPixel.ToScaledVector4"/> and <see cref="IPixel{T}.FromScaledVector4"/>.
     /// </summary>
     Scale = 1 << 0,
 
     /// <summary>
-    /// Enable alpha premultiplication / unpremultiplication
+    /// Requests associated alpha for the vector representation.
+    /// When combined with <see cref="UnPremultiply"/>, associated alpha takes precedence.
     /// </summary>
     Premultiply = 1 << 1,
 
     /// <summary>
-    /// Enable SRGB companding (defined in <see cref="SRgbCompanding"/>).
+    /// Expands sRGB color components when converting pixels to vectors and compresses linear RGB color components when converting vectors to pixels.
     /// </summary>
     SRgbCompand = 1 << 2,
+
+    /// <summary>
+    /// Requests unassociated alpha for the vector representation unless <see cref="Premultiply"/> is also specified.
+    /// </summary>
+    UnPremultiply = 1 << 3,
 }

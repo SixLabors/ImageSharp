@@ -169,7 +169,6 @@ internal sealed class ResizeWorker<TPixel> : IDisposable
             }
 
             Span<TPixel> targetRowSpan = destination.DangerousGetRowSpan(y).Slice(left, width);
-
             PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, tempColSpan, targetRowSpan, this.conversionModifiers);
         }
     }
@@ -215,12 +214,7 @@ internal sealed class ResizeWorker<TPixel> : IDisposable
         for (int y = calculationInterval.Min; y < calculationInterval.Max; y++)
         {
             Span<TPixel> sourceRow = this.source.DangerousGetRowSpan(y);
-
-            PixelOperations<TPixel>.Instance.ToVector4(
-                this.configuration,
-                sourceRow,
-                tempRowSpan,
-                this.conversionModifiers);
+            PixelOperations<TPixel>.Instance.ToVector4(this.configuration, sourceRow, tempRowSpan, this.conversionModifiers);
 
             ref Vector4 firstPassBaseRef = ref transposedFirstPassBufferSpan[y - currentWindowMin];
 

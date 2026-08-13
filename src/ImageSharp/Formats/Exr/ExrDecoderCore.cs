@@ -4,6 +4,7 @@
 
 using System.Buffers;
 using System.Buffers.Binary;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Text;
 using SixLabors.ImageSharp.Formats.Exr.Compression;
@@ -23,7 +24,7 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
     /// <summary>
     /// Reusable buffer.
     /// </summary>
-    private readonly byte[] buffer = new byte[8];
+    private InlineArray8<byte> buffer;
 
     /// <summary>
     /// Used for allocating memory during processing operations.
@@ -208,8 +209,10 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
 
                 for (int x = 0; x < width; x++)
                 {
-                    HalfVector4 pixelValue = new(redPixelData[x], greenPixelData[x], bluePixelData[x], hasAlpha ? alphaPixelData[x] : 1.0f);
-                    pixelRow[x] = TPixel.FromVector4(pixelValue.ToVector4());
+                    Vector4 pixelValue = new(redPixelData[x], greenPixelData[x], bluePixelData[x], hasAlpha ? alphaPixelData[x] : 1F);
+
+                    // OpenEXR channels are associated color values, not values in the destination pixel format's native numeric range.
+                    pixelRow[x] = TPixel.FromAssociatedScaledVector4(pixelValue);
                 }
 
                 decodedRows++;
@@ -288,7 +291,9 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
                 for (int x = 0; x < width; x++)
                 {
                     Rgba128 pixelValue = new(redPixelData[x], greenPixelData[x], bluePixelData[x], hasAlpha ? alphaPixelData[x] : uint.MaxValue);
-                    pixelRow[x] = TPixel.FromVector4(pixelValue.ToVector4());
+
+                    // Rgba128 normalizes the unsigned channel values before the destination applies its own numeric representation.
+                    pixelRow[x] = TPixel.FromAssociatedScaledVector4(pixelValue.ToVector4());
                 }
 
                 decodedRows++;
@@ -644,7 +649,7 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
         this.Channels = this.HeaderAttributes.Channels;
         this.Compression = this.HeaderAttributes.Compression;
         uint rowsPerBlock = ExrUtils.RowsPerBlock(this.Compression);
-        long chunkCount = (this.Height + (long)rowsPerBlock - 1) / rowsPerBlock;
+        long chunkCount = (this.Height + rowsPerBlock - 1) / rowsPerBlock;
         long offsetTableByteCount = chunkCount * sizeof(ulong);
 
         // The scanline offset table sits between the header and pixel chunks; proving it

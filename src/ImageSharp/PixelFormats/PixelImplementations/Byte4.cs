@@ -8,11 +8,12 @@ using System.Runtime.Intrinsics;
 namespace SixLabors.ImageSharp.PixelFormats;
 
 /// <summary>
-/// Packed pixel type containing four 8-bit unsigned integer values, ranging from 0 to 255.
-/// <para>
-/// Ranges from [0, 0, 0, 0] to [255, 255, 255, 255] in vector form.
-/// </para>
+/// Packed pixel type containing four 8-bit unsigned integer values.
 /// </summary>
+/// <remarks>
+/// <see cref="ToVector4"/> returns components in <c>[0, 255]</c>. Scaled vector conversions map that range to
+/// <c>[0, 1]</c>. The storage layout matches <c>DXGI_FORMAT_R8G8B8A8_UINT</c>.
+/// </remarks>
 public partial struct Byte4 : IPixel<Byte4>, IPackedVector<uint>
 {
     private static readonly Vector4 MaxBytes = Vector128.Create(255f).AsVector4();
@@ -87,6 +88,58 @@ public partial struct Byte4 : IPixel<Byte4>, IPackedVector<uint>
 
     /// <inheritdoc />
     public static PixelOperations<Byte4> CreatePixelOperations() => new PixelOperations();
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly Vector4 ToUnassociatedScaledVector4() => this.ToScaledVector4();
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly Vector4 ToAssociatedScaledVector4()
+    {
+        Vector4 vector = this.ToScaledVector4();
+        Numerics.Premultiply(ref vector);
+        return vector;
+    }
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly Vector4 ToUnassociatedVector4() => this.ToVector4();
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly Vector4 ToAssociatedVector4()
+    {
+        Vector4 vector = this.ToAssociatedScaledVector4();
+
+        // Native components use [0, 255], so association occurs in scaled [0, 1] space before mapping the result back.
+        return vector * MaxBytes;
+    }
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Byte4 FromUnassociatedScaledVector4(Vector4 source) => FromScaledVector4(source);
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Byte4 FromAssociatedScaledVector4(Vector4 source)
+    {
+        Numerics.UnPremultiply(ref source);
+        return FromScaledVector4(source);
+    }
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Byte4 FromUnassociatedVector4(Vector4 source) => FromVector4(source);
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Byte4 FromAssociatedVector4(Vector4 source)
+    {
+        // Map every native component, including alpha, to scaled [0, 1] space before unassociating.
+        source /= MaxBytes;
+        return FromAssociatedScaledVector4(source);
+    }
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

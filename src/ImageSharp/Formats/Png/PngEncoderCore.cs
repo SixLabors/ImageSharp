@@ -43,7 +43,7 @@ internal sealed class PngEncoderCore : IDisposable
     /// <summary>
     /// Reusable buffer for writing chunk data.
     /// </summary>
-    private ScratchBuffer chunkDataBuffer;  // mutable struct, don't make readonly
+    private InlineArray26<byte> chunkDataBuffer; // mutable struct, don't make readonly
 
     /// <summary>
     /// The encoder with options
@@ -734,9 +734,9 @@ internal sealed class PngEncoderCore : IDisposable
             filterMethod: 0,
             interlaceMethod: this.interlaceMode);
 
-        header.WriteTo(this.chunkDataBuffer.Span);
+        header.WriteTo(this.chunkDataBuffer);
 
-        this.WriteChunk(stream, PngChunkType.Header, this.chunkDataBuffer.Span, 0, PngHeader.Size);
+        this.WriteChunk(stream, PngChunkType.Header, this.chunkDataBuffer, 0, PngHeader.Size);
     }
 
     /// <summary>
@@ -749,9 +749,9 @@ internal sealed class PngEncoderCore : IDisposable
     {
         AnimationControl acTL = new(framesCount, playsCount);
 
-        acTL.WriteTo(this.chunkDataBuffer.Span);
+        acTL.WriteTo(this.chunkDataBuffer);
 
-        this.WriteChunk(stream, PngChunkType.AnimationControl, this.chunkDataBuffer.Span, 0, AnimationControl.Size);
+        this.WriteChunk(stream, PngChunkType.AnimationControl, this.chunkDataBuffer, 0, AnimationControl.Size);
     }
 
     /// <summary>
@@ -820,9 +820,9 @@ internal sealed class PngEncoderCore : IDisposable
             return;
         }
 
-        PngPhysical.FromMetadata(meta).WriteTo(this.chunkDataBuffer.Span);
+        PngPhysical.FromMetadata(meta).WriteTo(this.chunkDataBuffer);
 
-        this.WriteChunk(stream, PngChunkType.Physical, this.chunkDataBuffer.Span, 0, PngPhysical.Size);
+        this.WriteChunk(stream, PngChunkType.Physical, this.chunkDataBuffer, 0, PngPhysical.Size);
     }
 
     /// <summary>
@@ -1067,7 +1067,7 @@ internal sealed class PngEncoderCore : IDisposable
             throw new NotSupportedException("CICP matrix coefficients other than Identity are not supported in PNG");
         }
 
-        Span<byte> outputBytes = this.chunkDataBuffer.Span[..4];
+        Span<byte> outputBytes = this.chunkDataBuffer[..4];
         outputBytes[0] = (byte)metaData.CicpProfile.ColorPrimaries;
         outputBytes[1] = (byte)metaData.CicpProfile.TransferCharacteristics;
         outputBytes[2] = (byte)metaData.CicpProfile.MatrixCoefficients;
@@ -1222,9 +1222,9 @@ internal sealed class PngEncoderCore : IDisposable
             // 4-byte unsigned integer of gamma * 100,000.
             uint gammaValue = (uint)(this.gamma * 100_000F);
 
-            BinaryPrimitives.WriteUInt32BigEndian(this.chunkDataBuffer.Span[..4], gammaValue);
+            BinaryPrimitives.WriteUInt32BigEndian(this.chunkDataBuffer[..4], gammaValue);
 
-            this.WriteChunk(stream, PngChunkType.Gamma, this.chunkDataBuffer.Span, 0, 4);
+            this.WriteChunk(stream, PngChunkType.Gamma, this.chunkDataBuffer, 0, 4);
         }
     }
 
@@ -1241,7 +1241,7 @@ internal sealed class PngEncoderCore : IDisposable
             return;
         }
 
-        Span<byte> alpha = this.chunkDataBuffer.Span;
+        Span<byte> alpha = this.chunkDataBuffer;
         if (pngMetadata.ColorType == PngColorType.Rgb)
         {
             if (this.use16Bit)
@@ -1251,7 +1251,7 @@ internal sealed class PngEncoderCore : IDisposable
                 BinaryPrimitives.WriteUInt16LittleEndian(alpha.Slice(2, 2), rgb.G);
                 BinaryPrimitives.WriteUInt16LittleEndian(alpha.Slice(4, 2), rgb.B);
 
-                this.WriteChunk(stream, PngChunkType.Transparency, this.chunkDataBuffer.Span, 0, 6);
+                this.WriteChunk(stream, PngChunkType.Transparency, this.chunkDataBuffer, 0, 6);
             }
             else
             {
@@ -1260,7 +1260,7 @@ internal sealed class PngEncoderCore : IDisposable
                 alpha[1] = rgb.R;
                 alpha[3] = rgb.G;
                 alpha[5] = rgb.B;
-                this.WriteChunk(stream, PngChunkType.Transparency, this.chunkDataBuffer.Span, 0, 6);
+                this.WriteChunk(stream, PngChunkType.Transparency, this.chunkDataBuffer, 0, 6);
             }
         }
         else if (pngMetadata.ColorType == PngColorType.Grayscale)
@@ -1269,14 +1269,14 @@ internal sealed class PngEncoderCore : IDisposable
             {
                 L16 l16 = pngMetadata.TransparentColor.Value.ToPixel<L16>();
                 BinaryPrimitives.WriteUInt16LittleEndian(alpha, l16.PackedValue);
-                this.WriteChunk(stream, PngChunkType.Transparency, this.chunkDataBuffer.Span, 0, 2);
+                this.WriteChunk(stream, PngChunkType.Transparency, this.chunkDataBuffer, 0, 2);
             }
             else
             {
                 L8 l8 = pngMetadata.TransparentColor.Value.ToPixel<L8>();
                 alpha.Clear();
                 alpha[1] = l8.PackedValue;
-                this.WriteChunk(stream, PngChunkType.Transparency, this.chunkDataBuffer.Span, 0, 2);
+                this.WriteChunk(stream, PngChunkType.Transparency, this.chunkDataBuffer, 0, 2);
             }
         }
     }
@@ -1301,9 +1301,9 @@ internal sealed class PngEncoderCore : IDisposable
             disposalMode: frameMetadata.DisposalMode,
             blendMode: frameMetadata.BlendMode);
 
-        fcTL.WriteTo(this.chunkDataBuffer.Span);
+        fcTL.WriteTo(this.chunkDataBuffer);
 
-        this.WriteChunk(stream, PngChunkType.FrameControl, this.chunkDataBuffer.Span, 0, FrameControl.Size);
+        this.WriteChunk(stream, PngChunkType.FrameControl, this.chunkDataBuffer, 0, FrameControl.Size);
 
         return fcTL;
     }
@@ -1834,12 +1834,4 @@ internal sealed class PngEncoderCore : IDisposable
             // PngColorType.RgbWithAlpha
             _ => use16Bit ? 8 : 4,
         };
-
-    private unsafe struct ScratchBuffer
-    {
-        private const int Size = 26;
-        private fixed byte scratch[Size];
-
-        public Span<byte> Span => MemoryMarshal.CreateSpan(ref this.scratch[0], Size);
-    }
 }

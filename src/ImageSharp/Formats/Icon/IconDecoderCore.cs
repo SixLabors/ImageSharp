@@ -9,15 +9,28 @@ using SixLabors.ImageSharp.Metadata;
 
 namespace SixLabors.ImageSharp.Formats.Icon;
 
+/// <summary>
+/// Decodes the shared ICO/CUR directory and embedded BMP or PNG frame payloads.
+/// </summary>
 internal abstract class IconDecoderCore : ImageDecoderCore
 {
+    private readonly IconFileType iconFileType;
     private IconDir fileHeader;
     private IconDirEntry[]? entries;
 
-    protected IconDecoderCore(DecoderOptions options)
+    /// <summary>
+    /// Reusable storage for an icon directory entry and smaller fixed values.
+    /// </summary>
+    private InlineArray16<byte> buffer;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="IconDecoderCore"/> class.
+    /// </summary>
+    /// <param name="options">The decoder options.</param>
+    /// <param name="iconFileType">The expected icon container type.</param>
+    protected IconDecoderCore(DecoderOptions options, IconFileType iconFileType)
         : base(options)
-    {
-    }
+        => this.iconFileType = iconFileType;
 
     /// <inheritdoc />
     protected override Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
@@ -26,108 +39,125 @@ internal abstract class IconDecoderCore : ImageDecoderCore
         long basePosition = stream.Position;
         this.ReadHeader(stream);
 
-        Span<byte> flag = stackalloc byte[PngConstants.HeaderBytes.Length];
+        int entryCount = this.entries.Length;
+        (int EntryIndex, Image<TPixel> Image, IconFrameCompression Compression)[] decodedEntries = new (int, Image<TPixel>, IconFrameCompression)[entryCount];
+        int decodedCount = 0;
+        IconFrameStream frameStream = new(stream);
+        this.Dimensions = default;
 
-        List<(Image<TPixel> Image, IconFrameCompression Compression, int Index)> decodedEntries
-            = new((int)Math.Min(this.entries.Length, this.Options.MaxFrames));
-
-        for (int i = 0; i < this.entries.Length; i++)
+        try
         {
-            if (i == this.Options.MaxFrames)
+            for (int i = 0; i < entryCount; i++)
             {
-                break;
-            }
+                int entryIndex = i;
 
-            ref IconDirEntry entry = ref this.entries[i];
-
-            // If we hit the end of the stream we should break.
-            if (stream.Seek(basePosition + entry.ImageOffset, SeekOrigin.Begin) >= stream.Length)
-            {
-                break;
-            }
-
-            // There should always be enough bytes for this regardless of the entry type.
-            if (stream.Read(flag) != PngConstants.HeaderBytes.Length)
-            {
-                break;
-            }
-
-            // Reset the stream position.
-            _ = stream.Seek(-PngConstants.HeaderBytes.Length, SeekOrigin.Current);
-
-            bool isPng = flag.SequenceEqual(PngConstants.HeaderBytes);
-
-            // Decode the frame into a temp image buffer. This is disposed after the frame is copied to the result.
-            Image<TPixel> temp = this.GetDecoder(isPng).Decode<TPixel>(this.Options.Configuration, stream, cancellationToken);
-            decodedEntries.Add((temp, isPng ? IconFrameCompression.Png : IconFrameCompression.Bmp, i));
-
-            // Since Windows Vista, the size of an image is determined from the BITMAPINFOHEADER structure or PNG image data
-            // which technically allows storing icons with larger than 256 pixels, but such larger sizes are not recommended by Microsoft.
-            this.Dimensions = new Size(Math.Max(this.Dimensions.Width, temp.Size.Width), Math.Max(this.Dimensions.Height, temp.Size.Height));
-        }
-
-        ImageMetadata metadata = new();
-        BmpMetadata? bmpMetadata = null;
-        PngMetadata? pngMetadata = null;
-        Image<TPixel> result = new(this.Options.Configuration, metadata, decodedEntries.Select(x =>
-        {
-            BmpBitsPerPixel bitsPerPixel = BmpBitsPerPixel.Bit32;
-            ReadOnlyMemory<Color>? colorTable = null;
-            ImageFrame<TPixel> target = new(this.Options.Configuration, this.Dimensions);
-            ImageFrame<TPixel> source = x.Image.Frames.RootFrameUnsafe;
-            for (int y = 0; y < source.Height; y++)
-            {
-                source.PixelBuffer.DangerousGetRowSpan(y).CopyTo(target.PixelBuffer.DangerousGetRowSpan(y));
-            }
-
-            // Copy the format specific frame metadata to the image.
-            if (x.Compression is IconFrameCompression.Png)
-            {
-                if (x.Index == 0)
+                this.ExecuteImageDataSegmentAction(() =>
                 {
-                    pngMetadata = x.Image.Metadata.GetPngMetadata();
+                    cancellationToken.ThrowIfCancellationRequested();
+
+                    ref IconDirEntry entry = ref this.entries[entryIndex];
+                    this.SetFrameStreamBounds(frameStream, stream, basePosition, entry);
+                    Span<byte> flag = this.buffer[..PngConstants.HeaderBytes.Length];
+                    CheckEndOfStream(frameStream.Read(flag), flag.Length);
+                    frameStream.Position = 0;
+
+                    bool isPng = flag.SequenceEqual(PngConstants.HeaderBytes);
+                    IconFrameCompression compression = isPng ? IconFrameCompression.Png : IconFrameCompression.Bmp;
+
+                    // Frames remain alive until the largest decoded dimensions are known and the common canvas can be allocated.
+                    Image<TPixel> decoded = this.GetDecoder(isPng).Decode<TPixel>(this.Options.Configuration, frameStream, cancellationToken);
+                    decodedEntries[decodedCount++] = (entryIndex, decoded, compression);
+
+                    // The embedded header is authoritative because a zero directory dimension can represent 256 pixels or a larger Vista-era PNG.
+                    this.Dimensions = new(Math.Max(this.Dimensions.Width, decoded.Width), Math.Max(this.Dimensions.Height, decoded.Height));
+                });
+            }
+
+            if (decodedCount is 0)
+            {
+                throw new InvalidImageContentException("The icon file does not contain any decodable image entries.");
+            }
+
+            // General profiles belong to the icon result even though the first successfully decoded child image is temporary.
+            ImageMetadata metadata = decodedEntries[0].Image.Metadata.DeepClone();
+            BmpMetadata? bmpMetadata = null;
+            PngMetadata? pngMetadata = null;
+            ImageFrame<TPixel>[] frames = new ImageFrame<TPixel>[decodedCount];
+            int initializedFrameCount = 0;
+
+            try
+            {
+                for (int i = 0; i < decodedCount; i++)
+                {
+                    BmpBitsPerPixel bitsPerPixel = BmpBitsPerPixel.Bit32;
+                    ReadOnlyMemory<Color>? colorTable = null;
+                    Image<TPixel> decoded = decodedEntries[i].Image;
+                    ref IconDirEntry entry = ref this.entries[decodedEntries[i].EntryIndex];
+                    ImageFrame<TPixel> source = decoded.Frames.RootFrameUnsafe;
+                    ImageFrame<TPixel> target = new(this.Options.Configuration, this.Dimensions, source.Metadata.DeepClone());
+                    frames[i] = target;
+                    initializedFrameCount++;
+
+                    for (int y = 0; y < source.Height; y++)
+                    {
+                        source.PixelBuffer.DangerousGetRowSpan(y).CopyTo(target.PixelBuffer.DangerousGetRowSpan(y));
+                    }
+
+                    // Preserve both the embedded format metadata and the ICO/CUR directory metadata on the output frame.
+                    if (decodedEntries[i].Compression is IconFrameCompression.Png)
+                    {
+                        if (i == 0)
+                        {
+                            pngMetadata = decoded.Metadata.GetPngMetadata();
+                        }
+                    }
+                    else
+                    {
+                        BmpMetadata currentBmpMetadata = decoded.Metadata.GetBmpMetadata();
+                        bitsPerPixel = currentBmpMetadata.BitsPerPixel;
+                        colorTable = currentBmpMetadata.ColorTable;
+
+                        if (i == 0)
+                        {
+                            bmpMetadata = currentBmpMetadata;
+                        }
+                    }
+
+                    this.SetFrameMetadata(metadata, target.Metadata, i, entry, decodedEntries[i].Compression, bitsPerPixel, colorTable);
                 }
 
-                target.Metadata.SetFormatMetadata(PngFormat.Instance, target.Metadata.GetPngMetadata());
-            }
-            else
-            {
-                BmpMetadata meta = x.Image.Metadata.GetBmpMetadata();
-                bitsPerPixel = meta.BitsPerPixel;
-                colorTable = meta.ColorTable;
-
-                if (x.Index == 0)
+                // Embedded metadata belongs to the container even though the temporary decoded images are disposed below.
+                if (bmpMetadata is not null)
                 {
-                    bmpMetadata = meta;
+                    metadata.SetFormatMetadata(BmpFormat.Instance, bmpMetadata);
+                }
+
+                if (pngMetadata is not null)
+                {
+                    metadata.SetFormatMetadata(PngFormat.Instance, pngMetadata);
+                }
+
+                Image<TPixel> result = new(this.Options.Configuration, metadata, frames);
+
+                // Ownership of every output frame transfers to the result only after construction succeeds.
+                initializedFrameCount = 0;
+                return result;
+            }
+            finally
+            {
+                for (int i = 0; i < initializedFrameCount; i++)
+                {
+                    frames[i].Dispose();
                 }
             }
-
-            this.SetFrameMetadata(
-                metadata,
-                target.Metadata,
-                x.Index,
-                this.entries[x.Index],
-                x.Compression,
-                bitsPerPixel,
-                colorTable);
-
-            x.Image.Dispose();
-
-            return target;
-        }).ToArray());
-
-        // Copy the format specific metadata to the image.
-        if (bmpMetadata != null)
-        {
-            result.Metadata.SetFormatMetadata(BmpFormat.Instance, bmpMetadata);
         }
-
-        if (pngMetadata != null)
+        finally
         {
-            result.Metadata.SetFormatMetadata(PngFormat.Instance, pngMetadata);
+            for (int i = 0; i < decodedCount; i++)
+            {
+                decodedEntries[i].Image.Dispose();
+            }
         }
-
-        return result;
     }
 
     /// <inheritdoc />
@@ -137,87 +167,94 @@ internal abstract class IconDecoderCore : ImageDecoderCore
         long basePosition = stream.Position;
         this.ReadHeader(stream);
 
-        Span<byte> flag = stackalloc byte[PngConstants.HeaderBytes.Length];
-
         ImageMetadata metadata = new();
         BmpMetadata? bmpMetadata = null;
         PngMetadata? pngMetadata = null;
-        ImageFrameMetadata[] frames = new ImageFrameMetadata[Math.Min(this.fileHeader.Count, this.Options.MaxFrames)];
-        int bpp = 0;
+        ImageFrameMetadata[] frames = new ImageFrameMetadata[this.entries.Length];
+        int frameCount = 0;
+        IconFrameStream frameStream = new(stream);
+        this.Dimensions = default;
+
         for (int i = 0; i < frames.Length; i++)
         {
-            BmpBitsPerPixel bitsPerPixel = BmpBitsPerPixel.Bit32;
-            ReadOnlyMemory<Color>? colorTable = null;
-            ref IconDirEntry entry = ref this.entries[i];
+            int entryIndex = i;
 
-            // If we hit the end of the stream we should break.
-            if (stream.Seek(basePosition + entry.ImageOffset, SeekOrigin.Begin) >= stream.Length)
+            this.ExecuteImageDataSegmentAction(() =>
             {
-                break;
-            }
+                cancellationToken.ThrowIfCancellationRequested();
 
-            // There should always be enough bytes for this regardless of the entry type.
-            if (stream.Read(flag) != PngConstants.HeaderBytes.Length)
-            {
-                break;
-            }
+                BmpBitsPerPixel bitsPerPixel = BmpBitsPerPixel.Bit32;
+                ReadOnlyMemory<Color>? colorTable = null;
+                ref IconDirEntry entry = ref this.entries[entryIndex];
+                this.SetFrameStreamBounds(frameStream, stream, basePosition, entry);
+                Span<byte> flag = this.buffer[..PngConstants.HeaderBytes.Length];
+                CheckEndOfStream(frameStream.Read(flag), flag.Length);
+                frameStream.Position = 0;
 
-            // Reset the stream position.
-            _ = stream.Seek(-PngConstants.HeaderBytes.Length, SeekOrigin.Current);
+                bool isPng = flag.SequenceEqual(PngConstants.HeaderBytes);
+                ImageInfo frameInfo = this.GetDecoder(isPng).Identify(this.Options.Configuration, frameStream, cancellationToken);
+                ImageFrameMetadata frameMetadata = frameInfo.FrameMetadataCollection.Count is 0 ? new ImageFrameMetadata() : frameInfo.FrameMetadataCollection[0].DeepClone();
 
-            bool isPng = flag.SequenceEqual(PngConstants.HeaderBytes);
-
-            // Decode the frame into a temp image buffer. This is disposed after the frame is copied to the result.
-            ImageInfo frameInfo = this.GetDecoder(isPng).Identify(this.Options.Configuration, stream, cancellationToken);
-
-            ImageFrameMetadata frameMetadata = new();
-
-            if (isPng)
-            {
-                if (i == 0)
+                if (frameCount is 0)
                 {
-                    pngMetadata = frameInfo.Metadata.GetPngMetadata();
+                    // The container has one image-level metadata object, so the first valid entry supplies general profiles and resolution.
+                    ImageMetadata sourceMetadata = frameInfo.Metadata;
+                    metadata.HorizontalResolution = sourceMetadata.HorizontalResolution;
+                    metadata.VerticalResolution = sourceMetadata.VerticalResolution;
+                    metadata.ResolutionUnits = sourceMetadata.ResolutionUnits;
+                    metadata.ExifProfile = sourceMetadata.ExifProfile?.DeepClone();
+                    metadata.IccProfile = sourceMetadata.IccProfile?.DeepClone();
+                    metadata.IptcProfile = sourceMetadata.IptcProfile?.DeepClone();
+                    metadata.XmpProfile = sourceMetadata.XmpProfile?.DeepClone();
+                    metadata.CicpProfile = sourceMetadata.CicpProfile?.DeepClone();
                 }
 
-                frameMetadata.SetFormatMetadata(PngFormat.Instance, frameInfo.FrameMetadataCollection[0].GetPngMetadata());
-            }
-            else
-            {
-                BmpMetadata meta = frameInfo.Metadata.GetBmpMetadata();
-                bitsPerPixel = meta.BitsPerPixel;
-                colorTable = meta.ColorTable;
-
-                if (i == 0)
+                if (isPng)
                 {
-                    bmpMetadata = meta;
+                    if (frameCount is 0)
+                    {
+                        pngMetadata = frameInfo.Metadata.GetPngMetadata();
+                    }
                 }
-            }
+                else
+                {
+                    BmpMetadata currentBmpMetadata = frameInfo.Metadata.GetBmpMetadata();
+                    bitsPerPixel = currentBmpMetadata.BitsPerPixel;
+                    colorTable = currentBmpMetadata.ColorTable;
 
-            bpp = Math.Max(bpp, (int)bitsPerPixel);
+                    if (frameCount is 0)
+                    {
+                        bmpMetadata = currentBmpMetadata;
+                    }
+                }
 
-            frames[i] = frameMetadata;
+                IconFrameCompression compression = isPng ? IconFrameCompression.Png : IconFrameCompression.Bmp;
+                this.SetFrameMetadata(metadata, frameMetadata, frameCount, entry, compression, bitsPerPixel, colorTable);
+                frames[frameCount++] = frameMetadata;
 
-            this.SetFrameMetadata(
-                metadata,
-                frames[i],
-                i,
-                this.entries[i],
-                isPng ? IconFrameCompression.Png : IconFrameCompression.Bmp,
-                bitsPerPixel,
-                colorTable);
+                // Identification uses the same embedded-header dimensions as decoding, without allocating pixel buffers.
+                this.Dimensions = new(Math.Max(this.Dimensions.Width, frameInfo.Width), Math.Max(this.Dimensions.Height, frameInfo.Height));
+            });
+        }
 
-            // Since Windows Vista, the size of an image is determined from the BITMAPINFOHEADER structure or PNG image data
-            // which technically allows storing icons with larger than 256 pixels, but such larger sizes are not recommended by Microsoft.
-            this.Dimensions = new Size(Math.Max(this.Dimensions.Width, frameInfo.Size.Width), Math.Max(this.Dimensions.Height, frameInfo.Size.Height));
+        if (frameCount is 0)
+        {
+            throw new InvalidImageContentException("The icon file does not contain any identifiable image entries.");
+        }
+
+        if (frameCount != frames.Length)
+        {
+            // Preserve successfully identified frames when truncated image data ends the scan before the declared directory count.
+            Array.Resize(ref frames, frameCount);
         }
 
         // Copy the format specific metadata to the image.
-        if (bmpMetadata != null)
+        if (bmpMetadata is not null)
         {
             metadata.SetFormatMetadata(BmpFormat.Instance, bmpMetadata);
         }
 
-        if (pngMetadata != null)
+        if (pngMetadata is not null)
         {
             metadata.SetFormatMetadata(PngFormat.Instance, pngMetadata);
         }
@@ -225,6 +262,16 @@ internal abstract class IconDecoderCore : ImageDecoderCore
         return new ImageInfo(this.Dimensions, metadata, frames);
     }
 
+    /// <summary>
+    /// Copies format-specific directory and embedded-frame metadata to an output frame.
+    /// </summary>
+    /// <param name="imageMetadata">The output image metadata.</param>
+    /// <param name="frameMetadata">The output frame metadata.</param>
+    /// <param name="index">The directory entry index.</param>
+    /// <param name="entry">The directory entry.</param>
+    /// <param name="compression">The embedded frame compression.</param>
+    /// <param name="bitsPerPixel">The embedded bitmap bit depth.</param>
+    /// <param name="colorTable">The embedded bitmap color table.</param>
     protected abstract void SetFrameMetadata(
         ImageMetadata imageMetadata,
         ImageFrameMetadata frameMetadata,
@@ -234,58 +281,45 @@ internal abstract class IconDecoderCore : ImageDecoderCore
         BmpBitsPerPixel bitsPerPixel,
         ReadOnlyMemory<Color>? colorTable);
 
+    /// <summary>
+    /// Reads the icon directory entries needed by the configured frame limit.
+    /// </summary>
+    /// <param name="stream">The source stream.</param>
     [MemberNotNull(nameof(entries))]
-    protected void ReadHeader(Stream stream)
+    private void ReadHeader(Stream stream)
     {
-        Span<byte> buffer = stackalloc byte[IconDirEntry.Size];
+        Span<byte> buffer = this.buffer;
 
         // ICONDIR
-        _ = CheckEndOfStream(stream.Read(buffer[..IconDir.Size]), IconDir.Size);
+        CheckEndOfStream(stream.Read(buffer[..IconDir.Size]), IconDir.Size);
         this.fileHeader = IconDir.Parse(buffer);
+        if (this.fileHeader.Reserved != 0 || this.fileHeader.Type != this.iconFileType || this.fileHeader.Count == 0)
+        {
+            throw new InvalidImageContentException("The icon directory header is invalid.");
+        }
 
         // ICONDIRENTRY
-        this.entries = new IconDirEntry[this.fileHeader.Count];
+        int entryCount = (int)Math.Min(this.fileHeader.Count, this.Options.MaxFrames);
+        this.entries = new IconDirEntry[entryCount];
         for (int i = 0; i < this.entries.Length; i++)
         {
-            _ = CheckEndOfStream(stream.Read(buffer[..IconDirEntry.Size]), IconDirEntry.Size);
+            CheckEndOfStream(stream.Read(buffer[..IconDirEntry.Size]), IconDirEntry.Size);
             this.entries[i] = IconDirEntry.Parse(buffer);
         }
-
-        int width = 0;
-        int height = 0;
-        foreach (IconDirEntry entry in this.entries)
-        {
-            // Since Windows 95 size of an image in the ICONDIRENTRY structure might
-            // be set to zero, which means 256 pixels.
-            if (entry.Width == 0)
-            {
-                width = 256;
-            }
-
-            if (entry.Height == 0)
-            {
-                height = 256;
-            }
-
-            if (width == 256 && height == 256)
-            {
-                break;
-            }
-
-            width = Math.Max(width, entry.Width);
-            height = Math.Max(height, entry.Height);
-        }
-
-        this.Dimensions = new Size(width, height);
     }
 
+    /// <summary>
+    /// Creates the decoder configured for an embedded PNG or headerless, double-height bitmap frame.
+    /// </summary>
+    /// <param name="isPng">Whether the embedded frame has a PNG signature.</param>
+    /// <returns>The configured frame decoder.</returns>
     private ImageDecoderCore GetDecoder(bool isPng)
     {
         if (isPng)
         {
             return new PngDecoderCore(new PngDecoderOptions
             {
-                GeneralOptions = this.Options,
+                GeneralOptions = this.Options
             });
         }
 
@@ -294,17 +328,59 @@ internal abstract class IconDecoderCore : ImageDecoderCore
             GeneralOptions = this.Options,
             ProcessedAlphaMask = true,
             SkipFileHeader = true,
-            UseDoubleHeight = true,
+            UseDoubleHeight = true
         });
     }
 
-    private static int CheckEndOfStream(int v, int length)
+    /// <summary>
+    /// Creates a seekable view bounded to one directory entry's declared payload.
+    /// </summary>
+    /// <param name="frameStream">The reusable bounded payload stream.</param>
+    /// <param name="stream">The containing icon stream.</param>
+    /// <param name="basePosition">The absolute start of the icon resource.</param>
+    /// <param name="entry">The directory entry describing the payload.</param>
+    private void SetFrameStreamBounds(IconFrameStream frameStream, BufferedReadStream stream, long basePosition, in IconDirEntry entry)
     {
-        if (v != length)
+        long available = stream.Length - basePosition;
+        uint directorySize = (uint)(IconDir.Size + (this.fileHeader.Count * IconDirEntry.Size));
+
+        // Offsets are relative to the icon resource and must not point into its directory or at or beyond its containing stream.
+        if (entry.Reserved is not 0
+            || entry.BytesInRes is 0
+            || entry.ImageOffset < directorySize
+            || entry.ImageOffset >= available)
+        {
+            throw new InvalidImageContentException("The icon directory contains an invalid image resource range.");
+        }
+
+        long remaining = available - entry.ImageOffset;
+        long length = entry.BytesInRes;
+        if (length > remaining)
+        {
+            if (this.fileHeader.Count is not 1)
+            {
+                // Clamping a multi-entry resource could expose the next image payload to the current child decoder.
+                throw new InvalidImageContentException("The icon directory contains an invalid image resource range.");
+            }
+
+            // Some established single-image ICO files overstate BytesInRes but contain a complete payload.
+            // The containing stream is still a safe hard boundary because no sibling image can follow it.
+            length = remaining;
+        }
+
+        frameStream.Reset(basePosition + entry.ImageOffset, length);
+    }
+
+    /// <summary>
+    /// Ensures that a complete fixed-size directory structure was read.
+    /// </summary>
+    /// <param name="bytesRead">The number of bytes read.</param>
+    /// <param name="expectedLength">The required structure length.</param>
+    private static void CheckEndOfStream(int bytesRead, int expectedLength)
+    {
+        if (bytesRead != expectedLength)
         {
             throw new InvalidImageContentException("Not enough bytes to read icon header.");
         }
-
-        return v;
     }
 }

@@ -5,9 +5,11 @@ using System.Buffers;
 using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using SixLabors.ImageSharp.ColorProfiles.Conversion.Icc;
 using SixLabors.ImageSharp.ColorProfiles.Icc;
+using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 
@@ -658,38 +660,10 @@ internal static class ColorProfileConverterExtensionsIcc
 
     private static void ClipNegative(Span<Vector4> source)
     {
-        if (Vector.IsHardwareAccelerated && Vector<float>.IsSupported && Vector<float>.Count >= source.Length * 4)
-        {
-            // SIMD loop
-            int i = 0;
-            int simdBatchSize = Vector<float>.Count / 4; // Number of Vector4 elements per SIMD batch
-            for (; i <= source.Length - simdBatchSize; i += simdBatchSize)
-            {
-                // Load the vector from source span
-                Vector<float> v = Unsafe.ReadUnaligned<Vector<float>>(ref Unsafe.As<Vector4, byte>(ref source[i]));
-
-                v = Vector.Max(v, Vector<float>.Zero);
-
-                // Write the vector to the destination span
-                Unsafe.WriteUnaligned(ref Unsafe.As<Vector4, byte>(ref source[i]), v);
-            }
-
-            // Scalar fallback for remaining elements
-            for (; i < source.Length; i++)
-            {
-                ref Vector4 s = ref source[i];
-                s = Vector4.Max(s, Vector4.Zero);
-            }
-        }
-        else
-        {
-            // Scalar fallback if SIMD is not supported
-            for (int i = 0; i < source.Length; i++)
-            {
-                ref Vector4 s = ref source[i];
-                s = Vector4.Max(s, Vector4.Zero);
-            }
-        }
+        // Vector4 values are contiguous floats, so flattening preserves the component order
+        // while allowing one shared tensor traversal to process every channel and SIMD tail.
+        Span<float> values = MemoryMarshal.Cast<Vector4, float>(source);
+        TensorPrimitives_.Max(values, 0F, values);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -708,39 +682,9 @@ internal static class ColorProfileConverterExtensionsIcc
 
     private static void LabToLab(Span<Vector4> source, Span<Vector4> destination, [ConstantExpected] float scale)
     {
-        if (Vector.IsHardwareAccelerated && Vector<float>.IsSupported)
-        {
-            Vector<float> vScale = new(scale);
-            int i = 0;
-
-            // SIMD loop
-            int simdBatchSize = Vector<float>.Count / 4; // Number of Vector4 elements per SIMD batch
-            for (; i <= source.Length - simdBatchSize; i += simdBatchSize)
-            {
-                // Load the vector from source span
-                Vector<float> v = Unsafe.ReadUnaligned<Vector<float>>(ref Unsafe.As<Vector4, byte>(ref source[i]));
-
-                // Scale the vector
-                v *= vScale;
-
-                // Write the scaled vector to the destination span
-                Unsafe.WriteUnaligned(ref Unsafe.As<Vector4, byte>(ref destination[i]), v);
-            }
-
-            // Scalar fallback for remaining elements
-            for (; i < source.Length; i++)
-            {
-                destination[i] = source[i] * scale;
-            }
-        }
-        else
-        {
-            // Scalar fallback if SIMD is not supported
-            for (int i = 0; i < source.Length; i++)
-            {
-                destination[i] = source[i] * scale;
-            }
-        }
+        // Reinterpreting both spans exposes all four components to one multiplication traversal;
+        // the source and destination retain their original Vector4 boundaries after the operation.
+        TensorPrimitives_.Multiply(MemoryMarshal.Cast<Vector4, float>(source), scale, MemoryMarshal.Cast<Vector4, float>(destination));
     }
 
     private class ConversionParams

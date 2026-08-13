@@ -23,13 +23,8 @@ internal readonly struct IccLut : IEquatable<IccLut>
     {
         Guard.NotNull(values, nameof(values));
 
-        const float max = ushort.MaxValue;
-
         this.Values = new float[values.Length];
-        for (int i = 0; i < values.Length; i++)
-        {
-            this.Values[i] = values[i] / max;
-        }
+        IccLutNormalizer.Normalize(values, this.Values);
     }
 
     /// <summary>
@@ -40,13 +35,8 @@ internal readonly struct IccLut : IEquatable<IccLut>
     {
         Guard.NotNull(values, nameof(values));
 
-        const float max = byte.MaxValue;
-
         this.Values = new float[values.Length];
-        for (int i = 0; i < values.Length; i++)
-        {
-            this.Values[i] = values[i] / max;
-        }
+        IccLutNormalizer.Normalize(values, this.Values);
     }
 
     /// <summary>

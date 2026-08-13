@@ -13,6 +13,9 @@ public abstract class MemoryAllocator
 {
     private const int OneGigabyte = 1 << 30;
     private long accumulativeAllocatedBytes;
+    private long memoryGroupAllocationLimitBytes = Environment.Is64BitProcess ? 4L * OneGigabyte : OneGigabyte;
+    private long accumulativeAllocationLimitBytes = long.MaxValue;
+    private int singleBufferAllocationLimitBytes = OneGigabyte;
 
     /// <summary>
     /// Gets the default platform-specific global <see cref="MemoryAllocator"/> instance that
@@ -25,16 +28,26 @@ public abstract class MemoryAllocator
     public static MemoryAllocator Default { get; } = Create();
 
     /// <summary>
-    /// Gets the maximum number of bytes that can be allocated by a memory group.
+    /// Gets or sets the maximum number of bytes that can be allocated by a memory group.
+    /// A memory group backs the pixel buffer of a single image, so this limits the total image size.
     /// </summary>
     /// <remarks>
-    /// The allocation limit is determined by the process architecture: 4 GB for 64-bit processes and
-    /// 1 GB for 32-bit processes.
+    /// The default limit is determined by the process architecture: 4 GB for 64-bit processes and
+    /// 1 GB for 32-bit processes. The setter is available to derived allocators and requires a positive value.
     /// </remarks>
-    internal long MemoryGroupAllocationLimitBytes { get; private protected set; } = Environment.Is64BitProcess ? 4L * OneGigabyte : OneGigabyte;
+    /// <exception cref="ArgumentOutOfRangeException">The value is not greater than zero.</exception>
+    public long MemoryGroupAllocationLimitBytes
+    {
+        get => this.memoryGroupAllocationLimitBytes;
+        protected set
+        {
+            Guard.MustBeGreaterThan(value, 0, nameof(this.MemoryGroupAllocationLimitBytes));
+            this.memoryGroupAllocationLimitBytes = value;
+        }
+    }
 
     /// <summary>
-    /// Gets the maximum accumulative size, in bytes, of all active allocations made through this allocator instance.
+    /// Gets or sets the maximum accumulative size, in bytes, of all active allocations made through this allocator instance.
     /// </summary>
     /// <remarks>
     /// Defaults to <see cref="long.MaxValue"/>, effectively imposing no limit on the accumulative total.
@@ -42,16 +55,40 @@ public abstract class MemoryAllocator
     /// outstanding allocations issued by this instance.<br/>
     /// When the accumulative size of active allocations exceeds this limit, an <see cref="InvalidMemoryOperationException"/> will be thrown to
     /// prevent further allocations and signal that the limit has been breached.
+    /// The setter is available to derived allocators and requires a positive value.
     /// </remarks>
-    internal long AccumulativeAllocationLimitBytes { get; private protected set; } = long.MaxValue;
+    /// <exception cref="ArgumentOutOfRangeException">The value is not greater than zero.</exception>
+    public long AccumulativeAllocationLimitBytes
+    {
+        get => this.accumulativeAllocationLimitBytes;
+        protected set
+        {
+            Guard.MustBeGreaterThan(value, 0, nameof(this.AccumulativeAllocationLimitBytes));
+            this.accumulativeAllocationLimitBytes = value;
+        }
+    }
 
     /// <summary>
-    /// Gets the maximum size, in bytes, that can be allocated for a single buffer.
+    /// Gets or sets the maximum size, in bytes, that can be allocated for a single contiguous buffer.
+    /// This limit applies to <see cref="Allocate{T}(int, AllocationOptions)"/> and to contiguous image buffers
+    /// requested through <see cref="Configuration.PreferContiguousImageBuffers"/>.
     /// </summary>
     /// <remarks>
     /// The single buffer allocation limit is set to 1 GB by default.
+    /// A single contiguous buffer can never exceed <see cref="int.MaxValue"/> bytes; larger images are
+    /// backed by discontiguous memory groups limited by <see cref="MemoryGroupAllocationLimitBytes"/>.
+    /// The setter is available to derived allocators and requires a positive value.
     /// </remarks>
-    internal int SingleBufferAllocationLimitBytes { get; private protected set; } = OneGigabyte;
+    /// <exception cref="ArgumentOutOfRangeException">The value is not greater than zero.</exception>
+    public int SingleBufferAllocationLimitBytes
+    {
+        get => this.singleBufferAllocationLimitBytes;
+        protected set
+        {
+            Guard.MustBeGreaterThan(value, 0, nameof(this.SingleBufferAllocationLimitBytes));
+            this.singleBufferAllocationLimitBytes = value;
+        }
+    }
 
     /// <summary>
     /// Gets the length of the largest contiguous buffer that can be handled by this allocator instance in bytes.
@@ -79,15 +116,27 @@ public abstract class MemoryAllocator
 
     /// <summary>
     /// Applies the supplied <see cref="MemoryAllocatorOptions"/> to this instance.
+    /// Derived allocators can call this from their constructors to accept user configuration.
     /// </summary>
     /// <param name="options">The options to apply. Properties left as <see langword="null"/> are ignored.</param>
-    private protected void ApplyOptions(MemoryAllocatorOptions options)
+    /// <remarks>
+    /// The applied single buffer limit is capped to <see cref="MemoryGroupAllocationLimitBytes"/>,
+    /// because a single contiguous buffer can never be larger than the total allocation limit.
+    /// </remarks>
+    protected void ApplyOptions(MemoryAllocatorOptions options)
     {
         if (options.AllocationLimitMegabytes.HasValue)
         {
             this.MemoryGroupAllocationLimitBytes = options.AllocationLimitMegabytes.Value * 1024L * 1024L;
-            this.SingleBufferAllocationLimitBytes = (int)Math.Min(this.SingleBufferAllocationLimitBytes, this.MemoryGroupAllocationLimitBytes);
         }
+
+        if (options.SingleBufferAllocationLimitMegabytes.HasValue)
+        {
+            // The option setter caps the value at 2047 MB, so converting to bytes cannot overflow.
+            this.SingleBufferAllocationLimitBytes = (int)(options.SingleBufferAllocationLimitMegabytes.Value * 1024L * 1024L);
+        }
+
+        this.SingleBufferAllocationLimitBytes = (int)Math.Min(this.SingleBufferAllocationLimitBytes, this.MemoryGroupAllocationLimitBytes);
 
         if (options.AccumulativeAllocationLimitMegabytes.HasValue)
         {

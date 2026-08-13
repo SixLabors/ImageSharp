@@ -15,9 +15,10 @@ internal class B44ExrCompression : ExrBaseDecompressor
 {
     private readonly int channelCount;
 
-    private readonly byte[] scratch = new byte[14];
+    // B44 encodes each 4x4 block in either 3 or 14 bytes, so both representations share this inline storage.
+    private InlineArray14<byte> scratch;
 
-    private readonly ushort[] s = new ushort[16];
+    private InlineArray16<ushort> s;
 
     private readonly IMemoryOwner<ushort> tmpBuffer;
 
@@ -42,8 +43,11 @@ internal class B44ExrCompression : ExrBaseDecompressor
     {
         Span<ushort> outputBuffer = MemoryMarshal.Cast<byte, ushort>(buffer);
         Span<ushort> decompressed = this.tmpBuffer.GetSpan();
+        Span<byte> scratch = this.scratch;
+        Span<ushort> samples = this.s;
         int outputOffset = 0;
         int bytesLeft = (int)compressedBytes;
+
         for (int i = 0; i < this.channelCount && bytesLeft > 0; i++)
         {
             for (int y = 0; y < this.RowsPerBlock; y += 4)
@@ -60,49 +64,49 @@ internal class B44ExrCompression : ExrBaseDecompressor
                 int rowOffset = 0;
                 for (int x = 0; x < this.Width && bytesLeft > 0; x += 4)
                 {
-                    int bytesRead = stream.Read(this.scratch, 0, 3);
+                    int bytesRead = stream.Read(scratch[..3]);
                     if (bytesRead == 0)
                     {
                         ExrThrowHelper.ThrowInvalidImageContentException("Could not read enough data from the stream!");
                     }
 
                     // Check if 3-byte encoded flat field.
-                    if (this.scratch[2] >= 13 << 2)
+                    if (scratch[2] >= 13 << 2)
                     {
-                        Unpack3(this.scratch, this.s);
+                        Unpack3(scratch, samples);
                         bytesLeft -= 3;
                     }
                     else
                     {
-                        bytesRead = stream.Read(this.scratch, 3, 11);
+                        bytesRead = stream.Read(scratch.Slice(3, 11));
                         if (bytesRead == 0)
                         {
                             ExrThrowHelper.ThrowInvalidImageContentException("Could not read enough data from the stream!");
                         }
 
-                        Unpack14(this.scratch, this.s);
+                        Unpack14(scratch, samples);
                         bytesLeft -= 14;
                     }
 
                     int n = x + 3 < this.Width ? 4 : this.Width - x;
                     if (y + 3 < this.RowsPerBlock)
                     {
-                        this.s.AsSpan(0, n).CopyTo(row0[rowOffset..]);
-                        this.s.AsSpan(4, n).CopyTo(row1[rowOffset..]);
-                        this.s.AsSpan(8, n).CopyTo(row2[rowOffset..]);
-                        this.s.AsSpan(12, n).CopyTo(row3[rowOffset..]);
+                        samples[..n].CopyTo(row0[rowOffset..]);
+                        samples.Slice(4, n).CopyTo(row1[rowOffset..]);
+                        samples.Slice(8, n).CopyTo(row2[rowOffset..]);
+                        samples.Slice(12, n).CopyTo(row3[rowOffset..]);
                     }
                     else
                     {
-                        this.s.AsSpan(0, n).CopyTo(row0[rowOffset..]);
+                        samples[..n].CopyTo(row0[rowOffset..]);
                         if (y + 1 < this.RowsPerBlock)
                         {
-                            this.s.AsSpan(4, n).CopyTo(row1[rowOffset..]);
+                            samples.Slice(4, n).CopyTo(row1[rowOffset..]);
                         }
 
                         if (y + 2 < this.RowsPerBlock)
                         {
-                            this.s.AsSpan(8, n).CopyTo(row2[rowOffset..]);
+                            samples.Slice(8, n).CopyTo(row2[rowOffset..]);
                         }
                     }
 

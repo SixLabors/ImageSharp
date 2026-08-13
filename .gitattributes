@@ -84,12 +84,15 @@
 #   treat as binary
 ###############################################################################
 *.basis             binary
+*.a                 binary
 *.dll               binary
+*.dylib             binary
 *.exe               binary
 *.pdf               binary
 *.ppt               binary
 *.pptx              binary
 *.pvr               binary
+*.so                binary
 *.snk               binary
 *.xls               binary
 *.xlsx              binary

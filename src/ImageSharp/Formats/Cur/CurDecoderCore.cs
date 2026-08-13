@@ -7,13 +7,21 @@ using SixLabors.ImageSharp.Metadata;
 
 namespace SixLabors.ImageSharp.Formats.Cur;
 
+/// <summary>
+/// Decodes CUR containers and maps directory metadata to CUR metadata.
+/// </summary>
 internal sealed class CurDecoderCore : IconDecoderCore
 {
+    /// <summary>
+    /// Initializes a new instance of the <see cref="CurDecoderCore"/> class.
+    /// </summary>
+    /// <param name="options">The decoder options.</param>
     public CurDecoderCore(DecoderOptions options)
-        : base(options)
+        : base(options, IconFileType.CUR)
     {
     }
 
+    /// <inheritdoc/>
     protected override void SetFrameMetadata(
         ImageMetadata imageMetadata,
         ImageFrameMetadata frameMetadata,

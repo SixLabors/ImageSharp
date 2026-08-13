@@ -2,7 +2,10 @@
 // Licensed under the Six Labors Split License.
 
 using System.Collections.Concurrent;
+using System.Diagnostics.CodeAnalysis;
+using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Formats;
+using SixLabors.ImageSharp.Formats.Ani;
 using SixLabors.ImageSharp.Formats.Bmp;
 using SixLabors.ImageSharp.Formats.Cur;
 using SixLabors.ImageSharp.Formats.Exr;
@@ -38,6 +41,9 @@ public sealed class Configuration
     /// <summary>
     /// Initializes a new instance of the <see cref="Configuration" /> class.
     /// </summary>
+    // Every image operation requires a Configuration. Attaching the dependency to its constructors keeps the compile-only
+    // seed graph visible to modern .NET trimmers without executing that graph or adding module-initialization work.
+    [DynamicDependency(nameof(AotCompilerTools.SeedPixelOperations), typeof(AotCompilerTools))]
     public Configuration()
     {
     }
@@ -46,6 +52,8 @@ public sealed class Configuration
     /// Initializes a new instance of the <see cref="Configuration" /> class.
     /// </summary>
     /// <param name="configurationModules">A collection of configuration modules to register.</param>
+    // The default Configuration is created through this overload, while callers may use either constructor.
+    [DynamicDependency(nameof(AotCompilerTools.SeedPixelOperations), typeof(AotCompilerTools))]
     public Configuration(params IImageFormatConfigurationModule[] configurationModules)
     {
         if (configurationModules != null)
@@ -217,6 +225,7 @@ public sealed class Configuration
     /// <see cref="WebpConfigurationModule"/>.
     /// <see cref="ExrConfigurationModule"/>.
     /// <see cref="QoiConfigurationModule"/>.
+    /// <see cref="AniConfigurationModule"/>.
     /// </summary>
     /// <returns>The default configuration of <see cref="Configuration"/>.</returns>
     internal static Configuration CreateDefaultInstance() => new(
@@ -231,5 +240,6 @@ public sealed class Configuration
             new ExrConfigurationModule(),
             new QoiConfigurationModule(),
             new IcoConfigurationModule(),
-            new CurConfigurationModule());
+            new CurConfigurationModule(),
+            new AniConfigurationModule());
 }

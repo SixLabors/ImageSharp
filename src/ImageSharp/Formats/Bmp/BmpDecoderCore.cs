@@ -350,10 +350,10 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
                         pixelRow[x] = this.rleSkippedPixelHandling switch
                         {
                             RleSkippedPixelHandling.FirstColorOfPalette => TPixel.FromBgr24(Unsafe.As<byte, Bgr24>(ref colors[colorIdx * 4])),
-                            RleSkippedPixelHandling.Transparent => TPixel.FromScaledVector4(Vector4.Zero),
+                            RleSkippedPixelHandling.Transparent => TPixel.FromUnassociatedScaledVector4(Vector4.Zero),
 
                             // Default handling for skipped pixels is black (which is what System.Drawing is also doing).
-                            _ => TPixel.FromScaledVector4(new Vector4(0.0f, 0.0f, 0.0f, 1.0f)),
+                            _ => TPixel.FromUnassociatedScaledVector4(new Vector4(0.0f, 0.0f, 0.0f, 1.0f)),
                         };
                     }
                     else
@@ -411,10 +411,10 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
                         pixelRow[x] = this.rleSkippedPixelHandling switch
                         {
                             RleSkippedPixelHandling.FirstColorOfPalette => TPixel.FromBgr24(Unsafe.As<byte, Bgr24>(ref bufferSpan[idx])),
-                            RleSkippedPixelHandling.Transparent => TPixel.FromScaledVector4(Vector4.Zero),
+                            RleSkippedPixelHandling.Transparent => TPixel.FromUnassociatedScaledVector4(Vector4.Zero),
 
                             // Default handling for skipped pixels is black (which is what System.Drawing is also doing).
-                            _ => TPixel.FromScaledVector4(new Vector4(0.0f, 0.0f, 0.0f, 1.0f)),
+                            _ => TPixel.FromUnassociatedScaledVector4(new Vector4(0.0f, 0.0f, 0.0f, 1.0f)),
                         };
                     }
                     else
@@ -1272,7 +1272,7 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
                         g * invMaxValueGreen,
                         b * invMaxValueBlue,
                         alpha);
-                    pixelRow[x] = TPixel.FromScaledVector4(vector4);
+                    pixelRow[x] = TPixel.FromUnassociatedScaledVector4(vector4);
                 }
                 else
                 {

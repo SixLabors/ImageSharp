@@ -238,9 +238,10 @@ internal class BokehBlurProcessor<TPixel> : ImageProcessor<TPixel>
             Span<ComplexVector4> targetBuffer = this.targetValues.DangerousGetRowSpan(y);
             targetBuffer.Clear();
 
-            // Execute the bulk pixel format conversion for the current row
+            // Gamma exposure temporarily stores premultiplied numeric intermediates in TPixel without changing their
+            // representation. Read the native scaled values back directly to avoid an associate/unassociate round trip.
             Span<TPixel> sourceRow = this.sourcePixels.DangerousGetRowSpan(y).Slice(boundsX, boundsWidth);
-            PixelOperations<TPixel>.Instance.ToVector4(this.configuration, sourceRow, span);
+            PixelOperations<TPixel>.Instance.ToVector4(this.configuration, sourceRow, span, PixelConversionModifiers.Scale);
 
             ref Vector4 sourceBase = ref MemoryMarshal.GetReference(span);
             ref ComplexVector4 targetStart = ref MemoryMarshal.GetReference(targetBuffer);
@@ -305,12 +306,14 @@ internal class BokehBlurProcessor<TPixel> : ImageProcessor<TPixel>
         public void Invoke(int y, Span<Vector4> span)
         {
             Span<TPixel> targetRowSpan = this.targetPixels.DangerousGetRowSpan(y)[this.bounds.X..];
-            PixelOperations<TPixel>.Instance.ToVector4(this.configuration, targetRowSpan[..span.Length], span, PixelConversionModifiers.Premultiply);
+            PixelOperations<TPixel>.Instance.ToVector4(this.configuration, targetRowSpan[..span.Length], span, PixelConversionModifiers.Scale | PixelConversionModifiers.Premultiply);
 
             // Input is premultiplied [0,1] so the LUT is safe here.
             GammaCompanding.Expand(span[..this.bounds.Width], this.gamma);
 
-            PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, span, targetRowSpan);
+            // The first convolution pass consumes these values as raw premultiplied numerics. Preserve them in the
+            // native TPixel representation instead of quantizing through an alpha-association conversion.
+            PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, span, targetRowSpan, PixelConversionModifiers.Scale);
         }
     }
 
@@ -345,11 +348,13 @@ internal class BokehBlurProcessor<TPixel> : ImageProcessor<TPixel>
         {
             Span<TPixel> targetRowSpan = this.targetPixels.DangerousGetRowSpan(y)[this.bounds.X..];
 
-            PixelOperations<TPixel>.Instance.ToVector4(this.configuration, targetRowSpan[..span.Length], span, PixelConversionModifiers.Premultiply);
+            PixelOperations<TPixel>.Instance.ToVector4(this.configuration, targetRowSpan[..span.Length], span, PixelConversionModifiers.Scale | PixelConversionModifiers.Premultiply);
 
             Numerics.CubePowOnXYZ(span);
 
-            PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, span, targetRowSpan);
+            // The first convolution pass consumes these values as raw premultiplied numerics. Preserve them in the
+            // native TPixel representation instead of quantizing through an alpha-association conversion.
+            PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, span, targetRowSpan, PixelConversionModifiers.Scale);
         }
     }
 
@@ -389,7 +394,7 @@ internal class BokehBlurProcessor<TPixel> : ImageProcessor<TPixel>
             Numerics.Clamp(MemoryMarshal.Cast<Vector4, float>(sourceRowSpan), 0, 1F);
             GammaCompanding.Compress(sourceRowSpan, this.gamma);
 
-            PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, sourceRowSpan, targetPixelSpan, PixelConversionModifiers.Premultiply);
+            PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, sourceRowSpan, targetPixelSpan, PixelConversionModifiers.Scale | PixelConversionModifiers.Premultiply);
         }
     }
 
@@ -427,7 +432,7 @@ internal class BokehBlurProcessor<TPixel> : ImageProcessor<TPixel>
 
             Span<TPixel> targetPixelSpan = this.targetPixels.DangerousGetRowSpan(y)[this.bounds.X..];
 
-            PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, sourceRowSpan, targetPixelSpan, PixelConversionModifiers.Premultiply);
+            PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, sourceRowSpan, targetPixelSpan, PixelConversionModifiers.Scale | PixelConversionModifiers.Premultiply);
         }
     }
 }

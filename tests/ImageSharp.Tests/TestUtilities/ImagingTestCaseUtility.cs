@@ -278,7 +278,7 @@ public class ImagingTestCaseUtility
     where TPixel : unmanaged, IPixel<TPixel>
     {
         TPixel pixel = img[x, y];
-        Rgba64 rgbaPixel = Rgba64.FromScaledVector4(pixel.ToScaledVector4());
+        Rgba64 rgbaPixel = Rgba64.FromUnassociatedScaledVector4(pixel.ToUnassociatedScaledVector4());
         ushort change = (ushort)Math.Round((perChannelChange / 255F) * 65535F);
 
         if (rgbaPixel.R + perChannelChange <= 255)

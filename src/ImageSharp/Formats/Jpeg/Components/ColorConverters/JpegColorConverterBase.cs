@@ -2,11 +2,7 @@
 // Licensed under the Six Labors Split License.
 #nullable disable
 
-using System.Numerics;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Memory;
-using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 
 namespace SixLabors.ImageSharp.Formats.Jpeg.Components;
 
@@ -85,14 +81,6 @@ internal abstract partial class JpegColorConverterBase
     public abstract void ConvertToRgbInPlace(in ComponentValues values);
 
     /// <summary>
-    /// Converts planar jpeg component values in <paramref name="values"/> to RGB color space in-place using the given ICC profile.
-    /// </summary>
-    /// <param name="configuration">The configuration instance to use for the conversion.</param>
-    /// <param name="values">The input/output as a stack-only <see cref="ComponentValues"/> struct.</param>
-    /// <param name="profile">The ICC profile to use for the conversion.</param>
-    public abstract void ConvertToRgbInPlaceWithIcc(Configuration configuration, in ComponentValues values, IccProfile profile);
-
-    /// <summary>
     /// Converts RGB lanes to jpeg component values.
     /// </summary>
     /// <param name="values">Jpeg component values.</param>
@@ -100,124 +88,6 @@ internal abstract partial class JpegColorConverterBase
     /// <param name="gLane">Green colors lane.</param>
     /// <param name="bLane">Blue colors lane.</param>
     public abstract void ConvertFromRgb(in ComponentValues values, Span<float> rLane, Span<float> gLane, Span<float> bLane);
-
-    public static void PackedNormalizeInterleave3(
-        ReadOnlySpan<float> xLane,
-        ReadOnlySpan<float> yLane,
-        ReadOnlySpan<float> zLane,
-        Span<float> packed,
-        float scale)
-    {
-        DebugGuard.IsTrue(packed.Length % 3 == 0, "Packed length must be divisible by 3.");
-        DebugGuard.IsTrue(yLane.Length == xLane.Length, nameof(yLane), "Channels must be of same size!");
-        DebugGuard.IsTrue(zLane.Length == xLane.Length, nameof(zLane), "Channels must be of same size!");
-        DebugGuard.MustBeLessThanOrEqualTo(packed.Length / 3, xLane.Length, nameof(packed));
-
-        // TODO: Investigate SIMD version of this.
-        ref float xLaneRef = ref MemoryMarshal.GetReference(xLane);
-        ref float yLaneRef = ref MemoryMarshal.GetReference(yLane);
-        ref float zLaneRef = ref MemoryMarshal.GetReference(zLane);
-        ref float packedRef = ref MemoryMarshal.GetReference(packed);
-
-        for (nuint i = 0; i < (nuint)xLane.Length; i++)
-        {
-            nuint baseIdx = i * 3;
-            Unsafe.Add(ref packedRef, baseIdx) = Unsafe.Add(ref xLaneRef, i) * scale;
-            Unsafe.Add(ref packedRef, baseIdx + 1) = Unsafe.Add(ref yLaneRef, i) * scale;
-            Unsafe.Add(ref packedRef, baseIdx + 2) = Unsafe.Add(ref zLaneRef, i) * scale;
-        }
-    }
-
-    public static void UnpackDeinterleave3(
-        ReadOnlySpan<Vector3> packed,
-        Span<float> xLane,
-        Span<float> yLane,
-        Span<float> zLane)
-    {
-        DebugGuard.IsTrue(packed.Length == xLane.Length, nameof(packed), "Channels must be of same size!");
-        DebugGuard.IsTrue(yLane.Length == xLane.Length, nameof(yLane), "Channels must be of same size!");
-        DebugGuard.IsTrue(zLane.Length == xLane.Length, nameof(zLane), "Channels must be of same size!");
-
-        // TODO: Investigate SIMD version of this.
-        ref float packedRef = ref MemoryMarshal.GetReference(MemoryMarshal.Cast<Vector3, float>(packed));
-        ref float xLaneRef = ref MemoryMarshal.GetReference(xLane);
-        ref float yLaneRef = ref MemoryMarshal.GetReference(yLane);
-        ref float zLaneRef = ref MemoryMarshal.GetReference(zLane);
-
-        for (nuint i = 0; i < (nuint)packed.Length; i++)
-        {
-            nuint baseIdx = i * 3;
-            Unsafe.Add(ref xLaneRef, i) = Unsafe.Add(ref packedRef, baseIdx);
-            Unsafe.Add(ref yLaneRef, i) = Unsafe.Add(ref packedRef, baseIdx + 1);
-            Unsafe.Add(ref zLaneRef, i) = Unsafe.Add(ref packedRef, baseIdx + 2);
-        }
-    }
-
-    public static void PackedNormalizeInterleave4(
-        ReadOnlySpan<float> xLane,
-        ReadOnlySpan<float> yLane,
-        ReadOnlySpan<float> zLane,
-        ReadOnlySpan<float> wLane,
-        Span<float> packed,
-        float maxValue)
-    {
-        DebugGuard.IsTrue(packed.Length % 4 == 0, "Packed length must be divisible by 4.");
-        DebugGuard.IsTrue(yLane.Length == xLane.Length, nameof(yLane), "Channels must be of same size!");
-        DebugGuard.IsTrue(zLane.Length == xLane.Length, nameof(zLane), "Channels must be of same size!");
-        DebugGuard.IsTrue(wLane.Length == xLane.Length, nameof(wLane), "Channels must be of same size!");
-        DebugGuard.MustBeLessThanOrEqualTo(packed.Length / 4, xLane.Length, nameof(packed));
-
-        float scale = 1F / maxValue;
-
-        // TODO: Investigate SIMD version of this.
-        ref float xLaneRef = ref MemoryMarshal.GetReference(xLane);
-        ref float yLaneRef = ref MemoryMarshal.GetReference(yLane);
-        ref float zLaneRef = ref MemoryMarshal.GetReference(zLane);
-        ref float wLaneRef = ref MemoryMarshal.GetReference(wLane);
-        ref float packedRef = ref MemoryMarshal.GetReference(packed);
-
-        for (nuint i = 0; i < (nuint)xLane.Length; i++)
-        {
-            nuint baseIdx = i * 4;
-            Unsafe.Add(ref packedRef, baseIdx) = Unsafe.Add(ref xLaneRef, i) * scale;
-            Unsafe.Add(ref packedRef, baseIdx + 1) = Unsafe.Add(ref yLaneRef, i) * scale;
-            Unsafe.Add(ref packedRef, baseIdx + 2) = Unsafe.Add(ref zLaneRef, i) * scale;
-            Unsafe.Add(ref packedRef, baseIdx + 3) = Unsafe.Add(ref wLaneRef, i) * scale;
-        }
-    }
-
-    public static void PackedInvertNormalizeInterleave4(
-        ReadOnlySpan<float> xLane,
-        ReadOnlySpan<float> yLane,
-        ReadOnlySpan<float> zLane,
-        ReadOnlySpan<float> wLane,
-        Span<float> packed,
-        float maxValue)
-    {
-        DebugGuard.IsTrue(packed.Length % 4 == 0, "Packed length must be divisible by 4.");
-        DebugGuard.IsTrue(yLane.Length == xLane.Length, nameof(yLane), "Channels must be of same size!");
-        DebugGuard.IsTrue(zLane.Length == xLane.Length, nameof(zLane), "Channels must be of same size!");
-        DebugGuard.IsTrue(wLane.Length == xLane.Length, nameof(wLane), "Channels must be of same size!");
-        DebugGuard.MustBeLessThanOrEqualTo(packed.Length / 4, xLane.Length, nameof(packed));
-
-        float scale = 1F / maxValue;
-
-        // TODO: Investigate SIMD version of this.
-        ref float xLaneRef = ref MemoryMarshal.GetReference(xLane);
-        ref float yLaneRef = ref MemoryMarshal.GetReference(yLane);
-        ref float zLaneRef = ref MemoryMarshal.GetReference(zLane);
-        ref float wLaneRef = ref MemoryMarshal.GetReference(wLane);
-        ref float packedRef = ref MemoryMarshal.GetReference(packed);
-
-        for (nuint i = 0; i < (nuint)xLane.Length; i++)
-        {
-            nuint baseIdx = i * 4;
-            Unsafe.Add(ref packedRef, baseIdx) = (maxValue - Unsafe.Add(ref xLaneRef, i)) * scale;
-            Unsafe.Add(ref packedRef, baseIdx + 1) = (maxValue - Unsafe.Add(ref yLaneRef, i)) * scale;
-            Unsafe.Add(ref packedRef, baseIdx + 2) = (maxValue - Unsafe.Add(ref zLaneRef, i)) * scale;
-            Unsafe.Add(ref packedRef, baseIdx + 3) = (maxValue - Unsafe.Add(ref wLaneRef, i)) * scale;
-        }
-    }
 
     /// <summary>
     /// Returns the <see cref="JpegColorConverterBase"/>s for all supported color spaces and precisions.
@@ -248,161 +118,50 @@ internal abstract partial class JpegColorConverterBase
     /// Returns the <see cref="JpegColorConverterBase"/>s for the YCbCr colorspace.
     /// </summary>
     /// <param name="precision">The precision in bits.</param>
-    private static JpegColorConverterBase GetYCbCrConverter(int precision)
-    {
-        if (JpegColorConverterVector512.IsSupported)
-        {
-            return new YCbCrVector512(precision);
-        }
-
-        if (JpegColorConverterVector256.IsSupported)
-        {
-            return new YCbCrVector256(precision);
-        }
-
-        if (JpegColorConverterVector128.IsSupported)
-        {
-            return new YCbCrVector128(precision);
-        }
-
-        return new YCbCrScalar(precision);
-    }
+    private static JpegColorConverter<YCbCrOperator> GetYCbCrConverter(int precision)
+        => new JpegColorConverter<YCbCrOperator>(precision);
 
     /// <summary>
     /// Returns the <see cref="JpegColorConverterBase"/>s for the YccK colorspace.
     /// </summary>
     /// <param name="precision">The precision in bits.</param>
-    private static JpegColorConverterBase GetYccKConverter(int precision)
-    {
-        if (JpegColorConverterVector512.IsSupported)
-        {
-            return new YccKVector512(precision);
-        }
-
-        if (JpegColorConverterVector256.IsSupported)
-        {
-            return new YccKVector256(precision);
-        }
-
-        if (JpegColorConverterVector128.IsSupported)
-        {
-            return new YccKVector128(precision);
-        }
-
-        return new YccKScalar(precision);
-    }
+    private static JpegColorConverter<YccKOperator> GetYccKConverter(int precision)
+        => new JpegColorConverter<YccKOperator>(precision);
 
     /// <summary>
     /// Returns the <see cref="JpegColorConverterBase"/>s for the CMYK colorspace.
     /// </summary>
     /// <param name="precision">The precision in bits.</param>
-    private static JpegColorConverterBase GetCmykConverter(int precision)
-    {
-        if (JpegColorConverterVector512.IsSupported)
-        {
-            return new CmykVector512(precision);
-        }
-
-        if (JpegColorConverterVector256.IsSupported)
-        {
-            return new CmykVector256(precision);
-        }
-
-        if (JpegColorConverterVector128.IsSupported)
-        {
-            return new CmykVector128(precision);
-        }
-
-        return new CmykScalar(precision);
-    }
+    private static JpegColorConverter<CmykOperator> GetCmykConverter(int precision)
+        => new JpegColorConverter<CmykOperator>(precision);
 
     /// <summary>
     /// Returns the <see cref="JpegColorConverterBase"/>s for the gray scale colorspace.
     /// </summary>
     /// <param name="precision">The precision in bits.</param>
-    private static JpegColorConverterBase GetGrayScaleConverter(int precision)
-    {
-        if (JpegColorConverterVector512.IsSupported)
-        {
-            return new GrayScaleVector512(precision);
-        }
-
-        if (JpegColorConverterVector256.IsSupported)
-        {
-            return new GrayScaleVector256(precision);
-        }
-
-        if (JpegColorConverterVector128.IsSupported)
-        {
-            return new GrayScaleVector128(precision);
-        }
-
-        return new GrayScaleScalar(precision);
-    }
+    private static JpegColorConverter<GrayScaleOperator> GetGrayScaleConverter(int precision)
+        => new JpegColorConverter<GrayScaleOperator>(precision);
 
     /// <summary>
     /// Returns the <see cref="JpegColorConverterBase"/>s for the RGB colorspace.
     /// </summary>
     /// <param name="precision">The precision in bits.</param>
-    private static JpegColorConverterBase GetRgbConverter(int precision)
-    {
-        if (JpegColorConverterVector512.IsSupported)
-        {
-            return new RgbVector512(precision);
-        }
+    private static JpegColorConverter<RgbOperator> GetRgbConverter(int precision)
+        => new JpegColorConverter<RgbOperator>(precision);
 
-        if (JpegColorConverterVector256.IsSupported)
-        {
-            return new RgbVector256(precision);
-        }
+    /// <summary>
+    /// Returns the <see cref="JpegColorConverterBase"/> for non-inverted TIFF CMYK.
+    /// </summary>
+    /// <param name="precision">The precision in bits.</param>
+    private static JpegColorConverter<TiffCmykOperator> GetTiffCmykConverter(int precision)
+        => new JpegColorConverter<TiffCmykOperator>(precision);
 
-        if (JpegColorConverterVector128.IsSupported)
-        {
-            return new RgbVector128(precision);
-        }
-
-        return new RgbScalar(precision);
-    }
-
-    private static JpegColorConverterBase GetTiffCmykConverter(int precision)
-    {
-        if (JpegColorConverterVector512.IsSupported)
-        {
-            return new TiffCmykVector512(precision);
-        }
-
-        if (JpegColorConverterVector256.IsSupported)
-        {
-            return new TiffCmykVector256(precision);
-        }
-
-        if (JpegColorConverterVector128.IsSupported)
-        {
-            return new TiffCmykVector128(precision);
-        }
-
-        return new TiffCmykScalar(precision);
-    }
-
-    private static JpegColorConverterBase GetTiffYccKConverter(int precision)
-    {
-        if (JpegColorConverterVector512.IsSupported)
-        {
-            return new TiffYccKVector512(precision);
-        }
-
-        if (JpegColorConverterVector256.IsSupported)
-        {
-            return new TiffYccKVector256(precision);
-        }
-
-        if (JpegColorConverterVector128.IsSupported)
-        {
-            return new TiffYccKVector128(precision);
-        }
-
-        return new TiffYccKScalar(precision);
-    }
+    /// <summary>
+    /// Returns the <see cref="JpegColorConverterBase"/> for non-inverted TIFF YccK.
+    /// </summary>
+    /// <param name="precision">The precision in bits.</param>
+    private static JpegColorConverter<TiffYccKOperator> GetTiffYccKConverter(int precision)
+        => new JpegColorConverter<TiffYccKOperator>(precision);
 
     /// <summary>
     /// A stack-only struct to reference the input buffers using <see cref="ReadOnlySpan{T}"/>-s.
@@ -493,6 +252,14 @@ internal abstract partial class JpegColorConverterBase
             this.Component3 = this.ComponentCount > 3 ? processors[3].GetColorBufferRowSpan(row) : [];
         }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ComponentValues"/> struct from explicitly supplied planar spans.
+        /// </summary>
+        /// <param name="componentCount">The number of populated component planes.</param>
+        /// <param name="c0">The first component plane.</param>
+        /// <param name="c1">The second component plane, if present.</param>
+        /// <param name="c2">The third component plane, if present.</param>
+        /// <param name="c3">The fourth component plane, if present.</param>
         internal ComponentValues(
             int componentCount,
             Span<float> c0,
@@ -507,6 +274,12 @@ internal abstract partial class JpegColorConverterBase
             this.Component3 = c3;
         }
 
+        /// <summary>
+        /// Creates a view over the same component planes for the requested sample range.
+        /// </summary>
+        /// <param name="start">The zero-based sample offset.</param>
+        /// <param name="length">The number of samples in each returned plane.</param>
+        /// <returns>The sliced component values.</returns>
         public ComponentValues Slice(int start, int length)
         {
             Span<float> c0 = this.Component0.Slice(start, length);

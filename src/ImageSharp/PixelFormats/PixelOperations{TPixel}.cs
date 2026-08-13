@@ -5,14 +5,19 @@ using System.Buffers;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using SixLabors.ImageSharp.ColorProfiles.Companding;
 using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.PixelFormats;
 
 /// <summary>
-/// A stateless class implementing Strategy Pattern for batched pixel-data conversion operations
-/// for pixel buffers of type <typeparamref name="TPixel"/>.
+/// Provides bulk conversion operations for pixel buffers of type <typeparamref name="TPixel"/>.
 /// </summary>
+/// <remarks>
+/// The default conversion behavior is suitable for pixel formats that store unassociated alpha.
+/// Pixel formats that store associated alpha should derive their operations from
+/// <see cref="AssociatedAlphaPixelOperations{TPixel}"/>.
+/// </remarks>
 /// <typeparam name="TPixel">The pixel format.</typeparam>
 public partial class PixelOperations<TPixel>
     where TPixel : unmanaged, IPixel<TPixel>
@@ -27,23 +32,106 @@ public partial class PixelOperations<TPixel>
 #pragma warning restore CA1000 // Do not declare static members on generic types
 
     /// <summary>
+    /// Converts pixels to unassociated vectors in the pixel format's native numeric range.
+    /// </summary>
+    /// <param name="configuration">The configuration.</param>
+    /// <param name="source">The source pixels.</param>
+    /// <param name="destination">The destination vectors.</param>
+    protected virtual void ToUnassociatedVector4(Configuration configuration, ReadOnlySpan<TPixel> source, Span<Vector4> destination)
+        => Utils.Vector4Converters.Default.ToVector4(source, destination, PixelConversionModifiers.UnPremultiply);
+
+    /// <summary>
+    /// Converts pixels to associated vectors in the pixel format's native numeric range.
+    /// </summary>
+    /// <param name="configuration">The configuration.</param>
+    /// <param name="source">The source pixels.</param>
+    /// <param name="destination">The destination vectors.</param>
+    protected virtual void ToAssociatedVector4(Configuration configuration, ReadOnlySpan<TPixel> source, Span<Vector4> destination)
+        => Utils.Vector4Converters.Default.ToVector4(source, destination, PixelConversionModifiers.Premultiply);
+
+    /// <summary>
+    /// Converts pixels to the unassociated scaled vector representation used by color operations.
+    /// </summary>
+    /// <param name="configuration">The configuration.</param>
+    /// <param name="source">The source pixels.</param>
+    /// <param name="destination">The destination vectors.</param>
+    protected virtual void ToUnassociatedScaledVector4(
+        Configuration configuration,
+        ReadOnlySpan<TPixel> source,
+        Span<Vector4> destination)
+        => Utils.Vector4Converters.Default.ToVector4(source, destination, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
+
+    /// <summary>
+    /// Converts pixels to associated scaled vectors.
+    /// </summary>
+    /// <param name="configuration">The configuration.</param>
+    /// <param name="source">The source pixels.</param>
+    /// <param name="destination">The destination vectors.</param>
+    protected virtual void ToAssociatedScaledVector4(
+        Configuration configuration,
+        ReadOnlySpan<TPixel> source,
+        Span<Vector4> destination)
+        => Utils.Vector4Converters.Default.ToVector4(source, destination, PixelConversionModifiers.Scale | PixelConversionModifiers.Premultiply);
+
+    /// <summary>
+    /// Converts unassociated vectors in the pixel format's native numeric range to pixels.
+    /// </summary>
+    /// <param name="configuration">The configuration.</param>
+    /// <param name="source">The source vectors. Implementations may modify this buffer during conversion.</param>
+    /// <param name="destination">The destination pixels.</param>
+    protected virtual void FromUnassociatedVector4Destructive(Configuration configuration, Span<Vector4> source, Span<TPixel> destination)
+        => Utils.Vector4Converters.Default.FromVector4(source, destination, PixelConversionModifiers.UnPremultiply);
+
+    /// <summary>
+    /// Converts associated vectors in the pixel format's native numeric range to pixels.
+    /// </summary>
+    /// <param name="configuration">The configuration.</param>
+    /// <param name="source">The source vectors. Implementations may modify this buffer during conversion.</param>
+    /// <param name="destination">The destination pixels.</param>
+    protected virtual void FromAssociatedVector4Destructive(Configuration configuration, Span<Vector4> source, Span<TPixel> destination)
+        => Utils.Vector4Converters.Default.FromVector4(source, destination, PixelConversionModifiers.Premultiply);
+
+    /// <summary>
+    /// Converts unassociated scaled vectors to pixels.
+    /// </summary>
+    /// <param name="configuration">The configuration.</param>
+    /// <param name="source">The source vectors. Implementations may modify this buffer during conversion.</param>
+    /// <param name="destination">The destination pixels.</param>
+    protected virtual void FromUnassociatedScaledVector4Destructive(
+        Configuration configuration,
+        Span<Vector4> source,
+        Span<TPixel> destination)
+        => Utils.Vector4Converters.Default.FromVector4(source, destination, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
+
+    /// <summary>
+    /// Converts associated scaled vectors to pixels.
+    /// </summary>
+    /// <param name="configuration">The configuration.</param>
+    /// <param name="source">The source vectors. Implementations may modify this buffer during conversion.</param>
+    /// <param name="destination">The destination pixels.</param>
+    protected virtual void FromAssociatedScaledVector4Destructive(
+        Configuration configuration,
+        Span<Vector4> source,
+        Span<TPixel> destination)
+        => Utils.Vector4Converters.Default.FromVector4(source, destination, PixelConversionModifiers.Scale | PixelConversionModifiers.Premultiply);
+
+    /// <summary>
     /// Gets the pixel type info for the given <typeparamref name="TPixel"/>.
     /// </summary>
     /// <returns>The <see cref="PixelTypeInfo"/>.</returns>
     public PixelTypeInfo GetPixelTypeInfo() => TPixel.GetPixelTypeInfo();
 
     /// <summary>
-    /// Bulk version of <see cref="IPixel{TPixel}.FromVector4"/> converting 'sourceVectors.Length' pixels into 'destinationColors'.
-    /// The method is DESTRUCTIVE altering the contents of <paramref name="sourceVectors"/>.
+    /// Converts vectors to pixels using the numeric range, alpha representation, and companding specified by <paramref name="modifiers"/>.
+    /// The contents of <paramref name="sourceVectors"/> are not preserved.
     /// </summary>
     /// <remarks>
-    /// The destructive behavior is a design choice for performance reasons.
-    /// In a typical use case the contents of <paramref name="sourceVectors"/> are abandoned after the conversion.
+    /// Callers must not rely on the contents of <paramref name="sourceVectors"/> after this method returns.
     /// </remarks>
-    /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations</param>
-    /// <param name="sourceVectors">The <see cref="Span{T}"/> to the source vectors.</param>
-    /// <param name="destination">The <see cref="Span{T}"/> to the destination colors.</param>
-    /// <param name="modifiers">The <see cref="PixelConversionModifiers"/> to apply during the conversion</param>
+    /// <param name="configuration">The configuration.</param>
+    /// <param name="sourceVectors">The source vectors. Their contents may be modified during conversion.</param>
+    /// <param name="destination">The destination pixels.</param>
+    /// <param name="modifiers">The representation of the source vectors and the transformations applied before storing the pixels.</param>
     public virtual void FromVector4Destructive(
         Configuration configuration,
         Span<Vector4> sourceVectors,
@@ -51,20 +139,63 @@ public partial class PixelOperations<TPixel>
         PixelConversionModifiers modifiers)
     {
         Guard.NotNull(configuration, nameof(configuration));
+        Guard.DestinationShouldNotBeTooShort(sourceVectors, destination, nameof(destination));
 
-        Utils.Vector4Converters.Default.FromVector4(sourceVectors, destination, modifiers);
+        bool associated = modifiers.IsDefined(PixelConversionModifiers.Premultiply);
+        bool scaled = modifiers.IsDefined(PixelConversionModifiers.Scale);
+
+        if (modifiers.IsDefined(PixelConversionModifiers.SRgbCompand))
+        {
+            // Transfer functions operate on straight color components, so restore straight RGB before compressing associated input.
+            if (associated)
+            {
+                Numerics.UnPremultiply(sourceVectors);
+            }
+
+            SRgbCompanding.Compress(sourceVectors);
+
+            if (scaled)
+            {
+                this.FromUnassociatedScaledVector4Destructive(configuration, sourceVectors, destination);
+            }
+            else
+            {
+                this.FromUnassociatedVector4Destructive(configuration, sourceVectors, destination);
+            }
+
+            return;
+        }
+
+        if (scaled)
+        {
+            if (associated)
+            {
+                this.FromAssociatedScaledVector4Destructive(configuration, sourceVectors, destination);
+            }
+            else
+            {
+                this.FromUnassociatedScaledVector4Destructive(configuration, sourceVectors, destination);
+            }
+        }
+        else if (associated)
+        {
+            this.FromAssociatedVector4Destructive(configuration, sourceVectors, destination);
+        }
+        else
+        {
+            this.FromUnassociatedVector4Destructive(configuration, sourceVectors, destination);
+        }
     }
 
     /// <summary>
     /// Bulk version of <see cref="IPixel{TPixel}.FromVector4"/> converting 'sourceVectors.Length' pixels into 'destinationColors'.
-    /// The method is DESTRUCTIVE altering the contents of <paramref name="sourceVectors"/>.
+    /// The contents of <paramref name="sourceVectors"/> are not preserved.
     /// </summary>
     /// <remarks>
-    /// The destructive behavior is a design choice for performance reasons.
-    /// In a typical use case the contents of <paramref name="sourceVectors"/> are abandoned after the conversion.
+    /// Callers must not rely on the contents of <paramref name="sourceVectors"/> after this method returns.
     /// </remarks>
     /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations</param>
-    /// <param name="sourceVectors">The <see cref="Span{T}"/> to the source vectors.</param>
+    /// <param name="sourceVectors">The source vectors. Their contents may be modified during conversion.</param>
     /// <param name="destination">The <see cref="Span{T}"/> to the destination colors.</param>
     public void FromVector4Destructive(
         Configuration configuration,
@@ -73,12 +204,12 @@ public partial class PixelOperations<TPixel>
         => this.FromVector4Destructive(configuration, sourceVectors, destination, PixelConversionModifiers.None);
 
     /// <summary>
-    /// Bulk version of <see cref="IPixel.ToVector4()"/> converting 'sourceColors.Length' pixels into 'destinationVectors'.
+    /// Converts pixels to vectors using the numeric range, alpha representation, and companding specified by <paramref name="modifiers"/>.
     /// </summary>
-    /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations</param>
-    /// <param name="source">The <see cref="Span{T}"/> to the source colors.</param>
-    /// <param name="destinationVectors">The <see cref="Span{T}"/> to the destination vectors.</param>
-    /// <param name="modifiers">The <see cref="PixelConversionModifiers"/> to apply during the conversion</param>
+    /// <param name="configuration">The configuration.</param>
+    /// <param name="source">The source pixels.</param>
+    /// <param name="destinationVectors">The destination vectors.</param>
+    /// <param name="modifiers">The requested vector representation and the transformations applied after reading the pixels.</param>
     public virtual void ToVector4(
         Configuration configuration,
         ReadOnlySpan<TPixel> source,
@@ -86,8 +217,53 @@ public partial class PixelOperations<TPixel>
         PixelConversionModifiers modifiers)
     {
         Guard.NotNull(configuration, nameof(configuration));
+        Guard.DestinationShouldNotBeTooShort(source, destinationVectors, nameof(destinationVectors));
 
-        Utils.Vector4Converters.Default.ToVector4(source, destinationVectors, modifiers);
+        bool associated = modifiers.IsDefined(PixelConversionModifiers.Premultiply);
+        bool scaled = modifiers.IsDefined(PixelConversionModifiers.Scale);
+
+        if (modifiers.IsDefined(PixelConversionModifiers.SRgbCompand))
+        {
+            // Expand straight RGB first because a transfer function applied to associated components would make color depend on alpha.
+            if (scaled)
+            {
+                this.ToUnassociatedScaledVector4(configuration, source, destinationVectors);
+            }
+            else
+            {
+                this.ToUnassociatedVector4(configuration, source, destinationVectors);
+            }
+
+            Span<Vector4> converted = destinationVectors[..source.Length];
+            SRgbCompanding.Expand(converted);
+
+            if (associated)
+            {
+                Numerics.Premultiply(converted);
+            }
+
+            return;
+        }
+
+        if (scaled)
+        {
+            if (associated)
+            {
+                this.ToAssociatedScaledVector4(configuration, source, destinationVectors);
+            }
+            else
+            {
+                this.ToUnassociatedScaledVector4(configuration, source, destinationVectors);
+            }
+        }
+        else if (associated)
+        {
+            this.ToAssociatedVector4(configuration, source, destinationVectors);
+        }
+        else
+        {
+            this.ToUnassociatedVector4(configuration, source, destinationVectors);
+        }
     }
 
     /// <summary>
@@ -103,10 +279,10 @@ public partial class PixelOperations<TPixel>
         => this.ToVector4(configuration, source, destinationVectors, PixelConversionModifiers.None);
 
     /// <summary>
-    /// Bulk operation that copies the <paramref name="source"/> to <paramref name="destination"/> in
-    /// <typeparamref name="TSourcePixel"/> format.
+    /// Bulk operation that converts <paramref name="source"/> pixels from <typeparamref name="TSourcePixel"/> format to
+    /// <typeparamref name="TPixel"/> destination pixels.
     /// </summary>
-    /// <typeparam name="TSourcePixel">The destination pixel type.</typeparam>
+    /// <typeparam name="TSourcePixel">The source pixel type.</typeparam>
     /// <param name="configuration">A <see cref="Configuration"/> to configure internal operations.</param>
     /// <param name="source">The <see cref="ReadOnlySpan{TSourcePixel}"/> to the source pixels.</param>
     /// <param name="destination">The <see cref="Span{TPixel}"/> to the destination pixels.</param>
@@ -121,13 +297,14 @@ public partial class PixelOperations<TPixel>
 
         using IMemoryOwner<Vector4> tempVectors = configuration.MemoryAllocator.Allocate<Vector4>(sliceLength);
         Span<Vector4> vectorSpan = tempVectors.GetSpan();
+
         for (int i = 0; i < numberOfSlices; i++)
         {
             int start = i * sliceLength;
             ReadOnlySpan<TSourcePixel> s = source.Slice(start, sliceLength);
             Span<TPixel> d = destination.Slice(start, sliceLength);
-            PixelOperations<TSourcePixel>.Instance.ToVector4(configuration, s, vectorSpan, PixelConversionModifiers.Scale);
-            this.FromVector4Destructive(configuration, vectorSpan, d, PixelConversionModifiers.Scale);
+            PixelOperations<TSourcePixel>.Instance.ToVector4(configuration, s, vectorSpan, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
+            this.FromVector4Destructive(configuration, vectorSpan, d, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
         }
 
         int endOfCompleteSlices = numberOfSlices * sliceLength;
@@ -137,8 +314,8 @@ public partial class PixelOperations<TPixel>
             ReadOnlySpan<TSourcePixel> s = source[endOfCompleteSlices..];
             Span<TPixel> d = destination[endOfCompleteSlices..];
             vectorSpan = vectorSpan[..remainder];
-            PixelOperations<TSourcePixel>.Instance.ToVector4(configuration, s, vectorSpan, PixelConversionModifiers.Scale);
-            this.FromVector4Destructive(configuration, vectorSpan, d, PixelConversionModifiers.Scale);
+            PixelOperations<TSourcePixel>.Instance.ToVector4(configuration, s, vectorSpan, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
+            this.FromVector4Destructive(configuration, vectorSpan, d, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
         }
     }
 
@@ -158,6 +335,13 @@ public partial class PixelOperations<TPixel>
     {
         Guard.NotNull(configuration, nameof(configuration));
         Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
+
+        if (typeof(TPixel) == typeof(TDestinationPixel))
+        {
+            // An identical destination stores the same representation, including associated alpha, so copying preserves every packed component without a lossy representation round trip.
+            MemoryMarshal.Cast<TPixel, TDestinationPixel>(source).CopyTo(destination);
+            return;
+        }
 
         PixelOperations<TDestinationPixel>.Instance.From(configuration, source, destination);
     }

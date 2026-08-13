@@ -45,7 +45,7 @@ internal abstract class ExrBaseDecompressor : ExrBaseCompression
     protected static int UndoZipCompression(BufferedReadStream stream, uint compressedBytes, Span<byte> uncompressed, uint uncompressedBytes)
     {
         long pos = stream.Position;
-        using ZlibInflateStream inflateStream = new(
+        using ZlibInflateReader inflateStream = new(
                    stream,
                    () =>
                    {

@@ -3,8 +3,10 @@
 
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.Arm;
 using System.Runtime.Intrinsics.X86;
+using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.TestUtilities;
 using Xunit.Abstractions;
@@ -133,7 +135,7 @@ public partial class SimdUtilsTests
         FeatureTestRunner.RunWithHwIntrinsicsFeature(
             RunTest,
             count,
-            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX2);
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX);
     }
 
     [Theory]
@@ -142,17 +144,41 @@ public partial class SimdUtilsTests
             count,
             (s, d) => SimdUtils.ByteToNormalizedFloat(s.Span, d.Span));
 
+    [Fact]
+    public void VectorMultiplyAddUsesRuntimeOrderAndFusedContract() =>
+        FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            RunVectorMultiplyAddUsesRuntimeOrderAndFusedContract,
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+
+    private static void RunVectorMultiplyAddUsesRuntimeOrderAndFusedContract()
+    {
+        Assert.Equal(Vector128.Create(11F), Vector128_.MultiplyAddEstimate(Vector128.Create(2F), Vector128.Create(3F), Vector128.Create(5F)));
+        Assert.Equal(Vector256.Create(11F), Vector256_.MultiplyAddEstimate(Vector256.Create(2F), Vector256.Create(3F), Vector256.Create(5F)));
+        Assert.Equal(Vector512.Create(11F), Vector512_.MultiplyAddEstimate(Vector512.Create(2F), Vector512.Create(3F), Vector512.Create(5F)));
+
+        // These associated-alpha components produce an exact midpoint that a separate multiply and add rounds incorrectly.
+        float left = (68F / byte.MaxValue) * .625F;
+        float right = 1F - (160F / byte.MaxValue);
+        float addend = ((50F / byte.MaxValue) + (50F / byte.MaxValue)) * left;
+        float expected = MathF.FusedMultiplyAdd(left, right, addend);
+
+        Assert.Equal(Vector128.Create(expected), Vector128_.FusedMultiplyAdd(Vector128.Create(left), Vector128.Create(right), Vector128.Create(addend)));
+        Assert.Equal(Vector256.Create(expected), Vector256_.FusedMultiplyAdd(Vector256.Create(left), Vector256.Create(right), Vector256.Create(addend)));
+        Assert.Equal(Vector512.Create(expected), Vector512_.FusedMultiplyAdd(Vector512.Create(left), Vector512.Create(right), Vector512.Create(addend)));
+    }
+
     private static void TestImpl_BulkConvertByteToNormalizedFloat(
         int count,
         Action<Memory<byte>, Memory<float>> convert)
     {
-        byte[] source = new Random(count).GenerateRandomByteArray(count);
+        byte[] source = Enumerable.Range(0, count).Select(i => (byte)i).ToArray();
         float[] result = new float[count];
-        float[] expected = source.Select(b => b / 255f).ToArray();
+        // A double-precision oracle keeps this expectation independent from either production implementation.
+        float[] expected = source.Select(b => (float)(b / (double)byte.MaxValue)).ToArray();
 
         convert(source, result);
 
-        Assert.Equal(expected, result, new ApproximateFloatComparer(1e-5f));
+        Assert.Equal(expected, result);
     }
 
     [Theory]
@@ -191,6 +217,45 @@ public partial class SimdUtilsTests
                     i + 42);
             }
         }
+    }
+
+    [Fact]
+    public void BulkConvertNormalizedFloatToByteRoundsMidpointsAwayFromZero()
+    {
+        float[] midpointValues = Enumerable.Range(0, byte.MaxValue).Select(x => (x + 0.5F) / byte.MaxValue).ToArray();
+        float[] source = new float[1024];
+        byte[] expected = new byte[source.Length];
+        byte[] actual = new byte[source.Length];
+
+        for (int i = 0; i < source.Length; i++)
+        {
+            int value = i % midpointValues.Length;
+            source[i] = midpointValues[value];
+            expected[i] = (byte)(value + 1);
+        }
+
+        SimdUtils.NormalizedFloatToByteSaturate(source, actual);
+
+        Assert.Equal(expected, actual);
+    }
+
+    [Fact]
+    public void BulkConvertFloatToByteRoundsMidpointsAwayFromZeroAndClampsOverflows()
+    {
+        float[] source = new float[1027];
+        byte[] expected = new byte[source.Length];
+        byte[] actual = new byte[source.Length];
+
+        for (int i = 0; i < source.Length; i++)
+        {
+            float value = (i % 258) - .5F;
+            source[i] = value;
+            expected[i] = (byte)Math.Min(byte.MaxValue, Math.Max(0, value + .5F));
+        }
+
+        SimdUtils.FloatToByteSaturate(source, actual);
+
+        Assert.Equal(expected, actual);
     }
 
     [Theory]

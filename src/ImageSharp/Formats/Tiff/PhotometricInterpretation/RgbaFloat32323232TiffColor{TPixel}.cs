@@ -16,16 +16,24 @@ internal class RgbaFloat32323232TiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
 {
     private readonly bool isBigEndian;
 
+    private readonly TiffExtraSampleType? extraSamplesType;
+
     /// <summary>
     /// Initializes a new instance of the <see cref="RgbaFloat32323232TiffColor{TPixel}" /> class.
     /// </summary>
     /// <param name="isBigEndian">if set to <c>true</c> decodes the pixel data as big endian, otherwise as little endian.</param>
-    public RgbaFloat32323232TiffColor(bool isBigEndian) => this.isBigEndian = isBigEndian;
+    /// <param name="extraSamplesType">The alpha representation declared by the TIFF extra samples field.</param>
+    public RgbaFloat32323232TiffColor(bool isBigEndian, TiffExtraSampleType? extraSamplesType)
+    {
+        this.isBigEndian = isBigEndian;
+        this.extraSamplesType = extraSamplesType;
+    }
 
     /// <inheritdoc/>
     public override void Decode(ReadOnlySpan<byte> data, Buffer2D<TPixel> pixels, int left, int top, int width, int height)
     {
         int offset = 0;
+        bool hasAssociatedAlpha = this.extraSamplesType == TiffExtraSampleType.AssociatedAlphaData;
         Span<byte> buffer = stackalloc byte[4];
 
         for (int y = top; y < top + height; y++)
@@ -56,7 +64,10 @@ internal class RgbaFloat32323232TiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
                     float a = BitConverter.ToSingle(buffer);
                     offset += 4;
 
-                    pixelRow[x] = TPixel.FromScaledVector4(new Vector4(r, g, b, a));
+                    Vector4 vector = new(r, g, b, a);
+                    pixelRow[x] = hasAssociatedAlpha
+                        ? TPixel.FromAssociatedScaledVector4(vector)
+                        : TPixel.FromUnassociatedScaledVector4(vector);
                 }
             }
             else
@@ -75,7 +86,10 @@ internal class RgbaFloat32323232TiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
                     float a = BitConverter.ToSingle(data.Slice(offset, 4));
                     offset += 4;
 
-                    pixelRow[x] = TPixel.FromScaledVector4(new Vector4(r, g, b, a));
+                    Vector4 vector = new(r, g, b, a);
+                    pixelRow[x] = hasAssociatedAlpha
+                        ? TPixel.FromAssociatedScaledVector4(vector)
+                        : TPixel.FromUnassociatedScaledVector4(vector);
                 }
             }
         }

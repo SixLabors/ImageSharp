@@ -22,8 +22,6 @@ internal static class TiffDecoderMetadataCreator
             TiffThrowHelper.ThrowImageFormatException("Expected at least one frame.");
         }
 
-        ImageMetadata imageMetaData = Create(byteOrder, isBigTiff, frames[0]);
-
         if (!ignoreMetadata)
         {
             for (int i = 0; i < frames.Count; i++)
@@ -43,12 +41,24 @@ internal static class TiffDecoderMetadataCreator
             }
         }
 
-        return imageMetaData;
+        // IPTC and XMP are materialized from IFD tags above, so image-level metadata
+        // must be created after all frame profiles are available.
+        return Create(byteOrder, isBigTiff, frames[0]);
     }
 
     private static ImageMetadata Create(ByteOrder byteOrder, bool isBigTiff, ImageFrameMetadata rootFrameMetadata)
     {
-        ImageMetadata imageMetaData = new();
+        // TIFF stores metadata per IFD, while ImageMetadata is the source used by single-frame encoders.
+        // Mirror the root IFD profiles at image scope so cross-format encoding preserves them. Each profile
+        // is cloned because image-level and frame-level metadata are independently mutable public APIs.
+        ImageMetadata imageMetaData = new()
+        {
+            ExifProfile = rootFrameMetadata.ExifProfile?.DeepClone(),
+            IccProfile = rootFrameMetadata.IccProfile?.DeepClone(),
+            IptcProfile = rootFrameMetadata.IptcProfile?.DeepClone(),
+            XmpProfile = rootFrameMetadata.XmpProfile?.DeepClone()
+        };
+
         SetResolution(imageMetaData, rootFrameMetadata.ExifProfile);
 
         TiffMetadata tiffMetadata = imageMetaData.GetTiffMetadata();

@@ -27,7 +27,7 @@ internal static class YuvConversion
     // we interpolate u/v as:
     //  ([9*a + 3*b + 3*c +   d    3*a + 9*b + 3*c +   d] + [8 8]) / 16
     //  ([3*a +   b + 9*c + 3*d      a + 3*b + 3*c + 9*d]   [8 8]) / 16
-    public static void UpSample(Span<byte> topY, Span<byte> bottomY, Span<byte> topU, Span<byte> topV, Span<byte> curU, Span<byte> curV, Span<byte> topDst, Span<byte> bottomDst, int len, byte[] uvBuffer)
+    public static void UpSample(Span<byte> topY, Span<byte> bottomY, Span<byte> topU, Span<byte> topV, Span<byte> curU, Span<byte> curV, Span<byte> topDst, Span<byte> bottomDst, int len, Span<byte> uvBuffer)
     {
         if (Vector128.IsHardwareAccelerated)
         {
@@ -107,11 +107,11 @@ internal static class YuvConversion
     //
     // Then m can be written as
     // m = (k + t + 1) / 2 - (((b^c) & (s^t)) | (k^t)) & 1
-    private static void UpSampleVector128(Span<byte> topY, Span<byte> bottomY, Span<byte> topU, Span<byte> topV, Span<byte> curU, Span<byte> curV, Span<byte> topDst, Span<byte> bottomDst, int len, byte[] uvBuffer)
+    private static void UpSampleVector128(Span<byte> topY, Span<byte> bottomY, Span<byte> topU, Span<byte> topV, Span<byte> curU, Span<byte> curV, Span<byte> topDst, Span<byte> bottomDst, int len, Span<byte> uvBuffer)
     {
         const int xStep = 3;
-        Array.Clear(uvBuffer);
-        Span<byte> ru = uvBuffer.AsSpan(15);
+        uvBuffer.Clear();
+        Span<byte> ru = uvBuffer[15..];
         Span<byte> rv = ru[32..];
 
         // Treat the first pixel in regular way.

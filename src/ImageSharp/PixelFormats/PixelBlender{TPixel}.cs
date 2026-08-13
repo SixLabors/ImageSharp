@@ -93,12 +93,12 @@ public abstract class PixelBlender<TPixel>
         Span<Vector4> backgroundVectors = workingBuffer.Slice(maxLength, maxLength);
         Span<Vector4> sourceVectors = workingBuffer.Slice(maxLength * 2, maxLength);
 
-        PixelOperations<TPixel>.Instance.ToVector4(configuration, background[..maxLength], backgroundVectors, PixelConversionModifiers.Scale);
-        PixelOperations<TPixelSrc>.Instance.ToVector4(configuration, source[..maxLength], sourceVectors, PixelConversionModifiers.Scale);
+        this.ToBlendVector4(configuration, background[..maxLength], backgroundVectors);
+        this.ToBlendVector4(configuration, source[..maxLength], sourceVectors);
 
         this.BlendFunction(destinationVectors, backgroundVectors, sourceVectors, amount);
 
-        PixelOperations<TPixel>.Instance.FromVector4Destructive(configuration, destinationVectors, destination, PixelConversionModifiers.Scale);
+        this.FromBlendVector4(configuration, destinationVectors, destination);
     }
 
     /// <summary>
@@ -161,11 +161,11 @@ public abstract class PixelBlender<TPixel>
         Span<Vector4> destinationVectors = workingBuffer[..maxLength];
         Span<Vector4> backgroundVectors = workingBuffer.Slice(maxLength, maxLength);
 
-        PixelOperations<TPixel>.Instance.ToVector4(configuration, background[..maxLength], backgroundVectors, PixelConversionModifiers.Scale);
+        this.ToBlendVector4(configuration, background[..maxLength], backgroundVectors);
 
-        this.BlendFunction(destinationVectors, backgroundVectors, source.ToScaledVector4(), amount);
+        this.BlendFunction(destinationVectors, backgroundVectors, this.ToBlendVector4(source), amount);
 
-        PixelOperations<TPixel>.Instance.FromVector4Destructive(configuration, destinationVectors, destination, PixelConversionModifiers.Scale);
+        this.FromBlendVector4(configuration, destinationVectors, destination);
     }
 
     /// <summary>
@@ -242,12 +242,12 @@ public abstract class PixelBlender<TPixel>
         Span<Vector4> backgroundVectors = workingBuffer.Slice(maxLength, maxLength);
         Span<Vector4> sourceVectors = workingBuffer.Slice(maxLength * 2, maxLength);
 
-        PixelOperations<TPixel>.Instance.ToVector4(configuration, background[..maxLength], backgroundVectors, PixelConversionModifiers.Scale);
-        PixelOperations<TPixelSrc>.Instance.ToVector4(configuration, source[..maxLength], sourceVectors, PixelConversionModifiers.Scale);
+        this.ToBlendVector4(configuration, background[..maxLength], backgroundVectors);
+        this.ToBlendVector4(configuration, source[..maxLength], sourceVectors);
 
         this.BlendWithCoverageFunction(destinationVectors, backgroundVectors, sourceVectors, amount, coverage);
 
-        PixelOperations<TPixel>.Instance.FromVector4Destructive(configuration, destinationVectors, destination, PixelConversionModifiers.Scale);
+        this.FromBlendVector4(configuration, destinationVectors, destination);
     }
 
     /// <summary>
@@ -317,11 +317,11 @@ public abstract class PixelBlender<TPixel>
         Span<Vector4> destinationVectors = workingBuffer[..maxLength];
         Span<Vector4> backgroundVectors = workingBuffer.Slice(maxLength, maxLength);
 
-        PixelOperations<TPixel>.Instance.ToVector4(configuration, background[..maxLength], backgroundVectors, PixelConversionModifiers.Scale);
+        this.ToBlendVector4(configuration, background[..maxLength], backgroundVectors);
 
-        this.BlendWithCoverageFunction(destinationVectors, backgroundVectors, source.ToScaledVector4(), amount, coverage);
+        this.BlendWithCoverageFunction(destinationVectors, backgroundVectors, this.ToBlendVector4(source), amount, coverage);
 
-        PixelOperations<TPixel>.Instance.FromVector4Destructive(configuration, destinationVectors, destination, PixelConversionModifiers.Scale);
+        this.FromBlendVector4(configuration, destinationVectors, destination);
     }
 
     /// <summary>
@@ -463,12 +463,12 @@ public abstract class PixelBlender<TPixel>
         Span<Vector4> backgroundVectors = workingBuffer.Slice(maxLength, maxLength);
         Span<Vector4> sourceVectors = workingBuffer.Slice(maxLength * 2, maxLength);
 
-        PixelOperations<TPixel>.Instance.ToVector4(configuration, background[..maxLength], backgroundVectors, PixelConversionModifiers.Scale);
-        PixelOperations<TPixelSrc>.Instance.ToVector4(configuration, source[..maxLength], sourceVectors, PixelConversionModifiers.Scale);
+        this.ToBlendVector4(configuration, background[..maxLength], backgroundVectors);
+        this.ToBlendVector4(configuration, source[..maxLength], sourceVectors);
 
         this.BlendFunction(destinationVectors, backgroundVectors, sourceVectors, amount);
 
-        PixelOperations<TPixel>.Instance.FromVector4Destructive(configuration, destinationVectors, destination, PixelConversionModifiers.Scale);
+        this.FromBlendVector4(configuration, destinationVectors, destination);
     }
 
     /// <summary>
@@ -499,11 +499,11 @@ public abstract class PixelBlender<TPixel>
         Span<Vector4> destinationVectors = workingBuffer[..maxLength];
         Span<Vector4> backgroundVectors = workingBuffer.Slice(maxLength, maxLength);
 
-        PixelOperations<TPixel>.Instance.ToVector4(configuration, background[..maxLength], backgroundVectors, PixelConversionModifiers.Scale);
+        this.ToBlendVector4(configuration, background[..maxLength], backgroundVectors);
 
-        this.BlendFunction(destinationVectors, backgroundVectors, source.ToScaledVector4(), amount);
+        this.BlendFunction(destinationVectors, backgroundVectors, this.ToBlendVector4(source), amount);
 
-        PixelOperations<TPixel>.Instance.FromVector4Destructive(configuration, destinationVectors, destination, PixelConversionModifiers.Scale);
+        this.FromBlendVector4(configuration, destinationVectors, destination);
     }
 
     /// <summary>
@@ -660,12 +660,12 @@ public abstract class PixelBlender<TPixel>
         Span<Vector4> backgroundVectors = workingBuffer.Slice(maxLength, maxLength);
         Span<Vector4> sourceVectors = workingBuffer.Slice(maxLength * 2, maxLength);
 
-        PixelOperations<TPixel>.Instance.ToVector4(configuration, background[..maxLength], backgroundVectors, PixelConversionModifiers.Scale);
-        PixelOperations<TPixelSrc>.Instance.ToVector4(configuration, source[..maxLength], sourceVectors, PixelConversionModifiers.Scale);
+        this.ToBlendVector4(configuration, background[..maxLength], backgroundVectors);
+        this.ToBlendVector4(configuration, source[..maxLength], sourceVectors);
 
         this.BlendWithCoverageFunction(destinationVectors, backgroundVectors, sourceVectors, amount, coverage);
 
-        PixelOperations<TPixel>.Instance.FromVector4Destructive(configuration, destinationVectors, destination, PixelConversionModifiers.Scale);
+        this.FromBlendVector4(configuration, destinationVectors, destination);
     }
 
     /// <summary>
@@ -699,12 +699,46 @@ public abstract class PixelBlender<TPixel>
         Span<Vector4> destinationVectors = workingBuffer[..maxLength];
         Span<Vector4> backgroundVectors = workingBuffer.Slice(maxLength, maxLength);
 
-        PixelOperations<TPixel>.Instance.ToVector4(configuration, background[..maxLength], backgroundVectors, PixelConversionModifiers.Scale);
+        this.ToBlendVector4(configuration, background[..maxLength], backgroundVectors);
 
-        this.BlendWithCoverageFunction(destinationVectors, backgroundVectors, source.ToScaledVector4(), amount, coverage);
+        this.BlendWithCoverageFunction(destinationVectors, backgroundVectors, this.ToBlendVector4(source), amount, coverage);
 
-        PixelOperations<TPixel>.Instance.FromVector4Destructive(configuration, destinationVectors, destination, PixelConversionModifiers.Scale);
+        this.FromBlendVector4(configuration, destinationVectors, destination);
     }
+
+    /// <summary>
+    /// Converts source pixels to the scaled-vector representation consumed by this blender.
+    /// </summary>
+    /// <typeparam name="TPixelSource">The source pixel format.</typeparam>
+    /// <param name="configuration">The configuration.</param>
+    /// <param name="source">The source pixels.</param>
+    /// <param name="destination">The destination vectors.</param>
+    protected virtual void ToBlendVector4<TPixelSource>(
+        Configuration configuration,
+        ReadOnlySpan<TPixelSource> source,
+        Span<Vector4> destination)
+        where TPixelSource : unmanaged, IPixel<TPixelSource>
+        => PixelOperations<TPixelSource>.Instance.ToVector4(configuration, source, destination, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
+
+    /// <summary>
+    /// Converts a source pixel to the vector representation consumed by the blend functions.
+    /// </summary>
+    /// <param name="source">The source pixel.</param>
+    /// <returns>The source vector.</returns>
+    protected virtual Vector4 ToBlendVector4(TPixel source)
+        => source.ToUnassociatedScaledVector4();
+
+    /// <summary>
+    /// Converts blend results from this blender's scaled-vector representation to destination pixels.
+    /// </summary>
+    /// <param name="configuration">The configuration.</param>
+    /// <param name="source">The source vectors.</param>
+    /// <param name="destination">The destination pixels.</param>
+    protected virtual void FromBlendVector4(
+        Configuration configuration,
+        Span<Vector4> source,
+        Span<TPixel> destination)
+        => PixelOperations<TPixel>.Instance.FromVector4Destructive(configuration, source, destination, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
 
     /// <summary>
     /// Blend 2 rows together.

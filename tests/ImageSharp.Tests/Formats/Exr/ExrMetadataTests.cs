@@ -73,6 +73,17 @@ public class ExrMetadataTests
     }
 
     [Theory]
+    [InlineData(ExrImageDataType.Rgba, PixelAlphaRepresentation.Associated)]
+    [InlineData(ExrImageDataType.Rgb, PixelAlphaRepresentation.None)]
+    [InlineData(ExrImageDataType.Gray, PixelAlphaRepresentation.None)]
+    public void GetPixelTypeInfo_ReturnsExpectedAlphaRepresentation(ExrImageDataType imageDataType, PixelAlphaRepresentation expected)
+    {
+        ExrMetadata metadata = new() { ImageDataType = imageDataType };
+
+        Assert.Equal(expected, metadata.GetPixelTypeInfo().AlphaRepresentation);
+    }
+
+    [Theory]
     [InlineData(TestImages.Exr.UncompressedRgba, ExrCompression.None)]
     [InlineData(TestImages.Exr.B44, ExrCompression.B44)]
     [InlineData(TestImages.Exr.Rle, ExrCompression.RunLengthEncoded)]

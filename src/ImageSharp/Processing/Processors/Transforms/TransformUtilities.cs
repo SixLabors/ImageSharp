@@ -19,7 +19,7 @@ internal static class TransformUtilities
     /// </summary>
     /// <param name="matrix">The transform matrix.</param>
     public static bool IsDegenerate(Matrix3x2 matrix)
-        => IsNaN(matrix) || IsZero(matrix.GetDeterminant());
+        => IsNaN(matrix) || matrix.GetDeterminant() == 0F;
 
     /// <summary>
     /// Returns a value that indicates whether the specified matrix is degenerate
@@ -28,11 +28,7 @@ internal static class TransformUtilities
     /// </summary>
     /// <param name="matrix">The transform matrix.</param>
     public static bool IsDegenerate(Matrix4x4 matrix)
-        => IsNaN(matrix) || IsZero(matrix.GetDeterminant());
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static bool IsZero(float a)
-        => a > -Constants.EpsilonSquared && a < Constants.EpsilonSquared;
+        => IsNaN(matrix) || matrix.GetDeterminant() == 0F;
 
     /// <summary>
     /// Returns a value that indicates whether the specified matrix contains any values

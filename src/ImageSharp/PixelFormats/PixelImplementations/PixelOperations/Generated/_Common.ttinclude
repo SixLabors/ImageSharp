@@ -147,15 +147,19 @@ using SixLabors.ImageSharp.PixelFormats.Utils;
 
     void GenerateRgba32CompatibleVector4ConversionMethods(string pixelType, bool hasAlpha)
     {
-           string removeTheseModifiers = "PixelConversionModifiers.Scale";
+           string removeFromModifiers = "PixelConversionModifiers.Scale";
+           string removeToModifiers = "PixelConversionModifiers.Scale";
+
            if (!hasAlpha)
            {
-               removeTheseModifiers += " | PixelConversionModifiers.Premultiply";
+               // Premultiplication cannot change an alpha-less source, but premultiplied input
+               // must still be unassociated before its alpha channel is discarded.
+               removeToModifiers += " | PixelConversionModifiers.Premultiply";
            }
 
            if (hasAlpha)
            {
-               GenerateRgba32Compatible32BitVector4ConversionMethods(pixelType, removeTheseModifiers);
+               GenerateRgba32Compatible32BitVector4ConversionMethods(pixelType, removeFromModifiers);
                return;
            }
 #>
@@ -167,7 +171,7 @@ using SixLabors.ImageSharp.PixelFormats.Utils;
             Span<<#=pixelType#>> destination,
             PixelConversionModifiers modifiers)
         {
-            Vector4Converters.RgbaCompatible.FromVector4(configuration, this, sourceVectors, destination, modifiers.Remove(<#=removeTheseModifiers#>));
+            Vector4Converters.RgbaCompatible.FromVector4(configuration, this, sourceVectors, destination, modifiers.Remove(<#=removeFromModifiers#>));
         }
 
         /// <inheritdoc />
@@ -177,7 +181,7 @@ using SixLabors.ImageSharp.PixelFormats.Utils;
             Span<Vector4> destination,
             PixelConversionModifiers modifiers)
         {
-            Vector4Converters.RgbaCompatible.ToVector4(configuration, this, source, destination, modifiers.Remove(<#=removeTheseModifiers#>));
+            Vector4Converters.RgbaCompatible.ToVector4(configuration, this, source, destination, modifiers.Remove(<#=removeToModifiers#>));
         }
 <#+
     }

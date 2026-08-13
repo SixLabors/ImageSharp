@@ -161,6 +161,8 @@ internal class ConvolutionProcessor<TPixel> : ImageProcessor<TPixel>
 
             if (this.preserveAlpha)
             {
+                // Alpha is preserved separately, so filter straight color and restore the source alpha after applying the kernel.
+
                 // Clear the target buffer for each row run.
                 targetBuffer.Clear();
                 ref Vector4 targetBase = ref MemoryMarshal.GetReference(targetBuffer);
@@ -171,7 +173,7 @@ internal class ConvolutionProcessor<TPixel> : ImageProcessor<TPixel>
                     // Get the precalculated source sample row for this kernel row and copy to our buffer.
                     int offsetY = Unsafe.Add(ref sampleRowBase, kY);
                     sourceRow = this.sourcePixels.DangerousGetRowSpan(offsetY).Slice(boundsX, boundsWidth);
-                    PixelOperations<TPixel>.Instance.ToVector4(this.configuration, sourceRow, sourceBuffer);
+                    PixelOperations<TPixel>.Instance.ToVector4(this.configuration, sourceRow, sourceBuffer, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
 
                     ref Vector4 sourceBase = ref MemoryMarshal.GetReference(sourceBuffer);
 
@@ -191,16 +193,20 @@ internal class ConvolutionProcessor<TPixel> : ImageProcessor<TPixel>
 
                 // Now we need to copy the original alpha values from the source row.
                 sourceRow = this.sourcePixels.DangerousGetRowSpan(y).Slice(boundsX, boundsWidth);
-                PixelOperations<TPixel>.Instance.ToVector4(this.configuration, sourceRow, sourceBuffer);
+                PixelOperations<TPixel>.Instance.ToVector4(this.configuration, sourceRow, sourceBuffer, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
 
                 for (nuint x = 0; x < (uint)sourceRow.Length; x++)
                 {
                     ref Vector4 target = ref Unsafe.Add(ref targetBase, x);
                     target.W = Unsafe.Add(ref MemoryMarshal.GetReference(sourceBuffer), x).W;
                 }
+
+                PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, targetBuffer, targetRowSpan, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
             }
             else
             {
+                // Alpha participates in this convolution, so filter associated color to keep RGB weighted by coverage throughout the kernel.
+
                 // Clear the target buffer for each row run.
                 targetBuffer.Clear();
                 ref Vector4 targetBase = ref MemoryMarshal.GetReference(targetBuffer);
@@ -210,9 +216,8 @@ internal class ConvolutionProcessor<TPixel> : ImageProcessor<TPixel>
                     // Get the precalculated source sample row for this kernel row and copy to our buffer.
                     int offsetY = Unsafe.Add(ref sampleRowBase, kY);
                     Span<TPixel> sourceRow = this.sourcePixels.DangerousGetRowSpan(offsetY).Slice(boundsX, boundsWidth);
-                    PixelOperations<TPixel>.Instance.ToVector4(this.configuration, sourceRow, sourceBuffer);
+                    PixelOperations<TPixel>.Instance.ToVector4(this.configuration, sourceRow, sourceBuffer, PixelConversionModifiers.Scale | PixelConversionModifiers.Premultiply);
 
-                    Numerics.Premultiply(sourceBuffer);
                     ref Vector4 sourceBase = ref MemoryMarshal.GetReference(sourceBuffer);
 
                     for (uint x = 0; x < (uint)sourceBuffer.Length; x++)
@@ -229,10 +234,8 @@ internal class ConvolutionProcessor<TPixel> : ImageProcessor<TPixel>
                     }
                 }
 
-                Numerics.UnPremultiply(targetBuffer);
+                PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, targetBuffer, targetRowSpan, PixelConversionModifiers.Scale | PixelConversionModifiers.Premultiply);
             }
-
-            PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, targetBuffer, targetRowSpan);
         }
     }
 }

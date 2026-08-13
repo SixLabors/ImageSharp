@@ -141,6 +141,16 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>DefaultPixelBlenders.Generated.tt</DependentUpon>
     </Compile>
+    <Compile Update="PixelFormats\PixelBlenders\AssociatedAlphaPixelBlenders.Generated.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>AssociatedAlphaPixelBlenders.Generated.tt</DependentUpon>
+    </Compile>
+    <Compile Update="PixelFormats\PixelBlenders\AssociatedAlphaPorterDuffFunctions.Generated.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>AssociatedAlphaPorterDuffFunctions.Generated.tt</DependentUpon>
+    </Compile>
     <Compile Update="PixelFormats\PixelBlenders\PorterDuffFunctions.Generated.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
@@ -219,6 +229,14 @@
     </None>
     <None Update="PixelFormats\PixelBlenders\DefaultPixelBlenders.Generated.tt">
       <LastGenOutput>DefaultPixelBlenders.Generated.cs</LastGenOutput>
+      <Generator>TextTemplatingFileGenerator</Generator>
+    </None>
+    <None Update="PixelFormats\PixelBlenders\AssociatedAlphaPixelBlenders.Generated.tt">
+      <LastGenOutput>AssociatedAlphaPixelBlenders.Generated.cs</LastGenOutput>
+      <Generator>TextTemplatingFileGenerator</Generator>
+    </None>
+    <None Update="PixelFormats\PixelBlenders\AssociatedAlphaPorterDuffFunctions.Generated.tt">
+      <LastGenOutput>AssociatedAlphaPorterDuffFunctions.Generated.cs</LastGenOutput>
       <Generator>TextTemplatingFileGenerator</Generator>
     </None>
     <None Update="Formats\_Generated\ImageExtensions.Save.tt">

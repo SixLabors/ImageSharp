@@ -8,10 +8,12 @@ namespace SixLabors.ImageSharp.PixelFormats;
 
 /// <summary>
 /// Packed pixel type containing two 16-bit signed integer values.
-/// <para>
-/// Ranges from [-32767, -32767, 0, 1] to [32767, 32767, 0, 1] in vector form.
-/// </para>
 /// </summary>
+/// <remarks>
+/// <see cref="ToVector2"/> and <see cref="ToVector4"/> return stored components in <c>[-32768, 32767]</c>.
+/// Scaled vector conversions map the full stored range to <c>[0, 1]</c>. The packed storage layout matches
+/// <c>DXGI_FORMAT_R16G16_SINT</c>.
+/// </remarks>
 public partial struct Short2 : IPixel<Short2>, IPackedVector<uint>
 {
     // Largest two byte positive number 0xFFFF >> 1;
@@ -19,6 +21,9 @@ public partial struct Short2 : IPixel<Short2>, IPackedVector<uint>
 
     // Two's complement
     private const float MinNeg = ~(int)MaxPos;
+
+    // Scaled conversions cover every signed 16-bit code, including the asymmetric minimum value.
+    private const float Range = MaxPos - MinNeg;
 
     private static readonly Vector2 Max = new(MaxPos);
     private static readonly Vector2 Min = new(MinNeg);
@@ -73,8 +78,8 @@ public partial struct Short2 : IPixel<Short2>, IPackedVector<uint>
     public readonly Vector4 ToScaledVector4()
     {
         Vector2 scaled = this.ToVector2();
-        scaled += new Vector2(32767f);
-        scaled /= 65534F;
+        scaled -= Min;
+        scaled /= Range;
         return new Vector4(scaled, 0f, 1f);
     }
 
@@ -92,12 +97,55 @@ public partial struct Short2 : IPixel<Short2>, IPackedVector<uint>
     /// <inheritdoc />
     public static PixelOperations<Short2> CreatePixelOperations() => new PixelOperations();
 
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly Vector4 ToUnassociatedScaledVector4() => this.ToScaledVector4();
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly Vector4 ToAssociatedScaledVector4() => this.ToScaledVector4();
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly Vector4 ToUnassociatedVector4() => this.ToVector4();
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly Vector4 ToAssociatedVector4() => this.ToVector4();
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Short2 FromUnassociatedScaledVector4(Vector4 source) => FromScaledVector4(source);
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Short2 FromAssociatedScaledVector4(Vector4 source)
+    {
+        // The destination has implicit alpha one, but associated input must be restored before its alpha is discarded.
+        Numerics.UnPremultiply(ref source);
+        return FromScaledVector4(source);
+    }
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Short2 FromUnassociatedVector4(Vector4 source) => FromVector4(source);
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Short2 FromAssociatedVector4(Vector4 source)
+    {
+        // Only the stored color components use the signed native encoding; W remains the scaled source alpha.
+        source.X = (source.X - MinNeg) / Range;
+        source.Y = (source.Y - MinNeg) / Range;
+        return FromAssociatedScaledVector4(source);
+    }
+
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Short2 FromScaledVector4(Vector4 source)
     {
-        Vector2 scaled = new Vector2(source.X, source.Y) * 65534F;
-        scaled -= new Vector2(32767F);
+        Vector2 scaled = new Vector2(source.X, source.Y) * Range;
+        scaled += Min;
         return new Short2 { PackedValue = Pack(scaled) };
     }
 

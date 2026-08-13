@@ -104,8 +104,8 @@ internal readonly unsafe struct ResizeKernel
                 Vector256<float> pixels256_0 = Unsafe.As<Vector4, Vector256<float>>(ref rowStartRef);
                 Vector256<float> pixels256_1 = Unsafe.As<Vector4, Vector256<float>>(ref Unsafe.Add(ref rowStartRef, (nuint)2));
 
-                result256_0 = Vector256_.MultiplyAdd(result256_0, Vector256.Load(bufferStart), pixels256_0);
-                result256_1 = Vector256_.MultiplyAdd(result256_1, Vector256.Load(bufferStart + 8), pixels256_1);
+                result256_0 = Vector256_.MultiplyAddEstimate(Vector256.Load(bufferStart), pixels256_0, result256_0);
+                result256_1 = Vector256_.MultiplyAddEstimate(Vector256.Load(bufferStart + 8), pixels256_1, result256_1);
 
                 bufferStart += 16;
                 rowStartRef = ref Unsafe.Add(ref rowStartRef, (nuint)4);
@@ -116,7 +116,7 @@ internal readonly unsafe struct ResizeKernel
             if ((this.Length & 3) >= 2)
             {
                 Vector256<float> pixels256_0 = Unsafe.As<Vector4, Vector256<float>>(ref rowStartRef);
-                result256_0 = Vector256_.MultiplyAdd(result256_0, Vector256.Load(bufferStart), pixels256_0);
+                result256_0 = Vector256_.MultiplyAddEstimate(Vector256.Load(bufferStart), pixels256_0, result256_0);
 
                 bufferStart += 8;
                 rowStartRef = ref Unsafe.Add(ref rowStartRef, (nuint)2);
@@ -127,7 +127,7 @@ internal readonly unsafe struct ResizeKernel
             if ((this.Length & 1) != 0)
             {
                 Vector128<float> pixels128 = Unsafe.As<Vector4, Vector128<float>>(ref rowStartRef);
-                result128 = Vector128_.MultiplyAdd(result128, Vector128.Load(bufferStart), pixels128);
+                result128 = Vector128_.MultiplyAddEstimate(Vector128.Load(bufferStart), pixels128, result128);
             }
 
             return result128.AsVector4();

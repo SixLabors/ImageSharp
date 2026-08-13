@@ -59,4 +59,18 @@ public class HexadecatreeQuantizerTests
         Assert.Equal(KnownDitherings.Atkinson, frameQuantizer.Options.Dither);
         frameQuantizer.Dispose();
     }
+
+    [Fact]
+    public void PaletteUsesNormalizedTransparencyThreshold()
+    {
+        using HexadecatreeQuantizer<Rgba32>.Hexadecatree tree = new(Configuration.Default, 8, 2, .5F);
+        tree.AddColors([new Rgba32(255, 255, 255, 127)]);
+
+        Span<Rgba32> palette = stackalloc Rgba32[2];
+        short paletteIndex = 0;
+        tree.Palettize(palette, ref paletteIndex);
+
+        Assert.Equal(1, paletteIndex);
+        Assert.Equal(default, palette[0]);
+    }
 }

@@ -65,9 +65,9 @@ internal static class EncodingUtilities
         for (int y = 0; y < region.Height; y++)
         {
             Span<TPixel> span = region.DangerousGetRowSpan(y);
-            PixelOperations<TPixel>.Instance.ToVector4(configuration, span, vectorsSpan, PixelConversionModifiers.Scale);
+            PixelOperations<TPixel>.Instance.ToVector4(configuration, span, vectorsSpan, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
             ReplaceTransparentPixels(vectorsSpan);
-            PixelOperations<TPixel>.Instance.FromVector4Destructive(configuration, vectorsSpan, span, PixelConversionModifiers.Scale);
+            PixelOperations<TPixel>.Instance.FromVector4Destructive(configuration, vectorsSpan, span, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
         }
     }
 

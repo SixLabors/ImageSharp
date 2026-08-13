@@ -826,14 +826,17 @@ public static class TestImageExtensions
                 for (int y = rows.Min; y < rows.Max; y++)
                 {
                     Span<TPixel> rowSpan = this.source.DangerousGetRowSpan(y).Slice(this.bounds.Left, this.bounds.Width);
-                    PixelOperations<TPixel>.Instance.ToVector4(this.configuration, rowSpan, span, PixelConversionModifiers.Scale);
+                    PixelOperations<TPixel>.Instance.ToVector4(this.configuration, rowSpan, span, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
+
                     for (int i = 0; i < span.Length; i++)
                     {
                         ref Vector4 v = ref span[i];
                         v.W = 1F;
                     }
 
-                    PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, span, rowSpan, PixelConversionModifiers.Scale);
+                    // Changing opacity must operate on logical RGB. The representation-aware bulk conversion prevents associated
+                    // formats from retaining the darker RGB values that belonged to the old alpha.
+                    PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, span, rowSpan, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
                 }
             }
         }

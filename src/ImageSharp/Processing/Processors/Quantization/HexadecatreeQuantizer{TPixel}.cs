@@ -189,8 +189,8 @@ public struct HexadecatreeQuantizer<TPixel> : IQuantizer<TPixel>
         // Maximum significant bits.
         private readonly int maxColorBits;
 
-        // The threshold for transparent colors.
-        private readonly int transparencyThreshold255;
+        // Keep the fractional byte-domain threshold so values such as .5 remain distinct from alpha 127.
+        private readonly float transparencyThreshold255;
 
         // Instead of a reference to the root, we store the index of the root node.
         // Index 0 is reserved for the root.
@@ -221,7 +221,7 @@ public struct HexadecatreeQuantizer<TPixel> : IQuantizer<TPixel>
         {
             this.maxColorBits = maxColorBits;
             this.maxColors = maxColors;
-            this.transparencyThreshold255 = (int)(transparencyThreshold * 255F);
+            this.transparencyThreshold255 = transparencyThreshold * 255F;
             this.Leaves = 0;
             this.previousNode = -1;
             this.previousColor = default;

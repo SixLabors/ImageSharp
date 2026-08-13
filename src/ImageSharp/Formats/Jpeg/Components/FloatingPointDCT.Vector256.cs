@@ -55,8 +55,8 @@ internal static partial class FloatingPointDCT
             tmp12 = tmp6 + tmp7;
 
             Vector256<float> z5 = (tmp10 - tmp12) * Vector256.Create(0.382683433f);    // mm256_F_0_3826
-            Vector256<float> z2 = Vector256_.MultiplyAdd(z5, Vector256.Create(0.541196100f), tmp10);    // mm256_F_0_5411
-            Vector256<float> z4 = Vector256_.MultiplyAdd(z5, Vector256.Create(1.306562965f), tmp12);    // mm256_F_1_3065
+            Vector256<float> z2 = Vector256_.MultiplyAddEstimate(Vector256.Create(0.541196100f), tmp10, z5);    // mm256_F_0_5411
+            Vector256<float> z4 = Vector256_.MultiplyAddEstimate(Vector256.Create(1.306562965f), tmp12, z5);    // mm256_F_1_3065
             Vector256<float> z3 = tmp11 * mm256_F_0_7071;
 
             Vector256<float> z11 = tmp7 + z3;
@@ -122,8 +122,8 @@ internal static partial class FloatingPointDCT
 
             z5 = (z10 + z12) * Vector256.Create(1.847759065f);   // mm256_F_1_8477
 
-            tmp10 = Vector256_.MultiplyAdd(z5, z12, Vector256.Create(-1.082392200f));   // mm256_F_n1_0823
-            tmp12 = Vector256_.MultiplyAdd(z5, z10, Vector256.Create(-2.613125930f));   // mm256_F_n2_6131
+            tmp10 = Vector256_.MultiplyAddEstimate(z12, Vector256.Create(-1.082392200f), z5);   // mm256_F_n1_0823
+            tmp12 = Vector256_.MultiplyAddEstimate(z10, Vector256.Create(-2.613125930f), z5);   // mm256_F_n2_6131
 
             tmp6 = tmp12 - tmp7;
             tmp5 = tmp11 - tmp6;

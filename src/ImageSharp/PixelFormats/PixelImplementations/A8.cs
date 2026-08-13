@@ -8,10 +8,11 @@ namespace SixLabors.ImageSharp.PixelFormats;
 
 /// <summary>
 /// Packed pixel type containing a single 8-bit normalized alpha value.
-/// <para>
-/// Ranges from [0, 0, 0, 0] to [0, 0, 0, 1] in vector form.
-/// </para>
 /// </summary>
+/// <remarks>
+/// <see cref="ToVector4"/> and scaled vector conversions return alpha in <c>[0, 1]</c> with zero color components.
+/// The storage layout matches <c>DXGI_FORMAT_A8_UNORM</c>.
+/// </remarks>
 public partial struct A8 : IPixel<A8>, IPackedVector<byte>
 {
     /// <summary>
@@ -76,6 +77,38 @@ public partial struct A8 : IPixel<A8>, IPackedVector<byte>
 
     /// <inheritdoc />
     public static PixelOperations<A8> CreatePixelOperations() => new PixelOperations();
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly Vector4 ToUnassociatedScaledVector4() => this.ToScaledVector4();
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly Vector4 ToAssociatedScaledVector4() => this.ToScaledVector4();
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly Vector4 ToUnassociatedVector4() => this.ToVector4();
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly Vector4 ToAssociatedVector4() => this.ToVector4();
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static A8 FromUnassociatedScaledVector4(Vector4 source) => FromScaledVector4(source);
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static A8 FromAssociatedScaledVector4(Vector4 source) => FromScaledVector4(source);
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static A8 FromUnassociatedVector4(Vector4 source) => FromVector4(source);
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static A8 FromAssociatedVector4(Vector4 source) => FromVector4(source);
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

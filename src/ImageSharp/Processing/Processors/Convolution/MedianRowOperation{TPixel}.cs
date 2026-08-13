@@ -78,7 +78,7 @@ internal readonly struct MedianRowOperation<TPixel> : IRowOperation<Vector4>
             int currentYIndex = Unsafe.Add(ref sampleRowBase, (uint)i);
             Span<TPixel> sourceRow = this.sourcePixels.DangerousGetRowSpan(currentYIndex).Slice(boundsX, boundsWidth);
             Span<Vector4> sourceVectorRow = sourceVectorBuffer.Slice(i * boundsWidth, boundsWidth);
-            PixelOperations<TPixel>.Instance.ToVector4(this.configuration, sourceRow, sourceVectorRow);
+            PixelOperations<TPixel>.Instance.ToVector4(this.configuration, sourceRow, sourceVectorRow, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
         }
 
         if (this.preserveAlpha)
@@ -130,7 +130,7 @@ internal readonly struct MedianRowOperation<TPixel> : IRowOperation<Vector4>
         }
 
         Span<TPixel> targetRowSpan = this.targetPixels.DangerousGetRowSpan(y).Slice(boundsX, boundsWidth);
-        PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, targetBuffer, targetRowSpan);
+        PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, targetBuffer, targetRowSpan, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

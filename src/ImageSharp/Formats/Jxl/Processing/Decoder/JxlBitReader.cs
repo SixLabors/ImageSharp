@@ -8,8 +8,10 @@ namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Decoder;
 /// <summary>
 /// Represents a bitstream reader.
 /// </summary>
-internal sealed class JxlBitReader(ReadOnlyMemory<byte> bytes)
+internal ref struct JxlBitReader(ReadOnlySpan<byte> bytes)
 {
+    private readonly ReadOnlySpan<byte> data = bytes;
+
     private ulong buffer;
     private uint bufferRemainingBits;
     private int pointer;
@@ -22,16 +24,14 @@ internal sealed class JxlBitReader(ReadOnlyMemory<byte> bytes)
     /// <summary>
     /// Gets the total number of bits consumed.
     /// </summary>
-    public long TotalBitsConsumed => ((long)this.pointer * 8) + (64 - this.bufferRemainingBits);
+    public readonly long TotalBitsConsumed => ((long)this.pointer * 8) + (64 - this.bufferRemainingBits);
 
     /// <summary>
     /// Fetches a new buffer.
     /// </summary>
     private void RefillCore()
     {
-        ReadOnlySpan<byte> samplesSpan = bytes.Span;
-
-        int remaining = samplesSpan.Length - this.pointer;
+        int remaining = this.data.Length - this.pointer;
         if (remaining <= 0)
         {
             // we don't have any more data... mark an end of stream
@@ -43,7 +43,7 @@ internal sealed class JxlBitReader(ReadOnlyMemory<byte> bytes)
 
         if (remaining >= 8)
         {
-            this.buffer = BinaryPrimitives.ReadUInt64LittleEndian(samplesSpan[this.pointer..]);
+            this.buffer = BinaryPrimitives.ReadUInt64LittleEndian(this.data[this.pointer..]);
             this.bufferRemainingBits = 64u;
             this.pointer += 8;
         }
@@ -52,7 +52,7 @@ internal sealed class JxlBitReader(ReadOnlyMemory<byte> bytes)
             ulong value = 0;
             for (int i = 0; i < remaining; i++)
             {
-                value |= (ulong)samplesSpan[this.pointer + i] << (8 * i);
+                value |= (ulong)this.data[this.pointer + i] << (8 * i);
             }
 
             this.buffer = value;

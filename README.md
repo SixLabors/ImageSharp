@@ -36,7 +36,7 @@ Support the efforts of the development of the Six Labors projects.
 ## Documentation
 
 - [Detailed documentation](https://sixlabors.github.io/docs/) for the ImageSharp API is available. This includes additional conceptual documentation to help you get started.
-- Our [Samples Repository](https://github.com/SixLabors/Samples/tree/main/ImageSharp) is also available containing buildable code samples demonstrating common activities.
+- Our [Samples Repository](https://github.com/SixLabors/Samples/tree/main/SixLabors.Samples.ImageSharp) is also available containing buildable code samples demonstrating common activities.
 
 ## Questions
 

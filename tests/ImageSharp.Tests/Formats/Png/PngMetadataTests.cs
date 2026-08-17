@@ -32,7 +32,7 @@ public class PngMetadataTests
             ColorType = PngColorType.GrayscaleWithAlpha,
             InterlaceMethod = PngInterlaceMode.Adam7,
             Gamma = 2,
-            TextData = [new("name", "value", "foo", "bar")],
+            TextData = [new PngTextData("name", "value", "foo", "bar")],
             RepeatCount = 123,
             AnimateRootFrame = false
         };

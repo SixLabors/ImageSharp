@@ -1051,9 +1051,9 @@ public class PixelBlenderTests
     private static Rgba32P BlendWithCoverageScalar(PixelBlender<Rgba32P> blender, Rgba32P background, Rgba32P source, float amount, float coverage)
     {
         Span<Rgba32P> destination = stackalloc Rgba32P[1];
-        Span<Rgba32P> backgroundSpan = stackalloc Rgba32P[1] { background };
-        Span<Rgba32P> sourceSpan = stackalloc Rgba32P[1] { source };
-        Span<float> coverageSpan = stackalloc float[1] { coverage };
+        Span<Rgba32P> backgroundSpan = [background];
+        Span<Rgba32P> sourceSpan = [source];
+        Span<float> coverageSpan = [coverage];
         Span<Vector4> buffer = stackalloc Vector4[3];
 
         // A one-pixel span takes the scalar remainder path, providing an exact oracle for each SIMD coverage result.
@@ -1161,9 +1161,9 @@ public class PixelBlenderTests
         where TPixel : unmanaged, IPixel<TPixel>
     {
         Span<TPixel> destination = stackalloc TPixel[1];
-        Span<TPixel> backgroundSpan = stackalloc TPixel[1] { background };
-        Span<TPixel> sourceSpan = stackalloc TPixel[1] { source };
-        Span<float> coverageSpan = stackalloc float[1] { coverage };
+        Span<TPixel> backgroundSpan = [background];
+        Span<TPixel> sourceSpan = [source];
+        Span<float> coverageSpan = [coverage];
         Span<Vector4> buffer = stackalloc Vector4[3];
 
         blender.BlendWithCoverage<TPixel>(Configuration.Default, destination, backgroundSpan, sourceSpan, amount, coverageSpan, buffer);

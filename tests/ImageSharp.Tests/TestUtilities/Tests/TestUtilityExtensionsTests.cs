@@ -119,7 +119,7 @@ public class TestUtilityExtensionsTests
     [Fact]
     public void ToTypes_All()
     {
-        KeyValuePair<PixelTypes, Type>[] expanded = PixelTypes.All.ExpandAllTypes().ToArray();
+        KeyValuePair<PixelTypes, Type>[] expanded = [.. PixelTypes.All.ExpandAllTypes()];
 
         Assert.True(expanded.Length >= TestUtils.GetAllPixelTypes().Length - 2);
         AssertContainsPixelType<Rgba32>(PixelTypes.Rgba32, expanded);

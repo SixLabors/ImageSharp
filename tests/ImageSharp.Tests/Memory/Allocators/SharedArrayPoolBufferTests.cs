@@ -23,7 +23,7 @@ public class SharedArrayPoolBufferTests
             }
 
             byte[] array = ArrayPool<byte>.Shared.Rent(900);
-            byte[] expected = Enumerable.Repeat((byte)42, 900).ToArray();
+            byte[] expected = [.. Enumerable.Repeat((byte)42, 900)];
 
             Assert.True(expected.AsSpan().SequenceEqual(array.AsSpan(0, 900)));
         }
@@ -48,7 +48,7 @@ public class SharedArrayPoolBufferTests
 
             buffer.ReleaseRef();
             array = ArrayPool<byte>.Shared.Rent(900);
-            byte[] expected = Enumerable.Repeat((byte)42, 900).ToArray();
+            byte[] expected = [.. Enumerable.Repeat((byte)42, 900)];
             Assert.True(expected.AsSpan().SequenceEqual(array.AsSpan(0, 900)));
             ArrayPool<byte>.Shared.Return(array);
         }

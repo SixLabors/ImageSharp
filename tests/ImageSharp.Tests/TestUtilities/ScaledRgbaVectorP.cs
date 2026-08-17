@@ -84,7 +84,7 @@ internal struct ScaledRgbaVectorP : IPixel<ScaledRgbaVectorP>
         Numerics.UnPremultiply(ref source);
         source = Numerics.Clamp(source, Vector4.Zero, Vector4.One);
         Numerics.Premultiply(ref source);
-        return new(source);
+        return new ScaledRgbaVectorP(source);
     }
 
     /// <inheritdoc />

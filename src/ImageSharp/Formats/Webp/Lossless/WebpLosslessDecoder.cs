@@ -438,7 +438,7 @@ internal sealed class WebpLosslessDecoder
                 }
 
                 // TODO: Avoid allocation.
-                hTreeGroup.HTrees.Add(huffmanTable[..size].ToArray());
+                hTreeGroup.HTrees.Add([.. huffmanTable[..size]]);
 
                 HuffmanCode huffTableZero = huffmanTable[0];
                 if (isTrivialLiteral && LiteralMap[j] == 1)

@@ -1049,7 +1049,7 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
                     if (resourceDataSize > 0 && blockDataSpan.Length >= dataStartIdx + resourceDataSize)
                     {
                         this.hasIptc = true;
-                        this.iptcData = blockDataSpan.Slice(dataStartIdx, resourceDataSize).ToArray();
+                        this.iptcData = [.. blockDataSpan.Slice(dataStartIdx, resourceDataSize)];
                         break;
                     }
 

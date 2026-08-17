@@ -320,7 +320,7 @@ public class IcoDecoderTests
     [Fact]
     public void TruncatedEntry_FollowsImageDataIntegrityHandling()
     {
-        byte[] data = TestFile.Create(Flutter).Bytes.ToArray();
+        byte[] data = [.. TestFile.Create(Flutter).Bytes];
         ushort entryCount = BinaryPrimitives.ReadUInt16LittleEndian(data.AsSpan(4));
         Assert.True(entryCount > 1);
 
@@ -347,7 +347,7 @@ public class IcoDecoderTests
     [Fact]
     public void EntryAtEndOfStream_ThrowsInvalidResourceRange()
     {
-        byte[] data = TestFile.Create(Bpp32Size1x1).Bytes.ToArray();
+        byte[] data = [.. TestFile.Create(Bpp32Size1x1).Bytes];
         Assert.Equal(1, BinaryPrimitives.ReadUInt16LittleEndian(data.AsSpan(4)));
 
         // ImageOffset is the final DWORD in the sole directory entry. The stream length is an exclusive boundary,

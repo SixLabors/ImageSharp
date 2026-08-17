@@ -71,7 +71,7 @@ public class AniDecoderTests
     [Fact]
     public void AniDecoder_InvalidSequenceReference_FollowsIntegrityHandling()
     {
-        byte[] data = TestFile.Create(Help).Bytes.ToArray();
+        byte[] data = [.. TestFile.Create(Help).Bytes];
         int sequenceOffset = data.AsSpan().IndexOf("seq "u8);
         Assert.True(sequenceOffset >= 0);
 
@@ -94,7 +94,7 @@ public class AniDecoderTests
     [Fact]
     public void AniDecoder_UnsupportedResource_FollowsIntegrityHandling()
     {
-        byte[] data = TestFile.Create(Work).Bytes.ToArray();
+        byte[] data = [.. TestFile.Create(Work).Bytes];
         int resourceOffset = data.AsSpan().IndexOf("icon"u8);
         Assert.True(resourceOffset >= 0);
 
@@ -119,7 +119,7 @@ public class AniDecoderTests
     [Fact]
     public void AniDecoder_InvalidRateChunk_FollowsIntegrityHandling()
     {
-        byte[] source = TestFile.Create(Help).Bytes.ToArray();
+        byte[] source = [.. TestFile.Create(Help).Bytes];
         int rateOffset = source.AsSpan().IndexOf("rate"u8);
         Assert.True(rateOffset >= 0);
 
@@ -155,7 +155,7 @@ public class AniDecoderTests
     [InlineData(true)]
     public void AniDecoder_OversizedControlChunk_FollowsIntegrityHandling(bool sequence)
     {
-        byte[] source = TestFile.Create(Help).Bytes.ToArray();
+        byte[] source = [.. TestFile.Create(Help).Bytes];
         int chunkOffset = (source.Length + 1) & ~1;
         int payloadSize = AniConstants.MaxAncillaryChunkSize + sizeof(uint);
         byte[] data = new byte[chunkOffset + AniConstants.ChunkHeaderSize + payloadSize];
@@ -182,7 +182,7 @@ public class AniDecoderTests
     [Fact]
     public void AniDecoder_OversizedInformationText_FollowsIntegrityHandling()
     {
-        byte[] source = TestFile.Create(Help).Bytes.ToArray();
+        byte[] source = [.. TestFile.Create(Help).Bytes];
         int listOffset = (source.Length + 1) & ~1;
         int textSize = AniConstants.MaxAncillaryChunkSize + 1;
         int paddedTextSize = textSize + (textSize & 1);

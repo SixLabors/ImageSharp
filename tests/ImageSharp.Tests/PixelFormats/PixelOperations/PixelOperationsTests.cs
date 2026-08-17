@@ -736,7 +736,7 @@ public abstract class PixelOperationsTests<TPixel> : MeasureFixture
     public void FromL8(int count)
     {
         byte[] sourceBytes = CreateByteTestData(count);
-        L8[] source = sourceBytes.Select(b => new L8(b)).ToArray();
+        L8[] source = [.. sourceBytes.Select(b => new L8(b))];
         TPixel[] expected = new TPixel[count];
 
         for (int i = 0; i < count; i++)
@@ -772,7 +772,7 @@ public abstract class PixelOperationsTests<TPixel> : MeasureFixture
     [MemberData(nameof(ArraySizesData))]
     public void FromL16(int count)
     {
-        L16[] source = CreateVector4TestData(count).Select(L16.FromVector4).ToArray();
+        L16[] source = [.. CreateVector4TestData(count).Select(L16.FromVector4)];
 
         TPixel[] expected = new TPixel[count];
 

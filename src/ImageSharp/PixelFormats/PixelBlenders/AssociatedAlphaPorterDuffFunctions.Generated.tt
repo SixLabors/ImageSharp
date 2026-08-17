@@ -60,8 +60,8 @@ internal static partial class AssociatedAlphaPorterDuffFunctions
 }
 <#+
     private static readonly string[] Composers =
-    {
-        "Src",
+        [
+            "Src",
         "SrcAtop",
         "SrcOver",
         "SrcIn",
@@ -73,12 +73,12 @@ internal static partial class AssociatedAlphaPorterDuffFunctions
         "DestOut",
         "Clear",
         "Xor",
-        "Plus",
-    };
+        "Plus"
+            ];
 
     private static readonly string[] Blenders =
-    {
-        "Normal",
+        [
+            "Normal",
         "Multiply",
         "Add",
         "Subtract",
@@ -95,15 +95,15 @@ internal static partial class AssociatedAlphaPorterDuffFunctions
         "Hue",
         "Saturation",
         "Color",
-        "Luminosity",
-    };
+        "Luminosity"
+            ];
 
     private static readonly string[] VectorTypes =
-    {
-        "Vector4",
+        [
+            "Vector4",
         "Vector256<float>",
-        "Vector512<float>",
-    };
+        "Vector512<float>"
+            ];
 
     private static string GetComposition(string blender, string composer, string zero)
     {

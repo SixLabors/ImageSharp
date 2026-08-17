@@ -8,7 +8,7 @@ using System.Collections.Generic;
 
 public class ByteBuffer
 {
-    private readonly List<byte> bytes = new();
+    private readonly List<byte> bytes = [];
     private readonly bool isLittleEndian;
 
     public ByteBuffer(bool isLittleEndian)
@@ -33,6 +33,6 @@ public class ByteBuffer
 
     public byte[] ToArray()
     {
-        return this.bytes.ToArray();
+        return [.. this.bytes];
     }
 }

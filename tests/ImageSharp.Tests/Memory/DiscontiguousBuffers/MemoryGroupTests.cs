@@ -29,9 +29,9 @@ public partial class MemoryGroupTests : MemoryGroupTestsBase
     [Fact]
     public void Wrap()
     {
-        int[] data0 = { 1, 2, 3, 4 };
-        int[] data1 = { 5, 6, 7, 8 };
-        int[] data2 = { 9, 10 };
+        int[] data0 = [1, 2, 3, 4];
+        int[] data1 = [5, 6, 7, 8];
+        int[] data2 = [9, 10];
         using TestMemoryManager<int> mgr0 = new(data0);
         using TestMemoryManager<int> mgr1 = new(data1);
 
@@ -46,7 +46,7 @@ public partial class MemoryGroupTests : MemoryGroupTestsBase
         Assert.True(group[2].Span.SequenceEqual(data2));
 
         int cnt = 0;
-        int[][] allData = { data0, data1, data2 };
+        int[][] allData = [data0, data1, data2];
         foreach (Memory<int> memory in group)
         {
             Assert.True(memory.Span.SequenceEqual(allData[cnt]));
@@ -106,7 +106,7 @@ public partial class MemoryGroupTests : MemoryGroupTestsBase
         using MemoryGroup<int> group = this.CreateTestGroup(100, 10, true);
         group.Fill(42);
 
-        int[] expectedRow = Enumerable.Repeat(42, 10).ToArray();
+        int[] expectedRow = [.. Enumerable.Repeat(42, 10)];
         foreach (Memory<int> memory in group)
         {
             Assert.True(memory.Span.SequenceEqual(expectedRow));
@@ -119,7 +119,7 @@ public partial class MemoryGroupTests : MemoryGroupTestsBase
         using MemoryGroup<int> group = this.CreateTestGroup(100, 10, true);
         group.Fill(42);
 
-        int[] expectedRow = Enumerable.Repeat(42, 10).ToArray();
+        int[] expectedRow = [.. Enumerable.Repeat(42, 10)];
         IReadOnlyList<Memory<int>> groupAsList = group;
         foreach (Memory<int> memory in groupAsList)
         {
@@ -133,7 +133,7 @@ public partial class MemoryGroupTests : MemoryGroupTestsBase
         using MemoryGroup<int> group = this.CreateTestGroup(100, 10, true);
         group.Fill(42);
 
-        int[] expectedRow = Enumerable.Repeat(42, 10).ToArray();
+        int[] expectedRow = [.. Enumerable.Repeat(42, 10)];
         IEnumerable groupAsList = group;
         foreach (Memory<int> memory in groupAsList)
         {

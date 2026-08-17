@@ -116,7 +116,7 @@ public class IptcProfileTests
         using (Image<TPixel> image = provider.GetImage(JpegDecoder.Instance))
         {
             Assert.NotNull(image.Metadata.IptcProfile);
-            List<IptcValue> iptcValues = image.Metadata.IptcProfile.Values.ToList();
+            List<IptcValue> iptcValues = [.. image.Metadata.IptcProfile.Values];
             IptcProfileContainsExpectedValues(iptcValues);
         }
     }
@@ -130,7 +130,7 @@ public class IptcProfileTests
         {
             IptcProfile iptc = image.Frames.RootFrame.Metadata.IptcProfile;
             Assert.NotNull(iptc);
-            List<IptcValue> iptcValues = iptc.Values.ToList();
+            List<IptcValue> iptcValues = [.. iptc.Values];
             IptcProfileContainsExpectedValues(iptcValues);
         }
     }
@@ -182,7 +182,7 @@ public class IptcProfileTests
         IptcProfile profileFromBytes = new(profileBytes);
 
         // assert
-        List<IptcValue> iptcValues = profileFromBytes.Values.ToList();
+        List<IptcValue> iptcValues = [.. profileFromBytes.Values];
         ContainsIptcValue(iptcValues, IptcTag.CaptionWriter, expectedCaptionWriter);
         ContainsIptcValue(iptcValues, IptcTag.Caption, expectedCaption);
     }
@@ -203,10 +203,10 @@ public class IptcProfileTests
 
         // assert
         Assert.Equal(2, clone.Values.Count());
-        List<IptcValue> cloneValues = clone.Values.ToList();
+        List<IptcValue> cloneValues = [.. clone.Values];
         ContainsIptcValue(cloneValues, IptcTag.CaptionWriter, captionWriter);
         ContainsIptcValue(cloneValues, IptcTag.Caption, "changed");
-        ContainsIptcValue(profile.Values.ToList(), IptcTag.Caption, caption);
+        ContainsIptcValue([.. profile.Values], IptcTag.Caption, caption);
     }
 
     [Fact]
@@ -240,7 +240,7 @@ public class IptcProfileTests
         // assert
         IptcProfile actual = reloadedImage.Metadata.IptcProfile;
         Assert.NotNull(actual);
-        List<IptcValue> iptcValues = actual.Values.ToList();
+        List<IptcValue> iptcValues = [.. actual.Values];
         ContainsIptcValue(iptcValues, IptcTag.CaptionWriter, expectedCaptionWriter);
         ContainsIptcValue(iptcValues, IptcTag.Caption, expectedCaption);
     }
@@ -272,7 +272,7 @@ public class IptcProfileTests
         profile.SetValue(tag, expectedValue2, false);
 
         // assert
-        List<IptcValue> values = profile.Values.ToList();
+        List<IptcValue> values = [.. profile.Values];
         Assert.Equal(2, values.Count);
         ContainsIptcValue(values, tag, expectedValue1);
         ContainsIptcValue(values, tag, expectedValue2);
@@ -323,7 +323,7 @@ public class IptcProfileTests
         profile.SetValue(tag, expectedValue, false);
 
         // assert
-        List<IptcValue> values = profile.Values.ToList();
+        List<IptcValue> values = [.. profile.Values];
         Assert.Equal(1, values.Count);
         ContainsIptcValue(values, tag, expectedValue);
     }
@@ -357,7 +357,7 @@ public class IptcProfileTests
 
         // assert
         Assert.True(result, "removed result should be true");
-        ContainsIptcValue(profile.Values.ToList(), IptcTag.Byline, "test");
+        ContainsIptcValue([.. profile.Values], IptcTag.Byline, "test");
     }
 
     [Fact]

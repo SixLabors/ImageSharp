@@ -685,8 +685,8 @@ public class AssociatedAlphaPackedPixelConversionTests
 
         foreach (int length in lengths)
         {
-            Vector4[] nativeSource = source.AsSpan(0, length).ToArray();
-            Vector4[] scaledSource = source.AsSpan(0, length).ToArray();
+            Vector4[] nativeSource = [.. source.AsSpan(0, length)];
+            Vector4[] scaledSource = [.. source.AsSpan(0, length)];
             TPixel[] expectedNative = new TPixel[length];
             TPixel[] expectedScaled = new TPixel[length];
             TPixel[] actualNative = new TPixel[length];

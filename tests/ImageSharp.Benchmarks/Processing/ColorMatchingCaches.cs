@@ -146,7 +146,7 @@ public class ColorMatchingCaches
             // RGBA space without clustering into a gradient. That keeps the benchmark from
             // accidentally favoring any cache because the palette itself is too regular.
             uint value = unchecked((uint)(i + 1) * 2654435761U);
-            result[i] = new(
+            result[i] = new Rgba32(
                 (byte)value,
                 (byte)(value >> 8),
                 (byte)(value >> 16),
@@ -166,7 +166,7 @@ public class ColorMatchingCaches
         for (int i = 0; i < result.Length; i++)
         {
             Rgba32 source = palette[(i * 17) % palette.Length];
-            result[i] = new(
+            result[i] = new Rgba32(
                 (byte)(source.R + ((i * 3) & 0x07)),
                 (byte)(source.G + ((i * 5) & 0x07)),
                 (byte)(source.B + ((i * 7) & 0x07)),
@@ -200,7 +200,7 @@ public class ColorMatchingCaches
             int x = i & 511;
             int y = i >> 9;
 
-            result[i] = new(
+            result[i] = new Rgba32(
                 (byte)((x * 17) + (y * 13)),
                 (byte)((x * 29) + (y * 7)),
                 (byte)((x * 11) + (y * 23)),

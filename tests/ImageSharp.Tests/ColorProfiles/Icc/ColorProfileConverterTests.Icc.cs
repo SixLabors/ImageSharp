@@ -189,7 +189,7 @@ public class ColorProfileConverterTests(ITestOutputHelper testOutputHelper)
         {
             case IccColorSpaceType.Cmyk:
             {
-                Span<Cmyk> inputSpan = inputs.Select(x => new Cmyk(new Vector4(x))).ToArray();
+                Span<Cmyk> inputSpan = [.. inputs.Select(x => new Cmyk(new Vector4(x)))];
 
                 switch (targetDataSpace)
                 {
@@ -214,7 +214,7 @@ public class ColorProfileConverterTests(ITestOutputHelper testOutputHelper)
 
             case IccColorSpaceType.Rgb:
             {
-                Span<Rgb> inputSpan = inputs.Select(x => new Rgb(new Vector3(x))).ToArray();
+                Span<Rgb> inputSpan = [.. inputs.Select(x => new Rgb(new Vector3(x)))];
 
                 switch (targetDataSpace)
                 {

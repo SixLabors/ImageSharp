@@ -45,10 +45,10 @@ public static class TestFontUtilities
             "../../../../TestFonts/"
         ];
 
-        directories = directories.SelectMany(x => new[]
-                                 {
-                                     Path.GetFullPath(x)
-                                 }).ToList();
+        directories =
+        [
+            .. directories.SelectMany(x => new[] { Path.GetFullPath(x) })
+        ];
 
         AddFormatsDirectoryFromTestAssemblyPath(directories);
 

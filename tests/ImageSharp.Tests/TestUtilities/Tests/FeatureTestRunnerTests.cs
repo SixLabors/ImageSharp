@@ -24,7 +24,7 @@ public class FeatureTestRunnerTests
     public void ToFeatureCollectionReturnsExpectedResult(HwIntrinsics expectedIntrinsics, string[] expectedValues)
     {
         Dictionary<HwIntrinsics, string> features = expectedIntrinsics.ToFeatureKeyValueCollection();
-        HwIntrinsics[] keys = features.Keys.ToArray();
+        HwIntrinsics[] keys = [.. features.Keys];
 
         HwIntrinsics actualIntrinsics = keys[0];
         for (int i = 1; i < keys.Length; i++)

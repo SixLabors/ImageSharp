@@ -374,7 +374,7 @@ public class ExifProfileTests
 
             Image<Rgba32> image = new(100, 100);
             ExifProfile expectedProfile = CreateExifProfile();
-            List<ExifTag> expectedProfileTags = expectedProfile.Values.Select(x => x.Tag).ToList();
+            List<ExifTag> expectedProfileTags = [.. expectedProfile.Values.Select(x => x.Tag)];
             expectedProfile.SetValue(tag, junk.ToString());
             image.Metadata.ExifProfile = expectedProfile;
 
@@ -470,9 +470,9 @@ public class ExifProfileTests
     public void ProfileToByteArray()
     {
         // Arrange
-        byte[] exifBytesWithoutExifCode = ExifConstants.LittleEndianByteOrderMarker.ToArray();
+        byte[] exifBytesWithoutExifCode = [.. ExifConstants.LittleEndianByteOrderMarker];
         ExifProfile expectedProfile = CreateExifProfile();
-        List<ExifTag> expectedProfileTags = expectedProfile.Values.Select(x => x.Tag).ToList();
+        List<ExifTag> expectedProfileTags = [.. expectedProfile.Values.Select(x => x.Tag)];
 
         // Act
         byte[] actualBytes = expectedProfile.ToByteArray();

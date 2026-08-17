@@ -39,7 +39,7 @@ public class ExrDecoderSecurityTests
         // Width = 1073741823 - (-1073741825) + 1 = 2^31 + 1 → wraps to -2147483647
         byte[] data = BuildMinimalExr(xMin: -1073741825, yMin: 0, xMax: 1073741823, yMax: 0);
 
-        using var stream = new MemoryStream(data);
+        using MemoryStream stream = new(data);
         Assert.Throws<InvalidImageContentException>(
             () => ExrDecoder.Instance.Decode<Rgba32>(DecoderOptions.Default, stream));
     }
@@ -74,7 +74,7 @@ public class ExrDecoderSecurityTests
             xMin: 0, yMin: 0, xMax: 1, yMax: 1,
             rowOffsetTableAppend: invalidOffsets);
 
-        using var stream = new MemoryStream(data);
+        using MemoryStream stream = new(data);
         Assert.Throws<InvalidImageContentException>(
             () => ExrDecoder.Instance.Decode<Rgba32>(DecoderOptions.Default, stream));
     }
@@ -90,7 +90,7 @@ public class ExrDecoderSecurityTests
             xMin: 0, yMin: 0, xMax: 1, yMax: 1,
             rowOffsetTableAppend: headerOffsets);
 
-        using var stream = new MemoryStream(data);
+        using MemoryStream stream = new(data);
         Assert.Throws<InvalidImageContentException>(
             () => ExrDecoder.Instance.Decode<Rgba32>(DecoderOptions.Default, stream));
     }
@@ -105,7 +105,7 @@ public class ExrDecoderSecurityTests
         // Point the first row offset at the second row offset entry.
         BinaryPrimitives.WriteUInt64LittleEndian(data.AsSpan(data.Length - 16), (ulong)(data.Length - 8));
 
-        using var stream = new MemoryStream(data);
+        using MemoryStream stream = new(data);
         Assert.Throws<InvalidImageContentException>(
             () => ExrDecoder.Instance.Decode<Rgba32>(DecoderOptions.Default, stream));
     }
@@ -128,7 +128,7 @@ public class ExrDecoderSecurityTests
         // int-sized row staging or block buffers.
         byte[] data = BuildMinimalRgbaExr(xMin: 0, yMin: 0, xMax: 536870911, yMax: 0);
 
-        using var stream = new MemoryStream(data);
+        using MemoryStream stream = new(data);
         Assert.Throws<InvalidImageContentException>(
             () => ExrDecoder.Instance.Decode<Rgba32>(DecoderOptions.Default, stream));
     }
@@ -140,7 +140,7 @@ public class ExrDecoderSecurityTests
         // still stages four color planes and must reject widths that overflow width × 4.
         byte[] data = BuildMinimalExr(xMin: 0, yMin: 0, xMax: int.MaxValue / 4, yMax: 0);
 
-        using var stream = new MemoryStream(data);
+        using MemoryStream stream = new(data);
         Assert.Throws<InvalidImageContentException>(
             () => ExrDecoder.Instance.Decode<Rgba32>(DecoderOptions.Default, stream));
     }
@@ -152,7 +152,7 @@ public class ExrDecoderSecurityTests
         // validated before scanline decoding reads from the table.
         byte[] data = BuildMinimalExr(xMin: 0, yMin: 0, xMax: 1, yMax: 1);
 
-        using var stream = new MemoryStream(data);
+        using MemoryStream stream = new(data);
         Assert.Throws<InvalidImageContentException>(
             () => ExrDecoder.Instance.Identify(DecoderOptions.Default, stream));
     }
@@ -223,8 +223,8 @@ public class ExrDecoderSecurityTests
         byte[] channelData,
         byte[] rowOffsetTableAppend = null)
     {
-        using var ms = new MemoryStream();
-        using var bw = new BinaryWriter(ms, System.Text.Encoding.ASCII, leaveOpen: true);
+        using MemoryStream ms = new();
+        using BinaryWriter bw = new(ms, System.Text.Encoding.ASCII, leaveOpen: true);
 
         // Magic (0x01312F76 LE) + version 2, scanline (flags = 0x00)
         bw.Write(new byte[] { 0x76, 0x2F, 0x31, 0x01, 0x02, 0x00, 0x00, 0x00 });

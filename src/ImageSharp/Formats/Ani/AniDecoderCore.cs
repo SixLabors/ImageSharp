@@ -66,7 +66,7 @@ internal sealed class AniDecoderCore : ImageDecoderCore, IDisposable
                 cancellationToken.ThrowIfCancellationRequested();
 
                 Image<TPixel> resource = DecodeFrame<TPixel>(format, frameOptions, frameStream, cancellationToken);
-                this.Dimensions = new(Math.Max(this.Dimensions.Width, resource.Width), Math.Max(this.Dimensions.Height, resource.Height));
+                this.Dimensions = new Size(Math.Max(this.Dimensions.Width, resource.Width), Math.Max(this.Dimensions.Height, resource.Height));
 
                 return resource;
             });
@@ -165,7 +165,7 @@ internal sealed class AniDecoderCore : ImageDecoderCore, IDisposable
             cancellationToken.ThrowIfCancellationRequested();
 
             ImageInfo info = IdentifyFrame(format, frameOptions, frameStream, cancellationToken);
-            this.Dimensions = new(Math.Max(this.Dimensions.Width, info.Width), Math.Max(this.Dimensions.Height, info.Height));
+            this.Dimensions = new Size(Math.Max(this.Dimensions.Width, info.Width), Math.Max(this.Dimensions.Height, info.Height));
 
             return info;
         });

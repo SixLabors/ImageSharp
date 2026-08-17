@@ -146,14 +146,14 @@ public partial class ImageTests
         {
             Rgba32[] source =
             [
-                new Rgba32(1, 1, 1, 255),
-                new Rgba32(2, 2, 2, 255),
-                new Rgba32(3, 3, 3, 255),
-                new Rgba32(90, 90, 90, 255),
-                new Rgba32(4, 4, 4, 255),
-                new Rgba32(5, 5, 5, 255),
-                new Rgba32(6, 6, 6, 255),
-                new Rgba32(91, 91, 91, 255)
+                new(1, 1, 1, 255),
+                new(2, 2, 2, 255),
+                new(3, 3, 3, 255),
+                new(90, 90, 90, 255),
+                new(4, 4, 4, 255),
+                new(5, 5, 5, 255),
+                new(6, 6, 6, 255),
+                new(91, 91, 91, 255)
             ];
 
             using Image<Rgba32> image = Image.WrapMemory(source.AsMemory(), width: 3, height: 2, rowStride: 4);
@@ -171,14 +171,14 @@ public partial class ImageTests
         {
             Rgba32[] source =
             [
-                new Rgba32(1, 1, 1, 255),
-                new Rgba32(2, 2, 2, 255),
-                new Rgba32(3, 3, 3, 255),
-                new Rgba32(90, 90, 90, 255),
-                new Rgba32(4, 4, 4, 255),
-                new Rgba32(5, 5, 5, 255),
-                new Rgba32(6, 6, 6, 255),
-                new Rgba32(91, 91, 91, 255)
+                new(1, 1, 1, 255),
+                new(2, 2, 2, 255),
+                new(3, 3, 3, 255),
+                new(90, 90, 90, 255),
+                new(4, 4, 4, 255),
+                new(5, 5, 5, 255),
+                new(6, 6, 6, 255),
+                new(91, 91, 91, 255)
             ];
 
             using Image<Rgba32> image = Image.WrapMemory(source.AsMemory(), width: 3, height: 2, rowStride: 4);

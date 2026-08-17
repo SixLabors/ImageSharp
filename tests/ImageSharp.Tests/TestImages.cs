@@ -409,7 +409,7 @@ public static class TestImages
             }
         }
 
-        public static readonly string[] All = Baseline.All.Concat(Progressive.All).ToArray();
+        public static readonly string[] All = [.. Baseline.All, .. Progressive.All];
 
         public static class BenchmarkSuite
         {

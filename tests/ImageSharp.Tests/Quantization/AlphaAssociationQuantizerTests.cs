@@ -68,8 +68,8 @@ public class AlphaAssociationQuantizerTests
     {
         Rgba32[] source =
         [
-            new Rgba32(255, 255, 255, below),
-            new Rgba32(255, 255, 255, retained)
+            new(255, 255, 255, below),
+            new(255, 255, 255, retained)
         ];
 
         QuantizerOptions options = new()

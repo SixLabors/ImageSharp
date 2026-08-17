@@ -171,10 +171,10 @@ public partial class SimdUtilsTests
         int count,
         Action<Memory<byte>, Memory<float>> convert)
     {
-        byte[] source = Enumerable.Range(0, count).Select(i => (byte)i).ToArray();
+        byte[] source = [.. Enumerable.Range(0, count).Select(i => (byte)i)];
         float[] result = new float[count];
         // A double-precision oracle keeps this expectation independent from either production implementation.
-        float[] expected = source.Select(b => (float)(b / (double)byte.MaxValue)).ToArray();
+        float[] expected = [.. source.Select(b => (float)(b / (double)byte.MaxValue))];
 
         convert(source, result);
 
@@ -222,7 +222,7 @@ public partial class SimdUtilsTests
     [Fact]
     public void BulkConvertNormalizedFloatToByteRoundsMidpointsAwayFromZero()
     {
-        float[] midpointValues = Enumerable.Range(0, byte.MaxValue).Select(x => (x + 0.5F) / byte.MaxValue).ToArray();
+        float[] midpointValues = [.. Enumerable.Range(0, byte.MaxValue).Select(x => (x + 0.5F) / byte.MaxValue)];
         float[] source = new float[1024];
         byte[] expected = new byte[source.Length];
         byte[] actual = new byte[source.Length];
@@ -280,9 +280,9 @@ public partial class SimdUtilsTests
             return;
         }
 
-        byte[] r = Enumerable.Range(0, 32).Select(x => (byte)x).ToArray();
-        byte[] g = Enumerable.Range(100, 32).Select(x => (byte)x).ToArray();
-        byte[] b = Enumerable.Range(200, 32).Select(x => (byte)x).ToArray();
+        byte[] r = [.. Enumerable.Range(0, 32).Select(x => (byte)x)];
+        byte[] g = [.. Enumerable.Range(100, 32).Select(x => (byte)x)];
+        byte[] b = [.. Enumerable.Range(200, 32).Select(x => (byte)x)];
         const int padding = 4;
         Rgb24[] d = new Rgb24[32 + padding];
 
@@ -314,9 +314,9 @@ public partial class SimdUtilsTests
             return;
         }
 
-        byte[] r = Enumerable.Range(0, 32).Select(x => (byte)x).ToArray();
-        byte[] g = Enumerable.Range(100, 32).Select(x => (byte)x).ToArray();
-        byte[] b = Enumerable.Range(200, 32).Select(x => (byte)x).ToArray();
+        byte[] r = [.. Enumerable.Range(0, 32).Select(x => (byte)x)];
+        byte[] g = [.. Enumerable.Range(100, 32).Select(x => (byte)x)];
+        byte[] b = [.. Enumerable.Range(200, 32).Select(x => (byte)x)];
 
         Rgba32[] d = new Rgba32[32];
 
@@ -369,7 +369,7 @@ public partial class SimdUtilsTests
     {
         seed = seed > 0 ? seed : count;
         float[] source = new Random(seed).GenerateRandomFloatArray(count, -0.2f, 1.2f);
-        byte[] expected = source.Select(NormalizedFloatToByte).ToArray();
+        byte[] expected = [.. source.Select(NormalizedFloatToByte)];
         byte[] actual = new byte[count];
 
         convert(source, actual);

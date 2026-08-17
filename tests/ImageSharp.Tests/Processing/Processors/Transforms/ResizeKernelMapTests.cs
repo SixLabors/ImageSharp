@@ -119,7 +119,7 @@ public partial class ResizeKernelMapTests
         this.Output.WriteLine($"Actual KernelMap:\n{PrintKernelMap(kernelMap)}\n");
 #endif
 
-        ApproximateFloatComparer comparer = new ApproximateFloatComparer(1e-6f);
+        ApproximateFloatComparer comparer = new(1e-6f);
         for (int i = 0; i < kernelMap.DestinationLength; i++)
         {
             ResizeKernel kernel = kernelMap.GetKernel((uint)i);

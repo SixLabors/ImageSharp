@@ -1,0 +1,86 @@
+<#@ template language="C#" #>
+<#@ import namespace="System" #>
+<#@ import namespace="System.IO" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ output extension=".Generated.cs" #>
+// Copyright (c) Six Labors.
+// Licensed under the Six Labors Split License.
+
+using System.Buffers.Binary;
+
+namespace SixLabors.ImageSharp.Formats.Jxl.IO;
+
+<#
+    List<Type> types = [
+        typeof(short),
+        typeof(ushort),
+        typeof(int),
+        typeof(uint),
+        typeof(long),
+        typeof(ulong)
+    ];
+#>
+
+/// <summary>
+/// Reads primitives from streams with correct endianness.
+/// </summary>
+// TODO: move this class into the IO or Common folder?
+internal static class BinaryUtils
+{
+<#
+    foreach (Type type in types)
+    {
+#>
+    /// <summary>
+    /// Reads a <see cref="<#= type.Name #>" />
+    /// from the specified stream in little-endian order.
+    /// </summary>
+    /// <param name="stream">The stream where the <see cref="<#= type.Name #>" /> will be read from.</param>
+    /// <returns><see cref="<#= type.Name #>" /></returns>
+    public static <#= type.Name #> Read<#= type.Name#>LittleEndian(Stream stream)
+    {
+        Span<byte> data = stackalloc byte[sizeof(<#= type.Name #>)];
+        stream.ReadExactly(data);
+        return BinaryPrimitives.Read<#= type.Name #>LittleEndian(data);
+    }
+
+    /// <summary>
+    /// Reads a <see cref="<#= type.Name #>" />
+    /// from the specified stream in big-endian order.
+    /// </summary>
+    /// <param name="stream">The stream where the <see cref="<#= type.Name #>" /> will be read from.</param>
+    /// <returns><see cref="<#= type.Name #>" /></returns>
+    public static <#= type.Name #> Read<#= type.Name#>BigEndian(Stream stream)
+    {
+        Span<byte> data = stackalloc byte[sizeof(<#= type.Name #>)];
+        stream.ReadExactly(data);
+        return BinaryPrimitives.Read<#= type.Name #>BigEndian(data);
+    }
+
+    /// <summary>
+    /// Writes a <see cref="<#= type.Name #>" />
+    /// into the specified stream in little-endian order.
+    /// </summary>
+    /// <param name="stream">The stream where the <see cref="<#= type.Name #>" /> will be written to.</param>
+    /// <param name="value">Value which will be written to the stream.</param>
+    public static void Write<#= type.Name #>LittleEndian(Stream stream, <#= type.Name #> value)
+    {
+        Span<byte> data = stackalloc byte[sizeof(<#= type.Name #>)];
+        BinaryPrimitives.Write<#= type.Name #>LittleEndian(data, value);
+        stream.Write(data);
+    }
+
+    /// <summary>
+    /// Writes a <see cref="<#= type.Name #>" />
+    /// into the specified stream in big-endian order.
+    /// </summary>
+    /// <param name="stream">The stream where the <see cref="<#= type.Name #>" /> will be written to.</param>
+    /// <param name="value">Value which will be written to the stream.</param>
+    public static void Write<#= type.Name #>BigEndian(Stream stream, <#= type.Name #> value)
+    {
+        Span<byte> data = stackalloc byte[sizeof(<#= type.Name #>)];
+        BinaryPrimitives.Write<#= type.Name #>BigEndian(data, value);
+        stream.Write(data);
+    }
+<# } #>
+}

@@ -5,7 +5,6 @@ using System.Buffers.Binary;
 
 namespace SixLabors.ImageSharp.Formats.Jxl.IO;
 
-
 /// <summary>
 /// Reads primitives from streams with correct endianness.
 /// </summary>

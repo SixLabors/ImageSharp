@@ -20,7 +20,6 @@ namespace SixLabors.ImageSharp.Formats.Jxl.IO;
         typeof(ulong)
     ];
 #>
-
 /// <summary>
 /// Reads primitives from streams with correct endianness.
 /// </summary>

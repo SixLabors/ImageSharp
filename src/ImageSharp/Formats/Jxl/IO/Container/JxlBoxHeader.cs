@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Buffers.Binary;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 
@@ -13,6 +14,18 @@ namespace SixLabors.ImageSharp.Formats.Jxl.IO.Container;
 [StructLayout(LayoutKind.Sequential, Size = 16)]
 internal struct JxlBoxHeader
 {
+    private static readonly Dictionary<uint, string> KnownTypeCodes = new()
+    {
+        { 0x6A786C20, "jxl " },
+        { 0x6A786C70, "jxlp" },
+        { 0x6A786C63, "jxlc" },
+        { 0x66747970, "ftyp" },
+        { 0x6A627264, "jbrd" },
+        { 0x45786966, "Exif" },
+        { 0x786D6C20, "xml " },
+        { 0x6A756D62, "jumb" }
+    };
+
     /// <summary>
     /// Box size in bytes.
     /// </summary>
@@ -53,6 +66,7 @@ internal struct JxlBoxHeader
     /// </summary>
     /// <param name="typeString">Input type string to convert</param>
     /// <returns>Unsigned integer representation of the type string</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static uint TypeFromString(string typeString)
     {
         if (typeString.Length != 4)
@@ -60,10 +74,10 @@ internal struct JxlBoxHeader
             throw new ArgumentException("Box type must be exactly 4 characters", nameof(typeString));
         }
 
-        Span<byte> buffer = stackalloc byte[4];
-        _ = Encoding.ASCII.GetBytes(typeString, buffer);
-
-        return BinaryPrimitives.ReadUInt32BigEndian(buffer);
+        return ((uint)typeString[0] << 24) |
+           ((uint)typeString[1] << 16) |
+           ((uint)typeString[2] << 8) |
+           typeString[3];
     }
 
     /// <summary>
@@ -73,6 +87,12 @@ internal struct JxlBoxHeader
     /// <returns>The string representing the type code.</returns>
     public static string TypeToString(uint typeCode)
     {
+        if (KnownTypeCodes.TryGetValue(typeCode, out string? str))
+        {
+            return str;
+        }
+
+        // The box type is not known
         Span<byte> buffer = stackalloc byte[4];
         BinaryPrimitives.WriteUInt32BigEndian(buffer, typeCode);
 

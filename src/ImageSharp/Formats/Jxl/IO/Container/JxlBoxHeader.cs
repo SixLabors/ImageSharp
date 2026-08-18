@@ -29,16 +29,23 @@ internal struct JxlBoxHeader
     public bool SizeExtendsTillEnd;
 
     /// <summary>
+    /// True if the size is 64-bit.
+    /// </summary>
+    public bool ContainsLargeSize;
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="JxlBoxHeader"/> struct.
     /// </summary>
     /// <param name="size">The size of the box.</param>
     /// <param name="type">The type of the box.</param>
     /// <param name="sizeExtendsTillEnd">Does the box size extend till the end of the file?</param>
-    public JxlBoxHeader(ulong size, uint type, bool sizeExtendsTillEnd)
+    /// <param name="containsLargeSize">Is there a 64-bit size field?</param>
+    public JxlBoxHeader(ulong size, uint type, bool sizeExtendsTillEnd, bool containsLargeSize)
     {
         this.Size = size;
         this.Type = type;
         this.SizeExtendsTillEnd = sizeExtendsTillEnd;
+        this.ContainsLargeSize = containsLargeSize;
     }
 
     /// <summary>
@@ -103,11 +110,11 @@ internal struct JxlBoxHeader
                 throw new InvalidOperationException("Large size cannot have another large size or extend till the end of the file");
             }
 
-            return new JxlBoxHeader(size, type, sizeExtendsTillEnd: false);
+            return new JxlBoxHeader(size, type, sizeExtendsTillEnd: false, containsLargeSize: true);
         }
         else
         {
-            return new JxlBoxHeader(size, type, sizeExtendsTillEnd: size == 0);
+            return new JxlBoxHeader(size, type, sizeExtendsTillEnd: size == 0, containsLargeSize: false);
         }
     }
 

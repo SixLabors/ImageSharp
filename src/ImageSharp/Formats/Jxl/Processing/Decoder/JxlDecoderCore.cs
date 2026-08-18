@@ -7,6 +7,7 @@ using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Formats.Jxl.Fields;
 using SixLabors.ImageSharp.Formats.Jxl.IO;
+using SixLabors.ImageSharp.Formats.Jxl.IO.Container;
 using SixLabors.ImageSharp.Formats.Jxl.IO.FrameHeader;
 using SixLabors.ImageSharp.Formats.Jxl.IO.Metadata;
 using SixLabors.ImageSharp.IO;
@@ -1539,36 +1540,29 @@ internal sealed class JxlDecoderCore : ImageDecoderCore, IDisposable
     /// <returns>Status of the parsing.</returns>
     /// <exception cref="InvalidOperationException">Thrown if the data is incorrect.</exception>
     /// <exception cref="InvalidDataException">Thrown if the data is malformed.</exception>
-    public bool ReadBasicInfo()
+    public bool ReadBasicInfo(Stream stream)
     {
         if (!this.gotCodestreamSignature)
         {
-            Span<byte> span = this.GetCodeStreamSpan();
+            Span<byte> fileSignature = stackalloc byte[2];
+            stream.ReadExactly(fileSignature);
 
-            if (span.Length < 2)
-            {
-                return this.TryRequestMoreInput();
-            }
-
-            if (span[0] != 0xFF || span[1] != CodestreamMarker)
+            if (fileSignature[0] != 0xFF || fileSignature[1] != CodestreamMarker)
             {
                 throw new InvalidOperationException("The file signature is invalid");
             }
 
             this.gotCodestreamSignature = true;
-            this.AdvanceCodeStream(2);
         }
 
-        Span<byte> sp = this.GetCodeStreamSpan();
+        JxlBitReader bitReader = new(stream);
 
-        JxlBitReader bitReader = new(sp);
-
-        if (!this.ReadBundle(sp, bitReader, this.metadata!.Size!))
+        if (!this.ReadBundle(stream, bitReader, this.metadata!.Size!))
         {
             throw new InvalidDataException("Could not parse the size header");
         }
 
-        if (!this.ReadBundle(sp, bitReader, this.metadata!.ImageMetadata!))
+        if (!this.ReadBundle(stream, bitReader, this.metadata!.ImageMetadata!))
         {
             throw new InvalidDataException("Could not parse the image metadata");
         }
@@ -1924,8 +1918,7 @@ internal sealed class JxlDecoderCore : ImageDecoderCore, IDisposable
 
                 if (this.skippingFrame)
                 {
-                    bool referenceable = this.frameHeader.CanBeReferenced
-                                    || this.frameHeader.FrameType == JxlFrameType.DcFrame;
+                    bool referenceable = this.frameHeader.CanBeReferenced || this.frameHeader.FrameType == JxlFrameType.DcFrame;
 
                     if (internalFrameIndex < this.frameRequired.Count && this.frameRequired[internalFrameIndex] == 0)
                     {
@@ -2182,63 +2175,18 @@ internal sealed class JxlDecoderCore : ImageDecoderCore, IDisposable
     /// Parses the start of a box.
     /// </summary>
     /// <param name="input">Input bytes to parse from.</param>
-    /// <param name="size">Size of remaining input bytes.</param>
-    /// <param name="pos">Offset of input bytes.</param>
-    /// <param name="filePos">File offset.</param>
-    /// <param name="type">Type of the parsed box.</param>
+    /// <param name="type">Type of the box</param>
     /// <param name="boxSize">Output box size.</param>
     /// <param name="headerSize">Output header size.</param>
-    /// <returns>
-    /// True if the parsing went fine. False if the parsing requests
-    /// more input bytes.
-    /// </returns>
     /// <exception cref="InvalidOperationException">
     /// Thrown when data is invalid.
     /// </exception>
-    private static bool ParseBoxHeader(Span<byte> input, long size, long pos, long filePos, JxlBoxType type, out long boxSize, out long headerSize)
+    private static void ParseBoxHeader(Stream input, out JxlBoxType type, out long boxSize, out long headerSize)
     {
-        boxSize = 0;
-        headerSize = 0;
-
-        if (IsOutOfBounds((int)pos, 8, (int)size))
-        {
-            headerSize = 8;
-            return false;
-        }
-
-        long boxStart = pos;
-        boxSize = BinaryPrimitives.ReadInt32BigEndian(input[(int)pos..]);
-        pos += 4;
-        type = (JxlBoxType)BitConverter.ToInt32(input.Slice((int)pos, 4));
-        pos += 4;
-
-        if (boxSize == 1)
-        {
-            headerSize = 16;
-
-            if (IsOutOfBounds((int)pos, 8, (int)size))
-            {
-                return false;
-            }
-
-            long boxSize64 = BinaryPrimitives.ReadInt64BigEndian(input[(int)pos..]);
-            pos += 8;
-            boxSize = boxSize64;
-        }
-
-        headerSize = pos - boxStart;
-
-        if (boxSize > 0 && boxSize < headerSize)
-        {
-            throw new InvalidOperationException("Invalid box size");
-        }
-
-        if (filePos + boxSize < filePos)
-        {
-            throw new InvalidOperationException("Box size overflow");
-        }
-
-        return true;
+        JxlBoxHeader header = JxlBoxHeader.ReadHeader(input);
+        boxSize = (long)header.Size;
+        headerSize = (header.ContainsLargeSize ? 12 : 4) + 4;
+        type = (JxlBoxType)header.Type;
     }
 
     /// <summary>
@@ -2246,14 +2194,14 @@ internal sealed class JxlDecoderCore : ImageDecoderCore, IDisposable
     /// </summary>
     /// <returns>Status of processing.</returns>
     /// <exception cref="InvalidOperationException">Thrown when data is invalid.</exception>
-    public int ProcessBoxes()
+    public int ProcessBoxes(Stream stream)
     {
         // We have a box handling loop here.
         while (true)
         {
             if (this.boxStage != JxlBoxStage.Header)
             {
-                this.AdvanceInput(this.headerSize);
+                // this.AdvanceInput(this.headerSize);
                 this.headerSize = 0;
 
                 if ((this.eventsWanted & Box) != 0 && this.boxEvent && !this.boxOutBufferSetCurrentBox)
@@ -2582,20 +2530,18 @@ internal sealed class JxlDecoderCore : ImageDecoderCore, IDisposable
                     return NeedMoreInput;
                 }
 
-                Span<byte> nextSpan = this.nextInput!.Memory.Span;
-                if (!(nextSpan[0] == 'j' && nextSpan[1] == 'x' && nextSpan[2] == 'l' && nextSpan[3] == ' '))
+                if (BinaryUtils.ReadInt32BigEndian(stream) != 0x6A786C20) // Bytes "jxl " in Big Endian
                 {
                     throw new InvalidOperationException("File type box major brand must be \"jxl \"");
                 }
 
-                uint version = BinaryPrimitives.ReadUInt32BigEndian(nextSpan[4..]);
+                uint version = BinaryUtils.ReadUInt32BigEndian(stream);
                 if (version > 1)
                 {
                     throw new InvalidOperationException("Unknown JXL file format version " + version + ", known versions are 0 and 1");
                 }
 
                 this.jxlFileFormatVersion = (int)version;
-                this.AdvanceInput(8);
                 this.boxStage = JxlBoxStage.Skip;
             }
             else if (this.boxStage == JxlBoxStage.PartialCodeStream)
@@ -2615,7 +2561,7 @@ internal sealed class JxlDecoderCore : ImageDecoderCore, IDisposable
                     throw new InvalidOperationException("jxlp box is too small to contain an index");
                 }
 
-                uint jxlpIndex = BinaryPrimitives.ReadUInt32BigEndian(this.nextInput!.Memory.Span);
+                uint jxlpIndex = BinaryUtils.ReadUInt32BigEndian(stream);
                 uint counter = jxlpIndex & 0x7FFFFFFFu;
                 bool isLast = (jxlpIndex & 0x80000000u) != 0;
 
@@ -2623,8 +2569,6 @@ internal sealed class JxlDecoderCore : ImageDecoderCore, IDisposable
                 {
                     throw new InvalidOperationException("jxlp box index " + counter + " is a duplicate (already processed)");
                 }
-
-                this.AdvanceInput(4);
 
                 if (counter == this.nextJxlpIndex)
                 {
@@ -2720,9 +2664,11 @@ internal sealed class JxlDecoderCore : ImageDecoderCore, IDisposable
                     return Error;
                 }
 
-                entry!.CodestreamBytes.Write(this.nextInput!.Memory.Span[..(int)remaining]);
+                // Now we want to write the 'remaining' number of bytes
+                // from input into the codestream.
+                using IMemoryOwner<byte> buffer = this.Options.Configuration.MemoryAllocator.Allocate<byte>((int)remaining);
+                entry!.CodestreamBytes.Write(buffer.Memory.Span);
                 this.jxlpOooBufferTotal += remaining;
-                this.AdvanceInput(remaining);
 
                 bool boxDone = !this.boxContentsUnbounded && this.filePosition >= this.boxContentsEnd;
 

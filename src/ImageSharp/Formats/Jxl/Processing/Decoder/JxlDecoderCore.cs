@@ -2,7 +2,6 @@
 // Licensed under the Six Labors Split License.
 
 using System.Buffers;
-using System.Buffers.Binary;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Formats.Jxl.Fields;
@@ -733,8 +732,9 @@ internal sealed class JxlDecoderCore : ImageDecoderCore, IDisposable
     // where this.frameReferences = JxlFrameReference[].
     private sealed class JxlFrameReference(int reference, int savedAs)
     {
-        public int Reference = reference;
-        public int SavedAs = savedAs;
+        public int Reference { get; set; } = reference;
+
+        public int SavedAs { get; set; } = savedAs;
     }
 
     /// <summary>
@@ -812,27 +812,24 @@ internal sealed class JxlDecoderCore : ImageDecoderCore, IDisposable
         return containerHeaderSize + maxCodestreamBasicInfoSize;
     }
 
-    private static JxlSignature DetectSignature(ReadOnlySpan<byte> buffer, int length, ref int position)
+    private static JxlSignature DetectSignature(Stream buffer)
     {
-        if (position >= length)
+        int firstByte = buffer.ReadByte();
+        if (firstByte == -1)
         {
-            return JxlSignature.NotEnoughBytes;
+            throw new EndOfStreamException();
         }
 
-        buffer = buffer[position..];
-        length -= position;
-
-        // 0xFF 0x0A represents a codestream
-        if (length >= 1 && buffer[0] == 0xFF)
+        if (firstByte == 0xFF)
         {
-            if (length < 2)
+            int secondByte = buffer.ReadByte();
+            if (secondByte == -1)
             {
-                // We need at least two bytes for a valid codestream signature
-                return JxlSignature.NotEnoughBytes;
+                throw new EndOfStreamException();
             }
-            else if (buffer[1] == CodestreamMarker)
+
+            if (secondByte == CodestreamMarker)
             {
-                position += 2;
                 return JxlSignature.CodeStream;
             }
             else
@@ -842,15 +839,13 @@ internal sealed class JxlDecoderCore : ImageDecoderCore, IDisposable
         }
 
         // Container?
-        if (length >= 1 && buffer[0] == 0)
+        if (firstByte == 0)
         {
-            if (length < SignatureBox.Length)
+            Span<byte> signatureBox = stackalloc byte[JxlShared.SignatureBox.Length];
+            buffer.ReadExactly(signatureBox);
+
+            if (signatureBox.SequenceEqual(JxlShared.SignatureBox))
             {
-                return JxlSignature.NotEnoughBytes;
-            }
-            else if (buffer[SignatureBox.Length..].SequenceEqual(SignatureBox))
-            {
-                position += SignatureBox.Length;
                 return JxlSignature.Container;
             }
             else

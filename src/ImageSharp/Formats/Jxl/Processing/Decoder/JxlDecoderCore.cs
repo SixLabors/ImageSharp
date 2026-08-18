@@ -858,12 +858,6 @@ internal sealed class JxlDecoderCore : ImageDecoderCore, IDisposable
         return JxlSignature.Invalid;
     }
 
-    private static JxlSignature DetectSignature(ReadOnlySpan<byte> buffer, int length)
-    {
-        int position = 0;
-        return DetectSignature(buffer, length, ref position);
-    }
-
     private static int BitsPerChannel(JxlDataType dataType)
         => dataType switch
         {
@@ -1146,9 +1140,8 @@ internal sealed class JxlDecoderCore : ImageDecoderCore, IDisposable
                 return false;
             }
 
-            this.codestreamCopy.Write(this.nextInput!.Memory.Span[..(int)avail]);
-
-            this.AdvanceInput(avail);
+            using IMemoryOwner<byte> codestreamPending = this.Options.Configuration.MemoryAllocator.Allocate<byte>((int)avail);
+            this.codestreamCopy.Write(codestreamPending.Memory.Span);
         }
         else
         {
@@ -1170,7 +1163,7 @@ internal sealed class JxlDecoderCore : ImageDecoderCore, IDisposable
         {
             long avail = this.AvailableCodeStream();
             long skip = Math.Min(this.codestreamPos, avail);
-            this.AdvanceInput(skip);
+            this.Skip(skip);
             this.codestreamPos -= skip;
 
             if (this.codestreamPos > 0)
@@ -2235,7 +2228,8 @@ internal sealed class JxlDecoderCore : ImageDecoderCore, IDisposable
 
                 if (this.storeExif == 1 || this.storeXmp == 1)
                 {
-                    IMemoryOwner<byte> metadata = (this.storeExif == 1 ? this.exifMetadata : this.xmpMetadata) ?? throw new InvalidOperationException("Metadata is missing, but should be present");
+                    IMemoryOwner<byte> metadata = (this.storeExif == 1 ? this.exifMetadata : this.xmpMetadata)
+                        ?? throw new InvalidOperationException("Metadata is missing, but should be present");
 
                     // Boxes should not contain more than 64MiB data.
                     const long blockSizeLimit = 64L << 20;

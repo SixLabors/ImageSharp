@@ -4,7 +4,7 @@
 using System.Diagnostics;
 using System.Globalization;
 using Microsoft.DotNet.RemoteExecutor;
-using Xunit.Abstractions;
+using Xunit.Sdk;
 
 namespace SixLabors.ImageSharp.Tests.TestUtilities;
 

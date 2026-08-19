@@ -5,7 +5,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Microsoft.DotNet.RemoteExecutor;
 using SixLabors.ImageSharp.Memory.Internals;
-using Xunit.Abstractions;
+using XUnit;
 
 namespace SixLabors.ImageSharp.Tests.Memory.Allocators;
 

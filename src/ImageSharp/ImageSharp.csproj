@@ -23,8 +23,8 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <!--Bump to v4.0 prior to tagged release.-->
-    <MinVerMinimumMajorMinor>4.0</MinVerMinimumMajorMinor>
+    <!--Bump to v5.0 prior to tagged release.-->
+    <MinVerMinimumMajorMinor>5.0</MinVerMinimumMajorMinor>
   </PropertyGroup>
 
   <Choose>

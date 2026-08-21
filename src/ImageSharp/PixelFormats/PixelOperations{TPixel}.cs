@@ -412,7 +412,7 @@ public partial class PixelOperations<TPixel>
     }
 
     [MethodImpl(InliningOptions.ShortMethod)]
-    internal static void GuardUnpackIntoRgbPlanes(Span<float> redChannel, Span<float> greenChannel, Span<float> blueChannel, ReadOnlySpan<TPixel> source)
+    internal static void GuardUnpackIntoRgbPlanes(ReadOnlySpan<float> redChannel, Span<float> greenChannel, Span<float> blueChannel, ReadOnlySpan<TPixel> source)
     {
         Guard.IsTrue(greenChannel.Length == redChannel.Length, nameof(greenChannel), "Channels must be of same size!");
         Guard.IsTrue(blueChannel.Length == redChannel.Length, nameof(blueChannel), "Channels must be of same size!");

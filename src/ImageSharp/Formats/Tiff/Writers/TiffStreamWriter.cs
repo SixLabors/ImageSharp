@@ -1,4 +1,4 @@
-// Copyright (c) Six Labors.
+﻿// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 using System.Buffers.Binary;
@@ -103,7 +103,7 @@ internal sealed class TiffStreamWriter : IDisposable
     /// Writes an array of bytes to the current stream, padded to four-bytes.
     /// </summary>
     /// <param name="value">The bytes to write.</param>
-    public void WritePadded(Span<byte> value)
+    public void WritePadded(ReadOnlySpan<byte> value)
     {
         this.BaseStream.Write(value);
 

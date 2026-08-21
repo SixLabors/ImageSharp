@@ -1,4 +1,4 @@
-// Copyright (c) Six Labors.
+﻿// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 #nullable disable
 
@@ -148,7 +148,7 @@ internal sealed class T6BitCompressor : TiffCcittCompressor
     /// <returns>The index of the first pixel at or after <paramref name="startIndex"/>
     /// that does not match <paramref name="color"/>, or the length of <paramref name="row"/>,
     /// whichever comes first.</returns>
-    private static uint FindRunEnd(Span<byte> row, uint startIndex, byte? color = null)
+    private static uint FindRunEnd(ReadOnlySpan<byte> row, uint startIndex, byte? color = null)
     {
         if (startIndex >= row.Length)
         {

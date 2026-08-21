@@ -1,4 +1,4 @@
-// Copyright (c) Six Labors.
+﻿// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 using System.Buffers;
@@ -364,7 +364,7 @@ internal sealed class ExrEncoderCore
     /// <param name="blueBuffer">The blue channel buffer.</param>
     /// <param name="greenBuffer">The green channel buffer.</param>
     /// <param name="redBuffer">The red channel buffer.</param>
-    private static void WriteSingleRow(Span<byte> buffer, int width, Span<float> alphaBuffer, Span<float> blueBuffer, Span<float> greenBuffer, Span<float> redBuffer)
+    private static void WriteSingleRow(Span<byte> buffer, int width, ReadOnlySpan<float> alphaBuffer, ReadOnlySpan<float> blueBuffer, ReadOnlySpan<float> greenBuffer, ReadOnlySpan<float> redBuffer)
     {
         int offset = 0;
         for (int x = 0; x < width; x++)
@@ -401,7 +401,7 @@ internal sealed class ExrEncoderCore
     /// <param name="blueBuffer">The blue channel buffer.</param>
     /// <param name="greenBuffer">The green channel buffer.</param>
     /// <param name="redBuffer">The red channel buffer.</param>
-    private static void WriteHalfSingleRow(Span<byte> buffer, int width, Span<float> alphaBuffer, Span<float> blueBuffer, Span<float> greenBuffer, Span<float> redBuffer)
+    private static void WriteHalfSingleRow(Span<byte> buffer, int width, ReadOnlySpan<float> alphaBuffer, ReadOnlySpan<float> blueBuffer, ReadOnlySpan<float> greenBuffer, ReadOnlySpan<float> redBuffer)
     {
         int offset = 0;
         for (int x = 0; x < width; x++)
@@ -438,7 +438,7 @@ internal sealed class ExrEncoderCore
     /// <param name="blueBuffer">The blue channel buffer.</param>
     /// <param name="greenBuffer">The green channel buffer.</param>
     /// <param name="redBuffer">The red channel buffer.</param>
-    private static void WriteUnsignedIntRow(Span<byte> buffer, int width, Span<uint> alphaBuffer, Span<uint> blueBuffer, Span<uint> greenBuffer, Span<uint> redBuffer)
+    private static void WriteUnsignedIntRow(Span<byte> buffer, int width, ReadOnlySpan<uint> alphaBuffer, ReadOnlySpan<uint> blueBuffer, ReadOnlySpan<uint> greenBuffer, ReadOnlySpan<uint> redBuffer)
     {
         int offset = 0;
         for (int x = 0; x < width; x++)

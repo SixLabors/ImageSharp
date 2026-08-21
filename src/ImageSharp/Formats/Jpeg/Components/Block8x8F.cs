@@ -1,4 +1,4 @@
-// Copyright (c) Six Labors.
+﻿// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 using System.Numerics;
@@ -115,7 +115,7 @@ internal partial struct Block8x8F : IEquatable<Block8x8F>
     /// Load raw 32bit floating point data from source
     /// </summary>
     /// <param name="source">Source</param>
-    public unsafe void LoadFrom(Span<int> source)
+    public unsafe void LoadFrom(ReadOnlySpan<int> source)
     {
         fixed (Vector4* ptr = &this.V0L)
         {

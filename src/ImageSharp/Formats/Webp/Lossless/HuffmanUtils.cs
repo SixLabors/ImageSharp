@@ -159,7 +159,7 @@ internal static class HuffmanUtils
     /// <param name="histogramSize">The size of the histogram.</param>
     /// <param name="treeDepthLimit">The tree depth limit.</param>
     /// <param name="bitDepths">How many bits are used for the symbol.</param>
-    public static void GenerateOptimalTree(Span<HuffmanTree> tree, Span<uint> histogram, int histogramSize, int treeDepthLimit, byte[] bitDepths)
+    public static void GenerateOptimalTree(Span<HuffmanTree> tree, ReadOnlySpan<uint> histogram, int histogramSize, int treeDepthLimit, byte[] bitDepths)
     {
         uint countMin;
         int treeSizeOrig = 0;
@@ -445,7 +445,7 @@ internal static class HuffmanUtils
         return totalSize;
     }
 
-    private static int CodeRepeatedZeros(int repetitions, Span<HuffmanTreeToken> tokens)
+    private static int CodeRepeatedZeros(int repetitions, ReadOnlySpan<HuffmanTreeToken> tokens)
     {
         int pos = 0;
         while (repetitions >= 1)
@@ -487,7 +487,7 @@ internal static class HuffmanUtils
         return pos;
     }
 
-    private static int CodeRepeatedValues(int repetitions, Span<HuffmanTreeToken> tokens, int value, int prevValue)
+    private static int CodeRepeatedValues(int repetitions, ReadOnlySpan<HuffmanTreeToken> tokens, int value, int prevValue)
     {
         int pos = 0;
 
@@ -565,7 +565,7 @@ internal static class HuffmanUtils
         }
     }
 
-    private static void SetBitDepths(Span<HuffmanTree> tree, Span<HuffmanTree> pool, byte[] bitDepths, int level)
+    private static void SetBitDepths(ReadOnlySpan<HuffmanTree> tree, Span<HuffmanTree> pool, byte[] bitDepths, int level)
     {
         if (tree[0].PoolIndexLeft >= 0)
         {

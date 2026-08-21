@@ -1,4 +1,4 @@
-// Copyright (c) Six Labors.
+﻿// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.Formats.Webp.Chunks;
@@ -177,7 +177,7 @@ internal abstract class BitWriterBase
     /// <param name="stream">The stream to write to.</param>
     /// <param name="dataBytes">The alpha channel data bytes.</param>
     /// <param name="alphaDataIsCompressed">Indicates, if the alpha channel data is compressed.</param>
-    public static void WriteAlphaChunk(Stream stream, Span<byte> dataBytes, bool alphaDataIsCompressed)
+    public static void WriteAlphaChunk(Stream stream, ReadOnlySpan<byte> dataBytes, bool alphaDataIsCompressed)
     {
         long pos = RiffHelper.BeginWriteChunk(stream, (uint)WebpChunkType.Alpha);
         byte flags = 0;

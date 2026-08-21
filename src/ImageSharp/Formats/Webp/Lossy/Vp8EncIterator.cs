@@ -854,7 +854,7 @@ internal class Vp8EncIterator
         }
     }
 
-    private static void ImportLine(Span<byte> src, int srcStride, Span<byte> dst, int len, int totalLen)
+    private static void ImportLine(ReadOnlySpan<byte> src, int srcStride, Span<byte> dst, int len, int totalLen)
     {
         int i;
         int srcIdx = 0;

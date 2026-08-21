@@ -11,7 +11,7 @@ jobs:
       matrix:
         options:
           - os: ubuntu-latest
-            framework: net8.0
+            framework: net10.0
             runtime: -x64
             codecov: true
 
@@ -70,7 +70,7 @@ jobs:
         uses: actions/setup-dotnet@v6
         with:
           dotnet-version: |
-            8.0.x
+            10.0.x
 
       - name: DotNet Build
         shell: pwsh

@@ -1,4 +1,4 @@
-// Copyright (c) Six Labors.
+﻿// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 using System.Diagnostics;
@@ -464,7 +464,7 @@ internal static partial class SimdUtils
     }
 
     [Conditional("DEBUG")]
-    internal static void VerifyShuffle4SpanInput<T>(ReadOnlySpan<T> source, Span<T> destination)
+    internal static void VerifyShuffle4SpanInput<T>(ReadOnlySpan<T> source, ReadOnlySpan<T> destination)
         where T : struct
     {
         DebugGuard.IsTrue(
@@ -479,7 +479,7 @@ internal static partial class SimdUtils
     }
 
     [Conditional("DEBUG")]
-    private static void VerifyShuffle3SpanInput<T>(ReadOnlySpan<T> source, Span<T> destination)
+    private static void VerifyShuffle3SpanInput<T>(ReadOnlySpan<T> source, ReadOnlySpan<T> destination)
         where T : struct
     {
         DebugGuard.IsTrue(

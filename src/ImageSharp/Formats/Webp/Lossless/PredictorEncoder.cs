@@ -205,7 +205,7 @@ internal static unsafe class PredictorEncoder
         TransparentColorMode transparentColorMode,
         bool usedSubtractGreen,
         bool nearLossless,
-        Span<uint> modes,
+        ReadOnlySpan<uint> modes,
         Span<short> scratch)
     {
         const int numPredModes = 14;
@@ -334,7 +334,7 @@ internal static unsafe class PredictorEncoder
         int height,
         Span<uint> upperRowSpan,
         Span<uint> currentRowSpan,
-        Span<byte> maxDiffs,
+        ReadOnlySpan<byte> maxDiffs,
         int mode,
         int xStart,
         int xEnd,
@@ -575,7 +575,7 @@ internal static unsafe class PredictorEncoder
         int width,
         int height,
         int bits,
-        Span<uint> modes,
+        ReadOnlySpan<uint> modes,
         Span<uint> argbScratch,
         Span<uint> argb,
         int maxQuantization,
@@ -746,7 +746,7 @@ internal static unsafe class PredictorEncoder
     }
 #pragma warning restore SA1503 // Braces should not be omitted
 
-    private static void MaxDiffsForRow(int width, int stride, Span<uint> argb, int offset, Span<byte> maxDiffs, bool usedSubtractGreen)
+    private static void MaxDiffsForRow(int width, int stride, ReadOnlySpan<uint> argb, int offset, Span<byte> maxDiffs, bool usedSubtractGreen)
     {
         if (width <= 2)
         {
@@ -1058,7 +1058,7 @@ internal static unsafe class PredictorEncoder
     }
 
     [MethodImpl(InliningOptions.ShortMethod)]
-    private static float PredictionCostSpatial(Span<int> counts, int weight0, double expVal)
+    private static float PredictionCostSpatial(ReadOnlySpan<int> counts, int weight0, double expVal)
     {
         int significantSymbols = 256 >> 4;
         double expDecayFactor = 0.6;

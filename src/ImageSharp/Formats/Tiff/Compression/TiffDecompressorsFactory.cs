@@ -31,6 +31,10 @@ internal static class TiffDecompressorsFactory
         int tileWidth = 0,
         int tileHeight = 0)
     {
+        // Fax compression emits one decoded row at a time, so tiled images must use
+        // the tile row width that was used to size the caller's destination buffer.
+        int faxWidth = isTiled ? tileWidth : width;
+
         switch (method)
         {
             case TiffDecoderCompressionType.None:
@@ -53,15 +57,15 @@ internal static class TiffDecompressorsFactory
 
             case TiffDecoderCompressionType.T4:
                 DebugGuard.IsTrue(predictor == TiffPredictor.None, "Predictor should only be used with lzw or deflate compression");
-                return new T4TiffCompression(allocator, fillOrder, width, bitsPerPixel, faxOptions, photometricInterpretation);
+                return new T4TiffCompression(allocator, fillOrder, faxWidth, bitsPerPixel, faxOptions, photometricInterpretation);
 
             case TiffDecoderCompressionType.T6:
                 DebugGuard.IsTrue(predictor == TiffPredictor.None, "Predictor should only be used with lzw or deflate compression");
-                return new T6TiffCompression(allocator, fillOrder, width, bitsPerPixel, photometricInterpretation);
+                return new T6TiffCompression(allocator, fillOrder, faxWidth, bitsPerPixel, photometricInterpretation);
 
             case TiffDecoderCompressionType.HuffmanRle:
                 DebugGuard.IsTrue(predictor == TiffPredictor.None, "Predictor should only be used with lzw or deflate compression");
-                return new ModifiedHuffmanTiffCompression(allocator, fillOrder, width, bitsPerPixel, photometricInterpretation);
+                return new ModifiedHuffmanTiffCompression(allocator, fillOrder, faxWidth, bitsPerPixel, photometricInterpretation);
 
             case TiffDecoderCompressionType.Jpeg:
                 DebugGuard.IsTrue(predictor == TiffPredictor.None, "Predictor should only be used with lzw or deflate compression");

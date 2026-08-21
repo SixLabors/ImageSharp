@@ -53,10 +53,6 @@ public readonly struct CubicResampler : IResampler
     /// The function implements the spline algorithm.
     /// <see href="https://usage.imagemagick.org/filter/#cubic_bc"/>
     /// </summary>
-    /// <summary>
-    /// The function implements the Robidoux Sharp algorithm.
-    /// <see href="https://usage.imagemagick.org/filter/#robidoux"/>
-    /// </summary>
     public static readonly CubicResampler Spline = new(2, 1, 0);
 
     /// <summary>

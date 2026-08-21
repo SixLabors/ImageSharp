@@ -72,7 +72,7 @@ internal sealed class T4TiffCompression : TiffBaseDecompressor
 
             if (bitReader.RunLength > 0)
             {
-                this.WritePixelRun(buffer, bitReader, bitsWritten);
+                this.WritePixelRun(buffer, bitReader, bitsWritten, pixelsWritten);
 
                 bitsWritten += (int)bitReader.RunLength;
                 pixelsWritten += bitReader.RunLength;
@@ -102,12 +102,18 @@ internal sealed class T4TiffCompression : TiffBaseDecompressor
         if (pixelsWritten > 0 && pixelsWritten < (ulong)this.width)
         {
             bitReader.ReadNextRun();
-            this.WritePixelRun(buffer, bitReader, bitsWritten);
+            this.WritePixelRun(buffer, bitReader, bitsWritten, pixelsWritten);
         }
     }
 
-    private void WritePixelRun(Span<byte> buffer, T4BitReader bitReader, nint bitsWritten)
+    private void WritePixelRun(Span<byte> buffer, T4BitReader bitReader, nint bitsWritten, nuint pixelsWritten)
     {
+        // A decoded run is untrusted and must fit the current row before the unchecked bit writer is used.
+        if (bitReader.RunLength > (nuint)this.width - pixelsWritten)
+        {
+            TiffThrowHelper.ThrowImageFormatException("CCITT compression parsing error: decoded more pixels than the image width.");
+        }
+
         if (bitReader.IsWhiteRun)
         {
             BitWriterUtils.WriteBits(buffer, bitsWritten, (int)bitReader.RunLength, this.whiteValue);

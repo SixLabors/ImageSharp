@@ -196,7 +196,7 @@ internal static class HistogramEncoder
 
     private static void HistogramCombineEntropyBin(
         Vp8LHistogramSet histograms,
-        Span<ushort> clusters,
+        ReadOnlySpan<ushort> clusters,
         Span<ushort> clusterMappings,
         Vp8LHistogram curCombo,
         ReadOnlySpan<ushort> binMap,

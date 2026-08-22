@@ -1,4 +1,4 @@
-// Copyright (c) Six Labors.
+﻿// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 using System.Buffers;
@@ -275,7 +275,7 @@ internal class AlphaDecoder : IDisposable
         Vp8LTransform transform,
         int yStart,
         int yEnd,
-        Span<byte> src,
+        ReadOnlySpan<byte> src,
         Span<byte> dst)
     {
         int bitsPerPixel = 8 >> transform.Bits;
@@ -311,7 +311,7 @@ internal class AlphaDecoder : IDisposable
         }
     }
 
-    private static void HorizontalUnfilter(Span<byte> prev, Span<byte> input, Span<byte> dst, int width)
+    private static void HorizontalUnfilter(ReadOnlySpan<byte> prev, Span<byte> input, Span<byte> dst, int width)
     {
         if (Vector128.IsHardwareAccelerated && width >= 9)
         {
@@ -368,7 +368,7 @@ internal class AlphaDecoder : IDisposable
         }
     }
 
-    private static void GradientUnfilter(Span<byte> prev, Span<byte> input, Span<byte> dst, int width)
+    private static void GradientUnfilter(ReadOnlySpan<byte> prev, Span<byte> input, Span<byte> dst, int width)
     {
         if (prev.IsEmpty)
         {
@@ -424,7 +424,7 @@ internal class AlphaDecoder : IDisposable
         return true;
     }
 
-    private static void MapAlpha(Span<byte> src, Span<uint> colorMap, Span<byte> dst, int yStart, int yEnd, int width)
+    private static void MapAlpha(ReadOnlySpan<byte> src, ReadOnlySpan<uint> colorMap, Span<byte> dst, int yStart, int yEnd, int width)
     {
         int offset = 0;
         for (int y = yStart; y < yEnd; y++)
@@ -448,7 +448,7 @@ internal class AlphaDecoder : IDisposable
     }
 
     [MethodImpl(InliningOptions.ShortMethod)]
-    private static void ExtractGreen(Span<uint> argb, Span<byte> alpha, int size)
+    private static void ExtractGreen(ReadOnlySpan<uint> argb, Span<byte> alpha, int size)
     {
         for (int i = 0; i < size; i++)
         {

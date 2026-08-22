@@ -123,7 +123,7 @@ internal static class LossyUtils
     }
 
     [MethodImpl(InliningOptions.ShortMethod)]
-    public static int Vp8_SseNxN(Span<byte> a, Span<byte> b, int w, int h)
+    public static int Vp8_SseNxN(ReadOnlySpan<byte> a, ReadOnlySpan<byte> b, int w, int h)
     {
         int count = 0;
         int offset = 0;
@@ -285,7 +285,7 @@ internal static class LossyUtils
         return Math.Abs(sum2 - sum1) >> 5;
     }
 
-    public static void DC16(Span<byte> dst, Span<byte> yuv, int offset)
+    public static void DC16(Span<byte> dst, ReadOnlySpan<byte> yuv, int offset)
     {
         int offsetMinus1 = offset - 1;
         int offsetMinusBps = offset - WebpConstants.Bps;
@@ -313,7 +313,7 @@ internal static class LossyUtils
         }
     }
 
-    public static void HE16(Span<byte> dst, Span<byte> yuv, int offset)
+    public static void HE16(Span<byte> dst, ReadOnlySpan<byte> yuv, int offset)
     {
         // horizontal
         offset--;
@@ -327,7 +327,7 @@ internal static class LossyUtils
         }
     }
 
-    public static void DC16NoTop(Span<byte> dst, Span<byte> yuv, int offset)
+    public static void DC16NoTop(Span<byte> dst, ReadOnlySpan<byte> yuv, int offset)
     {
         // DC with top samples not available.
         int dc = 8;
@@ -340,7 +340,7 @@ internal static class LossyUtils
         Put16(dc >> 4, dst);
     }
 
-    public static void DC16NoLeft(Span<byte> dst, Span<byte> yuv, int offset)
+    public static void DC16NoLeft(Span<byte> dst, ReadOnlySpan<byte> yuv, int offset)
     {
         // DC with left samples not available.
         int dc = 8;
@@ -357,7 +357,7 @@ internal static class LossyUtils
     public static void DC16NoTopLeft(Span<byte> dst) =>
         Put16(0x80, dst); // DC with no top and left samples.
 
-    public static void DC8uv(Span<byte> dst, Span<byte> yuv, int offset)
+    public static void DC8uv(Span<byte> dst, ReadOnlySpan<byte> yuv, int offset)
     {
         int dc0 = 8;
         int offsetMinus1 = offset - 1;
@@ -388,7 +388,7 @@ internal static class LossyUtils
         }
     }
 
-    public static void HE8uv(Span<byte> dst, Span<byte> yuv, int offset)
+    public static void HE8uv(Span<byte> dst, ReadOnlySpan<byte> yuv, int offset)
     {
         // horizontal
         offset--;
@@ -403,7 +403,7 @@ internal static class LossyUtils
         }
     }
 
-    public static void DC8uvNoTop(Span<byte> dst, Span<byte> yuv, int offset)
+    public static void DC8uvNoTop(Span<byte> dst, ReadOnlySpan<byte> yuv, int offset)
     {
         // DC with no top samples.
         int dc0 = 4;
@@ -418,7 +418,7 @@ internal static class LossyUtils
         Put8x8uv((byte)(dc0 >> 3), dst);
     }
 
-    public static void DC8uvNoLeft(Span<byte> dst, Span<byte> yuv, int offset)
+    public static void DC8uvNoLeft(Span<byte> dst, ReadOnlySpan<byte> yuv, int offset)
     {
         // DC with no left samples.
         int offsetMinusBps = offset - WebpConstants.Bps;
@@ -436,7 +436,7 @@ internal static class LossyUtils
     public static void DC8uvNoTopLeft(Span<byte> dst) =>
         Put8x8uv(0x80, dst); // DC with nothing.
 
-    public static void DC4(Span<byte> dst, Span<byte> yuv, int offset)
+    public static void DC4(Span<byte> dst, ReadOnlySpan<byte> yuv, int offset)
     {
         int dc = 4;
         int offsetMinusBps = offset - WebpConstants.Bps;
@@ -457,7 +457,7 @@ internal static class LossyUtils
     [MethodImpl(InliningOptions.ShortMethod)]
     public static void TM4(Span<byte> dst, Span<byte> yuv, int offset) => TrueMotion(dst, yuv, offset, 4);
 
-    public static void VE4(Span<byte> dst, Span<byte> yuv, int offset, Span<byte> vals)
+    public static void VE4(Span<byte> dst, ReadOnlySpan<byte> yuv, int offset, Span<byte> vals)
     {
         // vertical
         int topOffset = offset - WebpConstants.Bps;
@@ -472,7 +472,7 @@ internal static class LossyUtils
         }
     }
 
-    public static void HE4(Span<byte> dst, Span<byte> yuv, int offset)
+    public static void HE4(Span<byte> dst, ReadOnlySpan<byte> yuv, int offset)
     {
         // horizontal
         int offsetMinusOne = offset - 1;
@@ -491,7 +491,7 @@ internal static class LossyUtils
         BinaryPrimitives.WriteUInt32BigEndian(dst[(3 * WebpConstants.Bps)..], val);
     }
 
-    public static void RD4(Span<byte> dst, Span<byte> yuv, int offset)
+    public static void RD4(Span<byte> dst, ReadOnlySpan<byte> yuv, int offset)
     {
         // Down-right
         int offsetMinusOne = offset - 1;
@@ -528,7 +528,7 @@ internal static class LossyUtils
         Dst(dst, 3, 0, Avg3(d, c, b));
     }
 
-    public static void VR4(Span<byte> dst, Span<byte> yuv, int offset)
+    public static void VR4(Span<byte> dst, ReadOnlySpan<byte> yuv, int offset)
     {
         // Vertical-Right
         int offsetMinusOne = offset - 1;
@@ -565,7 +565,7 @@ internal static class LossyUtils
         Dst(dst, 3, 1, Avg3(b, c, d));
     }
 
-    public static void LD4(Span<byte> dst, Span<byte> yuv, int offset)
+    public static void LD4(Span<byte> dst, ReadOnlySpan<byte> yuv, int offset)
     {
         // Down-Left
         byte a = yuv[offset - WebpConstants.Bps];
@@ -600,7 +600,7 @@ internal static class LossyUtils
         Dst(dst, 3, 3, Avg3(g, h, h));
     }
 
-    public static void VL4(Span<byte> dst, Span<byte> yuv, int offset)
+    public static void VL4(Span<byte> dst, ReadOnlySpan<byte> yuv, int offset)
     {
         // Vertical-Left
         byte a = yuv[offset - WebpConstants.Bps];
@@ -636,7 +636,7 @@ internal static class LossyUtils
         Dst(dst, 3, 3, Avg3(f, g, h));
     }
 
-    public static void HD4(Span<byte> dst, Span<byte> yuv, int offset)
+    public static void HD4(Span<byte> dst, ReadOnlySpan<byte> yuv, int offset)
     {
         // Horizontal-Down
         byte i = yuv[offset - 1];
@@ -672,7 +672,7 @@ internal static class LossyUtils
         Dst(dst, 1, 3, Avg3(l, k, j));
     }
 
-    public static void HU4(Span<byte> dst, Span<byte> yuv, int offset)
+    public static void HU4(Span<byte> dst, ReadOnlySpan<byte> yuv, int offset)
     {
         // Horizontal-Up
         byte i = yuv[offset - 1];
@@ -705,7 +705,7 @@ internal static class LossyUtils
     /// <summary>
     /// Paragraph 14.3: Implementation of the Walsh-Hadamard transform inversion.
     /// </summary>
-    public static void TransformWht(Span<short> input, Span<short> output, Span<int> scratch)
+    public static void TransformWht(ReadOnlySpan<short> input, Span<short> output, Span<int> scratch)
     {
         Span<int> tmp = scratch[..16];
         tmp.Clear();
@@ -746,7 +746,7 @@ internal static class LossyUtils
     /// Returns the weighted sum of the absolute value of transformed coefficients.
     /// w[] contains a row-major 4 by 4 symmetric matrix.
     /// </summary>
-    public static int TTransform(Span<byte> input, Span<ushort> w, Span<int> scratch)
+    public static int TTransform(ReadOnlySpan<byte> input, Span<ushort> w, Span<int> scratch)
     {
         int sum = 0;
         Span<int> tmp = scratch[..16];
@@ -1249,7 +1249,7 @@ internal static class LossyUtils
         }
     }
 
-    public static void TransformDc(Span<short> src, Span<byte> dst)
+    public static void TransformDc(ReadOnlySpan<short> src, Span<byte> dst)
     {
         int dc = src[0] + 4;
         for (int j = 0; j < 4; j++)
@@ -1262,7 +1262,7 @@ internal static class LossyUtils
     }
 
     // Simplified transform when only src[0], src[1] and src[4] are non-zero
-    public static void TransformAc3(Span<short> src, Span<byte> dst)
+    public static void TransformAc3(ReadOnlySpan<short> src, Span<byte> dst)
     {
         int a = src[0] + 4;
         int c4 = Mul2(src[4]);
@@ -2133,7 +2133,7 @@ internal static class LossyUtils
     }
 
     [MethodImpl(InliningOptions.ShortMethod)]
-    private static bool NeedsFilter(Span<byte> p, int offset, int step, int t)
+    private static bool NeedsFilter(ReadOnlySpan<byte> p, int offset, int step, int t)
     {
         int p1 = p[offset + (-2 * step)];
         int p0 = p[offset - step];
@@ -2142,7 +2142,7 @@ internal static class LossyUtils
         return (4 * WebpLookupTables.Abs0(p0 - q0)) + WebpLookupTables.Abs0(p1 - q1) <= t;
     }
 
-    private static bool NeedsFilter2(Span<byte> p, int offset, int step, int t, int it)
+    private static bool NeedsFilter2(ReadOnlySpan<byte> p, int offset, int step, int t, int it)
     {
         int step2 = 2 * step;
         int step3 = 3 * step;
@@ -2357,7 +2357,7 @@ internal static class LossyUtils
         => Vector128_.SubtractSaturate(q, p) | Vector128_.SubtractSaturate(p, q);
 
     [MethodImpl(InliningOptions.ShortMethod)]
-    private static bool Hev(Span<byte> p, int offset, int step, int thresh)
+    private static bool Hev(ReadOnlySpan<byte> p, int offset, int step, int thresh)
     {
         int p1 = p[offset - (2 * step)];
         int p0 = p[offset - step];

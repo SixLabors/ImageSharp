@@ -200,14 +200,14 @@ public partial class PngEncoderTests
             return;
         }
 
-        foreach (object[] filterMethod in PngFilterMethods)
+        foreach (TheoryDataRow<PngFilterMethod> filterMethod in PngFilterMethods)
         {
             foreach (PngInterlaceMode interlaceMode in InterlaceMode)
             {
                 TestPngEncoderCore(
                     provider,
                     pngColorType,
-                    (PngFilterMethod)filterMethod[0],
+                    filterMethod.Data,
                     pngBitDepth,
                     interlaceMode,
                     appendPngColorType: true,
@@ -236,14 +236,14 @@ public partial class PngEncoderTests
     public void WorksWithAllBitDepthsAndExcludeAllFilter<TPixel>(TestImageProvider<TPixel> provider, PngColorType pngColorType, PngBitDepth pngBitDepth)
       where TPixel : unmanaged, IPixel<TPixel>
     {
-        foreach (object[] filterMethod in PngFilterMethods)
+        foreach (TheoryDataRow<PngFilterMethod> filterMethod in PngFilterMethods)
         {
             foreach (PngInterlaceMode interlaceMode in InterlaceMode)
             {
                 TestPngEncoderCore(
                 provider,
                 pngColorType,
-                (PngFilterMethod)filterMethod[0],
+                filterMethod.Data,
                 pngBitDepth,
                 interlaceMode,
                 appendPngColorType: true,

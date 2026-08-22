@@ -4,26 +4,31 @@
 using System.Numerics;
 using System.Runtime.Intrinsics.Arm;
 using System.Runtime.Intrinsics.X86;
-using Xunit.Abstractions;
+using Xunit.Sdk;
 using Aes = System.Runtime.Intrinsics.X86.Aes;
 
 namespace SixLabors.ImageSharp.Tests.TestUtilities.Tests;
 
 public class FeatureTestRunnerTests
 {
-    public static TheoryData<HwIntrinsics, string[]> Intrinsics =>
+    public static TheoryData<HwIntrinsics, HwIntrinsics, string[]> Intrinsics =>
         new()
         {
-            { HwIntrinsics.DisableAES | HwIntrinsics.AllowAll, ["EnableAES", "AllowAll"] },
-            { HwIntrinsics.DisableHWIntrinsic, ["EnableHWIntrinsic"] },
-            { HwIntrinsics.DisableSSE42 | HwIntrinsics.DisableAVX, ["EnableSSE42", "EnableAVX"] }
+            { HwIntrinsics.DisableAES | HwIntrinsics.AllowAll, HwIntrinsics.DisableAES | HwIntrinsics.AllowAll, ["EnableAES", "AllowAll"] },
+            { HwIntrinsics.DisableHWIntrinsic, HwIntrinsics.DisableHWIntrinsic, ["EnableHWIntrinsic"] },
+#if NET11_0_OR_GREATER
+            // ToFeatureKeyValueCollection filters DisableSSE42: SSE4.2 is x86-64-v2 baseline in .NET 11+ and cannot be disabled.
+            { HwIntrinsics.DisableSSE42 | HwIntrinsics.DisableAVX, HwIntrinsics.DisableAVX, ["EnableAVX"] }
+#else
+            { HwIntrinsics.DisableSSE42 | HwIntrinsics.DisableAVX, HwIntrinsics.DisableSSE42 | HwIntrinsics.DisableAVX, ["EnableSSE42", "EnableAVX"] }
+#endif
         };
 
     [Theory]
     [MemberData(nameof(Intrinsics))]
-    public void ToFeatureCollectionReturnsExpectedResult(HwIntrinsics expectedIntrinsics, string[] expectedValues)
+    public void ToFeatureCollectionReturnsExpectedResult(HwIntrinsics intrinsics, HwIntrinsics expectedIntrinsics, string[] expectedValues)
     {
-        Dictionary<HwIntrinsics, string> features = expectedIntrinsics.ToFeatureKeyValueCollection();
+        Dictionary<HwIntrinsics, string> features = intrinsics.ToFeatureKeyValueCollection();
         HwIntrinsics[] keys = [.. features.Keys];
 
         HwIntrinsics actualIntrinsics = keys[0];
@@ -122,9 +127,8 @@ public class FeatureTestRunnerTests
                     Assert.False(Ssse3.IsSupported, "Ssse3 should be disabled.");
                     Assert.False(Sse41.IsSupported, "Sse41 should be disabled.");
                     Assert.False(Popcnt.IsSupported, "Popcnt should be disabled.");
-#else
-                    Assert.False(Sse42.IsSupported, "Sse42 should be disabled when DisableSSE42 is set.");
 #endif
+                    Assert.False(Sse42.IsSupported, "Sse42 should be disabled when DisableSSE42 is set.");
                     break;
                 case HwIntrinsics.DisableAVX:
                     Assert.False(Avx.IsSupported, "AVX should be disabled when DisableAVX is set.");
@@ -169,12 +173,12 @@ public class FeatureTestRunnerTests
         {
             Assert.NotNull(serializable);
             Assert.NotNull(FeatureTestRunner.DeserializeForXunit<FakeSerializable>(serializable));
-            Assert.False(Sse42.IsSupported, "SSE42 should be disabled when DisableSSE42 is set (sanity check using serializable param overload).");
+            Assert.False(Avx.IsSupported, "AVX should be disabled when DisableAVX is set (sanity check using serializable param overload).");
         }
 
         FeatureTestRunner.RunWithHwIntrinsicsFeature(
             AssertHwIntrinsicsFeatureDisabled,
-            HwIntrinsics.DisableSSE42,
+            HwIntrinsics.DisableAVX,
             new FakeSerializable());
     }
 
@@ -256,7 +260,7 @@ public class FeatureTestRunnerTests
             }
         }
 
-        foreach (HwIntrinsics intrinsic in (HwIntrinsics[])Enum.GetValues(typeof(HwIntrinsics)))
+        foreach (HwIntrinsics intrinsic in Enum.GetValues<HwIntrinsics>())
         {
             FeatureTestRunner.RunWithHwIntrinsicsFeature(AssertHwIntrinsicsFeatureDisabled, intrinsic, new FakeSerializable());
         }

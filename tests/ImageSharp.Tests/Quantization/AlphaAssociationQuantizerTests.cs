@@ -12,7 +12,7 @@ public class AlphaAssociationQuantizerTests
 {
     public static TheoryData<IDither?> Dithers { get; } = new()
     {
-        null,
+        (IDither?)null,
         KnownDitherings.Bayer4x4,
         KnownDitherings.FloydSteinberg
     };

@@ -23,9 +23,8 @@
       Magick.NET 14.15.0 disables WebP-compressed TIFF support on Windows.
       https://github.com/ImageMagick/tiff/commit/978181b6c999ee013f1b6df0a010d8c550d378cf
     -->
-    <PackageReference Update="Magick.NET-Q16-AnyCPU" Version="14.14.0" />
+    <PackageReference Update="Magick.NET-Q16-AnyCPU" Version="14.16.0" />
     <PackageReference Update="Microsoft.DotNet.RemoteExecutor" Version="10.0.0-beta.25563.105" />
-    <PackageReference Update="Microsoft.DotNet.XUnitExtensions" Version="8.0.0-beta.23580.1" />
     <PackageReference Update="Moq" Version="4.20.72" />
     <PackageReference Update="NetVips" Version="3.0.0" />
     <PackageReference Update="NetVips.Native" Version="8.16.0" />

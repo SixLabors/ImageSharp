@@ -1,4 +1,4 @@
-// Copyright (c) Six Labors.
+﻿// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 #nullable disable
 
@@ -1126,7 +1126,7 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
     /// <param name="blockDataSpan">The span holding the block resource data.</param>
     /// <returns>The length of the name.</returns>
     [MethodImpl(InliningOptions.ShortMethod)]
-    private static int ReadImageResourceNameLength(Span<byte> blockDataSpan)
+    private static int ReadImageResourceNameLength(ReadOnlySpan<byte> blockDataSpan)
     {
         byte nameLength = blockDataSpan[2];
         int nameDataSize = nameLength == 0 ? 2 : nameLength;
@@ -1145,7 +1145,7 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
     /// <param name="resourceBlockNameLength">The length of the block name.</param>
     /// <returns>The block length.</returns>
     [MethodImpl(InliningOptions.ShortMethod)]
-    private static int ReadResourceDataLength(Span<byte> blockDataSpan, int resourceBlockNameLength)
+    private static int ReadResourceDataLength(ReadOnlySpan<byte> blockDataSpan, int resourceBlockNameLength)
         => BinaryPrimitives.ReadInt32BigEndian(blockDataSpan.Slice(2 + resourceBlockNameLength, 4));
 
     /// <summary>

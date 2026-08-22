@@ -441,8 +441,8 @@ internal abstract unsafe class Vp8LHistogram
     }
 
     private static double GetCombinedEntropy(
-        Span<uint> x,
-        Span<uint> y,
+        ReadOnlySpan<uint> x,
+        ReadOnlySpan<uint> y,
         int length,
         bool isXUsed,
         bool isYUsed,
@@ -494,7 +494,7 @@ internal abstract unsafe class Vp8LHistogram
         return bitEntropy.BitsEntropyRefine() + stats.FinalHuffmanCost();
     }
 
-    private static double ExtraCostCombined(Span<uint> x, Span<uint> y, int length)
+    private static double ExtraCostCombined(ReadOnlySpan<uint> x, ReadOnlySpan<uint> y, int length)
     {
         double cost = 0.0d;
         for (int i = 2; i < length - 2; i++)
@@ -509,7 +509,7 @@ internal abstract unsafe class Vp8LHistogram
     /// <summary>
     /// Get the symbol entropy for the distribution 'population'.
     /// </summary>
-    private double PopulationCost(Span<uint> population, int length, ref uint trivialSym, int isUsedIndex, Vp8LStreaks stats, Vp8LBitEntropy bitEntropy)
+    private double PopulationCost(ReadOnlySpan<uint> population, int length, ref uint trivialSym, int isUsedIndex, Vp8LStreaks stats, Vp8LBitEntropy bitEntropy)
     {
         bitEntropy.Init();
         stats.Clear();
@@ -523,7 +523,7 @@ internal abstract unsafe class Vp8LHistogram
         return bitEntropy.BitsEntropyRefine() + stats.FinalHuffmanCost();
     }
 
-    private static double ExtraCost(Span<uint> population, int length)
+    private static double ExtraCost(ReadOnlySpan<uint> population, int length)
     {
         double cost = 0.0d;
         for (int i = 2; i < length - 2; i++)

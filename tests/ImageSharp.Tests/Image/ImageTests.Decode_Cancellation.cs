@@ -3,6 +3,7 @@
 
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Tests.TestUtilities;
+using XUnit;
 
 namespace SixLabors.ImageSharp.Tests;
 

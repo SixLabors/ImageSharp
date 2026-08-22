@@ -4,7 +4,7 @@
 using System.Diagnostics;
 using System.Globalization;
 using Microsoft.DotNet.RemoteExecutor;
-using Xunit.Abstractions;
+using Xunit.Sdk;
 
 namespace SixLabors.ImageSharp.Tests.TestUtilities;
 
@@ -414,7 +414,14 @@ public static class FeatureTestRunner
                     // Not a COMPlus value. We filter in calling method.
                     features.Add(key, nameof(HwIntrinsics.AllowAll));
                     break;
+#if NET11_0_OR_GREATER
+                case nameof(HwIntrinsics.DisableSSE42):
 
+                    // SSE3 through SSE4.2 and POPCNT are x86-64-v2 baseline in .NET 11+ and the
+                    // switch is inert, so skip it entirely rather than spawn a child that tests nothing.
+                    // https://learn.microsoft.com/en-us/dotnet/core/compatibility/jit/11/minimum-hardware-requirements
+                    break;
+#endif
                 default:
                     features.Add(key, intrinsic.Replace("Disable", "Enable"));
                     break;

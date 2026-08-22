@@ -1,4 +1,4 @@
-// Copyright (c) Six Labors.
+﻿// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 using System.Buffers;
@@ -17,7 +17,7 @@ internal static class StreamExtensions
     /// <param name="buffer">The buffer.</param>
     /// <param name="offset">The offset within the buffer to begin writing.</param>
     /// <param name="count">The number of bytes to write to the stream.</param>
-    public static void Write(this Stream stream, Span<byte> buffer, int offset, int count)
+    public static void Write(this Stream stream, ReadOnlySpan<byte> buffer, int offset, int count)
         => stream.Write(buffer.Slice(offset, count));
 
     /// <summary>

@@ -5,13 +5,12 @@
 
 using SixLabors.ImageSharp.PixelFormats;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace SixLabors.ImageSharp.Tests.PixelFormats.PixelOperations;
 
 public partial class PixelOperationsTests
 {
-    
+
     public partial class A8_OperationsTests : PixelOperationsTests<A8>
     {
         public A8_OperationsTests(ITestOutputHelper output)

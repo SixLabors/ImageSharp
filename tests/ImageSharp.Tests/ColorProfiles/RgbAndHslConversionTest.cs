@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.Tests.ColorProfiles;
 /// <remarks>
 /// Test data generated using:
 /// <see href="http://www.colorhexa.com"/>
-/// <see href="http://www.rapidtables.com/convert/color/hsl-to-rgb"/>
+/// <see href="https://www.rapidtables.com/convert/color/hsl-to-rgb.html"/>
 /// </remarks>
 [Trait("Color", "Conversion")]
 public class RgbAndHslConversionTest

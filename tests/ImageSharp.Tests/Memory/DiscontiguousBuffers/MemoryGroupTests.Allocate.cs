@@ -206,7 +206,7 @@ public partial class MemoryGroupTests
             {
                 IReadOnlyList<TestMemoryAllocator.AllocationRequest> allocationLog = this.MemoryAllocator.AllocationLog;
                 Assert.Equal(expectedBlockCount, allocationLog.Count);
-                bufferHashes = allocationLog.Select(l => l.HashCodeOfBuffer).ToHashSet();
+                bufferHashes = [.. allocationLog.Select(l => l.HashCodeOfBuffer)];
                 Assert.Equal(expectedBlockCount, bufferHashes.Count);
                 Assert.Equal(0, this.MemoryAllocator.ReturnLog.Count);
 

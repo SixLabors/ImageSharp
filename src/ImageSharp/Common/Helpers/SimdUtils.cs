@@ -93,9 +93,11 @@ internal static partial class SimdUtils
 
     private struct ByteTuple4
     {
+#pragma warning disable CS0649 // Field is never assigned to, and will always have its default value
         public byte V0;
         public byte V1;
         public byte V2;
         public byte V3;
+#pragma warning restore CS0649 // Field is never assigned to, and will always have its default value
     }
 }

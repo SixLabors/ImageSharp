@@ -251,7 +251,7 @@ public class TensorPrimitivesTests
     public void NegateSingleMatchesScalarFormula(int length)
     {
         float[] values =
-        {
+        [
             float.NaN,
             -0F,
             0F,
@@ -259,7 +259,7 @@ public class TensorPrimitivesTests
             1F,
             float.NegativeInfinity,
             float.PositiveInfinity
-        };
+        ];
 
         float[] source = new float[length];
         float[] expected = new float[length];
@@ -287,7 +287,7 @@ public class TensorPrimitivesTests
     public void NegateDoubleMatchesScalarFormula(int length)
     {
         double[] values =
-        {
+        [
             double.NaN,
             -0D,
             0D,
@@ -295,7 +295,7 @@ public class TensorPrimitivesTests
             1D,
             double.NegativeInfinity,
             double.PositiveInfinity
-        };
+        ];
 
         double[] source = new double[length];
         double[] expected = new double[length];
@@ -349,7 +349,7 @@ public class TensorPrimitivesTests
     public void ClampSingleMatchesRuntimeFormula(int length)
     {
         float[] values =
-        {
+        [
             float.NaN,
             -0F,
             0F,
@@ -357,7 +357,7 @@ public class TensorPrimitivesTests
             1F,
             float.NegativeInfinity,
             float.PositiveInfinity
-        };
+        ];
 
         float[] source = new float[length];
         float[] expected = new float[length];
@@ -381,13 +381,13 @@ public class TensorPrimitivesTests
     public void ClampSinglePreservesRuntimeSpecialValueSemantics()
     {
         float[] values =
-        {
+        [
             float.NaN,
             float.NegativeInfinity,
             -0F,
             0F,
             float.PositiveInfinity
-        };
+        ];
 
         float[] actual = new float[129];
         float[] expected = new float[actual.Length];
@@ -409,13 +409,13 @@ public class TensorPrimitivesTests
     public void ClampDoublePreservesRuntimeSpecialValueSemantics()
     {
         double[] values =
-        {
+        [
             double.NaN,
             double.NegativeInfinity,
             -0D,
             0D,
             double.PositiveInfinity
-        };
+        ];
 
         double[] actual = new double[65];
         double[] expected = new double[actual.Length];
@@ -465,7 +465,7 @@ public class TensorPrimitivesTests
     public void MaxSingleMatchesRuntimeFormula(int length)
     {
         float[] values =
-        {
+        [
             float.NaN,
             float.NegativeInfinity,
             -1F,
@@ -473,7 +473,7 @@ public class TensorPrimitivesTests
             0F,
             1F,
             float.PositiveInfinity
-        };
+        ];
 
         float[] actual = new float[length];
         float[] expected = new float[length];

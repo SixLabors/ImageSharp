@@ -61,7 +61,7 @@ public class TestFormat : IImageFormatConfigurationModule, IImageFormat
     public void VerifySpecificDecodeCall<TPixel>(byte[] marker, Configuration config)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        DecodeOperation[] discovered = this.DecodeCalls.Where(x => x.IsMatch(marker, config, typeof(TPixel))).ToArray();
+        DecodeOperation[] discovered = [.. this.DecodeCalls.Where(x => x.IsMatch(marker, config, typeof(TPixel)))];
 
         Assert.True(discovered.Length > 0, "No calls to decode on this format with the provided options happened");
 
@@ -73,7 +73,8 @@ public class TestFormat : IImageFormatConfigurationModule, IImageFormat
 
     public void VerifyAgnosticDecodeCall(byte[] marker, Configuration config)
     {
-        DecodeOperation[] discovered = this.DecodeCalls.Where(x => x.IsMatch(marker, config, typeof(TestPixelForAgnosticDecode))).ToArray();
+        DecodeOperation[] discovered =
+            [.. this.DecodeCalls.Where(x => x.IsMatch(marker, config, typeof(TestPixelForAgnosticDecode)))];
 
         Assert.True(discovered.Length > 0, "No calls to decode on this format with the provided options happened");
 
@@ -219,7 +220,7 @@ public class TestFormat : IImageFormatConfigurationModule, IImageFormat
             Configuration configuration = options.GeneralOptions.Configuration;
             using MemoryStream ms = new();
             stream.CopyTo(ms, configuration.StreamProcessingBufferSize);
-            byte[] marker = ms.ToArray().Skip(this.testFormat.header.Length).ToArray();
+            byte[] marker = [.. ms.ToArray().Skip(this.testFormat.header.Length)];
             this.testFormat.DecodeCalls.Add(new DecodeOperation
             {
                 Marker = marker,

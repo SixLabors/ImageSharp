@@ -181,7 +181,7 @@ public abstract partial class ImageFrameCollectionTests
                 this.Image,
                 [imageFrame1, imageFrame2]);
 
-            IPixelSource<Rgba32>[] framesSnapShot = collection.OfType<IPixelSource<Rgba32>>().ToArray();
+            IPixelSource<Rgba32>[] framesSnapShot = [.. collection.OfType<IPixelSource<Rgba32>>()];
 
             Assert.All(framesSnapShot, f => Assert.False(f.PixelBuffer.IsDisposed));
 

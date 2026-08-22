@@ -153,7 +153,7 @@ internal readonly struct FrameControl
             PngThrowHelper.ThrowInvalidImageContentException("The frame control chunk does not contain enough data!");
         }
 
-        return new(
+        return new FrameControl(
             sequenceNumber: BinaryPrimitives.ReadUInt32BigEndian(data[..4]),
             width: BinaryPrimitives.ReadUInt32BigEndian(data[4..8]),
             height: BinaryPrimitives.ReadUInt32BigEndian(data[8..12]),

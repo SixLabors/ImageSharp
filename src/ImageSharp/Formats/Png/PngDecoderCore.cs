@@ -291,10 +291,10 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                         }
 
                         case PngChunkType.Palette:
-                            this.palette = chunk.Data.GetSpan().ToArray();
+                            this.palette = [.. chunk.Data.GetSpan()];
                             break;
                         case PngChunkType.Transparency:
-                            this.paletteAlpha = chunk.Data.GetSpan().ToArray();
+                            this.paletteAlpha = [.. chunk.Data.GetSpan()];
                             this.AssignTransparentMarkers(this.paletteAlpha, pngMetadata);
                             break;
                         case PngChunkType.Text:
@@ -465,11 +465,11 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                             this.SkipChunkDataAndCrc(chunk);
                             break;
                         case PngChunkType.Palette:
-                            this.palette = chunk.Data.GetSpan().ToArray();
+                            this.palette = [.. chunk.Data.GetSpan()];
                             break;
 
                         case PngChunkType.Transparency:
-                            this.paletteAlpha = chunk.Data.GetSpan().ToArray();
+                            this.paletteAlpha = [.. chunk.Data.GetSpan()];
                             this.AssignTransparentMarkers(this.paletteAlpha, pngMetadata);
 
                             // Spec says tRNS must be after PLTE so safe to exit.
@@ -1903,7 +1903,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
 
             if (resourceId == adobeIptcResourceId)
             {
-                iptcBytes = payload.ToArray();
+                iptcBytes = [.. payload];
                 return true;
             }
 
@@ -2119,7 +2119,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
         }
         else if (IsXmpTextData(keywordBytes))
         {
-            metadata.XmpProfile = new XmpProfile(data[dataStartIdx..].ToArray());
+            metadata.XmpProfile = new XmpProfile([.. data[dataStartIdx..]]);
         }
         else
         {

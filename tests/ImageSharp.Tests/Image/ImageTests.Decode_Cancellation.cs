@@ -27,7 +27,7 @@ public partial class ImageTests
             //TestImages.Pbm.GrayscaleBinaryWide
         ];
 
-        public static object[][] IdentifyData { get; } = TestFileForEachCodec.Select(f => new object[] { f }).ToArray();
+        public static object[][] IdentifyData { get; } = [.. TestFileForEachCodec.Select(f => new object[] { f })];
 
         [Theory]
         [MemberData(nameof(IdentifyData))]

@@ -81,6 +81,6 @@ internal sealed class IccWriter
             }
         }
 
-        return table.ToArray();
+        return [.. table];
     }
 }

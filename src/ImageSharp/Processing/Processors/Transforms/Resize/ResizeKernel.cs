@@ -73,10 +73,10 @@ internal readonly unsafe struct ResizeKernel
         {
             if (Vector256.IsHardwareAccelerated)
             {
-                return new(this.bufferPtr, this.Length * 4);
+                return new Span<float>(this.bufferPtr, this.Length * 4);
             }
 
-            return new(this.bufferPtr, this.Length);
+            return new Span<float>(this.bufferPtr, this.Length);
         }
     }
 

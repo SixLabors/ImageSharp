@@ -82,8 +82,8 @@ public class PaletteQuantizerTests
     {
         Rgba32[] palette =
         [
-            new Rgba32(0, 0, 0),
-            new Rgba32(7, 0, 0)
+            new(0, 0, 0),
+            new(7, 0, 0)
         ];
 
         using PixelMap<Rgba32> exact = CreatePixelMap<UncachedCache>(palette);
@@ -152,7 +152,7 @@ public class PaletteQuantizerTests
         byte r = (byte)((i & 31) << 3);
         byte g = (byte)(((i >> 5) & 31) << 3);
         byte b = (byte)(((i >> 10) & 31) << 3);
-        return new(r, g, b);
+        return new Rgba32(r, g, b);
     }
 
     // Reconstruct the same 5-bit RGB bucket coordinates used by CreateEvictionFillerColor, then set the
@@ -163,7 +163,7 @@ public class PaletteQuantizerTests
         byte r = (byte)(((i & 31) << 3) | 0x07);
         byte g = (byte)((((i >> 5) & 31) << 3) | 0x07);
         byte b = (byte)((((i >> 10) & 31) << 3) | 0x07);
-        return new(r, g, b);
+        return new Rgba32(r, g, b);
     }
 
     private static PixelMap<Rgba32> CreatePixelMap<TCache>(Rgba32[] palette)

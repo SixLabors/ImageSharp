@@ -33,8 +33,8 @@ internal class TestMemoryAllocator : MemoryAllocator
 
     public void EnableNonThreadSafeLogging()
     {
-        this.allocationLog = new List<AllocationRequest>();
-        this.returnLog = new List<ReturnRequest>();
+        this.allocationLog = [];
+        this.returnLog = [];
     }
 
     protected override AllocationTrackedMemoryManager<T> AllocateCore<T>(int length, AllocationOptions options = AllocationOptions.None)

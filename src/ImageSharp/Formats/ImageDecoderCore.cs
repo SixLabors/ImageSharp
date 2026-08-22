@@ -279,7 +279,7 @@ internal abstract class ImageDecoderCore
         // and Wrap(Memory<T>[]) creates a Consumed MemoryGroup that does not own the buffers (Dispose just
         // invalidates the view). This means no pixel data is cloned and disposing the temporary image will
         // not dispose or leak the frame's pixel buffer.
-        MemoryGroup<TPixel> memorySource = MemoryGroup<TPixel>.Wrap(m.ToArray());
+        MemoryGroup<TPixel> memorySource = MemoryGroup<TPixel>.Wrap([.. m]);
 
         using Image<TPixel> image = new(frame.Configuration, memorySource, frame.Width, frame.Height, metadata);
         converter.Convert(image);

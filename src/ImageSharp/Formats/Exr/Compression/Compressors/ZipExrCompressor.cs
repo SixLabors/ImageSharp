@@ -32,7 +32,7 @@ internal class ZipExrCompressor : ExrBaseCompressor
     {
         this.compressionLevel = compressionLevel;
         this.buffer = allocator.Allocate<byte>((int)bytesPerBlock);
-        this.memoryStream = new();
+        this.memoryStream = new MemoryStream();
     }
 
     /// <inheritdoc/>

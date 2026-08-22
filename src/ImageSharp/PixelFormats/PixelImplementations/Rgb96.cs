@@ -183,7 +183,7 @@ public partial struct Rgb96 : IPixel<Rgb96>, IEquatable<Rgb96>
     public static Rgb96 FromL16(L16 source)
     {
         uint rgb = ColorNumerics.From16BitTo32Bit(source.PackedValue);
-        return new(rgb, rgb, rgb);
+        return new Rgb96(rgb, rgb, rgb);
     }
 
     /// <inheritdoc/>
@@ -191,7 +191,7 @@ public partial struct Rgb96 : IPixel<Rgb96>, IEquatable<Rgb96>
     public static Rgb96 FromLa16(La16 source)
     {
         uint rgb = ColorNumerics.From8BitTo32Bit((byte)source.PackedValue);
-        return new(rgb, rgb, rgb);
+        return new Rgb96(rgb, rgb, rgb);
     }
 
     /// <inheritdoc/>
@@ -199,7 +199,7 @@ public partial struct Rgb96 : IPixel<Rgb96>, IEquatable<Rgb96>
     public static Rgb96 FromLa32(La32 source)
     {
         uint rgb = ColorNumerics.From16BitTo32Bit(source.L);
-        return new(rgb, rgb, rgb);
+        return new Rgb96(rgb, rgb, rgb);
     }
 
     /// <inheritdoc/>

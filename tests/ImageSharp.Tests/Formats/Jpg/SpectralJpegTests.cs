@@ -35,7 +35,7 @@ public class SpectralJpegTests
             TestImages.Jpeg.Progressive.Bad.ExifUndefType
     ];
 
-    public static readonly string[] AllTestJpegs = BaselineTestJpegs.Concat(ProgressiveTestJpegs).ToArray();
+    public static readonly string[] AllTestJpegs = [.. BaselineTestJpegs, .. ProgressiveTestJpegs];
 
     [Theory(Skip = "Debug only, enable manually!")]
     [WithFileCollection(nameof(AllTestJpegs), PixelTypes.Rgba32)]

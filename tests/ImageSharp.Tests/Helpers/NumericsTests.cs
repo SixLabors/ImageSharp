@@ -178,11 +178,14 @@ public class NumericsTests
             };
         }
 
-        Vector4[] expected = source.Select(v =>
-        {
-            Numerics.Premultiply(ref v);
-            return v;
-        }).ToArray();
+        Vector4[] expected =
+        [
+            .. source.Select(v =>
+            {
+                Numerics.Premultiply(ref v);
+                return v;
+            })
+        ];
 
         Numerics.Premultiply(source);
 
@@ -213,11 +216,14 @@ public class NumericsTests
             };
         }
 
-        Vector4[] expected = source.Select(v =>
-        {
-            Numerics.UnPremultiply(ref v);
-            return v;
-        }).ToArray();
+        Vector4[] expected =
+        [
+            .. source.Select(v =>
+            {
+                Numerics.UnPremultiply(ref v);
+                return v;
+            })
+        ];
 
         Numerics.UnPremultiply(source);
 

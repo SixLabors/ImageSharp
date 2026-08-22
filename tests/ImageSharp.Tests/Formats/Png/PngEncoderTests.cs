@@ -287,7 +287,7 @@ public partial class PngEncoderTests
         using MemoryStream ms = new();
         image.Save(ms, PngEncoder);
 
-        byte[] data = ms.ToArray().Take(8).ToArray();
+        byte[] data = [.. ms.ToArray().Take(8)];
         byte[] expected =
         [
             0x89, // Set the high bit.

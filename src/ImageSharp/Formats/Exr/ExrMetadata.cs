@@ -102,7 +102,7 @@ public class ExrMetadata : IFormatMetadata<ExrMetadata>
             ? EncodingType.Lossy
             : EncodingType.Lossless;
 
-        return new()
+        return new FormatConnectingMetadata
         {
             EncodingType = type,
             PixelTypeInfo = this.GetPixelTypeInfo()
@@ -136,7 +136,7 @@ public class ExrMetadata : IFormatMetadata<ExrMetadata>
             }
         };
 
-        return new()
+        return new ExrMetadata
         {
             PixelType = bitsPerComponent <= 16 ? ExrPixelType.Half : ExrPixelType.Float,
             ImageDataType = imageDataType,

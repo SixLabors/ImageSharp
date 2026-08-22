@@ -67,7 +67,7 @@ internal static class TiffDecoderOptionsParser
         TiffSampleFormat? sampleFormat = null;
         if (exifProfile.TryGetValue(ExifTag.SampleFormat, out IExifValue<ushort[]> formatValue))
         {
-            TiffSampleFormat[] sampleFormats = formatValue.Value.Select(a => (TiffSampleFormat)a).ToArray();
+            TiffSampleFormat[] sampleFormats = [.. formatValue.Value.Select(a => (TiffSampleFormat)a)];
             sampleFormat = sampleFormats[0];
             foreach (TiffSampleFormat format in sampleFormats)
             {

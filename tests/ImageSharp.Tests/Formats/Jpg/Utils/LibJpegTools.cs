@@ -121,7 +121,7 @@ internal static partial class LibJpegTools
                         {
                             rdr.Read(buffer, 0, buffer.Length);
 
-                            short[] block = MemoryMarshal.Cast<byte, short>(buffer.AsSpan()).ToArray();
+                            short[] block = [.. MemoryMarshal.Cast<byte, short>(buffer.AsSpan())];
                             c.MakeBlock(block, y, x);
                         }
                     }

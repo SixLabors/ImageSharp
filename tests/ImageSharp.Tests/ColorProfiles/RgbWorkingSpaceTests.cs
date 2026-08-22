@@ -110,7 +110,7 @@ public class RgbWorkingSpaceTests
             Assert.Equal(linear[i], expanded, TolerantComparer);
         }
 
-        Vector4[] actualCompressed = linear.ToArray();
+        Vector4[] actualCompressed = [.. linear];
         workingSpace.Compress(actualCompressed);
 
         Assert.Equal(expectedCompressed, actualCompressed, TolerantComparer);

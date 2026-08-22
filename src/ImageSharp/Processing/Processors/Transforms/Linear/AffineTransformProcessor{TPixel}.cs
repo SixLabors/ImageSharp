@@ -35,7 +35,7 @@ internal class AffineTransformProcessor<TPixel> : TransformProcessor<TPixel>, IR
     {
         this.destinationSize = definition.DestinationSize;
         this.transformMatrix = definition.TransformMatrix;
-        this.transformMatrix4x4 = new(this.transformMatrix);
+        this.transformMatrix4x4 = new Matrix4x4(this.transformMatrix);
         this.resampler = definition.Sampler;
     }
 

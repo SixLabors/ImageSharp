@@ -180,21 +180,21 @@ public partial struct Rgba128 : IPixel<Rgba128>, IEquatable<Rgba128>
     public static Rgba128 FromL16(L16 source)
     {
         uint rgb = ColorNumerics.From16BitTo32Bit(source.PackedValue);
-        return new(rgb, rgb, rgb, rgb);
+        return new Rgba128(rgb, rgb, rgb, rgb);
     }
 
     /// <inheritdoc/>
     public static Rgba128 FromLa16(La16 source)
     {
         uint rgb = ColorNumerics.From8BitTo32Bit((byte)source.PackedValue);
-        return new(rgb, rgb, rgb, rgb);
+        return new Rgba128(rgb, rgb, rgb, rgb);
     }
 
     /// <inheritdoc/>
     public static Rgba128 FromLa32(La32 source)
     {
         uint rgb = ColorNumerics.From16BitTo32Bit(source.L);
-        return new(rgb, rgb, rgb, rgb);
+        return new Rgba128(rgb, rgb, rgb, rgb);
     }
 
     /// <inheritdoc/>

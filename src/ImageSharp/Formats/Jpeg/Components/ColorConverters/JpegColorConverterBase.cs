@@ -119,49 +119,49 @@ internal abstract partial class JpegColorConverterBase
     /// </summary>
     /// <param name="precision">The precision in bits.</param>
     private static JpegColorConverter<YCbCrOperator> GetYCbCrConverter(int precision)
-        => new JpegColorConverter<YCbCrOperator>(precision);
+        => new(precision);
 
     /// <summary>
     /// Returns the <see cref="JpegColorConverterBase"/>s for the YccK colorspace.
     /// </summary>
     /// <param name="precision">The precision in bits.</param>
     private static JpegColorConverter<YccKOperator> GetYccKConverter(int precision)
-        => new JpegColorConverter<YccKOperator>(precision);
+        => new(precision);
 
     /// <summary>
     /// Returns the <see cref="JpegColorConverterBase"/>s for the CMYK colorspace.
     /// </summary>
     /// <param name="precision">The precision in bits.</param>
     private static JpegColorConverter<CmykOperator> GetCmykConverter(int precision)
-        => new JpegColorConverter<CmykOperator>(precision);
+        => new(precision);
 
     /// <summary>
     /// Returns the <see cref="JpegColorConverterBase"/>s for the gray scale colorspace.
     /// </summary>
     /// <param name="precision">The precision in bits.</param>
     private static JpegColorConverter<GrayScaleOperator> GetGrayScaleConverter(int precision)
-        => new JpegColorConverter<GrayScaleOperator>(precision);
+        => new(precision);
 
     /// <summary>
     /// Returns the <see cref="JpegColorConverterBase"/>s for the RGB colorspace.
     /// </summary>
     /// <param name="precision">The precision in bits.</param>
     private static JpegColorConverter<RgbOperator> GetRgbConverter(int precision)
-        => new JpegColorConverter<RgbOperator>(precision);
+        => new(precision);
 
     /// <summary>
     /// Returns the <see cref="JpegColorConverterBase"/> for non-inverted TIFF CMYK.
     /// </summary>
     /// <param name="precision">The precision in bits.</param>
     private static JpegColorConverter<TiffCmykOperator> GetTiffCmykConverter(int precision)
-        => new JpegColorConverter<TiffCmykOperator>(precision);
+        => new(precision);
 
     /// <summary>
     /// Returns the <see cref="JpegColorConverterBase"/> for non-inverted TIFF YccK.
     /// </summary>
     /// <param name="precision">The precision in bits.</param>
     private static JpegColorConverter<TiffYccKOperator> GetTiffYccKConverter(int precision)
-        => new JpegColorConverter<TiffYccKOperator>(precision);
+        => new(precision);
 
     /// <summary>
     /// A stack-only struct to reference the input buffers using <see cref="ReadOnlySpan{T}"/>-s.

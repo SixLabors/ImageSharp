@@ -169,7 +169,7 @@ public partial struct NormalizedByte4P : IPixel<NormalizedByte4P>, IPackedVector
         // Signed-normalized storage uses the native [-1, 1] range even though association is defined in scaled opacity space.
         source *= 2F;
         source -= Vector4.One;
-        return new() { PackedValue = Pack(source) };
+        return new NormalizedByte4P { PackedValue = Pack(source) };
     }
 
     /// <inheritdoc />

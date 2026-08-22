@@ -69,7 +69,7 @@ internal abstract class IconDecoderCore : ImageDecoderCore
                     decodedEntries[decodedCount++] = (entryIndex, decoded, compression);
 
                     // The embedded header is authoritative because a zero directory dimension can represent 256 pixels or a larger Vista-era PNG.
-                    this.Dimensions = new(Math.Max(this.Dimensions.Width, decoded.Width), Math.Max(this.Dimensions.Height, decoded.Height));
+                    this.Dimensions = new Size(Math.Max(this.Dimensions.Width, decoded.Width), Math.Max(this.Dimensions.Height, decoded.Height));
                 });
             }
 
@@ -233,7 +233,7 @@ internal abstract class IconDecoderCore : ImageDecoderCore
                 frames[frameCount++] = frameMetadata;
 
                 // Identification uses the same embedded-header dimensions as decoding, without allocating pixel buffers.
-                this.Dimensions = new(Math.Max(this.Dimensions.Width, frameInfo.Width), Math.Max(this.Dimensions.Height, frameInfo.Height));
+                this.Dimensions = new Size(Math.Max(this.Dimensions.Width, frameInfo.Width), Math.Max(this.Dimensions.Height, frameInfo.Height));
             });
         }
 

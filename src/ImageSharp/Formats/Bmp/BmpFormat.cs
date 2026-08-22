@@ -30,5 +30,5 @@ public sealed class BmpFormat : IImageFormat<BmpMetadata>
     public IEnumerable<string> FileExtensions => BmpConstants.FileExtensions;
 
     /// <inheritdoc/>
-    public BmpMetadata CreateDefaultFormatMetadata() => new BmpMetadata();
+    public BmpMetadata CreateDefaultFormatMetadata() => new();
 }

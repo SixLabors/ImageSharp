@@ -1,4 +1,4 @@
-// Copyright (c) Six Labors.
+﻿// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 using System.Buffers;
@@ -141,7 +141,7 @@ internal class B44ExrCompression : ExrBaseDecompressor
     /// </summary>
     /// <param name="b">The source byte data to unpack.</param>
     /// <param name="s">Destintation buffer.</param>
-    private static void Unpack14(Span<byte> b, Span<ushort> s)
+    private static void Unpack14(ReadOnlySpan<byte> b, Span<ushort> s)
     {
         s[0] = (ushort)((b[0] << 8) | b[1]);
 
@@ -185,7 +185,7 @@ internal class B44ExrCompression : ExrBaseDecompressor
     /// </summary>
     /// <param name="b">The source byte data to unpack.</param>
     /// <param name="s">The destination buffer.</param>
-    private static void Unpack3(Span<byte> b, Span<ushort> s)
+    private static void Unpack3(ReadOnlySpan<byte> b, Span<ushort> s)
     {
         s[0] = (ushort)((b[0] << 8) | b[1]);
 

@@ -812,7 +812,7 @@ internal class Vp8LEncoder : IDisposable
         this.EncodeImageNoHuffman(this.TransformData.GetSpan(), this.HashChain, this.Refs[0], this.Refs[1], transformWidth, transformHeight, this.quality, lowEffort);
     }
 
-    private void EncodeImageNoHuffman(Span<uint> bgra, Vp8LHashChain hashChain, Vp8LBackwardRefs refsTmp1, Vp8LBackwardRefs refsTmp2, int width, int height, uint quality, bool lowEffort)
+    private void EncodeImageNoHuffman(ReadOnlySpan<uint> bgra, Vp8LHashChain hashChain, Vp8LBackwardRefs refsTmp1, Vp8LBackwardRefs refsTmp2, int width, int height, uint quality, bool lowEffort)
     {
         int cacheBits = 0;
         ushort[] histogramSymbols = new ushort[1]; // Only one tree, one symbol.
@@ -1044,7 +1044,7 @@ internal class Vp8LEncoder : IDisposable
         int width,
         int histoBits,
         Vp8LBackwardRefs backwardRefs,
-        Span<ushort> histogramSymbols,
+        ReadOnlySpan<ushort> histogramSymbols,
         HuffmanTreeCode[] huffmanCodes)
     {
         int histoXSize = histoBits > 0 ? LosslessUtils.SubSampleSize(width, histoBits) : 1;
@@ -1457,7 +1457,7 @@ internal class Vp8LEncoder : IDisposable
         }
     }
 
-    private static void ApplyPaletteFor(int width, int height, Span<uint> palette, int hashIdx, Span<uint> src, int srcStride, Span<uint> dst, int dstStride, Span<byte> tmpRow, uint[] buffer, int xBits)
+    private static void ApplyPaletteFor(int width, int height, ReadOnlySpan<uint> palette, int hashIdx, Span<uint> src, int srcStride, Span<uint> dst, int dstStride, Span<byte> tmpRow, uint[] buffer, int xBits)
     {
         uint prevPix = palette[0];
         uint prevIdx = 0;
@@ -1494,7 +1494,7 @@ internal class Vp8LEncoder : IDisposable
         }
     }
 
-    private static void ApplyPaletteForWithIdxMap(int width, int height, Span<uint> palette, Span<uint> src, int srcStride, Span<uint> dst, int dstStride, Span<byte> tmpRow, uint[] idxMap, int xBits, uint[] paletteSorted, int paletteSize)
+    private static void ApplyPaletteForWithIdxMap(int width, int height, ReadOnlySpan<uint> palette, Span<uint> src, int srcStride, Span<uint> dst, int dstStride, Span<byte> tmpRow, uint[] idxMap, int xBits, uint[] paletteSorted, int paletteSize)
     {
         uint prevPix = palette[0];
         uint prevIdx = 0;
@@ -1590,7 +1590,7 @@ internal class Vp8LEncoder : IDisposable
     /// <param name="palette">The palette.</param>
     /// <param name="numColors">Number of colors in the palette.</param>
     /// <returns>True, if the palette has no monotonous deltas.</returns>
-    private static bool PaletteHasNonMonotonousDeltas(Span<uint> palette, int numColors)
+    private static bool PaletteHasNonMonotonousDeltas(ReadOnlySpan<uint> palette, int numColors)
     {
         const uint predict = 0x000000;
         byte signFound = 0x00;
@@ -1619,6 +1619,7 @@ internal class Vp8LEncoder : IDisposable
         return (signFound & (signFound << 1)) != 0;  // two consequent signs.
     }
 
+#pragma warning disable CA1517 // False positive: https://github.com/dotnet/sdk/issues/53388
     /// <summary>
     /// Find greedily always the closest color of the predicted color to minimize
     /// deltas in the palette. This reduces storage needs since the palette is stored with delta encoding.
@@ -1647,6 +1648,7 @@ internal class Vp8LEncoder : IDisposable
             predict = palette[i];
         }
     }
+#pragma warning restore CA1517
 
     private static void GetHuffBitLengthsAndCodes(Vp8LHistogramSet histogramImage, HuffmanTreeCode[] huffmanCodes)
     {
@@ -1762,7 +1764,7 @@ internal class Vp8LEncoder : IDisposable
     /// <summary>
     /// Bundles multiple (1, 2, 4 or 8) pixels into a single pixel.
     /// </summary>
-    private static void BundleColorMap(Span<byte> row, int width, int xBits, Span<uint> dst)
+    private static void BundleColorMap(ReadOnlySpan<byte> row, int width, int xBits, Span<uint> dst)
     {
         int x;
         if (xBits > 0)
@@ -1836,7 +1838,7 @@ internal class Vp8LEncoder : IDisposable
     }
 
     [MethodImpl(InliningOptions.ShortMethod)]
-    private static uint SearchColorGreedy(Span<uint> palette, uint color)
+    private static uint SearchColorGreedy(ReadOnlySpan<uint> palette, uint color)
     {
         if (color == palette[0])
         {

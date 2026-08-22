@@ -74,7 +74,7 @@ internal class CostModel
 
     public double GetLiteralCost(uint v) => this.Alpha[v >> 24] + this.Red[(v >> 16) & 0xff] + this.Literal[(v >> 8) & 0xff] + this.Blue[v & 0xff];
 
-    private static void ConvertPopulationCountTableToBitEstimates(int numSymbols, Span<uint> populationCounts, double[] output)
+    private static void ConvertPopulationCountTableToBitEstimates(int numSymbols, ReadOnlySpan<uint> populationCounts, double[] output)
     {
         uint sum = 0;
         int nonzeros = 0;

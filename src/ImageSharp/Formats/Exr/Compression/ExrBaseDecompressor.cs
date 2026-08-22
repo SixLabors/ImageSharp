@@ -1,4 +1,4 @@
-// Copyright (c) Six Labors.
+﻿// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 using System.IO.Compression;
@@ -98,7 +98,7 @@ internal abstract class ExrBaseDecompressor : ExrBaseCompression
     /// <param name="source">The source data.</param>
     /// <param name="unCompressedBytes">The uncompressed bytes.</param>
     /// <param name="output">The output to write to.</param>
-    protected static void Interleave(Span<byte> source, uint unCompressedBytes, Span<byte> output)
+    protected static void Interleave(ReadOnlySpan<byte> source, uint unCompressedBytes, Span<byte> output)
     {
         int sourceOffset = 0;
         int offset0 = 0;

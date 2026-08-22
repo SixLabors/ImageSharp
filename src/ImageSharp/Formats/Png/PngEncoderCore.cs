@@ -1541,7 +1541,7 @@ internal sealed class PngEncoderCore : IDisposable
     /// <param name="stream">The <see cref="Stream"/> to write to.</param>
     /// <param name="type">The type of chunk to write.</param>
     /// <param name="data">The <see cref="T:byte[]"/> containing data.</param>
-    private void WriteChunk(Stream stream, PngChunkType type, Span<byte> data)
+    private void WriteChunk(Stream stream, PngChunkType type, ReadOnlySpan<byte> data)
         => this.WriteChunk(stream, type, data, 0, data.Length);
 
     /// <summary>
@@ -1552,7 +1552,7 @@ internal sealed class PngEncoderCore : IDisposable
     /// <param name="data">The <see cref="Span{Byte}"/> containing data.</param>
     /// <param name="offset">The position to offset the data at.</param>
     /// <param name="length">The of the data to write.</param>
-    private void WriteChunk(Stream stream, PngChunkType type, Span<byte> data, int offset, int length)
+    private void WriteChunk(Stream stream, PngChunkType type, ReadOnlySpan<byte> data, int offset, int length)
     {
         Span<byte> buffer = stackalloc byte[8];
 
@@ -1584,7 +1584,7 @@ internal sealed class PngEncoderCore : IDisposable
     /// <param name="data">The <see cref="Span{Byte}"/> containing data.</param>
     /// <param name="offset">The position to offset the data at.</param>
     /// <param name="length">The of the data to write.</param>
-    private void WriteFrameDataChunk(Stream stream, uint sequenceNumber, Span<byte> data, int offset, int length)
+    private void WriteFrameDataChunk(Stream stream, uint sequenceNumber, ReadOnlySpan<byte> data, int offset, int length)
     {
         Span<byte> buffer = stackalloc byte[12];
 

@@ -1,4 +1,4 @@
-// Copyright (c) Six Labors.
+﻿// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 #nullable disable
 
@@ -440,8 +440,8 @@ internal class TiffDecoderCore : ImageDecoderCore
         int width,
         int height,
         int rowsPerStrip,
-        Span<ulong> stripOffsets,
-        Span<ulong> stripByteCounts,
+        ReadOnlySpan<ulong> stripOffsets,
+        ReadOnlySpan<ulong> stripByteCounts,
         CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
@@ -518,8 +518,8 @@ internal class TiffDecoderCore : ImageDecoderCore
         int width,
         int height,
         int rowsPerStrip,
-        Span<ulong> stripOffsets,
-        Span<ulong> stripByteCounts,
+        ReadOnlySpan<ulong> stripOffsets,
+        ReadOnlySpan<ulong> stripByteCounts,
         CancellationToken cancellationToken)
        where TPixel : unmanaged, IPixel<TPixel>
     {
@@ -670,8 +670,8 @@ internal class TiffDecoderCore : ImageDecoderCore
         int tileLength,
         int tilesAcross,
         int tilesDown,
-        Span<ulong> tileOffsets,
-        Span<ulong> tileByteCounts,
+        ReadOnlySpan<ulong> tileOffsets,
+        ReadOnlySpan<ulong> tileByteCounts,
         CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
@@ -780,8 +780,8 @@ internal class TiffDecoderCore : ImageDecoderCore
         int tileLength,
         int tilesAcross,
         int tilesDown,
-        Span<ulong> tileOffsets,
-        Span<ulong> tileByteCounts,
+        ReadOnlySpan<ulong> tileOffsets,
+        ReadOnlySpan<ulong> tileByteCounts,
         CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {

@@ -1,4 +1,4 @@
-// Copyright (c) Six Labors.
+﻿// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 using System.Buffers;
@@ -104,7 +104,7 @@ internal sealed class TiffLzwEncoder : IDisposable
     /// </summary>
     /// <param name="data">The data to compress.</param>
     /// <param name="stream">The stream to write to.</param>
-    public void Encode(Span<byte> data, Stream stream)
+    public void Encode(ReadOnlySpan<byte> data, Stream stream)
     {
         this.Reset();
 
@@ -214,7 +214,7 @@ internal sealed class TiffLzwEncoder : IDisposable
         this.bufferPosition = 0;
     }
 
-    private byte ReadNextByte(Span<byte> data) => data[this.bufferPosition++];
+    private byte ReadNextByte(ReadOnlySpan<byte> data) => data[this.bufferPosition++];
 
     private void IncreaseCodeSizeOrResetIfNeeded(Stream stream)
     {

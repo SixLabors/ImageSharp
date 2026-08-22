@@ -1,4 +1,4 @@
-// Copyright (c) Six Labors.
+﻿// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 #nullable disable
 
@@ -320,7 +320,7 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
     private static int ReadFloatChannelData(
         BufferedReadStream stream,
         ExrChannelInfo channel,
-        Span<byte> decompressedPixelData,
+        ReadOnlySpan<byte> decompressedPixelData,
         Span<float> redPixelData,
         Span<float> greenPixelData,
         Span<float> bluePixelData,
@@ -371,7 +371,7 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
     private int ReadUnsignedIntChannelData(
         BufferedReadStream stream,
         ExrChannelInfo channel,
-        Span<byte> decompressedPixelData,
+        ReadOnlySpan<byte> decompressedPixelData,
         Span<uint> redPixelData,
         Span<uint> greenPixelData,
         Span<uint> bluePixelData,
@@ -414,7 +414,7 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
     /// <param name="pixelData">The pixel data as float.</param>
     /// <param name="width">The width in pixel of a row.</param>
     /// <returns>The bytes read.</returns>
-    private static int ReadChannelData(ExrChannelInfo channel, Span<byte> decompressedPixelData, Span<float> pixelData, int width) => channel.PixelType switch
+    private static int ReadChannelData(ExrChannelInfo channel, ReadOnlySpan<byte> decompressedPixelData, Span<float> pixelData, int width) => channel.PixelType switch
     {
         ExrPixelType.Half => ReadPixelRowChannelHalfSingle(decompressedPixelData, pixelData, width),
         ExrPixelType.Float => ReadPixelRowChannelSingle(decompressedPixelData, pixelData, width),
@@ -429,7 +429,7 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
     /// <param name="pixelData">The pixel data as uint.</param>
     /// <param name="width">The width in pixels.</param>
     /// <returns>The bytes read.</returns>
-    private static int ReadChannelData(ExrChannelInfo channel, Span<byte> decompressedPixelData, Span<uint> pixelData, int width) => channel.PixelType switch
+    private static int ReadChannelData(ExrChannelInfo channel, ReadOnlySpan<byte> decompressedPixelData, Span<uint> pixelData, int width) => channel.PixelType switch
     {
         ExrPixelType.UnsignedInt => ReadPixelRowChannelUnsignedInt(decompressedPixelData, pixelData, width),
         _ => 0,
@@ -442,7 +442,7 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
     /// <param name="channelData">The channel data as float.</param>
     /// <param name="width">The width of a row in pixels.</param>
     /// <returns>The bytes read.</returns>
-    private static int ReadPixelRowChannelHalfSingle(Span<byte> decompressedPixelData, Span<float> channelData, int width)
+    private static int ReadPixelRowChannelHalfSingle(ReadOnlySpan<byte> decompressedPixelData, Span<float> channelData, int width)
     {
         int offset = 0;
         for (int x = 0; x < width; x++)
@@ -462,7 +462,7 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
     /// <param name="channelData">The pixel data as float.</param>
     /// <param name="width">The width in pixels of a row.</param>
     /// <returns>The bytes read.</returns>
-    private static int ReadPixelRowChannelSingle(Span<byte> decompressedPixelData, Span<float> channelData, int width)
+    private static int ReadPixelRowChannelSingle(ReadOnlySpan<byte> decompressedPixelData, Span<float> channelData, int width)
     {
         int offset = 0;
         for (int x = 0; x < width; x++)
@@ -482,7 +482,7 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
     /// <param name="channelData">The uint pixel data.</param>
     /// <param name="width">The width of a row in pixels.</param>
     /// <returns>The bytes read.</returns>
-    private static int ReadPixelRowChannelUnsignedInt(Span<byte> decompressedPixelData, Span<uint> channelData, int width)
+    private static int ReadPixelRowChannelUnsignedInt(ReadOnlySpan<byte> decompressedPixelData, Span<uint> channelData, int width)
     {
         int offset = 0;
         for (int x = 0; x < width; x++)

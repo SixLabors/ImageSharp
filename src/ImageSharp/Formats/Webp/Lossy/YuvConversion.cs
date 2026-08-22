@@ -39,7 +39,7 @@ internal static class YuvConversion
         }
     }
 
-    private static void UpSampleScalar(Span<byte> topY, Span<byte> bottomY, Span<byte> topU, Span<byte> topV, Span<byte> curU, Span<byte> curV, Span<byte> topDst, Span<byte> bottomDst, int len)
+    private static void UpSampleScalar(ReadOnlySpan<byte> topY, ReadOnlySpan<byte> bottomY, ReadOnlySpan<byte> topU, ReadOnlySpan<byte> topV, ReadOnlySpan<byte> curU, ReadOnlySpan<byte> curV, Span<byte> topDst, Span<byte> bottomDst, int len)
     {
         const int xStep = 3;
         int lastPixelPair = (len - 1) >> 1;
@@ -346,7 +346,7 @@ internal static class YuvConversion
     /// <param name="y">The destination span for y.</param>
     /// <param name="width">The width.</param>
     [MethodImpl(InliningOptions.ShortMethod)]
-    public static void ConvertRgbaToY(Span<Bgra32> rowSpan, Span<byte> y, int width)
+    public static void ConvertRgbaToY(ReadOnlySpan<Bgra32> rowSpan, Span<byte> y, int width)
     {
         for (int x = 0; x < width; x++)
         {
@@ -361,7 +361,7 @@ internal static class YuvConversion
     /// <param name="u">The destination span for u.</param>
     /// <param name="v">The destination span for v.</param>
     /// <param name="width">The width.</param>
-    public static void ConvertRgbaToUv(Span<ushort> rgb, Span<byte> u, Span<byte> v, int width)
+    public static void ConvertRgbaToUv(ReadOnlySpan<ushort> rgb, Span<byte> u, Span<byte> v, int width)
     {
         int rgbIdx = 0;
         for (int i = 0; i < width; i += 1, rgbIdx += 4)
@@ -372,7 +372,7 @@ internal static class YuvConversion
         }
     }
 
-    public static void AccumulateRgb(Span<Bgra32> rowSpan, Span<Bgra32> nextRowSpan, Span<ushort> dst, int width)
+    public static void AccumulateRgb(ReadOnlySpan<Bgra32> rowSpan, ReadOnlySpan<Bgra32> nextRowSpan, Span<ushort> dst, int width)
     {
         Bgra32 bgra0;
         Bgra32 bgra1;
@@ -416,7 +416,7 @@ internal static class YuvConversion
         }
     }
 
-    public static void AccumulateRgba(Span<Bgra32> rowSpan, Span<Bgra32> nextRowSpan, Span<ushort> dst, int width)
+    public static void AccumulateRgba(ReadOnlySpan<Bgra32> rowSpan, ReadOnlySpan<Bgra32> nextRowSpan, Span<ushort> dst, int width)
     {
         Bgra32 bgra0;
         Bgra32 bgra1;

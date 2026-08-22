@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.IO.Compression;
 using SixLabors.ImageSharp.Compression.Zlib;
 using SixLabors.ImageSharp.Memory;
 
@@ -12,8 +13,6 @@ namespace SixLabors.ImageSharp.Formats.Exr.Compression.Compressors;
 internal class ZipExrCompressor : ExrBaseCompressor
 {
     private readonly DeflateCompressionLevel compressionLevel;
-
-    private readonly MemoryStream memoryStream;
 
     private readonly System.Buffers.IMemoryOwner<byte> buffer;
 
@@ -32,7 +31,6 @@ internal class ZipExrCompressor : ExrBaseCompressor
     {
         this.compressionLevel = compressionLevel;
         this.buffer = allocator.Allocate<byte>((int)bytesPerBlock);
-        this.memoryStream = new();
     }
 
     /// <inheritdoc/>
@@ -59,28 +57,22 @@ internal class ZipExrCompressor : ExrBaseCompressor
             predicted[i] = (byte)d;
         }
 
-        this.memoryStream.Seek(0, SeekOrigin.Begin);
-        using (ZlibDeflateStream stream = new(this.Allocator, this.memoryStream, this.compressionLevel))
+        // Compressed bytes stream straight to the output in fixed segments. The block size is
+        // totaled in the callback because the final partial segment is only emitted on disposal.
+        uint size = 0;
+        using (ChunkedWriteStream segmentStream = new(this.Allocator, segment =>
+        {
+            this.Output.Write(segment);
+            size += (uint)segment.Length;
+        }))
+        using (ZLibStream stream = new(segmentStream, new ZLibCompressionOptions { CompressionLevel = (int)this.compressionLevel }, true))
         {
             stream.Write(predicted);
-            stream.Flush();
         }
 
-        int size = (int)this.memoryStream.Position;
-        byte[] buffer = this.memoryStream.GetBuffer();
-        this.Output.Write(buffer, 0, size);
-
-        // Reset memory stream for next pixel row.
-        this.memoryStream.Seek(0, SeekOrigin.Begin);
-        this.memoryStream.SetLength(0);
-
-        return (uint)size;
+        return size;
     }
 
     /// <inheritdoc/>
-    protected override void Dispose(bool disposing)
-    {
-        this.buffer.Dispose();
-        this.memoryStream?.Dispose();
-    }
+    protected override void Dispose(bool disposing) => this.buffer.Dispose();
 }

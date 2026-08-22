@@ -4,6 +4,7 @@
 using System.Buffers;
 using System.Buffers.Binary;
 using System.Diagnostics.CodeAnalysis;
+using System.IO.Compression;
 using System.IO.Hashing;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -1197,7 +1198,7 @@ internal sealed class PngEncoderCore : IDisposable
     private byte[] GetZlibCompressedBytes(byte[] dataBytes)
     {
         using MemoryStream memoryStream = new();
-        using (ZlibDeflateStream deflateStream = new(this.memoryAllocator, memoryStream, this.encoder.CompressionLevel))
+        using (ZLibStream deflateStream = new(memoryStream, new ZLibCompressionOptions { CompressionLevel = (int)this.encoder.CompressionLevel }, true))
         {
             deflateStream.Write(dataBytes);
         }
@@ -1320,34 +1321,6 @@ internal sealed class PngEncoderCore : IDisposable
     private uint WriteDataChunks<TPixel>(in FrameControl frameControl, in Buffer2DRegion<TPixel> frame, IndexedImageFrame<TPixel>? quantized, Stream stream, bool isFrame)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        byte[] buffer;
-        int bufferLength;
-
-        using (MemoryStream memoryStream = new())
-        {
-            using (ZlibDeflateStream deflateStream = new(this.memoryAllocator, memoryStream, this.encoder.CompressionLevel))
-            {
-                if (this.interlaceMode is PngInterlaceMode.Adam7)
-                {
-                    if (quantized is not null)
-                    {
-                        this.EncodeAdam7IndexedPixels(quantized, deflateStream);
-                    }
-                    else
-                    {
-                        this.EncodeAdam7Pixels(in frame, deflateStream);
-                    }
-                }
-                else
-                {
-                    this.EncodePixels(in frame, quantized, deflateStream);
-                }
-            }
-
-            buffer = memoryStream.ToArray();
-            bufferLength = buffer.Length;
-        }
-
         // Store the chunks in repeated 64k blocks.
         // This reduces the memory load for decoding the image for many decoders.
         int maxBlockSize = MaxBlockSize;
@@ -1356,36 +1329,46 @@ internal sealed class PngEncoderCore : IDisposable
             maxBlockSize -= 4;
         }
 
-        int numChunks = bufferLength / maxBlockSize;
-
-        if (bufferLength % maxBlockSize != 0)
+        // Compressed bytes stream straight into data chunks as each block fills, so nothing
+        // larger than one block is buffered. The final partial block is emitted when the
+        // segment stream is disposed, after the deflate stream has written its trailer.
+        // '1' is added to the sequence number to account for the preceding frame control chunk;
+        // it then increments for each frame data chunk.
+        uint numChunks = 0;
+        uint sequenceNumber = frameControl.SequenceNumber + 1;
+        using (ChunkedWriteStream segmentStream = new(this.memoryAllocator, maxBlockSize, segment =>
         {
-            numChunks++;
-        }
-
-        for (int i = 0; i < numChunks; i++)
-        {
-            int length = bufferLength - (i * maxBlockSize);
-
-            if (length > maxBlockSize)
-            {
-                length = maxBlockSize;
-            }
-
             if (isFrame)
             {
-                // We increment the sequence number for each frame chunk.
-                // '1' is added to the sequence number to account for the preceding frame control chunk.
-                uint sequenceNumber = (uint)(frameControl.SequenceNumber + 1 + i);
-                this.WriteFrameDataChunk(stream, sequenceNumber, buffer, i * maxBlockSize, length);
+                this.WriteFrameDataChunk(stream, sequenceNumber++, segment, 0, segment.Length);
             }
             else
             {
-                this.WriteChunk(stream, PngChunkType.Data, buffer, i * maxBlockSize, length);
+                this.WriteChunk(stream, PngChunkType.Data, segment);
+            }
+
+            numChunks++;
+        }))
+        using (ZLibStream deflateStream = new(segmentStream, new ZLibCompressionOptions { CompressionLevel = (int)this.encoder.CompressionLevel }, true))
+        {
+            if (this.interlaceMode is PngInterlaceMode.Adam7)
+            {
+                if (quantized is not null)
+                {
+                    this.EncodeAdam7IndexedPixels(quantized, deflateStream);
+                }
+                else
+                {
+                    this.EncodeAdam7Pixels(in frame, deflateStream);
+                }
+            }
+            else
+            {
+                this.EncodePixels(in frame, quantized, deflateStream);
             }
         }
 
-        return (uint)numChunks;
+        return numChunks;
     }
 
     /// <summary>
@@ -1408,7 +1391,7 @@ internal sealed class PngEncoderCore : IDisposable
     /// <param name="pixels">The image frame pixel buffer.</param>
     /// <param name="quantized">The quantized pixels.</param>
     /// <param name="deflateStream">The deflate stream.</param>
-    private void EncodePixels<TPixel>(in Buffer2DRegion<TPixel> pixels, IndexedImageFrame<TPixel>? quantized, ZlibDeflateStream deflateStream)
+    private void EncodePixels<TPixel>(in Buffer2DRegion<TPixel> pixels, IndexedImageFrame<TPixel>? quantized, ZLibStream deflateStream)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         int bytesPerScanline = this.CalculateScanlineLength(pixels.Width);
@@ -1435,7 +1418,7 @@ internal sealed class PngEncoderCore : IDisposable
     /// <typeparam name="TPixel">The type of the pixel.</typeparam>
     /// <param name="pixels">The image frame pixel buffer.</param>
     /// <param name="deflateStream">The deflate stream.</param>
-    private void EncodeAdam7Pixels<TPixel>(in Buffer2DRegion<TPixel> pixels, ZlibDeflateStream deflateStream)
+    private void EncodeAdam7Pixels<TPixel>(in Buffer2DRegion<TPixel> pixels, ZLibStream deflateStream)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         for (int pass = 0; pass < 7; pass++)
@@ -1486,7 +1469,7 @@ internal sealed class PngEncoderCore : IDisposable
     /// <typeparam name="TPixel">The type of the pixel.</typeparam>
     /// <param name="quantized">The quantized.</param>
     /// <param name="deflateStream">The deflate stream.</param>
-    private void EncodeAdam7IndexedPixels<TPixel>(IndexedImageFrame<TPixel> quantized, ZlibDeflateStream deflateStream)
+    private void EncodeAdam7IndexedPixels<TPixel>(IndexedImageFrame<TPixel> quantized, ZLibStream deflateStream)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         for (int pass = 0; pass < 7; pass++)

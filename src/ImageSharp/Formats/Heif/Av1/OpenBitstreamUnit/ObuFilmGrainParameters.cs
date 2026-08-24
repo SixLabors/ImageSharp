@@ -3,6 +3,9 @@
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 
+/// <summary>
+/// Contains the parameters used to synthesize AV1 film grain for a decoded frame.
+/// </summary>
 internal class ObuFilmGrainParameters
 {
     /// <summary>

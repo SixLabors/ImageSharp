@@ -3,27 +3,44 @@
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 
+/// <summary>
+/// Contains the sequence-level constraints for an AV1 operating point.
+/// </summary>
 internal class ObuOperatingPoint
 {
+    /// <summary>
+    /// Gets or sets the operating-point index.
+    /// </summary>
     internal int OperatorIndex { get; set; }
 
+    /// <summary>
+    /// Gets or sets the AV1 sequence-level index.
+    /// </summary>
     internal int SequenceLevelIndex { get; set; }
 
+    /// <summary>
+    /// Gets or sets the sequence tier.
+    /// </summary>
     internal int SequenceTier { get; set; }
 
+    /// <summary>
+    /// Gets or sets a value indicating whether decoder-model timing is present for this operating point.
+    /// </summary>
     internal bool IsDecoderModelInfoPresent { get; set; }
 
+    /// <summary>
+    /// Gets or sets a value indicating whether an initial display delay is present for this operating point.
+    /// </summary>
     internal bool IsInitialDisplayDelayPresent { get; set; }
 
+    /// <summary>
+    /// Gets or sets the initial display delay minus one, in decoded frames.
+    /// </summary>
     internal uint InitialDisplayDelay { get; set; }
 
     /// <summary>
-    /// Gets or sets of sets the Idc bitmask. The bitmask that indicates which spatial and temporal layers should be decoded for
-    /// operating point i.Bit k is equal to 1 if temporal layer k should be decoded(for k between 0 and 7). Bit j+8 is equal to 1 if
-    /// spatial layer j should be decoded(for j between 0 and 3).
-    /// However, if operating_point_idc[i] is equal to 0 then the coded video sequence has no scalability information in OBU
-    /// extension headers and the operating point applies to the entire coded video sequence.This means that all OBUs must be decoded.
-    /// It is a requirement of bitstream conformance that operating_point_idc[i] is not equal to operating_point_idc[j] for j = 0..(i- 1).
+    /// Gets or sets the bitmask selecting temporal and spatial layers for the operating point.
+    /// A value of zero selects the complete coded sequence.
     /// </summary>
     internal uint Idc { get; set; }
 }

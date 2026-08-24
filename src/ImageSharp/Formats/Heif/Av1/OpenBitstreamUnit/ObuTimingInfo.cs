@@ -3,6 +3,9 @@
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 
+/// <summary>
+/// Contains the timing syntax signaled by an AV1 sequence header.
+/// </summary>
 internal class ObuTimingInfo
 {
     /// <summary>

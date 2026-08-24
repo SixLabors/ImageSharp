@@ -3,13 +3,28 @@
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 
+/// <summary>
+/// Contains the sequence-level order-hint and dependent prediction-tool settings.
+/// </summary>
 internal class ObuOrderHintInfo
 {
+    /// <summary>
+    /// Gets or sets a value indicating whether order hints are enabled.
+    /// </summary>
     public bool EnableOrderHint { get; internal set; }
 
+    /// <summary>
+    /// Gets or sets a value indicating whether joint compound prediction is enabled.
+    /// </summary>
     internal bool EnableJointCompound { get; set; }
 
+    /// <summary>
+    /// Gets or sets a value indicating whether reference-frame motion vectors are enabled.
+    /// </summary>
     internal bool EnableReferenceFrameMotionVectors { get; set; }
 
+    /// <summary>
+    /// Gets or sets the number of bits used to encode order hints.
+    /// </summary>
     internal int OrderHintBits { get; set; }
 }

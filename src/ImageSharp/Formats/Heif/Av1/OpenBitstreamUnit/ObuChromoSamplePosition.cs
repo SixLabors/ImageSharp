@@ -3,6 +3,9 @@
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 
+/// <summary>
+/// Identifies the position of chroma samples relative to luma samples.
+/// </summary>
 internal enum ObuChromoSamplePosition : byte
 {
     /// <summary>
@@ -11,12 +14,12 @@ internal enum ObuChromoSamplePosition : byte
     Unknown = 0,
 
     /// <summary>
-    /// Horizontally co-located with luma(0, 0) sample, between two vertical samples.
+    /// The chroma sample is horizontally co-located with the top-left luma sample and lies between two luma rows.
     /// </summary>
     Vertical = 1,
 
     /// <summary>
-    /// Co-located with luma(0, 0) sample
+    /// The chroma sample is co-located with the top-left luma sample.
     /// </summary>
     Colocated = 2,
 

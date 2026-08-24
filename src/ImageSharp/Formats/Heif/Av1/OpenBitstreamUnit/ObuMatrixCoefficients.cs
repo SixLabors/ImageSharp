@@ -6,7 +6,7 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 internal enum ObuMatrixCoefficients
 {
     Identity = 0,
-    Bt407 = 1,
+    Bt709 = 1,
     Unspecified = 2,
     Fcc = 4,
     Bt470BG = 5,

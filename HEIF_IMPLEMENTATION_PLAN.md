@@ -52,6 +52,14 @@ The initial post-merge snapshot was established on 2026-08-24:
 
 This snapshot pins or classifies the available references and failures; it does not complete Phase 0. The full WIP provenance map, disabled-test inventory, HEVC reference selection, and feature-state matrix remain required.
 
+### Provenance map in progress
+
+| Managed implementation | Normative behavior | Reviewed implementation reference | Use |
+| --- | --- | --- | --- |
+| `Av1YuvConverter.ConvertToRgb`, `ConvertFromRgb`, and scalar row conversion | H.273 formulas 20-31 and the identity, YCgCo, and non-constant-luminance matrix formulas | libavif `src/reformat.c` and `src/colr.c` at `092276ce89098ead06db80975173191e5fee1826` | Scalar behavioral oracle for 8-bit YUV 4:4:4 full/limited-range conversion; later subsampling, high-bit-depth, and SIMD paths must match it. |
+
+This table is intentionally incomplete. Add a row before each additional AV1 or HEVC algorithm is ported or materially reshaped.
+
 ## Current implementation assessment
 
 This assessment is based on the current source after the upstream ImageSharp merge and the baseline recorded above. Unless a result is stated explicitly, each item is a source-inspection finding rather than a verified interoperability claim.

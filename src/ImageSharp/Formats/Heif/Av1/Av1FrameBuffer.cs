@@ -25,6 +25,7 @@ internal class Av1FrameBuffer<T> : IDisposable
         this.MaxWidth = sequenceHeader.MaxFrameWidth;
         this.MaxHeight = sequenceHeader.MaxFrameHeight;
         this.BitDepth = sequenceHeader.ColorConfig.BitDepth;
+        this.ColorConfig = sequenceHeader.ColorConfig;
         int bitsPerPixel = this.BitDepth > Av1BitDepth.EightBit || is16BitPipeline ? 2 : 1;
         this.ColorFormat = colorFormat;
         this.BufferEnableMask = sequenceHeader.ColorConfig.IsMonochrome ? PictureBufferLumaMask : PictureBufferFullMask;
@@ -146,6 +147,11 @@ internal class Av1FrameBuffer<T> : IDisposable
     /// Gets or sets the pixel bit depth.
     /// </summary>
     public Av1BitDepth BitDepth { get; set; }
+
+    /// <summary>
+    /// Gets the color configuration signaled by the AV1 sequence header.
+    /// </summary>
+    public ObuColorConfig ColorConfig { get; }
 
     /// <summary>
     /// Gets or sets the chroma subsampling.

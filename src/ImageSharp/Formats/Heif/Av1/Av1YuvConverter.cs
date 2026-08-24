@@ -54,6 +54,11 @@ internal static class Av1YuvConverter
         /// A constant-luminance transform using the signaled transfer characteristics.
         /// </summary>
         ConstantLuminance,
+
+        /// <summary>
+        /// The BT.2100 ICtCp color transform.
+        /// </summary>
+        ICtCp,
     }
 
     /// <summary>
@@ -454,6 +459,9 @@ internal static class Av1YuvConverter
                 mode = ConversionMode.ConstantLuminance;
                 GetChromaticityDerivedCoefficients(frameBuffer.ColorConfig.ColorPrimaries, out kr, out kb);
                 break;
+            case ObuMatrixCoefficients.Bt2100ICtCp:
+                mode = ConversionMode.ICtCp;
+                break;
             default:
                 throw new NotSupportedException($"AV1 matrix coefficients '{frameBuffer.ColorConfig.MatrixCoefficients}' are not currently supported.");
         }
@@ -746,6 +754,52 @@ internal static class Av1YuvConverter
                         r = nonlinearRed;
                         g = Av1TransferFunctions.ToGamma(transferCharacteristics, linearGreen);
                         b = nonlinearBlue;
+                        break;
+                    case ConversionMode.ICtCp:
+                        float nonlinearL;
+                        float nonlinearM;
+                        float nonlinearS;
+                        if (transferCharacteristics == ObuTransferCharacteristics.Hlg)
+                        {
+                            // This is the exact inverse of H.273 equations 82 to 84. The first column is one
+                            // because intensity is defined as the average of the L and M components.
+                            nonlinearL = y + (0.015718580108730413F * cb) + (0.2095810681164055F * cr);
+                            nonlinearM = y - (0.015718580108730413F * cb) - (0.2095810681164055F * cr);
+                            nonlinearS = y + (1.0212710798422342F * cb) - (0.6052744909924315F * cr);
+                        }
+                        else
+                        {
+                            // H.273 equations 79 to 81 are the ICtCp matrix selected for PQ and every transfer
+                            // code other than HLG. These constants are the exact inverse of its integer matrix.
+                            nonlinearL = y + (0.008609037037932756F * cb) + (0.11102962500302596F * cr);
+                            nonlinearM = y - (0.008609037037932756F * cb) - (0.11102962500302596F * cr);
+                            nonlinearS = y + (0.5600313357106791F * cb) - (0.32062717498731885F * cr);
+                        }
+
+                        float linearL = Av1TransferFunctions.ToLinear(transferCharacteristics, nonlinearL);
+                        float linearM = Av1TransferFunctions.ToLinear(transferCharacteristics, nonlinearM);
+                        float linearS = Av1TransferFunctions.ToLinear(transferCharacteristics, nonlinearS);
+
+                        // This cofactor inverse of H.273 equations 14 to 16 recovers linear RGB from LMS.
+                        // Applying the transfer curve last returns the nonlinear RGB values stored by ImageSharp.
+                        float ictcpLinearRed =
+                            (3.4366066943330784F * linearL) -
+                            (2.50645211865627F * linearM) +
+                            (0.06984542432319148F * linearS);
+
+                        float ictcpLinearGreen =
+                            (-0.7913295555989287F * linearL) +
+                            (1.9836004517922907F * linearM) -
+                            (0.192270896193362F * linearS);
+
+                        float ictcpLinearBlue =
+                            (-0.025949899690592672F * linearL) -
+                            (0.09891371471172644F * linearM) +
+                            (1.1248636144023192F * linearS);
+
+                        r = Av1TransferFunctions.ToGamma(transferCharacteristics, ictcpLinearRed);
+                        g = Av1TransferFunctions.ToGamma(transferCharacteristics, ictcpLinearGreen);
+                        b = Av1TransferFunctions.ToGamma(transferCharacteristics, ictcpLinearBlue);
                         break;
                     default:
                         r = y + (2F * (1F - kr) * cr);
@@ -1091,6 +1145,38 @@ internal static class Av1YuvConverter
 
                 cr = redDifference /
                     (2F * (redDifference <= 0F ? constantLuminanceScales.NegativeRed : constantLuminanceScales.PositiveRed));
+
+                break;
+            case ConversionMode.ICtCp:
+                float ictcpLinearRed = Av1TransferFunctions.ToLinear(transferCharacteristics, r);
+                float ictcpLinearGreen = Av1TransferFunctions.ToLinear(transferCharacteristics, g);
+                float ictcpLinearBlue = Av1TransferFunctions.ToLinear(transferCharacteristics, b);
+
+                // H.273 equations 14 to 16 convert linear BT.2100 RGB into the LMS cone-response domain
+                // before the signaled transfer curve is applied to each component.
+                float nonlinearL = Av1TransferFunctions.ToGamma(
+                    transferCharacteristics,
+                    ((1688F * ictcpLinearRed) + (2146F * ictcpLinearGreen) + (262F * ictcpLinearBlue)) / 4096F);
+
+                float nonlinearM = Av1TransferFunctions.ToGamma(
+                    transferCharacteristics,
+                    ((683F * ictcpLinearRed) + (2951F * ictcpLinearGreen) + (462F * ictcpLinearBlue)) / 4096F);
+
+                float nonlinearS = Av1TransferFunctions.ToGamma(
+                    transferCharacteristics,
+                    ((99F * ictcpLinearRed) + (309F * ictcpLinearGreen) + (3688F * ictcpLinearBlue)) / 4096F);
+
+                y = 0.5F * (nonlinearL + nonlinearM);
+                if (transferCharacteristics == ObuTransferCharacteristics.Hlg)
+                {
+                    cb = ((3625F * nonlinearL) - (7465F * nonlinearM) + (3840F * nonlinearS)) / 4096F;
+                    cr = ((9500F * nonlinearL) - (9212F * nonlinearM) - (288F * nonlinearS)) / 4096F;
+                }
+                else
+                {
+                    cb = ((6610F * nonlinearL) - (13613F * nonlinearM) + (7003F * nonlinearS)) / 4096F;
+                    cr = ((17933F * nonlinearL) - (17390F * nonlinearM) - (543F * nonlinearS)) / 4096F;
+                }
 
                 break;
             default:

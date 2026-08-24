@@ -1010,6 +1010,150 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                                 BinaryPrimitives.ReadUInt32BigEndian(boxBuffer[20..]) * luminanceScale)));
 
                     break;
+                case Heif4CharCode.Cclv:
+                    EnsureBufferRemaining(boxBuffer, 0, 1, "content color volume");
+                    byte contentColorVolumeFlags = boxBuffer[0];
+                    if ((contentColorVolumeFlags & 0xC3) != 0)
+                    {
+                        throw new InvalidImageContentException("The content color-volume property has nonzero reserved flags.");
+                    }
+
+                    bool contentPrimariesPresent = (contentColorVolumeFlags & 0x20) != 0;
+                    bool minimumLuminancePresent = (contentColorVolumeFlags & 0x10) != 0;
+                    bool maximumLuminancePresent = (contentColorVolumeFlags & 0x08) != 0;
+                    bool averageLuminancePresent = (contentColorVolumeFlags & 0x04) != 0;
+                    if (!contentPrimariesPresent
+                        && !minimumLuminancePresent
+                        && !maximumLuminancePresent
+                        && !averageLuminancePresent)
+                    {
+                        throw new InvalidImageContentException("The content color-volume property does not describe any values.");
+                    }
+
+                    int expectedContentColorVolumeLength = 1
+                        + (contentPrimariesPresent ? 24 : 0)
+                        + (minimumLuminancePresent ? 4 : 0)
+                        + (maximumLuminancePresent ? 4 : 0)
+                        + (averageLuminancePresent ? 4 : 0);
+
+                    if (boxBuffer.Length != expectedContentColorVolumeLength)
+                    {
+                        throw new InvalidImageContentException("The content color-volume property has an invalid length.");
+                    }
+
+                    int contentColorVolumeOffset = 1;
+                    RgbPrimariesChromaticityCoordinates? contentPrimaries = null;
+                    if (contentPrimariesPresent)
+                    {
+                        int greenPrimaryX = BinaryPrimitives.ReadInt32BigEndian(boxBuffer[contentColorVolumeOffset..]);
+                        int greenPrimaryY = BinaryPrimitives.ReadInt32BigEndian(boxBuffer[(contentColorVolumeOffset + 4)..]);
+                        int bluePrimaryX = BinaryPrimitives.ReadInt32BigEndian(boxBuffer[(contentColorVolumeOffset + 8)..]);
+                        int bluePrimaryY = BinaryPrimitives.ReadInt32BigEndian(boxBuffer[(contentColorVolumeOffset + 12)..]);
+                        int redPrimaryX = BinaryPrimitives.ReadInt32BigEndian(boxBuffer[(contentColorVolumeOffset + 16)..]);
+                        int redPrimaryY = BinaryPrimitives.ReadInt32BigEndian(boxBuffer[(contentColorVolumeOffset + 20)..]);
+
+                        const int maximumContentChromaticityValue = 5_000_000;
+                        if (greenPrimaryX < -maximumContentChromaticityValue
+                            || greenPrimaryX > maximumContentChromaticityValue
+                            || greenPrimaryY < -maximumContentChromaticityValue
+                            || greenPrimaryY > maximumContentChromaticityValue
+                            || bluePrimaryX < -maximumContentChromaticityValue
+                            || bluePrimaryX > maximumContentChromaticityValue
+                            || bluePrimaryY < -maximumContentChromaticityValue
+                            || bluePrimaryY > maximumContentChromaticityValue
+                            || redPrimaryX < -maximumContentChromaticityValue
+                            || redPrimaryX > maximumContentChromaticityValue
+                            || redPrimaryY < -maximumContentChromaticityValue
+                            || redPrimaryY > maximumContentChromaticityValue)
+                        {
+                            throw new InvalidImageContentException("The content color-volume property has an out-of-range primary coordinate.");
+                        }
+
+                        const float contentChromaticityScale = 1F / 50000F;
+
+                        // Content-color-volume syntax stores signed coordinates in G, B, R order. Reorder the
+                        // optional primaries into ImageSharp's existing RGB coordinate representation.
+                        contentPrimaries = new RgbPrimariesChromaticityCoordinates(
+                            new CieXyChromaticityCoordinates(
+                                redPrimaryX * contentChromaticityScale,
+                                redPrimaryY * contentChromaticityScale),
+                            new CieXyChromaticityCoordinates(
+                                greenPrimaryX * contentChromaticityScale,
+                                greenPrimaryY * contentChromaticityScale),
+                            new CieXyChromaticityCoordinates(
+                                bluePrimaryX * contentChromaticityScale,
+                                bluePrimaryY * contentChromaticityScale));
+
+                        contentColorVolumeOffset += 24;
+                    }
+
+                    uint? minimumLuminanceValue = null;
+                    if (minimumLuminancePresent)
+                    {
+                        minimumLuminanceValue = BinaryPrimitives.ReadUInt32BigEndian(boxBuffer[contentColorVolumeOffset..]);
+                        contentColorVolumeOffset += 4;
+                    }
+
+                    uint? maximumLuminanceValue = null;
+                    if (maximumLuminancePresent)
+                    {
+                        maximumLuminanceValue = BinaryPrimitives.ReadUInt32BigEndian(boxBuffer[contentColorVolumeOffset..]);
+                        contentColorVolumeOffset += 4;
+                    }
+
+                    uint? averageLuminanceValue = null;
+                    if (averageLuminancePresent)
+                    {
+                        averageLuminanceValue = BinaryPrimitives.ReadUInt32BigEndian(boxBuffer[contentColorVolumeOffset..]);
+                    }
+
+                    if (minimumLuminanceValue is not null
+                        && averageLuminanceValue is not null
+                        && minimumLuminanceValue.Value > averageLuminanceValue.Value)
+                    {
+                        throw new InvalidImageContentException("The content color-volume minimum luminance exceeds its average luminance.");
+                    }
+
+                    if (averageLuminanceValue is not null
+                        && maximumLuminanceValue is not null
+                        && averageLuminanceValue.Value > maximumLuminanceValue.Value)
+                    {
+                        throw new InvalidImageContentException("The content color-volume average luminance exceeds its maximum luminance.");
+                    }
+
+                    if (minimumLuminanceValue is not null
+                        && maximumLuminanceValue is not null
+                        && minimumLuminanceValue.Value > maximumLuminanceValue.Value)
+                    {
+                        throw new InvalidImageContentException("The content color-volume minimum luminance exceeds its maximum luminance.");
+                    }
+
+                    const double contentLuminanceScale = 1D / 10000000D;
+
+                    // These values are normalized according to the signaled transfer characteristics. Preserve
+                    // that unitless meaning instead of presenting them as physical display luminance.
+                    double? minimumContentLuminance = minimumLuminanceValue is not null
+                        ? minimumLuminanceValue.Value * contentLuminanceScale
+                        : null;
+
+                    double? maximumContentLuminance = maximumLuminanceValue is not null
+                        ? maximumLuminanceValue.Value * contentLuminanceScale
+                        : null;
+
+                    double? averageContentLuminance = averageLuminanceValue is not null
+                        ? averageLuminanceValue.Value * contentLuminanceScale
+                        : null;
+
+                    properties.Add(
+                        new KeyValuePair<Heif4CharCode, object>(
+                            Heif4CharCode.Cclv,
+                            new HeifContentColorVolume(
+                                contentPrimaries,
+                                minimumContentLuminance,
+                                maximumContentLuminance,
+                                averageContentLuminance)));
+
+                    break;
                 case Heif4CharCode.Av1C:
                     EnsureBufferRemaining(boxBuffer, 0, 4, "AV1 codec configuration");
                     properties.Add(
@@ -1236,6 +1380,14 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                         }
 
                         item.MasteringDisplayColorVolume = (HeifMasteringDisplayColorVolume)prop.Value;
+                        break;
+                    case Heif4CharCode.Cclv:
+                        if (item.ContentColorVolume is not null)
+                        {
+                            throw new InvalidImageContentException($"Item {itemId} associates more than one content color-volume property.");
+                        }
+
+                        item.ContentColorVolume = (HeifContentColorVolume)prop.Value;
                         break;
                     case Heif4CharCode.Clap:
                         if (item.CleanAperture is not null)
@@ -1586,6 +1738,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                 // parsed value here so the public decoder option continues to suppress encoded metadata.
                 meta.ContentLightLevel = null;
                 meta.MasteringDisplayColorVolume = null;
+                meta.ContentColorVolume = null;
             }
 
             return image;
@@ -1649,6 +1802,12 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
         if (masteringDisplayColorVolume is not null)
         {
             metadata.GetHeifMetadata().MasteringDisplayColorVolume = masteringDisplayColorVolume;
+        }
+
+        HeifContentColorVolume? contentColorVolume = imageItem.ContentColorVolume ?? gridTile?.ContentColorVolume;
+        if (contentColorVolume is not null)
+        {
+            metadata.GetHeifMetadata().ContentColorVolume = contentColorVolume;
         }
     }
 

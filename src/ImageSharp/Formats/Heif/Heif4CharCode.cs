@@ -84,6 +84,11 @@ public enum Heif4CharCode : uint
     Mdcv = 0x6D646376U,
 
     /// <summary>
+    /// Content colour volume.
+    /// </summary>
+    Cclv = 0x63636C76U,
+
+    /// <summary>
     /// HVC configuration.
     /// </summary>
     HvcC = 0x68766343U,

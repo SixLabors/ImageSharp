@@ -79,6 +79,12 @@ internal class HeifItem(Heif4CharCode type, uint id)
     public HeifMasteringDisplayColorVolume? MasteringDisplayColorVolume { get; set; }
 
     /// <summary>
+    /// Gets or sets the content color volume associated with this image item, or <see langword="null"/> when the
+    /// item has no content color-volume property.
+    /// </summary>
+    public HeifContentColorVolume? ContentColorVolume { get; set; }
+
+    /// <summary>
     /// Gets or sets the AV1 codec configuration associated with this coded image item, or <see langword="null"/>
     /// when the item has no AV1 codec-configuration property.
     /// </summary>

@@ -30,6 +30,7 @@ public class HeifMetadata : IFormatMetadata<HeifMetadata>
         this.HasAlpha = other.HasAlpha;
         this.ContentLightLevel = other.ContentLightLevel;
         this.MasteringDisplayColorVolume = other.MasteringDisplayColorVolume;
+        this.ContentColorVolume = other.ContentColorVolume;
     }
 
     /// <summary>
@@ -63,6 +64,12 @@ public class HeifMetadata : IFormatMetadata<HeifMetadata>
     /// not available.
     /// </summary>
     public HeifMasteringDisplayColorVolume? MasteringDisplayColorVolume { get; set; }
+
+    /// <summary>
+    /// Gets or sets the content color volume for the primary image, or <see langword="null"/> when it is not
+    /// available.
+    /// </summary>
+    public HeifContentColorVolume? ContentColorVolume { get; set; }
 
     /// <inheritdoc/>
     public static HeifMetadata FromFormatConnectingMetadata(FormatConnectingMetadata metadata) => new()

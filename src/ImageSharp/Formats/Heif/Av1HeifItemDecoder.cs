@@ -61,7 +61,7 @@ internal class Av1HeifItemDecoder<TPixel> : IHeifItemDecoder<TPixel>
             out HeifContentLightLevel? obuContentLightLevel,
             out HeifMasteringDisplayColorVolume? obuMasteringDisplayColorVolume);
 
-        Av1Decoder decoder = new(configuration);
+        using Av1Decoder decoder = new(configuration);
         Image<TPixel> image = decoder.Decode<TPixel>(data, colorProfile, codecConfiguration);
         HeifMetadata metadata = image.Metadata.GetHeifMetadata();
         metadata.CompressionMethod = this.CompressionMethod;

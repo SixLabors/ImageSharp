@@ -1,65 +1,85 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Buffers;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
+using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 
 /// <summary>
 /// Stores entropy, partition, and transform contexts for 4-by-4 blocks above the current block.
 /// </summary>
-internal class Av1ParseAboveNeighbor4x4Context
+internal sealed class Av1ParseAboveNeighbor4x4Context : IDisposable
 {
     /// <summary>
-    /// Stores DC-sign and cumulative coefficient-level contexts for each plane above the current block.
+    /// The region containing transform-width contexts.
     /// </summary>
-    private readonly int[][] aboveContext = new int[Av1Constants.MaxPlanes][];
+    private const int TransformWidthRegionIndex = 0;
 
     /// <summary>
-    /// Stores segmentation-prediction contexts from the preceding 4x4 row.
+    /// The region containing partition-width contexts.
     /// </summary>
-    private readonly int[] aboveSegmentIdPredictionContext;
+    private const int PartitionWidthRegionIndex = 1;
 
     /// <summary>
-    /// Stores compound-reference group contexts from the preceding 4x4 row.
+    /// The first region containing a color plane's coefficient contexts.
     /// </summary>
-    private readonly int[] aboveCompGroupIndex;
+    private const int PlaneContextRegionStart = 2;
+
+    /// <summary>
+    /// Owns the contiguous above-neighbor storage until this instance is disposed.
+    /// </summary>
+    private IMemoryOwner<int>? memory;
+
+    /// <summary>
+    /// The number of mode-information columns stored in each logical region.
+    /// </summary>
+    private readonly int contextLength;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Av1ParseAboveNeighbor4x4Context"/> class.
     /// </summary>
+    /// <param name="configuration">The configuration providing the memory allocator.</param>
     /// <param name="planesCount">The number of color planes.</param>
     /// <param name="modeInfoColumnCount">The frame width in 4x4 mode-information columns.</param>
-    public Av1ParseAboveNeighbor4x4Context(int planesCount, int modeInfoColumnCount)
+    public Av1ParseAboveNeighbor4x4Context(Configuration configuration, int planesCount, int modeInfoColumnCount)
     {
-        this.AboveTransformWidth = new int[modeInfoColumnCount];
-        this.AbovePartitionWidth = new int[modeInfoColumnCount];
-        for (int i = 0; i < planesCount; i++)
-        {
-            this.aboveContext[i] = new int[modeInfoColumnCount];
-        }
+        this.contextLength = modeInfoColumnCount;
+        int regionCount = PlaneContextRegionStart + planesCount;
+        int totalLength = checked(regionCount * modeInfoColumnCount);
 
-        this.aboveSegmentIdPredictionContext = new int[modeInfoColumnCount];
-        this.aboveCompGroupIndex = new int[modeInfoColumnCount];
+        // Every region spans the same aligned frame width and shares the tile-reader lifetime.
+        // One clean rent replaces the jagged array and its per-region arrays while preserving zero initialization.
+        this.memory = configuration.MemoryAllocator.Allocate<int>(totalLength, AllocationOptions.Clean);
     }
 
     /// <summary>
     /// Gets a buffer holding the partition context of the previous 4x4 block row.
     /// </summary>
-    public int[] AbovePartitionWidth { get; }
+    public Span<int> AbovePartitionWidth => this.GetRegion(PartitionWidthRegionIndex);
 
     /// <summary>
     /// Gets a buffer holding the transform sizes of the previous 4x4 block row.
     /// </summary>
-    public int[] AboveTransformWidth { get; }
+    public Span<int> AboveTransformWidth => this.GetRegion(TransformWidthRegionIndex);
 
     /// <summary>
     /// Gets the coefficient context row for the specified plane.
     /// </summary>
     /// <param name="plane">The zero-based plane index.</param>
     /// <returns>The coefficient contexts for the plane.</returns>
-    public int[] GetContext(int plane) => this.aboveContext[plane];
+    public Span<int> GetContext(int plane) => this.GetRegion(PlaneContextRegionStart + plane);
+
+    /// <summary>
+    /// Returns the above-neighbor storage to the configured memory allocator.
+    /// </summary>
+    public void Dispose()
+    {
+        this.memory?.Dispose();
+        this.memory = null;
+    }
 
     /// <summary>
     /// Resets above-neighbor state for the active tile-column range.
@@ -71,15 +91,12 @@ internal class Av1ParseAboveNeighbor4x4Context
     {
         int planeCount = sequenceHeader.ColorConfig.PlaneCount;
         int width = modeInfoColumnEnd - modeInfoColumnStart;
-        Array.Fill(this.AboveTransformWidth, Av1TransformSize.Size64x64.GetWidth(), 0, width);
-        Array.Fill(this.AbovePartitionWidth, 0, 0, width);
+        this.AboveTransformWidth[..width].Fill(Av1TransformSize.Size64x64.GetWidth());
+        this.AbovePartitionWidth[..width].Clear();
         for (int i = 0; i < planeCount; i++)
         {
-            Array.Fill(this.aboveContext[i], 0, 0, width);
+            this.GetContext(i)[..width].Clear();
         }
-
-        Array.Fill(this.aboveSegmentIdPredictionContext, 0, 0, width);
-        Array.Fill(this.aboveCompGroupIndex, 0, 0, width);
     }
 
     /// <summary>
@@ -97,7 +114,7 @@ internal class Av1ParseAboveNeighbor4x4Context
         int value = Av1PartitionContext.GetAboveContext(subSize);
 
         DebugGuard.MustBeLessThanOrEqualTo(startIndex, this.AboveTransformWidth.Length - bw, nameof(startIndex));
-        Array.Fill(this.AbovePartitionWidth, value, startIndex, bw);
+        this.AbovePartitionWidth.Slice(startIndex, bw).Fill(value);
     }
 
     /// <summary>
@@ -120,7 +137,7 @@ internal class Av1ParseAboveNeighbor4x4Context
         }
 
         DebugGuard.MustBeLessThanOrEqualTo(startIndex, this.AboveTransformWidth.Length - n4w, nameof(startIndex));
-        Array.Fill(this.AboveTransformWidth, transformWidth, startIndex, n4w);
+        this.AboveTransformWidth.Slice(startIndex, n4w).Fill(transformWidth);
     }
 
     /// <summary>
@@ -129,6 +146,17 @@ internal class Av1ParseAboveNeighbor4x4Context
     /// <param name="plane">The zero-based plane index.</param>
     /// <param name="offset">The first context index to clear.</param>
     /// <param name="length">The number of context entries to clear.</param>
-    internal void ClearContext(int plane, int offset, int length)
-        => Array.Fill(this.aboveContext[plane], 0, offset, length);
+    public void ClearContext(int plane, int offset, int length)
+        => this.GetContext(plane).Slice(offset, length).Clear();
+
+    /// <summary>
+    /// Gets one logical row from the contiguous above-neighbor allocation.
+    /// </summary>
+    /// <param name="regionIndex">The zero-based logical region index.</param>
+    /// <returns>The requested context row.</returns>
+    private Span<int> GetRegion(int regionIndex)
+    {
+        ObjectDisposedException.ThrowIf(this.memory is null, this);
+        return this.memory.Memory.Span.Slice(regionIndex * this.contextLength, this.contextLength);
+    }
 }

@@ -14,7 +14,7 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 /// <summary>
 /// Parses partition, mode, transform, and coefficient syntax for one AV1 tile.
 /// </summary>
-internal class Av1TileReader : IAv1TileReader
+internal sealed class Av1TileReader : IAv1TileReader, IDisposable
 {
     /// <summary>
     /// The default self-guided restoration projection coefficients for each color plane.
@@ -180,13 +180,24 @@ internal class Av1TileReader : IAv1TileReader
             Av1Math.AlignPowerOf2(sequenceHeader.MaxFrameWidth, sequenceHeader.SuperblockSizeLog2) >> sequenceHeader.SuperblockSizeLog2;
         int modeInfoWideColumnCount = superblockColumnCount * sequenceHeader.SuperblockModeInfoSize;
         modeInfoWideColumnCount = Av1Math.AlignPowerOf2(modeInfoWideColumnCount, sequenceHeader.SuperblockSizeLog2 - Av1Constants.ModeInfoSizeLog2);
-        this.aboveNeighborContext = new Av1ParseAboveNeighbor4x4Context(planesCount, modeInfoWideColumnCount);
-        this.leftNeighborContext = new Av1ParseLeftNeighbor4x4Context(planesCount, sequenceHeader.SuperblockModeInfoSize);
         this.transformUnitCount = new int[Av1Constants.MaxPlanes][];
         this.transformUnitCount[0] = new int[this.FrameInfo.ModeInfoCount];
         this.transformUnitCount[1] = new int[this.FrameInfo.ModeInfoCount];
         this.transformUnitCount[2] = new int[this.FrameInfo.ModeInfoCount];
         this.coefficientIndex = new int[Av1Constants.MaxPlanes];
+
+        this.aboveNeighborContext = new Av1ParseAboveNeighbor4x4Context(configuration, planesCount, modeInfoWideColumnCount);
+        try
+        {
+            this.leftNeighborContext = new Av1ParseLeftNeighbor4x4Context(configuration, planesCount, sequenceHeader.SuperblockModeInfoSize);
+        }
+        catch
+        {
+            // The reader is not returned when its second context allocation fails, so release
+            // the first rent here rather than relying on an owner that the caller cannot reach.
+            this.aboveNeighborContext.Dispose();
+            throw;
+        }
     }
 
     /// <summary>
@@ -214,6 +225,15 @@ internal class Av1TileReader : IAv1TileReader
     /// Gets the frame-owned mode, transform, coefficient, quantizer, and filter state populated by tile parsing.
     /// </summary>
     public Av1FrameInfo FrameInfo { get; }
+
+    /// <summary>
+    /// Returns the tile-neighbor context storage to the configured memory allocator.
+    /// </summary>
+    public void Dispose()
+    {
+        this.aboveNeighborContext.Dispose();
+        this.leftNeighborContext.Dispose();
+    }
 
     /// <summary>
     /// Parses one tile's partition, mode, transform, coefficient, and filter syntax in superblock order.
@@ -984,8 +1004,8 @@ internal class Av1TileReader : IAv1TileReader
         int leftOffset)
     {
         Av1TransformBlockContext transformBlockContext = new();
-        ReadOnlySpan<int> aboveContext = this.aboveNeighborContext.GetContext(plane).AsSpan(aboveOffset);
-        ReadOnlySpan<int> leftContext = this.leftNeighborContext.GetContext(plane).AsSpan(leftOffset);
+        ReadOnlySpan<int> aboveContext = this.aboveNeighborContext.GetContext(plane)[aboveOffset..];
+        ReadOnlySpan<int> leftContext = this.leftNeighborContext.GetContext(plane)[leftOffset..];
         int dcSign = 0;
         int k = 0;
         int mask = (1 << Av1Constants.CoefficientContextBitCount) - 1;

@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1;
 /// <summary>
 /// Decodes one AV1 still-image elementary stream into an ImageSharp image.
 /// </summary>
-internal class Av1Decoder : IAv1TileReader
+internal sealed class Av1Decoder : IAv1TileReader, IDisposable
 {
     /// <summary>
     /// The open-bitstream-unit parser for the current image item.
@@ -184,5 +184,14 @@ internal class Av1Decoder : IAv1TileReader
         }
 
         this.tileReader.ReadTile(tileData, tileNum);
+    }
+
+    /// <summary>
+    /// Releases the tile reader and its frame-scoped parsing storage.
+    /// </summary>
+    public void Dispose()
+    {
+        this.tileReader?.Dispose();
+        this.tileReader = null;
     }
 }

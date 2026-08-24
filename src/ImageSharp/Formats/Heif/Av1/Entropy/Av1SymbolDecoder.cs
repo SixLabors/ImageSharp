@@ -777,8 +777,8 @@ internal ref struct Av1SymbolDecoder
     public int ReadCoefficients(
         Av1BlockModeInfo modeInfo,
         Point blockPosition,
-        int[] aboveContexts,
-        int[] leftContexts,
+        Span<int> aboveContexts,
+        Span<int> leftContexts,
         int aboveOffset,
         int leftOffset,
         int plane,
@@ -1176,8 +1176,8 @@ internal ref struct Av1SymbolDecoder
     /// <param name="modeBlockToRightEdge">The signed distance from the mode block to the right frame edge.</param>
     /// <param name="modeBlockToBottomEdge">The signed distance from the mode block to the bottom frame edge.</param>
     private static void UpdateCoefficientContext(
-        int[] aboveContexts,
-        int[] leftContexts,
+        Span<int> aboveContexts,
+        Span<int> leftContexts,
         int blocksWide,
         int blocksHigh,
         Av1TransformSize transformSize,
@@ -1194,23 +1194,23 @@ internal ref struct Av1SymbolDecoder
         if (modeBlockToRightEdge < 0)
         {
             int aboveContextCount = Math.Min(transformSizeWide, blocksWide - blockPosition.X);
-            Array.Fill(aboveContexts, culLevel, aboveOffset, aboveContextCount);
-            Array.Fill(aboveContexts, 0, aboveOffset + aboveContextCount, transformSizeWide - aboveContextCount);
+            aboveContexts.Slice(aboveOffset, aboveContextCount).Fill(culLevel);
+            aboveContexts.Slice(aboveOffset + aboveContextCount, transformSizeWide - aboveContextCount).Clear();
         }
         else
         {
-            Array.Fill(aboveContexts, culLevel, aboveOffset, transformSizeWide);
+            aboveContexts.Slice(aboveOffset, transformSizeWide).Fill(culLevel);
         }
 
         if (modeBlockToBottomEdge < 0)
         {
             int leftContextCount = Math.Min(transformSizeHigh, blocksHigh - blockPosition.Y);
-            Array.Fill(leftContexts, culLevel, leftOffset, leftContextCount);
-            Array.Fill(leftContexts, 0, leftOffset + leftContextCount, transformSizeHigh - leftContextCount);
+            leftContexts.Slice(leftOffset, leftContextCount).Fill(culLevel);
+            leftContexts.Slice(leftOffset + leftContextCount, transformSizeHigh - leftContextCount).Clear();
         }
         else
         {
-            Array.Fill(leftContexts, culLevel, leftOffset, transformSizeHigh);
+            leftContexts.Slice(leftOffset, transformSizeHigh).Fill(culLevel);
         }
     }
 

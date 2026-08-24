@@ -5,8 +5,12 @@ using System.Runtime.CompilerServices;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform.Forward;
 
+/// <summary>
+/// Applies the eight-point AV1 forward identity transform to a one-dimensional residual vector.
+/// </summary>
 internal class Av1Identity8Forward1dTransformer : IAv1Transformer1d
 {
+    /// <inheritdoc/>
     public void Transform(Span<int> input, Span<int> output, int cosBit, Span<byte> stageRange)
     {
         Guard.MustBeSizedAtLeast(input, 8, nameof(input));
@@ -14,6 +18,11 @@ internal class Av1Identity8Forward1dTransformer : IAv1Transformer1d
         TransformScalar(ref input[0], ref output[0]);
     }
 
+    /// <summary>
+    /// Scales eight residual values according to the AV1 forward identity-transform definition.
+    /// </summary>
+    /// <param name="input">A reference to the first input value.</param>
+    /// <param name="output">A reference to the first output coefficient.</param>
     private static void TransformScalar(ref int input, ref int output)
     {
         output = input << 1;

@@ -6,12 +6,33 @@ using System.Runtime.Intrinsics;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform.Forward;
 
+/// <summary>
+/// Applies the AV1 four-by-four forward two-dimensional DCT-DCT transform.
+/// </summary>
 internal class Av1DctDct4Forward2dTransformer : Av1Forward2dTransformerBase
 {
+    /// <summary>
+    /// The fixed transform configuration for a four-by-four DCT-DCT block.
+    /// </summary>
     private readonly Av1Transform2dFlipConfiguration config = new(Av1TransformType.DctDct, Av1TransformSize.Size4x4);
+
+    /// <summary>
+    /// The four-point one-dimensional DCT reused for both axes.
+    /// </summary>
     private readonly Av1Dct4Forward1dTransformer transformer = new();
+
+    /// <summary>
+    /// The transposed intermediate coefficient plane used by the scalar two-dimensional pipeline.
+    /// </summary>
     private readonly int[] temp = new int[Av1Constants.MaxTransformSize * Av1Constants.MaxTransformSize];
 
+    /// <summary>
+    /// Applies the four-by-four DCT-DCT transform to a residual block.
+    /// </summary>
+    /// <param name="input">The spatial residual samples.</param>
+    /// <param name="output">The destination transform coefficients.</param>
+    /// <param name="cosBit">The cosine-table fixed-point precision.</param>
+    /// <param name="columnNumber">The number of input values between adjacent rows.</param>
     public void Transform(Span<short> input, Span<int> output, int cosBit, int columnNumber)
     {
         /*if (Vector256.IsHardwareAccelerated)
@@ -27,8 +48,13 @@ internal class Av1DctDct4Forward2dTransformer : Av1Forward2dTransformerBase
     }
 
     /// <summary>
-    /// SVT: fdct4x4_sse4_1
+    /// Applies the vectorized four-by-four forward DCT-DCT kernel.
     /// </summary>
+    /// <param name="input">A reference to the first vector of residual samples.</param>
+    /// <param name="output">A reference to the first vector of transform coefficients.</param>
+    /// <param name="cosBit">The cosine-table fixed-point precision.</param>
+    /// <param name="columnNumber">The number of vectors between adjacent input rows.</param>
+    /// <remarks>Corresponds to <c>fdct4x4_sse4_1</c> in the original WIP reference.</remarks>
     private static void TransformVector(ref Vector128<int> input, ref Vector128<int> output, int cosBit, int columnNumber)
     {
         // We only use stage-2 bit;

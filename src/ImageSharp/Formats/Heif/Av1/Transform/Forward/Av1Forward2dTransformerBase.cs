@@ -5,14 +5,35 @@ using System.Runtime.CompilerServices;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform.Forward;
 
+/// <summary>
+/// Provides the separable row-and-column pipeline shared by AV1 forward two-dimensional transforms.
+/// </summary>
 internal abstract class Av1Forward2dTransformerBase
 {
+    /// <summary>
+    /// The fixed-point representation of <c>sqrt(2)</c> at <see cref="NewSqrt2BitCount"/> fractional bits.
+    /// </summary>
     internal const int NewSqrt2 = 5793;
+
+    /// <summary>
+    /// The number of fractional bits used by <see cref="NewSqrt2"/>.
+    /// </summary>
     internal const int NewSqrt2BitCount = 12;
 
     /// <summary>
-    /// SVT: av1_tranform_two_d_core_c
+    /// Applies the separable column and row stages, including normative flips, shifts, and rectangular scaling.
     /// </summary>
+    /// <typeparam name="TColumn">The column-transform implementation type.</typeparam>
+    /// <typeparam name="TRow">The row-transform implementation type.</typeparam>
+    /// <param name="transformFunctionColumn">The column-transform implementation.</param>
+    /// <param name="transformFunctionRow">The row-transform implementation.</param>
+    /// <param name="input">The spatial residual samples.</param>
+    /// <param name="inputStride">The number of input samples between rows.</param>
+    /// <param name="output">The destination transform coefficients and temporary axis buffers.</param>
+    /// <param name="config">The per-axis transform, flip, shift, and range configuration.</param>
+    /// <param name="buf">The transposed intermediate coefficient plane.</param>
+    /// <param name="bitDepth">The source sample bit depth.</param>
+    /// <remarks>Corresponds to <c>av1_tranform_two_d_core_c</c> in the original WIP reference.</remarks>
     protected static void Transform2dCore<TColumn, TRow>(TColumn transformFunctionColumn, TRow transformFunctionRow, Span<short> input, uint inputStride, Span<int> output, Av1Transform2dFlipConfiguration config, Span<int> buf, int bitDepth)
             where TColumn : IAv1Transformer1d
             where TRow : IAv1Transformer1d
@@ -119,6 +140,12 @@ internal abstract class Av1Forward2dTransformerBase
         }
     }
 
+    /// <summary>
+    /// Applies a signed fixed-point shift to a contiguous transform-stage vector.
+    /// </summary>
+    /// <param name="arr">A reference to the first transform-stage value.</param>
+    /// <param name="size">The number of values to update.</param>
+    /// <param name="bit">A positive rounded-right shift or a negative exact-left shift.</param>
     private static void RoundShiftArray(ref int arr, int size, int bit)
     {
         if (bit == 0)
@@ -148,8 +175,12 @@ internal abstract class Av1Forward2dTransformerBase
     }
 
     /// <summary>
-    /// SVT: get_rect_tx_log_ratio
+    /// Gets the signed base-two ratio between transform columns and rows.
     /// </summary>
+    /// <param name="col">The transform width.</param>
+    /// <param name="row">The transform height.</param>
+    /// <returns>Zero for square transforms, positive when wider, or negative when taller.</returns>
+    /// <remarks>Corresponds to <c>get_rect_tx_log_ratio</c> in the original WIP reference.</remarks>
     public static int GetRectangularRatio(int col, int row)
     {
         if (col == row)

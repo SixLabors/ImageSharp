@@ -3,6 +3,9 @@
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 
+/// <summary>
+/// Identifies a concrete one-dimensional AV1 transform function and length.
+/// </summary>
 internal enum Av1TransformFunctionType
 {
     Dct4,

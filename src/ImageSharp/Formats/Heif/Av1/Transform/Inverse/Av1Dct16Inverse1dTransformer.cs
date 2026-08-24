@@ -5,8 +5,12 @@ using System.Runtime.CompilerServices;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform.Inverse;
 
+/// <summary>
+/// Applies the 16-point AV1 inverse discrete cosine transform to a one-dimensional coefficient vector.
+/// </summary>
 internal class Av1Dct16Inverse1dTransformer : IAv1Transformer1d
 {
+    /// <inheritdoc/>
     public void Transform(Span<int> input, Span<int> output, int cosBit, Span<byte> stageRange)
     {
         Guard.MustBeSizedAtLeast(input, 16, nameof(input));
@@ -15,8 +19,13 @@ internal class Av1Dct16Inverse1dTransformer : IAv1Transformer1d
     }
 
     /// <summary>
-    /// SVT: svt_av1_idct16_new
+    /// Applies the staged 16-point fixed-point inverse DCT.
     /// </summary>
+    /// <param name="input">A reference to the first input coefficient.</param>
+    /// <param name="output">A reference to the first output value.</param>
+    /// <param name="cosBit">The cosine-table fixed-point precision.</param>
+    /// <param name="stageRange">The signed-bit range permitted after each transform stage.</param>
+    /// <remarks>Corresponds to <c>svt_av1_idct16_new</c> in the original WIP reference.</remarks>
     private static void TransformScalar(ref int input, ref int output, int cosBit, Span<byte> stageRange)
     {
         Span<int> cospi = Av1SinusConstants.CosinusPi(cosBit);
@@ -177,6 +186,12 @@ internal class Av1Dct16Inverse1dTransformer : IAv1Transformer1d
         Unsafe.Add(ref output, 15) = ClampValue(temp1[0] - temp1[15], range);
     }
 
+    /// <summary>
+    /// Clamps one transform-stage value to a signed range of the specified bit width.
+    /// </summary>
+    /// <param name="value">The value to clamp.</param>
+    /// <param name="bit">The signed range width in bits.</param>
+    /// <returns>The clamped value.</returns>
     internal static int ClampValue(int value, byte bit)
     {
         if (bit <= 0)
@@ -189,6 +204,15 @@ internal class Av1Dct16Inverse1dTransformer : IAv1Transformer1d
         return (int)Av1Math.Clamp(value, min_value, max_value);
     }
 
+    /// <summary>
+    /// Applies one rounded two-input fixed-point butterfly output.
+    /// </summary>
+    /// <param name="w0">The first fixed-point weight.</param>
+    /// <param name="in0">The first input value.</param>
+    /// <param name="w1">The second fixed-point weight.</param>
+    /// <param name="in1">The second input value.</param>
+    /// <param name="bit">The number of fractional bits removed after multiplication.</param>
+    /// <returns>The rounded butterfly output.</returns>
     internal static int HalfButterfly(int w0, int in0, int w1, int in1, int bit)
     {
         long result64 = (long)(w0 * in0) + (w1 * in1);

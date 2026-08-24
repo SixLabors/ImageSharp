@@ -5,13 +5,28 @@ using System.ComponentModel;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 
+/// <summary>
+/// Applies separable two-dimensional AV1 inverse transforms and adds their residuals to predicted samples.
+/// </summary>
 internal class Av1Inverse2dTransformer
 {
+    /// <summary>
+    /// The lossless Walsh-Hadamard coefficient shift used by the retained reference implementation.
+    /// </summary>
     private const int UnitQuantizationShift = 2;
 
     /// <summary>
-    /// SVT: inv_txfm2d_add_c
+    /// Applies a separable inverse transform and adds its residual to high-bit-depth predicted samples.
     /// </summary>
+    /// <param name="input">The dequantized coefficients in raster order.</param>
+    /// <param name="outputForRead">The predicted samples read by reconstruction.</param>
+    /// <param name="strideForRead">The number of read samples between rows.</param>
+    /// <param name="outputForWrite">The destination reconstructed samples.</param>
+    /// <param name="strideForWrite">The number of destination samples between rows.</param>
+    /// <param name="config">The per-axis transform, flip, shift, and range configuration.</param>
+    /// <param name="transformFunctionBuffer">The intermediate plane and two per-axis scratch vectors.</param>
+    /// <param name="bitDepth">The coded sample bit depth.</param>
+    /// <remarks>Corresponds to <c>inv_txfm2d_add_c</c> in the original WIP reference.</remarks>
     internal static void Transform2dAdd(
         Span<int> input,
         Span<short> outputForRead,
@@ -22,12 +37,8 @@ internal class Av1Inverse2dTransformer
         Span<int> transformFunctionBuffer,
         int bitDepth)
     {
-        // Note when assigning txfm_size_col, we use the txfm_size from the
-        // row configuration and vice versa. This is intentionally done to
-        // accurately perform rectangular transforms. When the transform is
-        // rectangular, the number of columns will be the same as the
-        // txfm_size stored in the row cfg struct. It will make no difference
-        // for square transforms.
+        // The row configuration's size is the transform width, while the column configuration's size is its height.
+        // Keeping those axis names explicit is essential for rectangular transforms.
         int transformWidth = config.TransformSize.GetWidth();
         int transformHeight = config.TransformSize.GetHeight();
 
@@ -43,8 +54,8 @@ internal class Av1Inverse2dTransformer
         Guard.NotNull(functionColumn);
         Guard.NotNull(functionRow);
 
-        // txfm_buf's length is  txfm_size_row * txfm_size_col + 2 * MAX(txfm_size_row, txfm_size_col)
-        // it is used for intermediate data buffering
+        // Partition the caller-provided buffer into a full intermediate plane and two vectors sized for the longer
+        // axis. This avoids allocating within each reconstructed transform block.
         int bufferOffset = Math.Max(transformHeight, transformWidth);
         Guard.MustBeSizedAtLeast(transformFunctionBuffer, (transformHeight * transformWidth) + (2 * bufferOffset), nameof(transformFunctionBuffer));
         Span<int> tempIn = transformFunctionBuffer;
@@ -139,8 +150,16 @@ internal class Av1Inverse2dTransformer
     }
 
     /// <summary>
-    /// SVT: inv_txfm2d_add_c
+    /// Applies a separable inverse transform and adds its residual to eight-bit predicted samples.
     /// </summary>
+    /// <param name="input">The dequantized coefficients in raster order.</param>
+    /// <param name="outputForRead">The predicted samples read by reconstruction.</param>
+    /// <param name="strideForRead">The number of read samples between rows.</param>
+    /// <param name="outputForWrite">The destination reconstructed samples.</param>
+    /// <param name="strideForWrite">The number of destination samples between rows.</param>
+    /// <param name="config">The per-axis transform, flip, shift, and range configuration.</param>
+    /// <param name="transformFunctionBuffer">The intermediate plane and two per-axis scratch vectors.</param>
+    /// <remarks>Corresponds to <c>inv_txfm2d_add_c</c> in the original WIP reference.</remarks>
     internal static void Transform2dAdd(
         Span<int> input,
         Span<byte> outputForRead,
@@ -152,12 +171,8 @@ internal class Av1Inverse2dTransformer
     {
         const int bitDepth = 8;
 
-        // Note when assigning txfm_size_col, we use the txfm_size from the
-        // row configuration and vice versa. This is intentionally done to
-        // accurately perform rectangular transforms. When the transform is
-        // rectangular, the number of columns will be the same as the
-        // txfm_size stored in the row cfg struct. It will make no difference
-        // for square transforms.
+        // The row configuration's size is the transform width, while the column configuration's size is its height.
+        // Keeping those axis names explicit is essential for rectangular transforms.
         int transformWidth = config.TransformSize.GetWidth();
         int transformHeight = config.TransformSize.GetHeight();
 
@@ -173,8 +188,8 @@ internal class Av1Inverse2dTransformer
         Guard.NotNull(functionColumn);
         Guard.NotNull(functionRow);
 
-        // txfm_buf's length is  txfm_size_row * txfm_size_col + 2 * MAX(txfm_size_row, txfm_size_col)
-        // it is used for intermediate data buffering
+        // Partition the caller-provided buffer into a full intermediate plane and two vectors sized for the longer
+        // axis. This avoids allocating within each reconstructed transform block.
         int bufferOffset = Math.Max(transformHeight, transformWidth);
         Guard.MustBeSizedAtLeast(transformFunctionBuffer, (transformHeight * transformWidth) + (2 * bufferOffset), nameof(transformFunctionBuffer));
         Span<int> tempIn = transformFunctionBuffer;

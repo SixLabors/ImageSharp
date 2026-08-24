@@ -5,8 +5,12 @@ using System.Runtime.CompilerServices;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform.Forward;
 
+/// <summary>
+/// Applies the four-point AV1 forward discrete cosine transform to a one-dimensional residual vector.
+/// </summary>
 internal class Av1Dct4Forward1dTransformer : IAv1Transformer1d
 {
+    /// <inheritdoc/>
     public void Transform(Span<int> input, Span<int> output, int cosBit, Span<byte> stageRange)
     {
         Guard.MustBeSizedAtLeast(input, 4, nameof(input));
@@ -14,6 +18,12 @@ internal class Av1Dct4Forward1dTransformer : IAv1Transformer1d
         TransformScalar(ref input[0], ref output[0], cosBit);
     }
 
+    /// <summary>
+    /// Applies the staged four-point fixed-point forward DCT.
+    /// </summary>
+    /// <param name="input">A reference to the first input value.</param>
+    /// <param name="output">A reference to the first output coefficient.</param>
+    /// <param name="cosBit">The cosine-table fixed-point precision.</param>
     private static void TransformScalar(ref int input, ref int output, int cosBit)
     {
         Span<int> cospi = Av1SinusConstants.CosinusPi(cosBit);
@@ -49,6 +59,15 @@ internal class Av1Dct4Forward1dTransformer : IAv1Transformer1d
         output3 = step3;
     }
 
+    /// <summary>
+    /// Applies one rounded two-input fixed-point butterfly output.
+    /// </summary>
+    /// <param name="w0">The first fixed-point weight.</param>
+    /// <param name="in0">The first input value.</param>
+    /// <param name="w1">The second fixed-point weight.</param>
+    /// <param name="in1">The second input value.</param>
+    /// <param name="bit">The number of fractional bits removed after multiplication.</param>
+    /// <returns>The rounded butterfly output.</returns>
     internal static int HalfButterfly(int w0, int in0, int w1, int in1, int bit)
     {
         long result64 = (long)(w0 * in0) + (w1 * in1);

@@ -3,6 +3,9 @@
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 
+/// <summary>
+/// Identifies the set of transform combinations allowed for an AV1 block.
+/// </summary>
 internal enum Av1TransformSetType
 {
     /// <summary>

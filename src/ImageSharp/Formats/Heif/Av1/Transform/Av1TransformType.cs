@@ -3,6 +3,9 @@
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 
+/// <summary>
+/// Identifies the horizontal and vertical transform combination signaled for an AV1 transform block.
+/// </summary>
 internal enum Av1TransformType : byte
 {
     /// <summary>

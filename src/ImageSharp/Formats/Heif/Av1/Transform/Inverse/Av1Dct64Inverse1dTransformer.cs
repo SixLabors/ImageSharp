@@ -5,8 +5,12 @@ using System.Runtime.CompilerServices;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform.Inverse;
 
+/// <summary>
+/// Applies the 64-point AV1 inverse discrete cosine transform to a one-dimensional coefficient vector.
+/// </summary>
 internal class Av1Dct64Inverse1dTransformer : IAv1Transformer1d
 {
+    /// <inheritdoc/>
     public void Transform(Span<int> input, Span<int> output, int cosBit, Span<byte> stageRange)
     {
         Guard.MustBeSizedAtLeast(input, 64, nameof(input));
@@ -15,8 +19,13 @@ internal class Av1Dct64Inverse1dTransformer : IAv1Transformer1d
     }
 
     /// <summary>
-    /// SVT: svt_av1_idct64_new
+    /// Applies the staged 64-point fixed-point inverse DCT.
     /// </summary>
+    /// <param name="input">A reference to the first input coefficient.</param>
+    /// <param name="output">A reference to the first output value.</param>
+    /// <param name="cosBit">The cosine-table fixed-point precision.</param>
+    /// <param name="stageRange">The signed-bit range permitted after each transform stage.</param>
+    /// <remarks>Corresponds to <c>svt_av1_idct64_new</c> in the original WIP reference.</remarks>
     private static void TransformScalar(ref int input, ref int output, int cosBit, Span<byte> stageRange)
     {
         Span<int> cospi = Av1SinusConstants.CosinusPi(cosBit);

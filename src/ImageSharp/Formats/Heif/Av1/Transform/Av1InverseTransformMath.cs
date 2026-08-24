@@ -5,11 +5,24 @@ using System;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 
+/// <summary>
+/// Contains fixed-point constants and quantizer lookup tables shared by AV1 inverse transforms.
+/// </summary>
 internal static class Av1InverseTransformMath
 {
+    /// <summary>
+    /// The fixed-point representation of <c>1 / sqrt(2)</c> at <see cref="NewSqrt2BitCount"/> fractional bits.
+    /// </summary>
     public const int NewInverseSqrt2 = 2896;
+
+    /// <summary>
+    /// The number of fractional bits used by <see cref="NewInverseSqrt2"/>.
+    /// </summary>
     public const int NewSqrt2BitCount = 12;
 
+    /// <summary>
+    /// Gets the normative AC dequantizer value indexed by bit-depth category and quantizer index.
+    /// </summary>
     public static readonly int[,] AcQLookup = new int[3, 256]
     {
         {
@@ -64,6 +77,9 @@ internal static class Av1InverseTransformMath
         }
     };
 
+    /// <summary>
+    /// Contains the normative DC dequantizer values indexed by bit-depth category and quantizer index.
+    /// </summary>
     private static readonly int[,] DcQLookup = new int[3, 256]
     {
         {
@@ -117,25 +133,49 @@ internal static class Av1InverseTransformMath
         }
     };
 
+    /// <summary>
+    /// Gets a clipped DC dequantizer value.
+    /// </summary>
+    /// <param name="qIndex">The segment quantizer index.</param>
+    /// <param name="delta">The plane-specific DC quantizer delta.</param>
+    /// <param name="bitDepth">The coded sample bit depth.</param>
+    /// <returns>The DC dequantizer value.</returns>
     public static int GetDcQuantization(int qIndex, int delta, Av1BitDepth bitDepth)
         => DcQLookup[(int)bitDepth, Av1Math.Clip3(0, 255, qIndex + delta)];
 
+    /// <summary>
+    /// Gets a clipped AC dequantizer value.
+    /// </summary>
+    /// <param name="qIndex">The segment quantizer index.</param>
+    /// <param name="delta">The plane-specific AC quantizer delta.</param>
+    /// <param name="bitDepth">The coded sample bit depth.</param>
+    /// <returns>The AC dequantizer value.</returns>
     public static int GetAcQuantization(int qIndex, int delta, Av1BitDepth bitDepth)
         => AcQLookup[(int)bitDepth, Av1Math.Clip3(0, 255, qIndex + delta)];
 
+    /// <summary>
+    /// Gets the encoder zero-bin factor selected by quantizer magnitude and sample bit depth.
+    /// </summary>
+    /// <param name="q">The base quantizer index.</param>
+    /// <param name="bitDepth">The coded sample bit depth.</param>
+    /// <returns>The zero-bin factor.</returns>
     public static int GetQzbinFactor(int q, Av1BitDepth bitDepth)
     {
         int quant = GetDcQuantization(q, 0, bitDepth);
 
-        // Bit hack to get to:
-        // EightBit => 148
-        // TenBit => 592
-        // TwelveBit => 2368
+        // Scaling the eight-bit threshold by four for every two added sample bits preserves the quantizer decision
+        // at equal normalized signal levels: 148 for 8-bit, 592 for 10-bit, and 2368 for 12-bit.
         int shift = (int)bitDepth << 1;
         int threshold = (1 << shift) * 148;
         return q == 0 ? 64 : (quant < threshold ? 84 : 80);
     }
 
+    /// <summary>
+    /// Computes the fixed-point multiplier and shift used to replace division by a quantizer.
+    /// </summary>
+    /// <param name="quantization">Receives the reciprocal multiplier without its implicit leading bit.</param>
+    /// <param name="shift">Receives the reciprocal scaling shift.</param>
+    /// <param name="d">The positive quantizer divisor.</param>
     public static void InvertQuantization(out int quantization, out int shift, int d)
     {
         uint t;
@@ -151,18 +191,37 @@ internal static class Av1InverseTransformMath
         shift = 1 << (16 - l);
     }
 
+    /// <summary>
+    /// Adds an inverse-transform residual to an eight-bit predicted sample and clips the result.
+    /// </summary>
+    /// <param name="dest">The predicted sample.</param>
+    /// <param name="trans">The inverse-transform residual.</param>
+    /// <returns>The reconstructed eight-bit sample.</returns>
     public static byte ClipPixelAdd(byte dest, long trans)
     {
         trans = CheckRange(trans, 8);
         return (byte)ClipPixelHighBitDepth(dest + trans, 8);
     }
 
+    /// <summary>
+    /// Adds an inverse-transform residual to a high-bit-depth predicted sample and clips the result.
+    /// </summary>
+    /// <param name="dest">The predicted sample stored in the signed transform representation.</param>
+    /// <param name="trans">The inverse-transform residual.</param>
+    /// <param name="bitDepth">The coded sample bit depth.</param>
+    /// <returns>The reconstructed sample stored in the signed transform representation.</returns>
     public static short ClipPixelAdd(short dest, long trans, int bitDepth)
     {
         trans = CheckRange(trans, bitDepth);
         return ClipPixelHighBitDepth(dest + trans, bitDepth);
     }
 
+    /// <summary>
+    /// Clips a reconstructed sample to the unsigned range selected by its bit depth.
+    /// </summary>
+    /// <param name="val">The unclipped reconstructed sample.</param>
+    /// <param name="bd">The coded sample bit depth.</param>
+    /// <returns>The clipped sample stored in the signed transform representation.</returns>
     private static short ClipPixelHighBitDepth(long val, int bd) => bd switch
     {
         10 => (short)Av1Math.Clamp(val, 0, 1023),
@@ -170,6 +229,12 @@ internal static class Av1InverseTransformMath
         _ => (short)Av1Math.Clamp(val, 0, 255),
     };
 
+    /// <summary>
+    /// Applies a signed fixed-point shift to the requested prefix of an integer buffer.
+    /// </summary>
+    /// <param name="arr">The transform-stage values.</param>
+    /// <param name="size">The number of values to update.</param>
+    /// <param name="bit">A positive rounded-right shift or a negative exact-left shift.</param>
     public static void RoundShiftArray(Span<int> arr, int size, int bit)
     {
         int i;
@@ -196,6 +261,12 @@ internal static class Av1InverseTransformMath
         }
     }
 
+    /// <summary>
+    /// Clamps a transform-stage buffer to a signed range of the specified bit width.
+    /// </summary>
+    /// <param name="buffer">The transform-stage values.</param>
+    /// <param name="size">The number of values to clamp.</param>
+    /// <param name="bit">The signed range width in bits.</param>
     internal static void ClampBuffer(Span<int> buffer, int size, byte bit)
     {
         for (int i = 0; i < size; i++)
@@ -204,6 +275,12 @@ internal static class Av1InverseTransformMath
         }
     }
 
+    /// <summary>
+    /// Clamps one transform-stage value to a signed range of the specified bit width.
+    /// </summary>
+    /// <param name="value">The value to clamp.</param>
+    /// <param name="bit">The signed range width in bits.</param>
+    /// <returns>The clamped value.</returns>
     private static int ClampValue(int value, byte bit)
     {
         if (bit <= 0)
@@ -211,11 +288,17 @@ internal static class Av1InverseTransformMath
             return value; // Do nothing for invalid clamp bit.
         }
 
-        long max_value = (1L << (bit - 1)) - 1;
-        long min_value = -(1L << (bit - 1));
-        return (int)Av1Math.Clamp(value, min_value, max_value);
+        long maximum = (1L << (bit - 1)) - 1;
+        long minimum = -(1L << (bit - 1));
+        return (int)Av1Math.Clamp(value, minimum, maximum);
     }
 
+    /// <summary>
+    /// Restricts an inverse-transform residual to the intermediate range permitted for the sample bit depth.
+    /// </summary>
+    /// <param name="input">The inverse-transform residual.</param>
+    /// <param name="bd">The coded sample bit depth.</param>
+    /// <returns>The range-limited residual.</returns>
     private static long CheckRange(long input, int bd)
     {
         // AV1 TX case
@@ -223,11 +306,16 @@ internal static class Av1InverseTransformMath
         // - 10 bit: signed 18 bit integer
         // - 12 bit: signed 20 bit integer
         // - max quantization error = 1828 << (bd - 8)
-        int int_max = (1 << (7 + bd)) - 1 + (914 << (bd - 7));
-        int int_min = -int_max - 1;
-        return Av1Math.Clamp(input, int_min, int_max);
+        int maximum = (1 << (7 + bd)) - 1 + (914 << (bd - 7));
+        int minimum = -maximum - 1;
+        return Av1Math.Clamp(input, minimum, maximum);
     }
 
+    /// <summary>
+    /// Gets the maximum coded coefficient count retained for a transform size.
+    /// </summary>
+    /// <param name="transformSize">The signaled transform size.</param>
+    /// <returns>The maximum coefficient end position represented by AV1 syntax.</returns>
     internal static int GetMaxEndOfBuffer(Av1TransformSize transformSize)
     {
         if (transformSize is Av1TransformSize.Size64x64 or Av1TransformSize.Size64x32 or Av1TransformSize.Size32x64)

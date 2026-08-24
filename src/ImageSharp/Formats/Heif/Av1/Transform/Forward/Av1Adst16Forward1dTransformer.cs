@@ -5,8 +5,12 @@ using System.Runtime.CompilerServices;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform.Forward;
 
+/// <summary>
+/// Applies the 16-point AV1 forward asymmetric discrete sine transform to a one-dimensional residual vector.
+/// </summary>
 internal class Av1Adst16Forward1dTransformer : IAv1Transformer1d
 {
+    /// <inheritdoc/>
     public void Transform(Span<int> input, Span<int> output, int cosBit, Span<byte> stageRange)
     {
         Guard.MustBeSizedAtLeast(input, 16, nameof(input));
@@ -14,6 +18,12 @@ internal class Av1Adst16Forward1dTransformer : IAv1Transformer1d
         TransformScalar(ref input[0], ref output[0], cosBit);
     }
 
+    /// <summary>
+    /// Applies the staged 16-point fixed-point forward ADST.
+    /// </summary>
+    /// <param name="input">A reference to the first input value.</param>
+    /// <param name="output">A reference to the first output coefficient.</param>
+    /// <param name="cosBit">The cosine-table fixed-point precision.</param>
     private static void TransformScalar(ref int input, ref int output, int cosBit)
     {
         Span<int> temp0 = stackalloc int[16];

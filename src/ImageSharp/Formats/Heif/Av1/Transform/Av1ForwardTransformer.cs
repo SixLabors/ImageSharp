@@ -7,11 +7,24 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.Transform.Forward;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 
+/// <summary>
+/// Converts spatial residual samples into AV1 transform coefficients.
+/// </summary>
 internal class Av1ForwardTransformer
 {
+    /// <summary>
+    /// The fixed-point representation of <c>sqrt(2)</c> at <see cref="NewSqrtBitCount"/> fractional bits.
+    /// </summary>
     private const int NewSqrt = 5793;
+
+    /// <summary>
+    /// The number of fractional bits used by <see cref="NewSqrt"/>.
+    /// </summary>
     private const int NewSqrtBitCount = 12;
 
+    /// <summary>
+    /// Maps each concrete transform-function enum value to its managed one-dimensional implementation.
+    /// </summary>
     private static readonly IAv1Transformer1d?[] Transformers =
         [
             new Av1Dct4Forward1dTransformer(),
@@ -31,8 +44,20 @@ internal class Av1ForwardTransformer
             null
         ];
 
+    /// <summary>
+    /// The transposed intermediate coefficient plane shared by the current encoder transform pipeline.
+    /// </summary>
     private static readonly int[] TemporaryCoefficientsBuffer = new int[Av1Constants.MaxTransformSize * Av1Constants.MaxTransformSize];
 
+    /// <summary>
+    /// Resolves and applies the configured two-dimensional AV1 forward transform.
+    /// </summary>
+    /// <param name="input">The spatial residual samples.</param>
+    /// <param name="coefficients">The destination transform coefficients.</param>
+    /// <param name="stride">The number of input samples between rows.</param>
+    /// <param name="transformType">The compound transform type.</param>
+    /// <param name="transformSize">The transform-block dimensions.</param>
+    /// <param name="bitDepth">The source sample bit depth.</param>
     internal static void Transform2d(Span<short> input, Span<int> coefficients, uint stride, Av1TransformType transformType, Av1TransformSize transformSize, int bitDepth)
     {
         Av1Transform2dFlipConfiguration config = new(transformType, transformSize);
@@ -41,6 +66,18 @@ internal class Av1ForwardTransformer
         Transform2d(columnTransformer, rowTransformer, input, coefficients, stride, config, bitDepth);
     }
 
+    /// <summary>
+    /// Applies a two-dimensional transform using explicitly selected column and row functions.
+    /// </summary>
+    /// <typeparam name="TColumn">The column-transform implementation type.</typeparam>
+    /// <typeparam name="TRow">The row-transform implementation type.</typeparam>
+    /// <param name="transformFunctionColumn">The column-transform implementation.</param>
+    /// <param name="transformFunctionRow">The row-transform implementation.</param>
+    /// <param name="input">The spatial residual samples.</param>
+    /// <param name="coefficients">The destination transform coefficients.</param>
+    /// <param name="stride">The number of input samples between rows.</param>
+    /// <param name="config">The per-axis transform, flip, shift, and range configuration.</param>
+    /// <param name="bitDepth">The source sample bit depth.</param>
     internal static void Transform2d<TColumn, TRow>(TColumn? transformFunctionColumn, TRow? transformFunctionRow, Span<short> input, Span<int> coefficients, uint stride, Av1Transform2dFlipConfiguration config, int bitDepth)
             where TColumn : IAv1Transformer1d
             where TRow : IAv1Transformer1d
@@ -55,24 +92,36 @@ internal class Av1ForwardTransformer
         }
     }
 
+    /// <summary>
+    /// Gets the managed implementation for a concrete one-dimensional transform function.
+    /// </summary>
+    /// <param name="transformerType">The concrete transform function and length.</param>
+    /// <returns>The transform implementation, or <see langword="null"/> for an invalid function.</returns>
     private static IAv1Transformer1d? GetTransformer(Av1TransformFunctionType transformerType)
         => Transformers[(int)transformerType];
 
     /// <summary>
-    /// SVT: av1_tranform_two_d_core_c
+    /// Applies the separable column and row stages, including normative flips, shifts, and rectangular scaling.
     /// </summary>
+    /// <typeparam name="TColumn">The column-transform implementation type.</typeparam>
+    /// <typeparam name="TRow">The row-transform implementation type.</typeparam>
+    /// <param name="transformFunctionColumn">The column-transform implementation.</param>
+    /// <param name="transformFunctionRow">The row-transform implementation.</param>
+    /// <param name="input">The spatial residual samples.</param>
+    /// <param name="inputStride">The number of input samples between rows.</param>
+    /// <param name="output">The destination transform coefficients and temporary axis buffers.</param>
+    /// <param name="config">The per-axis transform, flip, shift, and range configuration.</param>
+    /// <param name="buf">The transposed intermediate coefficient plane.</param>
+    /// <param name="bitDepth">The source sample bit depth.</param>
+    /// <remarks>Corresponds to <c>av1_tranform_two_d_core_c</c> in the original WIP reference.</remarks>
     private static void Transform2dCore<TColumn, TRow>(TColumn transformFunctionColumn, TRow transformFunctionRow, Span<short> input, uint inputStride, Span<int> output, Av1Transform2dFlipConfiguration config, Span<int> buf, int bitDepth)
             where TColumn : IAv1Transformer1d
             where TRow : IAv1Transformer1d
     {
         int c, r;
 
-        // Note when assigning txfm_size_col, we use the txfm_size from the
-        // row configuration and vice versa. This is intentionally done to
-        // accurately perform rectangular transforms. When the transform is
-        // rectangular, the number of columns will be the same as the
-        // txfm_size stored in the row cfg struct. It will make no difference
-        // for square transforms.
+        // The row configuration's size is the number of columns, while the column configuration's size is the
+        // number of rows. Keeping those axis names explicit is essential for rectangular transforms.
         int transformColumnCount = config.TransformSize.GetWidth();
         int transformRowCount = config.TransformSize.GetHeight();
         int transformCount = transformColumnCount * transformRowCount;
@@ -90,9 +139,8 @@ internal class Av1ForwardTransformer
         int cosBitColumn = config.CosBitColumn;
         int cosBitRow = config.CosBitRow;
 
-        // ASSERT(txfm_func_col != NULL);
-        // ASSERT(txfm_func_row != NULL);
-        // use output buffer as temp buffer
+        // Reuse the output prefix for per-axis input/output vectors. The complete transformed rows overwrite this
+        // scratch only after every column has been transposed into the separate intermediate buffer.
         Span<int> tempInSpan = output[..transformRowCount];
         Span<int> tempOutSpan = output.Slice(transformRowCount, transformRowCount);
         ref int tempIn = ref tempInSpan[0];
@@ -173,6 +221,12 @@ internal class Av1ForwardTransformer
         }
     }
 
+    /// <summary>
+    /// Applies a signed fixed-point shift to a contiguous transform-stage vector.
+    /// </summary>
+    /// <param name="arr">A reference to the first transform-stage value.</param>
+    /// <param name="size">The number of values to update.</param>
+    /// <param name="bit">A positive rounded-right shift or a negative exact-left shift.</param>
     private static void RoundShiftArray(ref int arr, int size, int bit)
     {
         if (bit == 0)
@@ -202,8 +256,12 @@ internal class Av1ForwardTransformer
     }
 
     /// <summary>
-    /// SVT: get_rect_tx_log_ratio
+    /// Gets the signed base-two ratio between transform columns and rows.
     /// </summary>
+    /// <param name="col">The transform width.</param>
+    /// <param name="row">The transform height.</param>
+    /// <returns>Zero for square transforms, positive when wider, or negative when taller.</returns>
+    /// <remarks>Corresponds to <c>get_rect_tx_log_ratio</c> in the original WIP reference.</remarks>
     public static int GetRectangularRatio(int col, int row)
     {
         if (col == row)

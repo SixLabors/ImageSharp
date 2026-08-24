@@ -3,6 +3,9 @@
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 
+/// <summary>
+/// Identifies how much of a transform coefficient plane the encoder evaluates.
+/// </summary>
 internal enum Av1CoefficientShape
 {
     Default,

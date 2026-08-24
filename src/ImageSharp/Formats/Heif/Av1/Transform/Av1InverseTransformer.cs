@@ -3,11 +3,23 @@
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 
+/// <summary>
+/// Reconstructs decoded AV1 transform coefficients into prediction sample buffers.
+/// </summary>
 internal class Av1InverseTransformer
 {
     /// <summary>
-    /// SVT: svt_aom_inv_transform_recon8bit
+    /// Reconstructs an eight-bit transform block in place by adding its inverse-transform residual.
     /// </summary>
+    /// <param name="coefficientsBuffer">The dequantized transform coefficients.</param>
+    /// <param name="reconstructionBuffer">The predicted samples and reconstruction destination.</param>
+    /// <param name="reconstructionStride">The number of samples between rows.</param>
+    /// <param name="transformSize">The transform-block dimensions.</param>
+    /// <param name="transformType">The compound transform type.</param>
+    /// <param name="plane">The zero-based Y, U, or V plane index.</param>
+    /// <param name="numberOfCoefficients">The decoded coefficient end position.</param>
+    /// <param name="isLossless">Whether the segment uses lossless transform rules.</param>
+    /// <remarks>Corresponds to <c>svt_aom_inv_transform_recon8bit</c> in the original WIP reference.</remarks>
     public static void Reconstruct8Bit(Span<int> coefficientsBuffer, Span<byte> reconstructionBuffer, int reconstructionStride, Av1TransformSize transformSize, Av1TransformType transformType, int plane, int numberOfCoefficients, bool isLossless)
     {
         Av1TransformFunctionParameters transformFunctionParameters = new()
@@ -25,8 +37,19 @@ internal class Av1InverseTransformer
     }
 
     /// <summary>
-    /// SVT: svt_aom_inv_transform_recon8bit
+    /// Reconstructs an eight-bit transform block from a separate prediction buffer.
     /// </summary>
+    /// <param name="coefficientsBuffer">The dequantized transform coefficients.</param>
+    /// <param name="reconstructionBufferRead">The predicted samples read by reconstruction.</param>
+    /// <param name="reconstructionReadStride">The number of prediction samples between rows.</param>
+    /// <param name="reconstructionBufferWrite">The destination reconstructed samples.</param>
+    /// <param name="reconstructionWriteStride">The number of destination samples between rows.</param>
+    /// <param name="transformSize">The transform-block dimensions.</param>
+    /// <param name="transformType">The compound transform type.</param>
+    /// <param name="plane">The zero-based Y, U, or V plane index.</param>
+    /// <param name="numberOfCoefficients">The decoded coefficient end position.</param>
+    /// <param name="isLossless">Whether the segment uses lossless transform rules.</param>
+    /// <remarks>Corresponds to <c>svt_aom_inv_transform_recon8bit</c> in the original WIP reference.</remarks>
     public static void Reconstruct8Bit(Span<int> coefficientsBuffer, Span<byte> reconstructionBufferRead, int reconstructionReadStride, Span<byte> reconstructionBufferWrite, int reconstructionWriteStride, Av1TransformSize transformSize, Av1TransformType transformType, int plane, int numberOfCoefficients, bool isLossless)
     {
         Av1TransformFunctionParameters transformFunctionParameters = new()
@@ -39,9 +62,8 @@ internal class Av1InverseTransformer
             Is16BitPipeline = false
         };
 
-        /* When output pointers to read and write are differents,
-        * then kernel copy also all buffer from read to write,
-        * and cannot be limited by End Of Buffer calculations. */
+        // Separate prediction and destination buffers require every sample to be copied or reconstructed. Restricting
+        // traversal to the coded coefficient end position would leave the untouched prediction region unwritten.
         transformFunctionParameters.EndOfBuffer = Av1InverseTransformMath.GetMaxEndOfBuffer(transformSize);
 
         Av1InverseTransformerFactory.InverseTransformAdd(
@@ -49,8 +71,18 @@ internal class Av1InverseTransformer
     }
 
     /// <summary>
-    /// AV1: 7.11.2 Reconstruct.
+    /// Reconstructs a high-bit-depth transform block in place by adding its inverse-transform residual.
     /// </summary>
+    /// <param name="coefficientsBuffer">The dequantized transform coefficients.</param>
+    /// <param name="reconstructionBuffer">The predicted samples and reconstruction destination.</param>
+    /// <param name="reconstructionStride">The number of logical samples between rows.</param>
+    /// <param name="transformSize">The transform-block dimensions.</param>
+    /// <param name="transformType">The compound transform type.</param>
+    /// <param name="plane">The zero-based Y, U, or V plane index.</param>
+    /// <param name="numberOfCoefficients">The decoded coefficient end position.</param>
+    /// <param name="isLossless">Whether the segment uses lossless transform rules.</param>
+    /// <param name="bitDepth">The coded sample bit depth.</param>
+    /// <remarks>Implements the reconstruction operation in AV1 section 7.11.2.</remarks>
     public static void ReconstructHighBitDepth(Span<int> coefficientsBuffer, Span<short> reconstructionBuffer, int reconstructionStride, Av1TransformSize transformSize, Av1TransformType transformType, int plane, int numberOfCoefficients, bool isLossless, Av1BitDepth bitDepth)
     {
         Av1TransformFunctionParameters transformFunctionParameters = new()

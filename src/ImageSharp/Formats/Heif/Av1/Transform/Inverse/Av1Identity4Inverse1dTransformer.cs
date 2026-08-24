@@ -5,6 +5,9 @@ using System.Runtime.CompilerServices;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform.Inverse;
 
+/// <summary>
+/// Applies the four-point AV1 inverse identity transform to a one-dimensional coefficient vector.
+/// </summary>
 internal class Av1Identity4Inverse1dTransformer : IAv1Transformer1d
 {
     internal const int Sqrt2Bits = 12;
@@ -12,6 +15,7 @@ internal class Av1Identity4Inverse1dTransformer : IAv1Transformer1d
     // 2^12 * sqrt(2)
     internal const long Sqrt2 = 5793;
 
+    /// <inheritdoc/>
     public void Transform(Span<int> input, Span<int> output, int cosBit, Span<byte> stageRange)
     {
         Guard.MustBeSizedAtLeast(input, 4, nameof(input));
@@ -20,8 +24,11 @@ internal class Av1Identity4Inverse1dTransformer : IAv1Transformer1d
     }
 
     /// <summary>
-    /// SVT: svt_av1_iidentity4_c
+    /// Scales four coefficients according to the AV1 inverse identity-transform definition.
     /// </summary>
+    /// <param name="input">A reference to the first input coefficient.</param>
+    /// <param name="output">A reference to the first output value.</param>
+    /// <remarks>Corresponds to <c>svt_av1_iidentity4_c</c> in the original WIP reference.</remarks>
     private static void TransformScalar(ref int input, ref int output)
     {
         // Normal input should fit into 32-bit. Cast to 64-bit here to avoid

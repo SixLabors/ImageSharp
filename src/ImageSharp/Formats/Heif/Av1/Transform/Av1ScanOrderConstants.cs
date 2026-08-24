@@ -3,9 +3,19 @@
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 
+/// <summary>
+/// Contains the normative coefficient scan orders and quantization-matrix dimensions for AV1 transform blocks.
+/// </summary>
 internal static class Av1ScanOrderConstants
 {
+    /// <summary>
+    /// The number of bits used to signal a quantization-matrix level.
+    /// </summary>
     public const int QuantizationMatrixLevelBitCount = 4;
+
+    /// <summary>
+    /// The number of quantization-matrix levels, including the flat matrix.
+    /// </summary>
     public const int QuantizationMatrixLevelCount = 1 << QuantizationMatrixLevelBitCount;
 
     private static readonly short[] DefaultScan4x4 = [0, 1, 4, 8, 5, 2, 3, 6, 9, 12, 13, 10, 7, 11, 14, 15];
@@ -446,6 +456,9 @@ internal static class Av1ScanOrderConstants
     private static readonly short[] MatrixRowScan8x32Neighbors = [];
     private static readonly short[] MatrixRowScan32x8Neighbors = [];
 
+    /// <summary>
+    /// Maps transform size and compound transform type to coefficient and entropy-neighbor traversal tables.
+    /// </summary>
     private static readonly Av1ScanOrder[][] ScanOrders =
        [
 
@@ -840,6 +853,12 @@ internal static class Av1ScanOrderConstants
         ]
        ];
 
+    /// <summary>
+    /// Gets the coefficient traversal and entropy-neighbor mappings for a transform block.
+    /// </summary>
+    /// <param name="transformSize">The transform-block dimensions.</param>
+    /// <param name="transformType">The compound transform type.</param>
+    /// <returns>The selected scan order.</returns>
     public static Av1ScanOrder GetScanOrder(Av1TransformSize transformSize, Av1TransformType transformType)
         => ScanOrders[(int)transformSize][(int)transformType];
 }

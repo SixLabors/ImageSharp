@@ -3,6 +3,9 @@
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 
+/// <summary>
+/// Identifies every square and rectangular transform-block size defined by AV1.
+/// </summary>
 internal enum Av1TransformSize : byte
 {
     Size4x4 = 0,

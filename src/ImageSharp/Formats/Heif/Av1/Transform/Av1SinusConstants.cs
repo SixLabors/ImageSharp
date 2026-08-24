@@ -3,11 +3,22 @@
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 
+/// <summary>
+/// Contains the fixed-point sine and cosine tables used by the normative AV1 transform stages.
+/// </summary>
 internal static class Av1SinusConstants
 {
+    /// <summary>
+    /// The smallest supported number of fractional bits in a cosine lookup table.
+    /// </summary>
     public const int MinimumCosinusBit = 10;
 
-    // av1_cospi_arr[i][j] = (int32_t)round(cos(M_PI*j/128) * (1<<(cos_bit_min+i)));
+    /// <summary>
+    /// Fixed-point cosine values indexed by precision minus <see cref="MinimumCosinusBit"/> and angle step.
+    /// </summary>
+    /// <remarks>
+    /// Each value is <c>round(cos(pi * angle / 128) * 2^precision)</c>.
+    /// </remarks>
     private static readonly int[][] CosinusPiArray =
         [
             [
@@ -54,8 +65,13 @@ internal static class Av1SinusConstants
             ]
         ];
 
-    // svt_aom_eb_av1_sinpi_arr_data[i][j] = (int32_t)round((sqrt(2) * sin(j*Pi/9) * 2 / 3) * (1
-    // << (cos_bit_min + i))) modified so that elements j=1,2 sum to element j=4.
+    /// <summary>
+    /// Fixed-point sine values indexed by precision minus <see cref="MinimumCosinusBit"/> and angle step.
+    /// </summary>
+    /// <remarks>
+    /// Values follow <c>round((sqrt(2) * sin(angle * pi / 9) * 2 / 3) * 2^precision)</c>, adjusted so
+    /// the first two nonzero elements sum to the fourth.
+    /// </remarks>
     private static readonly int[][] SinusPiArray =
         [
             [0, 330, 621, 836, 951],
@@ -67,6 +83,9 @@ internal static class Av1SinusConstants
             [0, 21133, 39716, 53510, 60849]
         ];
 
+    /// <summary>
+    /// One quadrant of the signed cosine table used by directional intra prediction.
+    /// </summary>
     private static readonly int[] Cosinus128Lookup = [
         4096, 4095, 4091, 4085, 4076, 4065, 4052, 4036,
         4017, 3996, 3973, 3948, 3920, 3889, 3857, 3822,
@@ -78,18 +97,38 @@ internal static class Av1SinusConstants
         799, 700, 601, 501, 401, 301, 201, 101, 0
         ];
 
+    /// <summary>
+    /// Gets the transform cosine table for a fixed-point precision.
+    /// </summary>
+    /// <param name="n">The number of fractional bits.</param>
+    /// <returns>The cosine table for the requested precision.</returns>
     public static Span<int> CosinusPi(int n) => CosinusPiArray[n - MinimumCosinusBit];
 
+    /// <summary>
+    /// Gets the transform sine table for a fixed-point precision.
+    /// </summary>
+    /// <param name="n">The number of fractional bits.</param>
+    /// <returns>The sine table for the requested precision.</returns>
     public static Span<int> SinusPi(int n) => SinusPiArray[n - MinimumCosinusBit];
 
     /// <summary>
     /// Spec: 7.13.2.1 Butterfly functions
     /// </summary>
+    /// <summary>
+    /// Gets a directional-prediction sine value for an angle in 128-step circle units.
+    /// </summary>
+    /// <param name="angle">The signed angle.</param>
+    /// <returns>The signed fixed-point sine value.</returns>
     public static int Sinus128(int angle) => Cosinus128(angle - 64);
 
     /// <summary>
     /// Spec: 7.13.2.1 Butterfly functions
     /// </summary>
+    /// <summary>
+    /// Gets a directional-prediction cosine value for an angle in 128-step circle units.
+    /// </summary>
+    /// <param name="angle">The signed angle.</param>
+    /// <returns>The signed fixed-point cosine value.</returns>
     public static int Cosinus128(int angle)
     {
         int angle2 = angle & 255;

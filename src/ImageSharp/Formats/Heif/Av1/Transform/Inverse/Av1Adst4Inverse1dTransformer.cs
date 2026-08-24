@@ -5,8 +5,12 @@ using System.Runtime.CompilerServices;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform.Inverse;
 
+/// <summary>
+/// Applies the four-point AV1 inverse asymmetric discrete sine transform to a one-dimensional coefficient vector.
+/// </summary>
 internal class Av1Adst4Inverse1dTransformer : IAv1Transformer1d
 {
+    /// <inheritdoc/>
     public void Transform(Span<int> input, Span<int> output, int cosBit, Span<byte> stageRange)
     {
         Guard.MustBeSizedAtLeast(input, 4, nameof(input));
@@ -15,8 +19,13 @@ internal class Av1Adst4Inverse1dTransformer : IAv1Transformer1d
     }
 
     /// <summary>
-    /// SVT: svt_av1_iadst4_new
+    /// Applies the staged four-point fixed-point inverse ADST.
     /// </summary>
+    /// <param name="input">A reference to the first input coefficient.</param>
+    /// <param name="output">A reference to the first output value.</param>
+    /// <param name="cosBit">The sine-table fixed-point precision.</param>
+    /// <param name="stageRange">The signed-bit range permitted after each transform stage.</param>
+    /// <remarks>Corresponds to <c>svt_av1_iadst4_new</c> in the original WIP reference.</remarks>
     private static void TransformScalar(ref int input, ref int output, int cosBit, Span<byte> stageRange)
     {
         int bit = cosBit;

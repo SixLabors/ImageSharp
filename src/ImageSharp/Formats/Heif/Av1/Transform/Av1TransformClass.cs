@@ -3,6 +3,9 @@
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 
+/// <summary>
+/// Classifies AV1 transforms by the axes along which non-identity transforms operate.
+/// </summary>
 internal enum Av1TransformClass
 {
     Class2D = 0,

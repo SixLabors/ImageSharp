@@ -5,8 +5,12 @@ using System.Runtime.CompilerServices;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform.Inverse;
 
+/// <summary>
+/// Applies the four-point AV1 inverse discrete cosine transform to a one-dimensional coefficient vector.
+/// </summary>
 internal class Av1Dct4Inverse1dTransformer : IAv1Transformer1d
 {
+    /// <inheritdoc/>
     public void Transform(Span<int> input, Span<int> output, int cosBit, Span<byte> stageRange)
     {
         Guard.MustBeSizedAtLeast(input, 4, nameof(input));
@@ -15,8 +19,13 @@ internal class Av1Dct4Inverse1dTransformer : IAv1Transformer1d
     }
 
     /// <summary>
-    /// SVT: svt_av1_idct4_new
+    /// Applies the staged four-point fixed-point inverse DCT.
     /// </summary>
+    /// <param name="input">A reference to the first input coefficient.</param>
+    /// <param name="output">A reference to the first output value.</param>
+    /// <param name="cosBit">The cosine-table fixed-point precision.</param>
+    /// <param name="stageRange">The signed-bit range permitted after each transform stage.</param>
+    /// <remarks>Corresponds to <c>svt_av1_idct4_new</c> in the original WIP reference.</remarks>
     private static void TransformScalar(ref int input, ref int output, int cosBit, Span<byte> stageRange)
     {
         Span<int> cospi = Av1SinusConstants.CosinusPi(cosBit);
@@ -53,6 +62,12 @@ internal class Av1Dct4Inverse1dTransformer : IAv1Transformer1d
         ClampBuffer4(ref output, stageRange[stage]);
     }
 
+    /// <summary>
+    /// Clamps one transform-stage value to a signed range of the specified bit width.
+    /// </summary>
+    /// <param name="value">The value to clamp.</param>
+    /// <param name="bit">The signed range width in bits.</param>
+    /// <returns>The clamped value.</returns>
     internal static int ClampValue(int value, byte bit)
     {
         if (bit <= 0)
@@ -65,6 +80,11 @@ internal class Av1Dct4Inverse1dTransformer : IAv1Transformer1d
         return (int)Av1Math.Clamp(value, min_value, max_value);
     }
 
+    /// <summary>
+    /// Clamps four contiguous transform-stage values to a signed range.
+    /// </summary>
+    /// <param name="buffer">A reference to the first value.</param>
+    /// <param name="bit">The signed range width in bits.</param>
     internal static void ClampBuffer4(ref int buffer, byte bit)
     {
         if (bit <= 0)
@@ -81,6 +101,11 @@ internal class Av1Dct4Inverse1dTransformer : IAv1Transformer1d
         Unsafe.Add(ref buffer, 3) = (int)Av1Math.Clamp(Unsafe.Add(ref buffer, 3), min_value, max_value);
     }
 
+    /// <summary>
+    /// Clamps eight contiguous transform-stage values to a signed range.
+    /// </summary>
+    /// <param name="buffer">A reference to the first value.</param>
+    /// <param name="bit">The signed range width in bits.</param>
     internal static void ClampBuffer8(ref int buffer, byte bit)
     {
         if (bit <= 0)
@@ -101,6 +126,11 @@ internal class Av1Dct4Inverse1dTransformer : IAv1Transformer1d
         Unsafe.Add(ref buffer, 7) = (int)Av1Math.Clamp(Unsafe.Add(ref buffer, 7), min_value, max_value);
     }
 
+    /// <summary>
+    /// Clamps 16 contiguous transform-stage values to a signed range.
+    /// </summary>
+    /// <param name="buffer">A reference to the first value.</param>
+    /// <param name="bit">The signed range width in bits.</param>
     internal static void ClampBuffer16(ref int buffer, byte bit)
     {
         if (bit <= 0)
@@ -129,6 +159,11 @@ internal class Av1Dct4Inverse1dTransformer : IAv1Transformer1d
         Unsafe.Add(ref buffer, 15) = (int)Av1Math.Clamp(Unsafe.Add(ref buffer, 15), min_value, max_value);
     }
 
+    /// <summary>
+    /// Clamps 32 contiguous transform-stage values to a signed range.
+    /// </summary>
+    /// <param name="buffer">A reference to the first value.</param>
+    /// <param name="bit">The signed range width in bits.</param>
     internal static void ClampBuffer32(ref int buffer, byte bit)
     {
         if (bit <= 0)
@@ -173,6 +208,15 @@ internal class Av1Dct4Inverse1dTransformer : IAv1Transformer1d
         Unsafe.Add(ref buffer, 31) = (int)Av1Math.Clamp(Unsafe.Add(ref buffer, 31), min_value, max_value);
     }
 
+    /// <summary>
+    /// Applies one rounded two-input fixed-point butterfly output.
+    /// </summary>
+    /// <param name="w0">The first fixed-point weight.</param>
+    /// <param name="in0">The first input value.</param>
+    /// <param name="w1">The second fixed-point weight.</param>
+    /// <param name="in1">The second input value.</param>
+    /// <param name="bit">The number of fractional bits removed after multiplication.</param>
+    /// <returns>The rounded butterfly output.</returns>
     internal static int HalfButterfly(int w0, int in0, int w1, int in1, int bit)
     {
         long result64 = (long)(w0 * in0) + (w1 * in1);

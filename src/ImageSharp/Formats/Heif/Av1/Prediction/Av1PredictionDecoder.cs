@@ -361,8 +361,6 @@ internal class Av1PredictionDecoder
         Av1BitDepth bitDepth)
         where T : unmanaged, IBinaryInteger<T>
     {
-        // TODO:are_parameters_computed variable for CFL so that cal part for V plane we can skip,
-        // once we compute for U plane, this parameter is block level parameter.
         ObuColorConfig cc = this.sequenceHeader.ColorConfig;
         int subX = plane != Av1Plane.Y ? cc.SubSamplingX ? 1 : 0 : 0;
         int subY = plane != Av1Plane.Y ? cc.SubSamplingY ? 1 : 0 : 0;

@@ -3,6 +3,7 @@
 
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Cdef;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.FilmGrain;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.LoopFilter;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.LoopRestoration;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Quantification;
@@ -126,8 +127,13 @@ internal class Av1FrameDecoder : IAv1FrameDecoder
             loopRestorationDecoder.DecodeFrame();
         }
 
-        // A still-image decode ends at the visible restored samples. Extending reference-frame
-        // borders is sequence playback state and is deliberately outside this decoder's scope.
+        // Film grain belongs to the displayed image rather than the reference reconstruction, so it
+        // follows every in-loop filter. This decoder owns no retained reference frames.
+        Av1FilmGrainDecoder filmGrainDecoder = new(this.sequenceHeader, this.frameHeader, this.frameBuffer);
+        filmGrainDecoder.DecodeFrame();
+
+        // Extending reference-frame borders is sequence playback state and is deliberately outside
+        // this still-image decoder's scope.
     }
 
     /// <summary>

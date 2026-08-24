@@ -66,11 +66,6 @@ internal class ObuReader
                 case ObuType.SequenceHeader:
                     this.SequenceHeader = new();
                     ReadSequenceHeader(ref reader, this.SequenceHeader);
-                    if (this.SequenceHeader.ColorConfig.BitDepth == Av1BitDepth.TwelveBit)
-                    {
-                        // TODO: Initialize 12 bit predictors
-                    }
-
                     break;
                 case ObuType.FrameHeader:
                 case ObuType.RedundantFrameHeader:

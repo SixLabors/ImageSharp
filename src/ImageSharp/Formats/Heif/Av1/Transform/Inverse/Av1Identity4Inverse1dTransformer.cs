@@ -10,9 +10,14 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform.Inverse;
 /// </summary>
 internal class Av1Identity4Inverse1dTransformer : IAv1Transformer1d
 {
+    /// <summary>
+    /// The number of fractional bits in the fixed-point AV1 square-root-of-two constant.
+    /// </summary>
     internal const int Sqrt2Bits = 12;
 
-    // 2^12 * sqrt(2)
+    /// <summary>
+    /// The AV1 square-root-of-two constant scaled by <c>2^12</c>.
+    /// </summary>
     internal const long Sqrt2 = 5793;
 
     /// <inheritdoc/>

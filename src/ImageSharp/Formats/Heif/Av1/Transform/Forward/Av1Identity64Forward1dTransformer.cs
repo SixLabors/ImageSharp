@@ -10,6 +10,9 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform.Forward;
 /// </summary>
 internal class Av1Identity64Forward1dTransformer : IAv1Transformer1d
 {
+    /// <summary>
+    /// The fixed-point value used to multiply the 64-point identity-transform inputs by four times the AV1 square-root-of-two constant.
+    /// </summary>
     private const int QuadNewSqrt2 = 4 * 5793;
 
     /// <inheritdoc/>

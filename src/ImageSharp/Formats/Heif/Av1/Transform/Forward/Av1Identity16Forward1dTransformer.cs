@@ -10,6 +10,9 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform.Forward;
 /// </summary>
 internal class Av1Identity16Forward1dTransformer : IAv1Transformer1d
 {
+    /// <summary>
+    /// The fixed-point value used to multiply the 16-point identity-transform inputs by twice the AV1 square-root-of-two constant.
+    /// </summary>
     private const int TwiceNewSqrt2 = 2 * 5793;
 
     /// <inheritdoc/>

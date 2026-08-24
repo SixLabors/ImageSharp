@@ -10,6 +10,9 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform.Inverse;
 /// </summary>
 internal class Av1Identity16Inverse1dTransformer : IAv1Transformer1d
 {
+    /// <summary>
+    /// The fixed-point scale applied by the 16-point inverse identity transform.
+    /// </summary>
     private const long Sqrt2Times2 = Av1Identity4Inverse1dTransformer.Sqrt2 >> 1;
 
     /// <inheritdoc/>

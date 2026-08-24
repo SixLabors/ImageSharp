@@ -8,7 +8,18 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 /// </summary>
 internal enum Av1TransformMode : byte
 {
+    /// <summary>
+    /// Every transform block is four by four samples.
+    /// </summary>
     Only4x4 = 0,
+
+    /// <summary>
+    /// Each block uses the largest permitted transform size.
+    /// </summary>
     Largest = 1,
+
+    /// <summary>
+    /// Transform-block sizes are selected by block-level syntax.
+    /// </summary>
     Select = 2,
 }

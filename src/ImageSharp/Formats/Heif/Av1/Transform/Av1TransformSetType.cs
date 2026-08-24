@@ -39,5 +39,9 @@ internal enum Av1TransformSetType
     /// Allowed transforms: Discrete Trig transforms w/ flip (9) + Identity (1) + 1D Hor/Ver (6)
     /// </summary>
     InterSet1,
+
+    /// <summary>
+    /// The number of defined transform sets.
+    /// </summary>
     AllSets
 }

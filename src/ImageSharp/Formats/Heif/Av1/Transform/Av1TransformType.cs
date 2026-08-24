@@ -27,17 +27,65 @@ internal enum Av1TransformType : byte
     /// ADST in both directions.
     /// </summary>
     AdstAdst,
+
+    /// <summary>
+    /// Flipped ADST vertically and DCT horizontally.
+    /// </summary>
     FlipAdstDct,
+
+    /// <summary>
+    /// DCT vertically and flipped ADST horizontally.
+    /// </summary>
     DctFlipAdst,
+
+    /// <summary>
+    /// Flipped ADST in both directions.
+    /// </summary>
     FlipAdstFlipAdst,
+
+    /// <summary>
+    /// ADST vertically and flipped ADST horizontally.
+    /// </summary>
     AdstFlipAdst,
+
+    /// <summary>
+    /// Flipped ADST vertically and ADST horizontally.
+    /// </summary>
     FlipAdstAdst,
+
+    /// <summary>
+    /// Identity transforms in both directions.
+    /// </summary>
     Identity,
+
+    /// <summary>
+    /// DCT vertically and identity horizontally.
+    /// </summary>
     VerticalDct,
+
+    /// <summary>
+    /// Identity vertically and DCT horizontally.
+    /// </summary>
     HorizontalDct,
+
+    /// <summary>
+    /// ADST vertically and identity horizontally.
+    /// </summary>
     VerticalAdst,
+
+    /// <summary>
+    /// Identity vertically and ADST horizontally.
+    /// </summary>
     HorizontalAdst,
+
+    /// <summary>
+    /// Flipped ADST vertically and identity horizontally.
+    /// </summary>
     VerticalFlipAdst,
+
+    /// <summary>
+    /// Identity vertically and flipped ADST horizontally.
+    /// </summary>
     HorizontalFlipAdst,
 
     /// <summary>

@@ -8,8 +8,23 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 /// </summary>
 internal enum Av1TransformType1d
 {
+    /// <summary>
+    /// A discrete cosine transform.
+    /// </summary>
     Dct,
+
+    /// <summary>
+    /// An asymmetric discrete sine transform.
+    /// </summary>
     Adst,
+
+    /// <summary>
+    /// A flipped asymmetric discrete sine transform.
+    /// </summary>
     FlipAdst,
+
+    /// <summary>
+    /// An identity transform.
+    /// </summary>
     Identity
 }

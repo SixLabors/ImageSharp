@@ -106,6 +106,7 @@ internal class Av1SuperblockInfo
     /// <summary>
     /// Gets the mode information records parsed for this superblock in bitstream order.
     /// </summary>
+    /// <returns>The mode information records for the superblock.</returns>
     public Span<Av1BlockModeInfo> GetModeInfos() => this.frameInfo.GetModeInfos(this.Position, this.BlockCount);
 
     /// <summary>

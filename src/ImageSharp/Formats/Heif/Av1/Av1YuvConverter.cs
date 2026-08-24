@@ -317,6 +317,7 @@ internal static class Av1YuvConverter
     /// <summary>
     /// Converts one YUV row to packed RGB using the resolved H.273 conversion state.
     /// </summary>
+    /// <typeparam name="TSample">The encoded sample type.</typeparam>
     /// <param name="ySource">The luma samples.</param>
     /// <param name="uRow0">The upper blue-difference chroma row.</param>
     /// <param name="uRow1">The lower blue-difference chroma row.</param>
@@ -412,6 +413,7 @@ internal static class Av1YuvConverter
     /// <summary>
     /// Bilinearly reconstructs a chroma sample at a luma coordinate.
     /// </summary>
+    /// <typeparam name="TSample">The encoded sample type.</typeparam>
     /// <param name="row0">The upper chroma row.</param>
     /// <param name="row1">The lower chroma row.</param>
     /// <param name="x">The luma column coordinate.</param>
@@ -485,6 +487,7 @@ internal static class Av1YuvConverter
     /// <summary>
     /// Converts one packed RGB row to YUV 4:4:4 using the resolved H.273 conversion state.
     /// </summary>
+    /// <typeparam name="TSample">The encoded sample type.</typeparam>
     /// <param name="source">The source RGB pixels.</param>
     /// <param name="yDestination">The destination luma samples.</param>
     /// <param name="uDestination">The destination blue-difference chroma samples.</param>

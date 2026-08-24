@@ -119,6 +119,16 @@ internal partial class Av1FrameInfo
         return this.modeInfos[index];
     }
 
+    /// <summary>
+    /// Gets the mode information records parsed for the specified superblock in bitstream order.
+    /// </summary>
+    public Span<Av1BlockModeInfo> GetModeInfos(Point superblockIndex, int count)
+    {
+        Point location = this.GetModeInfoPosition(superblockIndex, Point.Empty);
+        int index = this.modeInfoMap[location];
+        return this.modeInfos.AsSpan(index, count);
+    }
+
     public Span<Av1TransformInfo> GetSuperblockTransform(int plane, Point index)
     {
         if (plane == 0)

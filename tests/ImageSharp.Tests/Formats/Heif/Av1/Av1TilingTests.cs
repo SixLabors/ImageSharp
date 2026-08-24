@@ -112,6 +112,43 @@ public class Av1TilingTests
         Assert.Equal(superblockCount, frameDecoder.SuperblockCount);
     }
 
+    [Fact]
+    public void ParsedSuperblocksExposeEveryModeInfoInBitstreamOrder()
+    {
+        string filePath = Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, TestImages.Heif.XnConvert);
+        byte[] content = File.ReadAllBytes(filePath);
+        const int dataOffset = 0x010E;
+        const int dataSize = 0x03CC;
+        const int tileOffset = 18;
+        Span<byte> headerSpan = content.AsSpan(dataOffset, dataSize);
+        Span<byte> tileSpan = content.AsSpan(tileOffset, dataSize - tileOffset);
+        Av1BitStreamReader bitStreamReader = new(headerSpan);
+        IAv1TileReader stub = new Av1TileDecoderStub();
+        ObuReader obuReader = new();
+        obuReader.ReadAll(ref bitStreamReader, dataSize, () => stub);
+        Av1TileReader tileReader = new(Configuration.Default, obuReader.SequenceHeader, obuReader.FrameHeader);
+
+        tileReader.ReadTile(tileSpan, 0);
+
+        int parsedModeInfoCount = 0;
+        int superblockSize = obuReader.SequenceHeader.SuperblockModeInfoSize;
+        for (int row = 0; row < obuReader.FrameHeader.ModeInfoRowCount; row += superblockSize)
+        {
+            for (int column = 0; column < obuReader.FrameHeader.ModeInfoColumnCount; column += superblockSize)
+            {
+                Point superblockPosition = new(column / superblockSize, row / superblockSize);
+                Av1SuperblockInfo superblockInfo = tileReader.FrameInfo.GetSuperblock(superblockPosition);
+                Span<Av1BlockModeInfo> modeInfos = superblockInfo.GetModeInfos();
+
+                Assert.Equal(superblockInfo.BlockCount, modeInfos.Length);
+                Assert.DoesNotContain(modeInfos.ToArray(), modeInfo => modeInfo is null);
+                parsedModeInfoCount += modeInfos.Length;
+            }
+        }
+
+        Assert.True(parsedModeInfoCount > 16);
+    }
+
     [Theory]
     [InlineData(TestImages.Heif.XnConvert, 0x010E, 0x03CC, 18, 16)]
     [InlineData(TestImages.Heif.Orange4x4, 0x010E, 0x001d, 21, 1)]

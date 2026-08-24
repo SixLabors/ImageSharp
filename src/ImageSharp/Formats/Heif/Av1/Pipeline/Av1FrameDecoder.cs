@@ -120,9 +120,7 @@ internal class Av1FrameDecoder : IAv1FrameDecoder
     /// </summary>
     private void DecodePartition(Point modeInfoPosition, Av1SuperblockInfo superblockInfo, Av1TileInfo tileInfo)
     {
-        Av1BlockModeInfo modeInfo = superblockInfo.GetModeInfo(modeInfoPosition);
-
-        for (int i = 0; i < superblockInfo.BlockCount; i++)
+        foreach (Av1BlockModeInfo modeInfo in superblockInfo.GetModeInfos())
         {
             Point subPosition = modeInfo.PositionInSuperblock;
             Av1BlockSize subSize = modeInfo.BlockSize;

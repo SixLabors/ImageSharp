@@ -126,11 +126,6 @@ internal class ObuSequenceHeader
     public int SuperblockSizeLog2 { get; private set; }
 
     /// <summary>
-    /// Gets or sets the filter-intra capability level.
-    /// </summary>
-    public int FilterIntraLevel { get; set; }
-
-    /// <summary>
     /// Gets or sets a value indicating whether intra edge filtering is enabled.
     /// </summary>
     public bool EnableIntraEdgeFilter { get; set; }
@@ -143,7 +138,16 @@ internal class ObuSequenceHeader
     /// <summary>
     /// Gets or sets a value indicating whether order hints are enabled.
     /// </summary>
-    public bool EnableOrderHint { get; set; }
+    public bool EnableOrderHint
+    {
+        get => this.OrderHintInfo.EnableOrderHint;
+        set
+        {
+            // Order-hint availability is consumed through OrderHintInfo by frame parsing, so
+            // keep the sequence-facing flag and dependent tool state synchronized.
+            this.OrderHintInfo.EnableOrderHint = value;
+        }
+    }
 
     /// <summary>
     /// Gets or sets a value indicating whether inter-intra compound prediction is enabled.
@@ -179,11 +183,6 @@ internal class ObuSequenceHeader
     /// Gets or sets a value indicating whether frame super-resolution is enabled.
     /// </summary>
     public bool EnableSuperResolution { get; set; }
-
-    /// <summary>
-    /// Gets or sets the constrained directional enhancement filter capability level.
-    /// </summary>
-    public int CdefLevel { get; set; }
 
     /// <summary>
     /// Gets or sets a value indicating whether loop restoration is enabled.

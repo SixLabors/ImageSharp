@@ -290,4 +290,19 @@ internal static class Av1Constants
     /// The maximum number of transform units stored for one encoded block.
     /// </summary>
     public const int MaxTransformUnitCount = 16;
+
+    /// <summary>
+    /// Gets the number of payload bits used by each segmentation feature.
+    /// </summary>
+    public static ReadOnlySpan<int> SegmentationFeatureBits => [8, 6, 6, 6, 6, 3, 0, 0];
+
+    /// <summary>
+    /// Gets values indicating whether each segmentation feature is signed.
+    /// </summary>
+    public static ReadOnlySpan<int> SegmentationFeatureSigned => [1, 1, 1, 1, 1, 0, 0, 0];
+
+    /// <summary>
+    /// Gets the maximum magnitude or value permitted for each segmentation feature.
+    /// </summary>
+    public static ReadOnlySpan<int> SegmentationFeatureMax => [MaxQ, MaxLoopFilter, MaxLoopFilter, MaxLoopFilter, MaxLoopFilter, 7, 0, 0];
 }

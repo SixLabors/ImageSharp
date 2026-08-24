@@ -16,7 +16,7 @@ internal class ObuConstraintDirectionalEnhancementFilterParameters
     /// <summary>
     /// Gets or sets the filter damping value.
     /// </summary>
-    public int Damping { get; internal set; }
+    public int Damping { get; internal set; } = 3;
 
     /// <summary>
     /// Gets or sets the primary and secondary luma strengths for each filter entry.

@@ -14,7 +14,7 @@ internal class ObuDeltaParameters
     public bool IsPresent { get; internal set; }
 
     /// <summary>
-    /// Gets or sets the delta-value resolution.
+    /// Gets or sets the delta-value multiplier, which is one, two, four, or eight.
     /// </summary>
     public int Resolution { get; internal set; }
 

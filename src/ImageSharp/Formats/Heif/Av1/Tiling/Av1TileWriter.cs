@@ -523,7 +523,7 @@ internal partial class Av1TileWriter
             }
 
             if (!macroBlockModeInfo.Block.UseIntraBlockCopy &&
-                IsFilterIntraAllowed(scs.SequenceHeader.FilterIntraLevel > 0, blockSize, blk_ptr.PaletteSize[0], intra_luma_mode))
+                IsFilterIntraAllowed(scs.SequenceHeader.EnableFilterIntra, blockSize, blk_ptr.PaletteSize[0], intra_luma_mode))
             {
                 writer.WriteFilterIntraMode(blk_ptr.FilterIntraMode, blockSize);
             }

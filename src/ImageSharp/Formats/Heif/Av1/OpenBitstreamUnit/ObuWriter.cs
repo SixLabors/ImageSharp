@@ -1,22 +1,33 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Quantification;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 
+/// <summary>
+/// Writes the AV1 open bitstream units required for a single still-image frame.
+/// </summary>
 internal class ObuWriter
 {
-    private int[] previousQIndex = [];
-    private int[] previousDeltaLoopFilter = [];
-
     /// <summary>
-    /// Encode a single frame into OBU's.
+    /// Writes a temporal delimiter and the supplied sequence and frame OBUs.
     /// </summary>
+    /// <param name="configuration">The configuration used to allocate temporary encoding memory.</param>
+    /// <param name="stream">The destination stream.</param>
+    /// <param name="sequenceHeader">The optional still-picture sequence header.</param>
+    /// <param name="frameHeader">The optional intra-frame header.</param>
+    /// <param name="tileWriter">The tile writer used when a frame header is supplied.</param>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage(
+        "Performance",
+        "CA1822:Mark members as static",
+        Justification = "Preserves the existing writer instance contract.")]
     public void WriteAll(Configuration configuration, Stream stream, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameHeader, IAv1TileWriter tileWriter)
     {
-        // TODO: Determine inital size dynamically
+        // The allocation expands when necessary; this initial size avoids repeated growth for
+        // the small headers and tiles produced by the current still-image encoder.
         int initialBufferSize = 2000;
         AutoExpandingMemory<byte> buffer = new(configuration, initialBufferSize);
         Av1BitStreamWriter writer = new(buffer);
@@ -32,7 +43,7 @@ internal class ObuWriter
 
         if (frameHeader != null && sequenceHeader != null)
         {
-            this.WriteFrameHeader(ref writer, sequenceHeader, frameHeader, false);
+            WriteFrameHeader(ref writer, sequenceHeader, frameHeader);
             if (frameHeader.TilesInfo != null)
             {
                 WriteTileGroup(ref writer, frameHeader.TilesInfo, tileWriter);
@@ -44,27 +55,24 @@ internal class ObuWriter
         }
     }
 
-    private static void WriteObuHeader(ref Av1BitStreamWriter writer, ObuType type)
+    /// <summary>
+    /// Creates a byte-aligned OBU header with an explicit payload-size field and no extension.
+    /// </summary>
+    /// <param name="type">The OBU payload type.</param>
+    /// <returns>The encoded OBU header byte.</returns>
+    private static byte WriteObuHeader(ObuType type)
     {
-        writer.WriteBoolean(false); // Forbidden bit
-        writer.WriteLiteral((uint)type, 4);
-        writer.WriteBoolean(false); // Extension
-        writer.WriteBoolean(true); // HasSize
-        writer.WriteBoolean(false); // Reserved
+        // The only set fields are the four-bit type and the has-size flag; forbidden,
+        // extension, and reserved bits remain zero.
+        return (byte)(((byte)type << 3) | 0x02);
     }
 
-    private static byte WriteObuHeader(ObuType type) =>
-
-        // 0: Forbidden bit
-        // 1: Type, 4
-        // 5: Extension (false)
-        // 6: HasSize (true)
-        // 7: Reserved (false)
-        (byte)(((byte)type << 3) | 0x02);
-
     /// <summary>
-    /// Read OBU header and size.
+    /// Writes a complete byte-aligned OBU with a little-endian base-128 payload size.
     /// </summary>
+    /// <param name="stream">The destination stream.</param>
+    /// <param name="type">The OBU payload type.</param>
+    /// <param name="payload">The complete OBU payload.</param>
     private static void WriteObuHeaderAndSize(Stream stream, ObuType type, Span<byte> payload)
     {
         stream.WriteByte(WriteObuHeader(type));
@@ -77,18 +85,20 @@ internal class ObuWriter
     }
 
     /// <summary>
-    /// Write trsainling bits to end on a byte boundary, these trailing bits start with a 1 and end with 0s.
+    /// Writes a trailing one bit followed by enough zero bits to reach a byte boundary.
     /// </summary>
-    /// <remarks>Write an additional byte, if already byte aligned before.</remarks>
+    /// <param name="writer">The bit writer receiving the trailing bits.</param>
+    /// <remarks>Writes an additional byte when the writer is already byte aligned.</remarks>
     private static void WriteTrailingBits(ref Av1BitStreamWriter writer)
     {
         int bitsBeforeAlignment = 8 - (writer.BitPosition & 0x7);
-        if (bitsBeforeAlignment != 8)
-        {
-            writer.WriteLiteral(1U << (bitsBeforeAlignment - 1), bitsBeforeAlignment);
-        }
+        writer.WriteLiteral(1U << (bitsBeforeAlignment - 1), bitsBeforeAlignment);
     }
 
+    /// <summary>
+    /// Writes zero padding until the output reaches a byte boundary.
+    /// </summary>
+    /// <param name="writer">The bit writer to align.</param>
     private static void AlignToByteBoundary(ref Av1BitStreamWriter writer)
     {
         while ((writer.BitPosition & 0x7) > 0)
@@ -97,14 +107,11 @@ internal class ObuWriter
         }
     }
 
-    private static bool IsValidObuType(ObuType type) => type switch
-    {
-        ObuType.SequenceHeader or ObuType.TemporalDelimiter or ObuType.FrameHeader or
-        ObuType.TileGroup or ObuType.Metadata or ObuType.Frame or ObuType.RedundantFrameHeader or
-        ObuType.TileList or ObuType.Padding => true,
-        _ => false,
-    };
-
+    /// <summary>
+    /// Writes a reduced still-picture sequence header.
+    /// </summary>
+    /// <param name="writer">The bit writer receiving the sequence header.</param>
+    /// <param name="sequenceHeader">The sequence header to encode.</param>
     private static void WriteSequenceHeader(ref Av1BitStreamWriter writer, ObuSequenceHeader sequenceHeader)
     {
         writer.WriteLiteral((uint)sequenceHeader.SequenceProfile, 3);
@@ -132,6 +139,11 @@ internal class ObuWriter
         WriteTrailingBits(ref writer);
     }
 
+    /// <summary>
+    /// Writes the sequence color configuration.
+    /// </summary>
+    /// <param name="writer">The bit writer receiving the color configuration.</param>
+    /// <param name="sequenceHeader">The sequence header containing the color configuration.</param>
     private static void WriteColorConfig(ref Av1BitStreamWriter writer, ObuSequenceHeader sequenceHeader)
     {
         ObuColorConfig colorConfig = sequenceHeader.ColorConfig;
@@ -159,6 +171,8 @@ internal class ObuWriter
             colorConfig.TransferCharacteristics == ObuTransferCharacteristics.Srgb &&
             colorConfig.MatrixCoefficients == ObuMatrixCoefficients.Identity)
         {
+            // AV1 fixes this RGB identity-matrix combination to full-range 4:4:4 and omits
+            // the range and subsampling fields used by YUV configurations.
             colorConfig.ColorRange = true;
             colorConfig.SubSamplingX = false;
             colorConfig.SubSamplingY = false;
@@ -184,6 +198,12 @@ internal class ObuWriter
         writer.WriteBoolean(colorConfig.HasSeparateUvDelta);
     }
 
+    /// <summary>
+    /// Writes the profile-dependent bit-depth flags.
+    /// </summary>
+    /// <param name="writer">The bit writer receiving the flags.</param>
+    /// <param name="colorConfig">The color configuration containing the bit depth.</param>
+    /// <param name="sequenceHeader">The sequence header containing the selected profile.</param>
     private static void WriteBitDepth(ref Av1BitStreamWriter writer, ObuColorConfig colorConfig, ObuSequenceHeader sequenceHeader)
     {
         bool hasHighBitDepth = colorConfig.BitDepth > Av1BitDepth.EightBit;
@@ -194,9 +214,17 @@ internal class ObuWriter
         }
     }
 
+    /// <summary>
+    /// Writes the super-resolution enablement and scale denominator.
+    /// </summary>
+    /// <param name="writer">The bit writer receiving the super-resolution syntax.</param>
+    /// <param name="sequenceHeader">The sequence header controlling super-resolution availability.</param>
+    /// <param name="frameHeader">The frame header containing the scale denominator.</param>
     private static void WriteSuperResolutionParameters(ref Av1BitStreamWriter writer, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameHeader)
     {
-        bool useSuperResolution = false;
+        bool useSuperResolution = sequenceHeader.EnableSuperResolution &&
+            frameHeader.FrameSize.SuperResolutionDenominator != Av1Constants.ScaleNumerator;
+
         if (sequenceHeader.EnableSuperResolution)
         {
             writer.WriteBoolean(useSuperResolution);
@@ -208,10 +236,18 @@ internal class ObuWriter
         }
     }
 
+    /// <summary>
+    /// Writes the render-size override when display dimensions differ from the upscaled frame.
+    /// </summary>
+    /// <param name="writer">The bit writer receiving the render-size syntax.</param>
+    /// <param name="frameHeader">The frame header containing coded and render dimensions.</param>
     private static void WriteRenderSize(ref Av1BitStreamWriter writer, ObuFrameHeader frameHeader)
     {
-        bool renderSizeAndFrameSizeDifferent = false;
-        writer.WriteBoolean(false);
+        bool renderSizeAndFrameSizeDifferent =
+            frameHeader.FrameSize.RenderWidth != frameHeader.FrameSize.SuperResolutionUpscaledWidth ||
+            frameHeader.FrameSize.RenderHeight != frameHeader.FrameSize.FrameHeight;
+
+        writer.WriteBoolean(renderSizeAndFrameSizeDifferent);
         if (renderSizeAndFrameSizeDifferent)
         {
             writer.WriteLiteral((uint)frameHeader.FrameSize.RenderWidth - 1, 16);
@@ -219,41 +255,30 @@ internal class ObuWriter
         }
     }
 
-    private static void WriteFrameSizeWithReferences(ref Av1BitStreamWriter writer, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameHeader, bool frameSizeOverrideFlag)
-    {
-        bool foundReference = false;
-        for (int i = 0; i < Av1Constants.ReferencesPerFrame; i++)
-        {
-            writer.WriteBoolean(foundReference);
-            if (foundReference)
-            {
-                // Take values over from reference frame
-                break;
-            }
-        }
-
-        if (!foundReference)
-        {
-            WriteFrameSize(ref writer, sequenceHeader, frameHeader, frameSizeOverrideFlag);
-            WriteRenderSize(ref writer, frameHeader);
-        }
-        else
-        {
-            WriteSuperResolutionParameters(ref writer, sequenceHeader, frameHeader);
-        }
-    }
-
+    /// <summary>
+    /// Writes an optional frame-size override followed by super-resolution syntax.
+    /// </summary>
+    /// <param name="writer">The bit writer receiving the frame size.</param>
+    /// <param name="sequenceHeader">The sequence header defining dimension field widths.</param>
+    /// <param name="frameHeader">The frame header containing the dimensions.</param>
+    /// <param name="frameSizeOverrideFlag">A value indicating whether explicit dimensions are written.</param>
     private static void WriteFrameSize(ref Av1BitStreamWriter writer, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameHeader, bool frameSizeOverrideFlag)
     {
         if (frameSizeOverrideFlag)
         {
-            writer.WriteLiteral((uint)frameHeader.FrameSize.FrameWidth - 1, sequenceHeader.FrameWidthBits + 1);
-            writer.WriteLiteral((uint)frameHeader.FrameSize.FrameHeight - 1, sequenceHeader.FrameHeightBits + 1);
+            writer.WriteLiteral((uint)frameHeader.FrameSize.FrameWidth - 1, sequenceHeader.FrameWidthBits);
+            writer.WriteLiteral((uint)frameHeader.FrameSize.FrameHeight - 1, sequenceHeader.FrameHeightBits);
         }
 
         WriteSuperResolutionParameters(ref writer, sequenceHeader, frameHeader);
     }
 
+    /// <summary>
+    /// Writes the frame tile layout.
+    /// </summary>
+    /// <param name="writer">The bit writer receiving the tile information.</param>
+    /// <param name="sequenceHeader">The sequence header defining superblock geometry.</param>
+    /// <param name="frameHeader">The frame header containing tile boundaries.</param>
     private static void WriteTileInfo(ref Av1BitStreamWriter writer, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameHeader)
     {
         ObuTileGroupHeader tileInfo = frameHeader.TilesInfo;
@@ -273,8 +298,10 @@ internal class ObuWriter
         tileInfo.MaxLog2TileRowCount = ObuReader.TileLog2(1, Math.Min(superblockRowCount, Av1Constants.MaxTileRowCount));
         tileInfo.MinLog2TileCount = Math.Max(tileInfo.MinLog2TileColumnCount, ObuReader.TileLog2(maxTileAreaOfSuperBlock, superblockColumnCount * superblockRowCount));
 
-        int log2TileColumnCount = Av1Math.Log2(tileInfo.TileColumnCount);
-        int log2TileRowCount = Av1Math.Log2(tileInfo.TileRowCount);
+        int log2TileColumnCount = ObuReader.TileLog2(1, tileInfo.TileColumnCount);
+        int log2TileRowCount = ObuReader.TileLog2(1, tileInfo.TileRowCount);
+        tileInfo.TileColumnCountLog2 = log2TileColumnCount;
+        tileInfo.TileRowCountLog2 = log2TileRowCount;
 
         writer.WriteBoolean(tileInfo.HasUniformTileSpacing);
         if (tileInfo.HasUniformTileSpacing)
@@ -293,7 +320,7 @@ internal class ObuWriter
             }
 
             // rows
-            tileInfo.MinLog2TileRowCount = Math.Min(tileInfo.MinLog2TileCount - log2TileColumnCount, 0);
+            tileInfo.MinLog2TileRowCount = Math.Max(tileInfo.MinLog2TileCount - log2TileColumnCount, 0);
             ones = log2TileRowCount - tileInfo.MinLog2TileRowCount;
             while (ones-- > 0)
             {
@@ -346,11 +373,14 @@ internal class ObuWriter
         frameHeader.TilesInfo = tileInfo;
     }
 
-    private void WriteUncompressedFrameHeader(ref Av1BitStreamWriter writer, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameHeader)
+    /// <summary>
+    /// Writes the reduced uncompressed header for an intra still-image frame.
+    /// </summary>
+    /// <param name="writer">The bit writer receiving the uncompressed frame header.</param>
+    /// <param name="sequenceHeader">The sequence header controlling available coding tools.</param>
+    /// <param name="frameHeader">The frame header to encode.</param>
+    private static void WriteUncompressedFrameHeader(ref Av1BitStreamWriter writer, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameHeader)
     {
-        // TODO: Make tile count configurable.
-        int tileCount = 1;
-        int planesCount = sequenceHeader.ColorConfig.PlaneCount;
         writer.WriteBoolean(frameHeader.DisableCdfUpdate);
         if (sequenceHeader.ForceScreenContentTools == 2)
         {
@@ -410,19 +440,15 @@ internal class ObuWriter
 
         WriteTileInfo(ref writer, sequenceHeader, frameHeader);
         WriteQuantizationParameters(ref writer, sequenceHeader, frameHeader);
-        WriteSegmentationParameters(ref writer, sequenceHeader, frameHeader);
+        WriteSegmentationParameters(ref writer, frameHeader);
+        Av1QuantizationLookup.UpdateFrameQuantizationState(frameHeader);
 
         if (frameHeader.QuantizationParameters.BaseQIndex > 0)
         {
             writer.WriteBoolean(frameHeader.DeltaQParameters.IsPresent);
             if (frameHeader.DeltaQParameters.IsPresent)
             {
-                writer.WriteLiteral((uint)frameHeader.DeltaQParameters.Resolution - 1, 2);
-                this.previousQIndex = new int[tileCount];
-                for (int tileIndex = 0; tileIndex < tileCount; tileIndex++)
-                {
-                    this.previousQIndex[tileIndex] = frameHeader.QuantizationParameters.BaseQIndex;
-                }
+                writer.WriteLiteral((uint)Av1Math.MostSignificantBit((uint)frameHeader.DeltaQParameters.Resolution), 2);
 
                 if (frameHeader.AllowIntraBlockCopy)
                 {
@@ -438,28 +464,18 @@ internal class ObuWriter
 
                 if (frameHeader.DeltaLoopFilterParameters.IsPresent)
                 {
-                    writer.WriteLiteral((uint)(1 + Av1Math.MostSignificantBit((uint)frameHeader.DeltaLoopFilterParameters.Resolution) - 1), 2);
+                    writer.WriteLiteral((uint)Av1Math.MostSignificantBit((uint)frameHeader.DeltaLoopFilterParameters.Resolution), 2);
                     writer.WriteBoolean(frameHeader.DeltaLoopFilterParameters.IsMulti);
-                    int frameLoopFilterCount = sequenceHeader.ColorConfig.IsMonochrome ? Av1Constants.FrameLoopFilterCount - 2 : Av1Constants.FrameLoopFilterCount;
-                    this.previousDeltaLoopFilter = new int[frameLoopFilterCount];
-                    for (int loopFilterId = 0; loopFilterId < frameLoopFilterCount; loopFilterId++)
-                    {
-                        this.previousDeltaLoopFilter[loopFilterId] = 0;
-                    }
                 }
             }
         }
 
-        if (frameHeader.AllLossless)
-        {
-            throw new NotImplementedException("No entire lossless supported.");
-        }
-        else
+        if (!frameHeader.AllLossless)
         {
             if (!frameHeader.CodedLossless)
             {
                 WriteLoopFilterParameters(ref writer, sequenceHeader, frameHeader);
-                if (sequenceHeader.CdefLevel > 0)
+                if (sequenceHeader.EnableCdef)
                 {
                     WriteCdefParameters(ref writer, sequenceHeader, frameHeader);
                 }
@@ -485,38 +501,34 @@ internal class ObuWriter
         WriteFilmGrainFilterParameters(ref writer, sequenceHeader, frameHeader);
     }
 
-    private static bool IsSegmentationFeatureActive(ObuSegmentationParameters segmentationParameters, int segmentId, ObuSegmentationLevelFeature feature)
-        => segmentationParameters.Enabled && segmentationParameters.FeatureEnabled[segmentId, (int)feature];
-
-    private int WriteFrameHeader(ref Av1BitStreamWriter writer, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameHeader, bool writeTrailingBits)
+    /// <summary>
+    /// Writes the frame-header portion of a combined frame OBU.
+    /// </summary>
+    /// <param name="writer">The bit writer receiving the frame header.</param>
+    /// <param name="sequenceHeader">The sequence header controlling available coding tools.</param>
+    /// <param name="frameHeader">The frame header to encode.</param>
+    private static void WriteFrameHeader(ref Av1BitStreamWriter writer, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameHeader)
     {
-        int startBitPosition = writer.BitPosition;
-        this.WriteUncompressedFrameHeader(ref writer, sequenceHeader, frameHeader);
-        if (writeTrailingBits)
-        {
-            WriteTrailingBits(ref writer);
-        }
-
-        int endPosition = writer.BitPosition;
-        int headerBytes = (endPosition - startBitPosition) / 8;
-        return headerBytes;
+        WriteUncompressedFrameHeader(ref writer, sequenceHeader, frameHeader);
     }
 
     /// <summary>
-    /// 5.11.1. General tile group OBU syntax.
+    /// Writes a tile-group header and all tile payloads for a combined frame OBU.
     /// </summary>
-    private static int WriteTileGroup(ref Av1BitStreamWriter writer, ObuTileGroupHeader tileInfo, IAv1TileWriter tileWriter)
+    /// <param name="writer">The bit writer receiving the tile group.</param>
+    /// <param name="tileInfo">The frame tile layout.</param>
+    /// <param name="tileWriter">The writer that produces each entropy-coded tile payload.</param>
+    private static void WriteTileGroup(ref Av1BitStreamWriter writer, ObuTileGroupHeader tileInfo, IAv1TileWriter tileWriter)
     {
         int tileCount = tileInfo.TileColumnCount * tileInfo.TileRowCount;
-        int startBitPosition = writer.BitPosition;
-        bool tileStartAndEndPresentFlag = tileCount > 1;
-        writer.WriteBoolean(tileStartAndEndPresentFlag);
-
-        uint tileGroupStart = 0U;
-        uint tileGroupEnd = (uint)tileCount - 1U;
-        if (tileCount != 1)
+        if (tileCount > 1)
         {
-            int tileBits = Av1Math.Log2(tileInfo.TileColumnCount) + Av1Math.Log2(tileInfo.TileRowCount);
+            // This writer places every tile in one group, so the optional range spans the
+            // complete frame whenever the range syntax is present.
+            writer.WriteBoolean(true);
+            uint tileGroupStart = 0U;
+            uint tileGroupEnd = (uint)tileCount - 1U;
+            int tileBits = tileInfo.TileColumnCountLog2 + tileInfo.TileRowCountLog2;
             writer.WriteLiteral(tileGroupStart, tileBits);
             writer.WriteLiteral(tileGroupEnd, tileBits);
         }
@@ -524,12 +536,14 @@ internal class ObuWriter
         AlignToByteBoundary(ref writer);
 
         WriteTileData(ref writer, tileInfo, tileWriter);
-
-        int endBitPosition = writer.BitPosition;
-        int headerBytes = (endBitPosition - startBitPosition) / 8;
-        return headerBytes;
     }
 
+    /// <summary>
+    /// Writes the size-prefixed tile payloads in raster order.
+    /// </summary>
+    /// <param name="writer">The byte-aligned bit writer receiving tile data.</param>
+    /// <param name="tileInfo">The frame tile layout and tile-size field width.</param>
+    /// <param name="tileWriter">The writer that produces each tile payload.</param>
     private static void WriteTileData(ref Av1BitStreamWriter writer, ObuTileGroupHeader tileInfo, IAv1TileWriter tileWriter)
     {
         int tileCount = tileInfo.TileColumnCount * tileInfo.TileRowCount;
@@ -545,7 +559,12 @@ internal class ObuWriter
         }
     }
 
-    private static int WriteDeltaQ(ref Av1BitStreamWriter writer, int deltaQ)
+    /// <summary>
+    /// Writes an optional signed quantizer-index delta.
+    /// </summary>
+    /// <param name="writer">The bit writer receiving the delta.</param>
+    /// <param name="deltaQ">The quantizer-index delta.</param>
+    private static void WriteDeltaQ(ref Av1BitStreamWriter writer, int deltaQ)
     {
         bool isCoded = deltaQ != 0;
         writer.WriteBoolean(isCoded);
@@ -553,43 +572,14 @@ internal class ObuWriter
         {
             writer.WriteSignedFromUnsigned(deltaQ, 7);
         }
-
-        return deltaQ;
-    }
-
-    private static void WriteFrameDeltaQParameters(ref Av1BitStreamWriter writer, ObuFrameHeader frameHeader)
-    {
-        if (frameHeader.QuantizationParameters.BaseQIndex > 0)
-        {
-            writer.WriteBoolean(frameHeader.DeltaQParameters.IsPresent);
-        }
-
-        if (frameHeader.DeltaQParameters.IsPresent)
-        {
-            writer.WriteLiteral((uint)frameHeader.DeltaQParameters.Resolution, 2);
-        }
-    }
-
-    private static void WriteFrameDeltaLoopFilterParameters(ref Av1BitStreamWriter writer, ObuFrameHeader frameHeader)
-    {
-        if (frameHeader.DeltaQParameters.IsPresent)
-        {
-            if (!frameHeader.AllowIntraBlockCopy)
-            {
-                writer.WriteBoolean(frameHeader.DeltaLoopFilterParameters.IsPresent);
-            }
-
-            if (frameHeader.DeltaLoopFilterParameters.IsPresent)
-            {
-                writer.WriteLiteral((uint)frameHeader.DeltaLoopFilterParameters.Resolution, 2);
-                writer.WriteBoolean(frameHeader.DeltaLoopFilterParameters.IsMulti);
-            }
-        }
     }
 
     /// <summary>
-    /// See section 5.9.12.
+    /// Writes the base index, plane deltas, and optional quantization matrices for a frame.
     /// </summary>
+    /// <param name="writer">The bit writer receiving the quantization parameters.</param>
+    /// <param name="sequenceHeader">The sequence header defining active color planes.</param>
+    /// <param name="frameHeader">The frame header containing the quantization parameters.</param>
     private static void WriteQuantizationParameters(ref Av1BitStreamWriter writer, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameHeader)
     {
         ObuQuantizationParameters quantParams = frameHeader.QuantizationParameters;
@@ -623,16 +613,54 @@ internal class ObuWriter
         }
     }
 
-    private static void WriteSegmentationParameters(ref Av1BitStreamWriter writer, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameHeader)
+    /// <summary>
+    /// Writes segmentation feature data for an independently decoded still-image frame.
+    /// </summary>
+    /// <param name="writer">The bit writer receiving the segmentation parameters.</param>
+    /// <param name="frameHeader">The frame header containing segmentation feature data.</param>
+    private static void WriteSegmentationParameters(ref Av1BitStreamWriter writer, ObuFrameHeader frameHeader)
     {
-        _ = sequenceHeader;
-        Guard.IsFalse(frameHeader.SegmentationParameters.Enabled, nameof(frameHeader.SegmentationParameters.Enabled), "Segmentation not supported yet.");
-        writer.WriteBoolean(false);
+        ObuSegmentationParameters segmentation = frameHeader.SegmentationParameters;
+        writer.WriteBoolean(segmentation.Enabled);
+        if (!segmentation.Enabled)
+        {
+            return;
+        }
+
+        // The still-image writer emits independent intra frames with no primary reference.
+        // AV1 therefore infers update-map and update-data as enabled and carries feature data
+        // directly, without the inter-frame update flags.
+        for (int segmentId = 0; segmentId < Av1Constants.MaxSegmentCount; segmentId++)
+        {
+            for (int featureId = 0; featureId < Av1Constants.SegmentationLevelMax; featureId++)
+            {
+                bool enabled = segmentation.FeatureEnabled[segmentId, featureId];
+                writer.WriteBoolean(enabled);
+                if (!enabled)
+                {
+                    continue;
+                }
+
+                int bitCount = Av1Constants.SegmentationFeatureBits[featureId];
+                int value = segmentation.FeatureData[segmentId, featureId];
+                if (Av1Constants.SegmentationFeatureSigned[featureId] == 1)
+                {
+                    writer.WriteSignedFromUnsigned(value, bitCount + 1);
+                }
+                else
+                {
+                    writer.WriteLiteral((uint)value, bitCount);
+                }
+            }
+        }
     }
 
     /// <summary>
-    /// 5.9.11. Loop filter params syntax
+    /// Writes the deblocking-loop-filter levels and optional reference and mode deltas.
     /// </summary>
+    /// <param name="writer">The bit writer receiving the loop-filter parameters.</param>
+    /// <param name="sequenceHeader">The sequence header defining active color planes.</param>
+    /// <param name="frameHeader">The frame header containing the loop-filter parameters.</param>
     private static void WriteLoopFilterParameters(ref Av1BitStreamWriter writer, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameHeader)
     {
         if (frameHeader.CodedLossless || frameHeader.AllowIntraBlockCopy)
@@ -658,14 +686,29 @@ internal class ObuWriter
             writer.WriteBoolean(frameHeader.LoopFilterParameters.ReferenceDeltaModeUpdate);
             if (frameHeader.LoopFilterParameters.ReferenceDeltaModeUpdate)
             {
-                throw new NotImplementedException("Reference update of loop filter not supported yet.");
+                // An independent still frame can emit every current delta as an update. This is
+                // slightly larger than comparing against retained state but requires no video
+                // reference-frame state and produces the same observable filter parameters.
+                for (int i = 0; i < Av1Constants.TotalReferencesPerFrame; i++)
+                {
+                    writer.WriteBoolean(true);
+                    writer.WriteSignedFromUnsigned(frameHeader.LoopFilterParameters.ReferenceDeltas[i], 7);
+                }
+
+                for (int i = 0; i < 2; i++)
+                {
+                    writer.WriteBoolean(true);
+                    writer.WriteSignedFromUnsigned(frameHeader.LoopFilterParameters.ModeDeltas[i], 7);
+                }
             }
         }
     }
 
     /// <summary>
-    /// 5.9.21. TX mode syntax.
+    /// Writes the transform-size selection mode when the frame is not lossless.
     /// </summary>
+    /// <param name="writer">The bit writer receiving the transform-mode flag.</param>
+    /// <param name="frameHeader">The frame header containing the transform mode.</param>
     private static void WriteTransformMode(ref Av1BitStreamWriter writer, ObuFrameHeader frameHeader)
     {
         if (!frameHeader.CodedLossless)
@@ -674,6 +717,12 @@ internal class ObuWriter
         }
     }
 
+    /// <summary>
+    /// Writes the loop-restoration type and restoration-unit size for each plane.
+    /// </summary>
+    /// <param name="writer">The bit writer receiving the loop-restoration parameters.</param>
+    /// <param name="sequenceHeader">The sequence header defining restoration availability and color planes.</param>
+    /// <param name="frameHeader">The frame header containing restoration parameters.</param>
     private static void WriteLoopRestorationParameters(ref Av1BitStreamWriter writer, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameHeader)
     {
         if (frameHeader.CodedLossless || frameHeader.AllowIntraBlockCopy || !sequenceHeader.EnableRestoration)
@@ -696,7 +745,7 @@ internal class ObuWriter
             }
             else
             {
-                writer.WriteLiteral(unitShift & 0x01, 1);
+                writer.WriteBoolean(unitShift > 0);
                 if (unitShift > 0)
                 {
                     writer.WriteLiteral(unitShift - 1, 1);
@@ -710,19 +759,39 @@ internal class ObuWriter
         }
     }
 
+    /// <summary>
+    /// Writes constrained directional enhancement filter strengths for the active planes.
+    /// </summary>
+    /// <param name="writer">The bit writer receiving the CDEF parameters.</param>
+    /// <param name="sequenceHeader">The sequence header defining CDEF availability and color planes.</param>
+    /// <param name="frameHeader">The frame header containing CDEF strengths.</param>
     private static void WriteCdefParameters(ref Av1BitStreamWriter writer, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameHeader)
     {
-        _ = writer;
-        _ = sequenceHeader;
-
         if (frameHeader.CodedLossless || frameHeader.AllowIntraBlockCopy || !sequenceHeader.EnableCdef)
         {
             return;
         }
 
-        throw new NotImplementedException("Didn't implement writing CDEF yet.");
+        ObuConstraintDirectionalEnhancementFilterParameters cdef = frameHeader.CdefParameters;
+        writer.WriteLiteral((uint)cdef.Damping - 3, 2);
+        writer.WriteLiteral((uint)cdef.BitCount, 2);
+        int strengthCount = 1 << cdef.BitCount;
+        bool hasChroma = sequenceHeader.ColorConfig.PlaneCount > 1;
+        for (int i = 0; i < strengthCount; i++)
+        {
+            writer.WriteLiteral((uint)cdef.YStrength[i], 6);
+            if (hasChroma)
+            {
+                writer.WriteLiteral((uint)cdef.UvStrength[i], 6);
+            }
+        }
     }
 
+    /// <summary>
+    /// Writes global-motion parameters when permitted by the frame type.
+    /// </summary>
+    /// <param name="writer">The bit writer positioned at the global-motion syntax.</param>
+    /// <param name="frameHeader">The current frame header.</param>
     private static void WriteGlobalMotionParameters(ref Av1BitStreamWriter writer, ObuFrameHeader frameHeader)
     {
         _ = writer;
@@ -736,6 +805,11 @@ internal class ObuWriter
         throw new InvalidImageContentException("AVIF files can only contain INTRA frames.");
     }
 
+    /// <summary>
+    /// Writes reference-mode selection when permitted by the frame type.
+    /// </summary>
+    /// <param name="writer">The bit writer positioned at the reference-mode syntax.</param>
+    /// <param name="frameHeader">The current frame header.</param>
     private static void WriteFrameReferenceMode(ref Av1BitStreamWriter writer, ObuFrameHeader frameHeader)
     {
         _ = writer;
@@ -749,6 +823,11 @@ internal class ObuWriter
         throw new InvalidImageContentException("AVIF files can only contain INTRA frames.");
     }
 
+    /// <summary>
+    /// Writes the skip-mode flag when skip mode is available.
+    /// </summary>
+    /// <param name="writer">The bit writer receiving the skip-mode flag.</param>
+    /// <param name="frameHeader">The frame header containing skip-mode state.</param>
     private static void WriteSkipModeParameters(ref Av1BitStreamWriter writer, ObuFrameHeader frameHeader)
     {
         if (frameHeader.SkipModeParameters.SkipModeAllowed)
@@ -757,6 +836,12 @@ internal class ObuWriter
         }
     }
 
+    /// <summary>
+    /// Writes film-grain synthesis parameters for a displayed still-image frame.
+    /// </summary>
+    /// <param name="writer">The bit writer receiving the film-grain parameters.</param>
+    /// <param name="sequenceHeader">The sequence header defining film-grain availability and color sampling.</param>
+    /// <param name="frameHeader">The frame header containing film-grain parameters.</param>
     private static void WriteFilmGrainFilterParameters(ref Av1BitStreamWriter writer, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameHeader)
     {
         ObuFilmGrainParameters grainParams = frameHeader.FilmGrainParameters;
@@ -802,7 +887,7 @@ internal class ObuWriter
             writer.WriteLiteral(grainParams.NumCrPoints, 4);
             Guard.NotNull(grainParams.PointCrValue);
             Guard.NotNull(grainParams.PointCrScaling);
-            for (int i = 0; i < grainParams.NumCbPoints; i++)
+            for (int i = 0; i < grainParams.NumCrPoints; i++)
             {
                 writer.WriteLiteral(grainParams.PointCrValue[i], 8);
                 writer.WriteLiteral(grainParams.PointCrScaling[i], 8);
@@ -813,10 +898,10 @@ internal class ObuWriter
         writer.WriteLiteral(grainParams.ArCoeffLag, 2);
         uint numPosLuma = 2 * grainParams.ArCoeffLag * (grainParams.ArCoeffLag + 1);
 
-        uint numPosChroma = 0;
+        uint numPosChroma = numPosLuma;
         if (grainParams.NumYPoints != 0)
         {
-            numPosChroma = numPosLuma + 1;
+            numPosChroma++;
             Guard.NotNull(grainParams.ArCoeffsYPlus128);
             for (int i = 0; i < numPosLuma; i++)
             {

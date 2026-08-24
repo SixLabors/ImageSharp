@@ -232,4 +232,56 @@ internal class Av1QuantizationLookup
             return baseQIndex;
         }
     }
+
+    /// <summary>
+    /// Derives the per-segment quantizer indices, lossless flags, and quantization-matrix levels for a frame.
+    /// </summary>
+    /// <param name="frameHeader">The frame header whose quantization state is updated.</param>
+    public static void UpdateFrameQuantizationState(ObuFrameHeader frameHeader)
+    {
+        ObuQuantizationParameters quantization = frameHeader.QuantizationParameters;
+        ObuSegmentationParameters segmentation = frameHeader.SegmentationParameters;
+        frameHeader.CodedLossless = true;
+        segmentation.QMLevel[0] = new int[Av1Constants.MaxSegmentCount];
+        segmentation.QMLevel[1] = new int[Av1Constants.MaxSegmentCount];
+        segmentation.QMLevel[2] = new int[Av1Constants.MaxSegmentCount];
+        for (int segmentId = 0; segmentId < Av1Constants.MaxSegmentCount; segmentId++)
+        {
+            int qIndex = GetQIndex(segmentation, segmentId, quantization.BaseQIndex);
+            quantization.QIndex[segmentId] = qIndex;
+            frameHeader.LosslessArray[segmentId] = qIndex == 0 &&
+                quantization.DeltaQDc[(int)Av1Plane.Y] == 0 &&
+                quantization.DeltaQAc[(int)Av1Plane.U] == 0 &&
+                quantization.DeltaQDc[(int)Av1Plane.U] == 0 &&
+                quantization.DeltaQAc[(int)Av1Plane.V] == 0 &&
+                quantization.DeltaQDc[(int)Av1Plane.V] == 0;
+
+            if (!frameHeader.LosslessArray[segmentId])
+            {
+                frameHeader.CodedLossless = false;
+            }
+
+            if (quantization.IsUsingQMatrix)
+            {
+                // Lossless segments use the identity matrix level; lossy segments inherit the
+                // plane-specific levels signaled by the frame quantization parameters.
+                segmentation.QMLevel[(int)Av1Plane.Y][segmentId] = frameHeader.LosslessArray[segmentId]
+                    ? 15
+                    : quantization.QMatrix[(int)Av1Plane.Y];
+
+                segmentation.QMLevel[(int)Av1Plane.U][segmentId] = frameHeader.LosslessArray[segmentId]
+                    ? 15
+                    : quantization.QMatrix[(int)Av1Plane.U];
+
+                segmentation.QMLevel[(int)Av1Plane.V][segmentId] = frameHeader.LosslessArray[segmentId]
+                    ? 15
+                    : quantization.QMatrix[(int)Av1Plane.V];
+            }
+        }
+
+        frameHeader.AllLossless = frameHeader.CodedLossless &&
+            frameHeader.FrameSize.FrameWidth == frameHeader.FrameSize.SuperResolutionUpscaledWidth;
+
+        // Header syntax and tile quantization now observe the same derived frame state.
+    }
 }

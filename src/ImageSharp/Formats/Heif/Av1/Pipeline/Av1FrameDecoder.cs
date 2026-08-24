@@ -8,16 +8,53 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 
+/// <summary>
+/// Reconstructs the coded blocks of one AV1 still-image frame into planar sample buffers.
+/// </summary>
 internal class Av1FrameDecoder : IAv1FrameDecoder
 {
+    /// <summary>
+    /// The sequence-level superblock and color configuration.
+    /// </summary>
     private readonly ObuSequenceHeader sequenceHeader;
+
+    /// <summary>
+    /// The frame-level tile, quantization, and reconstruction configuration.
+    /// </summary>
     private readonly ObuFrameHeader frameHeader;
+
+    /// <summary>
+    /// The parsed superblock and block-mode information for the frame.
+    /// </summary>
     private readonly Av1FrameInfo frameInfo;
+
+    /// <summary>
+    /// The destination planar sample buffers for reconstructed pixels.
+    /// </summary>
     private readonly Av1FrameBuffer<byte> frameBuffer;
+
+    /// <summary>
+    /// The coefficient inverse-quantization stage shared across superblocks.
+    /// </summary>
     private readonly Av1InverseQuantizer inverseQuantizer;
+
+    /// <summary>
+    /// The frame's base per-segment and per-plane dequantization values.
+    /// </summary>
     private readonly Av1DeQuantizationContext deQuants;
+
+    /// <summary>
+    /// The block reconstruction stage that applies prediction and inverse transforms.
+    /// </summary>
     private readonly Av1BlockDecoder blockDecoder;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Av1FrameDecoder"/> class.
+    /// </summary>
+    /// <param name="sequenceHeader">The parsed AV1 sequence header.</param>
+    /// <param name="frameHeader">The parsed AV1 frame header.</param>
+    /// <param name="frameInfo">The parsed superblock and block-mode information.</param>
+    /// <param name="frameBuffer">The destination planar sample buffers.</param>
     public Av1FrameDecoder(ObuSequenceHeader sequenceHeader, ObuFrameHeader frameHeader, Av1FrameInfo frameInfo, Av1FrameBuffer<byte> frameBuffer)
     {
         this.sequenceHeader = sequenceHeader;
@@ -29,8 +66,12 @@ internal class Av1FrameDecoder : IAv1FrameDecoder
         this.blockDecoder = new(this.sequenceHeader, this.frameHeader, this.frameBuffer);
     }
 
+    /// <summary>
+    /// Reconstructs every coded tile of the frame; in-loop post-processing stages remain disabled until implemented.
+    /// </summary>
     public void DecodeFrame()
     {
+        // Tile columns are the outer traversal because each call walks that column's tile rows and their superblocks.
         for (int column = 0; column < this.frameHeader.TilesInfo.TileColumnCount; column++)
         {
             this.DecodeFrameTiles(column);
@@ -39,6 +80,9 @@ internal class Av1FrameDecoder : IAv1FrameDecoder
         bool doLoopFilterFlag = false;
         bool doLoopRestoration = false;
         bool doUpscale = false;
+
+        // These flags remain false until the corresponding normative stages have complete scalar implementations
+        // and independent still-image vectors; silently running partial filters would corrupt reconstructed pixels.
         if (doLoopFilterFlag)
         {
             this.DecodeLoopFilterForFrame();
@@ -61,14 +105,18 @@ internal class Av1FrameDecoder : IAv1FrameDecoder
     }
 
     /// <summary>
-    /// SVT: decode_tile
+    /// Reconstructs every tile row in one tile column.
     /// </summary>
+    /// <param name="tileColumn">The zero-based tile-column index.</param>
+    /// <remarks>SVT-AV1: <c>decode_tile</c>.</remarks>
     private void DecodeFrameTiles(int tileColumn)
     {
         int tileRowCount = this.frameHeader.TilesInfo.TileRowCount;
         int tileCount = tileRowCount * this.frameHeader.TilesInfo.TileColumnCount;
         for (int row = 0; row < tileRowCount; row++)
         {
+            // Tile row starts are signaled in 4x4 mode-info units. Convert to pixels and then to superblock rows
+            // so the frame-level superblock store and the tile-local syntax address the same region.
             int superblockRowTileStart = this.frameHeader.TilesInfo.TileRowStartModeInfo[row] << Av1Constants.ModeInfoSizeLog2 >>
                 this.sequenceHeader.SuperblockSizeLog2;
             int superblockRow = row + superblockRowTileStart;
@@ -82,8 +130,13 @@ internal class Av1FrameDecoder : IAv1FrameDecoder
     }
 
     /// <summary>
-    /// SVT: decode_tile_row
+    /// Reconstructs the superblocks in one tile row from left to right.
     /// </summary>
+    /// <param name="tileRow">The zero-based tile-row index.</param>
+    /// <param name="tileColumn">The zero-based tile-column index.</param>
+    /// <param name="modeInfoRow">The frame-relative row in 4x4 mode-info units.</param>
+    /// <param name="superblockRow">The frame-relative superblock row.</param>
+    /// <remarks>SVT-AV1: <c>decode_tile_row</c>.</remarks>
     private void DecodeTileRow(int tileRow, int tileColumn, int modeInfoRow, int superblockRow)
     {
         int superblockModeInfoSizeLog2 = this.sequenceHeader.SuperblockSizeLog2 - Av1Constants.ModeInfoSizeLog2;
@@ -96,6 +149,7 @@ internal class Av1FrameDecoder : IAv1FrameDecoder
         for (int modeInfoColumn = tileInfo.TileColumnStartModeInfo[tileColumn]; modeInfoColumn < tileInfo.TileColumnStartModeInfo[tileColumn + 1];
              modeInfoColumn += this.sequenceHeader.SuperblockModeInfoSize)
         {
+            // Convert the signaled 4x4 mode-info column to the frame-level superblock index used by Av1FrameInfo.
             int superblockColumn = modeInfoColumn << Av1Constants.ModeInfoSizeLog2 >> this.sequenceHeader.SuperblockSizeLog2;
 
             Av1SuperblockInfo superblockInfo = this.frameInfo.GetSuperblock(new Point(superblockColumn, superblockRow));
@@ -106,8 +160,12 @@ internal class Av1FrameDecoder : IAv1FrameDecoder
     }
 
     /// <summary>
-    /// SVT: svt_aom_decode_super_block
+    /// Reconstructs one superblock after applying its block state and delta-Q context.
     /// </summary>
+    /// <param name="modeInfoPosition">The superblock's top-left position in 4x4 mode-info units.</param>
+    /// <param name="superblockInfo">The decoded syntax and block modes for the superblock.</param>
+    /// <param name="tileInfo">The tile that contains the superblock.</param>
+    /// <remarks>SVT-AV1: <c>svt_aom_decode_super_block</c>.</remarks>
     public void DecodeSuperblock(Point modeInfoPosition, Av1SuperblockInfo superblockInfo, Av1TileInfo tileInfo)
     {
         this.blockDecoder.UpdateSuperblock(superblockInfo);
@@ -116,8 +174,12 @@ internal class Av1FrameDecoder : IAv1FrameDecoder
     }
 
     /// <summary>
-    /// SVT: decode_partition
+    /// Reconstructs each decoded block in a superblock partition.
     /// </summary>
+    /// <param name="modeInfoPosition">The superblock's frame-relative origin in 4x4 mode-info units.</param>
+    /// <param name="superblockInfo">The superblock whose block modes are traversed.</param>
+    /// <param name="tileInfo">The tile boundary information used by intra prediction.</param>
+    /// <remarks>SVT-AV1: <c>decode_partition</c>.</remarks>
     private void DecodePartition(Point modeInfoPosition, Av1SuperblockInfo superblockInfo, Av1TileInfo tileInfo)
     {
         foreach (Av1BlockModeInfo modeInfo in superblockInfo.GetModeInfos())
@@ -125,18 +187,23 @@ internal class Av1FrameDecoder : IAv1FrameDecoder
             Point subPosition = modeInfo.PositionInSuperblock;
             Av1BlockSize subSize = modeInfo.BlockSize;
             Point globalPosition = new(modeInfoPosition.X, modeInfoPosition.Y);
+
+            // Block positions are stored relative to the superblock; prediction and reconstruction require frame-relative mode-info coordinates.
             globalPosition.Offset(subPosition);
             this.blockDecoder.DecodeBlock(modeInfo, globalPosition, subSize, superblockInfo, tileInfo);
         }
     }
 
+    /// <summary>
+    /// Traverses frame superblocks in the order required by the not-yet-implemented deblocking stage.
+    /// </summary>
     private void DecodeLoopFilterForFrame()
     {
         int superblockSizeLog2 = this.sequenceHeader.SuperblockSizeLog2;
         int pictureWidthInSuperblocks = Av1Math.DivideLog2Ceiling(this.frameHeader.FrameSize.FrameWidth, this.sequenceHeader.SuperblockSizeLog2);
         int pictureHeightInSuperblocks = Av1Math.DivideLog2Ceiling(this.frameHeader.FrameSize.FrameHeight, this.sequenceHeader.SuperblockSizeLog2);
 
-        // Loop over a frame : tregger dec_loop_filter_sb for each SB
+        // Deblocking uses raster traversal so each block can consume already reconstructed top and left edges.
         for (int superblockIndexY = 0; superblockIndexY < pictureHeightInSuperblocks; ++superblockIndexY)
         {
             for (int superblockIndexX = 0; superblockIndexX < pictureWidthInSuperblocks; ++superblockIndexX)
@@ -148,7 +215,7 @@ internal class Av1FrameDecoder : IAv1FrameDecoder
                 Point superblockPoint = new(superblockOriginX, superblockOriginY);
                 Av1SuperblockInfo superblockInfo = this.frameInfo.GetSuperblock(superblockPoint);
 
-                // LF function for a SB
+                // Superblock filtering remains disabled until its complete plane and edge-strength implementation is available.
                 /*
                 DecodeLoopFilterForSuperblock(
                     superblockInfo,

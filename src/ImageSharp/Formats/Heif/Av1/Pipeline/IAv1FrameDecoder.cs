@@ -6,15 +6,15 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 
 /// <summary>
-/// Interface for decoder of a single frame.
+/// Defines reconstruction of decoded AV1 superblocks within a single still-image frame.
 /// </summary>
 internal interface IAv1FrameDecoder
 {
     /// <summary>
-    /// Decode a single superblock.
+    /// Reconstructs one decoded superblock into the current frame buffer.
     /// </summary>
-    /// <param name="modeInfoPosition">The top left position of the superblock, in mode info units.</param>
-    /// <param name="superblockInfo">The superblock to decode</param>
-    /// <param name="tileInfo">The tile in whcih the superblock is positioned.</param>
+    /// <param name="modeInfoPosition">The superblock's top-left position in 4x4 mode-info units.</param>
+    /// <param name="superblockInfo">The decoded syntax and block modes for the superblock.</param>
+    /// <param name="tileInfo">The tile that contains the superblock.</param>
     void DecodeSuperblock(Point modeInfoPosition, Av1SuperblockInfo superblockInfo, Av1TileInfo tileInfo);
 }

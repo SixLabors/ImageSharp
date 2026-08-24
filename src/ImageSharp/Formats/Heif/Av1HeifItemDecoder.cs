@@ -40,7 +40,26 @@ internal class Av1HeifItemDecoder<TPixel> : IHeifItemDecoder<TPixel>
         Span<byte> data,
         CicpProfile? colorProfile)
     {
+        Av1CodecConfiguration codecConfiguration = item.Av1CodecConfiguration
+            ?? throw new InvalidImageContentException($"AV1 image item {item.Id} has no codec configuration property.");
+
+        if (item.ChannelBitDepths is not null)
+        {
+            foreach (byte channelBitDepth in item.ChannelBitDepths)
+            {
+                if (channelBitDepth != codecConfiguration.BitDepth)
+                {
+                    throw new InvalidImageContentException($"AV1 image item {item.Id} has mismatched pixel-information and codec-configuration bit depths.");
+                }
+            }
+        }
+
         Av1Decoder decoder = new(configuration);
-        return decoder.Decode<TPixel>(data, colorProfile);
+        Image<TPixel> image = decoder.Decode<TPixel>(data, colorProfile, codecConfiguration);
+        HeifMetadata metadata = image.Metadata.GetHeifMetadata();
+        metadata.CompressionMethod = this.CompressionMethod;
+        metadata.BitDepth = codecConfiguration.BitDepth;
+        metadata.IsMonochrome = codecConfiguration.IsMonochrome;
+        return image;
     }
 }

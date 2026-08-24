@@ -63,8 +63,14 @@ internal class Av1Decoder : IAv1TileReader
     /// <param name="containerColorProfile">
     /// The container color description that overrides matching sequence-header color information.
     /// </param>
+    /// <param name="codecConfiguration">
+    /// The item-associated AV1 codec configuration validated against the coded sequence header.
+    /// </param>
     /// <returns>The decoded image.</returns>
-    public Image<TPixel> Decode<TPixel>(Span<byte> buffer, CicpProfile? containerColorProfile = null)
+    public Image<TPixel> Decode<TPixel>(
+        Span<byte> buffer,
+        CicpProfile? containerColorProfile = null,
+        Av1CodecConfiguration? codecConfiguration = null)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         Av1BitStreamReader reader = new(buffer);
@@ -72,6 +78,7 @@ internal class Av1Decoder : IAv1TileReader
         Guard.NotNull(this.tileReader, nameof(this.tileReader));
         Guard.NotNull(this.SequenceHeader, nameof(this.SequenceHeader));
         Guard.NotNull(this.FrameHeader, nameof(this.FrameHeader));
+        codecConfiguration?.Validate(this.SequenceHeader);
 
         if (containerColorProfile is not null)
         {

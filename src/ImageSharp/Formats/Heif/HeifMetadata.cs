@@ -25,6 +25,8 @@ public class HeifMetadata : IFormatMetadata<HeifMetadata>
     private HeifMetadata(HeifMetadata other)
     {
         this.CompressionMethod = other.CompressionMethod;
+        this.BitDepth = other.BitDepth;
+        this.IsMonochrome = other.IsMonochrome;
         this.HasAlpha = other.HasAlpha;
     }
 
@@ -32,6 +34,16 @@ public class HeifMetadata : IFormatMetadata<HeifMetadata>
     /// Gets or sets the compression method used for the primary frame.
     /// </summary>
     public HeifCompressionMethod CompressionMethod { get; set; }
+
+    /// <summary>
+    /// Gets or sets the encoded precision of each color component in bits.
+    /// </summary>
+    public int BitDepth { get; set; } = 8;
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the primary image contains a single luminance component.
+    /// </summary>
+    public bool IsMonochrome { get; set; }
 
     /// <summary>
     /// Gets or sets a value indicating whether the primary image has an alpha channel.
@@ -42,19 +54,39 @@ public class HeifMetadata : IFormatMetadata<HeifMetadata>
     public static HeifMetadata FromFormatConnectingMetadata(FormatConnectingMetadata metadata) => new()
     {
         CompressionMethod = HeifCompressionMethod.LegacyJpeg,
+        BitDepth = metadata.PixelTypeInfo.ComponentInfo?.GetMaximumComponentPrecision() ?? 8,
+        IsMonochrome = metadata.PixelTypeInfo.ColorType.HasFlag(PixelColorType.Luminance)
+            && !metadata.PixelTypeInfo.ColorType.HasFlag(PixelColorType.ChrominanceBlue),
         HasAlpha = metadata.PixelTypeInfo.AlphaRepresentation != PixelAlphaRepresentation.None
     };
 
     /// <inheritdoc/>
     public PixelTypeInfo GetPixelTypeInfo()
     {
-        int bpp = this.HasAlpha ? 32 : 24;
-        PixelColorType colorType = this.HasAlpha ? PixelColorType.RGB | PixelColorType.Alpha : PixelColorType.RGB;
-        PixelComponentInfo info = this.HasAlpha
-            ? PixelComponentInfo.Create(4, bpp, 8, 8, 8, 8)
-            : PixelComponentInfo.Create(3, bpp, 8, 8, 8);
+        int colorComponentCount = this.IsMonochrome ? 1 : 3;
+        int componentCount = colorComponentCount + (this.HasAlpha ? 1 : 0);
+        int bitsPerPixel = componentCount * this.BitDepth;
+        PixelColorType colorType = this.IsMonochrome ? PixelColorType.Luminance : PixelColorType.RGB;
+        PixelComponentInfo info;
+        if (this.IsMonochrome)
+        {
+            info = this.HasAlpha
+                ? PixelComponentInfo.Create(2, bitsPerPixel, this.BitDepth, this.BitDepth)
+                : PixelComponentInfo.Create(1, bitsPerPixel, this.BitDepth);
+        }
+        else
+        {
+            info = this.HasAlpha
+                ? PixelComponentInfo.Create(4, bitsPerPixel, this.BitDepth, this.BitDepth, this.BitDepth, this.BitDepth)
+                : PixelComponentInfo.Create(3, bitsPerPixel, this.BitDepth, this.BitDepth, this.BitDepth);
+        }
 
-        return new PixelTypeInfo(bpp)
+        if (this.HasAlpha)
+        {
+            colorType |= PixelColorType.Alpha;
+        }
+
+        return new PixelTypeInfo(bitsPerPixel)
         {
             AlphaRepresentation = this.HasAlpha ? PixelAlphaRepresentation.Unassociated : PixelAlphaRepresentation.None,
             ColorType = colorType,

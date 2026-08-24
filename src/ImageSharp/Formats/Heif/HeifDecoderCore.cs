@@ -68,11 +68,6 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
     private readonly List<HeifItemLink> itemLinks;
 
     /// <summary>
-    /// The codec configuration associated with the current AV1 item.
-    /// </summary>
-    private Av1CodecConfiguration av1CodecConfiguration;
-
-    /// <summary>
     /// The absolute stream offset of the item-data box payload, or <c>-1</c> when no item-data box exists.
     /// </summary>
     private long itemDataOffset = -1;
@@ -217,6 +212,43 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
             HeifItem? thumbnail = gridTile is null ? this.FindDecodableThumbnail<Rgba32>(item) : null;
             metadataItem = gridTile ?? thumbnail ?? item;
             presentationItem = thumbnail ?? item;
+            if (gridTile is not null)
+            {
+                Av1CodecConfiguration? gridConfiguration = gridTile.Type == Heif4CharCode.Av01
+                    ? gridTile.Av1CodecConfiguration
+                        ?? throw new InvalidImageContentException($"AV1 image grid tile {gridTile.Id} has no codec configuration property.")
+                    : null;
+
+                foreach (HeifItemLink link in this.itemLinks)
+                {
+                    if (link.Type != Heif4CharCode.Dimg || link.SourceId != item.Id)
+                    {
+                        continue;
+                    }
+
+                    foreach (uint tileId in link.DestinationIds)
+                    {
+                        HeifItem tile = this.FindItemById(tileId)!;
+                        if (tile.Type != gridTile.Type)
+                        {
+                            throw new InvalidImageContentException("All HEIF image grid tiles must use the same coding format.");
+                        }
+
+                        if (gridConfiguration is not null)
+                        {
+                            Av1CodecConfiguration tileConfiguration = tile.Av1CodecConfiguration
+                                ?? throw new InvalidImageContentException($"AV1 image grid tile {tile.Id} has no codec configuration property.");
+
+                            // Identify never reads the derived-image descriptor or coded tile payloads, but it still
+                            // validates the shared sample layout needed to describe the displayed grid accurately.
+                            if (!gridConfiguration.HasMatchingImageConfiguration(tileConfiguration))
+                            {
+                                throw new InvalidImageContentException("All AV1 image grid tiles must use matching codec configurations.");
+                            }
+                        }
+                    }
+                }
+            }
         }
         else if (HeifCompressionFactory.GetDecoder<Rgba32>(item.Type) is null)
         {
@@ -229,7 +261,12 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
         HeifCompressionMethod compressionMethod = HeifCompressionMethod.Hevc;
         if (metadataItem.Type == Heif4CharCode.Av01)
         {
+            Av1CodecConfiguration codecConfiguration = metadataItem.Av1CodecConfiguration
+                ?? throw new InvalidImageContentException($"AV1 image item {metadataItem.Id} has no codec configuration property.");
+
             compressionMethod = HeifCompressionMethod.Av1;
+            meta.BitDepth = codecConfiguration.BitDepth;
+            meta.IsMonochrome = codecConfiguration.IsMonochrome;
         }
         else if (metadataItem.Type == Heif4CharCode.Jpeg)
         {
@@ -817,18 +854,35 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                     break;
                 case Heif4CharCode.Pixi:
                     EnsureBufferRemaining(boxBuffer, 0, 5, "pixel information");
+                    if (boxBuffer[0] != 0 || boxBuffer[1] != 0 || boxBuffer[2] != 0 || boxBuffer[3] != 0)
+                    {
+                        throw new InvalidImageContentException("The pixel information property has an unsupported version or flags.");
+                    }
 
                     // The full-box header precedes one bit-depth byte for each channel.
                     int channelCount = boxBuffer[4];
-                    int offset = 5;
-                    EnsureBufferRemaining(boxBuffer, offset, channelCount, "pixel information");
-                    int bitsPerPixel = 0;
-                    for (int i = 0; i < channelCount; i++)
+                    if (channelCount == 0)
                     {
-                        bitsPerPixel += boxBuffer[offset + i];
+                        throw new InvalidImageContentException("The pixel information property has no channels.");
                     }
 
-                    properties.Add(new KeyValuePair<Heif4CharCode, object>(Heif4CharCode.Pixi, new int[] { channelCount, bitsPerPixel }));
+                    int offset = 5;
+                    EnsureBufferRemaining(boxBuffer, offset, channelCount, "pixel information");
+                    if (boxBuffer.Length != offset + channelCount)
+                    {
+                        throw new InvalidImageContentException("The pixel information property contains unexpected trailing data.");
+                    }
+
+                    byte[] channelBitDepths = boxBuffer.Slice(offset, channelCount).ToArray();
+                    for (int i = 0; i < channelBitDepths.Length; i++)
+                    {
+                        if (channelBitDepths[i] == 0)
+                        {
+                            throw new InvalidImageContentException($"The pixel information property declares zero precision for channel {i}.");
+                        }
+                    }
+
+                    properties.Add(new KeyValuePair<Heif4CharCode, object>(Heif4CharCode.Pixi, channelBitDepths));
 
                     break;
                 case Heif4CharCode.AuxC:
@@ -905,8 +959,11 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                     break;
                 case Heif4CharCode.Av1C:
                     EnsureBufferRemaining(boxBuffer, 0, 4, "AV1 codec configuration");
-                    this.av1CodecConfiguration = new(boxBuffer);
-                    properties.Add(new KeyValuePair<Heif4CharCode, object>(Heif4CharCode.Av1C, new object()));
+                    properties.Add(
+                        new KeyValuePair<Heif4CharCode, object>(
+                            Heif4CharCode.Av1C,
+                            new Av1CodecConfiguration(boxBuffer)));
+
                     break;
                 case Heif4CharCode.Clap:
                     EnsureBufferRemaining(boxBuffer, 0, 32, "clean aperture");
@@ -1053,9 +1110,34 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                         item.PixelAspectRatio = (HeifPixelAspectRatio)prop.Value;
                         break;
                     case Heif4CharCode.Pixi:
-                        int[] values = (int[])prop.Value;
-                        item.ChannelCount = values[0];
-                        item.BitsPerPixel = values[1];
+                        if (item.ChannelBitDepths is not null)
+                        {
+                            throw new InvalidImageContentException($"Item {itemId} associates more than one pixel information property.");
+                        }
+
+                        byte[] channelBitDepths = (byte[])prop.Value;
+                        int bitsPerPixel = 0;
+                        for (int channel = 0; channel < channelBitDepths.Length; channel++)
+                        {
+                            bitsPerPixel += channelBitDepths[channel];
+                        }
+
+                        item.ChannelCount = channelBitDepths.Length;
+                        item.ChannelBitDepths = channelBitDepths;
+                        item.BitsPerPixel = bitsPerPixel;
+                        break;
+                    case Heif4CharCode.Av1C:
+                        if (item.Type != Heif4CharCode.Av01)
+                        {
+                            throw new InvalidImageContentException($"Item {itemId} associates an AV1 codec configuration with non-AV1 item type '{PrettyPrint(item.Type)}'.");
+                        }
+
+                        if (item.Av1CodecConfiguration is not null)
+                        {
+                            throw new InvalidImageContentException($"Item {itemId} associates more than one AV1 codec configuration property.");
+                        }
+
+                        item.Av1CodecConfiguration = (Av1CodecConfiguration)prop.Value;
                         break;
                     case Heif4CharCode.AuxC:
                         if (item.AuxiliaryType is not null)

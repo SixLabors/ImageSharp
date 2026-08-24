@@ -4,6 +4,7 @@
 using System.Buffers;
 using System.Buffers.Binary;
 using SixLabors.ImageSharp.Common.Helpers;
+using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata.Profiles.Cicp;
 using SixLabors.ImageSharp.PixelFormats;
@@ -153,6 +154,7 @@ internal class GridHeifItemDecoder<TPixel> : IHeifItemDecoder<TPixel>
         // the final grid has copied its pixels, then dispose all intermediates together.
         using DisposableList<Image<TPixel>> gridTiles = new(linked.Count);
         Heif4CharCode tileType = default;
+        Av1CodecConfiguration? av1GridConfiguration = null;
         foreach (uint id in linked)
         {
             HeifItem item = this.items.First(item => item.Id == id);
@@ -163,6 +165,23 @@ internal class GridHeifItemDecoder<TPixel> : IHeifItemDecoder<TPixel>
             else if (item.Type != tileType)
             {
                 throw new InvalidImageContentException("All HEIF image grid tiles must use the same coding format.");
+            }
+
+            if (item.Type == Heif4CharCode.Av01)
+            {
+                Av1CodecConfiguration itemConfiguration = item.Av1CodecConfiguration
+                    ?? throw new InvalidImageContentException($"AV1 image grid tile {item.Id} has no codec configuration property.");
+
+                if (av1GridConfiguration is null)
+                {
+                    av1GridConfiguration = itemConfiguration;
+                }
+                else if (!av1GridConfiguration.HasMatchingImageConfiguration(itemConfiguration))
+                {
+                    // All grid cells share one output sample layout. Reject differing AV1 descriptions before
+                    // allocating and copying tiles so channel precision or chroma geometry cannot change by cell.
+                    throw new InvalidImageContentException("All AV1 image grid tiles must use matching codec configurations.");
+                }
             }
 
             IHeifItemDecoder<TPixel>? decoder = HeifCompressionFactory.GetDecoder<TPixel>(item.Type);

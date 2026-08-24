@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.Metadata.Profiles.Cicp;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 
@@ -66,6 +67,12 @@ internal class HeifItem(Heif4CharCode type, uint id)
     public CicpProfile? CicpProfile { get; set; }
 
     /// <summary>
+    /// Gets or sets the AV1 codec configuration associated with this coded image item, or <see langword="null"/>
+    /// when the item has no AV1 codec-configuration property.
+    /// </summary>
+    public Av1CodecConfiguration? Av1CodecConfiguration { get; set; }
+
+    /// <summary>
     /// Gets or sets the relative pixel spacing associated with this image item, or <see langword="null"/> when the
     /// item has no pixel-aspect-ratio property.
     /// </summary>
@@ -93,6 +100,12 @@ internal class HeifItem(Heif4CharCode type, uint id)
     /// Gets or sets the number of color channels in each pixel.
     /// </summary>
     public int ChannelCount { get; set; }
+
+    /// <summary>
+    /// Gets or sets the encoded precision of each image channel, or <see langword="null"/> when the item has no
+    /// pixel-information property.
+    /// </summary>
+    public byte[]? ChannelBitDepths { get; set; }
 
     /// <summary>
     /// Gets or sets the number of bits in a single pixel.

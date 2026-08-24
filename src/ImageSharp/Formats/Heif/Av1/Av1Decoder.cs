@@ -61,7 +61,7 @@ internal class Av1Decoder : IAv1TileReader
     /// <typeparam name="TPixel">The destination pixel type.</typeparam>
     /// <param name="buffer">The complete AV1 elementary-stream payload.</param>
     /// <param name="containerColorProfile">
-    /// The container color description that overrides matching sequence-header color information.
+    /// The container color description that supplies unspecified sequence-header color information.
     /// </param>
     /// <param name="codecConfiguration">
     /// The item-associated AV1 codec configuration validated against the coded sequence header.
@@ -82,13 +82,47 @@ internal class Av1Decoder : IAv1TileReader
 
         if (containerColorProfile is not null)
         {
-            // ISO BMFF color information takes precedence over the matching bitstream fields. Apply only the four
-            // CICP values; chroma layout and bit depth remain properties of the AV1 coded image itself.
             ObuColorConfig colorConfig = this.SequenceHeader.ColorConfig;
-            colorConfig.ColorPrimaries = (ObuColorPrimaries)containerColorProfile.ColorPrimaries;
-            colorConfig.TransferCharacteristics = (ObuTransferCharacteristics)containerColorProfile.TransferCharacteristics;
-            colorConfig.MatrixCoefficients = (ObuMatrixCoefficients)containerColorProfile.MatrixCoefficients;
-            colorConfig.ColorRange = containerColorProfile.FullRange;
+            ObuColorPrimaries containerColorPrimaries = (ObuColorPrimaries)containerColorProfile.ColorPrimaries;
+            ObuTransferCharacteristics containerTransferCharacteristics =
+                (ObuTransferCharacteristics)containerColorProfile.TransferCharacteristics;
+
+            ObuMatrixCoefficients containerMatrixCoefficients =
+                (ObuMatrixCoefficients)containerColorProfile.MatrixCoefficients;
+
+            // AV1-ISOBMFF permits nclx to supply only bitstream fields explicitly coded as unspecified. A
+            // different specified value is a conformance error rather than a container-level color override.
+            if (colorConfig.ColorPrimaries == ObuColorPrimaries.Unspecified)
+            {
+                colorConfig.ColorPrimaries = containerColorPrimaries;
+            }
+            else if (colorConfig.ColorPrimaries != containerColorPrimaries)
+            {
+                throw new InvalidImageContentException("The HEIF CICP color primaries do not match the AV1 sequence header.");
+            }
+
+            if (colorConfig.TransferCharacteristics == ObuTransferCharacteristics.Unspecified)
+            {
+                colorConfig.TransferCharacteristics = containerTransferCharacteristics;
+            }
+            else if (colorConfig.TransferCharacteristics != containerTransferCharacteristics)
+            {
+                throw new InvalidImageContentException("The HEIF CICP transfer characteristics do not match the AV1 sequence header.");
+            }
+
+            if (colorConfig.MatrixCoefficients == ObuMatrixCoefficients.Unspecified)
+            {
+                colorConfig.MatrixCoefficients = containerMatrixCoefficients;
+            }
+            else if (colorConfig.MatrixCoefficients != containerMatrixCoefficients)
+            {
+                throw new InvalidImageContentException("The HEIF CICP matrix coefficients do not match the AV1 sequence header.");
+            }
+
+            if (colorConfig.ColorRange != containerColorProfile.FullRange)
+            {
+                throw new InvalidImageContentException("The HEIF CICP color range does not match the AV1 sequence header.");
+            }
         }
 
         this.FrameInfo = this.tileReader.FrameInfo;

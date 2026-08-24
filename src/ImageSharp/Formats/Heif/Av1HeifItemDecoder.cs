@@ -31,7 +31,7 @@ internal class Av1HeifItemDecoder<TPixel> : IHeifItemDecoder<TPixel>
     /// <param name="item">The HEIF item whose encoded payload is being decoded.</param>
     /// <param name="data">The encoded AV1 payload.</param>
     /// <param name="colorProfile">
-    /// The container color description that overrides matching color information in the AV1 sequence header.
+    /// The container color description that supplies unspecified color information in the AV1 sequence header.
     /// </param>
     /// <returns>The decoded image.</returns>
     public Image<TPixel> DecodeItemData(

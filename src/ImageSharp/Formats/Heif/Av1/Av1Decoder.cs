@@ -84,7 +84,7 @@ internal class Av1Decoder : IAv1TileReader
         {
             resultImage = new Image<TPixel>(
                 this.configuration,
-                this.FrameHeader.FrameSize.FrameWidth,
+                this.FrameHeader.FrameSize.SuperResolutionUpscaledWidth,
                 this.FrameHeader.FrameSize.FrameHeight,
                 null);
 

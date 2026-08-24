@@ -5,6 +5,7 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Cdef;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.LoopFilter;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Quantification;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.SuperResolution;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 
@@ -86,7 +87,7 @@ internal class Av1FrameDecoder : IAv1FrameDecoder
         }
 
         bool doLoopRestoration = false;
-        bool doUpscale = false;
+        bool doUpscale = this.frameHeader.FrameSize.FrameWidth != this.frameHeader.FrameSize.SuperResolutionUpscaledWidth;
 
         Av1LoopFilterDecoder loopFilterDecoder = new(
             this.sequenceHeader,
@@ -105,7 +106,9 @@ internal class Av1FrameDecoder : IAv1FrameDecoder
         Av1CdefDecoder cdefDecoder = new(this.sequenceHeader, this.frameHeader, this.frameInfo, this.frameBuffer);
         cdefDecoder.DecodeFrame();
 
-        // SuperResolutionUpscaling(doUpscale);
+        Av1SuperResolutionDecoder superResolutionDecoder = new(this.sequenceHeader, this.frameHeader, this.frameBuffer);
+        superResolutionDecoder.DecodeFrame();
+
         if (doLoopRestoration && doUpscale)
         {
             // LoopRestorationSaveBoundaryLines(true);

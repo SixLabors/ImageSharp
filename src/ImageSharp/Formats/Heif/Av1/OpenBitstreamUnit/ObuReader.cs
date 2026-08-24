@@ -636,13 +636,13 @@ internal class ObuReader
             (frameHeader.FrameSize.SuperResolutionDenominator / 2)) /
             frameHeader.FrameSize.SuperResolutionDenominator;
 
-        /*
         if (frameHeader.FrameSize.SuperResolutionDenominator != Av1Constants.ScaleNumerator)
         {
-            int manWidth = Math.Min(16, frameHeader.FrameSize.SuperResolutionUpscaledWidth);
-            frameHeader.FrameSize.FrameWidth = Math.Max(manWidth, frameHeader.FrameSize.FrameWidth);
+            // Appendix A requires an active super-resolution coded width of at least 16 samples,
+            // except when the signaled upscaled image itself is narrower than that minimum.
+            int minimumWidth = Math.Min(16, frameHeader.FrameSize.SuperResolutionUpscaledWidth);
+            frameHeader.FrameSize.FrameWidth = Math.Max(minimumWidth, frameHeader.FrameSize.FrameWidth);
         }
-        */
     }
 
     /// <summary>

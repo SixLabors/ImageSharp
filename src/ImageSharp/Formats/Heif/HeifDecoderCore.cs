@@ -9,7 +9,9 @@ using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
+using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
+using SixLabors.ImageSharp.Metadata.Profiles.Xmp;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 
@@ -1317,6 +1319,11 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                 this.ApplyAlpha(image, alphaImage, alphaPremultiplied);
             }
 
+            if (!this.Options.SkipMetadata)
+            {
+                this.ApplyAssociatedMetadata(image.Metadata, rootItem, buffers);
+            }
+
             // MIAF defines crop, rotation, and mirror as presentation operations in that order. Applying the
             // implemented transforms after alpha composition keeps the auxiliary plane in the same coordinate space.
             ApplyPresentationTransforms(image, itemToDecode);
@@ -1333,6 +1340,81 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
             // Ownership transfers to the caller only after every auxiliary plane has been composed successfully.
             image.Dispose();
             throw;
+        }
+    }
+
+    /// <summary>
+    /// Applies Exif and XMP metadata items that describe a decoded color image item.
+    /// </summary>
+    /// <param name="metadata">The decoded image metadata receiving the profiles.</param>
+    /// <param name="colorItem">The color image item described by the metadata links.</param>
+    /// <param name="buffers">The assembled payloads for the container's declared items.</param>
+    private void ApplyAssociatedMetadata(
+        ImageMetadata metadata,
+        HeifItem colorItem,
+        DisposableDictionary<uint, IMemoryOwner<byte>> buffers)
+    {
+        foreach (HeifItemLink link in this.itemLinks)
+        {
+            if (link.Type != Heif4CharCode.Cdsc || !link.DestinationIds.Contains(colorItem.Id))
+            {
+                continue;
+            }
+
+            HeifItem? metadataItem = this.FindItemById(link.SourceId);
+            if (metadataItem is null || !buffers.TryGetValue(metadataItem.Id, out IMemoryOwner<byte>? itemMemory))
+            {
+                continue;
+            }
+
+            byte[] itemData = itemMemory.GetSpan().ToArray();
+            if (metadataItem.Type == Heif4CharCode.Exif)
+            {
+                this.ExecuteAncillarySegmentAction(() =>
+                {
+                    if (itemData.Length < 8)
+                    {
+                        throw new InvalidImageContentException("The HEIF Exif item is truncated.");
+                    }
+
+                    uint declaredTiffHeaderOffset = BinaryPrimitives.ReadUInt32BigEndian(itemData);
+                    Span<byte> exifData = itemData.AsSpan(4);
+                    int actualTiffHeaderOffset = -1;
+
+                    // Annex A stores the offset to the first TIFF byte-order marker. Match libavif by finding the
+                    // first valid TIFF signature and requiring the declared offset to identify that same header.
+                    for (int i = 0; i <= exifData.Length - 4; i++)
+                    {
+                        bool isBigEndianTiff = exifData[i] == (byte)'M' &&
+                            exifData[i + 1] == (byte)'M' &&
+                            exifData[i + 2] == 0 &&
+                            exifData[i + 3] == 42;
+
+                        bool isLittleEndianTiff = exifData[i] == (byte)'I' &&
+                            exifData[i + 1] == (byte)'I' &&
+                            exifData[i + 2] == 42 &&
+                            exifData[i + 3] == 0;
+
+                        if (isBigEndianTiff || isLittleEndianTiff)
+                        {
+                            actualTiffHeaderOffset = i;
+                            break;
+                        }
+                    }
+
+                    if (actualTiffHeaderOffset < 0 || declaredTiffHeaderOffset != (uint)actualTiffHeaderOffset)
+                    {
+                        throw new InvalidImageContentException("The HEIF Exif item has an invalid TIFF-header offset.");
+                    }
+
+                    metadata.ExifProfile = new ExifProfile(exifData[actualTiffHeaderOffset..].ToArray());
+                });
+            }
+            else if (metadataItem.Type == Heif4CharCode.Mime &&
+                string.Equals(metadataItem.ContentType, "application/rdf+xml", StringComparison.Ordinal))
+            {
+                this.ExecuteAncillarySegmentAction(() => metadata.XmpProfile = new XmpProfile(itemData));
+            }
         }
     }
 

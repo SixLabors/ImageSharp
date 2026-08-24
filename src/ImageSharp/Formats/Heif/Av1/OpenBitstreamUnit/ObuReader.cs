@@ -861,7 +861,8 @@ internal class ObuReader
     /// Reads the uncompressed syntax for the current still-image frame.
     /// </summary>
     /// <param name="reader">The reader positioned at the uncompressed frame header.</param>
-    private void ReadUncompressedFrameHeader(ref Av1BitStreamReader reader)
+    /// <param name="header">The OBU header identifying the frame's temporal and spatial layers.</param>
+    private void ReadUncompressedFrameHeader(ref Av1BitStreamReader reader, ObuHeader header)
     {
         ObuSequenceHeader sequenceHeader = this.SequenceHeader!;
         ObuFrameHeader frameHeader = this.FrameHeader!;
@@ -906,7 +907,7 @@ internal class ObuReader
             frameHeader.FrameType = (ObuFrameType)reader.ReadLiteral(2);
             frameHeader.ShowFrame = reader.ReadBoolean();
 
-            if (frameHeader.ShowFrame && !sequenceHeader.DecoderModelInfoPresentFlag && sequenceHeader.TimingInfo?.EqualPictureInterval == false)
+            if (frameHeader.ShowFrame && sequenceHeader.DecoderModelInfoPresentFlag && sequenceHeader.TimingInfo?.EqualPictureInterval == false)
             {
                 // 5.9.31. Temporal point info syntax.
                 frameHeader.FramePresentationTime = reader.ReadLiteral((int)sequenceHeader!.DecoderModelInfo!.FramePresentationTimeLength);
@@ -1037,7 +1038,28 @@ internal class ObuReader
             frameHeader.PrimaryReferenceFrame = reader.ReadLiteral(Av1Constants.PrimaryReferenceBits);
         }
 
-        // Skipping, as no decoder info model present
+        if (sequenceHeader.DecoderModelInfoPresentFlag)
+        {
+            bool bufferRemovalTimePresent = reader.ReadBoolean();
+            if (bufferRemovalTimePresent)
+            {
+                int bufferRemovalTimeLength = (int)sequenceHeader.DecoderModelInfo!.BufferRemovalTimeLength;
+                foreach (ObuOperatingPoint operatingPoint in sequenceHeader.OperatingPoint)
+                {
+                    // A layer-specific OBU carries one removal time only for operating points which select both
+                    // of its layer IDs; the value affects scheduling, so consume it without retaining video state.
+                    bool appliesToLayer = operatingPoint.Idc == 0 ||
+                        (((operatingPoint.Idc >> header.TemporalId) & 1U) != 0 &&
+                        ((operatingPoint.Idc >> (header.SpatialId + 8)) & 1U) != 0);
+
+                    if (operatingPoint.IsDecoderModelInfoPresent && appliesToLayer)
+                    {
+                        _ = reader.ReadLiteral(bufferRemovalTimeLength);
+                    }
+                }
+            }
+        }
+
         frameHeader.AllowHighPrecisionMotionVector = false;
         frameHeader.UseReferenceFrameMotionVectors = false;
         frameHeader.AllowIntraBlockCopy = false;
@@ -1184,7 +1206,7 @@ internal class ObuReader
     internal void ReadFrameHeader(ref Av1BitStreamReader reader, ObuHeader header, bool trailingBit)
     {
         int startBitPosition = reader.BitPosition;
-        this.ReadUncompressedFrameHeader(ref reader);
+        this.ReadUncompressedFrameHeader(ref reader, header);
         if (trailingBit)
         {
             ReadTrailingBits(ref reader);

@@ -23,6 +23,7 @@
         "av1C", "AV1 configuration",
         "imir", "Image Mirror",
         "irot", "Image Rotation",
+        "clap", "Clean Aperture",
         "iscl", "Image Scaling",
         "pasp", "Pixel Aspect Ratio",
         "pixi", "Pixel Information",

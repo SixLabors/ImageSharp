@@ -94,6 +94,11 @@ public enum Heif4CharCode : uint
     Irot = 0x69726F74U,
 
     /// <summary>
+    /// Clean Aperture.
+    /// </summary>
+    Clap = 0x636C6170U,
+
+    /// <summary>
     /// Image Scaling.
     /// </summary>
     Iscl = 0x6973636CU,

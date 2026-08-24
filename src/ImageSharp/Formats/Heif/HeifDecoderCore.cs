@@ -844,6 +844,20 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                     this.av1CodecConfiguration = new(boxBuffer);
                     properties.Add(new KeyValuePair<Heif4CharCode, object>(Heif4CharCode.Av1C, new object()));
                     break;
+                case Heif4CharCode.Clap:
+                    EnsureBufferRemaining(boxBuffer, 0, 32, "clean aperture");
+                    HeifCleanAperture cleanAperture = new(
+                        unchecked((int)BinaryPrimitives.ReadUInt32BigEndian(boxBuffer)),
+                        unchecked((int)BinaryPrimitives.ReadUInt32BigEndian(boxBuffer[4..])),
+                        unchecked((int)BinaryPrimitives.ReadUInt32BigEndian(boxBuffer[8..])),
+                        unchecked((int)BinaryPrimitives.ReadUInt32BigEndian(boxBuffer[12..])),
+                        unchecked((int)BinaryPrimitives.ReadUInt32BigEndian(boxBuffer[16..])),
+                        unchecked((int)BinaryPrimitives.ReadUInt32BigEndian(boxBuffer[20..])),
+                        unchecked((int)BinaryPrimitives.ReadUInt32BigEndian(boxBuffer[24..])),
+                        unchecked((int)BinaryPrimitives.ReadUInt32BigEndian(boxBuffer[28..])));
+
+                    properties.Add(new KeyValuePair<Heif4CharCode, object>(Heif4CharCode.Clap, cleanAperture));
+                    break;
                 case Heif4CharCode.Irot:
                     EnsureBufferRemaining(boxBuffer, 0, 1, "image rotation");
                     if ((boxBuffer[0] & 0xFC) != 0)
@@ -956,7 +970,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                     throw new InvalidImageContentException($"Item {itemId} associates unknown essential property '{PrettyPrint(prop.Key)}'.");
                 }
 
-                if (!essential && prop.Key is Heif4CharCode.Irot or Heif4CharCode.Imir)
+                if (!essential && prop.Key is Heif4CharCode.Clap or Heif4CharCode.Irot or Heif4CharCode.Imir)
                 {
                     throw new InvalidImageContentException($"Item {itemId} associates nonessential transformative property '{PrettyPrint(prop.Key)}'.");
                 }
@@ -981,6 +995,14 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                         }
 
                         item.AuxiliaryType = (string)prop.Value;
+                        break;
+                    case Heif4CharCode.Clap:
+                        if (item.CleanAperture is not null)
+                        {
+                            throw new InvalidImageContentException($"Item {itemId} associates more than one clean aperture property.");
+                        }
+
+                        item.CleanAperture = (HeifCleanAperture)prop.Value;
                         break;
                     case Heif4CharCode.Irot:
                         if (item.RotationAngle is not null)
@@ -1360,17 +1382,20 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
     }
 
     /// <summary>
-    /// Gets the dimensions of an image item after its rotation property is applied.
+    /// Gets the dimensions of an image item after its clean-aperture and rotation properties are applied.
     /// </summary>
     /// <param name="item">The image item whose presentation dimensions are requested.</param>
-    /// <returns>The item dimensions after an optional quarter-turn rotation.</returns>
+    /// <returns>The item dimensions after the optional crop and quarter-turn rotation.</returns>
     private static Size GetPresentationExtent(HeifItem item)
-        => item.RotationAngle is not null && (item.RotationAngle.Value & 1) != 0
-            ? new Size(item.Extent.Height, item.Extent.Width)
-            : item.Extent;
+    {
+        Size extent = item.CleanAperture is not null ? item.CleanAperture.Value.ToRectangle(item.Extent).Size : item.Extent;
+        return item.RotationAngle is not null && (item.RotationAngle.Value & 1) != 0
+            ? new Size(extent.Height, extent.Width)
+            : extent;
+    }
 
     /// <summary>
-    /// Applies the rotation and mirror properties associated with an image item.
+    /// Applies the clean-aperture, rotation, and mirror properties associated with an image item.
     /// </summary>
     /// <typeparam name="TPixel">The image pixel format.</typeparam>
     /// <param name="image">The decoded image item.</param>
@@ -1378,6 +1403,15 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
     private static void ApplyPresentationTransforms<TPixel>(Image<TPixel> image, HeifItem item)
         where TPixel : unmanaged, IPixel<TPixel>
     {
+        if (item.CleanAperture is not null)
+        {
+            Rectangle cropRectangle = item.CleanAperture.Value.ToRectangle(image.Size);
+            if (cropRectangle != image.Bounds)
+            {
+                image.Mutate(context => context.Crop(cropRectangle));
+            }
+        }
+
         if (item.RotationAngle is not null)
         {
             // HEIF angles count quarter turns counter-clockwise, while ImageSharp's optimized rotate modes are clockwise.
@@ -1421,8 +1455,16 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
         {
             // libavif releases through 1.3 omitted alpha transform associations, so accept complete absence for
             // compatibility. If either property is present, it must match the color item before plane composition.
-            if ((alphaItem.RotationAngle is not null || alphaItem.MirrorAxis is not null) &&
-                (alphaItem.RotationAngle != colorItem.RotationAngle || alphaItem.MirrorAxis != colorItem.MirrorAxis))
+            bool alphaHasTransforms = alphaItem.CleanAperture is not null ||
+                alphaItem.RotationAngle is not null ||
+                alphaItem.MirrorAxis is not null;
+
+            bool cleanAperturesMatch = alphaItem.CleanAperture is null
+                ? colorItem.CleanAperture is null
+                : colorItem.CleanAperture is not null && alphaItem.CleanAperture.Value.Equals(colorItem.CleanAperture.Value);
+
+            if (alphaHasTransforms &&
+                (!cleanAperturesMatch || alphaItem.RotationAngle != colorItem.RotationAngle || alphaItem.MirrorAxis != colorItem.MirrorAxis))
             {
                 throw new ImageFormatException("The alpha auxiliary image and color image use different presentation transforms.");
             }

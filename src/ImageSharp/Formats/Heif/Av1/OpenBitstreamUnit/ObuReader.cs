@@ -327,7 +327,9 @@ internal class ObuReader
                     sequenceHeader.OperatingPoint[i].IsDecoderModelInfoPresent = reader.ReadBoolean();
                     if (sequenceHeader.OperatingPoint[i].IsDecoderModelInfoPresent)
                     {
-                        // TODO: operating_parameters_info( i )
+                        // Operating-point delays affect scheduling rather than still-image reconstruction, but their
+                        // syntax must be consumed so the following image dimensions remain bit aligned.
+                        ReadOperatingParametersInfo(ref reader, (int)sequenceHeader.DecoderModelInfo!.BufferDelayLength);
                     }
                 }
                 else
@@ -551,10 +553,22 @@ internal class ObuReader
     private static void ReadDecoderModelInfo(ref Av1BitStreamReader reader, ObuSequenceHeader sequenceHeader) => sequenceHeader.DecoderModelInfo = new ObuDecoderModelInfo
     {
         BufferDelayLength = reader.ReadLiteral(5) + 1,
-        NumUnitsInDecodingTick = reader.ReadLiteral(16),
+        NumUnitsInDecodingTick = reader.ReadLiteral(32),
         BufferRemovalTimeLength = reader.ReadLiteral(5) + 1,
         FramePresentationTimeLength = reader.ReadLiteral(5) + 1
     };
+
+    /// <summary>
+    /// Consumes operating-point buffer parameters that do not affect still-image reconstruction.
+    /// </summary>
+    /// <param name="reader">The reader positioned at the operating-point parameters.</param>
+    /// <param name="bufferDelayLength">The bit width of each encoded buffer delay.</param>
+    private static void ReadOperatingParametersInfo(ref Av1BitStreamReader reader, int bufferDelayLength)
+    {
+        _ = reader.ReadLiteral(bufferDelayLength);
+        _ = reader.ReadLiteral(bufferDelayLength);
+        _ = reader.ReadBoolean();
+    }
 
     /// <summary>
     /// Reads the sequence timing information.

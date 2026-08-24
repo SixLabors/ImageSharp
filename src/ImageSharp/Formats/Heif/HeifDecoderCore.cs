@@ -243,6 +243,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
         if (!this.Options.SkipMetadata)
         {
             this.ApplyItemColorMetadata(metadata, presentationItem);
+            this.ApplyItemPixelAspectRatioMetadata(metadata, presentationItem);
         }
     }
 
@@ -801,9 +802,18 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                     break;
                 case Heif4CharCode.Pasp:
                     EnsureBufferRemaining(boxBuffer, 0, 8, "pixel aspect ratio");
-                    int horizontalSpacing = (int)BinaryPrimitives.ReadUInt32BigEndian(boxBuffer);
-                    int verticalSpacing = (int)BinaryPrimitives.ReadUInt32BigEndian(boxBuffer[4..]);
-                    properties.Add(new KeyValuePair<Heif4CharCode, object>(Heif4CharCode.Pasp, new Size(horizontalSpacing, verticalSpacing)));
+                    uint horizontalSpacing = BinaryPrimitives.ReadUInt32BigEndian(boxBuffer);
+                    uint verticalSpacing = BinaryPrimitives.ReadUInt32BigEndian(boxBuffer[4..]);
+                    if (horizontalSpacing == 0 || verticalSpacing == 0)
+                    {
+                        throw new InvalidImageContentException("The pixel aspect ratio property has zero spacing.");
+                    }
+
+                    properties.Add(
+                        new KeyValuePair<Heif4CharCode, object>(
+                            Heif4CharCode.Pasp,
+                            new HeifPixelAspectRatio(horizontalSpacing, verticalSpacing)));
+
                     break;
                 case Heif4CharCode.Pixi:
                     EnsureBufferRemaining(boxBuffer, 0, 5, "pixel information");
@@ -1035,7 +1045,12 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                         item.SetExtent((Size)prop.Value);
                         break;
                     case Heif4CharCode.Pasp:
-                        item.PixelAspectRatio = (Size)prop.Value;
+                        if (item.PixelAspectRatio is not null)
+                        {
+                            throw new InvalidImageContentException($"Item {itemId} associates more than one pixel aspect ratio property.");
+                        }
+
+                        item.PixelAspectRatio = (HeifPixelAspectRatio)prop.Value;
                         break;
                     case Heif4CharCode.Pixi:
                         int[] values = (int[])prop.Value;
@@ -1403,6 +1418,11 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
             // implemented transforms after alpha composition keeps the auxiliary plane in the same coordinate space.
             ApplyPresentationTransforms(image, itemToDecode);
 
+            if (!this.Options.SkipMetadata)
+            {
+                this.ApplyItemPixelAspectRatioMetadata(image.Metadata, itemToDecode);
+            }
+
             // The decoder determines the compression of the pixels that were actually returned, including grid tiles
             // and a thumbnail fallback when the primary image compression is not available.
             HeifMetadata meta = image.Metadata.GetHeifMetadata();
@@ -1442,6 +1462,37 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
         {
             metadata.CicpProfile = cicpProfile.DeepClone();
         }
+    }
+
+    /// <summary>
+    /// Applies the pixel aspect ratio associated with a presented still-image item.
+    /// </summary>
+    /// <param name="metadata">The image metadata receiving the aspect ratio.</param>
+    /// <param name="imageItem">The image item whose pixels are presented.</param>
+    private void ApplyItemPixelAspectRatioMetadata(ImageMetadata metadata, HeifItem imageItem)
+    {
+        HeifItem? gridTile = imageItem.Type == Heif4CharCode.Grid
+            ? this.FindDecodableGridTile<Rgba32>(imageItem)
+            : null;
+
+        HeifPixelAspectRatio? pixelAspectRatio = imageItem.PixelAspectRatio ?? gridTile?.PixelAspectRatio;
+        if (pixelAspectRatio is null)
+        {
+            return;
+        }
+
+        // ImageMetadata expresses pixel width:height as vertical-density:horizontal-density. A quarter-turn exchanges
+        // the displayed pixel axes, so it also exchanges which spacing value supplies each density.
+        bool swapsAxes = imageItem.RotationAngle is 1 or 3;
+        metadata.HorizontalResolution = swapsAxes
+            ? pixelAspectRatio.HorizontalSpacing
+            : pixelAspectRatio.VerticalSpacing;
+
+        metadata.VerticalResolution = swapsAxes
+            ? pixelAspectRatio.VerticalSpacing
+            : pixelAspectRatio.HorizontalSpacing;
+
+        metadata.ResolutionUnits = PixelResolutionUnit.AspectRatio;
     }
 
     /// <summary>

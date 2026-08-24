@@ -66,9 +66,10 @@ internal class HeifItem(Heif4CharCode type, uint id)
     public CicpProfile? CicpProfile { get; set; }
 
     /// <summary>
-    /// Gets or sets the aspect ratio of the pixels.
+    /// Gets or sets the relative pixel spacing associated with this image item, or <see langword="null"/> when the
+    /// item has no pixel-aspect-ratio property.
     /// </summary>
-    public Size PixelAspectRatio { get; set; }
+    public HeifPixelAspectRatio? PixelAspectRatio { get; set; }
 
     /// <summary>
     /// Gets or sets the clean-aperture crop applied before image rotation and mirroring, or

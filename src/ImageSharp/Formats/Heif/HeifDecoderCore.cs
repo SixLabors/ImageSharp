@@ -465,7 +465,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                 // Association and location boxes can precede the item declarations they reference.
                 if (!boxes.TryAdd(boxType, (stream.Position, length)))
                 {
-                    throw new InvalidImageContentException($"The metadata box contains duplicate '{PrettyPrint(boxType)}' boxes.");
+                    throw new InvalidImageContentException($"The metadata box contains duplicate '{boxType}' boxes.");
                 }
             }
 
@@ -580,7 +580,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
         int headerLength = ParseBoxHeader(buffer, out long boxLength, out Heif4CharCode boxType);
         if (boxType != Heif4CharCode.Infe)
         {
-            throw new InvalidImageContentException($"The item info box contains unexpected child '{PrettyPrint(boxType)}'.");
+            throw new InvalidImageContentException($"The item info box contains unexpected child '{boxType}'.");
         }
 
         int totalLength = checked(headerLength + (int)boxLength);
@@ -742,7 +742,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
 
             if (bytesRead != referenceEnd)
             {
-                throw new InvalidImageContentException($"The '{PrettyPrint(linkType)}' item reference length does not match its entry count.");
+                throw new InvalidImageContentException($"The '{linkType}' item reference length does not match its entry count.");
             }
 
             this.itemLinks.Add(link);
@@ -1411,12 +1411,12 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                 KeyValuePair<Heif4CharCode, object> prop = properties[(int)propertyIndex];
                 if (essential && ReferenceEquals(prop.Value, UnknownProperty))
                 {
-                    throw new InvalidImageContentException($"Item {itemId} associates unknown essential property '{PrettyPrint(prop.Key)}'.");
+                    throw new InvalidImageContentException($"Item {itemId} associates unknown essential property '{prop.Key}'.");
                 }
 
                 if (!essential && prop.Key is Heif4CharCode.Clap or Heif4CharCode.Irot or Heif4CharCode.Imir)
                 {
-                    throw new InvalidImageContentException($"Item {itemId} associates nonessential transformative property '{PrettyPrint(prop.Key)}'.");
+                    throw new InvalidImageContentException($"Item {itemId} associates nonessential transformative property '{prop.Key}'.");
                 }
 
                 switch (prop.Key)
@@ -1452,7 +1452,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                     case Heif4CharCode.Av1C:
                         if (item.Type != Heif4CharCode.Av01)
                         {
-                            throw new InvalidImageContentException($"Item {itemId} associates an AV1 codec configuration with non-AV1 item type '{PrettyPrint(item.Type)}'.");
+                            throw new InvalidImageContentException($"Item {itemId} associates an AV1 codec configuration with non-AV1 item type '{item.Type}'.");
                         }
 
                         if (item.Av1CodecConfiguration is not null)
@@ -1465,7 +1465,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                     case Heif4CharCode.HvcC:
                         if (item.Type != Heif4CharCode.Hvc1)
                         {
-                            throw new InvalidImageContentException($"Item {itemId} associates an HEVC codec configuration with non-HEVC item type '{PrettyPrint(item.Type)}'.");
+                            throw new InvalidImageContentException($"Item {itemId} associates an HEVC codec configuration with non-HEVC item type '{item.Type}'.");
                         }
 
                         if (item.HevcCodecConfiguration is not null)
@@ -2568,23 +2568,5 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
 
         bytesRead = terminator + 1;
         return Encoding.UTF8.GetString(span[..terminator]);
-    }
-
-    /// <summary>
-    /// Formats a known enum name or an unknown four-character code for diagnostics.
-    /// </summary>
-    /// <param name="code">The box, property, brand, or item code.</param>
-    /// <returns>A readable enum name or four-character ASCII value.</returns>
-    private static string PrettyPrint(Heif4CharCode code)
-    {
-        string? pretty = Enum.GetName(code);
-        if (string.IsNullOrEmpty(pretty))
-        {
-            Span<byte> bytes = stackalloc byte[4];
-            BinaryPrimitives.WriteUInt32BigEndian(bytes, (uint)code);
-            pretty = Encoding.ASCII.GetString(bytes);
-        }
-
-        return pretty;
     }
 }

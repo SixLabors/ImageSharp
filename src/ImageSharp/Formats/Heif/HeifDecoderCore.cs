@@ -1154,6 +1154,112 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                                 averageContentLuminance)));
 
                     break;
+                case Heif4CharCode.Amve:
+                    EnsureBufferRemaining(boxBuffer, 0, 8, "ambient viewing environment");
+                    if (boxBuffer.Length != 8)
+                    {
+                        throw new InvalidImageContentException("The ambient viewing-environment property has an invalid length.");
+                    }
+
+                    uint ambientIlluminanceValue = BinaryPrimitives.ReadUInt32BigEndian(boxBuffer);
+                    ushort ambientLightX = BinaryPrimitives.ReadUInt16BigEndian(boxBuffer[4..]);
+                    ushort ambientLightY = BinaryPrimitives.ReadUInt16BigEndian(boxBuffer[6..]);
+                    if (ambientIlluminanceValue == 0)
+                    {
+                        throw new InvalidImageContentException("The ambient viewing-environment property has zero illuminance.");
+                    }
+
+                    if (ambientLightX > 50000 || ambientLightY > 50000)
+                    {
+                        throw new InvalidImageContentException("The ambient viewing-environment property has an out-of-range chromaticity coordinate.");
+                    }
+
+                    const double ambientIlluminanceScale = 1D / 10000D;
+                    const float ambientChromaticityScale = 1F / 50000F;
+
+                    // The item property inherits H.274's fixed-point units: 0.0001 lux for illuminance and
+                    // 0.00002 for each normalized CIE chromaticity coordinate.
+                    properties.Add(
+                        new KeyValuePair<Heif4CharCode, object>(
+                            Heif4CharCode.Amve,
+                            new HeifAmbientViewingEnvironment(
+                                ambientIlluminanceValue * ambientIlluminanceScale,
+                                new CieXyChromaticityCoordinates(
+                                    ambientLightX * ambientChromaticityScale,
+                                    ambientLightY * ambientChromaticityScale))));
+
+                    break;
+                case Heif4CharCode.Reve:
+                    EnsureBufferRemaining(boxBuffer, 0, 20, "reference viewing environment");
+                    if (boxBuffer.Length != 20)
+                    {
+                        throw new InvalidImageContentException("The reference viewing-environment property has an invalid length.");
+                    }
+
+                    if (BinaryPrimitives.ReadUInt32BigEndian(boxBuffer) != 0)
+                    {
+                        throw new InvalidImageContentException("The reference viewing-environment property has an unsupported version or flags.");
+                    }
+
+                    ushort surroundLightX = BinaryPrimitives.ReadUInt16BigEndian(boxBuffer[8..]);
+                    ushort surroundLightY = BinaryPrimitives.ReadUInt16BigEndian(boxBuffer[10..]);
+                    ushort peripheryLightX = BinaryPrimitives.ReadUInt16BigEndian(boxBuffer[16..]);
+                    ushort peripheryLightY = BinaryPrimitives.ReadUInt16BigEndian(boxBuffer[18..]);
+                    if (surroundLightX > 10000
+                        || surroundLightY > 10000
+                        || peripheryLightX > 10000
+                        || peripheryLightY > 10000)
+                    {
+                        throw new InvalidImageContentException("The reference viewing-environment property has an out-of-range chromaticity coordinate.");
+                    }
+
+                    const double viewingEnvironmentLuminanceScale = 1D / 10000D;
+                    const float referenceChromaticityScale = 1F / 10000F;
+
+                    // The full-box header is followed by the display surround and then the wider periphery.
+                    // Both field groups use 0.0001 increments, but luminance is physical cd/m2 while the CIE
+                    // coordinates are normalized. Keep the regions distinct because they affect different areas.
+                    properties.Add(
+                        new KeyValuePair<Heif4CharCode, object>(
+                            Heif4CharCode.Reve,
+                            new HeifReferenceViewingEnvironment(
+                                BinaryPrimitives.ReadUInt32BigEndian(boxBuffer[4..]) * viewingEnvironmentLuminanceScale,
+                                new CieXyChromaticityCoordinates(
+                                    surroundLightX * referenceChromaticityScale,
+                                    surroundLightY * referenceChromaticityScale),
+                                BinaryPrimitives.ReadUInt32BigEndian(boxBuffer[12..]) * viewingEnvironmentLuminanceScale,
+                                new CieXyChromaticityCoordinates(
+                                    peripheryLightX * referenceChromaticityScale,
+                                    peripheryLightY * referenceChromaticityScale))));
+
+                    break;
+                case Heif4CharCode.Ndwt:
+                    EnsureBufferRemaining(boxBuffer, 0, 8, "nominal diffuse white");
+                    if (boxBuffer.Length != 8)
+                    {
+                        throw new InvalidImageContentException("The nominal diffuse-white property has an invalid length.");
+                    }
+
+                    if (BinaryPrimitives.ReadUInt32BigEndian(boxBuffer) != 0)
+                    {
+                        throw new InvalidImageContentException("The nominal diffuse-white property has an unsupported version or flags.");
+                    }
+
+                    uint diffuseWhiteLuminanceValue = BinaryPrimitives.ReadUInt32BigEndian(boxBuffer[4..]);
+                    const double diffuseWhiteLuminanceScale = 1D / 10000D;
+
+                    // A zero coded value requests the standard-defined default; it does not describe a black
+                    // diffuse white. Preserve that distinction separately from an absent item property.
+                    double? diffuseWhiteLuminance = diffuseWhiteLuminanceValue == 0
+                        ? null
+                        : diffuseWhiteLuminanceValue * diffuseWhiteLuminanceScale;
+
+                    properties.Add(
+                        new KeyValuePair<Heif4CharCode, object>(
+                            Heif4CharCode.Ndwt,
+                            new HeifNominalDiffuseWhite(diffuseWhiteLuminance)));
+
+                    break;
                 case Heif4CharCode.Av1C:
                     EnsureBufferRemaining(boxBuffer, 0, 4, "AV1 codec configuration");
                     properties.Add(
@@ -1388,6 +1494,30 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                         }
 
                         item.ContentColorVolume = (HeifContentColorVolume)prop.Value;
+                        break;
+                    case Heif4CharCode.Amve:
+                        if (item.AmbientViewingEnvironment is not null)
+                        {
+                            throw new InvalidImageContentException($"Item {itemId} associates more than one ambient viewing-environment property.");
+                        }
+
+                        item.AmbientViewingEnvironment = (HeifAmbientViewingEnvironment)prop.Value;
+                        break;
+                    case Heif4CharCode.Reve:
+                        if (item.ReferenceViewingEnvironment is not null)
+                        {
+                            throw new InvalidImageContentException($"Item {itemId} associates more than one reference viewing-environment property.");
+                        }
+
+                        item.ReferenceViewingEnvironment = (HeifReferenceViewingEnvironment)prop.Value;
+                        break;
+                    case Heif4CharCode.Ndwt:
+                        if (item.NominalDiffuseWhite is not null)
+                        {
+                            throw new InvalidImageContentException($"Item {itemId} associates more than one nominal diffuse-white property.");
+                        }
+
+                        item.NominalDiffuseWhite = (HeifNominalDiffuseWhite)prop.Value;
                         break;
                     case Heif4CharCode.Clap:
                         if (item.CleanAperture is not null)
@@ -1739,6 +1869,9 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                 meta.ContentLightLevel = null;
                 meta.MasteringDisplayColorVolume = null;
                 meta.ContentColorVolume = null;
+                meta.AmbientViewingEnvironment = null;
+                meta.ReferenceViewingEnvironment = null;
+                meta.NominalDiffuseWhite = null;
             }
 
             return image;
@@ -1808,6 +1941,28 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
         if (contentColorVolume is not null)
         {
             metadata.GetHeifMetadata().ContentColorVolume = contentColorVolume;
+        }
+
+        HeifAmbientViewingEnvironment? ambientViewingEnvironment = imageItem.AmbientViewingEnvironment
+            ?? gridTile?.AmbientViewingEnvironment;
+
+        if (ambientViewingEnvironment is not null)
+        {
+            metadata.GetHeifMetadata().AmbientViewingEnvironment = ambientViewingEnvironment;
+        }
+
+        HeifReferenceViewingEnvironment? referenceViewingEnvironment = imageItem.ReferenceViewingEnvironment
+            ?? gridTile?.ReferenceViewingEnvironment;
+
+        if (referenceViewingEnvironment is not null)
+        {
+            metadata.GetHeifMetadata().ReferenceViewingEnvironment = referenceViewingEnvironment;
+        }
+
+        HeifNominalDiffuseWhite? nominalDiffuseWhite = imageItem.NominalDiffuseWhite ?? gridTile?.NominalDiffuseWhite;
+        if (nominalDiffuseWhite is not null)
+        {
+            metadata.GetHeifMetadata().NominalDiffuseWhite = nominalDiffuseWhite;
         }
     }
 

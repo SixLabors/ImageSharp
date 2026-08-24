@@ -89,6 +89,21 @@ public enum Heif4CharCode : uint
     Cclv = 0x63636C76U,
 
     /// <summary>
+    /// Ambient viewing environment.
+    /// </summary>
+    Amve = 0x616D7665U,
+
+    /// <summary>
+    /// Reference viewing environment.
+    /// </summary>
+    Reve = 0x72657665U,
+
+    /// <summary>
+    /// Nominal diffuse white.
+    /// </summary>
+    Ndwt = 0x6E647774U,
+
+    /// <summary>
     /// HVC configuration.
     /// </summary>
     HvcC = 0x68766343U,

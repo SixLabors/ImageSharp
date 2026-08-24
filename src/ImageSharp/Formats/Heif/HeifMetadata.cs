@@ -31,6 +31,9 @@ public class HeifMetadata : IFormatMetadata<HeifMetadata>
         this.ContentLightLevel = other.ContentLightLevel;
         this.MasteringDisplayColorVolume = other.MasteringDisplayColorVolume;
         this.ContentColorVolume = other.ContentColorVolume;
+        this.AmbientViewingEnvironment = other.AmbientViewingEnvironment;
+        this.ReferenceViewingEnvironment = other.ReferenceViewingEnvironment;
+        this.NominalDiffuseWhite = other.NominalDiffuseWhite;
     }
 
     /// <summary>
@@ -70,6 +73,24 @@ public class HeifMetadata : IFormatMetadata<HeifMetadata>
     /// available.
     /// </summary>
     public HeifContentColorVolume? ContentColorVolume { get; set; }
+
+    /// <summary>
+    /// Gets or sets the nominal ambient viewing environment for the primary image, or <see langword="null"/>
+    /// when it is not available.
+    /// </summary>
+    public HeifAmbientViewingEnvironment? AmbientViewingEnvironment { get; set; }
+
+    /// <summary>
+    /// Gets or sets the reference mastering environment for the primary image, or <see langword="null"/> when
+    /// it is not available.
+    /// </summary>
+    public HeifReferenceViewingEnvironment? ReferenceViewingEnvironment { get; set; }
+
+    /// <summary>
+    /// Gets or sets the nominal diffuse-white description for the primary image, or <see langword="null"/> when
+    /// it is not available.
+    /// </summary>
+    public HeifNominalDiffuseWhite? NominalDiffuseWhite { get; set; }
 
     /// <inheritdoc/>
     public static HeifMetadata FromFormatConnectingMetadata(FormatConnectingMetadata metadata) => new()

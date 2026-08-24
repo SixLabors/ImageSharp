@@ -85,6 +85,24 @@ internal class HeifItem(Heif4CharCode type, uint id)
     public HeifContentColorVolume? ContentColorVolume { get; set; }
 
     /// <summary>
+    /// Gets or sets the nominal ambient viewing environment associated with this image item, or
+    /// <see langword="null"/> when the item has no ambient viewing-environment property.
+    /// </summary>
+    public HeifAmbientViewingEnvironment? AmbientViewingEnvironment { get; set; }
+
+    /// <summary>
+    /// Gets or sets the reference mastering environment associated with this image item, or
+    /// <see langword="null"/> when the item has no reference viewing-environment property.
+    /// </summary>
+    public HeifReferenceViewingEnvironment? ReferenceViewingEnvironment { get; set; }
+
+    /// <summary>
+    /// Gets or sets the nominal diffuse-white description associated with this image item, or
+    /// <see langword="null"/> when the item has no nominal diffuse-white property.
+    /// </summary>
+    public HeifNominalDiffuseWhite? NominalDiffuseWhite { get; set; }
+
+    /// <summary>
     /// Gets or sets the AV1 codec configuration associated with this coded image item, or <see langword="null"/>
     /// when the item has no AV1 codec-configuration property.
     /// </summary>

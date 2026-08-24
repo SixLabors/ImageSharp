@@ -1947,7 +1947,7 @@ internal class Av1TileReader : IAv1TileReader
     /// </summary>
     /// <param name="reader">The tile symbol decoder.</param>
     /// <param name="partitionInfo">The current coding block.</param>
-    /// <remarks>Implements AV1 section 5.11.56 and corresponds to <c>read_cdef</c> in SVT-AV1.</remarks>
+    /// <remarks>Implements AV1 section 5.11.56 and corresponds to <c>read_cdef</c> in libaom.</remarks>
     private void ReadCdef(ref Av1SymbolDecoder reader, Av1PartitionInfo partitionInfo)
     {
         if (partitionInfo.ModeInfo.Skip || this.FrameHeader.CodedLossless || !this.SequenceHeader.EnableCdef || this.FrameHeader.AllowIntraBlockCopy)
@@ -1956,26 +1956,32 @@ internal class Av1TileReader : IAv1TileReader
         }
 
         int cdefSize4 = Av1BlockSize.Block64x64.Get4x4WideCount();
-        int row = partitionInfo.RowIndex & cdefSize4;
-        int col = partitionInfo.ColumnIndex & cdefSize4;
-        int index = this.SequenceHeader.SuperblockSize == Av1BlockSize.Block128x128 ? Math.Max(1, col) + (Math.Max(1, row) << 1) : 0;
-        if (partitionInfo.CdefStrength[index] == -1)
+        int superblockMask = this.SequenceHeader.SuperblockModeInfoSize - 1;
+        int rowInSuperblock = partitionInfo.RowIndex & superblockMask;
+        int columnInSuperblock = partitionInfo.ColumnIndex & superblockMask;
+        int unitRow = rowInSuperblock / cdefSize4;
+        int unitColumn = columnInSuperblock / cdefSize4;
+        int index = this.SequenceHeader.SuperblockSize == Av1BlockSize.Block128x128 ? unitColumn + (unitRow << 1) : 0;
+        Span<int> cdefStrength = partitionInfo.SuperblockInfo.CdefStrength;
+        if (cdefStrength[index] == -1)
         {
-            int cdfStrength = reader.ReadCdfStrength(this.FrameHeader.CdefParameters.BitCount);
-            partitionInfo.CdefStrength[index] = cdfStrength;
+            int cdefStrengthIndex = reader.ReadCdfStrength(this.FrameHeader.CdefParameters.BitCount);
+            int blockWidth4 = partitionInfo.ModeInfo.BlockSize.Get4x4WideCount();
+            int blockHeight4 = partitionInfo.ModeInfo.BlockSize.Get4x4HighCount();
+            int lastUnitRow = (rowInSuperblock + blockHeight4 - 1) / cdefSize4;
+            int lastUnitColumn = (columnInSuperblock + blockWidth4 - 1) / cdefSize4;
 
-            // A block in a 128x128 superblock can cover multiple 64x64 CDEF units. Replicate the
-            // first decoded strength so subsequent blocks in every covered unit observe it as assigned.
-            if (this.SequenceHeader.SuperblockSize == Av1BlockSize.Block128x128)
+            // A coding block can cover the top-left cell of more than one 64x64 CDEF unit. libaom
+            // stores the index on shared mode information, so the frame-owned unit map must mirror it.
+            for (int coveredUnitRow = unitRow; coveredUnitRow <= lastUnitRow; coveredUnitRow++)
             {
-                int w4 = partitionInfo.ModeInfo.BlockSize.Get4x4WideCount();
-                int h4 = partitionInfo.ModeInfo.BlockSize.Get4x4HighCount();
-                for (int i = row; i < row + h4; i += cdefSize4)
+                for (int coveredUnitColumn = unitColumn; coveredUnitColumn <= lastUnitColumn; coveredUnitColumn++)
                 {
-                    for (int j = col; j < col + w4; j += cdefSize4)
-                    {
-                        partitionInfo.CdefStrength[Math.Max(1, j & cdefSize4) + (Math.Max(1, i & cdefSize4) << 1)] = cdfStrength;
-                    }
+                    int coveredIndex = this.SequenceHeader.SuperblockSize == Av1BlockSize.Block128x128
+                        ? coveredUnitColumn + (coveredUnitRow << 1)
+                        : 0;
+
+                    cdefStrength[coveredIndex] = cdefStrengthIndex;
                 }
             }
         }

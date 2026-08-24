@@ -157,7 +157,7 @@ internal partial class Av1FrameInfo
         this.quantizerIndices = new int[superblockCount];
 
         // A 128x128 superblock contains four 64x64 CDEF filter blocks; a 64x64 superblock contains one.
-        this.cdefStrengthFactorLog2 = (superblockSizeLog2 - 6) << 2;
+        this.cdefStrengthFactorLog2 = (superblockSizeLog2 - 6) << 1;
         this.cdefStrength = new int[superblockCount << this.cdefStrengthFactorLog2];
         Array.Fill(this.cdefStrength, -1);
         this.deltaLoopFilter = new int[superblockCount << this.deltaLoopFactorLog2];

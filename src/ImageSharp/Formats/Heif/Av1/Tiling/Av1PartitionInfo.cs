@@ -24,7 +24,6 @@ internal class Av1PartitionInfo
         this.SuperblockInfo = superblockInfo;
         this.IsChroma = isChroma;
         this.Type = partitionType;
-        this.CdefStrength = [];
         this.ReferenceFrame = [-1, -1];
         this.WidthInPixels = new int[3];
         this.HeightInPixels = new int[3];
@@ -99,11 +98,6 @@ internal class Av1PartitionInfo
     /// Gets or sets the mode information covering the left chroma neighbor.
     /// </summary>
     public Av1BlockModeInfo? LeftModeInfoForChroma { get; set; }
-
-    /// <summary>
-    /// Gets or sets the constrained directional enhancement filter strengths associated with the block.
-    /// </summary>
-    public int[] CdefStrength { get; set; }
 
     /// <summary>
     /// Gets or sets the reference-frame identifiers selected for the block.

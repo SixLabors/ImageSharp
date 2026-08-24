@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Cdef;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.LoopFilter;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Quantification;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
@@ -101,7 +102,9 @@ internal class Av1FrameDecoder : IAv1FrameDecoder
             // LoopRestorationSaveBoundaryLines(false);
         }
 
-        // DecodeCdef();
+        Av1CdefDecoder cdefDecoder = new(this.sequenceHeader, this.frameHeader, this.frameInfo, this.frameBuffer);
+        cdefDecoder.DecodeFrame();
+
         // SuperResolutionUpscaling(doUpscale);
         if (doLoopRestoration && doUpscale)
         {

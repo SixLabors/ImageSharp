@@ -5,6 +5,7 @@ using System.Buffers;
 using System.Buffers.Binary;
 using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.Metadata.Profiles.Cicp;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Heif;
@@ -81,8 +82,13 @@ internal class GridHeifItemDecoder<TPixel> : IHeifItemDecoder<TPixel>
     /// <param name="configuration">The configuration associated with the containing HEIF decode.</param>
     /// <param name="gridItem">The grid derived-image item.</param>
     /// <param name="data">The grid descriptor payload.</param>
+    /// <param name="colorProfile">The container color description inherited by tiles that do not declare one.</param>
     /// <returns>The image reconstructed from the referenced grid tiles.</returns>
-    public Image<TPixel> DecodeItemData(Configuration configuration, HeifItem gridItem, Span<byte> data)
+    public Image<TPixel> DecodeItemData(
+        Configuration configuration,
+        HeifItem gridItem,
+        Span<byte> data,
+        CicpProfile? colorProfile)
     {
         if (data.Length < 8)
         {
@@ -171,7 +177,12 @@ internal class GridHeifItemDecoder<TPixel> : IHeifItemDecoder<TPixel>
             }
 
             this.CompressionMethod = decoder.CompressionMethod;
-            Image<TPixel> tile = decoder.DecodeItemData(this.configuration, item, itemMemory.GetSpan());
+            Image<TPixel> tile = decoder.DecodeItemData(
+                this.configuration,
+                item,
+                itemMemory.GetSpan(),
+                item.CicpProfile ?? colorProfile);
+
             try
             {
                 HeifItemDecoderUtilities.ScaleToItemExtent(tile, item);

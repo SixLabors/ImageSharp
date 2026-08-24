@@ -4,6 +4,7 @@
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
+using SixLabors.ImageSharp.Metadata.Profiles.Cicp;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.PixelFormats.Utils;
 
@@ -59,8 +60,11 @@ internal class Av1Decoder : IAv1TileReader
     /// </summary>
     /// <typeparam name="TPixel">The destination pixel type.</typeparam>
     /// <param name="buffer">The complete AV1 elementary-stream payload.</param>
+    /// <param name="containerColorProfile">
+    /// The container color description that overrides matching sequence-header color information.
+    /// </param>
     /// <returns>The decoded image.</returns>
-    public Image<TPixel> Decode<TPixel>(Span<byte> buffer)
+    public Image<TPixel> Decode<TPixel>(Span<byte> buffer, CicpProfile? containerColorProfile = null)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         Av1BitStreamReader reader = new(buffer);
@@ -68,6 +72,17 @@ internal class Av1Decoder : IAv1TileReader
         Guard.NotNull(this.tileReader, nameof(this.tileReader));
         Guard.NotNull(this.SequenceHeader, nameof(this.SequenceHeader));
         Guard.NotNull(this.FrameHeader, nameof(this.FrameHeader));
+
+        if (containerColorProfile is not null)
+        {
+            // ISO BMFF color information takes precedence over the matching bitstream fields. Apply only the four
+            // CICP values; chroma layout and bit depth remain properties of the AV1 coded image itself.
+            ObuColorConfig colorConfig = this.SequenceHeader.ColorConfig;
+            colorConfig.ColorPrimaries = (ObuColorPrimaries)containerColorProfile.ColorPrimaries;
+            colorConfig.TransferCharacteristics = (ObuTransferCharacteristics)containerColorProfile.TransferCharacteristics;
+            colorConfig.MatrixCoefficients = (ObuMatrixCoefficients)containerColorProfile.MatrixCoefficients;
+            colorConfig.ColorRange = containerColorProfile.FullRange;
+        }
 
         this.FrameInfo = this.tileReader.FrameInfo;
         using Av1FrameBuffer<byte> frameBuffer = new(

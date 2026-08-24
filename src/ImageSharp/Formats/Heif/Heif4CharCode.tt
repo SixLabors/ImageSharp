@@ -64,9 +64,9 @@
         "pict", "Picture handler type",
         "uuid", "Unique Identifier",
         "free", "Free space",
-        "nclx", "Color profile",
-        "rICC", "ICC Color profile",
-        "prof", "ICC Color profile",
+        "nclx", "CICP color information",
+        "rICC", "Restricted ICC color profile",
+        "prof", "Unrestricted ICC color profile",
     };
 #>
 

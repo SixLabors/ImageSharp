@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.Formats.Heif.Av1;
+using SixLabors.ImageSharp.Metadata.Profiles.Cicp;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Heif;
@@ -29,10 +30,17 @@ internal class Av1HeifItemDecoder<TPixel> : IHeifItemDecoder<TPixel>
     /// <param name="configuration">The configuration that supplies memory allocation and codec services.</param>
     /// <param name="item">The HEIF item whose encoded payload is being decoded.</param>
     /// <param name="data">The encoded AV1 payload.</param>
+    /// <param name="colorProfile">
+    /// The container color description that overrides matching color information in the AV1 sequence header.
+    /// </param>
     /// <returns>The decoded image.</returns>
-    public Image<TPixel> DecodeItemData(Configuration configuration, HeifItem item, Span<byte> data)
+    public Image<TPixel> DecodeItemData(
+        Configuration configuration,
+        HeifItem item,
+        Span<byte> data,
+        CicpProfile? colorProfile)
     {
         Av1Decoder decoder = new(configuration);
-        return decoder.Decode<TPixel>(data);
+        return decoder.Decode<TPixel>(data, colorProfile);
     }
 }

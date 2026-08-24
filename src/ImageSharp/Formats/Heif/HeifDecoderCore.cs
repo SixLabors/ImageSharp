@@ -9,6 +9,7 @@ using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
+using SixLabors.ImageSharp.Metadata.Profiles.Cicp;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.Metadata.Profiles.Xmp;
@@ -238,6 +239,11 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
         meta.CompressionMethod = compressionMethod;
         meta.HasAlpha = this.FindAlphaItem(presentationItem) is not null
             || (presentationItem.Type == Heif4CharCode.Grid && this.FindGridAlphaTiles(presentationItem) is not null);
+
+        if (!this.Options.SkipMetadata)
+        {
+            this.ApplyItemColorMetadata(metadata, presentationItem);
+        }
     }
 
     /// <summary>
@@ -830,15 +836,61 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                 case Heif4CharCode.Colr:
                     EnsureBufferRemaining(boxBuffer, 0, 4, "color information");
                     Heif4CharCode profileType = (Heif4CharCode)BinaryPrimitives.ReadUInt32BigEndian(boxBuffer);
+                    object colorInformation = UnknownProperty;
                     if (profileType is Heif4CharCode.RICC or Heif4CharCode.Prof)
                     {
-                        byte[] iccData = new byte[(int)itemLength - 4];
-                        boxBuffer[4..].CopyTo(iccData);
-                        this.metadata.IccProfile = new IccProfile(iccData);
+                        EnsureBufferRemaining(boxBuffer, 4, 1, "ICC color information");
+                        byte[] iccData = boxBuffer[4..].ToArray();
+                        IccProfile? iccProfile = null;
+                        this.ExecuteAncillarySegmentAction(() =>
+                        {
+                            IccProfile candidate = new(iccData);
+                            if (!candidate.CheckIsValid())
+                            {
+                                throw new InvalidIccProfileException("Invalid HEIF ICC profile.");
+                            }
+
+                            iccProfile = candidate;
+                        });
+
+                        // A malformed ancillary profile can be ignored by policy while the physical property still
+                        // occupies its ipco index and remains understood for essential-association handling.
+                        colorInformation = iccProfile ?? new object();
+                    }
+                    else if (profileType == Heif4CharCode.Nclx)
+                    {
+                        EnsureBufferRemaining(boxBuffer, 4, 7, "CICP color information");
+                        ushort colorPrimaries = BinaryPrimitives.ReadUInt16BigEndian(boxBuffer[4..]);
+                        ushort transferCharacteristics = BinaryPrimitives.ReadUInt16BigEndian(boxBuffer[6..]);
+                        ushort matrixCoefficients = BinaryPrimitives.ReadUInt16BigEndian(boxBuffer[8..]);
+                        byte rangeAndReserved = boxBuffer[10];
+                        if ((rangeAndReserved & 0x7F) != 0)
+                        {
+                            throw new InvalidImageContentException("The HEIF CICP color property has nonzero reserved bits.");
+                        }
+
+                        // The box fields are 16-bit so future registrations remain representable. ImageSharp's CICP
+                        // profile exposes the currently registered byte-sized H.273 values and maps others to unspecified.
+                        byte colorPrimariesValue = colorPrimaries <= byte.MaxValue
+                            ? (byte)colorPrimaries
+                            : (byte)CicpColorPrimaries.Unspecified;
+
+                        byte transferCharacteristicsValue = transferCharacteristics <= byte.MaxValue
+                            ? (byte)transferCharacteristics
+                            : (byte)CicpTransferCharacteristics.Unspecified;
+
+                        byte matrixCoefficientsValue = matrixCoefficients <= byte.MaxValue
+                            ? (byte)matrixCoefficients
+                            : (byte)CicpMatrixCoefficients.Unspecified;
+
+                        colorInformation = new CicpProfile(
+                            colorPrimariesValue,
+                            transferCharacteristicsValue,
+                            matrixCoefficientsValue,
+                            (rangeAndReserved & 0x80) != 0);
                     }
 
-                    // Property indices refer to every box in ipco, including properties handled directly while parsing.
-                    properties.Add(new KeyValuePair<Heif4CharCode, object>(Heif4CharCode.Colr, new object()));
+                    properties.Add(new KeyValuePair<Heif4CharCode, object>(Heif4CharCode.Colr, colorInformation));
 
                     break;
                 case Heif4CharCode.Av1C:
@@ -997,6 +1049,27 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                         }
 
                         item.AuxiliaryType = (string)prop.Value;
+                        break;
+                    case Heif4CharCode.Colr:
+                        if (prop.Value is IccProfile iccProfile)
+                        {
+                            if (item.IccProfile is not null)
+                            {
+                                throw new InvalidImageContentException($"Item {itemId} associates more than one ICC color property.");
+                            }
+
+                            item.IccProfile = iccProfile;
+                        }
+                        else if (prop.Value is CicpProfile cicpProfile)
+                        {
+                            if (item.CicpProfile is not null)
+                            {
+                                throw new InvalidImageContentException($"Item {itemId} associates more than one CICP color property.");
+                            }
+
+                            item.CicpProfile = cicpProfile;
+                        }
+
                         break;
                     case Heif4CharCode.Clap:
                         if (item.CleanAperture is not null)
@@ -1321,7 +1394,9 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
 
             if (!this.Options.SkipMetadata)
             {
+                this.ApplyItemColorMetadata(image.Metadata, itemToDecode);
                 this.ApplyAssociatedMetadata(image.Metadata, rootItem, buffers);
+                _ = this.TryConvertIccProfile(image);
             }
 
             // MIAF defines crop, rotation, and mirror as presentation operations in that order. Applying the
@@ -1340,6 +1415,32 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
             // Ownership transfers to the caller only after every auxiliary plane has been composed successfully.
             image.Dispose();
             throw;
+        }
+    }
+
+    /// <summary>
+    /// Applies the color profiles associated with a presented still-image item.
+    /// </summary>
+    /// <param name="metadata">The image metadata receiving the profiles.</param>
+    /// <param name="colorItem">The color image item whose pixels are presented.</param>
+    private void ApplyItemColorMetadata(ImageMetadata metadata, HeifItem colorItem)
+    {
+        // Color properties can be associated with the derived grid or its coded tile items. Prefer the presentation
+        // grid and use the first decodable tile only when the grid does not provide the corresponding profile.
+        HeifItem? gridTile = colorItem.Type == Heif4CharCode.Grid
+            ? this.FindDecodableGridTile<Rgba32>(colorItem)
+            : null;
+
+        IccProfile? iccProfile = colorItem.IccProfile ?? gridTile?.IccProfile;
+        if (iccProfile is not null)
+        {
+            metadata.IccProfile = iccProfile.DeepClone();
+        }
+
+        CicpProfile? cicpProfile = colorItem.CicpProfile ?? gridTile?.CicpProfile;
+        if (cicpProfile is not null)
+        {
+            metadata.CicpProfile = cicpProfile.DeepClone();
         }
     }
 
@@ -1450,7 +1551,12 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
             throw new InvalidImageContentException($"Item {item.Id} has no data extents.");
         }
 
-        Image<TPixel> image = decoder.DecodeItemData(this.configuration, item, itemMemory.GetSpan());
+        Image<TPixel> image = decoder.DecodeItemData(
+            this.configuration,
+            item,
+            itemMemory.GetSpan(),
+            item.CicpProfile);
+
         try
         {
             HeifItemDecoderUtilities.ScaleToItemExtent(image, item);
@@ -1590,7 +1696,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
             buffers,
             alphaTileIds);
 
-        return gridDecoder.DecodeItemData(this.configuration, colorItem, gridMemory.GetSpan());
+        return gridDecoder.DecodeItemData(this.configuration, colorItem, gridMemory.GetSpan(), null);
     }
 
     /// <summary>

@@ -1,6 +1,9 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.Metadata.Profiles.Cicp;
+using SixLabors.ImageSharp.Metadata.Profiles.Icc;
+
 namespace SixLabors.ImageSharp.Formats.Heif;
 
 /// <summary>
@@ -49,6 +52,18 @@ internal class HeifItem(Heif4CharCode type, uint id)
     /// Gets or sets the registered auxiliary type associated with this image item.
     /// </summary>
     public string? AuxiliaryType { get; set; }
+
+    /// <summary>
+    /// Gets or sets the ICC profile associated with this color image item, or <see langword="null"/> when the item
+    /// has no restricted or unrestricted ICC color-information property.
+    /// </summary>
+    public IccProfile? IccProfile { get; set; }
+
+    /// <summary>
+    /// Gets or sets the CICP color description associated with this color image item, or <see langword="null"/>
+    /// when the item has no <c>nclx</c> color-information property.
+    /// </summary>
+    public CicpProfile? CicpProfile { get; set; }
 
     /// <summary>
     /// Gets or sets the aspect ratio of the pixels.

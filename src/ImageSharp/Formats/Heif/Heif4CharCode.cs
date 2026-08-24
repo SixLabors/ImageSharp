@@ -299,17 +299,17 @@ public enum Heif4CharCode : uint
     Free = 0x66726565U,
 
     /// <summary>
-    /// Color profile.
+    /// CICP color information.
     /// </summary>
-    nclx = 0x6E636C78U,
+    Nclx = 0x6E636C78U,
 
     /// <summary>
-    /// ICC Color profile.
+    /// Restricted ICC color profile.
     /// </summary>
     RICC = 0x72494343U,
 
     /// <summary>
-    /// ICC Color profile.
+    /// Unrestricted ICC color profile.
     /// </summary>
     Prof = 0x70726F66U,
 

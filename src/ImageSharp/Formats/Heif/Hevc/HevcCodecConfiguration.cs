@@ -98,7 +98,7 @@ internal sealed class HevcCodecConfiguration
             seenNalUnitTypes[nalUnitType] = true;
             int nalUnitCount = BinaryPrimitives.ReadUInt16BigEndian(data[offset..]);
             offset += 2;
-            ReadOnlyMemory<byte>[] nalUnits = new ReadOnlyMemory<byte>[nalUnitCount];
+            HevcNalUnit[] nalUnits = new HevcNalUnit[nalUnitCount];
             for (int nalUnitIndex = 0; nalUnitIndex < nalUnitCount; nalUnitIndex++)
             {
                 if (data.Length - offset < 2)
@@ -113,17 +113,16 @@ internal sealed class HevcCodecConfiguration
                     throw new InvalidImageContentException("The HEVC codec configuration contains an invalid NAL-unit length.");
                 }
 
-                ReadOnlySpan<byte> nalUnit = data.Slice(offset, nalUnitLength);
-                byte actualNalUnitType = (byte)((nalUnit[0] >> 1) & 0x3F);
+                HevcNalUnit nalUnit = new(data.Slice(offset, nalUnitLength));
 
-                // The two-byte HEVC NAL header repeats the array's type. temporal_id_plus1 cannot be zero because
-                // zero is reserved to make header damage detectable before any parameter syntax is consumed.
-                if ((nalUnit[0] & 0x80) != 0 || (nalUnit[1] & 7) == 0 || actualNalUnitType != nalUnitType)
+                // The array header repeats the type so a damaged or misrouted parameter set is rejected before
+                // its RBSP syntax can affect the image configuration.
+                if (nalUnit.Header.NalUnitType != nalUnitType)
                 {
-                    throw new InvalidImageContentException("The HEVC codec configuration contains an invalid NAL-unit header.");
+                    throw new InvalidImageContentException("The HEVC codec configuration NAL-unit type does not match its array.");
                 }
 
-                nalUnits[nalUnitIndex] = nalUnit.ToArray();
+                nalUnits[nalUnitIndex] = nalUnit;
                 offset += nalUnitLength;
             }
 
@@ -250,8 +249,8 @@ internal sealed class HevcNalUnitArray
     /// </summary>
     /// <param name="nalUnitType">The six-bit HEVC NAL-unit type.</param>
     /// <param name="isComplete">A value indicating whether the array contains every NAL unit of this type.</param>
-    /// <param name="nalUnits">The complete bounded NAL units, including their two-byte headers.</param>
-    public HevcNalUnitArray(byte nalUnitType, bool isComplete, ReadOnlyMemory<byte>[] nalUnits)
+    /// <param name="nalUnits">The decoded bounded NAL units.</param>
+    public HevcNalUnitArray(byte nalUnitType, bool isComplete, HevcNalUnit[] nalUnits)
     {
         this.NalUnitType = nalUnitType;
         this.IsComplete = isComplete;
@@ -269,7 +268,7 @@ internal sealed class HevcNalUnitArray
     public bool IsComplete { get; }
 
     /// <summary>
-    /// Gets the complete NAL units, including their two-byte HEVC headers.
+    /// Gets the decoded NAL units.
     /// </summary>
-    public IReadOnlyList<ReadOnlyMemory<byte>> NalUnits { get; }
+    public IReadOnlyList<HevcNalUnit> NalUnits { get; }
 }

@@ -121,6 +121,23 @@ public class Av1ChromaFromLumaTests
         Assert.Equal(new short[] { 0, (short)((maximum / 2) - 16), maximum, maximum }, destination);
     }
 
+    [Theory]
+    [InlineData((int)Av1Plane.U, 3)]
+    [InlineData((int)Av1Plane.V, 4)]
+    public void AlphaIndexSelectsMagnitudeForRequestedChromaPlane(int planeIndex, int expected)
+    {
+        // U occupies the high nibble and V occupies the low nibble in the packed AV1 alpha index.
+        const int alphaIndex = 0x23;
+        const int bothPositiveJointSign = 7;
+
+        int actual = Av1PredictionDecoder.ChromaFromLumaIndexToAlpha(
+            alphaIndex,
+            bothPositiveJointSign,
+            (Av1Plane)planeIndex);
+
+        Assert.Equal(expected, actual);
+    }
+
     private static short[] GetBlock(short[] buffer, int width, int height)
     {
         short[] result = new short[width * height];

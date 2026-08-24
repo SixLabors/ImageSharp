@@ -11,13 +11,34 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 
+/// <summary>
+/// Reconstructs AV1 intra-predicted transform blocks from neighboring samples and decoded mode information.
+/// </summary>
+/// <remarks>
+/// This type implements the intra prediction portion of the AV1 reconstruction process for 8-, 10-, and 12-bit samples.
+/// </remarks>
 internal class Av1PredictionDecoder
 {
+    /// <summary>
+    /// The largest edge length for which AV1 permits intra-edge upsampling.
+    /// </summary>
     private const int MaxUpsampleSize = 16;
 
+    /// <summary>
+    /// The sequence-level syntax that controls chroma sampling, bit depth, superblock size, and intra-edge filtering.
+    /// </summary>
     private readonly ObuSequenceHeader sequenceHeader;
+
+    /// <summary>
+    /// The frame-level syntax that controls segment lossless state and prediction behavior.
+    /// </summary>
     private readonly ObuFrameHeader frameHeader;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Av1PredictionDecoder"/> class.
+    /// </summary>
+    /// <param name="sequenceHeader">The decoded sequence header for the current image.</param>
+    /// <param name="frameHeader">The decoded frame header for the current image.</param>
     public Av1PredictionDecoder(ObuSequenceHeader sequenceHeader, ObuFrameHeader frameHeader)
     {
         this.sequenceHeader = sequenceHeader;
@@ -25,8 +46,18 @@ internal class Av1PredictionDecoder
     }
 
     /// <summary>
-    /// SVT: svt_av1_predict_intra
+    /// Reconstructs an 8-bit intra-predicted transform block.
     /// </summary>
+    /// <param name="partitionInfo">The decoded partition and mode state for the containing block.</param>
+    /// <param name="plane">The color plane being reconstructed.</param>
+    /// <param name="transformSize">The dimensions of the transform block.</param>
+    /// <param name="tileInfo">The tile boundaries used to determine neighboring-sample availability.</param>
+    /// <param name="pixelBuffer">The sample buffer beginning at the row above the destination block.</param>
+    /// <param name="pixelStride">The distance, in samples, between pixel rows.</param>
+    /// <param name="bitDepth">The bit depth of the reconstructed samples.</param>
+    /// <param name="blockModeInfoColumnOffset">The transform block's horizontal offset within the mode-information block.</param>
+    /// <param name="blockModeInfoRowOffset">The transform block's vertical offset within the mode-information block.</param>
+    /// <remarks>Corresponds to <c>svt_av1_predict_intra</c> in SVT-AV1.</remarks>
     public void Decode(
         Av1PartitionInfo partitionInfo,
         Av1Plane plane,
@@ -49,8 +80,18 @@ internal class Av1PredictionDecoder
             blockModeInfoRowOffset);
 
     /// <summary>
-    /// AV1: 7.11.2 Reconstruct.
+    /// Reconstructs a 10-bit or 12-bit intra-predicted transform block.
     /// </summary>
+    /// <param name="partitionInfo">The decoded partition and mode state for the containing block.</param>
+    /// <param name="plane">The color plane being reconstructed.</param>
+    /// <param name="transformSize">The dimensions of the transform block.</param>
+    /// <param name="tileInfo">The tile boundaries used to determine neighboring-sample availability.</param>
+    /// <param name="pixelBuffer">The sample buffer beginning at the row above the destination block.</param>
+    /// <param name="pixelStride">The distance, in samples, between pixel rows.</param>
+    /// <param name="bitDepth">The bit depth of the reconstructed samples.</param>
+    /// <param name="blockModeInfoColumnOffset">The transform block's horizontal offset within the mode-information block.</param>
+    /// <param name="blockModeInfoRowOffset">The transform block's vertical offset within the mode-information block.</param>
+    /// <remarks>Implements the intra prediction portion of section 7.11.2 of the AV1 specification.</remarks>
     public void Decode(
         Av1PartitionInfo partitionInfo,
         Av1Plane plane,
@@ -72,6 +113,19 @@ internal class Av1PredictionDecoder
             blockModeInfoColumnOffset,
             blockModeInfoRowOffset);
 
+    /// <summary>
+    /// Reconstructs an intra-predicted transform block in its native sample representation.
+    /// </summary>
+    /// <typeparam name="T">The 8-bit or high-bit-depth sample type.</typeparam>
+    /// <param name="partitionInfo">The decoded partition and mode state for the containing block.</param>
+    /// <param name="plane">The color plane being reconstructed.</param>
+    /// <param name="transformSize">The dimensions of the transform block.</param>
+    /// <param name="tileInfo">The tile boundaries used to determine neighboring-sample availability.</param>
+    /// <param name="pixelBuffer">The sample buffer beginning at the row above the destination block.</param>
+    /// <param name="pixelStride">The distance, in samples, between pixel rows.</param>
+    /// <param name="bitDepth">The bit depth of the reconstructed samples.</param>
+    /// <param name="blockModeInfoColumnOffset">The transform block's horizontal offset within the mode-information block.</param>
+    /// <param name="blockModeInfoRowOffset">The transform block's vertical offset within the mode-information block.</param>
     private void DecodeCore<T>(
         Av1PartitionInfo partitionInfo,
         Av1Plane plane,
@@ -86,7 +140,8 @@ internal class Av1PredictionDecoder
     {
         int stride = pixelStride;
 
-        // Deviation from SVT: Buffer starts at PREVIOUS row.
+        // Unlike SVT's separate destination and reference pointers, this span begins at the
+        // previous row. That layout exposes the top, top-left, and strided left samples without copying.
         Span<T> topNeighbor = pixelBuffer;
         Span<T> leftNeighbor = pixelBuffer[(stride - 1)..];
         Span<T> startOfPixels = pixelBuffer[stride..];
@@ -137,6 +192,16 @@ internal class Av1PredictionDecoder
             bitDepth);
     }
 
+    /// <summary>
+    /// Applies chroma-from-luma scaling to the DC prediction for one chroma transform block.
+    /// </summary>
+    /// <typeparam name="T">The 8-bit or high-bit-depth sample type.</typeparam>
+    /// <param name="partitionInfo">The decoded partition and mode state for the containing block.</param>
+    /// <param name="chromaFromLumaContext">The block-level luma prediction context shared by the chroma planes.</param>
+    /// <param name="pixelBuffer">The DC-predicted chroma samples that receive the luma-derived adjustment.</param>
+    /// <param name="stride">The distance, in samples, between pixel rows.</param>
+    /// <param name="transformSize">The dimensions of the chroma transform block.</param>
+    /// <param name="plane">The U or V plane being reconstructed.</param>
     private void PredictChromaFromLumaBlock<T>(Av1PartitionInfo partitionInfo, Av1ChromaFromLumaContext? chromaFromLumaContext, Span<T> pixelBuffer, int stride, Av1TransformSize transformSize, Av1Plane plane)
         where T : unmanaged, IBinaryInteger<T>
     {
@@ -149,14 +214,15 @@ internal class Av1PredictionDecoder
             throw new InvalidOperationException("CFL context should have been defined already.");
         }
 
+        // U computes the shared subsampled-luma parameters first; V reuses them for the
+        // same block because both chroma planes have identical sampling geometry.
         if (!chromaFromLumaContext.AreParametersComputed)
         {
             chromaFromLumaContext.ComputeParameters(transformSize);
         }
 
-        int alphaQ3 = ChromaFromLumaIndexToAlpha(modeInfo.ChromaFromLumaAlphaIndex, modeInfo.ChromaFromLumaAlphaSign, (Av1Plane)((int)plane - 1));
+        int alphaQ3 = ChromaFromLumaIndexToAlpha(modeInfo.ChromaFromLumaAlphaIndex, modeInfo.ChromaFromLumaAlphaSign, plane);
 
-        // assert((transformSize.GetHeight() - 1) * CFL_BUF_LINE + transformSize.GetWidth() <= CFL_BUF_SQUARE);
         Av1BitDepth bitDepth = this.sequenceHeader.ColorConfig.BitDepth;
         ChromaFromLumaPredict(
             chromaFromLumaContext.Q3Buffer,
@@ -170,11 +236,18 @@ internal class Av1PredictionDecoder
             transformSize.GetHeight());
     }
 
+    /// <summary>
+    /// Determines whether chroma-from-luma prediction is permitted for the current block and frame state.
+    /// </summary>
+    /// <param name="partitionInfo">The decoded partition and mode state for the containing block.</param>
+    /// <param name="colorConfig">The sequence color configuration.</param>
+    /// <param name="frameHeader">The decoded frame header.</param>
+    /// <returns><see langword="true"/> when the block may use chroma-from-luma prediction; otherwise, <see langword="false"/>.</returns>
     private static bool IsChromaFromLumaAllowedWithFrameHeader(Av1PartitionInfo partitionInfo, ObuColorConfig colorConfig, ObuFrameHeader frameHeader)
     {
         Av1BlockModeInfo modeInfo = partitionInfo.ModeInfo;
         Av1BlockSize blockSize = modeInfo.BlockSize;
-        DebugGuard.MustBeGreaterThan((int)blockSize, (int)Av1BlockSize.AllSizes, nameof(blockSize));
+        DebugGuard.MustBeLessThan((int)blockSize, (int)Av1BlockSize.AllSizes, nameof(blockSize));
         if (frameHeader.LosslessArray[modeInfo.SegmentId])
         {
             // In lossless, CfL is available when the partition size is equal to the
@@ -185,11 +258,18 @@ internal class Av1PredictionDecoder
             return planeBlockSize == Av1BlockSize.Block4x4;
         }
 
-        // Spec: CfL is available to luma partitions lesser than or equal to 32x32
+        // Outside lossless mode, AV1 limits CfL to luma partitions no larger than 32 by 32.
         return blockSize.GetWidth() <= 32 && blockSize.GetHeight() <= 32;
     }
 
-    private static int ChromaFromLumaIndexToAlpha(int alphaIndex, int jointSign, Av1Plane plane)
+    /// <summary>
+    /// Converts the packed chroma-from-luma magnitude and joint sign into a signed Q3 scaling factor.
+    /// </summary>
+    /// <param name="alphaIndex">The packed U and V alpha magnitudes.</param>
+    /// <param name="jointSign">The joint U and V alpha-sign symbol.</param>
+    /// <param name="plane">The U or V plane whose alpha value is selected.</param>
+    /// <returns>The signed Q3 alpha value for the selected chroma plane.</returns>
+    public static int ChromaFromLumaIndexToAlpha(int alphaIndex, int jointSign, Av1Plane plane)
     {
         int alphaSign = (plane == Av1Plane.U) ? Av1ChromaFromLumaMath.SignU(jointSign) : Av1ChromaFromLumaMath.SignV(jointSign);
         if (alphaSign == Av1ChromaFromLumaMath.SignZero)
@@ -201,13 +281,32 @@ internal class Av1PredictionDecoder
         return (alphaSign == Av1ChromaFromLumaMath.SignPositive) ? absAlphaQ3 + 1 : -absAlphaQ3 - 1;
     }
 
+    /// <summary>
+    /// Multiplies a Q3 chroma-from-luma alpha by a Q3 luma residual and returns an integer sample adjustment.
+    /// </summary>
+    /// <param name="alphaQ3">The signed Q3 chroma scaling factor.</param>
+    /// <param name="predictedQ3">The signed Q3 luma residual.</param>
+    /// <returns>The signed integer sample adjustment.</returns>
     private static int GetScaledLumaQ0(int alphaQ3, short predictedQ3)
     {
         int scaledLumaQ6 = alphaQ3 * predictedQ3;
         return Av1Math.RoundPowerOf2Signed(scaledLumaQ6, 6);
     }
 
-    internal static void ChromaFromLumaPredict<T>(Span<short> predictedBufferQ3, Span<T> predictedBuffer, int predictedStride, Span<T> destinationBuffer, int destinationStride, int alphaQ3, Av1BitDepth bitDepth, int width, int height)
+    /// <summary>
+    /// Applies a chroma-from-luma residual to a chroma prediction block.
+    /// </summary>
+    /// <typeparam name="T">The 8-bit or high-bit-depth sample type.</typeparam>
+    /// <param name="predictedBufferQ3">The Q3 luma residuals stored with the normative 32-sample CfL row stride.</param>
+    /// <param name="predictedBuffer">The base chroma prediction samples.</param>
+    /// <param name="predictedStride">The distance, in samples, between base prediction rows.</param>
+    /// <param name="destinationBuffer">The buffer that receives the adjusted chroma samples.</param>
+    /// <param name="destinationStride">The distance, in samples, between destination rows.</param>
+    /// <param name="alphaQ3">The signed Q3 chroma scaling factor.</param>
+    /// <param name="bitDepth">The bit depth used to clamp reconstructed samples.</param>
+    /// <param name="width">The width of the prediction block in samples.</param>
+    /// <param name="height">The height of the prediction block in samples.</param>
+    public static void ChromaFromLumaPredict<T>(Span<short> predictedBufferQ3, Span<T> predictedBuffer, int predictedStride, Span<T> destinationBuffer, int destinationStride, int alphaQ3, Av1BitDepth bitDepth, int width, int height)
         where T : unmanaged, IBinaryInteger<T>
     {
         // TODO: Make SIMD variant of this method.
@@ -223,10 +322,29 @@ internal class Av1PredictionDecoder
 
             destinationBuffer = destinationBuffer[destinationStride..];
             predictedBuffer = predictedBuffer[predictedStride..];
+
+            // The CfL scratch buffer has a fixed 32-sample row stride independent of transform width.
             predictedBufferQ3 = predictedBufferQ3[32..];
         }
     }
 
+    /// <summary>
+    /// Determines available reference samples and dispatches prediction for one transform block.
+    /// </summary>
+    /// <typeparam name="T">The 8-bit or high-bit-depth sample type.</typeparam>
+    /// <param name="partitionInfo">The decoded partition and mode state for the containing block.</param>
+    /// <param name="plane">The color plane being reconstructed.</param>
+    /// <param name="transformSize">The dimensions of the transform block.</param>
+    /// <param name="tileInfo">The tile boundaries used to determine neighboring-sample availability.</param>
+    /// <param name="pixelBuffer">The destination samples for the transform block.</param>
+    /// <param name="pixelBufferStride">The distance, in samples, between destination rows.</param>
+    /// <param name="topNeighbor">The reconstructed samples along the top edge.</param>
+    /// <param name="leftNeighbor">The reconstructed samples along the left edge.</param>
+    /// <param name="referenceStride">The distance, in samples, between consecutive left-edge references.</param>
+    /// <param name="mode">The intra prediction mode to apply.</param>
+    /// <param name="blockModeInfoColumnOffset">The transform block's horizontal offset within the mode-information block.</param>
+    /// <param name="blockModeInfoRowOffset">The transform block's vertical offset within the mode-information block.</param>
+    /// <param name="bitDepth">The bit depth of the reconstructed samples.</param>
     private void PredictIntraBlock<T>(
         Av1PartitionInfo partitionInfo,
         Av1Plane plane,
@@ -260,6 +378,8 @@ internal class Av1PredictionDecoder
 
         if (usePalette)
         {
+            // Palette blocks use their decoded color-index map rather than neighboring-sample
+            // prediction. The tile parser currently rejects palette syntax before this point.
             return;
         }
 
@@ -277,11 +397,11 @@ internal class Av1PredictionDecoder
         int xrOffset = 0;
         int ydOffset = 0;
 
-        // Distance between right edge of this pred block to frame right edge
+        // These distances bound edge extension at the coded frame rather than allowing
+        // a transform to read padding that happens to exist beyond the visible image.
         int xr = (partitionInfo.ModeBlockToRightEdge >> (3 + subX)) + (partitionInfo.WidthInPixels[(int)plane] - (blockModeInfoColumnOffset << Av1Constants.ModeInfoSizeLog2) - transformWidth) -
             xrOffset;
 
-        // Distance between bottom edge of this pred block to frame bottom edge
         int yd = (partitionInfo.ModeBlockToBottomEdge >> (3 + subY)) +
             (partitionInfo.HeightInPixels[(int)plane] - (blockModeInfoRowOffset << Av1Constants.ModeInfoSizeLog2) - transformHeight) - ydOffset;
         bool rightAvailable = modeInfoColumn + ((blockModeInfoColumnOffset + transformWidthInModeInfoUnits) << subX) < tileInfo.ModeInfoColumnEnd;
@@ -289,7 +409,7 @@ internal class Av1PredictionDecoder
 
         Av1PartitionType partition = modeInfo.PartitionType;
 
-        // force 4x4 chroma component block size.
+        // Chroma prediction geometry cannot be smaller than 4 by 4 after subsampling.
         blockSize = ScaleChromaBlockSize(blockSize, subX == 1, subY == 1);
 
         bool haveTopRight = IntraHasTopRight(
@@ -342,6 +462,13 @@ internal class Av1PredictionDecoder
             bitDepth.GetBitCount());
     }
 
+    /// <summary>
+    /// Adjusts sub-8-by-8 luma block geometry to the minimum chroma prediction block size.
+    /// </summary>
+    /// <param name="blockSize">The luma block size.</param>
+    /// <param name="subX">A value indicating whether chroma is horizontally subsampled.</param>
+    /// <param name="subY">A value indicating whether chroma is vertically subsampled.</param>
+    /// <returns>The block size used to evaluate chroma reference availability.</returns>
     private static Av1BlockSize ScaleChromaBlockSize(Av1BlockSize blockSize, bool subX, bool subY)
     {
         Av1BlockSize bs = blockSize;
@@ -429,6 +556,22 @@ internal class Av1PredictionDecoder
         return bs;
     }
 
+    /// <summary>
+    /// Determines whether every bottom-left reference sample required by a transform is already reconstructed.
+    /// </summary>
+    /// <param name="superblockSize">The sequence superblock size.</param>
+    /// <param name="blockSize">The containing block size in the current plane's geometry.</param>
+    /// <param name="modeInfoRow">The containing block row in 4-by-4 mode-information units.</param>
+    /// <param name="modeInfoColumn">The containing block column in 4-by-4 mode-information units.</param>
+    /// <param name="bottomAvailable">A value indicating whether the required rows remain inside the frame and tile.</param>
+    /// <param name="haveLeft">A value indicating whether reconstructed samples exist immediately to the left.</param>
+    /// <param name="partition">The partition type that determines reconstruction order.</param>
+    /// <param name="transformSize">The transform size whose extended edge is required.</param>
+    /// <param name="blockModeInfoRowOffset">The transform row offset within the containing block.</param>
+    /// <param name="blockModeInfoColumnOffset">The transform column offset within the containing block.</param>
+    /// <param name="subX">The horizontal chroma subsampling shift.</param>
+    /// <param name="subY">The vertical chroma subsampling shift.</param>
+    /// <returns><see langword="true"/> when the bottom-left reference extension is available; otherwise, <see langword="false"/>.</returns>
     private static bool IntraHasBottomLeft(Av1BlockSize superblockSize, Av1BlockSize blockSize, int modeInfoRow, int modeInfoColumn, bool bottomAvailable, bool haveLeft, Av1PartitionType partition, Av1TransformSize transformSize, int blockModeInfoRowOffset, int blockModeInfoColumnOffset, int subX, int subY)
     {
         if (!bottomAvailable || !haveLeft)
@@ -436,9 +579,8 @@ internal class Av1PredictionDecoder
             return false;
         }
 
-        // Special case for 128x* blocks, when col_off is half the block width.
-        // This is needed because 128x* superblocks are divided into 64x* blocks in
-        // raster order
+        // A 128-wide block is reconstructed as two 64-wide regions in raster order,
+        // so the right half can consume references that already belong to the left half.
         if (blockSize.GetWidth() > 64 && blockModeInfoColumnOffset > 0)
         {
             int planeBlockWidthInUnits64 = 64 >> subX;
@@ -504,6 +646,22 @@ internal class Av1PredictionDecoder
         }
     }
 
+    /// <summary>
+    /// Determines whether every top-right reference sample required by a transform is already reconstructed.
+    /// </summary>
+    /// <param name="superblockSize">The sequence superblock size.</param>
+    /// <param name="blockSize">The containing block size in the current plane's geometry.</param>
+    /// <param name="modeInfoRow">The containing block row in 4-by-4 mode-information units.</param>
+    /// <param name="modeInfoColumn">The containing block column in 4-by-4 mode-information units.</param>
+    /// <param name="haveTop">A value indicating whether reconstructed samples exist immediately above.</param>
+    /// <param name="rightAvailable">A value indicating whether the required columns remain inside the frame and tile.</param>
+    /// <param name="partition">The partition type that determines reconstruction order.</param>
+    /// <param name="transformSize">The transform size whose extended edge is required.</param>
+    /// <param name="blockModeInfoRowOffset">The transform row offset within the containing block.</param>
+    /// <param name="blockModeInfoColumnOffset">The transform column offset within the containing block.</param>
+    /// <param name="subX">The horizontal chroma subsampling shift.</param>
+    /// <param name="subY">The vertical chroma subsampling shift.</param>
+    /// <returns><see langword="true"/> when the top-right reference extension is available; otherwise, <see langword="false"/>.</returns>
     private static bool IntraHasTopRight(Av1BlockSize superblockSize, Av1BlockSize blockSize, int modeInfoRow, int modeInfoColumn, bool haveTop, bool rightAvailable, Av1PartitionType partition, Av1TransformSize transformSize, int blockModeInfoRowOffset, int blockModeInfoColumnOffset, int subX, int subY)
     {
         if (!haveTop || !rightAvailable)
@@ -516,7 +674,9 @@ internal class Av1PredictionDecoder
         int topRightUnitCount = transformSize.Get4x4WideCount();
 
         if (blockModeInfoRowOffset > 0)
-        { // Just need to check if enough pixels on the right.
+        {
+            // Transforms below the first row obtain their top edge from the containing block,
+            // so only the reconstructed width to their right constrains availability.
             if (blockSize.GetWidth() > 64)
             {
                 // Special case: For 128x128 blocks, the transform unit whose
@@ -570,6 +730,27 @@ internal class Av1PredictionDecoder
         }
     }
 
+    /// <summary>
+    /// Prepares normative reference-edge samples and runs the selected intra predictor.
+    /// </summary>
+    /// <typeparam name="T">The 8-bit or high-bit-depth sample type.</typeparam>
+    /// <param name="partitionInfo">The decoded partition and neighboring mode state.</param>
+    /// <param name="aboveNeighbor">The reconstructed top and top-right reference samples.</param>
+    /// <param name="leftNeighbor">The reconstructed left and bottom-left reference samples.</param>
+    /// <param name="referenceStride">The distance, in samples, between consecutive left-edge references.</param>
+    /// <param name="destination">The buffer that receives the prediction block.</param>
+    /// <param name="destinationStride">The distance, in samples, between destination rows.</param>
+    /// <param name="mode">The intra prediction mode to apply.</param>
+    /// <param name="angleDelta">The coded directional angle adjustment.</param>
+    /// <param name="filterIntraMode">The selected filter intra mode, or the sentinel indicating that filter intra is disabled.</param>
+    /// <param name="transformSize">The dimensions of the prediction block.</param>
+    /// <param name="disableEdgeFilter">A value indicating whether intra-edge filtering and upsampling are disabled.</param>
+    /// <param name="topPixelCount">The number of available top samples.</param>
+    /// <param name="topRightPixelCount">The number of available top-right extension samples.</param>
+    /// <param name="leftPixelCount">The number of available left samples.</param>
+    /// <param name="bottomLeftPixelCount">The number of available bottom-left extension samples.</param>
+    /// <param name="plane">The color plane being reconstructed.</param>
+    /// <param name="bitDepth">The number of bits used to represent each sample.</param>
     private void DecodeBuildIntraPredictors<T>(
         Av1PartitionInfo partitionInfo,
         Span<T> aboveNeighbor,
@@ -591,6 +772,9 @@ internal class Av1PredictionDecoder
         where T : unmanaged, IBinaryInteger<T>
     {
         int baseValue = 128 << (bitDepth - 8);
+
+        // Prefix storage is required because AV1 addresses the shared top-left sample at -1
+        // and writes upsampled edge samples as far back as -2.
         Span<T> aboveData = stackalloc T[(Av1Constants.MaxTransformSize * 2) + 32];
         Span<T> leftData = stackalloc T[(Av1Constants.MaxTransformSize * 2) + 32];
         aboveData.Fill(T.CreateChecked(baseValue - 1));
@@ -644,6 +828,8 @@ internal class Av1PredictionDecoder
 
         if ((!needAbove && leftPixelCount == 0) || (!needLeft && topPixelCount == 0))
         {
+            // Pure horizontal or vertical prediction with its sole required edge missing
+            // degenerates to the first perpendicular sample or the normative midpoint offset.
             T value;
             if (needLeft)
             {
@@ -662,7 +848,8 @@ internal class Av1PredictionDecoder
             return;
         }
 
-        // NEED_LEFT
+        // Copy the available left and bottom-left samples, then extend the final sample
+        // through any unavailable portion required by the selected predictor.
         if (needLeft)
         {
             bool needBottom = (need & Av1NeighborNeed.BottomLeft) == Av1NeighborNeed.BottomLeft;
@@ -712,7 +899,8 @@ internal class Av1PredictionDecoder
             }
         }
 
-        // NEED_ABOVE
+        // Prepare the top edge by the same copy-and-extend rule. Unlike the left edge,
+        // these samples are contiguous in the reconstructed pixel buffer.
         if (needAbove)
         {
             bool needRight = (need & Av1NeighborNeed.AboveRight) == Av1NeighborNeed.AboveRight;
@@ -758,6 +946,8 @@ internal class Av1PredictionDecoder
 
         if (needAboveLeft)
         {
+            // AV1 synthesizes the shared corner from the closest available edge when only
+            // one edge exists, and uses the bit-depth midpoint when neither edge exists.
             ref T aboveLeft = ref Unsafe.Subtract(ref aboveRow[0], 1);
             if (topPixelCount > 0 && leftPixelCount > 0)
             {
@@ -840,7 +1030,6 @@ internal class Av1PredictionDecoder
             return;
         }
 
-        // predict
         if (mode == Av1PredictionMode.DC)
         {
             DcPredictor(leftPixelCount > 0, topPixelCount > 0, transformSize, destination, destinationStride, aboveRow, leftColumn, bitDepth);
@@ -851,9 +1040,23 @@ internal class Av1PredictionDecoder
         }
     }
 
+    /// <summary>
+    /// Dispatches DC prediction to the 8-bit or high-bit-depth implementation.
+    /// </summary>
+    /// <typeparam name="T">The byte or 16-bit sample type.</typeparam>
+    /// <param name="hasLeft">A value indicating whether reconstructed left samples are available.</param>
+    /// <param name="hasAbove">A value indicating whether reconstructed top samples are available.</param>
+    /// <param name="transformSize">The dimensions of the prediction block.</param>
+    /// <param name="destination">The buffer that receives the predicted samples.</param>
+    /// <param name="destinationStride">The distance, in samples, between destination rows.</param>
+    /// <param name="above">The prepared top reference samples.</param>
+    /// <param name="left">The prepared left reference samples.</param>
+    /// <param name="bitDepth">The number of bits used to represent each sample.</param>
     private static void DcPredictor<T>(bool hasLeft, bool hasAbove, Av1TransformSize transformSize, Span<T> destination, nuint destinationStride, Span<T> above, Span<T> left, int bitDepth)
         where T : unmanaged
     {
+        // DecodeCore is reachable only through byte and short overloads, so this type
+        // dispatch permits shared reference preparation without boxing or allocating.
         if (typeof(T) == typeof(byte))
         {
             Av1PredictorFactory.DcPredictor(
@@ -879,6 +1082,16 @@ internal class Av1PredictionDecoder
         }
     }
 
+    /// <summary>
+    /// Dispatches nondirectional prediction to the 8-bit or high-bit-depth implementation.
+    /// </summary>
+    /// <typeparam name="T">The byte or 16-bit sample type.</typeparam>
+    /// <param name="mode">The nondirectional prediction mode to apply.</param>
+    /// <param name="transformSize">The dimensions of the prediction block.</param>
+    /// <param name="destination">The buffer that receives the predicted samples.</param>
+    /// <param name="destinationStride">The distance, in samples, between destination rows.</param>
+    /// <param name="above">The prepared top reference samples.</param>
+    /// <param name="left">The prepared left reference samples.</param>
     private static void GeneralPredictor<T>(Av1PredictionMode mode, Av1TransformSize transformSize, Span<T> destination, nuint destinationStride, Span<T> above, Span<T> left)
         where T : unmanaged
     {
@@ -904,6 +1117,19 @@ internal class Av1PredictionDecoder
         }
     }
 
+    /// <summary>
+    /// Dispatches directional prediction to the 8-bit or high-bit-depth implementation.
+    /// </summary>
+    /// <typeparam name="T">The byte or 16-bit sample type.</typeparam>
+    /// <param name="destination">The buffer that receives the predicted samples.</param>
+    /// <param name="destinationStride">The distance, in samples, between destination rows.</param>
+    /// <param name="transformSize">The dimensions of the prediction block.</param>
+    /// <param name="above">The prepared top reference samples.</param>
+    /// <param name="left">The prepared left reference samples.</param>
+    /// <param name="upsampleAbove">A value indicating whether the top edge was upsampled.</param>
+    /// <param name="upsampleLeft">A value indicating whether the left edge was upsampled.</param>
+    /// <param name="angle">The adjusted prediction angle in degrees.</param>
+    /// <param name="bitDepth">The number of bits used to represent each sample.</param>
     private static void DirectionalPredictor<T>(Span<T> destination, nuint destinationStride, Av1TransformSize transformSize, Span<T> above, Span<T> left, bool upsampleAbove, bool upsampleLeft, int angle, int bitDepth)
         where T : unmanaged
     {
@@ -934,6 +1160,17 @@ internal class Av1PredictionDecoder
         }
     }
 
+    /// <summary>
+    /// Dispatches filter intra prediction to the 8-bit or high-bit-depth implementation.
+    /// </summary>
+    /// <typeparam name="T">The byte or 16-bit sample type.</typeparam>
+    /// <param name="destination">The buffer that receives the predicted samples.</param>
+    /// <param name="destinationStride">The distance, in samples, between destination rows.</param>
+    /// <param name="transformSize">The dimensions of the prediction block.</param>
+    /// <param name="above">The prepared top reference samples.</param>
+    /// <param name="left">The prepared left reference samples.</param>
+    /// <param name="mode">The filter intra mode whose coefficient set is applied.</param>
+    /// <param name="bitDepth">The number of bits used to represent each sample.</param>
     private static void FilterIntraPredictor<T>(Span<T> destination, nuint destinationStride, Av1TransformSize transformSize, Span<T> above, Span<T> left, Av1FilterIntraMode mode, int bitDepth)
         where T : unmanaged
     {
@@ -960,18 +1197,24 @@ internal class Av1PredictionDecoder
         }
     }
 
+    /// <summary>
+    /// Inserts half-sample positions into a prepared intra-prediction edge.
+    /// </summary>
+    /// <typeparam name="T">The 8-bit or high-bit-depth sample type.</typeparam>
+    /// <param name="buffer">The edge buffer, including writable prefix storage at indices -2 and -1.</param>
+    /// <param name="count">The number of original edge samples to upsample.</param>
+    /// <param name="bitDepth">The number of bits used to clamp interpolated samples.</param>
     private static void UpsampleIntraEdge<T>(Span<T> buffer, int count, int bitDepth)
         where T : unmanaged, IBinaryInteger<T>
     {
         // TODO: Consider creating SIMD version
-
-        // interpolate half-sample positions
         DebugGuard.MustBeLessThanOrEqualTo(count, MaxUpsampleSize, nameof(count));
 
         Span<T> input = stackalloc T[MaxUpsampleSize + 3];
         T beforeBuffer = Unsafe.Subtract(ref buffer[0], 1);
 
-        // copy p[-1..(sz-1)] and extend first and last samples
+        // Duplicate both endpoints so the four-tap interpolation kernel can run at
+        // the edge without a separate boundary branch for its outer samples.
         input[0] = beforeBuffer;
         input[1] = beforeBuffer;
         for (int i = 0; i < count; i++)
@@ -981,7 +1224,6 @@ internal class Av1PredictionDecoder
 
         input[count + 2] = buffer[count - 1];
 
-        // interpolate half-sample edge positions
         Unsafe.Subtract(ref buffer[0], 2) = input[0];
         ref T output = ref buffer[0];
         for (int i = 0; i < count; i++)
@@ -996,9 +1238,15 @@ internal class Av1PredictionDecoder
     }
 
     /// <summary>
-    /// SVT: svt_aom_use_intra_edge_upsample
+    /// Determines whether AV1 intra-edge upsampling applies to a directional prediction edge.
     /// </summary>
-    private static bool UseIntraEdgeUpsample(int width, int height, int delta, bool type)
+    /// <param name="width">The edge's primary block dimension.</param>
+    /// <param name="height">The edge's secondary block dimension.</param>
+    /// <param name="delta">The prediction angle relative to the edge's cardinal direction.</param>
+    /// <param name="filterType">A value indicating whether a neighboring smooth mode selects the alternate thresholds.</param>
+    /// <returns><see langword="true"/> when the edge must be upsampled; otherwise, <see langword="false"/>.</returns>
+    /// <remarks>Corresponds to <c>svt_aom_use_intra_edge_upsample</c> in SVT-AV1.</remarks>
+    private static bool UseIntraEdgeUpsample(int width, int height, int delta, bool filterType)
     {
         int d = Math.Abs(delta);
         if (d is <= 0 or >= 40)
@@ -1007,12 +1255,17 @@ internal class Av1PredictionDecoder
         }
 
         int widthHeight = width + height;
-        return type ? (widthHeight <= 8) : (widthHeight <= 16);
+        return filterType ? (widthHeight <= 8) : (widthHeight <= 16);
     }
 
     /// <summary>
-    /// SVT: svt_av1_filter_intra_edge_c
+    /// Applies the AV1 intra-edge smoothing kernel at the requested strength.
     /// </summary>
+    /// <typeparam name="T">The 8-bit or high-bit-depth sample type.</typeparam>
+    /// <param name="buffer">A reference to the first edge sample to filter.</param>
+    /// <param name="count">The number of edge samples.</param>
+    /// <param name="strength">The AV1 filter-strength index from zero through three.</param>
+    /// <remarks>Corresponds to <c>svt_av1_filter_intra_edge_c</c> in SVT-AV1.</remarks>
     private static void FilterIntraEdge<T>(ref T buffer, int count, int strength)
         where T : unmanaged, IBinaryInteger<T>
     {
@@ -1028,6 +1281,8 @@ internal class Av1PredictionDecoder
         int filt = strength - 1;
         Span<T> edge = stackalloc T[129];
 
+        // Filtering must read the original edge throughout the convolution, so retain
+        // a scratch copy rather than feeding earlier filtered samples into later outputs.
         MemoryMarshal.CreateSpan(ref buffer, count).CopyTo(edge);
         for (int i = 1; i < count; i++)
         {
@@ -1046,8 +1301,14 @@ internal class Av1PredictionDecoder
     }
 
     /// <summary>
-    /// SVT: svt_aom_intra_edge_filter_strength
+    /// Selects the AV1 intra-edge filter strength for the block dimensions and prediction angle.
     /// </summary>
+    /// <param name="width">The edge's primary block dimension.</param>
+    /// <param name="height">The edge's secondary block dimension.</param>
+    /// <param name="delta">The prediction angle relative to the edge's cardinal direction.</param>
+    /// <param name="filterType">A value indicating whether a neighboring smooth mode selects the alternate thresholds.</param>
+    /// <returns>The filter strength from zero for no filtering through three for the strongest kernel.</returns>
+    /// <remarks>Corresponds to <c>svt_aom_intra_edge_filter_strength</c> in SVT-AV1.</remarks>
     private static int IntraEdgeFilterStrength(int width, int height, int delta, bool filterType)
     {
         int d = Math.Abs(delta);
@@ -1163,6 +1424,12 @@ internal class Av1PredictionDecoder
         return strength;
     }
 
+    /// <summary>
+    /// Smooths the shared top-left reference sample where the prepared top and left edges meet.
+    /// </summary>
+    /// <typeparam name="T">The 8-bit or high-bit-depth sample type.</typeparam>
+    /// <param name="above">The prepared top edge with writable top-left prefix storage.</param>
+    /// <param name="left">The prepared left edge with writable top-left prefix storage.</param>
     private static void FilterIntraEdgeCorner<T>(Span<T> above, Span<T> left)
         where T : unmanaged, IBinaryInteger<T>
     {
@@ -1174,10 +1441,19 @@ internal class Av1PredictionDecoder
         ref T leftPreviousRef = ref Unsafe.Subtract(ref leftRef, 1);
         int s = (int.CreateChecked(leftRef) * kernel[0]) + (int.CreateChecked(abovePreviousRef) * kernel[1]) + (int.CreateChecked(aboveRef) * kernel[2]);
         s = (s + 8) >> 4;
+
+        // Both edge spans reserve their own prefix location for the same logical corner,
+        // so keep the two scratch representations synchronized after filtering.
         abovePreviousRef = T.CreateChecked(s);
         leftPreviousRef = T.CreateChecked(s);
     }
 
+    /// <summary>
+    /// Determines the directional edge-filter threshold class from neighboring prediction modes.
+    /// </summary>
+    /// <param name="partitionInfo">The decoded partition and neighboring mode state.</param>
+    /// <param name="plane">The color plane whose neighbors are inspected.</param>
+    /// <returns><see langword="true"/> when either relevant neighbor uses a smooth mode; otherwise, <see langword="false"/>.</returns>
     private static bool GetFilterType(Av1PartitionInfo partitionInfo, Av1Plane plane)
     {
         Av1BlockModeInfo? above;
@@ -1198,6 +1474,12 @@ internal class Av1PredictionDecoder
         return aboveIsSmooth || leftIsSmooth;
     }
 
+    /// <summary>
+    /// Determines whether a block uses any AV1 smooth intra prediction mode on the requested plane.
+    /// </summary>
+    /// <param name="modeInfo">The neighboring block's decoded mode state.</param>
+    /// <param name="plane">The luma or chroma plane class whose mode is inspected.</param>
+    /// <returns><see langword="true"/> for smooth, smooth-horizontal, or smooth-vertical prediction; otherwise, <see langword="false"/>.</returns>
     private static bool IsSmooth(Av1BlockModeInfo modeInfo, Av1Plane plane)
     {
         if (plane == Av1Plane.Y)

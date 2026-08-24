@@ -79,6 +79,11 @@ public enum Heif4CharCode : uint
     Clli = 0x636C6C69U,
 
     /// <summary>
+    /// Mastering display colour volume.
+    /// </summary>
+    Mdcv = 0x6D646376U,
+
+    /// <summary>
     /// HVC configuration.
     /// </summary>
     HvcC = 0x68766343U,

@@ -54,9 +54,12 @@ internal class Av1HeifItemDecoder<TPixel> : IHeifItemDecoder<TPixel>
             }
         }
 
-        HeifContentLightLevel? obuContentLightLevel = codecConfiguration.ValidateItemData(
+        codecConfiguration.ValidateItemData(
             data,
-            item.ContentLightLevel);
+            item.ContentLightLevel,
+            item.MasteringDisplayColorVolume,
+            out HeifContentLightLevel? obuContentLightLevel,
+            out HeifMasteringDisplayColorVolume? obuMasteringDisplayColorVolume);
 
         Av1Decoder decoder = new(configuration);
         Image<TPixel> image = decoder.Decode<TPixel>(data, colorProfile, codecConfiguration);
@@ -65,6 +68,7 @@ internal class Av1HeifItemDecoder<TPixel> : IHeifItemDecoder<TPixel>
         metadata.BitDepth = codecConfiguration.BitDepth;
         metadata.IsMonochrome = codecConfiguration.IsMonochrome;
         metadata.ContentLightLevel = item.ContentLightLevel ?? obuContentLightLevel;
+        metadata.MasteringDisplayColorVolume = item.MasteringDisplayColorVolume ?? obuMasteringDisplayColorVolume;
         return image;
     }
 }

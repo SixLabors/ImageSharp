@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Buffers.Binary;
+using SixLabors.ImageSharp.ColorProfiles;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1;
@@ -36,6 +37,11 @@ internal sealed class Av1CodecConfiguration
     /// The content light-level metadata carried by the configuration OBUs, or <see langword="null"/> when absent.
     /// </summary>
     private readonly HeifContentLightLevel? configContentLightLevel;
+
+    /// <summary>
+    /// The mastering-display color volume carried by the configuration OBUs, or <see langword="null"/> when absent.
+    /// </summary>
+    private readonly HeifMasteringDisplayColorVolume? configMasteringDisplayColorVolume;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Av1CodecConfiguration"/> class from an AV1 codec-configuration
@@ -96,7 +102,8 @@ internal sealed class Av1CodecConfiguration
             out this.configSequenceHeaderOffset,
             out this.configSequenceHeaderLength,
             out this.configSequenceHeaderExtension,
-            out this.configContentLightLevel);
+            out this.configContentLightLevel,
+            out this.configMasteringDisplayColorVolume);
 
         if (sequenceHeaderCount > 1)
         {
@@ -166,13 +173,21 @@ internal sealed class Av1CodecConfiguration
     /// <param name="itemContentLightLevel">
     /// The content light-level property associated with the image item, or <see langword="null"/> when absent.
     /// </param>
-    /// <returns>
-    /// The content light-level metadata carried by the combined configuration and item OBUs, or
-    /// <see langword="null"/> when neither sequence carries it.
-    /// </returns>
-    public HeifContentLightLevel? ValidateItemData(
+    /// <param name="itemMasteringDisplayColorVolume">
+    /// The mastering-display property associated with the image item, or <see langword="null"/> when absent.
+    /// </param>
+    /// <param name="contentLightLevel">
+    /// Receives the content light-level metadata carried by the combined configuration and item OBUs.
+    /// </param>
+    /// <param name="masteringDisplayColorVolume">
+    /// Receives the mastering-display metadata carried by the combined configuration and item OBUs.
+    /// </param>
+    public void ValidateItemData(
         ReadOnlySpan<byte> itemData,
-        HeifContentLightLevel? itemContentLightLevel)
+        HeifContentLightLevel? itemContentLightLevel,
+        HeifMasteringDisplayColorVolume? itemMasteringDisplayColorVolume,
+        out HeifContentLightLevel? contentLightLevel,
+        out HeifMasteringDisplayColorVolume? masteringDisplayColorVolume)
     {
         int sequenceHeaderCount = ScanObus(
             itemData,
@@ -182,7 +197,8 @@ internal sealed class Av1CodecConfiguration
             out int itemSequenceHeaderOffset,
             out int itemSequenceHeaderLength,
             out int itemSequenceHeaderExtension,
-            out HeifContentLightLevel? itemObuContentLightLevel);
+            out HeifContentLightLevel? itemObuContentLightLevel,
+            out HeifMasteringDisplayColorVolume? itemObuMasteringDisplayColorVolume);
 
         if (sequenceHeaderCount != 1)
         {
@@ -219,6 +235,16 @@ internal sealed class Av1CodecConfiguration
             itemContentLightLevel,
             "AV1 image item");
 
+        ValidateMasteringDisplayColorVolume(
+            this.configMasteringDisplayColorVolume,
+            itemMasteringDisplayColorVolume,
+            "AV1 codec configuration");
+
+        ValidateMasteringDisplayColorVolume(
+            itemObuMasteringDisplayColorVolume,
+            itemMasteringDisplayColorVolume,
+            "AV1 image item");
+
         if (this.configContentLightLevel is not null
             && itemObuContentLightLevel is not null
             && !ContentLightLevelsMatch(this.configContentLightLevel.Value, itemObuContentLightLevel.Value))
@@ -226,9 +252,17 @@ internal sealed class Av1CodecConfiguration
             throw new InvalidImageContentException("The AV1 codec configuration and image item contain conflicting content light-level metadata.");
         }
 
+        if (this.configMasteringDisplayColorVolume is not null
+            && itemObuMasteringDisplayColorVolume is not null
+            && this.configMasteringDisplayColorVolume.Value != itemObuMasteringDisplayColorVolume.Value)
+        {
+            throw new InvalidImageContentException("The AV1 codec configuration and image item contain conflicting mastering-display metadata.");
+        }
+
         // Configuration OBUs precede the image-item OBUs in the combined AV1 stream, so an item OBU supplies the
         // effective value when both sequences repeat the same metadata type.
-        return itemObuContentLightLevel ?? this.configContentLightLevel;
+        contentLightLevel = itemObuContentLightLevel ?? this.configContentLightLevel;
+        masteringDisplayColorVolume = itemObuMasteringDisplayColorVolume ?? this.configMasteringDisplayColorVolume;
     }
 
     /// <summary>
@@ -287,6 +321,9 @@ internal sealed class Av1CodecConfiguration
     /// <param name="contentLightLevel">
     /// Receives the content light-level metadata carried by the sequence, or <see langword="null"/> when absent.
     /// </param>
+    /// <param name="masteringDisplayColorVolume">
+    /// Receives the mastering-display metadata carried by the sequence, or <see langword="null"/> when absent.
+    /// </param>
     /// <returns>The number of sequence-header OBUs in the sequence.</returns>
     private static int ScanObus(
         ReadOnlySpan<byte> data,
@@ -296,12 +333,14 @@ internal sealed class Av1CodecConfiguration
         out int sequenceHeaderOffset,
         out int sequenceHeaderLength,
         out int sequenceHeaderExtension,
-        out HeifContentLightLevel? contentLightLevel)
+        out HeifContentLightLevel? contentLightLevel,
+        out HeifMasteringDisplayColorVolume? masteringDisplayColorVolume)
     {
         sequenceHeaderOffset = -1;
         sequenceHeaderLength = 0;
         sequenceHeaderExtension = -1;
         contentLightLevel = null;
+        masteringDisplayColorVolume = null;
         int sequenceHeaderCount = 0;
         int obuIndex = 0;
         int offset = 0;
@@ -370,9 +409,11 @@ internal sealed class Av1CodecConfiguration
             }
             else if (type == ObuType.Metadata)
             {
-                HeifContentLightLevel? obuContentLightLevel = ReadContentLightLevelMetadata(
+                ReadHdrMetadata(
                     data.Slice(offset, payloadLength),
-                    sourceName);
+                    sourceName,
+                    out HeifContentLightLevel? obuContentLightLevel,
+                    out HeifMasteringDisplayColorVolume? obuMasteringDisplayColorVolume);
 
                 if (obuContentLightLevel is not null)
                 {
@@ -383,6 +424,17 @@ internal sealed class Av1CodecConfiguration
                     }
 
                     contentLightLevel = obuContentLightLevel;
+                }
+
+                if (obuMasteringDisplayColorVolume is not null)
+                {
+                    if (masteringDisplayColorVolume is not null
+                        && masteringDisplayColorVolume.Value != obuMasteringDisplayColorVolume.Value)
+                    {
+                        throw new InvalidImageContentException($"The {sourceName} contains conflicting mastering-display metadata OBUs.");
+                    }
+
+                    masteringDisplayColorVolume = obuMasteringDisplayColorVolume;
                 }
             }
 
@@ -412,32 +464,80 @@ internal sealed class Av1CodecConfiguration
     }
 
     /// <summary>
-    /// Reads content light-level data from an AV1 metadata OBU payload.
+    /// Reads still-image high-dynamic-range data from an AV1 metadata OBU payload.
     /// </summary>
     /// <param name="payload">The bounded metadata OBU payload.</param>
     /// <param name="sourceName">The source description used by invalid-content errors.</param>
-    /// <returns>
-    /// The decoded content light-level metadata, or <see langword="null"/> when the OBU carries another metadata type.
-    /// </returns>
-    private static HeifContentLightLevel? ReadContentLightLevelMetadata(
+    /// <param name="contentLightLevel">Receives decoded content light-level metadata when present.</param>
+    /// <param name="masteringDisplayColorVolume">Receives decoded mastering-display metadata when present.</param>
+    private static void ReadHdrMetadata(
         ReadOnlySpan<byte> payload,
-        string sourceName)
+        string sourceName,
+        out HeifContentLightLevel? contentLightLevel,
+        out HeifMasteringDisplayColorVolume? masteringDisplayColorVolume)
     {
+        contentLightLevel = null;
+        masteringDisplayColorVolume = null;
         int offset = 0;
         ulong metadataType = ReadLeb128(payload, ref offset, sourceName, "metadata type");
-        if (metadataType != (ulong)ObuMetadataType.HdrCll)
+        if (metadataType != (ulong)ObuMetadataType.HdrCll
+            && metadataType != (ulong)ObuMetadataType.HdrMdcv)
         {
-            return null;
+            return;
         }
 
-        const int contentLightLevelLength = 4;
-        if (payload.Length - offset <= contentLightLevelLength)
+        int metadataLength = metadataType == (ulong)ObuMetadataType.HdrCll ? 4 : 24;
+        if (payload.Length - offset <= metadataLength)
         {
-            throw new InvalidImageContentException($"The {sourceName} contains truncated content light-level metadata or no trailing bits.");
+            throw new InvalidImageContentException($"The {sourceName} contains truncated HDR metadata or no trailing bits.");
         }
 
-        ReadOnlySpan<byte> contentLightLevelData = payload.Slice(offset, contentLightLevelLength);
-        ReadOnlySpan<byte> trailingData = payload[(offset + contentLightLevelLength)..];
+        ReadOnlySpan<byte> metadataData = payload.Slice(offset, metadataLength);
+        ValidateByteAlignedMetadataTrailingBits(payload[(offset + metadataLength)..], sourceName);
+
+        if (metadataType == (ulong)ObuMetadataType.HdrCll)
+        {
+            contentLightLevel = new HeifContentLightLevel(
+                BinaryPrimitives.ReadUInt16BigEndian(metadataData),
+                BinaryPrimitives.ReadUInt16BigEndian(metadataData[2..]));
+
+            return;
+        }
+
+        const float chromaticityScale = 1F / 65536F;
+        const double maximumLuminanceScale = 1D / 256D;
+        const double minimumLuminanceScale = 1D / 16384D;
+
+        // AV1 stores the primaries in R, G, B order and uses codec-specific fixed-point units that differ from the
+        // ISOBMFF mdcv property. Decode both representations to the same observable ImageSharp color coordinates.
+        CieXyChromaticityCoordinates redPrimary = new(
+            BinaryPrimitives.ReadUInt16BigEndian(metadataData) * chromaticityScale,
+            BinaryPrimitives.ReadUInt16BigEndian(metadataData[2..]) * chromaticityScale);
+
+        CieXyChromaticityCoordinates greenPrimary = new(
+            BinaryPrimitives.ReadUInt16BigEndian(metadataData[4..]) * chromaticityScale,
+            BinaryPrimitives.ReadUInt16BigEndian(metadataData[6..]) * chromaticityScale);
+
+        CieXyChromaticityCoordinates bluePrimary = new(
+            BinaryPrimitives.ReadUInt16BigEndian(metadataData[8..]) * chromaticityScale,
+            BinaryPrimitives.ReadUInt16BigEndian(metadataData[10..]) * chromaticityScale);
+
+        masteringDisplayColorVolume = new HeifMasteringDisplayColorVolume(
+            new RgbPrimariesChromaticityCoordinates(redPrimary, greenPrimary, bluePrimary),
+            new CieXyChromaticityCoordinates(
+                BinaryPrimitives.ReadUInt16BigEndian(metadataData[12..]) * chromaticityScale,
+                BinaryPrimitives.ReadUInt16BigEndian(metadataData[14..]) * chromaticityScale),
+            BinaryPrimitives.ReadUInt32BigEndian(metadataData[16..]) * maximumLuminanceScale,
+            BinaryPrimitives.ReadUInt32BigEndian(metadataData[20..]) * minimumLuminanceScale);
+    }
+
+    /// <summary>
+    /// Validates the trailing bits of byte-aligned fixed-length AV1 metadata.
+    /// </summary>
+    /// <param name="trailingData">The metadata payload bytes following its fixed fields.</param>
+    /// <param name="sourceName">The source description used by invalid-content errors.</param>
+    private static void ValidateByteAlignedMetadataTrailingBits(ReadOnlySpan<byte> trailingData, string sourceName)
+    {
         byte lastNonzeroByte = 0;
         for (int i = trailingData.Length - 1; i >= 0; i--)
         {
@@ -448,16 +548,12 @@ internal sealed class Av1CodecConfiguration
             }
         }
 
-        // HDR CLL fields end on a byte boundary. libaom accepts zero padding after the required 0x80 trailing byte,
+        // Both fixed HDR structures end on a byte boundary. libaom accepts zero padding after the required 0x80 byte,
         // so locate the last nonzero byte rather than assuming the OBU payload ends immediately after trailing_bits().
         if (lastNonzeroByte != 0x80)
         {
-            throw new InvalidImageContentException($"The {sourceName} content light-level metadata has invalid trailing bits.");
+            throw new InvalidImageContentException($"The {sourceName} HDR metadata has invalid trailing bits.");
         }
-
-        return new HeifContentLightLevel(
-            BinaryPrimitives.ReadUInt16BigEndian(contentLightLevelData),
-            BinaryPrimitives.ReadUInt16BigEndian(contentLightLevelData[2..]));
     }
 
     /// <summary>
@@ -523,4 +619,71 @@ internal sealed class Av1CodecConfiguration
         return left.MaximumContentLightLevel == right.MaximumContentLightLevel
             && left.MaximumPictureAverageLightLevel == right.MaximumPictureAverageLightLevel;
     }
+
+    /// <summary>
+    /// Validates mastering-display metadata against the corresponding image-item property when both are present.
+    /// </summary>
+    /// <param name="obuColorVolume">The value carried by an AV1 metadata OBU.</param>
+    /// <param name="itemColorVolume">The value carried by the associated image-item property.</param>
+    /// <param name="sourceName">The OBU source description used by invalid-content errors.</param>
+    private static void ValidateMasteringDisplayColorVolume(
+        HeifMasteringDisplayColorVolume? obuColorVolume,
+        HeifMasteringDisplayColorVolume? itemColorVolume,
+        string sourceName)
+    {
+        if (obuColorVolume is not null
+            && itemColorVolume is not null
+            && !MasteringDisplayColorVolumesMatch(obuColorVolume.Value, itemColorVolume.Value))
+        {
+            throw new InvalidImageContentException($"The {sourceName} mastering-display metadata does not match the image-item property.");
+        }
+    }
+
+    /// <summary>
+    /// Determines whether AV1 and ISOBMFF mastering-display values agree within their fixed-point precision.
+    /// </summary>
+    /// <param name="obuColorVolume">The mastering-display values decoded from the AV1 representation.</param>
+    /// <param name="itemColorVolume">The mastering-display values decoded from the ISOBMFF representation.</param>
+    /// <returns><see langword="true"/> when all decoded values agree within their combined quantization error.</returns>
+    private static bool MasteringDisplayColorVolumesMatch(
+        HeifMasteringDisplayColorVolume obuColorVolume,
+        HeifMasteringDisplayColorVolume itemColorVolume)
+    {
+        const float chromaticityTolerance = ((1F / 65536F) + (1F / 50000F)) / 2F;
+        const double maximumLuminanceTolerance = ((1D / 256D) + (1D / 10000D)) / 2D;
+        const double minimumLuminanceTolerance = ((1D / 16384D) + (1D / 10000D)) / 2D;
+
+        return ChromaticitiesMatch(obuColorVolume.Primaries.R, itemColorVolume.Primaries.R, chromaticityTolerance)
+            && ChromaticitiesMatch(obuColorVolume.Primaries.G, itemColorVolume.Primaries.G, chromaticityTolerance)
+            && ChromaticitiesMatch(obuColorVolume.Primaries.B, itemColorVolume.Primaries.B, chromaticityTolerance)
+            && ChromaticitiesMatch(obuColorVolume.WhitePoint, itemColorVolume.WhitePoint, chromaticityTolerance)
+            && ValuesMatch(obuColorVolume.MaximumLuminance, itemColorVolume.MaximumLuminance, maximumLuminanceTolerance)
+            && ValuesMatch(obuColorVolume.MinimumLuminance, itemColorVolume.MinimumLuminance, minimumLuminanceTolerance);
+    }
+
+    /// <summary>
+    /// Determines whether two chromaticity-coordinate pairs agree within the supplied fixed-point tolerance.
+    /// </summary>
+    /// <param name="left">The first chromaticity-coordinate pair.</param>
+    /// <param name="right">The second chromaticity-coordinate pair.</param>
+    /// <param name="tolerance">The maximum permitted difference on either coordinate axis.</param>
+    /// <returns><see langword="true"/> when both coordinate differences are within the tolerance.</returns>
+    private static bool ChromaticitiesMatch(
+        CieXyChromaticityCoordinates left,
+        CieXyChromaticityCoordinates right,
+        float tolerance)
+    {
+        return ValuesMatch(left.X, right.X, tolerance)
+            && ValuesMatch(left.Y, right.Y, tolerance);
+    }
+
+    /// <summary>
+    /// Determines whether two decoded fixed-point values agree within the supplied tolerance.
+    /// </summary>
+    /// <param name="left">The first decoded value.</param>
+    /// <param name="right">The second decoded value.</param>
+    /// <param name="tolerance">The maximum permitted absolute difference.</param>
+    /// <returns><see langword="true"/> when the absolute difference does not exceed the tolerance.</returns>
+    private static bool ValuesMatch(double left, double right, double tolerance)
+        => Math.Abs(left - right) <= tolerance;
 }

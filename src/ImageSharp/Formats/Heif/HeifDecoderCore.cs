@@ -4,6 +4,7 @@
 using System.Buffers;
 using System.Buffers.Binary;
 using System.Text;
+using SixLabors.ImageSharp.ColorProfiles;
 using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.IO;
@@ -973,6 +974,42 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                                 BinaryPrimitives.ReadUInt16BigEndian(boxBuffer[2..]))));
 
                     break;
+                case Heif4CharCode.Mdcv:
+                    EnsureBufferRemaining(boxBuffer, 0, 24, "mastering display color volume");
+                    if (boxBuffer.Length != 24)
+                    {
+                        throw new InvalidImageContentException("The mastering display color-volume property has an invalid length.");
+                    }
+
+                    const float chromaticityScale = 1F / 50000F;
+                    const double luminanceScale = 1D / 10000D;
+
+                    // The registered mastering-display payload inherits the G, B, R primary order used by its
+                    // mastering-display source syntax. Reorder it into ImageSharp's existing RGB coordinate type.
+                    CieXyChromaticityCoordinates greenPrimary = new(
+                        BinaryPrimitives.ReadUInt16BigEndian(boxBuffer) * chromaticityScale,
+                        BinaryPrimitives.ReadUInt16BigEndian(boxBuffer[2..]) * chromaticityScale);
+
+                    CieXyChromaticityCoordinates bluePrimary = new(
+                        BinaryPrimitives.ReadUInt16BigEndian(boxBuffer[4..]) * chromaticityScale,
+                        BinaryPrimitives.ReadUInt16BigEndian(boxBuffer[6..]) * chromaticityScale);
+
+                    CieXyChromaticityCoordinates redPrimary = new(
+                        BinaryPrimitives.ReadUInt16BigEndian(boxBuffer[8..]) * chromaticityScale,
+                        BinaryPrimitives.ReadUInt16BigEndian(boxBuffer[10..]) * chromaticityScale);
+
+                    properties.Add(
+                        new KeyValuePair<Heif4CharCode, object>(
+                            Heif4CharCode.Mdcv,
+                            new HeifMasteringDisplayColorVolume(
+                                new RgbPrimariesChromaticityCoordinates(redPrimary, greenPrimary, bluePrimary),
+                                new CieXyChromaticityCoordinates(
+                                    BinaryPrimitives.ReadUInt16BigEndian(boxBuffer[12..]) * chromaticityScale,
+                                    BinaryPrimitives.ReadUInt16BigEndian(boxBuffer[14..]) * chromaticityScale),
+                                BinaryPrimitives.ReadUInt32BigEndian(boxBuffer[16..]) * luminanceScale,
+                                BinaryPrimitives.ReadUInt32BigEndian(boxBuffer[20..]) * luminanceScale)));
+
+                    break;
                 case Heif4CharCode.Av1C:
                     EnsureBufferRemaining(boxBuffer, 0, 4, "AV1 codec configuration");
                     properties.Add(
@@ -1191,6 +1228,14 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                         }
 
                         item.ContentLightLevel = (HeifContentLightLevel)prop.Value;
+                        break;
+                    case Heif4CharCode.Mdcv:
+                        if (item.MasteringDisplayColorVolume is not null)
+                        {
+                            throw new InvalidImageContentException($"Item {itemId} associates more than one mastering display color-volume property.");
+                        }
+
+                        item.MasteringDisplayColorVolume = (HeifMasteringDisplayColorVolume)prop.Value;
                         break;
                     case Heif4CharCode.Clap:
                         if (item.CleanAperture is not null)
@@ -1540,6 +1585,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                 // AV1 item decoders still parse metadata OBUs to enforce codec/container equivalence. Remove the
                 // parsed value here so the public decoder option continues to suppress encoded metadata.
                 meta.ContentLightLevel = null;
+                meta.MasteringDisplayColorVolume = null;
             }
 
             return image;
@@ -1595,6 +1641,14 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
         if (contentLightLevel is not null)
         {
             metadata.GetHeifMetadata().ContentLightLevel = contentLightLevel;
+        }
+
+        HeifMasteringDisplayColorVolume? masteringDisplayColorVolume = imageItem.MasteringDisplayColorVolume
+            ?? gridTile?.MasteringDisplayColorVolume;
+
+        if (masteringDisplayColorVolume is not null)
+        {
+            metadata.GetHeifMetadata().MasteringDisplayColorVolume = masteringDisplayColorVolume;
         }
     }
 

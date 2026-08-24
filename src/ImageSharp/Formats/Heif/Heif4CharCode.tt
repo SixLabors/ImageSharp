@@ -20,6 +20,7 @@
         "altt", "Alternative text",
         "colr", "Colour information",
         "clli", "Content light level information",
+        "mdcv", "Mastering display colour volume",
         "hvcC", "HVC configuration",
         "av1C", "AV1 configuration",
         "imir", "Image Mirror",

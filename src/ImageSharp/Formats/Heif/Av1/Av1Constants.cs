@@ -177,6 +177,8 @@ internal static class Av1Constants
     /// </summary>
     public const int QuantificationMatrixLevelCount = 1 << 4;
 
+    public const int QuantizationMatrixElementBitCount = 5;
+
     public const int AngleStep = 3;
 
     /// <summary>

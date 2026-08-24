@@ -53,15 +53,18 @@ internal class Av1InverseQuantizer
         ReadOnlySpan<short> scanIndices = scanOrder.Scan;
         int maxValue = (1 << (7 + this.sequenceHeader.ColorConfig.BitDepth.GetBitCount())) - 1;
         int minValue = -(1 << (7 + this.sequenceHeader.ColorConfig.BitDepth.GetBitCount()));
-        Av1TransformSize qmTransformSize = transformSize.GetAdjusted();
         bool usingQuantizationMatrix = this.frameHeader.QuantizationParameters.IsUsingQMatrix;
         bool lossless = this.frameHeader.LosslessArray[mode.SegmentId];
         short dequantDc = this.deQuantsDeltaQ.GetDc(mode.SegmentId, plane);
         short dequantAc = this.deQuantsDeltaQ.GetAc(mode.SegmentId, plane);
-        int qmLevel = lossless || !usingQuantizationMatrix ? Av1ScanOrderConstants.QuantizationMatrixLevelCount - 1 : this.frameHeader.QuantizationParameters.QMatrix[(int)plane];
+        int qmLevel = lossless || !usingQuantizationMatrix
+            ? Av1ScanOrderConstants.QuantizationMatrixLevelCount - 1
+            : this.frameHeader.SegmentationParameters.QMLevel[(int)plane][mode.SegmentId];
+
         ReadOnlySpan<int> iqMatrix = (transformType.ToClass() == Av1TransformClass.Class2D) ?
-            Av1InverseQuantizationLookup.GetQuantizationMatrix(qmLevel, plane, qmTransformSize)
-            : Av1InverseQuantizationLookup.GetQuantizationMatrix(Av1Constants.QuantificationMatrixLevelCount - 1, Av1Plane.Y, qmTransformSize);
+            Av1InverseQuantizationLookup.GetQuantizationMatrix(qmLevel, plane, transformSize)
+            : Av1InverseQuantizationLookup.GetQuantizationMatrix(Av1Constants.QuantificationMatrixLevelCount - 1, Av1Plane.Y, transformSize);
+
         int shift = transformSize.GetScale();
 
         int coefficientCount = level[0];
@@ -108,10 +111,10 @@ internal class Av1InverseQuantizer
     /// </summary>
     private static int GetDeQuantizedValue(short dequant, int coefficientIndex, ReadOnlySpan<int> iqMatrix)
     {
-        const int bias = 1 << (Av1ScanOrderConstants.QuantizationMatrixLevelBitCount - 1);
+        const int bias = 1 << (Av1Constants.QuantizationMatrixElementBitCount - 1);
         int deQuantifiedValue = dequant;
 
-        deQuantifiedValue = ((iqMatrix[coefficientIndex] * deQuantifiedValue) + bias) >> Av1ScanOrderConstants.QuantizationMatrixLevelBitCount;
+        deQuantifiedValue = ((iqMatrix[coefficientIndex] * deQuantifiedValue) + bias) >> Av1Constants.QuantizationMatrixElementBitCount;
         return deQuantifiedValue;
     }
 }

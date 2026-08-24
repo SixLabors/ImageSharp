@@ -8,6 +8,12 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Quantification;
 
 internal class Av1InverseQuantizationLookup
 {
+    // AV1 reuses the adjusted matrix for 64-pixel transform dimensions, while the stored tables omit those duplicate entries.
+    private static readonly byte[] TransformMatrixIndices =
+    [
+        0, 1, 2, 3, 3, 4, 5, 6, 7, 8, 9, 3, 3, 10, 11, 12, 13, 8, 9
+    ];
+
     /// <summary>
     /// Gets 16 sets of quantization matrices for chroma and luma and each TX size.
     /// Matrices for different TX sizes are in fact sub-sampled from the 32x32 and 16x16 sizes,
@@ -17,7 +23,7 @@ internal class Av1InverseQuantizationLookup
     /// Matrices for different QM levels have been rescaled in the frequency domain according
     /// to different nominal viewing distances.
     /// </summary>
-    private static int[][][][] InverseWeightTable =>
+    private static readonly int[][][][] InverseWeightTable =
     [
         [
             [
@@ -6797,7 +6803,11 @@ internal class Av1InverseQuantizationLookup
     ];
 
     public static ReadOnlySpan<int> GetQuantizationMatrix(int level, Av1Plane plane, Av1TransformSize transformSize)
+    {
+        int[][][] levelMatrices = InverseWeightTable[level];
+        int[][] planeMatrices = levelMatrices[Math.Min(1, (int)plane)];
+        int transformMatrixIndex = TransformMatrixIndices[(int)transformSize];
 
-        // Transform size must be adjusted.
-        => InverseWeightTable[level][Math.Min(1, (int)plane)][(int)transformSize];
+        return planeMatrices[transformMatrixIndex];
+    }
 }

@@ -105,7 +105,7 @@ internal class Av1PredictionDecoder
                 topNeighbor,
                 leftNeighbor,
                 stride,
-                mode,
+                Av1PredictionMode.DC,
                 blockModeInfoColumnOffset,
                 blockModeInfoRowOffset,
                 bitDepth);
@@ -253,6 +253,8 @@ internal class Av1PredictionDecoder
 
         int transformWidth = transformSize.GetWidth();
         int transformHeight = transformSize.GetHeight();
+        int transformWidthInModeInfoUnits = transformSize.Get4x4WideCount();
+        int transformHeightInModeInfoUnits = transformSize.Get4x4HighCount();
 
         bool usePalette = modeInfo.GetPaletteSize(plane) > 0;
 
@@ -282,8 +284,8 @@ internal class Av1PredictionDecoder
         // Distance between bottom edge of this pred block to frame bottom edge
         int yd = (partitionInfo.ModeBlockToBottomEdge >> (3 + subY)) +
             (partitionInfo.HeightInPixels[(int)plane] - (blockModeInfoRowOffset << Av1Constants.ModeInfoSizeLog2) - transformHeight) - ydOffset;
-        bool rightAvailable = modeInfoColumn + ((blockModeInfoColumnOffset + transformWidth) << subX) < tileInfo.ModeInfoColumnEnd;
-        bool bottomAvailable = (yd > 0) && (modeInfoRow + ((blockModeInfoRowOffset + transformHeight) << subY) < tileInfo.ModeInfoRowEnd);
+        bool rightAvailable = modeInfoColumn + ((blockModeInfoColumnOffset + transformWidthInModeInfoUnits) << subX) < tileInfo.ModeInfoColumnEnd;
+        bool bottomAvailable = (yd > 0) && (modeInfoRow + ((blockModeInfoRowOffset + transformHeightInModeInfoUnits) << subY) < tileInfo.ModeInfoRowEnd);
 
         Av1PartitionType partition = modeInfo.PartitionType;
 
@@ -964,7 +966,7 @@ internal class Av1PredictionDecoder
         // TODO: Consider creating SIMD version
 
         // interpolate half-sample positions
-        Guard.MustBeLessThanOrEqualTo(count, MaxUpsampleSize, nameof(count));
+        DebugGuard.MustBeLessThanOrEqualTo(count, MaxUpsampleSize, nameof(count));
 
         Span<T> input = stackalloc T[MaxUpsampleSize + 3];
         T beforeBuffer = Unsafe.Subtract(ref buffer[0], 1);
@@ -981,12 +983,15 @@ internal class Av1PredictionDecoder
 
         // interpolate half-sample edge positions
         Unsafe.Subtract(ref buffer[0], 2) = input[0];
+        ref T output = ref buffer[0];
         for (int i = 0; i < count; i++)
         {
             int s = -int.CreateChecked(input[i]) + (9 * int.CreateChecked(input[i + 1])) + (9 * int.CreateChecked(input[i + 2])) - int.CreateChecked(input[i + 3]);
             s = Av1Math.Clamp((s + 8) >> 4, 0, (1 << bitDepth) - 1);
-            buffer[(2 * i) - 1] = T.CreateChecked(s);
-            buffer[2 * i] = input[i + 2];
+
+            // The AOM edge buffer reserves prefix storage for the samples at indices -2 and -1.
+            Unsafe.Add(ref output, (2 * i) - 1) = T.CreateChecked(s);
+            Unsafe.Add(ref output, 2 * i) = input[i + 2];
         }
     }
 

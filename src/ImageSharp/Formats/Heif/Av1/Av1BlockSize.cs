@@ -3,10 +3,11 @@
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1;
 
+/// <summary>
+/// Identifies every luma block size defined by AV1.
+/// </summary>
 internal enum Av1BlockSize : byte
 {
-    // See sction 6.10.4 of the Av1 Specification.
-
     /// <summary>A block of samples, 4 samples wide and 4 samples high.</summary>
     Block4x4 = 0,
 
@@ -72,8 +73,24 @@ internal enum Av1BlockSize : byte
 
     /// <summary>A block of samples, 64 samples wide and 16 samples high.</summary>
     Block64x16 = 21,
+
+    /// <summary>
+    /// The number of concrete block-size values.
+    /// </summary>
     AllSizes = 22,
+
+    /// <summary>
+    /// The first extended rectangular block size following the primary size set.
+    /// </summary>
     SizeS = Block4x16,
+
+    /// <summary>
+    /// A sentinel representing an invalid block size.
+    /// </summary>
     Invalid = 255,
+
+    /// <summary>
+    /// The final value in the primary block-size set.
+    /// </summary>
     Largest = SizeS - 1,
 }

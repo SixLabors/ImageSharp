@@ -1792,7 +1792,7 @@ internal static class Av1DefaultDistributions
         ];
 
     /// <summary>
-    /// Gets the end-of-block extra-bit distributions indexed by quantizer, transform-size, plane, and token contexts.
+    /// Gets the end-of-block extra-bit distributions indexed by quantizer, transform-size, plane, and padded token contexts.
     /// </summary>
     private static Av1Distribution[][][][] EndOfBlockExtra =>
         [

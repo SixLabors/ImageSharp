@@ -3,10 +3,11 @@
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1;
 
+/// <summary>
+/// Identifies the subdivision pattern applied to an AV1 coding block.
+/// </summary>
 internal enum Av1PartitionType
 {
-    // See section 6.10.4 of Avi Spcification
-
     /// <summary>
     /// Not partitioned any further.
     /// </summary>

@@ -9,19 +9,54 @@ using SixLabors.ImageSharp.Memory;
 namespace SixLabors.ImageSharp.Formats.Heif.Av1;
 
 /// <summary>
-/// Buffer for the pixels of a single frame.
+/// Owns the padded luma and chroma sample planes for one decoded AV1 frame.
 /// </summary>
+/// <typeparam name="T">The unmanaged storage-element type used by the plane allocations.</typeparam>
 internal class Av1FrameBuffer<T> : IDisposable
     where T : unmanaged
 {
+    /// <summary>
+    /// The number of border samples reserved for intra prediction and in-loop filtering.
+    /// </summary>
     private const int DecoderPaddingValue = 72;
+
+    /// <summary>
+    /// The allocation-mask bit for the luma plane.
+    /// </summary>
     private const int PictureBufferYFlag = 1 << 0;
+
+    /// <summary>
+    /// The allocation-mask bit for the first chroma plane.
+    /// </summary>
     private const int PictureBufferCbFlag = 1 << 1;
+
+    /// <summary>
+    /// The allocation-mask bit for the second chroma plane.
+    /// </summary>
     private const int PictureBufferCrFlag = 1 << 2;
+
+    /// <summary>
+    /// The allocation mask for a monochrome frame.
+    /// </summary>
     private const int PictureBufferLumaMask = PictureBufferYFlag;
+
+    /// <summary>
+    /// The allocation mask for a frame containing all three planes.
+    /// </summary>
     private const int PictureBufferFullMask = PictureBufferYFlag | PictureBufferCbFlag | PictureBufferCrFlag;
+
+    /// <summary>
+    /// The number of <typeparamref name="T"/> elements occupied by one logical sample.
+    /// </summary>
     private readonly int storageElementsPerSample;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Av1FrameBuffer{T}"/> class.
+    /// </summary>
+    /// <param name="configuration">The configuration providing the plane allocator.</param>
+    /// <param name="sequenceHeader">The sequence header defining maximum dimensions, bit depth, and chroma layout.</param>
+    /// <param name="maxColorFormat">The maximum color format to allocate for a non-monochrome sequence.</param>
+    /// <param name="is16BitPipeline">Indicates whether reconstruction uses native 16-bit sample storage.</param>
     public Av1FrameBuffer(Configuration configuration, ObuSequenceHeader sequenceHeader, Av1ColorFormat maxColorFormat, bool is16BitPipeline)
     {
         Av1ColorFormat colorFormat = sequenceHeader.ColorConfig.IsMonochrome ? Av1ColorFormat.Yuv400 : maxColorFormat;
@@ -36,7 +71,7 @@ internal class Av1FrameBuffer<T> : IDisposable
 
         this.ColorFormat = colorFormat;
         this.Is16BitPipeline = is16BitPipeline;
-        this.BufferEnableMask = sequenceHeader.ColorConfig.IsMonochrome ? PictureBufferLumaMask : PictureBufferFullMask;
+        int bufferEnableMask = sequenceHeader.ColorConfig.IsMonochrome ? PictureBufferLumaMask : PictureBufferFullMask;
 
         int leftPadding = DecoderPaddingValue;
         int rightPadding = DecoderPaddingValue;
@@ -51,7 +86,6 @@ internal class Av1FrameBuffer<T> : IDisposable
         int heightY = this.MaxHeight + topPadding + bottomPadding;
         this.OriginX = leftPadding;
         this.OriginY = topPadding;
-        this.OriginOriginY = bottomPadding;
         int strideChroma = 0;
         int heightChroma = 0;
         switch (this.ColorFormat)
@@ -70,34 +104,28 @@ internal class Av1FrameBuffer<T> : IDisposable
                 break;
         }
 
-        this.PackedFlag = false;
-
         this.BufferY = null;
         this.BufferCb = null;
         this.BufferCr = null;
-        if ((this.BufferEnableMask & PictureBufferYFlag) != 0)
+        if ((bufferEnableMask & PictureBufferYFlag) != 0)
         {
             this.BufferY = configuration.MemoryAllocator.Allocate2D<T>(strideY * this.storageElementsPerSample, heightY);
         }
 
-        if ((this.BufferEnableMask & PictureBufferCbFlag) != 0)
+        if ((bufferEnableMask & PictureBufferCbFlag) != 0)
         {
             this.BufferCb = configuration.MemoryAllocator.Allocate2D<T>(strideChroma * this.storageElementsPerSample, heightChroma);
         }
 
-        if ((this.BufferEnableMask & PictureBufferCrFlag) != 0)
+        if ((bufferEnableMask & PictureBufferCrFlag) != 0)
         {
             this.BufferCr = configuration.MemoryAllocator.Allocate2D<T>(strideChroma * this.storageElementsPerSample, heightChroma);
         }
-
-        this.BitIncrementY = null;
-        this.BitIncrementCb = null;
-        this.BitIncrementCr = null;
-        this.BitIncrementY = null;
-        this.BitIncrementCb = null;
-        this.BitIncrementCr = null;
     }
 
+    /// <summary>
+    /// Gets the padded luma-coordinate origin of the visible frame.
+    /// </summary>
     public Point StartPosition { get; private set; }
 
     /// <summary>
@@ -115,12 +143,6 @@ internal class Av1FrameBuffer<T> : IDisposable
     /// </summary>
     public Buffer2D<T>? BufferCr { get; private set; }
 
-    public Buffer2D<byte>? BitIncrementY { get; private set; }
-
-    public Buffer2D<byte>? BitIncrementCb { get; private set; }
-
-    public Buffer2D<byte>? BitIncrementCr { get; private set; }
-
     /// <summary>
     /// Gets or sets the horizontal padding distance.
     /// </summary>
@@ -132,22 +154,17 @@ internal class Av1FrameBuffer<T> : IDisposable
     public int OriginY { get; set; }
 
     /// <summary>
-    /// Gets or sets the vertical bottom padding distance
-    /// </summary>
-    public int OriginOriginY { get; set; }
-
-    /// <summary>
-    /// Gets or sets the Luma picture width, which excludes the padding.
+    /// Gets or sets the luma picture width, excluding padding.
     /// </summary>
     public int Width { get; set; }
 
     /// <summary>
-    /// Gets or sets the Luma picture height, which excludes the padding.
+    /// Gets or sets the luma picture height, excluding padding.
     /// </summary>
     public int Height { get; set; }
 
     /// <summary>
-    /// Gets or sets the Lume picture width.
+    /// Gets or sets the maximum luma picture width.
     /// </summary>
     public int MaxWidth { get; set; }
 
@@ -167,33 +184,23 @@ internal class Av1FrameBuffer<T> : IDisposable
     public ObuColorConfig ColorConfig { get; }
 
     /// <summary>
-    /// Gets or sets the chroma subsampling.
+    /// Gets or sets the luma and chroma plane sampling layout.
     /// </summary>
     public Av1ColorFormat ColorFormat { get; set; }
 
     /// <summary>
-    /// Gets or sets the Luma picture height.
+    /// Gets or sets the maximum luma picture height.
     /// </summary>
     public int MaxHeight { get; set; }
 
-    public int LumaSize { get; }
-
-    public int ChromaSize { get; }
+    /// <summary>
+    /// Gets a value indicating whether reconstruction uses native 16-bit samples.
+    /// </summary>
+    public bool Is16BitPipeline { get; }
 
     /// <summary>
-    /// Gets or sets a value indicating whether the bytes of the buffers are packed.
+    /// Releases the owned luma and chroma plane allocations.
     /// </summary>
-    public bool PackedFlag { get; set; }
-
-    /// <summary>
-    /// Gets or sets a value indicating whether film grain parameters are present for this frame.
-    /// </summary>
-    public bool FilmGrainFlag { get; set; }
-
-    public int BufferEnableMask { get; set; }
-
-    public bool Is16BitPipeline { get; set; }
-
     public void Dispose()
     {
         this.BufferY?.Dispose();
@@ -202,20 +209,17 @@ internal class Av1FrameBuffer<T> : IDisposable
         this.BufferCb = null;
         this.BufferCr?.Dispose();
         this.BufferCr = null;
-        this.BitIncrementY?.Dispose();
-        this.BitIncrementY = null;
-        this.BitIncrementCb?.Dispose();
-        this.BitIncrementCb = null;
-        this.BitIncrementCr?.Dispose();
-        this.BitIncrementCr = null;
     }
 
     /// <summary>
-    /// Returns a <see cref="Span{T}"/> starting at 1 row before this blocks pixels.
+    /// Gets a storage-element span beginning one logical row before a block.
     /// </summary>
-    /// <remarks>
-    /// SVT: svt_aom_derive_blk_pointers
-    /// </remarks>
+    /// <param name="plane">The luma or chroma plane.</param>
+    /// <param name="locationInPixels">The block origin in plane samples.</param>
+    /// <param name="subX">The horizontal chroma subsampling shift.</param>
+    /// <param name="subY">The vertical chroma subsampling shift.</param>
+    /// <param name="stride">Receives the logical samples between adjacent rows.</param>
+    /// <returns>The span beginning one logical row before the block.</returns>
     public Span<T> DeriveBlockPointer(Av1Plane plane, Point locationInPixels, int subX, int subY, out int stride)
     {
         this.GetPlaneLayout(
@@ -233,7 +237,7 @@ internal class Av1FrameBuffer<T> : IDisposable
         int blockOffset = (((originY + locationInPixels.Y) * stride) + originX + locationInPixels.X) *
             this.storageElementsPerSample;
 
-        // Deviation from SVT, return PREVIOUS row in Block Reconstruction Buffer.
+        // Intra prediction addresses above neighbors relative to the destination span, so index zero is the previous row.
         blockOffset -= elementStride;
         Guard.MustBeGreaterThanOrEqualTo(blockOffset, 0, nameof(blockOffset));
 
@@ -241,11 +245,14 @@ internal class Av1FrameBuffer<T> : IDisposable
     }
 
     /// <summary>
-    /// Returns a 16-bit sample span starting one row before the specified block.
+    /// Gets a native 16-bit sample span beginning one logical row before a block.
     /// </summary>
-    /// <remarks>
-    /// SVT: svt_aom_derive_blk_pointers
-    /// </remarks>
+    /// <param name="plane">The luma or chroma plane.</param>
+    /// <param name="locationInPixels">The block origin in plane samples.</param>
+    /// <param name="subX">The horizontal chroma subsampling shift.</param>
+    /// <param name="subY">The vertical chroma subsampling shift.</param>
+    /// <param name="stride">Receives the logical samples between adjacent rows.</param>
+    /// <returns>The 16-bit span beginning one logical row before the block.</returns>
     public Span<short> DeriveBlockPointer16(Av1Plane plane, Point locationInPixels, int subX, int subY, out int stride)
     {
         this.GetPlaneLayout(
@@ -267,11 +274,12 @@ internal class Av1FrameBuffer<T> : IDisposable
     }
 
     /// <summary>
-    /// Returns a <see cref="Buffer2DRegion{T}"/> starting at top left pixel of the block of the specified plane.
+    /// Gets the visible sample region for one plane.
     /// </summary>
-    /// <remarks>
-    /// SVT: svt_aom_derive_blk_pointers
-    /// </remarks>
+    /// <param name="plane">The luma or chroma plane.</param>
+    /// <param name="subX">The horizontal chroma subsampling shift.</param>
+    /// <param name="subY">The vertical chroma subsampling shift.</param>
+    /// <returns>The plane region excluding decoder padding.</returns>
     public Buffer2DRegion<T> DeriveBlockPointer(Av1Plane plane, int subX, int subY)
     {
         this.GetPlaneLayout(
@@ -294,8 +302,13 @@ internal class Av1FrameBuffer<T> : IDisposable
     }
 
     /// <summary>
-    /// Returns one logical row of 16-bit samples from the specified plane.
+    /// Gets one visible row of native 16-bit samples from a plane.
     /// </summary>
+    /// <param name="plane">The luma or chroma plane.</param>
+    /// <param name="row">The zero-based visible row index.</param>
+    /// <param name="subX">The horizontal chroma subsampling shift.</param>
+    /// <param name="subY">The vertical chroma subsampling shift.</param>
+    /// <returns>The visible row without decoder padding.</returns>
     public Span<ushort> GetHighBitDepthRowSpan(Av1Plane plane, int row, int subX, int subY)
     {
         this.GetPlaneLayout(
@@ -312,6 +325,17 @@ internal class Av1FrameBuffer<T> : IDisposable
         return samples.Slice(originX, width);
     }
 
+    /// <summary>
+    /// Resolves a plane allocation and its visible padded layout.
+    /// </summary>
+    /// <param name="plane">The luma or chroma plane.</param>
+    /// <param name="subX">The horizontal chroma subsampling shift.</param>
+    /// <param name="subY">The vertical chroma subsampling shift.</param>
+    /// <param name="buffer">Receives the selected plane allocation.</param>
+    /// <param name="originX">Receives the horizontal visible origin in plane samples.</param>
+    /// <param name="originY">Receives the vertical visible origin in plane samples.</param>
+    /// <param name="width">Receives the visible plane width.</param>
+    /// <param name="height">Receives the visible plane height.</param>
     private void GetPlaneLayout(
         Av1Plane plane,
         int subX,

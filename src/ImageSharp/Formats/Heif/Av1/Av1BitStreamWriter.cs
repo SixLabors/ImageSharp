@@ -5,14 +5,40 @@ using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1;
 
+/// <summary>
+/// Writes AV1 fixed-width and variable-length syntax to reusable expanding memory.
+/// </summary>
 internal ref struct Av1BitStreamWriter
 {
+    /// <summary>
+    /// The number of bits in one output byte.
+    /// </summary>
     private const int WordSize = 8;
+
+    /// <summary>
+    /// The expanding output allocation.
+    /// </summary>
     private readonly AutoExpandingMemory<byte> memory;
+
+    /// <summary>
+    /// The current writable view over <see cref="memory"/>.
+    /// </summary>
     private Span<byte> span;
+
+    /// <summary>
+    /// The final byte index that can be written without expanding <see cref="memory"/>.
+    /// </summary>
     private int capacityTrigger;
+
+    /// <summary>
+    /// The partially assembled output byte.
+    /// </summary>
     private byte buffer = 0;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Av1BitStreamWriter"/> struct.
+    /// </summary>
+    /// <param name="memory">The reusable expanding output allocation.</param>
     public Av1BitStreamWriter(AutoExpandingMemory<byte> memory)
     {
         this.memory = memory;
@@ -20,36 +46,45 @@ internal ref struct Av1BitStreamWriter
         this.capacityTrigger = memory.Capacity - 1;
     }
 
+    /// <summary>
+    /// Gets the zero-based position of the next output bit.
+    /// </summary>
     public int BitPosition { get; private set; } = 0;
 
+    /// <summary>
+    /// Gets the current output capacity in bytes.
+    /// </summary>
     public readonly int Capacity => this.memory.Capacity;
 
+    /// <summary>
+    /// Encodes an unsigned 32-bit value using little-endian base-128 bytes.
+    /// </summary>
+    /// <param name="value">The value to encode.</param>
+    /// <param name="span">The destination receiving up to five bytes.</param>
+    /// <returns>The number of bytes written.</returns>
     public static int GetLittleEndianBytes128(uint value, Span<byte> span)
     {
-        if (value < 0x80U)
+        int length = 0;
+        do
         {
-            span[0] = (byte)value;
-            return 1;
+            byte encodedByte = (byte)(value & 0x7fU);
+            value >>= 7;
+            if (value != 0)
+            {
+                encodedByte |= 0x80;
+            }
+
+            span[length++] = encodedByte;
         }
-        else if (value < 0x8000U)
-        {
-            span[0] = (byte)((value & 0x7fU) | 0x80U);
-            span[1] = (byte)((value >> 7) & 0xff);
-            return 2;
-        }
-        else if (value < 0x800000U)
-        {
-            span[0] = (byte)((value & 0x7fU) | 0x80U);
-            span[1] = (byte)((value >> 7) & 0xff);
-            span[2] = (byte)((value >> 14) & 0xff);
-            return 3;
-        }
-        else
-        {
-            throw new NotImplementedException("No such large values yet.");
-        }
+        while (value != 0);
+
+        return length;
     }
 
+    /// <summary>
+    /// Advances the output position, emitting the current byte whenever the skip crosses a byte boundary.
+    /// </summary>
+    /// <param name="bitCount">The number of bits to skip.</param>
     public void Skip(int bitCount)
     {
         this.BitPosition += bitCount;
@@ -60,6 +95,9 @@ internal ref struct Av1BitStreamWriter
         }
     }
 
+    /// <summary>
+    /// Writes a partially assembled byte and resets the position for output-memory reuse.
+    /// </summary>
     public void Flush()
     {
         if (Av1Math.Modulus8(this.BitPosition) != 0)
@@ -71,6 +109,11 @@ internal ref struct Av1BitStreamWriter
         this.BitPosition = 0;
     }
 
+    /// <summary>
+    /// Writes an unsigned fixed-width value in most-significant-bit-first order.
+    /// </summary>
+    /// <param name="value">The value to write.</param>
+    /// <param name="bitCount">The number of low-order bits to write.</param>
     public void WriteLiteral(uint value, int bitCount)
     {
         for (int bit = bitCount - 1; bit >= 0; bit--)
@@ -79,15 +122,23 @@ internal ref struct Av1BitStreamWriter
         }
     }
 
+    /// <summary>
+    /// Writes one Boolean bit.
+    /// </summary>
+    /// <param name="value">The Boolean value.</param>
     internal void WriteBoolean(bool value)
     {
         byte boolByte = value ? (byte)1 : (byte)0;
         this.WriteBit(boolByte);
     }
 
+    /// <summary>
+    /// Writes a fixed-width signed integer in two's-complement form.
+    /// </summary>
+    /// <param name="signedValue">The signed value.</param>
+    /// <param name="n">The encoded bit width.</param>
     public void WriteSignedFromUnsigned(int signedValue, int n)
     {
-        // See section 4.10.6 of the AV1-Specification
         ulong value = (ulong)signedValue;
         if (signedValue < 0)
         {
@@ -97,15 +148,32 @@ internal ref struct Av1BitStreamWriter
         this.WriteLiteral((uint)value, n);
     }
 
+    /// <summary>
+    /// Writes an unsigned 32-bit value using little-endian base-128 bytes.
+    /// </summary>
+    /// <param name="value">The value to write.</param>
     public void WriteLittleEndianBytes128(uint value)
     {
-        int bytesWritten = GetLittleEndianBytes128(value, this.span.Slice(this.BitPosition >> 3));
+        int wordPosition = this.BitPosition >> 3;
+        const int maximumEncodedLength = 5;
+        if (this.span.Length - wordPosition < maximumEncodedLength)
+        {
+            this.memory.GetSpan(wordPosition + maximumEncodedLength);
+            this.span = this.memory.GetEntireSpan();
+            this.capacityTrigger = this.span.Length - 1;
+        }
+
+        int bytesWritten = GetLittleEndianBytes128(value, this.span[wordPosition..]);
         this.BitPosition += bytesWritten << 3;
     }
 
+    /// <summary>
+    /// Writes a value from an alphabet whose size is not a power of two.
+    /// </summary>
+    /// <param name="value">The symbol value.</param>
+    /// <param name="numberOfSymbols">The number of symbols in the alphabet.</param>
     internal void WriteNonSymmetric(uint value, uint numberOfSymbols)
     {
-        // See section 4.10.7 of the AV1-Specification
         if (numberOfSymbols <= 1)
         {
             return;
@@ -126,6 +194,10 @@ internal ref struct Av1BitStreamWriter
         }
     }
 
+    /// <summary>
+    /// Appends one bit to the partially assembled output byte.
+    /// </summary>
+    /// <param name="value">Zero or one.</param>
     private void WriteBit(byte value)
     {
         int bit = this.BitPosition & 0x07;
@@ -138,9 +210,13 @@ internal ref struct Av1BitStreamWriter
         this.BitPosition++;
     }
 
+    /// <summary>
+    /// Writes an unsigned integer with its least-significant byte first.
+    /// </summary>
+    /// <param name="value">The value to write.</param>
+    /// <param name="n">The number of bytes to write.</param>
     public void WriteLittleEndian(uint value, int n)
     {
-        // See section 4.10.4 of the AV1-Specification
         DebugGuard.IsTrue(Av1Math.Modulus8(this.BitPosition) == 0, "Writing of Little Endian value only allowed on byte alignment");
 
         uint t = value;
@@ -151,6 +227,10 @@ internal ref struct Av1BitStreamWriter
         }
     }
 
+    /// <summary>
+    /// Writes a byte-aligned entropy-coded tile payload.
+    /// </summary>
+    /// <param name="tileData">The tile payload.</param>
     internal void WriteBlob(Span<byte> tileData)
     {
         DebugGuard.IsTrue(Av1Math.Modulus8(this.BitPosition) == 0, "Writing of Tile Data only allowed on byte alignment");
@@ -166,6 +246,9 @@ internal ref struct Av1BitStreamWriter
         this.BitPosition += tileData.Length << 3;
     }
 
+    /// <summary>
+    /// Stores the current output byte, expanding the allocation when necessary.
+    /// </summary>
     private void WriteBuffer()
     {
         int wordPosition = Av1Math.DivideBy8Floor(this.BitPosition);

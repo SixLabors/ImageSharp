@@ -68,7 +68,9 @@ internal class ObuWriter
     private static void WriteObuHeaderAndSize(Stream stream, ObuType type, Span<byte> payload)
     {
         stream.WriteByte(WriteObuHeader(type));
-        Span<byte> lengthBytes = stackalloc byte[3];
+
+        // A 32-bit OBU payload length requires at most five base-128 bytes.
+        Span<byte> lengthBytes = stackalloc byte[5];
         int lengthLength = Av1BitStreamWriter.GetLittleEndianBytes128((uint)payload.Length, lengthBytes);
         stream.Write(lengthBytes, 0, lengthLength);
         stream.Write(payload);

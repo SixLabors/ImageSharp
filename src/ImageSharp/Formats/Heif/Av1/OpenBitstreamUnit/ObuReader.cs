@@ -989,7 +989,7 @@ internal class ObuReader
         }
         else
         {
-            frameHeader.PrimaryReferenceFrame = reader.ReadLiteral(Av1Constants.PimaryReferenceBits);
+            frameHeader.PrimaryReferenceFrame = reader.ReadLiteral(Av1Constants.PrimaryReferenceBits);
         }
 
         // Skipping, as no decoder info model present

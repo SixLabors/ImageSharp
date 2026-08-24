@@ -3,8 +3,14 @@
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1;
 
+/// <summary>
+/// Provides child-block geometry for AV1 partition types.
+/// </summary>
 internal static class Av1PartitionTypeExtensions
 {
+    /// <summary>
+    /// Maps each partition type and parent block size to the size of its component blocks.
+    /// </summary>
     private static readonly Av1BlockSize[][] PartitionSubSize = [
         [
         Av1BlockSize.Block4x4,
@@ -99,6 +105,12 @@ internal static class Av1PartitionTypeExtensions
         ]
     ];
 
+    /// <summary>
+    /// Gets the component block size produced by a partition operation.
+    /// </summary>
+    /// <param name="partition">The partition operation.</param>
+    /// <param name="blockSize">The parent block size.</param>
+    /// <returns>The component block size, or <see cref="Av1BlockSize.Invalid"/> when the partition is not permitted.</returns>
     public static Av1BlockSize GetBlockSubSize(this Av1PartitionType partition, Av1BlockSize blockSize)
         => PartitionSubSize[(int)partition][(int)blockSize];
 }

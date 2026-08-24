@@ -612,8 +612,9 @@ internal ref struct Av1SymbolDecoder
         int endOfBlockShift = Av1SymbolContextHelper.EndOfBlockOffsetBits[endOfBlockPoint];
         if (endOfBlockShift > 0)
         {
-            // Extra-bit distributions start with token three because the first three tokens have no extra bits.
-            int endOfBlockContext = endOfBlockPoint - 3;
+            // The local table retains placeholders for the first three tokens, unlike libaom's compact table,
+            // so the decoded token is also the distribution index.
+            int endOfBlockContext = endOfBlockPoint;
             bool bit = this.ReadEndOfBlockExtra(transformSizeContext, planeType, endOfBlockContext);
             if (bit)
             {
@@ -788,7 +789,7 @@ internal ref struct Av1SymbolDecoder
     /// </summary>
     /// <param name="transformSizeContext">The square transform-size probability context.</param>
     /// <param name="planeType">The luma or chroma plane category.</param>
-    /// <param name="endOfBlockContext">The zero-based extra-bit token context.</param>
+    /// <param name="endOfBlockContext">The token-aligned extra-bit context in the padded local table.</param>
     /// <returns>The decoded suffix bit.</returns>
     private bool ReadEndOfBlockExtra(Av1TransformSize transformSizeContext, Av1PlaneType planeType, int endOfBlockContext)
     {

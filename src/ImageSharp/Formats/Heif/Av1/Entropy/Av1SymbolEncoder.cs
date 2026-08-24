@@ -355,7 +355,10 @@ internal class Av1SymbolEncoder : IDisposable
             ref Av1SymbolWriter w = ref this.writer;
             int eobShift = eobOffsetBitCount - 1;
             int bit = Av1Math.GetBit(eobExtra, eobShift);
-            int endOfBlockContext = endOfBlockPosition - 3;
+
+            // The local table retains placeholders for the first three tokens, unlike libaom's compact table,
+            // so the encoded token is also the distribution index.
+            int endOfBlockContext = endOfBlockPosition;
             w.WriteSymbol(bit, this.endOfBlockExtra[(int)transformSizeContext][(int)componentType][endOfBlockContext]);
             for (int i = 1; i < eobOffsetBitCount; i++)
             {

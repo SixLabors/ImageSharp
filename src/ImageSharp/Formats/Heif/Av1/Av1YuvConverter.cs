@@ -10,14 +10,34 @@ using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1;
 
+/// <summary>
+/// Converts between reconstructed AV1 YUV planes and packed ImageSharp pixels.
+/// </summary>
 internal static class Av1YuvConverter
 {
+    /// <summary>
+    /// The largest value represented by an eight-bit packed RGB component.
+    /// </summary>
     private const float ByteMaximum = byte.MaxValue;
 
+    /// <summary>
+    /// Identifies the matrix operation used between encoded planes and RGB components.
+    /// </summary>
     private enum ConversionMode
     {
+        /// <summary>
+        /// A coefficient-based YCbCr matrix conversion.
+        /// </summary>
         Coefficients,
+
+        /// <summary>
+        /// Direct G, B, and R component mapping from the Y, U, and V planes.
+        /// </summary>
         Identity,
+
+        /// <summary>
+        /// The reversible-style YCgCo color transform.
+        /// </summary>
         YCgCo,
     }
 

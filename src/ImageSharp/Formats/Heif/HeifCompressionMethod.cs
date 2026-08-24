@@ -4,42 +4,42 @@
 namespace SixLabors.ImageSharp.Formats.Heif;
 
 /// <summary>
-/// Compression algorithms possible inside an HEIF (High Efficiency Image Format) based file.
+/// Identifies the compression method used by a coded image item in a HEIF file.
 /// </summary>
 public enum HeifCompressionMethod
 {
     /// <summary>
-    /// High Efficiency Video Coding
+    /// High Efficiency Video Coding (HEVC).
     /// </summary>
     Hevc,
 
     /// <summary>
-    /// Legact JPEG
+    /// Legacy JPEG coding.
     /// </summary>
     LegacyJpeg,
 
     /// <summary>
-    /// JPEG 2000
+    /// JPEG 2000 coding.
     /// </summary>
     Jpeg2000,
 
     /// <summary>
-    /// JPEG-XR
+    /// JPEG XR coding.
     /// </summary>
     JpegXR,
 
     /// <summary>
-    /// JPEG-XS
+    /// JPEG XS coding.
     /// </summary>
     JpegXS,
 
     /// <summary>
-    /// AOMedia's Video 1 coding
+    /// AOMedia Video 1 (AV1) coding.
     /// </summary>
     Av1,
 
     /// <summary>
-    /// Advanced Video Coding
+    /// Advanced Video Coding (AVC).
     /// </summary>
     Avc,
 }

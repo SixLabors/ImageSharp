@@ -41,16 +41,16 @@ internal sealed class HeifEncoderCore
     /// <param name="image">The <see cref="ImageFrame{TPixel}"/> to encode from.</param>
     /// <param name="stream">The <see cref="Stream"/> to encode the image data to.</param>
     /// <param name="cancellationToken">The token to request cancellation.</param>
-    public async void Encode<TPixel>(Image<TPixel> image, Stream stream, CancellationToken cancellationToken)
+    public void Encode<TPixel>(Image<TPixel> image, Stream stream, CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         Guard.NotNull(image, nameof(image));
         Guard.NotNull(stream, nameof(stream));
 
-        byte[] pixels = await CompressPixels(image, cancellationToken);
+        byte[] pixels = CompressPixels(image, cancellationToken);
         List<HeifItem> items = new();
         List<HeifItemLink> links = new();
-        GenerateItems(image, pixels, items, links);
+        GenerateItems(image, pixels, items);
 
         // Write out the generated header and pixels.
         this.WriteFileTypeBox(stream);
@@ -62,22 +62,33 @@ internal sealed class HeifEncoderCore
         meta.CompressionMethod = HeifCompressionMethod.LegacyJpeg;
     }
 
-    private static void GenerateItems<TPixel>(Image<TPixel> image, byte[] pixels, List<HeifItem> items, List<HeifItemLink> links)
+    /// <summary>
+    /// Builds the item declarations and relationships for the encoded image payload.
+    /// </summary>
+    /// <typeparam name="TPixel">The source pixel format.</typeparam>
+    /// <param name="image">The source image.</param>
+    /// <param name="pixels">The encoded primary-item payload.</param>
+    /// <param name="items">The destination item collection.</param>
+    private static void GenerateItems<TPixel>(Image<TPixel> image, byte[] pixels, List<HeifItem> items)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         HeifItem primaryItem = new(Heif4CharCode.Jpeg, 1u);
-        primaryItem.DataLocations.Add(new HeifLocation(HeifLocationOffsetOrigin.ItemDataOffset, 0L, 0L, pixels.LongLength));
+        primaryItem.DataLocations.Add(new HeifLocation(HeifLocationOffsetOrigin.FileOffset, 0L, 0L, pixels.LongLength));
         primaryItem.BitsPerPixel = 24;
         primaryItem.ChannelCount = 3;
         primaryItem.SetExtent(image.Size);
         items.Add(primaryItem);
 
-        // Create a fake thumbnail, to make our own Decoder happy.
-        HeifItemLink thumbnail = new(Heif4CharCode.Thmb, 1u);
-        thumbnail.DestinationIds.Add(1u);
-        links.Add(thumbnail);
+        // No item relationship is emitted until the writer has a distinct derived image,
+        // thumbnail, auxiliary image, or metadata item to reference.
     }
 
+    /// <summary>
+    /// Writes an eight-byte ISO BMFF basic box header with a placeholder size.
+    /// </summary>
+    /// <param name="buffer">The destination beginning at the box size field.</param>
+    /// <param name="type">The box four-character code.</param>
+    /// <returns>The number of header bytes written.</returns>
     private static int WriteBoxHeader(Span<byte> buffer, Heif4CharCode type)
     {
         int bytesWritten = 0;
@@ -89,6 +100,14 @@ internal sealed class HeifEncoderCore
         return bytesWritten;
     }
 
+    /// <summary>
+    /// Writes a 12-byte ISO BMFF full-box header with a placeholder size.
+    /// </summary>
+    /// <param name="buffer">The destination beginning at the box size field.</param>
+    /// <param name="type">The box four-character code.</param>
+    /// <param name="version">The full-box syntax version.</param>
+    /// <param name="flags">The 24-bit full-box flags value.</param>
+    /// <returns>The number of header bytes written.</returns>
     private static int WriteBoxHeader(Span<byte> buffer, Heif4CharCode type, byte version, uint flags)
     {
         int bytesWritten = 0;
@@ -97,7 +116,8 @@ internal sealed class HeifEncoderCore
         BinaryPrimitives.WriteUInt32BigEndian(buffer[bytesWritten..], (uint)type);
         bytesWritten += 4;
 
-        // Layout in memory is 4 bytes, 1 version byte followed by 3 flag bytes.
+        // Writing the 24-bit flags as a big-endian 32-bit value establishes the three flag bytes, after which the
+        // version overwrites the leading byte to form the full-box version-and-flags word.
         BinaryPrimitives.WriteUInt32BigEndian(buffer[bytesWritten..], flags);
         buffer[bytesWritten] = version;
         bytesWritten += 4;
@@ -105,6 +125,10 @@ internal sealed class HeifEncoderCore
         return bytesWritten;
     }
 
+    /// <summary>
+    /// Writes the major brand, minor version, and compatible brands for the current HEIF output.
+    /// </summary>
+    /// <param name="stream">The destination stream.</param>
     private void WriteFileTypeBox(Stream stream)
     {
         Span<byte> buffer = stackalloc byte[24];
@@ -122,6 +146,12 @@ internal sealed class HeifEncoderCore
         stream.Write(buffer);
     }
 
+    /// <summary>
+    /// Writes the metadata box containing item declarations, relationships, properties, and file locations.
+    /// </summary>
+    /// <param name="items">The declared image and metadata items.</param>
+    /// <param name="links">The typed relationships between items.</param>
+    /// <param name="stream">The destination stream positioned after the file-type box.</param>
     private void WriteMetadataBox(List<HeifItem> items, List<HeifItemLink> links, Stream stream)
     {
         using AutoExpandingMemory<byte> memory = new(this.configuration, 0x1000);
@@ -130,16 +160,34 @@ internal sealed class HeifEncoderCore
         bytesWritten += WriteHandlerBox(memory, bytesWritten);
         bytesWritten += WritePrimaryItemBox(memory, bytesWritten);
         bytesWritten += WriteItemInfoBox(memory, bytesWritten, items);
-        bytesWritten += WriteItemReferenceBox(memory, bytesWritten, items, links);
+        if (links.Count > 0)
+        {
+            // iref is optional and has no meaning without at least one typed item relationship.
+            bytesWritten += WriteItemReferenceBox(memory, bytesWritten, items, links);
+        }
+
         bytesWritten += WriteItemPropertiesBox(memory, bytesWritten, items);
-        bytesWritten += WriteItemDataBox(memory, bytesWritten);
-        bytesWritten += WriteItemLocationBox(memory, bytesWritten, items);
+
+        // iloc needs the absolute mdat payload position, but that position depends on the final meta length. Emit it
+        // once to establish the stable box size, calculate the following mdat position, then patch the same bytes.
+        int itemLocationOffset = bytesWritten;
+        bytesWritten += WriteItemLocationBox(memory, bytesWritten, items, 0);
+
+        // The mdat payload immediately follows the completed meta box and its own eight-byte header.
+        long mediaDataOffset = checked(stream.Position + bytesWritten + 8);
+        WriteItemLocationBox(memory, itemLocationOffset, items, mediaDataOffset);
 
         buffer = memory.GetSpan(bytesWritten);
         BinaryPrimitives.WriteUInt32BigEndian(buffer, (uint)bytesWritten);
         stream.Write(buffer);
     }
 
+    /// <summary>
+    /// Writes the picture metadata handler box.
+    /// </summary>
+    /// <param name="memory">The expanding metadata buffer.</param>
+    /// <param name="memoryOffset">The destination offset within the metadata box.</param>
+    /// <returns>The complete handler-box length.</returns>
     private static int WriteHandlerBox(AutoExpandingMemory<byte> memory, int memoryOffset)
     {
         Span<byte> buffer = memory.GetSpan(memoryOffset, 33);
@@ -157,6 +205,12 @@ internal sealed class HeifEncoderCore
         return bytesWritten;
     }
 
+    /// <summary>
+    /// Writes the identifier of the primary presentation item.
+    /// </summary>
+    /// <param name="memory">The expanding metadata buffer.</param>
+    /// <param name="memoryOffset">The destination offset within the metadata box.</param>
+    /// <returns>The complete primary-item-box length.</returns>
     private static int WritePrimaryItemBox(AutoExpandingMemory<byte> memory, int memoryOffset)
     {
         Span<byte> buffer = memory.GetSpan(memoryOffset, 14);
@@ -168,6 +222,13 @@ internal sealed class HeifEncoderCore
         return bytesWritten;
     }
 
+    /// <summary>
+    /// Writes the item-information box and one version-two entry for each item.
+    /// </summary>
+    /// <param name="memory">The expanding metadata buffer.</param>
+    /// <param name="memoryOffset">The destination offset within the metadata box.</param>
+    /// <param name="items">The items to declare.</param>
+    /// <returns>The complete item-information-box length.</returns>
     private static int WriteItemInfoBox(AutoExpandingMemory<byte> memory, int memoryOffset, List<HeifItem> items)
     {
         Span<byte> buffer = memory.GetSpan(memoryOffset, 14 + (items.Count * 21));
@@ -193,6 +254,14 @@ internal sealed class HeifEncoderCore
         return bytesWritten;
     }
 
+    /// <summary>
+    /// Writes typed item-reference child boxes using 16-bit item identifiers.
+    /// </summary>
+    /// <param name="memory">The expanding metadata buffer.</param>
+    /// <param name="memoryOffset">The destination offset within the metadata box.</param>
+    /// <param name="items">The declared items used to size the destination.</param>
+    /// <param name="links">The relationships to write.</param>
+    /// <returns>The complete item-reference-box length.</returns>
     private static int WriteItemReferenceBox(AutoExpandingMemory<byte> memory, int memoryOffset, List<HeifItem> items, List<HeifItemLink> links)
     {
         Span<byte> buffer = memory.GetSpan(memoryOffset, 12 + (links.Count * (12 + (items.Count * 2))));
@@ -218,12 +287,19 @@ internal sealed class HeifEncoderCore
         return bytesWritten;
     }
 
+    /// <summary>
+    /// Writes spatial-extent properties and their one-based item associations.
+    /// </summary>
+    /// <param name="memory">The expanding metadata buffer.</param>
+    /// <param name="memoryOffset">The destination offset within the metadata box.</param>
+    /// <param name="items">The items whose dimensions are written and associated.</param>
+    /// <returns>The complete item-properties-box length.</returns>
     private static int WriteItemPropertiesBox(AutoExpandingMemory<byte> memory, int memoryOffset, List<HeifItem> items)
     {
         Span<byte> buffer = memory.GetSpan(memoryOffset, 20);
         int bytesWritten = WriteBoxHeader(buffer, Heif4CharCode.Iprp);
 
-        // Write 'ipco' box
+        // ipco order defines the one-based property indices written later in ipma.
         int ipcoLengthOffset = bytesWritten;
         bytesWritten += WriteBoxHeader(buffer[bytesWritten..], Heif4CharCode.Ipco);
         foreach (HeifItem item in items)
@@ -236,7 +312,7 @@ internal sealed class HeifEncoderCore
         int propertyIndexSize = largePropertyIndex ? 2 : 1;
         buffer = memory.GetSpan(memoryOffset, bytesWritten + 16 + ((3 + propertyIndexSize) * items.Count));
 
-        // Write 'ipma' box
+        // ipma uses a 15-bit index only when the property table cannot fit in the compact seven-bit form.
         int ipmaLengthOffset = bytesWritten;
         bytesWritten += WriteBoxHeader(buffer[bytesWritten..], Heif4CharCode.Ipma, 0, largePropertyIndex ? 1U : 0U);
         BinaryPrimitives.WriteUInt32BigEndian(buffer[bytesWritten..], (uint)items.Count);
@@ -267,6 +343,13 @@ internal sealed class HeifEncoderCore
         return bytesWritten;
     }
 
+    /// <summary>
+    /// Writes an item's display width and height as an image-spatial-extents property.
+    /// </summary>
+    /// <param name="memory">The expanding metadata buffer.</param>
+    /// <param name="memoryOffset">The destination offset within the property container.</param>
+    /// <param name="item">The item whose extent is written.</param>
+    /// <returns>The complete image-spatial-extents-box length.</returns>
     private static int WriteSpatialExtentPropertyBox(AutoExpandingMemory<byte> memory, int memoryOffset, HeifItem item)
     {
         Span<byte> buffer = memory.GetSpan(memoryOffset, 20);
@@ -280,45 +363,58 @@ internal sealed class HeifEncoderCore
         return bytesWritten;
     }
 
-    private static int WriteItemDataBox(AutoExpandingMemory<byte> memory, int memoryOffset)
+    /// <summary>
+    /// Writes version-one file-relative locations for every ordered item extent.
+    /// </summary>
+    /// <param name="memory">The expanding metadata buffer.</param>
+    /// <param name="memoryOffset">The destination offset within the metadata box.</param>
+    /// <param name="items">The items and relative payload extents to locate.</param>
+    /// <param name="mediaDataOffset">The absolute stream offset of the media-data payload.</param>
+    /// <returns>The complete item-location-box length.</returns>
+    private static int WriteItemLocationBox(AutoExpandingMemory<byte> memory, int memoryOffset, List<HeifItem> items, long mediaDataOffset)
     {
-        Span<byte> buffer = memory.GetSpan(memoryOffset, 10);
-        int bytesWritten = WriteBoxHeader(buffer, Heif4CharCode.Idat);
-
-        BinaryPrimitives.WriteUInt32BigEndian(buffer, (uint)bytesWritten);
-        return bytesWritten;
-    }
-
-    private static int WriteItemLocationBox(AutoExpandingMemory<byte> memory, int memoryOffset, List<HeifItem> items)
-    {
-        Span<byte> buffer = memory.GetSpan(memoryOffset, 30 + (items.Count * 8));
+        int extentCount = items.Sum(item => item.DataLocations.Count);
+        Span<byte> buffer = memory.GetSpan(memoryOffset, 16 + (items.Count * 8) + (extentCount * 12));
         int bytesWritten = WriteBoxHeader(buffer, Heif4CharCode.Iloc, 1, 0);
-        buffer[bytesWritten++] = 0x44;
-        buffer[bytesWritten++] = 0;
-        BinaryPrimitives.WriteUInt16BigEndian(buffer[bytesWritten..], 1);
-        bytesWritten += 2;
-        BinaryPrimitives.WriteUInt16BigEndian(buffer[bytesWritten..], (ushort)items[0].Id);
-        bytesWritten += 2;
-        for (int i = 0; i < 4; i++)
-        {
-            buffer[bytesWritten++] = 0;
-        }
 
-        IEnumerable<HeifLocation> itemLocs = items.SelectMany(item => item.DataLocations).Where(loc => loc != null);
-        BinaryPrimitives.WriteUInt16BigEndian(buffer[bytesWritten..], (ushort)itemLocs.Count());
+        // The high and low nibbles select eight-byte offsets and four-byte lengths. Base offsets and extent indices
+        // are omitted, because every generated extent is written as one absolute file offset into mdat.
+        buffer[bytesWritten++] = 0x84;
+        buffer[bytesWritten++] = 0;
+        BinaryPrimitives.WriteUInt16BigEndian(buffer[bytesWritten..], (ushort)items.Count);
         bytesWritten += 2;
-        foreach (HeifLocation loc in itemLocs)
+        foreach (HeifItem item in items)
         {
-            BinaryPrimitives.WriteUInt32BigEndian(buffer[bytesWritten..], (uint)loc.Offset);
-            bytesWritten += 4;
-            BinaryPrimitives.WriteUInt32BigEndian(buffer[bytesWritten..], (uint)loc.Length);
-            bytesWritten += 4;
+            BinaryPrimitives.WriteUInt16BigEndian(buffer[bytesWritten..], (ushort)item.Id);
+            bytesWritten += 2;
+
+            // Version 1 stores twelve reserved bits followed by the four-bit construction method.
+            BinaryPrimitives.WriteUInt16BigEndian(buffer[bytesWritten..], (ushort)HeifLocationOffsetOrigin.FileOffset);
+            bytesWritten += 2;
+            BinaryPrimitives.WriteUInt16BigEndian(buffer[bytesWritten..], 0);
+            bytesWritten += 2;
+            BinaryPrimitives.WriteUInt16BigEndian(buffer[bytesWritten..], (ushort)item.DataLocations.Count);
+            bytesWritten += 2;
+            foreach (HeifLocation loc in item.DataLocations)
+            {
+                // Generated locations are relative to the mdat payload until the enclosing meta size is known.
+                long absoluteOffset = checked(mediaDataOffset + loc.BaseOffset + loc.Offset);
+                BinaryPrimitives.WriteUInt64BigEndian(buffer[bytesWritten..], (ulong)absoluteOffset);
+                bytesWritten += 8;
+                BinaryPrimitives.WriteUInt32BigEndian(buffer[bytesWritten..], (uint)loc.Length);
+                bytesWritten += 4;
+            }
         }
 
         BinaryPrimitives.WriteUInt32BigEndian(buffer, (uint)bytesWritten);
         return bytesWritten;
     }
 
+    /// <summary>
+    /// Writes the encoded primary-item bytes in a media-data box.
+    /// </summary>
+    /// <param name="data">The encoded item payload.</param>
+    /// <param name="stream">The destination stream.</param>
     private void WriteMediaDataBox(Span<byte> data, Stream stream)
     {
         Span<byte> buf = stackalloc byte[12];
@@ -329,7 +425,14 @@ internal sealed class HeifEncoderCore
         stream.Write(data);
     }
 
-    private static async Task<byte[]> CompressPixels<TPixel>(Image<TPixel> image, CancellationToken cancellationToken)
+    /// <summary>
+    /// Encodes the source pixels as the current legacy JPEG item payload.
+    /// </summary>
+    /// <typeparam name="TPixel">The source pixel format.</typeparam>
+    /// <param name="image">The source image.</param>
+    /// <param name="cancellationToken">The token used to cancel payload encoding.</param>
+    /// <returns>The encoded JPEG item bytes.</returns>
+    private static byte[] CompressPixels<TPixel>(Image<TPixel> image, CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         using MemoryStream stream = new();
@@ -337,7 +440,10 @@ internal sealed class HeifEncoderCore
         {
             ColorType = JpegColorType.YCbCrRatio420
         };
-        await image.SaveAsJpegAsync(stream, encoder, cancellationToken);
+
+        // ImageEncoder is a synchronous contract. Wait for the cancellable JPEG operation
+        // so HEIF encoding cannot return while its temporary item payload is still being produced.
+        image.SaveAsJpegAsync(stream, encoder, cancellationToken).GetAwaiter().GetResult();
         return stream.ToArray();
     }
 }

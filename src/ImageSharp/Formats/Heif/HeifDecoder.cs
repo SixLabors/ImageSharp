@@ -10,6 +10,9 @@ namespace SixLabors.ImageSharp.Formats.Heif;
 /// </summary>
 public sealed class HeifDecoder : ImageDecoder
 {
+    /// <summary>
+    /// Initializes a new instance of the <see cref="HeifDecoder"/> class.
+    /// </summary>
     private HeifDecoder()
     {
     }

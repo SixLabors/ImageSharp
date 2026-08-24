@@ -6,24 +6,29 @@ using SixLabors.ImageSharp.PixelFormats;
 namespace SixLabors.ImageSharp.Formats.Heif;
 
 /// <summary>
-/// Decoder for a single <see cref="HeifItem"/> into a JPEG image.
+/// Decodes a single JPEG-coded HEIF image item.
 /// </summary>
+/// <typeparam name="TPixel">The destination pixel type.</typeparam>
 internal class JpegHeifItemDecoder<TPixel> : IHeifItemDecoder<TPixel>
     where TPixel : unmanaged, IPixel<TPixel>
 {
     /// <summary>
-    /// Gets the item type this decoder decodes, which is <see cref="Heif4CharCode.Jpeg"/>.
+    /// Gets the JPEG-coded image item type.
     /// </summary>
     public Heif4CharCode Type => Heif4CharCode.Jpeg;
 
     /// <summary>
-    /// Gets the compression method this doceder uses, which is <see cref="HeifCompressionMethod.LegacyJpeg"/>.
+    /// Gets the legacy JPEG compression method.
     /// </summary>
     public HeifCompressionMethod CompressionMethod => HeifCompressionMethod.LegacyJpeg;
 
     /// <summary>
-    /// Decode the specified item as JPEG.
+    /// Decodes the encoded JPEG payload of an image item.
     /// </summary>
+    /// <param name="configuration">The configuration associated with the containing HEIF decode.</param>
+    /// <param name="item">The HEIF item whose encoded payload is being decoded.</param>
+    /// <param name="data">The encoded JPEG payload.</param>
+    /// <returns>The decoded image.</returns>
     public Image<TPixel> DecodeItemData(Configuration configuration, HeifItem item, Span<byte> data)
     {
         Image<TPixel> image = Image.Load<TPixel>(data);

@@ -8,6 +8,9 @@ namespace SixLabors.ImageSharp.Formats.Heif;
 /// </summary>
 public sealed class HeifFormat : IImageFormat<HeifMetadata>
 {
+    /// <summary>
+    /// Initializes a new instance of the <see cref="HeifFormat"/> class.
+    /// </summary>
     private HeifFormat()
     {
     }

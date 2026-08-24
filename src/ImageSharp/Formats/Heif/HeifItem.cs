@@ -4,8 +4,10 @@
 namespace SixLabors.ImageSharp.Formats.Heif;
 
 /// <summary>
-/// Provides definition for a HEIF Item.
+/// Describes a metadata or image item in a HEIF still-image container.
 /// </summary>
+/// <param name="type">The four-character item type.</param>
+/// <param name="id">The item identifier used by locations, properties, and references.</param>
 internal class HeifItem(Heif4CharCode type, uint id)
 {
     /// <summary>
@@ -92,5 +94,9 @@ internal class HeifItem(Heif4CharCode type, uint id)
         }
     }
 
+    /// <summary>
+    /// Returns the item type and identifier.
+    /// </summary>
+    /// <returns>The item type and identifier separated by a colon.</returns>
     public override string ToString() => $"{this.Type}:{this.Id}";
 }

@@ -6,6 +6,8 @@ namespace SixLabors.ImageSharp.Formats.Heif;
 /// <summary>
 /// Link between <see cref="HeifItem"/> instances within the same HEIF file.
 /// </summary>
+/// <param name="type">The four-character reference type.</param>
+/// <param name="sourceId">The identifier of the item that owns the references.</param>
 internal class HeifItemLink(Heif4CharCode type, uint sourceId)
 {
     /// <summary>

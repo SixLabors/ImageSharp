@@ -4,8 +4,12 @@
 namespace SixLabors.ImageSharp.Formats.Heif;
 
 /// <summary>
-/// Location within the file of an <see cref="HeifItem"/>.
+/// Describes one contiguous extent of an item's encoded data.
 /// </summary>
+/// <param name="origin">The origin from which the base and extent offsets are measured.</param>
+/// <param name="baseOffset">The item-location base offset.</param>
+/// <param name="offset">The extent offset relative to the base offset.</param>
+/// <param name="length">The length of the extent in bytes.</param>
 internal class HeifLocation(HeifLocationOffsetOrigin origin, long baseOffset, long offset, long length)
 {
     /// <summary>
@@ -14,25 +18,26 @@ internal class HeifLocation(HeifLocationOffsetOrigin origin, long baseOffset, lo
     public HeifLocationOffsetOrigin Origin { get; } = origin;
 
     /// <summary>
-    /// Gets the base offset of this location.
+    /// Gets the item-location base offset in bytes.
     /// </summary>
     public long BaseOffset { get; } = baseOffset;
 
     /// <summary>
-    /// Gets the offset of this location.
+    /// Gets the extent offset relative to <see cref="BaseOffset"/> in bytes.
     /// </summary>
     public long Offset { get; } = offset;
 
     /// <summary>
-    /// Gets the length of this location.
+    /// Gets the extent length in bytes.
     /// </summary>
     public long Length { get; } = length;
 
     /// <summary>
-    /// Gets the stream position of this location.
+    /// Resolves the absolute stream position of this extent.
     /// </summary>
-    /// <param name="positionOfMediaData">Stream position of the MediaData box.</param>
-    /// <param name="positionOfItem">Stream position of the previous box.</param>
+    /// <param name="positionOfMediaData">The absolute origin of the item-data payload.</param>
+    /// <param name="positionOfItem">The absolute origin of the referenced item payload.</param>
+    /// <returns>The absolute byte position of the extent in the input stream.</returns>
     public long GetStreamPosition(long positionOfMediaData, long positionOfItem) => this.Origin switch
     {
         HeifLocationOffsetOrigin.FileOffset => this.BaseOffset + this.Offset,
@@ -40,8 +45,10 @@ internal class HeifLocation(HeifLocationOffsetOrigin origin, long baseOffset, lo
         _ => positionOfItem + this.BaseOffset + this.Offset
     };
 
+    /// <inheritdoc/>
     public override int GetHashCode() => HashCode.Combine(this.Origin, this.Offset, this.Length, this.BaseOffset);
 
+    /// <inheritdoc/>
     public override bool Equals(object? obj)
     {
         if (obj is not HeifLocation other)

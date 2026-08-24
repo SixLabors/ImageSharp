@@ -6,22 +6,23 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Quantification;
 
+/// <summary>
+/// Provides the normative AV1 inverse quantization matrices for each matrix level, plane class, and transform size.
+/// </summary>
 internal class Av1InverseQuantizationLookup
 {
-    // AV1 reuses the adjusted matrix for 64-pixel transform dimensions, while the stored tables omit those duplicate entries.
+    /// <summary>
+    /// Maps each AV1 transform size to its stored matrix index; sizes with a 64-pixel dimension reuse the adjusted 32-pixel matrix.
+    /// </summary>
     private static readonly byte[] TransformMatrixIndices =
     [
         0, 1, 2, 3, 3, 4, 5, 6, 7, 8, 9, 3, 3, 10, 11, 12, 13, 8, 9
     ];
 
     /// <summary>
-    /// Gets 16 sets of quantization matrices for chroma and luma and each TX size.
-    /// Matrices for different TX sizes are in fact sub-sampled from the 32x32 and 16x16 sizes,
-    /// but explicitly defined here for convenience. Intra and inter matrix sets are the
-    /// same but changing DEFAULT_QM_INTER_OFFSET from zero allows for different matrices
-    /// for inter and intra blocks in the same frame.
-    /// Matrices for different QM levels have been rescaled in the frequency domain according
-    /// to different nominal viewing distances.
+    /// The inverse matrix weights indexed by matrix level, plane class, adjusted transform-size index, and raster coefficient.
+    /// Luma and chroma have separate matrices; U and V share the chroma set. Size-specific matrices are subsampled from the
+    /// normative 32x32 and 16x16 bases, and matrix levels represent different frequency-domain weighting strengths.
     /// </summary>
     private static readonly int[][][][] InverseWeightTable =
     [
@@ -6802,9 +6803,18 @@ internal class Av1InverseQuantizationLookup
       ]
     ];
 
+    /// <summary>
+    /// Gets the inverse quantization matrix for a matrix level, color plane, and transform size.
+    /// </summary>
+    /// <param name="level">The quantization-matrix level.</param>
+    /// <param name="plane">The color plane; U and V select the shared chroma matrix.</param>
+    /// <param name="transformSize">The transform size whose raster coefficient weights are requested.</param>
+    /// <returns>The inverse matrix weights in raster coefficient order.</returns>
     public static ReadOnlySpan<int> GetQuantizationMatrix(int level, Av1Plane plane, Av1TransformSize transformSize)
     {
         int[][][] levelMatrices = InverseWeightTable[level];
+
+        // The table stores one luma plane class and one shared chroma plane class.
         int[][] planeMatrices = levelMatrices[Math.Min(1, (int)plane)];
         int transformMatrixIndex = TransformMatrixIndices[(int)transformSize];
 

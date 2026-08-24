@@ -5,6 +5,9 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Quantification;
 
+/// <summary>
+/// Provides the normative AV1 DC and AC dequantization values for each quantizer index and supported bit depth.
+/// </summary>
 internal class Av1QuantizationLookup
 {
     // Coefficient scaling and quantization with AV1 TX are tailored to
@@ -35,6 +38,10 @@ internal class Av1QuantizationLookup
     // expects quantizers to be larger for higher-bitdepth input.  In
     // addition, the minimum allowable quantizer is 4; smaller values will
     // underflow to 0 in the actual quantization routines.
+
+    /// <summary>
+    /// The Q3 AC dequantization values for 8-bit samples, indexed by quantizer index.
+    /// </summary>
     private static readonly short[] AcQlookup8 = [
         4,    8,    9,    10,   11,   12,   13,   14,   15,   16,   17,   18,   19,   20,   21,   22,   23,   24,   25,
         26,   27,   28,   29,   30,   31,   32,   33,   34,   35,   36,   37,   38,   39,   40,   41,   42,   43,   44,
@@ -52,6 +59,9 @@ internal class Av1QuantizationLookup
         1567, 1597, 1628, 1660, 1692, 1725, 1759, 1793, 1828,
     ];
 
+    /// <summary>
+    /// The Q3 AC dequantization values for 10-bit samples, indexed by quantizer index.
+    /// </summary>
     private static readonly short[] AcQlookup10 = [
         4,    9,    11,   13,   16,   18,   21,   24,   27,   30,   33,   37,   40,   44,   48,   51,   55,   59,   63,
         67,   71,   75,   79,   83,   88,   92,   96,   100,  105,  109,  114,  118,  122,  127,  131,  136,  140,  145,
@@ -69,6 +79,9 @@ internal class Av1QuantizationLookup
         6268, 6388, 6512, 6640, 6768, 6900, 7036, 7172, 7312,
     ];
 
+    /// <summary>
+    /// The Q3 AC dequantization values for 12-bit samples, indexed by quantizer index.
+    /// </summary>
     private static readonly short[] AcQlookup12 = [
     4,     13,    19,    27,    35,    44,    54,    64,    75,    87,    99,    112,   126,   139,   154,   168,
     183,   199,   214,   230,   247,   263,   280,   297,   314,   331,   349,   366,   384,   402,   420,   438,
@@ -88,6 +101,9 @@ internal class Av1QuantizationLookup
     21902, 22334, 22766, 23214, 23662, 24126, 24590, 25070, 25551, 26047, 26559, 27071, 27599, 28143, 28687, 29247,
     ];
 
+    /// <summary>
+    /// The Q3 DC dequantization values for 8-bit samples, indexed by quantizer index.
+    /// </summary>
     private static readonly short[] DcQlookup8 = [
     4,   8,   8,   9,   10,  11,  12,  12,  13,   14,   15,   16,   17,   18,   19,   19,   20,  21,  22,  23,
     24,  25,  26,  26,  27,  28,  29,  30,  31,   32,   32,   33,   34,   35,   36,   37,   38,  38,  39,  40,
@@ -104,6 +120,9 @@ internal class Av1QuantizationLookup
     796, 819, 843, 869, 896, 925, 955, 988, 1022, 1058, 1098, 1139, 1184, 1232, 1282, 1336,
     ];
 
+    /// <summary>
+    /// The Q3 DC dequantization values for 10-bit samples, indexed by quantizer index.
+    /// </summary>
     private static readonly short[] DcQlookup10 = [
     4,    9,    10,   13,   15,   17,   20,   22,   25,   28,   31,   34,   37,   40,   43,   47,   50,   53,   57,
     60,   64,   68,   71,   75,   78,   82,   86,   90,   93,   97,   101,  105,  109,  113,  116,  120,  124,  128,
@@ -121,6 +140,9 @@ internal class Av1QuantizationLookup
     3953, 4089, 4236, 4394, 4559, 4737, 4929, 5130, 5347,
     ];
 
+    /// <summary>
+    /// The Q3 DC dequantization values for 12-bit samples, indexed by quantizer index.
+    /// </summary>
     private static readonly short[] DcQlookup12 = [
         4,     12,    18,    25,    33,    41,    50,    60,    70,    80,    91,    103,   115,   127,   140,   153,
         166,   180,   194,   208,   222,   237,   251,   266,   281,   296,   312,   327,   343,   358,   374,   390,
@@ -140,8 +162,16 @@ internal class Av1QuantizationLookup
         12750, 13118, 13501, 13913, 14343, 14807, 15290, 15812, 16356, 16943, 17575, 18237, 18949, 19718, 20521, 21387,
     ];
 
+    /// <summary>
+    /// Gets the DC dequantization value after applying a plane delta to the frame quantizer index.
+    /// </summary>
+    /// <param name="qIndex">The frame or segment quantizer index.</param>
+    /// <param name="dcDeltaQ">The signed DC quantizer adjustment for the selected plane.</param>
+    /// <param name="bitDepth">The coded sample bit depth.</param>
+    /// <returns>The Q3 DC dequantization value.</returns>
     public static short GetDcQuant(int qIndex, int dcDeltaQ, Av1BitDepth bitDepth)
     {
+        // Plane deltas may move beyond the signaled 8-bit quantizer domain, where AV1 requires endpoint clamping.
         int qClamped = Av1Math.Clamp(qIndex + dcDeltaQ, 0, Av1Constants.MaxQ);
         switch (bitDepth)
         {
@@ -157,8 +187,16 @@ internal class Av1QuantizationLookup
         }
     }
 
+    /// <summary>
+    /// Gets the AC dequantization value after applying a plane delta to the frame quantizer index.
+    /// </summary>
+    /// <param name="qIndex">The frame or segment quantizer index.</param>
+    /// <param name="dcDeltaQ">The signed AC quantizer adjustment for the selected plane.</param>
+    /// <param name="bitDepth">The coded sample bit depth.</param>
+    /// <returns>The Q3 AC dequantization value.</returns>
     public static short GetAcQuant(int qIndex, int dcDeltaQ, Av1BitDepth bitDepth)
     {
+        // Plane deltas may move beyond the signaled 8-bit quantizer domain, where AV1 requires endpoint clamping.
         int qClamped = Av1Math.Clamp(qIndex + dcDeltaQ, 0, Av1Constants.MaxQ);
         switch (bitDepth)
         {
@@ -174,6 +212,13 @@ internal class Av1QuantizationLookup
         }
     }
 
+    /// <summary>
+    /// Gets the quantizer index for a segment, including its alternative-quantizer feature when active.
+    /// </summary>
+    /// <param name="segmentationParameters">The frame segmentation configuration.</param>
+    /// <param name="segmentId">The zero-based AV1 segment identifier.</param>
+    /// <param name="baseQIndex">The frame's base quantizer index.</param>
+    /// <returns>The segment quantizer index clamped to the AV1 quantizer domain.</returns>
     public static int GetQIndex(ObuSegmentationParameters segmentationParameters, int segmentId, int baseQIndex)
     {
         if (segmentationParameters.IsFeatureActive(segmentId, ObuSegmentationLevelFeature.AlternativeQuantizer))

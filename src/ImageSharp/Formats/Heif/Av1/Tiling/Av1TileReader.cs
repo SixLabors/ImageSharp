@@ -1389,17 +1389,17 @@ internal class Av1TileReader : IAv1TileReader
         int rowIndex = partitionInfo.RowIndex;
         if (partitionInfo.AvailableAbove && partitionInfo.AvailableLeft)
         {
-            prevUL = Av1SymbolContextHelper.GetSegmentId(partitionInfo, this.FrameHeader, this.segmentIds, rowIndex - 1, columnIndex - 1);
+            prevUL = Av1SymbolContextHelper.GetSegmentId(this.segmentIds, rowIndex - 1, columnIndex - 1);
         }
 
         if (partitionInfo.AvailableAbove)
         {
-            prevU = Av1SymbolContextHelper.GetSegmentId(partitionInfo, this.FrameHeader, this.segmentIds, rowIndex - 1, columnIndex);
+            prevU = Av1SymbolContextHelper.GetSegmentId(this.segmentIds, rowIndex - 1, columnIndex);
         }
 
         if (partitionInfo.AvailableLeft)
         {
-            prevU = Av1SymbolContextHelper.GetSegmentId(partitionInfo, this.FrameHeader, this.segmentIds, rowIndex, columnIndex - 1);
+            prevL = Av1SymbolContextHelper.GetSegmentId(this.segmentIds, rowIndex, columnIndex - 1);
         }
 
         if (prevU == -1)

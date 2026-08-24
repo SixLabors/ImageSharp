@@ -1,15 +1,20 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 
+/// <summary>
+/// Derives AV1 entropy contexts and syntax mappings shared by symbol readers and writers.
+/// </summary>
 internal static class Av1SymbolContextHelper
 {
+    /// <summary>
+    /// Maps each transform set and transform type to its coded symbol index.
+    /// </summary>
     public static readonly int[][] ExtendedTransformIndices = [
         [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], // DCT only
         [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], // Inter set 3
@@ -19,11 +24,13 @@ internal static class Av1SymbolContextHelper
         [7, 8, 9, 12, 10, 11, 13, 14, 15, 0, 1, 2, 3, 4, 5, 6], // All 16, inter set 1
     ];
 
-    // Maps tx set types to the distribution indices. INTRA values only
+    /// <summary>
+    /// Maps intra transform-set types to their transform-type distribution indices.
+    /// </summary>
     private static readonly int[] ExtendedTransformSetToIndex = [0, -1, 2, 1, -1, -1];
 
     /// <summary>
-    /// Section 5.11.48: Transform type syntax
+    /// Maps a coded transform-type symbol back to its transform type for each intra transform set.
     /// </summary>
     public static readonly Av1TransformType[][] ExtendedTransformInverse = [
         [Av1TransformType.DctDct], // DCT only
@@ -34,8 +41,19 @@ internal static class Av1SymbolContextHelper
         [], // All 16, inter set 1
     ];
 
+    /// <summary>
+    /// Defines the number of extra offset bits associated with each end-of-block token.
+    /// </summary>
     public static readonly int[] EndOfBlockOffsetBits = [0, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+
+    /// <summary>
+    /// Defines the first coefficient position represented by each end-of-block token.
+    /// </summary>
     public static readonly int[] EndOfBlockGroupStart = [0, 1, 2, 3, 5, 9, 17, 33, 65, 129, 257, 513];
+
+    /// <summary>
+    /// Maps end-of-block positions below 33 directly to their token.
+    /// </summary>
     private static readonly byte[] EndOfBlockToPositionSmall = [
         0, 1, 2, // 0-2
         3, 3, // 3-4
@@ -44,6 +62,9 @@ internal static class Av1SymbolContextHelper
         6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6 // 17-32
     ];
 
+    /// <summary>
+    /// Maps groups of 32 larger end-of-block positions to their token.
+    /// </summary>
     private static readonly byte[] EndOfBlockToPositionLarge = [
         6, // place holder
         7, // 33-64
@@ -64,9 +85,20 @@ internal static class Av1SymbolContextHelper
         11 // 513-
     ];
 
+    /// <summary>
+    /// Reduces a rectangular transform size to the square context used by transform-size distributions.
+    /// </summary>
+    /// <param name="originalSize">The coded transform size.</param>
+    /// <returns>The square transform-size context.</returns>
     internal static Av1TransformSize GetTransformSizeContext(Av1TransformSize originalSize)
         => (Av1TransformSize)(((int)originalSize.GetSquareSize() + (int)originalSize.GetSquareUpSize() + 1) >> 1);
 
+    /// <summary>
+    /// Reconstructs an end-of-block coefficient position from its token and extra offset.
+    /// </summary>
+    /// <param name="endOfBlockPoint">The decoded end-of-block token.</param>
+    /// <param name="endOfBlockExtra">The decoded offset within the token group.</param>
+    /// <returns>The one-based end-of-block coefficient position.</returns>
     internal static int RecordEndOfBlockPosition(int endOfBlockPoint, int endOfBlockExtra)
     {
         int endOfBlock = EndOfBlockGroupStart[endOfBlockPoint];
@@ -79,8 +111,11 @@ internal static class Av1SymbolContextHelper
     }
 
     /// <summary>
-    /// SVT: get_lower_levels_ctx_eob
+    /// Derives the lower-level context for the final nonzero coefficient.
     /// </summary>
+    /// <param name="levels">The padded coefficient-level buffer.</param>
+    /// <param name="position">The coefficient position in raster order.</param>
+    /// <returns>The end-of-block lower-level context.</returns>
     internal static int GetLowerLevelContextEndOfBlock(Av1LevelBuffer levels, Point position)
     {
         if (position.X == 0 && position.Y == 0)
@@ -104,8 +139,12 @@ internal static class Av1SymbolContextHelper
     }
 
     /// <summary>
-    /// SVT: get_lower_levels_ctx_2d
+    /// Derives a two-dimensional lower-level context from five forward coefficient neighbors.
     /// </summary>
+    /// <param name="levelBuffer">The padded coefficient-level buffer.</param>
+    /// <param name="position">The coefficient position in raster order.</param>
+    /// <param name="transformSize">The transform size selecting the positional context offset.</param>
+    /// <returns>The lower-level context.</returns>
     internal static int GetLowerLevelsContext2d(Av1LevelBuffer levelBuffer, Point position, Av1TransformSize transformSize)
     {
         DebugGuard.MustBeGreaterThan(position.X + position.Y, 0, nameof(position));
@@ -128,6 +167,9 @@ internal static class Av1SymbolContextHelper
     /// on the fact that {0, 1}, {1, 0}, {1, 1}, {0, 2} and {2, 0} will all be 0 in
     /// the end of block case.
     /// </summary>
+    /// <param name="pos">The final nonzero coefficient position.</param>
+    /// <param name="transformClass">The transform direction class.</param>
+    /// <returns>The base-range context.</returns>
     internal static int GetBaseRangeContextEndOfBlock(Point pos, Av1TransformClass transformClass)
     {
         if (pos.X == 0 && pos.Y == 0)
@@ -146,9 +188,13 @@ internal static class Av1SymbolContextHelper
     }
 
     /// <summary>
-    /// SVT: get_br_ctx
+    /// Derives a base-range context from the transform-class-specific forward neighbors.
     /// </summary>
     /// <remarks>Spec section 8.2.3, under 'coeff_br'.</remarks>
+    /// <param name="levels">The padded coefficient-level buffer.</param>
+    /// <param name="position">The coefficient position in raster order.</param>
+    /// <param name="transformClass">The transform direction class.</param>
+    /// <returns>The base-range context.</returns>
     internal static int GetBaseRangeContext(Av1LevelBuffer levels, Point position, Av1TransformClass transformClass)
     {
         Span<byte> row0 = levels.GetRow(position.Y);
@@ -207,17 +253,19 @@ internal static class Av1SymbolContextHelper
     }
 
     /// <summary>
-    /// SVT: get_br_ctx_2d
+    /// Derives the two-dimensional base-range context from right, below, and below-right levels.
     /// </summary>
+    /// <param name="levels">The padded coefficient-level buffer.</param>
+    /// <param name="position">The coefficient position in raster order.</param>
+    /// <returns>The two-dimensional base-range context.</returns>
     internal static int GetBaseRangeContext2d(Av1LevelBuffer levels, Point position)
     {
         DebugGuard.MustBeGreaterThan(position.X + position.Y, 0, nameof(position));
         Span<byte> row0 = levels.GetRow(position.Y);
         Span<byte> row1 = levels.GetRow(position.Y + 1);
 
-        // No need to clip quantized values to COEFF_BASE_RANGE + NUM_BASE_LEVELS
-        // + 1, because we clip the overall output to 6 and the unclipped
-        // quantized values will always result in an output of greater than 6.
+        // The final magnitude context is clipped to six, so clipping every source level to the AV1 base-range limit
+        // first cannot change the result.
         int mag =
             row0[position.X + 1] + // {0, 1}
             row1[position.X] + //     {1, 0}
@@ -231,6 +279,14 @@ internal static class Av1SymbolContextHelper
         return mag + 14;
     }
 
+    /// <summary>
+    /// Derives a lower-level context from the transform-class-specific nonzero-map magnitude.
+    /// </summary>
+    /// <param name="levels">The padded coefficient-level buffer.</param>
+    /// <param name="position">The coefficient position in raster order.</param>
+    /// <param name="transformSize">The coded transform size.</param>
+    /// <param name="transformClass">The transform direction class.</param>
+    /// <returns>The lower-level coefficient context.</returns>
     internal static int GetLowerLevelsContext(Av1LevelBuffer levels, Point position, Av1TransformSize transformSize, Av1TransformClass transformClass)
     {
         int stats = Av1NzMap.GetNzMagnitude(levels, position, transformClass);
@@ -238,8 +294,11 @@ internal static class Av1SymbolContextHelper
     }
 
     /// <summary>
-    /// SVT: get_ext_tx_set_type
+    /// Selects the intra transform set permitted for a transform size and reduced-set flag.
     /// </summary>
+    /// <param name="transformSize">The coded transform size.</param>
+    /// <param name="useReducedSet">Indicates whether the frame restricts transform choices.</param>
+    /// <returns>The permitted transform set.</returns>
     internal static Av1TransformSetType GetExtendedTransformSetType(Av1TransformSize transformSize, bool useReducedSet)
     {
         Av1TransformSize squareUpSize = transformSize.GetSquareUpSize();
@@ -258,6 +317,12 @@ internal static class Av1SymbolContextHelper
         return squareSize == Av1TransformSize.Size16x16 ? Av1TransformSetType.IntraSet2 : Av1TransformSetType.IntraSet1;
     }
 
+    /// <summary>
+    /// Maps an intra prediction mode to its default transform type.
+    /// </summary>
+    /// <param name="modeInfo">The block prediction modes.</param>
+    /// <param name="planeType">The luma or chroma plane category.</param>
+    /// <returns>The transform type associated with the selected prediction mode.</returns>
     internal static Av1TransformType ConvertIntraModeToTransformType(Av1BlockModeInfo modeInfo, Av1PlaneType planeType)
     {
         Av1PredictionMode mode = (planeType == Av1PlaneType.Y) ? modeInfo.YMode : modeInfo.UvMode;
@@ -270,8 +335,14 @@ internal static class Av1SymbolContextHelper
     }
 
     /// <summary>
-    /// SVT: get_nz_map_ctx
+    /// Derives the nonzero-map context for one coefficient.
     /// </summary>
+    /// <param name="levels">The padded coefficient-level buffer.</param>
+    /// <param name="position">The coefficient position in raster order.</param>
+    /// <param name="isEndOfBlock">Indicates that this is the final nonzero coefficient.</param>
+    /// <param name="transformSize">The coded transform size.</param>
+    /// <param name="transformClass">The transform direction class.</param>
+    /// <returns>The nonzero-map context.</returns>
     internal static sbyte GetNzMapContext(
         Av1LevelBuffer levels,
         Point position,
@@ -289,8 +360,14 @@ internal static class Av1SymbolContextHelper
     }
 
     /// <summary>
-    /// SVT: svt_av1_get_nz_map_contexts_c
+    /// Populates nonzero-map contexts for every coefficient preceding the end-of-block position.
     /// </summary>
+    /// <param name="levels">The padded coefficient-level buffer.</param>
+    /// <param name="scan">The coefficient scan order.</param>
+    /// <param name="eob">The one-based end-of-block position.</param>
+    /// <param name="transformSize">The coded transform size.</param>
+    /// <param name="transformClass">The transform direction class.</param>
+    /// <param name="coefficientContexts">The raster-indexed destination contexts.</param>
     internal static void GetNzMapContexts(
         Av1LevelBuffer levels,
         ReadOnlySpan<short> scan,
@@ -308,18 +385,24 @@ internal static class Av1SymbolContextHelper
     }
 
     /// <summary>
-    /// SVT: get_ext_tx_types
+    /// Gets the number of transform types in a transform set.
     /// </summary>
+    /// <param name="setType">The transform set.</param>
+    /// <returns>The number of permitted transform types.</returns>
     internal static int GetExtendedTransformTypeCount(Av1TransformSetType setType) => ExtendedTransformInverse[(int)setType].Length;
 
     /// <summary>
-    /// SVT: get_ext_tx_set
+    /// Gets the entropy-distribution index for an intra transform set.
     /// </summary>
+    /// <param name="setType">The transform set.</param>
+    /// <returns>The distribution index, or <c>-1</c> for an inter-only set.</returns>
     internal static int GetExtendedTransformSet(Av1TransformSetType setType) => ExtendedTransformSetToIndex[(int)setType];
 
     /// <summary>
-    /// SVT: set_dc_sign
+    /// Packs the sign of the DC coefficient into a cumulative-level context value.
     /// </summary>
+    /// <param name="culLevel">The cumulative-level context to update.</param>
+    /// <param name="dcValue">The signed DC coefficient.</param>
     internal static void SetDcSign(ref int culLevel, int dcValue)
     {
         if (dcValue < 0)
@@ -333,8 +416,11 @@ internal static class Av1SymbolContextHelper
     }
 
     /// <summary>
-    /// SVT: get_eob_pos_token
+    /// Converts a one-based end-of-block position to its token and group offset.
     /// </summary>
+    /// <param name="endOfBlock">The one-based end-of-block position.</param>
+    /// <param name="extra">Receives the offset within the selected token group.</param>
+    /// <returns>The end-of-block token.</returns>
     internal static short GetEndOfBlockPosition(ushort endOfBlock, out int extra)
     {
         short t;
@@ -352,50 +438,53 @@ internal static class Av1SymbolContextHelper
         return t;
     }
 
-    public static int GetSegmentId(Av1PartitionInfo partitionInfo, ObuFrameHeader frameHeader, int[][] segmentIds, int rowIndex, int columnIndex)
+    /// <summary>
+    /// Gets the decoded segment identifier at one spatial-neighbor position.
+    /// </summary>
+    /// <param name="segmentIds">The row-major decoded segment map.</param>
+    /// <param name="rowIndex">The mode-info row.</param>
+    /// <param name="columnIndex">The mode-info column.</param>
+    /// <returns>The segment identifier stored at the requested position.</returns>
+    public static int GetSegmentId(int[][] segmentIds, int rowIndex, int columnIndex)
+        => segmentIds[rowIndex][columnIndex];
+
+    /// <summary>
+    /// Gets the minimum encoded segment identifier across a block's clipped mode-info coverage.
+    /// </summary>
+    /// <param name="encoderCommon">The encoder frame geometry.</param>
+    /// <param name="segmentIds">The row-major encoder segment map.</param>
+    /// <param name="blockSize">The block size.</param>
+    /// <param name="modeInfoPosition">The starting position in mode-info units.</param>
+    /// <returns>The minimum segment identifier in the covered region.</returns>
+    public static int GetSegmentId(Av1EncoderCommon encoderCommon, ReadOnlySpan<byte> segmentIds, Av1BlockSize blockSize, Point modeInfoPosition)
     {
-        int modeInfoOffset = (rowIndex * frameHeader.ModeInfoColumnCount) + columnIndex;
-        int bw4 = partitionInfo.ModeInfo.BlockSize.Get4x4WideCount();
-        int bh4 = partitionInfo.ModeInfo.BlockSize.Get4x4HighCount();
-        int xMin = Math.Min(frameHeader.ModeInfoColumnCount - columnIndex, bw4);
-        int yMin = Math.Min(frameHeader.ModeInfoRowCount - rowIndex, bh4);
-        int segmentId = Av1Constants.MaxSegmentCount - 1;
-        for (int y = 0; y < yMin; y++)
+        int modeInfoOffset = (modeInfoPosition.Y * encoderCommon.ModeInfoColumnCount) + modeInfoPosition.X;
+        int blockWidth = blockSize.Get4x4WideCount();
+        int blockHeight = blockSize.Get4x4HighCount();
+        int columnCount = Math.Min(encoderCommon.ModeInfoColumnCount - modeInfoPosition.X, blockWidth);
+        int rowCount = Math.Min(encoderCommon.ModeInfoRowCount - modeInfoPosition.Y, blockHeight);
+        int segmentId = Av1Constants.MaxSegmentCount;
+
+        for (int y = 0; y < rowCount; ++y)
         {
-            for (int x = 0; x < xMin; x++)
+            int offset = modeInfoOffset + (y * encoderCommon.ModeInfoColumnCount);
+            for (int x = 0; x < columnCount; ++x)
             {
-                segmentId = Math.Min(segmentId, segmentIds[y][x]);
+                segmentId = Math.Min(segmentId, segmentIds[offset + x]);
             }
         }
 
+        Guard.IsTrue(segmentId is >= 0 and < Av1Constants.MaxSegmentCount, nameof(segmentId), "Segment ID needs to be in proper range.");
         return segmentId;
     }
 
     /// <summary>
-    /// SVT: svt_aom_get_segment_id
+    /// Reconstructs a segment identifier coded as an alternating distance from its spatial predictor.
     /// </summary>
-    public static int GetSegmentId(Av1EncoderCommon cm, ReadOnlySpan<byte> segment_ids, Av1BlockSize bsize, Point modeInfoPosition)
-    {
-        int mi_offset = (modeInfoPosition.Y * cm.ModeInfoColumnCount) + modeInfoPosition.X;
-        int bw = bsize.GetWidth();
-        int bh = bsize.GetHeight();
-        int xmis = Math.Min(cm.ModeInfoColumnCount - modeInfoPosition.X, bw);
-        int ymis = Math.Min(cm.ModeInfoRowCount - modeInfoPosition.Y, bh);
-        int segment_id = Av1Constants.MaxSegmentCount;
-
-        for (int y = 0; y < ymis; ++y)
-        {
-            int offset = mi_offset + (y * cm.ModeInfoColumnCount);
-            for (int x = 0; x < xmis; ++x)
-            {
-                segment_id = Math.Min(segment_id, segment_ids[offset + x]);
-            }
-        }
-
-        Guard.IsTrue(segment_id is >= 0 and < Av1Constants.MaxSegmentCount, nameof(segment_id), "Segment ID needs to be in proper range.");
-        return segment_id;
-    }
-
+    /// <param name="diff">The coded nonnegative distance symbol.</param>
+    /// <param name="reference">The predicted segment identifier.</param>
+    /// <param name="max">The exclusive upper bound of the segment identifier range.</param>
+    /// <returns>The reconstructed segment identifier.</returns>
     public static int NegativeDeinterleave(int diff, int reference, int max)
     {
         if (reference == 0)

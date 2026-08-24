@@ -1540,17 +1540,17 @@ internal partial class Av1TileWriter
 
         if (up_available && left_available)
         {
-            prev_ul = Av1SymbolContextHelper.GetSegmentId(cm, segmentation_map, Av1BlockSize.Block4x4, new Point(mi_row - 1, mi_col - 1));
+            prev_ul = Av1SymbolContextHelper.GetSegmentId(cm, segmentation_map, Av1BlockSize.Block4x4, new Point(mi_col - 1, mi_row - 1));
         }
 
         if (up_available)
         {
-            prev_u = Av1SymbolContextHelper.GetSegmentId(cm, segmentation_map, Av1BlockSize.Block4x4, new Point(mi_row - 1, mi_col - 0));
+            prev_u = Av1SymbolContextHelper.GetSegmentId(cm, segmentation_map, Av1BlockSize.Block4x4, new Point(mi_col, mi_row - 1));
         }
 
         if (left_available)
         {
-            prev_l = Av1SymbolContextHelper.GetSegmentId(cm, segmentation_map, Av1BlockSize.Block4x4, new Point(mi_row - 0, mi_col - 1));
+            prev_l = Av1SymbolContextHelper.GetSegmentId(cm, segmentation_map, Av1BlockSize.Block4x4, new Point(mi_col - 1, mi_row));
         }
 
         // The entropy context records whether zero, two, or all three neighboring IDs agree.

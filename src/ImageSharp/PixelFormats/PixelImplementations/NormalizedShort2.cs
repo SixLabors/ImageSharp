@@ -7,15 +7,19 @@ using System.Runtime.CompilerServices;
 namespace SixLabors.ImageSharp.PixelFormats;
 
 /// <summary>
-/// Packed pixel type containing two 16-bit signed normalized values, ranging from −1 to 1.
-/// <para>
-/// Ranges from [-1, -1, 0, 1] to [1, 1, 0, 1] in vector form.
-/// </para>
+/// Packed pixel type containing two 16-bit signed normalized values.
 /// </summary>
+/// <remarks>
+/// <see cref="ToVector2"/> and <see cref="ToVector4"/> return components in the native signed-normalized range
+/// <c>[-1, 1]</c>. Scaled vector conversions return components in <c>[0, 1]</c>.
+/// The packed two's-complement codes <c>-32768</c> and <c>-32767</c> both represent <c>-1</c>,
+/// matching <c>DXGI_FORMAT_R16G16_SNORM</c>.
+/// </remarks>
 public partial struct NormalizedShort2 : IPixel<NormalizedShort2>, IPackedVector<uint>
 {
     // Largest two byte positive number 0xFFFF >> 1;
     private const float MaxPos = 0x7FFF;
+    private const float ScaledMagnitude = MaxPos * 2F;
 
     private static readonly Vector2 Max = new(MaxPos);
     private static readonly Vector2 Min = Vector2.Negate(Max);
@@ -69,9 +73,14 @@ public partial struct NormalizedShort2 : IPixel<NormalizedShort2>, IPackedVector
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly Vector4 ToScaledVector4()
     {
-        Vector2 scaled = this.ToVector2();
-        scaled += Vector2.One;
-        scaled /= 2f;
+        Vector2 scaled = new(
+            (short)(this.PackedValue & 0xFFFF),
+            (short)(this.PackedValue >> 0x10));
+
+        // SNORM reserves both minimum two's-complement codes for -1. Clamp before offsetting so raw -32768 cannot escape the scaled range.
+        scaled = Vector2.Max(scaled, Min);
+        scaled += Max;
+        scaled /= ScaledMagnitude;
         return new Vector4(scaled, 0f, 1f);
     }
 
@@ -88,6 +97,49 @@ public partial struct NormalizedShort2 : IPixel<NormalizedShort2>, IPackedVector
 
     /// <inheritdoc />
     public static PixelOperations<NormalizedShort2> CreatePixelOperations() => new PixelOperations();
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly Vector4 ToUnassociatedScaledVector4() => this.ToScaledVector4();
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly Vector4 ToAssociatedScaledVector4() => this.ToScaledVector4();
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly Vector4 ToUnassociatedVector4() => this.ToVector4();
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly Vector4 ToAssociatedVector4() => this.ToVector4();
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static NormalizedShort2 FromUnassociatedScaledVector4(Vector4 source) => FromScaledVector4(source);
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static NormalizedShort2 FromAssociatedScaledVector4(Vector4 source)
+    {
+        // The destination has implicit alpha one, but associated input must be restored before its alpha is discarded.
+        Numerics.UnPremultiply(ref source);
+        return FromScaledVector4(source);
+    }
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static NormalizedShort2 FromUnassociatedVector4(Vector4 source) => FromVector4(source);
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static NormalizedShort2 FromAssociatedVector4(Vector4 source)
+    {
+        // Only the stored color components use the native [-1, 1] encoding; W remains the normalized source alpha.
+        source.X = (source.X + 1F) / 2F;
+        source.Y = (source.Y + 1F) / 2F;
+        return FromAssociatedScaledVector4(source);
+    }
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -160,9 +212,15 @@ public partial struct NormalizedShort2 : IPixel<NormalizedShort2>, IPackedVector
     /// </summary>
     /// <returns>The <see cref="Vector2"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly Vector2 ToVector2() => new(
-            (short)(this.PackedValue & 0xFFFF) / MaxPos,
-            (short)(this.PackedValue >> 0x10) / MaxPos);
+    public readonly Vector2 ToVector2()
+    {
+        Vector2 vector = new(
+            (short)(this.PackedValue & 0xFFFF),
+            (short)(this.PackedValue >> 0x10));
+
+        // DirectX SNORM maps both -32768 and -32767 to -1.
+        return Vector2.Max(vector, Min) / MaxPos;
+    }
 
     /// <inheritdoc />
     public override readonly bool Equals(object? obj) => obj is NormalizedShort2 other && this.Equals(other);

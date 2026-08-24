@@ -11,6 +11,7 @@ using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.Metadata.Profiles.Iptc;
 using SixLabors.ImageSharp.Metadata.Profiles.Xmp;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Tests.TestDataIcc;
 using SixLabors.ImageSharp.Tests.TestUtilities;
 using static SixLabors.ImageSharp.Tests.TestImages.Tiff;
 
@@ -61,16 +62,15 @@ public class TiffMetadataTests
         clone.PhotometricInterpretation = TiffPhotometricInterpretation.CieLab;
         clone.Predictor = TiffPredictor.Horizontal;
 
-        Assert.False(meta.BitsPerPixel == clone.BitsPerPixel);
-        Assert.False(meta.Compression == clone.Compression);
-        Assert.False(meta.PhotometricInterpretation == clone.PhotometricInterpretation);
-        Assert.False(meta.Predictor == clone.Predictor);
+        Assert.NotEqual(meta.BitsPerPixel, clone.BitsPerPixel);
+        Assert.NotEqual(meta.Compression, clone.Compression);
+        Assert.NotEqual(meta.PhotometricInterpretation, clone.PhotometricInterpretation);
+        Assert.NotEqual(meta.Predictor, clone.Predictor);
     }
 
     private static void VerifyExpectedTiffFrameMetaDataIsPresent(TiffFrameMetadata frameMetaData)
     {
         Assert.NotNull(frameMetaData);
-        Assert.NotNull(frameMetaData.BitsPerPixel);
         Assert.Equal(TiffBitsPerPixel.Bit4, frameMetaData.BitsPerPixel);
         Assert.Equal(TiffCompression.Lzw, frameMetaData.Compression);
         Assert.Equal(TiffPhotometricInterpretation.PaletteColor, frameMetaData.PhotometricInterpretation);
@@ -150,14 +150,23 @@ public class TiffMetadataTests
         Assert.NotNull(meta);
         if (ignoreMetadata)
         {
+            Assert.Null(image.Metadata.XmpProfile);
+            Assert.Null(image.Metadata.ExifProfile);
             Assert.Null(rootFrameMetaData.XmpProfile);
             Assert.Null(rootFrameMetaData.ExifProfile);
         }
         else
         {
+            Assert.NotNull(image.Metadata.XmpProfile);
+            Assert.NotNull(image.Metadata.ExifProfile);
             Assert.NotNull(rootFrameMetaData.XmpProfile);
             Assert.NotNull(rootFrameMetaData.ExifProfile);
-            Assert.Equal(2599, rootFrameMetaData.XmpProfile.Data.Length);
+
+            Assert.NotSame(rootFrameMetaData.XmpProfile, image.Metadata.XmpProfile);
+            Assert.NotSame(rootFrameMetaData.ExifProfile, image.Metadata.ExifProfile);
+            Assert.Equal(rootFrameMetaData.XmpProfile.Data, image.Metadata.XmpProfile.Data);
+            Assert.Equal(rootFrameMetaData.ExifProfile.ToByteArray(), image.Metadata.ExifProfile.ToByteArray());
+            Assert.Equal(2596, rootFrameMetaData.XmpProfile.Data.Length); // padding bytes are trimmed
             Assert.Equal(25, rootFrameMetaData.ExifProfile.Values.Count);
         }
     }
@@ -171,6 +180,10 @@ public class TiffMetadataTests
 
         IptcProfile iptcProfile = image.Frames.RootFrame.Metadata.IptcProfile;
         Assert.NotNull(iptcProfile);
+        Assert.NotNull(image.Metadata.IptcProfile);
+        Assert.NotSame(iptcProfile, image.Metadata.IptcProfile);
+        Assert.Equal(iptcProfile.Data, image.Metadata.IptcProfile.Data);
+
         IptcValue byline = iptcProfile.Values.FirstOrDefault(data => data.Tag == IptcTag.Byline);
         Assert.NotNull(byline);
         Assert.Equal("Studio Mantyniemi", byline.Value);
@@ -186,7 +199,7 @@ public class TiffMetadataTests
         Assert.Equal(32, rootFrame.Width);
         Assert.Equal(32, rootFrame.Height);
         Assert.NotNull(rootFrame.Metadata.XmpProfile);
-        Assert.Equal(2599, rootFrame.Metadata.XmpProfile.Data.Length);
+        Assert.Equal(2596, rootFrame.Metadata.XmpProfile.Data.Length); // padding bytes are trimmed
 
         ExifProfile exifProfile = rootFrame.Metadata.ExifProfile;
         TiffFrameMetadata tiffFrameMetadata = rootFrame.Metadata.GetTiffMetadata();
@@ -336,8 +349,7 @@ public class TiffMetadataTests
         iptcProfile.SetValue(IptcTag.Name, "Test name");
         rootFrameInput.Metadata.IptcProfile = iptcProfile;
 
-        IccProfileHeader iccProfileHeader = new() { Class = IccProfileClass.ColorSpace };
-        IccProfile iccProfile = new();
+        IccProfile iccProfile = new(IccTestDataProfiles.ProfileRandomArray);
         rootFrameInput.Metadata.IccProfile = iccProfile;
 
         TiffFrameMetadata frameMetaInput = rootFrameInput.Metadata.GetTiffMetadata();
@@ -408,5 +420,18 @@ public class TiffMetadataTests
 
         // Adding the IPTC and ICC profiles dynamically increments the number of values in the original EXIF profile by 2
         Assert.Equal(exifProfileInput.Values.Count + 2, encodedImageExifProfile.Values.Count);
+    }
+
+    [Theory]
+    [WithFile(PaletteDeflateMultistrip, PixelTypes.Rgba32)]
+    [WithFile(PaletteUncompressed, PixelTypes.Rgba32)]
+    public void TiffDecoder_CanAssign_ColorPalette<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage(TiffDecoder.Instance);
+        ImageFrame<TPixel> frame = image.Frames.RootFrame;
+        TiffFrameMetadata tiffMeta = frame.Metadata.GetTiffMetadata();
+        Assert.Equal(TiffPhotometricInterpretation.PaletteColor, tiffMeta.PhotometricInterpretation);
+        Assert.NotNull(tiffMeta.LocalColorTable);
     }
 }

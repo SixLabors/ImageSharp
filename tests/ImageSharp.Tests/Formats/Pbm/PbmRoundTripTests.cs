@@ -54,6 +54,40 @@ public class PbmRoundTripTests
         ImageComparer.Exact.VerifySimilarity(originalImage, encodedImage);
     }
 
+    [Theory]
+    [InlineData(GrayscaleBinaryWide)]
+    public void PbmWideGrayscaleImageCanRoundTrip(string imagePath)
+    {
+        // Arrange
+        TestFile testFile = TestFile.Create(imagePath);
+        using MemoryStream stream = new(testFile.Bytes, false);
+
+        // Act
+        using Image<L16> originalImage = Image.Load<L16>(stream);
+        using Image<L16> encodedImage = this.RoundTrip(originalImage);
+
+        // Assert
+        Assert.NotNull(encodedImage);
+        ImageComparer.Exact.VerifySimilarity(originalImage, encodedImage);
+    }
+
+    [Theory]
+    [InlineData(RgbBinaryWide)]
+    public void PbmWideColorImageCanRoundTrip(string imagePath)
+    {
+        // Arrange
+        TestFile testFile = TestFile.Create(imagePath);
+        using MemoryStream stream = new(testFile.Bytes, false);
+
+        // Act
+        using Image<Rgb48> originalImage = Image.Load<Rgb48>(stream);
+        using Image<Rgb48> encodedImage = this.RoundTrip(originalImage);
+
+        // Assert
+        Assert.NotNull(encodedImage);
+        ImageComparer.Exact.VerifySimilarity(originalImage, encodedImage);
+    }
+
     private Image<TPixel> RoundTrip<TPixel>(Image<TPixel> originalImage)
         where TPixel : unmanaged, IPixel<TPixel>
     {

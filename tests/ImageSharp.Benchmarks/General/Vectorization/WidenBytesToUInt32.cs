@@ -5,8 +5,6 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using BenchmarkDotNet.Attributes;
 
-using SixLabors.ImageSharp.Tuples;
-
 namespace SixLabors.ImageSharp.Benchmarks.General.Vectorization;
 
 [Config(typeof(Config.Short))]
@@ -30,12 +28,22 @@ public class WidenBytesToUInt32
     {
         const int N = Count / 8;
 
-        ref Octet<byte> sBase = ref Unsafe.As<byte, Octet<byte>>(ref this.source[0]);
-        ref Octet<uint> dBase = ref Unsafe.As<uint, Octet<uint>>(ref this.dest[0]);
+        ref InlineArray8<byte> sBase = ref Unsafe.As<byte, InlineArray8<byte>>(ref this.source[0]);
+        ref InlineArray8<uint> dBase = ref Unsafe.As<uint, InlineArray8<uint>>(ref this.dest[0]);
 
         for (nuint i = 0; i < N; i++)
         {
-            Unsafe.Add(ref dBase, i).LoadFrom(ref Unsafe.Add(ref sBase, i));
+            ref InlineArray8<byte> source = ref Unsafe.Add(ref sBase, i);
+            ref InlineArray8<uint> destination = ref Unsafe.Add(ref dBase, i);
+
+            destination[0] = source[0];
+            destination[1] = source[1];
+            destination[2] = source[2];
+            destination[3] = source[3];
+            destination[4] = source[4];
+            destination[5] = source[5];
+            destination[6] = source[6];
+            destination[7] = source[7];
         }
     }
 

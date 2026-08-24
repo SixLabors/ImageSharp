@@ -22,7 +22,7 @@ internal sealed class GifDecoderCore : ImageDecoderCore
     /// <summary>
     /// The temp buffer used to reduce allocations.
     /// </summary>
-    private ScratchBuffer buffer;   // mutable struct, don't make readonly
+    private InlineArray16<byte> buffer; // mutable struct, don't make readonly
 
     /// <summary>
     /// The global color table.
@@ -146,10 +146,10 @@ internal sealed class GifDecoderCore : ImageDecoderCore
                             this.ReadGraphicalControlExtension(stream);
                             break;
                         case GifConstants.CommentLabel:
-                            this.ReadComments(stream);
+                            this.ExecuteAncillarySegmentAction(() => this.ReadComments(stream));
                             break;
                         case GifConstants.ApplicationExtensionLabel:
-                            this.ReadApplicationExtension(stream);
+                            this.ExecuteAncillarySegmentAction(() => this.ReadApplicationExtension(stream));
                             break;
                         case GifConstants.PlainTextLabel:
                             SkipBlock(stream); // Not supported by any known decoder.
@@ -226,10 +226,10 @@ internal sealed class GifDecoderCore : ImageDecoderCore
                             this.ReadGraphicalControlExtension(stream);
                             break;
                         case GifConstants.CommentLabel:
-                            this.ReadComments(stream);
+                            this.ExecuteAncillarySegmentAction(() => this.ReadComments(stream));
                             break;
                         case GifConstants.ApplicationExtensionLabel:
-                            this.ReadApplicationExtension(stream);
+                            this.ExecuteAncillarySegmentAction(() => this.ReadApplicationExtension(stream));
                             break;
                         case GifConstants.PlainTextLabel:
                             SkipBlock(stream); // Not supported by any known decoder.
@@ -266,6 +266,13 @@ internal sealed class GifDecoderCore : ImageDecoderCore
             GifThrowHelper.ThrowNoHeader();
         }
 
+        // Ignoring a malformed ancillary extension must not let identify succeed for a file
+        // that never contained any readable image frame data.
+        if (previousFrame is null)
+        {
+            GifThrowHelper.ThrowNoData();
+        }
+
         return new ImageInfo(
             new Size(this.logicalScreenDescriptor.Width, this.logicalScreenDescriptor.Height),
             this.metadata,
@@ -278,13 +285,13 @@ internal sealed class GifDecoderCore : ImageDecoderCore
     /// <param name="stream">The <see cref="BufferedReadStream"/> containing image data.</param>
     private void ReadGraphicalControlExtension(BufferedReadStream stream)
     {
-        int bytesRead = stream.Read(this.buffer.Span, 0, 6);
+        int bytesRead = stream.Read(this.buffer, 0, 6);
         if (bytesRead != 6)
         {
             GifThrowHelper.ThrowInvalidImageContentException("Not enough data to read the graphic control extension");
         }
 
-        this.graphicsControlExtension = GifGraphicControlExtension.Parse(this.buffer.Span);
+        this.graphicsControlExtension = GifGraphicControlExtension.Parse(this.buffer);
     }
 
     /// <summary>
@@ -293,13 +300,13 @@ internal sealed class GifDecoderCore : ImageDecoderCore
     /// <param name="stream">The <see cref="BufferedReadStream"/> containing image data.</param>
     private void ReadImageDescriptor(BufferedReadStream stream)
     {
-        int bytesRead = stream.Read(this.buffer.Span, 0, 9);
+        int bytesRead = stream.Read(this.buffer, 0, 9);
         if (bytesRead != 9)
         {
             GifThrowHelper.ThrowInvalidImageContentException("Not enough data to read the image descriptor");
         }
 
-        this.imageDescriptor = GifImageDescriptor.Parse(this.buffer.Span);
+        this.imageDescriptor = GifImageDescriptor.Parse(this.buffer);
         if (this.imageDescriptor.Height == 0 || this.imageDescriptor.Width == 0)
         {
             GifThrowHelper.ThrowInvalidImageContentException("Width or height should not be 0");
@@ -314,13 +321,13 @@ internal sealed class GifDecoderCore : ImageDecoderCore
     /// <param name="stream">The <see cref="BufferedReadStream"/> containing image data.</param>
     private void ReadLogicalScreenDescriptor(BufferedReadStream stream)
     {
-        int bytesRead = stream.Read(this.buffer.Span, 0, 7);
+        int bytesRead = stream.Read(this.buffer, 0, 7);
         if (bytesRead != 7)
         {
             GifThrowHelper.ThrowInvalidImageContentException("Not enough data to read the logical screen descriptor");
         }
 
-        this.logicalScreenDescriptor = GifLogicalScreenDescriptor.Parse(this.buffer.Span);
+        this.logicalScreenDescriptor = GifLogicalScreenDescriptor.Parse(this.buffer);
     }
 
     /// <summary>
@@ -331,51 +338,128 @@ internal sealed class GifDecoderCore : ImageDecoderCore
     private void ReadApplicationExtension(BufferedReadStream stream)
     {
         int appLength = stream.ReadByte();
+        if (appLength == -1)
+        {
+            GifThrowHelper.ThrowInvalidImageContentException("Unexpected end of stream while reading gif application extension");
+        }
+
+        if (appLength != GifConstants.ApplicationBlockSize)
+        {
+            this.ThrowOrIgnoreNonStrictSegmentError($"Gif application extension length '{appLength}' is invalid");
+            SkipBlock(stream, appLength);
+            return;
+        }
 
         // If the length is 11 then it's a valid extension and most likely
         // a NETSCAPE, XMP or ANIMEXTS extension. We want the loop count from this.
         long position = stream.Position;
-        if (appLength == GifConstants.ApplicationBlockSize)
+        int bytesRead = stream.Read(this.buffer, 0, GifConstants.ApplicationBlockSize);
+        if (bytesRead != GifConstants.ApplicationBlockSize)
         {
-            stream.Read(this.buffer.Span, 0, GifConstants.ApplicationBlockSize);
-            bool isXmp = this.buffer.Span.StartsWith(GifConstants.XmpApplicationIdentificationBytes);
-            if (isXmp && !this.skipMetadata)
-            {
-                GifXmpApplicationExtension extension = GifXmpApplicationExtension.Read(stream, this.memoryAllocator);
-                if (extension.Data.Length > 0)
-                {
-                    this.metadata!.XmpProfile = new XmpProfile(extension.Data);
-                }
-                else
-                {
-                    // Reset the stream position and continue.
-                    stream.Position = position;
-                    SkipBlock(stream, appLength);
-                }
+            GifThrowHelper.ThrowInvalidImageContentException("Unexpected end of stream while reading gif application extension");
+        }
 
-                return;
-            }
-
-            int subBlockSize = stream.ReadByte();
-
-            // TODO: There's also a NETSCAPE buffer extension.
-            // http://www.vurdalakov.net/misc/gif/netscape-buffering-application-extension
-            if (subBlockSize == GifConstants.NetscapeLoopingSubBlockSize)
-            {
-                stream.Read(this.buffer.Span, 0, GifConstants.NetscapeLoopingSubBlockSize);
-                this.gifMetadata!.RepeatCount = GifNetscapeLoopingApplicationExtension.Parse(this.buffer.Span[1..]).RepeatCount;
-                stream.Skip(1); // Skip the terminator.
-                return;
-            }
-
-            // Could be something else not supported yet.
-            // Skip the subblock and terminator.
-            SkipBlock(stream, subBlockSize);
-
+        bool isXmp = ((ReadOnlySpan<byte>)this.buffer).StartsWith(GifConstants.XmpApplicationIdentificationBytes);
+        if (isXmp)
+        {
+            this.ReadXmpApplicationExtension(stream, position, appLength);
             return;
         }
 
-        SkipBlock(stream, appLength); // Not supported by any known decoder.
+        int subBlockSize = stream.ReadByte();
+        if (subBlockSize == -1)
+        {
+            GifThrowHelper.ThrowInvalidImageContentException("Unexpected end of stream while reading gif application extension");
+        }
+
+        // TODO: There's also a NETSCAPE buffer extension.
+        // http://www.vurdalakov.net/misc/gif/netscape-buffering-application-extension
+        if (subBlockSize == GifConstants.NetscapeLoopingSubBlockSize)
+        {
+            this.ReadNetscapeApplicationExtension(stream);
+            return;
+        }
+
+        // Could be something else not supported yet.
+        // Skip the subblock and terminator.
+        SkipBlock(stream, subBlockSize);
+    }
+
+    /// <summary>
+    /// Reads the GIF XMP application extension.
+    /// </summary>
+    /// <param name="stream">The <see cref="BufferedReadStream"/> containing image data.</param>
+    /// <param name="applicationPosition">The stream position where the application identifier begins.</param>
+    /// <param name="appLength">The application block length.</param>
+    private void ReadXmpApplicationExtension(BufferedReadStream stream, long applicationPosition, int appLength)
+    {
+        if (this.skipMetadata)
+        {
+            stream.Position = applicationPosition;
+            SkipBlock(stream, appLength);
+            return;
+        }
+
+        bool completed = false;
+        this.ExecuteAncillarySegmentAction(
+            () =>
+        {
+            this.ReadXmpApplicationExtensionData(stream, applicationPosition, appLength);
+            completed = true;
+        });
+
+        if (!completed)
+        {
+            stream.Position = applicationPosition;
+            SkipBlock(stream, appLength);
+        }
+    }
+
+    /// <summary>
+    /// Reads the GIF XMP application extension data.
+    /// </summary>
+    /// <param name="stream">The <see cref="BufferedReadStream"/> containing image data.</param>
+    /// <param name="applicationPosition">The stream position where the application identifier begins.</param>
+    /// <param name="appLength">The application block length.</param>
+    private void ReadXmpApplicationExtensionData(BufferedReadStream stream, long applicationPosition, int appLength)
+    {
+        GifXmpApplicationExtension extension = GifXmpApplicationExtension.Read(stream, this.memoryAllocator);
+        if (extension.Data.Length > 0)
+        {
+            this.metadata!.XmpProfile = new XmpProfile(extension.Data);
+            return;
+        }
+
+        stream.Position = applicationPosition;
+        SkipBlock(stream, appLength);
+    }
+
+    /// <summary>
+    /// Reads the GIF NETSCAPE looping application extension.
+    /// </summary>
+    /// <param name="stream">The <see cref="BufferedReadStream"/> containing image data.</param>
+    private void ReadNetscapeApplicationExtension(BufferedReadStream stream) =>
+        this.ExecuteAncillarySegmentAction(() => this.ReadNetscapeApplicationExtensionData(stream));
+
+    /// <summary>
+    /// Reads the GIF NETSCAPE looping application extension data.
+    /// </summary>
+    /// <param name="stream">The <see cref="BufferedReadStream"/> containing image data.</param>
+    private void ReadNetscapeApplicationExtensionData(BufferedReadStream stream)
+    {
+        int bytesRead = stream.Read(this.buffer, 0, GifConstants.NetscapeLoopingSubBlockSize);
+        if (bytesRead != GifConstants.NetscapeLoopingSubBlockSize)
+        {
+            throw new InvalidImageContentException("Unexpected end of stream while reading gif application extension");
+        }
+
+        this.gifMetadata!.RepeatCount = GifNetscapeLoopingApplicationExtension.Parse(this.buffer[1..]).RepeatCount;
+
+        int terminator = stream.ReadByte();
+        if (terminator == -1)
+        {
+            throw new InvalidImageContentException("Unexpected end of stream while reading gif application extension");
+        }
     }
 
     /// <summary>
@@ -428,7 +512,12 @@ internal sealed class GifDecoderCore : ImageDecoderCore
             using IMemoryOwner<byte> commentsBuffer = this.memoryAllocator.Allocate<byte>(length);
             Span<byte> commentsSpan = commentsBuffer.GetSpan();
 
-            stream.Read(commentsSpan);
+            int bytesRead = stream.Read(commentsSpan);
+            if (bytesRead != length)
+            {
+                GifThrowHelper.ThrowInvalidImageContentException("Unexpected end of stream while reading gif comment");
+            }
+
             string commentPart = GifConstants.Encoding.GetString(commentsSpan);
             stringBuilder.Append(commentPart);
         }
@@ -468,7 +557,7 @@ internal sealed class GifDecoderCore : ImageDecoderCore
             int length = this.currentLocalColorTableSize = this.imageDescriptor.LocalColorTableSize * 3;
             this.currentLocalColorTable ??= this.configuration.MemoryAllocator.Allocate<byte>(768, AllocationOptions.Clean);
             stream.Read(this.currentLocalColorTable.GetSpan()[..length]);
-            rawColorTable = this.currentLocalColorTable!.GetSpan()[..length];
+            rawColorTable = this.currentLocalColorTable.GetSpan()[..length];
         }
         else if (this.globalColorTable != null)
         {
@@ -489,6 +578,12 @@ internal sealed class GifDecoderCore : ImageDecoderCore
                 backgroundColor = Color.Transparent;
             }
 
+            // We zero the alpha only when this frame declares transparency so that
+            // frames with a transparent index coalesce over a transparent canvas rather than
+            // baking the LSD background as a matte. When the flag is not set, this frame will
+            // write an opaque color for every addressed pixel; keeping the LSD background
+            // opaque here allows ReadFrameColors to show that background in uncovered areas
+            // for non-transparent GIFs that rely on it. We still do not prefill the canvas here.
             if (this.graphicsControlExtension.TransparencyFlag)
             {
                 backgroundColor = backgroundColor.WithAlpha(0);
@@ -498,24 +593,18 @@ internal sealed class GifDecoderCore : ImageDecoderCore
         this.ReadFrameColors(stream, ref image, ref previousFrame, ref previousDisposalMode, colorTable, backgroundColor.ToPixel<TPixel>());
 
         // Update from newly decoded frame.
-        if (this.graphicsControlExtension.DisposalMethod != FrameDisposalMode.RestoreToPrevious)
+        FrameDisposalMode disposalMethod = this.graphicsControlExtension.DisposalMethod;
+        if (disposalMethod != FrameDisposalMode.RestoreToPrevious)
         {
-            if (this.backgroundColorIndex < colorTable.Length)
-            {
-                backgroundColor = Color.FromPixel(colorTable[this.backgroundColorIndex]);
-            }
-            else
-            {
-                backgroundColor = Color.Transparent;
-            }
-
-            // TODO: I don't understand why this is always set to alpha of zero.
-            // This should be dependent on the transparency flag of the graphics
-            // control extension. ImageMagick does the same.
-            // if (this.graphicsControlExtension.TransparencyFlag)
-            {
-                backgroundColor = backgroundColor.WithAlpha(0);
-            }
+            // Do not key this on the transparency flag. Disposal handling is determined by
+            // the previous frame's disposal, not by whether the current frame declares a transparent
+            // index. For editing we carry a transparent background so that RestoreToBackground clears
+            // remove pixels to transparent rather than painting an opaque matte. The LSD background
+            // color is display advice and should be used only when explicitly flattening or when
+            // rendering with an option to honor it.
+            backgroundColor = (this.backgroundColorIndex < colorTable.Length)
+                ? Color.FromPixel(colorTable[this.backgroundColorIndex]).WithAlpha(0)
+                : Color.Transparent;
         }
 
         // Skip any remaining blocks
@@ -546,29 +635,44 @@ internal sealed class GifDecoderCore : ImageDecoderCore
         GifImageDescriptor descriptor = this.imageDescriptor;
         int imageWidth = this.logicalScreenDescriptor.Width;
         int imageHeight = this.logicalScreenDescriptor.Height;
-        bool transFlag = this.graphicsControlExtension.TransparencyFlag;
+        bool useTransparency = this.graphicsControlExtension.TransparencyFlag;
+        bool useBackground;
         FrameDisposalMode disposalMethod = this.graphicsControlExtension.DisposalMethod;
         ImageFrame<TPixel> currentFrame;
         ImageFrame<TPixel>? restoreFrame = null;
 
         if (previousFrame is null && previousDisposalMode is null)
         {
-            image = transFlag
-                ? new Image<TPixel>(this.configuration, imageWidth, imageHeight, this.metadata)
-                : new Image<TPixel>(this.configuration, imageWidth, imageHeight, backgroundPixel, this.metadata);
+            // First frame: prefill with LSD background iff a GCT exists (policy: HonorBackgroundColor).
+            useBackground =
+                this.logicalScreenDescriptor.GlobalColorTableFlag
+                && disposalMethod == FrameDisposalMode.RestoreToBackground;
+
+            image = useBackground
+                ? new Image<TPixel>(this.configuration, imageWidth, imageHeight, backgroundPixel, this.metadata)
+                : new Image<TPixel>(this.configuration, imageWidth, imageHeight, this.metadata);
 
             this.SetFrameMetadata(image.Frames.RootFrame.Metadata);
             currentFrame = image.Frames.RootFrame;
         }
         else
         {
+            // Subsequent frames: use LSD background iff previous disposal was RestoreToBackground and a GCT exists.
+            useBackground =
+                this.logicalScreenDescriptor.GlobalColorTableFlag
+                && previousDisposalMode == FrameDisposalMode.RestoreToBackground;
+
             if (previousFrame != null)
             {
                 currentFrame = image!.Frames.AddFrame(previousFrame);
             }
-            else
+            else if (useBackground)
             {
                 currentFrame = image!.Frames.CreateFrame(backgroundPixel);
+            }
+            else
+            {
+                currentFrame = image!.Frames.CreateFrame();
             }
 
             this.SetFrameMetadata(currentFrame.Metadata);
@@ -580,7 +684,7 @@ internal sealed class GifDecoderCore : ImageDecoderCore
 
             if (previousDisposalMode == FrameDisposalMode.RestoreToBackground)
             {
-                this.RestoreToBackground(currentFrame, backgroundPixel, transFlag);
+                this.RestoreToBackground(currentFrame, backgroundPixel, !useBackground);
             }
         }
 
@@ -670,12 +774,18 @@ internal sealed class GifDecoderCore : ImageDecoderCore
                 // Take the descriptorLeft..maxX slice of the row, so the loop can be simplified.
                 row = row[descriptorLeft..maxX];
 
-                if (!transFlag)
+                if (!useTransparency)
                 {
                     for (int x = 0; x < row.Length; x++)
                     {
                         int index = indicesRow[x];
-                        index = Numerics.Clamp(index, 0, colorTableMaxIdx);
+
+                        // Treat any out of bounds values as background.
+                        if (index > colorTableMaxIdx)
+                        {
+                            index = Numerics.Clamp(index, 0, colorTableMaxIdx);
+                        }
+
                         row[x] = TPixel.FromRgb24(colorTable[index]);
                     }
                 }
@@ -686,6 +796,8 @@ internal sealed class GifDecoderCore : ImageDecoderCore
                         int index = indicesRow[x];
 
                         // Treat any out of bounds values as transparent.
+                        // We explicitly set the pixel to transparent rather than alter the inbound
+                        // color palette.
                         if (index > colorTableMaxIdx || index == transIndex)
                         {
                             continue;
@@ -878,14 +990,10 @@ internal sealed class GifDecoderCore : ImageDecoderCore
 
         byte index = this.logicalScreenDescriptor.BackgroundColorIndex;
         this.backgroundColorIndex = index;
-        this.gifMetadata.BackgroundColorIndex = index;
-    }
-
-    private unsafe struct ScratchBuffer
-    {
-        private const int Size = 16;
-        private fixed byte scratch[Size];
-
-        public Span<byte> Span => MemoryMarshal.CreateSpan(ref this.scratch[0], Size);
+        ReadOnlyMemory<Color>? globalColorTable = this.gifMetadata.GlobalColorTable;
+        if (globalColorTable.HasValue && index < globalColorTable.Value.Length)
+        {
+            this.gifMetadata.BackgroundColor = globalColorTable.Value.Span[index];
+        }
     }
 }

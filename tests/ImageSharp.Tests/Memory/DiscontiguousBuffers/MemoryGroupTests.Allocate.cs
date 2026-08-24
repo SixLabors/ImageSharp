@@ -98,7 +98,15 @@ public partial class MemoryGroupTests
         [InlineData(AllocationOptions.Clean)]
         public unsafe void Allocate_FromPool_AllocationOptionsAreApplied(AllocationOptions options)
         {
-            UniformUnmanagedMemoryPool pool = new(10, 5);
+            // Disable trimming to avoid buffers being freed between Return and TryAllocate by the
+            // trim timer or the Gen2 GC callback.
+            UniformUnmanagedMemoryPool pool = new(
+                10,
+                5,
+                new UniformUnmanagedMemoryPool.TrimSettings
+                {
+                    Rate = 0
+                });
             UnmanagedMemoryHandle[] buffers = pool.Rent(5);
             foreach (UnmanagedMemoryHandle b in buffers)
             {
@@ -198,7 +206,7 @@ public partial class MemoryGroupTests
             {
                 IReadOnlyList<TestMemoryAllocator.AllocationRequest> allocationLog = this.MemoryAllocator.AllocationLog;
                 Assert.Equal(expectedBlockCount, allocationLog.Count);
-                bufferHashes = allocationLog.Select(l => l.HashCodeOfBuffer).ToHashSet();
+                bufferHashes = [.. allocationLog.Select(l => l.HashCodeOfBuffer)];
                 Assert.Equal(expectedBlockCount, bufferHashes.Count);
                 Assert.Equal(0, this.MemoryAllocator.ReturnLog.Count);
 

@@ -217,12 +217,15 @@ public class ImagingTestCaseUtility
     {
         encoder ??= TestEnvironment.GetReferenceEncoder($"foo.{extension}");
 
-        (int Index, string FileName)[] files = this.GetTestOutputFileNamesMultiFrame(
-            image.Frames.Count,
-            extension,
-            testOutputDetails,
-            appendPixelTypeToFileName,
-            predicate: predicate).ToArray();
+        (int Index, string FileName)[] files =
+        [
+            .. this.GetTestOutputFileNamesMultiFrame(
+                image.Frames.Count,
+                extension,
+                testOutputDetails,
+                appendPixelTypeToFileName,
+                predicate: predicate)
+        ];
 
         foreach ((int Index, string FileName) file in files)
         {
@@ -249,8 +252,12 @@ public class ImagingTestCaseUtility
         object testOutputDetails,
         bool appendPixelTypeToFileName = true,
         Func<int, int, bool> predicate = null)
-        => this.GetTestOutputFileNamesMultiFrame(frameCount, extension, testOutputDetails, appendPixelTypeToFileName, predicate: predicate)
-        .Select(x => (x.Index, TestEnvironment.GetReferenceOutputFileName(x.FileName))).ToArray();
+        =>
+        [
+            .. this.GetTestOutputFileNamesMultiFrame(frameCount, extension, testOutputDetails,
+                    appendPixelTypeToFileName, predicate: predicate)
+                .Select(x => (x.Index, TestEnvironment.GetReferenceOutputFileName(x.FileName)))
+        ];
 
     internal void Init(string typeName, string methodName, string outputSubfolderName)
     {
@@ -278,7 +285,7 @@ public class ImagingTestCaseUtility
     where TPixel : unmanaged, IPixel<TPixel>
     {
         TPixel pixel = img[x, y];
-        Rgba64 rgbaPixel = Rgba64.FromScaledVector4(pixel.ToScaledVector4());
+        Rgba64 rgbaPixel = Rgba64.FromUnassociatedScaledVector4(pixel.ToUnassociatedScaledVector4());
         ushort change = (ushort)Math.Round((perChannelChange / 255F) * 65535F);
 
         if (rgbaPixel.R + perChannelChange <= 255)

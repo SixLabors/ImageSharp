@@ -29,7 +29,7 @@ public abstract partial class ImageFrameCollectionTests
             }
 
             Rgba32[] expectedAllBlue =
-                Enumerable.Repeat(Color.Blue.ToPixel<Rgba32>(), this.Image.Width * this.Image.Height).ToArray();
+                [.. Enumerable.Repeat(Color.Blue.ToPixel<Rgba32>(), this.Image.Width * this.Image.Height)];
 
             Assert.Equal(2, this.Collection.Count);
             ImageFrame<Rgba32> actualFrame = (ImageFrame<Rgba32>)this.Collection[1];
@@ -50,7 +50,7 @@ public abstract partial class ImageFrameCollectionTests
             }
 
             Rgba32[] expectedAllBlue =
-                Enumerable.Repeat(Color.Blue.ToPixel<Rgba32>(), this.Image.Width * this.Image.Height).ToArray();
+                [.. Enumerable.Repeat(Color.Blue.ToPixel<Rgba32>(), this.Image.Width * this.Image.Height)];
 
             Assert.Equal(2, this.Collection.Count);
             ImageFrame<Rgba32> actualFrame = (ImageFrame<Rgba32>)this.Collection[0];

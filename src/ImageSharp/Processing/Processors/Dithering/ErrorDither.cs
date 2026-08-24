@@ -168,8 +168,8 @@ public readonly partial struct ErrorDither : IDither, IEquatable<ErrorDither>, I
             return transformed;
         }
 
-        // Calculate the error
-        Vector4 error = (source.ToVector4() - transformed.ToVector4()) * scale;
+        // Palette error is a logical color difference, so it must be diffused independently of the pixel storage representation.
+        Vector4 error = (source.ToUnassociatedScaledVector4() - transformed.ToUnassociatedScaledVector4()) * scale;
 
         int offset = this.offset;
         DenseMatrix<float> matrix = this.matrix;
@@ -200,10 +200,19 @@ public readonly partial struct ErrorDither : IDither, IEquatable<ErrorDither>, I
                 }
 
                 ref TPixel pixel = ref rowSpan[targetX];
-                Vector4 result = pixel.ToVector4();
+                Vector4 result = pixel.ToUnassociatedScaledVector4();
+
+                // Do not diffuse error into fully transparent pixels. They carry no visible color
+                // (a decoder shows whatever is behind them), so perturbing them is meaningless and,
+                // for indexed transparency, nudges them off the exact transparent color so they are
+                // matched to the nearest opaque palette entry instead of being kept transparent.
+                if (result.W <= 0)
+                {
+                    continue;
+                }
 
                 result += error * coefficient;
-                pixel = TPixel.FromVector4(result);
+                pixel = TPixel.FromUnassociatedScaledVector4(result);
             }
         }
 

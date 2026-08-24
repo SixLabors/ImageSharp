@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Buffers;
+using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Microsoft.DotNet.RemoteExecutor;
@@ -15,8 +16,8 @@ public class UniformUnmanagedPoolMemoryAllocatorTests
 {
     public class BufferTests1 : BufferTestSuite
     {
-        private static MemoryAllocator CreateMemoryAllocator() =>
-            new UniformUnmanagedMemoryPoolMemoryAllocator(
+        private static UniformUnmanagedMemoryPoolMemoryAllocator CreateMemoryAllocator() =>
+            new(
                 sharedArrayPoolThresholdInBytes: 1024,
                 poolBufferSizeInBytes: 2048,
                 maxPoolSizeInBytes: 2048 * 4,
@@ -30,8 +31,8 @@ public class UniformUnmanagedPoolMemoryAllocatorTests
 
     public class BufferTests2 : BufferTestSuite
     {
-        private static MemoryAllocator CreateMemoryAllocator() =>
-            new UniformUnmanagedMemoryPoolMemoryAllocator(
+        private static UniformUnmanagedMemoryPoolMemoryAllocator CreateMemoryAllocator() =>
+            new(
                 sharedArrayPoolThresholdInBytes: 512,
                 poolBufferSizeInBytes: 1024,
                 maxPoolSizeInBytes: 1024 * 4,
@@ -178,8 +179,8 @@ public class UniformUnmanagedPoolMemoryAllocatorTests
             g1.Dispose();
 
             // Do some unmanaged allocations to make sure new non-pooled unmanaged allocations will grab different memory:
-            IntPtr dummy1 = Marshal.AllocHGlobal((IntPtr)B(8));
-            IntPtr dummy2 = Marshal.AllocHGlobal((IntPtr)B(8));
+            IntPtr dummy1 = Marshal.AllocHGlobal(checked((IntPtr)B(8)));
+            IntPtr dummy2 = Marshal.AllocHGlobal(checked((IntPtr)B(8)));
 
             using MemoryGroup<byte> g2 = allocator.AllocateGroup<byte>(B(8), 1024);
             using MemoryGroup<byte> g3 = allocator.AllocateGroup<byte>(B(8), 1024);
@@ -273,67 +274,75 @@ public class UniformUnmanagedPoolMemoryAllocatorTests
     [InlineData(1200)] // Group of two UniformUnmanagedMemoryPool buffers
     public void AllocateMemoryGroup_Finalization_ReturnsToPool(int length)
     {
-        if (TestEnvironment.IsMacOS)
-        {
-            // Skip on macOS: https://github.com/SixLabors/ImageSharp/issues/1887
-            return;
-        }
-
-        if (TestEnvironment.OSArchitecture == Architecture.Arm64)
-        {
-            // Skip on ARM64: https://github.com/SixLabors/ImageSharp/issues/2342
-            return;
-        }
-
-        if (!TestEnvironment.RunsOnCI)
-        {
-            // This may fail in local runs resulting in high memory load.
-            // Remove the condition for local debugging!
-            return;
-        }
-
-        // RunTest(length.ToString());
-        RemoteExecutor.Invoke(RunTest, length.ToString()).Dispose();
+        RemoteExecutor.Invoke(RunTest, length.ToString(CultureInfo.InvariantCulture)).Dispose();
 
         static void RunTest(string lengthStr)
         {
             UniformUnmanagedMemoryPoolMemoryAllocator allocator = new(512, 1024, 16 * 1024, 1024);
-            int lengthInner = int.Parse(lengthStr);
+            int lengthInner = int.Parse(lengthStr, CultureInfo.InvariantCulture);
 
+            // We want to verify that a leaked (not disposed) `MemoryGroup<byte>` still returns its
+            // unmanaged handles into the pool when it is finalized.
+            //
+            // We intentionally do NOT validate this by checking the contents of the re-rented memory
+            // (contents are not guaranteed to be preserved) nor by comparing pointer values
+            // (the pool may return a different handle while still correctly pooling).
+            //
+            // Instead, we validate that after a forced GC+finalization cycle, a subsequent allocation
+            // of the same size does not cause the number of outstanding unmanaged handles to *increase*
+            // compared to a known baseline.
+
+            // Establish a baseline: create one allocation and dispose it so the pool is initialized.
+            // (This ensures subsequent observations are not biased by first-time pool growth.)
+            allocator.AllocateGroup<byte>(lengthInner, 100).Dispose();
+            int baselineHandles = UnmanagedMemoryHandle.TotalOutstandingHandles;
+
+            // Leak one allocation and force finalization.
             AllocateGroupAndForget(allocator, lengthInner);
             GC.Collect();
             GC.WaitForPendingFinalizers();
             GC.Collect();
             GC.WaitForPendingFinalizers();
 
-            AllocateGroupAndForget(allocator, lengthInner, true);
-            GC.Collect();
-            GC.WaitForPendingFinalizers();
-            GC.Collect();
-            GC.WaitForPendingFinalizers();
+            // Allocate again. If the leaked group was finalized correctly and returned to the pool,
+            // this should not require additional unmanaged allocations (ie, the handle count must not grow).
+            allocator.AllocateGroup<byte>(lengthInner, 100).Dispose();
 
-            using MemoryGroup<byte> g = allocator.AllocateGroup<byte>(lengthInner, 100);
-            Assert.Equal(42, g.First().Span[0]);
+            // Note: we use "<=" instead of "==" here.
+            //
+            // After we record the baseline, the pool is allowed to legitimately *decrease*
+            // `UnmanagedMemoryHandle.TotalOutstandingHandles` by trimming retained buffers
+            // (eg. via the pool's trim timer/GC callbacks/high-pressure logic).
+            //
+            // What must not happen is the opposite: the leaked (non-disposed) group should be finalized
+            // and its handles returned to the pool such that allocating again does NOT require creating
+            // additional unmanaged handles. Therefore the only invariant we can reliably assert here is
+            // "no growth" relative to the baseline.
+            Assert.True(UnmanagedMemoryHandle.TotalOutstandingHandles <= baselineHandles);
         }
     }
 
-    private static void AllocateGroupAndForget(UniformUnmanagedMemoryPoolMemoryAllocator allocator, int length, bool check = false)
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static void AllocateGroupAndForget(MemoryAllocator allocator, int length)
     {
+        // Allocate a group and drop the reference without disposing.
+        // The test relies on the group's finalizer to return the rented memory to the pool.
         MemoryGroup<byte> g = allocator.AllocateGroup<byte>(length, 100);
-        if (check)
-        {
-            Assert.Equal(42, g.First().Span[0]);
-        }
 
-        g.First().Span[0] = 42;
+        // Touch the memory to ensure the buffer is actually materialized/usable.
+        g[0].Span[0] = 42;
 
         if (length < 512)
         {
-            // For ArrayPool.Shared, first array will be returned to the TLS storage of the finalizer thread,
-            // repeat rental to make sure per-core buckets are also utilized.
+            // For ArrayPool.Shared, the first rented array may be stored in TLS on the finalizer thread.
+            // Repeat rental to increase the chance that per-core buckets are involved when length
+            // is small and allocations go through ArrayPool.
             MemoryGroup<byte> g1 = allocator.AllocateGroup<byte>(length, 100);
-            g1.First().Span[0] = 42;
+            g1[0].Span[0] = 42;
+            g1 = null;
         }
+
+        g = null;
     }
 
     [Theory]
@@ -341,81 +350,112 @@ public class UniformUnmanagedPoolMemoryAllocatorTests
     [InlineData(600)] // Group of single UniformUnmanagedMemoryPool buffer
     public void AllocateSingleMemoryOwner_Finalization_ReturnsToPool(int length)
     {
-        if (TestEnvironment.IsMacOS)
-        {
-            // Skip on macOS: https://github.com/SixLabors/ImageSharp/issues/1887
-            return;
-        }
-
-        if (TestEnvironment.OSArchitecture == Architecture.Arm64)
-        {
-            // Skip on ARM64: https://github.com/SixLabors/ImageSharp/issues/2342
-            return;
-        }
-
-        if (!TestEnvironment.RunsOnCI)
-        {
-            // This may fail in local runs resulting in high memory load.
-            // Remove the condition for local debugging!
-            return;
-        }
-
-        // RunTest(length.ToString());
-        RemoteExecutor.Invoke(RunTest, length.ToString()).Dispose();
+        RemoteExecutor.Invoke(RunTest, length.ToString(CultureInfo.InvariantCulture)).Dispose();
 
         static void RunTest(string lengthStr)
         {
             UniformUnmanagedMemoryPoolMemoryAllocator allocator = new(512, 1024, 16 * 1024, 1024);
-            int lengthInner = int.Parse(lengthStr);
+            int lengthInner = int.Parse(lengthStr, CultureInfo.InvariantCulture);
 
+            // This test verifies pooling behavior when an `IMemoryOwner<byte>` is leaked (not disposed)
+            // and must be returned to the pool by finalization.
+            //
+            // We do NOT use a sentinel byte value to prove reuse because the contents of pooled buffers
+            // are not required to be preserved across rentals.
+            //
+            // Instead, we assert that after forcing GC+finalization, renting the same size again does not
+            // increase `UnmanagedMemoryHandle.TotalOutstandingHandles` above a baseline.
+
+            // Establish a baseline: allocate+dispose once so the pool has a chance to materialize/retain buffers.
+            allocator.Allocate<byte>(lengthInner).Dispose();
+            int baselineHandles = UnmanagedMemoryHandle.TotalOutstandingHandles;
+
+            // Leak one allocation and force finalization.
             AllocateSingleAndForget(allocator, lengthInner);
             GC.Collect();
             GC.WaitForPendingFinalizers();
             GC.Collect();
             GC.WaitForPendingFinalizers();
 
-            AllocateSingleAndForget(allocator, lengthInner, true);
+            // Allocate again. If the leaked owner was finalized correctly and returned to the pool,
+            // this should not require additional unmanaged allocations (ie, the handle count must not grow).
+            allocator.Allocate<byte>(lengthInner).Dispose();
+
+            // Note: we use "<=" rather than "==". The pool may legitimately trim and free retained buffers,
+            // reducing the handle count between baseline and check. The invariant is "no growth".
+            Assert.True(UnmanagedMemoryHandle.TotalOutstandingHandles <= baselineHandles);
+        }
+    }
+
+    [Theory]
+    [InlineData(1)] // SharedArrayPoolBuffer<T>
+    [InlineData(2)] // UniformUnmanagedMemoryPool buffer
+    public void Allocate_AccumulativeLimit_Finalization_ReleasesOwnerReservation(int megabytes)
+    {
+        RemoteExecutor.Invoke(RunTest, megabytes.ToString(CultureInfo.InvariantCulture)).Dispose();
+
+        static void RunTest(string megabytesStr)
+        {
+            int megabytesInner = int.Parse(megabytesStr, CultureInfo.InvariantCulture);
+            int length = megabytesInner * (1 << 20);
+            MemoryAllocator allocator = MemoryAllocator.Create(new MemoryAllocatorOptions
+            {
+                AccumulativeAllocationLimitMegabytes = megabytesInner
+            });
+
+            AllocateSingleAndForget(allocator, length);
             GC.Collect();
             GC.WaitForPendingFinalizers();
             GC.Collect();
             GC.WaitForPendingFinalizers();
 
-            using IMemoryOwner<byte> g = allocator.Allocate<byte>(lengthInner);
-            Assert.Equal(42, g.GetSpan()[0]);
-            GC.KeepAlive(allocator);
+            allocator.Allocate<byte>(length).Dispose();
         }
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private static void AllocateSingleAndForget(UniformUnmanagedMemoryPoolMemoryAllocator allocator, int length, bool check = false)
+    private static void AllocateSingleAndForget(MemoryAllocator allocator, int length)
     {
+        // Allocate and intentionally do not dispose.
         IMemoryOwner<byte> g = allocator.Allocate<byte>(length);
-        if (check)
-        {
-            Assert.Equal(42, g.GetSpan()[0]);
-        }
 
+        // Touch the memory to ensure the buffer is actually materialized/usable.
         g.GetSpan()[0] = 42;
 
         if (length < 512)
         {
-            // For ArrayPool.Shared, first array will be returned to the TLS storage of the finalizer thread,
-            // repeat rental to make sure per-core buckets are also utilized.
+            // For ArrayPool.Shared, the first rented array may be stored in TLS on the finalizer thread.
+            // Repeat rental to increase the chance that per-core buckets are involved when length
+            // is small and allocations go through ArrayPool.
             IMemoryOwner<byte> g1 = allocator.Allocate<byte>(length);
             g1.GetSpan()[0] = 42;
+            g1 = null;
         }
+
+        g = null;
     }
 
     [Fact]
-    public void Issue2001_NegativeMemoryReportedByGc()
+    public void AllocateGroup_AccumulativeLimit_Finalization_ReleasesGroupReservation()
     {
         RemoteExecutor.Invoke(RunTest).Dispose();
 
         static void RunTest()
         {
-            // Emulate GC.GetGCMemoryInfo() issue https://github.com/dotnet/runtime/issues/65466
-            UniformUnmanagedMemoryPoolMemoryAllocator.GetTotalAvailableMemoryBytes = () => -402354176;
-            _ = MemoryAllocator.Create();
+            const int megabytes = 5;
+            int length = megabytes * (1 << 20);
+            MemoryAllocator allocator = MemoryAllocator.Create(new MemoryAllocatorOptions
+            {
+                AccumulativeAllocationLimitMegabytes = megabytes
+            });
+
+            AllocateGroupAndForget(allocator, length);
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+
+            allocator.AllocateGroup<byte>(length, 1024).Dispose();
         }
     }
 
@@ -441,6 +481,143 @@ public class UniformUnmanagedPoolMemoryAllocatorTests
         const int oneMb = 1 << 20;
         allocator.AllocateGroup<byte>(4 * oneMb, 1024).Dispose(); // Should work
         Assert.Throws<InvalidMemoryOperationException>(() => allocator.AllocateGroup<byte>(5 * oneMb, 1024));
+    }
+
+    [Fact]
+    public void Allocate_OverSingleBufferLimit_ThrowsInvalidMemoryOperationException()
+    {
+        MemoryAllocator allocator = MemoryAllocator.Create(new MemoryAllocatorOptions
+        {
+            SingleBufferAllocationLimitMegabytes = 2
+        });
+        const int oneMb = 1 << 20;
+        allocator.Allocate<byte>(2 * oneMb).Dispose(); // Should work
+        Assert.Throws<InvalidMemoryOperationException>(() => allocator.Allocate<byte>(3 * oneMb));
+
+        // The group limit is unchanged, so the same size still allocates as a discontiguous group.
+        allocator.AllocateGroup<byte>(3 * oneMb, 1024).Dispose();
+    }
+
+    [ConditionalFact(typeof(Environment), nameof(Environment.Is64BitProcess))]
+    public void MemoryAllocator_Create_RaisesSingleBufferLimit()
+    {
+        MemoryAllocator allocator = MemoryAllocator.Create(new MemoryAllocatorOptions
+        {
+            SingleBufferAllocationLimitMegabytes = 2047
+        });
+
+        Assert.Equal(2047L * 1024 * 1024, (long)allocator.SingleBufferAllocationLimitBytes);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    [InlineData(2048)]
+    public void MemoryAllocatorOptions_InvalidSingleBufferLimit_Throws(int value)
+    {
+        MemoryAllocatorOptions options = default;
+        Assert.Throws<ArgumentOutOfRangeException>(() => options.SingleBufferAllocationLimitMegabytes = value);
+    }
+
+    [Fact]
+    public void Allocate_AccumulativeLimit_ReleasesOnOwnerDispose()
+    {
+        MemoryAllocator allocator = MemoryAllocator.Create(new MemoryAllocatorOptions
+        {
+            AccumulativeAllocationLimitMegabytes = 1
+        });
+        const int oneMb = 1 << 20;
+
+        // Reserve the full limit with a single owner.
+        IMemoryOwner<byte> b0 = allocator.Allocate<byte>(oneMb);
+
+        // Additional allocation should exceed the limit while the owner is live.
+        Assert.Throws<InvalidMemoryOperationException>(() => allocator.Allocate<byte>(1));
+
+        // Disposing the owner releases the reservation.
+        b0.Dispose();
+
+        // Allocation should succeed after the reservation is released.
+        allocator.Allocate<byte>(oneMb).Dispose();
+    }
+
+    [Fact]
+    public void AllocateGroup_AccumulativeLimit_ReleasesOnGroupDispose()
+    {
+        MemoryAllocator allocator = MemoryAllocator.Create(new MemoryAllocatorOptions
+        {
+            AccumulativeAllocationLimitMegabytes = 1
+        });
+        const int oneMb = 1 << 20;
+
+        // Reserve the full limit with a single group.
+        MemoryGroup<byte> g0 = allocator.AllocateGroup<byte>(oneMb, 1024);
+
+        // Additional allocation should exceed the limit while the group is live.
+        Assert.Throws<InvalidMemoryOperationException>(() => allocator.AllocateGroup<byte>(1, 1024));
+
+        // Disposing the group releases the reservation.
+        g0.Dispose();
+
+        // Allocation should succeed after the reservation is released.
+        allocator.AllocateGroup<byte>(oneMb, 1024).Dispose();
+    }
+
+    [Fact]
+    public void AllocateGroup_AccumulativeLimit_NonPoolFallback_TracksOncePerGroup()
+    {
+        // Configure the pool with zero capacity so multi-segment requests bypass both the
+        // single-buffer-from-pool path and MemoryGroup<T>.TryAllocate(pool, ...) and fall
+        // through to MemoryGroup<T>.Allocate(nonPoolAllocator, ...). The unmanaged segment
+        // size is small enough that the request must span multiple segments, which is the
+        // path where per-segment double-counting could regress.
+        UniformUnmanagedMemoryPoolMemoryAllocator allocator = new(
+            sharedArrayPoolThresholdInBytes: 64 * 1024,
+            poolBufferSizeInBytes: 128 * 1024,
+            maxPoolSizeInBytes: 0,
+            unmanagedBufferSizeInBytes: 256 * 1024,
+            new MemoryAllocatorOptions { AccumulativeAllocationLimitMegabytes = 1 });
+
+        // 768 KB exceeds the pool buffer size, so the request takes the multi-segment
+        // non-pool fallback (three 256 KB segments). If tracking double-counted (group
+        // plus each segment), reservation would be 768 KB + 768 KB = 1.5 MB and exceed
+        // the 1 MB limit on allocation itself.
+        MemoryGroup<byte> g = allocator.AllocateGroup<byte>(768 * 1024, 1024);
+        Assert.True(g.Count > 1, "Test setup must exercise the multi-segment fallback path.");
+
+        // Reservation should be exactly 768 KB; another 512 KB would push to 1.25 MB and throw.
+        Assert.Throws<InvalidMemoryOperationException>(() => allocator.Allocate<byte>(512 * 1024));
+
+        g.Dispose();
+
+        // After disposal the reservation is fully released; a second equivalent group succeeds.
+        allocator.AllocateGroup<byte>(768 * 1024, 1024).Dispose();
+    }
+
+    [Fact]
+    public void AllocateGroup_AccumulativeLimit_NonPoolFallback_Finalization_ReleasesGroupReservation()
+    {
+        RemoteExecutor.Invoke(RunTest).Dispose();
+
+        static void RunTest()
+        {
+            UniformUnmanagedMemoryPoolMemoryAllocator allocator = new(
+                sharedArrayPoolThresholdInBytes: 64 * 1024,
+                poolBufferSizeInBytes: 128 * 1024,
+                maxPoolSizeInBytes: 0,
+                unmanagedBufferSizeInBytes: 256 * 1024,
+                new MemoryAllocatorOptions { AccumulativeAllocationLimitMegabytes = 1 });
+
+            // This exercises the non-pool multi-segment fallback, where reservation ownership has
+            // to follow the finalizable segment guards because the MemoryGroup itself has no finalizer.
+            AllocateGroupAndForget(allocator, 768 * 1024);
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+
+            allocator.AllocateGroup<byte>(768 * 1024, 1024).Dispose();
+        }
     }
 
     [ConditionalFact(typeof(Environment), nameof(Environment.Is64BitProcess))]

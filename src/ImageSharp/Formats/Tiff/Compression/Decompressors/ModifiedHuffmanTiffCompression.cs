@@ -53,6 +53,12 @@ internal sealed class ModifiedHuffmanTiffCompression : TiffBaseDecompressor
 
             if (bitReader.RunLength > 0)
             {
+                // A decoded run is untrusted and must fit the current row before the unchecked bit writer is used.
+                if (bitReader.RunLength > (nuint)this.Width - pixelsWritten)
+                {
+                    TiffThrowHelper.ThrowImageFormatException("CCITT compression parsing error: decoded more pixels than the image width.");
+                }
+
                 if (bitReader.IsWhiteRun)
                 {
                     BitWriterUtils.WriteBits(buffer, bitsWritten, (int)bitReader.RunLength, this.whiteValue);
@@ -85,11 +91,6 @@ internal sealed class ModifiedHuffmanTiffCompression : TiffBaseDecompressor
                 }
 
                 bitReader.StartNewRow();
-            }
-
-            if (pixelsWritten > (ulong)this.Width)
-            {
-                TiffThrowHelper.ThrowImageFormatException("ccitt compression parsing error, decoded more pixels then image width");
             }
         }
     }

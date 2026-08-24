@@ -17,7 +17,7 @@ internal static class ColorSpaceTransformUtils
             const int span = 16;
             Span<ushort> values = stackalloc ushort[span];
 
-            // These shuffle masks are safe for use with Avx2.Shuffle because all indices are within their respective 128-bit lanes (0–15 for the low mask, 16–31 for the high mask),
+            // These shuffle masks are safe for use with Avx2.Shuffle because all indices are within their respective 128-bit lanes (0-15 for the low mask, 16-31 for the high mask),
             // and all disabled lanes are set to 0xFF to zero those bytes per the vpshufb specification. This guarantees lane-local shuffling with no cross-lane violations.
             Vector256<byte> collectColorBlueTransformsShuffleLowMask256 = Vector256.Create(255, 2, 255, 6, 255, 10, 255, 14, 255, 255, 255, 255, 255, 255, 255, 255, 255, 18, 255, 22, 255, 26, 255, 30, 255, 255, 255, 255, 255, 255, 255, 255);
             Vector256<byte> collectColorBlueTransformsShuffleHighMask256 = Vector256.Create(255, 255, 255, 255, 255, 255, 255, 255, 255, 2, 255, 6, 255, 10, 255, 14, 255, 255, 255, 255, 255, 255, 255, 255, 255, 18, 255, 22, 255, 26, 255, 30);
@@ -86,8 +86,8 @@ internal static class ColorSpaceTransformUtils
                     nuint input1Idx = x + (span / 2);
                     Vector128<byte> input0 = Unsafe.As<uint, Vector128<uint>>(ref Unsafe.Add(ref inputRef, input0Idx)).AsByte();
                     Vector128<byte> input1 = Unsafe.As<uint, Vector128<uint>>(ref Unsafe.Add(ref inputRef, input1Idx)).AsByte();
-                    Vector128<byte> r0 = Vector128_.ShuffleNative(input0, collectColorBlueTransformsShuffleLowMask);
-                    Vector128<byte> r1 = Vector128_.ShuffleNative(input1, collectColorBlueTransformsShuffleHighMask);
+                    Vector128<byte> r0 = Vector128.ShuffleNative(input0, collectColorBlueTransformsShuffleLowMask);
+                    Vector128<byte> r1 = Vector128.ShuffleNative(input1, collectColorBlueTransformsShuffleHighMask);
                     Vector128<byte> r = r0 | r1;
                     Vector128<byte> gb0 = input0 & collectColorBlueTransformsGreenBlueMask;
                     Vector128<byte> gb1 = input1 & collectColorBlueTransformsGreenBlueMask;
@@ -121,7 +121,7 @@ internal static class ColorSpaceTransformUtils
         }
     }
 
-    private static void CollectColorBlueTransformsScalar(Span<uint> bgra, int stride, int tileWidth, int tileHeight, int greenToBlue, int redToBlue, Span<int> histo)
+    private static void CollectColorBlueTransformsScalar(ReadOnlySpan<uint> bgra, int stride, int tileWidth, int tileHeight, int greenToBlue, int redToBlue, Span<int> histo)
     {
         int pos = 0;
         while (tileHeight-- > 0)
@@ -230,7 +230,7 @@ internal static class ColorSpaceTransformUtils
         }
     }
 
-    private static void CollectColorRedTransformsScalar(Span<uint> bgra, int stride, int tileWidth, int tileHeight, int greenToRed, Span<int> histo)
+    private static void CollectColorRedTransformsScalar(ReadOnlySpan<uint> bgra, int stride, int tileWidth, int tileHeight, int greenToRed, Span<int> histo)
     {
         int pos = 0;
         while (tileHeight-- > 0)

@@ -57,147 +57,6 @@ internal interface IColorIndexCache<T> : IColorIndexCache
 }
 
 /// <summary>
-/// A hybrid color distance cache that combines a small, fixed-capacity exact-match dictionary
-/// (ExactCache, ~4–5 KB for up to 512 entries) with a coarse lookup table (CoarseCache) for 5,5,5,6 precision.
-/// </summary>
-/// <remarks>
-/// ExactCache provides O(1) lookup for common cases using a simple 256-entry hash-based dictionary, while CoarseCache
-/// quantizes RGB channels to 5 bits (yielding 32^3 buckets) and alpha to 6 bits, storing up to 4 alpha entries per bucket
-/// (a design chosen based on probability theory to capture most real-world variations) for a total memory footprint of
-/// roughly 576 KB. Lookups and insertions are performed in constant time, making the overall design both fast and memory-predictable.
-/// </remarks>
-internal unsafe struct HybridCache : IColorIndexCache<HybridCache>
-{
-    private CoarseCache coarseCache;
-    private AccurateCache accurateCache;
-
-    public HybridCache(MemoryAllocator allocator)
-    {
-        this.accurateCache = AccurateCache.Create(allocator);
-        this.coarseCache = CoarseCache.Create(allocator);
-    }
-
-    /// <inheritdoc/>
-    public static HybridCache Create(MemoryAllocator allocator) => new(allocator);
-
-    /// <inheritdoc/>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public bool TryAdd(Rgba32 color, short index)
-    {
-        if (this.accurateCache.TryAdd(color, index))
-        {
-            return true;
-        }
-
-        return this.coarseCache.TryAdd(color, index);
-    }
-
-    /// <inheritdoc/>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public readonly bool TryGetValue(Rgba32 color, out short value)
-    {
-        if (this.accurateCache.TryGetValue(color, out value))
-        {
-            return true;
-        }
-
-        return this.coarseCache.TryGetValue(color, out value);
-    }
-
-    /// <inheritdoc/>
-    public readonly void Clear()
-    {
-        this.accurateCache.Clear();
-        this.coarseCache.Clear();
-    }
-
-    /// <inheritdoc/>
-    public void Dispose()
-    {
-        this.accurateCache.Dispose();
-        this.coarseCache.Dispose();
-    }
-}
-
-/// <summary>
-/// A coarse cache for color distance lookups that uses a fixed-size lookup table.
-/// </summary>
-/// <remarks>
-/// This cache uses a fixed lookup table with 2,097,152 bins, each storing a 2-byte value,
-/// resulting in a memory usage of approximately 4 MB. Lookups and insertions are
-/// performed in constant time (O(1)) via direct table indexing. This design is optimized for
-/// speed while maintaining a predictable, fixed memory footprint.
-/// </remarks>
-internal unsafe struct CoarseCache : IColorIndexCache<CoarseCache>
-{
-    private const int IndexRBits = 5;
-    private const int IndexGBits = 5;
-    private const int IndexBBits = 5;
-    private const int IndexABits = 6;
-    private const int IndexRCount = 1 << IndexRBits; // 32 bins for red
-    private const int IndexGCount = 1 << IndexGBits; // 32 bins for green
-    private const int IndexBCount = 1 << IndexBBits; // 32 bins for blue
-    private const int IndexACount = 1 << IndexABits; // 64 bins for alpha
-    private const int TotalBins = IndexRCount * IndexGCount * IndexBCount * IndexACount; // 2,097,152 bins
-
-    private readonly IMemoryOwner<short> binsOwner;
-    private readonly short* binsPointer;
-    private MemoryHandle binsHandle;
-
-    private CoarseCache(MemoryAllocator allocator)
-    {
-        this.binsOwner = allocator.Allocate<short>(TotalBins);
-        this.binsOwner.GetSpan().Fill(-1);
-        this.binsHandle = this.binsOwner.Memory.Pin();
-        this.binsPointer = (short*)this.binsHandle.Pointer;
-    }
-
-    /// <inheritdoc/>
-    public static CoarseCache Create(MemoryAllocator allocator) => new(allocator);
-
-    /// <inheritdoc/>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public readonly bool TryAdd(Rgba32 color, short value)
-    {
-        this.binsPointer[GetCoarseIndex(color)] = value;
-        return true;
-    }
-
-    /// <inheritdoc/>
-    [MethodImpl(InliningOptions.ShortMethod)]
-    public readonly bool TryGetValue(Rgba32 color, out short value)
-    {
-        value = this.binsPointer[GetCoarseIndex(color)];
-        return value > -1; // Coarse match found
-    }
-
-    [MethodImpl(InliningOptions.ShortMethod)]
-    private static int GetCoarseIndex(Rgba32 color)
-    {
-        int rIndex = color.R >> (8 - IndexRBits);
-        int gIndex = color.G >> (8 - IndexGBits);
-        int bIndex = color.B >> (8 - IndexBBits);
-        int aIndex = color.A >> (8 - IndexABits);
-
-        return (aIndex * IndexRCount * IndexGCount * IndexBCount) +
-               (rIndex * IndexGCount * IndexBCount) +
-               (gIndex * IndexBCount) +
-               bIndex;
-    }
-
-    /// <inheritdoc/>
-    public readonly void Clear()
-        => this.binsOwner.GetSpan().Fill(-1);
-
-    /// <inheritdoc/>
-    public void Dispose()
-    {
-        this.binsHandle.Dispose();
-        this.binsOwner.Dispose();
-    }
-}
-
-/// <summary>
 /// <para>
 /// CoarseCache is a fast, low-memory lookup structure for caching palette indices associated with RGBA values,
 /// using a quantized representation of 5,5,5,6 (RGB: 5 bits each, Alpha: 6 bits).
@@ -225,7 +84,7 @@ internal unsafe struct CoarseCache : IColorIndexCache<CoarseCache>
 /// making it ideal for applications such as color distance caching in images with a limited palette (up to 256 entries).
 /// </para>
 /// </summary>
-internal unsafe struct CoarseCacheLite : IColorIndexCache<CoarseCacheLite>
+internal unsafe struct CoarseCache : IColorIndexCache<CoarseCache>
 {
     // Use 5 bits per channel for R, G, and B: 32 levels each.
     // Total buckets = 32^3 = 32768.
@@ -236,7 +95,7 @@ internal unsafe struct CoarseCacheLite : IColorIndexCache<CoarseCacheLite>
     private readonly AlphaBucket* buckets;
     private MemoryHandle bucketHandle;
 
-    private CoarseCacheLite(MemoryAllocator allocator)
+    private CoarseCache(MemoryAllocator allocator)
     {
         this.bucketsOwner = allocator.Allocate<AlphaBucket>(BucketCount, AllocationOptions.Clean);
         this.bucketHandle = this.bucketsOwner.Memory.Pin();
@@ -244,7 +103,7 @@ internal unsafe struct CoarseCacheLite : IColorIndexCache<CoarseCacheLite>
     }
 
     /// <inheritdoc/>
-    public static CoarseCacheLite Create(MemoryAllocator allocator) => new(allocator);
+    public static CoarseCache Create(MemoryAllocator allocator) => new(allocator);
 
     /// <inheritdoc/>
     public readonly bool TryAdd(Rgba32 color, short paletteIndex)
@@ -289,14 +148,11 @@ internal unsafe struct CoarseCacheLite : IColorIndexCache<CoarseCacheLite>
     }
 
     [MethodImpl(InliningOptions.ShortMethod)]
-    private static byte QuantizeAlpha(byte a)
-
-        // Quantize to 6 bits: shift right by (8 - 6) = 2 bits.
-        => (byte)(a >> 2);
+    private static byte QuantizeAlpha(byte a) => (byte)(a >> 2);
 
     public struct AlphaEntry
     {
-        // Store the alpha value quantized to 6 bits (0..63)
+        // Store the alpha value quantized to 6 bits (0..63).
         public byte QuantizedAlpha;
         public short PaletteIndex;
     }
@@ -312,7 +168,7 @@ internal unsafe struct CoarseCacheLite : IColorIndexCache<CoarseCacheLite>
         // 2. However, in practice (based on probability theory and typical image data),
         //    the number of unique alpha values that actually occur for a given quantized RGB
         //    bucket is usually very small. If you randomly sample 8 values out of 64,
-        //    the probability that these 4 samples are all unique is high if the distribution
+        //    the probability that these samples are all unique is high if the distribution
         //    of alpha values is skewed or if only a few alpha values are used.
         //
         // 3. Statistically, for many real-world images, most RGB buckets will have only a couple
@@ -377,51 +233,49 @@ internal unsafe struct CoarseCacheLite : IColorIndexCache<CoarseCacheLite>
 }
 
 /// <summary>
-/// A fixed-capacity dictionary with exactly 512 entries mapping a <see cref="uint"/> key
-/// to a <see cref="short"/> value.
+/// A fixed-size exact-match cache that stores packed RGBA keys with 4-way set associativity.
 /// </summary>
 /// <remarks>
-/// The dictionary is implemented using a fixed array of 512 buckets and an entries array
-/// of the same size. The bucket for a key is computed as (key &amp; 0x1FF), and collisions are
-/// resolved through a linked chain stored in the <see cref="Entry.Next"/> field.
+/// The cache holds 512 total entries split across 128 sets. Entries are evicted within a set
+/// using round-robin replacement, but cached values are returned only when the full packed RGBA
+/// key matches, preserving exact quantization results with predictable memory usage.
 /// The overall memory usage is approximately 4–5 KB. Both lookup and insertion operations are,
-/// on average, O(1) since the bucket is determined via a simple bitmask and collision chains are
-/// typically very short; in the worst-case, the number of iterations is bounded by 256.
+/// on average, O(1) since each lookup probes at most four candidate entries within the selected set.
 /// This guarantees highly efficient and predictable performance for small, fixed-size color palettes.
 /// </remarks>
 internal unsafe struct AccurateCache : IColorIndexCache<AccurateCache>
 {
-    // Buckets array: each bucket holds the index (0-based) into the entries array
-    // of the first entry in the chain, or -1 if empty.
-    private readonly IMemoryOwner<short> bucketsOwner;
-    private MemoryHandle bucketsHandle;
-    private short* buckets;
-
-    // Entries array: stores up to 256 entries.
-    private readonly IMemoryOwner<Entry> entriesOwner;
-    private MemoryHandle entriesHandle;
-    private Entry* entries;
-
     public const int Capacity = 512;
+    private const int Ways = 4;
+    private const int SetCount = Capacity / Ways;
+    private const int SetMask = SetCount - 1;
+
+    private readonly IMemoryOwner<uint> keysOwner;
+    private MemoryHandle keysHandle;
+    private uint* keys;
+
+    private readonly IMemoryOwner<ushort> valuesOwner;
+    private MemoryHandle valuesHandle;
+    private ushort* values;
+
+    private readonly IMemoryOwner<byte> nextVictimOwner;
+    private MemoryHandle nextVictimHandle;
+    private byte* nextVictim;
 
     private AccurateCache(MemoryAllocator allocator)
     {
-        this.Count = 0;
+        this.keysOwner = allocator.Allocate<uint>(Capacity, AllocationOptions.Clean);
+        this.keysHandle = this.keysOwner.Memory.Pin();
+        this.keys = (uint*)this.keysHandle.Pointer;
 
-        // Allocate exactly 512 indexes for buckets.
-        this.bucketsOwner = allocator.Allocate<short>(Capacity, AllocationOptions.Clean);
-        Span<short> bucketSpan = this.bucketsOwner.GetSpan();
-        bucketSpan.Fill(-1);
-        this.bucketsHandle = this.bucketsOwner.Memory.Pin();
-        this.buckets = (short*)this.bucketsHandle.Pointer;
+        this.valuesOwner = allocator.Allocate<ushort>(Capacity, AllocationOptions.Clean);
+        this.valuesHandle = this.valuesOwner.Memory.Pin();
+        this.values = (ushort*)this.valuesHandle.Pointer;
 
-        // Allocate exactly 512 entries.
-        this.entriesOwner = allocator.Allocate<Entry>(Capacity, AllocationOptions.Clean);
-        this.entriesHandle = this.entriesOwner.Memory.Pin();
-        this.entries = (Entry*)this.entriesHandle.Pointer;
+        this.nextVictimOwner = allocator.Allocate<byte>(SetCount, AllocationOptions.Clean);
+        this.nextVictimHandle = this.nextVictimOwner.Memory.Pin();
+        this.nextVictim = (byte*)this.nextVictimHandle.Pointer;
     }
-
-    public int Count { get; private set; }
 
     /// <inheritdoc/>
     public static AccurateCache Create(MemoryAllocator allocator) => new(allocator);
@@ -430,140 +284,113 @@ internal unsafe struct AccurateCache : IColorIndexCache<AccurateCache>
     [MethodImpl(InliningOptions.ShortMethod)]
     public bool TryAdd(Rgba32 color, short value)
     {
-        if (this.Count == Capacity)
-        {
-            return false; // Dictionary is full.
-        }
-
         uint key = color.PackedValue;
+        int set = GetSetIndex(key);
+        int start = set * Ways;
+        int empty = -1;
 
-        // The key is a 32-bit unsigned integer representing an RGBA color, where the bytes are laid out as R|G|B|A
-        // (with R in the most significant byte and A in the least significant).
-        // To compute the bucket index:
-        // 1. (key >> 16) extracts the top 16 bits, effectively giving us the R and G channels.
-        // 2. (key >> 8) shifts the key right by 8 bits, bringing R, G, and B into the lower 24 bits (dropping A).
-        // 3. XORing these two values with the original key mixes bits from all four channels (R, G, B, and A),
-        //    which helps to counteract situations where one or more channels have a limited range.
-        // 4. Finally, we apply a bitmask of 0x1FF to keep only the lowest 9 bits, ensuring the result is between 0 and 511,
-        //    which corresponds to our fixed bucket count of 512.
-        int bucket = (int)(((key >> 16) ^ (key >> 8) ^ key) & 0x1FF);
-        int i = this.buckets[bucket];
+        uint* keys = this.keys;
+        ushort* values = this.values;
+        ushort storedValue = (ushort)(value + 1);
 
-        // Traverse the collision chain.
-        Entry* entries = this.entries;
-        while (i != -1)
+        for (int i = start; i < start + Ways; i++)
         {
-            Entry e = entries[i];
-            if (e.Key == key)
+            ushort candidate = values[i];
+            if (candidate == 0)
             {
-                // Key already exists; do not overwrite.
-                return false;
+                empty = i;
+                continue;
             }
 
-            i = e.Next;
+            if (keys[i] == key)
+            {
+                values[i] = storedValue;
+                return true;
+            }
         }
 
-        short index = (short)this.Count;
-        this.Count++;
+        int slot = empty >= 0 ? empty : start + this.nextVictim[set];
+        keys[slot] = key;
+        values[slot] = storedValue;
 
-        // Insert the new entry:
-        entries[index].Key = key;
-        entries[index].Value = value;
+        if (empty < 0)
+        {
+            this.nextVictim[set] = (byte)((this.nextVictim[set] + 1) & (Ways - 1));
+        }
 
-        // Link this new entry into the bucket chain.
-        entries[index].Next = this.buckets[bucket];
-        this.buckets[bucket] = index;
         return true;
     }
 
     /// <inheritdoc/>
     [MethodImpl(InliningOptions.ShortMethod)]
-    public bool TryGetValue(Rgba32 color, out short value)
+    public readonly bool TryGetValue(Rgba32 color, out short value)
     {
         uint key = color.PackedValue;
-        int bucket = (int)(((key >> 16) ^ (key >> 8) ^ key) & 0x1FF);
-        int i = this.buckets[bucket];
+        int start = GetSetIndex(key) * Ways;
 
-        // If the bucket is empty, return immediately.
-        if (i == -1)
-        {
-            value = -1;
-            return false;
-        }
+        uint* keys = this.keys;
+        ushort* values = this.values;
 
-        // Traverse the chain.
-        Entry* entries = this.entries;
-        do
+        for (int i = start; i < start + Ways; i++)
         {
-            Entry e = entries[i];
-            if (e.Key == key)
+            ushort candidate = values[i];
+            if (candidate != 0 && keys[i] == key)
             {
-                value = e.Value;
+                value = (short)(candidate - 1);
                 return true;
             }
-
-            i = e.Next;
         }
-        while (i != -1);
 
         value = -1;
         return false;
     }
 
     /// <summary>
-    /// Clears the dictionary.
+    /// Clears the cache.
     /// </summary>
-    public void Clear()
+    public readonly void Clear()
     {
-        Span<short> bucketSpan = this.bucketsOwner.GetSpan();
-        bucketSpan.Fill(-1);
-        this.Count = 0;
+        this.valuesOwner.GetSpan().Clear();
+        this.nextVictimOwner.GetSpan().Clear();
     }
 
     public void Dispose()
     {
-        this.bucketsHandle.Dispose();
-        this.bucketsOwner.Dispose();
-        this.entriesHandle.Dispose();
-        this.entriesOwner.Dispose();
-        this.buckets = null;
-        this.entries = null;
+        this.keysHandle.Dispose();
+        this.keysOwner.Dispose();
+        this.valuesHandle.Dispose();
+        this.valuesOwner.Dispose();
+        this.nextVictimHandle.Dispose();
+        this.nextVictimOwner.Dispose();
+        this.keys = null;
+        this.values = null;
+        this.nextVictim = null;
     }
 
-    private struct Entry
-    {
-        public uint Key;     // The key (packed RGBA)
-        public short Value;  // The value; -1 means unused.
-        public short Next;     // Index of the next entry in the chain, or -1 if none.
-    }
-}
-
-/// <summary>
-/// Represents a cache that does not store any values.
-/// It allows adding colors, but always returns false when trying to retrieve them.
-/// </summary>
-internal readonly struct NullCache : IColorIndexCache<NullCache>
-{
-    /// <inheritdoc/>
-    public static NullCache Create(MemoryAllocator allocator) => default;
-
-    /// <inheritdoc/>
-    public bool TryAdd(Rgba32 color, short value) => true;
-
-    /// <inheritdoc/>
-    public bool TryGetValue(Rgba32 color, out short value)
-    {
-        value = -1;
-        return false;
-    }
-
-    /// <inheritdoc/>
-    public void Clear()
-    {
-    }
-
-    /// <inheritdoc/>
-    public void Dispose()
-    {
-    }
+    /// <summary>
+    /// Maps a packed RGBA key to one of the cache sets used by <see cref="AccurateCache"/>.
+    /// </summary>
+    /// <param name="key">The packed <see cref="Rgba32.PackedValue"/> key.</param>
+    /// <returns>The zero-based set index for the key.</returns>
+    /// <remarks>
+    /// <para>
+    /// The cache is 4-way set-associative, so this hash only needs to choose one of
+    /// <see cref="SetCount"/> sets before probing up to four candidate entries.
+    /// </para>
+    /// <para>
+    /// <see cref="Rgba32.PackedValue"/> is laid out as <c>R | (G &lt;&lt; 8) | (B &lt;&lt; 16) | (A &lt;&lt; 24)</c>.
+    /// The XOR-fold mixes neighboring bytes into the low bits, and the final mask selects the
+    /// set. With the current 128-set layout that makes the selected set effectively depend on
+    /// the low 7 bits of <c>R ^ G ^ B</c>. Alpha still participates in the later exact key
+    /// comparison, but not in set selection.
+    /// </para>
+    /// <para>
+    /// Collisions are expected and acceptable here. Correctness comes from the full packed-key
+    /// comparison during probing; this hash only aims to spread keys cheaply enough that each
+    /// access touches at most one 4-entry set.
+    /// </para>
+    /// </remarks>
+    [MethodImpl(InliningOptions.ShortMethod)]
+    private static int GetSetIndex(uint key)
+        => (int)(((key >> 16) ^ (key >> 8) ^ key) & SetMask);
 }

@@ -3,7 +3,6 @@
 
 using SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
 using SixLabors.ImageSharp.PixelFormats;
-using Xunit.Abstractions;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Jpg.Utils;
 
@@ -34,7 +33,7 @@ internal static class VerifyJpeg
         int xBc2,
         int yBc2)
     {
-        IJpegComponent[] c = components.ToArray();
+        IJpegComponent[] c = [.. components];
         Assert.Equal(3, components.Count());
 
         VerifySize(c[0], xBc0, yBc0);

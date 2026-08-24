@@ -1,4 +1,4 @@
-// Copyright (c) Six Labors.
+﻿// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 #nullable disable
 
@@ -620,7 +620,7 @@ internal sealed unsafe partial class JpegEncoderCore
     /// </summary>
     /// <param name="components">The collecction of component configuration items.</param>
     /// <param name="buffer">Temporary buffer.</param>
-    private void WriteStartOfScan(Span<JpegComponentConfig> components, Span<byte> buffer) =>
+    private void WriteStartOfScan(ReadOnlySpan<JpegComponentConfig> components, Span<byte> buffer) =>
         this.WriteStartOfScan(components, buffer, 0x00, 0x3f);
 
     /// <summary>
@@ -630,7 +630,7 @@ internal sealed unsafe partial class JpegEncoderCore
     /// <param name="buffer">Temporary buffer.</param>
     /// <param name="spectralStart">Start of spectral selection</param>
     /// <param name="spectralEnd">End of spectral selection</param>
-    private void WriteStartOfScan(Span<JpegComponentConfig> components, Span<byte> buffer, byte spectralStart, byte spectralEnd)
+    private void WriteStartOfScan(ReadOnlySpan<JpegComponentConfig> components, Span<byte> buffer, byte spectralStart, byte spectralEnd)
     {
         // Write the SOS (Start Of Scan) marker "\xff\xda" followed by 12 bytes:
         // - the marker length "\x00\x0c",

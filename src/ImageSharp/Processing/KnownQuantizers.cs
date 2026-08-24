@@ -1,4 +1,4 @@
-﻿// Copyright (c) Six Labors.
+// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.Processing.Processors.Quantization;
@@ -6,14 +6,14 @@ using SixLabors.ImageSharp.Processing.Processors.Quantization;
 namespace SixLabors.ImageSharp.Processing;
 
 /// <summary>
-/// Contains reusable static instances of known quantizing algorithms
+/// Contains reusable static instances of known quantizing algorithms.
 /// </summary>
 public static class KnownQuantizers
 {
     /// <summary>
-    /// Gets the adaptive Octree quantizer. Fast with good quality.
+    /// Gets the adaptive hexadecatree quantizer. Fast with good quality.
     /// </summary>
-    public static IQuantizer Octree { get; } = new OctreeQuantizer();
+    public static IQuantizer Hexadecatree { get; } = new HexadecatreeQuantizer();
 
     /// <summary>
     /// Gets the Xiaolin Wu's Color Quantizer which generates high quality output.

@@ -16,7 +16,7 @@ public interface IImageVisitor
     /// </summary>
     /// <param name="image">The image.</param>
     /// <typeparam name="TPixel">The pixel type.</typeparam>
-    void Visit<TPixel>(Image<TPixel> image)
+    public void Visit<TPixel>(Image<TPixel> image)
         where TPixel : unmanaged, IPixel<TPixel>;
 }
 
@@ -33,6 +33,6 @@ public interface IImageVisitorAsync
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <typeparam name="TPixel">The pixel type.</typeparam>
     /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
-    Task VisitAsync<TPixel>(Image<TPixel> image, CancellationToken cancellationToken)
+    public Task VisitAsync<TPixel>(Image<TPixel> image, CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>;
 }

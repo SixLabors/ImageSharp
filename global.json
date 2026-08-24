@@ -1,0 +1,18 @@
+// Pins the .NET SDK to major version 10 or later for all SixLabors repositories.
+// The build copies this file to consuming repositories together with .editorconfig and
+// the other shared config files (see msbuild/targets/SixLabors.Src.targets).
+{
+  "sdk": {
+    // The floor, not an exact build: resolution never selects an SDK below major 10.
+    "version": "10.0.0",
+
+    // Select the newest installed SDK at or above the floor. This spans feature bands,
+    // minor versions, and major versions, so a machine with only stable 10.0.x SDKs
+    // resolves the newest of those, and a machine with a newer SDK resolves that instead.
+    "rollForward": "latestMajor",
+
+    // Let the CLI and Visual Studio select preview SDKs when one is installed.
+    // Machines and CI lanes without a preview SDK are unaffected.
+    "allowPrerelease": true
+  }
+}

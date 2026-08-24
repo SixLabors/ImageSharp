@@ -3,7 +3,7 @@
 
 namespace SixLabors.ImageSharp.Formats.Webp.Lossy;
 
-internal unsafe struct Vp8Matrix
+internal struct Vp8Matrix
 {
     // [luma-ac,luma-dc,chroma][dc,ac]
     private static readonly int[][] BiasMatrices =
@@ -21,27 +21,27 @@ internal unsafe struct Vp8Matrix
     /// <summary>
     /// The quantizer steps.
     /// </summary>
-    public fixed ushort Q[16];
+    public InlineArray16<ushort> Q;
 
     /// <summary>
     /// The reciprocals, fixed point.
     /// </summary>
-    public fixed ushort IQ[16];
+    public InlineArray16<ushort> IQ;
 
     /// <summary>
     /// The rounding bias.
     /// </summary>
-    public fixed uint Bias[16];
+    public InlineArray16<uint> Bias;
 
     /// <summary>
     /// The value below which a coefficient is zeroed.
     /// </summary>
-    public fixed uint ZThresh[16];
+    public InlineArray16<uint> ZThresh;
 
     /// <summary>
     /// The frequency boosters for slight sharpening.
     /// </summary>
-    public fixed short Sharpen[16];
+    public InlineArray16<short> Sharpen;
 
     // Sharpening by (slightly) raising the hi-frequency coeffs.
     // Hack-ish but helpful for mid-bitrate range. Use with care.

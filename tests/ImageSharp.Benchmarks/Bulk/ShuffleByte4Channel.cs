@@ -24,7 +24,7 @@ public class ShuffleByte4Channel
 
     [Benchmark]
     public void Shuffle4Channel()
-        => SimdUtils.Shuffle4<WXYZShuffle4>(this.source, this.destination, default);
+        => SimdUtils.Shuffle4<WXYZShuffle4>(this.source, this.destination);
 }
 
 // 2020-10-29

@@ -15,12 +15,12 @@ public interface IMemoryGroup<T> : IReadOnlyList<Memory<T>>
     /// Gets the number of elements per contiguous sub-buffer preceding the last buffer.
     /// The last buffer is allowed to be smaller.
     /// </summary>
-    int BufferLength { get; }
+    public int BufferLength { get; }
 
     /// <summary>
     /// Gets the aggregate number of elements in the group.
     /// </summary>
-    long TotalLength { get; }
+    public long TotalLength { get; }
 
     /// <summary>
     /// Gets a value indicating whether the group has been invalidated.
@@ -29,7 +29,7 @@ public interface IMemoryGroup<T> : IReadOnlyList<Memory<T>>
     /// Invalidation usually occurs when an image processor capable to alter the image dimensions replaces
     /// the image buffers internally.
     /// </remarks>
-    bool IsValid { get; }
+    public bool IsValid { get; }
 
     /// <summary>
     /// Returns a value-type implementing an allocation-free enumerator of the memory groups in the current
@@ -39,5 +39,5 @@ public interface IMemoryGroup<T> : IReadOnlyList<Memory<T>>
     /// implementation, which is still available when casting to one of the underlying interfaces.
     /// </summary>
     /// <returns>A new <see cref="MemoryGroupEnumerator{T}"/> instance mapping the current <see cref="Memory{T}"/> values in use.</returns>
-    new MemoryGroupEnumerator<T> GetEnumerator();
+    public new MemoryGroupEnumerator<T> GetEnumerator();
 }

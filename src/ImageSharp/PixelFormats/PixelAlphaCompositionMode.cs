@@ -66,5 +66,10 @@ public enum PixelAlphaCompositionMode
     /// <summary>
     /// Clear where they overlap.
     /// </summary>
-    Xor
+    Xor,
+
+    /// <summary>
+    /// Adds the source and destination, clamping the result to the supported color and alpha range.
+    /// </summary>
+    Plus,
 }

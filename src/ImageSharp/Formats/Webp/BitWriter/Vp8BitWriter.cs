@@ -1,4 +1,4 @@
-// Copyright (c) Six Labors.
+﻿// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 using System.Buffers.Binary;
@@ -223,7 +223,7 @@ internal class Vp8BitWriter : BitWriterBase
         }
     }
 
-    public int PutI4Mode(int mode, Span<byte> prob)
+    public int PutI4Mode(int mode, ReadOnlySpan<byte> prob)
     {
         if (this.PutBit(mode != B_DC_PRED, prob[0]))
         {

@@ -2,9 +2,9 @@
 
 ## References
 - TIFF
-  - [TIFF 6.0 Specification](http://partners.adobe.com/public/developer/en/tiff/TIFF6.pdf),(http://www.npes.org/pdf/TIFF-v6.pdf)
-  - [TIFF Supplement 1](http://partners.adobe.com/public/developer/en/tiff/TIFFPM6.pdf)
-  - [TIFF Supplement 2](http://partners.adobe.com/public/developer/en/tiff/TIFFphotoshop.pdf)
+  - [TIFF 6.0 Specification](https://download.osgeo.org/libtiff/doc/TIFF6.pdf)
+  - [TIFF Supplement 1](https://download.osgeo.org/libtiff/doc/TIFFPM6.pdf)
+  - [TIFF Supplement 2](https://download.osgeo.org/libtiff/doc/TIFFphotoshop.pdf)
   - [TIFF Supplement 3](http://chriscox.org/TIFFTN3d1.pdf)
   - [TIFF-F/FX Extension (RFC2301)](http://www.ietf.org/rfc/rfc2301.txt)
   - [TIFF/EP Extension (Wikipedia)](https://en.wikipedia.org/wiki/TIFF/EP)

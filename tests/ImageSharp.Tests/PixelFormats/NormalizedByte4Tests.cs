@@ -4,6 +4,7 @@
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Tests.TestUtilities;
 
 namespace SixLabors.ImageSharp.Tests.PixelFormats;
 
@@ -58,6 +59,39 @@ public class NormalizedByte4Tests
         Assert.Equal(-Vector4.One, new NormalizedByte4(-Vector4.One).ToVector4());
         Assert.Equal(Vector4.One, new NormalizedByte4(Vector4.One * 1234.0f).ToVector4());
         Assert.Equal(-Vector4.One, new NormalizedByte4(Vector4.One * -1234.0f).ToVector4());
+    }
+
+    [Fact]
+    public void NormalizedByte4_MinimumStorageCodeDecodesAsNegativeOne() =>
+        FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            AssertNormalizedByte4MinimumStorageCodeDecodesAsNegativeOne,
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+
+    private static void AssertNormalizedByte4MinimumStorageCodeDecodesAsNegativeOne()
+    {
+        NormalizedByte4 pixel = new() { PackedValue = 0x80808080 };
+
+        Assert.Equal(-Vector4.One, pixel.ToVector4());
+        Assert.Equal(Vector4.Zero, pixel.ToScaledVector4());
+
+        NormalizedByte4[] source = new NormalizedByte4[17];
+        Vector4[] native = new Vector4[source.Length];
+        Vector4[] scaled = new Vector4[source.Length];
+        Array.Fill(source, pixel);
+
+        PixelOperations<NormalizedByte4>.Instance.ToVector4(Configuration.Default, source, native);
+        PixelOperations<NormalizedByte4>.Instance.ToVector4(Configuration.Default, source, scaled, PixelConversionModifiers.Scale);
+
+        for (int i = 0; i < source.Length; i++)
+        {
+            Assert.Equal(-Vector4.One, native[i]);
+            Assert.Equal(Vector4.Zero, scaled[i]);
+        }
+
+        Vector4[] destructiveSource = new Vector4[source.Length];
+        NormalizedByte4[] actualPixels = new NormalizedByte4[source.Length];
+        PixelOperations<NormalizedByte4>.Instance.FromVector4Destructive(Configuration.Default, destructiveSource, actualPixels, PixelConversionModifiers.Scale);
+        Assert.All(actualPixels, actual => Assert.Equal(0x81818181U, actual.PackedValue));
     }
 
     [Fact]

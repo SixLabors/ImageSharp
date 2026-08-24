@@ -38,6 +38,7 @@ public partial struct Argb32
             source.CopyTo(destination.Slice(0, source.Length));
         }
 
+
         /// <inheritdoc />
         public override void FromVector4Destructive(
             Configuration configuration,
@@ -45,7 +46,20 @@ public partial struct Argb32
             Span<Argb32> destination,
             PixelConversionModifiers modifiers)
         {
-            Vector4Converters.RgbaCompatible.FromVector4(configuration, this, sourceVectors, destination, modifiers.Remove(PixelConversionModifiers.Scale));
+            Guard.DestinationShouldNotBeTooShort(sourceVectors, destination, nameof(destination));
+
+            destination = destination[..sourceVectors.Length];
+            Vector4Converters.ApplyBackwardConversionModifiers(sourceVectors, modifiers.Remove(PixelConversionModifiers.Scale));
+
+            Span<byte> destinationBytes = MemoryMarshal.Cast<Argb32, byte>(destination);
+
+            // The SIMD saturating conversion produces RGBA byte order. Reusing the destination
+            // buffer and shuffling it in place avoids the row-sized Rgba32 temporary used by
+            // the generic Rgba-compatible path for non-Rgba32 formats.
+            SimdUtils.NormalizedFloatToByteSaturate(
+                MemoryMarshal.Cast<Vector4, float>(sourceVectors),
+                destinationBytes);
+            PixelConverter.FromRgba32.ToArgb32(destinationBytes, destinationBytes);
         }
 
         /// <inheritdoc />

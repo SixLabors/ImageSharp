@@ -3,7 +3,6 @@
 
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using Xunit.Abstractions;
 
 namespace SixLabors.ImageSharp.Tests;
 

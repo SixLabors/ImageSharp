@@ -8,7 +8,6 @@ namespace SixLabors.ImageSharp.Benchmarks.Bulk;
 [Config(typeof(Config.HwIntrinsics_SSE_AVX))]
 public class Shuffle4Slice3Channel
 {
-    private static readonly DefaultShuffle4Slice3 Control = new(SimdUtils.Shuffle.MMShuffle1032);
     private byte[] source;
     private byte[] destination;
 
@@ -25,11 +24,11 @@ public class Shuffle4Slice3Channel
 
     [Benchmark]
     public void Shuffle4Slice3()
-        => SimdUtils.Shuffle4Slice3(this.source, this.destination, Control);
+        => SimdUtils.Shuffle4Slice3<WZYXShuffle4Slice3>(this.source, this.destination);
 
     [Benchmark]
     public void Shuffle4Slice3FastFallback()
-        => SimdUtils.Shuffle4Slice3(this.source, this.destination, default(XYZWShuffle4Slice3));
+        => SimdUtils.Shuffle4Slice3<XYZWShuffle4Slice3>(this.source, this.destination);
 }
 
 // 2020-10-29

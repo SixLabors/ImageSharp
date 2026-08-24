@@ -4,7 +4,6 @@
 using SixLabors.ImageSharp.Formats.Jpeg.Components;
 using SixLabors.ImageSharp.Tests.Formats.Jpg.Utils;
 using SixLabors.ImageSharp.Tests.TestUtilities;
-using Xunit.Abstractions;
 
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests.Formats.Jpg;
@@ -152,7 +151,7 @@ public static class DCTTests
             FeatureTestRunner.RunWithHwIntrinsicsFeature(
                 RunTest,
                 seed,
-                HwIntrinsics.AllowAll | HwIntrinsics.DisableFMA | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+                HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
         }
 
         [Theory]
@@ -193,7 +192,7 @@ public static class DCTTests
             {
                 for (int x = 0; x < 4; x++)
                 {
-                    AssertScaledElementEquality(expectedSpan.Slice((y * 16) + (x * 2)), actualSpan.Slice((y * 8) + x));
+                    AssertScaledElementEquality(expectedSpan[((y * 16) + (x * 2))..], actualSpan[((y * 8) + x)..]);
                 }
             }
 
@@ -210,7 +209,7 @@ public static class DCTTests
                     }
                 }
 
-                average2x2 = MathF.Round(average2x2 / 4f);
+                average2x2 /= 4f;
 
                 Assert.Equal((int)average2x2, (int)actual[0]);
             }
@@ -254,7 +253,7 @@ public static class DCTTests
             {
                 for (int x = 0; x < 2; x++)
                 {
-                    AssertScaledElementEquality(expectedSpan.Slice((y * 32) + (x * 4)), actualSpan.Slice((y * 8) + x));
+                    AssertScaledElementEquality(expectedSpan[((y * 32) + (x * 4))..], actualSpan[((y * 8) + x)..]);
                 }
             }
 
@@ -271,7 +270,7 @@ public static class DCTTests
                     }
                 }
 
-                average4x4 = MathF.Round(average4x4 / 16f);
+                average4x4 /= 16f;
 
                 Assert.Equal((int)average4x4, (int)actual[0]);
             }
@@ -311,7 +310,7 @@ public static class DCTTests
                 NormalizationValue,
                 MaxOutputValue);
 
-            float expected = MathF.Round(Numerics.Clamp(expectedDest[0] + NormalizationValue, 0, MaxOutputValue));
+            float expected = Numerics.Clamp(expectedDest[0] + NormalizationValue, 0, MaxOutputValue);
 
             Assert.Equal((int)actual, (int)expected);
         }
@@ -352,15 +351,14 @@ public static class DCTTests
                 Assert.Equal(expectedDest, actualDest, new ApproximateFloatComparer(1f));
             }
 
-            // 4 paths:
-            // 1. AllowAll - call avx/fma implementation
-            // 2. DisableFMA - call avx without fma implementation
-            // 3. DisableAvx - call Vector4 implementation
-            // 4. DisableHWIntrinsic - call scalar fallback implementation
+            // 3 paths:
+            // 1. AllowAll - call avx implementation
+            // 2. DisableAvx - call Vector4 implementation
+            // 3. DisableHWIntrinsic - call scalar fallback implementation
             FeatureTestRunner.RunWithHwIntrinsicsFeature(
                 RunTest,
                 seed,
-                HwIntrinsics.AllowAll | HwIntrinsics.DisableFMA | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+                HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
         }
     }
 }

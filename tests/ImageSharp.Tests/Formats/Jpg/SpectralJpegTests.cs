@@ -9,7 +9,6 @@ using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.Formats.Jpg.Utils;
-using Xunit.Abstractions;
 
 // ReSharper disable InconsistentNaming
 namespace SixLabors.ImageSharp.Tests.Formats.Jpg;
@@ -36,7 +35,7 @@ public class SpectralJpegTests
             TestImages.Jpeg.Progressive.Bad.ExifUndefType
     ];
 
-    public static readonly string[] AllTestJpegs = BaselineTestJpegs.Concat(ProgressiveTestJpegs).ToArray();
+    public static readonly string[] AllTestJpegs = [.. BaselineTestJpegs, .. ProgressiveTestJpegs];
 
     [Theory(Skip = "Debug only, enable manually!")]
     [WithFileCollection(nameof(AllTestJpegs), PixelTypes.Rgba32)]
@@ -119,7 +118,7 @@ public class SpectralJpegTests
             this.Output.WriteLine($"Component{i}: [total: {total} | average: {average}]");
             averageDifference += average;
             totalDifference += total;
-            Size s = libJpegComponent.SpectralBlocks.Size();
+            Size s = libJpegComponent.SpectralBlocks.Size;
             tolerance += s.Width * s.Height;
         }
 

@@ -4,6 +4,7 @@
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Tests.TestUtilities;
 
 namespace SixLabors.ImageSharp.Tests.PixelFormats;
 
@@ -26,45 +27,62 @@ public class HalfSingleTests
     public void HalfSingle_ToVector4()
     {
         // arrange
-        HalfSingle pixel = new(0.5f);
-        Vector4 expected = new(0.5f, 0, 0, 1);
+        HalfSingle pixel = new(-2F);
+        Vector4 expected = new(-2F, 0, 0, 1);
 
         // act
         Vector4 actual = pixel.ToVector4();
 
         // assert
         Assert.Equal(expected, actual);
+        Assert.Equal((float)Half.MinValue, new HalfSingle((float)Half.MinValue).ToSingle());
+        Assert.Equal((float)Half.MaxValue, new HalfSingle((float)Half.MaxValue).ToSingle());
     }
 
     [Fact]
     public void HalfSingle_ToScaledVector4()
     {
-        // arrange
-        HalfSingle pixel = new(-1F);
-
-        // act
-        Vector4 actual = pixel.ToScaledVector4();
-
-        // assert
-        Assert.Equal(0, actual.X);
-        Assert.Equal(0, actual.Y);
-        Assert.Equal(0, actual.Z);
-        Assert.Equal(1, actual.W);
+        Assert.Equal(new Vector4(0F, 0F, 0F, 1F), new HalfSingle((float)Half.MinValue).ToScaledVector4());
+        Assert.Equal(new Vector4(.5F, 0F, 0F, 1F), new HalfSingle(0F).ToScaledVector4());
+        Assert.Equal(new Vector4(1F, 0F, 0F, 1F), new HalfSingle((float)Half.MaxValue).ToScaledVector4());
     }
 
     [Fact]
     public void HalfSingle_FromScaledVector4()
     {
-        // arrange
-        Vector4 scaled = new HalfSingle(-1F).ToScaledVector4();
-        const int expected = 48128;
+        Assert.Equal((ushort)0xFBFF, HalfSingle.FromScaledVector4(new Vector4(0F, 0F, 0F, 1F)).PackedValue);
+        Assert.Equal((ushort)0, HalfSingle.FromScaledVector4(new Vector4(.5F, 0F, 0F, 1F)).PackedValue);
+        Assert.Equal((ushort)0x7BFF, HalfSingle.FromScaledVector4(new Vector4(1F, 0F, 0F, 1F)).PackedValue);
+    }
 
-        // act
-        HalfSingle pixel = HalfSingle.FromScaledVector4(scaled);
-        ushort actual = pixel.PackedValue;
+    [Fact]
+    public void HalfSingle_BulkScaledConversionsCoverFiniteRange() =>
+        FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            AssertHalfSingleBulkScaledConversionsCoverFiniteRange,
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
 
-        // assert
-        Assert.Equal(expected, actual);
+    private static void AssertHalfSingleBulkScaledConversionsCoverFiniteRange()
+    {
+        ushort[] packedValues = [0xFBFF, 0, 0x7BFF];
+        Vector4[] scaledValues = [new(0F, 0F, 0F, 1F), new(.5F, 0F, 0F, 1F), new(1F, 0F, 0F, 1F)];
+        HalfSingle[] source = new HalfSingle[17];
+        Vector4[] expectedVectors = new Vector4[source.Length];
+
+        for (int i = 0; i < source.Length; i++)
+        {
+            int valueIndex = i % packedValues.Length;
+            source[i].PackedValue = packedValues[valueIndex];
+            expectedVectors[i] = scaledValues[valueIndex];
+        }
+
+        Vector4[] actualVectors = new Vector4[source.Length];
+        PixelOperations<HalfSingle>.Instance.ToVector4(Configuration.Default, source, actualVectors, PixelConversionModifiers.Scale);
+        Assert.Equal(expectedVectors, actualVectors);
+
+        Vector4[] destructiveSource = [.. expectedVectors];
+        HalfSingle[] actualPixels = new HalfSingle[source.Length];
+        PixelOperations<HalfSingle>.Instance.FromVector4Destructive(Configuration.Default, destructiveSource, actualPixels, PixelConversionModifiers.Scale);
+        Assert.Equal(source, actualPixels);
     }
 
     [Fact]

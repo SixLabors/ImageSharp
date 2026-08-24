@@ -6,7 +6,6 @@ using SixLabors.ImageSharp.ColorProfiles;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using Wacton.Unicolour;
 using Wacton.Unicolour.Icc;
-using Xunit.Abstractions;
 using Rgb = SixLabors.ImageSharp.ColorProfiles.Rgb;
 
 namespace SixLabors.ImageSharp.Tests.ColorProfiles.Icc;
@@ -42,7 +41,7 @@ public class ColorProfileConverterTests(ITestOutputHelper testOutputHelper)
     [InlineData(TestIccProfiles.RommRgb, TestIccProfiles.StandardRgbV4)] // CMYK -> LAB -> CMYK (different bit depth v2 LUTs, 16-bit vs 8-bit)
     [InlineData(TestIccProfiles.Fogra39, TestIccProfiles.StandardRgbV2, 0.0005)] // CMYK -> LAB -> XYZ -> RGB (different LUT tags, A2B vs TRC) --- tolerance slightly higher due to difference in inverse curve implementation
     [InlineData(TestIccProfiles.StandardRgbV2, TestIccProfiles.Fogra39)] // RGB -> XYZ -> LAB -> CMYK (different LUT tags, TRC vs A2B)
-    public void CanConvertIccProfiles(string sourceProfile, string targetProfile, double tolerance = 0.00005)
+    public void CanConvertIccProfiles(string sourceProfile, string targetProfile, double tolerance = 0.000005)
     {
         List<Vector4> actual = Inputs.ConvertAll(input => GetActualTargetValues(input, sourceProfile, targetProfile));
         AssertConversion(sourceProfile, targetProfile, actual, tolerance, testOutputHelper);
@@ -63,7 +62,7 @@ public class ColorProfileConverterTests(ITestOutputHelper testOutputHelper)
     [InlineData(TestIccProfiles.Fogra39, TestIccProfiles.StandardRgbV2, 0.0005)] // CMYK -> LAB -> XYZ -> RGB (different LUT tags, A2B vs TRC) --- tolerance slightly higher due to difference in inverse curve implementation
     [InlineData(TestIccProfiles.StandardRgbV2, TestIccProfiles.Fogra39)] // RGB -> XYZ -> LAB -> CMYK (different LUT tags, TRC vs A2B)
     [InlineData(TestIccProfiles.Issue129, TestIccProfiles.StandardRgbV4)] // CMYK -> LAB -> -> XYZ -> RGB
-    public void CanBulkConvertIccProfiles(string sourceProfile, string targetProfile, double tolerance = 0.00005)
+    public void CanBulkConvertIccProfiles(string sourceProfile, string targetProfile, double tolerance = 0.000005)
     {
         List<Vector4> actual = GetBulkActualTargetValues(Inputs, sourceProfile, targetProfile);
         AssertConversion(sourceProfile, targetProfile, actual, tolerance, testOutputHelper);
@@ -189,7 +188,7 @@ public class ColorProfileConverterTests(ITestOutputHelper testOutputHelper)
         {
             case IccColorSpaceType.Cmyk:
             {
-                Span<Cmyk> inputSpan = inputs.Select(x => new Cmyk(new Vector4(x))).ToArray();
+                Span<Cmyk> inputSpan = [.. inputs.Select(x => new Cmyk(new Vector4(x)))];
 
                 switch (targetDataSpace)
                 {
@@ -214,7 +213,7 @@ public class ColorProfileConverterTests(ITestOutputHelper testOutputHelper)
 
             case IccColorSpaceType.Rgb:
             {
-                Span<Rgb> inputSpan = inputs.Select(x => new Rgb(new Vector3(x))).ToArray();
+                Span<Rgb> inputSpan = [.. inputs.Select(x => new Rgb(new Vector3(x)))];
 
                 switch (targetDataSpace)
                 {

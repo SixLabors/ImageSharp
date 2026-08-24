@@ -15,12 +15,12 @@ public interface IRowOperation<TBuffer>
     /// </summary>
     /// <param name="bounds">The bounds of the operation.</param>
     /// <returns>The required buffer length.</returns>
-    int GetRequiredBufferLength(Rectangle bounds);
+    public int GetRequiredBufferLength(Rectangle bounds);
 
     /// <summary>
     /// Invokes the method passing the row and a buffer.
     /// </summary>
     /// <param name="y">The row y coordinate.</param>
     /// <param name="span">The contiguous region of memory.</param>
-    void Invoke(int y, Span<TBuffer> span);
+    public void Invoke(int y, Span<TBuffer> span);
 }

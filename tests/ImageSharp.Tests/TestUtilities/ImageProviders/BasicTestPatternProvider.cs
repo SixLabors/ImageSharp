@@ -2,7 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Numerics;
-using Xunit.Abstractions;
+using Xunit.Sdk;
 
 namespace SixLabors.ImageSharp.Tests;
 
@@ -78,6 +78,6 @@ public abstract partial class TestImageProvider<TPixel> : IXunitSerializable
             return x < midX ? BottomLeftColor : BottomRightColor;
         }
 
-        private static TPixel GetBottomRightColor() => TPixel.FromScaledVector4(new Vector4(1f, 0f, 1f, 0.5f));
+        private static TPixel GetBottomRightColor() => TPixel.FromUnassociatedScaledVector4(new Vector4(1f, 0f, 1f, 0.5f));
     }
 }

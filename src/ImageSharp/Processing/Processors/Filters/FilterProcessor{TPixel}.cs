@@ -74,11 +74,14 @@ internal class FilterProcessor<TPixel> : ImageProcessor<TPixel>
         public void Invoke(int y, Span<Vector4> span)
         {
             Span<TPixel> rowSpan = this.source.DangerousGetRowSpan(y).Slice(this.startX, span.Length);
-            PixelOperations<TPixel>.Instance.ToVector4(this.configuration, rowSpan, span, PixelConversionModifiers.Scale);
+            PixelOperations<TPixel> pixelOperations = PixelOperations<TPixel>.Instance;
+
+            // Color matrices transform logical color components, so associated storage must be unassociated before applying the matrix.
+            pixelOperations.ToVector4(this.configuration, rowSpan, span, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
 
             ColorNumerics.Transform(span, ref Unsafe.AsRef(in this.matrix));
 
-            PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, span, rowSpan, PixelConversionModifiers.Scale);
+            pixelOperations.FromVector4Destructive(this.configuration, span, rowSpan, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
         }
     }
 }

@@ -32,6 +32,17 @@ public partial class ImageTests
                 }
             });
 
-        public void Dispose() => this.Stream?.Dispose();
+        [Fact]
+        public void FromStream_Empty_Throws()
+        {
+            using MemoryStream ms = new();
+            Assert.Throws<UnknownImageFormatException>(() => Image.Load(DecoderOptions.Default, ms));
+        }
+
+        public void Dispose()
+        {
+            this.Stream?.Dispose();
+            GC.SuppressFinalize(this);
+        }
     }
 }

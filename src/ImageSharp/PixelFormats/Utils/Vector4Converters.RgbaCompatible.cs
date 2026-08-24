@@ -15,10 +15,7 @@ namespace SixLabors.ImageSharp.PixelFormats.Utils;
 internal static partial class Vector4Converters
 {
     /// <summary>
-    /// Provides efficient implementations for batched to/from <see cref="Vector4"/> conversion.
-    /// which is applicable for <see cref="Rgba32"/>-compatible pixel types where <see cref="IPixel.ToVector4"/>
-    /// returns the same scaled result as <see cref="IPixel.ToScaledVector4"/>.
-    /// The method is works by internally converting to a <see cref="Rgba32"/> therefore it's not applicable for that type!
+    /// Provides efficient implementations for batched conversion between RGBA-compatible pixel types and <see cref="Vector4"/> values.
     /// </summary>
     public static class RgbaCompatible
     {
@@ -51,6 +48,7 @@ internal static partial class Vector4Converters
             Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
             int count = source.Length;
+            destination = destination[..count];
 
             // Not worth for small buffers:
             if (count < Vector4ConversionThreshold)
@@ -60,14 +58,14 @@ internal static partial class Vector4Converters
                 return;
             }
 
-            // Using the last quarter of 'destination' as a temporary buffer to avoid allocation:
+            // ToVector4 expands each pixel into a 16-byte vector. Reuse the unwritten destination tail as RGBA staging
+            // so pixelOperations can reorder the source without allocating a temporary row.
             int countWithoutLastItem = count - 1;
             ReadOnlySpan<TPixel> reducedSource = source[..countWithoutLastItem];
             Span<Rgba32> lastQuarterOfDestination = MemoryMarshal.Cast<Vector4, Rgba32>(destination).Slice((3 * count) + 1, countWithoutLastItem);
             pixelOperations.ToRgba32(configuration, reducedSource, lastQuarterOfDestination);
 
-            // 'destination' and 'lastQuarterOfDestination' are overlapping buffers,
-            // but we are always reading/writing at different positions:
+            // Staging overlaps the final output vector, which remains unwritten until the staged bytes are consumed.
             SimdUtils.ByteToNormalizedFloat(
                 MemoryMarshal.Cast<Rgba32, byte>(lastQuarterOfDestination),
                 MemoryMarshal.Cast<Vector4, float>(destination[..countWithoutLastItem]));
@@ -101,6 +99,10 @@ internal static partial class Vector4Converters
             Guard.DestinationShouldNotBeTooShort(source, destination, nameof(destination));
 
             int count = source.Length;
+
+            // Source defines the conversion length. Do not expose spare destination capacity
+            // to downstream shuffles whose scalar tail is destination-length driven.
+            destination = destination[..count];
 
             // Not worth for small buffers:
             if (count < Vector4ConversionThreshold)

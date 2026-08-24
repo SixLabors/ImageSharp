@@ -144,8 +144,11 @@ internal class AdaptiveHistogramEqualizationProcessor<TPixel> : HistogramEqualiz
             for (int dx = xStart; dx < xEnd; dx++)
             {
                 ref TPixel pixel = ref rowSpan[dx];
-                float luminanceEqualized = cdfData.RemapGreyValue(cdfX, cdfY, GetLuminance(pixel, luminanceLevels));
-                pixel = TPixel.FromVector4(new Vector4(luminanceEqualized, luminanceEqualized, luminanceEqualized, pixel.ToVector4().W));
+                Vector4 vector = pixel.ToUnassociatedScaledVector4();
+                int luminance = ColorNumerics.GetBT709Luminance(vector, luminanceLevels);
+                float luminanceEqualized = cdfData.RemapGreyValue(cdfX, cdfY, luminance);
+                vector.X = vector.Y = vector.Z = luminanceEqualized;
+                pixel = TPixel.FromUnassociatedScaledVector4(vector);
             }
         }
     }
@@ -190,8 +193,10 @@ internal class AdaptiveHistogramEqualizationProcessor<TPixel> : HistogramEqualiz
                 for (int dx = xStart; dx < xEnd; dx++)
                 {
                     ref TPixel pixel = ref rowSpan[dx];
-                    float luminanceEqualized = InterpolateBetweenTwoTiles(pixel, cdfData, cdfX, cdfY, cdfX, cdfY + 1, tileY, tileHeight, luminanceLevels);
-                    pixel = TPixel.FromVector4(new Vector4(luminanceEqualized, luminanceEqualized, luminanceEqualized, pixel.ToVector4().W));
+                    Vector4 vector = pixel.ToUnassociatedScaledVector4();
+                    float luminanceEqualized = InterpolateBetweenTwoTiles(vector, cdfData, cdfX, cdfY, cdfX, cdfY + 1, tileY, tileHeight, luminanceLevels);
+                    vector.X = vector.Y = vector.Z = luminanceEqualized;
+                    pixel = TPixel.FromUnassociatedScaledVector4(vector);
                 }
 
                 tileY++;
@@ -242,8 +247,10 @@ internal class AdaptiveHistogramEqualizationProcessor<TPixel> : HistogramEqualiz
                 for (int dx = x; dx < xLimit; dx++)
                 {
                     ref TPixel pixel = ref rowSpan[dx];
-                    float luminanceEqualized = InterpolateBetweenTwoTiles(pixel, cdfData, cdfX, cdfY, cdfX + 1, cdfY, tileX, tileWidth, luminanceLevels);
-                    pixel = TPixel.FromVector4(new Vector4(luminanceEqualized, luminanceEqualized, luminanceEqualized, pixel.ToVector4().W));
+                    Vector4 vector = pixel.ToUnassociatedScaledVector4();
+                    float luminanceEqualized = InterpolateBetweenTwoTiles(vector, cdfData, cdfX, cdfY, cdfX + 1, cdfY, tileX, tileWidth, luminanceLevels);
+                    vector.X = vector.Y = vector.Z = luminanceEqualized;
+                    pixel = TPixel.FromUnassociatedScaledVector4(vector);
                     tileX++;
                 }
             }
@@ -256,7 +263,7 @@ internal class AdaptiveHistogramEqualizationProcessor<TPixel> : HistogramEqualiz
     /// <summary>
     /// Bilinear interpolation between four adjacent tiles.
     /// </summary>
-    /// <param name="sourcePixel">The pixel to remap the grey value from.</param>
+    /// <param name="sourceVector">The unassociated scaled vector to remap the grey value from.</param>
     /// <param name="cdfData">The pre-computed lookup tables to remap the grey values for each tiles.</param>
     /// <param name="tileCountX">The number of tiles in the x-direction.</param>
     /// <param name="tileCountY">The number of tiles in the y-direction.</param>
@@ -273,7 +280,7 @@ internal class AdaptiveHistogramEqualizationProcessor<TPixel> : HistogramEqualiz
     /// <returns>A re-mapped grey value.</returns>
     [MethodImpl(InliningOptions.ShortMethod)]
     private static float InterpolateBetweenFourTiles(
-        TPixel sourcePixel,
+        Vector4 sourceVector,
         CdfTileData cdfData,
         int tileCountX,
         int tileCountY,
@@ -285,7 +292,7 @@ internal class AdaptiveHistogramEqualizationProcessor<TPixel> : HistogramEqualiz
         int tileHeight,
         int luminanceLevels)
     {
-        int luminance = GetLuminance(sourcePixel, luminanceLevels);
+        int luminance = ColorNumerics.GetBT709Luminance(sourceVector, luminanceLevels);
         float tx = tileX / (float)(tileWidth - 1);
         float ty = tileY / (float)(tileHeight - 1);
 
@@ -304,7 +311,7 @@ internal class AdaptiveHistogramEqualizationProcessor<TPixel> : HistogramEqualiz
     /// <summary>
     /// Linear interpolation between two tiles.
     /// </summary>
-    /// <param name="sourcePixel">The pixel to remap the grey value from.</param>
+    /// <param name="sourceVector">The unassociated scaled vector to remap the grey value from.</param>
     /// <param name="cdfData">The CDF lookup map.</param>
     /// <param name="tileX1">X position inside the first tile.</param>
     /// <param name="tileY1">Y position inside the first tile.</param>
@@ -319,7 +326,7 @@ internal class AdaptiveHistogramEqualizationProcessor<TPixel> : HistogramEqualiz
     /// <returns>A re-mapped grey value.</returns>
     [MethodImpl(InliningOptions.ShortMethod)]
     private static float InterpolateBetweenTwoTiles(
-        TPixel sourcePixel,
+        Vector4 sourceVector,
         CdfTileData cdfData,
         int tileX1,
         int tileY1,
@@ -329,7 +336,7 @@ internal class AdaptiveHistogramEqualizationProcessor<TPixel> : HistogramEqualiz
         int tileWidth,
         int luminanceLevels)
     {
-        int luminance = GetLuminance(sourcePixel, luminanceLevels);
+        int luminance = ColorNumerics.GetBT709Luminance(sourceVector, luminanceLevels);
         float tx = tilePos / (float)(tileWidth - 1);
 
         float cdfLuminance1 = cdfData.RemapGreyValue(tileX1, tileY1, luminance);
@@ -419,8 +426,9 @@ internal class AdaptiveHistogramEqualizationProcessor<TPixel> : HistogramEqualiz
                         for (int dx = x; dx < xEnd; dx++)
                         {
                             ref TPixel pixel = ref rowSpan[dx];
+                            Vector4 vector = pixel.ToUnassociatedScaledVector4();
                             float luminanceEqualized = InterpolateBetweenFourTiles(
-                                pixel,
+                                vector,
                                 this.cdfData,
                                 this.tileCount,
                                 this.tileCount,
@@ -432,7 +440,8 @@ internal class AdaptiveHistogramEqualizationProcessor<TPixel> : HistogramEqualiz
                                 this.tileHeight,
                                 this.luminanceLevels);
 
-                            pixel = TPixel.FromVector4(new Vector4(luminanceEqualized, luminanceEqualized, luminanceEqualized, pixel.ToVector4().W));
+                            vector.X = vector.Y = vector.Z = luminanceEqualized;
+                            pixel = TPixel.FromUnassociatedScaledVector4(vector);
                             tileX++;
                         }
 

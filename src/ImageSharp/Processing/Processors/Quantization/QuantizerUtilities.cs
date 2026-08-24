@@ -39,7 +39,7 @@ public static class QuantizerUtilities
     /// <returns>Returns true if transparent pixels can be replaced; otherwise, false.</returns>
     public static bool ShouldReplacePixelsByAlphaThreshold<TPixel>(float threshold)
         where TPixel : unmanaged, IPixel<TPixel>
-        => threshold > 0 && TPixel.GetPixelTypeInfo().AlphaRepresentation == PixelAlphaRepresentation.Unassociated;
+        => threshold > 0 && TPixel.GetPixelTypeInfo().AlphaRepresentation != PixelAlphaRepresentation.None;
 
     /// <summary>
     /// Replaces pixels in a span with fully transparent pixels based on an alpha threshold.
@@ -295,11 +295,11 @@ public static class QuantizerUtilities
                 for (int y = 0; y < source.Height; y++)
                 {
                     Span<TPixel> sourceRow = source.DangerousGetRowSpan(y);
-                    PixelOperations<TPixel>.Instance.ToVector4(configuration, sourceRow, vectorRow, PixelConversionModifiers.Scale);
+                    PixelOperations<TPixel>.Instance.ToVector4(configuration, sourceRow, vectorRow, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
 
                     ReplacePixelsByAlphaThreshold(vectorRow, threshold);
 
-                    PixelOperations<TPixel2>.Instance.FromVector4Destructive(configuration, vectorRow, delegateRow, PixelConversionModifiers.Scale);
+                    PixelOperations<TPixel2>.Instance.FromVector4Destructive(configuration, vectorRow, delegateRow, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
                     rowDelegate.Invoke(delegateRow, y);
                 }
             }
@@ -308,11 +308,11 @@ public static class QuantizerUtilities
                 for (int y = 0; y < source.Height; y++)
                 {
                     Span<TPixel> sourceRow = source.DangerousGetRowSpan(y);
-                    PixelOperations<TPixel>.Instance.ToVector4(configuration, sourceRow, vectorRow, PixelConversionModifiers.Scale);
+                    PixelOperations<TPixel>.Instance.ToVector4(configuration, sourceRow, vectorRow, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
 
                     EncodingUtilities.ReplaceTransparentPixels(vectorRow);
 
-                    PixelOperations<TPixel2>.Instance.FromVector4Destructive(configuration, vectorRow, delegateRow, PixelConversionModifiers.Scale);
+                    PixelOperations<TPixel2>.Instance.FromVector4Destructive(configuration, vectorRow, delegateRow, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
                     rowDelegate.Invoke(delegateRow, y);
                 }
             }
@@ -363,11 +363,11 @@ public static class QuantizerUtilities
                     for (int y = 0; y < region.Height; y++)
                     {
                         Span<TPixel> sourceRow = region.DangerousGetRowSpan(y);
-                        PixelOperations<TPixel>.Instance.ToVector4(configuration, sourceRow, vectorRow, PixelConversionModifiers.Scale);
+                        PixelOperations<TPixel>.Instance.ToVector4(configuration, sourceRow, vectorRow, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
 
                         ReplacePixelsByAlphaThreshold(vectorRow, threshold);
 
-                        PixelOperations<TPixel>.Instance.FromVector4Destructive(configuration, vectorRow, quantizingRow, PixelConversionModifiers.Scale);
+                        PixelOperations<TPixel>.Instance.FromVector4Destructive(configuration, vectorRow, quantizingRow, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
 
                         Span<byte> destinationRow = destination.GetWritablePixelRowSpanUnsafe(y);
                         for (int x = 0; x < destinationRow.Length; x++)
@@ -381,11 +381,11 @@ public static class QuantizerUtilities
                     for (int y = 0; y < region.Height; y++)
                     {
                         Span<TPixel> sourceRow = region.DangerousGetRowSpan(y);
-                        PixelOperations<TPixel>.Instance.ToVector4(configuration, sourceRow, vectorRow, PixelConversionModifiers.Scale);
+                        PixelOperations<TPixel>.Instance.ToVector4(configuration, sourceRow, vectorRow, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
 
                         EncodingUtilities.ReplaceTransparentPixels(vectorRow);
 
-                        PixelOperations<TPixel>.Instance.FromVector4Destructive(configuration, vectorRow, quantizingRow, PixelConversionModifiers.Scale);
+                        PixelOperations<TPixel>.Instance.FromVector4Destructive(configuration, vectorRow, quantizingRow, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
 
                         Span<byte> destinationRow = destination.GetWritablePixelRowSpanUnsafe(y);
                         for (int x = 0; x < destinationRow.Length; x++)
@@ -420,11 +420,11 @@ public static class QuantizerUtilities
                 for (int y = 0; y < region.Height; y++)
                 {
                     Span<TPixel> sourceRow = region.DangerousGetRowSpan(y);
-                    PixelOperations<TPixel>.Instance.ToVector4(configuration, sourceRow, vectorRow, PixelConversionModifiers.Scale);
+                    PixelOperations<TPixel>.Instance.ToVector4(configuration, sourceRow, vectorRow, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
 
                     ReplacePixelsByAlphaThreshold(vectorRow, threshold);
 
-                    PixelOperations<TPixel>.Instance.FromVector4Destructive(configuration, vectorRow, sourceRow, PixelConversionModifiers.Scale);
+                    PixelOperations<TPixel>.Instance.FromVector4Destructive(configuration, vectorRow, sourceRow, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
                 }
             }
             else
@@ -432,11 +432,11 @@ public static class QuantizerUtilities
                 for (int y = 0; y < region.Height; y++)
                 {
                     Span<TPixel> sourceRow = region.DangerousGetRowSpan(y);
-                    PixelOperations<TPixel>.Instance.ToVector4(configuration, sourceRow, vectorRow, PixelConversionModifiers.Scale);
+                    PixelOperations<TPixel>.Instance.ToVector4(configuration, sourceRow, vectorRow, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
 
                     EncodingUtilities.ReplaceTransparentPixels(vectorRow);
 
-                    PixelOperations<TPixel>.Instance.FromVector4Destructive(configuration, vectorRow, sourceRow, PixelConversionModifiers.Scale);
+                    PixelOperations<TPixel>.Instance.FromVector4Destructive(configuration, vectorRow, sourceRow, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
                 }
             }
         }

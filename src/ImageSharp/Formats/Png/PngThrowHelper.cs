@@ -9,8 +9,7 @@ namespace SixLabors.ImageSharp.Formats.Png;
 internal static class PngThrowHelper
 {
     [DoesNotReturn]
-    public static void ThrowInvalidImageContentException(string errorMessage, Exception innerException)
-        => throw new InvalidImageContentException(errorMessage, innerException);
+    public static void ThrowInvalidImageContentException(string errorMessage) => throw new InvalidImageContentException(errorMessage);
 
     [DoesNotReturn]
     public static void ThrowInvalidHeader() => throw new InvalidImageContentException("PNG Image must contain a header chunk and it must be located before any other chunks.");

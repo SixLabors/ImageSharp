@@ -9,12 +9,12 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.IPTC;
 internal enum IptcRecordNumber : byte
 {
     /// <summary>
-    /// A Envelope Record.
+    /// An Envelope Record.
     /// </summary>
     Envelope = 0x01,
 
     /// <summary>
-    /// A Application Record.
+    /// An Application Record.
     /// </summary>
     Application = 0x02
 }

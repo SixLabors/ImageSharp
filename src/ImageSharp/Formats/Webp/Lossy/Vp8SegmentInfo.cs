@@ -67,7 +67,7 @@ internal class Vp8SegmentInfo
 
     public int LambdaMode { get; set; }
 
-    public void StoreMaxDelta(Span<short> dcs)
+    public void StoreMaxDelta(ReadOnlySpan<short> dcs)
     {
         // We look at the first three AC coefficients to determine what is the average
         // delta between each sub-4x4 block.

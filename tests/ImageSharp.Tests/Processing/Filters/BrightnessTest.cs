@@ -43,13 +43,14 @@ public class BrightnessTest : BaseImageOperationsExtensionTest
 
         Assert.Equal(new Rgb24(20, 20, 20), rgbImage[0, 0]);
 
-        Image<HalfSingle> halfSingleImage = new(Configuration.Default, 100, 100, new HalfSingle(-1));
+        // HalfSingle normalizes the complete finite binary16 interval, making -65504 logical zero and -32752 logical .25.
+        Image<HalfSingle> halfSingleImage = new(Configuration.Default, 100, 100, new HalfSingle((float)Half.MinValue));
 
         halfSingleImage.Mutate(x => x.ApplyProcessor(new BrightnessProcessor(2)));
 
-        Assert.Equal(new HalfSingle(-1), halfSingleImage[0, 0]);
+        Assert.Equal(new HalfSingle((float)Half.MinValue), halfSingleImage[0, 0]);
 
-        halfSingleImage = new Image<HalfSingle>(Configuration.Default, 100, 100, new HalfSingle(-0.5f));
+        halfSingleImage = new Image<HalfSingle>(Configuration.Default, 100, 100, new HalfSingle(-32752F));
 
         halfSingleImage.Mutate(x => x.ApplyProcessor(new BrightnessProcessor(2)));
 

@@ -119,13 +119,15 @@ internal class OilPaintingProcessor<TPixel> : ImageProcessor<TPixel>
             Span<float> redBinSpan = binsSpan[this.levels..];
             Span<float> blueBinSpan = redBinSpan[this.levels..];
             Span<float> greenBinSpan = blueBinSpan[this.levels..];
+            PixelOperations<TPixel> pixelOperations = PixelOperations<TPixel>.Instance;
 
             for (int y = rows.Min; y < rows.Max; y++)
             {
                 Span<TPixel> sourceRowPixelSpan = this.source.DangerousGetRowSpan(y);
                 Span<TPixel> sourceRowAreaPixelSpan = sourceRowPixelSpan.Slice(this.bounds.X, this.bounds.Width);
 
-                PixelOperations<TPixel>.Instance.ToVector4(this.configuration, sourceRowAreaPixelSpan, sourceRowAreaVector4Span, PixelConversionModifiers.Scale);
+                // Intensity bins and channel averages describe logical colors, so they must not depend on the pixel storage association.
+                pixelOperations.ToVector4(this.configuration, sourceRowAreaPixelSpan, sourceRowAreaVector4Span, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
 
                 for (int x = this.bounds.X; x < this.bounds.Right; x++)
                 {
@@ -149,7 +151,7 @@ internal class OilPaintingProcessor<TPixel> : ImageProcessor<TPixel>
                             int offsetX = x + fxr;
                             offsetX = Numerics.Clamp(offsetX, 0, maxX);
 
-                            Vector4 vector = sourceOffsetRow[offsetX].ToScaledVector4();
+                            Vector4 vector = sourceOffsetRow[offsetX].ToUnassociatedScaledVector4();
 
                             float sourceRed = vector.X;
                             float sourceBlue = vector.Z;
@@ -180,7 +182,7 @@ internal class OilPaintingProcessor<TPixel> : ImageProcessor<TPixel>
 
                 Span<TPixel> targetRowAreaPixelSpan = this.targetPixels.DangerousGetRowSpan(y).Slice(this.bounds.X, this.bounds.Width);
 
-                PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, targetRowAreaVector4Span, targetRowAreaPixelSpan, PixelConversionModifiers.Scale);
+                pixelOperations.FromVector4Destructive(this.configuration, targetRowAreaVector4Span, targetRowAreaPixelSpan, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
             }
         }
     }

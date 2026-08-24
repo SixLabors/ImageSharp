@@ -4,12 +4,12 @@
 namespace SixLabors.ImageSharp.Formats.Ico;
 
 /// <summary>
-/// Defines constants relating to ICOs
+/// Defines constants used by the ICO format.
 /// </summary>
 internal static class IcoConstants
 {
     /// <summary>
-    /// The list of mime types that equate to a ico.
+    /// The MIME types that identify ICO data.
     /// </summary>
     /// <remarks>
     /// See <see href="https://en.wikipedia.org/wiki/ICO_(file_format)#MIME_type"/>
@@ -27,13 +27,11 @@ internal static class IcoConstants
         "image/ico",
         "image/icon",
         "text/ico",
-        "application/ico",
+        "application/ico"
     ];
 
     /// <summary>
-    /// The list of file extensions that equate to a ico.
+    /// The file extensions that identify ICO data.
     /// </summary>
     public static readonly IEnumerable<string> FileExtensions = ["ico"];
-
-    public const uint FileHeader = 0x00_01_00_00;
 }

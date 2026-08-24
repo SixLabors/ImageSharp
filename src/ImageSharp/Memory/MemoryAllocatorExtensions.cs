@@ -29,6 +29,9 @@ public static class MemoryAllocatorExtensions
         AllocationOptions options = AllocationOptions.None)
         where T : struct
     {
+        Guard.MustBeGreaterThan(width, 0, nameof(width));
+        Guard.MustBeGreaterThan(height, 0, nameof(height));
+
         long groupLength = (long)width * height;
         MemoryGroup<T> memoryGroup;
         if (preferContiguosImageBuffers && groupLength < int.MaxValue)
@@ -104,6 +107,9 @@ public static class MemoryAllocatorExtensions
         AllocationOptions options = AllocationOptions.None)
         where T : struct
     {
+        Guard.MustBeGreaterThan(width, 0, nameof(width));
+        Guard.MustBeGreaterThan(height, 0, nameof(height));
+
         long groupLength = (long)width * height;
         MemoryGroup<T> memoryGroup = memoryAllocator.AllocateGroup<T>(
             groupLength,

@@ -53,22 +53,20 @@ internal class CropProcessor<TPixel> : TransformProcessor<TPixel>
             && this.SourceRectangle == this.cropRectangle)
         {
             // the cloned will be blank here copy all the pixel data over
-            source.GetPixelMemoryGroup().CopyTo(destination.GetPixelMemoryGroup());
+            source.PixelBuffer.CopyTo(destination.PixelBuffer);
             return;
         }
 
         Rectangle bounds = this.cropRectangle;
 
-        // Copying is cheap, we should process more pixels per task:
-        ParallelExecutionSettings parallelSettings =
-            ParallelExecutionSettings.FromConfiguration(this.Configuration).MultiplyMinimumPixelsPerTask(4);
-
+        // Copying is too cheap to benefit from parallelization;
+        // the overhead exceeds the work per task. See #3111.
         RowOperation operation = new(bounds, source.PixelBuffer, destination.PixelBuffer);
 
-        ParallelRowIterator.IterateRows(
-            bounds,
-            in parallelSettings,
-            in operation);
+        for (int y = bounds.Top; y < bounds.Bottom; y++)
+        {
+            operation.Invoke(y);
+        }
     }
 
     /// <summary>

@@ -142,18 +142,19 @@ internal class AutoLevelProcessor<TPixel> : HistogramEqualizationProcessor<TPixe
             float noOfPixelsMinusCdfMin = this.numberOfPixelsMinusCdfMin;
 
             Span<TPixel> pixelRow = sourceAccess.GetRowSpan(y).Slice(this.bounds.X, this.bounds.Width);
-            PixelOperations<TPixel>.Instance.ToVector4(this.configuration, pixelRow, vectorBuffer);
+            PixelOperations<TPixel> operations = PixelOperations<TPixel>.Instance;
+            operations.ToVector4(this.configuration, pixelRow, vectorBuffer, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
 
             for (int x = 0; x < this.bounds.Width; x++)
             {
                 Vector4 vector = Unsafe.Add(ref vectorRef, (uint)x);
-                int luminance = ColorNumerics.GetBT709Luminance(ref vector, levels);
+                int luminance = ColorNumerics.GetBT709Luminance(vector, levels);
                 float scaledLuminance = Unsafe.Add(ref cdfBase, (uint)luminance) / noOfPixelsMinusCdfMin;
                 float scalingFactor = scaledLuminance * levels / luminance;
                 Unsafe.Add(ref vectorRef, (uint)x) = new Vector4(scalingFactor * vector.X, scalingFactor * vector.Y, scalingFactor * vector.Z, vector.W);
             }
 
-            PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, vectorBuffer, pixelRow);
+            operations.FromVector4Destructive(this.configuration, vectorBuffer, pixelRow, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
         }
     }
 
@@ -201,12 +202,17 @@ internal class AutoLevelProcessor<TPixel> : HistogramEqualizationProcessor<TPixe
             int levelsMinusOne = this.luminanceLevels - 1;
             float noOfPixelsMinusCdfMin = this.numberOfPixelsMinusCdfMin;
 
-            Span<TPixel> pixelRow = sourceAccess.GetRowSpan(y);
-            PixelOperations<TPixel>.Instance.ToVector4(this.configuration, pixelRow, vectorBuffer);
+            Span<TPixel> pixelRow = sourceAccess.GetRowSpan(y).Slice(this.bounds.X, this.bounds.Width);
+            PixelOperations<TPixel> operations = PixelOperations<TPixel>.Instance;
+            operations.ToVector4(this.configuration, pixelRow, vectorBuffer, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
 
             for (int x = 0; x < this.bounds.Width; x++)
             {
-                Vector4 vector = Unsafe.Add(ref vectorRef, (uint)x) * levelsMinusOne;
+                Vector4 vector = Unsafe.Add(ref vectorRef, (uint)x);
+                float alpha = vector.W;
+
+                // Alpha is not a histogram component and must not be scaled into the CDF index range.
+                vector *= levelsMinusOne;
 
                 uint originalX = (uint)MathF.Round(vector.X);
                 float scaledX = Unsafe.Add(ref cdfBase, originalX) / noOfPixelsMinusCdfMin;
@@ -214,10 +220,10 @@ internal class AutoLevelProcessor<TPixel> : HistogramEqualizationProcessor<TPixe
                 float scaledY = Unsafe.Add(ref cdfBase, originalY) / noOfPixelsMinusCdfMin;
                 uint originalZ = (uint)MathF.Round(vector.Z);
                 float scaledZ = Unsafe.Add(ref cdfBase, originalZ) / noOfPixelsMinusCdfMin;
-                Unsafe.Add(ref vectorRef, (uint)x) = new Vector4(scaledX, scaledY, scaledZ, vector.W);
+                Unsafe.Add(ref vectorRef, (uint)x) = new Vector4(scaledX, scaledY, scaledZ, alpha);
             }
 
-            PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, vectorBuffer, pixelRow);
+            operations.FromVector4Destructive(this.configuration, vectorBuffer, pixelRow, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
         }
     }
 }

@@ -2,10 +2,9 @@
 // Licensed under the Six Labors Split License.
 
 using System.Buffers;
+using System.Numerics.Tensors;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using System.Runtime.Intrinsics;
-using System.Runtime.Intrinsics.X86;
+using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Webp.Lossless;
@@ -333,7 +332,7 @@ internal abstract unsafe class Vp8LHistogram
         {
             if (b.IsUsed(0))
             {
-                AddVector(this.Literal, b.Literal, output.Literal, literalSize);
+                TensorPrimitives.Add(this.Literal[..literalSize], b.Literal[..literalSize], output.Literal[..literalSize]);
             }
             else
             {
@@ -356,7 +355,7 @@ internal abstract unsafe class Vp8LHistogram
         {
             if (b.IsUsed(1))
             {
-                AddVector(this.Red, b.Red, output.Red, size);
+                TensorPrimitives.Add(this.Red[..size], b.Red[..size], output.Red[..size]);
             }
             else
             {
@@ -379,7 +378,7 @@ internal abstract unsafe class Vp8LHistogram
         {
             if (b.IsUsed(2))
             {
-                AddVector(this.Blue, b.Blue, output.Blue, size);
+                TensorPrimitives.Add(this.Blue[..size], b.Blue[..size], output.Blue[..size]);
             }
             else
             {
@@ -402,7 +401,7 @@ internal abstract unsafe class Vp8LHistogram
         {
             if (b.IsUsed(3))
             {
-                AddVector(this.Alpha, b.Alpha, output.Alpha, size);
+                TensorPrimitives.Add(this.Alpha[..size], b.Alpha[..size], output.Alpha[..size]);
             }
             else
             {
@@ -425,7 +424,7 @@ internal abstract unsafe class Vp8LHistogram
         {
             if (b.IsUsed(4))
             {
-                AddVector(this.Distance, b.Distance, output.Distance, size);
+                TensorPrimitives.Add(this.Distance[..size], b.Distance[..size], output.Distance[..size]);
             }
             else
             {
@@ -443,8 +442,8 @@ internal abstract unsafe class Vp8LHistogram
     }
 
     private static double GetCombinedEntropy(
-        Span<uint> x,
-        Span<uint> y,
+        ReadOnlySpan<uint> x,
+        ReadOnlySpan<uint> y,
         int length,
         bool isXUsed,
         bool isYUsed,
@@ -496,7 +495,7 @@ internal abstract unsafe class Vp8LHistogram
         return bitEntropy.BitsEntropyRefine() + stats.FinalHuffmanCost();
     }
 
-    private static double ExtraCostCombined(Span<uint> x, Span<uint> y, int length)
+    private static double ExtraCostCombined(ReadOnlySpan<uint> x, ReadOnlySpan<uint> y, int length)
     {
         double cost = 0.0d;
         for (int i = 2; i < length - 2; i++)
@@ -511,7 +510,7 @@ internal abstract unsafe class Vp8LHistogram
     /// <summary>
     /// Get the symbol entropy for the distribution 'population'.
     /// </summary>
-    private double PopulationCost(Span<uint> population, int length, ref uint trivialSym, int isUsedIndex, Vp8LStreaks stats, Vp8LBitEntropy bitEntropy)
+    private double PopulationCost(ReadOnlySpan<uint> population, int length, ref uint trivialSym, int isUsedIndex, Vp8LStreaks stats, Vp8LBitEntropy bitEntropy)
     {
         bitEntropy.Init();
         stats.Clear();
@@ -525,7 +524,7 @@ internal abstract unsafe class Vp8LHistogram
         return bitEntropy.BitsEntropyRefine() + stats.FinalHuffmanCost();
     }
 
-    private static double ExtraCost(Span<uint> population, int length)
+    private static double ExtraCost(ReadOnlySpan<uint> population, int length)
     {
         double cost = 0.0d;
         for (int i = 2; i < length - 2; i++)
@@ -534,56 +533,6 @@ internal abstract unsafe class Vp8LHistogram
         }
 
         return cost;
-    }
-
-    private static void AddVector(Span<uint> a, Span<uint> b, Span<uint> output, int count)
-    {
-        DebugGuard.MustBeGreaterThanOrEqualTo(a.Length, count, nameof(a.Length));
-        DebugGuard.MustBeGreaterThanOrEqualTo(b.Length, count, nameof(b.Length));
-        DebugGuard.MustBeGreaterThanOrEqualTo(output.Length, count, nameof(output.Length));
-
-        if (Avx2.IsSupported && count >= 32)
-        {
-            ref uint aRef = ref MemoryMarshal.GetReference(a);
-            ref uint bRef = ref MemoryMarshal.GetReference(b);
-            ref uint outputRef = ref MemoryMarshal.GetReference(output);
-
-            nuint idx = 0;
-            do
-            {
-                // Load values.
-                Vector256<uint> a0 = Unsafe.As<uint, Vector256<uint>>(ref Unsafe.Add(ref aRef, idx + 0));
-                Vector256<uint> a1 = Unsafe.As<uint, Vector256<uint>>(ref Unsafe.Add(ref aRef, idx + 8));
-                Vector256<uint> a2 = Unsafe.As<uint, Vector256<uint>>(ref Unsafe.Add(ref aRef, idx + 16));
-                Vector256<uint> a3 = Unsafe.As<uint, Vector256<uint>>(ref Unsafe.Add(ref aRef, idx + 24));
-                Vector256<uint> b0 = Unsafe.As<uint, Vector256<uint>>(ref Unsafe.Add(ref bRef, idx + 0));
-                Vector256<uint> b1 = Unsafe.As<uint, Vector256<uint>>(ref Unsafe.Add(ref bRef, idx + 8));
-                Vector256<uint> b2 = Unsafe.As<uint, Vector256<uint>>(ref Unsafe.Add(ref bRef, idx + 16));
-                Vector256<uint> b3 = Unsafe.As<uint, Vector256<uint>>(ref Unsafe.Add(ref bRef, idx + 24));
-
-                // Note we are adding uint32_t's as *signed* int32's (using _mm_add_epi32). But
-                // that's ok since the histogram values are less than 1<<28 (max picture count).
-                Unsafe.As<uint, Vector256<uint>>(ref Unsafe.Add(ref outputRef, idx + 0)) = Avx2.Add(a0, b0);
-                Unsafe.As<uint, Vector256<uint>>(ref Unsafe.Add(ref outputRef, idx + 8)) = Avx2.Add(a1, b1);
-                Unsafe.As<uint, Vector256<uint>>(ref Unsafe.Add(ref outputRef, idx + 16)) = Avx2.Add(a2, b2);
-                Unsafe.As<uint, Vector256<uint>>(ref Unsafe.Add(ref outputRef, idx + 24)) = Avx2.Add(a3, b3);
-                idx += 32;
-            }
-            while (idx <= (uint)count - 32);
-
-            int i = (int)idx;
-            for (; i < count; i++)
-            {
-                output[i] = a[i] + b[i];
-            }
-        }
-        else
-        {
-            for (int i = 0; i < count; i++)
-            {
-                output[i] = a[i] + b[i];
-            }
-        }
     }
 }
 

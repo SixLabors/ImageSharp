@@ -122,10 +122,12 @@ internal class EdgeDetectorCompassProcessor<TPixel> : ImageProcessor<TPixel>
 
             for (nuint x = this.minX; x < this.maxX; x++)
             {
-                // Grab the max components of the two pixels
+                // Compass responses are logical color magnitudes. Comparing associated components would make the edge strength
+                // depend on the storage alpha representation instead of the filtered colors.
                 ref TPixel currentPassPixel = ref Unsafe.Add(ref passPixelsBase, x);
                 ref TPixel currentTargetPixel = ref Unsafe.Add(ref targetPixelsBase, x);
-                currentTargetPixel = TPixel.FromVector4(Vector4.Max(currentPassPixel.ToVector4(), currentTargetPixel.ToVector4()));
+                currentTargetPixel = TPixel.FromUnassociatedScaledVector4(
+                    Vector4.Max(currentPassPixel.ToUnassociatedScaledVector4(), currentTargetPixel.ToUnassociatedScaledVector4()));
             }
         }
     }

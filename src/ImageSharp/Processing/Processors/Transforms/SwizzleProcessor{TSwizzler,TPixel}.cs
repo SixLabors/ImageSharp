@@ -24,7 +24,7 @@ internal class SwizzleProcessor<TSwizzler, TPixel> : TransformProcessor<TPixel>
         // Calculate the transform matrix from the swizzle operation to allow us
         // to update any metadata that represents pixel coordinates in the source image.
         this.transformMatrix = new ProjectiveTransformBuilder()
-            .AppendMatrix(TransformUtils.GetSwizzlerMatrix(swizzler, sourceRectangle))
+            .AppendMatrix(TransformUtilities.GetSwizzlerMatrix(swizzler, sourceRectangle))
             .BuildMatrix(sourceRectangle);
     }
 

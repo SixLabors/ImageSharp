@@ -4,6 +4,7 @@
 using System.ComponentModel;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using SixLabors.ImageSharp.Processing.Processors.Transforms;
 
 namespace SixLabors.ImageSharp;
 
@@ -58,7 +59,7 @@ public struct PointF : IEquatable<PointF>
     /// Gets a value indicating whether this <see cref="PointF"/> is empty.
     /// </summary>
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public bool IsEmpty => this.Equals(Empty);
+    public readonly bool IsEmpty => this.Equals(Empty);
 
     /// <summary>
     /// Creates a <see cref="Vector2"/> with the coordinates of the specified <see cref="PointF"/>.
@@ -247,11 +248,22 @@ public struct PointF : IEquatable<PointF>
     public static PointF Transform(PointF point, Matrix3x2 matrix) => Vector2.Transform(point, matrix);
 
     /// <summary>
+    /// Transforms a point by a specified 4x4 matrix, applying a projective transform
+    /// flattened into 2D space.
+    /// </summary>
+    /// <param name="point">The point to transform.</param>
+    /// <param name="matrix">The transformation matrix used.</param>
+    /// <returns>The transformed <see cref="PointF"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static PointF Transform(PointF point, Matrix4x4 matrix)
+        => TransformUtilities.ProjectiveTransform2D(point.X, point.Y, matrix);
+
+    /// <summary>
     /// Deconstructs this point into two floats.
     /// </summary>
     /// <param name="x">The out value for X.</param>
     /// <param name="y">The out value for Y.</param>
-    public void Deconstruct(out float x, out float y)
+    public readonly void Deconstruct(out float x, out float y)
     {
         x = this.X;
         y = this.Y;
@@ -277,15 +289,15 @@ public struct PointF : IEquatable<PointF>
     public void Offset(PointF point) => this.Offset(point.X, point.Y);
 
     /// <inheritdoc/>
-    public override int GetHashCode() => HashCode.Combine(this.X, this.Y);
+    public override readonly int GetHashCode() => HashCode.Combine(this.X, this.Y);
 
     /// <inheritdoc/>
-    public override string ToString() => $"PointF [ X={this.X}, Y={this.Y} ]";
+    public override readonly string ToString() => $"PointF [ X={this.X}, Y={this.Y} ]";
 
     /// <inheritdoc/>
-    public override bool Equals(object? obj) => obj is PointF pointF && this.Equals(pointF);
+    public override readonly bool Equals(object? obj) => obj is PointF pointF && this.Equals(pointF);
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool Equals(PointF other) => this.X.Equals(other.X) && this.Y.Equals(other.Y);
+    public readonly bool Equals(PointF other) => this.X.Equals(other.X) && this.Y.Equals(other.Y);
 }

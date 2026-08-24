@@ -398,4 +398,64 @@ public class GifDecoderTests
         Assert.Throws<InvalidImageContentException>(() => Image.Identify(options, testFile.FullPath));
         Assert.Throws<InvalidImageContentException>(() => Image.Load(options, testFile.FullPath));
     }
+
+    [Theory]
+    [WithFile(TestImages.Gif.Issues.Issue2980, PixelTypes.Rgba32)]
+    public void Issue2980<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage();
+        image.DebugSaveMultiFrame(provider);
+        image.CompareToReferenceOutputMultiFrame(provider, ImageComparer.Exact);
+    }
+
+    [Fact]
+    public void Identify_MalformedApplicationExtension_IgnoresNonCriticalErrorsByDefault()
+    {
+        ImageInfo info = Image.Identify(CreateGifWithMalformedApplicationExtension());
+        Assert.Equal(1, info.Width);
+        Assert.Equal(1, info.Height);
+    }
+
+    [Fact]
+    public void Decode_MalformedApplicationExtension_IgnoresNonCriticalErrorsByDefault()
+    {
+        using Image<Rgba32> image = Image.Load<Rgba32>(CreateGifWithMalformedApplicationExtension());
+        Assert.Equal(1, image.Width);
+        Assert.Equal(1, image.Height);
+    }
+
+    [Fact]
+    public void Identify_MalformedApplicationExtension_ThrowsWithStrict()
+    {
+        DecoderOptions options = new() { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
+        Assert.Throws<InvalidImageContentException>(() => Image.Identify(options, CreateGifWithMalformedApplicationExtension()));
+    }
+
+    [Fact]
+    public void Decode_MalformedApplicationExtension_ThrowsWithStrict()
+    {
+        DecoderOptions options = new() { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
+        Assert.Throws<InvalidImageContentException>(() =>
+        {
+            using Image<Rgba32> image = Image.Load<Rgba32>(options, CreateGifWithMalformedApplicationExtension());
+        });
+    }
+
+    private static byte[] CreateGifWithMalformedApplicationExtension()
+    {
+        // The application extension declares a 5-byte application block (0x05), but GIF application
+        // extensions require the fixed identifier/authentication block to be 11 bytes long.
+        return
+        [
+            (byte)'G', (byte)'I', (byte)'F', (byte)'8', (byte)'9', (byte)'a',
+            0x01, 0x00, 0x01, 0x00, 0x80, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF,
+            0x21, 0xFF, 0x05, (byte)'B', (byte)'a', (byte)'d', (byte)'A', (byte)'p', 0x00,
+            0x21, 0xF9, 0x04, 0x01, 0x00, 0x00, 0x00, 0x00,
+            0x2C, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00,
+            0x02, 0x02, 0x44, 0x01, 0x00,
+            0x3B
+        ];
+    }
 }

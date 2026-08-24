@@ -115,6 +115,65 @@ public partial class ColorTests
         }
 
         [Fact]
+        public void AssociatedVectorConstructor()
+        {
+            Rgba32P expected = new(64, 32, 16, 128);
+
+            // Act:
+            Color color = Color.FromScaledVector(expected.ToScaledVector4(), PixelAlphaRepresentation.Associated);
+
+            // Assert:
+            Assert.Equal(PixelAlphaRepresentation.Associated, color.AlphaRepresentation);
+            Assert.Equal(expected.ToScaledVector4(), color.ToScaledVector4());
+            Assert.Equal(expected, color.ToPixel<Rgba32P>());
+            Assert.Equal(new Rgba32(128, 64, 32, 128), color.ToPixel<Rgba32>());
+        }
+
+        [Fact]
+        public void UnassociatedPixelToAssociatedPixel()
+        {
+            Color color = Color.FromPixel(new Rgba32(128, 64, 32, 128));
+
+            // Act:
+            Rgba32P actual = color.ToPixel<Rgba32P>();
+
+            // Assert:
+            Assert.Equal(new Rgba32P(64, 32, 16, 128), actual);
+        }
+
+        [Fact]
+        public void AssociatedVectorSpanConstructor()
+        {
+            Rgba32P expected = new(64, 32, 16, 128);
+            Vector4[] source = [expected.ToScaledVector4()];
+            Color[] destination = new Color[source.Length];
+
+            // Act:
+            Color.FromScaledVector(source, destination, PixelAlphaRepresentation.Associated);
+
+            // Assert:
+            Assert.Equal(PixelAlphaRepresentation.Associated, destination[0].AlphaRepresentation);
+            Assert.Equal(expected.ToScaledVector4(), destination[0].ToScaledVector4());
+            Assert.Equal(expected, destination[0].ToPixel<Rgba32P>());
+        }
+
+        [Fact]
+        public void AssociatedPixelSpanRoundTrip()
+        {
+            Rgba32P[] source = [new(64, 32, 16, 128), new(24, 12, 6, 96)];
+            Color[] colors = new Color[source.Length];
+            Rgba32P[] destination = new Rgba32P[source.Length];
+
+            // Act:
+            Color.FromPixel<Rgba32P>(source, colors);
+            Color.ToPixel<Rgba32P>(colors, destination);
+
+            // Assert:
+            Assert.Equal(source, destination);
+            Assert.All(colors, color => Assert.Equal(PixelAlphaRepresentation.Associated, color.AlphaRepresentation));
+        }
+
+        [Fact]
         public void GenericPixelRoundTrip()
         {
             AssertGenericPixelRoundTrip(new RgbaVector(0.5f, 0.75f, 1, 0));

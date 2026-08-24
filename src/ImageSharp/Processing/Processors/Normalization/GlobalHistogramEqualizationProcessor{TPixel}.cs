@@ -124,18 +124,19 @@ internal class GlobalHistogramEqualizationProcessor<TPixel> : HistogramEqualizat
             int levels = this.luminanceLevels;
             float noOfPixelsMinusCdfMin = this.numberOfPixelsMinusCdfMin;
 
-            Span<TPixel> pixelRow = this.source.DangerousGetRowSpan(y);
-            PixelOperations<TPixel>.Instance.ToVector4(this.configuration, pixelRow, vectorBuffer);
+            Span<TPixel> pixelRow = this.source.DangerousGetRowSpan(y).Slice(this.bounds.X, this.bounds.Width);
+            PixelOperations<TPixel> operations = PixelOperations<TPixel>.Instance;
+            operations.ToVector4(this.configuration, pixelRow, vectorBuffer, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
 
             for (int x = 0; x < this.bounds.Width; x++)
             {
                 Vector4 vector = Unsafe.Add(ref vectorRef, (uint)x);
-                int luminance = ColorNumerics.GetBT709Luminance(ref vector, levels);
+                int luminance = ColorNumerics.GetBT709Luminance(vector, levels);
                 float luminanceEqualized = Unsafe.Add(ref cdfBase, (uint)luminance) / noOfPixelsMinusCdfMin;
                 Unsafe.Add(ref vectorRef, (uint)x) = new Vector4(luminanceEqualized, luminanceEqualized, luminanceEqualized, vector.W);
             }
 
-            PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, vectorBuffer, pixelRow);
+            operations.FromVector4Destructive(this.configuration, vectorBuffer, pixelRow, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
         }
     }
 }

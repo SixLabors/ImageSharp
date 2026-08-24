@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 17
-VisualStudioVersion = 17.0.31903.59
+# Visual Studio Version 18
+VisualStudioVersion = 18.5.11723.231 stable
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "_root", "_root", "{C317F1B1-D75E-4C6D-83EB-80367343E0D7}"
 	ProjectSection(SolutionItems) = preProject
@@ -45,6 +45,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ImageSharp", "src\ImageShar
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{56801022-D71A-4FBE-BC5B-CBA08E2284EC}"
 	ProjectSection(SolutionItems) = preProject
+		tests\coverlet.runsettings = tests\coverlet.runsettings
 		tests\Directory.Build.props = tests\Directory.Build.props
 		tests\Directory.Build.targets = tests\Directory.Build.targets
 		tests\ImageSharp.Tests.ruleset = tests\ImageSharp.Tests.ruleset
@@ -555,6 +556,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Webp", "Webp", "{983A31E2-5
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ImageSharp.Tests", "tests\ImageSharp.Tests\ImageSharp.Tests.csproj", "{EA3000E9-2A91-4EC4-8A68-E566DEBDC4F6}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ImageSharp.PublicApi.Tests", "tests\ImageSharp.PublicApi.Tests\ImageSharp.PublicApi.Tests.csproj", "{7D89D21A-0F54-4B36-BEAA-2B90994E840E}"
+EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ImageSharp.Benchmarks", "tests\ImageSharp.Benchmarks\ImageSharp.Benchmarks.csproj", "{2BF743D8-2A06-412D-96D7-F448F00C5EA5}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "workflows", "workflows", "{C0D7754B-5277-438E-ABEB-2BA34401B5A7}"
@@ -694,6 +697,10 @@ Global
 		{EA3000E9-2A91-4EC4-8A68-E566DEBDC4F6}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{EA3000E9-2A91-4EC4-8A68-E566DEBDC4F6}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{EA3000E9-2A91-4EC4-8A68-E566DEBDC4F6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7D89D21A-0F54-4B36-BEAA-2B90994E840E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7D89D21A-0F54-4B36-BEAA-2B90994E840E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7D89D21A-0F54-4B36-BEAA-2B90994E840E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7D89D21A-0F54-4B36-BEAA-2B90994E840E}.Release|Any CPU.Build.0 = Release|Any CPU
 		{2BF743D8-2A06-412D-96D7-F448F00C5EA5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{2BF743D8-2A06-412D-96D7-F448F00C5EA5}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{2BF743D8-2A06-412D-96D7-F448F00C5EA5}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -726,6 +733,7 @@ Global
 		{E1C42A6F-913B-4A7B-B1A8-2BB62843B254} = {9DA226A1-8656-49A8-A58A-A8B5C081AD66}
 		{983A31E2-5E26-4058-BD6E-03B4922D4BBF} = {9DA226A1-8656-49A8-A58A-A8B5C081AD66}
 		{EA3000E9-2A91-4EC4-8A68-E566DEBDC4F6} = {56801022-D71A-4FBE-BC5B-CBA08E2284EC}
+		{7D89D21A-0F54-4B36-BEAA-2B90994E840E} = {56801022-D71A-4FBE-BC5B-CBA08E2284EC}
 		{2BF743D8-2A06-412D-96D7-F448F00C5EA5} = {56801022-D71A-4FBE-BC5B-CBA08E2284EC}
 		{C0D7754B-5277-438E-ABEB-2BA34401B5A7} = {1799C43E-5C54-4A8F-8D64-B1475241DB0D}
 		{68A8CC40-6AED-4E96-B524-31B1158FDEEA} = {815C0625-CD3D-440F-9F80-2D83856AB7AE}

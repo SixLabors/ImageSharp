@@ -7,6 +7,7 @@ using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Quantization;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 
@@ -115,7 +116,7 @@ public class GifEncoderTests
         GifEncoder encoder = new()
         {
             ColorTableMode = FrameColorTableMode.Global,
-            Quantizer = new OctreeQuantizer(new QuantizerOptions { Dither = null })
+            Quantizer = new HexadecatreeQuantizer(new QuantizerOptions { Dither = null })
         };
 
         // Always save as we need to compare the encoded output.
@@ -124,7 +125,7 @@ public class GifEncoderTests
         encoder = new GifEncoder
         {
             ColorTableMode = FrameColorTableMode.Local,
-            Quantizer = new OctreeQuantizer(new QuantizerOptions { Dither = null }),
+            Quantizer = new HexadecatreeQuantizer(new QuantizerOptions { Dither = null }),
         };
 
         provider.Utility.SaveTestOutputFile(image, "gif", encoder, "local");
@@ -191,7 +192,7 @@ public class GifEncoderTests
         GifEncoder encoder = new()
         {
             ColorTableMode = colorMode,
-            Quantizer = new OctreeQuantizer(new QuantizerOptions { MaxColors = maxColors })
+            Quantizer = new HexadecatreeQuantizer(new QuantizerOptions { MaxColors = maxColors })
         };
 
         image.Save(outStream, encoder);
@@ -349,7 +350,7 @@ public class GifEncoderTests
 
     public static string[] Animated => TestImages.Gif.Animated;
 
-    [Theory(Skip = "Enable for visual animated testing")]
+    [Theory]//(Skip = "Enable for visual animated testing")]
     [WithFileCollection(nameof(Animated), PixelTypes.Rgba32)]
     public void Encode_Animated_VisualTest<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
@@ -429,6 +430,23 @@ public class GifEncoderTests
 
         // Save the image for visual inspection.
         provider.Utility.SaveTestOutputFile(image, "gif", new GifEncoder(), "animated");
+
+        // Now compare the debug output with the reference output.
+        // We do this because the gif encoding is lossy and encoding will lead to differences in the 10s of percent.
+        // From the unencoded image, we can see that the image is visually the same.
+        static bool Predicate(int i, int _) => i % 8 == 0; // Image has many frames, only compare a selection of them.
+        image.CompareDebugOutputToReferenceOutputMultiFrame(provider, ImageComparer.Exact, extension: "gif", predicate: Predicate);
+    }
+
+    [Theory]
+    [WithFile(TestImages.Gif.Issues.Issue3142, PixelTypes.Rgba32)]
+    public void GifEncoder_CanDecode_AndEncode_Issue3142<TPixel>(TestImageProvider<TPixel> provider)
+    where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage();
+
+        // Save the image for visual inspection.
+        provider.Utility.SaveTestOutputFile(image, "gif", new GifEncoder() { Quantizer = KnownQuantizers.Wu }, "animated");
 
         // Now compare the debug output with the reference output.
         // We do this because the gif encoding is lossy and encoding will lead to differences in the 10s of percent.

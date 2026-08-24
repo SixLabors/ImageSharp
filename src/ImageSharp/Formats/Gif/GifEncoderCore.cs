@@ -46,14 +46,6 @@ internal sealed class GifEncoderCore
     private readonly IPixelSamplingStrategy pixelSamplingStrategy;
 
     /// <summary>
-    /// The default background color of the canvas when animating.
-    /// This color may be used to fill the unused space on the canvas around the frames,
-    /// as well as the transparent pixels of the first frame.
-    /// The background color is also used when a frame disposal mode is <see cref="FrameDisposalMode.RestoreToBackground"/>.
-    /// </summary>
-    private readonly Color? backgroundColor;
-
-    /// <summary>
     /// The number of times any animation is repeated.
     /// </summary>
     private readonly ushort? repeatCount;
@@ -76,7 +68,6 @@ internal sealed class GifEncoderCore
         this.skipMetadata = encoder.SkipMetadata;
         this.colorTableMode = encoder.ColorTableMode;
         this.pixelSamplingStrategy = encoder.PixelSamplingStrategy;
-        this.backgroundColor = encoder.BackgroundColor;
         this.repeatCount = encoder.RepeatCount;
         this.transparentColorMode = encoder.TransparentColorMode;
     }
@@ -113,27 +104,41 @@ internal sealed class GifEncoderCore
         TransparentColorMode mode = this.transparentColorMode;
 
         // Create a new quantizer options instance augmenting the transparent color mode to match the encoder.
-        QuantizerOptions options = (this.encoder.Quantizer?.Options ?? new QuantizerOptions()).DeepClone(o => o.TransparentColorMode = mode);
+        QuantizerOptions options = (this.encoder.Quantizer?.Options ?? new QuantizerOptions()).DeepClone(o =>
+        {
+            o.TransparentColorMode = mode;
+
+            // Animated GIF delta frames can use one padded color-table index as transparency.
+            // Express that through MaxColors so custom quantizers receive the same budget.
+            if (image.Frames.Count > 1 && o.MaxColors == QuantizerConstants.MaxColors)
+            {
+                o.MaxColors = QuantizerConstants.MaxColors - 1;
+            }
+        });
 
         if (globalQuantizer is null)
         {
-            // Is this a gif with color information. If so use that, otherwise use octree.
+            // Is this a gif with color information. If so use that, otherwise use the adaptive hexadecatree quantizer.
             if (gifMetadata.ColorTableMode == FrameColorTableMode.Global && gifMetadata.GlobalColorTable?.Length > 0)
             {
-                int transparencyIndex = GetTransparentIndex(quantized, frameMetadata);
-                if (transparencyIndex >= 0 || gifMetadata.GlobalColorTable.Value.Length < 256)
+                int ti = GetTransparentIndex(quantized, frameMetadata);
+                if (ti >= 0 || gifMetadata.GlobalColorTable.Value.Length < 256)
                 {
                     // We avoid dithering by default to preserve the original colors.
-                    globalQuantizer = new PaletteQuantizer(gifMetadata.GlobalColorTable.Value, options.DeepClone(o => o.Dither = null));
+                    globalQuantizer = new PaletteQuantizer(
+                        gifMetadata.GlobalColorTable.Value,
+                        options.DeepClone(o => o.Dither = null),
+                        ti,
+                        Color.Transparent);
                 }
                 else
                 {
-                    globalQuantizer = new OctreeQuantizer(options);
+                    globalQuantizer = new HexadecatreeQuantizer(options);
                 }
             }
             else
             {
-                globalQuantizer = new OctreeQuantizer(options);
+                globalQuantizer = new HexadecatreeQuantizer(options);
             }
         }
 
@@ -141,6 +146,11 @@ internal sealed class GifEncoderCore
         IPixelSamplingStrategy strategy = this.pixelSamplingStrategy;
 
         ImageFrame<TPixel> encodingFrame = image.Frames.RootFrame;
+
+        // This color is encoded as the logical-screen background index and is also
+        // used when de-duplicating frames that restore to the GIF background.
+        Color backgroundColor = this.encoder.BackgroundColor ?? gifMetadata.BackgroundColor ?? Color.Transparent;
+        byte backgroundIndex = 0;
         if (useGlobalTableForFirstFrame)
         {
             using IQuantizer<TPixel> firstFrameQuantizer = globalQuantizer.CreatePixelSpecificQuantizer<TPixel>(this.configuration, options);
@@ -154,6 +164,8 @@ internal sealed class GifEncoderCore
             }
 
             quantized = firstFrameQuantizer.QuantizeFrame(encodingFrame, encodingFrame.Bounds);
+            TPixel backgroundPixel = backgroundColor.ToPixel<TPixel>();
+            backgroundIndex = firstFrameQuantizer.GetQuantizedColor(backgroundPixel, out _);
         }
         else
         {
@@ -173,19 +185,11 @@ internal sealed class GifEncoderCore
         WriteHeader(stream);
 
         // Write the LSD.
-        int derivedTransparencyIndex = GetTransparentIndex(quantized, null);
-        if (derivedTransparencyIndex >= 0)
+        int transparencyIndex = GetTransparentIndex(quantized, null);
+        if (transparencyIndex >= 0)
         {
             frameMetadata.HasTransparency = true;
-            frameMetadata.TransparencyIndex = ClampIndex(derivedTransparencyIndex);
-        }
-
-        // TODO: We should be checking the metadata here also I think?
-        if (!TryGetBackgroundIndex(quantized, this.backgroundColor, out byte backgroundIndex))
-        {
-            backgroundIndex = derivedTransparencyIndex >= 0
-               ? frameMetadata.TransparencyIndex
-               : gifMetadata.BackgroundColorIndex;
+            frameMetadata.TransparencyIndex = ClampIndex(transparencyIndex);
         }
 
         // Get the number of bits.
@@ -224,7 +228,8 @@ internal sealed class GifEncoderCore
                     image,
                     globalQuantizer,
                     globalFrameQuantizer,
-                    derivedTransparencyIndex,
+                    backgroundColor,
+                    transparencyIndex,
                     frameMetadata.DisposalMode,
                     cancellationToken);
             }
@@ -255,6 +260,7 @@ internal sealed class GifEncoderCore
         Image<TPixel> image,
         IQuantizer globalQuantizer,
         PaletteQuantizer<TPixel> globalFrameQuantizer,
+        Color backgroundColor,
         int globalTransparencyIndex,
         FrameDisposalMode previousDisposalMode,
         CancellationToken cancellationToken)
@@ -286,6 +292,7 @@ internal sealed class GifEncoderCore
                 globalFrameQuantizer,
                 useLocal,
                 gifMetadata,
+                backgroundColor,
                 previousDisposalMode);
 
             previousFrame = currentFrame;
@@ -305,7 +312,7 @@ internal sealed class GifEncoderCore
         this.WriteGraphicalControlExtension(metadata, stream);
 
         Buffer2D<byte> indices = ((IPixelSource)quantized).PixelBuffer;
-        Rectangle interest = indices.FullRectangle();
+        Rectangle interest = indices.Bounds;
         bool useLocal = this.colorTableMode == FrameColorTableMode.Local || (metadata.ColorTableMode == FrameColorTableMode.Local);
         int bitDepth = ColorNumerics.GetBitsNeededForColorDepth(quantized.Palette.Length);
 
@@ -329,23 +336,35 @@ internal sealed class GifEncoderCore
         PaletteQuantizer<TPixel> globalFrameQuantizer,
         bool useLocal,
         GifFrameMetadata metadata,
+        Color backgroundColor,
         FrameDisposalMode previousDisposalMode)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         // Capture any explicit transparency index from the metadata.
         // We use it to determine the value to use to replace duplicate pixels.
-        int transparencyIndex = metadata.HasTransparency ? metadata.TransparencyIndex : -1;
+        bool useTransparency = metadata.HasTransparency;
+        int transparencyIndex = useTransparency ? metadata.TransparencyIndex : -1;
 
         ImageFrame<TPixel>? previous = previousDisposalMode == FrameDisposalMode.RestoreToBackground
             ? null :
             previousFrame;
 
-        Color background = metadata.DisposalMode == FrameDisposalMode.RestoreToBackground
-            ? this.backgroundColor ?? Color.Transparent
-            : Color.Transparent;
+        // If the previous frame has a value we need to check the disposal mode of that frame
+        // to determine if we should use the background color to fill the encoding frame
+        // when de-duplicating.
+        FrameDisposalMode disposalMode = previous is null ?
+            metadata.DisposalMode :
+            previous.Metadata.GetGifMetadata().DisposalMode;
+
+        Color background = !useTransparency && disposalMode == FrameDisposalMode.RestoreToBackground
+                ? backgroundColor
+                : Color.Transparent;
 
         // Deduplicate and quantize the frame capturing only required parts.
-        (bool difference, Rectangle bounds) =
+        // Pixels matching the previous frame are replaced with the transparent placeholder.
+        // When the entire frame matches there is no captured difference, but every pixel is
+        // still a placeholder, so a transparent index is always required for additional frames.
+        (_, Rectangle bounds) =
             AnimationUtilities.DeDuplicatePixels(
                 this.configuration,
                 previous,
@@ -362,7 +381,7 @@ internal sealed class GifEncoderCore
                 bounds,
                 metadata,
                 useLocal,
-                difference,
+                true,
                 transparencyIndex,
                 background);
 
@@ -387,7 +406,7 @@ internal sealed class GifEncoderCore
         Rectangle bounds,
         GifFrameMetadata metadata,
         bool useLocal,
-        bool hasDuplicates,
+        bool requiresTransparency,
         int transparencyIndex,
         Color transparentColor)
         where TPixel : unmanaged, IPixel<TPixel>
@@ -401,9 +420,11 @@ internal sealed class GifEncoderCore
                 // We can use the color data from the decoded metadata here.
                 // We avoid dithering by default to preserve the original colors.
                 ReadOnlyMemory<Color> palette = metadata.LocalColorTable.Value;
-                if (hasDuplicates && !metadata.HasTransparency)
+                if (requiresTransparency && !metadata.HasTransparency)
                 {
-                    // Duplicates were captured but the metadata does not have transparency.
+                    // The frame was de-duplicated against the previous frame, replacing matching
+                    // pixels with the transparent placeholder, but the metadata does not yet carry
+                    // a transparent index. Reserve one so those pixels encode as transparent.
                     metadata.HasTransparency = true;
 
                     if (palette.Length < 256)
@@ -464,7 +485,7 @@ internal sealed class GifEncoderCore
 
                 metadata.TransparencyIndex = ClampIndex(derivedTransparencyIndex);
 
-                if (hasDuplicates)
+                if (requiresTransparency)
                 {
                     metadata.HasTransparency = true;
                 }
@@ -476,11 +497,19 @@ internal sealed class GifEncoderCore
             // Individual frames, though using the shared palette, can use a different transparent index
             // to represent transparency.
 
-            // A difference was captured but the metadata does not have transparency.
-            if (hasDuplicates && !metadata.HasTransparency)
+            // The frame was de-duplicated against the previous frame, replacing matching pixels with
+            // the transparent placeholder. When the whole frame matches there is no captured difference,
+            // yet every pixel is still a placeholder, so we must always reserve a transparent index here;
+            // otherwise the placeholder pixels are matched to the nearest (typically darkest) palette color.
+            if (requiresTransparency && !metadata.HasTransparency)
             {
                 metadata.HasTransparency = true;
-                transparencyIndex = globalFrameQuantizer.Palette.Length;
+
+                // Normally we pad one index past the palette so the (out of range) value is treated as
+                // transparent by decoders without growing the color table. A full 256-color palette leaves
+                // no room to pad within the 8-bit index space (index 256 wraps to 0 when written and exceeds
+                // the maximum GIF bit depth), so reuse the last in-range index for transparency instead.
+                transparencyIndex = Math.Min(globalFrameQuantizer.Palette.Length, byte.MaxValue);
                 metadata.TransparencyIndex = ClampIndex(transparencyIndex);
             }
 
@@ -491,6 +520,7 @@ internal sealed class GifEncoderCore
         return quantized;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static byte ClampIndex(int value) => (byte)Numerics.Clamp(value, byte.MinValue, byte.MaxValue);
 
     /// <summary>
@@ -511,7 +541,7 @@ internal sealed class GifEncoderCore
         int index = -1;
         if (quantized != null)
         {
-            TPixel transparentPixel = TPixel.FromScaledVector4(Vector4.Zero);
+            TPixel transparentPixel = TPixel.FromUnassociatedScaledVector4(Vector4.Zero);
             ReadOnlySpan<TPixel> palette = quantized.Palette.Span;
 
             // Transparent pixels are much more likely to be found at the end of a palette.
@@ -525,47 +555,6 @@ internal sealed class GifEncoderCore
         }
 
         return index;
-    }
-
-    /// <summary>
-    /// Returns the index of the background color in the palette.
-    /// </summary>
-    /// <param name="quantized">The current quantized frame.</param>
-    /// <param name="background">The background color to match.</param>
-    /// <param name="index">The index in the palette of the background color.</param>
-    /// <typeparam name="TPixel">The pixel format.</typeparam>
-    /// <returns>The <see cref="bool"/>.</returns>
-    private static bool TryGetBackgroundIndex<TPixel>(
-        IndexedImageFrame<TPixel>? quantized,
-        Color? background,
-        out byte index)
-        where TPixel : unmanaged, IPixel<TPixel>
-    {
-        int match = -1;
-        if (quantized != null && background.HasValue)
-        {
-            TPixel backgroundPixel = background.Value.ToPixel<TPixel>();
-            ReadOnlySpan<TPixel> palette = quantized.Palette.Span;
-            for (int i = 0; i < palette.Length; i++)
-            {
-                if (!backgroundPixel.Equals(palette[i]))
-                {
-                    continue;
-                }
-
-                match = i;
-                break;
-            }
-        }
-
-        if (match >= 0)
-        {
-            index = (byte)Numerics.Clamp(match, 0, 255);
-            return true;
-        }
-
-        index = 0;
-        return false;
     }
 
     /// <summary>

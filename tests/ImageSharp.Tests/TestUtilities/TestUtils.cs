@@ -25,9 +25,11 @@ public static class TestUtils
 
     private static readonly Dictionary<PixelTypes, Type> PixelTypes2ClrTypes = new();
 
-    private static readonly PixelTypes[] AllConcretePixelTypes = GetAllPixelTypes()
-        .Except([PixelTypes.Undefined, PixelTypes.All])
-        .ToArray();
+    private static readonly PixelTypes[] AllConcretePixelTypes =
+    [
+        .. GetAllPixelTypes()
+            .Except([PixelTypes.Undefined, PixelTypes.All])
+    ];
 
     static TestUtils()
     {
@@ -401,9 +403,11 @@ public static class TestUtils
 
     public static string[] GetAllResamplerNames(bool includeNearestNeighbour = true)
     {
-        return typeof(KnownResamplers).GetProperties(BindingFlags.Public | BindingFlags.Static)
-            .Select(p => p.Name)
-            .Where(name => includeNearestNeighbour || name != nameof(KnownResamplers.NearestNeighbor))
-            .ToArray();
+        return
+        [
+            .. typeof(KnownResamplers).GetProperties(BindingFlags.Public | BindingFlags.Static)
+                .Select(p => p.Name)
+                .Where(name => includeNearestNeighbour || name != nameof(KnownResamplers.NearestNeighbor))
+        ];
     }
 }

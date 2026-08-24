@@ -27,7 +27,7 @@ internal static class YuvConversion
     // we interpolate u/v as:
     //  ([9*a + 3*b + 3*c +   d    3*a + 9*b + 3*c +   d] + [8 8]) / 16
     //  ([3*a +   b + 9*c + 3*d      a + 3*b + 3*c + 9*d]   [8 8]) / 16
-    public static void UpSample(Span<byte> topY, Span<byte> bottomY, Span<byte> topU, Span<byte> topV, Span<byte> curU, Span<byte> curV, Span<byte> topDst, Span<byte> bottomDst, int len, byte[] uvBuffer)
+    public static void UpSample(Span<byte> topY, Span<byte> bottomY, Span<byte> topU, Span<byte> topV, Span<byte> curU, Span<byte> curV, Span<byte> topDst, Span<byte> bottomDst, int len, Span<byte> uvBuffer)
     {
         if (Vector128.IsHardwareAccelerated)
         {
@@ -39,7 +39,7 @@ internal static class YuvConversion
         }
     }
 
-    private static void UpSampleScalar(Span<byte> topY, Span<byte> bottomY, Span<byte> topU, Span<byte> topV, Span<byte> curU, Span<byte> curV, Span<byte> topDst, Span<byte> bottomDst, int len)
+    private static void UpSampleScalar(ReadOnlySpan<byte> topY, ReadOnlySpan<byte> bottomY, ReadOnlySpan<byte> topU, ReadOnlySpan<byte> topV, ReadOnlySpan<byte> curU, ReadOnlySpan<byte> curV, Span<byte> topDst, Span<byte> bottomDst, int len)
     {
         const int xStep = 3;
         int lastPixelPair = (len - 1) >> 1;
@@ -107,11 +107,11 @@ internal static class YuvConversion
     //
     // Then m can be written as
     // m = (k + t + 1) / 2 - (((b^c) & (s^t)) | (k^t)) & 1
-    private static void UpSampleVector128(Span<byte> topY, Span<byte> bottomY, Span<byte> topU, Span<byte> topV, Span<byte> curU, Span<byte> curV, Span<byte> topDst, Span<byte> bottomDst, int len, byte[] uvBuffer)
+    private static void UpSampleVector128(Span<byte> topY, Span<byte> bottomY, Span<byte> topU, Span<byte> topV, Span<byte> curU, Span<byte> curV, Span<byte> topDst, Span<byte> bottomDst, int len, Span<byte> uvBuffer)
     {
         const int xStep = 3;
-        Array.Clear(uvBuffer);
-        Span<byte> ru = uvBuffer.AsSpan(15);
+        uvBuffer.Clear();
+        Span<byte> ru = uvBuffer[15..];
         Span<byte> rv = ru[32..];
 
         // Treat the first pixel in regular way.
@@ -346,7 +346,7 @@ internal static class YuvConversion
     /// <param name="y">The destination span for y.</param>
     /// <param name="width">The width.</param>
     [MethodImpl(InliningOptions.ShortMethod)]
-    public static void ConvertRgbaToY(Span<Bgra32> rowSpan, Span<byte> y, int width)
+    public static void ConvertRgbaToY(ReadOnlySpan<Bgra32> rowSpan, Span<byte> y, int width)
     {
         for (int x = 0; x < width; x++)
         {
@@ -361,7 +361,7 @@ internal static class YuvConversion
     /// <param name="u">The destination span for u.</param>
     /// <param name="v">The destination span for v.</param>
     /// <param name="width">The width.</param>
-    public static void ConvertRgbaToUv(Span<ushort> rgb, Span<byte> u, Span<byte> v, int width)
+    public static void ConvertRgbaToUv(ReadOnlySpan<ushort> rgb, Span<byte> u, Span<byte> v, int width)
     {
         int rgbIdx = 0;
         for (int i = 0; i < width; i += 1, rgbIdx += 4)
@@ -372,7 +372,7 @@ internal static class YuvConversion
         }
     }
 
-    public static void AccumulateRgb(Span<Bgra32> rowSpan, Span<Bgra32> nextRowSpan, Span<ushort> dst, int width)
+    public static void AccumulateRgb(ReadOnlySpan<Bgra32> rowSpan, ReadOnlySpan<Bgra32> nextRowSpan, Span<ushort> dst, int width)
     {
         Bgra32 bgra0;
         Bgra32 bgra1;
@@ -416,7 +416,7 @@ internal static class YuvConversion
         }
     }
 
-    public static void AccumulateRgba(Span<Bgra32> rowSpan, Span<Bgra32> nextRowSpan, Span<ushort> dst, int width)
+    public static void AccumulateRgba(ReadOnlySpan<Bgra32> rowSpan, ReadOnlySpan<Bgra32> nextRowSpan, Span<ushort> dst, int width)
     {
         Bgra32 bgra0;
         Bgra32 bgra1;
@@ -686,12 +686,12 @@ internal static class YuvConversion
         out Vector128<byte> output4,
         out Vector128<byte> output5)
     {
-        output0 = Vector128_.ShuffleNative(input0, shuffle0);
-        output1 = Vector128_.ShuffleNative(input0, shuffle1);
-        output2 = Vector128_.ShuffleNative(input0, shuffle2);
-        output3 = Vector128_.ShuffleNative(input1, shuffle0);
-        output4 = Vector128_.ShuffleNative(input1, shuffle1);
-        output5 = Vector128_.ShuffleNative(input1, shuffle2);
+        output0 = Vector128.ShuffleNative(input0, shuffle0);
+        output1 = Vector128.ShuffleNative(input0, shuffle1);
+        output2 = Vector128.ShuffleNative(input0, shuffle2);
+        output3 = Vector128.ShuffleNative(input1, shuffle0);
+        output4 = Vector128.ShuffleNative(input1, shuffle1);
+        output5 = Vector128.ShuffleNative(input1, shuffle2);
     }
 
     // Convert 32 samples of YUV444 to B/G/R
@@ -726,8 +726,8 @@ internal static class YuvConversion
         Vector128<ushort> g4 = g2 - g3;
 
         Vector128<ushort> b0 = Vector128_.MultiplyHigh(u0.AsUInt16(), Vector128.Create(26, 129, 26, 129, 26, 129, 26, 129, 26, 129, 26, 129, 26, 129, 26, 129).AsUInt16());
-        Vector128<ushort> b1 = Vector128_.AddSaturate(b0, y1);
-        Vector128<ushort> b2 = Vector128_.SubtractSaturate(b1, Vector128.Create((ushort)17685));
+        Vector128<ushort> b1 = Vector128.AddSaturate(b0, y1);
+        Vector128<ushort> b2 = Vector128.SubtractSaturate(b1, Vector128.Create((ushort)17685));
 
         // Use logical shift for B2, which can be larger than 32767.
         r = Vector128.ShiftRightArithmetic(r2.AsInt16(), 6); // range: [-14234, 30815]

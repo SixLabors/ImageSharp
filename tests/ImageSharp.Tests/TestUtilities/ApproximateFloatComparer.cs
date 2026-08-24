@@ -15,7 +15,8 @@ internal readonly struct ApproximateFloatComparer :
     IEqualityComparer<Vector2>,
     IEqualityComparer<Vector4>,
     IEqualityComparer<ColorMatrix>,
-    IEqualityComparer<Vector256<float>>
+    IEqualityComparer<Vector256<float>>,
+    IEqualityComparer<Vector512<float>>
 {
     private readonly float epsilon;
 
@@ -78,4 +79,19 @@ internal readonly struct ApproximateFloatComparer :
         && this.Equals(x.GetElement(7), y.GetElement(7));
 
     public int GetHashCode([DisallowNull] Vector256<float> obj) => obj.GetHashCode();
+
+    public bool Equals(Vector512<float> x, Vector512<float> y)
+    {
+        for (int i = 0; i < Vector512<float>.Count; i++)
+        {
+            if (!this.Equals(x.GetElement(i), y.GetElement(i)))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    public int GetHashCode([DisallowNull] Vector512<float> obj) => obj.GetHashCode();
 }

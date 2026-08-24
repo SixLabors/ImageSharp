@@ -8,15 +8,20 @@ using System.Runtime.Intrinsics;
 namespace SixLabors.ImageSharp.PixelFormats;
 
 /// <summary>
-/// Packed pixel type containing four 8-bit signed normalized values, ranging from −1 to 1.
-/// <para>
-/// Ranges from [-1, -1, -1, -1] to [1, 1, 1, 1] in vector form.
-/// </para>
+/// Packed pixel type containing four 8-bit signed normalized values.
 /// </summary>
+/// <remarks>
+/// <see cref="ToVector4"/> returns components in the native signed-normalized range <c>[-1, 1]</c>.
+/// Scaled vector conversions return components in <c>[0, 1]</c>.
+/// The packed two's-complement codes <c>-128</c> and <c>-127</c> both represent <c>-1</c>,
+/// matching <c>DXGI_FORMAT_R8G8B8A8_SNORM</c>.
+/// </remarks>
 public partial struct NormalizedByte4 : IPixel<NormalizedByte4>, IPackedVector<uint>
 {
     private const float MaxPos = 127f;
+    private const float ScaledMagnitude = MaxPos * 2F;
     private static readonly Vector4 Half = Vector128.Create(MaxPos).AsVector4();
+    private static readonly Vector4 Minimum = -Half;
     private static readonly Vector4 MinusOne = Vector128.Create(-1f).AsVector4();
 
     /// <summary>
@@ -70,19 +75,30 @@ public partial struct NormalizedByte4 : IPixel<NormalizedByte4>, IPackedVector<u
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly Vector4 ToScaledVector4()
     {
-        Vector4 scaled = this.ToVector4();
-        scaled += Vector4.One;
-        scaled /= 2f;
-        return scaled;
+        // Offset the exact signed components before division. Mapping an already normalized value through (value + 1) / 2 loses precision near -1 through cancellation.
+        Vector4 scaled = new(
+            (sbyte)((this.PackedValue >> 0) & 0xFF),
+            (sbyte)((this.PackedValue >> 8) & 0xFF),
+            (sbyte)((this.PackedValue >> 16) & 0xFF),
+            (sbyte)((this.PackedValue >> 24) & 0xFF));
+
+        // SNORM reserves both minimum two's-complement codes for -1. Clamp before offsetting so raw -128 cannot escape the scaled range.
+        return (Vector4.Max(scaled, Minimum) + Half) / ScaledMagnitude;
     }
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly Vector4 ToVector4() => new(
-            (sbyte)((this.PackedValue >> 0) & 0xFF) / MaxPos,
-            (sbyte)((this.PackedValue >> 8) & 0xFF) / MaxPos,
-            (sbyte)((this.PackedValue >> 16) & 0xFF) / MaxPos,
-            (sbyte)((this.PackedValue >> 24) & 0xFF) / MaxPos);
+    public readonly Vector4 ToVector4()
+    {
+        Vector4 vector = new(
+            (sbyte)((this.PackedValue >> 0) & 0xFF),
+            (sbyte)((this.PackedValue >> 8) & 0xFF),
+            (sbyte)((this.PackedValue >> 16) & 0xFF),
+            (sbyte)((this.PackedValue >> 24) & 0xFF));
+
+        // DirectX SNORM maps both -128 and -127 to -1.
+        return Vector4.Max(vector, Minimum) / MaxPos;
+    }
 
     /// <inheritdoc />
     public static PixelTypeInfo GetPixelTypeInfo()
@@ -93,6 +109,61 @@ public partial struct NormalizedByte4 : IPixel<NormalizedByte4>, IPackedVector<u
 
     /// <inheritdoc />
     public static PixelOperations<NormalizedByte4> CreatePixelOperations() => new PixelOperations();
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly Vector4 ToUnassociatedScaledVector4() => this.ToScaledVector4();
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly Vector4 ToAssociatedScaledVector4()
+    {
+        Vector4 vector = this.ToScaledVector4();
+        Numerics.Premultiply(ref vector);
+        return vector;
+    }
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly Vector4 ToUnassociatedVector4() => this.ToVector4();
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly Vector4 ToAssociatedVector4()
+    {
+        Vector4 vector = this.ToAssociatedScaledVector4();
+
+        // Native components use an affine [-1, 1] encoding, so direct multiplication would use the wrong zero point.
+        vector *= 2F;
+        vector -= Vector4.One;
+        return vector;
+    }
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static NormalizedByte4 FromUnassociatedScaledVector4(Vector4 source) => FromScaledVector4(source);
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static NormalizedByte4 FromAssociatedScaledVector4(Vector4 source)
+    {
+        Numerics.UnPremultiply(ref source);
+        return FromScaledVector4(source);
+    }
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static NormalizedByte4 FromUnassociatedVector4(Vector4 source) => FromVector4(source);
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static NormalizedByte4 FromAssociatedVector4(Vector4 source)
+    {
+        // Map the affine native encoding to logical [0, 1] space before unassociating.
+        source += Vector4.One;
+        source /= 2F;
+        return FromAssociatedScaledVector4(source);
+    }
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

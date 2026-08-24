@@ -9,7 +9,7 @@ using SixLabors.ImageSharp.PixelFormats;
 namespace SixLabors.ImageSharp.Formats.Cur;
 
 /// <summary>
-/// Provides Cur specific metadata information for the image.
+/// Provides CUR-specific metadata for an image.
 /// </summary>
 public class CurMetadata : IFormatMetadata<CurMetadata>
 {
@@ -32,7 +32,7 @@ public class CurMetadata : IFormatMetadata<CurMetadata>
     }
 
     /// <summary>
-    /// Gets or sets the frame compressions format. Derived from the root frame.
+    /// Gets or sets the root frame compression format.
     /// </summary>
     public IconFrameCompression Compression { get; set; }
 
@@ -43,7 +43,7 @@ public class CurMetadata : IFormatMetadata<CurMetadata>
     public BmpBitsPerPixel BmpBitsPerPixel { get; set; } = BmpBitsPerPixel.Bit32;
 
     /// <summary>
-    /// Gets or sets the color table, if any. Derived from the root frame.<br/>
+    /// Gets or sets the root frame color table, if any.<br/>
     /// The underlying pixel format is represented by <see cref="Bgr24"/>.
     /// </summary>
     public ReadOnlyMemory<Color>? ColorTable { get; set; }

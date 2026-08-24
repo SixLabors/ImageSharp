@@ -102,7 +102,7 @@ internal sealed class IccReader
             entries.Add(entry);
         }
 
-        return entries.ToArray();
+        return [.. entries];
     }
 
     private static IccTagTableEntry[] ReadTagTable(IccDataReader reader)
@@ -132,6 +132,6 @@ internal sealed class IccReader
             }
         }
 
-        return table.ToArray();
+        return [.. table];
     }
 }

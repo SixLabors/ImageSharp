@@ -7,8 +7,8 @@ using SixLabors.ImageSharp.Processing.Processors.Transforms;
 namespace SixLabors.ImageSharp.Processing;
 
 /// <summary>
-/// Defines extensions that allow the application of composable transform operations on an <see cref="Image"/>
-/// using Mutate/Clone.
+/// Defines extensions that allow the application of composable transform operations
+/// on an <see cref="IImageProcessingContext"/> using Mutate/Clone.
 /// </summary>
 public static class TransformExtensions
 {
@@ -51,7 +51,7 @@ public static class TransformExtensions
         IResampler sampler)
     {
         Matrix3x2 transform = builder.BuildMatrix(sourceRectangle);
-        Size targetDimensions = builder.GetTransformedSize(sourceRectangle);
+        Size targetDimensions = TransformUtilities.GetTransformedCanvasSize(transform, sourceRectangle.Size);
         return source.Transform(sourceRectangle, transform, targetDimensions, sampler);
     }
 
@@ -113,7 +113,7 @@ public static class TransformExtensions
         IResampler sampler)
     {
         Matrix4x4 transform = builder.BuildMatrix(sourceRectangle);
-        Size targetDimensions = builder.GetTransformedSize(sourceRectangle);
+        Size targetDimensions = TransformUtilities.GetTransformedCanvasSize(transform, sourceRectangle.Size);
         return source.Transform(sourceRectangle, transform, targetDimensions, sampler);
     }
 

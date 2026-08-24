@@ -97,7 +97,7 @@ internal class RotateProcessor<TPixel> : AffineTransformProcessor<TPixel>
         if (MathF.Abs(degrees) < Constants.Epsilon)
         {
             // The destination will be blank here so copy all the pixel data over
-            source.GetPixelMemoryGroup().CopyTo(destination.GetPixelMemoryGroup());
+            source.PixelBuffer.CopyTo(destination.PixelBuffer);
             return true;
         }
 

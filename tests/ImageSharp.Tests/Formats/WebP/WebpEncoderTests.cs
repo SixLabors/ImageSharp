@@ -135,9 +135,9 @@ public class WebpEncoderTests
         // Alpha thresholding is 64/255F.
         GifEncoder gifEncoder = new()
         {
-            Quantizer = new OctreeQuantizer(options)
+            Quantizer = new HexadecatreeQuantizer(options)
         };
-        provider.Utility.SaveTestOutputFile(image, "gif", gifEncoder, "octree");
+        provider.Utility.SaveTestOutputFile(image, "gif", gifEncoder, "hexadecatree");
 
         gifEncoder = new GifEncoder
         {
@@ -152,8 +152,8 @@ public class WebpEncoderTests
         };
 
         using Image<TPixel> cloned1 = image.Clone();
-        cloned1.Mutate(c => c.Quantize(new OctreeQuantizer(options)));
-        provider.Utility.SaveTestOutputFile(cloned1, "webp", encoder, "octree");
+        cloned1.Mutate(c => c.Quantize(new HexadecatreeQuantizer(options)));
+        provider.Utility.SaveTestOutputFile(cloned1, "webp", encoder, "hexadecatree");
 
         using Image<TPixel> cloned2 = image.Clone();
         cloned2.Mutate(c => c.Quantize(new WuQuantizer(options)));
@@ -162,7 +162,7 @@ public class WebpEncoderTests
         // Now blend the images with a blue background and save as webp.
         using Image<Rgba32> background1 = new(image.Width, image.Height, Color.White.ToPixel<Rgba32>());
         background1.Mutate(c => c.DrawImage(cloned1, 1));
-        provider.Utility.SaveTestOutputFile(background1, "webp", encoder, "octree-blended");
+        provider.Utility.SaveTestOutputFile(background1, "webp", encoder, "hexadecatree-blended");
 
         using Image<Rgba32> background2 = new(image.Width, image.Height, Color.White.ToPixel<Rgba32>());
         background2.Mutate(c => c.DrawImage(cloned2, 1));

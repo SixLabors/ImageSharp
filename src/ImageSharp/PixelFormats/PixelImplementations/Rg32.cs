@@ -7,11 +7,12 @@ using System.Runtime.CompilerServices;
 namespace SixLabors.ImageSharp.PixelFormats;
 
 /// <summary>
-/// Packed pixel type containing two 16-bit unsigned normalized values ranging from 0 to 1.
-/// <para>
-/// Ranges from [0, 0, 0, 1] to [1, 1, 0, 1] in vector form.
-/// </para>
+/// Packed pixel type containing two 16-bit unsigned normalized values.
 /// </summary>
+/// <remarks>
+/// <see cref="ToVector2"/>, <see cref="ToVector4"/>, and scaled vector conversions return x and y in <c>[0, 1]</c>, z
+/// as <c>0</c>, and implicit alpha as <c>1</c>. The packed storage layout matches <c>DXGI_FORMAT_R16G16_UNORM</c>.
+/// </remarks>
 public partial struct Rg32 : IPixel<Rg32>, IPackedVector<uint>
 {
     private static readonly Vector2 Max = new(ushort.MaxValue);
@@ -83,6 +84,48 @@ public partial struct Rg32 : IPixel<Rg32>, IPackedVector<uint>
 
     /// <inheritdoc />
     public static PixelOperations<Rg32> CreatePixelOperations() => new PixelOperations();
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly Vector4 ToUnassociatedScaledVector4() => this.ToScaledVector4();
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly Vector4 ToAssociatedScaledVector4() => this.ToScaledVector4();
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly Vector4 ToUnassociatedVector4() => this.ToVector4();
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly Vector4 ToAssociatedVector4() => this.ToVector4();
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Rg32 FromUnassociatedScaledVector4(Vector4 source) => FromScaledVector4(source);
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Rg32 FromAssociatedScaledVector4(Vector4 source)
+    {
+        // The destination has implicit alpha one, but associated input must be restored before its alpha is discarded.
+        Numerics.UnPremultiply(ref source);
+        return FromScaledVector4(source);
+    }
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Rg32 FromUnassociatedVector4(Vector4 source) => FromVector4(source);
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Rg32 FromAssociatedVector4(Vector4 source)
+    {
+        // The destination has implicit alpha one, but associated input must be restored before its alpha is discarded.
+        Numerics.UnPremultiply(ref source);
+        return FromVector4(source);
+    }
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

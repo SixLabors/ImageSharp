@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Buffers;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Memory.Internals;
 
@@ -71,30 +70,25 @@ internal sealed class UniformUnmanagedMemoryPoolMemoryAllocator : MemoryAllocato
         this.nonPoolAllocator = new UnmanagedMemoryAllocator(unmanagedBufferSizeInBytes);
     }
 
-    // This delegate allows overriding the method returning the available system memory,
-    // so we can test our workaround for https://github.com/dotnet/runtime/issues/65466
-    internal static Func<long> GetTotalAvailableMemoryBytes { get; set; } = () => GC.GetGCMemoryInfo().TotalAvailableMemoryBytes;
+    internal UniformUnmanagedMemoryPoolMemoryAllocator(
+        int sharedArrayPoolThresholdInBytes,
+        int poolBufferSizeInBytes,
+        long maxPoolSizeInBytes,
+        int unmanagedBufferSizeInBytes,
+        MemoryAllocatorOptions options)
+        : this(sharedArrayPoolThresholdInBytes, poolBufferSizeInBytes, maxPoolSizeInBytes, unmanagedBufferSizeInBytes)
+        => this.ApplyOptions(options);
 
     /// <inheritdoc />
     protected internal override int GetBufferCapacityInBytes() => this.poolBufferSizeInBytes;
 
     /// <inheritdoc />
-    public override IMemoryOwner<T> Allocate<T>(
+    protected override AllocationTrackedMemoryManager<T> AllocateCore<T>(
         int length,
         AllocationOptions options = AllocationOptions.None)
     {
-        if (length < 0)
-        {
-            InvalidMemoryOperationException.ThrowNegativeAllocationException(length);
-        }
-
-        ulong lengthInBytes = (ulong)length * (ulong)Unsafe.SizeOf<T>();
-        if (lengthInBytes > (ulong)this.SingleBufferAllocationLimitBytes)
-        {
-            InvalidMemoryOperationException.ThrowAllocationOverLimitException(lengthInBytes, this.SingleBufferAllocationLimitBytes);
-        }
-
-        if (lengthInBytes <= (ulong)this.sharedArrayPoolThresholdInBytes)
+        int lengthInBytes = length * Unsafe.SizeOf<T>();
+        if (lengthInBytes <= this.sharedArrayPoolThresholdInBytes)
         {
             SharedArrayPoolBuffer<T> buffer = new(length);
             if (options.Has(AllocationOptions.Clean))
@@ -105,17 +99,16 @@ internal sealed class UniformUnmanagedMemoryPoolMemoryAllocator : MemoryAllocato
             return buffer;
         }
 
-        if (lengthInBytes <= (ulong)this.poolBufferSizeInBytes)
+        if (lengthInBytes <= this.poolBufferSizeInBytes)
         {
             UnmanagedMemoryHandle mem = this.pool.Rent();
             if (mem.IsValid)
             {
-                UnmanagedBuffer<T> buffer = this.pool.CreateGuardedBuffer<T>(mem, length, options.Has(AllocationOptions.Clean));
-                return buffer;
+                return this.pool.CreateGuardedBuffer<T>(mem, length, options.Has(AllocationOptions.Clean));
             }
         }
 
-        return this.nonPoolAllocator.Allocate<T>(length, options);
+        return UnmanagedMemoryAllocator.AllocateBuffer<T>(length, options);
     }
 
     /// <inheritdoc />
@@ -155,20 +148,14 @@ internal sealed class UniformUnmanagedMemoryPoolMemoryAllocator : MemoryAllocato
 
     private static long GetDefaultMaxPoolSizeBytes()
     {
-        // On 64 bit set the pool size to a portion of the total available memory.
-        // https://github.com/dotnet/runtime/issues/55126#issuecomment-876779327
         if (Environment.Is64BitProcess)
         {
-            long total = GetTotalAvailableMemoryBytes();
-
-            // Workaround for https://github.com/dotnet/runtime/issues/65466
-            if (total > 0)
-            {
-                return (long)((ulong)total / 8);
-            }
+            // On 64 bit set the pool size to a portion of the total available memory.
+            GCMemoryInfo info = GC.GetGCMemoryInfo();
+            return info.TotalAvailableMemoryBytes / 8;
         }
 
-        // Stick to a conservative value of 128 Megabytes on other platforms and 32 bit .NET 5.0:
+        // Stick to a conservative value of 128 Megabytes on 32 bit.
         return 128 * OneMegabyte;
     }
 }

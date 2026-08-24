@@ -339,7 +339,7 @@ internal sealed class WebpLosslessDecoder
         }
     }
 
-    private static void AdvanceByOne(ref int col, ref int row, int width, ColorCache colorCache, ref int decodedPixels, Span<uint> pixelData, ref int lastCached)
+    private static void AdvanceByOne(ref int col, ref int row, int width, ColorCache colorCache, ref int decodedPixels, ReadOnlySpan<uint> pixelData, ref int lastCached)
     {
         col++;
         decodedPixels++;
@@ -438,7 +438,7 @@ internal sealed class WebpLosslessDecoder
                 }
 
                 // TODO: Avoid allocation.
-                hTreeGroup.HTrees.Add(huffmanTable[..size].ToArray());
+                hTreeGroup.HTrees.Add([.. huffmanTable[..size]]);
 
                 HuffmanCode huffTableZero = huffmanTable[0];
                 if (isTrivialLiteral && LiteralMap[j] == 1)
@@ -826,7 +826,7 @@ internal sealed class WebpLosslessDecoder
         decoder.Metadata.HuffmanMask = numBits == 0 ? ~0 : (1 << numBits) - 1;
     }
 
-    private uint ReadPackedSymbols(Span<HTreeGroup> group, Span<uint> pixelData, int decodedPixels)
+    private uint ReadPackedSymbols(ReadOnlySpan<HTreeGroup> group, Span<uint> pixelData, int decodedPixels)
     {
         uint val = (uint)(this.bitReader.PrefetchBits() & (HuffmanUtils.HuffmanPackedTableSize - 1));
         HuffmanCode code = group[0].PackedTable[val];

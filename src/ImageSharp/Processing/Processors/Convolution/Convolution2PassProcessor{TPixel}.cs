@@ -199,12 +199,14 @@ internal class Convolution2PassProcessor<TPixel> : ImageProcessor<TPixel>
             Span<Vector4> sourceBuffer = span[..this.bounds.Width];
             Span<Vector4> targetBuffer = span[this.bounds.Width..];
 
+            // Alpha is preserved separately, so filter straight color and restore the source alpha after applying the kernel.
+
             // Clear the target buffer for each row run.
             targetBuffer.Clear();
 
             // Get the precalculated source sample row for this kernel row and copy to our buffer.
             Span<TPixel> sourceRow = this.sourcePixels.DangerousGetRowSpan(y).Slice(boundsX, boundsWidth);
-            PixelOperations<TPixel>.Instance.ToVector4(this.configuration, sourceRow, sourceBuffer);
+            PixelOperations<TPixel>.Instance.ToVector4(this.configuration, sourceRow, sourceBuffer, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
 
             ref Vector4 sourceBase = ref MemoryMarshal.GetReference(sourceBuffer);
             ref Vector4 targetStart = ref MemoryMarshal.GetReference(targetBuffer);
@@ -233,9 +235,6 @@ internal class Convolution2PassProcessor<TPixel> : ImageProcessor<TPixel>
             }
 
             // Now we need to copy the original alpha values from the source row.
-            sourceRow = this.sourcePixels.DangerousGetRowSpan(y).Slice(boundsX, boundsWidth);
-            PixelOperations<TPixel>.Instance.ToVector4(this.configuration, sourceRow, sourceBuffer);
-
             targetStart = ref MemoryMarshal.GetReference(targetBuffer);
 
             while (Unsafe.IsAddressLessThan(ref targetStart, ref targetEnd))
@@ -247,7 +246,7 @@ internal class Convolution2PassProcessor<TPixel> : ImageProcessor<TPixel>
             }
 
             Span<TPixel> targetRow = this.targetPixels.DangerousGetRowSpan(y).Slice(boundsX, boundsWidth);
-            PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, targetBuffer, targetRow);
+            PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, targetBuffer, targetRow, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -261,14 +260,14 @@ internal class Convolution2PassProcessor<TPixel> : ImageProcessor<TPixel>
             Span<Vector4> sourceBuffer = span[..this.bounds.Width];
             Span<Vector4> targetBuffer = span[this.bounds.Width..];
 
+            // Alpha participates in this convolution, so filter associated color to keep RGB weighted by coverage throughout the kernel.
+
             // Clear the target buffer for each row run.
             targetBuffer.Clear();
 
             // Get the precalculated source sample row for this kernel row and copy to our buffer.
             Span<TPixel> sourceRow = this.sourcePixels.DangerousGetRowSpan(y).Slice(boundsX, boundsWidth);
-            PixelOperations<TPixel>.Instance.ToVector4(this.configuration, sourceRow, sourceBuffer);
-
-            Numerics.Premultiply(sourceBuffer);
+            PixelOperations<TPixel>.Instance.ToVector4(this.configuration, sourceRow, sourceBuffer, PixelConversionModifiers.Scale | PixelConversionModifiers.Premultiply);
 
             ref Vector4 sourceBase = ref MemoryMarshal.GetReference(sourceBuffer);
             ref Vector4 targetStart = ref MemoryMarshal.GetReference(targetBuffer);
@@ -296,10 +295,8 @@ internal class Convolution2PassProcessor<TPixel> : ImageProcessor<TPixel>
                 sampleColumnBase = ref Unsafe.Add(ref sampleColumnBase, (uint)kernelSize);
             }
 
-            Numerics.UnPremultiply(targetBuffer);
-
             Span<TPixel> targetRow = this.targetPixels.DangerousGetRowSpan(y).Slice(boundsX, boundsWidth);
-            PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, targetBuffer, targetRow);
+            PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, targetBuffer, targetRow, PixelConversionModifiers.Scale | PixelConversionModifiers.Premultiply);
         }
     }
 
@@ -367,6 +364,8 @@ internal class Convolution2PassProcessor<TPixel> : ImageProcessor<TPixel>
 
             ref int sampleRowBase = ref Unsafe.Add(ref MemoryMarshal.GetReference(this.map.GetRowOffsetSpan()), (uint)((y - this.bounds.Y) * kernelSize));
 
+            // Alpha is preserved separately, so filter straight color and restore the source alpha after applying the kernel.
+
             // Clear the target buffer for each row run.
             targetBuffer.Clear();
 
@@ -380,7 +379,7 @@ internal class Convolution2PassProcessor<TPixel> : ImageProcessor<TPixel>
                 // Get the precalculated source sample row for this kernel row and copy to our buffer.
                 sourceRow = this.sourcePixels.DangerousGetRowSpan(sampleRowBase).Slice(boundsX, boundsWidth);
 
-                PixelOperations<TPixel>.Instance.ToVector4(this.configuration, sourceRow, sourceBuffer);
+                PixelOperations<TPixel>.Instance.ToVector4(this.configuration, sourceRow, sourceBuffer, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
 
                 ref Vector4 sourceBase = ref MemoryMarshal.GetReference(sourceBuffer);
                 ref Vector4 sourceEnd = ref Unsafe.Add(ref sourceBase, (uint)sourceBuffer.Length);
@@ -401,7 +400,7 @@ internal class Convolution2PassProcessor<TPixel> : ImageProcessor<TPixel>
 
             // Now we need to copy the original alpha values from the source row.
             sourceRow = this.sourcePixels.DangerousGetRowSpan(y).Slice(boundsX, boundsWidth);
-            PixelOperations<TPixel>.Instance.ToVector4(this.configuration, sourceRow, sourceBuffer);
+            PixelOperations<TPixel>.Instance.ToVector4(this.configuration, sourceRow, sourceBuffer, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
             {
                 ref Vector4 sourceBase = ref MemoryMarshal.GetReference(sourceBuffer);
                 ref Vector4 sourceEnd = ref Unsafe.Add(ref sourceBase, (uint)sourceBuffer.Length);
@@ -416,7 +415,7 @@ internal class Convolution2PassProcessor<TPixel> : ImageProcessor<TPixel>
             }
 
             Span<TPixel> targetRow = this.targetPixels.DangerousGetRowSpan(y).Slice(boundsX, boundsWidth);
-            PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, targetBuffer, targetRow);
+            PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, targetBuffer, targetRow, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -432,6 +431,8 @@ internal class Convolution2PassProcessor<TPixel> : ImageProcessor<TPixel>
 
             ref int sampleRowBase = ref Unsafe.Add(ref MemoryMarshal.GetReference(this.map.GetRowOffsetSpan()), (uint)((y - this.bounds.Y) * kernelSize));
 
+            // Alpha participates in this convolution, so filter associated color to keep RGB weighted by coverage throughout the kernel.
+
             // Clear the target buffer for each row run.
             targetBuffer.Clear();
 
@@ -445,9 +446,7 @@ internal class Convolution2PassProcessor<TPixel> : ImageProcessor<TPixel>
                 // Get the precalculated source sample row for this kernel row and copy to our buffer.
                 sourceRow = this.sourcePixels.DangerousGetRowSpan(sampleRowBase).Slice(boundsX, boundsWidth);
 
-                PixelOperations<TPixel>.Instance.ToVector4(this.configuration, sourceRow, sourceBuffer);
-
-                Numerics.Premultiply(sourceBuffer);
+                PixelOperations<TPixel>.Instance.ToVector4(this.configuration, sourceRow, sourceBuffer, PixelConversionModifiers.Scale | PixelConversionModifiers.Premultiply);
 
                 ref Vector4 sourceBase = ref MemoryMarshal.GetReference(sourceBuffer);
                 ref Vector4 sourceEnd = ref Unsafe.Add(ref sourceBase, (uint)sourceBuffer.Length);
@@ -466,10 +465,8 @@ internal class Convolution2PassProcessor<TPixel> : ImageProcessor<TPixel>
                 sampleRowBase = ref Unsafe.Add(ref sampleRowBase, 1);
             }
 
-            Numerics.UnPremultiply(targetBuffer);
-
             Span<TPixel> targetRow = this.targetPixels.DangerousGetRowSpan(y).Slice(boundsX, boundsWidth);
-            PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, targetBuffer, targetRow);
+            PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, targetBuffer, targetRow, PixelConversionModifiers.Scale | PixelConversionModifiers.Premultiply);
         }
     }
 }

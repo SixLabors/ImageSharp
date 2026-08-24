@@ -144,7 +144,8 @@ internal struct WuQuantizer<TPixel> : IQuantizer<TPixel>
                     normalized = Vector4.Zero;
                 }
 
-                paletteSpan[k] = TPixel.FromScaledVector4(normalized);
+                // Histogram moments are accumulated from straight-alpha Rgba32 values, so the normalized palette color is unassociated.
+                paletteSpan[k] = TPixel.FromUnassociatedScaledVector4(normalized);
             }
         }
 

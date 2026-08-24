@@ -4,17 +4,17 @@
 namespace SixLabors.ImageSharp.Formats.Icon;
 
 /// <summary>
-/// IconFrameCompression
+/// Specifies the encoding used for an image embedded in an ICO or CUR resource.
 /// </summary>
 public enum IconFrameCompression
 {
     /// <summary>
-    /// Bmp
+    /// The image is encoded as a headerless Windows bitmap with an AND transparency mask.
     /// </summary>
     Bmp,
 
     /// <summary>
-    /// Png
+    /// The image is encoded as PNG data.
     /// </summary>
     Png
 }

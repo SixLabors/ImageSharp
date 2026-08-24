@@ -2,7 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.ComponentModel;
-using Xunit.Abstractions;
+using Xunit.Sdk;
 
 namespace SixLabors.ImageSharp.Tests.TestUtilities;
 
@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.Tests.TestUtilities;
 /// </summary>
 internal class BasicSerializer : IXunitSerializationInfo
 {
-    private readonly Dictionary<string, string> map = [];
+    private readonly Dictionary<string, (string Str, Type Type)> map = [];
 
     public const char Separator = ':';
 
@@ -22,9 +22,10 @@ internal class BasicSerializer : IXunitSerializationInfo
         using MemoryStream ms = new();
         using StreamWriter writer = new(ms);
         writer.WriteLine(type.FullName);
-        foreach (KeyValuePair<string, string> kv in this.map)
+        foreach (KeyValuePair<string, (string Str, Type Type)> kv in this.map)
         {
-            writer.WriteLine($"{kv.Key}{Separator}{kv.Value}");
+            // Format: key:TypeAssemblyQualifiedName:value
+            writer.WriteLine($"{kv.Key}{Separator}{kv.Value.Type.AssemblyQualifiedName}{Separator}{kv.Value.Str}");
         }
 
         writer.Flush();
@@ -41,8 +42,13 @@ internal class BasicSerializer : IXunitSerializationInfo
         Type type = Type.GetType(reader.ReadLine());
         for (string s = reader.ReadLine(); s != null; s = reader.ReadLine())
         {
-            string[] kv = s.Split(Separator);
-            this.map[kv[0]] = kv[1];
+            // Format: key:TypeAssemblyQualifiedName:value
+            string[] parts = s.Split(Separator, 3);
+            if (parts.Length == 3)
+            {
+                Type valueType = Type.GetType(parts[1]) ?? typeof(string);
+                this.map[parts[0]] = (parts[2], valueType);
+            }
         }
 
         return type;
@@ -76,20 +82,18 @@ internal class BasicSerializer : IXunitSerializationInfo
 
         type ??= value.GetType();
 
-        this.map[key] = TypeDescriptor.GetConverter(type).ConvertToInvariantString(value);
+        this.map[key] = (TypeDescriptor.GetConverter(type).ConvertToInvariantString(value), type);
     }
 
-    public object GetValue(string key, Type type)
+    public object GetValue(string key)
     {
         Guard.NotNull(key, nameof(key));
 
-        if (!this.map.TryGetValue(key, out string str))
+        if (!this.map.TryGetValue(key, out (string Str, Type Type) entry))
         {
-            return type.IsValueType ? Activator.CreateInstance(type) : null;
+            return null;
         }
 
-        return TypeDescriptor.GetConverter(type).ConvertFromInvariantString(str);
+        return TypeDescriptor.GetConverter(entry.Type).ConvertFromInvariantString(entry.Str);
     }
-
-    public T GetValue<T>(string key) => (T)this.GetValue(key, typeof(T));
 }

@@ -31,13 +31,11 @@ internal static class Vector256_
         => Avx.Shuffle(vector, vector, control);
 
     /// <summary>
-    /// Creates a new vector by selecting values from an input vector using a set of indices.</summary>
-    /// <param name="vector">
-    /// The input vector from which values are selected.</param>
-    /// <param name="indices">
-    /// The per-element indices used to select a value from <paramref name="vector" />.
-    /// </param>
-    /// <returns>The <see cref="Vector256{Single}"/>.</returns>
+    /// Creates a new vector by selecting values from each 128-bit input lane using the corresponding indices.
+    /// </summary>
+    /// <param name="vector">The input vector from which values are selected.</param>
+    /// <param name="indices">The per-element indices used to select values within each 128-bit lane.</param>
+    /// <returns>The shuffled <see cref="Vector256{Byte}"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<byte> ShufflePerLane(Vector256<byte> vector, Vector256<byte> indices)
     {
@@ -46,9 +44,11 @@ internal static class Vector256_
             return Avx2.Shuffle(vector, indices);
         }
 
+        // The .NET 10 fallback treats indices as full-width when AVX2 is unavailable. Reusing
+        // the low mask for each half preserves the lane-local vpshufb contract on AVX-only CPUs.
         Vector128<byte> indicesLo = indices.GetLower();
-        Vector128<byte> lower = Vector128_.ShuffleNative(vector.GetLower(), indicesLo);
-        Vector128<byte> upper = Vector128_.ShuffleNative(vector.GetUpper(), indicesLo);
+        Vector128<byte> lower = Vector128.ShuffleNative(vector.GetLower(), indicesLo);
+        Vector128<byte> upper = Vector128.ShuffleNative(vector.GetUpper(), indicesLo);
         return Vector256.Create(lower, upper);
     }
 
@@ -74,45 +74,45 @@ internal static class Vector256_
     }
 
     /// <summary>
-    /// Rounds all values in <paramref name="vector"/> to the nearest integer
-    /// following <see cref="MidpointRounding.ToEven"/> semantics.
+    /// Converts all values in <paramref name="vector"/> to signed 32-bit integers, rounding midpoint values away from zero.
     /// </summary>
-    /// <param name="vector">The vector</param>
+    /// <param name="vector">The values to convert.</param>
+    /// <returns>The converted integer values.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector256<float> RoundToNearestInteger(Vector256<float> vector)
+    public static Vector256<int> ConvertToInt32RoundAwayFromZero(Vector256<float> vector)
     {
         if (Avx.IsSupported)
         {
-            return Avx.RoundToNearestInteger(vector);
+            // The x86 conversion truncates, so adding one half with each lane's sign implements round-to-nearest with midpoint values away from zero.
+            Vector256<float> x86Adjustment = Vector256.Create(.5F) | (vector & Vector256.Create(-0F));
+            return Avx.ConvertToVector256Int32WithTruncation(vector + x86Adjustment);
         }
 
         Vector256<float> sign = vector & Vector256.Create(-0F);
-        Vector256<float> val_2p23_f32 = sign | Vector256.Create(8388608F);
-
-        val_2p23_f32 = (vector + val_2p23_f32) - val_2p23_f32;
-        return val_2p23_f32 | sign;
+        Vector256<float> fallbackAdjustment = Vector256.Create(.5F) | sign;
+        return Vector256.ConvertToInt32(vector + fallbackAdjustment);
     }
 
     /// <summary>
-    /// Performs a multiplication and an addition of the <see cref="Vector256{Single}"/>.
+    /// Performs a multiplication and a negated addition of the <see cref="Vector256{Single}"/>.
     /// </summary>
-    /// <remarks>ret = (vm0 * vm1) + va</remarks>
-    /// <param name="va">The vector to add to the intermediate result.</param>
+    /// <remarks>ret = va - (vm0 * vm1)</remarks>
+    /// <param name="va">The vector to add to the negated intermediate result.</param>
     /// <param name="vm0">The first vector to multiply.</param>
     /// <param name="vm1">The second vector to multiply.</param>
     /// <returns>The <see cref="Vector256{T}"/>.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector256<float> MultiplyAdd(
+    [MethodImpl(InliningOptions.ShortMethod)]
+    public static Vector256<float> MultiplyAddNegated(
         Vector256<float> va,
         Vector256<float> vm0,
         Vector256<float> vm1)
     {
         if (Fma.IsSupported)
         {
-            return Fma.MultiplyAdd(vm0, vm1, va);
+            return Fma.MultiplyAddNegated(vm0, vm1, va);
         }
 
-        return va + (vm0 * vm1);
+        return va - (vm0 * vm1);
     }
 
     /// <summary>
@@ -180,8 +180,8 @@ internal static class Vector256_
 
         Vector256<int> min = Vector256.Create((int)ushort.MinValue);
         Vector256<int> max = Vector256.Create((int)ushort.MaxValue);
-        Vector256<uint> lefClamped = Clamp(left, min, max).AsUInt32();
-        Vector256<uint> rightClamped = Clamp(right, min, max).AsUInt32();
+        Vector256<uint> lefClamped = Vector256.Clamp(left, min, max).AsUInt32();
+        Vector256<uint> rightClamped = Vector256.Clamp(right, min, max).AsUInt32();
         return Vector256.Narrow(lefClamped, rightClamped);
     }
 
@@ -201,8 +201,8 @@ internal static class Vector256_
 
         Vector256<int> min = Vector256.Create((int)short.MinValue);
         Vector256<int> max = Vector256.Create((int)short.MaxValue);
-        Vector256<int> lefClamped = Clamp(left, min, max);
-        Vector256<int> rightClamped = Clamp(right, min, max);
+        Vector256<int> lefClamped = Vector256.Clamp(left, min, max);
+        Vector256<int> rightClamped = Vector256.Clamp(right, min, max);
         return Vector256.Narrow(lefClamped, rightClamped);
     }
 
@@ -222,22 +222,10 @@ internal static class Vector256_
 
         Vector256<short> min = Vector256.Create((short)sbyte.MinValue);
         Vector256<short> max = Vector256.Create((short)sbyte.MaxValue);
-        Vector256<short> lefClamped = Clamp(left, min, max);
-        Vector256<short> rightClamped = Clamp(right, min, max);
+        Vector256<short> lefClamped = Vector256.Clamp(left, min, max);
+        Vector256<short> rightClamped = Vector256.Clamp(right, min, max);
         return Vector256.Narrow(lefClamped, rightClamped);
     }
-
-    /// <summary>
-    /// Restricts a vector between a minimum and a maximum value.
-    /// </summary>
-    /// <typeparam name="T">The type of the elements in the vector.</typeparam>
-    /// <param name="value">The vector to restrict.</param>
-    /// <param name="min">The minimum value.</param>
-    /// <param name="max">The maximum value.</param>
-    /// <returns>The restricted <see cref="Vector256{T}"/>.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector256<T> Clamp<T>(Vector256<T> value, Vector256<T> min, Vector256<T> max)
-        => Vector256.Min(Vector256.Max(value, min), max);
 
     /// <summary>
     /// Widens a <see cref="Vector128{Int16}"/> to a <see cref="Vector256{Int32}"/>.
@@ -408,57 +396,5 @@ internal static class Vector256_
         Vector128<byte> hi = Vector128_.UnpackLow(left.GetUpper(), right.GetUpper());
 
         return Vector256.Create(lo, hi);
-    }
-
-    /// <summary>
-    /// Subtract packed signed 16-bit integers in <paramref name="right"/> from packed signed 16-bit integers
-    /// in <paramref name="left"/> using saturation, and store the results.
-    /// </summary>
-    /// <param name="left">
-    /// The first vector containing packed signed 16-bit integers to subtract from.
-    /// </param>
-    /// <param name="right">
-    /// The second vector containing packed signed 16-bit integers to subtract.
-    /// </param>
-    /// <returns>
-    /// A vector containing the results of subtracting packed unsigned 16-bit integers
-    /// </returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector256<short> SubtractSaturate(Vector256<short> left, Vector256<short> right)
-    {
-        if (Avx2.IsSupported)
-        {
-            return Avx2.SubtractSaturate(left, right);
-        }
-
-        return Vector256.Create(
-            Vector128_.SubtractSaturate(left.GetLower(), right.GetLower()),
-            Vector128_.SubtractSaturate(left.GetUpper(), right.GetUpper()));
-    }
-
-    /// <summary>
-    /// Subtract packed unsigned 8-bit integers in <paramref name="right"/> from packed unsigned 8-bit integers
-    /// in <paramref name="left"/> using saturation, and store the results.
-    /// </summary>
-    /// <param name="left">
-    /// The first vector containing packed unsigned 8-bit integers to subtract from.
-    /// </param>
-    /// <param name="right">
-    /// The second vector containing packed unsigned 8-bit integers to subtract.
-    /// </param>
-    /// <returns>
-    /// A vector containing the results of subtracting packed unsigned 8-bit integers
-    /// </returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector256<byte> SubtractSaturate(Vector256<byte> left, Vector256<byte> right)
-    {
-        if (Avx2.IsSupported)
-        {
-            return Avx2.SubtractSaturate(left, right);
-        }
-
-        return Vector256.Create(
-            Vector128_.SubtractSaturate(left.GetLower(), right.GetLower()),
-            Vector128_.SubtractSaturate(left.GetUpper(), right.GetUpper()));
     }
 }

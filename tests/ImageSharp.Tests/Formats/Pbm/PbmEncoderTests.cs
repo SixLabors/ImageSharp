@@ -31,6 +31,7 @@ public class PbmEncoderTests
             { GrayscaleBinaryWide, PbmColorType.Grayscale },
             { GrayscalePlain, PbmColorType.Grayscale },
             { RgbBinary, PbmColorType.Rgb },
+            { RgbBinaryWide, PbmColorType.Rgb },
             { RgbPlain, PbmColorType.Rgb },
         };
 
@@ -121,6 +122,45 @@ public class PbmEncoderTests
     [WithFile(RgbBinary, PixelTypes.Rgb24)]
     public void PbmEncoder_P6_Works<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel> => TestPbmEncoderCore(provider, PbmColorType.Rgb, PbmEncoding.Binary);
+
+    [Fact]
+    public void PbmEncoder_WideBinaryGrayscale_WritesBigEndianSamples()
+    {
+        // Per the Netpbm specification, 16-bit samples store the most significant byte first.
+        using Image<L16> image = new(2, 1);
+        image[0, 0] = new L16(0x8000);
+        image[1, 0] = new L16(0x1234);
+
+        using MemoryStream memStream = new();
+        image.Save(memStream, new PbmEncoder
+        {
+            ColorType = PbmColorType.Grayscale,
+            ComponentType = PbmComponentType.Short,
+            Encoding = PbmEncoding.Binary
+        });
+
+        byte[] encoded = memStream.ToArray();
+        Assert.Equal(new byte[] { 0x80, 0x00, 0x12, 0x34 }, encoded[^4..]);
+    }
+
+    [Fact]
+    public void PbmEncoder_WideBinaryRgb_WritesBigEndianSamples()
+    {
+        // Per the Netpbm specification, 16-bit samples store the most significant byte first.
+        using Image<Rgb48> image = new(1, 1);
+        image[0, 0] = new Rgb48(0x8000, 0x1234, 0x00FF);
+
+        using MemoryStream memStream = new();
+        image.Save(memStream, new PbmEncoder
+        {
+            ColorType = PbmColorType.Rgb,
+            ComponentType = PbmComponentType.Short,
+            Encoding = PbmEncoding.Binary
+        });
+
+        byte[] encoded = memStream.ToArray();
+        Assert.Equal(new byte[] { 0x80, 0x00, 0x12, 0x34, 0x00, 0xFF }, encoded[^6..]);
+    }
 
     private static void TestPbmEncoderCore<TPixel>(
         TestImageProvider<TPixel> provider,

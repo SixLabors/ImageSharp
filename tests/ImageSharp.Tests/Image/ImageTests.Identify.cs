@@ -39,6 +39,10 @@ public partial class ImageTests
         }
 
         [Fact]
+        public void FromBytes_EmptySpan_Throws()
+            => Assert.Throws<UnknownImageFormatException>(() => Image.Identify([]));
+
+        [Fact]
         public void FromBytes_CustomConfiguration()
         {
             DecoderOptions options = new() { Configuration = this.LocalConfiguration };

@@ -6,6 +6,7 @@ using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.Versioning;
 using ImageMagick;
 using PhotoSauce.MagicScaler;
 using SixLabors.ImageSharp.Formats;
@@ -27,6 +28,7 @@ public enum JpegKind
     Any = Baseline | Progressive
 }
 
+[SupportedOSPlatform("windows")]
 public class LoadResizeSaveStressRunner
 {
     private const int Quality = 75;
@@ -158,7 +160,7 @@ public class LoadResizeSaveStressRunner
             this.outputDirectory,
             Path.GetFileNameWithoutExtension(inputPath) + "-" + postfix + Path.GetExtension(inputPath));
 
-    private (int Width, int Height) ScaledSize(int inWidth, int inHeight, int outSize)
+    private static (int Width, int Height) ScaledSize(int inWidth, int inHeight, int outSize)
     {
         int width, height;
         if (inWidth > inHeight)
@@ -180,7 +182,7 @@ public class LoadResizeSaveStressRunner
         using SystemDrawingImage image = SystemDrawingImage.FromFile(input, true);
         this.LogImageProcessed(image.Width, image.Height);
 
-        (int width, int height) = this.ScaledSize(image.Width, image.Height, this.ThumbnailSize);
+        (int width, int height) = ScaledSize(image.Width, image.Height, this.ThumbnailSize);
         Bitmap resized = new(width, height);
         using Graphics graphics = Graphics.FromImage(resized);
         using ImageAttributes attributes = new();
@@ -248,10 +250,10 @@ public class LoadResizeSaveStressRunner
     public void MagickResize(string input)
     {
         using MagickImage image = new(input);
-        this.LogImageProcessed(image.Width, image.Height);
+        this.LogImageProcessed((int)image.Width, (int)image.Height);
 
         // Resize it to fit a 150x150 square
-        image.Resize(this.ThumbnailSize, this.ThumbnailSize);
+        image.Resize((uint)this.ThumbnailSize, (uint)this.ThumbnailSize);
 
         // Reduce the size of the file
         image.Strip();
@@ -282,7 +284,7 @@ public class LoadResizeSaveStressRunner
     {
         using SKBitmap original = SKBitmap.Decode(input);
         this.LogImageProcessed(original.Width, original.Height);
-        (int width, int height) = this.ScaledSize(original.Width, original.Height, this.ThumbnailSize);
+        (int width, int height) = ScaledSize(original.Width, original.Height, this.ThumbnailSize);
         using SKSurface surface = SKSurface.Create(new SKImageInfo(width, height, original.ColorType, original.AlphaType));
         using SKPaint paint = new() { FilterQuality = SKFilterQuality.High };
         SKCanvas canvas = surface.Canvas;
@@ -300,7 +302,7 @@ public class LoadResizeSaveStressRunner
     {
         using SKBitmap original = SKBitmap.Decode(input);
         this.LogImageProcessed(original.Width, original.Height);
-        (int width, int height) = this.ScaledSize(original.Width, original.Height, this.ThumbnailSize);
+        (int width, int height) = ScaledSize(original.Width, original.Height, this.ThumbnailSize);
         using SKBitmap resized = original.Resize(new SKImageInfo(width, height), SKFilterQuality.High);
         if (resized == null)
         {
@@ -319,7 +321,7 @@ public class LoadResizeSaveStressRunner
 
         SKImageInfo info = codec.Info;
         this.LogImageProcessed(info.Width, info.Height);
-        (int width, int height) = this.ScaledSize(info.Width, info.Height, this.ThumbnailSize);
+        (int width, int height) = ScaledSize(info.Width, info.Height, this.ThumbnailSize);
         SKSizeI supportedScale = codec.GetScaledDimensions((float)width / info.Width);
 
         using SKBitmap original = SKBitmap.Decode(codec, new SKImageInfo(supportedScale.Width, supportedScale.Height));

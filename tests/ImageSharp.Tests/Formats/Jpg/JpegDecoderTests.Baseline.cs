@@ -30,7 +30,7 @@ public partial class JpegDecoderTests
             }
 
             using Image<TPixel> image = provider.GetImage(JpegDecoder.Instance);
-            image.DebugSave(provider, testOutputDetails: nonContiguousBuffersStr);
+            image.DebugSave(provider, testOutputDetails: nonContiguousBuffersStr, appendPixelTypeToFileName: false);
 
             provider.Utility.TestName = DecodeBaselineJpegOutputName;
             image.CompareToReferenceOutput(

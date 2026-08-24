@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp.Formats.Jpeg.Components.Decoder;
 /// Represents a Huffman coding table containing basic coding data plus tables for accelerated computation.
 /// </summary>
 [StructLayout(LayoutKind.Sequential)]
-internal unsafe struct HuffmanTable
+internal struct HuffmanTable
 {
     /// <summary>
     /// Memory workspace buffer size used in <see cref="HuffmanTable"/> ctor.
@@ -20,25 +20,25 @@ internal unsafe struct HuffmanTable
     /// <summary>
     /// Derived from the DHT marker. Contains the symbols, in order of incremental code length.
     /// </summary>
-    public fixed byte Values[256];
+    public InlineArray256<byte> Values;
 
     /// <summary>
     /// Contains the largest code of length k (0 if none). MaxCode[17] is a sentinel to
     /// ensure <see cref="JpegBitReader.DecodeHuffman"/> terminates.
     /// </summary>
-    public fixed ulong MaxCode[18];
+    public InlineArray18<ulong> MaxCode;
 
     /// <summary>
     /// Values[] offset for codes of length k  ValOffset[k] = Values[] index of 1st symbol of code length
     /// k, less the smallest code of length k; so given a code of length k, the corresponding symbol is
     /// Values[code + ValOffset[k]].
     /// </summary>
-    public fixed int ValOffset[19];
+    public InlineArray19<int> ValOffset;
 
     /// <summary>
     /// Contains the length of bits for the given k value.
     /// </summary>
-    public fixed byte LookaheadSize[JpegConstants.Huffman.LookupSize];
+    public InlineArray256<byte> LookaheadSize;
 
     /// <summary>
     /// Lookahead table: indexed by the next <see cref="JpegConstants.Huffman.LookupBits"/> bits of
@@ -50,7 +50,7 @@ internal unsafe struct HuffmanTable
     /// bits in the corresponding Huffman code, or <see cref="JpegConstants.Huffman.LookupBits"/> + 1
     /// if too long.  The next 8 bits of each entry contain the symbol.
     /// </summary>
-    public fixed byte LookaheadValue[JpegConstants.Huffman.LookupSize];
+    public InlineArray256<byte> LookaheadValue;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="HuffmanTable"/> struct.

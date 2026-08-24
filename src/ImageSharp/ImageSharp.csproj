@@ -23,19 +23,19 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <!--Bump to v4.0 prior to tagged release.-->
-    <MinVerMinimumMajorMinor>4.0</MinVerMinimumMajorMinor>
+    <!--Bump to v5.0 prior to tagged release.-->
+    <MinVerMinimumMajorMinor>5.0</MinVerMinimumMajorMinor>
   </PropertyGroup>
 
   <Choose>
     <When Condition="$(SIXLABORS_TESTING_PREVIEW) == true">
       <PropertyGroup>
-        <TargetFrameworks>net8.0;net9.0</TargetFrameworks>
+        <TargetFrameworks>net10.0;net11.0</TargetFrameworks>
       </PropertyGroup>
     </When>
     <Otherwise>
       <PropertyGroup>
-        <TargetFrameworks>net8.0</TargetFrameworks>
+        <TargetFrameworks>net10.0</TargetFrameworks>
       </PropertyGroup>
     </Otherwise>
   </Choose>
@@ -47,7 +47,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="System.IO.Hashing" Version="8.0.0" />
+    <PackageReference Include="System.IO.Hashing" Version="10.0.11" />
+    <PackageReference Include="System.Numerics.Tensors" Version="10.0.11" />
   </ItemGroup>
 
   <ItemGroup>
@@ -60,6 +61,11 @@
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>InlineArray.tt</DependentUpon>
+    </Compile>
+    <Compile Update="Formats\_Generated\ImageExtensions.Save.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>ImageExtensions.Save.tt</DependentUpon>
     </Compile>
     <Compile Update="Formats\_Generated\ImageMetadataExtensions.cs">
       <DesignTime>True</DesignTime>
@@ -141,15 +147,20 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>DefaultPixelBlenders.Generated.tt</DependentUpon>
     </Compile>
+    <Compile Update="PixelFormats\PixelBlenders\AssociatedAlphaPixelBlenders.Generated.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>AssociatedAlphaPixelBlenders.Generated.tt</DependentUpon>
+    </Compile>
+    <Compile Update="PixelFormats\PixelBlenders\AssociatedAlphaPorterDuffFunctions.Generated.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>AssociatedAlphaPorterDuffFunctions.Generated.tt</DependentUpon>
+    </Compile>
     <Compile Update="PixelFormats\PixelBlenders\PorterDuffFunctions.Generated.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>PorterDuffFunctions.Generated.tt</DependentUpon>
-    </Compile>
-    <Compile Update="Formats\_Generated\ImageExtensions.Save.cs">
-      <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
-      <DependentUpon>ImageExtensions.Save.tt</DependentUpon>
     </Compile>
   </ItemGroup>
 
@@ -228,6 +239,14 @@
     </None>
     <None Update="PixelFormats\PixelBlenders\DefaultPixelBlenders.Generated.tt">
       <LastGenOutput>DefaultPixelBlenders.Generated.cs</LastGenOutput>
+      <Generator>TextTemplatingFileGenerator</Generator>
+    </None>
+    <None Update="PixelFormats\PixelBlenders\AssociatedAlphaPixelBlenders.Generated.tt">
+      <LastGenOutput>AssociatedAlphaPixelBlenders.Generated.cs</LastGenOutput>
+      <Generator>TextTemplatingFileGenerator</Generator>
+    </None>
+    <None Update="PixelFormats\PixelBlenders\AssociatedAlphaPorterDuffFunctions.Generated.tt">
+      <LastGenOutput>AssociatedAlphaPorterDuffFunctions.Generated.cs</LastGenOutput>
       <Generator>TextTemplatingFileGenerator</Generator>
     </None>
     <None Update="Formats\_Generated\ImageExtensions.Save.tt">

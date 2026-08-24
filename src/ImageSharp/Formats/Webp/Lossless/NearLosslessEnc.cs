@@ -99,7 +99,7 @@ internal static class NearLosslessEnc
         return biased & ~mask;
     }
 
-    private static bool IsSmooth(Span<uint> prevRow, Span<uint> currRow, Span<uint> nextRow, int ix, int limit) =>
+    private static bool IsSmooth(ReadOnlySpan<uint> prevRow, ReadOnlySpan<uint> currRow, ReadOnlySpan<uint> nextRow, int ix, int limit) =>
         IsNear(currRow[ix], currRow[ix - 1], limit) && // Check that all pixels in 4-connected neighborhood are smooth.
                 IsNear(currRow[ix], currRow[ix + 1], limit) &&
                 IsNear(currRow[ix], prevRow[ix], limit) &&

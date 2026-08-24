@@ -50,7 +50,12 @@ public class LocalFileSystemTests
             await using (FileStream stream = (FileStream)fs.OpenReadAsynchronous(path))
             using (StreamReader reader = new(stream))
             {
+                // .NET 11 reports IsAsync false for regular files on Unix: https://github.com/dotnet/runtime/pull/125220
+#if NET11_0_OR_GREATER
+                Assert.Equal(OperatingSystem.IsWindows(), stream.IsAsync);
+#else
                 Assert.True(stream.IsAsync);
+#endif
                 Assert.True(stream.CanRead);
                 Assert.False(stream.CanWrite);
 
@@ -105,7 +110,12 @@ public class LocalFileSystemTests
             await using (FileStream stream = (FileStream)fs.CreateAsynchronous(path))
             await using (StreamWriter writer = new(stream))
             {
+                // .NET 11 reports IsAsync false for regular files on Unix: https://github.com/dotnet/runtime/pull/125220
+#if NET11_0_OR_GREATER
+                Assert.Equal(OperatingSystem.IsWindows(), stream.IsAsync);
+#else
                 Assert.True(stream.IsAsync);
+#endif
                 Assert.True(stream.CanRead);
                 Assert.True(stream.CanWrite);
 

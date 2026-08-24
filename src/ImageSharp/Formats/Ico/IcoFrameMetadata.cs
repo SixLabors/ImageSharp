@@ -9,7 +9,7 @@ using SixLabors.ImageSharp.PixelFormats;
 namespace SixLabors.ImageSharp.Formats.Ico;
 
 /// <summary>
-/// Provides Ico specific metadata information for the image frame.
+/// Provides ICO-specific metadata for an image frame.
 /// </summary>
 public class IcoFrameMetadata : IFormatFrameMetadata<IcoFrameMetadata>
 {
@@ -20,6 +20,10 @@ public class IcoFrameMetadata : IFormatFrameMetadata<IcoFrameMetadata>
     {
     }
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="IcoFrameMetadata"/> class by copying another instance.
+    /// </summary>
+    /// <param name="other">The metadata to copy.</param>
     private IcoFrameMetadata(IcoFrameMetadata other)
     {
         this.Compression = other.Compression;
@@ -34,19 +38,19 @@ public class IcoFrameMetadata : IFormatFrameMetadata<IcoFrameMetadata>
     }
 
     /// <summary>
-    /// Gets or sets the frame compressions format.
+    /// Gets or sets the frame compression format.
     /// </summary>
     public IconFrameCompression Compression { get; set; }
 
     /// <summary>
-    /// Gets or sets the encoding width. <br />
-    /// Can be any number between 0 and 255. Value 0 means a frame height of 256 pixels or greater.
+    /// Gets or sets the encoded width.
+    /// A value of zero represents 256 pixels or greater.
     /// </summary>
     public byte? EncodingWidth { get; set; }
 
     /// <summary>
-    /// Gets or sets the encoding height. <br />
-    /// Can be any number between 0 and 255. Value 0 means a frame height of 256 pixels or greater.
+    /// Gets or sets the encoded height.
+    /// A value of zero represents 256 pixels or greater.
     /// </summary>
     public byte? EncodingHeight { get; set; }
 
@@ -127,12 +131,21 @@ public class IcoFrameMetadata : IFormatFrameMetadata<IcoFrameMetadata>
     /// <inheritdoc/>
     public IcoFrameMetadata DeepClone() => new(this);
 
+    /// <summary>
+    /// Copies the observable ICO directory values from an entry.
+    /// </summary>
+    /// <param name="entry">The source directory entry.</param>
     internal void FromIconDirEntry(IconDirEntry entry)
     {
         this.EncodingWidth = entry.Width;
         this.EncodingHeight = entry.Height;
     }
 
+    /// <summary>
+    /// Creates an ICO directory entry from this metadata.
+    /// </summary>
+    /// <param name="size">The source frame size.</param>
+    /// <returns>The ICO directory entry.</returns>
     internal IconDirEntry ToIconDirEntry(Size size)
     {
         byte colorCount = this.Compression == IconFrameCompression.Png || this.BmpBitsPerPixel > BmpBitsPerPixel.Bit8
@@ -148,11 +161,15 @@ public class IcoFrameMetadata : IFormatFrameMetadata<IcoFrameMetadata>
             BitCount = this.Compression switch
             {
                 IconFrameCompression.Bmp => (ushort)this.BmpBitsPerPixel,
-                IconFrameCompression.Png or _ => 32,
-            },
+                IconFrameCompression.Png or _ => 32
+            }
         };
     }
 
+    /// <summary>
+    /// Gets the pixel layout represented by this metadata.
+    /// </summary>
+    /// <returns>The represented pixel layout.</returns>
     private PixelTypeInfo GetPixelTypeInfo()
     {
         int bpp = (int)this.BmpBitsPerPixel;
@@ -214,6 +231,13 @@ public class IcoFrameMetadata : IFormatFrameMetadata<IcoFrameMetadata>
         };
     }
 
+    /// <summary>
+    /// Scales an encoded dimension after an image transform.
+    /// </summary>
+    /// <param name="value">The encoded source dimension.</param>
+    /// <param name="destination">The full destination dimension.</param>
+    /// <param name="ratio">The destination-to-source scale ratio.</param>
+    /// <returns>The encoded destination dimension.</returns>
     private static byte ScaleEncodingDimension(byte? value, int destination, float ratio)
     {
         if (value is null)
@@ -221,9 +245,16 @@ public class IcoFrameMetadata : IFormatFrameMetadata<IcoFrameMetadata>
             return ClampEncodingDimension(destination);
         }
 
-        return ClampEncodingDimension(MathF.Ceiling(value.Value * ratio));
+        // A stored zero represents 256 pixels, so scaling must expand it before applying the transform ratio.
+        int source = value.Value is 0 ? 256 : value.Value;
+        return ClampEncodingDimension(MathF.Ceiling(source * ratio));
     }
 
+    /// <summary>
+    /// Converts a pixel dimension to the one-byte ICO representation.
+    /// </summary>
+    /// <param name="dimension">The pixel dimension.</param>
+    /// <returns>The encoded dimension.</returns>
     private static byte ClampEncodingDimension(float? dimension)
         => dimension switch
         {

@@ -69,7 +69,7 @@
 
         for (nuint i = 0; i < (uint)source.Length; i++)
         {
-            Unsafe.Add(ref destinationBase, i) = <#=pixelType#>.FromScaledVector4(Unsafe.Add(ref sourceBase, i).ToScaledVector4());
+            Unsafe.Add(ref destinationBase, i) = <#=pixelType#>.FromUnassociatedScaledVector4(Unsafe.Add(ref sourceBase, i).ToUnassociatedScaledVector4());
         }
     }
 

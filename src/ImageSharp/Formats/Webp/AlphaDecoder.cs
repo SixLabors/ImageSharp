@@ -1,8 +1,9 @@
-// Copyright (c) Six Labors.
+﻿// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 using System.Buffers;
 using System.Diagnostics.CodeAnalysis;
+using System.Numerics.Tensors;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
@@ -275,7 +276,7 @@ internal class AlphaDecoder : IDisposable
         Vp8LTransform transform,
         int yStart,
         int yEnd,
-        Span<byte> src,
+        ReadOnlySpan<byte> src,
         Span<byte> dst)
     {
         int bitsPerPixel = 8 >> transform.Bits;
@@ -311,7 +312,7 @@ internal class AlphaDecoder : IDisposable
         }
     }
 
-    private static void HorizontalUnfilter(Span<byte> prev, Span<byte> input, Span<byte> dst, int width)
+    private static void HorizontalUnfilter(ReadOnlySpan<byte> prev, Span<byte> input, Span<byte> dst, int width)
     {
         if (Vector128.IsHardwareAccelerated && width >= 9)
         {
@@ -361,38 +362,14 @@ internal class AlphaDecoder : IDisposable
         {
             HorizontalUnfilter(null, input, dst, width);
         }
-        else if (Vector256.IsHardwareAccelerated)
-        {
-            ref byte inputRef = ref MemoryMarshal.GetReference(input);
-            ref byte prevRef = ref MemoryMarshal.GetReference(prev);
-            ref byte dstRef = ref MemoryMarshal.GetReference(dst);
-
-            nuint i;
-            int maxPos = width & ~31;
-            for (i = 0; i < (uint)maxPos; i += 32)
-            {
-                Vector256<int> a0 = Unsafe.As<byte, Vector256<int>>(ref Unsafe.Add(ref inputRef, i));
-                Vector256<int> b0 = Unsafe.As<byte, Vector256<int>>(ref Unsafe.Add(ref prevRef, i));
-                Vector256<byte> c0 = a0.AsByte() + b0.AsByte();
-                ref byte outputRef = ref Unsafe.Add(ref dstRef, i);
-                Unsafe.As<byte, Vector256<byte>>(ref outputRef) = c0;
-            }
-
-            for (; i < (uint)width; i++)
-            {
-                Unsafe.Add(ref dstRef, i) = (byte)(Unsafe.Add(ref prevRef, i) + Unsafe.Add(ref inputRef, i));
-            }
-        }
         else
         {
-            for (int i = 0; i < width; i++)
-            {
-                dst[i] = (byte)(prev[i] + input[i]);
-            }
+            // Byte addition intentionally wraps modulo 256, matching the WebP alpha predictor.
+            TensorPrimitives.Add(input[..width], prev[..width], dst[..width]);
         }
     }
 
-    private static void GradientUnfilter(Span<byte> prev, Span<byte> input, Span<byte> dst, int width)
+    private static void GradientUnfilter(ReadOnlySpan<byte> prev, Span<byte> input, Span<byte> dst, int width)
     {
         if (prev.IsEmpty)
         {
@@ -448,7 +425,7 @@ internal class AlphaDecoder : IDisposable
         return true;
     }
 
-    private static void MapAlpha(Span<byte> src, Span<uint> colorMap, Span<byte> dst, int yStart, int yEnd, int width)
+    private static void MapAlpha(ReadOnlySpan<byte> src, ReadOnlySpan<uint> colorMap, Span<byte> dst, int yStart, int yEnd, int width)
     {
         int offset = 0;
         for (int y = yStart; y < yEnd; y++)
@@ -472,7 +449,7 @@ internal class AlphaDecoder : IDisposable
     }
 
     [MethodImpl(InliningOptions.ShortMethod)]
-    private static void ExtractGreen(Span<uint> argb, Span<byte> alpha, int size)
+    private static void ExtractGreen(ReadOnlySpan<uint> argb, Span<byte> alpha, int size)
     {
         for (int i = 0; i < size; i++)
         {

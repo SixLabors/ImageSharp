@@ -104,7 +104,15 @@ internal sealed class KernelSamplingMap : IDisposable
     {
         int affectedSize = (kernelSize >> 1) * kernelSize;
         ref int spanBase = ref MemoryMarshal.GetReference(span);
-        if (affectedSize > 0)
+        if (affectedSize >= span.Length && span.Length > 0)
+        {
+            // The bounds are no larger than the kernel radius: every offset can overshoot the
+            // borders by a full sampling extent or more, which the single-pass head and tail
+            // corrections below cannot fold back into range (and for bounds strictly smaller
+            // than the radius they cannot even slice the span). Fold each offset exactly.
+            CorrectBorderExact(span, min, max, borderMode);
+        }
+        else if (affectedSize > 0)
         {
             switch (borderMode)
             {
@@ -179,5 +187,59 @@ internal sealed class KernelSamplingMap : IDisposable
                     break;
             }
         }
+    }
+
+    private static void CorrectBorderExact(Span<int> span, int min, int max, BorderWrappingMode borderMode)
+    {
+        int extent = max - min + 1;
+        switch (borderMode)
+        {
+            case BorderWrappingMode.Repeat:
+                Numerics.Clamp(span, min, max);
+                break;
+
+            case BorderWrappingMode.Mirror:
+                // Reflection about the half-sample border: ..., min+1, min | min, min+1, ...
+                int mirrorPeriod = 2 * extent;
+                for (int i = 0; i < span.Length; i++)
+                {
+                    int offset = Modulo(span[i] - min, mirrorPeriod);
+                    span[i] = min + (offset < extent ? offset : mirrorPeriod - 1 - offset);
+                }
+
+                break;
+
+            case BorderWrappingMode.Bounce:
+                // Reflection about the border sample itself: ..., min+2, min+1 | min, min+1, ...
+                if (extent == 1)
+                {
+                    span.Fill(min);
+                    break;
+                }
+
+                int bouncePeriod = (2 * extent) - 2;
+                for (int i = 0; i < span.Length; i++)
+                {
+                    int offset = Modulo(span[i] - min, bouncePeriod);
+                    span[i] = min + (offset < extent ? offset : bouncePeriod - offset);
+                }
+
+                break;
+
+            case BorderWrappingMode.Wrap:
+                for (int i = 0; i < span.Length; i++)
+                {
+                    span[i] = min + Modulo(span[i] - min, extent);
+                }
+
+                break;
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static int Modulo(int value, int period)
+    {
+        int remainder = value % period;
+        return remainder < 0 ? remainder + period : remainder;
     }
 }

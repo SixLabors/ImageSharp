@@ -8,7 +8,7 @@ using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Convolution;
 using SixLabors.ImageSharp.Tests.TestUtilities;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
-using Xunit.Abstractions;
+using Xunit.Sdk;
 
 namespace SixLabors.ImageSharp.Tests.Processing.Processors.Convolution;
 
@@ -47,18 +47,20 @@ public class BokehBlurTest
     public void VerifyComplexComponents()
     {
         // Get the saved components
-        List<Complex64[]> components = new();
+        List<Complex64[]> components = [];
         foreach (Match match in Regex.Matches(Components10x2, @"\[\[(.*?)\]\]", RegexOptions.Singleline))
         {
-            string[] values = match.Groups[1].Value.Trim().Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
-            Complex64[] component = values.Select(
-                value =>
-                    {
-                        Match pair = Regex.Match(value, @"([+-]?\d+\.\d+)([+-]?\d+\.\d+)j");
-                        return new Complex64(
-                            float.Parse(pair.Groups[1].Value, CultureInfo.InvariantCulture),
-                            float.Parse(pair.Groups[2].Value, CultureInfo.InvariantCulture));
-                    }).ToArray();
+            string[] values = match.Groups[1].Value.Trim().Split([' '], StringSplitOptions.RemoveEmptyEntries);
+            Complex64[] component =
+            [
+                .. values.Select(value =>
+                {
+                    Match pair = Regex.Match(value, @"([+-]?\d+\.\d+)([+-]?\d+\.\d+)j");
+                    return new Complex64(
+                        float.Parse(pair.Groups[1].Value, CultureInfo.InvariantCulture),
+                        float.Parse(pair.Groups[2].Value, CultureInfo.InvariantCulture));
+                })
+            ];
             components.Add(component);
         }
 
@@ -114,12 +116,12 @@ public class BokehBlurTest
     };
 
     public static readonly string[] TestFiles =
-        {
-            TestImages.Png.CalliphoraPartial,
+    [
+        TestImages.Png.CalliphoraPartial,
             TestImages.Png.Bike,
             TestImages.Png.BikeGrayscale,
-            TestImages.Png.Cross,
-        };
+            TestImages.Png.Cross
+    ];
 
     [Theory]
     [WithFileCollection(nameof(TestFiles), nameof(BokehBlurValues), PixelTypes.Rgba32)]
@@ -148,7 +150,7 @@ public class BokehBlurTest
 
     [Theory]
     [WithFileCollection(nameof(TestFiles), nameof(BokehBlurValues), PixelTypes.Rgba32, HwIntrinsics.AllowAll)]
-    [WithFileCollection(nameof(TestFiles), nameof(BokehBlurValues), PixelTypes.Rgba32, HwIntrinsics.DisableSSE41)]
+    [WithFileCollection(nameof(TestFiles), nameof(BokehBlurValues), PixelTypes.Rgba32, HwIntrinsics.DisableHWIntrinsic)]
     public void BokehBlurFilterProcessor_Bounded(TestImageProvider<Rgba32> provider, BokehBlurInfo value, HwIntrinsics intrinsicsFilter)
     {
         static void RunTest(string arg1, string arg2)

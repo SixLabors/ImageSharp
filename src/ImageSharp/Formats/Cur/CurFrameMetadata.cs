@@ -9,7 +9,7 @@ using SixLabors.ImageSharp.PixelFormats;
 namespace SixLabors.ImageSharp.Formats.Cur;
 
 /// <summary>
-/// IcoFrameMetadata.
+/// Provides CUR-specific metadata for an image frame.
 /// </summary>
 public class CurFrameMetadata : IFormatFrameMetadata<CurFrameMetadata>
 {
@@ -20,6 +20,10 @@ public class CurFrameMetadata : IFormatFrameMetadata<CurFrameMetadata>
     {
     }
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="CurFrameMetadata"/> class by copying another instance.
+    /// </summary>
+    /// <param name="other">The metadata to copy.</param>
     private CurFrameMetadata(CurFrameMetadata other)
     {
         this.Compression = other.Compression;
@@ -28,10 +32,15 @@ public class CurFrameMetadata : IFormatFrameMetadata<CurFrameMetadata>
         this.EncodingWidth = other.EncodingWidth;
         this.EncodingHeight = other.EncodingHeight;
         this.BmpBitsPerPixel = other.BmpBitsPerPixel;
+
+        if (other.ColorTable?.Length > 0)
+        {
+            this.ColorTable = other.ColorTable.Value.ToArray();
+        }
     }
 
     /// <summary>
-    /// Gets or sets the frame compressions format.
+    /// Gets or sets the frame compression format.
     /// </summary>
     public IconFrameCompression Compression { get; set; }
 
@@ -46,14 +55,14 @@ public class CurFrameMetadata : IFormatFrameMetadata<CurFrameMetadata>
     public ushort HotspotY { get; set; }
 
     /// <summary>
-    /// Gets or sets the encoding width. <br />
-    /// Can be any number between 0 and 255. Value 0 means a frame height of 256 pixels or greater.
+    /// Gets or sets the encoded width.
+    /// A value of zero represents 256 pixels or greater.
     /// </summary>
     public byte? EncodingWidth { get; set; }
 
     /// <summary>
-    /// Gets or sets the encoding height. <br />
-    /// Can be any number between 0 and 255. Value 0 means a frame height of 256 pixels or greater.
+    /// Gets or sets the encoded height.
+    /// A value of zero represents 256 pixels or greater.
     /// </summary>
     public byte? EncodingHeight { get; set; }
 
@@ -104,7 +113,7 @@ public class CurFrameMetadata : IFormatFrameMetadata<CurFrameMetadata>
             BmpBitsPerPixel = bbpp,
             Compression = compression,
             EncodingWidth = ClampEncodingDimension(metadata.EncodingWidth),
-            EncodingHeight = ClampEncodingDimension(metadata.EncodingHeight),
+            EncodingHeight = ClampEncodingDimension(metadata.EncodingHeight)
         };
     }
 
@@ -134,6 +143,10 @@ public class CurFrameMetadata : IFormatFrameMetadata<CurFrameMetadata>
     /// <inheritdoc/>
     public CurFrameMetadata DeepClone() => new(this);
 
+    /// <summary>
+    /// Copies the observable CUR directory values from an entry.
+    /// </summary>
+    /// <param name="entry">The source directory entry.</param>
     internal void FromIconDirEntry(IconDirEntry entry)
     {
         this.EncodingWidth = entry.Width;
@@ -142,6 +155,11 @@ public class CurFrameMetadata : IFormatFrameMetadata<CurFrameMetadata>
         this.HotspotY = entry.BitCount;
     }
 
+    /// <summary>
+    /// Creates a CUR directory entry from this metadata.
+    /// </summary>
+    /// <param name="size">The source frame size.</param>
+    /// <returns>The CUR directory entry.</returns>
     internal IconDirEntry ToIconDirEntry(Size size)
     {
         byte colorCount = this.Compression == IconFrameCompression.Png || this.BmpBitsPerPixel > BmpBitsPerPixel.Bit8
@@ -158,6 +176,10 @@ public class CurFrameMetadata : IFormatFrameMetadata<CurFrameMetadata>
         };
     }
 
+    /// <summary>
+    /// Gets the pixel layout represented by this metadata.
+    /// </summary>
+    /// <returns>The represented pixel layout.</returns>
     private PixelTypeInfo GetPixelTypeInfo()
     {
         int bpp = (int)this.BmpBitsPerPixel;
@@ -219,6 +241,13 @@ public class CurFrameMetadata : IFormatFrameMetadata<CurFrameMetadata>
         };
     }
 
+    /// <summary>
+    /// Scales an encoded dimension after an image transform.
+    /// </summary>
+    /// <param name="value">The encoded source dimension.</param>
+    /// <param name="destination">The full destination dimension.</param>
+    /// <param name="ratio">The destination-to-source scale ratio.</param>
+    /// <returns>The encoded destination dimension.</returns>
     private static byte ScaleEncodingDimension(byte? value, int destination, float ratio)
     {
         if (value is null)
@@ -226,9 +255,16 @@ public class CurFrameMetadata : IFormatFrameMetadata<CurFrameMetadata>
             return ClampEncodingDimension(destination);
         }
 
-        return ClampEncodingDimension(MathF.Ceiling(value.Value * ratio));
+        // A stored zero represents 256 pixels, so scaling must expand it before applying the transform ratio.
+        int source = value.Value is 0 ? 256 : value.Value;
+        return ClampEncodingDimension(MathF.Ceiling(source * ratio));
     }
 
+    /// <summary>
+    /// Converts a pixel dimension to the one-byte CUR representation.
+    /// </summary>
+    /// <param name="dimension">The pixel dimension.</param>
+    /// <returns>The encoded dimension.</returns>
     private static byte ClampEncodingDimension(float? dimension)
         => dimension switch
         {

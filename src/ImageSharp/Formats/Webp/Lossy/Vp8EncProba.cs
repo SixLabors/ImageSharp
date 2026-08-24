@@ -234,7 +234,7 @@ internal class Vp8EncProba
 
     private static int CalcSkipProba(long nb, long total) => (int)(total != 0 ? (total - nb) * 255 / total : 255);
 
-    private static int VariableLevelCost(int level, Span<byte> probas)
+    private static int VariableLevelCost(int level, ReadOnlySpan<byte> probas)
     {
         int pattern = WebpLookupTables.Vp8LevelCodes[level - 1][0];
         int bits = WebpLookupTables.Vp8LevelCodes[level - 1][1];

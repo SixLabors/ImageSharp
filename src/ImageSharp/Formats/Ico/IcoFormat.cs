@@ -8,6 +8,9 @@ namespace SixLabors.ImageSharp.Formats.Ico;
 /// </summary>
 public sealed class IcoFormat : IImageFormat<IcoMetadata, IcoFrameMetadata>
 {
+    /// <summary>
+    /// Prevents a default instance of the <see cref="IcoFormat"/> class from being created.
+    /// </summary>
     private IcoFormat()
     {
     }
@@ -21,7 +24,7 @@ public sealed class IcoFormat : IImageFormat<IcoMetadata, IcoFrameMetadata>
     public string Name => "ICO";
 
     /// <inheritdoc/>
-    public string DefaultMimeType => IcoConstants.MimeTypes.First();
+    public string DefaultMimeType => "image/vnd.microsoft.icon";
 
     /// <inheritdoc/>
     public IEnumerable<string> MimeTypes => IcoConstants.MimeTypes;

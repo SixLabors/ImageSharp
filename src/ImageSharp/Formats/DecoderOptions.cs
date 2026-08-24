@@ -60,7 +60,7 @@ public sealed class DecoderOptions
     /// <summary>
     /// Gets the segment error handling strategy to use during decoding.
     /// </summary>
-    public SegmentIntegrityHandling SegmentIntegrityHandling { get; init; } = SegmentIntegrityHandling.IgnoreNonCritical;
+    public SegmentIntegrityHandling SegmentIntegrityHandling { get; init; } = SegmentIntegrityHandling.IgnoreAncillary;
 
     /// <summary>
     /// Gets a value that controls how ICC profiles are handled during decode.
@@ -78,12 +78,12 @@ public sealed class DecoderOptions
             return false;
         }
 
-        if (IccProfileHeader.IsLikelySrgb(profile.Header))
+        if (this.ColorProfileHandling == ColorProfileHandling.Preserve)
         {
             return false;
         }
 
-        if (this.ColorProfileHandling == ColorProfileHandling.Preserve)
+        if (profile.IsCanonicalSrgbMatrixTrc())
         {
             return false;
         }
@@ -99,11 +99,11 @@ public sealed class DecoderOptions
             return false;
         }
 
-        if (this.ColorProfileHandling == ColorProfileHandling.Compact && IccProfileHeader.IsLikelySrgb(profile.Header))
+        if (this.ColorProfileHandling == ColorProfileHandling.Convert)
         {
             return true;
         }
 
-        return this.ColorProfileHandling == ColorProfileHandling.Convert;
+        return this.ColorProfileHandling == ColorProfileHandling.Compact && profile.IsCanonicalSrgbMatrixTrc();
     }
 }

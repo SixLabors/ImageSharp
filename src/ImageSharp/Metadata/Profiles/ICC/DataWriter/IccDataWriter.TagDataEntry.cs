@@ -478,7 +478,7 @@ internal sealed partial class IccDataWriter
         this.dataStream.Position += cultureCount * 12;
 
         // TODO: Investigate cost of Linq GroupBy
-        IGrouping<string, IccLocalizedString>[] texts = value.Texts.GroupBy(t => t.Text).ToArray();
+        IGrouping<string, IccLocalizedString>[] texts = [.. value.Texts.GroupBy(t => t.Text)];
 
         uint[] offset = new uint[texts.Length];
         int[] lengths = new int[texts.Length];

@@ -71,7 +71,7 @@ internal sealed class TiffEncoderCore
         this.configuration = configuration;
         this.memoryAllocator = configuration.MemoryAllocator;
         this.PhotometricInterpretation = encoder.PhotometricInterpretation;
-        this.quantizer = encoder.Quantizer ?? KnownQuantizers.Octree;
+        this.quantizer = encoder.Quantizer ?? KnownQuantizers.Hexadecatree;
         this.pixelSamplingStrategy = encoder.PixelSamplingStrategy;
         this.BitsPerPixel = encoder.BitsPerPixel;
         this.HorizontalPredictor = encoder.HorizontalPredictor;

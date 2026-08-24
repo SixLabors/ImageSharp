@@ -733,7 +733,7 @@ internal sealed class WebpLossyDecoder
         int mbw = io.MbW;
         int uvw = (mbw + 1) >> 1;   // >> 1 is bit-hack for / 2
         int y = io.MbY;
-        byte[] uvBuffer = new byte[(14 * 32) + 15];
+        Span<byte> uvBuffer = dec.UpsamplingBuffer;
 
         if (y == 0)
         {

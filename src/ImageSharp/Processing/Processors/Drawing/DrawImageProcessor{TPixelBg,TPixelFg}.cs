@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Memory;
@@ -18,6 +19,12 @@ internal class DrawImageProcessor<TPixelBg, TPixelFg> : ImageProcessor<TPixelBg>
     where TPixelFg : unmanaged, IPixel<TPixelFg>
 {
     /// <summary>
+    /// Counts how many times <see cref="OnFrameApply"/> has been called for this processor instance.
+    /// Used to select the current foreground frame.
+    /// </summary>
+    private int foregroundFrameCounter;
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="DrawImageProcessor{TPixelBg, TPixelFg}"/> class.
     /// </summary>
     /// <param name="configuration">The configuration which allows altering default behaviour or extending the library.</param>
@@ -28,6 +35,10 @@ internal class DrawImageProcessor<TPixelBg, TPixelFg> : ImageProcessor<TPixelBg>
     /// <param name="colorBlendingMode">The blending mode to use when drawing the image.</param>
     /// <param name="alphaCompositionMode">The alpha blending mode to use when drawing the image.</param>
     /// <param name="opacity">The opacity of the image to blend. Must be between 0 and 1.</param>
+    /// <param name="foregroundRepeatCount">
+    /// The number of times the foreground frames are allowed to loop while applying this processor across successive frames.
+    /// A value of 0 means loop indefinitely.
+    /// </param>
     public DrawImageProcessor(
         Configuration configuration,
         Image<TPixelFg> foregroundImage,
@@ -36,9 +47,11 @@ internal class DrawImageProcessor<TPixelBg, TPixelFg> : ImageProcessor<TPixelBg>
         Rectangle foregroundRectangle,
         PixelColorBlendingMode colorBlendingMode,
         PixelAlphaCompositionMode alphaCompositionMode,
-        float opacity)
+        float opacity,
+        int foregroundRepeatCount)
         : base(configuration, backgroundImage, backgroundImage.Bounds)
     {
+        Guard.MustBeGreaterThanOrEqualTo(foregroundRepeatCount, 0, nameof(foregroundRepeatCount));
         Guard.MustBeBetweenOrEqualTo(opacity, 0, 1, nameof(opacity));
 
         this.ForegroundImage = foregroundImage;
@@ -46,6 +59,7 @@ internal class DrawImageProcessor<TPixelBg, TPixelFg> : ImageProcessor<TPixelBg>
         this.Opacity = opacity;
         this.Blender = PixelOperations<TPixelBg>.Instance.GetPixelBlender(colorBlendingMode, alphaCompositionMode);
         this.BackgroundLocation = backgroundLocation;
+        this.ForegroundRepeatCount = foregroundRepeatCount;
     }
 
     /// <summary>
@@ -72,6 +86,12 @@ internal class DrawImageProcessor<TPixelBg, TPixelFg> : ImageProcessor<TPixelBg>
     /// Gets the location to draw the blended image
     /// </summary>
     public Point BackgroundLocation { get; }
+
+    /// <summary>
+    /// Gets the number of times the foreground frames are allowed to loop while applying this processor across
+    /// successive frames. A value of 0 means loop indefinitely.
+    /// </summary>
+    public int ForegroundRepeatCount { get; }
 
     /// <inheritdoc/>
     protected override void OnFrameApply(ImageFrame<TPixelBg> source)
@@ -114,27 +134,35 @@ internal class DrawImageProcessor<TPixelBg, TPixelFg> : ImageProcessor<TPixelBg>
         // Sanitize the dimensions so that we don't try and sample outside the image.
         Rectangle backgroundRectangle = Rectangle.Intersect(new Rectangle(left, top, width, height), this.SourceRectangle);
         Configuration configuration = this.Configuration;
+        int currentFrameIndex = this.foregroundFrameCounter % this.ForegroundImage.Frames.Count;
 
-        DrawImageProcessor<TPixelBg, TPixelFg>.RowOperation operation =
+        RowOperation operation =
             new(
                 configuration,
                 source.PixelBuffer,
-                this.ForegroundImage.Frames.RootFrame.PixelBuffer,
+                this.ForegroundImage.Frames[currentFrameIndex].PixelBuffer,
                 backgroundRectangle,
                 foregroundRectangle,
                 this.Blender,
                 this.Opacity);
 
-        ParallelRowIterator.IterateRows(
+        ParallelRowIterator.IterateRows<RowOperation, Vector4>(
             configuration,
             new Rectangle(0, 0, foregroundRectangle.Width, foregroundRectangle.Height),
             in operation);
+
+        // The repeat count only affects how the foreground frame advances across successive background frames.
+        // When exhausted, the selected foreground frame stops advancing.
+        if (this.ForegroundRepeatCount is 0 || this.foregroundFrameCounter / this.ForegroundImage.Frames.Count < this.ForegroundRepeatCount)
+        {
+            this.foregroundFrameCounter++;
+        }
     }
 
     /// <summary>
     /// A <see langword="struct"/> implementing the draw logic for <see cref="DrawImageProcessor{TPixelBg,TPixelFg}"/>.
     /// </summary>
-    private readonly struct RowOperation : IRowOperation
+    private readonly struct RowOperation : IRowOperation<Vector4>
     {
         private readonly Buffer2D<TPixelBg> background;
         private readonly Buffer2D<TPixelFg> foreground;
@@ -164,12 +192,19 @@ internal class DrawImageProcessor<TPixelBg, TPixelFg> : ImageProcessor<TPixelBg>
         }
 
         /// <inheritdoc/>
+        public int GetRequiredBufferLength(Rectangle bounds)
+
+            // By using a dedicated vector span we can avoid per-row pool allocations in PixelBlender.Blend
+            // We need 3 Vector4 values per pixel to store the background, foreground, and result pixels for blending.
+            => 3 * bounds.Width;
+
+        /// <inheritdoc/>
         [MethodImpl(InliningOptions.ShortMethod)]
-        public void Invoke(int y)
+        public void Invoke(int y, Span<Vector4> span)
         {
             Span<TPixelBg> background = this.background.DangerousGetRowSpan(y + this.backgroundRectangle.Top).Slice(this.backgroundRectangle.Left, this.backgroundRectangle.Width);
             Span<TPixelFg> foreground = this.foreground.DangerousGetRowSpan(y + this.foregroundRectangle.Top).Slice(this.foregroundRectangle.Left, this.foregroundRectangle.Width);
-            this.blender.Blend<TPixelFg>(this.configuration, background, background, foreground, this.opacity);
+            this.blender.Blend<TPixelFg>(this.configuration, background, background, foreground, this.opacity, span);
         }
     }
 }

@@ -98,7 +98,7 @@ internal static unsafe class LosslessUtils
         if (Vector256.IsHardwareAccelerated && pixelData.Length >= 8)
         {
             // The `255` values disable the write for alpha (A), since 0x80 is set in the control byte (high bit set).
-            // Each byte index is within its respective 128-bit lane (0–15 and 16–31), so this is safe for per-lane shuffle.
+            // Each byte index is within its respective 128-bit lane (0-15 and 16-31), so this is safe for per-lane shuffle.
             // The high bits are not set for the index bytes, and the values are always < 16 per lane, satisfying AVX2 lane rules.
             Vector256<byte> addGreenToBlueAndRedMask = Vector256.Create(1, 255, 1, 255, 5, 255, 5, 255, 9, 255, 9, 255, 13, 255, 13, 255, 17, 255, 17, 255, 21, 255, 21, 255, 25, 255, 25, 255, 29, 255, 29, 255);
             nuint numPixels = (uint)pixelData.Length;
@@ -128,7 +128,7 @@ internal static unsafe class LosslessUtils
             {
                 ref uint pos = ref Unsafe.Add(ref MemoryMarshal.GetReference(pixelData), i);
                 Vector128<byte> input = Unsafe.As<uint, Vector128<uint>>(ref pos).AsByte();
-                Vector128<byte> in0g0g = Vector128_.ShuffleNative(input, addGreenToBlueAndRedMask);
+                Vector128<byte> in0g0g = Vector128.ShuffleNative(input, addGreenToBlueAndRedMask);
                 Vector128<byte> output = input + in0g0g;
                 Unsafe.As<uint, Vector128<uint>>(ref pos) = output.AsUInt32();
                 i += 4;
@@ -192,7 +192,7 @@ internal static unsafe class LosslessUtils
             {
                 ref uint pos = ref Unsafe.Add(ref MemoryMarshal.GetReference(pixelData), i);
                 Vector128<byte> input = Unsafe.As<uint, Vector128<uint>>(ref pos).AsByte();
-                Vector128<byte> in0g0g = Vector128_.ShuffleNative(input, subtractGreenFromBlueAndRedMask);
+                Vector128<byte> in0g0g = Vector128.ShuffleNative(input, subtractGreenFromBlueAndRedMask);
                 Vector128<byte> output = input - in0g0g;
                 Unsafe.As<uint, Vector128<uint>>(ref pos) = output.AsUInt32();
                 i += 4;
@@ -387,7 +387,7 @@ internal static unsafe class LosslessUtils
                 Vector128<short> b = Vector128_.ShuffleLow(a.AsInt16(), SimdUtils.Shuffle.MMShuffle2200);
                 Vector128<short> c = Vector128_.ShuffleHigh(b.AsInt16(), SimdUtils.Shuffle.MMShuffle2200);
                 Vector128<short> d = Vector128_.MultiplyHigh(c.AsInt16(), multsrb.AsInt16());
-                Vector128<short> e = Vector128_.ShiftLeftLogical(input.AsInt16(), 8);
+                Vector128<short> e = input.AsInt16() << 8;
                 Vector128<short> f = Vector128_.MultiplyHigh(e.AsInt16(), multsb2.AsInt16());
                 Vector128<int> g = Vector128.ShiftRightLogical(f.AsInt32(), 16);
                 Vector128<byte> h = g.AsByte() + d.AsByte();
@@ -479,7 +479,7 @@ internal static unsafe class LosslessUtils
                 Vector128<short> c = Vector128_.ShuffleHigh(b.AsInt16(), SimdUtils.Shuffle.MMShuffle2200);
                 Vector128<short> d = Vector128_.MultiplyHigh(c.AsInt16(), multsrb.AsInt16());
                 Vector128<byte> e = input.AsByte() + d.AsByte();
-                Vector128<short> f = Vector128_.ShiftLeftLogical(e.AsInt16(), 8);
+                Vector128<short> f = e.AsInt16() << 8;
                 Vector128<short> g = Vector128_.MultiplyHigh(f, multsb2.AsInt16());
                 Vector128<int> h = Vector128.ShiftRightLogical(g.AsInt32(), 8);
                 Vector128<byte> i = h.AsByte() + f.AsByte();
@@ -675,7 +675,7 @@ internal static unsafe class LosslessUtils
     /// <summary>
     /// Bundles multiple (1, 2, 4 or 8) pixels into a single pixel.
     /// </summary>
-    public static void BundleColorMap(Span<byte> row, int width, int xBits, Span<uint> dst)
+    public static void BundleColorMap(ReadOnlySpan<byte> row, int width, int xBits, Span<uint> dst)
     {
         int x;
         if (xBits > 0)
@@ -1442,10 +1442,10 @@ internal static unsafe class LosslessUtils
                 Vector128<byte> a0 = Vector128.CreateScalar(a).AsByte();
                 Vector128<byte> b0 = Vector128.CreateScalar(b).AsByte();
                 Vector128<byte> c0 = Vector128.CreateScalar(c).AsByte();
-                Vector128<byte> ac0 = Vector128_.SubtractSaturate(a0, c0);
-                Vector128<byte> ca0 = Vector128_.SubtractSaturate(c0, a0);
-                Vector128<byte> bc0 = Vector128_.SubtractSaturate(b0, c0);
-                Vector128<byte> cb0 = Vector128_.SubtractSaturate(c0, b0);
+                Vector128<byte> ac0 = Vector128.SubtractSaturate(a0, c0);
+                Vector128<byte> ca0 = Vector128.SubtractSaturate(c0, a0);
+                Vector128<byte> bc0 = Vector128.SubtractSaturate(b0, c0);
+                Vector128<byte> cb0 = Vector128.SubtractSaturate(c0, b0);
                 Vector128<byte> ac = ac0 | ca0;
                 Vector128<byte> bc = bc0 | cb0;
                 Vector128<byte> pa = Vector128_.UnpackLow(ac, Vector128<byte>.Zero); // |a - c|

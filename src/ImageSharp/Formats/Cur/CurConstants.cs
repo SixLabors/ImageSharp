@@ -4,12 +4,12 @@
 namespace SixLabors.ImageSharp.Formats.Cur;
 
 /// <summary>
-/// Defines constants relating to ICOs
+/// Defines constants used by the CUR format.
 /// </summary>
 internal static class CurConstants
 {
     /// <summary>
-    /// The list of mime types that equate to a cur.
+    /// The MIME types that identify CUR data.
     /// </summary>
     /// <remarks>
     /// See <see href="https://en.wikipedia.org/wiki/ICO_(file_format)#MIME_type"/>
@@ -27,13 +27,11 @@ internal static class CurConstants
         "image/ico",
         "image/icon",
         "text/ico",
-        "application/ico",
+        "application/ico"
     ];
 
     /// <summary>
-    /// The list of file extensions that equate to a cur.
+    /// The file extensions that identify CUR data.
     /// </summary>
     public static readonly IEnumerable<string> FileExtensions = ["cur"];
-
-    public const uint FileHeader = 0x00_02_00_00;
 }

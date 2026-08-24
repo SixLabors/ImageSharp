@@ -315,6 +315,21 @@ public class WebpDecoderTests
     }
 
     [Theory]
+    [InlineData(Lossless.Animated)]
+    public void Info_AnimatedLossless_VerifyAllFrames(string imagePath)
+    {
+        TestFile testFile = TestFile.Create(imagePath);
+        using MemoryStream stream = new(testFile.Bytes, false);
+        ImageInfo image = WebpDecoder.Instance.Identify(DecoderOptions.Default, stream);
+        WebpMetadata webpMetaData = image.Metadata.GetWebpMetadata();
+        WebpFrameMetadata frameMetaData = image.FrameMetadataCollection[0].GetWebpMetadata();
+
+        Assert.Equal(0, webpMetaData.RepeatCount);
+        Assert.Equal(150U, frameMetaData.FrameDelay);
+        Assert.Equal(12, image.FrameCount);
+    }
+
+    [Theory]
     [WithFile(Lossy.Animated, PixelTypes.Rgba32)]
     public void Decode_AnimatedLossy_VerifyAllFrames<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
@@ -329,6 +344,21 @@ public class WebpDecoderTests
         Assert.Equal(0, webpMetaData.RepeatCount);
         Assert.Equal(150U, frameMetaData.FrameDelay);
         Assert.Equal(12, image.Frames.Count);
+    }
+
+    [Theory]
+    [InlineData(Lossy.Animated)]
+    public void Info_AnimatedLossy_VerifyAllFrames(string imagePath)
+    {
+        TestFile testFile = TestFile.Create(imagePath);
+        using MemoryStream stream = new(testFile.Bytes, false);
+        ImageInfo image = WebpDecoder.Instance.Identify(DecoderOptions.Default, stream);
+        WebpMetadata webpMetaData = image.Metadata.GetWebpMetadata();
+        WebpFrameMetadata frameMetaData = image.FrameMetadataCollection[0].GetWebpMetadata();
+
+        Assert.Equal(0, webpMetaData.RepeatCount);
+        Assert.Equal(150U, frameMetaData.FrameDelay);
+        Assert.Equal(12, image.FrameCount);
     }
 
     [Theory]
@@ -577,5 +607,18 @@ public class WebpDecoderTests
 
         image.DebugSave(provider);
         image.CompareToOriginal(provider, ReferenceDecoder);
+    }
+
+    [Theory]
+    [WithFile(Icc.Perceptual, PixelTypes.Rgba32)]
+    [WithFile(Icc.PerceptualcLUTOnly, PixelTypes.Rgba32)]
+    public void Decode_WhenColorProfileHandlingIsConvert_ApplyIccProfile<TPixel>(TestImageProvider<TPixel> provider)
+    where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage(WebpDecoder.Instance, new DecoderOptions { ColorProfileHandling = ColorProfileHandling.Convert });
+
+        image.DebugSave(provider);
+        image.CompareToReferenceOutput(provider);
+        Assert.Null(image.Metadata.IccProfile);
     }
 }

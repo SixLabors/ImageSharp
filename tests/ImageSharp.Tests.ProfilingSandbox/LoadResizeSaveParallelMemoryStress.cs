@@ -3,6 +3,7 @@
 
 using System.Diagnostics;
 using System.Globalization;
+using System.Runtime.Versioning;
 using System.Text;
 using CommandLine;
 using CommandLine.Text;
@@ -13,7 +14,8 @@ using SixLabors.ImageSharp.Memory.Internals;
 namespace SixLabors.ImageSharp.Tests.ProfilingSandbox;
 
 // See ImageSharp.Benchmarks/LoadResizeSave/README.md
-internal class LoadResizeSaveParallelMemoryStress
+[SupportedOSPlatform("windows")]
+internal sealed class LoadResizeSaveParallelMemoryStress
 {
     private LoadResizeSaveParallelMemoryStress()
     {
@@ -206,14 +208,15 @@ internal class LoadResizeSaveParallelMemoryStress
             StringBuilder bld = new();
             bld.AppendLine($"| {nameof(this.TotalSeconds)} | {nameof(this.MegapixelsPerSec)} | {nameof(this.MegapixelsPerSecPerCpu)} |");
             bld.AppendLine(
+                CultureInfo.InvariantCulture,
                 $"| {L(nameof(this.TotalSeconds))} | {L(nameof(this.MegapixelsPerSec))} | {L(nameof(this.MegapixelsPerSecPerCpu))} |");
 
             bld.Append("| ");
-            bld.AppendFormat(F(nameof(this.TotalSeconds)), this.TotalSeconds);
+            bld.AppendFormat(CultureInfo.InvariantCulture, F(nameof(this.TotalSeconds)), this.TotalSeconds);
             bld.Append(" | ");
-            bld.AppendFormat(F(nameof(this.MegapixelsPerSec)), this.MegapixelsPerSec);
+            bld.AppendFormat(CultureInfo.InvariantCulture, F(nameof(this.MegapixelsPerSec)), this.MegapixelsPerSec);
             bld.Append(" | ");
-            bld.AppendFormat(F(nameof(this.MegapixelsPerSecPerCpu)), this.MegapixelsPerSecPerCpu);
+            bld.AppendFormat(CultureInfo.InvariantCulture, F(nameof(this.MegapixelsPerSecPerCpu)), this.MegapixelsPerSecPerCpu);
             bld.AppendLine(" |");
 
             return bld.ToString();
@@ -223,7 +226,7 @@ internal class LoadResizeSaveParallelMemoryStress
         }
     }
 
-    private class CommandLineOptions
+    private sealed class CommandLineOptions
     {
         [Option('a', "async-imagesharp", Required = false, Default = false, HelpText = "Async ImageSharp without benchmark switching")]
         public bool AsyncImageSharp { get; set; }

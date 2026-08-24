@@ -1,4 +1,4 @@
-// Copyright (c) Six Labors.
+﻿// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 using System.Buffers;
@@ -268,7 +268,7 @@ internal sealed class TgaEncoderCore
     /// <param name="pixelRow">A pixel row of the image to encode.</param>
     /// <param name="xStart">X coordinate to start searching for the same pixels.</param>
     /// <returns>The number of equal pixels.</returns>
-    private static byte FindEqualPixels<TPixel>(Span<TPixel> pixelRow, int xStart)
+    private static byte FindEqualPixels<TPixel>(ReadOnlySpan<TPixel> pixelRow, int xStart)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         byte equalPixelCount = 0;
@@ -301,7 +301,7 @@ internal sealed class TgaEncoderCore
     /// <param name="pixelRow">A pixel row of the image to encode.</param>
     /// <param name="xStart">X coordinate to start searching for the unequal pixels.</param>
     /// <returns>The number of equal pixels.</returns>
-    private static byte FindUnEqualPixels<TPixel>(Span<TPixel> pixelRow, int xStart)
+    private static byte FindUnEqualPixels<TPixel>(ReadOnlySpan<TPixel> pixelRow, int xStart)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         byte unEqualPixelCount = 0;

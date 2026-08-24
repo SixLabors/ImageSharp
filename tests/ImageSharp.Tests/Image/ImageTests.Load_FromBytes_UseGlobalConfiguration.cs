@@ -45,5 +45,9 @@ public partial class ImageTests
             VerifyDecodedImage(img);
             Assert.IsType<BmpFormat>(img.Metadata.DecodedImageFormat);
         }
+
+        [Fact]
+        public void FromBytes_EmptySpan_Throws()
+            => Assert.ThrowsAny<UnknownImageFormatException>(() => Image.Load<Rgba32>([]));
     }
 }

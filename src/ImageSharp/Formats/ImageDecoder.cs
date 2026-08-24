@@ -328,6 +328,14 @@ public abstract class ImageDecoder : IImageDecoder
         {
             image.Metadata.IccProfile = null;
         }
+
+        foreach (ImageFrame frame in image.Frames)
+        {
+            if (options.CanRemoveIccProfile(frame.Metadata.IccProfile))
+            {
+                frame.Metadata.IccProfile = null;
+            }
+        }
     }
 
     private static void HandleIccProfile(DecoderOptions options, ImageInfo image)
@@ -335,6 +343,14 @@ public abstract class ImageDecoder : IImageDecoder
         if (options.CanRemoveIccProfile(image.Metadata.IccProfile))
         {
             image.Metadata.IccProfile = null;
+        }
+
+        foreach (ImageFrameMetadata frame in image.FrameMetadataCollection)
+        {
+            if (options.CanRemoveIccProfile(frame.IccProfile))
+            {
+                frame.IccProfile = null;
+            }
         }
     }
 }

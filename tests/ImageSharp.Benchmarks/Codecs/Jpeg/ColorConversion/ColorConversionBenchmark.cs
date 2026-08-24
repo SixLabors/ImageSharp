@@ -51,6 +51,7 @@ public abstract class ColorConversionBenchmark
 
             // no need to dispose when buffer is not array owner
             buffers[i] = Configuration.Default.MemoryAllocator.Allocate2D<float>(values.Length, 1);
+            values.CopyTo(buffers[i].DangerousGetRowSpan(0));
         }
 
         return buffers;

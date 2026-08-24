@@ -80,11 +80,11 @@ internal class RgbaPlanarTiffColor<TPixel> : TiffBasePlanarColorDecoder<TPixel>
                 Vector4 vector = new(r, g, b, a);
                 if (hasAssociatedAlpha)
                 {
-                    pixelRow[x] = TiffUtilities.UnPremultiply<TPixel>(ref vector);
+                    pixelRow[x] = TPixel.FromAssociatedScaledVector4(vector);
                 }
                 else
                 {
-                    pixelRow[x] = TPixel.FromScaledVector4(vector);
+                    pixelRow[x] = TPixel.FromUnassociatedScaledVector4(vector);
                 }
             }
 

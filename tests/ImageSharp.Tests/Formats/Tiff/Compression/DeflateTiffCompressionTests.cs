@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.IO.Compression;
 using SixLabors.ImageSharp.Compression.Zlib;
 using SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors;
 using SixLabors.ImageSharp.Formats.Tiff.Constants;
@@ -35,7 +36,7 @@ public class DeflateTiffCompressionTests
         Stream compressedStream = new MemoryStream();
 
         using (Stream uncompressedStream = new MemoryStream(data),
-                      deflateStream = new ZlibDeflateStream(Configuration.Default.MemoryAllocator, compressedStream, DeflateCompressionLevel.Level6))
+                      deflateStream = new ZLibStream(compressedStream, new ZLibCompressionOptions { CompressionLevel = (int)DeflateCompressionLevel.Level6 }, true))
         {
             uncompressedStream.CopyTo(deflateStream);
         }

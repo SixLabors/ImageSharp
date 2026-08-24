@@ -12,7 +12,7 @@ public class ImageDifferenceIsOverThresholdException : ImagesSimilarityException
 
     public ImageDifferenceIsOverThresholdException(IEnumerable<ImageSimilarityReport> reports)
         : base("Image difference is over threshold!" + StringifyReports(reports))
-        => this.Reports = reports.ToArray();
+        => this.Reports = [.. reports];
 
     private static string StringifyReports(IEnumerable<ImageSimilarityReport> reports)
     {

@@ -10,8 +10,5 @@ public sealed class CurEncoder : QuantizingImageEncoder
 {
     /// <inheritdoc/>
     protected override void Encode<TPixel>(Image<TPixel> image, Stream stream, CancellationToken cancellationToken)
-    {
-        CurEncoderCore encoderCore = new(this);
-        encoderCore.Encode(image, stream, cancellationToken);
-    }
+        => new CurEncoderCore(this).Encode(image, stream, cancellationToken);
 }

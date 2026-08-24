@@ -24,7 +24,7 @@ public class PredictorEncoderTests
 
     [Fact]
     public void ColorSpaceTransform_WithPeakImage_WithoutSSE41_Works()
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ColorSpaceTransform_WithPeakImage_ProducesExpectedData, HwIntrinsics.DisableSSE41);
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ColorSpaceTransform_WithPeakImage_ProducesExpectedData, HwIntrinsics.DisableHWIntrinsic);
 
     [Fact]
     public void ColorSpaceTransform_WithBikeImage_WithHardwareIntrinsics_Works()
@@ -32,7 +32,7 @@ public class PredictorEncoderTests
 
     [Fact]
     public void ColorSpaceTransform_WithBikeImage_WithoutSSE41_Works()
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ColorSpaceTransform_WithBikeImage_ProducesExpectedData, HwIntrinsics.DisableSSE41);
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ColorSpaceTransform_WithBikeImage_ProducesExpectedData, HwIntrinsics.DisableHWIntrinsic);
 
     [Fact]
     public void ColorSpaceTransform_WithBikeImage_WithoutAvx2_Works()

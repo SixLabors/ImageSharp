@@ -5,7 +5,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Microsoft.DotNet.RemoteExecutor;
 using SixLabors.ImageSharp.Memory.Internals;
-using Xunit.Abstractions;
+using XUnit;
 
 namespace SixLabors.ImageSharp.Tests.Memory.Allocators;
 
@@ -18,8 +18,8 @@ public partial class UniformUnmanagedMemoryPoolTests
     private class CleanupUtil : IDisposable
     {
         private readonly UniformUnmanagedMemoryPool pool;
-        private readonly List<UnmanagedMemoryHandle> handlesToDestroy = new();
-        private readonly List<IntPtr> ptrsToDestroy = new();
+        private readonly List<UnmanagedMemoryHandle> handlesToDestroy = [];
+        private readonly List<IntPtr> ptrsToDestroy = [];
 
         public CleanupUtil(UniformUnmanagedMemoryPool pool)
         {
@@ -151,8 +151,8 @@ public partial class UniformUnmanagedMemoryPoolTests
     {
         UniformUnmanagedMemoryPool pool = new(128, capacity);
         using CleanupUtil cleanup = new(pool);
-        HashSet<UnmanagedMemoryHandle> allHandles = new();
-        List<UnmanagedMemoryHandle[]> handleUnits = new();
+        HashSet<UnmanagedMemoryHandle> allHandles = [];
+        List<UnmanagedMemoryHandle[]> handleUnits = [];
 
         UnmanagedMemoryHandle[] handles;
         for (int i = 0; i < totalCount; i += rentUnit)
@@ -261,7 +261,7 @@ public partial class UniformUnmanagedMemoryPoolTests
             pool.Release();
 
             // Do some unmanaged allocations to make sure new pool buffers are different:
-            IntPtr[] dummy = Enumerable.Range(0, 100).Select(_ => Marshal.AllocHGlobal(16)).ToArray();
+            IntPtr[] dummy = [.. Enumerable.Range(0, 100).Select(_ => Marshal.AllocHGlobal(16))];
             cleanup.Register(dummy);
 
             if (bool.Parse(multipleInner))
@@ -312,7 +312,7 @@ public partial class UniformUnmanagedMemoryPoolTests
 
         Parallel.For(0, Environment.ProcessorCount, (int i) =>
         {
-            List<UnmanagedMemoryHandle> allHandles = new();
+            List<UnmanagedMemoryHandle> allHandles = [];
             int pauseAt = rnd.Next(100);
             for (int j = 0; j < 100; j++)
             {

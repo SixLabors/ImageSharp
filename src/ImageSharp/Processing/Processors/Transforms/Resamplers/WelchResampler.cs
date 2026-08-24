@@ -8,7 +8,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms;
 
 /// <summary>
 /// The function implements the welch algorithm.
-/// <see href="http://www.imagemagick.org/Usage/filter/"/>
+/// <see href="https://usage.imagemagick.org/filter/"/>
 /// </summary>
 public readonly struct WelchResampler : IResampler
 {

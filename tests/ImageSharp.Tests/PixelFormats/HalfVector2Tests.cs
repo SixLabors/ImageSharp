@@ -4,6 +4,7 @@
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Tests.TestUtilities;
 
 namespace SixLabors.ImageSharp.Tests.PixelFormats;
 
@@ -25,19 +26,21 @@ public class HalfVector2Tests
         Assert.Equal(Vector2.One, new HalfVector2(Vector2.One).ToVector2());
         Assert.Equal(Vector2.UnitX, new HalfVector2(Vector2.UnitX).ToVector2());
         Assert.Equal(Vector2.UnitY, new HalfVector2(Vector2.UnitY).ToVector2());
+        Assert.Equal(new Vector2(-2F, 4F), new HalfVector2(-2F, 4F).ToVector2());
+        Assert.Equal(new Vector2((float)Half.MinValue, (float)Half.MaxValue), new HalfVector2((float)Half.MinValue, (float)Half.MaxValue).ToVector2());
     }
 
     [Fact]
     public void HalfVector2_ToScaledVector4()
     {
         // arrange
-        HalfVector2 halfVector = new(Vector2.One);
+        HalfVector2 halfVector = new((float)Half.MinValue, (float)Half.MaxValue);
 
         // act
         Vector4 actual = halfVector.ToScaledVector4();
 
         // assert
-        Assert.Equal(1F, actual.X);
+        Assert.Equal(0F, actual.X);
         Assert.Equal(1F, actual.Y);
         Assert.Equal(0, actual.Z);
         Assert.Equal(1, actual.W);
@@ -47,8 +50,8 @@ public class HalfVector2Tests
     public void HalfVector2_FromScaledVector4()
     {
         // arrange
-        Vector4 scaled = new HalfVector2(Vector2.One).ToScaledVector4();
-        const uint expected = 1006648320u;
+        Vector4 scaled = new(0F, 1F, 0F, 1F);
+        const uint expected = 0x7BFF_FBFF;
 
         // act
         HalfVector2 halfVector = HalfVector2.FromScaledVector4(scaled);
@@ -56,6 +59,30 @@ public class HalfVector2Tests
 
         // assert
         Assert.Equal(expected, actual);
+    }
+
+    [Fact]
+    public void HalfVector2_BulkScaledConversionsCoverFiniteRange() =>
+        FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            AssertHalfVector2BulkScaledConversionsCoverFiniteRange,
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic);
+
+    private static void AssertHalfVector2BulkScaledConversionsCoverFiniteRange()
+    {
+        HalfVector2 pixel = new() { PackedValue = 0x7BFF_FBFF };
+        HalfVector2[] source = new HalfVector2[17];
+        Vector4[] expectedVectors = new Vector4[source.Length];
+        Array.Fill(source, pixel);
+        Array.Fill(expectedVectors, new Vector4(0F, 1F, 0F, 1F));
+
+        Vector4[] actualVectors = new Vector4[source.Length];
+        PixelOperations<HalfVector2>.Instance.ToVector4(Configuration.Default, source, actualVectors, PixelConversionModifiers.Scale);
+        Assert.Equal(expectedVectors, actualVectors);
+
+        Vector4[] destructiveSource = [.. expectedVectors];
+        HalfVector2[] actualPixels = new HalfVector2[source.Length];
+        PixelOperations<HalfVector2>.Instance.FromVector4Destructive(Configuration.Default, destructiveSource, actualPixels, PixelConversionModifiers.Scale);
+        Assert.Equal(source, actualPixels);
     }
 
     [Fact]

@@ -35,7 +35,7 @@ internal static unsafe class QuantEnc
         int lambda = dqm.LambdaI16;
         int tlambda = dqm.TLambda;
         Span<byte> src = it.YuvIn.AsSpan(Vp8EncIterator.YOffEnc);
-        Span<int> scratch = it.Scratch3;
+        Span<int> scratch = it.Scratch3.AsSpan();
         Vp8ModeScore rdTmp = new();
         Vp8Residual res = new();
         Vp8ModeScore rdCur = rdTmp;
@@ -105,7 +105,7 @@ internal static unsafe class QuantEnc
         int tlambda = dqm.TLambda;
         Span<byte> src0 = it.YuvIn.AsSpan(Vp8EncIterator.YOffEnc);
         Span<byte> bestBlocks = it.YuvOut2.AsSpan(Vp8EncIterator.YOffEnc);
-        Span<int> scratch = it.Scratch3;
+        Span<int> scratch = it.Scratch3.AsSpan();
         int totalHeaderBits = 0;
         Vp8ModeScore rdBest = new();
 
@@ -280,7 +280,7 @@ internal static unsafe class QuantEnc
         int nz = 0;
         int n;
         Span<short> shortScratchSpan = it.Scratch2.AsSpan();
-        Span<int> scratch = it.Scratch3.AsSpan(0, 16);
+        Span<int> scratch = it.Scratch3.AsSpan();
         shortScratchSpan.Clear();
         scratch.Clear();
         Span<short> dcTmp = shortScratchSpan[..16];
@@ -321,7 +321,7 @@ internal static unsafe class QuantEnc
     {
         Span<byte> reference = it.YuvP.AsSpan(Vp8Encoding.Vp8I4ModeOffsets[mode]);
         Span<short> tmp = it.Scratch2.AsSpan(0, 16);
-        Span<int> scratch = it.Scratch3.AsSpan(0, 16);
+        Span<int> scratch = it.Scratch3.AsSpan();
         Vp8Encoding.FTransform(src, reference, tmp, scratch);
         int nz = QuantizeBlock(tmp, levels, ref dqm.Y1);
         Vp8Encoding.ITransformOne(reference, tmp, yuvOut, scratch);
@@ -336,7 +336,7 @@ internal static unsafe class QuantEnc
         int nz = 0;
         int n;
         Span<short> tmp = it.Scratch2.AsSpan(0, 8 * 16);
-        Span<int> scratch = it.Scratch3.AsSpan(0, 16);
+        Span<int> scratch = it.Scratch3.AsSpan();
 
         for (n = 0; n < 8; n += 2)
         {

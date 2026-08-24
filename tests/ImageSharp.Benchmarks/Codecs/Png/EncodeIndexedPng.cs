@@ -40,19 +40,19 @@ public class EncodeIndexedPng
         this.bmpCore.Dispose();
     }
 
-    [Benchmark(Baseline = true, Description = "ImageSharp Octree Png")]
-    public void PngCoreOctree()
+    [Benchmark(Baseline = true, Description = "ImageSharp Hexadecatree Png")]
+    public void PngCoreHexadecatree()
     {
         using MemoryStream memoryStream = new();
-        PngEncoder options = new() { Quantizer = KnownQuantizers.Octree };
+        PngEncoder options = new() { Quantizer = KnownQuantizers.Hexadecatree };
         this.bmpCore.SaveAsPng(memoryStream, options);
     }
 
-    [Benchmark(Description = "ImageSharp Octree NoDither Png")]
-    public void PngCoreOctreeNoDither()
+    [Benchmark(Description = "ImageSharp Hexadecatree NoDither Png")]
+    public void PngCoreHexadecatreeNoDither()
     {
         using MemoryStream memoryStream = new();
-        PngEncoder options = new() { Quantizer = new OctreeQuantizer(new QuantizerOptions { Dither = null }) };
+        PngEncoder options = new() { Quantizer = new HexadecatreeQuantizer(new QuantizerOptions { Dither = null }) };
         this.bmpCore.SaveAsPng(memoryStream, options);
     }
 

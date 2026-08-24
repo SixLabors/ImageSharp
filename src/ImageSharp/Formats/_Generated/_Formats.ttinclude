@@ -4,6 +4,7 @@
 // Licensed under the Six Labors Split License.
 <#+
     private static readonly string[] formats = [
+        "Ani",
         "Bmp",
         "Cur",
         "Gif",
@@ -14,10 +15,12 @@
         "Qoi",
         "Tga",
         "Tiff",
-        "Webp"
+        "Webp",
+        "Exr"
         ];
 
     private static readonly string[] frameFormats = [
+        "Ani",
         "Cur",
         "Ico",
         "Gif",

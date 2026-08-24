@@ -131,6 +131,7 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
         try
         {
             int bytesPerColorMapEntry = this.ReadImageHeaders(stream, out bool inverted, out byte[] palette);
+            ushort bitsPerPixel = this.infoHeader.BitsPerPixel;
 
             image = new Image<TPixel>(this.configuration, this.infoHeader.Width, this.infoHeader.Height, this.metadata);
 
@@ -138,23 +139,27 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
 
             switch (this.infoHeader.Compression)
             {
-                case BmpCompression.RGB when this.infoHeader.BitsPerPixel is 32 && this.bmpMetadata.InfoHeaderType is BmpInfoHeaderType.WinVersion3:
+                case BmpCompression.RGB when bitsPerPixel is 32 && this.bmpMetadata.InfoHeaderType is BmpInfoHeaderType.WinVersion3:
                     this.ReadRgb32Slow(stream, pixels, this.infoHeader.Width, this.infoHeader.Height, inverted);
 
                     break;
-                case BmpCompression.RGB when this.infoHeader.BitsPerPixel is 32:
+
+                case BmpCompression.RGB when bitsPerPixel is 32:
                     this.ReadRgb32Fast(stream, pixels, this.infoHeader.Width, this.infoHeader.Height, inverted);
 
                     break;
-                case BmpCompression.RGB when this.infoHeader.BitsPerPixel is 24:
+
+                case BmpCompression.RGB when bitsPerPixel is 24:
                     this.ReadRgb24(stream, pixels, this.infoHeader.Width, this.infoHeader.Height, inverted);
 
                     break;
-                case BmpCompression.RGB when this.infoHeader.BitsPerPixel is 16:
+
+                case BmpCompression.RGB when bitsPerPixel is 16:
                     this.ReadRgb16(stream, pixels, this.infoHeader.Width, this.infoHeader.Height, inverted);
 
                     break;
-                case BmpCompression.RGB when this.infoHeader.BitsPerPixel is <= 8 && this.processedAlphaMask:
+
+                case BmpCompression.RGB when bitsPerPixel is > 0 and <= 8 && this.processedAlphaMask:
                     this.ReadRgbPaletteWithAlphaMask(
                         stream,
                         pixels,
@@ -166,7 +171,8 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
                         inverted);
 
                     break;
-                case BmpCompression.RGB when this.infoHeader.BitsPerPixel is <= 8:
+
+                case BmpCompression.RGB when bitsPerPixel is > 0 and <= 8:
                     this.ReadRgbPalette(
                         stream,
                         pixels,
@@ -177,6 +183,10 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
                         bytesPerColorMapEntry,
                         inverted);
 
+                    break;
+
+                case BmpCompression.RGB when bitsPerPixel is <= 0 or > 32:
+                    BmpThrowHelper.ThrowInvalidImageContentException($"Invalid bits per pixel: {bitsPerPixel}");
                     break;
 
                 case BmpCompression.RLE24:
@@ -340,10 +350,10 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
                         pixelRow[x] = this.rleSkippedPixelHandling switch
                         {
                             RleSkippedPixelHandling.FirstColorOfPalette => TPixel.FromBgr24(Unsafe.As<byte, Bgr24>(ref colors[colorIdx * 4])),
-                            RleSkippedPixelHandling.Transparent => TPixel.FromScaledVector4(Vector4.Zero),
+                            RleSkippedPixelHandling.Transparent => TPixel.FromUnassociatedScaledVector4(Vector4.Zero),
 
                             // Default handling for skipped pixels is black (which is what System.Drawing is also doing).
-                            _ => TPixel.FromScaledVector4(new Vector4(0.0f, 0.0f, 0.0f, 1.0f)),
+                            _ => TPixel.FromUnassociatedScaledVector4(new Vector4(0.0f, 0.0f, 0.0f, 1.0f)),
                         };
                     }
                     else
@@ -401,10 +411,10 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
                         pixelRow[x] = this.rleSkippedPixelHandling switch
                         {
                             RleSkippedPixelHandling.FirstColorOfPalette => TPixel.FromBgr24(Unsafe.As<byte, Bgr24>(ref bufferSpan[idx])),
-                            RleSkippedPixelHandling.Transparent => TPixel.FromScaledVector4(Vector4.Zero),
+                            RleSkippedPixelHandling.Transparent => TPixel.FromUnassociatedScaledVector4(Vector4.Zero),
 
                             // Default handling for skipped pixels is black (which is what System.Drawing is also doing).
-                            _ => TPixel.FromScaledVector4(new Vector4(0.0f, 0.0f, 0.0f, 1.0f)),
+                            _ => TPixel.FromUnassociatedScaledVector4(new Vector4(0.0f, 0.0f, 0.0f, 1.0f)),
                         };
                     }
                     else
@@ -1262,7 +1272,7 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
                         g * invMaxValueGreen,
                         b * invMaxValueBlue,
                         alpha);
-                    pixelRow[x] = TPixel.FromScaledVector4(vector4);
+                    pixelRow[x] = TPixel.FromUnassociatedScaledVector4(vector4);
                 }
                 else
                 {
@@ -1421,12 +1431,8 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
             this.infoHeader = BmpInfoHeader.ParseV5(buffer);
             if (this.infoHeader.ProfileData != 0 && this.infoHeader.ProfileSize != 0)
             {
-                // Read color profile.
                 long streamPosition = stream.Position;
-                byte[] iccProfileData = new byte[this.infoHeader.ProfileSize];
-                stream.Position = infoHeaderStart + this.infoHeader.ProfileData;
-                stream.Read(iccProfileData);
-                this.metadata.IccProfile = new IccProfile(iccProfileData);
+                this.ExecuteAncillarySegmentAction(() => this.ReadIccProfile(stream, this.metadata, infoHeaderStart));
                 stream.Position = streamPosition;
             }
         }
@@ -1458,6 +1464,33 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
         this.bmpMetadata.BitsPerPixel = (BmpBitsPerPixel)bitsPerPixel;
 
         this.Dimensions = new Size(this.infoHeader.Width, this.infoHeader.Height);
+    }
+
+    /// <summary>
+    /// Reads the embedded ICC profile from the BMP V5 info header.
+    /// </summary>
+    /// <param name="stream">The <see cref="BufferedReadStream"/> containing image data.</param>
+    /// <param name="imageMetadata">The image metadata.</param>
+    /// <param name="infoHeaderStart">The stream position where the info header begins.</param>
+    private void ReadIccProfile(BufferedReadStream stream, ImageMetadata imageMetadata, long infoHeaderStart)
+    {
+        byte[] iccProfileData = new byte[this.infoHeader.ProfileSize];
+        stream.Position = infoHeaderStart + this.infoHeader.ProfileData;
+
+        if (stream.Read(iccProfileData) != iccProfileData.Length)
+        {
+            BmpThrowHelper.ThrowInvalidImageContentException("Not enough data to read BMP ICC profile.");
+        }
+
+        IccProfile profile = new(iccProfileData);
+        if (profile.CheckIsValid())
+        {
+            imageMetadata.IccProfile = profile;
+        }
+        else
+        {
+            throw new InvalidIccProfileException("Invalid BMP ICC profile.");
+        }
     }
 
     /// <summary>
@@ -1538,6 +1571,12 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
                     case BmpFileMarkerType.Bitmap:
                         if (this.fileHeader.HasValue)
                         {
+                            if (this.fileHeader.Value.Offset > stream.Length)
+                            {
+                                BmpThrowHelper.ThrowInvalidImageContentException(
+                                    $"Pixel data offset {this.fileHeader.Value.Offset} exceeds file size {stream.Length}.");
+                            }
+
                             colorMapSizeBytes = this.fileHeader.Value.Offset - BmpFileHeader.Size - this.infoHeader.HeaderSize;
                         }
                         else

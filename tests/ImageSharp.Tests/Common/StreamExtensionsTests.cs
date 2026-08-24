@@ -79,7 +79,7 @@ public class StreamExtensionsTests
     {
         public override bool CanSeek => false;
 
-        public List<int> Counts = new();
+        public List<int> Counts = [];
 
         public NonSeekableStream()
             : base(4)

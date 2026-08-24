@@ -1,4 +1,4 @@
-// Copyright (c) Six Labors.
+﻿// Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
 using System.Numerics;
@@ -129,7 +129,7 @@ internal partial struct Block8x8
     /// <summary>
     /// Cast and copy <see cref="Size"/> <see cref="int"/>-s from the beginning of 'source' span.
     /// </summary>
-    public void LoadFrom(Span<int> source)
+    public void LoadFrom(ReadOnlySpan<int> source)
     {
         for (int i = 0; i < Size; i++)
         {

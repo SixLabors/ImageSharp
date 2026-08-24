@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.Memory.Internals;
 /// access to unmanaged buffers allocated by <see cref="Marshal.AllocHGlobal(int)"/>.
 /// </summary>
 /// <typeparam name="T">The element type.</typeparam>
-internal sealed unsafe class UnmanagedBuffer<T> : MemoryManager<T>, IRefCounted
+internal sealed unsafe class UnmanagedBuffer<T> : AllocationTrackedMemoryManager<T>, IRefCounted
     where T : struct
 {
     private readonly int lengthInElements;
@@ -30,6 +30,9 @@ internal sealed unsafe class UnmanagedBuffer<T> : MemoryManager<T>, IRefCounted
     }
 
     public void* Pointer => this.lifetimeGuard.Handle.Pointer;
+
+    protected internal override void AttachAllocationTracking(MemoryAllocator allocator, long lengthInBytes)
+        => this.lifetimeGuard.AttachAllocationTracking(allocator, lengthInBytes);
 
     public override Span<T> GetSpan()
     {
@@ -52,7 +55,7 @@ internal sealed unsafe class UnmanagedBuffer<T> : MemoryManager<T>, IRefCounted
     }
 
     /// <inheritdoc />
-    protected override void Dispose(bool disposing)
+    protected override void DisposeCore(bool disposing)
     {
         DebugGuard.IsTrue(disposing, nameof(disposing), "Unmanaged buffers should not have finalizer!");
 

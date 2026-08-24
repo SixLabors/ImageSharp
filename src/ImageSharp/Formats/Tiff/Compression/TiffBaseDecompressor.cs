@@ -28,20 +28,20 @@ internal abstract class TiffBaseDecompressor : TiffBaseCompression
     /// Decompresses image data into the supplied buffer.
     /// </summary>
     /// <param name="stream">The <see cref="Stream" /> to read image data from.</param>
-    /// <param name="stripOffset">The strip offset of stream.</param>
-    /// <param name="stripByteCount">The number of bytes to read from the input stream.</param>
+    /// <param name="offset">The data offset within the stream.</param>
+    /// <param name="count">The number of bytes to read from the input stream.</param>
     /// <param name="stripHeight">The height of the strip.</param>
     /// <param name="buffer">The output buffer for uncompressed data.</param>
     /// <param name="cancellationToken">The token to monitor cancellation.</param>
-    public void Decompress(BufferedReadStream stream, ulong stripOffset, ulong stripByteCount, int stripHeight, Span<byte> buffer, CancellationToken cancellationToken)
+    public void Decompress(BufferedReadStream stream, ulong offset, ulong count, int stripHeight, Span<byte> buffer, CancellationToken cancellationToken)
     {
-        DebugGuard.MustBeLessThanOrEqualTo(stripOffset, (ulong)long.MaxValue, nameof(stripOffset));
-        DebugGuard.MustBeLessThanOrEqualTo(stripByteCount, (ulong)long.MaxValue, nameof(stripByteCount));
+        DebugGuard.MustBeLessThanOrEqualTo(offset, (ulong)long.MaxValue, nameof(offset));
+        DebugGuard.MustBeLessThanOrEqualTo(count, (ulong)int.MaxValue, nameof(count));
 
-        stream.Seek((long)stripOffset, SeekOrigin.Begin);
-        this.Decompress(stream, (int)stripByteCount, stripHeight, buffer, cancellationToken);
+        stream.Seek((long)offset, SeekOrigin.Begin);
+        this.Decompress(stream, (int)count, stripHeight, buffer, cancellationToken);
 
-        if ((long)stripOffset + (long)stripByteCount < stream.Position)
+        if ((long)offset + (long)count < stream.Position)
         {
             TiffThrowHelper.ThrowImageFormatException("Out of range when reading a strip.");
         }

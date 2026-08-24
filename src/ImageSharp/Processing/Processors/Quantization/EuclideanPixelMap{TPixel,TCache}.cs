@@ -3,6 +3,8 @@
 
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
+using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Processing.Processors.Quantization;
@@ -71,31 +73,106 @@ internal sealed class EuclideanPixelMap<TPixel, TCache> : PixelMap<TPixel>
     [MethodImpl(InliningOptions.ColdPath)]
     private int GetClosestColorSlow(Rgba32 rgba, ref TPixel paletteRef, out TPixel match)
     {
-        // Loop through the palette and find the nearest match.
+        ReadOnlySpan<Rgba32> rgbaPalette = this.rgbaPalette;
+        ref Rgba32 rgbaPaletteRef = ref MemoryMarshal.GetReference(rgbaPalette);
         int index = 0;
-        float leastDistance = float.MaxValue;
-        for (int i = 0; i < this.rgbaPalette.Length; i++)
+        int leastDistance = int.MaxValue;
+        int i = 0;
+
+        if (Vector128.IsHardwareAccelerated && rgbaPalette.Length >= 4)
         {
-            Rgba32 candidate = this.rgbaPalette[i];
-            if (candidate.PackedValue == rgba.PackedValue)
-            {
-                index = i;
-                break;
-            }
+            // Duplicate the query color so one 128-bit register can be subtracted from
+            // two packed RGBA candidates at a time after widening.
+            Vector128<short> pixel = Vector128.Create(
+                rgba.R,
+                rgba.G,
+                rgba.B,
+                rgba.A,
+                rgba.R,
+                rgba.G,
+                rgba.B,
+                rgba.A);
 
-            float distance = DistanceSquared(rgba, candidate);
-            if (distance == 0)
-            {
-                index = i;
-                break;
-            }
+            int vectorizedLength = rgbaPalette.Length & ~0x03;
 
+            for (; i < vectorizedLength; i += 4)
+            {
+                // Load four packed Rgba32 values (16 bytes) and widen them into two vectors:
+                // [c0.r, c0.g, c0.b, c0.a, c1.r, ...] and [c2.r, c2.g, c2.b, c2.a, c3.r, ...].
+                Vector128<byte> packed = Vector128.LoadUnsafe(ref Unsafe.As<Rgba32, byte>(ref Unsafe.Add(ref rgbaPaletteRef, i)));
+                Vector128<short> lowerDiff = Vector128.WidenLower(packed).AsInt16() - pixel;
+                Vector128<short> upperDiff = Vector128.WidenUpper(packed).AsInt16() - pixel;
+
+                // MultiplyAddAdjacent collapses channel squares into RG + BA partial sums,
+                // so each pair of int lanes still corresponds to one candidate color.
+                Vector128<int> lowerPairs = Vector128_.MultiplyAddAdjacent(lowerDiff, lowerDiff);
+                Vector128<int> upperPairs = Vector128_.MultiplyAddAdjacent(upperDiff, upperDiff);
+
+                // Sum the two partials for candidates i and i + 1.
+                ref int lowerRef = ref Unsafe.As<Vector128<int>, int>(ref lowerPairs);
+                int distance = lowerRef + Unsafe.Add(ref lowerRef, 1);
+                if (distance < leastDistance)
+                {
+                    index = i;
+                    leastDistance = distance;
+                    if (distance == 0)
+                    {
+                        goto Found;
+                    }
+                }
+
+                distance = Unsafe.Add(ref lowerRef, 2) + Unsafe.Add(ref lowerRef, 3);
+                if (distance < leastDistance)
+                {
+                    index = i + 1;
+                    leastDistance = distance;
+                    if (distance == 0)
+                    {
+                        goto Found;
+                    }
+                }
+
+                // Sum the two partials for candidates i + 2 and i + 3.
+                ref int upperRef = ref Unsafe.As<Vector128<int>, int>(ref upperPairs);
+                distance = upperRef + Unsafe.Add(ref upperRef, 1);
+                if (distance < leastDistance)
+                {
+                    index = i + 2;
+                    leastDistance = distance;
+                    if (distance == 0)
+                    {
+                        goto Found;
+                    }
+                }
+
+                distance = Unsafe.Add(ref upperRef, 2) + Unsafe.Add(ref upperRef, 3);
+                if (distance < leastDistance)
+                {
+                    index = i + 3;
+                    leastDistance = distance;
+                    if (distance == 0)
+                    {
+                        goto Found;
+                    }
+                }
+            }
+        }
+
+        for (; i < rgbaPalette.Length; i++)
+        {
+            int distance = DistanceSquared(rgba, Unsafe.Add(ref rgbaPaletteRef, i));
             if (distance < leastDistance)
             {
                 index = i;
                 leastDistance = distance;
+                if (distance == 0)
+                {
+                    goto Found;
+                }
             }
         }
+
+        Found:
 
         // Now I have the index, pop it into the cache for next time
         _ = this.cache.TryAdd(rgba, (short)index);
@@ -111,12 +188,12 @@ internal sealed class EuclideanPixelMap<TPixel, TCache> : PixelMap<TPixel>
     /// <param name="b">The second point.</param>
     /// <returns>The distance squared.</returns>
     [MethodImpl(InliningOptions.ShortMethod)]
-    private static float DistanceSquared(Rgba32 a, Rgba32 b)
+    private static int DistanceSquared(Rgba32 a, Rgba32 b)
     {
-        float deltaR = a.R - b.R;
-        float deltaG = a.G - b.G;
-        float deltaB = a.B - b.B;
-        float deltaA = a.A - b.A;
+        int deltaR = a.R - b.R;
+        int deltaG = a.G - b.G;
+        int deltaB = a.B - b.B;
+        int deltaA = a.A - b.A;
         return (deltaR * deltaR) + (deltaG * deltaG) + (deltaB * deltaB) + (deltaA * deltaA);
     }
 
@@ -177,8 +254,7 @@ internal static class PixelMapFactory
         ColorMatchingMode colorMatchingMode)
         where TPixel : unmanaged, IPixel<TPixel> => colorMatchingMode switch
         {
-            ColorMatchingMode.Hybrid => new EuclideanPixelMap<TPixel, HybridCache>(configuration, palette),
-            ColorMatchingMode.Exact => new EuclideanPixelMap<TPixel, NullCache>(configuration, palette),
+            ColorMatchingMode.Exact => new EuclideanPixelMap<TPixel, AccurateCache>(configuration, palette),
             _ => new EuclideanPixelMap<TPixel, CoarseCache>(configuration, palette),
         };
 }

@@ -85,7 +85,7 @@ internal class QoiDecoderCore : ImageDecoderCore
 
         // Read magic bytes
         int read = stream.Read(magicBytes);
-        if (read != 4 || !magicBytes.SequenceEqual(QoiConstants.Magic.ToArray()))
+        if (read != 4 || !magicBytes.SequenceEqual([.. QoiConstants.Magic]))
         {
             ThrowInvalidImageContentException();
         }

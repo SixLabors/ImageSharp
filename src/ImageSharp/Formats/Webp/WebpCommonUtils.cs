@@ -134,9 +134,9 @@ internal static class WebpCommonUtils
         Vector128<int> b1 = (a1 & alphaMask).AsInt32();
         Vector128<int> b2 = (a2 & alphaMask).AsInt32();
         Vector128<int> b3 = (a3 & alphaMask).AsInt32();
-        Vector128<short> c0 = Vector128_.PackSignedSaturate(b0, b1).AsInt16();
-        Vector128<short> c1 = Vector128_.PackSignedSaturate(b2, b3).AsInt16();
-        Vector128<byte> d = Vector128_.PackSignedSaturate(c0, c1).AsByte();
+        Vector128<short> c0 = Vector128.NarrowWithSaturation(b0, b1).AsInt16();
+        Vector128<short> c1 = Vector128.NarrowWithSaturation(b2, b3).AsInt16();
+        Vector128<byte> d = Vector128.NarrowWithSaturation(c0, c1).AsByte();
         Vector128<byte> bits = Vector128.Equals(d, Vector128.Create((byte)0x80).AsByte());
         uint mask = bits.ExtractMostSignificantBits();
         return mask != 0xFFFF;
@@ -150,8 +150,8 @@ internal static class WebpCommonUtils
         Vector128<byte> a1 = Vector128.Load(src + i + 16).AsByte();
         Vector128<int> b0 = (a0 & alphaMask).AsInt32();
         Vector128<int> b1 = (a1 & alphaMask).AsInt32();
-        Vector128<short> c = Vector128_.PackSignedSaturate(b0, b1).AsInt16();
-        Vector128<byte> d = Vector128_.PackSignedSaturate(c, c).AsByte();
+        Vector128<short> c = Vector128.NarrowWithSaturation(b0, b1).AsInt16();
+        Vector128<byte> d = Vector128.NarrowWithSaturation(c, c).AsByte();
         Vector128<byte> bits = Vector128.Equals(d, Vector128.Create((byte)0x80).AsByte());
         uint mask = bits.ExtractMostSignificantBits();
         return mask != 0xFFFF;

@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp.Processing.Processors.Transforms;
 /// Cubic filters contain a collection of different filters of varying B-Spline and
 /// Cardinal values. With these two values you can generate any smoothly fitting
 /// (continuious first derivative) piece-wise cubic filter.
-/// <see href="http://www.imagemagick.org/Usage/filter/#cubic_bc"/>
+/// <see href="https://usage.imagemagick.org/filter/#cubic_bc"/>
 /// <see href="https://www.cs.utexas.edu/~fussell/courses/cs384g-fall2013/lectures/mitchell/Mitchell.pdf"/>
 /// </summary>
 public readonly struct CubicResampler : IResampler
@@ -39,23 +39,19 @@ public readonly struct CubicResampler : IResampler
 
     /// <summary>
     /// The function implements the Robidoux algorithm.
-    /// <see href="http://www.imagemagick.org/Usage/filter/#robidoux"/>
+    /// <see href="https://usage.imagemagick.org/filter/#robidoux"/>
     /// </summary>
     public static readonly CubicResampler Robidoux = new(2, .37821575509399867F, .31089212245300067F);
 
     /// <summary>
     /// The function implements the Robidoux Sharp algorithm.
-    /// <see href="http://www.imagemagick.org/Usage/filter/#robidoux"/>
+    /// <see href="https://usage.imagemagick.org/filter/#robidoux"/>
     /// </summary>
     public static readonly CubicResampler RobidouxSharp = new(2, .2620145123990142F, .3689927438004929F);
 
     /// <summary>
     /// The function implements the spline algorithm.
-    /// <see href="http://www.imagemagick.org/Usage/filter/#cubic_bc"/>
-    /// </summary>
-    /// <summary>
-    /// The function implements the Robidoux Sharp algorithm.
-    /// <see href="http://www.imagemagick.org/Usage/filter/#robidoux"/>
+    /// <see href="https://usage.imagemagick.org/filter/#cubic_bc"/>
     /// </summary>
     public static readonly CubicResampler Spline = new(2, 1, 0);
 

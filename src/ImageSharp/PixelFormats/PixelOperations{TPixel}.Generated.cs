@@ -57,7 +57,7 @@ public partial class PixelOperations<TPixel>
 
         for (nuint i = 0; i < (uint)source.Length; i++)
         {
-            Unsafe.Add(ref destinationBase, i) = Argb32.FromScaledVector4(Unsafe.Add(ref sourceBase, i).ToScaledVector4());
+            Unsafe.Add(ref destinationBase, i) = Argb32.FromUnassociatedScaledVector4(Unsafe.Add(ref sourceBase, i).ToUnassociatedScaledVector4());
         }
     }
 
@@ -123,7 +123,7 @@ public partial class PixelOperations<TPixel>
 
         for (nuint i = 0; i < (uint)source.Length; i++)
         {
-            Unsafe.Add(ref destinationBase, i) = Abgr32.FromScaledVector4(Unsafe.Add(ref sourceBase, i).ToScaledVector4());
+            Unsafe.Add(ref destinationBase, i) = Abgr32.FromUnassociatedScaledVector4(Unsafe.Add(ref sourceBase, i).ToUnassociatedScaledVector4());
         }
     }
 
@@ -189,7 +189,7 @@ public partial class PixelOperations<TPixel>
 
         for (nuint i = 0; i < (uint)source.Length; i++)
         {
-            Unsafe.Add(ref destinationBase, i) = Bgr24.FromScaledVector4(Unsafe.Add(ref sourceBase, i).ToScaledVector4());
+            Unsafe.Add(ref destinationBase, i) = Bgr24.FromUnassociatedScaledVector4(Unsafe.Add(ref sourceBase, i).ToUnassociatedScaledVector4());
         }
     }
 
@@ -255,7 +255,7 @@ public partial class PixelOperations<TPixel>
 
         for (nuint i = 0; i < (uint)source.Length; i++)
         {
-            Unsafe.Add(ref destinationBase, i) = Bgra32.FromScaledVector4(Unsafe.Add(ref sourceBase, i).ToScaledVector4());
+            Unsafe.Add(ref destinationBase, i) = Bgra32.FromUnassociatedScaledVector4(Unsafe.Add(ref sourceBase, i).ToUnassociatedScaledVector4());
         }
     }
 
@@ -321,7 +321,7 @@ public partial class PixelOperations<TPixel>
 
         for (nuint i = 0; i < (uint)source.Length; i++)
         {
-            Unsafe.Add(ref destinationBase, i) = L8.FromScaledVector4(Unsafe.Add(ref sourceBase, i).ToScaledVector4());
+            Unsafe.Add(ref destinationBase, i) = L8.FromUnassociatedScaledVector4(Unsafe.Add(ref sourceBase, i).ToUnassociatedScaledVector4());
         }
     }
 
@@ -387,7 +387,7 @@ public partial class PixelOperations<TPixel>
 
         for (nuint i = 0; i < (uint)source.Length; i++)
         {
-            Unsafe.Add(ref destinationBase, i) = L16.FromScaledVector4(Unsafe.Add(ref sourceBase, i).ToScaledVector4());
+            Unsafe.Add(ref destinationBase, i) = L16.FromUnassociatedScaledVector4(Unsafe.Add(ref sourceBase, i).ToUnassociatedScaledVector4());
         }
     }
 
@@ -453,7 +453,7 @@ public partial class PixelOperations<TPixel>
 
         for (nuint i = 0; i < (uint)source.Length; i++)
         {
-            Unsafe.Add(ref destinationBase, i) = La16.FromScaledVector4(Unsafe.Add(ref sourceBase, i).ToScaledVector4());
+            Unsafe.Add(ref destinationBase, i) = La16.FromUnassociatedScaledVector4(Unsafe.Add(ref sourceBase, i).ToUnassociatedScaledVector4());
         }
     }
 
@@ -519,7 +519,7 @@ public partial class PixelOperations<TPixel>
 
         for (nuint i = 0; i < (uint)source.Length; i++)
         {
-            Unsafe.Add(ref destinationBase, i) = La32.FromScaledVector4(Unsafe.Add(ref sourceBase, i).ToScaledVector4());
+            Unsafe.Add(ref destinationBase, i) = La32.FromUnassociatedScaledVector4(Unsafe.Add(ref sourceBase, i).ToUnassociatedScaledVector4());
         }
     }
 
@@ -585,7 +585,7 @@ public partial class PixelOperations<TPixel>
 
         for (nuint i = 0; i < (uint)source.Length; i++)
         {
-            Unsafe.Add(ref destinationBase, i) = Rgb24.FromScaledVector4(Unsafe.Add(ref sourceBase, i).ToScaledVector4());
+            Unsafe.Add(ref destinationBase, i) = Rgb24.FromUnassociatedScaledVector4(Unsafe.Add(ref sourceBase, i).ToUnassociatedScaledVector4());
         }
     }
 
@@ -651,7 +651,7 @@ public partial class PixelOperations<TPixel>
 
         for (nuint i = 0; i < (uint)source.Length; i++)
         {
-            Unsafe.Add(ref destinationBase, i) = Rgba32.FromScaledVector4(Unsafe.Add(ref sourceBase, i).ToScaledVector4());
+            Unsafe.Add(ref destinationBase, i) = Rgba32.FromUnassociatedScaledVector4(Unsafe.Add(ref sourceBase, i).ToUnassociatedScaledVector4());
         }
     }
 
@@ -717,7 +717,7 @@ public partial class PixelOperations<TPixel>
 
         for (nuint i = 0; i < (uint)source.Length; i++)
         {
-            Unsafe.Add(ref destinationBase, i) = Rgb48.FromScaledVector4(Unsafe.Add(ref sourceBase, i).ToScaledVector4());
+            Unsafe.Add(ref destinationBase, i) = Rgb48.FromUnassociatedScaledVector4(Unsafe.Add(ref sourceBase, i).ToUnassociatedScaledVector4());
         }
     }
 
@@ -783,7 +783,7 @@ public partial class PixelOperations<TPixel>
 
         for (nuint i = 0; i < (uint)source.Length; i++)
         {
-            Unsafe.Add(ref destinationBase, i) = Rgba64.FromScaledVector4(Unsafe.Add(ref sourceBase, i).ToScaledVector4());
+            Unsafe.Add(ref destinationBase, i) = Rgba64.FromUnassociatedScaledVector4(Unsafe.Add(ref sourceBase, i).ToUnassociatedScaledVector4());
         }
     }
 
@@ -849,7 +849,7 @@ public partial class PixelOperations<TPixel>
 
         for (nuint i = 0; i < (uint)source.Length; i++)
         {
-            Unsafe.Add(ref destinationBase, i) = Bgra5551.FromScaledVector4(Unsafe.Add(ref sourceBase, i).ToScaledVector4());
+            Unsafe.Add(ref destinationBase, i) = Bgra5551.FromUnassociatedScaledVector4(Unsafe.Add(ref sourceBase, i).ToUnassociatedScaledVector4());
         }
     }
 

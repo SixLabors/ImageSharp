@@ -6,11 +6,11 @@ using SixLabors.ImageSharp.PixelFormats;
 namespace SixLabors.ImageSharp;
 
 /// <summary>
-/// Options for influencing the drawing functions.
+/// Provides configuration for controlling how graphics operations are rendered,
+/// including antialiasing, pixel blending, and alpha composition.
 /// </summary>
 public class GraphicsOptions : IDeepCloneable<GraphicsOptions>
 {
-    private int antialiasSubpixelDepth = 16;
     private float blendPercentage = 1F;
 
     /// <summary>
@@ -24,61 +24,43 @@ public class GraphicsOptions : IDeepCloneable<GraphicsOptions>
     {
         this.AlphaCompositionMode = source.AlphaCompositionMode;
         this.Antialias = source.Antialias;
-        this.AntialiasSubpixelDepth = source.AntialiasSubpixelDepth;
         this.BlendPercentage = source.BlendPercentage;
         this.ColorBlendingMode = source.ColorBlendingMode;
     }
 
     /// <summary>
     /// Gets or sets a value indicating whether antialiasing should be applied.
-    /// Defaults to true.
+    /// When <see langword="true"/>, edges are rendered with smooth sub-pixel coverage.
+    /// When <see langword="false"/>, coverage is snapped to binary (fully opaque or fully transparent).
+    /// Defaults to <see langword="true"/>.
     /// </summary>
     public bool Antialias { get; set; } = true;
 
     /// <summary>
-    /// Gets or sets a value indicating the number of subpixels to use while rendering with antialiasing enabled.
-    /// Defaults to 16.
-    /// </summary>
-    public int AntialiasSubpixelDepth
-    {
-        get
-        {
-            return this.antialiasSubpixelDepth;
-        }
-
-        set
-        {
-            Guard.MustBeGreaterThanOrEqualTo(value, 0, nameof(this.AntialiasSubpixelDepth));
-            this.antialiasSubpixelDepth = value;
-        }
-    }
-
-    /// <summary>
-    /// Gets or sets a value between indicating the blending percentage to apply to the drawing operation.
-    /// Range 0..1; Defaults to 1.
+    /// Gets or sets the blending percentage applied to the drawing operation.
+    /// A value of <c>1.0</c> applies the operation at full strength; <c>0.0</c> makes it invisible.
+    /// Valid range is 0 to 1. Defaults to <c>1.0F</c>.
     /// </summary>
     public float BlendPercentage
     {
-        get
-        {
-            return this.blendPercentage;
-        }
+        get => this.blendPercentage;
 
         set
         {
-            Guard.MustBeBetweenOrEqualTo(value, 0, 1F, nameof(this.BlendPercentage));
+            Guard.MustBeBetweenOrEqualTo(value, 0F, 1F, nameof(this.BlendPercentage));
             this.blendPercentage = value;
         }
     }
 
     /// <summary>
-    /// Gets or sets a value indicating the color blending mode to apply to the drawing operation.
+    /// Gets or sets the color blending mode used to combine source and destination pixel colors.
     /// Defaults to <see cref="PixelColorBlendingMode.Normal"/>.
     /// </summary>
     public PixelColorBlendingMode ColorBlendingMode { get; set; } = PixelColorBlendingMode.Normal;
 
     /// <summary>
-    /// Gets or sets a value indicating the alpha composition mode to apply to the drawing operation
+    /// Gets or sets the alpha composition mode that determines how source and destination alpha
+    /// channels are combined using Porter-Duff operators.
     /// Defaults to <see cref="PixelAlphaCompositionMode.SrcOver"/>.
     /// </summary>
     public PixelAlphaCompositionMode AlphaCompositionMode { get; set; } = PixelAlphaCompositionMode.SrcOver;

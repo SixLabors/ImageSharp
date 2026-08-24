@@ -220,7 +220,7 @@ public partial struct Rgba32 : IPixel<Rgba32>, IPackedVector<uint>
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly Vector4 ToVector4() => new Vector4(this.R, this.G, this.B, this.A) / MaxBytes;
+    public readonly Vector4 ToVector4() => new Vector4(this.R, this.G, this.B, this.A) / byte.MaxValue;
 
     /// <inheritdoc />
     public static PixelTypeInfo GetPixelTypeInfo()
@@ -231,6 +231,47 @@ public partial struct Rgba32 : IPixel<Rgba32>, IPackedVector<uint>
 
     /// <inheritdoc />
     public static PixelOperations<Rgba32> CreatePixelOperations() => new PixelOperations();
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly Vector4 ToUnassociatedScaledVector4() => this.ToScaledVector4();
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly Vector4 ToAssociatedScaledVector4()
+    {
+        Vector4 vector = this.ToScaledVector4();
+        Numerics.Premultiply(ref vector);
+        return vector;
+    }
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly Vector4 ToUnassociatedVector4() => this.ToVector4();
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly Vector4 ToAssociatedVector4() => this.ToAssociatedScaledVector4();
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Rgba32 FromUnassociatedScaledVector4(Vector4 source) => FromScaledVector4(source);
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Rgba32 FromAssociatedScaledVector4(Vector4 source)
+    {
+        Numerics.UnPremultiply(ref source);
+        return FromScaledVector4(source);
+    }
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Rgba32 FromUnassociatedVector4(Vector4 source) => FromVector4(source);
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Rgba32 FromAssociatedVector4(Vector4 source) => FromAssociatedScaledVector4(source);
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -312,6 +353,36 @@ public partial struct Rgba32 : IPixel<Rgba32>, IPackedVector<uint>
             G = ColorNumerics.From16BitTo8Bit(source.G),
             B = ColorNumerics.From16BitTo8Bit(source.B),
             A = ColorNumerics.From16BitTo8Bit(source.A)
+        };
+
+    /// <summary>
+    /// Initializes the pixel instance from an <see cref="Rgb96"/> value.
+    /// </summary>
+    /// <param name="source">The <see cref="Rgb96"/> value.</param>
+    /// <returns>The pixel value as Rgba32.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Rgba32 FromRgb96(Rgb96 source)
+        => new()
+        {
+            R = ColorNumerics.From32BitTo8Bit(source.R),
+            G = ColorNumerics.From32BitTo8Bit(source.G),
+            B = ColorNumerics.From32BitTo8Bit(source.B),
+            A = byte.MaxValue
+        };
+
+    /// <summary>
+    /// Initializes the pixel instance from an <see cref="Rgba128"/> value.
+    /// </summary>
+    /// <param name="source">The <see cref="Rgba128"/> value.</param>
+    /// <returns>The pixel value as Rgba32.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Rgba32 FromRgba128(Rgba128 source)
+        => new()
+        {
+            R = ColorNumerics.From32BitTo8Bit(source.R),
+            G = ColorNumerics.From32BitTo8Bit(source.G),
+            B = ColorNumerics.From32BitTo8Bit(source.B),
+            A = ColorNumerics.From32BitTo8Bit(source.A),
         };
 
     /// <summary>

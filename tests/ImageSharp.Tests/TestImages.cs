@@ -62,6 +62,7 @@ public static class TestImages
         public const string TestPattern31x31HalfTransparent = "Png/testpattern31x31-halftransparent.png";
         public const string XmpColorPalette = "Png/xmp-colorpalette.png";
         public const string AdamHeadsHlg = "Png/adamHeadsHLG.png";
+        public const string IptcMetadata = "Png/iptc-profile.png";
 
         // Animated
         // https://philip.html5.org/tests/apng/tests.html
@@ -75,8 +76,12 @@ public static class TestImages
         public const string BlendOverMultiple = "Png/animated/21-blend-over-multiple.png";
         public const string FrameOffset = "Png/animated/frame-offset.png";
         public const string DefaultNotAnimated = "Png/animated/default-not-animated.png";
+        public const string AnimatedFrameCount = "Png/animated/issue-animated-frame-count.png";
         public const string Issue2666 = "Png/issues/Issue_2666.png";
         public const string Issue2882 = "Png/issues/Issue_2882.png";
+        public const string Issue396Dragon = "Png/issues/Issue_396_dragon.png";
+        public const string Issue396Hand1 = "Png/issues/Issue_396_hand_1.png";
+        public const string Issue396Hand2 = "Png/issues/Issue_396_hand_2.png";
 
         // Filtered test images from http://www.schaik.com/pngsuite/pngsuite_fil_png.html
         public const string Filter0 = "Png/filter0.png";
@@ -163,6 +168,33 @@ public static class TestImages
         // Issue 2924: https://github.com/SixLabors/ImageSharp/issues/2924
         public const string Issue2924 = "Png/issues/Issue_2924.png";
 
+        // Issue 3000: https://github.com/SixLabors/ImageSharp/issues/3000
+        public const string Issue3000 = "Png/issues/issue_3000.png";
+
+        public static class Icc
+        {
+            public const string SRgbGray = "Png/icc-profiles/sRGB_Gray.png";
+            public const string SRgbGrayInterlacedRgba32 = "Png/icc-profiles/sRGB_Gray_Interlaced_Rgba32.png";
+            public const string SRgbGrayInterlacedRgba64 = "Png/icc-profiles/sRGB_Gray_Interlaced_Rgba64.png";
+            public const string Perceptual = "Png/icc-profiles/Perceptual.png";
+            public const string PerceptualcLUTOnly = "Png/icc-profiles/Perceptual-cLUT-only.png";
+        }
+
+        public static class Cgbi
+        {
+            public const string Colors = "Png/cgbi/colors.png";
+            public const string Clocks = "Png/cgbi/clocks.png";
+            public const string Flecks = "Png/cgbi/flecks.png";
+            public const string Screen = "Png/cgbi/screen.png";
+
+            // Issue 410: https://github.com/SixLabors/ImageSharp/issues/410
+            public const string Issue410 = "Png/issues/Issue_410.png";
+
+            // Synthetic fixtures derived from colors.png to exercise CgBI validation.
+            public const string BitDepth16 = "Png/cgbi/colors-cgbi-bitdepth16.png";
+            public const string Palette = "Png/cgbi/colors-cgbi-palette.png";
+        }
+
         public static class Bad
         {
             public const string MissingDataChunk = "Png/xdtn0g01.png";
@@ -184,9 +216,6 @@ public static class TestImages
 
             // Issue 1047: https://github.com/SixLabors/ImageSharp/issues/1047
             public const string Issue1047_BadEndChunk = "Png/issues/Issue_1047.png";
-
-            // Issue 410: https://github.com/SixLabors/ImageSharp/issues/410
-            public const string Issue410_MalformedApplePng = "Png/issues/Issue_410.png";
 
             // Bad bit depth.
             public const string BitDepthZero = "Png/xd0n2c08.png";
@@ -216,6 +245,10 @@ public static class TestImages
             public const string AppleRGB = "Jpg/icc-profiles/Momiji-AppleRGB-yes.jpg";
             public const string CMYK = "Jpg/icc-profiles/issue-129.jpg";
             public const string YCCK = "Jpg/icc-profiles/issue_2723.jpg";
+            public const string SRgbGray = "Jpg/icc-profiles/sRGB_Gray.jpg";
+            public const string Perceptual = "Jpg/icc-profiles/Perceptual.jpg";
+            public const string PerceptualcLUTOnly = "Jpg/icc-profiles/Perceptual-cLUT-only.jpg";
+            public const string Issue3064 = "Jpg/icc-profiles/issue-3064.jpg";
         }
 
         public static class Progressive
@@ -342,6 +375,8 @@ public static class TestImages
             public const string Issue2638 = "Jpg/issues/Issue2638.jpg";
             public const string Issue2758 = "Jpg/issues/issue-2758.jpg";
             public const string Issue2857 = "Jpg/issues/issue-2857-subsub-ifds.jpg";
+            public const string Issue2948 = "Jpg/issues/issue-2948-sos.jpg";
+            public const string Issue3118 = "Jpg/issues/issue3118-multiple-sof.jpg";
 
             public static class Fuzz
             {
@@ -374,7 +409,7 @@ public static class TestImages
             }
         }
 
-        public static readonly string[] All = Baseline.All.Concat(Progressive.All).ToArray();
+        public static readonly string[] All = [.. Baseline.All, .. Progressive.All];
 
         public static class BenchmarkSuite
         {
@@ -582,6 +617,8 @@ public static class TestImages
             public const string Issue2859_A = "Gif/issues/issue_2859_A.gif";
             public const string Issue2859_B = "Gif/issues/issue_2859_B.gif";
             public const string Issue2953 = "Gif/issues/issue_2953.gif";
+            public const string Issue2980 = "Gif/issues/issue_2980.gif";
+            public const string Issue3142 = "Gif/issues/issue_3142.gif";
         }
 
         public static readonly string[] Animated =
@@ -603,7 +640,8 @@ public static class TestImages
             Issues.BadDescriptorWidth,
             Issues.Issue1530,
             Bit18RGBCube,
-            Global256NoTrans
+            Global256NoTrans,
+            Issues.Issue3142
         ];
     }
 
@@ -883,6 +921,12 @@ public static class TestImages
         public const string AlphaBlend2 = "Webp/alpha-blend-2.webp";
         public const string AlphaBlend3 = "Webp/alpha-blend-3.webp";
         public const string AlphaBlend4 = "Webp/alpha-blend-4.webp";
+
+        public static class Icc
+        {
+            public const string Perceptual = "Webp/icc-profiles/Perceptual.webp";
+            public const string PerceptualcLUTOnly = "Webp/icc-profiles/Perceptual-cLUT-only.webp";
+        }
     }
 
     public static class Tiff
@@ -1134,6 +1178,7 @@ public static class TestImages
         public const string Issues2435 = "Tiff/Issues/Issue2435.tiff";
         public const string Issues2454_A = "Tiff/Issues/Issue2454_A.tif";
         public const string Issues2454_B = "Tiff/Issues/Issue2454_B.tif";
+        public const string Issues3031 = "Tiff/Issues/Issue3031.tiff";
         public const string Issues2587 = "Tiff/Issues/Issue2587.tiff";
         public const string Issues2679 = "Tiff/Issues/Issue2679.tiff";
         public const string JpegCompressedGray0000539558 = "Tiff/Issues/JpegCompressedGray-0000539558.tiff";
@@ -1163,11 +1208,20 @@ public static class TestImages
         public const string IptcData = "Tiff/iptc.tiff";
 
         public const string Issue2909 = "Tiff/Issues/Issue2909.tiff";
+        public const string Issue2983 = "Tiff/Issues/Issue2983.tiff";
 
         public static readonly string[] Multiframes = [MultiframeDeflateWithPreview, MultiframeLzwPredictor /*, MultiFrameDifferentSize, MultiframeDifferentSizeTiled, MultiFrameDifferentVariants,*/
         ];
 
         public static readonly string[] Metadata = [SampleMetadata];
+
+        public static class Icc
+        {
+            public const string PerceptualCmyk = "Tiff/icc-profiles/Perceptual_CMYK.tiff";
+            public const string PerceptualCieLab = "Tiff/icc-profiles/Perceptual_CIELAB.tiff";
+            public const string PerceptualRgb8 = "Tiff/icc-profiles/Perceptual_RGB8.tiff";
+            public const string PerceptualRgb16 = "Tiff/icc-profiles/Perceptual_RGB16.tiff";
+        }
     }
 
     public static class BigTiff
@@ -1203,6 +1257,7 @@ public static class TestImages
         public const string GrayscalePlainNormalized = "Pbm/grayscale_plain_normalized.pgm";
         public const string GrayscalePlainMagick = "Pbm/grayscale_plain_magick.pgm";
         public const string RgbBinary = "Pbm/00000_00000.ppm";
+        public const string RgbBinaryWide = "Pbm/rgb_binary_wide.ppm";
         public const string RgbBinaryPrematureEof = "Pbm/00000_00000_premature_eof.ppm";
         public const string RgbPlain = "Pbm/rgb_plain.ppm";
         public const string RgbPlainNormalized = "Pbm/rgb_plain_normalized.ppm";
@@ -1364,5 +1419,31 @@ public static class TestImages
         public const string WindowsMouse = "Icon/aero_arrow.cur";
         public const string CurReal = "Icon/cur_real.cur";
         public const string CurFake = "Icon/cur_fake.ico";
+    }
+
+    public static class Ani
+    {
+        public const string Work = "Ani/Work.ani";
+        public const string MultiFramesInEveryIconChunk = "Ani/aero_busy.ani";
+        public const string Help = "Ani/Help.ani";
+    }
+
+    public static class Exr
+    {
+        public const string Benchmark = "Exr/Calliphora_benchmark.exr";
+        public const string Uncompressed = "Exr/Calliphora_uncompressed.exr";
+        public const string UncompressedRgba = "Exr/Calliphora_uncompressed_rgba.exr";
+        public const string UncompressedFloatRgb = "Exr/Calliphora_float_uncompressed.exr";
+        public const string UncompressedUintRgb = "Exr/Calliphora_uint32_uncompressed.exr";
+        public const string UintRgba = "Exr/rgba_uint_uncompressed.exr";
+        public const string Zip = "Exr/Calliphora_zip.exr";
+        public const string Zips = "Exr/Calliphora_zips.exr";
+        public const string Rle = "Exr/Calliphora_rle.exr";
+        public const string B44 = "Exr/Calliphora_b44.exr";
+        public const string Pxr24Half = "Exr/Calliphora_half_pxr24.exr";
+        public const string Pxr24Float = "Exr/Calliphora_float_pxr24.exr";
+        public const string Pxr24Uint = "Exr/Calliphora_uint_pxr24.exr";
+        public const string Rgb = "Exr/Calliphora_rgb.exr";
+        public const string Gray = "Exr/Calliphora_gray.exr";
     }
 }

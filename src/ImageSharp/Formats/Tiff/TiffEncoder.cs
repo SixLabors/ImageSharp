@@ -15,7 +15,7 @@ public class TiffEncoder : QuantizingImageEncoder
     /// <summary>
     /// Initializes a new instance of the <see cref="TiffEncoder"/> class.
     /// </summary>
-    public TiffEncoder() => this.Quantizer = KnownQuantizers.Octree;
+    public TiffEncoder() => this.Quantizer = KnownQuantizers.Hexadecatree;
 
     /// <summary>
     /// Gets the number of bits per pixel.

@@ -26,7 +26,7 @@ public class GifMetadata : IFormatMetadata<GifMetadata>
     {
         this.RepeatCount = other.RepeatCount;
         this.ColorTableMode = other.ColorTableMode;
-        this.BackgroundColorIndex = other.BackgroundColorIndex;
+        this.BackgroundColor = other.BackgroundColor;
 
         if (other.GlobalColorTable?.Length > 0)
         {
@@ -59,10 +59,9 @@ public class GifMetadata : IFormatMetadata<GifMetadata>
     public ReadOnlyMemory<Color>? GlobalColorTable { get; set; }
 
     /// <summary>
-    /// Gets or sets the index at the <see cref="GlobalColorTable"/> for the background color.
-    /// The background color is the color used for those pixels on the screen that are not covered by an image.
+    /// Gets or sets the background color used for pixels on the screen that are not covered by an image.
     /// </summary>
-    public byte BackgroundColorIndex { get; set; }
+    public Color? BackgroundColor { get; set; }
 
     /// <summary>
     /// Gets or sets the collection of comments about the graphics, credits, descriptions or any
@@ -101,6 +100,7 @@ public class GifMetadata : IFormatMetadata<GifMetadata>
         {
             AnimateRootFrame = true,
             ColorTableMode = this.ColorTableMode,
+            BackgroundColor = this.BackgroundColor ?? Color.Transparent,
             PixelTypeInfo = this.GetPixelTypeInfo(),
             RepeatCount = this.RepeatCount,
         };

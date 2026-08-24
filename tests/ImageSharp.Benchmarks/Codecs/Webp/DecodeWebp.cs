@@ -42,7 +42,7 @@ public class DecodeWebp
     }
 
     [Benchmark(Description = "Magick Lossy Webp")]
-    public int WebpLossyMagick()
+    public uint WebpLossyMagick()
     {
         MagickReadSettings settings = new() { Format = MagickFormat.WebP };
         using MemoryStream memoryStream = new(this.webpLossyBytes);
@@ -59,7 +59,7 @@ public class DecodeWebp
     }
 
     [Benchmark(Description = "Magick Lossless Webp")]
-    public int WebpLosslessMagick()
+    public uint WebpLosslessMagick()
     {
         MagickReadSettings settings = new()
         { Format = MagickFormat.WebP };

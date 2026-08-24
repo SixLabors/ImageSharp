@@ -9,40 +9,24 @@ namespace SixLabors.ImageSharp.Benchmarks.Codecs.Jpeg;
 [Config(typeof(Config.Short))]
 public class CmykColorConversion : ColorConversionBenchmark
 {
+    private readonly JpegColorConverterBase converter = JpegColorConverterBase.GetConverter(JpegColorSpace.Cmyk, 8);
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="CmykColorConversion"/> class.
+    /// </summary>
     public CmykColorConversion()
         : base(4)
     {
     }
 
-    [Benchmark(Baseline = true)]
-    public void Scalar()
-    {
-        JpegColorConverterBase.ComponentValues values = new(this.Input, 0);
-
-        new JpegColorConverterBase.CmykScalar(8).ConvertToRgbInPlace(values);
-    }
-
+    /// <summary>
+    /// Converts one CMYK component row through the adaptive operator traversal.
+    /// </summary>
     [Benchmark]
-    public void SimdVector128()
+    public void ConvertToRgb()
     {
         JpegColorConverterBase.ComponentValues values = new(this.Input, 0);
 
-        new JpegColorConverterBase.CmykVector128(8).ConvertToRgbInPlace(values);
-    }
-
-    [Benchmark]
-    public void SimdVector256()
-    {
-        JpegColorConverterBase.ComponentValues values = new(this.Input, 0);
-
-        new JpegColorConverterBase.CmykVector256(8).ConvertToRgbInPlace(values);
-    }
-
-    [Benchmark]
-    public void SimdVector512()
-    {
-        JpegColorConverterBase.ComponentValues values = new(this.Input, 0);
-
-        new JpegColorConverterBase.CmykVector512(8).ConvertToRgbInPlace(values);
+        this.converter.ConvertToRgbInPlace(values);
     }
 }

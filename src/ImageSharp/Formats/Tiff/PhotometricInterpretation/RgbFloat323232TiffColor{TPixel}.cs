@@ -51,7 +51,7 @@ internal class RgbFloat323232TiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
                     float b = BitConverter.ToSingle(buffer);
                     offset += 4;
 
-                    pixelRow[x] = TPixel.FromScaledVector4(new Vector4(r, g, b, 1f));
+                    pixelRow[x] = TPixel.FromUnassociatedScaledVector4(new Vector4(r, g, b, 1f));
                 }
             }
             else
@@ -67,7 +67,7 @@ internal class RgbFloat323232TiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
                     float b = BitConverter.ToSingle(data.Slice(offset, 4));
                     offset += 4;
 
-                    pixelRow[x] = TPixel.FromScaledVector4(new Vector4(r, g, b, 1f));
+                    pixelRow[x] = TPixel.FromUnassociatedScaledVector4(new Vector4(r, g, b, 1f));
                 }
             }
         }

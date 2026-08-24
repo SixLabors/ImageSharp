@@ -125,7 +125,7 @@ public class GeneralFormatTests
     public static readonly TheoryData<string> QuantizerNames =
         new()
         {
-            nameof(KnownQuantizers.Octree),
+            nameof(KnownQuantizers.Hexadecatree),
             nameof(KnownQuantizers.WebSafe),
             nameof(KnownQuantizers.Werner),
             nameof(KnownQuantizers.Wu)

@@ -56,7 +56,10 @@ internal sealed class OpaqueProcessor<TPixel> : ImageProcessor<TPixel>
         public void Invoke(int y, Span<Vector4> span)
         {
             Span<TPixel> targetRowSpan = this.target.DangerousGetRowSpan(y)[this.bounds.X..];
-            PixelOperations<TPixel>.Instance.ToVector4(this.configuration, targetRowSpan[..span.Length], span, PixelConversionModifiers.Scale);
+            PixelOperations<TPixel> pixelOperations = PixelOperations<TPixel>.Instance;
+
+            // Opacity changes alpha without changing logical color, so associated storage must be unassociated before replacing alpha.
+            pixelOperations.ToVector4(this.configuration, targetRowSpan[..span.Length], span, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
             ref Vector4 baseRef = ref MemoryMarshal.GetReference(span);
 
             for (int x = 0; x < this.bounds.Width; x++)
@@ -65,7 +68,7 @@ internal sealed class OpaqueProcessor<TPixel> : ImageProcessor<TPixel>
                 v.W = 1F;
             }
 
-            PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, span, targetRowSpan, PixelConversionModifiers.Scale);
+            pixelOperations.FromVector4Destructive(this.configuration, span, targetRowSpan[..span.Length], PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
         }
     }
 }

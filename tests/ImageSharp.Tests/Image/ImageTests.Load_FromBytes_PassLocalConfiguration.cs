@@ -79,5 +79,16 @@ public partial class ImageTests
 
             this.TestFormat.VerifyAgnosticDecodeCall(this.Marker, this.TopLevelConfiguration);
         }
+
+        [Fact]
+        public void FromBytes_EmptySpan_Throws()
+        {
+            DecoderOptions options = new()
+            {
+                Configuration = this.TopLevelConfiguration
+            };
+
+            Assert.Throws<UnknownImageFormatException>(() => Image.Load(options, []));
+        }
     }
 }

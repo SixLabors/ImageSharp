@@ -4,10 +4,13 @@
 namespace SixLabors.ImageSharp.Formats.Cur;
 
 /// <summary>
-/// Registers the image encoders, decoders and mime type detectors for the ICO format.
+/// Describes the CUR image format.
 /// </summary>
 public sealed class CurFormat : IImageFormat<CurMetadata, CurFrameMetadata>
 {
+    /// <summary>
+    /// Prevents a default instance of the <see cref="CurFormat"/> class from being created.
+    /// </summary>
     private CurFormat()
     {
     }
@@ -18,10 +21,10 @@ public sealed class CurFormat : IImageFormat<CurMetadata, CurFrameMetadata>
     public static CurFormat Instance { get; } = new();
 
     /// <inheritdoc/>
-    public string Name => "ICO";
+    public string Name => "CUR";
 
     /// <inheritdoc/>
-    public string DefaultMimeType => CurConstants.MimeTypes.First();
+    public string DefaultMimeType => "image/vnd.microsoft.icon";
 
     /// <inheritdoc/>
     public IEnumerable<string> MimeTypes => CurConstants.MimeTypes;

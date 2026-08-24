@@ -1,8 +1,12 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.ColorProfiles;
+using SixLabors.ImageSharp.ColorProfiles.Icc;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.Metadata;
+using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats;
@@ -28,6 +32,74 @@ internal abstract class ImageDecoderCore
     /// Gets or sets the dimensions of the image being decoded.
     /// </summary>
     public Size Dimensions { get; protected internal set; }
+
+    /// <summary>
+    /// Executes a known ancillary segment parsing action using the configured integrity policy.
+    /// </summary>
+    /// <param name="action">The action.</param>
+    protected void ExecuteAncillarySegmentAction(Action action)
+    {
+        if (this.Options.SegmentIntegrityHandling is SegmentIntegrityHandling.Strict)
+        {
+            action();
+            return;
+        }
+
+        try
+        {
+            action();
+        }
+        catch (Exception ex) when (ex
+            is ImageFormatException
+            or InvalidIccProfileException
+            or InvalidImageContentException
+            or InvalidOperationException
+            or NotSupportedException)
+        {
+            // Intentionally ignored in non-strict segment integrity modes.
+        }
+    }
+
+    /// <summary>
+    /// Executes a known image data segment parsing action using the configured integrity policy.
+    /// </summary>
+    /// <param name="action">The action.</param>
+    protected void ExecuteImageDataSegmentAction(Action action)
+    {
+        if (this.Options.SegmentIntegrityHandling is not SegmentIntegrityHandling.IgnoreImageData)
+        {
+            action();
+            return;
+        }
+
+        try
+        {
+            action();
+        }
+        catch (Exception ex) when (ex
+            is ImageFormatException
+            or InvalidIccProfileException
+            or InvalidImageContentException
+            or InvalidOperationException
+            or NotSupportedException)
+        {
+            // Intentionally ignored when image data integrity handling is set to IgnoreImageData.
+        }
+    }
+
+    /// <summary>
+    /// Throws unless the decoder is running in a non-strict segment integrity mode.
+    /// Use this only from within <see cref="ExecuteAncillarySegmentAction"/> when local control flow
+    /// must continue after the error.
+    /// </summary>
+    /// <param name="message">The exception message.</param>
+    protected void ThrowOrIgnoreNonStrictSegmentError(string message)
+    {
+        if (this.Options.SegmentIntegrityHandling is SegmentIntegrityHandling.Strict)
+        {
+            throw new InvalidImageContentException(message);
+        }
+    }
 
     /// <summary>
     /// Reads the raw image information from the specified stream.
@@ -124,4 +196,93 @@ internal abstract class ImageDecoderCore
     /// </remarks>
     protected abstract Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>;
+
+    /// <summary>
+    /// Converts the ICC color profile of the specified image to the compact sRGB v4 profile if a source profile is
+    /// available.
+    /// </summary>
+    /// <remarks>
+    /// This method should only be used by decoders that gurantee that the encoded image data is in a color space
+    /// compatible with sRGB (e.g. standard RGB, Adobe RGB, ProPhoto RGB).
+    /// <br/>
+    /// If the image does not have a valid ICC profile for color conversion, no changes are made.
+    /// This operation may affect the color appearance of the image to ensure consistency with the sRGB color
+    /// space.
+    /// </remarks>
+    /// <typeparam name="TPixel">The pixel format.</typeparam>
+    /// <param name="image">The image whose ICC profile will be converted to the compact sRGB v4 profile.</param>
+    /// <returns>
+    /// <see langword="true"/> if the conversion was performed; otherwise, <see langword="false"/>.
+    /// </returns>
+    protected bool TryConvertIccProfile<TPixel>(Image<TPixel> image)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        if (!this.Options.TryGetIccProfileForColorConversion(image.Metadata.IccProfile, out IccProfile? profile))
+        {
+            return false;
+        }
+
+        ColorConversionOptions options = new()
+        {
+            SourceIccProfile = profile,
+            TargetIccProfile = CompactSrgbV4Profile.Profile,
+            MemoryAllocator = image.Configuration.MemoryAllocator,
+        };
+
+        ColorProfileConverter converter = new(options);
+        converter.Convert(image);
+        return true;
+    }
+
+    /// <summary>
+    /// Converts the ICC color profile of the specified image frame to the compact sRGB v4 profile if a source profile is
+    /// available.
+    /// </summary>
+    /// <remarks>
+    /// This method should only be used by decoders that gurantee that the encoded image data is in a color space
+    /// compatible with sRGB (e.g. standard RGB, Adobe RGB, ProPhoto RGB).
+    /// <br/>
+    /// If the image does not have a valid ICC profile for color conversion, no changes are made.
+    /// This operation may affect the color appearance of the image to ensure consistency with the sRGB color
+    /// space.
+    /// </remarks>
+    /// <typeparam name="TPixel">The pixel format.</typeparam>
+    /// <param name="frame">The image frame whose ICC profile will be converted to the compact sRGB v4 profile.</param>
+    /// <returns>
+    /// <see langword="true"/> if the conversion was performed; otherwise, <see langword="false"/>.
+    /// </returns>
+    protected bool TryConvertIccProfile<TPixel>(ImageFrame<TPixel> frame)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        if (!this.Options.TryGetIccProfileForColorConversion(frame.Metadata.IccProfile, out IccProfile? profile))
+        {
+            return false;
+        }
+
+        ColorConversionOptions options = new()
+        {
+            SourceIccProfile = profile,
+            TargetIccProfile = CompactSrgbV4Profile.Profile,
+            MemoryAllocator = frame.Configuration.MemoryAllocator,
+        };
+
+        ColorProfileConverter converter = new(options);
+
+        ImageMetadata metadata = new()
+        {
+            IccProfile = frame.Metadata.IccProfile
+        };
+
+        IMemoryGroup<TPixel> m = frame.PixelBuffer.MemoryGroup;
+
+        // Safe: ToArray only materializes the Memory<TPixel> segment list, not the underlying pixel buffers,
+        // and Wrap(Memory<T>[]) creates a Consumed MemoryGroup that does not own the buffers (Dispose just
+        // invalidates the view). This means no pixel data is cloned and disposing the temporary image will
+        // not dispose or leak the frame's pixel buffer.
+        MemoryGroup<TPixel> memorySource = MemoryGroup<TPixel>.Wrap([.. m]);
+
+        using Image<TPixel> image = new(frame.Configuration, memorySource, frame.Width, frame.Height, metadata);
+        converter.Convert(image);
+        return true;
+    }
 }

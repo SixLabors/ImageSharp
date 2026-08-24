@@ -4,10 +4,12 @@
 using System.Buffers;
 using System.Buffers.Binary;
 using System.Diagnostics.CodeAnalysis;
+using System.IO.Compression;
 using System.IO.Hashing;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
+using System.Text;
 using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Compression.Zlib;
 using SixLabors.ImageSharp.Formats.Png.Chunks;
@@ -42,7 +44,7 @@ internal sealed class PngEncoderCore : IDisposable
     /// <summary>
     /// Reusable buffer for writing chunk data.
     /// </summary>
-    private ScratchBuffer chunkDataBuffer;  // mutable struct, don't make readonly
+    private InlineArray26<byte> chunkDataBuffer; // mutable struct, don't make readonly
 
     /// <summary>
     /// The encoder with options
@@ -217,6 +219,7 @@ internal sealed class PngEncoderCore : IDisposable
             this.WritePhysicalChunk(stream, metadata);
             this.WriteExifChunk(stream, metadata);
             this.WriteXmpChunk(stream, metadata);
+            this.WriteIptcChunk(stream, metadata);
             this.WriteTextChunks(stream, pngMetadata);
 
             if (image.Frames.Count > 1)
@@ -732,9 +735,9 @@ internal sealed class PngEncoderCore : IDisposable
             filterMethod: 0,
             interlaceMethod: this.interlaceMode);
 
-        header.WriteTo(this.chunkDataBuffer.Span);
+        header.WriteTo(this.chunkDataBuffer);
 
-        this.WriteChunk(stream, PngChunkType.Header, this.chunkDataBuffer.Span, 0, PngHeader.Size);
+        this.WriteChunk(stream, PngChunkType.Header, this.chunkDataBuffer, 0, PngHeader.Size);
     }
 
     /// <summary>
@@ -747,9 +750,9 @@ internal sealed class PngEncoderCore : IDisposable
     {
         AnimationControl acTL = new(framesCount, playsCount);
 
-        acTL.WriteTo(this.chunkDataBuffer.Span);
+        acTL.WriteTo(this.chunkDataBuffer);
 
-        this.WriteChunk(stream, PngChunkType.AnimationControl, this.chunkDataBuffer.Span, 0, AnimationControl.Size);
+        this.WriteChunk(stream, PngChunkType.AnimationControl, this.chunkDataBuffer, 0, AnimationControl.Size);
     }
 
     /// <summary>
@@ -818,9 +821,9 @@ internal sealed class PngEncoderCore : IDisposable
             return;
         }
 
-        PngPhysical.FromMetadata(meta).WriteTo(this.chunkDataBuffer.Span);
+        PngPhysical.FromMetadata(meta).WriteTo(this.chunkDataBuffer);
 
-        this.WriteChunk(stream, PngChunkType.Physical, this.chunkDataBuffer.Span, 0, PngPhysical.Size);
+        this.WriteChunk(stream, PngChunkType.Physical, this.chunkDataBuffer, 0, PngPhysical.Size);
     }
 
     /// <summary>
@@ -890,6 +893,163 @@ internal sealed class PngEncoderCore : IDisposable
     }
 
     /// <summary>
+    /// Writes the IPTC metadata from the specified image metadata to the provided stream as a compressed zTXt chunk in
+    /// PNG format, if IPTC data is present.
+    /// </summary>
+    /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
+    /// <param name="meta">The image metadata.</param>
+    private void WriteIptcChunk(Stream stream, ImageMetadata meta)
+    {
+        if ((this.chunkFilter & PngChunkFilter.ExcludeTextChunks) == PngChunkFilter.ExcludeTextChunks)
+        {
+            return;
+        }
+
+        if (meta.IptcProfile is null || !meta.IptcProfile.Values.Any())
+        {
+            return;
+        }
+
+        meta.IptcProfile.UpdateData();
+
+        byte[]? iptcData = meta.IptcProfile.Data;
+        if (iptcData?.Length is 0 or null)
+        {
+            return;
+        }
+
+        // For interoperability, wrap raw IPTC (IIM) in a Photoshop IRB (8BIM, resource 0x0404),
+        // since "Raw profile type iptc" commonly stores IRB payloads.
+        using IMemoryOwner<byte> irb = this.BuildPhotoshopIrbForIptc(iptcData);
+
+        Span<byte> irbSpan = irb.GetSpan();
+
+        // Build "raw profile" textual wrapper:
+        // "IPTC profile\n<decimal length>\n<hex bytes...>\n"
+        string rawProfileText = BuildRawProfileText("IPTC profile", irbSpan);
+
+        byte[] compressedData = this.GetZlibCompressedBytes(PngConstants.Encoding.GetBytes(rawProfileText));
+
+        // zTXt layout: keyword (latin-1) + 0 + compression-method(0) + compressed-data
+        const string iptcRawProfileKeyword = PngConstants.IptcRawProfileKeyword;
+        int payloadLength = iptcRawProfileKeyword.Length + compressedData.Length + 2;
+
+        using IMemoryOwner<byte> payload = this.memoryAllocator.Allocate<byte>(payloadLength);
+        Span<byte> outputBytes = payload.GetSpan();
+
+        PngConstants.Encoding.GetBytes(iptcRawProfileKeyword).CopyTo(outputBytes);
+        int bytesWritten = iptcRawProfileKeyword.Length;
+        outputBytes[bytesWritten++] = 0; // Null separator
+        outputBytes[bytesWritten++] = 0; // Compression method: deflate
+        compressedData.CopyTo(outputBytes[bytesWritten..]);
+
+        this.WriteChunk(stream, PngChunkType.CompressedText, outputBytes);
+    }
+
+    /// <summary>
+    /// Builds a Photoshop Image Resource Block (IRB) containing the specified IPTC-IIM data.
+    /// </summary>
+    /// <remarks>The returned IRB uses resource ID 0x0404 and an empty Pascal string for the name, as required
+    /// for IPTC-NAA record embedding in Photoshop files. The data is padded to ensure even length, as specified by the
+    /// IRB format.</remarks>
+    /// <param name="iptcIim">
+    /// The IPTC-IIM data to embed in the IRB, provided as a read-only span of bytes. The data is included as-is in the
+    /// resulting block.
+    /// </param>
+    /// <returns>
+    /// A byte array representing the Photoshop IRB with the embedded IPTC-IIM data, formatted according to the
+    /// Photoshop specification.
+    /// </returns>
+    private IMemoryOwner<byte> BuildPhotoshopIrbForIptc(ReadOnlySpan<byte> iptcIim)
+    {
+        // IRB block:
+        // 4  bytes: "8BIM"
+        // 2  bytes: resource id 0x0404 (big endian)
+        // 2  bytes: pascal name (len=0) + pad to even => 0x00 0x00
+        // 4  bytes: data size (big endian)
+        // n  bytes: IPTC-IIM data
+        // pad to even
+        int pad = (iptcIim.Length & 1) != 0 ? 1 : 0;
+        IMemoryOwner<byte> bufferOwner = this.memoryAllocator.Allocate<byte>(4 + 2 + 2 + 4 + iptcIim.Length + pad);
+        Span<byte> buffer = bufferOwner.GetSpan();
+
+        int bytesWritten = 0;
+        PngConstants.EightBim.CopyTo(buffer);
+        bytesWritten += 4;
+
+        buffer[bytesWritten++] = 0x04;
+        buffer[bytesWritten++] = 0x04;
+
+        buffer[bytesWritten++] = 0x00; // Pascal name length
+        buffer[bytesWritten++] = 0x00; // pad to even
+
+        int size = iptcIim.Length;
+        buffer[bytesWritten++] = (byte)((size >> 24) & 0xFF);
+        buffer[bytesWritten++] = (byte)((size >> 16) & 0xFF);
+        buffer[bytesWritten++] = (byte)((size >> 8) & 0xFF);
+        buffer[bytesWritten++] = (byte)(size & 0xFF);
+
+        iptcIim.CopyTo(buffer[bytesWritten..]);
+
+        // Final pad byte already zero-initialized if needed
+        return bufferOwner;
+    }
+
+    /// <summary>
+    /// Builds a formatted text representation of a binary profile, including a header, the payload length, and the
+    /// payload as hexadecimal text.
+    /// </summary>
+    /// <remarks>
+    /// The hexadecimal payload is formatted with 64 bytes per line to improve readability. The
+    /// output consists of the header line, a line with the payload length, and one or more lines of hexadecimal
+    /// text.
+    /// </remarks>
+    /// <param name="header">The header text to include at the beginning of the profile. This is written as the first line of the output.</param>
+    /// <param name="payload">The binary payload to encode as hexadecimal text. The payload is split into lines of 64 bytes each.</param>
+    /// <returns>
+    /// A string containing the header, the payload length, and the hexadecimal representation of the payload, each on
+    /// separate lines.
+    /// </returns>
+    private static string BuildRawProfileText(string header, ReadOnlySpan<byte> payload)
+    {
+        // Hex text can be multi-line
+        // Use 64 bytes per line (128 hex chars) to keep the chunk readable.
+        const int bytesPerLine = 64;
+
+        int hexChars = payload.Length * 2;
+        int lineCount = (payload.Length + (bytesPerLine - 1)) / bytesPerLine;
+        int newlineCount = 2 + lineCount; // header line + length line + hex lines
+        int capacity = header.Length + 32 + hexChars + newlineCount;
+
+        StringBuilder sb = new(capacity);
+        sb.Append(header).Append('\n');
+        sb.Append(payload.Length).Append('\n');
+
+        int i = 0;
+        while (i < payload.Length)
+        {
+            int take = Math.Min(bytesPerLine, payload.Length - i);
+            AppendHex(sb, payload.Slice(i, take));
+            sb.Append('\n');
+            i += take;
+        }
+
+        return sb.ToString();
+    }
+
+    private static void AppendHex(StringBuilder sb, ReadOnlySpan<byte> data)
+    {
+        const string hex = "0123456789ABCDEF";
+
+        for (int i = 0; i < data.Length; i++)
+        {
+            byte b = data[i];
+            _ = sb.Append(hex[b >> 4]);
+            _ = sb.Append(hex[b & 0x0F]);
+        }
+    }
+
+    /// <summary>
     /// Writes the CICP profile chunk
     /// </summary>
     /// <param name="stream">The <see cref="Stream"/> containing image data.</param>
@@ -908,7 +1068,7 @@ internal sealed class PngEncoderCore : IDisposable
             throw new NotSupportedException("CICP matrix coefficients other than Identity are not supported in PNG");
         }
 
-        Span<byte> outputBytes = this.chunkDataBuffer.Span[..4];
+        Span<byte> outputBytes = this.chunkDataBuffer[..4];
         outputBytes[0] = (byte)metaData.CicpProfile.ColorPrimaries;
         outputBytes[1] = (byte)metaData.CicpProfile.TransferCharacteristics;
         outputBytes[2] = (byte)metaData.CicpProfile.MatrixCoefficients;
@@ -1038,7 +1198,7 @@ internal sealed class PngEncoderCore : IDisposable
     private byte[] GetZlibCompressedBytes(byte[] dataBytes)
     {
         using MemoryStream memoryStream = new();
-        using (ZlibDeflateStream deflateStream = new(this.memoryAllocator, memoryStream, this.encoder.CompressionLevel))
+        using (ZLibStream deflateStream = new(memoryStream, new ZLibCompressionOptions { CompressionLevel = (int)this.encoder.CompressionLevel }, true))
         {
             deflateStream.Write(dataBytes);
         }
@@ -1063,9 +1223,9 @@ internal sealed class PngEncoderCore : IDisposable
             // 4-byte unsigned integer of gamma * 100,000.
             uint gammaValue = (uint)(this.gamma * 100_000F);
 
-            BinaryPrimitives.WriteUInt32BigEndian(this.chunkDataBuffer.Span[..4], gammaValue);
+            BinaryPrimitives.WriteUInt32BigEndian(this.chunkDataBuffer[..4], gammaValue);
 
-            this.WriteChunk(stream, PngChunkType.Gamma, this.chunkDataBuffer.Span, 0, 4);
+            this.WriteChunk(stream, PngChunkType.Gamma, this.chunkDataBuffer, 0, 4);
         }
     }
 
@@ -1082,7 +1242,7 @@ internal sealed class PngEncoderCore : IDisposable
             return;
         }
 
-        Span<byte> alpha = this.chunkDataBuffer.Span;
+        Span<byte> alpha = this.chunkDataBuffer;
         if (pngMetadata.ColorType == PngColorType.Rgb)
         {
             if (this.use16Bit)
@@ -1092,7 +1252,7 @@ internal sealed class PngEncoderCore : IDisposable
                 BinaryPrimitives.WriteUInt16LittleEndian(alpha.Slice(2, 2), rgb.G);
                 BinaryPrimitives.WriteUInt16LittleEndian(alpha.Slice(4, 2), rgb.B);
 
-                this.WriteChunk(stream, PngChunkType.Transparency, this.chunkDataBuffer.Span, 0, 6);
+                this.WriteChunk(stream, PngChunkType.Transparency, this.chunkDataBuffer, 0, 6);
             }
             else
             {
@@ -1101,7 +1261,7 @@ internal sealed class PngEncoderCore : IDisposable
                 alpha[1] = rgb.R;
                 alpha[3] = rgb.G;
                 alpha[5] = rgb.B;
-                this.WriteChunk(stream, PngChunkType.Transparency, this.chunkDataBuffer.Span, 0, 6);
+                this.WriteChunk(stream, PngChunkType.Transparency, this.chunkDataBuffer, 0, 6);
             }
         }
         else if (pngMetadata.ColorType == PngColorType.Grayscale)
@@ -1110,14 +1270,14 @@ internal sealed class PngEncoderCore : IDisposable
             {
                 L16 l16 = pngMetadata.TransparentColor.Value.ToPixel<L16>();
                 BinaryPrimitives.WriteUInt16LittleEndian(alpha, l16.PackedValue);
-                this.WriteChunk(stream, PngChunkType.Transparency, this.chunkDataBuffer.Span, 0, 2);
+                this.WriteChunk(stream, PngChunkType.Transparency, this.chunkDataBuffer, 0, 2);
             }
             else
             {
                 L8 l8 = pngMetadata.TransparentColor.Value.ToPixel<L8>();
                 alpha.Clear();
                 alpha[1] = l8.PackedValue;
-                this.WriteChunk(stream, PngChunkType.Transparency, this.chunkDataBuffer.Span, 0, 2);
+                this.WriteChunk(stream, PngChunkType.Transparency, this.chunkDataBuffer, 0, 2);
             }
         }
     }
@@ -1142,9 +1302,9 @@ internal sealed class PngEncoderCore : IDisposable
             disposalMode: frameMetadata.DisposalMode,
             blendMode: frameMetadata.BlendMode);
 
-        fcTL.WriteTo(this.chunkDataBuffer.Span);
+        fcTL.WriteTo(this.chunkDataBuffer);
 
-        this.WriteChunk(stream, PngChunkType.FrameControl, this.chunkDataBuffer.Span, 0, FrameControl.Size);
+        this.WriteChunk(stream, PngChunkType.FrameControl, this.chunkDataBuffer, 0, FrameControl.Size);
 
         return fcTL;
     }
@@ -1161,34 +1321,6 @@ internal sealed class PngEncoderCore : IDisposable
     private uint WriteDataChunks<TPixel>(in FrameControl frameControl, in Buffer2DRegion<TPixel> frame, IndexedImageFrame<TPixel>? quantized, Stream stream, bool isFrame)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        byte[] buffer;
-        int bufferLength;
-
-        using (MemoryStream memoryStream = new())
-        {
-            using (ZlibDeflateStream deflateStream = new(this.memoryAllocator, memoryStream, this.encoder.CompressionLevel))
-            {
-                if (this.interlaceMode is PngInterlaceMode.Adam7)
-                {
-                    if (quantized is not null)
-                    {
-                        this.EncodeAdam7IndexedPixels(quantized, deflateStream);
-                    }
-                    else
-                    {
-                        this.EncodeAdam7Pixels(in frame, deflateStream);
-                    }
-                }
-                else
-                {
-                    this.EncodePixels(in frame, quantized, deflateStream);
-                }
-            }
-
-            buffer = memoryStream.ToArray();
-            bufferLength = buffer.Length;
-        }
-
         // Store the chunks in repeated 64k blocks.
         // This reduces the memory load for decoding the image for many decoders.
         int maxBlockSize = MaxBlockSize;
@@ -1197,36 +1329,46 @@ internal sealed class PngEncoderCore : IDisposable
             maxBlockSize -= 4;
         }
 
-        int numChunks = bufferLength / maxBlockSize;
-
-        if (bufferLength % maxBlockSize != 0)
+        // Compressed bytes stream straight into data chunks as each block fills, so nothing
+        // larger than one block is buffered. The final partial block is emitted when the
+        // segment stream is disposed, after the deflate stream has written its trailer.
+        // '1' is added to the sequence number to account for the preceding frame control chunk;
+        // it then increments for each frame data chunk.
+        uint numChunks = 0;
+        uint sequenceNumber = frameControl.SequenceNumber + 1;
+        using (ChunkedWriteStream segmentStream = new(this.memoryAllocator, maxBlockSize, segment =>
         {
-            numChunks++;
-        }
-
-        for (int i = 0; i < numChunks; i++)
-        {
-            int length = bufferLength - (i * maxBlockSize);
-
-            if (length > maxBlockSize)
-            {
-                length = maxBlockSize;
-            }
-
             if (isFrame)
             {
-                // We increment the sequence number for each frame chunk.
-                // '1' is added to the sequence number to account for the preceding frame control chunk.
-                uint sequenceNumber = (uint)(frameControl.SequenceNumber + 1 + i);
-                this.WriteFrameDataChunk(stream, sequenceNumber, buffer, i * maxBlockSize, length);
+                this.WriteFrameDataChunk(stream, sequenceNumber++, segment, 0, segment.Length);
             }
             else
             {
-                this.WriteChunk(stream, PngChunkType.Data, buffer, i * maxBlockSize, length);
+                this.WriteChunk(stream, PngChunkType.Data, segment);
+            }
+
+            numChunks++;
+        }))
+        using (ZLibStream deflateStream = new(segmentStream, new ZLibCompressionOptions { CompressionLevel = (int)this.encoder.CompressionLevel }, true))
+        {
+            if (this.interlaceMode is PngInterlaceMode.Adam7)
+            {
+                if (quantized is not null)
+                {
+                    this.EncodeAdam7IndexedPixels(quantized, deflateStream);
+                }
+                else
+                {
+                    this.EncodeAdam7Pixels(in frame, deflateStream);
+                }
+            }
+            else
+            {
+                this.EncodePixels(in frame, quantized, deflateStream);
             }
         }
 
-        return (uint)numChunks;
+        return numChunks;
     }
 
     /// <summary>
@@ -1249,7 +1391,7 @@ internal sealed class PngEncoderCore : IDisposable
     /// <param name="pixels">The image frame pixel buffer.</param>
     /// <param name="quantized">The quantized pixels.</param>
     /// <param name="deflateStream">The deflate stream.</param>
-    private void EncodePixels<TPixel>(in Buffer2DRegion<TPixel> pixels, IndexedImageFrame<TPixel>? quantized, ZlibDeflateStream deflateStream)
+    private void EncodePixels<TPixel>(in Buffer2DRegion<TPixel> pixels, IndexedImageFrame<TPixel>? quantized, ZLibStream deflateStream)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         int bytesPerScanline = this.CalculateScanlineLength(pixels.Width);
@@ -1276,7 +1418,7 @@ internal sealed class PngEncoderCore : IDisposable
     /// <typeparam name="TPixel">The type of the pixel.</typeparam>
     /// <param name="pixels">The image frame pixel buffer.</param>
     /// <param name="deflateStream">The deflate stream.</param>
-    private void EncodeAdam7Pixels<TPixel>(in Buffer2DRegion<TPixel> pixels, ZlibDeflateStream deflateStream)
+    private void EncodeAdam7Pixels<TPixel>(in Buffer2DRegion<TPixel> pixels, ZLibStream deflateStream)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         for (int pass = 0; pass < 7; pass++)
@@ -1327,7 +1469,7 @@ internal sealed class PngEncoderCore : IDisposable
     /// <typeparam name="TPixel">The type of the pixel.</typeparam>
     /// <param name="quantized">The quantized.</param>
     /// <param name="deflateStream">The deflate stream.</param>
-    private void EncodeAdam7IndexedPixels<TPixel>(IndexedImageFrame<TPixel> quantized, ZlibDeflateStream deflateStream)
+    private void EncodeAdam7IndexedPixels<TPixel>(IndexedImageFrame<TPixel> quantized, ZLibStream deflateStream)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         for (int pass = 0; pass < 7; pass++)
@@ -1382,7 +1524,7 @@ internal sealed class PngEncoderCore : IDisposable
     /// <param name="stream">The <see cref="Stream"/> to write to.</param>
     /// <param name="type">The type of chunk to write.</param>
     /// <param name="data">The <see cref="T:byte[]"/> containing data.</param>
-    private void WriteChunk(Stream stream, PngChunkType type, Span<byte> data)
+    private void WriteChunk(Stream stream, PngChunkType type, ReadOnlySpan<byte> data)
         => this.WriteChunk(stream, type, data, 0, data.Length);
 
     /// <summary>
@@ -1393,7 +1535,7 @@ internal sealed class PngEncoderCore : IDisposable
     /// <param name="data">The <see cref="Span{Byte}"/> containing data.</param>
     /// <param name="offset">The position to offset the data at.</param>
     /// <param name="length">The of the data to write.</param>
-    private void WriteChunk(Stream stream, PngChunkType type, Span<byte> data, int offset, int length)
+    private void WriteChunk(Stream stream, PngChunkType type, ReadOnlySpan<byte> data, int offset, int length)
     {
         Span<byte> buffer = stackalloc byte[8];
 
@@ -1425,7 +1567,7 @@ internal sealed class PngEncoderCore : IDisposable
     /// <param name="data">The <see cref="Span{Byte}"/> containing data.</param>
     /// <param name="offset">The position to offset the data at.</param>
     /// <param name="length">The of the data to write.</param>
-    private void WriteFrameDataChunk(Stream stream, uint sequenceNumber, Span<byte> data, int offset, int length)
+    private void WriteFrameDataChunk(Stream stream, uint sequenceNumber, ReadOnlySpan<byte> data, int offset, int length)
     {
         Span<byte> buffer = stackalloc byte[12];
 
@@ -1675,12 +1817,4 @@ internal sealed class PngEncoderCore : IDisposable
             // PngColorType.RgbWithAlpha
             _ => use16Bit ? 8 : 4,
         };
-
-    private unsafe struct ScratchBuffer
-    {
-        private const int Size = 26;
-        private fixed byte scratch[Size];
-
-        public Span<byte> Span => MemoryMarshal.CreateSpan(ref this.scratch[0], Size);
-    }
 }

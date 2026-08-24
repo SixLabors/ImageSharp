@@ -542,8 +542,8 @@ internal static unsafe class Vp8Encoding
         Vector128<int> tmp32 = tmp31 + Vector128.Create(937);
         Vector128<int> tmp1 = Vector128.ShiftRightArithmetic(tmp12, 9);
         Vector128<int> tmp3 = Vector128.ShiftRightArithmetic(tmp32, 9);
-        Vector128<short> s03 = Vector128_.PackSignedSaturate(tmp0, tmp2);
-        Vector128<short> s12 = Vector128_.PackSignedSaturate(tmp1, tmp3);
+        Vector128<short> s03 = Vector128.NarrowWithSaturation(tmp0, tmp2);
+        Vector128<short> s12 = Vector128.NarrowWithSaturation(tmp1, tmp3);
         Vector128<short> slo = Vector128_.UnpackLow(s03, s12); // 0 1 0 1 0 1...
         Vector128<short> shi = Vector128_.UnpackHigh(s03, s12); // 2 3 2 3 2 3
         Vector128<int> v23 = Vector128_.UnpackHigh(slo.AsInt32(), shi.AsInt32());
@@ -569,8 +569,8 @@ internal static unsafe class Vp8Encoding
 
         // f1 = ((b3 * 5352 + b2 * 2217 + 12000) >> 16)
         // f3 = ((b3 * 2217 - b2 * 5352 + 51000) >> 16)
-        Vector128<short> f1 = Vector128_.PackSignedSaturate(e1, e1);
-        Vector128<short> f3 = Vector128_.PackSignedSaturate(e3, e3);
+        Vector128<short> f1 = Vector128.NarrowWithSaturation(e1, e1);
+        Vector128<short> f3 = Vector128.NarrowWithSaturation(e3, e3);
 
         // g1 = f1 + (a3 != 0);
         // The compare will return (0xffff, 0) for (==0, !=0). To turn that into the
@@ -599,7 +599,7 @@ internal static unsafe class Vp8Encoding
         Unsafe.As<short, Vector128<short>>(ref Unsafe.Add(ref outputRef, 8)) = d2f3.AsInt16();
     }
 
-    public static void FTransformWht(Span<short> input, Span<short> output, Span<int> scratch)
+    public static void FTransformWht(ReadOnlySpan<short> input, Span<short> output, Span<int> scratch)
     {
         Span<int> tmp = scratch[..16];
 
@@ -679,7 +679,7 @@ internal static unsafe class Vp8Encoding
 
     // Left samples are top[-5 .. -2], top_left is top[-1], top are
     // located at top[0..3], and top right is top[4..7]
-    public static void EncPredLuma4(Span<byte> dst, Span<byte> top, int topOffset, Span<byte> vals)
+    public static void EncPredLuma4(Span<byte> dst, ReadOnlySpan<byte> top, int topOffset, Span<byte> vals)
     {
         Dc4(dst[I4DC4..], top, topOffset);
         Tm4(dst[I4TM4..], top, topOffset);
@@ -764,7 +764,7 @@ internal static unsafe class Vp8Encoding
         }
     }
 
-    private static void DcMode(Span<byte> dst, Span<byte> left, Span<byte> top, int size, int round, int shift)
+    private static void DcMode(Span<byte> dst, Span<byte> left, ReadOnlySpan<byte> top, int size, int round, int shift)
     {
         int dc = 0;
         int j;
@@ -813,7 +813,7 @@ internal static unsafe class Vp8Encoding
         Fill(dst, dc, size);
     }
 
-    private static void Dc4(Span<byte> dst, Span<byte> top, int topOffset)
+    private static void Dc4(Span<byte> dst, ReadOnlySpan<byte> top, int topOffset)
     {
         uint dc = 4;
         int i;
@@ -825,7 +825,7 @@ internal static unsafe class Vp8Encoding
         Fill(dst, (int)(dc >> 3), 4);
     }
 
-    private static void Tm4(Span<byte> dst, Span<byte> top, int topOffset)
+    private static void Tm4(Span<byte> dst, ReadOnlySpan<byte> top, int topOffset)
     {
         Span<byte> clip = Clip1.AsSpan(255 - top[topOffset - 1]);
         for (int y = 0; y < 4; y++)
@@ -840,7 +840,7 @@ internal static unsafe class Vp8Encoding
         }
     }
 
-    private static void Ve4(Span<byte> dst, Span<byte> top, int topOffset, Span<byte> vals)
+    private static void Ve4(Span<byte> dst, ReadOnlySpan<byte> top, int topOffset, Span<byte> vals)
     {
         // vertical
         vals[0] = LossyUtils.Avg3(top[topOffset - 1], top[topOffset], top[topOffset + 1]);
@@ -853,7 +853,7 @@ internal static unsafe class Vp8Encoding
         }
     }
 
-    private static void He4(Span<byte> dst, Span<byte> top, int topOffset)
+    private static void He4(Span<byte> dst, ReadOnlySpan<byte> top, int topOffset)
     {
         // horizontal
         byte x = top[topOffset - 1];
@@ -872,7 +872,7 @@ internal static unsafe class Vp8Encoding
         BinaryPrimitives.WriteUInt32BigEndian(dst[(3 * WebpConstants.Bps)..], val);
     }
 
-    private static void Rd4(Span<byte> dst, Span<byte> top, int topOffset)
+    private static void Rd4(Span<byte> dst, ReadOnlySpan<byte> top, int topOffset)
     {
         byte x = top[topOffset - 1];
         byte i = top[topOffset - 2];
@@ -907,7 +907,7 @@ internal static unsafe class Vp8Encoding
         LossyUtils.Dst(dst, 3, 0, LossyUtils.Avg3(d, c, b));
     }
 
-    private static void Vr4(Span<byte> dst, Span<byte> top, int topOffset)
+    private static void Vr4(Span<byte> dst, ReadOnlySpan<byte> top, int topOffset)
     {
         byte x = top[topOffset - 1];
         byte i = top[topOffset - 2];
@@ -942,7 +942,7 @@ internal static unsafe class Vp8Encoding
         LossyUtils.Dst(dst, 3, 1, LossyUtils.Avg3(b, c, d));
     }
 
-    private static void Ld4(Span<byte> dst, Span<byte> top, int topOffset)
+    private static void Ld4(Span<byte> dst, ReadOnlySpan<byte> top, int topOffset)
     {
         byte a = top[topOffset + 0];
         byte b = top[topOffset + 1];
@@ -976,7 +976,7 @@ internal static unsafe class Vp8Encoding
         LossyUtils.Dst(dst, 3, 3, LossyUtils.Avg3(g, h, h));
     }
 
-    private static void Vl4(Span<byte> dst, Span<byte> top, int topOffset)
+    private static void Vl4(Span<byte> dst, ReadOnlySpan<byte> top, int topOffset)
     {
         byte a = top[topOffset + 0];
         byte b = top[topOffset + 1];
@@ -1011,7 +1011,7 @@ internal static unsafe class Vp8Encoding
         LossyUtils.Dst(dst, 3, 3, LossyUtils.Avg3(f, g, h));
     }
 
-    private static void Hd4(Span<byte> dst, Span<byte> top, int topOffset)
+    private static void Hd4(Span<byte> dst, ReadOnlySpan<byte> top, int topOffset)
     {
         byte x = top[topOffset - 1];
         byte i = top[topOffset - 2];
@@ -1046,7 +1046,7 @@ internal static unsafe class Vp8Encoding
         LossyUtils.Dst(dst, 1, 3, LossyUtils.Avg3(l, k, j));
     }
 
-    private static void Hu4(Span<byte> dst, Span<byte> top, int topOffset)
+    private static void Hu4(Span<byte> dst, ReadOnlySpan<byte> top, int topOffset)
     {
         byte i = top[topOffset - 2];
         byte j = top[topOffset - 3];
@@ -1088,7 +1088,7 @@ internal static unsafe class Vp8Encoding
     private static byte Clip8b(int v) => (v & ~0xff) == 0 ? (byte)v : v < 0 ? (byte)0 : (byte)255;
 
     [MethodImpl(InliningOptions.ShortMethod)]
-    private static void Store(Span<byte> dst, Span<byte> reference, int x, int y, int v) => dst[x + (y * WebpConstants.Bps)] = LossyUtils.Clip8B(reference[x + (y * WebpConstants.Bps)] + (v >> 3));
+    private static void Store(Span<byte> dst, ReadOnlySpan<byte> reference, int x, int y, int v) => dst[x + (y * WebpConstants.Bps)] = LossyUtils.Clip8B(reference[x + (y * WebpConstants.Bps)] + (v >> 3));
 
     [MethodImpl(InliningOptions.ShortMethod)]
     private static int Mul(int a, int b) => (a * b) >> 16;

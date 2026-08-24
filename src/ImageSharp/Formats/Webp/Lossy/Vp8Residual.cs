@@ -235,7 +235,7 @@ internal class Vp8Residual
     }
 
     [MethodImpl(InliningOptions.ShortMethod)]
-    private static int LevelCost(Span<ushort> table, int level)
+    private static int LevelCost(ReadOnlySpan<ushort> table, int level)
         => WebpLookupTables.Vp8LevelFixedCosts[level] + table[level > WebpConstants.MaxVariableLevel ? WebpConstants.MaxVariableLevel : level];
 
     private static int RecordStats(int bit, Vp8StatsArray statsArr, int idx)

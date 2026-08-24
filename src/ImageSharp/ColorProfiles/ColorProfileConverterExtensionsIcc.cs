@@ -4,10 +4,13 @@
 using System.Buffers;
 using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
+using System.Numerics.Tensors;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using SixLabors.ImageSharp.ColorProfiles.Conversion.Icc;
 using SixLabors.ImageSharp.ColorProfiles.Icc;
+using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 
@@ -39,6 +42,24 @@ internal static class ColorProfileConverterExtensionsIcc
          0.0033717495F, 0.0034852044F, 0.0028800198F, 0F,
          0.0033717495F, 0.0034852044F, 0.0028800198F, 0F];
 
+    /// <summary>
+    /// Converts a color value from one ICC color profile to another using the specified color profile converter.
+    /// </summary>
+    /// <remarks>
+    /// This method performs color conversion using ICC profiles, ensuring accurate color mapping
+    /// between different color spaces. Both the source and target ICC profiles must be provided in the converter's
+    /// options. The method supports perceptual adjustments when required by the profiles.
+    /// </remarks>
+    /// <typeparam name="TFrom">The type representing the source color profile. Must implement <see cref="IColorProfile{TFrom}"/>.</typeparam>
+    /// <typeparam name="TTo">The type representing the destination color profile. Must implement <see cref="IColorProfile{TTo}"/>.</typeparam>
+    /// <param name="converter">The color profile converter configured with source and target ICC profiles.</param>
+    /// <param name="source">The color value to convert, defined in the source color profile.</param>
+    /// <returns>
+    /// A color value in the target color profile, resulting from the ICC profile-based conversion of the source value.
+    /// </returns>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown if either the source or target ICC profile is missing from the converter options.
+    /// </exception>
     internal static TTo ConvertUsingIccProfile<TFrom, TTo>(this ColorProfileConverter converter, in TFrom source)
         where TFrom : struct, IColorProfile<TFrom>
         where TTo : struct, IColorProfile<TTo>
@@ -60,8 +81,8 @@ internal static class ColorProfileConverterExtensionsIcc
         ColorProfileConverter pcsConverter = new(new ColorConversionOptions
         {
             MemoryAllocator = converter.Options.MemoryAllocator,
-            SourceWhitePoint = new CieXyz(converter.Options.SourceIccProfile.Header.PcsIlluminant),
-            TargetWhitePoint = new CieXyz(converter.Options.TargetIccProfile.Header.PcsIlluminant),
+            SourceWhitePoint = KnownIlluminants.D50Icc,
+            TargetWhitePoint = KnownIlluminants.D50Icc
         });
 
         // Normalize the source, then convert to the PCS space.
@@ -81,6 +102,29 @@ internal static class ColorProfileConverterExtensionsIcc
         return TTo.FromScaledVector4(targetParams.Converter.Calculate(targetPcs));
     }
 
+    /// <summary>
+    /// Converts a span of color values from a source color profile to a destination color profile using ICC profiles.
+    /// </summary>
+    /// <remarks>
+    /// This method performs color conversion by transforming the input values through the Profile
+    /// Connection Space (PCS) as defined by the provided ICC profiles. Perceptual adjustments are applied as required
+    /// by the profiles. The method does not support absolute colorimetric intent and will not perform such
+    /// conversions.
+    /// </remarks>
+    /// <typeparam name="TFrom">The type representing the source color profile. Must implement <see cref="IColorProfile{TFrom}"/>.</typeparam>
+    /// <typeparam name="TTo">The type representing the destination color profile. Must implement <see cref="IColorProfile{TTo}"/>.</typeparam>
+    /// <param name="converter">The color profile converter that provides conversion options and ICC profiles.</param>
+    /// <param name="source">
+    /// A read-only span containing the source color values to convert. The values must conform to the source color
+    /// profile.
+    /// </param>
+    /// <param name="destination">
+    /// A span to receive the converted color values in the destination color profile. Must be at least as large as the
+    /// source span.
+    /// </param>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown if the source or target ICC profile is missing from the converter options.
+    /// </exception>
     internal static void ConvertUsingIccProfile<TFrom, TTo>(this ColorProfileConverter converter, ReadOnlySpan<TFrom> source, Span<TTo> destination)
         where TFrom : struct, IColorProfile<TFrom>
         where TTo : struct, IColorProfile<TTo>
@@ -104,8 +148,8 @@ internal static class ColorProfileConverterExtensionsIcc
         ColorProfileConverter pcsConverter = new(new ColorConversionOptions
         {
             MemoryAllocator = converter.Options.MemoryAllocator,
-            SourceWhitePoint = new CieXyz(converter.Options.SourceIccProfile.Header.PcsIlluminant),
-            TargetWhitePoint = new CieXyz(converter.Options.TargetIccProfile.Header.PcsIlluminant),
+            SourceWhitePoint = KnownIlluminants.D50Icc,
+            TargetWhitePoint = KnownIlluminants.D50Icc
         });
 
         using IMemoryOwner<Vector4> pcsBuffer = converter.Options.MemoryAllocator.Allocate<Vector4>(source.Length);
@@ -617,38 +661,10 @@ internal static class ColorProfileConverterExtensionsIcc
 
     private static void ClipNegative(Span<Vector4> source)
     {
-        if (Vector.IsHardwareAccelerated && Vector<float>.IsSupported && Vector<float>.Count >= source.Length * 4)
-        {
-            // SIMD loop
-            int i = 0;
-            int simdBatchSize = Vector<float>.Count / 4; // Number of Vector4 elements per SIMD batch
-            for (; i <= source.Length - simdBatchSize; i += simdBatchSize)
-            {
-                // Load the vector from source span
-                Vector<float> v = Unsafe.ReadUnaligned<Vector<float>>(ref Unsafe.As<Vector4, byte>(ref source[i]));
-
-                v = Vector.Max(v, Vector<float>.Zero);
-
-                // Write the vector to the destination span
-                Unsafe.WriteUnaligned(ref Unsafe.As<Vector4, byte>(ref source[i]), v);
-            }
-
-            // Scalar fallback for remaining elements
-            for (; i < source.Length; i++)
-            {
-                ref Vector4 s = ref source[i];
-                s = Vector4.Max(s, Vector4.Zero);
-            }
-        }
-        else
-        {
-            // Scalar fallback if SIMD is not supported
-            for (int i = 0; i < source.Length; i++)
-            {
-                ref Vector4 s = ref source[i];
-                s = Vector4.Max(s, Vector4.Zero);
-            }
-        }
+        // Vector4 values are contiguous floats, so flattening preserves the component order
+        // while allowing one shared tensor traversal to process every channel and SIMD tail.
+        Span<float> values = MemoryMarshal.Cast<Vector4, float>(source);
+        TensorPrimitives.Max(values, 0F, values);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -667,39 +683,9 @@ internal static class ColorProfileConverterExtensionsIcc
 
     private static void LabToLab(Span<Vector4> source, Span<Vector4> destination, [ConstantExpected] float scale)
     {
-        if (Vector.IsHardwareAccelerated && Vector<float>.IsSupported)
-        {
-            Vector<float> vScale = new(scale);
-            int i = 0;
-
-            // SIMD loop
-            int simdBatchSize = Vector<float>.Count / 4; // Number of Vector4 elements per SIMD batch
-            for (; i <= source.Length - simdBatchSize; i += simdBatchSize)
-            {
-                // Load the vector from source span
-                Vector<float> v = Unsafe.ReadUnaligned<Vector<float>>(ref Unsafe.As<Vector4, byte>(ref source[i]));
-
-                // Scale the vector
-                v *= vScale;
-
-                // Write the scaled vector to the destination span
-                Unsafe.WriteUnaligned(ref Unsafe.As<Vector4, byte>(ref destination[i]), v);
-            }
-
-            // Scalar fallback for remaining elements
-            for (; i < source.Length; i++)
-            {
-                destination[i] = source[i] * scale;
-            }
-        }
-        else
-        {
-            // Scalar fallback if SIMD is not supported
-            for (int i = 0; i < source.Length; i++)
-            {
-                destination[i] = source[i] * scale;
-            }
-        }
+        // Reinterpreting both spans exposes all four components to one multiplication traversal;
+        // the source and destination retain their original Vector4 boundaries after the operation.
+        TensorPrimitives.Multiply(MemoryMarshal.Cast<Vector4, float>(source), scale, MemoryMarshal.Cast<Vector4, float>(destination));
     }
 
     private class ConversionParams

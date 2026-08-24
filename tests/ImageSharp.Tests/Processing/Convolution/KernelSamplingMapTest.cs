@@ -411,9 +411,9 @@ public class KernelSamplingMapTest
         map.BuildSamplingOffsetMap(kernelSize.Height, kernelSize.Width, bounds, xBorderMode, yBorderMode);
 
         // Assert
-        int[] xOffsets = map.GetColumnOffsetSpan().ToArray();
+        int[] xOffsets = [.. map.GetColumnOffsetSpan()];
         Assert.Equal(xExpected, xOffsets);
-        int[] yOffsets = map.GetRowOffsetSpan().ToArray();
+        int[] yOffsets = [.. map.GetRowOffsetSpan()];
         Assert.Equal(yExpected, yOffsets);
     }
 }

@@ -8,10 +8,11 @@ namespace SixLabors.ImageSharp.PixelFormats;
 
 /// <summary>
 /// Packed pixel type containing four 16-bit signed integer values.
-/// <para>
-/// Ranges from [-37267, -37267, -37267, -37267] to [37267, 37267, 37267, 37267] in vector form.
-/// </para>
 /// </summary>
+/// <remarks>
+/// <see cref="ToVector4"/> returns stored components in <c>[-32768, 32767]</c>. Scaled vector conversions map the full
+/// stored range to <c>[0, 1]</c>. The packed storage layout matches <c>DXGI_FORMAT_R16G16B16A16_SINT</c>.
+/// </remarks>
 public partial struct Short4 : IPixel<Short4>, IPackedVector<ulong>
 {
     // Largest two byte positive number 0xFFFF >> 1;
@@ -19,6 +20,9 @@ public partial struct Short4 : IPixel<Short4>, IPackedVector<ulong>
 
     // Two's complement
     private const float MinNeg = ~(int)MaxPos;
+
+    // Scaled conversions cover every signed 16-bit code, including the asymmetric minimum value.
+    private const float Range = MaxPos - MinNeg;
 
     private static readonly Vector4 Max = new(MaxPos);
     private static readonly Vector4 Min = new(MinNeg);
@@ -75,8 +79,8 @@ public partial struct Short4 : IPixel<Short4>, IPackedVector<ulong>
     public readonly Vector4 ToScaledVector4()
     {
         Vector4 scaled = this.ToVector4();
-        scaled += new Vector4(32767f);
-        scaled /= 65534f;
+        scaled -= Min;
+        scaled /= Range;
         return scaled;
     }
 
@@ -99,12 +103,67 @@ public partial struct Short4 : IPixel<Short4>, IPackedVector<ulong>
     /// <inheritdoc />
     public static PixelOperations<Short4> CreatePixelOperations() => new PixelOperations();
 
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly Vector4 ToUnassociatedScaledVector4() => this.ToScaledVector4();
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly Vector4 ToAssociatedScaledVector4()
+    {
+        Vector4 vector = this.ToScaledVector4();
+        Numerics.Premultiply(ref vector);
+        return vector;
+    }
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly Vector4 ToUnassociatedVector4() => this.ToVector4();
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly Vector4 ToAssociatedVector4()
+    {
+        Vector4 vector = this.ToAssociatedScaledVector4();
+
+        // Native components use the full asymmetric signed range, so scaled zero must map to -32768 rather than -32767.
+        vector *= Range;
+        vector += Min;
+        return vector;
+    }
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Short4 FromUnassociatedScaledVector4(Vector4 source) => FromScaledVector4(source);
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Short4 FromAssociatedScaledVector4(Vector4 source)
+    {
+        Numerics.UnPremultiply(ref source);
+        return FromScaledVector4(source);
+    }
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Short4 FromUnassociatedVector4(Vector4 source) => FromVector4(source);
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Short4 FromAssociatedVector4(Vector4 source)
+    {
+        // Map the full signed native encoding to scaled [0, 1] space before unassociating.
+        source -= Min;
+        source /= Range;
+        return FromAssociatedScaledVector4(source);
+    }
+
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Short4 FromScaledVector4(Vector4 source)
     {
-        source *= 65534F;
-        source -= new Vector4(32767F);
+        source *= Range;
+        source += Min;
         return FromVector4(source);
     }
 

@@ -4,6 +4,7 @@
 
 using System.Buffers;
 using System.Numerics;
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -41,16 +42,22 @@ internal class Rgba8888TiffColor<TPixel> : TiffBaseColorDecoder<TPixel>
         {
             Span<TPixel> pixelRow = pixels.DangerousGetRowSpan(y).Slice(left, width);
             int byteCount = pixelRow.Length * 4;
-            PixelOperations<TPixel>.Instance.FromRgba32Bytes(
-                this.configuration,
-                data.Slice(offset, byteCount),
-                pixelRow,
-                pixelRow.Length);
 
             if (hasAssociatedAlpha)
             {
-                PixelOperations<TPixel>.Instance.ToVector4(this.configuration, pixelRow, vectorsSpan);
-                PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, vectorsSpan, pixelRow, PixelConversionModifiers.Premultiply | PixelConversionModifiers.Scale);
+                // The TIFF samples already contain associated RGB. Reinterpret them as Rgba32 only to normalize and unpack the
+                // channels; asking that unassociated storage type to associate them would multiply RGB a second time.
+                ReadOnlySpan<Rgba32> associatedSamples = MemoryMarshal.Cast<byte, Rgba32>(data.Slice(offset, byteCount));
+                PixelOperations<Rgba32>.Instance.ToVector4(this.configuration, associatedSamples, vectorsSpan, PixelConversionModifiers.Scale | PixelConversionModifiers.UnPremultiply);
+                PixelOperations<TPixel>.Instance.FromVector4Destructive(this.configuration, vectorsSpan, pixelRow, PixelConversionModifiers.Scale | PixelConversionModifiers.Premultiply);
+            }
+            else
+            {
+                PixelOperations<TPixel>.Instance.FromRgba32Bytes(
+                    this.configuration,
+                    data.Slice(offset, byteCount),
+                    pixelRow,
+                    pixelRow.Length);
             }
 
             offset += byteCount;

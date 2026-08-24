@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Numerics;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Tests;
@@ -16,6 +17,58 @@ public partial class ColorTests
         Rgba32 expected = new(111, 222, 55, 128);
 
         Assert.Equal(expected, c2.ToPixel<Rgba32>());
+    }
+
+    [Fact]
+    public void WithAlphaPreservesAssociatedRepresentation()
+    {
+        Color color = Color.FromPixel(new Rgba32P(64, 32, 16, 128));
+
+        // Act:
+        Color actual = color.WithAlpha(64F / 255F);
+
+        // Assert:
+        Assert.Equal(PixelAlphaRepresentation.Associated, actual.AlphaRepresentation);
+        Assert.Equal(new Rgba32P(32, 16, 8, 64), actual.ToPixel<Rgba32P>());
+        Assert.Equal(new Rgba32(128, 64, 32, 64), actual.ToPixel<Rgba32>());
+    }
+
+    [Fact]
+    public void ToHexConvertsAssociatedRepresentation()
+    {
+        Color color = Color.FromPixel(new Rgba32P(64, 32, 16, 128));
+
+        Assert.Equal("80402080", color.ToHex());
+    }
+
+    [Fact]
+    public void ToScaledVector4ConvertsUnassociatedToAssociated()
+    {
+        Color color = Color.FromScaledVector(new Vector4(1F, 0.5F, 0.25F, 0.5F));
+
+        Vector4 actual = color.ToScaledVector4(PixelAlphaRepresentation.Associated);
+
+        Assert.Equal(new Vector4(0.5F, 0.25F, 0.125F, 0.5F), actual);
+    }
+
+    [Fact]
+    public void ToScaledVector4ConvertsAssociatedToUnassociated()
+    {
+        Color color = Color.FromScaledVector(new Vector4(0.5F, 0.25F, 0.125F, 0.5F), PixelAlphaRepresentation.Associated);
+
+        Vector4 actual = color.ToScaledVector4(PixelAlphaRepresentation.Unassociated);
+
+        Assert.Equal(new Vector4(1F, 0.5F, 0.25F, 0.5F), actual);
+    }
+
+    [Fact]
+    public void EqualityDoesNotDependOnInternalAssociationStorage()
+    {
+        Color fromPixel = Color.FromPixel(new Rgba32P(64, 32, 16, 128));
+        Color fromVector = Color.FromScaledVector(fromPixel.ToScaledVector4(), PixelAlphaRepresentation.Associated);
+
+        Assert.Equal(fromPixel, fromVector);
+        Assert.Equal(fromPixel.GetHashCode(), fromVector.GetHashCode());
     }
 
     [Theory]

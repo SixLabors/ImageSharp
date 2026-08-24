@@ -207,36 +207,11 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
         {
             // A grid is a derived image rather than a compression method. Its dimg references identify the coded
             // tile items whose decoder determines the compression reported for the primary presentation.
-            HeifItemLink? derivedImageReference = this.itemLinks.FirstOrDefault(
-                link => link.Type == Heif4CharCode.Dimg && link.SourceId == item.Id);
-
-            if (derivedImageReference is not null)
-            {
-                HeifItem? tileItem = derivedImageReference.DestinationIds
-                    .Select(this.FindItemById)
-                    .FirstOrDefault(candidate => candidate is not null && HeifCompressionFactory.GetDecoder<Rgba32>(candidate.Type) is not null);
-
-                if (tileItem is not null)
-                {
-                    metadataItem = tileItem;
-                }
-            }
+            metadataItem = this.FindDecodableGridTile<Rgba32>(item) ?? this.FindDecodableThumbnail<Rgba32>(item) ?? item;
         }
         else if (HeifCompressionFactory.GetDecoder<Rgba32>(item.Type) is null)
         {
-            // A thumbnail reference points from the thumbnail item to the master image. Restrict fallback metadata
-            // to a thumbnail of this primary item rather than allowing an unrelated thumbnail to relabel it.
-            HeifItemLink? thumbnailReference = this.itemLinks.FirstOrDefault(
-                link => link.Type == Heif4CharCode.Thmb && link.DestinationIds.Contains(item.Id));
-
-            if (thumbnailReference is not null)
-            {
-                HeifItem? thumbnailItem = this.FindItemById(thumbnailReference.SourceId);
-                if (thumbnailItem is not null && HeifCompressionFactory.GetDecoder<Rgba32>(thumbnailItem.Type) is not null)
-                {
-                    metadataItem = thumbnailItem;
-                }
-            }
+            metadataItem = this.FindDecodableThumbnail<Rgba32>(item) ?? item;
         }
 
         HeifMetadata meta = metadata.GetHeifMetadata();
@@ -1221,26 +1196,19 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
         }
 
         IHeifItemDecoder<TPixel>? itemDecoder = rootItem.Type == Heif4CharCode.Grid
-            ? new GridHeifItemDecoder<TPixel>(this.configuration, this.items, this.itemLinks, buffers)
-            : HeifCompressionFactory.GetDecoder<TPixel>(rootItem.Type);
+            && this.FindDecodableGridTile<TPixel>(rootItem) is not null
+                ? new GridHeifItemDecoder<TPixel>(this.configuration, this.items, this.itemLinks, buffers)
+                : HeifCompressionFactory.GetDecoder<TPixel>(rootItem.Type);
+
         HeifItem itemToDecode = rootItem;
         if (itemDecoder is null)
         {
             // Unable to decode the primary image, decode the thumbnail instead.
-            HeifItemLink? thumbLink = this.itemLinks.FirstOrDefault(
-                link => link.Type == Heif4CharCode.Thmb && link.DestinationIds.Contains(rootItem.Id));
-
-            if (thumbLink is not null)
+            HeifItem? thumbnailItem = this.FindDecodableThumbnail<TPixel>(rootItem);
+            if (thumbnailItem is not null)
             {
-                HeifItem? thumbItem = this.FindItemById(thumbLink.SourceId);
-                if (thumbItem is not null)
-                {
-                    itemDecoder = HeifCompressionFactory.GetDecoder<TPixel>(thumbItem.Type);
-                    if (itemDecoder is not null)
-                    {
-                        itemToDecode = thumbItem;
-                    }
-                }
+                itemDecoder = HeifCompressionFactory.GetDecoder<TPixel>(thumbnailItem.Type);
+                itemToDecode = thumbnailItem;
             }
         }
 
@@ -1338,6 +1306,68 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
     /// <returns>The matching item, or <see langword="null"/> when it has not been declared.</returns>
     private HeifItem? FindItemById(uint itemId)
         => this.items.FirstOrDefault(item => item.Id == itemId);
+
+    /// <summary>
+    /// Finds the first tile of a grid when every referenced tile uses a registered still-image decoder.
+    /// </summary>
+    /// <typeparam name="TPixel">The destination pixel format used to select item decoders.</typeparam>
+    /// <param name="gridItem">The grid derived-image item.</param>
+    /// <returns>The first decodable grid tile, or <see langword="null"/> when the grid has no tiles or any tile cannot be decoded.</returns>
+    private HeifItem? FindDecodableGridTile<TPixel>(HeifItem gridItem)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        HeifItem? firstTile = null;
+        foreach (HeifItemLink link in this.itemLinks)
+        {
+            if (link.Type != Heif4CharCode.Dimg || link.SourceId != gridItem.Id)
+            {
+                continue;
+            }
+
+            foreach (uint itemId in link.DestinationIds)
+            {
+                HeifItem tile = this.FindItemById(itemId)!;
+                if (HeifCompressionFactory.GetDecoder<TPixel>(tile.Type) is null)
+                {
+                    // A partially decodable grid cannot yield the requested canvas. Returning no tile lets the
+                    // caller select a thumbnail of the complete primary presentation when one is available.
+                    return null;
+                }
+
+                firstTile ??= tile;
+            }
+        }
+
+        return firstTile;
+    }
+
+    /// <summary>
+    /// Finds a decodable thumbnail that represents the specified master image item.
+    /// </summary>
+    /// <typeparam name="TPixel">The destination pixel format used to select item decoders.</typeparam>
+    /// <param name="masterItem">The master image item referenced by the thumbnail.</param>
+    /// <returns>A decodable thumbnail item, or <see langword="null"/> when no matching thumbnail is available.</returns>
+    private HeifItem? FindDecodableThumbnail<TPixel>(HeifItem masterItem)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        // A thumbnail reference points from the thumbnail item to the master image. Restrict fallback to this
+        // presentation rather than allowing an unrelated thumbnail elsewhere in the file to be selected.
+        HeifItemLink? thumbnailReference = this.itemLinks.FirstOrDefault(
+            link => link.Type == Heif4CharCode.Thmb && link.DestinationIds.Contains(masterItem.Id));
+
+        if (thumbnailReference is null)
+        {
+            return null;
+        }
+
+        HeifItem thumbnailItem = this.FindItemById(thumbnailReference.SourceId)!;
+        if (HeifCompressionFactory.GetDecoder<TPixel>(thumbnailItem.Type) is null)
+        {
+            return null;
+        }
+
+        return thumbnailItem;
+    }
 
     /// <summary>
     /// Decodes the UTF-8 bytes preceding the first null terminator.

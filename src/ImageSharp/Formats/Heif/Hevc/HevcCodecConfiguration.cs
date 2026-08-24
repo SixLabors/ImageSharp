@@ -164,6 +164,41 @@ internal sealed class HevcCodecConfiguration
         }
 
         this.VideoParameterSets = videoParameterSets;
+
+        List<HevcSequenceParameterSet> sequenceParameterSets = new();
+        foreach (HevcNalUnitArray nalUnitArray in this.nalUnitArrays)
+        {
+            const byte sequenceParameterSetNalUnitType = 33;
+            if (nalUnitArray.NalUnitType != sequenceParameterSetNalUnitType)
+            {
+                continue;
+            }
+
+            foreach (HevcNalUnit nalUnit in nalUnitArray.NalUnits)
+            {
+                HevcSequenceParameterSet sequenceParameterSet = new(nalUnit);
+                bool referencesKnownVideoParameterSet = false;
+                foreach (HevcVideoParameterSet videoParameterSet in videoParameterSets)
+                {
+                    referencesKnownVideoParameterSet |= videoParameterSet.Id == sequenceParameterSet.VideoParameterSetId;
+                }
+
+                if (!referencesKnownVideoParameterSet
+                    || !sequenceParameterSet.ProfileTierLevel.Matches(this)
+                    || sequenceParameterSet.ChromaFormat != this.ChromaFormat
+                    || sequenceParameterSet.BitDepthLuma != this.BitDepthLuma
+                    || sequenceParameterSet.BitDepthChroma != this.BitDepthChroma
+                    || (temporalLayerCount != 0 && sequenceParameterSet.MaxSubLayers != temporalLayerCount)
+                    || (temporalLayerCount != 0 && sequenceParameterSet.TemporalIdNestingFlag != temporalIdNested))
+                {
+                    throw new InvalidImageContentException("The HEVC sequence parameter set does not match its codec configuration.");
+                }
+
+                sequenceParameterSets.Add(sequenceParameterSet);
+            }
+        }
+
+        this.SequenceParameterSets = sequenceParameterSets;
     }
 
     /// <summary>
@@ -236,6 +271,11 @@ internal sealed class HevcCodecConfiguration
     /// Gets the validated video parameter sets carried by the codec-configuration property.
     /// </summary>
     public IReadOnlyList<HevcVideoParameterSet> VideoParameterSets { get; }
+
+    /// <summary>
+    /// Gets the validated sequence parameter sets carried by the codec-configuration property.
+    /// </summary>
+    public IReadOnlyList<HevcSequenceParameterSet> SequenceParameterSets { get; }
 
     /// <summary>
     /// Validates the associated pixel-information property against the coded luma and chroma sample precisions.

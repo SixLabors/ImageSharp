@@ -15,7 +15,7 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 /// Zone 2 projects both top and left reference samples into the block for prediction angles between 90 and 180 degrees.
 /// The scalar prediction follows the directional prediction process in section 7.11.2.4 of the AV1 specification.
 /// </remarks>
-internal class Av1DirectionalZone2Predictor
+internal readonly struct Av1DirectionalZone2Predictor
 {
     /// <summary>
     /// The width of the prediction block in samples.
@@ -28,7 +28,7 @@ internal class Av1DirectionalZone2Predictor
     private readonly nuint blockHeight;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="Av1DirectionalZone2Predictor"/> class for the specified block dimensions.
+    /// Initializes a new instance of the <see cref="Av1DirectionalZone2Predictor"/> struct for the specified block dimensions.
     /// </summary>
     /// <param name="blockSize">The dimensions of the prediction block.</param>
     public Av1DirectionalZone2Predictor(Size blockSize)
@@ -38,7 +38,7 @@ internal class Av1DirectionalZone2Predictor
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="Av1DirectionalZone2Predictor"/> class for the specified transform size.
+    /// Initializes a new instance of the <see cref="Av1DirectionalZone2Predictor"/> struct for the specified transform size.
     /// </summary>
     /// <param name="transformSize">The transform size that determines the prediction block dimensions.</param>
     public Av1DirectionalZone2Predictor(Av1TransformSize transformSize)

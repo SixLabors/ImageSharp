@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 /// <summary>
 /// Predicts an 8-bit AV1 block by selecting the top, left, or top-left neighbor with the smallest local gradient.
 /// </summary>
-internal class Av1PaethPredictor : IAv1Predictor
+internal readonly struct Av1PaethPredictor : IAv1Predictor
 {
     /// <summary>
     /// The number of top samples consumed and samples written to each destination row.
@@ -22,7 +22,7 @@ internal class Av1PaethPredictor : IAv1Predictor
     private readonly uint blockHeight;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="Av1PaethPredictor"/> class for explicit block dimensions.
+    /// Initializes a new instance of the <see cref="Av1PaethPredictor"/> struct for explicit block dimensions.
     /// </summary>
     /// <param name="blockSize">The predicted block dimensions in samples.</param>
     public Av1PaethPredictor(Size blockSize)
@@ -32,7 +32,7 @@ internal class Av1PaethPredictor : IAv1Predictor
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="Av1PaethPredictor"/> class for a transform size.
+    /// Initializes a new instance of the <see cref="Av1PaethPredictor"/> struct for a transform size.
     /// </summary>
     /// <param name="transformSize">The transform size whose dimensions define the predicted block.</param>
     public Av1PaethPredictor(Av1TransformSize transformSize)

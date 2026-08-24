@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 /// <summary>
 /// Predicts an 8-bit AV1 block from the rounded average of its top and left neighboring samples.
 /// </summary>
-internal class Av1DcPredictor : IAv1Predictor
+internal readonly struct Av1DcPredictor : IAv1Predictor
 {
     /// <summary>
     /// The number of top samples averaged and samples written to each destination row.
@@ -22,7 +22,7 @@ internal class Av1DcPredictor : IAv1Predictor
     private readonly nuint blockHeight;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="Av1DcPredictor"/> class for explicit block dimensions.
+    /// Initializes a new instance of the <see cref="Av1DcPredictor"/> struct for explicit block dimensions.
     /// </summary>
     /// <param name="blockSize">The predicted block dimensions in samples.</param>
     public Av1DcPredictor(Size blockSize)
@@ -32,7 +32,7 @@ internal class Av1DcPredictor : IAv1Predictor
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="Av1DcPredictor"/> class for a transform size.
+    /// Initializes a new instance of the <see cref="Av1DcPredictor"/> struct for a transform size.
     /// </summary>
     /// <param name="transformSize">The transform size whose dimensions define the predicted block.</param>
     public Av1DcPredictor(Av1TransformSize transformSize)

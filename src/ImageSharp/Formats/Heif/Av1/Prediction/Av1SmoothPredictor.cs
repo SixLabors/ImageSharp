@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 /// <summary>
 /// Predicts an 8-bit AV1 block by blending top-to-bottom and left-to-right smooth interpolation surfaces.
 /// </summary>
-internal class Av1SmoothPredictor : IAv1Predictor
+internal readonly struct Av1SmoothPredictor : IAv1Predictor
 {
     // Weights are quadratic from '1' to '1 / BlockSize', scaled by
     // 2^sm_weight_log2_scale.
@@ -61,7 +61,7 @@ internal class Av1SmoothPredictor : IAv1Predictor
     private readonly nuint blockHeight;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="Av1SmoothPredictor"/> class for explicit block dimensions.
+    /// Initializes a new instance of the <see cref="Av1SmoothPredictor"/> struct for explicit block dimensions.
     /// </summary>
     /// <param name="blockSize">The predicted block dimensions in samples.</param>
     public Av1SmoothPredictor(Size blockSize)
@@ -71,7 +71,7 @@ internal class Av1SmoothPredictor : IAv1Predictor
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="Av1SmoothPredictor"/> class for a transform size.
+    /// Initializes a new instance of the <see cref="Av1SmoothPredictor"/> struct for a transform size.
     /// </summary>
     /// <param name="transformSize">The transform size whose dimensions define the predicted block.</param>
     public Av1SmoothPredictor(Av1TransformSize transformSize)

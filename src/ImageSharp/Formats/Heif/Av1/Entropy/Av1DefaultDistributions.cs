@@ -114,6 +114,21 @@ internal static class Av1DefaultDistributions
     public static Av1Distribution IntraBlockCopy => new(30531);
 
     /// <summary>
+    /// Gets the distribution selecting none, Wiener, or self-guided filtering for a switchable restoration unit.
+    /// </summary>
+    public static Av1Distribution SwitchableRestoration => new(9413, 22581);
+
+    /// <summary>
+    /// Gets the distribution selecting whether a Wiener restoration unit is filtered.
+    /// </summary>
+    public static Av1Distribution WienerRestoration => new(11570);
+
+    /// <summary>
+    /// Gets the distribution selecting whether a self-guided restoration unit is filtered.
+    /// </summary>
+    public static Av1Distribution SgrProjectionRestoration => new(16855);
+
+    /// <summary>
     /// Gets the luma palette-mode distributions indexed by block-size and neighboring-palette contexts.
     /// </summary>
     public static Av1Distribution[][] PaletteYMode =>

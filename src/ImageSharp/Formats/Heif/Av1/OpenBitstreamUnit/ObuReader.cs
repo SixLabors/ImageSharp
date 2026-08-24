@@ -1591,12 +1591,11 @@ internal class ObuReader
             {
                 frameHeader.LoopRestorationParameters.UnitShift++;
             }
-            else
+            else if (frameHeader.LoopRestorationParameters.UnitShift != 0)
             {
-                if (reader.ReadBoolean())
-                {
-                    frameHeader.LoopRestorationParameters.UnitShift += (int)reader.ReadLiteral(1);
-                }
+                // A 64x64-superblock frame signals the extra size bit only after selecting a
+                // restoration unit larger than 64 samples with the first size bit.
+                frameHeader.LoopRestorationParameters.UnitShift += (int)reader.ReadLiteral(1);
             }
 
             frameHeader.LoopRestorationParameters.Items[0].Size = Av1Constants.RestorationMaxTileSize >> (2 - frameHeader.LoopRestorationParameters.UnitShift);

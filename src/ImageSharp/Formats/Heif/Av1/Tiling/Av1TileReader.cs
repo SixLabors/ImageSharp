@@ -27,6 +27,50 @@ internal class Av1TileReader : IAv1TileReader
     private static readonly int[] WienerTapsMid = [3, -7, 15];
 
     /// <summary>
+    /// The minimum transmitted value for each independent Wiener coefficient.
+    /// </summary>
+    private static readonly int[] WienerCoefficientMinimum = [-5, -23, -17];
+
+    /// <summary>
+    /// The number of possible transmitted values for each independent Wiener coefficient.
+    /// </summary>
+    private static readonly int[] WienerCoefficientValueCount = [16, 32, 64];
+
+    /// <summary>
+    /// The subexponential group-size exponent for each independent Wiener coefficient.
+    /// </summary>
+    private static readonly int[] WienerCoefficientSubexponentialK = [1, 2, 3];
+
+    /// <summary>
+    /// The two self-guided filter radii selected by each parameter-set index.
+    /// </summary>
+    private static readonly int[][] SgrProjectionRadii =
+    [
+        [2, 1], [2, 1], [2, 1], [2, 1], [2, 1], [2, 1], [2, 1], [2, 1],
+        [2, 1], [2, 1], [0, 1], [0, 1], [0, 1], [0, 1], [2, 0], [2, 0]
+    ];
+
+    /// <summary>
+    /// The minimum value of the first self-guided projection coefficient.
+    /// </summary>
+    private const int SgrProjectionCoefficient0Minimum = -96;
+
+    /// <summary>
+    /// The minimum value of the second self-guided projection coefficient.
+    /// </summary>
+    private const int SgrProjectionCoefficient1Minimum = -32;
+
+    /// <summary>
+    /// The number of values in either self-guided projection coefficient domain.
+    /// </summary>
+    private const int SgrProjectionCoefficientValueCount = 128;
+
+    /// <summary>
+    /// The subexponential group-size exponent for self-guided projection coefficients.
+    /// </summary>
+    private const int SgrProjectionSubexponentialK = 4;
+
+    /// <summary>
     /// Maps packed coefficient sign classes to their signed contribution to the DC context.
     /// </summary>
     private static readonly int[] Signs = [0, -1, 1];
@@ -55,7 +99,7 @@ internal class Av1TileReader : IAv1TileReader
     private int[][] referenceSgrXqd = [];
 
     /// <summary>
-    /// Stores the preceding horizontal and vertical Wiener taps for each color plane.
+    /// Stores the preceding vertical and horizontal Wiener taps for each color plane.
     /// </summary>
     private int[][][] referenceLrWiener = [];
 
@@ -123,6 +167,7 @@ internal class Av1TileReader : IAv1TileReader
 
         // FrameInfo owns all traversal-order records and coefficient storage produced by the tile readers.
         this.FrameInfo = new(this.SequenceHeader);
+        this.FrameInfo.InitializeLoopRestoration(this.SequenceHeader, this.FrameHeader);
         this.segmentIds = new int[this.FrameHeader.ModeInfoRowCount][];
         for (int y = 0; y < this.FrameHeader.ModeInfoRowCount; y++)
         {
@@ -232,7 +277,7 @@ internal class Av1TileReader : IAv1TileReader
                 this.firstTransformOffset[0] = 0;
                 this.firstTransformOffset[1] = 0;
                 this.coefficientIndex.AsSpan().Clear();
-                this.ReadLoopRestoration(modeInfoPosition, superBlockSize);
+                this.ReadLoopRestoration(ref reader, modeInfoPosition, superBlockSize);
                 this.ParsePartition(ref reader, modeInfoPosition, superBlockSize, superblockInfo, tileInfo);
 
                 // Identify-only parsing omits a frame decoder but still populates the complete syntax model.
@@ -250,20 +295,182 @@ internal class Av1TileReader : IAv1TileReader
     /// <summary>
     /// Reads loop-restoration unit syntax that begins at a superblock location.
     /// </summary>
+    /// <param name="reader">The tile symbol decoder.</param>
     /// <param name="modeInfoLocation">The superblock origin in 4x4 mode-information units.</param>
     /// <param name="superBlockSize">The superblock size.</param>
-    /// <exception cref="NotImplementedException">A color plane signals a loop-restoration filter.</exception>
-    private void ReadLoopRestoration(Point modeInfoLocation, Av1BlockSize superBlockSize)
+    private void ReadLoopRestoration(ref Av1SymbolDecoder reader, Point modeInfoLocation, Av1BlockSize superBlockSize)
     {
-        int planesCount = this.SequenceHeader.ColorConfig.PlaneCount;
+        ObuColorConfig colorConfig = this.SequenceHeader.ColorConfig;
+        int planesCount = colorConfig.PlaneCount;
         for (int plane = 0; plane < planesCount; plane++)
         {
-            if (this.FrameHeader.LoopRestorationParameters.Items[plane].Type != ObuRestorationType.None)
+            ObuLoopRestorationItem item = this.FrameHeader.LoopRestorationParameters.Items[plane];
+            if (item.Type == ObuRestorationType.None)
             {
-                throw new NotImplementedException("No loop restoration filter support.");
+                continue;
+            }
+
+            int subsamplingX = plane > 0 && colorConfig.SubSamplingX ? 1 : 0;
+            int subsamplingY = plane > 0 && colorConfig.SubSamplingY ? 1 : 0;
+            int planeHeight = Av1Math.DivideLog2Ceiling(this.FrameHeader.FrameSize.FrameHeight, subsamplingY);
+            int unitColumnCount = this.FrameInfo.GetLoopRestorationUnitColumnCount(plane);
+            int unitRowCount = Math.Max((planeHeight + (item.Size >> 1)) / item.Size, 1);
+            int superblockModeInfoSize = superBlockSize.Get4x4WideCount();
+            int modeInfoColumnEnd = modeInfoLocation.X + superblockModeInfoSize;
+            int modeInfoRowEnd = modeInfoLocation.Y + superblockModeInfoSize;
+            int modeInfoSampleWidth = (1 << Av1Constants.ModeInfoSizeLog2) >> subsamplingX;
+            int modeInfoSampleHeight = (1 << Av1Constants.ModeInfoSizeLog2) >> subsamplingY;
+            bool usesSuperResolution =
+                this.FrameHeader.FrameSize.FrameWidth != this.FrameHeader.FrameSize.SuperResolutionUpscaledWidth;
+
+            int columnNumeratorScale = usesSuperResolution
+                ? modeInfoSampleWidth * this.FrameHeader.FrameSize.SuperResolutionDenominator
+                : modeInfoSampleWidth;
+
+            int columnDenominator = usesSuperResolution
+                ? item.Size * Av1Constants.ScaleNumerator
+                : item.Size;
+
+            int rowDenominator = item.Size;
+
+            // Restoration syntax is attached to the superblock containing each unit's upper-left
+            // corner. Super-resolution changes only the horizontal corner conversion.
+            int unitColumnStart = DivideCeiling(modeInfoLocation.X * columnNumeratorScale, columnDenominator);
+            int unitColumnEnd = Math.Min(DivideCeiling(modeInfoColumnEnd * columnNumeratorScale, columnDenominator), unitColumnCount);
+            int unitRowStart = DivideCeiling(modeInfoLocation.Y * modeInfoSampleHeight, rowDenominator);
+            int unitRowEnd = Math.Min(DivideCeiling(modeInfoRowEnd * modeInfoSampleHeight, rowDenominator), unitRowCount);
+            for (int unitRow = unitRowStart; unitRow < unitRowEnd; unitRow++)
+            {
+                for (int unitColumn = unitColumnStart; unitColumn < unitColumnEnd; unitColumn++)
+                {
+                    Av1LoopRestorationUnit unit = this.FrameInfo.GetLoopRestorationUnit(plane, unitRow, unitColumn);
+                    this.ReadLoopRestorationUnit(ref reader, item.Type, plane, unit);
+                }
             }
         }
     }
+
+    /// <summary>
+    /// Reads the filter selection and coefficients for one loop-restoration unit.
+    /// </summary>
+    /// <param name="reader">The tile symbol decoder.</param>
+    /// <param name="frameType">The restoration mode allowed by the frame header.</param>
+    /// <param name="plane">The zero-based color-plane index.</param>
+    /// <param name="unit">The destination restoration-unit information.</param>
+    private void ReadLoopRestorationUnit(
+        ref Av1SymbolDecoder reader,
+        ObuRestorationType frameType,
+        int plane,
+        Av1LoopRestorationUnit unit)
+    {
+        unit.FilterType = frameType switch
+        {
+            ObuRestorationType.Switchable => reader.ReadSwitchableRestorationType(),
+            ObuRestorationType.Wiener => reader.ReadWienerRestoration()
+                ? Av1RestorationFilterType.Wiener
+                : Av1RestorationFilterType.None,
+            ObuRestorationType.SgrProj => reader.ReadSgrProjectionRestoration()
+                ? Av1RestorationFilterType.SgrProjection
+                : Av1RestorationFilterType.None,
+            _ => Av1RestorationFilterType.None,
+        };
+
+        if (unit.FilterType == Av1RestorationFilterType.Wiener)
+        {
+            this.ReadWienerFilter(ref reader, plane, unit);
+        }
+        else if (unit.FilterType == Av1RestorationFilterType.SgrProjection)
+        {
+            this.ReadSgrProjectionFilter(ref reader, plane, unit);
+        }
+    }
+
+    /// <summary>
+    /// Reads the symmetric vertical and horizontal Wiener coefficients for one restoration unit.
+    /// </summary>
+    /// <param name="reader">The tile symbol decoder.</param>
+    /// <param name="plane">The zero-based color-plane index.</param>
+    /// <param name="unit">The destination restoration-unit information.</param>
+    private void ReadWienerFilter(ref Av1SymbolDecoder reader, int plane, Av1LoopRestorationUnit unit)
+    {
+        for (int pass = 0; pass < 2; pass++)
+        {
+            int[] destination = pass == 0 ? unit.WienerVertical : unit.WienerHorizontal;
+            int firstCoefficient = plane == 0 ? 0 : 1;
+            destination[0] = 0;
+            for (int coefficient = firstCoefficient; coefficient < Av1Constants.WienerCoefficientCount; coefficient++)
+            {
+                int minimum = WienerCoefficientMinimum[coefficient];
+                int value = reader.ReadReferenceSubexponential(
+                    WienerCoefficientValueCount[coefficient],
+                    WienerCoefficientSubexponentialK[coefficient],
+                    this.referenceLrWiener[plane][pass][coefficient] - minimum);
+
+                value += minimum;
+                destination[coefficient] = value;
+                this.referenceLrWiener[plane][pass][coefficient] = value;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Reads the parameter-set index and projection coefficients for one self-guided restoration unit.
+    /// </summary>
+    /// <param name="reader">The tile symbol decoder.</param>
+    /// <param name="plane">The zero-based color-plane index.</param>
+    /// <param name="unit">The destination restoration-unit information.</param>
+    private void ReadSgrProjectionFilter(ref Av1SymbolDecoder reader, int plane, Av1LoopRestorationUnit unit)
+    {
+        unit.SgrParameterSet = reader.ReadLiteral(4);
+        int[] radii = SgrProjectionRadii[unit.SgrParameterSet];
+        int[] coefficients = unit.SgrProjectionCoefficients;
+        int[] references = this.referenceSgrXqd[plane];
+        if (radii[0] == 0)
+        {
+            coefficients[0] = 0;
+            coefficients[1] = ReadSgrProjectionCoefficient(ref reader, references[1], SgrProjectionCoefficient1Minimum);
+        }
+        else if (radii[1] == 0)
+        {
+            coefficients[0] = ReadSgrProjectionCoefficient(ref reader, references[0], SgrProjectionCoefficient0Minimum);
+
+            // When the second filter is disabled, AV1 derives the missing projection coefficient
+            // so the combined projection retains its fixed seven-bit scale.
+            coefficients[1] = Av1Math.Clip3(
+                SgrProjectionCoefficient1Minimum,
+                SgrProjectionCoefficient1Minimum + SgrProjectionCoefficientValueCount - 1,
+                SgrProjectionCoefficientValueCount - coefficients[0]);
+        }
+        else
+        {
+            coefficients[0] = ReadSgrProjectionCoefficient(ref reader, references[0], SgrProjectionCoefficient0Minimum);
+            coefficients[1] = ReadSgrProjectionCoefficient(ref reader, references[1], SgrProjectionCoefficient1Minimum);
+        }
+
+        coefficients.CopyTo(references, 0);
+    }
+
+    /// <summary>
+    /// Reads one differentially coded self-guided projection coefficient.
+    /// </summary>
+    /// <param name="reader">The tile symbol decoder.</param>
+    /// <param name="reference">The preceding coefficient value for the plane.</param>
+    /// <param name="minimum">The minimum value in the coefficient domain.</param>
+    /// <returns>The decoded signed coefficient.</returns>
+    private static int ReadSgrProjectionCoefficient(ref Av1SymbolDecoder reader, int reference, int minimum)
+        => reader.ReadReferenceSubexponential(
+            SgrProjectionCoefficientValueCount,
+            SgrProjectionSubexponentialK,
+            reference - minimum) + minimum;
+
+    /// <summary>
+    /// Divides a non-negative numerator by a positive denominator and rounds upward.
+    /// </summary>
+    /// <param name="numerator">The non-negative numerator.</param>
+    /// <param name="denominator">The positive denominator.</param>
+    /// <returns>The ceiling of the quotient.</returns>
+    private static int DivideCeiling(int numerator, int denominator)
+        => (numerator + denominator - 1) / denominator;
 
     /// <summary>
     /// Decodes AV1 partition syntax and recursively visits each resulting coding block.

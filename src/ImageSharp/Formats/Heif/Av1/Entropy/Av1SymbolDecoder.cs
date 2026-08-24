@@ -24,6 +24,21 @@ internal ref struct Av1SymbolDecoder
     private readonly Av1Distribution tileIntraBlockCopy;
 
     /// <summary>
+    /// The tile-adaptive switchable loop-restoration distribution.
+    /// </summary>
+    private readonly Av1Distribution switchableRestoration;
+
+    /// <summary>
+    /// The tile-adaptive Wiener loop-restoration distribution.
+    /// </summary>
+    private readonly Av1Distribution wienerRestoration;
+
+    /// <summary>
+    /// The tile-adaptive self-guided loop-restoration distribution.
+    /// </summary>
+    private readonly Av1Distribution sgrProjectionRestoration;
+
+    /// <summary>
     /// The tile-adaptive luma palette-mode distributions.
     /// </summary>
     private readonly Av1Distribution[][] paletteYMode;
@@ -190,6 +205,9 @@ internal ref struct Av1SymbolDecoder
         // Every tile starts from its own frame-context copy. Sharing these objects would let one image's adaptive
         // updates change the initial probabilities used to decode the next tile or image.
         this.tileIntraBlockCopy = Av1DefaultDistributions.IntraBlockCopy.CreateCopy();
+        this.switchableRestoration = Av1DefaultDistributions.SwitchableRestoration.CreateCopy();
+        this.wienerRestoration = Av1DefaultDistributions.WienerRestoration.CreateCopy();
+        this.sgrProjectionRestoration = Av1DefaultDistributions.SgrProjectionRestoration.CreateCopy();
         this.paletteYMode = Av1Distribution.CreateCopy(Av1DefaultDistributions.PaletteYMode);
         this.paletteUvMode = Av1Distribution.CreateCopy(Av1DefaultDistributions.PaletteUvMode);
         this.paletteYSize = Av1Distribution.CreateCopy(Av1DefaultDistributions.PaletteYSize);
@@ -263,6 +281,105 @@ internal ref struct Av1SymbolDecoder
         }
 
         return (value << 1) - threshold + r.ReadLiteral(1);
+    }
+
+    /// <summary>
+    /// Reads a finite subexponential value recentered around a preceding value.
+    /// </summary>
+    /// <param name="valueCount">The number of values in the coded domain.</param>
+    /// <param name="k">The initial subexponential group-size exponent.</param>
+    /// <param name="reference">The preceding value expressed in the zero-based coded domain.</param>
+    /// <returns>The decoded zero-based value.</returns>
+    public int ReadReferenceSubexponential(int valueCount, int k, int reference)
+    {
+        int value = this.ReadSubexponential(valueCount, k);
+        if ((reference << 1) <= valueCount)
+        {
+            return InverseRecenter(reference, value);
+        }
+
+        return valueCount - 1 - InverseRecenter(valueCount - 1 - reference, value);
+    }
+
+    /// <summary>
+    /// Reads the filter type selected for a switchable loop-restoration unit.
+    /// </summary>
+    /// <returns>The decoded unit filter type.</returns>
+    public Av1RestorationFilterType ReadSwitchableRestorationType()
+    {
+        ref Av1SymbolReader r = ref this.reader;
+        return (Av1RestorationFilterType)r.ReadSymbol(this.switchableRestoration);
+    }
+
+    /// <summary>
+    /// Reads whether a Wiener loop-restoration unit applies its filter.
+    /// </summary>
+    /// <returns><see langword="true"/> when Wiener filtering is selected; otherwise, <see langword="false"/>.</returns>
+    public bool ReadWienerRestoration()
+    {
+        ref Av1SymbolReader r = ref this.reader;
+        return r.ReadSymbol(this.wienerRestoration) != 0;
+    }
+
+    /// <summary>
+    /// Reads whether a self-guided loop-restoration unit applies its filter.
+    /// </summary>
+    /// <returns><see langword="true"/> when self-guided filtering is selected; otherwise, <see langword="false"/>.</returns>
+    public bool ReadSgrProjectionRestoration()
+    {
+        ref Av1SymbolReader r = ref this.reader;
+        return r.ReadSymbol(this.sgrProjectionRestoration) != 0;
+    }
+
+    /// <summary>
+    /// Reads a finite subexponential code from the tile entropy stream.
+    /// </summary>
+    /// <param name="valueCount">The number of values in the coded domain.</param>
+    /// <param name="k">The initial subexponential group-size exponent.</param>
+    /// <returns>The decoded zero-based value.</returns>
+    private int ReadSubexponential(int valueCount, int k)
+    {
+        int group = 0;
+        int groupStart = 0;
+        while (true)
+        {
+            int bitCount = group == 0 ? k : k + group - 1;
+            int groupSize = 1 << bitCount;
+            if (valueCount <= groupStart + (3 * groupSize))
+            {
+                // The final group absorbs the remaining alphabet through truncated-binary coding
+                // once fewer than three full subexponential groups remain.
+                return this.ReadUniform(valueCount - groupStart) + groupStart;
+            }
+
+            if (this.ReadLiteral(1) == 0)
+            {
+                return this.ReadLiteral(bitCount) + groupStart;
+            }
+
+            group++;
+            groupStart += groupSize;
+        }
+    }
+
+    /// <summary>
+    /// Maps a non-negative recentered code back around its reference value.
+    /// </summary>
+    /// <param name="reference">The center of the coded value order.</param>
+    /// <param name="value">The recentered non-negative value.</param>
+    /// <returns>The value in its original non-negative domain.</returns>
+    private static int InverseRecenter(int reference, int value)
+    {
+        if (value > (reference << 1))
+        {
+            return value;
+        }
+
+        // Even and odd codes alternate above and below the reference so nearby values receive
+        // the shortest finite-subexponential representations.
+        return (value & 1) == 0
+            ? (value >> 1) + reference
+            : reference - ((value + 1) >> 1);
     }
 
     /// <summary>

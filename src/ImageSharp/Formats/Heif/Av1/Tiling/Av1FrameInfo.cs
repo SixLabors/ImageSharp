@@ -106,6 +106,16 @@ internal partial class Av1FrameInfo
     private readonly int[] deltaLoopFilter;
 
     /// <summary>
+    /// Stores raster-ordered loop-restoration units for each color plane.
+    /// </summary>
+    private readonly Av1LoopRestorationUnit[][] loopRestorationUnits = [[], [], []];
+
+    /// <summary>
+    /// Stores the number of loop-restoration unit columns for each color plane.
+    /// </summary>
+    private readonly int[] loopRestorationUnitColumns = new int[Av1Constants.MaxPlanes];
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="Av1FrameInfo"/> class.
     /// </summary>
     /// <param name="sequenceHeader">The sequence header defining maximum dimensions, superblock size, and color sampling.</param>
@@ -172,6 +182,43 @@ internal partial class Av1FrameInfo
     /// Gets the width or height of one square superblock in 4x4 mode-information units.
     /// </summary>
     public int SuperblockModeInfoSize => this.modeInfoSizePerSuperblock;
+
+    /// <summary>
+    /// Allocates the loop-restoration unit grid described by the active frame header.
+    /// </summary>
+    /// <param name="sequenceHeader">The sequence header defining the plane count and chroma subsampling.</param>
+    /// <param name="frameHeader">The frame header defining upscaled dimensions and restoration-unit sizes.</param>
+    public void InitializeLoopRestoration(ObuSequenceHeader sequenceHeader, ObuFrameHeader frameHeader)
+    {
+        ObuColorConfig colorConfig = sequenceHeader.ColorConfig;
+        for (int planeIndex = 0; planeIndex < colorConfig.PlaneCount; planeIndex++)
+        {
+            ObuLoopRestorationItem item = frameHeader.LoopRestorationParameters.Items[planeIndex];
+            if (item.Type == ObuRestorationType.None)
+            {
+                continue;
+            }
+
+            Av1Plane plane = (Av1Plane)planeIndex;
+            int subsamplingX = plane != Av1Plane.Y && colorConfig.SubSamplingX ? 1 : 0;
+            int subsamplingY = plane != Av1Plane.Y && colorConfig.SubSamplingY ? 1 : 0;
+            int planeWidth = Av1Math.DivideLog2Ceiling(frameHeader.FrameSize.SuperResolutionUpscaledWidth, subsamplingX);
+            int planeHeight = Av1Math.DivideLog2Ceiling(frameHeader.FrameSize.FrameHeight, subsamplingY);
+
+            // A final unit may extend to 150 percent of the nominal size, so AV1 rounds the
+            // unit count to nearest instead of unconditionally rounding a partial unit upward.
+            int columnCount = Math.Max((planeWidth + (item.Size >> 1)) / item.Size, 1);
+            int rowCount = Math.Max((planeHeight + (item.Size >> 1)) / item.Size, 1);
+            Av1LoopRestorationUnit[] units = new Av1LoopRestorationUnit[columnCount * rowCount];
+            for (int i = 0; i < units.Length; i++)
+            {
+                units[i] = new();
+            }
+
+            this.loopRestorationUnitColumns[planeIndex] = columnCount;
+            this.loopRestorationUnits[planeIndex] = units;
+        }
+    }
 
     /// <summary>
     /// Gets the superblock view at the specified frame-grid position.
@@ -351,6 +398,26 @@ internal partial class Av1FrameInfo
         Span<int> span = this.deltaLoopFilter;
         int i = ((index.Y * this.superblockColumnCount) + index.X) << this.deltaLoopFactorLog2;
         return span.Slice(i, 1 << this.deltaLoopFactorLog2);
+    }
+
+    /// <summary>
+    /// Gets the number of loop-restoration unit columns allocated for a color plane.
+    /// </summary>
+    /// <param name="plane">The zero-based color-plane index.</param>
+    /// <returns>The number of restoration-unit columns.</returns>
+    public int GetLoopRestorationUnitColumnCount(int plane) => this.loopRestorationUnitColumns[plane];
+
+    /// <summary>
+    /// Gets the loop-restoration unit at a plane-relative grid position.
+    /// </summary>
+    /// <param name="plane">The zero-based color-plane index.</param>
+    /// <param name="row">The restoration-unit row.</param>
+    /// <param name="column">The restoration-unit column.</param>
+    /// <returns>The decoded restoration-unit information.</returns>
+    public Av1LoopRestorationUnit GetLoopRestorationUnit(int plane, int row, int column)
+    {
+        int index = (row * this.loopRestorationUnitColumns[plane]) + column;
+        return this.loopRestorationUnits[plane][index];
     }
 
     /// <summary>

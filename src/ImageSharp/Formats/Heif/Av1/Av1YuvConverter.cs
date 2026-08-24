@@ -21,6 +21,11 @@ internal static class Av1YuvConverter
     private const float ByteMaximum = byte.MaxValue;
 
     /// <summary>
+    /// The largest value represented by a 16-bit packed RGB component.
+    /// </summary>
+    private const float UShortMaximum = ushort.MaxValue;
+
+    /// <summary>
     /// Identifies the matrix operation used between encoded planes and RGB components.
     /// </summary>
     private enum ConversionMode
@@ -69,8 +74,19 @@ internal static class Av1YuvConverter
         int subY = frameBuffer.ColorConfig.SubSamplingY ? 1 : 0;
         Buffer2DRegion<byte> uPlane = isMonochrome ? default : frameBuffer.DeriveBlockPointer(Av1Plane.U, subX, subY);
         Buffer2DRegion<byte> vPlane = isMonochrome ? default : frameBuffer.DeriveBlockPointer(Av1Plane.V, subX, subY);
-        using IMemoryOwner<Rgb24> rowOwner = configuration.MemoryAllocator.Allocate<Rgb24>(image.Width);
-        Span<Rgb24> rgbRow = rowOwner.GetSpan()[..image.Width];
+        bool isEightBit = frameBuffer.BitDepth == Av1BitDepth.EightBit;
+        using IMemoryOwner<Rgb24>? rowOwner = isEightBit
+            ? configuration.MemoryAllocator.Allocate<Rgb24>(image.Width)
+            : null;
+
+        using IMemoryOwner<Rgb48>? highBitDepthRowOwner = isEightBit
+            ? null
+            : configuration.MemoryAllocator.Allocate<Rgb48>(image.Width);
+
+        Span<Rgb24> rgbRow = rowOwner is null ? Span<Rgb24>.Empty : rowOwner.GetSpan()[..image.Width];
+        Span<Rgb48> highBitDepthRgbRow = highBitDepthRowOwner is null
+            ? Span<Rgb48>.Empty
+            : highBitDepthRowOwner.GetSpan()[..image.Width];
 
         for (int y = 0; y < image.Height; y++)
         {
@@ -89,7 +105,7 @@ internal static class Av1YuvConverter
                     out y1Weight);
             }
 
-            if (frameBuffer.BitDepth == Av1BitDepth.EightBit)
+            if (isEightBit)
             {
                 ConvertYuvToRgbRow(
                     yPlane.DangerousGetRowSpan(y),
@@ -115,6 +131,8 @@ internal static class Av1YuvConverter
             }
             else
             {
+                // Staging high-bit-depth samples through Rgb48 preserves their precision while still using the
+                // optimized packed-pixel conversion paths shared by the rest of ImageSharp.
                 ConvertYuvToRgbRow(
                     frameBuffer.GetHighBitDepthRowSpan(Av1Plane.Y, y, 0, 0),
                     isMonochrome ? default : frameBuffer.GetHighBitDepthRowSpan(Av1Plane.U, y0, subX, subY),
@@ -122,7 +140,7 @@ internal static class Av1YuvConverter
                     isMonochrome ? default : frameBuffer.GetHighBitDepthRowSpan(Av1Plane.V, y0, subX, subY),
                     isMonochrome ? default : frameBuffer.GetHighBitDepthRowSpan(Av1Plane.V, y1, subX, subY),
                     y1Weight,
-                    rgbRow,
+                    highBitDepthRgbRow,
                     isMonochrome,
                     subX,
                     subY,
@@ -138,10 +156,20 @@ internal static class Av1YuvConverter
                     sampleMaximum);
             }
 
-            PixelOperations<TPixel>.Instance.FromRgb24(
-                configuration,
-                rgbRow,
-                image.PixelBuffer.DangerousGetRowSpan(y));
+            if (isEightBit)
+            {
+                PixelOperations<TPixel>.Instance.FromRgb24(
+                    configuration,
+                    rgbRow,
+                    image.PixelBuffer.DangerousGetRowSpan(y));
+            }
+            else
+            {
+                PixelOperations<TPixel>.Instance.FromRgb48(
+                    configuration,
+                    highBitDepthRgbRow,
+                    image.PixelBuffer.DangerousGetRowSpan(y));
+            }
         }
     }
 
@@ -174,29 +202,68 @@ internal static class Av1YuvConverter
         Buffer2DRegion<byte> uPlane = isMonochrome ? default : frameBuffer.DeriveBlockPointer(Av1Plane.U, subX, subY);
         Buffer2DRegion<byte> vPlane = isMonochrome ? default : frameBuffer.DeriveBlockPointer(Av1Plane.V, subX, subY);
         int sourceRowsPerIteration = !isMonochrome && subY != 0 ? 2 : 1;
-        using IMemoryOwner<Rgb24> rowOwner = configuration.MemoryAllocator.Allocate<Rgb24>(image.Width * sourceRowsPerIteration);
-        Span<Rgb24> rgbRow0 = rowOwner.GetSpan()[..image.Width];
-        Span<Rgb24> rgbRow1 = sourceRowsPerIteration == 2
+        bool isEightBit = frameBuffer.BitDepth == Av1BitDepth.EightBit;
+        int rowBufferLength = image.Width * sourceRowsPerIteration;
+        using IMemoryOwner<Rgb24>? rowOwner = isEightBit
+            ? configuration.MemoryAllocator.Allocate<Rgb24>(rowBufferLength)
+            : null;
+
+        using IMemoryOwner<Rgb48>? highBitDepthRowOwner = isEightBit
+            ? null
+            : configuration.MemoryAllocator.Allocate<Rgb48>(rowBufferLength);
+
+        Span<Rgb24> rgbRow0 = rowOwner is null ? Span<Rgb24>.Empty : rowOwner.GetSpan()[..image.Width];
+        Span<Rgb24> rgbRow1 = sourceRowsPerIteration == 2 && rowOwner is not null
             ? rowOwner.GetSpan().Slice(image.Width, image.Width)
             : Span<Rgb24>.Empty;
 
+        Span<Rgb48> highBitDepthRgbRow0 = highBitDepthRowOwner is null
+            ? Span<Rgb48>.Empty
+            : highBitDepthRowOwner.GetSpan()[..image.Width];
+
+        Span<Rgb48> highBitDepthRgbRow1 = sourceRowsPerIteration == 2 && highBitDepthRowOwner is not null
+            ? highBitDepthRowOwner.GetSpan().Slice(image.Width, image.Width)
+            : Span<Rgb48>.Empty;
+
         for (int y = 0; y < image.Height; y += sourceRowsPerIteration)
         {
-            PixelOperations<TPixel>.Instance.ToRgb24(
-                configuration,
-                image.PixelBuffer.DangerousGetRowSpan(y),
-                rgbRow0);
+            if (isEightBit)
+            {
+                PixelOperations<TPixel>.Instance.ToRgb24(
+                    configuration,
+                    image.PixelBuffer.DangerousGetRowSpan(y),
+                    rgbRow0);
+            }
+            else
+            {
+                // Rgb48 retains source component precision before the values are quantized to the requested
+                // 10-bit or 12-bit AV1 sample range.
+                PixelOperations<TPixel>.Instance.ToRgb48(
+                    configuration,
+                    image.PixelBuffer.DangerousGetRowSpan(y),
+                    highBitDepthRgbRow0);
+            }
 
             bool hasSecondSourceRow = sourceRowsPerIteration == 2 && y + 1 < image.Height;
             if (hasSecondSourceRow)
             {
-                PixelOperations<TPixel>.Instance.ToRgb24(
-                    configuration,
-                    image.PixelBuffer.DangerousGetRowSpan(y + 1),
-                    rgbRow1);
+                if (isEightBit)
+                {
+                    PixelOperations<TPixel>.Instance.ToRgb24(
+                        configuration,
+                        image.PixelBuffer.DangerousGetRowSpan(y + 1),
+                        rgbRow1);
+                }
+                else
+                {
+                    PixelOperations<TPixel>.Instance.ToRgb48(
+                        configuration,
+                        image.PixelBuffer.DangerousGetRowSpan(y + 1),
+                        highBitDepthRgbRow1);
+                }
             }
 
-            if (frameBuffer.BitDepth == Av1BitDepth.EightBit)
+            if (isEightBit)
             {
                 Span<byte> yRow0 = yPlane.DangerousGetRowSpan(y);
                 if (isMonochrome || subX == 0)
@@ -242,7 +309,7 @@ internal static class Av1YuvConverter
                 if (isMonochrome || subX == 0)
                 {
                     ConvertRgbToYuvRow(
-                        rgbRow0,
+                        highBitDepthRgbRow0,
                         yRow0,
                         isMonochrome ? Span<ushort>.Empty : frameBuffer.GetHighBitDepthRowSpan(Av1Plane.U, y, 0, 0),
                         isMonochrome ? Span<ushort>.Empty : frameBuffer.GetHighBitDepthRowSpan(Av1Plane.V, y, 0, 0),
@@ -259,8 +326,8 @@ internal static class Av1YuvConverter
                 else
                 {
                     ConvertRgbToSubsampledYuvRows(
-                        rgbRow0,
-                        hasSecondSourceRow ? rgbRow1 : ReadOnlySpan<Rgb24>.Empty,
+                        highBitDepthRgbRow0,
+                        hasSecondSourceRow ? highBitDepthRgbRow1 : ReadOnlySpan<Rgb48>.Empty,
                         yRow0,
                         hasSecondSourceRow ? frameBuffer.GetHighBitDepthRowSpan(Av1Plane.Y, y + 1, 0, 0) : Span<ushort>.Empty,
                         frameBuffer.GetHighBitDepthRowSpan(Av1Plane.U, y >> subY, subX, subY),
@@ -375,6 +442,7 @@ internal static class Av1YuvConverter
     /// Converts one YUV row to packed RGB using the resolved H.273 conversion state.
     /// </summary>
     /// <typeparam name="TSample">The encoded sample type.</typeparam>
+    /// <typeparam name="TRgb">The packed RGB staging type.</typeparam>
     /// <param name="ySource">The luma samples.</param>
     /// <param name="uRow0">The upper blue-difference chroma row.</param>
     /// <param name="uRow1">The lower blue-difference chroma row.</param>
@@ -395,14 +463,14 @@ internal static class Av1YuvConverter
     /// <param name="chromaBias">The encoded chroma midpoint.</param>
     /// <param name="chromaScale">The encoded chroma range.</param>
     /// <param name="sampleMaximum">The largest encoded sample value.</param>
-    private static void ConvertYuvToRgbRow<TSample>(
+    private static void ConvertYuvToRgbRow<TSample, TRgb>(
         ReadOnlySpan<TSample> ySource,
         ReadOnlySpan<TSample> uRow0,
         ReadOnlySpan<TSample> uRow1,
         ReadOnlySpan<TSample> vRow0,
         ReadOnlySpan<TSample> vRow1,
         int y1Weight,
-        Span<Rgb24> destination,
+        Span<TRgb> destination,
         bool isMonochrome,
         int subX,
         int subY,
@@ -417,6 +485,7 @@ internal static class Av1YuvConverter
         float chromaScale,
         float sampleMaximum)
         where TSample : unmanaged
+        where TRgb : unmanaged
     {
         for (int x = 0; x < destination.Length; x++)
         {
@@ -460,10 +529,26 @@ internal static class Av1YuvConverter
                 }
             }
 
-            destination[x] = new Rgb24(
-                ToSample<byte>(r * ByteMaximum, ByteMaximum),
-                ToSample<byte>(g * ByteMaximum, ByteMaximum),
-                ToSample<byte>(b * ByteMaximum, ByteMaximum));
+            // The generic staging type is controlled by the frame bit depth. The JIT removes the inactive branch,
+            // retaining direct component access without routing every pixel through Vector4 or interface dispatch.
+            if (typeof(TRgb) == typeof(Rgb24))
+            {
+                Rgb24 pixel = new(
+                    ToSample<byte>(r * ByteMaximum, ByteMaximum),
+                    ToSample<byte>(g * ByteMaximum, ByteMaximum),
+                    ToSample<byte>(b * ByteMaximum, ByteMaximum));
+
+                destination[x] = Unsafe.As<Rgb24, TRgb>(ref pixel);
+            }
+            else
+            {
+                Rgb48 pixel = new(
+                    ToSample<ushort>(r * UShortMaximum, UShortMaximum),
+                    ToSample<ushort>(g * UShortMaximum, UShortMaximum),
+                    ToSample<ushort>(b * UShortMaximum, UShortMaximum));
+
+                destination[x] = Unsafe.As<Rgb48, TRgb>(ref pixel);
+            }
         }
     }
 
@@ -545,6 +630,7 @@ internal static class Av1YuvConverter
     /// Converts one packed RGB row to luma and optional full-resolution chroma using the resolved H.273 conversion state.
     /// </summary>
     /// <typeparam name="TSample">The encoded sample type.</typeparam>
+    /// <typeparam name="TRgb">The packed RGB staging type.</typeparam>
     /// <param name="source">The source RGB pixels.</param>
     /// <param name="yDestination">The destination luma samples.</param>
     /// <param name="uDestination">The destination blue-difference chroma samples.</param>
@@ -558,8 +644,8 @@ internal static class Av1YuvConverter
     /// <param name="chromaBias">The encoded chroma midpoint.</param>
     /// <param name="chromaScale">The encoded chroma range.</param>
     /// <param name="sampleMaximum">The largest encoded sample value.</param>
-    private static void ConvertRgbToYuvRow<TSample>(
-        ReadOnlySpan<Rgb24> source,
+    private static void ConvertRgbToYuvRow<TSample, TRgb>(
+        ReadOnlySpan<TRgb> source,
         Span<TSample> yDestination,
         Span<TSample> uDestination,
         Span<TSample> vDestination,
@@ -573,6 +659,7 @@ internal static class Av1YuvConverter
         float chromaScale,
         float sampleMaximum)
         where TSample : unmanaged
+        where TRgb : unmanaged
     {
         for (int x = 0; x < source.Length; x++)
         {
@@ -599,6 +686,7 @@ internal static class Av1YuvConverter
     /// Converts one or two packed RGB rows to luma and horizontally subsampled chroma.
     /// </summary>
     /// <typeparam name="TSample">The encoded sample type.</typeparam>
+    /// <typeparam name="TRgb">The packed RGB staging type.</typeparam>
     /// <param name="sourceRow0">The first source row.</param>
     /// <param name="sourceRow1">The optional second source row for 4:2:0 conversion.</param>
     /// <param name="yDestination0">The first destination luma row.</param>
@@ -614,9 +702,9 @@ internal static class Av1YuvConverter
     /// <param name="chromaBias">The encoded chroma midpoint.</param>
     /// <param name="chromaScale">The encoded chroma range.</param>
     /// <param name="sampleMaximum">The largest encoded sample value.</param>
-    private static void ConvertRgbToSubsampledYuvRows<TSample>(
-        ReadOnlySpan<Rgb24> sourceRow0,
-        ReadOnlySpan<Rgb24> sourceRow1,
+    private static void ConvertRgbToSubsampledYuvRows<TSample, TRgb>(
+        ReadOnlySpan<TRgb> sourceRow0,
+        ReadOnlySpan<TRgb> sourceRow1,
         Span<TSample> yDestination0,
         Span<TSample> yDestination1,
         Span<TSample> uDestination,
@@ -631,6 +719,7 @@ internal static class Av1YuvConverter
         float chromaScale,
         float sampleMaximum)
         where TSample : unmanaged
+        where TRgb : unmanaged
     {
         int rowCount = sourceRow1.IsEmpty ? 1 : 2;
         for (int x = 0; x < sourceRow0.Length; x += 2)
@@ -640,7 +729,7 @@ internal static class Av1YuvConverter
             float crSum = 0F;
             for (int row = 0; row < rowCount; row++)
             {
-                ReadOnlySpan<Rgb24> source = row == 0 ? sourceRow0 : sourceRow1;
+                ReadOnlySpan<TRgb> source = row == 0 ? sourceRow0 : sourceRow1;
                 Span<TSample> yDestination = row == 0 ? yDestination0 : yDestination1;
                 for (int column = 0; column < columnCount; column++)
                 {
@@ -666,6 +755,7 @@ internal static class Av1YuvConverter
     /// <summary>
     /// Converts one packed RGB pixel to normalized luma and chroma values.
     /// </summary>
+    /// <typeparam name="TRgb">The packed RGB staging type.</typeparam>
     /// <param name="pixel">The source RGB pixel.</param>
     /// <param name="mode">The conversion mode.</param>
     /// <param name="kr">The red luma coefficient.</param>
@@ -675,8 +765,8 @@ internal static class Av1YuvConverter
     /// <param name="cb">The normalized blue-difference chroma result.</param>
     /// <param name="cr">The normalized red-difference chroma result.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void ConvertRgbToYuv(
-        Rgb24 pixel,
+    private static void ConvertRgbToYuv<TRgb>(
+        TRgb pixel,
         ConversionMode mode,
         float kr,
         float kg,
@@ -684,10 +774,29 @@ internal static class Av1YuvConverter
         out float y,
         out float cb,
         out float cr)
+        where TRgb : unmanaged
     {
-        float r = pixel.R / ByteMaximum;
-        float g = pixel.G / ByteMaximum;
-        float b = pixel.B / ByteMaximum;
+        float r;
+        float g;
+        float b;
+
+        // These are the only staging formats selected by the owning conversion methods. Keeping the format choice
+        // generic lets the JIT specialize the hot loop and preserves high-bit-depth input without boxing or copies.
+        if (typeof(TRgb) == typeof(Rgb24))
+        {
+            Rgb24 rgb24 = Unsafe.As<TRgb, Rgb24>(ref pixel);
+            r = rgb24.R / ByteMaximum;
+            g = rgb24.G / ByteMaximum;
+            b = rgb24.B / ByteMaximum;
+        }
+        else
+        {
+            Rgb48 rgb48 = Unsafe.As<TRgb, Rgb48>(ref pixel);
+            r = rgb48.R / UShortMaximum;
+            g = rgb48.G / UShortMaximum;
+            b = rgb48.B / UShortMaximum;
+        }
+
         switch (mode)
         {
             case ConversionMode.Identity:

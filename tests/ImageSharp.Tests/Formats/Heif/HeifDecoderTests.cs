@@ -11,11 +11,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.Heif;
 public class HeifDecoderTests
 {
     [Theory]
-    [InlineData(TestImages.Heif.Image1, HeifCompressionMethod.Hevc)]
-    [InlineData(TestImages.Heif.Sample640x427, HeifCompressionMethod.Hevc)]
-    [InlineData(TestImages.Heif.FujiFilmHif, HeifCompressionMethod.LegacyJpeg)]
-    [InlineData(TestImages.Heif.IrvineAvif, HeifCompressionMethod.Av1)]
-    public void Identify(string imagePath, HeifCompressionMethod compressionMethod)
+    [InlineData(TestImages.Heif.Image1, HeifCompressionMethod.Hevc, 3992, 2992)]
+    [InlineData(TestImages.Heif.Sample640x427, HeifCompressionMethod.Hevc, 640, 428)]
+    [InlineData(TestImages.Heif.FujiFilmHif, HeifCompressionMethod.LegacyJpeg, 7728, 5152)]
+    [InlineData(TestImages.Heif.IrvineAvif, HeifCompressionMethod.Av1, 480, 640)]
+    public void Identify(string imagePath, HeifCompressionMethod compressionMethod, int width, int height)
     {
         TestFile testFile = TestFile.Create(imagePath);
         using MemoryStream stream = new(testFile.Bytes, false);
@@ -26,6 +26,8 @@ public class HeifDecoderTests
         Assert.NotNull(imageInfo);
         Assert.Equal(HeifFormat.Instance, imageInfo.Metadata.DecodedImageFormat);
         Assert.Equal(compressionMethod, heicMetadata.CompressionMethod);
+        Assert.Equal(width, imageInfo.Width);
+        Assert.Equal(height, imageInfo.Height);
     }
 
     [Theory]

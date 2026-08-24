@@ -465,9 +465,13 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                         this.metadata.IccProfile = new IccProfile(iccData);
                     }
 
+                    // Property indices refer to every box in ipco, including properties handled directly while parsing.
+                    properties.Add(new KeyValuePair<Heif4CharCode, object>(Heif4CharCode.Colr, new object()));
+
                     break;
                 case Heif4CharCode.Av1C:
                     this.av1CodecConfiguration = new(boxBuffer);
+                    properties.Add(new KeyValuePair<Heif4CharCode, object>(Heif4CharCode.Av1C, new object()));
                     break;
                 case Heif4CharCode.Altt:
                 case Heif4CharCode.Imir:
@@ -490,38 +494,72 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
         using IMemoryOwner<byte> boxMemory = this.ReadIntoBuffer(stream, boxLength);
         Span<byte> boxBuffer = boxMemory.GetSpan();
         byte version = boxBuffer[0];
-        byte flags = boxBuffer[3];
+        bool largePropertyIndex = (boxBuffer[3] & 1) != 0;
         int bytesRead = 4;
-        int itemId = (int)ReadUInt16Or32(boxBuffer, version >= 1, ref bytesRead);
-
-        int associationCount = boxBuffer[bytesRead++];
-        for (int i = 0; i < associationCount; i++)
+        uint entryCount = BinaryPrimitives.ReadUInt32BigEndian(boxBuffer[bytesRead..]);
+        bytesRead += 4;
+        for (uint entryIndex = 0; entryIndex < entryCount; entryIndex++)
         {
-            uint propId;
-            if (flags == 1)
+            uint itemId = ReadUInt16Or32(boxBuffer, version >= 1, ref bytesRead);
+            HeifItem? item = this.FindItemById(itemId);
+            if (item is null)
             {
-                propId = BinaryPrimitives.ReadUInt16BigEndian(boxBuffer[bytesRead..]) & 0x4FFFU;
-                bytesRead += 2;
-            }
-            else
-            {
-                propId = boxBuffer[bytesRead++] & 0x4FU;
+                throw new InvalidImageContentException($"Item property association references unknown item ID {itemId}.");
             }
 
-            KeyValuePair<Heif4CharCode, object> prop = properties[(int)propId];
-            switch (prop.Key)
+            int associationCount = boxBuffer[bytesRead++];
+            for (int i = 0; i < associationCount; i++)
             {
-                case Heif4CharCode.Ispe:
-                    this.items[itemId].SetExtent((Size)prop.Value);
-                    break;
-                case Heif4CharCode.Pasp:
-                    this.items[itemId].PixelAspectRatio = (Size)prop.Value;
-                    break;
-                case Heif4CharCode.Pixi:
-                    int[] values = (int[])prop.Value;
-                    this.items[itemId].ChannelCount = values[0];
-                    this.items[itemId].BitsPerPixel = values[1];
-                    break;
+                uint association;
+                uint propertyIndexMask;
+                uint essentialMask;
+                if (largePropertyIndex)
+                {
+                    association = BinaryPrimitives.ReadUInt16BigEndian(boxBuffer[bytesRead..]);
+                    bytesRead += 2;
+                    propertyIndexMask = 0x7FFFU;
+                    essentialMask = 0x8000U;
+                }
+                else
+                {
+                    association = boxBuffer[bytesRead++];
+                    propertyIndexMask = 0x7FU;
+                    essentialMask = 0x80U;
+                }
+
+                uint propertyIndex = association & propertyIndexMask;
+                bool essential = (association & essentialMask) != 0;
+                if (propertyIndex == 0)
+                {
+                    if (essential)
+                    {
+                        throw new InvalidImageContentException($"Item {itemId} associates essential property index 0.");
+                    }
+
+                    continue;
+                }
+
+                propertyIndex--;
+                if (propertyIndex >= properties.Count)
+                {
+                    throw new InvalidImageContentException($"Item {itemId} references property index {propertyIndex + 1}, but only {properties.Count} properties exist.");
+                }
+
+                KeyValuePair<Heif4CharCode, object> prop = properties[(int)propertyIndex];
+                switch (prop.Key)
+                {
+                    case Heif4CharCode.Ispe:
+                        item.SetExtent((Size)prop.Value);
+                        break;
+                    case Heif4CharCode.Pasp:
+                        item.PixelAspectRatio = (Size)prop.Value;
+                        break;
+                    case Heif4CharCode.Pixi:
+                        int[] values = (int[])prop.Value;
+                        item.ChannelCount = values[0];
+                        item.BitsPerPixel = values[1];
+                        break;
+                }
             }
         }
     }

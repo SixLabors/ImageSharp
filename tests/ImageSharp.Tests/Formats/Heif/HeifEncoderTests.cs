@@ -23,6 +23,10 @@ public class HeifEncoderTests
         image.Save(stream, encoder);
         stream.Position = 0;
 
+        ImageInfo imageInfo = Image.Identify(stream);
+        Assert.Equal(image.Size, imageInfo.Size);
+
+        stream.Position = 0;
         using Image<TPixel> encodedImage = Image.Load<TPixel>(stream);
         HeifMetadata heifMetadata = encodedImage.Metadata.GetHeifMetadata();
 

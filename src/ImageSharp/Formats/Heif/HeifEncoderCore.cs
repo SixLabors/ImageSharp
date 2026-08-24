@@ -220,7 +220,6 @@ internal sealed class HeifEncoderCore
 
     private static int WriteItemPropertiesBox(AutoExpandingMemory<byte> memory, int memoryOffset, List<HeifItem> items)
     {
-        const ushort numPropPerItem = 1;
         Span<byte> buffer = memory.GetSpan(memoryOffset, 20);
         int bytesWritten = WriteBoxHeader(buffer, Heif4CharCode.Iprp);
 
@@ -233,22 +232,32 @@ internal sealed class HeifEncoderCore
         }
 
         BinaryPrimitives.WriteUInt32BigEndian(buffer[ipcoLengthOffset..], (uint)(bytesWritten - ipcoLengthOffset));
-        buffer = memory.GetSpan(memoryOffset, bytesWritten + 16 + (5 * items.Count * numPropPerItem));
+        bool largePropertyIndex = items.Count > 0x7F;
+        int propertyIndexSize = largePropertyIndex ? 2 : 1;
+        buffer = memory.GetSpan(memoryOffset, bytesWritten + 16 + ((3 + propertyIndexSize) * items.Count));
 
         // Write 'ipma' box
         int ipmaLengthOffset = bytesWritten;
-        bytesWritten += WriteBoxHeader(buffer[bytesWritten..], Heif4CharCode.Ipma, 0, 0);
-        BinaryPrimitives.WriteUInt32BigEndian(buffer[bytesWritten..], (uint)(items.Count * numPropPerItem));
+        bytesWritten += WriteBoxHeader(buffer[bytesWritten..], Heif4CharCode.Ipma, 0, largePropertyIndex ? 1U : 0U);
+        BinaryPrimitives.WriteUInt32BigEndian(buffer[bytesWritten..], (uint)items.Count);
         bytesWritten += 4;
-        ushort propIndex = 0;
+        ushort propertyIndex = 1;
         foreach (HeifItem item in items)
         {
             BinaryPrimitives.WriteUInt16BigEndian(buffer[bytesWritten..], (ushort)item.Id);
             bytesWritten += 2;
             buffer[bytesWritten++] = 1;
-            BinaryPrimitives.WriteUInt16BigEndian(buffer[bytesWritten..], propIndex);
-            bytesWritten += 2;
-            propIndex += numPropPerItem;
+            if (largePropertyIndex)
+            {
+                BinaryPrimitives.WriteUInt16BigEndian(buffer[bytesWritten..], propertyIndex);
+                bytesWritten += 2;
+            }
+            else
+            {
+                buffer[bytesWritten++] = (byte)propertyIndex;
+            }
+
+            propertyIndex++;
         }
 
         BinaryPrimitives.WriteUInt32BigEndian(buffer[ipmaLengthOffset..], (uint)(bytesWritten - ipmaLengthOffset));

@@ -6,28 +6,73 @@ using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 
+/// <summary>
+/// Writes AV1 literals and adaptively coded symbols to a range-coded byte sequence.
+/// </summary>
 internal class Av1SymbolWriter : IDisposable
 {
+    /// <summary>
+    /// The lower endpoint of the current coding interval.
+    /// </summary>
     private uint low;
+
+    /// <summary>
+    /// The width of the current normalized coding interval.
+    /// </summary>
     private uint rng = 0x8000U;
 
-    // Count is initialized to -9 so that it crosses zero after we've accumulated one byte + one carry bit.
+    /// <summary>
+    /// The number of accumulated bits relative to the next byte-and-carry flush boundary.
+    /// </summary>
+    /// <remarks>
+    /// The initial value of -9 crosses zero after one output byte and its carry bit have accumulated.
+    /// </remarks>
     private int cnt = -9;
+
+    /// <summary>
+    /// The configuration that supplies output allocation.
+    /// </summary>
     private readonly Configuration configuration;
+
+    /// <summary>
+    /// The pre-carry output values accumulated during renormalization.
+    /// </summary>
     private readonly AutoExpandingMemory<ushort> memory;
+
+    /// <summary>
+    /// The next pre-carry output position.
+    /// </summary>
     private int position;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Av1SymbolWriter"/> class with an estimated output size.
+    /// </summary>
+    /// <param name="configuration">The configuration that supplies output allocation.</param>
+    /// <param name="initialSize">The estimated encoded size in bytes.</param>
     public Av1SymbolWriter(Configuration configuration, int initialSize)
     {
         this.configuration = configuration;
         this.memory = new AutoExpandingMemory<ushort>(configuration, (initialSize + 1) >> 1);
     }
 
+    /// <summary>
+    /// Releases the expandable pre-carry buffer.
+    /// </summary>
     public void Dispose() => this.memory.Dispose();
 
+    /// <summary>
+    /// Writes one binary symbol and adapts its distribution.
+    /// </summary>
+    /// <param name="symbol">The binary symbol.</param>
+    /// <param name="distribution">The inverse cumulative distribution for the binary alphabet.</param>
     public void WriteSymbol(bool symbol, Av1Distribution distribution)
         => this.WriteSymbol(symbol ? 1 : 0, distribution);
 
+    /// <summary>
+    /// Writes one symbol and adapts its distribution.
+    /// </summary>
+    /// <param name="symbol">The zero-based symbol.</param>
+    /// <param name="distribution">The inverse cumulative distribution for the symbol alphabet.</param>
     public void WriteSymbol(int symbol, Av1Distribution distribution)
     {
         DebugGuard.MustBeGreaterThanOrEqualTo(symbol, 0, nameof(symbol));
@@ -38,8 +83,17 @@ internal class Av1SymbolWriter : IDisposable
         distribution.Update(symbol);
     }
 
+    /// <summary>
+    /// Writes one equiprobable literal bit.
+    /// </summary>
+    /// <param name="value">The literal bit.</param>
     public void WriteLiteral(bool value) => this.WriteLiteral(value ? 1u : 0u, 1);
 
+    /// <summary>
+    /// Writes the requested low-order bits in most-significant-bit-first order.
+    /// </summary>
+    /// <param name="value">The unsigned literal value.</param>
+    /// <param name="bitCount">The number of low-order bits to write.</param>
     public void WriteLiteral(uint value, int bitCount)
     {
         const uint p = 0x4000U; // (0x7FFFFFU - (128 << 15) + 128) >> 8;
@@ -50,10 +104,14 @@ internal class Av1SymbolWriter : IDisposable
         }
     }
 
+    /// <summary>
+    /// Terminates the range-coded sequence and propagates pending carries into an owned byte buffer.
+    /// </summary>
+    /// <returns>An owner containing the shortest byte sequence that preserves every encoded symbol.</returns>
     public IMemoryOwner<byte> Exit()
     {
-        // We output the minimum number of bits that ensures that the symbols encoded
-        // thus far will be decoded correctly regardless of the bits that follow.
+        // Round the low endpoint into the current interval so the emitted prefix selects every symbol encoded so far
+        // regardless of the bits that follow it.
         uint l = this.low;
         int c = this.cnt;
         int pos = this.position;
@@ -80,7 +138,8 @@ internal class Av1SymbolWriter : IDisposable
         c = Math.Max((s + 7) >> 3, 0);
         IMemoryOwner<byte> output = this.configuration.MemoryAllocator.Allocate<byte>(pos + c);
 
-        // Perform carry propagation.
+        // Pre-carry values use 16-bit elements so a byte plus a propagated carry can coexist. Walking backwards folds
+        // each carry into the preceding byte without shifting the buffered sequence.
         Span<byte> outputSlice = output.GetSpan()[(output.Length() - pos)..];
         c = 0;
         while (pos > 0)
@@ -109,6 +168,9 @@ internal class Av1SymbolWriter : IDisposable
         l = this.low;
         r = this.rng;
         DebugGuard.MustBeGreaterThanOrEqualTo(r, 32768U, nameof(r));
+
+        // Reduce the Q15 frequency to the range-coder multiplication precision and retain a nonzero interval for
+        // both outcomes. Av1SymbolReader applies the identical rounding model.
         v = ((r >> 8) * (frequency >> Av1Distribution.ProbabilityShift)) >> (7 - Av1Distribution.ProbabilityShift);
         v += Av1Distribution.ProbabilityMinimum;
         if (val)
@@ -136,6 +198,13 @@ internal class Av1SymbolWriter : IDisposable
     private void EncodeIntegerQ15(int symbol, Av1Distribution distribution)
         => this.EncodeIntegerQ15(symbol > 0 ? distribution[symbol - 1] : Av1Distribution.ProbabilityTop, distribution[symbol], symbol, distribution.NumberOfSymbols);
 
+    /// <summary>
+    /// Narrows the coding interval to one symbol's inverse-cumulative bounds.
+    /// </summary>
+    /// <param name="lowFrequency">The inverse cumulative threshold preceding the symbol.</param>
+    /// <param name="highFrequency">The inverse cumulative threshold following the symbol.</param>
+    /// <param name="symbol">The zero-based symbol.</param>
+    /// <param name="numberOfSymbols">The size of the symbol alphabet.</param>
     private void EncodeIntegerQ15(uint lowFrequency, uint highFrequency, int symbol, int numberOfSymbols)
     {
         const int totalShift = 7 - Av1Distribution.ProbabilityShift - Av1Distribution.CdfShift;
@@ -182,11 +251,9 @@ internal class Av1SymbolWriter : IDisposable
         DebugGuard.MustBeLessThanOrEqualTo(rng, 65535U, nameof(rng));
         d = 15 - Av1Math.MostSignificantBit(rng);
         s = c + d;
-        /*TODO: Right now we flush every time we have at least one byte available.
-        Instead we should use an OdEcWindow and flush right before we're about to
-        shift bits off the end of the window.
-        For a 32-bit window this is about the same amount of work, but for a 64-bit
-        window it should be a fair win.*/
+
+        // The 32-bit low endpoint is flushed whenever a byte becomes available. Retaining pre-carry values as
+        // ushort elements defers carry propagation until Exit without requiring a separate wider coding window.
         if (s >= 0)
         {
             uint m;

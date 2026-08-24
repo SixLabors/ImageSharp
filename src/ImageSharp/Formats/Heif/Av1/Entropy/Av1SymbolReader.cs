@@ -3,31 +3,54 @@
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 
+/// <summary>
+/// Reads AV1 literals and adaptively coded symbols from one bounded entropy-coded byte span.
+/// </summary>
 internal ref struct Av1SymbolReader
 {
+    /// <summary>
+    /// The number of bits in the range-decoder code-value window.
+    /// </summary>
     private const int DecoderWindowsSize = 32;
+
+    /// <summary>
+    /// The synthetic count used after the bounded input has been exhausted and zero padding begins.
+    /// </summary>
     private const int LotsOfBits = 0x4000;
 
+    /// <summary>
+    /// The bounded entropy-coded bytes available to this reader.
+    /// </summary>
     private readonly Span<byte> buffer;
+
+    /// <summary>
+    /// The next byte position to load into the code-value window.
+    /// </summary>
     private int position;
 
-    /*
-     * The difference between the high end of the current range, (low + rng), and
-     * the coded value, minus 1.
-     * This stores up to OD_EC_WINDOW_SIZE bits of that difference, but the
-     * decoder only uses the top 16 bits of the window to decode the next symbol.
-     * As we shift up during renormalization, if we don't have enough bits left in
-     * the window to fill the top 16, we'll read in more bits of the coded
-     * value.
-     */
+    /// <summary>
+    /// The difference between the upper end of the current range and the coded value, minus one.
+    /// </summary>
+    /// <remarks>
+    /// The decoder compares the upper 16 bits. Renormalization shifts consumed bits out and refills the lower portion
+    /// from <see cref="buffer"/> so the comparison remains aligned with <see cref="range"/>.
+    /// </remarks>
     private uint difference;
 
-    // The number of values in the current range.
+    /// <summary>
+    /// The number of code values in the current normalized interval.
+    /// </summary>
     private uint range;
 
-    // The number of bits in the current value.
+    /// <summary>
+    /// The number of buffered bits below the 16-bit comparison window.
+    /// </summary>
     private int count;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Av1SymbolReader"/> struct over one entropy-coded span.
+    /// </summary>
+    /// <param name="span">The bounded entropy-coded bytes.</param>
     public Av1SymbolReader(Span<byte> span)
     {
         this.buffer = span;
@@ -38,15 +61,25 @@ internal ref struct Av1SymbolReader
         this.Refill();
     }
 
+    /// <summary>
+    /// Reads one symbol and adapts its distribution.
+    /// </summary>
+    /// <param name="distribution">The inverse cumulative distribution for the symbol alphabet.</param>
+    /// <returns>The decoded zero-based symbol.</returns>
     public int ReadSymbol(Av1Distribution distribution)
     {
         int value = this.DecodeIntegerQ15(distribution);
 
-        // UpdateCdf(probabilities, value, numberOfSymbols);
+        // Decoder and encoder must adapt after the same symbol so their subsequent intervals remain identical.
         distribution.Update(value);
         return value;
     }
 
+    /// <summary>
+    /// Reads an unsigned literal in most-significant-bit-first order.
+    /// </summary>
+    /// <param name="bitCount">The number of literal bits to read.</param>
+    /// <returns>The decoded literal.</returns>
     public int ReadLiteral(int bitCount)
     {
         const uint prob = (0x7FFFFFU - (128 << 15) + 128) >> 8;
@@ -66,6 +99,7 @@ internal ref struct Av1SymbolReader
     /// Decode a single binary value.
     /// </summary>
     /// <param name="frequency">The probability that the bit is one, scaled by 32768.</param>
+    /// <returns>The decoded binary value.</returns>
     private bool DecodeBoolQ15(uint frequency)
     {
         uint dif;
@@ -75,13 +109,11 @@ internal ref struct Av1SymbolReader
         uint v;
         bool ret;
 
-        // assert(0 < f);
-        // assert(f < 32768U);
         dif = this.difference;
         range = this.range;
 
-        // assert(dif >> (DecoderWindowsSize - 16) < r);
-        // assert(32768U <= r);
+        // Reserve a minimum interval for both outcomes after reducing the Q15 frequency to the range-coder
+        // multiplication precision. This is the same rounding model used by Av1SymbolWriter.
         v = ((range >> 8) * (frequency >> Av1Distribution.ProbabilityShift)) >> (7 - Av1Distribution.ProbabilityShift);
         v += Av1Distribution.ProbabilityMinimum;
         vw = v << (DecoderWindowsSize - 16);
@@ -146,16 +178,14 @@ internal ref struct Av1SymbolReader
     /// <paramref name="rng"/> has value between 32768 and 65536 (reading more bytes from the stream into dif if
     /// necessary), and stores them back in the decoder context.
     /// </summary>
+    /// <param name="dif">The updated code-value difference.</param>
+    /// <param name="rng">The updated coding interval width.</param>
     private void Normalize(uint dif, uint rng)
     {
-        int d;
-
-        // assert(rng <= 65535U);
-        /*The number of leading zeros in the 16-bit binary representation of rng.*/
-        d = 15 - Av1Math.MostSignificantBit(rng);
-        /*d bits in dec->dif are consumed.*/
+        // Shifting by the leading-zero count restores the interval to [32768, 65536) and consumes the same number of
+        // code-value bits. Adding one before the shift preserves the decoder's difference-minus-one representation.
+        int d = 15 - Av1Math.MostSignificantBit(rng);
         this.count -= d;
-        /*This is equivalent to shifting in 1's instead of 0's.*/
         this.difference = ((dif + 1) << d) - 1;
         this.range = rng << d;
         if (this.count < 0)
@@ -164,19 +194,20 @@ internal ref struct Av1SymbolReader
         }
     }
 
+    /// <summary>
+    /// Loads whole bytes into the lower portion of the code-value window after renormalization.
+    /// </summary>
     private void Refill()
     {
-        int s;
         uint dif = this.difference;
         int cnt = this.count;
         int position = this.position;
         int end = this.buffer.Length;
-        s = DecoderWindowsSize - 9 - (cnt + 15);
+        int s = DecoderWindowsSize - 9 - (cnt + 15);
         for (; s >= 0 && position < end; s -= 8, position++)
         {
-            /*Each time a byte is inserted into the window (dif), bptr advances and cnt
-           is incremented by 8, so the total number of consumed bits (the return
-           value of od_ec_dec_tell) does not change.*/
+            // XOR inserts a source byte into the difference-minus-one representation. Advancing both the byte
+            // position and buffered-bit count leaves the logical number of consumed bits unchanged.
             DebugGuard.MustBeLessThan(s, DecoderWindowsSize - 8, nameof(s));
             dif ^= (uint)this.buffer[position] << s;
             cnt += 8;
@@ -184,19 +215,8 @@ internal ref struct Av1SymbolReader
 
         if (position >= end)
         {
-            /*
-             * We've reached the end of the buffer. It is perfectly valid for us to need
-             * to fill the window with additional bits past the end of the buffer (and
-             * this happens in normal operation). These bits should all just be taken
-             * as zero. But we cannot increment bptr past 'end' (this is undefined
-             * behavior), so we start to increment dec->tell_offs. We also don't want
-             * to keep testing bptr against 'end', so we set cnt to OD_EC_LOTS_OF_BITS
-             * and adjust dec->tell_offs so that the total number of unconsumed bits in
-             * the window (dec->cnt - dec->tell_offs) does not change. This effectively
-             * puts lots of zero bits into the window, and means we won't try to refill
-             * it from the buffer for a very long time (at which point we'll put lots
-             * of zero bits into the window again).
-             */
+            // AV1 range decoding permits the final interval to consume implicit zero padding. A large count models
+            // that padding without advancing beyond the bounded source span or repeatedly attempting to refill it.
             cnt = LotsOfBits;
         }
 
